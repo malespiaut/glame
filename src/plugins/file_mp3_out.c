@@ -1,6 +1,6 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.9 2004/10/23 13:09:29 richi Exp $
+ * $Id: file_mp3_out.c,v 1.10 2004/11/15 21:53:13 ochonpaul Exp $
  *
  * Copyright (C) 2004 Richard Guenther, Laurent Georget
  *
@@ -144,6 +144,8 @@ static int write_mp3_file_f(filter_t * n)
 	/* mp3_buf = ALLOCN(mp3_buf_size, unsigned char); */
 	gfp = lame_init();
 	id3tag_init(gfp);
+	
+	if(lame_set_in_samplerate(gfp, sampleRate)<0) FILTER_ERROR_STOP ("error  setting sapmple rate");
 	
 	quality = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame encoding quality"));
 	if (lame_set_quality(gfp, quality)<0) FILTER_ERROR_STOP ("error  setting lame quality.");
