@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(glame, 0.7CVS)
+AC_INIT(glame, 0.7.1pre1)
 AC_CONFIG_SRCDIR(configure.ac)
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_CONFIG_HEADER(config.h)
@@ -67,7 +67,7 @@ AM_PROG_LIBTOOL
 
 
 dnl Translations so far
-ALL_LINGUAS="de fr it"
+ALL_LINGUAS="de fr it da"
 
 dnl Check for internationalization support
 AM_GNU_GETTEXT
