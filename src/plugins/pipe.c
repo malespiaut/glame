@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.14 2001/01/03 09:28:38 richi Exp $
+ * $Id: pipe.c,v 1.15 2001/01/03 13:22:58 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -48,8 +48,7 @@ PLUGIN_SET(pipe, "pipe_in pipe_out")
  */
 static pid_t popen2(const char *command, FILE **in, FILE **out)
 {
-	char cmd[4096], *p, *argv[32];
-	int infd[2], outfd[2], argc;
+	int infd[2], outfd[2];
 	pid_t pid;
 
 	if (in && pipe(infd) == -1)
@@ -57,36 +56,44 @@ static pid_t popen2(const char *command, FILE **in, FILE **out)
 	if (out && pipe(outfd) == -1)
 		goto err;
 
-	/* very simple and broken command parsing. */
-	strncpy(cmd, command, 4095);
-	p = cmd, argc = 0;
-	do {
-		argv[argc++] = p;
-		if ((p = strchr(p, ' '))) {
-			*p++ = '\0';
-			while (*p == ' ')
-				p++;
-		}
-	} while (p);
-	argv[argc] = NULL;
-
 	DPRINTF("Issuing fork()\n");
-	if ((pid = /*__libc_*/fork()) == 0) {
+	if ((pid = fork()) == 0) {
+		/* Child. Operation is functionally copied
+		 * from glibc-2.2 libio/iopopen.c:_IO_new_proc_popen */
 		DPRINTF("(CHILD)\n");
-		/* Child. */
-		if (in)
-			dup2(infd[0], 0);
-		if (out)
-			dup2(outfd[1], 1);
-		execvp(argv[0], argv);
-		exit(1);
+ 		/* close parent parts of the pipes and
+                 * dup2 to stdin/stdout if necessary */
+		if (in) {
+			close(infd[1]);
+			if (infd[0] != 0) {
+				dup2(infd[0], 0);
+				close(infd[0]);
+			}
+		}
+		if (out) {
+			close(outfd[0]);
+			if (outfd[1] != 1) {
+				dup2(outfd[1], 1);
+				close(outfd[1]);
+			}
+		}
+		/* glibc does this, so this should be safe. */
+		execl("/bin/sh", "sh", "-c", command, NULL);
+		exit(127);
 	}
+	if (pid == -1)
+		goto err;
+
 	/* Parent. */
 	DPRINTF("(PARENT)\n");
-	if (in)
+	if (in) {
+		close(infd[0]);
 		*in = fdopen(infd[1], "w");
-	if (out)
+	}
+	if (out) {
+		close(outfd[0]);
 		*out = fdopen(outfd[0], "r");
+	}
 
 	return pid;
 
@@ -96,6 +103,18 @@ static pid_t popen2(const char *command, FILE **in, FILE **out)
 	if (out)
 		close(outfd[0]), close(outfd[1]);
 	return -1;
+}
+static void pclose2(pid_t pid, FILE *in, FILE *out)
+{
+	int res;
+
+	if (in)
+		fclose(in);
+	if (out)
+		fclose(out);
+	do {
+		res = waitpid(pid, NULL, 0);
+	} while (res == -1 && errno == EINTR);
 }
 
 static int pipe_in_f(filter_t *n)
@@ -157,11 +176,10 @@ static int pipe_in_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	fclose(p); /* pclose(p); */
-	DPRINTF("killing child\n");
-	kill(pid, SIGKILL);
-	DPRINTF("wait4() result is %i\n",
-	        wait4(pid, NULL, WNOHANG, NULL));
+	/* pclose(p); */
+	/* DPRINTF("killing child\n");
+	   kill(pid, SIGKILL); */
+	pclose2(pid, NULL, p);
 	free(b);
 
 	FILTER_RETURN;
@@ -324,9 +342,9 @@ static int pipe_out_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	fclose(p); /* pclose(p); */
-	kill(pid, SIGKILL);
-	wait4(pid, NULL, WNOHANG, NULL);
+	/* pclose(p); */
+	pclose2(pid, p, NULL);
+	/* kill(pid, SIGKILL); */
 	free(b);
 	nto1_cleanup(I);
 
