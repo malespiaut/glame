@@ -8,7 +8,6 @@ Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if BUILD_GUI
 bin_PROGRAMS = glame
-#bin_PROGRAMS = wavetest timeline
 Multimedia_DATA = glame.desktop
 endif
 
@@ -34,9 +33,6 @@ glame_SOURCES = \
 	edit_filter/glamecanvas.c edit_filter/canvasitem.h edit_filter/glamecanvas.h \
 	edit_filter/filtereditgui.c edit_filter/filtereditgui.h \
 	edit_filter/edit_filter_marshal.h edit_filter/edit_filter_marshal.c \
-	\
-	timeline/timeline_canvas.h timeline/timeline_canvas.c \
-	timeline/timeline.h timeline/timeline.c \
 	\
 	glame_accelerator.c glame_accelerator.h \
 	glame_console.c glame_console.h \

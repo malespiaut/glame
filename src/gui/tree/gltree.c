@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.7 2004/11/05 22:55:58 richi Exp $
+ * $Id: gltree.c,v 1.8 2004/12/23 23:12:23 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -32,14 +32,12 @@
 #include "glscript.h"
 #include "importexport.h"
 #include "clipboard.h"
-#include "timeline/timeline.h"
 
 
 /* Forwards.  */
 static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 			 gpointer userdata);
 static void edit_wave_cb(GtkWidget *, gpointer);
-static void timeline_cb(GtkWidget *, gpointer);
 static void delete_cb(GtkWidget * menuitem, gpointer treeview);
 static void group_cb(GtkWidget * menuitem, gpointer treeview);
 static void file_property_cb(GtkWidget * menuitem, gpointer treeview);
@@ -252,11 +250,6 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	menuitem = gtk_menu_item_new_with_label(_("Timeline"));
-	g_signal_connect(menuitem, "activate",
-			 (GCallback) timeline_cb, which);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-
 	
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
@@ -408,31 +401,6 @@ edit_wave_cb(GtkWidget *widget, gpointer which)
 	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
-
-static void timeline_cb(GtkWidget *menuitem, gpointer which)
-{
-        GtkTreeIter *iter = (GtkTreeIter *)which;
-	gpsm_item_t *item;
-	static int warning_shown = 0;
-	GtkWidget *tl;
-
-	item = glame_gpsm_store_get_item(iter);
-	tl = glame_timeline_new_with_window(gpsm_item_label(item),
-					    (gpsm_grp_t *)item);
-	if (!tl) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Cannot open timeline"))));
-		return;
-	}
-	gtk_quit_add_destroy(1, GTK_OBJECT(tl));
-	gtk_widget_show_all(tl);
-	//deselect_all(active_swapfilegui);
-	if (!warning_shown) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_warning_dialog_parented(_("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned."), GTK_WINDOW(tl))));
-		warning_shown = 1;
-	}
-}
 
 static void group_cb(GtkWidget *widget, gpointer which)
 {

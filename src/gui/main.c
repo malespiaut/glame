@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.127 2004/12/23 19:49:49 richi Exp $
+ * $Id: main.c,v 1.128 2004/12/23 23:12:15 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -36,7 +36,6 @@
 #include "glmid.h"
 #include "tree/gltree.h"
 #include "waveeditgui.h"
-#include "timeline/timeline.h"
 #include "edit_filter/filtereditgui.h"
 #include "util/glame_gui_utils.h"
 #include "util/gtknob.h"
@@ -789,7 +788,6 @@ static void gui_main()
 	glame_accel_init();
 	glame_waveeditgui_init();
 	glame_filtereditgui_init();
-	glame_timeline_init();
 
 	/* Update preferences. */
 	if (update_preferences() == -1) {
