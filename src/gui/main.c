@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.95 2001/12/11 21:12:26 richi Exp $
+ * $Id: main.c,v 1.96 2001/12/16 16:14:31 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -96,10 +96,12 @@ static GnomeUIInfo filter_menu_uiinfo[] = {
 	GNOMEUIINFO_END
 };
 
+static void list_keybindings_cb(GtkWidget* foo, void *bar);
 static GnomeUIInfo help_menu_uiinfo[] =
 {
 	GNOMEUIINFO_ITEM_DATA(N_("_Help"),N_("Opens a gnome help browser"),gnome_help_goto,"info:glame",NULL),
 	GNOMEUIINFO_ITEM_DATA(N_("Quick Start Guide"), N_("Opens a gnome help browser with the quick start guide"), gnome_help_goto, "info:glame#Quick_Start_Guide", NULL),
+	GNOMEUIINFO_ITEM(N_("List key-bindings"), N_("Lists the current key-bindings"), list_keybindings_cb, NULL),
 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
 	GNOMEUIINFO_END
 };
@@ -245,6 +247,11 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 	if (glame_load_plugin(filenamebuffer) == -1)
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog(_("Error loading plugin"))));
+}
+
+static void list_keybindings_cb(GtkWidget* foo, void *bar)
+{
+	gnome_dialog_run_and_close(GNOME_DIALOG(glame_accel_edit_dialog("", FALSE, NULL)));
 }
 
 
