@@ -430,7 +430,18 @@ ACG_PKG_CHECK_MODULES(MAD, mad,
   AC_DEFINE(HAVE_LIBMAD,, [have mad library])
   GLAME_CFLAGS="$GLAME_CFLAGS $MAD_CFLAGS"
   GLAME_LIBS="$GLAME_LIBS $MAD_LIBS"
-], [])
+],
+[
+  AC_CHECK_HEADER([mad.h],
+  [
+    AC_CHECK_LIB(mad, mad_stream_buffer,
+    [
+      AC_DEFINE(HAVE_LIBMAD,, [have mad library])
+      GLAME_LIBS="$GLAME_LIBS -lmad -lm"
+    ],,[-lm]
+    )
+  ])
+])
 
 dnl check for libvorbisfile
 AC_CHECK_HEADERS([vorbis/codec.h])
