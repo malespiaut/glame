@@ -10,7 +10,8 @@ EXTRA_DIST = glame-logo.jpg default.png \
 	play.png save.png pan.png bandpass.png \
 	extend.png echo.png iir.png noisegate.png \
 	resample.png flanger.png distortion.png \
-	select_all.png select_none.png dots.png
+	select_all.png select_none.png dots.png  \
+	play-button.png stop-button.xpm
 
 pkgpixmaps_DATA = glame-logo.jpg default.png \
 	mix1.png drop.png dup.png null.png one2n.png \
@@ -24,4 +25,5 @@ pkgpixmaps_DATA = glame-logo.jpg default.png \
 	play.png save.png pan.png bandpass.png \
 	extend.png echo.png iir.png noisegate.png \
 	resample.png flanger.png distortion.png \
-	select_all.png select_none.png dots.png
+	select_all.png select_none.png dots.png  \
+	play-button.png stop-button.png
