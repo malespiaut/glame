@@ -43,6 +43,14 @@
       (waveedit-play mar (gpsm-item-hsize grp) #f #f)
       (waveedit-play (car sel) (+ (car sel) (cdr sel)) #t #f)))
   </accel>
+  <accel state="1" spec="space">
+(let ((grp (waveedit-gpsm-grp))
+      (sel (waveedit-get-selection))
+      (mar (waveedit-get-marker)))
+  (if (&lt;= (cdr sel) 0)
+      (waveedit-play mar (gpsm-item-hsize grp) #f #t)
+      (waveedit-play (car sel) (+ (car sel) (cdr sel)) #t #t)))
+  </accel>
 </scope>
 
 <scope scope="filteredit">
