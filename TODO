@@ -25,9 +25,6 @@ plugins/
 gui/
 	[xwolf]
 	- kool splashscreen?
-	- property editing for network (external ports/properties/section...) ?
-	- remove broken export tracking code
-
 
 Items that can be postponed forever (at least until 0.6):
 ---------------------------------------------------------
@@ -78,6 +75,7 @@ gui/edit_filter
 	- grouping!
 	- fold/unfold of groups
 	- connect for parameters of nodes of same type
+	- implement model-view-controller paradigma, aka drive gui through backend signals
 	- have GlameCanvas emit a signal after network execution so we
 	  can update the swapfiles managed through the gpsm
 	
