@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.28 2001/04/11 09:27:39 richi Exp $
+ * $Id: main.c,v 1.29 2001/04/12 13:49:47 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -274,7 +274,7 @@ static void glame_splash(void)
 #ifdef DEBUG
 	gtk_timeout_add(1000, (GtkFunction)remove_splash, foo);
 #else
-	gtk_timeout_add(10000, (GtkFunction)remove_splash, foo);
+	gtk_timeout_add(5000, (GtkFunction)remove_splash, foo);
 #endif
 }
 

@@ -17,7 +17,7 @@ with their real names
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/ or http://www.glame.de/
 
-Tuebingen 08.04.2001
+Tuebingen 12.04.2001
 
 
 Quick Start for the impatient
@@ -64,6 +64,7 @@ Requirements
 - The scripting part makes use of GUILE; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
   expected.
+- Another requirement is a recent libxml which is used by the midlayer.
 - For developing you need recent versions of autoconf, automake and
   libtool.
 
