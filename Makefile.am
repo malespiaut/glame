@@ -8,5 +8,4 @@ update-changelog:
 dist-hook:
 	mkdir $(distdir)/debian
 	cp -p `find $(srcdir)/debian/ -type f -maxdepth 1` $(distdir)/debian/
-	cp po/ignore $(distdir)/po/
 
