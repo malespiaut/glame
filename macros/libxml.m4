@@ -334,7 +334,7 @@ AC_DEFUN(AMG_XML_HEADERS,[
 ],
 [
   AC_MSG_RESULT([yes])
-  AC_DEFINE(HAVE_GNOMEXML)
+  AC_DEFINE(HAVE_GNOMEXML, 1, [we use gnome xml lib])
 ],[
   AC_MSG_RESULT([no])
 ])
@@ -348,7 +348,7 @@ AC_DEFUN(AMG_XML_HEADERS,[
 ],
 [
   AC_MSG_RESULT([yes])
-  AC_DEFINE(HAVE_LIBXML)
+  AC_DEFINE(HAVE_LIBXML, 1, [we use xml lib])
 ],[
   AC_MSG_RESULT([no])
 ])

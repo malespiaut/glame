@@ -37,7 +37,7 @@ AC_CHECK_HEADER(alsa/asoundlib.h, ac_have_alsa=yes, ac_have_alsa=no)
 if test x$ac_have_alsa = xno; then
   AC_CHECK_HEADER(sys/asoundlib.h, ac_have_alsa=yes, ac_have_alsa=no)
   if test x$ac_have_alsa = xyes; then
-    AC_DEFINE(ALSA_H_IN_SYS)
+    AC_DEFINE(ALSA_H_IN_SYS,, [alsa.h in sys])
     ac_have_alsa_include="#include <sys/asoundlib.h>"
   fi
 else
