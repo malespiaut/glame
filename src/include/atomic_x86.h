@@ -1,12 +1,29 @@
-/*
- * $Id: atomic_x86.h,v 1.7 2000/10/28 13:42:31 richi Exp $
- *
- * Most of the code was taken from include/asm-i386/atomic.h from the
- * Linux kernel source code and adapted to the need of GLAME.
- */
-
 #ifndef _ATOMIC_X86_H
 #define _ATOMIC_X86_H
+
+/*
+ * $Id: atomic_x86.h,v 1.8 2001/04/11 08:39:53 richi Exp $
+ *
+ * This code was taken from linux/include/asm-i386/atomic.h from the
+ * Linux kernel source code and adapted to the need of GLAME.
+ * The Linux kernel is
+ * Copyright (C) by Linus Torvalds and others
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
 
 /*
  * Atomic operations that C can't guarantee us.  Useful for

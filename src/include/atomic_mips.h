@@ -1,5 +1,8 @@
+#ifndef _ATOMIC_MIPS_H
+#define _ATOMIC_MIPS_H
+
 /*
- * $Id: atomic_mips.h,v 1.6 2000/10/28 13:42:31 richi Exp $
+ * $Id: atomic_mips.h,v 1.7 2001/04/11 08:39:53 richi Exp $
  *
  * 
  * Most of the code was taken from include/asm-mips/atomic.h from the
@@ -19,9 +22,6 @@
  * But use these as seldom as possible since they are much more slower
  * than regular operations.
  */
-
-#ifndef _ATOMIC_MIPS_H
-#define _ATOMIC_MIPS_H
 
 /*
  * Make sure gcc doesn't try to be clever and move things around

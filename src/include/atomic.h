@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.9 2000/10/28 13:42:31 richi Exp $
+ * $Id: atomic.h,v 1.10 2001/04/11 08:39:53 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@
 #include "atomic_x86.h"
 #elif defined CPU_MIPS
 #include "atomic_mips.h"
+#elif defined CPU_PPC
+#include "atomic_ppc.h"
 #else
 /*
  * The generic C versions of atomic operations in this file are safe but slow. 
@@ -55,6 +57,7 @@ typedef struct {
 #define ATOMIC_RELEASE(a) pthread_mutex_destroy(&(a).mx)
 
 #define ATOMIC_VAL(a) ((a).cnt)
+
 
 static inline void atomic_set(glame_atomic_t *a, int val)
 {
@@ -99,14 +102,14 @@ static inline int atomic_dec_and_test(glame_atomic_t *a)
 	return val == 0;
 }
 
-static inline void atomic_add(glame_atomic_t *a, int val)
+static inline void atomic_add(int val, glame_atomic_t *a)
 {
 	pthread_mutex_lock(&a->mx);
 	a->cnt += val;
 	pthread_mutex_unlock(&a->mx);
 }
 
-static inline void atomic_sub(glame_atomic_t *a, int val)
+static inline void atomic_sub(int val, glame_atomic_t *a)
 {
 	pthread_mutex_lock(&a->mx);
 	a->cnt -= val;
