@@ -39,6 +39,9 @@ else
   AC_MSG_WARN([Compilers other than gcc are not supported])
 fi
 
+dnl Check endianness
+AC_C_BIGENDIAN
+
 dnl
 dnl Checks for libraries.
 dnl use GLAME_LIBS & GLAME_CFLAGS
