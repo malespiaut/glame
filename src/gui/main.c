@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.72 2001/07/13 08:59:49 richi Exp $
+ * $Id: main.c,v 1.73 2001/07/16 09:50:44 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -55,6 +55,7 @@ extern gboolean bMac;
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void show_console_cb(GtkWidget *menu, void *blah);
+static void emptytrash_cb(GtkWidget *menu, void *blah);
 static void sync_cb(GtkWidget *menu, void *blah);
 static void new_network_cb(GtkWidget *menu, void *blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
@@ -70,6 +71,7 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM (_("Show _console"), "Shows the GLAME console", show_console_cb, NULL),
 	GNOMEUIINFO_ITEM (_("Sync"), "Syncs meta to disk", sync_cb, NULL),
+	GNOMEUIINFO_ITEM (_("Empty Trash"), "Kills [deleted] folder", emptytrash_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -128,6 +130,16 @@ static void sync_cb(GtkWidget *menu, void * blah)
 	gpsm_sync();
 }
 
+static void emptytrash_cb(GtkWidget *menu, void * blah)
+{
+	gpsm_grp_t *deleted;
+
+	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
+		return;
+	gpsm_item_destroy(deleted);
+	gpsm_sync();
+}
+
 static void new_network_cb(GtkWidget *menu, void * blah)
 {
 	gtk_widget_show(glame_filtereditgui_new(NULL, FALSE));
@@ -141,7 +153,8 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 
 	/* Create new gpsm group. */
 	grp = gpsm_newgrp("Unnamed");
-	gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, -1);
+	gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
+			0, gpsm_item_vsize(gpsm_root()));
 
 	/* Find out which widget it got. */
 	grpw = glame_tree_find_gpsm_item(

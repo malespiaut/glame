@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.54 2001/07/13 09:51:33 richi Exp $
+ * $Id: swapfilegui.c,v 1.55 2001/07/16 09:50:44 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -260,8 +260,8 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 			copy = (gpsm_item_t *)gpsm_grp_cow((gpsm_grp_t *)i->item);
 		else
 			goto next;
-		gpsm_grp_insert((gpsm_grp_t *)item->item, copy,
-				-1, -1);
+		gpsm_item_place((gpsm_grp_t *)item->item, copy,
+				0, gpsm_item_vsize(item->item));
 
 	next:
 		selected = g_list_next(selected);
@@ -292,8 +292,8 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 			copy = (gpsm_item_t *)gpsm_grp_link((gpsm_grp_t *)i->item);
 		else
 			goto next;
-		gpsm_grp_insert((gpsm_grp_t *)item->item, copy,
-				-1, -1);
+		gpsm_item_place((gpsm_grp_t *)item->item, copy,
+				0, gpsm_item_vsize(item->item));
 
 	next:
 		selected = g_list_next(selected);
@@ -317,7 +317,7 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 		hpos = gpsm_item_hposition(i) + gpsm_item_hposition(group);
 		vpos = gpsm_item_vposition(i) + gpsm_item_vposition(group);
 		gpsm_item_remove(i);
-		gpsm_grp_insert(gpsm_item_parent(group), i, hpos, vpos);
+		gpsm_item_place(gpsm_item_parent(group), i, hpos, vpos);
 	}
 	gpsm_item_destroy((gpsm_item_t *)group);
 }
@@ -345,7 +345,7 @@ static void flatten_cb(GtkWidget *menu, GlameTreeItem *item)
 	hpos = gpsm_item_hposition(old);
 	vpos = gpsm_item_vposition(old);
 	gpsm_item_destroy(old);
-	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
+	gpsm_item_place(parent, (gpsm_item_t *)group, hpos, vpos);
 }
 
 /* Append an empty mono wave (without group) to the current vbox. */
@@ -425,8 +425,8 @@ static void group_cb(GtkWidget *menu, GlameTreeItem *item)
 	hpos = gpsm_item_hposition(it);
 	vpos = gpsm_item_vposition(it);
 	gpsm_item_remove(it);
-	gpsm_grp_insert(grp, it, 0, 0);
-	gpsm_grp_insert(parent, (gpsm_item_t *)grp, hpos, vpos);
+	gpsm_item_place(grp, it, 0, 0);
+	gpsm_item_place(parent, (gpsm_item_t *)grp, hpos, vpos);
 
 	/* Find out which widget it got and open an edit field. */
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(tree), (gpsm_item_t *)grp);
@@ -486,7 +486,15 @@ static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	gpsm_item_destroy(item->item);
+	gpsm_grp_t *deleted;
+
+	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) {
+		deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
+		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
+				0, GPSM_GRP_DELETED_VPOS);
+	}
+	gpsm_item_place(deleted, item->item,
+			0, gpsm_item_vsize(deleted));
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -630,7 +638,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		snprintf(swfilename, 255, "track-%i", i);
 		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
 			goto fail_cleanup;
-		gpsm_grp_insert(group, it, 0, i);
+		gpsm_item_place(group, it, 0, i);
 		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
 					    0, -1, 3);
 		if (!(pipe = filterport_connect(
@@ -661,8 +669,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 
 	/* Insert the group into the gpsm tree. */
-	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
-			-1, -1);
+	gpsm_item_place((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
+			0, gpsm_item_vsize(item->item));
 
 	/* Expand the parent widget. */
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
@@ -752,42 +760,28 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			/* Mode 1 - hbox insertion either before
 			 * dropped item or at tail (if dropped
 			 * on group). */
-			if (GPSM_ITEM_IS_GRP(dest))
-				parent = (gpsm_grp_t *)dest;
-			else
-				parent = gpsm_item_parent(dest);
-			if (!gpsm_grp_is_hbox(parent)) {
-				DPRINTF("not a hbox\n");
-				drag_widget = NULL;
-				return;
+			if (GPSM_ITEM_IS_GRP(dest)) {
+				if (gpsm_hbox_insert((gpsm_grp_t *)dest, source,
+						     gpsm_item_hsize(dest), 0) == -1)
+					DPRINTF("insertion failed\n");
+			} else {
+				if (gpsm_hbox_insert(gpsm_item_parent(dest), source,
+						     gpsm_item_hposition(dest), 0) == -1)
+					DPRINTF("insertion failed\n");
 			}
-			gpsm_item_remove(source);
-			if (GPSM_ITEM_IS_GRP(dest))
-				gpsm_hbox_insert(parent, source,
-						 gpsm_item_hsize(parent), 0);
-			else
-				gpsm_hbox_insert(parent, source,
-						 gpsm_item_hposition(dest), 0);
 		} else if (mode == 2) {
 			/* Mode 2 - vbox insertion either before
 			 * dropped item or at tail (if dropped
 			 * on group). */
-			if (GPSM_ITEM_IS_GRP(dest))
-				parent = (gpsm_grp_t *)dest;
-			else
-				parent = gpsm_item_parent(dest);
-			if (!gpsm_grp_is_vbox(parent)) {
-				DPRINTF("not a vbox\n");
-				drag_widget = NULL;
-				return;
+			if (GPSM_ITEM_IS_GRP(dest)) {
+				if (gpsm_vbox_insert((gpsm_grp_t *)dest, source,
+						     0, gpsm_item_vsize(dest)) == -1)
+					DPRINTF("insertion failed\n");
+			} else {
+				if (gpsm_vbox_insert(gpsm_item_parent(dest), source,
+						     0, gpsm_item_vposition(dest)) == -1)
+					DPRINTF("insertion failed\n");
 			}
-			gpsm_item_remove(source);
-			if (GPSM_ITEM_IS_GRP(dest))
-				gpsm_vbox_insert(parent, source,
-						 0, gpsm_item_vsize(parent));
-			else
-				gpsm_vbox_insert(parent, source,
-						 0, gpsm_item_vposition(dest));
 		}
 
 		drag_widget = NULL;
