@@ -459,7 +459,7 @@ static void play(GtkWaveView *waveview,
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
-	filter_t *net, *aout;
+	filter_t *net, *aout, *swin;
 	int rate;
 	glsig_emitter_t *emitter;
 
@@ -500,9 +500,8 @@ static void play(GtkWaveView *waveview,
 	/* Create the network. */
 	net = filter_creat(NULL);
 	gpsm_grp_foreach_item(grp, item) {
-		filter_t *swin;
 		swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
-					  start, end - start + 1);
+					  start, end - start + 1, loop ? 1 : 0);
 		if (!swin)
 			goto fail;
 	}
@@ -520,7 +519,7 @@ static void play(GtkWaveView *waveview,
 			  glame_network_notificator_destroy_gpsm, grp);
 	active_waveedit->pm_net = net;
 	active_waveedit->pm_param = filterparamdb_get_param(
-		filter_paramdb(aout), FILTERPARAM_LABEL_POS);
+		filter_paramdb(swin), FILTERPARAM_LABEL_POS);
 	active_waveedit->pm_start = start;
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;
@@ -798,7 +797,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 			goto no_swin;
 		swin = net_add_gpsm_input(net, files[i],
 					  length > 0 ? start : marker,
-					  length > 0 ? length : -1);
+					  length > 0 ? length : -1, 0);
 		if (!swin)
 			goto fail;
 		filter_set_property(swin,"immutable","1");
