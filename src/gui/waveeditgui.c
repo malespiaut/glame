@@ -564,6 +564,11 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	 * - playing, a button press will stop playing
 	 */
 
+	/* Dont abort for foreign toolbar button press
+	 * (and dont try to start either). */
+	if (state.net && state.waveedit != active_waveedit)
+		return;
+
 	if (state.net) {
 		/* Playing state - abort the network.
 		 * Cleanup will happen automatically. */
