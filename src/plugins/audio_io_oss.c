@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.6 2001/04/16 16:16:33 nold Exp $
+ * $Id: audio_io_oss.c,v 1.7 2001/04/19 08:18:48 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -374,9 +374,8 @@ static int oss_audio_in_f(filter_t *n)
 	if (ioctl(dsp, SNDCTL_DSP_GETBLKSIZE, &buf_size)==-1 || buf_size==-1)
 		FILTER_ERROR_CLEANUP("Couldn't get bufsize!");
 
-	/* XXX: Killing real-time here. */
-	buf_size = (GLAME_WBUFSIZE*channels > buf_size) ? 
-	            GLAME_WBUFSIZE*channels : buf_size;
+	buf_size = (GLAME_WBUFSIZE*channels*(width>>3) > buf_size) ? 
+	            GLAME_WBUFSIZE*channels*(width>>3) : buf_size;
 	if ((buf = (gl_s16 *)malloc(buf_size)) == NULL)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
 
