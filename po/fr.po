@@ -25,7 +25,7 @@ msgstr "Créer un nouveau groupe Projet "
 
 #: main.c:70
 msgid "Edit File..."
-msgstr "Editer fichier"
+msgstr "Editer un fichier"
 
 #: main.c:70
 msgid "Imports a file and opens the waveedit window"
@@ -33,7 +33,7 @@ msgstr "Importer un fichier et ouvrir une fenetre d'édition audio"
 
 #: main.c:72
 msgid "Empty [deleted]"
-msgstr "Vider [effacés]"
+msgstr "Vider [deleted]"
 
 #: main.c:72
 msgid "Kills [deleted] folder"
@@ -41,7 +41,7 @@ msgstr "Tuer un dossier [effacé]"
 
 #: main.c:74
 msgid "Show _console"
-msgstr "Afficher_console"
+msgstr "Afficher _console"
 
 #: main.c:74
 msgid "Shows the GLAME console"
@@ -109,7 +109,7 @@ msgstr "Editer un fichier audio"
 
 #: main.c:208 main.c:301
 msgid "Filename"
-msgstr "Nom fichier"
+msgstr "Nom du fichier"
 
 #: main.c:269
 msgid "Failed to create importing network"
