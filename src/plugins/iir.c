@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.13 2001/05/01 11:24:10 richi Exp $
+ * $Id: iir.c,v 1.14 2001/05/03 11:38:45 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -238,8 +238,8 @@ static int iir_f(filter_t *n)
 	glame_iir_t *gt;
 	iirf_t *iirf;
 	int i,pos,j,nb,nt,z;
-	int poles,mode;
-	float ripple,fc;
+	int poles, mode, rate;
+	float ripple, fc;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
@@ -252,10 +252,15 @@ static int iir_f(filter_t *n)
 	 * Then you can register all kind of filters that are using iir_f as kernel
 	 */
 	
-
+	rate = filterpipe_sample_rate(in);
 	mode=filterparam_val_int(filternode_get_param(n,"mode"));
 	poles=filterparam_val_int(filternode_get_param(n,"poles"));
-	fc=filterparam_val_float(filternode_get_param(n,"cutoff"));
+	fc=filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
+	if (fc < 0.0)
+		fc = 0.0;
+	else if (fc > 0.5)
+		fc = 0.5;
+	
 	ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
 
 	DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n",poles,mode,fc,ripple);
@@ -391,8 +396,8 @@ Highpass
 				FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
-			    FILTER_PARAMTYPE_FLOAT,0.1,
-			    FILTERPARAM_DESCRIPTION,"cutoff frequency (0..0.5)",
+			    FILTER_PARAMTYPE_FLOAT, 1000,
+			    FILTERPARAM_DESCRIPTION,"cutoff frequency",
 			    FILTERPARAM_END);
 
 	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
