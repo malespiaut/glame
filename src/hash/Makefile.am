@@ -8,3 +8,5 @@ libhash_la_SOURCES = glame_hash.h glame_hash.c \
 	gldb_string.h gldb_string.c \
 	glsignal.h glsignal.c \
 	glsimd.h glsimd.c
+libhash_la_LDFLAGS = -export-dynamic
+

@@ -11,3 +11,5 @@ libfilter_la_SOURCES = \
 	filter_param.h filter_param.c \
 	filter_port.h filter_port.c \
 	filter_pipe.h filter_pipe.c
+libfilter_la_LDFLAGS = -export-dynamic
+

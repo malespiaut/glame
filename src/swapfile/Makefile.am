@@ -10,6 +10,7 @@ noinst_PROGRAMS = swapfile_mkswap swapfile_fsck
 
 libswapfile_la_SOURCES = \
 	swapfile_fs.c swapfile.h
+libswapfile_la_LDFLAGS = -export-dynamic
 
 swapfile_fsck_SOURCES = \
 	swapfile_fsck.c
