@@ -6,10 +6,10 @@ endif
 
 INCLUDES = $(LTDLINCL) -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash $(XML_CFLAGS) $(LADSPA_CFLAGS) -DPKGSCRIPTSDIR=\"$(pkgscriptsdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" $(GUILE_INCS)
 
-EXTRA_DIST = glame.scm ladspa.c
+EXTRA_DIST = glame.scm glame_testsuite.scm ladspa.c
 
 noinst_LTLIBRARIES = libglmid.la libglameaudiofile.la
-pkgscripts_DATA = glame.scm
+pkgscripts_DATA = glame.scm glame_testsuite.scm
 
 libglmid_la_SOURCES = \
 	glmid.c glmid.h \
