@@ -74,7 +74,7 @@
  "echo2")
 )) (if (filter? newplugin) newplugin 
 	(begin
-		(plugin_set newplugin PLUGIN_PIXMAP "echo.png")
-		(plugin_set newplugin PLUGIN_LABEL "Echo (network)")
-		(plugin_set newplugin PLUGIN_DESCRIPTION "echo effect")
-		(plugin_set newplugin PLUGIN_CATEGORY "Effects"))))
+		(plugin-set! newplugin PLUGIN_PIXMAP "echo.png")
+		(plugin-set! newplugin PLUGIN_LABEL "Echo (network)")
+		(plugin-set! newplugin PLUGIN_DESCRIPTION "echo effect")
+		(plugin-set! newplugin PLUGIN_CATEGORY "Effects"))))

@@ -13,5 +13,5 @@
 	(if (filter? plugin)
 	   plugin
 	   (begin
-		(plugin_set plugin PLUGIN_DESCRIPTION "FFT Resample macro filter")
-		(plugin_set plugin PLUGIN_CATEGORY "Effects"))))
+		(plugin-set! plugin PLUGIN_DESCRIPTION "FFT Resample macro filter")
+		(plugin-set! plugin PLUGIN_CATEGORY "Effects"))))

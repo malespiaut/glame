@@ -131,4 +131,4 @@
 	#t)
    net)
  "write_mp3")
-)) (if (filter? newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY "Output")))
+)) (if (filter? newplugin) newplugin (plugin-set! newplugin PLUGIN_CATEGORY "Output")))

@@ -1096,12 +1096,6 @@ int glscript_init_filter()
 	glame_reg_export ("plugin-name", 1, 0, 0, gls_plugin_name);
 	glame_reg_export ("plugin-query", 2, 0, 0, gls_plugin_query_string);
 	glame_reg_export ("plugin-set!", 3, 0, 0, gls_plugin_set_string);
-	/* compatibility */
-	glame_reg_export ("plugin_add_path", 1, 0, 0, gls_plugin_add_path);
-	glame_reg_export ("plugin_get", 1, 0, 0, gls_plugin_get);
-	glame_reg_export ("plugin_name", 1, 0, 0, gls_plugin_name);
-	glame_reg_export ("plugin_query", 2, 0, 0, gls_plugin_query_string);
-	glame_reg_export ("plugin_set", 3, 0, 0, gls_plugin_set_string);
 
 	glame_def_export("PLUGIN_DESCRIPTION", 
 			 scm_makfrom0str(PLUGIN_DESCRIPTION));

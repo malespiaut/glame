@@ -11,6 +11,6 @@
 	(if (filter? plugin)
 	   plugin
 	   (begin
-		(plugin_set plugin PLUGIN_DESCRIPTION "mp3-reader")
-		(plugin_set plugin PLUGIN_LABEL "MP3 reader (mpg123)")
-		(plugin_set plugin PLUGIN_CATEGORY "Input"))))
+		(plugin-set! plugin PLUGIN_DESCRIPTION "mp3-reader")
+		(plugin-set! plugin PLUGIN_LABEL "MP3 reader (mpg123)")
+		(plugin-set! plugin PLUGIN_CATEGORY "Input"))))

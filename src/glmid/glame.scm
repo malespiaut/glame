@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.77 2002/05/09 13:09:27 richi Exp $
+; $Id: glame.scm,v 1.78 2002/07/29 18:35:41 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -133,7 +133,7 @@
 	  (car default)))))
 
 ; GLAME 0.2.0 compatibility
-(define (plugin_description p) (plugin_query p "desc"))
+(define (plugin_description p) (plugin-query p "desc"))
 
 (define (help-helper maybe-command)
   (let ((commands-w/help (commands-w/help)))
@@ -209,7 +209,7 @@
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node . params)
-    (let ((n (filter-new (plugin_get node))))
+    (let ((n (filter-new (plugin-get node))))
       (filter-add-node net n node)
       (apply node-set-params n params)
       n)))

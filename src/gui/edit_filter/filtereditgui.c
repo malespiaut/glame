@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.55 2002/07/14 12:41:19 richi Exp $
+ * $Id: filtereditgui.c,v 1.56 2002/07/29 18:35:41 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -868,7 +868,7 @@ static void glame_canvas_save_as_cb(GtkWidget*ignore,GlameCanvas *canvas)
 	outf = fopen(filenamebuffer,"w");
 	buffer = filter_to_string(GLAME_CANVAS(canvas)->net);
 	DPRINTF("Network .scm is:\n%s\n", buffer);
-	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter? newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
+	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter? newplugin) newplugin (plugin-set! newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
 	free(buffer);
 	fclose(outf);
 }
