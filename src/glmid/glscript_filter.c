@@ -470,6 +470,13 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 		str = gh_scm2newstr(s_val, &strl);
 		res = filterparam_set(param, &str);
 		free(str);
+	} else if (FILTER_PARAM_IS_BUF(param)) {
+		char *str;
+		int strl;
+		SCM_ASSERT(gh_string_p(s_val), s_val, SCM_ARG2, "param-set!");
+		str = gh_scm2newstr(s_val, &strl);
+		res = filterparam_set_string(param, str);
+		free(str);
 	} else
 		scm_wrong_type_arg("param-set!", SCM_ARG2, s_val);
 	return res == 0 ? SCM_BOOL_T : SCM_BOOL_F;
