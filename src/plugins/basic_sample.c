@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.8 2000/04/03 23:06:26 nold Exp $
+ * $Id: basic_sample.c,v 1.9 2000/04/05 09:00:32 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -485,7 +485,7 @@ int mix_register()
 	    || !(param = filterport_add_param(port, "offset", "input offset",
 					      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
 			       FILTER_PORTTYPE_SAMPLE)
 	    || !(filter_add_param(f, "gain", "output gain",
@@ -518,7 +518,7 @@ int mix2_register()
 	    || !(param = filterport_add_param(port, "offset", "input offset",
 					      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
 			       FILTER_PORTTYPE_SAMPLE)
 	    || !(filter_add_param(f, "gain", "output gain",
@@ -679,7 +679,7 @@ int delay_register()
 	    || !(param = filter_add_param(f, "delay", "delay in ms",
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	if (filter_add(f, "delay", "Delay's an audio signal") == -1)
 	        return -1;
 	return 0;
@@ -757,7 +757,7 @@ int extend_register()
 	    || !(param = filter_add_param(f, "time", "extend time in ms",
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	if (filter_add(f, "extend", "Extend an audio signal") == -1)
 	        return -1;
 	return 0;
@@ -867,7 +867,7 @@ int repeat_register()
 					  "total duration in ms",
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	if (filter_add(f, "repeat",
 		       "Repeat an audio signal for the specified time") == -1)
 		return -1;

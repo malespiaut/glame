@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.2 2000/03/27 09:04:22 mag Exp $
+ * $Id: rms.c,v 1.3 2000/04/05 09:00:32 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -164,7 +164,7 @@ int statistic_register()
 	
 	if (filter_add(f,"statistic","Calculates RMS, RMS in window & DC-Offset")==-1)
 		return -1;
-	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	return 0;
 }
 

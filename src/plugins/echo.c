@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.6 2000/03/27 09:20:10 richi Exp $
+ * $Id: echo.c,v 1.7 2000/04/05 09:00:32 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -187,7 +187,7 @@ int echo_register()
 	    || !filter_add_param(f, "mix", "mixer ratio",
 		    		FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	filterparamdesc_float_settype(d, FILTER_PARAM_FLOATTYPE_TIME);
+	filterparamdesc_float_settype(d, FILTER_PARAM_FLOATTYPE_TIME_MS);
 	if (filter_add(f, "echo", "echo effect") == -1)
 		return -1;
 
