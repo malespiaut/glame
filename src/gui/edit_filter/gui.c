@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.21 2001/04/22 14:24:05 richi Exp $
+ * $Id: gui.c,v 1.22 2001/04/23 14:26:26 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -121,8 +121,6 @@ gui_network_new(void)
 	net->caption = NULL;
 	net->pixname = NULL;
 	net->descr = NULL;
-	net->redirectedPorts = NULL;
-	net->redirectedParameters = NULL;
 	net->net = filter_creat(NULL);
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");

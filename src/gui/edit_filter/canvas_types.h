@@ -1,7 +1,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.8 2001/04/20 11:21:03 xwolf Exp $
+ * $Id: canvas_types.h,v 1.9 2001/04/23 14:26:26 xwolf Exp $
  *
  * Copyright (C) 2000, 2001 Johannes Hirche
  *
@@ -163,18 +163,8 @@ struct _gui_network {
 	GtkWidget *canvas;
 	gboolean paused;
 
-	GList * redirectedPorts;
-	GList * redirectedParameters;
 };
 
-
-/* FIXME */
-struct _Redirection {
-	GnomeCanvasItem *source;
-	char * externalName;
-	gint type;
-
-};
 	
 
 #endif

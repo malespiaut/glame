@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.75 2001/04/23 11:42:00 richi Exp $
+ * $Id: canvas.c,v 1.76 2001/04/23 14:26:26 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1500,7 +1500,6 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 	GtkWidget * vbox;
 	GlameCanvas *canv;
 	char * filenamebuffer;
-	Redirection * red;
 	filter_portdb_t *ports;
 	filter_port_t * newport;
 
@@ -1530,12 +1529,6 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 			filterport_redirect(newport,blu->port);
 			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
 		}
-		red = malloc(sizeof(Redirection));
-		red->source = GNOME_CANVAS_ITEM(blu);
-		red->type = 1;
-		red->externalName = strdup(filenamebuffer);
-		canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(blu)->canvas);
-		canv->net->redirectedPorts = g_list_append(canv->net->redirectedPorts,red);
 	}
 	canvas_item_redraw(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(blu)->parent));
 	free(filenamebuffer);
@@ -1572,7 +1565,6 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 	GList * items=NULL;
 	char * paramnamebuffer;
 	char * externnamebuffer;
-	Redirection * red;
 	GlameCanvas * canv;
 	paramnamebuffer = calloc(100,sizeof(char));
 	externnamebuffer = calloc(100,sizeof(char));
@@ -1611,16 +1603,8 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 				else
 					newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
 				if(newparam){
-					if(filterparam_redirect(newparam,iter)){
+					if(filterparam_redirect(newparam,iter))
 						fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
-					} else {
-						red = malloc(sizeof(Redirection));
-						red->source = GNOME_CANVAS_ITEM(item);
-						red->type = 2;
-						red->externalName = strdup(externnamebuffer);
-						canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas);
-						canv->net->redirectedParameters = g_list_append(canv->net->redirectedParameters,red);
-					}
 				}
 				
 			}
@@ -1632,16 +1616,8 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 		filterparamdb_foreach_param(db,iter){
 			newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
 			if(newparam){
-				if(filterparam_redirect(newparam,iter)){
+				if(filterparam_redirect(newparam,iter))
 					fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
-				}else{
-					red = malloc(sizeof(Redirection));
-					red->source = GNOME_CANVAS_ITEM(item);
-					red->type = 2;
-					red->externalName = strdup(filterparam_label(iter));
-					canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas);
-					canv->net->redirectedParameters = g_list_append(canv->net->redirectedParameters,red);
-				}
 			}
 		}
 		break;
@@ -1783,9 +1759,7 @@ draw_network(filter_t *filter)
 	net->pixname = NULL;
 	net->descr = NULL;
 	net->net = filter;
-	net->redirectedPorts = NULL;
-	net->redirectedParameters = NULL;
-	
+		
 	canvas_new_from_network(net);
 	canv = net->canvas;
 	//	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
@@ -1888,18 +1862,13 @@ static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 }
 
 
-/************************************
- * FIXME!   all code below is very broken!
- * Yes, I will fix it. please bear with me :) 
- * xw
- ************************************/
-
-
 	
 static void
 canvas_remove_redirections(GlameCanvas *canvas, const char *name)
 {
-	GList * foo = g_list_first(canvas->net->redirectedPorts);
+	return;
+/*
+GList * foo = g_list_first(canvas->net->redirectedPorts);
 	int l = strlen(name);
 	Redirection* red;
 	while(foo){
@@ -1925,83 +1894,93 @@ canvas_remove_redirections(GlameCanvas *canvas, const char *name)
 		foo = g_list_next(foo);
 	}
 	canvas->net->redirectedParameters = g_list_first(foo);
-
+*/
 
 }	
 
 
-static GnomeCanvasItem * find_filter_in_redirection(GList * redirs, const char* name)
-{
 
-	//FIXME! This is obsolete, use filter functions instead! xw
-
-	GList * foo = g_list_first(redirs);
-	int l = strlen(name);
-	while(foo){
-		if(!strncmp(name,((Redirection*)(foo->data))->externalName,l))
-			return ((Redirection*)(foo->data))->source;
-		foo = g_list_next(foo);
-	}
-	DPRINTF("Notfound\n");
-	return NULL;
-}
-
-static Redirection * find_redirection(GList * redirs, const char* name)
-{
-
-	//FIXME! This is obsolete, use filter functions instead! xw
-
-	GList * foo = g_list_first(redirs);
-	int l = strlen(name);
-	while(foo){
-		if(!strncmp(name,((Redirection*)(foo->data))->externalName,l))
-			return ((Redirection*)(foo->data));
-		foo = g_list_next(foo);
-	}
-	return NULL;
-}
-
-static void canvas_delete_redirection_cb(GtkWidget*foo, Redirection *red)
+static void canvas_delete_redirection_port_cb(GtkWidget*foo, filter_port_t *port)
 {
 	GlameCanvas* canvas;
-	if(!red){
+	filter_t *filter_net,*filter;
+	GList *list;
+	const char *portname;
+	if(!port){
 		DPRINTF("empty redirection!\n");
 		return;
 	}
-	canvas = GLAME_CANVAS(GNOME_CANVAS_ITEM(red->source)->canvas);
-	switch(red->type) {
-	case 1:
-		// Port!
-		filterportdb_delete_port(filter_portdb(canvas->net->net),red->externalName);
-		canvas->net->redirectedPorts = g_list_remove(canvas->net->redirectedPorts,red);
-		GLAME_CANVAS_PORT(red->source)->port_type &= 0xfffffff-GUI_PORT_TYPE_EXTERNAL;
-		canvas_item_redraw(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(red->source)->parent));
-		//free(red); //hack
-		break;
-	case 2:
-		// Parameter!
-		filterparamdb_delete_param(filter_paramdb(canvas->net->net),red->externalName);
-		canvas->net->redirectedParameters = g_list_remove(canvas->net->redirectedParameters,red);
-		//free(red); //hack
-		break;
+
+	filter_net = filterport_filter(port);
+	filter = filter_get_node(filter_net,filterport_get_property(port,FILTERPORT_MAP_NODE));
+	portname = filterport_get_property(port,FILTERPORT_MAP_LABEL);
+	DPRINTF("%s\n",filterport_label(port));
+	if(filter->gui_priv){
+		canvas = GLAME_CANVAS(GNOME_CANVAS_ITEM(filter->gui_priv)->canvas);
+
+		
+		list = g_list_first(GLAME_CANVAS_ITEM(filter->gui_priv)->output_ports);
+		while(list && strcmp(filterport_label(GLAME_CANVAS_PORT(list->data)->port),portname))
+			list = g_list_next(list);
+			
+		if(!list){
+			list = g_list_first(GLAME_CANVAS_ITEM(filter->gui_priv)->input_ports);
+			while(list && strcmp(filterport_label(GLAME_CANVAS_PORT(list->data)->port),
+					     portname))
+				list = g_list_next(list);
+		}
+		if(!list){
+			DPRINTF("filter not found!\n");
+			return;
+		}
+		
+		GLAME_CANVAS_PORT(list->data)->port_type &= 0xfffffff-GUI_PORT_TYPE_EXTERNAL;
+		canvas_item_redraw(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(filter->gui_priv)));
+		filterportdb_delete_port(filter_portdb(canvas->net->net),filterport_label(port));
 	}
 }
 
-static GnomeUIInfo redirection_menu[] = 
+static void canvas_delete_redirection_param_cb(GtkWidget*foo, filter_param_t* param)
 {
-	GNOMEUIINFO_ITEM_STOCK("Delete","Deletes selected redirection",
-			       canvas_delete_redirection_cb,
+	filterparam_delete(param);
+}
+
+static GnomeUIInfo redirection_menu_port[] = 
+{
+	GNOMEUIINFO_ITEM_STOCK("Delete Port","Deletes selected redirection",
+			       canvas_delete_redirection_port_cb,
+			       GNOME_STOCK_MENU_TRASH),
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo redirection_menu_param[] = 
+{
+	GNOMEUIINFO_ITEM_STOCK("Delete Parameter","Deletes selected redirection",
+			       canvas_delete_redirection_param_cb,
 			       GNOME_STOCK_MENU_TRASH),
 	GNOMEUIINFO_END
 };
 
 
-static void redirection_list_cb(GtkCList *list, gint row, gint column,
+static void redirection_list_port_cb(GtkCList *list, gint row, gint column,
 			       GdkEvent* event, GList *reds)
 {
 	GtkWidget * menu;
-	Redirection* foo;
-	menu = gnome_popup_menu_new(redirection_menu);
+	filter_port_t *port;
+	menu = gnome_popup_menu_new(redirection_menu_port);
+	port = g_list_nth_data(reds,row);
+	gtk_clist_unselect_row(list,row,0);
+	if(port)
+		if(gnome_popup_menu_do_popup_modal(menu,NULL,NULL,&event->button,port)>=0)
+			gtk_clist_remove(list,row);
+
+}
+static void redirection_list_param_cb(GtkCList *list, gint row, gint column,
+			       GdkEvent* event, GList *reds)
+{
+	GtkWidget * menu;
+	filter_param_t* foo;
+	menu = gnome_popup_menu_new(redirection_menu_param);
 	foo = g_list_nth_data(reds,row);
 	gtk_clist_unselect_row(list,row,0);
 	if(foo)
@@ -2076,30 +2055,30 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	gtk_clist_set_column_auto_resize(list,1,TRUE);
 	gtk_clist_set_column_auto_resize(list,2,TRUE);
 	gtk_clist_set_column_auto_resize(list,3,TRUE);
-
+	
 	filterportdb_foreach_port(ports,port){
 		line = calloc(4,sizeof(char*));
-		if(filterport_label(port))
-			buffer = strdup(filterport_label(port));
+		buffer = filterport_label(port);
+		if(buffer)
+			line[0] = strdup(filterport_label(port));
 		else
-			buffer = strdup("Empty");
-		line[0] = buffer;
+			line[0] = strdup("Empty");
 		line[1] = (filterport_is_input(port)?"In":"Out");
-		if( filterport_get_property(port,FILTERPORT_DESCRIPTION))
-			buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
+		buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
+		if(buffer)
+			line[2] = strdup(buffer);
 		else
-			buffer = strdup("Empty");
-		line[2] = buffer;
-		item = find_filter_in_redirection(canvas->net->redirectedPorts,filterport_label(port));
-		if(item)
-			buffer = strdup(filter_name(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(item)->parent)->filter));
+			line[2] = strdup("Empty");
+		
+		buffer = filterport_get_property(port,FILTERPORT_MAP_NODE);
+		if(buffer)
+			line[3] = strdup(buffer);
 		else
-			buffer = strdup("Unkown");
-		line[3] = buffer;
-		redPorts = g_list_append(redPorts,find_redirection(canvas->net->redirectedPorts,filterport_label(port)));
+			line[3]= strdup("Unkown");
+		redPorts = g_list_append(redPorts,port);
 		gtk_clist_append(list,line);
 	}
-	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_cb,redPorts);
+	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_port_cb,redPorts);
 	gtk_widget_show(GTK_WIDGET(list));
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 
@@ -2115,32 +2094,31 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	params = filter_paramdb(filter);
 	filterparamdb_foreach_param(params,param){
 		line = calloc(4,sizeof(char*));
-		if(filterparam_label(param))
-			buffer = strdup(filterparam_label(param));
+		buffer = filterparam_label(param);
+		if(buffer)
+			line[0] = strdup(buffer);
 		else
-			buffer = strdup("Empty");
-		line[0] = buffer;
-		if(filterparam_to_string(param))
-			buffer = strdup(filterparam_to_string(param));
+			line[0] = strdup("Empty");
+		buffer = filterparam_to_string(param);
+		if(buffer)
+			line[1] = strdup(buffer);
 		else
-			buffer = strdup("Empty");
-		line[1] = buffer;
-		if(filterparam_get_property(param,FILTERPARAM_DESCRIPTION))
-			buffer = strdup(filterparam_get_property(param,FILTERPARAM_DESCRIPTION));
+			line[1] = strdup("Empty");
+		buffer = filterparam_get_property(param,FILTERPARAM_DESCRIPTION);
+		if(buffer)
+			line[2] = strdup(buffer);
 		else
-			buffer = strdup("Empty");
-		line[2] = buffer;
-		item = find_filter_in_redirection(canvas->net->redirectedParameters,filterparam_label(param));
-		if(item)
-			buffer = strdup(filter_name(GLAME_CANVAS_ITEM(item)->filter));
+			line[2] = strdup("Empty");
+		buffer = filterparam_get_property(param,FILTERPARAM_MAP_NODE);
+		if(buffer)
+			line[3] = strdup(buffer);
 		else
-			buffer = strdup("Unkown");
-		line[3] = buffer;
-		redParms = g_list_append(redParms,find_redirection(canvas->net->redirectedParameters,filterparam_label(param)));
+			line[3] = strdup("Unkown");
+		redParms = g_list_append(redParms,param);
 		gtk_clist_append(list,line);
 	}
 	gtk_widget_show(GTK_WIDGET(list));
-	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_cb,redParms);
+	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_param_cb,redParms);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 	
 	gtk_widget_show(notebook);
