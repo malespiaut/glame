@@ -51,99 +51,47 @@
 #include "hash.h"
 #include "swapfile.h"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-/* Main directory (swapfile) is the FAT
- *   Every subdirectory is a file (named by the long) which
- *   contains the clusters as files (named by the cluster id)
- *   and one file describing the connection of the clusters.
- * The special directory clusters contains metadata of all used
- * clusters (list of files that use the cluster).
- */
+/* The global "state" of the swapfile and its locks. The
+ * locks are for namespace operations atomicy. */
+static struct {
+	int fatfd;
+	char *files_base;
+	char *clusters_data_base;
+	char *clusters_meta_base;
+	int maxnamelen;
+	struct list_head fds;
+} swap;
 
-struct swfile;
-struct swcluster;
-
-/* Cluster instance, flags are
- *   SWC_DIRTY - files list is dirty */
-#define SWC_DIRTY 1
-struct swcluster {
-	struct swcluster *next_swcluster_hash;
-	struct swcluster **pprev_swcluster_hash;
-	long name;
-	size_t size;
-	int flags;     /* SWC_* */
-	int files_cnt; /* number of files that use this cluster */
-	long *files;   /* list of files that use this cluster */
-	int usage;     /* number of references to this struct cluster */
-};
-HASH(swcluster, struct swcluster, 10,
-     (swcluster->name == name),
-     (name),
-     (swcluster->name),
-     long name)
-
-/* File instance, flags are
- *   SWF_NOT_IN_CORE - swfile.{size,cluster_cnt,clusters} is not filled in
- *   SWF_UNLINK_ON_CLOSE - unlink the file after last close
- *   SWF_DIRTY - cluster list is dirty */
-#define SWF_NOT_IN_CORE 1
-#define SWF_UNLINK_ON_CLOSE 2
-#define SWF_DIRTY 4
-struct swfile {
-	struct swfile *next_swfile_hash;
-	struct swfile **pprev_swfile_hash;
-	long name;
-	int flags;    /* SWF_* */
-	int usage;    /* number of references to this struct swfile */
-	int open_cnt; /* number of current opens (fd's) */
-
-	size_t size;     /* current total file size */
-	int cluster_cnt; /* number of clusters in the file */
-	long *clusters;  /* clusters of the file (in order) */
-};
-HASH(swfile, struct swfile, 8,
-     (swfile->name == name),
-     (name),
-     (swfile->name),
-     long name)
+#define LOCK do {} while (0)
+#define UNLOCK do {} while (0)
 
 
+/* We want to have a clean (static) namespace... */
+#include "swfs_ctree.c"
+#include "swfs_cluster.c"
+#include "swfs_file.c"
+
+
+/* The FILE equivalent - the swapfile filedescriptor. No locking here
+ * as it is done by fd->file locking. Also the user has to ensure
+ * consistency himself. */
 struct swfd {
 	struct list_head list;
 	struct swfile *file;
 	int mode;
-	off_t offset;         /* file pointer position */
-	struct swcluster *c;  /* current cluster */
-	off_t c_start;        /* file pointer position of start of current cluster */
+	s64 offset;          /* file pointer position */
+	s64 c_start;         /* start of current cluster */
+	struct swcluster *c; /* current cluster */
 };
 #define SWFD(s) ((struct swfd *)(s))
 #define list_add_swfd(fd) list_add(&(fd)->list, &swap.fds)
 #define list_del_swfd(fd) list_del_init(&(fd)->list)
 
-static struct {
-	int fatfd;
-	char *base;
-	int maxnamelen;
-	struct list_head fds;
-} swap;
 
-
-#define LOCK
-#define UNLOCK
-
-
-static struct swfile *_get_file(long name, int need_clusters);
-static void _put_file(struct swfile *f);
-static struct swfile *_stat_file(long name);
-static int _read_file(struct swfile *f);
-static int _write_file(struct swfile *f);
-static struct swfile *_creat_file(long name);
-static int _truncate_file(struct swfile *f, size_t size);
-
-static struct swcluster *_get_cluster(long name);
-static void _put_cluster(struct swcluster *c);
-static struct swcluster *_read_cluster(long name);
-static int _write_cluster(struct swcluster *c);
 
 static struct swfd *_sw_open(long name, int flags);
 static void _sw_close(struct swfd *fd);
@@ -161,6 +109,7 @@ static void _sw_close(struct swfd *fd);
  *  - unclean swap */
 int swapfile_open(char *name, int flags)
 {
+	char str[512];
 	struct stat s;
 	int fd;
 
@@ -175,8 +124,12 @@ int swapfile_open(char *name, int flags)
 
 	/* Initialize swap structure. */
 	swap.fatfd = fd;
-	swap.base = strdup(name);
-	swap.maxnamelen = strlen(name)+32;
+	swap.files_base = strdup(name);
+	sprintf(str, "%s/clusters.data", name);
+	swap.clusters_data_base = strdup(str);
+	sprintf(str, "%s/clusters.meta", name);
+	swap.clusters_meta_base = strdup(str);
+	swap.maxnamelen = strlen(swap.clusters_meta_base)+32;
 	INIT_LIST_HEAD(&swap.fds);
 
 	return 0;
@@ -211,7 +164,7 @@ int swapfile_creat(char *name, size_t size)
 	sprintf(s, "%s/clusters.meta", name);
 	if (mkdir(s, 0777) == -1)
 		return -1;
-	sprintf(s, "%s/clusters", name);
+	sprintf(s, "%s/clusters.data", name);
 	if (mkdir(s, 0777) == -1)
 		return -1;
 
@@ -229,23 +182,15 @@ int swapfile_creat(char *name, size_t size)
  * undoable (well - just sw_unlink is not undoable).
  */
 
-/* Deletes a name from the filesystem. Like unlink(2).
- * We need to (atomically!)
- * - open the file
- * - mark it unlink-on-close
- * - close it */
+/* Deletes a name from the filesystem. Like unlink(2). */
 int sw_unlink(long name)
 {
-	struct swfd *fd;
+	struct swfile *f;
 
-	LOCK;
-	if (!(fd = _sw_open(name, O_RDWR))) {
-		UNLOCK;
+	/* No locking needed!? */
+	if (!(f = file_get(name, FILEGET_READCLUSTERS)))
 		return -1;
-	}
-	fd->file->flags |= SWF_UNLINK_ON_CLOSE;
-	_sw_close(fd);
-	UNLOCK;
+	file_put(f, FILEPUT_UNLINK);
 
 	return 0;
 }
@@ -256,7 +201,7 @@ int sw_unlink(long name)
  * directory specification for obvious reason. */
 SWDIR *sw_opendir()
 {
-	return (SWDIR *)opendir(swap.base);
+	return (SWDIR *)opendir(swap.files_base);
 }
 
 /* As the namespace is rather simple the equivalent to readdir(3) is
@@ -308,7 +253,16 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 		return NULL;
 
 	LOCK;
-	f = _get_file(name, 0);
+	f = file_get(name, 0);
+
+	/* File is unlinked. */
+	if (f && (f->flags & SWF_UNLINKED)) {
+		if (flags & O_CREAT)
+			errno = EAGAIN;
+		else
+			errno = ENOENT;
+		goto err;
+	}
 
 	/* File exists and is requested to be created exclusively? */
 	if (f && (flags & O_EXCL)) {
@@ -322,11 +276,13 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 	}
 
 	/* Create file, if necessary and requested. */
-	if (!f && (flags & O_CREAT))
-		f = _creat_file(name);
+	if (!f && (flags & O_CREAT)) {
+		if (!(f = file_get(name, FILEGET_CREAT)))
+			goto err; /* FIXME: which errno? */
+	}
 	/* Truncate file, if requested. */
 	if (flags & O_TRUNC)
-		_truncate_file(f, 0);
+		file_truncate(f, 0);
 	UNLOCK;
 
 	INIT_LIST_HEAD(&fd->list);
@@ -335,8 +291,6 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 	fd->offset = 0;
 	fd->c = NULL;
 	fd->c_start = 0;
-	if (f->cluster_cnt > 0)
-		fd->c = _get_cluster(f->clusters[0]);
 	list_add_swfd(fd);
 
 	errno = 0;
@@ -344,21 +298,21 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 
  err:
 	if (f)
-		_put_file(f);
+		file_put(f, 0);
 	UNLOCK;
 	free(fd);
 	return NULL;
 }
 
-/* Closes a file descriptor. Like close(2). Also closes the transaction
- * given to sw_open. */
+/* Closes a file descriptor. Like close(2). */
 int sw_close(swfd_t fd)
 {
 	struct swfd *_fd = SWFD(fd);
 
-	_put_file(_fd->file);
-	_put_cluster(_fd->c);
+	/* FIXME: locking against broken close() close() on same fd. */
 	list_del_swfd(_fd);
+	cluster_put(_fd->c, 0);
+	file_put(_fd->file, 0);
 	free(_fd);
 
 	return 0;
@@ -382,12 +336,12 @@ int sw_ftruncate(swfd_t fd, off_t length)
 
 	/* Umm, what should happen to the file pointer posistion? */
 	if (_fd->offset >= length) {
-		_put_cluster(_fd->c);
+		cluster_put(_fd->c, 0);
 		_fd->c = NULL;
 	}
 
 	LOCK;
-	res = _truncate_file(_fd->file, length);
+	res = file_truncate(_fd->file, length);
 	UNLOCK;
 
 	/* File pointer position may be unspecified now... */
@@ -418,7 +372,7 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	 * handled by common code. */
 	switch (whence) {
 	case SEEK_END:
-		offset = _fd->file->size + offset - 1;
+		offset = _fd->file->clusters->total_size + offset - 1;
 		break;
 	case SEEK_CUR:
 		offset += _fd->offset;
@@ -440,18 +394,12 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	}
 
 	/* Now we really need to seek. Ugh. Linear search. */
-	LOCK;
-	_put_cluster(_fd->c);
-	_fd->c_start = 0;
-	_fd->c = _get_cluster(_fd->file->clusters[0]);
-	do {
-
-	} while (_fd->c && (_fd->c_start < offset || _fd->c_start+_fd->c->size >= offset));
+	cluster_put(_fd->c, 0);
+	_fd->c = file_getcluster(_fd->file, offset, &_fd->c_start, 0);
 	if (!_fd->c)
 		_fd->c_start = -1;
-	UNLOCK;
-
 	_fd->offset = offset;
+
 	return _fd->offset;
 }
 
@@ -466,7 +414,7 @@ int sw_fstat(swfd_t fd, struct sw_stat *buf)
 	if (!buf)
 		return -1;
 	buf->name = _fd->file->name;
-	buf->size = _fd->file->size;
+	buf->size = _fd->file->clusters->total_size;
 	buf->mode = _fd->mode;
 	buf->offset = _fd->offset;
 	if (_fd->c) {
@@ -501,232 +449,6 @@ int sw_munmap(void *start)
  * Internal stuff.
  */
 
-static struct swfile *_get_file(long name, int need_clusters)
-{
-	struct swfile *f;
-
-	if (!(f = hash_find_swfile(name)))
-		f = _stat_file(name);
-	else
-		f->usage++;
-	if (need_clusters && (f->flags & SWF_NOT_IN_CORE))
-		_read_file(f);
-	return f;
-}
-
-static void _put_file(struct swfile *f)
-{
-	if (!f)
-		return;
-	if (--(f->usage) == 0) {
-		hash_remove_swfile(f);
-		if (f->flags & SWF_DIRTY)
-			_write_file(f);
-		if (f->clusters)
-			free(f->clusters);
-		free(f);
-	}
-}
-
-static struct swfile *_stat_file(long name)
-{
-	struct swfile *f;
-	char *s;
-	int fd;
-
-	/* Open file metadata. */
-	s = alloca(swap.maxnamelen);
-	sprintf(s, "%s/%li", swap.base, name);
-	if ((fd = open(s, O_RDONLY)) == -1)
-		return NULL;
-	close(fd);
-
-	/* Allocate file structure. */
-	if (!(f = (struct swfile *)malloc(sizeof(struct swfile))))
-		return NULL;
-	hash_init_swfile(f);
-	f->name = name;
-	f->flags = SWF_NOT_IN_CORE;
-	f->usage = 1;
-	f->open_cnt = 0;
-	f->size = 0;
-	f->cluster_cnt = 0;
-	f->clusters = NULL;
-
-	hash_add_swfile(f);
-	return f;
-}
-
-static int _read_file(struct swfile *f)
-{
-	char *s;
-	struct stat st;
-	int fd, i;
-	struct swcluster *c;
-
-	if (!(f->flags & SWF_NOT_IN_CORE))
-		return 0;
-
-	/* Open file metadata. */
-	s = alloca(swap.maxnamelen);
-	sprintf(s, "%s/%li", swap.base, f->name);
-	if ((fd = open(s, O_RDONLY)) == -1)
-		goto err;
-
-	/* Load cluster list. */
-	if (fstat(fd, &st) == -1)
-		goto err_close;
-	f->cluster_cnt = st.st_size/sizeof(long);
-	f->clusters = (long *)malloc(st.st_size);
-	if (!f->clusters)
-		goto err_close;
-	if (read(fd, f->clusters, st.st_size) != st.st_size)
-		goto err_free;
-
-	/* Stat the clusters, compute file size. */
-	for (i=0; i<f->cluster_cnt; i++) {
-		c = _get_cluster(f->clusters[i]);
-		f->size += c->size;
-		_put_cluster(c);
-	}
-
-	f->flags &= ~SWF_NOT_IN_CORE;
-	return 0;
-
- err_free:
-	free(f->clusters);
- err_close:
-	close(fd);
- err:
-	return -1;
-}
-
-static int _write_file(struct swfile *f)
-{
-	char *s;
-	int fd;
-
-	s = alloca(swap.maxnamelen);
-	sprintf(s, "%s/%li", swap.base, f->name);
-	if ((fd = open(s, O_RDWR|O_CREAT, 0666)) == -1)
-		return -1;
-	if (!(f->flags & SWF_NOT_IN_CORE)) {
-		ftruncate(fd, f->cluster_cnt*sizeof(long));
-		write(fd, f->clusters, f->cluster_cnt*sizeof(long));
-	}
-	close(fd);
-
-	return 0;
-}
-
-static struct swfile *_creat_file(long name)
-{
-	return NULL;
-}
-
-static int _truncate_file(struct swfile *f, size_t size)
-{
-	return -1;
-}
-
-
-
-static struct swcluster *_get_cluster(long name)
-{
-	struct swcluster *c;
-
-	if (!(c = hash_find_swcluster(name)))
-		c = _read_cluster(name);
-	else
-		c->usage++;
-	return c;
-}
-
-static void _put_cluster(struct swcluster *c)
-{
-	if (!c)
-		return;
-	if (--(c->usage) == 0) {
-		hash_remove_swcluster(c);
-		if (c->flags & SWC_DIRTY)
-			_write_cluster(c);
-		free(c->files);
-		free(c);
-	}
-}
-
-static struct swcluster *_read_cluster(long name)
-{
-	struct swcluster *c;
-	char *s;
-	int fd;
-	struct stat st;
-
-	/* Open cluster metadata. */
-	s = alloca(swap.maxnamelen);
-	sprintf(s, "%s/clusters/%li", swap.base, name);
-	if (stat(s, &st) == -1)
-		goto err;
-	sprintf(s, "%s/clusters.meta/%li", swap.base, name);
-	fd = open(s, O_RDONLY);
-	if (fd == -1)
-		goto err;
-
-	/* Allocate cluster structure. */
-	if (!(c = (struct swcluster *)malloc(sizeof(struct swcluster))))
-		goto err_close;
-	hash_init_swcluster(c);
-	c->name = name;
-	c->usage = 1;
-	c->size = st.st_size;
-	c->flags = 0;
-	c->files_cnt = 0;
-	c->files = NULL;
-
-	/* Read the files list. */
-	if (fstat(fd, &st) == -1)
-		goto err_free;
-	c->files_cnt = st.st_size/sizeof(long);
-	c->files = (long *)malloc(st.st_size);
-	if (!c->files)
-		goto err_free;
-	if (read(fd, c->files, st.st_size) != st.st_size)
-		goto err_free2;
-
-	/* Stat the files?
-	for (i=0; i<c->files_cnt; i++) {
-		_get_file(c->files[i], 0);
-	}
-	*/
-
-	hash_add_swcluster(c);
-	return c;
-
- err_free2:
-	free(c->files);
- err_free:
-	free(c);
- err_close:
-	close(fd);
- err:
-	return NULL;
-}
-
-static int _write_cluster(struct swcluster *c)
-{
-	char *s;
-	int fd;
-
-	s = alloca(swap.maxnamelen);
-	sprintf(s, "%s/clusters.meta/%li", swap.base, c->name);
-	if ((fd = open(s, O_RDWR|O_CREAT, 0666)) == -1)
-		return -1;
-	ftruncate(fd, c->files_cnt*sizeof(long));
-	write(fd, c->files, c->files_cnt*sizeof(long));
-	close(fd);
-
-	return 0;
-}
 
 
 static struct swfd *_sw_open(long name, int flags)
@@ -737,225 +459,3 @@ static struct swfd *_sw_open(long name, int flags)
 static void _sw_close(struct swfd *fd)
 {
 }
-
-
-
-
-
-
-/* Cluster binary tree routines. The clusters of a file are
- * organized in a binary tree consisting of nodes that contain
- * the size of its siblings (example tree height is 2):
- * s64 t[0]  metadata
- * s64 t[1]                         total sizeA
- * s64 t[2][3]               sizeB                sizeA-sizeB
- * s32 t[8][9][10][11]    sC     sB-sC         sD       sA-sB-sD
- * s32 t[12][13][14][15]  cID     cID          cID         cID
- * The tree is always filled "from the left", i.e. leaf nodes
- * span the tree.
- * Its obvious that this way an O(logN) query of a cluster, its
- * starting offset in the file and its size can be obtained for
- * a given file offset. Also its obvious that O(NlogN) storage
- * is required.
- */
-
-/* This, of course has to be FIXED. */
-#define u32 unsigned long
-#define s32 signed long
-#define s64 signed long long
-
-/* A tree head structure - dummy of course, and some macros
- * transforming a pointer to such structure to pointers to
- * the beginning of the cluster sizes/ids arrays and to the
- * beginning of the tree that is suited for good algorithm
- * implementation - tree[1] being the s64 total_size. Other
- * nice transforms are (in the s64 part of the tree):
- *           tree[i]                     tree[i>>1]
- *  tree[2*i]       tree[2*i+1]   tree[i]          tree[i+1]
- * for the transition from the s64 part to the s32 part the
- * situation is as follows:
- *                       s64 *tree[i]
- * s32 *tree[2*i + 1<<height]   s32 *tree[2*i+1 + 1<<height]
- * the reverse transition would be:
- *                 s64 *tree[(i - 1<<height)>>1]
- *      s32 *tree[i]                          s32 *tree[i+1]
- */
-struct fc_tree_head {
-    u32 height; /* we _need_ 32 bits here, as 1<<32 == max clusterid */
-    u32 cnt;   /* maybe we need some flags - or store the number of  *
-		* actual stored clusters which is <= 1<<height       */
-    s64 total_size; /* really the head node of the following tree    */
-    /* s64 inner_tree[(1<<height) - 2];      -> max filesize         */
-    /* s32 leafs_cluster_sizes[1<<height];   -> max clustersize      */
-    /* u32 cluster_ids[1<<height];           -> max clusterid        */
-};
-#define CTREE64(h) (s64 *)(h)
-#define CTREE32(h) (s32 *)(h)
-#define CSIZES(h) (s32 *)((s64 *)(h) + (1<<(h)->height))
-#define CIDS(h) ((u32 *)(h) + 3*(1<<(h)->height))
-
-
-/* Finds the cluster with offset inside it, returns the
- * offset of the cluster id in the tree array. Copies
- * the cluster start position and its size to cstart/csize. */
-static int _find_cluster(struct fc_tree_head *h, s64 offset,
-			 s64 *cstart, s32 *csize)
-{
-	s64 *tree64 = CTREE64(h);
-	s32 *tree32 = CTREE32(h);
-    	s64 pos;
-	u32 height = h->height;
-	int i;
-
-	pos = 0;
-	i = 1;
-	/* FIXME - this will not work, as the last level of the
-	 * tree (the cluster sizes) is not s64, but s32... so
-	 * we need to seperate the last iteration. */
-	while (--height) {
-		if (pos+tree64[2*i] > offset) {
-			i = 2*i;
-		} else {
-			pos += tree64[2*i];
-			i = 2*i+1;
-		}
-	}
-	/* Do the last chech with the sizes[] which is s32, not s64... */
-	if (pos+tree32[2*i + (1<<h->height)] > offset) {
-		i = 2*i + (1<<h->height);
-	} else {
-		pos += tree32[2*i + (1<<h->height)];
-		i = 2*i+1 + (1<<h->height);
-	}
-
-	/* Outside of allocated area? */
-	if (pos > offset || pos+tree32[i] <= offset)
-		return -1;
-
-	/* Fill start offset, size and return id */
-	if (cstart)
-		*cstart = pos;
-	if (csize)
-		*csize = tree32[i];
-	return tree32[i+(1<<h->height)];
-}
-
-#if 0 /* below needs to be FIXED wrt s64/s32 */
-/* Correct the tree structure to correct the size of the cluster
- * which id is at pos in the tree structure. */
-static void _resize_cluster(long *tree, int pos, s32 size)
-{
-	int height, i;
-	long delta;
-
-	height = tree[0];
-	i = pos - (1<<height);
-	delta = size-tree[i];
-	do {
-		tree[i] += delta;
-		i >>= 1;
-	} while (height--);
-}
-
-/* Inserts the clusters cid[] with sizes csize[] at tree array position pos
- * and returns the tree pointer as it may be necessary to reallocate
- * it to make room for the extra clusters. */
-static long *_insert_clusters(long *tree, int pos, int cnt,
-			      long *cid, off_t *csize)
-{
-	/* FIXME: resize tree, find last used position */
-	int lastpos = 11223;
-
-	/* Move right end of tree by cnt positions to the right. */
-	int i, j, k, l;
-	i = lastpos;
-	j = lastpos+cnt;
-	k = lastpos-pos+1;
-	l = cnt-1;
-	while (k--) {
-		cid[l] = tree[i];
-		csize[l] = tree[i-(1<<tree[0])];
-		_resize_cluster(tree, i, 0);
-		tree[j] = cid[l];
-		_resize_cluster(tree, j, csize[l]);
-		i--;
-		j--;
-		l--;
-	}
-	/* Insert clusters from j downward. */
-	while (cnt--) {
-		tree[j] = cid[cnt];
-		_resize_cluster(tree, j, csize[cnt]);
-		j--;
-	}
-
-	return tree;
-}
-
-static long *_remove_clusters(long *tree, int pos, int cnt,
-			      long *cid, off_t *csize)
-{
-	/* First move (at most) cnt clusters after pos+cnt
-	 * by cnt positions to the left, copying cluster
-	 * information to cid/csize */
-	long newsize, newid;
-	int i = 0;
-	while (tree[pos-(1<<tree[0])] != 0) {
-		if (i<cnt) {
-			cid[i] = tree[pos];
-			csize[i] = tree[pos-(1<<tree[0])];
-		}
-		if (pos+cnt < 1<<tree[0] /* FIXME */) {
-			newsize = tree[pos+cnt-(1<<tree[0])];
-			newid = tree[pos+cnt];
-		} else {
-			newsize = 0;
-			newid = -1;
-		}
-		tree[pos] = newid;
-		_resize_cluster(tree, pos, newsize);
-		i++;
-		pos++;
-	}
-
-	/* Second, resize tree, if applicable. */
-	/* FIXME */
-	return tree;
-}
-
-/* FIXME: try to code _add_height(long *tree, int cnt) */
-static long *_double_height(long *tree)
-{
-	int i, j, cnt, height;
-	long *dest;
-
-	dest = (long *)malloc(sizeof(long)*((1<<(tree[0]+1)) + (1<<tree[0])));
-	if (!dest)
-		return NULL;
-
-	/* Fill tree height and total size */
-	dest[0] = tree[0]+1;
-	dest[1] = tree[1];
-	/* Copy nodes, old tree is completely left child of root. */
-	height = 0;
-	i = 1; j = 2;
-	while (height < dest[0]) {
-		cnt = 1<<height;
-		while (cnt--)
-			dest[j++] = tree[i++];
-		cnt = 1<<height;
-		while (cnt--)
-			dest[j++] = 0;
-		height++;
-	}
-	/* Copy leaf nodes. */
-	cnt = 1<<tree[0];
-	while (cnt--)
-		dest[j++] = tree[i++];
-	cnt = 1<<tree[0];
-	while (cnt--)
-		dest[j++] = 0;
-
-	return dest;
-}
-#endif
