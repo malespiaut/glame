@@ -16,7 +16,6 @@ Known BUGS that should be fixed before 0.6.0:
 - looping support for swapfile_in filter and GUI
 - maybe disable timeline
 - remove plugin install warning, if versioning works ok
-- fix filter_collapse not traversing all connections correctly
 - better documentation for cglame, tutorial like
 - update editfilter documentation - have a tutorial
   like introduction

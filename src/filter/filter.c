@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.60 2001/11/25 21:33:10 richi Exp $
+ * $Id: filter.c,v 1.61 2001/12/02 22:05:37 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -339,7 +339,19 @@ int filter_expand(filter_t *net)
 		filter_port_t *port;
 		filter_pipe_t *pipe;
 		filterportdb_foreach_port(filter_portdb(node), port) {
-			filterport_foreach_pipe(port, pipe) {
+			char *map_node, *map_port;
+			filter_port_t *real_port = port;
+			while ((map_node = filterport_get_property(real_port, FILTERPORT_MAP_NODE))
+			       && (map_port = filterport_get_property(real_port, FILTERPORT_MAP_LABEL))) {
+				filter_t *mnode;
+				filter_port_t *mport;
+				if (!(mnode = filter_get_node(node, map_node)))
+					break;
+				if (!(mport = filterportdb_get_port(filter_portdb(mnode), map_port)))
+					break;
+				real_port = mport;
+			}
+			filterport_foreach_pipe(real_port, pipe) {
 				if (filterport_filter(pipe->real_source) == net) {
 					glame_list_del(&pipe->list);
 					pipe->real_source = port;
@@ -406,11 +418,27 @@ filter_t *filter_collapse(const char *name, filter_t **nodes)
 		 *           inside an inside network.
 		 */
 		filterportdb_foreach_port(filter_portdb(*n), port) {
-			filter_port_t *port3;
-			char nm[256];
+			filter_port_t *port3, *real_port;
+			char nm[256], *map_node, *map_port;
 			int outwards = 0;
-			filterport_foreach_pipe(port, pipe) {
+			real_port = port;
+			do {
+				if ((map_node = filterport_get_property(real_port, FILTERPORT_MAP_NODE))
+				    && (map_port = filterport_get_property(real_port, FILTERPORT_MAP_LABEL))) {
+					filter_t *node;
+					filter_port_t *nport;
+					if ((node = filter_get_node(*n, map_node))
+					    && (nport = filterportdb_get_port(filter_portdb(node), map_port)))
+						real_port = nport;
+					else
+						DPRINTF("Wrong redirection\n");
+				}
+			} while (filterport_get_property(real_port, FILTERPORT_MAP_NODE));
+			filterport_foreach_pipe(real_port, pipe) {
 				filter_port_t *port2;
+				if (!(pipe->real_source == port
+				      || pipe->real_dest == port))
+					continue;
 				outwards = 1;
 				nn = nodes;
 				while (*nn) {
@@ -438,8 +466,11 @@ filter_t *filter_collapse(const char *name, filter_t **nodes)
 			/* Again loop through the pipes, fixing the
 			 * connection information.
 			 */
-			filterport_foreach_pipe(port, pipe) {
+			filterport_foreach_pipe(real_port, pipe) {
 				filter_port_t *port2;
+				if (!(pipe->real_source == port
+				      || pipe->real_dest == port))
+					continue;
 				outwards = 1;
 				nn = nodes;
 				while (*nn) {
