@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.2 2000/03/20 09:51:53 richi Exp $
+ * $Id: audio_io.c,v 1.3 2000/03/20 23:49:44 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -28,22 +28,32 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <limits.h>
 #include "glame_types.h"
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
 
+/* TODO: (before 0.2)
+ *       * oss and sgi audio in.
+ *       * Especially esd in/out needs further cleanups.
+ *       (post 0.2)
+ *       * The whole file needs a file_io'ish re-write to further
+ *         centralize common code. This is post-0.2 work however. Let's
+ *         stick with a little code duplication for now.
+ */
 
 PLUGIN_DESCRIPTION(audio_io, "filter set for audio support")
 PLUGIN_SET(audio_io, "audio_out audio_in")
 
-
 /* Generic versions of filter methods. Called from various low-level
  * implementations
  *
- * TODO: Handling of default 'rate' and 'hangle' parameters. 
- *       Currently we just assume sane defaults.
+ * TODO: * Handling of default 'rate' and 'hangle' parameters. 
+ *         Currently we just assume sane defaults.
+ *       * Must fix dynamic parameter and pipe handling, especially
+ *         fixup_param method.
  */
 
 /* Generic connect_in method for audio output filters. We assume a
@@ -106,22 +116,79 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 	return 0;
 }						
 
+/* Generic fixup_pipe method for audio output filters. Assert a common
+ * sample rate between all input pipes.
+ */
+
+/* FIXME: F*** API changes caught me. fixup pipe changed from int to void.
+ * Is break_connection correct?
+ */
+static void aio_generic_fixup_pipe(filter_node_t *src, filter_pipe_t *pipe)
+{
+	int rate = filterpipe_sample_rate(pipe);
+
+	filternode_foreach_input(src, pipe) {
+		if (rate != filterpipe_sample_rate(pipe))
+			filternetwork_break_connection(pipe);
+	}
+	/* No output pipes. */
+}
+
+/* Generic fixup_param method for audio input filters. */
+
+static int aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
+                                   const char *name, filter_param_t *param)
+{
+	int rate;
+
+	if (pipe) {
+		/* Must've been a hangle change. */
+		float hangle = filterparam_val_float(param);
+		if (hangle <= -M_PI || hangle > M_PI)
+			return -1;
+		filterpipe_sample_hangle(pipe) = hangle;
+		src->filter->fixup_pipe(src, pipe);
+		return 0;
+	}
+	if (strcmp(name, "rate"))
+		return 0;	/* Device changes are always okay. */
+
+	rate = filterparam_val_int(param);
+	
+	/* Make sure to update rate param on all pipes even if some
+	 * fixup methods fail!
+	 */
+	filternode_foreach_output(src, pipe) {
+		filterpipe_sample_rate(pipe) = rate;
+		src->filter->fixup_pipe(src, pipe);
+	}
+	return 0;
+}
 /* Clumsy try to clean up the register mess a bit. */
 
 static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 {
 	filter_t *filter;
+	filter_portdesc_t *p;
 
 	if (!f)
 		return -1;
 
-	if (!(filter = filter_alloc(f))
-	    || !filter_add_output(filter, PORTNAME_OUT, "output port",
-				  FILTER_PORTTYPE_SAMPLE
-				  | FILTER_PORTTYPE_AUTOMATIC))
+	if (!(filter = filter_alloc(f)) ||
+		!(p = filter_add_output(filter, PORTNAME_OUT, "output port",
+				FILTER_PORTTYPE_SAMPLE |
+				FILTER_PORTTYPE_AUTOMATIC)) ||
+		!filter_add_param(filter, "rate", "sample rate", 
+				FILTER_PARAMTYPE_INT) ||
+		!filter_add_param(filter, "device", "input device",
+				FILTER_PARAMTYPE_STRING) ||
+		!filterport_add_param(p, "position", "position of the stream",
+				FILTER_PARAMTYPE_FLOAT))
 		return -1;
 	filter->connect_out = aio_generic_connect_out;
-	if(filter_add(filter, name, "record stream") == -1)
+	filter->fixup_param = aio_generic_fixup_param;
+
+	if (filter_add(filter, name, "record stream") == -1)
 		return -1;
 
 	return 0;
@@ -134,23 +201,292 @@ static int aio_generic_register_output(char *name, int (*f)(filter_node_t *))
 	if (!f)
 		return -1;
 	
-	if (!(filter = filter_alloc(f))
-	    || !filter_add_input(filter, PORTNAME_IN, "input port",
-				 FILTER_PORTTYPE_SAMPLE
-				 | FILTER_PORTTYPE_AUTOMATIC))
+	if (!(filter=filter_alloc(f)) ||
+		!filter_add_input(filter, PORTNAME_IN, "input port",
+				FILTER_PORTTYPE_SAMPLE | 
+				FILTER_PORTTYPE_AUTOMATIC) ||
+		!filter_add_param(filter, "device", "output device",
+				FILTER_PARAMTYPE_STRING))
 		return -1;
 	filter->connect_in = aio_generic_connect_in;
+	filter->fixup_pipe = aio_generic_fixup_pipe;
+
 	if (filter_add(filter, name, "playback stream") == -1)
 		return -1;
 
 	return 0;
 }
 
+
+#ifdef HAVE_ALSA
+#include <sys/asoundlib.h>
+#include <linux/types.h>
+#include <string.h>
+
+static int alsa_audio_out_f(filter_node_t *n)
+{
+	typedef struct {
+		filter_pipe_t	*pipe;
+		filter_buffer_t	*buf;
+		int		pos;
+		int		to_go;
+	} alsa_audioparam_t;
+	
+	alsa_audioparam_t	*in = NULL;
+	__s16			neutral, *wbuf, *out = NULL;
+	filter_pipe_t		*p_in;
+	
+	int card=0, dev=0;
+	filter_param_t *dev_param;
+	char *dev_paramstr;
+	
+	int rate, blksz, ssize;
+
+	int ch, max_ch, ch_active;
+	int chunk_size;
+	int to_go;
+	
+	int i;
+	
+	snd_pcm_t			*pcm = NULL;
+	snd_pcm_channel_params_t	ch_param;
+	snd_pcm_channel_setup_t 	setup;
+
+
+	/* Boilerplate init section - will go into a generic function one day.
+	 */
+	
+	max_ch = filternode_nrinputs(n);
+	if (!max_ch)
+		FILTER_ERROR_RETURN("No input channels given.");
+	
+	p_in = filternode_get_input(n, PORTNAME_IN);
+	rate = filterpipe_sample_rate(p_in);
+	if (rate <= 0)
+		FILTER_ERROR_RETURN("No valid sample rate given.");
+
+	in = (alsa_audioparam_t *)malloc(max_ch * sizeof(alsa_audioparam_t));
+	if (!in)
+		FILTER_ERROR_RETURN("Failed to alloc input structs.");
+
+	ch = 0;
+	do {
+		alsa_audioparam_t *ap = &in[ch++];
+		ap->pipe = p_in;
+		ap->buf = NULL;
+		ap->pos = ap->to_go = 0;
+	} while ((p_in = filternode_next_input(p_in)));
+
+	/* Fixup hangle mapping. */
+	if (ch > 1)
+		if (filterpipe_sample_hangle(in[0].pipe) >
+		    filterpipe_sample_hangle(in[1].pipe)) {
+			filter_pipe_t *t = in[0].pipe;
+			in[0].pipe = in[1].pipe;
+			in[1].pipe = t;
+		}
+
+	/* ALSA specific initialisation.
+	 */
+	
+	dev_param = filternode_get_param(n, "device");
+	if (dev_param) {
+		char *cpos;
+		dev_paramstr = filterparam_val_string(dev_param);
+		cpos = strchr(dev_paramstr, (int)':');
+		if (cpos) {
+			*cpos++ = '\0';
+			dev = atoi(cpos);
+		}
+		card = atoi(dev_paramstr);
+	}
+
+	if (snd_pcm_open(&pcm, card, dev, SND_PCM_OPEN_PLAYBACK))
+		FILTER_ERROR_CLEANUP("Could not open audio device.");
+	
+	/* FIXME: Can we assume s16 native endian is always supported?
+	 *        (The plugin stuff performs a limited set of conversions.)
+	 */
+	ssize = 2;
+	neutral = SAMPLE2SHORT(0.0);
+
+	memset(&ch_param, 0, sizeof(snd_pcm_channel_params_t));
+	ch_param.format.voices = max_ch;
+	ch_param.format.rate = rate;
+#ifdef SND_LITTLE_ENDIAN
+	ch_param.format.format = SND_PCM_SFMT_S16_LE;
+#else
+# if SND_BIG_ENDIAN
+	ch_param.format.format = SND_PCM_SFMT_S16_BE;
+# else
+#  error Unsupported audio format.
+# endif
+#endif
+	ch_param.format.interleave = 1;
+	ch_param.channel = SND_PCM_CHANNEL_PLAYBACK;
+	ch_param.mode = SND_PCM_MODE_BLOCK;
+	ch_param.start_mode = SND_PCM_START_FULL;
+	ch_param.stop_mode = SND_PCM_STOP_ROLLOVER;
+	ch_param.buf.block.frag_size = GLAME_WBUFSIZE * ssize * max_ch;
+	ch_param.buf.block.frags_min = 1;
+	ch_param.buf.block.frags_max = -1;
+	if (snd_pcm_plugin_params(pcm, &ch_param))
+		FILTER_ERROR_CLEANUP("Unsupported audio format.");
+	
+	if (snd_pcm_plugin_prepare(pcm, SND_PCM_CHANNEL_PLAYBACK))
+		FILTER_ERROR_CLEANUP("Channel won't prepare.");
+
+	setup.mode = SND_PCM_MODE_BLOCK;
+	setup.channel = SND_PCM_CHANNEL_PLAYBACK;
+	if (snd_pcm_plugin_setup(pcm, &setup))
+		FILTER_ERROR_CLEANUP("Could not get channel setup.");
+	
+	blksz = setup.buf.block.frag_size;
+	if (blksz <= 0)
+		FILTER_ERROR_CLEANUP("Illegal size of audio buffer");
+	DPRINTF("Using %d byte buffers.\n", blksz);
+	
+	out = (__s16 *)malloc(blksz);
+	if (!out)
+		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
+
+	blksz /= max_ch * ssize;
+	wbuf = out;
+
+	FILTER_AFTER_INIT;
+			
+	ch_active = ch;
+	ch = 0;
+	to_go = blksz;
+
+	goto _entry;
+
+	do {
+		ssize_t ret;
+
+		/* Convert to signed 16 bit. */
+		for (i = 0; i < max_ch; i++) {
+			int done;
+
+			if (!in[i].buf) {
+				for (done = 0; done < chunk_size; done++)
+					out[max_ch*done + i] = neutral;
+				continue;
+			}
+			for (done = 0; done < chunk_size; done++)
+				out[max_ch*done + i] = SAMPLE2SHORT(
+					sbuf_buf(in[i].buf)[in[i].pos+done]);
+			in[i].pos += done;
+			in[i].to_go -= done;
+		}
+
+		to_go -= chunk_size;
+
+		if (!to_go) {
+			out = wbuf;
+			to_go = blksz;
+			if ((ret=snd_pcm_plugin_write(pcm, out, 
+				max_ch * ssize * blksz)) != 
+				max_ch * ssize * blksz) {
+				DPRINTF("Audio device had failure. "
+				        "Samples might be dropped.\n");
+			}
+		} else {
+			out = &out[chunk_size * max_ch];
+		}
+
+_entry:
+		chunk_size = to_go;
+
+		FILTER_CHECK_STOP;
+
+		do {
+			alsa_audioparam_t *ap = &in[ch];
+			if (!ap->to_go) {
+				sbuf_unref(ap->buf);
+				ap->buf = sbuf_get(ap->pipe);
+				ap->to_go = sbuf_size(ap->buf);
+				ap->pos = 0;
+			}
+			if (!ap->buf) {
+				if (ap->pipe) {
+					ch_active--;
+					ap->pipe = NULL;
+					DPRINTF("Channel %d/%d stopped, "
+					        "%d active.\n",
+						ch, max_ch, ch_active);
+				}
+				ap->to_go = to_go;
+			}
+			chunk_size = MIN(chunk_size, ap->to_go);
+		} while ((ch = ++ch % max_ch));
+	} while (ch_active || (to_go != blksz));
+
+	FILTER_BEFORE_CLEANUP;
+	FILTER_BEFORE_STOPCLEANUP;
+
+	if (pcm) {
+		snd_pcm_plugin_flush(pcm, SND_PCM_CHANNEL_PLAYBACK);
+		snd_pcm_close(pcm);
+	}
+	free(out);
+	free(in);
+	FILTER_RETURN;
+					
+}
+#endif
+
 #ifdef HAVE_OSS
 #include <linux/soundcard.h>
 #include <linux/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+
+typedef struct {
+	filter_pipe_t	*pipe;
+	filter_buffer_t *buf;
+	int		pos;
+	int		to_go;
+} oss_audioparam_t;
+
+/* Conversion from our internal float to the output format (8 or 16 bit)
+ * in done in this helper routine.
+ */
+void oss_convert_bufs(oss_audioparam_t *in, __u8 *out, int max_ch,
+                      int ssize, int chunk_size, int interleave)
+{
+	int i, done;
+
+	for (i = 0; i < max_ch; i++) {
+		if (!in[i].buf) {
+			/* No more input - add silence. */
+			if (ssize == 1) {
+				__u8 neutral = SAMPLE2UCHAR(0.0);
+				for (done = 0; done < chunk_size; done++)
+					*(out + done*interleave + i) = neutral;
+			} else {
+				/* ssize == 2 */
+				__u16 neutral = SAMPLE2USHORT(0.0);
+				for (done = 0; done < chunk_size; done++)
+					*(__u16 *)(out + done*interleave 
+							+ 2*i) = neutral;
+			}
+			continue;
+		}
+		if (ssize == 1) 
+			for (done = 0; done < chunk_size; done++)
+				*(out + done*interleave + i) =
+					SAMPLE2UCHAR(sbuf_buf(in[i].buf)[in[i].pos+done]); 
+		else /* ssize == 2 */
+			for (done = 0; done < chunk_size; done++)
+				*(__u16 *)(out + done*interleave +  2*i) =
+					SAMPLE2USHORT(sbuf_buf(in[i].buf)[in[i].pos+done]);
+
+		in[i].pos += done;
+		in[i].to_go -= done;
+	}		
+}
+
 
 /* FIXME: We're fucked up if a stale pipe is connected, i.e. when
  * playing a mono file in a stereo setup. (This needs global fixing.)
@@ -160,12 +496,6 @@ static int aio_generic_register_output(char *name, int (*f)(filter_node_t *))
  */
 static int oss_audio_out_f(filter_node_t *n)
 {
-	typedef struct {
-		filter_pipe_t	*pipe;
-		filter_buffer_t *buf;
-		int		pos;
-		int		to_go;
-	} oss_audioparam_t;
 
 	oss_audioparam_t	*in = NULL;
 	__u8			*out = NULL;
@@ -176,8 +506,8 @@ static int oss_audio_out_f(filter_node_t *n)
 
 	int	ch, max_ch, interleave, ch_active;
 	int	chunk_size;
-	int	i;
 
+	filter_param_t *dev_param;
 	int	dev = -1;
 
 	max_ch = filternode_nrinputs(n);
@@ -216,7 +546,9 @@ static int oss_audio_out_f(filter_node_t *n)
 	
 	/* Ugly OSS ioctl() mess. Keep your eyes closed and proceed. */
 
-	dev = open("/dev/dsp", O_WRONLY);
+	dev_param = filternode_get_param(n, "device");
+	dev = open(dev_param ? filterparam_val_string(dev_param) : "/dev/dsp", 
+	           O_WRONLY);
 	if (dev == -1)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
 
@@ -256,6 +588,7 @@ static int oss_audio_out_f(filter_node_t *n)
 	if (!out)
 		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
 	
+	DPRINTF("Allocated %d byte conversion buffer at %p.\n", blksz, out);
 	interleave = max_ch * ssize; 
 
 	FILTER_AFTER_INIT;
@@ -266,38 +599,22 @@ static int oss_audio_out_f(filter_node_t *n)
 	goto _entry;
 
 	do {
-		for (i = 0; i < max_ch; i++) {
-			int done = 0;
-			if (!in[i].buf) {
-				if (ssize == 1) {
-					__u8 neutral = SAMPLE2UCHAR(0.0);
-					for (done = 0; done < chunk_size; done++)
-						*(out + done*interleave + i) =
-							neutral;
-				} else {
-					__u16 neutral = SAMPLE2USHORT(0.0);
-					for (done = 0; done < chunk_size; done++)
-						*(__u16 *)(out + done*interleave + 2*i) =
-							neutral;
-				}
-				continue;
+		ssize_t todo = chunk_size * interleave;
+		void *wpos = out;
+		
+		oss_convert_bufs(in, out, max_ch, ssize, chunk_size, 
+		                 interleave);
+		do {
+			ssize_t done;
+			if ((done = write(dev, wpos, todo)) == -1 &&
+			     errno != EINTR) {
+				DERROR("Audio device had failure. "
+			       	       "Samples might be dropped\n");
+				break;
 			}
-			if (ssize == 1) 
-				for (done = 0; done < chunk_size; done++)
-					*(out + done*interleave + i) =
-						SAMPLE2UCHAR(
-							sbuf_buf(in[i].buf)[in[i].pos+done]); 
-			else /* ssize == 2 */
-				for (done = 0; done < chunk_size; done++)
-					*(__u16 *)(out + done*interleave +  2*i) =
-						SAMPLE2USHORT(
-							sbuf_buf(in[i].buf)[in[i].pos+done]);
-
-			in[i].pos += done;
-			in[i].to_go -= done;
-		}
-		if (write(dev, out, chunk_size*interleave) == -1)
-			DERROR("Audio device had failure. Samples might be dropped\n");	
+			todo -= done;
+			wpos += ssize * done;
+		} while (todo);
 	_entry:
 		chunk_size = blksz/interleave;
 
@@ -316,7 +633,9 @@ static int oss_audio_out_f(filter_node_t *n)
 				if (ap->pipe) {
 					ch_active--;
 					ap->pipe = NULL;
-					DPRINTF("Channel %d/%d stopped, %d active.\n", ch, max_ch, ch_active);
+					DPRINTF("Channel %d/%d stopped, "
+					        "%d active.\n", 
+						ch, max_ch, ch_active);
 				}
 				ap->to_go = blksz/interleave;
 			}
@@ -367,6 +686,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	ALconfig	c = NULL;
 	ALport		p = NULL;
 	ALpv		v[1];
+	/* FIXME: Should be set via default "device" param */
 	int		resource = AL_DEFAULT_OUTPUT;
 	int		qsize;
 
@@ -462,8 +782,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 	alFreeConfig(c);
 	c = NULL;
 
-	/* May not fail from now on... */
-	ret = 0;
 	FILTER_AFTER_INIT;
 
 	ch = 0;
@@ -475,8 +793,8 @@ static int sgi_audio_out_f(filter_node_t *n)
 	 */
 	goto _entry;
 	
-	while(pthread_testcancel(), ch_active) {
-
+	while(ch_active) {
+		FILTER_CHECK_STOP;
 #if 0
 		DPRINTF("Writing %d sample chunk.\n", chunk_size);
 #endif
@@ -516,6 +834,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	}
 
 	FILTER_BEFORE_CLEANUP;
+	FILTER_BEFORE_STOPCLEANUP;
 
 	if(p)
 		alClosePort(p);
@@ -524,7 +843,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	/* free() is supposed to handle NULLs gracefully. */
 	free(bufs);
 	free(in);
-	return ret;
+	FILTER_RETURN;
 }
 
 #endif
@@ -647,20 +966,6 @@ static int esd_out_f(filter_node_t *n)
 	if (!(inputs = ALLOCN(nrinputs, esdout_param_t)))
 		FILTER_ERROR_RETURN("no memory");
 
-	/* sort all inputs into the private structure by hangle */
-	iassigned = 0;
-	filternode_foreach_input(n, in) {
-		/* find insertion point */
-		for (iat=0; iat<iassigned && filterpipe_sample_hangle(inputs[iat].in) < filterpipe_sample_hangle(in); iat++)
-			;
-		/* move other entries */
-		for (i=iassigned; i>iat; i--)
-			inputs[i] = inputs[i-1];
-		/* assign input */
-		inputs[iat].in = in;
-		iassigned++;
-	}
-
 	/* decide mono/stereo */
 	if (nrinputs == 1) {
 		format |= ESD_MONO;
@@ -680,48 +985,56 @@ static int esd_out_f(filter_node_t *n)
 	esound_socket = esd_play_stream_fallback(format, rate, host, name);
 	if (esound_socket <= 0)
 	        FILTER_ERROR_RETURN("couldn't open esd-socket connection!");
-	
 
 	FILTER_AFTER_INIT;
 
-	/* get first input buffers from all channels and init the
-	 * structure. */
-	for (i=0; i<nrinputs; i++) {
+	/* Sort all inputs by hangle and initialize private struct.
+	 * Must be done after INIT section as we mess with sbufs! */
+	/* TODO: Should use a clever to_go entry in out private
+	 * struct like all the other output routines. Then we can
+	 * avoid explicit sbuf initialisation and put the sort loop
+	 * back into init where it belongs. [dk]
+	 */
+	iassigned = 0;
+	filternode_foreach_input(n, in) {
+		/* find insertion point */
+		for (iat=0; iat < iassigned && 
+			filterpipe_sample_hangle(inputs[iat].in) < 
+			filterpipe_sample_hangle(in); iat++)
+			;
+		/* move other entries */
+		for (i=iassigned; i>iat; i--)
+			inputs[i] = inputs[i-1];
+		/* assign and initialize input */
+		inputs[iat].in = in;
 		if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
 			eofs++;
 		inputs[i].s = sbuf_buf(inputs[i].buf);
 		inputs[i].pos = 0;
+		iassigned++;
 	}
+
+	goto _entry;
 
 	while (eofs != nrinputs) {
 		FILTER_CHECK_STOP;
 
-		/* find the maximum number of samples we can process
-		 * without getting an additional buffer. */
-		cnt = GLAME_WBUFSIZE/nrinputs;
-		for (i=0; i<nrinputs; i++) {
-			if (!inputs[i].buf
-			    || sbuf_size(inputs[i].buf) - inputs[i].pos >= cnt)
-				continue;
-			cnt = sbuf_size(inputs[i].buf) - inputs[i].pos;
-		}
-
-		/* fix the end positions */
-		for (i=0; i<nrinputs; i++)
-			if (inputs[i].buf)
-				inputs[i].pos += cnt;
-
-		/* in one run process cnt number of samples. */
+		/* Convert samples to output format. */
 		wbpos = cnt;
-		s = wbuf;
-		for (; cnt>0; cnt--) {
-			for (i=0; i<nrinputs; i++) {
-				if (!inputs[i].buf)
-					continue;
-				*(s++) = SAMPLE2SHORT(*(inputs[i].s++));
+		for (i=0; i < nrinputs; i++) {
+			if (!inputs[i].buf) {
+				/* Add silence */
+				short neutral = SAMPLE2SHORT(0.0);
+				for (cnt=0; cnt < wbpos; cnt++)
+					wbuf[nrinputs*cnt + i] = neutral;
+				continue;
 			}
+			inputs[i].pos += wbpos;
+			for (cnt=0; cnt < wbpos; cnt++)
+				wbuf[nrinputs*cnt + i] = 
+					SAMPLE2SHORT(*(inputs[i].s++));
 		}
-
+		
 		/* send audio data to esd */
 		cnt = wbpos * nrinputs * sizeof(short int);
 		s = wbuf;
@@ -734,16 +1047,26 @@ static int esd_out_f(filter_node_t *n)
 			cnt -= res;
 		} while (cnt>0);
 
+_entry:
 		/* check which input buffer had the underflow. */
+		cnt = GLAME_WBUFSIZE/nrinputs;
 		for (i=0; i<nrinputs; i++) {
-			if (!inputs[i].buf
-			    || inputs[i].pos != sbuf_size(inputs[i].buf))
+			int to_go;
+			if (!inputs[i].buf)
 				continue;
+			to_go = sbuf_size(inputs[i].buf) - inputs[i].pos;
+			if (to_go) {
+				cnt = MIN(cnt, to_go);
+				continue;
+			}
 			sbuf_unref(inputs[i].buf);
-			if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
+			if (!(inputs[i].buf = sbuf_get(inputs[i].in))) {
 				eofs++;
+				continue;
+			}
 			inputs[i].s = sbuf_buf(inputs[i].buf);
 			inputs[i].pos = 0;
+			cnt = MIN(cnt, sbuf_size(inputs[i].buf));
 		}
 	}
 
@@ -778,7 +1101,8 @@ int audio_out_register()
 		audio_out = oss_audio_out_f;
 #endif
 #if defined HAVE_ALSA
-	/* TODO */
+	if (!aio_generic_register_output("alsa_audio_out", alsa_audio_out_f))
+		audio_out = alsa_audio_out_f;
 #endif 
 #if defined HAVE_ESD
 	if (!aio_generic_register_output("esd_audio_out", esd_out_f)) 
