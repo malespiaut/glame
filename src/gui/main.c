@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.54 2001/05/29 07:40:13 richi Exp $
+ * $Id: main.c,v 1.55 2001/05/29 08:45:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -523,6 +523,19 @@ static void glame_splash(void)
  * Real main and cleanup stuff.
  */
 
+static void resize_horiz_cb(GtkWidget *widget, GtkRequisition *req,
+			    GtkWidget *window)
+{
+	static int last_width = 0, last_height = 0;
+	if (last_width == req->width && last_height == req->height)
+		return;
+	last_width = req->width;
+	last_height = req->height;
+	gtk_window_set_default_size(GTK_WINDOW(window),
+				    req->width + 10,
+				    window->allocation.height);
+}
+
 static void gui_quit(GtkWidget *widget, gpointer data)
 {
 	clipboard_empty();
@@ -557,7 +570,7 @@ static void gui_main()
 		return;
 	scrollview = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollview),
-				       GTK_POLICY_ALWAYS,
+				       GTK_POLICY_NEVER,
 				       GTK_POLICY_ALWAYS);
 	gtk_scrolled_window_set_placement(GTK_SCROLLED_WINDOW(scrollview),
 					  GTK_CORNER_TOP_RIGHT);
@@ -584,8 +597,12 @@ static void gui_main()
 	gtk_signal_connect(GTK_OBJECT(app), "delete-event",
 			   GTK_SIGNAL_FUNC(gui_quit), NULL);
 	gnome_app_set_contents(GNOME_APP(app), scrollview);
-	gtk_window_set_default_size(GTK_WINDOW(app), 500, 300);
+	gtk_window_set_default_size(GTK_WINDOW(app), 300, 200);
 	gtk_widget_show(app);
+
+	/* Connect auto-horizontal-resize callback. */
+	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
+			   resize_horiz_cb, app);
 
 	/* Pop up splash screen. */
 	glame_splash();
