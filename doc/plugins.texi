@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.25 2001/05/03 12:10:17 mag Exp $
+@comment $Id: plugins.texi,v 1.26 2001/05/03 12:32:46 mag Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -589,6 +589,7 @@ these plugins.
 * Noisegate::
 * IIR::
 * Flanger::
+* Distortion::
 @end menu
 
 @node Echo, Noisegate,, Effects
@@ -685,7 +686,7 @@ to 0.5, and it is best to leave it alone unless you know what you're doing.
 @end table
 
 
-@node Flanger, , IIR, Effects
+@node Flanger, Distortion, IIR, Effects
 @subsection Flanger
 The flanger effect is essentially a variable delay, that operates on a comb
 filtered signal. The variation of the delay is given by a low frequency
@@ -736,7 +737,40 @@ sound.
 @end table
 @end table
 
+@node Distortion, , Flanger, Effects
+@subsection Distortion
+The distortion effect simulates a MOSFET preamplifier with adjustable
+clipping. With a mode parameter one can switch between a halfwave and a fullwave
+rectifying output stage.
 
+@subsubheading @file{distortion} ports
+@table @code
+@item in (input)
+Input stream of sample data. Only one connection is allowed.
+@item out (output)
+Output stream of processed sample data. Only one connection is allowed.
+@end table
+
+@subsubheading @file{distortion} parameters
+@table @code
+@item pregain (float)
+This parameters set the amount of signal gain before the signals enters the distortion stage.
+The more pregain you set the more dramatic the distortion becomes. Good values are between
+10.0 and 20.0, defaults to 10.0
+@item fxgain (float)
+The distorted signal and the dry signal are mixed at the output. fxgain sets the amount
+of effect signal added to the dry signal, defaults to 1.0
+@item clip, asym (float)
+asym sets the signal midlevel for clipping. In mode 0 the signal is clipped if it's smaller
+than asym-clip or greater than asym+clip, e.g. clip=0.5 and asym=0.5 simulates a halfwave
+rectifier. Setting these values allows you to modify the harmonic content of the distorted
+signal. In mode 1 the signal is fully rectified and clipped at level <clip>.
+@item mode (int)
+@table @code
+@item 0 enables asymmetrical clipping mode
+@item 1 enables fullwave rectifying mode
+@end table
+@end table
 
 @node FFT Plugins, , Effects, Plugin Collection
 @section FFT Plugins
