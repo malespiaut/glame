@@ -1,5 +1,9 @@
 This is GLAME 0.2.0-pre1 - GNU/Linux Audio Mechanics BETA release.
 
+GLAME is meant to be the GIMP of audio processing. It is designed to be
+a powerful, fast, stable, and easily extensible sound editor for Linux
+and compatible systems. Supported platforms are Linux and IRIX.
+
 Authors in chronological order
 	mag, XWolf, richi, nold, garrison
 with their real names
