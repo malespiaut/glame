@@ -77,11 +77,7 @@ static struct {
 } swap = { NULL, NULL, NULL, };
 #define SWAPFILE_OK() (swap.files_base != NULL)
 #define SWAPFILE_RW() (SWAPFILE_OK() && (!swap.ro || swap.fsck))
-#ifdef SWDEBUG
-#define SWAPFILE_MARK_UNCLEAN(msg) do { DPRINTF(msg); swap.clean = 0; swap.ro = 1; } while (0)
-#else
-#define SWAPFILE_MARK_UNCLEAN(msg) do { swap.clean = 0; swap.ro = 1; } while (0)
-#endif
+#define SWAPFILE_MARK_UNCLEAN(msg) do { DPRINTF("UNCLEAN: " msg "\n"); swap.clean = 0; swap.ro = 1; } while (0)
 
 static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK do { pthread_mutex_lock(&swmx); } while (0)
