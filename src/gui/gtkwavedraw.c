@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.1 2000/04/09 21:10:59 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.2 2000/04/10 03:15:11 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -107,6 +107,7 @@ gtk_wave_draw_init(GtkWaveDraw *wavedraw)
   wavedraw->marker = NULL;
   wavedraw->n_samples = NULL;
   wavedraw->start = NULL;
+  wavedraw->color = NULL;
 
   wavedraw->n_waves = 0;
 
@@ -241,8 +242,17 @@ gtk_wave_draw_add_wave(GtkWaveDraw *wavedraw,
 				  sizeof(glong) * wavedraw->n_waves);
   wavedraw->n_samples[new_idx] = n_samples;
 
+  /* 
+   * Fourth, give this wave a default color
+   */
+  wavedraw->color = g_realloc(wavedraw->color, 
+			      sizeof(GdkColor) * wavedraw->n_waves);
+  wavedraw->color[new_idx].red   = (new_idx % 3 == 1) ? 0xffff : 0;
+  wavedraw->color[new_idx].green = (new_idx % 3 == 0) ? 0xffff : 0;
+  wavedraw->color[new_idx].blue  = (new_idx % 3 == 2) ? 0xffff : 0;
+
   /*
-   * Fourth and finally, let the widget know where the new wave fits
+   * Fifth and finally, let the widget know where the new wave fits
    * into the grand scheme.
    */
   wavedraw->start = g_realloc(wavedraw->start, 
@@ -295,9 +305,14 @@ gtk_wave_draw_remove_wave(GtkWaveDraw *wavedraw,
     g_realloc(wavedraw->n_samples, sizeof(glong) * wavedraw->n_waves);
 
     /* 
-     * Fourth and finally, realloc the starting point array
+     * Fourth, realloc the starting point array
      */
     g_realloc(wavedraw->start, sizeof(glong) * wavedraw->n_waves);
+
+    /*
+     * Fifth, realloc the color array
+     */
+    g_realloc(wavedraw->color, sizeof(GdkColor) * wavedraw->n_waves);
   } else {
     /* 
      * We're not dealing with the easy case, so we can't simply
@@ -309,23 +324,27 @@ gtk_wave_draw_remove_wave(GtkWaveDraw *wavedraw,
     glong  **new_marker   = NULL;
     glong  *new_n_samples = NULL;
     glong  *new_start     = NULL;
+    GdkColor *new_color   = NULL;
     int i;
     
     new_data      = g_malloc(sizeof(gfloat *) * n_waves);
     new_marker    = g_malloc(sizeof(glong *)  * n_waves);
     new_n_samples = g_malloc(sizeof(glong)    * n_waves);
     new_start     = g_malloc(sizeof(glong)    * n_waves);
+    new_color     = g_malloc(sizeof(GdkColor) * n_waves);
     for (i=0; i<wave_idx; i++) {
       new_data[i]      = wavedraw->data[i];
       new_marker[i]    = wavedraw->marker[i];
       new_n_samples[i] = wavedraw->n_samples[i];
       new_start[i]     = wavedraw->start[i];
+      memcpy(&new_color[i], &wavedraw->color[i], sizeof(GdkColor));
     }
     for (i=wave_idx+1; i<wavedraw->n_waves; i++) {
       new_data[i-1]      = wavedraw->data[i];
       new_marker[i-1]    = wavedraw->marker[i];
       new_n_samples[i-1] = wavedraw->n_samples[i];
       new_start[i-1]     = wavedraw->start[i];
+      memcpy(&new_color[i-1], &wavedraw->color[i], sizeof(GdkColor));
     }
 
     /* Free the allocated arrays  -- first, free the old wave data */
@@ -337,13 +356,14 @@ gtk_wave_draw_remove_wave(GtkWaveDraw *wavedraw,
     g_free(wavedraw->marker);
     g_free(wavedraw->n_samples);
     g_free(wavedraw->start);
+    g_free(wavedraw->color);
 
     /* Now assign everything to the new arrays */
     wavedraw->data      = new_data;
     wavedraw->marker    = new_marker;
     wavedraw->n_samples = new_n_samples;
     wavedraw->start     = new_start;
-
+    wavedraw->color     = new_color;
     /* Finally, let the wavedraw know it's smaller now */
     wavedraw->n_waves   = n_waves;
   }
@@ -361,7 +381,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
 		   GdkRectangle *area)
 {
   GtkWaveDraw *wavedraw;
-  static GdkColor *color = NULL; 
   GdkPixmap   *pixmap;
   GdkGC       *wavedraw_gc;
   gint   wave_idx;
@@ -392,9 +411,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
   /* Set a few initial constant (more or less) values */
   /* Possible (minor) speed consideration: move everything but midy after 
    * the axis draw */
-  if (color == NULL) {
-    color = (GdkColor *)g_malloc(sizeof(GdkColor));
-  }
   midy = widget->allocation.height / 2;
   start_disp = wavedraw->start_current;
   stop_disp  = start_disp + wavedraw->n_samples_current - 1;
@@ -427,18 +443,9 @@ gtk_wave_draw_draw(GtkWidget *widget,
 
     p_val = wavedraw->data[wave_idx];
 
-    /* Figure out what color we're going to use -- this is extremely 
-     * inelegant (not to mention ugly, painful, and redundant) , but I 
-     * plan to replace it RSN. */
-    if (wave_idx %3 == 0) {
-      color->red = 0; color->green = 0xffff; color->blue = 0;
-    } else if (wave_idx %3 == 1) {
-      color->red = 0xffff; color->green = 0; color->blue = 0;
-    } else {
-      color->red = 0; color->green = 0; color->blue = 0xffff;
-    }
-    gdk_color_alloc(gdk_colormap_get_system(), color);
-    gdk_gc_set_foreground(wavedraw->wavedraw_gc, color);
+    /* Set the color from the widget */
+    gdk_color_alloc(gdk_colormap_get_system(), &wavedraw->color[wave_idx]);
+    gdk_gc_set_foreground(wavedraw->wavedraw_gc, &wavedraw->color[wave_idx]);
 
     start_sample = MAX(*start, start_disp);
     stop_sample = MIN(stop, stop_disp);
@@ -458,7 +465,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
       for (samp = start_sample; samp < stop_sample; samp++) {
 	cur_y2 = (int)(midy - (*++p_val)*midy);
 	cur_x2 = cur_x + stride_x;
-	printf("Graphing %d (%d) to %d (%d)\n", cur_y, samp, cur_y2, samp+1);
 	gdk_draw_line(pixmap, wavedraw_gc,
 		      (gint) cur_x, cur_y,
 		      (gint) cur_x2, cur_y2);
@@ -480,10 +486,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
 	  samp_offset += stride_samp;
 	  p_val = wavedraw->data[wave_idx] + (glong) samp_offset;
 	  cur_y2 = (int)(midy - (*p_val)*midy);
-#if 0
-	  printf("2. Graphing %d (%d) to %d (%d)\n", cur_y, 
-		 (int)(samp_offset - stride_samp), cur_y2, (int)samp_offset);
-#endif
 	  gdk_draw_line(pixmap,	wavedraw_gc,
 			cur_x, cur_y,
 			cur_x, cur_y2);
@@ -493,8 +495,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
 	samp_offset += stride_samp;
 	p_val = wavedraw->data[wave_idx] + (glong) samp_offset;
 	cur_y2 = (int)(midy - (*p_val)*midy);
-	printf("2. Graphing %d (%d) to %d (%d) (stop=%d)\n", cur_y, 
-	       (int)cur_x, cur_y2, (int)cur_x+1, stop_x);
 	gdk_draw_line(pixmap, wavedraw_gc,
 		      cur_x, cur_y,
 		      cur_x+1, cur_y2);
@@ -619,7 +619,43 @@ gtk_wave_draw_destroy(GtkObject *object)
   g_free(wavedraw->marker);
   g_free(wavedraw->n_samples);
   g_free(wavedraw->start);
+  g_free(wavedraw->color);
 
   /* Destroy the parent */
   GTK_OBJECT_CLASS(parent_class)->destroy(object);
+}
+
+/**********************************************************************
+ *    Function: gtk_wave_draw_set_color()
+ *
+ * Description: Assigns a color for a given wave
+ **********************************************************************/
+void       
+gtk_wave_draw_set_color(GtkWaveDraw *wavedraw,
+			gint wave_idx,
+			GdkColor *color)
+{
+  g_return_if_fail(wavedraw != NULL);
+  g_return_if_fail(GTK_IS_WAVE_DRAW(wavedraw));
+  g_return_if_fail(wave_idx < 0);
+  g_return_if_fail(wave_idx >= wavedraw->n_waves);
+
+  memcpy(&wavedraw->color[wave_idx], color, sizeof(GdkColor));
+}
+
+/**********************************************************************
+ *    Function: gtk_wave_draw_set_resolution
+ *
+ * Description: Sets the number of samples to draw per pixel if we've
+ *              got more than one sample per pixel to display.
+ **********************************************************************/
+void       
+gtk_wave_draw_set_resolution (GtkWaveDraw *wavedraw,
+			      gint resolution)
+{
+  g_return_if_fail(wavedraw != NULL);
+  g_return_if_fail(GTK_IS_WAVE_DRAW(wavedraw));
+  g_return_if_fail(resolution <= 0);
+
+  wavedraw->n_points_per_pixel = resolution;
 }
