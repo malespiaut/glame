@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.37 2001/11/11 14:50:24 richi Exp $
+ * $Id: glplugin.c,v 1.38 2001/11/11 15:32:28 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -218,14 +218,23 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 	 * GLAME wrappers for them. */
 	i = 0;
 	while ((desc = desc_func(i++))) {
-		if (!(lp = _plugin_alloc(desc->Label))
-		    || !(lp->handle = lt_dlopenext(filename))
-		    || installLADSPAPlugin(desc, lp) == -1
-		    || _plugin_add(lp) == -1) {
-			_plugin_free(lp);
+		if (strcmp(desc->Label, plugin_name(p)) == 0)
+			lp = p;
+		else {
+			if (!(lp = _plugin_alloc(desc->Label))
+			    || !(lp->handle = lt_dlopenext(filename))) {
+				_plugin_free(lp);
+				continue;
+			}
+		}
+		if (installLADSPAPlugin(desc, lp) == -1
+		    || (lp != p && _plugin_add(lp) == -1)) {
+			if (lp != p)
+				_plugin_free(lp);
 			continue;
 		}
-		plugin_set(lp, PLUGIN_PARENT, p);
+		if (lp != p)
+			plugin_set(lp, PLUGIN_PARENT, p);
 		snprintf(category, 255, "LADSPA/%c", tolower(lp->name[0]));
 		plugin_set(lp, PLUGIN_CATEGORY, strdup(category));
 	}
@@ -274,6 +283,10 @@ int plugin_load(const char *filename)
 	    	return -1; /* This cannot be a shared object plugin. */
 	*s = '\0';
 	mangle_name(mname, name);
+
+	/* Already loaded? - fail. */
+	if (hash_find_plugin(mname) != NULL)
+		return -1;
 
 	/* Try to load the plugin with the created name. */
 	if (!(p = _plugin_alloc(mname)))
