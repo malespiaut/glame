@@ -491,3 +491,13 @@
 ))
 
 
+; Print short description after loading
+(newline)
+(display "GLAME testsuite") (newline)
+(newline)
+(display " Available tests are") (newline)
+(display "   swtest-all        -- swapfile subsystem checks") (newline)
+(display "   test-filter-all   -- filter/plugin checks") (newline)
+(display "   test-gpsm-all     -- gpsm midlayer checks") (newline)
+(display " Run all tests with (test-glame)") (newline)
+(newline)
