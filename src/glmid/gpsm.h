@@ -221,6 +221,16 @@ gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *swfile);
  * a gpsm_grp yourself. Returns a gpsm-grp or NULL on error. */ 
 gpsm_grp_t *gpsm_newgrp(const char *label);
 
+/* Creates a new group with contents from the group
+ * specified by the gpsm-grp. Returns a gpsm-grp or
+ * NULL on error. */
+gpsm_grp_t *gpsm_grp_cow(gpsm_grp_t *grp);
+
+/* Creates a new gpsm-grp with the swapfiles of the specified
+ * gpsm-grp as backing stores. Returns a gpsm-grp or
+ * NULL on error. */
+gpsm_grp_t *gpsm_grp_link(gpsm_grp_t *grp);
+
 
 /* Destroys a gpsm-item (gpsm-swfile including the backing store
  * if the gpsm-swfile was the last reference to the swapfile,

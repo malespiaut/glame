@@ -682,6 +682,49 @@ gpsm_grp_t *gpsm_newgrp(const char *label)
 	return group;
 }
 
+gpsm_grp_t *gpsm_grp_cow(gpsm_grp_t *grp)
+{
+	gpsm_grp_t *copy;
+	gpsm_item_t *item;
+
+	copy = gpsm_newgrp(gpsm_item_label(grp));
+	gpsm_grp_foreach_item(grp, item) {
+		gpsm_item_t *c;
+		if (GPSM_ITEM_IS_SWFILE(item))
+			c = (gpsm_item_t *)gpsm_swfile_cow((gpsm_swfile_t *)item);
+		else if (GPSM_ITEM_IS_GRP(item))
+			c = (gpsm_item_t *)gpsm_grp_cow((gpsm_grp_t *)item);
+		else
+			continue;
+		gpsm_grp_insert(copy, c,
+				gpsm_item_hposition(item), gpsm_item_vposition(item));
+	}
+
+	return copy;
+}
+
+gpsm_grp_t *gpsm_grp_link(gpsm_grp_t *grp)
+{
+	gpsm_grp_t *copy;
+	gpsm_item_t *item;
+
+	copy = gpsm_newgrp(gpsm_item_label(grp));
+	gpsm_grp_foreach_item(grp, item) {
+		gpsm_item_t *c;
+		if (GPSM_ITEM_IS_SWFILE(item))
+			c = (gpsm_item_t *)gpsm_swfile_link((gpsm_swfile_t *)item);
+		else if (GPSM_ITEM_IS_GRP(item))
+			c = (gpsm_item_t *)gpsm_grp_link((gpsm_grp_t *)item);
+		else
+			continue;
+		gpsm_grp_insert(copy, c,
+				gpsm_item_hposition(item), gpsm_item_vposition(item));
+	}
+
+	return copy;
+}
+
+
 
 void gpsm_item_destroy(gpsm_item_t *item)
 {
