@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.53 2002/06/04 10:11:21 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.54 2002/06/04 10:23:05 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -866,7 +866,7 @@ static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanva
 
 static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* filterItem)
 {
-		GtkWidget * dialog;
+	GtkWidget * dialog;
 	GtkWidget * text;
 	GtkWidget * vbox;
 	GtkWidget * notebook;
@@ -893,7 +893,6 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	
 	dialog = gnome_dialog_new(plugin_name(filter->plugin),GNOME_STOCK_BUTTON_OK,NULL);
 	
-	
 	desc = (char*)plugin_query(filter->plugin,PLUGIN_DESCRIPTION);
 	
 	if(desc) 
@@ -902,6 +901,7 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 		text = gtk_label_new(_("This item does not have a description"));
 	gtk_label_set_line_wrap(GTK_LABEL(text),TRUE);
 	gtk_label_set_justify(GTK_LABEL(text),GTK_JUSTIFY_LEFT);
+	gtk_misc_set_alignment(GTK_MISC(text), 0.0, 0.5);
 	tablabel = gtk_label_new(_("Description"));
 	gtk_widget_show(tablabel);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),text,tablabel);
