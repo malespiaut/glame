@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.65 2001/07/02 08:20:43 richi Exp $
+ * $Id: main.c,v 1.66 2001/07/03 09:18:57 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -568,7 +568,7 @@ static void gui_quit(GtkWidget *widget, gpointer data)
 {
 	clipboard_empty();
 	gpsm_close();
-	glame_accel_sync();
+	/* glame_accel_sync(); -- disabled, until we get GUI support */
 	gtk_main_quit();
 }
 
