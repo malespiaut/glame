@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.2 2000/02/11 13:08:13 xwolf Exp $
+ * $Id: gui.h,v 1.3 2000/02/17 07:15:01 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -45,6 +45,8 @@ typedef struct _glame_gui {
 	//  too lazy to use richis list... someone can hack this up if he feels motivated
 	GArray * filters;
 	char **buttonlabels;
+	int selectedIcon;
+
 } glame_gui;
 
 typedef struct _gui_filter {
