@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.3 2001/07/05 13:59:28 mag Exp $
+ * $Id: network_utils.c,v 1.4 2001/07/09 12:28:10 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -57,9 +57,8 @@ filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
 	if (!net || !swfile)
 		return NULL;
 
-	start = start + gpsm_item_hposition(swfile);
-	if (start < 0
-	    || (length != -1 && (start + length > gpsm_item_hsize(swfile))))
+	start = start - gpsm_item_hposition(swfile);
+	if (length < -1)
 		return NULL;
 	swname = gpsm_swfile_filename(swfile);
 	swrate = gpsm_swfile_samplerate(swfile);
@@ -91,9 +90,18 @@ filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
 	if (!net || !swfile)
 		return NULL;
 
-	start = start + gpsm_item_hposition(swfile);
-	if (start < 0
-	    || (length != -1 && (start + length > gpsm_item_hsize(swfile))))
+	if (start == -1 && gpsm_item_hposition(swfile) != 0) {
+		fprintf(stderr, "ERROR: broken code. FIXME.\n");
+		return NULL;
+	}
+	if (start != -1) {
+		start = start - gpsm_item_hposition(swfile);
+		if (start == -1) {
+			fprintf(stderr, "ERROR: broken code. FIXME.\n");
+			return NULL;
+		}
+	}
+	if (length < -1)
 		return NULL;
 	swname = gpsm_swfile_filename(swfile);
 
