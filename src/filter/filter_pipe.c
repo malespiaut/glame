@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.4 2001/03/01 17:08:07 richi Exp $
+ * $Id: filter_pipe.c,v 1.5 2001/04/06 18:17:22 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -92,7 +92,7 @@ void _connection_delete(glsig_handler_t *h, long sig, va_list va)
 
 filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 {
-	filter_pipe_t *p;
+	filter_pipe_t *p = NULL;
 	struct fconnection *c;
 
 	if (!source || !dest
