@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.18 2000/02/15 18:41:25 richi Exp $
+ * $Id: filter.c,v 1.19 2000/02/17 16:16:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,6 +37,7 @@ static struct list_head filter_list;
 
 /* include all static filter headers here */
 extern int basic_register();
+extern int tutorial_register();
 extern int channel_io_register();
 extern int audio_io_register();
 extern int file_io_register();
@@ -56,6 +57,10 @@ int filter_init()
 
 	/* initialize basic filters */
 	if (basic_register() == -1)
+		return -1;
+
+	/* initialize filters out of the tutorial */
+	if (tutorial_register() == -1)
 		return -1;
 
 	/* initialize channel/file input & output filters */

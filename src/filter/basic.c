@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.10 2000/02/14 13:24:29 richi Exp $
+ * $Id: basic.c,v 1.11 2000/02/17 16:16:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -26,9 +26,6 @@
  * - drop
  * - one2n
  * - mix
- * And the redundant, but educational filters
- * - dup
- * - null
  */
 
 #include <sys/time.h>
@@ -140,84 +137,6 @@ static int one2n_f(filter_node_t *n)
 
 
 
-/* Redundant filters - for educational purpose and for
- * "namespace completeness".
- */
-
-/* dup is simple, it does work with one input and two output channels only.
- * As this functionality is also provided by the one2n filter, this filter
- * is for educational purposes only.
- */
-static int dup_f(filter_node_t *n)
-{
-	filter_buffer_t *buf;
-	filter_pipe_t *in, *out1, *out2;
-
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out1 = filternode_get_output(n, "out1"))
-	    || !(out2 = filternode_get_output(n, "out2")))
-		return -1;
-
-	FILTER_AFTER_INIT;
-
-	/* get_buffer returns NULL, if there will be no more
-	 * data - i.e. NULL is an EOF mark, so we check for
-	 * buf == NULL at the end of the loop to correctly
-	 * forward the EOF mark. */
-	do {
-		buf = fbuf_get(in);
-		/* we get the input buffer referenced for us by
-		 * our source. */
-
-		/* we need to get a reference for our first
-		 * destination and then queue the buffer
-		 * in the destinations pipe. */
-		fbuf_ref(buf);
-		fbuf_queue(out1, buf);
-
-		/* we dont need to get a reference for our second
-		 * destination - ours is good enough, we just are
-		 * not allowed to muck with it anymore. */
-		fbuf_queue(out2, buf);
-	} while (pthread_testcancel(), buf);
-
-	FILTER_BEFORE_CLEANUP;
-
-	return 0;
-}
-
-
-/* null does a "null operation" on one input channel.
- * This feature is also done by the one2n filter if
- * only one output is connected.
- * So this is a filter for educational purpose.
- */
-static int null_f(filter_node_t *n)
-{
-	filter_pipe_t *in, *out;
-	filter_buffer_t *buf;
-
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
-	if (!in || !out)
-		return -1;
-
-	FILTER_AFTER_INIT;
-
-	/* The loop condition is at the end to get and
-	 * forward the EOF mark. */
-	do {
-		/* get an input buffer */
-		buf = fbuf_get(in);
-
-		/* just forward every buffer */
-		fbuf_queue(out, buf);
-	} while (pthread_testcancel(), buf);
-
-	FILTER_BEFORE_CLEANUP;
-
-	return 0;
-}
 
 /* this is slightly more complex, it does work with
  * any number of input channels and one output channel. 
@@ -325,6 +244,8 @@ _cleanup:
 	return res;
 }
 
+
+
 /* Registry setup of all contained filters
  */
 int basic_register()
@@ -341,24 +262,6 @@ int basic_register()
 	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("dup", "duplicates one input stream", dup_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "line1_out", "output",
-				  FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "line2_out", "output",
-				  FILTER_PORTTYPE_ANY)
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("null", "does nothing on one input stream", null_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
