@@ -118,12 +118,18 @@ static void gotomarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview);
 static void selectall_cb(GtkWidget *w, GtkWaveView *waveview);
+static void exportselection_cb(GtkWidget *w, GtkWaveView *waveview);
+extern int copy_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
+                    long pos, long size, int extra_flags);
 
 static GnomeUIInfo select_menu[] = {
 	GNOMEUIINFO_ITEM(N_("Select none"), NULL, selectnone_cb, NULL),
 	GNOMEUIINFO_ITEM(N_("Select all"), NULL, selectall_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM(N_("Export selection"), NULL, exportselection_cb, NULL),
 	GNOMEUIINFO_END
 };
+#define SELECT_MENU_EXPORT_INDEX 3
 
 /* Menu event - select nothing. */
 static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview)
@@ -138,6 +144,38 @@ static void selectall_cb(GtkWidget *w, GtkWaveView *waveview)
 
 	gtk_wave_view_set_selection(waveview, 0,
 				    gtk_wave_buffer_get_length(wavebuffer));
+}
+
+/* Menu event - export selection. */
+static void exportselection_cb(GtkWidget *w, GtkWaveView *waveview)
+{
+	gpsm_item_t *it;
+	gpsm_grp_t *grp = gpsm_newgrp("export");
+	gint32 pos, size;
+
+	gtk_wave_view_get_selection(waveview, &pos, &size);
+	if (pos < 0 || size <= 0)
+		return;
+
+	gpsm_grp_foreach_item(active_waveedit->swfiles, it) {
+                gpsm_swfile_t *swfile;
+                if (!GPSM_ITEM_IS_SWFILE(it))
+                        goto err;
+                swfile = gpsm_newswfile("track");
+                gpsm_swfile_set(swfile, gpsm_swfile_samplerate(it),
+                                gpsm_swfile_position(it));
+                gpsm_item_place(grp, (gpsm_item_t *)swfile,
+                                0, gpsm_item_vsize(grp));
+                if (copy_one(swfile, (gpsm_swfile_t *)it,
+                             pos - gpsm_item_hposition(it), size,
+                             0) == -1)
+                        goto err;
+        }
+
+	gnome_dialog_run_and_close(glame_export_dialog((gpsm_item_t *)grp, NULL));
+
+ err:
+	gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
 
@@ -715,7 +753,7 @@ static void wave_export_cb(GtkWidget *foo, void *bar)
 	/* FIXME: we dont really know, if the user will press cancel. */
 	if (active_waveedit)
 		active_waveedit->modified = 0;
-	glame_export_dialog((gpsm_item_t *)active_waveedit->swfiles, NULL);
+	gnome_dialog_run_and_close(glame_export_dialog((gpsm_item_t *)active_waveedit->swfiles, NULL));
 }
 
 static void wave_help_cb(GtkWidget *foo, void*bar)
@@ -853,6 +891,9 @@ static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_PLAY_SELECTION_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_RECORD_SELECTION_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+
+	gtk_widget_set_sensitive(select_menu[SELECT_MENU_EXPORT_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_CUT_INDEX].widget,

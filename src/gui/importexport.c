@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.14 2002/03/25 13:44:11 richi Exp $
+ * $Id: importexport.c,v 1.15 2002/04/12 08:58:20 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -1015,7 +1015,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 }
 
 
-int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent) 
+GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent) 
 {	
 	struct exp_s *ie;
 	GtkWidget *dialog, *menu, *mitem, *bigbox, *typecompbox, *valbox;
@@ -1174,9 +1174,7 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_signal_connect(GTK_OBJECT(ie->dialog),
 			   "delete-event",
 			   GTK_SIGNAL_FUNC(exp_windowkilled), ie);
-	gtk_widget_show(dialog);
 
-
-	return 0;
+	return (GnomeDialog *)dialog;
 }
 

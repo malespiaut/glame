@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.78 2002/02/18 22:55:47 richi Exp $
+ * $Id: swapfilegui.c,v 1.79 2002/04/12 08:58:20 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -588,7 +588,7 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	glame_export_dialog(item->item, NULL);
+	gnome_dialog_run_and_close(glame_export_dialog(item->item, NULL));
 	deselect_all(active_swapfilegui);
 }
 

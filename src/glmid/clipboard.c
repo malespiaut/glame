@@ -84,8 +84,8 @@ int clipboard_can_paste(gpsm_item_t *item)
 /* Copies [pos, pos + size[ from source to the new file dest. Handles
  * out-of source file positions and sizes (pads/prepends with zeros).
  * Returns 0 on success, -1 on error. */
-static int copy_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
-		    long pos, long size, int extra_flags)
+int copy_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
+	     long pos, long size, int extra_flags)
 {
 	swfd_t sfd = -1, dfd = -1;
 	long start, length;
