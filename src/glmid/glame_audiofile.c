@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.9 2001/11/25 22:21:21 richi Exp $
+ * $Id: glame_audiofile.c,v 1.10 2001/12/03 22:03:19 mag Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -537,5 +537,21 @@ void *afQueryPointer (int querytype, int arg1, int arg2, int arg3, int arg4)
 	}
 }
 
+
+int afSetVirtualSampleFormat(AFfilehandle, int track,int sampleFormat, int sampleWidth) 
+{
+	DPRINTF("afSetVirtualSampleFormat not yet implemented in wrapper\n");
+	return -1; 
+}
+
+int afSetVirtualPCMMapping(AFfilehandle file, int track, 
+			    double slope, double intercept, double minClip, double maxClip) 
+{
+	DPRINTF("afSetVirtualPCMMapping not yet implemented in wrapper\n");
+	return -1;
+}
+
+Void afInitCompression(AFfilesetup setup, int track, int compression) {
+}
 
 #endif
