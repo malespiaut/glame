@@ -1,7 +1,7 @@
 INCLUDES = -I@srcdir@/../include -I@srcdir@/../filter -I@srcdir@/../swapfile -I@srcdir@/../hash -I@srcdir@/../channel $(GLAME_CFLAGS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS)
 
 
-EXTRA_DIST = gui.h
+EXTRA_DIST = gui.h canvas.h
 
 if HAVE_GTK
 if HAVE_GNOME
