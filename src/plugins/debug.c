@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.4 2000/05/01 11:09:04 richi Exp $
+ * $Id: debug.c,v 1.5 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,7 +47,7 @@ static int ping(filter_node_t *n)
 	int time;
 
 	cnt = filterparam_val_int(filternode_get_param(n, "cnt"));
-	dt = filterparam_val_int(filternode_get_param(n, "dt"));
+	dt = filterparam_val_float(filternode_get_param(n, "dt"));
 	size = filterparam_val_int(filternode_get_param(n, "size"));
 
 	i = filternode_get_input(n, PORTNAME_IN);
@@ -108,11 +108,14 @@ int ping_register(plugin_t *p)
 		return -1;
 
 	filterpdb_add_param_int(filter_pdb(f), "cnt",
-				FILTER_PARAMTYPE_INT, 10);
+				FILTER_PARAMTYPE_INT, 10,
+				FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "dt",
-				  FILTER_PARAMTYPE_TIME_MS, 250);
+				  FILTER_PARAMTYPE_TIME_MS, 250,
+				  FILTERPARAM_END);
 	filterpdb_add_param_int(filter_pdb(f), "size",
-				FILTER_PARAMTYPE_INT, 128);
+				FILTER_PARAMTYPE_INT, 128,
+				FILTERPARAM_END);
 
 	filter_attach(f, p);
 

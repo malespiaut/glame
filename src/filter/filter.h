@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.51 2000/05/01 11:09:03 richi Exp $
+ * $Id: filter.h,v 1.52 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -84,8 +84,8 @@ typedef struct filter_buffer filter_buffer_t;
 #define GLSIG_PARAM_CHANGED 1
 #define GLSIG_PARAM_DELETED 2
 #define GLSIG_PIPE_CHANGED 4
-#define GLSIG_PIPE_DELETED 5
-#define GLSIG_NODE_DELETED 8
+#define GLSIG_PIPE_DELETED 8
+#define GLSIG_NODE_DELETED 16
 
 
 /* Filter contains the abstract description of a filter and
@@ -107,7 +107,6 @@ struct filter {
 			  filter_pipe_t *p);
 	int (*set_param)(filter_node_t *n, filter_param_t *param,
 			 const void *val);
-	void (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
 
 	/* signal emitter. */
 	glsig_emitter_t emitter;
@@ -351,13 +350,6 @@ do { \
 #define filternode_pdb(node) (&(node)->params)
 
 
-/* Set the parameter with label label to the value pointed to by
- * val.
- * Returns -1 if that is not possible.
- */
-int filternode_set_param(filter_node_t *n, const char *label, const void *val);
-
-
 
 /* Filter pipes represent a connection between two
  * instances of a filter. This is per filternode port
@@ -510,7 +502,7 @@ do { \
 
 
 
-/* FIXME! - temporarily only.
+/* FIXME! - temporarily only?
  * Wrappers to old filter API.
  */
 

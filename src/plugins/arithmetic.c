@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.4 2000/05/01 11:09:04 richi Exp $
+ * $Id: arithmetic.c,v 1.5 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -134,9 +134,11 @@ int mul_register(plugin_t *p)
 		return -1;
 
 	filterpdb_add_param_float(filter_pdb(f), "add",
-				  FILTER_PARAMTYPE_FLOAT, 0.0);
+				  FILTER_PARAMTYPE_FLOAT, 0.0,
+				  FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "factor",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0,
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mul.png");
@@ -235,9 +237,11 @@ int add_register(plugin_t *p)
 				   FILTER_PORTTYPE_SAMPLE)))
 		return -1;
 	filterpdb_add_param_float(filter_pdb(f), "add",
-				  FILTER_PARAMTYPE_FLOAT, 0.0);
+				  FILTER_PARAMTYPE_FLOAT, 0.0,
+				  FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "factor",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0,
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
 	plugin_set(p, PLUGIN_PIXMAP, "add.png");

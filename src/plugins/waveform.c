@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.8 2000/05/01 11:09:04 richi Exp $
+ * $Id: waveform.c,v 1.9 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -87,9 +87,11 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_node_t *))
 	filter_add_output(f, PORTNAME_OUT, "waveform output stream",
 			  FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_int(filter_pdb(f), "rate", 
-				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE);
+				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+				FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "position", 
-				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+				  FILTERPARAM_END);
 
 	f->connect_out = waveform_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
@@ -169,9 +171,11 @@ int sine_register(plugin_t *p)
 		return -1;
 
 	filterpdb_add_param_float(filter_pdb(f), "amplitude",
-				  FILTER_PARAMTYPE_SAMPLE, 1.0);
+				  FILTER_PARAMTYPE_SAMPLE, 1.0,
+				  FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "frequency",
-				  FILTER_PARAMTYPE_FLOAT, 441.0);
+				  FILTER_PARAMTYPE_FLOAT, 441.0,
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
 	filter_attach(f, p);
@@ -233,7 +237,8 @@ int const_register(plugin_t *p)
 		return -1;
 
 	filterpdb_add_param_float(filter_pdb(f), "value",
-				  FILTER_PARAMTYPE_SAMPLE, 1.0);
+				  FILTER_PARAMTYPE_SAMPLE, 1.0,
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
 	filter_attach(f, p);

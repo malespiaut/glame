@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.17 2000/05/01 11:09:03 richi Exp $
+ * $Id: filter_methods.c,v 1.18 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,6 +27,43 @@
 #include <stdio.h>
 #include "util.h"
 #include "filter.h"
+
+
+/* Clever GLSIG_PIPE_CHANGED handler for the input side of
+ * an unmanaged (not gone trough custom connect_in()) pipe.
+ * Allows for simple method-/handler-less filters.
+ */
+static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_node_t *n;
+	filter_pipe_t *in;
+	filter_pipe_t *out;
+
+	GLSIGH_GETARGS1(va, in);
+	n = in->dest;
+
+	/* Input pipe format change is easy for us as we know
+	 * nothing about internal connections between
+	 * inputs and outputs.
+	 * So the rule of dumb is to update all output
+	 * pipe formats to the format of the input
+	 * pipe we just got. We also have to forward
+	 * the change to every output slot, of course.
+	 * We need to stop the fixup as soon as a failure
+	 * occours - the pipe may be broken.
+	 * FIXME: this does "simple" check if anything would
+	 * change using memcmp to prevent endless loops with
+	 * cyclic networks.
+	 */
+	filternode_foreach_output(n, out) {
+		if (out->type == in->type
+		    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+			continue;
+		out->type = in->type;
+		out->u = in->u;
+		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+	}
+}
 
 
 /* Standard filter default methods.
@@ -64,6 +101,13 @@ int filter_default_connect_in(filter_node_t *n, const char *port,
         /* We accept everything. Default checks are done by the
 	 * filternetwork_add_conection function.
          */
+
+	/* As this is an unmanaged connection, we have to provide
+	 * a default handler for the GLSIG_PIPE_CHANGED signal,
+	 * so install one. */
+	glsig_add_handler(&p->emitter, GLSIG_PIPE_CHANGED,
+			  filter_handle_pipe_change, NULL);
+
 	return 0;
 }
 
@@ -74,44 +118,6 @@ int filter_default_set_param(filter_node_t *n, filter_param_t *param,
 	 */
 	return 0;
 }
-
-void filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				const char *name, filter_param_t *param)
-{
-	/* Parameter change? In the default method
-	 * we know nothing about parameters, so we
-	 * cant do anything about it.
-	 * Forwarding is useless, too.
-	 */
-	return;
-}
-
-void filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
-{
-	filter_pipe_t *out;
-
-	/* Pipe format change is easy for us as we know
-	 * nothing about internal connections between
-	 * inputs and outputs.
-	 * So the rule of dumb is to update all output
-	 * pipe formats to the format of the input
-	 * pipe we just got. We also have to forward
-	 * the change to every output slot, of course.
-	 * We need to stop the fixup as soon as a failure
-	 * occours - the pipe may be broken.
-	 * FIXME: this does "simple" check if anything would
-	 * change using memcmp to prevent endless loops with
-	 * cyclic networks.
-	 */
-	filternode_foreach_output(n, out) {
-		if (out->type == in->type && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
-			continue;
-		out->type = in->type;
-		out->u = in->u;
-		out->dest->filter->fixup_pipe(out->dest, out);
-	}
-}
-
 
 
 /* Filternetwork filter methods.
@@ -213,7 +219,3 @@ int filter_network_set_param(filter_node_t *node, filter_param_t *param,
 		return -1;
 	return filterparam_set(p, val);
 }
-
-/* fixup_param && fixup_pipe && fixup_break_in && fixup_break_out do not
- * have to be special at the moment.
- */

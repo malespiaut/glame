@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.18 2000/05/01 11:09:04 richi Exp $
+ * $Id: audio_io.c,v 1.19 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -110,9 +110,15 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
  * sample rate between all input pipes.
  */
 
-static void aio_generic_fixup_pipe(filter_node_t *src, filter_pipe_t *pipe)
+static void aio_generic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 {
-	int rate = filterpipe_sample_rate(pipe);
+	filter_node_t *src;
+	filter_pipe_t *pipe;
+	int rate;
+
+	GLSIGH_GETARGS1(va, pipe);
+	src = pipe->dest;
+	rate = filterpipe_sample_rate(pipe);
 
 	filternode_foreach_input(src, pipe) {
 		if (rate != filterpipe_sample_rate(pipe)) {
@@ -179,14 +185,17 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 			      FILTER_PORTTYPE_AUTOMATIC);
 	filterpdb_add_param_float(filterportdesc_pdb(p), "position",
 				  FILTER_PARAMTYPE_POSITION,
-				  FILTER_PIPEPOS_DEFAULT);
+				  FILTER_PIPEPOS_DEFAULT, FILTERPARAM_END);
 
 	filterpdb_add_param_int(filter_pdb(filter), "rate",
-				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE);
+				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+				FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(filter), "duration", 
-				  FILTER_PARAMTYPE_TIME_S, 10.0);
+				  FILTER_PARAMTYPE_TIME_S, 10.0,
+				  FILTERPARAM_END);
 	filterpdb_add_param_string(filter_pdb(filter), "device",
-				   FILTER_PARAMTYPE_STRING, defaultdevice);
+				   FILTER_PARAMTYPE_STRING, defaultdevice,
+				   FILTERPARAM_END);
 
 	filter->connect_out = aio_generic_connect_out;
 	glsig_add_handler(&filter->emitter, GLSIG_PARAM_CHANGED,
@@ -215,10 +224,12 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 			 FILTER_PORTTYPE_SAMPLE | 
 			 FILTER_PORTTYPE_AUTOMATIC);
 	filterpdb_add_param_string(filter_pdb(filter), "device",
-				   FILTER_PARAMTYPE_STRING, defaultdevice);
+				   FILTER_PARAMTYPE_STRING, defaultdevice,
+				   FILTERPARAM_END);
 
 	filter->connect_in = aio_generic_connect_in;
-	filter->fixup_pipe = aio_generic_fixup_pipe;
+	glsig_add_handler(&filter->emitter, GLSIG_PIPE_CHANGED,
+			  aio_generic_fixup_pipe, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "playback stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");

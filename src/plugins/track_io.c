@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.9 2000/05/01 11:09:04 richi Exp $
+ * $Id: track_io.c,v 1.10 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -153,9 +153,11 @@ int track_in_register(plugin_t *p)
 			  FILTER_PORTTYPE_SAMPLE);
 
 	filterpdb_add_param_string(filter_pdb(f), "track",
-				   FILTER_PARAMTYPE_STRING, NULL);
+				   FILTER_PARAMTYPE_STRING, NULL,
+				   FILTERPARAM_END);
 	filterpdb_add_param_string(filter_pdb(f), "group",
-				   FILTER_PARAMTYPE_STRING, NULL);
+				   FILTER_PARAMTYPE_STRING, NULL,
+				   FILTERPARAM_END);
 
 	f->connect_out = track_in_connect_out;
 
@@ -249,9 +251,11 @@ int track_out_register(plugin_t *p)
 			 FILTER_PORTTYPE_SAMPLE);
 
 	filterpdb_add_param_string(filter_pdb(f), "group",
-				   FILTER_PARAMTYPE_STRING, NULL);
+				   FILTER_PARAMTYPE_STRING, NULL,
+				   FILTERPARAM_END);
 	filterpdb_add_param_string(filter_pdb(f), "track",
-				   FILTER_PARAMTYPE_STRING, NULL);
+				   FILTER_PARAMTYPE_STRING, NULL,
+				   FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to track");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");

@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.2 2000/05/01 12:22:16 richi Exp $
+ * $Id: filter_param.c,v 1.3 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -29,7 +29,7 @@
 #define ITEM(p) (&(p)->entry)
 #define PARAM(i) ((filter_param_t *)(i))
 
-filter_param_t *pdb_alloc_item()
+static filter_param_t *pdb_alloc_item()
 {
 	filter_param_t *p;
 
@@ -42,7 +42,7 @@ filter_param_t *pdb_alloc_item()
 	return p;
 }
 
-void pdb_op_delete(gldb_item_t *item)
+static void pdb_op_delete(gldb_item_t *item)
 {
 	filter_param_t *p = PARAM(item);
 
@@ -55,7 +55,7 @@ void pdb_op_delete(gldb_item_t *item)
 		free(p->u.string);
 }
 
-gldb_item_t *pdb_op_copy(gldb_item_t *dest, gldb_item_t *source)
+static gldb_item_t *pdb_op_copy(gldb_item_t *dest, gldb_item_t *source)
 {
 	filter_param_t *d = PARAM(dest);
 	filter_param_t *s = PARAM(source);
@@ -89,7 +89,7 @@ gldb_item_t *pdb_op_copy(gldb_item_t *dest, gldb_item_t *source)
 	return ITEM(d);
 }
 
-int pdb_op_add(gldb_t *db, gldb_item_t *i)
+static int pdb_op_add(gldb_t *db, gldb_item_t *i)
 {
 	filter_param_t *p = PARAM(i);
 	glsig_handler_t *h;
@@ -106,31 +106,20 @@ int pdb_op_add(gldb_t *db, gldb_item_t *i)
 		if (h->private == (void *)&((filter_pdb_t *)p->entry.db)->node->emitter)
 			return 0;
 	}
-	glsig_add_redirector(&p->emitter, &((filter_pdb_t *)p->entry.db)->node->emitter);
+	glsig_add_redirector(&p->emitter, ~0,
+			     &((filter_pdb_t *)p->entry.db)->node->emitter);
 	return 0;
 }
 
 static struct gldb_ops ops = { pdb_op_delete, pdb_op_copy, pdb_op_add };
 
 
-
-/* API stuff.
- */
-
-void filterpdb_init(filter_pdb_t *db, filter_node_t *node)
-{
-	gldb_init(&db->db, &ops);
-	db->node = node;
-}
-
-
-/* DB part. */
-
-filter_param_t *filterpdb_add_param(filter_pdb_t *db, const char *label,
-				    int type, const void *val)
+static filter_param_t *_filterpdb_add_param(filter_pdb_t *db, const char *label,
+					    int type, const void *val, va_list va)
 {
 	filter_param_t *p;
 	gldb_item_t *i;
+	const char *key, *prop;
 
 	if (!db || !label)
 		return NULL;
@@ -155,6 +144,76 @@ filter_param_t *filterpdb_add_param(filter_pdb_t *db, const char *label,
 		pdb_op_delete(ITEM(p));
 		return NULL;
 	}
+
+	/* Process the va and add the specified key/value pairs
+	 * to the property database. */
+	while ((key = va_arg(va, const char *)) != FILTERPARAM_END) {
+		prop = va_arg(va, const char *);
+		filterparam_set_property(p, key, prop);
+	}
+
+	return p;
+}
+
+
+
+/* API stuff.
+ */
+
+void filterpdb_init(filter_pdb_t *db, filter_node_t *node)
+{
+	gldb_init(&db->db, &ops);
+	db->node = node;
+}
+
+
+/* DB part. */
+
+filter_param_t *filterpdb_add_param(filter_pdb_t *db, const char *label,
+				    int type, const void *val, ...)
+{
+	filter_param_t *p;
+	va_list va;
+
+	va_start(va, val);
+	p = _filterpdb_add_param(db, label, type, val, va);
+	va_end(va);
+
+	return p;
+}
+filter_param_t *filterpdb_add_param_int(filter_pdb_t *db, const char *label,
+					int type, int val, ...)
+{
+	filter_param_t *p;
+	va_list va;
+
+	va_start(va, val);
+	p = _filterpdb_add_param(db, label, type, &val, va);
+	va_end(va);
+
+	return p;
+}
+filter_param_t *filterpdb_add_param_float(filter_pdb_t *db, const char *label,
+					  int type, float val, ...)
+{
+	filter_param_t *p;
+	va_list va;
+
+	va_start(va, val);
+	p = _filterpdb_add_param(db, label, type, &val, va);
+	va_end(va);
+
+	return p;
+}
+filter_param_t *filterpdb_add_param_string(filter_pdb_t *db, const char *label,
+					   int type, const char *val, ...)
+{
+	filter_param_t *p;
+	va_list va;
+
+	va_start(va, val);
+	p = _filterpdb_add_param(db, label, type, val, va);
+	va_end(va);
 
 	return p;
 }

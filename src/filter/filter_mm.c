@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.13 2000/05/01 11:09:03 richi Exp $
+ * $Id: filter_mm.c,v 1.14 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -66,14 +66,6 @@ void _portdesc_free(filter_portdesc_t *d)
 }
 
 
-static void _fixup_pipe_sig(glsig_handler_t *e, long sig, va_list va)
-{
-	filter_pipe_t *p;
-
-	GLSIGH_GETARGS1(va, p);
-	p->dest->filter->fixup_pipe(p->dest, p);
-}
-
 filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
 			   filter_portdesc_t *destport)
 {
@@ -93,10 +85,9 @@ filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
 	p->source_port = sourceport;
 	p->dest_port = destport;
 
-	/* init emitter & install fixup_pipe wrapper */
+	/* init emitter - redirector installation is delayed!
+	 * -- see filter_network.c::filternetwork_add_connection() */
 	INIT_GLSIG_EMITTER(&p->emitter);
-	glsig_add_handler(&p->emitter, GLSIG_PIPE_CHANGED,
-			  _fixup_pipe_sig, NULL);
 
 	return p;
 }
@@ -132,7 +123,6 @@ filter_t *_filter_alloc(int flags)
 	f->connect_out = filter_default_connect_out;
 	f->connect_in = filter_default_connect_in;
 	f->set_param = filter_default_set_param;
-	f->fixup_pipe = filter_default_fixup_pipe;
 	if (flags & FILTER_FLAG_NETWORK) {
 		f->f = filter_network_f;
 		f->init = filter_network_init;
@@ -297,7 +287,7 @@ filter_node_t *_filter_instantiate(filter_t *f, const char *name)
 			goto err;
 
 	/* install signal redirector */
-	glsig_add_redirector(&n->emitter, &f->emitter);
+	glsig_add_redirector(&n->emitter, ~0, &f->emitter);
 
 	/* copy params */
 	filterpdb_copy(&n->params, &f->params);

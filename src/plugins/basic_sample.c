@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.14 2000/05/01 11:09:04 richi Exp $
+ * $Id: basic_sample.c,v 1.15 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -436,21 +436,10 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	if (rate != filterpipe_sample_rate(out)
 	    || phi != filterpipe_sample_hangle(out)) {
 		filterpipe_settype_sample(out, rate, phi);
+		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 		return 1;
 	}
 	return 0;
-}
-static void mix_fixup_param(glsig_handler_t *h, long sig, va_list va)
-{
-	filter_param_t *param;
-	filter_pipe_t *out;
-	filter_node_t *n;
-
-	GLSIGH_GETARGS1(va, param);
-	n = filterparam_node(param);
-	if ((out = filternode_get_output(n, PORTNAME_OUT))
-	    && mix_fixup(n, out))
-		out->dest->filter->fixup_pipe(out->dest, out);
 }
 static int mix_connect_out(filter_node_t *n, const char *port,
 			   filter_pipe_t *p)
@@ -459,13 +448,24 @@ static int mix_connect_out(filter_node_t *n, const char *port,
 
 	return 0;
 }
-static void mix_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
+static void mix_handler(glsig_handler_t *h, long sig, va_list va)
 {
+	filter_node_t *n;
+	filter_param_t *param;
+	filter_pipe_t *in;
 	filter_pipe_t *out;
 
-	if ((out = filternode_get_output(n, PORTNAME_OUT))
-	    && mix_fixup(n, out))
-		out->dest->filter->fixup_pipe(out->dest, out);
+	if (sig == GLSIG_PIPE_CHANGED) {
+		GLSIGH_GETARGS1(va, in);
+		n = in->dest;
+	} else if (sig == GLSIG_PARAM_CHANGED) {
+		GLSIGH_GETARGS1(va, param);
+		n = filterparam_node(param);
+	} else
+		return;
+
+	if ((out = filternode_get_output(n, PORTNAME_OUT)))
+		mix_fixup(n, out);
 }
 
 int mix_register(plugin_t *p)
@@ -479,23 +479,23 @@ int mix_register(plugin_t *p)
 	port = filter_add_input(f, PORTNAME_IN, "input stream",
 				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "gain",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "offset",
-				  FILTER_PARAMTYPE_TIME_MS, 0.0);
+				  FILTER_PARAMTYPE_TIME_MS, 0.0, FILTERPARAM_END);
 
 	filter_add_output(f, PORTNAME_OUT, "mixed stream",
 			  FILTER_PORTTYPE_SAMPLE);
 
 	filterpdb_add_param_float(filter_pdb(f), "gain",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "position",
-				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+				  FILTERPARAM_END);
 
 	f->connect_out = mix_connect_out;
-	f->fixup_pipe = mix_fixup_pipe;
 
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
-			  mix_fixup_param, NULL);
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
+			  mix_handler, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
@@ -515,23 +515,23 @@ int mix2_register(plugin_t *p)
 	port = filter_add_input(f, PORTNAME_IN, "input stream",
 				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "gain",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "offset",
-				  FILTER_PARAMTYPE_TIME_MS, 0.0);
+				  FILTER_PARAMTYPE_TIME_MS, 0.0, FILTERPARAM_END);
 
 	filter_add_output(f, PORTNAME_OUT, "mixed stream",
 			  FILTER_PORTTYPE_SAMPLE);
 
 	filterpdb_add_param_float(filter_pdb(f), "gain",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 	filterpdb_add_param_float(filter_pdb(f), "position",
-				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+				  FILTERPARAM_END);
 
 	f->connect_out = mix_connect_out;
-	f->fixup_pipe = mix_fixup_pipe;
 
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
-			  mix_fixup_param, NULL);
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
+			  mix_handler, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
@@ -607,7 +607,7 @@ int volume_adjust_register(plugin_t *p)
 			  FILTER_PORTTYPE_SAMPLE);
 
 	filterpdb_add_param_float(filter_pdb(f), "factor",
-				  FILTER_PARAMTYPE_FLOAT, 1.0);
+				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
@@ -681,7 +681,8 @@ int delay_register(plugin_t *p)
 			  FILTER_PORTTYPE_SAMPLE);
 
 	param = filterpdb_add_param_float(filter_pdb(f), "delay",
-					  FILTER_PARAMTYPE_TIME_MS, 0.0);
+					  FILTER_PARAMTYPE_TIME_MS, 0.0,
+					  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "delay an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "delay.xpm");
@@ -747,7 +748,6 @@ static int extend_f(filter_node_t *n)
 int extend_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_param_t *param;
 
 	if (!(f = filter_alloc(extend_f)))
 		return -1;
@@ -757,10 +757,10 @@ int extend_register(plugin_t *p)
 	filter_add_output(f, PORTNAME_OUT, "extended output stream",
 			  FILTER_PORTTYPE_SAMPLE);
 
-	param = filterpdb_add_param_float(filter_pdb(f), "time",
-					  FILTER_PARAMTYPE_TIME_MS, 0.0);
-	filterparam_set_property(param, FILTERPARAM_DESCRIPTION,
-				 "extend time in ms");
+	filterpdb_add_param_float(filter_pdb(f), "time",
+				  FILTER_PARAMTYPE_TIME_MS, 0.0,
+				  FILTERPARAM_DESCRIPTION, "extend time in ms",
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "extend an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "extend.xpm");
@@ -857,7 +857,6 @@ static int repeat_f(filter_node_t *n)
 int repeat_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_param_t *param;
 
 	if (!(f = filter_alloc(repeat_f)))
 		return -1;
@@ -867,10 +866,10 @@ int repeat_register(plugin_t *p)
 	filter_add_output(f, PORTNAME_OUT, "repeated stream",
 			  FILTER_PORTTYPE_SAMPLE);
 
-	param = filterpdb_add_param_float(filter_pdb(f), "duration",
-					  FILTER_PARAMTYPE_TIME_S, 1.0);
-	filterparam_set_property(param, FILTERPARAM_DESCRIPTION,
-				 "total duration in seconds");
+	filterpdb_add_param_float(filter_pdb(f), "duration",
+				  FILTER_PARAMTYPE_TIME_S, 1.0,
+				  FILTERPARAM_DESCRIPTION, "total duration in seconds",
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "repeat an audio stream for the specified time");
 	plugin_set(p, PLUGIN_PIXMAP, "repeat.xpm");

@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.4 2000/05/01 12:22:16 richi Exp $
+ * $Id: glsignal.h,v 1.5 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -50,10 +50,10 @@
  *   and the callback handler. The private data is stored in the handlers
  *   ->private field which you should access using glsig_handler_private().
  *
- * glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter,
+ * glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
  *				         glsig_emitter_t *dest);
  *   Adds a redirector to the emitter. All signals raised from the emitter
- *   will be raised again from the dest emitter.
+ *   matching the specified signal mask will be raised again from the dest emitter.
  *
  * void glsig_emit(glsig_emitter_t *emitter, int sig, ...);
  *   Emits the signal sig from the emitter and provides the varargs
@@ -106,7 +106,7 @@ struct glsig_handler {
 glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 		  long sigmask, glsig_callb_t *handler, void *private);
 
-glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter,
+glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
 				      glsig_emitter_t *dest);
 
 

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.45 2000/05/01 11:09:03 richi Exp $
+ * $Id: filter_network.c,v 1.46 2000/05/02 07:46:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -284,10 +284,13 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	filterpdb_init(&p->dest_params, p->dest);
 	filterpdb_copy(&p->dest_params, &in->params);
 
-	/* Also the signal redirectors can be installed now.
+	/* Also the signal redirector can be installed now. Note
+	 * that GLSIG_PIPE_CHANGED is redirected to the destination node
+	 * only! This simplifies signal handling a lot as it matches
+	 * the semantics of the old fixup_pipe() method.
 	 */
-	glsig_add_redirector(&p->emitter, &p->source->emitter);
-	glsig_add_redirector(&p->emitter, &p->dest->emitter);
+	glsig_add_redirector(&p->emitter, ~0, &p->dest->emitter);
+	glsig_add_redirector(&p->emitter, ~GLSIG_PIPE_CHANGED, &p->source->emitter);
 
 	/* add the pipe to all port lists/hashes.
 	 * connect_out/in may have mucked with p->dest/source, so
