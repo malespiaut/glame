@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.7 2002/04/10 20:34:46 ochonpaul Exp $
+ * $Id: mixer.c,v 1.8 2002/04/12 12:34:44 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -962,6 +962,7 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 		 "    <step>%.3f</step>"
 		 "    <page>%.3f</page>"
 		 "    <page_size>%.3f</page_size>"
+		 "    <formatter>(lambda (x) (string-append (number-&gt;string (/ (round (* x 10)) 10)) \"dB\"))</formatter>"
 		 "  </widget>"
 		 "</GTK-Interface>",
 		 value, lower, upper, step_increment,

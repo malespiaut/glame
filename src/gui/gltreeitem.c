@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.18 2002/02/24 18:31:05 richi Exp $
+ * $Id: gltreeitem.c,v 1.19 2002/04/12 12:34:44 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -80,6 +80,19 @@ static void update_pos(GtkAdjustment *adj, gpsm_swfile_t *swfile)
 	gpsm_swfile_set_position(swfile, adj->value);
 }
 
+static gchar *knob_formatter(gfloat val, gpointer data)
+{
+	char buf[16];
+	if ((int)(val*10) == (int)(FILTER_PIPEPOS_LEFT*10))
+		return g_strdup("Left");
+	else if ((int)(val*10) == (int)(FILTER_PIPEPOS_RIGHT*10))
+		return g_strdup("Right");
+	else if ((int)(val*10) == (int)(FILTER_PIPEPOS_CENTRE*10))
+		return g_strdup("Centre");
+	snprintf(buf, 16, "%.1f", val);
+	return g_strdup(buf);
+}
+
 GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 {
 	GlameTreeItem *itemw;
@@ -103,6 +116,7 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 		gtk_container_add(GTK_CONTAINER(itemw->hbox), slider);
 #else
 		slider = gtk_knob_new(itemw->pos_adj);
+		gtk_knob_set_formatter(GTK_KNOB(slider), knob_formatter, NULL);
 		gtk_box_pack_start(GTK_BOX(itemw->hbox), slider, FALSE, FALSE, 5);
 #endif
 		gtk_signal_connect(GTK_OBJECT(itemw->pos_adj), "value_changed",
