@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.23 2003/05/22 20:48:53 richi Exp $
+ * $Id: importexport.c,v 1.24 2003/05/22 22:38:16 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -30,6 +30,7 @@
 #include <math.h>
 #include <string.h>
 #include <gtk/gtk.h>
+#include <libgnomevfs/gnome-vfs-mime-utils.h>
 #include <gnome.h>
 #include "filter.h"
 #include "util.h"
@@ -628,43 +629,51 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 {
 	filter_param_t *fparam;
+	char *mimetype;
 	int i;
 
-	if (ie->filename) {
+	if (ie->filename)
 		g_free(ie->filename);
-		ie->filename = NULL;
-	}
 	ie->filename = gtk_editable_get_chars(edit, 0, -1);
-	DPRINTF("Got filename %s\n", ie->filename);
-	if (access(ie->filename, R_OK) == -1) {
+
+	/* Basic checks. */
+	mimetype = gnome_vfs_get_mime_type(ie->filename);
+	if (!mimetype) {
+		DPRINTF("Cannot get mimetype for %s\n", ie->filename);
 		ie->gotfile = 0;
-		ie->filename = NULL;
 		return;
 	}
+	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), mimetype);
+	DPRINTF("Got file %s with mimetype %s\n", ie->filename, mimetype);
 
 #ifdef HAVE_LIBMAD
 	/* check if its an mp3 */
-	if (strstr(ie->filename, ".mp3") != NULL) {
-		/* FIXME - ie_update_mp3labels */
-		DPRINTF("Seems we got a mp3 file\n");
+	if (strcmp(mimetype, "audio/x-mp3") == 0) {
 		ie->gotfile = 2;
 		ie->gotstats = 0;
-		gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), "MPEG AUDIO");
 		for(i=1; i<MAX_PROPS; i++)
 			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "-");
 		gtk_widget_set_sensitive(ie->checkresample, FALSE);
 		gtk_widget_set_sensitive(ie->rateentry, FALSE);
 		gtk_widget_set_sensitive(ie->getstats, FALSE);
+		g_free(mimetype);
 		return;
 	}
 #endif
 
-	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
-	if (filterparam_set(fparam, &(ie->filename))==-1) {
-		for(i=0; i<MAX_PROPS; i++)
-			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "nan");
+	if (strncmp(mimetype, "audio/", 6) != 0) {
+		for(i=1; i<MAX_PROPS; i++)
+			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "-");
+		gtk_widget_set_sensitive(ie->checkresample, FALSE);
+		gtk_widget_set_sensitive(ie->rateentry, FALSE);
+		gtk_widget_set_sensitive(ie->getstats, FALSE);
+		g_free(mimetype);
 		return;
 	}
+	g_free(mimetype);
+
+	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
+	filterparam_set(fparam, &(ie->filename));
 
 	ie_update_plabels(ie);
 	gtk_widget_set_sensitive(ie->checkresample, TRUE);
