@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.31 2000/03/20 09:42:44 richi Exp $
+ * $Id: filter.c,v 1.32 2000/03/21 14:14:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -53,27 +53,6 @@ filter_t *filter_from_network(filter_network_t *net)
 		return NULL;
 	return net->node.filter;
 }
-#if 0
-filter_t *filter_from_string(const char *name, const char *description,
-			     const char *net)
-{
-	filter_t *f;
-
-	if (!name || !description || !net)
-		return NULL;
-
-	if (!(f = _filter_alloc(name, description, FILTER_FLAG_NETWORK)))
-	        return NULL;
-	if (!(f->private = (void *)strdup(net)))
-		goto err;
-
-	return f;
-
-err:
-	_filter_free(f);
-	return NULL;
-}
-#endif
 
 int filter_add(filter_t *filter, const char *name, const char *description)
 {

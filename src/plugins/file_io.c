@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.8 2000/03/21 10:48:40 richi Exp $
+ * $Id: file_io.c,v 1.9 2000/03/21 14:14:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -464,6 +464,8 @@ int af_read_f(filter_node_t *n)
 	SAMPLE *s0, *s1;
 	short *b;
 	int cnt;
+
+	/* FIXME! reposition af to start of the file [richi] */
 
 	FILTER_AFTER_INIT;
 
