@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.15 2001/07/10 12:00:36 richi Exp $
+ * $Id: canvaspipe.c,v 1.16 2001/07/10 13:26:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -242,7 +242,7 @@ static void
 glame_canvas_pipe_deleted_cb(glsig_handler_t* foo,long sig,va_list va)
 {
 	
-	GlameCanvasPipe* gPipe = glsig_handler_private(foo);
+	GlameCanvasPipe* gPipe = GLAME_CANVAS_PIPE(glsig_handler_private(foo));
 	gtk_signal_emit_by_name(GTK_OBJECT(gPipe),"deleted");
 	gtk_object_destroy(GTK_OBJECT(gPipe));
 }

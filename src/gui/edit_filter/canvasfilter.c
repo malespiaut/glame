@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.24 2001/07/10 12:00:36 richi Exp $
+ * $Id: canvasfilter.c,v 1.25 2001/07/10 13:26:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -67,8 +67,6 @@ static void
 glame_canvas_filter_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass* parent_class;
-	glame_canvas_filter_hide_properties(GLAME_CANVAS_FILTER(object));
-	gtk_signal_emit(object,filter_signals[DELETED]);
 	hash_remove_gcfilter(GLAME_CANVAS_FILTER(object));
 	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
@@ -166,8 +164,10 @@ glame_canvas_filter_get_type(void)
 
 static void glame_canvas_filter_destroy_cb(glsig_handler_t* foo,long sig,va_list va)
 {
-	glame_canvas_filter_hide_properties(glsig_handler_private(foo));
-	glame_canvas_filter_destroy(glsig_handler_private(foo));
+	GlameCanvasFilter *gFilter = GLAME_CANVAS_FILTER(glsig_handler_private(foo));
+	glame_canvas_filter_hide_properties(gFilter);
+	gtk_signal_emit(GTK_OBJECT(gFilter),filter_signals[DELETED]);
+	gtk_object_destroy(GTK_OBJECT(gFilter));
 }
 
 
@@ -276,7 +276,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	gGroup = GNOME_CANVAS_GROUP(gItem);
 
 	gItem->filter = filter;
-	gItem->defaultGroup = glameGroup;
+	gItem->defaultGroup = GNOME_CANVAS_GROUP(glameGroup);
 
 	buffer = filter_get_property(filter,"canvas_x");
 	if(buffer)

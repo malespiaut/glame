@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.15 2001/07/10 12:00:36 richi Exp $
+ * $Id: canvasport.c,v 1.16 2001/07/10 13:26:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -188,13 +188,13 @@ glame_canvas_port_moved_cb(GlameCanvasFilter* f, double dx, double dy, GlameCanv
 	return FALSE;
 }
 
-void
-glame_canvas_port_deleted_cb(GlameCanvasFilter* f, GlameCanvasPort *p)
+static void glame_canvas_port_destroy_cb(glsig_handler_t *foo, long sig,
+					 va_list va)
 {
-	if (!GLAME_IS_CANVAS_FILTER(f) || !GLAME_IS_CANVAS_PORT(p))
-		return;
-	glame_canvas_port_destroy(GTK_OBJECT(p));
+	GlameCanvasPort *gPort = GLAME_CANVAS_PORT(glsig_handler_private(foo));
+	gtk_object_destroy(GTK_OBJECT(gPort));
 }
+
 
 
 
@@ -294,7 +294,7 @@ static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
 static void 
 glame_canvas_port_redirected_port_deleted_cb(glsig_handler_t* handler, long sig, va_list va)
 {
-	glame_canvas_port_set_external(glsig_handler_private(handler),FALSE);
+	glame_canvas_port_set_external(GLAME_CANVAS_PORT(glsig_handler_private(handler)),FALSE);
 }
 static void 
 glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
@@ -437,18 +437,16 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 		}
 	case GDK_ENTER_NOTIFY:
 		glame_canvas_port_register_popup(port);
+		return TRUE;
 		break;
 	case GDK_LEAVE_NOTIFY:
 		glame_canvas_port_deregister_popup(port);
+		return TRUE;
 		break;
 	default:
 		return FALSE;
 		break;
 	}
-
-
-
-
 }
 
 GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *port, double x, double y, double height)
@@ -487,10 +485,8 @@ GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *p
 			   "moved",
 			   GTK_SIGNAL_FUNC(glame_canvas_port_moved_cb),
 			   p);
-	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_filter(filterport_filter(port))),
-			   "deleted",
-			   GTK_SIGNAL_FUNC(glame_canvas_port_deleted_cb),
-			   p);
+	glsig_add_handler(filterport_emitter(port), GLSIG_PORT_DELETED,
+			  glame_canvas_port_destroy_cb, p);
 	return p;
 }
 
@@ -566,9 +562,9 @@ glame_canvas_port_show_properties(GlameCanvasPort* port)
 								"width_units",1.0,
 								"fill_color_rgba",0xd0d0ff00,
 								NULL));
-	gnome_canvas_item_raise_to_top(text);
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
 
-	gnome_canvas_item_move(group,(filterport_is_input(port->port)?(xs-4.0):(xe+4.0)),ys);
+	gnome_canvas_item_move(GNOME_CANVAS_ITEM(group),(filterport_is_input(port->port)?(xs-4.0):(xe+4.0)),ys);
 
 	port->popupGroup = group;
 	return FALSE;
