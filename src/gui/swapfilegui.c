@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.37 2001/05/16 08:43:44 richi Exp $
+ * $Id: swapfilegui.c,v 1.38 2001/05/16 09:34:51 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -565,6 +565,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)group);
 	if (grpw)
 		edit_tree_label(grpw);
+
+	gpsm_sync();
 
 	return;
 
