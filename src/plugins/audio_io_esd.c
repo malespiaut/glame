@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.2 2001/04/11 13:12:46 richi Exp $
+ * $Id: audio_io_esd.c,v 1.3 2001/04/11 13:25:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -27,7 +27,7 @@
 #include <esd.h>
 #include "audio_io.h"
 
-PLUGIN_SET(audio_io_esd, "esd-audio-in esd-audio-out")
+PLUGIN_SET(audio_io_esd, "esd_audio_in esd_audio_out")
 
 
 static int esd_in_f(filter_t *n)

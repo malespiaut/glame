@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.2 2001/04/11 13:12:46 richi Exp $
+ * $Id: audio_io_oss.c,v 1.3 2001/04/11 13:25:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -37,7 +37,7 @@
 #include <sys/ioctl.h>
 #include "audio_io.h"
 
-PLUGIN_SET(audio_io_oss, "oss-audio-out")
+PLUGIN_SET(audio_io_oss, "oss_audio_out")
 
 
 /* Use native endianness for audio output */

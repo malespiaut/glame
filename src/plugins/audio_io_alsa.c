@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa.c
- * $Id: audio_io_alsa.c,v 1.2 2001/04/11 13:12:46 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.3 2001/04/11 13:25:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -28,7 +28,7 @@
 #include <string.h>
 #include "audio_io.h"
 
-PLUGIN_SET(audio_io_alsa, "alsa-audio-out")
+PLUGIN_SET(audio_io_alsa, "alsa_audio_out")
 
 
 static int alsa_audio_out_f(filter_t *n)
