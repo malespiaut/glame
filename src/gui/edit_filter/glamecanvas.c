@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.45 2001/12/13 14:48:06 richi Exp $
+ * $Id: glamecanvas.c,v 1.46 2002/07/14 12:41:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -21,6 +21,10 @@
  *
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/param.h>
 #include <stdio.h>

@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.25 2002/03/24 22:32:47 richi Exp $
+ * $Id: canvaspipe.c,v 1.26 2002/07/14 12:41:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -22,6 +22,9 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/param.h>
 #include <stdio.h>

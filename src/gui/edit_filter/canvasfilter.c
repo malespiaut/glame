@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.55 2002/06/09 08:25:48 richi Exp $
+ * $Id: canvasfilter.c,v 1.56 2002/07/14 12:41:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -21,6 +21,11 @@
  *
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <stdio.h>
 #include <math.h>
