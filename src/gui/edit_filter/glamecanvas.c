@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.39 2001/12/03 10:42:20 richi Exp $
+ * $Id: glamecanvas.c,v 1.40 2001/12/03 12:06:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -277,9 +277,9 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
    use only when really necessary!!!          */
 void glame_canvas_full_redraw(GlameCanvas *canv)
 {
-	glame_canvas_filter_destroy_all(GNOME_CANVAS(canv));
-	glame_canvas_port_destroy_all(GNOME_CANVAS(canv));
 	glame_canvas_pipe_destroy_all(GNOME_CANVAS(canv));
+	glame_canvas_port_destroy_all(GNOME_CANVAS(canv));
+	glame_canvas_filter_destroy_all(GNOME_CANVAS(canv));
 	glame_canvas_redraw(canv);
 }
 
@@ -297,42 +297,34 @@ void glame_canvas_redraw(GlameCanvas *canv)
 	root = gnome_canvas_root(GNOME_CANVAS(canv));
 	network = canv->net;
 
-	filter_foreach_node(canv->net,node){
+	filter_foreach_node(canv->net, node){
 		gf = glame_canvas_find_filter(node);
-		if(gf){
+		if (gf) {
 			glame_canvas_filter_redraw(gf);
-		}else{
-			
+		} else {
 			glame_canvas_filter_new(root,node);
 			newNodes = g_list_append(newNodes,node);
 		}
 	}
-	if(newNodes){
-		iter = g_list_first(newNodes);
-		while(iter){
-			node = (filter_t*)iter->data;
-			filterportdb_foreach_port(filter_portdb(node), port) {
-				filterport_foreach_pipe(port, pipe) {
-					/* Skip connections not from/to a node
-					 * in network. */
-					if (filterport_filter(filterpipe_connection_source(pipe))->net != network
-					    || filterport_filter(filterpipe_connection_dest(pipe))->net != network)
-						continue;
-					glame_canvas_pipe_new(root, pipe);
-				}
-			}
-			iter = g_list_next(iter);
-		}
-		/* external ports */
-		filterportdb_foreach_port(filter_portdb(network),port){
-			node = filter_get_node(network,filterport_get_property(port,FILTERPORT_MAP_NODE));
-			buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
-			if (!node || !buffer )
-				continue;
-			glame_canvas_port_set_external(glame_canvas_find_port(filterportdb_get_port(filter_portdb(node),buffer)),TRUE);
-		}
-	}
+	if (!newNodes)
+		return;
 
+	iter = g_list_first(newNodes);
+	while(iter){
+		node = (filter_t*)iter->data;
+		glame_list_foreach(&node->connections, filter_pipe_t, list, pipe)
+			glame_canvas_pipe_new(root, pipe);
+		iter = g_list_next(iter);
+	}
+	/* external ports */
+	filterportdb_foreach_port(filter_portdb(network),port){
+		node = filter_get_node(network,filterport_get_property(port,FILTERPORT_MAP_NODE));
+		buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
+		if (!node || !buffer )
+			continue;
+		glame_canvas_port_set_external(glame_canvas_find_port(filterportdb_get_port(filter_portdb(node),buffer)),TRUE);
+	}
+	g_list_free(newNodes);
 }
 
 
