@@ -816,7 +816,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	GlameCanvas *canvas;
+	GtkWidget *canvas;
 	gint32 start, length, marker, wavesize;
 	long nrtracks;
 	gpsm_swfile_t **files;
@@ -876,7 +876,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	/* Pop up the custom generated canvas - the wave widget is
 	 * updated after destruction. FIXME - if gpsm is modified, the
 	 * signal handler data is invalid. */
-	canvas = GLAME_CANVAS(glame_filtereditgui_new(net));
+	canvas = glame_filtereditgui_new(net);
 	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
 			   (GtkSignalFunc)apply_custom_cb_cleanup, item);
 	return;
