@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.12 2001/12/16 14:22:47 richi Exp $
+ * $Id: glame_param.c,v 1.13 2002/01/27 15:11:16 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -87,19 +87,12 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 	GlameParam *gparam = GLAME_PARAM(glsig_handler_private(handler));
 
 	if (sig == GLSIG_PARAM_DELETED) {
-		DPRINTF("Got param delete event for %s\n",
-			filterparam_label(gparam->param));
 		gtk_object_destroy(GTK_OBJECT(gparam));
 		return;
 	}
 
-	if (gparam->updating) {
-		DPRINTF("Ignoring param change event for %s\n",
-			filterparam_label(gparam->param));
+	if (gparam->updating)
 		return;
-	}
-	DPRINTF("Got param change event for %s\n",
-		filterparam_label(gparam->param));
 
 	gparam->updating = 1;
 
@@ -263,10 +256,9 @@ static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 	gparam->updating = 1;
 
 	val = glame_menu_get_active_index(menu);
-	if (val != -1) {
-		DPRINTF("Setting %s to %i\n", filterparam_label(gparam->param), val);
+	if (val != -1)
 		res = filterparam_set(gparam->param, &val);
-	} else
+	else
 		DPRINTF("Illegal value for menu\n");
 	gparam->updating = 0;
 

@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.13 2002/01/27 12:26:46 richi Exp $
+ * $Id: filter_pipe.c,v 1.14 2002/01/27 15:11:16 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -225,8 +225,6 @@ int filterpipe_is_feedback(filter_pipe_t *pipe)
 	res = _filterpipe_is_feedback(pipe, filterport_filter(filterpipe_dest(pipe)));
 	_filterpipe_is_feedback_cleanup(filterport_filter(filterpipe_dest(pipe)));
 	pthread_mutex_unlock(&_fpifbmx);
-
-	DPRINTF("%p %s feedback\n", pipe, res ? "has" : "has not");
 
 	return res;
 }
