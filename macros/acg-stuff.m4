@@ -5,7 +5,7 @@ dnl
 AC_DEFUN([ACG_CHECK_STUFF],
 [
 
-	AC_MSG_CHECKING([Checking for sqrtf])
+	AC_MSG_CHECKING([for sqrtf])
 	ac_saved_libs="$LIBS"
 	LIBS="$LIBS -lm"
 	AC_TRY_LINK(
