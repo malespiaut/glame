@@ -73,7 +73,8 @@ Requirements
 - For developing you need recent versions of autoconf, automake and
   libtool.
 - For full-featured I/O to files a recent version of libaudiofile is
-  recommended
+  needed (at least 0.2.2 is required for libaudiofile support to be
+  included)
 - For full-featured I/O to your soundcard use ALSA version 0.9, though
   OSS may suffice, too
 

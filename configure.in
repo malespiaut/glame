@@ -231,16 +231,23 @@ dnl
 
 dnl check for libaudiofile, use audiofile-config, if available
 AC_CHECK_PROG(afconfig, audiofile-config, yes, no)
-if test $afconfig = no; then
-	AC_CHECK_LIB(audiofile, afCloseFile, laf=yes, laf=no)
-	AC_CHECK_HEADER(audiofile.h,, laf=no)
-	if test $laf = yes; then
-		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -laudiofile"
-		AC_DEFINE(HAVE_AUDIOFILE)
+ac_saved_ldflags=$LDFLAGS
+ac_saved_cflags=$CFLAGS
+if test $afconfig = yes; then
+	LDFLAGS="$LDFLAGS `audiofile-config --libs`"
+	CFLAGS="$CFLAGS `audiofile-config --cflags`"
+fi
+AC_CHECK_LIB(audiofile, afGetVirtualFrameSize, laf=yes, laf=no)
+AC_CHECK_HEADER(audiofile.h,, laf=no)
+LDFLAGS=$ac_saved_ldflags
+CFLAGS=$ac_saved_cflags
+if test $laf = yes; then
+        if test $afconfig = yes; then
+		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS `audiofile-config --libs`"
+		GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS `audiofile-config --cflags`"
+	else
+		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS $ac_audiofile_libs -laudiofile"
 	fi
-else
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS `audiofile-config --libs`"
-	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS `audiofile-config --cflags`"
 	AC_DEFINE(HAVE_AUDIOFILE)
 fi
 
