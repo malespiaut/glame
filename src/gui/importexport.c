@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.17 2002/06/02 18:00:17 richi Exp $
+ * $Id: importexport.c,v 1.18 2002/11/10 12:56:13 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -750,7 +750,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 
 struct exp_s {
-	GtkWidget *dialog, *otypemenu, *compmenu, *ocompmenu;
+	GtkWidget *dialog, *otypemenu, *ocompmenu;
 	GtkWidget *cancelbutton, *appbar;
 	int typecnt, comptypes;
 	int *indices, *comparray;
@@ -763,6 +763,10 @@ struct exp_s {
 	filter_t *net;
 };
 
+static long export_default_filetype = -1; /* auto */
+static long export_default_compression = AF_COMPRESSION_NONE;
+static int export_default_render_option = 0;
+static int export_default_sample_option = 0;
 
 static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *exp)
 {
@@ -778,15 +782,22 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 	int *sformarray;
 
 	gchar *complabel;
-	GtkWidget *menuitem;
+	GtkWidget *menuitem, *compmenu;
 
-	gtk_widget_destroy(ie->compmenu);
+	compmenu = gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->ocompmenu));
+	if (compmenu)
+		gtk_widget_destroy(compmenu);
 
-	ie->compmenu = gtk_menu_new();
+	compmenu = gtk_menu_new();
 	
 	menuitem=gtk_menu_item_new_with_label("none");
 	gtk_widget_show(menuitem);
-	gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
+	gtk_menu_append(GTK_MENU(compmenu), menuitem);
+
+	if (ftype == -1) { /* auto filetype */
+		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
+		goto done;
+	}
 
 	sformtypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_SAMPLE_FORMATS, AF_QUERY_VALUE_COUNT, ftype, 0);
 	DPRINTF("%d sample formats\n", sformtypes);
@@ -806,16 +817,17 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 			}
 			menuitem = gtk_menu_item_new_with_label(complabel);
 			gtk_widget_show(menuitem);
-			gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
+			gtk_menu_append(GTK_MENU(compmenu), menuitem);
 		}
 		gtk_widget_set_sensitive(ie->ocompmenu, TRUE);
-		gtk_signal_connect(GTK_OBJECT(ie->compmenu),
+		gtk_signal_connect(GTK_OBJECT(compmenu),
 				   "selection_done",
 				   (GtkSignalFunc)ie_comp_menu_cb, ie);
 	} else
 		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
-	
-	gtk_option_menu_set_menu(GTK_OPTION_MENU (ie->ocompmenu), ie->compmenu);
+
+ done:	
+	gtk_option_menu_set_menu(GTK_OPTION_MENU (ie->ocompmenu), compmenu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->ocompmenu), 0);
 }
 
@@ -829,9 +841,9 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
 		make_comp_menu(ie, ie->indices[val-1]);
 		ie->filetype=val;
 	} else {
+		make_comp_menu(ie, -1);
 		ie->filetype=-1;
 		ie->compression = AF_COMPRESSION_NONE;
-		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
 	}
 
 	return TRUE;
@@ -1002,6 +1014,12 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	}
 	exp->running = 0;
 
+	/* remember new defaults */
+	export_default_filetype = exp->filetype;
+	export_default_compression = exp->compression;
+	export_default_render_option = ri;
+	export_default_sample_option = sfi;
+
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	export_cleanup(exp);
@@ -1030,8 +1048,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie = (struct exp_s*)calloc(1,sizeof(struct exp_s));
 	ie->item = item;
 	ie->filename = NULL;
-	ie->filetype = -1; /* filetype auto */
-	ie->compression = AF_COMPRESSION_NONE;
+	ie->filetype = export_default_filetype;
+	ie->compression = export_default_compression;
 	ie->running = 0;
 	/* open new dialog window */
 	dialog = ie->dialog = gnome_dialog_new(NULL, NULL);
@@ -1046,7 +1064,6 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_button_box_set_child_size (GTK_BUTTON_BOX (dialog_action_area), 150, 30);
 
 	dialog_vbox2 = GNOME_DIALOG (ie->dialog)->vbox;
-	/*gtk_widget_show (dialog_vbox2);*/
 
 	vbox = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox);
@@ -1099,6 +1116,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	for(i=0; i<MAX_RLABEL; i++) {
 		ie->renderbutton[i]=gtk_radio_button_new_with_label(renderbuttons, rlabel[i]);
 		renderbuttons=gtk_radio_button_group(GTK_RADIO_BUTTON(ie->renderbutton[i]));
+		if (i == export_default_render_option)
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ie->renderbutton[i]), TRUE);
 		gtk_widget_show(ie->renderbutton[i]);
 		gtk_box_pack_start(GTK_BOX(frame4box), ie->renderbutton[i], TRUE, TRUE, 0);
 	}
@@ -1114,6 +1133,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	for(i=0; i<MAX_SFLABEL; i++) {
 		ie->rbutton[i] = gtk_radio_button_new_with_label(rbuttons, sflabel[i]);
 		rbuttons = gtk_radio_button_group(GTK_RADIO_BUTTON(ie->rbutton[i]));
+		if (i == export_default_sample_option)
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ie->rbutton[i]), TRUE);
 		gtk_widget_show(ie->rbutton[i]);
 		gtk_box_pack_start (GTK_BOX (valbox), ie->rbutton[i], TRUE, TRUE, 0);
 	}
@@ -1140,22 +1161,20 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_menu_append (GTK_MENU (menu), mitem);
 	}
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (ie->otypemenu), menu);
-	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu), 0);
-	
+	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
+				     ie->filetype == -1 ? 0 : ie->filetype);
+
+	/* compression combo-box, build by simulating a type choose */
 	ie->ocompmenu = gtk_option_menu_new ();
 	gtk_widget_show(ie->ocompmenu);
 	gtk_container_add(GTK_CONTAINER(frame2), ie->ocompmenu);
+	ie_type_menu_cb(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->otypemenu))), ie);
 
-	ie->compmenu = gtk_menu_new();
-
-	if (ie->typecnt>0) {
-		make_comp_menu(ie, ie->indices[0]);
-	}
-	
 	/* filetype is auto, so compression can't be set */
 	gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
 
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
+	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), OK);
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GNOME_STOCK_BUTTON_HELP);
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
