@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.41 2000/12/11 12:39:59 xwolf Exp $
+ * $Id: filter.c,v 1.42 2000/12/11 13:15:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -163,8 +163,10 @@ filter_t *_filter_instantiate(filter_t *f)
 
 	/* copy nodes */
 	filter_foreach_node(f, node) {
-		if (filter_add_node(n, _filter_instantiate(node), node->name) == -1)
+		filter_t *inode = _filter_instantiate(node);
+		if (!inode || filter_add_node(n, inode, node->name) == -1)
 			goto err;
+		inode->plugin = node->plugin;		
 	}
 
 	/* and connections */
@@ -347,11 +349,17 @@ char *filter_to_string(filter_t *net)
 	/* iterate over all nodes in the network creating
 	 * node create commands. */
 	filter_foreach_node(net, n) {
-		if (!n->plugin)
+		if (!n->plugin) {
+			char *subnet = filter_to_string(n);
+			if (!subnet) {
+				DPRINTF("got weird plugin\n");
+				return NULL;
+			}
 			len += sprintf(&buf[len], "\t(%s (filter_add_node net %s \"%s\"))\n",
-				       n->name, filter_to_string(n), n->name);
-		else
-			len += sprintf(&buf[len], "\t(%s (filter_add_node net (plugin_get \"%s\") \"%s\"))\n",
+				       n->name, subnet, n->name);
+			free(subnet);
+		} else
+			len += sprintf(&buf[len], "\t(%s (filter_add_node net (filter_instantiate (plugin_get \"%s\")) \"%s\"))\n",
 				       n->name, plugin_name(n->plugin), n->name);
 	}
 	/* ((net .. */
@@ -362,6 +370,8 @@ char *filter_to_string(filter_t *net)
 	filter_foreach_node(net, n) {
 		filterparamdb_foreach_param(filter_paramdb(n), param) {
 			val = filterparam_to_string(param);
+			if (!val)
+				continue;
 			len += sprintf(&buf[len], "   (filternode_set_param %s \"%s\" %s)\n",
 				       n->name, filterparam_label(param), val);
 			free(val);
@@ -419,6 +429,8 @@ char *filter_to_string(filter_t *net)
 			 * parameter set commands. */
 			filterparamdb_foreach_param(filterpipe_destparamdb(fpipe), param) {
 				val = filterparam_to_string(param);
+				if (!val)
+					continue;
 				len += sprintf(&buf[len], "\t(filterpipe_set_destparam pipe \"%s\" %s)\n",
 					       filterparam_label(param), val);
 				free(val);
@@ -428,6 +440,8 @@ char *filter_to_string(filter_t *net)
 			 * parameter set commands. */
 			filterparamdb_foreach_param(filterpipe_sourceparamdb(fpipe), param) {
 				val = filterparam_to_string(param);
+				if (!val)
+					continue;
 				len += sprintf(&buf[len], "\t(filterpipe_set_sourceparam pipe \"%s\" %s)\n",
 					       filterparam_label(param), val);
 				free(val);

@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.2 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_port.h,v 1.3 2000/12/11 13:15:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -101,8 +101,8 @@ struct filter_port {
 
 /* Access to the property database, prototypes are
  * const char *filterport_get_property(filter_param_t *p, const char *label);
- * void filterport_set_property(filter_param_t *p, const char *label,
- *                              const char *value); */
+ * int filterport_set_property(filter_param_t *p, const char *label,
+ *                             const char *value); */
 #define filterport_get_property(p, w) (glsdb_query(&(p)->properties, (w)))
 #define filterport_set_property(p, w, v) do { glsdb_set(&(p)->properties, \
         (v), (w)); } while (0)

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.6 2000/12/11 12:39:59 xwolf Exp $
+ * $Id: canvas.c,v 1.7 2000/12/11 13:15:23 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1206,7 +1206,7 @@ static void canvas_save_as_cb(gchar* name, gpointer data)
 	FILE* outf = fopen(name,"w");
 	buffer = filter_to_string(bla);
 	fprintf(stderr,"%s\n",buffer);
-	fprintf(outf,"(glame_create_plugin %s name)\n",buffer);
+	fprintf(outf,"(glame_create_plugin %s \"%s\")\n",buffer,name);
 	free(buffer);
 	fclose(outf);
 }

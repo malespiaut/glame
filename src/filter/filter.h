@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.64 2000/12/08 14:56:44 richi Exp $
+ * $Id: filter.h,v 1.65 2000/12/11 13:15:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -184,7 +184,7 @@ do { \
 #define FILTER_IS_RUNNING(f) ((f)->launch_context->state >= STATE_RUNNING)
 
 /* Convenience for setting/querying filter properties.
- * void filter_set_property(filter_t *f, const char *label, const char *value);
+ * int filter_set_property(filter_t *f, const char *label, const char *value);
  * const char *filter_get_property(filter_t *f, const char *label);
  */
 #define filter_set_property(f, l, v) glsdb_set(filter_propertydb(f), (v), (l))

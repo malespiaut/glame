@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.7 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_param.h,v 1.8 2000/12/11 13:15:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -123,8 +123,8 @@ typedef struct {
 
 /* Access to the property database, prototypes are
  * const char *filterparam_get_property(filter_param_t *p, const char *label);
- * void filterparam_set_property(filter_param_t *p, const char *label,
- *                               const char *value); */
+ * int filterparam_set_property(filter_param_t *p, const char *label,
+ *                              const char *value); */
 #define filterparam_get_property(p, w) (glsdb_query(&(p)->properties, (w)))
 #define filterparam_set_property(p, w, v) do { glsdb_set(&(p)->properties, \
         (v), (w)); } while (0)

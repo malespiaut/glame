@@ -224,7 +224,7 @@ static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	free(name);
 	if (res == -1)
 		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+	return s_filter;
 }
 
 static SCM gls_filter_connect(SCM s_source, SCM s_source_port,

@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.25 2000/12/11 10:41:58 richi Exp $
+@comment $Id: filter.texi,v 1.26 2000/12/11 13:15:22 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -184,10 +184,10 @@ as ports, parameters, pipes and child filters.
 @end deftypefun
 
 @tindex filter_t
-@deftypefun void filter_set_property (filter_t *@var{f}, const char *@var{label}, const char *@var{value})
+@deftypefun int filter_set_property (filter_t *@var{f}, const char *@var{label}, const char *@var{value})
 Sets the property named @var{label} to the value @var{value}. Properties
 of filters are for free use by the user and contents are saved/restored
-by @code{filter_to_string()}.
+by @code{filter_to_string()}. Returns 0 on success, -1 on error.
 @end deftypefun
 
 @tindex filter_t
@@ -311,8 +311,9 @@ using the specified label.
 @end deftypefun
 
 @tindex filter_param_t
-@deftypefun void filterparam_set_property (filter_param_t *@var{param}, const char *@var{label}, const char *@var{value})
-Set or add the property @var{label} to the provided @var{value}.
+@deftypefun int filterparam_set_property (filter_param_t *@var{param}, const char *@var{label}, const char *@var{value})
+Set or add the property @var{label} to the provided @var{value}. Returns 0
+on success, -1 on error.
 @end deftypefun
 
 
@@ -460,8 +461,9 @@ ports property database or @code{NULL}, if there is no such property.
 @end deftypefun
 
 @tindex filter_port_t
-@deftypefun void filterport_set_property (filter_port_t *@var{port}, const char *@var{label}, const char *@var{value})
-Sets the property @var{label} to the specified @var{value}.
+@deftypefun int filterport_set_property (filter_port_t *@var{port}, const char *@var{label}, const char *@var{value})
+Sets the property @var{label} to the specified @var{value}. Returns 0 on success,
+-1 on error.
 @end deftypefun
 
 @tindex filter_port_t

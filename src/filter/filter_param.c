@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.7 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_param.c,v 1.8 2000/12/11 13:15:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -342,7 +342,7 @@ char *filterparam_to_string(const filter_param_t *param)
 	else if (FILTER_PARAM_IS_SAMPLE(param))
 		/* FIXME: this is SAMPLE type specific */
 		snprintf(buf, 511, "%f", param->u.sample);
-	else if (FILTER_PARAM_IS_STRING(param))
+	else if (FILTER_PARAM_IS_STRING(param) && param->u.string)
 		snprintf(buf, 511, "\"%s\"", param->u.string);
 	else
 		return NULL;
