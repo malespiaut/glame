@@ -608,7 +608,7 @@ static void _file_readclusters(struct swfile *f)
 		SWPANIC("Cannot stat file metadata");
 	if (!(f->clusters = (struct ctree *)malloc(st.st_size)))
 		SWPANIC("No memory for cluster tree");
-	if (read(fd, f->clusters, st.st_size) != st.st_size)
+	if (swread(fd, f->clusters, st.st_size) != st.st_size)
 		SWPANIC("Cannot read cluster tree");
 	if (st.st_size != CTREESIZE(f->clusters->height))
 		SWPANIC("Corrupted cluster tree file");
@@ -624,7 +624,7 @@ static void _file_readclusters(struct swfile *f)
  * Needs the FILE lock. */
 static void _file_writeclusters(struct swfile *f)
 {
-	int fd, size, res;
+	int fd, size;
 	char *m;
 
 	if (!(f->flags & SWF_DIRTY)
@@ -639,15 +639,8 @@ static void _file_writeclusters(struct swfile *f)
 	if (ftruncate(fd, size) == -1)
 		SWPANIC("Cannot truncate file metadata");
 	m = (char *)(f->clusters);
-	do {
-		res = write(fd, m, size);
-		if (res == -1 && errno != EINTR) {
-			SWPANIC("Cannot write file metadata");
-		} else {
-			size -= res;
-			m += res;
-		}
-	} while (size>0);
+	if (swwrite(fd, m, size) != size)
+		SWPANIC("Cannot write file metadata");
 	f->flags &= ~SWF_DIRTY;
 	close(fd);
 }

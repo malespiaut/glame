@@ -29,6 +29,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 #include "util.h"
 #include "hash.h"
 #include "swfs_cluster.h"
@@ -105,6 +106,47 @@ static void _cluster_put(struct swcluster *c);
 #define _cluster_needfiles(c) do { if ((c)->flags & SWC_NOT_IN_CORE) if (_cluster_readfiles(c) == -1) SWPANIC("metadata vanished under us"); } while (0)
 #define _cluster_needdata(c) do { if ((c)->flags & SWC_CREAT || (c)->fd == -1) __cluster_needdata(c); } while (0)
 static void __cluster_needdata(struct swcluster *c);
+
+
+static inline int swread(int fd, void *buf, size_t count)
+{
+	int res, origcount = count;
+
+	while (count>0) {
+		res = read(fd, buf, count);
+		if (res == -1 && errno == EINTR)
+			continue;
+		if (res > 0) {
+			count -= res;
+			buf += res;
+		} else if (res == 0)
+			break;
+		else
+			return origcount != count ? origcount - count : -1;
+	}
+
+	return origcount;
+}
+
+static inline int swwrite(int fd, const void *buf, size_t count)
+{
+	int res, origcount = count;
+
+	while (count>0) {
+		res = write(fd, buf, count);
+		if (res == -1 && errno == EINTR)
+			continue;
+		if (res > 0) {
+			count -= res;
+			buf += res;
+		} else if (res == 0)
+			break;
+		else
+			return origcount != count ? origcount - count : -1;
+	}
+
+	return origcount;
+}
 
 
 /***********************************************************************
@@ -700,7 +742,8 @@ static ssize_t cluster_read(struct swcluster *c, void *buf,
 	/* Else we're going to need the fd and do a pread. */
 	} else {
 		_cluster_needdata(c);
-		res = pread(c->fd, buf, count, offset);
+		lseek(c->fd, offset, SEEK_SET);
+		res = swread(c->fd, buf, count);
 	}
 	UNLOCKCLUSTER(c);
 
@@ -726,7 +769,8 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
 	/* Else we're going to need the fd and do a pwrite. */
 	} else {
 		_cluster_needdata(c);
-		res = pwrite(c->fd, buf, count, offset);
+		lseek(c->fd, offset, SEEK_SET);
+		res = swwrite(c->fd, buf, count);
 	}
 	UNLOCKCLUSTER(c);
 
@@ -865,7 +909,7 @@ static int _cluster_readfiles(struct swcluster *c)
 	if (!(c->files = (long *)malloc(stat.st_size)))
 		SWPANIC("no memory for files list");
 	c->files_cnt = stat.st_size/sizeof(long);
-	if (read(fd, c->files, stat.st_size) != stat.st_size) {
+	if (swread(fd, c->files, stat.st_size) != stat.st_size) {
 		SWAPFILE_MARK_UNCLEAN("cannot read cluster metadata");
 		close(fd);
 		free(c->files);
@@ -901,7 +945,7 @@ static void _cluster_writefiles(struct swcluster *c)
 	size = c->files_cnt*sizeof(long);
 	if ((fd = __cluster_meta_open(c->name, O_RDWR|O_CREAT)) == -1
 	    || ftruncate(fd, size) == -1
-	    || write(fd, c->files, size) != size)
+	    || swwrite(fd, c->files, size) != size)
 		SWPANIC("cannot write cluster metadata");
 	c->flags &= ~SWC_DIRTY;
 	close(fd);
