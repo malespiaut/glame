@@ -31,11 +31,104 @@
 /* SMOB for gpsm_item_t.
  */
 
-long gpsmitem_smob_tag;
-#define scm2gpsmitem(s) (gpsm_item_t *)scm2pointer(s, gpsmitem_smob_tag)
-#define gpsmitem2scm(p) pointer2scm((void *)p, gpsmitem_smob_tag)
-#define scminvalidategpsmitem(s) scminvalidatepointer(s, gpsmitem_smob_tag)
+long gpsmitem_smob_tag = 0;
+struct gpsmitem_smob {
+	gpsm_item_t *item;
+};
+#define SCM2GPSMITEMSMOB(s) ((struct gpsmitem_smob *)SCM_SMOB_DATA(s))
 #define gpsmitem_p(s) (SCM_NIMP(s) && SCM_CAR(s) == gpsmitem_smob_tag)
+SCM gpsmitem2scm(gpsm_item_t *item);
+gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob);
+
+static scm_sizet free_gpsmitem(SCM gpsmitem_smob)
+{
+	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
+
+	/* Delete the item if it is not the root item and
+	 * has no parent. */
+	if (item->item
+	    && item->item != gpsm_root()
+	    && !gpsm_item_parent(item->item)) {
+		DPRINTF("GCing gpsm item %p (%s)\n", item->item,
+			gpsm_item_label(item->item));
+		gpsm_item_destroy(item->item);
+		item->item = NULL;
+	}
+
+	return sizeof(struct gpsmitem_smob);
+}
+
+static int print_gpsmitem(SCM gpsmitem_smob, SCM port, scm_print_state *pstate)
+{
+	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
+	gpsm_item_t *it;
+	char buf[256];
+
+	if (!item->item) {
+		snprintf(buf, 255, "#< destroyed gpsm item >");
+		scm_puts(buf, port);
+	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
+		snprintf(buf, 255, "#< gpsm-swfile \"%s\" file=%li rate=%li pos=%.3f (+%li) > ",
+			 gpsm_item_label(item->item),
+			 gpsm_swfile_filename(item->item),
+			 gpsm_swfile_samplerate(item->item),
+			 gpsm_swfile_position(item->item),
+			 gpsm_item_hsize(item->item));
+		scm_puts(buf, port);
+	} else if (GPSM_ITEM_IS_GRP(item->item)) {
+		snprintf(buf, 255, "#< gpsm-grp \"%s\" (+%li, +%li) > ",
+			 gpsm_item_label(item->item),
+			 gpsm_item_hsize(item->item),
+			 gpsm_item_vsize(item->item));
+		scm_puts(buf, port);
+	}
+
+	return 1;
+}
+
+static SCM equalp_gpsmitem(SCM gpsmitem_smob1, SCM gpsmitem_smob2)
+{
+	struct gpsmitem_smob *item1 = SCM2GPSMITEMSMOB(gpsmitem_smob1);
+	struct gpsmitem_smob *item2 = SCM2GPSMITEMSMOB(gpsmitem_smob2);
+
+	if (item1->item == item2->item)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+SCM gpsmitem2scm(gpsm_item_t *item)
+{
+	struct gpsmitem_smob *smob;
+	SCM gpsmitem_smob;
+
+	if (!item)
+		GLAME_THROW();
+
+	smob = (struct gpsmitem_smob *)malloc(sizeof(struct gpsmitem_smob));
+	smob->item = item;
+
+	SCM_NEWSMOB(gpsmitem_smob, gpsmitem_smob_tag, smob);
+
+	return gpsmitem_smob;
+}
+
+gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob)
+{
+	SCM_ASSERT(gpsmitem_p(gpsmitem_smob),
+		   gpsmitem_smob, SCM_ARG1, "scm2gpsmitem");
+	return SCM2GPSMITEMSMOB(gpsmitem_smob)->item;
+}
+
+void scminvalidategpsmitem(SCM gpsmitem_smob)
+{
+	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
+
+	SCM_ASSERT(gpsmitem_p(gpsmitem_smob),
+		   gpsmitem_smob, SCM_ARG1, "scminvalidategpsmitem");
+
+	item->item = NULL;
+}
+
 
 
 
@@ -309,6 +402,7 @@ static SCM gls_gpsm_item_destroy(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-destroy");
 	gpsm_item_destroy(scm2gpsmitem(s_item));
+	scminvalidategpsmitem(s_item);
 	return SCM_UNSPECIFIED;
 }
 
@@ -614,9 +708,10 @@ int glscript_init_gpsm()
 {
 	/* Register gpsmitem, gpsmgrp and gpsmswfile SMOBs to guile. */
 	gpsmitem_smob_tag = scm_make_smob_type("gpsmitem",
-					       sizeof(struct pointer_smob));
-	scm_set_smob_print(gpsmitem_smob_tag, print_pointer);
-	scm_set_smob_equalp(gpsmitem_smob_tag, equalp_pointer);
+					       sizeof(struct gpsmitem_smob));
+	scm_set_smob_free(gpsmitem_smob_tag, free_gpsmitem);
+	scm_set_smob_print(gpsmitem_smob_tag, print_gpsmitem);
+	scm_set_smob_equalp(gpsmitem_smob_tag, equalp_gpsmitem);
 
 	/* gpsm types access. */
 	gh_new_procedure1_0("gpsm-item?", gls_gpsm_is_item);
