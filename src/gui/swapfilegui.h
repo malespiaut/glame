@@ -43,9 +43,8 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile);
 void glame_swapfile_gui_destroy();
 
 
-/* FIXME: everything internal? We may f.i. have an */
-int glame_swapfile_gui_import(const char *filename);
-/* or something like that... */
+/* Adds a new toplevel group (aka project). */
+void glame_swapfile_gui_add_toplevel_group(const char *name);
 
 
 #endif

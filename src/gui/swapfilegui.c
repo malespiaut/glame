@@ -38,14 +38,11 @@
 
 
 /* The swapfile widget. */
-static GtkWidget *swapfile_gui = NULL;
 static GtkTree *swapfile_tree = NULL;
 
 
 /* Forward declarations. */
 static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item);
-static int rmb_gmenu_cb(GtkWidget *item, GdkEventButton *event,
-		        gpointer data);
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -54,12 +51,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item);
 static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
 
-static GnomeUIInfo global_menu_data[] = {
-        GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
-        GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_END
-};
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -91,19 +82,6 @@ static GnomeUIInfo file_menu_data[] = {
 
 
 
-static int rmb_gmenu_cb(GtkWidget *tree, GdkEventButton *event,
-		        gpointer data)
-{
-	GtkWidget *menu;
-
-	DPRINTF("bla\n");
-	if (event->button != 3)
-		return FALSE;
-
-	menu = gnome_popup_menu_new(global_menu_data);
-	gnome_popup_menu_do_popup(menu, NULL, NULL, event, NULL);
-	return TRUE;
-}
 
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data)
@@ -125,9 +103,27 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 	return TRUE;
 }
 
+static void addgroup_string_cb(gchar *string, gpointer data)
+{
+	if (string) {
+		strncpy(data, string, 255);
+		free(string);
+	}
+}
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	GlameTreeItem *grp = GLAME_TREE_ITEM(glame_tree_item_new_group("FIXME"));
+	GtkWidget *dialog;
+	char name[256];
+	GlameTreeItem *grp;
+
+	dialog = gnome_request_dialog(FALSE, "Enter group name",
+				      "Unnamed", 255,
+				      addgroup_string_cb, name,
+				      swapfile_tree);
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
+
+	grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
 	sw_glame_tree_append(GTK_OBJECT(item), grp);
 }
 
@@ -325,7 +321,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		if(!groupnamebuffer)
 			groupnamebuffer = g_basename(filenamebuffer);
 		newItem = glame_tree_item_new_group(groupnamebuffer);
-		sw_glame_tree_append(item,newItem);
+		sw_glame_tree_append(GTK_OBJECT(item), GLAME_TREE_ITEM(newItem));
 		
 		i = 0;
 		do {
@@ -349,7 +345,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 				pipe = filterport_get_pipe(dest);
 				newTrak = glame_tree_item_new_file((filterpipe_sample_hangle(pipe)<0)?"Left":"Right",name,
 								   filterpipe_sample_rate(pipe));
-				sw_glame_tree_append(newItem,newTrak);
+				sw_glame_tree_append(GTK_OBJECT(newItem), GLAME_TREE_ITEM(newTrak));
 				i++;
 			}
 		} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
@@ -365,7 +361,7 @@ launch:
 		/* update items */
 		i = 0;
 		do {
-		  newTrak = glame_tree_find_filename(swapfile_tree,names[i]);
+		  newTrak = glame_tree_find_filename(GTK_OBJECT(swapfile_tree),names[i]);
 		  glame_tree_item_update(newTrak);
 		  i++;
 		} while (i < channels);
@@ -457,11 +453,14 @@ void scan_swap(GtkTree *tree)
 {
 	GlameTreeItem *item;
 	GlameTreeItem *grp;
+	GtkTree *grptree;
 	SWDIR *dir;
 	long name;
 
-	if (!(grp = glame_tree_find_group(GTK_OBJECT(tree), "unnamed"))) {
-		grp = GLAME_TREE_ITEM(glame_tree_item_new_group("unnamed"));
+	/* Add unknown group and iterate through all swapfiles adding those
+	 * not already contained in the tree. */
+	if (!(grp = glame_tree_find_group(GTK_OBJECT(tree), "unknown"))) {
+		grp = GLAME_TREE_ITEM(glame_tree_item_new_group("unknown"));
 		sw_glame_tree_append(GTK_OBJECT(tree), grp);
 	}
 	dir = sw_opendir();
@@ -474,6 +473,17 @@ void scan_swap(GtkTree *tree)
 		sw_glame_tree_append(GTK_OBJECT(grp), item);
 	}
 	sw_closedir(dir);
+
+	/* Check if the unknown group is empty and if so, remove it.
+	 * FIXME - segfaults */
+#if 0
+	grptree = GTK_TREE_ITEM_SUBTREE(grp);
+	if (!grptree
+	    || g_list_length(gtk_container_children(GTK_CONTAINER(grptree)))) {
+		glame_tree_remove(grp);
+		gtk_object_destroy(GTK_OBJECT(grp));
+	}
+#endif
 }
 
 
@@ -515,11 +525,11 @@ static void dump_tree(GtkTree *tree, xmlNodePtr node)
 GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 {
 	xmlDocPtr doc;
-	GtkWidget *tree, *window;
+	GtkWidget *tree;
 	char *xml;
 	int fd;
 
-	if (swapfile_gui)
+	if (swapfile_tree)
 		return NULL;
 	if (swapfile_open(swapfile, 0) == -1) {
 		if (errno != EBUSY) {
@@ -558,7 +568,6 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 		xml = strdup("\
 <?xml version=\"1.0\"?>
 <swapfile>
-<group label=\"project1\"/>
 </swapfile>");
 	}
 
@@ -568,20 +577,11 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 		return NULL;
 	}
 
-	/* Create the swapfile window. */
-	//	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	//	gtk_window_set_title(GTK_WINDOW(window), "Swapfile browser");
-
 	/* Create the toplevel tree. */
         tree = gtk_tree_new();
         gtk_tree_set_view_mode(GTK_TREE(tree), GTK_TREE_VIEW_LINE);
         gtk_tree_set_view_lines(GTK_TREE(tree), TRUE);
         gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_BROWSE);
-	/* neither of these work!? */
-	gtk_signal_connect(GTK_OBJECT(tree), "button_press_event",
-			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
-	//	gtk_signal_connect(GTK_OBJECT(window), "button_press_event",
-	//			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
 
 	/* Recurse down the xml tree. */
         insert_childs(GTK_OBJECT(tree), xmlDocGetRootElement(doc));
@@ -590,14 +590,12 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 	scan_swap(GTK_TREE(tree));
 
 	swapfile_tree = GTK_TREE(tree);
-	//	gtk_container_add(GTK_CONTAINER(window), tree);
 	gtk_widget_show(tree);
 
-	swapfile_gui = tree;
 	free(xml);
 	xmlFreeDoc(doc);
 
-	return swapfile_tree;
+	return GTK_WIDGET(swapfile_tree);
 }
 
 
@@ -608,10 +606,10 @@ void glame_swapfile_gui_destroy()
 	xmlChar *xml;
 	int size, fd;
 
-	if (!swapfile_gui)
+	if (!swapfile_tree)
 		return;
 
-	/* Save swapfile_gui as xml into swapfile 0 */
+	/* Save swapfile_tree as xml into swapfile 0 */
 	doc = xmlNewDoc("1.0");
 	root = xmlNewNode(NULL, "swapfile");
 	dump_tree(swapfile_tree, root);
@@ -624,10 +622,15 @@ void glame_swapfile_gui_destroy()
 	free(xml);
 	xmlFreeDoc(doc);
 
-	/* FIXME: kill swapfile_gui */
-	gtk_widget_destroy(swapfile_gui);
-	swapfile_gui = NULL;
+	/* FIXME: kill swapfile_tree */
+	gtk_widget_destroy(swapfile_tree);
 	swapfile_tree = NULL;
 
 	swapfile_close();
+}
+
+void glame_swapfile_gui_add_toplevel_group(const char *name)
+{
+	GlameTreeItem *grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
+	sw_glame_tree_append(GTK_OBJECT(swapfile_tree), grp);
 }
