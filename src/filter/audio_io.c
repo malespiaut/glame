@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.20 2000/02/14 13:24:29 richi Exp $
+ * $Id: audio_io.c,v 1.21 2000/02/16 00:55:00 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -43,6 +43,7 @@ static int esd_in_f(filter_node_t *n)
 {
 	filter_pipe_t *left, *right;
 	filter_buffer_t *lbuf,*rbuf;
+	filter_param_t *param;
 	
 	esd_format_t	format;
 	int rate=44100;
@@ -50,7 +51,7 @@ static int esd_in_f(filter_node_t *n)
 	int mode = ESD_STREAM, func = ESD_RECORD ;
 	short int *buf;
 	int sock;
-	int length;
+	int length,time,maxtime;
 	int i,lpos,rpos;
         char *host=NULL;
 	char *name=NULL;
@@ -79,11 +80,14 @@ static int esd_in_f(filter_node_t *n)
 		return -1;
 	}
 
+        maxtime=10*rate*2;
+	time=0;
+	
 	DPRINTF("Start sampling!\n");
 
 	FILTER_AFTER_INIT;
 	
-	while(pthread_testcancel(),1){
+	while(pthread_testcancel(),time<maxtime){
 		length=0;
 		while(length<ESD_BUF_SIZE) length+=read(sock,buf+length,ESD_BUF_SIZE-length);
 		if (!length){
@@ -107,6 +111,7 @@ static int esd_in_f(filter_node_t *n)
 		DPRINTF("lpos=%d, rpos=%d, i=%d\n",lpos,rpos,i);
 		sbuf_queue(left,lbuf);
 		sbuf_queue(right,rbuf);
+		time+=length;
 	}
 	sbuf_queue(left,NULL);
 	sbuf_queue(right,NULL);
