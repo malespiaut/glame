@@ -5,7 +5,9 @@
 /*
  * gui.h
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * $Id: gui.h,v 1.2 2000/02/11 13:08:13 xwolf Exp $
+ *
+ * Copyright (C) 2000 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,6 +69,20 @@ void gui_handle_icon_sel (GnomeIconList *iconlist,
 			  gpointer user_data);
 
 void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d);
+
+void handle_about(GtkWidget *menuitem,gpointer bla);
+void handle_properties(GtkWidget *menuitem, gpointer bla);
+void handle_new_filter_net(GtkWidget *menuitem, gpointer bla);
+void handle_filter_net_open(GtkWidget *menuitem, gpointer bla);
+void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla);
+
+// these are just dummies for later
+void on_preferences_activate(GtkWidget *m,gpointer bla);
+void on_cut_activate(GtkWidget *m,gpointer bla);
+void on_copy_activate(GtkWidget *m, gpointer bla);
+void on_paste_activate(GtkWidget *m, gpointer bla);
+void on_clear_activate(GtkWidget *m, gpointer bla);
+
 
 GtkWidget* gui_create_commandwin(void);
 

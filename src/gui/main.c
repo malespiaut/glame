@@ -1,7 +1,9 @@
 /*
  * main.c
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * $Id: main.c,v 1.2 2000/02/11 13:08:13 xwolf Exp $
+ *
+ * Copyright (C) 2000 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,6 +1,8 @@
 /*
  * gui.c
  *
+ * $Id: gui.c,v 1.2 2000/02/11 13:08:13 xwolf Exp $
+ *
  * Copyright (C) 2000 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,9 +27,170 @@
 
 
 
+/* Main menu, shamelessly cut out of glade output */
+static GnomeUIInfo file_menu_menu_uiinfo[] =
+{
+  GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Filter Network"), NULL, handle_new_filter_net, NULL),
+  GNOMEUIINFO_MENU_OPEN_ITEM (handle_filter_net_open, NULL),
+  GNOMEUIINFO_SEPARATOR,
+  {
+    GNOME_APP_UI_ITEM, N_("_Load Filter Plugin"),
+    NULL,
+    handle_load_filter_plugin, NULL, NULL,
+    GNOME_APP_PIXMAP_STOCK, GNOME_STOCK_MENU_OPEN,
+    0, 0, NULL
+  },
+  GNOMEUIINFO_SEPARATOR,
+  GNOMEUIINFO_MENU_EXIT_ITEM (gui_exit, NULL),
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo edit1_menu_uiinfo[] =
+{
+  GNOMEUIINFO_MENU_CUT_ITEM (on_cut_activate, NULL),
+  GNOMEUIINFO_MENU_COPY_ITEM (on_copy_activate, NULL),
+  GNOMEUIINFO_MENU_PASTE_ITEM (on_paste_activate, NULL),
+  GNOMEUIINFO_MENU_CLEAR_ITEM (on_clear_activate, NULL),
+  GNOMEUIINFO_SEPARATOR,
+  GNOMEUIINFO_MENU_PROPERTIES_ITEM (handle_properties, NULL),
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo settings_menu_uiinfo[] =
+{
+  GNOMEUIINFO_MENU_PREFERENCES_ITEM (on_preferences_activate, NULL),
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo help1_menu_uiinfo[] =
+{
+  GNOMEUIINFO_MENU_ABOUT_ITEM (handle_about, NULL),
+  GNOMEUIINFO_END
+};
+
+static GnomeUIInfo menubar1_uiinfo[] =
+{
+  GNOMEUIINFO_MENU_FILE_TREE (file_menu_menu_uiinfo),
+  GNOMEUIINFO_MENU_EDIT_TREE (edit1_menu_uiinfo),
+  GNOMEUIINFO_MENU_SETTINGS_TREE (settings_menu_uiinfo),
+  GNOMEUIINFO_MENU_HELP_TREE (help1_menu_uiinfo),
+  GNOMEUIINFO_END
+};
+
+
+
+void
+gui_create_main_menus(void)
+{
+  
+ gnome_app_create_menus (GNOME_APP (gui->app), menubar1_uiinfo);
+
+  gtk_widget_ref (menubar1_uiinfo[0].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "file_menu",
+                            menubar1_uiinfo[0].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (file_menu_menu_uiinfo[0].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "new_filter_net",
+                            file_menu_menu_uiinfo[0].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (file_menu_menu_uiinfo[1].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "open_filter_net",
+                            file_menu_menu_uiinfo[1].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (file_menu_menu_uiinfo[2].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "separator1",
+                            file_menu_menu_uiinfo[2].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (file_menu_menu_uiinfo[3].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "load_filter_plugin",
+                            file_menu_menu_uiinfo[3].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (file_menu_menu_uiinfo[4].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "separator1",
+                            file_menu_menu_uiinfo[4].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (file_menu_menu_uiinfo[5].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "exit1",
+                            file_menu_menu_uiinfo[5].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (menubar1_uiinfo[1].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "edit1",
+                            menubar1_uiinfo[1].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[0].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "cut1",
+                            edit1_menu_uiinfo[0].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[1].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "copy1",
+                            edit1_menu_uiinfo[1].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[2].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "paste1",
+                            edit1_menu_uiinfo[2].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[3].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "clear1",
+                            edit1_menu_uiinfo[3].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[4].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "separator2",
+                            edit1_menu_uiinfo[4].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (edit1_menu_uiinfo[5].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "properties",
+                            edit1_menu_uiinfo[5].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (menubar1_uiinfo[2].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "settings",
+                            menubar1_uiinfo[2].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+ gtk_widget_ref (settings_menu_uiinfo[0].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "preferences1",
+                            settings_menu_uiinfo[0].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (menubar1_uiinfo[3].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "help1",
+                            menubar1_uiinfo[3].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+
+  gtk_widget_ref (help1_menu_uiinfo[0].widget);
+  gtk_object_set_data_full (GTK_OBJECT (gui->app), "about1",
+                            help1_menu_uiinfo[0].widget,
+                            (GtkDestroyNotify) gtk_widget_unref);
+}
+
+
+void handle_about(GtkWidget *menuitem,gpointer bla){}
+void handle_properties(GtkWidget *menuitem, gpointer bla){}
+void handle_new_filter_net(GtkWidget *menuitem, gpointer bla){}
+void handle_filter_net_open(GtkWidget *menuitem, gpointer bla){}
+void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla){}
+
+
+void on_preferences_activate(GtkWidget *m,gpointer bla){}
+void on_cut_activate(GtkWidget *m,gpointer bla){}
+void on_copy_activate(GtkWidget *m, gpointer bla){}
+void on_paste_activate(GtkWidget *m, gpointer bla){}
+void on_clear_activate(GtkWidget *m, gpointer bla){}
+
+
 /* Allocates a new filter type for the gui */
-
-
 gui_filter* 
 gui_filter_new(const char *pixname,filter_t* filter)
 {
@@ -106,10 +269,13 @@ gui_create_commandwin(void)
 	gtk_object_set_data_full(GTK_OBJECT(commanddock),"commanddock",commanddock, 
 				 (GtkDestroyNotify) gtk_widget_unref);
 	
+
+	
 	gtk_widget_show(commanddock);
 	
 	gui->app=commandwin;
 	gui->dock=commanddock;
+	gui_create_main_menus();
 	
 	buttontable = gtk_table_new(GUI_BUTTONS_X,GUI_BUTTONS_Y,FALSE);
 	gtk_widget_ref(buttontable);
@@ -242,7 +408,7 @@ icon_prop_activate                (gpointer user_data)
 	notebook=GNOME_PROPERTY_BOX(propBox)->notebook;
 	gtk_object_set_data (GTK_OBJECT (propBox), "notebook", notebook);
 
-	vbox = gtk_vbox_new(TRUE,3);
+	vbox = gtk_vbox_new(FALSE,3);
 	
 	gtk_widget_ref(vbox);
 	gtk_object_set_data_full (GTK_OBJECT (propBox), "vbox", vbox,
@@ -279,15 +445,15 @@ icon_prop_activate                (gpointer user_data)
 	gtk_widget_show(vbox2);
 	gtk_container_add (GTK_CONTAINER (frame), vbox2);
 	gtk_widget_show (frame);
-	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, TRUE, 3);
+	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 3);
 
 	list_foreach_inputdesc(filter,port){
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
 		gtk_widget_show(frame2);
-		gtk_box_pack_start(GTK_BOX(vbox2),frame2,TRUE,TRUE,3);
-		vbox3 = gtk_vbox_new(TRUE,3);
+		gtk_box_pack_start(GTK_BOX(vbox2),frame2,FALSE,FALSE,3);
+		vbox3 = gtk_vbox_new(FALSE,3);
 		gtk_widget_ref(vbox3);
 		gtk_object_set_data(GTK_OBJECT(propBox),"vbox4",vbox3);
 		gtk_widget_show(vbox3);
@@ -302,7 +468,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_object_set_data_full (GTK_OBJECT (propBox), "frame", frame,
 				  (GtkDestroyNotify) gtk_widget_unref);
 	
-	vbox2 = gtk_vbox_new(TRUE,3);
+	vbox2 = gtk_vbox_new(FALSE,3);
 	
 	gtk_widget_ref(vbox2);
 	gtk_object_set_data_full (GTK_OBJECT (propBox), "vbox3", vbox2,
@@ -310,7 +476,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_widget_show(vbox2);
 	gtk_container_add (GTK_CONTAINER (frame), vbox2);
 	gtk_widget_show (frame);
-	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, TRUE, 3);
+	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 3);
 
 	list_foreach_outputdesc(filter,port){
 		frame2=gtk_frame_new(NULL);
@@ -318,7 +484,7 @@ icon_prop_activate                (gpointer user_data)
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
 		gtk_widget_show(frame2);
 		gtk_box_pack_start(GTK_BOX(vbox2),frame2,TRUE,TRUE,3);
-		vbox3 = gtk_vbox_new(TRUE,3);
+		vbox3 = gtk_vbox_new(FALSE,3);
 		gtk_widget_ref(vbox3);
 		gtk_object_set_data(GTK_OBJECT(propBox),"vbox4",vbox3);
 		gtk_widget_show(vbox3);
@@ -346,7 +512,7 @@ icon_prop_activate                (gpointer user_data)
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
 		gtk_widget_show(frame2);
 		gtk_box_pack_start(GTK_BOX(vbox2),frame2,TRUE,TRUE,3);
-		vbox3 = gtk_vbox_new(TRUE,3);
+		vbox3 = gtk_vbox_new(FALSE,3);
 		gtk_widget_ref(vbox3);
 		gtk_object_set_data(GTK_OBJECT(propBox),"vbox4",vbox3);
 		gtk_widget_show(vbox3);
