@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.19 2004/10/23 13:09:27 richi Exp $
+ * $Id: util.h,v 1.20 2004/12/26 20:57:32 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002 Richard Guenther
  *
@@ -78,7 +78,7 @@ static void __glame_do_panic(const char *file, const char *func, int line, const
 #define DERROR_eval(msg) (0==1)
 #endif
 
-#ifdef HAVE_GCC
+#ifndef NO_VARARG_MACROS
 # ifdef DEBUG
 #define DPRINTF(msg, args...) printf("%s: " msg, __PRETTY_FUNCTION__ , ## args)
 # else
