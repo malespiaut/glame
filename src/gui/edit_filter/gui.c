@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.11 2001/03/16 01:54:10 xwolf Exp $
+ * $Id: gui.c,v 1.12 2001/03/16 09:56:56 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -23,31 +23,17 @@
 
 #include <glmid.h>
 #include "gui.h"
-
-void handle_about(GtkWidget *menuitem,gpointer bla)
-{
-	gtk_widget_show(gui_create_about());
-}
-void handle_properties(GtkWidget *menuitem, gpointer bla)
-{
-
-}
-void 
-handle_new_filter_net(GtkWidget *menuitem, gpointer bla)
-{
-	gui_network_new();
-
-}
-
-void handle_filter_net_open(GtkWidget *menuitem, gpointer bla){}
-void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla){}
+#include "canvas.h"
 
 
-void on_preferences_activate(GtkWidget *m,gpointer bla){}
-void on_cut_activate(GtkWidget *m,gpointer bla){}
-void on_copy_activate(GtkWidget *m, gpointer bla){}
-void on_paste_activate(GtkWidget *m, gpointer bla){}
-void on_clear_activate(GtkWidget *m, gpointer bla){}
+#if 0
+// these are just dummies for later
+static void on_preferences_activate(GtkWidget *m,gpointer bla){}
+static void on_cut_activate(GtkWidget *m,gpointer bla){}
+static void on_copy_activate(GtkWidget *m, gpointer bla){}
+static void on_paste_activate(GtkWidget *m, gpointer bla){}
+static void on_clear_activate(GtkWidget *m, gpointer bla){}
+#endif
 
 
 /* Allocates a new filter type for the gui */ 
@@ -60,40 +46,6 @@ void on_clear_activate(GtkWidget *m, gpointer bla){}
 /* 	return newFilter; */
 /* } */
 
-
-
-/* creates about popup */
-GtkWidget* 
-gui_create_about(void)
-{
-	const gchar *authors[]={
-		"Richard Guenther [Richi]",
-		"Alexander Ehlert [OzMag]",
-		"Daniel Kobras [*nold]",
-		"Johannes Hirche [XWolf]",
-		"and others",
-		NULL
-	};
-	
-	GtkWidget *about;
-	
-	about = gnome_about_new ("GLAME", VERSION, 
-				 _("Copyright (C) 1999,2000 Alexander Ehlert, Richard Guenther."),
-				 authors,
-				 _("GLAME comes with ABSOLUTELY NO WARRANTY. \nThis is free software."),
-				 GLAME_LOGO);
-	gtk_object_set_data (GTK_OBJECT (about), "about", about);
-	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
-	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
-	
-	gtk_widget_show(about);
-	return about;
-}			 
-
-void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
-{
-	gtk_main_quit();
-}
 
 
 

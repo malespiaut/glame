@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.36 2001/03/16 01:14:39 xwolf Exp $
+ * $Id: canvas.c,v 1.37 2001/03/16 09:56:56 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -28,9 +28,59 @@
 #include <values.h>
 
 
-static void canvas_create_new_cb(GtkWidget *bla,void*blu){}
-static void canvas_open_filter(GtkWidget*bla,void*blu){}
-static void canvas_save_filter(GtkWidget*bla,void*blu){}
+static void canvas_item_show_properties(GnomeCanvasItem * item);
+static void canvas_item_delete_property_list(gpointer item, gpointer bla);
+static void canvas_item_hide_properties(GnomeCanvasItem * item);
+static int canvas_add_filter_by_name(char *name);
+static void network_draw_error(gui_network *net);
+static void network_error_reset(gui_network *net);
+static void network_play(GtkWidget *button,gui_network*net);
+static void network_pause(GtkWidget *button,gui_network*net);
+static void network_stop(GtkWidget *button,gui_network*net);
+static gint root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data);
+static void canvas_port_calculate_docking_coords(GlameCanvasPort* port,double *x, double *y, int id);
+static gint canvas_connection_update_points(GlameConnection *connection);
+static gint canvas_connection_do_connect(GlameConnection* connection);
+static gint canvas_output_port_motion(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data);
+static void canvas_outout_port_reorder_connections(GlameCanvasPort* port);
+static void canvas_input_port_reorder_connections(GlameCanvasPort* port);
+static gint canvas_connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data);
+static GtkObject* canvas_add_node_from_filter(GnomeCanvas *canvas, filter_t *filter,double x, double y);
+static void canvas_connection_connect_from_pipe(GlameConnection *c);
+static int canvas_connection_connect(GlameConnection *c);
+static void canvas_input_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y);
+static void canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y);
+static void canvas_item_destroy(GlameCanvasItem* it);
+static void canvas_connection_destroy(GlameConnection* connection);
+static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter);
+static void canvas_update_scroll_region(GlameCanvas* canv);
+static GlameCanvas* draw_network(filter_t *filter);
+static void update_string(GtkListItem* item,char ** returnbuffer);
+static void update_entry_text(GtkListItem* item,GtkEntry* entry);
+/* This is from gui.c - FIXME */
+void changeString(GtkEditable *wid, char ** returnbuffer);
+
+
+/* Menu callbacks */
+static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item);
+static void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it);
+static void canvas_connection_edit_source_properties_cb(GtkWidget* bla, GlameConnection* conn);
+static void canvas_connection_edit_dest_properties_cb(GtkWidget* bla, GlameConnection* conn);
+static void canvas_add_filter_by_name_cb(GtkWidget*wid, char* name);
+static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data);
+static void canvas_connection_destroy_cb(GtkWidget*bla,GlameConnection* conn);
+static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data);
+static void canvas_register_as_cb(gchar* name, gpointer data);
+static void register_filternetwork_cb(GtkWidget*bla,void*blu);
+static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item);
+
+static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *item);
+static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it);
+static void canvas_load_network(GtkWidget *bla, void *blu);
+static void canvas_save_as(GtkWidget*w,void*blu);
+static void canvas_load_scheme(GtkWidget*bla,void*blu);
+static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu);
+
 
 int event_x,event_y;
 GtkWidget *win;
@@ -69,12 +119,6 @@ static GnomeUIInfo file_menu[]=
 
 GnomeUIInfo *node_select_menu;
 
-static GnomeUIInfo help_menu[]=
-{
-//	GNOMEUIINFO_ITEM("About...","About",gui_create_about,NULL),
-	GNOMEUIINFO_MENU_ABOUT_ITEM(gui_create_about,NULL),
-	GNOMEUIINFO_END
-};
 static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
@@ -83,7 +127,6 @@ static GnomeUIInfo root_menu[]=
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
-	GNOMEUIINFO_MENU_HELP_TREE(&help_menu),
 	GNOMEUIINFO_END
 };
 
@@ -94,32 +137,30 @@ static GnomeUIInfo port_menu[] =
 };
 
 
-void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item)
+static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 {
 	canvas_item_edit_properties(filter_paramdb(item->filter),
 				    filter_name(item->filter));
-};
+}
 
-void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it)
+static void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it)
 {
 	canvas_item_destroy(it);
 }
 
-void
-canvas_connection_edit_source_properties_cb(GtkWidget* bla, GlameConnection* conn)
+static void canvas_connection_edit_source_properties_cb(GtkWidget* bla, GlameConnection* conn)
 {
 	canvas_item_edit_properties(filterpipe_sourceparamdb(conn->pipe),
 				    filterport_label(conn->begin->port));
 }
 
-void
-canvas_connection_edit_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
+static void canvas_connection_edit_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
 {
 	canvas_item_edit_properties(filterpipe_destparamdb(conn->pipe),
 				    filterport_label(conn->end->port));
 }
 
-void 
+static void 
 canvas_item_show_properties(GnomeCanvasItem * item)
 {
 	GnomeCanvasItem * text;
@@ -174,12 +215,12 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 	}
 }
 
-void
+static void
 canvas_item_delete_property_list(gpointer item,gpointer bla)
 {
         gtk_object_destroy(GTK_OBJECT(item));
 }
-void 
+static void 
 canvas_item_hide_properties(GnomeCanvasItem * item)
 {
         if(!GLAME_CANVAS_ITEM(item->parent)->property_texts){
@@ -273,7 +314,7 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 }
 
 
-int
+static int
 canvas_add_filter_by_name(char *name)
 {
         GnomeCanvasItem * item;
@@ -313,7 +354,7 @@ canvas_add_filter_by_name(char *name)
 }
 
 
-void 
+static void 
 network_draw_error(gui_network *net)
 {
 	filter_t *node;
@@ -330,7 +371,7 @@ network_draw_error(gui_network *net)
 	}
 }
 
-void
+static void
 network_error_reset(gui_network *net)
 {
 	filter_t *node;
@@ -345,7 +386,7 @@ network_error_reset(gui_network *net)
 	}
 }
 
-void 
+static void 
 network_play(GtkWidget *button,gui_network*net)
 {
 	network_error_reset(net);
@@ -357,7 +398,7 @@ network_play(GtkWidget *button,gui_network*net)
 	net->paused = FALSE;
 }
 
-void 
+static void 
 network_pause(GtkWidget *button,gui_network*net)
 {
 	if(net->paused){
@@ -369,13 +410,12 @@ network_pause(GtkWidget *button,gui_network*net)
 	}
 }
 
-void 
+static void 
 network_stop(GtkWidget *button,gui_network*net)
 {
 	filter_terminate(net->net);
 }
-void
-canvas_add_filter_by_name_cb(GtkWidget*wid, char* name)
+static void canvas_add_filter_by_name_cb(GtkWidget*wid, char* name)
 {
 	canvas_add_filter_by_name(name);
 	
@@ -423,7 +463,7 @@ GSList* append_to_categorie(GSList* cats,plugin_t *plug)
 	return cats;
 }
 
-gint
+static gint
 root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 {
 	GtkWidget*submenu;
@@ -555,8 +595,7 @@ canvas_new_from_network(gui_network* net)
 }
 
 
-gint
-canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
+static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 {
 
 	GtkWidget * menu;
@@ -588,19 +627,7 @@ canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 	return TRUE;
 }
 
-int
-canvas_port_is_inside(GlameCanvasPort* gport, double x, double y)
-{
-
-	GnomeCanvasRE* port = GNOME_CANVAS_RE(gport);
-	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(port),&x,&y);
-	if((port->x1<=x)&&(port->x2>=x)&&(port->y1<=y)&&(port->y2>=y))
-		return 1;
-	return 0;
-}
-
-		
-void
+static void
 canvas_port_calculate_docking_coords(GlameCanvasPort* port,double *x, double *y, int id)
 {
 	GnomeCanvasRE* rect = GNOME_CANVAS_RE(port);
@@ -617,7 +644,7 @@ canvas_port_calculate_docking_coords(GlameCanvasPort* port,double *x, double *y,
 	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(rect),x,y);
 }
 
-gint
+static gint
 canvas_connection_update_points(GlameConnection *connection)
 {
       GlameCanvasPort *source_port=connection->begin;
@@ -672,7 +699,7 @@ canvas_connection_update_points(GlameConnection *connection)
 }
 
 
-gint
+static gint
 canvas_connection_do_connect(GlameConnection* connection)
 {
       GlameCanvasPort *source_port=connection->begin;
@@ -749,7 +776,7 @@ canvas_connection_do_connect(GlameConnection* connection)
       
 
 
-gint
+static gint
 canvas_output_port_motion(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 {
 	GlameCanvasItem *item=GLAME_CANVAS_ITEM(pitem);
@@ -818,7 +845,7 @@ canvas_output_port_motion(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 
 
 
-void
+static void
 canvas_outout_port_reorder_connections(GlameCanvasPort* port)
 {
 	GList *list = g_list_first(port->connected_ports);
@@ -831,7 +858,7 @@ canvas_outout_port_reorder_connections(GlameCanvasPort* port)
 }
 
 
-void
+static void
 canvas_input_port_reorder_connections(GlameCanvasPort* port)
 {
 	GList *list = g_list_first(port->connected_ports);
@@ -844,13 +871,12 @@ canvas_input_port_reorder_connections(GlameCanvasPort* port)
 }
 		
 
-void 
-canvas_connection_destroy_cb(GtkWidget*bla,GlameConnection* conn)
+static void canvas_connection_destroy_cb(GtkWidget*bla,GlameConnection* conn)
 {
 	canvas_connection_destroy(conn);
 }
 	
-gint
+static gint
 canvas_connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 {
 	GdkCursor *fleur;
@@ -908,8 +934,7 @@ canvas_connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 	return FALSE;
 }
 
-gint
-canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
+static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 {
 	double x,y,x1,y1,x2,y2;
 	GnomeCanvasItem *newitem;
@@ -1071,7 +1096,7 @@ _no_inputs:
 
 
 
-GtkObject*
+static GtkObject*
 canvas_add_node_from_filter(GnomeCanvas *canvas, filter_t *filter,double x, double y)
 {
 
@@ -1095,7 +1120,7 @@ canvas_add_node_from_filter(GnomeCanvas *canvas, filter_t *filter,double x, doub
 }
 
 
-void
+static void
 canvas_connection_connect_from_pipe(GlameConnection *c)
 {
 	filter_port_t *dest;
@@ -1123,7 +1148,7 @@ canvas_connection_connect_from_pipe(GlameConnection *c)
 	canvas_connection_do_connect(c);
 }
 	
-int
+static int
 canvas_connection_connect(GlameConnection *c)
 {
 	filter_port_t *source, *dest;
@@ -1152,7 +1177,7 @@ canvas_connection_connect(GlameConnection *c)
 
 	    
 
-void
+static void
 canvas_input_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y)
 {
 	GList* connection = g_list_first(p->connected_ports);
@@ -1163,7 +1188,7 @@ canvas_input_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y)
 	}
 }
 
-void
+static void
 canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y)
 {
 	GList* connection = g_list_first(p->connected_ports);
@@ -1359,7 +1384,7 @@ canvas_item_edit_properties(filter_paramdb_t *pdb, const char *caption)
 	
 	
 
-void
+static void
 canvas_item_destroy(GlameCanvasItem* it)
 {
 	GList * plist;
@@ -1386,7 +1411,7 @@ canvas_item_destroy(GlameCanvasItem* it)
 	gtk_object_destroy(GTK_OBJECT(it));
 }
 
-void
+static void
 canvas_connection_destroy(GlameConnection* connection)
 {
 	filterpipe_delete(connection->pipe);
@@ -1400,7 +1425,7 @@ canvas_connection_destroy(GlameConnection* connection)
 }
 
 
-void canvas_register_as_cb(gchar* name, gpointer data)
+static void canvas_register_as_cb(gchar* name, gpointer data)
 {
 	plugin_t *newplug;
 	filter_t *copy;
@@ -1413,12 +1438,12 @@ void canvas_register_as_cb(gchar* name, gpointer data)
 }
 
 
-void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
+static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
 {
       gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
 }
 
-void canvas_save_as(GtkWidget*w,void*blu)
+static void canvas_save_as(GtkWidget*w,void*blu)
 {
 	GtkWidget * dialog;
 	GtkWidget * fileEntry;
@@ -1480,12 +1505,12 @@ void canvas_save_as(GtkWidget*w,void*blu)
 	free(categorynamebuffer);
 }
 
-void register_filternetwork_cb(GtkWidget*bla,void*blu)
+static void register_filternetwork_cb(GtkWidget*bla,void*blu)
 {
 	gnome_request_dialog(0,"Filtername","filter",16,canvas_register_as_cb,NULL,NULL);
 }
 
-void 
+static void 
 canvas_update_scroll_region(GlameCanvas* canv)
 {
 	filter_t *filter;
@@ -1518,8 +1543,7 @@ canvas_update_scroll_region(GlameCanvas* canv)
 
 }
 
-void
-canvas_load_network(GtkWidget *bla, void *blu)
+static void canvas_load_network(GtkWidget *bla, void *blu)
 {
       
 	GtkWidget * fileEntry;
@@ -1545,7 +1569,7 @@ canvas_load_network(GtkWidget *bla, void *blu)
 	free(filenamebuffer);
 }
 
-void canvas_load_scheme(GtkWidget*bla,void*blu)
+static void canvas_load_scheme(GtkWidget*bla,void*blu)
 {
 	GtkWidget * fileEntry;
 	GtkWidget * dialog;
@@ -1571,7 +1595,7 @@ void canvas_load_scheme(GtkWidget*bla,void*blu)
 
 
 
-void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
+static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 {
 	GtkWidget * nameEntry;
 	GtkWidget * dialog;
@@ -1605,7 +1629,7 @@ void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 	free(filenamebuffer);
 }
 
-void update_string(GtkListItem* item,char ** returnbuffer)
+static void update_string(GtkListItem* item,char ** returnbuffer)
 {
 	// this is a little kludgy.. FIXME
 	char *label;
@@ -1615,7 +1639,7 @@ void update_string(GtkListItem* item,char ** returnbuffer)
 	free(label);  
 }
 
-void update_entry_text(GtkListItem* item,GtkEntry* entry)
+static void update_entry_text(GtkListItem* item,GtkEntry* entry)
 {
 	// this is a little kludgy.. FIXME
 	char *label;
@@ -1624,7 +1648,7 @@ void update_entry_text(GtkListItem* item,GtkEntry* entry)
 	free(label);  
 }
 
-void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *item)
+static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *item)
 {
 	GtkWidget * dialog;
 	GtkWidget * vbox;
@@ -1695,7 +1719,7 @@ void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *item)
 }
 
 
-void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
+static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 {
 	GtkWidget *dialog;
 	GtkWidget * text;
@@ -1717,7 +1741,7 @@ void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
 }
 
-GlameCanvas*
+static GlameCanvas*
 draw_network(filter_t *filter)
 {
    	gui_network * net;       
@@ -1775,8 +1799,7 @@ draw_network(filter_t *filter)
 	return GLAME_CANVAS(canv);
 }
 
-void
-draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
+static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 {
 	draw_network(item->filter);
 }

@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.6 2001/03/15 00:27:25 xwolf Exp $
+ * $Id: gui.h,v 1.7 2001/03/16 09:56:56 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -37,61 +37,20 @@
 #include <config.h>
 #endif
 
-#include "filter.h"
-#include "util.h"
 #include <gnome.h>
 #include <libgnomeui/gnome-canvas.h>
+#include "filter.h"
+#include "util.h"
+#include "canvas_types.h"
 
 
-typedef struct _gui_network {
-	char *pixname;
-	char *caption;
-	char *descr;
-	int iports,oports;
-	filter_t * net;
-	GtkWidget *canvas;
-	gboolean paused;
-} gui_network;
-
+/* FIXME: have one place with a nice, useful external visible API */
 
 gui_network* gui_network_new();
 
-GtkWidget* gui_create_about(void);
-
-
-void gui_handle_icon_sel (GnomeIconList *iconlist,
-			  gint arg1,
-			  GdkEvent *event,
-			  gpointer user_data);
-
-void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d);
-
-void handle_about(GtkWidget *menuitem,gpointer bla);
-void handle_properties(GtkWidget *menuitem, gpointer bla);
-void handle_new_filter_net(GtkWidget *menuitem, gpointer bla);
-void handle_filter_net_open(GtkWidget *menuitem, gpointer bla);
-void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla);
-
-void icon_prop_activate                (gpointer user_data);
-
-// these are just dummies for later
-void on_preferences_activate(GtkWidget *m,gpointer bla);
-void on_cut_activate(GtkWidget *m,gpointer bla);
-void on_copy_activate(GtkWidget *m, gpointer bla);
-void on_paste_activate(GtkWidget *m, gpointer bla);
-void on_clear_activate(GtkWidget *m, gpointer bla);
-
-
-GtkWidget* gui_create_commandwin(void);
-
-
 GSList* gui_browse_registered_filters(void);
 
-void edit_paramdesc(filter_t *f);
-
 void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
-				    
-
 
 void changeString(GtkEditable *wid, char ** returnbuffer);
 

@@ -1,7 +1,7 @@
 /*
  * edit_filter.c
  *
- * $Id: main.c,v 1.4 2001/03/15 00:27:25 xwolf Exp $
+ * $Id: main.c,v 1.5 2001/03/16 09:56:56 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -30,16 +30,22 @@
 #include "gui.h"
 
 
+static void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
+{
+	swapfile_close();
+	gtk_main_quit();
+}
+
 
 static void gui_main()
 {
+	gui_network_new();
 
-  gui_network_new();
-  
-//  gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
-  
+	// gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",
+	//		   GTK_SIGNAL_FUNC(gui_exit),NULL);
+
 	/* main loop */
-  gtk_main();
+	gtk_main();
 }
 
 

@@ -1,21 +1,21 @@
 INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGDATADIR=\"$(pkgdatadir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS)
 
 
-EXTRA_DIST = gui.h canvas.h
+EXTRA_DIST = gui.h canvas.h main.c
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
-bin_PROGRAMS = edit_filter
+#bin_PROGRAMS = edit_filter
 noinst_LTLIBRARIES = libeditfilter.la
 endif
 
-libeditfilter_la_SOURCES =  gui.h gui.c canvas.h canvas.c canvas_types.c
+libeditfilter_la_SOURCES =  gui.h gui.c canvas.h canvas.c \
+	canvas_types.h canvas_types.c
 
-edit_filter_SOURCES = main.c
-
-edit_filter_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
-	libeditfilter.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
-edit_filter_LDFLAGS = -export-dynamic
+#edit_filter_SOURCES = main.c
+#edit_filter_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
+#	libeditfilter.la \
+#	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
+#edit_filter_LDFLAGS = -export-dynamic
 
