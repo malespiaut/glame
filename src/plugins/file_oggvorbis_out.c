@@ -145,7 +145,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	/* Vorbis */
 	vorbis_info_init(&vi);
 	quality = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "vorbis encoding quality"));
-	ret = vorbis_encode_init_vbr(&vi, eofs, 44100, quality/10);
+	ret = vorbis_encode_init_vbr(&vi, eofs, sampleRate/* 44100 */, quality/10);
 	if (ret)
 	  FILTER_ERROR_CLEANUP
 	    ("couldn't init vorbis (bad parameters ?).");
