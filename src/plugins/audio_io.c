@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.21 2000/05/15 14:03:03 richi Exp $
+ * $Id: audio_io.c,v 1.22 2000/05/16 12:03:58 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -1172,9 +1172,9 @@ int audio_out_register(plugin_t *p)
 	}
 #endif
 #if defined HAVE_ALSA
-	if (!aio_generic_register_output(NULL, "alsa-audio-out", alsa_audio_out_f, "FIXME")) {
+	if (!aio_generic_register_output(NULL, "alsa-audio-out", alsa_audio_out_f, "0:0")) {
 		audio_out = alsa_audio_out_f;
-		defdev = "FIXME";
+		defdev = "0:0";
 	}
 #endif 
 #if defined HAVE_ESD
