@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.10 2001/05/14 08:34:42 richi Exp $
+ * $Id: tutorial.c,v 1.11 2001/05/29 07:54:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -24,7 +24,6 @@
  * Contained filters are
  * - dup (filter)
  * - null (filter)
- * - nop (gpsm)
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +44,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(tutorial, "null dup nop")
+PLUGIN_SET(tutorial, "null dup")
 
 
 /* null does a "null operation" on one input channel.
@@ -186,40 +185,3 @@ int dup_register(plugin_t *p)
 	return filter_register(f, p);
 }
 
-
-
-static int nop_gpsm(gpsm_item_t *item, long start, long length)
-{
-	/* Just do nothing - but tell :) */
-	DPRINTF("NOP NOP NOP NOP :))\n");
-	return 0;
-}
-
-#ifdef HAVE_GUILE
-static SCM nop_sgpsm(SCM s_item, SCM s_start, SCM s_length)
-{
-	//SCM_ASSERT(gpsm_p(s_item), s_item, SCM_ARG1, "gpsmop-nop");
-	SCM_ASSERT(gh_exact_p(s_start), s_start, SCM_ARG2, "gpsmop-nop");
-	SCM_ASSERT(gh_exact_p(s_length), s_length, SCM_ARG3, "gpsmop-nop");
-
-	//if (nop_gpsm(scm2gpsm(s_item), gh_scm2long(s_start),
-	//	     gh_scm2long(s_length)) == -1)
-	//	return SCM_BOOL_F;
-	return SCM_BOOL_T;
-}
-#endif
-
-int nop_register(plugin_t *p)
-{
-#ifdef HAVE_GUILE
-	/* Register operation to scheme layer. */
-	gh_new_procedure3_0("gpsmop-nop", nop_sgpsm);
-#endif
-
-	/* Register "normal" operation. */
-	plugin_set(p, PLUGIN_GPSMOP, nop_gpsm);
-	plugin_set(p, PLUGIN_DESCRIPTION, "does nothing on a gpsm subtree");
-	plugin_set(p, PLUGIN_CATEGORY, "misc");
-
-	return 0;
-}
