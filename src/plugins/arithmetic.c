@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.18 2001/08/08 09:15:30 richi Exp $
+ * $Id: arithmetic.c,v 1.19 2002/01/27 15:08:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -53,6 +53,18 @@ static int arithmetic_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	/* We support any number of inputs. */
 	return 0;
+}
+
+static void arithmetic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_pipe_t *p, *out;
+
+	GLSIGH_GETARGS1(va, p);
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(filterport_filter(filterpipe_dest(p))), PORTNAME_OUT))))
+		return;
+	filterpipe_settype_sample(out, filterpipe_sample_rate(p),
+				  filterpipe_sample_hangle(p));
+	glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
 }
 
 
@@ -136,6 +148,10 @@ int mul_register(plugin_t *p)
 				   FILTER_PORTFLAG_INPUT,
 				   FILTERPORT_DESCRIPTION, "input streams",
 				   FILTERPORT_END);
+	in->connect = arithmetic_connect_in;
+	glsig_add_handler(filterport_emitter(in), GLSIG_PIPE_CHANGED,
+			  arithmetic_fixup_pipe, NULL);
+
 	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_OUTPUT,
@@ -143,7 +159,6 @@ int mul_register(plugin_t *p)
 			      FILTERPORT_END);
 
 	f->f = mul_f;
-	in->connect = arithmetic_connect_in;
 
 	filterparamdb_add_param_float(filter_paramdb(f), "add",
 				      FILTER_PARAMTYPE_FLOAT, 0.0,
@@ -243,6 +258,10 @@ int add_register(plugin_t *p)
 				   FILTER_PORTFLAG_INPUT,
 				   FILTERPORT_DESCRIPTION, "input streams",
 				   FILTERPORT_END);
+	glsig_add_handler(filterport_emitter(in), GLSIG_PIPE_CHANGED,
+			  arithmetic_fixup_pipe, NULL);
+	in->connect = arithmetic_connect_in;
+
 	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_OUTPUT,
@@ -250,7 +269,6 @@ int add_register(plugin_t *p)
 			      FILTERPORT_END);
 
 	f->f = add_f;
-	in->connect = arithmetic_connect_in;
 
 	filterparamdb_add_param_float(filter_paramdb(f), "add",
 				      FILTER_PARAMTYPE_FLOAT, 0.0,
