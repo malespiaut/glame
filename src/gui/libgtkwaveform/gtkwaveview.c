@@ -163,6 +163,7 @@ calc_ext_pel_pos (GtkWaveView *waveview, gint32 frame_pos)
 }
 
 
+#if 0
 static gint32
 calc_win_pel_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 {
@@ -174,6 +175,7 @@ calc_ext_pel_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
   return win_pel_pos + ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
 }
+#endif
 
 
 static gint32
@@ -1321,6 +1323,7 @@ gtk_wave_view_get_amplitude_zoom (GtkWaveView *waveview)
 }
 
 
+#if 0
 /* Verify selection is within the data bounds, otherwise fix it and
    repaint as necessary. */
 static void
@@ -1347,6 +1350,7 @@ gtk_wave_view_check_selection (GtkWaveView *waveview)
   if (modified)
     gtk_widget_queue_draw (waveview->area);
 }
+#endif
 
 
 static void

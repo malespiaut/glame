@@ -246,8 +246,6 @@ int swapfile_fsck(const char *name)
 	FILE *f;
 	int pid;
 	SWDIR *dir;
-	struct sw_stat st;
-	swfd_t fd;
 	long nm;
 
 	/* Can we open the swapfile w/o check? */

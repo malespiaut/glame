@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.46 2001/04/10 11:47:07 richi Exp $
+ * $Id: canvas.c,v 1.47 2001/04/11 09:27:39 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -31,7 +31,7 @@
 static void canvas_item_show_properties(GnomeCanvasItem * item);
 static void canvas_item_delete_property_list(gpointer item, gpointer bla);
 static void canvas_item_hide_properties(GnomeCanvasItem * item);
-static int canvas_add_filter_by_name(char *name);
+static int canvas_add_filter_by_name(const char *name);
 static void network_draw_error(gui_network *net);
 static void network_error_reset(gui_network *net);
 static void network_play(GtkWidget *button,gui_network*net);
@@ -225,7 +225,6 @@ static void
 show_port_properties(GlameCanvasPort * item)
 {
 	GnomeCanvasItem * text;
-	filter_param_t * iter;
 	
 	float y_coord=100.0;
 	char buffer[100];
@@ -394,7 +393,7 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 
 
 static int
-canvas_add_filter_by_name(char *name)
+canvas_add_filter_by_name(const char *name)
 {
         GnomeCanvasItem * item;
 	filter_t *filter;
@@ -497,7 +496,6 @@ network_stop(GtkWidget *button,gui_network*net)
 static void canvas_add_filter_by_name_cb(GtkWidget*wid, plugin_t *plugin)
 {
 	canvas_add_filter_by_name(plugin_name(plugin));
-	
 }
 
 	

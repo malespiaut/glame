@@ -694,7 +694,7 @@ void gpsm_swfile_notify_change(gpsm_swfile_t *swfile, long pos, long size)
 		sw_close(fd);
 		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
 			DPRINTF("WARNING! We missed a swfile notification!\n");
-			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, st.size/SAMPLE_SIZE);
+			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, (long)st.size/SAMPLE_SIZE);
 			swfile->item.hsize = st.size/SAMPLE_SIZE;
 			glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
 		}
@@ -721,7 +721,7 @@ void gpsm_swfile_notify_cut(gpsm_swfile_t *swfile, long pos, long size)
 		sw_close(fd);
 		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
 			DPRINTF("WARNING! We missed a swfile notification!\n");
-			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, st.size/SAMPLE_SIZE);
+			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, (long)st.size/SAMPLE_SIZE);
 			swfile->item.hsize = st.size/SAMPLE_SIZE;
 		}
 	}
@@ -742,7 +742,7 @@ void gpsm_swfile_notify_insert(gpsm_swfile_t *swfile, long pos, long size)
 		sw_close(fd);
 		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
 			DPRINTF("WARNING! We missed a swfile notification!\n");
-			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, st.size/SAMPLE_SIZE);
+			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, (long)st.size/SAMPLE_SIZE);
 			swfile->item.hsize = st.size/SAMPLE_SIZE;
 		}
 	}

@@ -18,8 +18,9 @@
  */
 
 #include <glib.h>
-#include "gtkeditablewavebuffer.h"
 #include <gtk/gtksignal.h>
+#include <gtk/gtkmain.h>
+#include "gtkeditablewavebuffer.h"
 
 
 static void gtk_editable_wave_buffer_class_init      (GtkEditableWaveBufferClass *klass);

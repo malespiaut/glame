@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.16 2001/04/10 15:24:33 xwolf Exp $
+ * $Id: canvas_types.c,v 1.17 2001/04/11 09:27:39 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -31,7 +31,6 @@ static gpointer parent_class = NULL;
 static gpointer canvas_parent_class = NULL;
 static gpointer canvas_port_parent_class = NULL;
 static GlameCanvasItemClass* glame_canvas_item_class = NULL;
-static GlameCanvasClass* glame_canvas_class = NULL;
 static GlameCanvasPortClass* glame_canvas_port_class = NULL;
 
 
