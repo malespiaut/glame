@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.90 2003/04/11 22:18:16 xwolf Exp $
+ * $Id: swapfilegui.c,v 1.91 2003/04/15 19:36:55 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -29,9 +29,14 @@
 #include <libintl.h>
 #include <stdio.h>
 #include <errno.h>
-#include <gnome.h>
+#include "gnome.h"
+#ifdef HAVE_LIBXML
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+#else
 #include <xmlmemory.h>
 #include <parser.h>
+#endif
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gltreeitem.h"

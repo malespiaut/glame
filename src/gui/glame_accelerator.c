@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.18 2002/08/12 09:00:57 richi Exp $
+ * $Id: glame_accelerator.c,v 1.19 2003/04/15 19:36:53 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -33,10 +33,15 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <xmlmemory.h>
-#include <parser.h>
-#include <gdk/gdk.h>
-#include <gnome.h>
+#ifdef HAVE_LIBXML
+#include "libxml/xmlmemory.h"
+#include "libxml/parser.h"
+#else
+#include "xmlmemory.h"
+#include "parser.h"
+#endif
+#include "gdk/gdk.h"
+#include "gnome.h"
 #include "util.h"
 #include "list.h"
 #include "hash.h"

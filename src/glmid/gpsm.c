@@ -26,8 +26,13 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#ifdef HAVE_LIBXML
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+#else
 #include <xmlmemory.h>
 #include <parser.h>
+#endif
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gpsm.h"
