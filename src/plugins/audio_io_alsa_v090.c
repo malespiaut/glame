@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.15 2002/02/17 13:53:31 richi Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.16 2002/02/17 22:55:35 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -107,22 +107,22 @@ int configure_pcm(snd_pcm_t *handle,
 	}
 
 	psize = snd_pcm_hw_params_get_period_size(hw_params, &dir);
-	periods = snd_pcm_hw_params_get_periods(hw_params, 0);
+	periods = snd_pcm_hw_params_get_periods(hw_params, &dir);
 
 	/* for the (un)likely case the drivers fucks up 
 	 * a couple of times alsa returned negative values
 	 * before it blew up */
 	if (periods<0) {
 		DPRINTF("nperiods =%d ?!, complain to alsa-devel...\n", periods);
+		DPRINTF("alsa reports: %s\n", snd_strerror(periods));
 		DPRINTF("trying to set periods to %d\n", nperiods);
-	
 		if ((err = snd_pcm_hw_params_set_periods_near(handle, hw_params,
 						      nperiods, 0)) < 0) {
 			DPRINTF("ALSA: failed to set period count near %d\n", nperiods);
 			DPRINTF("%s\n", snd_strerror(err));
 			return -1;
 		}
-		nperiods = snd_pcm_hw_params_get_periods(hw_params, 0);
+		nperiods = snd_pcm_hw_params_get_periods(hw_params, &dir);
 	}
 		
 	DPRINTF("periodsize = %d, periods=%d\n", psize, nperiods);
