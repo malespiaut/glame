@@ -143,7 +143,9 @@ gtk_wave_view_new (void)
   GtkWaveView *waveview;
   
   waveview = gtk_type_new (GTK_TYPE_WAVEFORM);
-  
+  waveview->drawing = 0;
+  waveview->destroyed = 0;
+
   return GTK_WIDGET (waveview);
 }
 
@@ -152,6 +154,13 @@ static void
 gtk_wave_view_real_destroy (GtkObject *obj)
 {
   GtkWaveView *waveview = GTK_WAVE_VIEW (obj);
+
+  /* Dont allow destroying, if we have pending drawing events. */
+  if (waveview->drawing) {
+	  DPRINTF("NOT destroying.\n");
+	  waveview->destroyed = 1;
+	  return;
+  }
 
   if (waveview->wavebuffer != NULL)
     gtk_wave_view_set_buffer (waveview, NULL);
@@ -524,6 +533,12 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
         {
           size = MIN (8192, last_sample_offset - pos + 1);
 
+	  /* If by any chance we got destroyed, bail out. */
+	  if (waveview->destroyed) {
+		  DPRINTF("Whoops - coalesced with destroy event :)\n");
+		  return;
+	  }
+
           /* Read data chunk. */
           gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
 
@@ -723,7 +738,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   sel_bg_gc = widget->style->bg_gc [GTK_STATE_SELECTED];
   //  unsel_bg_gc = widget->style->white_gc;
   unsel_bg_gc = widget->style->bg_gc [GTK_STATE_NORMAL];
-  if (waveview->wavebuffer != NULL)
+  if (waveview->wavebuffer != NULL && !waveview->destroyed)
     {
       gint32 i, j, k;
       guint32 n_channels;
@@ -796,6 +811,12 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
 
       /* Paint all channels of the waveview. */
       gtk_wave_view_redraw_wave (waveview);
+      if (waveview->destroyed) {
+	      DPRINTF("Doing real, delayed destroy.\n");
+	      waveview->drawing = 0;
+	      gtk_object_destroy(GTK_OBJECT(waveview));
+	      return;
+      }
       gtk_wave_view_draw_marker (waveview);
 
       /* Reset clipping. */
