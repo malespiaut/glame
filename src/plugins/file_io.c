@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.47 2001/04/19 16:39:31 nold Exp $
+ * $Id: file_io.c,v 1.48 2001/04/19 18:10:08 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -259,10 +259,9 @@ static void read_file_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 	filter_pipe_t	*pipe;
 	
 	GLSIGH_GETARGS1(va, pipe);
-	n = filterport_filter(filterpipe_dest(pipe));
-	if (RWPRIV(n)->rw) {
+	n = filterport_filter(filterpipe_source(pipe));
+	if (RWPRIV(n)->rw) 
 		RWPRIV(n)->rw->connect(n, pipe);
-	}
 }
 
 static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
@@ -416,7 +415,7 @@ int read_file_register(plugin_t *pl)
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  read_file_fixup_param, NULL);
 	
-	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED,
+	glsig_add_handler(&f->emitter, GLSIG_PIPE_DELETED,
 			  read_file_fixup_pipe, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
@@ -665,8 +664,24 @@ int wav_read_prepare(filter_t *n, const char *filename)
 	
 int wav_read_connect(filter_t *n, filter_pipe_t *p)
 {
-	int i;
-
+	int i, deleted = 1;
+	filter_port_t	*outp;
+	filter_pipe_t	*out;
+	
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	filterport_foreach_pipe(outp, out) {
+		if (p == out)
+			deleted = 0;
+	}
+	
+	if (deleted == 1) {
+		for(i=0; i < RWW(n).ch; i++)
+			if ( RWW(n).p[i] == p ) {
+				RWW(n).p[i] = NULL;
+				return 0;
+			}
+	}
+		
 	/* Find either a free slot to put the pipe into or
 	 * an already registered pipe in which case we just
 	 * return success. */
@@ -801,6 +816,7 @@ int wav_read_f(filter_t *n)
 #ifdef HAVE_AUDIOFILE
 int af_read_prepare(filter_t *n, const char *filename)
 {
+	DPRINTF("Using audiofile library\n");
 	if ((RWA(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
 		return -1; 
@@ -861,8 +877,10 @@ int af_read_connect(filter_t *n, filter_pipe_t *p)
 	if (deleted == 1) {
 		for(i=0; i<RWA(n).channelCount; i++)
 			if (RWA(n).track[i].p == p) {
+				DPRINTF("unmapped channel %d\n", i);
 				RWA(n).track[i].mapped = 0;
 				RWA(n).track[i].p = NULL;
+				return 0;
 			}
 	}
 	
@@ -1148,7 +1166,25 @@ int lame_read_prepare(filter_t *n, const char *filename)
 }
 
 int lame_read_connect(filter_t *n, filter_pipe_t *p) {
-	int i;
+	int i, deleted = 1;
+	filter_port_t	*outp;
+	filter_pipe_t	*out;
+	
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	filterport_foreach_pipe(outp, out) {
+		if (p == out)
+			deleted = 0;
+	}
+	
+	if (deleted == 1) {
+		for (i=0; i<RWM(n).mp3data->stereo; i++) {
+			if (RWM(n).track[i].p == p) {
+				RWM(n).track[i].mapped = 0;
+				RWM(n).track[i].p = NULL;
+				return 0;
+			}
+		}
+	}
 	
         for(i=0; i<RWM(n).mp3data->stereo;i++) {
 		if (RWM(n).track[i].mapped == 1) {
