@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.69 2001/11/11 23:37:49 nold Exp $
+ * $Id: file_io.c,v 1.70 2001/11/11 23:40:01 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -481,7 +481,7 @@ int af_read_prepare(filter_t *n, const char *filename)
 
 
 	RWA(n).frameCount=afGetFrameCount(RWA(n).file, AF_DEFAULT_TRACK);
-	sprintf(info, "%ld", (long int) RWA(n).frameCount); 
+	sprintf(info, "%d", (int)RWA(n).frameCount); 
 	filterparam_set_property(fparam,"#framecount", info);
 
 	ftype = afGetFileFormat(RWA(n).file, &version);
@@ -626,7 +626,7 @@ int af_read_f(filter_t *n)
 					  MIN(GLAME_WBUFSIZE, fcnt))))
 			break;
 		pos += frames;
-		filterparam_val_set_pos(pos_param, 0);
+		filterparam_val_set_pos(pos_param, pos);
 		fcnt-=frames;
 		for (i=0; i < RWA(n).channelCount; i++){
 			RWA(n).track[i].buf =
