@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.9 2001/07/30 08:23:09 richi Exp $
+ * $Id: apply.c,v 1.10 2001/07/31 16:16:51 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -58,6 +58,7 @@ struct apply_plugin_s {
 #define PREVIEW 0
 #define APPLY 1
 #define CANCEL 2
+#define HELP 3
 
 /* Struct cleanup. */
 static void cleanup(struct apply_plugin_s *a)
@@ -265,7 +266,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 {
 	struct apply_plugin_s *a;
 	GtkWidget *label;
-	char s[256];
+	char s[256], *help;
 
 	if (!item || !plugin)
 		return -1;
@@ -283,6 +284,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	a->previewing = 0;
 	a->applying = 0;
 	a->timeout_id = -1;
+	help = plugin_query(plugin, PLUGIN_GUI_HELP_PATH);
 
 	/* Build the dialog. */
 	a->dialog = gtk_type_new(gnome_dialog_get_type());
@@ -295,11 +297,15 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 		GNOME_DIALOG(a->dialog), "Apply", GNOME_STOCK_PIXMAP_FORWARD);
 	gnome_dialog_append_button(
 		GNOME_DIALOG(a->dialog), GNOME_STOCK_BUTTON_CANCEL);
+	if (help)
+		gnome_dialog_append_button(
+			GNOME_DIALOG(a->dialog), GNOME_STOCK_BUTTON_HELP);
 
 	gnome_dialog_set_default(GNOME_DIALOG(a->dialog), APPLY);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), PREVIEW, TRUE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), APPLY, TRUE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), CANCEL, TRUE);
+	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), HELP, TRUE);
 
 	snprintf(s, 255, "Parameters of %s", plugin_name(plugin));
 	label = gtk_label_new(s);
@@ -329,6 +335,9 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 				    apply_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), CANCEL,
 				    cancel_cb, a);
+	if (help)
+		gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), HELP,
+				    	    glame_help_cb, help);
 
 	/* Just show the dialog. Modal for now. */
 	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);

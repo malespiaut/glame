@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.18 2001/07/11 22:51:20 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.19 2001/07/31 16:16:52 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -272,14 +272,14 @@ static void canvas_pipe_source_properties_cb(GtkObject *foo,
 {
 	GtkWidget *p;
 	p = glame_gui_filter_properties(filterpipe_sourceparamdb(pipe),
-					filterport_label(filterpipe_connection_source(pipe)));
+					filterport_label(filterpipe_connection_source(pipe)), NULL);
 	gtk_widget_show(p);
 }
 static void canvas_pipe_dest_properties_cb(GtkObject *foo, filter_pipe_t *pipe)
 {
 	GtkWidget *p;
 	p = glame_gui_filter_properties(filterpipe_destparamdb(pipe),
-					filterport_label(filterpipe_connection_dest(pipe)));
+					filterport_label(filterpipe_connection_dest(pipe)), NULL);
 	gtk_widget_show(p);
 }
 static void canvas_pipe_delete_cb(GtkObject* foo, filter_pipe_t* pipe)

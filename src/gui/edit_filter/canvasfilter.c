@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.30 2001/07/13 09:01:43 richi Exp $
+ * $Id: canvasfilter.c,v 1.31 2001/07/31 16:16:52 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -661,7 +661,8 @@ static void glame_canvas_filter_edit_properties_cb(GtkWidget* m,GlameCanvasFilte
 	if(filter->immutable)
 		return;
 	p = glame_gui_filter_properties(filter_paramdb(filter->filter),
-					filter_name(filter->filter));
+					filter_name(filter->filter),
+					filter->filter->plugin ? plugin_query(filter->filter->plugin, PLUGIN_GUI_HELP_PATH) : NULL);
 	gtk_widget_show(p);
 }
 

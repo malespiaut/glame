@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.6 2001/07/31 12:26:32 mag Exp $
+ * $Id: glame_param.c,v 1.7 2001/07/31 16:16:52 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -231,6 +231,20 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 		int val = adj->value;
 		res = filterparam_set(gparam->param, &val);
 	}
+	if (res == -1) {
+		if (FILTER_PARAM_IS_FLOAT(gparam->param))
+			gtk_adjustment_set_value(
+				gparam->u.adj,
+				filterparam_val_float(gparam->param));
+		else if (FILTER_PARAM_IS_SAMPLE(gparam->param))
+			gtk_adjustment_set_value(
+				gparam->u.adj,
+				filterparam_val_sample(gparam->param));
+		else if (FILTER_PARAM_IS_INT(gparam->param))
+			gtk_adjustment_set_value(
+				gparam->u.adj,
+				filterparam_val_int(gparam->param));
+	}
 	gparam->updating = 0;
 
 	return res == 0 ? TRUE : FALSE;
@@ -411,9 +425,8 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		DPRINTF("FIXME! - unsupported param type\n");
 
 	/* Build the hbox, connect to the entry. */
-	gtk_container_add(GTK_CONTAINER(gparam), gparam->label);
-	gtk_container_add(GTK_CONTAINER(gparam),
-			  GTK_WIDGET(gparam->widget));
+	gtk_box_pack_start(GTK_BOX(gparam), gparam->label, FALSE, TRUE, 10);
+	gtk_box_pack_start(GTK_BOX(gparam), gparam->widget, TRUE, TRUE, 10);
 	if (GTK_IS_ADJUSTMENT(gparam->u.widget))
 		gtk_signal_connect(GTK_OBJECT(gparam->u.adj), "value_changed",
 				   (GtkSignalFunc)adjustment_cb, gparam);

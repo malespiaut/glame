@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.11 2001/07/31 12:26:32 mag Exp $
+ * $Id: glame_gui_utils.c,v 1.12 2001/07/31 16:16:52 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -543,8 +543,16 @@ static void fprop_kill_handler(GtkObject *object, glsig_handler_t *handler)
 	glsig_delete_handler(handler);
 }
 
+
+void glame_help_cb(GtkWidget *bla, const char *helppath)
+{
+	char path[256];
+	snprintf(path, 255, "info:glame#%s", helppath);
+	gnome_help_goto(NULL, path);
+}
+
 GtkWidget *
-glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
+glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption, const char *helppath)
 {
 	GtkWidget *vbox;
 	GtkWidget* propBox;
@@ -561,7 +569,10 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_widget_show(vbox);
 
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
-	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
+	if (helppath)
+		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button), "clicked", glame_help_cb, helppath);
+	else
+		gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button));
 	gtk_window_set_modal(GTK_WINDOW(propBox), FALSE);
 
@@ -589,7 +600,7 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb)
 	vbox = gtk_vbox_new(FALSE, 3);
 	filterparamdb_foreach_param(pdb, param) {
 		gparam = glame_param_new(param);
-		gtk_container_add(vbox, gparam);
+		gtk_container_add(GTK_CONTAINER(vbox), gparam);
 		gtk_widget_show_all(gparam);
 	}
 

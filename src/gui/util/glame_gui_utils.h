@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.4 2001/07/30 08:22:37 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.5 2001/07/31 16:16:52 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -58,6 +58,8 @@ void create_label_edit_pair(GtkWidget *vbox,
 /* useful callback for dialog boxes which query for string types. */
 void changeString(GtkEditable *wid, char ** returnbuffer);
 
+/* auch useful callback */
+void glame_help_cb(GtkWidget *bla, const char *helppath);
 
 /* Build a menu (hidden) out of the registered plugins which you can
  * either select all (NULL select callback) or select by returning
@@ -71,7 +73,8 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 /* Open a property box for changing the paramdb's parameters. Returns
  * the widget. */
 GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
-				       const char *caption);
+				       const char *caption,
+				       const char *helppath);
 
 /* Construct a widget (without window) to allow changing parameters
  * of a parameter database. Returns a widget or NULL on error. */
