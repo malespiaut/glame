@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.10 2001/12/16 16:14:01 richi Exp $
+ * $Id: glame_accelerator.h,v 1.11 2001/12/16 22:26:16 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -87,6 +87,10 @@ extern struct glame_list_head _glame_accel_list;
 guint glame_accel_install(GtkWidget *widget,
 			  const char *scope, ...);
 
+/* Callback which executes the binding for the supplied specification
+ * (modifiers are 0).
+ * Returns TRUE if found, FALSE otherwise. */
+guint glame_accel_widget_data_cb(GtkWidget *widget, gpointer spec);
 
 
 /* Accelerator edit/list widget. Operations are restricted to the

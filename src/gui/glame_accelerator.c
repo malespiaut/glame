@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.13 2001/12/16 16:14:01 richi Exp $
+ * $Id: glame_accelerator.c,v 1.14 2001/12/16 22:26:16 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -64,6 +64,8 @@ HASH(accel, struct accel, 8,
      const char *spec, guint state)
 
 
+static SCM gls_glame_accel_edit_dialog_new(SCM s_scope, SCM s_edit);
+
 
 /*
  * Helpers.
@@ -113,6 +115,9 @@ int glame_accel_init()
 	glame_add_accels_from_file("./gui/default-accels");
 	snprintf(fname, 255, "%s/.glame-accels", getenv("HOME"));
 	glame_add_accels_from_file(fname);
+
+	gh_new_procedure2_0("glame-accel-edit-dialog",
+			    gls_glame_accel_edit_dialog_new);
 
 	return 0;
 }
@@ -391,6 +396,18 @@ guint glame_accel_install(GtkWidget *widget,
 }
 
 
+guint glame_accel_widget_data_cb(GtkWidget *widget, gpointer spec)
+{
+	struct accel *accel;
+
+	if (!(accel = hash_find_accel(spec, 0)))
+		return FALSE;
+
+	glame_gh_safe_eval_str(accel->action);
+
+	return TRUE;
+}
+
 
 GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 {
@@ -415,9 +432,11 @@ GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 
 		/* Create scope */
 		strncpy(e_scope, accel->spec + strlen(scope), 1024);
-		p = strrchr(e_scope, '/');
-		if (p[1] == '\0')
-			p--;
+		if ((p = strrchr(e_scope, '/'))) {
+			if (p[1] == '\0')
+				p--;
+		} else
+			p = e_scope;
 		*p = '\0';
 
 		/* Create key */
@@ -436,9 +455,12 @@ GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 			p += sprintf(p, "MOD4-");
 		if (accel->state & GDK_MOD5_MASK)
 			p += sprintf(p, "MOD5-");
-		pp = strrchr(accel->spec, '/');
-		if (pp[1] == '\0')
-			pp--;
+		if (!(pp = strrchr(accel->spec, '/')))
+			pp = accel->spec-1;
+		else {
+			if (pp[1] == '\0')
+				pp--;
+		}
 		sprintf(p, "%s", pp+1);
 
 		line[0] = e_scope;
@@ -477,3 +499,19 @@ GtkWidget *glame_accel_edit_dialog(const char *scope, int edit,
 	return dialog;
 }
 
+static SCM gls_glame_accel_edit_dialog_new(SCM s_scope, SCM s_edit)
+{
+	char *scope;
+	int len;
+	SCM_ASSERT(gh_string_p(s_scope), s_scope, SCM_ARG1,
+		   "glame-accel-edit-dialog-new");
+	SCM_ASSERT(gh_boolean_p(s_edit), s_edit, SCM_ARG2,
+		   "glame-accel-edit-dialog-new");
+
+	scope = gh_scm2newstr(s_scope, &len);
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		glame_accel_edit_dialog(scope, gh_scm2bool(s_edit), NULL)));
+	free(scope);
+
+	return SCM_UNSPECIFIED;
+}
