@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.15 2001/05/16 00:24:45 mag Exp $
+ * $Id: swapfile_io.c,v 1.16 2001/05/28 08:13:33 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -200,7 +200,7 @@ static int swapfile_out_f(filter_t *n)
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
 	filter_param_t *pos_param;
-	long fname, offset, size, cnt, pos;
+	long fname, offset, size, cnt, pos, res;
 	swfd_t fd;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
@@ -238,9 +238,11 @@ static int swapfile_out_f(filter_t *n)
 			cnt = MIN(cnt, size);
 
 		/* Write the buffers data to the file. */
-		if (sw_write(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE)
-		    != cnt*SAMPLE_SIZE)
-			DPRINTF("Did not write the whole buffer!?");
+		res = sw_write(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE);
+		if (res == -1)
+			FILTER_ERROR_STOP("Error writing to swapfile");
+		if (res != cnt*SAMPLE_SIZE)
+			DPRINTF("Did not write the whole buffer!?\n");
 		pos += cnt;
 		filterparam_val_set_pos(pos_param, pos);
 
