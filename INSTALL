@@ -20,14 +20,6 @@ If you are using a debian system you may even use
 to get a .deb package build which you may then install using dpkg.
 
 
-!!! WARNING !!!
-  Be sure to remove all plugins installed by an older GLAME
-  version before installing a new one or GLAME may simply refuse to start.
-  Usual plugin installation path(s) are /prefix/lib/glame where prefix
-  is /usr or /usr/local or wherever you installed GLAME to.
-!!! WARNING !!!
-
-
 Note that there are quite a lot of configure options (./configure --help)
 of which the following may come handy if the build process is failing:
 - --disable-mp3lame disables the use of the mp3lame library for reading

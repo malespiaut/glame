@@ -21,12 +21,6 @@ and distribution you are running.
 Summary of known bugs and misfeatures in GLAME
 ----------------------------------------------
 
-07-30-01 If GLAME just doesnt start or quits instantly you may have old,
-  incompatible plugins installed within GLAMEs prefix lib dir
-  (f.i. /usr/local/lib/glame) - be sure to remove all plugins
-  installed by an older GLAME version before installing a new one.
-  UPDATE 12-10-01: should be fixed now
-
 - Its not a good idea to have the glame swapfile reside on a non-local
   disk (like in your NFS mounted home) because of performace limitations.
   As the default location set by the gui is ~/.glameswap you should change
@@ -70,7 +64,7 @@ Summary of known bugs and misfeatures in GLAME
   compiled with --enable-debug). In case the panicing location is inside
   the swapfile code there may be an external source corrupting the swapfile
   - just restart glame in this case and it will try to recover (can you
-  say fsck?). Beware: If you enable debug swapfile operations are VERY slow.
+  say fsck?).
  
 07-15-01 Modifications made in the timeline GUI and the swapfile GUI are
   not reflected by existing waveedit views. To work around this re-open
