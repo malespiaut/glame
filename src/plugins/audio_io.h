@@ -3,7 +3,7 @@
 
 /*
  * audio_io.h
- * $Id: audio_io.h,v 1.1 2001/04/11 12:36:07 richi Exp $
+ * $Id: audio_io.h,v 1.2 2003/05/18 11:03:21 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -31,14 +31,14 @@
 #include "filter.h"
 
 
-int aio_generic_register_input(plugin_t *pl, char *name,
-			       int (*f)(filter_t *),
-			       const char *defaultdevice);
+filter_t *aio_generic_register_input(plugin_t *pl, char *name,
+				     int (*f)(filter_t *),
+				     const char *defaultdevice);
 
 
-int aio_generic_register_output(plugin_t *pl, char *name,
-				int (*f)(filter_t *),
-				const char *defaultdevice);
+filter_t *aio_generic_register_output(plugin_t *pl, char *name,
+				     int (*f)(filter_t *),
+				     const char *defaultdevice);
 
 
 #endif

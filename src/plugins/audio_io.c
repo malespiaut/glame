@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.45 2003/04/27 21:52:17 richi Exp $
+ * $Id: audio_io.c,v 1.46 2003/05/18 11:03:20 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -200,21 +200,21 @@ static int aio_generic_set_param(filter_param_t *param, const void *val)
 			
 /* Clumsy try to clean up the register mess a bit. */
 
-int aio_generic_register_input(plugin_t *pl, char *name,
-			       int (*f)(filter_t *), const char *defaultdevice)
+filter_t *aio_generic_register_input(plugin_t *pl, char *name,
+				     int (*f)(filter_t *), const char *defaultdevice)
 {
 	filter_t *filter;
 	filter_port_t *p;
 	filter_param_t *param;
 
 	if (!f)
-		return -1;
+		return NULL;
 
 	if (!pl && !(pl = plugin_add(name)))
-		return -1;
+		return NULL;
 
 	if (!(filter = filter_creat(NULL)))
-		return -1;
+		return NULL;
 
 	p = filterportdb_add_port(filter_portdb(filter), PORTNAME_OUT,
 				  FILTER_PORTTYPE_SAMPLE,
@@ -266,22 +266,22 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "Audio_I_O");
 	filter_register(filter, pl);
 
-	return 0;
+	return filter;
 }
 			
-int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
-				const char *defaultdevice) 
+filter_t *aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
+				      const char *defaultdevice) 
 {
 	filter_t *filter;
 	filter_port_t *in;
 	
 	if (!f)
-		return -1;
+		return NULL;
 	if (!pl && !(pl = plugin_add(name)))
-		return -1;
+		return NULL;
 	
 	if (!(filter=filter_creat(NULL)))
-		return -1;
+		return NULL;
 
 	in = filterportdb_add_port(filter_portdb(filter), PORTNAME_IN,
 				   FILTER_PORTTYPE_SAMPLE,
@@ -307,7 +307,7 @@ int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
 	
 	filter_register(filter, pl);
 
-	return 0;
+	return filter;
 }
 
 
