@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: 
+ * $Id: read_file.c,v 1.3 2000/02/02 15:13:32 nold Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -40,7 +40,8 @@ static int read_file_f(filter_node_t *n)
         AFframecount    frameCount;
 	int sampleFormat,sampleWidth,channelCount,frameSize;
 	short int *buffer;
-	int i,rpos,lpos,frames,sent=0;
+	int rpos,lpos,frames,sent=0;
+	int i=0;
 	
 	left = hash_find_output("left",n);
 	right = hash_find_output("right",n);
@@ -48,9 +49,9 @@ static int read_file_f(filter_node_t *n)
 	if (!left || !right)
 		return -1;
 
-	if ((param = hash_find_param("filename",n)))
+	if ((param = hash_find_param("filename",n))) {
 		filename=strdup(param->val.string);
-	else{
+	} else {
 		DPRINTF("Missing parameter filename!\n");
 		return -1;
 	}
@@ -125,11 +126,13 @@ int read_file_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f))
-	    || filter_add_output(f, "left", "left channel",FILTER_PORTTYPE_SAMPLE) == -1
+	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f)))
+		return -1;
+	if (filter_add_output(f, "left", "left channel",FILTER_PORTTYPE_SAMPLE) == -1
 	    || filter_add_output(f, "right", "right channel",FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING) == -1
-	    || filter_add(f) == -1)
+	    || filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING) == -1)
+		return -1;
+	 if (filter_add(f) == -1)
 		return -1;
 
 	return 0;

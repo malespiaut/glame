@@ -1,6 +1,6 @@
 /*
  * test_play.c
- * $Id: test_play.c,v 1.1 2000/02/02 10:52:47 mag Exp $
+ * $Id: test_play.c,v 1.2 2000/02/02 15:13:32 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -25,15 +25,27 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "glame_hash.h"
 #include "filter.h"
 
+void usage(char *name) {
+	char *basename = strrchr(name, '/');
+	if (!basename)
+		basename = name;
+
+	fprintf(stderr, "Usage: %s <file>\n", basename);
+	exit(1);
+}
 
 
 int main(int argc, char **argv)
 {
 	filter_network_t *net;
 	filter_node_t *audio_out, *read_file;
+
+	if (argc!=2)
+		usage(argv[0]);
 
 	printf("Playing %s.\n",argv[1]);
 
