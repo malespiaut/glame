@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glame CVS\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-10 22:10+0100\n"
+"POT-Creation-Date: 2005-03-27 15:37+0200\n"
 "PO-Revision-Date: 2002-10-05 22:00+10\n"
 "Last-Translator: Laurent Georget <lgeorget@club-internet.fr>\n"
 "Language-Team: glame-devel <glame-devel@lists.sf.net>\n"
@@ -88,7 +88,7 @@ msgid "Loads and registers a plugin"
 msgstr "Charger et référencer un Plugin"
 
 #: src/gui/main.c:104 src/gui/waveeditgui.c:1473
-#: src/gui/edit_filter/canvasfilter.c:1110
+#: src/gui/edit_filter/canvasfilter.c:1078
 #: src/gui/edit_filter/filtereditgui.c:675
 msgid "_Help"
 msgstr "_Aide"
@@ -290,7 +290,7 @@ msgid ""
 "Allan Lyckegaard"
 msgstr ""
 
-#: src/gui/main.c:791
+#: src/gui/main.c:793
 #, c-format
 msgid ""
 "The GLAME swapfile subsystem is about to commit suicide.\n"
@@ -313,7 +313,7 @@ msgstr ""
 "\n"
 "-- Au revoir \n"
 
-#: src/gui/main.c:842
+#: src/gui/main.c:844
 msgid ""
 "Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
@@ -326,7 +326,7 @@ msgstr ""
 "le \"chemin du fichier d'échange audio\" et les réglages des \"entrées/"
 "sorties audio\".\n"
 
-#: src/gui/main.c:848
+#: src/gui/main.c:850
 msgid ""
 "You didnt change/check the configuration.\n"
 "GLAME is exiting now.\n"
@@ -334,7 +334,7 @@ msgstr ""
 "Vous n'avez pas changé/vérifié la configuration.\n"
 "Glame va se terminer.\n"
 
-#: src/gui/main.c:859
+#: src/gui/main.c:861
 #, c-format
 msgid ""
 "GLAME was unable to create its swapfile\n"
@@ -345,11 +345,11 @@ msgstr ""
 "à cause de \"%s\". \n"
 "Vérifiez la configuration svp.\n"
 
-#: src/gui/main.c:934
+#: src/gui/main.c:936
 msgid "    GLAME version "
 msgstr "    GLAME Version "
 
-#: src/gui/main.c:934
+#: src/gui/main.c:936
 msgid ""
 ", Copyright (C) 1999-2004 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
@@ -408,7 +408,7 @@ msgid "Close"
 msgstr "Fermer"
 
 #: src/gui/importexport.c:203 src/gui/importexport.c:391
-#: src/gui/importexport.c:558
+#: src/gui/importexport.c:557
 msgid "Importing..."
 msgstr "Importation..."
 
@@ -416,8 +416,8 @@ msgstr "Importation..."
 msgid "Error importing Ogg file."
 msgstr "Erreur d'importation fichier Ogg"
 
-#: src/gui/importexport.c:254 src/gui/importexport.c:426
-#: src/gui/importexport.c:581 src/gui/importexport.c:766
+#: src/gui/importexport.c:254 src/gui/importexport.c:425
+#: src/gui/importexport.c:580 src/gui/importexport.c:760
 msgid "Done."
 msgstr "Fin."
 
@@ -431,16 +431,16 @@ msgstr "Importation... %.3lf kechant/s"
 msgid "Had %i recoverable errors, last was: %s"
 msgstr "%i erreurs récupérables, la dernières était: %s"
 
-#: src/gui/importexport.c:418
+#: src/gui/importexport.c:417
 #, c-format
 msgid "Failed importing mp3 file: %s"
 msgstr "Erreur en important le fichier mp3: %s"
 
-#: src/gui/importexport.c:453 src/gui/importexport.c:689
+#: src/gui/importexport.c:452 src/gui/importexport.c:683
 msgid "Select a file first!"
 msgstr "Sélectionnez un fichier svp."
 
-#: src/gui/importexport.c:460
+#: src/gui/importexport.c:459
 #, fuzzy
 msgid ""
 "Sorry, no mp3 support.\n"
@@ -449,7 +449,7 @@ msgstr ""
 "Désolé, pas de support pour l'encodage mp3.Installer Lame et recompiler "
 "Glame."
 
-#: src/gui/importexport.c:468
+#: src/gui/importexport.c:467
 #, fuzzy
 msgid ""
 "Sorry, no ogg support.\n"
@@ -458,56 +458,56 @@ msgstr ""
 "Désolé, pas de support pour l'encodage mp3.Installer Lame et recompiler "
 "Glame."
 
-#: src/gui/importexport.c:600
+#: src/gui/importexport.c:599
 msgid "Failed to create importing network"
 msgstr "Impossible d'importer le réseau de filtres "
 
-#: src/gui/importexport.c:713
+#: src/gui/importexport.c:707
 msgid "Couldn't create ssp plugin"
 msgstr "Impossible de  créer le plugin ssp"
 
-#: src/gui/importexport.c:720
+#: src/gui/importexport.c:714
 msgid "Couldn't create maxrms plugin"
 msgstr "Impossible de créer le plugin maxrms"
 
-#: src/gui/importexport.c:735
+#: src/gui/importexport.c:729
 msgid "Analyzing..."
 msgstr "Analyse en cours"
 
-#: src/gui/importexport.c:786
+#: src/gui/importexport.c:780
 msgid "Cancelled."
 msgstr "Annulé"
 
-#: src/gui/importexport.c:948
+#: src/gui/importexport.c:942
 #, fuzzy
 msgid "Select a file"
 msgstr "Sélectionnez un fichier svp."
 
-#: src/gui/importexport.c:978
+#: src/gui/importexport.c:972
 msgid "File Information"
 msgstr "Informations fichier"
 
-#: src/gui/importexport.c:1011
+#: src/gui/importexport.c:1005
 msgid "Get RMS & DC-Offset"
 msgstr "Calculer RMS & DC-Offset"
 
-#: src/gui/importexport.c:1035
+#: src/gui/importexport.c:1029
 msgid "Resample"
 msgstr "Rééchantill."
 
-#: src/gui/importexport.c:1043 src/gui/tree/gltree.c:96
+#: src/gui/importexport.c:1037 src/gui/tree/gltree.c:96
 msgid "Rate"
 msgstr "Freq."
 
-#: src/gui/importexport.c:1070
+#: src/gui/importexport.c:1064
 msgid "Import"
 msgstr "Importer"
 
-#: src/gui/importexport.c:1335
+#: src/gui/importexport.c:1329
 msgid "Select a filename first!"
 msgstr "Sélectionnez d'abord un fichier svp"
 
-#: src/gui/importexport.c:1367
+#: src/gui/importexport.c:1361
 msgid ""
 "Sorry, no mp3 encoding support.\n"
 "Install Lame encoder and rebuild Glame."
@@ -515,7 +515,7 @@ msgstr ""
 "Désolé, pas de support pour l'encodage mp3.Installer Lame et recompiler "
 "Glame."
 
-#: src/gui/importexport.c:1383
+#: src/gui/importexport.c:1377
 msgid ""
 "Sorry, no OggVorbis encoding support.\n"
 "Install Ogg and Vorbis libraries rebuild Glame."
@@ -523,47 +523,47 @@ msgstr ""
 "Désolé, pas de support pour l'encodage OggVorbis.Installer les libs Ogg et "
 "Vorbis et recompiler Glame."
 
-#: src/gui/importexport.c:1549
+#: src/gui/importexport.c:1543
 msgid "Exporting..."
 msgstr "Exportation..."
 
-#: src/gui/importexport.c:1588
+#: src/gui/importexport.c:1582
 msgid "Error!"
 msgstr "erreur!"
 
-#: src/gui/importexport.c:1658
+#: src/gui/importexport.c:1652
 msgid "Export as:"
 msgstr "Exporter sous:"
 
-#: src/gui/importexport.c:1688
+#: src/gui/importexport.c:1682
 msgid "File Format"
 msgstr "Format du fichier"
 
-#: src/gui/importexport.c:1700
+#: src/gui/importexport.c:1694
 msgid "Main"
 msgstr "Princ."
 
-#: src/gui/importexport.c:1710
+#: src/gui/importexport.c:1704
 msgid "Compression Type"
 msgstr "Type de compression"
 
-#: src/gui/importexport.c:1719
+#: src/gui/importexport.c:1713
 msgid "Render Options"
 msgstr "Options de sortie"
 
-#: src/gui/importexport.c:1740
+#: src/gui/importexport.c:1734
 msgid "Sample Format"
 msgstr "Format"
 
-#: src/gui/importexport.c:1785
+#: src/gui/importexport.c:1779
 msgid "Mp3 (Lame)"
 msgstr ""
 
-#: src/gui/importexport.c:1929
+#: src/gui/importexport.c:1923
 msgid "Ogg Vorbis"
 msgstr ""
 
-#: src/gui/importexport.c:2072 src/gui/waveeditgui.c:1576
+#: src/gui/importexport.c:2066 src/gui/waveeditgui.c:1576
 msgid "Export"
 msgstr "Export"
 
@@ -783,80 +783,80 @@ msgstr "Refaire"
 msgid "Help"
 msgstr "Aide"
 
-#: src/gui/edit_filter/canvasfilter.c:920
+#: src/gui/edit_filter/canvasfilter.c:888
 msgid "This item does not have a description"
 msgstr "Cet élément n'a pas de description"
 
-#: src/gui/edit_filter/canvasfilter.c:924
+#: src/gui/edit_filter/canvasfilter.c:892
 msgid "Description"
 msgstr "Description"
 
-#: src/gui/edit_filter/canvasfilter.c:928
+#: src/gui/edit_filter/canvasfilter.c:896
 #: src/gui/edit_filter/filtereditgui.c:334
 msgid "Ports"
 msgstr "Ports"
 
-#: src/gui/edit_filter/canvasfilter.c:941
-#: src/gui/edit_filter/canvasfilter.c:963
-#: src/gui/edit_filter/canvasfilter.c:968
+#: src/gui/edit_filter/canvasfilter.c:909
+#: src/gui/edit_filter/canvasfilter.c:931
+#: src/gui/edit_filter/canvasfilter.c:936
 #: src/gui/edit_filter/filtereditgui.c:349
 #: src/gui/edit_filter/filtereditgui.c:380
 #: src/gui/edit_filter/filtereditgui.c:385
 msgid "Empty"
 msgstr "Vide"
 
-#: src/gui/edit_filter/canvasfilter.c:948
+#: src/gui/edit_filter/canvasfilter.c:916
 #: src/gui/edit_filter/filtereditgui.c:330
 #: src/gui/edit_filter/filtereditgui.c:762
 msgid "Properties"
 msgstr "Propriétés"
 
-#: src/gui/edit_filter/canvasfilter.c:1028
+#: src/gui/edit_filter/canvasfilter.c:996
 msgid "Export parameters..."
 msgstr "Exporter les paramètres:"
 
-#: src/gui/edit_filter/canvasfilter.c:1051
+#: src/gui/edit_filter/canvasfilter.c:1019
 msgid "Select parameter:"
 msgstr "Selectionner le paramètre:"
 
-#: src/gui/edit_filter/canvasfilter.c:1052
+#: src/gui/edit_filter/canvasfilter.c:1020
 msgid "External name:"
 msgstr "Nom externe:"
 
-#: src/gui/edit_filter/canvasfilter.c:1098
+#: src/gui/edit_filter/canvasfilter.c:1066
 #: src/gui/edit_filter/canvaspipe.c:300
 msgid "_Delete"
 msgstr "_Supprimer"
 
-#: src/gui/edit_filter/canvasfilter.c:1099
+#: src/gui/edit_filter/canvasfilter.c:1067
 msgid "_Expand"
 msgstr "_Etendre"
 
-#: src/gui/edit_filter/canvasfilter.c:1100
+#: src/gui/edit_filter/canvasfilter.c:1068
 msgid "_Open down"
 msgstr "_Open down"
 
-#: src/gui/edit_filter/canvasfilter.c:1102
+#: src/gui/edit_filter/canvasfilter.c:1070
 msgid "_Redirect parameter"
 msgstr "_rediriger un paramètre"
 
-#: src/gui/edit_filter/canvasfilter.c:1104
+#: src/gui/edit_filter/canvasfilter.c:1072
 msgid "_Group selection"
 msgstr "_Grouper"
 
-#: src/gui/edit_filter/canvasfilter.c:1105
+#: src/gui/edit_filter/canvasfilter.c:1073
 msgid "_Ungroup"
 msgstr "_Dégrouper"
 
-#: src/gui/edit_filter/canvasfilter.c:1106
+#: src/gui/edit_filter/canvasfilter.c:1074
 msgid "Cop_y selection"
 msgstr "_Copier la selection"
 
-#: src/gui/edit_filter/canvasfilter.c:1107
+#: src/gui/edit_filter/canvasfilter.c:1075
 msgid "_Collapse selection"
 msgstr "_Ecraser la selection"
 
-#: src/gui/edit_filter/canvasfilter.c:1109
+#: src/gui/edit_filter/canvasfilter.c:1077
 msgid "_About node..."
 msgstr "A pr_opos du module..."
 
@@ -904,15 +904,15 @@ msgstr "Paramètres de la source:"
 msgid "Dest params:"
 msgstr "Paramètres de la destination:"
 
-#: src/gui/edit_filter/canvasport.c:253
+#: src/gui/edit_filter/canvasport.c:255
 msgid "_Redirect port"
 msgstr "_Rediriger le port"
 
-#: src/gui/edit_filter/canvasport.c:390
+#: src/gui/edit_filter/canvasport.c:392
 msgid "Export as..."
 msgstr "Exporter sous..."
 
-#: src/gui/edit_filter/canvasport.c:398
+#: src/gui/edit_filter/canvasport.c:400
 msgid "New port name"
 msgstr "Nom du nouveau port"
 
@@ -1022,23 +1022,19 @@ msgstr ""
 msgid "Save network as..."
 msgstr "Sauver le réseau comme..."
 
-#: src/gui/edit_filter/filtereditgui.c:930
-msgid "Filename"
-msgstr "Nom du fichier"
-
-#: src/gui/edit_filter/filtereditgui.c:933
+#: src/gui/edit_filter/filtereditgui.c:934
 msgid "Filter name"
 msgstr "Nom du filtre"
 
-#: src/gui/edit_filter/filtereditgui.c:935
+#: src/gui/edit_filter/filtereditgui.c:936
 msgid "Category"
 msgstr "Catégorie"
 
-#: src/gui/edit_filter/filtereditgui.c:943
+#: src/gui/edit_filter/filtereditgui.c:949
 msgid "Empty file/filter or category name"
 msgstr "Fichier/filtre ou catégorie vide"
 
-#: src/gui/edit_filter/filtereditgui.c:969
+#: src/gui/edit_filter/filtereditgui.c:976
 msgid "Filtername"
 msgstr "Nom du filtre"
 
@@ -1121,6 +1117,9 @@ msgstr "Piste stéréo sans nom"
 #: src/gui/tree/gltree.c:717
 msgid "Clipboard is empty"
 msgstr "Presse papier vide"
+
+#~ msgid "Filename"
+#~ msgstr "Nom du fichier"
 
 #~ msgid "Audio plugins"
 #~ msgstr "Plugins audio"
