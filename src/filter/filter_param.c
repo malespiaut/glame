@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.21 2003/04/15 20:32:54 richi Exp $
+ * $Id: filter_param.c,v 1.22 2004/05/05 22:11:59 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -117,8 +117,9 @@ static void paramdb_op_delete(gldb_item_t *item)
 		fbuf_unref(p->u.buf);
 
 	/* Notify the associated filter of the change. */
-	glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
-		   ((filter_paramdb_t *)p->entry.db)->node);
+	if (p->entry.db)
+		glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
+			   ((filter_paramdb_t *)p->entry.db)->node);
 	glsig_delete_all(&p->emitter);
 }
 

@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.14 2003/05/19 20:32:01 richi Exp $
+ * $Id: filter_port.c,v 1.15 2004/05/05 22:11:58 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -277,8 +277,9 @@ static void portdb_op_delete(gldb_item_t *item)
 	 * filter about the change before deleting the signal
 	 * handlers. */
 	glsdb_delete(&p->properties);
-	glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
-		   ((filter_portdb_t *)p->entry.db)->node);
+	if (p->entry.db)
+		glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
+			   ((filter_portdb_t *)p->entry.db)->node);
 	glsig_delete_all(&p->emitter);
 }
 
