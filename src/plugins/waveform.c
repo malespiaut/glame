@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.14 2000/12/19 12:04:19 mag Exp $
+ * $Id: waveform.c,v 1.15 2001/04/19 14:18:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -23,6 +23,7 @@
  * Contained filters are
  * - sine
  * - const
+ * - rect
  *
  * The waveform filters should only generate "one" buffer which can then
  * be repeated using the repeat filter. [richi]
@@ -167,6 +168,7 @@ int sine_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "sine.png");
 	return filter_register(f, p);
 }
 
@@ -224,6 +226,7 @@ int const_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "const.png");
 	return filter_register(f, p);
 }
 
@@ -296,5 +299,6 @@ int rect_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "rectangular signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "rect.png");
 	return filter_register(f, p);
 }
