@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.5 2001/06/06 08:50:28 nold Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.6 2001/06/19 10:21:47 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -60,7 +60,7 @@ static int alsa_audio_out_f(filter_t *n)
         snd_pcm_sw_params_t	*swparams;
 	snd_pcm_status_t 	*status;
 	static snd_output_t 	*log;
-	char*			pcm_name="plug:0,0";	
+	char*			pcm_name="plughw:0,0";	
 	size_t			buffer_size;
 	
 	/* Boilerplate init section - will go into a generic function one day.
@@ -302,6 +302,6 @@ _entry:
 int alsa_audio_out_register(plugin_t *p)
 {
 	return aio_generic_register_output(p, "alsa-audio-out",
-					   alsa_audio_out_f, "plug:0,0");
+					   alsa_audio_out_f, "plughw:0,0");
 }
 
