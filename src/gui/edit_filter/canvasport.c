@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.18 2001/07/10 17:21:38 xwolf Exp $
+ * $Id: canvasport.c,v 1.19 2001/07/10 23:42:57 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -607,6 +607,7 @@ glame_canvas_port_redraw(GlameCanvasPort * port)
 {
 	/* check for external */
 	static GdkBitmap *bitmap=NULL;
+	
 	if(!bitmap)
 		bitmap = gdk_bitmap_create_from_data(GTK_WIDGET(CANVAS_ITEM_CANVAS(port))->window,hlines3_bits,1,3);
 	
@@ -617,6 +618,6 @@ glame_canvas_port_redraw(GlameCanvasPort * port)
 		gtk_object_set(GTK_OBJECT(port), "fill_stipple", NULL, NULL);
 		gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(port));
 	}
-		
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(port));
 } 
 

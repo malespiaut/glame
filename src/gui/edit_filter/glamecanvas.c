@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.19 2001/07/10 16:02:52 richi Exp $
+ * $Id: glamecanvas.c,v 1.20 2001/07/10 23:42:57 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -100,6 +100,14 @@ static void
 glame_canvas_group_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass *parent_class;
+	if(GLAME_IS_CANVAS_GROUP(GCI(object)->parent)){
+		GlameCanvasGroup* parent = GCI(object)->parent;
+		parent->groups = g_list_remove(parent->groups,GLAME_CANVAS_GROUP(object));
+	}
+	//else{
+	//GlameCanvas* canvas = CANVAS_ITEM_GLAME_CANVAS(object);
+	//canvas->selectedItems = g_list_remove(canvas->selectedItems,GLAME_CANVAS_GROUP(object));
+	//}	
 	parent_class = gtk_type_class(GNOME_TYPE_CANVAS_GROUP);
 	GTK_OBJECT_CLASS(parent_class)->destroy(object);
 }
@@ -121,6 +129,7 @@ glame_canvas_group_init (GlameCanvasGroup *item)
 	static guint id_count = 0;
 	item->type = GROUP_TYPE_UNION;
 	item->children = NULL;
+	item->groups = NULL;
 	item->id = id_count++;
 }
 
@@ -347,7 +356,7 @@ void glame_canvas_group_move(GlameCanvasGroup* group, double x, double y)
 		_glame_canvas_filter_move(list->data, x,y);
 		list = g_list_next(list);
 	}
-	list = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
+	list = g_list_first(group->groups);
 	while(list){
 		if(GLAME_IS_CANVAS_GROUP(list->data))
 			glame_canvas_group_move(list->data,x,y);
@@ -366,9 +375,10 @@ void glame_canvas_group_item_moved_cb(GlameCanvasFilter* item, double x, double 
 
 void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 {
-	GList * list;
+	GList * list,*next;
 	GnomeCanvasGroup* root = CANVAS_ITEM_ROOT(group);
 
+	DPRINTF("List length: %d\n",g_list_length(group->children));
 	list = g_list_first(group->children);
 	list = g_list_next(list);
 	while(list){
@@ -376,23 +386,26 @@ void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 										    glame_canvas_group_get_type(),
 										    NULL));
 		DPRINTF("reparenting item\n");
+		next = g_list_next(list);
 		glame_canvas_group_reparent_item(newgrp,GLAME_CANVAS_FILTER(list->data));
-		list = g_list_next(list);
+		glame_canvas_filter_redraw(GLAME_CANVAS_FILTER(list->data));
+		list = next;
 	}
 	
-	list = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
+	list = g_list_first(group->groups);
 	while(list){
 		if(GLAME_IS_CANVAS_GROUP(list->data))
 			gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(list->data),root);
 		list = g_list_next(list);
 	}
+	g_list_free(group->groups);
 }
 
 void glame_canvas_group_remove_item(GlameCanvasGroup* group, GlameCanvasFilter* item)
 {
 	group->children = g_list_remove(group->children,item);
 	if(!group->children)
-		if(!GNOME_CANVAS_GROUP(group)->item_list)		/* no more children */
+		if(!group->groups)
 			glame_canvas_group_destroy(GTO(group));
 }
 void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
@@ -421,16 +434,21 @@ void _glame_canvas_group_select(GlameCanvasGroup* group)
 {
 
 	GlameCanvas* canvas;
-	GList* list = g_list_first(group->children);
+	GList* list;
+
+	if(!group)
+		return;
+	list = g_list_first(group->children);
+	
+	DPRINTF("bla\n");
 	canvas = CANVAS_ITEM_GLAME_CANVAS(GCI(group));
 	while(list){
 		glame_canvas_select_add(canvas,GLAME_CANVAS_FILTER(list->data));
 		list = g_list_next(list);
 	}
-	list = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
+	list = g_list_first(group->groups);
 	while(list){
-		if(GLAME_IS_CANVAS_GROUP(list->data))
-			_glame_canvas_group_select(list->data);
+		_glame_canvas_group_select(list->data);
 		list = g_list_next(list);
 	}
 }
@@ -438,29 +456,40 @@ void _glame_canvas_group_select(GlameCanvasGroup* group)
 void glame_canvas_group_select(GlameCanvasGroup* group)
 {
 	_glame_canvas_group_select(glame_canvas_group_root(group));
+	glame_canvas_group_raise(glame_canvas_group_root(group));
 }
 void _glame_canvas_group_unselect(GlameCanvasGroup* group)
 {
 
 	GlameCanvas* canvas;
-	GList* list = g_list_first(group->children);
+	GList* list;
+
+	if(!group)
+		return;
+	list = g_list_first(group->children);
 	canvas = CANVAS_ITEM_GLAME_CANVAS(GCI(group));
 
 	while(list){
-		glame_canvas_select_unselect(canvas,GLAME_CANVAS_FILTER(list->data));
+		glame_canvas_filter_set_selected(GLAME_CANVAS_FILTER(list->data),FALSE);
 		list = g_list_next(list);
 	}
-	list = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
+	list = g_list_first(group->groups);
 	while(list){
-		if(GLAME_IS_CANVAS_GROUP(list->data))
-			_glame_canvas_group_unselect(list->data);
+		_glame_canvas_group_unselect(list->data);
 		list = g_list_next(list);
 	}
 }
 
 void glame_canvas_group_unselect(GlameCanvasGroup* group)
 {
-	_glame_canvas_group_unselect(glame_canvas_group_root(group));
+	GlameCanvasGroup* root;
+	GlameCanvas* canvas;
+
+	if(!root)return;
+	root = glame_canvas_group_root(group);
+	canvas = CANVAS_ITEM_GLAME_CANVAS(group);
+	_glame_canvas_group_unselect(root);
+	canvas->selectedItems = g_list_remove(canvas->selectedItems,glame_canvas_group_root(group));
 }
 
 
@@ -468,17 +497,20 @@ void glame_canvas_group_unselect(GlameCanvasGroup* group)
 void _glame_canvas_group_raise(GlameCanvasGroup* group)
 {
 		
-	GList* list = g_list_first(group->children);
+	if(!group)
+		return;
+	else{
+		GList* list = g_list_first(group->children);
 		
-	while(list){
-		_glame_canvas_filter_raise_to_top(list->data);
-		list = g_list_next(list);
-	}
-	list = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
-	while(list){
-		if(GLAME_IS_CANVAS_GROUP(list->data))
+		while(list){
+			_glame_canvas_filter_raise_to_top(list->data);
+			list = g_list_next(list);
+		}
+		list = g_list_first(group->groups);
+		while(list){
 			_glame_canvas_group_raise(list->data);
-		list = g_list_next(list);
+			list = g_list_next(list);
+		}
 	}
 }
 void glame_canvas_group_raise(GlameCanvasGroup* group)
@@ -494,13 +526,7 @@ void glame_canvas_group_set_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter
 
 static guint glame_canvas_group_children_count(GlameCanvasGroup* group)
 {
-	guint count = g_list_length(group->children);
-	GList * list = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
-	while(list){
-		if(GLAME_IS_CANVAS_GROUP(list->data))
-			count++;
-		list = g_list_next(list);
-	}
+	guint count = g_list_length(group->children) + g_list_length(group->groups);
 	return count;
 }
 		
@@ -513,15 +539,18 @@ void glame_canvas_group_reparent_item(GlameCanvasGroup* glameGroup, GlameCanvasF
 	glameGroup->children = g_list_append(glameGroup->children,gItem);
 }
 
-void glame_canvas_group_add(GlameCanvasGroup* parent, GlameCanvasFilter* newchild)
+void glame_canvas_group_add(GlameCanvasGroup* parent, GlameCanvasGroup* child)
 {
-	GlameCanvasGroup* child = GLAME_CANVAS_GROUP(GCI(newchild)->parent);
 	if(glame_canvas_group_children_count(child)>1){
+		GlameCanvasGroup* oldparent = GCI(child)->parent;
 		DPRINTF("adding subgroup\n");
-		gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(newchild),GNOME_CANVAS_GROUP(parent));
+		gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(child),GNOME_CANVAS_GROUP(parent));
+		parent->groups = g_list_append(parent->groups,child);
+		if(GLAME_IS_CANVAS_GROUP(oldparent))
+			oldparent->groups = g_list_remove(oldparent->groups,child);		
 	}else{
 		DPRINTF("adding item\n");
-		glame_canvas_group_reparent_item(parent, newchild);
+		glame_canvas_group_reparent_item(parent, (g_list_first(child->children))->data); // FIXME!
 	}
 }
 
@@ -577,8 +606,11 @@ void glame_canvas_view_all(GlameCanvas* canv)
 
 void glame_canvas_select_add(GlameCanvas* canvas, GlameCanvasFilter* filter)
 {
+	GlameCanvasGroup* root = glame_canvas_group_root(filter);
 	glame_canvas_filter_set_selected(filter,TRUE);
-	canvas->selectedItems = g_list_append(canvas->selectedItems,filter);
+	if(!g_list_find(canvas->selectedItems,root)){
+		canvas->selectedItems = g_list_append(canvas->selectedItems,root);
+	}
 }
 
 void glame_canvas_select_exclusive(GlameCanvas* canvas, GlameCanvasFilter* filter)
@@ -591,13 +623,14 @@ void glame_canvas_select_exclusive(GlameCanvas* canvas, GlameCanvasFilter* filte
 void glame_canvas_select_clear(GlameCanvas *canvas)
 {
 	GList* iter;
+	GList* removed = NULL;
 
 	iter = g_list_first(canvas->selectedItems);
 	while(iter){
-		glame_canvas_filter_set_selected(GLAME_CANVAS_FILTER(iter->data), FALSE);
+		if(GLAME_IS_CANVAS_GROUP(iter->data))
+			glame_canvas_group_unselect(GLAME_CANVAS_GROUP(iter->data));
 		iter = g_list_next(iter);
 	}
-	g_list_free(canvas->selectedItems);
 	canvas->selectedItems = NULL;
 }
 	
@@ -609,42 +642,29 @@ void glame_canvas_select_unselect(GlameCanvas* canvas, GlameCanvasFilter* filter
 
 void glame_canvas_group_selected(GlameCanvas* canvas)
 {
-	GList * iter;
+	GList * iter, *list;
 	GlameCanvasGroup* group;
-	
-	iter = g_list_first(canvas->selectedItems);
-	if(iter && iter->data)
-		group = GCI(iter->data)->parent;
-	else{
-		DPRINTF("item without parent? impossible\n");
-		return;
+	gboolean found = FALSE;
+	GlameCanvasGroup* newgroup;
+	group = GLAME_CANVAS_GROUP(gnome_canvas_item_new(gnome_canvas_root(GNOME_CANVAS(canvas)),
+							 glame_canvas_group_get_type(),
+							 NULL));
+	list = g_list_first(canvas->selectedItems);
+	while(list){
+		newgroup = GLAME_CANVAS_GROUP(list->data);
+		list = g_list_next(list);
+		glame_canvas_group_add(group, newgroup);
 	}
-	iter = g_list_next(iter);
-	while(iter){
-		glame_canvas_group_add(group, iter->data);
-		iter = g_list_next(iter);
-	}
+	glame_canvas_select_clear(canvas);
 }
-		
+
 void glame_canvas_ungroup_selected(GlameCanvas* canvas)
 {
 	GList *list = g_list_first(canvas->selectedItems);
 	
 /* Yuck! FIXME */
 	while(list){
-		guint id = glame_canvas_group_root_id(GNOME_CANVAS_ITEM(list->data)->parent);
-		GList * iter;
-		gboolean found = FALSE;
-		iter = g_list_next(list);
-		while((iter)&&(!found)){
-			if(id == glame_canvas_group_root_id(GNOME_CANVAS_ITEM(iter->data)->parent))
-				found = TRUE;
-			iter = g_list_next(iter);
-		}
-		if(!found){
-			DPRINTF("Dissolving group id: %d\n",id);
-			glame_canvas_group_dissolve(GNOME_CANVAS_ITEM(list->data)->parent);
-		}
+		glame_canvas_group_dissolve(GLAME_CANVAS_GROUP(list->data));
 		list = g_list_next(list);
 	}
 }
