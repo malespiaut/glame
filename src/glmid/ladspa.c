@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.8 2001/05/06 19:11:56 nold Exp $
+ * $Id: ladspa.c,v 1.9 2001/05/12 10:49:39 mag Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -31,6 +31,21 @@
 
 
 /* Generic LADSPA filter wrapping function. */
+
+static int ladspa_connect_out(filter_t *n, filter_port_t *port,
+		                                filter_pipe_t *p)
+{
+	int rate;
+	float pos;
+
+	rate = filterparam_val_int(filterparamdb_get_param(
+				filter_paramdb(n), "GLAME Sample Rate"));
+	pos = filterparam_val_float(filterparamdb_get_param(
+				filter_paramdb(n), "GLAME Position"));
+	filterpipe_settype_sample(p, rate, pos);
+	return 0;
+}
+
 static int ladspa_f(filter_t * n)
 {
 	nto1_state_t *psNTo1_State = NULL;
@@ -47,7 +62,8 @@ static int ladspa_f(filter_t * n)
 	const LADSPA_Descriptor *psDescriptor;
 	LADSPA_PortDescriptor iPortDescriptor;
 	SAMPLE **dummy;
-
+	long glame_timer;
+	
 	psDescriptor = (const LADSPA_Descriptor *) (n->priv);
 	lPortCount = psDescriptor->PortCount;
 	DPRINTF("%ld ports found\n", lPortCount);
@@ -112,6 +128,18 @@ static int ladspa_f(filter_t * n)
 			lSampleRate = GLAME_DEFAULT_SAMPLERATE;
 	}
 
+	psParam = filterparamdb_get_param(filter_paramdb(n),
+					  "GLAME Duration");
+	if (psParam != NULL) {
+		/* ok, we have a sound generator there
+		 * give it some time to rumble */
+		glame_timer = TIME2CNT(unsigned long, 
+				       filterparam_val_float(psParam)*1000.0,
+				       lSampleRate);
+	}
+	else 
+		glame_timer = 1;
+
 	/* Construct pointers for GLAME Ports, but with slots corresponding
 	   to the numbering on the LADSPA plugin. Construct array for simple
 	   float data for the control ports. Note that for each LADSPA port
@@ -122,15 +150,11 @@ static int ladspa_f(filter_t * n)
 		psNTo1_State =
 		    (nto1_state_t *) malloc(sizeof(nto1_state_t) *
 					    iNTo1_NR);
-	ppsAudioPorts =
-	    (filter_pipe_t **) malloc(sizeof(filter_pipe_t *) *
-				      lPortCount);
-	pfControlValues =
-	    (LADSPA_Data *) malloc(sizeof(LADSPA_Data) * lPortCount);
-	ppsBuffers =
-	    (filter_buffer_t **) malloc(sizeof(filter_buffer_t *) *
-					lPortCount);
-	dummy = ALLOCN(lPortCount, SAMPLE *);
+
+	ppsAudioPorts	= ALLOCN(lPortCount, filter_pipe_t *);
+	pfControlValues = ALLOCN(lPortCount, LADSPA_Data);
+	ppsBuffers 	= ALLOCN(lPortCount, filter_buffer_t *);
+	dummy 		= ALLOCN(lPortCount, SAMPLE *);
 
 	if ((!psNTo1_State && iNTo1_NR > 0)
 	    || !ppsAudioPorts || !pfControlValues || !ppsBuffers)
@@ -173,21 +197,29 @@ static int ladspa_f(filter_t * n)
 				pfControlValues[lPortIndex] =
 				    filterparam_val_float(psParam);
 			}
-			/* We now need to wire up the control port on the LADSPA plugin
-			   to the point in the control ports array. For an input port
-			   the value acquired by filterparam_val_float() will be
-			   used. For an output port the value will be written into the
-			   relevant spot in the array but never read again. Less than
-			   ideal, perhaps a FIXME for a later date... */
+			
+/* 
+ * We now need to wire up the control port on the LADSPA plugin
+ * to the point in the control ports array. For an input port
+ * the value acquired by filterparam_val_float() will be
+ * used. For an output port the value will be written into the
+ * relevant spot in the array but never read again. Less than
+ * ideal, perhaps a FIXME for a later date... 
+ */
+			
 			psDescriptor->connect_port(psLADSPAPluginInstance,
 						   lPortIndex,
 						   pfControlValues +
 						   lPortIndex);
 		} else {	/* i.e. LADSPA_IS_PORT_AUDIO(iPortDescriptor) */
 
-			/* We simply want to hang on to the port input/output channel
-			   for use further along. */
+/* 
+ * We simply want to hang on to the port input/output channel
+ * for use further along. 
+ */
 			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
+				DPRINTF("Mapping audio input port %ld",
+						lPortIndex);
 				psNTo1_State[iNTo1_Index++].in
 				    = ppsAudioPorts[lPortIndex]
 				    =
@@ -196,18 +228,22 @@ static int ladspa_f(filter_t * n)
 				     (filter_portdb(n),
 				      psDescriptor->
 				      PortNames[lPortIndex]));
-			} else	/* i.e. LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
-				ppsAudioPorts[lPortIndex]
-				    =
-				    filterport_get_pipe
+			} 
+			else	/* i.e. LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
+			{
+				DPRINTF("Mapping audio output port %ld\n",
+						lPortIndex);
+				ppsAudioPorts[lPortIndex] =
+					filterport_get_pipe
 				    (filterportdb_get_port
 				     (filter_portdb(n),
 				      psDescriptor->
 				      PortNames[lPortIndex]));
-		}
-		if (!ppsAudioPorts[lPortIndex]) {
-			DPRINTF("port %ld not connected\n", lPortIndex);
-			FILTER_ERROR_CLEANUP("port not connected");
+			}
+			if (!ppsAudioPorts[lPortIndex]) {
+				DPRINTF("port %ld not connected\n", lPortIndex);
+				FILTER_ERROR_CLEANUP("port not connected");
+			}
 		}
 	}
 
@@ -221,7 +257,8 @@ static int ladspa_f(filter_t * n)
 /* LADSPA plugins seem not to handle running out of data on one
  * input only, so the check nto1_tail() == 0 seems correct _if_
  * we do a simple "drop" loop after the main loop. */
-	while (nto1_tail(psNTo1_State, iNTo1_NR) == 0) {
+
+	while ((nto1_tail(psNTo1_State, iNTo1_NR) == 0) && (glame_timer>0)) {
 
 		FILTER_CHECK_STOP;
 
@@ -279,20 +316,22 @@ static int ladspa_f(filter_t * n)
 						     dummy[lPortIndex]);
 					}
 
-					/* Note that the above code will ONLY WORK IF
-					   SAMPLE=LADSPA_Data (=float). If SAMPLE becomes something
-					   different, it will be necessary to use intermediary
-					   LADSPA_Data buffers to perform the translations to and
-					   from as the LADSPA plugin itself only understands
-					   LADSPA_Data (floats). */
+/* Note that the above code will ONLY WORK IF
+   SAMPLE=LADSPA_Data (=float). If SAMPLE becomes something
+   different, it will be necessary to use intermediary
+   LADSPA_Data buffers to perform the translations to and
+   from as the LADSPA plugin itself only understands
+   LADSPA_Data (floats). */
 
 					iNTo1_Index++;
 				}
 			}
 		} else {
-			/* We have no buffers coming in. Therefore we can choose our own
+	/* We have no buffers coming in. Therefore we can choose our own
 			   sample count. Large counts are good. */
 			lRunSampleCount = GLAME_WBUFSIZE;
+			if  (iNTo1_NR==0)
+				glame_timer -= GLAME_WBUFSIZE;
 		}
 
 		/* Create GLAME output buffers for each audio output port on the
@@ -520,10 +559,24 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		   channels as it has none. GLAME therefore requires us to choose
 		   one ourselves. This requires us to provide a sample-rate
 		   parameter on the plugin itself. */
+		psFilter->connect_out = ladspa_connect_out;
+		
 		filterparamdb_add_param_int(filter_paramdb(psFilter),
 					    "GLAME Sample Rate",
 					    FILTER_PARAMTYPE_INT,
 					    GLAME_DEFAULT_SAMPLERATE,
+					    FILTERPARAM_END);
+		
+		filterparamdb_add_param_float(filter_paramdb(psFilter),
+					    "GLAME Position",
+					    FILTER_PARAMTYPE_FLOAT,
+					    0.0,
+					    FILTERPARAM_END);
+		
+		filterparamdb_add_param_float(filter_paramdb(psFilter),
+					    "GLAME Duration",
+					    FILTER_PARAMTYPE_FLOAT,
+					    5.0,
 					    FILTERPARAM_END);
 	}
 
