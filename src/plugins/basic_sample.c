@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.21 2001/01/18 16:53:13 mag Exp $
+ * $Id: basic_sample.c,v 1.22 2001/03/20 09:55:56 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -79,6 +79,7 @@ static int mix(filter_t *n, int drop)
 	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	filter_param_t *param;
+	struct timeval timeout;
 	int i, res, cnt, icnt;
 	int rate, maxfd, out_pos, eof_pos, fifo_full, output_ready;
 	int *j, jcnt;
@@ -183,12 +184,19 @@ static int mix(filter_t *n, int drop)
 			if (out->source_fd > maxfd)
 				maxfd = out->source_fd;
 		}
+		timeout.tv_sec = 5;
+		timeout.tv_usec = 0;
 		res = select(maxfd+1, fifo_full ? NULL : &rset,
-			     !out || !output_ready ? NULL : &wset, NULL, NULL);
+			     !out || !output_ready ? NULL : &wset, NULL, &timeout);
 		if (res == -1) {
 			if (errno != EINTR)
 				perror("select");
 			continue;
+		}
+		if (res == 0) {
+			/* Uh, deadlock... */
+			fprintf(stderr, "FATAL ERROR: deadlock in mix detected!\n");
+			break;
 		}
 
 		/* Check the inputs for buffers. */
@@ -522,8 +530,8 @@ int mix_register(plugin_t *p)
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
 			  mix_handler, NULL);
 
-	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
-	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
+	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until first stream end allowing feedback");
+	plugin_set(p, PLUGIN_PIXMAP, "mix.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
 	return filter_register(f, p);
 }
@@ -568,7 +576,7 @@ int mix2_register(plugin_t *p)
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
 			  mix_handler, NULL);
 
-	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
+	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until the last input stream ended");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
   
