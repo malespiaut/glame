@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.10 2001/05/28 13:07:55 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.11 2001/05/30 14:43:10 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -131,6 +131,7 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 	
 	GdkEventButton *event_button;
 	GnomeCanvasItem* onItem;	
+
 	switch(event->type){
 
 	case GDK_BUTTON_PRESS:
@@ -141,11 +142,13 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 
 		switch(event->button.button){
 		case 1:
-#if 0
-			if(!onItem){
-				group_all(glCanv);
+			if(bMac){
+				if(!onItem){
+					menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
+					gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
+					return TRUE;
+				}
 			}
-#endif
 			break;
 		case 2:
 			if(!onItem){

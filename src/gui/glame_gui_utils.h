@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.16 2001/05/28 08:11:14 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.17 2001/05/30 14:43:09 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -119,6 +119,5 @@ int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data);
 GdkImlibImage* glame_load_icon(const char* filename);
 /* Same as above, but returns the image as a gnomepixmap (a widget) */
 GtkWidget* glame_load_icon_widget(const char* filename);
- 
 
 #endif

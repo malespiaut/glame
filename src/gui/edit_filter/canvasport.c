@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.8 2001/05/28 13:07:55 xwolf Exp $
+ * $Id: canvasport.c,v 1.9 2001/05/30 14:43:10 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -27,6 +27,7 @@
 #include "canvasitem.h"
 #include "hash.h"
 
+extern gboolean bMac;
 
 HASH(gcport, GlameCanvasPort, 8,
 	(gcport->port == key ),
@@ -191,20 +192,30 @@ glame_canvas_port_deleted_cb(GlameCanvasFilter* f, GlameCanvasPort *p)
 
 static gboolean
 glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPort* port);
+static void 
+glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port);
 
 static int last_x, last_y;
-static GnomeCanvasPoints * points;
+static GnomeCanvasPoints * points = NULL;
+static GnomeCanvasLine* line = NULL;
+static GnomeUIInfo port_menu[] = 
+{
+	GNOMEUIINFO_ITEM("_Redirect port","redirect", glame_canvas_port_redirect_cb, NULL),
+	GNOMEUIINFO_END
+};
 
 static gboolean
-glame_canvas_port_grabbing_cb(GnomeCanvasLine* line, GdkEvent* event, GlameCanvasPort* port)
+glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanvasPort* port_copy)
 {
 	//	GnomeCanvasPoints* points;
 	GnomeCanvasItem* item;
+	GtkWidget* menu;
 	GnomeCanvas * canvas;
 	GlameCanvasPort* otherPort;
 	double eventx, eventy;
 	filter_pipe_t* pipe;
 	double pixperunt;
+
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		
@@ -221,33 +232,48 @@ glame_canvas_port_grabbing_cb(GnomeCanvasLine* line, GdkEvent* event, GlameCanva
 		
 		return TRUE;
 		break;
-	case GDK_BUTTON_RELEASE:
-		gnome_canvas_item_ungrab(line,event->button.time);
-		gtk_signal_disconnect_by_func(line,glame_canvas_port_grabbing_cb,port);
+	case GDK_2BUTTON_PRESS:
+		gnome_canvas_item_ungrab(port,event->button.time);
+		gtk_signal_disconnect_by_func(port,glame_canvas_port_grabbing_cb,port);
 		gtk_signal_handler_unblock_by_func(port,glame_canvas_port_event_cb,port);
-		gnome_canvas_points_free(points);
-		gtk_object_destroy(GTK_OBJECT(line));
-		canvas = CANVAS_ITEM_CANVAS(line);
+		canvas = CANVAS_ITEM_CANVAS(port);
+		gnome_canvas_item_hide(GNOME_CANVAS_ITEM(line));
+		
+		if(bMac){
+			if(event->button.button == 1){
+				menu = gnome_popup_menu_new(port_menu);
+				gnome_popup_menu_do_popup_modal(menu, NULL,NULL,&event->button, port);
+			}
+		}
+		return TRUE;
+		break;	
+	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(port,event->button.time);
+		gtk_signal_disconnect_by_func(port,glame_canvas_port_grabbing_cb,port);
+		gtk_signal_handler_unblock_by_func(port,glame_canvas_port_event_cb,port);
+		canvas = CANVAS_ITEM_CANVAS(port);
+		gnome_canvas_item_hide(GNOME_CANVAS_ITEM(line));
 		
 		item = gnome_canvas_get_item_at(canvas, event->button.x,event->button.y);
-		if(item){
-			if(GLAME_IS_CANVAS_PORT(item)){
-				/* kool. found other port */
-				otherPort = GLAME_CANVAS_PORT(item);
-				if(filterport_is_output(port->port) && filterport_is_input(otherPort->port)){
-					pipe=filterport_connect(port->port,otherPort->port);
-					if(pipe)
-						glame_canvas_pipe_new(CANVAS_ITEM_ROOT(item),pipe);
-				}else{
-					if(filterport_is_input(port->port) && filterport_is_output(otherPort->port)){
-						pipe=filterport_connect(otherPort->port,port->port);
-						if(pipe)
-							glame_canvas_pipe_new(CANVAS_ITEM_ROOT(item),pipe);
-					}
-				}
+		if(item && GLAME_IS_CANVAS_PORT(item)) {
+			/* kool. found other port */
+			otherPort = GLAME_CANVAS_PORT(item);
+			if(filterport_is_output(port->port) && filterport_is_input(otherPort->port)) {
+				pipe=filterport_connect(port->port,otherPort->port);
+				if(pipe)
+					glame_canvas_pipe_new(CANVAS_ITEM_ROOT(item),pipe);
+				return TRUE;
 			}
-		}else
-			return TRUE;
+			if(filterport_is_input(port->port) && filterport_is_output(otherPort->port)) {
+				pipe=filterport_connect(otherPort->port,port->port);
+				if(pipe)
+					glame_canvas_pipe_new(CANVAS_ITEM_ROOT(item),pipe);
+				return TRUE;
+			}
+			DPRINTF("wrong port type\n");
+			return FALSE;
+		}
+	        break; 
 	default:
 		return FALSE;
 	}
@@ -302,51 +328,57 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 	free(filenamebuffer);
 }	
 
-static GnomeUIInfo port_menu[] = 
-{
-	GNOMEUIINFO_ITEM("_Redirect port","redirect", glame_canvas_port_redirect_cb, NULL),
-	GNOMEUIINFO_END
-};
-
 static gboolean
 glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPort* port)
 {
-	GnomeCanvasLine*line;
+
 	GtkWidget *menu;
+
+	if(!points)
+		points = gnome_canvas_points_new(2);
+	if(!line){
+		last_x = event->button.x;
+		last_y = event->button.y;
+		points->coords[0]=last_x;
+		points->coords[1]=last_y;
+		points->coords[2]=last_x;
+		points->coords[3]=last_y;
+		
+		line = GNOME_CANVAS_LINE(gnome_canvas_item_new(CANVAS_ITEM_ROOT(item),
+							       gnome_canvas_line_get_type(),
+							       "points",points,
+							       "fill_color","black",
+							       "width_units",2.0,
+							       "arrow_shape_a",18.0,
+							       "arrow_shape_b",20.0,
+							       "arrow_shape_c",5.0,
+							       "line_style",GDK_LINE_ON_OFF_DASH,
+							       "smooth",TRUE,
+							       "spline_steps",100,
+							       "last_arrowhead",TRUE,
+							       NULL));
+	}
+		
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
-			
 			/* block other handlers (this one ;-) */
 			gtk_signal_handler_block_by_func(GTK_OBJECT(port),glame_canvas_port_event_cb,port);
-			/* create line and attach handler */
+			/* show line and attach handler */
 			last_x = event->button.x;
 			last_y = event->button.y;
-			points = gnome_canvas_points_new(2);
 			points->coords[0]=last_x;
 			points->coords[1]=last_y;
 			points->coords[2]=last_x;
 			points->coords[3]=last_y;
-
-			line = GNOME_CANVAS_LINE(gnome_canvas_item_new(CANVAS_ITEM_ROOT(item),
-								       gnome_canvas_line_get_type(),
-								       "points",points,
-								       "fill_color","black",
-								       "width_units",2.0,
-								       "arrow_shape_a",18.0,
-								       "arrow_shape_b",20.0,
-								       "arrow_shape_c",5.0,
-								       "line_style",GDK_LINE_ON_OFF_DASH,
-								       "smooth",TRUE,
-								       "spline_steps",100,
-								       "last_arrowhead",TRUE,
-								       NULL));
-			
-			gtk_signal_connect(GTK_OBJECT(line),"event", glame_canvas_port_grabbing_cb, port);
-			
+			gnome_canvas_item_set(GNOME_CANVAS_ITEM(line),
+					      "points",points,
+					      NULL);
+			gnome_canvas_item_show(GNOME_CANVAS_ITEM(line));
+			gtk_signal_connect(GTK_OBJECT(port),"event", glame_canvas_port_grabbing_cb, port);
 			/* grab the thing */
-			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(line),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,NULL,
+			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(port),GDK_BUTTON_MOTION_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,NULL,
 					       event->button.time);
 			return TRUE;
 			break;

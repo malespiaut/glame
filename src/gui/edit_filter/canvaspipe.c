@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.8 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.9 2001/05/30 14:43:10 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -30,6 +30,7 @@
 #include "hash.h"
 
 
+extern gboolean bMac;
 
 HASH(gcpipe, GlameCanvasPipe, 8,
 	(gcpipe->pipe == key ),
@@ -247,24 +248,6 @@ glame_canvas_pipe_deleted_cb(glsig_handler_t* foo,long sig,va_list va)
 static gboolean
 glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p);
 
-static gboolean
-glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
-{
-
-	switch(event->type){
-	case GDK_MOTION_NOTIFY:
-		/* do something here */
-		return TRUE;
-		break;
-	case GDK_BUTTON_RELEASE:
-		gnome_canvas_item_ungrab(i,event->button.time);
-		gtk_signal_disconnect_by_func(i,glame_canvas_pipe_grabbing_cb,p);
-		gtk_signal_handler_unblock_by_func(i,glame_canvas_pipe_event_cb,p);
-		return TRUE;
-	default:
-		return FALSE;
-	}
-}
 
 
 /****************
@@ -300,6 +283,40 @@ static GnomeUIInfo pipe_menu[]=
 
 
 static gboolean
+glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
+{
+	GtkWidget* menu;
+	switch(event->type){
+	case GDK_MOTION_NOTIFY:
+		/* do something here */
+		return TRUE;
+		break;
+	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(i,event->button.time);
+		gtk_signal_disconnect_by_func(i,glame_canvas_pipe_grabbing_cb,p);
+		gtk_signal_handler_unblock_by_func(i,glame_canvas_pipe_event_cb,p);
+		return TRUE;
+	case GDK_2BUTTON_PRESS:
+		switch(event->button.button){
+		case 1:
+			if(bMac){
+				menu = gnome_popup_menu_new(pipe_menu);
+				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe);
+			}
+			break;
+		}
+		gnome_canvas_item_ungrab(i,event->button.time);
+		gtk_signal_disconnect_by_func(i,glame_canvas_pipe_grabbing_cb,p);
+		gtk_signal_handler_unblock_by_func(i,glame_canvas_pipe_event_cb,p);
+		return TRUE;
+		break;
+
+	default:
+		return FALSE;
+	}
+}
+
+static gboolean
 glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
 {
 	GdkCursor * fleur;
@@ -313,7 +330,7 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 			/* block other handlers (this one ;-) */
 			gtk_signal_handler_block_by_func(GTK_OBJECT(i),glame_canvas_pipe_event_cb,p);
 			gtk_signal_connect(GTK_OBJECT(i),"event", glame_canvas_pipe_grabbing_cb, p);
-			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,fleur,
+			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,fleur,
 					       event->button.time);
 			gdk_cursor_destroy(fleur);
 			return TRUE;
@@ -328,6 +345,16 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 			return FALSE;
 			break;
 		}
+	case GDK_2BUTTON_PRESS:
+		switch(event->button.button){
+		case 1:
+			if(bMac){
+				menu = gnome_popup_menu_new(pipe_menu);
+				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe);
+			}
+			break;
+		}
+		break;
 	default:
 		return FALSE;
 		break;
