@@ -3,7 +3,7 @@
 
 /*
  * glsimd.h
- * $Id: glsimd.h,v 1.7 2005/03/20 19:25:40 richi Exp $
+ * $Id: glsimd.h,v 1.8 2005/03/24 17:37:54 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -112,33 +112,58 @@ void glsimd_init(int force_c);
  * versions.
  */
 
-#define SHORT2SAMPLE(s)  ((SAMPLE)(gl_s16)(s)/(SAMPLE)(1<<15))
-#define USHORT2SAMPLE(s) ((SAMPLE)(gl_u16)(s)/(SAMPLE)(1<<15) - 1.0)
-#define CHAR2SAMPLE(s)  ((SAMPLE)(gl_s8)(s)/(SAMPLE)(1<<7))
-#define UCHAR2SAMPLE(s) ((SAMPLE)(gl_u8)(s)/(SAMPLE)(1<<7) - 1.0)
+#define SHORT2SAMPLE(s)  ((SAMPLE)(gl_s16)(s)/(SAMPLE)0x7fffu)
+#define USHORT2SAMPLE(s) ((SAMPLE)((gl_u16)(s)-(gl_u16)0x8000u)/(SAMPLE)0x7fffu)
+#define CHAR2SAMPLE(s)  ((SAMPLE)(gl_s8)(s)/(SAMPLE)0x7fu)
+#define UCHAR2SAMPLE(s) ((SAMPLE)((gl_u8)(s)-(gl_u8)0x80u)/(SAMPLE)0x7fu)
 
 static inline gl_s16 SAMPLE2SHORT(SAMPLE s)
 {
-        return (gl_s16)((s<-1.0f ? -1.0f : (s>1.0f ? 1.0f : s))
-                *(s<0.0f ? (1<<15) : (1<<15)-1));
+	/* Two variants - signed shorts in [-32768, 32767]
+	 * or [-32767, 32767].  Choose the faster.
+	 * Likewise for the other functions.  */
+#if 1
+	if (s <= -1.0f)
+		return 0x8001;
+	else if (s >= 1.0f)
+		return 0x7fff;
+	return s * 0x7fffu;
+#else
+	if (s <= -1.0f)
+		return 0x8000;
+	else if (s >= 1.0f)
+		return 0x7fff;
+	return s * (s < 0.0f ? 0x8000u : 0x7fffu);
+#endif
 }
 
 static inline gl_u16 SAMPLE2USHORT(SAMPLE s)
-{       
-        s += 1.0f, s *= 0.5f;
-        return (gl_u16)((s<0.0f ? 0.0f : (s>1.0f ? 1.0f : s))*((1<<16)-1));
+{
+	if (s <= -1.0f)
+		return 0;
+	else if (s >= 1.0f)
+		return 0xffffu;
+	/* We can rely on unsigned overflow here.  */
+        return (gl_u16)(gl_s16)(s * 0x7fffu) + (gl_u16)0x8000u;
 }
 
 static inline gl_s8 SAMPLE2CHAR(SAMPLE s)
 {
-        return (gl_s8)((s<-1.0f ? -1.0f : (s>1.0f ? 1.0f : s))
-                *(s<0.0f ? (1<<7) : (1<<7)-1));
+       	if (s <= -1.0f)
+		return 0x81;
+	else if (s >= 1.0f)
+		return 0x7f;
+	return s * 0x7fu;
 }
 
 static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 {
-        s += 1.0f, s *= 0.5f;
-        return (gl_u8)((s<0.0f ? 0.0f : (s>1.0f ? 1.0f : s))*((1<<7)-1));
+	if (s <= -1.0f)
+		return 0;
+	else if (s >= 1.0f)
+		return 0xffu;
+	/* We can rely on unsigned overflow here.  */
+        return (gl_u8)(gl_s8)(s * 0x7fu) + (gl_u8)0x80u;
 }
 
 
