@@ -35,6 +35,7 @@ static int plugins_register()
         plugin_get("maggy");
         plugin_get("noisegate");
 	plugin_get("pipe");
+	plugin_get("iir");
 
 	return 0;
 }
