@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.5 2000/03/27 09:20:41 richi Exp $
+ * $Id: main.c,v 1.6 2000/10/09 08:41:59 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -25,6 +25,7 @@
 #include <config.h>
 #endif
 
+#include "swapfile.h"
 #include "glmid.h"
 #include "gui.h"
 
@@ -60,6 +61,12 @@ static void gui_main()
 
 int main(int argc, char *argv[])
 {
+	/* swapfile setup */
+	if (argc >= 2) {
+		if (swapfile_open(argv[1], 0) == 0)
+			fprintf(stderr, "swapfile %s opened.\n", argv[1]);
+	}
+
 	/* setup gnome/gtk  */
 	gnome_init("glame", VERSION, argc, argv);
 
