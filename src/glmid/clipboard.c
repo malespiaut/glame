@@ -194,6 +194,8 @@ static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
 		gpsm_swfile_t *swfile;
 		if (mode != 0) {
 			swfile = gpsm_newswfile("track");
+			gpsm_swfile_set(swfile, gpsm_swfile_samplerate(item),
+					gpsm_swfile_position(item));
 			gpsm_item_place(grp, (gpsm_item_t *)swfile,
 					0, gpsm_item_vsize(grp));
 		}
@@ -209,6 +211,8 @@ static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
 			goto err;
 		if (mode != 0) {
 			swfile = gpsm_newswfile("track");
+			gpsm_swfile_set(swfile, gpsm_swfile_samplerate(it),
+					gpsm_swfile_position(it));
 			gpsm_item_place(grp, (gpsm_item_t *)swfile,
 					0, gpsm_item_vsize(grp));
 		}
