@@ -29,7 +29,7 @@
 #if defined HAVE_LIBXML
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
-#elsif defined HAVE_GNOMEXML
+#elif defined HAVE_GNOMEXML
 #include <gnome-xml/xmlmemory.h>
 #include <gnome-xml/parser.h>
 #else
