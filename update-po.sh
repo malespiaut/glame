@@ -6,7 +6,7 @@ LANGS="de fr"
 for l in $LANGS; do
 	cp po/$l.po messages.po
 	for s in $SOURCES; do
-		xgettext -a --debug -j -F $s
+		xgettext -a --debug --exclude-file=po/ignore -j -F $s
 	done
 	mv messages.po po/$l.po.new
 done

@@ -1,0 +1,381 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2001-12-23 15:52+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: ENCODING\n"
+
+#: src/gui/main.c:102
+msgid "info:glame#Quick_Start_Guide"
+msgstr ""
+
+#: src/gui/main.c:103
+msgid "list_keybindings"
+msgstr ""
+
+#: src/gui/main.c:176
+msgid "Cannot insert new group!?\n"
+msgstr ""
+
+#: src/gui/main.c:182
+msgid "Umm, cant find widget for new project.\n"
+msgstr ""
+
+#: src/gui/main.c:190
+#, possible-c-format
+msgid "Destroying subtree %s\n"
+msgstr ""
+
+#: src/gui/main.c:213 src/gui/main.c:757
+msgid "destroy"
+msgstr ""
+
+#: src/gui/main.c:241
+msgid "main:load_plugin"
+msgstr ""
+
+#: src/gui/main.c:268 src/gui/main.c:275 src/gui/main.c:482 src/gui/main.c:649
+#: src/gui/main.c:834
+msgid "swapfile/defaultpath"
+msgstr ""
+
+#: src/gui/main.c:274
+#, possible-c-format
+msgid "%s/.glameswap"
+msgstr ""
+
+#: src/gui/main.c:277 src/gui/main.c:514 src/gui/main.c:651
+msgid "swapfile/maxundo"
+msgstr ""
+
+#: src/gui/main.c:280 src/gui/main.c:491 src/gui/main.c:653
+msgid "swapfile/maxlru"
+msgstr ""
+
+#: src/gui/main.c:281 src/gui/main.c:496 src/gui/main.c:655
+msgid "swapfile/maxfds"
+msgstr ""
+
+#: src/gui/main.c:282 src/gui/main.c:501 src/gui/main.c:657
+msgid "swapfile/maxmaps"
+msgstr ""
+
+#: src/gui/main.c:283 src/gui/main.c:506 src/gui/main.c:659
+msgid "swapfile/maxvm"
+msgstr ""
+
+#: src/gui/main.c:287 src/gui/main.c:626 src/gui/main.c:673
+msgid "filter/wbufsize"
+msgstr ""
+
+#: src/gui/main.c:291 src/gui/main.c:603 src/gui/main.c:671
+msgid "audio_io/output_plugin"
+msgstr ""
+
+#: src/gui/main.c:292 src/gui/main.c:296 src/gui/main.c:307
+msgid "audio_out"
+msgstr ""
+
+#: src/gui/main.c:294
+#, possible-c-format
+msgid "No plugin %s - using audio_out\n"
+msgstr ""
+
+#: src/gui/main.c:300 src/gui/main.c:306 src/gui/main.c:321 src/gui/main.c:327
+msgid "device"
+msgstr ""
+
+#: src/gui/main.c:301 src/gui/main.c:322
+#, possible-c-format
+msgid "%s"
+msgstr ""
+
+#: src/gui/main.c:302 src/gui/main.c:614 src/gui/main.c:669
+msgid "audio_io/output_dev"
+msgstr ""
+
+#: src/gui/main.c:312 src/gui/main.c:567 src/gui/main.c:667
+msgid "audio_io/input_plugin"
+msgstr ""
+
+#: src/gui/main.c:313 src/gui/main.c:317 src/gui/main.c:328
+msgid "audio_in"
+msgstr ""
+
+#: src/gui/main.c:315
+#, possible-c-format
+msgid "No plugin %s - using audio_in\n"
+msgstr ""
+
+#: src/gui/main.c:323 src/gui/main.c:578 src/gui/main.c:665
+msgid "audio_io/input_dev"
+msgstr ""
+
+#: src/gui/main.c:337
+#, possible-c-format
+msgid ""
+"Preferences:\n"
+"\tSwapfile directory %s\n"
+"\tUndo stack depth is %li\n"
+"\tAudio input plugin %s, device \"%s\"\n"
+"\tAudio output plugin %s, device \"%s\"\n"
+"\tGLAME_WBUFSIZE %i\n"
+"\tPopup timeout is %lims\n"
+"\tMac mode is %s\n"
+msgstr ""
+
+#: src/gui/main.c:346
+msgid "off"
+msgstr ""
+
+#: src/gui/main.c:346
+msgid "on"
+msgstr ""
+
+#: src/gui/main.c:480
+msgid "swapfilepath"
+msgstr ""
+
+#: src/gui/main.c:487 src/gui/main.c:572 src/gui/main.c:608
+msgid "changed"
+msgstr ""
+
+#: src/gui/main.c:493 src/gui/main.c:498 src/gui/main.c:503 src/gui/main.c:508
+#: src/gui/main.c:516 src/gui/main.c:530 src/gui/main.c:628 src/gui/main.c:650
+#: src/gui/main.c:652 src/gui/main.c:654 src/gui/main.c:656 src/gui/main.c:658
+#: src/gui/main.c:660 src/gui/main.c:672
+#, possible-c-format
+msgid "%li"
+msgstr ""
+
+#: src/gui/main.c:494
+msgid "prefs::maxlru"
+msgstr ""
+
+#: src/gui/main.c:499
+msgid "prefs::maxfds"
+msgstr ""
+
+#: src/gui/main.c:528 src/gui/main.c:661
+msgid "edit_filter/popupTimeout"
+msgstr ""
+
+#: src/gui/main.c:531
+msgid "popupTimeout"
+msgstr ""
+
+#: src/gui/main.c:534 src/gui/main.c:663
+msgid "edit_filter/macMode"
+msgstr ""
+
+#: src/gui/main.c:538
+msgid "toggled"
+msgstr ""
+
+#: src/gui/main.c:554 src/gui/main.c:555
+msgid "oss_audio_in"
+msgstr ""
+
+#: src/gui/main.c:556 src/gui/main.c:557
+msgid "esd_audio_in"
+msgstr ""
+
+#: src/gui/main.c:558 src/gui/main.c:559
+msgid "alsa_audio_in"
+msgstr ""
+
+#: src/gui/main.c:560 src/gui/main.c:561
+msgid "sgi_audio_in"
+msgstr ""
+
+#: src/gui/main.c:581
+msgid "aindev"
+msgstr ""
+
+#: src/gui/main.c:590 src/gui/main.c:591
+msgid "oss_audio_out"
+msgstr ""
+
+#: src/gui/main.c:592 src/gui/main.c:593
+msgid "esd_audio_out"
+msgstr ""
+
+#: src/gui/main.c:594 src/gui/main.c:595
+msgid "alsa_audio_out"
+msgstr ""
+
+#: src/gui/main.c:596 src/gui/main.c:597
+msgid "sgi_audio_out"
+msgstr ""
+
+#: src/gui/main.c:618
+msgid "aoutdev"
+msgstr ""
+
+#: src/gui/main.c:629
+msgid "prefs::wbufsize"
+msgstr ""
+
+#: src/gui/main.c:637
+msgid "clicked"
+msgstr ""
+
+#: src/gui/main.c:709
+msgid "../data/pixmaps/glame-logo.jpg"
+msgstr ""
+
+#: src/gui/main.c:727
+msgid "about"
+msgstr ""
+
+#: src/gui/main.c:729
+msgid "Glame"
+msgstr ""
+
+#: src/gui/main.c:729
+msgid "Glameabout"
+msgstr ""
+
+#: src/gui/main.c:835
+#, possible-c-format
+msgid "path: %s\n"
+msgstr ""
+
+#: src/gui/main.c:875
+msgid "glame0.5"
+msgstr ""
+
+#: src/gui/main.c:876
+msgid "app"
+msgstr ""
+
+#: src/gui/main.c:879
+msgid "dock"
+msgstr ""
+
+#: src/gui/main.c:889
+msgid "delete-event"
+msgstr ""
+
+#: src/gui/main.c:896
+msgid "size_request"
+msgstr ""
+
+#: src/gui/main.c:901
+msgid "swapfile"
+msgstr ""
+
+#: src/gui/main.c:909
+#, possible-c-format
+msgid "%s%s%s"
+msgstr ""
+
+#: src/gui/main.c:933 src/gui/main.c:936
+msgid "glame"
+msgstr ""
+
+#: src/gui/main.c:945
+msgid "Returned to main\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:182
+#, possible-c-format
+msgid "No such operation %s\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:185
+#, possible-c-format
+msgid "Executing operation %s on %s [%li, %li[\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:193
+#, possible-c-format
+msgid "%s finished.\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:355
+msgid "gpsm_flatten failed!?\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:613
+msgid "SHIFT modifier\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:618
+msgid "CTRL modifier\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:623
+msgid "illegal modifier\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:647
+#, possible-c-format
+msgid "drag&drop: %s on %s\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:658 src/gui/swapfilegui.c:662
+#: src/gui/swapfilegui.c:671 src/gui/swapfilegui.c:675
+msgid "insertion failed\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:741 src/gui/swapfilegui.c:827
+msgid "Wrong itemw->item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:748
+#, possible-c-format
+msgid "Unhandled signal in swfile handler (%li)\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:770 src/gui/swapfilegui.c:783
+#: src/gui/swapfilegui.c:794
+msgid "button_press_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:772 src/gui/swapfilegui.c:785
+msgid "button_release_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:774 src/gui/swapfilegui.c:787
+#: src/gui/swapfilegui.c:1000
+msgid "enter_notify_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:776 src/gui/swapfilegui.c:789
+msgid "leave_notify_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:858
+msgid "Wrong tree->item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:866
+#, possible-c-format
+msgid "Unhandled signal in grp handler (%li)\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:915
+msgid "swapfilegui-root-item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:917
+msgid "swapfilegui-active-item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:919
+msgid "swapfilegui-selected-items"
+msgstr ""
+
+#: src/gui/swapfilegui.c:956
+msgid "SwapfileGui"
+msgstr ""

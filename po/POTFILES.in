@@ -2,4 +2,5 @@
 
 # So far we're in testing mode still. Only a single file for now.
 src/gui/main.c
+src/gui/swapfilegui.c
 
