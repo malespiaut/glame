@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.8 2002/04/12 11:45:36 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.9 2002/04/29 18:17:39 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -314,13 +314,14 @@ static int alsa_audio_in_f(filter_t *n)
 			sbuf_queue(pipe[i], obuf);
 		}
 	}
-	FILTER_BEFORE_CLEANUP;
+
 	FILTER_BEFORE_STOPCLEANUP;
 
 	for(i=0;i<chancnt;i++)
 		sbuf_queue(pipe[i], NULL);
-
 	DPRINTF("had %i dropouts while capturing\n", dropouts);
+
+	FILTER_BEFORE_CLEANUP;
 
 	if(handleisok==1)
 		snd_pcm_close(handle);
@@ -553,14 +554,15 @@ _entry:
 		} while (++ch < max_ch);
 	} while (ch_active || (to_go != blksz));
 
-	FILTER_BEFORE_CLEANUP;
 	FILTER_BEFORE_STOPCLEANUP;
+
+	DPRINTF("had %d dropouts\n", dropouts);
+
+	FILTER_BEFORE_CLEANUP;
 
 	if(handleisok==1)
 		snd_pcm_close(handle);
 	
-	DPRINTF("had %d dropouts\n", dropouts);
-
 	free(out);
 	free(in);
 	FILTER_RETURN;

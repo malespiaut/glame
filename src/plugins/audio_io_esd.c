@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.9 2002/02/17 13:53:31 richi Exp $
+ * $Id: audio_io_esd.c,v 1.10 2002/04/29 18:17:39 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -114,10 +114,12 @@ static int esd_in_f(filter_t *n)
 		nsamples += inbuf_spc;
 	}
 _out:
+
+	FILTER_BEFORE_STOPCLEANUP;
+
 	for (ch = 0; ch < channels; ch++)
 		sbuf_queue(pipe[ch], NULL);
 
-	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	close(sock);

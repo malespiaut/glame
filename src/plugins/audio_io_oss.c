@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.17 2002/02/17 13:53:31 richi Exp $
+ * $Id: audio_io_oss.c,v 1.18 2002/04/29 18:17:39 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -359,8 +359,8 @@ _fmt_retry:
 		} while (++ch < max_ch);
 	} while (ch_active);
 
-	FILTER_BEFORE_CLEANUP;
 	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
 
 	if (dev != -1)
 		close(dev);
