@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.42 2004/11/05 21:10:24 ochonpaul Exp $
+ * $Id: importexport.c,v 1.43 2004/11/07 22:33:43 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1126,7 +1126,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 
 struct exp_s {
-	GtkWidget *dialog, *otypemenu, *ocompmenu;
+	GtkWidget *dialog, *ocompmenu;
+	GtkComboBox *otypemenu;
 	GtkWidget *cancelbutton, *appbar;
 	int typecnt, comptypes;
 	int *indices, *comparray;
@@ -1219,11 +1220,11 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 }
 
 
-static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
+static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 {
 	int val;
 
-	val = glame_menu_get_active_index(menu);
+	val = gtk_combo_box_get_active(menu);
 #ifdef HAVE_LIBMP3LAME
 	if (val == ie->mp3_menu_index) {
 		make_comp_menu(ie, -1);
@@ -1580,11 +1581,11 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 {	
 	struct exp_s *ie;
 	GtkWidget *notebook,*label_tab1, *label_tab2, *label_tab3 ;
-	GtkWidget *dialog, *menu, *mitem, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox;
+	GtkWidget *dialog, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox;
 	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3, *fentry, *fname, *fnamebox;
 	GtkWidget *framebox, *combo_entry, *frame4, *frame4box, *edit, *dialog_action_area; 
 	GSList *rbuttons, *renderbuttons;
-	int i, length;
+	int i;
 	gchar *suffix, *title = "";
 
 #ifdef HAVE_LIBMP3LAME
@@ -1727,45 +1728,29 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	}
 	
 	/* now construct option menu with available filetypes */
+	ie->otypemenu = GTK_COMBO_BOX(gtk_combo_box_new_text());
+	gtk_widget_show(GTK_WIDGET(ie->otypemenu));
+	gtk_box_pack_start(GTK_BOX(framebox), GTK_WIDGET(ie->otypemenu), FALSE, FALSE, 0);
+
 	ie->typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
-
 	ie->indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);
-
-	ie->otypemenu = gtk_option_menu_new ();
-	gtk_widget_show(ie->otypemenu);
-	gtk_box_pack_start(GTK_BOX(framebox), ie->otypemenu, FALSE, FALSE, 0);
-	menu = gtk_menu_new();
-	
-	DPRINTF("typecnt=%d\n", ie->typecnt);
-
-	mitem =  gtk_menu_item_new_with_label("auto");
-	gtk_widget_show(mitem);
-	gtk_menu_append (GTK_MENU (menu), mitem);
-
+	gtk_combo_box_append_text(ie->otypemenu, "auto");
 	for(i=0; i<ie->typecnt; i++)  {
-		suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, ie->indices[i] ,0 ,0);
-		mitem = gtk_menu_item_new_with_label(suffix);
-		gtk_widget_show(mitem);
-		gtk_menu_append (GTK_MENU (menu), mitem);
+		suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL,
+					       ie->indices[i] ,0 ,0);
+		gtk_combo_box_append_text(ie->otypemenu, suffix);
 	}
-
 #ifdef HAVE_LIBMP3LAME 
-	mitem =  gtk_menu_item_new_with_label("mp3"); 
-	gtk_widget_show(mitem); 
-	gtk_menu_append (GTK_MENU (menu), mitem); 
-	ie->mp3_menu_index = i+1; 
+	gtk_combo_box_append_text(ie->otypemenu, "mp3");
+	ie->mp3_menu_index = ++i; 
 #endif 
 #ifdef HAVE_LIBVORBISFILE
-	mitem =  gtk_menu_item_new_with_label("ogg vorbis");
-	gtk_widget_show(mitem);
-	gtk_menu_append (GTK_MENU (menu), mitem);
-	ie->ogg_menu_index = ie->mp3_menu_index ?  i+2 : i+1; /* if no mp3lame installed*/
+	gtk_combo_box_append_text(ie->otypemenu, "ogg vorbis");
+	ie->ogg_menu_index = ++i;
 #endif
-	gtk_option_menu_set_menu (GTK_OPTION_MENU (ie->otypemenu), menu);
-	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
-				     ie->filetype == -1 ? 0 : ie->filetype);
-	ie_type_menu_cb(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->otypemenu))), ie);
-	
+	gtk_combo_box_set_active(ie->otypemenu,
+				 ie->filetype == -1 ? 0 : ie->filetype);
+	ie_type_menu_cb(ie->otypemenu, ie);
 
 #ifdef HAVE_LIBMP3LAME	
 	/*** Mp3 lame tab ***/
@@ -2077,8 +2062,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), HELP,
 				    GTK_SIGNAL_FUNC(glame_help_cb), "The_Export_Dialog");
 
-	gtk_signal_connect(GTK_OBJECT(menu),
-			   "selection_done",
+	gtk_signal_connect(GTK_OBJECT(ie->otypemenu),
+			   "changed",
 			   GTK_SIGNAL_FUNC(ie_type_menu_cb), ie);
 
 	/* in case we have a non gnome compliant wm */
