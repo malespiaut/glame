@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.19 2001/06/13 11:19:16 richi Exp $
+ * $Id: swapfile_io.c,v 1.20 2001/07/09 12:28:50 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -37,9 +37,9 @@ static int swapfile_in_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
-	long fname, offset;
+	long fname, offset, cnt;
 	off_t size, pos;
-	int cnt;
+	int res;
 	swfd_t fd;
 	struct sw_stat st;
 	filter_param_t *pos_param;
@@ -55,7 +55,8 @@ static int swapfile_in_f(filter_t *n)
 	offset = filterparam_val_int(
 		filterparamdb_get_param(filter_paramdb(n), "offset"));
 	offset *= SAMPLE_SIZE;
-	if (sw_lseek(fd, offset, SEEK_SET) != offset) {
+	if (sw_lseek(fd, MAX(0, offset), SEEK_SET) != MAX(0, offset)) {
+		DPRINTF("Cannot seek to %li\n", MAX(0, offset));
 		sw_close(fd);
 		FILTER_ERROR_RETURN("cannot seek to offset");
 	}
@@ -63,14 +64,10 @@ static int swapfile_in_f(filter_t *n)
 		filterparamdb_get_param(filter_paramdb(n), "size"));
 	sw_fstat(fd, &st);
 	if (size == -1)
-		size = st.size - offset;
-	else {
+		size = (long)st.size - offset;
+	else
 		size *= SAMPLE_SIZE;
-		if (size+offset > st.size) {
-			sw_close(fd);
-			FILTER_ERROR_RETURN("offset + size does not match file");
-		}
-	}
+	DPRINTF("from %li size %li\n", offset, size);
 
 	FILTER_AFTER_INIT;
 	pos_param = filterparamdb_get_param(
@@ -87,11 +84,22 @@ static int swapfile_in_f(filter_t *n)
 		buf = sbuf_make_private(sbuf_alloc(cnt, n));
 		size -= cnt*SAMPLE_SIZE;
 
+		/* prefill with zeroes, if necessary. */
+		if (offset < 0)
+			memset(sbuf_buf(buf), 0, MIN(cnt*SAMPLE_SIZE, -offset));
 		/* read data into the buffer - stop on error. */
-		if (sw_read(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE)
-		    != cnt*SAMPLE_SIZE)
-			size = 0;
+		if (-offset < (long)(cnt*SAMPLE_SIZE)) {
+			res = sw_read(fd,
+				      sbuf_buf(buf) + (offset < 0 ? -offset/SAMPLE_SIZE : 0),
+				      cnt*SAMPLE_SIZE - (offset < 0 ? -offset : 0));
+			if (res == -1)
+				FILTER_ERROR_STOP("Error reading");
+			if (res < cnt*SAMPLE_SIZE - (offset < 0 ? -offset : 0))
+				memset(sbuf_buf(buf) + res/SAMPLE_SIZE, 0,
+				       cnt*SAMPLE_SIZE - (offset < 0 ? -offset : 0) - res);
+		}
 
+		offset += cnt*SAMPLE_SIZE;
 		pos += cnt;
 		filterparam_val_set_pos(pos_param, pos);
 
@@ -214,6 +222,7 @@ static int swapfile_out_f(filter_t *n)
 	filter_buffer_t *buf;
 	filter_param_t *pos_param;
 	long fname, offset, size, cnt, pos, res;
+	struct sw_stat st;
 	swfd_t fd;
 
 	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
@@ -224,20 +233,28 @@ static int swapfile_out_f(filter_t *n)
 		FILTER_ERROR_RETURN("no filename");
 	offset = filterparam_val_int(
 		filterparamdb_get_param(filter_paramdb(n), "offset"));
+	/* WARNING!!! FIXME!!!! for magic offset -1 creat, for more negative drop start...
+	 */
 	if (offset == -1) {
 		if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC)))
 			FILTER_ERROR_RETURN("cannot create file");
-		sw_lseek(fd, 0, SEEK_SET);
+		offset = 0;
 	} else {
 		if (!(fd = sw_open(fname, O_RDWR)))
 			FILTER_ERROR_RETURN("cannot open file");
-		if (sw_lseek(fd, offset*SAMPLE_SIZE, SEEK_SET) != offset*SAMPLE_SIZE) {
-			FILTER_ERROR_RETURN("cannot seek to offset");
-			sw_close(fd);
-		}
+	}
+	if (sw_lseek(fd, MAX(0, offset*SAMPLE_SIZE), SEEK_SET) != MAX(0, offset*SAMPLE_SIZE)) {
+		DPRINTF("Cannot seek to %li\n", MAX(0, offset*SAMPLE_SIZE));
+		FILTER_ERROR_RETURN("cannot seek to offset");
+		sw_close(fd);
 	}
 	size = filterparam_val_int(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
+	/* Limit size to current file size, if not -1 (which allows extension). */
+	if (size != -1) {
+		sw_fstat(fd, &st);
+		size = MIN(size, ((long)(st.size/SAMPLE_SIZE)) - offset);
+	}
 
 	pos_param = filterparamdb_get_param(
 		filter_paramdb(n), FILTERPARAM_LABEL_POS);
@@ -254,18 +271,27 @@ static int swapfile_out_f(filter_t *n)
 		if (size != -1)
 			cnt = MIN(cnt, size);
 
-		/* Write the buffers data to the file. */
-		res = sw_write(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE);
-		if (res == -1)
-			FILTER_ERROR_STOP("Error writing to swapfile");
-		if (res != cnt*SAMPLE_SIZE)
-			DPRINTF("Did not write the whole buffer!?\n");
+		/* Write the buffers data to the file (drop until offset >= 0). */
+		if (-offset < cnt) {
+			res = sw_write(fd,
+				       sbuf_buf(buf) + (offset < 0 ? -offset : 0),
+				       (cnt - (offset < 0 ? -offset : 0))*SAMPLE_SIZE);
+			if (res == -1) {
+				sbuf_unref(buf);
+				FILTER_ERROR_STOP("Error writing to swapfile");
+			}
+			if (res != cnt*SAMPLE_SIZE) {
+				sbuf_unref(buf);
+				FILTER_ERROR_STOP("No longer can write (disk full?)");
+			}
+		}
 		pos += cnt;
 		filterparam_val_set_pos(pos_param, pos);
 
 		/* Update size, if necessary. */
 		if (size != -1)
 			size -= cnt;
+		offset += cnt;
 
 		/* free the buffer */
 		sbuf_unref(buf);
