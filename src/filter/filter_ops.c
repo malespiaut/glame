@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.32 2002/03/25 19:30:32 richi Exp $
+ * $Id: filter_ops.c,v 1.33 2002/03/26 09:37:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -113,15 +113,20 @@ static void *launcher(void *node)
 
 	n->glerrno = n->f(n);
 
-	/* first close our pipe ends */
+	/* First close our input pipe ends 
+	 * - note that closing output pipe ends may drop unread
+	 *   buffers for adjactant filters, so we may not do that. */
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		filterport_foreach_pipe(port, p) {
 			if (filterport_is_input(port)) {
 				close(p->dest_fd);
 				p->dest_fd = -1;
-			} else {
+			} /* else {
 				close(p->source_fd);
 				p->source_fd = -1;
+			} */ else {
+				/* check queueing an EOF... */
+				fbuf_queue(p, NULL);
 			}
 		}
 	}
