@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.145 2003/11/18 20:03:19 ochonpaul Exp $
+ * $Id: waveeditgui.c,v 1.146 2004/07/13 17:51:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -565,6 +565,8 @@ static void play(GtkWaveView *waveview,
 	glsig_emitter_t *emitter;
 	gboolean *flg_rec, *flg_mute;
 
+	DPRINTF("play: start %i, end %i, rec_start %i, restore_marker %i, loop %i, extend %i, enable_record %i\n", start, end, rec_start, restore_marker, loop, extend, enable_record);
+
 	/* A simple state machine with two states:
 	 * - not playing, a button press will start playing
 	 * - playing, a button press will stop playing
@@ -660,13 +662,19 @@ static void play(GtkWaveView *waveview,
 		} else if (!flg_mute[i] && !flg_rec[i]) {
 			swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
 						  start, end - start + 1, loop ? 1 : 0);
+			if (!swin)
+				goto fail_other;
 			filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), render_in);
 		} else if (!flg_mute[i] && flg_rec[i]) {
 			filter_t *one2n;
 			one2n = filter_instantiate(plugin_get("one2n"));
+			if (!one2n)
+				goto fail_other;
 			filter_add_node(net, one2n, "one2n");
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
 						    rec_start, !extend ? end - rec_start + 1 : -1, 0);
+			if (!swout)
+				goto fail_other;
 			filterparam_set_long(filterparamdb_get_param(filter_paramdb(swout), "drop"), rec_start - start);
 			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN)))
 				goto fail_ain;
@@ -674,10 +682,14 @@ static void play(GtkWaveView *waveview,
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 			swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
 						  start, rec_start - start + 1, loop ? 1 : 0);
+			if (!swin)
+				goto fail_other;
 			filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), render_in);
 		} else if (flg_mute[i] && flg_rec[i]) {
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
 						    rec_start, !extend ? end - rec_start + 1 : -1, 0);
+			if (!swout)
+				goto fail_other;
 			filterparam_set_long(filterparamdb_get_param(filter_paramdb(swout), "drop"), rec_start - start);
 			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
 				goto fail_ain;
@@ -730,6 +742,14 @@ fail_ain:
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
 		"Your audio device cannot record to so much tracks")));
+	return;
+
+fail_other:
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
+		"Error constructing recording/playing network")));
+	return;
 }
 
 
