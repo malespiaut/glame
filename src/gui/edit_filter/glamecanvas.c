@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.37 2001/12/03 10:35:35 richi Exp $
+ * $Id: glamecanvas.c,v 1.38 2001/12/03 10:37:38 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -689,7 +689,9 @@ void glame_canvas_copy_selected(GlameCanvas* canv)
         nodes[i] = NULL;
 
         net = filter_collapse("Clipboard", nodes);
-	
+
+	if (canv->clipBoard)
+		filter_delete(canv->clipBoard);
 	canv->clipBoard = filter_creat(net);
 	filter_expand(net);
 	filter_delete(net);
