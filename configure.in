@@ -171,6 +171,13 @@ AC_ARG_ENABLE(gui, [  --disable-gui           GUI - needs recent GTK/GNOME ], gu
 dnl GNOME check
 if test x$gui = xyes; then
   GNOME_INIT_HOOK([have_gnome=yes],,)
+  if test ! x$have_gnome = xyes; then
+	AC_MSG_ERROR([You need gnome to compile the graphical user interface.
+Hint: you also need the appropriate development packages for gnome installed,
+usually called gnome-dev, libgnome-dev or similar. You can disable the
+graphical user interface by providing the --disable-gui switch to the
+configure script.])
+  fi
 else
   AC_MSG_RESULT([GUI was disabled.])
 fi
