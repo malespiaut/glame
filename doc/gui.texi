@@ -1,24 +1,27 @@
-@comment $Id: gui.texi,v 1.19 2001/12/17 10:24:31 richi Exp $
+@comment $Id: gui.texi,v 1.20 2001/12/23 14:55:46 nold Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
 
-Nonsurprisingly, GLAME's graphical frontend is called @file{glame}. It will
-usually be called without any argument, though an optional file name may be
-given, indicating an alternative location of GLAME's internal swapfile.
+Nonsurprisingly, GLAME's graphical frontend is called @file{glame}. Usually, it
+will be invoked without any arguments. An optional file name may be given
+though, indicating an alternative location of GLAME's internal swapfile.
 @xref{The Main Window}, for details.
 
-When running @file{glame} straight from its source tree without
-prior installation, @code{glame/src/} has to be your current working
-directory. Otherwise, @file{glame} won't be able to find its plugins.
+A note to the DIY folks: When running @file{glame} straight from its source
+tree without prior installation, @code{glame/src/} has to be your current
+working directory. Otherwise, @file{glame} won't be able to find its plugins.
 
-The graphical frontend consists of three parts. The main window is the only
-one active right at the beginning. The wave editor and the filternetwork editor
-can be activated from there. Controlling @file{glame} is supposed to be
-rather intuitive. Should you ever feel lost, just try pressing the right mouse
-button and a context sensitive menu will pop up and hopefully present you
-with the option you were looking for. If you are looking for a list of
-keybindings for the current window try pressing the @code{F1} key.
+The graphical frontend consists of three parts. The main window, also called
+the Swapfile GUI, is the only one active right at the beginning. The wave
+editor and the filternetwork editor can be activated from there. Controlling
+@file{glame} is supposed to be rather intuitive. Should you ever feel lost,
+just try pressing the right mouse button, and a context sensitive menu will pop
+up and hopefully present you with the option you were looking for. If you are
+looking for a list of keybindings for the current window try pressing the
+@code{F1} key. The context sensitivity buzzword also applies to GLAME's online
+help. Just push the button and hope for your preferred gnome help browser
+being able to display texinfo docs. (The standard gnome-help is.) 
 
 @menu
 * The Main Window::
@@ -31,20 +34,20 @@ keybindings for the current window try pressing the @code{F1} key.
 @node The Main Window, The Timeline, , Graphical Frontend
 @section The Main Window
 
-On startup, @file{glame} will present you an application window in well-known
-GNOME design that contains a tree view of the so-called @dfn{swapfile}
-currently in use. Representations of all the sound tracks you want to edit
-will be stored here, so it's certainly a wise idea to put the swapfile on a
-partition with plenty of free space. By default, the swapfile resides in 
-@file{~/.glameswap}, but you can configure its location in the preferences 
-window available from the Settings menu. Note that you need to restart
-@file{glame} for the change to become active.
+On startup, @file{glame} will present you with an application window in
+well-known GNOME design that contains a tree view of the so-called
+@dfn{swapfile} currently in use. Representations of all the sound tracks you
+want to edit will be stored here, so it's certainly a wise idea to put the
+swapfile on a partition with plenty of free space. By default, the swapfile
+resides in @file{~/.glameswap}, but you can configure its location in the
+preferences window available from the @dfn{Settings} menu. Note that you need to
+restart @file{glame} for the change to become active.
 
 Within the swapfile, individual audio tracks are combined to @dfn{projects}.
-You can create new projects using the entry New Project in the Project menu. 
-This will insert a new item into the tree view of the swapfile and pop up 
-an editing field where you can change the project's name. Double-clicking on
-an item allows you to change the name later as well.
+You can create new projects using the entry @dfn{New Project} in the
+@dfn{Project} menu.  This will insert a new item into the tree view of the
+swapfile and pop up a field where you can edit the project's name.
+Double-clicking on an item allows you to change the name later as well.
 
 Now you're all set to start importing @dfn{files} into your new project, or to
 subdivide it further into @dfn{groups}. A context sensitive menu offering
@@ -61,9 +64,8 @@ not allowed for groups that in turn contain further sub-groups. Opening
 a wave editor can be done by using the @code{w} key, too.
 
 @item Timeline
-pops up a new window of the timeline @pxref{The Timeline} containing 
-all items of the group, where you can easily modify them. This operation is
-not allowed for single items.
+pops up a new window of the timeline @pxref{The Timeline} containing all items
+of the group. This operation is not allowed for single items.
 
 @item Delete
 deletes the current group and all its items.
@@ -73,39 +75,38 @@ adds a new group to the current group.
 
 @item Add clipboard
 adds the contents of the clipboard as a new group to the current
-group. The clipboard contents are populated by the edit operations in
+group. The clipboard's contents are populated via the edit operations in
 the wave editor.
 
 @item Add mono wave
-adds a new mono wave to the current group where you can f.i. start
-recording into or paste some random stuff into.
+adds a new mono wave to the current group. This is useful when you want to
+start recording a new track, or paste some random stuff into a separate location.
 
-@item Add stereo wave
-adds a new stereo wave group to the current group where you can
-f.i. start recording into or paste some random stuff into.
+@item Add stereo wav
+Same as above, but adds two track for stereo recording instead of a single one.
 
 @item Link selected
-links the selected item into the current group. Linking
-means that a change on the link will also modify the original and vice versa.
+links the selected item into the current group. Linking means that a change on
+the link will also modify the original and vice versa.
 
 @item Copy selected
-copies the selected item into the current group.
-Copying means that changing the copy will not alter the original and vice
-versa.
+copies the selected item into the current group. Unlike linking, copying
+creates a distinct group, meaning that a change to the copy will not alter the
+original and vice versa.
 
 @item Merge with parent
-moves all the current group's children up one level
-and deletes the current group.
+moves all the current group's children up one level and deletes the current
+group.
 
 @item Flatten
-merges all childs of the current group into the minimum number of
-vertically aligned tracks all starting at horizontal position zero
-and of the same length.
+merges all children of the current group into the minimum number of vertically
+aligned tracks all starting at horizontal position zero and of the same length.
+From a more practical edge, use this option to render a multi-track recording
+in, say, two stereo tracks.
 
 @item Apply operation
-like the apply operation menu from the wave editor this applies the
-selected operation to the whole current item or group. Useful operations
-include things like normalize.
+applies the selected operation to the whole current item or group. Useful
+operations include things like normalize.
 
 @item Import...
 imports a file as a sub-group into the current group. Import is done
@@ -133,9 +134,9 @@ deletes the current item.
 puts the current item into a new group.
 
 @item Apply operation
-like the apply operation menu from the wave editor this applies the
-selected operation to the whole current item or group. Useful operations
-include things like normalize.
+exports all children of the group as an ordinary sound file. Export
+is done through a powerful export dialog which is described in the
+dialogs section.
 
 @item Export...
 exports the current item as an ordinary sound file. Export
@@ -143,18 +144,19 @@ is done through a powerful export dialog which is described in the
 dialogs section.
 @end table
 
+Sequencing multiple waves in the main window is rather easy.  Using drag and
+drop while pressing some modifier keys, you can move waves between horizontally
+(hbox) and vertically (vbox) sequenced boxes (groups).  See below for a list of
+available modifier keys.
 
-There exists an easy way to sequence multiple waves inside the main
-windows tree view. Using drag and drop with the right modifier you can
-move waves between horizontally (hbox) and vertically (vbox) sequenced
-boxes (groups).  To move a wave to a different place first hold down the
-right modifier to select the mode (see below), then select the item you
+To move a wave to a different place first hold down the
+proper modifier to select the mode, then select the item you
 want to move with the left mouse button and start dragging it. The
-destination is before the dropped onto wave or at the last position of
-the dropped onto group.
+destination is located just before the wave you drop onto, or at the last
+position of the group you drop onto respectively.
 
-The following two modes (selectable via the specified modifier) are
-supported:
+The following two modes are supported and can be selected via the specified
+modifier keys:
 
 @table @code
 @item CTRL
@@ -162,27 +164,24 @@ moves an item into a vbox. Here items are sorted one track per item.
 
 @item SHIFT
 moves an item into a hbox. Here items are sequenced horizontally, all
-being in the same track.
+belonging to the same track.
 @end table
 
-At the time of dragging you can see the mouse cursor change from a
+While dragging, you can see the mouse cursor change from a
 circle (indicating a drop at the current position is not possible which
 in turn indicates a wrong group type of the current group) to a
 hand (indicating a drop is possible). You can cancel a drop by dropping
-on the dragged item.
+back on the original dragged item.
 
-If you want to change a vbox into a hbox (or vice versa) you need to
-go through an intermediate group. First create a dummy group (or use
-the project root, if you need a vbox) and start moving items there
-(whether in hbox or vbox mode is arbitrary). Then move items back to
-the original group with the right mode.
-
+If you want to change a vbox into a hbox or vice versa, you need to go through
+an intermediate group. First create a dummy group and start moving items there.
+Then move items back to the original group with the right mode.
 Note that you can move whole groups at once. So sequencing stereo
 waves is possible, too, without breaking the stereo groupings.
 
-In the main windows tree view you can use the following keyboard
-shortcuts to change the waves speaker positions (where the active
-wave is denoted by the item the mouse is pointing at):
+In the main window's tree view you can use the following keyboard
+shortcuts to change the waves speaker positions. The active
+wave is denoted by the item the mouse is pointing at.
 
 @table @code
 @item CTRL-l
@@ -196,16 +195,16 @@ associates the active wave with both channels (mono).
 @end table
 
 
-These are the items of the @code{Project} menu:
+The following items are present in the @dfn{Project} menu:
 
 @table @code
 @item New Project
 Creates a new project (a toplevel group).
 
 @item Edit File
-Very quick edit one file. File selection is done through the import
+Very quick shortcut to edit one file. File selection is done through the import
 dialog. A waveedit window is popped up with the selected file. Note that
-the file is not permanently stored in the GLAME swapfile, but instead
+the file is not permanently stored in GLAME's swapfile, but instead
 is removed from it once you close the waveedit window. So you really want
 to re-export the file once you are finished editing.
 
@@ -221,29 +220,27 @@ folder so you can undo deletes by just moving items back. Emptying the
 folder itself.
 
 @item Show console
-By selecting @code{Show console} from the project menu get access to the
-powerful backend of glame via a scheme scripting language (or just view
-some error logs popping up there).
+By selecting @code{Show console}, you get access to the
+powerful backend of glame that can be controlled via a scheme scripting
+language. Or just watch the error logs that pop up here as well.
 
 @item Sync
-Syncs the metadata of the swapfile to disk. You usually don't need to
-invoke this.
+Syncs the metadata of the swapfile to disk. That's mostly a debugging aid that
+you usually should not need to invoke.
 
 @item Exit
 Exits GLAME. The current state of the swapfile is saved and the project
-tree will persist in its current state. You usually don't need to save
-or export your work.
+tree will persist in its current state.
 @end table
-
 
 These are the items of the @code{Filternetwork} menu:
 
 @table @code
 @item New Filternetwork
-Opens a new empty filternetwork editor window.
+Opens a new empty window of the filternetwork editor.
 
 @item Open...
-Opens a saved filternetwork in a new filternetwork editor window.
+Opens a saved filternetwork in a new window of the filternetwork editor.
 
 @item Load Plugin
 You can manually load plugins into glame by using the @code{Load Plugin}
@@ -255,7 +252,7 @@ the default GLAME search directory.
 
 From the @code{Settings} menu you can invoke the preferences window, from
 the @code{Help} menu you can invoke a gnome help browser with this
-documentation or jump directly to the quick start guide.
+documentation, or jump directly to the quick start guide.
 
 
 
@@ -269,7 +266,7 @@ this may be not the thing you want to do. Be warned.}
 
 The timeline pops up when the @code{Timeline} function is applied to a
 group in the main window. The timeline presents a time vs. track view
-of the group. At the top of the window a ruler is presented which shows
+of the group. At the top of the window there is a ruler which shows
 the time in seconds.
 
 The active item and group appear highlighted. You can move the active
@@ -279,9 +276,9 @@ using the up and down arrow keys. You can move whole groups vertically
 by using the up and down arrow keys in conjunction with the shift
 modifier key.
 
-Like in any other window the @code{Close} and @code{Help} toolbar entries
-close the window or bring up the gnome help browser with this documentation.
-
+Like in any other window, the @code{Close} and @code{Help} toolbar entries
+close the window, or bring up the gnome help browser with this documentation,
+respectively.
 
 @node The Wave Editor, The Filternetwork Editor, The Timeline, Graphical Frontend
 @section The Wave Editor
@@ -317,36 +314,33 @@ you can set using the left mouse-button) to the current position. The selection
 and the marker position can be changed with dragging the marker or the
 selections left or right edge (the cursor will change if you move over them).
 
-Like in any other window the @code{Close} and @code{Help} menu entries
-close the window or bring up the gnome help browser with this documentation.
-Those items can also be reached from the toolbar.
+As usual, the @code{Close} and @code{Help} menu entries close the window, or
+bring up the gnome help browser with this documentation, respectively.  Those
+items can also be reached from the toolbar.
 
-Using the @code{Play all} and @code{Play selection} commands the whole
-wave or the selected part will be send to the default audio output device
-(which you can specify in the main windows preferences dialog). Using
-the @code{Record at marker} and @code{Record into selection} commands
-you can sample from the default audio input device (which you can specify
-in the main windows preferences dialog) either starting at the marker
+Using the @code{Play all} and @code{Play selection} commands the whole wave or
+the selected part will be sent to the default audio output device. Using the
+@code{Record at marker} and @code{Record into selection} commands you can
+sample from the default audio input device either starting at the marker
 position and until you press the @code{STOP} button, or just inside the
-selection. Using the play button from the toolbar will start playing
-either the current selection or from the marker position if no selection
-is active and will advance it until you either press the
-stop button (which will appear at the place of the play button after
-start) or the wave has ended. Playing can be reached through the
-@code{Space} keyboard shortcut which does the same as the toolbar play
-button. Pressing @code{SHIFT-Space} will loop the current selection or
-the whole wave.
+selection. Using the play button from the toolbar will start playing either the
+current selection or from the marker position if no selection is active and
+will advance it until you either press the stop button (which will appear at
+the place of the play button after start) or the wave has ended. Playing can be
+reached through the @code{Space} keyboard shortcut which does the same as the
+toolbar play button.  Pressing @code{SHIFT-Space} will loop the current
+selection or the whole wave.
 
 The @code{Apply operation} submenu allows you to apply operations like
-normalize or fade to the current selection. Operations may pop up windows
-for additional arguments or not.
+normalize or fade to the current selection. Some operations pop up windows
+for additional arguments.
 
 The @code{Apply filter} submenu allows you to apply a pre-existing
 filter to the active selection. Inside the apply window the list of
 available parameters for the filter will appear which you may edit. With
 the preview button you can figure out what the result after applying the
-filter will sound like (you can abort the preview by pressing the
-preview button again). Press the apply button if you are satisfied with
+filter will sound like. You can abort the preview by pressing the
+preview button again. Press the apply button if you are satisfied with
 the setup. Press the cancel button if you don't want to modify the wave.
 
 Alternatively, you can pop up the filternetwork editor
@@ -360,15 +354,13 @@ as a @code{Save} item. This is especially useful for waveedits
 opened through the @code{Edit File} menu entry as this one does not
 show the wave in the swapfile tree.
 
-
-
 @node The Filternetwork Editor, Dialogs, The Wave Editor, Graphical Frontend
 @section The Filternetwork Editor
 
 The filternetwork editor is opened when you choose one of the custom
 functions in the wave editor, or the item @code{New Filternetwork} in
 the @code{Filternetwork} menu of the main window. The filternetwork editor
-comprises of a tool bar at the top of the window to execute, save and
+comprises of a tool bar at the top of the window to execute, save and apply
 other functions, and a main canvas for connecting and adding
 new nodes to the network. A preexisting network can be edited by opening
 it from the @code{Open...} item in the @code{Filternetwork} menu of the
@@ -377,57 +369,53 @@ main window.
 All functionality in the editing window is controlled via context sensitive
 menus bound to the right mouse button or configurable shortcuts.
 
-Pressing the right mouse-button over the canvas background will pop up a
-menu containing the list of available plugins.
-Plugins are bundled into categories to speed up finding the desired item.
-Selecting one will add a
-node cloned from the corresponding plugin to the network. A special item,
-@code{Paste selected} at the bottom of the menu will paste the last
-copied node collection at the current location.
-When a new node is added, its icon appears on the editing canvas.
-It shows its input ports (if available) on the left, and output ports
-on the right. If no ports of a type are available the corresponding side bar
-appears gray.
+Pressing the right mouse-button over the canvas background will pop up a menu
+containing the list of available plugins.  Plugins are bundled into categories
+to speed up finding the desired item.  Selecting one will add a node cloned
+from the corresponding plugin to the network. A special item, @code{Paste
+selected} at the bottom of the menu will paste the last copied node collection
+at the current location.  When a new node is added, its icon appears on the
+editing canvas.  It shows its input ports (if available) on the left, and
+output ports on the right. If no ports of a type are available, the
+corresponding side bar appears gray.
 
 To connect two plugins, click on the output port using the left mouse button,
-and drag the appearing pipe to the desired input port. If a connection is possible,
-a pipe connection will be drawn. To manipulate per-pipe parameters of the
-connected nodes, a context menu is attached to the small black ball placed in
-the middle of the pipe.
+and drag the appearing pipe to the desired input port. If a connection is
+possible, a pipe connection will be drawn. To manipulate per-pipe parameters of
+the connected nodes, a context menu is attached to the small black ball placed
+in the middle of the pipe.
 
-Clicking with the left mouse button on a item will highlight it with a
-light blue frame, thus marking it as selected. Alternatively nodes can
-be selected by clicking with the left mouse button into empty space in
-the editor, holding it down and dragging the appearing box over the
-desired nodes in well known file-manager fashion. You can alter
-selections by holding down the shift or control modifier keys. Pressing
-on of the modifier keys while selecting will add the selected icon to
-the current selection.
+Clicking with the left mouse button on a item will highlight it with a light
+blue frame, thus marking it as selected. Alternatively, nodes can be selected
+by clicking with the left mouse button into empty space in the editor, holding
+it down and dragging the appearing box over the desired nodes in well known
+file-manager fashion. You can alter selections by holding down the shift or
+control modifier keys. Pressing one of the modifier keys while selecting will
+add the selected icon to the current selection.
 
-Selections may be manipulated in a number of fashions. A selection can
-be collapsed by either choosing the corresponding context menu in the
-node menu or the 'c' shortcut.  Once a selection is collapsed, a new
-node appears in place of it. connections to nodes in the selection to
-outside nodes are saved and ports appear on the collapsed node.
-Collapsed selections are real new subnets and may be saved and opened
-down, and just as any node representing a network expanded in-place
-using the corresponding menu entry or the 'e' shortcut.
+Selections may be manipulated in a number of fashions. A selection can be
+collapsed by either choosing the corresponding context menu in the node menu or
+the @code{c} shortcut.  Once a selection is collapsed, a new node appears in
+place of it. Connections to nodes in the selection to outside nodes are saved
+and ports appear on the collapsed node.  Collapsed selections are real new
+subnets and may be saved and opened down, and just as any node representing a
+network expanded in-place using the corresponding menu entry or the @code{e}
+shortcut.
 
-Finally, if you hover over an icon or port or the circle contained in a
-pipe for a little while, the current parameter settings are shown, and
-the node is raised to the top.  The hovering delay can be adjusted in
-the preferences window.  The same applies for the connection between two
-nodes.
+Finally, if you hover over an icon or port or the circle contained in a pipe
+for a little while, the current parameter settings are shown, and the node is
+raised to the top.  The hovering delay can be adjusted in the preferences
+window.  The same applies for the connection between two nodes.
 
-Pressing the right mouse-button over a network node will pop up a menu
+Pressing the right mouse button over a network node will pop up a menu
 with the following items:
 
 @table @code
 @item Properties
-Opens a property dialog which lets you modify the network nodes parameters.
+Opens a property dialog which lets you modify the network node's parameters.
 If you have selected multiple nodes of the same type and open a property
 dialog of one, this property dialog will modify all nodes parameters at
-once, i.e. they appear linked.
+once, that is they appear linked.
 
 @item Redirect parameter
 Opens a dialog where you can create network-wide parameters (which are
@@ -464,7 +452,7 @@ Opens a gnome help browser with the documentation for the current node.
 @end table
 
 
-Pressing the right mouse-button over a port will pop up a menu with
+Pressing the right mouse button over a port will pop up a menu with
 the following items:
 
 @table @code
@@ -518,17 +506,16 @@ can be used to abort executing the network.  If anything is not set up
 correctly, the malicious plugin will be drawn in red, and the error will
 be displayed when hovering over it.
 
-Once you found your network adequate you may save it using the
-@code{Save} button in the toolbar. You can also register the network as
-a new plugin that can be used in other networks. Before you have to add
-ports to your toplevel and/or redirect parameters from nodes. Ports can
-be redirected by choosing the @code{Connect to external port} from the
-context menu of the port. Parameters are redirected by choosing
-@code{redirect parameters} from the context menu of the node.  You can
-delete or look at the external interface by selecting the
-@code{properties} button.
+Once you found your network to be adequate, you may save it using the
+@code{Save} button in the toolbar. You can also register the network as a new
+plugin that can be used in other networks. Before that, you have to add ports
+to your toplevel and/or redirect parameters from nodes. Ports can be redirected
+by choosing the @code{Connect to external port} from the context menu of the
+port. Parameters are redirected by choosing @code{redirect parameters} from the
+context menu of the node.  You can delete or look at the external interface by
+selecting the @code{properties} button.
 
-As last feature the zoom level may be adjusted with the @code{zoom in}
+As a final feature, the zoom level can be adjusted with the @code{zoom in}
 and @code{zoom out} buttons. The @code{View all} button recenters your
 view and adjusts the scrollable region.
 
@@ -547,23 +534,23 @@ view and adjusts the scrollable region.
 @node The Preferences Dialog, The Import Dialog, , Dialogs
 @subsection The Preferences Dialog
 
-From within the preferences dialog (which you can reach from the
-main windows @code{Settings} menu) you can change GLAME configuration
+From within the preferences dialog, which you can reach from the
+main windows @dfn{Settings} menu, you can change GLAME's configuration
 including the swapfile setup and your audio setup. Note that some
 changes take effect only after restarting GLAME.
 
 The preferences dialog presents you with three tabs, namely the
-@code{Swapfile}, @code{Filternetwork} and @code{Audio I/O} tabs.
+@dfn{Swapfile}, @dfn{Filternetwork} and @dfn{Audio I/O} tabs.
 We're going through them separately.
 
-The first tab is the @code{Swapfile} tab which has the following
+The first tab is the @dfn{Swapfile} tab which has the following
 entries:
 @table @code
 @item Swapfile Path
 Here you can configure where GLAME should place its internal representation
-of the audio data. Note that GLAME uses this as a permanent (surviving
-program quit) storage to store the complete application state. Changes
-of the swapfile path take place after a GLAME restart only.
+of the audio data. Note that GLAME uses this as a permanent storage to save
+the complete application state. The swapfile's contents survive a restart.
+Changes of the swapfile path take place after a GLAME restart only.
 
 @item Depth of undo stack
 Here you can configure the amount of edit steps you want to be able to
@@ -571,14 +558,13 @@ undo. This is a global number. Remember that each step of undo needs
 space in the swapfile.
 
 @item Caching
-You are not supposed to change the caching parameters if you don't
-known what's going on internally (we need to design a more friendly
-interface for that). The only parameter you may want to tune is the
-maximum virtual memory used for caching parameter if you have lots
-of ram. This parameter is in bytes and if you change it, you need to
-change the number of cached memory mappings by the same factor (its
-a good idea to scale the other ones, too, but thats not necessary and
-may break for Linux kernels older than 2.4).
+You are not supposed to change the caching parameters if you don't known what's
+going on internally. The only parameter you may want to tune is the @dfn{maximum
+virtual memory used for caching} parameter--if you have lots of ram. This
+parameter is in bytes, and if you change it, you need to change the number of
+cached memory mappings by the same factor (it's a good idea to scale the other
+ones, too, but thats not necessary and may break for Linux kernels older than
+2.4).
 @end table
 
 
@@ -587,10 +573,10 @@ which are
 
 @table @code
 @item Property popup timeout
-The time until the description properties do popup.
+The time until the description properties pop up.
 
 @item Mac mode
-Changes other-than-left mouse-button operations to multi-clicks on
+Maps other-than-left mouse-button operations to multi-clicks on
 the left button. This is only useful if you are using mice with less
 than two buttons.
 @end table
@@ -603,12 +589,12 @@ and output device.
 @item Default input plugin
 Here you can select (or edit) the plugin which should be used for
 audio input. This should be @code{oss_audio_in} or @code{alsa_audio_in}
-for most Linux boxen.
+for most Linux boxes.
 
 @item Default input device
 Specify the input device corresponding to the sound-card you want to
-record from. For oss this will be one of the @code{/dev/dsp} devices,
-for alsa @code{plughw:0,0} or something like that.
+record from. For OSS, this will be one of the @code{/dev/dsp} devices,
+for alsa @code{plughw:0,0} or similar.
 
 @item Default output plugin
 Like for the input case this is the plugin you want to use for audio
@@ -622,7 +608,7 @@ This number specifies the default size of audio fragments that
 get passed through the audio processing networks of GLAME. Choose
 large values (1024) for slow machines, low values (128) for low
 latency networks. The minimum internal latency can be calculated
-like size hint divided by the samplerate (128 / 44100 Hz = 2.9 ms).
+as size hint divided by the samplerate (128 / 44100 Hz = 2.9 ms).
 Note that the audio fragment size is usually limited by your audio
 hardware, so this is only a hint and specifying values less than
 32 will probably only hurt performance.
@@ -633,28 +619,30 @@ hardware, so this is only a hint and specifying values less than
 @node The Import Dialog, The Export Dialog, The Preferences Dialog, Dialogs
 @subsection The Import Dialog
 
-The import dialog is spawned by either selecting the menu entry "Edit File" or
+The import dialog is spawned by selecting the menu entries "Edit File" or
 "Import" from the main window. This dialog is mostly self explaining. Select
-a file by typing the name or search it with the file browser. There some other
+a file by typing its name, or search it with the file browser. There some other
 buttons you can toggle:
 
 @table @code
-@item "Get RMS & DC Offset"
+@item Get RMS & DC Offset
 Extract statistic information from the selected audiofile. RMS is the root mean 
-square of the select file, which gives a measure the file's signal amplitude.
+square of the select file, which gives a measure of the file's signal amplitude.
 DC Offset shows the mean deviation of the signal from zero. For a perfectly
-symmetric sampler hardware the dc offset should be zero. In case your soundcard
+symmetric sampler hardware, the dc offset should be zero. In case your soundcard
 records an asymmetric signal, this is the measure for it. You can remove such
 a dc offset with a @pxref{highpass} filter with cutoff frequency set to 0 Hz.
-@item "Resample"
-If you check the resample button you can enter your desired frequency. The file
-is then resampled to this frequency while importing. NOTE: The current resampling
-is FFT based. If you select a new frequency whose ratio to the old one is other
-than a power of 2, resampling can be very slow. Sorry, but you get really good
-quality.
-@item "Import"
+
+@item Resample
+If you check the resample button, you can enter your desired sample frequency.
+The file is then resampled to this frequency while importing. Note: The current
+resampling is FFT based. If you select a new frequency whose ratio to the old
+one is other than a power of 2, resampling can be very slow.
+
+@item Import
 Starts the import of the file.
-@item "Cancel"
+
+@item Cancel
 Cancels the current action.
 @end table
 
@@ -665,43 +653,53 @@ The export dialog appears in case you select "Export..." from the popup menu or
 @pxref{The Wave Editor}. The dialog contains the following buttons:
 
 @table @code
-@item "File Format"
+@item File Format
 You can either select "auto" or a specific filetype supported by libaudiofile.
-In case you select "auto" the formattype is chosen by the suffix of the file.
-@item "Compression Type"
-If this button is active you can chose a compression codec.
-@item "Sample Format"
-Here you can chose the sample frame format. NOTE: Not all sampletypes work
-will all formats. In case your combination is not supported an error requester
-will pop up.
-@item "Render Options"
+In case you select "auto" the type is chosen by the suffix of the file.
+
+@item Compression Type
+If this button is active, you can choose a compression codec.
+
+@item Sample Format
+Here you can choose the format of a single sample. Note: Not all sample types
+work with all formats. In case your combination is not supported an error
+requester will pop up.
+
+@item Render Options
 You have three choices:
+
 @table @code
-@item "original"
-The number of channels in your current project is preserved while saving, e.g. you can save
-a wav file with an arbitrary number of channels!
-@item "mono"
+@item original
+The number of channels in your current project is preserved while saving, e.g.
+you can save a wav file with an arbitrary number of channels. This is in fact
+supported by the standard. Good luck hunting applications that implement it,
+though.
+
+@item mono
 The project is rendered into a mono file.
-@item "stereo"
-The project is rendered into a stereo file. Channels are panned according to their given position.
+
+@item stereo
+The project is rendered into a stereo file. Channels are panned according to
+their given position.
 @end table
-@item "Export"
+
+@item Export
 Export the current project.
-@item "Cancel"
+
+@item Cancel
 Cancels the current action.
 @end table
 
 @node The Apply Filter Dialog, , The Export Dialog, Dialogs
 @subsection The Apply Filter Dialog
 
-The apply filter dialog is reached from the waveedit window through the
-right mouse-button menu by choosing the @code{Apply filter...} entry and
-operates on the current selection. In the upper part of the dialog the
-parameters of the selected filter are displayed and can be edited.
+The apply filter dialog is reached from the waveedit window through the right
+mouse button menu by choosing the @code{Apply filter...} entry and operates on
+the current selection. In the upper part of the dialog, the parameters of the
+selected filter are displayed and can be edited.
 
 The lower part of the dialog contains a progress bar for both
-preview and apply operation. The functions of the buttons are the
-following:
+preview and apply operation. The following functions are available:
 
 @table @code
 @item Preview
