@@ -22,6 +22,7 @@ plugins/
 	- fix filters for RT param update
 	[richi]
 	- do gpsm invalidating using swapfile_out filter output params
+	- add posparam to audio_io_esd
 
 hash/
 	[all]
@@ -64,6 +65,10 @@ gui/
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
 	- redo parameter windows to emit signals directly
+	[mag]
+	- kewl import/export GUI
+        - kewl analyze (normalize & DC-offset & lots of info) GUI
+	- kewl resample GUI
 
 gui/swapfilegui
 	[richi]
@@ -77,6 +82,10 @@ gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
 	- toolbar needs work
+	- kill off playing dialog
+	- add playing keyboard shortcuts
+	- do glame_ruler with time, samples, beats mode
+	- show actual sample value/rms/position for marker
 
 gui/libgtkwaveform
 	[richi]
