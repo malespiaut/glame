@@ -80,7 +80,7 @@ glame_LDADD =  \
 	../hash/libhash.la \
 	../swapfile/libswapfile.la \
 	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) \
-	-lm $(LIBLTDL)
+	-lm $(LIBLTDL) $(LIBINTL)
 glame_LDFLAGS = -export-dynamic -dlopen self
 
 glame2_LDADD =  \
@@ -91,7 +91,7 @@ glame2_LDADD =  \
 	../hash/libhash.la \
 	../swapfile/libswapfile.la \
 	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) \
-	-lm $(LIBLTDL)
+	-lm $(LIBLTDL) $(LIBINTL)
 glame2_LDFLAGS = -export-dynamic -dlopen self
 
 edit_filter/edit_filter_marshal.h: edit_filter/edit_filter_marshal.list
