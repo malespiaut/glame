@@ -2584,12 +2584,18 @@ AC_LANG_RESTORE
 
 if test "x$no_alsa" = x ; then
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-  AC_CHECK_LIB([asound], [snd_cards],,)
+  no_alsalib=""
+  AC_CHECK_LIB([asound], [snd_cards],,
+               [no_alsalib="yes"])
 
+  if test "x$no_alsalib" = x ; then
   dnl That should be it.  Now just export out symbols:
-  AC_SUBST(ALSA_CFLAGS)
-  AC_SUBST(ALSA_LIBS)
-  ifelse([$2], , :, [$2])
+    AC_SUBST(ALSA_CFLAGS)
+    AC_SUBST(ALSA_LIBS)
+    ifelse([$2], , :, [$2])
+  else
+    ifelse([$3], , :, [$3])
+  fi
 else
   ifelse([$3], , :, [$3])
 fi
