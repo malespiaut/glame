@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.33 2002/03/26 09:37:02 richi Exp $
+ * $Id: filter_ops.c,v 1.34 2002/09/27 21:24:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -326,7 +326,9 @@ static void *waiter(void *network)
 	DPRINTF("starting cleanup\n");
 	c = net->launch_context;
 	net->ops->postprocess(net);
-	_launchcontext_free(c);
+
+	/* defer final launchcontext freeing to filter_wait(). */
+	net->launch_context = c;
 	DPRINTF("finished\n");
 
 	return (void *)res;
@@ -433,6 +435,10 @@ int filter_wait(filter_t *net)
 
 	DPRINTF("waiting for waiter to complete\n");
 	pthread_join(net->launch_context->waiter, &res);
+
+	/* clean up launchcontext. */
+	_launchcontext_free(net->launch_context);
+	net->launch_context = NULL;
 
 	return (int)res;
 }
