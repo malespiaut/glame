@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.5 2001/04/16 16:13:11 nold Exp $
+ * $Id: audio_io_esd.c,v 1.6 2001/04/18 14:36:50 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -33,40 +33,26 @@ PLUGIN_SET(audio_io_esd, "esd_audio_in esd_audio_out")
 static int esd_in_f(filter_t *n)
 {
 	filter_pipe_t	*pipe[2];
-	filter_buffer_t	*fbuf;
-	filter_param_t	*dev_param, *duration, *rate_param;
+	filter_buffer_t	*sbuf;
 	char	*in;
 	gl_s16	*buf;
 	ssize_t	buf_size = ESD_BUF_SIZE, inbuf_spc;
 	
 	esd_format_t	format;
-        char	*host = NULL;
-	int	channels, ch, rate = GLAME_DEFAULT_SAMPLERATE;
+        char	*host;
+	int	channels, ch, rate;
 	int	sock, length, endless = 0;
-	int	width;
-	float	nsamples = 0.0, maxsamples = 0.0;
+	float	nsamples = 0.0, maxsamples;
 
 	if (!(channels = filternode_nroutputs(n)))
 		FILTER_ERROR_RETURN("No outputs.");
 
-	dev_param = filternode_get_param(n, "device");
-	if (dev_param)
-		host = filterparam_val_string(dev_param);
-
-	rate_param = filternode_get_param(n, "rate");
-	if (rate_param)
-		rate = filterparam_val_int(rate_param);
-
-	/* XXX: Don't like this part at all. Proper fix is a 'control' port
-	 * the UI can use to send start/stop signals to individual nodes
-	 * (not to the network as a whole like now). This is post-0.2 stuff.
-	 */ 
-	duration = filternode_get_param(n, "duration");
-	if (duration)
-		maxsamples = filterparam_val_float(duration) * rate;
+	host = filterparam_val_string(filternode_get_param(n, "device"));
+	rate = filterparam_val_int(filternode_get_param(n, "rate"));
+	maxsamples = filterparam_val_float(filternode_get_param(n, "duration")) * rate;
 	if (maxsamples <= 0.0)
 		endless = 1;
-	
+
 	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
 	pipe[1] = filternode_next_output(pipe[0]); /* Okay if NULL */
 	
@@ -76,20 +62,10 @@ static int esd_in_f(filter_t *n)
 		pipe[0] = pipe[1];
 		pipe[1] = t;
 	}
-	
-	width = 16;	/* FIXME */
-	switch (width) {
-	case 16:
-		format = ESD_BITS16;
-		break;
-	case 8:
-		format = ESD_BITS8;
-		break;
-	default:
-		FILTER_ERROR_RETURN("Illegal sample width!");
-	}
+
+	format = ESD_BITS16;
 	format |= ESD_STREAM | ESD_RECORD | 
-	          (channels == 1) ? ESD_MONO : ESD_STEREO;
+	          ((channels == 1) ? ESD_MONO : ESD_STEREO);
 	sock = esd_record_stream_fallback(format, rate, host, NULL);
 	if (sock <= 0)
 		FILTER_ERROR_RETURN("Couldn't open esd socket!");
@@ -98,7 +74,7 @@ static int esd_in_f(filter_t *n)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
 
 	/* Calculate number of samples per channel. */
-	inbuf_spc = buf_size/channels/(width>>3);
+	inbuf_spc = buf_size/(2*channels);
 	
 	FILTER_AFTER_INIT;
 	
@@ -120,18 +96,18 @@ static int esd_in_f(filter_t *n)
 			length -= ret;
 		}
 		for (ch = 0; ch < channels; ch++) {
-			fbuf = sbuf_make_private(sbuf_alloc(inbuf_spc, n));
-			if (!fbuf) {
+			sbuf = sbuf_make_private(sbuf_alloc(inbuf_spc, n));
+			if (!sbuf) {
 				DPRINTF("alloc error!\n");
 				goto _out;
 			}
 			pos = 0;
 			i = ch;
 			while (pos < inbuf_spc) {
-				sbuf_buf(fbuf)[pos++] = SHORT2SAMPLE(buf[i]);
+				sbuf_buf(sbuf)[pos++] = SHORT2SAMPLE(buf[i]);
 				i += channels;
 			}
-			sbuf_queue(pipe[ch], fbuf);
+			sbuf_queue(pipe[ch], sbuf);
 		}
 		nsamples += inbuf_spc;
 	}
