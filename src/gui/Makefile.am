@@ -16,7 +16,9 @@ endif
 
 libglameguiutils_la_SOURCES = glame_gui_utils.c glame_gui_utils.h
 
-glame_SOURCES = main.c \
+glame_SOURCES = \
+	glame_accelerator.c glame_accelerator.h \
+	main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
 	waveeditgui.c waveeditgui.h apply.c
 glame_LDADD = ../glmid/libglame.la edit_filter/libeditfilter.la \
