@@ -94,10 +94,10 @@ gtk_wave_buffer_class_init (GtkWaveBufferClass *klass)
                     GTK_TYPE_NONE,
                     1, GTK_TYPE_POINTER);
 
-  gtk_object_class_add_signals (object_class, &modified_signal, 1);
+  /*  gtk_object_class_add_signals (object_class, &modified_signal, 1);
   gtk_object_class_add_signals (object_class, &insert_data_signal, 1);
   gtk_object_class_add_signals (object_class, &delete_data_signal, 1);
-
+  */
   klass->modified = NULL;
   klass->insert_data = NULL;
   klass->delete_data = NULL;

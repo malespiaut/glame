@@ -1396,7 +1396,7 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
   if (waveview->wavebuffer == NULL)
     return FALSE;
 
-  GTK_WIDGET_CLASS (GTK_OBJECT (waveview->hruler)->klass)->motion_notify_event (GTK_WIDGET (waveview->hruler), event);
+  GTK_WIDGET_CLASS (GTK_OBJECT_GET_CLASS(GTK_OBJECT (waveview->hruler)))->motion_notify_event (GTK_WIDGET (waveview->hruler), event);
 
   /* Get x coordinate on hint. */
   if (event->is_hint)

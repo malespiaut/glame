@@ -1,6 +1,7 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.16 2002/12/21 20:57:26 ochonpaul Exp $
+ *
+ * $Id: mixer.c,v 1.17 2003/04/11 20:10:37 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *

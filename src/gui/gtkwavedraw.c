@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.8 2000/04/18 00:59:14 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.9 2003/04/11 20:09:59 richi Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -64,9 +64,7 @@ gtk_wave_draw_get_type(void)
 				   sizeof(GtkWaveDraw),
 				   sizeof(GtkWaveDrawClass),
 				   (GtkClassInitFunc)  gtk_wave_draw_class_init,
-				   (GtkObjectInitFunc) gtk_wave_draw_init,
-				   (GtkArgSetFunc)     NULL,
-				   (GtkArgGetFunc)     NULL };
+				   (GtkObjectInitFunc) gtk_wave_draw_init};
 
     wave_draw_type = gtk_type_unique (gtk_widget_get_type(),
 				      &wave_draw_info);
@@ -93,7 +91,7 @@ gtk_wave_draw_class_init(GtkWaveDrawClass *klass)
   object_class->destroy = gtk_wave_draw_destroy;
 
   widget_class->realize = gtk_wave_draw_realize;
-  widget_class->draw = gtk_wave_draw_draw;
+  //  widget_class->draw = gtk_wave_draw_draw;
   widget_class->size_request = gtk_wave_draw_size_request;
   widget_class->expose_event = gtk_wave_draw_expose;
   widget_class->configure_event = gtk_wave_draw_configure;

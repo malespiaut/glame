@@ -1,6 +1,7 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.21 2002/10/02 13:11:21 richi Exp $
+ *
+ * $Id: flanger.c,v 1.22 2003/04/11 20:10:33 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *

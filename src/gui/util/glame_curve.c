@@ -1,7 +1,7 @@
 /*
  * glame_curve.c
  *
- * $Id: glame_curve.c,v 1.7 2001/11/14 10:09:56 richi Exp $
+ * $Id: glame_curve.c,v 1.8 2003/04/11 20:10:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -34,41 +34,34 @@
 
 static guint curve_changed_signal = 0;
 
-static void glame_curve_class_init(GlameCurveClass* klass)
-{
-	/* nothing to be done here, no signals... */
-	GtkObjectClass *object_class;
-  
-	object_class = (GtkObjectClass *) klass;
-  
-	curve_changed_signal =
-		gtk_signal_new ("curve_changed", GTK_RUN_FIRST, object_class->type,
-				GTK_SIGNAL_OFFSET (GlameCurveClass, curve_changed),
-				gtk_marshal_NONE__NONE, GTK_TYPE_NONE, 0);
-	gtk_object_class_add_signals (object_class, &curve_changed_signal, 1);
 
-}
-
-static gint glame_curve_event(GtkWidget* widget, GdkEvent* event, GlameCurve* gcurve)
+static gint glame_curve_event(GtkWidget* widget, GdkEvent* event, GlameCurve* gcurvef)
 {
 	GdkEventMotion* mevent;
+
+	GlameCurve*gcurve = GLAME_CURVE(widget);
 	static gboolean changed = FALSE;
+	fprintf(stderr,".");
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		mevent = (GdkEventMotion *) event;
 		if((mevent->state & GDK_BUTTON1_MASK)||
 		   (mevent->state & GDK_BUTTON2_MASK)||
 		   (mevent->state & GDK_BUTTON3_MASK))
-			changed = TRUE;
-		/* FIXME this is not really necessary, could emit another signal here, curve_motion or something */
+		  changed = TRUE;
+		/* FIXME this is not really necessary, could emit another signal here, curve_otion or something */
 		break;
 	case GDK_BUTTON_PRESS:
 		changed = TRUE;
+		fprintf(stderr,"press\n");
 		break;
 	case GDK_BUTTON_RELEASE:
-		if(changed){
-			gtk_signal_emit (GTK_OBJECT (gcurve), curve_changed_signal);
-			changed = FALSE;
+	  fprintf(stderr,"release\n");
+	  if(changed){
+	    fprintf(stderr,"changed\n");
+	    gtk_signal_emit_by_name (GTK_OBJECT (gcurve), "curve_changed");
+	    changed = FALSE;
+
 		}
 		break;
 	default:
@@ -78,6 +71,23 @@ static gint glame_curve_event(GtkWidget* widget, GdkEvent* event, GlameCurve* gc
 	
 }
 	
+static void glame_curve_class_init(GlameCurveClass* klass)
+{
+	/* nothing to be done here, no signals... */
+	GtkObjectClass *object_class;
+	GtkWidgetClass *widget_class;
+	object_class = (GtkObjectClass *) klass;
+	widget_class = (GtkWidgetClass *) klass;
+	curve_changed_signal =
+		gtk_signal_new ("curve_changed", GTK_RUN_LAST, GTK_CLASS_TYPE(object_class),
+				GTK_SIGNAL_OFFSET (GlameCurveClass, curve_changed),
+				gtk_marshal_NONE__NONE, GTK_TYPE_NONE, 0);
+	//	gtk_object_class_add_signals (object_class, &curve_changed_signal, 1);
+	widget_class->button_release_event = glame_curve_event;
+	widget_class->button_press_event = glame_curve_event;
+	widget_class->motion_notify_event = glame_curve_event;
+
+}
 
 static void glame_curve_init(GlameCurve* gcurve)
 {
@@ -99,8 +109,8 @@ static void glame_curve_init(GlameCurve* gcurve)
 	curve->max_x = 1.0;
 	curve->min_y = 0.0;
 	curve->max_y = 1.0;
-	gtk_signal_connect(GTK_OBJECT(gcurve),"event",
-			   (GtkSignalFunc) glame_curve_event, curve);
+	//	gtk_signal_connect(GTK_OBJECT(gcurve),"event",
+	//			 (GtkSignalFunc) glame_curve_event, curve);
 }
  
 GtkWidget* glame_curve_new(void)

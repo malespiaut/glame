@@ -48,7 +48,7 @@ typedef struct _GlameRulerMetric  GlameRulerMetric;
 #define GLAME_RULER_CLASS(klass)    (GTK_CHECK_CLASS_CAST ((klass), GLAME_TYPE_RULER, GlameRulerClass))
 #define GLAME_IS_RULER(obj)         (GTK_CHECK_TYPE ((obj), GLAME_TYPE_RULER))
 #define GLAME_IS_RULER_CLASS(klass) (GTK_CHECK_CLASS_TYPE ((klass), GLAME_TYPE_RULER))
-#define GLAME_RULER_GET_CLASS(obj)  ((GlameRulerClass *)(((GtkObject *)(obj))->klass))
+#define GLAME_RULER_GET_CLASS(obj)  ((GlameRulerClass *)( GTK_OBJECT_GET_CLASS((GtkObject *)(obj))))
 
 
 /* All distances below are in 1/72nd's of an inch. (According to

@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.20 2002/04/12 16:26:27 richi Exp $
+ * $Id: gltreeitem.c,v 1.21 2003/04/11 20:09:58 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -20,6 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+#include "math.h"
 
 #include <sys/param.h>
 #include <stdio.h>
@@ -69,7 +70,6 @@ GtkType glame_tree_item_get_type(void)
 		};
 		glame_tree_item_type = gtk_type_unique(GTK_TYPE_TREE_ITEM,
 						       &glame_tree_item_info);
-		gtk_type_set_chunk_alloc(glame_tree_item_type, 8);
 	}
 
 	return glame_tree_item_type;

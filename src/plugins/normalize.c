@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.18 2002/02/17 13:53:31 richi Exp $
+ * $Id: normalize.c,v 1.19 2003/04/11 20:10:38 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -529,7 +529,7 @@ static void analyze_rms(struct normalize_s *ns) {
 			if (ns->running==0)
 				goto cancel_cleanup;
 
-			gnome_appbar_set_progress(GNOME_APPBAR(ns->appbar),
+			gnome_appbar_set_progress_percentage(GNOME_APPBAR(ns->appbar),
 						  percentage);
 		}
 		ns->running = 0;

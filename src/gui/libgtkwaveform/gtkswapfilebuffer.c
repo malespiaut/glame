@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.15 2002/05/29 22:23:48 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.16 2003/04/11 20:10:12 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -85,7 +85,7 @@ gtk_swapfile_buffer_get_type (void)
 }
 
 static void
-gtk_swapfile_buffer_finalize (GtkObject *obj)
+gtk_swapfile_buffer_finalize (GObject *obj)
 {
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (obj);
 	int i;
@@ -108,12 +108,14 @@ gtk_swapfile_buffer_class_init (GtkSwapfileBufferClass *klass)
 	GtkObjectClass *object_class;
 	GtkWaveBufferClass *wavebuffer_class;
 	GtkEditableWaveBufferClass *editable_class;
-
+	GObjectClass *gobject_class;
+	  
 	object_class = (GtkObjectClass *) klass;
 	wavebuffer_class = (GtkWaveBufferClass *) klass;
 	editable_class = (GtkEditableWaveBufferClass *) klass;
 
-	object_class->finalize = gtk_swapfile_buffer_finalize;
+	gobject_class = G_OBJECT_CLASS (klass);
+	gobject_class->finalize = gtk_swapfile_buffer_finalize;
 
 	wavebuffer_class->get_rate = gtk_swapfile_buffer_get_rate;
 	wavebuffer_class->get_datatype = gtk_swapfile_buffer_get_datatype;

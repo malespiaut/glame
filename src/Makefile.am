@@ -3,7 +3,7 @@ SUBDIRS = include hash swapfile filter plugins glmid gui
 INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter \
 	-I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash \
 	-I@top_srcdir@/src/glmid \
-	$(GUILE_INCS) $(GLAME_CFLAGS) $(GLAME_AUDIO_CFLAGS) $(GLAME_DCFLAGS)
+	$(GLAME_INCLUDEDIR)
 
 bin_PROGRAMS = cglame
 
@@ -15,6 +15,6 @@ cglame_LDADD = \
 	filter/libfilter.la \
 	hash/libhash.la \
 	swapfile/libswapfile.la \
-	$(GLAME_LIBS) $(GLAME_DLIBS) $(LIBLTDL)
+	$(GLAME_LIBDIR) $(GLAME_LIBS) $(LIBLTDL)
 cglame_LDFLAGS = -export-dynamic -dlopen self
 

@@ -1,6 +1,7 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.20 2002/11/10 14:39:20 richi Exp $
+ *
+ * $Id: timeline.c,v 1.21 2003/04/11 20:10:17 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -612,7 +613,6 @@ GtkType timeline_gui_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		timeline_gui_type = gtk_type_unique(
 			gnome_app_get_type(), &timeline_gui_info);
-		gtk_type_set_chunk_alloc(timeline_gui_type, 8);
 	}
 
 	return timeline_gui_type;
@@ -689,7 +689,7 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(swindow))), "value_changed",
 			   (GtkSignalFunc)ruler_update_cb, window);
 	gnome_app_set_contents(GNOME_APP(window), vbox);
-	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
+	toolbar = gtk_toolbar_new();
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom in", "Zooms in","foo",
 				glame_load_icon_widget("zoom_in.png",24,24),
@@ -699,18 +699,18 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 				glame_load_icon_widget("zoom_out.png",24,24),
 				zoom_out_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
-				"Close", "Close", "Close",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
-				close_cb, window);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
-				"Help", "Help", "Help",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
-				help_cb, NULL);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),
+				 "Close", "Close", 
+				 GNOME_STOCK_PIXMAP_CLOSE,
+				 close_cb, window,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),
+				 "Help", "Help", 
+				 GNOME_STOCK_PIXMAP_HELP,
+				 help_cb, NULL,-1);
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "timeline::toolbar",
-			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
-			      GNOME_DOCK_RIGHT, 0, 0, 0);
+			      BONOBO_DOCK_ITEM_BEH_EXCLUSIVE|BONOBO_DOCK_ITEM_BEH_NEVER_FLOATING,
+			      BONOBO_DOCK_RIGHT, 0, 0, 0);
 
 	/* Add accelerator handler. */
 	glame_accel_install(GTK_WIDGET(window), "timeline", NULL);

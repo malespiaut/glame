@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.9 2002/01/01 22:06:39 richi Exp $
+ * $Id: gltreeitem.h,v 1.10 2003/04/11 20:09:59 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *

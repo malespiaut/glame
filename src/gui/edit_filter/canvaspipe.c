@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.27 2002/07/29 23:47:35 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.28 2003/04/11 20:10:00 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -34,7 +34,7 @@
 #include "canvasitem.h"
 #include "util/glame_gui_utils.h"
 #include "hash.h"
-
+#include "edit_filter_marshal.h"
 
 extern long bMac;
 extern long nPopupTimeout;
@@ -86,14 +86,15 @@ glame_canvas_pipe_class_init(GlameCanvasPipeClass* class)
 	object_class = GTK_OBJECT_CLASS(class);
 	object_class->destroy = glame_canvas_pipe_destroy;
 
-	pipe_signals[DELETED] = gtk_signal_new("deleted",
-					       GTK_RUN_LAST,
-					       object_class->type,
-					       GTK_SIGNAL_OFFSET(GlameCanvasPipeClass,deleted),
-					       gtk_marshal_NONE__NONE,
-					       GTK_TYPE_NONE,
-					       0);
-	gtk_object_class_add_signals(object_class,pipe_signals,LAST_SIGNAL);
+	pipe_signals[DELETED] = g_signal_new("deleted",
+					     G_OBJECT_CLASS_TYPE(object_class),
+					     GTK_RUN_LAST,
+					     GTK_SIGNAL_OFFSET(GlameCanvasPipeClass,deleted),
+					     NULL,NULL,
+					     edit_filter_marshal_VOID__VOID,
+					     GTK_TYPE_NONE,
+					     0);
+	//	gtk_object_class_add_signals(object_class,pipe_signals,LAST_SIGNAL);
 	class->deleted = NULL;
 }
 
@@ -126,7 +127,6 @@ glame_canvas_pipe_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		canvas_pipe_type = gtk_type_unique(GNOME_TYPE_CANVAS_GROUP,
 						   &canvas_pipe_info);
-		gtk_type_set_chunk_alloc(canvas_pipe_type,8);
 	}
 	
 	return canvas_pipe_type;
@@ -143,6 +143,7 @@ static void
 glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 {
 	/* draw connection depending on start and end coords  */
+	int i;
 	double xs, ys, xd,yd;
 	double xOffset, dist;
 	double dy = p->dy;
@@ -153,6 +154,7 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	
 	xOffset = 25.0;
 	dist = xd-xs;
+	xOffset = 25.0;
 	if(dist<50.0)
 		xOffset = dist/2.0;
 	xOffset=(xOffset<12.0)?12.0:xOffset;
@@ -169,6 +171,7 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	
 	p->points->coords[8]=xd-xOffset-(p->destId*4);
 	p->points->coords[9]=yd;
+	
 	
 	gnome_canvas_item_set(GNOME_CANVAS_ITEM(p->line),
 			      "points",p->points,
@@ -323,7 +326,7 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 		case 1:
 			if(bMac){
 				menu = gnome_popup_menu_new(pipe_menu);
-				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe);
+				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe,GTK_WIDGET(CANVAS_ITEM_CANVAS(i)));
 			}
 			break;
 		}
@@ -763,7 +766,7 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 		case 3:
 				/* popup menu */
 			menu = gnome_popup_menu_new(pipe_menu);
-			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe,GTK_WIDGET(CANVAS_ITEM_CANVAS(i)));
 
 			break;
 		default:
@@ -775,7 +778,7 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 		case 1:
 			if(bMac){
 				menu = gnome_popup_menu_new(pipe_menu);
-				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe);
+				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe,GTK_WIDGET(CANVAS_ITEM_CANVAS(i)));
 			}
 			break;
 		}

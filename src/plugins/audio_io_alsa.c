@@ -1,6 +1,7 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.15 2003/01/03 00:03:35 mag Exp $
+ *
+ * $Id: audio_io_alsa.c,v 1.16 2003/04/11 20:10:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes

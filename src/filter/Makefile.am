@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/swapfile $(GUILE_INCS) $(GLAME_DCFLAGS) -D_REENTRANT
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/swapfile $(GLAME_INCLUDEDIR)
 
 noinst_LTLIBRARIES = libfilter.la
 

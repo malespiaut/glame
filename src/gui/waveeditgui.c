@@ -1,6 +1,8 @@
 /*
  * waveeditgui.c
  *
+ * $Id: waveeditgui.c,v 1.133 2003/04/11 20:10:00 richi Exp $
+ *
  * Copyright (C) 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
@@ -453,10 +455,10 @@ static void play_cleanup(glsig_handler_t *handler,
 	/* restore normal play button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(waveedit->toolbar)), 6)->data);
-	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
-				_("Play/Record"), _("PlayRecord"), _("PlayRecord"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
-				playrecordtoolbar_cb, waveedit->waveview, 9);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar),
+				 _("Play/Record"), _("Play/Record"),
+				 GNOME_STOCK_PIXMAP_FORWARD,
+				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview, 9);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -678,9 +680,9 @@ static void play(GtkWaveView *waveview,
 	/* exchange play for stop button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(active_waveedit->toolbar)), 6)->data);
-	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
-				_("Stop"), _("Stop"), _("Stop"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar),
+				 _("Stop"), _("Stop"), 
+				 GNOME_STOCK_PIXMAP_STOP,
 				playrecordtoolbar_cb, active_waveedit->waveview, 9);
 	active_waveedit->locked = 1;
 
@@ -1040,7 +1042,7 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 		return;
 
 	menu = waveedit_build_menu(waveview);
-	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
+	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview,GTK_WIDGET(waveview));
 }
 
 /* Button press event. */
@@ -1052,7 +1054,7 @@ static void waveedit_rmb_cb2(GtkWidget *widget, GtkWaveView *waveview)
 		return;
 
 	menu = waveedit_build_menu(waveview);
-	gnome_popup_menu_do_popup(menu, NULL, NULL, NULL, waveview);
+	gnome_popup_menu_do_popup(menu, NULL, NULL, NULL, waveview,GTK_WIDGET(waveview));
 }
 
 static void handle_enter(GtkWidget *tree, GdkEventCrossing *event,
@@ -1340,7 +1342,6 @@ GtkType waveedit_gui_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		waveedit_gui_type = gtk_type_unique(
 			gnome_app_get_type(), &waveedit_gui_info);
-		gtk_type_set_chunk_alloc(waveedit_gui_type, 8);
 	}
 
 	return waveedit_gui_type;
@@ -1463,12 +1464,11 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 
 
 	/* Add the toolbar. */
-	window->toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL,
-					  GTK_TOOLBAR_ICONS);
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Export"), _("Export"), _("Export"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE),
-				wave_export_cb, window);
+	window->toolbar = gtk_toolbar_new();
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_SAVE,
+				 _("Export"), _("Export"),
+				 wave_export_cb, window,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Zoom in"), _("Zoom in"), _("Zoom in"),
@@ -1478,10 +1478,10 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				_("Zoom out"), _("Zoom out"), _("Zoom out"),
 				glame_load_icon_widget("zoom_out.png",24,24),
 				zoomout_cb, window->waveview);
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("View all"), _("View all"), _("View all"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),
-				zoomfull_cb, window->waveview);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_REFRESH,
+				 _("View all"), _("View all"), 
+				 zoomfull_cb, window->waveview,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Select all"), _("Select all"), _("Select all"),
@@ -1495,10 +1495,10 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * callback than "Play all"/"Play selection" - play from marker.
 	 * FIXME. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Play/Record"), _("Play/Record"), _("Play/Record"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
-				playrecordtoolbar_cb, window->waveview);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_GO_FORWARD,
+				 _("Play/Record"), _("Play/Record"),
+				 playrecordtoolbar_cb, window->waveview, -1);
 #if 0
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
@@ -1508,14 +1508,14 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 #endif
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Close"), _("Close"), _("Close"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
-				wave_close_cb, window);
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Help"), _("Help"), _("Help"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
-				wave_help_cb, window->waveview);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_CLOSE,
+				 _("Close"), _("Close"),
+				 wave_close_cb, window, -1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_HELP,
+				 _("Help"), _("Help"),
+				 wave_help_cb, window->waveview, -1);
 
 	/* Create menubar - FIXME copy all uiinfos, restructure to
 	 * match nice menu layout, etc.
@@ -1527,8 +1527,8 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 #if 0
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar),
 			      "waveedit::toolbar",
-			      /*GNOME_DOCK_ITEM_BEH_EXCLUSIVE|*/GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
-			      GNOME_DOCK_TOP, 0, 0, 0);
+			      /*BONOBO_DOCK_ITEM_BEH_EXCLUSIVE|*/BONOBO_DOCK_ITEM_BEH_NEVER_FLOATING,
+			      BONOBO_DOCK_TOP, 0, 0, 0);
 #endif
 
 	/* Install the rmb menu and enter/leave callbacks. */

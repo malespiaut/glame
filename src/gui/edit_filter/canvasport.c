@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.31 2002/07/14 12:41:19 richi Exp $
+ * $Id: canvasport.c,v 1.32 2003/04/11 20:10:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -36,6 +36,8 @@
 #include "util/glame_gui_utils.h"
 #include "hash.h"
 #include <X11/bitmaps/hlines3>
+#include "edit_filter_marshal.h"
+
 extern long bMac;
 extern long nPopupTimeout;
 
@@ -105,24 +107,27 @@ glame_canvas_port_class_init(GlameCanvasPortClass* class)
 	object_class = GTK_OBJECT_CLASS(class);
 	object_class->destroy = glame_canvas_port_destroy;
 
-	port_signals[MOVED] = gtk_signal_new("moved",
-					     GTK_RUN_LAST,
-					     object_class->type,
-					     GTK_SIGNAL_OFFSET(GlameCanvasPortClass, moved),
-					     glame_canvas_marshal_NONE__DOUBLE_DOUBLE,
-					     GTK_TYPE_NONE,
-					     2,
-					     GTK_TYPE_DOUBLE,
-					     GTK_TYPE_DOUBLE);
-	port_signals[CONNECTIONS_CHANGED] = gtk_signal_new("connections_changed",
-							   GTK_RUN_FIRST,
-							   object_class->type,
-							   GTK_SIGNAL_OFFSET(GlameCanvasPortClass,connections_changed),
-							   gtk_marshal_NONE__NONE,
-							   GTK_TYPE_NONE,
-							   0);
+	port_signals[MOVED] = g_signal_new("moved",
+					   G_OBJECT_CLASS_TYPE(object_class),
+					   GTK_RUN_LAST,
+					   GTK_SIGNAL_OFFSET(GlameCanvasPortClass, moved),
+					   NULL,NULL,
+					   edit_filter_marshal_VOID__DOUBLE_DOUBLE,
+					   GTK_TYPE_NONE,
+					   2,
+					   GTK_TYPE_DOUBLE,
+					   GTK_TYPE_DOUBLE);
 	
-	gtk_object_class_add_signals(object_class,port_signals,LAST_SIGNAL);
+	port_signals[CONNECTIONS_CHANGED] = g_signal_new("connections_changed",
+							 G_OBJECT_CLASS_TYPE(object_class),
+							 GTK_RUN_FIRST,
+							 GTK_SIGNAL_OFFSET(GlameCanvasPortClass,connections_changed),
+							 NULL,NULL,
+							 edit_filter_marshal_VOID__VOID,
+							 GTK_TYPE_NONE,
+							 0);
+	
+	//	gtk_object_class_add_signals(object_class,port_signals,LAST_SIGNAL);
 	
 	class->moved = NULL;
 	class->connections_changed = (void(*)(GlameCanvasPort*))glame_canvas_port_connections_changed_cb;
@@ -158,7 +163,6 @@ glame_canvas_port_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		canvas_port_type = gtk_type_unique(GNOME_TYPE_CANVAS_RECT,
 						   &canvas_port_info);
-		gtk_type_set_chunk_alloc(canvas_port_type,8);
 	}
 	
 	return canvas_port_type;
@@ -285,7 +289,7 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 		if(bMac){
 			if(event->button.button == 1){
 				menu = gnome_popup_menu_new(port_menu);
-				gnome_popup_menu_do_popup_modal(menu, NULL,NULL,&event->button, port);
+				gnome_popup_menu_do_popup_modal(menu, NULL,NULL,&event->button, port,GTK_WIDGET(CANVAS_ITEM_CANVAS(port)));
 			}
 		}
 		return TRUE;
@@ -520,7 +524,7 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 			break;
 		case 3:
 			menu = gnome_popup_menu_new(port_menu);
-			gnome_popup_menu_do_popup_modal(menu, NULL,NULL,&event->button, port);
+			gnome_popup_menu_do_popup_modal(menu, NULL,NULL,&event->button, port,GTK_WIDGET(CANVAS_ITEM_CANVAS(port)));
 			return TRUE;
 			break;
 		default:

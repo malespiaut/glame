@@ -1,6 +1,6 @@
 /*
  * audio_io_midi.c
- * $Id: midi_io_alsa.c,v 1.2 2002/12/02 00:27:25 mag Exp $
+ * $Id: midi_io_alsa.c,v 1.3 2003/04/11 20:10:36 richi Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  * 

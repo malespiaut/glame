@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.13 2002/04/25 21:17:34 richi Exp $
+ * $Id: gtknob.c,v 1.14 2003/04/11 20:10:28 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -134,9 +134,9 @@ static void gtk_knob_class_init(GtkKnobClass * klass)
     widget_class->button_release_event = gtk_knob_button_release;
     widget_class->motion_notify_event = gtk_knob_motion_notify;
     widget_class->expose_event = gtk_knob_expose;
-
-    widget_class->draw = gtk_knob_draw;
-    widget_class->draw_focus = gtk_knob_draw_focus;
+    //FIXME
+    //    widget_class->draw = gtk_knob_draw;
+    //    widget_class->draw_focus = gtk_knob_draw_focus;
 
     widget_class->focus_in_event = gtk_knob_focus_in;
     widget_class->focus_out_event = gtk_knob_focus_out;
@@ -498,7 +498,7 @@ static gint gtk_knob_focus_in(GtkWidget * widget, GdkEventFocus * event)
     g_return_val_if_fail(GTK_IS_KNOB(widget), FALSE);
 
     GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
-    gtk_widget_draw_focus(widget);
+    //FIXME    gtk_widget_draw_focus(widget);
 
     return FALSE;
 }
@@ -509,7 +509,7 @@ static gint gtk_knob_focus_out(GtkWidget * widget, GdkEventFocus * event)
     g_return_val_if_fail(GTK_IS_KNOB(widget), FALSE);
 
     GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
-    gtk_widget_draw_focus(widget);
+    //FIXME gtk_widget_draw_focus(widget);
 
     return FALSE;
 }
@@ -531,7 +531,7 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area)
 		    knob->value * 31, 0, 15, 10, 30, 30);
 
     if (GTK_WIDGET_HAS_FOCUS(widget)) {
-	gtk_paint_focus(widget->style, widget->window,
+	    gtk_paint_focus(widget->style, widget->window,GTK_STATE_NORMAL,
 			area, widget, "knob",
 			widget->allocation.x, widget->allocation.y,
 			widget->allocation.width - 1,
@@ -617,6 +617,8 @@ static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
 
 static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 {
+  //FIXME
+#if 0
 	GtkWidget *knob;
 	GtkObject *adj;
 	GList *tmp;
@@ -647,6 +649,7 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 	}
 
 	return knob;
+#endif
 }
 #endif
 
@@ -751,8 +754,9 @@ void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
 }
 
 
-
-#ifdef HAVE_LIBGLADE
+//FIXME
+//#ifdef HAVE_LIBGLADE
+#if 0
 void gtk_knob_glade_register()
 {
 	static GladeWidgetBuildData widgets[] = {

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.88 2003/01/06 12:40:26 nold Exp $
+ * $Id: swapfilegui.c,v 1.89 2003/04/11 20:10:00 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -20,6 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+#include "math.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -37,6 +38,7 @@
 #include "waveeditgui.h"
 #include "filter.h"
 #include "util/glame_gui_utils.h"
+#include "util/glame_dnd.h"
 #include "clipboard.h"
 #include "timeline/timeline.h"
 #include "glscript.h"
@@ -249,7 +251,7 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
         } else
 		return TRUE;
 
-	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i);
+	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i,NULL);
 	return TRUE;
 }
 
@@ -1073,7 +1075,6 @@ GtkType swapfile_gui_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		swapfile_gui_type = gtk_type_unique(
 			GTK_TYPE_EVENT_BOX, &swapfile_gui_info);
-		gtk_type_set_chunk_alloc(swapfile_gui_type, 8);
 	}
 
 	return swapfile_gui_type;
@@ -1083,6 +1084,8 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
 {
 	SwapfileGui *swapfile;
 	gpsm_item_t *item;
+	GtkTargetEntry desttargets[] = { GLAME_DND_TARGET_STRING_SCM_NETWORK,
+	                               };
 
 	if (!root)
 		return NULL;
@@ -1117,6 +1120,7 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
 		handle_grp_add_treeitem(GTK_OBJECT(swapfile->tree), item);
 
 	gtk_widget_show(swapfile->tree);
+	gtk_drag_source_set(GTK_WIDGET(swapfile),GDK_BUTTON2_MASK,desttargets,1,GDK_ACTION_COPY);
 	if (!active_swapfilegui)
 		active_swapfilegui = swapfile;
 	return swapfile;

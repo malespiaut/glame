@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.19 2002/12/28 13:43:19 richi Exp $
+ * $Id: importexport.c,v 1.20 2003/04/11 20:09:59 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -258,7 +258,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 		percentage = (float)filterparam_val_long(pos_param)/(float)ie->frames;
 		if(percentage>1.0)
 			percentage = 1.0;
-		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
+		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar),
 					  percentage);
 	}
 	filter_wait(ie->net);
@@ -266,7 +266,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	ie->net = NULL;
 	
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
-	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
+	gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar),
 				  0.0);
 
 	if (ie->cancelled==0) {
@@ -438,7 +438,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 		percentage = (float)filterparam_val_long(param)/(float)ie->frames;
 		if(percentage>1.0)
 			percentage = 1.0;
-		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
+		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar),
 					  percentage);
 	}
 
@@ -452,7 +452,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 
 
 		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
-		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);
+		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar), 0.0);
 		
 		mrms = 0.0;
 		
@@ -472,7 +472,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 		ie_update_plabels(ie);
 	} else if (ie->destroyed!=1) {
 		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Cancelled.");
-		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);
+		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar), 0.0);
 	}
 	
  _ie_stats_cleanup:
@@ -591,8 +591,9 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	combo_entry2 = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fileentry2));
 	gtk_widget_show (combo_entry2);
 	
-	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(
-						   GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry))));
+	//	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(
+	//					   GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry))));
+	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileentry2))));
 
 	gtk_signal_connect(GTK_OBJECT(ie->edit), "changed",
 			   (GtkSignalFunc)ie_filename_cb, ie);
@@ -1012,7 +1013,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		percentage = (float)filterparam_val_long(param)/(float)totalframes;
 		if(percentage>1.0)
 			percentage = 1.0;
-		gnome_appbar_set_progress(GNOME_APPBAR(exp->appbar),
+		gnome_appbar_set_progress_percentage(GNOME_APPBAR(exp->appbar),
 					  percentage);
 	}
 	exp->running = 0;
@@ -1088,7 +1089,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	combo_entry = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fentry));
 	gtk_widget_show(combo_entry);
 
-	edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(GNOME_FILE_ENTRY(fentry)->gentry))));
+	//	edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(GNOME_FILE_ENTRY(fentry)->gentry))));
+	edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry))));
 	
 	gtk_signal_connect(GTK_OBJECT(edit), "changed",
 			   (GtkSignalFunc)export_filename_cb, ie);

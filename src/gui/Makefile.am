@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" -DPKGDATADIR=\"$(pkgdatadir)\" $(GNOME_INCLUDEDIR) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" -DPKGDATADIR=\"$(pkgdatadir)\" $(GLAME_GUI_INCLUDEDIR) $(XML_CFLAGS)
 
 
 EXTRA_DIST = glame.desktop default-accels \
@@ -6,13 +6,15 @@ EXTRA_DIST = glame.desktop default-accels \
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
-if HAVE_GNOME
+if BUILD_GUI
 bin_PROGRAMS = glame
 #bin_PROGRAMS = wavetest timeline
 Multimedia_DATA = glame.desktop
 endif
 
 pkgdata_DATA = default-accels
+
+BUILT_SOURCES = edit_filter/edit_filter_marshal.h edit_filter/edit_filter_marshal.c
 
 glame_SOURCES = \
 	libgtkwaveform/grange.c libgtkwaveform/grange.h \
@@ -31,6 +33,7 @@ glame_SOURCES = \
 	edit_filter/canvasfilter.c edit_filter/canvaspipe.c edit_filter/canvasport.c \
 	edit_filter/glamecanvas.c edit_filter/canvasitem.h edit_filter/glamecanvas.h \
 	edit_filter/filtereditgui.c edit_filter/filtereditgui.h \
+	edit_filter/edit_filter_marshal.h edit_filter/edit_filter_marshal.c \
 	\
 	timeline/timeline_canvas.h timeline/timeline_canvas.c \
 	timeline/timeline.h timeline/timeline.c \
@@ -48,12 +51,17 @@ glame_LDADD =  \
 	../filter/libfilter.la \
 	../hash/libhash.la \
 	../swapfile/libswapfile.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) \
-	$(XML_LIBS) -lm $(LIBLTDL)
+	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) \
+	-lm $(LIBLTDL)
 glame_LDFLAGS = -export-dynamic -dlopen self
 
-#wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
-#wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
-#	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
-#wavetest_LDFLAGS = -export-dynamic
+edit_filter/edit_filter_marshal.h: edit_filter/edit_filter_marshal.list
+	( @GLIB_GENMARSHAL@ --prefix=edit_filter_marshal edit_filter/edit_filter_marshal.list --header > edit_filter_marshal.tmp \
+	&& mv edit_filter_marshal.tmp edit_filter/edit_filter_marshal.h ) \
+	|| ( rm -f edit_filter_marshal.tmp && exit 1 )
 
+edit_filter/edit_filter_marshal.c: edit_filter/edit_filter_marshal.h
+	( @GLIB_GENMARSHAL@ --prefix=edit_filter_marshal edit_filter/edit_filter_marshal.list --body > edit_filter_marshal.tmp \
+	&& mv edit_filter_marshal.tmp edit_filter/edit_filter_marshal.c ) \
+	|| ( rm -f edit_filter_marshal.tmp && exit 1 )
+						      

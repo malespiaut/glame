@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.22 2002/06/09 08:26:52 richi Exp $
+ * $Id: glame_param.c,v 1.23 2003/04/11 20:10:26 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -77,7 +77,6 @@ GtkType glame_param_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		glame_param_type = gtk_type_unique(
 			GTK_TYPE_HBOX, &glame_param_info);
-		gtk_type_set_chunk_alloc(glame_param_type, 8);
 	}
 
 	return glame_param_type;
@@ -369,8 +368,8 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	} else if (filterparam_type(param) == FILTER_PARAMTYPE_FILENAME) {
 		gparam->label = gtk_label_new(label);
 		gparam->widget = gnome_file_entry_new("editfilter::param::filename", label);
-		gparam->u.edit = GTK_EDITABLE(gnome_entry_gtk_entry(
-			GNOME_ENTRY(GNOME_FILE_ENTRY(gparam->widget)->gentry)));
+		gparam->u.edit = GTK_EDITABLE(gnome_file_entry_gtk_entry(
+			GNOME_FILE_ENTRY(gparam->widget)));
 		gtk_entry_set_text(GTK_ENTRY(gparam->u.edit),
 				   filterparam_val_string(param)
 				   ? filterparam_val_string(param) : "");

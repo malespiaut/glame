@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_GUI_INCLUDEDIR)
 
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
@@ -38,7 +38,7 @@ endif
 if HAVE_SGI
 audio_io_irix = audio_io_irix.la
 endif
-if HAVE_GNOME
+if BUILD_GUI
 normalize = normalize.la mixer.la
 endif
 
@@ -50,7 +50,7 @@ libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
 	arithmetic.c waveform.c ssp.c echo.c noisegate.c \
 	pan.c pipe.c iir.c flanger.c distortion.c \
 	fader.c stretch.c
-libglamebuiltins_la_LDFLAGS = -export-dynamic $(GLAME_AUDIO_LIBS)
+libglamebuiltins_la_LDFLAGS = -export-dynamic $(GLAME_LIBDIR) $(GLAME_LIBS)
 libglamebuiltins_la_DEPENDENCIES = builtins.c
 
 # real plugins (depending on optional stuff)
@@ -69,7 +69,7 @@ tutorial_la_LDFLAGS = -module -avoid-version
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
 endif
-fft_plugins_la_LDFLAGS = -module -avoid-version $(GLAME_FFT_LIBS)
+fft_plugins_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
 if HAVE_OSS
 audio_io_oss_la_SOURCES = audio_io_oss.c audio_io.h
@@ -79,24 +79,24 @@ audio_io_oss_la_LDFLAGS = -module -avoid-version
 if HAVE_ESD
 audio_io_esd_la_SOURCES = audio_io_esd.c audio_io.h
 endif
-audio_io_esd_la_LDFLAGS = -module -avoid-version $(ESD_LIBS)
+audio_io_esd_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
 if HAVE_ALSA
 audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h midi_io_alsa.c
 endif
-audio_io_alsa_la_LDFLAGS = -module -avoid-version $(ALSA_LIBS)
+audio_io_alsa_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
 if HAVE_SGI
 audio_io_irix_la_SOURCES = audio_io_irix.c audio_io.h
 endif
-audio_io_irix_la_LDFLAGS = -module -avoid-version $(SGIAUDIO_LIBS)
+audio_io_irix_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
-if HAVE_GNOME
+if BUILD_GUI
 normalize_la_SOURCES = normalize.c
 mixer_la_SOURCES = mixer.c
 endif
-normalize_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
-mixer_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
+normalize_la_LDFLAGS = -module -avoid-version $(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS)
+mixer_la_LDFLAGS = -module -avoid-version $(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS)
 
 
 builtins.c: $(libglamebuiltins_la_SOURCES) Makefile.am

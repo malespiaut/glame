@@ -1,7 +1,7 @@
 /*
  * timeline_canvas.c
  *
- * $Id: timeline_canvas.c,v 1.5 2002/11/10 14:39:58 richi Exp $
+ * $Id: timeline_canvas.c,v 1.6 2003/04/11 20:10:19 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -86,7 +86,6 @@ GtkType timeline_canvas_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		timeline_canvas_type = gtk_type_unique(
 			GNOME_TYPE_CANVAS, &timeline_canvas_info);
-		gtk_type_set_chunk_alloc(timeline_canvas_type, 8);
 	}
 
 	return timeline_canvas_type;
@@ -192,7 +191,6 @@ GtkType timeline_canvas_item_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		timeline_canvas_item_type = gtk_type_unique(
 			GNOME_TYPE_CANVAS_GROUP, &timeline_canvas_item_info);
-		gtk_type_set_chunk_alloc(timeline_canvas_item_type, 8);
 	}
 
 	return timeline_canvas_item_type;
@@ -282,7 +280,6 @@ GtkType timeline_canvas_group_get_type(void)
 		timeline_canvas_group_type = gtk_type_unique(
 			TIMELINE_CANVAS_ITEM_TYPE,
 			&timeline_canvas_group_info);
-		gtk_type_set_chunk_alloc(timeline_canvas_group_type, 8);
 	}
 
 	return timeline_canvas_group_type;
@@ -427,7 +424,6 @@ GtkType timeline_canvas_file_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		timeline_canvas_file_type = gtk_type_unique(
 			TIMELINE_CANVAS_ITEM_TYPE, &timeline_canvas_file_info);
-		gtk_type_set_chunk_alloc(timeline_canvas_file_type, 8);
 	}
 
 	return timeline_canvas_file_type;

@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.15 2001/12/13 00:21:35 xwolf Exp $
+ * $Id: canvasitem.h,v 1.16 2003/04/11 20:10:00 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -56,7 +56,7 @@ typedef struct _GlameCanvasPipeClass GlameCanvasPipeClass;
 #define GLAME_CANVAS_FILTER_CLASS(object)     (GTK_CHECK_CLASS_CAST((object), GLAME_CANVAS_FILTER_TYPE, GlameCanvasFilterClass))
 #define GLAME_IS_CANVAS_FILTER(object)        (GTK_CHECK_TYPE((object), GLAME_CANVAS_FILTER_TYPE))
 #define GLAME_IS_CANVAS_FILTER_CLASS(object)  (GTK_CHECK_CLASS_TYPE((object), GLAME_CANVAS_FILTER_TYPE))
-#define GLAME_CANVAS_FILTER_GET_CLASS(object) ((GlameCanvasFilterClass*) (((GtkObject*) (obj))->klass))
+#define GLAME_CANVAS_FILTER_GET_CLASS(object) ((GlameCanvasFilterClass*) (GTK_OBJECT_GET_CLASS(GTK_OBJECT(obj))))
 
 /* for GlameCanvasPort */
 #define GLAME_CANVAS_PORT_TYPE              (glame_canvas_port_get_type())
@@ -64,7 +64,7 @@ typedef struct _GlameCanvasPipeClass GlameCanvasPipeClass;
 #define GLAME_CANVAS_PORT_CLASS(object)     (GTK_CHECK_CLASS_CAST((object), GLAME_CANVAS_PORT_TYPE, GlameCanvasPortClass))
 #define GLAME_IS_CANVAS_PORT(object)        (GTK_CHECK_TYPE((object), GLAME_CANVAS_PORT_TYPE))
 #define GLAME_IS_CANVAS_PORT_CLASS(object)  (GTK_CHECK_CLASS_TYPE((object), GLAME_CANVAS_PORT_TYPE))
-#define GLAME_CANVAS_PORT_GET_CLASS(object) ((GlameCanvasPortClass*) (((GtkObject*) (obj))->klass))
+#define GLAME_CANVAS_PORT_GET_CLASS(object) ((GlameCanvasPortClass*) (GTK_OBJECT_GET_CLASS(GTK_OBJECT(obj))))
 
 /* for GlameCanvasPipe */
 #define GLAME_CANVAS_PIPE_TYPE              (glame_canvas_pipe_get_type())
@@ -72,7 +72,7 @@ typedef struct _GlameCanvasPipeClass GlameCanvasPipeClass;
 #define GLAME_CANVAS_PIPE_CLASS(object)     (GTK_CHECK_CLASS_CAST((object), GLAME_CANVAS_PIPE_TYPE, GlameCanvasPipeClass))
 #define GLAME_IS_CANVAS_PIPE(object)        (GTK_CHECK_TYPE((object), GLAME_CANVAS_PIPE_TYPE))
 #define GLAME_IS_CANVAS_PIPE_CLASS(object)  (GTK_CHECK_CLASS_TYPE((object), GLAME_CANVAS_PIPE_TYPE))
-#define GLAME_CANVAS_PIPE_GET_CLASS(object) ((GlameCanvasPipeClass*) (((GtkObject*) (obj))->klass))
+#define GLAME_CANVAS_PIPE_GET_CLASS(object) ((GlameCanvasPipeClass*) (GTK_OBJECT_GET_CLASS(GTK_OBJECT(obj))))
 
 
 /* The actual data structures/functions */

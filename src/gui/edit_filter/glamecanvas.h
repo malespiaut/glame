@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.20 2001/12/13 00:21:35 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.21 2003/04/11 20:10:04 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -92,7 +92,7 @@ void glame_canvas_marshal_NONE__DOUBLE_DOUBLE(GtkObject*,
 					      GtkSignalFunc,
 					      gpointer,
 					      GtkArg*);
-GdkImlibImage*  glame_gui_get_icon_from_filter(filter_t* t);
+GdkPixbuf*  glame_gui_get_icon_from_filter(filter_t* t);
 
 char* glame_gui_get_font(GlameCanvas* canv);
 
@@ -125,6 +125,7 @@ void glame_canvas_select_add(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_exclusive(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_clear(GlameCanvas* canv);
 void glame_canvas_select_unselect(GlameCanvas* canv, GlameCanvasFilter* filter);
+void glame_canvas_reroute_selection(GlameCanvas *canv);
 //GList* glame_canvas_select_get(GlameCanvas* canv);
 
 #define GLAME_CANVAS_GROUP_TYPE              (glame_canvas_group_get_type())

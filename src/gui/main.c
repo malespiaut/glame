@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.114 2002/11/15 18:57:10 richi Exp $
+ * $Id: main.c,v 1.115 2003/04/11 20:09:59 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -748,6 +748,7 @@ static GtkWidget* glame_about(void)
 	 * issue by allocating dynamically. But it sucks. Leave it
 	 * untranslated for now.
 	 */
+	GdkPixbuf* log;
 	const gchar *authors[]={
 		N_("Richard Guenther [Richi]"),
 		N_("Alexander Ehlert [Mag]"),
@@ -756,29 +757,45 @@ static GtkWidget* glame_about(void)
 		N_("and others"),
 		NULL
 	};
+	const gchar *documenters[]={
+		N_("Richi"),
+		N_("*nold"),
+		N_("Mag"),
+		N_("XWolf"),
+		NULL
+	};
+	const gchar *translators[]={
+		N_("*nold"),
+		N_("Laurent Georget"),
+		NULL
+	};
 	GtkWidget *about;
 	char *logo;
-
+	
 	logo = GLAME_LOGO;
+
 	if (access(logo, R_OK) == -1)
 		logo = "../data/pixmaps/glame-logo.jpg";
-	about = gnome_about_new ("GLAME", VERSION, 
+	log = gdk_pixbuf_new_from_file(logo,NULL);
+	about = gnome_about_new ("GLAME", 
+				 VERSION, 
 				 _("Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"),
-				 authors,
-
 				 _(
-"This program is free software; you can redistribute it and/or modify"
-"it under the terms of the GNU General Public License as published by"
-"the Free Software Foundation; either version 2 of the License, or"
-"(at your option) any later version.\n"
-"This program is distributed in the hope that it will be useful,"
-"but WITHOUT ANY WARRANTY; without even the implied warranty of"
-"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
-"GNU General Public License for more details.\n"
-"You should have received a copy of the GNU General Public License"
-"along with this program; if not, write to the Free Software"
-"Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"),
-				 logo);
+				   "This program is free software; you can redistribute it and/or modify"
+				   "it under the terms of the GNU General Public License as published by"
+				   "the Free Software Foundation; either version 2 of the License, or"
+				   "(at your option) any later version.\n"
+				   "This program is distributed in the hope that it will be useful,"
+				   "but WITHOUT ANY WARRANTY; without even the implied warranty of"
+				   "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
+				   "GNU General Public License for more details.\n"
+				   "You should have received a copy of the GNU General Public License"
+				   "along with this program; if not, write to the Free Software"
+				   "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"),
+				 authors,
+				 documenters,
+				 _("*nold, Laurent Georget"),
+				 log);
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
 	gtk_window_set_modal (GTK_WINDOW (about), FALSE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
@@ -887,7 +904,7 @@ _("Welcome first-time user of GLAME.\n"
 
 	glame_config_get_string("swapfile/defaultpath", &path);
 	DPRINTF("path: %s\n",path);
-	if (!g_file_test(path,G_FILE_TEST_ISDIR)) {
+	if (!g_file_test(path,G_FILE_TEST_IS_DIR)) {
 		if (swapfile_creat(path, -1)) {
 			char msg[256];
 			char *errmsg = strerror(errno);

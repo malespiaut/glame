@@ -4,7 +4,7 @@ else
 LADSPA_FILES =
 endif
 
-INCLUDES = $(LTDLINCL) -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash $(XML_CFLAGS) $(LADSPA_CFLAGS) -DPKGSCRIPTSDIR=\"$(pkgscriptsdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" $(GUILE_INCS)
+INCLUDES = $(LTDLINCL) -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash -DPKGSCRIPTSDIR=\"$(pkgscriptsdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" $(GLAME_INCLUDEDIR)
 
 EXTRA_DIST = glame.scm glame_testsuite.scm ladspa.c
 
@@ -21,7 +21,7 @@ libglmid_la_SOURCES = \
 	gpsm.c gpsm.h clipboard.c clipboard.h \
 	network_utils.c network_utils.h
 libglmid_la_LDFLAGS = -export-dynamic \
-	$(GUILE_LIBS) $(PTHREAD_LIBS) $(XML_LIBS) -lm
+	$(GLAME_LIBDIR) $(GLAME_LIBS) -lm
 
 libglameaudiofile_la_SOURCES = \
 	glame_audiofile.c

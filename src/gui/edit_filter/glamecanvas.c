@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.47 2002/07/30 08:51:18 richi Exp $
+ * $Id: glamecanvas.c,v 1.48 2003/04/11 20:10:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -34,6 +34,7 @@
 #include "canvasitem.h"
 #include "hash.h"
 #include "util/glame_gui_utils.h"
+#include "util/glame_dnd.h"
 #include "glame_accelerator.h"
 
 #define in_between(x1,x2,test) ((x1)>(test)?0:((x2)<(test)?0:1))
@@ -58,21 +59,22 @@ glame_canvas_destroy (GtkObject *object)
 {
 	GnomeCanvasClass *parent_class;
 	hash_remove_gcanvas(GLAME_CANVAS(object));
-	//DPRINTF("Destroying glamecanvas\n");
-	if (!GLAME_CANVAS(object)->openedUp) {
-		filter_terminate(GLAME_CANVAS(object)->net);
-		filter_delete(GLAME_CANVAS(object)->net);
+	DPRINTF("Destroying glamecanvas\n");
+	if(GLAME_CANVAS(object)->net){
+		if (!GLAME_CANVAS(object)->openedUp) {
+			filter_terminate(GLAME_CANVAS(object)->net);
+			filter_delete(GLAME_CANVAS(object)->net);
+			GLAME_CANVAS(object)->net = NULL;
+		}
 	}
 	parent_class = gtk_type_class(GNOME_TYPE_CANVAS);
 	GTK_OBJECT_CLASS(parent_class)->destroy(object);
 }
 
-
 static void
 glame_canvas_class_init(GlameCanvasClass *class)
 {
 	GtkObjectClass *object_class;
-	
 	object_class = GTK_OBJECT_CLASS (class);
 	object_class->destroy = glame_canvas_destroy;
 }
@@ -107,7 +109,6 @@ glame_canvas_get_type(void)
                         NULL,NULL,(GtkClassInitFunc)NULL,};
                 canvas_type = gtk_type_unique(GNOME_TYPE_CANVAS,
 					      &canvas_info);
-                gtk_type_set_chunk_alloc(canvas_type,8);
         }
         
         return canvas_type;
@@ -165,7 +166,6 @@ glame_canvas_group_get_type(void)
                         NULL,NULL,(GtkClassInitFunc)NULL,};
                 canvas_type = gtk_type_unique(GNOME_TYPE_CANVAS_GROUP,
 					      &canvas_info);
-                gtk_type_set_chunk_alloc(canvas_type,8);
         }
         
         return canvas_type;
@@ -176,9 +176,16 @@ glame_canvas_group_get_type(void)
  * now for the real work
  *****************************/
 
+
 GlameCanvas* glame_canvas_new(filter_t * net)
 {
 	GlameCanvas *g;
+	GtkTargetEntry desttargets[] = { GLAME_DND_TARGET_STRING_SCM, 
+					 GLAME_DND_TARGET_STRING_SCM_NETWORK,
+					 GLAME_DND_TARGET_POINTER_FILTER_T,
+					 {"text/uri-list",0,0},
+					 {"text/x-sh",0,0}
+					 };
 
 	filter_t * network;
 	if(!net){
@@ -206,6 +213,19 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 
 	glame_canvas_redraw(g);
 	glame_canvas_view_all(g);
+
+	/* setup dnd */
+	//	gtk_drag_source_set(GTK_WIDGET(g),
+			    /*
+			      gtk_signal_connect(GTO(g),"drag-data-received",
+			   glame_canvas_drag_received,
+			   NULL);
+	gtk_signal_connect(GTO(g),"drag-data-get",
+			   glame_canvas_drag_received,
+			   NULL);
+	gtk_signal_connect(GTO(g),"drag-motion",
+			   glame_foo,NULL);
+	*/
 	return g;
 }
 
@@ -243,10 +263,10 @@ char* glame_gui_get_font(GlameCanvas* canv)
 }
 
 
-GdkImlibImage*
+GdkPixbuf*
 glame_gui_get_icon_from_filter(filter_t *filter)
 {
-	return glame_load_icon(plugin_query(filter->plugin, PLUGIN_PIXMAP),0,0);
+	return glame_load_icon(plugin_query(filter->plugin, PLUGIN_PIXMAP),64,64);
 
 }
 
@@ -773,3 +793,5 @@ filter_t* glame_canvas_collapse_selection(GlameCanvas * canv)
 	glame_canvas_full_redraw(canv);
 	return net;
 }
+
+

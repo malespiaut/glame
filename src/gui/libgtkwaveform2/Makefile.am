@@ -1,6 +1,6 @@
 INCLUDES = -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/include \
 	-I@top_srcdir@/src/glmid -I@top_srcdir@/src/hash \
-	$(GNOME_INCLUDEDIR)
+	$(GLAME_GUI_INCLUDEDIR)
 
 if HAVE_GNOME
 #noinst_LTLIBRARIES = libgtkwaveform2.la

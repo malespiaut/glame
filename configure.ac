@@ -12,6 +12,30 @@ dnl Recognize CC and CFLAGS
 AC_ARG_VAR(CC, [compiler])
 AC_ARG_VAR(CFLAGS, [compiler flags])
 
+
+dnl
+dnl There are two sets of include/libdir/libs variables, one for
+dnl the general stuff, one for the gui stuff (which includes the
+dnl general set). CFLAGS generally belong to the CFLAGS variable.
+dnl
+dnl  GLAME_INCLUDEDIR GLAME_LIBDIR GLAME_LIBS
+dnl  GLAME_GUI_INCLUDEDIR GLAME_GUI_LIBDIR GLAME_GUI_LIBS
+dnl
+
+GLAME_INCLUDEDIR=""
+GLAME_LIBDIR=""
+GLAME_LIBS=""
+GLAME_GUI_INCLUDEDIR=""
+GLAME_GUI_LIBDIR=""
+GLAME_GUI_LIBS=""
+AC_SUBST(GLAME_INCLUDEDIR)
+AC_SUBST(GLAME_LIBDIR)
+AC_SUBST(GLAME_LIBS)
+AC_SUBST(GLAME_GUI_INCLUDEDIR)
+AC_SUBST(GLAME_GUI_LIBDIR)
+AC_SUBST(GLAME_GUI_LIBS)
+
+
 dnl
 dnl Switches to configure debugging stuff - sane default for now.
 dnl
@@ -114,8 +138,6 @@ AC_DEFINE_UNQUOTED(SAMPLE, $sample, [type to use as sample])
 
 dnl
 dnl Checks for libraries.
-dnl use GLAME_LIBS & GLAME_CFLAGS
-dnl and GLAME_DLIBS & GLAME_DCFLAGS
 dnl
 
 
@@ -132,7 +154,8 @@ dnl
 
 ACX_PTHREAD([
 LIBS="$PTHREAD_LIBS"
-CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+dnl FIXME: do we need -D_REENTRANT here?
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS -D_REENTRANT"
 CC="$PTHREAD_CC"
 ], [
 AC_MSG_ERROR(You need pthreads to run glame!)
@@ -148,6 +171,8 @@ AC_MSG_ERROR([You need at least guile 1.4.0 to run glame!
 Hint: You also need to have the appropriate guile development package
 installed, usually called libguile-dev, guile-devel, or similar.])
 ])
+GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $GUILE_INCS"
+GLAME_LIBS="$GLAME_LIBS $GUILE_LIBS"
 
 
 dnl
@@ -162,55 +187,80 @@ dnl
 dnl switch to disable gui
 AC_ARG_ENABLE(gui, [  --disable-gui           GUI - needs recent GTK/GNOME ], gui=$enableval, gui=yes)
 
-dnl GNOME check
+AM_CONDITIONAL(BUILD_GUI, test x$gui = xyes)
+
+dnl central GUI includes/libs
+
 if test x$gui = xyes; then
-  ACG_GNOME_INIT_HOOK([have_gnome=yes],,)
-  if test ! x$have_gnome = xyes; then
-	AC_MSG_ERROR([You need gnome to compile the graphical user interface.
-Hint: you also need the appropriate development packages for gnome installed,
-usually called gnome-dev, libgnome-dev or similar. You can disable the
-graphical user interface by providing the --disable-gui switch to the
-configure script.])
+dnl GNOME2 check
+  packages="libgnome-2.0 libgnomeui-2.0 libgnomecanvas-2.0 libglade-2.0 gobject-2.0 glib-2.0"
+  AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+  if test x$PKG_CONFIG = xno; then
+    AC_MSG_ERROR([You need pkg-config installed to use gnome2 libraries])
   fi
+  AC_MSG_CHECKING(for required packages)
+  if ! $PKG_CONFIG --exists $packages; then
+    AC_MSG_ERROR([You need $packages installed and registered with pkg-config])
+  fi
+  AC_MSG_CHECKING(for dependencies installed correctly)
+  if $PKG_CONFIG --uninstalled $packages; then
+    AC_MSG_ERROR([You need further dependencies for $packages installed and registered with pkg-config])
+  fi
+  AC_MSG_CHECKING(for gnome2 includes)
+  GLAME_GUI_INCLUDEDIR="$GLAME_GUI_INCLUDEDIR `$PKG_CONFIG --cflags $packages`"
+  AC_MSG_RESULT($GLAME_GUI_INCLUDEDIR)
+  AC_MSG_CHECKING(for gnome2 libraries)
+  GLAME_GUI_LIBDIR="$GLAME_GUI_LIBDIR `$PKG_CONFIG --libs-only-L $packages`"
+  GLAME_GUI_LIBS="$GLAME_GUI_LIBS `$PKG_CONFIG --libs-only-l $packages`"
+  GLIB_GENMARSHAL="`$PKG_CONFIG --variable=glib_genmarshal glib-2.0`"
+  AC_SUBST(GLIB_GENMARSHAL)
+  AC_MSG_RESULT($GLAME_GUI_LIBDIR $GLAME_GUI_LIBS)
+  AC_DEFINE(HAVE_GNOME2, 1, [define if you have gnome2 libs])
+  AC_DEFINE(HAVE_LIBGLADE,, [wether we have libglade])
+  AMG_PATH_XML2(2.0.0, , [
+	AC_MSG_ERROR([You need at least libxml 2.0.0 to run glame!
+Hint: You also need to have the appropriate xml development package
+installed, usually called libxml-dev, libxmld, or similar.])
+])
+  GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $XML_CFLAGS"
+  GLAME_LIBS="$GLAME_LIBS $XML_LIBS"
+  CFLAGS="$CFLAGS -DGTK_ENABLE_BROKEN"
+
 else
+dnl no GUI
   AC_MSG_RESULT([GUI was disabled.])
 fi
-AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
-dnl libglade check
-if test x$gui = xyes -a x$have_gnome = xyes; then
-  AC_PATH_PROG(ac_libglade_config, libglade-config, no)
-  if test "$ac_libglade_config" != "no"; then
-    GNOME_LIBS="$GNOME_LIBS `$ac_libglade_config --libs`"
-    GNOME_INCLUDEDIR="$GNOME_INCLUDEDIR `$ac_libglade_config --cflags`"
-    glade=yes
-  else
-    glade=yes
-    ac_saved_cpp=$ac_cpp
-    ac_cpp="$ac_cpp `glib-config --cflags`"
-    AC_CHECK_HEADER([glade/glade.h], , glade=no)
-    AC_CHECK_LIB(glade, glade_init, , glade=no, [$GNOME_LIBS])
-    ac_cpp=$ac_saved_cpp
+dnl check for libstroke
+AC_ARG_ENABLE(libstroke, [  --enable-libstroke     enable libstroke support], strokes=$enableval, strokes=no)
+if test x$strokes = xyes; then
+dnl first check for normal positions
+  AC_CHECK_HEADER(stroke.h, strokes=yes, strokes=no)
+if test x$strokes = xno; then
+dnl look for debian version
+  stroke_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="-I/usr/X11R6/include"
+	AC_CHECK_HEADERS([stroke.h X11/stroke.h], strokes=yes, strokes=no)
+  CPPFLAGS="$stroke_save_CPPFLAGS"
+	if test x$strokes = xyes; then
+		GLAME_GUI_INCLUDEDIR="$GLAME_GUI_INCLUDEDIR -I/usr/X11R6/include"
+		GLAME_GUI_LIBDIR="$GLAME_GUI_LIBDIR -L/usr/X11R6/lib"
+		GLAME_GUI_LIBS="$GLAME_GUI_LIBS -lstroke"
+	fi
   fi
-  if test x$glade = xyes; then
-    AC_DEFINE(HAVE_LIBGLADE,, [have/use libglade])
+  if test x$strokes = xyes; then
+	AC_DEFINE(HAVE_LIBSTROKE,, [have/use libstroke])
   fi
 fi
 
 
+
 dnl
-dnl We also need libxml -- dont check, if we have libglade, just
-dnl fix generic cflags
+dnl We also need libxml -- dont check, if we build the GUI as the check
+dnl for gui libs includes check for appropriate libxml
 dnl
 
-if test x$glade = xyes; then
-dnl HACK
-	AC_MSG_WARN([Skipping libxml check due to possible conflicts with libglade])
-	XML_CFLAGS="$GNOME_INCLUDEDIR"
-	XML_LIBS="$GNOME_LIBS"
-	AC_SUBST(XML_CFLAGS)
-	AC_SUBST(XML_LIBS)
-else
+if test x$gui = xno; then
 AMG_PATH_XML2(2.0.0, , [
 	AMG_PATH_XML(1.8.0, , [
 	AC_MSG_ERROR([You need at least libxml 1.8.0 to run glame!
@@ -218,6 +268,8 @@ Hint: You also need to have the appropriate xml development package
 installed, usually called libxml-dev, libxmld, or similar.])
 ])
 ])
+	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $XML_CFLAGS"
+	GLAME_LIBS="$GLAME_LIBS $XML_LIBS"
 fi
 
 
@@ -228,14 +280,14 @@ if test "$sample" = "float"; then
 	AC_CHECK_LIB(sfftw, fftw2d_create_plan, fftw=yes, fftw=no)
 	AC_CHECK_HEADER(sfftw.h,, fftw=no)
 	if test $fftw = yes; then
-		GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lsfftw -lsrfftw"
+		GLAME_LIBS="$GLAME_LIBS -lsfftw -lsrfftw"
 		AC_DEFINE(HAVE_FFTW,, [have fftw])
 	fi
 elif test "$sample" = "double"; then
 	AC_CHECK_LIB(fftw, fftw2d_create_plan, fftw=yes, fftw=no)
 	AC_CHECK_HEADER(fftw.h,, fftw=no)
 	if test $fftw = yes; then
-		GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lfftw -lrfftw"
+		GLAME_LIBS="$GLAME_LIBS -lfftw -lrfftw"
 		AC_DEFINE(HAVE_FFTW,, [have fftw])
 	fi
 fi
@@ -260,37 +312,14 @@ LDFLAGS=$ac_saved_ldflags
 CFLAGS=$ac_saved_cflags
 if test $laf = yes; then
         if test $afconfig = yes; then
-		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS `audiofile-config --libs`"
-		GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS `audiofile-config --cflags`"
+		GLAME_LIBS="$GLAME_LIBS `audiofile-config --libs`"
+		GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR `audiofile-config --cflags`"
 	else
-		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS $ac_audiofile_libs -laudiofile"
+		GLAME_LIBS="$GLAME_LIBS $ac_audiofile_libs -laudiofile"
 	fi
 	AC_DEFINE(HAVE_AUDIOFILE,, [have audiofile])
 fi
 
-dnl 
-dnl check for libstroke
-dnl
-AC_ARG_ENABLE(libstroke, [  --enable-libstroke     enable libstroke support], strokes=$enableval, strokes=no)
-if test x$strokes = xyes; then
-dnl first check for normal positions
-AC_CHECK_HEADER(stroke.h, strokes=yes, strokes=no)
-if test x$strokes = xno; then
-dnl look for debian version
-stroke_save_CPPFLAGS="$CPPFLAGS"
-CPPFLAGS="-I/usr/X11R6/include"
-	AC_CHECK_HEADERS([stroke.h X11/stroke.h], strokes=yes, strokes=no)
-CPPFLAGS="$stroke_save_CPPFLAGS"
-	if test x$strokes = xyes; then
-		GNOME_INCLUDEDIR="$GNOME_INCLUDEDIR -I/usr/X11R6/include"
-		GNOME_LIBDIR="$GNOME_LIBDIR -L/usr/X11R6/lib"
-		GNOME_LIBS="$GNOME_LIBS -lstroke"
-	fi
-fi
-if test x$strokes = xyes; then
-	AC_DEFINE(HAVE_LIBSTROKE,, [have libstroke])
-fi
-fi
 
 dnl check for OSS
 dnl BSD keeps the header file
@@ -318,7 +347,7 @@ AM_CONDITIONAL(HAVE_OSS, test x$oss = xyes)
 dnl check for esd
 ACG_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
-	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ESD_CFLAGS"
+	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $ESD_CFLAGS"
 	AC_DEFINE(HAVE_ESD,, [have esd daemon])
 fi
 AM_CONDITIONAL(HAVE_ESD, test x$esd = xyes)
@@ -327,16 +356,16 @@ dnl check for native IRIX audio
 AC_CHECK_LIB(audio, alWriteBuffers, sgi=yes, sgi=no)
 AC_CHECK_HEADER(dmedia/audio.h,, sgi=no)
 if test $sgi = yes; then
-	SGIAUDIO_LIBS="-laudio"
+	GLAME_LIBS="$GLAME_LIBS -laudio"
 	AC_DEFINE(HAVE_SGIAUDIO,, [have irix audio interface])
-	AC_SUBST(SGIAUDIO_LIBS)
 fi
 AM_CONDITIONAL(HAVE_SGI, test x$sgi = xyes)
 
 dnl check for ALSA
 ACG_PATH_ALSA(0.9.0, alsa="yes", alsa="no")
 if test "x$alsa" = xyes; then
-	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ALSA_CFLAGS"
+	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $ALSA_CFLAGS"
+	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
 	AC_DEFINE(HAVE_ALSA,, [have alsa library])
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
@@ -345,6 +374,8 @@ dnl
 dnl Check for LADSPA support
 dnl
 ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA,, [have ladspa.h])])
+GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $LADSPA_CFLAGS"
+
 
 dnl
 dnl UNIX flavours compatibility stuff
@@ -412,6 +443,12 @@ fi
 
 
 
+dnl At the very last, concat GLAME_* to GLAME_GUI_*
+GLAME_GUI_INCLUDEDIR="$GLAME_INCLUDEDIR $GLAME_GUI_INCLUDEDIR"
+GLAME_GUI_LIBDIR="$GLAME_LIBDIR $GLAME_GUI_LIBDIR"
+GLAME_GUI_LIBS="$GLAME_LIBS $GLAME_GUI_LIBS"
+
+
 dnl
 AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
 
@@ -423,16 +460,8 @@ dnl Define install targets pkgpixmaps_FOO and pkgscrips_FOO.
 AC_SUBST(pkgpixmapsdir)
 AC_SUBST(pkgscriptsdir)
 
-AC_SUBST(GLAME_LIBS)
-AC_SUBST(GLAME_CFLAGS)
-AC_SUBST(GLAME_DLIBS)
-AC_SUBST(GLAME_DCFLAGS)
-AC_SUBST(GLAME_AUDIO_LIBS)
-AC_SUBST(GLAME_AUDIO_CFLAGS)
-AC_SUBST(GLAME_FFT_LIBS)
-
 AC_SUBST(LIBLTDL)
 AC_SUBST(LTDLINCL)
 AC_CONFIG_SUBDIRS(libltdl)
 
-AC_OUTPUT(Makefile macros/Makefile doc/Makefile doc/pix/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile  intl/Makefile po/Makefile.in )
+AC_OUTPUT(Makefile macros/Makefile doc/Makefile doc/pix/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile intl/Makefile po/Makefile.in)

@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.13 2002/04/23 12:18:43 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.14 2003/04/11 20:10:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -29,7 +29,7 @@
 #endif
 
 #include <gnome.h>
-#include <libgnomeui/gnome-canvas.h>
+#include <libgnomecanvas/gnome-canvas.h>
 #include "filter.h"
 #include "util.h"
 #include "edit_filter/glamecanvas.h"
@@ -140,9 +140,9 @@ void glame_network_notificator_destroy_gpsm(glsig_handler_t *, long, va_list);
 
 
 
-/* Load a GdkImage which is suitable for canvas operation/taskbars(?)
+/* Load a GdkPixbuf which is suitable for canvas operation/taskbars(?)
  * if nothing is found it will try to return the glame default icon. */
-GdkImlibImage* glame_load_icon(const char* filename, int x, int y);
+GdkPixbuf* glame_load_icon(const char* filename, int x, int y);
 
 /* Same as above, but returns the image as a gnomepixmap (a widget) */
 GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
@@ -152,5 +152,5 @@ GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
  * and corresponding error strings. */
 void glame_network_error_dialog(filter_t *net, const char *header);
 
-
+void gnome_help_goto(void * ignore, char * uri);
 #endif

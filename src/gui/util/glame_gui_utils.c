@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.27 2002/07/30 08:10:02 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.28 2003/04/11 20:10:23 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -481,6 +481,10 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption, const ch
 	return propBox;
 }
 
+GtkWidget* glame_gui_multi_filter_properties(GList *items)
+{
+}	
+
 GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb)
 {
 	GtkWidget *vbox, *gparam;
@@ -502,10 +506,10 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb)
 
 
 
-GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
+GdkPixbuf* glame_load_icon(const char *filename, int x, int y)
 {
-	GdkImlibImage* image = NULL;
-	GdkImlibImage* imagetmp = NULL;
+	GdkPixbuf* image = NULL;
+	GdkPixbuf* imagetmp = NULL;
 	const char * file;
 	char * filepath;
 
@@ -517,30 +521,35 @@ GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 
 	/* check if stock gnome */
 	if ((filepath = gnome_pixmap_file(file))) {
-		image = gdk_imlib_load_image(filepath);
+		imagetmp = gdk_pixbuf_new_from_file(filepath,NULL);
 		g_free(filepath);
 	}
-
-	/* maybe in Glamepixmappath? */
-	filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,file);
-	if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+	if(!imagetmp){
+		/* maybe in Glamepixmappath? */
+		filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,file);
+		if (!g_file_test(filepath, G_FILE_TEST_IS_REGULAR)) {
+			g_free(filepath);
+			/* maybe cvs? */
+			filepath = g_concat_dir_and_file("../data/pixmaps", file);
+		}
+		if (!g_file_test(filepath, G_FILE_TEST_IS_REGULAR)) {
+			g_free(filepath);
+			/* default! */
+			filepath = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+		}
+		if(!filepath)
+			filepath = g_concat_dir_and_file("../data/pixmaps", GLAME_DEFAULT_ICON);
+		
+		imagetmp = gdk_pixbuf_new_from_file(filepath,NULL);
+		if(!imagetmp)
+			DPRINTF("Failed to load image %s to pixbuf\n",filepath);
 		g_free(filepath);
-		/* maybe cvs? */
-		filepath = g_concat_dir_and_file("../data/pixmaps", file);
 	}
-	if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
-		g_free(filepath);
-		/* default! */
-		filepath = gnome_pixmap_file(GLAME_DEFAULT_ICON);
-	}
-	if(!filepath)
-		filepath = g_concat_dir_and_file("../data/pixmaps", GLAME_DEFAULT_ICON);
-	
-	imagetmp = gdk_imlib_load_image(filepath);
-	g_free(filepath);
 	if(x && y){
-		image = gdk_imlib_clone_scaled_image(imagetmp, x,y);
-		gdk_imlib_destroy_image(imagetmp);
+		if(!imagetmp)
+			DPRINTF("pixbuf == NULL\n");
+		image = gdk_pixbuf_scale_simple(imagetmp,x,y,GDK_INTERP_BILINEAR);
+		g_object_unref(imagetmp);
 		return image;
 	}else{
 		return imagetmp;
@@ -549,14 +558,14 @@ GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 
 GtkWidget* glame_load_icon_widget(const char* filename,int x, int y)
 {
-	GdkImlibImage *icon;
-	GtkWidget *pixmap;
+	GdkPixbuf* img;
 
-	icon = glame_load_icon(filename,x,y);
-	pixmap = gnome_pixmap_new_from_imlib(icon);
-	gdk_imlib_destroy_image(icon);
-
-	return pixmap;
+	img = glame_load_icon(filename,x,y);
+	if (!img) {
+		DPRINTF("Error opening %s\n", filename);
+		return NULL;
+	}
+	return gtk_image_new_from_pixbuf(img);
 }
 
 
@@ -694,3 +703,12 @@ gint glame_menu_get_active_index(GtkMenu *menu)
 
 	return list ? val : -1;
 }
+
+void gnome_help_goto(void *ignore, gchar *file)
+{
+        char **ret;
+        gnome_help_display_uri(file,ret);
+}
+
+
+

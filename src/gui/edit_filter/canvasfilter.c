@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.56 2002/07/14 12:41:19 richi Exp $
+ * $Id: canvasfilter.c,v 1.57 2003/04/11 20:10:00 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -33,9 +33,11 @@
 #include "glamecanvas.h"
 #include "filtereditgui.h"
 #include "util/glame_gui_utils.h"
+#include "util/glame_dnd.h"
 #include "canvasitem.h"
 #include "hash.h"
 #include "network_utils.h"
+#include "edit_filter_marshal.h"
 
 extern long bMac;
 extern long nPopupTimeout;
@@ -87,26 +89,28 @@ glame_canvas_filter_class_init(GlameCanvasFilterClass* class)
 	/* now for the signal stuff */
 	
 	filter_signals[MOVED] = 
-		gtk_signal_new("moved",
-			       GTK_RUN_LAST,
-			       object_class->type,
-			       GTK_SIGNAL_OFFSET(GlameCanvasFilterClass, moved),
-			       glame_canvas_marshal_NONE__DOUBLE_DOUBLE,
-			       GTK_TYPE_NONE,
-			       2,
-			       GTK_TYPE_DOUBLE,
-			       GTK_TYPE_DOUBLE);
+		g_signal_new("moved",
+			     G_OBJECT_CLASS_TYPE(object_class),
+			     GTK_RUN_LAST,
+			     GTK_SIGNAL_OFFSET(GlameCanvasFilterClass, moved),
+			     NULL,NULL,
+			     edit_filter_marshal_VOID__DOUBLE_DOUBLE,
+			     GTK_TYPE_NONE,
+			     2,
+			     GTK_TYPE_DOUBLE,
+			     GTK_TYPE_DOUBLE);
 	
 	filter_signals[DELETED] = 
-		gtk_signal_new("deleted",
-			       GTK_RUN_LAST,
-			       object_class->type,
-			       GTK_SIGNAL_OFFSET(GlameCanvasFilterClass, deleted),
-			       gtk_marshal_NONE__NONE,
-			       GTK_TYPE_NONE,
-			       0);
-
-	gtk_object_class_add_signals(object_class,filter_signals, LAST_SIGNAL);
+		g_signal_new("deleted",
+			     G_OBJECT_CLASS_TYPE(object_class),
+			     GTK_RUN_LAST,
+			     GTK_SIGNAL_OFFSET(GlameCanvasFilterClass, deleted),
+			     NULL,NULL,
+			     edit_filter_marshal_VOID__VOID,
+			     GTK_TYPE_NONE,
+			     0);
+	
+	//gtk_object_class_add_signals(object_class,filter_signals, LAST_SIGNAL);
 	
 	/* default handlers */
 	class->moved = NULL;
@@ -151,7 +155,6 @@ glame_canvas_filter_get_type(void)
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		canvas_filter_type = gtk_type_unique(GNOME_TYPE_CANVAS_GROUP,
 						   &canvas_filter_info);
-		gtk_type_set_chunk_alloc(canvas_filter_type,8);
 	}
 	
 	return canvas_filter_type;
@@ -304,7 +307,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	GnomeCanvasItem * item;
 	double x,y;
 	char * buffer;
-
+	GdkPixbuf *im;
 	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
 							      NULL));
 	
@@ -390,7 +393,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	gItem->label = GNOME_CANVAS_TEXT(gnome_canvas_item_new(gGroup,
 							       gnome_canvas_text_get_type(),
 							       "x",48.0,
-							       "y",67.0,
+							       "y",64.0,
 							       "clip_width",94.0,
 							       "clip_height",19.0,
 							       "fill_color",0x00000000,
@@ -398,16 +401,17 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 							       "justification",GTK_JUSTIFY_CENTER,
 							       "font",glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(group)->canvas)),
 							       "clip",0,
+							       "scale",1.0,
 							       "text",filter_name(filter),
 							       NULL));
 	
 	item = gnome_canvas_item_new(gGroup,
-				     gnome_canvas_image_get_type(),
-				     "x",48.0,
-				     "y",32.0,
+				     gnome_canvas_pixbuf_get_type(),
+				     "x",16.0,
+				     "y",0.0,
 				     "width",64.0,
 				     "height",64.0,
-				     "image",glame_gui_get_icon_from_filter(filter),
+				     "pixbuf",glame_gui_get_icon_from_filter(filter),
 				     NULL);
 	gItem->selbox = GNOME_CANVAS_RECT(gnome_canvas_item_new(gGroup,
 					      gnome_canvas_rect_get_type(),
@@ -471,8 +475,9 @@ _glame_canvas_filter_move(GlameCanvasFilter* filter,
 	char buffer[10];
 	gdouble newX,newY;
 	/* don't recurse! */
-	if(gtk_signal_n_emissions_by_name(GTO(filter),"moved"))
-		return;
+	/* FIXME how does this work with gtk2 */
+	//if(gtk_signal_n_emissions_by_name(GTO(filter),"moved"))
+	//	return;
 	/* Workarounding canvas bug #387687628763413987632487921634  */
  	newX = GNOME_CANVAS_ITEM(filter)->x1 +dx;
 	newY = GNOME_CANVAS_ITEM(filter)->y1 +dy;
@@ -1163,7 +1168,7 @@ glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvas
 		gtk_signal_handler_unblock_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_filter_event),filter);
 		if (bMac && event->button.button == 1) {
 			gnome_popup_menu_do_popup(glame_canvas_filter_get_popup_menu(filter),
-						  NULL,NULL,&event->button,filter);
+						  NULL,NULL,&event->button,filter,GTK_WIDGET(CANVAS_ITEM_CANVAS(i)));
 		}
 		
 		return TRUE;
@@ -1245,32 +1250,52 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
-
-			/* raise to top */
-			//glame_canvas_filter_info(filter);
-			glame_canvas_filter_raise_to_top(filter);
-			/* perform selects */
-			glame_canvas_filter_do_select(filter,event);  // FIXME!  
-
-                        /* grab the thing */
-			
-			/* save coords */
- 			filter->last_x = event->button.x;
-			filter->last_y = event->button.y;
-			
-			fleur = gdk_cursor_new(GDK_FLEUR);
-			/* block other handlers (this one ;-) */
-			gtk_signal_handler_block_by_func(GTK_OBJECT(i),GTK_SIGNAL_FUNC(glame_canvas_filter_event),filter);
-			gtk_signal_connect(GTK_OBJECT(i),"event", GTK_SIGNAL_FUNC(glame_canvas_filter_grabbing_cb), filter);
-			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,fleur,
-					       event->button.time);
-			gdk_cursor_destroy(fleur);
-			return TRUE;
+			switch(event->button.state){
+			case 0:
+				/* raise to top */
+				//glame_canvas_filter_info(filter);
+				glame_canvas_filter_raise_to_top(filter);
+				/* perform selects */
+				glame_canvas_filter_do_select(filter,event);  // FIXME!  
+				
+				/* grab the thing */
+				
+				/* save coords */
+				filter->last_x = event->button.x;
+				filter->last_y = event->button.y;
+				
+				fleur = gdk_cursor_new(GDK_FLEUR);
+				/* block other handlers (this one ;-) */
+				gtk_signal_handler_block_by_func(GTK_OBJECT(i),GTK_SIGNAL_FUNC(glame_canvas_filter_event),filter);
+				gtk_signal_connect(GTK_OBJECT(i),"event", GTK_SIGNAL_FUNC(glame_canvas_filter_grabbing_cb), filter);
+				gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,fleur,
+						       event->button.time);
+				gdk_cursor_destroy(fleur);
+				return TRUE;
+				break;
+			case 1:
+				{
+				  //	GtkTargetList* tlist;
+					//GtkTargetEntry sources[] = { GLAME_DND_TARGET_POINTER_FILTER_T};
+					
+					//GtkTargetEntry sources[] = { { "text/x-sh" , 0 ,0}};
+					//tlist = gtk_target_list_new(sources,1);
+					//fprintf(stderr,"starting drag!\n");
+					//gtk_drag_begin(GTK_WIDGET(CANVAS_ITEM_GLAME_CANVAS(i)),
+				  //		       tlist,
+				  //		       GDK_ACTION_DEFAULT,event->button.button,
+				  //		       event);
+				  //	fprintf(stderr,"done\n");
+					break;
+				}
+			default:
+				break;
+			}
 			break;
 		case 3:
 			/* popup menu */
 			gnome_popup_menu_do_popup(glame_canvas_filter_get_popup_menu(filter),
-						  NULL,NULL,&event->button,filter);
+						  NULL,NULL,&event->button,filter,GTK_WIDGET(CANVAS_ITEM_CANVAS(i)));
 			break;	
 		default:
 			return FALSE;
@@ -1279,7 +1304,7 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 	case GDK_2BUTTON_PRESS:
 		if (bMac && event->button.button == 1) {
 			gnome_popup_menu_do_popup(glame_canvas_filter_get_popup_menu(filter),
-						  NULL,NULL,&event->button,filter);
+						  NULL,NULL,&event->button,filter,GTK_WIDGET(CANVAS_ITEM_CANVAS(i)));
 		}
 		break;
 	case GDK_ENTER_NOTIFY:
