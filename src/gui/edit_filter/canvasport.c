@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.22 2001/11/26 23:53:11 xwolf Exp $
+ * $Id: canvasport.c,v 1.23 2001/11/27 09:58:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -346,6 +346,7 @@ typedef struct {
 	char * label;
 } portLabel;
 
+#if 0
 static void glame_canvas_port_redirected_source_deleted_cb(glsig_handler_t* handler, long sig, va_list va)
 {
 	portLabel* pl = glsig_handler_private(handler);
@@ -356,6 +357,8 @@ static void glame_canvas_port_redirected_source_deleted_cb(glsig_handler_t* hand
 	free(pl->label);
 	free(pl);
 }
+#endif
+
 		
 static void 
 glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
@@ -398,6 +401,7 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 			glame_canvas_port_set_external(port, TRUE);
 			glsig_add_handler(filterport_emitter(newport),GLSIG_PORT_DELETED,glame_canvas_port_redirected_port_deleted_cb,port);
 		}
+#if 0 /* broken - handle via properties dialog, explicit delete from user */
 		{
 			portLabel *pl = malloc(sizeof(portLabel));
 			pl->ports = ports;
@@ -406,6 +410,7 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 					       
 			glsig_add_handler(filterport_emitter(port->port),GLSIG_PORT_DELETED, glame_canvas_port_redirected_source_deleted_cb, pl);
 		}
+#endif
 	}
 	glame_canvas_port_redraw(port);
 	{
