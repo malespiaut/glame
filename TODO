@@ -8,7 +8,6 @@ Known BUGS that should be fixed before 0.6.0:
 - new export dialog needs to be done and replace the existing one
 - glame_audiofile needs support for wav reading/writing and
   mp3/ogg reading
-- with apply, rt adjustments of params is not supported
 - main/[Edit wave...] wavewidget needs a [Save] toolbar item
   that exports the wave back (and [Close] should delete the wave
   from the swapfile)
