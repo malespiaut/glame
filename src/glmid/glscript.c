@@ -141,7 +141,8 @@ long scm2long(SCM long_smob, long smob_tag)
 
 int glscript_init()
 {
-	/* Redirect output/error to console. */
+	/* Redirect output/error to console - redirected again after
+	 * gui/glame_console init. */
 	scm_set_current_output_port(
 		scm_fdes_to_port(dup(1), "w", gh_str02scm("stdout")));
 	scm_set_current_error_port(

@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.1 2001/06/11 08:44:12 richi Exp $
+ * $Id: glame_console.c,v 1.2 2001/06/13 11:59:17 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -26,6 +26,8 @@
 #endif
 
 #include <gnome.h>
+#include <guile/gh.h>
+#include <libguile/ports.h>
 #include "util.h"
 #include "glame_console.h"
 
@@ -41,6 +43,35 @@ static gint hide_cb(GtkWidget *window, GdkEventAny *event)
 	return TRUE;
 }
 
+static void port_write(SCM port, void *data, size_t size)
+{
+	glame_console_printf("%s", data);
+}
+static void port_register()
+{
+	SCM s_port;
+	long port;
+	scm_port *pt;
+
+	/* Register glame-console port type (output only) */
+	port = scm_make_port_type("glame-console", NULL, port_write);
+
+	/* Create new port - shamelessly copied from libguile/strports.c */
+	SCM_NEWCELL(s_port);
+	SCM_DEFER_INTS;
+	pt = scm_add_to_port_table(s_port);
+#ifdef SCM_SET_CELL_TYPE /* guile >= 1.4 */
+	SCM_SET_CELL_TYPE(s_port, port|SCM_WRTNG|SCM_OPN);
+#else
+	SCM_SETCAR(s_port, port|SCM_WRTNG|SCM_OPN);
+#endif
+	SCM_SETPTAB_ENTRY(s_port, pt);
+	pt->rw_random = 0;
+	SCM_ALLOW_INTS;
+
+	scm_set_current_output_port(s_port);
+	scm_set_current_error_port(s_port);
+}
 
 int glame_console_init()
 {
@@ -73,6 +104,8 @@ int glame_console_init()
 	colormap = gdk_colormap_get_system();
 	gdk_color_white(colormap, &back);
 	gdk_color_black(colormap, &fore);
+
+	port_register();
 
 	return 0;
 }
