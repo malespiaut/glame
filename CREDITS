@@ -36,6 +36,9 @@ Martin Glaser <xmg01@gmx.de>
 Clinton Ebadi <unknown_lamer@unknownlamer.org>
 	Guile upgrading stuff.
 
+Mario Lang <mlang@delysid.org>
+	describe-filter-params code.
+
 Jim Garrison
 	Random stuff (mostly .cvsignores).
 

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.78 2002/07/29 18:35:41 richi Exp $
+; $Id: glame.scm,v 1.79 2002/11/07 12:39:40 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -670,3 +670,35 @@
 
 (add-help 'test-latency '(number)
 	  "Checks latency of a chain of number null filters")
+
+
+;
+; other stuff
+;
+
+;; Helper function, I just love mapconcat!
+(define (mapconcat proc list sep)
+  (let ((newlist (map proc list)))
+    (apply string-append
+           (cons (car newlist)
+                 (map (lambda (elt)
+                        (string-append sep elt))
+                      (cdr newlist))))))
+
+(define describe-filter-params
+  (lambda (filter)
+    (display ";; The parameters of ")
+    (display (filter-name filter))
+    (display
+     (string-append
+      " are:\n"
+      (mapconcat
+       (lambda (param)
+         (string-append "; " (param-label param) ": " (param->string param)))
+       (filter-params filter) "\n")
+      "\n"))))
+
+(add-help 'describe-filter-params '(filter)
+          "Display a simple description of filters parameters.")
+
+
