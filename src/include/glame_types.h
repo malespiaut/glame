@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.10 2000/02/27 05:38:03 garrison Exp $
+ * $Id: glame_types.h,v 1.11 2000/02/28 09:35:10 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,6 +31,7 @@
  */
 
 #define GLAME_WBUFSIZE 16384
+#define GLAME_DEFAULT_SAMPLERATE 44100
 
 typedef float SAMPLE;
 #define SAMPLE_SIZE sizeof(SAMPLE)

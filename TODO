@@ -2,18 +2,47 @@ TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
 doc/
-	document available filters [nold/the filter authors]
+	- document available filters [nold/the filter authors]
 
 filter/
+	- scripting - do a scheme interface [richi/mainzelM?]
+	AFTER glame-1.0 [richi]
+        - parameters:
+          * abstraction from the parameter domain, i.e.
+            in principle allow parameters of everyting
+          * better type abstraction of the parameter, perhaps
+            move to a textual type description (like XML...)
+          * allow shared parameters, i.e. only loosely couple
+            parameters with their domain
+        - general class stuff
+          * symmetry. filter_portdesc_t needs an instance - this
+            should allow filter_pipe_t to be more decoupled also
+            which should allow filternode filters to be simplified,
+            too
+          * methods: some of them are really notifier signals - 
+            provide a generic signal/signalhandler framework - this
+            should allow the GUI to register handlers, too
+            real methods are: connect_in/out, set_param
+        - API/implementation stuff
+          * are hashes really necessary? (we need lists anyway)
+          * symmetry: name vs. pointer APIs
+	  * there are way too many API functions...
+          * -> move from API functions to method calls where
+            appropriate?
 
 swapfile/
-	redo transactions and high level operations, i.e.
-	clean them up - first step done (it works) [richi]
-	redo the lowlevel part (fuse runtime and on-disk structures,
-	use meta part of the swapfile directly) [richi]
+	- redo transactions and high level operations, i.e.
+	  clean them up - first step done (it works) [richi]
+	- redo the lowlevel part (fuse runtime and on-disk structures,
+	  use meta part of the swapfile directly) [richi]
 
 channel/
-	status unknown [mag/richi/XWolf/others?]
+	- fix channel->type, split it into type and position field
+          modelled after the SAMPLE pipe property hangle.
+
+gui/
+	- we need some ideas how to do the wave-editing stuff, especially
+          how to couple it with the filter stuff.
 
 glame/cglame
 	nothing there [all]

@@ -1,5 +1,5 @@
 INCLUDES = -I@srcdir@/../include -I@srcdir@/../hash \
-	$(GLAME_CFLAGS) -D_REENTRANT
+	$(GLAME_DCFLAGS) -D_REENTRANT
 
 noinst_LTLIBRARIES = libplugin.la
 

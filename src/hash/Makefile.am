@@ -1,4 +1,4 @@
-INCLUDES = -I@srcdir@/../include -D_REENTRANT
+INCLUDES = -I@srcdir@/../include -D_REENTRANT $(GLAME_DCFLAGS)
 
 noinst_LTLIBRARIES = libhash.la
 

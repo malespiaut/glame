@@ -1,4 +1,4 @@
-INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -D_REENTRANT
+INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -D_REENTRANT $(GLAME_DCFLAGS)
 
 noinst_LTLIBRARIES = libchannel.la
 
