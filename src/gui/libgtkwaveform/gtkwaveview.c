@@ -76,6 +76,8 @@ static const GlameRulerMetric frame_metric = {
 static void gtk_wave_view_class_init    (GtkWaveViewClass *klass);
 static void gtk_wave_view_init          (GtkWaveView      *waveview);
 
+static void gtk_wave_view_draw_marker   (GtkWaveView *waveview);
+
 
 static GtkVBoxClass *parent_class;
 
@@ -500,6 +502,9 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   width = MIN(waveview->area->allocation.width, waveview->expose_width);
   start_x = MAX(0, calc_win_pel_ext(waveview, waveview->expose_x));
 
+  /* Hide marker. */
+  gtk_wave_view_draw_marker (waveview);
+
   /* First, paint all cached x coords. */
   /* Keep a range min_val -> max_val that contains all uncached x coords. */
   for (i = start_x; i < start_x + width; i++)
@@ -658,6 +663,9 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
         g_free (data16);
       g_free (data);
     }
+
+  /* Show marker. */
+  gtk_wave_view_draw_marker (waveview);
 }
 
 
@@ -817,7 +825,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       frame_area.height = widget->allocation.height;
 
       /* hide marker */
-      gtk_wave_view_draw_marker (waveview);
+      //gtk_wave_view_draw_marker (waveview);
 
       /* Set clipping to expose region. */
       gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_NORMAL], &frame_area);
@@ -905,7 +913,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       }
 
       /* show marker */
-      gtk_wave_view_draw_marker (waveview);
+      //gtk_wave_view_draw_marker (waveview);
 
     }
 
@@ -1731,7 +1739,7 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       waveview->channels = g_new (GtkWaveViewChannelInfo, waveview->n_channels);
 
       waveview->select_left = 0;
-      waveview->select_left = -1;
+      waveview->select_right = -1;
       /* waveview->select_right = gtk_wave_buffer_get_length (waveview->wavebuffer) - 1; */
       waveview->marker = 0;
 
