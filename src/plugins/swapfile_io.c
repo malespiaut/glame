@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.24 2001/08/08 09:15:30 richi Exp $
+ * $Id: swapfile_io.c,v 1.25 2001/12/09 16:09:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -37,12 +37,13 @@ static int swapfile_in_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
-	long fname, offset, cnt;
-	off_t size, pos;
+	long fname, offset, cnt, o_offset;
+	off_t size, pos, o_size;
 	int res;
 	swfd_t fd;
 	struct sw_stat st;
 	filter_param_t *pos_param;
+	int loop;
 
 	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
@@ -67,7 +68,11 @@ static int swapfile_in_f(filter_t *n)
 		size = (((long)st.size - offset)/SAMPLE_SIZE)*SAMPLE_SIZE;
 	else
 		size *= SAMPLE_SIZE;
-	DPRINTF("from %li size %li\n", offset, size);
+	o_offset = offset;
+	o_size = size;
+	loop = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "flags"));
+	DPRINTF("from %li size %li%s\n", offset, size, loop ? ", looping" : "");
 
 	FILTER_AFTER_INIT;
 	pos_param = filterparamdb_get_param(
@@ -75,9 +80,16 @@ static int swapfile_in_f(filter_t *n)
 	filterparam_val_set_pos(pos_param, 0);
 
 	pos = 0;
-	while (size > 0) {
+	while (loop || size > 0) {
 		FILTER_CHECK_STOP;
 
+		if (loop && size == 0) {
+			size = o_size;
+			offset = o_offset;
+			pos = 0;
+			if (sw_lseek(fd, MAX(0, offset), SEEK_SET) != MAX(0, offset))
+				FILTER_ERROR_STOP("Cannot seek");
+		}
 		/* Alloc a buffer of default size or
 		 * a tail buffer. */
 		cnt = MIN(size/SAMPLE_SIZE, GLAME_WBUFSIZE);
@@ -193,6 +205,10 @@ int swapfile_in_register(plugin_t *p)
 	filterparamdb_add_param_int(filter_paramdb(f), "size",
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_DESCRIPTION, "size to stream or -1 for the full file",
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "flags",
+				FILTER_PARAMTYPE_INT, 0,
+				FILTERPARAM_DESCRIPTION, "1: loop",
 				FILTERPARAM_END);
 	filterparamdb_add_param_pos(filter_paramdb(f));
 
