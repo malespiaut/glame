@@ -14,7 +14,7 @@ lib_LTLIBRARIES = libglamebuiltins.la
 #	track_io.c audio_io.c file_io.c waveform.c \
 #	basic_midi.c midi_io.c midi_debug.c rms.c 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
-	track_io.c audio_io.c file_io.c waveform.c
+	track_io.c audio_io.c file_io.c waveform.c rms.c
 #libglamebuiltins_la_SOURCES = basic.c
 libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 

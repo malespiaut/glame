@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.5 2000/05/04 14:55:11 nold Exp $
+ * $Id: rms.c,v 1.6 2000/05/16 02:47:53 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -29,7 +29,6 @@
 #include "util.h"
 #include "glplugin.h"
 
-PLUGIN_DESCRIPTION(rms,"rms filters")
 PLUGIN_SET(rms,"statistic debugrms")
 
 /* Statistic filter detects
@@ -53,7 +52,6 @@ static int statistic_connect_out(filter_node_t *n, const char *port, filter_pipe
 static int statistic_f(filter_node_t *n){
 	filter_pipe_t *in,*out;
 	filter_buffer_t *sbuf,*rbuf;
-	filter_param_t *param;
 	unsigned long pos=0,peak_pos;
 	int wsize;
 	float rms,peak_rms;
@@ -67,10 +65,7 @@ static int statistic_f(filter_node_t *n){
 	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no output");
 
-	if ((param=filternode_get_param(n,"windowsize")))
-		wsize=TIME2CNT(int, filterparam_val_float(param), filterpipe_sample_rate(in));
-	else
-		wsize=TIME2CNT(int, 500.0, filterpipe_sample_rate(in));
+	wsize=TIME2CNT(int, filterparam_val_float(filternode_get_param(n,"windowsize")), filterpipe_sample_rate(in));
 
 	FILTER_AFTER_INIT;
 	sbuf=sbuf_get(in);
@@ -142,26 +137,28 @@ static int statistic_f(filter_node_t *n){
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(statistic,"get stats of audiostream")
-PLUGIN_PIXMAP(statistic,"spreadsheet.xpm")
-int statistic_register()
+int statistic_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *p;
 	
-	if (!(f = filter_alloc(statistic_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-		    		 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-		    		 FILTER_PORTTYPE_RMS)
-	    || !(p=filter_add_param(f,"windowsize","timeslice in ms for which peak rms is calculated",
-			            FILTER_PARAMTYPE_FLOAT)))
+	if (!(f = filter_alloc(statistic_f))) 
 		return -1;
+	
+	filter_add_input(f, PORTNAME_IN, "audio input", FILTER_PORTTYPE_SAMPLE);
+	filter_add_output(f, PORTNAME_OUT, "rms output", FILTER_PORTTYPE_RMS);
+	
+	filterpdb_add_param_float(filter_pdb(f),"windowsize",
+			FILTER_PARAMTYPE_TIME_MS, 500.0,
+			FILTERPARAM_DESCRIPTION,"timeslice in ms for which peak rms is calculated",
+			FILTERPARAM_END);
+	
 	f->connect_out = statistic_connect_out;
-	
-	if (filter_add(f,"statistic","Calculates RMS, RMS in window & DC-Offset")==-1)
-		return -1;
-	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME_MS);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "Calculates RMS, RMS in window & DC-Offset");
+	plugin_set(p, PLUGIN_PIXMAP, "statistic.xpm");
+
+	filter_attach(f,p);
+
 	return 0;
 }
 
@@ -204,17 +201,19 @@ static int debugrms_f(filter_node_t *n){
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(debugrms,"debug rms stream")
-PLUGIN_PIXMAP(debugrms,"bug.xpm")
-int debugrms_register()
+int debugrms_register(plugin_t *p)
 {
 	filter_t *f;
-	
-	if (!(f = filter_alloc(debugrms_f))
-	    || !filter_add_input(f,PORTNAME_IN, "input",
-		    		 FILTER_PORTTYPE_RMS)
-	    || filter_add(f, "debugrms","eats rms buffers and shows debug output")==-1)
+
+	if (!(f = filter_alloc(debugrms_f)))
 		return -1;
+	
+	filter_add_input(f,PORTNAME_IN, "rms input", FILTER_PORTTYPE_RMS);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "Eats rms buffers and shows debug output");
+	plugin_set(p, PLUGIN_PIXMAP, "debug.xpm");
+
+	filter_attach(f, p);
 	
 	return 0;
 }
