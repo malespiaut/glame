@@ -290,7 +290,7 @@ g_wavefile_type_convert (guint32       n_channels,
 	  for (j=0; j<n_channels; j++) {
 	    s16temp = s16;
 	    for (i=0; i<length; i++) {
-	      *s16temp = double_to_s16(*f4++);
+	      *s16temp = float_to_s16(*f4++);
 	      s16temp += n_channels;
 	    }
 	    s16++;
