@@ -147,7 +147,7 @@ static inline void list_unsplice(struct list_head *list,
 
 
 /* this is not remove-safe!! */
-#define list_foreach(listp, type, member, entryvar) if (!list_empty(listp)) for (entryvar = list_entry((listp)->next, type, member); &entryvar->member != (listp); entryvar = list_entry(entryvar->member.next, type, member))
+#define list_foreach(listp, type, member, entryvar) for (entryvar = list_entry((listp)->next, type, member); &entryvar->member != (listp); entryvar = list_entry(entryvar->member.next, type, member))
 
 
 #endif

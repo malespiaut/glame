@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.14 2000/02/08 12:53:10 richi Exp $
+ * $Id: filter.h,v 1.15 2000/02/09 11:02:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -511,6 +511,9 @@ filter_t *filternetwork_load(const char *filename);
 
 #include "filter_buffer.h"
 
+#include "filter_protocols.h"
+
+#include "filter_tools.h"
 
 #ifdef __cplusplus
 }

@@ -3,14 +3,14 @@ INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -I@sr
 noinst_PROGRAMS = test_latency test_audio test_play test_network
 noinst_LTLIBRARIES = libfilter.la
 
-EXTRA_DIST = filter.h filter_buffer.h filter_tools.h
+EXTRA_DIST = filter.h filter_buffer.h filter_tools.h filter_protocols.h
 
 
 libfilter_la_SOURCES = filter.c filter.h filter_buffer.h \
 	filter_buffer.c filter_network.c \
 	basic.c debug.c channel_io.c audio_io.c \
 	volume_adjust.c waveform.c read_file.c \
-	echo.c garrison.c
+	echo.c garrison.c echo2.c
 
 
 test_latency_SOURCES = test_latency.c

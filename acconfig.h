@@ -9,3 +9,10 @@
 
 /* define if you have libaudiofile */
 #undef HAVE_AUDIOFILE
+
+/* define if we have gcc */
+#undef HAVE_GCC
+
+/* define which cpu you have */
+#undef CPU_X86
+#undef CPU_MIPS

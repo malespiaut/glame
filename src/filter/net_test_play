@@ -1,7 +1,7 @@
 n read_file rf
 n audio_out aout
-n echo echol
-n echo echor
+n echo2 echol
+n echo2 echor
 c rf left_out echol in
 c rf right_out echor in
 c echol out aout left_in
