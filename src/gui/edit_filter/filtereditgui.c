@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.42 2001/12/06 08:44:54 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.43 2001/12/06 23:53:05 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -151,8 +151,11 @@ glame_canvas_selecting(GlameCanvas* canvas,GdkEvent* event,GlameCanvas* glCanv)
 		selection = glame_canvas_find_items_in_region(glCanv,lastx,lasty,x,y);
 		if(selection){
 			GList *iter = g_list_first(selection);
+			if(!(GDK_SHIFT_MASK&event->button.state))
+				glame_canvas_select_clear(canvas);
+			
 			while(iter){
-				glame_canvas_select_add(glCanv,GLAME_CANVAS_FILTER(iter->data));
+				glame_canvas_select_item(glCanv,GLAME_CANVAS_FILTER(iter->data));
 				iter = g_list_next(iter);
 
 			}

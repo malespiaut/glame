@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.45 2001/12/04 23:42:34 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.46 2001/12/06 23:53:05 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -245,7 +245,6 @@ glame_canvas_filter_create_ports(GlameCanvasFilter* filter)
 	
 	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(filter),&filter_pos_x, &filter_pos_y);
 	
-	DPRINTF("%f %f\n",filter_pos_x, filter_pos_y);
 	portPos = filter_pos_y;
 	
 	/* input ports */
@@ -331,6 +330,11 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 		gItem->undeletable = atoi(buffer);
 	else 
 		gItem->undeletable = FALSE;
+	
+	if((buffer = filter_get_property(filter,"selected")))
+		gItem->selected = atoi(buffer);
+	else
+		gItem->selected = FALSE;
 	
 	/* add geometry stuff */
 	
@@ -426,12 +430,8 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	glame_canvas_filter_create_ports(gItem);
 	_glame_canvas_filter_move(gItem, x,y);
 	
-//	sprintf(numberbuffer,"%.1f",x);
-//	filter_set_property(filter,"canvas_x",numberbuffer);
-//	sprintf(numberbuffer,"%.1f",y);
-//	filter_set_property(filter,"canvas_y",numberbuffer);
-
-
+	if(gItem->selected)
+		glame_canvas_select_item(CANVAS_ITEM_GLAME_CANVAS(gItem),gItem);
 	return gItem;
 }
 
@@ -533,7 +533,10 @@ glame_canvas_filter_redraw(GlameCanvasFilter *filter)
 
 void glame_canvas_filter_set_selected(GlameCanvasFilter* f, gboolean selected)
 {
+	char buff[3];
 	f->selected = selected;
+	snprintf(buff,3,"%d",selected);
+	filter_set_property(f->filter,"selected",buff);
 	glame_canvas_filter_redraw(f);
 }
 
@@ -784,6 +787,8 @@ static void glame_canvas_paste_selection_cb(GtkWidget *foo, GlameCanvasFilter* f
 }
 static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
 {
+	filter_t* iter;
+	char buf[3];
 	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
 	if (!FILTER_IS_NETWORK(filter->filter))
 		return;
@@ -796,6 +801,12 @@ static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter
 		else
 			gtk_object_destroy(GTO(gtk_widget_get_toplevel(GTK_WIDGET(glame_canvas_find_canvas(filter->filter)))));
 	}
+	snprintf(buf,3,"%d",1);
+	filter_foreach_node(filter->filter,iter){
+
+		filter_set_property(iter,"selected",buf);
+	}
+		
 	if (filter_expand(filter->filter) == -1) {
 		DPRINTF("Error expanding %s\n", filter_name(filter->filter));
 		return;
@@ -829,9 +840,14 @@ static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanva
 	GList *items = glame_canvas_get_selected_items(canv), *n;
 	filter_t *net, **nodes;
 	int i;
-
+	gdouble x1,y1,x2,y2;
+	char buffer[10];
 	if (!items)
 		return;
+	if(g_list_length(items)<2)
+		return;
+	
+	gnome_canvas_item_get_bounds(GCI(filter),&x1,&y1,&x2,&y2);
 
 	nodes = alloca(sizeof(filter_t *)*(g_list_length(items)+1));
 	for (i=0, n = g_list_first(items); n != NULL; n = g_list_next(n), i++) {
@@ -844,7 +860,11 @@ static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanva
 		DPRINTF("Error collapsing selection\n");
 		return;
 	}
-
+	snprintf(buffer,9,"%.1f",x1); 
+	filter_set_property(net, "canvas_x", buffer);
+	
+	snprintf(buffer,9,"%.1f",y1); 
+	filter_set_property(net, "canvas_y", buffer);
 	glame_canvas_full_redraw(canv);
 }
 
@@ -1227,7 +1247,7 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 		case 1:
 
 			/* raise to top */
-			glame_canvas_filter_info(filter);
+			//glame_canvas_filter_info(filter);
 			glame_canvas_filter_raise_to_top(filter);
 			/* perform selects */
 			glame_canvas_filter_do_select(filter,event);  // FIXME!  

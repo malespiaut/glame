@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.18 2001/12/06 08:44:55 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.19 2001/12/06 23:53:05 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -118,6 +118,7 @@ void glame_canvas_reset_errors(GlameCanvas *canv);
 
 void glame_canvas_copy_selected(GlameCanvas* canv);
 void glame_canvas_paste_selection(GlameCanvas* canv);
+void glame_canvas_select_item(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_add(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_exclusive(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_clear(GlameCanvas* canv);
