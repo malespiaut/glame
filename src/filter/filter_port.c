@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.10 2002/03/24 19:20:24 richi Exp $
+ * $Id: filter_port.c,v 1.11 2002/03/25 11:19:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -77,6 +77,8 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 
 static int default_connect_input(filter_port_t *port, filter_pipe_t *pipe)
 {
+	filter_port_t *p;
+
         /* We accept everything. Default checks are done by the
 	 * filterport_connect function. But as all ports are now
 	 * "automatic" we as default do accept one connection only. */
@@ -85,9 +87,14 @@ static int default_connect_input(filter_port_t *port, filter_pipe_t *pipe)
 
 	/* As this is an unmanaged connection, we have to provide
 	 * a default handler for the GLSIG_PIPE_CHANGED signal,
-	 * so install one. */
-	glsig_add_handler(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED,
-			  filter_handle_pipe_change, NULL);
+	 * so install one - only if output ports are available. */
+	filterportdb_foreach_port(filter_portdb(filterport_filter(port)), p) {
+		if (!filterport_is_output(p))
+			continue;
+		glsig_add_handler(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED,
+				  filter_handle_pipe_change, NULL);
+		break;
+	}
 
 	return 0;	
 }
