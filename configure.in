@@ -149,10 +149,12 @@ dnl
 dnl We also need libxml
 dnl
 
-AMG_PATH_XML(1.8.0, , [
-AC_MSG_ERROR([You need at least libxml 1.8.0 to run glame!
+AMG_PATH_XML2(2.0.0, , [
+	AMG_PATH_XML(1.8.0, , [
+	AC_MSG_ERROR([You need at least libxml 1.8.0 to run glame!
 Hint: You also need to have the appropriate xml development package
 installed, usually called libxml-dev, libxmld, or similar.])
+])
 ])
 
 
