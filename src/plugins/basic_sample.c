@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.50 2001/07/31 16:18:46 mag Exp $
+ * $Id: basic_sample.c,v 1.51 2001/08/06 08:43:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -740,8 +740,15 @@ static void render_fixup_param(glsig_handler_t *h, long sig, va_list va)
 static int render_connect_in(filter_t *n, filter_port_t *port,
 			     filter_pipe_t *p)
 {
+	filter_pipe_t *in;
+
 	/* We accept any number of inputs. Fixup is done through
-	 * raised GLSIG_PIPE_CHANGED. */
+	 * raised GLSIG_PIPE_CHANGED. But we need matching samplerates! */
+	if (!(in = filterport_get_pipe(port)))
+		return 0;
+	if (filterpipe_sample_rate(in) != filterpipe_sample_rate(p))
+		return -1;
+
 	return 0;
 }
 static int render_connect_out(filter_t *n, filter_port_t *port,
