@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.28 2001/07/11 22:51:20 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.29 2001/07/12 08:47:15 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -426,6 +426,14 @@ static SCM gls_editfilter_ungroup_selected()
 	glame_canvas_ungroup_selected(glcanvas);
 	return SCM_UNSPECIFIED;
 }
+
+static SCM gls_editfilter_new(SCM s_filter)
+{
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "editfilter-new");
+	gtk_widget_show(glame_filtereditgui_new(filter_creat(scm2filter(s_filter)), FALSE));
+	return SCM_UNSPECIFIED;
+}
+
 void
 glame_filtereditgui_init(void)
 {
@@ -443,6 +451,8 @@ glame_filtereditgui_init(void)
 			    gls_editfilter_group_selected);
 	gh_new_procedure0_0("editfilter-ungroup-selection",
 			    gls_editfilter_ungroup_selected);
+	gh_new_procedure1_0("editfilter-new",
+			    gls_editfilter_new);
 }
 	
 
