@@ -1,7 +1,7 @@
 /*
  * timeline_canvas.c
  *
- * $Id: timeline_canvas.c,v 1.4 2001/08/06 08:19:12 richi Exp $
+ * $Id: timeline_canvas.c,v 1.5 2002/11/10 14:39:58 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -97,15 +97,26 @@ static void timeline_canvas_handle_root(glsig_handler_t *handler, long sig, va_l
 	TimelineCanvas *canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
 	GnomeCanvasItem *root = GNOME_CANVAS_ITEM(
 		gnome_canvas_root(GNOME_CANVAS(canvas)));
-	double scale;
+	double scale, size;
 
 	if (root->object.flags & GNOME_CANVAS_ITEM_AFFINE_FULL) {
 		scale = root->xform[0];
 	} else
 		scale = 1.0;
-	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas), 0.0, 0.0,
-				       scale*_HUNIT(gpsm_item_hsize(canvas->root)/44100.0/*FIXME*/),
+
+	/* calculate size so hpos 0 is aligned with the window left */
+	size = scale*_HUNIT(gpsm_item_hsize(canvas->root)/44100.0/*FIXME*/);
+	if (GTK_WIDGET_REALIZED(canvas))
+		size = MAX(size, GTK_WIDGET(canvas)->allocation.width);
+	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas), 0.0, 0.0, size,
 				       _VUNIT(gpsm_item_vsize(canvas->root)));
+}
+
+static void on_canvas_realize(GtkWidget *widget, gpointer *data)
+{
+	TimelineCanvas *canvas = TIMELINE_CANVAS(widget);
+        glsig_handler_exec(canvas->gpsm_handler0, GPSM_SIG_ITEM_CHANGED,
+                           canvas->root);
 }
 
 TimelineCanvas *timeline_canvas_new(gpsm_grp_t *root)
@@ -114,6 +125,11 @@ TimelineCanvas *timeline_canvas_new(gpsm_grp_t *root)
 
 	canvas = TIMELINE_CANVAS(gtk_type_new(timeline_canvas_get_type()));
 	canvas->root = root;
+
+	/* Register handlers to adjust visible canvas region on realization
+	 * and window resize. */
+	gtk_signal_connect(GTK_OBJECT(canvas), "realize", on_canvas_realize, NULL);
+	gtk_signal_connect(GTK_OBJECT(canvas), "size_allocate", on_canvas_realize, NULL);
 
 	/* Register handler to adjust canvas and invoke it one time. */
 	canvas->gpsm_handler0 = glsig_add_handler(gpsm_item_emitter(root), GPSM_SIG_ITEM_CHANGED, timeline_canvas_handle_root, canvas);
