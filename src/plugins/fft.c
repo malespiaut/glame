@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft.c,v 1.8 2001/01/02 23:29:47 mag Exp $
+ * $Id: fft.c,v 1.9 2001/01/05 22:51:49 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -49,7 +49,32 @@ SAMPLE *hanning(int n) {
 		win[i]=0.5-0.5*cos((SAMPLE)i/(SAMPLE)(n-1)*2.0*M_PI);
 	return win;
 }
+
+SAMPLE window_gain(SAMPLE *win, int n, int osamp) {
+	SAMPLE *s;
+	double max;
+	int i, j, off;
 	
+	off = n / osamp;
+	s = ALLOCN(n, SAMPLE);
+
+	memcpy(s, win, n*SAMPLE_SIZE);
+	
+	for(i=1; i<osamp; i++)
+		for(j=0; j<n; j++)
+			s[j] += win[(j+i*off)%n];
+
+	max = 0;
+	for(i=0; i<n; i++)
+		max += s[i]*s[i];
+
+	max /= n;
+	max = sqrt(max);
+
+	free(s);
+	return (SAMPLE)max;
+}
+
 static int fft_connect_out(filter_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
@@ -153,7 +178,7 @@ static int fft_f(filter_t *n){
 	if (!(win=hanning(bsize)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 
-	INIT_QUEUE(&queue, in);
+	init_queue(&queue, in, n);
 	
 	FILTER_AFTER_INIT;
 	
@@ -176,17 +201,19 @@ static int fft_f(filter_t *n){
 			queue_shift(&queue, ooff);
 			s += bsize;
 		}
-	/*	
+		
 		s = sbuf_buf(outb);
 		for(i=0; i<cnt; i++)
 			for(j=0;j<bsize;j++)
 				*s++ *= win[j];
-	*/	
+		
 		rfftw(p, cnt, (fftw_real *)sbuf_buf(outb), 1, bsize, NULL, 1, 1);
 	
 		if (cnt == obufcnt)
 			sbuf_queue(out, outb);
-	} while (cnt == obufcnt);
+	} while ( (cnt == obufcnt) && (!queue.done));
+
+	DPRINTF("cnt =%d\n", cnt);
 
 	if (cnt == 0) {
 		sbuf_unref(outb);
@@ -197,15 +224,16 @@ static int fft_f(filter_t *n){
 		sbuf_queue(out, outb2);
 	}
 	sbuf_queue(out, NULL);
+	queue_drain(&queue);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	queue_drain(&queue);
 
 	free(win);
 	rfftw_destroy_plan(p);
 
+	DPRINTF("fft done\n");
 	FILTER_RETURN;
 }
 
@@ -225,7 +253,7 @@ int fft_register(plugin_t *p)
 			FILTERPARAM_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"oversamp",
-			FILTER_PARAMTYPE_INT, 1,
+			FILTER_PARAMTYPE_INT, 8,
 			FILTERPARAM_DESCRIPTION,"oversampling factor",
 			FILTERPARAM_END);
 	
@@ -254,11 +282,13 @@ static int ifft_connect_out(filter_t *n, filter_port_t *port,
 }
 
 static int ifft_f(filter_t *n){
-	filter_pipe_t *in,*out;
+	queue_t		queue;
+	filter_pipe_t	*in, *out;
 	filter_buffer_t *inb;
 	rfftw_plan p;
-	SAMPLE *overlap,*win, *s;
-	int osamp,bsize,i,j;
+	SAMPLE *win, *s;
+	float fak;
+	int osamp, bsize, i, j, ibufcnt, ooff;
 	float gain;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
@@ -276,42 +306,59 @@ static int ifft_f(filter_t *n){
 	p = rfftw_create_plan(bsize, FFTW_COMPLEX_TO_REAL, FFTW_ESTIMATE | FFTW_IN_PLACE);
 	pthread_mutex_unlock(&planlock);
 
-	if (!(overlap=ALLOCN(bsize,SAMPLE)))
-		FILTER_ERROR_RETURN("couldn't allocate overlap buffer");
 	if (!(win=hanning(bsize)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 	
 	FILTER_AFTER_INIT;
 
-	gain=1.0/(float)bsize;	/* fft is not normalized */
-	goto entry;
+	gain = 1.0/(float)bsize;	/* fft is not normalized */
+	ooff = bsize / osamp;
+	
+	if (osamp>1) {
+		fak = window_gain(win, bsize, osamp);
+		DPRINTF("fak = %f\n",fak);
+		gain /= fak;
+	}
 
-	while(inb){
+	init_queue(&queue, out, n);
+
+	goto entry;
+	
+	while (inb) {
 		FILTER_CHECK_STOP;
-		
-		/* In case we have no oversampling, we can process in place */
-		rfftw(p,sbuf_size(inb)/bsize,(fftw_real *)sbuf_buf(inb),1,bsize,NULL,1,1);
-		
+	
+		ibufcnt = sbuf_size(inb)/bsize;
 		s = sbuf_buf(inb);
 		
-		for(i=0;i<sbuf_size(inb);i++){
-			*s++ *= gain;
-		}
+		/* In case we have no oversampling, we can process in place */
+		rfftw(p, ibufcnt, (fftw_real *)s, 1, bsize, NULL, 1, 1);
 		
-		sbuf_queue(out,inb);
-entry:
-		inb=sbuf_get(in);
-		inb=sbuf_make_private(inb);
+		s = sbuf_buf(inb);
+		for (i=0; i<ibufcnt; i++)
+			for(j=0;j<bsize;j++)
+				*s++ *= win[j]*gain;
+
+		s = sbuf_buf(inb);
+		
+		for (i=0; i<ibufcnt; i++) {
+			queue_add(&queue, s, bsize);
+			queue_add_shift(&queue, ooff);
+			s += bsize;
+		}
+		sbuf_unref(inb);
+entry:		
+		inb = sbuf_make_private(sbuf_get(in));
 	}
+	queue_add_drain(&queue);
 	sbuf_queue(out,NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 	
-	free(overlap);
 	free(win);
 	rfftw_destroy_plan(p);
 	
+	DPRINTF("ifft done\n");
 	FILTER_RETURN;
 }
 
