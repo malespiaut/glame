@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.1 2001/05/28 08:10:35 richi Exp $
+ * $Id: apply.c,v 1.2 2001/05/30 09:44:19 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -63,7 +63,7 @@ struct apply_plugin_s {
 /* Struct cleanup. */
 static void cleanup(struct apply_plugin_s *a)
 {
-	if (a->timeout_id)
+	if (a->timeout_id != -1)
 		gtk_timeout_remove(a->timeout_id);
 	gtk_widget_hide(a->dialog);
 	gtk_widget_destroy(a->dialog);
@@ -210,7 +210,23 @@ static void cancel_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	cleanup(a);
 }
 
+static gint delete_cb(GtkWidget *w, GdkEventAny *event,
+		      struct apply_plugin_s *a)
+{
+	cancel_cb(w, a);
+	return TRUE;
+}
 
+static gint key_cb(GtkWidget *w, GdkEventKey *event, struct apply_plugin_s *a)
+{
+	/* Catch ESCAPE - prevent default handler from running. */
+	if (event->keyval == GDK_Escape) {
+		gtk_signal_emit_stop_by_name(GTK_OBJECT(a->dialog),
+					     "key_press_event");
+		return TRUE;
+	}
+	return FALSE;
+}
 
 int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 			long start, long length)
@@ -273,7 +289,9 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 
 	/* The signals. */
 	gtk_signal_connect(GTK_OBJECT(a->dialog), "delete_event",
-			   cancel_cb, a);
+			   delete_cb, a);
+	gtk_signal_connect(GTK_OBJECT(a->dialog), "key_press_event",
+			   key_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), PREVIEW,
 				    preview_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), APPLY,
