@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.27 2003/05/25 16:38:33 richi Exp $
+ * $Id: ladspa.c,v 1.28 2003/06/01 21:18:12 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -541,23 +541,13 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				bound_below = 1;
 				fBound1 =
-				    psDescriptor->
-				    PortRangeHints[lPortIndex].LowerBound;
-				if (LADSPA_IS_HINT_SAMPLE_RATE
-				    (psDescriptor->PortRangeHints[lPortIndex].
-				     HintDescriptor))
-					fBound1 *= GLAME_DEFAULT_SAMPLERATE;
+				    psDescriptor->PortRangeHints[lPortIndex].LowerBound;
 			}
 			if (LADSPA_IS_HINT_BOUNDED_ABOVE
 			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				bound_above = 1;
 				fBound2 =
-				    psDescriptor->
-				    PortRangeHints[lPortIndex].UpperBound;
-				if (LADSPA_IS_HINT_SAMPLE_RATE
-				    (psDescriptor->PortRangeHints[lPortIndex].
-				     HintDescriptor))
-					fBound1 *= GLAME_DEFAULT_SAMPLERATE;
+				    psDescriptor->PortRangeHints[lPortIndex].UpperBound;
 			}
 			if (LADSPA_IS_HINT_SAMPLE_RATE
 			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
