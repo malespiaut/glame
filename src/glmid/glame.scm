@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.17 2000/04/02 13:28:05 mag Exp $
+; $Id: glame.scm,v 1.18 2000/04/03 09:21:56 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -99,13 +99,6 @@
 (define nodes-set-params
   (lambda (nodes . params)
     (map (lambda (n) (node-set-params n params)) nodes)))
-
-(define node-set-params2
-  (lambda (node params)
-    (map (lambda (p)
-	   (if (not (null? p))
-	       (node-set-param node (car p) (cadr p))))
-	 params)))
 
 ; run the net, wait for completion and delete it
 (define net-run
@@ -242,7 +235,7 @@
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
     (node-set-param rf "filename" fname)
-    (node-set-params2 iir params)
+    (apply node-set-params iir params)
     (while-not-false 
       (lambda () (filternetwork_add_connection rf "out" mix "in")))
     (nodes-connect  `(,mix ,iir ,stat ,drms))
@@ -278,7 +271,7 @@
 	   (if (boolean? conn)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
-		 (node-set-params2 eff params)
+		 (apply node-set-params eff params)
 		 (nodes-connect `(,eff ,wf))
 		 conn)))))
       (net-run net))))
@@ -302,7 +295,7 @@
 	   (if (boolean? conn)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
-		 (node-set-params2 eff params)
+		 (apply node-set-params eff params)
 		 (nodes-connect `(,eff ,ao))
 		 conn)))))
       (net-run net))))
