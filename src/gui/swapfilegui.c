@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.92 2003/04/15 20:11:13 richi Exp $
+ * $Id: swapfilegui.c,v 1.93 2003/04/15 20:46:04 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -177,7 +177,7 @@ static void deselect_all(SwapfileGui *gui)
 	if (!gui)
 		return;
 
-	while ((selected = GTK_TREE_SELECTION(gui->tree))) {
+	while ((selected = GTK_TREE_SELECTION_OLD(gui->tree))) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
 		gtk_tree_unselect_child(i->tree, GTK_WIDGET(i));
 	}
@@ -269,7 +269,7 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (!GPSM_ITEM_IS_GRP(item->item))
 		return;
 
-	selected = GTK_TREE_SELECTION(glame_tree_item_parent(item));
+	selected = GTK_TREE_SELECTION_OLD(glame_tree_item_parent(item));
 	while (selected) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
 		gpsm_item_t *copy;
@@ -313,7 +313,7 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (!GPSM_ITEM_IS_GRP(item->item))
 		return;
 
-	selected = GTK_TREE_SELECTION(glame_tree_item_parent(item));
+	selected = GTK_TREE_SELECTION_OLD(glame_tree_item_parent(item));
 	while (selected) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
 		gpsm_item_t *copy;
@@ -1022,7 +1022,7 @@ static SCM gls_swapfilegui_selected_items()
 	SCM s_items = SCM_EOL;
 	if (!active_swapfilegui)
 		return s_items;
-	selected = GTK_TREE_SELECTION(active_swapfilegui->tree);
+	selected = GTK_TREE_SELECTION_OLD(active_swapfilegui->tree);
 	while (selected) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
 		s_items = gh_cons(gpsmitem2scm(i->item), s_items);
