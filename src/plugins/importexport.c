@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.12 2001/09/26 09:28:49 mag Exp $
+ * $Id: importexport.c,v 1.13 2001/09/26 09:47:20 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -127,8 +127,7 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	gpsm_grp_t *group = NULL;
 	int i, newrate;
 	gboolean dorsmpl;
-	gpsm_item_t *it, *file;
-	long vpos;
+	gpsm_item_t *it;
 	GtkWidget *ed;
 
 	if(ie->gotfile==0) {
@@ -137,8 +136,6 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
 		return;
 	}
-
-	vpos = gpsm_item_vsize(gpsm_root());
 
 	net = filter_creat(NULL);
 	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
@@ -251,9 +248,12 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 
 	/* Insert the group into the gpsm tree. */
-	gpsm_item_place(gpsm_root(), (gpsm_item_t *)group,
-			0, gpsm_item_vsize(gpsm_root()));
-	goto out;
+	if (gpsm_vbox_insert(ie->grp, (gpsm_item_t *)group,
+			     0, gpsm_item_vsize(ie->grp)) == -1)
+		goto ie_fail_cleanup;
+
+	ie_import_cleanup(ie);
+	return;
 
 ie_fail_cleanup:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -262,19 +262,6 @@ ie_fail_cleanup:
 	gpsm_item_destroy((gpsm_item_t *)group);
 	net_restore_default();
 	gtk_widget_set_sensitive(bla, TRUE);	
-	return;
-
-	out:
-	
-	if (!(file = (gpsm_item_t*)gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
-		DPRINTF("No file at %li\n", vpos);
-		return;
-	} else if (!(file = (gpsm_item_t*)gpsm_item_parent(file))) {
-		DPRINTF("Cannot find imported file at %li\n", vpos);
-		return;
-	}
-
-	ie_import_cleanup(ie);
 }
 
 static void ie_preview_cb(GtkWidget *bla, struct impexp_s *ie) {
