@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.24 2001/04/23 08:24:08 richi Exp $
+ * $Id: glplugin.c,v 1.25 2001/04/27 09:23:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -163,12 +163,14 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	snprintf(s, 255, "%s", *set);
 	sp = s;
 	do {
+		char name[32];
 		psname = sp;
 		if ((sp = strchr(psname, ' ')))
 			*(sp++) = '\0';
-		if (!(pn = _plugin_alloc(psname))
+		mangle_name(name, psname);
+		if (!(pn = _plugin_alloc(name))
 		    || !(pn->handle = dlopen(filename, RTLD_NOW))
-		    || try_init_glame_plugin(pn, psname, filename) == -1
+		    || try_init_glame_plugin(pn, name, filename) == -1
 		    || _plugin_add(pn) == -1) {
 			_plugin_free(pn);
 			continue;
