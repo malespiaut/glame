@@ -451,7 +451,8 @@ int fft_resample_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Resample fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	
 	filter_register(f,p);
 
 	return 0;
