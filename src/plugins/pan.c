@@ -193,6 +193,7 @@ static int pan_connect_in(filter_port_t *port, filter_pipe_t *pipe)
 		return -1;
 	glsig_add_handler(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED,
 			  pan_pipe_changed, NULL);
+	return 0;
 }
 
 /* Most other filters try to avoid explicit reference to 'left' and 'right'
