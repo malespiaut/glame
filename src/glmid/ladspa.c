@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.28 2003/06/01 21:18:12 richi Exp $
+ * $Id: ladspa.c,v 1.29 2003/06/09 20:51:45 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -635,82 +635,42 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 					lpage++;
 				step = pow(10.0, lstep);
 				page = pow(10.0, lpage);
-#if 1
 				snprintf(xml, 1023,
-"<?xml version=\"1.0\"?><GTK-Interface>"
-"  <widget>"
-"    <class>GtkHScale</class>"
-"    <name>widget</name>"
-"    <can_focus>True</can_focus>"
-"    <draw_value>True</draw_value>"
-"    <value_pos>GTK_POS_LEFT</value_pos>"
-"    <digits>2</digits>"
-"    <policy>GTK_UPDATE_CONTINUOUS</policy>"
-"    <value>%.3f</value>"
-"    <lower>%.3f</lower>"
-"    <upper>%.3f</upper>"
-"    <step>%.3f</step>"
-"    <page>%.3f</page>"
-"    <page_size>%.3f</page_size>"
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"  <widget class=\"GtkHScale\" id=\"widget\">"
+"    <property name=\"visible\">True</property>"
+"    <property name=\"can_focus\">True</property>"
+"    <property name=\"draw_value\">True</property>"
+"    <property name=\"value_pos\">GTK_POS_LEFT</property>"
+"    <property name=\"digits\">2</property>"
+"    <property name=\"update_policy\">GTK_UPDATE_CONTINUOUS</property>"
+"    <property name=\"inverted\">False</property>"
+"    <property name=\"adjustment\">%.3f %.3f %.3f %.3f %.3f 0.0</property>"
 "  </widget>"
-"</GTK-Interface>",
-					 fRecommendation, fBound1, fBound2, step, page, 0.0);
-#else
-				snprintf(xml, 1023,
-"<?xml version=\"1.0\"?><GTK-Interface>"
-" <widget>"
-"  <class>GtkHBox</class>"
-"  <name>root</name>"
-"  <widget>"
-"    <class>GtkKnob</class>"
-"    <name>widget</name>"
-"    <value>%.3f</value>"
-"    <lower>%.3f</lower>"
-"    <upper>%.3f</upper>"
-"  </widget>"
-"  <widget>"
-"    <class>GtkHScale</class>"
-"    <name>widget2</name>"
-"    <can_focus>True</can_focus>"
-"    <draw_value>True</draw_value>"
-"    <value_pos>GTK_POS_LEFT</value_pos>"
-"    <digits>3</digits>"
-"    <policy>GTK_UPDATE_CONTINUOUS</policy>"
-"    <value>0.0</value>"
-"    <lower>0.0</lower>"
-"    <upper>1.0</upper>"
-"    <step>0.1</step>"
-"    <page>0.1</page>"
-"    <page_size>0.0</page_size>"
-"  </widget>"
-" </widget>"
-"</GTK-Interface>",
-					 fRecommendation, fBound1, fBound2);
-#endif
+"</glade-interface>",
+					 fRecommendation, fBound1, fBound2, step, page);
 				filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
 			} else if ((bound_below || bound_above) && !isint) {
 				/* Use GtkSpinButton */
 				char xml[1024];
 				snprintf(xml, 1023,
-"<?xml version=\"1.0\"?><GTK-Interface>"
-"  <widget>"
-"    <class>GtkSpinButton</class>"
-"    <name>widget</name>"
-"    <can_focus>True</can_focus>"
-"    <climb_rate>1</climb_rate>"
-"    <digits>2</digits>"
-"    <numeric>True</numeric>"
-"    <update_policy>GTK_UPDATE_ALWAYS</update_policy>"
-"    <snap>False</snap>"
-"    <wrap>False</wrap>"
-"    <value>%.3f</value>"
-"    <lower>%.3f</lower>"
-"    <upper>%.3f</upper>"
-"    <step>%.3f</step>"
-"    <page>%.3f</page>"
-"    <page_size>0.0</page_size>"
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"  <widget class=\"GtkSpinButton\" id=\"widget\">"
+"    <property name=\"visible\">True</property>"
+"    <property name=\"can_focus\">True</property>"
+"    <property name=\"climb_rate\">1</property>"
+"    <property name=\"digits\">2</property>"
+"    <property name=\"numeric\">True</property>"
+"    <property name=\"update_policy\">GTK_UPDATE_ALWAYS</property>"
+"    <property name=\"snap_to_ticks\">False</property>"
+"    <property name=\"wrap\">False</property>"
+"    <property name=\"adjustment\">%.3f %.3f %.3f %.3f %.3f 0.0</property>"
 "  </widget>"
-"</GTK-Interface>",
+"</glade-interface>",
 					 fRecommendation,
 					 bound_below ? fBound1 : -1e19,
 					 bound_above ? fBound2 : 1e19, 0.01, 0.1);
@@ -719,25 +679,21 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 				/* Use GtkSpinButton */
 				char xml[1024];
 				snprintf(xml, 1023,
-"<?xml version=\"1.0\"?><GTK-Interface>"
-"  <widget>"
-"    <class>GtkSpinButton</class>"
-"    <name>widget</name>"
-"    <can_focus>True</can_focus>"
-"    <climb_rate>1</climb_rate>"
-"    <digits>0</digits>"
-"    <numeric>True</numeric>"
-"    <update_policy>GTK_UPDATE_ALWAYS</update_policy>"
-"    <snap>False</snap>"
-"    <wrap>False</wrap>"
-"    <value>%.0f</value>"
-"    <lower>%.0f</lower>"
-"    <upper>%.0f</upper>"
-"    <step>%.0f</step>"
-"    <page>%.0f</page>"
-"    <page_size>0.0</page_size>"
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"  <widget class=\"GtkSpinButton\" id=\"widget\">"
+"    <property name=\"visible\">True</property>"
+"    <property name=\"can_focus\">True</property>"
+"    <property name=\"climb_rate\">1</property>"
+"    <property name=\"digits\">0</property>"
+"    <property name=\"numeric\">True</property>"
+"    <property name=\"update_policy\">GTK_UPDATE_ALWAYS</property>"
+"    <property name=\"snap_to_ticks\">False</property>"
+"    <property name=\"wrap\">False</property>"
+"    <property name=\"adjustment\">%.3f %.3f %.3f %.3f %.3f 0.0</property>"
 "  </widget>"
-"</GTK-Interface>",
+"</glade-interface>",
 					 fRecommendation,
 					 bound_below ? fBound1 : -1000,
 					 bound_above ? fBound2 : 1000,
@@ -747,25 +703,21 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 				/* Use GtkSpinButton */
 				char xml[1024];
 				snprintf(xml, 1023,
-"<?xml version=\"1.0\"?><GTK-Interface>"
-"  <widget>"
-"    <class>GtkSpinButton</class>"
-"    <name>widget</name>"
-"    <can_focus>True</can_focus>"
-"    <climb_rate>1</climb_rate>"
-"    <digits>0</digits>"
-"    <numeric>True</numeric>"
-"    <update_policy>GTK_UPDATE_ALWAYS</update_policy>"
-"    <snap>False</snap>"
-"    <wrap>False</wrap>"
-"    <value>%.0f</value>"
-"    <lower>%.0f</lower>"
-"    <upper>%.0f</upper>"
-"    <step>%.0f</step>"
-"    <page>%.0f</page>"
-"    <page_size>0.0</page_size>"
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"  <widget class=\"GtkSpinButton\" id=\"widget\">"
+"    <property name=\"visible\">True</property>"
+"    <property name=\"can_focus\">True</property>"
+"    <property name=\"climb_rate\">1</property>"
+"    <property name=\"digits\">0</property>"
+"    <property name=\"numeric\">True</property>"
+"    <property name=\"update_policy\">GTK_UPDATE_ALWAYS</property>"
+"    <property name=\"snap_to_ticks\">False</property>"
+"    <property name=\"wrap\">False</property>"
+"    <property name=\"adjustment\">%.3f %.3f %.3f %.3f %.3f 0.0</property>"
 "  </widget>"
-"</GTK-Interface>",
+"</glade-interface>",
 					 fRecommendation,
 					 0.0,
 					 1.0,
