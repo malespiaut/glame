@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.6 2001/04/24 12:06:07 richi Exp $
+ * $Id: filter_pipe.c,v 1.7 2001/05/10 07:59:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -53,6 +53,8 @@ static filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
 	p->source = sourceport;
 	p->dest = destport;
 
+	p->connection = NULL;
+
 	/* init emitter - redirector installation is delayed!
 	 * -- see filterport_connect() */
 	INIT_GLSIG_EMITTER(&p->emitter);
@@ -74,16 +76,12 @@ static void _pipe_free(filter_pipe_t *p)
 
 	/* delete signal handlers */
 	glsig_delete_all(&p->emitter);
+
+	/* kill connection */
+	list_del(&p->connection->list);
+	free(p->connection);
+
 	free(p);
-}
-
-void _connection_delete(glsig_handler_t *h, long sig, va_list va)
-{
-	struct fconnection *c;
-
-	c = (struct fconnection *)glsig_handler_private(h);
-	list_del(&c->list);
-	free(c);
 }
 
 
@@ -156,10 +154,7 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	c->dest_filter = filter_name(filterport_filter(dest));
 	c->dest_port = filterport_label(dest);
 	list_add(&c->list, &filterport_filter(source)->connections);
-	/* install a signalhandler for GLSIG_PIPE_DELETED which removes
-	 * the connection from this list. */
-	glsig_add_handler(filterpipe_emitter(p), GLSIG_PIPE_DELETED,
-			  _connection_delete, c);
+	p->connection = c;
 
 	/* signal pipe changes */
 	glsig_emit(filterpipe_emitter(p), GLSIG_PIPE_CHANGED, p);
@@ -184,6 +179,41 @@ void filterpipe_delete(filter_pipe_t *p)
 
 	/* kill the pipe */
 	_pipe_free(p);
+}
+
+
+filter_port_t *filterpipe_connection_source(filter_pipe_t *fp)
+{
+	filter_t *net, *source = NULL;
+
+	net = filterport_filter(filterpipe_source(fp))->net;
+	while (net) {
+		source = filter_get_node(net, fp->connection->source_filter);
+		if (source)
+			break;
+		net = net->net;
+	}
+	if (!source)
+		return NULL;
+	return filterportdb_get_port(filter_portdb(source),
+				     fp->connection->source_port);
+} 
+
+filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp)
+{
+	filter_t *net, *dest = NULL;
+
+	net = filterport_filter(filterpipe_dest(fp))->net;
+	while (net) {
+		dest = filter_get_node(net, fp->connection->dest_filter);
+		if (dest)
+			break;
+		net = net->net;
+	}
+	if (!dest)
+		return NULL;
+	return filterportdb_get_port(filter_portdb(dest),
+				     fp->connection->dest_port);
 }
 
 

@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.5 2001/05/03 17:46:56 mag Exp $
+ * $Id: filter_pipe.h,v 1.6 2001/05/10 07:59:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,6 +26,17 @@
 #include "filter_types.h"
 #include "filter_param.h"
 
+
+/* Internal structure to track filterport_connect() commands,
+ * needed for correct re-creation in filter_to_string. */
+struct fconnection {
+	struct list_head list;
+	filter_pipe_t *pipe;
+	const char *source_filter;
+	const char *source_port;
+	const char *dest_filter;
+	const char *dest_port;
+};
 
 /* Filter pipes represent a connection between two
  * instances of a filter. This is per filternode port
@@ -62,6 +73,9 @@ struct filter_pipe {
 	/* pipe context - source and destination ports. */
 	filter_port_t *source;
 	filter_port_t *dest;
+
+	/* "real" connection as requested from filterport_connect(). */
+	struct fconnection *connection;
 
 	/* pipe specific parameters on the source/destination side */
 	filter_paramdb_t source_params;
@@ -153,17 +167,6 @@ struct filter_pipe {
 #define filterpipe_ssp_rate(fp) ((fp)->u.ssp.rate)
 #define filterpipe_ssp_bsize(fp) ((fp)->u.ssp.bsize)
 
-/* Internal structure to track filterport_connect() commands,
- * needed for correct re-creation in filter_to_string. */
-struct fconnection {
-	struct list_head list;
-	filter_pipe_t *pipe;
-	const char *source_filter;
-	const char *source_port;
-	const char *dest_filter;
-	const char *dest_port;
-};
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -184,6 +187,18 @@ void filterpipe_delete(filter_pipe_t *pipe);
 /* Checks, if a pipe is inside a feedback loop. Returns 1 if this is
  * the case, 0 otherwise. */
 int filterpipe_is_feedback(filter_pipe_t *pipe);
+
+/* Queries the source port of the pipe fp that was initially passed to
+ * filterport_connect() as source. Returns NULL, if this port cannot
+ * be found anymore (possible, if the connection was automatically
+ * redirected and the source node was deleted). */
+filter_port_t *filterpipe_connection_source(filter_pipe_t *fp);
+
+/* Queries the destination port of the pipe fp that was initially passed to
+ * filterport_connect() as destination. Returns NULL, if this port cannot
+ * be found anymore (possible, if the connection was automatically
+ * redirected and the source node was deleted). */
+filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp);
 
 
 #ifdef __cplusplus
