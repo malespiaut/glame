@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.15 2002/02/17 13:53:31 richi Exp $
+ * $Id: ladspa.c,v 1.16 2002/02/24 22:39:25 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -589,6 +589,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			if (bound_below && bound_above) {
 				/* Use GtkHScale */
 				char xml[1024];
+#if 1
 				snprintf(xml, 1023,
 "<?xml version=\"1.0\"?><GTK-Interface>"
 "  <widget>"
@@ -608,6 +609,38 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 "  </widget>"
 "</GTK-Interface>",
 					 fRecommendation, fBound1, fBound2, 0.1, 0.5, 0.0);
+#else
+				snprintf(xml, 1023,
+"<?xml version=\"1.0\"?><GTK-Interface>"
+" <widget>"
+"  <class>GtkHBox</class>"
+"  <name>root</name>"
+"  <widget>"
+"    <class>GtkKnob</class>"
+"    <name>widget</name>"
+"    <value>%.3f</value>"
+"    <lower>%.3f</lower>"
+"    <upper>%.3f</upper>"
+"  </widget>"
+"  <widget>"
+"    <class>GtkHScale</class>"
+"    <name>widget2</name>"
+"    <can_focus>True</can_focus>"
+"    <draw_value>True</draw_value>"
+"    <value_pos>GTK_POS_LEFT</value_pos>"
+"    <digits>3</digits>"
+"    <policy>GTK_UPDATE_CONTINUOUS</policy>"
+"    <value>0.0</value>"
+"    <lower>0.0</lower>"
+"    <upper>1.0</upper>"
+"    <step>0.1</step>"
+"    <page>0.1</page>"
+"    <page_size>0.0</page_size>"
+"  </widget>"
+" </widget>"
+"</GTK-Interface>",
+					 fRecommendation, fBound1, fBound2);
+#endif
 				filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
 			} else if (bound_below) {
 				/* Use GtkSpinButton */
