@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# $Id: rules,v 1.11 2001/12/21 14:16:57 nold Exp $
+# $Id: rules,v 1.12 2002/05/21 09:23:11 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -48,7 +48,7 @@ build-stamp:
 	$(MAKE)
 	/usr/bin/docbook-to-man debian/cglame.sgml > debian/cglame.1
 	/usr/bin/docbook-to-man debian/glame.sgml > debian/glame.1
-	/usr/bin/docbook-to-man debian/glame-convert.sgml > debian/glame-convert.sh.1
+	/usr/bin/docbook-to-man debian/glame-convert.sgml > debian/glame-convert.1
 
 	touch build-stamp
 
@@ -75,6 +75,9 @@ install: build
 	dh_installdirs
 
 	$(MAKE) install DESTDIR=`pwd`/debian/glame/
+	# Kludge. The .sh suffix makes for a rather undesirable name of
+	# the man page. Furthermore, it's really not needed.
+	mv `pwd`/debian/glame/usr/bin/glame-convert.sh `pwd`/debian/glame/usr/bin/glame-convert
 	# Clean up unwanted static lib + lib metadata. Waaaay
 	# easier than teaching libtool about it. :/
 	-find `pwd`/debian/glame/usr/lib -name "*.a" -exec rm {} \;

@@ -8,7 +8,7 @@
   <!ENTITY dhusername  "Daniel Kobras">
   <!ENTITY dhucpackage "<refentrytitle>GLAME</refentrytitle>">
   <!ENTITY dhpackage   "<application>glame</application>">
-  <!ENTITY dhcmd       "<command>glame-convert.sh</command>">
+  <!ENTITY dhcmd       "<command>glame-convert</command>">
 
   <!ENTITY debian      "<productname>Debian GNU/Linux</productname>">
   <!ENTITY gnu         "<acronym>GNU</acronym>">
@@ -35,7 +35,7 @@
     &dhsection;
   </refmeta>
   <refnamediv>
-    <refname>&dhpackage;</refname>
+    <refname>&dhcmd;</refname>
 
     <refpurpose>Convert format of GLAME persistant storage files</refpurpose>
   </refnamediv>
