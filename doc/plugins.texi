@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.18 2001/04/25 12:43:52 mag Exp $
+@comment $Id: plugins.texi,v 1.19 2001/04/25 12:46:56 mag Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -791,9 +791,9 @@ time..
 @subsubheading @file{fft_equalizer} ports
 @table @code
 @item in (input)
-Input stream of sample data. Only one connection is allowed.
+Input stream of fft data. Only one connection is allowed.
 @item out (output)
-Output stream of processed sample data. Only one connection is allowed.
+Output stream of processed fft data. Only one connection is allowed.
 @end table
 
 @subsubheading @file{fft_equalizer} parameters
