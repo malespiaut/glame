@@ -664,8 +664,8 @@ static int fsck_check_clusters(int fix)
 			if (cluster->files_cnt == 0) {
 				if (!fix)
 					return 1;
-				if (cluster->size & ~(SAMPLE_SIZE-1)) {
-					DPRINTF("Killing odd-sized cluster %lX\n", name);
+				if (cluster->size & (SAMPLE_SIZE-1)) {
+					DPRINTF("Killing odd-sized (%li) cluster %lX\n", (long)cluster->size, name);
 					cluster_put(cluster, CLUSTERPUT_FREE);
 					goto out_freed;
 				}
