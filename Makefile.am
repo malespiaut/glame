@@ -10,4 +10,8 @@ update-changelog:
 dist-hook:
 	mkdir $(distdir)/debian
 	cp -p `find $(srcdir)/debian/ -type f -maxdepth 1` $(distdir)/debian/
+	if test -e $(distdir)/debian/files; then \
+		( cd $(distdir); \
+		  fakeroot debian/rules clean; ); \
+	fi
 
