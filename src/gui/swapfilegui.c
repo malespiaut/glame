@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.74 2002/01/03 22:58:06 richi Exp $
+ * $Id: swapfilegui.c,v 1.75 2002/01/07 23:02:35 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -216,7 +216,8 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 		return TRUE;
 	}
 
-	if (event->button != 3)
+	if (event->button != 3
+	    || event->type != GDK_BUTTON_PRESS)
 		return FALSE;
 
 	if (GPSM_ITEM_IS_SWFILE(i->item)) {
