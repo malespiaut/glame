@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.8 2000/02/24 14:27:36 nold Exp $
+ * $Id: util.h,v 1.9 2000/10/04 14:25:05 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,7 +47,7 @@
 
 #ifdef HAVE_GCC
 # ifdef DEBUG
-#define DPRINTF(msg, args...) printf(__PRETTY_FUNCTION__ ": " msg, ## args)
+#define DPRINTF(msg, args...) printf(__PRETTY_FUNCTION__ ": " msg , ## args)
 # else
 #define DPRINTF(msg, args...)
 # endif
