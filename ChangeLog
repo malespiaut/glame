@@ -1,4 +1,189 @@
+2000-04-17  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/NEWS, /cvsroot/glame/glame/README, /cvsroot/glame/glame/TODO:
+	0.2.0 release stuff
+
+	* /cvsroot/glame/glame/src/plugins/track_io.c:
+	tell me about the file id
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfile_info.c, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	two fixes and some more sanity check code.
+
+2000-04-13  navratil  <navratil@fs1>
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
+	"Uncompilable" bug fixed.  Callback code should be complete, but it's
+	currently untested.
+
+	And I should've really gone to sleep fifteen minutes ago, before I checked
+	in R1.4 in an unusable state.
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
+	Added _add_wave_by_call() code, including function pointer in WaveData
+	struct and (almost) all the necessary handling in the various functions
+	that would care (_add_wave_backend, _draw, etc).
+
+	Due to a profound lack of sleep, the code is being checked in in an
+	uncompilable state; line 500 of gtkwavedraw.c (calling the cb function)
+	is wrong, and neither my brain nor K&R want to tell me how to fix it.  If
+	anyone else feels like correcting my moronicism, please do.
+
+2000-04-12  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/plugins.texi:
+	Fixed spaces, long lines, typos etc. [dk]
+
+2000-04-12  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/doc/plugins.texi: iir doku
+
+	* /cvsroot/glame/glame/MAINTAINERS: added myself
+
+2000-04-12  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/cglame.texi, /cvsroot/glame/glame/doc/plugins.texi:
+	last bit of documentation update
+	- cglame cooked operations
+	- fixes to mul/add description
+
+2000-04-11  navratil  <navratil@fs1>
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/wavetest.c:
+	Fixed a stupid bug in gtk_wave_draw_set_resolution() (reversed the
+	test for valid resolutions).
+
+	wavetest.c is the simple WaveDraw testing program I used.
+
+2000-04-11  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/audio_io.c:
+	Let the world know that ESD sucks. [dk]
+
+2000-04-11  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/glmid/glame.scm:
+	fixed test-latency, which I broke
+
+	* /cvsroot/glame/glame/AUTHORS, /cvsroot/glame/glame/README, /cvsroot/glame/glame/src/cglame.c:
+	added Joe to the various credit lists
+
+	* /cvsroot/glame/glame/src/include/list.h:
+	reverted to macros for those inlines which print debugging output
+
+	* /cvsroot/glame/glame/src/glmid/glame.scm:
+	require consistend syntax for effects in play-eff and save-eff
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter_network.c:
+	- fixed one race condition in fbuf_unref
+	- added lots of sanity checks to chase down bugs in the plugins
+
+2000-04-11  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/acinclude.m4, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/include/atomic.h, /cvsroot/glame/glame/src/include/atomic_mips.h, /cvsroot/glame/glame/src/include/atomic_x86.h:
+	Configure switch for assembler macros. [dk]
+	Misc cleanups. [dk]
+
+	* /cvsroot/glame/glame/src/include/atomic_x86.h: c&p typo. [dk]
+
+2000-04-11  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/include/atomic.h, /cvsroot/glame/glame/src/include/atomic_mips.h, /cvsroot/glame/glame/src/include/atomic_x86.h:
+	added atomic_dec_and_test operations
+
+2000-04-11  navratil  <navratil@fs1>
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c:
+	1) Added gtk_wave_draw_add_wave_by_reference() which doesn't locally cache
+	   the data; to keep the code line consistent, a
+	   gtk_wave_draw_add_wave_backend() function was added which both
+	   _add_wave() and _add_wave_by_ref() call.
+	2) Modified everything to use the WaveData structures hanging off of
+	   the wavedraw->wavelist GSList.  Modifications were made to:
+	   a) _add_wave_backend() allocates the struct and adds it to the
+	      list, including finding a current-unique wave_idx to use.
+	   b) _remove_wave() deletes the allocated arrays inside a WaveData
+	      struct, removes the WaveData from the list, and frees the
+	      WaveData struct.
+	   c) _draw() references the WaveData array everywhere.
+	   d) _delete() repeatedly calls _remove_wave() (again, to keep the code
+	      line consistent) until wavedata->wavelist is NULL.
+	   e) Added a stupid CompareWaveIdx() function to allow the _add* to
+	      insert the waves properly.
+
+	The code reads much cleaner (except for the _draw(), but I've gotta
+	work on that when I've got some real time) now thanks to the WaveData
+	struct.
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
+	Took the per-wave stuff out of the WaveDraw widget and put it all into
+	the WaveData struct (data, a new "by_ref" flag that tells us whether
+	we've locally cached the float array, the marker array, n_samples,
+	start, and color); Added a GSList *wavelist elt to WaveDraw to store
+	the WaveData structs.  Added a WAVE_DATA_FROM_LIST() macro to let me
+	avoid using ((WaveData *)(node->data)) all over the place in the
+	source.  Added a prototype for gtk_wave_draw_add_wave_by_reference()
+	(yes, that's right, the function name is longer than 32 characters.
+	Woo!)
+
+2000-04-10  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/cglame.texi, /cvsroot/glame/glame/src/glmid/glame.scm:
+	glame.scm cleanup, documentation of it
+
+	* /cvsroot/glame/glame/AUTHORS, /cvsroot/glame/glame/Makefile.am, /cvsroot/glame/glame/NEWS:
+	--gnu style, two files were missing
+
+	* /cvsroot/glame/glame/src/glmid/glame.scm: more generic play-eff
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfileI.h:
+	first shoot at madvise optimisations
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/acinclude.m4, /cvsroot/glame/glame/configure.in:
+	added checks for host os
+
+2000-04-10  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/plugins/maggy.c: useless fix :)
+
+	* /cvsroot/glame/glame/doc/plugins.texi, /cvsroot/glame/glame/src/plugins/maggy.c:
+	docu fixes
+
+2000-04-10  navratil  <navratil@fs1>
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c:
+	Added gtk_wave_draw_set_color() and gtk_wave_draw_set_resolution()
+	functions; Added support for the new GdkColor *color array that's now
+	in the widget (in _add_wave(), _remove_wave(), _destroy()); Got rid of
+	the ugly code in gtk_wave_draw_draw() that did a poor job of assigning
+	colors (replaced it with references to the new *color array)
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
+	Added GdkColor *color to the widget struct; added functions
+	gtk_wave_draw_set_color() and gtk_wave_draw_set_resolution to
+	allow users to update a given wave's color and the n_points_per_pixel
+	variables, respectively.
+
+2000-04-09  navratil  <navratil@fs1>
+
+	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
+	Wave Drawing widget.  Initial revision; consider this pre-pre-pre alpha.
+	The interesting functions (docs will be written shortly) are:
+	  int gtk_wave_draw_add_wave()
+	  int gtk_wave_draw_remove_wave()
+	  int gtk_wave_draw_zoom()
+
+	Current issues include:
+	  - The draw routine needs to be cleaned up
+	  - Colors for the waves should be determined somewhere other than inside
+	    the draw routine. (!!)
+	  - Really needs a helper function to assign n_points_per_pixels, since
+	    the default (1) paints a misleading picture of the wave
+	  - Resizing doesn't work right now.
+
 2000-04-07  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/ChangeLog, /cvsroot/glame/glame/MAINTAINERS, /cvsroot/glame/glame/src/plugins/audio_io.c, /cvsroot/glame/glame/src/plugins/file_io.c, /cvsroot/glame/glame/src/plugins/noisegate.c, /cvsroot/glame/glame/src/plugins/rms.c, /cvsroot/glame/glame/TODO:
+	pre-release cleanups. [dk]
 
 	* /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/doc/gui.texi:
 	A few lines on GUI usage. [dk]
