@@ -1,6 +1,6 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.3 2002/05/23 21:02:53 mag Exp $
+ * $Id: stretch.c,v 1.4 2002/05/23 22:27:23 mag Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  *
@@ -190,14 +190,14 @@ int stretch_register(plugin_t *p)
 
 	param = filterparamdb_add_param_long(
 		filter_paramdb(f), "buffersize",
-		FILTER_PARAMTYPE_LONG, 32,
+		FILTER_PARAMTYPE_LONG, 64,
 		FILTERPARAM_LABEL, "buffersize",
 		FILTERPARAM_DESCRIPTION, "size of the synthesis window",
 		FILTERPARAM_END);
 
 	param = filterparamdb_add_param_long(
 		filter_paramdb(f), "oversampling",
-		FILTER_PARAMTYPE_LONG, 2,
+		FILTER_PARAMTYPE_LONG, 4,
 		FILTERPARAM_LABEL, "oversampling",
 		FILTERPARAM_DESCRIPTION, "determines the overlap of synthesis windows by 1/oversamp*buffersize",
 		FILTERPARAM_END);
@@ -205,7 +205,7 @@ int stretch_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION,
 		   "stretch a stream by a given factor");
 	plugin_set(p, PLUGIN_PIXMAP, "stretch.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Filter");
+	plugin_set(p, PLUGIN_CATEGORY, "Time");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
