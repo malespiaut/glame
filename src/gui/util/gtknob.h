@@ -4,7 +4,7 @@
 /*
  * gtknob.h
  *
- * $Id: gtknob.h,v 1.6 2002/04/12 16:25:51 richi Exp $
+ * $Id: gtknob.h,v 1.7 2002/04/25 21:17:34 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -42,32 +42,34 @@ typedef struct _GtkKnobClass GtkKnobClass;
 typedef gchar *(*GtkKnobFormatter)(gfloat, gpointer);
 
 struct _GtkKnob {
-    GtkWidget widget;
-    GdkPixmap *pixmap;
-    guint8 button;
-    gint16 x_click_point;
-    gint16 y_click_point;
+	GtkWidget widget;
+	GdkPixmap *pixmap;
+	GtkAdjustment *adjustment;
 
-    gint value;
-    gint old_value;
+	guint8 button;
+	gint16 x_click_point;
+	gint16 y_click_point;
 
-    GtkAdjustment *adjustment;
+	gint value;
+	gint old_value;
 
+	/* special ticks */
 	gfloat ticks[GTK_KNOB_MAX_TICKS];
 	gint nr_ticks;
 
-    GtkKnobFormatter formatter;
-    gpointer formatter_data;
-    gchar *min_cache;
-    gchar *max_cache;
-    gchar *val_cache;
+	/* formatter */
+	GtkKnobFormatter formatter;
+	gpointer formatter_data;
+	gchar *min_cache;
+	gchar *max_cache;
+	gchar *val_cache;
 
-    GdkFont *font;
-    GdkGC *gc;
+	GdkFont *font;
+	GdkGC *gc;
 };
 
 struct _GtkKnobClass {
-    GtkWidgetClass parent_class;
+	GtkWidgetClass parent_class;
 };
 
 
@@ -91,5 +93,7 @@ void           gtk_knob_glade_register();
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif				/* __GTK_KNOB_H__ */

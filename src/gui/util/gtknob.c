@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.12 2002/04/25 20:34:57 ochonpaul Exp $
+ * $Id: gtknob.c,v 1.13 2002/04/25 21:17:34 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -69,7 +69,6 @@ static gint gtk_knob_button_release(GtkWidget * widget,
 				    GdkEventButton * event);
 static gint gtk_knob_motion_notify(GtkWidget * widget,
 				   GdkEventMotion * event);
-/* end events */
 
 static void gtk_knob_draw(GtkWidget * widget, GdkRectangle * area);
 static void gtk_knob_draw_focus(GtkWidget * widget);
@@ -79,16 +78,16 @@ static gint gtk_knob_focus_in(GtkWidget * widget, GdkEventFocus * event);
 static gint gtk_knob_focus_out(GtkWidget * widget, GdkEventFocus * event);
 
 /* adjustment hacks */
-void gtk_knob_set_adjustment(GtkKnob * knob,
-			     GtkAdjustment * adj);
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data);
 
+
+
+/* pixel / tick calculations */
 static gint gtk_knob_value_to_frame(GtkKnob *knob, gfloat value)
 {
 	return (value - knob->adjustment->lower) / (knob->adjustment->upper - knob->adjustment->lower) * 53.0;
 }
-
 static gfloat gtk_knob_frame_to_value(GtkKnob *knob, gint frame)
 {
 	int i;
@@ -105,27 +104,6 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area);
 
 static GtkWidgetClass *parent_class = NULL;
 
-guint gtk_knob_get_type(void)
-{
-    static guint knob_type = 0;
-
-    if (!knob_type) {
-	static const GtkTypeInfo knob_info = {
-	    "GtkKnob",
-	    sizeof(GtkKnob),
-	    sizeof(GtkKnobClass),
-	    (GtkClassInitFunc) gtk_knob_class_init,
-	    (GtkObjectInitFunc) gtk_knob_init,
-	    /* reserved_1 */ NULL,
-	    /* reserved_2 */ NULL,
-	    (GtkClassInitFunc) NULL,
-	};
-
-	knob_type = gtk_type_unique(gtk_widget_get_type(), &knob_info);
-    }
-
-    return knob_type;
-}
 
 static void gtk_knob_class_init(GtkKnobClass * klass)
 {
@@ -224,13 +202,6 @@ static void gtk_knob_init(GtkKnob * knob)
     knob->gc = NULL;
 }
 
-GtkWidget *gtk_knob_new(GtkAdjustment * adj)
-{
-    GtkWidget *knob;
-    knob = gtk_widget_new(GTK_TYPE_KNOB, "adjustment", adj, NULL);
-    GTK_KNOB(knob)->value = gtk_knob_value_to_frame(GTK_KNOB(knob), adj->value);
-    return knob;
-}
 
 /* GtkObject functions */
 static void gtk_knob_destroy(GtkObject * object)
@@ -359,18 +330,12 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 	    rect.y = 0;
 	    rect.width = widget->allocation.width;
 	    rect.height = widget->allocation.height;
-	    /* gtk_knob_draw(widget, &rect); */
 	    gtk_adjustment_set_value(knob->adjustment,
 				     gtk_knob_frame_to_value(knob, knob->value));
-
-	    /* printf("adjustment: %f : %f : %f\n", knob->adjustment->upper, */
-/* 	       knob->adjustment->lower, knob->adjustment->value); */
 	    oldvalue = knob->value;
 	    gtk_knob_draw(widget, &rect);
-	    
 	}
     }
-
 
     return FALSE;
 }
@@ -416,25 +381,21 @@ static void gtk_knob_realize(GtkWidget * widget)
 
     /* Style */
     widget->style = gtk_style_attach(widget->style, widget->window);
-    if(knob->font == NULL) 
-      {
+    if(knob->font == NULL) {
 	knob->font = gdk_font_load("-schumacher-clean-medium-r-normal-*-*-100-*-*-c-*-iso646.1991-irv" );
-	if(knob->font == NULL){puts("Font not found.");} /* FIX ME : find a default font ?*/
-      }
+	if (knob->font == NULL) {puts("Font not found.");} /* FIXME : find a default font? */
+    }
     if(colormap==NULL) colormap = gdk_colormap_get_system();
     knob->gc = gdk_gc_new(widget->window);
     if(gdk_color_parse("blue",&foreground)) {
         gdk_color_alloc(colormap,&foreground);
         gdk_gc_set_foreground(knob->gc,&foreground);
     }
-   if(gdk_color_parse("white",&background)) {
+    if(gdk_color_parse("white",&background)) {
         gdk_color_alloc(colormap,&background);
         /* gdk_gc_set_background(knob->gc,&background); */
 	gdk_window_set_background(widget->window,&background);  
     }  
- 
-
-
 }
 
 static void gtk_knob_unrealize(GtkWidget * widget)
@@ -603,70 +564,6 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area)
 		    knob->val_cache);
 }
 
-void gtk_knob_set_adjustment(GtkKnob * knob, GtkAdjustment * adjustment)
-{
-    g_return_if_fail(knob != NULL);
-    g_return_if_fail(GTK_IS_KNOB(knob));
-
-    if (!adjustment)
-	adjustment =
-	    (GtkAdjustment *) gtk_adjustment_new(0.0, 0.0, 0.0, 0.0, 0.0,
-						 0.0);
-    else
-	g_return_if_fail(GTK_IS_ADJUSTMENT(adjustment));
-
-    if (knob->adjustment != adjustment) {
-	if (knob->adjustment) {
-	    gtk_signal_disconnect_by_data(GTK_OBJECT(knob->adjustment),
-					  (gpointer) knob);
-	    gtk_object_unref(GTK_OBJECT(knob->adjustment));
-	}
-	knob->adjustment = adjustment;
-	gtk_object_ref(GTK_OBJECT(adjustment));
-	gtk_object_sink(GTK_OBJECT(adjustment));
-
-	gtk_signal_connect(GTK_OBJECT(adjustment), "value_changed",
-			   (GtkSignalFunc)
-			   gtk_knob_adjustment_value_changed,
-			   (gpointer) knob);
-    }
-}
-
-GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob)
-{
-    return knob->adjustment;
-}
-
-void gtk_knob_set_formatter(GtkKnob *knob, GtkKnobFormatter f, gpointer data)
-{
-	knob->formatter = f;
-	knob->formatter_data = data;
-	if (knob->min_cache)
-		g_free(knob->min_cache);
-	if (knob->max_cache)
-		g_free(knob->max_cache);
-	if (knob->val_cache)
-		g_free(knob->val_cache);
-	knob->min_cache = NULL;
-	knob->max_cache = NULL;
-	knob->val_cache = NULL;
-}
-
-void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
-{
-	int i, j;
-	if (knob->nr_ticks >= GTK_KNOB_MAX_TICKS)
-		return;
-	/* insert ticks sorted */
-	for (i=0; i<knob->nr_ticks; i++)
-		if (knob->ticks[i] > tick)
-			break;
-	for (j=knob->nr_ticks-1; j>=i; j--)
-		knob->ticks[j+1] = knob->ticks[j];
-	knob->ticks[i] = tick;
-	knob->nr_ticks++;
-}
-
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data)
 {
@@ -743,14 +640,119 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 		gtk_knob_set_formatter(GTK_KNOB(knob), (GtkKnobFormatter)gtk_knob_scheme_formatter, g_strdup(formatter));
 	for (tmp = info->attributes; tmp; tmp = tmp->next) {
 		GladeAttribute *attr = tmp->data;
-		if (strcmp(attr->name, "tick") == 0)
+		if (strcmp(attr->name, "tick") == 0) {
 			sscanf(attr->value, "%f", &tick);
-		gtk_knob_add_tick(GTK_KNOB(knob), tick);
+			gtk_knob_add_tick(GTK_KNOB(knob), tick);
+		}
 	}
 
 	return knob;
 }
+#endif
 
+
+
+/*
+ * Public interface.
+ */
+
+guint gtk_knob_get_type(void)
+{
+    static guint knob_type = 0;
+
+    if (!knob_type) {
+	static const GtkTypeInfo knob_info = {
+	    "GtkKnob",
+	    sizeof(GtkKnob),
+	    sizeof(GtkKnobClass),
+	    (GtkClassInitFunc) gtk_knob_class_init,
+	    (GtkObjectInitFunc) gtk_knob_init,
+	    /* reserved_1 */ NULL,
+	    /* reserved_2 */ NULL,
+	    (GtkClassInitFunc) NULL,
+	};
+
+	knob_type = gtk_type_unique(gtk_widget_get_type(), &knob_info);
+    }
+
+    return knob_type;
+}
+
+GtkWidget *gtk_knob_new(GtkAdjustment * adj)
+{
+    GtkWidget *knob;
+    knob = gtk_widget_new(GTK_TYPE_KNOB, "adjustment", adj, NULL);
+    GTK_KNOB(knob)->value = gtk_knob_value_to_frame(GTK_KNOB(knob), adj->value);
+    return knob;
+}
+
+void gtk_knob_set_adjustment(GtkKnob * knob, GtkAdjustment * adjustment)
+{
+    g_return_if_fail(knob != NULL);
+    g_return_if_fail(GTK_IS_KNOB(knob));
+
+    if (!adjustment)
+	adjustment =
+	    (GtkAdjustment *) gtk_adjustment_new(0.0, 0.0, 0.0, 0.0, 0.0,
+						 0.0);
+    else
+	g_return_if_fail(GTK_IS_ADJUSTMENT(adjustment));
+
+    if (knob->adjustment != adjustment) {
+	if (knob->adjustment) {
+	    gtk_signal_disconnect_by_data(GTK_OBJECT(knob->adjustment),
+					  (gpointer) knob);
+	    gtk_object_unref(GTK_OBJECT(knob->adjustment));
+	}
+	knob->adjustment = adjustment;
+	gtk_object_ref(GTK_OBJECT(adjustment));
+	gtk_object_sink(GTK_OBJECT(adjustment));
+
+	gtk_signal_connect(GTK_OBJECT(adjustment), "value_changed",
+			   (GtkSignalFunc)
+			   gtk_knob_adjustment_value_changed,
+			   (gpointer) knob);
+    }
+}
+
+GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob)
+{
+    return knob->adjustment;
+}
+
+void gtk_knob_set_formatter(GtkKnob *knob, GtkKnobFormatter f, gpointer data)
+{
+	knob->formatter = f;
+	knob->formatter_data = data;
+	if (knob->min_cache)
+		g_free(knob->min_cache);
+	if (knob->max_cache)
+		g_free(knob->max_cache);
+	if (knob->val_cache)
+		g_free(knob->val_cache);
+	knob->min_cache = NULL;
+	knob->max_cache = NULL;
+	knob->val_cache = NULL;
+}
+
+void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
+{
+	int i, j;
+	if (knob->nr_ticks >= GTK_KNOB_MAX_TICKS)
+		return;
+	/* insert ticks sorted */
+	for (i=0; i<knob->nr_ticks; i++)
+		if (knob->ticks[i] > tick)
+			break;
+	for (j=knob->nr_ticks-1; j>=i; j--)
+		knob->ticks[j+1] = knob->ticks[j];
+	knob->ticks[i] = tick;
+	knob->nr_ticks++;
+}
+
+
+
+#ifdef HAVE_LIBGLADE
 void gtk_knob_glade_register()
 {
 	static GladeWidgetBuildData widgets[] = {
