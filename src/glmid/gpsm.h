@@ -266,8 +266,12 @@ void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate);
  * this will cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
 void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position);
 
-/* Updates the size of the specified gpsm-swfile. An GPSM_SIG_ITEM_CHANGED
- * signal will be sent out. */
-void gpsm_swfile_set_size(gpsm_swfile_t *swfile, long size);
+/* _After_ you've done a lowlevel operation on an swfiles swapfile such
+ * as modifying or cutting/inserting via sw_sendfile() you have to notify
+ * the GPSM about this change. The swfiles size will be updated and
+ * appropriate signals will be send out. */
+void gpsm_swfile_notify_change(gpsm_swfile_t *swfile, long pos, long size);
+void gpsm_swfile_notify_cut(gpsm_swfile_t *swfile, long pos, long size);
+void gpsm_swfile_notify_insert(gpsm_swfile_t *swfile, long pos, long size);
 
 #endif

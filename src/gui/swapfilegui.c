@@ -398,7 +398,9 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 
 	i = 0;
 	do {
-		if (!(it = (gpsm_item_t *)gpsm_newswfile(groupnamebuffer)))
+		char swfilename[256];
+		snprintf(swfilename, 255, "%s-%i", groupnamebuffer, i);
+		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
 			goto fail_cleanup;
 		gpsm_grp_insert(group, it, 0, i);
 		if (!(swout = filter_instantiate(p_swapfile_out)))
@@ -426,6 +428,16 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_start(net);
 	filter_wait(net); /* ok we could do that more nicely, but not now.. */
 	filter_delete(net);
+
+	/* Notify gpsm of the change. */
+	gpsm_grp_foreach_item(group, it) {
+		swfd_t fd;
+		struct sw_stat st;
+		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+		sw_fstat(fd, &st);
+		sw_close(fd);
+		gpsm_swfile_notify_insert((gpsm_swfile_t *)it, 0, st.size/SAMPLE_SIZE);
+	}
 
 	/* Insert the group into the gpsm tree. */
 	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,

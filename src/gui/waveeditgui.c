@@ -93,7 +93,7 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDONLY, TXN_NONE);
 		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_INSERT) == -1)
-			fprintf(stderr, "*** sw_sendfile failed\n");
+			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
 	}
 }
@@ -129,14 +129,13 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
 		if (sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET) != start*SAMPLE_SIZE)
-			fprintf(stderr, "*** sw_lseek(swapfile->fd) failed\n");
+			DPRINTF("*** sw_lseek(swapfile->fd) failed\n");
 		if (sw_lseek(temp_fd[i], 0, SEEK_SET) != 0)
-			fprintf(stderr, "*** sw_lseek(temp_fd, 0) failed\n");
+			DPRINTF("*** sw_lseek(temp_fd, 0) failed\n");
 		if (sw_sendfile(fd, temp_fd[i], st.size, SWSENDFILE_INSERT) == -1)
-			fprintf(stderr, "*** sw_sendfile failed\n");
+			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
-		gpsm_swfile_set_size(files[i], gpsm_item_hsize(files[i]) + st.size/SAMPLE_SIZE);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_INSERT, files[i], start, st.size/SAMPLE_SIZE);		
+		gpsm_swfile_notify_insert(files[i], start, st.size/SAMPLE_SIZE);
 	}
 }
 
@@ -163,10 +162,9 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
 		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
-			fprintf(stderr, "*** sw_sendfile failed\n");
+			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
-		gpsm_swfile_set_size(files[i], gpsm_item_hsize(files[i]) - length);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CUT, files[i], start, length);		
+		gpsm_swfile_notify_cut(files[i], start, length);
 	}
 }
 
@@ -193,10 +191,9 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
 		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(SW_NOFILE, fd, length*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
-			fprintf(stderr, "*** sw_sendfile failed\n");
+			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
-		gpsm_swfile_set_size(files[i], gpsm_item_hsize(files[i]) - length);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CUT, files[i], start, length);
+		gpsm_swfile_notify_cut(files[i], start, length);
 	}
 }
 
@@ -495,7 +492,7 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 
 	wavebuffer = gtk_wave_view_get_buffer (waveview);
 	if (!GTK_IS_EDITABLE_WAVE_BUFFER (wavebuffer)) {
-		fprintf(stderr, "not editable\n");
+		DPRINTF("not editable\n");
 		return;
 	}
 
@@ -518,11 +515,35 @@ static void delete (GtkWidget *widget, gpointer user_data)
 	gtk_object_destroy(GTK_OBJECT(widget));
 }
 
+/* Try to handle group/item deletion/addition events. */
+struct weg_compound {
+	GtkWidget *widget;
+	gpsm_item_t *item;
+	glsig_handler_t *handler;
+};
+static void destroy(GtkWidget *widget, struct weg_compound *weg)
+{
+	if (weg->handler)
+		glsig_delete_handler(weg->handler);
+	weg->handler = NULL;
+	weg->widget = NULL;
+}
+static void handle_item(glsig_handler_t *handler, long sig, va_list va)
+{
+	struct weg_compound *weg = glsig_handler_private(handler);
+	if (weg->handler)
+		glsig_delete_handler(weg->handler);
+	weg->handler = NULL;
+	if (weg->widget)
+		gtk_object_destroy(GTK_OBJECT(weg->widget));
+	weg->widget = NULL;
+}
 
 GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
 	GtkWidget *window, *waveview;
 	GtkObject *wavebuffer;
+	struct weg_compound *weg;
 
 	/* Create a Gtk+ window. */
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -566,9 +587,16 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_signal_connect (GTK_OBJECT (waveview), "button_press_event",
 			    (GtkSignalFunc) press, NULL);
 
-	/* FIXME: handle GPSM_SIG_ITEM_DESTROY and GPSM_GRP_ADD/REMOVE_ITEM
-	 * and close the window in these cases.
-	 */
+	/* Handle GPSM_SIG_ITEM_DESTROY and GPSM_GRP_ADD/REMOVE_ITEM
+	 * and close the window in these cases. Also handle window
+	 * deletion and remove the signal handler in this case.
+	 * FIXME: memleak (weg) */
+	weg = malloc(sizeof(struct weg_compound));
+	weg->widget = window;
+	weg->item = item;
+	weg->handler = glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_ITEM_DESTROY|GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM, handle_item, weg);
+	gtk_signal_connect(GTK_OBJECT(window), "destroy",
+			   (GtkSignalFunc)destroy, weg);
 
 	return window;
 }

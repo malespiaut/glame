@@ -504,7 +504,7 @@ void gpsm_item_destroy(gpsm_item_t *item)
  * Group insertion / removal API.
  */
 
-static int _fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
+static int _add_item_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 {
 	int changed = 0;
 
@@ -522,11 +522,21 @@ static int _fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 }
 static void gpsm_grp_fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 {
-	int changed = _fixup_boundingbox(group, item);
+	long hsize, vsize;
 
 	/* Send out the GPSM_SIG_ITEM_CHANGED signal, if necessary.
 	 * This will go up the tree and fix parents boundingboxes. */
-	if (changed)
+	if (_add_item_boundingbox(group, item))
+		glsig_emit(&group->item.emitter, GPSM_SIG_ITEM_CHANGED, group);
+
+	/* If not, we still need to check for too large bb. */
+	hsize = group->item.hsize;
+	vsize = group->item.vsize;
+	group->item.hsize = 0;
+	group->item.vsize = 0;
+	list_foreach(&group->items, gpsm_item_t, list, item)
+		_add_item_boundingbox(group, item);
+	if (hsize != group->item.hsize || vsize != group->item.vsize)
 		glsig_emit(&group->item.emitter, GPSM_SIG_ITEM_CHANGED, group);
 }
 static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
@@ -536,6 +546,7 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 		gpsm_item_t *item;
 
 		GLSIGH_GETARGS1(va, item);
+		DPRINTF("got GPSM_SIG_ITEM_CHANGED from %s\n", item->label);
 
 		/* Are we no longer member of a group? Can't be... */
 		if (!item->parent)
@@ -551,16 +562,14 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 		gpsm_grp_t *grp;
 
 		GLSIGH_GETARGS1(va, item);
+		DPRINTF("got GPSM_SIG_ITEM_REMOVE from %s\n", item->label);
 		grp = item->parent;
 
 		/* Remove this signal handler, we will no longer need it. */
 		glsig_delete_handler(handler);
 
 		/* Rebuild groups boundingbox. */
-		grp->item.hsize = 0;
-		grp->item.vsize = 0;
-		list_foreach(&grp->items, gpsm_item_t, list, item)
-			_fixup_boundingbox(grp, item);
+		gpsm_grp_fixup_boundingbox(grp, item);
 
 		/* We dont need to send a signal out here, this will
 		 * be done in gpsm_item_remove() anyway.
@@ -673,13 +682,68 @@ void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
 }
 
-void gpsm_swfile_set_size(gpsm_swfile_t *swfile, long size)
+void gpsm_swfile_notify_change(gpsm_swfile_t *swfile, long pos, long size)
 {
-	if (!swfile)
-		return;
-	swfile->item.hsize = size;
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CHANGED, swfile, pos, size);
+#ifdef DEBUG
+	{
+		swfd_t fd;
+		struct sw_stat st;
+		fd = sw_open(gpsm_swfile_filename(swfile), O_RDONLY, TXN_NONE);
+		sw_fstat(fd, &st);
+		sw_close(fd);
+		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
+			DPRINTF("WARNING! We missed a swfile notification!\n");
+			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, st.size/SAMPLE_SIZE);
+			swfile->item.hsize = st.size/SAMPLE_SIZE;
+			glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+		}
+	}
+#endif
+}
+
+void gpsm_swfile_notify_cut(gpsm_swfile_t *swfile, long pos, long size)
+{
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CUT, swfile, pos, size);
+	swfile->item.hsize -= size;
+#ifdef DEBUG
+	{
+		swfd_t fd;
+		struct sw_stat st;
+		fd = sw_open(gpsm_swfile_filename(swfile), O_RDONLY, TXN_NONE);
+		sw_fstat(fd, &st);
+		sw_close(fd);
+		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
+			DPRINTF("WARNING! We missed a swfile notification!\n");
+			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, st.size/SAMPLE_SIZE);
+			swfile->item.hsize = st.size/SAMPLE_SIZE;
+		}
+	}
+#endif
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
 }
+
+void gpsm_swfile_notify_insert(gpsm_swfile_t *swfile, long pos, long size)
+{
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_INSERT, swfile, pos, size);
+	swfile->item.hsize += size;
+#ifdef DEBUG
+	{
+		swfd_t fd;
+		struct sw_stat st;
+		fd = sw_open(gpsm_swfile_filename(swfile), O_RDONLY, TXN_NONE);
+		sw_fstat(fd, &st);
+		sw_close(fd);
+		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
+			DPRINTF("WARNING! We missed a swfile notification!\n");
+			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, st.size/SAMPLE_SIZE);
+			swfile->item.hsize = st.size/SAMPLE_SIZE;
+		}
+	}
+#endif
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+}
+
 
 
 /*
