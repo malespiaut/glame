@@ -156,14 +156,14 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 		DPRINTF("clipboard nrtracks do not match\n");
 		return;
 	}
+
+	if (sw_fstat(temp_fd[0], &st) == -1)
+		return;
 	DPRINTF("Pasting to %i size %i\n", start, st.size/SAMPLE_SIZE);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
-
-	if (sw_fstat(temp_fd[0], &st) == -1)
-		return;
 
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
