@@ -26,8 +26,16 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#if defined HAVE_LIBXML
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+#elsif defined HAVE_GNOMEXML
+#include <gnome-xml/xmlmemory.h>
+#include <gnome-xml/parser.h>
+#else
 #include <xmlmemory.h>
 #include <parser.h>
+#endif
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gpsm.h"

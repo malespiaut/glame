@@ -92,3 +92,9 @@
 
 /* define, if you have/want libstroke */
 #undef HAVE_LIBSTROKE
+
+/* define, if your xml headers are beyond libxml/ */
+#undef HAVE_LIBXML
+
+/* define, if your xml headers are beyond gnome-xml/ */
+#undef HAVE_GNOMEXML
