@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.15 2002/02/18 21:33:39 mag Exp $
+ * $Id: fft_plugins.c,v 1.16 2002/02/18 22:56:25 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -43,7 +43,7 @@ PLUGIN_SET(fft_plugins,"fft ifft fft_resample fft_equalizer fft_bandpass")
 
 pthread_mutex_t planlock = PTHREAD_MUTEX_INITIALIZER;
 
-SAMPLE *hanning(int n)
+static SAMPLE *hanning(int n)
 {
 	SAMPLE *win;
 	int i;
@@ -55,7 +55,7 @@ SAMPLE *hanning(int n)
 	return win;
 }
 
-SAMPLE window_gain(SAMPLE *win, int n, int osamp)
+static SAMPLE window_gain(SAMPLE *win, int n, int osamp)
 {
 	SAMPLE *s;
 	double max;

@@ -10,7 +10,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
 	audio_io_alsa_v090.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
-	fader.c builtins.c
+	fader.c builtins.c stretch.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
@@ -47,13 +47,13 @@ libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
 	swapfile_io.c audio_io.c file_io.c \
 	arithmetic.c waveform.c ssp.c echo.c noisegate.c \
 	pan.c pipe.c iir.c flanger.c distortion.c \
-	fader.c
+	fader.c stretch.c
 libglamebuiltins_la_LDFLAGS = -export-dynamic $(GLAME_AUDIO_LIBS)
 libglamebuiltins_la_DEPENDENCIES = builtins.c
 
 # real plugins (depending on optional stuff)
 pkglib_LTLIBRARIES = \
-	debug.la tutorial.la \
+	debug.la tutorial.la\
 	$(normalize) \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
