@@ -97,11 +97,16 @@ static scm_sizet free_filter(SCM filter_smob)
 	struct filter_smob *filter = SCM2FILTERSMOB(filter_smob);
 
 	/* Delete the filter, if it is neither plugin, nor part
-	 * of a network. */
+	 * of a network and not running. */
 	if (filter->filter
 	    && !FILTER_IS_PART_OF_NETWORK(filter->filter)
-	    && !FILTER_IS_PLUGIN(filter->filter))
+	    && !FILTER_IS_PLUGIN(filter->filter)
+	    && filter_is_ready(filter->filter) != 0) {
+		DPRINTF("GCing %p (%s)\n", filter->filter,
+			filter_name(filter->filter));
 		filter_delete(filter->filter);
+		filter->filter = NULL;
+	}
 
 	return sizeof(struct filter_smob);
 }
@@ -808,7 +813,7 @@ static SCM gls_plugin_add_path(SCM s_path)
 	char *path;
 	int pathl, res;
 
-	SCM_ASSERT(gh_string_p(s_path), s_path, SCM_ARG1, "plugin_add_path");
+	SCM_ASSERT(gh_string_p(s_path), s_path, SCM_ARG1, "plugin-add-path");
 	path = gh_scm2newstr(s_path, &pathl);
 	res = plugin_add_path(path);
 	free(path);
@@ -823,7 +828,7 @@ static SCM gls_plugin_get(SCM s_name)
 	char *name;
 	int namel;
 
-	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "plugin_get");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "plugin-get");
 	name = gh_scm2newstr(s_name, &namel);
 	p = plugin_get(name);
 	free(name);
@@ -834,7 +839,7 @@ static SCM gls_plugin_name(SCM s_p)
 {
 	plugin_t *p;
 
-	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin_name");
+	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin-name");
 	p = scm2plugin(s_p);
 	return gh_str02scm((char *)plugin_name(p));
 }
@@ -846,8 +851,8 @@ static SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 	int keyl;
 	void *val;
 
-	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin_query_string");
-	SCM_ASSERT(gh_string_p(s_key), s_key, SCM_ARG2, "plugin_query_string");
+	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin-query");
+	SCM_ASSERT(gh_string_p(s_key), s_key, SCM_ARG2, "plugin-query");
 	p = scm2plugin(s_p);
 	key = gh_scm2newstr(s_key, &keyl);
 	val = plugin_query(p, key);
@@ -864,9 +869,9 @@ static SCM gls_plugin_set_string(SCM s_p, SCM s_key, SCM s_val)
 	char *val;
 	int keyl, vall;
 
-	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin_set_string");
-	SCM_ASSERT(gh_string_p(s_key), s_key, SCM_ARG2, "plugin_set_string");
-	SCM_ASSERT(gh_string_p(s_val), s_val, SCM_ARG3, "plugin_set_string");
+	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin-set!");
+	SCM_ASSERT(gh_string_p(s_key), s_key, SCM_ARG2, "plugin-set!");
+	SCM_ASSERT(gh_string_p(s_val), s_val, SCM_ARG3, "plugin-set!");
 	p = scm2plugin(s_p);
 	key = gh_scm2newstr(s_key, &keyl);
 	val = gh_scm2newstr(s_val, &vall);
@@ -995,6 +1000,12 @@ int glscript_init_filter()
 
 	/* plugin */
 	gh_new_procedure1_0("plugin?", gls_is_plugin);
+	gh_new_procedure1_0("plugin-add-path", gls_plugin_add_path);
+	gh_new_procedure1_0("plugin-get", gls_plugin_get);
+	gh_new_procedure1_0("plugin-name", gls_plugin_name);
+	gh_new_procedure2_0("plugin-query", gls_plugin_query_string);
+	gh_new_procedure3_0("plugin-set!", gls_plugin_set_string);
+	/* compatibility */
 	gh_new_procedure1_0("plugin_add_path", gls_plugin_add_path);
 	gh_new_procedure1_0("plugin_get", gls_plugin_get);
 	gh_new_procedure1_0("plugin_name", gls_plugin_name);

@@ -53,7 +53,7 @@ static SCM gls_swapfile_open(SCM s_name)
 	char *name;
 	int namel, res;
 
-	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "swapfile_open");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "swapfile-open");
 	name = gh_scm2newstr(s_name, &namel);
 	res = swapfile_open(name, 0);
 	free(name);
@@ -73,8 +73,8 @@ static SCM gls_swapfile_creat(SCM s_name, SCM s_size)
 	char *name;
 	int namel, res;
 
-	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "swapfile_creat");
-	SCM_ASSERT(gh_exact_p(s_size), s_size, SCM_ARG2, "swapfile_creat");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "swapfile-creat");
+	SCM_ASSERT(gh_exact_p(s_size), s_size, SCM_ARG2, "swapfile-creat");
 	name = gh_scm2newstr(s_name, &namel);
 	res = swapfile_creat(name, gh_scm2long(s_size));
 	free(name);
@@ -85,7 +85,7 @@ static SCM gls_swapfile_creat(SCM s_name, SCM s_size)
 
 static SCM gls_sw_unlink(SCM s_name)
 {
-	SCM_ASSERT(gh_exact_p(s_name), s_name, SCM_ARG1, "sw_unlink");
+	SCM_ASSERT(gh_exact_p(s_name), s_name, SCM_ARG1, "sw-unlink");
 	if (sw_unlink(gh_scm2long(s_name)) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -98,13 +98,13 @@ static SCM gls_sw_opendir()
 
 static SCM gls_sw_readdir(SCM s_d)
 {
-	SCM_ASSERT(swdir_p(s_d), s_d, SCM_ARG1, "sw_readdir");
+	SCM_ASSERT(swdir_p(s_d), s_d, SCM_ARG1, "sw-readdir");
 	return gh_long2scm((long)sw_readdir(scm2swdir(s_d)));
 }
 
 static SCM gls_sw_closedir(SCM s_d)
 {
-	SCM_ASSERT(swdir_p(s_d), s_d, SCM_ARG1, "sw_closedir");
+	SCM_ASSERT(swdir_p(s_d), s_d, SCM_ARG1, "sw-closedir");
 	sw_closedir(scm2swdir(s_d));
 	return SCM_BOOL_T;
 }
@@ -113,8 +113,8 @@ static SCM gls_sw_open(SCM s_name, SCM s_flags)
 {
 	swfd_t fd;
 
-	SCM_ASSERT(gh_exact_p(s_name), s_name, SCM_ARG1, "sw_open");
-	SCM_ASSERT(gh_exact_p(s_flags), s_flags, SCM_ARG2, "sw_open");
+	SCM_ASSERT(gh_exact_p(s_name), s_name, SCM_ARG1, "sw-open");
+	SCM_ASSERT(gh_exact_p(s_flags), s_flags, SCM_ARG2, "sw-open");
 	fd = sw_open(gh_scm2long(s_name), gh_scm2long(s_flags));
 	if (fd == -1)
 		return SCM_BOOL_F;
@@ -123,7 +123,7 @@ static SCM gls_sw_open(SCM s_name, SCM s_flags)
 
 static SCM gls_sw_close(SCM s_fd)
 {
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_close");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-close");
 	if (sw_close(scm2swfd(s_fd)) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -133,7 +133,7 @@ static SCM gls_sw_fstat(SCM s_fd)
 {
 	struct sw_stat st;
 
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_fstat");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-fstat");
 	if (sw_fstat(scm2swfd(s_fd), &st) == -1)
 		return SCM_BOOL_F;
 	return gh_list(gh_long2scm(st.name), gh_long2scm(st.size),
@@ -145,8 +145,8 @@ static SCM gls_sw_fstat(SCM s_fd)
 
 static SCM gls_sw_ftruncate(SCM s_fd, SCM s_length)
 {
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_ftruncate");
-	SCM_ASSERT(gh_exact_p(s_length), s_length, SCM_ARG2, "sw_ftruncate");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-ftruncate");
+	SCM_ASSERT(gh_exact_p(s_length), s_length, SCM_ARG2, "sw-ftruncate");
 	if (sw_ftruncate(scm2swfd(s_fd), gh_scm2long(s_length)) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -155,9 +155,9 @@ static SCM gls_sw_ftruncate(SCM s_fd, SCM s_length)
 static SCM gls_sw_lseek(SCM s_fd, SCM s_offset, SCM s_whence)
 {
 	long res;
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_lseek");
-	SCM_ASSERT(gh_exact_p(s_offset), s_offset, SCM_ARG2, "sw_lseek");
-	SCM_ASSERT(gh_exact_p(s_whence), s_whence, SCM_ARG3, "sw_lseek");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-lseek");
+	SCM_ASSERT(gh_exact_p(s_offset), s_offset, SCM_ARG2, "sw-lseek");
+	SCM_ASSERT(gh_exact_p(s_whence), s_whence, SCM_ARG3, "sw-lseek");
 	res = sw_lseek(scm2swfd(s_fd), gh_scm2long(s_offset),
 		       gh_scm2long(s_whence));
 	if (res == -1)
@@ -167,12 +167,16 @@ static SCM gls_sw_lseek(SCM s_fd, SCM s_offset, SCM s_whence)
 
 static SCM gls_sw_sendfile(SCM s_out_fd, SCM s_in_fd, SCM s_count, SCM s_mode)
 {
-	SCM_ASSERT(swfd_p(s_out_fd), s_out_fd, SCM_ARG1, "sw_sendfile");
-	SCM_ASSERT(swfd_p(s_in_fd), s_in_fd, SCM_ARG2, "sw_sendfile");
-	SCM_ASSERT(gh_exact_p(s_count), s_count, SCM_ARG3, "sw_sendfile");
-	SCM_ASSERT(gh_exact_p(s_mode), s_mode, SCM_ARG4, "sw_sendfile");
+	int mode = 0;
+	SCM_ASSERT(swfd_p(s_out_fd), s_out_fd, SCM_ARG1, "sw-sendfile");
+	SCM_ASSERT(swfd_p(s_in_fd), s_in_fd, SCM_ARG2, "sw-sendfile");
+	SCM_ASSERT(gh_exact_p(s_count), s_count, SCM_ARG3, "sw-sendfile");
+	SCM_ASSERT(SCM_UNBNDP(s_mode) || gh_exact_p(s_mode),
+		   s_mode, SCM_ARG4, "sw-sendfile");
+	if (!SCM_UNBNDP(s_mode))
+		mode = gh_scm2long(s_mode);
 	if (sw_sendfile(scm2swfd(s_out_fd), scm2swfd(s_in_fd),
-			gh_scm2long(s_count), gh_scm2long(s_mode)) == -1)
+			gh_scm2long(s_count), mode) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
@@ -183,9 +187,9 @@ static SCM gls_sw_read_floatvec(SCM s_fd, SCM s_length)
 	float *m;
 	SCM s_vec;
 
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_read_floatvec");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-read-floatvec");
 	SCM_ASSERT(gh_exact_p(s_length), s_length,
-		   SCM_ARG2, "sw_read_floatvec");
+		   SCM_ARG2, "sw-read-floatvec");
 	length = gh_scm2long(s_length);
 	m = (float *)malloc(length*sizeof(float));
 	if (sw_read(scm2swfd(s_fd), m,
@@ -203,8 +207,8 @@ static SCM gls_sw_read_string(SCM s_fd, SCM s_length)
 	long length, res;
 	char *m;
 
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_read_string");
-	SCM_ASSERT(gh_exact_p(s_length), s_length, SCM_ARG2, "sw_read_string");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-read-string");
+	SCM_ASSERT(gh_exact_p(s_length), s_length, SCM_ARG2, "sw-read-string");
 	length = gh_scm2long(s_length);
 	m = (char *)malloc(length+1);
 	if ((res = sw_read(scm2swfd(s_fd), m, length)) != length) {
@@ -219,9 +223,9 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 {
 	long res;
 
-	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw_write");
+	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-write");
 	SCM_ASSERT(gh_vector_p(s_buf) || gh_string_p(s_buf),
-		   s_buf, SCM_ARG2, "sw_write");
+		   s_buf, SCM_ARG2, "sw-write");
 	if (gh_vector_p(s_buf)) {
 		float *fvec;
 		long length;
@@ -272,26 +276,27 @@ int glscript_init_swapfile()
 
 
 	/* Swapfile subsystem procedures. */
-	gh_new_procedure1_0("swapfile_open", gls_swapfile_open);
-	gh_new_procedure0_0("swapfile_close", gls_swapfile_close);
-	gh_new_procedure2_0("swapfile_creat", gls_swapfile_creat);
+	gh_new_procedure1_0("swapfile-open", gls_swapfile_open);
+	gh_new_procedure0_0("swapfile-close", gls_swapfile_close);
+	gh_new_procedure2_0("swapfile-creat", gls_swapfile_creat);
 
-	gh_new_procedure1_0("sw_unlink", gls_sw_unlink);
+	gh_new_procedure1_0("sw-unlink", gls_sw_unlink);
 
-	gh_new_procedure0_0("sw_opendir", gls_sw_opendir);
-	gh_new_procedure1_0("sw_readdir", gls_sw_readdir);
-	gh_new_procedure1_0("sw_closedir", gls_sw_closedir);
+	gh_new_procedure0_0("sw-opendir", gls_sw_opendir);
+	gh_new_procedure1_0("sw-readdir", gls_sw_readdir);
+	gh_new_procedure1_0("sw-closedir", gls_sw_closedir);
 
-	gh_new_procedure2_0("sw_open", gls_sw_open);
-	gh_new_procedure1_0("sw_close", gls_sw_close);
-	gh_new_procedure1_0("sw_fstat", gls_sw_fstat);
-	gh_new_procedure2_0("sw_ftruncate", gls_sw_ftruncate);
-	gh_new_procedure3_0("sw_lseek", gls_sw_lseek);
-	gh_new_procedure4_0("sw_sendfile", gls_sw_sendfile);
+	gh_new_procedure2_0("sw-open", gls_sw_open);
+	gh_new_procedure1_0("sw-close", gls_sw_close);
+	gh_new_procedure1_0("sw-fstat", gls_sw_fstat);
+	gh_new_procedure2_0("sw-ftruncate", gls_sw_ftruncate);
+	gh_new_procedure3_0("sw-lseek", gls_sw_lseek);
+	gh_new_procedure("sw-sendfile", (SCM (*)())gls_sw_sendfile,
+			 3, 1, 0);
 
-	gh_new_procedure2_0("sw_read_floatvec", gls_sw_read_floatvec);
-	gh_new_procedure2_0("sw_read_string", gls_sw_read_string);
-	gh_new_procedure2_0("sw_write", gls_sw_write);
+	gh_new_procedure2_0("sw-read-floatvec", gls_sw_read_floatvec);
+	gh_new_procedure2_0("sw-read-string", gls_sw_read_string);
+	gh_new_procedure2_0("sw-write", gls_sw_write);
 
 	gh_new_procedure1_0("swfd?", gls_is_swfd);
 	gh_new_procedure1_0("swdir?", gls_is_swdir);
@@ -310,6 +315,26 @@ int glscript_init_swapfile()
 	gh_define("SEEK_SET", gh_long2scm(SEEK_SET));
 	gh_define("SEEK_CUR", gh_long2scm(SEEK_CUR));
 	gh_define("SEEK_END", gh_long2scm(SEEK_END));
+
+	/* compatibility */
+	gh_new_procedure1_0("swapfile_open", gls_swapfile_open);
+	gh_new_procedure0_0("swapfile_close", gls_swapfile_close);
+	gh_new_procedure2_0("swapfile_creat", gls_swapfile_creat);
+	gh_new_procedure1_0("sw_unlink", gls_sw_unlink);
+	gh_new_procedure0_0("sw_opendir", gls_sw_opendir);
+	gh_new_procedure1_0("sw_readdir", gls_sw_readdir);
+	gh_new_procedure1_0("sw_closedir", gls_sw_closedir);
+	gh_new_procedure2_0("sw_open", gls_sw_open);
+	gh_new_procedure1_0("sw_close", gls_sw_close);
+	gh_new_procedure1_0("sw_fstat", gls_sw_fstat);
+	gh_new_procedure2_0("sw_ftruncate", gls_sw_ftruncate);
+	gh_new_procedure3_0("sw_lseek", gls_sw_lseek);
+	gh_new_procedure("sw_sendfile", (SCM (*)())gls_sw_sendfile,
+			 3, 1, 0);
+	gh_new_procedure2_0("sw_read_floatvec", gls_sw_read_floatvec);
+	gh_new_procedure2_0("sw_read_string", gls_sw_read_string);
+	gh_new_procedure2_0("sw_write", gls_sw_write);
+
 
 	return 0;
 }
