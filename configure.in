@@ -67,7 +67,7 @@ if test x$have_gtk = xyes; then
 fi
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
-GNOME_CHECK_GUILE()
+GNOME_CHECK_GUILE("fail")
 
 
 dnl

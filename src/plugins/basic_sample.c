@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.3 2000/03/20 09:51:53 richi Exp $
+ * $Id: basic_sample.c,v 1.4 2000/03/21 09:40:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -58,6 +58,7 @@ PLUGIN_SET(basic_sample, "mix volume_adjust invert delay extend repeat add")
 
 
 
+/* FIXME! mix needs to be asynchronly wrt reads & writes! */
 /* The mix filter mixes any number of input channels with an optional
  * gain parameter per input into one output channel which position
  * can be specified using the phi parameter.

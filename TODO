@@ -3,19 +3,21 @@ Things to fix before 0.2.0:
 
 - read-file is hell slow (80% CPU!) -> optimize and specialize
   inner loops
-- (play-eff "/var/tmp/test.wav" "echo2") with large file segfaults!?
-  its not audio_out
 - deprecate (disable!?) pipe parameters
-- audit all paths/makefiles wrt make install
+- audit all paths/makefiles wrt make install [done, do it again
+  later]
 - filters/plugins
   * which to keep, which additionally needed
   * filter names (_ vs -)
   * parameter names, parameter types
   * assign/create pixmaps
+  * mix needs to be truly asynchron with internal buffer queues
+    for send and recieve. Ugh.
 - documentation
   * UI/GUI documentation
   * document available filters
-  * fix API documentation (changed filter part again)
+  * fix API documentation (changed filter part again) [done, parts
+    are still missing]
   * filter writing tutorial?
 
 

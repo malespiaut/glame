@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.8 2000/03/21 05:56:44 mag Exp $
+; $Id: glame.scm,v 1.9 2000/03/21 09:40:09 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -186,7 +186,7 @@
   (lambda (fname effect . params)
     (let* ((net (net-new))
 	   (rf (net-add-node net "read_file"))
-	   (mix (net-add-node net "mix"))
+	   (mix (filternetwork_add_node net "mix" "play-eff-mix"))
 	   (eff (net-add-node net effect))
 	   (ao (net-add-node net audio-out)))
       (filternode_set_param rf "filename" fname)
