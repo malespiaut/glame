@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.8 2000/11/06 09:48:08 richi Exp $
+ * $Id: pipe.c,v 1.9 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -151,6 +151,7 @@ int pipe_in_register(plugin_t *p)
 	 * parameter... FIXME! */
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe input");
+	plugin_set(p, PLUGIN_CATEGORY, "InOut");
 	filter_register(f, p);
 
 	return 0;

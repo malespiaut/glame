@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.25 2000/11/06 09:48:08 richi Exp $
+ * $Id: audio_io.c,v 1.26 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -210,6 +210,8 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
+	plugin_set(pl, PLUGIN_CATEGORY, "InOut");
+	
 	filter_register(filter, pl);
 
 	return 0;
@@ -240,6 +242,8 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "playback stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
+        plugin_set(pl, PLUGIN_CATEGORY, "InOut");
+	
 	filter_register(filter, pl);
 
 	return 0;
@@ -1199,7 +1203,7 @@ int audio_out_register(plugin_t *p)
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
-
+        plugin_set(p, PLUGIN_CATEGORY, "InOut");
 	return aio_generic_register_output(p, "audio-out", audio_out, defdev);
 }
 
@@ -1226,6 +1230,6 @@ int audio_in_register(plugin_t *p)
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
-
+        plugin_set(p, PLUGIN_CATEGORY, "InOut");
 	return aio_generic_register_input(p, "audio-in", audio_in, defdev);
 }

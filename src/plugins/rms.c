@@ -1,6 +1,6 @@
 /*
  * rms.c
- * $Id: rms.c,v 1.9 2000/11/06 09:48:08 richi Exp $
+ * $Id: rms.c,v 1.10 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -158,7 +158,7 @@ int statistic_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Calculates RMS, RMS in window & DC-Offset");
 	plugin_set(p, PLUGIN_PIXMAP, "statistic.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
 	filter_register(f,p);
 
 	return 0;

@@ -236,7 +236,8 @@ int fft_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform audio-stream to fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	  
 	filter_register(f,p);
 
 	return 0;
@@ -329,7 +330,8 @@ int ifft_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform fft-stream to audio-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	
 	filter_register(f,p);
 
 	return 0;

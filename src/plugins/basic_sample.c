@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.18 2000/11/06 09:48:08 richi Exp $
+ * $Id: basic_sample.c,v 1.19 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -569,7 +569,8 @@ int mix2_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
+  
 	return filter_register(f, p);
 }
 
@@ -655,7 +656,8 @@ int volume_adjust_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "basic");
+  
 	return filter_register(f, p);
 }
 
@@ -739,7 +741,8 @@ int delay_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "delay an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "delay.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Time");
+  
 	return filter_register(f, p);
 }
 
@@ -826,7 +829,8 @@ int extend_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "extend an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "extend.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Time");
+  
 	return filter_register(f, p);
 }
 
@@ -944,6 +948,7 @@ int repeat_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION,
 		   "repeat an audio stream for the specified time");
 	plugin_set(p, PLUGIN_PIXMAP, "repeat.xpm");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Time");
+  
 	return filter_register(f, p);
 }

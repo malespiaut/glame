@@ -200,6 +200,7 @@ int time_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "chopper selects the apropriate region, as defined by the t_on and t_off values");
 	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Time");
 	filter_register(f, p);
 	
 	return 0;

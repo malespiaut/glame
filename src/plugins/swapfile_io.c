@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.4 2000/11/11 16:16:56 richi Exp $
+ * $Id: swapfile_io.c,v 1.5 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -154,6 +154,8 @@ int swapfile_in_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "swapfile file to audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "InOut");
+
 	filter_register(f, p);
 
 	return 0;
@@ -219,6 +221,7 @@ int swapfile_out_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to swapfile file");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "InOut");
 	filter_register(f, p);
 
 	return 0;

@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.11 2000/11/06 09:48:08 richi Exp $
+ * $Id: echo.c,v 1.12 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -197,6 +197,7 @@ int echo_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "echo effect");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Time");
+	  
 	return filter_register(f, p);
 }

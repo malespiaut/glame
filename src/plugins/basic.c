@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.13 2000/12/07 16:07:03 richi Exp $
+ * $Id: basic.c,v 1.14 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -286,7 +286,7 @@ int one2n_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
 	plugin_set(p, PLUGIN_PIXMAP, "default.png");
-	plugin_set(p, PLUGIN_CATEGORY, "basic");
+	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
 
 	return filter_register(f, p);
 }

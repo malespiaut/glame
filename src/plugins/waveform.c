@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.11 2000/11/06 09:48:08 richi Exp $
+ * $Id: waveform.c,v 1.12 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -166,7 +166,7 @@ int sine_register(plugin_t *p)
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	return filter_register(f, p);
 }
 

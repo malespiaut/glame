@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.33 2000/11/06 09:48:08 richi Exp $
+ * $Id: file_io.c,v 1.34 2000/12/08 10:24:18 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -371,6 +371,8 @@ int read_file_register(plugin_t *pl)
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "default.png");
+	plugin_set(pl, PLUGIN_CATEGORY, "InOut");
+	
 	filter_register(f, pl);
 
 	return 0;
@@ -397,6 +399,8 @@ int write_file_register(plugin_t *pl)
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "default.xpm");
+	plugin_set(pl, PLUGIN_CATEGORY, "InOut");
+	
 	filter_register(f, pl);
 
 	return 0;
