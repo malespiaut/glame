@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.9 2000/02/21 12:43:40 richi Exp $
+ * $Id: echo2.c,v 1.10 2000/02/21 14:31:38 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -105,7 +105,6 @@ static int echo2_f(filter_node_t *n)
 			 */
 		entry2:
 			fb = get_feedback(&fifo);
-			if (!fb) DPRINTF("Feedback FIFO empty!\n");
 			fb = sbuf_make_private(fb);
 			fb_pos = 0;
 		}
@@ -120,16 +119,13 @@ static int echo2_f(filter_node_t *n)
 		fb_pos += cnt;
 
 		/* start "alignment" run */
-		DPRINTF("Starting alignment run (cnt==%i)\n", cnt);
 		for (; (cnt & 3)>0; cnt--) {
 		        SCALARPROD1_2(fs, ins, fbfact, infact);
 		}
 		/* do fast 4 products in one run loop */
-		DPRINTF("Starting fast run run (cnt==%i)\n", cnt);
 		for (; cnt>0; cnt-=4) {
 		        SCALARPROD4_2(fs, ins, fbfact, infact);
 		}
-		DPRINTF("Loops done (cnt==%i).\n", cnt);
 
 		/* now we have to check which buffer has the underrun */
 		if (inb_pos == sbuf_size(inb)) {
@@ -137,13 +133,10 @@ static int echo2_f(filter_node_t *n)
 			 * the current one for anything anymore -> drop
 			 * it. Then we just get a new one.
 			 */
-			DPRINTF("sbuf_unref");
 			sbuf_unref(inb);
 			inb = sbuf_get(in);
 			inb_pos = 0;
-			DPRINTF(" done\n");
 		}
-		DPRINTF("pthread_testcancel()\n");
 		/* the check for the feedback buffer underrun is
 		 * at the beginning of the loop so we can do the
 		 * EOF at in-port check here.

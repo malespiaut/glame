@@ -40,9 +40,15 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
 /* SAMPLE to various type conversion including clipping of the
  * samples to [-1,1].
  */
-#define SAMPLE2SHORT(s) ((short)(((s) < -1.0 ? -1.0 : ((s) > 1.0 ? 1.0 : (s)))*(1<<15)))
+static inline short SAMPLE2SHORT(SAMPLE s)
+{
+        return (short)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<15));
+}
 #define SHORT2SAMPLE(s) ((SAMPLE)s/(SAMPLE)(1<<15))
-#define SAMPLE2CHAR(s)  ((char)(((s) < -1.0 ? -1.0 : ((s) > 1.0 ? 1.0 : (s)))*(1<<7)))
+static inline signed char SAMPLE2CHAR(SAMPLE s)
+{
+        return (char)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<7));
+}
 #define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
 
 
