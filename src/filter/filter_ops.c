@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.17 2000/11/11 16:17:23 richi Exp $
+ * $Id: filter_ops.c,v 1.18 2001/03/01 15:18:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -64,11 +64,7 @@ static int init_node(filter_t *n)
 		return 0;
 	if (n->state != STATE_UNDEFINED)
 		return -1;
-	if (filter_has_error(n)) {
-		DPRINTF("node %s has error (%s)\n", n->name,
-			filter_errstr(n));
-	        return -1;
-	}
+	filter_clear_error(n);
 
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		if (!filterport_is_output(port))
@@ -124,7 +120,6 @@ static void *launcher(void *node)
 					fbuf_queue(p, NULL);
 			}
 		}
-	        filter_clear_error(n);
 		DPRINTF("filter %s completed.\n", n->name);
 		pthread_exit(NULL);
 	}
