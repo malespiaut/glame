@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.29 2001/11/14 23:48:57 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.30 2001/11/18 19:12:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -200,30 +200,15 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	}
 	
 	/* create pipes */
-	filter_foreach_node(network, node){
-	  /* FIXME this doesn't work?
-	  struct fconnection *c;
-	  glame_list_foreach(&node->connections, struct fconnection, list, c) {
-	    filter_t *f;
-	    
-	    if (strcmp(filter_name(node), c->source_filter) != 0) {
-	      DPRINTF("Filter not the one promised\n");
-	      continue;
-	    }
-	    if (!(f = filter_get_node(filter, c->dest_filter))) {
-	      DPRINTF("No such filter\n");
-	      continue;
-	    }
-	    glame_canvas_pipe_new(group,c->pipe);
-	    
-	    }*/
-	  
-	  filterportdb_foreach_port(filter_portdb(node),port){
-	    filterport_foreach_pipe(port,pipe){
-	      if (!filter_get_node(network, pipe->source_filter)
-	          || !filter_get_node(network, pipe->dest_filter))
-		continue;
-	      glame_canvas_pipe_new(group,pipe);
+	filter_foreach_node(network, node) {
+	  filterportdb_foreach_port(filter_portdb(node), port) {
+	    filterport_foreach_pipe(port, pipe) {
+		    /* Skip connections not from/to a node
+		     * in network. */
+		    if (filterport_filter(filterpipe_connection_source(pipe))->net != network
+			|| filterport_filter(filterpipe_connection_dest(pipe))->net != network)
+			    continue;
+		    glame_canvas_pipe_new(group, pipe);
 	    }
 	  }
 	}

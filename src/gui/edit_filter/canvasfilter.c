@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.34 2001/11/16 12:20:31 richi Exp $
+ * $Id: canvasfilter.c,v 1.35 2001/11/18 19:12:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -188,7 +188,11 @@ static void glame_canvas_filter_destroy_cb(glsig_handler_t *handler,
 
 GlameCanvasFilter* glame_canvas_find_filter(filter_t *f)
 {
-	return hash_find_gcfilter(f);
+	GlameCanvasFilter *gcf = hash_find_gcfilter(f);
+
+	if (!gcf)
+		DPRINTF("No GlameCanvasFilter for %s\n", filter_name(f));
+	return gcf;
 }
      
 
@@ -483,6 +487,9 @@ glame_canvas_filter_redraw(GlameCanvasFilter *filter)
 	GlameCanvasPort* gPort;
 	/* redraw label with right size */
 
+	if (!filter) /* FIXME - hides redrawing bugs */
+		return;
+
 	gnome_canvas_item_set(GNOME_CANVAS_ITEM(filter->label),
 			      "font",glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(filter)->canvas)),
 			      NULL);
@@ -741,6 +748,13 @@ static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* 
 		gtk_widget_show(glame_filtereditgui_new(filter->filter, TRUE));
 }
 
+static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
+{
+	if(FILTER_IS_NETWORK(filter->filter))
+		filter_expand(filter->filter);
+	filter_delete(filter->filter);
+}
+
 static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* filterItem)
 {
 		GtkWidget * dialog;
@@ -981,6 +995,7 @@ static GnomeUIInfo node_menu_network[]=
 	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
+	GNOMEUIINFO_ITEM("_Expand","Expand",glame_canvas_filter_expand_node_cb,NULL),
 	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
