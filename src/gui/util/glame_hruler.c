@@ -95,6 +95,8 @@ glame_hruler_init (GlameHRuler *hruler)
   widget = GTK_WIDGET (hruler);
   widget->requisition.width = GTK_STYLE(widget->style)->xthickness * 2 + 1;
   widget->requisition.height = GTK_STYLE(widget->style)->ythickness * 2 + RULER_HEIGHT;
+
+  hruler->layout = gtk_widget_create_pango_layout (widget, NULL);
 }
 
 
@@ -147,15 +149,14 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   gint scale;			/* Number of units per major unit */
   gdouble subd_incr;
   gdouble start, end, cur;
-  gchar *unit_str;
+  gchar unit_str[32];
+  gint unit_str_len;
   gint digit_height;
   gint digit_offset;
   gint text_width;
   gint pos;
-#if 0
   PangoLayout *layout;
   PangoRectangle logical_rect, ink_rect;
-#endif
 
   g_return_if_fail (ruler != NULL);
   g_return_if_fail (GLAME_IS_HRULER (ruler));
@@ -172,15 +173,11 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   xthickness = GTK_STYLE(widget->style)->xthickness;
   ythickness = GTK_STYLE(widget->style)->ythickness;
 
-#if 0
-  layout = gtk_widget_create_pango_layout (widget, "012456789");
+  layout = GLAME_HRULER (ruler)->layout;
   pango_layout_get_extents (layout, &ink_rect, &logical_rect);
   
   digit_height = PANGO_PIXELS (ink_rect.height) + 1;
   digit_offset = ink_rect.y;
-#endif
-  digit_height = 10 /* FIXME */;
-  digit_offset = 2 /* FIXME */;
 
   width = widget->allocation.width;
   height = widget->allocation.height - ythickness * 2;
@@ -211,9 +208,8 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
    *  for the scale looks consistent with an accompanying vruler
    */
   scale = ceil (ruler->max_size / ruler->metric->pixels_per_unit);
-  unit_str = ruler->metric->translate (scale);
-  text_width = strlen (unit_str) * digit_height + 1;
-  g_free (unit_str);
+  unit_str_len = ruler->metric->translate (scale, unit_str, sizeof(unit_str)-1);
+  text_width = unit_str_len * digit_height + 1;
 
   for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
     if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2 * text_width)
@@ -261,29 +257,17 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
 	  /* draw label */
 	  if (i == 0)
 	    {
-#if 0
-	      unit_str = ruler->metric->translate (cur);
-	      pango_layout_set_text (layout, unit_str, -1);
-              g_free (unit_str);
+	      unit_str_len = ruler->metric->translate (cur, unit_str, sizeof(unit_str)-1);
+	      pango_layout_set_text (layout, unit_str, unit_str_len);
 
 	      pango_layout_get_extents (layout, &logical_rect, NULL);
 
 	      gdk_draw_layout (ruler->backing_store, gc,
-			       pos + 2, ythickness + PANGO_PIXELS (logical_rect.y - digit_offset),
+			       pos + 2, ythickness + PANGO_PIXELS (logical_rect.y - digit_offset)-2,
 			       layout);
-#endif
-	      unit_str = ruler->metric->translate (cur);
-	      gdk_draw_string(ruler->backing_store, font, gc,
-			      pos + 2, ythickness + font->ascent -1,
-			      unit_str);
-              g_free (unit_str);
 	    }
 	}
     }
-
-#if 0
-  gtk_object_unref (GTK_OBJECT (layout));
-#endif
 }
 
 static void
@@ -355,13 +339,12 @@ glame_hruler_get_stride (GlameRuler *ruler)
   gdouble increment;		/* Number of pixels per unit */
   gint scale;			/* Number of units per major unit */
   gdouble subd_incr;
-  gchar *unit_str;
+  gchar unit_str[32];
+  gint unit_str_len;
   gint digit_height;
   gint text_width;
-#if 0
   PangoLayout *layout;
   PangoRectangle logical_rect, ink_rect;
-#endif
 
   if (!ruler || !GLAME_IS_HRULER (ruler))
     return 0.0;
@@ -375,13 +358,10 @@ glame_hruler_get_stride (GlameRuler *ruler)
 
   ythickness = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->ythickness;
 
-#if 0
-  layout = gtk_widget_create_pango_layout (widget, "012456789");
+  layout = GLAME_HRULER (ruler)->layout;
   pango_layout_get_extents (layout, &ink_rect, &logical_rect);
-  
+
   digit_height = PANGO_PIXELS (ink_rect.height) + 1;
-#endif
-  digit_height = 10 /* FIXME */;
 
   width = widget->allocation.width;
    
@@ -398,9 +378,8 @@ glame_hruler_get_stride (GlameRuler *ruler)
    *  for the scale looks consistent with an accompanying vruler
    */
   scale = ceil (ruler->max_size / ruler->metric->pixels_per_unit);
-  unit_str = ruler->metric->translate (scale);
-  text_width = strlen (unit_str) * digit_height + 1;
-  g_free (unit_str);
+  unit_str_len = ruler->metric->translate (scale, unit_str, sizeof(unit_str)-1);
+  text_width = unit_str_len * digit_height + 1;
 
   for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
     if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2 * text_width)

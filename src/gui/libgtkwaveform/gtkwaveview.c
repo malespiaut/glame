@@ -44,7 +44,7 @@
 /* Stuff for new ruler.
  */
 
-static gchar *time_metric_translate(gdouble value)
+static gint time_metric_translate(gdouble value, gchar *buf, gint buf_size)
 {
   gint minutes;
   gdouble seconds;
@@ -52,7 +52,7 @@ static gchar *time_metric_translate(gdouble value)
   minutes = ((gint) (value / 60.0));
   seconds = value - (((gint)value) / 60) * 60;
 
-  return g_strdup_printf ("%02d:%02.3f", minutes, seconds);
+  return snprintf (buf, buf_size, "%02d:%02.3f", minutes, seconds);
 }
 
 static const GlameRulerMetric time_metric = {
@@ -65,9 +65,9 @@ static const GlameRulerMetric time_metric = {
   time_metric_translate
 };
 
-static gchar *frame_metric_translate (gdouble value)
+static gint frame_metric_translate (gdouble value, gchar *buf, gint buf_size)
 {
-  return g_strdup_printf ("%li", (long) value);
+  return snprintf (buf, buf_size, "%li", (long) value);
 }
 
 static const GlameRulerMetric frame_metric = {

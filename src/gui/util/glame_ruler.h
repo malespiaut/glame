@@ -97,7 +97,7 @@ struct _GlameRulerMetric
   gdouble *ruler_scale;
   gint nr_subdivide;
   gint *subdivide;
-  gchar* (*translate) (gdouble value);
+  gint (*translate) (gdouble value, gchar *buf, gint buf_size);
 };
 
 

@@ -55,10 +55,10 @@ static void glame_ruler_get_arg       (GtkObject      *object,
 
 static GtkWidgetClass *parent_class;
 
-static gchar *
-glame_ruler_metric_pixels_translate (gdouble value)
+static gint
+glame_ruler_metric_pixels_translate (gdouble value, gchar *buf, gint buf_size)
 {
-  return g_strdup_printf ("%li", (long) value);
+  return snprintf (buf, buf_size, "%li", (long) value);
 }
 
 static const GlameRulerMetric glame_ruler_metric_pixels =

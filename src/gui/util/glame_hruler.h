@@ -53,7 +53,9 @@ typedef struct _GlameHRulerClass  GlameHRulerClass;
 
 struct _GlameHRuler
 {
-  GlameRuler ruler; 
+  GlameRuler ruler;
+
+  PangoLayout *layout;
 };
 
 struct _GlameHRulerClass
