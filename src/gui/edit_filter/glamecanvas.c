@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.51 2004/10/23 13:09:25 richi Exp $
+ * $Id: glamecanvas.c,v 1.52 2004/12/26 20:56:32 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -180,12 +180,12 @@ glame_canvas_group_get_type(void)
 GlameCanvas* glame_canvas_new(filter_t * net)
 {
 	GlameCanvas *g;
-	GtkTargetEntry desttargets[] = { GLAME_DND_TARGET_STRING_SCM, 
+	/* GtkTargetEntry desttargets[] = { GLAME_DND_TARGET_STRING_SCM, 
 					 GLAME_DND_TARGET_STRING_SCM_NETWORK,
 					 GLAME_DND_TARGET_POINTER_FILTER_T,
 					 {"text/uri-list",0,0},
 					 {"text/x-sh",0,0}
-					 };
+					 }; */
 
 	filter_t * network;
 	if(!net){
@@ -215,17 +215,16 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	glame_canvas_view_all(g);
 
 	/* setup dnd */
-	//	gtk_drag_source_set(GTK_WIDGET(g),
-			    /*
-			      gtk_signal_connect(GTO(g),"drag-data-received",
+	/* gtk_drag_source_set(GTK_WIDGET(g),
+	gtk_signal_connect(GTO(g),"drag-data-received",
 			   glame_canvas_drag_received,
 			   NULL);
 	gtk_signal_connect(GTO(g),"drag-data-get",
 			   glame_canvas_drag_received,
 			   NULL);
 	gtk_signal_connect(GTO(g),"drag-motion",
-			   glame_foo,NULL);
-	*/
+			   glame_foo,NULL); */
+
 	return g;
 }
 

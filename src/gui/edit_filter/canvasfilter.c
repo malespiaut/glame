@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.62 2004/10/23 13:09:25 richi Exp $
+ * $Id: canvasfilter.c,v 1.63 2004/12/26 20:56:32 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -307,7 +307,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	GnomeCanvasItem * item;
 	double x,y;
 	char * buffer;
-	GdkPixbuf *im;
+
 	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
 							      NULL));
 	

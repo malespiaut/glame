@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.36 2004/11/16 20:10:16 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.37 2004/12/26 20:56:33 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -480,10 +480,6 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption, const ch
 
 	return propBox;
 }
-
-GtkWidget* glame_gui_multi_filter_properties(GList *items)
-{
-}	
 
 GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb)
 {
