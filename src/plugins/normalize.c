@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.5 2001/07/11 09:30:29 mag Exp $
+ * $Id: normalize.c,v 1.6 2001/07/13 08:58:50 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -34,15 +34,14 @@
 #include "glplugin.h"
 #include "math.h"
 #include "gpsm.h"
+#include "network_utils.h"
 
 static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 {
-	filter_t *net, *swap_in, *swap_out, *swap, *sspi, *ssp, 
-		 *maxrmsi, *maxrms, *vadjust, *adjust;
+	filter_t *net, *swap, *ssp, *maxrms, *adjust;
 	gpsm_item_t	*item;
 	filter_param_t	*param;
 	int 	err = -1, bsize = 1, chanum = 1;
-	long	filename, rate;
 	float	rms, mrms, gain;
 	char *aname;
 	
@@ -54,7 +53,7 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 	aname = alloca(256);
 
 	/* We dont want to handle single swfile special. */
-	if (!(grp = gpsm_collect_swfiles(grp)))
+	if (!(grp = (gpsm_item_t *)gpsm_collect_swfiles(grp)))
 		return -1;
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -77,36 +76,17 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 	gtk_widget_show(window);
 	
 	/* Gtk Crap first round finished */
-	
-	swap_in = filter_instantiate(plugin_get("swapfile_in"));
-	swap_out= filter_instantiate(plugin_get("swapfile_out"));
-	sspi	= filter_instantiate(plugin_get("ssp_streamer"));
-	maxrmsi	= filter_instantiate(plugin_get("maxrms"));
-	vadjust	= filter_instantiate(plugin_get("volume_adjust"));
 
 	mrms = 0.0;
 
 	gpsm_grp_foreach_item(grp, item) {
 		sprintf(aname, "Analyzing Track %d", chanum++);
-		gtk_label_set_text(label, aname);
+		gtk_label_set_text(GTK_LABEL(label), aname);
 		net = filter_creat(NULL);
-		swap = filter_creat(swap_in);
-		filter_add_node(net, swap, "swapin");
-		ssp = filter_creat(sspi);
-		filter_add_node(net, ssp, "ssp");
-		maxrms = filter_creat(maxrmsi);
-		filter_add_node(net, maxrms, "maxrms");
-		
-		filename =  gpsm_swfile_filename(item);
-		rate = gpsm_swfile_samplerate(item);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "filename"), 
-				&filename);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "offset"), 
-				&start);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "rate"), 
-				&rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "size"), 
-				&length);
+		ssp = net_add_plugin_by_name(net, "ssp_streamer");
+		maxrms = net_add_plugin_by_name(net, "maxrms");
+		swap = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
+					  start, length);
 
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(swap), PORTNAME_OUT), 
 					filterportdb_get_port(filter_portdb(ssp), PORTNAME_IN)))
@@ -158,33 +138,15 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 		DPRINTF("Error preparing for undo\n");
 	
 	gpsm_grp_foreach_item(grp, item) {
-		adjust = filter_creat(vadjust);
-		filter_add_node(net, adjust, "adjust");
-		swap = filter_creat(swap_in);
-		filename =  gpsm_swfile_filename(item);
-		rate = gpsm_swfile_samplerate(item);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "filename"), 
-				&filename);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "offset"), 
-				&start);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "rate"), 
-				&rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "size"), 
-				&length);
-		filter_add_node(net, swap, "swapin");
+		adjust = net_add_plugin_by_name(net, "volume_adjust");
+		swap = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
+					  start, length);
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(swap), PORTNAME_OUT), 
 					filterportdb_get_port(filter_portdb(adjust), PORTNAME_IN)))
 			goto cleanup;
 
-		swap = filter_creat(swap_out);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "filename"), 
-				&filename);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "offset"), 
-				&start);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap), "size"), 
-				&length);
-
-		filter_add_node(net, swap, "swapout");
+		swap = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
+					   start, length, 0);
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(adjust), PORTNAME_OUT), 
 					filterportdb_get_port(filter_portdb(swap), PORTNAME_IN)))
 			goto cleanup;
@@ -200,7 +162,7 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 	param = filterparamdb_get_param(filter_paramdb(swap), 
 					FILTERPARAM_LABEL_POS);
 	
-	gtk_label_set_text(label, "Normalizing...");
+	gtk_label_set_text(GTK_LABEL(label), "Normalizing...");
 	/* just put all this crap in some help function next time */
 	while(!filter_is_ready(net)) {
 		/* we need this otherwise the window doesn't popup 
@@ -219,8 +181,8 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 
 	gpsm_grp_foreach_item(grp, item) {
 		if (start >= 0) 
-			gpsm_notify_swapfile_change(gpsm_swfile_filename(item), start, 
-						    length); 
+			gpsm_notify_swapfile_change(gpsm_swfile_filename(item),
+						    start, length); 
 		else 
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
 	}
@@ -229,11 +191,6 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 
 cleanup:
 	DPRINTF("err = %d\n", err);
-	filter_delete(swap_in);
-	filter_delete(swap_out);
-	filter_delete(vadjust);
-	filter_delete(sspi);
-	filter_delete(maxrmsi);
 	filter_delete(net);
 	gpsm_item_destroy(grp);
 	
