@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.15 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: glplugin.h,v 1.16 2001/05/13 12:09:06 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -97,6 +97,7 @@ plugin_t *plugin_next(plugin_t *plugin);
 #define PLUGIN_PIXMAP "!pixmap"
 #define PLUGIN_CATEGORY "!category"
 #define PLUGIN_FILTER "!filter"
+#define PLUGIN_GPSMOP "!gpsmop"
 #define PLUGIN_PARENT "!parent"
 #define PLUGIN_GUI_HELP_PATH "!guihelppath"
 

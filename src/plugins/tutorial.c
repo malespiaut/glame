@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.8 2001/04/11 08:37:28 richi Exp $
+ * $Id: tutorial.c,v 1.9 2001/05/13 12:09:06 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -22,21 +22,30 @@
  * This file collects the source of the filters (not yet) mentioned in the
  * filter tutorial.
  * Contained filters are
- * - dup
- * - null
+ * - dup (filter)
+ * - null (filter)
+ * - nop (gpsm)
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#ifdef HAVE_GUILE
+#include <guile/gh.h>
+#endif
 #include "filter.h"
 #include "util.h"
+#include "gpsm.h"
 #include "glplugin.h"
 
 
-PLUGIN_SET(tutorial, "null dup")
+PLUGIN_SET(tutorial, "null dup nop")
 
 
 /* null does a "null operation" on one input channel.
@@ -175,4 +184,41 @@ int dup_register(plugin_t *p)
 	plugin_set(p, PLUGIN_PIXMAP, "dup.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
 	return filter_register(f, p);
+}
+
+
+
+static int nop_gpsm(gpsm_item_t *item, long start, long length)
+{
+	/* Just do nothing :) */
+	return 0;
+}
+
+#ifdef HAVE_GUILE
+static SCM nop_sgpsm(SCM s_item, SCM s_start, SCM s_length)
+{
+	//SCM_ASSERT(gpsm_p(s_item), s_item, SCM_ARG1, "gpsmop-nop");
+	SCM_ASSERT(gh_exact_p(s_start), s_start, SCM_ARG2, "gpsmop-nop");
+	SCM_ASSERT(gh_exact_p(s_length), s_length, SCM_ARG3, "gpsmop-nop");
+
+	//if (nop_gpsm(scm2gpsm(s_item), gh_scm2long(s_start),
+	//	     gh_scm2long(s_length)) == -1)
+	//	return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+#endif
+
+int nop_register(plugin_t *p)
+{
+#ifdef HAVE_GUILE
+	/* Register operation to scheme layer. */
+	gh_new_procedure3_0("gpsmop-nop", nop_sgpsm);
+#endif
+
+	/* Register "normal" operation. */
+	plugin_set(p, PLUGIN_GPSMOP, nop_gpsm);
+	plugin_set(p, PLUGIN_DESCRIPTION, "does nothing on a gpsm subtree");
+	plugin_set(p, PLUGIN_CATEGORY, "misc");
+
+	return 0;
 }
