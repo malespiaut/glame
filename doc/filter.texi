@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.16 2000/04/06 11:58:56 richi Exp $
+@comment $Id: filter.texi,v 1.17 2000/04/25 13:44:52 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -80,11 +80,10 @@ consistent.
 
 @menu
 * Defining Filter I/O::
-* Finding Filters::
 * Getting Filter Info::
 @end menu
 
-@node Defining Filter I/O, Finding Filters, , The Filter Registry API
+@node Defining Filter I/O, Getting Filter Info, , The Filter Registry API
 @subsection Defining Filter I/O
 
 To register itself, a new filter has to specify its supported input and output
@@ -112,8 +111,7 @@ For the description of optional filter methods you can look at
 @deftypefun {filter_t *} filter_from_network (filter_network_t *@var{net})
 @code{filter_from_network()} is another possibility to create a new filter.
 Unlike @code{filter_alloc()} you get a full featured filter, including all
-ports and parameters. You just have to add it to the database using 
-@code{filter_add()}. Using this function you get the ability to turn a
+ports and parameters. Using this function you get the ability to turn a
 complex filter network into an easily usable filter
 (@pxref{Using Filter Networks as Filters}).
 @end deftypefun
@@ -166,50 +164,15 @@ filter @var{f}.
 from filter @var{f} or one of its ports.
 @end deftypefun
 
-@tindex filter_t
-@deftypefun int filter_add (filter_t *@var{f}, const char *@var{name}, const char *@var{description})
-@code{filter_add()} will add the filter to the registry using the specified
-@var{name} and @var{description}. After adding
-the filter you may not modify it, neither by adding additional inputs
-or outputs, nor by adding parameters or changing their types.
-@end deftypefun
 
 
-@node Finding Filters, Getting Filter Info, Defining Filter I/O, The Filter Registry API
-@subsection Finding Filters
-
-To query a registered filter you can either directly query the filter by name
-or walk through all registered filters. Both methods yield a handle to the
-filter which you can access using the macros and functions described later on.
-
-@tindex filter_t
-@deftypefun {filter_t *} filter_get (char *@var{name})
-@code{filter_get()} will return a handle to the filter with the
-specified @var{name}, or @code{NULL} if no such filter is registered.
-@end deftypefun
-
-@tindex filter_t
-@deftypefun {filter_t *} filter_next (filter_t *@var{f})
-@code{filter_next()} walks through all available filters in the registry. To
-get the first registered filter just supply @code{NULL} as the @var{f}
-argument. Otherwise you get the next registered filter or @code{NULL}
-if there are no more filters left.
-@end deftypefun
-
-
-@node Getting Filter Info, , Finding Filters, The Filter Registry API
+@node Getting Filter Info, , Defining Filter I/O, The Filter Registry API
 @subsection Getting Filter Info
 
 To query information about an existing filter like available parameters, output
 or input ports the following functions can be used.
 @emph{Remember that any structure returned by this functions is strictly 
 read-only.}
-
-@deftypefun {const char *} filter_name (filter_t *@var{f})
-@deftypefunx {const char *} filter_description (filter_t *@var{f})
-Using @code{filter_name()} and @code{filter_description()} you get access to
-the filter's name and short description.
-@end deftypefun
 
 To access the filter's input and output ports and in turn query information
 about them you should use the following functions.

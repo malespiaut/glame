@@ -1,4 +1,4 @@
-@comment $Id: plugin.texi,v 1.6 2000/03/20 09:44:00 richi Exp $
+@comment $Id: plugin.texi,v 1.7 2000/04/25 13:44:52 richi Exp $
 
 @node Plugin Interface, Function and Type Index, Swapfile API, Top
 @chapter Plugin Interface 
@@ -20,34 +20,40 @@ paths in the path list. @code{plugin_get()} returns @code{NULL} if the plugin
 can't be found or an error occured during its initialization phase.
 @end deftypefun
 
+To manually add a plugin not contained in some shared library you
+should call the following function.
+
+@deftypefun {plugin_t *} plugin_add (const char *@var{name})
+This function will add a new empty plugin to the database. You should
+populate its database using the @code{plugin_set()} function. On success
+a plugin handle is returned, @code{NULL} is returned on failure.
+@end deftypefun
+
 To access parts of the plugin the following wrapper macros should be used
 on the @code{plugin_t} handle.
 
 @tindex plugin_t
 @deftypefun {const char *} plugin_name (plugin_t *@var{p})
-@tindex plugin_t
-@deftypefunx {const char *} plugin_description (plugin_t *@var{p})
-These functions return the plugin's name and its description.
-@code{plugin_description()} can return @code{NULL} if the plugin does not
-have a @code{description} symbol assigned.
+This function returns the plugin's name.
 @end deftypefun
 
 @tindex plugin_t
-@deftypefun {const char *} plugin_pixmap (plugin_t *@var{p})
-@code{plugin_pixmap()} returns a pointer to the specified pixmap
-filename or @code{NULL}, if none was specified.
+@deftypefun int plugin_set (plugin_t *@var{p}, const char *@var{key}, void *@var{val})
+@deftypefunx {void *} plugin_query (plugin_t *@var{p})
+Using these functions you can set and query key/value pairs either stored
+through dynamic library symbols or through a little per plugin database.
+@code{plugin_query()} returns @code{NULL}, if there is no information about
+the specified key.
 @end deftypefun
 
-You can get access to other (non standard) symbols of the plugin's
-shared object via the following function.
+To browse through all registered plugins you can use the following function.
 
-@tindex plugin_t
-@deftypefun {void *} plugin_get_symbol (plugin_t *@var{p}, const char *@var{symbol})
-@code{plugin_get_symbol()} let's you access a symbol with the
-name @var{symbol} of the plugin shared object @var{p}. It can return 
-@code{NULL} if either no such symbol was found or the symbol's value is 
-@code{NULL}.
+@deftypefun {plugin_t *} plugin_next (plugin_t *@var{p})
+@code{plugin_next()} gets you the next plugin in the database or the
+first one if you supply @code{NULL}. @code{NULL} is returned if no
+further plugins are available.
 @end deftypefun
+
 
 If you want to create a plugin, your dynamic object should contain the
 following standard symbols with the described information attached. The
@@ -58,13 +64,6 @@ the @code{plugin} prefix of the symbols to prevent symbol name clashes.
 
 @table @code
 @item plugin_register
-A function of type @code{(int (*)(void))} which does everything
+A function of type @code{(int (*)(plugin_t *p))} which does everything
 necessary to register anything in the plugin to any subsystem.
-
-@item plugin_description
-A description string which should contain a short description of the
-function of the plugin, its creator and a copyright notice.
-
-@item plugin_pixmap
-An optional pixmap in a format the specific subsystem can handle.
 @end table
