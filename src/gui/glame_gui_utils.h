@@ -5,7 +5,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.1 2001/03/21 00:59:05 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.1 2001/03/21 09:44:17 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -40,12 +40,6 @@
 #include "util.h"
 #include "canvas_types.h"
 
-
-/* Create a new filter network. The data is contained in the 
- * gui_network struct which contains the filter_t * as well.
- * If the filter_t creation succeded a editing window is created.
- */
-gui_network* gui_network_new();
 
 /* creates a hbox with the label and the widget and adds it 
  * to the specified vbox */

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.17 2001/03/21 00:59:05 xwolf Exp $
+ * $Id: main.c,v 1.18 2001/03/21 09:44:17 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -30,6 +30,7 @@
 #include "glmid.h"
 #include "swapfilegui.h"
 #include "waveeditgui.h"
+#include "filtergui.h"
 #include "glame_gui_utils.h"
 
 

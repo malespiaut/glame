@@ -1,12 +1,12 @@
-#ifndef _GLAME_CANVAS_H
-#define _GLAME_CANVAS_H
+#ifndef _FILTERGUI_H
+#define _FILTERGUI_H
 
 /*
- * canvas.h
+ * filtergui.h
  *
- * $Id: canvas.h,v 1.16 2001/03/21 09:44:17 xwolf Exp $
+ * $Id: filtergui.h,v 1.1 2001/03/21 09:44:17 xwolf Exp $
  *
- * Copyright (C) 2000 Johannes Hirche
+ * Copyright (C) 2001 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +26,11 @@
 
 #include "glame_gui_utils.h"
 
-gint canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
-gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
-void canvas_item_create_ports(GnomeCanvasGroup* grp,filter_t *f);
-GtkWidget * canvas_new_from_network(gui_network* net);
-void canvas_item_redraw(GlameCanvasItem* item);
 
-
+/* Create a new filter network. The data is contained in the 
+ * gui_network struct which contains the filter_t * as well.
+ * If the filter_t creation succeded a editing window is created.
+ */
+gui_network* gui_network_new();
 
 #endif
