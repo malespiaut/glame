@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.32 2001/10/29 22:36:35 richi Exp $
+ * $Id: canvasfilter.c,v 1.33 2001/11/14 23:48:57 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -646,6 +646,17 @@ glame_canvas_filter_get_portdb(GlameCanvasFilter* filter)
 	return filter_portdb(filter->filter);
 }
 
+void
+remove_handlers(GtkWidget* foo, GList* handlers)
+{
+	GList* iter = g_list_first(handlers);
+	DPRINTF("foo\n");
+	while(iter){
+		net_unlink_params((void*)iter->data);
+		iter = g_list_next(iter);
+	}
+	g_list_free(handlers);
+}
 
 
 /************************
@@ -657,13 +668,67 @@ glame_canvas_filter_get_portdb(GlameCanvasFilter* filter)
 static void glame_canvas_filter_edit_properties_cb(GtkWidget* m,GlameCanvasFilter *filter)
 {
 	GtkWidget *p;
-
+	GList* selected;
+	GList* items,*iter;
+	plugin_t* plug;
+	GlameCanvas* glcanv;
+	gboolean equal=TRUE;
+	char * plugname;
+	filter_t* ffilter;
 	if(filter->immutable)
 		return;
-	p = glame_gui_filter_properties(filter_paramdb(filter->filter),
-					filter_name(filter->filter),
-					filter->filter->plugin ? plugin_query(filter->filter->plugin, PLUGIN_GUI_HELP_PATH) : NULL);
-	gtk_widget_show(p);
+	
+	glcanv = CANVAS_ITEM_GLAME_CANVAS(filter);
+	items = glame_canvas_get_selected_items(glcanv);
+	if(g_list_length(items)>1){
+		/* are all the same? */
+		iter = g_list_first(items);
+		plug = ((filter_t*)(iter->data))->plugin;
+		plugname = plugin_name(plug);
+		iter = g_list_next(iter);
+		while(iter&&equal){
+		  if(strcmp(plugin_name(((filter_t*)(iter->data))->plugin),plugname))
+				equal=FALSE;
+			iter = g_list_next(iter);
+		}
+		if(!equal){
+			iter=g_list_first(items);
+			/* mixed selection. popup all windows at once... */
+			while(iter){
+				ffilter = (filter_t*)iter->data;
+				gtk_widget_show(glame_gui_filter_properties(filter_paramdb(ffilter),
+									    filter_name(ffilter),
+									    ffilter->plugin? plugin_query(ffilter->plugin, PLUGIN_GUI_HELP_PATH) : NULL));
+				iter = g_list_next(iter);
+			}
+		}else{
+		  /* single type, link them! */
+			GList * handles = NULL;
+			filter_t * source;
+			void* handle;
+			iter = g_list_first(items);
+			source = (filter_t*)iter->data;
+			iter = g_list_next(iter);
+			while(iter){
+				handle = net_link_params((filter_t*)iter->data,source);
+				handles = g_list_append(handles, handle);
+				iter = g_list_next(iter);
+			}
+			p = glame_gui_filter_properties(filter_paramdb(source),
+							filter_name(source),
+							source->plugin ? plugin_query(source->plugin, PLUGIN_GUI_HELP_PATH) : NULL);
+			gtk_widget_show(p);
+			gtk_signal_connect(GTK_OBJECT(p),"unmap",
+					   remove_handlers,handles);
+			DPRINTF("FIXME\n");
+		}
+	}else{
+	  p = glame_gui_filter_properties(filter_paramdb(filter->filter),
+						filter_name(filter->filter),
+						filter->filter->plugin ? plugin_query(filter->filter->plugin, PLUGIN_GUI_HELP_PATH) : NULL);
+	  gtk_widget_show(p);
+	}
+	  
 }
 
 
@@ -778,8 +843,9 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	gtk_widget_show(notebook);
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	gtk_container_add(GTK_CONTAINER(vbox),notebook);
-	
-	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+
+	gnome_dialog_button_connect_object(GNOME_DIALOG(dialog),0,gtk_object_destroy,dialog);
+	gtk_widget_show(GTK_WIDGET(dialog));
 }
 
 static void glame_canvas_filter_help(GtkWidget *foo, GlameCanvasFilter* filter)
@@ -931,13 +997,20 @@ static gboolean
 glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {
 	GtkWidget * menu;
+	double dx,dy;
+
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		/* first deregister timeouts */
 		glame_canvas_filter_deregister_popup(filter);
-		glame_canvas_filter_move(filter, (double)event->button.x-filter->last_x,(double)event->button.y-filter->last_y);
+		
+		dx =  (double)event->button.x-filter->last_x;
+		dy =  (double)event->button.y-filter->last_y;
+		glame_canvas_filter_move(filter, dx, dy);
 		filter->last_x = event->button.x;
 		filter->last_y = event->button.y;
+					 
+
 		
 		return TRUE;
 		break;

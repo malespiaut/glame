@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.28 2001/11/05 10:19:08 richi Exp $
+ * $Id: glamecanvas.c,v 1.29 2001/11/14 23:48:57 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -614,6 +614,23 @@ void glame_canvas_group_selected(GlameCanvas* canvas)
 	glame_canvas_redraw(canvas);
 }
 
+
+
+GList* glame_canvas_get_selected_items(GlameCanvas* canvas)
+{
+	GList* list = NULL;
+	filter_t* net;
+	filter_t* filter;
+
+	/* not nice.. */
+	net = canvas->net;
+	filter_foreach_node(net, filter){
+		if(glame_canvas_find_filter(filter)->selected)
+			list = g_list_append(list,filter);
+	}
+	return list;
+}
+	
 void glame_canvas_ungroup_selected(GlameCanvas* canvas)
 {
 	GList *list = g_list_first(canvas->selectedItems);
