@@ -7,6 +7,9 @@ AM_CONFIG_HEADER(config.h)
 dnl Pick up additional macros from the macros directory
 AM_ACLOCAL_INCLUDE(macros)
 
+dnl Disable re-creation of *.in files by default
+AM_MAINTAINER_MODE
+
 dnl Translations so far
 ALL_LINGUAS="de fr"
 
