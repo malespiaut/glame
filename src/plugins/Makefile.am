@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui/ -I@top_srcdir@/src/gui/edit_filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
@@ -10,7 +10,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
 	audio_io_alsa_v090.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
-	fader.c
+	fader.c importexport.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
@@ -46,7 +46,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
-	normalize.la fader.la\
+	normalize.la fader.la importexport.la\
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
 
@@ -79,6 +79,11 @@ distortion_la_LDFLAGS = -module -avoid-version
 
 fader_la_SOURCES = fader.c
 fader_la_LDFLAGS = -module -avoid-version
+
+if HAVE_GNOME
+importexport_la_SOURCES = importexport.c
+endif
+importexport_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
