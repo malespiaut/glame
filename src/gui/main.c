@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.118 2003/06/12 19:31:43 richi Exp $
+ * $Id: main.c,v 1.119 2004/02/08 21:50:19 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -1013,7 +1013,8 @@ int main(int argc, char **argv)
 	textdomain("glame");
 
 	/* setup gnome/gtk  */
-	gnome_init("glame0.7", VERSION, argc, argv);
+	gnome_program_init("glame2", VERSION, LIBGNOMEUI_MODULE,
+			   argc, argv, GNOME_PARAM_NONE);
 
 #ifdef HAVE_LIBGLADE
 	glade_init();
