@@ -32,6 +32,7 @@
 #include "swapfile.h"
 #include "filter.h"
 #include "glplugin.h"
+#include "glsimd.h"
 
 #ifdef HAVE_GUILE
 #include <guile/gh.h>
@@ -155,6 +156,7 @@ static void glame_cleanup()
 
 int glame_init()
 {
+	glsimd_init(0);
 	if (hash_alloc() == -1)
 		return -1;
 	if (plugins_register() == -1)

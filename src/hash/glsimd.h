@@ -1,13 +1,12 @@
-#ifndef _SIMD_C_H
-#define _SIMD_C_H
+#ifndef _GLSIMD_H
+#define _GLSIMD_H
 
 /*
- * simd_c.h
+ * glsimd.h
+ * $Id: glsimd.h,v 1.1 2001/03/05 15:04:07 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
- * $Id: simd_c.h,v 1.1 2001/01/25 09:16:39 richi Exp $
- * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -21,102 +20,97 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-/*
- * Generic C versions of simd operations.
- * If possible, we use the much more efficient assembler versions in 
- * architecture dependent headers. It is highly recommended to drop in
- * an asm version if you port to a new platform.
+#include <sys/uio.h>
+#include "glame_types.h"
+
+
+/* SIMD operations through a virtual function table containing
+ * run-time configurable highly optimized code when operating on
+ * medium to large size data.
+ */
+struct glsimd_ops_table {
+        /* From the SAMPLE buffers (struct iovec * in ..., NULL
+         * terminated) produce an interleaved buffer in dest
+         * with room for cnt samples (each channel) using
+         * unsigned shorts as sample type. */
+	void (*interleaveUSHORT)(struct iovec *dest, long cnt, ...);
+        /* Symmetric to interleaveUSHORT */
+	void (*deinterleaveUSHORT)(struct iovec *source, long cnt, ...); 
+	/* Add other types as needed. */
+
+        /* Convert size SAMPLEs starting at position from in the
+         * iovec source to unsigned shorts, storing them into dest. */
+	void (*SAMPLE2USHORT)(gl_u16 *dest, struct iovec *source,
+                              long from, long size);
+        /* Add other types as needed. */
+};
+
+/* SIMD operations table filled by glsimd_init(), for use by arbitrary
+ * modules. */
+extern struct glsimd_ops_table glsimd;
+
+
+/* Initialize the SIMD operations table with the optimal routines.
+ * Specifying force_c != 0 forces the C versions of each operation. */
+void glsimd_init(int force_c);
+
+
+
+/* Inline functions and macros for generic audio data operations.
+ * Use if you are operating on single data items rather than blocks
+ * of data.
+ * Note that you generally should use these instead of trying to
+ * be clever yourself as these are considered to be the correct(TM)
+ * versions.
  */
 
+#define SHORT2SAMPLE(s)  ((SAMPLE)(gl_s16)(s)/(SAMPLE)(1<<15))
+#define USHORT2SAMPLE(s) ((SAMPLE)(gl_u16)(s)/(SAMPLE)(1<<15) - 1.0)
+#define CHAR2SAMPLE(s)  ((SAMPLE)(gl_s8)(s)/(SAMPLE)(1<<7))
+#define UCHAR2SAMPLE(s) ((SAMPLE)(gl_u8)(s)/(SAMPLE)(1<<7) - 1.0)
 
-/* SAMPLE to various type conversion including clipping of the
- * samples to [-1,1].
- * - SAMPLE to signed short
- * - SAMPLE to unsigned short
- * - signed short to SAMPLE
- * - unsigned short to SAMPLE
- * - SAMPLE to signed char
- * - SAMPLE to unsigned char
- * - signed char to SAMPLE
- * - unsigned char to SAMPLE
- */
-
-#ifndef HAVE_ARCH_SAMPLE2SHORT
 static inline gl_s16 SAMPLE2SHORT(SAMPLE s)
 {
         return (gl_s16)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))
-		*(s<0.0 ? (1<<15) : (1<<15)-1));
+                *(s<0.0 ? (1<<15) : (1<<15)-1));
 }
-#endif
 
-#ifndef HAVE_ARCH_SAMPLE2USHORT
 static inline gl_u16 SAMPLE2USHORT(SAMPLE s)
-{	
-	s += 1.0, s *= 0.5;
-	return (gl_u16)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<16)-1));
+{       
+        s += 1.0, s *= 0.5;
+        return (gl_u16)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<16)-1));
 }
-#endif
 
-#ifndef HAVE_ARCH_SHORT2SAMPLE
-#define SHORT2SAMPLE(s)  ((SAMPLE)(gl_s16)(s)/(SAMPLE)(1<<15))
-#endif
-
-#ifndef HAVE_ARCH_USHORT2SAMPLE
-#define USHORT2SAMPLE(s) ((SAMPLE)(gl_u16)(s)/(SAMPLE)(1<<15) - 1.0)
-#endif
-
-#ifndef HAVE_ARCH_SAMPLE2CHAR
 static inline gl_s8 SAMPLE2CHAR(SAMPLE s)
 {
         return (gl_s8)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))
-		*(s<0.0 ? (1<<7) : (1<<7)-1));
+                *(s<0.0 ? (1<<7) : (1<<7)-1));
 }
-#endif
 
-#ifndef HAVE_ARCH_SAMPLE2UCHAR
 static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 {
-	s += 1.0, s *= 0.5;
-	return (gl_u8)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<7)-1));
+        s += 1.0, s *= 0.5;
+        return (gl_u8)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<7)-1));
 }
-#endif
-
-#ifndef HAVE_ARCH_CHAR2SAMPLE
-#define CHAR2SAMPLE(s)  ((SAMPLE)(gl_s8)(s)/(SAMPLE)(1<<7))
-#endif
-
-#ifndef HAVE_ARCH_UCHAR2SAMPLE
-#define UCHAR2SAMPLE(s) ((SAMPLE)(gl_u8)(s)/(SAMPLE)(1<<7) - 1.0)
-#endif
 
 
 
-
-/* Here follows a set of fast computing macros for standard operations.
- * To be implemented using ISSE/3DNOW stuff if available. Probably only
- * the higher count ones (SCALARPROD_XD_4).
- * Note that if called like SCALARPROD_1D_1(s, s, f) the compiler
- * can optimize away the destp++ test. Asm versions will want to do
- * seperate versions of both cases.
+/* Stuff that got "merged" from old simd_*.h / filter_tools.h but is to
+ * be phased out. Dont use in new code. You have been warned.
  */
 
-/* Generic scalarproduct operations in 1D, 2D and 3D.
- */
-
-#ifndef HAVE_ARCH_SCALARPROD_1D_1
 #define SCALARPROD_1D_1(destp, source1p, fact1) \
 do { \
-	*destp = *(source1p++)*fact1; \
+        *destp = *(source1p++)*fact1; \
         if (&destp != &source1p) destp++; \
 } while (0)
-#endif
-#ifndef HAVE_ARCH_SCALARPROD_1D_4
 #define SCALARPROD_1D_4(destp, source1p, fact1) \
 do { \
         SCALARPROD_1D_1(destp, source1p, fact1); \
@@ -124,16 +118,12 @@ do { \
         SCALARPROD_1D_1(destp, source1p, fact1); \
         SCALARPROD_1D_1(destp, source1p, fact1); \
 } while (0)
-#endif
 
-#ifndef HAVE_ARCH_SCALARPROD_2D_1
 #define SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2) \
 do { \
-	*destp = *(source1p++)*fact1 + *(source2p++)*fact2; \
-	if (&destp != &source1p) destp++; \
+        *destp = *(source1p++)*fact1 + *(source2p++)*fact2; \
+        if (&destp != &source1p) destp++; \
 } while (0)
-#endif
-#ifndef HAVE_ARCH_SCALARPROD_2D_4
 #define SCALARPROD_2D_4(destp, source1p, source2p, fact1, fact2) \
 do { \
         SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
@@ -141,16 +131,12 @@ do { \
         SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
         SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
 } while (0)
-#endif
 
-#ifndef HAVE_ARCH_SCALARPROD_3D_1
 #define SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
 do { \
-	*destp = *(source1p++)*fact1 + *(source2p++)*fact2 + *(source3p++)*fact3; \
-	if (&destp != &source1p) destp++; \
+        *destp = *(source1p++)*fact1 + *(source2p++)*fact2 + *(source3p++)*fact3; \
+        if (&destp != &source1p) destp++; \
 } while (0)
-#endif
-#ifndef HAVE_ARCH_SCALARPROD_3D_4
 #define SCALARPROD_3D_4(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
 do { \
         SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
@@ -158,19 +144,13 @@ do { \
         SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
         SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
 } while (0)
-#endif
 
 
-/* Inversion of values. X = -X. */
-
-#ifndef HAVE_ARCH_INVERT1
 #define INVERT1(destsourcep) \
 do { \
-	*destsourcep = -*destsourcep; \
-	destsourcep++; \
+        *destsourcep = -*destsourcep; \
+        destsourcep++; \
 } while (0)
-#endif
-#ifndef HAVE_ARCH_INVERT4
 #define INVERT4(destsourcep) \
 do { \
         INVERT1(destsourcep); \
@@ -178,19 +158,12 @@ do { \
         INVERT1(destsourcep); \
         INVERT1(destsourcep); \
 } while (0)
-#endif
 
 
-/* Simple addition. */
-
-#ifndef HAVE_ARCH_ADD1
 #define ADD1(destsourcep,sum) \
 do { \
-	*destsourcep++ += sum; \
+        *destsourcep++ += sum; \
 } while (0)
-#endif
-
-#ifndef HAVE_ARCH_ADD4
 #define ADD4(destsourcep,sum) \
 do { \
         ADD1(destsourcep, sum); \
@@ -198,7 +171,6 @@ do { \
         ADD1(destsourcep, sum); \
         ADD1(destsourcep, sum); \
 } while (0)
-#endif
 
 
 #endif

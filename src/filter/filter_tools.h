@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.26 2001/01/25 09:16:38 richi Exp $
+ * $Id: filter_tools.h,v 1.27 2001/03/05 15:04:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -23,7 +23,7 @@
 #ifndef _FILTER_TOOLS_H
 #define _FILTER_TOOLS_H
 
-#include "simd.h"
+#include "glsimd.h"
 
 
 /* convert time in ms to number of samples */
