@@ -566,6 +566,8 @@ static void play(GtkWaveView *waveview,
 	active_waveedit->pm_param = filterparamdb_get_param(
 		filter_paramdb(loop && swin ? swin : (aout ? aout : swout)), FILTERPARAM_LABEL_POS);
 	active_waveedit->pm_start = start;
+	if (play_cnt == 0)
+		glame_network_notificator_set_wbufsize(emitter, GLAME_BULK_BUFSIZE);
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;
 		glame_network_error_dialog(net, _("Cannot play/record wave"));
