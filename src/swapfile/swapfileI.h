@@ -63,14 +63,13 @@ struct cluster_s {
 
 	int id;                  /* unique identifier (used at load/save time) */
 
-	glame_atomic_t mmapcnt;  /* count of mappings */
-	char *buf;               /* address of mmapped region */
+	char *buf;               /* address of mmapped region - or MAP_FAILED
+				  * if not mapped. */
 
 	struct list_head rfc_list; /* reverse filecluster-list, unsorted */
 	struct list_head map_list; /* mmap LRU cache list */
 };
 #define cluster_ref(cluster) do { atomic_inc(&(cluster)->refcnt); } while (0)
-#define cluster_is_mapped(c) ((c)->buf != NULL)
 
 
 
@@ -80,8 +79,8 @@ struct cluster_s {
 struct filehead_s {
 	struct list_head fh_list;
 	struct list_head fc_list;
-	filehead_t **pprev_hash;
-	filehead_t *next_hash;
+	filehead_t **pprev_file_hash;
+	filehead_t *next_file_hash;
 
 	fileid_t fid;
 	int usecnt;                 /* == 0 -> file writable */
@@ -91,8 +90,6 @@ struct filehead_s {
 };
 #define fclist_head(fh) (list_gethead(&(fh)->fc_list, filecluster_t, fc_list))
 #define fclist_tail(fh) (list_gettail(&(fh)->fc_list, filecluster_t, fc_list))
-#define file_use(file) do { if ((file)->usecnt == 0) hash_remove_file(file); (file)->usecnt++; } while (0)
-#define file_unuse(file) do { (file)->usecnt--; if ((file)->usecnt == 0) hash_add_file(file); } while (0)
 
 
 struct filecluster_s {

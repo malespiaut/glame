@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.18 2000/08/07 13:46:57 richi Exp $
+ * $Id: swapfile.c,v 1.19 2000/09/21 09:26:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,9 +34,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include "hash.h"
 #include "swapfile.h"
 #include "util.h"
 #include "glame_sem.h"
+#include "pmap.h"
 
 /* TODO:
  *
@@ -79,11 +81,6 @@ typedef struct {
 	/* list of files in swap, unsorted */
 	struct list_head files;
 
-	/* mmap-cache - clusters, LRU */
-	struct list_head mapped;
-	off_t mapped_size;
-	off_t mapped_max;
-
 	/* global lock - ugh! */
 	int semid, semnum;
 } swap_t;
@@ -92,10 +89,16 @@ typedef struct {
 static swap_t *swap = NULL;
 
 /* "visible" files hashtable */
-#define SWAPFILE_HASH_BITS (8)
-#define SWAPFILE_HASH_SIZE (1 << SWAPFILE_HASH_BITS)
-filehead_t **swapfile_hash_table;
-#include "swapfile_hash.h"
+HASH(file, filehead_t, 8,
+     (file->fid == fid),
+     (fid),
+     (file->fid),
+     fileid_t fid)
+
+
+#define file_use(file) do { if ((file)->usecnt == 0) hash_remove_file(file); (file)->usecnt++; } while (0)
+#define file_unuse(file) do { (file)->usecnt--; if ((file)->usecnt == 0) hash_add_file(file); } while (0)
+
 
 
 /************************************************************
@@ -193,7 +196,6 @@ static cluster_t *__cluster_alloc(int id)
 	INIT_LIST_HEAD(&c->rfc_list);
 	INIT_LIST_HEAD(&c->map_list);
 	ATOMIC_INIT(c->refcnt, 0);
-	ATOMIC_INIT(c->mmapcnt, 0);
 
 	return c;
 }
@@ -518,8 +520,7 @@ static int _cluster_read(swapd_record_t *r)
 	c->off = r->u.cluster.off;
 	c->size = r->u.cluster.size;
 	ATOMIC_VAL(c->refcnt) = r->u.cluster.refcnt;
-	ATOMIC_VAL(c->mmapcnt) = 0;
-	c->buf = NULL;
+	c->buf = MAP_FAILED;
 
 	_cluster_add(c, NULL);
 
@@ -683,144 +684,24 @@ static void _logentry_write(swapd_record_t *r, logentry_t *le)
 
 /************************************************************
  * cluster helper - they do _no_ reference counting!
- * (apart from mmap/munmap)
  */
 
-#undef ZEROMAP_READ
-static int __cluster_zeromap(cluster_t *c, int prot)
-{
-	int fd;
-	char *buf;
-
-	/* This is supposed to mmap the cluster while zeroing it,
-	 * i.e. ideally generate a cow page of the zero page and
-	 * associate the swapfile as backingstore, the page would
-	 * have to be marked dirty at mapping time. Unfortunately
-	 * this would require os-support.
-	 * For Linux we can at least have the zero-page mapping
-	 * trick by reading page-aligned from /dev/zero - this
-	 * is from reading the source, so it could be wrong, too.
-	 */
-	buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
-	if (buf == MAP_FAILED)
-		return -1;
-
-#if defined ZEROMAP_READ
-	if ((fd = open("/dev/zero", O_RDONLY)) != -1) {
-		read(fd, buf, c->size);
-		close(fd);
-	} else
-#endif
-		memset(buf, 0, c->size);
-
-	c->buf = buf;
-	list_add(&c->map_list, &swap->mapped);
-	swap->mapped_size += c->size;
-
-	return 0;
-}
-
-static int __cluster_mmap(cluster_t *c, int prot)
-{
-	char *buf;
-
-	buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
-	if (buf == MAP_FAILED)
-		return -1;
-#if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_MMAP)
-	madvise(buf, c->size, SWAPFILE_MADV_MMAP);
-#endif
-
-	c->buf = buf;
-	list_add(&c->map_list, &swap->mapped);
-	swap->mapped_size += c->size;
-
-	return 0;
-}
-
-static inline void __cluster_forgetmap(cluster_t *c)
-{
-	/* This is supposed to throw away any possibly dirty
-	 * mapping of the file away - possibly creating a
-	 * hole in the backing-store file, too.
-	 * Well, of course this needs os-support...
-	 */
-	if (!cluster_is_mapped(c))
-		return;
-#if 0
-#if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_FORGET)
-	madvise(c->buf, c->size, SWAPFILE_MADV_FORGET);
-#endif
-#else	
-	msync(c->buf, c->size, MS_INVALIDATE);
-#endif
-	munmap(c->buf, c->size);
-	c->buf = NULL;
-	swap->mapped_size -= c->size;
-	list_del(&c->map_list);
-	INIT_LIST_HEAD(&c->map_list);
-}
-
-static inline void __cluster_munmap(cluster_t *c)
-{
-	if (!cluster_is_mapped(c))
-		return;
-	munmap(c->buf, c->size);
-	c->buf = NULL;
-	swap->mapped_size -= c->size;
-	list_del(&c->map_list);
-	INIT_LIST_HEAD(&c->map_list);
-}
-
-/* we do __cluster_forgetmap on unref and refcnt == 0 */
+/* we do pmap_discard on unref and refcnt == 0 */
 static void cluster_unref(cluster_t *c)
 {
 	/* if we are about to release our last reference,
 	 * we can do special things and sanity checks.
 	 */
 	if (ATOMIC_VAL(c->refcnt) == 1) {
-		if (ATOMIC_VAL(c->mmapcnt) > 0)
-			DERROR("cluster has still mappings!");
-		__cluster_forgetmap(c);
+		if (c->buf != MAP_FAILED)
+			pmap_discard(c->buf);
+		c->buf = MAP_FAILED;
 
 		/* FIXME: try to merge cluster with previous/next
 		 * one. */
 	}
 
 	atomic_dec(&c->refcnt);
-}
-
-static int _cluster_try_munmap(cluster_t *c)
-{
-	if (ATOMIC_VAL(c->mmapcnt) > 0)
-		return -1;
-
-	__cluster_munmap(c);
-
-	return 0;
-}
-
-static void _drain_mmapcache()
-{
-	struct list_head *lh, *lhprev;
-	cluster_t *c;
-
-	/* What we try to do here is walking the LRU sorted
-	 * list of mapped clusters from tail to head.
-	 * For reach mapped cluster we check if it is just
-	 * cached in which case we unmap it and remove it
-	 * from the mapped cluster list <- so we have to be
-	 * careful about vanishing elements!
-	 */
-	lhprev = swap->mapped.prev;
-	while (lh = lhprev, lhprev = lh->prev, lh != &swap->mapped) {
-		c = list_entry(lh, cluster_t, map_list);
-		if (!cluster_is_mapped(c))
-			DERROR("cluster with no mapping in maplist!");
-		_cluster_try_munmap(c);
-		if (swap->mapped_size <= swap->mapped_max)
-			break;
-	}
 }
 
 
@@ -836,7 +717,7 @@ static cluster_t *_cluster_split_aligned(cluster_t *c, int pos)
 		DERROR("split of cluster at unnecessary position! check caller!");
 	if (pos < 0 || pos > c->size)
 		DERROR("split of cluster at weird position!");
-	if (_cluster_try_munmap(c) == -1)
+	if (pmap_uncache(c->size, PROT_READ|PROT_WRITE, MAP_SHARED, swap->fd, c->off) == -1)
 		DERROR("split of mapped (used!) cluster");
 
 	if (!(tail = __cluster_alloc(-1)))
@@ -896,47 +777,31 @@ cluster_t *_cluster_alloc(soff_t size, cluster_t *hint)
 
 char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
 {
-	if (cluster_is_mapped(cluster)) {
-		/* LRU */
-		list_del(&cluster->map_list);
-		list_add(&cluster->map_list, &swap->mapped);
-	} else if (zero) {
-		if (__cluster_zeromap(cluster, prot) == -1)
-			return NULL;
-	} else {
-		if (__cluster_mmap(cluster, prot) == -1)
-			return NULL;
-	}
+	char *mem;
+
+	if (zero)
+		mem = pmap_zeromap(NULL, cluster->size, prot, MAP_SHARED,
+				   swap->fd, cluster->off);
+	else
+		mem = pmap_map(NULL, cluster->size, prot, MAP_SHARED,
+			       swap->fd, cluster->off);
+
+	cluster->buf = mem;
+	if (mem == MAP_FAILED)
+		return NULL;
 
 	cluster_ref(cluster);
-	atomic_inc(&cluster->mmapcnt);
 
-	if (swap->mapped_size > swap->mapped_max)
-		_drain_mmapcache();
-
-	return cluster->buf;
+	return mem;
 }
 
 /* We do late unmapping, i.e. this is just a reference
- * count drop.
- * The real unmapping is done by _drain_mmapcache() if the amount
- * of mapped memory is too high, of by cluster_unref() if we
- * released the last reference to the cluster.
- * As a hint to the OS we will mark the pages of the cluster as
- * probably not needed if the mmapcnt goes to zero.
- */
+ * count drop. */
 void _cluster_munmap(cluster_t *cluster)
 {
-#if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_MUNMAP)
-	if (atomic_dec_and_test(&cluster->mmapcnt))
-		madvise(cluster->buf, cluster->size, SWAPFILE_MADV_MUNMAP);
-#else
-	atomic_dec(&cluster->mmapcnt);
-#endif
+	pmap_unmap(cluster->buf);
+	cluster->buf = MAP_FAILED;
 	cluster_unref(cluster);
-
-	if (swap->mapped_size > swap->mapped_max)
-		_drain_mmapcache();
 }
 
 
@@ -1397,8 +1262,6 @@ int swap_open(char *name, int flags)
 	if (swap || !name)
 		return -1;
 
-	hash_alloc_swapfile();
-
 	if (!(swap = ALLOC(swap_t))) {
 		errno = ENOMEM;
 		goto _nomem;
@@ -1409,9 +1272,6 @@ int swap_open(char *name, int flags)
 	INIT_LIST_HEAD(&swap->map);
 	INIT_LIST_HEAD(&swap->log);
 	INIT_LIST_HEAD(&swap->files);
-	swap->mapped_size = 0;
-	swap->mapped_max = CLUSTER_MAXSIZE<<4;
-	INIT_LIST_HEAD(&swap->mapped);
 
 	if ((swap->semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		goto _nosem;
@@ -1448,7 +1308,9 @@ int swap_open(char *name, int flags)
 	if (_build_swap_mem(swap, r) == -1)
 		goto _err;
 	munmap(r, swap->meta_size);
-	
+
+	pmap_init(128*1024*1024);
+
 	_swap_unlock();
   
 	return 0;
@@ -1652,24 +1514,27 @@ int file_truncate(fileid_t fid, soff_t size)
 			 */
 			if (ATOMIC_VAL(fc->cluster->refcnt) == 1
 			    && fc->size != fc->cluster->size) {
-				/* map the cluster - its a non-ref, just in
-				 * cache map */
-				if (!cluster_is_mapped(fc->cluster))
-					__cluster_mmap(fc->cluster, PROT_READ|PROT_WRITE);
+				/* map the cluster */
+				char *buf = pmap_map(NULL, fc->cluster->size, PROT_READ|PROT_WRITE, MAP_SHARED, swap->fd, fc->cluster->off);
+
 				/* we are the exclusive user of the cluster, so
 				 * we may just move our part to the front. */
 				if (fc->coff > 0)
-					memmove(fc->cluster->buf, fc->cluster->buf+fc->coff, fc->size);
+					memmove(buf, buf+fc->coff, fc->size);
 				fc->coff = 0;
 				/* we're set, if all needed space was there */
 				if (oldsize + fc->cluster->size - fc->size >= size) {
-					memset(fc->cluster->buf+fc->size, 0, size - oldsize);
+					memset(buf+fc->size, 0, size - oldsize);
 					fc->size += size - oldsize;
+					pmap_unmap(buf);
 					goto _out;
 				}
-				memset(fc->cluster->buf+fc->size, 0, fc->cluster->size-fc->size);
+				memset(buf+fc->size, 0, fc->cluster->size-fc->size);
 				oldsize += fc->cluster->size - fc->size;
 				fc->size = fc->cluster->size;
+
+				/* unmap the buffer. */
+				pmap_unmap(buf);
 			}
 		}
 		/* if the last filecluster is a virtual one, we can just expand
@@ -1698,7 +1563,7 @@ int file_truncate(fileid_t fid, soff_t size)
 		nfc = fc;  /* remember start of walk */
 		do {
 			if (fc->cluster
-			    && _cluster_try_munmap(fc->cluster) == -1) {
+			    && pmap_uncache(fc->cluster->size, PROT_READ|PROT_WRITE, MAP_SHARED, swap->fd, fc->cluster->off) == -1) {
 				errno = EAGAIN;
 				goto _err;
 			}
