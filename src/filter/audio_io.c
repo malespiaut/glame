@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.12 2000/02/07 16:45:20 richi Exp $
+ * $Id: audio_io.c,v 1.13 2000/02/08 13:32:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -163,7 +163,7 @@ static int esd_out_f(filter_node_t *n)
 	DPRINTF("Got left sbuf with size %d\n",sbuf_size(lbuf));
 	if (right){
 		rbuf = sbuf_get(right);
-		DPRINTF("Got right sbuf with size %d\n",sbuf_size(rbuf));
+		DPRINTF("Got right sbuf with size %d\n", rbuf ? sbuf_size(rbuf) : 0);
 	}
 	else
 		rbuf = NULL;
@@ -175,8 +175,8 @@ static int esd_out_f(filter_node_t *n)
 		 * if either channel gets empty during play
 		 * we fill in zeros for it. */
 		while (wbpos < GLAME_WBUFSIZE
-		       && lpos < sbuf_size(lbuf)
-		       && (!right || rpos < sbuf_size(rbuf))) {
+		       && (!lbuf || lpos < sbuf_size(lbuf))
+		       && (!right || !rbuf || rpos < sbuf_size(rbuf))) {
 			if (lbuf)
 				wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(lbuf)[lpos++]);
 			else
@@ -203,13 +203,13 @@ static int esd_out_f(filter_node_t *n)
 		wbpos = 0;
 
 		/* check, if we need new data */
-		if (lpos >= sbuf_size(lbuf)) {
+		if (lbuf && lpos >= sbuf_size(lbuf)) {
 			sbuf_unref(lbuf);
 			lbuf = sbuf_get(left);
 			lpos = 0;
 			cnt++;
 		}
-		if (right && rpos >= sbuf_size(rbuf)) {
+		if (rbuf && rpos >= sbuf_size(rbuf)) {
 			sbuf_unref(rbuf);
 			rbuf = sbuf_get(right);
 			rpos = 0;

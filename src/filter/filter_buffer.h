@@ -17,7 +17,7 @@ struct filter_buffer {
 	char buf[0];
 };
 
-#define fbuf_size(fb) ((fb)->size)
+#define fbuf_size(fb) ((fb)==NULL ? 0 : (fb)->size)
 #define fbuf_buf(fb) (&(fb)->buf[0])
 
 /* fbuf_alloc creates a filter buffer with backing storage for size
