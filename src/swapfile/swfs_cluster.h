@@ -67,6 +67,7 @@ static int cluster_init(int maxlru, size_t pmapminfree);
 /* Cleanup from the cluster subsystem. */
 static void cluster_cleanup();
 
+
 /* Gets a reference to the specified cluster, if CLUSTERGET_READFILES
  * is set, the list of files that use this cluster is read in. Returns
  * a reference or NULL on error. You may specify the size of the cluster
@@ -99,6 +100,7 @@ static int cluster_delfileref(struct swcluster *c, long file);
  * 0 if that is the case, else -1. */
 static int cluster_checkfileref(struct swcluster *c, long file);
 
+
 /* Creates a memory map of the cluster c possibly at address
  * start with protection and flags like mmap(2). */
 static char *cluster_mmap(struct swcluster *c,void *start,
@@ -109,20 +111,23 @@ static char *cluster_mmap(struct swcluster *c,void *start,
 static int cluster_munmap(char *start);
 
 
+/* Read data like read(2). Offset is cluster internal. */
+static ssize_t cluster_read(struct swcluster *c, void *buf,
+			    size_t count, off_t offset);
+
+/* Write data like write(2). Offset is cluster internal. */
+static ssize_t cluster_write(struct swcluster *c, const void *buf,
+			     size_t count, off_t offset);
+
+
 /* Splits the cluster c at position offset storing the head inside
  * ch and the tail after omitting cutcnt bytes after offset inside ct.
  * The head cluster may be identical to c afterwards, if there was only
- * one user of c, but two references are returned. */
+ * one user of c, but two references are returned. This operation is
+ * able to throw away (truncate) the resulting head/tail, if ch or
+ * ct is NULL. */
 static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			  struct swcluster **ch, struct swcluster **ct);
-
-/* Truncates cluster c to the specified size, truncating from the head.
- * This will copy the cluster, if it is used more than once. */
-static struct swcluster *cluster_truncatehead(struct swcluster *c, s32 size);
-
-/* Truncates cluster c to the specified size, truncating from the tail.
- * This will copy the cluster, if it is used more than once. */
-static struct swcluster *cluster_truncatetail(struct swcluster *c, s32 size);
 
 
 /* Truncates the cluster to the specified size, if the cluster is not

@@ -60,9 +60,10 @@ static struct swcluster *_cluster_creat(long name);
 static struct swcluster *_cluster_stat(long name, s32 known_size);
 static void _cluster_readfiles(struct swcluster *c);
 static void _cluster_writefiles(struct swcluster *c);
-static void _cluster_createdata(struct swcluster *c);
 static void _cluster_truncate(struct swcluster *c, s32 size);
 static void _cluster_put(struct swcluster *c);
+#define _cluster_needdata(c) do { if ((c)->flags & SWC_CREAT || (c)->fd == -1) __cluster_needdata(c); } while (0)
+static void __cluster_needdata(struct swcluster *c);
 
 
 /***********************************************************************
@@ -285,7 +286,7 @@ static char *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
 {
 	/* Need to create the file? Also truncate to the right size. */
 	if (c->flags & SWC_CREAT)
-		_cluster_createdata(c);
+		_cluster_needdata(c);
 	/* Open the cluster datafile, if necessary. */
 	if (c->fd == -1)
 		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
@@ -302,88 +303,78 @@ static int cluster_munmap(char *start)
 		return 0;
 }
 
-static struct swcluster *cluster_truncatetail(struct swcluster *c, s32 size)
-{
-	struct swcluster *cc;
-	char *m, *mc;
-
-	LOCKCLUSTER(c);
-
-	if (c->files_cnt == 1) {
-		_cluster_truncate(c, size);
-		cc = cluster_get(c->name, 0, -1);
-	} else {
-		if (!(cc = cluster_alloc(size))
-		    || (m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
-		    || (mc = cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot alloc/mmap cluster");
-		memcpy(mc, m, size);
-		cluster_munmap(mc);
-		cluster_munmap(m);
-	}
-
-	UNLOCKCLUSTER(c);
-
-	return cc;
-}
-
-static struct swcluster *cluster_truncatehead(struct swcluster *c, s32 size)
-{
-	struct swcluster *cc;
-	char *m, *mc;
-
-	LOCKCLUSTER(c);
-
-	if (c->files_cnt == 1) {
-		if ((m = cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot mmap cluster");
-		memmove(m, m + c->size - size, size);
-		cluster_munmap(m);
-		_cluster_truncate(c, size);
-		cc = cluster_get(c->name, 0, c->size);
-	} else {
-		if (!(cc = cluster_alloc(size))
-		    || (m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
-		    || (mc = cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot alloc/mmap cluster");
-		memcpy(mc, m + c->size - size, size);
-		cluster_munmap(mc);
-		cluster_munmap(m);
-	}
-
-	UNLOCKCLUSTER(c);
-
-	return cc;
-}
 
 static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			  struct swcluster **ch, struct swcluster **ct)
 {
 	char *m, *mh, *mt;
 
+	if (!c || offset < 0 || offset > c->size
+	    || cutcnt < 0 || offset+cutcnt > c->size
+	    || (!ch && !ct))
+		PANIC("Illegal use of cluster_split");
+
+	/* FIXME wrt mappings! */
+	if (c->fd != -1
+	    && pmap_uncache(c->size, PROT_READ|PROT_WRITE,
+			    MAP_SHARED|MAP_PRIVATE, c->fd, 0) == -1) {
+		DPRINTF("Warning! Possibly now corrupt mappings!\n");
+		pmap_invalidate(c->size, PROT_READ|PROT_WRITE,
+				MAP_SHARED|MAP_PRIVATE, c->fd, 0);
+	}
+
 	LOCKCLUSTER(c);
 
 	if (c->files_cnt == 1) {
-		if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
-		    || (m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
-		    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot alloc/mmap cluster");
-		memcpy(mt, m + offset + cutcnt, c->size - offset - cutcnt);
-		cluster_munmap(mt);
-		cluster_munmap(m);
-		_cluster_truncate(c, offset);
-		*ch = cluster_get(c->name, 0, c->size);
+		/* If the cluster is not shared, things are a lot
+		 * simpler. */
+		if (ct && !ch) {
+			if ((m = cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
+				PANIC("Cannot mmap cluster");
+			memmove(m, m + offset + cutcnt,
+				c->size - offset - cutcnt);
+			cluster_munmap(m);
+			_cluster_truncate(c, offset);
+			*ct = cluster_get(c->name, 0, c->size);
+		} else if (!ct && ch) {
+			_cluster_truncate(c, offset);
+			*ch = cluster_get(c->name, 0, c->size);
+		} else /* if (ct && ch) */ {
+			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
+			    || (m = cluster_mmap(c, NULL, PROT_READ,
+						 MAP_SHARED)) == MAP_FAILED
+			    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE,
+						  MAP_SHARED)) == MAP_FAILED)
+				PANIC("Cannot alloc/mmap cluster");
+			memcpy(mt, m + offset + cutcnt,
+			       c->size - offset - cutcnt);
+			cluster_munmap(mt);
+			cluster_munmap(m);
+			_cluster_truncate(c, offset);
+			*ch = cluster_get(c->name, 0, c->size);
+		}
 	} else {
-		if (!(*ch = cluster_alloc(offset))
-		    || !(*ct = cluster_alloc(c->size - offset - cutcnt))
-		    || (m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
-		    || (mh = cluster_mmap(*ch, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED
-		    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot alloc/mmap clusters");
-		memcpy(mh, m, offset);
-		memcpy(mt, m + offset + cutcnt, c->size - offset - cutcnt);
-		cluster_munmap(mt);
-		cluster_munmap(mh);
+		/* Umm, now we have to copy in any case. */
+		if ((m = cluster_mmap(c, NULL, PROT_READ,
+				      MAP_SHARED)) == MAP_FAILED)
+			PANIC("Cannot mmap cluster");
+		if (ch) {
+			if (!(*ch = cluster_alloc(offset))
+			    || (mh = cluster_mmap(*ch, NULL, PROT_WRITE,
+						  MAP_SHARED)) == MAP_FAILED)
+				PANIC("Cannot alloc/mmap cluster");
+			memcpy(mh, m, offset);
+			cluster_munmap(mh);
+		}
+		if (ct) {
+			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
+			    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE,
+						  MAP_SHARED)) == MAP_FAILED)
+				PANIC("Cannot alloc/mmap cluster");
+			memcpy(mt, m + offset + cutcnt,
+			       c->size - offset - cutcnt);
+			cluster_munmap(mt);
+		}
 		cluster_munmap(m);
 	}
 
@@ -430,6 +421,46 @@ static struct swcluster *cluster_unshare(struct swcluster *c)
 
 	return cc;
 }
+
+
+static ssize_t cluster_read(struct swcluster *c, void *buf,
+			    size_t count, off_t offset)
+{
+	ssize_t res;
+
+	LOCKCLUSTER(c);
+	if (c->fd == -1 || (c->flags & SWC_CREAT))
+		_cluster_needdata(c);
+	if (lseek(c->fd, offset, SEEK_SET) == offset)
+		res = read(c->fd, buf, count);
+	else
+		res = -1;
+	UNLOCKCLUSTER(c);
+
+	return res;
+}
+
+static ssize_t cluster_write(struct swcluster *c, const void *buf,
+			     size_t count, off_t offset)
+
+{
+	ssize_t res;
+
+	LOCKCLUSTER(c);
+	if (c->size < offset+count)
+		count = c->size - offset;
+	if (c->fd == -1 || (c->flags & SWC_CREAT))
+		_cluster_needdata(c);
+	if (lseek(c->fd, offset, SEEK_SET) == offset)
+		res = write(c->fd, buf, count);
+	else
+		res = -1;
+	UNLOCKCLUSTER(c);
+
+	return res;
+}
+
+
 
 /***********************************************************************
  * Internal helpers. No locking.
@@ -583,21 +614,33 @@ static void _cluster_writefiles(struct swcluster *c)
 
 /* Create the clusters datafile, if necessary, and truncate it to
  * the right size. */
-static void _cluster_createdata(struct swcluster *c)
+static void __cluster_needdata(struct swcluster *c)
 {
-	if (!(c->flags & SWC_CREAT))
-		return;
-	if ((c->fd == -1
-	     && (c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1)
-	    || ftruncate(c->fd, c->size) == -1)
-		PANIC("Cannot creat/truncate cluster");
-	c->flags &= ~SWC_CREAT;
+	if (!(c->flags & SWC_CREAT)) {
+		if (c->fd != -1)
+			return;
+		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
+			PANIC("Cannot open cluster");
+	} else {
+		if (c->fd == -1
+		    && (c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1)
+			PANIC("Cannot create cluster");
+		if (ftruncate(c->fd, c->size) == -1)
+			PANIC("Cannot truncate cluster");
+		c->flags &= ~SWC_CREAT;
+	}
 }
 
 /* Set the clusters size and truncate the on-disk file, if it
  * is already open, else just postpone that via SWC_CREAT. */
 static void _cluster_truncate(struct swcluster *c, s32 size)
 {
+	/* If this is growing operation and the cluster
+	 * had set SWC_CREAT (possibly not done previous
+	 * shrinking truncate) we have to force that operation
+	 * now to preserve correct zeroing semantics. */
+	if (c->size < size && (c->flags & SWC_CREAT))
+		_cluster_needdata(c);
 	c->size = size;
 	if (c->fd == -1)
 		c->flags |= SWC_CREAT;
@@ -613,7 +656,7 @@ static void _cluster_put(struct swcluster *c)
 	/* Close the data fd - or create the file, if
 	 * necessary. */
 	if ((c->flags & SWC_CREAT) && c->files_cnt != 0)
-		_cluster_createdata(c);
+		_cluster_needdata(c);
 	/* Kill possible mappings and close the file. */
 	if (c->fd != -1) {
 		pmap_invalidate(c->size, PROT_READ|PROT_WRITE,
