@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.132 2005/03/10 20:22:56 richi Exp $
+ * $Id: main.c,v 1.133 2005/03/10 21:09:42 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -64,6 +64,7 @@ static GtkWidget *app;
 /* Forward declarations. */ 
  static void create_new_project_cb(GtkWidget *menu, void * blah); 
  static void edit_file_cb(GtkWidget *menu, void *data); 
+ static void record_wave_cb(GtkWidget *menu, void *data);
  static void import_cb(GtkWidget *menu, void *data); 
  static void show_console_cb(GtkWidget *menu, void *blah); 
  static void emptytrash_cb(GtkWidget *menu, void *blah); 
@@ -75,6 +76,7 @@ static GtkWidget *app;
  static GnomeUIInfo swapfile_menu_uiinfo[] = { 
  	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), N_("Creates a new Project group"), create_new_project_cb, NULL), 
  	GNOMEUIINFO_ITEM (N_("Edit File..."), N_("Imports a file and opens the waveedit window"), edit_file_cb, NULL), 
+	GNOMEUIINFO_ITEM (N_("Record Wave..."), N_("Opens a new waveedit window for recording"), record_wave_cb, NULL),
  	GNOMEUIINFO_ITEM (N_("Import..."), N_("Imports a file"), import_cb, NULL), 
  	GNOMEUIINFO_SEPARATOR, 
  	GNOMEUIINFO_ITEM (N_("Empty [deleted]"), N_("Kills [deleted] folder"), emptytrash_cb, NULL), 
@@ -208,6 +210,40 @@ static void edit_file_cb(GtkWidget *menu, void *data)
  	gtk_signal_connect(GTK_OBJECT(we), "destroy", 
  			   (GtkSignalFunc)edit_file_cleanup_cb, file); 
  	gpsm_grp_foreach_item(file, item) 
+ 		glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_INSERT, 
+ 				  edit_file_mark_modified_cb, we); 
+ 	gtk_quit_add_destroy(1, GTK_OBJECT(we)); 
+ 	gtk_widget_show_all(GTK_WIDGET(we)); 
+} 
+
+static void record_wave_cb(GtkWidget *menu, void *data) 
+{ 
+	gpsm_grp_t *grp;
+	gpsm_swfile_t *left, *right;
+ 	gpsm_item_t *item; 
+ 	WaveeditGui *we; 
+
+	/* Create a new stereo track.  */
+	grp = gpsm_newgrp(_("New wave"));
+	left = gpsm_newswfile(_("left"));
+	gpsm_swfile_set_position(left, FILTER_PIPEPOS_LEFT);
+	right = gpsm_newswfile(_("right"));
+	gpsm_swfile_set_position(right, FILTER_PIPEPOS_RIGHT);
+	gpsm_vbox_insert(grp, (gpsm_item_t *)left, 0, 0);
+	gpsm_vbox_insert(grp, (gpsm_item_t *)right, 0, 1);
+
+ 	/* Open the waveedit window and register a handler for gpsm 
+ 	 * deletion after widget destroy. Also register handlers for 
+ 	 * track modification to update bool. */
+ 	we = glame_waveedit_gui_new("New wave", grp); 
+ 	if (!we) { 
+		glame_error_dialog(_("Cannot open wave editor"), NULL);
+ 		gpsm_item_destroy(grp); 
+ 		return; 
+ 	} 
+ 	gtk_signal_connect(GTK_OBJECT(we), "destroy", 
+ 			   (GtkSignalFunc)edit_file_cleanup_cb, grp); 
+ 	gpsm_grp_foreach_item(grp, item) 
  		glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_INSERT, 
  				  edit_file_mark_modified_cb, we); 
  	gtk_quit_add_destroy(1, GTK_OBJECT(we)); 
