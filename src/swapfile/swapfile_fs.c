@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -66,6 +67,7 @@ static struct {
 	char *clusters_data_base;
 	char *clusters_meta_base;
 	struct list_head fds;
+	int fsck;
 } swap;
 
 static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
@@ -120,15 +122,20 @@ int swapfile_open(char *name, int flags)
 	int fd;
 
 	/* Check for correct swapfile directory setup. */
-	errno = ENOENT;
-	if (access(name, R_OK|W_OK|X_OK|F_OK) == -1)
+	if (access(name, R_OK|W_OK|X_OK|F_OK) == -1) {
+		errno = ENOENT;
 		return -1;
+	}
 	snprintf(str, 255, "%s/clusters.data", name);
-	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1)
+	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1) {
+		errno = ENOENT;
 		return -1;
+	}
 	snprintf(str, 255, "%s/clusters.meta", name);
-	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1)
+	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1) {
+		errno = ENOENT;
 		return -1;
+	}
 
 	/* Place the .lock file, write pid. */
 	snprintf(str, 255, "%s/.lock", name);
@@ -147,6 +154,7 @@ int swapfile_open(char *name, int flags)
 	snprintf(str, 255, "%s/clusters.meta", name);
 	swap.clusters_meta_base = strdup(str);
 	INIT_LIST_HEAD(&swap.fds);
+	swap.fsck = 0;
 
 	/* Initialize cluster subsystem. */
 	if (cluster_init(32, 100*1024*1024) == -1)
@@ -189,6 +197,7 @@ void swapfile_close()
 	swap.files_base = NULL;
 	swap.clusters_data_base = NULL;
 	swap.clusters_meta_base = NULL;
+	swap.fsck = 0;
 }
 
 /* Tries to create an empty swapfile on name of size size. */
@@ -208,6 +217,94 @@ int swapfile_creat(char *name, size_t size)
 	return 0;
 }
 
+/* Tries to recover from an "unclean shutdown". */
+int swapfile_fsck(char *name)
+{
+	char str[256];
+	FILE *f;
+	int pid;
+	SWDIR *dir;
+	struct sw_stat st;
+	swfd_t fd;
+	long nm;
+
+	/* Can we open the swapfile w/o check? */
+	if (swapfile_open(name, 0) == 0) {
+		swapfile_close();
+		return 0;
+	}
+
+	/* No swapfile? */
+	if (errno == ENOENT)
+		return -1;
+
+	/* Not EBUSY (unclean)? */
+	if (errno != EBUSY)
+		return -1;
+
+	/* Try to recover - clear stale lock. */
+	snprintf(str, 255, "%s/.lock", name);
+	if (!(f = fopen(str, "r+")))
+		return -1;
+	fscanf(f, "%i", &pid);
+	if (kill(pid, 0) == -1 && errno != ESRCH) {
+		errno = EBUSY;
+		return -1;
+	}
+
+	/* Overwrite stale .lock with our own identification */
+	fseek(f, 0, SEEK_SET);
+	fprintf(f, "%li\nGLAME " VERSION "\n", (long)getpid());
+	fclose(f);
+
+	/* Initialize swap structure. */
+	swap.files_base = strdup(name);
+	snprintf(str, 255, "%s/clusters.data", name);
+	swap.clusters_data_base = strdup(str);
+	snprintf(str, 255, "%s/clusters.meta", name);
+	swap.clusters_meta_base = strdup(str);
+	INIT_LIST_HEAD(&swap.fds);
+
+	/* Initialize cluster subsystem. */
+	if (cluster_init(32, 100*1024*1024) == -1)
+		return -1;
+
+
+	/* We are now ready for a few checks of the filesystems
+	 * integrity. */
+	swap.fsck = 1;
+
+	/* Loop over all files and try to "touch" them. */
+	dir = sw_opendir();
+	while ((nm = sw_readdir(dir)) != -1) {
+		/* Try to open the file. */
+		if ((fd = sw_open(nm, O_RDONLY, TXN_NONE)) == -1) {
+			fprintf(stderr, "Error in opening file %li - deleting.\n", nm);
+			goto killit;
+		}
+		/* Seek through all clusters. */
+		do {
+			if (sw_fstat(fd, &st) == -1) {
+				fprintf(stderr, "Error in stat'ing file %li - deleting.\n", nm);
+				goto killit;
+			}
+			if (sw_lseek(fd, st.cluster_size, SEEK_CUR) != st.cluster_start + st.cluster_size) {
+				fprintf(stderr, "Error seeking file %li - deleting.\n", nm);
+				goto killit;
+			}
+		} while (st.offset != st.size - st.cluster_size);
+		sw_close(fd);
+		continue;
+	killit:
+		sw_unlink(nm);
+		continue;
+	}
+	sw_closedir(dir);
+
+	swapfile_close();
+
+	return 0;
+}
 
 
 /**********************************************************************
@@ -756,7 +853,8 @@ int sw_fstat(swfd_t fd, struct sw_stat *buf)
 	buf->size = _fd->file->clusters->size;
 	buf->mode = _fd->mode;
 	buf->offset = _fd->offset;
-	if ((c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+	if (_fd->offset < _fd->file->clusters->size) {
+	        c = file_getcluster(_fd->file, _fd->offset, &coff, 0);
 		buf->cluster_start = coff;
 		buf->cluster_end = coff + c->size - 1;
 		buf->cluster_size = c->size;

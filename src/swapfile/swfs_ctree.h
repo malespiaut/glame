@@ -88,7 +88,7 @@ struct ctree {
 
 #define CID(h, off) (((u32 *)(h))[3*(1<<(h)->height) + (off)])
 #define CSIZE(h, off) (((s32 *)(h))[2*(1<<(h)->height) + (off)])
-#define CSUM(h, level, off) (((s64 *)(h))[(1<<(level)) + off])
+#define CSUM(h, level, off) (((s64 *)(h))[(1<<(level)) + (off)])
 
 
 /* Find the position of the cluster that contains offset in the
@@ -136,6 +136,11 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
  * longer needed for the removed clusters. */
 static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
 				  u32 *cid, s32 *csize);
+
+
+/* Checks the consistency of the tree. Returns 0 on consistent state,
+ * -1 otherwise. */
+int ctree_check(struct ctree *t);
 
 
 #endif

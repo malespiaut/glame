@@ -334,7 +334,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			memmove(m, m + offset + cutcnt,
 				c->size - offset - cutcnt);
 			cluster_munmap(m);
-			_cluster_truncate(c, offset);
+			_cluster_truncate(c, c->size - offset - cutcnt);
 			*ct = cluster_get(c->name, 0, c->size);
 		} else if (!ct && ch) {
 			_cluster_truncate(c, offset);

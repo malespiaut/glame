@@ -31,7 +31,10 @@ static struct ctree *ctree_alloc(long cnt);
 
 
 static void ctree_mark_end(struct ctree *t);
-#define ctree_set_cnt(t, c) do { (t)->cnt = c; ctree_mark_end(t); } while (0)
+#define ctree_set_cnt(t, c) do { \
+        (t)->cnt = c; \
+	ctree_mark_end(t); \
+} while (0)
 static void ctree_build_partial(struct ctree *t, long pos, long cnt);
 #define ctree_build(t) ctree_build_partial(t, 0, (t)->cnt)
 
@@ -198,16 +201,67 @@ static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
 	replcnt = h->cnt - pos - cnt;
 
 	/* Move the tail cid/csize over the deleted cid/csize part. */
-	memmove(&CID(h, pos), &CID(h, pos+cnt), replcnt*sizeof(u32));
-	memmove(&CSIZE(h, pos), &CSIZE(h, pos+cnt), replcnt*sizeof(s32));
+	if (replcnt > 0) {
+		memmove(&CID(h, pos), &CID(h, pos+cnt), replcnt*sizeof(u32));
+		memmove(&CSIZE(h, pos), &CSIZE(h, pos+cnt), replcnt*sizeof(s32));
+	}
 
-	/* Truncate the tree and rebuild the partial tree. */
+	/* Truncate the tree and rebuild the partial tree.
+	 * If we changed the tail (replcnt == 0, pos == h->cnt), we
+	 * need to at least rebuild the last item. */
 	ctree_set_cnt(h, h->cnt - cnt);
+	if (replcnt == 0) {
+		replcnt++;
+		if (pos != 0)
+			pos--;
+	}
 	ctree_build_partial(h, pos, replcnt);
 
 	return h;
 }
 
+
+int ctree_check(struct ctree *t)
+{
+	u32 h = t->height;
+	long from, to;
+	long i;
+
+	/* Check size/h/cnt consistency. */
+	if (CTREEMAXCNT(h) < t->cnt || t->size < t->cnt) {
+		DPRINTF("Inconsistent height %li, cnt %li, size %li\n",
+			(long)h, (long)t->cnt, (long)t->size);
+		return -1;
+	}
+
+	/* Zero height tree is ready with sizes only. */
+	if (h == 0 || t->cnt == 0)
+		return 0;
+
+	/* Check the tree spanned over the csizes array,
+	 * first s32 sizes sum. */
+	from = 0;
+	to = (t->cnt - 1)/2;
+	for (i=from; i<=to; i++)
+		if (CSUM(t, h-1, i) != (CSIZE(t, 2*i) + CSIZE(t, 2*i+1))) {
+			DPRINTF("CSUM(t, %li, %li) != CSIZE(t, %li) + CSIZE(t, %li)\n", h-1, i, 2*i, 2*i+1);
+			return -1;
+		}
+
+	/* Second the rest of the tree, s64 sums. */
+	while (--h) {
+		from /= 2;
+		to /= 2;
+		for (i=from; i<=to; i++)
+			if (CSUM(t, h-1, i) != (CSUM(t, h, 2*i)
+						+ CSUM(t, h, 2*i+1))) {
+				DPRINTF("CSUM(t, %li, %li) != CSUM(t, %li, %li) + CSUM(t, %li, %li)\n", h-1, i, h, 2*i, h, 2*i+1);
+				return -1;
+			}
+	}
+
+	return 0;
+}
 
 
 /****************************************************************
@@ -268,6 +322,10 @@ static void ctree_mark_end(struct ctree *t)
 {
 	long pos = t->cnt - 1;
 	long h = t->height;
+
+	/* Set the cluster id after the last one to 0. */
+	if (t->cnt < CTREEMAXCNT(t->height))
+		CID(t, t->cnt) = 0;
 
 	/* Empty tree is special - we cant walk it for
 	 * element -1... */

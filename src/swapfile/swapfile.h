@@ -97,6 +97,9 @@ void swapfile_close();
 /* Tries to create an empty swapfile on name of size size. */
 int swapfile_creat(char *name, size_t size);
 
+/* Tries to recover from unclean shutdown. */
+int swapfile_fsck(char *name);
+
 
 
 /**********************************************************************

@@ -300,7 +300,9 @@ static int file_truncate(struct swfile *f, s64 size)
 	if (f->clusters->size > size) {
 		/* Start from the last cluster, removing complete
 		 * truncated clusters. */
-		while (f->clusters->size - CSIZE(f->clusters, f->clusters->cnt-1)) {
+		while (f->clusters->cnt > 0
+		       && (f->clusters->size
+			   - CSIZE(f->clusters, f->clusters->cnt-1)) >= size) {
 			/* Get the cluster for later deleting the file
 			 * reference. */
 			if (!(c = cluster_get(CID(f->clusters, f->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(f->clusters, f->clusters->cnt-1))))
@@ -410,24 +412,35 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 	 * results as invariants after each step. */
 	cpos_first = ctree_find(f->clusters, pos, &coff_first);
 	cpos_last = ctree_find(f->clusters, pos+count, &coff_last);
-	if (cpos_first == -1 || cpos_last == -1)
+	if (cpos_first == -1 || f->clusters->size < pos+count)
 		DERROR("pos/count outside of file");
 
-	/* We may optimize the necessary (coff_first != pos) head-fixing,
-	 * if pos+count is not inside the first cluster. */
+	/* It can be that cpos_last is -1 and coff_last undefined (cut of
+	 * tail of the file) - now we have to set it to the "virtually"
+	 * one-after-last cluster id / size of the file. */
+	if (cpos_last == -1) {
+		cpos_last = f->clusters->cnt;
+		coff_last = f->clusters->size;
+	}
+
+	/* First we cut off the tail of the first cluster if this is
+	 * possible/necessary so the cut-start after this operation is
+	 * on a cluster boundary.
+	 * The condition is "start not already on cluster boundary" and
+	 * "end not in the first cluster". */
 	if (coff_first != pos
 	    && coff_first+CSIZE(f->clusters, cpos_first) <= pos+count) {
 		dcnt = CSIZE(f->clusters, cpos_first) - (pos-coff_first);
 		_file_cluster_truncatetail(f, cpos_first, pos - coff_first);
-		pos += dcnt;
 		count -= dcnt;
 		coff_last -= dcnt;
 		coff_first = pos;
 		cpos_first++;
 	}
 
-	/* We may optimize the necessary (coff_last != pos+count)
-	 * tail-fixing, if pos is not inside the last cluster (>coff_last). */
+	/* For the last cluster we can do the same (cutting off the head
+	 * if the start position is not inside (at exactly the first
+	 * byte is allowed) the last cluster. */
 	if (coff_last != pos+count
 	    && pos <= coff_last) {
 		dcnt = CSIZE(f->clusters, cpos_last)
@@ -438,20 +451,34 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 		count -= dcnt;
 	}
 
-	/* We may have to do an inside-cluster cut now, if
-	 * cpos_first == cpos_last. */
-	if (cpos_first == cpos_last) {
+	/* There are now five cases left:
+	 * - nothing left to do, count is zero
+	 * - start position is on cluster boundary and end position is
+	 *   not, but is in the same cluster
+	 * - end position is on cluster boundary and start position is
+	 *   not, but is in the previous cluster
+	 * - start and end position are not on cluster boundary but
+	 *   in the same cluster
+	 * - start and end position are on cluster boundaries
+	 */
+	if (count == 0)
+		;
+	else if (coff_first == pos && coff_last != pos + count
+		 && cpos_first == cpos_last)
+		_file_cluster_truncatehead(f, cpos_first,
+					   CSIZE(f->clusters, cpos_first)-count);
+	else if (coff_first != pos && coff_last == pos + count
+		 && cpos_first + 1 == cpos_last)
+		_file_cluster_truncatetail(f, cpos_first,
+					   CSIZE(f->clusters, cpos_first)-count);
+	else if (coff_first != pos && coff_last != pos + count
+		 && cpos_first == cpos_last)
 		_file_cluster_split(f, cpos_first, pos - coff_first, count);
-		count -= count;
-		cpos_first++;
-		cpos_last++;
-		coff_last -= count;
-	}
-
-	/* Last, if necessary, remove complete clusters from cpos_first
-	 * to (excluding) cpos_last. */
-	if (cpos_first < cpos_last)
+	else if (coff_first == pos && coff_last == pos + count
+		 && cpos_first < cpos_last)
 		_file_cluster_delete(f, cpos_first, cpos_last-cpos_first);
+	else
+		PANIC("Duh! Failed to handle case!?");
 
 	UNLOCKFILE(f);
 	file_check(f);
@@ -766,6 +793,11 @@ static void _file_check(struct swfile *f)
 	if (!f)
 		return;
 
+	/* Check ctree consistency. */
+	if (ctree_check(f->clusters) == -1)
+		PANIC("Inconsistent cluster tree");
+
+	/* Loop through files clusters and "touch" them. */
 	for (i=0; i<f->clusters->cnt; i++) {
 		if (!(c = cluster_get(CID(f->clusters, i),
 				      CLUSTERGET_READFILES,
