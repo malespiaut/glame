@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.28 2001/04/20 08:08:24 richi Exp $
+ * $Id: basic_sample.c,v 1.29 2001/04/20 13:44:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -169,7 +169,7 @@ static int mix(filter_t *n, int drop)
 		for (i=0; i<nr; i++) {
 			/* EOF or fifo full? */
 			if (!p[i].in
-			    || p[i].fifo_size >= GLAME_WBUFSIZE)
+			    || p[i].fifo_size >= GLAME_MAX_BUFSIZE)
 				continue;
 			fifo_full = 0;
 			FD_SET(p[i].in->dest_fd, &rset);

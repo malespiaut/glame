@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.19 2001/04/11 08:37:27 richi Exp $
+ * $Id: basic.c,v 1.20 2001/04/20 13:44:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -196,7 +196,7 @@ static int one2n_f(filter_t *n)
 				maxfd = p[i].out->source_fd;
 		}
 		FD_ZERO(&rset);
-		if (!eof && oneempty && !(maxfifosize > GLAME_WBUFSIZE)) {
+		if (!eof && oneempty && !(maxfifosize > GLAME_MAX_BUFSIZE)) {
 			FD_SET(in->dest_fd, &rset);
 			if (in->dest_fd > maxfd)
 				maxfd = in->dest_fd;
@@ -205,7 +205,7 @@ static int one2n_f(filter_t *n)
 			break;
 		nrsel++;
 		res = select(maxfd+1,
-			     eof || !oneempty || (maxfifosize > GLAME_WBUFSIZE) ? NULL : &rset,
+			     eof || !oneempty || (maxfifosize > GLAME_MAX_BUFSIZE) ? NULL : &rset,
 			     empty ? NULL : &wset, NULL, NULL);
 		if (res == -1)
 			perror("select");
@@ -219,7 +219,7 @@ static int one2n_f(filter_t *n)
 			if (!(buf = fbuf_get(in)))
 			        eof = 1;
 			for (i=0; i<nr-1; i++) {
-				if (p[i].fifo_size > GLAME_WBUFSIZE)
+				if (p[i].fifo_size > GLAME_MAX_BUFSIZE)
 					DPRINTF("fifo size is %i\n", p[i].fifo_size);
 				fbuf_ref(buf);
 				add_feedback(&p[i].fifo, buf);
