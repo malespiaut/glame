@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.22 2001/06/22 10:34:43 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.23 2001/07/02 08:20:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -354,10 +354,7 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 void
 glame_filtereditgui_install_accels(GtkWidget* window)
 {
-	if (glame_accel_install(window, "filteredit", NULL) == -1){
-                DPRINTF("accel install failed\n");
-		return;
-	}
+	glame_accel_install(window, "filteredit", NULL);
 }
 
 
