@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.6 2001/06/13 09:25:42 richi Exp $
+ * $Id: glame_accelerator.c,v 1.7 2001/06/18 08:14:20 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -121,6 +121,27 @@ int glame_accel_init()
 	return 0;
 }
 
+void glame_accel_sync()
+{
+	xmlDocPtr doc;
+	xmlChar *xml;
+	int size;
+	char fname[256];
+	FILE *f;
+
+	snprintf(fname, 255, "%s/.glame-accels", getenv("HOME"));
+	if (!(f = fopen(fname, "w")))
+		return;
+
+	doc = glame_accels_to_xml();
+	xmlDocDumpMemory(doc, &xml, &size);
+	DPRINTF("%s\n", xml);
+	fwrite(xml, size, 1, f);
+	fclose(f);
+	free(xml);
+	xmlFreeDoc(doc);
+}
+
 static int add_accels(const char *scope, xmlNodePtr node)
 {
 	DPRINTF("Recursing for scope %s\n", scope);
@@ -232,10 +253,77 @@ int glame_add_accels_from_file(const char *filename)
 	return res;
 }
 
+static xmlNodePtr getScopeNode(xmlNodePtr root, const char *scope,
+			       struct accel *accel)
+{
+	char accel_scope[256];
+	char combined_scope[256];
+	char *node_scope, *p;
+	xmlNodePtr node;
+
+	strncpy(accel_scope, accel->spec, 255);
+	if ((p = strrchr(accel_scope, '/')))
+		p[1] = '\0';
+	DPRINTF("Current scope >%s< searching for >%s<\n",
+		scope, accel_scope);
+	if (strcmp(scope, accel_scope) == 0)
+		return root;
+
+#ifndef xmlChildrenNode
+        node = root->childs;
+#else
+        node = root->xmlChildrenNode;
+#endif
+	while (node) {
+		if (strcmp(node->name, "scope") == 0) {
+			node_scope = xmlGetProp(node, "scope");
+			if (!node_scope)
+				return NULL;
+			snprintf(combined_scope, 255,
+				 "%s%s/", scope, node_scope);
+			if (strncmp(combined_scope, accel_scope,
+				    strlen(combined_scope)) == 0)
+				break;
+		} else
+			/* Ignore */ ;
+
+		node = node->next;
+	}
+
+	if (!node) {
+		/* Need to create the scope node. */
+		node = xmlNewChild(root, NULL, "scope", NULL);
+		node_scope = &accel_scope[strlen(scope)];
+		*strchr(node_scope, '/') = '\0';
+		xmlSetProp(node, "scope", node_scope);
+		DPRINTF("Created scope node >%s<\n", node_scope);
+		snprintf(combined_scope, 255, "%s%s/", scope,
+			 node_scope);
+	}
+
+	return getScopeNode(node, combined_scope, accel);
+}
+
 xmlDocPtr glame_accels_to_xml()
 {
-	/* FIXME */
-	return NULL;
+	xmlDocPtr doc;
+	xmlNodePtr docroot, scope, entry;
+	struct accel *accel, *dummy;
+	char s[256];
+
+	doc = xmlNewDoc("1.0");
+	docroot = xmlNewNode(NULL, "glame-accels");
+	glame_accel_safe_foreach(dummy, accel) {
+		scope = getScopeNode(docroot, "", accel);
+		entry = xmlNewChild(scope, NULL, "accel", NULL);
+		snprintf(s, 255, "%i", accel->state);
+		xmlSetProp(entry, "state", s);
+		xmlSetProp(entry, "spec", strrchr(accel->spec, '/')+1);
+		xmlNodeSetContent(entry, accel->action);
+	}
+	xmlDocSetRootElement(doc, docroot);
+
+	return doc;
 }
 
 
