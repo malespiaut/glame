@@ -8,7 +8,7 @@
   <!ENTITY dhusername  "Daniel Kobras">
   <!ENTITY dhucpackage "<refentrytitle>GLAME</refentrytitle>">
   <!ENTITY dhpackage   "<application>glame</application>">
-  <!ENTITY dhcmd       "<command>cglame</command>">
+  <!ENTITY dhcmd       "<command>glame</command>">
 
   <!ENTITY debian      "<productname>Debian GNU/Linux</productname>">
   <!ENTITY gnu         "<acronym>GNU</acronym>">
@@ -24,7 +24,7 @@
       &dhsurname;
     </author>
     <copyright>
-      <year>2000, 2001</year>
+      <year>2001</year>
       <holder>&dhusername;</holder>
     </copyright>
     &dhdate;
@@ -42,9 +42,6 @@
   <refsynopsisdiv>
     <cmdsynopsis>
 	&dhcmd;
-
-      <arg><arg><option>-c</option></arg> <replaceable>swapfile</replaceable>
-	</arg> 
     </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
@@ -56,39 +53,31 @@
 	in the &gnu; <application>Info</application> format; see below.</para>
 
     <para>&dhcmd; is a program that provides you with
-	a flexible command line interface to edit and manipulate audio
-	streams.  It uses a scripting language built on top of Scheme that
-	is described in &dhpackage;'s
-	<application>Info</application> manual.</para>
+	an easy-to-use and intuitive graphical frontend to edit and manipulate
+	audio streams.  At least, it's meant to be easy-to-use and intuitive...
+	&dhcmd; comprises of three parts: a main window, a wave editor, and
+	a filternetwork editor.</para>
 
-  </refsect1>
-  <refsect1>
-    <title>OPTIONS</title>
+    <para>The main window offers a view of the so-called swapfile,
+	&dhpackage;'s backing store that contains a hierarchical view of
+	all tracks and projects currently edited.  The wave editor offers a
+	time line view of one or more audio tracks and can perform simple
+	editing tasks like cut, copy, and paste.  For more sophisticated
+	actions, it interfaces with the filternetwork editor that allows
+	grouping of a wide range of audio plugins and filters.  Both the
+	wave and the filternetwork editor can be started from the main
+	window via a context-senitive menu usually attached to the right
+	mouse button and an entry in the menu bar on top,
+	respectively.</para>
 
-    <variablelist>
-      <varlistentry>
-        <term><replaceable>swapfile</replaceable>
-        </term>
-        <listitem>
-          <para>File (directory actually) that acts as &dhcmd;'s backing store.
-                If you do not specify a swapfile, editing capabilities are
-                limited by available memory.</para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
-        <term><option>-c</option>
-        </term>
-        <listitem>
-          <para>If the given swapfile does not exist yet, this option will
-                tell &dhcmd; to create it.</para>
-        </listitem>
-      </varlistentry>
-    </variablelist>
+    <para>For more thorough descriptions on &dhcmd; and its possible uses
+	please see the <application>Info</application> manual.</para>
+
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
 
-    <para><command>glame</command> (1).</para>
+    <para><command>cglame</command> (1).</para>
 
     <para>The program is documented fully in <citetitle>The GLAME
       Manual</citetitle> available via the
