@@ -7,7 +7,6 @@ Known BUGS that should be fixed before 0.6.0:
 - import and export dialogs need to be finished
 - fix glame_audiofile to support virtual interface
 - intl for other than main widget needs to be done
-- looping support for swapfile_in filter and GUI
 - maybe disable timeline
 - remove plugin install warning, if versioning works ok
 - better documentation for cglame, tutorial like
@@ -33,6 +32,7 @@ plugins/
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
 	- fix filters for RT param update
+	- make offset/size params of swapfile_in RT
 
 hash/
 	[all]
@@ -106,6 +106,8 @@ gui/waveeditgui
 	- show actual sample value/rms/position for marker
 	- improve recording, add rec/play/mute buttons for
 	  selective full duplex recording/playback
+	- poll for selection change at play time, updating
+	  swin params
 
 gui/libgtkwaveform
 	[xwolf]
