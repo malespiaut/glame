@@ -1041,11 +1041,21 @@ gtk_wave_view_button_release_event (GtkWidget *widget,
  
   if (event->type == GDK_BUTTON_RELEASE)
     {
-      x = ((GdkEventButton *)event)->x;
+      gint xint, yint;
+      GdkModifierType state;
+
+      gdk_window_get_pointer (widget->window, &xint, &yint, &state);
+      x = xint;
+      //x = ((GdkEventButton *)event)->x;
     }
   else 
     {
-      x = ((GdkEventCrossing *)event)->x;
+      gint xint, yint;
+      GdkModifierType state;
+
+      gdk_window_get_pointer (widget->window, &xint, &yint, &state);
+      x = xint;
+      //x = ((GdkEventCrossing *)event)->x;
     }
  
   /* dragging outside the border */
@@ -1187,7 +1197,7 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
       gint xint, yint;
       GdkModifierType state;
 
-      gdk_window_get_pointer (event->window, &xint, &yint, &state);
+      gdk_window_get_pointer (widget->window, &xint, &yint, &state);
       x = xint;
     }
   else
@@ -1394,6 +1404,8 @@ on_wave_buffer_insert_data (GtkWidget *widget, GRange *range)
 
   if (waveview->select_left >= range->left)
     waveview->select_left += width;
+
+  gtk_wave_view_update_units (waveview);
 }
 
 
@@ -1419,6 +1431,8 @@ on_wave_buffer_delete_data (GtkWidget *widget, GRange *range)
     waveview->select_right -= width;
   else if (waveview->select_right >= range->left)
     waveview->select_right = range->left - 1;
+
+  gtk_wave_view_update_units (waveview);
 }
 
 
