@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.44 2001/04/15 17:07:32 mag Exp $
+ * $Id: file_io.c,v 1.45 2001/04/17 17:24:23 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -73,7 +73,11 @@ int af_write_f(filter_t *n);
 #endif
 
 #ifdef HAVE_LAME
-#include "lame.h"
+#ifdef HAVE_LAME_H
+#include <lame.h>
+#elif defined HAVE_LAME_LAME_H
+#include <lame/lame.h>
+#endif
 int lame_read_prepare(filter_t *n, const char *filename);
 int lame_read_connect(filter_t *n, filter_pipe_t *p);
 int lame_read_f(filter_t *n);

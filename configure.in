@@ -200,7 +200,11 @@ fi
 
 dnl check for lame - richi FIX it, if you don't like it :)
 AC_CHECK_LIB(mp3lame, lame_decode, lame=yes, lame=no)
-AC_CHECK_HEADER(lame.h,,lame=no)
+lame_head=no
+AC_CHECK_HEADERS([lame/lame.h lame.h],lame_head=yes,)
+if test $lame_head = no; then
+	lame=no
+fi
 if test $lame = yes; then
 	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lmp3lame"
 	AC_DEFINE(HAVE_LAME)
