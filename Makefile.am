@@ -1,5 +1,3 @@
-AUTOMAKE_OPTIONS=foreign
-
 SUBDIRS = src doc data
 
 EXTRA_DIST = TODO MAINTAINERS autogen.sh
