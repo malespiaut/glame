@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.61 2001/09/17 11:47:12 nold Exp $
+ * $Id: file_io.c,v 1.62 2001/09/19 08:33:15 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -885,7 +885,8 @@ int af_read_prepare(filter_t *n, const char *filename)
 	sprintf(info, "%d bit", RWA(n).sampleWidth);
 	filterparam_set_property(fparam,"#quality", info);
 
-	RWA(n).frameSize = afGetFrameSize(RWA(n).file, AF_DEFAULT_TRACK, 1);
+	RWA(n).frameSize = (int) afGetVirtualFrameSize(RWA(n).file,
+	                                         AF_DEFAULT_TRACK, 1);
 	sprintf(info, "%d", RWA(n).frameSize);
 	filterparam_set_property(fparam,"#framesize", info);
 
