@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.12 2000/08/14 08:46:01 richi Exp $
+ * $Id: list.h,v 1.13 2000/09/25 08:57:17 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -148,7 +148,7 @@ static inline void __list_del(struct list_head * prev,
 /* list_del_init() deletes the element from the list and
  * reinitializes it, so list_empty() on it will return true. */
 #ifndef NDEBUG
-#define list_del(e) do { \
+#define list_del_init(e) do { \
         struct list_head *___node = (e); \
 	if (___node->next == ___node) \
 		DERROR("Removing already removed list item"); \
@@ -156,7 +156,7 @@ static inline void __list_del(struct list_head * prev,
 	INIT_LIST_HEAD(___node); \
 } while (0)
 #else
-#define list_del(e) do { \
+#define list_del_init(e) do { \
         struct list_head *___node = (e); \
 	__list_del(___node->prev, ___node->next); \
 	INIT_LIST_HEAD(___node); \
