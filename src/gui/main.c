@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.76 2001/07/27 08:39:48 richi Exp $
+ * $Id: main.c,v 1.77 2001/08/07 09:12:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -184,7 +184,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 
 	if ((import = plugin_get("import"))
 	    && (operation = plugin_query(import, PLUGIN_GPSMOP))) {
-		if (operation(gpsm_root(), 0, 0) == -1)
+		if (operation((gpsm_item_t *)gpsm_root(), 0, 0) == -1)
 			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error importing")));
 	} else {
 
@@ -242,7 +242,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 				filterpipe_sample_rate(pipe),
 				filterpipe_sample_hangle(pipe));
 		i++;
-	} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
+	} while (1);
 
 	channels = i;
 	net_prepare_bulk();
@@ -465,27 +465,27 @@ preferences_cb(GtkWidget * wid, void * bla)
         vbox = gtk_vbox_new(FALSE,1);
         gtk_widget_show(vbox);
 
-        notelabel = gtk_label_new("You need lots of diskspace available at the swapfile location.");
+        notelabel = gtk_label_new(_("You need lots of diskspace available at the swapfile location."));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
-        notelabel = gtk_label_new("GLAME doesnt handle running out of disk space very well.");
+        notelabel = gtk_label_new(_("GLAME doesnt handle running out of disk space very well."));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
         entry = gnome_file_entry_new("swapfilepath", "Swapfilepath");
-        create_label_widget_pair(vbox, "Swapfile Path", entry);
+        create_label_widget_pair(vbox, _("Swapfile Path"), entry);
 	cfg = gnome_config_get_string("swapfile/defaultpath");
         path = alloca(256);
 	strncpy(path, cfg, 255);
 	g_free(cfg);
         gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), path);
         gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, &path);
-        notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
+        notelabel = gtk_label_new(_("NOTE: Swapfile settings take effect after restart only"));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
 	maxundo = gnome_config_get_int("swapfile/maxundo");
 	maxundobuf = alloca(256);
 	snprintf(maxundobuf, 255, "%d", maxundo);
-	create_label_edit_pair(vbox, "Depth of undo stack", "prefs::maxundo",
+	create_label_edit_pair(vbox, _("Depth of undo stack"), "prefs::maxundo",
 			       maxundobuf);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
 
@@ -499,7 +499,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
 	numberbuffer = alloca(256);
 	snprintf(numberbuffer, 255, "%d", nPopupTimeout);
-	create_label_edit_pair(vbox, "Property popup timeout [ms]", "popupTimeout",
+	create_label_edit_pair(vbox, _("Property popup timeout [ms]"), "popupTimeout",
 			       numberbuffer);
 
 	mac = gnome_config_get_bool("edit_filter/macMode");
@@ -508,7 +508,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
 	gtk_signal_connect(GTK_OBJECT(macMode),"toggled",(GtkSignalFunc)toggle_cb,&mac);
 	gtk_widget_show(macMode);
-	create_label_widget_pair(vbox,"Mac mode (one mouse button mode)",macMode);
+	create_label_widget_pair(vbox, _("Mac mode (one mouse button mode)"),macMode);
 
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
 
@@ -522,16 +522,14 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* input filter */
 	combo_items = NULL;
-	if (plugin_get("audio_in"))
-		combo_items = g_list_append(combo_items, _("audio_in"));
 	if (plugin_get("oss_audio_in"))
-		combo_items = g_list_append(combo_items, _("oss_audio_in"));
+		combo_items = g_list_append(combo_items, "oss_audio_in");
 	if (plugin_get("esd_audio_in"))
-		combo_items = g_list_append(combo_items, _("esd_audio_in"));
+		combo_items = g_list_append(combo_items, "esd_audio_in");
 	if (plugin_get("alsa_audio_in"))
-		combo_items = g_list_append(combo_items, _("alsa_audio_in"));
+		combo_items = g_list_append(combo_items, "alsa_audio_in");
 	if (plugin_get("sgi_audio_in"))
-		combo_items = g_list_append(combo_items, _("sgi_audio_in"));
+		combo_items = g_list_append(combo_items, "sgi_audio_in");
 	if (combo_items) {
 		combo = gtk_combo_new();
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
@@ -544,32 +542,30 @@ preferences_cb(GtkWidget * wid, void * bla)
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
 		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &ainplugin);
 		gtk_widget_show(GTK_COMBO(combo)->entry);
-		create_label_widget_pair(vbox, "Default input plugin (audio_in)", combo);
+		create_label_widget_pair(vbox, _("Default input plugin (audio_in)"), combo);
 
 		/* input device */
 		aindev = alloca(256);
 		cfg = gnome_config_get_string("audio_io/input_dev");
 		strncpy(aindev, cfg, 255);
 		g_free(cfg);
-		create_label_edit_pair(vbox, "Default input device", "aindev", aindev);
+		create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
 	} else {
-		combo = gtk_label_new("No audio input plugin");
+		combo = gtk_label_new(_("No audio input plugin"));
 		gtk_container_add(GTK_CONTAINER(vbox), combo);
 		gtk_widget_show(combo);
 	}
 
 	/* output filter */
 	combo_items = NULL;
-	if (plugin_get("audio_out"))
-		combo_items = g_list_append(combo_items, _("audio_out"));
 	if (plugin_get("oss_audio_out"))
-		combo_items = g_list_append(combo_items, _("oss_audio_out"));
+		combo_items = g_list_append(combo_items, "oss_audio_out");
 	if (plugin_get("esd_audio_out"))
-		combo_items = g_list_append(combo_items, _("esd_audio_out"));
+		combo_items = g_list_append(combo_items, "esd_audio_out");
 	if (plugin_get("alsa_audio_out"))
-		combo_items = g_list_append(combo_items, _("alsa_audio_out"));
+		combo_items = g_list_append(combo_items, "alsa_audio_out");
 	if (plugin_get("sgi_audio_out"))
-		combo_items = g_list_append(combo_items, _("sgi_audio_out"));
+		combo_items = g_list_append(combo_items, "sgi_audio_out");
 	if (combo_items) {
 		combo = gtk_combo_new();
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
@@ -582,17 +578,17 @@ preferences_cb(GtkWidget * wid, void * bla)
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
 		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &aoutplugin);
 		gtk_widget_show(GTK_COMBO(combo)->entry);
-		create_label_widget_pair(vbox, "Default output plugin (audio_out)", combo);
+		create_label_widget_pair(vbox, _("Default output plugin (audio_out)"), combo);
 
 		/* output device */
 		aoutdev = alloca(256);
 		cfg = gnome_config_get_string("audio_io/output_dev");
 		strncpy(aoutdev, cfg, 255);
 		g_free(cfg);
-		create_label_edit_pair(vbox, "Default output device",
+		create_label_edit_pair(vbox, _("Default output device"),
 				       "aoutdev", aoutdev);
 	} else {
-		combo = gtk_label_new("No audio output plugin");
+		combo = gtk_label_new(_("No audio output plugin"));
 		gtk_container_add(GTK_CONTAINER(vbox), combo);
 		gtk_widget_show(combo);
 	}
@@ -601,7 +597,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	wbufsize = gnome_config_get_int("filter/wbufsize");
 	wbufsizebuf = alloca(256);
 	snprintf(wbufsizebuf, 255, "%d", wbufsize);
-	create_label_edit_pair(vbox, "Size hint for audio buffers [samples]", "prefs::wbufsize",
+	create_label_edit_pair(vbox, _("Size hint for audio buffers [samples]"), "prefs::wbufsize",
 			       wbufsizebuf);
 
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box), vbox,
