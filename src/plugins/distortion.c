@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.7 2001/07/03 10:41:56 mag Exp $ 
+ * $Id: distortion.c,v 1.8 2001/07/07 12:28:07 mag Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -38,10 +38,10 @@ static int distortion_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
-	filter_param_t *param;
+	filter_param_t *param, *preg_param, *fxg_param, *clip_param, *asym_param;
 	
 	SAMPLE  *s, w;
-	int	i, mode;
+	int	i;
 	float	pregain, pos_clip, neg_clip, asym, clip, sign, gain, fxgain;
 	
 	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
@@ -49,20 +49,15 @@ static int distortion_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no in/output connected");
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "pregain")))
-			pregain=filterparam_val_float(param);
+	preg_param = filterparamdb_get_param(filter_paramdb(n), "pregain");
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "fxgain")))
-			fxgain=filterparam_val_float(param);
+	fxg_param = filterparamdb_get_param(filter_paramdb(n), "fxgain");
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "clip")))
-			clip=filterparam_val_float(param);
+	clip_param = filterparamdb_get_param(filter_paramdb(n), "clip");
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "asym")))
-			asym=filterparam_val_float(param);
+	asym_param = filterparamdb_get_param(filter_paramdb(n), "asym");
 
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "mode")))
-			mode = filterparam_val_int(param);
+	param=filterparamdb_get_param(filter_paramdb(n), "mode");
 	
 	pos_clip = asym + clip;
 	neg_clip = asym - clip;
@@ -71,7 +66,7 @@ static int distortion_f(filter_t *n)
 	
 	FILTER_AFTER_INIT;
 	
-	switch (mode)
+	switch (filterparam_val_int(param))
 	{
 		case 0:
 			goto entry;
@@ -79,20 +74,25 @@ static int distortion_f(filter_t *n)
 		case 1:
 			goto entry1;
 			break;
-
 		case 2: 
-			pregain *= M_PI;
-			if (pregain < M_PI*0.5)
-				fxgain *= 1.0/sinf(clip);
-			gain = 1.0 / (1.0 + fxgain);
 			goto entry2;
 			break;
 		default:
 			goto exitus;
 	}
-
+	
 	while (buf) {
 		FILTER_CHECK_STOP;
+		
+		asym = filterparam_val_float(asym_param);
+		clip = filterparam_val_float(clip_param);
+
+		pregain = filterparam_val_float(preg_param);
+		
+		pos_clip = asym + clip;
+		neg_clip = asym - clip;
+		fxgain = filterparam_val_float(fxg_param);
+		gain = 1.0 / (1.0 + fxgain);
 		
 		/* got an input buffer */
 		s = &sbuf_buf(buf)[0];
@@ -101,6 +101,7 @@ static int distortion_f(filter_t *n)
 			sign = (w >= 0.0 ? 1.0 : -1.0);
 			w *= pregain;
 			w *= w * sign;
+
 			w = (w > pos_clip ? pos_clip :
 				( w < neg_clip ? neg_clip : w));
 			*s += w * fxgain;
@@ -108,6 +109,21 @@ static int distortion_f(filter_t *n)
 		}
 
 		sbuf_queue(out, buf);
+
+		switch (filterparam_val_int(param))
+		{
+			case 0:
+				goto entry;
+				break;
+			case 1:
+				goto entry1;
+				break;
+			case 2: 
+				goto entry2;
+				break;
+			default:
+				goto exitus;
+		}
 entry:
 		buf = sbuf_make_private(sbuf_get(in));
 	};
@@ -117,6 +133,16 @@ entry:
 	/* Here starts the full wave rectifier distortion */
 	while (buf) {
 		FILTER_CHECK_STOP;
+		
+		asym = filterparam_val_float(asym_param);
+		clip = filterparam_val_float(clip_param);
+
+		pregain = filterparam_val_float(preg_param);
+		
+		pos_clip = asym + clip;
+		neg_clip = asym - clip;
+		fxgain = filterparam_val_float(fxg_param);
+		gain = 1.0 / (1.0 + fxgain);
 		
 		/* got an input buffer */
 		s = &sbuf_buf(buf)[0];
@@ -129,6 +155,21 @@ entry:
 		}
 
 		sbuf_queue(out, buf);
+		
+		switch (filterparam_val_int(param))
+		{
+			case 0:
+				goto entry;
+				break;
+			case 1:
+				goto entry1;
+				break;
+			case 2: 
+				goto entry2;
+				break;
+			default:
+				goto exitus;
+		}
 entry1:
 		buf = sbuf_make_private(sbuf_get(in));
 	};
@@ -140,6 +181,20 @@ entry1:
 
 	while (buf) {
 		FILTER_CHECK_STOP;
+
+		pregain = filterparam_val_float(preg_param);
+		fxgain  = filterparam_val_float(fxg_param);
+		clip	= filterparam_val_float(clip_param);
+		asym = filterparam_val_float(asym_param);
+
+		pos_clip = asym + clip;
+		neg_clip = asym - clip;
+		
+		pregain *= M_PI;
+		if (pregain < M_PI*0.5)
+			fxgain *= 1.0/sinf(clip);
+	
+		gain = 1.0 / (1.0 + fxgain);
 		
 		/* got an input buffer */
 		s = &sbuf_buf(buf)[0];
@@ -153,6 +208,21 @@ entry1:
 		}
 
 		sbuf_queue(out, buf);
+		
+		switch (filterparam_val_int(param))
+		{
+			case 0:
+				goto entry;
+				break;
+			case 1:
+				goto entry1;
+				break;
+			case 2: 
+				goto entry2;
+				break;
+			default:
+				goto exitus;
+		}
 entry2:
 		buf = sbuf_make_private(sbuf_get(in));
 	}
