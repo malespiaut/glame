@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.27 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_ops.c,v 1.28 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -77,6 +77,7 @@ static int init_node(filter_t *n)
 			p->dest_fd = fds[0];
 		}
 	}
+	n->launch_context = n->net->launch_context;
 	n->state = STATE_INITIALIZED;
 
 	return 0;
@@ -229,6 +230,7 @@ static void postprocess_node(filter_t *n)
 	}
 	fbuf_free_buffers(&n->buffers);
 
+	n->launch_context = NULL;
 	n->state = STATE_UNDEFINED;
 }
 static void postprocess_network(filter_t *n)
@@ -238,6 +240,7 @@ static void postprocess_network(filter_t *n)
 	filter_foreach_node(net, n)
 		n->ops->postprocess(n);
 	net->state = STATE_UNDEFINED;
+	net->launch_context = NULL;
 }
 
 static int wait_node(filter_t *n)
@@ -285,7 +288,7 @@ struct filter_operations filter_network_ops = {
  */
 
 
-filter_launchcontext_t *_launchcontext_alloc()
+static filter_launchcontext_t *_launchcontext_alloc(int bufsize)
 {
 	filter_launchcontext_t *c;
 
@@ -308,10 +311,11 @@ filter_launchcontext_t *_launchcontext_alloc()
 #endif
 	ATOMIC_INIT(c->result, 0);
 	c->nr_threads = 0;
+	c->bufsize = bufsize;
 	return c;
 }
 
-void _launchcontext_free(filter_launchcontext_t *c)
+static void _launchcontext_free(filter_launchcontext_t *c)
 {
 	if (!c)
 		return;
@@ -332,6 +336,7 @@ void _launchcontext_free(filter_launchcontext_t *c)
 static void *waiter(void *network)
 {
 	filter_t *net = (filter_t *)network;
+	struct launch_context *c;
 	int res;
 	sigset_t sset;
 
@@ -344,19 +349,20 @@ static void *waiter(void *network)
 	res = net->ops->wait(net);
 
 	DPRINTF("starting cleanup\n");
+	c = net->launch_context;
 	net->ops->postprocess(net);
-	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL;
+	_launchcontext_free(c);
 	DPRINTF("finished\n");
 
 	return (void *)res;
 }
 
-int filter_launch(filter_t *net)
+int filter_launch(filter_t *net, int bufsize)
 {
 	/* sigset_t sigs; */
 
-	if (!net || !FILTER_IS_NETWORK(net) || FILTER_IS_LAUNCHED(net))
+	if (!net || !FILTER_IS_NETWORK(net) || net->net
+	    || FILTER_IS_LAUNCHED(net))
 		return -1;
 
 	/* block EPIPE
@@ -365,7 +371,7 @@ int filter_launch(filter_t *net)
 	sigprocmask(SIG_BLOCK, &sigs, NULL); */
 
 	/* init state */
-	if (!(net->launch_context = _launchcontext_alloc()))
+	if (!(net->launch_context = _launchcontext_alloc(bufsize)))
 		return -1;
 #ifndef HAVE_SYSVSEM
 	atomic_set(&net->launch_context->val, 1);

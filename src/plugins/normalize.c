@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.6 2001/07/13 08:58:50 richi Exp $
+ * $Id: normalize.c,v 1.7 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -98,7 +98,7 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 
 		filterparam_set(filterparamdb_get_param(filter_paramdb(ssp), "bsize"), &bsize);
 	
-		if ((filter_launch(net) == -1) ||
+		if ((filter_launch(net, GLAME_BULK_BUFSIZE) == -1) ||
 	    		(filter_start(net) == -1))
 			goto cleanup;
 
@@ -155,7 +155,7 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 				&gain);
 	}
 	
-	if ((filter_launch(net) == -1) ||
+	if ((filter_launch(net, GLAME_BULK_BUFSIZE) == -1) ||
 	    (filter_start(net) == -1))
 		goto cleanup;
 

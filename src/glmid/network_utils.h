@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.5 2001/07/13 08:57:38 richi Exp $
+ * $Id: network_utils.h,v 1.6 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -62,13 +62,6 @@ int net_apply_node(filter_t *net, filter_t *node);
  * correct positioning/mixing, if necessary. Returns the audio out
  * filter on success, NULL on error. */
 filter_t *net_apply_audio_out(filter_t *net);
-
-/* Tunes params to a bulk network operation that does not care about
- * latency. */
-void net_prepare_bulk();
-
-/* Restores tuning params to the default ones set in user preferences. */
-void net_restore_default();
 
 /* Returns an error string for the network, if any. */
 char *net_get_error_str(filter_t *net);

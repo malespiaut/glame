@@ -546,10 +546,13 @@ static SCM gls_get_property(SCM s_obj, SCM s_label)
 
 
 
-static SCM gls_filter_launch(SCM s_net)
+static SCM gls_filter_launch(SCM s_net, SCM s_bufsize)
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_launch");
-	if (filter_launch(scm2filter(s_net)) == -1)
+	SCM_ASSERT(SCM_UNBNDP(s_bufsize) || gh_exact_p(s_bufsize),
+		   s_bufsize, SCM_ARG2, "filter-launch");
+	if (filter_launch(scm2filter(s_net),
+			  SCM_UNBNDP(s_bufsize) ? _GLAME_WBUFSIZE : gh_scm2long(s_bufsize)) == -1)
 		GLAME_THROW();
 	return SCM_UNSPECIFIED;
 }
@@ -946,7 +949,7 @@ int glscript_init_filter()
 	gh_new_procedure1_0("filter-params", gls_filter_params);
 	gh_new_procedure1_0("filter->string", gls_filter_to_string);
 
-	gh_new_procedure1_0("filter-launch", gls_filter_launch);
+	gh_new_procedure1_1("filter-launch", gls_filter_launch);
 	gh_new_procedure1_0("filter-start", gls_filter_start);
 	gh_new_procedure1_0("filter-pause", gls_filter_pause);
 	gh_new_procedure1_0("filter-wait", gls_filter_wait);

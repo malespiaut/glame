@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.13 2001/09/26 09:47:20 richi Exp $
+ * $Id: importexport.c,v 1.14 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -219,9 +219,8 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 					FILTERPARAM_LABEL_POS);
 	
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Importing");
-	net_prepare_bulk();
 	
-	if ((filter_launch(net) == -1) ||
+	if ((filter_launch(net, GLAME_BULK_BUFSIZE) == -1) ||
 	    (filter_start(net) == -1))
 		goto ie_fail_cleanup;
 
@@ -238,7 +237,6 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	}
 	
 	filter_delete(net);
-	net_restore_default();
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
 	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
 				  0.0);
@@ -260,7 +258,6 @@ ie_fail_cleanup:
 		gnome_error_dialog("Failed to create importing network")));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
-	net_restore_default();
 	gtk_widget_set_sensitive(bla, TRUE);	
 }
 
@@ -381,11 +378,7 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 					FILTERPARAM_LABEL_POS);
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Analyzing");
 	
-
-	/* increase buffer size */
-	net_prepare_bulk();
-
-	if ((filter_launch(net) == -1) ||
+	if ((filter_launch(net, GLAME_BULK_BUFSIZE) == -1) ||
 	    (filter_start(net) == -1))
 		goto _ie_stats_cleanup;
 	
@@ -405,8 +398,6 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 	filterparam_set_property(filterparamdb_get_param(filter_paramdb(ie->readfile), "filename"),
 				 "#framecount", 
 				 buffer);
-
-	net_restore_default();
 
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
 	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);

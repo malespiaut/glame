@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.31 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_tools.h,v 1.32 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -194,8 +194,8 @@ static inline int queue_add_shift(queue_t *q, int off) {
 entry:
 		if (!qe) {
 			qe = queue_add_tail(q, 
-			sbuf_make_private(sbuf_alloc(GLAME_WBUFSIZE, q->n)));
-			memset((SAMPLE*)sbuf_buf(qe->fb), 0, GLAME_WBUFSIZE*SAMPLE_SIZE);
+			sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
+			memset((SAMPLE*)sbuf_buf(qe->fb), 0, filter_bufsize(q->n)*SAMPLE_SIZE);
 		}
 	} while (qe);
 
@@ -228,8 +228,8 @@ static inline int queue_add(queue_t *q, SAMPLE *s, int cnt)
 entry:
 		if (!qe) {
 			qe = queue_add_tail(q, 
-			sbuf_make_private(sbuf_alloc(GLAME_WBUFSIZE, q->n)));
-			memset((SAMPLE*)sbuf_buf(qe->fb), 0, GLAME_WBUFSIZE*SAMPLE_SIZE);
+			sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
+			memset((SAMPLE*)sbuf_buf(qe->fb), 0, filter_bufsize(q->n)*SAMPLE_SIZE);
 		}
 	} while (qe);
 
@@ -290,6 +290,7 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
  * without write buffering. Synchron operation.
  */
 typedef struct {
+	filter_t *n;
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
 	SAMPLE *s;
@@ -305,6 +306,7 @@ static inline int nto1_init(nto1_state_t **I, filter_port_t *port)
 		return -1;
 	i = 0;
 	filterport_foreach_pipe(port, pipe) {
+		(*I)[i].n = filterport_filter(port);
 	    	(*I)[i].in = pipe;
 		(*I)[i].buf = NULL;
 		(*I)[i].s = NULL;
@@ -323,8 +325,8 @@ static inline int nto1_head(nto1_state_t *I, int nr)
 
 	/* Find the maximum number of samples we can
 	 * process in one run. But not more than
-	 * GLAME_WBUFSIZE. */
-	cnt = GLAME_WBUFSIZE;
+	 * the filters buffer size. */
+	cnt = filter_bufsize(I->n);
 	for (i=0; i<nr; i++) {
 		if (!I[i].buf)
 			continue;

@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.10 2001/07/31 16:16:51 mag Exp $
+ * $Id: apply.c,v 1.11 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -71,7 +71,6 @@ static void cleanup(struct apply_plugin_s *a)
 		filter_delete(a->net);
 	filter_delete(a->effect);
 	gpsm_item_destroy((gpsm_item_t *)a->item);
-	net_restore_default();
 	free(a);
 }
 
@@ -123,7 +122,7 @@ static void preview_start(struct apply_plugin_s *a)
 	}
 	a->pos = net_apply_audio_out(a->net);
 
-	if (filter_launch(a->net) == -1) {
+	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
 		errmsg = "Unable to launch network";
 		goto err;
 	}
@@ -180,7 +179,6 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	const char *errmsg;
 
 	/* Create the apply network. */
-	net_prepare_bulk();
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile) {
 		filter_port_t *ein, *eout;
@@ -208,7 +206,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	gpsm_op_prepare((gpsm_item_t *)a->item);
 	a->have_undo = 1;
 
-	if (filter_launch(a->net) == -1) {
+	if (filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1) {
 		errmsg = "Unable to launch network";
 		goto err;
 	}
@@ -231,7 +229,6 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		filter_delete(a->net);
 		a->net = NULL;
 	}
-	net_restore_default();
 }
 
 static void cancel_cb(GtkWidget *widget, struct apply_plugin_s *a)

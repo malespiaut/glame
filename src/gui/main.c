@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.81 2001/10/05 08:38:23 richi Exp $
+ * $Id: main.c,v 1.82 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -249,13 +249,11 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	} while (1);
 
 	channels = i;
-	net_prepare_bulk();
-	filter_launch(net);
+	filter_launch(net, GLAME_BULK_BUFSIZE);
 	filter_start(net);
 	if (filter_wait(net) != 0)
 		goto fail_cleanup;
 	filter_delete(net);
-	net_restore_default();
 
 	/* Notify gpsm of the change. */
 	gpsm_grp_foreach_item(group, it)
@@ -271,7 +269,6 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 		gnome_error_dialog(_("Failed to create importing network"))));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
-	net_restore_default();
 	return;
 
 	out:
@@ -350,10 +347,10 @@ static int update_preferences()
 	gpsm_set_max_saved_ops(maxundo);
 
 	/* GLAME_WBUFSIZE */
-	GLAME_WBUFSIZE = gnome_config_get_int_with_default(
+	_GLAME_WBUFSIZE = gnome_config_get_int_with_default(
 		"filter/wbufsize=1024", &def);
 	if (def)
-		gnome_config_set_int("filter/wbufsize", GLAME_WBUFSIZE);
+		gnome_config_set_int("filter/wbufsize", _GLAME_WBUFSIZE);
 
 	/* Update IO plugin setup - audio_out */
 	aoutplugin = gnome_config_get_string_with_default(
@@ -418,7 +415,7 @@ static int update_preferences()
 "\tGLAME_WBUFSIZE %d\n"
 "\tPopup timeout is %ims\n"
 "\tMac mode is %s\n",
-                swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev, GLAME_WBUFSIZE,
+                swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev, _GLAME_WBUFSIZE,
                 nPopupTimeout, bMac ? "on" : "off");
 
 	/* Free temp. storage. */

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.61 2001/10/05 08:38:23 richi Exp $
+ * $Id: swapfilegui.c,v 1.62 2001/10/06 23:08:55 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -576,7 +576,6 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Build basic network. */
-	net_prepare_bulk();
 	net = filter_creat(NULL);
 	writefile = net_add_plugin_by_name(net, "write_file");
 	db = filter_paramdb(writefile);
@@ -603,13 +602,12 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (net_apply_node(net, render) == -1)
 		goto fail_cleanup;
 
-	if (filter_launch(net) == -1
+	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
 	    || filter_start(net) == -1)
 		goto fail_cleanup;
 	filter_wait(net);
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
-	net_restore_default();
 	deselect_all(active_swapfilegui);
 	return;
 
@@ -618,7 +616,6 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 		gnome_error_dialog("Failed to create exporting network")));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
-	net_restore_default();
 }
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -653,7 +650,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Setup core network. */
-	net_prepare_bulk();
 	net = filter_creat(NULL);
 	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
 		return;
@@ -691,12 +687,11 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	} while (1);
 
 	channels = i;
-	filter_launch(net);
+	filter_launch(net, GLAME_BULK_BUFSIZE);
 	filter_start(net);
 	if (filter_wait(net) != 0)
 		goto fail_cleanup;
 	filter_delete(net);
-	net_restore_default();
 
 	/* Notify gpsm of the change. */
 	gpsm_grp_foreach_item(group, it)
@@ -724,7 +719,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		gnome_error_dialog("Failed to create importing network")));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
-	net_restore_default();
 
 	}
 }

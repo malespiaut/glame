@@ -3,7 +3,7 @@
 
 /*
  * filter_ops.h
- * $Id: filter_ops.h,v 1.6 2001/08/02 11:08:36 richi Exp $
+ * $Id: filter_ops.h,v 1.7 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -35,6 +35,7 @@ struct filter_launchcontext {
 	pthread_t waiter;
 
 	int state;
+	int bufsize;
 
 #ifdef HAVE_SYSVSEM
 	int semid;

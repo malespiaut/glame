@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.6 2001/07/13 08:57:38 richi Exp $
+ * $Id: network_utils.c,v 1.7 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -224,23 +224,6 @@ filter_t *net_apply_audio_out(filter_t *net)
 	if (aout)
 		filter_delete(aout);
 	return NULL;
-}
-
-static int saved_wbufsize = -1;
-void net_prepare_bulk()
-{
-	if (saved_wbufsize == -1) {
-		saved_wbufsize = GLAME_WBUFSIZE;
-		GLAME_WBUFSIZE = 32768;
-	}
-}
-
-void net_restore_default()
-{
-	if (saved_wbufsize != -1) {
-		GLAME_WBUFSIZE = saved_wbufsize;
-		saved_wbufsize = -1;
-	}
 }
 
 char *net_get_error_str(filter_t *net)

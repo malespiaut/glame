@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.13 2001/09/17 11:47:12 nold Exp $
+ * $Id: glame_gui_utils.c,v 1.14 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -70,7 +70,7 @@ static void play_cb(GnomeDialog * dia, play_struct_t* play)
 {
 	if (play->gui)
 		glame_filtereditgui_reset_error(play->gui);
-	if (filter_launch(play->net) == -1
+	if (filter_launch(play->net, _GLAME_WBUFSIZE) == -1
 	    || filter_start(play->net) == -1) {
 		if (play->gui)
 			glame_filtereditgui_draw_error(play->gui);
@@ -710,7 +710,7 @@ int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout)
 	struct network_notificator *n = (struct network_notificator *)emitter;
 	/* First launch & start the network. Cleanup in case of
 	 * errors. */
-	if (filter_launch(n->net) == -1
+	if (filter_launch(n->net, _GLAME_WBUFSIZE) == -1
 	    || filter_start(n->net) == -1) {
 		free(n);
 		return -1;

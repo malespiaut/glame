@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.75 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter.h,v 1.76 2001/10/06 23:08:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -45,6 +45,7 @@
 #include "filter_param.h"
 #include "filter_port.h"
 #include "filter_pipe.h"
+#include "filter_ops.h"
 
 
 
@@ -150,6 +151,7 @@ struct filter {
 #define filter_nrnodes(f) ((f)->nr_nodes)
 #define filter_errno(f) ((f)->glerrno)
 #define filter_errstr(f) ((f)->glerrstr)
+#define filter_bufsize(f) ((f)->launch_context->bufsize)
 
 /* Convenience for querying/setting the error number/string
  * of filters.
@@ -223,8 +225,9 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name);
 
 
 /* Launches a set of connected filter instances. Does not start
- * processing of the data. */
-int filter_launch(filter_t *net);
+ * processing of the data. Processing will be done with the
+ * provided preferred buffersize. */
+int filter_launch(filter_t *net, int bufsize);
 
 /* Starts or restarts processing of the data. */
 int filter_start(filter_t *net);
@@ -336,6 +339,9 @@ do { \
  * for convenience.
  */
 #include "filter_tools.h"
+
+/* HACK - FIXME */
+#define GLAME_WBUFSIZE (n->launch_context->bufsize)
 
 
 #ifdef __cplusplus

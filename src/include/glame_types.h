@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.18 2001/07/09 12:27:25 richi Exp $
+ * $Id: glame_types.h,v 1.19 2001/10/06 23:08:55 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,9 +33,10 @@
 /* The recommended buffer size is GLAME_WBUFSIZE, the minimum
  * and maximum allowed sizes are GLAME_MIN_BUFSIZE and GLAME_MAX_BUFSIZE.
  * These numbers are specified in number of samples. */
-extern int GLAME_WBUFSIZE;
+extern int _GLAME_WBUFSIZE;
 #define GLAME_MIN_BUFSIZE (GLAME_WBUFSIZE/4)
 #define GLAME_MAX_BUFSIZE (GLAME_WBUFSIZE*4)
+#define GLAME_BULK_BUFSIZE (64*1024)
 
 #define GLAME_DEFAULT_SAMPLERATE 44100
 
