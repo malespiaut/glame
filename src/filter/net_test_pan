@@ -1,0 +1,12 @@
+(filternetwork play
+	(node rf read_file
+		(export-param filename filename "file to be played")
+	)
+	(node pan pan
+		(export-param pan pan pan)
+	)
+	(node aout audio_out)
+	(connect rf out pan in)
+	(connect pan left_out aout left_in)
+	(connect pan right_out aout right_in)
+)

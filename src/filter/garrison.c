@@ -67,9 +67,9 @@ static int pan_f(filter_node_t *n)
 		return -1;
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		return -1;
-	if (!(l_out = filternode_get_output(n, "left_out")))
+	if (!(l_out = filternode_get_output(n, PORTNAME_LEFT_OUT)))
 		return -1;
-	if (!(r_out = filternode_get_output(n, "right_out")))
+	if (!(r_out = filternode_get_output(n, PORTNAME_RIGHT_OUT)))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -79,9 +79,9 @@ static int pan_f(filter_node_t *n)
 		r_buf = sbuf_alloc(sbuf_size(l_buf), n);
 		for (i = 0; i < sbuf_size(l_buf); i++) {
 			sbuf_buf(r_buf)[i] = sbuf_buf(l_buf)[i] 
-				* (filterparam_val_float(pan) + 1.0);
+				* (filterparam_val_float(pan) + 1.0) / 2;
 			sbuf_buf(l_buf)[i] *= 
-				-(filterparam_val_float(pan)) - 1.0;
+				(-(filterparam_val_float(pan)) + 1.0) / 2;
 		}
 		sbuf_queue(l_out, l_buf);
 		sbuf_queue(r_out, r_buf);
@@ -287,7 +287,7 @@ int garrison_register()
 	filter_t *f;
 
 	/***** invert filter *****/
-	if ((f = filter_alloc("Phase Inverter", "Inverses the phase of the audio signal", invert_f)) == NULL)
+	if ((f = filter_alloc("phase", "Inverses the phase of the audio signal", invert_f)) == NULL)
 		return -1;
 	if (!(filter_add_input(f, PORTNAME_IN, "input stream to invert", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
@@ -297,7 +297,7 @@ int garrison_register()
 		return -1;
 
 	/***** pan filter *****/
-	if ((f = filter_alloc("Pan", "Positions a mono audio stream in the stereo field", pan_f)) == NULL)
+	if ((f = filter_alloc("pan", "Positions a mono audio stream in the stereo field", pan_f)) == NULL)
 		return -1;
 	if (!(filter_add_input(f, PORTNAME_IN, "input stream to pan", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
