@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.9 2000/03/21 09:40:09 richi Exp $
+; $Id: glame.scm,v 1.10 2000/03/22 10:15:45 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -154,29 +154,6 @@
       (net-run net))))
 
 ;
-; play-echo, created out of net_test_echo2, i.e. use
-; with test-network to set parameters.
-;
-
-(define play-echo
-  (lambda ()
-    (let* ((net (net-new))
-	   (rf (net-add-node net "read_file"))
-	   (mix (net-add-node net "mix"))
-	   (delay (net-add-node net "delay"))
-	   (va (net-add-node net "volume-adjust"))
-	   (dup (net-add-node net "one2n"))
-	   (aout (net-add-node net audio-out)))
-      (filternetwork_add_param net rf "filename" "filename" "filename")
-      (filternetwork_add_param net va "factor" "mix" "mix")
-      (filternetwork_add_param net delay "delay" "delay" "delay")
-      (filternode_set_param delay "delay" 200)
-      (filternode_set_param va "factor" 0.9)
-      (nodes-connect `(,rf ,mix) `(,rf ,mix ,dup ,aout) `(,dup ,delay ,va ,mix))
-      net)))
-
-
-;
 ; play a file with automagically determining #channels _and_
 ; applying one effect (with a list of parameters applied to it)
 ; example: (play-eff "test.wav" "echo" '("time" 500))
@@ -196,6 +173,20 @@
       (map (lambda (p) (filternode_set_param eff (car p) (cadr p))) params)
       (net-run net))))
 
+(define play-eff2
+  (lambda (fname effect . params)
+    (let* ((net (net-new))
+	   (rf (net-add-node net "read_file"))
+	   (eff1 (net-add-node net effect))
+	   (eff2 (net-add-node net effect))
+	   (ao (net-add-node net audio-out)))
+      (filternode_set_param rf "filename" fname)
+      (nodes-connect `(,rf ,eff1 ,ao) `(,rf ,eff2 ,ao))
+      (map (lambda (p)
+	     (filternode_set_param eff1 (car p) (cadr p))
+	     (filternode_set_param eff2 (car p) (cadr p))) params)
+      (net-run net))))
+
 ;
 ; an echo macro filter
 ;
@@ -212,7 +203,7 @@
   (filternetwork_add_param net va "factor" "mix" "echo mix ratio")
   (filternetwork_add_param net extend "time" "extend" "time to extend")
   (filternode_set_param net "delay" 200)
-  (filternode_set_param net "extend" 1000)
-  (filternode_set_param net "mix" 0.9)
+  (filternode_set_param net "extend" 600)
+  (filternode_set_param net "mix" 0.7)
   (nodes-connect `(,extend ,mix2 ,one2n ,delay ,va ,mix2))
   (filternetwork_to_filter net "echo2" "echo as macro filter"))

@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.15 2000/03/21 09:39:26 richi Exp $
+ * $Id: filter_buffer.c,v 1.16 2000/03/22 10:15:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -157,6 +157,9 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 
 	/* printf("%s::%s writing to %s::%s\n", p->source->name, p->out_name,
 	       p->dest->name, p->in_name); */
+
+	if (fbuf && fbuf_size(fbuf) < GLAME_MIN_BUFSIZE)
+		printf(" %i ", fbuf_size(fbuf));
 
 	buf[0] = fbuf;
 	while ((res = write(p->source_fd, buf, FBPIPE_WSIZE)) == -1

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.4 2000/03/21 09:40:09 richi Exp $
+ * $Id: basic_sample.c,v 1.5 2000/03/22 10:15:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -21,8 +21,8 @@
  *
  * This file contains basic filters that operate using the sample
  * filter protocol. Contained are
- * - mix [broken?]
- * - volume-adjust [broken?]
+ * - mix
+ * - volume-adjust
  * - phase-invert
  * - delay
  * - extend
@@ -58,10 +58,10 @@ PLUGIN_SET(basic_sample, "mix volume_adjust invert delay extend repeat add")
 
 
 
-/* FIXME! mix needs to be asynchronly wrt reads & writes! */
 /* The mix filter mixes any number of input channels with an optional
  * gain parameter per input into one output channel which position
  * can be specified using the phi parameter.
+ * - FIXME - positional information is ignored for now
  * Required for correct operation is at least one connected input
  * channel, and a connected output channel. Mixing is stopped if
  * one input is EOF, other inputs are subsequently dropped.
@@ -71,164 +71,240 @@ PLUGIN_SET(basic_sample, "mix volume_adjust invert delay extend repeat add")
  * - fixup_pipe to check for changed rate/phi, this also handles
  *   connects.
  * Failure is at launch time if samplerates of inputs dont match.
+ * Mix is completely asynchron wrt input and output. This is to allow
+ * buffer merging and to avoid deadlocks with feedback.
  */
 static int mix_f(filter_node_t *n)
 {
 	typedef struct {
 		filter_pipe_t *in;
+		feedback_fifo_t fifo;
+		int fifo_size, fifo_pos;
 		filter_buffer_t *buf;
 		SAMPLE *s;
 		int pos;
 		float factor;
 	} mix_param_t;
-	mix_param_t *inputs = NULL;
-	filter_pipe_t  *p, *out;
+	mix_param_t *p = NULL;
+	filter_pipe_t  *in, *out;
 	filter_buffer_t *buf;
 	filter_param_t *param;
-	int i, cnt, nrinputs, eofs, rate;
+	int i, res, cnt, icnt;
+	int rate, nr, maxfd, eof, eofpos, outpos, empty, outputready;
+	fd_set rset, wset;
 	SAMPLE *s;
 	float factor;
 
 	/* We require at least one connected input and
 	 * a connected output.
 	 */
-	nrinputs = filternode_nrinputs(n);
-	if (nrinputs == 0)
+	nr = filternode_nrinputs(n);
+	if (nr == 0)
 		FILTER_ERROR_RETURN("no inputs");
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no output");
 
 	/* init the structure, compute the needed factors */
-	eofs = 0;
 	factor = 0.0;
 	i = 0;
-	if (!(inputs = ALLOCN(nrinputs, mix_param_t)))
+	if (!(p = ALLOCN(nr, mix_param_t)))
 		FILTER_ERROR_RETURN("no memory");
 
 	rate = -1;
-	filternode_foreach_input(n, p) {
+	filternode_foreach_input(n, in) {
 		if (rate == -1)
-			rate = filterpipe_sample_rate(p);
-		else if (rate != filterpipe_sample_rate(p))
+			rate = filterpipe_sample_rate(in);
+		else if (rate != filterpipe_sample_rate(in))
 			FILTER_ERROR_CLEANUP("non matching samplerates");
-		inputs[i].in = p;
-		inputs[i].factor = 1.0;
-		if ((param = filterpipe_get_destparam(p, "gain")))
-			inputs[i].factor = filterparam_val_float(param);
-		factor += inputs[i].factor;
+		p[i].in = in;
+		INIT_FEEDBACK_FIFO(p[i].fifo);
+		p[i].fifo_size = 0;
+		/* position factor - normalized afterwards, FIXME? */
+	        p[i].factor = fabs(cos((filterpipe_sample_hangle(p[i].in)
+					- filterpipe_sample_hangle(out))*0.5));
+		factor += p[i].factor;
+		/* external factor */
+		if ((param = filterpipe_get_destparam(in, "gain")))
+			p[i].factor *= filterparam_val_float(param);
 		i++;
 	}
-	/* FIXME: on linux (glibc) we want this to be cosf() - i.e.
-	 * operate on floats w/o casting to double. On non glibc
-	 * platforms like solaris cosf does not exist. ugh. */
-	for (i=0; i<nrinputs; i++) {
-		inputs[i].factor /= factor;
-		// inputs[i].factor *= cos(filterpipe_sample_hangle(inputs[i].in) - filterpipe_sample_hangle(out));
+	/* normalize (position) factors */
+	for (i=0; i<nr; i++) {
+		p[i].factor /= factor;
 	}
 
 	FILTER_AFTER_INIT;
 
-
-	/* get first input buffers from all channels and init the
-	 * structure. */
-	for (i=0; i<nrinputs; i++) {
-		if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
-			eofs++;
-		inputs[i].s = sbuf_buf(inputs[i].buf);
-		inputs[i].pos = 0;
-	}
-
 	/* mix only until one input has eof */
-	while (eofs == 0) {
+	eof = 0; eofpos = 0; outpos = 0; outputready = 0;
+	while (1) {
 		FILTER_CHECK_STOP;
 
-		/* find the maximum number of samples we can process
-		 * without getting an additional buffer. */
-		cnt = 1<<30;
-		for (i=0; i<nrinputs; i++) {
-			if (!inputs[i].buf
-			    || sbuf_size(inputs[i].buf) - inputs[i].pos >= cnt)
+		/* set up fd sets for select */
+		maxfd = 0;
+		empty = 1;
+		FD_ZERO(&rset);
+		for (i=0; i<nr; i++) {
+			if (!p[i].in  /* EOF? */
+			    || p[i].fifo_size >= GLAME_WBUFSIZE) /* or "full"? */
 				continue;
-			cnt = sbuf_size(inputs[i].buf) - inputs[i].pos;
+			empty = 0;
+			FD_SET(p[i].in->dest_fd, &rset);
+			if (p[i].in->dest_fd > maxfd)
+				maxfd = p[i].in->dest_fd;
+		}
+		FD_ZERO(&wset);
+		if (out && outputready) {
+			FD_SET(out->source_fd, &wset);
+			if (out->source_fd > maxfd)
+				maxfd = out->source_fd;
+		}
+		if (!out && empty)
+			break;
+		res = select(maxfd+1, empty ? NULL : &rset,
+			     !out || !outputready ? NULL : &wset, NULL, NULL);
+		if (res == -1)
+			perror("select");
+		if (res <= 0)
+			continue;
+
+		/* do we have input? */
+		for (i=0; i<nr; i++) {
+			if (!p[i].in || !FD_ISSET(p[i].in->dest_fd, &rset))
+				continue;
+			buf = sbuf_get(p[i].in);
+			if (!buf) {
+				p[i].in = NULL; /* EOF */
+				if (!eof || p[i].fifo_pos < eofpos) {
+					eof = 1;
+					eofpos = p[i].fifo_pos;
+				}
+			} else if (out) {
+				add_feedback(&p[i].fifo, buf);
+				p[i].fifo_size += sbuf_size(buf);
+				p[i].fifo_pos += sbuf_size(buf);
+				outputready = 1;
+			} else { /* fast drop path */
+				sbuf_unref(buf);
+			}
 		}
 
-		/* fix the end positions */
-		for (i=0; i<nrinputs; i++)
-			if (inputs[i].buf)
-				inputs[i].pos += cnt;
+		/* send enough already? - queue EOF & stop sending */
+		if (eof && outpos == eofpos) {
+			sbuf_queue(out, NULL);
+			out = NULL;
+			outputready = 0;
 
-		/* in one run process cnt number of samples. alloc
-		 * a new buffer for them. */
-		buf = sbuf_alloc(cnt, n);
+			/* drop buffers pending in the fifos, further
+			 * buffers will get dropped directly at receive */
+			for (i=0; i<nr; i++) {
+				while (has_feedback(&p[i].fifo))
+					sbuf_unref(get_feedback(&p[i].fifo));
+			}
+		}
+
+		/* if we are not ready to send anything just skip the
+		 * send code. */
+		if (!out || !FD_ISSET(out->source_fd, &wset))
+			continue;
+
+		/* The send code - rather complex as we try to group all pending
+		 * buffers into the largest possible buffer. */
+
+		/* find # of samples we can send, if there is nothing (at least
+		 * one input is missing) continue with receive. */
+		cnt = 1<<30;
+		for (i=0; i<nr; i++) {
+			if (p[i].fifo_size + sbuf_size(p[i].buf) - p[i].pos < cnt)
+				cnt = p[i].fifo_size + sbuf_size(p[i].buf) - p[i].pos;
+		}
+		if (eof && eofpos - outpos < cnt)
+			cnt = eofpos - outpos;
+		if (cnt > GLAME_WBUFSIZE)
+			cnt = GLAME_WBUFSIZE;
+		outpos += cnt;
+		if (cnt == 0) {
+			outputready = 0;
+			continue;
+		}
+
+		/* alloc output buffer */
+		buf = sbuf_make_private(sbuf_alloc(cnt, n));
 		s = sbuf_buf(buf);
 
-		/* to do really fast processing special-code
-		 * a number of input channel counts */
-		switch (nrinputs) {
-		case 2:
-			for (; (cnt & 3)>0; cnt--) {
-				SCALARPROD1_2_d(s, inputs[0].s, inputs[1].s, inputs[0].factor, inputs[1].factor);
+		/* loop through the input buffers, chunk by chunk - "inner loop" */
+		do {
+			/* get a buffer from the fifo for each input, by the way
+			 * find the max. number of samples that can be processed
+			 * in one turn. */
+			icnt = cnt;
+			for (i=0; i<nr; i++) {
+				if (!p[i].buf) {
+					p[i].buf = get_feedback(&p[i].fifo);
+					if (!p[i].buf)
+						PANIC("Uh!");
+					p[i].s = sbuf_buf(p[i].buf);
+					p[i].pos = 0;
+					p[i].fifo_size -= sbuf_size(p[i].buf);
+				}
+				if (sbuf_size(p[i].buf) - p[i].pos < icnt)
+					icnt = sbuf_size(p[i].buf) - p[i].pos;
 			}
-			for (; cnt>0; cnt-=4) {
-				SCALARPROD4_2_d(s, inputs[0].s, inputs[1].s, inputs[0].factor, inputs[1].factor);
-			}
-			break;
-		case 3:
-			for (; (cnt & 3)>0; cnt--) {
-				SCALARPROD1_3_d(s, inputs[0].s, inputs[1].s, inputs[2].s, inputs[0].factor, inputs[1].factor, inputs[2].factor);
-			}
-			for (; cnt>0; cnt-=4) {
-				SCALARPROD4_3_d(s, inputs[0].s, inputs[1].s, inputs[2].s, inputs[0].factor, inputs[1].factor, inputs[2].factor);
-			}
-			break;
-		default:
-			for (; cnt>0; cnt--) {
-				*s = 0.0;
-				for (i=0; i<nrinputs; i++)
-					if (inputs[i].buf) {
-						*s += *(inputs[i].s)*inputs[i].factor;
-						inputs[i].s++;
+
+			/* fix the resulting positions */
+			for (i=0; i<nr; i++)
+				p[i].pos += icnt;
+			cnt -= icnt;
+
+			/* to do really fast processing special-code
+			 * a number of input channel counts */
+			switch (nr) {
+			case 2:
+				for (; (icnt & 3)>0; icnt--) {
+					SCALARPROD1_2_d(s, p[0].s, p[1].s, p[0].factor, p[1].factor);
+				}
+				for (; icnt>0; icnt-=4) {
+					SCALARPROD4_2_d(s, p[0].s, p[1].s, p[0].factor, p[1].factor);
+				}
+				break;
+			case 3:
+				for (; (icnt & 3)>0; icnt--) {
+					SCALARPROD1_3_d(s, p[0].s, p[1].s, p[2].s, p[0].factor, p[1].factor, p[2].factor);
+				}
+				for (; icnt>0; icnt-=4) {
+					SCALARPROD4_3_d(s, p[0].s, p[1].s, p[2].s, p[0].factor, p[1].factor, p[2].factor);
+				}
+				break;
+			default:
+				for (; icnt>0; icnt--) {
+					*s = 0.0;
+					for (i=0; i<nr; i++) {
+						*s += *(p[i].s)*p[i].factor;
+						p[i].s++;
 					}
-				s++;
+					s++;
+				}
 			}
-		}
+
+			/* check for completed buffers */
+			for (i=0; i<nr; i++) {
+				if (p[i].buf
+				    && sbuf_size(p[i].buf) == p[i].pos) {
+					sbuf_unref(p[i].buf);
+					p[i].buf = NULL;
+					p[i].pos = 0;
+				}
+			}
+		} while (cnt>0);
 
 		/* queue buffer */
 		sbuf_queue(out, buf);
-
-		/* check which input buffer had the underflow. */
-		for (i=0; i<nrinputs; i++) {
-			if (!inputs[i].buf
-			    || inputs[i].pos != sbuf_size(inputs[i].buf))
-				continue;
-			sbuf_unref(inputs[i].buf);
-			if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
-				eofs++;
-			inputs[i].s = sbuf_buf(inputs[i].buf);
-			inputs[i].pos = 0;
-		}
-	}
-
-	/* queue an EOF */
-	sbuf_queue(out, NULL);
-
-	/* drop the rest of the input */
-	while (eofs != nrinputs) {
-		FILTER_CHECK_STOP;
-
-		for (i=0; i<nrinputs; i++) {
-			if (!inputs[i].buf)
-				continue;
-			sbuf_unref(inputs[i].buf);
-			if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
-				eofs++;
-		}
 	}
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	free(inputs);
+	free(p);
 
 	FILTER_RETURN;
 }

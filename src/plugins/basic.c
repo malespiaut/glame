@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.6 2000/03/21 12:58:44 richi Exp $
+ * $Id: basic.c,v 1.7 2000/03/22 10:15:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -126,11 +126,13 @@ static int one2n_f(filter_node_t *n)
 	typedef struct {
 		filter_pipe_t *out;
 		feedback_fifo_t fifo;
+		int fifo_size;
 	} one2n_param_t;
-	filter_buffer_t *buf;
 	filter_pipe_t *in, *out;
+	filter_buffer_t *buf;
 	one2n_param_t *p;
-	int maxfd, i, nr, eof, empty, oneempty, res;
+	int i, res;
+	int maxfd, nr, eof, empty, oneempty, maxfifosize;
 	fd_set rset, wset;
 	int nrin = 0, nrsel = 0;
 
@@ -144,6 +146,7 @@ static int one2n_f(filter_node_t *n)
 	i = 0;
 	filternode_foreach_output(n, out) {
 		INIT_FEEDBACK_FIFO(p[i].fifo);
+		p[i].fifo_size = 0;
 		p[i++].out = out;
 	}
 
@@ -152,8 +155,6 @@ static int one2n_f(filter_node_t *n)
 	/* In the following loop you may miss the EOF send - but its
 	 * there, EOFs just get queued like regular buffers. Loop termination
 	 * is at input EOF and all send queues empty time.
-	 * - FIXME - do read throttling via max(bytes in a queue) and not
-	 *   adding the in fd to the rset.
 	 */
 	eof = 0;
 	do {
@@ -161,20 +162,23 @@ static int one2n_f(filter_node_t *n)
 
 		/* set up fd sets for select */
 		maxfd = 0;
+		maxfifosize = 0;
 		empty = 1; oneempty = 0;
 		FD_ZERO(&wset);
 		for (i=0; i<nr; i++) {
-			if (!has_feedback(&p[i].fifo)) {
+			if (!has_feedback(&p[i].fifo)) {  /* empty? */
 				oneempty = 1;
 				continue;
 			}
 			empty = 0;
+			if (p[i].fifo_size > maxfifosize)
+				maxfifosize = p[i].fifo_size;
 			FD_SET(p[i].out->source_fd, &wset);
 			if (p[i].out->source_fd > maxfd)
 				maxfd = p[i].out->source_fd;
 		}
 		FD_ZERO(&rset);
-		if (!eof && oneempty) {
+		if (!eof && oneempty && !(maxfifosize > GLAME_WBUFSIZE)) {
 			FD_SET(in->dest_fd, &rset);
 			if (in->dest_fd > maxfd)
 				maxfd = in->dest_fd;
@@ -182,7 +186,8 @@ static int one2n_f(filter_node_t *n)
 		if (eof && empty)
 			break;
 		nrsel++;
-		res = select(maxfd+1, eof || (!oneempty && !empty) ? NULL : &rset,
+		res = select(maxfd+1,
+			     eof || !oneempty || (maxfifosize > GLAME_WBUFSIZE) ? NULL : &rset,
 			     empty ? NULL : &wset, NULL, NULL);
 		if (res == -1)
 			perror("select");
@@ -196,12 +201,16 @@ static int one2n_f(filter_node_t *n)
 			if (!(buf = fbuf_get(in)))
 			        eof = 1;
 			for (i=0; i<nr-1; i++) {
+				if (p[i].fifo_size > GLAME_WBUFSIZE)
+					DPRINTF("fifo size is %i\n", p[i].fifo_size);
 				fbuf_ref(buf);
 				add_feedback(&p[i].fifo, buf);
+				p[i].fifo_size += fbuf_size(buf);
 			}
-			if (nr >= 1)
+			if (nr >= 1) {
 				add_feedback(&p[nr-1].fifo, buf);
-			else
+				p[nr-1].fifo_size += fbuf_size(buf);
+			} else
 				fbuf_unref(buf);
 		}
 
@@ -211,7 +220,9 @@ static int one2n_f(filter_node_t *n)
 			if (!has_feedback(&p[i].fifo)
 			    || !FD_ISSET(p[i].out->source_fd, &wset))
 				continue;
-			fbuf_queue(p[i].out, get_feedback(&p[i].fifo));
+			buf = get_feedback(&p[i].fifo);
+			p[i].fifo_size -= fbuf_size(buf);
+			fbuf_queue(p[i].out, buf);
 		}
 	} while (1);
 
