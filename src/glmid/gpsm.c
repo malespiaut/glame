@@ -671,6 +671,13 @@ void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
 }
 
+void gpsm_swfile_set_size(gpsm_swfile_t *swfile, long size)
+{
+	if (!swfile)
+		return;
+	swfile->item.hsize = size;
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+}
 
 
 /*

@@ -25,18 +25,15 @@
 #include <gtk/gtk.h>
 #include "gtkwaveview.h"
 #include "gtkswapfilebuffer.h"
+#include "gpsm.h"
 
 
-/* Create a new waveedit widget with title and nrtracks tracks
- * specified using swapfile filenames. */
-GtkWidget *glame_waveedit_gui_new(const char *title, int nrtracks,
-				  int samplerate, ...);
-GtkWidget *glame_waveedit_gui_new_va(const char *title, int nrtracks,
-				     int samplerate, va_list va);
-GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks,
-				    int samplerate, long *names);
+/* Create a new waveedit widget out of a gpsm-item which can be
+ * either a gpsm-grp or a gpsm-swfile. All gpsm-grp members have
+ * to be gpsm-swfiles of the same hposition and hsize. */
+GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item);
 
-/* Delete temporary files. */
+/* Delete temporary (clipboard) files. */
 void glame_waveedit_cleanup();
 
 

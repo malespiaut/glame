@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.h,v 1.3 2001/03/12 09:41:51 richi Exp $
+ * $Id: gtkswapfilebuffer.h,v 1.4 2001/04/06 09:23:15 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -28,6 +28,7 @@
 
 #include <gdk/gdk.h>
 #include "swapfile.h"
+#include "gpsm.h"
 #include "gtkwavebuffer.h"
 #include "gtkeditablewavebuffer.h"
 #include "gwavefile.h"
@@ -53,11 +54,12 @@ struct _GtkSwapfileBuffer
 {
 	GtkEditableWaveBuffer   object;
 
-	int rate;
+	gpsm_item_t *item;
+
 	int nrtracks;
-        long *fname;
+	gpsm_swfile_t **swfile;
+	glsig_handler_t **handler;
 	swfd_t *fd;
-	struct sw_stat *stat;
 };
 
 struct _GtkSwapfileBufferClass
@@ -68,13 +70,11 @@ struct _GtkSwapfileBufferClass
 
 #define GTK_SWAPFILE_BUFFER_MAX_TRACKS 16
 
-GtkType    gtk_swapfile_buffer_get_type (void);
-GtkObject *gtk_swapfile_buffer_new(int nrtracks, int rate, ...);
-GtkObject *gtk_swapfile_buffer_new_va(int nrtracks, int rate, va_list va);
-GtkObject *gtk_swapfile_buffer_new_a(int nrtracks, int rate, long *names);
+GtkType      gtk_swapfile_buffer_get_type (void);
+GtkObject   *gtk_swapfile_buffer_new(gpsm_item_t *item);
 
-int        gtk_swapfile_buffer_get_filenames (GtkSwapfileBuffer *buffer,
-					      long **names);
+int          gtk_swapfile_buffer_get_swfiles(GtkSwapfileBuffer *buffer,
+					     gpsm_swfile_t ***files);
 
 
 #ifdef __cplusplus

@@ -77,7 +77,8 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
 	swfd_t fd;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
@@ -85,11 +86,10 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 
 	DPRINTF("Copying selection from %i of length %i\n", start, length);
-
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(names[i], O_RDONLY, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDONLY, TXN_NONE);
 		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_INSERT) == -1)
 			fprintf(stderr, "*** sw_sendfile failed\n");
@@ -106,14 +106,15 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gint32 start;
 	struct sw_stat st;
 	swfd_t fd;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	int i;
 
 	start = gtk_wave_view_get_marker (waveview);
 	if (start < 0)
 		return;
 
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	if (nrtracks != temp_nrtracks) {
 		DPRINTF("clipboard nrtracks do not match\n");
 		return;
@@ -125,7 +126,7 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	g_print ("Pasting to %i size %i\n", start, st.size/SAMPLE_SIZE);
 
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(names[i], O_RDWR, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
 		if (sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET) != start*SAMPLE_SIZE)
 			fprintf(stderr, "*** sw_lseek(swapfile->fd) failed\n");
 		if (sw_lseek(temp_fd[i], 0, SEEK_SET) != 0)
@@ -133,9 +134,9 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 		if (sw_sendfile(fd, temp_fd[i], st.size, SWSENDFILE_INSERT) == -1)
 			fprintf(stderr, "*** sw_sendfile failed\n");
 		sw_close(fd);
+		gpsm_swfile_set_size(files[i], gpsm_item_hsize(files[i]) + st.size/SAMPLE_SIZE);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_INSERT, files[i], start, st.size/SAMPLE_SIZE);		
 	}
-
-	gtk_editable_wave_buffer_insert(editable, start, st.size/SAMPLE_SIZE);
 }
 
 /* Menu event - Cut. */
@@ -146,7 +147,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
 	swfd_t fd;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
@@ -154,18 +156,17 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 
 	g_print ("Deleting selection from %i of length %i\n", start, length);
-
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(names[i], O_RDWR, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
 		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
 			fprintf(stderr, "*** sw_sendfile failed\n");
 		sw_close(fd);
+		gpsm_swfile_set_size(files[i], gpsm_item_hsize(files[i]) - length);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CUT, files[i], start, length);		
 	}
-
-	gtk_editable_wave_buffer_delete (editable, start, length);
 }
 
 /* Menu event - Delete. */
@@ -176,7 +177,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
 	swfd_t fd;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
@@ -185,16 +187,16 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	g_print ("Cutting selection from %i of length %i\n", start, length);
 
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(names[i], O_RDWR, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
 		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(SW_NOFILE, fd, length*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
 			fprintf(stderr, "*** sw_sendfile failed\n");
 		sw_close(fd);
+		gpsm_swfile_set_size(files[i], gpsm_item_hsize(files[i]) - length);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CUT, files[i], start, length);
 	}
-
-	gtk_editable_wave_buffer_delete (editable, start, length);
 }
 
 /* shitty workaround for failing gnome_dialog_run_and_close */
@@ -240,14 +242,15 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkWidget *prop;
 	gboolean ok_pressed;
 	gint32 start, length;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	filter_t *net, *effect;
 	int rate, i;
 	
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
@@ -266,7 +269,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff, *swout;
-		int swname = names[i];
+		int swname = gpsm_swfile_filename(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		eff = filter_creat(effect);
 		swout = filter_instantiate(plugin_get("swapfile_out"));
@@ -292,18 +295,17 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 /* 	filter_wait(net); */
 /* 	filter_delete(net); */
 /* 	filter_delete(effect); */
-	
-	gtk_editable_wave_buffer_queue_modified (editable, start, length);
+
+	for (i=0; i<nrtracks; i++) {
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, start, length);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED);
+	}
 }
 
 
 /* Menu event - feed into filter. */
 static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 {
-
-	/* FIXME FIXME FIXME 
-	   fix richis bogus loop ;) */
-	   
 	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
@@ -311,7 +313,8 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkWidget *prop;
 	gboolean ok_pressed;
 	gint32 start, length;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	filter_t *net, *effect;
 	int rate, i;
 	GtkWidget * stop_window;
@@ -319,7 +322,8 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
@@ -336,11 +340,9 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	 * effect - swapfile_out. */
 	net = filter_creat(NULL);
 
-	
-	
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff;
-		int swname = names[i];
+		int swname = gpsm_swfile_filename(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		eff = filter_creat(effect);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
@@ -352,8 +354,6 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
 	}
 	glame_gui_play_network(net,NULL);
-
-	gtk_editable_wave_buffer_queue_modified (editable, start, length);
 }
 
 static void feed_custom_cb(GtkWidget * foo, gpointer bar)
@@ -366,7 +366,8 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 	GtkWidget *prop;
 	gboolean ok_pressed;
 	gint32 start, length;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	filter_t *net;
 	int rate, i;
 	GtkWidget * stop_window;
@@ -374,13 +375,14 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	
 	net = filter_creat(NULL);
 	for(i=0;i<nrtracks;i++){
 		filter_t *swin;
-		int swname = names[i];
+		int swname = gpsm_swfile_filename(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		fprintf(stderr,"rate: %d\n",rate);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
@@ -391,9 +393,8 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 		filter_set_property(swin,"immutable","1");
 				
 	}
-	
+
 	draw_network(net);
-	/* FIXME wave widget has to be asyncronously notified :-\   */
 }
 
 static void apply_custom_cb(GtkWidget * foo, gpointer bar)
@@ -405,14 +406,16 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	GtkWidget *prop;
 	gboolean ok_pressed;
 	gint32 start, length;
-	long *names, nrtracks;
+	long nrtracks;
+	gpsm_swfile_t **files;
 	filter_t *net;
 	int rate, i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
-	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
@@ -421,7 +424,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff, *swout;
-		int swname = names[i];
+		int swname = gpsm_swfile_filename(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		swout = filter_instantiate(plugin_get("swapfile_out"));
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
@@ -436,7 +439,12 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		filter_set_property(swout,"immutable","1");
 	}
 	draw_network(net);
-	/* FIXME wave widget has to be asyncronously notified :-\   */
+	/* FIXME wave widget has to be asyncronously notified :-\ 
+	for (i=0; i<nrtracks; i++) {
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, start, length);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED);
+	}
+	*/
 }
 
 static GnomeUIInfo rmb_menu[] = {
@@ -516,9 +524,7 @@ static void delete (GtkWidget *widget, gpointer user_data)
 }
 
 
-
-GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks, 
-				    int samplerate, long *names)
+GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
 	GtkWidget *window, *waveview;
 	GtkObject *wavebuffer;
@@ -544,7 +550,7 @@ GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks,
 	gtk_wave_view_set_cache_size (GTK_WAVE_VIEW (waveview), 8192);
 
 	/* Create a data source object. */
-	wavebuffer = gtk_swapfile_buffer_new_a(nrtracks, samplerate, names);
+	wavebuffer = gtk_swapfile_buffer_new(item);
 	if (!wavebuffer) {
 		DPRINTF("Unable to create wavebuffer\n");
 		gtk_object_destroy(GTK_OBJECT(waveview));
@@ -565,32 +571,12 @@ GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks,
 	gtk_signal_connect (GTK_OBJECT (waveview), "button_press_event",
 			    (GtkSignalFunc) press, NULL);
 
+	/* FIXME: handle GPSM_SIG_ITEM_DESTROY and GPSM_GRP_ADD/REMOVE_ITEM
+	 * and close the window in these cases.
+	 */
+
 	return window;
 }
-GtkWidget *glame_waveedit_gui_new_va(const char *title, int nrtracks,
-				     int samplerate, va_list va)
-{
-	long names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
-	int i;
-
-	if (nrtracks > GTK_SWAPFILE_BUFFER_MAX_TRACKS)
-		return NULL;
-	for (i=0; i<nrtracks; i++)
-		names[i] = va_arg(va, long);
-	return glame_waveedit_gui_new_a(title, nrtracks, samplerate, names);
-}
-GtkWidget *glame_waveedit_gui_new(const char *title, int nrtracks,
-				  int samplerate, ...)
-{
-	GtkWidget *w;
-	va_list va;
-
-	va_start(va, samplerate);
-	w = glame_waveedit_gui_new_va(title, nrtracks, samplerate, va);
-	va_end(va);
-	return w;
-}
-
 
 void glame_waveedit_cleanup()
 {

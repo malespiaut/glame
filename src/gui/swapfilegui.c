@@ -259,28 +259,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 	long names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
 	int i;
 
-	/* FIXME: have waveedit gui take an gpsm_item_t* */
-	if (GPSM_ITEM_IS_SWFILE(item->item)) {
-		we = glame_waveedit_gui_new(gpsm_item_label(item->item), 1,
-					    gpsm_swfile_samplerate(item->item),
-					    gpsm_swfile_filename(item->item));
-	} else if (GPSM_ITEM_IS_GRP(item->item)) {
-		gpsm_grp_t *group = (gpsm_grp_t *)item->item;
-		gpsm_item_t *it;
-		int rate;
-		i=0;
-		gpsm_grp_foreach_item(group, it) {
-			if (!GPSM_ITEM_IS_SWFILE(it))
-				return;
-			rate = gpsm_swfile_samplerate(it);
-			names[i++] = gpsm_swfile_filename(it);
-		}
-		if (i == 0)
-			return;
-		we = glame_waveedit_gui_new_a(gpsm_item_label(item->item), i,
-					      rate,
-					      names);
-	}
+	we = glame_waveedit_gui_new(gpsm_item_label(item->item), item->item);
 	if (!we) {
 		DPRINTF("Cannot create waveedit gui\n");
 		return;

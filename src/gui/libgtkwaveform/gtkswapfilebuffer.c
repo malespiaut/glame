@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.4 2001/03/16 09:55:42 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.5 2001/04/06 09:23:15 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -86,10 +86,11 @@ gtk_swapfile_buffer_finalize (GtkObject *obj)
 
 	for (i=0; i<swapfile->nrtracks; i++) {
 		sw_close(swapfile->fd[i]);
+		glsig_delete_handler(swapfile->handler[i]);
 	}
-	free(swapfile->fname);
+	free(swapfile->swfile);
 	free(swapfile->fd);
-	free(swapfile->stat);
+	free(swapfile->handler);
 }
 
 static void
@@ -125,7 +126,7 @@ static guint32 gtk_swapfile_buffer_get_rate (GtkWaveBuffer *wavebuffer)
 {
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
 
-	return swapfile->rate;
+	return gpsm_swfile_samplerate(swapfile->swfile[0]);
 }
 
 static GWavefileType
@@ -143,7 +144,7 @@ gtk_swapfile_buffer_get_length (GtkWaveBuffer *wavebuffer)
 {
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
 
-	return swapfile->stat[0].size / SAMPLE_SIZE;
+	return gpsm_item_hsize(swapfile->swfile[0]);
 }
 
 static guint32
@@ -185,10 +186,8 @@ gtk_swapfile_buffer_set_samples (GtkEditableWaveBuffer *editable,
 				 guint32 channel_mask,
 				 gpointer data)
 {
-  /* Just notification. */
-  gtk_editable_wave_buffer_queue_modified (editable, start, length);
-
-  return 0;
+	DERROR("You should not call this(?)");
+	return 0;
 }
 
 static gint
@@ -196,21 +195,8 @@ gtk_swapfile_buffer_insert (GtkEditableWaveBuffer *editable,
                                  guint32 start,
                                  guint32 length)
 {
-  GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (editable);
-  GRange range;
-  int i;
-
-  /* Re-stat the swapfile. */
-  for (i=0; i<swapfile->nrtracks; i++)
-	  sw_fstat(swapfile->fd[i], &swapfile->stat[i]);
-
-  /* Just notification. */
-  g_range_set (&range, start, length);
-  gtk_signal_emit (GTK_OBJECT (editable), insert_data_signal, &range);
-  gtk_editable_wave_buffer_queue_modified (editable, start,
-					   swapfile->stat[0].size/SAMPLE_SIZE - start);
-
-  return 0;
+	DERROR("You should not call this(?)");
+	return 0;
 }
 
 /* Note that this is just a notification, but not operation itself. */
@@ -219,58 +205,136 @@ gtk_swapfile_buffer_delete (GtkEditableWaveBuffer *editable,
 			    guint32 start,
 			    guint32 length)
 {
-  GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (editable);
-  GRange range;
-  int i;
-
-  /* Re-stat the swapfile. */
-  for (i=0; i<swapfile->nrtracks; i++)
-	  sw_fstat(swapfile->fd[i], &swapfile->stat[i]);
-
-  /* Just pass on the change. */
-  g_range_set (&range, start, length);
-  gtk_signal_emit (GTK_OBJECT (editable), delete_data_signal, &range);
-  gtk_editable_wave_buffer_queue_modified (editable, start,
-					   swapfile->stat[0].size/SAMPLE_SIZE - start);
-
-  return 0;
+	DERROR("You should not call this(?)");
+	return 0;
 }
 
-GtkObject *gtk_swapfile_buffer_new_a(int nrtracks, int rate, long *names)
+
+static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
+{
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(glsig_handler_private(handler));
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER(swapfile);
+
+	switch (sig) {
+	case GPSM_SIG_SWFILE_INSERT: {
+		gpsm_swfile_t *item;
+		long position, size;
+		GRange range;
+
+		GLSIGH_GETARGS3(va, item, position, size);
+
+		/* Notify the wave buffer, raise gtk insert signal. */
+		g_range_set(&range, position, size);
+		gtk_signal_emit(GTK_OBJECT(editable), insert_data_signal,
+				&range);
+		gtk_editable_wave_buffer_queue_modified(editable, position, gpsm_item_hsize(item) - position);
+
+		break;
+	}
+	case GPSM_SIG_SWFILE_CUT: {
+		gpsm_swfile_t *item;
+		long position, size;
+		GRange range;
+
+		GLSIGH_GETARGS3(va, item, position, size);
+
+		/* Notify the wave buffer, raise gtk insert signal. */
+		g_range_set(&range, position, size);
+		gtk_signal_emit(GTK_OBJECT(editable), delete_data_signal,
+				&range);
+		gtk_editable_wave_buffer_queue_modified(editable, position, gpsm_item_hsize(item) - position);
+
+		break;
+	}
+	case GPSM_SIG_SWFILE_CHANGED: {
+		gpsm_swfile_t *item;
+		long position, size;
+
+		GLSIGH_GETARGS3(va, item, position, size);
+
+		/* Notify the wave buffer. */
+		gtk_editable_wave_buffer_queue_modified(editable, position, size);
+
+		break;
+	}
+	case GPSM_SIG_ITEM_DESTROY: {
+		DPRINTF("FIXME - kill the window.\n");
+		break;
+	}
+	default:
+		DPRINTF("Unhandled signal %li\n", sig);
+	}
+}
+GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 {
 	GtkSwapfileBuffer *swapfile;
 	swfd_t *fd;
-	struct sw_stat *sbuf;
-	long *name;
-	int i, j;
+	gpsm_swfile_t **swfile;
+	gpsm_item_t *it;
+	glsig_handler_t **handler;
+	int nrtracks = 0;
+	int rate = -1;
+	long size = -1;
+	int i;
 
-	/* Well, 16 is already more than libgtkwaveform supports (2)... */
-	if (nrtracks <=0 || nrtracks > 16)
-		return NULL;
-
-	/* No duplicate files! */
-	for (i=0; i<nrtracks; i++)
-		for (j=0; j<nrtracks; j++)
-			if (i!=j && names[i] == names[j])
+	/* First obtain information about the to be displayed channels.
+	 * Ensure theyre equal sized and rated. */
+	if (GPSM_ITEM_IS_GRP(item)) {
+		gpsm_grp_foreach_item(item, it) {
+			gpsm_item_t *it2;
+			if (!GPSM_ITEM_IS_SWFILE(it))
 				return NULL;
+			if (rate == -1)
+				rate = gpsm_swfile_samplerate(it);
+			if (size == -1)
+				size = gpsm_item_hsize(it);
+			if (gpsm_swfile_samplerate(it) != rate
+			    || gpsm_item_hsize(it) != size)
+				return NULL;
+			gpsm_grp_foreach_item(item, it2)
+				if (GPSM_ITEM_IS_SWFILE(it2)
+				    && it != it2
+				    && gpsm_swfile_filename(it) == gpsm_swfile_filename(it2))
+					return NULL;
+			nrtracks++;
+		}
+	} else {
+		nrtracks = 1;
+		rate = gpsm_swfile_samplerate(item);
+		size = gpsm_item_hsize(item);
+	}
 
 	fd = calloc(nrtracks, sizeof(swfd_t));
-	sbuf = calloc(nrtracks, sizeof(struct sw_stat));
-	name = calloc(nrtracks, sizeof(long));
+	swfile = calloc(nrtracks, sizeof(gpsm_swfile_t *));
+	handler = calloc(nrtracks, sizeof(glsig_handler_t *));
 
-	for (i=0; i<nrtracks; i++) {
-		name[i] = names[i];
-		if ((fd[i] = sw_open(name[i], O_RDONLY, TXN_NONE)) == -1
-		    || sw_fstat(fd[i], &sbuf[i]) == -1
-		    || sbuf[i].size != sbuf[0].size)
+	
+	if (GPSM_ITEM_IS_GRP(item)) {
+		i = 0;
+		gpsm_grp_foreach_item(item, it) {
+			swfile[i] = (gpsm_swfile_t *)it;
+			if ((fd[i] = sw_open(gpsm_swfile_filename(it), O_RDONLY,
+					     TXN_NONE)) == -1)
+				goto err;
+			i++;
+		}
+	} else {
+		swfile[0] = (gpsm_swfile_t *)item;
+		if ((fd[0] = sw_open(gpsm_swfile_filename(item), O_RDONLY,
+				     TXN_NONE)) == -1)
 			goto err;
 	}
+
 	swapfile = gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
 	swapfile->nrtracks = nrtracks;
-	swapfile->rate = rate;
-	swapfile->fname = name;
+	swapfile->swfile = swfile;
+	swapfile->handler = handler;
 	swapfile->fd = fd;
-	swapfile->stat = sbuf;
+	for (i=0; i<nrtracks; i++) {
+		handler[i] = glsig_add_handler(gpsm_item_emitter(swfile[i]),
+					       GPSM_SIG_SWFILE_INSERT|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_ITEM_DESTROY,
+					       handle_swfile, swapfile);
+	}
 
 	return GTK_OBJECT(swapfile);
  err:
@@ -278,42 +342,15 @@ GtkObject *gtk_swapfile_buffer_new_a(int nrtracks, int rate, long *names)
 		if (fd[i] != 0)
 			sw_close(fd[i]);
 	free(fd);
-	free(name);
-	free(sbuf);
+	free(swfile);
+	free(handler);
 	return NULL;
 }
-GtkObject *gtk_swapfile_buffer_new_va(int nrtracks, int rate, va_list va)
+
+int gtk_swapfile_buffer_get_swfiles(GtkSwapfileBuffer *buffer,
+				    gpsm_swfile_t ***files)
 {
-	long names[16];
-	int i;
-
-	if (nrtracks <=0 || nrtracks > 16)
-		return NULL;
-
-	for (i=0; i<nrtracks; i++)
-		names[i] = va_arg(va, long);
-
-	return gtk_swapfile_buffer_new_a(nrtracks, rate, names);
-}
-GtkObject *gtk_swapfile_buffer_new(int nrtracks, int rate, ...)
-{
-	long names[16];
-	va_list va;
-	int i;
-
-	if (nrtracks <=0 || nrtracks > 16)
-		return NULL;
-
-	va_start(va, rate);
-	for (i=0; i<nrtracks; i++)
-		names[i] = va_arg(va, long);
-	va_end(va);
-
-	return gtk_swapfile_buffer_new_a(nrtracks, rate, names);
-}
-
-int gtk_swapfile_buffer_get_filenames(GtkSwapfileBuffer *buffer, long **names)
-{
-        *names = buffer->fname;
+	*files = buffer->swfile;
 	return buffer->nrtracks;
 }
+

@@ -266,6 +266,8 @@ void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate);
  * this will cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
 void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position);
 
-
+/* Updates the size of the specified gpsm-swfile. An GPSM_SIG_ITEM_CHANGED
+ * signal will be sent out. */
+void gpsm_swfile_set_size(gpsm_swfile_t *swfile, long size);
 
 #endif
