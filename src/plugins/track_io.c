@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.5 2000/03/27 09:20:10 richi Exp $
+ * $Id: track_io.c,v 1.6 2000/04/17 09:18:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -216,12 +216,12 @@ static int track_out_f(filter_node_t *n)
 			file, filterpipe_sample_rate(in),
 			filterpipe_sample_hangle(in), 0);
 	if (res == 0)
-		DPRINTF("added track %s::%s\n", filterparam_val_string(group),
-			filterparam_val_string(chan));
+		DPRINTF("added track %s::%s file %i\n", filterparam_val_string(group),
+			filterparam_val_string(chan), file);
 	else
-		DPRINTF("error adding track %s::%s\n",
+		DPRINTF("error adding track %s::%s file %i\n",
 			filterparam_val_string(group),
-			filterparam_val_string(chan));
+			filterparam_val_string(chan), file);
 
 	FILTER_BEFORE_CLEANUP;
 
