@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.21 2004/10/23 13:09:28 richi Exp $
+ * $Id: audio_io_oss.c,v 1.22 2004/11/12 16:44:53 richi Exp $
  *
  * Copyright (C) 2001, 2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -287,7 +287,7 @@ _fmt_retry:
 	if (ioctl(dev, SNDCTL_DSP_GETBLKSIZE, &blksz) == -1)
 		FILTER_ERROR_CLEANUP("Couldn't query size of audio buffer.");
 	if (blksz <= 0)
-		PANIC("Illegal size of audio buffer!");
+		FILTER_ERROR_CLEANUP("Illegal size of audio buffer!");
 
 	/* Allocate conversion buffer */
 	out = (gl_s8 *)malloc(blksz);
@@ -317,8 +317,8 @@ _fmt_retry:
 			ssize_t done;
 			if ((done = write(dev, wpos, todo)) == -1 &&
 			     errno != EINTR) {
-				DERROR("Audio device had failure. "
-			       	       "Samples might be dropped\n");
+				FILTER_ERROR_STOP("Audio device had failure. "
+						  "Samples might be dropped\n");
 				break;
 			}
 			filterparam_val_set_pos(pos_param, pos);
