@@ -37,7 +37,7 @@ if HAVE_SGI
 audio_io_irix = audio_io_irix.la
 endif
 if HAVE_GNOME
-normalize = normalize.la
+normalize = normalize.la mixer.la
 endif
 
 
@@ -121,6 +121,8 @@ audio_io_irix_la_LDFLAGS = -module -avoid-version $(SGIAUDIO_LIBS)
 
 if HAVE_GNOME
 normalize_la_SOURCES = normalize.c
+mixer_la_SOURCES = mixer.c
 endif
 normalize_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
+mixer_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
