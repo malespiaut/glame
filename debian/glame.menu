@@ -1,0 +1,4 @@
+?package(glame):needs=text section=Apps/Sound\
+  title="cglame" command="/usr/bin/cglame"
+?package(glame):needs="X11" section=Apps/Sound\
+  title="glame" command="/usr/bin/glame"

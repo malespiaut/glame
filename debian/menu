@@ -1,2 +1,0 @@
-?package(glame):needs=text|vc section=Apps/Sound\
-  title="cglame" command="/usr/bin/cglame"
