@@ -7,8 +7,6 @@ Known BUGS that should be fixed before 0.6.0:
 - import and export dialogs need to be finished
 - fix glame_audiofile to support virtual interface
 - intl for other than main widget needs to be done
-- maybe disable timeline
-- remove plugin install warning, if versioning works ok
 - better documentation for cglame, tutorial like
 - update editfilter documentation - have a tutorial
   like introduction
