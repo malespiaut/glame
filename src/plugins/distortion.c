@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.2 2001/05/03 12:34:47 mag Exp $ 
+ * $Id: distortion.c,v 1.3 2001/05/11 20:48:49 mag Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -75,6 +75,14 @@ static int distortion_f(filter_t *n)
 		case 1:
 			goto entry1;
 			break;
+
+		case 2: 
+			pregain *= M_PI;
+			if (pregain < M_PI*0.5)
+				fxgain *= 1.0/sinf(clip);
+			gain = 1.0 / (1.0 + fxgain);
+			goto entry2;
+			break;
 		default:
 			goto exitus;
 	}
@@ -121,6 +129,30 @@ entry1:
 		buf = sbuf_make_private(sbuf_get(in));
 	};
 
+	goto exitus;
+	
+	/* Simple sinusoider */
+
+
+	while (buf) {
+		FILTER_CHECK_STOP;
+		
+		/* got an input buffer */
+		s = &sbuf_buf(buf)[0];
+		for(i=0; i < sbuf_size(buf); i++) {
+			*s = gain * (*s + fxgain * sinf(*s * pregain));
+			if (*s > pos_clip)
+				*s = pos_clip;
+			else if (*s < neg_clip)
+				*s = neg_clip;
+			s++;
+		}
+
+		sbuf_queue(out, buf);
+entry2:
+		buf = sbuf_make_private(sbuf_get(in));
+	}
+	
 exitus:
 	sbuf_queue(out, buf);
 	
@@ -168,7 +200,7 @@ int distortion_register(plugin_t *p)
 				    FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "distortion effect");
-	/* plugin_set(p, PLUGIN_PIXMAP, "flanger.xpm"); */
+	plugin_set(p, PLUGIN_PIXMAP, "distortion.png"); 
 	plugin_set(p, PLUGIN_CATEGORY, "Effects");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Distortion");
 
