@@ -1,4 +1,4 @@
-(filternetwork pan
+(filternetwork pan "pans an audio stream"
 	(node rf read_file
 		(export-param filename filename "file to be played")
 	)
