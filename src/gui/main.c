@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.66 2001/07/03 09:18:57 richi Exp $
+ * $Id: main.c,v 1.67 2001/07/05 13:59:28 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -55,6 +55,7 @@ extern gboolean bMac;
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void show_console_cb(GtkWidget *menu, void *blah);
+static void sync_cb(GtkWidget *menu, void *blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
@@ -67,6 +68,7 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_ITEM(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM (_("Show _console"), "Shows the GLAME console", show_console_cb, NULL),
+	GNOMEUIINFO_ITEM (_("Sync"), "Syncs meta to disk", sync_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -118,6 +120,11 @@ static GnomeUIInfo menubar_uiinfo[] =
 static void show_console_cb(GtkWidget *menu, void * blah)
 {
 	glame_console_show();
+}
+
+static void sync_cb(GtkWidget *menu, void * blah)
+{
+	gpsm_sync();
 }
 
 extern void edit_tree_label(GlameTreeItem * item);
@@ -590,7 +597,10 @@ static void gui_main()
 			DERROR("error creating swapfile\n");
 		}
 	}
-	gpsm_init(path);
+	if (gpsm_init(path) == -1) {
+		fprintf(stderr, "Somehow could not initialize gpsm\n");
+		exit(1);
+	}
 	g_free(path);
 
 	/* Init GUI dependend subsystems. */

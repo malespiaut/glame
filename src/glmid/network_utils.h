@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.2 2001/06/28 12:44:15 richi Exp $
+ * $Id: network_utils.h,v 1.3 2001/07/05 13:59:28 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -67,6 +67,9 @@ void net_prepare_bulk();
 
 /* Restores tuning params to the default ones set in user preferences. */
 void net_restore_default();
+
+/* Returns an error string for the network, if any. */
+char *net_get_error_str(filter_t *net);
 
 
 #endif

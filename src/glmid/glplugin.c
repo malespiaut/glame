@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.29 2001/06/07 08:11:05 richi Exp $
+ * $Id: glplugin.c,v 1.30 2001/07/05 13:59:28 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <ctype.h>
 #include "util.h"
 #include "list.h"
 #include "glplugin.h"
@@ -224,7 +225,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 			continue;
 		}
 		plugin_set(lp, PLUGIN_PARENT, p);
-		snprintf(category, 255, "LADSPA/%c", lp->name[0]);
+		snprintf(category, 255, "LADSPA/%c", tolower(lp->name[0]));
 		plugin_set(lp, PLUGIN_CATEGORY, strdup(category));
 	}
 

@@ -586,7 +586,7 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	}
 
-	start = gtk_wave_view_get_marker (waveview);
+	start = MAX(0, gtk_wave_view_get_marker (waveview));
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Playing from %li\n", (long)start);
 	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
@@ -639,7 +639,14 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	return;
 
  fail:
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot play")));
+	{
+		char *msg;
+		msg = net_get_error_str(net);
+		gnome_dialog_run_and_close(
+			GNOME_DIALOG(gnome_error_dialog(msg ? msg : "Cannot play")));
+		if (msg)
+			free(msg);
+	}
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
@@ -745,9 +752,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	}
 
-	start = gtk_wave_view_get_marker(waveview);
-	if (start < 0)
-		return;
+	start = MAX(0, gtk_wave_view_get_marker(waveview));
 	DPRINTF("Recording at %li\n", (long)start);
 
 	left = right = NULL;

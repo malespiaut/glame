@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.2 2001/06/28 12:44:15 richi Exp $
+ * $Id: network_utils.c,v 1.3 2001/07/05 13:59:28 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -221,7 +221,7 @@ filter_t *net_apply_audio_out(filter_t *net)
 	return aout;
 }
 
-static saved_wbufsize = -1;
+static int saved_wbufsize = -1;
 void net_prepare_bulk()
 {
 	if (saved_wbufsize == -1) {
@@ -237,3 +237,22 @@ void net_restore_default()
 		saved_wbufsize = -1;
 	}
 }
+
+char *net_get_error_str(filter_t *net)
+{
+	char msg[256];
+	filter_t *node;
+
+	if (!net)
+		return NULL;
+	filter_foreach_node(net, node) {
+		if (filter_errstr(node)) {
+			snprintf(msg, 256, "Error processing net
+work:\n%s: %s\n", filter_name(node), filter_errstr(node));
+			return strdup(msg);
+		}
+	}
+
+	return NULL;
+}
+
