@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.3 2001/06/19 12:09:01 richi Exp $
+ * $Id: apply.c,v 1.4 2001/06/28 12:44:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -71,6 +71,7 @@ static void cleanup(struct apply_plugin_s *a)
 		filter_delete(a->net);
 	filter_delete(a->effect);
 	gpsm_item_destroy((gpsm_item_t *)a->item);
+	net_restore_default();
 	free(a);
 }
 
@@ -174,7 +175,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		return;
 	}
 
-	/* Create the preview network. */
+	/* Create the apply network. */
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile) {
 		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
@@ -191,6 +192,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	gpsm_op_prepare((gpsm_item_t *)a->item);
 	a->have_undo = 1;
 
+	net_prepare_bulk();
 	filter_launch(a->net);
 	filter_start(a->net);
 	a->timeout_id = gtk_timeout_add(100, (GtkFunction)poll_net_cb, a);
