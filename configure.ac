@@ -258,7 +258,6 @@ installed, usually called libxml-dev, libxmld, or similar.])
 ])
   GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $XML_CFLAGS"
   GLAME_LIBS="$GLAME_LIBS $XML_LIBS"
-  CFLAGS="$CFLAGS -DGTK_ENABLE_BROKEN"
 
 else
 dnl no GUI

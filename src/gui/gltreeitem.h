@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.10 2003/04/11 20:09:59 richi Exp $
+ * $Id: gltreeitem.h,v 1.11 2003/05/26 20:50:25 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -24,8 +24,10 @@
  *
  */
 
+#define GTK_ENABLE_BROKEN
 #include <gtk/gtktree.h>
 #include <gtk/gtktreeitem.h>
+#undef GTK_ENABLE_BROKEN
 #include "glsignal.h"
 #include "gpsm.h"
 
