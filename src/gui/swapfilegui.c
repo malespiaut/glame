@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.71 2001/12/23 15:02:46 richi Exp $
+ * $Id: swapfilegui.c,v 1.72 2002/01/01 22:06:39 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -130,8 +130,8 @@ static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)
 	/* Unlock accelerators. HACK(?) */
 	gtk_signal_handler_unblock(GTK_OBJECT(active_swapfilegui->app),
 				   active_swapfilegui->accel_handler);
-	gtk_container_remove(GTK_CONTAINER(item), GTK_WIDGET(entry));
 	gtk_widget_destroy(GTK_WIDGET(entry));
+	gtk_widget_show_all(item->hbox);
 	if (text) {
 		gpsm_item_set_label(item->item, text);
 		g_free(text);
@@ -144,14 +144,14 @@ void edit_tree_label(GlameTreeItem * item)
 
 	/* Deselect item and replace GtkLabel with GtkEntry. */
 	gtk_tree_item_deselect(GTK_TREE_ITEM(item));
-	label = GTK_WIDGET((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
-	gtk_container_remove(GTK_CONTAINER(item), label);
 	entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(entry), gpsm_item_label(item->item));
 	gtk_signal_connect(GTK_OBJECT(entry), "activate",
 			   (GtkSignalFunc)edit_tree_label_cb, item);
+	gtk_container_add(GTK_CONTAINER(item->hbox), entry);
+	gtk_widget_hide_all(item->hbox);
 	gtk_widget_show(entry);
-	gtk_container_add(GTK_CONTAINER(item), entry);
+	gtk_widget_show(item->hbox);
 	gtk_container_check_resize(GTK_CONTAINER(item));
 	gtk_widget_grab_focus(GTK_WIDGET(entry));
 	/* Block accelerators. HACK(?) */

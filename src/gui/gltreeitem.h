@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.8 2001/05/29 07:51:18 richi Exp $
+ * $Id: gltreeitem.h,v 1.9 2002/01/01 22:06:39 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -48,6 +48,11 @@ struct _GlameTreeItem {
 	/* gpsm linkage and our signal handler */
 	gpsm_item_t *item;
 	glsig_handler_t *handler;
+
+	/* widget stuff */
+	GtkWidget *hbox;
+	GtkLabel *label;
+	GtkAdjustment *pos_adj;
 };
 
 struct _GlameTreeItemClass {

@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.15 2001/07/16 09:51:19 richi Exp $
+ * $Id: gltreeitem.c,v 1.16 2002/01/01 22:06:39 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -74,12 +74,38 @@ GtkType glame_tree_item_get_type(void)
 	return glame_tree_item_type;
 }
 
+static void update_pos(GtkAdjustment *adj, gpsm_swfile_t *swfile)
+{
+	gpsm_swfile_set_position(swfile, adj->value);
+}
+
 GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 {
 	GlameTreeItem *itemw;
 
 	itemw = gtk_type_new(glame_tree_item_get_type());
         itemw->item = (gpsm_item_t *)item;
+	itemw->hbox = gtk_hbox_new(FALSE, 5);
+	itemw->label = GTK_LABEL(gtk_label_new(NULL));
+	gtk_label_set_justify(GTK_LABEL(itemw->label), GTK_JUSTIFY_LEFT);
+	itemw->pos_adj = NULL;
+	if (GPSM_ITEM_IS_SWFILE(item)) {
+		GtkWidget *slider;
+		itemw->pos_adj = GTK_ADJUSTMENT(
+			gtk_adjustment_new(gpsm_swfile_position(item),
+					   -M_PI, M_PI,
+					   M_PI/8.0, M_PI/2.0, 0.0));
+		slider = gtk_hscale_new(itemw->pos_adj);
+		gtk_scale_set_value_pos(GTK_SCALE(slider), GTK_POS_RIGHT);
+		gtk_scale_set_digits(GTK_SCALE(slider), 2);
+		gtk_container_add(GTK_CONTAINER(itemw->hbox), slider);
+		gtk_signal_connect(GTK_OBJECT(itemw->pos_adj), "value_changed",
+				   update_pos, item);
+	}
+	gtk_container_add(GTK_CONTAINER(itemw->hbox), GTK_WIDGET(itemw->label));
+	gtk_container_add(GTK_CONTAINER(itemw), itemw->hbox);
+	gtk_widget_show_all(itemw->hbox);
+
 	glame_tree_item_update(itemw);
 
 	return GTK_WIDGET(itemw);
@@ -88,8 +114,6 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 
 void glame_tree_item_update(GlameTreeItem *item)
 {
-	GtkBin *c;
-	GtkWidget *l;
 	char buf[256];
 
 	/* Create the label out of the gpsm item data. */
@@ -116,11 +140,10 @@ void glame_tree_item_update(GlameTreeItem *item)
 		if (fd != -1 && sw_fstat(fd, &st) != -1)
 			size = st.size/SAMPLE_SIZE;
 		sw_close(fd);
-		snprintf(buf, 255, "%s - %iHz, %.3fs @%.2f - (%.3fs, %li)",
+		snprintf(buf, 255, "%s - %iHz, %.3fs - (%.3fs, %li)",
 			 gpsm_item_label(item->item),
 			 gpsm_swfile_samplerate(item->item),
 			 (float)size/(float)gpsm_swfile_samplerate(item->item),
-			 gpsm_swfile_position(item->item),
 			 (float)gpsm_item_hposition(item->item)/(float)gpsm_swfile_samplerate(item->item),
 			 gpsm_item_vposition(item->item));
 	}
@@ -128,14 +151,11 @@ void glame_tree_item_update(GlameTreeItem *item)
 	/* Update/create the GtkLabel contained in the GtkBin
 	 * (superclass of GtkItem/GtkTreeItem/GlameTreeItem) */
 	/* FIXME - no method for this!? -> access child directly */
-	c = GTK_BIN(item);
-	if (!c->child) {
-		l = gtk_label_new(buf);
-		gtk_label_set_justify(GTK_LABEL(l), GTK_JUSTIFY_LEFT);
-		gtk_container_add(GTK_CONTAINER(item), l);
-		gtk_widget_show(l);
-	} else
-		gtk_label_set_text(GTK_LABEL(c->child), buf);
+	gtk_label_set_text(GTK_LABEL(item->label), buf);
+	if (GPSM_ITEM_IS_SWFILE(item->item)) {
+		gtk_adjustment_set_value(item->pos_adj,
+					 gpsm_swfile_position(item->item));
+	}
 }
 
 GtkTree* glame_tree_item_parent(GlameTreeItem *item)
