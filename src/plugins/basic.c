@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.23 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: basic.c,v 1.24 2001/04/25 08:24:27 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -149,7 +149,7 @@ static int one2n_f(filter_t *n)
 	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	one2n_param_t *p;
-	int i, res;
+	int i, res, have_feedback, do_timeout;
 	int maxfd, nr, eof, empty, oneempty, maxfifosize, maxallowedfifo;
 	fd_set rset, wset;
 	int nrin = 0, nrsel = 0;
@@ -165,10 +165,13 @@ static int one2n_f(filter_t *n)
 
 	/* init struct */
 	i = 0;
+	have_feedback = 0;
 	filterport_foreach_pipe(outp, out) {
 		INIT_FEEDBACK_FIFO(p[i].fifo);
 		p[i].fifo_size = 0;
 		p[i].feedback = filterpipe_is_feedback(out);
+		if (p[i].feedback)
+			have_feedback = 1;
 		p[i++].out = out;
 	}
 
@@ -201,22 +204,26 @@ static int one2n_f(filter_t *n)
 				maxfd = p[i].out->source_fd;
 		}
 		FD_ZERO(&rset);
-		if (!eof && oneempty && !(maxfifosize > maxallowedfifo)) {
+		if (!eof && /*oneempty &&*/ !(maxfifosize >= maxallowedfifo)) {
 			FD_SET(in->dest_fd, &rset);
 			if (in->dest_fd > maxfd)
 				maxfd = in->dest_fd;
 		}
 		if (eof && empty)
 			break;
-		if (maxfifosize > maxallowedfifo && oneempty && !empty) {
+		do_timeout = (have_feedback && !eof
+			      && maxfifosize >= maxallowedfifo
+			      && maxallowedfifo < 1024*1024 /* hard limit */
+			      && !empty && oneempty);
+		if (do_timeout) {
 			timeout.tv_sec = GLAME_WBUFSIZE/44100;
 			timeout.tv_usec = (long)((1000000.0*(float)(GLAME_WBUFSIZE%44100))/44100);
 		}
 		nrsel++;
 		res = select(maxfd+1,
-			     eof || /*!oneempty ||*/ (maxfifosize > maxallowedfifo) ? NULL : &rset,
+			     eof || /*!oneempty ||*/ (maxfifosize >= maxallowedfifo) ? NULL : &rset,
 			     empty ? NULL : &wset, NULL,
-			     maxfifosize >= maxallowedfifo && oneempty && !empty ? &timeout : NULL);
+			     do_timeout ? &timeout : NULL);
 		if (res == -1 && errno != EINTR)
 			perror("select");
 		if (res < 0)
@@ -225,7 +232,8 @@ static int one2n_f(filter_t *n)
 			/* Can only happen after timeout -> adjust fifo size,
 			 * but only if we can read from the input and write
 			 * to at least one empty fifo output that is not
-			 * feedback. */
+			 * feedback and we can _not_ write to all full feedback
+			 * pipes (implicitly guaranteed by res == 0). */
 			fd_set inset, outset;
 			/* Network paused? */
 			if (filter_is_ready(n))
@@ -251,10 +259,9 @@ static int one2n_f(filter_t *n)
 				if (has_feedback(&p[i].fifo)
 				    || p[i].feedback)
 					continue;
-				if (FD_ISSET(p[i].out->source_fd, &outset)
-				    && maxallowedfifo < 1024*1024) {
+				if (FD_ISSET(p[i].out->source_fd, &outset)) {
 					maxallowedfifo *= 2;
-					DPRINTF("Adjusting fifo size, fifo now %i (%.3fs at 44.1kHz)\n", maxallowedfifo/SAMPLE_SIZE, ((float)maxallowedfifo)/44100);
+					DPRINTF("Adjusting fifo size, fifo now %i (%.3fs at 44.1kHz)\n", maxallowedfifo/SAMPLE_SIZE, ((float)maxallowedfifo)/(44100*SAMPLE_SIZE));
 					break;
 				}
 			}

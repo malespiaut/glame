@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.32 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: basic_sample.c,v 1.33 2001/04/25 08:24:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -81,7 +81,7 @@ static int mix(filter_t *n, int drop)
 		SAMPLE *s;
 		int pos;
 
-		int done;
+		int done, feedback;
 		float factor;
 	} mix_param_t;
 	mix_param_t *p = NULL;
@@ -91,8 +91,8 @@ static int mix(filter_t *n, int drop)
 	filter_param_t *param;
 	struct timeval timeout;
 	int i, res, cnt, icnt;
-	int rate, maxfd, out_pos, eof_pos;
-	int fifo_full, output_ready, nr_ready_to_send;
+	int rate, maxfd, out_pos, eof_pos, have_feedback;
+	int fifo_full, output_ready, nr_ready_to_send, feedback_fifo_full;
 	int *j, jcnt;
 	fd_set rset, wset;
 	SAMPLE *s, **js;
@@ -125,6 +125,7 @@ static int mix(filter_t *n, int drop)
 	i = 0;
 	cnt = 1<<30;
 	nr_done = nr_eof = 0;
+	have_feedback = 0;
 	filterport_foreach_pipe(inp, in) {
 		p[i].in = in;
 		INIT_FEEDBACK_FIFO(p[i].fifo);
@@ -156,6 +157,9 @@ static int mix(filter_t *n, int drop)
 
 		cnt = MIN(cnt, p[i].out_pos);
 		p[i].done = 0;
+		p[i].feedback = filterpipe_is_feedback(in);
+		if (p[i].feedback)
+			have_feedback = 1;
 		i++;
 	}
 	/* normalize (position) factors, "move" delays */
@@ -163,6 +167,10 @@ static int mix(filter_t *n, int drop)
 		p[i].factor = (p[i].factor*gain)/factor;
 		p[i].out_pos -= cnt;
 	}
+
+	if (have_feedback && !drop)
+		FILTER_ERROR_CLEANUP("Mix has feedback");
+
 
 	FILTER_AFTER_INIT;
 
@@ -182,12 +190,16 @@ static int mix(filter_t *n, int drop)
 		/* The read part - only select those fds who do
 		 * not have full fifos / have EOF. */
 		fifo_full = 1;
+		feedback_fifo_full = 0;
 		FD_ZERO(&rset);
 		for (i=0; i<nr; i++) {
 			/* EOF or fifo full? */
 			if (!p[i].in
-			    || p[i].fifo_size >= max_fifo_size)
+			    || p[i].fifo_size >= max_fifo_size) {
+				if (p[i].feedback)
+					feedback_fifo_full = 1;
 				continue;
+			}
 			fifo_full = 0;
 			FD_SET(p[i].in->dest_fd, &rset);
 			if (p[i].in->dest_fd > maxfd)
@@ -198,7 +210,7 @@ static int mix(filter_t *n, int drop)
 		/* Write part - only select, if we're not in dropping
 		 * mode and have data ready to send. */
 		FD_ZERO(&wset);
-		if (out && output_ready) {
+		if ((out && output_ready) || fifo_full) {
 			FD_SET(out->source_fd, &wset);
 			if (out->source_fd > maxfd)
 				maxfd = out->source_fd;
@@ -208,16 +220,19 @@ static int mix(filter_t *n, int drop)
 		 * feedback for which we should adjust our maximum
 		 * fifo size (this timeout - at full fifo - is adjusted
 		 * to meet the RT criteria). */
-		if (fifo_full && out) {
+		if (feedback_fifo_full && out && output_ready
+		    && max_fifo_size < 1024*1024) {
 			timeout.tv_sec = GLAME_WBUFSIZE/rate;
 			timeout.tv_usec = (long)((1000000.0*(float)(GLAME_WBUFSIZE%rate))/rate);
 		} else {
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
 		}
+		if (fifo_full && (!out || !output_ready))
+			DERROR("Duh - broken mix state\n");
 		res = select(maxfd+1,
 			     fifo_full ? NULL : &rset,
-			     !out || !output_ready ? NULL : &wset,
+			     (!out || !output_ready) && !fifo_full ? NULL : &wset,
 			     NULL, &timeout);
 		if (res == -1) {
 			if (errno != EINTR)
@@ -228,13 +243,15 @@ static int mix(filter_t *n, int drop)
 			/* Network paused? */
 			if (filter_is_ready(n))
 				continue;
-			if (fifo_full && out) {
-				max_fifo_size *= 2;
-				DPRINTF("Adjusting fifo size, fifo now %i (%.3fs)\n",
-					max_fifo_size, ((float)max_fifo_size)/rate);
-				/* But limit it anyway... 32s (?) */
-				if (max_fifo_size >= 32*rate)
-					FILTER_ERROR_STOP("Too much feedback in the net - perhaps another deadlock?");
+			/* If we have a ready-to-read (or full fifo?) feedback
+			 * input and a not-ready-to-write output we have to
+			 * enlarge our fifo. */
+			if (out && output_ready && feedback_fifo_full) {
+				if (!FD_ISSET(out->source_fd, &wset)) {
+					max_fifo_size *= 2;
+					DPRINTF("Adjusting fifo size, fifo now %i (%.3fs)\n",
+						max_fifo_size, ((float)max_fifo_size)/rate);
+				}
 				continue;
 			}
 			/* Uh, deadlock... */
@@ -322,7 +339,8 @@ static int mix(filter_t *n, int drop)
 		 * Try to coalesce at least GLAME_WBUFSIZE size buffers,
 		 * only allow smaller buffers, if all inputs are EOF. */
 		if (cnt == 0
-		    || (cnt < GLAME_WBUFSIZE && nr_eof != nr)) {
+		    || (cnt < GLAME_WBUFSIZE
+			&& nr_eof != nr && (!drop || nr_eof == 0))) {
 			output_ready = 0;
 			continue;
 		}
