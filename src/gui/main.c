@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.71 2001/07/10 13:29:43 richi Exp $
+ * $Id: main.c,v 1.72 2001/07/13 08:59:49 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -342,7 +342,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	strncpy(path, cfg, 255);
 	g_free(cfg);
         gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), path);
-        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", changeString, &path);
+        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, &path);
         notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
@@ -370,7 +370,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	bMac = mac;
 	macMode = gtk_check_button_new();
 	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
-	gtk_signal_connect(GTK_OBJECT(macMode),"toggled",toggle_cb,&mac);
+	gtk_signal_connect(GTK_OBJECT(macMode),"toggled",(GtkSignalFunc)toggle_cb,&mac);
 	gtk_widget_show(macMode);
 	create_label_widget_pair(vbox,"Mac mode (one mouse button mode)",macMode);
 
@@ -406,7 +406,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		strncpy(ainplugin, cfg, 255);
 		g_free(cfg);
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
-		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &ainplugin);
+		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &ainplugin);
 		gtk_widget_show(GTK_COMBO(combo)->entry);
 		create_label_widget_pair(vbox, "Default input plugin (audio_in)", combo);
 
@@ -444,7 +444,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		strncpy(aoutplugin, cfg, 255);
 		g_free(cfg);
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
-		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &aoutplugin);
+		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &aoutplugin);
 		gtk_widget_show(GTK_COMBO(combo)->entry);
 		create_label_widget_pair(vbox, "Default output plugin (audio_out)", combo);
 
@@ -473,7 +473,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 
 	/* Finish. */
-        gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",setBoolean,&ok);
+        gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",(GtkSignalFunc)setBoolean,&ok);
         gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->apply_button));
         gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->help_button));
         gtk_widget_show(prop_box);
@@ -568,13 +568,34 @@ static void glame_splash(void)
 	tid = gtk_timeout_add(5000, (GtkFunction)glame_splash_timeout, about);
 #endif
 	gtk_signal_connect(GTK_OBJECT(about), "destroy",
-			   glame_splash_destroy_cb, (gpointer)tid);
+			   (GtkSignalFunc)glame_splash_destroy_cb, (gpointer)tid);
 }
 
 
 /*
  * Real main and cleanup stuff.
  */
+
+static void on_swapfile_panic(const char *msg)
+{
+	char message[1024];
+
+	/* Tell the user what happened. */
+	snprintf(message, 1023,
+		 "The GLAME swapfile subsystem is about to commit suicide.\n"
+		 "The reason for this is:\n"
+		 "    %s\n"
+		 "The current pending libc error is:\n"
+		 "    %s\n"
+		 "Just restart GLAME after fixing the above (which may be\n"
+		 "an internal GLAME error, too).\n\n"
+		 "-- BYE BYE.\n",
+		 msg, strerror(errno));
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(message)));
+
+	/* Try to save the current gpsm tree. May even lock up. Ugh. */
+	gpsm_sync();
+}
 
 static void resize_horiz_cb(GtkWidget *widget, GtkRequisition *req,
 			    GtkWidget *window)
@@ -643,6 +664,9 @@ static void gui_main()
 	glame_filtereditgui_init();
 	glame_timeline_init();
 
+	/* Register a swapfile panic handler. */
+	swapfile_register_panic_handler(on_swapfile_panic);
+
 	/* create swapfile gui - in a scrolled window */
 	swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
 	if (!swapfile)
@@ -681,7 +705,7 @@ static void gui_main()
 
 	/* Connect auto-horizontal-resize callback. */
 	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
-			   resize_horiz_cb, app);
+			   (GtkSignalFunc)resize_horiz_cb, app);
 
 	/* Register accelerators. */
 	SWAPFILE_GUI(swapfile)->accel_handler =
@@ -715,7 +739,7 @@ int main(int argc, char **argv)
 #endif
 
 	/* init glame */
-	glame_init(gui_main);
+	glame_init(gui_main, argc, argv);
 
 	return 1;
 }
