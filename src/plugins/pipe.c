@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.10 2000/12/08 14:03:21 richi Exp $
+ * $Id: pipe.c,v 1.11 2000/12/08 14:27:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -191,7 +191,7 @@ static int pipe_out_f(filter_t *n)
 	int res = 1, q, nr, nr_active, cnt, ccnt, i;
 
 	/* Get the pipes. */
-	port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	if ((nr = filterport_nrpipes(port)) < 1)
 		FILTER_ERROR_RETURN("insufficient inputs");
 	I[0].in = filterport_get_pipe(port);
