@@ -112,7 +112,7 @@ struct _GtkWaveView
    * The apml_zoom is the amount by which the amplitude should be multiplied.
    * Default is 1.0.
    */
-  gdouble         ampl_zoom;   
+  gfloat         ampl_zoom;   
 
   /* Marker position. */
   gint32          marker;     /* < 0 means no marker. in units of samples */

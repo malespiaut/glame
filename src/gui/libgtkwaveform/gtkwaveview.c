@@ -205,13 +205,13 @@ gtk_wave_view_class_init (GtkWaveViewClass *klass)
 
 /* Unit conversion functions */
 
-static guint32
-calc_scrn_y (gint32 top, gint32 height, gint16 mag, gdouble ampl_zoom)
+static inline guint32
+calc_scrn_y (gint32 top, gint32 height, gint16 mag, gfloat ampl_zoom)
 {
   gint32 pos;
 
-  pos = (guint32) (top + (height * 0.5) + \
-                  (height * mag * ampl_zoom) / 65535.0);
+  pos = (guint32) (top + (height * 0.5f) + \
+                  (height * mag * ampl_zoom) / 65535.0f);
 
   pos = MIN (MAX (pos, top), top + height - 1);
 
@@ -219,41 +219,41 @@ calc_scrn_y (gint32 top, gint32 height, gint16 mag, gdouble ampl_zoom)
 }
 
 
-static gint32
+static inline gint32
 calc_win_pel_pos (GtkWaveView *waveview, gint32 frame_pos)
 {
   return ((gint32) (frame_pos / waveview->zoom)) - ((gint32) (GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
 }
 
 
-static gint32
+static inline gint32
 calc_ext_pel_pos (GtkWaveView *waveview, gint32 frame_pos)
 {
   return (gint32) (frame_pos / waveview->zoom);
 }
 
 
-static gint32
+static inline gint32
 calc_win_pel_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 {
   return ext_pel_pos - ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
 }
 
-static gint32
+static inline gint32
 calc_ext_pel_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
   return win_pel_pos + ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
 }
 
 #if 0 /* unused */
-static gint32
+static inline gint32
 calc_frame_pos_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 {
   return (gint32) (ext_pel_pos * waveview->zoom);
 }
 #endif
 
-static gint32
+static inline gint32
 calc_frame_pos_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
 	return (((gint32) GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom) + win_pel_pos) * waveview->zoom;
