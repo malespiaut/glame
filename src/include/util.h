@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.9 2000/10/04 14:25:05 nold Exp $
+ * $Id: util.h,v 1.10 2000/10/09 08:37:59 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -35,9 +35,21 @@
 
 #ifndef	HAVE_GCC
 #define __PRETTY_FUNCTION__	"Unknown location" 
+#define __attribute__(x)
 #endif
 
-#define PANIC(msg) do { fprintf(stderr, "\nPANIC in file " __FILE__ ", function " __PRETTY_FUNCTION__ ":\n" msg "\n"); perror("errno says"); *((int *)0)=0; } while (0)
+static void __glame_do_panic(const char *, const char *,
+			     const char *) __attribute__((__noreturn__)) __attribute__((__unused__));
+static void __glame_do_panic(const char *file, const char *func,
+			     const char *msg)
+{
+	fprintf(stderr, "\nPANIC in file %s, function %s:\n%s\n",
+		file, func, msg);
+	perror("errno says");
+	*((int *)0) = 0;
+	exit(1);
+}
+#define PANIC(msg) __glame_do_panic(__FILE__, __PRETTY_FUNCTION__, msg)
 
 #ifndef NDEBUG
 #define DERROR(msg) PANIC(msg)
