@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.8 2000/02/22 16:55:26 nold Exp $
+@comment $Id: filter-tutorial.texi,v 1.9 2000/03/28 16:45:36 nold Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -135,51 +135,68 @@ After @code{FILTER_AFTER_INIT;} you should do the actual filter work, i.e.
 accept and send data through the ports.
 The main part of the filter and the cleanup part (freeing of all
 allocated local data, etc.) have to be seperated by placing the macro 
+@findex FILTER_RETURN
 @findex FILTER_BEFORE_CLEANUP
 @code{FILTER_BEFORE_CLEANUP;}.
 Neither in the main part, nor in the cleanup part may you just return with
 a return value of -1 (i.e. just fail). Instead you have to cleanup yourself,
 including sending @code{EOF}s to your output ports. So basically you may fail
-in the initialisation part, but nowhere else.
+in the initialisation part, but nowhere else. The cleanup section must end
+with a call to @code{FILTER_RETURN}.
 
 @findex FILTER_DO_CLEANUP 
-For your convenience, there's another macro, @code{FILTER_DO_CLEANUP} that you
-can use to jump from the init section to the cleanup section. Typical code
-looks like this:
+@findex FILTER_ERROR_RETURN
+@findex FILTER_ERROR_CLEANUP
+For your convenience, there's a set of macros to ease the task of meeting
+those constraints. @code{FILTER_DO_CLEANUP;} is used to jump from the init 
+section to the cleanup section. It does not make the filter fail, however.
+To return with an error, use @code{FILTER_ERROR_RETURN(msg_string);}. 
+@code{FILTER_ERROR_CLEANUP(msg_string);} makes the filter fail as well but jumps
+to the cleanup section first. Obviously, @code{FILTER_ERROR_RETURN();} and
+@code{FILTER_ERROR_CLEANUP();} may only be used in the init section. 
+@code{FILTER_DO_CLEANUP;} can be handy in the main loop. 
+
+@findex FILTER_CHECK_STOP
+@findex FILTER_BEFORE_STOPCLEANUP
+Another section primitive is the @code{FILTER_CHECK_STOP;} macro which you
+should use inside all operating loops to check for external stop, pause or
+terminate queries. The corresponding cleanup section after 
+@code{FILTER_BEFORE_STOPCLEANUP;}
+is jumped to if a terminating request has to be fulfilled.
+
+Typical code looks like this:
 
 @example
 static int myfilter_f(filternode_t *n)
 @{
-	(...)		/* stuff */
-	int ret = -1;	/* Return from init with failure */
+	(...)	/* Initalisations, setups... */
 
-	(...)	/* Checks, setups, allocations */
+	if (!(bar = (bar_t *)malloc(sizeof(bar_t))))
+		FILTER_ERROR_RETURN("Not enough memory for bar!");
 
-	if (some_error)
-		FILTER_DO_CLEANUP;
+	if (!(baz = open(mydev, myflags)))
+		FILTER_ERROR_CLEANUP("Unable to open device!");
 
-	ret = 0;	/* No failure beyond this point! */
 	FILTER_AFTER_INIT;
 
-	(...) /* Do real work */
+	while (a < b) @{
+		FILTER_CHECK_STOP;
+		(...) /* Do real work */
+	@}
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	(...)	/* Free dynamic resources, tidy up */
-	return ret;
+	if (baz != -1)
+		close(baz);
+	free(bar);
+	FILTER_RETURN;
 @}
 @end example
 
 @strong{You may not use any of the @code{?buf_*()}
 functions in the init section (DEADLOCK!!!)} 
 (Well, @code{?buf_alloc()} is allowed, if you really need it)
-
-Another section primitive is the @code{FILTER_CHECK_STOP;} macro which you
-should use inside all operating loops to check for external stop, pause or
-terminate
-queries. The corresponding cleanup section after 
-@code{FILTER_BEFORE_STOPCLEANUP;}
-is jumped to if a terminating request has to be fulfilled.
 
 For more complex filters which require some sort of backlog of sample
 data or which do modify an input stream the following issues have to
