@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.17 2001/07/10 12:00:36 richi Exp $
+ * $Id: glamecanvas.c,v 1.18 2001/07/10 15:49:51 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -99,7 +99,9 @@ glame_canvas_get_type(void)
 static void
 glame_canvas_group_destroy (GtkObject *object)
 {
-	gtk_object_destroy(object);
+	GnomeCanvasGroupClass *parent_class;
+	parent_class = gtk_type_class(GNOME_TYPE_CANVAS_GROUP);
+	GTK_OBJECT_CLASS(parent_class)->destroy(object);
 }
 
 
