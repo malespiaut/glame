@@ -158,7 +158,8 @@ int glscript_init()
 	/* Register scheme procedures for the subsystems.
 	 */
 	if (glscript_init_swapfile() == -1
-	    || glscript_init_filter() == -1)
+	    || glscript_init_filter() == -1
+	    || glscript_init_gpsm() == -1)
 		return -1;
 
 	/* Load glame scheme libraries (if existent):

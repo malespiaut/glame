@@ -38,6 +38,7 @@ int glscript_init();
 /* Private init functions - for internal use only. */
 int glscript_init_swapfile();
 int glscript_init_filter();
+int glscript_init_gpsm();
 
 
 /* HACK to allow switching between register(0)/instantiate(1) mode */
@@ -88,6 +89,17 @@ int print_long(SCM long_smob, SCM port, scm_print_state *pstate);
 SCM equalp_long(SCM long_smob1, SCM long_smob2);
 SCM long2scm(long val, long smob_tag);
 long scm2long(SCM long_smob, long smob_tag);
+
+
+/* SMOBs for gpsm_item_t, ...
+ */
+
+extern long gpsmitem_smob_tag;
+#define scm2gpsmitem(s) (gpsm_item_t *)scm2pointer(s, gpsmitem_smob_tag)
+#define gpsmitem2scm(p) pointer2scm((void *)p, gpsmitem_smob_tag)
+#define scminvalidategpsmitem(s) scminvalidatepointer(s, gpsmitem_smob_tag)
+#define gpsmitem_p(s) (SCM_NIMP(s) && SCM_CAR(s) == gpsmitem_smob_tag)
+
 
 
 #endif

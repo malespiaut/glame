@@ -28,16 +28,14 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <string.h>
+#include <guile/gh.h>
 #include "glame_hash.h"
 #include "swapfile.h"
 #include "filter.h"
 #include "glplugin.h"
 #include "glsimd.h"
-
-#ifdef HAVE_GUILE
-#include <guile/gh.h>
 #include "glscript.h"
-#endif
+
 
 /* Builtin plugins. */
 PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform "
@@ -51,7 +49,6 @@ int glame_load_plugin(const char *fname)
 	if (plugin_load(fname) == 0)
 		return 0;
 
-#ifdef HAVE_GUILE
 	/* Scheme macro plugin type? FIXME: more sanity check before. */
 	if (strstr(fname, ".scm")) {
 		SCM s_res;
@@ -63,7 +60,6 @@ int glame_load_plugin(const char *fname)
 		}
 		return 0;
 	}
-#endif
 
 	return -1;
 }
@@ -75,7 +71,6 @@ filter_t *glame_load_instance(const char *fname)
 	if (!strstr(fname, ".scm"))
 		return NULL;
 
-#ifdef HAVE_GUILE
 	glscript_load_mode = 1;
 	s_res = glame_gh_safe_eval_file(fname);
 	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
@@ -83,9 +78,6 @@ filter_t *glame_load_instance(const char *fname)
 		return NULL;
 	}
 	return last_loaded_filter_instance; /* HACK... */
-#else
-	return NULL;
-#endif
 }
 
 static void add_plugin_path(const char *path)
@@ -195,7 +187,7 @@ static void glame_cleanup()
 
 static void init_after_guile(int argc, char **argv)
 {
-#if defined HAVE_GUILE && !defined NDEBUG
+#if !defined NDEBUG
 	/* We dont like guiles signal handlers for debugging
 	 * purposes. */
 	scm_restore_signals();
@@ -209,14 +201,12 @@ static void init_after_guile(int argc, char **argv)
 		exit(1);
 	atexit(glame_cleanup);
 
-#ifdef HAVE_GUILE
 	/* Init scripting. */
 	if (glscript_init() == -1)
 		exit(1);
 	add_plugin_path(PKGSCRIPTSDIR);
 	load_plugins_from_path("./plugins");       /* for .scm */
 	load_plugins_from_path(PKGSCRIPTSDIR);
-#endif
 
 	((void (*)(void))argv[1])();
 }
@@ -227,11 +217,7 @@ int glame_init(void (*main)(void))
 	argv[0] = NULL;
 	argv[1] = (char *)main;
 
-#ifdef HAVE_GUILE
 	gh_enter(0, argv, init_after_guile);
-#else
-	init_after_guile(0, argv);
-#endif
 
 	return 0;
 }
