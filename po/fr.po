@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-01-10 00:32+0100\n"
+"POT-Creation-Date: 2002-01-11 23:46+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -284,6 +284,10 @@ msgstr ""
 #: src/gui/edit_filter/filtereditgui.c:375
 #: src/gui/edit_filter/filtereditgui.c:411
 msgid "Unknown"
+msgstr ""
+
+#: src/gui/edit_filter/filtereditgui.c:384
+msgid "Parameters"
 msgstr ""
 
 #: src/gui/edit_filter/filtereditgui.c:684
@@ -1258,7 +1262,7 @@ msgid "flatten"
 msgstr ""
 
 #: src/gui/swapfilegui.c:97 src/gui/swapfilegui.c:116
-#: src/gui/waveeditgui.c:748
+#: src/gui/swapfilegui.c:118 src/gui/waveeditgui.c:748
 msgid "Apply operation"
 msgstr ""
 
@@ -1270,7 +1274,7 @@ msgstr ""
 msgid "Export..."
 msgstr ""
 
-#: src/gui/swapfilegui.c:118
+#: src/gui/swapfilegui.c:116 src/gui/swapfilegui.c:118
 msgid "Group"
 msgstr ""
 
