@@ -13,6 +13,11 @@ plugins/
 	- file_io needs fixed libaudiofile support
 	- provide pixmaps for all plugins (missing: echo, fft friends,
           iir, noisegate, pan, rms, time, ...)
+	- fix one2n/mix - try a feed-forward echo with large delay
+          -> deadlock (because no feedback -> no fifo adjustion)
+          ==> buffering filter for manual intervention (?), this one
+              could also do buffer re-coalescing (?) - have two inputs,
+              one to be buffered, one to auto-hint the buffersize (?)
 
 hash/
 	[all]
@@ -60,6 +65,8 @@ gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
 	- toolbar for zoom/select/play/record/close
+	- disable paste/undo/redo menu items, if op not possible
+	  (think about other ops, too - play/record, etc.)
 
 gui/libgtkwaveform
 	[richi]
