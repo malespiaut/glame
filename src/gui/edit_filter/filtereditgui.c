@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.70 2005/03/30 16:26:06 richi Exp $
+ * $Id: filtereditgui.c,v 1.71 2005/03/30 17:12:50 xwolf Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -748,7 +748,13 @@ glame_filtereditgui_new(filter_t *net, gboolean prot)
 	
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_EXECUTE,_("Execute"),_("Executes Filternetwork"),GTK_SIGNAL_FUNC(glame_canvas_execute_cb),window,-1);
+	window->startbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_EXECUTE,_("Execute"),_("Executes Filternetwork"),GTK_SIGNAL_FUNC(glame_canvas_execute_cb),window,-1);
+	window->stopbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),
+						      GNOME_STOCK_PIXMAP_STOP,
+						      _("Stop"), _("Stop"), 
+						      GTK_SIGNAL_FUNC(glame_canvas_execute_cb), 
+						      window, -1);
+	gtk_widget_hide(window->stopbutton);
 
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_CONVERT,_("Register"),_("Registers actual filternetwork"),GTK_SIGNAL_FUNC(glame_canvas_register_cb),window,-1);
@@ -868,12 +874,8 @@ static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
 			- filterparam_val_long(changed_start) + 1);
 	}
 
-	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(gui->toolbar)), 0)->data);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(gui->toolbar),
-				GNOME_STOCK_PIXMAP_EXEC,
-				_("Execute"), _("Executes Filternetwork"),
-				GTK_SIGNAL_FUNC(glame_canvas_execute_cb), gui, 0);
+	gtk_widget_show(gui->startbutton);
+	gtk_widget_hide(gui->stopbutton);
 }
 
 static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
@@ -904,12 +906,8 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 
 	glame_canvas_reset_errors(gui->canvas);
 
-	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(gui->toolbar)), 0)->data);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(gui->toolbar),
-				 GNOME_STOCK_PIXMAP_STOP,
-				 _("Stop"), _("Stop"), 
-				 GTK_SIGNAL_FUNC(glame_canvas_execute_cb), gui, 0);
+	gtk_widget_hide(gui->startbutton);
+	gtk_widget_show(gui->stopbutton);
 }
 
 static void glame_canvas_save_as_cb(GtkWidget*ignore, FiltereditGui *window)

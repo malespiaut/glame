@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.11 2003/05/18 19:08:38 xwolf Exp $
+ * $Id: filtereditgui.h,v 1.12 2005/03/30 17:12:59 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -56,7 +56,7 @@ struct _FiltereditGui {
 
 	GlameCanvas *canvas;
 	GtkToolbar *toolbar;
-
+	GtkWidget *startbutton,*stopbutton;
 	int pm_playing;
 };
 
