@@ -1,6 +1,6 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.5 2004/02/26 22:02:21 ochonpaul Exp $
+ * $Id: file_mp3_out.c,v 1.6 2004/02/29 21:39:24 ochonpaul Exp $
  *
  * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
  *
@@ -73,7 +73,7 @@ static int write_mp3_file_f(filter_t * n)
 	int ret_code = 0;
 	unsigned char mp3_buf[2304 * 2];	/* value from lame source */
 	int count = 0;
-	char *filename;
+	char *filename ;
 	FILE *mp3_file /* = fopen (filename, "w+") */ ;
 	int quality, bitrate, mode;
 	channelCount =
@@ -145,27 +145,28 @@ static int write_mp3_file_f(filter_t * n)
 
 	/* mp3_buf = ALLOCN(mp3_buf_size, unsigned char); */
 	gfp = lame_init();
-	
-	
+	id3tag_init(gfp);
+
+	/* lame_set_num_channels(gfp, channelCount); */
+/* 	printf("number of channel in Glame%i\n",channelCount); */
+/* 	printf("number of channel in Lame%i\n",lame_get_num_channels(gfp)); */
+
 	quality = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame encoding quality"));
-	if (quality == 0) quality = 2;
-	else if (quality == 1) quality = 0; 
-	else if (quality == 2) quality = 1;
-	if (lame_set_quality(gfp, quality)<0) FILTER_ERROR_STOP
-				    ("error  setting lame quality.");
+	if (lame_set_quality(gfp, quality)<0) FILTER_ERROR_STOP ("error  setting lame quality.");
 	DPRINTF("qual %i\n",quality);
 
-	/* lame_set_VBR(gfp,vbr_off);  */
+	
 	bitrate = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame encoding bitrate"));
-	if (bitrate == 0) bitrate = 128;
-	else if  (bitrate == 1) bitrate = 32;
-	else if  (bitrate == 2) bitrate = 40;
-	else if  (bitrate == 3) bitrate = 48;
-	else if  (bitrate == 4) bitrate = 56;
-	else if  (bitrate == 5) bitrate = 64;
-	else if  (bitrate == 6) bitrate = 80;
-	else if  (bitrate == 7) bitrate = 96;
-	else if  (bitrate == 8) bitrate = 112;
+	
+	if  (bitrate == 0) bitrate = 32;
+	else if  (bitrate == 1) bitrate = 40;
+	else if  (bitrate == 2) bitrate = 48;
+	else if  (bitrate == 3) bitrate = 56;
+	else if  (bitrate == 4) bitrate = 64;
+	else if  (bitrate == 5) bitrate = 80;
+	else if  (bitrate == 6) bitrate = 96;
+	else if  (bitrate == 7) bitrate = 112;
+	else if  (bitrate == 8) bitrate = 128;
 	else if  (bitrate == 9) bitrate = 160;
 	else if  (bitrate == 10) bitrate = 192;
 	else if  (bitrate == 11) bitrate = 224;
@@ -183,6 +184,15 @@ static int write_mp3_file_f(filter_t * n)
 	if (lame_set_mode(gfp, mode)<0) FILTER_ERROR_STOP
 				    ("error  setting lame mode.");
 	DPRINTF("mode %i\n",mode);
+	
+	id3tag_set_title(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Title")));
+	id3tag_set_artist(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Artist")));
+	id3tag_set_album(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Album")));
+	id3tag_set_year(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Year")));
+	id3tag_set_comment(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Comment")));
+	id3tag_set_track(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Track")));
+	if (id3tag_set_genre(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Genre"))))
+	  {printf("Bad genre, default to no genre\n");}
 
 	ret_code = lame_init_params(gfp);
 	if (ret_code < 0)
@@ -190,8 +200,7 @@ static int write_mp3_file_f(filter_t * n)
 
 
 	lame_print_config(gfp);
-	lame_print_internals(gfp);
-	
+		
 	while (eofs) {
 		FILTER_CHECK_STOP;
 		wbpos = 0;
@@ -272,6 +281,43 @@ static int write_mp3_file_connect_in(filter_port_t * port,
 	return 0;
 }
 
+
+
+static const char *const genre_names[] =
+{
+    /*
+     * NOTE: The spelling of these genre names is identical to those found in
+     * Winamp and mp3info.
+     */
+    "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
+    "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B",
+    "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska",
+    "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient", "Trip-Hop",
+    "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental",
+    "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "Alt. Rock",
+    "Bass", "Soul", "Punk", "Space", "Meditative", "Instrumental Pop",
+    "Instrumental Rock", "Ethnic", "Gothic", "Darkwave", "Techno-Industrial",
+    "Electronic", "Pop-Folk", "Eurodance", "Dream", "Southern Rock", "Comedy",
+    "Cult", "Gangsta Rap", "Top 40", "Christian Rap", "Pop/Funk", "Jungle",
+    "Native American", "Cabaret", "New Wave", "Psychedelic", "Rave",
+    "Showtunes", "Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
+    "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk",
+    "Folk/Rock", "National Folk", "Swing", "Fast-Fusion", "Bebob", "Latin",
+    "Revival", "Celtic", "Bluegrass", "Avantgarde", "Gothic Rock",
+    "Progressive Rock", "Psychedelic Rock", "Symphonic Rock", "Slow Rock",
+    "Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech",
+    "Chanson", "Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass",
+    "Primus", "Porn Groove", "Satire", "Slow Jam", "Club", "Tango", "Samba",
+    "Folklore", "Ballad", "Power Ballad", "Rhythmic Soul", "Freestyle", "Duet",
+    "Punk Rock", "Drum Solo", "A Cappella", "Euro-House", "Dance Hall",
+    "Goa", "Drum & Bass", "Club-House", "Hardcore", "Terror", "Indie",
+    "BritPop", "Negerpunk", "Polsk Punk", "Beat", "Christian Gangsta Rap",
+    "Heavy Metal", "Black Metal", "Crossover", "Contemporary Christian",
+    "Christian Rock", "Merengue", "Salsa", "Thrash Metal", "Anime", "JPop",
+    "Synthpop"
+};
+
+
 int write_mp3_file_register(plugin_t * pl)
 {
 	filter_t *f;
@@ -289,17 +335,37 @@ int write_mp3_file_register(plugin_t * pl)
 				   FILTERPORT_DESCRIPTION, "audio stream",
 				   FILTERPORT_END);
 	in->connect = write_mp3_file_connect_in;
-	param =
-	    filterparamdb_add_param_string(filter_paramdb(f), "filename",
-					   FILTER_PARAMTYPE_FILENAME, NULL,
-					   FILTERPARAM_END);
-
 	
-		param = filterparamdb_add_param_long(filter_paramdb(f), "lame encoding quality", FILTER_PARAMTYPE_LONG, 0 ,
-				    FILTERPARAM_DESCRIPTION, 
-				    "Lame encoding quality\n",
-				    FILTERPARAM_GLADEXML,
-"<?xml version=\"1.0\" standalone=\"no\"?>"
+	param = filterparamdb_add_param_string(filter_paramdb(f), "filename",
+					       FILTER_PARAMTYPE_FILENAME, NULL,
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Title",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Artist",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Album",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Year",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Comment",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Track",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Genre",
+					       FILTER_PARAMTYPE_STRING, "",
+					       FILTERPARAM_END);
+	
+	param = filterparamdb_add_param_long(filter_paramdb(f), "lame encoding quality", FILTER_PARAMTYPE_LONG,2,
+					     FILTERPARAM_DESCRIPTION, 
+					     "Lame encoding quality\n",
+					     FILTERPARAM_GLADEXML,
+					     "<?xml version=\"1.0\" standalone=\"no\"?>"
 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
 "<glade-interface>"
 "    <widget class=\"GtkOptionMenu\" id=\"widget\">"
@@ -311,21 +377,21 @@ int write_mp3_file_register(plugin_t * pl)
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item0\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">2 (recommended)</property>"
+"              <property name=\"label\" translatable=\"yes\">0 (slow)</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item1\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">0 (slow)</property>"
+"              <property name=\"label\" translatable=\"yes\">1</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item2\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">1</property>"
+"              <property name=\"label\" translatable=\"yes\">2 (recommended)</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
@@ -385,7 +451,7 @@ int write_mp3_file_register(plugin_t * pl)
 				    FILTERPARAM_LABEL, "Lame encoding quality",
 				    FILTERPARAM_END);
 
-		param = filterparamdb_add_param_long(filter_paramdb(f), "lame encoding bitrate", FILTER_PARAMTYPE_LONG, 0 ,
+		param = filterparamdb_add_param_long(filter_paramdb(f), "lame encoding bitrate", FILTER_PARAMTYPE_LONG, 8 ,
 				    FILTERPARAM_DESCRIPTION, 
 				    "Lame encoding bitrate\n",
 				    FILTERPARAM_GLADEXML,
@@ -401,63 +467,63 @@ int write_mp3_file_register(plugin_t * pl)
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item0\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">128</property>"
+"              <property name=\"label\" translatable=\"yes\">32</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item1\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">32</property>"
+"              <property name=\"label\" translatable=\"yes\">40</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item2\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">40</property>"
+"              <property name=\"label\" translatable=\"yes\">48</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item4\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">48</property>"
+"              <property name=\"label\" translatable=\"yes\">56</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "           <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item5\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">56</property>"
+"              <property name=\"label\" translatable=\"yes\">64</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "          <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item6\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">64</property>"
+"              <property name=\"label\" translatable=\"yes\">80</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "          <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item7\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">80</property>"
+"              <property name=\"label\" translatable=\"yes\">96</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "          <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item8\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">96</property>"
+"              <property name=\"label\" translatable=\"yes\">112</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "          <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item9\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">112</property>"
+"              <property name=\"label\" translatable=\"yes\">128</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
@@ -504,7 +570,7 @@ int write_mp3_file_register(plugin_t * pl)
 				    FILTERPARAM_END);
 
 	
-		param = filterparamdb_add_param_double(filter_paramdb(f), "lame mode", FILTER_PARAMTYPE_LONG, 0 ,
+		param = filterparamdb_add_param_double(filter_paramdb(f), "lame mode", FILTER_PARAMTYPE_LONG,0,
 						     FILTERPARAM_DESCRIPTION, "Lame mode \n",
 						     FILTERPARAM_GLADEXML,
 "<?xml version=\"1.0\" standalone=\"no\"?>"
@@ -519,14 +585,14 @@ int write_mp3_file_register(plugin_t * pl)
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item0\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">0 jstereo</property>"
+"              <property name=\"label\" translatable=\"yes\">1 joint stereo</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
 "	  <child>"
 "            <widget class=\"GtkMenuItem\" id=\"item1\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">1 stereo</property>"
+"              <property name=\"label\" translatable=\"yes\">0 stereo</property>"
 "              <property name=\"use_underline\">True</property>"
 "            </widget>"
 "          </child>"
