@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.1 2000/03/27 12:08:31 richi Exp $
+ * $Id: arithmetic.c,v 1.2 2000/04/06 13:33:44 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -149,7 +149,7 @@ int mul_register()
 
 /* This filter can be used to add inputs and a constant and
  * multiply a constant factor:
- * $O_i = c_1 \sum_n{{I_n}_i + c_2}$
+ * $O_i = c_1 (\sum_n{{I_n}_i} + c_2)$
  */
 static int add_f(filter_node_t *n)
 {
