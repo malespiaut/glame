@@ -1,3 +1,28 @@
+/*
+ * waveeditgui.c
+ *
+ * Copyright (C) 2001 Richard Guenther
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <math.h>
 #include <errno.h>
@@ -7,15 +32,12 @@
 #include "gtkswapfilebuffer.h"
 #include "glame_types.h"
 #include "swapfile.h"
+#include "waveeditgui.h"
 
 
-
-/* Quit callback. */
-static void quit (GtkWidget *widget, gpointer user_data)
-{
-	gtk_main_quit ();
-}
-
+/* Temporary storage for editing functions and the edit functions
+ * itself.
+ */
 
 static int temp_nrtracks = 0;
 static long temp_fname[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
@@ -209,51 +231,34 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 }
 
 
-int main (int argc, char *argv[])
+/* Delete callback. */
+static void delete (GtkWidget *widget, gpointer user_data)
+{
+	gtk_widget_hide(widget);
+	gtk_object_destroy(GTK_OBJECT(widget));
+}
+
+
+
+GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks, 
+				    int samplerate, long *names)
 {
 	GtkWidget *window, *waveview;
 	GtkObject *wavebuffer;
-	int nrtracks;
-
-	/* Init swapfile. */
-	if (argc < 4) {
-		fprintf(stderr, "Usage: %s swap zoom file...\n", argv[0]);
-		exit(1);
-	}
-
-	if (swapfile_open(argv[1], 0) == -1) {
-		if (errno != EBUSY) {
-			perror("ERROR: Unable to open swap");
-			exit(1);
-		}
-		fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
-		if (swapfile_fsck(argv[1]) == -1) {
-			perror("ERROR: Fsck failed");
-			exit(1);
-		}
-		fprintf(stderr, "WARNING: Fsck successful\n");
-		if (swapfile_open(argv[1], 0) == -1) {
-			perror("ERROR: Still cannot open swap");
-			exit(1);
-		}
-	}
-
-	/* Initialize Gtk+. */
-	gtk_init (&argc, &argv);
 
 	/* Create a Gtk+ window. */
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), title);
   
 	/* Create a GtkWaveView widget. */
-	nrtracks = argc - 3;
 	waveview = gtk_wave_view_new ();
 	gtk_wave_view_set_select_channels (GTK_WAVE_VIEW (waveview), 0x03);
-	gtk_widget_set_usize (waveview, 300+nrtracks*20, 150*nrtracks+50);
+	gtk_widget_set_usize (waveview, 300, 200);
 
 	/* Set the zoom factor such that 1 pixel = 5 frames.
 	 * A frame is equal to n samples at one point in time
 	 * where n = number of channels. */
-	gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), atoi(argv[2]));
+	gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), 50);
 
 	/* Set the cache size to hold 8192 pixel columns of data.
 	 * This means the user can scroll the widget's contents
@@ -261,19 +266,13 @@ int main (int argc, char *argv[])
 	 * displayed 8192 columns of data. */
 	gtk_wave_view_set_cache_size (GTK_WAVE_VIEW (waveview), 8192);
 
-	/* Create a data source object. - FIXME (API) */
-	wavebuffer = NULL;
-	if (nrtracks == 1)
-		wavebuffer = gtk_swapfile_buffer_new (1, GLAME_DEFAULT_SAMPLERATE, atoi(argv[3]));
-	else if (nrtracks == 2)
-		wavebuffer = gtk_swapfile_buffer_new (2, GLAME_DEFAULT_SAMPLERATE, atoi(argv[3]), atoi(argv[4]));
-	else if (nrtracks == 3)
-		wavebuffer = gtk_swapfile_buffer_new (3, GLAME_DEFAULT_SAMPLERATE, atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
-	else if (nrtracks == 4)
-		wavebuffer = gtk_swapfile_buffer_new (4, GLAME_DEFAULT_SAMPLERATE, atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
+	/* Create a data source object. */
+	wavebuffer = gtk_swapfile_buffer_new_a(nrtracks, samplerate, names);
 	if (!wavebuffer) {
-		fprintf(stderr, "Unable to create wavebuffer\n");
-		goto cleanup;
+		DPRINTF("Unable to create wavebuffer\n");
+		gtk_object_destroy(GTK_OBJECT(waveview));
+		gtk_object_destroy(GTK_OBJECT(window));
+		return NULL;
 	}
 
 	/* Add GtkWaveView to the window. */
@@ -285,17 +284,38 @@ int main (int argc, char *argv[])
 
 	/* Call the usual Gtk+ cruft. */
 	gtk_signal_connect (GTK_OBJECT (window), "delete_event",
-			    (GtkSignalFunc) quit, NULL);
+			    (GtkSignalFunc) delete, NULL);
 	gtk_signal_connect (GTK_OBJECT (waveview), "button_press_event",
 			    (GtkSignalFunc) press, NULL);
-	gtk_widget_show_all (window);
 
-	gtk_main ();
+	return window;
+}
+GtkWidget *glame_waveedit_gui_new_va(const char *title, int nrtracks,
+				     int samplerate, va_list va)
+{
+	long names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
+	int i;
 
-	/* cleanup. */
- cleanup:
+	if (nrtracks > GTK_SWAPFILE_BUFFER_MAX_TRACKS)
+		return NULL;
+	for (i=0; i<nrtracks; i++)
+		names[i] = va_arg(va, long);
+	return glame_waveedit_gui_new_a(title, nrtracks, samplerate, names);
+}
+GtkWidget *glame_waveedit_gui_new(const char *title, int nrtracks,
+				  int samplerate, ...)
+{
+	GtkWidget *w;
+	va_list va;
+
+	va_start(va, samplerate);
+	w = glame_waveedit_gui_new_va(title, nrtracks, samplerate, va);
+	va_end(va);
+	return w;
+}
+
+
+void glame_waveedit_cleanup()
+{
 	reset_temp(0);
-	swapfile_close();
-
-	return 0;
 }

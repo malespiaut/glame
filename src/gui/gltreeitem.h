@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.1 2001/03/05 15:02:09 richi Exp $
+ * $Id: gltreeitem.h,v 1.2 2001/03/12 09:41:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -36,11 +36,17 @@
 typedef struct _GlameTreeItem GlameTreeItem;
 typedef struct _GlameTreeItemClass GlameTreeItemClass;
 
+enum {
+	GLAME_TREE_ITEM_FILE = 1,
+	GLAME_TREE_ITEM_GROUP = 2
+};
+
 struct _GlameTreeItem {
 	GtkTreeItem parent_object;
 
 	/* data - from glame_editor.c:struct gledit_buffer */
-	char *name;
+	int type;
+	char *label;
 	long swapfile_name;
 	int  sample_rate;
 	long size; /* in samples, useful for consistency check with swapfile */
@@ -53,10 +59,17 @@ struct _GlameTreeItemClass {
 };
 
 
-GtkType glame_tree_item_get_type(void);
+GtkType    glame_tree_item_get_type(void);
 GtkWidget* glame_tree_item_new(void);
-void glame_tree_item_update_label(GlameTreeItem *item);
+GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
+				    int sample_rate, int size);
+GtkWidget* glame_tree_item_new_group(const char *label);
+void       glame_tree_item_update(GlameTreeItem *item);
 
+GlameTreeItem* glame_tree_find_group(GtkObject *tree, const char *label);
+GlameTreeItem* glame_tree_find_filename(GtkObject *tree, long name);
+GtkObject*     glame_tree_copy(GtkObject *tree);
+void           glame_tree_append(GtkObject *tree, GlameTreeItem *item);
 
 
 #endif
