@@ -3,7 +3,7 @@
 
 /*
  * gltrack.h
- * $Id: gltrack.h,v 1.2 2000/03/15 16:29:32 richi Exp $
+ * $Id: gltrack.h,v 1.3 2000/03/25 15:03:56 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -29,13 +29,6 @@
 #include <swapfile.h>
 
 
-#define TRACK_NUM_LEFT      0
-#define TRACK_NUM_RIGHT     1
-#define TRACK_NUM_CENTER    2
-#define TRACK_NUM_MISC     98
-#define TRACK_NUM_FLOATING 99
-
-
 struct tg_s;
 typedef struct tg_s tg_t;
 
@@ -49,37 +42,43 @@ struct track_s {
 	char *ch_name; /* track name */
 	tg_t *cg;      /* track group */
 
-	int type;      /* left,right,center,floating, etc. */
-	int freq;      /* SAMPLEs per second         */ 
+	int rate;      /* SAMPLEs per second */ 
+	float hangle;  /* position, [-pi, pi] */
 
 	fileid_t fid;  /* swapfile->file holding rawdata */
+	float offset;  /* track offset on timeline (ms) */
 };
 #define track_size(chan) (file_size((chan)->fid))
-#define track_type(chan) ((chan)->type)
-#define track_freq(chan) ((chan)->freq)
+#define track_rate(chan) ((chan)->rate)
+#define track_hangle(chan) ((chan)->hangle)
 #define track_name(chan) ((const char *)((chan)->name))
 #define track_fid(chan) ((chan)->fid)
+#define track_offset(chan) ((chan)->offset)
 
 
 
 /* adds track to track group.
  * returns -1 on error
  */
-int add_track(const char *group, const char *chan,
-	      int fid, int type, int freq);
+int track_add(const char *group, const char *track,
+	      int fid, int rate, float hangle, float offset);
 
-/* remove track from track group */
-int remove_track(track_t *chan);
-
+/* get track by track group name & track name, if name == NULL
+ * the first track of the group is returned */
+track_t *track_get(const char *group, const char *track);
 
 /* get (traverse) tracks by traversing the track group */
-track_t *get_first_track(const char *group);
-track_t *get_next_track(track_t *chan);
-
-/* get track by track group name & track name */
-track_t *get_track(const char *group, const char *chan);
+track_t *track_next(track_t *track);
 
 /* number of tracks in track group */
-int num_track(const char *group);
+int track_cnt(const char *group);
+
+/* delete track from track group */
+int track_delete(track_t *track);
+
+
+int track_set_hangle(track_t *track, float hangle);
+int track_set_offset(track_t *track, float offset);
+
 
 #endif

@@ -17,6 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
+ *
+ * Preliminary midlayer interface to the swapfile. Will probably change
+ * with the needs of the wave GUI.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -100,8 +103,8 @@ static void tg_free(tg_t *cg)
 
 /* public API */
 
-int add_track(const char *group, const char *chan,
-	      int fid, int type, int freq)
+int track_add(const char *group, const char *chan,
+	      int fid, int rate, float hangle, float offset)
 {
 	track_t *c;
 	tg_t *cg;
@@ -121,8 +124,9 @@ int add_track(const char *group, const char *chan,
 	hash_init_track(c);
 
 	c->fid = fid;
-	c->type = type;
-	c->freq = freq;
+	c->hangle = hangle;
+	c->rate = rate;
+	c->offset = offset;
 	c->cg = cg;
   
 	list_add(&c->ch_list, &cg->ch_list);
@@ -136,20 +140,23 @@ _notrackname:
 	return -1;
 }
 
-track_t *get_track(const char *group, const char *chan)
+track_t *track_get(const char *group, const char *chan)
 {
 	tg_t *cg;
 
-	if (!group || !chan)
+	if (!group)
 		return NULL;
 
 	if (!(cg = hash_find_cg(group)))
 		return NULL;
 
-	return hash_find_track(chan, cg);
+	if (chan)
+		return hash_find_track(chan, cg);
+	else
+		return list_gethead(&cg->ch_list, track_t, ch_list);
 }
 
-int remove_track(track_t *chan)
+int track_delete(track_t *chan)
 {
 	if (!chan)
 		return -1;
@@ -168,20 +175,7 @@ int remove_track(track_t *chan)
 	return 0;
 }
 
-track_t *get_first_track(const char *group)
-{
-	tg_t *cg;
-
-	if (!group)
-		return NULL;
-
-	if (!(cg = hash_find_cg(group)))
-		return NULL;
-
-	return list_gethead(&cg->ch_list, track_t, ch_list);
-}
-
-track_t *get_next_track(track_t *chan)
+track_t *track_next(track_t *chan)
 {
 	if (!chan)
 		return NULL;
@@ -192,7 +186,7 @@ track_t *get_next_track(track_t *chan)
 	return list_entry(chan->ch_list.next, track_t, ch_list);
 }
 
-int num_track(const char *group)
+int track_cnt(const char *group)
 {
 	tg_t *cg;
 
@@ -204,3 +198,20 @@ int num_track(const char *group)
 
 	return cg->nr_tracks;
 }
+
+int track_set_hangle(track_t *track, float hangle)
+{
+	if (!track)
+		return -1;
+	track->hangle = hangle;
+	return 0;
+}
+
+int track_set_offset(track_t *track, float offset)
+{
+	if (!track)
+		return -1;
+	track->offset = offset;
+	return 0;
+}
+

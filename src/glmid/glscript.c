@@ -281,6 +281,78 @@ SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 	return SCM_BOOL_T;
 }
 
+SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
+{
+	filter_pipe_t *p;
+	filter_paramdesc_t *paramd;
+	char *label, *str;
+	int labell, strl, i;
+	float f;
+
+	p = gh_scm2pointer(s_p);
+	label = gh_scm2newstr(s_label, &labell);
+	paramd = filterportdesc_get_paramdesc(p->source_port, label);
+	if (!paramd)
+		return SCM_BOOL_F;
+	switch (paramd->type) {
+	case FILTER_PARAMTYPE_INT:
+		i = gh_scm2long(s_val);
+		filterpipe_set_sourceparam(p, label, &i);
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+	case FILTER_PARAMTYPE_SAMPLE:
+		f = gh_scm2double(s_val);
+		filterpipe_set_sourceparam(p, label, &f);
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		str = gh_scm2newstr(s_val, &strl);
+		filterpipe_set_sourceparam(p, label, str);
+		free(str);
+		break;
+	default:
+		return SCM_BOOL_F;
+		break;
+	}
+	free(label);
+	return SCM_BOOL_T;
+}
+
+SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
+{
+	filter_pipe_t *p;
+	filter_paramdesc_t *paramd;
+	char *label, *str;
+	int labell, strl, i;
+	float f;
+
+	p = gh_scm2pointer(s_p);
+	label = gh_scm2newstr(s_label, &labell);
+	paramd = filterportdesc_get_paramdesc(p->dest_port, label);
+	if (!paramd)
+		return SCM_BOOL_F;
+	switch (paramd->type) {
+	case FILTER_PARAMTYPE_INT:
+		i = gh_scm2long(s_val);
+		filterpipe_set_destparam(p, label, &i);
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+	case FILTER_PARAMTYPE_SAMPLE:
+		f = gh_scm2double(s_val);
+		filterpipe_set_destparam(p, label, &f);
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		str = gh_scm2newstr(s_val, &strl);
+		filterpipe_set_destparam(p, label, str);
+		free(str);
+		break;
+	default:
+		return SCM_BOOL_F;
+		break;
+	}
+	free(label);
+	return SCM_BOOL_T;
+}
+
 SCM gls_filternetwork_launch(SCM s_net)
 {
 	filter_network_t *net;
@@ -493,7 +565,31 @@ SCM gls_plugin_description(SCM s_p)
 /* The scriptable track API part.
  */
 
-/* FIXME */
+SCM gls_track_get(SCM s_group, SCM s_track)
+{
+	char *group, *track;
+	int groupl, trackl;
+	track_t *t;
+
+	group = gh_scm2newstr(s_group, &groupl);
+	track = gh_scm2newstr(s_track, &trackl);
+	t = track_get(group, trackl == 0 ? NULL : track);
+	free(group);
+	free(track);
+	if (!t)
+		return SCM_BOOL_F;
+	return gh_pointer2scm(t);
+}
+
+SCM gls_track_delete(SCM s_track)
+{
+	track_t *track;
+
+	track = gh_scm2pointer(s_track);
+	if (track_delete(track) == -1)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
 
 
 int glscript_init()
@@ -529,6 +625,10 @@ int glscript_init()
 			 gls_filternetwork_break_connection, 1, 0, 0);
 	gh_new_procedure("filternode_set_param",
 			 gls_filternode_set_param, 3, 0, 0);
+	gh_new_procedure("filterpipe_set_sourceparam",
+			 gls_filterpipe_set_sourceparam, 3, 0, 0);
+	gh_new_procedure("filterpipe_set_destparam",
+			 gls_filterpipe_set_destparam, 3, 0, 0);
 	gh_new_procedure("filternetwork_launch",
 			 gls_filternetwork_launch, 1, 0, 0);
 	gh_new_procedure("filternetwork_start",
@@ -558,6 +658,11 @@ int glscript_init()
 	gh_new_procedure("plugin_name", gls_plugin_name, 1, 0, 0);
 	gh_new_procedure("plugin_description", gls_plugin_description,
 			 1, 0, 0);
+
+	/* track */
+	gh_new_procedure("track_get", gls_track_get, 2, 0, 0);
+	gh_new_procedure("track_delete", gls_track_delete, 1, 0, 0);
+
 
 	/* load glame scheme libraries (if existent):
 	 * 1. installed glame.scm
