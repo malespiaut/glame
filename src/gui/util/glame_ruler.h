@@ -24,8 +24,8 @@
  * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
  */
 
-#ifndef __GTK_RULER_H__
-#define __GTK_RULER_H__
+#ifndef __GLAME_RULER_H__
+#define __GLAME_RULER_H__
 
 
 #include <gdk/gdk.h>
@@ -37,69 +37,76 @@ extern "C" {
 #endif /* __cplusplus */
 
 
-#define GTK_TYPE_RULER            (gtk_ruler_get_type ())
-#define GTK_RULER(obj)            (GTK_CHECK_CAST ((obj), GTK_TYPE_RULER, GtkRuler))
-#define GTK_RULER_CLASS(klass)    (GTK_CHECK_CLASS_CAST ((klass), GTK_TYPE_RULER, GtkRulerClass))
-#define GTK_IS_RULER(obj)         (GTK_CHECK_TYPE ((obj), GTK_TYPE_RULER))
-#define GTK_IS_RULER_CLASS(klass) (GTK_CHECK_CLASS_TYPE ((klass), GTK_TYPE_RULER))
+typedef struct _GlameRuler        GlameRuler;
+typedef struct _GlameRulerClass   GlameRulerClass;
+typedef struct _GlameRulerMetric  GlameRulerMetric;
 
-typedef struct _GtkRuler        GtkRuler;
-typedef struct _GtkRulerClass   GtkRulerClass;
-typedef struct _GtkRulerMetric  GtkRulerMetric;
+#define GLAME_RULER_ROUND(x)        ((int) (x + 0.500000001))
+
+#define GLAME_TYPE_RULER            (glame_ruler_get_type ())
+#define GLAME_RULER(obj)            (GTK_CHECK_CAST ((obj), GLAME_TYPE_RULER, GlameRuler))
+#define GLAME_RULER_CLASS(klass)    (GTK_CHECK_CLASS_CAST ((klass), GLAME_TYPE_RULER, GlameRulerClass))
+#define GLAME_IS_RULER(obj)         (GTK_CHECK_TYPE ((obj), GLAME_TYPE_RULER))
+#define GLAME_IS_RULER_CLASS(klass) (GTK_CHECK_CLASS_TYPE ((klass), GLAME_TYPE_RULER))
+#define GLAME_RULER_GET_CLASS(obj)  ((GlameRulerClass *)(((GtkObject *)(obj))->klass))
+
 
 /* All distances below are in 1/72nd's of an inch. (According to
  * Adobe that's a point, but points are really 1/72.27 in.)
  */
-struct _GtkRuler
+struct _GlameRuler
 {
   GtkWidget widget;
 
   GdkPixmap *backing_store;
   GdkGC *non_gr_exp_gc;
-  GtkRulerMetric *metric;
+  GlameRulerMetric *metric;
   gint xsrc, ysrc;
   gint slider_size;
 
   /* The upper limit of the ruler (in points) */
-  gfloat lower;
+  gdouble lower;
   /* The lower limit of the ruler */
-  gfloat upper;
+  gdouble upper;
   /* The position of the mark on the ruler */
-  gfloat position;
+  gdouble position;
   /* The maximum size of the ruler */
-  gfloat max_size;
+  gdouble max_size;
 };
 
-struct _GtkRulerClass
+struct _GlameRulerClass
 {
   GtkWidgetClass parent_class;
 
-  void (* draw_ticks) (GtkRuler *ruler);
-  void (* draw_pos)   (GtkRuler *ruler);
+  void    (* draw_ticks) (GlameRuler *ruler);
+  void    (* draw_pos)   (GlameRuler *ruler);
+  gdouble (* get_stride) (GlameRuler *ruler);
 };
 
-struct _GtkRulerMetric
+struct _GlameRulerMetric
 {
-  gchar *metric_name;
-  gchar *abbrev;
+  gchar  *metric_name;
+  gchar  *abbrev;
   /* This should be points_per_unit. This is the size of the unit
    * in 1/72nd's of an inch and has nothing to do with screen pixels */
-  gfloat pixels_per_unit;
-  gfloat ruler_scale[10];
-  gint subdivide[5];        /* five possible modes of subdivision */
+  gdouble pixels_per_unit;
+  gdouble ruler_scale[20];
+  gint    subdivide[5];        /* five possible modes of subdivision */
+  gchar* (*translate) (gdouble value);
 };
 
 
-GtkType gtk_ruler_get_type   (void);
-void    gtk_ruler_set_metric (GtkRuler       *ruler,
-			      GtkMetricType   metric);
-void    gtk_ruler_set_range  (GtkRuler       *ruler,
-			      gfloat          lower,
-			      gfloat          upper,
-			      gfloat          position,
-			      gfloat          max_size);
-void    gtk_ruler_draw_ticks (GtkRuler       *ruler);
-void    gtk_ruler_draw_pos   (GtkRuler       *ruler);
+GtkType glame_ruler_get_type   (void);
+void    glame_ruler_set_metric (GlameRuler       *ruler,
+			       GlameRulerMetric *metric);
+void    glame_ruler_set_range  (GlameRuler       *ruler,
+			       gdouble          lower,
+			       gdouble          upper,
+			       gdouble          position,
+			       gdouble          max_size);
+void    glame_ruler_draw_ticks (GlameRuler       *ruler);
+void    glame_ruler_draw_pos   (GlameRuler       *ruler);
+gdouble glame_ruler_get_stride (GlameRuler       *ruler);
 
 
 #ifdef __cplusplus
@@ -107,4 +114,4 @@ void    gtk_ruler_draw_pos   (GtkRuler       *ruler);
 #endif /* __cplusplus */
 
 
-#endif /* __GTK_RULER_H__ */
+#endif /* __GLAME_RULER_H__ */

@@ -27,67 +27,67 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include "gtkhruler.h"
+#include "glame_hruler.h"
 
 
 #define RULER_HEIGHT          14
 #define MINIMUM_INCR          5
 #define MAXIMUM_SUBDIVIDE     5
-#define MAXIMUM_SCALES        10
-
-#define ROUND(x) ((int) ((x) + 0.5))
+#define MAXIMUM_SCALES        20
 
 
-static void gtk_hruler_class_init    (GtkHRulerClass *klass);
-static void gtk_hruler_init          (GtkHRuler      *hruler);
-static gint gtk_hruler_motion_notify (GtkWidget      *widget,
-				      GdkEventMotion *event);
-static void gtk_hruler_draw_ticks    (GtkRuler       *ruler);
-static void gtk_hruler_draw_pos      (GtkRuler       *ruler);
+static void glame_hruler_class_init    (GlameHRulerClass *klass);
+static void glame_hruler_init          (GlameHRuler      *hruler);
+static gint glame_hruler_motion_notify (GtkWidget       *widget,
+				       GdkEventMotion  *event);
+static void glame_hruler_draw_ticks    (GlameRuler       *ruler);
+static void glame_hruler_draw_pos      (GlameRuler       *ruler);
+static gdouble glame_hruler_get_stride (GlameRuler       *ruler);
 
 
-guint
-gtk_hruler_get_type (void)
+GtkType
+glame_hruler_get_type (void)
 {
-  static guint hruler_type = 0;
+  static GtkType hruler2_type = 0;
 
-  if (!hruler_type)
+  if (!hruler2_type)
     {
-      static const GtkTypeInfo hruler_info =
+      static const GtkTypeInfo hruler2_info =
       {
-	"GtkHRuler",
-	sizeof (GtkHRuler),
-	sizeof (GtkHRulerClass),
-	(GtkClassInitFunc) gtk_hruler_class_init,
-	(GtkObjectInitFunc) gtk_hruler_init,
+	"GlameHRuler",
+	sizeof (GlameHRuler),
+	sizeof (GlameHRulerClass),
+	(GtkClassInitFunc) glame_hruler_class_init,
+	(GtkObjectInitFunc) glame_hruler_init,
 	/* reserved_1 */ NULL,
         /* reserved_2 */ NULL,
         (GtkClassInitFunc) NULL,
       };
 
-      hruler_type = gtk_type_unique (gtk_ruler_get_type (), &hruler_info);
+      hruler2_type = gtk_type_unique (GLAME_TYPE_RULER, &hruler2_info);
     }
 
-  return hruler_type;
+  return hruler2_type;
 }
 
 static void
-gtk_hruler_class_init (GtkHRulerClass *klass)
+glame_hruler_class_init (GlameHRulerClass *klass)
 {
   GtkWidgetClass *widget_class;
-  GtkRulerClass *ruler_class;
+  GlameRulerClass *ruler_class;
 
   widget_class = (GtkWidgetClass*) klass;
-  ruler_class = (GtkRulerClass*) klass;
+  ruler_class = (GlameRulerClass*) klass;
 
-  widget_class->motion_notify_event = gtk_hruler_motion_notify;
+  widget_class->motion_notify_event = glame_hruler_motion_notify;
 
-  ruler_class->draw_ticks = gtk_hruler_draw_ticks;
-  ruler_class->draw_pos = gtk_hruler_draw_pos;
+  ruler_class->draw_ticks = glame_hruler_draw_ticks;
+  ruler_class->draw_pos = glame_hruler_draw_pos;
+  ruler_class->get_stride = glame_hruler_get_stride;
 }
 
 static void
-gtk_hruler_init (GtkHRuler *hruler)
+glame_hruler_init (GlameHRuler *hruler)
 {
   GtkWidget *widget;
 
@@ -98,23 +98,23 @@ gtk_hruler_init (GtkHRuler *hruler)
 
 
 GtkWidget*
-gtk_hruler_new (void)
+glame_hruler_new (void)
 {
-  return GTK_WIDGET (gtk_type_new (gtk_hruler_get_type ()));
+  return GTK_WIDGET (gtk_type_new (GLAME_TYPE_HRULER));
 }
 
 static gint
-gtk_hruler_motion_notify (GtkWidget      *widget,
-			  GdkEventMotion *event)
+glame_hruler_motion_notify (GtkWidget      *widget,
+			   GdkEventMotion *event)
 {
-  GtkRuler *ruler;
+  GlameRuler *ruler;
   gint x;
 
   g_return_val_if_fail (widget != NULL, FALSE);
-  g_return_val_if_fail (GTK_IS_HRULER (widget), FALSE);
+  g_return_val_if_fail (GLAME_IS_HRULER (widget), FALSE);
   g_return_val_if_fail (event != NULL, FALSE);
 
-  ruler = GTK_RULER (widget);
+  ruler = GLAME_RULER (widget);
 
   if (event->is_hint)
     gdk_window_get_pointer (widget->window, &x, NULL, NULL);
@@ -125,13 +125,13 @@ gtk_hruler_motion_notify (GtkWidget      *widget,
 
   /*  Make sure the ruler has been allocated already  */
   if (ruler->backing_store != NULL)
-    gtk_ruler_draw_pos (ruler);
+    glame_ruler_draw_pos (ruler);
 
   return FALSE;
 }
 
 static void
-gtk_hruler_draw_ticks (GtkRuler *ruler)
+glame_hruler_draw_ticks (GlameRuler *ruler)
 {
   GtkWidget *widget;
   GdkGC *gc, *bg_gc;
@@ -141,18 +141,21 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
   gint xthickness;
   gint ythickness;
   gint length, ideal_length;
-  gfloat lower, upper;		/* Upper and lower limits, in ruler units */
-  gfloat increment;		/* Number of pixels per unit */
+  gdouble lower, upper;		/* Upper and lower limits, in ruler units */
+  gdouble increment;		/* Number of pixels per unit */
   gint scale;			/* Number of units per major unit */
-  gfloat subd_incr;
-  gfloat start, end, cur;
-  gchar unit_str[32];
+  gdouble subd_incr;
+  gdouble start, end, cur;
+  gchar *unit_str;
   gint digit_height;
+  gint digit_offset;
   gint text_width;
   gint pos;
+  PangoLayout *layout;
+  PangoRectangle logical_rect, ink_rect;
 
   g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GTK_IS_HRULER (ruler));
+  g_return_if_fail (GLAME_IS_HRULER (ruler));
 
   if (!GTK_WIDGET_DRAWABLE (ruler)) 
     return;
@@ -165,20 +168,24 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
 
   xthickness = widget->style->klass->xthickness;
   ythickness = widget->style->klass->ythickness;
-  digit_height = font->ascent; /* assume descent == 0 ? */
+
+  layout = gtk_widget_create_pango_layout (widget, "012456789");
+  pango_layout_get_extents (layout, &ink_rect, &logical_rect);
+  
+  digit_height = PANGO_PIXELS (ink_rect.height) + 1;
+  digit_offset = ink_rect.y;
 
   width = widget->allocation.width;
   height = widget->allocation.height - ythickness * 2;
-
    
-   gtk_paint_box (widget->style, ruler->backing_store,
-		  GTK_STATE_NORMAL, GTK_SHADOW_OUT, 
-		  NULL, widget, "hruler",
-		  0, 0, 
-		  widget->allocation.width, widget->allocation.height);
-
-
-   gdk_draw_line (ruler->backing_store, gc,
+  gtk_paint_box (widget->style, ruler->backing_store,
+		 GTK_STATE_NORMAL, GTK_SHADOW_OUT, 
+		 NULL, widget, "hruler",
+		 0, 0, 
+		 widget->allocation.width, widget->allocation.height);
+  
+  
+  gdk_draw_line (ruler->backing_store, gc,
 		 xthickness,
 		 height + ythickness,
 		 widget->allocation.width - xthickness,
@@ -189,7 +196,7 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
 
   if ((upper - lower) == 0) 
     return;
-  increment = (gfloat) width / (upper - lower);
+  increment = (gdouble) width / (upper - lower);
 
   /* determine the scale
    *  We calculate the text size as for the vruler instead of using
@@ -197,8 +204,9 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
    *  for the scale looks consistent with an accompanying vruler
    */
   scale = ceil (ruler->max_size / ruler->metric->pixels_per_unit);
-  sprintf (unit_str, "%d", scale);
+  unit_str = ruler->metric->translate (scale);
   text_width = strlen (unit_str) * digit_height + 1;
+  g_free (unit_str);
 
   for (scale = 0; scale < MAXIMUM_SCALES; scale++)
     if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2 * text_width)
@@ -211,8 +219,8 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
   length = 0;
   for (i = MAXIMUM_SUBDIVIDE - 1; i >= 0; i--)
     {
-      subd_incr = (gfloat) ruler->metric->ruler_scale[scale] / 
-	          (gfloat) ruler->metric->subdivide[i];
+      subd_incr = (gdouble) ruler->metric->ruler_scale[scale] / 
+	          (gdouble) ruler->metric->subdivide[i];
       if (subd_incr * fabs(increment) <= MINIMUM_INCR) 
 	continue;
 
@@ -237,7 +245,7 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
   
       for (cur = start; cur <= end; cur += subd_incr)
 	{
-	  pos = ROUND ((cur - lower) * increment);
+	  pos = GLAME_RULER_ROUND ((cur - lower) * increment);
 
 	  gdk_draw_line (ruler->backing_store, gc,
 			 pos, height + ythickness, 
@@ -246,17 +254,24 @@ gtk_hruler_draw_ticks (GtkRuler *ruler)
 	  /* draw label */
 	  if (i == 0)
 	    {
-	      sprintf (unit_str, "%d", (int) cur);
-	      gdk_draw_string (ruler->backing_store, font, gc,
-			       pos + 2, ythickness + font->ascent - 1,
-			       unit_str);
+	      unit_str = ruler->metric->translate (cur);
+	      pango_layout_set_text (layout, unit_str, -1);
+              g_free (unit_str);
+
+	      pango_layout_get_extents (layout, &logical_rect, NULL);
+
+	      gdk_draw_layout (ruler->backing_store, gc,
+			       pos + 2, ythickness + PANGO_PIXELS (logical_rect.y - digit_offset),
+			       layout);
 	    }
 	}
     }
+
+  gtk_object_unref (GTK_OBJECT (layout));
 }
 
 static void
-gtk_hruler_draw_pos (GtkRuler *ruler)
+glame_hruler_draw_pos (GlameRuler *ruler)
 {
   GtkWidget *widget;
   GdkGC *gc;
@@ -266,10 +281,10 @@ gtk_hruler_draw_pos (GtkRuler *ruler)
   gint bs_width, bs_height;
   gint xthickness;
   gint ythickness;
-  gfloat increment;
+  gdouble increment;
 
   g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GTK_IS_HRULER (ruler));
+  g_return_if_fail (GLAME_IS_HRULER (ruler));
 
   if (GTK_WIDGET_DRAWABLE (ruler))
     {
@@ -296,9 +311,9 @@ gtk_hruler_draw_pos (GtkRuler *ruler)
 			     ruler->xsrc, ruler->ysrc,
 			     bs_width, bs_height);
 
-	  increment = (gfloat) width / (ruler->upper - ruler->lower);
+	  increment = (gdouble) width / (ruler->upper - ruler->lower);
 
-	  x = ROUND ((ruler->position - ruler->lower) * increment) + (xthickness - bs_width) / 2 - 1;
+	  x = GLAME_RULER_ROUND ((ruler->position - ruler->lower) * increment) + (xthickness - bs_width) / 2 - 1;
 	  y = (height + bs_height) / 2 + ythickness;
 
 	  for (i = 0; i < bs_height; i++)
@@ -311,4 +326,72 @@ gtk_hruler_draw_pos (GtkRuler *ruler)
 	  ruler->ysrc = y;
 	}
     }
+}
+
+static gdouble
+glame_hruler_get_stride (GlameRuler *ruler)
+{
+  GtkWidget *widget;
+  GdkFont *font;
+  gint width;
+  gint ythickness;
+  gdouble lower, upper;		/* Upper and lower limits, in ruler units */
+  gdouble increment;		/* Number of pixels per unit */
+  gint scale;			/* Number of units per major unit */
+  gdouble subd_incr;
+  gchar *unit_str;
+  gint digit_height;
+  gint text_width;
+  PangoLayout *layout;
+  PangoRectangle logical_rect, ink_rect;
+
+  g_return_if_fail (ruler != NULL);
+  g_return_if_fail (GLAME_IS_HRULER (ruler));
+
+  if (!GTK_WIDGET_DRAWABLE (ruler)) 
+    return 0.0;
+
+  widget = GTK_WIDGET (ruler);
+
+  font = widget->style->font;
+
+  ythickness = widget->style->klass->ythickness;
+
+  layout = gtk_widget_create_pango_layout (widget, "012456789");
+  pango_layout_get_extents (layout, &ink_rect, &logical_rect);
+  
+  digit_height = PANGO_PIXELS (ink_rect.height) + 1;
+
+  width = widget->allocation.width;
+   
+  upper = ruler->upper / ruler->metric->pixels_per_unit;
+  lower = ruler->lower / ruler->metric->pixels_per_unit;
+
+  if ((upper - lower) == 0) 
+    return 0.0;
+  increment = (gdouble) width / (upper - lower);
+
+  /* determine the scale
+   *  We calculate the text size as for the vruler instead of using
+   *  text_width = gdk_string_width(font, unit_str), so that the result
+   *  for the scale looks consistent with an accompanying vruler
+   */
+  scale = ceil (ruler->max_size / ruler->metric->pixels_per_unit);
+  unit_str = ruler->metric->translate (scale);
+  text_width = strlen (unit_str) * digit_height + 1;
+  g_free (unit_str);
+
+  for (scale = 0; scale < MAXIMUM_SCALES; scale++)
+    if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2.0 * text_width)
+      break;
+
+  if (scale == MAXIMUM_SCALES)
+    scale = MAXIMUM_SCALES - 1;
+
+  subd_incr = (gdouble) ruler->metric->ruler_scale[scale] / 
+	      (gdouble) ruler->metric->subdivide[0];
+  if (subd_incr * fabs(increment) <= MINIMUM_INCR) 
+    return 0.0;
+
+  return subd_incr * increment;
 }

@@ -24,7 +24,7 @@
  * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
  */
 
-#include "gtkruler.h"
+#include "glame_ruler.h"
 
 enum {
   ARG_0,
@@ -34,59 +34,66 @@ enum {
   ARG_MAX_SIZE
 };
 
-static void gtk_ruler_class_init    (GtkRulerClass  *klass);
-static void gtk_ruler_init          (GtkRuler       *ruler);
-static void gtk_ruler_realize       (GtkWidget      *widget);
-static void gtk_ruler_unrealize     (GtkWidget      *widget);
-static void gtk_ruler_size_allocate (GtkWidget      *widget,
-				     GtkAllocation  *allocation);
-static gint gtk_ruler_expose        (GtkWidget      *widget,
-				     GdkEventExpose *event);
-static void gtk_ruler_make_pixmap   (GtkRuler       *ruler);
-static void gtk_ruler_set_arg       (GtkObject      *object,
-				     GtkArg         *arg,
-				     guint           arg_id);
-static void gtk_ruler_get_arg       (GtkObject      *object,
-				     GtkArg         *arg,
-				     guint           arg_id);
+static void glame_ruler_class_init    (GlameRulerClass *klass);
+static void glame_ruler_init          (GlameRuler      *ruler);
+static void glame_ruler_realize       (GtkWidget      *widget);
+static void glame_ruler_unrealize     (GtkWidget      *widget);
+static void glame_ruler_size_allocate (GtkWidget      *widget,
+				      GtkAllocation  *allocation);
+static gint glame_ruler_expose        (GtkWidget      *widget,
+				      GdkEventExpose *event);
+static void glame_ruler_make_pixmap   (GlameRuler      *ruler);
+static void glame_ruler_set_arg       (GtkObject      *object,
+				      GtkArg         *arg,
+				      guint           arg_id);
+static void glame_ruler_get_arg       (GtkObject      *object,
+				      GtkArg         *arg,
+				      guint           arg_id);
 
 static GtkWidgetClass *parent_class;
 
-static const GtkRulerMetric ruler_metrics[] =
+static gchar *
+glame_ruler_metric_pixels_translate (gdouble value)
 {
-  {"Pixels", "Pi", 1.0, { 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000 }, { 1, 5, 10, 50, 100 }},
-  {"Inches", "In", 72.0, { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 }, { 1, 2, 4, 8, 16 }},
-  {"Centimeters", "Cn", 28.35, { 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000 }, { 1, 5, 10, 50, 100 }},
+  return g_strdup_printf ("%d", (long) value);
+}
+
+static const GlameRulerMetric glame_ruler_metric_pixels =
+{
+  "Pixels", "Pi", 1.0,
+  { 1, 2, 5, 10, 20, 25, 50, 75, 100, 150,
+    200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000 },
+  { 1, 5, 10, 50, 100 },
+  glame_ruler_metric_pixels_translate
 };
 
-
 GtkType
-gtk_ruler_get_type (void)
+glame_ruler_get_type (void)
 {
-  static GtkType ruler_type = 0;
+  static GtkType ruler2_type = 0;
 
-  if (!ruler_type)
+  if (!ruler2_type)
     {
-      static const GtkTypeInfo ruler_info =
+      static const GtkTypeInfo ruler2_info =
       {
-	"GtkRuler",
-	sizeof (GtkRuler),
-	sizeof (GtkRulerClass),
-	(GtkClassInitFunc) gtk_ruler_class_init,
-	(GtkObjectInitFunc) gtk_ruler_init,
+	"GlameRuler",
+	sizeof (GlameRuler),
+	sizeof (GlameRulerClass),
+	(GtkClassInitFunc) glame_ruler_class_init,
+	(GtkObjectInitFunc) glame_ruler_init,
 	/* reserved_1 */ NULL,
         /* reserved_2 */ NULL,
         (GtkClassInitFunc) NULL,
       };
 
-      ruler_type = gtk_type_unique (GTK_TYPE_WIDGET, &ruler_info);
+      ruler2_type = gtk_type_unique (GTK_TYPE_WIDGET, &ruler2_info);
     }
 
-  return ruler_type;
+  return ruler2_type;
 }
 
 static void
-gtk_ruler_class_init (GtkRulerClass *class)
+glame_ruler_class_init (GlameRulerClass *class)
 {
   GtkObjectClass *object_class;
   GtkWidgetClass *widget_class;
@@ -96,29 +103,30 @@ gtk_ruler_class_init (GtkRulerClass *class)
 
   parent_class = gtk_type_class (GTK_TYPE_WIDGET);
   
-  object_class->set_arg = gtk_ruler_set_arg;
-  object_class->get_arg = gtk_ruler_get_arg;
+  object_class->set_arg = glame_ruler_set_arg;
+  object_class->get_arg = glame_ruler_get_arg;
 
-  widget_class->realize = gtk_ruler_realize;
-  widget_class->unrealize = gtk_ruler_unrealize;
-  widget_class->size_allocate = gtk_ruler_size_allocate;
-  widget_class->expose_event = gtk_ruler_expose;
+  widget_class->realize = glame_ruler_realize;
+  widget_class->unrealize = glame_ruler_unrealize;
+  widget_class->size_allocate = glame_ruler_size_allocate;
+  widget_class->expose_event = glame_ruler_expose;
 
   class->draw_ticks = NULL;
   class->draw_pos = NULL;
+  class->get_stride = NULL;
 
-  gtk_object_add_arg_type ("GtkRuler::lower", GTK_TYPE_FLOAT,
+  gtk_object_add_arg_type ("GlameRuler::lower", GTK_TYPE_FLOAT,
 			   GTK_ARG_READWRITE, ARG_LOWER);
-  gtk_object_add_arg_type ("GtkRuler::upper", GTK_TYPE_FLOAT,
+  gtk_object_add_arg_type ("GlameRuler::upper", GTK_TYPE_FLOAT,
 			   GTK_ARG_READWRITE, ARG_UPPER);
-  gtk_object_add_arg_type ("GtkRuler::position", GTK_TYPE_FLOAT,
+  gtk_object_add_arg_type ("GlameRuler::position", GTK_TYPE_FLOAT,
 			   GTK_ARG_READWRITE, ARG_POSITION);
-  gtk_object_add_arg_type ("GtkRuler::max_size", GTK_TYPE_FLOAT,
+  gtk_object_add_arg_type ("GlameRuler::max_size", GTK_TYPE_FLOAT,
 			   GTK_ARG_READWRITE, ARG_MAX_SIZE);
 }
 
 static void
-gtk_ruler_init (GtkRuler *ruler)
+glame_ruler_init (GlameRuler *ruler)
 {
   ruler->backing_store = NULL;
   ruler->non_gr_exp_gc = NULL;
@@ -130,43 +138,43 @@ gtk_ruler_init (GtkRuler *ruler)
   ruler->position = 0;
   ruler->max_size = 0;
 
-  gtk_ruler_set_metric (ruler, GTK_PIXELS);
+  glame_ruler_set_metric (ruler, (GlameRulerMetric*) &glame_ruler_metric_pixels);
 }
 
 static void
-gtk_ruler_set_arg (GtkObject  *object,
-		   GtkArg     *arg,
-		   guint       arg_id)
+glame_ruler_set_arg (GtkObject  *object,
+		    GtkArg     *arg,
+		    guint       arg_id)
 {
-  GtkRuler *ruler = GTK_RULER (object);
+  GlameRuler *ruler = GLAME_RULER (object);
 
   switch (arg_id)
     {
     case ARG_LOWER:
-      gtk_ruler_set_range (ruler, GTK_VALUE_FLOAT (*arg), ruler->upper,
-			   ruler->position, ruler->max_size);
+      glame_ruler_set_range (ruler, GTK_VALUE_FLOAT (*arg), ruler->upper,
+			    ruler->position, ruler->max_size);
       break;
     case ARG_UPPER:
-      gtk_ruler_set_range (ruler, ruler->lower, GTK_VALUE_FLOAT (*arg),
-			   ruler->position, ruler->max_size);
+      glame_ruler_set_range (ruler, ruler->lower, GTK_VALUE_FLOAT (*arg),
+			    ruler->position, ruler->max_size);
       break;
     case ARG_POSITION:
-      gtk_ruler_set_range (ruler, ruler->lower, ruler->upper,
-			   GTK_VALUE_FLOAT (*arg), ruler->max_size);
+      glame_ruler_set_range (ruler, ruler->lower, ruler->upper,
+			    GTK_VALUE_FLOAT (*arg), ruler->max_size);
       break;
     case ARG_MAX_SIZE:
-      gtk_ruler_set_range (ruler, ruler->lower, ruler->upper,
-			   ruler->position,  GTK_VALUE_FLOAT (*arg));
+      glame_ruler_set_range (ruler, ruler->lower, ruler->upper,
+			    ruler->position,  GTK_VALUE_FLOAT (*arg));
       break;
     }
 }
 
 static void
-gtk_ruler_get_arg (GtkObject  *object,
-		   GtkArg     *arg,
-		   guint       arg_id)
+glame_ruler_get_arg (GtkObject  *object,
+		    GtkArg     *arg,
+		    guint       arg_id)
 {
-  GtkRuler *ruler = GTK_RULER (object);
+  GlameRuler *ruler = GLAME_RULER (object);
   
   switch (arg_id)
     {
@@ -189,27 +197,27 @@ gtk_ruler_get_arg (GtkObject  *object,
 }
 
 void
-gtk_ruler_set_metric (GtkRuler      *ruler,
-		      GtkMetricType  metric)
+glame_ruler_set_metric (GlameRuler       *ruler,
+		       GlameRulerMetric *metric)
 {
   g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GTK_IS_RULER (ruler));
+  g_return_if_fail (GLAME_IS_RULER (ruler));
 
-  ruler->metric = (GtkRulerMetric *) &ruler_metrics[metric];
+  ruler->metric = metric;
 
   if (GTK_WIDGET_DRAWABLE (ruler))
     gtk_widget_queue_draw (GTK_WIDGET (ruler));
 }
 
 void
-gtk_ruler_set_range (GtkRuler *ruler,
-		     gfloat    lower,
-		     gfloat    upper,
-		     gfloat    position,
-		     gfloat    max_size)
+glame_ruler_set_range (GlameRuler *ruler,
+		      gdouble    lower,
+		      gdouble    upper,
+		      gdouble    position,
+		      gdouble    max_size)
 {
   g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GTK_IS_RULER (ruler));
+  g_return_if_fail (GLAME_IS_RULER (ruler));
 
   ruler->lower = lower;
   ruler->upper = upper;
@@ -221,37 +229,49 @@ gtk_ruler_set_range (GtkRuler *ruler,
 }
 
 void
-gtk_ruler_draw_ticks (GtkRuler *ruler)
+glame_ruler_draw_ticks (GlameRuler *ruler)
 {
   g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GTK_IS_RULER (ruler));
+  g_return_if_fail (GLAME_IS_RULER (ruler));
 
-  if (GTK_RULER_CLASS (GTK_OBJECT (ruler)->klass)->draw_ticks)
-    (* GTK_RULER_CLASS (GTK_OBJECT (ruler)->klass)->draw_ticks) (ruler);
+  if (GLAME_RULER_GET_CLASS (ruler)->draw_ticks)
+    GLAME_RULER_GET_CLASS (ruler)->draw_ticks (ruler);
+}
+
+gdouble
+glame_ruler_get_stride (GlameRuler *ruler)
+{
+  g_return_if_fail (ruler != NULL);
+  g_return_if_fail (GLAME_IS_RULER (ruler));
+
+  if (GLAME_RULER_GET_CLASS (ruler)->get_stride)
+    return GLAME_RULER_GET_CLASS (ruler)->get_stride (ruler);
+
+  return 0.0;
 }
 
 void
-gtk_ruler_draw_pos (GtkRuler *ruler)
+glame_ruler_draw_pos (GlameRuler *ruler)
 {
   g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GTK_IS_RULER (ruler));
+  g_return_if_fail (GLAME_IS_RULER (ruler));
 
-  if (GTK_RULER_CLASS (GTK_OBJECT (ruler)->klass)->draw_pos)
-    (* GTK_RULER_CLASS (GTK_OBJECT (ruler)->klass)->draw_pos) (ruler);
+  if (GLAME_RULER_GET_CLASS (ruler)->draw_pos)
+     GLAME_RULER_GET_CLASS (ruler)->draw_pos (ruler);
 }
 
 
 static void
-gtk_ruler_realize (GtkWidget *widget)
+glame_ruler_realize (GtkWidget *widget)
 {
-  GtkRuler *ruler;
+  GlameRuler *ruler;
   GdkWindowAttr attributes;
   gint attributes_mask;
 
   g_return_if_fail (widget != NULL);
-  g_return_if_fail (GTK_IS_RULER (widget));
+  g_return_if_fail (GLAME_IS_RULER (widget));
 
-  ruler = GTK_RULER (widget);
+  ruler = GLAME_RULER (widget);
   GTK_WIDGET_SET_FLAGS (ruler, GTK_REALIZED);
 
   attributes.window_type = GDK_WINDOW_CHILD;
@@ -275,18 +295,18 @@ gtk_ruler_realize (GtkWidget *widget)
   widget->style = gtk_style_attach (widget->style, widget->window);
   gtk_style_set_background (widget->style, widget->window, GTK_STATE_ACTIVE);
 
-  gtk_ruler_make_pixmap (ruler);
+  glame_ruler_make_pixmap (ruler);
 }
 
 static void
-gtk_ruler_unrealize (GtkWidget *widget)
+glame_ruler_unrealize (GtkWidget *widget)
 {
-  GtkRuler *ruler;
+  GlameRuler *ruler;
 
   g_return_if_fail (widget != NULL);
-  g_return_if_fail (GTK_IS_RULER (widget));
+  g_return_if_fail (GLAME_IS_RULER (widget));
 
-  ruler = GTK_RULER (widget);
+  ruler = GLAME_RULER (widget);
 
   if (ruler->backing_store)
     gdk_pixmap_unref (ruler->backing_store);
@@ -301,15 +321,15 @@ gtk_ruler_unrealize (GtkWidget *widget)
 }
 
 static void
-gtk_ruler_size_allocate (GtkWidget     *widget,
-			 GtkAllocation *allocation)
+glame_ruler_size_allocate (GtkWidget     *widget,
+			  GtkAllocation *allocation)
 {
-  GtkRuler *ruler;
+  GlameRuler *ruler;
 
   g_return_if_fail (widget != NULL);
-  g_return_if_fail (GTK_IS_RULER (widget));
+  g_return_if_fail (GLAME_IS_RULER (widget));
 
-  ruler = GTK_RULER (widget);
+  ruler = GLAME_RULER (widget);
   widget->allocation = *allocation;
 
   if (GTK_WIDGET_REALIZED (widget))
@@ -318,25 +338,25 @@ gtk_ruler_size_allocate (GtkWidget     *widget,
 			      allocation->x, allocation->y,
 			      allocation->width, allocation->height);
 
-      gtk_ruler_make_pixmap (ruler);
+      glame_ruler_make_pixmap (ruler);
     }
 }
 
 static gint
-gtk_ruler_expose (GtkWidget      *widget,
-		  GdkEventExpose *event)
+glame_ruler_expose (GtkWidget      *widget,
+		   GdkEventExpose *event)
 {
-  GtkRuler *ruler;
+  GlameRuler *ruler;
 
   g_return_val_if_fail (widget != NULL, FALSE);
-  g_return_val_if_fail (GTK_IS_RULER (widget), FALSE);
+  g_return_val_if_fail (GLAME_IS_RULER (widget), FALSE);
   g_return_val_if_fail (event != NULL, FALSE);
 
   if (GTK_WIDGET_DRAWABLE (widget))
     {
-      ruler = GTK_RULER (widget);
+      ruler = GLAME_RULER (widget);
 
-      gtk_ruler_draw_ticks (ruler);
+      glame_ruler_draw_ticks (ruler);
       
       gdk_draw_pixmap (widget->window,
 		       ruler->non_gr_exp_gc,
@@ -345,14 +365,14 @@ gtk_ruler_expose (GtkWidget      *widget,
 		       widget->allocation.width,
 		       widget->allocation.height);
       
-      gtk_ruler_draw_pos (ruler);
+      glame_ruler_draw_pos (ruler);
     }
 
   return FALSE;
 }
 
 static void
-gtk_ruler_make_pixmap (GtkRuler *ruler)
+glame_ruler_make_pixmap (GlameRuler *ruler)
 {
   GtkWidget *widget;
   gint width;

@@ -24,12 +24,12 @@
  * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
  */
 
-#ifndef __GTK_HRULER_H__
-#define __GTK_HRULER_H__
+#ifndef __GLAME_HRULER_H__
+#define __GLAME_HRULER_H__
 
 
 #include <gdk/gdk.h>
-#include <gtk/gtkruler.h>
+#include "glame_ruler.h"
 
 
 #ifdef __cplusplus
@@ -37,27 +37,30 @@ extern "C" {
 #endif /* __cplusplus */
 
 
-#define GTK_HRULER(obj)          GTK_CHECK_CAST (obj, gtk_hruler_get_type (), GtkHRuler)
-#define GTK_HRULER_CLASS(klass)  GTK_CHECK_CLASS_CAST (klass, gtk_hruler_get_type (), GtkHRulerClass)
-#define GTK_IS_HRULER(obj)       GTK_CHECK_TYPE (obj, gtk_hruler_get_type ())
+typedef struct _GlameHRuler       GlameHRuler;
+typedef struct _GlameHRulerClass  GlameHRulerClass;
+
+#define GLAME_TYPE_HRULER	    (glame_hruler_get_type ())
+#define GLAME_HRULER(obj)            (GTK_CHECK_CAST ((obj), GLAME_TYPE_HRULER, GlameHRuler))
+#define GLAME_HRULER_CLASS(klass)    (GTK_CHECK_CLASS_CAST ((klass), GLAME_TYPE_HRULER, GlameHRulerClass))
+#define GLAME_IS_HRULER(obj)         (GTK_CHECK_TYPE ((obj), GLAME_TYPE_HRULER))
+#define GLAME_IS_HRULER_CLASS(klass) (GTK_CHECK_CLASS_TYPE ((klass), GLAME_TYPE_HRULER))
+#define GLAME_HRULER_GET_CLASS(obj)  ((GlameHRulerClass *)(((GtkObject *)(obj))->klass))
 
 
-typedef struct _GtkHRuler       GtkHRuler;
-typedef struct _GtkHRulerClass  GtkHRulerClass;
-
-struct _GtkHRuler
+struct _GlameHRuler
 {
-  GtkRuler ruler;
+  GlameRuler ruler; 
 };
 
-struct _GtkHRulerClass
+struct _GlameHRulerClass
 {
-  GtkRulerClass parent_class;
+  GlameRulerClass parent_class;
 };
 
 
-guint      gtk_hruler_get_type (void);
-GtkWidget* gtk_hruler_new      (void);
+GtkType    glame_hruler_get_type (void);
+GtkWidget* glame_hruler_new      (void);
 
 
 #ifdef __cplusplus
@@ -65,4 +68,4 @@ GtkWidget* gtk_hruler_new      (void);
 #endif /* __cplusplus */
 
 
-#endif /* __GTK_HRULER_H__ */
+#endif /* __GLAME_HRULER_H__ */
