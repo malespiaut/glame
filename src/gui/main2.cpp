@@ -1,7 +1,7 @@
 /*
  * main2.cpp
  *
- * $Id: main2.cpp,v 1.5 2004/05/18 20:23:55 ochonpaul Exp $
+ * $Id: main2.cpp,v 1.6 2004/05/21 20:22:56 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -49,26 +49,21 @@
 #include "glconfig.h"
 #include "importexport.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
-/* HACK */
-extern void swcluster_set_cache(int, int, int, size_t);
+/* Stuff we reference/export from/to our C modules.  */
+extern "C" {
+  /* HACK */
+  extern void swcluster_set_cache(int, int, int, size_t);
+
+  GtkWidget *glame_appbar;
+
+  extern long nPopupTimeout;
+  extern long bMac;
+}
 
 /* Globals. */
 static GtkWidget *swapfile;
-static GtkTreeStore *tree_store;
-
 static GtkWidget *app;
-GtkWidget *glame_appbar;
-
-extern long nPopupTimeout;
-extern long bMac;
-
-#ifdef __cplusplus
-}
-#endif
 
 /* Forward declarations. */ 
  static void create_new_project_cb(GtkWidget *menu, void * blah); 
@@ -158,21 +153,21 @@ static void sync_cb(GtkWidget *menu, void * blah)
 static void emptytrash_cb(GtkWidget *menu, void * blah) 
 { 
         gpsm_grp_t *deleted; 
-	GtkTreeIter iter, iter_deleted;
+	GtkTreeIter iter_deleted;
 	gboolean     valid;
         gchar *comp;
 
  	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) 
  		return; 
 	 // Search for [deleted]  iter to remove it from store
-	    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(tree_store), &iter_deleted);
+	    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(glTree::store), &iter_deleted);
 	    while (valid)
 	      {			
-		gtk_tree_model_get(GTK_TREE_MODEL(tree_store), &iter_deleted, INFO, &comp, -1);
+		gtk_tree_model_get(GTK_TREE_MODEL(glTree::store), &iter_deleted, glTree::INFO, &comp, -1);
 		if (!g_ascii_strncasecmp (GPSM_GRP_DELETED_LABEL, comp,8)) break;
-		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(tree_store), &iter_deleted);
+		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(glTree::store), &iter_deleted);
 	      }
-	      gtk_tree_store_remove(tree_store, &iter_deleted);
+	      gtk_tree_store_remove(glTree::store, &iter_deleted);
 	      gpsm_item_destroy((gpsm_item_t *)deleted); 
 	      gpsm_sync(); 
 	
@@ -200,14 +195,14 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	    gpsm_item_remove((gpsm_item_t *)deleted); 
 	    
 	    // Search for [deleted]  iter to remove it from store
-	    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(tree_store), &iter_deleted);
+	    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(glTree::store), &iter_deleted);
 	    while (valid)
 	      {			
-		gtk_tree_model_get(GTK_TREE_MODEL(tree_store), &iter_deleted, INFO, &comp, -1);
+		gtk_tree_model_get(GTK_TREE_MODEL(glTree::store), &iter_deleted, glTree::INFO, &comp, -1);
 		if (!g_ascii_strncasecmp (GPSM_GRP_DELETED_LABEL, comp,8)) break;
-		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(tree_store), &iter_deleted);
+		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(glTree::store), &iter_deleted);
 	      }
-	    gtk_tree_store_remove(tree_store, &iter_deleted);
+	    gtk_tree_store_remove(glTree::store, &iter_deleted);
 	  }
 
 	/* Create new gpsm group. */
@@ -218,20 +213,20 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
  			       0, gpsm_item_vsize(gpsm_root())+1) == -1) 
 	  { DPRINTF("Cannot insert new group!?\n"); }
 	else {	
-	  gtk_tree_store_append(tree_store, &iter, NULL);
-	  gtk_tree_store_set(tree_store, &iter, INFO, "New project", GPSM_ITEM, grp,
+	  gtk_tree_store_append(glTree::store, &iter, NULL);
+	  gtk_tree_store_set(glTree::store, &iter, glTree::INFO, "New project", glTree::GPSM_ITEM, grp,
 				   -1);
 	}
  	if (deleted) {
  		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted, 
  				0, GPSM_GRP_DELETED_VPOS);
 		// re-create the deleted grp 
-		gtk_tree_store_append(tree_store,&iter_deleted2,NULL);     
-		gtk_tree_store_set(tree_store, &iter_deleted2, INFO,GPSM_GRP_DELETED_LABEL , GPSM_ITEM, (gpsm_item_t *)deleted,
+		gtk_tree_store_append(glTree::store,&iter_deleted2,NULL);     
+		gtk_tree_store_set(glTree::store, &iter_deleted2, glTree::INFO,GPSM_GRP_DELETED_LABEL , glTree::GPSM_ITEM, (gpsm_item_t *)deleted,
 				   -1);
 		gpsm_grp_foreach_item(deleted, item) {
-		  gtk_tree_store_append(tree_store, &iter_deleted3, &iter_deleted2);
-		  gtk_tree_store_set(tree_store, &iter_deleted3, INFO,strdup(item->label),GPSM_ITEM, item, -1);
+		  gtk_tree_store_append(glTree::store, &iter_deleted3, &iter_deleted2);
+		  gtk_tree_store_set(glTree::store, &iter_deleted3, glTree::INFO,strdup(item->label),glTree::GPSM_ITEM, item, -1);
 		}
 		
 	}
@@ -989,7 +984,6 @@ _("Welcome first-time user of GLAME.\n"
 	//swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
 	glTree *gtree = new glTree(gpsm_root());
 	swapfile = gtree->tree;
-	tree_store = gtree->store;
 	if (!swapfile)
 		return;
 	scrollview = gtk_scrolled_window_new(NULL, NULL);

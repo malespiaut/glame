@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.3 2004/04/05 20:15:57 ochonpaul Exp $
+ * $Id: gltree.h,v 1.4 2004/05/21 20:22:56 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -28,33 +28,30 @@
 #include "gpsm.h"
 
 
-enum {
-	//	PROJECT,
-	//	KNOB,
-	INFO,
-	GPSM_ITEM,
-	N_ITEMS
+/* glTree has (not enforced) singleton semantics through
+ * the use of static members.  Sort of a hack, but there is
+ * no point in instantiating more than one of this beasts.
+ * Also we don't have a destructor either.
+ */
+
+struct glTree
+{
+	/* What we store in the tree model.  */
+	enum {
+		INFO,
+		GPSM_ITEM,
+		N_ITEMS
+	};
+
+	glTree(); // don't define this
+	glTree(gpsm_grp_t *newroot);
+
+
+	gpsm_grp_t *root;
+
+	static GtkWidget *tree;
+	static GtkTreeStore *store;
 };
-	
-
-class glTree{
-public:
-	GtkTreeStore *store;
-	gpsm_grp_t *root ;
-	GtkWidget *tree;
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;
- public:
-	glTree(){
-		store = NULL;
-		root=NULL;
-	}
-	glTree(gpsm_grp_t * newroot);
-	
-	
-
-};
-
 
 
 #endif
