@@ -1,4 +1,4 @@
-This is GLAME 0.5.3 - GNU/Linux Audio Mechanics development release.
+This is GLAME 0.5.4 - GNU/Linux Audio Mechanics beta release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
@@ -79,7 +79,7 @@ Requirements
   OSS may suffice, too
 
 
-Current Status (as of version 0.5.3):
+Current Status (as of version 0.5.4):
 =====================================
 - usable GUI - src/gui/glame
   * wave editor

@@ -25,6 +25,7 @@ Summary of known bugs and misfeatures in GLAME
   incompatible plugins installed within GLAMEs prefix lib dir
   (f.i. /usr/local/lib/glame) - be sure to remove all plugins
   installed by an older GLAME version before installing a new one.
+  UPDATE 12-10-01: should be fixed now
 
 - Its not a good idea to have the glame swapfile reside on a non-local
   disk (like in your NFS mounted home) because of performace limitations.
@@ -88,6 +89,6 @@ Summary of known bugs and misfeatures in GLAME
 07-15-01 Not all (nearly none) parameters of filternetworks show realtime
   response on modification while a network is running.
 
-11-08-01 Within the Apply filter... dialog adjusting parameters while
-  previewing has no effect (in case of applying this is a feature, with
-  previewing its a bug).
+12-10-01 The audiofile wrapper is broken, so you get distorted waves at
+  the moment. Use recent audiofile library (0.2.2) to avoid using the
+  wrapper.

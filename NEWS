@@ -1,3 +1,11 @@
+GLAME beta version 0.5.4:
+=========================
+Bugfixing and new-features pre-0.6 beta release. Changes since 0.5.3:
+- got import & export dialogs finished
+- looping in waveedit
+- expand/collapse in filtereditgui, linked params
+- minor stuff and bugfixes
+
 GLAME development version 0.5.3:
 ================================
 Bugfixing and pre-0.6 testing release. Changes since 0.5.2:
