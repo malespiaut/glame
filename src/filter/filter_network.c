@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.35 2000/03/24 16:02:51 richi Exp $
+ * $Id: filter_network.c,v 1.36 2000/03/27 09:17:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -224,15 +224,15 @@ static void *waiter(void *network)
 
 int filternetwork_launch(filter_network_t *net)
 {
-	sigset_t sigs;
+	/* sigset_t sigs; */
 
 	if (!net || FILTERNETWORK_IS_LAUNCHED(net))
 		return -1;
 
-	/* block EPIPE */
+	/* block EPIPE
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIG_BLOCK);
-	sigprocmask(SIG_BLOCK, &sigs, NULL);
+	sigprocmask(SIG_BLOCK, &sigs, NULL); */
 
 	/* init state */
 	if (!(net->launch_context = _launchcontext_alloc()))

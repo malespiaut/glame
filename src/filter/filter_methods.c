@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.12 2000/03/25 21:16:14 richi Exp $
+ * $Id: filter_methods.c,v 1.13 2000/03/27 09:17:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -142,7 +142,10 @@ int filter_network_init(filter_node_t *n)
 		if (!(node = filternetwork_add_node(net, n->filter->name, n->name)))
 			return -1;
 		filternode_foreach_param(n, param) {
-			filternode_set_param(node, param->label, &param->val);
+			if (param->desc->type == FILTER_PARAMTYPE_STRING)
+				filternode_set_param(node, param->label, param->val.string);
+			else
+				filternode_set_param(node, param->label, &param->val);
 		}
 	}
 
@@ -155,10 +158,16 @@ int filter_network_init(filter_node_t *n)
 			if (!(p = filternetwork_add_connection(source, pipe->out_name, dest, pipe->in_name)))
 				return -1;
 			filterpipe_foreach_sourceparam(pipe, param) {
-				filterpipe_set_sourceparam(p, param->label, &param->val);
+				if (param->desc->type == FILTER_PARAMTYPE_STRING)
+					filterpipe_set_sourceparam(p, param->label, param->val.string);
+				else
+					filterpipe_set_sourceparam(p, param->label, &param->val);
 			}
 			filterpipe_foreach_destparam(pipe, param) {
-				filterpipe_set_destparam(p, param->label, &param->val);
+				if (param->desc->type == FILTER_PARAMTYPE_STRING)
+					filterpipe_set_destparam(p, param->label, param->val.string);
+				else
+					filterpipe_set_destparam(p, param->label, &param->val);
 			}
 		}
 	}
