@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.14 2001/10/06 23:08:55 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.15 2001/11/05 10:17:59 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -38,7 +38,6 @@
 
 
 
-
 /*
  * The generic play bar.
  */
@@ -46,7 +45,6 @@
 typedef struct {
 	GnomeDialog * dia;
 	filter_t *net;
-	GlameCanvas *gui;
 	gboolean playing;
 	guint handler_id;
 	gint play_index, pause_index, stop_index, cancel_index;
@@ -68,23 +66,17 @@ static gint network_finish_check_cb(play_struct_t *play)
 
 static void play_cb(GnomeDialog * dia, play_struct_t* play)
 {
-	if (play->gui)
-		glame_filtereditgui_reset_error(play->gui);
 	if (filter_launch(play->net, _GLAME_WBUFSIZE) == -1
 	    || filter_start(play->net) == -1) {
-		if (play->gui)
-			glame_filtereditgui_draw_error(play->gui);
-		else {
-			char msg[256] = "Error processing network";
-			filter_t *node;
-			filter_foreach_node(play->net, node) {
-				if (filter_errstr(node)) {
-					snprintf(msg, 256, "Error processing network:\n%s: %s\n", filter_name(node), filter_errstr(node));
-					break;
-				}
+		char msg[256] = "Error processing network";
+		filter_t *node;
+		filter_foreach_node(play->net, node) {
+			if (filter_errstr(node)) {
+				snprintf(msg, 256, "Error processing network:\n%s: %s\n", filter_name(node), filter_errstr(node));
+				break;
 			}
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(msg)));
 		}
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(msg)));
 		gnome_dialog_close(play->dia);
 		return;
 	}
@@ -146,7 +138,7 @@ static void play_destroy_cb(GtkWidget *widget, play_struct_t *play)
 	free(play);
 }
 
-int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
+int glame_gui_play_network(filter_t *network, int modal,
 			   GtkFunction atExit, gpointer data,
 			   const char *start_label,
 			   const char *pause_label,
@@ -161,7 +153,6 @@ int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
 		return -1;
 
 	play->net = network;
-	play->gui = gui;
 	play->atExitFunc = atExit;
 	play->data = data;
 	play->dia = GNOME_DIALOG(gnome_dialog_new(filter_name(network),NULL));
@@ -216,7 +207,6 @@ int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
 
 	return 0;
 }
-
 
 
 

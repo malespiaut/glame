@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.5 2001/07/31 16:16:52 mag Exp $
+ * $Id: glame_gui_utils.h,v 1.6 2001/11/05 10:17:59 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -85,7 +85,7 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb);
  * If modal is TRUE, the dialog is modal, on dialog destroy the optional
  * atExit is called with parameter data. Returns 0, if the dialog could
  * be created, -1 on error. */
-int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
+int glame_gui_play_network(filter_t *network, int modal,
 			   GtkFunction atExit, gpointer data,
 			   const char *start_label,
 			   const char *pause_label,
