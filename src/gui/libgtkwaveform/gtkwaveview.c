@@ -1164,6 +1164,19 @@ gtk_wave_view_button_press_event (GtkWidget *widget,
           gtk_wave_view_update_selection (waveview, waveview->drag_start_point,
                                           frame);
         }
+      else if (FLAG_IS_SET (event->state, GDK_CONTROL_MASK) &&
+	       waveview->select_right - waveview->select_left > 0 &&
+	       (waveview->select_left > frame ||
+		waveview->select_right < frame))
+        {
+	  if (frame < waveview->select_left)
+	    waveview->drag_start_point = waveview->select_right;
+	  else if (frame > waveview->select_right)
+	    waveview->drag_start_point = waveview->select_left;
+          FLAG_SET (waveview->drag_flags, FLAG_DID_MOVE);
+          gtk_wave_view_update_selection (waveview, waveview->drag_start_point,
+                                          frame);
+        }
       else
         waveview->drag_start_point = frame;
     }
