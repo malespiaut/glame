@@ -474,7 +474,7 @@ static SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
 	plugin_set(p, PLUGIN_DESCRIPTION, desc);
 	free(name);
 	free(desc);
-	return SCM_BOOL_T;
+	return plugin2scm(p);
 }
 
 static SCM gls_filternetwork_to_string(SCM s_net)
@@ -538,7 +538,20 @@ static SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 	return gh_str02scm((const char *)val);
 }
 
+static SCM gls_plugin_set_string(SCM s_p, SCM s_key, SCM s_val)
+{
+	plugin_t *p;
+	char *key;
+	char *val;
+	int keyl, vall;
 
+	p = scm2plugin(s_p);
+	key = gh_scm2newstr(s_key, &keyl);
+	val = gh_scm2newstr(s_val, &vall);
+	plugin_set(p, key, val);
+	free(key);
+	return SCM_BOOL_T;
+}
 
 int glscript_init_filter()
 {
@@ -616,6 +629,11 @@ int glscript_init_filter()
 			 (SCM (*)())gls_plugin_name, 1, 0, 0);
 	gh_new_procedure("plugin_query",
 			 (SCM (*)())gls_plugin_query_string, 2, 0, 0);
+	gh_new_procedure("plugin_set",
+			 (SCM (*)())gls_plugin_set_string, 3, 0, 0);
+	gh_define("PLUGIN_DESCRIPTION", gh_str02scm(PLUGIN_DESCRIPTION));
+	gh_define("PLUGIN_PIXMAP", gh_str02scm(PLUGIN_PIXMAP));
+	gh_define("PLUGIN_CATEGORY", gh_str02scm(PLUGIN_CATEGORY));
 
 	return 0;
 }

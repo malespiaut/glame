@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.42 2000/11/11 16:19:57 richi Exp $
+; $Id: glame.scm,v 1.43 2000/12/08 10:43:41 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -520,7 +520,7 @@
 ;
 ; feedback echo2 macro filter
 ;
-(filternetwork_to_filter
+(let ((plugin (filternetwork_to_filter
 	(create-net ((extend "extend")
 	     (mix2 "mix2")
 	     (one2n "one2n")
@@ -536,18 +536,20 @@
 		   (filternode_set_param net "extend" 600)
 		   (filternode_set_param net "mix" 0.7)
 		   (nodes-connect (list extend mix2 one2n delay va mix2))))
-	"echo2" "echo as macro filter")
+	"echo2" "echo as macro filter")))
+	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
 
 ;
 ; mp3 reader using the pipe-in filter and mpg123
 ;
-(filternetwork_to_filter
-	(create-net ((p "pipe-in"))
-	    ()
-	    ((p "out" "out" "output"))
-	    ((p "tail" "filename" "filename"))
-	    (filternode_set_param p "cmd" "mpg123 -q -s "))
-	"read-mp3" "mp3-reader")
+(let ((plugin (filternetwork_to_filter
+		(create-net ((p "pipe-in"))
+	    		()
+	    		((p "out" "out" "output"))
+	    		((p "tail" "filename" "filename"))
+	    		(filternode_set_param p "cmd" "mpg123 -q -s "))
+		"read-mp3" "mp3-reader")))
+	(plugin_set plugin PLUGIN_CATEGORY "InOut"))
 
 
 
