@@ -169,9 +169,9 @@ static void dump_ops(xmlNodePtr node)
 }
 
 static void insert_node_op(xmlNodePtr node);
-static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node);
-static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node);
-static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
+static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node, gpsm_grp_t *);
+static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node, gpsm_grp_t *);
+static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node, gpsm_grp_t *lost)
 {
 #ifndef xmlChildrenNode
         node = node->childs;
@@ -183,9 +183,9 @@ static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
 
 	while (node) {
 		if (strcmp(node->name, "group") == 0)
-			insert_node_grp(tree, node);
+			insert_node_grp(tree, node, lost);
 		else if (strcmp(node->name, "file") == 0)
-			insert_node_file(tree, node);
+			insert_node_file(tree, node, lost);
 		else if (strcmp(node->name, "op") == 0)
 			insert_node_op(node);
 		else if (strcmp(node->name, "text") == 0)
@@ -195,7 +195,8 @@ static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
 		node = node->next;
 	}
 }
-static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node)
+static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node,
+			     gpsm_grp_t *lost)
 {
 	char *c, *ilabel;
 	long ihposition, ivposition;
@@ -249,11 +250,15 @@ static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node)
 	swfile->item.hsize = st.size/SAMPLE_SIZE;
 	swfile->item.vsize = 1;
 	hash_add_swfile(swfile);
-	if (gpsm_item_place(tree, (gpsm_item_t *)swfile, ihposition, ivposition) == -1)
+	if (gpsm_item_place(tree, (gpsm_item_t *)swfile, ihposition, ivposition) == -1) {
 		DPRINTF("WARNING: placement of %s at %li, %li rejected\n",
 			gpsm_item_label(swfile), ihposition, ivposition);
+		gpsm_item_place(lost, (gpsm_item_t *)swfile,
+				0, gpsm_item_vsize(lost) + 1);
+	}
 }
-static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node)
+static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node,
+			    gpsm_grp_t *lost)
 {
         gpsm_item_t *item;
 	char *c, *ilabel;
@@ -275,12 +280,15 @@ static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node)
 	/* Create new group and insert it into tree. */
 	item = gpsm_newitem(GPSM_ITEM_TYPE_GRP);
 	item->label = ilabel;
-	if (gpsm_item_place(tree, item, ihposition, ivposition) == -1)
+	if (gpsm_item_place(tree, item, ihposition, ivposition) == -1) {
 		DPRINTF("WARNING: placement of %s at %li, %li rejected\n",
 			gpsm_item_label(item), ihposition, ivposition);
+		gpsm_item_place(lost, item,
+				0, gpsm_item_vsize(lost) + 1);
+	}
 
 	/* Recurse down the childrens. */
-	insert_childs((gpsm_grp_t *)item, node);
+	insert_childs((gpsm_grp_t *)item, node, lost);
 }
 static void insert_node_op(xmlNodePtr node)
 {
@@ -422,6 +430,7 @@ int gpsm_init(const char *swapfile)
 	xmlDocPtr doc;
 	char *xml;
 	int fd;
+	gpsm_grp_t *lost;
 
 	if (root)
 		return -1;
@@ -486,7 +495,16 @@ empty:
 	root->item.vposition = 0;
 	root->item.hsize = 0;
 	root->item.vsize = 0;
-        insert_childs(root, xmlDocGetRootElement(doc));
+	lost = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);
+	lost->item.label = strdup("(Lost on initialization)");
+	lost->item.hposition = 0;
+	lost->item.vposition = 0;
+	lost->item.hsize = 0;
+	lost->item.vsize = 0;
+	insert_childs(root, xmlDocGetRootElement(doc), lost);
+	if (gpsm_item_vsize(lost) != 0)
+		gpsm_item_place(root, (gpsm_item_t *)lost,
+				0, gpsm_item_vsize(root) + 1);
 
 	/* Search for not xml-ed swapfile. */
 	scan_swap();
