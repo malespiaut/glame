@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.31 2001/12/16 18:06:01 richi Exp $
+@comment $Id: plugins.texi,v 1.32 2001/12/23 15:07:50 richi Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -20,6 +20,7 @@ float, or string--in parentheses.
 * Elementary Plugins::
 * Effects::
 * FFT Plugins::
+* Operations::
 @end menu
 
 @node In- and Output, Elementary Plugins,, Plugin Collection
@@ -123,7 +124,22 @@ Sample stream to store to a sound file. Maximum number of allowed in-connections
 depends on the desired sound format.
 @end table
 
-@file{write-file} has no further specific parameters.
+@subsubheading @file{write-file} parameters
+@table @code
+@item filetype (int)
+Type of the file to write. This is a libaudiofile @code{AF_FILE_*} constant.
+People who have libxml installed will see a option menu for the available
+types. If nothing is given, the type will be deduced from the filename
+extension.
+@item sampleformat (int)
+Sampleformat of the file, as defined by libaudiofiles @code{AF_SAMPFMT_*}.
+Default is signed.
+@item samplewidth (int)
+Sample width in bits. 16 is default.
+@item compression (int)
+Compression type, as defined by libaudiofiles @code{AF_COMPRESSION_*}.
+Default is no compression.
+@end table
 
 @node Swapfile I/O, Abusing External Apps, File I/O, In- and Output
 @subsection Swapfile I/O
@@ -459,14 +475,6 @@ stream respectively. @file{repeat} resends an input sequence over and over
 for a fixed time. @file{invert} inverts all data of the input stream, i.e. 
 each sample A is replaced by -A.
 
-The @file{fade} plugin is designed to fade in or fade out a specific region
-in the swapfile. A generic support of this plugin by the gui is not existent
-at the present time. A timeline view will be introduced later featuring
-a volume envelope that will be applied to a track. To use the fade plugin
-now just choose "Apply Custom" in the waveeditor gui. The filternetwork editor 
-will pop up including a swapfile in and a swapfile out filter. Just enter the size
-given by swapfile in into the size parameter of the fade filter.
-
 @subsubheading Common ports
 @table @code
 @item in (input)
@@ -482,15 +490,6 @@ Stream of transformed output sample data.
 @table @code
 @item factor (float)
 Value to scale input stream's amplitude with.
-@end table
-
-@subsubheading @file{fade} parameters
-@table @code
-@item mode (int)
-Choose mode 0 to fade in, 1 to toggle fade out modus.
-@item size (int)
-The length in samples of the faded region. When using "Apply Custom" just take
-the size given by the @file{swapfile-in} filter.
 @end table
 
 @subsubheading @file{delay} parameters
@@ -613,37 +612,36 @@ There are neither further specific ports, nor further specific parameters.
 @node The Sample Analyst, Catching Bugs, Arithmetics, Elementary Plugins
 @subsection The Sample Analyst
 
-Analyzing sample data for things like peak values or a DC offset is
-crucial for tuning parameters right on other plugins. The @file{statistic}
-plugin is kind enough to take the burden of calculating those values. Its
-output is obviously not a stream of sample data, but of statistical
-values called an RMS stream. Unfortunately, RMS work within GLAME is still
-in its early stages, so currently there is only one simple test plugin,
-@file{debugrms}, that can actually understand an RMS input stream and
-prints some of the gathered statistics to the console. 
+The @file{ssp_streamer} plugin offers a gateway between sample and rms
+data. Streamed rms data can be used later for analyzing via the
+@file{maxrms} plugin. Unfortunately, RMS work within GLAME is still in
+its early stages, so its not that useful at the moment.
 
-@subsubheading @file{statistic} ports
+@subsubheading @file{ssp_streamer} ports
 @table @code
 @item in (input)
-Input sample stream to be analyzed. Only one connection is allowed.
+Input sample stream to be converted.
 @item out (output)
-RMS data stream of gathered statistical data. Only one connection is
-allowed.
+RMS data stream generated out of the sample input stream.
 @end table
 
-@subsubheading @file{statistic} parameters
+@subsubheading @file{ssp_streamer} parameters
 @table @code
-@item windowsize (time)
-Time in milliseconds of window for a single chunk of RMS data.
+@item bsize (samples)
+Window size for computing the running average.
 @end table
 
-@subsubheading @file{debugrms} ports
+@subsubheading @file{maxrms} ports
 @table @code
 @item in (input)
-Input stream of RMS data to display.
+Input stream of RMS data.
 @end table
 
-@file{debugrms} has no parameters.
+@subsubheading @file{maxrms} parameters.
+@table @code
+@item maxrms (output)
+The maximum rms value found in the stream (sofar).
+@end table
 
 
 
@@ -947,7 +945,7 @@ signal. In mode 1 the signal is fully rectified and clipped at level <clip>.
 @end table
 @end table
 
-@node FFT Plugins, , Effects, Plugin Collection
+@node FFT Plugins, Operations, Effects, Plugin Collection
 @section FFT Plugins
 
 Glame provides a simple framework of FFT filters to allow for the application
@@ -1065,3 +1063,29 @@ Gain of midhigh range band (not in dB)
 @item high (float)
 Gain of high range band (not in dB)
 @end table
+
+
+@node Operations, , FFT Plugins, Plugin Collection
+@section Operations
+
+@menu
+* Normalize::
+* Fade in/out::
+@end menu
+
+@node Normalize, Fade in/out, , Operations
+
+The normalize operation applied to a set of tracks normalizes the tracks
+amplitude to 1.0 by looking at the peak values. Normalizing can be
+started by choosing the normalize operation from the item or group
+context menu in the main window, which will normalize the whole tracks,
+or from the waveedit window by choosing the normalize operation from the
+context menu, which will normalize the currently selected region.
+
+@node Fade in/out, , Normalize, Operations
+
+The fade in (and out) operations fade in (or out) the current selection
+linearly. These operations are only useful if invoked through the context
+menu of the waveedit window.
+
+
