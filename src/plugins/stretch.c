@@ -1,6 +1,6 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.7 2003/05/14 22:31:54 mag Exp $
+ * $Id: stretch.c,v 1.8 2003/08/29 00:16:17 mag Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  *
@@ -109,6 +109,14 @@ static int stretch_set_param(filter_param_t *param, const void *val)
 		if ( (z>y) || (z<1) )
 			return -1;
 	}
+
+        if (strcmp("tolerance", filterparam_label(param))==0) {
+		p = filterparamdb_get_param(filter_paramdb(n), "tolerance");
+		y = filterparam_val_long(p);
+		if (y<0)
+			return -1;
+	}
+
 	return 0;
 }
 
@@ -116,12 +124,14 @@ static int stretch_f(filter_t *n)
 {
 	filter_port_t *in_port, *out_port;
 	filter_pipe_t *in, *out;
-	filter_param_t *parambuf, *paramos, *sparam;
+	filter_param_t *parambuf, *paramos, *sparam, *tparam;
 	float factor, pos, dpos, dfak, ipos;
 	in_queue_t in_queue;
 	out_queue_t out_queue;
-	SAMPLE *win, *buffer;
+	SAMPLE *win, *buffer, *buffer2, *swaphelp;
 	int nbsize, nosamp, maxbsize, bsize, osamp, inshift, outshift, i;
+	int tolerance, shift, optshift, oldshift;
+	float optmsr, msr, h, accwin;
 
 	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	out_port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
@@ -137,6 +147,8 @@ static int stretch_f(filter_t *n)
 
 	paramos = filterparamdb_get_param(filter_paramdb(n), "oversampling");
 	
+	tparam  = filterparamdb_get_param(filter_paramdb(n), "tolerance");
+	
 	bsize = (int)filterparam_val_long(parambuf);
 	osamp = (int)filterparam_val_long(paramos);
 
@@ -144,6 +156,8 @@ static int stretch_f(filter_t *n)
 		bsize=1;
 	
 	maxbsize = 2*bsize;
+	tolerance = (int)filterparam_val_long(tparam);
+	oldshift = 0;
 
 	if (!(win=ALLOCN(maxbsize,SAMPLE)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
@@ -151,6 +165,9 @@ static int stretch_f(filter_t *n)
 	hanning(win, bsize, osamp);
       
 	if (!(buffer=ALLOCN(maxbsize, SAMPLE)))
+		FILTER_ERROR_RETURN("couldn't allocate synthesis buffer");
+	
+	if (!(buffer2=ALLOCN(maxbsize, SAMPLE)))
 		FILTER_ERROR_RETURN("couldn't allocate synthesis buffer");
 
 	in_queue_init(&in_queue, in, n);
@@ -166,15 +183,16 @@ static int stretch_f(filter_t *n)
 		factor = filterparam_val_double(sparam);
 		nbsize = (int)filterparam_val_long(parambuf);
 		nosamp = (int)filterparam_val_long(paramos);
+		tolerance = (int)filterparam_val_long(tparam);
 		
 		if ( (nbsize!=bsize) || (nosamp!=osamp) ) {
 			osamp = nosamp;
-			bsize = nbsize;
-			if (bsize>maxbsize) {
+			bsize = nbsize;			
+			if ((bsize+tolerance)>maxbsize) {
 				maxbsize=2*bsize;
 				win = (SAMPLE*)realloc(win, maxbsize*sizeof(SAMPLE));
 				buffer = (SAMPLE*)realloc(buffer, maxbsize*sizeof(SAMPLE));
-				
+				buffer2 = (SAMPLE*)realloc(buffer2, maxbsize*sizeof(SAMPLE));		
 			} 
 
 			hanning(win,bsize,osamp);
@@ -183,7 +201,6 @@ static int stretch_f(filter_t *n)
 			pos=ipos=0.0f;
 		}
 
-		
 		dpos = dfak*factor;
 		if (dpos<=0.0f)
 			dpos = 0.1f;
@@ -191,20 +208,49 @@ static int stretch_f(filter_t *n)
 		ipos += dfak;
 		inshift = (int)floor(ipos);
 		ipos -= (float)inshift;
-
-		in_queue_copy_pad(&in_queue, buffer, bsize);
-		in_queue_shift(&in_queue, inshift);
-
-		for (i=0; i<bsize; i++)
-			buffer[i]*=win[i];
 		
 		pos += dpos;
 		outshift = (int)floor(pos);
 		pos -= (float)outshift;
-		
-		out_queue_add(&out_queue, buffer, bsize);
-		out_queue_shift(&out_queue, outshift);
 
+		in_queue_shift(&in_queue, tolerance/2);
+		in_queue_copy_pad(&in_queue, buffer, bsize+tolerance);
+		
+		/* compute correlation to last buffer */
+		
+		optshift=0;
+		optmsr=1E6;
+		for(shift=0; shift<tolerance; ++shift) {
+			msr=0.0f; accwin=0.0f;
+			for(i=0; i<bsize-outshift; i+=2) {
+				h = win[i]*buffer[i+shift] - buffer2[i+oldshift+outshift];
+				accwin += win[i]*win[i+outshift];
+/*				DPRINTF("h=%f\n",h); */
+				msr+= h*h;
+			}
+			msr/=accwin;
+			/*DPRINTF("shift = %d, msr = %f\n", shift, msr);*/
+			if (msr<optmsr) {
+				optmsr=msr;
+				optshift=shift;
+			}
+		}
+		
+		/*DPRINTF("tolerance = %d optshift = %d\n", tolerance, optshift); */
+
+		oldshift = optshift;
+		in_queue_shift(&in_queue, inshift-tolerance/2);
+
+		for (i=0; i<bsize; i++)
+			buffer[i+optshift]*=win[i];
+		
+		
+		out_queue_add(&out_queue, buffer+optshift, bsize);
+		out_queue_shift(&out_queue, outshift);
+		/* swap buffers */
+		swaphelp = buffer;
+		buffer = buffer2;
+		buffer2 = swaphelp;
 	} while (!in_queue.done);
 
 	out_queue_drain(&out_queue);
@@ -254,9 +300,17 @@ int stretch_register(plugin_t *p)
 
 	param = filterparamdb_add_param_long(
 		filter_paramdb(f), "buffersize",
-		FILTER_PARAMTYPE_LONG, 64,
+		FILTER_PARAMTYPE_LONG, 1024,
 		FILTERPARAM_LABEL, "buffersize",
 		FILTERPARAM_DESCRIPTION, "size of the synthesis window",
+		FILTERPARAM_END);
+	param->set = stretch_set_param;
+	
+	param = filterparamdb_add_param_long(
+		filter_paramdb(f), "tolerance",
+		FILTER_PARAMTYPE_LONG, 128,
+		FILTERPARAM_LABEL, "tolerance",
+		FILTERPARAM_DESCRIPTION, "grain resynthesis tolerance",
 		FILTERPARAM_END);
 	param->set = stretch_set_param;
 
