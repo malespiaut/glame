@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.59 2000/08/14 08:48:06 richi Exp $
+ * $Id: filter.h,v 1.60 2000/10/09 16:24:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -118,7 +118,7 @@ struct filter {
 	struct list_head inputs;
 	struct list_head outputs;
 
-	void *private;
+	void *priv;
 };
 #define filter_nrinputs(f) (list_count(&(f)->inputs))
 #define filter_nroutputs(f) (list_count(&(f)->outputs))
@@ -167,14 +167,14 @@ void filter_attach(filter_t *, plugin_t *);
  * filter_foreach_outputdesc(filter_t *f, filter_portdesc_t *d) { } */
 #define filter_get_inputdesc(f, n) \
 	__hash_entry(_hash_find((n), &(f)->inputs, _hash((n), &(f)->inputs), \
-		     __hash_pos(filter_portdesc_t, hash, label, namespace)), \
+		     __hash_pos(filter_portdesc_t, hash, label, nmspace)), \
 		     filter_portdesc_t, hash)
 #define filter_foreach_inputdesc(f, d) \
 	list_foreach(&(f)->inputs, filter_portdesc_t, list, d)
 #define filter_get_outputdesc(f, n) \
 	__hash_entry(_hash_find((n), &(f)->outputs, _hash((n), \
 		     &(f)->outputs), __hash_pos(filter_portdesc_t, hash, \
-		     label, namespace)), filter_portdesc_t, hash)
+		     label, nmspace)), filter_portdesc_t, hash)
 #define filter_foreach_outputdesc(f, d) \
 	list_foreach(&(f)->outputs, filter_portdesc_t, list, d)
 
@@ -319,22 +319,22 @@ do { \
 #define filternode_get_input(node, n) \
 	__hash_entry(_hash_find((n), &(node)->inputs, _hash((n), \
                      &(node)->inputs), __hash_pos(filter_pipe_t, \
-                     input_hash, in_name, in_namespace)), filter_pipe_t, \
+                     input_hash, in_name, in_nmspace)), filter_pipe_t, \
                      input_hash)
 #define filternode_next_input(p) \
-	__hash_entry(_hash_find((p)->in_name, (p)->in_namespace, \
+	__hash_entry(_hash_find((p)->in_name, (p)->in_nmspace, \
                      &(p)->input_hash.next_hash, __hash_pos(filter_pipe_t, \
-                     input_hash, in_name, in_namespace)), filter_pipe_t, \
+                     input_hash, in_name, in_nmspace)), filter_pipe_t, \
                      input_hash)
 #define filternode_get_output(node, n) \
 	__hash_entry(_hash_find((n), &(node)->outputs, _hash((n), \
                      &(node)->outputs), __hash_pos(filter_pipe_t, \
-                     output_hash, out_name, out_namespace)), filter_pipe_t, \
+                     output_hash, out_name, out_nmspace)), filter_pipe_t, \
                      output_hash)
 #define filternode_next_output(p) \
-        __hash_entry(_hash_find((p)->out_name, (p)->out_namespace, \
+        __hash_entry(_hash_find((p)->out_name, (p)->out_nmspace, \
                      &(p)->output_hash.next_hash, __hash_pos(filter_pipe_t, \
-                     output_hash, out_name, out_namespace)), filter_pipe_t, \
+                     output_hash, out_name, out_nmspace)), filter_pipe_t, \
                      output_hash)
 #define filternode_foreach_input(n, p) \
 	list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)

@@ -158,9 +158,9 @@ void hash_unlock()
 
 /* convenience macros */
 #define NAME(entry, head, name) (*(char **)((char *)(entry) - (head) + (name)))
-#define NAMESPACE(entry, head, namespace) (*(void **)((char *)(entry) - (head) + (namespace)))
+#define NAMESPACE(entry, head, nmspace) (*(void **)((char *)(entry) - (head) + (nmspace)))
 
-int _hashfn(const char *name, const void *namespace)
+int _hashfn(const char *name, const void *nmspace)
 {
 	int len, val = 0;
 
@@ -168,35 +168,35 @@ int _hashfn(const char *name, const void *namespace)
 	while (len--)
 		val += *(name++);
 
-	val += ((int)namespace)/sizeof(void *);
+	val += ((int)nmspace)/sizeof(void *);
 
 	return (val & (HASH_SIZE-1));
 }
 
-struct hash_head *__hash_find(const char *name, const void *namespace,
+struct hash_head *__hash_find(const char *name, const void *nmspace,
 			      struct hash_head **e,
 			      unsigned long _head, unsigned long _name,
-			      unsigned long _namespace)
+			      unsigned long _nmspace)
 {
 	struct hash_head *entry = *e;
 
 	while (entry) {
-		if (NAMESPACE(entry, _head, _namespace) == namespace
+		if (NAMESPACE(entry, _head, _nmspace) == nmspace
 		    && strcmp(NAME(entry, _head, _name), name) == 0)
 			break;
 		entry = entry->next_hash;
 	}
 	return entry;
 }
-struct hash_head *_hash_find(const char *name, const void *namespace,
+struct hash_head *_hash_find(const char *name, const void *nmspace,
 			     struct hash_head **e,
 			     unsigned long _head, unsigned long _name,
-			     unsigned long _namespace)
+			     unsigned long _nmspace)
 {
 	struct hash_head *entry;
 
 	_lock();
-	entry = __hash_find(name, namespace, e, _head, _name, _namespace);
+	entry = __hash_find(name, nmspace, e, _head, _name, _nmspace);
 	_unlock();
 	return entry;
 }
@@ -235,9 +235,9 @@ void _hash_remove(struct hash_head *entry)
 	_unlock_w();
 }
 
-struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
+struct hash_head *__hash_walk(struct hash_head *entry, void *nmspace,
 			      unsigned long _head, unsigned long _name,
-			      unsigned long _namespace)
+			      unsigned long _nmspace)
 {
 	struct hash_head **slot;
 
@@ -246,12 +246,12 @@ struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
 		entry = *slot;
 		goto _slot;
 	} else {
-		slot = _hash(NAME(entry, _head, _name), namespace);
+		slot = _hash(NAME(entry, _head, _name), nmspace);
 		goto _next;
 	}
 
 	do {
-		if (NAMESPACE(entry, _head, _namespace) == namespace)
+		if (NAMESPACE(entry, _head, _nmspace) == nmspace)
 			break;
  _next:
     		entry = entry->next_hash;
@@ -266,31 +266,31 @@ struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
 }
 
 
-const char *__hash_unique_name(const char *prefix, void *namespace,
+const char *__hash_unique_name(const char *prefix, void *nmspace,
 			       unsigned long _head, unsigned long _name,
-			       unsigned long _namespace)
+			       unsigned long _nmspace)
 {
 	char buf[256];
 	int i;
 
 	for (i=1;; i++) {
 		snprintf(buf, 255, "%s-%i", prefix, i);
-		if (!__hash_find(buf, namespace, _hash(buf, namespace),
-				 _head, _name, _namespace))
+		if (!__hash_find(buf, nmspace, _hash(buf, nmspace),
+				 _head, _name, _nmspace))
 			return strdup(buf);
 	}
 
 	return NULL;
 }
 
-const char *_hash_unique_name(const char *prefix, void *namespace,
+const char *_hash_unique_name(const char *prefix, void *nmspace,
 			      unsigned long _head, unsigned long _name,
-			      unsigned long _namespace)
+			      unsigned long _nmspace)
 {
 	const char *name;
 
 	_lock();
-	name = __hash_unique_name(prefix, namespace, _head, _name, _namespace);
+	name = __hash_unique_name(prefix, nmspace, _head, _name, _nmspace);
 	_unlock();
 
 	return name;

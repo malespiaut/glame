@@ -1,6 +1,6 @@
 /*
  * gldb.c
- * $Id: gldb.c,v 1.4 2000/10/03 13:38:35 richi Exp $
+ * $Id: gldb.c,v 1.5 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -119,7 +119,7 @@ void gldb_delete_item(gldb_item_t *item)
 {
 	if (item_in_db(item))
 		gldb_remove_item(item);
-	item->db->ops->delete(item);
+	item->db->ops->del(item);
 }
 
 gldb_item_t *gldb_query_item(gldb_t *db, const char *label)

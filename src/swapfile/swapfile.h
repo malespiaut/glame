@@ -54,7 +54,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "glame_types.h"
 #include "txn.h"
 
 

@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.6 2000/05/09 11:32:31 richi Exp $
+ * $Id: glsignal.c,v 1.7 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -36,7 +36,7 @@ static void glsig_redirector(glsig_handler_t *h, long sig, va_list va)
 
 
 glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
-		       long sigmask, glsig_callb_t *handler, void *private)
+		       long sigmask, glsig_callb_t *handler, void *priv)
 {
 	glsig_handler_t *h;
 
@@ -47,7 +47,7 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 	INIT_LIST_HEAD(&h->list);
 	h->sigmask = sigmask;
 	h->handler = handler;
-	h->private = private;
+	h->priv = priv;
 	list_add(&h->list, &emitter->handlers);
 
 	return h;
@@ -66,7 +66,7 @@ int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source)
 
 	list_foreach(&source->handlers, glsig_handler_t, list, h) {
 		if (!glsig_add_handler(dest, h->sigmask, h->handler,
-				       h->private))
+				       h->priv))
 			return -1;
 	}
 	return 0;

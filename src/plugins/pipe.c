@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.5 2000/08/14 08:48:07 richi Exp $
+ * $Id: pipe.c,v 1.6 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -64,7 +64,7 @@ static int pipe_f(filter_node_t *n)
 
 	if (!(p = popen(cmd, "r")))
 		FILTER_ERROR_RETURN("popen failed");
-	b = malloc(q*4096);
+	b = (short *)malloc(q*4096);
 
 	FILTER_AFTER_INIT;
 

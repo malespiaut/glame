@@ -280,7 +280,7 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 		float *fvec;
 		long length;
 		length = gh_vector_length(s_buf);
-		fvec = malloc(length*sizeof(float));
+		fvec = (float *)malloc(length*sizeof(float));
 		gh_scm2floats(s_buf, fvec); /* FIXME!? */
 		res = sw_write(gh_scm2swfd(s_fd), fvec, length*sizeof(float));
 		free(fvec);
@@ -320,7 +320,7 @@ SCM gls_filternetwork_delete(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	filternetwork_delete(net);
 	return SCM_UNSPECIFIED;
 }
@@ -332,7 +332,7 @@ SCM gls_filternetwork_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	char *filter, *name;
 	int filterl, namel;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	name = gh_scm2newstr(s_name, &namel);
 	filter = gh_scm2newstr(s_filter, &filterl);
 	node = filternetwork_add_node(net, filter, namel == 0 ? NULL : name);
@@ -347,7 +347,7 @@ SCM gls_filternetwork_delete_node(SCM s_node)
 {
 	filter_node_t *node;
 
-	node = gh_scm2pointer(s_node);
+	node = (filter_node_t *)gh_scm2pointer(s_node);
 	filternetwork_delete_node(node);
 	return SCM_UNSPECIFIED;
 }
@@ -360,9 +360,9 @@ SCM gls_filternetwork_add_connection(SCM s_source, SCM s_source_port,
 	char *source_port, *dest_port;
 	int source_portl, dest_portl;
 
-	source = gh_scm2pointer(s_source);
+	source = (filter_node_t *)gh_scm2pointer(s_source);
 	source_port = gh_scm2newstr(s_source_port, &source_portl);
-	dest = gh_scm2pointer(s_dest);
+	dest = (filter_node_t *)gh_scm2pointer(s_dest);
 	dest_port = gh_scm2newstr(s_dest_port, &dest_portl);
         p = filternetwork_add_connection(source, source_port, dest, dest_port);
 	free(source_port);
@@ -376,7 +376,7 @@ SCM gls_filternetwork_break_connection(SCM s_p)
 {
 	filter_pipe_t *p;
 
-	p = gh_scm2pointer(s_p);
+	p = (filter_pipe_t *)gh_scm2pointer(s_p);
 	filternetwork_break_connection(p);
 	return SCM_UNSPECIFIED;
 }
@@ -416,7 +416,7 @@ SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 {
 	filter_node_t *n;
 
-	n = gh_scm2pointer(s_n);
+	n = (filter_node_t *)gh_scm2pointer(s_n);
 	return gls_filterparam_set(filternode_pdb(n), s_label, s_val);
 }
 
@@ -424,7 +424,7 @@ SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
 {
 	filter_pipe_t *p;
 
-	p = gh_scm2pointer(s_p);
+	p = (filter_pipe_t *)gh_scm2pointer(s_p);
 	return gls_filterparam_set(filterpipe_sourcepdb(p), s_label, s_val);
 }
 
@@ -432,7 +432,7 @@ SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
 {
 	filter_pipe_t *p;
 
-	p = gh_scm2pointer(s_p);
+	p = (filter_pipe_t *)gh_scm2pointer(s_p);
 	return gls_filterparam_set(filterpipe_destpdb(p), s_label, s_val);
 }
 
@@ -440,7 +440,7 @@ SCM gls_filternetwork_launch(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	if (filternetwork_launch(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -450,7 +450,7 @@ SCM gls_filternetwork_start(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	if (filternetwork_start(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -460,7 +460,7 @@ SCM gls_filternetwork_pause(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	if (filternetwork_pause(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -470,7 +470,7 @@ SCM gls_filternetwork_wait(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	if (filternetwork_wait(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -480,7 +480,7 @@ SCM gls_filternetwork_terminate(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	filternetwork_terminate(net);
 	return SCM_UNSPECIFIED;
 }
@@ -494,8 +494,8 @@ SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 	char *port, *label, *desc;
 	int portl, labell, descl;
 
-	net = gh_scm2pointer(s_net);
-	n = gh_scm2pointer(s_node);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
+	n = (filter_node_t *)gh_scm2pointer(s_node);
 	port = gh_scm2newstr(s_port, &portl);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
@@ -517,8 +517,8 @@ SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
 	char *port, *label, *desc;
 	int portl, labell, descl;
 
-	net = gh_scm2pointer(s_net);
-	n = gh_scm2pointer(s_node);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
+	n = (filter_node_t *)gh_scm2pointer(s_node);
 	port = gh_scm2newstr(s_port, &portl);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
@@ -540,8 +540,8 @@ SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 	char *param, *label, *desc;
 	int paraml, labell, descl;
 
-	net = gh_scm2pointer(s_net);
-	n = gh_scm2pointer(s_node);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
+	n = (filter_node_t *)gh_scm2pointer(s_node);
 	param = gh_scm2newstr(s_param, &paraml);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
@@ -562,7 +562,7 @@ SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
 	char *name, *desc;
 	int namel, descl;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	if (!(f = filter_from_network(net)))
 		return SCM_BOOL_F;
 	name = gh_scm2newstr(s_name, &namel);
@@ -582,7 +582,7 @@ SCM gls_filternetwork_to_string(SCM s_net)
 {
 	filter_network_t *net;
 
-	net = gh_scm2pointer(s_net);
+	net = (filter_network_t *)gh_scm2pointer(s_net);
 	return gh_str02scm((char *)filternetwork_to_string(net));	
 }
 
@@ -621,7 +621,7 @@ SCM gls_plugin_name(SCM s_p)
 {
 	plugin_t *p;
 
-	p = gh_scm2pointer(s_p);
+	p = (plugin_t *)gh_scm2pointer(s_p);
 	return gh_str02scm((char *)plugin_name(p));
 }
 
@@ -632,13 +632,13 @@ SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 	int keyl;
 	void *val;
 
-	p = gh_scm2pointer(s_p);
+	p = (plugin_t *)gh_scm2pointer(s_p);
 	key = gh_scm2newstr(s_key, &keyl);
 	val = plugin_query(p, key);
 	free(key);
 	if (!val)
 		return SCM_BOOL_F;
-	return gh_str02scm(val);
+	return gh_str02scm((const char *)val);
 }
 
 
@@ -665,7 +665,7 @@ SCM gls_track_delete(SCM s_track)
 {
 	track_t *track;
 
-	track = gh_scm2pointer(s_track);
+	track = (track_t *)gh_scm2pointer(s_track);
 	if (track_delete(track) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
@@ -677,30 +677,30 @@ int glscript_init()
 	char str[256];
 
 	/* txn */
-	gh_new_procedure("txn_start", gls_txn_start, 1, 0, 0);
-	gh_new_procedure("txn_end", gls_txn_end, 1, 0, 0);
-	gh_new_procedure("txn_abort", gls_txn_abort, 1, 0, 0);
-	gh_new_procedure("txn_undo", gls_txn_undo, 1, 0, 0);
-	gh_new_procedure("txn_delete", gls_txn_delete, 1, 0, 0);
+	gh_new_procedure("txn_start", (SCM (*)())gls_txn_start, 1, 0, 0);
+	gh_new_procedure("txn_end", (SCM (*)())gls_txn_end, 1, 0, 0);
+	gh_new_procedure("txn_abort", (SCM (*)())gls_txn_abort, 1, 0, 0);
+	gh_new_procedure("txn_undo", (SCM (*)())gls_txn_undo, 1, 0, 0);
+	gh_new_procedure("txn_delete", (SCM (*)())gls_txn_delete, 1, 0, 0);
 	snprintf(str, 255, "(define TXN_NONE %i)", TXN_NONE); gh_eval_str(str);
 
 	/* swapfile */
-	gh_new_procedure("swapfile_open", gls_swapfile_open, 1, 0, 0);
-	gh_new_procedure("swapfile_close", gls_swapfile_close, 0, 0, 0);
-	gh_new_procedure("swapfile_creat", gls_swapfile_creat, 2, 0, 0);
-	gh_new_procedure("sw_unlink", gls_sw_unlink, 1, 0, 0);
-	gh_new_procedure("sw_opendir", gls_sw_opendir, 0, 0, 0);
-	gh_new_procedure("sw_readdir", gls_sw_readdir, 1, 0, 0);
-	gh_new_procedure("sw_closedir", gls_sw_closedir, 1, 0, 0);
-	gh_new_procedure("sw_open", gls_sw_open, 3, 0, 0);
-	gh_new_procedure("sw_close", gls_sw_close, 1, 0, 0);
-	gh_new_procedure("sw_fstat", gls_sw_fstat, 1, 0, 0);
-	gh_new_procedure("sw_ftruncate", gls_sw_ftruncate, 2, 0, 0);
-	gh_new_procedure("sw_lseek", gls_sw_lseek, 3, 0, 0);
-	gh_new_procedure("sw_sendfile", gls_sw_sendfile, 4, 0, 0);
-	gh_new_procedure("sw_read_floatvec", gls_sw_read_floatvec, 2, 0, 0);
-	gh_new_procedure("sw_read_string", gls_sw_read_string, 2, 0, 0);
-	gh_new_procedure("sw_write", gls_sw_write, 2, 0, 0);
+	gh_new_procedure("swapfile_open", (SCM (*)())gls_swapfile_open, 1, 0, 0);
+	gh_new_procedure("swapfile_close", (SCM (*)())gls_swapfile_close, 0, 0, 0);
+	gh_new_procedure("swapfile_creat", (SCM (*)())gls_swapfile_creat, 2, 0, 0);
+	gh_new_procedure("sw_unlink", (SCM (*)())gls_sw_unlink, 1, 0, 0);
+	gh_new_procedure("sw_opendir", (SCM (*)())gls_sw_opendir, 0, 0, 0);
+	gh_new_procedure("sw_readdir", (SCM (*)())gls_sw_readdir, 1, 0, 0);
+	gh_new_procedure("sw_closedir", (SCM (*)())gls_sw_closedir, 1, 0, 0);
+	gh_new_procedure("sw_open", (SCM (*)())gls_sw_open, 3, 0, 0);
+	gh_new_procedure("sw_close", (SCM (*)())gls_sw_close, 1, 0, 0);
+	gh_new_procedure("sw_fstat", (SCM (*)())gls_sw_fstat, 1, 0, 0);
+	gh_new_procedure("sw_ftruncate", (SCM (*)())gls_sw_ftruncate, 2, 0, 0);
+	gh_new_procedure("sw_lseek", (SCM (*)())gls_sw_lseek, 3, 0, 0);
+	gh_new_procedure("sw_sendfile", (SCM (*)())gls_sw_sendfile, 4, 0, 0);
+	gh_new_procedure("sw_read_floatvec", (SCM (*)())gls_sw_read_floatvec, 2, 0, 0);
+	gh_new_procedure("sw_read_string", (SCM (*)())gls_sw_read_string, 2, 0, 0);
+	gh_new_procedure("sw_write", (SCM (*)())gls_sw_write, 2, 0, 0);
 	sprintf(str, "(define O_CREAT %i)", O_CREAT); gh_eval_str(str);
 	sprintf(str, "(define O_EXCL %i)", O_EXCL); gh_eval_str(str);
 	sprintf(str, "(define O_TRUNC %i)", O_TRUNC); gh_eval_str(str);
@@ -715,54 +715,54 @@ int glscript_init()
 	sprintf(str, "(define SEEK_END %i)", SEEK_END); gh_eval_str(str);
 
 	/* filter */
-	gh_new_procedure("filternetwork_new", gls_filternetwork_new, 0, 0, 0);
-	gh_new_procedure("filternetwork_delete", gls_filternetwork_delete,
+	gh_new_procedure("filternetwork_new", (SCM (*)())gls_filternetwork_new, 0, 0, 0);
+	gh_new_procedure("filternetwork_delete", (SCM (*)())gls_filternetwork_delete,
 			 1, 0, 0);
-	gh_new_procedure("filternetwork_add_node", gls_filternetwork_add_node,
+	gh_new_procedure("filternetwork_add_node", (SCM (*)())gls_filternetwork_add_node,
 			 3, 0, 0);
 	gh_new_procedure("filternetwork_delete_node",
-			 gls_filternetwork_delete_node, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_delete_node, 1, 0, 0);
 	gh_new_procedure("filternetwork_add_connection",
-			 gls_filternetwork_add_connection, 4, 0, 0);
+			 (SCM (*)())gls_filternetwork_add_connection, 4, 0, 0);
 	gh_new_procedure("filternetwork_break_connection",
-			 gls_filternetwork_break_connection, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_break_connection, 1, 0, 0);
 	gh_new_procedure("filternode_set_param",
-			 gls_filternode_set_param, 3, 0, 0);
+			 (SCM (*)())gls_filternode_set_param, 3, 0, 0);
 	gh_new_procedure("filterpipe_set_sourceparam",
-			 gls_filterpipe_set_sourceparam, 3, 0, 0);
+			 (SCM (*)())gls_filterpipe_set_sourceparam, 3, 0, 0);
 	gh_new_procedure("filterpipe_set_destparam",
-			 gls_filterpipe_set_destparam, 3, 0, 0);
+			 (SCM (*)())gls_filterpipe_set_destparam, 3, 0, 0);
 	gh_new_procedure("filternetwork_launch",
-			 gls_filternetwork_launch, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_launch, 1, 0, 0);
 	gh_new_procedure("filternetwork_start",
-			 gls_filternetwork_start, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_start, 1, 0, 0);
 	gh_new_procedure("filternetwork_pause",
-			 gls_filternetwork_pause, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_pause, 1, 0, 0);
 	gh_new_procedure("filternetwork_wait",
-			 gls_filternetwork_wait, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_wait, 1, 0, 0);
 	gh_new_procedure("filternetwork_terminate",
-			 gls_filternetwork_terminate, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_terminate, 1, 0, 0);
 	gh_new_procedure("filternetwork_to_filter",
-			 gls_filternetwork_to_filter, 3, 0, 0);
+			 (SCM (*)())gls_filternetwork_to_filter, 3, 0, 0);
 	gh_new_procedure("filternetwork_add_input",
-			 gls_filternetwork_add_input, 5, 0, 0);
+			 (SCM (*)())gls_filternetwork_add_input, 5, 0, 0);
 	gh_new_procedure("filternetwork_add_output",
-			 gls_filternetwork_add_output, 5, 0, 0);
+			 (SCM (*)())gls_filternetwork_add_output, 5, 0, 0);
 	gh_new_procedure("filternetwork_add_param",
-			 gls_filternetwork_add_param, 5, 0, 0);
+			 (SCM (*)())gls_filternetwork_add_param, 5, 0, 0);
 	gh_new_procedure("filternetwork_to_string",
-			 gls_filternetwork_to_string, 1, 0, 0);
+			 (SCM (*)())gls_filternetwork_to_string, 1, 0, 0);
 
 	/* plugin */
-	gh_new_procedure("plugin_add_path", gls_plugin_add_path,
+	gh_new_procedure("plugin_add_path", (SCM (*)())gls_plugin_add_path,
 			 1, 0, 0);
-	gh_new_procedure("plugin_get", gls_plugin_get, 1, 0, 0);
-	gh_new_procedure("plugin_name", gls_plugin_name, 1, 0, 0);
-	gh_new_procedure("plugin_query", gls_plugin_query_string, 2, 0, 0);
+	gh_new_procedure("plugin_get", (SCM (*)())gls_plugin_get, 1, 0, 0);
+	gh_new_procedure("plugin_name", (SCM (*)())gls_plugin_name, 1, 0, 0);
+	gh_new_procedure("plugin_query", (SCM (*)())gls_plugin_query_string, 2, 0, 0);
 
 	/* track */
-	gh_new_procedure("track_get", gls_track_get, 2, 0, 0);
-	gh_new_procedure("track_delete", gls_track_delete, 1, 0, 0);
+	gh_new_procedure("track_get", (SCM (*)())gls_track_get, 2, 0, 0);
+	gh_new_procedure("track_delete", (SCM (*)())gls_track_delete, 1, 0, 0);
 
 
 	/* load glame scheme libraries (if existent):

@@ -112,20 +112,20 @@ void hash_unlock();
  */
 extern struct hash_head **hash_table;
 
-int _hashfn(const char *name, const void *namespace);
-#define _hash(name, namespace) (hash_table + _hashfn(name, namespace))
+int _hashfn(const char *name, const void *nmspace);
+#define _hash(name, nmspace) (hash_table + _hashfn(name, nmspace))
 
-#define __hash_pos(type, head, name, namespace) (unsigned long)(&((type *)0)->head), (unsigned long)(&((type *)0)->name), (unsigned long)(&((type *)0)->namespace)
+#define __hash_pos(type, head, name, nmspace) (unsigned long)(&((type *)0)->head), (unsigned long)(&((type *)0)->name), (unsigned long)(&((type *)0)->nmspace)
 #define __hash_entry(ptr, type, head) ((ptr) ? (type *)((char *)(ptr)-(unsigned long)(&((type *)0)->head)) : NULL)
 
-struct hash_head *__hash_find(const char *name, const void *namespace,
+struct hash_head *__hash_find(const char *name, const void *nmspace,
 			      struct hash_head **entry,
 			      unsigned long _head, unsigned long _name,
-			      unsigned long _namespace);
-struct hash_head *_hash_find(const char *name, const void *namespace,
+			      unsigned long _nmspace);
+struct hash_head *_hash_find(const char *name, const void *nmspace,
 			     struct hash_head **entry,
 			     unsigned long _head, unsigned long _name,
-			     unsigned long _namespace);
+			     unsigned long _nmspace);
 
 void __hash_add(struct hash_head *entry, struct hash_head **loc);
 void _hash_add(struct hash_head *entry, struct hash_head **loc);
@@ -133,23 +133,23 @@ void _hash_add(struct hash_head *entry, struct hash_head **loc);
 void __hash_remove(struct hash_head *entry);
 void _hash_remove(struct hash_head *entry);
 
-struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
+struct hash_head *__hash_walk(struct hash_head *entry, void *nmspace,
 			      unsigned long _head, unsigned long _name,
-			      unsigned long _namespace);
-struct hash_head *_hash_walk(struct hash_head *entry, void *namespace,
+			      unsigned long _nmspace);
+struct hash_head *_hash_walk(struct hash_head *entry, void *nmspace,
 			     unsigned long _head, unsigned long _name,
-			     unsigned long _namespace);
+			     unsigned long _nmspace);
 
 /* generate an unique name in the namespace using a provided
  * prefix.
  */
-const char *__hash_unique_name(const char *prefix, void *namespace,
+const char *__hash_unique_name(const char *prefix, void *nmspace,
 			       unsigned long _head, unsigned long _name,
-			       unsigned long _namespace);
+			       unsigned long _nmspace);
 
-const char *_hash_unique_name(const char *prefix, void *namespace,
+const char *_hash_unique_name(const char *prefix, void *nmspace,
 			      unsigned long _head, unsigned long _name,
-			      unsigned long _namespace);
+			      unsigned long _nmspace);
 
 
 

@@ -40,16 +40,16 @@ struct tg_s {
 	struct list_head ch_list;
 
 	char *tg_name;
-	void *namespace;
+	void *nmspace;
 
 	int nr_tracks;
 };
 
 /* track-group hash */
-#define hash_find_cg(group) __hash_entry(_hash_find((group), TG_NAMESPACE, _hash((group), TG_NAMESPACE), __hash_pos(tg_t, hash, tg_name, namespace)), tg_t, hash)
+#define hash_find_cg(group) __hash_entry(_hash_find((group), TG_NAMESPACE, _hash((group), TG_NAMESPACE), __hash_pos(tg_t, hash, tg_name, nmspace)), tg_t, hash)
 #define hash_add_cg(cg) _hash_add(&(cg)->hash, _hash((cg)->tg_name, TG_NAMESPACE))
 #define hash_remove_cg(cg) _hash_remove(&(cg)->hash)
-#define hash_init_cg(cg) do { cg->namespace = TG_NAMESPACE; _hash_init(&(cg)->hash); } while (0)
+#define hash_init_cg(cg) do { cg->nmspace = TG_NAMESPACE; _hash_init(&(cg)->hash); } while (0)
 #define is_hashed_cg(cg) _is_hashed(&(cg)->hash)
 
 /* track hash */

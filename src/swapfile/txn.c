@@ -160,7 +160,7 @@ void _txn_delete(struct txn *t)
 
 	/* delete self */
 	if (t->op)
-		t->op->delete(t);
+		t->op->del(t);
 
 	free(t);
 }
@@ -371,7 +371,7 @@ int txn_finish_unimplemented(txnid_t id, const char *message)
 	if (!(op = (struct ui_txn_op *)malloc(sizeof(struct ui_txn_op))))
 		return -1;
 	op->op.undo = ui_undo;
-	op->op.delete = ui_delete;
+	op->op.del = ui_delete;
 	op->message = message;
 	if (txn_finish(id, &op->op) == -1) {
 		free(op);

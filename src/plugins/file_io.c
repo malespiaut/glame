@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.30 2000/08/14 08:48:07 richi Exp $
+ * $Id: file_io.c,v 1.31 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -124,7 +124,7 @@ typedef struct {
 #endif
 	} u;
 } rw_private_t;
-#define RWPRIV(node) ((rw_private_t *)((node)->private))
+#define RWPRIV(node) ((rw_private_t *)((node)->priv))
 #define RWW(node) (RWPRIV(node)->u.wav)
 #define RWA(node) (RWPRIV(node)->u.audiofile)
 
@@ -196,7 +196,7 @@ static int rw_file_init(filter_node_t *n)
 
 	if (!(p = ALLOC(rw_private_t)))
 		return -1;
-	n->private = p;
+	n->priv = p;
 	glsig_add_handler(&n->emitter, GLSIG_NODE_DELETED,
 			  rw_file_cleanup, NULL);
 
@@ -573,8 +573,8 @@ int wav_read_prepare(filter_node_t *n, const char *filename)
 		return -1;
 	}
 	RWW(n).size = statbuf.st_size;
-	RWW(n).map = mmap(NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE,
-	                  fd, 0);
+	RWW(n).map = (char *)mmap(NULL, statbuf.st_size, PROT_READ,
+				  MAP_PRIVATE, fd, 0);
 	close(fd);
 	if (RWW(n).map == MAP_FAILED) {
 		DPRINTF("%s", strerror(errno));

@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.20 2000/08/14 08:48:06 richi Exp $
+ * $Id: filter_methods.c,v 1.21 2000/10/09 16:24:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -142,7 +142,7 @@ int filter_network_init(filter_node_t *n)
 	filter_pipe_t *pipe, *p;
 
 	/* empty network? */
-	if (!(templ = (filter_network_t *)n->filter->private))
+	if (!(templ = (filter_network_t *)n->filter->priv))
 		return 0;
 
 	/* copy network from templ to net */
@@ -187,7 +187,7 @@ int filter_network_connect_out(filter_node_t *source, const char *port,
 
 	if (!(d = filter_get_outputdesc(source->filter, port)))
 		return -1;
-	m = (struct filter_network_mapping *)d->private;
+	m = (struct filter_network_mapping *)d->priv;
 	if (!(n = filternetwork_get_node(source, m->node)))
 		return -1;
 	p->out_name = m->label;
@@ -202,7 +202,7 @@ int filter_network_connect_in(filter_node_t *dest, const char *port,
 	struct filter_network_mapping *m;
 	filter_node_t *n;
 
-	m = (struct filter_network_mapping *)p->dest_port->private;
+	m = (struct filter_network_mapping *)p->dest_port->priv;
 	if (!(n = filternetwork_get_node(dest, m->node)))
 		return -1;
 	p->in_name = m->label;

@@ -4,7 +4,7 @@
 /*
  * txn.h
  *
- * $Id: txn.h,v 1.3 2000/09/27 08:13:04 richi Exp $
+ * $Id: txn.h,v 1.4 2000/10/09 16:24:03 richi Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -53,9 +53,9 @@ struct txn_op {
 	 * fail!). Return 0 if everything went ok, else -1. */
 	int (*undo)(struct txn *txn, struct txn *dest);
 
-	/* The delete method should free any storage required
+	/* The del method should free any storage required
 	 * by the txn_op and the txn_op itself. */
-	void (*delete)(struct txn *txn);
+	void (*del)(struct txn *txn);
 
 	/* private stuff should follow */
 };
@@ -154,7 +154,7 @@ void txn_abort_and_delete_all();
  *      my_tid = txn_start(parent_tid);
  *      ... my operation
  *      op->op.undo = my_txn_undo;
- *      op->op.delete = my_txn_delete;
+ *      op->op.del = my_txn_delete;
  *      op->... stuff to be able to undo/delete the transaction
  *      txn_finish(my_tid, &op->op);
  *      ... stuff

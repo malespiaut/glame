@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.15 2000/06/25 14:53:00 richi Exp $
+ * $Id: filter_mm.c,v 1.16 2000/10/09 16:24:02 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -134,7 +134,7 @@ filter_t *_filter_alloc(int flags)
 	filterpdb_init(&f->params, NULL);
 	INIT_LIST_HEAD(&f->inputs);
 	INIT_LIST_HEAD(&f->outputs);
-	f->private = NULL;
+	f->priv = NULL;
 	return f;
 }
 
@@ -201,7 +201,7 @@ static int _node_init(filter_node_t *n, const char *name)
 {
 	INIT_LIST_HEAD(&n->list);
 	INIT_HASH_HEAD(&n->hash);
-	n->private = NULL;
+	n->priv = NULL;
 	n->ops = &filter_node_ops;
 	INIT_GLSIG_EMITTER(&n->emitter);
 	filterpdb_init(&n->params, n);

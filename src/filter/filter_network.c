@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.53 2000/08/14 08:48:06 richi Exp $
+ * $Id: filter_network.c,v 1.54 2000/10/09 16:24:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -44,7 +44,7 @@
 
 static void *waiter(void *network)
 {
-	filter_network_t *net = network;
+	filter_network_t *net = (filter_network_t *)network;
 	int res;
 
 	res = net->node.ops->wait(FILTER_NODE(net));
@@ -182,7 +182,7 @@ filter_network_t *filternetwork_new()
 	        return NULL;
 	if (!(net = FILTER_NETWORK(_filter_instantiate(f, "network"))))
 		goto err;
-	net->node.filter->private = net;
+	net->node.filter->priv = net;
 
 	return net;
 
@@ -409,7 +409,7 @@ filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
 				   strdup(desc), d->type)))
 		return NULL;
 
-	d->private = create_map(strdup(port), strdup(node));
+	d->priv = create_map(strdup(port), strdup(node));
 
 	return d;
 }
@@ -433,7 +433,7 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 				    strdup(desc), d->type)))
 		return NULL;
 
-	d->private = create_map(strdup(port), strdup(node));
+	d->priv = create_map(strdup(port), strdup(node));
 
 	return d;
 }

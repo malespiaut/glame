@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.17 2000/05/22 11:06:45 richi Exp $
+ * $Id: glplugin.c,v 1.18 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -46,8 +46,8 @@ static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
 #define hash_remove_plugin(p) _hash_remove(&(p)->hash)
 #define hash_find_plugin(nm) __hash_entry(_hash_find((nm), PLUGIN_NAMESPACE, \
         _hash((nm), PLUGIN_NAMESPACE), __hash_pos(plugin_t, hash, name, \
-        namespace)), plugin_t, hash)
-#define hash_init_plugin(p) do { _hash_init(&p->hash); (p)->namespace = PLUGIN_NAMESPACE; } while (0)
+        nmspace)), plugin_t, hash)
+#define hash_init_plugin(p) do { _hash_init(&p->hash); (p)->nmspace = PLUGIN_NAMESPACE; } while (0)
 #define is_hashed_plugin(p) _is_hashed(&(p)->hash)
 
 
@@ -118,7 +118,7 @@ static int _plugin_add(plugin_t *p)
 	hash_lock();
 	if (__hash_find(p->name, PLUGIN_NAMESPACE,
 			_hash(p->name, PLUGIN_NAMESPACE),
-			__hash_pos(plugin_t, hash, name, namespace))) {
+			__hash_pos(plugin_t, hash, name, nmspace))) {
 		hash_unlock();
 		return -1;
 	}
@@ -142,9 +142,9 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	/* GLAME plugins do have either name_register() or
 	 * name_set symbols defined. */
 	snprintf(s, 255, "%s_register", name);
-	reg_func = dlsym(p->handle, s);
+	reg_func = (int (*)(plugin_t *))dlsym(p->handle, s);
 	snprintf(s, 255, "%s_set", name);
-	set = dlsym(p->handle, s);
+	set = (char **)dlsym(p->handle, s);
 	if (!reg_func && !set)
 		return -1;
 
@@ -279,7 +279,7 @@ plugin_t *plugin_get(const char *nm)
 	return p;
 }
 
-int plugin_set(plugin_t *p, const char *key, void *val)
+int plugin_set(plugin_t *p, const char *key, const void *val)
 {
 	glworm_t *w;
 
@@ -287,7 +287,7 @@ int plugin_set(plugin_t *p, const char *key, void *val)
 		return -1;
 	if (!(w = glworm_alloc()))
 		return -1;
-	w->u.ptr = val;
+	w->u.ptr = (void *)val;
 	if (glwdb_add_item(&p->db, w, key) == -1) {
 		free(w);
 		return -1;

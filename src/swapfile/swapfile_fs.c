@@ -520,8 +520,8 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
-		    || (mem = sw_mmap(NULL, PROT_READ,
-				      MAP_SHARED, fd)) == MAP_FAILED)
+		    || (mem = (char *)sw_mmap(NULL, PROT_READ,
+					      MAP_SHARED, fd)) == MAP_FAILED)
 			break;
 
 		dcnt = MIN(stat.cluster_size
@@ -560,8 +560,8 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
-		    || (mem = sw_mmap(NULL, PROT_WRITE,
-				      MAP_SHARED, fd)) == MAP_FAILED)
+		    || (mem = (char *)sw_mmap(NULL, PROT_WRITE,
+					      MAP_SHARED, fd)) == MAP_FAILED)
 			break;
 
 		dcnt = MIN(stat.cluster_size
@@ -668,7 +668,7 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 /* Unmaps a previously mapped part of a file. Like munmap(2). */
 int sw_munmap(void *start)
 {
-	return cluster_munmap(start);
+	return cluster_munmap((char *)start);
 }
 
 

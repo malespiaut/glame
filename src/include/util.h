@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.10 2000/10/09 08:37:59 richi Exp $
+ * $Id: util.h,v 1.11 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -33,8 +33,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifndef	HAVE_GCC
-#define __PRETTY_FUNCTION__	"Unknown location" 
+#if !defined HAVE_GCC || defined __cplusplus
+#define __PRETTY_FUNCTION__ __FILE__ 
 #define __attribute__(x)
 #endif
 

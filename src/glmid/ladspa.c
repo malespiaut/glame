@@ -46,7 +46,7 @@ static int ladspa_f(filter_node_t * n)
   const LADSPA_Descriptor * psDescriptor;
   LADSPA_PortDescriptor iPortDescriptor;
 
-  psDescriptor = (const LADSPA_Descriptor *)(n->filter->private);
+  psDescriptor = (const LADSPA_Descriptor *)(n->filter->priv);
   lPortCount = psDescriptor->PortCount;
   if (!lPortCount)
     FILTER_ERROR_RETURN("a LADSPA plugin has no ports");
@@ -98,10 +98,10 @@ static int ladspa_f(filter_node_t * n)
      in pfControlValues, but never both. This means that some entries
      will never be used. */
   if (iNTo1_NR > 0)
-    psNTo1_State = malloc(sizeof(nto1_state_t) * iNTo1_NR);
-  ppsAudioPorts = malloc(sizeof(filter_pipe_t *) * lPortCount);
-  pfControlValues = malloc(sizeof(LADSPA_Data) * lPortCount);
-  ppsBuffers = malloc(sizeof(filter_buffer_t *) * lPortCount);
+    psNTo1_State = (nto1_state_t *)malloc(sizeof(nto1_state_t) * iNTo1_NR);
+  ppsAudioPorts = (filter_pipe_t **)malloc(sizeof(filter_pipe_t *) * lPortCount);
+  pfControlValues = (LADSPA_Data *)malloc(sizeof(LADSPA_Data) * lPortCount);
+  ppsBuffers = (filter_buffer_t **)malloc(sizeof(filter_buffer_t *) * lPortCount);
   if ((!psNTo1_State && iNTo1_NR > 0)
       || !ppsAudioPorts
       || !pfControlValues
@@ -114,8 +114,7 @@ static int ladspa_f(filter_node_t * n)
   }
 
   /* Construct the LADSPA plugin instance itself. */
-  psLADSPAPluginInstance = psDescriptor->instantiate(psDescriptor,
-						     lSampleRate);
+  psLADSPAPluginInstance = (LADSPA_Handle *)psDescriptor->instantiate(psDescriptor, lSampleRate);
   if (!psLADSPAPluginInstance) {
     free(ppsAudioPorts);
     free(pfControlValues);
@@ -335,7 +334,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
   /* Link the LADSPA_Descriptor to the filter itself as private
      data. This allows the ladspa_f call to work out what is going
      on. */
-  psFilter->private = (void *)psDescriptor;
+  psFilter->priv = (void *)psDescriptor;
 
   bHasAudioInput = 0;
   for (lPortIndex = 0; lPortIndex < psDescriptor->PortCount; lPortIndex++) {
@@ -411,10 +410,10 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			    FILTERPARAM_END);
   }
 
-  pcBuffer = malloc(strlen(psDescriptor->Name)
-		    + strlen(psDescriptor->Maker)
-		    + strlen(psDescriptor->Copyright)
-		    + 100);
+  pcBuffer = (char *)malloc(strlen(psDescriptor->Name)
+			    + strlen(psDescriptor->Maker)
+			    + strlen(psDescriptor->Copyright)
+			    + 100);
   if (pcBuffer) {
     sprintf(pcBuffer,
 	    "LADSPA Plugin Name: %s\n"

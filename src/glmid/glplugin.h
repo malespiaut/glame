@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.10 2000/05/22 11:06:45 richi Exp $
+ * $Id: glplugin.h,v 1.11 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -31,7 +31,7 @@
 typedef struct {
 	struct list_head list;   /* linkage in plugin list/hash */
 	struct hash_head hash;
-	void *namespace;
+	void *nmspace;
 
 	const char *name;        /* plugin name */
 
@@ -69,7 +69,7 @@ void _plugin_delete(plugin_t *p);
 
 
 /* Set plugin key/value pair. */
-int plugin_set(plugin_t *p, const char *key, void *val);
+int plugin_set(plugin_t *p, const char *key, const void *val);
 
 /* Gets a information from the plugin shared object by key. Can
  * return NULL, if the information was not found or the value of the

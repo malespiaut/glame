@@ -129,7 +129,8 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 {
 	u32 target_height;
 	struct ctree *dest;
-	u32 *ccid, *csize;
+	u32 *ccid;
+	s32 *csize;
 	long i;
 
 	if (!h || !cid || !size
@@ -146,8 +147,8 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 	 * we need to copy it (could be done more efficient -
 	 * but not now). */
 	if (cid >= &CID(dest, 0) && cid < &CID(dest, dest->cnt)) {
-		ccid = alloca(sizeof(u32)*cnt);
-		csize = alloca(sizeof(s32)*cnt);
+		ccid = (u32 *)alloca(sizeof(u32)*cnt);
+		csize = (s32 *)alloca(sizeof(s32)*cnt);
 		memcpy(ccid, cid, sizeof(u32)*cnt);
 		memcpy(csize, size, sizeof(s32)*cnt);
 		cid = ccid;

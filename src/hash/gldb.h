@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.3 2000/10/03 13:38:35 richi Exp $
+ * $Id: gldb.h,v 1.4 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -67,10 +67,10 @@ typedef struct gldb_item gldb_item_t;
  * item of one database. I.e. database scope, not item
  * scope. */
 struct gldb_ops {
-	/* The delete operation should free all local
+	/* The del operation should free all local
 	 * storage associated with the item - but not
 	 * the item itself. */
-	void (*delete)(gldb_item_t *);
+	void (*del)(gldb_item_t *);
 
 	/* The copy operation should copy all local
 	 * storage associated with the source item to

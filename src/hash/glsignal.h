@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.6 2000/05/09 11:32:31 richi Exp $
+ * $Id: glsignal.h,v 1.7 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -45,10 +45,10 @@
  *   Inits an emitter.
  *
  * glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
- *	                      long sigmask, glsig_callb_t *, void *private);
+ *	                      long sigmask, glsig_callb_t *, void *priv);
  *   Adds a signal handler to the emitter using the specified sigmask
- *   and the callback handler. The private data is stored in the handlers
- *   ->private field which you should access using glsig_handler_private().
+ *   and the callback handler. The priv data is stored in the handlers
+ *   ->priv field which you should access using glsig_handler_private().
  *
  * glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
  *				         glsig_emitter_t *dest);
@@ -93,9 +93,9 @@ struct glsig_handler {
 	long sigmask;
 	glsig_callb_t *handler;
 
-	void *private;
+	void *priv;
 };
-#define glsig_handler_private(h) ((h)->private)
+#define glsig_handler_private(h) ((h)->priv)
 
 
 #define INIT_GLSIG_EMITTER(emitter) do { \
@@ -104,7 +104,7 @@ struct glsig_handler {
 
 
 glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
-		  long sigmask, glsig_callb_t *handler, void *private);
+		  long sigmask, glsig_callb_t *handler, void *priv);
 
 glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
 				      glsig_emitter_t *dest);

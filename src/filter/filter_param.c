@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.4 2000/10/03 13:38:35 richi Exp $
+ * $Id: filter_param.c,v 1.5 2000/10/09 16:24:02 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -78,7 +78,7 @@ static gldb_item_t *pdb_op_copy(gldb_item_t *source)
 	 * want the source-to-node redirector! */
 	glsig_copy_handlers(&d->emitter, &s->emitter);
 	list_foreach(&d->emitter.handlers, glsig_handler_t, list, h) {
-		if (h->private == (void *)&((filter_pdb_t *)s->entry.db)->node->emitter) {
+		if (h->priv == (void *)&((filter_pdb_t *)s->entry.db)->node->emitter) {
 			glsig_delete_handler(h);
 			break;
 		}
@@ -101,7 +101,7 @@ static int pdb_op_add(gldb_t *db, gldb_item_t *i)
 	 * is probably attached to the item - or just to
 	 * add a new "right" one. */
 	list_foreach(&p->emitter.handlers, glsig_handler_t, list, h) {
-		if (h->private == (void *)&((filter_pdb_t *)p->entry.db)->node->emitter)
+		if (h->priv == (void *)&((filter_pdb_t *)p->entry.db)->node->emitter)
 			return 0;
 	}
 	glsig_add_redirector(&p->emitter, ~0,
@@ -261,7 +261,7 @@ int filterparam_set(filter_param_t *param, const void *val)
 			return 0;
 	} else if (FILTER_PARAM_IS_STRING(param)) {
 		if (param->u.string && val
-		    && strcmp(param->u.string, val) == 0)
+		    && strcmp(param->u.string, (const char *)val) == 0)
 			return 0;
 		free(param->u.string);
 		param->u.string = val ? strdup((const char *)val) : NULL;

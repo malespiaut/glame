@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.13 2000/10/09 08:39:38 richi Exp $
+ * $Id: swapfile_test.c,v 1.14 2000/10/09 16:24:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -39,8 +39,8 @@
 
 
 /* Fix gcc-isms if we dont have gcc. */
-#ifndef HAVE_GCC
-#define __PRETTY_FUNCTION__	__FILE__
+#if !defined HAVE_GCC || defined __cplusplus 
+#define __PRETTY_FUNCTION__ __FILE__
 #endif
 
 
@@ -147,8 +147,8 @@ int write_value(swfd_t fd, off_t from, off_t size, char val)
 			BUG("Cannot seek");
 		if (sw_fstat(fd, &stat) == -1)
 			BUG("Cannot stat");
-		if (!(mem = sw_mmap(NULL, PROT_READ|PROT_WRITE,
-				    MAP_SHARED, fd)))
+		if (!(mem = (char *)sw_mmap(NULL, PROT_READ|PROT_WRITE,
+					    MAP_SHARED, fd)))
 			BUG("Cannot mmap");
 		for (i=from-stat.cluster_start;
 		     i<MIN(stat.cluster_size, to-stat.cluster_start); i++)
@@ -180,8 +180,8 @@ int check_value(swfd_t fd, off_t from, off_t size, char val)
 			BUG("Cannot seek");
 		if (sw_fstat(fd, &stat) == -1)
 			BUG("Cannot stat");
-		if (!(mem = sw_mmap(NULL, PROT_READ|PROT_WRITE,
-				    MAP_SHARED, fd)))
+		if (!(mem = (char *)sw_mmap(NULL, PROT_READ|PROT_WRITE,
+					    MAP_SHARED, fd)))
 			BUG("Cannot mmap");
 		for (i=from-stat.cluster_start;
 		     i<MIN(stat.cluster_size, to-stat.cluster_start); i++)

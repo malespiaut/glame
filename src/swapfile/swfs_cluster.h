@@ -101,12 +101,12 @@ static int cluster_checkfileref(struct swcluster *c, long file);
 
 /* Creates a memory map of the cluster c possibly at address
  * start with protection and flags like mmap(2). */
-static void *cluster_mmap(struct swcluster *c,void *start,
+static char *cluster_mmap(struct swcluster *c,void *start,
 			  int prot, int flags);
 
 /* Unmaps a previously mmapped cluster. Returns 0 on success
  * and -1 on error (invalid supplied address) */
-static int cluster_munmap(void *start);
+static int cluster_munmap(char *start);
 
 
 /* Splits the cluster c at position offset storing the head inside

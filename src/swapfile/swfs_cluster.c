@@ -216,7 +216,7 @@ static void cluster_addfileref(struct swcluster *c, long file)
 		_cluster_readfiles(c);
 
 	/* Re-alloc the files array. - FIXME: inefficient */
-	if (!(c->files = realloc(c->files, (c->files_cnt+1)*sizeof(long))))
+	if (!(c->files = (long *)realloc(c->files, (c->files_cnt+1)*sizeof(long))))
 		PANIC("cannot realloc files array");
 
 	/* Append the file, fix the files count and mark it dirty. */
@@ -281,7 +281,7 @@ static int cluster_checkfileref(struct swcluster *c, long file)
 	return -1;
 }
 
-static void *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
+static char *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
 {
 	/* Need to create the file? Also truncate to the right size. */
 	if (c->flags & SWC_CREAT)
@@ -290,10 +290,10 @@ static void *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
 	if (c->fd == -1)
 		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
 			PANIC("Cluster vanished under us?");
-	return pmap_map(start, c->size, prot, flags, c->fd, 0);
+	return (char *)pmap_map(start, c->size, prot, flags, c->fd, 0);
 }
 
-static int cluster_munmap(void *start)
+static int cluster_munmap(char *start)
 {
 	if (pmap_unmap(start) == -1) {
 		DPRINTF("Unable to unmap %p\n", start);

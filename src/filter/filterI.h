@@ -14,7 +14,7 @@ struct filter_buffer {
 struct filter_portdesc {
 	struct list_head list;
 	struct hash_head hash;
-	void *namespace;
+	void *nmspace;
 
 	const char *label;
 	int type;
@@ -24,13 +24,13 @@ struct filter_portdesc {
         filter_t *filter;
 	filter_pdb_t params;
 
-	void *private;
+	void *priv;
 };
 /* port description hash/list addition/removal to filters qualified
  * by input/output port hash/list (removal is unqualified).
  */
-#define hash_add_inputdesc(d, f) do { (d)->namespace = &(f)->inputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->inputs)); } while (0)
-#define hash_add_outputdesc(d, f) do { (d)->namespace = &(f)->outputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->outputs)); } while (0)
+#define hash_add_inputdesc(d, f) do { (d)->nmspace = &(f)->inputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->inputs)); } while (0)
+#define hash_add_outputdesc(d, f) do { (d)->nmspace = &(f)->outputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->outputs)); } while (0)
 #define list_add_inputdesc(d, f) list_add(&(d)->list, &(f)->inputs)
 #define list_add_outputdesc(d, f) list_add(&(d)->list, &(f)->outputs)
 #define hash_remove_portdesc(d) _hash_remove(&(d)->hash)
@@ -42,7 +42,7 @@ struct filter_pipe {
 	struct list_head input_list, output_list;
 	struct hash_head input_hash, output_hash;
 	const char *in_name, *out_name;
-	void *in_namespace, *out_namespace;
+	void *in_nmspace, *out_nmspace;
 
 	/* source and destination of the pipe, filter node
 	 * and outputs[]/inputs[] index */
@@ -87,13 +87,13 @@ struct filter_pipe {
 /* filter pipe hash/list addition/removal to filter nodes qualified by
  * input/output connection.
  */
-#define hash_add_input(p, node) do { (p)->in_namespace = &(node)->inputs; \
+#define hash_add_input(p, node) do { (p)->in_nmspace = &(node)->inputs; \
         _hash_add(&(p)->input_hash, _hash((p)->in_name, &(node)->inputs)); } \
         while (0)
 #define list_add_input(p, node) list_add(&(p)->input_list, &(node)->inputs)
 #define hash_remove_input(p) _hash_remove(&(p)->input_hash)
 #define list_remove_input(p) list_del(&(p)->input_list)
-#define hash_add_output(p, node) do { (p)->out_namespace = &(node)->outputs; \
+#define hash_add_output(p, node) do { (p)->out_nmspace = &(node)->outputs; \
         _hash_add(&(p)->output_hash, _hash((p)->out_name, &(node)->outputs)); \
         } while (0)
 #define list_add_output(p, node) list_add(&(p)->output_list, &(node)->outputs)
@@ -148,7 +148,7 @@ struct filter_node {
 	 * together with a private pointer that can be filled
 	 * in using the filters init() method. */
 	filter_t *filter;
-	void *private;
+	void *priv;
 
 	/* public state & error string */
 	int glerrno;
@@ -203,8 +203,8 @@ struct filter_network_mapping {
 	const char *label;
 	const char *node;
 };
-#define filterdesc_map_label(d) (((struct filter_network_mapping *)(d)->private)->label)
-#define filterdesc_map_node(d) (((struct filter_network_mapping *)(d)->private)->node)
+#define filterdesc_map_label(d) (((struct filter_network_mapping *)(d)->priv)->label)
+#define filterdesc_map_node(d) (((struct filter_network_mapping *)(d)->priv)->node)
 
 
 struct filter_network {

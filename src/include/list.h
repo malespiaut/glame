@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.13 2000/09/25 08:57:17 richi Exp $
+ * $Id: list.h,v 1.14 2000/10/09 16:24:03 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -65,14 +65,14 @@ struct list_head {
  * This is only for internal list manipulation where we know
  * the prev/next entries already!
  */
-static inline void __list_add(struct list_head * new,
+static inline void __list_add(struct list_head * newel,
 	struct list_head * prev,
 	struct list_head * next)
 {
-	next->prev = new;
-	new->next = next;
-	new->prev = prev;
-	prev->next = new;
+	next->prev = newel;
+	newel->next = next;
+	newel->prev = prev;
+	prev->next = newel;
 }
 
 /*
