@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.24 2002/04/13 12:08:16 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.25 2002/04/23 12:18:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -563,6 +563,7 @@ struct network_notificator {
 	guint timeout_handler_id;
 	glsig_handler_t *delete_handler;
 	filter_t *net;
+	int wbufsize;
 };
 
 static void network_notificator_delete(glsig_handler_t *handler, long sig,
@@ -615,8 +616,16 @@ glsig_emitter_t *glame_network_notificator_creat(filter_t *net)
 	n = ALLOC(struct network_notificator);
 	INIT_GLSIG_EMITTER(&n->emitter);
 	n->net = net;
+	n->wbufsize = _GLAME_WBUFSIZE;
 
 	return &n->emitter;
+}
+
+void glame_network_notificator_set_wbufsize(glsig_emitter_t *emitter,
+					    int wbufsize)
+{
+	struct network_notificator *n = (struct network_notificator *)emitter;
+	n->wbufsize = wbufsize;
 }
 
 int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout)
@@ -624,7 +633,7 @@ int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout)
 	struct network_notificator *n = (struct network_notificator *)emitter;
 	/* First launch & start the network. Cleanup in case of
 	 * errors. */
-	if (filter_launch(n->net, _GLAME_WBUFSIZE) == -1
+	if (filter_launch(n->net, n->wbufsize) == -1
 	    || filter_start(n->net) == -1) {
 		free(n);
 		return -1;

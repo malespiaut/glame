@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.12 2002/04/13 12:08:16 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.13 2002/04/23 12:18:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -116,6 +116,11 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 #define GLSIG_NETWORK_DONE 1
 #define GLSIG_NETWORK_TICK 2
 glsig_emitter_t *glame_network_notificator_creat(filter_t *net);
+
+/* Sets the wbufsize for running the network. Defaults to preference
+ * configured bufsize. */
+void glame_network_notificator_set_wbufsize(glsig_emitter_t *emitter,
+                                            int wbufsize);
 
 /* Runs (launches the network and starts the polling timeout handler)
  * a previously created (glame_network_notificator_creat) notificator.
