@@ -1,4 +1,14 @@
 /*
+	<glame_audiofile.h>
+	$Id: glame_audiofile.h,v 1.6 2001/11/11 17:25:41 nold Exp $
+
+	This file is (mostly) a copy of audiofile.h from the audiofile
+	distribution, containing the public interfaces to the Audio File
+	Library.  We use it to provide a minimalist libaudiofile to the rest of
+	GLAME unless the full-featured library is installed.
+*/
+
+/*
 	Audio File Library
 	Copyright (C) 1998-2000, Michael Pruett <michael@68k.org>
 
@@ -18,15 +28,16 @@
 	Boston, MA  02111-1307  USA.
 */
 
-/*
-	audiofile.h
-
-	This file contains the public interfaces to the Audio File Library.
-*/
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+
+/* glame helper functions */
+/* FIXME: WTF is this function located in the audiofile wrapper??
+ * Consider moving to glame_pet_functions.[hc]. [dk]
+ */
+
+int glame_get_filetype_by_name(char*);
 
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
@@ -596,10 +607,5 @@ int afSeekMisc (AFfilehandle, int miscellaneousid, int offset);
 }
 #endif /* __cplusplus */
 
-#endif /* HAVE_AUDIOFILE */
-
-/* glame helper functions */
-
-int glame_get_filetype_by_name(char*);
-
 #endif /* AUDIOFILE_H */
+#endif /* !HAVE_AUDIOFILE */
