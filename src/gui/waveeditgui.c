@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.135 2003/04/15 19:00:25 richi Exp $
+ * $Id: waveeditgui.c,v 1.136 2003/04/15 20:11:10 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -1033,29 +1033,18 @@ static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 }
 
 /* Button press event. */
-static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
+static gint waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 			    gpointer user_data) 
 {
 	GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
 	GtkWidget *menu;
   
 	if (event->button != 3 || active_waveedit->locked)
-		return;
+		return FALSE;
 
 	menu = waveedit_build_menu(waveview);
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview,GTK_WIDGET(waveview));
-}
-
-/* Button press event. */
-static void waveedit_rmb_cb2(GtkWidget *widget, GtkWaveView *waveview)
-{
-	GtkWidget *menu;
-  
-	if (active_waveedit->locked)
-		return;
-
-	menu = waveedit_build_menu(waveview);
-	gnome_popup_menu_do_popup(menu, NULL, NULL, NULL, waveview,GTK_WIDGET(waveview));
+	return FALSE;
 }
 
 static void handle_enter(GtkWidget *tree, GdkEventCrossing *event,
@@ -1502,13 +1491,6 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				 GTK_STOCK_GO_FORWARD,
 				 _("Play/Record"), _("Play/Record"),
 				 playrecordtoolbar_cb, window->waveview, -1);
-#if 0
-	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Menu"), _("Menu"), _("Menu"),
-				glame_load_icon_widget("dots.png",24,24),
-				waveedit_rmb_cb2, window->waveview);
-#endif
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),

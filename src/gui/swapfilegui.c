@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.91 2003/04/15 19:36:55 richi Exp $
+ * $Id: swapfilegui.c,v 1.92 2003/04/15 20:11:13 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -59,8 +59,8 @@ static SwapfileGui *active_swapfilegui = NULL;
 
 
 /* Forward declarations. */
-static int click_cb(GtkWidget *item, GdkEventButton *event,
-		    gpointer data);
+static gint click_cb(GtkWidget *item, GdkEventButton *event,
+		     gpointer data);
 static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -216,8 +216,8 @@ static int choose_ops(plugin_t *plugin)
 	return 1;
 }
 
-static int click_cb(GtkWidget *item, GdkEventButton *event,
-		    gpointer data)
+static gint click_cb(GtkWidget *item, GdkEventButton *event,
+		     gpointer data)
 {
 	GlameTreeItem *i = GLAME_TREE_ITEM(item);
 	GtkWidget *menu, *op_menu;
@@ -254,7 +254,7 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_IMPORT_INDEX].widget,
 					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) || gpsm_grp_is_hbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
         } else
-		return TRUE;
+		return FALSE;
 
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i,NULL);
 	return TRUE;
@@ -704,7 +704,7 @@ static void group_property_cb(GtkMenu *menu, GlameTreeItem *item)
  * FIXME: better grab/release the pointer
  */
 extern GtkWidget *glame_appbar;
-static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
+static gint drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			       GlameTreeItem *item)
 {
 	static GlameTreeItem *drag_widget = NULL;
@@ -718,7 +718,7 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 
 	if (event->type == GDK_BUTTON_PRESS) {
 		if (bevent->button != 1)
-			return;
+			return FALSE;
 
 		/* drag&drop start */
 		drag_widget = NULL;
@@ -737,17 +737,17 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
 					  _("Drop into vbox"));
 		} else {
-			return; /* modifier not valid */
+			return FALSE; /* modifier not valid */
 		}
 		drag_widget = item;
 
 	} else if (event->type == GDK_BUTTON_RELEASE) {
 		if (bevent->button != 1)
-			return;
+			return FALSE;
 
 		/* drag&drop end */
 		if (!drag_widget)
-			return; /* spurious event - ignore */
+			return FALSE; /* spurious event - ignore */
 		gnome_appbar_pop(GNOME_APPBAR(glame_appbar));
 		if (cursor) {
 			cursor_type = -1;
@@ -756,7 +756,7 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			cursor = NULL;
 		}
 		if (drag_widget == item)
-			return; /* nop */
+			return TRUE; /* nop */
 
 		source = drag_widget->item;
 		dest = item->item;
@@ -814,7 +814,7 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			mode = -1;
 		}
 		if (!drag_widget)
-			return;
+			return FALSE;
 
 		if (GPSM_ITEM_IS_GRP(item->item)
 		    && !drop_replace)
@@ -826,7 +826,7 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			ok = 0;
 
 		if (cursor_type == ok)
-			return;
+			return FALSE;
 
 		cursor_type = ok;
 		if (ok) {
@@ -845,6 +845,7 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			cursor = c;
 		}
 	}
+	return FALSE;
 }
 
 
@@ -986,11 +987,12 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 	}
 }
 
-static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
+static gint handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
 			      SwapfileGui *swapfile)
 {
 	if (event->type == GDK_ENTER_NOTIFY)
 		active_swapfilegui = swapfile;
+	return FALSE;
 }
 
 
