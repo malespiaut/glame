@@ -204,13 +204,54 @@ static GtkWaveView *actual_waveview;
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
+	long *names, nrtracks;
+	filter_t *net, *effect;
+	int rate, i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
+	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
-	DPRINTF("FIXME: apply %s\n", plugin_name(plugin));
+	/* Create one instance of the effect and query the parameters. */
+	effect = filter_instantiate(plugin);
+	glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
+
+	/* Create the network, add nrtracks instances of swapfile_in -
+	 * effect - swapfile_out. */
+	net = filter_creat(NULL);
+	for (i=0; i<nrtracks; i++) {
+		filter_t *swin, *eff, *swout;
+		int swname = names[i];
+		swin = filter_instantiate(plugin_get("swapfile_in"));
+		eff = filter_creat(effect);
+		swout = filter_instantiate(plugin_get("swapfile_out"));
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
+		filter_add_node(net, swin, "swin");
+		filter_add_node(net, eff, "eff");
+		filter_add_node(net, swout, "swout");
+		filterport_connect(filterportdb_get_port(filter_portdb(eff), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
+	}
+
+	/* Run the network and cleanup after it. */
+	filter_launch(net);
+	filter_start(net);
+	filter_wait(net);
+	filter_delete(net);
+	filter_delete(effect);
+	gtk_editable_wave_buffer_queue_modified (editable, start, length);
 }
 
 

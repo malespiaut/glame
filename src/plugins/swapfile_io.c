@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.6 2001/03/16 09:57:31 richi Exp $
+ * $Id: swapfile_io.c,v 1.7 2001/03/19 13:07:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -207,7 +207,7 @@ static int swapfile_out_f(filter_t *n)
 	} else {
 		if (!(fd = sw_open(fname, O_RDWR, TXN_NONE)))
 			FILTER_ERROR_RETURN("cannot open file");
-		if (sw_lseek(fd, offset*SAMPLE_SIZE, SEEK_SET) != offset) {
+		if (sw_lseek(fd, offset*SAMPLE_SIZE, SEEK_SET) != offset*SAMPLE_SIZE) {
 			FILTER_ERROR_RETURN("cannot seek to offset");
 			sw_close(fd);
 		}
