@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.56 2001/04/18 11:05:28 xwolf Exp $
+ * $Id: canvas.c,v 1.57 2001/04/18 13:40:47 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -74,6 +74,9 @@ void canvas_load_network(GtkWidget *bla, void *blu);
 static void canvas_save_as(GtkWidget*w,GlameCanvas *data);
 static void canvas_load_scheme(GtkWidget*bla,void*blu);
 static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu);
+static void canvas_zoom_in_cb(GtkWidget*bla, GlameCanvas* canv);
+static void canvas_zoom_out_cb(GtkWidget*bla, GlameCanvas* canv);
+static void canvas_update_scroll_region_cb(GtkWidget*bla, GlameCanvas* canv);
 
 guint nPopupTimeout = 200;
 static guint nPopupTimeoutId;
@@ -114,11 +117,23 @@ static GnomeUIInfo file_menu[]=
 
 GnomeUIInfo *node_select_menu;
 
+static GnomeUIInfo view_menu[]=
+{
+	GNOMEUIINFO_ITEM("Zoom in","Zooms in",canvas_zoom_in_cb,NULL),
+	GNOMEUIINFO_ITEM("Zoom out","Zooms out",canvas_zoom_out_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("View all","Updates scroll region",canvas_update_scroll_region_cb,NULL),
+	GNOMEUIINFO_END
+};
+
+	
 static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Play...","Plays the active network",network_play,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_SUBTREE("View...",view_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Load plugin...","Loads scm source file",canvas_load_scheme,NULL),
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
@@ -168,6 +183,7 @@ static void canvas_connection_edit_dest_properties_cb(GtkWidget* bla, GlameConne
 static void 
 canvas_item_show_properties(GnomeCanvasItem * item)
 {
+	char fontbuffer[256];
 	GnomeCanvasItem * text;
 	filter_param_t * iter;
 	GlameCanvasItem* gitem = GLAME_CANVAS_ITEM(item->parent);
@@ -183,7 +199,7 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 		return;
 	}
 		
-
+	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(item->canvas)->pixels_per_unit*12.0));
 	filterparamdb_foreach_param(filter_paramdb(GLAME_CANVAS_ITEM(item->parent)->filter),iter){
 		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
 		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
@@ -196,7 +212,7 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 					     "fill_color","black",
 					     "anchor",GTK_ANCHOR_WEST,
 					     "justification",GTK_JUSTIFY_LEFT, 
-					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					     "font", fontbuffer,
 					     "clip",0,
 					     NULL);
 		y_coord+=16.0;
@@ -216,7 +232,7 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 					     "fill_color","red",
 					     "anchor",GTK_ANCHOR_WEST,
 					     "justification",GTK_JUSTIFY_LEFT, 
-					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					     "font", fontbuffer,
 					     "clip",0,
 					     NULL);
 		GLAME_CANVAS_ITEM(item->parent)->property_texts = g_list_append(GLAME_CANVAS_ITEM(item->parent)->property_texts,text);
@@ -230,7 +246,7 @@ static void
 show_port_properties(GlameCanvasPort * item)
 {
 	GnomeCanvasItem * text;
-	
+	char fontbuffer[256];	
 	float y_coord=100.0;
 	char buffer[100];
 	int inOut;
@@ -244,7 +260,7 @@ show_port_properties(GlameCanvasPort * item)
 
 	inOut = (item->port_type&GUI_PORT_TYPE_IN)?1:0;
 	
-
+	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas)->pixels_per_unit*12.0));
 	sprintf(buffer,"Name: %s",filterport_label(item->port));
 	text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent),
 				     gnome_canvas_text_get_type(),
@@ -256,7 +272,7 @@ show_port_properties(GlameCanvasPort * item)
 				     "fill_color","blue",
 				     "anchor",(inOut?GTK_ANCHOR_EAST:GTK_ANCHOR_WEST),
 				     "justification",(inOut?GTK_JUSTIFY_RIGHT:GTK_JUSTIFY_LEFT), 
-				     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+				     "font", fontbuffer,
 				     "clip",0,
 				     NULL);
 	y_coord+=16.0;
@@ -275,7 +291,7 @@ show_port_properties(GlameCanvasPort * item)
 					     "fill_color","black",
 					     "anchor",(inOut?GTK_ANCHOR_EAST:GTK_ANCHOR_WEST),
 					     "justification",(inOut?GTK_JUSTIFY_RIGHT:GTK_JUSTIFY_LEFT), 
-					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					     "font", fontbuffer,
 					     "clip",0,
 					     NULL);
 		y_coord+=16.0;
@@ -767,10 +783,19 @@ canvas_output_port_motion(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	GlameCanvasItem *item=GLAME_CANVAS_ITEM(pitem);
 	GnomeCanvasItem *released;
 	GlameCanvasPort *port;
-
+	double xs,ys;
 	double x,y;
-	//gnome_canvas_window_to_world(pitem->canvas,event->button.x,event->button.y,&x,&y);
-	gnome_canvas_c2w(pitem->canvas,event->button.x,event->button.y,&x,&y);
+	int bx,by;
+	
+		//gnome_canvas_window_to_world(pitem->canvas,event->button.x,event->button.y,&x,&y);
+	bx = event->button.x*pitem->canvas->pixels_per_unit;
+	by = event->button.y*pitem->canvas->pixels_per_unit;
+	
+	gnome_canvas_c2w(pitem->canvas,bx,by,&x,&y);
+	xs = pitem->canvas->scroll_x1;
+	ys = pitem->canvas->scroll_y1;
+	x-=xs;
+	y-=ys;
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		if(event->motion.state & GDK_BUTTON1_MASK){
@@ -922,16 +947,31 @@ canvas_connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 {
 	double x,y,x1,y1,x2,y2;
+	double xs,ys;
+	int bx,by;
 	GnomeCanvasItem *newitem;
 	GtkWidget * menu;
 	GlameCanvasItem *parent = GLAME_CANVAS_ITEM(item->parent);
 	GdkCursor *fleur;
 	GlameConnection *newconn;
-	gnome_canvas_c2w(item->canvas,event->button.x,event->button.y,&x,&y);
-	x1=item->x1;
-	x2=item->x2;
-	y1=item->y1;
-	y2=item->y2;
+
+	bx = event->button.x*item->canvas->pixels_per_unit;
+	by = event->button.y*item->canvas->pixels_per_unit;
+	
+	gnome_canvas_c2w(item->canvas,bx,by,&x,&y);
+	
+	xs = item->canvas->scroll_x1;
+	ys = item->canvas->scroll_y1;
+	x-=xs;
+	y-=ys;
+	x1=item->x1/item->canvas->pixels_per_unit;
+	x2=item->x2/item->canvas->pixels_per_unit;
+	y1=item->y1/item->canvas->pixels_per_unit;
+	y2=item->y2/item->canvas->pixels_per_unit;
+	x1+=xs;
+	y1+=ys;
+	x2+=xs;
+	y2+=ys;
 	
 	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(parent),&x1,&y1);
 	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(parent),&x2,&y2);	
@@ -1317,7 +1357,41 @@ static void canvas_save_as(GtkWidget*w,GlameCanvas *glCanv)
 
 static void register_filternetwork_cb(GtkWidget*bla, GlameCanvas* glCanv)
 {
+	
 	gnome_request_dialog(0,"Filtername","filter",16,(GnomeStringCallback)canvas_register_as_cb,glCanv,NULL);
+}
+
+static void
+canvas_zoom_out_cb(GtkWidget *bla, GlameCanvas*canv)
+{
+	filter_t *filter;
+	char fontbuffer[256];
+
+	gnome_canvas_set_pixels_per_unit(GNOME_CANVAS(canv),GNOME_CANVAS(canv)->pixels_per_unit/2.0);
+	gnome_canvas_update_now(GNOME_CANVAS(canv));
+	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
+	filter_foreach_node(canv->net->net,filter){
+		gnome_canvas_item_set(GLAME_CANVAS_ITEM(filter->gui_priv)->text,"font",fontbuffer,NULL);
+	}
+}
+
+static void
+canvas_zoom_in_cb(GtkWidget *bla, GlameCanvas*canv)
+{
+	filter_t *filter;
+	char fontbuffer[256];
+	gnome_canvas_set_pixels_per_unit(GNOME_CANVAS(canv),GNOME_CANVAS(canv)->pixels_per_unit*2.0);
+	gnome_canvas_update_now(GNOME_CANVAS(canv));
+	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
+	filter_foreach_node(canv->net->net,filter){
+		gnome_canvas_item_set(GNOME_CANVAS_ITEM(GLAME_CANVAS_ITEM(filter->gui_priv)->text),"font",fontbuffer,NULL);
+	}
+}
+
+static void
+canvas_update_scroll_region_cb(GtkWidget*bla, GlameCanvas* canv)
+{
+	canvas_update_scroll_region(canv);
 }
 
 /**************************************
@@ -1335,7 +1409,7 @@ canvas_update_scroll_region(GlameCanvas* canv)
 	filter_t *filter;
 	double minX,minY,maxX,maxY;
 	double x1,x2,y1,y2;
-
+	
 	minX=minY=99999.0;
 	maxX=maxY=-99999.0;
 
@@ -1356,9 +1430,15 @@ canvas_update_scroll_region(GlameCanvas* canv)
 	y1=(y1>minY)?minY:y1;
 	x2=(x2<maxX)?maxX:x2;
 	y2=(y2<maxY)?maxY:y2;
+	
 //	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),x1,y1,x2,y2);
 	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),minX,minY,maxX,maxY);
 	gnome_canvas_update_now(GNOME_CANVAS(canv));
+	filter_foreach_node(canv->net->net,filter){
+		// FIXME gnomebug?
+		gnome_canvas_item_move(GNOME_CANVAS_ITEM(filter->gui_priv),0.0,0.0);
+		gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(filter->gui_priv));
+	}
 
 }
 
@@ -1384,8 +1464,8 @@ void canvas_load_network(GtkWidget *bla, void *blu)
 			draw_network(filter);
 		}else{
 			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error in loading .scm file")));
-		}
-
+		} 
+ 
 	}
 	free(filenamebuffer);
 }

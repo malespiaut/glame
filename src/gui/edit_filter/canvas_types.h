@@ -1,7 +1,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.4 2001/04/17 17:23:38 xwolf Exp $
+ * $Id: canvas_types.h,v 1.5 2001/04/18 13:40:47 xwolf Exp $
  *
  * Copyright (C) 2000, 2001 Johannes Hirche
  *
@@ -31,6 +31,7 @@ typedef struct _gui_network gui_network;
 struct _GlameConnection;
 typedef struct _GlameConnection GlameConnection;
 
+#define CANVAS_FONT_STRING "-adobe-helvetica-medium-r-normal-*-%d-120-*-*-p-*-iso8859-1"
 
 /* Glame canvas - a filternetwork */
 
@@ -110,6 +111,7 @@ struct _GlameCanvasItem {
 
 	double last_x,last_y;
 	GnomeCanvasItem * nameBox;
+	GnomeCanvasItem * text;
 
 	gboolean dragging;
 	gboolean connecting;

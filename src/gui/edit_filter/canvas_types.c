@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.18 2001/04/17 17:23:38 xwolf Exp $
+ * $Id: canvas_types.c,v 1.19 2001/04/18 13:40:47 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -26,6 +26,7 @@
 #include "glmid.h"
 #include "canvas.h"
 #include "/usr/X11R6/include/X11/bitmaps/hlines3"
+
 
 static gpointer parent_class = NULL;
 static gpointer canvas_parent_class = NULL;
@@ -273,10 +274,11 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	char*filepath;
 
 	char*namebuffer;
+	char fontbuffer[250];
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
-
+	
 	
 
 	item->last_x = item->last_y = 0.0;
@@ -324,8 +326,8 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "fill_color","black",
 			      "width_units",1.0,
 			      NULL);
-
-	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
+	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS_ITEM(group)->canvas->pixels_per_unit*12.0));
+	item->text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_text_get_type(),
 			      "x",48.0,
 			      "y",67.0,
@@ -334,7 +336,8 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "fill_color","black",
 			      "anchor",GTK_ANCHOR_NORTH,
 			      "justification",GTK_JUSTIFY_CENTER,
-			      "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					   //"font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					   "font",fontbuffer,
 			      "clip",0,
 			      "text",filter_name(gfilter),
 			      NULL);
