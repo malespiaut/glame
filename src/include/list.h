@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.6 2000/02/15 18:41:25 richi Exp $
+ * $Id: list.h,v 1.7 2000/02/16 12:36:43 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,6 +30,8 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+
+#include "util.h"
 
 /*
  * Simple doubly linked list implementation.
@@ -75,6 +77,8 @@ static inline void __list_add(struct list_head * new,
  */
 static inline void list_add(struct list_head *new, struct list_head *head)
 {
+        if (!(new->next == new))
+	       DERROR("Adding already added list item");
 	__list_add(new, head, head->next);
 }
 
@@ -83,6 +87,8 @@ static inline void list_add(struct list_head *new, struct list_head *head)
  */
 static inline void list_add_tail(struct list_head *new, struct list_head *head)
 {
+        if (!(new->next == new))
+	       DERROR("Adding already added list item");
 	__list_add(new, head->prev, head);
 }
 
@@ -102,7 +108,12 @@ static inline void __list_del(struct list_head * prev,
 
 static inline void list_del(struct list_head *entry)
 {
+        if (entry->next == entry)
+	       DERROR("Removing already removed list item");
 	__list_del(entry->prev, entry->next);
+#ifdef DEBUG
+	INIT_LIST_HEAD(entry);
+#endif
 }
 
 static inline int list_empty(struct list_head *head)

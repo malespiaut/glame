@@ -183,6 +183,8 @@ struct hash_head *_hash_find(const char *name, const void *namespace,
 
 inline void __hash_add(struct hash_head *entry, struct hash_head **loc)
 {
+        if (_is_hashed(entry))
+	        DERROR("Adding already added hash entry");
 	if ((entry->next_hash = *loc) != NULL)
 		(*loc)->pprev_hash = &entry->next_hash;
 	*loc = entry;
@@ -197,6 +199,8 @@ void _hash_add(struct hash_head *entry, struct hash_head **loc)
 
 inline void __hash_remove(struct hash_head *entry)
 {
+        if (!_is_hashed(entry))
+                DERROR("Removing already removed hash entry");
 	if (entry->pprev_hash) {
 		if (entry->next_hash)
 			entry->next_hash->pprev_hash = entry->pprev_hash;
