@@ -9,11 +9,13 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	iir.c flanger.c distortion.c\
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c \
 	audio_io_irix.c \
+	fader.c builtins.c stretch.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
-	fader.c builtins.c stretch.c
+	write_mp3.scm
 
 # macro filters
-pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
+pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm \
+	write_mp3.scm
 
 # builtin filters
 noinst_LTLIBRARIES = libglamebuiltins.la
