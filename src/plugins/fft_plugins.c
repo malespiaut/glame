@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.18 2002/03/24 23:12:29 richi Exp $
+ * $Id: fft_plugins.c,v 1.19 2002/05/25 15:08:03 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -214,7 +214,7 @@ static int fft_f(filter_t *n)
 	if (!(win=hanning(bsize)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 
-	init_in_queue(&queue, in, n);
+	in_queue_init(&queue, in, n);
 	
 	FILTER_AFTER_INIT;
 	
@@ -407,7 +407,7 @@ static int ifft_f(filter_t *n)
 	for (j=0; j < bsize; j++)
 		win[j] *= gain;
 	
-	init_out_queue(&queue, out, n);
+	out_queue_init(&queue, out, n);
 
 	FILTER_AFTER_INIT;
 

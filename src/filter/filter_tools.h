@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.33 2002/02/18 21:33:15 mag Exp $
+ * $Id: filter_tools.h,v 1.34 2002/05/25 15:08:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -34,8 +34,11 @@
 #define DB2GAIN(dbgain) (pow(10.0,dbgain/20.0))
 #define GAIN2DB(gain) (log10(gain)*20.0)
 
+
 /* Add your favorite generic tools for filter programming here.
  */
+
+
 
 /* this defines a buffer queue, that allows to advance within a stream
  * by an arbitrary number of samples
@@ -44,8 +47,6 @@
  */
 
 /* the input queue */
-typedef struct in_queue in_queue_t;
-
 struct in_queue {
 	struct glame_list_head	list;
 	filter_t		*n;
@@ -53,10 +54,9 @@ struct in_queue {
 	int			off;
 	int			done;
 };
+typedef struct in_queue in_queue_t;
 
 /* the output queue */
-typedef struct out_queue out_queue_t;
-
 struct out_queue {
 	struct glame_list_head	list;
 	filter_t		*n;
@@ -64,24 +64,24 @@ struct out_queue {
 	int			off;
 	int			done;
 };
+typedef struct out_queue out_queue_t;
 
-#define queue_get_next(q, qe) glame_list_getnext(&(q->list), qe, struct queue_entry, list)
-#define queue_get_head(q) glame_list_gethead(&(q->list), struct queue_entry, list)
-
-typedef struct queue_entry queue_entry_t;
 struct queue_entry {
 	struct glame_list_head list;
 	filter_buffer_t *fb;
 };
+typedef struct queue_entry queue_entry_t;
 
-/**********************/
-/* in queue functions */
-/**********************/
+#define queue_get_next(q, qe) glame_list_getnext(&((q)->list), qe, struct queue_entry, list)
+#define queue_get_head(q) glame_list_gethead(&((q)->list), struct queue_entry, list)
 
-/* initialize input queue 
- * with input pipe */
 
-static inline void init_in_queue(in_queue_t* q, filter_pipe_t *p, filter_t *n) 
+/*
+ * in queue functions
+ */
+
+/* initialize input queue with input pipe */
+static inline void in_queue_init(in_queue_t* q, filter_pipe_t *p, filter_t *n) 
 {
 	GLAME_INIT_LIST_HEAD(&(q->list));
 	q->p = p;
@@ -97,7 +97,6 @@ static inline void in_queue_delete(queue_entry_t *qe)
 	free(qe);
 }
 
-
 static inline queue_entry_t *in_queue_add_tail(in_queue_t *q, filter_buffer_t *fb)
 {
 	struct queue_entry *qe;
@@ -111,8 +110,6 @@ static inline queue_entry_t *in_queue_add_tail(in_queue_t *q, filter_buffer_t *f
 	return qe;
 }
 
-
-
 static inline void in_queue_drain(in_queue_t *q)
 {
 	queue_entry_t *qe;
@@ -121,13 +118,13 @@ static inline void in_queue_drain(in_queue_t *q)
 	q->off = 0;
 }
 
-static inline int in_queue_shift(in_queue_t *q, int off) {
+static inline int in_queue_shift(in_queue_t *q, int off)
+{
 	struct queue_entry *qe, *oldqe;
-	filter_buffer_t		*buf;
+	filter_buffer_t	*buf;
 
-	if (q->done) {
+	if (q->done)
 		return off;
-	}
 
 	qe = queue_get_head(q);
 	goto entry;
@@ -160,9 +157,8 @@ static inline int in_queue_copy(in_queue_t *q, SAMPLE *s, int cnt)
 	int off;
 	filter_buffer_t *fb;
 
-	if (q->done) {
+	if (q->done)
 		return cnt;
-	}
 	qe = queue_get_head(q);
 	off = q->off;
 	goto entry;
@@ -199,14 +195,12 @@ static inline int in_queue_copy_pad(in_queue_t *q, SAMPLE *s, int cnt)
 	return remaining;
 }
 
-/***********************/
-/* out queue functions */
-/***********************/
+/*
+ * out queue functions
+ */
 
-/* initialize output queue
- * with output pipe */
-
-static inline void init_out_queue(out_queue_t* q, filter_pipe_t *p, filter_t *n) 
+/* initialize output queue with output pipe */
+static inline void out_queue_init(out_queue_t* q, filter_pipe_t *p, filter_t *n) 
 {
 	GLAME_INIT_LIST_HEAD(&(q->list));
 	q->p = p;
@@ -234,9 +228,10 @@ static inline queue_entry_t *out_queue_add_tail(out_queue_t *q, filter_buffer_t 
 	return qe;
 }
 
-static inline int out_queue_shift(out_queue_t *q, int off) {
+static inline int out_queue_shift(out_queue_t *q, int off)
+{
 	struct queue_entry *qe, *oldqe;
-	
+
 	qe = queue_get_head(q);
 	goto entry;
 	do {
@@ -252,9 +247,9 @@ static inline int out_queue_shift(out_queue_t *q, int off) {
 		q->off = 0;
 entry:
 		if (!qe) {
-			qe = out_queue_add_tail(q, 
-						sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
-			memset((SAMPLE*)sbuf_buf(qe->fb), 0, filter_bufsize(q->n)*SAMPLE_SIZE);
+			qe = out_queue_add_tail(
+				q, sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
+			memset(sbuf_buf(qe->fb), 0, sbuf_size(qe->fb)*SAMPLE_SIZE);
 		}
 	} while (qe);
 
@@ -266,7 +261,7 @@ static inline int out_queue_add(out_queue_t *q, SAMPLE *s, int cnt)
 	queue_entry_t *qe;
 	int off, i;
 	SAMPLE *x;
-	
+
 	qe = queue_get_head(q);
 	off = q->off;
 	goto entry;
@@ -288,7 +283,7 @@ entry:
 		if (!qe) {
 			qe = out_queue_add_tail(q, 
 			sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
-			memset((SAMPLE*)sbuf_buf(qe->fb), 0, filter_bufsize(q->n)*SAMPLE_SIZE);
+			memset(sbuf_buf(qe->fb), 0, sbuf_size(qe->fb)*SAMPLE_SIZE);
 		}
 	} while (qe);
 
@@ -304,6 +299,8 @@ static inline void out_queue_drain(out_queue_t *q)
 	}
 	q->off = 0;
 }
+
+
 
 /* Support for feedback and generic fifo queues
  * inside a filter.

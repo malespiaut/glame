@@ -1,6 +1,6 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.4 2002/05/23 22:27:23 mag Exp $
+ * $Id: stretch.c,v 1.5 2002/05/25 15:08:03 richi Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  *
@@ -114,8 +114,8 @@ static int stretch_f(filter_t *n)
 	if (!(buffer=ALLOCN(bsize, SAMPLE)))
 		FILTER_ERROR_RETURN("couldn't allocate synthesis buffer");
 
-	init_in_queue(&in_queue, in, n);
-	init_out_queue(&out_queue, out, n);
+	in_queue_init(&in_queue, in, n);
+	out_queue_init(&out_queue, out, n);
 	pos = 0.0f;
 	dfak = (float)bsize/(float)osamp;
 
