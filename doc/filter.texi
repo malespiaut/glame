@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.15 2000/03/23 14:25:01 nold Exp $
+@comment $Id: filter.texi,v 1.16 2000/04/06 11:58:56 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -399,7 +399,7 @@ Here you may accept or
 reject a parameter change for the filter. Return -1 if you do not like
 anything about the setup. You have to fix the pipe parameters of all
 affected output ports. Returning -1 does not revert a parameter change. Use
-@code{filternode_set_param()} and friends to correct wrong parameter values.
+@code{filterparam_set()} to correct wrong parameter values.
 In this method you may break an existing connection
 using @code{filternetwork_break_connection()}.
 @end deftypefn
@@ -545,8 +545,8 @@ which corresponds to the parameter type (which you should know anyway or
 you can obtain from the corresponding parameter descriptor structure).
 @end deftypefun
 
-@deftypefun {char *} filterparam_to_string (filter_param_t *@var{p})
-@deftypefunx {void *} filterparamval_from_string (filter_paramdesc_t *@var{d}, const char *@var{val})
+@deftypefun {char *} filterparam_to_string (const filter_param_t *@var{p})
+@deftypefunx {void *} filterparamval_from_string (const filter_paramdesc_t *@var{d}, const char *@var{val})
 With these functions conversion between strings and parameters is supported.
 Both functions return pointers to storage you have to @code{free()} 
 on your own.
@@ -751,7 +751,7 @@ to a sane state of the network.
 @end deftypefun
 
 @tindex filter_node_t
-@deftypefun int filternode_set_param (filter_node_t *@var{n}, const char *@var{label}, void *@var{val})
+@deftypefun int filternode_set_param (filter_node_t *@var{n}, const char *@var{label}, const void *@var{val})
 @code{filternode_set_param()} sets the parameter with the specified @var{label}
 of the filter node @var{n} to the value pointed to by @var{val}. 
 The type of the value
@@ -761,12 +761,17 @@ operating on the filter of the filter node.
 set or change operation is not possible or causes any problems in the network.
 @end deftypefun
 
-@deftypefun int filterpipe_set_sourceparam (filter_pipe_t *@var{p}, const char *@var{label}, void *@var{val})
-@deftypefunx int filterpipe_set_destparam (filter_pipe_t *@var{p}, const char *@var{label}, void *@var{val})
+@deftypefun int filterpipe_set_sourceparam (filter_pipe_t *@var{p}, const char *@var{label}, const void *@var{val})
+@deftypefunx int filterpipe_set_destparam (filter_pipe_t *@var{p}, const char *@var{label}, const void *@var{val})
 With these functions you can set the per-pipe-end parameters just like you
 can set parameters using @code{filternode_set_param}. @strong{DEPRECATED}
 @end deftypefun
 
+@deftypefun void filterparam_set (filter_param_t *@var{p}, const void *@var{val})
+This function sets a previously queried parameter to the specified value. It
+should be used only inside filters, especially inside the @code{fixup_param()}
+method.
+@end deftypefun
 
 
 @node Processing Data in a Network, Using Filter Networks as Filters, Creating a Filter Network, The Filter Network API
