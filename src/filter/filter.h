@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.54 2000/05/22 10:55:04 richi Exp $
+ * $Id: filter.h,v 1.55 2000/05/26 08:50:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -455,11 +455,13 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
  */
 #define FILTER_AFTER_INIT \
 do { \
+	DPRINTF("%s seems ready for signalling\n", n->name); \
         filternode_clear_error(n); \
 	sem_op(n->net->launch_context->semid, 0, 1); \
 	sem_op(n->net->launch_context->semid, 0, 0); \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
+	DPRINTF("%s is ready now.\n", n->name); \
 } while (0)
 
 #define FILTER_ERROR_RETURN(msg) \
