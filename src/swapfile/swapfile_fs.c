@@ -656,9 +656,12 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 				file_truncate(_ofd->file, _ofd->offset);
 			file_insert(_ofd->file, _ofd->offset,
 				    _ifd->file, _ifd->offset, count);
-		} else
+		} else {
+			if (_ofd->file->clusters->size < _ofd->offset + count)
+				file_truncate(_ofd->file, _ofd->offset + count);
 			file_replace(_ofd->file, _ofd->offset,
 				     _ifd->file, _ifd->offset, count);
+		}
 		_ofd->offset = _ofd->offset + count;
 	}
 	/* Then update the input file, if necessary */
