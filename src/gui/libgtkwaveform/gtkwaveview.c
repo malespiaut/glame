@@ -152,6 +152,8 @@ gtk_wave_view_new (void)
   waveview = gtk_type_new (GTK_TYPE_WAVEFORM);
   waveview->drawing = 0;
   waveview->destroyed = 0;
+  waveview->drag_cursor = NULL;
+  waveview->normal_cursor = NULL;
 
   return GTK_WIDGET (waveview);
 }
@@ -172,11 +174,19 @@ gtk_wave_view_real_destroy (GtkObject *obj)
   if (waveview->wavebuffer != NULL)
     gtk_wave_view_set_buffer (waveview, NULL);
 
-  gdk_cursor_destroy (waveview->drag_cursor);
-  gdk_cursor_destroy (waveview->normal_cursor);
+  if (waveview->drag_cursor) {
+    gdk_cursor_destroy (waveview->drag_cursor);
+    waveview->drag_cursor = NULL;
+  }
+  if (waveview->normal_cursor) {
+    gdk_cursor_destroy (waveview->normal_cursor);
+    waveview->normal_cursor = NULL;
+  }
 
-  if (waveview->marker_gc != NULL)
+  if (waveview->marker_gc != NULL) {
     gdk_gc_unref (waveview->marker_gc);
+    waveview->marker_gc = NULL;
+  }
 
   GTK_OBJECT_CLASS (parent_class)->destroy (obj); 
 }
