@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.16 2001/12/16 17:40:15 mag Exp $
+ * $Id: flanger.c,v 1.17 2001/12/16 19:47:22 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -162,33 +162,43 @@ static int flanger_f(filter_t *n)
 	if (swpdepth > cpos)
 		swpdepth = cpos;
 
-	lfosize = rate/sweep_rate;
-	lfo = ALLOCN(lfosize, int);
-	DPRINTF("lfosize = %d cpos=%d swpdepth=%d\n", lfosize, cpos, swpdepth);
+	if (sweep_rate > 0.0) {
+		lfosize = rate/sweep_rate;
+		lfo = ALLOCN(lfosize, int);
+		DPRINTF("lfosize = %d cpos=%d swpdepth=%d\n", lfosize, cpos, swpdepth);
 
-	switch(lfotype)
-	{
-		case 0: 
-			DPRINTF("LFO: sinus");
-			for (i=0; i < lfosize; i++)
-				lfo[i] = (int)(swpdepth * sin(i*2*M_PI/lfosize));
-			break;
-		case 1:
-			DPRINTF("LFO: ramp up");
-			for (i=0; i < lfosize;i++) 
-				lfo[i] = swpdepth*i/lfosize-swpdepth;
-			break;
-		case 2:
-			DPRINTF("LFO: ramp down");
-			for (i=0; i < lfosize;i++) 
-				lfo[i] = swpdepth-swpdepth*i/lfosize;
-			break;
-		case 3: 
-			DPRINTF("LFO: fractal");
-			fbm_lfo(lfo, lfosize, swpdepth);
-			break;
-		default:
-			FILTER_ERROR_RETURN("unknown lfo type");
+		if (lfo==NULL)
+			FILTER_ERROR_RETURN("failed to alloc lfo buffer\n");
+
+		switch(lfotype)
+			{
+			case 0: 
+				DPRINTF("LFO: sinus");
+				for (i=0; i < lfosize; i++)
+					lfo[i] = (int)(swpdepth * sin(i*2*M_PI/lfosize));
+				break;
+			case 1:
+				DPRINTF("LFO: ramp up");
+				for (i=0; i < lfosize;i++) 
+					lfo[i] = swpdepth*i/lfosize-swpdepth;
+				break;
+			case 2:
+				DPRINTF("LFO: ramp down");
+				for (i=0; i < lfosize;i++) 
+					lfo[i] = swpdepth-swpdepth*i/lfosize;
+				break;
+			case 3: 
+				DPRINTF("LFO: fractal");
+				fbm_lfo(lfo, lfosize, swpdepth);
+				break;
+			default:
+				FILTER_ERROR_RETURN("unknown lfo type");
+			}
+	} else {
+		lfosize = 32;
+		lfo = ALLOCN(lfosize, int);
+		if (lfo==NULL)
+			FILTER_ERROR_RETURN("failed to alloc lfo buffer\n");
 	}
 
 	lfopos = 0;
