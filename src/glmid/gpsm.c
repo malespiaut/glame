@@ -67,6 +67,9 @@ struct glame_list_head oplist;
 static long op_max_listsize = 5;
 static int op_listsize;
 
+/* Wether we do overlapping checks on placement.  */
+static int gpsm_placement_checks = 1;
+
 
 /* Forwards. */
 static gpsm_item_t *gpsm_newitem(int type);
@@ -378,7 +381,7 @@ static void insert_node_op(xmlNodePtr node)
 
 /* Scan the swapfile and add all non-xmled files to a seperate
  * group. */
-static void scan_swap()
+static void scan_swap(void)
 {
 	gpsm_swfile_t *swfile;
 	gpsm_grp_t *grp;
@@ -506,7 +509,9 @@ empty:
 	lost->item.vposition = 0;
 	lost->item.hsize = 0;
 	lost->item.vsize = 0;
+	gpsm_placement_checks = 0;
 	insert_childs(root, xmlDocGetRootElement(doc), lost);
+	gpsm_placement_checks = 1;
 	if (gpsm_item_vsize(lost) != 0)
 		gpsm_item_place(root, (gpsm_item_t *)lost,
 				0, gpsm_item_vsize(root) + 1);
@@ -535,7 +540,7 @@ int gpsm_set_max_saved_ops(int max)
 	return op_max_listsize;
 }
 
-void gpsm_sync()
+void gpsm_sync(void)
 {
 	xmlDocPtr doc;
 	xmlNodePtr docroot;
@@ -560,7 +565,7 @@ void gpsm_sync()
 	xmlFreeDoc(doc);
 }
 
-void gpsm_close()
+void gpsm_close(void)
 {
 	if (!root)
 		return;
@@ -1021,7 +1026,7 @@ int gpsm_item_can_place(gpsm_grp_t *grp, gpsm_item_t *item,
 	gpsm_grp_foreach_item(grp, it) {
 		if (it == item)
 			continue;
-		if (ITEMS_DO_OVERLAP(it, &dummy))
+		if (gpsm_placement_checks && ITEMS_DO_OVERLAP(it, &dummy))
 			return 0;
 	}
 
@@ -1106,7 +1111,7 @@ int gpsm_hbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
 	gpsm_grp_foreach_item(grp, it) {
 		if (item == it)
 			continue;
-		if (X0(it) < hpos && hpos <= X1(it))
+		if (gpsm_placement_checks && X0(it) < hpos && hpos <= X1(it))
 			return 0;
 	}
 
@@ -1130,7 +1135,7 @@ int gpsm_vbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
 	gpsm_grp_foreach_item(grp, it) {
 		if (item == it)
 			continue;
-		if (Y0(it) < vpos && vpos <= Y1(it))
+		if (gpsm_placement_checks && Y0(it) < vpos && vpos <= Y1(it))
 			return 0;
 	}
 

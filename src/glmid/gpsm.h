@@ -262,12 +262,12 @@ int gpsm_set_max_saved_ops(int max);
 
 /* Syncs the gpsm metadata on disk (swapfile) with the gpsm
  * metadata in memory. Also syncs all swapfile data cached. */
-void gpsm_sync();
+void gpsm_sync(void);
 
 /* Syncs the gpsm metadata and the swapfile and closes the
  * subsystem. Further usage will require a call to gpsm_init()
  * again. */
-void gpsm_close();
+void gpsm_close(void);
 
 
 
