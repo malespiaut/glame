@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.11 2001/06/28 15:01:21 richi Exp $
+@comment $Id: gui.texi,v 1.12 2001/06/30 10:48:51 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -117,9 +117,9 @@ include things like normalize.
 imports a file as a sub-group into the current group.
 
 @item Export...
-exports all children of the group as an ordinary sound file, for example
-a WAV file. This operation takes place on an automatically flattened
-subtree.
+exports all children of the group as an ordinary stereo sound file, for
+example a WAV file. This operation takes place on an automatically
+flattened subtree and is done via the render plugin.
 @end table
 
 @subsection Operations on items
@@ -141,7 +141,60 @@ selected operation to the whole current item or group. Useful operations
 include things like normalize.
 
 @item Export...
-exports the current item as an ordinary sound file, for example a WAV file.
+exports the current item as an ordinary stereo sound file, for example
+a WAV file.
+@end table
+
+
+There exists an easy way to sequence multiple waves inside the main
+windows tree view. Using drag and drop with the right modifier you can
+move waves between horizontally (hbox) and vertically (vbox) sequenced
+boxes (groups).  To move a wave to a different place first hold down the
+right modifier to select the mode (see below), then select the item you
+want to move with the left mouse button and start dragging it. The
+destination is before the dropped onto wave or at the last position of
+the dropped onto group.
+
+The following two modes (selectable via the specified modifier) are
+supported:
+
+@table @code
+@item CTRL
+moves an item into a vbox. Here items are sorted one track per item.
+
+@item SHIFT
+moves an item into a hbox. Here items are sequenced horizontally, all
+being in the same track.
+@end table
+
+At the time of dragging you can see the mouse cursor change from a
+circle (indicating a drop at the current position is not possible which
+in turn indicates a wrong group type of the current group) to a
+hand (indicating a drop is possible). You can cancel a drop by dropping
+on the dragged item.
+
+If you want to change a vbox into a hbox (or vice versa) you need to
+go through an intermediate group. First create a dummy group (or use
+the project root, if you need a vbox) and start moving items there
+(wether in hbox or vbox mode is arbitrary). Then move items back to
+the original group with the right mode.
+
+Note that you can move whole groups at once. So sequencing stereo
+waves is possible, too, without breaking the stereo groupings.
+
+In the main windows tree view you can use the following keyboard
+shortcuts to change the waves speaker positions (where the active
+wave is denoted by the item the mouse is pointing at):
+
+@table @code
+@item CTRL-l
+associates the active wave with the left channel.
+
+@item CTRL-r
+associates the active wave with the right channel.
+
+@item CTRL-m
+associates the active wave with both channels (mono).
 @end table
 
 
