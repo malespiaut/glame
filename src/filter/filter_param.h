@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.24 2002/02/19 09:50:30 richi Exp $
+ * $Id: filter_param.h,v 1.25 2003/05/25 12:16:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -113,7 +113,8 @@ struct filter_param {
 #define filterparam_val_long(p) ((p)->u.i)
 #define filterparam_val_string(p) ((p)->u.string)
 #define filterparam_val_double(p) ((p)->u.f)
-#define filterparam_val_set_pos(p, v) do { (p)->u.i = (v); } while (0)
+#define filterparam_val_set_pos(p, v) do { *(volatile long *)&(p)->u.i = (v); } while (0)
+#define filterparam_val_get_pos(p) (*(volatile long *)&(p)->u.i)
 #define filterparam_val_get_buf(p) (fbuf_ref((p)->u.buf), (p)->u.buf)
 
 /* Standard parameter label used for signalling actual position. */
