@@ -49,7 +49,7 @@ struct mapping {
 	struct mapping **pprev_mappingv_hash;
 	struct mapping *next_mappingp_hash;
 	struct mapping **pprev_mappingp_hash;
-	struct list_head lru;
+	struct glame_list_head lru;
 
 	int refcnt;
 	void *mapping;
@@ -77,7 +77,7 @@ HASH(mappingp, struct mapping, 8,
      size_t size, int fd, off_t offset)
 
 /* The lru list and the backing store fd. */
-static struct list_head pmap_lru;
+static struct glame_list_head pmap_lru;
 static size_t pmap_lrusize;
 static int pmap_lrucnt;
 static size_t pmap_size;
@@ -110,7 +110,7 @@ static struct mapping *_map_alloc(void *start, size_t size, int prot,
 	/* Initialize struct mapping. */
 	if (!(m = (struct mapping *)malloc(sizeof(struct mapping))))
 		return NULL;
-	INIT_LIST_HEAD(&m->lru);
+	GLAME_INIT_LIST_HEAD(&m->lru);
 	hash_init_mappingv(m);
 	hash_init_mappingp(m);
 	m->refcnt = 1;
@@ -149,8 +149,8 @@ static void _map_free(struct mapping *m)
 	hash_remove_mappingv(m);
 	if (is_hashed_mappingp(m))
 		hash_remove_mappingp(m);
-	if (!list_empty(&m->lru)) {
-		list_del(&m->lru);
+	if (!glame_list_empty(&m->lru)) {
+		glame_list_del(&m->lru);
 		pmap_lrusize -= m->size;
 		pmap_lrucnt--;
 	}
@@ -166,7 +166,7 @@ static void _shrink_lru()
 
 	while (pmap_lrucnt > pmap_maxlrucnt
 	       || pmap_size > pmap_maxsize) {
-		m = list_gettail(&pmap_lru, struct mapping, lru);
+		m = glame_list_gettail(&pmap_lru, struct mapping, lru);
 		if (!m)
 		    	return;
 		_map_free(m);
@@ -178,7 +178,7 @@ static void _zap_lru()
 {
     	struct mapping *m;
 
-	while ((m = list_gettail(&pmap_lru, struct mapping, lru)))
+	while ((m = glame_list_gettail(&pmap_lru, struct mapping, lru)))
 		_map_free(m);
 }
 
@@ -186,8 +186,8 @@ static inline void _map_ref(struct mapping *m)
 {
 	m->refcnt++;
 	pmap_reused++;
-	if (!list_empty(&m->lru)) {
-	    	list_del(&m->lru);
+	if (!glame_list_empty(&m->lru)) {
+	    	glame_list_del(&m->lru);
 		pmap_lrusize -= m->size;
 		pmap_lrucnt--;
 		pmap_lruhit++;
@@ -206,7 +206,7 @@ static inline void _map_unref(struct mapping *m)
 			mprotect(m->mapping, m->size, PROT_NONE);
 			m->prot = PROT_NONE;
 #endif
-			list_add(&m->lru, &pmap_lru);
+			glame_list_add(&m->lru, &pmap_lru);
 			pmap_lrusize += m->size;
 			pmap_lrucnt++;
 			if (pmap_size > pmap_maxsize
@@ -222,13 +222,13 @@ static inline void _map_unref(struct mapping *m)
 /* Uncaches all mappings of the specified type from the lru. */
 void _pmap_uncache(int fd, off_t offset, size_t size)
 {
-	struct list_head *mn;
+	struct glame_list_head *mn;
 	struct mapping *m;
 
 	/* Scan the lru for mappings of the specified type. */
 	mn = pmap_lru.next;
 	while (mn != &pmap_lru) {
-		m = list_entry(mn, struct mapping, lru);
+		m = glame_list_entry(mn, struct mapping, lru);
 		mn = mn->next;
 		if (m->fd == fd
 		    && ((m->offset>=offset && m->offset<offset+size)
@@ -273,7 +273,7 @@ int _pmap_invalidate(int fd, off_t offset, size_t size, int do_invalidate)
 
 int pmap_init(size_t maxsize)
 {
-    	INIT_LIST_HEAD(&pmap_lru);
+    	GLAME_INIT_LIST_HEAD(&pmap_lru);
 	pmap_lrusize = 0;
 	pmap_lrucnt = 0;
 	pmap_size = 0;

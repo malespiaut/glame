@@ -49,12 +49,12 @@ HASH(swcluster, struct swcluster, 10,
 
 /* Clusters lru, where unused clusters are queued. Number of
  * lru'ed clusters. Protected by the CLUSTERS lock. */
-static struct list_head clusterslru;
+static struct glame_list_head clusterslru;
 static int clusterslrucnt;
 static int clustersmaxlru;
 
 /* LRU for open fds. Protected by FDS lock. */
-static struct list_head clusters_fdlru;
+static struct glame_list_head clusters_fdlru;
 static int clusters_fdlru_cnt;
 static int clusters_fdlru_maxcnt;
 static pthread_mutex_t fdsmx;
@@ -76,7 +76,7 @@ static long clusters_mappedsize;
 static long clusters_maxmappedsize;
 
 /* LRU for mappings, protected by MAPPINGS lock. */
-static struct list_head clusters_maplru;
+static struct glame_list_head clusters_maplru;
 static int clusters_maplru_cnt;
 static int clusters_maplru_maxcnt;
 
@@ -163,20 +163,20 @@ static int cluster_init(int maxlru, int maxfds,
         /* Init the clusters lru - unused clusters only. */
 	clustersmaxlru = maxlru;
 	clusterslrucnt = 0;
-	INIT_LIST_HEAD(&clusterslru);
+	GLAME_INIT_LIST_HEAD(&clusterslru);
 	pthread_mutex_init(&clustersmx, NULL);
 	
 	/* Init the mappings lru - unused maps only. */
 	clusters_maplru_maxcnt = maxmaps;
 	clusters_maplru_cnt = 0;
-	INIT_LIST_HEAD(&clusters_maplru);
+	GLAME_INIT_LIST_HEAD(&clusters_maplru);
 	pthread_mutex_init(&mappingsmx, NULL);
 	clusters_maxmappedsize = maxvm;
 
 	/* Init the fd lru - all fds. */
 	clusters_fdlru_maxcnt = maxfds;
 	clusters_fdlru_cnt = 0;
-	INIT_LIST_HEAD(&clusters_fdlru);
+	GLAME_INIT_LIST_HEAD(&clusters_fdlru);
 	pthread_mutex_init(&fdsmx, NULL);
 
 	/* Initialize random number generator. */
@@ -199,31 +199,31 @@ static void cluster_cleanup()
 	int i;
 
 	/* Check the cluster lru accounting. */
-	if (list_count(&clusterslru) != clusterslrucnt) {
+	if (glame_list_count(&clusterslru) != clusterslrucnt) {
 		DPRINTF("LRU has %i elements, but %i accounted\n",
-			list_count(&clusterslru), clusterslrucnt);
+			glame_list_count(&clusterslru), clusterslrucnt);
 		DERROR("Bug in lru accounting");
 	}
 
 	/* Check the cluster fd accounting. */
-	if (list_count(&clusters_fdlru) != clusters_fdlru_cnt) {
+	if (glame_list_count(&clusters_fdlru) != clusters_fdlru_cnt) {
 		DPRINTF("FD LRU has %i elements, but %i accounted\n",
-			list_count(&clusters_fdlru), clusters_fdlru_cnt);
+			glame_list_count(&clusters_fdlru), clusters_fdlru_cnt);
 		DERROR("Bug in fd lru accounting");
 	}
 
 	/* Check the cluster map accounting. */
-	if (list_count(&clusters_maplru) != clusters_maplru_cnt) {
+	if (glame_list_count(&clusters_maplru) != clusters_maplru_cnt) {
 		DPRINTF("MAP LRU has %i elements, but %i accounted\n",
-			list_count(&clusters_maplru), clusters_maplru_cnt);
+			glame_list_count(&clusters_maplru), clusters_maplru_cnt);
 		DERROR("Bug in map lru accounting");
 	}
 
 	/* Clear the cluster lru. */
 	LOCKCLUSTERS;
-	while ((c = list_gethead(&clusterslru, struct swcluster, lru))) {
+	while ((c = glame_list_gethead(&clusterslru, struct swcluster, lru))) {
 		hash_remove_swcluster(c);
-		list_del_init(&c->lru);
+		glame_list_del_init(&c->lru);
 		_cluster_put(c);
 	}
 	clusterslrucnt = 0;
@@ -271,7 +271,7 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 		clusters_misscnt++;
 	} else {
 		if (c->usage++ == 0) {
-			list_del_init(&c->lru);
+			glame_list_del_init(&c->lru);
 			clusterslrucnt--;
 			clusters_lruhitcnt++;
 		}
@@ -323,15 +323,15 @@ static void cluster_put(struct swcluster *c, int flags)
 		}
 
 		/* Put cluster into the lru. */
-		list_add(&c->lru, &clusterslru);
+		glame_list_add(&c->lru, &clusterslru);
 		clusterslrucnt++;
 		if (clusterslrucnt > clustersmaxlru) {
 			struct swcluster *c2;
-			c2 = list_gettail(&clusterslru, struct swcluster, lru);
+			c2 = glame_list_gettail(&clusterslru, struct swcluster, lru);
 			if (!c2)
 				DERROR("Bug in lru accounting");
 			hash_remove_swcluster(c2);
-			list_del_init(&c2->lru);
+			glame_list_del_init(&c2->lru);
 			clusterslrucnt--;
 			UNLOCKCLUSTERS;
 			_cluster_put(c2);
@@ -466,8 +466,8 @@ static void _cluster_killmap(struct swcluster *c)
 	c->map_prot = PROT_NONE;
 	LOCKMAPPINGS;
 	clusters_mappedsize -= c->size;
-	if (!list_empty(&c->maplru)) {
-		list_del(&c->maplru);
+	if (!glame_list_empty(&c->maplru)) {
+		glame_list_del(&c->maplru);
 		clusters_maplru_cnt--;
 	}
 	UNLOCKMAPPINGS;
@@ -478,7 +478,7 @@ static inline void __cluster_shrinkmaps()
 	while (clusters_mappedsize > clusters_maxmappedsize
 	       || clusters_maplru_cnt > clusters_maplru_maxcnt) {
 		struct swcluster *c;
-		c = list_gettail(&clusters_maplru, struct swcluster, maplru);
+		c = glame_list_gettail(&clusters_maplru, struct swcluster, maplru);
 		if (!c)
 			break;
 		/* _cluster_killmap(c); */
@@ -486,7 +486,7 @@ static inline void __cluster_shrinkmaps()
 		c->map_addr = NULL;
 		c->map_prot = PROT_NONE;
 		clusters_mappedsize -= c->size;
-		list_del_init(&c->maplru);
+		glame_list_del_init(&c->maplru);
 		clusters_maplru_cnt--;
 	}
 }
@@ -519,7 +519,7 @@ static char *_cluster_mmap(struct swcluster *c, int prot, int flags)
 		if (c->map_cnt++ == 0) {
 			LOCKMAPPINGS;
 			hash_add_mapping(c);
-			list_del_init(&c->maplru);
+			glame_list_del_init(&c->maplru);
 			clusters_maplru_cnt--;
 			UNLOCKMAPPINGS;
 		}
@@ -591,7 +591,7 @@ static int _cluster_munmap(struct swcluster *c)
 		/* Remove the mapping and protect it. */
 		LOCKMAPPINGS;
 		hash_remove_mapping(c);
-		list_add(&c->maplru, &clusters_maplru);
+		glame_list_add(&c->maplru, &clusters_maplru);
 		clusters_maplru_cnt++;
 		__cluster_shrinkmaps();
 		UNLOCKMAPPINGS;
@@ -809,18 +809,18 @@ static struct swcluster *_cluster_new()
 	if (!(c = (struct swcluster *)malloc(sizeof(struct swcluster))))
 		return NULL;
 	hash_init_swcluster(c);
-	INIT_LIST_HEAD(&c->lru);
+	GLAME_INIT_LIST_HEAD(&c->lru);
 	c->name = -1;
 	c->usage = 0;
 	pthread_mutex_init(&c->mx, NULL);
 	c->flags = SWC_NOT_IN_CORE;
 	c->size = 0;
-        INIT_LIST_HEAD(&c->fdlru);
+        GLAME_INIT_LIST_HEAD(&c->fdlru);
 	c->fd = -1;
 	c->files_cnt = -1;
 	c->files = NULL;
 	hash_init_mapping(c);
-        INIT_LIST_HEAD(&c->maplru);
+        GLAME_INIT_LIST_HEAD(&c->maplru);
 	c->map_addr = NULL;
 	c->map_prot = PROT_NONE;
 	c->map_cnt = 0;
@@ -979,15 +979,15 @@ static inline int __cluster_data_open(struct swcluster *c, int flags)
 	}
 	LOCKFDS;
 	if (c->fd != -1) {
-		list_add(&c->fdlru, &clusters_fdlru);
+		glame_list_add(&c->fdlru, &clusters_fdlru);
 		clusters_fdlru_cnt++;
 	}
 	while (clusters_fdlru_cnt > clusters_fdlru_maxcnt) {
 		struct swcluster *c2;
-		c2 = list_gettail(&clusters_fdlru, struct swcluster, fdlru);
+		c2 = glame_list_gettail(&clusters_fdlru, struct swcluster, fdlru);
 		close(c2->fd);
 		c2->fd = -1;
-		list_del_init(&c2->fdlru);
+		glame_list_del_init(&c2->fdlru);
 		clusters_fdlru_cnt--;
 	}
 	UNLOCKFDS;
@@ -1043,7 +1043,7 @@ static void _cluster_put(struct swcluster *c)
 {
 	char s[256];
 
-	if (!list_empty(&c->lru))
+	if (!glame_list_empty(&c->lru))
 		DERROR("Freeing cluster in lru");
 	if (is_hashed_swcluster(c))
 		DERROR("Freeing hashed cluster");
@@ -1060,7 +1060,7 @@ static void _cluster_put(struct swcluster *c)
         /* and close the file. */
 	if (c->fd != -1) {
 		LOCKFDS;
-		list_del(&c->fdlru);
+		glame_list_del(&c->fdlru);
 		clusters_fdlru_cnt--;
 		close(c->fd);
 		UNLOCKFDS;

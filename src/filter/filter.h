@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.74 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter.h,v 1.75 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -88,7 +88,7 @@ struct filter {
 	/* connectivity in the net */
 	filter_t *net;
         struct hash_head hash;
-	struct list_head list;
+	struct glame_list_head list;
         const char *name;
 
 	/* plugin that this filter hangs off */
@@ -123,12 +123,12 @@ struct filter {
 	/* state maintained by launched filters */
 	int state;
 	pthread_t thread;
-	struct list_head buffers;
+	struct glame_list_head buffers;
 
 	/* stuff used if (type & FILTERTYPE_NETWORK) */
 	int nr_nodes;
-	struct list_head nodes;
-	struct list_head connections;
+	struct glame_list_head nodes;
+	struct glame_list_head connections;
 	filter_launchcontext_t *launch_context;
 };
 
@@ -215,7 +215,7 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name);
  * filter_foreach_node(filter_t *parent, filter_t *f) {}
  * filter_t *filter_get_node(filter_t *net, const char *name);
  */
-#define filter_foreach_node(net, node) list_foreach(&(net)->nodes, filter_t, \
+#define filter_foreach_node(net, node) glame_list_foreach(&(net)->nodes, filter_t, \
         list, node)
 #define filter_get_node(nt, n) __hash_entry(_hash_find((n), (nt), \
         _hash((n), (nt)), __hash_pos(filter_t, hash, name, net)), \

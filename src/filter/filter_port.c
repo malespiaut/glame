@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.6 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter_port.c,v 1.7 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -185,7 +185,7 @@ static filter_port_t *portdb_alloc_item()
 
 	/* Init the parameter database is deferred until add. */
 
-	INIT_LIST_HEAD(&p->pipes);
+	GLAME_INIT_LIST_HEAD(&p->pipes);
 	p->nr_pipes = 0;
 
 	return p;

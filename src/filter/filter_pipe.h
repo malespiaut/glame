@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.7 2001/05/13 12:05:54 richi Exp $
+ * $Id: filter_pipe.h,v 1.8 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -57,14 +57,14 @@ struct filter_pipe {
 	 * dest_list is the list of the destination port.
 	 * Note that the destination ports are inputs of the
 	 * associated filters and vice versa. */
-	struct list_head source_list, dest_list;
+	struct glame_list_head source_list, dest_list;
 
 	/* pipe context - source and destination ports. */
 	filter_port_t *source;
 	filter_port_t *dest;
 
 	/* "real" connection as requested from filterport_connect(). */
-	struct list_head list;
+	struct glame_list_head list;
 	const char *source_filter;
 	const char *source_port;
 	const char *dest_filter;

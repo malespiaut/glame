@@ -3,7 +3,7 @@
 
 /*
  * gldb_string.h
- * $Id: gldb_string.h,v 1.5 2000/12/11 12:40:00 xwolf Exp $
+ * $Id: gldb_string.h,v 1.6 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,7 +43,7 @@ void glsdb_init(gldb_t *db);
 #define glsdb_delete(db) gldb_delete(db)
 #define glsdb_copy(d, s) gldb_copy((d), (s))
 
-#define glsdb_foreach_item(pdb, i) list_foreach(&(pdb)->items, sitem_t, entry.list, i)
+#define glsdb_foreach_item(pdb, i) glame_list_foreach(&(pdb)->items, sitem_t, entry.list, i)
 
 int glsdb_set(gldb_t *db, const char *str, const char *label);
 void glsdb_remove(gldb_t *db, const char *label);

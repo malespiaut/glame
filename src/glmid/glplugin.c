@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.35 2001/08/13 14:30:04 richi Exp $
+ * $Id: glplugin.c,v 1.36 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -36,18 +36,18 @@
 #endif
 
 typedef struct {
-	struct list_head list;
+	struct glame_list_head list;
 	const char *path;
 } plugin_path_t;
 
-static struct list_head plugin_path_list = LIST_HEAD_INIT(plugin_path_list);
-static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
+static struct glame_list_head plugin_path_list = GLAME_LIST_HEAD_INIT(plugin_path_list);
+static struct glame_list_head plugin_list = GLAME_LIST_HEAD_INIT(plugin_list);
 
-#define list_add_plugin_path(p) list_add(&(p)->list, &plugin_path_list)
-#define plugin_foreach_path(p) list_foreach(&plugin_path_list, plugin_path_t, \
+#define glame_list_add_plugin_path(p) glame_list_add(&(p)->list, &plugin_path_list)
+#define plugin_foreach_path(p) glame_list_foreach(&plugin_path_list, plugin_path_t, \
         list, p)
-#define list_add_plugin(p) list_add(&(p)->list, &plugin_list)
-#define list_del_plugin(p) list_del(&(p)->list)
+#define glame_list_add_plugin(p) glame_list_add(&(p)->list, &plugin_list)
+#define glame_list_del_plugin(p) glame_list_del(&(p)->list)
 #define hash_add_plugin(p) _hash_add(&(p)->hash, _hash((p)->name, \
         PLUGIN_NAMESPACE))
 #define hash_remove_plugin(p) _hash_remove(&(p)->hash)
@@ -78,9 +78,9 @@ int plugin_add_path(const char *path)
 
 	if (!(p = ALLOC(plugin_path_t)))
 		return -1;
-	INIT_LIST_HEAD(&p->list);
+	GLAME_INIT_LIST_HEAD(&p->list);
 	p->path = strdup(path);
-	list_add_plugin_path(p);
+	glame_list_add_plugin_path(p);
 
 	return 0;
 }
@@ -95,7 +95,7 @@ static plugin_t *_plugin_alloc(const char *name)
 
 	if (!(p = (plugin_t *)malloc(sizeof(plugin_t))))
 		return NULL;
-	INIT_LIST_HEAD(&p->list);
+	GLAME_INIT_LIST_HEAD(&p->list);
 	hash_init_plugin(p);
 	if (!(p->name = strdup(name))) {
 		free(p);
@@ -132,7 +132,7 @@ static int _plugin_add(plugin_t *p)
 	__hash_add(&p->hash, _hash(p->name, PLUGIN_NAMESPACE));
 	hash_unlock();
 
-	list_add_plugin(p);
+	glame_list_add_plugin(p);
 
 	return 0;
 }
@@ -391,7 +391,7 @@ plugin_t *plugin_add(const char *name)
 void _plugin_delete(plugin_t *p)
 {
 	if (is_hashed_plugin(p)) {
-		list_del_plugin(p);
+		glame_list_del_plugin(p);
 		hash_remove_plugin(p);
 	}
 	_plugin_free(p);
@@ -401,8 +401,8 @@ void _plugin_delete(plugin_t *p)
 plugin_t *plugin_next(plugin_t *plugin)
 {
 	if (!plugin)
-		return list_gethead(&plugin_list, plugin_t, list);
+		return glame_list_gethead(&plugin_list, plugin_t, list);
 	if (plugin->list.next == &plugin_list)
 		return NULL;
-	return list_entry(plugin->list.next, plugin_t, list);
+	return glame_list_entry(plugin->list.next, plugin_t, list);
 }

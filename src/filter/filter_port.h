@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.7 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter_port.h,v 1.8 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -79,7 +79,7 @@ struct filter_port {
 	 * the pipe structure are the source_list, if this
 	 * is an output port and the dest_list, if this is
 	 * an input port. */
-	struct list_head pipes;
+	struct glame_list_head pipes;
 	int nr_pipes;
 };
 
@@ -125,25 +125,25 @@ struct filter_port {
  * filterport_foreach_pipe(filter_port_t *, filter_pipe_t *) {} */
 #define filterport_nrpipes(port) ((port)->nr_pipes)
 #define filterport_get_pipe(port) (filterport_is_output(port) \
-        ? list_gethead(&(port)->pipes, filter_pipe_t, source_list) \
-        : list_gethead(&(port)->pipes, filter_pipe_t, dest_list))
+        ? glame_list_gethead(&(port)->pipes, filter_pipe_t, source_list) \
+        : glame_list_gethead(&(port)->pipes, filter_pipe_t, dest_list))
 #define filterport_next_pipe(port, p) (filterport_is_output(port) \
         ? (((p)->source_list.next == &(p)->source->pipes) \
            ? NULL \
-           : list_entry((p)->source_list.next, filter_pipe_t, source_list)) \
+           : glame_list_entry((p)->source_list.next, filter_pipe_t, source_list)) \
         : (((p)->dest_list.next == &(p)->dest->pipes) \
            ? NULL \
-           : list_entry((p)->dest_list.next, filter_pipe_t, dest_list)))
+           : glame_list_entry((p)->dest_list.next, filter_pipe_t, dest_list)))
 #define filterport_foreach_pipe(port, pipe) for ( \
         pipe = filterport_is_input(port) \
-             ? list_entry((port)->pipes.next, filter_pipe_t, dest_list) \
-             : list_entry((port)->pipes.next, filter_pipe_t, source_list); \
+             ? glame_list_entry((port)->pipes.next, filter_pipe_t, dest_list) \
+             : glame_list_entry((port)->pipes.next, filter_pipe_t, source_list); \
         filterport_is_input(port) \
              ? &pipe->dest_list != &(port)->pipes \
              : &pipe->source_list != &(port)->pipes; \
         pipe = filterport_is_input(port) \
-             ? list_entry(pipe->dest_list.next, filter_pipe_t, dest_list) \
-             : list_entry(pipe->source_list.next, filter_pipe_t, source_list))
+             ? glame_list_entry(pipe->dest_list.next, filter_pipe_t, dest_list) \
+             : glame_list_entry(pipe->source_list.next, filter_pipe_t, source_list))
 
 
 #ifdef __cplusplus
@@ -190,11 +190,11 @@ filter_port_t *filterportdb_add_port(filter_portdb_t *node, const char *label,
  * following iterator (which acts like a for statement with the
  * second parameter as running variable). Note that you may not
  * delete ports in this loop! */
-#define filterportdb_foreach_port(pdb, p) list_foreach(&(pdb)->db.items, \
+#define filterportdb_foreach_port(pdb, p) glame_list_foreach(&(pdb)->db.items, \
         filter_port_t, entry.list, p)
 
 /* Safe variant - dont use inside f() method. */
-#define filterportdb_safe_foreach_port(pdb, dummy, p) list_safe_foreach(&(pdb)->db.items, filter_port_t, entry.list, dummy, p)
+#define filterportdb_safe_foreach_port(pdb, dummy, p) glame_list_safe_foreach(&(pdb)->db.items, filter_port_t, entry.list, dummy, p)
 
 /* int filterportdb_nrports(filter_portdb_t *);
  * To just query the number of ports stored in a port

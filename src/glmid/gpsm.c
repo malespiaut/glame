@@ -57,7 +57,7 @@ struct pair {
 	long saved;
 };
 struct op {
-	struct list_head list;
+	struct glame_list_head list;
 	struct timeval time;
 	int is_undo; /* 1 if from undo, 0 if from prepare */
 	int nrpairs;
@@ -65,7 +65,7 @@ struct op {
 };
 
 /* List of ops, sorted by time, head is latest, configurables */
-struct list_head oplist;
+struct glame_list_head oplist;
 static int op_max_listsize = 5;
 static int op_listsize;
 
@@ -120,7 +120,7 @@ static void dump_item(gpsm_item_t *item, xmlNodePtr node)
 	if (GPSM_ITEM_IS_GRP(item)) {
 		gpsm_grp_t *group = (gpsm_grp_t *)item;
 		child = xmlNewChild(node, NULL, "group", NULL);
-		if (!list_empty(&group->items))
+		if (!glame_list_empty(&group->items))
 			dump_tree(group, child);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		gpsm_swfile_t *swfile = (gpsm_swfile_t *)item;
@@ -146,7 +146,7 @@ static void dump_tree(gpsm_grp_t *tree, xmlNodePtr node)
 
 	if (!tree)
 		return;
-	list_foreach(&tree->items, gpsm_item_t, list, item)
+	glame_list_foreach(&tree->items, gpsm_item_t, list, item)
 		dump_item(item, node);
 }
 static void dump_ops(xmlNodePtr node)
@@ -157,7 +157,7 @@ static void dump_ops(xmlNodePtr node)
 	int i;
 
 	/* Dump from back to front to get implicit ordering right. */
-	op = list_gettail(&oplist, struct op, list);
+	op = glame_list_gettail(&oplist, struct op, list);
 	while (op) {
 		opnode = xmlNewChild(node, NULL, "op", NULL);
 		snprintf(s, 255, "%i", op->nrpairs);
@@ -171,7 +171,7 @@ static void dump_ops(xmlNodePtr node)
 			snprintf(s, 255, "%li", op->pair[i].saved);
 			xmlSetProp(pairnode, "saved", s);
 		}
-		op = list_getprev(&oplist, op, struct op, list);
+		op = glame_list_getprev(&oplist, op, struct op, list);
 	}
 }
 
@@ -415,7 +415,7 @@ static void scan_swap()
 	sw_closedir(dir);
 
 	/* Check if the unknown group is empty and if so, remove it. */
-	if (list_empty(&grp->items))
+	if (glame_list_empty(&grp->items))
 		gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
@@ -482,7 +482,7 @@ empty:
 	}
 
 	/* Init the op list. */
-	INIT_LIST_HEAD(&oplist);
+	GLAME_INIT_LIST_HEAD(&oplist);
 	op_listsize = 0;
 
 	/* Create the tree root group and recurse down the xml tree. */
@@ -511,7 +511,7 @@ int gpsm_set_max_saved_ops(int max)
 		op_max_listsize = max;
 	while (op_listsize > op_max_listsize) {
 		DPRINTF("deleting too big list\n");
-		op = list_gettail(&oplist, struct op, list);
+		op = glame_list_gettail(&oplist, struct op, list);
 		_op_delete(op);
 	}
 	return op_max_listsize;
@@ -583,7 +583,7 @@ static gpsm_item_t *gpsm_newitem(int type)
 		return NULL;
 
 	/* Initialize item. */
-	INIT_LIST_HEAD(&item->list);
+	GLAME_INIT_LIST_HEAD(&item->list);
 	item->parent = NULL;
 	INIT_GLSIG_EMITTER(&item->emitter);
 	item->type = type;
@@ -593,7 +593,7 @@ static gpsm_item_t *gpsm_newitem(int type)
 	item->hsize = 0;
 	item->vsize = 0;
 	if (GPSM_ITEM_IS_GRP(item))
-		INIT_LIST_HEAD(&((gpsm_grp_t *)item)->items);
+		GLAME_INIT_LIST_HEAD(&((gpsm_grp_t *)item)->items);
 	else if (GPSM_ITEM_IS_SWFILE(item)) {
 		hash_init_swfile((gpsm_swfile_t *)item);
 		item->hsize = 0;
@@ -804,10 +804,10 @@ void gpsm_item_destroy(gpsm_item_t *item)
 		}
 	} else if (GPSM_ITEM_IS_GRP(item)) {
 		gpsm_grp_t *group = (gpsm_grp_t *)item;
-		struct list_head *tmp;
+		struct glame_list_head *tmp;
 		gpsm_item_t *i;
 		/* Recursively delete all childs. */
-		list_safe_foreach(&group->items, gpsm_item_t, list, tmp, i)
+		glame_list_safe_foreach(&group->items, gpsm_item_t, list, tmp, i)
 			gpsm_item_destroy(i);
 	}
 
@@ -894,7 +894,7 @@ static void gpsm_grp_fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 	vsize = group->item.vsize;
 	group->item.hsize = 0;
 	group->item.vsize = 0;
-	list_foreach(&group->items, gpsm_item_t, list, item)
+	glame_list_foreach(&group->items, gpsm_item_t, list, item)
 		_add_item_boundingbox(group, item);
 	if (hsize != group->item.hsize || vsize != group->item.vsize)
 		glsig_emit(&group->item.emitter, GPSM_SIG_ITEM_CHANGED, group);
@@ -909,7 +909,7 @@ static void gpsm_grp_remove_boundingbox(gpsm_grp_t *group, gpsm_item_t *ritem)
 	vsize = group->item.vsize;
 	group->item.hsize = 0;
 	group->item.vsize = 0;
-	list_foreach(&group->items, gpsm_item_t, list, item)
+	glame_list_foreach(&group->items, gpsm_item_t, list, item)
 		if (item != ritem)
 			_add_item_boundingbox(group, item);
 	if (hsize != group->item.hsize || vsize != group->item.vsize)
@@ -967,9 +967,9 @@ static void _place_tail(gpsm_grp_t *grp,
 	item->hposition = hpos;
 	item->vposition = vpos;
 	if (!succ)
-		list_add_tail(&item->list, &grp->items);
+		glame_list_add_tail(&item->list, &grp->items);
 	else
-		list_add_tail(&item->list, &succ->list);
+		glame_list_add_tail(&item->list, &succ->list);
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
 
 	/* Send out GPSM_SIG_GRP_NEWITEM signal. */
@@ -1132,12 +1132,12 @@ static void _gpsm_item_insert_space_after(gpsm_item_t *item, long dx, long dy)
 				      dx, dy);
 
 	/* Back to front. */
-	it = list_gettail(&gpsm_item_parent(item)->items, gpsm_item_t, list);
+	it = glame_list_gettail(&gpsm_item_parent(item)->items, gpsm_item_t, list);
 	while (it && it != item) {
 		it->hposition += dx;
 		it->vposition += dy;
 		glsig_emit(gpsm_item_emitter(it), GPSM_SIG_ITEM_CHANGED, it);
-		it = list_getprev(&gpsm_item_parent(item)->items, it,
+		it = glame_list_getprev(&gpsm_item_parent(item)->items, it,
 				  gpsm_item_t, list);
 	}
 }
@@ -1152,14 +1152,14 @@ static void _gpsm_item_insert_space_before(gpsm_item_t *item, long dx, long dy)
 				      dx, dy);
 
 	/* Back to front. */
-	it = list_gettail(&gpsm_item_parent(item)->items, gpsm_item_t, list);
+	it = glame_list_gettail(&gpsm_item_parent(item)->items, gpsm_item_t, list);
 	do {
 		it->hposition += dx;
 		it->vposition += dy;
 		glsig_emit(gpsm_item_emitter(it), GPSM_SIG_ITEM_CHANGED, it);
 		if (it == item)
 			break;
-		it = list_getprev(&gpsm_item_parent(item)->items, it,
+		it = glame_list_getprev(&gpsm_item_parent(item)->items, it,
 				  gpsm_item_t, list);
 	} while (it);
 }
@@ -1248,7 +1248,7 @@ void gpsm_item_remove(gpsm_item_t *item)
 {
 	gpsm_grp_t *grp;
 
-	if (!root || !item || list_empty(&item->list) || !(grp = item->parent))
+	if (!root || !item || glame_list_empty(&item->list) || !(grp = item->parent))
 		return;
 
 	/* First send out GPSM_SIG_GRP_REMOVEITEM signal. This will
@@ -1257,7 +1257,7 @@ void gpsm_item_remove(gpsm_item_t *item)
 	glsig_emit(&grp->item.emitter, GPSM_SIG_GRP_REMOVEITEM, grp, item);
 
 	/* Do the removal. */
-	list_del_init(&item->list);
+	glame_list_del_init(&item->list);
 	item->parent = NULL;
 	item->hposition = 0;
 	item->vposition = 0;
@@ -1278,7 +1278,7 @@ int gpsm_hbox_cut(gpsm_item_t *item)
 		return -1;
 
 	/* First remove the item, remember successor */
-	succ = list_getnext(&parent->items, item, gpsm_item_t, list);
+	succ = glame_list_getnext(&parent->items, item, gpsm_item_t, list);
 	gpsm_item_remove(item);
 
 	/* Then close the gap it left. */
@@ -1301,7 +1301,7 @@ int gpsm_vbox_cut(gpsm_item_t *item)
 		return -1;
 
 	/* First remove the item, remember successor */
-	succ = list_getnext(&parent->items, item, gpsm_item_t, list);
+	succ = glame_list_getnext(&parent->items, item, gpsm_item_t, list);
 	gpsm_item_remove(item);
 
 	/* Then close the gap it left. */
@@ -1516,7 +1516,7 @@ gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, gpsm_item_t *start,
 		return NULL;
 
 	if (!start) {
-		item = list_gethead(&root->items, gpsm_item_t, list);
+		item = glame_list_gethead(&root->items, gpsm_item_t, list);
 	} else {
 		item = start;
 		goto next_entry;
@@ -1528,19 +1528,19 @@ gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, gpsm_item_t *start,
 			return (gpsm_grp_t *)item;
 next_entry:
 		if (GPSM_ITEM_IS_GRP(item)) {
-			next = list_gethead(&((gpsm_grp_t *)item)->items,
+			next = glame_list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
 			if (!next)
-				next = list_getnext(&item->parent->items, item,
+				next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		} else
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
 			item = (gpsm_item_t *)item->parent;
 			if (item == (gpsm_item_t *)root)
 				return NULL;
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		}
 		item = next;
@@ -1561,7 +1561,7 @@ gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
 		return NULL;
 
 	if (!start) {
-		item = list_gethead(&root->items, gpsm_item_t, list);
+		item = glame_list_gethead(&root->items, gpsm_item_t, list);
 	} else {
 		item = start;
 		goto next_entry;
@@ -1573,19 +1573,19 @@ gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
 			return (gpsm_swfile_t *)item;
 next_entry:
 		if (GPSM_ITEM_IS_GRP(item)) {
-			next = list_gethead(&((gpsm_grp_t *)item)->items,
+			next = glame_list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
 			if (!next)
-				next = list_getnext(&item->parent->items, item,
+				next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		} else
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
 			item = (gpsm_item_t *)item->parent;
 			if (item == (gpsm_item_t *)root)
 				return NULL;
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		}
 		item = next;
@@ -1604,7 +1604,7 @@ gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
 		return NULL;
 
 	if (!start) {
-		item = list_gethead(&root->items, gpsm_item_t, list);
+		item = glame_list_gethead(&root->items, gpsm_item_t, list);
 	} else {
 		item = start;
 		goto next_entry;
@@ -1616,19 +1616,19 @@ gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
 			return (gpsm_swfile_t *)item;
 next_entry:
 		if (GPSM_ITEM_IS_GRP(item)) {
-			next = list_gethead(&((gpsm_grp_t *)item)->items,
+			next = glame_list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
 			if (!next)
-				next = list_getnext(&item->parent->items, item,
+				next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		} else
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
 			item = (gpsm_item_t *)item->parent;
 			if (item == (gpsm_item_t *)root)
 				return NULL;
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		}
 		item = next;
@@ -1643,7 +1643,7 @@ gpsm_swfile_t *gpsm_find_swfile_vposition(gpsm_grp_t *root, gpsm_item_t *start,
 	gpsm_item_t *item, *next;
 
 	if (!start) {
-		item = list_gethead(&root->items, gpsm_item_t, list);
+		item = glame_list_gethead(&root->items, gpsm_item_t, list);
 	} else {
 		item = start;
 		goto next_entry;
@@ -1655,22 +1655,22 @@ gpsm_swfile_t *gpsm_find_swfile_vposition(gpsm_grp_t *root, gpsm_item_t *start,
 			return (gpsm_swfile_t *)item;
 next_entry:
 		if (GPSM_ITEM_IS_GRP(item)) {
-			next = list_gethead(&((gpsm_grp_t *)item)->items,
+			next = glame_list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
 			if (!next)
-				next = list_getnext(&item->parent->items, item,
+				next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 			else
 				vposition -= gpsm_item_vposition(item);
 		} else
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
 			item = (gpsm_item_t *)item->parent;
 			vposition += gpsm_item_vposition(item);
 			if (item == (gpsm_item_t *)root)
 				return NULL;
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		}
 		item = next;
@@ -1714,7 +1714,7 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 	 * Traverse the subtree and insert the found swfiles into
 	 * newly created ones in the grp. */
 	hpos = vpos = 0;
-	it = list_gethead(&((gpsm_grp_t *)item)->items, gpsm_item_t, list);
+	it = glame_list_gethead(&((gpsm_grp_t *)item)->items, gpsm_item_t, list);
 	while (it) {
 		/* If its a swfile, process it - remember, its position
 		 * needs to be adjusted by hpos/vpos. */
@@ -1754,17 +1754,17 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 		/* Find the next item to be processed - looks
 		 * complicated, but thats iterative tree traversal. */
 		if (GPSM_ITEM_IS_GRP(it)) {
-			next = list_gethead(&((gpsm_grp_t *)it)->items,
+			next = glame_list_gethead(&((gpsm_grp_t *)it)->items,
 					    gpsm_item_t, list);
 			if (!next)
-				next = list_getnext(&it->parent->items, it,
+				next = glame_list_getnext(&it->parent->items, it,
 						    gpsm_item_t, list);
 			else {
 				hpos += gpsm_item_hposition(it);
 				vpos += gpsm_item_vposition(it);
 			}
 		} else
-			next = list_getnext(&it->parent->items, it,
+			next = glame_list_getnext(&it->parent->items, it,
 					    gpsm_item_t, list);
 		while (!next) {
 			it = (gpsm_item_t *)it->parent;
@@ -1772,7 +1772,7 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 				break;
 			hpos -= gpsm_item_hposition(it);
 			vpos -= gpsm_item_vposition(it);
-			next = list_getnext(&it->parent->items, it,
+			next = glame_list_getnext(&it->parent->items, it,
 					    gpsm_item_t, list);
 		}
 		it = next;
@@ -1855,7 +1855,7 @@ static int _gpsm_get_swfiles(gpsm_item_t *root, gpsm_swfile_t ***files)
 	}
 
 	cnt = 0;
-	item = list_gethead(&((gpsm_grp_t *)root)->items, gpsm_item_t, list);
+	item = glame_list_gethead(&((gpsm_grp_t *)root)->items, gpsm_item_t, list);
 	while (item) {
 		if (GPSM_ITEM_IS_SWFILE(item)) {
 			_files[cnt++] = (gpsm_swfile_t *)item;
@@ -1863,19 +1863,19 @@ static int _gpsm_get_swfiles(gpsm_item_t *root, gpsm_swfile_t ***files)
 				PANIC("Max nr of swfiles reached");
 		}
 		if (GPSM_ITEM_IS_GRP(item)) {
-			next = list_gethead(&((gpsm_grp_t *)item)->items,
+			next = glame_list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
 			if (!next)
-				next = list_getnext(&item->parent->items, item,
+				next = glame_list_getnext(&item->parent->items, item,
 						    gpsm_item_t, list);
 		} else
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
 			item = (gpsm_item_t *)item->parent;
 			if (item == (gpsm_item_t *)root)
 				goto done;
-			next = list_getnext(&item->parent->items, item,
+			next = glame_list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		}
 		item = next;
@@ -2077,7 +2077,7 @@ static struct op *_op_new(int nrpairs)
 
 	op = (struct op *)malloc(sizeof(struct op)
 				 + nrpairs*sizeof(struct pair));
-	INIT_LIST_HEAD(&op->list);
+	GLAME_INIT_LIST_HEAD(&op->list);
 	gettimeofday(&op->time, NULL);
 	op->is_undo = 0;
 	op->nrpairs = nrpairs;
@@ -2092,8 +2092,8 @@ static void _op_delete(struct op *op)
 {
 	int i;
 
-	if (!list_empty(&op->list)) {
-		list_del(&op->list);
+	if (!glame_list_empty(&op->list)) {
+		glame_list_del(&op->list);
 		op_listsize--;
 	}
 
@@ -2145,7 +2145,7 @@ static struct op *_op_find_saved(long filename)
 	int i;
 
 	op = (struct op *)&oplist;
-	while ((op = list_getnext(&oplist, op, struct op, list))) {
+	while ((op = glame_list_getnext(&oplist, op, struct op, list))) {
 		for (i=0; i<op->nrpairs; i++)
 			if (op->pair[i].saved == filename)
 				return op;
@@ -2160,7 +2160,7 @@ static struct op *_op_find_filename_before(long filename, struct op *op)
 {
 	int i;
 
-	while ((op = list_getnext(&oplist, op, struct op, list))) {
+	while ((op = glame_list_getnext(&oplist, op, struct op, list))) {
 		for (i=0; i<op->nrpairs; i++)
 			if (op->pair[i].file == filename)
 				return op;
@@ -2421,12 +2421,12 @@ static int _op_cow(struct op *op)
  * of the ops files. */
 static void _op_add(struct op *op)
 {
-	list_add(&op->list, &oplist);
+	glame_list_add(&op->list, &oplist);
 	_op_fix_swfiles(op);
 	op_listsize++;
 	while (op_listsize > op_max_listsize) {
 		DPRINTF("deleting too big list\n");
-		op = list_gettail(&oplist, struct op, list);
+		op = glame_list_gettail(&oplist, struct op, list);
 		_op_delete(op);
 	}
 }

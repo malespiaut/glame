@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.14 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter_param.c,v 1.15 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -134,7 +134,7 @@ static int paramdb_op_add(gldb_t *db, gldb_item_t *i, gldb_item_t *dest)
 	/* The task is to fix the signal redirector which
 	 * is probably attached to the item - or just to
 	 * add a new "right" one. -- now there should be no such there! [121200] */
-	list_foreach(&p->emitter.handlers, glsig_handler_t, list, h) {
+	glame_list_foreach(&p->emitter.handlers, glsig_handler_t, list, h) {
 		if (h->priv == (void *)&((filter_paramdb_t *)p->entry.db)->node->emitter)
 			DERROR("redirector got copied?");
 	}

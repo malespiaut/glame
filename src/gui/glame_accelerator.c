@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.10 2001/07/13 09:01:43 richi Exp $
+ * $Id: glame_accelerator.c,v 1.11 2001/09/17 11:47:12 nold Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -53,7 +53,7 @@ struct accel_cb_data {
 	char *scope;
 };
 
-LIST_HEAD(_glame_accel_list);
+GLAME_LIST_HEAD(_glame_accel_list);
 static int stringhash(const char *spec);
 HASH(accel, struct accel, 8,
      (strcmp(accel->spec, spec) == 0
@@ -318,7 +318,7 @@ xmlDocPtr glame_accels_to_xml()
 static void _free_accel(struct accel *accel)
 {
 	hash_remove_accel(accel);
-	list_del(&accel->list);
+	glame_list_del(&accel->list);
 	free(accel->spec);
 	free(accel->action);
 	free(accel);
@@ -335,7 +335,7 @@ int glame_accel_add(const char *spec, guint state_mask, guint state,
 	if (!(accel = ALLOC(struct accel)))
 		return -1;
 	hash_init_accel(accel);
-	INIT_LIST_HEAD(&accel->list);
+	GLAME_INIT_LIST_HEAD(&accel->list);
 	accel->state_mask = state_mask;
 	accel->state = state;
 	accel->spec = strdup(spec);
@@ -344,7 +344,7 @@ int glame_accel_add(const char *spec, guint state_mask, guint state,
 	if ((old = hash_find_accel(spec, state)))
 		_free_accel(old);
 
-	list_add(&accel->list, &_glame_accel_list);
+	glame_list_add(&accel->list, &_glame_accel_list);
 	hash_add_accel(accel);
 
 	return 0;
@@ -365,7 +365,7 @@ void glame_accel_del_all(const char *scope)
 	int len;
 
 	len = strlen(scope);
-	list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel) {
+	glame_list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel) {
 		if (strncmp(accel->spec, scope, len) == 0)
 			_free_accel(accel);
 	}

@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.10 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter_pipe.c,v 1.11 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,13 +26,13 @@
 
 
 /* filter pipe addition/removal to filter port pipes list. */
-#define list_add_pipe_source(p, port) do { list_add(&(p)->source_list, \
+#define glame_list_add_pipe_source(p, port) do { glame_list_add(&(p)->source_list, \
         &(port)->pipes); (port)->nr_pipes++; } while (0)
-#define list_add_pipe_dest(p, port) do { list_add(&(p)->dest_list, \
+#define glame_list_add_pipe_dest(p, port) do { glame_list_add(&(p)->dest_list, \
         &(port)->pipes); (port)->nr_pipes++; } while (0)
-#define list_remove_pipe_source(p) do { list_del(&(p)->source_list); \
+#define glame_list_remove_pipe_source(p) do { glame_list_del(&(p)->source_list); \
         (p)->source->nr_pipes--; } while (0)
-#define list_remove_pipe_dest(p) do { list_del(&(p)->dest_list); \
+#define glame_list_remove_pipe_dest(p) do { glame_list_del(&(p)->dest_list); \
         (p)->dest->nr_pipes--; } while (0)
 
 
@@ -43,9 +43,9 @@ static filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
 
 	if (!(p = ALLOC(filter_pipe_t)))
 		return NULL;
-	INIT_LIST_HEAD(&p->source_list);
-	INIT_LIST_HEAD(&p->dest_list);
-	INIT_LIST_HEAD(&p->list);
+	GLAME_INIT_LIST_HEAD(&p->source_list);
+	GLAME_INIT_LIST_HEAD(&p->dest_list);
+	GLAME_INIT_LIST_HEAD(&p->list);
 	p->source_fd = -1;
 	p->dest_fd = -1;
 
@@ -81,8 +81,8 @@ static void _pipe_free(filter_pipe_t *p)
 	glsig_delete_all(&p->emitter);
 
 	/* kill connection */
-	if (!list_empty(&p->list))
-		list_del(&p->list);
+	if (!glame_list_empty(&p->list))
+		glame_list_del(&p->list);
 
 	free(p);
 }
@@ -145,8 +145,8 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	/* add the pipe to all port lists/hashes.
 	 * connect_out/in may have mucked with p->dest/source, so
 	 * we have to use that instead of int/out directly. */
-	list_add_pipe_dest(p, filterpipe_dest(p));
-	list_add_pipe_source(p, filterpipe_source(p));
+	glame_list_add_pipe_dest(p, filterpipe_dest(p));
+	glame_list_add_pipe_source(p, filterpipe_source(p));
 
 	/* as everything is set up now, we need to register the initial
 	 * connection request in the sources filter connection list. */
@@ -154,7 +154,7 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	p->source_port = filterport_label(source);
 	p->dest_filter = filter_name(filterport_filter(dest));
 	p->dest_port = filterport_label(dest);
-	list_add(&p->list, &filterport_filter(source)->connections);
+	glame_list_add(&p->list, &filterport_filter(source)->connections);
 
 	/* signal pipe changes */
 	glsig_emit(filterpipe_emitter(p), GLSIG_PIPE_CHANGED, p);
@@ -174,8 +174,8 @@ void filterpipe_delete(filter_pipe_t *p)
 		return;
 
 	/* disconnect the pipe */
-	list_remove_pipe_source(p);
-	list_remove_pipe_dest(p);
+	glame_list_remove_pipe_source(p);
+	glame_list_remove_pipe_dest(p);
 
 	/* kill the pipe */
 	_pipe_free(p);

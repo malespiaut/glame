@@ -4,7 +4,7 @@
 /*
  * txn.h
  *
- * $Id: txn.h,v 1.5 2000/10/17 09:03:16 richi Exp $
+ * $Id: txn.h,v 1.6 2001/09/17 11:47:12 nold Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -73,7 +73,7 @@ struct txn {
 	 * list is the global list of independend
 	 * transactions */
 	struct txn *parent; /* do we need this? FIXME. */
-	struct list_head list;
+	struct glame_list_head list;
 
 	/* root of the transaction chain - useful for 
 	 * locking in nested transactions, i.e. resources
@@ -84,12 +84,12 @@ struct txn {
 	/* the following two groups are mutually exclusive
 	 * once one is used:
 	 * - a child may be added if op == NULL (and active == NULL)
-	 * - op may be used, if list_empty(childs)
+	 * - op may be used, if glame_list_empty(childs)
 	 */
 
 	/* list of childs, active one (or NULL if self
 	 * is active) */
-	struct list_head childs;
+	struct glame_list_head childs;
 	struct txn *active;
 
 	/* operation record, NULL if grouping node (not

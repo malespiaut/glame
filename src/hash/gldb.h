@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.7 2000/12/12 17:11:25 richi Exp $
+ * $Id: gldb.h,v 1.8 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -82,7 +82,7 @@ struct gldb_ops {
  * for the hash. Also the per database item-operations
  * are stored here. */
 struct gldb {
-	struct list_head items;
+	struct glame_list_head items;
 	struct gldb_ops *ops;
 };
 
@@ -91,7 +91,7 @@ struct gldb {
  * is embedded in and after data. The size element allows
  * copying of items. 28 bytes with hash, 16 without. */
 struct gldb_item {
-	struct list_head list;
+	struct glame_list_head list;
 	const char *label;
 	gldb_t *db;
 };
@@ -114,10 +114,10 @@ void gldb_delete(gldb_t *db);
 int gldb_copy(gldb_t *dest, gldb_t *source);
 
 /* Iterator over all database items. */
-#define gldb_foreach_item(db, i) list_foreach(&(db)->items, gldb_item_t, list, i)
+#define gldb_foreach_item(db, i) glame_list_foreach(&(db)->items, gldb_item_t, list, i)
 
 /* Get number of database items. */
-#define gldb_nritems(db) list_count(&(db)->items)
+#define gldb_nritems(db) glame_list_count(&(db)->items)
 
 
 /* Initializes a previously allocated/embedded item. */

@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.26 2001/08/03 08:34:32 richi Exp $
+ * $Id: filter_ops.c,v 1.27 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -49,7 +49,7 @@ struct filter_operations {
 /* filter_buffer.c: drain pipe to unblock source. */
 void fbuf_drain(filter_pipe_t *p);
 /* filter_buffer.c: free pending buffers. */
-void fbuf_free_buffers(struct list_head *list);
+void fbuf_free_buffers(struct glame_list_head *list);
 
 
 /* The standard filter operations, for "nodes" and for "networks".

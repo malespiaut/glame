@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.30 2001/07/31 06:48:58 mag Exp $
+ * $Id: filter_tools.h,v 1.31 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -38,24 +38,24 @@
  */
 typedef struct queue queue_t;
 struct queue {
-	struct list_head	list;
+	struct glame_list_head	list;
 	filter_t		*n;
 	filter_pipe_t		*p;
 	int			off;
 	int			done;
 };
-#define queue_get_next(q, qe) list_getnext(&(q->list), qe, struct queue_entry, list)
-#define queue_get_head(q) list_gethead(&(q->list), struct queue_entry, list)
+#define queue_get_next(q, qe) glame_list_getnext(&(q->list), qe, struct queue_entry, list)
+#define queue_get_head(q) glame_list_gethead(&(q->list), struct queue_entry, list)
 
 typedef struct queue_entry queue_entry_t;
 struct queue_entry {
-	struct list_head list;
+	struct glame_list_head list;
 	filter_buffer_t *fb;
 };
 
 static inline void init_queue(queue_t* q, filter_pipe_t *p, filter_t *n) 
 {
-	INIT_LIST_HEAD(&(q->list));
+	GLAME_INIT_LIST_HEAD(&(q->list));
 	q->p = p;
 	q->off = 0;
 	q->n = n;
@@ -64,14 +64,14 @@ static inline void init_queue(queue_t* q, filter_pipe_t *p, filter_t *n)
 
 static inline void queue_delete(queue_entry_t *qe)
 {
-	list_del(&qe->list);
+	glame_list_del(&qe->list);
 	sbuf_unref(qe->fb);
 	free(qe);
 }
 
 static inline void queue_add_delete(queue_entry_t *qe)
 {
-	list_del(&qe->list);
+	glame_list_del(&qe->list);
 	free(qe);
 }
 
@@ -82,9 +82,9 @@ static inline queue_entry_t *queue_add_tail(queue_t *q, filter_buffer_t *fb)
 	if (!fb)
 		return NULL;
 	qe = (struct queue_entry *)malloc(sizeof(struct queue_entry));
-	INIT_LIST_HEAD(&qe->list);
+	GLAME_INIT_LIST_HEAD(&qe->list);
 	qe->fb = fb;
-	list_add_tail(&qe->list, &q->list);
+	glame_list_add_tail(&qe->list, &q->list);
 	return qe;
 }
 
@@ -250,24 +250,24 @@ static inline void queue_add_drain(queue_t *q)
  * inside a filter.
  */
 
-typedef struct list_head feedback_fifo_t;
-#define INIT_FEEDBACK_FIFO(fifo) INIT_LIST_HEAD(&(fifo))
+typedef struct glame_list_head feedback_fifo_t;
+#define INIT_FEEDBACK_FIFO(fifo) GLAME_INIT_LIST_HEAD(&(fifo))
 
 struct fifo_entry {
-	struct list_head list;
+	struct glame_list_head list;
 	filter_buffer_t *fb;
 };
 
-#define has_feedback(fifo) (!list_empty(fifo))
+#define has_feedback(fifo) (!glame_list_empty(fifo))
 
 static inline void add_feedback(feedback_fifo_t *f, filter_buffer_t *fb)
 {
 	struct fifo_entry *e;
 
 	e = (struct fifo_entry *)malloc(sizeof(struct fifo_entry));
-	INIT_LIST_HEAD(&e->list);
+	GLAME_INIT_LIST_HEAD(&e->list);
 	e->fb = fb;
-	list_add_tail(&e->list, f);
+	glame_list_add_tail(&e->list, f);
 }
 
 static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
@@ -275,11 +275,11 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
 	struct fifo_entry *e;
 	filter_buffer_t *fb;
 
-	if (list_empty(f))
+	if (glame_list_empty(f))
 		return NULL;
-	e = list_entry(f->next, struct fifo_entry, list);
+	e = glame_list_entry(f->next, struct fifo_entry, list);
 	fb = e->fb;
-	list_del(&e->list);
+	glame_list_del(&e->list);
 	free(e);
 
 	return fb;

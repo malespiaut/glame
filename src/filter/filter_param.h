@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.18 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter_param.h,v 1.19 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -244,11 +244,11 @@ void filterparamdb_delete_param(filter_paramdb_t *db, const char *label);
  * second parameter as running variable). Note that you may not
  * delete parameters in this loop! 
  * filterparamdb_foreach_param(filter_paramdb_t *, filter_param_t *) {} */
-#define filterparamdb_foreach_param(pdb, i) list_foreach(&(pdb)->db.items, \
+#define filterparamdb_foreach_param(pdb, i) glame_list_foreach(&(pdb)->db.items, \
         filter_param_t, entry.list, i)
 
 /* Safe variant. Do not use inside filter _f method. */
-#define filterparamdb_safe_foreach_param(pdb, dummy, i) list_safe_foreach(&(pdb)->db.items, filter_param_t, entry.list, dummy, i)
+#define filterparamdb_safe_foreach_param(pdb, dummy, i) glame_list_safe_foreach(&(pdb)->db.items, filter_param_t, entry.list, dummy, i)
 
 /* To just query the number of parameters stored in a parameter
  * database use the following function. 

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.58 2001/08/07 09:14:17 richi Exp $
+ * $Id: swapfilegui.c,v 1.59 2001/09/17 11:47:12 nold Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -316,7 +316,7 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
  * (and delete the group itself). */
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	struct list_head *dummy;
+	struct glame_list_head *dummy;
 	gpsm_grp_t *group;
 	gpsm_item_t *i;
 

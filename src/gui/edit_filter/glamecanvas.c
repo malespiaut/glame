@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.25 2001/07/13 09:01:43 richi Exp $
+ * $Id: glamecanvas.c,v 1.26 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -202,7 +202,7 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	filter_foreach_node(network, node){
 	  /* FIXME this doesn't work?
 	  struct fconnection *c;
-	  list_foreach(&node->connections, struct fconnection, list, c) {
+	  glame_list_foreach(&node->connections, struct fconnection, list, c) {
 	    filter_t *f;
 	    
 	    if (strcmp(filter_name(node), c->source_filter) != 0) {

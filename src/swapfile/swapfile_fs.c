@@ -76,7 +76,7 @@ static struct {
 	char *files_base;
 	char *clusters_data_base;
 	char *clusters_meta_base;
-	struct list_head fds;
+	struct glame_list_head fds;
 	int fsck, ro, clean, panic;
 } swap = { NULL, NULL, NULL, };
 #define SWAPFILE_OK() (swap.files_base != NULL)
@@ -105,14 +105,14 @@ struct swfd;
 struct swfd {
 	struct swfd *next_swfd_hash;
 	struct swfd **pprev_swfd_hash;
-	struct list_head list;
+	struct glame_list_head list;
 	struct swfile *file;
 	swfd_t fd;
 	int mode;
 	s64 offset;          /* file pointer position */
 };
-#define list_add_swfd(fd) list_add(&(fd)->list, &swap.fds)
-#define list_del_swfd(fd) list_del_init(&(fd)->list)
+#define glame_list_add_swfd(fd) glame_list_add(&(fd)->list, &swap.fds)
+#define glame_list_del_swfd(fd) glame_list_del_init(&(fd)->list)
 HASH(swfd, struct swfd, 8,
      (swfd->fd == fd),
      (fd),
@@ -229,7 +229,7 @@ static int _swapfile_init(const char *name, int force)
 	swap.clusters_data_base = strdup(str);
 	snprintf(str, 255, "%s/clusters.meta", name);
 	swap.clusters_meta_base = strdup(str);
-	INIT_LIST_HEAD(&swap.fds);
+	GLAME_INIT_LIST_HEAD(&swap.fds);
 	swap.fsck = 0;
 	swap.ro = 0;
 	swap.clean = 1;
@@ -292,7 +292,7 @@ void swapfile_close()
 		return;
 
 	/* Close all files */
-	while ((f = list_gethead(&swap.fds, struct swfd, list))) {
+	while ((f = glame_list_gethead(&swap.fds, struct swfd, list))) {
 		sw_close(f->fd);
 	}
 
@@ -862,13 +862,13 @@ swfd_t sw_open(long name, int flags)
 	if (flags & O_TRUNC)
 		file_truncate(f, 0);
 
-	INIT_LIST_HEAD(&fd->list);
+	GLAME_INIT_LIST_HEAD(&fd->list);
 	hash_init_swfd(fd);
 	fd->file = f;
 	fd->fd = ((long)fd)>>2;
 	fd->mode = flags & (O_RDONLY|O_WRONLY|O_RDWR);
 	fd->offset = 0;
-	list_add_swfd(fd);
+	glame_list_add_swfd(fd);
 	hash_add_swfd(fd);
 	UNLOCK;
 
@@ -900,7 +900,7 @@ int sw_close(swfd_t fd)
 		return -1;
 	}
 	hash_remove_swfd(_fd);
-	list_del_swfd(_fd);
+	glame_list_del_swfd(_fd);
 	UNLOCK;
 	file_put(_fd->file, 0);
 	free(_fd);

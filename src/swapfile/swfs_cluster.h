@@ -40,7 +40,7 @@ struct swcluster {
 	 */
 	struct swcluster *next_swcluster_hash;
 	struct swcluster **pprev_swcluster_hash;
-	struct list_head lru;
+	struct glame_list_head lru;
 	long name;
 	int usage;     /* number of references to this struct cluster */
 
@@ -56,7 +56,7 @@ struct swcluster {
 
 	/* The fd is not always open - check for it (-1 if not).
 	 * Clusters with open files are in the fdlru list. */
-	struct list_head fdlru;
+	struct glame_list_head fdlru;
 	int fd;        /* cached fd of the on-disk _data_ */
 
 	/* Fields created out of the cluster metadata, if
@@ -73,7 +73,7 @@ struct swcluster {
 	 * by the global MAPPINGS lock. */
 	struct swcluster *next_mapping_hash;
 	struct swcluster **pprev_mapping_hash;
-	struct list_head maplru;
+	struct glame_list_head maplru;
 	char *map_addr;
 	int map_prot;
 	int map_cnt;

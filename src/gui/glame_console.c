@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.5 2001/07/13 09:01:43 richi Exp $
+ * $Id: glame_console.c,v 1.6 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -37,10 +37,10 @@ static GtkWidget *console = NULL;
 static GtkWidget *text = NULL;
 static GdkColor fore, back;
 struct history_entry {
-	struct list_head list;
+	struct glame_list_head list;
 	char *cmd;
 };
-static LIST_HEAD(history_list);
+static GLAME_LIST_HEAD(history_list);
 static int history_cnt = 0;
 static struct history_entry *history = NULL;
 static char *history_edited = NULL;
@@ -101,13 +101,13 @@ static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
 
 		/* add cmd to history and adjust current history pointer */
 		hentry = ALLOC(struct history_entry);
-		INIT_LIST_HEAD(&hentry->list);
+		GLAME_INIT_LIST_HEAD(&hentry->list);
 		hentry->cmd = strdup(cmd);
-		list_add(&hentry->list, &history_list);
+		glame_list_add(&hentry->list, &history_list);
 		if (++history_cnt > 128) {
-			hentry = list_gettail(&history_list,
+			hentry = glame_list_gettail(&history_list,
 					      struct history_entry, list);
-			list_del(&hentry->list);
+			glame_list_del(&hentry->list);
 			free(hentry->cmd);
 			free(hentry);
 		}
@@ -143,13 +143,13 @@ static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
 		}
 		hentry = NULL;
 		if (!history && event->keyval == GDK_Up)
-			hentry = list_gethead(&history_list,
+			hentry = glame_list_gethead(&history_list,
 					      struct history_entry, list);
 		else if (history && event->keyval == GDK_Up)
-			hentry = list_getnext(&history_list, history,
+			hentry = glame_list_getnext(&history_list, history,
 					      struct history_entry, list);
 		else if (history && event->keyval == GDK_Down)
-			hentry = list_getprev(&history_list, history,
+			hentry = glame_list_getprev(&history_list, history,
 					      struct history_entry, list);
 		if (hentry || event->keyval == GDK_Down)
 			history = hentry;

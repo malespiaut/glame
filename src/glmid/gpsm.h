@@ -169,7 +169,7 @@ typedef struct gpsm_swfile_s gpsm_swfile_t;
 #define GPSM_ITEM_IS_GRP(i) (((gpsm_item_t *)(i))->type == GPSM_ITEM_TYPE_GRP)
 #define GPSM_ITEM_IS_SWFILE(i) (((gpsm_item_t *)(i))->type == GPSM_ITEM_TYPE_SWFILE)
 struct gpsm_item_s {
-	struct list_head list;
+	struct glame_list_head list;
 	gpsm_grp_t *parent;
 	glsig_emitter_t emitter;
 	int type;
@@ -202,7 +202,7 @@ struct gpsm_grp_s {
          * items. The gpsm-item positions/sizes are unions of the
          * groups children. */
 	gpsm_item_t item;
-	struct list_head items;
+	struct glame_list_head items;
 };
 struct gpsm_swfile_s {
 	/* An gpsm-swfile is an item with additional information
@@ -225,11 +225,11 @@ struct gpsm_swfile_s {
 #define gpsm_item_hsize(item) (((gpsm_item_t *)item)->hsize)
 #define gpsm_item_vsize(item) (((gpsm_item_t *)item)->vsize)
 
-#define gpsm_grp_foreach_item(grp, item) list_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, item)
-#define gpsm_grp_safe_foreach_item(grp, dummy, item) list_safe_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, dummy, item)
-#define gpsm_grp_nritems(grp) list_count(&((gpsm_grp_t *)(grp))->items)
-#define gpsm_grp_first(grp) list_gethead(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list)
-#define gpsm_grp_next(grp, item) list_getnext(&((gpsm_grp_t *)(grp))->items, ((gpsm_item_t *)(item)), gpsm_item_t, list)
+#define gpsm_grp_foreach_item(grp, item) glame_list_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, item)
+#define gpsm_grp_safe_foreach_item(grp, dummy, item) glame_list_safe_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, dummy, item)
+#define gpsm_grp_nritems(grp) glame_list_count(&((gpsm_grp_t *)(grp))->items)
+#define gpsm_grp_first(grp) glame_list_gethead(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list)
+#define gpsm_grp_next(grp, item) glame_list_getnext(&((gpsm_grp_t *)(grp))->items, ((gpsm_item_t *)(item)), gpsm_item_t, list)
 
 #define gpsm_swfile_filename(swfile) (((gpsm_swfile_t *)swfile)->filename)
 #define gpsm_swfile_samplerate(swfile) (((gpsm_swfile_t *)swfile)->samplerate)

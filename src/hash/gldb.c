@@ -1,6 +1,6 @@
 /*
  * gldb.c
- * $Id: gldb.c,v 1.7 2000/12/12 17:11:24 richi Exp $
+ * $Id: gldb.c,v 1.8 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -25,9 +25,9 @@
 
 
 /* Item list wrappers. */
-#define list_add_item(i, db)   list_add(&(i)->list, &(db)->items)
-#define list_del_item(i)       list_del(&(i)->list)
-#define item_in_db(i)          (!list_empty(&(i)->list))
+#define glame_list_add_item(i, db)   glame_list_add(&(i)->list, &(db)->items)
+#define glame_list_del_item(i)       glame_list_del(&(i)->list)
+#define item_in_db(i)          (!glame_list_empty(&(i)->list))
 
 
 int _gldb_add_item(gldb_t *db, gldb_item_t *item, gldb_item_t *source, const char *label)
@@ -37,7 +37,7 @@ int _gldb_add_item(gldb_t *db, gldb_item_t *item, gldb_item_t *source, const cha
 	item->db = db;
 	if (!(item->label = strdup(label)))
 		return -1;
-	list_add_item(item, db);
+	glame_list_add_item(item, db);
 	if (db->ops->add(db, item, source) == -1) {
 		gldb_remove_item(item);
 		return -1;
@@ -48,14 +48,14 @@ int _gldb_add_item(gldb_t *db, gldb_item_t *item, gldb_item_t *source, const cha
 
 void gldb_init(gldb_t *db, struct gldb_ops *ops)
 {
-	INIT_LIST_HEAD(&db->items);
+	GLAME_INIT_LIST_HEAD(&db->items);
 	db->ops = ops;
 }
 
 void gldb_delete(gldb_t *db)
 {
 	gldb_item_t *item;
-	while ((item = list_gethead(&db->items, gldb_item_t, list)))
+	while ((item = glame_list_gethead(&db->items, gldb_item_t, list)))
 		gldb_delete_item(item);
 }
 
@@ -79,7 +79,7 @@ int gldb_copy(gldb_t *dest, gldb_t *source)
 
 void gldb_init_item(gldb_item_t *item)
 {
-	INIT_LIST_HEAD(&item->list);
+	GLAME_INIT_LIST_HEAD(&item->list);
 	item->db = NULL;
 	item->label = NULL;
 }
@@ -96,8 +96,8 @@ int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
 
 void gldb_remove_item(gldb_item_t *item)
 {
-	list_del_item(item);
-	INIT_LIST_HEAD(&item->list);
+	glame_list_del_item(item);
+	GLAME_INIT_LIST_HEAD(&item->list);
 	free((char *)item->label);
 	item->label = NULL;
 }

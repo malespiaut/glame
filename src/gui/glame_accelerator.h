@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.7 2001/07/30 08:27:08 richi Exp $
+ * $Id: glame_accelerator.h,v 1.8 2001/09/17 11:47:12 nold Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -76,7 +76,7 @@ struct accel;
 struct accel {
 	struct accel **pprev_accel_hash;
 	struct accel *next_accel_hash;
-	struct list_head list;
+	struct glame_list_head list;
 	guint state_mask;
 	guint state;
 	char *spec;
@@ -85,8 +85,8 @@ struct accel {
 
 /* Iterates (safe to delete actual item) through all available
  * bindings. */
-extern struct list_head _glame_accel_list;
-#define glame_accel_safe_foreach(dummy, accel) list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel)
+extern struct glame_list_head _glame_accel_list;
+#define glame_accel_safe_foreach(dummy, accel) glame_list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel)
 
 
 /* Installs a gtk signal handler to the specified widget which binds

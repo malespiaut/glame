@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.20 2001/08/03 08:34:06 richi Exp $
+ * $Id: glplugin.h,v 1.21 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -33,7 +33,7 @@
 
 
 typedef struct {
-	struct list_head list;   /* linkage in plugin list/hash */
+	struct glame_list_head list;   /* linkage in plugin list/hash */
 	struct hash_head hash;
 	void *nmspace;
 

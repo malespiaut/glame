@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.60 2001/08/11 15:15:53 richi Exp $
+ * $Id: file_io.c,v 1.61 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -93,7 +93,7 @@ PLUGIN_SET(file_io, "read_file write_file")
 
 
 typedef struct {
-	struct list_head list;
+	struct glame_list_head list;
 	int (*prepare)(filter_t *, const char *);
 	int (*connect)(filter_t *, filter_pipe_t *);
 	int (*f)(filter_t *);
@@ -156,8 +156,8 @@ typedef struct {
 #define RWM(node) (RWPRIV(node)->u.lame)
 
 /* the readers & the writers list */
-static struct list_head readers;
-static struct list_head writers;
+static struct glame_list_head readers;
+static struct glame_list_head writers;
 
 
 static rw_t *add_rw(int (*prepare)(filter_t *, const char *),
@@ -172,7 +172,7 @@ static rw_t *add_rw(int (*prepare)(filter_t *, const char *),
 		return NULL;
 	if (!(rw = ALLOC(rw_t)))
 		return NULL;
-	INIT_LIST_HEAD(&rw->list);
+	GLAME_INIT_LIST_HEAD(&rw->list);
 	rw->prepare = prepare;
 	rw->connect = connect;
 	rw->f = f;
@@ -191,7 +191,7 @@ static int add_reader(int (*prepare)(filter_t *, const char *),
 
 	if (!(rw = add_rw(prepare, connect, f, cleanup, NULL)))
 	        return -1;
-	list_add(&rw->list, &readers);
+	glame_list_add(&rw->list, &readers);
 	return 0;
 }
 static int add_writer(int (*f)(filter_t *), const char *regexp)
@@ -200,7 +200,7 @@ static int add_writer(int (*f)(filter_t *), const char *regexp)
 
 	if (!(rw = add_rw(NULL, NULL, f, NULL, regexp)))
 	        return -1;
-	list_add(&rw->list, &writers);
+	glame_list_add(&rw->list, &writers);
 	return 0;
 }
 
@@ -314,7 +314,7 @@ static int read_file_setup_param(filter_param_t *param, const void *val)
 		RWPRIV(n)->initted = 0;
 
 		/* search for applicable reader */
-		list_foreach(&readers, rw_t, list, r) {
+		glame_list_foreach(&readers, rw_t, list, r) {
 			if (r->prepare(n, filename) != -1) {
 				RWPRIV(n)->rw = r;
 				RWPRIV(n)->initted = 1;
@@ -375,7 +375,7 @@ static int write_file_setup_param(filter_param_t *param, const void *val)
 		return -1;
 
 	/* find applicable writer */
-	list_foreach(&writers, rw_t, list, w) {
+	glame_list_foreach(&writers, rw_t, list, w) {
 	        if (regcomp(&rx, w->regexp, REG_EXTENDED|REG_NOSUB) == -1)
 			continue;
 		if (regexec(&rx, *(const char **)val, 0, NULL, 0) == 0) {
@@ -467,8 +467,8 @@ int write_file_register(plugin_t *pl)
 
 int file_io_register(plugin_t *p)
 {
-	INIT_LIST_HEAD(&readers);
-	INIT_LIST_HEAD(&writers);
+	GLAME_INIT_LIST_HEAD(&readers);
+	GLAME_INIT_LIST_HEAD(&writers);
 #ifdef HAVE_LAME
 	add_reader(lame_read_prepare, lame_read_connect,
 		   lame_read_f, lame_read_cleanup);

@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.13 2001/07/30 08:20:08 richi Exp $
+ * $Id: glsignal.h,v 1.14 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -98,11 +98,11 @@ typedef struct glsig_handler glsig_handler_t;
 typedef void (glsig_callb_t)(glsig_handler_t *, long, va_list);
 
 struct glsig_emitter {
-	struct list_head handlers;
+	struct glame_list_head handlers;
 };
 
 struct glsig_handler {
-	struct list_head list;
+	struct glame_list_head list;
 
 	int flags;
 	long sigmask;
@@ -114,7 +114,7 @@ struct glsig_handler {
 
 
 #define INIT_GLSIG_EMITTER(emitter) do { \
-        INIT_LIST_HEAD(&(emitter)->handlers); \
+        GLAME_INIT_LIST_HEAD(&(emitter)->handlers); \
 } while (0)
 
 

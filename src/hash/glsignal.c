@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.14 2001/07/30 08:20:08 richi Exp $
+ * $Id: glsignal.c,v 1.15 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -59,9 +59,9 @@ static inline void _glsig_handler_exec(glsig_handler_t *h,
 static inline void _glsig_after_emit(glsig_emitter_t *e)
 {
 	glsig_handler_t *h;
-	struct list_head *dummy;
+	struct glame_list_head *dummy;
 
-	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
+	glame_list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
 		if (!h->handler && !(h->flags & GLSIG_HANDLER_RUNNING))
 			glsig_delete_handler(h);
 }
@@ -71,7 +71,7 @@ static void glsig_redirector(glsig_handler_t *h, long sig, va_list va)
 {
 	glsig_emitter_t *dest = (glsig_emitter_t *)glsig_handler_private(h);
 
-	list_foreach(&dest->handlers, glsig_handler_t, list, h)
+	glame_list_foreach(&dest->handlers, glsig_handler_t, list, h)
 		_glsig_handler_exec(h, sig, va);
 	_glsig_after_emit(dest);
 }
@@ -86,12 +86,12 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 		return NULL;
 	if (!(h = ALLOC(glsig_handler_t)))
 		return NULL;
-	INIT_LIST_HEAD(&h->list);
+	GLAME_INIT_LIST_HEAD(&h->list);
 	h->flags = 0;
 	h->sigmask = sigmask;
 	h->handler = handler;
 	h->priv = priv;
-	list_add(&h->list, &emitter->handlers);
+	glame_list_add(&h->list, &emitter->handlers);
 
 	return h;
 }
@@ -114,7 +114,7 @@ int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source)
 {
 	glsig_handler_t *h;
 
-	list_foreach(&source->handlers, glsig_handler_t, list, h) {
+	glame_list_foreach(&source->handlers, glsig_handler_t, list, h) {
 		if (h->flags & GLSIG_HANDLER_NOCOPY)
 			continue;
 		if (h->handler == glsig_redirector)
@@ -130,7 +130,7 @@ int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source)
 {
 	glsig_handler_t *h;
 
-	list_foreach(&source->handlers, glsig_handler_t, list, h) {
+	glame_list_foreach(&source->handlers, glsig_handler_t, list, h) {
 		if (h->flags & GLSIG_HANDLER_NOCOPY)
 			continue;
 		if (h->handler != glsig_redirector)
@@ -149,16 +149,16 @@ void glsig_delete_handler(glsig_handler_t *h)
 		h->handler = NULL;
 		return;
 	}
-	list_del(&h->list);
+	glame_list_del(&h->list);
 	free(h);
 }
 
 void glsig_delete_all(glsig_emitter_t *e)
 {
 	glsig_handler_t *h;
-	struct list_head *dummy;
+	struct glame_list_head *dummy;
 
-	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
+	glame_list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
 		glsig_delete_handler(h);
 }
 
@@ -180,7 +180,7 @@ void glsig_emit(glsig_emitter_t *e, long sig, ...)
 	va_list va;
 
 	va_start(va, sig);
-	list_foreach(&e->handlers, glsig_handler_t, list, h)
+	glame_list_foreach(&e->handlers, glsig_handler_t, list, h)
 		_glsig_handler_exec(h, sig, va);
 	va_end(va);
 

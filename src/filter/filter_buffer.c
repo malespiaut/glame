@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.31 2001/05/23 12:33:58 richi Exp $
+ * $Id: filter_buffer.c,v 1.32 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -62,9 +62,9 @@ void fbuf_unref(filter_buffer_t *fb)
 		DERROR("unrefing buffer without a reference");
 
 	if (atomic_dec_and_test(&fb->refcnt)) {
-	    	if (!list_empty(&fb->list)) {
+	    	if (!glame_list_empty(&fb->list)) {
 	    		pthread_mutex_lock(&listmx);
-			list_del(&fb->list);
+			glame_list_del(&fb->list);
 			pthread_mutex_unlock(&listmx);
 		}
 		ATOMIC_RELEASE(fb->refcnt);
@@ -72,7 +72,7 @@ void fbuf_unref(filter_buffer_t *fb)
 	}
 }
 
-filter_buffer_t *fbuf_alloc(int size, struct list_head *list)
+filter_buffer_t *fbuf_alloc(int size, struct glame_list_head *list)
 {
 	filter_buffer_t *fb;
 
@@ -81,10 +81,10 @@ filter_buffer_t *fbuf_alloc(int size, struct list_head *list)
 
 	fb->size = size;
 	ATOMIC_INIT(fb->refcnt, 1);
-	INIT_LIST_HEAD(&fb->list);
+	GLAME_INIT_LIST_HEAD(&fb->list);
 	if (list) {
 	    	pthread_mutex_lock(&listmx);
-		list_add(&fb->list, list);
+		glame_list_add(&fb->list, list);
 	    	pthread_mutex_unlock(&listmx);
 	}
 
@@ -94,7 +94,7 @@ filter_buffer_t *fbuf_alloc(int size, struct list_head *list)
 filter_buffer_t *fbuf_realloc(filter_buffer_t *fb, int size)
 {
     	filter_buffer_t *newfb;
-	struct list_head *list = NULL;
+	struct glame_list_head *list = NULL;
 
 	if (!fb)
 	    	return NULL;
@@ -108,23 +108,23 @@ filter_buffer_t *fbuf_realloc(filter_buffer_t *fb, int size)
 	    	DERROR("trying to realloc a buffer without a reference");
 
 	if (ATOMIC_VAL(fb->refcnt) == 1) {
-		if (!list_empty(&fb->list)) {
+		if (!glame_list_empty(&fb->list)) {
 	    		pthread_mutex_lock(&listmx);
 	   		list = fb->list.prev;
-	    		list_del(&fb->list);
+	    		glame_list_del(&fb->list);
 		}
 	    	ATOMIC_RELEASE(fb->refcnt);
 	    	if (!(newfb = realloc(fb, sizeof(filter_buffer_t) + size))) {
 		    	ATOMIC_INIT(fb->refcnt, 1);
 			if (list) {
-				list_add(&fb->list, list);
+				glame_list_add(&fb->list, list);
 				pthread_mutex_unlock(&listmx);
 			}
 		    	return NULL;
 		}
 		ATOMIC_INIT(newfb->refcnt, 1);
 		if (list) {
-			list_add(&newfb->list, list);
+			glame_list_add(&newfb->list, list);
 			pthread_mutex_unlock(&listmx);
 		}
 	} else {
@@ -277,13 +277,13 @@ void fbuf_drain(filter_pipe_t *p)
 }
 
 /* Externally locked against concurrent access of list. */
-void fbuf_free_buffers(struct list_head *list)
+void fbuf_free_buffers(struct glame_list_head *list)
 {
 	filter_buffer_t *fb;
 	int nr_freed = 0;
 
-	while (!list_empty(list)) {
-		fb = list_gethead(list, filter_buffer_t, list);
+	while (!glame_list_empty(list)) {
+		fb = glame_list_gethead(list, filter_buffer_t, list);
 		if (ATOMIC_VAL(fb->refcnt) == 0)
 			DERROR("buffer without reference still in buffer list");
 		atomic_set(&fb->refcnt, 1);

@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.12 2001/07/31 16:16:52 mag Exp $
+ * $Id: glame_gui_utils.c,v 1.13 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -298,12 +298,12 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
  */
 
 typedef struct {
-	struct list_head list;
+	struct glame_list_head list;
 	int is_category;
 	union {
 		struct {
 			char *name;
-			struct list_head list;
+			struct glame_list_head list;
 		} c;
 		struct {
 			plugin_t *plugin;
@@ -311,7 +311,7 @@ typedef struct {
 	} u;
 } ggbpm_entry;
 static ggbpm_entry *
-glame_gui_build_plugin_menu_get_cat(struct list_head *cats,
+glame_gui_build_plugin_menu_get_cat(struct glame_list_head *cats,
 				    const char *catname)
 {
 	ggbpm_entry *cat;
@@ -323,28 +323,28 @@ glame_gui_build_plugin_menu_get_cat(struct list_head *cats,
 		*p = '\0';
 
 	/* Search for old category. */
-	cat = list_gethead(cats, ggbpm_entry, list);
+	cat = glame_list_gethead(cats, ggbpm_entry, list);
 	while (cat) {
 		if (strcmp(cat->u.c.name, catn) == 0)
 			goto recurse;
-		cat = list_getnext(cats, cat, ggbpm_entry, list);
+		cat = glame_list_getnext(cats, cat, ggbpm_entry, list);
 	}
 
 	/* Ok, need to create new one. */
 	cat = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
-	INIT_LIST_HEAD(&cat->list);
+	GLAME_INIT_LIST_HEAD(&cat->list);
 	cat->is_category = 1;
 	cat->u.c.name = strdup(catn);
-	INIT_LIST_HEAD(&cat->u.c.list);
+	GLAME_INIT_LIST_HEAD(&cat->u.c.list);
 
-	before = list_gethead(cats, ggbpm_entry, list);
+	before = glame_list_gethead(cats, ggbpm_entry, list);
 	while (before
 	       && strcasecmp(cat->u.c.name, before->u.c.name) > 0)
-		before = list_getnext(cats, before, ggbpm_entry, list);
+		before = glame_list_getnext(cats, before, ggbpm_entry, list);
 	if (!before)
-		list_add_tail(&cat->list, cats);
+		glame_list_add_tail(&cat->list, cats);
 	else
-		list_add_tail(&cat->list, &before->list);
+		glame_list_add_tail(&cat->list, &before->list);
 
  recurse:
 	if (!p)
@@ -352,7 +352,7 @@ glame_gui_build_plugin_menu_get_cat(struct list_head *cats,
 	return glame_gui_build_plugin_menu_get_cat(&cat->u.c.list, p+1);
 }
 static void
-glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
+glame_gui_build_plugin_menu_add_item(struct glame_list_head *cats, plugin_t *plugin)
 {
 	ggbpm_entry *entry;
 	ggbpm_entry *cat;
@@ -361,7 +361,7 @@ glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
 
 	/* Create entry for plugin with catname */
 	entry = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
-	INIT_LIST_HEAD(&entry->list);
+	GLAME_INIT_LIST_HEAD(&entry->list);
 	entry->is_category = 0;
 	entry->u.p.plugin = plugin;
 	if (!(catname = plugin_query(plugin, PLUGIN_CATEGORY)))
@@ -371,25 +371,25 @@ glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
 	cat = glame_gui_build_plugin_menu_get_cat(cats, catname);
 
 	/* Add the entry. */
-	before = list_gethead(&cat->u.c.list, ggbpm_entry, list);
+	before = glame_list_gethead(&cat->u.c.list, ggbpm_entry, list);
 	while (before
 	       && strcasecmp(plugin_name(entry->u.p.plugin),
 		             before->is_category
 			       ? before->u.c.name
 			       : plugin_name(before->u.p.plugin)) > 0)
-		before = list_getnext(&cat->u.c.list, before, ggbpm_entry, list);
+		before = glame_list_getnext(&cat->u.c.list, before, ggbpm_entry, list);
 	if (!before)
-		list_add_tail(&entry->list, &cat->u.c.list);
+		glame_list_add_tail(&entry->list, &cat->u.c.list);
 	else
-		list_add_tail(&entry->list, &before->list);
+		glame_list_add_tail(&entry->list, &before->list);
 }
 static void
-glame_gui_build_plugin_menu_genmenu(struct list_head *entries, GtkMenu *menu,
+glame_gui_build_plugin_menu_genmenu(struct glame_list_head *entries, GtkMenu *menu,
 				    void (*gtksighand)(GtkWidget *, plugin_t *))
 {
 	ggbpm_entry *entry;
 
-	while ((entry = list_gethead(entries, ggbpm_entry, list))) {
+	while ((entry = glame_list_gethead(entries, ggbpm_entry, list))) {
 		if (entry->is_category) {
 			GtkWidget *citem = gtk_menu_item_new_with_label(
 				entry->u.c.name);
@@ -416,7 +416,7 @@ glame_gui_build_plugin_menu_genmenu(struct list_head *entries, GtkMenu *menu,
 					gtksighand, entry->u.p.plugin);
 			gtk_widget_show(mitem);
 		}
-		list_del(&entry->list);
+		glame_list_del(&entry->list);
 		free(entry);
 	}
 }
@@ -428,7 +428,7 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 {
 	GtkWidget *menu;
 	plugin_t *plugin = NULL;
-	LIST_HEAD(categories);
+	GLAME_LIST_HEAD(categories);
 
 	/* Build tree of selected categories/plugins. */
 	while ((plugin = plugin_next(plugin))) {

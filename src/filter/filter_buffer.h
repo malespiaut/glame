@@ -3,7 +3,7 @@
 
 /*
  * filter_buffer.h
- * $Id: filter_buffer.h,v 1.7 2001/01/03 09:28:38 richi Exp $
+ * $Id: filter_buffer.h,v 1.8 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -31,7 +31,7 @@
 /* Filter buffer structure. Only to be accessed using the
  * below defined access macros. */
 struct filter_buffer {
-	struct list_head list;
+	struct glame_list_head list;
         glame_atomic_t refcnt;
 	int size;              /* size of buffer in bytes */
 	char buf[1];
@@ -68,7 +68,7 @@ static inline char *fbuf_buf(filter_buffer_t *fb)
  * at free time).
  * Until the first time you queue the buffer the buffer is writable
  * i.e. private to you - see fbuf_make_private for further advice. */
-filter_buffer_t *fbuf_alloc(int size, struct list_head *list);
+filter_buffer_t *fbuf_alloc(int size, struct glame_list_head *list);
 
 /* fbuf_realloc can be an optimization if you need to resize an
  * existing buffer. For shrinking an already private buffer it is

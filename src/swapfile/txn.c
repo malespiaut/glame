@@ -32,14 +32,14 @@
 /* Global state.
  */
 static txnid_t _txn_id = 0;
-static LIST_HEAD(_txn_list);
+static GLAME_LIST_HEAD(_txn_list);
 
 
 /* Convenience.
  */
 #define _txn_is_active(t) (((t)->parent && (t)->parent->active == (t)) || (t)->active)
-#define _txn_is_unused(t) (!(t)->op && list_empty(&(t)->childs))
-#define txn_foreach_child_backward(transaction, childvar) for ((childvar) = list_entry((transaction)->childs.prev, struct txn, list); &(childvar)->list != &(transaction)->childs; (childvar) = list_entry((childvar)->list.prev, struct txn, list))
+#define _txn_is_unused(t) (!(t)->op && glame_list_empty(&(t)->childs))
+#define txn_foreach_child_backward(transaction, childvar) for ((childvar) = glame_list_entry((transaction)->childs.prev, struct txn, list); &(childvar)->list != &(transaction)->childs; (childvar) = glame_list_entry((childvar)->list.prev, struct txn, list))
 
 
 /* Transaction id hash.
@@ -82,21 +82,21 @@ struct txn *_txn_start(struct txn *parent)
 	hash_init_txn(t);
 	t->id = ++_txn_id;
 	t->parent = parent;
-	INIT_LIST_HEAD(&t->list);
+	GLAME_INIT_LIST_HEAD(&t->list);
 	if (parent)
 		t->root = parent->root;
 	else
 		t->root = t;
-	INIT_LIST_HEAD(&t->childs);
+	GLAME_INIT_LIST_HEAD(&t->childs);
 	t->active = NULL;
 	t->op = NULL;
 	
 	/* link to parent (or global txn list) and hash */
 	if (parent) {
-		list_add(&t->list, &parent->childs);
+		glame_list_add(&t->list, &parent->childs);
 		parent->active = t;
 	} else {
-		list_add(&t->list, &_txn_list);
+		glame_list_add(&t->list, &_txn_list);
 	}
 	LOCK;
 	hash_add_txn(t);
@@ -153,10 +153,10 @@ void _txn_delete(struct txn *t)
 	LOCK;
 	hash_remove_txn(t);
 	UNLOCK;
-	list_del(&t->list);
+	glame_list_del(&t->list);
 
 	/* recursively delete child transactions */
-	while ((ct = list_gethead(&t->childs, struct txn, list)))
+	while ((ct = glame_list_gethead(&t->childs, struct txn, list)))
 		_txn_delete(ct);
 
 	/* delete self */
@@ -244,7 +244,7 @@ int txn_end(txnid_t id)
 		LOCK;
 		hash_remove_txn(t);
 		UNLOCK;
-		list_del(&t->list);
+		glame_list_del(&t->list);
 		free(t);
 		return 0;
 	}

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.55 2001/08/08 09:15:09 richi Exp $
+ * $Id: filter.c,v 1.56 2001/09/17 11:47:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,9 +47,9 @@ int GLAME_WBUFSIZE = 1024;
 /* filter sub-nodes hash/list addition/removal. */
 #define hash_add_node(node) _hash_add(&(node)->hash, _hash((node)->name, \
         (node)->net))
-#define list_add_node(node) list_add(&(node)->list, &(node)->net->nodes);
+#define glame_list_add_node(node) glame_list_add(&(node)->list, &(node)->net->nodes);
 #define hash_remove_node(node) _hash_remove(&(node)->hash)
-#define list_remove_node(node) list_del(&(node)->list)
+#define glame_list_remove_node(node) glame_list_del(&(node)->list)
 
 
 
@@ -57,7 +57,7 @@ int GLAME_WBUFSIZE = 1024;
  */
 
 /* "iterator" for filter sub-nodes deletion. */
-#define filter_first_node(net) list_gethead(&(net)->nodes, \
+#define filter_first_node(net) glame_list_gethead(&(net)->nodes, \
         filter_t, list)
 
 /* Allocate pristine filternode/network. */
@@ -72,7 +72,7 @@ filter_t *_filter_alloc()
 
 	f->net = NULL;
 	INIT_HASH_HEAD(&f->hash);
-	INIT_LIST_HEAD(&f->list);
+	GLAME_INIT_LIST_HEAD(&f->list);
 	f->name = NULL;
 
 	f->plugin = NULL;
@@ -94,11 +94,11 @@ filter_t *_filter_alloc()
 	glsdb_init(&f->properties);
 
 	f->state = STATE_UNDEFINED;
-	INIT_LIST_HEAD(&f->buffers);
+	GLAME_INIT_LIST_HEAD(&f->buffers);
 
 	f->nr_nodes = 0;
-	INIT_LIST_HEAD(&f->nodes);
-	INIT_LIST_HEAD(&f->connections);
+	GLAME_INIT_LIST_HEAD(&f->nodes);
+	GLAME_INIT_LIST_HEAD(&f->connections);
 	f->launch_context = NULL;
 
 	return f;
@@ -116,7 +116,7 @@ void _filter_free(filter_t *f)
 
 	while ((n = filter_first_node(f))) {
 		hash_remove_node(n);
-		list_remove_node(n);
+		glame_list_remove_node(n);
 		_filter_free(n);
 	}
 
@@ -171,7 +171,7 @@ filter_t *_filter_instantiate(filter_t *f)
 	/* second create the connections (loop through all outputs)
 	 * and copy pipe parameters */
 	filter_foreach_node(f, node) {
-		list_foreach(&node->connections, filter_pipe_t, list, c) {
+		glame_list_foreach(&node->connections, filter_pipe_t, list, c) {
 			source = filter_get_node(n, c->source_filter);
 			dest = filter_get_node(n, c->dest_filter);
 			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), c->source_port),
@@ -247,7 +247,7 @@ void filter_delete(filter_t *f)
 		return;
 
 	if (FILTER_IS_PART_OF_NETWORK(f)) {
-		list_remove_node(f);
+		glame_list_remove_node(f);
 		hash_remove_node(f);
 		f->net->nr_nodes--;
 	}
@@ -295,7 +295,7 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name)
 		return -1;
 	_filter_fixup(node);
 	hash_add_node(node);
-	list_add_node(node);
+	glame_list_add_node(node);
 	net->nr_nodes++;
 	_filter_fixup(net);
 
@@ -446,7 +446,7 @@ char *filter_to_string(filter_t *net)
 	/* iterate over all connections and create connect
 	 * commands. */
 	filter_foreach_node(net, n) {
-		list_foreach(&n->connections, filter_pipe_t, list, c) {
+		glame_list_foreach(&n->connections, filter_pipe_t, list, c) {
 			len += sprintf(&buf[len], "   (let ((pipe (filter-connect %s \"%s\" %s \"%s\")))\n",
 				       c->source_filter, c->source_port,
 				       c->dest_filter, c->dest_port);
