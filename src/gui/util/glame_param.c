@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.11 2001/12/13 14:53:24 richi Exp $
+ * $Id: glame_param.c,v 1.12 2001/12/16 14:22:47 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -255,8 +255,6 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 
 static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 {
-	GtkWidget *act;
-	GList *list;
 	int res = -1, val;
 
 	if (gparam->updating)
@@ -264,19 +262,8 @@ static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 
 	gparam->updating = 1;
 
-	/* Doh - GTK suxx again. */
-	act = gtk_menu_get_active(menu);
-	DPRINTF("Menu %p - Active %p\n", menu, act);
-	list = gtk_container_children(GTK_CONTAINER(menu));
-	val = 0;
-	while (list) {
-		DPRINTF("%i - %p\n", val, list->data);
-		if ((GtkWidget *)(list->data) == act)
-			break;
-		list = g_list_next(list);
-		val++;
-	}
-	if (list) {
+	val = glame_menu_get_active_index(menu);
+	if (val != -1) {
 		DPRINTF("Setting %s to %i\n", filterparam_label(gparam->param), val);
 		res = filterparam_set(gparam->param, &val);
 	} else

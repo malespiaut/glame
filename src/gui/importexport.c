@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.7 2001/12/10 08:50:46 mag Exp $
+ * $Id: importexport.c,v 1.8 2001/12/16 14:22:47 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -830,18 +830,8 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
 	GList *list;
 	int val;
 
-	act = gtk_menu_get_active(menu);
-	DPRINTF("Menu %p - Active %p\n", menu, act);
-	list = gtk_container_children(GTK_CONTAINER(menu));
-	val = 0;
-	while (list) {
-		DPRINTF("%i - %p\n", val, list->data);
-		if ((GtkWidget *)(list->data) == act)
-			break;
-		list = g_list_next(list);
-		val++;
-	}
-	if ((list) && (val>0)) {
+	val = glame_menu_get_active_index(menu);
+	if (val>0) {
 		make_comp_menu(ie, ie->indices[val-1]);
 		ie->filetype=val;
 	} else {
