@@ -460,6 +460,12 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
+	/* Bad and ugly fade hack, but you know there a gimps of audio
+	 * and soundforges of linux and they just do want you want */
+	if (strcmp(plugin_name(plugin),"fade")==0)
+		filterparam_set(filterparamdb_get_param(filter_paramdb(effect), "size"), 
+				&length);
+	
 	if (filterparamdb_nrparams(filter_paramdb(effect)) > 0) {
 		prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
 		ok_pressed = FALSE;
