@@ -7,7 +7,7 @@ EXTRA_DIST = glame.desktop default-accels \
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if BUILD_GUI
-bin_PROGRAMS = glame glame2
+bin_PROGRAMS = glame
 #bin_PROGRAMS = wavetest timeline
 Multimedia_DATA = glame.desktop
 endif
@@ -15,35 +15,6 @@ endif
 pkgdata_DATA = default-accels
 
 BUILT_SOURCES = edit_filter/edit_filter_marshal.h edit_filter/edit_filter_marshal.c
-
-glame2_SOURCES = \
-	libgtkwaveform/grange.c libgtkwaveform/grange.h \
-	libgtkwaveform/gwavefile.c libgtkwaveform/gwavefile.h \
-	libgtkwaveform/gtkwavebuffer.c libgtkwaveform/gtkwavebuffer.h \
-	libgtkwaveform/gtkeditablewavebuffer.c libgtkwaveform/gtkeditablewavebuffer.h \
-	libgtkwaveform/gtkwaveview.c libgtkwaveform/gtkwaveview.h \
-	libgtkwaveform/gtkswapfilebuffer.c libgtkwaveform/gtkswapfilebuffer.h \
-	\
-	util/glame_gui_utils.c util/glame_gui_utils.h \
-	util/glame_curve.c util/glame_curve.h \
-	util/glame_param.c util/glame_param.h \
-	util/glame_ruler.c util/glame_ruler.h util/glame_hruler.c util/glame_hruler.h \
-	util/gtknob.c util/gtknob.h \
-	\
-	edit_filter/canvasfilter.c edit_filter/canvaspipe.c edit_filter/canvasport.c \
-	edit_filter/glamecanvas.c edit_filter/canvasitem.h edit_filter/glamecanvas.h \
-	edit_filter/filtereditgui.c edit_filter/filtereditgui.h \
-	edit_filter/edit_filter_marshal.h edit_filter/edit_filter_marshal.c \
-	\
-	timeline/timeline_canvas.h timeline/timeline_canvas.c \
-	timeline/timeline.h timeline/timeline.c \
-	\
-	glame_accelerator.c glame_accelerator.h \
-	glame_console.c glame_console.h \
-	main2.cpp \
-	tree/gltree.h tree/gltree.c \
-	tree/gpsmstore.h tree/gpsmstore.c \
-	waveeditgui.c waveeditgui.h apply.c importexport.c importexport.h
 
 glame_SOURCES = \
 	libgtkwaveform/grange.c libgtkwaveform/grange.h \
@@ -70,7 +41,8 @@ glame_SOURCES = \
 	glame_accelerator.c glame_accelerator.h \
 	glame_console.c glame_console.h \
 	main.c \
-	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
+	tree/gltree.h tree/gltree.c \
+	tree/gpsmstore.h tree/gpsmstore.c \
 	waveeditgui.c waveeditgui.h apply.c importexport.c importexport.h
 
 glame_LDADD =  \
@@ -83,17 +55,6 @@ glame_LDADD =  \
 	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) \
 	-lm $(LIBLTDL) $(LIBINTL)
 glame_LDFLAGS = -export-dynamic -dlopen self
-
-glame2_LDADD =  \
-	../glmid/libglmid.la \
-	../plugins/libglamebuiltins.la \
-	../glmid/libglameaudiofile.la \
-	../filter/libfilter.la \
-	../hash/libhash.la \
-	../swapfile/libswapfile.la \
-	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) \
-	-lm $(LIBLTDL) $(LIBINTL)
-glame2_LDFLAGS = -export-dynamic -dlopen self
 
 edit_filter/edit_filter_marshal.h: edit_filter/edit_filter_marshal.list
 	( @GLIB_GENMARSHAL@ --prefix=edit_filter_marshal edit_filter/edit_filter_marshal.list --header > edit_filter_marshal.tmp \

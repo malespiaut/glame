@@ -1,9 +1,9 @@
 /*
- * main.c
+ * main2.cpp
  *
- * $Id: main.c,v 1.120 2004/03/28 21:44:01 richi Exp $
+ * $Id: main.c,v 1.121 2004/07/08 20:51:49 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche, Richard Guenther
+ * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,16 @@
 #include <config.h>
 #endif
 
+#include <gnome.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <gnome.h>
 #ifdef HAVE_LIBGLADE
 #include <glade/glade.h>
 #endif
+#include <libintl.h>
 #include "swapfile.h"
 #include "glmid.h"
-#include "swapfilegui.h"
+#include "tree/gltree.h"
 #include "waveeditgui.h"
 #include "timeline/timeline.h"
 #include "edit_filter/filtereditgui.h"
@@ -48,230 +49,226 @@
 #include "glconfig.h"
 #include "importexport.h"
 
+
+/* Stuff we reference/export from/to our C modules.  */
 /* HACK */
-extern void swcluster_set_cache(int, int, int, size_t);
+void swcluster_set_cache(int, int, int, size_t);
 
-
-/* Globals. */
-static GtkWidget *swapfile;
-static GtkWidget *app;
 GtkWidget *glame_appbar;
 
 extern long nPopupTimeout;
 extern long bMac;
 
-/* Forward declarations. */
-static void create_new_project_cb(GtkWidget *menu, void * blah);
-static void edit_file_cb(GtkWidget *menu, void *data);
-static void import_cb(GtkWidget *menu, void *data);
-static void show_console_cb(GtkWidget *menu, void *blah);
-static void emptytrash_cb(GtkWidget *menu, void *blah);
-static void sync_cb(GtkWidget *menu, void *blah);
-static void gui_quit(GtkWidget *widget, gpointer data);
-static int preferences_cb(GtkWidget *menu,void *blah);
-static GtkWidget* glame_about(void);
-/* Menus. */
-static GnomeUIInfo swapfile_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), N_("Creates a new Project group"), create_new_project_cb, NULL),
-	GNOMEUIINFO_ITEM (N_("Edit File..."), N_("Imports a file and opens the waveedit window"), edit_file_cb, NULL),
-	GNOMEUIINFO_ITEM (N_("Import..."), N_("Imports a file"), import_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM (N_("Empty [deleted]"), N_("Kills [deleted] folder"), emptytrash_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM (N_("Show _console"), N_("Shows the GLAME console"), show_console_cb, NULL),
-	GNOMEUIINFO_ITEM (N_("Sync"), N_("Syncs meta to disk"), sync_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
-	GNOMEUIINFO_END
-};
+/* Globals. */
+static GtkWidget *swapfile;
+static GtkWidget *app;
 
-static void new_network_cb(GtkWidget *menu, void *blah);
-extern void glame_load_network(GtkWidget *bla, void *blu);
+/* Forward declarations. */ 
+ static void create_new_project_cb(GtkWidget *menu, void * blah); 
+ static void edit_file_cb(GtkWidget *menu, void *data); 
+ static void import_cb(GtkWidget *menu, void *data); 
+ static void show_console_cb(GtkWidget *menu, void *blah); 
+ static void emptytrash_cb(GtkWidget *menu, void *blah); 
+ static void sync_cb(GtkWidget *menu, void *blah); 
+ static void gui_quit(GtkWidget *widget, gpointer data); 
+ static int preferences_cb(GtkWidget *menu,void *blah); 
+ static GtkWidget* glame_about(void); 
+/* Menus. */
+ static GnomeUIInfo swapfile_menu_uiinfo[] = { 
+ 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), N_("Creates a new Project group"), create_new_project_cb, NULL), 
+ 	GNOMEUIINFO_ITEM (N_("Edit File..."), N_("Imports a file and opens the waveedit window"), edit_file_cb, NULL), 
+ 	GNOMEUIINFO_ITEM (N_("Import..."), N_("Imports a file"), import_cb, NULL), 
+ 	GNOMEUIINFO_SEPARATOR, 
+ 	GNOMEUIINFO_ITEM (N_("Empty [deleted]"), N_("Kills [deleted] folder"), emptytrash_cb, NULL), 
+ 	GNOMEUIINFO_SEPARATOR, 
+ 	GNOMEUIINFO_ITEM (N_("Show _console"), N_("Shows the GLAME console"), show_console_cb, NULL), 
+ 	GNOMEUIINFO_ITEM (N_("Sync"), N_("Syncs meta to disk"), sync_cb, NULL), 
+ 	GNOMEUIINFO_SEPARATOR, 
+ 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL), 
+ 	GNOMEUIINFO_END 
+ }; 
+
+static void new_network_cb(GtkWidget *menu, void *blah); 
+void glame_load_network(GtkWidget *bla, void *blu);
 static void load_plugin_cb(GtkWidget* foo, void *bar);
-static GnomeUIInfo filter_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM(N_("New Filternetwork"), N_("Creates a new filternetwork"), new_network_cb, NULL),
-	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Load Plugin"),N_("Loads and registers a plugin"), load_plugin_cb,NULL),
-	GNOMEUIINFO_END
-};
+static GnomeUIInfo filter_menu_uiinfo[] = { 
+ 	GNOMEUIINFO_MENU_NEW_ITEM(N_("New Filternetwork"), N_("Creates a new filternetwork"), new_network_cb, NULL), 
+	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network, NULL), 
+ 	GNOMEUIINFO_SEPARATOR, 
+ 	GNOMEUIINFO_ITEM(N_("Load Plugin"),N_("Loads and registers a plugin"), load_plugin_cb,NULL),
+ 	GNOMEUIINFO_END 
+ };
 
 static GnomeUIInfo help_menu_uiinfo[] =
-{
-	GNOMEUIINFO_ITEM_DATA(N_("_Help"),N_("Opens a gnome help browser"),glame_help_goto,"info:glame",NULL),
-	GNOMEUIINFO_ITEM_DATA(N_("Quick Start Guide"), N_("Opens a gnome help browser with the quick start guide"), glame_help_goto, "info:glame#Quick_Start_Guide", NULL),
-	GNOMEUIINFO_ITEM_DATA(N_("List key-bindings"), N_("Lists the current key-bindings"), glame_accel_widget_data_cb, "list_keybindings", NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
-	GNOMEUIINFO_END
-};
+{ 
+	GNOMEUIINFO_ITEM_DATA(N_("_Help"),N_("Opens a gnome help browser"),glame_help_goto,(gpointer)"info:glame",NULL), 
+ 	GNOMEUIINFO_ITEM_DATA(N_("Quick Start Guide"), N_("Opens a gnome help browser with the quick start guide"), glame_help_goto, (gpointer)"info:glame#Quick_Start_Guide", NULL), 
+ 	GNOMEUIINFO_ITEM_DATA(N_("List key-bindings"), N_("Lists the current key-bindings"), glame_accel_widget_data_cb, (gpointer)"list_keybindings", NULL), 
+ 	GNOMEUIINFO_SEPARATOR, 
+ 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL), 
+ 	GNOMEUIINFO_END 
+}; 
 
-static GnomeUIInfo glame_setting_uiinfo[] =
-{
-        GNOMEUIINFO_MENU_PREFERENCES_ITEM (preferences_cb, NULL),
-        GNOMEUIINFO_END
-};
-
-
-static GnomeUIInfo menubar_uiinfo[] =
-{
-  {
-    GNOME_APP_UI_SUBTREE, N_("_Project"),
-    NULL,
-    swapfile_menu_uiinfo, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, 0, NULL
-  },
-  {
-    GNOME_APP_UI_SUBTREE, N_("_Filternetwork"),
-    NULL,
-    filter_menu_uiinfo, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, 0, NULL
-  },
-  GNOMEUIINFO_MENU_SETTINGS_TREE (glame_setting_uiinfo),
-  GNOMEUIINFO_MENU_HELP_TREE (help_menu_uiinfo),
-  GNOMEUIINFO_END
-};
+static GnomeUIInfo glame_setting_uiinfo[] = 
+{ 
+        GNOMEUIINFO_MENU_PREFERENCES_ITEM (preferences_cb, NULL), 
+        GNOMEUIINFO_END 
+}; 
 
 
-static void show_console_cb(GtkWidget *menu, void * blah)
-{
-	glame_console_show();
-}
+static GnomeUIInfo menubar_uiinfo[] = 
+{ 
+   { 
+     GNOME_APP_UI_SUBTREE, N_("_Project"), 
+     NULL, 
+     swapfile_menu_uiinfo, NULL, NULL, 
+     GNOME_APP_PIXMAP_NONE, NULL, 
+     0, (GdkModifierType)0, NULL 
+   }, 
+   { 
+     GNOME_APP_UI_SUBTREE, N_("_Filternetwork"), 
+     NULL, 
+     filter_menu_uiinfo, NULL, NULL, 
+     GNOME_APP_PIXMAP_NONE, NULL, 
+     0, (GdkModifierType)0, NULL 
+   }, 
+   GNOMEUIINFO_MENU_SETTINGS_TREE (glame_setting_uiinfo), 
+   GNOMEUIINFO_MENU_HELP_TREE (help_menu_uiinfo), 
+   GNOMEUIINFO_END 
+ }; 
 
-static void sync_cb(GtkWidget *menu, void * blah)
-{
-	gpsm_sync();
-}
 
-static void emptytrash_cb(GtkWidget *menu, void * blah)
-{
-	gpsm_grp_t *deleted;
+static void show_console_cb(GtkWidget *menu, void * blah) 
+{ 
+	glame_console_show(); 
+} 
 
-	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
-		return;
-	gpsm_item_destroy((gpsm_item_t *)deleted);
-	gpsm_sync();
-}
+static void sync_cb(GtkWidget *menu, void * blah) 
+{ 
+ 	gpsm_sync(); 
+} 
 
-static void new_network_cb(GtkWidget *menu, void * blah)
-{
-	GtkWidget *feg;
-	feg = glame_filtereditgui_new(NULL, FALSE);
-	gtk_quit_add_destroy(1, GTK_OBJECT(feg));
-	gtk_widget_show(feg);
-}
+static void emptytrash_cb(GtkWidget *menu, void * blah) 
+{ 
+        gpsm_grp_t *deleted; 
 
-extern void edit_tree_label(GlameTreeItem * item);
-static void create_new_project_cb(GtkWidget *menu, void * blah)
-{
-	gpsm_grp_t *grp, *deleted;
-	GlameTreeItem *grpw;
+ 	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) 
+ 		return; 
+	gpsm_item_destroy((gpsm_item_t *)deleted); 
+	gpsm_sync(); 
+} 
 
-	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
-		gpsm_item_remove((gpsm_item_t *)deleted);
+static void new_network_cb(GtkWidget *menu, void * blah) 
+{ 
+ 	GtkWidget *feg; 
+ 	feg = glame_filtereditgui_new(NULL, FALSE); 
+ 	gtk_quit_add_destroy(1, GTK_OBJECT(feg)); 
+ 	gtk_widget_show(feg); 
+} 
+
+//void edit_tree_label(GlameTreeItem * item); 
+static void create_new_project_cb(GtkWidget *menu, void * blah) 
+{ 
+	gpsm_grp_t *grp; 
 
 	/* Create new gpsm group. */
-	grp = gpsm_newgrp(_("Unnamed"));
-	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
-			    0, gpsm_item_vsize(gpsm_root())) == -1
-	    && gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
-			       0, gpsm_item_vsize(gpsm_root())+1) == -1)
-		DPRINTF("Cannot insert new group!?\n");
-	if (deleted)
-		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
-				0, GPSM_GRP_DELETED_VPOS);
+ 	grp = gpsm_newgrp(_("New project")); 
+ 	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp, 
+ 			    0, gpsm_item_vsize(gpsm_root())) == -1 
+ 	    && gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp, 
+ 			       0, gpsm_item_vsize(gpsm_root())+1) == -1) 
+	  { DPRINTF("Cannot insert new group!?\n"); }
 
-	/* Find out which widget it got. */
-	grpw = glame_tree_find_gpsm_item(
-		GTK_OBJECT(SWAPFILE_GUI(swapfile)->tree), (gpsm_item_t *)grp);
-	if (!grpw) {
-		DPRINTF("Umm, cant find widget for new project.\n");
-		return;
-	}
-	edit_tree_label(grpw);
-}
+/* Find out which widget it got. */ 
+ 	// grpw = glame_tree_find_gpsm_item( 
+//  		GTK_OBJECT(SWAPFILE_GUI(swapfile)->tree), (gpsm_item_t *)grp); 
+//  	if (!grpw) { 
+//  		DPRINTF("Umm, cant find widget for new project.\n"); 
+//  		return; 
+//  	} 
+ 	// edit_tree_label(grpw); 
 
-static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file)
-{
-	gpsm_item_destroy(file);
-}
-static void edit_file_mark_modified_cb(glsig_handler_t *h, long sig, va_list va)
-{
-	WaveeditGui *we = WAVEEDIT_GUI(glsig_handler_private(h));
-	we->modified = 1;
-}
-static void edit_file_cb(GtkWidget *menu, void *data)
-{
-	gpsm_item_t *file, *item;
-	WaveeditGui *we;
+} 
 
-	/* Run the import dialog. */
-	file = glame_import_dialog(GTK_WINDOW(app));
-	if (!file)
-		return;
+static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file) 
+{ 
+ 	gpsm_item_destroy(file); 
+} 
+static void edit_file_mark_modified_cb(glsig_handler_t *h, long sig, va_list va) 
+{ 
+ 	WaveeditGui *we = WAVEEDIT_GUI(glsig_handler_private(h)); 
+ 	we->modified = 1; 
+} 
+static void edit_file_cb(GtkWidget *menu, void *data) 
+{ 
+ 	gpsm_item_t *file, *item; 
+ 	WaveeditGui *we; 
 
-	/* Open the waveedit window and register a handler for gpsm
-	 * deletion after widget destroy. Also register handlers for
-	 * track modification to update bool. */
-	we = glame_waveedit_gui_new(gpsm_item_label(file), file);
-	if (!we) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Cannot open wave editor"))));
-		gpsm_item_destroy(file);
-		return;
-	}
-	gtk_signal_connect(GTK_OBJECT(we), "destroy",
-			   (GtkSignalFunc)edit_file_cleanup_cb, file);
-	gpsm_grp_foreach_item(file, item)
-		glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_INSERT,
-				  edit_file_mark_modified_cb, we);
-	gtk_quit_add_destroy(1, GTK_OBJECT(we));
-	gtk_widget_show_all(GTK_WIDGET(we));
-}
+/* Run the import dialog. */
+ 	file = glame_import_dialog(GTK_WINDOW(app)); 
+	if (!file) 
+ 		return; 
 
-static void import_cb(GtkWidget *menu, void *data)
-{
-	gpsm_item_t *file;
-	gpsm_grp_t *deleted;
-	int res;
+ 	/* Open the waveedit window and register a handler for gpsm 
+ 	 * deletion after widget destroy. Also register handlers for 
+ 	 * track modification to update bool. */
+ 	we = glame_waveedit_gui_new(gpsm_item_label(file), file); 
+ 	if (!we) { 
+ 		gnome_dialog_run_and_close(GNOME_DIALOG( 
+ 			gnome_error_dialog(_("Cannot open wave editor")))); 
+ 		gpsm_item_destroy(file); 
+ 		return; 
+ 	} 
+ 	gtk_signal_connect(GTK_OBJECT(we), "destroy", 
+ 			   (GtkSignalFunc)edit_file_cleanup_cb, file); 
+ 	gpsm_grp_foreach_item(file, item) 
+ 		glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_INSERT, 
+ 				  edit_file_mark_modified_cb, we); 
+ 	gtk_quit_add_destroy(1, GTK_OBJECT(we)); 
+ 	gtk_widget_show_all(GTK_WIDGET(we)); 
+} 
 
-	/* Run the import dialog. */
-	file = glame_import_dialog(GTK_WINDOW(app));
-	if (!file)
-		return;
+static void import_cb(GtkWidget *menu, void *data) 
+{ 
+ 	gpsm_item_t *file; 
+ 	gpsm_grp_t *deleted; 
+ 	int res; 
 
-	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
-		gpsm_item_remove((gpsm_item_t *)deleted);
-	res = gpsm_vbox_insert(gpsm_root(), file,
-			       0, gpsm_item_vsize(gpsm_root()));
-	if (deleted)
-		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
-				0, GPSM_GRP_DELETED_VPOS);
-	if (res == -1) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave"))));
-		gpsm_item_destroy(file);
-	}
-}
+ 	/* Run the import dialog. */ 
+ 	file = glame_import_dialog(GTK_WINDOW(app)); 
+ 	if (!file) 
+ 		return; 
 
-static void load_plugin_cb(GtkWidget*bla,void*blu)
-{
-	GtkWidget *dialog;
-	char filenamebuffer[256];
+ 	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) 
+ 		gpsm_item_remove((gpsm_item_t *)deleted); 
+ 	res = gpsm_vbox_insert(gpsm_root(), file, 
+ 			       0, gpsm_item_vsize(gpsm_root())); 
+ 	if (deleted) 
+ 		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted, 
+ 				0, GPSM_GRP_DELETED_VPOS); 
+ 	if (res == -1) { 
+ 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave")))); 
+ 		gpsm_item_destroy(file); 
+ 	} 
+ } 
 
-	filenamebuffer[0] = '\0';
-	dialog = glame_dialog_file_request(_("Load Plugin"),
-					   "main:load_plugin", _("Filename"),
-					   NULL, filenamebuffer);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
-	    || !*filenamebuffer)
-		return;
+static void load_plugin_cb(GtkWidget*bla,void*blu) 
+{ 
+ 	GtkWidget *dialog; 
+ 	char filenamebuffer[256]; 
 
-	if (glame_load_plugin(filenamebuffer) == -1)
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Error loading plugin"))));
-}
+ 	filenamebuffer[0] = '\0'; 
+ 	dialog = glame_dialog_file_request(_("Load Plugin"), 
+ 					   "main:load_plugin", _("Filename"), 
+ 					   NULL, filenamebuffer); 
+ 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)) 
+ 	    || !*filenamebuffer) 
+ 		return; 
+
+ 	if (glame_load_plugin(filenamebuffer) == -1) 
+ 		gnome_dialog_run_and_close(GNOME_DIALOG( 
+ 			gnome_error_dialog(_("Error loading plugin")))); 
+} 
 
 
 
@@ -561,13 +558,13 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 	/* input filter */
 	combo_items = NULL;
 	if (plugin_get("oss_audio_in"))
-		combo_items = g_list_append(combo_items, "oss_audio_in");
+		combo_items = g_list_append(combo_items, (gpointer)"oss_audio_in");
 	if (plugin_get("esd_audio_in"))
-		combo_items = g_list_append(combo_items, "esd_audio_in");
+		combo_items = g_list_append(combo_items, (gpointer)"esd_audio_in");
 	if (plugin_get("alsa_audio_in"))
-		combo_items = g_list_append(combo_items, "alsa_audio_in");
+		combo_items = g_list_append(combo_items, (gpointer)"alsa_audio_in");
 	if (plugin_get("sgi_audio_in"))
-		combo_items = g_list_append(combo_items, "sgi_audio_in");
+		combo_items = g_list_append(combo_items, (gpointer)"sgi_audio_in");
 	if (combo_items) {
 		combo = gtk_combo_new();
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
@@ -599,13 +596,13 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 	/* output filter */
 	combo_items = NULL;
 	if (plugin_get("oss_audio_out"))
-		combo_items = g_list_append(combo_items, "oss_audio_out");
+		combo_items = g_list_append(combo_items, (gpointer)"oss_audio_out");
 	if (plugin_get("esd_audio_out"))
-		combo_items = g_list_append(combo_items, "esd_audio_out");
+		combo_items = g_list_append(combo_items, (gpointer)"esd_audio_out");
 	if (plugin_get("alsa_audio_out"))
-		combo_items = g_list_append(combo_items, "alsa_audio_out");
+		combo_items = g_list_append(combo_items, (gpointer)"alsa_audio_out");
 	if (plugin_get("sgi_audio_out"))
-		combo_items = g_list_append(combo_items, "sgi_audio_out");
+		combo_items = g_list_append(combo_items, (gpointer)"sgi_audio_out");
 	if (combo_items) {
 		combo = gtk_combo_new();
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
@@ -887,7 +884,7 @@ static void gui_main()
 
 	/* Init GUI dependend subsystems. */
 	glame_accel_init();
-	glame_swapfilegui_init();
+//	glame_swapfilegui_init();
 	glame_waveeditgui_init();
 	glame_filtereditgui_init();
 	glame_timeline_init();
@@ -933,7 +930,8 @@ _("Welcome first-time user of GLAME.\n"
 	swapfile_register_panic_handler(on_swapfile_panic);
 
 	/* create swapfile gui - in a scrolled window */
-	swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
+	//swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
+	swapfile = glame_gltree_init(gpsm_root());
 	if (!swapfile)
 		return;
 	scrollview = gtk_scrolled_window_new(NULL, NULL);
@@ -971,12 +969,12 @@ _("Welcome first-time user of GLAME.\n"
 	/* Connect auto-horizontal-resize callback. */
 	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
 			   (GtkSignalFunc)resize_horiz_cb, app);
-
+#if 0
 	/* Register accelerators. */
 	SWAPFILE_GUI(swapfile)->accel_handler =
 		glame_accel_install(app, "swapfile", NULL);
 	SWAPFILE_GUI(swapfile)->app = app;
-
+#endif
 	/* Pop up splash screen. */
 	glame_splash();
 
@@ -1009,12 +1007,13 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 
 int main(int argc, char **argv)
 {
-	bind_textdomain_codeset("glame", "UTF-8");
+        bind_textdomain_codeset("glame", "UTF-8");
 	textdomain("glame");
 
 	/* setup gnome/gtk  */
 	gnome_program_init("glame2", VERSION, LIBGNOMEUI_MODULE,
 			   argc, argv, GNOME_PARAM_NONE);
+
 
 #ifdef HAVE_LIBGLADE
 	glade_init();
