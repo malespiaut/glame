@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.11 2000/05/01 11:09:04 richi Exp $
+ * $Id: list.h,v 1.12 2000/08/14 08:46:01 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -128,6 +128,8 @@ static inline void __list_del(struct list_head * prev,
 	prev->next = next;
 }
 
+/* Note! list_del() does not reinitialize the item, so things
+ * like list_empty() do not return true afterwards! */
 #ifndef NDEBUG
 #define list_del(e) do { \
         struct list_head *___node = (e); \
@@ -143,7 +145,27 @@ static inline void __list_del(struct list_head * prev,
 } while (0)
 #endif
 
+/* list_del_init() deletes the element from the list and
+ * reinitializes it, so list_empty() on it will return true. */
+#ifndef NDEBUG
+#define list_del(e) do { \
+        struct list_head *___node = (e); \
+	if (___node->next == ___node) \
+		DERROR("Removing already removed list item"); \
+	__list_del(___node->prev, ___node->next); \
+	INIT_LIST_HEAD(___node); \
+} while (0)
+#else
+#define list_del(e) do { \
+        struct list_head *___node = (e); \
+	__list_del(___node->prev, ___node->next); \
+	INIT_LIST_HEAD(___node); \
+} while (0)
+#endif
 
+
+/* list_empty() returns true, if the element is not in any list,
+ * i.e. there are no further elements associated with it. */
 static inline int list_empty(struct list_head *head)
 {
 	return head->next == head;
