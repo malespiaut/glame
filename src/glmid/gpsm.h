@@ -1,6 +1,27 @@
 #ifndef _GPSM_H
 #define _GPSM_H
 
+/*
+ * gpsm.h
+ *
+ * Copyright (C) 2001 Richard Guenther
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
 /* The project structure management including track metadata
  * and coupling with the swapfile/filter API.
  *
@@ -24,6 +45,14 @@
  * gpsm API functions.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "list.h"
+#include "glsignal.h"
+
+
 struct gpsm_item_s;
 struct gpsm_grp_s;
 struct gpsm_swfile_s;
@@ -42,8 +71,9 @@ typedef struct gpsm_swfile_s gpsm_swfile_t;
 #define GPSM_SIG_ITEM_DESTROY    (1<<1)
 /* Both GPSM_SIG_GRP_NEWITEM and GPSM_SIG_GRP_REMOVEITEM have
  * two parameters, the gpsm-grp as the first and the gpsm-item
- * to be inserted/removed as second one. The signal is sent out
- * before the actual action (insertion/removal). */
+ * to be inserted/removed as second one. The GPSM_SIG_GRP_REMOVEITEM
+ * signal is sent out before the actual action, the NEWITEM signal
+ * after the action. */
 #define GPSM_SIG_GRP_NEWITEM     (1<<2)
 #define GPSM_SIG_GRP_REMOVEITEM  (1<<3)
 /* GPSM_SIG_SWFILE_INSERT has three parameters, the first is
@@ -62,6 +92,7 @@ typedef struct gpsm_swfile_s gpsm_swfile_t;
 #define GPSM_ITEM_IS_SWFILE(i) ((i)->type == GPSM_ITEM_TYPE_SWFILE)
 struct gpsm_item_s {
 	struct list_head list;
+	gpsm_grp_t *parent;
 	glsig_emitter_t emitter;
 	int type;
 	char *label;
@@ -138,6 +169,7 @@ gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, const char *label);
 gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, long filename);
 
 
+#if 0
 /* Applying filter stubs (with "in" and/or "out" port, multiple
  * or single), filter replication and automagically destination
  * creation. Returns a network for own use, delete it yourself.
@@ -158,6 +190,6 @@ void gpsm_item_invalidate(gpsm_item_t *item);
 
 gpsm_grp_t *gpsm_newgrp_import(const char *filename);
 int gpsm_item_export(gpsm_item_t *item, const char *filename);
-
+#endif
 
 #endif
