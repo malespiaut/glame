@@ -139,14 +139,9 @@ long scm2long(SCM long_smob, long smob_tag)
 }
 
 
-int glscript_init()
+static void _glscript_init()
 {
-	/* Redirect output/error to console - redirected again after
-	 * gui/glame_console init. */
-	scm_set_current_output_port(
-		scm_fdes_to_port(dup(1), "w", gh_str02scm("stdout")));
-	scm_set_current_error_port(
-		scm_fdes_to_port(dup(2), "w", gh_str02scm("stderr")));
+	gh_display(scm_selected_module());
 
 	/* Tell scheme about installation directory of GLAME
 	 * and the revision of the scripting language.
@@ -156,10 +151,35 @@ int glscript_init()
 
 	/* Register scheme procedures for the subsystems.
 	 */
-	if (glscript_init_swapfile() == -1
-	    || glscript_init_filter() == -1
-	    || glscript_init_gpsm() == -1)
-		return -1;
+	glscript_init_swapfile();
+	glscript_init_filter();
+	glscript_init_gpsm();
+}
+
+int glscript_init()
+{
+	/* Redirect output/error to console - redirected again after
+	 * gui/glame_console init. */
+	scm_set_current_output_port(
+		scm_fdes_to_port(dup(1), "w", gh_str02scm("stdout")));
+	scm_set_current_error_port(
+		scm_fdes_to_port(dup(2), "w", gh_str02scm("stderr")));
+
+	/* Register all GLAME specific stuff inside the "glame"
+	 * module. Do this with lazy guile 1.3.4 stuff - oh well. */
+	scm_register_module_xxx("glame", _glscript_init);
+
+	/* Switch to the guile-user module */
+/*	gh_display(scm_selected_module());
+	gh_display(scm_resolve_module(gh_str02scm("guile-user")));
+	gh_display(scm_select_module(scm_resolve_module(gh_str02scm("guile-user"))));
+	gh_display(scm_selected_module()); */
+
+	/* Switch to a more useful module and use the glame module. */
+	gh_eval_str(
+"(set-current-module the-scm-module)"
+"(use-modules (glame))");
+	gh_display(scm_selected_module());
 
 	/* Load glame scheme libraries (if existent):
 	 * 1. installed glame.scm
