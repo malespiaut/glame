@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: sem.h,v 1.1 2000/02/11 14:45:20 nold Exp $
+ * $Id: sem.h,v 1.2 2000/05/04 14:40:46 nold Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,10 +32,7 @@
 #include <sys/sem.h>
 #include <errno.h>
 
-#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
-/* union semun is defined by including <sys/sem.h> */
-#else
-#if !defined(_NO_XOPEN4)
+#if !defined(HAVE_SEMUN)
 /* according to X/OPEN we have to define it ourselves */
 union semun {
 	int val;                    /* value for SETVAL */
@@ -43,7 +40,6 @@ union semun {
 	unsigned short int *array;  /* array for GETALL, SETALL */
 	struct seminfo *__buf;      /* buffer for IPC_INFO */
 };
-#endif
 #endif
 
 /*

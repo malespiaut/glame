@@ -31,6 +31,9 @@
 #undef OS_BSD
 #undef OS_IRIX
 
+/* define if union semun is defined in <sys/sem.h> */
+#undef HAVE_SEMUN
+
 /* define if your libc supports POSIX realtime signals */
 #undef HAVE_POSIX_RTSIG
 

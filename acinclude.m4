@@ -27,6 +27,42 @@ AC_MSG_RESULT(no)
 )
 ])
 
+# Check if we need to define union semun ourselves.
+# Daniel Kobras   00-5-4
+
+AC_DEFUN(AC_CHECK_SEMUN,
+[
+AC_MSG_CHECKING(whether union semun is already defined)
+AC_TRY_COMPILE(
+[
+#include <sys/sem.h>
+],
+[
+union semun {
+	int val;                    /* value for SETVAL */
+	struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
+	unsigned short int *array;  /* array for GETALL, SETALL */
+	struct seminfo *__buf;      /* buffer for IPC_INFO */
+};
+
+int main(int argc, char **argv)
+{
+	union semun mysem;
+	return 0;
+}
+],
+[
+AC_MSG_RESULT(no)
+]
+,
+[
+AC_MSG_RESULT(yes)
+HAVE_SEMUN=1
+AC_DEFINE(HAVE_SEMUN)
+]
+)
+])
+
 # Check for POSIX realtime signals (present in glibc2.1)
 # Daniel Kobras   00-3-14
 
