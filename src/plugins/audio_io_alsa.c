@@ -1,7 +1,7 @@
 /*
  * audio_io_alsa_v090.c
  *
- * $Id: audio_io_alsa.c,v 1.16 2003/04/11 20:10:31 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.17 2003/04/15 20:27:57 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -357,6 +357,8 @@ static int alsa_audio_in_f(filter_t * n)
 			continue;
 		}
 
+		// We dont mind putting out some extra samples
+		// (up to blksz-1).
 		for (i = 0; i < chancnt; i++) {
 			obuf = sbuf_make_private(sbuf_alloc(blksz, n));
 			s = sbuf_buf(obuf);
@@ -367,6 +369,7 @@ static int alsa_audio_in_f(filter_t * n)
 			}
 			sbuf_queue(pipe[i], obuf);
 		}
+		nsamples += blksz;
 	}
 
 	FILTER_BEFORE_STOPCLEANUP;
