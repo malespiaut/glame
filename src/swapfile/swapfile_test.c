@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.3 2000/01/26 10:07:40 richi Exp $
+ * $Id: swapfile_test.c,v 1.4 2000/01/28 13:00:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -22,6 +22,7 @@
 
 
 #include <stdio.h>
+#include <unistd.h>
 #include <errno.h>
 #include "swapfile.h"
 
@@ -31,7 +32,7 @@
 
 /* #define BAILOUT return -1 */
 #define BAILOUT fprintf(stderr, "raising SIGSEGV for easy debugging\n"); *((char *)0) = 0
-#define BUG(str) do { fprintf(stderr, "BUG in " __PRETTY_FUNCTION__ ": " str "\n"); perror("errno"); BAILOUT; } while (0)
+#define BUG(str) do { fprintf(stderr, "\nBUG in " __PRETTY_FUNCTION__ ": " str "\n"); perror("errno"); BAILOUT; } while (0)
 
 
 /* generate nice progress output with the following functions */
@@ -48,11 +49,117 @@ do { \
         printf("\r%s: ", prefix); \
 	printf(str, ## args); \
 	fflush(stdout); \
+        sleep(1); \
 } while (0)
 #define state_end() \
 do { \
 	printf("\r%s done.                                      \n", prefix); \
 } while (0)
+
+
+
+/* helpers for "data initialisation" */
+int do_zero_file(fileid_t fid)
+{
+	filecluster_t *fc;
+	off_t size;
+	char *mem;
+
+	fc = filecluster_get(fid, 0);
+	while (fc) {
+		if (!(mem = filecluster_mmap(fc)))
+			BUG("filecluster_mmap");
+		size = filecluster_size(fc);
+		while (size--)
+			*(mem++) = 0;
+		filecluster_munmap(fc);
+		fc = filecluster_next(fc);
+	}
+
+	return 0;
+}
+
+int check_zero_file(fileid_t fid)
+{
+	filecluster_t *fc;
+	off_t size;
+	char *mem;
+
+	fc = filecluster_get(fid, 0);
+	while (fc) {
+		if (!(mem = filecluster_mmap(fc)))
+			BUG("filecluster_mmap");
+		size = filecluster_size(fc);
+		while (size--)
+			if (*(mem++) != 0) {
+				filecluster_munmap(fc);
+				return -1;
+			}
+		filecluster_munmap(fc);
+		fc = filecluster_next(fc);
+	}
+
+	return 0;
+}
+
+int do_ffff_file(fileid_t fid)
+{
+	filecluster_t *fc;
+	off_t size;
+	char *mem;
+
+	fc = filecluster_get(fid, 0);
+	while (fc) {
+		if (!(mem = filecluster_mmap(fc)))
+			BUG("filecluster_mmap");
+		size = filecluster_size(fc);
+		while (size--)
+			*(mem++) = -1;
+		filecluster_munmap(fc);
+		fc = filecluster_next(fc);
+	}
+
+	return 0;
+}
+
+int check_ffff_file(fileid_t fid)
+{
+	filecluster_t *fc;
+	off_t size;
+	char *mem;
+
+	fc = filecluster_get(fid, 0);
+	while (fc) {
+		if (!(mem = filecluster_mmap(fc)))
+			BUG("filecluster_mmap");
+		size = filecluster_size(fc);
+		while (size--)
+			if (*(mem++) != -1) {
+				filecluster_munmap(fc);
+				return -1;
+			}
+		filecluster_munmap(fc);
+		fc = filecluster_next(fc);
+	}
+
+	return 0;
+}
+
+int check_file_size(fileid_t fid, off_t size)
+{
+	off_t s;
+
+	print_state("Checking file size");
+	if ((s = file_size(fid)) == -1)
+		return -1;
+	if (s != size) {
+		print_state("size is %i should be %i", (int)s, (int)size);
+		BUG("file size test failed");
+	}
+
+	return 0;
+}
+
 
 
 int trash_swap()
@@ -106,51 +213,73 @@ int trash_swap()
 }
 
 
+/* test_file_alloc will check the correct operation of
+ * - file_alloc, especially correct pre-zeroing
+ * - file_size
+ * - file_truncate, especially correct pre-zeroing
+ * - file_unref
+ */
 int test_file_alloc()
 {
-  fileid_t fid;
-  filecluster_t *fc;
-  char *mem;
-  off_t pos;
-  int i;
-  int dum[10];
+	/* the following constants are initial size and truncate size
+	 * (relative, added) for the file */
+	static int sizes[] = { 1024*1024, CLUSTER_MINSIZE, -CLUSTER_MINSIZE, 0,
+			       1024*1024, 1, 0, -1,
+			       1024*1024, 32721, -17, -3781 };
+	int nr_sizes = sizeof(sizes)/(4*sizeof(int));
+	fileid_t fid;
+	off_t size, t1size, t2size, t3size;
+	int i;
 
-  state_start();
-  print_state("Allocating file with size=%i",FILESIZE);
-  if ((fid = file_alloc(FILESIZE)) == -1)
-	  BUG("file_alloc");
 
-  print_state("fid = %i",fid);
+	state_start();
 
-  for(i=0; i<10; i++){
-	  dum[i] = file_alloc(FILESIZE);
-	  print_state("Try %i fid=%i", i, dum[i]);
-  }
+	for (i=0; i<nr_sizes; i++) {
+		size = sizes[4*i];
+		t1size = size + sizes[4*i+1];
+		t2size = size + sizes[4*i+2];
+		t3size = size + sizes[4*i+3];
 
-  print_state("Testing file %i for correct zero-mapping", fid);
-  pos = 0;
-  do {
-	  if (!(fc = filecluster_get(fid, pos)))
-		  BUG("filecluster_get");
-	  if (!(mem = filecluster_mmap(fc)))
-		  BUG("filecluster_mmap");
-	  for (i = 0; i < filecluster_size(fc); i++)
-		  if (mem[i])
-			  BUG("memory not zeroed");
-	  filecluster_munmap(fc);
-	  pos += filecluster_size(fc);
-  } while (pos < FILESIZE);
+		print_state("Allocating file with size %i", (int)size);
+		if ((fid = file_alloc(size)) == -1)
+			BUG("file_alloc");
+		check_file_size(fid, size);
+		print_state("Testing file for correct pre-zeroing");
+		if (check_zero_file(fid) == -1)
+			BUG("prezeroing test of file failed");
 
-  /* file_unref(fid); - for debugging file left in swap */
+		print_state("Truncating file to size %i", (int)t1size);
+		if (file_truncate(fid, t1size) == -1)
+			BUG("file_truncate");
+		check_file_size(fid, t1size);
+		print_state("Testing file for correct pre-zeroing");
+		if (check_zero_file(fid) == -1)
+			BUG("prezeroing test of file failed");
 
-  for(i=0;i<10;i++) 
-	  if (dum[i] != -1) {
-		  print_state("Unref'ing file %i", dum[i]);
-		  file_unref(dum[i]);
-	  }
+		print_state("Truncating file to size %i", (int)t2size);
+		if (file_truncate(fid, t2size) == -1)
+			BUG("file_truncate");
+		check_file_size(fid, t2size);
+		print_state("Testing file for correct pre-zeroing");
+		if (check_zero_file(fid) == -1)
+			BUG("prezeroing test of file failed");
 
-  state_end();
-  return 0;
+		print_state("Truncating file to size %i", (int)t3size);
+		if (file_truncate(fid, t3size) == -1)
+			BUG("file_truncate");
+		check_file_size(fid, t3size);
+		print_state("Testing file for correct pre-zeroing");
+		if (check_zero_file(fid) == -1)
+			BUG("prezeroing test of file failed");
+
+		print_state("cheking file_unref");
+		file_unref(fid);
+		if (file_size(fid) != -1)
+			BUG("file_unref");
+	}
+
+	state_end();
+	return 0;
 }
 
 int test_filecluster_rw()

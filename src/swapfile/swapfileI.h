@@ -52,7 +52,6 @@ struct cluster_s {
 	struct list_head rfc_list; /* reverse filecluster-list, unsorted */
 	struct list_head map_list; /* mmap LRU cache list */
 };
-#define cluster_unref(cluster) do { (cluster)->refcnt--; } while (0)
 #define cluster_ref(cluster) do { (cluster)->refcnt++; } while (0)
 
 

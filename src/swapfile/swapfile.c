@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.3 2000/01/26 10:07:40 richi Exp $
+ * $Id: swapfile.c,v 1.4 2000/01/28 13:00:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -117,6 +117,7 @@ filehead_t **swapfile_hash_table;
 /************************************************************
  * forward declarations
  */
+static void cluster_unref(cluster_t *c);
 static void _log_clear(filehead_t *f, logentry_t *start, int direction);
 static logentry_t *_logentry_findbyid(filehead_t *f, int id);
 static void _ffree(filehead_t *f);
@@ -643,7 +644,7 @@ static void _logentry_write(swapd_record_t *r, logentry_t *le)
  */
 
 #define ZEROMAP_READ
-static inline char *__cluster_zeromap(cluster_t *c, int prot)
+static int __cluster_zeromap(cluster_t *c, int prot)
 {
 	int fd;
 	char *buf;
@@ -657,8 +658,9 @@ static inline char *__cluster_zeromap(cluster_t *c, int prot)
 	 * trick by reading page-aligned from /dev/zero - this
 	 * is from reading the source, so it could be wrong, too.
 	 */
-	if (!(buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off)))
-		return NULL;
+	buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
+	if (buf == MAP_FAILED)
+		return -1;
 
 #if defined ZEROMAP_READ
 	if ((fd = open("/dev/zero", O_RDONLY)) != -1) {
@@ -668,12 +670,26 @@ static inline char *__cluster_zeromap(cluster_t *c, int prot)
 #endif
 		memset(buf, 0, c->size);
 
-	return buf;
+	c->buf = buf;
+	list_add(&c->map_list, &swap->mapped);
+	swap->mapped_size += c->size;
+
+	return 0;
 }
 
-static inline char *__cluster_mmap(cluster_t *c, int prot)
+static int __cluster_mmap(cluster_t *c, int prot)
 {
-	return mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
+	char *buf;
+
+	buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
+	if (buf == MAP_FAILED)
+		return -1;
+
+	c->buf = buf;
+	list_add(&c->map_list, &swap->mapped);
+	swap->mapped_size += c->size;
+
+	return 0;
 }
 
 static inline void __cluster_forgetmap(cluster_t *c)
@@ -685,14 +701,33 @@ static inline void __cluster_forgetmap(cluster_t *c)
 	 */
 	munmap(c->buf, c->size);
 	c->buf = NULL;
+	swap->mapped_size -= c->size;
+	list_del(&c->map_list);
 }
 
 static inline void __cluster_munmap(cluster_t *c)
 {
 	munmap(c->buf, c->size);
 	c->buf = NULL;
+	swap->mapped_size -= c->size;
+	list_del(&c->map_list);
 }
 
+/* we do __cluster_forgetmap on unref and refcnt == 0 */
+static void cluster_unref(cluster_t *c)
+{
+	/* if we are about to release our last reference,
+	 * we can do special things and sanity checks.
+	 */
+	if (c->refcnt == 1) {
+		if (c->mmapcnt > 0)
+			PANIC("cluster has still mappings!");
+		if (c->buf)
+			__cluster_forgetmap(c);
+	}
+
+	c->refcnt--;
+}
 
 static int _cluster_is_mapped(cluster_t *c)
 {
@@ -701,12 +736,10 @@ static int _cluster_is_mapped(cluster_t *c)
 	if (c->mmapcnt>0)
 		return 1;
 
-	list_del(&c->map_list);
 	if (c->refcnt == 0)
 		__cluster_forgetmap(c);
 	else
 		__cluster_munmap(c);
-	swap->mapped_size -= c->size;
 
 	return 0;
 }
@@ -786,7 +819,7 @@ cluster_t *_cluster_alloc(off_t size, cluster_t *hint)
 		return NULL;
 
 	/* if we have got a too big one, we split it */
-	aligned_size = (size + CLUSTER_MINMASK) & ~CLUSTER_MINMASK;
+	aligned_size = (size + CLUSTER_MINSIZE) & ~CLUSTER_MINMASK;
 	if (best->size > aligned_size) {
 		if (!(c = _cluster_split_aligned(best, aligned_size)))
 			/* umm, we just ignore it and waste memory */;
@@ -800,19 +833,18 @@ char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
 	if (cluster->mmapcnt > 0) {
 		/* LRU */
 		list_del(&cluster->map_list);
+		list_add(&cluster->map_list, &swap->mapped);
 	} else if (zero) {
-		if (!(cluster->buf = __cluster_zeromap(cluster, prot)))
+		if (__cluster_zeromap(cluster, prot) == -1)
 			return NULL;
 	} else {
-		if (!(cluster->buf = __cluster_mmap(cluster, prot)))
+		if (__cluster_mmap(cluster, prot) == -1)
 			return NULL;
 	}
-	list_add(&cluster->map_list, &swap->mapped);
 
 	cluster_ref(cluster);
 	cluster->mmapcnt++;
 
-	swap->mapped_size += cluster->size;
 	if (swap->mapped_size > swap->mapped_max)
 		_drain_mmapcache();
 
@@ -828,12 +860,8 @@ char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
  */
 void _cluster_munmap(cluster_t *cluster)
 {
-	cluster_unref(cluster);
 	cluster->mmapcnt--;
-
-	/* throw away the mapping early, if possible */
-	if (cluster->mmapcnt == 0 && cluster->refcnt == 0)
-		__cluster_forgetmap(cluster);
+	cluster_unref(cluster);
 
 	if (swap->mapped_size > swap->mapped_max)
 		_drain_mmapcache();
@@ -1243,9 +1271,10 @@ int swap_open(char *name, int flags)
 
 	hash_alloc_swapfile();
 
-	errno = ENOMEM;
-	if (!(swap = ALLOC(swap_t)))
+	if (!(swap = ALLOC(swap_t))) {
+		errno = ENOMEM;
 		goto _nomem;
+	}
 	swap->cid = 0;
 	swap->lid = 0;
 	swap->fid = 0;
@@ -1279,8 +1308,9 @@ int swap_open(char *name, int flags)
 	if (_init_swap(swap) == -1)
 		goto _err;
 
-	if (!(r = mmap(NULL, swap->meta_size, PROT_READ, MAP_PRIVATE,
-		       swap->fd, swap->meta_off)))
+	r = mmap(NULL, swap->meta_size, PROT_READ, MAP_PRIVATE,
+		 swap->fd, swap->meta_off);
+	if (r == MAP_FAILED)
 		goto _err;
 	if (_build_swap_mem(swap, r) == -1)
 		goto _err;
@@ -1313,8 +1343,9 @@ void swap_close()
 
 	_swap_lock();
 
-	if (!(r = mmap(NULL, swap->meta_size, PROT_READ|PROT_WRITE, MAP_SHARED,
-		       swap->fd, swap->meta_off)))
+	r = mmap(NULL, swap->meta_size, PROT_READ|PROT_WRITE, MAP_SHARED,
+		 swap->fd, swap->meta_off);
+	if (r == MAP_FAILED)
 		return;
 	_build_swap_disk(swap, r);
 	munmap(r, swap->meta_size);
@@ -1339,7 +1370,6 @@ fileid_t file_alloc(off_t size)
 
 	_swap_lock();
 
-	errno = ENOMEM;
 	if (!(f = _fnew()))
 		goto _err;
 
@@ -1362,6 +1392,7 @@ fileid_t file_alloc(off_t size)
 	return f->fid;
 
 _freef:
+	errno = ENOMEM;
 	_ffree(f);
 _err:
 	_swap_unlock();
@@ -1375,28 +1406,32 @@ fileid_t file_copy(fileid_t fid, off_t pos, off_t size)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _err;
-	errno = EINVAL;
+	}
 	if (!(fcstart = _filecluster_findbyoff(f, pos))
-	    || !(fcend = _filecluster_findbyoff(f, pos+size-1)))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size-1))) {
+		errno = EINVAL;
 		goto _err;
+	}
 
 	/* split clusters if necessary */
 	if (_filecluster_split(fcstart, pos - filecluster_start(fcstart)) == -1
 	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
-		goto _err;
+		goto _errnomem;
 	fcstart = _filecluster_findbyoff(f, pos);
 	fcend = _filecluster_findbyoff(f, pos+size-1);
 
 	if (!(c = _file_copy(f, fcstart, fcend)))
-		goto _err;
+		goto _errnomem;
 
 	hash_add_file(c);
 	_swap_unlock();
 	return c->fid;
 
+ _errnomem:
+	errno = ENOMEM;
  _err:
 	_swap_unlock();
 	return -1;
@@ -1425,9 +1460,10 @@ off_t file_size(fileid_t fid)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _out;
+	}
 
 	size = _filehead_size(f);
 
@@ -1444,13 +1480,15 @@ int file_truncate(fileid_t fid, off_t size)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _err;
+	}
 
-	errno = EINVAL;
-	if (f->usecnt != 0)
+	if (f->usecnt != 0) {
+		errno = EINVAL;
 		goto _err;
+	}
 
 	oldsize = _filehead_size(f);
 	if (oldsize == size)
@@ -1464,7 +1502,7 @@ int file_truncate(fileid_t fid, off_t size)
 			/* if its a virtual filecluster or the additional
 			 * size fits into the real cluster, just fix fc->size */
 			if (!fc->cluster
-			    || (fc->cluster->size - fc->size) < size) {
+			    || (fc->cluster->size - fc->size) >= size) {
 				fc->size += size;
 				goto _out;
 			}
@@ -1479,14 +1517,16 @@ int file_truncate(fileid_t fid, off_t size)
 		nfc->size = size;
 		_filecluster_add(nfc, NULL);
 	} else {
-		/* truncate file */
+		/* truncate file - FIXME, this is (very) suboptimal */
 		while ((fc = _filecluster_findbyoff(f, size))) {
 			if (fc->off == size) {
 				/* throw away filecluster */
 				_filecluster_remove(fc);
 				free(fc);
+				_file_fixoff(f, NULL);
 			} else {
 				fc->size = size - fc->off;
+				_file_fixoff(f, fc);
 			}
 		}
 	}
@@ -1538,16 +1578,17 @@ int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
 
 	_swap_lock();
 	
-	errno = ENOENT;
 	if (!(fd = hash_find_file(fid))
-	    || !(fs = hash_find_file(file)))
+	    || !(fs = hash_find_file(file))) {
+		errno = ENOENT;
 		goto _err;
-	errno = EINVAL;
-	if (!(at = _filecluster_findbyoff(fd, pos)))
+	}
+	if (!(at = _filecluster_findbyoff(fd, pos))) {
+		errno = EINVAL;
 		goto _err;
-	errno = ENOMEM;
+	}
 	if (!(l = _lenew(fd, LOGENTRY_INSERT)))
-		goto _err;
+		goto _errnomem;
 	if (_filecluster_split(at, pos - filecluster_start(at)) == -1)
 		goto _freele;
 
@@ -1572,6 +1613,8 @@ int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
 
 _freele:
 	free(l);
+_errnomem:
+	errno = ENOMEM;
 _err:
 	_swap_unlock();
 	return -1;
@@ -1585,25 +1628,26 @@ int file_op_cut(fileid_t fid, off_t pos, off_t size)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _err;
-	errno = EINVAL;
+	}
 	if (!(fcstart = _filecluster_findbyoff(f, pos))
-	    || !(fcend = _filecluster_findbyoff(f, pos+size-1)))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size-1))) {
+		errno = EINVAL;
 		goto _err;
+	}
 
 	/* split clusters if necessary */
 	if (_filecluster_split(fcstart, pos - filecluster_start(fcstart)) == -1
 	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
-		goto _err;
+		goto _errnomem;
 	fcstart = _filecluster_findbyoff(f, pos);
 	fcend = _filecluster_findbyoff(f, pos+size-1);
 
 	/* first set up the logentry */
-	errno = ENOMEM;
 	if (!(l = _lenew(f, LOGENTRY_DELETE)))
-		goto _err;
+		goto _errnomem;
 	l->u.delete.pos = pos;
 	l->u.delete.size = size;
 	if (!(l->u.delete.f = _file_delete(f, fcstart, fcend, NULL)))
@@ -1619,6 +1663,8 @@ int file_op_cut(fileid_t fid, off_t pos, off_t size)
 
 _freele:
 	free(l);
+_errnomem:
+	errno = ENOMEM;
 _err:
 	_swap_unlock();
 	return -1;
@@ -1630,18 +1676,20 @@ int file_transaction_begin(fileid_t fid)
 	logentry_t *l;
 	int res = -1;
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _out;
+	}
 
 	res = 0;
 	if (f->begincnt++)
 		goto _out;
 
 	res = -1;
-	errno = ENOMEM;
-	if (!(l = _lenew(f, LOGENTRY_BEGIN)))
+	if (!(l = _lenew(f, LOGENTRY_BEGIN))) {
+		errno = ENOMEM;
 		goto _out;
+	}
 	res = 0;
 	file_use(f);
 	_logentry_add(l, &swap->log);
@@ -1659,21 +1707,24 @@ int file_transaction_end(fileid_t fid)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _out;
-	errno = EINVAL;
-	if (!f->begincnt)
+	}
+	if (!f->begincnt) {
+		errno = EINVAL;
 		goto _out;
+	}
 
 	res = 0;
 	if (--(f->begincnt))
 		goto _out;
 
 	res = -1;
-	errno = ENOMEM;
-	if (!(l = _lenew(f, LOGENTRY_END)))
+	if (!(l = _lenew(f, LOGENTRY_END))) {
+		errno = ENOMEM;
 		goto _out;
+	}
 	res = 0;
 	file_use(f);
 	_logentry_add(l, &swap->log);
@@ -1691,12 +1742,14 @@ int file_transaction_undo(fileid_t fid)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _out;
-	errno = EINVAL;
-	if (f->begincnt)
+	}
+	if (f->begincnt) {
+		errno = EINVAL;
 		goto _out;
+	}
 
 	res = 0;
 
@@ -1704,8 +1757,10 @@ int file_transaction_undo(fileid_t fid)
 	l = _logentry_findbyid(f, f->logpos);
 
 	/* we need the next end-entry (sanity-check can be removed) */
-	if (!(l = _logentry_prev(f, l)))
+	if (!(l = _logentry_prev(f, l))) {
+		errno = EINVAL;
 		goto _out;
+	}
 	if (l->op != LOGENTRY_END)
 		PANIC("uh, log messed up!?");
 
@@ -1746,10 +1801,10 @@ int file_transaction_redo(fileid_t fid)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _out;
-
+	}
 	res = 0;
 	if (f->logpos == -1)
 		goto _out;
@@ -1796,9 +1851,10 @@ filecluster_t *filecluster_get(fileid_t fid, off_t pos)
 
 	_swap_lock();
 
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
+	if (!(f = hash_find_file(fid))) {
+		errno = ENOENT;
 		goto _out;
+	}
 	fc = _filecluster_findbyoff(f, pos);
 
  _out:
@@ -1815,16 +1871,18 @@ char *filecluster_mmap(filecluster_t *fc)
 
 	_swap_lock();
 
-	errno = EINVAL;
-	if (!is_hashed_file(fc->f))
+	if (!is_hashed_file(fc->f)) {
+		errno = EINVAL;
 		goto _out;
+	}
 
 	/* do late allocation of cluster */
 	if (!fc->cluster) {
-		errno = ENOMEM;
 		pfc = fc_prev(fc);
-		if (!(c = _cluster_alloc(fc->size, pfc ? pfc->cluster : NULL)))
+		if (!(c = _cluster_alloc(fc->size, pfc ? pfc->cluster : NULL))) {
+			errno = ENOMEM;
 			goto _out;
+		}
 		if (c->size < fc->size)
 			_filecluster_split(fc, c->size);
 		_fcpopulate(fc, c, 0);
