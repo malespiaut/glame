@@ -1,7 +1,7 @@
 /*
- * canvas_types.c
+ * timeline_canvas.c
  *
- * $Id: timeline_canvas.c,v 1.2 2001/07/13 09:01:43 richi Exp $
+ * $Id: timeline_canvas.c,v 1.3 2001/07/30 09:12:46 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *

@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.14 2001/07/16 09:51:19 richi Exp $
+ * $Id: timeline.c,v 1.15 2001/07/30 09:12:46 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -171,23 +171,39 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 
 		} else {
 			double dx, dy;
-			long hposition, dummy;
+			long hposition, vposition, idy, dummy;
 			/* Just move the rect (horizontally). */
 			dx = mevent->x - dnd_start_x;
 			dy = mevent->y - dnd_start_y;
 			if (x1+dx < 0.0)
 				dx = -x1;
-			gnome_canvas_item_set(dnd_rect,
-					      "x1", x1+dx,
-					      "x2", x2+dx, NULL);
-			gnome_canvas_item_request_update(dnd_rect);
-			DPRINTF("D&D moved by %.1f, %.1f\n", dx, dy);
+			if (y1+dy < 0.0)
+				dy = -y1;
 			timeline_canvas_item_w2gpsm(
-				&hposition, &dummy,
+				&hposition, &vposition,
 				&dummy, &dummy,
 				gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
-				x1+dx, 0.0, 0.0, 0.0);
-			update_ruler_position(active_timeline, hposition);
+				x1+dx, y1+dy, 0.0, 0.0);
+			if(gpsm_item_can_place(
+					       gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
+					       TIMELINE_CI_GPSM(dnd_file),
+					       hposition, vposition)){
+				timeline_canvas_item_w2gpsm(&dummy, &idy,&dummy,&dummy,
+							    gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+							    0.0,dy,0.0,0.0);
+				timeline_canvas_item_gpsm2w(0,idy,0,0,
+							    gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+							    &dummy,&dy,&dummy,&dummy);
+				gnome_canvas_item_set(dnd_rect,
+						      "x1", x1+dx,
+						      "x2", x2+dx, 
+						      "y1", y1+dy,
+						      "y2", y2+dy, NULL);
+				gnome_canvas_item_request_update(dnd_rect);
+				DPRINTF("D&D moved by %.1f, %.1f\n", dx, dy);
+
+				update_ruler_position(active_timeline, hposition);
+			}
 		}
 	}
 	case GDK_BUTTON_RELEASE: {
@@ -202,14 +218,14 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 
 		if (dnd_rect) {
 			double x1, x2, y1, y2;
-			long hposition, dummy;
+			long hposition, vposition, dummy;
 
 			gtk_object_get(GTK_OBJECT(dnd_rect),
 				       "x1", &x1, "x2", &x2,
 				       "y1", &y1, "y2", &y2,
 				       NULL);
 			timeline_canvas_item_w2gpsm(
-				&hposition, &dummy,
+				&hposition, &vposition,
 				&dummy, &dummy,
 				gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
 				x1, y1, x2, y2);
@@ -219,7 +235,7 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			gpsm_item_place(
 				gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
 				TIMELINE_CI_GPSM(dnd_file),
-				hposition, gpsm_item_vposition(TIMELINE_CI_GPSM(dnd_file)));
+				hposition, vposition);//gpsm_item_vposition(TIMELINE_CI_GPSM(dnd_file)));
 			/* TIMELINE_CI_GPSM(dnd_file)->hposition = hposition;
 			   glsig_emit(gpsm_item_emitter(TIMELINE_CI_GPSM(dnd_file)), GPSM_SIG_ITEM_CHANGED, TIMELINE_CI_GPSM(dnd_file)); */
 

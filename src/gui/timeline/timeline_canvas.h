@@ -1,10 +1,10 @@
-#ifndef _CANVAS_TYPES_H
-#define _CANVAS_TYPES_H
+#ifndef _TIMELINE_CANVAS_H
+#define _TIMELINE_CANVAS_H
 
 /*
- * canvas_types.h
+ * timeline_canvas.h
  *
- * $Id: timeline_canvas.h,v 1.1 2001/07/06 12:14:53 mag Exp $
+ * $Id: timeline_canvas.h,v 1.2 2001/07/30 09:12:46 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
