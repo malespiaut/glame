@@ -405,6 +405,8 @@ static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 /* GUI is single-threaded, so this should actually work... */
 static GtkWaveView *actual_waveview;
 
+/* Cleanup helpers for waveedit operations.
+ */
 struct network_run_s {
 	/* Cleanup part. */
 	filter_t *net;
@@ -437,13 +439,19 @@ static void network_run_cleanup_cb(struct network_run_s *cs)
 	}
 	if (cs->invalidate && cs->item) {
 		if (GPSM_ITEM_IS_SWFILE(cs->item)) {
-			gpsm_invalidate_swapfile(gpsm_swfile_filename(cs->item));
+			if (cs->start >= 0)
+				gpsm_notify_swapfile_change(gpsm_swfile_filename(cs->item), cs->start, cs->end - cs->start + 1);
+			else
+				gpsm_invalidate_swapfile(gpsm_swfile_filename(cs->item));
 		} else {
 			gpsm_item_t *it;
 			gpsm_grp_foreach_item(cs->item, it) {
 				if (!GPSM_ITEM_IS_SWFILE(it))
 					continue;
-				gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
+				if (cs->start >= 0)
+					gpsm_notify_swapfile_change(gpsm_swfile_filename(it), cs->start - gpsm_item_hposition(it), cs->end - cs->start + 1);
+				else
+					gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 			}
 		}
 		DPRINTF("invalidated swfiles\n");
@@ -773,7 +781,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
-						  NULL, NULL, 0, 0),
+						  NULL, NULL, start, start + length - 1),
 			       "Record", "Pause", "Stop", 1);
 	return;
 
@@ -864,7 +872,7 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
-						  NULL, NULL, 0, 0),
+						  NULL, NULL, -1, -1),
 			       "Record", "Pause", "Stop", 1);
 	return;
 
@@ -1216,11 +1224,11 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	/* Add the toolbar. */
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
-				"Zoom in", "Zooms in", "Zooms in",
+				"Zoom in", "Zoom in", "Zoom in",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),
 				zoomin_cb, waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
-				"Zoom out", "Zooms out", "Zooms out",
+				"Zoom out", "Zoom out", "Zoom out",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),
 				zoomout_cb, waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
