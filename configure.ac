@@ -263,28 +263,6 @@ dnl no GUI
   AC_MSG_RESULT([GUI was disabled.])
 fi
 
-dnl check for libstroke
-AC_ARG_ENABLE(libstroke, [  --enable-libstroke     enable libstroke support], strokes=$enableval, strokes=no)
-if test x$strokes = xyes; then
-dnl first check for normal positions
-  AC_CHECK_HEADER(stroke.h, strokes=yes, strokes=no)
-if test x$strokes = xno; then
-dnl look for debian version
-  stroke_save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-I/usr/X11R6/include"
-	AC_CHECK_HEADERS([stroke.h X11/stroke.h], strokes=yes, strokes=no)
-  CPPFLAGS="$stroke_save_CPPFLAGS"
-	if test x$strokes = xyes; then
-		GLAME_GUI_INCLUDEDIR="$GLAME_GUI_INCLUDEDIR -I/usr/X11R6/include"
-		GLAME_GUI_LIBDIR="$GLAME_GUI_LIBDIR -L/usr/X11R6/lib"
-		GLAME_GUI_LIBS="$GLAME_GUI_LIBS -lstroke"
-	fi
-  fi
-  if test x$strokes = xyes; then
-	AC_DEFINE(HAVE_LIBSTROKE,, [have/use libstroke])
-  fi
-fi
-
 
 
 dnl

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.65 2004/10/23 13:09:25 richi Exp $
+ * $Id: filtereditgui.c,v 1.66 2005/01/16 15:30:33 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -32,9 +32,6 @@
 #include <gnome.h>
 #include <gtk/gtkstock.h>
 #include <bonobo.h>
-#ifdef HAVE_LIBSTROKE
-#include <stroke.h>
-#endif
 #include "glscript.h"
 #include "util/glame_gui_utils.h"
 #include "util/glame_dnd.h"
@@ -90,32 +87,6 @@ add_filter_by_plugin_cb(GtkWidget*wid, plugin_t *plugin)
 /* 	switch(event->button.button){ */
 /* 	case 1: */
 
-#ifdef HAVE_LIBSTROKE		
-static guint button_down_sighandlerid;
-
-static gboolean 
-button_down_cb(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
-{
-	char translation[50];
-	switch(event->type){
-	case GDK_BUTTON_RELEASE:
-		if(stroke_trans(translation)){
-			DPRINTF("translation: %s\n",translation);
-		}else{
-			DPRINTF("failed translation: %s\n",translation);
-		}
-		gtk_signal_disconnect(canvas,button_down_sighandlerid);
-		break;
-	case GDK_MOTION_NOTIFY:
-		stroke_record(event->button.x, event->button.y);
-		break;
-	default:
-		break;
-	}
-	return FALSE;
-}
-#endif
-		
 #if 0
 static void group_all(GlameCanvas* canv)
 {
@@ -247,11 +218,6 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 			}
 			break;
 		case 2:
-			if(!onItem){
-#ifdef HAVE_LIBSTROKE			  
-			button_down_sighandlerid = gtk_signal_connect(GTK_OBJECT(canvas),"event",GTK_SIGNAL_FUNC(button_down_cb),glCanv);
-#endif
-			}
 			break;
 		case 3:
 			if(!onItem){
@@ -834,9 +800,6 @@ glame_filtereditgui_new(filter_t *net, gboolean prot)
 	gtk_drag_dest_set(GTK_WIDGET(window),GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_HIGHLIGHT | GTK_DEST_DEFAULT_DROP, desttargets,3,GDK_ACTION_COPY|GDK_ACTION_MOVE|GDK_ACTION_DEFAULT);
 
 
-#ifdef HAVE_LIBSTROKE
-	stroke_init();
-#endif
 	return GTK_WIDGET(window);
 }
 
