@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.46 2000/12/18 09:51:55 richi Exp $
+ * $Id: filter.c,v 1.47 2001/03/21 10:16:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -136,9 +136,9 @@ void _filter_free(filter_t *f)
 filter_t *_filter_instantiate(filter_t *f)
 {
 	filter_t *n, *node, *source, *dest;
-	filter_pipe_t *pipe, *p;
-	filter_port_t *port;
+	filter_pipe_t *p;
 	filter_param_t *param;
+	struct fconnection *c;
 
 	/* allocate new structure. */
 	if (!(n = _filter_alloc()))
@@ -175,26 +175,19 @@ filter_t *_filter_instantiate(filter_t *f)
 	/* second create the connections (loop through all outputs)
 	 * and copy pipe parameters */
 	filter_foreach_node(f, node) {
-	    filterportdb_foreach_port(filter_portdb(node), port) {
-		if (!filterport_is_output(port))
-			continue;
-		filterport_foreach_pipe(port, pipe) {
-			source = filter_get_node(n, filterport_filter(filterpipe_source(pipe))->name);
-			dest = filter_get_node(n, filterport_filter(filterpipe_dest(pipe))->name);
-			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), filterport_label(filterpipe_source(pipe))),
-						     filterportdb_get_port(filter_portdb(dest), filterport_label(filterpipe_dest(pipe))))))
+		list_foreach(&node->connections, struct fconnection, list, c) {
+			source = filter_get_node(n, c->source_filter);
+			dest = filter_get_node(n, c->dest_filter);
+			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), c->source_port),
+						     filterportdb_get_port(filter_portdb(dest), c->dest_port))))
 				goto err;
-			filterparamdb_copy(filterpipe_sourceparamdb(p),
-					   filterpipe_sourceparamdb(pipe));
-			filterparamdb_copy(filterpipe_destparamdb(p),
-					   filterpipe_destparamdb(pipe));
-			/* Re-set all parameters to correctly call the set_param methods. */
-			filterparamdb_foreach_param(filterpipe_sourceparamdb(p), param)
-				filterparam_set(param, filterparam_val(param));
-			filterparamdb_foreach_param(filterpipe_destparamdb(p), param)
-				filterparam_set(param, filterparam_val(param));
+			filterparamdb_foreach_param(filterpipe_destparamdb(c->pipe), param) {
+				filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(p), filterparam_label(param)), filterparam_val(param));
+			}
+			filterparamdb_foreach_param(filterpipe_sourceparamdb(c->pipe), param) {
+				filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(p), filterparam_label(param)), filterparam_val(param));
+			}
 		}
-	    }
 	}
 
 	/* Let the node init itself. */
