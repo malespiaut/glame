@@ -1,7 +1,7 @@
 /*
  * <nold.c>
  *
- * $Id: nold.c,v 1.5 2000/02/13 12:18:42 nold Exp $
+ * $Id: nold.c,v 1.6 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras
  *
@@ -81,7 +81,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	 * inputs resource of our filter node, but let's keep it the
 	 * generic way for educational purpose.
 	 */
-	p_in = hash_find_input("in", n);
+	p_in = filternode_get_input(n, "in");
 	if(!p_in) {
 		DPRINTF("No input channels given.\n");
 		goto _cleanup;
@@ -93,7 +93,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 			DPRINTF("Sample rate mismatch!\n");
 			goto _cleanup;
 		}
-	} while((p_in = hash_next_input(p_in)));
+	} while((p_in = filternode_next_input(p_in)));
 
 	if(rate <= 0) {
 		DPRINTF("No valid sample rate given.\n");
@@ -114,14 +114,14 @@ static int sgi_audio_out_f(filter_node_t *n)
 	/* Second pass through the input pipes to set up our internal
 	 * struct.
 	 */
-	p_in = hash_find_input("in", n);
+	p_in = filternode_get_input(n, "in");
 	do {
 		sgi_audioparam_t *ap = &in[ch++];
 		ap->pipe = p_in;
 		ap->buf = NULL;
 		ap->pos = 0;
 		ap->to_go = 0;
-	} while((p_in = hash_next_input(p_in)));
+	} while((p_in = filternode_next_input(p_in)));
 	
 	/* Paranoia. */
 	if(ch != max_ch) 
@@ -254,7 +254,7 @@ int nold_register()
 	filter_t *f;
 	
 	DPRINTF("Trying to register\n");
-	if (!(f = filter_alloc("audio_out", "play stream", sgi_audio_out_f))) {
+	if (!(f = filter_alloc("audio_out2", "play stream", sgi_audio_out_f))) {
 		DPRINTF("filter_alloc failed.\n");
 		return -1;
 	}

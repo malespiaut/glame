@@ -1,6 +1,6 @@
 /*
  * channel_io.c
- * $Id: channel_io.c,v 1.5 2000/02/07 16:26:52 richi Exp $
+ * $Id: channel_io.c,v 1.6 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -100,8 +100,8 @@ static int file_in_f(filter_node_t *n)
 	filter_pipe_t *out;
 	filter_param_t *fname;
 
-	if (!(out = hash_find_output("out", n))
-	    || !(fname = hash_find_param("file", n)))
+	if (!(out = filternode_get_output(n, "out"))
+	    || !(fname = filternode_get_param(n, "file")))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -123,7 +123,7 @@ static int file_out_f(filter_node_t *n)
 	filter_pipe_t *in;
 	fileid_t file;
 
-	if (!(in = hash_find_input("in", n)))
+	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -131,7 +131,7 @@ static int file_out_f(filter_node_t *n)
 	file = do_file_out(n, in);
 
 	/* save the allocated file as "parameter" */
-	filternode_setparam(n, "file", &file);
+	filternode_set_param(n, "file", &file);
 
 	FILTER_BEFORE_CLEANUP;
 
@@ -145,9 +145,9 @@ static int channel_in_f(filter_node_t *n)
 	filter_param_t *chan, *group;
 	channel_t *c;
 
-	if (!(out = hash_find_output("out", n))
-	    || !(chan = hash_find_param("channel", n))
-	    || !(group = hash_find_param("group", n)))
+	if (!(out = filternode_get_output(n, PORTNAME_OUT))
+	    || !(chan = filternode_get_param(n, "channel"))
+	    || !(group = filternode_get_param(n, "group")))
 		return -1;
 
 	if (!(c = get_channel(chan->val.string, group->val.string)))
@@ -167,10 +167,10 @@ static int channel_in_fixup_param(filter_node_t *n, const char *param)
 	filter_pipe_t *out;
 	channel_t *c;
 
-	if (!(chan = hash_find_param("channel", n))
-	    || !(group = hash_find_param("group", n)))
+	if (!(chan = filternode_get_param(n, "channel"))
+	    || !(group = filternode_get_param(n, "group")))
 		return 0;
-	if (!(out = hash_find_output("out", n)))
+	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		return 0;
 
 	if (!(c = get_channel(chan->val.string, group->val.string)))
@@ -188,8 +188,8 @@ static int channel_in_connect_out(filter_node_t *n, const char *port,
 	filter_param_t *chan, *group;
 	channel_t *c;
 
-	if (!(chan = hash_find_param("channel", n))
-	    || !(group = hash_find_param("group", n)))
+	if (!(chan = filternode_get_param(n, "channel"))
+	    || !(group = filternode_get_param(n, "group")))
 		return 0;
 	if (!(c = get_channel(chan->val.string, group->val.string)))
 		return 0;
@@ -209,12 +209,12 @@ static int channel_out_f(filter_node_t *n)
 	filter_param_t *chan, *group, *type;
 	int ctype, res = 0;
 
-	if (!(in = hash_find_input("in", n))
-	    || !(chan = hash_find_param("channel", n))
-	    || !(group = hash_find_param("group", n)))
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(chan = filternode_get_param(n, "channel"))
+	    || !(group = filternode_get_param(n, "group")))
 		return -1;
 
-	if ((type = hash_find_param("type", n)))
+	if ((type = filternode_get_param(n, "type")))
 		ctype = type->val.i;
 	else
 		ctype = CHANNEL_NUM_MISC;
@@ -240,7 +240,7 @@ int channel_io_register()
 	if (!(f = filter_alloc("file_in", "stream a swapfile file", file_in_f))
 	    || !filter_add_param(f, "file", "input file",
 				 FILTER_PARAMTYPE_FILE)
-	    || !filter_add_output(f, "out", "output stream",
+	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
 				  FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
@@ -248,7 +248,7 @@ int channel_io_register()
 	if (!(f = filter_alloc("file_out", "file a stream", file_out_f))
 	    || !filter_add_param(f, "file", "output file",
 				 FILTER_PARAMTYPE_OUTPUT|FILTER_PARAMTYPE_FILE)
-	    || !filter_add_input(f, "in", "input stream",
+	    || !filter_add_input(f, PORTNAME_IN, "input stream",
 				 FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
@@ -261,7 +261,7 @@ int channel_io_register()
 			      FILTER_PARAMTYPE_STRING)
 	    || !filter_add_param(f, "group", "input group",
 				 FILTER_PARAMTYPE_STRING)
-	    || !filter_add_output(f, "out", "output stream",
+	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
 				  FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
@@ -273,7 +273,7 @@ int channel_io_register()
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_param(f, "type", "output type",
 				 FILTER_PARAMTYPE_INT)
-	    || !filter_add_input(f, "in", "input stream",
+	    || !filter_add_input(f, PORTNAME_IN, "input stream",
 				 FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
@@ -281,11 +281,4 @@ int channel_io_register()
 
 	return 0;
 }
-
-
-
-
-
-
-
 

@@ -1,6 +1,6 @@
 /*
  * volume_adjust.c
- * $Id: volume_adjust.c,v 1.7 2000/02/09 15:37:37 richi Exp $
+ * $Id: volume_adjust.c,v 1.8 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,13 +34,12 @@ int volume_adjust(filter_node_t *n)
 	SAMPLE *buf;
 	int i;
 
-	if (!(in = hash_find_input(PORTNAME_IN, n))
-	    || !(out = hash_find_output(PORTNAME_OUT, n)))
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 		return -1;
-	if ((scaleparam = hash_find_param("factor", n)))
+	scale = 1.0;
+	if ((scaleparam = filternode_get_param(n, "factor")))
 		scale = scaleparam->val.f;
-	else
-		scale = 1.0;
 
 	FILTER_AFTER_INIT;
 

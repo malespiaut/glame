@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.9 2000/02/14 00:51:26 mag Exp $
+ * $Id: basic.c,v 1.10 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -51,14 +51,14 @@ static int drop_f(filter_node_t *n)
 	int active_channels, i, maxfd;
 	fd_set channels;
 
-	if (!(inputs = ALLOCN(n->nr_inputs, filter_pipe_t *)))
+	if (!(inputs = ALLOCN(filternode_nrinputs(n), filter_pipe_t *)))
 		return -1;
 
 	/* put all input connections into an easy accessable
 	 * array - we can use it for active connection
 	 * tracking, too. */
 	active_channels = 0;
-	list_foreach_input(n, p)
+	filternode_foreach_input(n, p)
 		inputs[active_channels++] = p;
 
 
@@ -104,7 +104,7 @@ static int one2n_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_pipe_t *in, *out;
 
-	if (!(in = hash_find_input(PORTNAME_IN, n)))
+	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -119,7 +119,7 @@ static int one2n_f(filter_node_t *n)
 	        buf = fbuf_get(in);
 
 		/* forward the input buffer n times */
-		list_foreach_output(n, out) {
+		filternode_foreach_output(n, out) {
 			/* we need to get a reference for our
 			 * destination and then queue the buffer
 			 * in the destinations pipe. */
@@ -153,9 +153,9 @@ static int dup_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_pipe_t *in, *out1, *out2;
 
-	if (!(in = hash_find_input(PORTNAME_IN, n))
-	    || !(out1 = hash_find_output("out1", n))
-	    || !(out2 = hash_find_output("out2", n)))
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out1 = filternode_get_output(n, "out1"))
+	    || !(out2 = filternode_get_output(n, "out2")))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -197,8 +197,8 @@ static int null_f(filter_node_t *n)
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
 
-	in = hash_find_input(PORTNAME_IN, n);
-	out = hash_find_output(PORTNAME_OUT, n);
+	in = filternode_get_input(n, PORTNAME_IN);
+	out = filternode_get_output(n, PORTNAME_OUT);
 	if (!in || !out)
 		return -1;
 
@@ -237,29 +237,29 @@ static int mix_f(filter_node_t *n)
 	 * a connected output. Also all input pipes have
 	 * to match in the sample rate!
 	 */
-	if (n->nr_inputs == 0)
+	if (filternode_nrinputs(n) == 0)
 		return -1;
-	if (!(pout = hash_find_output(PORTNAME_OUT,n)))
+	if (!(pout = filternode_get_output(n, PORTNAME_OUT)))
 		return -1;
-	rate = hash_find_input(PORTNAME_IN, n)->u.sample.rate;
-	list_foreach_input(n, p)
-		if (p->u.sample.rate != rate)
+	rate = filterpipe_sample_rate(filternode_get_input(n, PORTNAME_IN));
+	filternode_foreach_input(n, p)
+		if (filterpipe_sample_rate(p) != rate)
 			return -1;
 
 	/* init */
 	eofs = 0;
-	if (!(in = ALLOCN(n->nr_inputs, filter_buffer_t *)))
+	if (!(in = ALLOCN(filternode_nrinputs(n), filter_buffer_t *)))
 			return -1;
-	if (!(pos = ALLOCN(n->nr_inputs, int)))
+	if (!(pos = ALLOCN(filternode_nrinputs(n), int)))
 		goto _cleanup;
-	if (!(pin = ALLOCN(n->nr_inputs, filter_pipe_t *)))
+	if (!(pin = ALLOCN(filternode_nrinputs(n), filter_pipe_t *)))
 		goto _cleanup;
 
 	FILTER_AFTER_INIT;
 	
 	/* get first input buffers from all channels */
 	i=0;
-	list_foreach_input(n, p) {
+	filternode_foreach_input(n, p) {
 		pin[i] = p;
 		if (!(in[i] = sbuf_get(pin[i])))
 			eofs++;

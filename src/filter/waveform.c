@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.12 2000/02/09 15:37:37 richi Exp $
+ * $Id: waveform.c,v 1.13 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -43,21 +43,21 @@ static int sinus_f(filter_node_t *n)
 	SAMPLE ampl,freq;
 	int duration,i,size,cnt;
 	
-	out = hash_find_output(PORTNAME_OUT, n);
+	out = filternode_get_output(n, PORTNAME_OUT);
 	if (!out) return -1;
-	
-	if ((param = hash_find_param("amplitude",n)))
+
+	/* sane defaults */
+	ampl = 0.5;
+	freq = 441.0;
+	duration = 10000;
+
+	/* user overrides with parameters */
+	if ((param = filternode_get_param(n, "amplitude")))
 		ampl = param->val.sample;
-	else
-		ampl = 0.5;
-	if ((param = hash_find_param("frequency",n)))
+	if ((param = filternode_get_param(n, "frequency")))
 		freq = param->val.sample;
-	else
-		freq = 441.0;
-	if ((param = hash_find_param("duration",n)))
+	if ((param = filternode_get_param(n, "duration")))
 		duration = param->val.i;
-	else
-		duration = 10000;
 	
 
 	size = (int)(44100.0/freq);

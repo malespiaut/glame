@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_network.c,v 1.4 2000/02/10 11:07:19 richi Exp $
+ * $Id: test_network.c,v 1.5 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	for (i=2; i<argc; i+=2) {
 		fprintf(stderr, "setting parameter %s to %s\n",
 			argv[i], argv[i+1]);
-		filternode_setparamstring(n, argv[i], argv[i+1]);
+		filternode_set_paramstring(n, argv[i], argv[i+1]);
 	}
 
 	fprintf(stderr, "launching network\n");

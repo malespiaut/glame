@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.19 2000/02/14 00:51:26 mag Exp $
+ * $Id: audio_io.c,v 1.20 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -66,8 +66,8 @@ static int esd_in_f(filter_node_t *n)
 		return -1;
 	}
 
-	left=hash_find_output("left_out",n);
-	right=hash_find_output("right_out",n);
+	left = filternode_get_output(n, "left_out");
+	right = filternode_get_output(n, "right_out");
 	
 	if (!left || !right){
 		DPRINTF("Couldn't find output pipes!\n");
@@ -137,8 +137,8 @@ static int esd_out_f(filter_node_t *n)
 	/* query both input channels, one channel only -> MONO
 	 * (always left), else STEREO output (but with the same
 	 * samplerate, please!). */
-	left = hash_find_input("left_in", n);
-	right = hash_find_input("right_in", n);
+	left = filternode_get_input(n, "left_in");
+	right = filternode_get_input(n, "right_in");
 	/* right only? */
 	if (!left) {
 		left = right;

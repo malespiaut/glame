@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.6 2000/02/14 00:51:26 mag Exp $
+ * $Id: echo.c,v 1.7 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -42,22 +42,20 @@ static int echo_f(filter_node_t *n)
 	int binpos,boutpos;
         int sent=0,received=0;
 	
-	in=hash_find_input("in",n);
-	out=hash_find_output("out",n);
+	in = filternode_get_input(n, PORTNAME_IN);
+	out = filternode_get_output(n, PORTNAME_OUT);
 
 	if(!in || !out){
 		DPRINTF("Couldn't find ports!\n");
-		/* FIXME exit quietly, probably filter is just disconnected */
-		FILTER_AFTER_INIT;
-		goto _cleanup;
+		return -1;
 	}
 
-	if((param = hash_find_param("time",n)))
+	if((param = filternode_get_param(n, "time")))
 		echotime=param->val.i;
 	else
 		echotime=100;
 
-	if((param = hash_find_param("mix",n)))
+	if((param = filternode_get_param(n, "mix")))
 		mix=param->val.f;
 	else
 		mix=0.7;
@@ -108,8 +106,6 @@ static int echo_f(filter_node_t *n)
 	sent++;
 
 	DPRINTF("sent=%d received=%d\n",sent,received);
-_cleanup:
-	/* FIXME? before cleanup after cleanup sowhat... */
 	
 	FILTER_BEFORE_CLEANUP;
 	free(ring);
@@ -121,8 +117,15 @@ _cleanup:
 void echo_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
 {
 	filter_pipe_t *out;
-	/* FIXME Hmm if input pipe breaks, just disconnect output pipe */
-	out=hash_find_output("out",n);
+	/* FIXME Hmm if input pipe breaks, just disconnect output pipe.
+	 * [richi] As we can cope with weird in/out in f(), this automatic
+         *         breakage can lead to a collapse of the entire network
+	 *         which is not "nice" for the user.
+	 *         So please break connections only actively, not passively
+	 *         (i.e. a parameter which forbids an output/input may break
+	 *         it, but a missing input/output should not break the other
+	 *         one - chicken and egg problem.) */
+	out=filternode_get_output(n, PORTNAME_OUT);
 	if (out) filternetwork_break_connection(out);
 }
 
@@ -131,9 +134,9 @@ int echo_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("echo", "echo effect", echo_f))
-	    || !filter_add_input(f, "in", "input",
+	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f,"out","output",
+	    || !filter_add_output(f, PORTNAME_OUT,"output",
 		    		FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f,"time","echo time in ms",
 		    		FILTER_PARAMTYPE_INT)

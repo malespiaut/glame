@@ -31,8 +31,8 @@ static int invert_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	int i;
 
-	in = hash_find_input("in", n);	
-	out = hash_find_output("out", n);	
+	in = filternode_get_input(n, PORTNAME_IN);	
+	out = filternode_get_output(n, PORTNAME_OUT);	
 	if (!in || !out)
 		return -1;
 
@@ -62,13 +62,13 @@ static int pan_f(filter_node_t *n)
 	filter_buffer_t *l_buf, *r_buf;
 	int i;
 
-	if (!(pan = hash_find_param("pan", n)))
+	if (!(pan = filternode_get_param(n, "pan")))
 		return -1;
-	if (!(in = hash_find_input(PORTNAME_IN, n)))
+	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		return -1;
-	if (!(l_out = hash_find_output("left_out", n)))
+	if (!(l_out = filternode_get_output(n, "left_out")))
 		return -1;
-	if (!(r_out = hash_find_output("right_out", n)))
+	if (!(r_out = filternode_get_output(n, "right_out")))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -104,10 +104,10 @@ static int route_f(filter_node_t *n)
 	FILTER_AFTER_INIT;
 
 	do {
-		list_foreach_input(n, in) {
+		filternode_foreach_input(n, in) {
 			
 		}
-		list_foreach_output(n, out) {
+		filternode_foreach_output(n, out) {
 			sbuf_ref(buf);
 			sbuf_queue(out, buf);
 		}
@@ -147,6 +147,7 @@ int garrison_register()
 	if (filter_add(f))
 		return -1;
 
+#if 0
 	/***** route filter *****/
 	if ((f = filter_alloc("Route", "Mixes and splits audio signals", route_f)) == NULL)
 		return -1;
@@ -156,6 +157,7 @@ int garrison_register()
 		return -1;
 	if (filter_add(f))
 		return -1;
+#endif
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.8 2000/02/09 12:33:24 richi Exp $
+ * $Id: test_latency.c,v 1.9 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -84,12 +84,13 @@ int main(int argc, char **argv)
 	fprintf(stderr, "launching network\n");
 	if (filternetwork_launch(net) == -1) {
 		fprintf(stderr, "error in filternetwork_launch()\n");
+		goto err;
 	}
 
 	fprintf(stderr, "network launched, waiting for completion\n");
 	if (filternetwork_wait(net) == -1) {
 		fprintf(stderr, "error in filternetwork_wait()\n");
-		return -1;
+		goto err;
 	}
 
 	fprintf(stderr, "all done.\n");
@@ -97,6 +98,11 @@ int main(int argc, char **argv)
 	filternetwork_delete(net);
 
 	return 0;
+
+ err:
+	filternetwork_terminate(net);
+	filternetwork_delete(net);
+	return -1;
 }
 
 

@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.4 2000/02/14 00:51:26 mag Exp $
+ * $Id: echo2.c,v 1.5 2000/02/14 13:24:29 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,18 +42,15 @@ static int echo2_f(filter_node_t *n)
 	SAMPLE *ins, *fs;
 	int cnt, inb_pos, fb_pos;
 
-	if (!(in = hash_find_input(PORTNAME_IN, n))
-	    || !(out = hash_find_output(PORTNAME_OUT, n)))
-	{
-		FILTER_AFTER_INIT;
-		goto _cleanup;
-	}
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	        return -1;
 
 	delay = in->u.sample.rate; /* 1 sec. default delay */
-	if ((param = hash_find_param("time", n)))
+	if ((param = filternode_get_param(n, "time")))
 		delay = (int)(in->u.sample.rate*param->val.f);
 	mix = 0.7;
-	if ((param = hash_find_param("mix", n)))
+	if ((param = filternode_get_param(n, "mix")))
 		mix = param->val.f;
 	rdiv = 1.0/(1.0 + mix);
 
@@ -162,7 +159,6 @@ static int echo2_f(filter_node_t *n)
 		sbuf_queue(out, fb);
 	} while (fb);
 
-_cleanup:
 	FILTER_BEFORE_CLEANUP;
 
 	return 0;
@@ -170,13 +166,6 @@ _cleanup:
 
 /* Registry setup of all contained filters
  */
-
-void echo2_fixup_break_in(filter_node_t *n,filter_pipe_t *in)
-{
-	filter_pipe_t *out;
-	out=hash_find_output(PORTNAME_OUT,n);
-	if(out) filternetwork_break_connection(out);
-}
 
 int echo2_register()
 {
@@ -192,8 +181,6 @@ int echo2_register()
 	    || !filter_add_param(f, "mix", "mixer ratio",
 		    		FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	f->fixup_break_in = echo2_fixup_break_in;
-	
 	if (filter_add(f) == -1)
 		return -1;
 
