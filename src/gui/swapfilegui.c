@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.84 2002/04/27 20:04:33 richi Exp $
+ * $Id: swapfilegui.c,v 1.85 2002/06/06 21:29:11 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -764,16 +764,9 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			 * on group). */
 			if (GPSM_ITEM_IS_GRP(dest)
 			    && !drop_replace) {
-				if ((gpsm_grp_t *)dest == gpsm_item_parent(source)) {
-					gpsm_hbox_cut(source);
-					if (gpsm_hbox_insert((gpsm_grp_t *)dest, source,
-							     gpsm_item_hsize(dest), 0) == -1)
-						DPRINTF("insertion failed\n");
-				} else {
-					if (gpsm_hbox_insert((gpsm_grp_t *)dest, source,
-							     gpsm_item_hsize(dest), 0) == -1)
-						DPRINTF("insertion failed\n");
-				}
+				if (gpsm_hbox_insert((gpsm_grp_t *)dest, source,
+						     gpsm_item_hsize(dest), 0) == -1)
+					DPRINTF("insertion failed\n");
 			} else {
 				if (gpsm_hbox_insert(gpsm_item_parent(dest), source,
 						     gpsm_item_hposition(dest), 0) == -1)
@@ -785,16 +778,9 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			 * on group). */
 			if (GPSM_ITEM_IS_GRP(dest)
 			    && !drop_replace) {
-				if ((gpsm_grp_t *)dest == gpsm_item_parent(source)) {
-					gpsm_vbox_cut(source);
-					if (gpsm_vbox_insert((gpsm_grp_t *)dest, source,
-							     0, gpsm_item_vsize(dest)) == -1)
-						DPRINTF("insertion failed\n");
-				} else {
-					if (gpsm_vbox_insert((gpsm_grp_t *)dest, source,
-							     0, gpsm_item_vsize(dest)) == -1)
-						DPRINTF("insertion failed\n");
-				}
+				if (gpsm_vbox_insert((gpsm_grp_t *)dest, source,
+						     0, gpsm_item_vsize(dest)) == -1)
+					DPRINTF("insertion failed\n");
 			} else {
 				if (gpsm_vbox_insert(gpsm_item_parent(dest), source,
 						     0, gpsm_item_vposition(dest)) == -1)
