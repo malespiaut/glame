@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.26 2004/10/23 13:09:23 richi Exp $
+ * $Id: glame_audiofile.c,v 1.27 2004/11/12 16:49:59 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -495,8 +495,8 @@ AFframecount afSeekFrame (AFfilehandle file, int track,
  * skip - number of bytes to skip after 'ch' samples,
  * frames - number of 'ch*width + skip' sized frames.
  */
-static void to_float(void *in, float *out, int ifmt, int width, int ch,
-                     int skip, int frames)
+static int to_float(void *in, float *out, int ifmt, int width, int ch,
+                    int skip, int frames)
 {
 	switch (ifmt) {
 	case AF_SAMPFMT_TWOSCOMP:
@@ -523,7 +523,7 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 			break;
 		}
 		default:
-			PANIC("Width not supported.");
+			return -1; /* Width not supported.  */
 		}
 		break;
 	case AF_SAMPFMT_UNSIGNED:
@@ -550,14 +550,14 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 			break;
 		}
 		default:
-			PANIC("Width not supported.\n");
+			return -1; /* Width not supported.  */
 		}
 		break;
 	case AF_SAMPFMT_FLOAT: {
 		int i, j;
 		float *src = (float *)in;
 		if (width != 32)
-			PANIC("Width not supported.\n");
+			return -1; /* Width not supported.  */
 
 		for (j=0; j < frames; j++) {
 			for (i=0; i < ch; i++)
@@ -571,7 +571,7 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 		double *src = (double *)in;
 
 		if (width != 64)
-			PANIC("Width not supported.\n");
+			return -1; /* Width not supported.  */
 		
 		for (j=0; j < frames; j++) {
 			for (i=0; i < ch; i++)
@@ -581,6 +581,8 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 		}
 		break;
 	}
+
+	return 0;
 }
 
 
@@ -623,9 +625,12 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 			goto out;
 		}
 		
-		to_float(in, buffer, file->sfmt, file->width, file->ch,
-	                 RWW(file).block_align-file->ch*file->width/8,
-			 frames);
+		if (to_float(in, buffer, file->sfmt, file->width, file->ch,
+	                     RWW(file).block_align-file->ch*file->width/8,
+			     frames) == -1) {
+			DPRINTF("Conversion to float failed.\n");
+			goto out;
+		}
 		((float *)buffer) += frames*file->ch;
 	}
 	
