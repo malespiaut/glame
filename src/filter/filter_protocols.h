@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.20 2000/05/04 14:55:11 nold Exp $
+ * $Id: filter_protocols.h,v 1.21 2000/08/03 11:21:52 mag Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * This file contains the standard protocols
+ *   - FFT
  *   - RMS
  *   - Sample
  *   - Midi
- *   - Control input <- What's that for ? [mag]
+ *   - Control input
  */
 
 #ifndef _FILTER_PROTOCOLS_H
@@ -36,6 +37,32 @@
  */
 #define PORTNAME_IN "in"
 #define PORTNAME_OUT "out"
+
+/* FFT protocol 
+ * The FFT Buffer is initialized with fft_alloc(wsize,filternode) 
+ * - wsize is the 
+ */
+
+typedef struct fft_header fft_header_t;
+struct fft_header {
+	int osamp;	/* oversampling factor */
+	char buf[1];	/* */
+}
+
+#define fft_alloc(wsize, filternode) \
+        fbuf_alloc(SAMPLE_SIZE*(wsize) + sizeof(fft_header_t), \
+		   &(filternode)->buffers)
+#define fft_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(fft_header_t))/SAMPLE_SIZE)
+#define fft_buf(fb) ((SAMPLE *)(&((fft_header_t *)fbuf_buf(fb))->buf[0]))
+#define fft_buf(fb) ((fft_header_t *)(fbuf_buf(fb)))
+#define fft_ref(fb) fbuf_ref(fb)
+#define fft_unref(fb) fbuf_unref(fb)
+#define fft_make_private(fb) fbuf_make_private(fb)
+#define fft_get(p) fbuf_get(p)
+#define fft_queue(p, fb) fbuf_queue(p,fb)
+
+#define fft_set_osamp(fb,osamp) ((fft_header_t *)fbuf_buf(fb))->osamp=osamp
+#define fft_get_osamp(fb,osamp) ((fft_header_t *)fbuf_buf(fb))->osamp
 
 /* A try for an RMS protocol
  * We don't need an actual buffer, "a header should be enough for everyone"

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.56 2000/06/25 14:53:00 richi Exp $
+ * $Id: filter.h,v 1.57 2000/08/03 11:21:52 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -144,8 +144,9 @@ void filter_delete_port(filter_t *filter, filter_portdesc_t *port);
 #define FILTER_PORTTYPE_RMS       8
 #define FILTER_PORTTYPE_MIDI      16
 #define FILTER_PORTTYPE_CONTROL   32
+#define FILTER_PORTTYPE_FFT	64
 #define FILTER_PORTTYPE_MISC    128
-#define FILTER_PORTTYPE_ANY     (4|8|16|32|128)
+#define FILTER_PORTTYPE_ANY     (4|8|16|32|64|128)
 #define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
 #define FILTER_PORT_IS_COMPATIBLE(porttype, pipetype) (((porttype) & (pipetype)) == (pipetype))
 
