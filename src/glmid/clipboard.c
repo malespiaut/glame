@@ -175,9 +175,36 @@ static int paste_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
 }
 
 
-/* Delete, cut and copy operations. Mode 0 == delete, 1 == cut, 2 == copy. */
-static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
-				     int mode)
+int clipboard_delete(gpsm_item_t *item, long pos, long size)
+{
+	gpsm_item_t *it;
+
+	if (!item || pos < 0 || size <= 0)
+		return -1;
+	if (GPSM_ITEM_IS_GRP(item) && gpsm_grp_nritems(item) == 0)
+		return -1;
+
+	if (GPSM_ITEM_IS_SWFILE(item)) {
+		return copy_one(NULL, (gpsm_swfile_t *)item,
+				pos, size, SWSENDFILE_CUT);
+	}
+
+	gpsm_grp_foreach_item(item, it) {
+		if (!GPSM_ITEM_IS_SWFILE(it))
+			return -1;
+		if (copy_one(NULL, (gpsm_swfile_t *)it,
+			     pos - gpsm_item_hposition(it), size,
+			     SWSENDFILE_CUT) == -1)
+			return -1;
+	}
+
+	return 0;
+}
+
+
+/* Cut and copy operations. Mode 1 == cut, 2 == copy. */
+static int clipboard_cut_copy(gpsm_item_t *item, long pos, long size,
+			      int sendfile_flags)
 {
 	gpsm_grp_t *grp;
 	gpsm_item_t *it;
@@ -187,20 +214,17 @@ static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
 	if (GPSM_ITEM_IS_GRP(item) && gpsm_grp_nritems(item) == 0)
 		return -1;
 
-	if (mode != 0)
-		grp = gpsm_newgrp("clipboard");
+	grp = gpsm_newgrp("clipboard");
 
 	if (GPSM_ITEM_IS_SWFILE(item)) {
 		gpsm_swfile_t *swfile;
-		if (mode != 0) {
-			swfile = gpsm_newswfile("track");
-			gpsm_swfile_set(swfile, gpsm_swfile_samplerate(item),
-					gpsm_swfile_position(item));
-			gpsm_item_place(grp, (gpsm_item_t *)swfile,
-					0, gpsm_item_vsize(grp));
-		}
-		if (copy_one(mode != 0 ? swfile : NULL, (gpsm_swfile_t *)item,
-			     pos, size, mode != 2 ? SWSENDFILE_CUT : 0) == -1)
+		swfile = gpsm_newswfile("track");
+		gpsm_swfile_set(swfile, gpsm_swfile_samplerate(item),
+				gpsm_swfile_position(item));
+		gpsm_item_place(grp, (gpsm_item_t *)swfile,
+				0, gpsm_item_vsize(grp));
+		if (copy_one(swfile, (gpsm_swfile_t *)item,
+			     pos, size, sendfile_flags) == -1)
 			goto err;
 		goto ok;
 	}
@@ -209,46 +233,35 @@ static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
 		gpsm_swfile_t *swfile;
 		if (!GPSM_ITEM_IS_SWFILE(it))
 			goto err;
-		if (mode != 0) {
-			swfile = gpsm_newswfile("track");
-			gpsm_swfile_set(swfile, gpsm_swfile_samplerate(it),
-					gpsm_swfile_position(it));
-			gpsm_item_place(grp, (gpsm_item_t *)swfile,
-					0, gpsm_item_vsize(grp));
-		}
-		if (copy_one(mode != 0 ? swfile : NULL, (gpsm_swfile_t *)it,
+		swfile = gpsm_newswfile("track");
+		gpsm_swfile_set(swfile, gpsm_swfile_samplerate(it),
+				gpsm_swfile_position(it));
+		gpsm_item_place(grp, (gpsm_item_t *)swfile,
+				0, gpsm_item_vsize(grp));
+		if (copy_one(swfile, (gpsm_swfile_t *)it,
 			     pos - gpsm_item_hposition(it), size,
-			     mode != 2 ? SWSENDFILE_CUT : 0) == -1)
+			     sendfile_flags) == -1)
 			goto err;
 	}
 
  ok:
-	if (mode != 0) {
-		gpsm_item_destroy((gpsm_item_t *)root);
-		root = grp;
-	}
-
+	gpsm_item_destroy((gpsm_item_t *)root);
+	root = grp;
 	return 0;
 
  err:
-	if (mode != 0)
-		gpsm_item_destroy((gpsm_item_t *)grp);
+	gpsm_item_destroy((gpsm_item_t *)grp);
 	return -1;
-}
-
-int clipboard_delete(gpsm_item_t *item, long pos, long size)
-{
-	return clipboard_delete_cut_copy(item, pos, size, 0);
 }
 
 int clipboard_cut(gpsm_item_t *item, long pos, long size)
 {
-	return clipboard_delete_cut_copy(item, pos, size, 1);
+	return clipboard_cut_copy(item, pos, size, SWSENDFILE_CUT);
 }
 
 int clipboard_copy(gpsm_item_t *item, long pos, long size)
 {
-	return clipboard_delete_cut_copy(item, pos, size, 2);
+	return clipboard_cut_copy(item, pos, size, 0);
 }
 
 int clipboard_paste(gpsm_item_t *item, long pos)
@@ -258,18 +271,17 @@ int clipboard_paste(gpsm_item_t *item, long pos)
 	if (!item || pos < 0 || !clipboard_can_paste(item))
 		return -1;
 
+	/* paste from single file into single file is simple. */
 	source = (gpsm_swfile_t *)gpsm_grp_first(root);
 	if (GPSM_ITEM_IS_SWFILE(item))
-		dest = (gpsm_swfile_t *)item;
-	else
-		dest = (gpsm_swfile_t *)gpsm_grp_first(item);
+		return paste_one((gpsm_swfile_t *)item, source, pos);
 
+	/* now for the complicated multi-file to group case. */
+	dest = (gpsm_swfile_t *)gpsm_grp_first(item);
 	do {
 		if (paste_one(dest, source,
-			      GPSM_ITEM_IS_SWFILE(item) ? pos : pos - gpsm_item_hposition(dest)) == -1)
+			      pos - gpsm_item_hposition(dest)) == -1)
 			return -1;
-		if (GPSM_ITEM_IS_SWFILE(item))
-			break;
 
 		source = (gpsm_swfile_t *)gpsm_grp_next(root, source);
 		dest = (gpsm_swfile_t *)gpsm_grp_next(item, dest);
