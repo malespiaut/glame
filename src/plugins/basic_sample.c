@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.36 2001/04/27 13:43:25 richi Exp $
+ * $Id: basic_sample.c,v 1.37 2001/04/29 11:46:12 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -232,8 +232,6 @@ static int mix_f(filter_t *n)
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
 		}
-		if (fifo_full && (!out || !output_ready))
-			DERROR("Duh - broken mix state\n");
 		res = select(maxfd+1,
 			     fifo_full ? NULL : &rset,
 			     (!out || !output_ready) && !fifo_full ? NULL : &wset,
