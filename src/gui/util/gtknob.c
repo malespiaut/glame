@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.1 2002/02/16 18:20:07 richi Exp $
+ * $Id: gtknob.c,v 1.2 2002/02/24 18:30:30 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <gtk/gtk.h>
 #include "gtknob.h"
+
+/* statically include knob pixmap */
+#include "gtknob.xpm"
 
 static void gtk_knob_class_init(GtkKnobClass * klass);
 static void gtk_knob_init(GtkKnob * knob);
@@ -189,6 +192,7 @@ GtkWidget *gtk_knob_new(GtkAdjustment * adj)
     GtkWidget *knob;
 
     knob = gtk_widget_new(GTK_TYPE_KNOB, "adjustment", adj, NULL);
+    GTK_KNOB(knob)->value = (adj->value - adj->lower) / (adj->upper - adj->lower) * 53;
 
     return knob;
 }
@@ -283,11 +287,7 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
     knob = GTK_KNOB(widget);
 
     if (knob->button != 0) {
-	x = event->x;
-	y = event->y;
-
-	if (event->is_hint)
-	    gdk_window_get_pointer(widget->window, &x, &y, &mods);
+	gdk_window_get_pointer(widget->window, &x, &y, &mods);
 
 	temp = knob->old_value + (-(y - knob->y_click_point));
 	if (temp < 0)
@@ -304,7 +304,7 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 	    rect.height = widget->allocation.height;
 	    gtk_knob_draw(widget, &rect);
 	    knob->adjustment->value =
-		(knob->value * knob->adjustment->upper) / 53;
+		(knob->value / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower;
 	    gtk_signal_emit_by_name(GTK_OBJECT(knob->adjustment),
 				    "value_changed");
 
@@ -404,7 +404,6 @@ gtk_knob_size_allocate(GtkWidget * widget, GtkAllocation * allocation)
     knob = GTK_KNOB(widget);
 
     widget->allocation = *allocation;
-
     if (GTK_WIDGET_REALIZED(widget)) {
 	gdk_window_move_resize(widget->window,
 			       allocation->x,
@@ -544,7 +543,7 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
     knob = GTK_KNOB(data);
     widget = GTK_WIDGET(data);
 
-    temp = (adjustment->value * 53) / adjustment->upper;
+    temp = (adjustment->value - adjustment->lower) / (adjustment->upper - adjustment->lower) * 53;
     if (knob->value != temp) {
 	knob->value = temp;
 	rect.x = 0;
