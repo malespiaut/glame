@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.73 2002/01/03 22:11:09 richi Exp $
+ * $Id: swapfilegui.c,v 1.74 2002/01/03 22:58:06 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -139,7 +139,6 @@ static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)
 }
 void edit_tree_label(GlameTreeItem * item)
 {
-	GtkWidget *label;
 	GtkWidget *entry;
 
 	/* Deselect item and replace GtkLabel with GtkEntry. */
@@ -320,22 +319,28 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	struct glame_list_head *dummy;
-	gpsm_grp_t *group;
+	gpsm_grp_t *group, *parent;
 	gpsm_item_t *i;
+	long group_hpos, group_vpos;
 
 	if (!GPSM_ITEM_IS_GRP(item->item))
 		return;
+	deselect_all(active_swapfilegui);
+
 	group = (gpsm_grp_t *)item->item;
+	parent = gpsm_item_parent(group);
+	group_hpos = gpsm_item_hposition(group);
+	group_vpos = gpsm_item_vposition(group);
+	gpsm_item_remove((gpsm_item_t *)group);
 
 	gpsm_grp_safe_foreach_item(group, dummy, i) {
 		long hpos, vpos;
-		hpos = gpsm_item_hposition(i) + gpsm_item_hposition(group);
-		vpos = gpsm_item_vposition(i) + gpsm_item_vposition(group);
+		hpos = gpsm_item_hposition(i) + group_hpos;
+		vpos = gpsm_item_vposition(i) + group_vpos;
 		gpsm_item_remove(i);
-		gpsm_item_place(gpsm_item_parent(group), i, hpos, vpos);
+		gpsm_item_place(parent, i, hpos, vpos);
 	}
 	gpsm_item_destroy((gpsm_item_t *)group);
-	deselect_all(active_swapfilegui);
 }
 
 /* Flatten the group using gpsm_flatten and replace it with the
