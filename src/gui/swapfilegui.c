@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.63 2001/11/05 11:08:03 richi Exp $
+ * $Id: swapfilegui.c,v 1.64 2001/11/07 09:08:54 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -262,7 +262,7 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 
 		/* Dont allow copying myself into myself. */
 		if (item->item == i->item)
-			continue;
+			goto next;
 
 		if (GPSM_ITEM_IS_SWFILE(i->item))
 			copy = (gpsm_item_t *)gpsm_swfile_cow((gpsm_swfile_t *)i->item);
@@ -296,7 +296,7 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 
 		/* Dont allow copying myself into myself. */
 		if (item->item == i->item)
-			continue;
+			goto next;
 
 		if (GPSM_ITEM_IS_SWFILE(i->item))
 			copy = (gpsm_item_t *)gpsm_swfile_link((gpsm_swfile_t *)i->item);
