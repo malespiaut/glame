@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.56 2002/01/27 15:09:07 richi Exp $
+ * $Id: basic_sample.c,v 1.57 2002/02/06 19:15:11 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -43,7 +43,7 @@
 #include "util.h"
 #include "glplugin.h"
 
-PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat")
+PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat pan2")
 
 
 
@@ -1237,6 +1237,121 @@ int repeat_register(plugin_t *p)
 		   "repeat an audio stream for the specified time");
 	plugin_set(p, PLUGIN_PIXMAP, "repeat.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
+  
+	return filter_register(f, p);
+}
+
+
+
+
+
+static int pan2_f(filter_t *n)
+{
+	filter_port_t *in_port, *out_port;
+	filter_pipe_t *in, *out;
+	filter_buffer_t *buf;
+
+	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	out_port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	in = filterport_get_pipe(in_port);
+	out = filterport_get_pipe(out_port);
+	if (!in || !out)
+		FILTER_ERROR_RETURN("no input or no output");
+
+	FILTER_AFTER_INIT;
+
+	/* The loop condition is at the end to get and
+	 * forward the EOF mark. */
+	do {
+		FILTER_CHECK_STOP;
+		/* get an input buffer */
+		buf = fbuf_get(in);
+
+		/* just forward every buffer */
+		fbuf_queue(out, buf);
+	} while (buf);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+static int pan2_set(filter_param_t *param, const void *val)
+{
+	filter_pipe_t *out;
+	filter_t *n;
+	float pos = *(float *)val;
+
+	if (pos < -M_PI || pos > M_PI)
+		return -1;
+
+	n = filterparam_filter(param);
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
+	if (!out)
+		return 0;
+	filterpipe_settype_sample(out, filterpipe_sample_rate(out),
+				  *(float *)val);
+	glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
+
+	return 0;
+}
+static void pan2_pipe_changed(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_pipe_t *in, *out;
+	filter_t *n;
+
+	GLSIGH_GETARGS1(va, in);
+	n = filterport_filter(filterpipe_dest(in));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
+	if (out && filterpipe_sample_rate(in) != filterpipe_sample_rate(out)) {
+		filterpipe_settype_sample(out, filterpipe_sample_rate(in),
+					  filterpipe_sample_hangle(out));
+		glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
+	}
+}
+static int pan2_connect_in(filter_port_t *port, filter_pipe_t *pipe)
+{
+	if (filterport_nrpipes(port) >= 1)
+		return -1;
+	glsig_add_handler(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED,
+			  pan2_pipe_changed, NULL);
+	return 0;
+}
+int pan2_register(plugin_t *p)
+{
+	filter_t *f;
+	filter_param_t *param;
+	filter_port_t *port;
+
+	if (!(f = filter_creat(NULL)))
+		return -1;
+	f->f = pan2_f;
+
+	port = filterportdb_add_port(
+		filter_portdb(f), PORTNAME_IN,
+		FILTER_PORTTYPE_SAMPLE,
+		FILTER_PORTFLAG_INPUT,
+		FILTERPORT_DESCRIPTION, "input stream to pan",
+		FILTERPORT_END);
+	port->connect = pan2_connect_in;
+	port = filterportdb_add_port(
+		filter_portdb(f), PORTNAME_OUT,
+		FILTER_PORTTYPE_SAMPLE,
+		FILTER_PORTFLAG_OUTPUT,
+		FILTERPORT_DESCRIPTION, "panned stream",
+		FILTERPORT_END);
+	param = filterparamdb_add_param_float(
+		filter_paramdb(f), "position",
+		FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+		FILTERPARAM_DESCRIPTION, "new position in stereo field",
+		FILTERPARAM_END);
+	param->set = pan2_set;
+
+	plugin_set(p, PLUGIN_DESCRIPTION,
+		   "pans the stream to the specified position");
+	plugin_set(p, PLUGIN_PIXMAP, "pan.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
