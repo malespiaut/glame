@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.8 2001/12/16 14:22:47 richi Exp $
+ * $Id: importexport.c,v 1.9 2001/12/16 22:59:29 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -534,7 +534,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	GtkObject *rateentry_adj;
 	GtkWidget *rateentry;
 	GtkWidget *frame5;
-	GtkWidget *normalizebutton;
+	/*GtkWidget *normalizebutton;*/
 	GtkWidget *appbar2;
 	GtkWidget *dialog_action_area2;
 	GtkWidget *importbutton;
@@ -674,10 +674,11 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	gtk_widget_show (frame5);
 	gtk_box_pack_start (GTK_BOX (vbox3), frame5, TRUE, TRUE, 0);
 
+	/*
 	normalizebutton = gtk_check_button_new_with_label (_("Normalize"));
 	gtk_widget_show (normalizebutton);
 	gtk_container_add (GTK_CONTAINER (frame5), normalizebutton);
-
+*/
 	ie->appbar = appbar2 = gnome_appbar_new (TRUE, TRUE, GNOME_PREFERENCES_NEVER);
 	gtk_widget_show (appbar2);
 	gtk_box_pack_start (GTK_BOX (dialog_vbox2), appbar2, TRUE, TRUE, 0);
@@ -1160,7 +1161,7 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	/* filetype is auto, so compression can't be set */
 	gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
 
-	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 	
