@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.8 2001/08/07 15:44:35 richi Exp $
+ * $Id: glame_param.c,v 1.9 2001/09/25 11:23:36 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -186,12 +186,6 @@ static gint curve_cb(GlameCurve* curve, GlameParam *gparam)
 	char* ctlbuffer;
 	filter_buffer_t *sbuf;
 
-	sbuf = sbuf_alloc(1000, NULL);
-	sbuf_make_private(sbuf);
-	gtk_curve_get_vector(GTK_CURVE(gparam->u.curve),
-			     sbuf_size(sbuf), sbuf_buf(sbuf));
-	filterparam_set(gparam->param, &sbuf);
-	sbuf_unref(sbuf);
 	glame_curve_get_control_vector(gparam->u.curve,
 				       &numpoints, &ctlpoints);
 	ctlbuffer = calloc(numpoints*2*12, sizeof(gfloat));
@@ -210,6 +204,15 @@ static gint curve_cb(GlameCurve* curve, GlameParam *gparam)
 				 ctlbuffer);
 	g_free(ctlpoints);
 	free(ctlbuffer);
+
+	gparam->updating = 1;
+	sbuf = sbuf_alloc(1000, NULL);
+	sbuf_make_private(sbuf);
+	gtk_curve_get_vector(GTK_CURVE(gparam->u.curve),
+			     sbuf_size(sbuf), sbuf_buf(sbuf));
+	filterparam_set(gparam->param, &sbuf);
+	sbuf_unref(sbuf);
+	gparam->updating = 0;
 
 	return TRUE;
 }
@@ -434,9 +437,9 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gtk_signal_connect(GTK_OBJECT(gparam->u.edit), "changed",
 				   (GtkSignalFunc)editable_cb, gparam);
 	else if (GLAME_IS_CURVE(gparam->u.widget))
-		gtk_signal_connect(GTK_OBJECT(gparam->u.curve),
-				   "curve_changed",
-				   (GtkSignalFunc)curve_cb, gparam);
+			gtk_signal_connect(GTK_OBJECT(gparam->u.curve),
+			   "curve_changed",
+			   (GtkSignalFunc)curve_cb, gparam);
 	else if (GTK_IS_OPTION_MENU(gparam->u.widget))
 		gtk_signal_connect(GTK_OBJECT(gtk_option_menu_get_menu(GTK_OPTION_MENU(gparam->u.widget))),
 				   "selection_done",

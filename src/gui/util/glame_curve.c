@@ -1,7 +1,7 @@
 /*
  * glame_curve.c
  *
- * $Id: glame_curve.c,v 1.5 2001/07/31 09:19:55 xwolf Exp $
+ * $Id: glame_curve.c,v 1.6 2001/09/25 11:23:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -69,6 +69,7 @@ static gint glame_curve_event(GtkWidget* widget, GdkEvent* event, GlameCurve* gc
 			gtk_signal_emit (GTK_OBJECT (gcurve), curve_changed_signal);
 			changed = FALSE;
 		}
+		break;
 	default:
 		break;
 	}
@@ -154,7 +155,8 @@ void glame_curve_set_control_vector(GlameCurve* curve,
 	}
 	/* FIXME */
 	//glame_curve_redraw(gCurve);
-		gtk_curve_set_curve_type(gCurve,GTK_CURVE_TYPE_SPLINE);//gCurve->curve_type);
+	//	gtk_curve_set_curve_type(gCurve,GTK_CURVE_TYPE_SPLINE);//gCurve->curve_type);
+	gtk_widget_queue_draw(GTK_WIDGET(gCurve));
 }
 
 void glame_curve_get_control_vector(GlameCurve* curve,
