@@ -250,16 +250,6 @@ int sw_unlink(long name)
 	return 0;
 }
 
-/* Creates a new name to the file with name oldname. Like link(2).
- * We need to (atomically!)
- * - open the file
- * - create the new file
- * - link(2) all clusters
- * - update the clusters metadata */
-int sw_link(long oldname, long newname)
-{
-	return -1; /* FIXME - necessary?? sw_open(O_CREAT) && sw_sendfile(dest, source)! */
-}
 
 /* Open the (flat) swapfile directory for reading. The stream
  * is positioned at the first file. Like opendir(3), but w/o
@@ -483,12 +473,10 @@ int sw_fstat(swfd_t fd, struct sw_stat *buf)
 		buf->cluster_start = _fd->c_start;
 		buf->cluster_end = _fd->c_start + _fd->c->size;
 		buf->cluster_size = _fd->c->size;
-		buf->cluster_nlink = _fd->c->usage;
 	} else {
 		buf->cluster_start = -1;
 		buf->cluster_end = -1;
 		buf->cluster_size = -1;
-		buf->cluster_nlink = -1;
 	}
 	return 0;
 }
@@ -757,52 +745,105 @@ static void _sw_close(struct swfd *fd)
 
 /* Cluster binary tree routines. The clusters of a file are
  * organized in a binary tree consisting of nodes that contain
- * the size of its siblings:
- * t[0] = height of the tree (0, 1, 2... - example is 2)
- * t[1]                       total sizeA
- * t[2][3]             sizeB                sizeA-sizeB
- * t[4][5][6][7]    sC     sB-sC         sD       sA-sB-sD
- * t[8][9][10][11]  cID     cID          cID         cID
- * (trees with larger height constructed the same way)
- * For tree traversal a left branch is done with i->2*i, a right
- * branch with i->2*i+1. The height of the tree is stored as the
- * 0th component of the array containing the tree.
+ * the size of its siblings (example tree height is 2):
+ * s64 t[0]  metadata
+ * s64 t[1]                         total sizeA
+ * s64 t[2][3]               sizeB                sizeA-sizeB
+ * s32 t[8][9][10][11]    sC     sB-sC         sD       sA-sB-sD
+ * s32 t[12][13][14][15]  cID     cID          cID         cID
  * The tree is always filled "from the left", i.e. leaf nodes
  * span the tree.
+ * Its obvious that this way an O(logN) query of a cluster, its
+ * starting offset in the file and its size can be obtained for
+ * a given file offset. Also its obvious that O(NlogN) storage
+ * is required.
  */
+
+/* This, of course has to be FIXED. */
+#define u32 unsigned long
+#define s32 signed long
+#define s64 signed long long
+
+/* A tree head structure - dummy of course, and some macros
+ * transforming a pointer to such structure to pointers to
+ * the beginning of the cluster sizes/ids arrays and to the
+ * beginning of the tree that is suited for good algorithm
+ * implementation - tree[1] being the s64 total_size. Other
+ * nice transforms are (in the s64 part of the tree):
+ *           tree[i]                     tree[i>>1]
+ *  tree[2*i]       tree[2*i+1]   tree[i]          tree[i+1]
+ * for the transition from the s64 part to the s32 part the
+ * situation is as follows:
+ *                       s64 *tree[i]
+ * s32 *tree[2*i + 1<<height]   s32 *tree[2*i+1 + 1<<height]
+ * the reverse transition would be:
+ *                 s64 *tree[(i - 1<<height)>>1]
+ *      s32 *tree[i]                          s32 *tree[i+1]
+ */
+struct fc_tree_head {
+    u32 height; /* we _need_ 32 bits here, as 1<<32 == max clusterid */
+    u32 cnt;   /* maybe we need some flags - or store the number of  *
+		* actual stored clusters which is <= 1<<height       */
+    s64 total_size; /* really the head node of the following tree    */
+    /* s64 inner_tree[(1<<height) - 2];      -> max filesize         */
+    /* s32 leafs_cluster_sizes[1<<height];   -> max clustersize      */
+    /* u32 cluster_ids[1<<height];           -> max clusterid        */
+};
+#define CTREE64(h) (s64 *)(h)
+#define CTREE32(h) (s32 *)(h)
+#define CSIZES(h) (s32 *)((s64 *)(h) + (1<<(h)->height))
+#define CIDS(h) ((u32 *)(h) + 3*(1<<(h)->height))
+
 
 /* Finds the cluster with offset inside it, returns the
  * offset of the cluster id in the tree array. Copies
  * the cluster start position and its size to cstart/csize. */
-static int _find_cluster(long *tree, off_t offset,
-			 off_t *cstart, size_t *csize)
+static int _find_cluster(struct fc_tree_head *h, s64 offset,
+			 s64 *cstart, s32 *csize)
 {
-	long height = tree[0];
-	off_t pos;
+	s64 *tree64 = CTREE64(h);
+	s32 *tree32 = CTREE32(h);
+    	s64 pos;
+	u32 height = h->height;
 	int i;
 
 	pos = 0;
 	i = 1;
-	while (height--) {
-		if (pos+tree[2*i] > offset) {
+	/* FIXME - this will not work, as the last level of the
+	 * tree (the cluster sizes) is not s64, but s32... so
+	 * we need to seperate the last iteration. */
+	while (--height) {
+		if (pos+tree64[2*i] > offset) {
 			i = 2*i;
 		} else {
-			pos += tree[2*i];
+			pos += tree64[2*i];
 			i = 2*i+1;
 		}
 	}
-	if (pos > offset || pos+tree[i] <= offset)
+	/* Do the last chech with the sizes[] which is s32, not s64... */
+	if (pos+tree32[2*i + (1<<h->height)] > offset) {
+		i = 2*i + (1<<h->height);
+	} else {
+		pos += tree32[2*i + (1<<h->height)];
+		i = 2*i+1 + (1<<h->height);
+	}
+
+	/* Outside of allocated area? */
+	if (pos > offset || pos+tree32[i] <= offset)
 		return -1;
+
+	/* Fill start offset, size and return id */
 	if (cstart)
 		*cstart = pos;
 	if (csize)
-		*csize = tree[i];
-	return i+(1<<tree[0]);
+		*csize = tree32[i];
+	return tree32[i+(1<<h->height)];
 }
 
+#if 0 /* below needs to be FIXED wrt s64/s32 */
 /* Correct the tree structure to correct the size of the cluster
  * which id is at pos in the tree structure. */
-static void _resize_cluster(long *tree, int pos, long size)
+static void _resize_cluster(long *tree, int pos, s32 size)
 {
 	int height, i;
 	long delta;
@@ -917,3 +958,4 @@ static long *_double_height(long *tree)
 
 	return dest;
 }
+#endif

@@ -4,7 +4,7 @@
 /*
  * txn.h
  *
- * $Id: txn.h,v 1.2 2000/09/25 09:05:12 richi Exp $
+ * $Id: txn.h,v 1.3 2000/09/27 08:13:04 richi Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -139,10 +139,37 @@ int txn_delete(txnid_t id);
 void txn_abort_and_delete_all();
 
 
-/* Interface for writing operations.
+/* Interface for writing operations. A minimum example on how
+ * to create the necessary struct txn_op specialization is
+ * given here:
+ * struct my_txn_op {
+ *      struct txn_op op;
+ *      ... data to undo/delete my transaction
+ * };
+ * int my_operation(txnid_t parent_tid, params...)
+ * {
+ *      struct my_txn_op *op = malloc(sizeof(struct my_txn_op));
+ *      txnid_t my_tid;
+ *      ... initialization stuff for my_operation
+ *      my_tid = txn_start(parent_tid);
+ *      ... my operation
+ *      op->op.undo = my_txn_undo;
+ *      op->op.delete = my_txn_delete;
+ *      op->... stuff to be able to undo/delete the transaction
+ *      txn_finish(my_tid, &op->op);
+ *      ... stuff
+ * }
  */
 
-struct txn *txn_get_struct(txnid_t id);
+/* Finishes a transaction by providing the necessary undo/delete
+ * operations. Will fail if child transactions are there. The
+ * transaction will be ended as in txn_end(txn_start(id)). */
+int txn_finish(txnid_t id, struct txn_op *ops);
+
+/* Finishes a transaction using an implementation that throws
+ * an exception, if the undo operation is required. The supplied
+ * message is written to stderr and a SIGSEGV will be raised. */
+int txn_finish_unimplemented(txnid_t id, const char *message);
 
 
 #endif

@@ -1,7 +1,5 @@
 /*
  * txn.c
- *
- * $Id: txn.c,v 1.2 2000/09/25 09:05:12 richi Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,6 +37,7 @@ static LIST_HEAD(_txn_list);
 /* Convenience.
  */
 #define _txn_is_active(t) (((t)->parent && (t)->parent->active == (t)) || (t)->active)
+#define _txn_is_unused(t) (!(t)->op && list_empty(&(t)->childs))
 #define txn_foreach_child_backward(transaction, childvar) for ((childvar) = list_entry((transaction)->childs.prev, struct txn, list); &(childvar)->list != &(transaction)->childs; (childvar) = list_entry((childvar)->list.prev, struct txn, list))
 
 
@@ -234,10 +233,22 @@ int txn_end(txnid_t id)
 	if (t->active)
 		return -1;
 
-	/* FIXME - special case empty transaction */
-	if (!t->op && list_empty(&t->childs))
-		;
+	/* Special case empty transaction - we can just delete it,
+	 * but warn the user, as this is not really valid usage. */
+	if (_txn_is_unused(t)) {
+		/* This is _txn_end() - on an invalid transaction. */
+		if (t->parent)
+			t->parent->active = NULL;
+		/* This is _txn_delete() - on an invalid transaction. */
+		LOCK;
+		hash_remove_txn(t);
+		UNLOCK;
+		list_del(&t->list);
+		free(t);
+		return 0;
+	}
 
+	/* Now its ok to end the transaction. */
 	_txn_end(t);
 
 	return 0;
@@ -298,16 +309,6 @@ int txn_delete(txnid_t id)
 	return 0;
 }
 
-struct txn *txn_get_struct(txnid_t id)
-{
-    	struct txn *t;
-
-	LOCK;
-	t = hash_find_txn(id);
-	UNLOCK;
-	return t;
-}
-
 
 void txn_abort_and_delete_all()
 {
@@ -331,4 +332,67 @@ void txn_abort_and_delete_all()
 		    _txn_delete(t);
 	    } while (t);
 	}
+}
+
+
+int txn_finish(txnid_t id, struct txn_op *ops)
+{
+	struct txn *t;
+
+	LOCK;
+	t = hash_find_txn(id);
+	UNLOCK;
+	if (!t)
+		return -1;
+
+	/* Transaction needs to be completely unused to be finished. */
+	if (!_txn_is_unused(t))
+		return -1;
+
+	/* Finish transaction. */
+	t->op = ops;
+	return 0;
+}
+
+
+
+struct ui_txn_op {
+	struct txn_op op;
+	const char *message;
+};
+
+static int ui_undo(struct txn *txn, struct txn *dest);
+static void ui_delete(struct txn *txn);
+
+int txn_finish_unimplemented(txnid_t id, const char *message)
+{
+	struct ui_txn_op *op;
+
+	if (!(op = (struct ui_txn_op *)malloc(sizeof(struct ui_txn_op))))
+		return -1;
+	op->op.undo = ui_undo;
+	op->op.delete = ui_delete;
+	op->message = message;
+	if (txn_finish(id, &op->op) == -1) {
+		free(op);
+		return -1;
+	}
+	return 0;
+}
+
+static int ui_undo(struct txn *txn, struct txn *dest)
+{
+	struct ui_txn_op *op = (struct ui_txn_op *)txn->op;
+
+	fprintf(stderr, "Issued undo/abort of unimplemented transaction.\n");
+	fprintf(stderr, "%s\n", op->message);
+	fprintf(stderr, "Forcing SIGSEGV so you can debug this.\n");
+	*((int *)0) = 0;
+
+	return -1;
+}
+
+static void ui_delete(struct txn *txn)
+{
+	free(txn->op);
 }

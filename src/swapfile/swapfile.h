@@ -22,6 +22,33 @@
  *
  */
 
+/* There are some generic issues for an implementation of the
+ * swapfile API to make it efficient for the desired tasks:
+ * - blocks need to be able to be shared between files
+ * - blocks need to be able to be split and continue to be
+ *   shared between files
+ * Those requirements result in the following difficulties
+ * an implementation will run into:
+ * - maintaining a simple bitmask of unallocated blocks is not
+ *   possible, as blocks may be shared, i.e. sort of an usage
+ *   count is needed, not just a true/false state
+ * - mmapping a file is usually not (efficient) possible - only
+ *   one block at a time can be mmapped due to block splitting
+ *   block start offsets are not aligned to a minimum block size
+ *   and block sizes are not multiples of a minimum block size
+ * - organizing files block allocation table as a simple linear
+ *   list or as extends is not efficient because of the same
+ *   block alignment/size issues, so a tree-like structure needs
+ *   to be used for this - and in this tree the size of the blocks
+ *   or their offsets in the file need to be stored
+ * - because of the splitting requirement one need information
+ *   about which files use a given block - i.e. a reverse block
+ *   allocation table needs to be maintained (optimize for the
+ *   single file case, O(n) operations are acceptable)
+ * So an efficient implementation with respect to speed _and_
+ * storage requirement for metadata is quite difficult.
+ */
+
 #include "glame_types.h"
 #include "txn.h"
 
@@ -38,7 +65,6 @@ struct sw_stat {
 	off_t cluster_start; /* start of current cluster */
 	off_t cluster_end;   /* end of current cluster */
 	size_t cluster_size; /* size of current cluster */
-	int cluster_nlink;   /* number of users for the current cluster */
 };
 
 
@@ -81,9 +107,6 @@ int swapfile_creat(char *name, size_t size);
 /* Deletes a name from the filesystem. Like unlink(2). */
 int sw_unlink(long name);
 
-/* Creates a new name to the file with name oldname. Like link(2). */
-int sw_link(long oldname, long newname);
-
 /* Open the (flat) swapfile directory for reading. The stream
  * is positioned at the first file. Like opendir(3), but w/o
  * directory specification for obvious reason. */
@@ -111,8 +134,7 @@ int sw_closedir(SWDIR *d);
  * this way. */
 swfd_t sw_open(long name, int flags, txnid_t tid);
 
-/* Closes a file descriptor. Like close(2). Also closes the transaction
- * given to sw_open. */
+/* Closes a file descriptor. Like close(2). */
 int sw_close(swfd_t fd);
 
 /* Changes the size of the file fd like ftruncate(2). */
