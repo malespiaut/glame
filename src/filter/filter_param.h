@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.13 2001/05/01 11:22:59 richi Exp $
+ * $Id: filter_param.h,v 1.14 2001/05/22 11:34:34 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -58,6 +58,11 @@
 #define FILTER_PARAMTYPE_POS_M    49
 #define FILTER_PARAM_IS_POS(p) ((p)->type >= FILTER_PARAMTYPE_POS && (p)->type <= FILTER_PARAMTYPE_POS_M)
 
+#define FILTER_PARAMTYPE_BUF      50
+#define FILTER_PARAMTYPE_SBUF     51
+#define FILTER_PARAMTYPE_BUF_M    59
+#define FILTER_PARAM_IS_BUF(p) ((p)->type >= FILTER_PARAMTYPE_BUF && (p)->type < FILTER_PARAMTYPE_BUF_M)
+
 /* The filter parameter database type. You should not care
  * about its contents. */
 typedef struct {
@@ -87,6 +92,7 @@ typedef struct {
 		SAMPLE sample;
 		char *string;
 		long pos;
+		filter_buffer_t *buf;
 	} u;
 } filter_param_t;
 
@@ -112,6 +118,7 @@ typedef struct {
 #define filterparam_val_sample(p) ((p)->u.sample)
 #define filterparam_val_pos(p) ((p)->u.pos)
 #define filterparam_val_set_pos(p, v) do { (p)->u.pos = (v); } while (0)
+#define filterparam_val_get_buf(p) (fbuf_ref((p)->u.buf), (p)->u.buf)
 
 /* Standard parameter label used for signalling actual position. */
 #define FILTERPARAM_LABEL_POS "actual_position"

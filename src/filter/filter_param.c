@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.11 2001/04/27 08:25:22 richi Exp $
+ * $Id: filter_param.c,v 1.12 2001/05/22 11:34:34 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -52,6 +52,8 @@ static void paramdb_op_delete(gldb_item_t *item)
 	glsdb_delete(&p->properties);
 	if (FILTER_PARAM_IS_STRING(p))
 		free(p->u.string);
+	else if (FILTER_PARAM_IS_BUF(p))
+		fbuf_unref(p->u.buf);
 
 	/* Notify the associated filter of the change. */
 	glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
@@ -137,6 +139,8 @@ static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
 		p->u.string = *(const char **)val ? strdup(*(const char **)val) : NULL;
 	} else if (FILTER_PARAM_IS_POS(p)) {
 		p->u.pos = *(long *)val;
+	} else if (FILTER_PARAM_IS_BUF(p)) {
+		p->u.buf = *(filter_buffer_t **)val;
 	}
 
 	if (gldb_add_item(&db->db, ITEM(p), label) == -1) {
@@ -320,6 +324,9 @@ int filterparam_set(filter_param_t *param, const void *val)
 		param->u.string = vval;
 	} else if (FILTER_PARAM_IS_POS(param)) {
 		param->u.pos = *(long *)val;
+	} else if (FILTER_PARAM_IS_BUF(param)) {
+		fbuf_unref(param->u.buf);
+		param->u.buf = *(filter_buffer_t **)val;
 	}
 
 	/* and signal the change.
@@ -350,6 +357,8 @@ int filterparam_set_string(filter_param_t *param, const char *val)
 		p.u.string = s;
 	} else if (FILTER_PARAM_IS_POS(param))
 		res = sscanf(val, " %li ", &p.u.pos);
+	else if (FILTER_PARAM_IS_BUF(param))
+		return -1; /* FIXME(?) */
 	else
 		return -1;
 	if (res != 1)
@@ -376,6 +385,8 @@ char *filterparam_to_string(const filter_param_t *param)
 		snprintf(buf, 511, "\"%s\"", param->u.string);
 	else if (FILTER_PARAM_IS_POS(param))
 		snprintf(buf, 511, "%li", param->u.pos);
+	else if (FILTER_PARAM_IS_BUF(param))
+		return NULL; /* FIXME(?) */
 	else
 		return NULL;
 
