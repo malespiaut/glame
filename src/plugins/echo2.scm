@@ -23,5 +23,6 @@
 	   (begin
 	      (plugin_set plugin PLUGIN_PIXMAP "echo.png")
               (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
+              (plugin_set plugin PLUGIN_LABEL "Echo (network)")
 	      (plugin_set plugin PLUGIN_CATEGORY "Effects"))))
 

@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.18 2001/05/29 07:52:45 richi Exp $
+ * $Id: swapfile_io.c,v 1.19 2001/06/13 11:19:16 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -195,6 +195,7 @@ int swapfile_in_register(plugin_t *p)
 	plugin_set(p, PLUGIN_PIXMAP, "input.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Input");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Swapfile_I_O");
+	plugin_set(p, PLUGIN_LABEL, "Swapfile input");
 
 	filter_register(f, p);
 
@@ -318,6 +319,7 @@ int swapfile_out_register(plugin_t *p)
 	plugin_set(p, PLUGIN_PIXMAP, "output.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Output");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Swapfile_I_O");
+	plugin_set(p, PLUGIN_LABEL, "Swapfile output");
 	filter_register(f, p);
 
 	return 0;
