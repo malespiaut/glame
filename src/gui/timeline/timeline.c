@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.19 2002/04/12 18:15:43 richi Exp $
+ * $Id: timeline.c,v 1.20 2002/11/10 14:39:20 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -242,6 +242,7 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 				DPRINTF("Cannot place at %li, %li\n",
 					hposition, vposition);
 		}
+		break;
 	}
 	case GDK_BUTTON_RELEASE: {
 		/* Move, Drag'n'Drop state machine. Possible finish.
