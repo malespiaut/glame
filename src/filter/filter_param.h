@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.12 2001/04/27 08:25:22 richi Exp $
+ * $Id: filter_param.h,v 1.13 2001/05/01 11:22:59 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -57,8 +57,6 @@
 #define FILTER_PARAMTYPE_POS      40
 #define FILTER_PARAMTYPE_POS_M    49
 #define FILTER_PARAM_IS_POS(p) ((p)->type >= FILTER_PARAMTYPE_POS && (p)->type <= FILTER_PARAMTYPE_POS_M)
-
-#define FILTER_PARAM_PROPERTY_FILE_FILTER "!filefilter"
 
 /* The filter parameter database type. You should not care
  * about its contents. */
@@ -144,9 +142,11 @@ typedef struct {
  * use only. The END one is used to finish the varargs list to the
  * filterparamdb_add_param*() calls. */
 #define FILTERPARAM_DESCRIPTION "_desc"
+#define FILTERPARAM_GLADEXML "_xml"
 #define FILTERPARAM_END NULL
 #define FILTERPARAM_MAP_NODE "_node"
 #define FILTERPARAM_MAP_LABEL "_label"
+#define FILTER_PARAM_PROPERTY_FILE_FILTER "!filefilter"
 
 
 
