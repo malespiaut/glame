@@ -36,7 +36,7 @@
 #else
 
 #include <sys/types.h>
-/* #include <aupvlist.h> */
+#include "glame_aupvlist.h"
 
 #define LIBAUDIOFILE_MAJOR_VERSION 0
 #define LIBAUDIOFILE_MINOR_VERSION 2
