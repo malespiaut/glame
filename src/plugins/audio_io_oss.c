@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.15 2001/06/05 15:09:55 richi Exp $
+ * $Id: audio_io_oss.c,v 1.16 2002/01/08 15:56:58 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -174,6 +174,7 @@ static int oss_audio_out_f(filter_t *n)
 
 	filter_param_t *dev_param, *pos_param;
 	int	dev = -1;
+	long	arg;
 	int     pos = 0;
 
 	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
@@ -212,10 +213,18 @@ static int oss_audio_out_f(filter_t *n)
 	/* Ugly OSS ioctl() mess. Keep your eyes closed and proceed. */
 
 	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
-	dev = open(filterparam_val_string(dev_param), O_WRONLY);
+	dev = open(filterparam_val_string(dev_param), O_WRONLY|O_NONBLOCK);
 	if (dev == -1)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
 
+	/* We do not want to block on open (we want to fail if another
+	 * program is currently using the device), but it's okay for
+	 * subsequent calls to block.
+	 */
+	arg = fcntl(dev, F_GETFL, 0);
+	if (arg != -1)
+		fcntl(dev, F_SETFL, arg & ~O_NONBLOCK);
+	
 	if (ioctl(dev, SOUND_PCM_WRITE_CHANNELS, &ch) == -1)
 		FILTER_ERROR_CLEANUP("Unable to set number of channels.");
 	if (max_ch != ch) {
@@ -371,6 +380,7 @@ static int oss_audio_in_f(filter_t *n)
 	ssize_t	buf_size, inbuf_spc;
 
 	char	*dev = "/dev/dsp";
+	long	arg;
 	int	dsp;
 	int	channels, ch, rate = GLAME_DEFAULT_SAMPLERATE;
 	int	width, length, endless = 0;
@@ -404,9 +414,17 @@ static int oss_audio_in_f(filter_t *n)
 		pipe[1] = t;
 	}
 		
-	dsp = open(dev, O_RDONLY);
+	dsp = open(dev, O_RDONLY|O_NONBLOCK);
 	if (dsp == -1)
 		FILTER_ERROR_RETURN("Couldn't open audio device!");
+	
+	/* We do not want to block on open (we want to fail if another
+	 * program is currently using the device), but it's okay for
+	 * subsequent calls to block.
+	 */
+	arg = fcntl(dsp, F_GETFL, 0);
+	if (arg != -1)
+		fcntl(dsp, F_SETFL, arg & ~O_NONBLOCK);
 	
 	width = 16;	/* FIXME */
 	if (ioctl(dsp, SNDCTL_DSP_SAMPLESIZE, &width) == -1 || width != 16)
