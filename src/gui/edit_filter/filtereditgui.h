@@ -1,7 +1,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.3 2001/05/10 00:00:54 xwolf Exp $
+ * $Id: filtereditgui.h,v 1.4 2001/06/05 18:21:45 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -42,4 +42,6 @@ void
 glame_filtereditgui_draw_error(GlameCanvas* canv);
 void
 glame_filtereditgui_reset_error(GlameCanvas* canv);
+void
+glame_filtereditgui_init(void);
 #endif

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.13 2001/06/05 13:33:04 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.14 2001/06/05 18:21:45 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -28,7 +28,7 @@
 #ifdef HAVE_LIBSTROKE
 #include <stroke.h>
 #endif
-
+#include "glscript.h"
 /* FIXME remove these later on */
 guint nPopupTimeout;
 gboolean bMac;
@@ -131,7 +131,9 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 	
 	GdkEventButton *event_button;
 	GnomeCanvasItem* onItem;	
-
+	/* assign global for accels :( */
+	
+	glcanvas = glCanv;
 	switch(event->type){
 
 	case GDK_BUTTON_PRESS:
@@ -355,9 +357,71 @@ glame_filtereditgui_install_accels(GtkWidget* window)
 	DPRINTF("foo\n");
         glame_accel_add("filteredit/10-a", "(display \"Hello world 1!\")");
         glame_accel_add("filteredit/14-q", "(glame-delete-widget (glame-accel-get-widget))");
+	glame_accel_add("filteredit/10-v", "(editfilter-view-all)");
+	glame_accel_add("filteredit/11-plus", "(editfilter-zoom-in)");
+	glame_accel_add("filteredit/10-bracketright", "(editfilter-zoom-in 4.0)");
+	glame_accel_add("filteredit/10-minus", "(editfilter-zoom-out)");
+	glame_accel_add("filteredit/10-bracketleft", "(editfilter-zoom-out 4.0)");
+	glame_accel_add("filteredit/10-d","(editfilter-delete-selection)");
 }
 
 
+static SCM gls_editfilter_zoom_in(SCM parms)
+{
+	if(gh_number_p(parms)){
+		glame_canvas_set_zoom(glcanvas,GNOME_CANVAS(glcanvas)->pixels_per_unit*gh_scm2double(parms));
+	} else {
+		/* choosing default */
+		glame_canvas_zoom_in_cb(NULL,glcanvas);
+	}
+	return SCM_UNSPECIFIED;
+}
+static SCM gls_editfilter_zoom_out(SCM parms)
+{
+	if(gh_number_p(parms)){
+		glame_canvas_set_zoom(glcanvas,GNOME_CANVAS(glcanvas)->pixels_per_unit/gh_scm2double(parms));
+	} else {
+		/* choosing default */
+		glame_canvas_zoom_out_cb(NULL,glcanvas);
+	}
+	return SCM_UNSPECIFIED;
+}
+		
+
+static SCM gls_editfilter_view_all()
+{
+	glame_canvas_view_all(glcanvas);
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_editfilter_delete_selection(void)
+{
+	/* FIXME hack for now. make more generic */
+	GList *iter;
+	iter = g_list_first(glcanvas->selectedItems);
+	while(iter){
+		filter_delete(GLAME_CANVAS_FILTER(iter->data)->filter);
+		iter = g_list_next(iter);
+	}
+	g_list_free(glcanvas->selectedItems);
+	glcanvas->selectedItems = NULL;
+}
+	
+
+void
+glame_filtereditgui_init(void)
+{
+	gh_new_procedure0_0("editfilter-view-all",
+			    gls_editfilter_view_all);
+	gh_new_procedure0_1("editfilter-zoom-in",
+			    gls_editfilter_zoom_in);
+	gh_new_procedure0_1("editfilter-zoom-out",
+			    gls_editfilter_zoom_out);
+	gh_new_procedure0_0("editfilter-delete-selection",
+			    gls_editfilter_delete_selection);
+	
+}
+	
 
 GtkWidget * 
 glame_filtereditgui_new(filter_t *net)

@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.13 2001/06/05 13:33:04 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.14 2001/06/05 18:21:45 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -64,6 +64,7 @@ static void
 glame_canvas_filter_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass* parent_class;
+	glame_canvas_filter_hide_properties(GLAME_CANVAS_FILTER(object));
 	gtk_signal_emit(object,filter_signals[DELETED]);
 	hash_remove_gcfilter(GLAME_CANVAS_FILTER(object));
 	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
@@ -125,6 +126,7 @@ glame_canvas_filter_init(GlameCanvasFilter* node)
 	node->last_y = 0.0;
 	node->popupGroup = NULL;
 	node->timeout_id = 0;
+	node->selected = FALSE;
 }
 		
 	
@@ -160,6 +162,7 @@ glame_canvas_filter_get_type(void)
 
 static void glame_canvas_filter_destroy_cb(glsig_handler_t* foo,long sig,va_list va)
 {
+	glame_canvas_filter_hide_properties(glsig_handler_private(foo));
 	glame_canvas_filter_destroy(glsig_handler_private(foo));
 }
 
@@ -366,7 +369,16 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 				     "height",64.0,
 				     "image",glame_gui_get_icon_from_filter(filter),
 				     NULL);
-	
+	gItem->selbox = gnome_canvas_item_new(gGroup,
+					      gnome_canvas_rect_get_type(),
+					      "x1",-5.0,
+					      "x2",101.0,
+					      "y1",-5.0,
+					      "y2",89.0,
+					      "fill_color_rgba",0xa5adff00,
+					      NULL);
+	gnome_canvas_item_lower_to_bottom(gItem->selbox);
+	gnome_canvas_item_hide(gItem->selbox);
 
 	/* register */
 	
@@ -460,8 +472,19 @@ glame_canvas_filter_redraw(GlameCanvasFilter *filter)
 		gnome_canvas_item_set(GNOME_CANVAS_ITEM(filter->labelBox),
 				      "fill_color","white",
 				      NULL);
+	if(filter->selected){
+		gnome_canvas_item_show(filter->selbox);
+	}else{
+		gnome_canvas_item_hide(filter->selbox);
+	}
 }
-	
+
+void glame_canvas_filter_set_selected(GlameCanvasFilter* f, gboolean selected)
+{
+	f->selected = selected;
+	glame_canvas_filter_redraw(f);
+}
+
 void
 glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 {
@@ -934,6 +957,24 @@ static void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(glame_canvas_find_port(port)));
 	}
 }
+
+static void glame_canvas_filter_do_select(GlameCanvasFilter* filter, GdkEvent* event)
+{
+	/* check for modifiers */
+	if((GDK_SHIFT_MASK&event->button.state)||(GDK_CONTROL_MASK&event->button.state)){
+		if(filter->selected)
+			glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+		else
+			glame_canvas_select_add(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+		return;
+	}
+	if(filter->selected)
+		glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+	else
+		glame_canvas_select_exclusive(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+}
+
+
 	
 static gboolean
 glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
@@ -947,8 +988,11 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 
 			/* raise to top */
 			glame_canvas_filter_raise_to_top(filter);
-			/* grab the thing */
+			/* perform selects */
+			glame_canvas_filter_do_select(filter,event);
 
+                        /* grab the thing */
+			
 			/* save coords */
  			filter->last_x = event->button.x;
 			filter->last_y = event->button.y;

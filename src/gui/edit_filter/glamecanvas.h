@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.6 2001/05/28 13:07:55 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.7 2001/06/05 18:21:45 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,6 +63,7 @@ struct _GlameCanvas {
 	gboolean openedUp;
 	gboolean paused;
 	gfloat font_size;
+	GList * selectedItems;
 };
 
 struct _GlameCanvasClass {
@@ -103,6 +104,11 @@ void glame_canvas_redraw(GlameCanvas *canv);
 void glame_canvas_draw_errors(GlameCanvas *canv);
 void glame_canvas_reset_errors(GlameCanvas *canv);
 
+void glame_canvas_select_add(GlameCanvas* canv, GlameCanvasFilter* filter);
+void glame_canvas_select_exclusive(GlameCanvas* canv, GlameCanvasFilter* filter);
+void glame_canvas_select_clear(GlameCanvas* canv);
+void glame_canvas_select_unselect(GlameCanvas* canv, GlameCanvasFilter* filter);
+//GList* glame_canvas_select_get(GlameCanvas* canv);
 
 #define GLAME_CANVAS_GROUP_TYPE              (glame_canvas_group_get_type())
 #define GLAME_CANVAS_GROUP(object)           (GTK_CHECK_CAST((object), GLAME_CANVAS_GROUP_TYPE, GlameCanvasGroup))

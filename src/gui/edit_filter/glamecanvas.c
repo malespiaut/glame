@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.9 2001/06/05 13:33:04 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.10 2001/06/05 18:21:45 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,6 +63,7 @@ glame_canvas_init (GlameCanvas *item)
 	item->openedUp = FALSE;
 	item->paused = FALSE;
 	item->font_size = 1.0;
+	item->selectedItems = NULL;
 }
 
 
@@ -389,4 +390,37 @@ void glame_canvas_view_all(GlameCanvas* canv)
 		
 	}
 
+}
+
+
+void glame_canvas_select_add(GlameCanvas* canvas, GlameCanvasFilter* filter)
+{
+	glame_canvas_filter_set_selected(filter,TRUE);
+	canvas->selectedItems = g_list_append(canvas->selectedItems,filter);
+}
+
+void glame_canvas_select_exclusive(GlameCanvas* canvas, GlameCanvasFilter* filter)
+{
+	glame_canvas_select_clear(canvas);
+	glame_canvas_select_add(canvas,filter);
+}
+
+
+void glame_canvas_select_clear(GlameCanvas *canvas)
+{
+	GList* iter;
+
+	iter = g_list_first(canvas->selectedItems);
+	while(iter){
+		glame_canvas_filter_set_selected(GLAME_CANVAS_FILTER(iter->data), FALSE);
+		iter = g_list_next(iter);
+	}
+	g_list_free(canvas->selectedItems);
+	canvas->selectedItems = NULL;
+}
+	
+void glame_canvas_select_unselect(GlameCanvas* canvas, GlameCanvasFilter* filter)
+{
+	canvas->selectedItems = g_list_remove(canvas->selectedItems,filter);
+	glame_canvas_filter_set_selected(filter,FALSE);
 }

@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.7 2001/06/02 20:53:06 xwolf Exp $
+ * $Id: canvasitem.h,v 1.8 2001/06/05 18:21:45 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -92,12 +92,14 @@ struct _GlameCanvasFilter {
 	double y;
 	GnomeCanvasText *label;
 	GnomeCanvasRect *labelBox;
+	GnomeCanvasRect *selbox;
 
 	/* private */
 	gboolean immutable;
 	gboolean undeletable;
 	gboolean connecting;
 	gboolean dragging;
+	gboolean selected;
 	
 	double last_x, last_y;
 	gint timeout_id;
@@ -123,7 +125,7 @@ GtkType glame_canvas_filter_get_type(void);
 
 GlameCanvasFilter * glame_canvas_filter_new(GnomeCanvasGroup *group,
 					    filter_t * filter);
-
+void glame_canvas_filter_set_selected(GlameCanvasFilter* filter, gboolean selected);
 void glame_canvas_filter_set_immutable(GlameCanvasFilter* filter, gboolean immutable);
 gboolean glame_canvas_filter_is_immutable(GlameCanvasFilter *filter);
 void glame_canvas_filter_set_undeletable(GlameCanvasFilter* filter, gboolean undeletable);
