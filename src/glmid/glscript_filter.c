@@ -745,7 +745,7 @@ static SCM gls_glame_plugin_define(SCM s_net, SCM s_name)
 	}
 	DPRINTF("mode 1 - returning the instance\n");
 	free(name);
-	last_loaded_filter_instance = f; /* HACK!! */
+	last_loaded_filter_instance = filter_creat(f); /* HACK!! */
 	return filter2scm(f);
 }
 

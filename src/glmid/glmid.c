@@ -80,7 +80,7 @@ filter_t *glame_load_instance(const char *fname)
 		DPRINTF("gh_eval_file did not return a filter_t\n");
 		return NULL;
 	} */
-	return filter_creat(last_loaded_filter_instance /* scm2filter(s_res) */);
+	return last_loaded_filter_instance /* scm2filter(s_res) */;
 #else
 	return NULL;
 #endif
