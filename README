@@ -1,7 +1,4 @@
-This is GLAME v0.1.31 - GNU/Linux Audio Mechanics BETA release.
-
-GLAME will be the first usable wav editor for Linux.
----- FIXME! glame is not a wav editor [richi]
+This is GLAME 0.2.0-pre1 - GNU/Linux Audio Mechanics BETA release.
 
 Authors in chronological order
 	mag, XWolf, richi, nold, garrison
@@ -13,9 +10,9 @@ with their real names
 	Jim Garrison.
 
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
-http://glame.sourceforge.net/
+http://glame.sourceforge.net/ or http://www.glame.de/
 
-Tuebingen 23.03.2000
+Tuebingen 29.03.2000
 
 
 Quick Start for the impatient
@@ -57,7 +54,7 @@ Requirements
   libtool.
 
 
-Current Status (as of version 0.1.33):
+Current Status (as of version 0.2.0-pre1):
 ==========================================
 - usable filternetwork GUI - src/gui/glame
 - usable console UI - src/cglame
