@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.64 2001/04/19 13:39:35 xwolf Exp $
+ * $Id: canvas.c,v 1.65 2001/04/19 16:10:46 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -31,7 +31,7 @@
  * nobody wants this apart from me :-) 
  * xwolf
  *******************************************************/
-#define EVENT_DEBUGGING 1
+//#define EVENT_DEBUGGING 1
 
 #ifdef HAVE_GCC
 #ifdef EVENT_DEBUGGING
@@ -86,7 +86,6 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it);
 void canvas_load_network(GtkWidget *bla, void *blu);
 static void canvas_save_as(GtkWidget*w,GlameCanvas *data);
-static void canvas_load_scheme(GtkWidget*bla,void*blu);
 static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu);
 static void canvas_zoom_in_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_zoom_out_cb(GtkWidget*bla, GlameCanvas* canv);
@@ -124,24 +123,9 @@ static GnomeUIInfo pipe_menu[]=
 
 GnomeUIInfo *node_select_menu;
 
-static GnomeUIInfo view_menu[]=
-{
-	GNOMEUIINFO_ITEM("Zoom in","Zooms in",canvas_zoom_in_cb,NULL),
-	GNOMEUIINFO_ITEM("Zoom out","Zooms out",canvas_zoom_out_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("View all","Updates scroll region",canvas_update_scroll_region_cb,NULL),
-	GNOMEUIINFO_END
-};
-
-	
 static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("View...",view_menu),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Load plugin...","Loads scm source file",canvas_load_scheme,NULL),
-	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_END
 };
 
@@ -552,7 +536,6 @@ static void canvas_add_filter_by_name_cb(GtkWidget*wid, plugin_t *plugin)
 static gint
 root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 {
-	GtkWidget*submenu;
 	GtkWidget*menu;
 	GtkWidget*par;
 	GdkEventButton *event_button;
@@ -568,12 +551,7 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 			event_y = event->button.y;
 			win=GTK_WIDGET(canv);
 			if(event->button.button==mouseButton){
-				menu = gnome_popup_menu_new(root_menu);
-				par = root_menu[0].widget; // eeevil hack to change menu
-				submenu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, canvas_add_filter_by_name_cb));
-				gtk_widget_show(submenu);
-				gtk_menu_item_set_submenu(GTK_MENU_ITEM(par),submenu);
-				
+				menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, canvas_add_filter_by_name_cb));
 				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,glCanv);
 				inItem=0;
 			}
@@ -631,6 +609,8 @@ canvas_new_from_network(gui_network* net)
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),network_play,canvas);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Register","Registers actual filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),register_filternetwork_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Save","Saves Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE_AS),canvas_save_as,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
@@ -1544,28 +1524,6 @@ void canvas_load_network(GtkWidget *bla, void *blu)
 	}
 	free(filenamebuffer);
 }
-
-static void canvas_load_scheme(GtkWidget*bla,void*blu)
-{
-	GtkWidget * fileEntry;
-	GtkWidget * dialog;
-	GtkWidget * vbox;
-	char * filenamebuffer;
-	filenamebuffer = calloc(100,sizeof(char));
-
-	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
-
-	fileEntry = gnome_file_entry_new("Load","Filename");
-	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
-	create_label_widget_pair(vbox,"Filename",fileEntry);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		if(glame_load_plugin(filenamebuffer) == -1)
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error loading plugin")));
-	}
-	free(filenamebuffer);
-}
-
 
 
 static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)

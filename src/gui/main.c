@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.35 2001/04/19 16:05:05 richi Exp $
+ * $Id: main.c,v 1.36 2001/04/19 16:10:46 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -50,11 +50,13 @@ static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
 extern void canvas_load_network(GtkWidget *bla, void *blu);
-
+static void load_plugin_cb(GtkWidget* foo, void *bar);
 
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM_STOCK(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -142,6 +144,30 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	}
 	edit_tree_label(grpw);
 }
+
+
+static void load_plugin_cb(GtkWidget*bla,void*blu)
+{
+	GtkWidget * fileEntry;
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	char * filenamebuffer;
+	filenamebuffer = calloc(100,sizeof(char));
+
+	dialog = gnome_dialog_new("Load Plugin",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	vbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+
+	fileEntry = gnome_file_entry_new("Load","Filename");
+	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
+	create_label_widget_pair(vbox,"Filename",fileEntry);
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+		if(glame_load_plugin(filenamebuffer) == -1)
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error loading plugin")));
+	}
+	free(filenamebuffer);
+}
+
+
 
 static void
 setBoolean(GtkWidget * foo, gboolean * bar)
