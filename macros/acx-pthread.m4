@@ -34,28 +34,25 @@ dnl (with help from M. Frigo), as well as ac_pthread and hb_pthread
 dnl macros posted by AFC to the autoconf macro repository.  We are also
 dnl grateful for the helpful feedback of numerous users.
 dnl
-dnl @version $Id: acx-pthread.m4,v 1.4 2001/08/06 12:25:18 richi Exp $
+dnl @version $Id: acx-pthread.m4,v 1.5 2002/03/28 15:39:47 richi Exp $
 dnl @author Steven G. Johnson <stevenj@alum.mit.edu> and Alejandro Forero Cuervo <bachue@bachue.com>
 
 AC_DEFUN([ACX_PTHREAD], [
-
+AC_REQUIRE([AC_CANONICAL_HOST])
 acx_pthread_ok=no
 
-dnl variable to keep track of whether we have already added -D_THREAD_SAFE
-using_THREAD_SAFE=no
-
-dnl First, check if the POSIX threads header, pthread.h, is available.
-dnl If it isn't, don't bother looking for the threads libraries.
+# First, check if the POSIX threads header, pthread.h, is available.
+# If it isn't, don't bother looking for the threads libraries.
 AC_CHECK_HEADER(pthread.h, , acx_pthread_ok=noheader)
 
-dnl We must check for the threads library under a number of different
-dnl names; the ordering is very important because some systems
-dnl (e.g. DEC) have both -lpthread and -lpthreads, where one of the
-dnl libraries is broken (non-POSIX).
+# We must check for the threads library under a number of different
+# names; the ordering is very important because some systems
+# (e.g. DEC) have both -lpthread and -lpthreads, where one of the
+# libraries is broken (non-POSIX).
 
-dnl First of all, check if the user has set any of the PTHREAD_LIBS,
-dnl etcetera environment variables, and if threads linking works using
-dnl them:
+# First of all, check if the user has set any of the PTHREAD_LIBS,
+# etcetera environment variables, and if threads linking works using
+# them:
 if test x"$PTHREAD_LIBS$PTHREAD_CFLAGS" != x; then
         save_CFLAGS="$CFLAGS"
         CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
@@ -72,127 +69,106 @@ if test x"$PTHREAD_LIBS$PTHREAD_CFLAGS" != x; then
         CFLAGS="$save_CFLAGS"
 fi
 
-dnl POSIX threads library is plural on AIX (need to check for
-dnl this *first* due to AIX brokenness; also, need to check
-dnl for pthread_attr_init instead of pthread_create due to
-dnl DEC craziness):
-if test x"$acx_pthread_ok" = xno; then
-        AC_CHECK_LIB(pthreads, pthread_attr_init,
-                     [PTHREAD_LIBS="-lpthreads"
-                      acx_pthread_ok=yes])
-fi
+# Create a list of thread flags to try.  Items starting with a "-" are
+# C compiler flags, and other items are library names, except for "none"
+# which indicates that we try without any flags at all.
 
-dnl Check if no explicit threads library is needed; this should be
-dnl done before -kthread/-Kthread, since otherwise those may work but
-dnl simply produce continual annoying compiler warnings.  Also, include
-dnl pthread.h since on the Sequent -Kthread is needed for this header
-dnl file to work (see below).
-if test x"$acx_pthread_ok" = xno; then
-        dnl Check for pthread_join because of Irix, which has pthread_create
-        dnl in libc.so and pthread_join in libpthread.so.  Lose, lose, lose.
-        AC_MSG_CHECKING(whether threads work without any explicit flags)
-        AC_TRY_LINK([#include <pthread.h>],
-                    [pthread_t th; pthread_join(th, 0);],
-                    [acx_pthread_ok=yes])
-        AC_MSG_RESULT($acx_pthread_ok)
-fi
+acx_pthread_flags="pthreads none -Kthread -kthread lthread -pthread -pthreads -mthreads pthread --thread-safe -mt"
 
-dnl Now, try -llthread, for LinuxThreads (e.g. the LinuxThreads port
-dnl on FreeBSD).  Do this before -pthread, below, because LinuxThreads
-dnl are kernel threads and take advantage of SMP, unlike userland threads.
-if test x"$acx_pthread_ok" = xno; then
-        AC_CHECK_LIB(lthread, pthread_create,
-                     [PTHREAD_LIBS="-llthread"
-                      acx_pthread_ok=yes])
-fi
+# The ordering *is* (sometimes) important.  Some notes on the
+# individual items follow:
 
-dnl Try -Kthread for Sequent systems: it is required to parse pthread.h,
-dnl although not for linking (threads are in libc).  (Thanks to Chris
-dnl Lattner of Sequent for his help with this machine.)
-if test x"$acx_pthread_ok" = xno; then
-        AC_MSG_CHECKING(for Sequent Kthread compiler flag)
-        save_CFLAGS="$CFLAGS"
-        PTHREAD_CFLAGS="-Kthread"
-        CFLAGS="$save_CFLAGS $PTHREAD_CFLAGS"
-        AC_TRY_LINK([#include <pthread.h>],
-                    [pthread_t th; pthread_join(th, 0);],
-                    [acx_pthread_ok=yes])
-        if  test x"$acx_pthread_ok" = xyes; then
-                AC_MSG_RESULT($PTHREAD_CFLAGS)
-        else
-                PTHREAD_CFLAGS=""
-                AC_MSG_RESULT(no)
-        fi
-        CFLAGS="$save_CFLAGS"
-fi
+# pthreads: AIX (must check this before -lpthread)
+# none: in case threads are in libc; should be tried before -Kthread and
+#       other compiler flags to prevent continual compiler warnings
+# -Kthread: Sequent (threads in libc, but -Kthread needed for pthread.h)
+# -kthread: FreeBSD kernel threads (preferred to -pthread since SMP-able)
+# lthread: LinuxThreads port on FreeBSD (also preferred to -pthread)
+# -pthread: Linux/gcc (kernel threads), BSD/gcc (userland threads)
+# -pthreads: Solaris/gcc
+# -mthreads: Mingw32/gcc, Lynx/gcc
+# -mt: Sun Workshop C (may only link SunOS threads [-lthread], but it
+#      doesn't hurt to check since this sometimes defines pthreads too;
+#      also defines -D_REENTRANT)
+# pthread: Linux, etcetera
+# --thread-safe: KAI C++
 
-dnl Now, try -kthread, for FreeBSD kernel threads.  We should do
-dnl this before checking for -lpthread, because -kthread actually
-dnl uses -lpthread.
-if test x"$acx_pthread_ok" = xno; then
-        AC_MSG_CHECKING(for bsd kthread compiler flags)
-        save_CFLAGS="$CFLAGS"
-        PTHREAD_CFLAGS="-kthread -D_THREAD_SAFE"
-        CFLAGS="$save_CFLAGS $PTHREAD_CFLAGS"
-        dnl Use AC_TRY_LINK_FUNC instead of AC_CHECK_FUNC, to prevent
-        dnl the latter's results-caching from screwing us.  We check for
-        dnl pthread_join and not pthread_create because of Irix; see above.
-        AC_TRY_LINK_FUNC(pthread_join, acx_pthread_ok=yes)
-        if  test x"$acx_pthread_ok" = xyes; then
-                AC_MSG_RESULT($PTHREAD_CFLAGS)
-                using_THREAD_SAFE=yes
-        else
-                PTHREAD_CFLAGS=""
-                AC_MSG_RESULT(no)
-        fi
-        CFLAGS="$save_CFLAGS"
-fi
+case "${host_cpu}-${host_os}" in
+        *solaris*)
 
-dnl Normally (e.g. on Linux), POSIX threads are in -lpthread.
-dnl We can't just use AC_CHECK_LIB, though, because DEC lossage
-dnl requires that pthread.h be included for linking to work.
+        # On Solaris (at least, for some versions), libc contains stubbed
+        # (non-functional) versions of the pthreads routines, so link-based
+        # tests will erroneously succeed.  (We need to link with -pthread or
+        # -lpthread.)  (The stubs are missing pthread_cleanup_push, or rather
+        # a function called by this macro, so we could check for that, but
+        # who knows whether they'll stub that too in a future libc.)  So,
+        # we'll just look for -pthreads and -lpthread first:
+
+        acx_pthread_flags="-pthread -pthreads pthread -mt $acx_pthread_flags"
+        ;;
+esac
+
 if test x"$acx_pthread_ok" = xno; then
-        AC_MSG_CHECKING([for pthread_create in -lpthread])
+for flag in $acx_pthread_flags; do
+
+        case $flag in
+                none)
+                AC_MSG_CHECKING([whether pthreads work without any flags])
+                ;;
+
+                -*)
+                AC_MSG_CHECKING([whether pthreads work with $flag])
+                PTHREAD_CFLAGS="$flag"
+                ;;
+
+                *)
+                AC_MSG_CHECKING([for the pthreads library -l$flag])
+                PTHREAD_LIBS="-l$flag"
+                ;;
+        esac
+
         save_LIBS="$LIBS"
-        LIBS="-lpthread $LIBS"
-        AC_TRY_LINK([#include <pthread.h>],
-                    [pthread_create(0,0,0,0);],
-                    [PTHREAD_LIBS="-lpthread"
-                     acx_pthread_ok=yes])
-        LIBS="$save_LIBS"
-        AC_MSG_RESULT(${acx_pthread_ok})
-fi
-
-dnl Next, try -pthread for FreeBSD userland threads.  We do this
-dnl after checking for -lpthread, because -pthread actually is a
-dnl valid gcc flag on several systems and links the threads library,
-dnl but I prefer -lpthread because -pthread seems to be undocumented
-dnl (and thus, to my mind, untrustworthy) on non-BSD systems.
-if test x"$acx_pthread_ok" = xno; then
-        AC_MSG_CHECKING(for bsd pthread compiler flags)
         save_CFLAGS="$CFLAGS"
-        PTHREAD_CFLAGS="-pthread -D_THREAD_SAFE"
-        CFLAGS="$save_CFLAGS $PTHREAD_CFLAGS"
-        AC_TRY_LINK_FUNC(pthread_join, acx_pthread_ok=yes)
-        if  test x"$acx_pthread_ok" = xyes; then
-                AC_MSG_RESULT($PTHREAD_CFLAGS)
-                using_THREAD_SAFE=yes
-        else
-                PTHREAD_CFLAGS=""
-                AC_MSG_RESULT(no)
-        fi
+        LIBS="$PTHREAD_LIBS $LIBS"
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+
+        # Check for various functions.  We must include pthread.h,
+        # since some functions may be macros.  (On the Sequent, we
+        # need a special flag -Kthread to make this header compile.)
+        # We check for pthread_join because it is in -lpthread on IRIX
+        # while pthread_create is in libc.  We check for pthread_attr_init
+        # due to DEC craziness with -lpthreads.  We check for
+        # pthread_cleanup_push because it is one of the few pthread
+        # functions on Solaris that doesn't have a non-functional libc stub.
+        # We try pthread_create on general principles.
+        AC_TRY_LINK([#include <pthread.h>],
+                    [pthread_t th; pthread_join(th, 0);
+                     pthread_attr_init(0); pthread_cleanup_push(0, 0);
+                     pthread_create(0,0,0,0); pthread_cleanup_pop(0); ],
+                    [acx_pthread_ok=yes])
+
+        LIBS="$save_LIBS"
         CFLAGS="$save_CFLAGS"
+
+        AC_MSG_RESULT($acx_pthread_ok)
+        if test "x$acx_pthread_ok" = xyes; then
+                break;
+        fi
+
+        PTHREAD_LIBS=""
+        PTHREAD_CFLAGS=""
+done
 fi
 
-dnl Various other checks:
-if test x"$acx_pthread_ok" = xyes; then
+# Various other checks:
+if test "x$acx_pthread_ok" = xyes; then
         save_LIBS="$LIBS"
         LIBS="$PTHREAD_LIBS $LIBS"
         save_CFLAGS="$CFLAGS"
         CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
 
-        dnl Detect AIX lossage: threads are created detached by default
-        dnl and the JOINABLE attribute has a nonstandard name (UNDETACHED).
+        # Detect AIX lossage: threads are created detached by default
+        # and the JOINABLE attribute has a nonstandard name (UNDETACHED).
         AC_MSG_CHECKING([for joinable pthread attribute])
         AC_TRY_LINK([#include <pthread.h>],
                     [int attr=PTHREAD_CREATE_JOINABLE;],
@@ -212,61 +188,31 @@ if test x"$acx_pthread_ok" = xyes; then
                 AC_MSG_WARN([we do not know how to create joinable pthreads])
         fi
 
-        dnl More AIX/DEC lossage: must compile with -D_THREAD_SAFE
-        dnl (also on FreeBSD) or -D_REENTRANT: (cc_r subsumes this on AIX,
-        dnl but it doesn't hurt to -D as well, esp. if cc_r is not available.)
         AC_MSG_CHECKING([if more special flags are required for pthreads])
-        ok=no
-        AC_REQUIRE([AC_CANONICAL_HOST])
+        flag=no
         case "${host_cpu}-${host_os}" in
-                *-aix* | *-freebsd*)
-                if test x"$using_THREAD_SAFE" = xno; then
-                        PTHREAD_CFLAGS="-D_THREAD_SAFE $PTHREAD_CFLAGS"
-                        ok="-D_THREAD_SAFE"
-                fi;;
-                alpha*-osf*)  PTHREAD_CFLAGS="-D_REENTRANT $PTHREAD_CFLAGS"
-                        ok="-D_REENTRANT";;
+                *-aix* | *-freebsd*)     flag="-D_THREAD_SAFE";;
+                *solaris* | alpha*-osf*) flag="-D_REENTRANT";;
         esac
-        AC_MSG_RESULT(${ok})
+        AC_MSG_RESULT(${flag})
+        if test "x$flag" != xno; then
+                PTHREAD_CFLAGS="$flag $PTHREAD_CFLAGS"
+        fi
 
         LIBS="$save_LIBS"
         CFLAGS="$save_CFLAGS"
 
-        dnl More AIX lossage: must compile with cc_r
+        # More AIX lossage: must compile with cc_r
         AC_CHECK_PROG(PTHREAD_CC, cc_r, cc_r, ${CC})
 else
         PTHREAD_CC="$CC"
 fi
 
-dnl Next, check if we have pthread_sigmask - Mac OS X does not
-dnl have this f.i.
-dnl Define HAVE_PTHREAD_SIGMASK if it is supported.
-if test x"$acx_pthread_ok" = xyes; then
-        AC_MSG_CHECKING([for pthread_sigmask])
-        save_CFLAGS="$CFLAGS"
-	save_LIBS="$LIBS"
-	save_CC="$CC"
-        CFLAGS="$save_CFLAGS $PTHREAD_CFLAGS"
-	LIBS="$save_LIBS $PTHREAD_LIBS"
-	CC="$PTHREAD_CC"
-        AC_TRY_LINK_FUNC(pthread_sigmask, acx_pthread_sigmask_ok=yes)
-        if  test x"$acx_pthread_sigmask_ok" = xyes; then
-                AC_MSG_RESULT([yes])
-	        AC_DEFINE(HAVE_PTHREAD_SIGMASK)
-        else
-                AC_MSG_RESULT(no)
-        fi
-        CFLAGS="$save_CFLAGS"
-        LIBS="$save_LIBS"
-        CC="$save_CC"
-fi
-
-
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(PTHREAD_CFLAGS)
 AC_SUBST(PTHREAD_CC)
 
-dnl Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
+# Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
 if test x"$acx_pthread_ok" = xyes; then
         ifelse([$1],,AC_DEFINE(HAVE_PTHREAD,1,[Define if you have POSIX threads libraries and header files.]),[$1])
         :
@@ -275,4 +221,4 @@ else
         $2
 fi
 
-])dnl ACX_PTHREADS
+])dnl ACX_PTHREAD
