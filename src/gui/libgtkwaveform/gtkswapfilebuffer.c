@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.1 2000/12/22 10:47:42 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.2 2001/01/25 09:13:37 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -22,6 +22,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "gtkswapfilebuffer.h"
+#include "glame_types.h"
 
 
 static void gtk_swapfile_buffer_class_init          (GtkSwapfileBufferClass *klass);
@@ -35,6 +36,20 @@ static void gtk_swapfile_buffer_get_samples         (GtkWaveBuffer      *wavebuf
                                                       guint32             length,
                                                       guint32             channel_mask,
                                                       gpointer            data);
+static gint gtk_swapfile_buffer_set_samples         (GtkEditableWaveBuffer 
+*editable,
+                                                          guint32 start,
+                                                          guint32 length,
+                                                          guint32 channel_mask,
+                                                          gpointer data);
+static gint gtk_swapfile_buffer_insert              (GtkEditableWaveBuffer 
+*editable,
+                                                          guint32 start,
+                                                          guint32 length);
+static gint gtk_swapfile_buffer_delete              (GtkEditableWaveBuffer 
+*editable,
+                                                      guint32 start,
+                                                      guint32 length);
 
 
 
@@ -56,7 +71,7 @@ gtk_swapfile_buffer_get_type (void)
 			(GtkClassInitFunc) NULL
 		};
 
-		swapfile_type = gtk_type_unique (GTK_TYPE_WAVE_BUFFER,
+		swapfile_type = gtk_type_unique (GTK_TYPE_EDITABLE_WAVE_BUFFER,
 						 &swapfile_info);
 	}
 
@@ -76,9 +91,11 @@ gtk_swapfile_buffer_class_init (GtkSwapfileBufferClass *klass)
 {
 	GtkObjectClass *object_class;
 	GtkWaveBufferClass *wavebuffer_class;
+	GtkEditableWaveBufferClass *editable_class;
 
 	object_class = (GtkObjectClass *) klass;
 	wavebuffer_class = (GtkWaveBufferClass *) klass;
+	editable_class = (GtkEditableWaveBufferClass *) klass;
 
 	object_class->finalize = gtk_swapfile_buffer_finalize;
 
@@ -87,6 +104,9 @@ gtk_swapfile_buffer_class_init (GtkSwapfileBufferClass *klass)
 	wavebuffer_class->get_length = gtk_swapfile_buffer_get_length;
 	wavebuffer_class->get_num_channels = gtk_swapfile_buffer_get_num_channels;
 	wavebuffer_class->get_samples = gtk_swapfile_buffer_get_samples;
+	editable_class->set_samples = gtk_swapfile_buffer_set_samples;
+	editable_class->insert = gtk_swapfile_buffer_insert;
+	editable_class->delete = gtk_swapfile_buffer_delete;
 }
 
 static void
@@ -117,7 +137,7 @@ gtk_swapfile_buffer_get_length (GtkWaveBuffer *wavebuffer)
 {
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
 
-	return swapfile->stat.size / sizeof(SAMPLE);
+	return swapfile->stat.size / SAMPLE_SIZE;
 }
 
 static guint32
@@ -140,8 +160,62 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 	if (!(channel_mask & 1))
 		return;
 	/* FIXME - error checks. */
-	pos = sw_lseek(swapfile->fd, start*sizeof(SAMPLE), SEEK_SET);
-	cnt = sw_read(swapfile->fd, data, length*sizeof(SAMPLE));
+	pos = sw_lseek(swapfile->fd, start*SAMPLE_SIZE, SEEK_SET);
+	cnt = sw_read(swapfile->fd, data, length*SAMPLE_SIZE);
+}
+
+static gint
+gtk_swapfile_buffer_set_samples (GtkEditableWaveBuffer *editable,
+				 guint32 start,
+				 guint32 length,
+				 guint32 channel_mask,
+				 gpointer data)
+{
+  /* Just notification. */
+  gtk_editable_wave_buffer_queue_modified (editable, start, length);
+
+  return 0;
+}
+
+static gint
+gtk_swapfile_buffer_insert (GtkEditableWaveBuffer *editable,
+                                 guint32 start,
+                                 guint32 length)
+{
+  GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (editable);
+  GRange range;
+
+  /* Re-stat the swapfile. */
+  sw_fstat(swapfile->fd, &swapfile->stat);
+
+  /* Just notification. */
+  g_range_set (&range, start, length);
+  gtk_signal_emit (GTK_OBJECT (editable), insert_data_signal, &range);
+  gtk_editable_wave_buffer_queue_modified (editable, start + length,
+					   swapfile->stat.size/SAMPLE_SIZE - (start + length));
+
+  return 0;
+}
+
+/* Note that this is just a notification, but not operation itself. */
+static gint
+gtk_swapfile_buffer_delete (GtkEditableWaveBuffer *editable,
+			    guint32 start,
+			    guint32 length)
+{
+  GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (editable);
+  GRange range;
+
+  /* Just pass on the change. */
+  g_range_set (&range, start, length);
+  gtk_signal_emit (GTK_OBJECT (editable), delete_data_signal, &range);
+  gtk_editable_wave_buffer_queue_modified (editable, start,
+					   swapfile->stat.size/SAMPLE_SIZE - start);
+
+  /* Re-stat the swapfile. */
+  sw_fstat(swapfile->fd, &swapfile->stat);
+
+  return 0;
 }
 
 GtkObject *
@@ -158,9 +232,15 @@ gtk_swapfile_buffer_new (long name, int rate)
 		return NULL;
 	}
 	swapfile = gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
+	swapfile->fname = name;
 	swapfile->fd = fd;
 	swapfile->stat = sbuf;
 	swapfile->rate = rate;
 
 	return GTK_OBJECT(swapfile);
+}
+
+long gtk_swapfile_buffer_get_filename (GtkSwapfileBuffer *buffer)
+{
+        return buffer->fname;
 }
