@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.36 2001/11/19 23:29:18 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.37 2001/11/25 21:35:38 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -751,9 +751,37 @@ static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* 
 static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
 {
 	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
-	if(FILTER_IS_NETWORK(filter->filter))
-		filter_expand(filter->filter);
+	if (!FILTER_IS_NETWORK(filter->filter))
+		return;
+	if (filter_expand(filter->filter) == -1) {
+		DPRINTF("Error expanding %s\n", filter_name(filter->filter));
+		return;
+	}
 	filter_delete(filter->filter);
+	glame_canvas_redraw(canv);
+}
+
+static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanvasFilter* filter)
+{
+	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
+	GList *items = glame_canvas_get_selected_items(canv), *n;
+	filter_t *net, **nodes;
+	int i;
+
+	if (!items)
+		return;
+
+	nodes = alloca(sizeof(filter_t *)*(g_list_length(items)+1));
+	for (i=0, n = g_list_first(items); n != NULL; n = g_list_next(n), i++) {
+		nodes[i] = (filter_t *)(n->data);
+	}
+	nodes[i] = NULL;
+
+	net = filter_collapse("Collapsed", nodes);
+	if (!net) {
+		DPRINTF("Error collapsing selection\n");
+		return;
+	}
 	glame_canvas_redraw(canv);
 }
 
@@ -982,6 +1010,7 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
+	GNOMEUIINFO_ITEM("_Collapse","Collapse",glame_canvas_filter_collapse_selection_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
@@ -998,6 +1027,7 @@ static GnomeUIInfo node_menu_network[]=
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
 	GNOMEUIINFO_ITEM("_Expand","Expand",glame_canvas_filter_expand_node_cb,NULL),
+	GNOMEUIINFO_ITEM("_Collapse","Collapse",glame_canvas_filter_collapse_selection_cb,NULL),
 	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
