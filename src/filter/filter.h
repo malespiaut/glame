@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.46 2000/04/06 11:54:11 richi Exp $
+ * $Id: filter.h,v 1.47 2000/04/17 09:46:47 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -514,8 +514,25 @@ int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
  */
 /* public access macros to the filter buffer fields.
  */
+#ifndef DEBUG
 #define fbuf_size(fb) ((fb)==NULL ? 0 : (fb)->size)
 #define fbuf_buf(fb) (&(fb)->buf[0])
+#else
+static inline int fbuf_size(filter_buffer_t *fb)
+{
+	if (!fb)
+		return 0;
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+		DERROR("no buffer reference for fbuf_size");
+	return fb->size;
+}
+static inline char *fbuf_buf(filter_buffer_t *fb)
+{
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+		DERROR("no buffer reference for fbuf_buf");
+	return &fb->buf[0];
+}
+#endif
 
 /* fbuf_alloc creates a filter buffer with backing storage for size
  * bytes. The buffer is initially one time referenced.
@@ -530,6 +547,11 @@ void fbuf_ref(filter_buffer_t *fb);
 
 /* Release one reference of the buffer. */
 void fbuf_unref(filter_buffer_t *fb);
+
+/* Tries to make the buffer private so you can read _and_ write.
+ * Does not do it if it would require copying the buffer. Returns
+ * NULL on failure. */
+filter_buffer_t *fbuf_try_make_private(filter_buffer_t *fb);
 
 /* Make the buffer private so you can read _and_ write.
  * This tries to get exclusive access to the buffer either by

@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.21 2000/04/11 14:37:54 richi Exp $
+ * $Id: filter_buffer.c,v 1.22 2000/04/17 09:46:47 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -54,8 +54,6 @@ void fbuf_unref(filter_buffer_t *fb)
 		DERROR("unrefing buffer without a reference");
 
 	if (atomic_dec_and_test(&fb->refcnt)) {
-		if (ATOMIC_VAL(fb->refcnt) != 0)
-			DERROR("WTF???");
 		list_del(&fb->list);
 		ATOMIC_RELEASE(fb->refcnt);
 		free(fb);
@@ -76,6 +74,20 @@ filter_buffer_t *fbuf_alloc(int size, struct list_head *list)
 		list_add(&fb->list, list);
 
 	return fb;
+}
+
+filter_buffer_t *fbuf_try_make_private(filter_buffer_t *fb)
+{
+	if (!fb)
+		return NULL;
+
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+		DERROR("trying to make buffer private without a reference");
+
+	if (ATOMIC_VAL(fb->refcnt) == 1)
+		return fb;
+
+	return NULL;
 }
 
 filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
