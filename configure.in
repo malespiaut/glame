@@ -65,12 +65,14 @@ dnl Checks for libraries.
 dnl use GLAME_LIBS & GLAME_CFLAGS
 dnl and GLAME_DLIBS & GLAME_DCFLAGS
 dnl
-AC_CHECK_PTHREADS
-if test ! "$have_pthread" = "yes"; then
-	AC_ERROR(You need pthreads to run glame!)
-fi
-PTHREAD_LIB="$pthread_lib"
+ACX_PTHREAD([
+PTHREAD_LIB="$PTHREAD_LIBS"
 AC_SUBST(PTHREAD_LIB)
+GLAME_CFLAGS="$GLAME_CFLAGS $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
+], [
+AC_ERROR(You need pthreads to run glame!)
+])
 
 dnl
 dnl GUI stuff - require GNOME for anything
