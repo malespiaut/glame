@@ -11,19 +11,22 @@ static void exit_glame_editor(GtkWidget *bla, void *blu) {
 
 GtkWidget *app = NULL;
 GtkWidget *fileselect = NULL;
-GtkWidget *buffer_clist;
-
+GtkWidget *ctree = NULL;
+	
 struct gledit_buffer {
-	gchar	*filename;
-	GSList	*swapfile_names;
+	gchar	**label;
+	long	swapfile_name;
 	int	sample_rate;
+	long	size;
+	gboolean is_dir;
 };
 
 typedef struct gledit_buffer gledit_buffer_t;
 
-GList *global_bufs = NULL;
+GNode *global_bufs = NULL;
 
-static gchar *buflabels[] = { "Filename", "Size", "Channels", "Sample Rate" };
+static gchar *buflabels[] = { "Filename", "Position", "Size", "Sample Rate" };
+static gchar *poslabels[] = { "left", "right", "center" };
 
 static GnomeUIInfo file_menu[]=
 {
@@ -41,42 +44,82 @@ static GnomeUIInfo swapfile_menu[]=
 };
 */
 
-void add_gledit_buffer_to_clist(gledit_buffer_t *buf) {
-	gchar *data[4];
-	GSList *elem;
-	gint channels;
-	glong size=0, name;
-	swfd_t fd;
-	struct sw_stat stat;
-	elem = buf->swapfile_names;
-	channels=0;
-	while((elem!=NULL)) {
-		channels++;
-		name = (glong)elem->data;
-		g_print("opening file %ld\n", name);
-		fd = sw_open(name, O_RDONLY, TXN_NONE);
-		sw_fstat(fd, &stat);
-		sw_close(fd);
-		size+=stat.size;
-		g_print("size : %d\n", stat.size);
-		elem=g_slist_next(elem);
-	}
-	
-	size/=1024;
-	g_print("channels: %d\n", channels);
-	g_print("total filesize : %ld kbyte\n", size);
-	
-	data[0]=g_strdup(buf->filename);
-	data[1]=g_strdup_printf("%ld kbyte", size);
-	data[2]=g_strdup_printf("%d", channels);
-	data[3]=g_strdup_printf("%d", buf->sample_rate);
-	gtk_clist_append(GTK_CLIST(buffer_clist), data);
-}
-
 static GnomeUIInfo menubar[]=
 {
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
 	GNOMEUIINFO_END
+};
+
+
+void *make_label(char *filename, char *position, char *size, char *samplerate) {
+	gchar **label;
+	g_assert((label = g_malloc(sizeof(gchar *)*4))!=NULL);
+	label[0] = filename;
+	label[1] = position;
+	label[2] = size;
+	label[3] = samplerate;
+	g_print("make_label: %s, %s, %s, %s\n", label[0], label[1], label[2], label[3]);
+	return label;
+};
+
+GNode *new_buffer_gnode(gchar *name, long sname, float pos, int srate, long size, gboolean is_dir) {
+	GNode		*dum;
+	gledit_buffer_t	*gdum;
+	gchar		*lpos, *lsize, *lsrate;
+	g_assert((gdum = g_malloc(sizeof(gledit_buffer_t)))!=NULL);
+	gdum->swapfile_name = sname;
+	gdum->sample_rate = srate;
+	gdum->size = size;
+	gdum->is_dir = is_dir;
+	if (!is_dir) {
+		if (pos<0.0)
+			lpos = g_strdup(poslabels[0]);
+		else if (pos>0.0)
+			lpos = g_strdup(poslabels[1]);
+		else if (pos==0.0)
+			lpos = g_strdup(poslabels[2]);
+		else
+			lpos = g_strdup_printf("%f", pos);
+		lsize = g_strdup_printf("%d kByte", (gint)size/1024);
+		lsrate = g_strdup_printf("%d Hz", srate);
+		gdum->label = make_label(name, lpos, lsize, lsrate);
+	} else gdum->label = make_label(name, NULL, NULL, NULL);
+	
+	dum = g_node_new(gdum);
+	return dum;
+};
+
+gboolean update_buffer_gnode(GNode *gnode, gpointer bla) {
+	swfd_t	fd;
+	struct sw_stat fstat;
+	gledit_buffer_t *gdum = gnode->data;
+
+	fd = sw_open(gdum->swapfile_name, O_RDONLY, TXN_NONE);
+	sw_fstat(fd, &fstat);
+	sw_close(fd);
+	free(gdum->label[2]);
+	gdum->label[2] = g_strdup_printf("%d kByte", (gint)fstat.size/1024);
+	return TRUE;
+};
+
+gboolean ctreefunc(GtkCTree     *ctree, 
+		   guint         depth, 
+		   GNode        *gnode, 
+		   GtkCTreeNode *cnode, 
+		   gpointer      data) {
+	gint i;
+	gledit_buffer_t *gdum = gnode->data;
+	
+	g_print("ctreefunc: depth = %d label=%s\n", depth, gdum->label[0]);
+	gtk_ctree_set_node_info(ctree, cnode, gdum->label[0], 0, 
+				NULL, NULL, NULL, NULL, !(gdum->is_dir), FALSE);
+	
+	if(!gdum->is_dir) {
+		for(i=1; i<4; i++)
+			gtk_ctree_node_set_text(ctree, cnode, i, gdum->label[i]);
+	};
+	
+	return TRUE;
 };
 
 GtkWidget* gui_glame_editor_setup()
@@ -84,8 +127,11 @@ GtkWidget* gui_glame_editor_setup()
 	GtkWidget *app;
 	GnomeDock *dock;
 	GtkWidget *sw;
+	GNode *node, *node1;
 	glong name;
-	swfd_t fd;
+	SWDIR	*dir;
+	swfd_t	fd;
+	struct sw_stat fstat;
 	gint i;
 	
 	/* Application window with docks */
@@ -123,29 +169,37 @@ GtkWidget* gui_glame_editor_setup()
 				       GTK_POLICY_AUTOMATIC, 
 				       GTK_POLICY_AUTOMATIC);
 
-	buffer_clist = gtk_clist_new_with_titles(4, buflabels);
-	gtk_clist_set_selection_mode(GTK_CLIST(buffer_clist), GTK_SELECTION_MULTIPLE);
+	ctree = gtk_ctree_new_with_titles(4, 0, buflabels);
 	for(i=0;i<4;i++)
-		gtk_clist_set_column_auto_resize(GTK_CLIST(buffer_clist), i, TRUE);
-	gtk_widget_show(buffer_clist);
-	gtk_container_add(GTK_CONTAINER(sw), buffer_clist);
+		gtk_clist_set_column_auto_resize(GTK_CLIST(ctree), i, TRUE);
+	
+
+	gtk_container_add(GTK_CONTAINER(sw), ctree);
 	gnome_app_set_contents(GNOME_APP(app),sw);
+	gtk_widget_show(ctree);
 	
 	/* buffer setup */
+
+	global_bufs = new_buffer_gnode("Swapfiles", 0, 0.0, 0, 0, TRUE);
+	node1 = new_buffer_gnode("Old Tracks", 0, 0.0, 0, 0, TRUE);
+	g_node_append(global_bufs, node1);
+	dir = sw_opendir();
+	i = 0;
+	if (dir!=NULL) {
+		while((name = sw_readdir(dir))!=-1) {
+			fd = sw_open(name, O_RDONLY, TXN_NONE);
+			sw_fstat(fd, &fstat);
+			sw_close(fd);
+			node = new_buffer_gnode(g_strdup_printf("Track-%d", i), name, 0.0, 
+						44100, fstat.size, FALSE);
+			g_node_append(node1, node);
+			i++;
+		};
+		sw_closedir(dir);
+	};
 	
-	name = 0;
-	while((fd=sw_open(name, O_RDONLY, TXN_NONE))!=-1) {
-		gledit_buffer_t *gbuf;
-		sw_close(fd);
-		g_assert((gbuf = g_malloc(sizeof(gledit_buffer_t))));
-		gbuf->filename = g_strdup_printf("Unknown-%d",name);
-		gbuf->swapfile_names = g_slist_append(NULL, GINT_TO_POINTER(name));
-		gbuf->sample_rate = 44100; /*sane default */
-		add_gledit_buffer_to_clist(gbuf);
-		global_bufs = g_list_append(global_bufs, gbuf);
-		name++;
-	}
-	g_print("Swapfile was already populated by %ld files.\n", name);
+	gtk_ctree_insert_gnode(GTK_CTREE(ctree), NULL, NULL, global_bufs, ctreefunc, NULL);
+	g_print("Swapfile was already populated by %d files.\n", i);
 	return app;
 };
 
@@ -157,11 +211,10 @@ static void _load_sample(GtkWidget *bla, void*blu) {
 	filter_param_t *param;
 	filter_port_t *source, *dest;
 	filter_pipe_t *pipe;
-	gledit_buffer_t *gbuf;
 	gint i, name;
 	swfd_t fd;
-	GSList *head;
-	
+	GNode *child, *parent;
+
 	if (fileselect == NULL) {
 		g_print("Guru File Select Meditation occured\n");
 	} else {
@@ -169,6 +222,7 @@ static void _load_sample(GtkWidget *bla, void*blu) {
 		g_print("Now we're loading %s into the swapfile\n", buffer);
 		gtk_widget_hide(fileselect);
 		
+
 		if (!(p_readfile = plugin_get("read_file"))) {
 			g_print("read_file not found");
 			return;
@@ -189,10 +243,9 @@ static void _load_sample(GtkWidget *bla, void*blu) {
 		filterparam_set(param, &buffer); 
 		g_assert((source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT)));
 		
-		g_assert((gbuf = g_malloc(sizeof(gledit_buffer_t))));
-		gbuf->filename = g_strdup(buffer);
-		gbuf->swapfile_names = head = NULL;
-		
+		parent = new_buffer_gnode(g_strdup(buffer), -1, 0.0, 0, 0, TRUE);
+		g_node_append(global_bufs, parent);
+
 		for(i=0; i<2;i++) {
 			name = 0;
 			while((fd=sw_open(name, O_CREAT | O_EXCL, TXN_NONE))==-1) name++;
@@ -211,9 +264,13 @@ static void _load_sample(GtkWidget *bla, void*blu) {
 				filter_delete(swapfile_out[i]);
 				goto launch;
 			} else {
-				head = g_slist_append(head, GINT_TO_POINTER(name));
-				if (gbuf->swapfile_names==NULL) 
-					gbuf->swapfile_names = head;
+				pipe = filterport_get_pipe(dest);
+				child = new_buffer_gnode(g_strdup(buffer), 
+							 name, 
+							 filterpipe_sample_hangle(pipe), 
+							 filterpipe_sample_rate(pipe), 
+							 0, FALSE);
+				g_node_append(parent, child);
 			}
 		};
 launch:
@@ -221,12 +278,13 @@ launch:
 		filter_start(net);
 		filter_wait(net);	/* ok we could do that more nicely, but not now.. */
 		
-		pipe = filterport_get_pipe(source);
-		gbuf->sample_rate = filterpipe_sample_rate(pipe);
-		global_bufs = g_list_append(global_bufs, gbuf);
-		add_gledit_buffer_to_clist(gbuf);
-			
 		filter_delete(net);
+		
+		g_node_children_foreach(parent, G_TRAVERSE_ALL, update_buffer_gnode, NULL);
+
+		gtk_ctree_insert_gnode(GTK_CTREE(ctree), 
+				       gtk_ctree_node_nth(GTK_CTREE(ctree),0),
+				       NULL, parent, ctreefunc, NULL);
 	}
 	
 };
