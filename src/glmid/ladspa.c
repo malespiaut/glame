@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.21 2003/05/19 18:36:10 richi Exp $
+ * $Id: ladspa.c,v 1.22 2003/05/19 20:29:55 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -28,6 +28,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <string.h>
+#include <ctype.h>
 #include <ladspa.h>
 #include "filter.h"
 #include "util.h"
@@ -55,7 +56,6 @@ static int ladspa_f(filter_t * n)
 	nto1_state_t *psNTo1_State = NULL;
 	int iNTo1_NR, iNTo1_Index, i;
 	filter_pipe_t **ppsAudioPorts;
-	filter_pipe_t *psPipe;
 	filter_param_t *psParam;
 	filter_buffer_t **ppsBuffers;
 	LADSPA_Data *pfControlValues;
@@ -78,21 +78,23 @@ static int ladspa_f(filter_t * n)
 	iNTo1_NR = 0;
 	lSampleRate = 0;
 	for (lPortIndex = 0; lPortIndex < lPortCount; lPortIndex++) {
-		iPortDescriptor =
-		    psDescriptor->PortDescriptors[lPortIndex];
-		if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)) {
-			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
+		filter_port_t *psPort;
+		filter_pipe_t *psPipe;
+		psPort = filterportdb_get_port
+			(filter_portdb(n), psDescriptor->PortNames[lPortIndex]);
+		if (!psPort)
+			continue;
+		if (filterport_get_property(psPort, "!CONTROL")) {
+			if (filterport_get_pipe(psPort))
 				iNTo1_NR++;
-				psPipe =
-				    filterport_get_pipe
-				    (filterportdb_get_port
-				     (filter_portdb(n),
-				      psDescriptor->
-				      PortNames[lPortIndex]));
-				if (!psPipe)
-					FILTER_ERROR_RETURN
-					    ("LADSPA plugins require all "
-					     "inputs be connected");
+		} else {
+			psPipe = filterport_get_pipe(psPort);
+			if (!psPipe)
+				FILTER_ERROR_RETURN
+					("LADSPA plugins require all "
+					 "inputs be connected");
+			if (filterport_is_input(psPort)) {
+				iNTo1_NR++;
 				lNewSampleRate =
 				    filterpipe_sample_rate(psPipe);
 				if (lSampleRate != 0
@@ -102,18 +104,6 @@ static int ladspa_f(filter_t * n)
 					     "to be at the same sample rate");
 				else
 					lSampleRate = lNewSampleRate;
-			} else {	/* LADSPA_IS_PORT_OUTPUT */
-
-				psPipe =
-				    filterport_get_pipe
-				    (filterportdb_get_port
-				     (filter_portdb(n),
-				      psDescriptor->
-				      PortNames[lPortIndex]));
-				if (!psPipe)
-					FILTER_ERROR_RETURN
-					    ("LADSPA plugins require all "
-					     "outputs be connected");
 			}
 		}
 	}
@@ -185,25 +175,25 @@ static int ladspa_f(filter_t * n)
 
 	iNTo1_Index = 0;
 	for (lPortIndex = 0; lPortIndex < lPortCount; lPortIndex++) {
+		filter_port_t *psPort;
 
 		iPortDescriptor =
 		    psDescriptor->PortDescriptors[lPortIndex];
 
-		if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)) {
-			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
-				/* Lookup the control value. */
-				psParam =
-				    filterparamdb_get_param(filter_paramdb
-							    (n),
-							    psDescriptor->
-							    PortNames
-							    [lPortIndex]);
-				/* psParam == NULL does not happen if params were registered
-				 * appropriately. [richi] */
-				pfControlValues[lPortIndex] =
-				    filterparam_val_double(psParam);
-			}
-			
+		/* First handle control ports as params. Always. */
+		if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+		    && LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
+			/* Lookup the control value. */
+			psParam =
+				filterparamdb_get_param(filter_paramdb
+							(n),
+							psDescriptor->
+							PortNames
+							[lPortIndex]);
+			/* psParam == NULL does not happen if params were registered
+			 * appropriately. [richi] */
+			pfControlValues[lPortIndex] =
+				filterparam_val_double(psParam);
 /* 
  * We now need to wire up the control port on the LADSPA plugin
  * to the point in the control ports array. For an input port
@@ -212,44 +202,42 @@ static int ladspa_f(filter_t * n)
  * relevant spot in the array but never read again. Less than
  * ideal, perhaps a FIXME for a later date... 
  */
-			
 			psDescriptor->connect_port(psLADSPAPluginInstance,
 						   lPortIndex,
 						   pfControlValues +
 						   lPortIndex);
-		} else {	/* i.e. LADSPA_IS_PORT_AUDIO(iPortDescriptor) */
+		}
+
+		/* Second handle audio ports and control ports as streams. */
+		psPort = filterportdb_get_port
+			(filter_portdb(n), psDescriptor->PortNames[lPortIndex]);
+		if (!psPort)
+			continue;
+
+		if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+		    && !filterport_get_pipe(psPort))
+			continue;
+
+		/* now LADSPA_IS_PORT_AUDIO(iPortDescriptor) or
+		 * a connected control port. */
 
 /* 
  * We simply want to hang on to the port input/output channel
  * for use further along. 
  */
-			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
-				DPRINTF("Mapping audio input port %ld",
-						lPortIndex);
-				psNTo1_State[iNTo1_Index++].in
-				    = ppsAudioPorts[lPortIndex]
-				    =
-				    filterport_get_pipe
-				    (filterportdb_get_port
-				     (filter_portdb(n),
-				      psDescriptor->
-				      PortNames[lPortIndex]));
-			} 
-			else	/* i.e. LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
-			{
-				DPRINTF("Mapping audio output port %ld\n",
-						lPortIndex);
-				ppsAudioPorts[lPortIndex] =
-					filterport_get_pipe
-				    (filterportdb_get_port
-				     (filter_portdb(n),
-				      psDescriptor->
-				      PortNames[lPortIndex]));
-			}
-			if (!ppsAudioPorts[lPortIndex]) {
-				DPRINTF("port %ld not connected\n", lPortIndex);
-				FILTER_ERROR_CLEANUP("port not connected");
-			}
+		if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
+			DPRINTF("Mapping audio input port %ld",
+				lPortIndex);
+			psNTo1_State[iNTo1_Index++].in
+				= ppsAudioPorts[lPortIndex]
+				= filterport_get_pipe(psPort);
+		} 
+		else	/* i.e. LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
+		{
+			DPRINTF("Mapping audio output port %ld\n",
+				lPortIndex);
+			ppsAudioPorts[lPortIndex] =
+				filterport_get_pipe(psPort);
 		}
 	}
 
@@ -278,21 +266,25 @@ static int ladspa_f(filter_t * n)
 			iPortDescriptor =
 			    psDescriptor->PortDescriptors[lPortIndex];
 
-			if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)) {
-				if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
-					/* Lookup the control value. */
-					psParam =
-					    filterparamdb_get_param(filter_paramdb
-								    (n),
-								    psDescriptor->
-								    PortNames
-								    [lPortIndex]);
+			if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+			    && LADSPA_IS_PORT_INPUT(iPortDescriptor)
+			    && !ppsAudioPorts[lPortIndex]) {
+				/* Lookup the control value - if not connected through a pipe. */
+				psParam = filterparamdb_get_param(
+					filter_paramdb(n),
+					psDescriptor->PortNames[lPortIndex]);
 				/* psParam == NULL does not happen if params were registered
 				 * appropriately. [richi] */
-					pfControlValues[lPortIndex] =
-					    filterparam_val_double(psParam);
-				}
-			
+				pfControlValues[lPortIndex] =
+					filterparam_val_double(psParam);
+				psDescriptor->connect_port(psLADSPAPluginInstance,
+							   lPortIndex,
+							   pfControlValues +
+							   lPortIndex);
+
+			} else if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+				   && LADSPA_IS_PORT_OUTPUT(iPortDescriptor)) {
+				/* Output controls get just written to and ignored then... */
 				psDescriptor->connect_port(psLADSPAPluginInstance,
 							   lPortIndex,
 							   pfControlValues +
@@ -310,11 +302,12 @@ static int ladspa_f(filter_t * n)
 			for (lPortIndex = 0; lPortIndex < lPortCount;
 			     lPortIndex++) {
 				iPortDescriptor =
-				    psDescriptor->
-				    PortDescriptors[lPortIndex];
-				if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)
-				    &&
-				    LADSPA_IS_PORT_INPUT(iPortDescriptor))
+				    psDescriptor->PortDescriptors[lPortIndex];
+				if ((LADSPA_IS_PORT_AUDIO(iPortDescriptor)
+				     && LADSPA_IS_PORT_INPUT(iPortDescriptor))
+				    || (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+					&& LADSPA_IS_PORT_INPUT(iPortDescriptor)
+					&& ppsAudioPorts[lPortIndex]))
 				{
 
 					if (!psNTo1_State[iNTo1_Index].buf) {
@@ -325,8 +318,7 @@ static int ladspa_f(filter_t * n)
 					}
 
 					/* We have audio coming in on this port. Link to it. */
-					if (psNTo1_State[iNTo1_Index].s !=
-					    NULL) {
+					if (psNTo1_State[iNTo1_Index].s != NULL) {
 						psDescriptor->
 						    connect_port
 						    (psLADSPAPluginInstance,
@@ -504,7 +496,18 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 
 		/* LADSPA audio ports are translated directly to GLAME sample
 		   ports. */
-		if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)) {
+		if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)
+		    || (LADSPA_IS_PORT_INPUT(iPortDescriptor)
+			&& LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+			&& !(LADSPA_IS_HINT_SAMPLE_RATE
+			     (psDescriptor->PortRangeHints[lPortIndex].
+			      HintDescriptor)
+			     || LADSPA_IS_HINT_INTEGER
+			     (psDescriptor->PortRangeHints[lPortIndex].
+			      HintDescriptor)
+			     || LADSPA_IS_HINT_TOGGLED
+			     (psDescriptor->PortRangeHints[lPortIndex].
+			      HintDescriptor)))) {
 			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
 				psPort =
 				    filterportdb_add_port(filter_portdb(psFilter),
@@ -514,7 +517,10 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 							  FILTERPORT_DESCRIPTION,
 							  psDescriptor->PortNames[lPortIndex],
 							  FILTERPORT_END);
-				bHasAudioInput = 1;
+				if (LADSPA_IS_PORT_AUDIO(iPortDescriptor))
+					bHasAudioInput = 1;
+				else
+					filterport_set_property(psPort, "!CONTROL", "true");
 			} else {	/* LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
 
 				psPort =
