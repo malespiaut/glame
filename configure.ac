@@ -482,7 +482,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
         AC_MSG_RESULT([3])
         AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 3, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
         AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
-        GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm"
+        GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm -lvorbisenc"
       ],
       [
         AC_COMPILE_IFELSE(
@@ -501,7 +501,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
           AC_MSG_RESULT([4])
 	  AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 4, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
           AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
-          GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm"
+          GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm -lvorbisenc"
 	],
 	[
 	  AC_MSG_RESULT([failed])
