@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.53 2005/01/23 21:17:57 ochonpaul Exp $
+ * $Id: importexport.c,v 1.54 2005/01/29 13:42:08 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -177,7 +177,7 @@ static void ie_import_ogg(struct imp_s *ie)
 	vi = ov_info(&vf, -1);
 	if (vi->channels > 2) {
 		ov_clear(&vf);
-		fclose(fd);
+		/* ov_clear closes the fd for us.  */
 		return;
 	}
 	/* vi->channels, vi->rate */
@@ -250,7 +250,7 @@ static void ie_import_ogg(struct imp_s *ie)
 	for (i=0; i<vi->channels; ++i)
 		sw_close(swfd[i]);
 	ov_clear(&vf);
-	fclose(fd);
+	/* ov_clear closes the fd for us.  */
 
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Done."));
 	ie->importing = 0;
