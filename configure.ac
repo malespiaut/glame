@@ -80,6 +80,36 @@ else
 fi
 AM_PROG_CC_C_O
 
+dnl Apple's preprocessor on MacOS X causes headaches. Turning off
+dnl preprocessing switches to a sane cpp.
+AC_PROG_CPP
+AC_MSG_CHECKING([how to mate preprocessor and vararg macros])
+AC_PREPROC_IFELSE(
+[
+#define MACRO_WITH_VARARGS(dummy, ...)	/* nothing */
+MACRO_WITH_VARARGS(foo, bar)
+/* no body */
+],
+[
+AC_MSG_RESULT([already in love])
+],
+[
+CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
+AC_PREPROC_IFELSE(
+[
+#define MACRO_WITH_VARARGS(dummy, ...)	/* nothing */
+MACRO_WITH_VARARGS(foo, bar)
+/* no body */
+],
+[
+AC_MSG_RESULT([-no-cpp-precomp])
+],
+[
+AC_MSG_RESULT([no way])
+AC_MSG_ERROR([GLAME needs a C preprocessor that can handle macros with a variable number of arguments. Go get one...])
+])
+])
+
 AC_PROG_INSTALL
 AC_LIBLTDL_CONVENIENCE
 dnl libtool pre-1.4 used INCLTDL, but LTDLINCL is the proper namespace.
