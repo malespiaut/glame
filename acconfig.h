@@ -1,6 +1,15 @@
 /* define if you have OSS audio support */
 #undef HAVE_OSS
 
+/* define if OSS headers are in linux/soundcard.h */
+#undef HAVE_OSS_LINUX
+
+/* define if OSS headers are in sys/soundcard.h */
+#undef HAVE_OSS_SYS
+
+/* define if OSS headers are in machine/soundcard.h */
+#undef HAVE_OSS_MACHINE
+
 /* define, if you have esd.h and libesd */
 #undef HAVE_ESD
 

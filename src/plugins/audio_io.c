@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.19 2000/05/02 07:46:36 richi Exp $
+ * $Id: audio_io.c,v 1.20 2000/05/08 13:54:03 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -454,7 +454,15 @@ _entry:
 #endif
 
 #ifdef HAVE_OSS
+#ifdef HAVE_OSS_LINUX
 #include <linux/soundcard.h>
+#elif HAVE_OSS_SYS
+#include <sys/soundcard.h>
+#elif HAVE_OSS_MACHINE
+#include <machine/soundcard.h>
+#else
+#error BUG in OSS configuration.
+#endif
 #include <fcntl.h>
 #include <sys/ioctl.h>
 

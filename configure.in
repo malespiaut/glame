@@ -102,12 +102,25 @@ if test $laf = yes; then
 fi
 
 dnl check for OSS
-dnl FIXME: Currently this check is Linux specific.
-dnl OSS however is not. BSD keeps the header file
-dnl in sys/, other Unices in machine/
+dnl BSD keeps the header file
+dnl in sys/, Linux in linux/, 
+dnl other Unices in machine/
 AC_CHECK_HEADER(linux/soundcard.h, oss=yes, oss=no)
 if test $oss = yes; then
 	AC_DEFINE(HAVE_OSS)
+	AC_DEFINE(HAVE_OSS_LINUX)
+else
+	AC_CHECK_HEADER(sys/soundcard.h, oss=yes, oss=no)
+	if test $oss = yes; then
+		AC_DEFINE(HAVE_OSS)
+		AC_DEFINE(HAVE_OSS_SYS)
+	else 
+		AC_CHECK_HEADER(machine/soundcard.h, oss=yes, oss=no)
+		if test $oss = yes; then
+			AC_DEFINE(HAVE_OSS)
+			AC_DEFINE(HAVE_OSS_MACHINE)
+		fi
+	fi
 fi
 
 dnl check for libsndfile - FIXME
