@@ -41,7 +41,6 @@ struct hash_head **hash_table = NULL;
  * Add sigprocmask(all, SIGBLOCK,..) if you want to access
  * or modify the hash from signal handlers.
  */
-#define LOCKDEBUG
 #ifndef _REENTRANT
 #define _lock()
 #define _unlock()
@@ -78,10 +77,6 @@ static inline void _lock_w()
 	sop.sem_flg = 0;
 	while (semop(semid, &sop, 1) == -1 && errno == EINTR)
 		;
-#ifdef LOCKDEBUG
-	if (semctl(semid, semnum, GETVAL, 0) != 0)
-		PANIC("inappropriate use of hash_lock()/_unlock() during hash modification\n");
-#endif
 }
 static inline void _unlock_w()
 {

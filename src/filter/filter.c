@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.4 2000/01/27 10:30:30 richi Exp $
+ * $Id: filter.c,v 1.5 2000/01/27 13:32:19 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -172,8 +172,8 @@ int filter_init()
 
 	if (!(f = filter_alloc("dup", dup))
 	    || filter_add_input(f, "in", 0) == -1
-	    || filter_add_output(f, "out", 0) == -1
-	    || filter_add_output(f, "out", 0) == -1
+	    || filter_add_output(f, "out1", 0) == -1
+	    || filter_add_output(f, "out2", 0) == -1
 	    || filter_add(f) == -1)
 		return -1;
 

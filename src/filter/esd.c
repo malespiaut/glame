@@ -1,6 +1,6 @@
 /*
  * mix.c
- * $Id: esd.c,v 1.2 2000/01/27 12:49:00 richi Exp $
+ * $Id: esd.c,v 1.3 2000/01/27 13:32:19 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/types.h>
