@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.88 2001/05/04 09:04:33 richi Exp $
+ * $Id: canvas.c,v 1.89 2001/05/13 12:09:51 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1874,8 +1874,8 @@ draw_network(filter_t *filter)
 	}
 
 	filter_foreach_node(filter, node) {
-		struct fconnection *c;
-		list_foreach(&node->connections, struct fconnection, list, c) {
+		filter_pipe_t *c;
+		list_foreach(&node->connections, filter_pipe_t, list, c) {
 			GlameCanvasItem *begini, *endi;
 			GlameCanvasPort *beginp, *endp;
 			filter_t *f;
@@ -1911,7 +1911,7 @@ draw_network(filter_t *filter)
 			endp = GLAME_CANVAS_PORT(list->data);
 
 			connection = ALLOC(GlameConnection);
-			connection->pipe = c->pipe;
+			connection->pipe = c;
 			connection->begin = beginp;
 			connection->end = endp;
 			connection->line = NULL;
