@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.64 2002/04/09 09:22:21 richi Exp $
+ * $Id: basic_sample.c,v 1.65 2002/06/09 18:57:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -43,7 +43,7 @@
 #include "util.h"
 #include "glplugin.h"
 
-PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat pan2")
+PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat pan2 clip")
 
 
 
@@ -1377,6 +1377,91 @@ int pan2_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION,
 		   "pans the stream to the specified position");
 	plugin_set(p, PLUGIN_PIXMAP, "pan.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
+  
+	return filter_register(f, p);
+}
+
+
+static int clip_f(filter_t *n)
+{
+	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
+	filter_param_t *clip;
+	filter_buffer_t *b;
+	SAMPLE *buf;
+	SAMPLE clipval;
+	int cnt;
+
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(inp))
+	    || !(out = filterport_get_pipe(outp)))
+		FILTER_ERROR_RETURN("no input or no output");
+	clip = filterparamdb_get_param(filter_paramdb(n), "clip");
+	
+	FILTER_AFTER_INIT;
+
+	/* do the actual work */
+	while ((b = sbuf_get(in))) {
+		FILTER_CHECK_STOP;
+
+		/* get working copy, if necessary,
+		 * prepare for streamed loops. */
+		b = sbuf_make_private(b);
+		buf = sbuf_buf(b);
+		cnt = sbuf_size(b);
+		clipval = filterparam_val_double(clip);
+
+		while (cnt--)
+			buf[cnt] = buf[cnt] < -clipval ? -clipval
+				   : buf[cnt] > clipval ? clipval : buf[cnt];
+
+		/* queue the modified buffer */
+		sbuf_queue(out, b);
+	};
+
+	FILTER_BEFORE_STOPCLEANUP;
+
+	/* forward the EOF mark */
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+int clip_register(plugin_t *p)
+{
+	filter_t *f;
+	filter_param_t *param;
+	filter_port_t *port;
+
+	if (!(f = filter_creat(NULL)))
+		return -1;
+	f->f = clip_f;
+
+	port = filterportdb_add_port(
+		filter_portdb(f), PORTNAME_IN,
+		FILTER_PORTTYPE_SAMPLE,
+		FILTER_PORTFLAG_INPUT,
+		FILTERPORT_DESCRIPTION, "input stream",
+		FILTERPORT_END);
+	port = filterportdb_add_port(
+		filter_portdb(f), PORTNAME_OUT,
+		FILTER_PORTTYPE_SAMPLE,
+		FILTER_PORTFLAG_OUTPUT,
+		FILTERPORT_DESCRIPTION, "clipped stream",
+		FILTERPORT_END);
+	param = filterparamdb_add_param_double(
+		filter_paramdb(f), "clip",
+		FILTER_PARAMTYPE_SAMPLE, 1.0,
+		FILTERPARAM_DESCRIPTION, "clip value",
+		FILTERPARAM_END);
+
+	plugin_set(p, PLUGIN_DESCRIPTION,
+		   "clips the stream to the specified value");
+	plugin_set(p, PLUGIN_PIXMAP, "clip.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
