@@ -7,9 +7,10 @@ Things we (absolutely) need to do before 0.4.0:
 doc/
 	- document available filters [nold/the filter authors]
 	  All the 0.2.0 relevant stuff is documented.
-	- update GUI documentation
+	- update GUI documentation [all]
 
 plugins/
+	[all]
 	- provide pixmaps for all plugins (missing: echo, fft & friends,
           iir, noisegate, pan, rms, time, sinus, const, ...)
 
@@ -18,9 +19,12 @@ Items that can be postponed forever (at least until 0.6):
 ---------------------------------------------------------
 
 doc/
+	- document gpsm [richi]
+	- better documentation for scheme API
   	- filter writing tutorial?
 
 plugins/
+	[all]
 	- file_io needs fixed libaudiofile support
 
 hash/
@@ -41,6 +45,10 @@ filter/
 swapfile/
         [richi]
 	- implement the transactions, restore undo/redo
+
+glmid/
+	[richi]
+	- script gpsm
 
 gui/
 	[all]
