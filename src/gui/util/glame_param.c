@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.16 2002/02/17 13:53:31 richi Exp $
+ * $Id: glame_param.c,v 1.17 2002/02/19 09:51:11 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -162,7 +162,7 @@ static gint editable_cb(GtkEditable *edit, GlameParam *gparam)
 
 	text = gtk_editable_get_chars(edit, 0, -1);
 	gparam->updating = 1;
-	res = filterparam_set_string(gparam->param, text);
+	res = filterparam_from_string(gparam->param, text);
 	gparam->updating = 0;
 	g_free(text);
 
