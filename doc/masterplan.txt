@@ -13,11 +13,19 @@ without bothering with the Masterplan).
 Features
  - Channels in glame resemble the layers in gimp, i.e. a channel is just
    one channel with an assigned offset and length.
-   
+   Q: Could we possibly call these "tracks"? That is what they are
+   known as in the studio world. (or am I just confused on what
+   you mean by "channels" :) [garrison]
+
  - Channels carry a type ('left', 'right', 'centre', 'misc', etc.)
    Q: And what if I'd like to have more than your four? [m]
    A: etc. is not a type, just add what you think is necessary. Besides,
    there's no-one enforcing a type to exist only once! [richi]
+   Q: Why not instead have a "pan" property that determines where the
+   channel is positioned in the stereo field?  The values for pan could
+   range from 0 (muted) to 1 (hard left) to 128 (middle) to 255 (hard
+   right) Or, instead, we could have a 5th channel type called "pan" that
+   does the same thing. [garrison]
 
  - Bookmarks et al. will be fully supported by making use of an additional,
    datafile independent file in XML format.
