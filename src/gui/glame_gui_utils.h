@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.15 2001/05/25 09:56:37 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.16 2001/05/28 08:11:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -21,8 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * This file (will) have all the visible gui functions 
+ * * This file (will) have all the visible gui functions 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,6 +72,16 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
  * the widget. */
 GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 				       const char *caption);
+
+
+/* Construct a widget (without window) to allow changing parameters
+ * of a parameter database. Returns a widget or NULL on error.
+ * The paramdb has to stay around until after widget destruction. */
+GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list);
+
+/* Updates the paramdb from the widget created by glame_gui_from_paramdb. */
+int glame_gui_update_paramdb(filter_paramdb_t *pdb, GList *list);
+
 
 /* Opens a play/pause/stop/cancel window that plays a given network.
  * If modal is TRUE, the dialog is modal, on dialog destroy the optional

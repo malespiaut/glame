@@ -1,8 +1,7 @@
-
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.18 2001/05/25 11:42:23 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.19 2001/05/28 08:11:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -843,6 +842,137 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	
 	return propBox;
 }
+
+
+
+
+
+static gint cleanup_params(GtkWidget *widget, GList *list)
+{
+	g_list_free(list);
+	// FIXME. does list_free kill the structs, too? mem leak
+	return FALSE;
+}
+
+GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
+{
+	GtkWidget *vbox,*entry;
+	GtkAdjustment *adjust;
+	param_widget_t *pw;
+	char * prop;
+	
+	int iVal;
+	float fVal;
+	char* cVal;
+	filter_param_t* param;
+	char label[256];
+	char *xml;
+
+	/* the vbox holds the param widgets */
+	vbox = gtk_vbox_new(FALSE,3);
+	*list = NULL;
+
+	filterparamdb_foreach_param(pdb, param) {
+#ifdef HAVE_LIBGLADE
+		if ((xml = filterparam_get_property(param, FILTERPARAM_GLADEXML))) {
+			GladeXML *gxml;
+			gxml = glade_xml_new_from_memory(xml, strlen(xml), NULL, NULL);
+			entry = glade_xml_get_widget(gxml, "widget");
+			if (GTK_IS_OPTION_MENU(entry)) {
+				gtk_option_menu_set_history(GTK_OPTION_MENU(entry), filterparam_val_int(param));
+			} else
+                                /* FIXME */;
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PGLADE;
+			*list = g_list_append(*list,pw);
+		} else
+#endif
+		if (FILTER_PARAM_IS_INT(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
+
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
+			iVal = filterparam_val_int(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PINT;
+			*list = g_list_append(*list,pw);
+		} else if (FILTER_PARAM_IS_FLOAT(param)
+			   || FILTER_PARAM_IS_SAMPLE(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
+			fVal = filterparam_val_float(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
+			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S)
+				snprintf(label, 255, "%s [s]",
+					 filterparam_label(param));
+			else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS)
+				snprintf(label, 255, "%s [ms]",
+					 filterparam_label(param));
+			else
+				snprintf(label, 255, "%s",
+					 filterparam_label(param));
+			create_label_widget_pair(vbox, label, entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PFLOAT;
+			*list = g_list_append(*list,pw);
+		} else if (FILTER_PARAM_IS_STRING(param)) {
+			switch(filterparam_type(param)){
+			case FILTER_PARAMTYPE_FILENAME:
+				entry = gnome_file_entry_new("blahh",filterparam_label(param));
+				if((prop = filterparam_get_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER)))
+				      gtk_signal_connect_after(GTK_OBJECT(entry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),prop);
+				
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PFILE;
+				*list = g_list_append(*list,pw);
+				break;
+			default:
+			        entry = gnome_entry_new("blubb");
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				cVal =  filterparam_val_string(param);
+				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PSTRING;
+				*list = g_list_append(*list,pw);
+				break;
+			}
+		} else
+			/* nothing */ ;
+	}
+
+	gtk_signal_connect(GTK_OBJECT(vbox), "destroy",
+			   (GtkSignalFunc)cleanup_params, *list);
+
+	return vbox;
+}
+
+int glame_gui_update_paramdb(filter_paramdb_t *pdb, GList *list)
+{
+	param_callback_t cb;
+
+	cb.caption = "blah";
+	cb.paramList = list;
+	update_params(NULL, &cb);
+	return 0;
+}
+
 
 
 
