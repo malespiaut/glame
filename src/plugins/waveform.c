@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.25 2001/06/05 14:40:07 richi Exp $
+ * $Id: waveform.c,v 1.26 2001/06/07 09:55:00 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -316,7 +316,7 @@ int rect_register(plugin_t *p)
 				  FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_SAMPLE, 440.0,
+				  FILTER_PARAMTYPE_FLOAT, 440.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "rectangular signal");
@@ -378,7 +378,7 @@ int ramp_register(plugin_t *p)
 				  FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_SAMPLE, 440.0,
+				  FILTER_PARAMTYPE_FLOAT, 440.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "ramp signal");
@@ -458,7 +458,7 @@ int saw_register(plugin_t *p)
 				  FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_SAMPLE, 440.0,
+				  FILTER_PARAMTYPE_FLOAT, 440.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "saw signal");
