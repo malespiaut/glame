@@ -89,7 +89,12 @@ gui/waveeditgui
 
 gui/libgtkwaveform
 	[richi]
-	- !!! fix redrawing errors !!!
+	- provide backing store for window to prevent redrawing errors
+	  if window is partly occluded
+	- change color of background / foreground (make that configurable)
+
+gui/libgtkwaveform2
+	[richi]
 	- break up gtkwaveview into simple waveview without
           scrollbar, make a container that can contain multiple
           gtkwavebuffers
