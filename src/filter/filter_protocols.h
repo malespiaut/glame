@@ -39,7 +39,7 @@ typedef struct mbuf_header {
 #define mbuf_alloc(nrevents, filternode) \
         fbuf_alloc(sizeof(midi_event_t*(nrevents) + sizeof(mbuf_header_t), \
 		   &(filternode)->net->launch_context->buffers)
-#define mbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(mbuf_header_t))/sizeof(midi_event_t)
+#define mbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(mbuf_header_t))/sizeof(midi_event_t))
 #define mbuf_buf(fb) ((midi_event_t *)(&((mbuf_header_t *)fbuf_buf(fb))->buf[0]))
 #define mbuf_ref(fb) fbuf_ref(fb)
 #define mbuf_unref(fb) fbuf_unref(fb)
