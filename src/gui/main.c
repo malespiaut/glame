@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.9 2001/03/15 00:27:25 xwolf Exp $
+ * $Id: main.c,v 1.10 2001/03/15 12:54:11 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -25,6 +25,7 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include "swapfile.h"
 #include "glmid.h"
 #include "swapfilegui.h"
@@ -54,6 +55,9 @@ static void gui_main()
 	gtk_widget_show(swapfile);
 	gnome_app_set_contents(GNOME_APP(mainwin),swapfile);
 	gtk_widget_show(mainwin);
+
+	/* cleanup handler */
+	atexit((void (*)(void))gui_quit);
 
 	/* main loop */
        	gtk_main();

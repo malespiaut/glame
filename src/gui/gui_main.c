@@ -2,7 +2,7 @@
  * gui_main.c
  *
  * Copyright (C) 2001 Johannes Hirche
- * $Id: gui_main.c,v 1.1 2001/03/15 00:27:25 xwolf Exp $
+ * $Id: gui_main.c,v 1.2 2001/03/15 12:54:11 richi Exp $
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include <gnome.h>
+#include "swapfile.h"
 #include "edit_filter/gui.h"
 #include "swapfilegui.h"
 

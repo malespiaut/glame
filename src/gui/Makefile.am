@@ -1,4 +1,4 @@
-SUBDIRS = libgtkwaveform edit_filter glame_editor
+SUBDIRS = libgtkwaveform edit_filter
 
 INCLUDES = -Iedit_filter -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@srcdir@/libgtkwaveform $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGDATADIR=\"$(pkgdatadir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 

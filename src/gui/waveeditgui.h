@@ -36,5 +36,8 @@ GtkWidget *glame_waveedit_gui_new_va(const char *title, int nrtracks,
 GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks,
 				    int samplerate, long *names);
 
+/* Delete temporary files. */
+void glame_waveedit_cleanup();
+
 
 #endif
