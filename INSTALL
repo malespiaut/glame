@@ -7,6 +7,10 @@ cycle and want to be bleeding edge) you first need to initialize the
 build system by doing
 > ./autogen.sh
 
+If this fails somehow you probably need to update your autoconf, automake,
+libtool and/or gettext packages to more recent versions. See the requirements
+section in the README file for more information.
+
 If you got the source package or have already initialized the build
 system you can install glame by doing (usually you want to specify
 a prefix for the install directory, you can do this via ./configure
