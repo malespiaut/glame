@@ -12,8 +12,8 @@ Known BUGS that should be fixed before 0.6.0:
   * review filteredit documentation
   * write dialogs section (stubs already added)
   * document normalize, fix fade (-> fadein, fadeout),
-    fix read_file/write_file, document highpass, lowpass,
-    bandpass, bandpass_a, fix statistic/debugrms (-> ssp_streamer,
+    fix read_file/write_file, 
+    fix statistic/debugrms (-> ssp_streamer,
     maxrms), document ramp, saw, noise, wave
 
 Other items pending:
