@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.54 2001/05/05 14:36:13 richi Exp $
+; $Id: glame.scm,v 1.55 2001/05/30 13:57:32 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -485,6 +485,57 @@
 		      result)))))
       (swtest "file COW" test "Hallo wie gehts?HallXXXXX gehts?"))))
 
+(define swtest-overwrite-aligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998 "Hallo Leute,"))
+			(fd2 (sw-creat 999 " wie gehts?")))
+		    (sw_ftruncate fd1 23)
+		    (sw_lseek fd1 12 SEEK_SET)
+		    (sw_lseek fd2 0 SEEK_SET)
+		    (sw_sendfile fd1 fd2 11 0)
+		    (let ((result (sw-contents fd1)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Aligned overwrite" test "Hallo Leute, wie gehts?"))))
+
+(define swtest-overwrite-unaligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998 "Hallo Leute, wie"))
+			(fd2 (sw-creat 999 " wie gehts?")))
+		    (sw_ftruncate fd1 23)
+		    (sw_lseek fd1 12 SEEK_SET)
+		    (sw_lseek fd2 0 SEEK_SET)
+		    (sw_sendfile fd1 fd2 11 0)
+		    (let ((result (sw-contents fd1)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Unaligned overwrite" test "Hallo Leute, wie gehts?"))))
+
+(define swtest-overwrite-unaligned-append
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998 "Hallo Leute, wie"))
+			(fd2 (sw-creat 999 " wie gehts?")))
+		    (sw_ftruncate fd1 20)
+		    (sw_lseek fd1 12 SEEK_SET)
+		    (sw_lseek fd2 0 SEEK_SET)
+		    (sw_sendfile fd1 fd2 11 0)
+		    (let ((result (sw-contents fd1)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Unaligned overwrite with append" test "Hallo Leute, wie gehts?"))))
+
 (define swtest-all
   (lambda ()
     (and (swtest-rw-simple)
@@ -499,7 +550,10 @@
 	 (swtest-cut-tail-unaligned)
 	 (swtest-insert-aligned)
 	 (swtest-insert-unaligned)
-	 (swtest-filecow))))
+	 (swtest-filecow)
+	 (swtest-overwrite-aligned)
+	 (swtest-overwrite-unaligned)
+	 (swtest-overwrite-unaligned-append))))
 
 
 
