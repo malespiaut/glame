@@ -1,3 +1,84 @@
+2000-02-24  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/maggy.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/net_test_gate:
+	tired of file_io business -> added fully featured noisegate filter
+	and test_network [mag]
+
+2000-02-24  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/canvas.h, /cvsroot/glame/glame/src/gui/canvas_types.c, /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h, /cvsroot/glame/glame/src/gui/Makefile.am:
+	As always, the evening gui-checkin
+	News:
+	can add connections, a lot of small bugfixes,
+	added new class to canvas
+	multiports not handled corrected. still some bugs...
+
+2000-02-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/cglame.c, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/filter_mm.c, /cvsroot/glame/glame/src/filter/filter_ops.c, /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/glame.c, /cvsroot/glame/glame/src/include/atomic.h, /cvsroot/glame/glame/src/include/atomic_mips.h, /cvsroot/glame/glame/src/include/atomic_x86.h, /cvsroot/glame/glame/src/include/util.h, /cvsroot/glame/glame/src/swapfile/gmkswap.c, /cvsroot/glame/glame/src/swapfile/swapfileI.h, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	Non-gcc compatibility fixes. [dk]
+
+2000-02-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/basic_sample.c, /cvsroot/glame/glame/src/filter/waveform.c, /cvsroot/glame/glame/src/swapfile/gmkswap.c, /cvsroot/glame/glame/src/swapfile/swapfile.c:
+	fixes for compiles on various architectures (AIX & Solaris)
+
+	* /cvsroot/glame/glame/configure.in: bumped version number
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/basic_sample.c, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/filter_ops.c:
+	added error passing, sample-converted some filters
+
+2000-02-23  Jim Garrison  <garrison@users.sourceforge.net>
+
+	* /cvsroot/glame/glame/.cvsignore, /cvsroot/glame/glame/doc/.cvsignore, /cvsroot/glame/glame/src/channel/.cvsignore, /cvsroot/glame/glame/src/.cvsignore, /cvsroot/glame/glame/src/data/.cvsignore, /cvsroot/glame/glame/src/data/pixmaps/.cvsignore, /cvsroot/glame/glame/src/glmath/.cvsignore, /cvsroot/glame/glame/src/gui/.cvsignore, /cvsroot/glame/glame/src/hash/.cvsignore, /cvsroot/glame/glame/src/include/.cvsignore, /cvsroot/glame/glame/src/plugin/.cvsignore, /cvsroot/glame/glame/src/swapfile/.cvsignore:
+	.cvsignore
+	Figured I would add them since they were already on my local dist.
+
+2000-02-23  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/canvas.h:
+	the all evening checkin
+
+	What's new:
+	druid works basically
+	icons can be dragged in the canvas
+	the coordinate system in the canvas is now correct
+	connection lines can be pulled from output ports, the item it is being released on is detected.
+	but not the port at the moment :(
+	i probably have to write another canvasitem for the ports... :-\
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/canvas.h:
+	U can actually move icons
+
+2000-02-23  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/file_io.c:
+	removed broken changes in echo2.c
+	re-thought generic writer facility in file_io.c
+
+2000-02-23  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/gui.c:
+	boy...
+	Being REALLY dumb today :*)
+	really fixed bug in druid
+
+	* /cvsroot/glame/glame/src/gui/gui.c: Hacked evil bug in the druid
+
+2000-02-23  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/net_test_io:
+	another test net[mag]
+
+2000-02-23  Jim Garrison  <garrison@users.sourceforge.net>
+
+	* /cvsroot/glame/glame/src/filter/net_test_pan: updated to new api
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/ChangeLog, /cvsroot/glame/glame/INSTALL, /cvsroot/glame/glame/README, /cvsroot/glame/glame/TODO:
+	Updated standard files no-one is interested in anyway. [dk]
+
 2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/data/Makefile.am, /cvsroot/glame/glame/src/data/pixmaps/Makefile.am, /cvsroot/glame/glame/src/Makefile.am:
@@ -106,12 +187,12 @@
 	migrating generic reader to generic io
 	no write support yet [mag]
 
-2000-02-22  garrison  <garrison@fs1>
+2000-02-22  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/include/glame_types.h:
 	midi framework
 
-2000-02-21  garrison  <garrison@fs1>
+2000-02-21  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/basic_midi.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/filter_protocols.h:
 	more midi work
@@ -131,7 +212,7 @@
 	no connections yet, uuuuugggly code (don't mind the warnings ;))
 	but...
 
-2000-02-21  garrison  <garrison@fs1>
+2000-02-21  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/net_test_pan:
 	net_test_pan works again too
@@ -193,7 +274,7 @@
 	minor fixes in garrison.c to help it compiling..
 	[mag]
 
-2000-02-20  garrison  <garrison@fs1>
+2000-02-20  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/net_test_pan:
 	fixed pan filter for now
@@ -242,7 +323,7 @@
 	* /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/rw/Makefile.am, /cvsroot/glame/glame/src/rw/rw.c, /cvsroot/glame/glame/src/rw/rw.h, /cvsroot/glame/glame/src/rw/wav_file.c, /cvsroot/glame/glame/src/rw/wav_file.h:
 	removed the obsolete rw stuff
 
-2000-02-20  garrison  <garrison@fs1>
+2000-02-20  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/.cvsignore, /cvsroot/glame/glame/src/filter/distance.c, /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/Makefile.am:
 	Made distance function
@@ -250,7 +331,7 @@
 
 	* /cvsroot/glame/glame/src/filter/net_test_pan: minor change
 
-2000-02-19  garrison  <garrison@fs1>
+2000-02-19  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/net_test_pan:
 	Finished pan filter, added net_test_pan
@@ -259,7 +340,7 @@
 	more midi work (still nothing usable)
 	ping filter improvements (uses parameters)
 
-2000-02-18  garrison  <garrison@fs1>
+2000-02-18  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/include/glame_types.h:
 	Began to implement MIDI (unfinished)
@@ -275,7 +356,7 @@
 	* /cvsroot/glame/glame/src/filter/filter_node.c:
 	filter_node.c was no longer used - empty file removed.
 
-2000-02-18  garrison  <garrison@fs1>
+2000-02-18  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c:
 	ring mod (untested) [garrison]
@@ -334,7 +415,7 @@
 	* /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h:
 	Just some minor updates
 
-2000-02-17  garrison  <garrison@fs1>
+2000-02-17  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c:
 	changes to my filters -- nothing new [garrison]
@@ -408,7 +489,7 @@
 
 	* /cvsroot/glame/glame/src/filter/nold.c: Cleanups... [dk]
 
-2000-02-12  garrison  <garrison@fs1>
+2000-02-12  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c:
 	Initial pan filter (untested until I get a sound card working in linux)
@@ -576,7 +657,7 @@
 	* /cvsroot/glame/glame/src/filter/filter_tools.h, /cvsroot/glame/glame/src/filter/Makefile.am:
 	added filter_tools.h
 
-2000-02-08  garrison  <garrison@fs1>
+2000-02-08  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/Makefile.am:
 	Phase inverter filter (hasn't been tested) [garrison]
@@ -718,7 +799,7 @@
 	Added pointer to test files in src/filter/ to {,c}glame. [dk]
 	Updated ChangeLog. [dk]
 
-2000-02-03  garrison  <garrison@fs1>
+2000-02-03  Jim Garrison  <garrison@users.sourceforge.net>
 
 	* /cvsroot/glame/glame/doc/masterplan.txt:
 	added questions about channels
