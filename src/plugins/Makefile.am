@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_GUI_INCLUDEDIR)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_GUI_INCLUDEDIR) $(ALSA_CFLAGS) $(JACK_CFLAGS)
 
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
@@ -78,16 +78,16 @@ tutorial_la_LDFLAGS = -module -avoid-version
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
 endif
-fft_plugins_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
+fft_plugins_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(FFTW_LIBS)
 if HAVE_LIBMP3LAME
 file_mp3_out_la_SOURCES = file_mp3_out.c
 endif 
-file_mp3_out_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
+file_mp3_out_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(LAME_LIBS)
 
 if HAVE_VORBISFILE
 file_oggvorbis_out_la_SOURCES = file_oggvorbis_out.c
 endif 
-file_oggvorbis_out_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
+file_oggvorbis_out_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(VORBIS_LIBS)
 
 if HAVE_OSS
 audio_io_oss_la_SOURCES = audio_io_oss.c audio_io.h
@@ -102,12 +102,12 @@ audio_io_esd_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 if HAVE_ALSA
 audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h midi_io_alsa.c
 endif
-audio_io_alsa_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
+audio_io_alsa_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(ALSA_LIBS)
 
 if HAVE_JACK
 audio_io_jack_la_SOURCES = audio_io_jack.c audio_io.h
 endif
-audio_io_jack_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
+audio_io_jack_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(JACK_LIBS)
 
 if HAVE_SGI
 audio_io_irix_la_SOURCES = audio_io_irix.c audio_io.h

@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" -DPKGDATADIR=\"$(pkgdatadir)\" $(GLAME_GUI_INCLUDEDIR) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" -DPKGDATADIR=\"$(pkgdatadir)\" $(GLAME_GUI_INCLUDEDIR) $(XML_CFLAGS) $(MAD_CFLAGS)
 
 EXTRA_DIST = glame.desktop default-accels \
 	util/gtknob.xpm libgtkwaveform/rec.xpm libgtkwaveform/mute.xpm \
@@ -50,7 +50,7 @@ glame_LDADD =  \
 	../filter/libfilter.la \
 	../hash/libhash.la \
 	../swapfile/libswapfile.la \
-	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) \
+	$(GLAME_GUI_LIBDIR) $(GLAME_GUI_LIBS) $(VORBIS_LIBS) $(MAD_LIBS) \
 	-lm $(LIBLTDL) $(LIBINTL)
 glame_LDFLAGS = -export-dynamic -dlopen self
 

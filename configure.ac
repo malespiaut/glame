@@ -310,18 +310,19 @@ if test "$sample" = "float"; then
 	AC_CHECK_LIB(sfftw, fftw2d_create_plan, fftw=yes, fftw=no)
 	AC_CHECK_HEADER(sfftw.h,, fftw=no)
 	if test $fftw = yes; then
-		GLAME_LIBS="$GLAME_LIBS -lsfftw -lsrfftw"
+		FFTW_LIBS="-lsfftw -lsrfftw"
 		AC_DEFINE(HAVE_FFTW,, [have fftw])
 	fi
 elif test "$sample" = "double"; then
 	AC_CHECK_LIB(fftw, fftw2d_create_plan, fftw=yes, fftw=no)
 	AC_CHECK_HEADER(fftw.h,, fftw=no)
 	if test $fftw = yes; then
-		GLAME_LIBS="$GLAME_LIBS -lfftw -lrfftw"
+		FFTW_LIBS="-lfftw -lrfftw"
 		AC_DEFINE(HAVE_FFTW,, [have fftw])
 	fi
 fi
 AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
+AC_SUBST(FFTW_LIBS)
 
 
 dnl
@@ -397,8 +398,6 @@ if test "x$alsa" = xno; then
 	ACG_PATH_ALSA(0.9.0, alsa="yes", alsa="no")
 fi
 if test "x$alsa" = xyes; then
-	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $ALSA_CFLAGS"
-	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
 	AC_DEFINE(HAVE_ALSA,, [have alsa library])
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
@@ -406,11 +405,13 @@ AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 dnl check for Jack
 AC_CHECK_HEADER(jack/jack.h, jack=yes, jack=no)
 if test x$jack = xyes; then
-	GLAME_CFLAGS="$GLAME_CFLAGS `pkg-config --cflags jack`"
-	GLAME_LIBS="$GLAME_LIBS `pkg-config --libs jack`"
+	JACK_CFLAGS="`pkg-config --cflags jack`"
+	JACK_LIBS="`pkg-config --libs jack`"
 	AC_DEFINE(HAVE_JACK,, [have jack library])
 fi
 AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
+AC_SUBST(JACK_CFLAGS)
+AC_SUBST(JACK_LIBS)
 
 dnl
 dnl Check for LADSPA support
@@ -432,8 +433,6 @@ dnl check for libmad
 ACG_PKG_CHECK_MODULES(MAD, mad,
 [
   AC_DEFINE(HAVE_LIBMAD,, [have mad library])
-  GLAME_CFLAGS="$GLAME_CFLAGS $MAD_CFLAGS"
-  GLAME_LIBS="$GLAME_LIBS $MAD_LIBS"
 ],
 [
   AC_CHECK_HEADER([mad.h],
@@ -442,11 +441,13 @@ ACG_PKG_CHECK_MODULES(MAD, mad,
     AC_CHECK_LIB(mad, mad_stream_buffer,
     [
       AC_DEFINE(HAVE_LIBMAD,, [have mad library])
-      GLAME_LIBS="$GLAME_LIBS -lmad"
+      MAD_LIBS="-lmad"
     ])
     LIBS="$acg_save_LIBS"
   ])
 ])
+AC_SUBST(MAD_CFLAGS)
+AC_SUBST(MAD_LIBS)
 
 
 dnl check for libmp3lame
@@ -455,10 +456,11 @@ AC_CHECK_LIB(mp3lame, lame_init_params, mp3lame=yes, mp3lame=no, -lm)
 AC_CHECK_HEADER([lame/lame.h],, mp3lame=no)
 if test $mp3lame = yes; then
         AC_DEFINE(HAVE_LIBMP3LAME,, [have mp3lame library])
-        GLAME_LIBS="$GLAME_LIBS -lmp3lame -lm"
+        LAME_LIBS="-lmp3lame -lm"
 fi
 LIBS="$acg_save_LIBS"
 AM_CONDITIONAL(HAVE_LIBMP3LAME, test x$mp3lame = xyes)
+AC_SUBST(LAME_LIBS)
 
 
 dnl check for libvorbisfile
@@ -487,7 +489,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
         AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 3, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
         AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
 	have_vorbisfile=yes
-        GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm -lvorbisenc"
+        VORBIS_LIBS="-lvorbisfile -lvorbis -logg -lm -lvorbisenc"
       ],
       [
         AC_COMPILE_IFELSE(
@@ -507,7 +509,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
 	  AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 4, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
           AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
 	  have_vorbisfile=yes
-          GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm -lvorbisenc"
+          VORBIS_LIBS="-lvorbisfile -lvorbis -logg -lm -lvorbisenc"
 	],
 	[
 	  AC_MSG_RESULT([failed])
@@ -519,6 +521,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
   ])
 ])
 AM_CONDITIONAL(HAVE_VORBISFILE, test x$have_vorbisfile = xyes)
+AC_SUBST(VORBIS_LIBS)
 
 
 dnl
