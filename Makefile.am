@@ -7,5 +7,5 @@ update-changelog:
 
 dist-hook:
 	mkdir $(distdir)/debian
-	cp -p $(srcdir)/debian/[^C]* $(distdir)/debian/
+	cp -p $(srcdir)/debian/[^CS]* $(distdir)/debian/
 
