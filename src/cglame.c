@@ -1,7 +1,7 @@
 /*
  * cglame.c
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999-2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,9 +45,8 @@ void sc_main()
 int main(int argc, char **argv)
 {
 	fprintf(stderr, "\n"
-"    CGLAME for GLAME version "VERSION", Copyright (C) 1999, 2000, 2001\n"
-"    Alexander Ehlert, Jim Garrison, Richard Guenther, Johannes Hirche,\n"
-"    Daniel Kobras, Joe Navratil.\n"
+"    CGLAME for GLAME version "VERSION", Copyright (C) 1999-2001\n"
+"    Alexander Ehlert, Richard Guenther, Johannes Hirche, Daniel Kobras.\n"
 "    CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free\n"
 "    software, and you are welcome to redistribute it under certain\n"
 "    conditions.\n\n");
