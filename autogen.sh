@@ -1,6 +1,6 @@
 #!/bin/sh
 
-rm -f config.cache libtool ltconfig ltmain.sh
+rm -f config.cache libtool ltconfig ltmain.sh po/Makefile.in.in
 rm -rf intl/
 aclocal -I . -I macros
 libtoolize --copy --automake --ltdl
