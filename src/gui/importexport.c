@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.27 2003/07/03 20:17:52 nold Exp $
+ * $Id: importexport.c,v 1.28 2003/07/06 10:47:04 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -102,6 +102,7 @@ struct imp_s {
 #ifdef HAVE_LIBMAD
 	int mad_length;
 	int mad_pos;
+	int mad_err;
 	char *mad_buffer;
 #endif
 };
@@ -241,6 +242,14 @@ static enum mad_flow
 ie_import_mp3_error(void *data, struct mad_stream *stream,
 		    struct mad_frame *frame)
 {
+	struct imp_s *ie = data;
+	ie->mad_err = 1;
+	DPRINTF("MAD error pos=%i: %s\n", ie->mad_pos, mad_stream_errorstr(stream));
+	/* Ignore recoverable lost sync error in first frame (ID3 tag, f.e.). */
+	if (ie->mad_pos == 0
+	    && MAD_RECOVERABLE(stream->error)
+	    && stream->error == MAD_ERROR_LOSTSYNC)
+		return MAD_FLOW_IGNORE;
 	return MAD_FLOW_BREAK;
 }
 static enum mad_flow
@@ -260,6 +269,12 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 	struct imp_s *ie = data;
 	SAMPLE *buf;
 	int i;
+
+	/* Need to ignore frames with (recovered) error. */
+	if (ie->mad_err) {
+		ie->mad_err = 0;
+		return MAD_FLOW_CONTINUE;
+	}
 
 	if (ie->mad_pos == 0) {
 		/* alloc gpsm group, etc. */
@@ -318,6 +333,7 @@ static void ie_import_mp3(struct imp_s *ie)
 	if (fd == -1)
 		return;
 	fstat(fd, &s);
+	ie->mad_err = 0;
 	ie->mad_length = s.st_size;
 	ie->mad_buffer = mmap(NULL, s.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (ie->mad_buffer == MAP_FAILED) {
