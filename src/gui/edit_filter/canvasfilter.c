@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.11 2001/06/02 20:53:06 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.12 2001/06/05 09:36:30 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -476,10 +476,10 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	double xOffset,yOffset,dummy1,dummy2;
 	double bmaxx,bminx,bminy,bmaxy, recx1,recx2,recy1,recy2;
 	
-	bmaxx=0.0;
-	bminx=200.0;
-	bmaxy=0.0;
-	bminy=1000.0;
+	bmaxx=-999999999.0;
+	bminx=9999999999.0;
+	bmaxy=-999999999.0;
+	bminy=999999999.0;
 
 	gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(filter),&xOffset,&yOffset,&dummy1,&dummy2);
 	
