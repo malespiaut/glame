@@ -141,6 +141,7 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 		DPRINTF("clipboard nrtracks do not match\n");
 		return;
 	}
+	DPRINTF("Pasting to %i size %i\n", start, st.size/SAMPLE_SIZE);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (GPSM_ITEM_IS_SWFILE(item))
@@ -148,8 +149,6 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	if (sw_fstat(temp_fd[0], &st) == -1)
 		return;
-
-	g_print ("Pasting to %i size %i\n", start, st.size/SAMPLE_SIZE);
 
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
@@ -180,22 +179,26 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
+	DPRINTF("Cutting selection from %i of length %i\n", start, length);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
 
-	g_print ("Deleting selection from %i of length %i\n", start, length);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
-		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
-		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
-			DPRINTF("*** sw_sendfile failed\n");
+		long sstart = start+gpsm_item_hposition(files[i]);
+		long ssize = MIN(length, MAX(0, gpsm_item_hsize(files[i])-sstart));
+		if (ssize > 0) {
+			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
+			sw_lseek(fd, sstart*SAMPLE_SIZE, SEEK_SET);
+			if (sw_sendfile(temp_fd[i], fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
+				DPRINTF("*** sw_sendfile failed\n");
+			sw_close(fd);
+			gpsm_swfile_notify_cut(files[i], sstart, ssize);
+		}
 		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
-		sw_close(fd);
-		gpsm_swfile_notify_cut(files[i], start+gpsm_item_hposition(files[i]), length);
 	}
 }
 
@@ -215,21 +218,24 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
+	DPRINTF("Deleting selection from %i of length %i\n", start, length);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
 
-	g_print ("Cutting selection from %i of length %i\n", start, length);
-
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
-		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
-		if (sw_sendfile(SW_NOFILE, fd, length*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
-			DPRINTF("*** sw_sendfile failed\n");
-		sw_close(fd);
-		gpsm_swfile_notify_cut(files[i], start+gpsm_item_hposition(files[i]), length);
+		long sstart = start+gpsm_item_hposition(files[i]);
+		long ssize = MIN(length, MAX(0, gpsm_item_hsize(files[i])-sstart));
+		if (ssize > 0) {
+			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
+			sw_lseek(fd, sstart*SAMPLE_SIZE, SEEK_SET);
+			if (sw_sendfile(SW_NOFILE, fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
+				DPRINTF("*** sw_sendfile failed\n");
+			sw_close(fd);
+			gpsm_swfile_notify_cut(files[i], sstart, ssize);
+		}
 	}
 }
 
@@ -260,6 +266,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	gint32 start, length;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	filter_t *net, *effect;
 	int rate, i;
 	
@@ -269,6 +276,10 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
+
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
 
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
@@ -286,12 +297,13 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff, *swout;
 		int swname = gpsm_swfile_filename(files[i]);
+		long sstart = start+gpsm_item_hposition(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		eff = filter_creat(effect);
 		swout = filter_instantiate(plugin_get("swapfile_out"));
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
@@ -313,8 +325,8 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 /* 	filter_delete(effect); */
 
 	for (i=0; i<nrtracks; i++) {
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, start, length);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, files[i], start, length);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED, files[i]);
 	}
 }
 
@@ -331,6 +343,7 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	gint32 start, length;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	filter_t *net, *effect;
 	int rate, i;
 
@@ -341,6 +354,10 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
+
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
 
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
@@ -358,11 +375,12 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff;
 		int swname = gpsm_swfile_filename(files[i]);
+		long sstart = start+gpsm_item_hposition(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		eff = filter_creat(effect);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
 		filter_add_node(net, swin, "swin");
 		filter_add_node(net, eff, "eff");
@@ -381,6 +399,7 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 	gint32 start, length;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	filter_t *net;
 	int rate, i;
 
@@ -390,16 +409,21 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
-	
+
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
+
 	net = filter_creat(NULL);
 	for(i=0;i<nrtracks;i++){
 		filter_t *swin;
 		int swname = gpsm_swfile_filename(files[i]);
+		long sstart = start+gpsm_item_hposition(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		fprintf(stderr,"rate: %d\n",rate);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
 		filter_add_node(net, swin, "swin");
 		filter_set_property(swin,"immutable","1");
@@ -418,12 +442,17 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	gint32 start, length;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	filter_t *net;
 	int rate, i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
+
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
 
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
@@ -435,11 +464,12 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *swout;
 		int swname = gpsm_swfile_filename(files[i]);
+		long sstart = start+gpsm_item_hposition(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		swout = filter_instantiate(plugin_get("swapfile_out"));
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
@@ -451,8 +481,8 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	draw_network(net);
 	/* FIXME wave widget has to be asyncronously notified :-\ 
 	for (i=0; i<nrtracks; i++) {
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, start, length);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, files[i], start, length);
+		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED, fles[i]);
 	}
 	*/
 }

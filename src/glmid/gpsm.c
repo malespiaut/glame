@@ -292,7 +292,7 @@ void gpsm_sync()
 	dump_tree(root, docroot);
 	xmlDocSetRootElement(doc, docroot);
 	xmlDocDumpMemory(doc, &xml, &size);
-	DPRINTF("%i bytes xml %s\n", size, xml);
+	DPRINTF("%i bytes xml\n %s\n", size, xml);
 	fd = sw_open(0, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE);
 	sw_write(fd, xml, size);
 	sw_close(fd);
@@ -704,6 +704,12 @@ void gpsm_swfile_notify_change(gpsm_swfile_t *swfile, long pos, long size)
 
 void gpsm_swfile_notify_cut(gpsm_swfile_t *swfile, long pos, long size)
 {
+	/* Fix size if it is going beyont the end of the item. */
+	if (pos + size > swfile->item.hsize)
+		size = swfile->item.hsize - pos;
+	if (size <= 0)
+		return;
+
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CUT, swfile, pos, size);
 	swfile->item.hsize -= size;
 #ifdef DEBUG

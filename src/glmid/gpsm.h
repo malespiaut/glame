@@ -112,8 +112,8 @@ typedef struct gpsm_swfile_s gpsm_swfile_t;
 
 #define GPSM_ITEM_TYPE_GRP    0
 #define GPSM_ITEM_TYPE_SWFILE 1
-#define GPSM_ITEM_IS_GRP(i) ((i)->type == GPSM_ITEM_TYPE_GRP)
-#define GPSM_ITEM_IS_SWFILE(i) ((i)->type == GPSM_ITEM_TYPE_SWFILE)
+#define GPSM_ITEM_IS_GRP(i) (((gpsm_item_t *)(i))->type == GPSM_ITEM_TYPE_GRP)
+#define GPSM_ITEM_IS_SWFILE(i) (((gpsm_item_t *)(i))->type == GPSM_ITEM_TYPE_SWFILE)
 struct gpsm_item_s {
 	struct list_head list;
 	gpsm_grp_t *parent;

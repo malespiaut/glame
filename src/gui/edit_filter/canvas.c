@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.45 2001/04/06 22:38:07 xwolf Exp $
+ * $Id: canvas.c,v 1.46 2001/04/10 11:47:07 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -258,6 +258,7 @@ show_port_properties(GlameCanvasPort * item)
 	y_coord+=16.0;
 	item->property_texts = g_list_append(item->property_texts,text);
 	
+#if 0 /* these are just the default parameters. */
 	filterparamdb_foreach_param(filterport_paramdb(item->port),iter){
 		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
 		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent),
@@ -277,7 +278,7 @@ show_port_properties(GlameCanvasPort * item)
 		item->property_texts = g_list_append(item->property_texts,text);
 		
 	}
-	
+#endif	
 }
 
 
@@ -1442,7 +1443,7 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 
 	filenamebuffer = calloc(100,sizeof(char));
 
-	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	dialog = gnome_dialog_new("Export as...",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
 	vbox = GNOME_DIALOG(dialog)->vbox;
 
 	nameEntry = gtk_entry_new();
@@ -1500,7 +1501,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 	paramnamebuffer = calloc(100,sizeof(char));
 	externnamebuffer = calloc(100,sizeof(char));
 
-	dialog = gnome_dialog_new("Select parameter",GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
+	dialog = gnome_dialog_new("Export parameters...",GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
 		
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	
