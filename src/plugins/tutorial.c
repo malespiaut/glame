@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.9 2001/05/13 12:09:06 richi Exp $
+ * $Id: tutorial.c,v 1.10 2001/05/14 08:34:42 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -190,7 +190,8 @@ int dup_register(plugin_t *p)
 
 static int nop_gpsm(gpsm_item_t *item, long start, long length)
 {
-	/* Just do nothing :) */
+	/* Just do nothing - but tell :) */
+	DPRINTF("NOP NOP NOP NOP :))\n");
 	return 0;
 }
 
