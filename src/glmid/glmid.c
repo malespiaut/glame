@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <guile/gh.h>
+#if 1
+#include <ltdl.h>
+#endif
 #include "glame_hash.h"
 #include "swapfile.h"
 #include "filter.h"
@@ -205,6 +208,10 @@ static void init_after_guile(int argc, char **argv)
 	/* We dont like guiles signal handlers for debugging
 	 * purposes. */
 	scm_restore_signals();
+#endif
+
+#if 1
+	lt_dlinit();
 #endif
 
 	/* Init lowlevel GLAME subsystems. */

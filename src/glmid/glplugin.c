@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.30 2001/07/05 13:59:28 mag Exp $
+ * $Id: glplugin.c,v 1.31 2001/08/02 15:09:28 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,7 +26,15 @@
 
 #include <unistd.h>
 #include <string.h>
+#if 0
 #include <dlfcn.h>
+#else
+#include <ltdl.h>
+#define dlopen(a,b) lt_dlopen(a)
+#define dlsym lt_dlsym
+#define dlclose lt_dlclose
+#define dlerror lt_dlerror
+#endif
 #include <ctype.h>
 #include "util.h"
 #include "list.h"

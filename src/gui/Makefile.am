@@ -24,7 +24,7 @@ glame_SOURCES = \
 glame_LDADD = ../glmid/libglame.la edit_filter/libeditfilter.la \
         libgtkwaveform/libgtkwaveform.la timeline/libtimeline.la \
 	util/libglameguiutils.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(XML_LIBS) -lm
+	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(XML_LIBS) -lm -lltdl
 glame_LDFLAGS = -export-dynamic
 
 #wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
