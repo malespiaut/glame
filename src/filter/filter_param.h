@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.16 2001/07/10 09:33:58 richi Exp $
+ * $Id: filter_param.h,v 1.17 2001/07/26 14:43:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -151,6 +151,7 @@ typedef struct {
  * use only. The END one is used to finish the varargs list to the
  * filterparamdb_add_param*() calls. */
 #define FILTERPARAM_DESCRIPTION "_desc"
+#define FILTERPARAM_LABEL "_showlabel"
 #define FILTERPARAM_GLADEXML "_xml"
 #define FILTERPARAM_END NULL
 #define FILTERPARAM_MAP_NODE "_node"

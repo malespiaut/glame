@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.7 2001/07/13 09:01:43 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.8 2001/07/26 14:43:09 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -751,7 +751,7 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 	float fVal;
 	char* cVal;
 	filter_param_t* param;
-	char label[256];
+	char label[256], *plabel;
 	char *xml;
 
 	/* the vbox holds the param widgets */
@@ -761,6 +761,10 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 	filterparamdb_foreach_param(pdb, param) {
 		pw = malloc(sizeof(param_widget_t));
 		pw->param = param;
+
+		if (!(plabel = filterparam_get_property(param, FILTERPARAM_LABEL)))
+			plabel = filterparam_label(param);
+
 #ifdef HAVE_LIBGLADE
 		if ((xml = filterparam_get_property(param, FILTERPARAM_GLADEXML))) {
 			GladeXML *gxml;
@@ -770,7 +774,7 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 				gtk_option_menu_set_history(GTK_OPTION_MENU(entry), filterparam_val_int(param));
 			} else
                                 /* FIXME */;
-			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			create_label_widget_pair(vbox,plabel,entry);
 			pw->widget = entry;
 			pw->widget_type = PGLADE;
 		} else
@@ -783,18 +787,16 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
 			iVal = filterparam_val_int(param);
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
-			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			create_label_widget_pair(vbox,plabel,entry);
 			pw->widget = entry;
 			pw->widget_type = PINT;
 		} else if (FILTER_PARAM_IS_SAMPLE(param)) {
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-1.0,1.0,0.05,1.0,1.0));
 			entry = gtk_spin_button_new(adjust, 0.05, 3);
-			snprintf(label, 255, "%s",
-				 filterparam_label(param));
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
 			fVal = filterparam_val_sample(param);
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
-			create_label_widget_pair(vbox, label, entry);
+			create_label_widget_pair(vbox, plabel, entry);
 			pw->widget = entry;
 			pw->widget_type = PSAMPLE;
 		} else if (FILTER_PARAM_IS_FLOAT(param)
@@ -803,17 +805,17 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,0.1,1.0,1.0));
 				entry = gtk_spin_button_new(adjust, 0.1, 3);
 				snprintf(label, 255, "%s [s]",
-					 filterparam_label(param));
+					 plabel);
 			} else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS) {
 				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,1.0,10.0,10.0));
 				entry = gtk_spin_button_new(adjust, 1, 1);
 				snprintf(label, 255, "%s [ms]",
-					 filterparam_label(param));
+					 plabel);
 			} else {
 				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,0.1,10.0,10.0));
 				entry = gtk_spin_button_new(adjust, 0.1, 3);
 				snprintf(label, 255, "%s",
-					 filterparam_label(param));
+					 plabel);
 			}
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
 			fVal = filterparam_val_float(param);
@@ -828,13 +830,13 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 				if((prop = filterparam_get_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER)))
 				      gtk_signal_connect_after(GTK_OBJECT(entry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),prop);
 				
-				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				create_label_widget_pair(vbox,plabel,entry);
 				pw->widget = entry;
 				pw->widget_type = PFILE;
 				break;
 			default:
 			        entry = gnome_entry_new("editfilter::param::string");
-				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				create_label_widget_pair(vbox,plabel,entry);
 				cVal =  filterparam_val_string(param);
 				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
 				pw->widget = entry;
@@ -849,7 +851,7 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 			entry = glame_curve_new();
 			gtk_curve_set_range(GTK_CURVE(entry),0.0,1.0,-1.0,1.0);
 			gtk_widget_set_usize(GTK_WIDGET(entry),200,200);
-			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			create_label_widget_pair(vbox,plabel,entry);
 			if((num_string = filterparam_get_property(param,"curve-control-points")))
 				if((ctl_vec_string=filterparam_get_property(param,"curve-control-points-data"))){
 
