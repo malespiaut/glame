@@ -16,3 +16,7 @@
 /* define which cpu you have */
 #undef CPU_X86
 #undef CPU_MIPS
+
+/* define if SGI/IRIX audio support is available */
+#undef HAVE_SGIAUDIO
+
