@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.67 2001/08/06 11:55:48 richi Exp $
+; $Id: glame.scm,v 1.68 2001/08/06 12:01:04 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -53,19 +53,19 @@
   (set-params! (filter-params node) (cons label value)))
 
 (define (filter-set-params! node . specs)
-  (apply set-params! (filter-params node) specs))
+  (apply set-params! (cons (filter-params node) specs)))
 
 (define (pipe-set-sourceparam! pipe label value)
   (set-params! (pipe-source-params pipe) (cons label value)))
 
 (define (pipe-set-sourceparams! pipe . specs)
-  (apply set-params! (pipe-source-params pipe) specs))
+  (apply set-params! (cons (pipe-source-params pipe) specs)))
 
 (define (pipe-set-destparam! pipe label value)
   (set-params! (pipe-dest-params pipe) (cons label value)))
 
 (define (pipe-set-destparams! pipe . specs)
-  (apply set-params! (pipe-dest-params pipe) specs))
+  (apply set-params! (cons (pipe-dest-params pipe) specs)))
 
 
 ; Compatibility
@@ -74,10 +74,10 @@
 (define filterpipe_set_destparam pipe-set-destparam!)
 (define (node-set-params node . params)
   (apply filter-set-params!
-	 node
-	 (map (lambda (spec)
-		(cons (car spec) (cadr spec)))
-	      params)))
+	 (cons node
+	       (map (lambda (spec)
+		      (cons (car spec) (cadr spec)))
+		    params))))
 
 
 
