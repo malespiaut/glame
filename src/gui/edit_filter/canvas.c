@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.47 2001/04/11 09:27:39 richi Exp $
+ * $Id: canvas.c,v 1.48 2001/04/11 10:05:28 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -219,6 +219,8 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 		GLAME_CANVAS_ITEM(item->parent)->property_texts = g_list_append(GLAME_CANVAS_ITEM(item->parent)->property_texts,text);
 			
 	}
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(item->parent));
+
 }
 
 static void 
