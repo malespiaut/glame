@@ -80,6 +80,50 @@ long plugin_smob_tag;
 #define plugin_p(s) (SCM_NIMP(s) && SCM_CAR(s) == plugin_smob_tag)
 
 
+/* SMOB for filter_launchcontext_t.
+ */
+
+long launchcontext_smob_tag = 0;
+struct launchcontext_smob {
+	filter_launchcontext_t *context;
+};
+#define SCM2LAUNCHCONTEXTSMOB(s) ((struct launchcontext_smob *)SCM_SMOB_DATA(s))
+#define launchcontext_p(s) (SCM_NIMP(s) && SCM_CAR(s) == launchcontext_smob_tag)
+SCM launchcontext2scm(filter_launchcontext_t *context);
+filter_launchcontext_t *scm2launchcontext(SCM launchcontext_smob);
+
+static size_t free_launchcontext(SCM launchcontext_smob)
+{
+	struct launchcontext_smob *context = SCM2LAUNCHCONTEXTSMOB(launchcontext_smob);
+	filter_launchcontext_unref(&context->context);
+	return sizeof(struct launchcontext_smob);
+}
+
+SCM launchcontext2scm(filter_launchcontext_t *context)
+{
+	struct launchcontext_smob *smob;
+	SCM launchcontext_smob;
+
+	if (!context)
+		GLAME_THROW();
+
+	smob = (struct launchcontext_smob *)malloc(sizeof(struct launchcontext_smob));
+	smob->context = context;
+
+	SCM_NEWSMOB(launchcontext_smob, launchcontext_smob_tag, smob);
+
+	filter_launchcontext_ref(context);
+	return launchcontext_smob;
+}
+
+filter_launchcontext_t *scm2launchcontext(SCM launchcontext_smob)
+{
+	SCM_ASSERT(launchcontext_p(launchcontext_smob),
+		   launchcontext_smob, SCM_ARG1, "scm2launchcontext");
+	return SCM2LAUNCHCONTEXTSMOB(launchcontext_smob)->context;
+}
+
+
 /* SMOB for filter_t.
  */
 
@@ -555,49 +599,52 @@ static SCM gls_get_property(SCM s_obj, SCM s_label)
 static SCM gls_filter_launch(SCM s_net, SCM s_bufsize)
 {
 	filter_launchcontext_t *c;
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_launch");
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter-launch");
 	SCM_ASSERT(SCM_UNBNDP(s_bufsize) || gh_exact_p(s_bufsize),
 		   s_bufsize, SCM_ARG2, "filter-launch");
 	if (!(c = filter_launch(scm2filter(s_net),
 				SCM_UNBNDP(s_bufsize) ? _GLAME_WBUFSIZE : glame_scm2long(s_bufsize))))
 		GLAME_THROW();
-	filter_launchcontext_unref(&c); /* FIXME */
-	return SCM_UNSPECIFIED;
+	return launchcontext2scm(c);
 }
 
-static SCM gls_filter_start(SCM s_net) /* FIXME */
+static SCM gls_filter_start(SCM s_context)
 {
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_start");
-	if (filter_start(scm2filter(s_net)->launch_context) == -1)
+	SCM_ASSERT(launchcontext_p(s_context), s_context,
+		   SCM_ARG1, "filter-start");
+	if (filter_start(scm2launchcontext(s_context)) == -1)
 		GLAME_THROW();
 	return SCM_UNSPECIFIED;
 }
 
-static filter_t *waitingnet = NULL;
+static filter_launchcontext_t *waitingcontext = NULL;
 void killnet(int sig)
 {
 	DPRINTF("got SIGINT - trying to terminate network\n");
-	if (waitingnet)
-		filter_terminate(waitingnet->launch_context);
+	/* FIXME?: filter_terminate is not a good idea in a signal handler,
+	 *         so we trigger an "error" in the network. */
+	if (waitingcontext)
+		atomic_inc(&waitingcontext->result);
 }
-static SCM gls_filter_wait(SCM s_net) /* FIXME */
+static SCM gls_filter_wait(SCM s_context)
 {
-	filter_t *net;
+	filter_launchcontext_t *context;
 	struct sigaction sa, oldsa;
 	int res;
 
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_wait");
-	net = scm2filter(s_net);
+	SCM_ASSERT(launchcontext_p(s_context), s_context,
+		   SCM_ARG1, "filter-wait");
+	context = scm2launchcontext(s_context);
 
 	/* We need to do some tricks to allow for SIGINT to
 	 * interrupt the network and return to the guile console. */
-	waitingnet = net;
+	waitingcontext = context;
 	sa.sa_handler = killnet;
 	sa.sa_flags = 0;
 	sigaction(SIGINT, &sa, &oldsa);
 
 	/* Do the actual wait. */
-	res = filter_wait(net->launch_context);
+	res = filter_wait(context);
 
 	/* Cleanup. */
 	sigaction(SIGINT, &oldsa, NULL);
@@ -607,10 +654,11 @@ static SCM gls_filter_wait(SCM s_net) /* FIXME */
 	return SCM_UNSPECIFIED;
 }
 
-static SCM gls_filter_terminate(SCM s_net) /* FIXME */
+static SCM gls_filter_terminate(SCM s_context)
 {
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter-terminate");
-	filter_terminate(scm2filter(s_net)->launch_context);
+	SCM_ASSERT(launchcontext_p(s_context), s_context,
+		   SCM_ARG1, "filter-terminate");
+	filter_terminate(scm2launchcontext(s_context));
 	return SCM_UNSPECIFIED;
 }
 
@@ -990,6 +1038,13 @@ int glscript_init_filter()
 	scm_set_smob_free(filter_smob_tag, free_filter);
 	scm_set_smob_print(filter_smob_tag, print_filter);
 	scm_set_smob_equalp(filter_smob_tag, equalp_filter);
+
+	/* Register the launchcontext SMOB to guile. */
+	launchcontext_smob_tag = scm_make_smob_type("launchcontext",
+					     sizeof(struct launchcontext_smob));
+	scm_set_smob_free(launchcontext_smob_tag, free_launchcontext);
+	scm_set_smob_print(launchcontext_smob_tag, print_pointer);
+	scm_set_smob_equalp(launchcontext_smob_tag, equalp_pointer);
 
 	/* Register the pipe, param, port and plugin SMOB to guile. */
 	pipe_smob_tag = scm_make_smob_type("pipe",

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.80 2003/04/15 19:00:03 richi Exp $
+; $Id: glame.scm,v 1.81 2003/04/21 17:11:08 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -274,24 +274,16 @@
 ; run the net, wait for completion and delete it
 (define net-run
   (lambda (net . bufsize)
-    (if (null? bufsize)
-	(filter-launch net)
-	(filter-launch net (car bufsize)))
-    (filter-start net)
-    (filter-wait net)))
+    (let ((context
+	   (if (null? bufsize)
+	       (filter-launch net)
+	       (filter-launch net (car bufsize)))))
+      (filter-start context)
+      (filter-wait context))))
 
 (add-help 'net-run '(net)
 	  "run the net, wait for completion and delete it.")
 
-; start the net (in the background, not deleting it afterwards),
-; i.e. you can use filter-(start|terminate) on it.
-(define net-run-bg
-  (lambda (net)
-    (filter-launch net)
-    (filter-start net)))
-
-(add-help 'net-run-bg '(net)
-	  "run the net in the background")
 ;-----------------------------------------------------------------
 ;
 ; file/swapfile/audio I/O stuff
