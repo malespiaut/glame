@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.7 2000/03/25 19:09:50 richi Exp $
+ * $Id: audio_io.c,v 1.8 2000/03/25 21:33:23 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -102,10 +102,7 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 	 * this port to stereo right and the other port to left. We
 	 * default to centre, if we are the only port.
 	 */
-	if (filternode_nroutputs(src) == 1) {
-		prev = filternode_get_output(src, port);
-		if (!prev)
-			PANIC("nroutputs and get_output disagree!\n");
+	if ((prev = filternode_get_output(src, port))) {
 		if (!filterpipe_get_sourceparam(prev, "hangle"))
 			filterpipe_sample_hangle(prev) = FILTER_PIPEPOS_LEFT;
 		phi = FILTER_PIPEPOS_RIGHT;
@@ -853,88 +850,101 @@ static int sgi_audio_out_f(filter_node_t *n)
 #ifdef HAVE_ESD
 #include <esd.h>
 
-/* Now I better know what to do ;) 
+/* Now I do ;) 
  * and we have an input filter
  */
 
 static int esd_in_f(filter_node_t *n)
 {
-	filter_pipe_t *left, *right;
-	filter_buffer_t *lbuf,*rbuf;
+	filter_pipe_t *pipe[2];
+	filter_buffer_t *fbuf;
 	
 	esd_format_t	format;
 	int rate = GLAME_DEFAULT_SAMPLERATE;
-	int bits = ESD_BITS16, channels = ESD_STEREO;
+	int bits = ESD_BITS16, channels;
 	int mode = ESD_STREAM, func = ESD_RECORD ;
-	short int *buf;
+	char *in;
+	short *buf;
 	int sock;
-	int length,time,maxtime;
-	int i,lpos,rpos;
+	int length, time, maxtime;
+	int ch, i, pos;
 	filter_param_t *dev_param;
         char *host = NULL;
 
-	/* FIXME some parameter handling to be added */
 
-	DPRINTF("esd_in_f started!\n");
+	if (!(channels = filternode_nroutputs(n)))
+		FILTER_ERROR_RETURN("No outputs.");
+	format = bits | mode | func | (channels == 1) ? ESD_MONO : ESD_STEREO;
 
-	format = bits | channels | mode | func;
 	dev_param = filternode_get_param(n, "device");
 	if (dev_param)
 		host = filterparam_val_string(dev_param);
+
 	sock = esd_record_stream_fallback(format, rate, host, NULL);
 	if (sock <= 0)
 		FILTER_ERROR_RETURN("Couldn't open esd socket!");
 
-	if (!(left = filternode_get_output(n, PORTNAME_OUT))
-	    || !(right = filternode_get_output(n, PORTNAME_OUT)))
-		FILTER_ERROR_RETURN("Couldn't find output pipes!");
+	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
+	pipe[1] = filternode_get_output(n, PORTNAME_OUT); /* Okay if NULL */
 	
-	if (filterpipe_sample_hangle(left) > filterpipe_sample_hangle(right)) {
-		filter_pipe_t *t = left;
-		left = right;
-		right = t;
+	if (pipe[1] && filterpipe_sample_hangle(pipe[0]) > 
+	               filterpipe_sample_hangle(pipe[1])) {
+		filter_pipe_t *t = pipe[0];
+		pipe[0] = pipe[1];
+		pipe[1] = t;
 	}
 	
-	if ((buf=(short int*)malloc(ESD_BUF_SIZE))==NULL)
+	if ((buf = (short *)malloc(ESD_BUF_SIZE)) == NULL)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
-
-        maxtime=10*rate*2;
-	time=0;
 	
 	FILTER_AFTER_INIT;
 
-	DPRINTF("Start sampling!\n");
+        maxtime = 10*rate*channels;	/* Moah! FIXME badly! 
+					 * (A 'duration' parameter is 
+					 * probably the best short term
+					 * fix, i.e. pre-0.2. In the long
+					 * run the UIs need a control port
+					 * to signal when we should stop
+					 * recording.)
+					 */
+	time = 0;
 	
-	while(pthread_testcancel(),time<maxtime){
-		length = 0;
-		while (length<ESD_BUF_SIZE)
-		        length += read(sock, buf+length, ESD_BUF_SIZE-length);
-		if (length == -1) {
-			DPRINTF("Read failed!\n");
-			break;
+	while (time < maxtime) {
+		FILTER_CHECK_STOP;
+		length = ESD_BUF_SIZE;
+		in = (char *)buf;
+		while (length) {
+			ssize_t ret;
+		        ret = read(sock, in, length);
+			if (ret == -1) {
+				DPRINTF("Read failed!\n");
+				goto _out;
+			}
+			in += ret;
+			length -= ret;
 		}
-		DPRINTF("sampled %d bytes!\n",length);
-		lpos=rpos=i=0;
-		lbuf=sbuf_alloc(length/4,n);	/* FIXME 16bit stereo only */
-		lbuf=sbuf_make_private(lbuf);
-		rbuf=sbuf_alloc(length/4,n);
-		rbuf=sbuf_make_private(rbuf);
-		if(!lbuf || !rbuf){
-			DPRINTF("alloc error!\n");
-			break;
+		for (ch = 0; ch < channels; ch++) {
+			fbuf = sbuf_make_private(
+					sbuf_alloc(ESD_BUF_SIZE/channels, n));
+			if (!fbuf) {
+				DPRINTF("alloc error!\n");
+				goto _out;
+			}
+			pos = 0;
+			i = ch;
+			while (pos < ESD_BUF_SIZE/channels) {
+				sbuf_buf(fbuf)[pos++] = SHORT2SAMPLE(buf[i]);
+				i += channels;
+			}
+			sbuf_queue(pipe[ch], fbuf);
 		}
-		while(i<length/2){
-			sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
-			sbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buf[i++]);
-		}
-		DPRINTF("lpos=%d, rpos=%d, i=%d\n",lpos,rpos,i);
-		sbuf_queue(left,lbuf);
-		sbuf_queue(right,rbuf);
-		time+=length;
+		time += ESD_BUF_SIZE;
 	}
-	sbuf_queue(left,NULL);
-	sbuf_queue(right,NULL);
+_out:
+	for (ch = 0; ch < channels; ch++)
+		sbuf_queue(pipe[ch], NULL);
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	close(sock);
