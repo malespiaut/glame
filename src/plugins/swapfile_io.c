@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.22 2001/08/01 15:06:00 richi Exp $
+ * $Id: swapfile_io.c,v 1.23 2001/08/01 15:56:15 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -64,7 +64,7 @@ static int swapfile_in_f(filter_t *n)
 		filterparamdb_get_param(filter_paramdb(n), "size"));
 	sw_fstat(fd, &st);
 	if (size == -1)
-		size = (long)st.size - offset;
+		size = (((long)st.size - offset)/SAMPLE_SIZE)*SAMPLE_SIZE;
 	else
 		size *= SAMPLE_SIZE;
 	DPRINTF("from %li size %li\n", offset, size);
