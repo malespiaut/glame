@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.51 2005/01/10 23:09:53 nold Exp $
+ * $Id: importexport.c,v 1.52 2005/01/19 21:06:06 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -67,6 +67,10 @@ static char *fproplabel[] = { "Format", "Samplerate", "Quality", "Channels",
 			      "Duration", "Compression", "Max RMS", "DC Offset"
 };
 
+gchar *old_imp_path;
+gchar *old_exp_path;
+
+
 #define MAX_PROPS (sizeof(fproplabel)/sizeof(char*))
 
 #define IMPORT  0
@@ -98,7 +102,7 @@ struct imp_s {
 	plugin_t *resample;
 	GtkWidget *fi_plabel[MAX_PROPS];
 	int reallydone;
-#ifdef HAVE_LIBMAD
+	#ifdef HAVE_LIBMAD
 	int mad_length;
 	int mad_pos;
 	int mad_err;
@@ -811,18 +815,18 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 }
 
 
-static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
+static void ie_filename_cb(GtkFileChooser *filechooser, struct imp_s *ie)
 {
 	filter_param_t *fparam;
 	char *mimetype;
 	int i;
-
-	if (ie->filename)
-		g_free(ie->filename);
-	ie->filename = gtk_editable_get_chars(edit, 0, -1);
+		
+	if (gtk_file_chooser_get_filename(filechooser)){
+	ie->filename = g_filename_to_utf8(gtk_file_chooser_get_filename(filechooser),-1,NULL,NULL,NULL); }
 	if (access(ie->filename, R_OK) == -1)
 		return;
-
+	old_imp_path = gtk_file_chooser_get_current_folder(filechooser);
+	
 	/* Basic checks. */
 	mimetype = gnome_vfs_get_mime_type(ie->filename);
 	if (!mimetype) {
@@ -899,8 +903,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	GtkWidget *dialog_vbox2;
 	GtkWidget *vbox2;
 	GtkWidget *frame3;
-	GtkWidget *fileentry2;
-	GtkWidget *combo_entry2;
+	GtkWidget *hbox3;
+	GtkWidget *filechooser;
 	GtkWidget *vbox4;
 	GtkWidget *frame6;
 	GtkWidget *statbutton;
@@ -941,7 +945,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 	gtk_container_set_border_width (GTK_CONTAINER (ie->dialog), 1);
 	//gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
-	gtk_window_set_resizable (GTK_WINDOW(ie->dialog),FALSE);
+	gtk_window_set_resizable (GTK_WINDOW(ie->dialog),TRUE);
 	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(ie->dialog), FALSE);
 	if (parent)
@@ -954,25 +958,33 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	gtk_widget_show (vbox2);
 	gtk_box_pack_start (GTK_BOX (dialog_vbox2), vbox2, TRUE, TRUE, 0);
 	
-	frame3 = gtk_frame_new (NULL);
-	
+	frame3 = gtk_frame_new (_("Select a file"));
 	gtk_widget_show (frame3);
 	gtk_box_pack_start (GTK_BOX (vbox2), frame3, TRUE, TRUE, 0);
 	
-	fileentry2 = gnome_file_entry_new ("gpsmop::import::filename", "Import File");
-	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fileentry2), TRUE);
-	gtk_widget_show (fileentry2);
-	gtk_container_add (GTK_CONTAINER (frame3), fileentry2);
-	
-	combo_entry2 = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fileentry2));
-	gtk_widget_show (combo_entry2);
+	hbox3 = gtk_hbox_new (FALSE, 0);
+	gtk_widget_show (hbox3);
+	gtk_container_add (GTK_CONTAINER (frame3), hbox3);
+			
+	filechooser =  gtk_file_chooser_widget_new(GTK_FILE_CHOOSER_ACTION_OPEN);
+	if (old_imp_path) gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(filechooser), old_imp_path); 
+	gtk_widget_set_size_request (filechooser ,200, 200);
+	gtk_widget_show (filechooser);
+	gtk_box_pack_start (GTK_BOX (hbox3), filechooser, TRUE, TRUE, 0);
+	g_signal_connect (filechooser,
+                     	"selection-changed",
+                    	 G_CALLBACK (ie_filename_cb),
+                     	 ie); 
+
+	//combo_entry2 = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fileentry2));
+	//gtk_widget_show (combo_entry2);
 	
 	//	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(
 	//					   GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry))));
-	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileentry2))));
+	//ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileentry2))));
 
-	g_signal_connect(GTK_OBJECT(ie->edit), "changed",
-			   (GtkSignalFunc)ie_filename_cb, ie);
+	//g_signal_connect(GTK_OBJECT(ie->edit), "changed",
+			   //(GtkSignalFunc)ie_filename_cb, ie);
 
 	vbox4 = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox4);
@@ -1206,12 +1218,12 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 }
 
 
+
 void set_export_filename (struct exp_s *ie, gchar *ext)
 {
-	char *filename;
+	const char *filename;
 	filename = g_strconcat(gpsm_item_label(ie->item), ext,NULL);
 	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(ie->filechooser),filename);
-	if (filename) g_free(filename);
 	return ;
 }
 
@@ -1221,7 +1233,7 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 	gchar  *str1;
 
 	val = gtk_combo_box_get_active(menu);
-	#ifdef HAVE_LIBMP3LAME
+#ifdef HAVE_LIBMP3LAME
 	if (val == ie->mp3_menu_index) {
 		make_comp_menu(ie, -1);
 		ie->filetype = 99;
@@ -1254,10 +1266,8 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 		str1 = g_strconcat(".",str1,NULL);
 		set_export_filename(ie, str1);
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),0);
-
 		if (str1) g_free(str1);
-		
-	} else {
+		} else {
 		make_comp_menu(ie, -1);
 		ie->filetype=-1;
 		ie->compression = AF_COMPRESSION_NONE;
@@ -1316,7 +1326,7 @@ puts(	filename );
 
 static void export_cb(GtkWidget *bla, struct exp_s *exp) 
 {
-	filter_t *net, *swin, *writefile, *render;
+	filter_t *net, *swin, *writefile, *render = NULL;
 	filter_paramdb_t *db;
 	filter_param_t *param;
 	filter_port_t *source, *dest;
@@ -1329,13 +1339,12 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	int totalframes;
 	float percentage;
 	gchar *output_plugin = "write_file";
-	const gchar *string = NULL;
-	// gchar *string2 = NULL;
 	int  index;
-	
+	const gchar *string;
+
 	gtk_widget_set_sensitive(bla, FALSE);
 	
-	g_free(exp->filename);
+	if (exp->filename) g_free(exp->filename);
 	exp->filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(exp->filechooser));
 	
 	if(exp->filename==NULL) {
@@ -1345,7 +1354,8 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		gtk_widget_set_sensitive(bla, TRUE);
 		return;
 	}
-
+	old_exp_path = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(exp->filechooser));
+	
 	/* Build temporary group out of flattened item->item. */
 	if (!(grp = gpsm_flatten(exp->item))) {
 		gtk_widget_set_sensitive(bla, TRUE);
@@ -1606,7 +1616,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	struct exp_s *ie;
 	GtkWidget *label_tab1, *label_tab2, *label_tab3 ;
 	GtkWidget *dialog, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox, *vboxftype;
-	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3,  *fname, *fnamebox;
+	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3, *fname, *fnamebox;
 	GtkWidget *framebox, *frame4, *frame4box,*dialog_action_area; 
 	GSList *rbuttons, *renderbuttons;
 	int i;
@@ -1669,9 +1679,12 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	fnamebox =  gtk_hbox_new(FALSE, 0);
 	gtk_widget_show(fnamebox);
 	gtk_container_add(GTK_CONTAINER(fname), fnamebox);
-	
+			
 	ie->filechooser = gtk_file_chooser_widget_new(GTK_FILE_CHOOSER_ACTION_SAVE);
 	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(ie->filechooser) ,gpsm_item_label(item));
+	if (old_exp_path) gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(ie->filechooser),old_exp_path );
+
+	gtk_widget_set_size_request (ie->filechooser ,-1, 250);
 	gtk_widget_show(ie->filechooser);
 	gtk_box_pack_start (GTK_BOX (fnamebox), ie->filechooser, TRUE, TRUE, 0);
 	
@@ -1689,7 +1702,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 			   (GtkSignalFunc)export_cb, ie); */
 	vboxftype = gtk_vbox_new (FALSE, 0); 
 	gtk_widget_show(vboxftype);
-	gtk_box_pack_start (GTK_BOX (hbox), vboxftype , FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), vboxftype , TRUE, FALSE, 0);
 	frame = gtk_frame_new(_("File Format"));
 	gtk_widget_show(frame);
 	gtk_box_pack_start (GTK_BOX (vboxftype ), frame, FALSE, FALSE, 0);
@@ -2092,7 +2105,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 	g_signal_connect(GTK_OBJECT(ie->ocomp_combo_box),  "changed", (GtkSignalFunc)ie_comp_menu_cb, ie); 
 	
-	// Retrieve tab related to  (eventually) previously chosen file type  
+	/* Retrieve tab related to  (eventually) previously chosen file type  */
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX (ie->otype_combo_box)) == ie->mp3_menu_index ) 
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),ie->mp3tab_num );
 	else if (gtk_combo_box_get_active(GTK_COMBO_BOX (ie->otype_combo_box)) == ie->ogg_menu_index )
