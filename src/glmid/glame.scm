@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.62 2001/07/31 13:54:46 richi Exp $
+; $Id: glame.scm,v 1.63 2001/07/31 17:24:16 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -34,34 +34,28 @@
 (define filter_p filter?)
 
 (define (filternode_set_param node label value)
-  (call-with-current-continuation
-   (lambda (return)
-     (for-each
-       (lambda (param)
-	 (if (string=? (param-label param) label)
-	     (return (param-set! param value))))
-       (filter-params node))
-     #f)))
+  (let lp ((params (filter-params node)))
+    (if (null? params)
+	#f
+	(if (string=? (param-label (car params)) label)
+	    (param-set! (car params) value)
+	    (lp (cdr params))))))
 
 (define (filterpipe_set_sourceparam pipe label value)
-  (call-with-current-continuation
-   (lambda (return)
-     (for-each
-       (lambda (param)
-	 (if (string=? (param-label param) label)
-	     (return (param-set! param value))))
-       (pipe-source-params pipe))
-     #f)))
+  (let lp ((params (pipe-source-params pipe)))
+    (if (null? params)
+	#f
+	(if (string=? (param-label (car params)) label)
+	    (param-set! (car params) value)
+	    (lp (cdr params))))))
 
 (define (filterpipe_set_destparam pipe label value)
-  (call-with-current-continuation
-   (lambda (return)
-     (for-each
-       (lambda (param)
-	 (if (string=? (param-label param) label)
-	     (return (param-set! param value))))
-       (pipe-dest-params pipe))
-     #f)))
+  (let lp ((params (pipe-dest-params pipe)))
+    (if (null? params)
+	#f
+	(if (string=? (param-label (car params)) label)
+	    (param-set! (car params) value)
+	    (lp (cdr params))))))
 
 
 ;
