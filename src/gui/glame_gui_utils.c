@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.15 2001/05/14 08:33:50 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.16 2001/05/25 09:56:37 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -594,7 +594,7 @@ void changeString(GtkEditable *wid, char ** returnbuffer)
         strncpy(*returnbuffer,chars,strlen(chars)+1);
 }
 
-enum {PINT,PFLOAT,PSTRING,PFILE,PGLADE};
+enum {PINT,PFLOAT,PSTRING,PFILE,PGLADE,PSBUF};
 
 typedef struct {
 	GtkWidget *widget;
@@ -622,6 +622,9 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	float fVal;
 	char *caption = callback->caption;
 	param_widget_t* item;
+	SAMPLE* sbuf;
+	gfloat * fbuffer;
+	int bufcount;
 	
 	while(list){
 		item = (param_widget_t*)(list->data);
@@ -660,6 +663,14 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 			else
 				DPRINTF(" - success!\n");
 			g_free(strVal);
+			break;
+		case PSBUF:
+			sbuf = sbuf_buf(filterparam_val_get_buf(item->param));
+			bufcount = sbuf_size(filterparam_val_get_buf(item->param));
+			fbuffer = calloc(sizeof(gfloat),bufcount);
+			gtk_curve_get_vector(GTK_CURVE(item->widget),bufcount,fbuffer);
+			memcpy(sbuf,fbuffer,bufcount*sizeof(float));
+			free(fbuffer);
 			break;
 		case PGLADE:
 			if (GTK_IS_OPTION_MENU(item->widget)) {
@@ -709,7 +720,7 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	param_callback_t* cb;
 	char * prop;
 	GList * list=NULL;
-	
+	GtkWidget* frame;
 	GtkWidget* propBox;
 	GtkWidget* tablabel;
 	int iVal;
@@ -797,7 +808,7 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 				list = g_list_append(list,pw);
 				break;
 			default:
-			        entry = gnome_entry_new("blubb");
+				entry = gnome_entry_new("blubb");
 				create_label_widget_pair(vbox,filterparam_label(param),entry);
 				cVal =  filterparam_val_string(param);
 				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
@@ -808,6 +819,17 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 				list = g_list_append(list,pw);
 				break;
 			}
+		} else if (FILTER_PARAM_IS_BUF(param)) {
+			entry = gtk_curve_new();
+			gtk_curve_set_range(GTK_CURVE(entry),0.0,1.0,-1.0,1.0);
+			gtk_widget_set_usize(GTK_WIDGET(entry),100,100);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget=entry;
+			pw->param = param;
+			pw->widget_type = PSBUF;
+			list = g_list_append(list,pw);
+			break;
 		} else
 			/* nothing */ ;
 	}
@@ -871,4 +893,9 @@ GdkImlibImage* glame_load_icon(const char* filename)
 	}else
 		image = gdk_imlib_load_image(gnomeFile);
 	return image;
+}
+
+GtkWidget* glame_load_icon_widget(const char* filename)
+{
+	return gnome_pixmap_new_from_imlib(glame_load_icon(filename));
 }

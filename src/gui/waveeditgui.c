@@ -1146,11 +1146,11 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom in", "Zoom in", "Zoom in",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),
+				glame_load_icon_widget("zoom_in.png"),
 				zoomin_cb, waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom out", "Zoom out", "Zoom out",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),
+				glame_load_icon_widget("zoom_out.png"),
 				zoomout_cb, waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"View all", "View all", "View all",
@@ -1162,7 +1162,8 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Play", "Play", "Play",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
+				glame_load_icon_widget("play.png"),
+				//				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
 				playselection_cb, waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
