@@ -1,3 +1,30 @@
+GLAME development version 0.5.1:
+================================
+Feature sneak preview release for LinuxTag. Changes since 0.4.x:
+- we have a timeline view where you can interactively sequence
+  waves
+- stuff like filter applying, playing and recording give you feedback
+  now - either with a progress bar or similar or via a scrolling marker
+- everywhere toolbars were added which expose the most frequently
+  used operations
+- support was added for non-filter-like operations like normalize and
+  fade
+- latency can now be configured in the preferences menu rather than
+  at compile time
+- we got a scheme console within the GUI and the scheme subsystem now
+  uses more features from guile (like modules)
+- the swapfile backend was simplified (and received nice speedup)
+- we got a flexible keybinding framework (and some default keybindings)
+- more stuff I dont remember...
+
+GLAME version 0.4.2:
+====================
+Bugfix stable release of GLAME. Changes since 0.4.0:
+- two major bugs were fixed in the swapfile backend which could
+  lead to corrupted swapfiles (and GLAME panicing)
+- minor bugfixes and enhancements
+- some new plugins and icons
+
 GLAME version 0.4.0:
 ====================
 The second stable release of GLAME - finally. Changes since 0.4.0beta:

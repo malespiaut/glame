@@ -35,11 +35,9 @@ filter/
   	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
             existance
 	  * fix the notion of network/node to child/parent relationships
-	  * higher order parameters (waveform) need save/load support
 
 swapfile/
         [richi]
-	- simplify as much as possible / increase performance
 	- fix unhandled (MAP_PRIVATE, cluster_split) cases that PANIC
 	  (i.e. introduce anonymous clusters)
 
@@ -50,12 +48,9 @@ hash/
 
 glmid/
 	[richi]
-	- need to define a glame port type for guile input/output
 
 gui/
 	[all]
-	- scheme console
-	- the timeline needs interactors (and nicer view)
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?

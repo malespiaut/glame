@@ -25,15 +25,9 @@ Summary of known bugs and misfeatures in GLAME
   disk (like in your NFS mounted home) because of performace limitations.
   As the default location set by the gui is ~/.glameswap you should change
   that to something more reasonable (Settings/Preferences...) if your
-  home is not local. Also very large swapfiles may become painfully slow
-  as directories are grewing (if youre using ext2), choosing reiserfs
-  in this situation may help (untested).
+  home is not local.
 
-- cglame is not really up-to-date with the gpsm midlayer (read: it does
-  not know about the metadata the gui deals with) - this will be fixed
-  in a future release.
-
-- Even with --enable-low-latency GLAME is not really a real-time capable
+- Even with low buffer size GLAME is not really a real-time capable
   synthesizer (though you're able to use GLAME as an effect generator
   while playing guitar).
 
@@ -69,12 +63,4 @@ Summary of known bugs and misfeatures in GLAME
   the swapfile code there may be an external source corrupting the swapfile
   - just restart glame in this case and it will try to recover (can you
   say fsck?). Beware: If you enable debug swapfile operations are VERY slow.
-  
-- libgtkwaveform has a few bugs - namely the most annoying one is that
-  if you change a wave in size the scrollbar doesnt get updated - to
-  workaround this just choose view all (or similar) from the view menu
-  or re-open the wave window.
-
-BTW: glame doesn't have a progress bar. So, before you think it is crashed
-     just have a look with top or some tool like it, if it is still doing
-     something.
+ 

@@ -26,18 +26,13 @@ of which the following may come handy if the build process is failing:
   mp3 files - this may be necessary if you only have a static version of
   this libaray installed (symptoms for this are no file I/O plugins
   available, i.e. not working Import/Export)
+- --disable-gui disables the use of gnome - and thus the generation of
+  the graphical user interface binary
 
 If you experience bugs with glame, we encourage you to report them via
 the bugtracking system of sourceforge or the development mailinglist.
 Please try to be verbose about the failure, enabling extra debugging
 output via the --enable-debug option is encouraged.
-
-If you want to try out (or absolutely need) real-time applications such
-as real-time sound synthesis or real-time effect generation you will need
-to enable the low latency mode of GLAME via the --enable-low-latency switch
-of configure. Note that this may slow down bulk operations but reduces
-latency to below 5ms on an unloaded system (be sure to use decent sound
-hardware - SB16/AWE ISA cards are known to fail).
 
 
 If you do not want to install the package, you can execute the generated
