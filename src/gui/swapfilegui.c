@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.96 2004/03/28 21:44:14 richi Exp $
+ * $Id: swapfilegui.c,v 1.97 2004/05/02 19:48:32 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -221,10 +221,13 @@ static gint click_cb(GtkWidget *item, GdkEventButton *event,
 	GlameTreeItem *i = GLAME_TREE_ITEM(item);
 	GtkWidget *menu, *op_menu;
 
-	if (event->button == 1
-	    && event->type == GDK_2BUTTON_PRESS) {
-		edit_cb(NULL, i);
-		return TRUE;
+	if (event->button == 1) {
+		if (event->type == GDK_2BUTTON_PRESS) {
+			edit_cb(NULL, i);
+			return TRUE;
+		}
+		gtk_item_toggle(GTK_ITEM(i));
+		return FALSE;
 	}
 
 	if (event->button != 3
@@ -797,12 +800,16 @@ static gint drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		drag_widget = NULL;
 		mode = -1;
 
+#if 0
 	} else if (event->type == GDK_LEAVE_NOTIFY
 		   && ((GdkEventCrossing *)event)->mode == GDK_CROSSING_NORMAL) {
+		DPRINTF("Leaving item %s\n", gpsm_item_label(item->item));
 		/* active_swapfilegui->active_item = NULL; */
+#endif
 
 	} else if (event->type == GDK_ENTER_NOTIFY) {
 		int ok = 1;
+		DPRINTF("Entering item %s\n", gpsm_item_label(item->item));
 		active_swapfilegui->active_item = item;
 		if ((!drag_widget || !(cevent->state & GDK_BUTTON1_MASK))
 		     && cursor) {
@@ -893,8 +900,6 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "enter_notify_event",
 				   (GtkSignalFunc)drag_start_stop_cb, itemw);
-		gtk_signal_connect(GTK_OBJECT(itemw), "leave_notify_event",
-				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		itemw->handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
@@ -905,8 +910,6 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
 				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "enter_notify_event",
-				   (GtkSignalFunc)drag_start_stop_cb, itemw);
-		gtk_signal_connect(GTK_OBJECT(itemw), "leave_notify_event",
 				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 	}
 
