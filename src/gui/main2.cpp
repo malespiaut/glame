@@ -1,7 +1,7 @@
 /*
  * main2.cpp
  *
- * $Id: main2.cpp,v 1.8 2004/05/31 21:28:43 richi Exp $
+ * $Id: main2.cpp,v 1.9 2004/06/13 14:07:18 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -172,7 +172,6 @@ static void new_network_cb(GtkWidget *menu, void * blah)
 static void create_new_project_cb(GtkWidget *menu, void * blah) 
 { 
 	gpsm_grp_t *grp; 
-	GtkTreeIter iter;
 
 	/* Create new gpsm group. */
  	grp = gpsm_newgrp(_("New project")); 

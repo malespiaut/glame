@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.15 2004/05/31 21:28:43 richi Exp $
+ * $Id: gltree.cpp,v 1.16 2004/06/13 14:07:18 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -67,13 +67,18 @@ glTree::glTree(gpsm_grp_t * newroot)
 		abort();
 
 	root = newroot;
-	store = glame_gpsm_store_new((gpsm_item_t *)newroot);
+	store = glame_gpsm_store_new(newroot);
 	tree = GTK_TREE_VIEW(gtk_tree_view_new_with_model(GTK_TREE_MODEL(store)));
 	
 	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes("label",
 							  renderer,
-							  "text", glTree::INFO,
+							  "text", GPSM_STORE_LABEL,
+							  NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	column = gtk_tree_view_column_new_with_attributes("size",
+							  renderer,
+							  "text", GPSM_STORE_SIZE,
 							  NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
@@ -93,10 +98,9 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	gpsmop_func_t operation;
 	GtkTreeIter *iter = &glTree::iter;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
 
-	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 
 	if (!(operation = (gpsmop_func_t)plugin_query(plugin, PLUGIN_GPSMOP))) {
 		DPRINTF("No such operation %s\n", plugin_name(plugin));
@@ -301,7 +305,7 @@ click_cb(GtkWidget * treeview, GdkEventButton * event, gpointer userdata)
 		return FALSE;
 
 	if (gtk_tree_model_get_iter(model, &glTree::iter, path))
-		gtk_tree_model_get(model, &glTree::iter, glTree::GPSM_ITEM, &item, -1);
+	  item = glame_gpsm_store_get_item(&glTree::iter);
 	gtk_tree_path_free(path);
 	if (!item)
 		return FALSE;
@@ -333,8 +337,8 @@ edit_wave_cb(GtkWidget *widget, gpointer which)
 	gpsm_item_t *item;
 	WaveeditGui *we;
 
-	gtk_tree_model_get(model, iter, glTree::INFO, &label,
-			   glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
+	gtk_tree_model_get(model, iter, GPSM_STORE_LABEL, &label, -1);
 
 	we = glame_waveedit_gui_new(label, item);
 	if (!we) {
@@ -363,8 +367,7 @@ static void delete_cb(GtkWidget * menuitem, gpointer which)
 	gboolean     valid;
 	gchar *comp;
 
-	gtk_tree_model_get(model, iter,
-			   glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 
 	deleted = gpsm_find_grp_label(gpsm_root(), NULL,
 				      GPSM_GRP_DELETED_LABEL);
@@ -373,7 +376,7 @@ static void delete_cb(GtkWidget * menuitem, gpointer which)
 	    valid = gtk_tree_model_get_iter_first(model, &iter2);
 	    while (valid)
 	      {			
-		gtk_tree_model_get(model, &iter2, glTree::INFO, &comp, -1);
+		gtk_tree_model_get(model, &iter2, GPSM_STORE_LABEL, &comp, -1);
 		if (!g_ascii_strncasecmp (GPSM_GRP_DELETED_LABEL, comp,8)) break;
 		valid = gtk_tree_model_iter_next(model, &iter2);
 	      }
@@ -388,10 +391,6 @@ static void delete_cb(GtkWidget * menuitem, gpointer which)
 	    deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
 	    gpsm_item_place(gpsm_root(), (gpsm_item_t *) deleted, 0,
 			    GPSM_GRP_DELETED_VPOS);
-	    //gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, NULL);
-	    //gtk_tree_store_set (GTK_TREE_STORE(model), &iter2,
-	    //			glTree::INFO,GPSM_GRP_DELETED_LABEL ,glTree::GPSM_ITEM,(gpsm_item_t *) deleted,-1); 
-	  
 	  } 
 	  gpsm_item_place(deleted, item,
 			  0, gpsm_item_vsize(deleted) + 1);
@@ -406,10 +405,9 @@ static void file_property_cb(GtkWidget * menuitem, gpointer which)
 	double f_pos;
 	long f_rate;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
 	
-        gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
         strncpy(f_name, gpsm_item_label(item), 1024);
 	f_pos = gpsm_swfile_position(item);
 	f_rate = gpsm_swfile_samplerate(item);
@@ -451,10 +449,9 @@ static void group_property_cb(GtkWidget * menuitem, gpointer which)
 	GtkWidget *dialog, *vbox;
 	char g_name[1024];
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
 
-        gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 	strncpy(g_name, gpsm_item_label(item), 1024);
 
 	  dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
@@ -485,9 +482,8 @@ static void addgroup_cb(GtkWidget *menu, gpointer which)
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
-	
-	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+
+	item = glame_gpsm_store_get_item(iter);
 	if (!GPSM_ITEM_IS_GRP(item)
 	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 		return;
@@ -513,10 +509,9 @@ static void addfile_cb(GtkWidget *menu, gpointer which)
 	gpsm_swfile_t *swfile;
 	gpsm_item_t *item;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 
 
-        gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 	if (!GPSM_ITEM_IS_GRP(item)
 	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 		return;
@@ -543,9 +538,8 @@ static void addstereo_cb(GtkWidget *menu,  gpointer which)
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 
-	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 	  if (!GPSM_ITEM_IS_GRP(item)
 	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 	    return;
@@ -577,9 +571,8 @@ static void addclipboard_cb(GtkWidget * menu, gpointer which)
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 
-	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 
 	if (!GPSM_ITEM_IS_GRP(item)
 	    || !gpsm_grp_is_vbox((gpsm_grp_t *) item))
@@ -611,9 +604,8 @@ static void mergeparent_cb(GtkWidget *menu, gpointer which)
 	gpsm_item_t *i, *item;
 	long group_hpos, group_vpos;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	
- 	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 	if (!GPSM_ITEM_IS_GRP(item))
 	    return;
 	  // deselect_all(active_swapfilegui);
@@ -644,14 +636,14 @@ static void copyselected_cb(GtkWidget *menu, gpointer which)
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	GtkTreeSelection *selection;
 
-	gtk_tree_model_get(model, dest_iter, glTree::GPSM_ITEM, &dest_item, -1);
+	dest_item = glame_gpsm_store_get_item(dest_iter);
 	if (!GPSM_ITEM_IS_GRP(dest_item))
 		return;
 
 	selection = gtk_tree_view_get_selection(glTree::tree);
 	if (!gtk_tree_selection_get_selected(selection, &model, &selected_iter))
 	  return;
-	gtk_tree_model_get(model, &selected_iter, glTree::GPSM_ITEM, &selected_item, -1);
+	selected_item = glame_gpsm_store_get_item(&selected_iter);
 	
 	gpsm_item_t *copy;
 
@@ -685,14 +677,13 @@ static void import_cb(GtkWidget *menu, gpointer which)
 	gpsm_item_t *imported;
 	gpsm_item_t *item;
 	GtkTreeIter *iter = (GtkTreeIter *)which;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 	const gchar *label;
 
 	imported = glame_import_dialog(GTK_WINDOW(glTree::tree));
 	if (!imported)
 		return;
 	
-	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 	if (!GPSM_ITEM_IS_GRP(item)
 	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 	    return;
@@ -720,8 +711,7 @@ static void export_cb(GtkWidget *menu, gpointer which)
 {
 	GtkTreeIter *iter = (GtkTreeIter *)which;
         gpsm_item_t *item;
-	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 
-	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	item = glame_gpsm_store_get_item(iter);
 	gnome_dialog_run_and_close(glame_export_dialog(item, GTK_WINDOW(glTree::tree)));
 }

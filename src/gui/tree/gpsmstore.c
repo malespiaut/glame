@@ -203,8 +203,8 @@ static void handle_item_change(glsig_handler_t * handler, long sig, va_list va)
 
 	GLSIGH_GETARGS1(va, item);
 	iter.user_data = item;
-	path = glame_gpsm_store_get_path(store, &iter);
-	gtk_tree_model_row_changed(store, path, &iter);
+	path = glame_gpsm_store_get_path(GTK_TREE_MODEL(store), &iter);
+	gtk_tree_model_row_changed(GTK_TREE_MODEL(store), path, &iter);
 	gtk_tree_path_free(path);
 }
 
@@ -226,9 +226,9 @@ static void handle_item_addremove_1(GlameGpsmStore * store, gpsm_item_t * item,
 	GtkTreeIter iter;
 
 	iter.user_data = item;
-	path = glame_gpsm_store_get_path(store, &iter);
+	path = glame_gpsm_store_get_path(GTK_TREE_MODEL(store), &iter);
 	if (sig == GPSM_SIG_GRP_NEWITEM) {
-		gtk_tree_model_row_inserted(store, path, &iter);
+		gtk_tree_model_row_inserted(GTK_TREE_MODEL(store), path, &iter);
 		glsig_add_handler(gpsm_item_emitter(item),
 				  GPSM_SIG_ITEM_CHANGED,
 				  handle_item_change, store);
@@ -244,7 +244,7 @@ static void handle_item_addremove_1(GlameGpsmStore * store, gpsm_item_t * item,
 		struct glame_list_head *dummy;
 		if (GPSM_ITEM_IS_GRP(item))
 			handle_item_addremove_r(store, item, sig);
-		gtk_tree_model_row_deleted(store, path);
+		gtk_tree_model_row_deleted(GTK_TREE_MODEL(store), path);
 		glame_list_safe_foreach(&item->emitter.handlers,
 					glsig_handler_t, list, dummy, h)
 		    if (h->handler == handle_item_addremove
@@ -257,8 +257,6 @@ static void handle_item_addremove(glsig_handler_t * handler, long sig,
 {
 	GlameGpsmStore *store =
 	    GLAME_GPSM_STORE(glsig_handler_private(handler));
-	GtkTreePath *path;
-	GtkTreeIter iter;
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
 
@@ -274,13 +272,13 @@ static void process_grp(gpsm_grp_t * grp, GlameGpsmStore * store)
 			      GPSM_SIG_ITEM_CHANGED, handle_item_change, store);
 	gpsm_grp_foreach_item(grp, item)
 	    if (GPSM_ITEM_IS_GRP(item))
-		process_grp(item, store);
+		process_grp((gpsm_grp_t *)item, store);
 	glsig_add_handler(gpsm_item_emitter(grp),
 			  GPSM_SIG_GRP_NEWITEM | GPSM_SIG_GRP_REMOVEITEM,
 			  handle_item_addremove, store);
 }
 
-GlameGpsmStore *glame_gpsm_store_new(gpsm_item_t * root)
+GlameGpsmStore *glame_gpsm_store_new(gpsm_grp_t * root)
 {
 	GlameGpsmStore *retval;
 
@@ -314,7 +312,7 @@ static gint glame_gpsm_store_get_n_columns(GtkTreeModel * tree_model)
 
 	g_return_val_if_fail(GLAME_IS_GPSM_STORE(tree_model), 0);
 
-	return 2;		/* FIXME for more than just label. */
+	return GPSM_STORE_COL_N;
 }
 
 static GType
@@ -323,13 +321,17 @@ glame_gpsm_store_get_column_type(GtkTreeModel * tree_model, gint index)
 	GlameGpsmStore *tree_store = (GlameGpsmStore *) tree_model;
 
 	g_return_val_if_fail(GLAME_IS_GPSM_STORE(tree_model), G_TYPE_INVALID);
-	g_return_val_if_fail(index < 2 /* FIXME N_COLUMNS */  &&
+	g_return_val_if_fail(index < GPSM_STORE_COL_N &&
 			     index >= 0, G_TYPE_INVALID);
 
 	switch (index) {
-	case 0:
+	case GPSM_STORE_LABEL:
 		return G_TYPE_STRING;
+	case GPSM_STORE_SIZE:
+		return G_TYPE_STRING;
+		/* return G_TYPE_LONG; */
 	}
+	return G_TYPE_INVALID;
 }
 
 static gboolean
@@ -345,9 +347,9 @@ glame_gpsm_store_get_iter(GtkTreeModel * tree_model,
 
 	indices = gtk_tree_path_get_indices(path);
 	depth = gtk_tree_path_get_depth(path);
-	item = GLAME_GPSM_STORE(tree_store)->root;
+	item = (gpsm_item_t *)GLAME_GPSM_STORE(tree_store)->root;
 	for (i = 0; i < depth; ++i) {
-		gpsm_grp_t *grp = item;
+		gpsm_grp_t *grp = (gpsm_grp_t *)item;
 		int ii = 0;
 		if (!grp) {
 			DPRINTF("not enough depth?\n");
@@ -371,7 +373,6 @@ static GtkTreePath *glame_gpsm_store_get_path(GtkTreeModel * tree_model,
 {
 	GtkTreePath *retval;
 	gpsm_item_t *item;
-	gint i = 0;
 
 	g_return_val_if_fail(GLAME_IS_GPSM_STORE(tree_model), NULL);
 	g_return_val_if_fail(iter != NULL, NULL);
@@ -388,7 +389,7 @@ static GtkTreePath *glame_gpsm_store_get_path(GtkTreeModel * tree_model,
 		}
 		DPRINTF("Path element %i\n", i);
 		gtk_tree_path_prepend_index(retval, i);
-		item = gpsm_item_parent(item);
+		item = (gpsm_item_t *)gpsm_item_parent(item);
 	}
 
 	return retval;
@@ -398,18 +399,24 @@ static void
 glame_gpsm_store_get_value(GtkTreeModel * tree_model,
 			   GtkTreeIter * iter, gint column, GValue * value)
 {
+	static char sizetext[32];
 	g_return_if_fail(GLAME_IS_GPSM_STORE(tree_model));
 	g_return_if_fail(iter != NULL && iter->user_data != NULL);
-	g_return_if_fail(column < 2 /* FIXME */ );
+	g_return_if_fail(column < GPSM_STORE_COL_N);
 
 	switch (column) {
-	case 0:
+	case GPSM_STORE_LABEL:
 		g_value_init(value, G_TYPE_STRING);
 		g_value_set_string(value, gpsm_item_label(iter->user_data));
 		break;
-	case 1:
-		g_value_init(value, G_TYPE_POINTER);
-		g_value_set_pointer(value, iter->user_data);
+	case GPSM_STORE_SIZE:
+		/* We don't have a G_TYPE_LONG renderer, so use a text one.
+		 * We don't like memleaks, so use one static buffer.  Ugh.  */
+		snprintf(sizetext, 32, "%li", gpsm_item_hsize(iter->user_data));
+		g_value_init(value, G_TYPE_STRING);
+		g_value_set_string(value, sizetext);
+		/* g_value_init(value, G_TYPE_LONG);
+		   g_value_set_long(value, gpsm_item_hsize(iter->user_data)); */
 		break;
 	}
 }
@@ -432,8 +439,6 @@ static gboolean
 glame_gpsm_store_iter_children(GtkTreeModel * tree_model,
 			       GtkTreeIter * iter, GtkTreeIter * parent)
 {
-	GNode *children;
-
 	g_return_val_if_fail(parent == NULL
 			     || (parent->user_data != NULL
 				 && GPSM_ITEM_IS_GRP(parent->user_data)),
@@ -489,7 +494,7 @@ glame_gpsm_store_iter_nth_child(GtkTreeModel * tree_model,
 			     FALSE);
 
 	if (parent == NULL)
-		parent_node = GLAME_GPSM_STORE(tree_model)->root;
+		parent_node = (gpsm_grp_t *)GLAME_GPSM_STORE(tree_model)->root;
 	else
 		parent_node = parent->user_data;
 

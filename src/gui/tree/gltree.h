@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.6 2004/05/31 21:28:43 richi Exp $
+ * $Id: gltree.h,v 1.7 2004/06/13 14:07:18 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -37,13 +37,6 @@
 
 struct glTree
 {
-	/* What we store in the tree model.  */
-	enum {
-		INFO,
-		GPSM_ITEM,
-		N_ITEMS
-	};
-
 	glTree(); // don't define this
 	glTree(gpsm_grp_t *newroot);
 

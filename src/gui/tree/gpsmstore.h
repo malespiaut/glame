@@ -43,7 +43,7 @@ extern "C" {
 	struct _GlameGpsmStore {
 		GObject parent;
 
-		gpsm_item_t *root;
+		gpsm_grp_t *root;
 	};
 
 	struct _GlameGpsmStoreClass {
@@ -58,10 +58,14 @@ extern "C" {
 
 /* gpsm store has static columns data:
  * 0: gpsm item label
+ * 1: gpsm item hsize
  */
+#define GPSM_STORE_LABEL 0
+#define GPSM_STORE_SIZE  1
+#define GPSM_STORE_COL_N 2
 
 	GType glame_gpsm_store_get_type(void);
-	GlameGpsmStore *glame_gpsm_store_new(gpsm_item_t * root);
+	GlameGpsmStore *glame_gpsm_store_new(gpsm_grp_t * root);
 
 	gpsm_item_t *glame_gpsm_store_get_item(GtkTreeIter * iter);
 
