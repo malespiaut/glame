@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.68 2001/07/06 12:12:36 mag Exp $
+ * $Id: main.c,v 1.69 2001/07/10 08:42:38 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -595,11 +595,15 @@ static void gui_main()
 	DPRINTF("path: %s\n",path);
 	if (!g_file_test(path,G_FILE_TEST_ISDIR)) {
 		if (swapfile_creat(path, -1)) {
-			DERROR("error creating swapfile\n");
+			fprintf(stderr, "Unable to create swapfile at %s\n",
+				path);
+			fprintf(stderr, "Fixup by hand in ~/.gnome/glame0.5\n");
+			exit(1);
 		}
 	}
 	if (gpsm_init(path) == -1) {
 		fprintf(stderr, "Somehow could not initialize gpsm\n");
+		fprintf(stderr, "Perhaps check swapfile setup at %s\n", path);
 		exit(1);
 	}
 	g_free(path);
