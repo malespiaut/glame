@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.30 2000/08/01 12:02:06 richi Exp $
+; $Id: glame.scm,v 1.31 2000/08/01 12:45:51 mainzelm Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -23,12 +23,35 @@
 ; GLAME scheme library, std functions
 ;
 
+(define *help-text* '())
+
+(define (add-help command args text)
+  (set! *help-text* (cons (cons command (cons args text)) *help-text*)))
+
+(define (display-command command)
+  (let ((command-args-text (assq command *help-text*)))
+    (write (cons command (cadr command-args-text)))
+    (display " -> ")
+    (display (cddr command-args-text))
+    (newline)
+    (newline)))
+  
+(define (commands-w/help)
+  (map (lambda (command-args-text) (car command-args-text)) *help-text*))
+
 ; GLAME 0.2.0 compatibility
 (define (plugin_description p) (plugin_query p "desc"))
 
 (define help
   (lambda ()
-    (display "No online help available yet (type \"(quit)\" to exit from GLAME).\nPlease refer to the GLAME manual or the info pages.\n")))
+    (display "online help not complete yet ")
+    (newline)
+    (display "Please refer to the GLAME manual or the info pages.")
+    (newline)
+    (for-each display-command (commands-w/help))))
+
+
+(add-help 'quit '() "exit GLAME")
 
 ; what output filter should we use?
 (define audio-out "audio-out")
@@ -40,6 +63,14 @@
 ;
 ; clever scheme helpers
 ;
+
+(define (filter pred l)
+  (if (null? l)
+      '()
+      (let ((el (car l)))
+	(if (pred el)
+	    (cons el (filter (cdr l)))
+	    (filter (cdr l))))))
 
 (define (map-pairs f l)
   (if (or (null? l) (null? (cdr l)))
@@ -62,28 +93,42 @@
 
 (define net-new filternetwork_new)
 
+(add-help 'net-new '() "generate a new filter network")
+
 ; (net-add-node net "node" '("param" val) ...)
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node . params)
     (let ((n (filternetwork_add_node net node "")))
-      (if (eq? n #f) (begin (display "no node ") (display node) (newline) #f)
+      (if (eq? n #f) (begin (display "no node ") 
+			    (display node) 
+			    (newline) 
+			    #f)
 	  (begin
 	    (apply node-set-params n params)
 	    n)))))
 
+(add-help 'net-add-node '(net "node" '("param" val) ...) 
+	  "create filter and add it to the network")
+
 ; (net-add-nodes net '("node" '("param" val)...) ...)
 (define net-add-nodes
   (lambda (net . nodes)
-    (if (null? nodes) '()
+    (if (null? nodes) 
+	'()
 	(let* ((n (apply net-add-node net (car nodes)))
-	       (nn (if (eq? n #f) #f (apply net-add-nodes net (cdr nodes)))))
+	       (nn (if (eq? n #f) 
+		       #f 
+		       (apply net-add-nodes net (cdr nodes)))))
 	  (if (eq? n #f) #f
 	      (if (eq? nn #f)
 		  (begin
 		    (filternetwork_delete_node n)
 		    #f)
 		  (cons n nn)))))))
+
+(add-help 'net-add-nodes '(net '("node" '("param" val) ...) ...)
+	  "create filters and add it to the network")
 
 ; (nodes-delete node node ...)
 (define nodes-delete
@@ -92,6 +137,8 @@
 	(begin
 	  (filternetwork_delete_node (car nodes))
 	  (apply nodes-delete (cdr nodes))))))
+
+(add-help 'nodes-delete '(node ...) "delete nodes")
 
 ; linear connect the nodes
 ; (nodes-connect `(,node ,node ...) `(..) ...)
@@ -103,6 +150,9 @@
 	    nodes))
 	 nodes)))
 
+(add-help 'nodes-connect '((node ...) ...)
+	  "linear connect the nodes of each list")
+
 ; (node-set-params node `("label" ,value) `("label" ...) ...)
 (define node-set-params
   (lambda (node . params)
@@ -111,6 +161,9 @@
 	       (filternode_set_param node (car p) (cadr p))))
 	 params)))
 
+
+(add-help 'node-set-params '(("label" value) ...)
+	  "set the parameter with the specified label to value")
 
 ; run the net, wait for completion and delete it
 (define net-run
@@ -121,6 +174,9 @@
 	  (filternetwork_wait net)
 	  (filternetwork_delete net)))))
 
+(add-help 'net-run '(net)
+	  "run the net, wait for completion and delete it.")
+
 ; start the net (in the background, not deleting it afterwards),
 ; i.e. you can use filternetwork_(pause|start|terminate) on it.
 (define net-run-bg
@@ -129,7 +185,8 @@
 	(filternetwork_start net))
     net))
 
-
+(add-help 'net-run-bg '(net)
+	  "run the net in the background")
 ;-----------------------------------------------------------------
 ;
 ; file/track/audio I/O stuff
@@ -142,20 +199,17 @@
 (define file-to-track
   (lambda (file group track)
     (let* ((net (net-new))
-	   (rf (net-add-node net read-file))
-	   (i 1))
+	   (rf (net-add-node net read-file)))
       (filternode_set_param rf "filename" file)
-      (while-not-false
-       (lambda ()
+      (let loop ((i 1))
 	 (let ((to (net-add-node net "track-out")))
 	   (if (eq? (filternetwork_add_connection rf "out" to "in") #f)
-	       (begin (filternetwork_delete_node to) #f)
+	       (filternetwork_delete_node to)
 	       (begin
 		 (node-set-params to
 		   `("group" ,group)
 		   `("track" ,(string-append track "-" (number->string i))))
-		 (set! i (+ i 1))
-		 #t)))))
+		 (loop (+ i 1))))))
       (net-run net))))
 
 
@@ -198,7 +252,7 @@
          (lambda () (filternetwork_add_connection rf "out" ao "in")))
       (net-run net))))
 
-
+(add-help 'play '(filename) "play a soundfile")
 ;
 ; play a file with automagically determining #channels _and_
 ; applying a chain of effects (with an optional list of parameters applied to each)
@@ -221,6 +275,8 @@
 	       (begin (nodes-connect (append eff (list ao))) #t)))))
       (net-run net))))
 
+(add-help 'play-eff '(filename effect ...)
+	  "play a file with the effects applied. Effect may be a simple string or a list containing the string and additional parameters")
 ;
 ; load, process and save file
 ;
@@ -241,6 +297,8 @@
 	       (begin (nodes-connect (append eff (list ao))) #t)))))
       (net-run net))))
 
+(add-help 'save-eff '(input-filename output-filename effect ...)
+	  "apply the effects to the input and write output")
 
 ;--------------------------------------------------------------
 ;
