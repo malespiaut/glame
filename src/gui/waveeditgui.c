@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.149 2005/03/06 21:35:58 richi Exp $
+ * $Id: waveeditgui.c,v 1.150 2005/03/10 20:21:13 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -443,7 +443,8 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 #define TOOLBAR_PLAY_DEL 6
 #define TOOLBAR_PLAY_INS 9
 
-static void playrecordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void recordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 /* Menu event - Apply operation. */
 static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
@@ -505,19 +506,13 @@ static void play_cleanup(glsig_handler_t *handler,
 		gtk_wave_view_set_marker(GTK_WAVE_VIEW(waveedit->waveview),
 					 waveedit->pm_marker);
 
-	/* restore normal play button -- wheee, gtk suxx.
-	 * FIXME - doesnt work anymore with gnome2 (seems it works now (Laurent)*/ 
+	/* Restore normal play button.  */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
-	/* gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar), */
-/* 				 _("Play/Record"), _("Play/Record"), */
-/* 				 GNOME_STOCK_PIXMAP_FORWARD, */
-/* 				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview, */
-/* 				 TOOLBAR_PLAY_INS); */
-	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
-				_("Play/Record"), _("Play/Record"), _("Play/Record"),
-				glame_load_icon_widget("play-button.png",32,16),
-				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview,TOOLBAR_PLAY_INS);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar),
+ 				 GTK_STOCK_MEDIA_PLAY, _("Play"), _("Play"),
+ 				 GTK_SIGNAL_FUNC(playtoolbar_cb), waveedit->waveview,
+ 				 TOOLBAR_PLAY_INS);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -622,8 +617,6 @@ static void play(GtkWaveView *waveview,
 		if (flg_rec[i-1])
 			rec_cnt++;
 	}
-	if (play_cnt == 0 && rec_cnt == 0)
-		return;
 
 	if (play_cnt != 0 && !plugin_get("audio_out")) {
 		glame_error_dialog(_("No audio output support"), NULL);
@@ -631,6 +624,15 @@ static void play(GtkWaveView *waveview,
 	}
 	if (rec_cnt != 0 && !plugin_get("audio_in")) {
 		glame_error_dialog(_("No audio input support"), NULL);
+		return;
+	}
+
+	if (play_cnt == 0 && !enable_record) {
+		glame_error_dialog(_("You did not mark any track for playback?"), NULL);
+		return;
+	}
+	if (rec_cnt == 0 && enable_record) {
+		glame_error_dialog(_("You did not mark any track for recording?"), NULL);
 		return;
 	}
 
@@ -744,19 +746,13 @@ static void play(GtkWaveView *waveview,
 		return;
 	}
 
-	/* exchange play for stop button -- wheee, gtk suxx.
-	 * FIXME - doesnt work with anymore with gnome2 */
+	/* Exchange play for stop button.  */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(active_waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
-	/* gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar), */
-/* 				 _("Stop"), _("Stop"),  */
-/* 				 GNOME_STOCK_PIXMAP_STOP, */
-/* 				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), active_waveedit->waveview, */
-/* 				TOOLBAR_PLAY_INS); */
-	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
-				_("Stop"), _("Stop"), _("Stop"),
-				glame_load_icon_widget("stop-button.png",32,16),
-				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), active_waveedit->waveview,TOOLBAR_PLAY_INS);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar),
+ 				 GTK_STOCK_MEDIA_STOP, _("Stop"), _("Stop"),
+ 				 GTK_SIGNAL_FUNC(playtoolbar_cb), active_waveedit->waveview,
+ 				 TOOLBAR_PLAY_INS);
 	active_waveedit->locked = 1;
 
 	return;
@@ -775,7 +771,25 @@ fail_other:
 }
 
 
-static void playrecordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
+static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	gint32 start, end;
+
+	/* Choose between playing the actual selection and from
+	 * the current marker position (where the first one restores
+	 * marker position after play). */
+	gtk_wave_view_get_selection(waveview, &start, &end);
+	end = start + end;
+	if (end - start <= 0) {
+		start = MAX(0, gtk_wave_view_get_marker (waveview));
+		end = gtk_wave_buffer_get_length(wavebuffer);
+		play(waveview, start, end, start, FALSE, FALSE, TRUE, FALSE);
+	} else
+		play(waveview, start, end, start, TRUE, FALSE, FALSE, FALSE);
+}
+
+static void recordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gint32 start, end;
@@ -1568,18 +1582,13 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				_("Select none"), _("Select none"), _("Select none"),
 				glame_load_icon_widget("select_none.png",24,24),
 				GTK_SIGNAL_FUNC(selectnone_cb), window->waveview);
-	/* Play button that should change to Stop if pressed, different
-	 * callback than "Play all"/"Play selection" - play from marker.
-	 * FIXME. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	/* gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar), */
-/* 				 GTK_STOCK_GO_FORWARD, */
-/* 				 _("Play/Record"), _("Play/Record"), */
-/* 				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), window->waveview, -1); */
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Play/Record"), _("Play/Record"), _("Play/Record"),
-				glame_load_icon_widget("play-button.png",32,16),
-				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), window->waveview);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_MEDIA_PLAY, _("Play"), _("Play"),
+				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview, -1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_MEDIA_RECORD, _("Record"), _("Record"),
+				 GTK_SIGNAL_FUNC(recordtoolbar_cb), window->waveview, -1);
 
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
@@ -1599,12 +1608,6 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	//gnome_app_install_menu_hints(GNOME_APP(window), window_menu);
 
 	gnome_app_set_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar));
-#if 0
-	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar),
-			      "waveedit::toolbar",
-			      /*BONOBO_DOCK_ITEM_BEH_EXCLUSIVE|*/BONOBO_DOCK_ITEM_BEH_NEVER_FLOATING,
-			      BONOBO_DOCK_TOP, 0, 0, 0);
-#endif
 
 	/* Install the rmb menu and enter/leave callbacks. */
 	gtk_signal_connect(GTK_OBJECT(window->waveview), "button_press_event",
