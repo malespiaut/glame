@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa.c
- * $Id: audio_io_alsa_v090.c,v 1.1 2001/04/28 23:17:54 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.2 2001/05/09 14:15:24 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -52,7 +52,7 @@ static int alsa_audio_out_f(filter_t *n)
 	int chunk_size;
 	int to_go, pos;
 	
-	int i, err, buffer_time, period_time;
+	int i, err, buffer_time, period_time, dropouts;
 	
 	snd_pcm_t		*handle;
 	snd_pcm_format_t	format;
@@ -61,7 +61,8 @@ static int alsa_audio_out_f(filter_t *n)
 	snd_pcm_status_t 	*status;
 	static snd_output_t 	*log;
 	char*			pcm_name="plug:0,0";	
-
+	size_t			buffer_size;
+	
 	/* Boilerplate init section - will go into a generic function one day.
 	 */
 	
@@ -150,18 +151,21 @@ static int alsa_audio_out_f(filter_t *n)
 		FILTER_ERROR_CLEANUP("unsupported sample rate");
 	
 	/* doesn't do anything, maybe we can tweak latency with it? */
-	err = snd_pcm_hw_params_set_tick_time_near(handle, params, 1000, 0);
+	err = snd_pcm_hw_params_set_tick_time_near(handle, params, 10000, 0);
 
 	if (err < 0)
 		FILTER_ERROR_CLEANUP("unsupported tick time");
 	
+	/* buffer 400ms, seems a safe setting to me
+	 * again on a fast computer you can probably tune it down
+	 * a fast harddisk definitly helps avoiding dropouts */
 	buffer_time = snd_pcm_hw_params_set_buffer_time_near(handle, params, 
-							40000, 0);
+							400000, 0);
 
 	period_time = buffer_time >> 2;
-	/* if your computer is fast enough you can leave 5ms chunksize,
-	 * my Maestro doesn't like it */
-	snd_pcm_hw_params_set_period_time_near(handle, params, 10000, 0);
+	/* default setting for period time is 20ms
+	 * if your computer is fast enough you can lower it */
+	snd_pcm_hw_params_set_period_time_near(handle, params, 20000, 0);
 
 	err = snd_pcm_hw_params(handle, params);
 
@@ -172,9 +176,19 @@ static int alsa_audio_out_f(filter_t *n)
 
 	snd_pcm_hw_params_dump(params, log);
 	snd_pcm_sw_params_current(handle, swparams);
-	snd_pcm_sw_params_dump(swparams, log);
-
+	
+	buffer_size = snd_pcm_hw_params_get_buffer_size(params);
 	blksz = snd_pcm_hw_params_get_period_size(params, 0);
+	err = snd_pcm_sw_params_set_avail_min(handle, swparams, blksz);
+	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, 0);
+	err = snd_pcm_sw_params_set_stop_threshold(handle, swparams, 
+						   buffer_size);
+	
+	if (snd_pcm_sw_params(handle, swparams) < 0) 
+		FILTER_ERROR_RETURN("couldn't install swparams");
+	
+	snd_pcm_sw_params_dump(swparams, log);
+	snd_pcm_dump(handle, log);
 	
 	DPRINTF("Got period size%d\n", blksz);
 
@@ -194,6 +208,7 @@ static int alsa_audio_out_f(filter_t *n)
 			
 	ch_active = ch;
 	to_go = blksz;
+	dropouts = 0;
 
 	goto _entry;
 
@@ -226,6 +241,7 @@ static int alsa_audio_out_f(filter_t *n)
 					FILTER_ERROR_STOP("couldn't get device status");
 				}
 				if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
+					dropouts ++;
 					if ((snd_pcm_prepare(handle))<0) {
 						FILTER_ERROR_STOP("write error on alsa device");
 					}
@@ -271,6 +287,8 @@ _entry:
 
 	snd_pcm_close(handle);
 	
+	DPRINTF("had %d dropouts\n", dropouts);
+
 	free(out);
 	free(in);
 	FILTER_RETURN;
