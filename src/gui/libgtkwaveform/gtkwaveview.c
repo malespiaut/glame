@@ -215,7 +215,6 @@ calc_ext_pel_pos (GtkWaveView *waveview, gint32 frame_pos)
 }
 
 
-#if 0
 static gint32
 calc_win_pel_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 {
@@ -227,7 +226,6 @@ calc_ext_pel_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
   return win_pel_pos + ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
 }
-#endif
 
 
 static gint32
@@ -240,7 +238,7 @@ calc_frame_pos_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 static gint32
 calc_frame_pos_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
-  return (((gint32) GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom) + win_pel_pos) * waveview->zoom;
+	return (((gint32) GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom) + win_pel_pos) * waveview->zoom;
 }
 
 
@@ -473,7 +471,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   offset = -calc_win_pel_pos (waveview, 0);
   waveview->drawn_offset = offset;
   width = waveview->expose_area.width;
-  start_x = waveview->expose_area.x;
+  start_x = calc_win_pel_ext(waveview, waveview->expose_area.x);
 
   /* First, paint all cached x coords. */
   /* Keep a range min_val -> max_val that contains all uncached x coords. */
@@ -581,12 +579,10 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 		   * correcting the exposed region. */
 		  if (waveview->expose_count > 0) {
 			  GdkRectangle notdone, temp;
-			  gint32 offdiff;
-			  offdiff = (int)offset - (-calc_win_pel_pos(waveview, 0));
+			  notdone.x = calc_ext_pel_pos(waveview, pos + size);
+			  notdone.width = calc_ext_pel_pos(waveview, last_sample_offset - (pos + size) + 1);
 			  notdone.y = waveview->expose_area.y;
 			  notdone.height = waveview->expose_area.height;
-			  notdone.x = MAX(0, (int)min_val + (int)count + (int)offdiff);
-			  notdone.width = max_val + 1  -  (min_val + count);
 			  gdk_rectangle_union(&waveview->expose_area, &notdone, &temp);
 			  waveview->expose_area = temp;
 			  return;
@@ -713,17 +709,21 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   GtkWaveView *waveview = GTK_WAVE_VIEW (userdata);
   static gint16 horiz_lines [] = { -24576, -16384, -8192, 0, 8191, 16383, 24575, -999 };
   GdkGC *sel_bg_gc, *unsel_bg_gc;
+  GdkRectangle frame_area;
 
   /* Accumulate expose events. */
+  frame_area.x = calc_ext_pel_win(waveview, event->area.x);
+  frame_area.width = event->area.width;
+  frame_area.y = event->area.y;
+  frame_area.height = event->area.height;
 
-  if (waveview->expose_count == 0)
-    waveview->expose_area = event->area;
-  else
-    {
-      GdkRectangle temp;
-      gdk_rectangle_union (&waveview->expose_area, &event->area, &temp);
-      waveview->expose_area = temp;
-    }
+  if (waveview->expose_count == 0) {
+	  waveview->expose_area = frame_area;
+  } else {
+	  GdkRectangle temp;
+	  gdk_rectangle_union (&waveview->expose_area, &frame_area, &temp);
+	  waveview->expose_area = temp;
+  }
 
   waveview->expose_count++;
 
@@ -745,13 +745,18 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       guint32 top, height, width;
       GdkWindow *window;
 
+      frame_area.x = calc_win_pel_ext(waveview, waveview->expose_area.x);
+      frame_area.width = waveview->expose_area.width;
+      frame_area.y = waveview->expose_area.y;
+      frame_area.height = waveview->expose_area.height;
+
       /* Set clipping to expose region. */
-      gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_NORMAL], &waveview->expose_area);
-      gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_SELECTED], &waveview->expose_area);
-      gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_NORMAL], &waveview->expose_area);
-      gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_SELECTED], &waveview->expose_area);
-      gdk_gc_set_clip_rectangle (widget->style->dark_gc [GTK_STATE_NORMAL], &waveview->expose_area);
-      gdk_gc_set_clip_rectangle (waveview->marker_gc, &waveview->expose_area);
+      gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_NORMAL], &frame_area);
+      gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_SELECTED], &frame_area);
+      gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_NORMAL], &frame_area);
+      gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_SELECTED], &frame_area);
+      gdk_gc_set_clip_rectangle (widget->style->dark_gc [GTK_STATE_NORMAL], &frame_area);
+      gdk_gc_set_clip_rectangle (waveview->marker_gc, &frame_area);
 
       n_channels = gtk_wave_buffer_get_num_channels (waveview->wavebuffer);
       width = widget->allocation.width;
