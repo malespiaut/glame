@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.37 2001/04/29 11:46:12 richi Exp $
+ * $Id: basic_sample.c,v 1.38 2001/05/01 11:21:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -496,6 +496,11 @@ static int mix_connect_in(filter_t *n, filter_port_t *port,
 static int mix_connect_out(filter_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
+	/* We accept only one output. */
+	if (filterport_get_pipe(port))
+		return -1;
+
+	/* Fixup wrt new pipe. */
 	mix_fixup(n, p);
 
 	return 0;
