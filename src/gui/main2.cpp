@@ -1,7 +1,7 @@
 /*
  * main2.cpp
  *
- * $Id: main2.cpp,v 1.4 2004/04/20 21:26:33 ochonpaul Exp $
+ * $Id: main2.cpp,v 1.5 2004/05/18 20:23:55 ochonpaul Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -157,12 +157,25 @@ static void sync_cb(GtkWidget *menu, void * blah)
 
 static void emptytrash_cb(GtkWidget *menu, void * blah) 
 { 
- 	gpsm_grp_t *deleted; 
+        gpsm_grp_t *deleted; 
+	GtkTreeIter iter, iter_deleted;
+	gboolean     valid;
+        gchar *comp;
 
  	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) 
  		return; 
- 	gpsm_item_destroy((gpsm_item_t *)deleted); 
- 	gpsm_sync(); 
+	 // Search for [deleted]  iter to remove it from store
+	    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(tree_store), &iter_deleted);
+	    while (valid)
+	      {			
+		gtk_tree_model_get(GTK_TREE_MODEL(tree_store), &iter_deleted, INFO, &comp, -1);
+		if (!g_ascii_strncasecmp (GPSM_GRP_DELETED_LABEL, comp,8)) break;
+		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(tree_store), &iter_deleted);
+	      }
+	      gtk_tree_store_remove(tree_store, &iter_deleted);
+	      gpsm_item_destroy((gpsm_item_t *)deleted); 
+	      gpsm_sync(); 
+	
 } 
 
 static void new_network_cb(GtkWidget *menu, void * blah) 
@@ -1052,6 +1065,7 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 
 int main(int argc, char **argv)
 {
+        bind_textdomain_codeset("glame", "UTF-8");
 	textdomain("glame");
 
 	/* setup gnome/gtk  */
