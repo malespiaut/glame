@@ -33,8 +33,10 @@ struct sbuf_header {
  */
 
 typedef struct mbuf_header {
+	int ch;			/* MIDI channel */
 	char buf[0];
 } mbuf_header_t;
+
 #define mbuf_alloc(nrevents, filternode) \
         fbuf_alloc(sizeof(midi_event_t*(nrevents) + sizeof(mbuf_header_t), \
 		   &(filternode)->net->launch_context->buffers)
