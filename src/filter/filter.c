@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.13 2000/02/07 00:09:07 mag Exp $
+ * $Id: filter.c,v 1.14 2000/02/09 23:33:47 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -311,6 +311,7 @@ int filter_init()
 	
 	/* initialize echo filter */
 	if (echo_register() == -1)
+		return -1;
 	
 	if (!(f = filter_alloc("volume_adjust", "scale samples",
 			       volume_adjust))
