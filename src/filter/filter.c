@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.20 2000/02/17 17:59:28 richi Exp $
+ * $Id: filter.c,v 1.21 2000/02/20 15:22:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,12 +37,12 @@ static struct list_head filter_list;
 
 /* include all static filter headers here */
 extern int basic_register();
+extern int basic_sample_register();
 extern int tutorial_register();
 extern int channel_io_register();
 extern int audio_io_register();
 extern int file_io_register();
 extern int debug_register();
-extern int volume_adjust(filter_node_t *n);
 extern int waveform_register();
 extern int echo_register();
 extern int echo2_register();
@@ -51,12 +51,14 @@ extern int nold_register();
 
 int filter_init()
 {
-	filter_t *f;
-
 	INIT_LIST_HEAD(&filter_list);
 
 	/* initialize basic filters */
 	if (basic_register() == -1)
+		return -1;
+
+	/* initialize basic filters using sample protocol */
+	if (basic_sample_register() == -1)
 		return -1;
 
 	/* initialize filters out of the tutorial */
@@ -97,17 +99,6 @@ int filter_init()
 	if (nold_register() == -1)
 		return -1;
 	
-	if (!(f = filter_alloc("volume_adjust", "scale samples",
-			       volume_adjust))
-	    || !filter_add_param(f, "factor", "scale factor",
-				 FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_input(f, "in", "input stream",
-				 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, "out", "output stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f) == -1)
-		return -1;
-
 	return 0;
 }
 

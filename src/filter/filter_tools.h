@@ -41,6 +41,35 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
  * To be implemented using ISSE/3DNOW stuff if available.
  */
 
+#define SCALARPROD1_1_CLAMP(destsourcep, fact) \
+do { \
+	*destsourcep = (*destsourcep)*fact; \
+        if (*destsourcep<-1.0) *destsourcep = -1.0; \
+        else if (*destsourcep>1.0) *destsourcep = 1.0; \
+        destsourcep++; \
+} while (0)
+
+#define SCALARPROD4_1_CLAMP(destsourcep, fact) \
+do { \
+	*destsourcep = (*destsourcep)*fact; \
+        if (*destsourcep<-1.0) *destsourcep = -1.0; \
+        else if (*destsourcep>1.0) *destsourcep = 1.0; \
+        destsourcep++; \
+	*destsourcep = (*destsourcep)*fact; \
+        if (*destsourcep<-1.0) *destsourcep = -1.0; \
+        else if (*destsourcep>1.0) *destsourcep = 1.0; \
+        destsourcep++; \
+	*destsourcep = (*destsourcep)*fact; \
+        if (*destsourcep<-1.0) *destsourcep = -1.0; \
+        else if (*destsourcep>1.0) *destsourcep = 1.0; \
+        destsourcep++; \
+	*destsourcep = (*destsourcep)*fact; \
+        if (*destsourcep<-1.0) *destsourcep = -1.0; \
+        else if (*destsourcep>1.0) *destsourcep = 1.0; \
+        destsourcep++; \
+} while (0)
+
+
 #define SCALARPROD1_2(destsource1p, source2p, fact1, fact2) \
 do { \
 	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
@@ -57,5 +86,25 @@ do { \
 	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
 	destsource1p++; source2p++; \
 } while (0)
+
+
+#define INVERT1(destsourcep) \
+do { \
+	*destsourcep = -*destsourcep; \
+	destsourcep++; \
+} while (0)
+
+#define INVERT4(destsourcep) \
+do { \
+	*destsourcep = -*destsourcep; \
+	destsourcep++; \
+	*destsourcep = -*destsourcep; \
+	destsourcep++; \
+	*destsourcep = -*destsourcep; \
+	destsourcep++; \
+	*destsourcep = -*destsourcep; \
+	destsourcep++; \
+} while (0)
+
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.3 2000/02/16 09:15:55 richi Exp $
+ * $Id: filter_methods.c,v 1.4 2000/02/20 15:22:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,7 +37,7 @@
  * (or uninitialized).
  */
 int filter_default_connect_out(filter_node_t *n, const char *port,
-				      filter_pipe_t *p)
+			       filter_pipe_t *p)
 {
 	filter_portdesc_t *out;
 	filter_pipe_t *in;
@@ -63,7 +63,7 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
  * We accept all input types.
  */
 int filter_default_connect_in(filter_node_t *n, const char *port,
-				     filter_pipe_t *p)
+			      filter_pipe_t *p)
 {
 	filter_portdesc_t *in;
 
@@ -78,7 +78,8 @@ int filter_default_connect_in(filter_node_t *n, const char *port,
 	return 0;
 }
 
-int filter_default_fixup_param(filter_node_t *n, const char *name)
+int filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
+			       const char *name, filter_param_t *param)
 {
 	/* Parameter change? In the default method
 	 * we know nothing about parameters, so we
@@ -99,6 +100,8 @@ int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 	 * pipe formats to the format of the input
 	 * pipe we just got. We also have to forward
 	 * the change to every output slot, of course.
+	 * We need to stop the fixup as soon as a failure
+	 * occours - the pipe may be broken.
 	 */
 	filternode_foreach_output(n, out) {
 		out->type = in->type;
@@ -157,7 +160,7 @@ int filter_network_f(filter_node_t *n)
 }
 
 int filter_network_connect_out(filter_node_t *source, const char *port,
-				     filter_pipe_t *p)
+			       filter_pipe_t *p)
 {
 	filter_portdesc_t *d;
 	struct filter_network_mapping *m;
@@ -175,7 +178,7 @@ int filter_network_connect_out(filter_node_t *source, const char *port,
 }
 
 int filter_network_connect_in(filter_node_t *dest, const char *port,
-				    filter_pipe_t *p)
+			      filter_pipe_t *p)
 {
 	filter_portdesc_t *d;
 	struct filter_network_mapping *m;
@@ -192,26 +195,25 @@ int filter_network_connect_in(filter_node_t *dest, const char *port,
 	return 0;
 }
 
-int filter_network_fixup_param(filter_node_t *node, const char *name)
+int filter_network_fixup_param(filter_node_t *node, filter_pipe_t *p,
+			       const char *name, filter_param_t *param)
 {
 	filter_paramdesc_t *d;
-	filter_param_t *p;
 	struct filter_network_mapping *m;
 	filter_node_t *n;
 
-	if (!(p = filternode_get_param(node, name)))
-		return -1;
-	if (!(d = filter_get_paramdesc(node->filter, name)))
-		return -1;
+	/* pipe parameter setting does not go through the wrapped funcs */
+	d = param->desc;
 	m = (struct filter_network_mapping *)d->private;
 	if (!(n = filternetwork_get_node(node, m->node)))
 		return -1;
 	if (FILTER_PARAMTYPE(d->type) == FILTER_PARAMTYPE_STRING)
-	        return filternode_set_param(n, m->label, p->val.string);
+	        return filternode_set_param(n, m->label, param->val.string);
 	else
-	        return filternode_set_param(n, m->label, &p->val);
+	        return filternode_set_param(n, m->label, &param->val);
 }
 
 /* fixup_pipe && fixup_break_in && fixup_break_out do not have to be
  * special at the moment.
  */
+

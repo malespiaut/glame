@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.25 2000/02/19 05:23:17 garrison Exp $
+ * $Id: filter.h,v 1.26 2000/02/20 15:22:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -100,7 +100,8 @@ struct filter {
 	int (*connect_in)(filter_node_t *dest, const char *port,
 			  filter_pipe_t *p);
 
-	int (*fixup_param)(filter_node_t *n, const char *name);
+	int (*fixup_param)(filter_node_t *n, filter_pipe_t *p,
+			   const char *name, filter_param_t *param);
 	int (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
 	void (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
 	void (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);

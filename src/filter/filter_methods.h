@@ -7,7 +7,8 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 				      filter_pipe_t *p);
 int filter_default_connect_in(filter_node_t *n, const char *port,
 				     filter_pipe_t *p);
-int filter_default_fixup_param(filter_node_t *n, const char *name);
+int filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
+			       const char *name, filter_param_t *param);
 int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in);
 void filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in);
 void filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out);
@@ -22,7 +23,8 @@ int filter_network_connect_out(filter_node_t *source, const char *port,
 			       filter_pipe_t *p);
 int filter_network_connect_in(filter_node_t *dest, const char *port,
 			      filter_pipe_t *p);
-int filter_network_fixup_param(filter_node_t *node, const char *name);
+int filter_network_fixup_param(filter_node_t *node, filter_pipe_t *p,
+			       const char *name, filter_param_t *param);
 
 
 #endif
