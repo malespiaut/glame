@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.16 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: echo.c,v 1.17 2001/05/28 14:27:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -184,7 +184,7 @@ int echo_register(plugin_t *p)
 	f->f = echo_f;
 
 	filterparamdb_add_param_float(filter_paramdb(f), "time",
-				      FILTER_PARAMTYPE_TIME_MS, 0.1,
+				      FILTER_PARAMTYPE_TIME_MS, 100,
 				      FILTERPARAM_DESCRIPTION, "echo time in ms",
 				      FILTERPARAM_END);
 	filterparamdb_add_param_float(filter_paramdb(f), "mix",
