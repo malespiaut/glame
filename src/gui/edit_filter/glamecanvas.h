@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.3 2001/05/10 00:00:54 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.4 2001/05/17 22:38:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -35,12 +35,18 @@ struct _GlameCanvasClass;
 typedef struct _GlameCanvas GlameCanvas;
 typedef struct _GlameCanvasClass GlameCanvasClass;
 
+struct _GlameCanvasGroup;
+struct _GlameCanvasGroupClass;
+
+typedef struct _GlameCanvasGroup GlameCanvasGroup;
+typedef struct _GlameCanvasGroupClass GlameCanvasGroupClass;
+
 
 /* GTK Type defines */
 
 #define GLAME_CANVAS_TYPE              (glame_canvas_get_type())
-#define GLAME_CANVAS(object)           (GTK_CHECK_CAST((object), GLAME_CANVAS_TYPE, GlameCanvasFilter))
-#define GLAME_CANVAS_CLASS(object)     (GTK_CHECK_CLASS_CAST((object), GLAME_CANVAS_TYPE, GlameCanvasFilterClass))
+#define GLAME_CANVAS(object)           (GTK_CHECK_CAST((object), GLAME_CANVAS_TYPE, GlameCanvas))
+#define GLAME_CANVAS_CLASS(object)     (GTK_CHECK_CLASS_CAST((object), GLAME_CANVAS_TYPE, GlameCanvasClass))
 #define GLAME_IS_CANVAS(object)        (GTK_CHECK_TYPE((object), GLAME_CANVAS_TYPE))
 #define GLAME_IS_CANVAS_CLASS(object)  (GTK_CHECK_CLASS_TYPE((object), GLAME_CANVAS_TYPE))
 #define GLAME_CANVAS_GET_CLASS(object) ((GlameCanvasClass*) (((GtkObject*) (obj))->klass))
@@ -94,6 +100,31 @@ void glame_canvas_view_all(GlameCanvas* canv);
 
 void glame_canvas_draw_errors(GlameCanvas *canv);
 void glame_canvas_reset_errors(GlameCanvas *canv);
+
+
+#define GLAME_CANVAS_GROUP_TYPE              (glame_canvas_group_get_type())
+#define GLAME_CANVAS_GROUP(object)           (GTK_CHECK_CAST((object), GLAME_CANVAS_GROUP_TYPE, GlameCanvasGroup))
+#define GLAME_CANVAS_GROUP_CLASS(object)     (GTK_CHECK_CLASS_CAST((object), GLAME_CANVAS_GROUP_TYPE, GlameCanvasGroupClass))
+#define GLAME_IS_CANVAS_GROUP(object)        (GTK_CHECK_TYPE((object), GLAME_CANVAS_GROUP_TYPE))
+#define GLAME_IS_CANVAS_GROUP_CLASS(object)  (GTK_CHECK_CLASS_TYPE((object), GLAME_CANVAS_GROUP_TYPE))
+#define GLAME_CANVAS_GROUP_GET_CLASS(object) ((GlameCanvasGroupClass*) (((GtkObject*) (obj))->klass))
+
+GtkType glame_canvas_group_get_type(void);
+
+enum {GROUP_TYPE_UNION, GROUP_TYPE_SHARING};
+struct _GlameCanvasGroup {
+	GnomeCanvasGroup parent_object;
+
+	/* public */
+
+	/* private */
+	gint type;
+	GList* children;   // these are GlameCanvasFilter*
+};
+
+struct _GlameCanvasGroupClass {
+	GnomeCanvasGroupClass parent_class;
+};
 
 #endif
 

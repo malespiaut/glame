@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.5 2001/05/11 11:50:04 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.6 2001/05/17 22:38:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -251,12 +251,16 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 {
 	GlameCanvasFilter * gItem;
 	GnomeCanvasGroup * gGroup;
+	GlameCanvasGroup * glameGroup;
 	GnomeCanvasItem * item;
 	double x,y;
 	char numberbuffer[10];
 	char * buffer;
 	char* cimmutable;
 	gboolean immutable;
+
+	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
+							      NULL));
 	
 	gItem = GLAME_CANVAS_FILTER(gnome_canvas_item_new(group,
 							  GLAME_CANVAS_FILTER_TYPE,
@@ -381,7 +385,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	filter_set_property(filter,"canvas_y",numberbuffer);
 
 	glame_canvas_filter_create_ports(gItem);
-	
+	glame_canvas_group_add_item(glameGroup,gItem);
 	return gItem;
 }
 
@@ -415,9 +419,12 @@ glame_canvas_filter_move(GlameCanvasFilter *filter,
 			 gdouble dy)
 {
 	char buffer[10];
+	/* don't recurse! */
+	if(gtk_signal_n_emissions_by_name(filter,"moved"))
+		return;
 	gnome_canvas_item_move(GNOME_CANVAS_ITEM(filter),
 			       dx,dy);
-	
+
 	gtk_signal_emit_by_name(GTK_OBJECT(filter),"moved",
 				dx,dy);
 

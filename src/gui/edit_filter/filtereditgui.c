@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.4 2001/05/10 00:00:54 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.5 2001/05/17 22:38:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -76,6 +76,24 @@ add_filter_by_plugin_cb(GtkWidget*wid, plugin_t *plugin)
 /* 	case 1: */
 		
 
+static void group_all(GlameCanvas* canv)
+{
+	filter_t* iter;
+	GlameCanvasFilter* filter, *f2;
+	GlameCanvasGroup* group;
+	
+	filter_foreach_node(canv->net,iter){
+		filter = glame_canvas_find_filter(iter);
+	}
+	group = GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent);
+	
+	filter_foreach_node(canv->net,iter){
+		f2 = glame_canvas_find_filter(iter);
+		if(f2!=filter)
+			glame_canvas_group_add_item(group,f2);
+	}
+}
+	
 static gboolean 
 root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 {
@@ -97,9 +115,14 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 			return FALSE;
 			/* hit item! */
 		}else{
+			if(event->button.button==1){
+				group_all(glCanv);
+				return TRUE;
+			}else{
 			menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
 			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
 			return TRUE;
+			}
 		}
 		break;
 	default:

@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.6 2001/05/11 11:50:04 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.7 2001/05/17 22:38:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -271,23 +271,39 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
  * menu stuff
  ****************/
 
-/*
+static void canvas_pipe_source_properties_cb(GtkObject * foo, filter_pipe_t* pipe)
+{
+	GtkWidget *p = glame_gui_filter_properties(filterpipe_sourceparamdb(pipe),
+                                                   filterport_label(filterpipe_source(pipe)));
+        gnome_dialog_run_and_close(GNOME_DIALOG(p));
+}
+static void canvas_pipe_dest_properties_cb(GtkObject * foo, filter_pipe_t* pipe)
+{
+	GtkWidget *p = glame_gui_filter_properties(filterpipe_destparamdb(pipe),
+                                                   filterport_label(filterpipe_dest(pipe)));
+        gnome_dialog_run_and_close(GNOME_DIALOG(p));
+}
+static void canvas_pipe_delete_cb(GtkObject* foo, filter_pipe_t* pipe)
+{
+	filterpipe_delete(pipe);
+}
+
 static GnomeUIInfo pipe_menu[]=
 {
-	GNOMEUIINFO_ITEM("_Source properties...", "Source properties", canvas_connection_edit_source_properties_cb, NULL),
-	GNOMEUIINFO_ITEM("D_estination properties...", "Destination properties", canvas_connection_edit_dest_properties_cb, NULL),
+	GNOMEUIINFO_ITEM("_Source properties...", "Source properties", canvas_pipe_source_properties_cb, NULL),
+	GNOMEUIINFO_ITEM("D_estination properties...", "Destination properties", canvas_pipe_dest_properties_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Delete","Delete pipe",canvas_connection_destroy_cb,NULL),
+	GNOMEUIINFO_ITEM("_Delete","Delete pipe",canvas_pipe_delete_cb,NULL),
 	GNOMEUIINFO_END
 };
-*/
+
 
 
 static gboolean
 glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
 {
 	GdkCursor * fleur;
-
+	GtkWidget* menu;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -303,7 +319,10 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 			return TRUE;
 			break;
 		case 3:
-			filterpipe_delete(p->pipe);
+				/* popup menu */
+			menu = gnome_popup_menu_new(pipe_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,p->pipe);
+
 			break;
 		default:
 			return FALSE;

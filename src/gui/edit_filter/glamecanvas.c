@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.5 2001/05/10 00:00:54 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.6 2001/05/17 22:38:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -80,6 +80,52 @@ glame_canvas_get_type(void)
                         (GtkObjectInitFunc) glame_canvas_init,
                         NULL,NULL,(GtkClassInitFunc)NULL,};
                 canvas_type = gtk_type_unique(GNOME_TYPE_CANVAS,
+					      &canvas_info);
+                gtk_type_set_chunk_alloc(canvas_type,8);
+        }
+        
+        return canvas_type;
+}
+//////////////
+static void
+glame_canvas_group_destroy (GtkObject *object)
+{
+	gtk_object_destroy(object);
+}
+
+
+static void
+glame_canvas_group_class_init(GlameCanvasGroupClass *class)
+{
+	GtkObjectClass *object_class;
+	
+	object_class = GTK_OBJECT_CLASS (class);
+	object_class->destroy = glame_canvas_group_destroy;
+}
+
+
+static void
+glame_canvas_group_init (GlameCanvasGroup *item)
+{
+	item->type = GROUP_TYPE_UNION;
+	item->children = NULL;
+}
+
+
+GtkType
+glame_canvas_group_get_type(void)
+{
+        static GtkType canvas_type = 0;
+        
+        if(!canvas_type){
+                GtkTypeInfo canvas_info={
+                        "GlameCanvasGroup",
+                        sizeof(GlameCanvasGroup),
+                        sizeof(GlameCanvasGroupClass),
+                        (GtkClassInitFunc) glame_canvas_group_class_init,
+                        (GtkObjectInitFunc) glame_canvas_group_init,
+                        NULL,NULL,(GtkClassInitFunc)NULL,};
+                canvas_type = gtk_type_unique(GNOME_TYPE_CANVAS_GROUP,
 					      &canvas_info);
                 gtk_type_set_chunk_alloc(canvas_type,8);
         }
@@ -244,10 +290,39 @@ void glame_canvas_draw_errors(GlameCanvas *canv)
 		glame_canvas_filter_redraw(glame_canvas_find_filter(node));
 	}
 }
+
 void glame_canvas_reset_errors(GlameCanvas *canv)
 {
 	filter_t *node;
 	filter_foreach_node(canv->net,node){
 		glame_canvas_filter_redraw(glame_canvas_find_filter(node));
 	}
+}
+
+void glame_canvas_group_item_moved_cb(GlameCanvasFilter* item, double x, double y, GlameCanvasGroup* group)
+{
+	GList *list = g_list_first(group->children);
+
+	while(list){
+		glame_canvas_filter_move(list->data, x,y);
+		list = g_list_next(list);
+	}
+}
+	
+
+
+void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
+{
+	group->children = g_list_remove(group->children,item);
+	if(!group->children) /* no more children */
+		glame_canvas_group_destroy(group);
+}
+
+void glame_canvas_group_add_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter* gItem)
+{
+	DPRINTF("%d %d\n",glameGroup,gItem);
+	gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(gItem), GNOME_CANVAS_GROUP(glameGroup));
+	glameGroup->children = g_list_append(glameGroup->children,gItem);
+	gtk_signal_connect(gItem, "deleted", glame_canvas_group_remove_item_cb,glameGroup);
+	gtk_signal_connect(gItem, "moved", glame_canvas_group_item_moved_cb,glameGroup);
 }
