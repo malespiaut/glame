@@ -1,6 +1,6 @@
 /*
- * flanger.c
- * $Id: 
+ * distortion.c
+ * $Id: distortion.c,v 1.2 2001/05/03 12:34:47 mag Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -145,7 +145,7 @@ int distortion_register(plugin_t *p)
 	
 	param = filter_paramdb(f);
 
-	filterparamdb_add_param_float(param, "pregain", FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_float(param, "pregain", FILTER_PARAMTYPE_FLOAT, 10.0,
 				    FILTERPARAM_DESCRIPTION, "gain before distortion",
 				    FILTERPARAM_END);
 	

@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: 
+ * $Id: flanger.c,v 1.6 2001/05/03 12:34:47 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
