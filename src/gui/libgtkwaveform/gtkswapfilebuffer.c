@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.8 2001/04/10 10:40:54 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.9 2001/04/29 11:47:20 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -24,6 +24,11 @@
 #include <gtk/gtk.h>
 #include "gtkswapfilebuffer.h"
 #include "glame_types.h"
+#include "glsimd.h"
+
+
+/* Wether to use mmap based buffer_get_samples (avoids one copy). */
+#define USE_MMAP
 
 
 static void gtk_swapfile_buffer_class_init          (GtkSwapfileBufferClass *klass);
@@ -134,10 +139,16 @@ static guint32 gtk_swapfile_buffer_get_rate (GtkWaveBuffer *wavebuffer)
 static GWavefileType
 gtk_swapfile_buffer_get_datatype (GtkWaveBuffer *wavebuffer)
 {
+#ifdef USE_MMAP
+	/* Use gtkwaveview native format to avoid one copy. */
+	return G_WAVEFILE_TYPE_S16;
+#else
+	/* Use glame native format to avoid another copy. */
 #ifdef SAMPLE_FLOAT
 	return G_WAVEFILE_TYPE_F4NI;
 #else
 	return G_WAVEFILE_TYPE_F8NI;
+#endif
 #endif
 }
 
@@ -157,6 +168,92 @@ gtk_swapfile_buffer_get_num_channels (GtkWaveBuffer *wavebuffer)
 	return swapfile->nrtracks;
 }
 
+#ifdef USE_MMAP
+static void
+gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
+				 guint32        start,
+				 guint32        length,
+				 guint32        channel_mask,
+				 gpointer       data)
+{
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
+	ssize_t cnt;
+	int i;
+	/* nrtracks memory maps in trackm, current stats in trackst,
+	 * pos is "global" position rel. to swapfile->item. */
+	SAMPLE **trackm, **s;
+	struct sw_stat *trackst;
+	off_t *trackpos;
+
+	/* Init. */
+	trackm = (SAMPLE **)alloca(swapfile->nrtracks*sizeof(SAMPLE *));
+	s = (SAMPLE **)alloca(swapfile->nrtracks*sizeof(SAMPLE *));
+	trackst = (struct sw_stat *)alloca(swapfile->nrtracks*sizeof(struct sw_stat));
+	trackpos = (off_t *)alloca(swapfile->nrtracks*sizeof(off_t));
+	for (i=0; i<swapfile->nrtracks; i++) {
+		trackpos[i] = start;
+		if (GPSM_ITEM_IS_GRP(swapfile->item))
+			trackpos[i] -= gpsm_item_hposition(swapfile->swfile[i]);
+		trackm[i] = NULL;
+	}
+
+	goto entry;
+	while (length > 0) {
+		cnt = length;
+		for (i=0; i<swapfile->nrtracks; i++) {
+			if (trackpos[i] < 0)
+				cnt = MIN(-trackpos[i], cnt);
+			else if (trackpos[i] >= trackst[i].size/SAMPLE_SIZE)
+				cnt = MIN(length, cnt);
+			else
+				cnt = MIN(trackst[i].cluster_end/SAMPLE_SIZE - trackpos[i] + 1, cnt);
+		}
+
+		/* Init copy */
+		for (i=0; i<swapfile->nrtracks; i++) {
+			if (!trackm[i])
+				continue;
+			s[i] = trackm[i] + trackpos[i] - trackst[i].cluster_start/SAMPLE_SIZE;
+		}
+
+		/* Update trackpos[] and length*/
+		for (i=0; i<swapfile->nrtracks; i++) {
+			trackpos[i] += cnt;
+		}
+		length -= cnt;
+
+		/* Copy and convert/interleave the data [FIXME: optimize] */
+		while (cnt--) {
+			for (i=0; i<swapfile->nrtracks; i++) {
+				if (!trackm[i] || !(channel_mask & (1<<i)))
+					*((gint16 *)data)++ = 0;
+				else
+					*((gint16 *)data)++ = SAMPLE2SHORT(*s[i]++);
+			}
+		}
+
+	entry:
+		/* Seek to trackpos[i], stat and possibly update mmap. */
+		for (i=0; i<swapfile->nrtracks; i++) {
+			if (trackm[i]
+			    && trackpos[i] > trackst[i].cluster_end/SAMPLE_SIZE) {
+				sw_munmap(trackm[i]);
+				trackm[i] = NULL;
+			}
+			sw_lseek(swapfile->fd[i], trackpos[i]*SAMPLE_SIZE, SEEK_SET);
+			sw_fstat(swapfile->fd[i], &trackst[i]);
+			if (!trackm[i]
+			    && trackpos[i] >= trackst[i].cluster_start/SAMPLE_SIZE
+			    && trackpos[i] <= trackst[i].cluster_end/SAMPLE_SIZE)
+				trackm[i] = sw_mmap(NULL, PROT_READ, MAP_SHARED, swapfile->fd[i]);
+		}
+	}
+
+	for (i=0; i<swapfile->nrtracks; i++)
+		if (trackm[i])
+			sw_munmap(trackm[i]);
+}
+#else
 static void
 gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
                                   guint32        start,
@@ -207,6 +304,7 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 		data += length*SAMPLE_SIZE;
 	}
 }
+#endif
 
 static gint
 gtk_swapfile_buffer_set_samples (GtkEditableWaveBuffer *editable,
