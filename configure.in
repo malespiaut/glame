@@ -118,11 +118,18 @@ dnl
 dnl Checks for various audio stuff.
 dnl
 
-dnl check for libaudiofile
-AC_CHECK_LIB(audiofile, afCloseFile, laf=yes, laf=no)
-AC_CHECK_HEADER(audiofile.h,, laf=no)
-if test $laf = yes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -laudiofile"
+dnl check for libaudiofile, use audiofile-config, if available
+AC_CHECK_PROG(afconfig, audiofile-config, yes, no)
+if test $afconfig = no; then
+	AC_CHECK_LIB(audiofile, afCloseFile, laf=yes, laf=no)
+	AC_CHECK_HEADER(audiofile.h,, laf=no)
+	if test $laf = yes; then
+		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -laudiofile"
+		AC_DEFINE(HAVE_AUDIOFILE)
+	fi
+else
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS `audiofile-config --libs`"
+	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS `audiofile-config --cflags`"
 	AC_DEFINE(HAVE_AUDIOFILE)
 fi
 
