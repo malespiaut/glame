@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.55 2001/04/17 23:59:47 xwolf Exp $
+ * $Id: canvas.c,v 1.56 2001/04/18 11:05:28 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1320,6 +1320,15 @@ static void register_filternetwork_cb(GtkWidget*bla, GlameCanvas* glCanv)
 	gnome_request_dialog(0,"Filtername","filter",16,(GnomeStringCallback)canvas_register_as_cb,glCanv,NULL);
 }
 
+/**************************************
+ * FIXME
+ * Beware, this function may destroy your 
+ * scroll region.
+ * use it only for initial setup of the
+ * scroll region. coord-system trouble
+ * xw 
+ **************************************/
+
 static void 
 canvas_update_scroll_region(GlameCanvas* canv)
 {
@@ -1347,9 +1356,9 @@ canvas_update_scroll_region(GlameCanvas* canv)
 	y1=(y1>minY)?minY:y1;
 	x2=(x2<maxX)?maxX:x2;
 	y2=(y2<maxY)?maxY:y2;
-	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),x1,y1,x2,y2);
-
-
+//	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),x1,y1,x2,y2);
+	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),minX,minY,maxX,maxY);
+	gnome_canvas_update_now(GNOME_CANVAS(canv));
 
 }
 
