@@ -10,12 +10,6 @@ AM_ACLOCAL_INCLUDE(macros)
 dnl Disable re-creation of *.in files by default
 AM_MAINTAINER_MODE
 
-dnl Translations so far
-ALL_LINGUAS="de fr"
-
-dnl Check for internationalization support
-AM_GNU_GETTEXT
-
 
 dnl
 dnl Switches to configure debugging stuff - sane default for now.
@@ -66,6 +60,12 @@ fi
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
+
+dnl Translations so far
+ALL_LINGUAS="de fr"
+
+dnl Check for internationalization support
+AM_GNU_GETTEXT
 
 
 dnl FIXME: The next two checks break cross-compiling.
