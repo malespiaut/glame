@@ -40,6 +40,9 @@
 #include "glscript.h"
 #include "glconfig.h"
 
+/* HACK */
+#include "../plugins/symbols.c"
+
 
 /* Builtin plugins. */
 PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io")

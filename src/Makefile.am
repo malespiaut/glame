@@ -9,8 +9,8 @@ bin_PROGRAMS = cglame
 
 cglame_SOURCES = cglame.c
 cglame_LDADD = \
-	plugins/libglamebuiltins.la \
 	glmid/libglmid.la \
+	plugins/libglamebuiltins.la \
 	filter/libfilter.la \
 	hash/libhash.la \
 	swapfile/libswapfile.la \

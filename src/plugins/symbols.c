@@ -3,12 +3,15 @@
  * link time...
  */
 
-static void blafoobar()
+void blafoobar(int dummy)
 {
+	if (dummy == 0)
+		return;
+
 	/* basic */
-	drop_register();
-	one2n_register();
-	buffer_register();
+drop_register();
+one2n_register();
+buffer_register();
 
 	/* basic_sample */
 mix_register();

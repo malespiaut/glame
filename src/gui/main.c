@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.85 2001/11/06 09:47:30 richi Exp $
+ * $Id: main.c,v 1.86 2001/11/09 16:39:42 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -46,7 +46,8 @@
 #include "network_utils.h"
 #include "glconfig.h"
 
-#include "../plugins/symbols.c"
+/* HACK */
+extern void blafoobar(int);
 
 
 /* Globals. */
@@ -874,6 +875,9 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 
 int main(int argc, char **argv)
 {
+	/* HACK */
+	blafoobar(0);
+
 	textdomain("glame");
 
 	/* setup gnome/gtk  */

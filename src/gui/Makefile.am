@@ -22,8 +22,8 @@ glame_SOURCES = \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
 	waveeditgui.c waveeditgui.h apply.c
 glame_LDADD =  \
-	../plugins/libglamebuiltins.la \
 	../glmid/libglmid.la \
+	../plugins/libglamebuiltins.la \
 	../filter/libfilter.la \
 	../hash/libhash.la \
 	../swapfile/libswapfile.la \
