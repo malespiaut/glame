@@ -179,6 +179,7 @@ int main (int argc, char *argv[])
 	GtkWidget *window, *waveview;
 	GtkObject *wavebuffer;
 	long fname;
+	int i;
 
 	/* Init swapfile. */
 	if (argc < 3) {
