@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.54 2002/06/04 10:23:05 richi Exp $
+ * $Id: canvasfilter.c,v 1.55 2002/06/09 08:25:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -1087,8 +1087,10 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_ITEM(N_("_Help"), NULL, glame_canvas_filter_help,NULL),
 	GNOMEUIINFO_END
 };
+#define NODE_MENU_PROPERTIES_INDEX 0
 #define NODE_MENU_EXPAND_INDEX 2
 #define NODE_MENU_OPEN_DOWN_INDEX 3
+#define NODE_MENU_REDIRECT_PARAMETER_INDEX 5
 #define NODE_MENU_GROUP_SELECTED_INDEX 7
 #define NODE_MENU_UNGROUP_INDEX 8
 #define NODE_MENU_COPY_SELECTED_INDEX 9
@@ -1102,10 +1104,14 @@ static GtkWidget *glame_canvas_filter_get_popup_menu(GlameCanvasFilter *filter)
 	/* Build menu, disable/enable items based on context. */
 	menu = gnome_popup_menu_new(node_menu);
 
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_PROPERTIES_INDEX].widget,
+				 glame_list_empty(&filter->filter->params.db.items) ? FALSE : TRUE);
 	gtk_widget_set_sensitive(node_menu[NODE_MENU_EXPAND_INDEX].widget,
 				 FILTER_IS_NETWORK(filter->filter) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(node_menu[NODE_MENU_OPEN_DOWN_INDEX].widget,
 				 FILTER_IS_NETWORK(filter->filter) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_REDIRECT_PARAMETER_INDEX].widget,
+				 glame_list_empty(&filter->filter->params.db.items) ? FALSE : TRUE);
 	gtk_widget_set_sensitive(node_menu[NODE_MENU_GROUP_SELECTED_INDEX].widget,
 				 filter->selected ? TRUE : FALSE);
 	gtk_widget_set_sensitive(node_menu[NODE_MENU_UNGROUP_INDEX].widget,
