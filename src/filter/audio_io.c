@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.13 2000/02/08 13:32:22 richi Exp $
+ * $Id: audio_io.c,v 1.14 2000/02/08 14:50:33 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -118,55 +118,59 @@ static int esd_out_f(filter_node_t *n)
 	int lpos, rpos;
 	int wbpos;
 	
-	esd_format_t format;
-	int rate=44100;
+	int rate;
+	esd_format_t	format = ESD_BITS16|ESD_STREAM|ESD_PLAY;
 	int esound_socket;
 	char *host = NULL;
 	char *name = NULL;
-        short int *wbuf;
+        short int *wbuf = NULL;
 	int written,size,cnt=0;
-	
-	DPRINTF("esd_out_f started!\n");
 
-	format = ESD_BITS16 | ESD_STREAM | ESD_PLAY;
-
-	/* query both input channels, if left only -> MONO,
-	 * else STEREO output. */
-	if (!(right = hash_find_input("right_in", n)))
-		format |= ESD_MONO;
-	else{
-		format |= ESD_STEREO;
-		DPRINTF("Stereo!\n");
+	/* query both input channels, one channel only -> MONO
+	 * (always left), else STEREO output (but with the same
+	 * samplerate, please!). */
+	left = hash_find_input("left_in", n);
+	right = hash_find_input("right_in", n);
+	/* right only? */
+	if (!left) {
+		left = right;
+		right = NULL;
 	}
-	if (!(left = hash_find_input("left_in", n)))
+	/* no channel? */
+	if (!left)
 		return -1;
+	rate = left->u.sample.rate;
+	/* right channel different sample rate? */
+	if (right && right->u.sample.rate != rate)
+		return -1;
+	/* finally decide mono/stereo */
+	if (right)
+		format |= ESD_MONO;
+	else
+		format |= ESD_STEREO;
+
+	wbpos = 0;
+	wbuf = (short int*)malloc(GLAME_WBUFSIZE*sizeof(short int));
+	if (wbuf==NULL){
+		DPRINTF("couldn't alloc wbuf!\n");
+		return -1;
+	}
 
 	DPRINTF("Trying to open esd-socket!\n");
-	
 	esound_socket = esd_play_stream_fallback(format, rate, host, name);
-	if (esound_socket<0){
+	if (esound_socket == -1) {
 	        DPRINTF("couldn't open esd-socket connection!\n");
 	        return -1;
         }
 
-	wbuf=(short int*)malloc(GLAME_WBUFSIZE*sizeof(short int));
-	wbpos=0;
-	if (wbuf==NULL){
-		DPRINTF("esd-filter: couldn't alloc wbuf!\n");
-		return -1;
-	}
-
 	FILTER_AFTER_INIT;
+
 
 	/* get the first buffers to start with something */
 	lbuf = sbuf_get(left);
-	DPRINTF("Got left sbuf with size %d\n",sbuf_size(lbuf));
-	if (right){
-		rbuf = sbuf_get(right);
-		DPRINTF("Got right sbuf with size %d\n", rbuf ? sbuf_size(rbuf) : 0);
-	}
-	else
-		rbuf = NULL;
+	DPRINTF("Got left sbuf with size %d\n", sbuf_size(lbuf));
+	rbuf = sbuf_get(right);
+	DPRINTF("Got right sbuf with size %d\n", sbuf_size(rbuf));
 	lpos = rpos = 0;
 
 	do {
@@ -220,6 +224,9 @@ static int esd_out_f(filter_node_t *n)
 	FILTER_BEFORE_CLEANUP;
 
 	DPRINTF("Received %d buffers.\n",cnt);
+	close(esound_socket);
+	free(wbuf);
+
 	return 0;
 }
 #endif

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.13 2000/02/08 12:53:11 richi Exp $
+ * $Id: filter_network.c,v 1.14 2000/02/08 14:50:33 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -625,9 +625,7 @@ int filternode_setparam(filter_node_t *n, const char *label, void *val)
 		break;
 	}
 
-	n->filter->fixup_param(n, label);
-
-	return 0;
+	return n->filter->fixup_param(n, label);
 }
 
 int filternode_setparamstring(filter_node_t *n, const char *label,
@@ -667,7 +665,8 @@ int filternode_setparamstring(filter_node_t *n, const char *label,
 		break;
 	}
 
-	n->filter->fixup_param(n, label);
+	if (res == 1)
+	        res = n->filter->fixup_param(n, label);
 
 	return res;
 }
@@ -704,7 +703,7 @@ int filternode_getparamstring(filter_node_t *n, const char *label,
 		break;
 	}
 
-	return res;
+	return res >=0 ? 0 : -1;
 }
 
 

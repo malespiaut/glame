@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.9 2000/02/07 10:32:05 richi Exp $
+ * $Id: filter_buffer.c,v 1.10 2000/02/08 14:50:33 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -74,6 +74,9 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 {
 	filter_buffer_t *fbcopy;
 
+	if (!fb)
+		return NULL;
+
 	/* this is _not_ a race condition! (I believe)
 	 * if there are other possible lockers, there must
 	 * be references for them. */
@@ -95,16 +98,23 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
  * As NULL is an EOF marker, it is suitable as error marker, too.
- * FIXME? Pipe writes of certain quantity are atomic, reads, too?
  * FIXME! Wrt. to write throttling there need to be changes at the
  *        read end, too.
  */
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
         void *buf[64];
-	int res;
+	int res, cnt = 64;
 
-	res = read(p->dest_fd, buf, 64*sizeof(void *));
+	if (!p)
+		return NULL;
+
+	do {
+		while ((res = read(p->dest_fd, buf, cnt*sizeof(void *))) == -1
+		       && errno == EINTR)
+			;
+		cnt -= res;
+	} while (cnt && res != -1);
 
 	return res == -1 ? NULL : (filter_buffer_t *)buf[0];
 }
@@ -118,8 +128,17 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 {
         void *buf[64]; /* weeeh - hack for write-throttling */
+	int res;
+
+	if (!p) {
+		fbuf_unref(fbuf);
+		return;
+	}
 
 	buf[0] = fbuf;
-	if (write(p->source_fd, buf, 64*sizeof(void *)) == -1)
+	while ((res = write(p->source_fd, buf, 64*sizeof(void *)) == -1)
+	       && errno == EINTR)
+		;
+	if (res == -1)
 		fbuf_unref(fbuf);
 }
