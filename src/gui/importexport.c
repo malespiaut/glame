@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.44 2004/12/03 21:13:30 ochonpaul Exp $
+ * $Id: importexport.c,v 1.45 2004/12/07 22:07:12 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -969,7 +969,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	//					   GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry))));
 	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileentry2))));
 
-	gtk_signal_connect(GTK_OBJECT(ie->edit), "changed",
+	g_signal_connect(GTK_OBJECT(ie->edit), "changed",
 			   (GtkSignalFunc)ie_filename_cb, ie);
 
 	vbox4 = gtk_vbox_new (FALSE, 0);
@@ -1010,7 +1010,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	}
 		
 	ie->getstats = statbutton = gtk_button_new_with_label (_("Get RMS & DC-Offset"));
-	gtk_signal_connect(GTK_OBJECT(statbutton), "clicked",
+	g_signal_connect(GTK_OBJECT(statbutton), "clicked",
 				   (GtkSignalFunc)ie_stats_cb, ie);
 
 	gtk_widget_show (statbutton);
@@ -1081,13 +1081,13 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	GTK_WIDGET_SET_FLAGS (previewbutton, GTK_CAN_DEFAULT);
 */
 
-	gnome_dialog_append_button (GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_append_button (GNOME_DIALOG (ie->dialog), GTK_STOCK_CANCEL);
 	cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 
 	gtk_widget_show (cancelbutton);
 	GTK_WIDGET_SET_FLAGS (cancelbutton, GTK_CAN_DEFAULT);
 
-	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GNOME_STOCK_BUTTON_HELP);
+	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GTK_STOCK_HELP);
 
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), IMPORT);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), IMPORT, TRUE);
@@ -1103,7 +1103,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 				    GTK_SIGNAL_FUNC(glame_help_cb), "The_Import_Dialog");
 
 	/* in case we have a non gnome compliant wm */
-	gtk_signal_connect(GTK_OBJECT(ie->dialog),
+	g_signal_connect(GTK_OBJECT(ie->dialog),
 			   "delete-event",
 			   GTK_SIGNAL_FUNC(ie_windowkilled), ie);
 
@@ -1201,6 +1201,7 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 				complabel = numbuf;
 			}
 			gtk_combo_box_append_text(GTK_COMBO_BOX (ie->ocomp_combo_box),complabel);
+	 		gtk_combo_box_set_active (GTK_COMBO_BOX (ie->ocomp_combo_box), 0);
 		}
 		gtk_widget_set_sensitive(ie->ocomp_combo_box, TRUE);
 			} else
@@ -1644,7 +1645,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	//	edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(GNOME_FILE_ENTRY(fentry)->gentry))));
 	edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry))));
 	
-	gtk_signal_connect(GTK_OBJECT(edit), "changed",
+	g_signal_connect(GTK_OBJECT(edit), "changed",
 			   (GtkSignalFunc)export_filename_cb, ie);
 
 	frame = gtk_frame_new(_("File Format"));
@@ -2037,8 +2038,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), OK);
-	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
-	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GNOME_STOCK_BUTTON_HELP);
+	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GTK_STOCK_CANCEL);
+	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GTK_STOCK_HELP);
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 	
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), OK,
@@ -2055,7 +2056,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 
 	/* in case we have a non gnome compliant wm */
-	gtk_signal_connect(GTK_OBJECT(ie->dialog),
+	g_signal_connect(GTK_OBJECT(ie->dialog),
 			   "delete-event",
 			   GTK_SIGNAL_FUNC(exp_windowkilled), ie);
 
