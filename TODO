@@ -1,9 +1,6 @@
 Things to fix before 0.2.0:
 ===========================
 
-- read-file is hell slow (80% CPU!) -> optimize and specialize
-  inner loops
-- deprecate (disable!?) pipe parameters
 - audit all paths/makefiles wrt make install [done, do it again
   later]
 - filters/plugins
@@ -11,8 +8,6 @@ Things to fix before 0.2.0:
   * filter names (_ vs -)
   * parameter names, parameter types
   * assign/create pixmaps
-  * mix needs to be truly asynchron with internal buffer queues
-    for send and recieve. Ugh.
 - documentation
   * UI/GUI documentation
   * document available filters
@@ -29,7 +24,6 @@ doc/
 
 glmid/gltrack.[ch], plugins/track_io.c
 	[LATER]
-	- redo wrt positional parameter
 	- rethink wrt wave gui
 
 filter/
