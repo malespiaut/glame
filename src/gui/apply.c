@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.8 2001/07/27 12:25:09 nold Exp $
+ * $Id: apply.c,v 1.9 2001/07/30 08:23:09 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -44,7 +44,6 @@ struct apply_plugin_s {
 	long start, length;
 	filter_t *effect;
 	GtkWidget *properties;
-	GList *properties_list;
 	GtkWidget *progress;
 	GtkWidget *dialog;
 	filter_t *net;
@@ -109,11 +108,6 @@ static void preview_start(struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
 	const char *errmsg;
-
-	if (glame_gui_update_paramdb(filter_paramdb(a->effect), a->properties_list) == -1) {
-		errmsg = "Illegal effect parameters";
-		goto err;
-	}
 
 	/* Create the preview network. */
 	a->net = filter_creat(NULL);
@@ -184,15 +178,11 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	filter_t *swin, *swout, *e;
 	const char *errmsg;
 
-	if (glame_gui_update_paramdb(filter_paramdb(a->effect), a->properties_list) == -1) {
-		errmsg = "Illegal effect parameters";
-		goto err;
-	}
-
 	/* Create the apply network. */
 	net_prepare_bulk();
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile) {
+		filter_port_t *ein, *eout;
 		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
 		swout = net_add_gpsm_output(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
 		e = filter_creat(a->effect);
@@ -201,9 +191,15 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 			errmsg = "Cannot construct network";
 			goto err;
 		}
+		filterportdb_foreach_port(filter_portdb(e), ein)
+			if (filterport_is_input(ein))
+				break;
+		filterportdb_foreach_port(filter_portdb(e), eout)
+			if (filterport_is_output(eout))
+				break;
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
-				   filterportdb_get_port(filter_portdb(e), PORTNAME_IN));
-		filterport_connect(filterportdb_get_port(filter_portdb(e), PORTNAME_OUT),
+				   ein);
+		filterport_connect(eout,
 				   filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 	}
 	a->pos = swout;
@@ -282,7 +278,6 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	a->effect = filter_instantiate(plugin);
 	if (!a->effect)
 		goto err;
-	a->properties_list = NULL;
 	a->net = NULL;
 	a->have_undo = 0;
 	a->previewing = 0;
@@ -312,7 +307,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 			   TRUE, TRUE, 3);
 	gtk_widget_show(label);
 
-	a->properties = glame_gui_from_paramdb(filter_paramdb(a->effect), &a->properties_list);
+	a->properties = glame_gui_from_paramdb(filter_paramdb(a->effect));
 	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), a->properties,
 			   TRUE, TRUE, 3);
 	gtk_widget_show(a->properties);
