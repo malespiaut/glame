@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.39 2001/03/20 13:50:20 mag Exp $
+ * $Id: file_io.c,v 1.40 2001/03/20 14:05:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -444,9 +444,11 @@ int file_io_register(plugin_t *p)
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
+	add_writer(af_write_f,"*.wav"); 
+#endif
+#ifdef HAVE_LAME
 	add_reader(lame_read_prepare, lame_read_connect,
 		   lame_read_f, lame_read_cleanup);
-	add_writer(af_write_f,"*.wav"); 
 #endif
 	add_reader(wav_read_prepare, wav_read_connect, 
 	           wav_read_f, wav_read_cleanup);
