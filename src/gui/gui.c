@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.12 2000/02/25 18:14:18 xwolf Exp $
+ * $Id: gui.c,v 1.13 2000/03/15 15:52:10 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -21,6 +21,7 @@
  *
  */
 
+#include <glmid.h>
 #include "gui.h"
 
 /* Main menu, shamelessly cut out of glade output */
@@ -629,8 +630,8 @@ int gui_filter_init(void)
                 return -1;
         }
         
-        if (filter_init() == -1) {
-                fprintf(stderr, "error in filter_init()\n");
+        if (glmid_init(0) == -1) {
+                fprintf(stderr, "error in glmid_init()\n");
                 return -1;
         }
 	return 0;
