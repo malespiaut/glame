@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.22 2001/11/25 21:06:56 mag Exp $
+ * $Id: importexport.c,v 1.23 2001/11/25 22:05:43 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -85,7 +85,7 @@ struct exp_s {
 	GtkWidget *renderbutton[MAX_RLABEL];
 };
 
-void ie_import_cleanup(struct imp_s *ie) 
+static void ie_import_cleanup(struct imp_s *ie) 
 {
 	if (ie->dialog)
 		gnome_dialog_close(GNOME_DIALOG(ie->dialog));
@@ -96,7 +96,8 @@ void ie_import_cleanup(struct imp_s *ie)
 	
 }
 
-static void ie_cancel_cb(GtkWidget *bla, struct imp_s *ie) {
+static void ie_cancel_cb(GtkWidget *bla, struct imp_s *ie)
+{
 	DPRINTF("cancel pressed\n");
 	if (ie->importing==1) {
 		filter_terminate(ie->net);
@@ -109,7 +110,8 @@ static void ie_cancel_cb(GtkWidget *bla, struct imp_s *ie) {
 	}
 }
 
-static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data) {
+static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
+{
 	struct imp_s *ie = (struct imp_s*)data;
 	if(ie->importing==1) {
 		filter_terminate(ie->net);
@@ -119,7 +121,8 @@ static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data) 
 	return TRUE;
 }
 
-static void ie_import_cb(GtkWidget *bla, struct imp_s *ie) {
+static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
+{
 	filter_t *readfile, *swout, *resample;
 	filter_port_t *source, *nsource;
 	filter_pipe_t *pipe;
@@ -273,10 +276,13 @@ ie_fail_cleanup:
 	gtk_widget_set_sensitive(bla, TRUE);	
 }
 
-static void ie_preview_cb(GtkWidget *bla, struct imp_s *ie) {
+static void ie_preview_cb(GtkWidget *bla, struct imp_s *ie)
+{
 	DPRINTF("Not implemented\n");
 }
-static void ie_update_plabels(struct imp_s *ie) {
+
+static void ie_update_plabels(struct imp_s *ie)
+{
 	filter_param_t *fparam;
 	gchar *property;
 	unsigned int frames, minutes, seconds;
@@ -336,7 +342,8 @@ static void ie_update_plabels(struct imp_s *ie) {
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[5]), buffer);
 }
 
-static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie) {
+static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
+{
 	filter_t **ssp, **maxrms, *readfile;
 	filter_param_t *param;
 	GtkWidget *ed;
@@ -458,7 +465,8 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie) {
 }
 
 
-static gint ie_filename_cb(GtkEditable *edit, struct imp_s *ie) {
+static gint ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
+{
 	gchar *filename;
 	filter_param_t *fparam;
 	int i;
@@ -673,14 +681,16 @@ void glame_import_dialog(struct imp_s *ie)
 			   GTK_SIGNAL_FUNC(ie_windowkilled), ie);
 
 	gtk_widget_show(ie->dialog);
-};
+}
 
-static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *ie) {
+static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *ie)
+{
 	DPRINTF("Compression Type chosen\n");
 	return TRUE;
 }
 
-void make_comp_menu(struct exp_s *ie, int ftype) {
+static void make_comp_menu(struct exp_s *ie, int ftype)
+{
 	int comptypes, i, sformtypes;
 	int *comparray;
 	int *sformarray;
@@ -724,7 +734,8 @@ void make_comp_menu(struct exp_s *ie, int ftype) {
 }
 
 
-static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie) {
+static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
+{
 	GtkWidget *act;
 	GList *list;
 	int val;
@@ -748,7 +759,8 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie) {
 	return TRUE;
 }
 
-void export_cleanup(struct exp_s *e) {
+static void export_cleanup(struct exp_s *e)
+{
 	//gtk_signal_disconnect_by_data(e->cancelbutton, e);
 	if (e->dialog)
 		//gnome_dialog_close(GNOME_DIALOG(e->dialog));
@@ -757,7 +769,8 @@ void export_cleanup(struct exp_s *e) {
 	free(e);
 }
 
-static gint exp_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data) {
+static gint exp_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
+{
 	struct exp_s *exp = (struct exp_s*)data;
 	DPRINTF("window was killed");
 	export_cleanup(exp);
@@ -765,12 +778,14 @@ static gint exp_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
 }
 
 
-static void exp_cancel_cb(GtkWidget *bla, struct exp_s *e) {
+static void exp_cancel_cb(GtkWidget *bla, struct exp_s *e)
+{
 	DPRINTF("cancel pressed in export window\n");
 	export_cleanup(e);
 }
 
-GtkWidget *glame_export_dialog(struct exp_s *ie)  {
+GtkWidget *glame_export_dialog(struct exp_s *ie)
+{
 	GtkWidget *dialog, *menu, *mitem, *bigbox, *typecompbox, *valbox;
 	GtkWidget *dialog_vbox2, *vbox, *frame, *frame2, *frame3, *fentry;
 	GtkWidget *framebox, *combo_entry, *frame4, *frame4box;
