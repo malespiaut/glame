@@ -277,6 +277,7 @@ AC_ARG_ENABLE(mp3lame, [  --disable-mp3lame        disable mp3lame support], wla
 if test x$wlame = xyes; then
 	AC_CHECK_HEADERS([lame.h lame/lame.h], lame=yes, lame=no)
 	if test x$lame = xyes; then
+		LDFLAGS="$LDFLAGS -lm"
 		AC_CHECK_LIB(mp3lame, lame_decode, lame=yes, lame=no)
 	fi
 fi
