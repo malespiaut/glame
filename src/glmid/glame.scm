@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.66 2001/08/05 12:29:16 richi Exp $
+; $Id: glame.scm,v 1.67 2001/08/06 11:55:48 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -33,81 +33,52 @@
 
 
 ; Parameter setting
+; specs are pairs of param label and param value
 
-(define (filter-set-param node label value)
-  (let lp ((params (filter-params node)))
-    (if (null? params)
-	(throw 'glame-error)
-	(if (string=? (param-label (car params)) label)
-	    (param-set! (car params) value)
-	    (lp (cdr params))))))
-
-(define (filter-set-params node . specs)
+(define (set-params! par . specs)
   (let* ((params (map (lambda (param)
 			(cons (param-label param) param))
-		      (filter-params node)))
+		      par))
 	 (pairs (map (lambda (spec)
 		       (let ((p (assoc (car spec) params)))
-			 (if (eq? p #f)
-			     (throw 'glame-error)
-			     (cons (cdr p)
-				   (if (list? spec) (cadr spec) (cdr spec))))))
+			 (if p
+			     (cons (cdr p) (cdr spec))
+			     (throw 'glame-error))))
 		     specs)))
     (for-each (lambda (p)
 		(param-set! (car p) (cdr p)))
 	      pairs)))
 
-(define (pipe-set-sourceparam pipe label value)
-  (let lp ((params (pipe-source-params pipe)))
-    (if (null? params)
-	(throw 'glame-error)
-	(if (string=? (param-label (car params)) label)
-	    (param-set! (car params) value)
-	    (lp (cdr params))))))
+(define (filter-set-param! node label value)
+  (set-params! (filter-params node) (cons label value)))
 
-(define (pipe-set-sourceparams pipe . specs)
-  (let* ((params (map (lambda (param)
-			(cons (param-label param) param))
-		      (pipe-source-params pipe)))
-	 (pairs (map (lambda (spec)
-		       (let ((p (assoc (car spec) params)))
-			 (if (eq? p #f)
-			     (throw 'glame-error)
-			     (cons (cdr p)
-				   (if (list? spec) (cadr spec) (cdr spec))))))
-		     specs)))
-    (for-each (lambda (p)
-		(param-set! (car p) (cdr p)))
-	      pairs)))
+(define (filter-set-params! node . specs)
+  (apply set-params! (filter-params node) specs))
 
-(define (pipe-set-destparam pipe label value)
-  (let lp ((params (pipe-dest-params pipe)))
-    (if (null? params)
-	(throw 'glame-error)
-	(if (string=? (param-label (car params)) label)
-	    (param-set! (car params) value)
-	    (lp (cdr params))))))
+(define (pipe-set-sourceparam! pipe label value)
+  (set-params! (pipe-source-params pipe) (cons label value)))
 
-(define (pipe-set-destparams pipe . specs)
-  (let* ((params (map (lambda (param)
-			(cons (param-label param) param))
-		      (pipe-dest-params pipe)))
-	 (pairs (map (lambda (spec)
-		       (let ((p (assoc (car spec) params)))
-			 (if (eq? p #f)
-			     (throw 'glame-error)
-			     (cons (cdr p)
-				   (if (list? spec) (cadr spec) (cdr spec))))))
-		     specs)))
-    (for-each (lambda (p)
-		(param-set! (car p) (cdr p)))
-	      pairs)))
+(define (pipe-set-sourceparams! pipe . specs)
+  (apply set-params! (pipe-source-params pipe) specs))
+
+(define (pipe-set-destparam! pipe label value)
+  (set-params! (pipe-dest-params pipe) (cons label value)))
+
+(define (pipe-set-destparams! pipe . specs)
+  (apply set-params! (pipe-dest-params pipe) specs))
+
 
 ; Compatibility
-(define filternode_set_param filter-set-param)
-(define filterpipe_set_sourceparam pipe-set-sourceparam)
-(define filterpipe_set_destparam pipe-set-destparam)
-(define node-set-params filter-set-params)
+(define filternode_set_param filter-set-param!)
+(define filterpipe_set_sourceparam pipe-set-sourceparam!)
+(define filterpipe_set_destparam pipe-set-destparam!)
+(define (node-set-params node . params)
+  (apply filter-set-params!
+	 node
+	 (map (lambda (spec)
+		(cons (car spec) (cadr spec)))
+	      params)))
+
 
 
 ;
@@ -203,7 +174,7 @@
   (lambda (net node . params)
     (let ((n (filter-new (plugin_get node))))
       (filter-add-node net n node)
-      (apply filter-set-params n params)
+      (apply node-set-params n params)
       n)))
 
 (add-help 'net-add-node '(net "node" '("param" val) ...) 
