@@ -172,6 +172,7 @@ static int plugins_register()
 {
 	/* Add plugin paths. */
 	add_plugin_path("./plugins/.libs");
+	add_plugin_path("./plugins/_libs");
 	add_plugin_path(PKGLIBDIR);
 	add_plugin_path(getenv("LADSPA_PATH"));
 
@@ -180,6 +181,7 @@ static int plugins_register()
 
 	/* Plugins from default paths - and "debug path" (first) */
 	load_plugins_from_path("./plugins/.libs"); /* for .so */
+	load_plugins_from_path("./plugins/_libs"); /* for .so */
 	load_plugins_from_path(PKGLIBDIR);
 	load_plugins_from_path(getenv("LADSPA_PATH"));
 
