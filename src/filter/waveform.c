@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: 
+ * $Id: waveform.c,v 1.8 2000/02/07 11:00:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *

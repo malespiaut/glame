@@ -27,3 +27,6 @@ Neither in the main part, nor in the cleanup part may you just return with
 a return value of -1 (i.e. just fail). Instead you have to cleanup yourself,
 including sending EOF's to your output ports. So basically you may fail
 in the initialisation part, but nowhere else.
+
+YOU MAY NOT USE ANY OF THE ?buf_* or ?buf_* FUNCTIONS IN THE INIT SECTION
+(DEADLOCK!!!!) (?buf_alloc is allowed, if you really need it)

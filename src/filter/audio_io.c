@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.9 2000/02/07 10:51:52 mag Exp $
+ * $Id: audio_io.c,v 1.10 2000/02/07 11:00:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -57,12 +57,12 @@ static int esd_in_f(filter_node_t *n)
 
 	/* FIXME some parameter handling to be added */
 
-	printf("esd_in_f started!\n");
+	DPRINTF("esd_in_f started!\n");
 
 	format = bits | channels | mode | func;
 	sock = esd_record_stream_fallback( format, rate, host, name );
 	if (sock <= 0){
-		printf("Couldn't open esd socket!\n");
+		DPRINTF("Couldn't open esd socket!\n");
 		return -1;
 	}
 
@@ -75,11 +75,11 @@ static int esd_in_f(filter_node_t *n)
 	}
 	
 	if ((buf=(short int*)malloc(ESD_BUF_SIZE))==NULL){
-		DPRINTF("Couldn't alloc input buffer!\n");
+		DDPRINTF("Couldn't alloc input buffer!\n");
 		return -1;
 	}
 
-	printf("Start sampling!\n");
+	DPRINTF("Start sampling!\n");
 
 	FILTER_AFTER_INIT;
 	
@@ -89,7 +89,7 @@ static int esd_in_f(filter_node_t *n)
 			DPRINTF("Read failed!\n");
 			return -1;
 		}
-		printf("sampled %d bytes!\n",length);
+		DPRINTF("sampled %d bytes!\n",length);
 		lpos=rpos=i=0;
 		lbuf=sbuf_alloc(length/4,n);	/* FIXME 16bit stereo only */
 		rbuf=sbuf_alloc(length/4,n);
@@ -136,7 +136,7 @@ static int esd_out_f(filter_node_t *n)
 		format |= ESD_MONO;
 	else{
 		format |= ESD_STEREO;
-		printf("Stereo!\n");
+		DPRINTF("Stereo!\n");
 	}
 	if (!(left = hash_find_input("left_in", n)))
 		return -1;
@@ -163,14 +163,12 @@ static int esd_out_f(filter_node_t *n)
 	DPRINTF("Got left fbuf with size %d\n",fbuf_size(lbuf));
 	if (right){
 		rbuf = fbuf_get(right);
-		printf("Got right fbuf with size %d\n",fbuf_size(rbuf));
+		DPRINTF("Got right fbuf with size %d\n",fbuf_size(rbuf));
 	}
 	else
 		rbuf = NULL;
 	lpos = rpos = 0;
 
-	FILTER_AFTER_INIT;
-	
 	do {
 		/* write into wbuf until wbuf is full or
 		 * either left or right is empty.
@@ -221,7 +219,7 @@ static int esd_out_f(filter_node_t *n)
 
 	FILTER_BEFORE_CLEANUP;
 
-	printf("Received %d buffers.\n",cnt);
+	DPRINTF("Received %d buffers.\n",cnt);
 	return 0;
 }
 #endif
