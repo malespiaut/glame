@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.11 2000/05/01 11:09:04 richi Exp $
+ * $Id: glplugin.c,v 1.12 2000/05/16 08:20:57 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -160,7 +160,7 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 			    || try_load_plugin(pn, psname, filename) == -1
 			    || add_plugin(pn) == -1) {
 				free_plugin(pn);
-				goto err;
+				continue;
 			}
 		} while (sp);
 	}
