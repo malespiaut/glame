@@ -79,13 +79,13 @@ extern int midi_io_register()
 	filter_t *f;
 
 #ifdef HAVE_ALSA
-	if (!(f = filter_alloc("midi_out", "alsa midi output", alsa_midi_out_f))
+	if (!(f = filter_alloc(alsa_midi_out_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_MIDI)
 	    || !filter_add_param(f, "client", "alsa client number", FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f, "port", "alsa port number", FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f, "dest_client", "remote client number", FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f, "dest_port", "remote port number", FILTER_PARAMTYPE_INT)
-	    || filter_add(f))
+	    || filter_add(f, "midi_out", "alsa midi output"))
 		return -1;
 #endif
 

@@ -2511,10 +2511,10 @@ dnl 	exit(0);
 dnl }
 dnl ],
 dnl 	[
-dnl 	dnl add the alsa library
-dnl 	ALSA_LIBS="$ALSA_LIBS -lasound"
-dnl 	LDFLAGS="$ALSA_LIBS -lasound"
-dnl 	AC_MSG_RESULT($ALSA_LIBS)
+dnl add the alsa library
+ALSA_LIBS="$ALSA_LIBS -lasound"
+LDFLAGS="$ALSA_LIBS -lasound"
+AC_MSG_RESULT($ALSA_LIBS)
 dnl 	],
 dnl 	[AC_MSG_RESULT("not found. ")],
 dnl 	[AC_MSG_RESULT(unsopported)]
