@@ -76,6 +76,8 @@ if test "$GCC" = "yes"; then
 	else
 	  CFLAGS="-Wall -Wno-sign-compare $glame_debug_gcc_cflags"
 	fi
+	extra_cflag_unroll="-funroll-loops"
+	AC_SUBST(extra_cflag_unroll)
 else
 	AC_MSG_WARN([Compilers other than GCC may not be supported])
 fi
@@ -111,6 +113,25 @@ AC_DEFINE([NO_VARARG_MACROS],, [GCC style macro vararg support])
 dnl AC_MSG_ERROR([GLAME needs a C preprocessor that can handle macros with a variable number of arguments. Go get one...])
 ])
 ])
+
+
+AC_MSG_CHECKING([whether we have restrict support in C])
+acx_cv_c_restrict=unsupported
+for acx_kw in restrict __restrict__ __restrict; do
+  AC_TRY_COMPILE([], [float * $acx_kw x;], [acx_cv_c_restrict=$acx_kw; break])
+done
+if test "$acx_cv_c_restrict" = "unsupported"; then
+  AC_MSG_RESULT([no])
+dnl  CFLAGS="$CFLAGS -Drestrict="
+  AC_DEFINE(restrict,, [No restrict support])
+else
+  AC_MSG_RESULT([$acx_cv_c_restrict])
+  if test "$acx_cv_c_restrict" != "restrict"; then
+dnl    CFLAGS="$CFLAGS -Drestrict=$acx_cv_c_restrict"
+    AC_DEFINE_UNQUOTED(restrict, $acx_cv_c_restrict, [Restrict support])
+  fi
+fi
+
 
 AC_PROG_INSTALL
 AC_LIBLTDL_CONVENIENCE
