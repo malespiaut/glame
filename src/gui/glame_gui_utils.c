@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.16 2001/05/25 09:56:37 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.17 2001/05/25 11:29:31 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -665,12 +665,14 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 			g_free(strVal);
 			break;
 		case PSBUF:
-			sbuf = sbuf_buf(filterparam_val_get_buf(item->param));
-			bufcount = sbuf_size(filterparam_val_get_buf(item->param));
+			sbuf = sbuf_alloc(1000,filterparam_filter(item->param));
+			sbuf_make_private(sbuf);
+			bufcount = sbuf_size(sbuf);
 			fbuffer = calloc(sizeof(gfloat),bufcount);
 			gtk_curve_get_vector(GTK_CURVE(item->widget),bufcount,fbuffer);
 			memcpy(sbuf,fbuffer,bufcount*sizeof(float));
 			free(fbuffer);
+			filterparam_set(item->param,&sbuf);
 			break;
 		case PGLADE:
 			if (GTK_IS_OPTION_MENU(item->widget)) {
