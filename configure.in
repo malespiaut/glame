@@ -66,6 +66,10 @@ fi
 
 AC_PROG_INSTALL
 AC_LIBLTDL_CONVENIENCE
+dnl libtool pre-1.4 used INCLTDL, but LTDLINCL is the proper namespace.
+if test -z "${LTDLINCL}" -a ! -z "${INCLTDL}"; then
+	LTDLINCL="${INCLTDL}"
+fi
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
