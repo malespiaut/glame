@@ -1258,6 +1258,8 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 		vbox = gtk_hbox_new(TRUE, 5);
 		gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(window->waveview),
 				   TRUE, TRUE, 5);
+		gtk_widget_show(window->waveview);
+		gtk_widget_show(vbox);
 		gnome_app_set_contents(GNOME_APP(window), vbox);
 		//gnome_app_set_contents(GNOME_APP(window), window->waveview);
 	}
