@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.24 2001/04/10 13:58:31 richi Exp $
+ * $Id: basic_sample.c,v 1.25 2001/04/11 08:37:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -342,28 +342,19 @@ static int mix(filter_t *n, int drop)
 				s += icnt;
 				break;
 			case 1:
-				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD_1D_1(s, p[j[0]].s, p[j[0]].factor);
-				}
-				for (; icnt>0; icnt-=4) {
-					SCALARPROD_1D_4(s, p[j[0]].s, p[j[0]].factor);
-				}
+				glsimd.scalar_product_1d(s, icnt,
+							 p[j[0]].s, p[j[0]].factor);
 				break;
      			case 2:
-				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD_2D_1(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
-				}
-				for (; icnt>0; icnt-=4) {
-					SCALARPROD_2D_4(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
-				}
+				glsimd.scalar_product_2d(s, icnt,
+							 p[j[0]].s, p[j[0]].factor,
+							 p[j[1]].s, p[j[1]].factor);
 				break;
 			case 3:
-				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD_3D_1(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
-				}
-				for (; icnt>0; icnt-=4) {
-					SCALARPROD_3D_4(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
-				}
+				glsimd.scalar_product_3d(s, icnt,
+							 p[j[0]].s, p[j[0]].factor,
+							 p[j[1]].s, p[j[1]].factor,
+							 p[j[2]].s, p[j[2]].factor);
 				break;
 			default:
 				for (; icnt>0; icnt--) {
@@ -620,15 +611,8 @@ static int volume_adjust_f(filter_t *n)
 		buf = sbuf_buf(b);
 		cnt = sbuf_size(b);
 
-		/* alignment loop */
-		for (; (cnt & 3)>0; cnt--) {
-			SCALARPROD_1D_1(buf, buf, scale);
-		}
-
-		/* streamed loop */
-		for (; cnt>0; cnt-=4) {
-			SCALARPROD_1D_4(buf, buf, scale);
-		}
+		/* adjust the amplitude by scale */
+		glsimd.scalar_product_1dI(buf, cnt, scale);
 
 		/* queue the modified buffer */
 		sbuf_queue(out, b);

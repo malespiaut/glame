@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.13 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: echo.c,v 1.14 2001/04/11 08:37:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -118,14 +118,8 @@ static int echo_f(filter_t *n)
 		inb_pos += cnt;
 		fb_pos += cnt;
 
-		/* start "alignment" run */
-		for (; (cnt & 3)>0; cnt--) {
-		        SCALARPROD_2D_1(fs, fs, ins, fbfact, infact);
-		}
-		/* do fast 4 products in one run loop */
-		for (; cnt>0; cnt-=4) {
-		        SCALARPROD_2D_4(fs, fs, ins, fbfact, infact);
-		}
+		/* do the actual work */
+		glsimd.scalar_product_2dI(fs, cnt, fbfact, ins, infact);
 
 		/* now we have to check which buffer has the underrun */
 		if (inb_pos == sbuf_size(inb)) {

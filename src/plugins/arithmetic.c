@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.12 2001/04/10 13:58:31 richi Exp $
+ * $Id: arithmetic.c,v 1.13 2001/04/11 08:37:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -150,7 +150,7 @@ int mul_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
-	plugin_set(p, PLUGIN_PIXMAP, "mul.png");
+	plugin_set(p, PLUGIN_PIXMAP, "prod.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	
 	return filter_register(f, p);
@@ -255,7 +255,7 @@ int add_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
-	plugin_set(p, PLUGIN_PIXMAP, "add.png");
+	plugin_set(p, PLUGIN_PIXMAP, "sum.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 
 	return filter_register(f, p);
@@ -288,10 +288,20 @@ static int invert_f(filter_t *n)
 		buf = sbuf_make_private(buf);
 		s = sbuf_buf(buf);
 		cnt = sbuf_size(buf);
-		for (; (cnt&3)>0; cnt--)
-			INVERT1(s);
-		for (; cnt>0; cnt-=4)
-			INVERT4(s);
+		for (; (cnt&3)>0; cnt--) {
+			*s = - *s;
+			s++;
+		}
+		for (; cnt>0; cnt-=4) {
+			*s = - *s;
+			s++;
+			*s = - *s;
+			s++;
+			*s = - *s;
+			s++;
+			*s = - *s;
+			s++;
+		}
 		sbuf_queue(out, buf);
 	}
 
