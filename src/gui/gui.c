@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.2 2000/02/11 13:08:13 xwolf Exp $
+ * $Id: gui.c,v 1.3 2000/02/14 15:27:20 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -401,7 +401,7 @@ icon_prop_activate                (gpointer user_data)
 	GtkWidget* frame,*frame2;
 	filter_portdesc_t *port;
 	filter_paramdesc_t *param;
-	filter_t * filter = hash_find_filter(g_array_index(gui->filters,gui_filter*,index)->caption);
+	filter_t * filter = filter_get(g_array_index(gui->filters,gui_filter*,index)->caption);
 	
 	propBox = gnome_property_box_new ();
 	gtk_object_set_data (GTK_OBJECT (propBox), "propBox", propBox);
@@ -447,7 +447,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_widget_show (frame);
 	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 3);
 
-	list_foreach_inputdesc(filter,port){
+	filter_foreach_inputdesc(filter,port){
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
@@ -478,7 +478,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_widget_show (frame);
 	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 3);
 
-	list_foreach_outputdesc(filter,port){
+	filter_foreach_outputdesc(filter,port){
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
@@ -506,7 +506,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_container_add (GTK_CONTAINER (notebook), vbox2);
 
 
-	list_foreach_paramdesc(filter,param){
+	filter_foreach_paramdesc(filter,param){
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
