@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.13 2004/05/28 21:28:57 ochonpaul Exp $
+ * $Id: gltree.cpp,v 1.14 2004/05/31 18:06:18 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -741,17 +741,17 @@ static void mergeparent_cb(GtkWidget *menu, gpointer which)
 static void copyselected_cb(GtkWidget *menu, gpointer which)
 {
         gpsm_item_t *selected_item, *dest_item;
-	GtkTreeIter *dest_iter = (GtkTreeIter *)which, selected_iter, iter3, iter4;
+	GtkTreeIter *dest_iter = (GtkTreeIter *)which, selected_iter, iter3;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	GtkTreeSelection *selection;
-	gboolean valid = TRUE;
 
 	gtk_tree_model_get(model, dest_iter, glTree::GPSM_ITEM, &dest_item, -1);
 	if (!GPSM_ITEM_IS_GRP(dest_item))
 		return;
 
 	selection = gtk_tree_view_get_selection(glTree::tree);
-	if (!gtk_tree_selection_get_selected(selection, &model, &selected_iter)) return;
+	if (!gtk_tree_selection_get_selected(selection, &model, &selected_iter))
+	  return;
 	gtk_tree_model_get(model, &selected_iter, glTree::GPSM_ITEM, &selected_item, -1);
 	
 	gpsm_item_t *copy;
@@ -779,20 +779,18 @@ static void copyselected_cb(GtkWidget *menu, gpointer which)
 	  
 	}
 
-	// Update tree store: Clear then fill the parent reading the gpsm tree
-	if (!gtk_tree_model_iter_children(model,  &iter3, dest_iter)){ DPRINTF("no child\n");return; }
-	while (valid){
-	    iter4 = iter3;     
-	    valid = gtk_tree_model_iter_next(model ,&iter3);
-	    gtk_tree_store_remove(GTK_TREE_STORE(model) ,&iter4);
-	  }
-	  fill_tree_store((gpsm_item_t *) dest_item, GTK_TREE_STORE(model), dest_iter);
-	 	
-	  // Expand the parent widget. 
-	  gtk_tree_view_expand_row(glTree::tree,
-				   gtk_tree_model_get_path(model,dest_iter),
-				   FALSE);
-          // deselect_all(active_swapfilegui);
+	// Update tree store: first clear, then re-fill destination
+	// group.
+	if (gtk_tree_model_iter_children(model,  &iter3, dest_iter))
+	  while (gtk_tree_store_remove(GTK_TREE_STORE(model), &iter3))
+	    ;
+	fill_tree_store((gpsm_item_t *)dest_item, GTK_TREE_STORE(model),
+			dest_iter);
+
+	// Expand the parent widget. 
+	gtk_tree_view_expand_row(glTree::tree,
+				 gtk_tree_model_get_path(model,dest_iter),
+				 FALSE);
 }
 
 
