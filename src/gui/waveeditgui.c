@@ -284,6 +284,7 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
  * Complex stuff like apply, play, record, etc.
  */
 
+static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 /* Cleanup helpers for waveedit operations.
  */
@@ -513,17 +514,66 @@ static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
-/* Toolbar event - play from actual marker position using audio_out.
- * --- FIXME: make async and a state machine, stop on second click. */
-static void toolbarplay_cb(GtkWidget *bla, GtkWaveView *waveview)
+/* Toolbar event - play from marker using audio_out. */
+struct playmarker_state {
+	WaveeditGui *waveedit;
+	filter_t *net;
+	filter_param_t *param;
+	long start;
+};
+static void playmarker_cleanup(glsig_handler_t *handler,
+			       long sig, va_list va)
 {
+	struct playmarker_state *s;
+	s = (struct playmarker_state *)glsig_handler_private(handler);
+	s->net = NULL;
+
+	/* restore normal play button -- wheee, gtk suxx. */
+	gtk_widget_destroy(g_list_nth(gtk_container_children(
+		GTK_CONTAINER(s->waveedit->toolbar)), 3)->data);
+	gtk_toolbar_insert_item(GTK_TOOLBAR(s->waveedit->toolbar),
+				"Play", "Play", "Play",
+				glame_load_icon_widget("play.png",24,24),
+				playmarker_cb, s->waveedit->waveview, 4);
+}
+static void playmarker_update_marker(glsig_handler_t *handler,
+				     long sig, va_list va)
+{
+	struct playmarker_state *s;
+	long pos;
+
+	s = (struct playmarker_state *)glsig_handler_private(handler);
+	pos = filterparam_val_pos(s->param);
+	gtk_wave_view_set_marker_and_scroll(
+		GTK_WAVE_VIEW(s->waveedit->waveview), s->start + pos);
+}
+static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	static struct playmarker_state state = { NULL, NULL, NULL, -1 };
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	gint32 start, length;
+	gint32 start;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
 	int rate;
+	glsig_emitter_t *emitter;
+
+	/* A simple state machine with two states:
+	 * - not playing, a button press will start playing
+	 * - playing, a button press will stop playing
+	 */
+
+	if (state.net) {
+		/* Playing state - abort the network.
+		 * Cleanup will happen automatically. */
+
+		filter_terminate(state.net);
+		return;
+	}
+
+	/* Not playing state - create the network.
+	 */
 
 	if (!plugin_get("audio_out")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -531,16 +581,12 @@ static void toolbarplay_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	}
 
-	start = gtk_wave_view_get_marker(waveview);
-	if (start < 0)
-		start = 0;
+	start = gtk_wave_view_get_marker (waveview);
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Playing from %li\n", (long)start);
-
 	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
 	if (!grp)
 		return;
-
-	rate = gtk_wave_buffer_get_rate(wavebuffer);
 
 	/* Create the network. */
 	net = filter_creat(NULL);
@@ -554,13 +600,37 @@ static void toolbarplay_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (!(aout = net_apply_audio_out(net)))
 		goto fail;
 
-	glame_gui_play_network(net, NULL, TRUE,
-			       (GtkFunction)network_run_cleanup_cb,
-			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
-						  waveview,
-						  filterparamdb_get_param(filter_paramdb(aout), FILTERPARAM_LABEL_POS),
-						  start, -1),
-			       "Play", "Pause", "Stop", 0);
+	emitter = glame_network_notificator_creat(net);
+	glsig_add_handler(emitter, GLSIG_NETWORK_TICK,
+			  playmarker_update_marker, &state);
+	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
+			  playmarker_cleanup, &state);
+	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
+			  glame_network_notificator_delete_network, NULL);
+	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
+			  glame_network_notificator_destroy_gpsm, grp);
+	state.waveedit = active_waveedit;
+	state.net = net;
+	state.param = filterparamdb_get_param(
+		filter_paramdb(aout), FILTERPARAM_LABEL_POS);
+	state.start = start;
+	if (glame_network_notificator_run(emitter, 10) == -1) {
+		state.net = NULL;
+		filter_delete(net);
+		gpsm_item_destroy((gpsm_item_t *)grp);
+		gnome_dialog_run_and_close(
+			GNOME_DIALOG(gnome_error_dialog("Cannot play")));
+		return;
+	}
+
+	/* exchange play for stop button -- wheee, gtk suxx. */
+	gtk_widget_destroy(g_list_nth(gtk_container_children(
+		GTK_CONTAINER(state.waveedit->toolbar)), 3)->data);
+	gtk_toolbar_insert_item(GTK_TOOLBAR(state.waveedit->toolbar),
+				"Stop", "Stop", "Stop",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
+				playmarker_cb, state.waveedit->waveview, 4);
+
 	return;
 
  fail:
@@ -1214,7 +1284,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Play", "Play", "Play",
 				glame_load_icon_widget("play.png",24,24),
-				toolbarplay_cb, window->waveview);
+				playmarker_cb, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
