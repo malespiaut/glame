@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.9 2001/06/11 17:34:21 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.10 2001/06/22 10:34:43 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -134,6 +134,7 @@ struct _GlameCanvasGroup {
 
 	/* private */
 	gint type;
+	guint id;
 	GList* children;   // these are GlameCanvasFilter*
 };
 

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.13 2001/06/20 19:56:26 xwolf Exp $
+ * $Id: canvasport.c,v 1.14 2001/06/22 10:34:43 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -222,9 +222,6 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		
-		// hmmm whats this? why is gtk so broken?? fuck
-		//gtk_object_get(GTK_OBJECT(line),"points",points,NULL);
-		
 		points->coords[2] = event->button.x;
 		points->coords[3] = event->button.y;
 		last_x = event->button.x;
@@ -240,7 +237,9 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 		gtk_signal_disconnect_by_func(GTK_OBJECT(port),GTK_SIGNAL_FUNC(glame_canvas_port_grabbing_cb),port);
 		gtk_signal_handler_unblock_by_func(GTK_OBJECT(port),GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),port);
 		canvas = CANVAS_ITEM_CANVAS(port);
-		gnome_canvas_item_hide(GNOME_CANVAS_ITEM(line));
+		gtk_object_destroy(GTO(line));
+		line = NULL;
+
 		
 		if(bMac){
 			if(event->button.button == 1){
@@ -255,7 +254,8 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 		gtk_signal_disconnect_by_func(GTO(port),GTK_SIGNAL_FUNC(glame_canvas_port_grabbing_cb),port);
 		gtk_signal_handler_unblock_by_func(GTO(port),GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),port);
 		canvas = CANVAS_ITEM_CANVAS(port);
-		gnome_canvas_item_hide(GNOME_CANVAS_ITEM(line));
+		gtk_object_destroy(GTO(line));
+		line = NULL;
 		
 		item = gnome_canvas_get_item_at(canvas, event->button.x,event->button.y);
 		if(item && GLAME_IS_CANVAS_PORT(item)) {
@@ -374,7 +374,7 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 		points->coords[2]=last_x;
 		points->coords[3]=last_y;
 		
-		line = GNOME_CANVAS_LINE(gnome_canvas_item_new(CANVAS_ITEM_ROOT(item),
+		line = GNOME_CANVAS_LINE(gnome_canvas_item_new(CANVAS_ITEM_ROOT(port),
 							       gnome_canvas_line_get_type(),
 							       "points",points,
 							       "fill_color","black",
@@ -402,10 +402,21 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 			points->coords[1]=last_y;
 			points->coords[2]=last_x;
 			points->coords[3]=last_y;
-			gnome_canvas_item_set(GNOME_CANVAS_ITEM(line),
-					      "points",points,
-					      NULL);
-			gnome_canvas_item_show(GNOME_CANVAS_ITEM(line));
+			
+			line = GNOME_CANVAS_LINE(gnome_canvas_item_new(CANVAS_ITEM_ROOT(port),
+								       gnome_canvas_line_get_type(),
+								       "points",points,
+								       "fill_color","black",
+								       "width_units",2.0,
+								       "arrow_shape_a",18.0,
+								       "arrow_shape_b",20.0,
+								       "arrow_shape_c",5.0,
+								       "line_style",GDK_LINE_ON_OFF_DASH,
+								       "smooth",TRUE,
+								       "spline_steps",100,
+								       "last_arrowhead",TRUE,
+								       NULL));
+			
 			gtk_signal_connect(GTK_OBJECT(port),"event", GTK_SIGNAL_FUNC(glame_canvas_port_grabbing_cb), port);
 			/* grab the thing */
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(port),GDK_BUTTON_MOTION_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,NULL,

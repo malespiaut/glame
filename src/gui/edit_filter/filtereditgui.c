@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.21 2001/06/19 12:09:01 richi Exp $
+ * $Id: filtereditgui.c,v 1.22 2001/06/22 10:34:43 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -136,9 +136,11 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 	GnomeCanvasItem* onItem;	
 	/* assign global for accels :( */
 	
-	glcanvas = glCanv;
-	switch(event->type){
 
+	switch(event->type){
+	case GDK_ENTER_NOTIFY:
+		glcanvas = glCanv;
+		break;
 	case GDK_BUTTON_PRESS:
 		  /* check if on some item */
 		gnome_canvas_window_to_world(canvas,event->button.x,event->button.y,&eventx,&eventy);
