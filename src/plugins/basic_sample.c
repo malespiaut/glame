@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.61 2002/02/24 15:43:55 richi Exp $
+ * $Id: basic_sample.c,v 1.62 2002/02/27 09:08:29 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -635,10 +635,13 @@ static int render_f(filter_t *n)
 		i = 0;
 		filterport_foreach_pipe(out, p) {
 			for (j=0; j<nr_in; j++) {
+				float ang_diff;
+				/* Ignore finished inputs. */
+				if (!I[j].in)
+					continue;
 				/* The factor is the difference in hangle divided
 				 * by PI and subtracted from 1.0 - this way we
 				 * get linear scaling between 0.0 and PI/2. */
-				float ang_diff;
 				ang_diff = fabs(filterpipe_sample_hangle(I[j].in) - filterpipe_sample_hangle(p));
 				if (ang_diff > M_PI)
 					facts[i][j] = -1.0 + ang_diff/M_PI;
