@@ -73,10 +73,15 @@ static struct {
 	char *clusters_data_base;
 	char *clusters_meta_base;
 	struct list_head fds;
-	int fsck, ro;
+	int fsck, ro, clean;
 } swap = { NULL, NULL, NULL, };
 #define SWAPFILE_OK() (swap.files_base != NULL)
 #define SWAPFILE_RW() (SWAPFILE_OK() && (!swap.ro || swap.fsck))
+#ifdef SWDEBUG
+#define SWAPFILE_MARK_UNCLEAN(msg) do { DPRINTF(msg); swap.clean = 0; swap.ro = 1; } while (0)
+#else
+#define SWAPFILE_MARK_UNCLEAN(msg) do { swap.clean = 0; swap.ro = 1; } while (0)
+#endif
 
 static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK do { pthread_mutex_lock(&swmx); } while (0)
@@ -209,6 +214,7 @@ static int _swapfile_init(const char *name, int force)
 	INIT_LIST_HEAD(&swap.fds);
 	swap.fsck = 0;
 	swap.ro = 0;
+	swap.clean = 1;
 
 	/* Initialize cluster subsystem. */
 	if (cluster_init(2048, 128, 256, 256*1024*1024) == -1)
@@ -225,8 +231,6 @@ static int _swapfile_init(const char *name, int force)
  *  - unclean swap */
 int swapfile_open(const char *name, int flags)
 {
-	char str[256];
-
 	if (SWAPFILE_OK()) {
 		errno = EINVAL;
 		return -1;
@@ -239,9 +243,8 @@ int swapfile_open(const char *name, int flags)
 	if (fsck_scan_clusters(0) == 1
 	    || fsck_check_files(0) == 1) {
 		/* Doh - unclean - close swap, but leave .lock */
+		swap.clean = 0;
 		swapfile_close();
-		snprintf(str, 255, "%s/.lock", name);
-	        close(open(str, O_RDWR|O_CREAT|O_EXCL, 0666));
 		errno = EBUSY;
 		return -1;
 	}
@@ -272,9 +275,13 @@ void swapfile_close()
 	/* Cleanup cluster subsystem. */
 	cluster_cleanup();
 
-	/* Remove the .lock file. */
-	snprintf(s, 255, "%s/.lock", swap.files_base);
-	unlink(s);
+	/* Remove the .lock file - only, if clean, else force fsck
+	 * on next start. */
+	if (swap.clean) {
+		snprintf(s, 255, "%s/.lock", swap.files_base);
+		unlink(s);
+	} else
+		DPRINTF("WARNING! Unclean swap. Will force FSCK.\n");
 
 	/* Cleanup swap structure. */
 	free(swap.files_base);
@@ -283,8 +290,6 @@ void swapfile_close()
 	swap.files_base = NULL;
 	swap.clusters_data_base = NULL;
 	swap.clusters_meta_base = NULL;
-	swap.fsck = 0;
-	swap.ro = 0;
 }
 
 /* Tries to create an empty swapfile on name of size size. */
@@ -684,7 +689,7 @@ int swapfile_fsck(const char *name, int force)
 
 	swapfile_close();
 
-	return 0;
+	return unclean;
 }
 
 

@@ -100,7 +100,10 @@ void swapfile_close();
 /* Tries to create an empty swapfile on name of size size. */
 int swapfile_creat(const char *name, size_t size);
 
-/* Tries to recover from unclean shutdown. */
+/* Tries to recover from unclean shutdown. Returns -1, if fsck
+ * cannot be performed or failed, 0 if swapfile is clean, 1 if
+ * swapfile was modified. Provide force == 1 to force a complete
+ * fsck, even if swapfile is clean. */
 int swapfile_fsck(const char *name, int force);
 
 

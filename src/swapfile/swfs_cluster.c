@@ -156,21 +156,21 @@ static void cluster_cleanup()
 	if (list_count(&clusterslru) != clusterslrucnt) {
 		DPRINTF("LRU has %i elements, but %i accounted\n",
 			list_count(&clusterslru), clusterslrucnt);
-		PANIC("Bug in lru accounting");
+		DERROR("Bug in lru accounting");
 	}
 
 	/* Check the cluster fd accounting. */
 	if (list_count(&clusters_fdlru) != clusters_fdlru_cnt) {
 		DPRINTF("FD LRU has %i elements, but %i accounted\n",
 			list_count(&clusters_fdlru), clusters_fdlru_cnt);
-		PANIC("Bug in fd lru accounting");
+		DERROR("Bug in fd lru accounting");
 	}
 
 	/* Check the cluster map accounting. */
 	if (list_count(&clusters_maplru) != clusters_maplru_cnt) {
 		DPRINTF("MAP LRU has %i elements, but %i accounted\n",
 			list_count(&clusters_maplru), clusters_maplru_cnt);
-		PANIC("Bug in map lru accounting");
+		DERROR("Bug in map lru accounting");
 	}
 
 	/* Clear the cluster lru. */
@@ -233,10 +233,11 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 	UNLOCKCLUSTERS;
 	if (!c)
 		return NULL;
-#ifdef SWDEBUG
-	if (known_size != -1 && c->size != known_size)
-		SWPANIC("User and cluster disagree about its size");
-#endif
+	if (known_size != -1 && c->size != known_size) {
+		SWAPFILE_MARK_UNCLEAN("User and cluster disagree about its size");
+		cluster_put(c, 0);
+		return NULL;
+	}
 	clusters_getcnt++;
 
 	/* Read the files list, if required. */
@@ -245,8 +246,7 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 		LOCKCLUSTER(c);
 		if (c->flags & SWC_NOT_IN_CORE)
 			if (_cluster_readfiles(c) == -1) {
-				if (c->usage > 1)
-					SWPANIC("metadata vanished under us");
+				SWAPFILE_MARK_UNCLEAN("metadata vanished under us");
 				UNLOCKCLUSTER(c);
 				cluster_put(c, CLUSTERPUT_FREE);
 				return NULL;
@@ -284,8 +284,6 @@ static void cluster_put(struct swcluster *c, int flags)
 			c2 = list_gettail(&clusterslru, struct swcluster, lru);
 			if (!c2)
 				DERROR("Bug in lru accounting");
-			if (&c2->lru == &clusterslru)
-				PANIC("Corrupted lru list!");
 			hash_remove_swcluster(c2);
 			list_del_init(&c2->lru);
 			clusterslrucnt--;
@@ -334,15 +332,24 @@ static struct swcluster *cluster_alloc(s32 size)
 
 static void cluster_addfileref(struct swcluster *c, long file)
 {
+	long *newfiles;
+
 	LOCKCLUSTER(c);
 	/* Bring in the files list, if necessary. */
 	_cluster_needfiles(c);
 
 	/* Re-alloc the files array. - FIXME: inefficient */
-	if (!(c->files = (long *)realloc(c->files, (c->files_cnt+1)*sizeof(long))))
-		SWPANIC("cannot realloc files array");
+	newfiles = (long *)realloc(c->files, (c->files_cnt+1)*sizeof(long));
+	if (!newfiles) {
+		/* Even for c->files_cnt == 0 we cannot do better - so
+		 * we eventually loose this cluster. */
+		SWAPFILE_MARK_UNCLEAN("cannot realloc files array");
+		UNLOCKCLUSTER(c);
+		return;
+	}
 
 	/* Append the file, fix the files count and mark it dirty. */
+	c->files = newfiles;
 	c->files[c->files_cnt] = file;
 	c->files_cnt++;
 	c->flags |= SWC_DIRTY;
@@ -375,8 +382,9 @@ static int cluster_delfileref(struct swcluster *c, long file)
 		}
 	}
 
-	/* Not found!? */
+	/* Not found!? At least mark swap unclean. */
 	UNLOCKCLUSTER(c);
+	SWAPFILE_MARK_UNCLEAN("Cannot del fileref");
 	return -1;
 }
 
@@ -516,7 +524,7 @@ static void _cluster_fixmap(struct swcluster *c, size_t size)
 		if (c->map_cnt == 0)
 			_cluster_killmap(c);
 		else
-		        PANIC("umm, we are screwed now");
+		        SWPANIC("umm, we are screwed now");
 	} else {
 		c->map_addr = addr;
 		LOCKMAPPINGS;
@@ -579,7 +587,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 		/* umm - fuck. we at least need to mremap to
 		 * one part - or possibly "detach" the mapping,
 		 * split it, too - hoo, humm. msync probably, etc. */
-		PANIC("Splitting mapped cluster");
+		SWPANIC("Splitting mapped cluster");
 	}
 
 	if (c->files_cnt == 1) {
@@ -857,8 +865,13 @@ static int _cluster_readfiles(struct swcluster *c)
 	if (!(c->files = (long *)malloc(stat.st_size)))
 		SWPANIC("no memory for files list");
 	c->files_cnt = stat.st_size/sizeof(long);
-	if (read(fd, c->files, stat.st_size) != stat.st_size)
-		SWPANIC("cannot read cluster metadata");
+	if (read(fd, c->files, stat.st_size) != stat.st_size) {
+		SWAPFILE_MARK_UNCLEAN("cannot read cluster metadata");
+		close(fd);
+		free(c->files);
+		c->files = NULL;
+		return -1;
+	}
 	c->flags &= ~SWC_NOT_IN_CORE;
 	close(fd);
 	clusters_readfilescnt++;
