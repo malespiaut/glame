@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.14 2000/12/12 16:35:36 xwolf Exp $
+ * $Id: canvas.c,v 1.15 2000/12/12 17:30:48 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -49,6 +49,7 @@ static void add_canvas_node_cb(GtkWidget*bla,void*blu);
 static void add_canvas_input_port_cb(GtkWidget*bla,void*blu){}
 static void add_canvas_output_port_cb(GtkWidget*bla,void*blu){}
 static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu);
+static void redirect_params(GtkWidget *bla, GlameCanvasItem *item);
 void edit_canvas_item_properties(filter_paramdb_t *pdb, const char *label);
 static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
 int event_x,event_y;
@@ -58,6 +59,7 @@ int inItem;
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_item_properties_cb,NULL),
+	GNOMEUIINFO_ITEM("Redirect parameter","redirect",redirect_params,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Delete","Delete node",delete_canvas_item_cb,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
@@ -1404,4 +1406,33 @@ static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
 		}
 	}
 	free(filenamebuffer);
+}
+
+
+static void redirect_params(GtkWidget *bla, GlameCanvasItem *item)
+{
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	GtkWidget * list;
+	GtkWidget * listItems;
+	filter_paramdb_t * db;
+	filter_param_t *iter;
+	GList * items=NULL;
+
+	dialog = gnome_dialog_new("Select parameter",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+	
+	list = gtk_list_new();
+	
+	db = filter_paramdb(item->filter);
+
+	filterparamdb_foreach_param(db,iter){
+		listItems = gtk_list_item_new_with_label(filterparam_label(iter));
+		gtk_widget_show(listItems);
+		items = g_list_append(items,listItems);
+	}
+	gtk_list_append_items(list,items);
+	gtk_widget_show(list);
+	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), list, TRUE, TRUE, 0);
+	gnome_dialog_run_and_close(dialog);
 }
