@@ -104,7 +104,6 @@ struct swfd {
 	swfd_t fd;
 	int mode;
 	s64 offset;          /* file pointer position */
-	txnid_t tid;         /* parent for transactions */
 };
 #define list_add_swfd(fd) list_add(&(fd)->list, &swap.fds)
 #define list_del_swfd(fd) list_del_init(&(fd)->list)
@@ -710,7 +709,7 @@ int sw_closedir(SWDIR *d)
  * The optional transaction id is used for all operations
  * operating on the swfd_t, they can be undone and redone
  * this way. */
-swfd_t sw_open(long name, int flags, txnid_t tid)
+swfd_t sw_open(long name, int flags)
 {
 	struct swfile *f;
 	struct swfd *fd;
@@ -771,14 +770,9 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 	fd->fd = ((long)fd)>>2;
 	fd->mode = flags & (O_RDONLY|O_WRONLY|O_RDWR);
 	fd->offset = 0;
-	fd->tid = tid;
 	list_add_swfd(fd);
 	hash_add_swfd(fd);
 	UNLOCK;
-
-	/* Add a "unimplemented txn" transaction. */
-	if (tid != TXN_NONE)
-		txn_finish_unimplemented(txn_start(tid), "no transaction support for swapfile for now");
 
 	errno = 0;
 	return fd->fd;

@@ -54,7 +54,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "txn.h"
 
 
 
@@ -139,11 +138,8 @@ int sw_closedir(SWDIR *d);
 
 /* Open a file like open(2) - flags can be O_CREAT, O_EXCL,
  * O_RDWR, O_RDONLY, O_WRONLY with same semantics as open(2).
- * Returns a file descriptor on success, -1 on error.
- * The optional transaction id is used for all operations
- * operating on the swfd_t, they can be undone and redone
- * this way. */
-swfd_t sw_open(long name, int flags, txnid_t tid);
+ * Returns a file descriptor on success, -1 on error. */
+swfd_t sw_open(long name, int flags);
 
 /* Closes a file descriptor. Like close(2). */
 int sw_close(swfd_t fd);
