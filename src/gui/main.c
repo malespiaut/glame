@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.46 2001/05/01 11:23:42 richi Exp $
+ * $Id: main.c,v 1.47 2001/05/04 08:03:08 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -155,6 +155,7 @@ static void update_preferences()
 	char *aoutplugin = NULL, *aoutdev = NULL;
 	char s[256];
 	gboolean def;
+	int maxundo;
 
 	/* Update globals. */
 	nPopupTimeout = gnome_config_get_int_with_default(
@@ -166,11 +167,16 @@ static void update_preferences()
 	if (def)
 		gnome_config_set_bool("edit_filter/macMode", bMac);
 
-	/* Set default swapfile path. */
+	/* Set default swapfile path and max. undo depth */
 	sprintf(s, "swapfile/defaultpath=%s/.glameswap", g_get_home_dir());
 	swappath = gnome_config_get_string_with_default(s, &def);
 	if (def)
 		gnome_config_set_string("swapfile/defaultpath", swappath);
+	maxundo = gnome_config_get_int_with_default(
+		"swapfile/maxundo=5", &def);
+	if (def)
+		gnome_config_set_int("swapfile/maxundo", maxundo);
+	gpsm_set_max_saved_ops(maxundo);
 
 	/* Update IO plugin setup - audio_out */
 	aoutplugin = gnome_config_get_string_with_default(
@@ -229,11 +235,12 @@ static void update_preferences()
 	DPRINTF(
 "Preferences:\n"
 "\tSwapfile directory %s\n"
+"\tUndo stack depth is %d\n"
 "\tAudio input plugin %s, device \"%s\"\n"
 "\tAudio output plugin %s, device \"%s\"\n"
 "\tPopup timeout is %ims\n"
 "\tMac mode is %s\n",
-                swappath, ainplugin, aindev, aoutplugin, aoutdev,
+                swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev,
                 nPopupTimeout, bMac ? "on" : "off");
 
 	/* Free temp. storage. */
@@ -270,9 +277,10 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget *combo;
 	GList *combo_items;
 	char *cfg, *path, *numberbuffer, *aindev, *aoutdev;
-	char *ainplugin, *aoutplugin;
+	char *ainplugin, *aoutplugin, *maxundobuf;
 	gboolean ok=FALSE;
 	gboolean mac, foo;
+	int maxundo;
 
 	/* New box. */
         prop_box = gnome_property_box_new();
@@ -285,7 +293,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
         entry = gnome_file_entry_new("swapfilepath", "Swapfilepath");
         create_label_widget_pair(vbox, "Swapfile Path", entry);
-	cfg = gnome_config_get_string_with_default("swapfile/defaultpath=~/.glameswap", &foo);
+	cfg = gnome_config_get_string("swapfile/defaultpath");
         path = alloca(256);
 	strncpy(path, cfg, 255);
 	g_free(cfg);
@@ -294,6 +302,11 @@ preferences_cb(GtkWidget * wid, void * bla)
         notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
+	maxundo = gnome_config_get_int("swapfile/maxundo");
+	maxundobuf = alloca(256);
+	snprintf(maxundobuf, 255, "%d", maxundo);
+	create_label_edit_pair(vbox, "Depth of undo stack", "prefs::maxundo",
+			       maxundobuf);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
 
 	/* Edit Filter with
@@ -410,8 +423,10 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* Update gnome config. */
 	gnome_config_set_string("swapfile/defaultpath", path);
-	nPopupTimeout = atoi(numberbuffer);
-	gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
+	if (sscanf(maxundobuf, "%d", &maxundo) == 1)
+		gnome_config_set_int("swapfile/maxundo", maxundo);
+	if (sscanf(numberbuffer, "%d", &nPopupTimeout) == 1)
+		gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = mac;
 	gnome_config_set_bool("edit_filter/macMode",bMac);
 	gnome_config_set_string("audio_io/input_dev", aindev);
