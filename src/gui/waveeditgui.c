@@ -286,92 +286,7 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
  * Complex stuff like apply, play, record, etc.
  */
 
-static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview);
-static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
-
-/* Cleanup helpers for waveedit operations.
- */
-struct network_run_s {
-	/* Cleanup part. */
-	filter_t *net;
-	gpsm_item_t *item;
-	int invalidate;
-	/* Timeout (marker/progress bar) part. */
-	GtkWaveView *waveview;
-	filter_param_t *pos_param;
-	long start, end, oldmarker;
-	guint tid;
-	WaveeditGui *waveedit;
-};
-static gint network_run_timeout_cb(struct network_run_s *cs)
-{
-	long pos = filterparam_val_pos(cs->pos_param);
-	gtk_wave_view_set_marker_and_scroll(cs->waveview, cs->start + pos);
-	return TRUE;
-}
-static void network_run_cleanup_cb(struct network_run_s *cs)
-{
-	DPRINTF("starting cleanup\n");
-	if (cs->tid != -1) {
-		gtk_timeout_remove(cs->tid);
-		gtk_wave_view_set_marker(cs->waveview, cs->oldmarker);
-	}
-	if (cs->net) {
-		filter_terminate(cs->net);
-		filter_wait(cs->net);
-		filter_delete(cs->net);
-		DPRINTF("deleted filternetwork\n");
-	}
-	if (cs->invalidate && cs->item) {
-		if (GPSM_ITEM_IS_SWFILE(cs->item)) {
-			if (cs->start >= 0)
-				gpsm_notify_swapfile_change(gpsm_swfile_filename(cs->item), cs->start, cs->end - cs->start + 1);
-			else
-				gpsm_invalidate_swapfile(gpsm_swfile_filename(cs->item));
-		} else {
-			gpsm_item_t *it;
-			gpsm_grp_foreach_item(cs->item, it) {
-				if (!GPSM_ITEM_IS_SWFILE(it))
-					continue;
-				if (cs->start >= 0)
-					gpsm_notify_swapfile_change(gpsm_swfile_filename(it), cs->start - gpsm_item_hposition(it), cs->end - cs->start + 1);
-				else
-					gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-			}
-		}
-		DPRINTF("invalidated swfiles\n");
-	} else if (cs->item) {
-		gpsm_item_destroy(cs->item);
-		DPRINTF("destroyed item\n");
-	}
-	cs->waveedit->locked = 0;
-	free(cs);
-}
-static struct network_run_s *network_run_create(filter_t *net,
-						gpsm_item_t *item,
-						int invalidate,
-						GtkWaveView *waveview,
-						filter_param_t *pos,
-						long start, long end)
-{
-	struct network_run_s *cs;
-	cs = ALLOC(struct network_run_s);
-	cs->net = net;
-	cs->item = item;
-	cs->invalidate = invalidate;
-	cs->waveview = waveview;
-	cs->pos_param = pos;
-	cs->start = start;
-	cs->end = end;
-	cs->tid = -1;
-	if (waveview && pos) {
-		cs->oldmarker = gtk_wave_view_get_marker(waveview);
-		cs->tid = gtk_timeout_add(10, (GtkFunction)network_run_timeout_cb, cs);
-	}
-	cs->waveedit = active_waveedit;
-	cs->waveedit->locked = 1;
-	return cs;
-}
+static void playrecordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 /* Menu event - Apply operation. */
 static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
@@ -418,7 +333,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 }
 
 
-/* Generic play stuff. */
+/* Generic play/record stuff. */
 static void play_cleanup(glsig_handler_t *handler,
 			 long sig, va_list va)
 {
@@ -437,8 +352,8 @@ static void play_cleanup(glsig_handler_t *handler,
 		GTK_CONTAINER(waveedit->toolbar)), 5)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
 				_("Play"), _("Play"), _("Play"),
-				glame_load_icon_widget("play.png",24,24),
-				playtoolbar_cb, waveedit->waveview, 7);
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
+				playrecordtoolbar_cb, waveedit->waveview, 7);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -474,7 +389,8 @@ static void play_update_marker(glsig_handler_t *handler,
 }
 static void play(GtkWaveView *waveview,
 		 gint32 start, gint32 end,
-		 gboolean restore_marker, gboolean loop)
+		 gboolean restore_marker, gboolean loop,
+		 gboolean extend, gboolean enable_record)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
@@ -485,9 +401,6 @@ static void play(GtkWaveView *waveview,
 	int rate, i, play_cnt, rec_cnt;
 	glsig_emitter_t *emitter;
 	gboolean *flg_rec, *flg_mute;
-
-	DPRINTF("%p - %i, %i, %i, %i\n", waveview, start, end,
-		(int)restore_marker, (int)loop);
 
 	/* A simple state machine with two states:
 	 * - not playing, a button press will start playing
@@ -511,15 +424,15 @@ static void play(GtkWaveView *waveview,
 	flg_rec = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
 	flg_mute = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
 	for (i=gtk_wave_buffer_get_num_channels(wavebuffer); i>0; i--) {
-		flg_rec[i-1] = gtk_wave_view_get_flag(waveview, i-1, 0);
-		flg_mute[i-1] = gtk_wave_view_get_flag(waveview, i-1, 1);
+		flg_rec[i-1] = gtk_wave_view_get_flag(waveview, i-1, GTK_WAVE_VIEW_FLAG_RECORD) && enable_record;
+		flg_mute[i-1] = gtk_wave_view_get_flag(waveview, i-1, GTK_WAVE_VIEW_FLAG_MUTE);
 		if (!flg_mute[i-1])
 			play_cnt++;
 		if (flg_rec[i-1])
 			rec_cnt++;
 	}
 	if (play_cnt == 0 && rec_cnt == 0)
-		return ;
+		return;
 
 	if (play_cnt != 0 && !plugin_get("audio_out")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -531,6 +444,9 @@ static void play(GtkWaveView *waveview,
 			gnome_error_dialog(_("No audio input support"))));
 		return;
 	}
+
+	if (rec_cnt != 0)
+		loop = FALSE;
 
 	active_waveedit->pm_marker = -1000;
 	if (restore_marker)
@@ -563,8 +479,10 @@ static void play(GtkWaveView *waveview,
 	if (rec_cnt > 0) {
 		float duration;
 		ain = filter_instantiate(plugin_get("audio_in"));
-		duration = (float)(end-start)/gpsm_swfile_samplerate(gpsm_grp_first(grp))+0.1;
-		filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
+		if (!extend) {
+			duration = (float)(end-start)/gpsm_swfile_samplerate(gpsm_grp_first(grp))+0.1;
+			filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
+		}
 		filter_add_node(net, ain, "audio-in");
 		ain_out = filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT);
 		gpsm_op_prepare((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
@@ -584,13 +502,13 @@ static void play(GtkWaveView *waveview,
 			one2n = filter_instantiate(plugin_get("one2n"));
 			filter_add_node(net, one2n, "one2n");
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
-						    start, end - start + 1, 0);
+						    start, !extend ? end - start + 1 : -1, 0);
 			filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN));
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), render_in);
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 		} else if (flg_mute[i] && flg_rec[i]) {
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
-						    start, end - start + 1, 0);
+						    start, !extend ? end - start + 1 : -1, 0);
 			filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 		}
 	}
@@ -604,11 +522,11 @@ static void play(GtkWaveView *waveview,
 			  glame_network_notificator_destroy_gpsm, grp);
 	active_waveedit->pm_net = net;
 	active_waveedit->pm_param = filterparamdb_get_param(
-		filter_paramdb(aout ? aout : swout), FILTERPARAM_LABEL_POS);
+		filter_paramdb(loop && swin ? swin : (aout ? aout : swout)), FILTERPARAM_LABEL_POS);
 	active_waveedit->pm_start = start;
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;
-		glame_network_error_dialog(net, _("Cannot play wave"));
+		glame_network_error_dialog(net, _("Cannot play/record wave"));
 		filter_delete(net);
 		gpsm_item_destroy((gpsm_item_t *)grp);
 		return;
@@ -620,7 +538,7 @@ static void play(GtkWaveView *waveview,
 	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
 				_("Stop"), _("Stop"), _("Stop"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
-				playtoolbar_cb, active_waveedit->waveview, 7);
+				playrecordtoolbar_cb, active_waveedit->waveview, 7);
 	active_waveedit->locked = 1;
 
 	return;
@@ -632,7 +550,7 @@ static void play(GtkWaveView *waveview,
 }
 
 
-static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
+static void playrecordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gint32 start, end;
@@ -645,9 +563,9 @@ static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (end - start <= 0) {
 		start = MAX(0, gtk_wave_view_get_marker (waveview));
 		end = gtk_wave_buffer_get_length(wavebuffer);
-		play(waveview, start, end, FALSE, FALSE);
+		play(waveview, start, end, FALSE, FALSE, TRUE, TRUE);
 	} else
-		play(waveview, start, end, TRUE, FALSE);
+		play(waveview, start, end, TRUE, FALSE, FALSE, TRUE);
 }
 
 static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
@@ -658,22 +576,25 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	/* Play from marker to end, dont restore marker position. */
 	start = MAX(0, gtk_wave_view_get_marker (waveview));
 	end = gtk_wave_buffer_get_length(wavebuffer) - start - 1;
-	play(waveview, start, end, FALSE, FALSE);
+	play(waveview, start, end, FALSE, FALSE, FALSE, FALSE);
 }
 
-static void playselection_cb(GtkWidget *bla, GtkWaveView *waveview)
+static void playselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 {
 	gint32 start, end;
 
 	/* Play the current selection, restore marker at stop. */
 	gtk_wave_view_get_selection(waveview, &start, &end);
 	end = start + end;
-	if (end - start <= 0)
+	if (end - start <= 0) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
+			_("Nothing selected"))));
 		return;
-	play(waveview, start, end, TRUE, FALSE);
+	}
+	play(waveview, start, end, TRUE, FALSE, FALSE, FALSE);
 }
 
-static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
+static void playall_cb(GtkWidget *widget, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gint32 start, end;
@@ -681,173 +602,38 @@ static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
 	/* Play whole track, restore marker at stop. */
 	start = 0;
 	end = gtk_wave_buffer_get_length(wavebuffer);
-	play(waveview, start, end, TRUE, FALSE);
+	play(waveview, start, end, TRUE, FALSE, FALSE, FALSE);
 }
 
-
-
-/* Menu event - record into selection. */
-static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
+static void recordmarker_cb(GtkWidget *widget, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	gint32 start, length;
-	gpsm_item_t *grp, *item, *left, *right;
-	filter_t *net, *ain;
-	int rate;
-	filter_t *swout;
-	float duration;
+	gint32 start, end;
 
-	if (!plugin_get("audio_in")) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("No audio input support"))));
-		return;
-	}
-
-	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0)
-		return;
-	DPRINTF("Recording into [%li, +%li]\n", (long)start, (long)length);
-
-	left = right = NULL;
-	grp = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
-	gpsm_grp_foreach_item(grp, item) {
-		if (!GPSM_ITEM_IS_SWFILE(item))
-			return;
-		if (!left)
-			left = item;
-		else if (!right)
-			right = item;
-		else {
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("GLAME only supports recording of up to two channels"))));
-			return;
-		}
-	}
-	if (!left && !right)
-		return;
-
-	rate = gtk_wave_buffer_get_rate(wavebuffer);
-
-	/* Create the basic network - audio_in. */
-	net = filter_creat(NULL);
-	ain = filter_instantiate(plugin_get("audio_in"));
-	duration = length/(float)rate;
-	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
-	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
-	filter_add_node(net, ain, "ain");
-
-	/* Left - or mono. */
-	swout = net_add_gpsm_output(net, (gpsm_swfile_t *)left, start, length, 0);
-	if (!swout)
-		goto fail;
-	if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
-				filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
-		goto fail;
-
-	/* Right. */
-	if (right) {
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)right, start, length, 0);
-		if (!swout)
-			goto fail;
-		if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
-					filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
-			goto fail;
-	}
-
-	/* Prepare for undo. */
-	if (gpsm_op_prepare(grp) == -1)
-		DPRINTF("Error preparing for undo\n");
-
-	glame_gui_play_network(net, FALSE /* FIXME TRUE */,
-			       (GtkFunction)network_run_cleanup_cb,
-			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
-						  NULL, NULL, start, start + length - 1),
-			       _("Record"), _("Pause"), _("Stop"), 1);
-	return;
-
- fail:
-	glame_network_error_dialog(net, _("Cannot record"));
-	filter_delete(net);
+	/* Record from marker, dont restore marker position. */
+	start = MAX(0, gtk_wave_view_get_marker (waveview));
+	end = gtk_wave_buffer_get_length(wavebuffer) - start - 1;
+	play(waveview, start, end, FALSE, FALSE, TRUE, TRUE);
 }
 
-/* Menu event - record starting at marker position. */
-static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
+static void recordselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	gint32 start;
-	gpsm_item_t *grp, *item, *left, *right;
-	filter_t *net, *ain;
-	int rate;
-	filter_t *swout;
+	gint32 start, end;
 
-	if (!plugin_get("audio_in")) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("No audio input support"))));
+	/* Play the current selection, restore marker at stop. */
+	gtk_wave_view_get_selection(waveview, &start, &end);
+	end = start + end;
+	if (end - start <= 0) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
+			_("Nothing selected"))));
 		return;
 	}
-
-	start = MAX(0, gtk_wave_view_get_marker(waveview));
-	DPRINTF("Recording at %li\n", (long)start);
-
-	left = right = NULL;
-	grp = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
-	gpsm_grp_foreach_item(grp, item) {
-		if (!GPSM_ITEM_IS_SWFILE(item))
-			return;
-		if (!left)
-			left = item;
-		else if (!right)
-			right = item;
-		else {
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("GLAME only supports recording of up to two channels"))));
-			return;
-		}
-	}
-	if (!left && !right)
-		return;
-
-	rate = gtk_wave_buffer_get_rate(wavebuffer);
-
-	/* Create the basic network - audio_in. */
-	net = filter_creat(NULL);
-	ain = filter_instantiate(plugin_get("audio_in"));
-	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
-	filter_add_node(net, ain, "ain");
-
-	/* Left - or mono. */
-	swout = net_add_gpsm_output(net, (gpsm_swfile_t *)left, start, -1, 0);
-	if (!swout)
-		goto fail;
-	if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
-				filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
-		goto fail;
-
-	/* Right. */
-	if (right) {
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)right, start, -1, 0);
-		if (!swout)
-			goto fail;
-		if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
-					filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
-			goto fail;
-	}
-
-	/* Prepare for undo. */
-	if (gpsm_op_prepare(grp) == -1)
-		DPRINTF("Error preparing for undo\n");
-
-	glame_gui_play_network(net, FALSE /* FIXME TRUE */,
-			       (GtkFunction)network_run_cleanup_cb,
-			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
-						  NULL, NULL, -1, -1),
-			       _("Record"), _("Pause"), _("Stop"), 1);
-	return;
-
- fail:
-	glame_network_error_dialog(net, _("Cannot record"));
-	filter_delete(net);
+	play(waveview, start, end, TRUE, FALSE, FALSE, TRUE);
 }
+
+
+
+
 
 static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 {
@@ -1230,7 +1016,8 @@ static SCM gls_waveedit_gpsm_grp()
 	return SCM_BOOL_F;
 }
 
-static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_restore, SCM s_loop)
+static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_restore,
+			     SCM s_loop, SCM s_extend, SCM s_enable_record)
 {
 	SCM_ASSERT(gh_exact_p(s_start), s_start, SCM_ARG1, "waveedit-play");
 	SCM_ASSERT(gh_exact_p(s_end), s_end, SCM_ARG2, "waveedit-play");
@@ -1238,10 +1025,15 @@ static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_restore, SCM s_loop)
 		   SCM_ARG3, "waveedit-play");
 	SCM_ASSERT(gh_boolean_p(s_loop), s_loop,
 		   SCM_ARG4, "waveedit-play");
+	SCM_ASSERT(gh_boolean_p(s_extend), s_extend,
+		   SCM_ARG5, "waveedit-play");
+	SCM_ASSERT(gh_boolean_p(s_enable_record), s_enable_record,
+		   SCM_ARG6, "waveedit-play");
 	if (active_waveedit)
 		play(GTK_WAVE_VIEW(active_waveedit->waveview),
 		     gh_scm2long(s_start), gh_scm2long(s_end),
-		     gh_scm2bool(s_restore), gh_scm2bool(s_loop));
+		     gh_scm2bool(s_restore), gh_scm2bool(s_loop),
+		     gh_scm2bool(s_extend), gh_scm2bool(s_enable_record));
 	return SCM_UNSPECIFIED;
 }
 
@@ -1267,7 +1059,8 @@ void glame_waveeditgui_init()
 			    gls_waveedit_get_scroll);
 	gh_new_procedure1_0("waveedit-set-scroll-position!",
 			    gls_waveedit_set_scroll_position);
-	gh_new_procedure4_0("waveedit-play", gls_waveedit_play);
+	gh_new_procedure("waveedit-play", (SCM (*)())gls_waveedit_play,
+			 6, 0, 0);
 }
 
 static void waveedit_gui_destroy(GtkObject *waveedit)
@@ -1411,7 +1204,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Play"), _("Play"), _("Play"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
-				playtoolbar_cb, window->waveview);
+				playrecordtoolbar_cb, window->waveview);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Menu"), _("Menu"), _("Menu"),

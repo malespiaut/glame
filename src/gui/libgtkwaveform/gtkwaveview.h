@@ -128,6 +128,9 @@ struct _GtkWaveViewClass
   GtkVBoxClass parent_class;
 };
 
+#define GTK_WAVE_VIEW_FLAG_RECORD 0
+#define GTK_WAVE_VIEW_FLAG_MUTE 1
+
 
 GtkType    gtk_wave_view_get_type               (void);
 GtkWidget *gtk_wave_view_new                    (void);

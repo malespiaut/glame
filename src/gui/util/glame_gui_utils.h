@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.8 2001/12/16 14:16:55 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.9 2002/01/03 22:10:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -83,16 +83,6 @@ GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
  * of a parameter database. Returns a widget or NULL on error. */
 GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb);
 
-
-/* Opens a play/pause/stop/cancel window that plays a given network.
- * If modal is TRUE, the dialog is modal, on dialog destroy the optional
- * atExit is called with parameter data. Returns 0, if the dialog could
- * be created, -1 on error. */
-int glame_gui_play_network(filter_t *network, int modal,
-			   GtkFunction atExit, gpointer data,
-			   const char *start_label,
-			   const char *pause_label,
-			   const char *stop_label, int close_on_stop);
 
 /* Open a file selection dialog with the specified title, file entry label
  * and file selection dialog pattern (optional). You need to provide a
