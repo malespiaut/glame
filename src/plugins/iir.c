@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.2 2000/04/06 11:19:49 richi Exp $
+ * $Id: iir.c,v 1.3 2000/04/06 14:28:31 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -28,7 +28,6 @@
 #include "util.h"
 #include "glplugin.h"
 
-PLUGIN_SET(iir,"iir")
 
 #define GLAME_IIR_LOWPASS  0
 #define GLAME_IIR_HIGHPASS 1
