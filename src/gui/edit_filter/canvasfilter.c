@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.44 2001/11/28 23:01:27 richi Exp $
+ * $Id: canvasfilter.c,v 1.45 2001/12/04 23:42:34 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -423,14 +423,14 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 			   GTK_SIGNAL_FUNC(glame_canvas_filter_event),gItem);
 	
 	
+	glame_canvas_filter_create_ports(gItem);
 	_glame_canvas_filter_move(gItem, x,y);
 	
-	sprintf(numberbuffer,"%.1f",x);
-	filter_set_property(filter,"canvas_x",numberbuffer);
-	sprintf(numberbuffer,"%.1f",y);
-	filter_set_property(filter,"canvas_y",numberbuffer);
+//	sprintf(numberbuffer,"%.1f",x);
+//	filter_set_property(filter,"canvas_x",numberbuffer);
+//	sprintf(numberbuffer,"%.1f",y);
+//	filter_set_property(filter,"canvas_y",numberbuffer);
 
-	glame_canvas_filter_create_ports(gItem);
 
 	return gItem;
 }
@@ -465,19 +465,22 @@ _glame_canvas_filter_move(GlameCanvasFilter* filter,
 			  gdouble dy)
 {
 	char buffer[10];
+	gdouble newX,newY;
 	/* don't recurse! */
 	if(gtk_signal_n_emissions_by_name(GTO(filter),"moved"))
 		return;
+	/* Workarounding canvas bug #387687628763413987632487921634  */
+ 	newX = GNOME_CANVAS_ITEM(filter)->x1 +dx;
+	newY = GNOME_CANVAS_ITEM(filter)->y1 +dy;
 
 	gtk_signal_emit_by_name(GTK_OBJECT(filter),"moved",
 				dx,dy);
 	gnome_canvas_item_move(GNOME_CANVAS_ITEM(filter),
 			       dx,dy);
-
-	sprintf(buffer,"%.1f",GNOME_CANVAS_ITEM(filter)->x1);
+	sprintf(buffer,"%.1f",newX); //GNOME_CANVAS_ITEM(filter)->x1);
 	filter_set_property(filter->filter, "canvas_x", buffer);
 	
-	sprintf(buffer,"%.1f",GNOME_CANVAS_ITEM(filter)->y1);
+	sprintf(buffer,"%.1f",newY); //GNOME_CANVAS_ITEM(filter)->y1);
 	filter_set_property(filter->filter, "canvas_y", buffer);
 }
 void
