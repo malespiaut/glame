@@ -1,19 +1,23 @@
-@comment $Id: gui.texi,v 1.6 2001/04/12 09:45:08 richi Exp $
+@comment $Id: gui.texi,v 1.7 2001/04/13 16:41:24 nold Exp $
 
 @node Graphical Frontend, Console Frontend, Copying, Top
 @chapter Graphical Frontend (glame)
 
-The graphical frontend is called @code{glame} and either reachable
-from your path (where you installed glame to) or from @code{src/gui/glame}
-which you should call if you didnt install glame but are executing it
-out of the compiled source tree. Be sure to reside in the @code{src}
-directory in this case, so GLAME can find its plugins.
+Nonsurprisingly, GLAME's graphical frontend is called @file{glame}. It will
+usually be called without any argument, though an optional file name may be
+given, indicating an alternative location of GLAME's internal swapfile.
+@xref{The Main Window}, for details.
 
-The graphical frontend consists of three parts, the main window that is
-active at the beginning and the wave editor and the filternetwork editor
-that can be activated later. GLAME is very intuitive at the moment, so
-just try pressing the right mouse button and context sensitive menus
-will pop up with items with very descriptive names.
+When running @file{glame} straight from its source tree without
+prior installation, @code{glame/src/} has to be your current working
+directory. Otherwise, @file{glame} won't be able to find its plugins.
+
+The graphical frontend consists of three parts. The main window is the only
+one active right at the beginning. The wave editor and the filternetwork editor
+can be activated from there. Controlling @file{glame} is supposed to be
+rather intuitive. Should you ever feel lost, just try pressing the right mouse
+button and a context sensitive menu will pop up and hopefully present you
+with the option you were looking for.
 
 @menu
 * The Main Window::
@@ -21,117 +25,140 @@ will pop up with items with very descriptive names.
 * The Filternetwork Editor::
 @end menu
 
-
-
 @node The Main Window, The Wave Editor, , Graphical Frontend
 @section The Main Window
 
-After startup you will be presented with an usual gnome application window
-that contains a tree view of the swapfile currently in use. You may configure
-the swapfile location by opening the preferences window out of the settings
-menu. Note that you need to restart glame to apply the change. The default
-location for the swapfile is @code{~/.glameswap}.
+On startup, @file{glame} will present you an application window in well-known
+GNOME design that contains a tree view of the so-called @dfn{swapfile}
+currently in use. Representations of all the sound tracks you want to edit
+will be stored here, so it's certainly a wise idea to put the swapfile on a
+partition with plenty of free space. By default, the swapfile resides in 
+@file{~/.glameswap}, but you can configure its location in the preferences 
+window available from the Settings menu. Note that you need to restart
+@file{glame} for the change to become active.
 
-To start working from an empty swapfile you can create new toplevel nodes
-by issuing Project/New Project. This inserts a new group into the tree.
-On such operations a new item pops up as an edit field where you may change
-the name of the group. Double-clicking on an item later also allows you
-changing the name.
+Within the swapfile, individual audio tracks are combined to @dfn{projects}.
+You can create new projects using the entry New Project in the Project menu. 
+This will insert a new item into the tree view of the swapfile and pop up 
+an editing field where you can change the project's name. Double-clicking on
+an item allows you to change the name later as well.
 
-To groups you may now import files or export them as files. Operations on
-groups and items are done through a context menu which you can pop up
-using the right mousebutton. A brief description of the operations follow.
+Now you're all set to start importing @dfn{files} into your new project, or to
+subdivide it further into @dfn{groups}. A context sensitive menu offering
+operations on groups or items respectively pops up when you press the
+right mouse button. Those are your options:
 
-Operations on groups
+@subsection Operations on groups
 
-@code{Edit} pops up a wave view widget containing all items of the group
-where you can operate on them. Subgroups are not allowed by this operation.
+@table @code
+@item Edit 
+pops up a new window of the wave editor @pxref{The Wave Editor} containing 
+all items of the group, where you can easily modify them. This operation is
+not allowed for groups that in turn contain further sub-groups.
 
-@code{Add group...} adds a new group to the current group.
+@item Add group...
+adds a new group to the current group.
 
-@code{Merge with parent} moves all the currents groups childs up one level
+@item Merge with parent
+moves all the current group's children up one level
 and deletes the current group.
 
-@code{Delete} deletes the current group and all its items.
+@item Delete
+deletes the current group and all its items.
 
-@code{Link selected} links the selected item into the current group. Linking
-means that if you change the link, you change the original, too.
+@item Link selected
+links the selected item into the current group. Linking
+means that a change on the link will also modify the original and vice versa.
 
-@code{Copy selected} copies (COW) the selected item into the current group.
-COW means that if you change the copy, you do not change the original.
+@item Copy selected
+copies the selected item into the current group.
+Copying means that changing the copy will not alter the original and vice
+versa.
 
-@code{Import...} imports a to be specified file as subgroup into the current
-group.
+@item Import...
+imports a file as a sub-group into the current group.
 
-@code{Export...} exports all children of the group as f.i. a wav file. Subgroups
-are not allowed in this operation.
+@item Export...
+exports all children of the group as an ordinary sound file, for example
+a WAV file. This operation is not allowed for groups that in turn contain
+further sub-groups.
+@end table
 
-Operations on items
+@subsection Operations on items
 
-@code{Edit} pops up a wave view widget where you can operate on the item.
+@table @code
+@item Edit
+pops up a new window of the wave editor @pxref{The Wave Editor},
+where you can modify the selected item.
 
-@code{Export...} exports the current item as f.i. a wav file.
+@item Export...
+exports the current item as an ordinary sound file, for example a WAV file.
 
-@code{Delete} deletes the current item.
-
+@item Delete
+deletes the current item.
+@end table
 
 @node The Wave Editor, The Filternetwork Editor, The Main Window , Graphical Frontend
 @section The Wave Editor
 
-The wave editor is opened by applying the @code{Edit} function to either a
-group or a single item. Editing is done on all items at once. All editing
-and exploring functions can be reached through the right mouse button menu.
+The wave editor pops up when the @code{Edit} function is applied to either a
+group or a single item. Editing is done on all items of a particular group
+at once. Functions to edit and explore the current items can be reached via
+the right mouse button.
 
-You can explore the wave by using the scrollbar and the items out of the
-@code{View} menu which do what their names suggest.
-
-Simple editing can be done by the usual @code{Cut}, @code{Copy}, @code{Paste}
-and @code{Delete} operations which operate on the current selection in the
-active wave widget. You can cut and paste between different wave widgets,
-if the number of channels match. You can operate on multiple views of the
-same wave at once, they will be kept in sync automatically.
+Simple editing can be done using the ordinary @code{Cut}, @code{Copy},
+@code{Paste} and @code{Delete} operations, that work on the current selection
+in the active wave widget. You can cut and paste between different wave widgets,
+if the numbers of channels match. When you operate on multiple views of the
+same wave item at once, they will be kept in sync automatically.
 
 The @code{Apply filter} and @code{Apply custom} submenus allow you to apply
-a preexisting filter to the actual selection or pop up a filternetwork editor
-where you can construct a custom one. In the first case you will be prompted
-for options of the selected filter.
+a pre-existing filter to the active selection. Next, you will be prompted for
+the filter's options. Alternatively, you can pop up the
+filternetwork editor @pxref{The Filternetwork Editor},
+where you can construct a custom filter.
 
-The @code{Feed into filter} and @code{Feed into custom} submenus feed the
-actual selection into the selected filter or a custom generated one (see
-above), the wave is not modified. This is handy f.i. for a play operation,
-simply use feed into audio_out.
+The @code{Feed into filter} and @code{Feed into custom} sub-menus feed the
+active selection into the selected or a custom made filter respectively (see
+above). The wave item is not modified. This comes in handy when for instance
+you want to play a selection--simply feed into audio_out!
 
 
 @node The Filternetwork Editor, , The Wave Editor, Graphical Frontend
 @section The Filternetwork Editor
-The filternetwork editor is opened by either choosing the @code{Open Filternetwork Editor} 
-item in the @code{Filternetwork} menu, or by using custom functions in the wave editor.
-The filternetwork editor consists of a button bar on the bottom of the window, where
-the created filternetwork can be executed, paused and stopped, and a main frame 
-for connecting and adding new nodes to the network.
 
-All functionality in the editing window is controlled by context sensitive menus bound
-to the right mouse button. By clicking on empty space the general menu is opened, letting 
-You @code{Add Nodes...}, load additional plugins and saving and loading filternetworks.
-Nodes are organized in categories, for faster finding of the desired nodes.
+The filternetwork editor is opened when you choose one of the custom
+functions in the wave editor, or the item @code{Open Filternetwork Editor} in
+the @code{Filternetwork} menu of the main window. The filternetwork editor
+comprises of a button bar on the bottom of the window to execute, pause and
+stop the created filternetwork, and a main canvas for connecting and adding
+new nodes to the network.
 
-When a new node is added a small box appears in the editing area, depicting this node.
-The box has input ports (if available) on the left side of the icon, and output ports
-on the right side. If no ports of a type are available the port is grayed out.
+All functionality in the editing window is controlled via context sensitive
+menus bound to the right mouse button. When clicking in a background region,
+the general menu opens up, providing entries to add nodes, 
+load additional plugins and save and load whole filter networks.
+Plugins are bundled into categories to speed up finding the desired item.
 
-The icon in the middle of the box has context menus for manipulating parameters of the
-underlying filter node. 
+When a new node is added, its icon appears on the editing canvas.
+It shows its input ports (if available) on the left, and output ports
+on the right. If no ports of a type are available the corresponding side bar
+appears gray.
 
-To connect to nodes, click on the output port using the left mouse button and drag the 
-pipe to the desired input port. If a connection is possible a pipe connection will be drawn.
-To manipulate per-pipe parameters of the connected nodes a context menu is attached to the
-small black ball placed in the middle of the pipe.
+The icon in the middle of the box offers context menus for manipulating
+parameters of the underlying plugin. 
 
-Finally if You hover over an icon or port for a little while the actual parameter settings
-are drawn and the node is raised to the top.
-The timeout for the hovering can be adjusted in the preferences window.
+To connect two plugins, click on the output port using the left mouse button,
+and drag the pipe to the desired input port. If a connection is possible,
+a pipe connection will be drawn. To manipulate per-pipe parameters of the
+connected nodes, a context menu is attached to the small black ball placed in
+the middle of the pipe.
 
-After drawing your desired network it can be started with the @code{play} button. If 
-anything is not set up correctly the malicious node will be drawn in red and the
-error is drawn when hovering over it.
+Finally, if you hover over an icon or port for a little while, the current
+parameter settings are shown, and the node is raised to the top.
+The hovering delay can be adjusted in the preferences window.
+
+After a network is drawn, it can be started using the @code{play} button. If 
+anything is not set up correctly, the malicious plugin will be drawn in red,
+and the error will be displayed when hovering over it.
 

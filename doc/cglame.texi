@@ -1,11 +1,19 @@
-@comment $Id: cglame.texi,v 1.11 2001/04/12 09:45:08 richi Exp $
+@comment $Id: cglame.texi,v 1.12 2001/04/13 16:41:24 nold Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
 
-cglame is the console interface to glame. After a brief introduction
-into the cglame user interface the wrapped midlayer and backend APIs
-are listed and an ontop scheme level API is described.
+@file{cglame} is GLAME's console interface. Beware! @file{cglame} is
+not for whimps but for real men and women who dream in Scheme and
+chomp brackets for breakfast. It's for those who want to feel the
+ultimate power of GLAME. Thankfully, J. Random User won't have to dive
+into the perils of @file{cglame} and will be all happy with @file{glame},
+the friendly and intuitive graphical frontend @pxref{Graphical Frontend}.
+
+Still there? Wheee, you're a tough one! Let's see what's in here for you:
+This chapter starts with a brief introduction into the @file{cglame} user
+interface. Afterwards, the wrapped midlayer and backend APIs are listed, and
+an the scheme level API on top will be described.
 
 @menu
 * cglame Introduction::
@@ -17,18 +25,18 @@ are listed and an ontop scheme level API is described.
 @node cglame Introduction, Wrapped API,, Console Frontend
 @section cglame Introduction
 
-cglame is a scripting engine
+@file{cglame} is a scripting engine
 in the sense that you are presented a @code{guile>} command line prompt
-where you can enter scheme expressions. cglame exposes the midlayer API
-and the backends API via scheme wrappers. Extra convenience scripting
-procedures are defined inside the installed @code{glame.scm} scheme file.
-You can add customisations via your @code{~/.glame.scm} file.
+where you can enter scheme expressions. @file{cglame} exposes GLAME's 
+midlayer API and the backend API via scheme wrappers. Extra convenience
+scripting procedures are defined in the global @file{glame.scm} scheme
+file. You can add customisations via your @file{~/.glame.scm} file.
 
-As command line option to cglame you may specify the to be used
-@code{swapfile}. A swapfile is necessary, if you want to use any
-of the swapfile API procedures. Once started, cglame presents you with a
-command prompt where you can evaluate scheme expressions. An example
-session is showed below.
+As command line option to @file{cglame} you may specify the
+@code{swapfile} to be used. A swapfile is necessary if you want to use any
+of the swapfile API procedures. Once started, @file{cglame} presents you with
+a command prompt where you can evaluate scheme expressions. An example
+session is shown below.
 
 @example
 $ cglame
@@ -59,7 +67,7 @@ $
 @end example
 
 All used scheme procedures which are not documented in the following
-sections reside in the @code{glame.scm} file coming with glame.
+sections reside in the @code{glame.scm} file shipped with glame.
 
 
 
@@ -125,6 +133,7 @@ error.
 @node Scheme Swapfile API, Scheme Midlayer API, Scheme Filter API, Wrapped API
 @subsection Scheme Swapfile API
 
+To be done.
 
 @node Scheme Midlayer API,, Scheme Swapfile API, Wrapped API
 @subsection Scheme Midlayer API
@@ -149,7 +158,7 @@ The only wrapped part of the glame midlayer is the plugin API.
 * Cooked operations::
 @end menu
 
-@node Network setup,, Cooked operations, cglame Convenience
+@node Network setup, Cooked operations,, cglame Convenience
 @subsection Network setup
 
 @deftypefun ( net-new )
@@ -185,12 +194,12 @@ specified @var{node-id}.
 @end deftypefun
 
 
-@node Cooked operations, Network setup,, cglame Convenience
+@node Cooked operations,, Network setup, cglame Convenience
 @subsection Cooked operations
 
-The following procedures can be customized by defining the
+The following procedures can be customised by defining
 @code{audio-out}, @code{read-file} or @code{write-file} to other
-filters than their default ones which are their names.
+filters than their default ones.
 
 @deftypefun ( play filename )
 Plays the specified file.
