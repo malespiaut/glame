@@ -118,6 +118,21 @@ struct gpsm_swfile_s {
 	float position;
 };
 
+#define gpsm_item_parent(item) (((gpsm_item_t *)item)->parent)
+#define gpsm_item_emitter(item) (&((gpsm_item_t *)item)->emitter)
+#define gpsm_item_label(item) (((gpsm_item_t *)item)->label)
+#define gpsm_item_hposition(item) (((gpsm_item_t *)item)->hposition)
+#define gpsm_item_vposition(item) (((gpsm_item_t *)item)->vposition)
+#define gpsm_item_hsize(item) (((gpsm_item_t *)item)->hsize)
+#define gpsm_item_vsize(item) (((gpsm_item_t *)item)->vsize)
+
+#define gpsm_grp_foreach_item(grp, item) list_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, item)
+#define gpsm_grp_safe_foreach_item(grp, dummy, item) list_safe_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, dummy, item)
+
+#define gpsm_swfile_filename(swfile) (((gpsm_swfile_t *)swfile)->filename)
+#define gpsm_swfile_samplerate(swfile) (((gpsm_swfile_t *)swfile)->samplerate)
+#define gpsm_swfile_position(swfile) (((gpsm_swfile_t *)swfile)->position)
+
 
 /* Initializes the gpsm subsystem using the specified swapfile
  * (the gpsm subsystem metadata is stored in swapfile file 0).
@@ -162,6 +177,9 @@ void gpsm_item_destroy(gpsm_item_t *item);
 int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 		    long hposition, long vposition);
 void gpsm_item_remove(gpsm_item_t *item);
+
+
+void gpsm_item_set_label(gpsm_item_t *item, const char *label);
 
 
 gpsm_grp_t *gpsm_find_group_label(gpsm_grp_t *root, const char *label);

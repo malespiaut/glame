@@ -522,6 +522,14 @@ void gpsm_item_remove(gpsm_item_t *item)
 	glsig_emit(&grp->item.emitter, GPSM_SIG_ITEM_CHANGED, grp);
 }
 
+void gpsm_item_set_label(gpsm_item_t *item, const char *label)
+{
+	if (!item || !label)
+		return;
+	free(item->label);
+	item->label = strdup(label);
+	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
+}
 
 gpsm_grp_t *gpsm_find_group_label(gpsm_grp_t *root, const char *label)
 {
