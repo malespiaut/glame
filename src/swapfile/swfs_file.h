@@ -76,6 +76,14 @@ static struct swcluster *file_getcluster(struct swfile *f,
 					 s64 offset, s64 *cstart,
 					 int flags);
 
+/* Get a reference to the cluster containing offset using the
+ * specified flags. Stores the offset of the cluster start in cstart.
+ * Return values/flags like get_cluster. If the cluster is shared,
+ * copy it and replace it with the copy. */
+static struct swcluster *file_getcluster_private(struct swfile *f,
+						 s64 offset, s64 *cstart,
+						 int flags);
+
 
 /* Truncate the file to the given size. Returns 0 on success
  * and -1 on error. */

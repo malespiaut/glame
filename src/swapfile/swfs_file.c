@@ -219,6 +219,50 @@ static struct swcluster *file_getcluster(struct swfile *f,
 	return c;
 }
 
+static struct swcluster *file_getcluster_private(struct swfile *f,
+						 s64 offset, s64 *cstart,
+						 int flags)
+{
+	struct swcluster *c, *cc;
+	long pos;
+	u32 cid;
+	s32 csize;
+
+	LOCKFILE(f);
+	if (f->flags & SWF_NOT_IN_CORE)
+		_file_readclusters(f);
+	pos = ctree_find(f->clusters, offset, cstart);
+	if (pos != -1) {
+		cid = CID(f->clusters, pos);
+		csize = CSIZE(f->clusters, pos);
+	}
+	if (pos == -1) {
+		UNLOCKFILE(f);
+		return NULL;
+	}
+
+	/* The cluster is now required to exist and have a
+	 * correct reference on the file. */
+	if (!(c = cluster_get(cid, flags, csize)))
+		PANIC("Cannot get cluster");
+#ifdef DEBUG
+	if (cluster_checkfileref(c, f->name) == -1)
+		PANIC("Cluster in ctree w/o correct fileref");
+#endif
+
+	/* Now, we have to check if we need to copy the cluster. */
+	if ((cc = cluster_unshare(c)) != c) {
+		cluster_addfileref(cc, f->name);
+		ctree_replace1(f->clusters, pos, cc->name, cc->size);
+		cluster_delfileref(c, f->name);
+		cluster_put(c, 0);
+		c = cc;
+	}
+	UNLOCKFILE(f);
+
+	return c;
+}
+
 /* This function is protected by a global lock, so no locking
  * necessary (against ctree modifying). */
 static int file_truncate(struct swfile *f, s64 size)

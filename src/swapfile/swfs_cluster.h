@@ -130,4 +130,8 @@ static struct swcluster *cluster_truncatetail(struct swcluster *c, s32 size);
 static int cluster_truncate(struct swcluster *c, s32 size);
 
 
+/* Copy the cluster, if it is shared, else return the original cluster. */
+static struct swcluster *cluster_unshare(struct swcluster *c);
+
+
 #endif

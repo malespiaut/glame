@@ -509,7 +509,7 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 {
 	struct sw_stat stat;
 	char *mem;
-	size_t dcnt, cnt = count;
+	size_t dcnt, cnt;
 
 	/* Check, if we will cross the file end and correct
 	 * the cnt appropriately. */
@@ -518,6 +518,7 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 	if (stat.offset + count > stat.size)
 		cnt -= stat.offset + count - stat.size;
 
+	cnt = count;
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
 		    || (mem = (char *)sw_mmap(NULL, PROT_READ,
@@ -652,8 +653,13 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 		return MAP_FAILED;
 	}
 
-	/* Get the actual cluster and mmap it. */
-	if ((c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+	/* Get the actual cluster and mmap it, but replace it with a
+	 * copy, if PROT_WRITE is set and the cluster is shared. */
+	if (prot & PROT_WRITE)
+		c = file_getcluster_private(_fd->file, _fd->offset, &coff, 0);
+	else
+		c = file_getcluster(_fd->file, _fd->offset, &coff, 0);
+	if (c) {
 		addr = cluster_mmap(c, start, prot, flags);
 		cluster_put(c, 0);
 		return addr;

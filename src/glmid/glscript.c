@@ -261,7 +261,6 @@ static SCM gls_sw_read_string(SCM s_fd, SCM s_length)
 	length = gh_scm2long(s_length);
 	m = (char *)malloc(length+1);
 	if ((res = sw_read(gh_scm2swfd(s_fd), m, length)) != length) {
-		DPRINTF("Read only %li chars\n", res);
 		free(m);
 		return SCM_BOOL_F;
 	}
