@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.19 2001/08/02 15:18:03 richi Exp $
+ * $Id: glplugin.h,v 1.20 2001/08/03 08:34:06 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -31,8 +31,6 @@
 #include "glame_hash.h"
 #include "gldb_worm.h"
 
-
-#define SHLIB_EXTENSION ".la"
 
 typedef struct {
 	struct list_head list;   /* linkage in plugin list/hash */

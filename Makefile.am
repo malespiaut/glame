@@ -1,4 +1,4 @@
-SUBDIRS = macros src doc data
+SUBDIRS = libltdl macros src doc data
 
 EXTRA_DIST = TODO MAINTAINERS CREDITS BUGS autogen.sh glame.spec
 

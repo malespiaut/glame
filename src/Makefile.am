@@ -9,6 +9,6 @@ bin_PROGRAMS = cglame
 
 cglame_SOURCES = cglame.c
 cglame_LDADD = glmid/libglame.la \
-	$(GLAME_LIBS) $(GLAME_DLIBS) -lltdl
+	$(GLAME_LIBS) $(GLAME_DLIBS) ../libltdl/libltdlc.la
 cglame_LDFLAGS = -export-dynamic
 

@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.32 2001/08/02 15:18:03 richi Exp $
+ * $Id: glplugin.c,v 1.33 2001/08/03 08:34:06 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,15 +26,7 @@
 
 #include <unistd.h>
 #include <string.h>
-#if 0
-#include <dlfcn.h>
-#else
 #include <ltdl.h>
-#define dlopen(a,b) lt_dlopen(a)
-#define dlsym lt_dlsym
-#define dlclose lt_dlclose
-#define dlerror lt_dlerror
-#endif
 #include <ctype.h>
 #include "util.h"
 #include "list.h"
@@ -122,7 +114,7 @@ static void _plugin_free(plugin_t *p)
 	if (p->name)
 		free((char *)p->name);
 	if (p->handle)
-		dlclose(p->handle);
+		lt_dlclose(p->handle);
 	gldb_delete(&p->db);
 	free(p);
 }
@@ -157,9 +149,9 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	/* GLAME plugins do have either name_register() or
 	 * name_set symbols defined. */
 	snprintf(s, 255, "%s_register", name);
-	reg_func = (int (*)(plugin_t *))dlsym(p->handle, s);
+	reg_func = (int (*)(plugin_t *))lt_dlsym(p->handle, s);
 	snprintf(s, 255, "%s_set", name);
-	set = (char **)dlsym(p->handle, s);
+	set = (char **)lt_dlsym(p->handle, s);
 	if (!reg_func && !set)
 		return -1;
 
@@ -183,7 +175,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 			*(sp++) = '\0';
 		mangle_name(name, psname);
 		if (!(pn = _plugin_alloc(name))
-		    || !(pn->handle = dlopen(filename, RTLD_NOW))
+		    || !(pn->handle = lt_dlopen(filename))
 		    || try_init_glame_plugin(pn, name, filename) == -1
 		    || _plugin_add(pn) == -1) {
 			_plugin_free(pn);
@@ -217,7 +209,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 
 	/* First get the descriptor providing function of the
 	 * plugin(set). If its not there, its no LADSPA plugin. */
-	desc_func = (LADSPA_Descriptor_Function)dlsym(p->handle,
+	desc_func = (LADSPA_Descriptor_Function)lt_dlsym(p->handle,
 						      "ladspa_descriptor");
 	if (!desc_func)
 		return -1;
@@ -226,7 +218,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 	 * GLAME wrappers for them. */
 	for (i=0; (desc = desc_func(i)) != NULL; i++) {
 		if (!(lp = _plugin_alloc(desc->Label))
-		    || !(lp->handle = dlopen(filename, RTLD_NOW))
+		    || !(lp->handle = lt_dlopen(filename))
 		    || installLADSPAPlugin(desc, lp) == -1
 		    || _plugin_add(lp) == -1) {
 			_plugin_free(lp);
@@ -246,8 +238,8 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 	/* First try to open the specified shared object. */
 	if (filename && access(filename, R_OK) == -1)
 		return -1;
-	if (!(p->handle = dlopen(filename, RTLD_NOW))) {
-		DPRINTF("dlopen(%s): %s\n", filename, dlerror());
+	if (!(p->handle = lt_dlopen(filename))) {
+		DPRINTF("dlopen(%s): %s\n", filename, lt_dlerror());
 		return -1;
 	}
 
@@ -259,7 +251,7 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 		return 0;
 
 	/* Too bad, thats obviously not a valid plugin. */
-	dlclose(p->handle);
+	lt_dlclose(p->handle);
 	p->handle = NULL;
 	return -1;
 }
@@ -274,8 +266,8 @@ int plugin_load(const char *filename)
 	 * filename without leading path and trailing .so */
 	s = (s = strrchr(filename, '/')) ? s+1 : (char *)filename;
 	strncpy(name, s, 255);
-	s = strstr(name, SHLIB_EXTENSION);
-	if (!s)
+	if (!(s = strstr(name, ".la"))
+	    && !(s = strstr(name, ".so")))
 	    	return -1; /* This cannot be a shared object plugin. */
 	*s = '\0';
 	mangle_name(mname, name);
@@ -320,13 +312,19 @@ plugin_t *plugin_get(const char *nm)
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
-		sprintf(filename, "%s/%s" SHLIB_EXTENSION, path->path, name);
+		sprintf(filename, "%s/%s.la", path->path, name);
+		if (try_load_plugin(p, name, filename) == 0)
+			goto found;
+		sprintf(filename, "%s/%s.so", path->path, name);
 		if (try_load_plugin(p, name, filename) == 0)
 			goto found;
 	}
 
 	/* last try LD_LIBRARY_PATH supported plugins */
-	sprintf(filename, "%s" SHLIB_EXTENSION, name);
+	sprintf(filename, "%s.la", name);
+	if (try_load_plugin(p, name, filename) == 0)
+		goto found;
+	sprintf(filename, "%s.so", name);
 	if (try_load_plugin(p, name, filename) == 0)
 		goto found;
 
@@ -371,7 +369,7 @@ void *plugin_query(plugin_t *p, const char *key)
 
 	if ((w = glwdb_query_item(&p->db, key)))
 		return (void *)(w->u.ptr);
-	return dlsym(p->handle, key);
+	return lt_dlsym(p->handle, key);
 }
 
 plugin_t *plugin_add(const char *name)

@@ -2,7 +2,7 @@
 
 rm -f config.cache libtool ltconfig ltmain.sh
 aclocal -I . -I macros
-libtoolize --copy --automake
+libtoolize --copy --automake --ltdl
 autoheader
 autoconf
 touch ltconfig

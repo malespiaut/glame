@@ -127,7 +127,8 @@ static void load_plugins_from_directory(const char *dir)
 		/* Only take .so and .scm, but not glame.scm */
 		if (!(ext = strrchr(e->d_name, '.'))
 		    || !(strcmp(ext, ".scm") == 0
-			 || strcmp(ext, SHLIB_EXTENSION) == 0)
+			 || strcmp(ext, ".la") == 0
+			 || strcmp(ext, ".so") == 0)
 		    || strcmp(e->d_name, "glame.scm") == 0)
 			continue;
 

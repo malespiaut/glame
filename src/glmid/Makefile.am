@@ -4,7 +4,7 @@ else
 LADSPA_FILES =
 endif
 
-INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash $(XML_CFLAGS) $(LADSPA_CFLAGS) -DPKGSCRIPTSDIR=\"$(pkgscriptsdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" $(GUILE_INCS)
+INCLUDES = -I@top_srcdir@/libltdl -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash $(XML_CFLAGS) $(LADSPA_CFLAGS) -DPKGSCRIPTSDIR=\"$(pkgscriptsdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" $(GUILE_INCS)
 
 EXTRA_DIST = glame.scm ladspa.c
 
