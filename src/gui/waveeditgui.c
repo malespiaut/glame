@@ -48,7 +48,6 @@
 /* The GUI is single-threaded, so this should actually work for
  * callbacks that cant take the waveview. */
 static WaveeditGui *active_waveedit = NULL;
-static GtkWaveView *actual_waveview = NULL;
 
 
 
@@ -286,12 +285,6 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
  */
 
 
-/* shitty workaround for failing gnome_dialog_run_and_close */
-static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
-{
-	*bar = TRUE;
-}
-
 /* Cleanup helpers for waveedit operations.
  */
 struct network_run_s {
@@ -375,7 +368,7 @@ static struct network_run_s *network_run_create(filter_t *net,
 /* Menu event - Apply operation. */
 static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 {
-	GtkWaveView *waveview = actual_waveview;
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
@@ -405,7 +398,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 			long start, long length);
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 {
-	GtkWaveView *waveview = actual_waveview;
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
@@ -774,11 +767,10 @@ static void wave_help_cb(GtkWidget *foo, void*bar)
 	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
 }
 
-static void wave_close_cb(GtkWidget *foo, GtkObject *waveview)
+static void wave_close_cb(GtkWidget *foo, GtkObject *window)
 {
-	if (!waveview)
-		waveview = GTK_OBJECT(actual_waveview);
-	gtk_object_destroy(waveview);
+	if (active_waveedit)
+		gtk_object_destroy(GTK_OBJECT(active_waveedit));
 }
 
 
@@ -911,19 +903,20 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_REDO_INDEX].widget,
 				 gpsm_op_can_redo(item) ? TRUE : FALSE);
 
-	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
 
 static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
 			      WaveeditGui *waveedit)
 {
-	if (event->type == GDK_ENTER_NOTIFY
-	    && event->mode == GDK_CROSSING_NORMAL)
+	if (event->type == GDK_ENTER_NOTIFY) {
+		DPRINTF("Entering\n");
 		active_waveedit = waveedit;
-	else if (event->type == GDK_LEAVE_NOTIFY
-		 && event->mode == GDK_CROSSING_NORMAL)
-		active_waveedit = NULL;
+	} else if (event->type == GDK_LEAVE_NOTIFY
+		   && event->mode == GDK_CROSSING_NORMAL) {
+		DPRINTF("Leaving\n");
+		/* active_waveedit = NULL; */
+	}
 }
 
 
@@ -1042,13 +1035,13 @@ void glame_waveeditgui_init()
 			    gls_waveedit_set_scroll_position);
 }
 
-static void waveedit_gui_destroy(WaveeditGui *waveedit)
+static void waveedit_gui_destroy(GtkObject *waveedit)
 {
 	GnomeAppClass* parent_class;
 	parent_class = gtk_type_class(GNOME_TYPE_APP);
-	GTK_OBJECT_CLASS(parent_class)->destroy(GTK_OBJECT(waveedit));
-	if (waveedit->swfiles)
-		gpsm_item_destroy((gpsm_item_t *)waveedit->swfiles);
+	GTK_OBJECT_CLASS(parent_class)->destroy(waveedit);
+	if (WAVEEDIT_GUI(waveedit)->swfiles)
+		gpsm_item_destroy((gpsm_item_t *)WAVEEDIT_GUI(waveedit)->swfiles);
 }
 
 static void waveedit_gui_class_init(WaveeditGuiClass *class)
@@ -1169,7 +1162,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Close", "Close", "Close",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
-				wave_close_cb, window->waveview);
+				wave_close_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Help", "Help", "Help",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
