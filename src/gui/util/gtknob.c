@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.16 2003/04/21 12:16:07 richi Exp $
+ * $Id: gtknob.c,v 1.17 2003/05/26 21:13:39 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -213,9 +213,12 @@ static void gtk_knob_destroy(GtkObject * object)
 
     knob = GTK_KNOB(object);
 
-    if (knob->adjustment)
+    if (knob->adjustment) {
 	gtk_signal_disconnect_by_data(GTK_OBJECT(knob->adjustment),
 				      (gpointer) knob);
+	g_object_unref(knob->adjustment);
+	knob->adjustment = NULL;
+    }
 
     /* set value back to 0 */
     knob->value = 0;
