@@ -170,6 +170,8 @@ static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
 			insert_node_file(tree, node);
 		else if (strcmp(node->name, "op") == 0)
 			insert_node_op(node);
+		else if (strcmp(node->name, "text") == 0)
+			/* ignore */ ;
 		else
 			DPRINTF("Illegal node \"%s\" in xml\n", node->name);
 		node = node->next;
@@ -296,7 +298,9 @@ static void insert_node_op(xmlNodePtr node)
 			DPRINTF("Too many pairs in op\n");
 			break;
 		}
-		if (strcmp(node->name, "pair") != 0) {
+		if (strcmp(node->name, "text") == 0)
+			goto next; /* Ignore */
+		else if (strcmp(node->name, "pair") != 0) {
 			DPRINTF("Invalid <op> child entry\n");
 			return;
 		}
