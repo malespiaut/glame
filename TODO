@@ -14,7 +14,7 @@ Known BUGS that should be fixed before 0.6.0:
   * document normalize, fix fade (-> fadein, fadeout),
     fix read_file/write_file, 
     fix statistic/debugrms (-> ssp_streamer,
-    maxrms), document ramp, saw, noise, wave
+    maxrms)
 
 Other items pending:
 --------------------
