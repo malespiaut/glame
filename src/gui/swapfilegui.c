@@ -1,6 +1,8 @@
 /*
  * swapfilegui.c
  *
+ * $Id:
+ * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify

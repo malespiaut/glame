@@ -230,6 +230,21 @@ else
 fi
 AM_CONDITIONAL(HAVE_OSS, test x$oss = xyes)
 
+dnl check for libsndfile - FIXME
+lsf=no
+if test $lsf = yes; then
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lsndfile"
+	AC_DEFINE(HAVE_SNDFILE)
+fi
+
+dnl check for lame - richi FIX it, if you don't like it :)
+AC_CHECK_LIB(mp3lame, lame_readframe, lame=yes, lame=no)
+AC_CHECK_HEADER(lame.h,,lame=no)
+if test $lame = yes; then
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lmp3lame"
+	AC_DEFINE(HAVE_LAME)
+fi
+
 dnl check for esd
 AM_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
@@ -254,7 +269,20 @@ if test "x$alsa" = xyes; then
 	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ALSA_CFLAGS"
 	AC_DEFINE(HAVE_ALSA)
 fi
+
+
+dnl
+dnl extra debugging stuff
+dnl
+
+dnl check for electric fence - temp. disabled due to efence bugs(!?)
+if test $debug -eq 2; then
+	efence=""
+	AC_CHECK_LIB(efence, Page_AllowAccess, efence="-lefence")
+dnl	GLAME_DLIBS="$GLAME_DLIBS $efence"
+fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
+
 
 
 dnl
