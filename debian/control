@@ -2,7 +2,7 @@ Source: glame
 Section: sound
 Priority: extra
 Maintainer: Daniel Kobras <kobras@debian.org>
-Build-Depends: debhelper (>= 3.0), docbook-to-man, fftw-dev (>= 2.1.3-4), libaudiofile-dev, libesd0-dev, libasound1-dev, libgnome-dev, libguile-dev, libxml-dev (>= 1.8.0) | libxml2-dev
+Build-Depends: debhelper (>= 3.0), docbook-to-man, fftw-dev (>= 2.1.3-4), libaudiofile-dev, libesd0-dev, libasound1-dev, libgnome-dev, libguile-dev, libxml2-dev | libxml-dev (>= 1.8.0)
 Standards-Version: 3.5.3
 
 Package: glame
