@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.34 2001/03/15 00:27:25 xwolf Exp $
+ * $Id: canvas.c,v 1.35 2001/03/15 14:42:01 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1778,5 +1778,6 @@ draw_network(filter_t *filter)
 void
 draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 {
+
 	draw_network(item->filter);
 }
