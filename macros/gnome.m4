@@ -1,15 +1,13 @@
 dnl
-dnl GNOME_INIT_HOOK (script-if-gnome-enabled, [failflag], [additional-inits])
+dnl ACG_GNOME_INIT_HOOK (script-if-gnome-enabled, [failflag], [additional-inits])
 dnl
 dnl if failflag is "fail" then GNOME_INIT_HOOK will abort if gnomeConf.sh
 dnl is not found. 
 dnl
 
-AC_DEFUN([GNOME_INIT_HOOK],[
+AC_DEFUN([ACG_GNOME_INIT_HOOK],[
 	AC_SUBST(GNOME_LIBS)
 	AC_SUBST(GNOMEUI_LIBS)
-	AC_SUBST(GNOMEGNORBA_LIBS)
-	AC_SUBST(GTKXMHTML_LIBS)
 	AC_SUBST(ZVT_LIBS)
 	AC_SUBST(GNOME_LIBDIR)
 	AC_SUBST(GNOME_INCLUDEDIR)
@@ -56,14 +54,11 @@ AC_DEFUN([GNOME_INIT_HOOK],[
 	        AC_MSG_RESULT(yes)
 		ACG_PATH_ESD(0.2.0, , [
 		   AC_MSG_ERROR([GNOME needs esd library and development]) ])
-	        GNOME_GNORBA_HOOK([],$2)
 	        GNOME_LIBS="`$GNOME_CONFIG --libs-only-l gnome`"
 	        GNOMEUI_LIBS="`$GNOME_CONFIG --libs-only-l gnomeui`"
-	        GNOMEGNORBA_LIBS="`$GNOME_CONFIG --libs-only-l gnorba gnomeui`"
-	        GTKXMHTML_LIBS="`$GNOME_CONFIG --libs gtkxmhtml`"
 		ZVT_LIBS="`$GNOME_CONFIG --libs zvt`"
-	        GNOME_LIBDIR="`$GNOME_CONFIG --libs-only-L gnorba gnomeui gnome`"
-	        GNOME_INCLUDEDIR="`$GNOME_CONFIG --cflags gnorba gnomeui glib gtk`"
+	        GNOME_LIBDIR="`$GNOME_CONFIG --libs-only-L gnomeui gnome`"
+	        GNOME_INCLUDEDIR="`$GNOME_CONFIG --cflags gnomeui glib gtk`"
                 $1
 	      else
 	        AC_MSG_RESULT(no)
