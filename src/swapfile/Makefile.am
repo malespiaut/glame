@@ -13,7 +13,7 @@ libswapfile_la_LDFLAGS = -export-dynamic
 
 swapfile_fsck_SOURCES = \
 	swapfile_fsck.c
-swapfile_fsck_LDADD = libswapfile.la
+swapfile_fsck_LDADD = libswapfile.la $(PTHREAD_LIBS)
 swapfile_mkswap_SOURCES = \
 	swapfile_mkswap.c
-swapfile_mkswap_LDADD = libswapfile.la
+swapfile_mkswap_LDADD = libswapfile.la $(PTHREAD_LIBS)
