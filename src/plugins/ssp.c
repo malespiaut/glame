@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.14 2002/02/17 13:53:31 richi Exp $
+ * $Id: ssp.c,v 1.15 2002/03/24 19:19:51 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -35,10 +35,59 @@
 
 PLUGIN_SET(ssp, "ssp_streamer maxrms")
 
+
+static void ssp_streamer_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_pipe_t *in, *out;
+
+	GLSIGH_GETARGS1(va, in);
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(filterport_filter(filterpipe_dest(in))), PORTNAME_OUT));
+	if (!out)
+		return;
+	filterpipe_settype_ssp(out, filterpipe_sample_rate(in), filterpipe_ssp_bsize(out));
+	glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
+}
+
+static int ssp_streamer_connect_in(filter_port_t *port, filter_pipe_t *p)
+{
+	if (filterport_get_pipe(port))
+		return -1;
+	glsig_add_handler(filterpipe_emitter(p), GLSIG_PIPE_CHANGED,
+			  ssp_streamer_fixup_pipe, NULL);
+	return 0;
+}
+
 static int ssp_streamer_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
-	filterpipe_settype_ssp(p, 44100, 64);
+	filter_pipe_t *in;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
+	int bsize;
+
+	if (filterport_get_pipe(port))
+		return -1;
+
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(filterport_filter(port)), PORTNAME_IN));
+	if (in)
+		rate = filterpipe_sample_rate(in);
+	bsize = filterparam_val_long(filterparamdb_get_param(filter_paramdb(filterport_filter(port)), "bsize"));
+	filterpipe_settype_ssp(p, rate, bsize);
+
 	return 0;
+}
+
+static int ssp_streamer_bsize_set(filter_param_t *param, const void *val)
+{
+	filter_pipe_t *out;
+
+	if (*(long *)val <= 0)
+		return -1;
+
+	if ((out = filterport_get_pipe(filterportdb_get_port(filter_portdb(filterparam_filter(param)), PORTNAME_OUT)))) {
+		filterpipe_settype_ssp(out, filterpipe_ssp_rate(out),
+				       *(long *)val);
+		glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
+	}
+       	return 0;
 }
 
 static int ssp_streamer_f(filter_t *n)
@@ -105,17 +154,19 @@ entry:
 int ssp_streamer_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_port_t *out;
+	filter_port_t *out, *in;
+	filter_param_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = ssp_streamer_f;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "audio stream in",
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "audio stream in",
+				   FILTERPORT_END);
+	in->connect = ssp_streamer_connect_in;
 	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 				    FILTER_PORTTYPE_SSP,
 				    FILTER_PORTFLAG_OUTPUT,
@@ -123,10 +174,11 @@ int ssp_streamer_register(plugin_t *p)
 				    FILTERPORT_END);
 	out->connect = ssp_streamer_connect_out;
 
-	filterparamdb_add_param_long(filter_paramdb(f), "bsize",
-				    FILTER_PARAMTYPE_LONG, 64,
-				    FILTERPARAM_DESCRIPTION, "length of running average",
-				    FILTERPARAM_END);
+	param = filterparamdb_add_param_long(filter_paramdb(f), "bsize",
+					     FILTER_PARAMTYPE_LONG, 64,
+					     FILTERPARAM_DESCRIPTION, "length of running average",
+					     FILTERPARAM_END);
+	param->set = ssp_streamer_bsize_set;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "ssp_streamer");
 	plugin_set(p, PLUGIN_PIXMAP, "ssp.png"); 
