@@ -8,9 +8,6 @@
   <accel state="4" spec="r">
 (if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) 1.57))
   </accel>
-  <accel state="0" spec="Right">
-(let ((item (swapfilegui-active-item))) (if (gpsm-item? item) (gpsm-item-set-hposition! item (+ (gpsm-item-hposition item) 22050))))
-  </accel>
   <accel state="4" spec="d">
 (begin (display "Hello World!") (newline))
   </accel>
@@ -61,6 +58,20 @@
 (editfilter-ungroup-selection)
     </accel>
   </scope>
+</scope>
+
+<scope scope="timeline">
+  <accel state="0" spec="Right">
+(let ((item (timeline-active-item))) (if (gpsm-item? item) (gpsm-item-set-hposition! item (+ (gpsm-item-hposition item) 22050))))
+  </accel>
+  <accel state="0" spec="Left">
+(let ((item (timeline-active-item)))
+  (if (gpsm-item? item)
+      (let ((newpos (- (gpsm-item-hposition item) 22050)))
+        (if (&gt; newpos 0)
+            (gpsm-item-set-hposition! item newpos)
+            (gpsm-item-set-hposition! item 0)))))
+  </accel>
 </scope>
 
 </glame-accels>
