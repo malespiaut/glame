@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.27 2001/04/18 10:23:19 richi Exp $
+ * $Id: basic_sample.c,v 1.28 2001/04/20 08:08:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -660,7 +660,7 @@ int volume_adjust_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
-	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "volume_adjust.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
   
 	return filter_register(f, p);
@@ -745,7 +745,7 @@ int delay_register(plugin_t *p)
 					      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "delay an audio stream");
-	plugin_set(p, PLUGIN_PIXMAP, "delay.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "delay.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
   
 	return filter_register(f, p);
@@ -833,7 +833,7 @@ int extend_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "extend an audio stream");
-	plugin_set(p, PLUGIN_PIXMAP, "extend.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "extend.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
   
 	return filter_register(f, p);
@@ -952,7 +952,7 @@ int repeat_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION,
 		   "repeat an audio stream for the specified time");
-	plugin_set(p, PLUGIN_PIXMAP, "repeat.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "repeat.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
   
 	return filter_register(f, p);

@@ -1,11 +1,15 @@
 EXTRA_DIST = glame-logo.jpg default.png \
 	mix1.png mix2.png drop.png dup.png null.png one2n.png \
 	input.png output.png \
-	prod.png sum.png fft.png \
-	const.png rect.png sine.png
+	prod.png sum.png invert.png fft.png \
+	const.png rect.png sine.png \
+	delay.png extend.png repeat.png \
+	volume_adjust.png
 
 pkgdata_DATA = glame-logo.jpg default.png \
 	mix1.png mix2.png drop.png dup.png null.png one2n.png \
 	input.png output.png \
-	prod.png sum.png fft.png \
-	const.png rect.png sine.png
+	prod.png sum.png invert.png fft.png \
+	const.png rect.png sine.png \
+	delay.png extend.png repeat.png \
+	volume_adjust.png
