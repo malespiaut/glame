@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.2 2003/05/25 21:48:03 richi Exp $
+ * $Id: gltree.h,v 1.3 2004/04/05 20:15:57 ochonpaul Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -32,6 +32,7 @@ enum {
 	//	PROJECT,
 	//	KNOB,
 	INFO,
+	GPSM_ITEM,
 	N_ITEMS
 };
 	
@@ -39,11 +40,11 @@ enum {
 class glTree{
 public:
 	GtkTreeStore *store;
-	gpsm_grp_t *root;
+	gpsm_grp_t *root ;
 	GtkWidget *tree;
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
-public:
+ public:
 	glTree(){
 		store = NULL;
 		root=NULL;
