@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.45 2000/12/22 10:47:41 richi Exp $
+; $Id: glame.scm,v 1.46 2001/01/29 11:38:56 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -362,6 +362,78 @@
 		      result)))))
       (swtest "Unaligned cut" test "Hallo wie gehts?"))))
 
+(define swtest-cut-tail
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999 "Hallo Leute, wie gehts?")))
+		    (sw_lseek fd -5 SEEK_END)
+		    (sw_sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Tail cut" test "Hallo Leute, wie "))))
+
+(define swtest-cut-tail-aligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999 "Hallo " "Leute, wie " "gehts?")))
+		    (sw_lseek fd -5 SEEK_END)
+		    (sw_sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Aligned tail cut" test "Hallo Leute, wie "))))
+
+(define swtest-cut-tail-unaligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999 "Hallo " "Leute," " wie gehts?")))
+		    (sw_lseek fd -5 SEEK_END)
+		    (sw_sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Unaligned tail cut" test "Hallo Leute, wie "))))
+
+(define swtest-cut-head
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999 "Hallo Leute, wie gehts?")))
+		    (sw_lseek fd 0 SEEK_SET)
+		    (sw_sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Head cut" test "Leute, wie gehts?"))))
+
+(define swtest-cut-head-aligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999 "Hallo " "Leute, wie" " gehts?")))
+		    (sw_lseek fd 0 SEEK_SET)
+		    (sw_sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Aligned head cut" test "Leute, wie gehts?"))))
+
+(define swtest-cut-head-unaligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999 "Hallo Leute," " wie" " gehts?")))
+		    (sw_lseek fd 0 SEEK_SET)
+		    (sw_sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Unaligned head cut" test "Leute, wie gehts?"))))
+
 (define swtest-insert-aligned
   (lambda ()
     (let ((test (lambda ()
@@ -400,6 +472,12 @@
 	 (swtest-truncate)
 	 (swtest-cut-aligned)
 	 (swtest-cut-unaligned)
+	 (swtest-cut-head)
+	 (swtest-cut-head-aligned)
+	 (swtest-cut-head-unaligned)
+	 (swtest-cut-tail)
+	 (swtest-cut-tail-aligned)
+	 (swtest-cut-tail-unaligned)
 	 (swtest-insert-aligned)
 	 (swtest-insert-unaligned))))
 
