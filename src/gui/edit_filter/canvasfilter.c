@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.21 2001/07/03 09:27:36 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.22 2001/07/07 08:29:49 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -641,7 +641,8 @@ static void glame_canvas_filter_edit_properties_cb(GtkWidget* m,GlameCanvasFilte
 		return;
 	p = glame_gui_filter_properties(filter_paramdb(filter->filter),
 						   filter_name(filter->filter));
-	gnome_dialog_run_and_close(GNOME_DIALOG(p));
+	/* gnome_dialog_run_and_close(GNOME_DIALOG(p)); */
+	gtk_widget_show(p);
 }
 
 

@@ -451,7 +451,7 @@ static void playselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (!(aout = net_apply_audio_out(net)))
 		goto fail;
 
-	glame_gui_play_network(net, NULL, TRUE,
+	glame_gui_play_network(net, NULL, FALSE/* FIXME TRUE */,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
 						  waveview,
@@ -498,7 +498,7 @@ static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (!(aout = net_apply_audio_out(net)))
 		goto fail;
 
-	glame_gui_play_network(net, NULL, TRUE,
+	glame_gui_play_network(net, NULL, FALSE /* FIXME TRUE */,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
 						  waveview,
@@ -712,7 +712,7 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (gpsm_op_prepare(grp) == -1)
 		DPRINTF("Error preparing for undo\n");
 
-	glame_gui_play_network(net, NULL, TRUE,
+	glame_gui_play_network(net, NULL, FALSE /* FIXME TRUE */,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
 						  NULL, NULL, start, start + length - 1),
@@ -791,7 +791,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (gpsm_op_prepare(grp) == -1)
 		DPRINTF("Error preparing for undo\n");
 
-	glame_gui_play_network(net, NULL, TRUE,
+	glame_gui_play_network(net, NULL, FALSE /* FIXME TRUE */,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
 						  NULL, NULL, -1, -1),

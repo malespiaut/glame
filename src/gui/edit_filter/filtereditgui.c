@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.23 2001/07/02 08:20:24 richi Exp $
+ * $Id: filtereditgui.c,v 1.24 2001/07/07 08:29:49 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -558,7 +558,7 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 void glame_canvas_execute_cb(GtkObject* foo,GlameCanvas* canv)
 {
 	DPRINTF("foo\n");
-	glame_gui_play_network(canv->net,canv,TRUE, NULL,NULL,  "Start", "Pause", "Stop", 0);
+	glame_gui_play_network(canv->net,canv,FALSE /* FIXME TRUE */, NULL,NULL,  "Start", "Pause", "Stop", 0);
 }
 
 void

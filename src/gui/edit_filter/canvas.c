@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.92 2001/06/07 11:40:36 richi Exp $
+ * $Id: canvas.c,v 1.93 2001/07/07 08:29:49 mag Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -528,7 +528,7 @@ network_error_reset(gui_network *net)
 static void 
 network_play(GtkWidget *button,GlameCanvas* glCanv)
 {
-	glame_gui_play_network(glCanv->net->net, glCanv->net, TRUE, NULL, NULL,
+	glame_gui_play_network(glCanv->net->net, glCanv->net, FALSE /* FIXME TRUE */, NULL, NULL,
 			       "Start", "Pause", "Stop", 0);
 }
 

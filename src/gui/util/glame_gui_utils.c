@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.4 2001/07/05 13:57:52 mag Exp $
+ * $Id: glame_gui_utils.c,v 1.5 2001/07/07 08:29:49 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -666,6 +666,10 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	return TRUE;
 }
 
+static void reactivate_apply(GtkWidget *widget, GnomeDialog *dialog)
+{
+	gnome_dialog_set_sensitive(GNOME_DIALOG(dialog), 1, TRUE);
+}
 
 GtkWidget *
 glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
@@ -684,14 +688,17 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_widget_show(vbox);
 	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),vbox,tablabel);
 
-	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
+	/* FIXME gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button)); */
+	gnome_dialog_set_sensitive(GNOME_DIALOG(propBox), 1, TRUE);
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
-	gtk_window_set_modal(GTK_WINDOW(propBox),TRUE);
+	gtk_window_set_modal(GTK_WINDOW(propBox),FALSE /* FIXME TRUE */);
 	cb = malloc(sizeof(param_callback_t));
 	cb->paramList=list;
 	cb->caption = strdup(caption);
 	
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",(GtkSignalFunc)update_params,cb);
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button), "clicked",(GtkSignalFunc)update_params,cb);
+	gtk_signal_connect_after(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button), "clicked",(GtkSignalFunc)reactivate_apply,propBox);
 	
 	return propBox;
 }
