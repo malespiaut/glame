@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.10 2000/03/24 15:27:12 richi Exp $
+ * $Id: file_io.c,v 1.11 2000/03/24 15:42:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -410,7 +410,7 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 		return -1;
 	}
 	DPRINTF("File %s: %d channel(s) %d bit %s at %d Hz, "
-		"%d frames, framesize %d.\n",
+		"framesize %d.\n",
 			filename,
 			RWA(n).channelCount, RWA(n).sampleWidth, 
 			RWA(n).sampleFormat == AF_SAMPFMT_TWOSCOMP ?
@@ -463,20 +463,21 @@ int af_read_f(filter_node_t *n)
 	filter_pipe_t *p_out;
 	SAMPLE *s0, *s1;
 	short *b;
-	int cnt;
+	int fcnt, cnt;
 
 	/* seek to start of audiofile */
 	afSeekFrame(RWA(n).file, AF_DEFAULT_TRACK, 0);
+	fcnt = RWA(n).frameCount;
 
 	FILTER_AFTER_INIT;
 
-	while(RWA(n).frameCount){
+	while(fcnt){
 		FILTER_CHECK_STOP;
 		if (!(frames=afReadFrames(RWA(n).file, AF_DEFAULT_TRACK, 
 					  RWA(n).buffer,
-					  MIN(GLAME_WBUFSIZE, RWA(n).frameCount))))
+					  MIN(GLAME_WBUFSIZE, fcnt))))
 			break;
-		RWA(n).frameCount-=frames;
+		fcnt-=frames;
 		for (i=0; i < RWA(n).channelCount; i++){
 			RWA(n).track[i].buf =
 				sbuf_make_private(sbuf_alloc(frames,n));
