@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.17 2003/04/20 21:56:03 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.18 2003/05/25 13:25:41 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -505,12 +505,5 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 gpsm_grp_t *gtk_swapfile_buffer_get_item(GtkSwapfileBuffer *buffer)
 {
 	return buffer->item;
-}
-
-int gtk_swapfile_buffer_get_swfiles(GtkSwapfileBuffer *buffer,
-				    gpsm_swfile_t ***files)
-{
-	*files = buffer->swfile;
-	return buffer->nrtracks;
 }
 

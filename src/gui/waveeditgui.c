@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.141 2003/05/19 20:32:01 richi Exp $
+ * $Id: waveeditgui.c,v 1.142 2003/05/25 13:25:40 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -798,11 +798,10 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	GtkWidget *canvas;
 	gint32 start, length, marker, wavesize;
-	long nrtracks;
-	gpsm_swfile_t **files;
-	gpsm_item_t *item;
+	gpsm_grp_t *files;
+	gpsm_item_t *item, *it;
 	filter_t *net;
-	int rate, i;
+	int rate;
 	float y_position = 20.0;
 	char position_buffer[20];
 
@@ -813,17 +812,17 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 		return;
 
 	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
-	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
+	files = gpsm_collect_swfiles(item);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
 	/* Create the network, add nrtracks instances of swapfile_in/out */
 	net = filter_creat(NULL);
-	for (i=0; i<nrtracks; i++) {
+	gpsm_grp_foreach_item(files, it) {
 		filter_t *swin, *swout;
 		if (length <= 0 && wavesize - marker <= 0)
 			goto no_swin;
-		swin = net_add_gpsm_input(net, files[i],
+		swin = net_add_gpsm_input(net, (gpsm_swfile_t *)it,
 					  length > 0 ? start : marker,
 					  length > 0 ? length : -1, 0);
 		if (!swin)
@@ -835,7 +834,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 		filter_set_property(swin,"canvas_y",position_buffer);
 
 	no_swin:
-		swout = net_add_gpsm_output(net, files[i],
+		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
 					    length > 0 ? start : marker,
 					    length > 0 ? length : -1,
 					    0);
@@ -849,6 +848,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 
 		y_position += 100;
 	}
+	gpsm_item_destroy((gpsm_item_t *)files);
 
 	/* Prepare for undo -- NO(!?). FIXME -- Yes, still FIXME. */
 	if (gpsm_op_prepare(item) == -1)
@@ -862,6 +862,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
  fail:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
 		gnome_error_dialog(_("Failed to create network"))));
+	gpsm_item_destroy((gpsm_item_t *)files);
 	filter_delete(net);
 }
 
