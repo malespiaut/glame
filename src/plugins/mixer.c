@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.9 2002/04/25 20:39:03 ochonpaul Exp $
+ * $Id: mixer.c,v 1.10 2002/04/25 21:18:01 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -1107,10 +1107,11 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 		 "    <page>%.3f</page>"
 		 "    <page_size>%.3f</page_size>"
 		 "    <formatter>%s</formatter>"
+		 "    <tick>%.3f</tick>"
 		 "  </widget>"
 		 "</GTK-Interface>",
 		 value, lower, upper, step_increment,
-		 page_increment, page_size, formatted);
+		 page_increment, page_size, formatted, value);
 	filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
 	hbox = gtk_hbox_new(FALSE, 0);
 	vbox = gtk_vbox_new(FALSE, 0);
