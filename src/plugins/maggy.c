@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.15 2000/04/10 08:33:51 mag Exp $
+ * $Id: maggy.c,v 1.16 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -32,7 +32,7 @@
 #include "glplugin.h"
 
 
-static int resample_f(filter_node_t *n)
+static int resample_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
@@ -64,13 +64,14 @@ int maggy_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(resample_f))
+	if (!(f = filter_creat(NULL))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				 FILTER_PORTTYPE_ANY)
 	    || filter_add(f,"resample","not that it would do really anything..") == -1)
 		return -1;
+	f->f = resample_f;
 
 	return 0;
 }

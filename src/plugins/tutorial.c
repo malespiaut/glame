@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.4 2000/05/01 11:09:04 richi Exp $
+ * $Id: tutorial.c,v 1.5 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -26,6 +26,7 @@
  * - null
  */
 
+#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -43,13 +44,16 @@ PLUGIN_SET(tutorial, "null dup")
  * only one output is connected.
  * So this is a filter for educational purpose.
  */
-static int null_f(filter_node_t *n)
+static int null_f(filter_t *n)
 {
+	filter_port_t *in_port, *out_port;
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
 
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
+	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	out_port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	in = filterport_get_pipe(in_port);
+	out = filterport_get_pipe(out_port);
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no input or no output");
 
@@ -75,15 +79,22 @@ static int null_f(filter_node_t *n)
 int null_register(plugin_t *p)
 {
 	filter_t *f;
-	if (!(f = filter_alloc(null_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_ANY))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_ANY, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_ANY, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output stream",
+			      FILTERPORT_END);
+
+	f->f = null_f;
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "does nothing on one input stream");
-	filter_attach(f, p);
+	filter_register(f, p);
 
 	return 0;
 }
@@ -93,14 +104,18 @@ int null_register(plugin_t *p)
  * As this functionality is also provided by the one2n filter, this filter
  * is for educational purposes only.
  */
-static int dup_f(filter_node_t *n)
+static int dup_f(filter_t *n)
 {
 	filter_buffer_t *buf;
+	filter_port_t *in_port, *out1_port, *out2_port;
 	filter_pipe_t *in, *out1, *out2;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out1 = filternode_get_output(n, "out1"))
-	    || !(out2 = filternode_get_output(n, "out2")))
+	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	out1_port = filterportdb_get_port(filter_portdb(n), "out1");
+	out2_port = filterportdb_get_port(filter_portdb(n), "out2");
+	if (!(in = filterport_get_pipe(in_port))
+	    || !(out1 = filterport_get_pipe(out1_port))
+	    || !(out2 = filterport_get_pipe(out1_port)))
 		FILTER_ERROR_RETURN("insufficient connections");
 
 	FILTER_AFTER_INIT;
@@ -136,19 +151,25 @@ static int dup_f(filter_node_t *n)
 int dup_register(plugin_t *p)
 {
 	filter_t *f;
-	if (!(f = filter_alloc(dup_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "out1", "output",
-				  FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "out2", "output",
-				  FILTER_PORTTYPE_ANY))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_ANY, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), "out1",
+			      FILTER_PORTTYPE_ANY, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "original stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), "out2",
+			      FILTER_PORTTYPE_ANY, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "duplicate stream",
+			      FILTERPORT_END);
+
+	f->f = dup_f;
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "duplicates one input stream");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }
-
-

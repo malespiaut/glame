@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.11 2000/10/28 13:45:48 richi Exp $
+ * $Id: basic.c,v 1.12 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,6 +25,7 @@
  * - one2n
  */
 
+#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -43,7 +44,7 @@ PLUGIN_SET(basic, "drop one2n")
  * and writes (so its a nice example of multiple asynchronous
  * inputs - but still rather simple).
  */
-static int drop_f(filter_node_t *n)
+static int drop_f(filter_t *n)
 {
 	filter_buffer_t *in;
 	filter_pipe_t **inputs, *p;
@@ -100,7 +101,7 @@ static int drop_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-static int drop_connect_in(filter_node_t *n, filter_port_t *port,
+static int drop_connect_in(filter_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
 	/* We accept n connections. */
@@ -111,16 +112,19 @@ int drop_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(drop_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_ANY))
+	if (!(f = filter_creat(NULL))
+	    || !filterportdb_add_port(filter_portdb(f),
+				      PORTNAME_IN, FILTER_PORTTYPE_ANY,
+				      FILTER_PORTFLAG_INPUT,
+				      FILTERPORT_DESCRIPTION, "input",
+				      FILTERPORT_END))
 		return -1;
+	f->f = drop_f;
 	f->connect_in = drop_connect_in;
 	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "dumpster.xpm");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }
 
 
@@ -131,7 +135,7 @@ int drop_register(plugin_t *p)
  * of one input channel. To avoid deadlocks, this has again be done totally
  * asynchron, both from the input and the output ends. So inbetween buffering
  * in a queue is done per output. */
-static int one2n_f(filter_node_t *n)
+static int one2n_f(filter_t *n)
 {
 	typedef struct {
 		filter_pipe_t *out;
@@ -247,7 +251,7 @@ static int one2n_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-static int one2n_connect_out(filter_node_t *n, filter_port_t *inp,
+static int one2n_connect_out(filter_t *n, filter_port_t *inp,
 			     filter_pipe_t *p)
 {
 	filter_pipe_t *in;
@@ -264,16 +268,23 @@ int one2n_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(one2n_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_ANY))
+	if (!(f = filter_creat(NULL))
+	    || !filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				      FILTER_PORTTYPE_ANY,
+				      FILTER_PORTFLAG_INPUT,
+				      FILTERPORT_DESCRIPTION, "input",
+				      FILTERPORT_END)
+	    || !filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				      FILTER_PORTTYPE_ANY,
+				      FILTER_PORTFLAG_OUTPUT,
+				      FILTERPORT_DESCRIPTION, "output",
+				      FILTERPORT_END))
 		return -1;
+	f->f = one2n_f;
 	f->connect_out = one2n_connect_out;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
 	plugin_set(p, PLUGIN_PIXMAP, "default.png");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }

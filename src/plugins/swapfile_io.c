@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.2 2000/10/28 13:45:48 richi Exp $
+ * $Id: swapfile_io.c,v 1.3 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,7 +27,7 @@ PLUGIN_SET(swapfile_io, "swapfile_in swapfile_out")
 
 
 /* Read a swapfile file into the filter network. */
-static int swapfile_in_f(filter_node_t *n)
+static int swapfile_in_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
@@ -82,13 +82,13 @@ static int swapfile_in_f(filter_node_t *n)
 static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
-	filter_node_t *n;
+	filter_t *n;
 	filter_pipe_t *out;
 	long fname;
 	swfd_t fd;
 
 	GLSIGH_GETARGS1(va, param);
-	n = filterparam_node(param);
+	n = filterparam_filter(param);
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		return;
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
@@ -97,13 +97,13 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	sw_close(fd);
 
 	/* fix the output pipe stream information */
-	filternode_clear_error(n);
+	filter_clear_error(n);
 	filterpipe_settype_sample(out, filterparam_val_int(filternode_get_param(n, "rate")),
 				  filterparam_val_float(filternode_get_param(n, "position")));
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
-static int swapfile_in_connect_out(filter_node_t *n, filter_port_t *outp,
+static int swapfile_in_connect_out(filter_t *n, filter_port_t *outp,
 				   filter_pipe_t *p)
 {
 	long fname;
@@ -128,19 +128,20 @@ int swapfile_in_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(swapfile_in_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+	f->f = swapfile_in_f;
 
 	filter_add_output(f, PORTNAME_OUT, "output stream",
 			  FILTER_PORTTYPE_SAMPLE);
 
-	filterpdb_add_param_int(filter_pdb(f), "filename",
+	filterparamdb_add_param_int(filter_paramdb(f), "filename",
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_END);
-	filterpdb_add_param_int(filter_pdb(f), "rate",
+	filterparamdb_add_param_int(filter_paramdb(f), "rate",
 				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
 				FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "position",
+	filterparamdb_add_param_float(filter_paramdb(f), "position",
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
 
@@ -151,7 +152,7 @@ int swapfile_in_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "swapfile file to audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
-	filter_attach(f, p);
+	filter_register(f, p);
 
 	return 0;
 }
@@ -162,7 +163,7 @@ int swapfile_in_register(plugin_t *p)
 
 /* Store an audio stream into a track (swapfile file with associated
  * information). */
-static int swapfile_out_f(filter_node_t *n)
+static int swapfile_out_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
@@ -203,19 +204,20 @@ int swapfile_out_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(swapfile_out_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+	f->f = swapfile_out_f;
 
 	filter_add_input(f, PORTNAME_IN, "input stream",
 			 FILTER_PORTTYPE_SAMPLE);
 
-	filterpdb_add_param_int(filter_pdb(f), "filename",
+	filterparamdb_add_param_int(filter_paramdb(f), "filename",
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to swapfile file");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
-	filter_attach(f, p);
+	filter_register(f, p);
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.32 2000/10/28 13:45:48 richi Exp $
+ * $Id: file_io.c,v 1.33 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -57,18 +57,18 @@
 #include "glame_types.h"
 #include "glame_byteorder.h"
 
-int wav_read_prepare(filter_node_t *n, const char *filename);
-int wav_read_connect(filter_node_t *n, filter_pipe_t *p);
-int wav_read_f(filter_node_t *n);
-void wav_read_cleanup(filter_node_t *n);
+int wav_read_prepare(filter_t *n, const char *filename);
+int wav_read_connect(filter_t *n, filter_pipe_t *p);
+int wav_read_f(filter_t *n);
+void wav_read_cleanup(filter_t *n);
 
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
-int af_read_prepare(filter_node_t *n, const char *filename);
-int af_read_connect(filter_node_t *n, filter_pipe_t *p);
-int af_read_f(filter_node_t *n);
-void af_read_cleanup(filter_node_t *n);
-int af_write_f(filter_node_t *n);
+int af_read_prepare(filter_t *n, const char *filename);
+int af_read_connect(filter_t *n, filter_pipe_t *p);
+int af_read_f(filter_t *n);
+void af_read_cleanup(filter_t *n);
+int af_write_f(filter_t *n);
 #endif
 
 
@@ -77,10 +77,10 @@ PLUGIN_SET(file_io, "read_file write_file")
 
 typedef struct {
 	struct list_head list;
-	int (*prepare)(filter_node_t *, const char *);
-	int (*connect)(filter_node_t *, filter_pipe_t *);
-	int (*f)(filter_node_t *);
-	void (*cleanup)(filter_node_t *);
+	int (*prepare)(filter_t *, const char *);
+	int (*connect)(filter_t *, filter_pipe_t *);
+	int (*f)(filter_t *);
+	void (*cleanup)(filter_t *);
         const char *regexp;
 } rw_t;
 
@@ -133,10 +133,10 @@ static struct list_head readers;
 static struct list_head writers;
 
 
-static rw_t *add_rw(int (*prepare)(filter_node_t *, const char *),
-		    int (*connect)(filter_node_t *, filter_pipe_t *),
-		    int (*f)(filter_node_t *),
-		    void (*cleanup)(filter_node_t *),
+static rw_t *add_rw(int (*prepare)(filter_t *, const char *),
+		    int (*connect)(filter_t *, filter_pipe_t *),
+		    int (*f)(filter_t *),
+		    void (*cleanup)(filter_t *),
 		    const char *regexp)
 {
 	rw_t *rw;
@@ -155,10 +155,10 @@ static rw_t *add_rw(int (*prepare)(filter_node_t *, const char *),
 
 	return rw;
 }
-static int add_reader(int (*prepare)(filter_node_t *, const char *),
-		      int (*connect)(filter_node_t *, filter_pipe_t *),
-		      int (*f)(filter_node_t *),
-		      void (*cleanup)(filter_node_t *))
+static int add_reader(int (*prepare)(filter_t *, const char *),
+		      int (*connect)(filter_t *, filter_pipe_t *),
+		      int (*f)(filter_t *),
+		      void (*cleanup)(filter_t *))
 {
 	rw_t *rw;
 
@@ -167,7 +167,7 @@ static int add_reader(int (*prepare)(filter_node_t *, const char *),
 	list_add(&rw->list, &readers);
 	return 0;
 }
-static int add_writer(int (*f)(filter_node_t *), const char *regexp)
+static int add_writer(int (*f)(filter_t *), const char *regexp)
 {
 	rw_t *rw;
 
@@ -181,7 +181,7 @@ static int add_writer(int (*f)(filter_node_t *), const char *regexp)
 /* generic read&write methods */
 static void rw_file_cleanup(glsig_handler_t *h, long sig, va_list va)
 {
-	filter_node_t *n;
+	filter_t *n;
 
 	GLSIGH_GETARGS1(va, n);
 	if (RWPRIV(n)->rw
@@ -190,21 +190,21 @@ static void rw_file_cleanup(glsig_handler_t *h, long sig, va_list va)
 		RWPRIV(n)->rw->cleanup(n);
 	free(RWPRIV(n));
 }
-static int rw_file_init(filter_node_t *n)
+static int rw_file_init(filter_t *n)
 {
 	rw_private_t *p;
 
 	if (!(p = ALLOC(rw_private_t)))
 		return -1;
 	n->priv = p;
-	glsig_add_handler(&n->emitter, GLSIG_NODE_DELETED,
+	glsig_add_handler(&n->emitter, GLSIG_FILTER_DELETED,
 			  rw_file_cleanup, NULL);
 
 	return 0;
 }
 
 /* read methods */
-static int read_file_f(filter_node_t *n)
+static int read_file_f(filter_t *n)
 {
 	/* require set filename (a selected reader) and
 	 * at least one connected output. */
@@ -214,7 +214,7 @@ static int read_file_f(filter_node_t *n)
 		FILTER_ERROR_RETURN("no outputs");
 	return RWPRIV(n)->rw->f(n);
 }
-static int read_file_connect_out(filter_node_t *n, filter_port_t *port,
+static int read_file_connect_out(filter_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	/* no reader -> no filename -> some "defaults".
@@ -234,20 +234,20 @@ static int read_file_connect_out(filter_node_t *n, filter_port_t *port,
 static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
-	filter_node_t *n;
+	filter_t *n;
 	filter_pipe_t *p;
 	filter_port_t *port;
 	rw_t *r;
 
 	GLSIGH_GETARGS1(va, param);
-	n = filterparam_node(param);
+	n = filterparam_filter(param);
 
 	/* only position param change? */
 	if (RWPRIV(n)->rw
 	    && strcmp("position", filterparam_label(param)) == 0) {
 		p = filterparam_get_sourcepipe(param);
 		if (RWPRIV(n)->rw->connect(n, p) == -1)
-			filternetwork_break_connection(p);
+			filterpipe_delete(p);
 		return;
 	
         /* filename change! */
@@ -290,7 +290,7 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 			continue;
 		filterport_foreach_pipe(port, p) {
 			if (RWPRIV(n)->rw->connect(n, p) == -1) {
-				filternetwork_break_connection(p);
+				filterpipe_delete(p);
 				goto reconnect;
 			}
 			glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
@@ -299,7 +299,7 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 }
 
 /* write methods */
-static int write_file_f(filter_node_t *n)
+static int write_file_f(filter_t *n)
 {
 	/* require set filename, a selected writer and
 	 * at least one connected input. */
@@ -309,7 +309,7 @@ static int write_file_f(filter_node_t *n)
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-static int write_file_connect_in(filter_node_t *n, filter_port_t *port,
+static int write_file_connect_in(filter_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	/* So why is there no write_file_connect_in?? Do we really
@@ -319,12 +319,12 @@ static int write_file_connect_in(filter_node_t *n, filter_port_t *port,
 static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
-	filter_node_t *n;
+	filter_t *n;
 	regex_t rx;
 	rw_t *w;
 
 	GLSIGH_GETARGS1(va, param);
-	n = filterparam_node(param);
+	n = filterparam_filter(param);
 
         /* only filename change possible in writer. */
 	RWPRIV(n)->initted = 0;
@@ -349,20 +349,21 @@ static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 int read_file_register(plugin_t *pl)
 {
 	filter_t *f;
-	filter_portdesc_t *p;
+	filter_port_t *p;
 
-	if (!(f = filter_alloc(read_file_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 
 	p = filter_add_output(f, PORTNAME_OUT, "output channels",
 			      FILTER_PORTTYPE_SAMPLE);
-	filterpdb_add_param_float(filterportdesc_pdb(p), "position", 
+	filterparamdb_add_param_float(filterport_paramdb(p), "position", 
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
-	filterpdb_add_param_string(filter_pdb(f), "filename",
+	filterparamdb_add_param_string(filter_paramdb(f), "filename",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
 
+	f->f = read_file_f;
 	f->init = rw_file_init;
 	f->connect_out = read_file_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
@@ -370,7 +371,7 @@ int read_file_register(plugin_t *pl)
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "default.png");
-	filter_attach(f, pl);
+	filter_register(f, pl);
 
 	return 0;
 }
@@ -379,15 +380,16 @@ int write_file_register(plugin_t *pl)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(write_file_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 
 	filter_add_input(f, PORTNAME_IN, "input channels",
 			 FILTER_PORTTYPE_SAMPLE);
-	filterpdb_add_param_string(filter_pdb(f), "filename",
+	filterparamdb_add_param_string(filter_paramdb(f), "filename",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
 
+	f->f = write_file_f;
 	f->init = rw_file_init;
 	f->connect_in = write_file_connect_in;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
@@ -395,7 +397,7 @@ int write_file_register(plugin_t *pl)
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "default.xpm");
-	filter_attach(f, pl);
+	filter_register(f, pl);
 
 	return 0;
 }
@@ -421,7 +423,7 @@ int file_io_register(plugin_t *p)
 /* The actual readers and writers.
  */
 
-typedef int (*wav_chunk_handler_t)(filter_node_t *n, char *tag, char *pos, 
+typedef int (*wav_chunk_handler_t)(filter_t *n, char *tag, char *pos, 
                                    int size);
 
 typedef struct {
@@ -431,14 +433,14 @@ typedef struct {
 
 #define WAV_FMT_PCM	1
 
-int wav_chunk_ignore(filter_node_t *n, char *tag, char *pos, int size)
+int wav_chunk_ignore(filter_t *n, char *tag, char *pos, int size)
 {
 	
 	DPRINTF("WAV chunk %s ignored. Skipping %i bytes.\n", tag, size);
 	return size;
 }
 
-int wav_read_chunk_head(filter_node_t *n, char *tag, char *pos, int size)
+int wav_read_chunk_head(filter_t *n, char *tag, char *pos, int size)
 {
 	if (strncasecmp(pos, "WAVE", 4)) {
 		return -1;	/* RIFF but no WAVE */
@@ -447,7 +449,7 @@ int wav_read_chunk_head(filter_node_t *n, char *tag, char *pos, int size)
 	return 4;
 }
 
-int wav_read_chunk_format(filter_node_t *n, char *tag, char *pos, int size)
+int wav_read_chunk_format(filter_t *n, char *tag, char *pos, int size)
 {
 	if (size < 16) {
 		DPRINTF("Illegal chunk size.\n");
@@ -489,7 +491,7 @@ int wav_read_chunk_format(filter_node_t *n, char *tag, char *pos, int size)
 	return size;
 }	
 
-int wav_read_chunk_data(filter_node_t *n, char *tag, char *pos, int size)
+int wav_read_chunk_data(filter_t *n, char *tag, char *pos, int size)
 {
 	if (!RWW(n).ch) {
 		DPRINTF("No fmt chunk?\n");
@@ -523,7 +525,7 @@ wav_handlers_t wav_read_handlers[] = {
  * perhaps be more lenient and just return 0 instead of -1. Change as
  * necessary. Applies to chunk handlers above as well.
  */
-int wav_read_parse(filter_node_t *n, char *from, char* to)
+int wav_read_parse(filter_t *n, char *from, char* to)
 {
 	int i, size;
 	char *tag;
@@ -562,7 +564,7 @@ int wav_read_parse(filter_node_t *n, char *from, char* to)
 	return 0;
 }				
 
-int wav_read_prepare(filter_node_t *n, const char *filename)
+int wav_read_prepare(filter_t *n, const char *filename)
 {
 	int fd;
 	struct stat statbuf;
@@ -603,7 +605,7 @@ int wav_read_prepare(filter_node_t *n, const char *filename)
 	return 0;
 }
 	
-int wav_read_connect(filter_node_t *n, filter_pipe_t *p)
+int wav_read_connect(filter_t *n, filter_pipe_t *p)
 {
 	int i;
 
@@ -637,7 +639,7 @@ int wav_read_connect(filter_node_t *n, filter_pipe_t *p)
 	return 0;
 }
 					
-void wav_read_cleanup(filter_node_t *n)
+void wav_read_cleanup(filter_t *n)
 {
 	free(RWW(n).p);
 	if (RWW(n).map)
@@ -676,7 +678,7 @@ void inline wav_read_convert(filter_buffer_t *buf, int frames, int width,
 	}
 }
 
-int wav_read_f(filter_node_t *n)
+int wav_read_f(filter_t *n)
 {
 	filter_buffer_t *buf;
 	int bufsize, blksize;
@@ -732,7 +734,7 @@ int wav_read_f(filter_node_t *n)
 }
 
 #ifdef HAVE_AUDIOFILE
-int af_read_prepare(filter_node_t *n, const char *filename)
+int af_read_prepare(filter_t *n, const char *filename)
 {
 	if ((RWA(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
@@ -783,7 +785,7 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 	return 0;
 }
 
-int af_read_connect(filter_node_t *n, filter_pipe_t *p)
+int af_read_connect(filter_t *n, filter_pipe_t *p)
 {
 	int i;
 	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
@@ -816,7 +818,7 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 	return 0;	
 }
 
-int af_read_f(filter_node_t *n)
+int af_read_f(filter_t *n)
 {
 	int frames,i,j;
 	filter_pipe_t *p_out;
@@ -916,14 +918,14 @@ int af_read_f(filter_node_t *n)
 	return 0;
 }
 
-void af_read_cleanup(filter_node_t *n)
+void af_read_cleanup(filter_t *n)
 {
 	free(RWA(n).buffer);
 	free(RWA(n).track);
 	afCloseFile(RWA(n).file);	
 }
 
-int af_write_f(filter_node_t *n)
+int af_write_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_port_t *port;

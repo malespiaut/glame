@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include "filter.h"
 
-static int midi_mix_f (filter_node_t *n)
+static int midi_mix_f (filter_t *n)
 {
 	filter_buffer_t *buf;
 	filter_pipe_t **inputs, *p, *output;

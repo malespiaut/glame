@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.7 2000/10/28 13:45:48 richi Exp $
+ * $Id: arithmetic.c,v 1.8 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -26,6 +26,7 @@
  * - add
  */
 
+#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -45,7 +46,7 @@ PLUGIN_SET(arithmetic, "add mul invert")
  */
 
 
-static int arithmetic_connect_in(filter_node_t *n, filter_port_t *port,
+static int arithmetic_connect_in(filter_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	/* We support any number of inputs. */
@@ -57,12 +58,11 @@ static int arithmetic_connect_in(filter_node_t *n, filter_port_t *port,
  * constant and multiply a constant factor:
  * $O_i = c_1 \prod_n{{I_n}_i + c_2}$
  */
-static int mul_f(filter_node_t *n)
+static int mul_f(filter_t *n)
 {
 	nto1_state_t *I;
 	filter_pipe_t *p, *out;
 	filter_port_t *inp, *outp;
-	filter_param_t *pmul, *padd;
 	filter_buffer_t *buf;
 	float cmul, cadd;
 	SAMPLE *s;
@@ -74,12 +74,8 @@ static int mul_f(filter_node_t *n)
 		FILTER_ERROR_RETURN("no inputs");
 	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
-	cmul = 1.0;
-	if ((pmul = filternode_get_param(n, "factor")))
-		cmul = filterparam_val_float(pmul);
-	cadd = 0.0;
-	if ((padd = filternode_get_param(n, "add")))
-		cadd = filterparam_val_float(padd);
+	cmul = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
+	cadd = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "add"));
 
 	if (!(I = ALLOCN(nr, nto1_state_t)))
 		FILTER_ERROR_RETURN("no memory");
@@ -135,26 +131,34 @@ int mul_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(mul_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input streams",
-			    	  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "output stream",
-				   FILTER_PORTTYPE_SAMPLE)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input streams",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output stream",
+			      FILTERPORT_END);
+
+	f->f = mul_f;
 	f->connect_in = arithmetic_connect_in;
 
-	filterpdb_add_param_float(filter_pdb(f), "add",
-				  FILTER_PARAMTYPE_FLOAT, 0.0,
-				  FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "factor",
-				  FILTER_PARAMTYPE_FLOAT, 1.0,
-				  FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "add",
+				      FILTER_PARAMTYPE_FLOAT, 0.0,
+				      FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "factor",
+				      FILTER_PARAMTYPE_FLOAT, 1.0,
+				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mul.png");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }
 
 
@@ -165,12 +169,11 @@ int mul_register(plugin_t *p)
  * multiply a constant factor:
  * $O_i = c_1 (\sum_n{{I_n}_i} + c_2)$
  */
-static int add_f(filter_node_t *n)
+static int add_f(filter_t *n)
 {
 	nto1_state_t *I;
 	filter_pipe_t *p, *out;
 	filter_port_t *inp, *outp;
-	filter_param_t *pmul, *padd;
 	filter_buffer_t *buf;
 	float cmul, cadd;
 	SAMPLE *s;
@@ -182,12 +185,8 @@ static int add_f(filter_node_t *n)
 		FILTER_ERROR_RETURN("no inputs");
 	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
-	cmul = 1.0;
-	if ((pmul = filternode_get_param(n, "factor")))
-		cmul = filterparam_val_float(pmul);
-	cadd = 0.0;
-	if ((padd = filternode_get_param(n, "add")))
-		cadd = filterparam_val_float(padd);
+	cmul = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
+	cadd = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "add"));
 
 	if (!(I = ALLOCN(nr, nto1_state_t)))
 		FILTER_ERROR_RETURN("no memory");
@@ -242,26 +241,34 @@ int add_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(add_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input streams",
-			    	  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "output stream",
-				   FILTER_PORTTYPE_SAMPLE)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input streams",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output stream",
+			      FILTERPORT_END);
+
+	f->f = add_f;
 	f->connect_in = arithmetic_connect_in;
 
-	filterpdb_add_param_float(filter_pdb(f), "add",
-				  FILTER_PARAMTYPE_FLOAT, 0.0,
-				  FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "factor",
-				  FILTER_PARAMTYPE_FLOAT, 1.0,
-				  FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "add",
+				      FILTER_PARAMTYPE_FLOAT, 0.0,
+				      FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "factor",
+				      FILTER_PARAMTYPE_FLOAT, 1.0,
+				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
 	plugin_set(p, PLUGIN_PIXMAP, "add.png");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }
 
 
@@ -270,7 +277,7 @@ int add_register(plugin_t *p)
 
 /* This effect inverts the phase of a signal.  It can be used to correct
  * phase problems. */
-static int invert_f(filter_node_t *n)
+static int invert_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_port_t *inp, *outp;
@@ -310,16 +317,24 @@ int invert_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(invert_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input stream to invert",
-				  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "inverted output stream",
-				   FILTER_PORTTYPE_SAMPLE)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input stream to invert",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "inverted output stream",
+			      FILTERPORT_END);
+
+	f->f = invert_f;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "inverse the phase of an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "invert.xpm");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }

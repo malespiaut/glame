@@ -1,7 +1,6 @@
-
 /*
  * rms.c
- * $Id: rms.c,v 1.8 2000/10/28 13:45:48 richi Exp $
+ * $Id: rms.c,v 1.9 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -44,14 +43,14 @@ PLUGIN_SET(rms,"statistic debugrms")
  *   FIXME any speed optimizations welcome :)
  */
  
-static int statistic_connect_out(filter_node_t *n, filter_port_t *port,
+static int statistic_connect_out(filter_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	filterpipe_type(p)=FILTER_PIPETYPE_RMS;
 	return 0;
 }
 
-static int statistic_f(filter_node_t *n){
+static int statistic_f(filter_t *n){
 	filter_pipe_t *in,*out;
 	filter_buffer_t *sbuf,*rbuf;
 	unsigned long pos=0,peak_pos;
@@ -143,13 +142,14 @@ int statistic_register(plugin_t *p)
 {
 	filter_t *f;
 	
-	if (!(f = filter_alloc(statistic_f))) 
+	if (!(f = filter_creat(NULL)))
 		return -1;
+	f->f = statistic_f;
 	
 	filter_add_input(f, PORTNAME_IN, "audio input", FILTER_PORTTYPE_SAMPLE);
 	filter_add_output(f, PORTNAME_OUT, "rms output", FILTER_PORTTYPE_RMS);
 	
-	filterpdb_add_param_float(filter_pdb(f),"windowsize",
+	filterparamdb_add_param_float(filter_paramdb(f),"windowsize",
 			FILTER_PARAMTYPE_TIME_MS, 500.0,
 			FILTERPARAM_DESCRIPTION,"timeslice in ms for which peak rms is calculated",
 			FILTERPARAM_END);
@@ -159,12 +159,12 @@ int statistic_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Calculates RMS, RMS in window & DC-Offset");
 	plugin_set(p, PLUGIN_PIXMAP, "statistic.xpm");
 
-	filter_attach(f,p);
+	filter_register(f,p);
 
 	return 0;
 }
 
-static int debugrms_f(filter_node_t *n){
+static int debugrms_f(filter_t *n){
 	filter_pipe_t *in;
 	filter_buffer_t *r;
 	float peakrms;
@@ -207,15 +207,16 @@ int debugrms_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(debugrms_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
-	
+	f->f = debugrms_f;
+
 	filter_add_input(f,PORTNAME_IN, "rms input", FILTER_PORTTYPE_RMS);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Eats rms buffers and shows debug output");
 	plugin_set(p, PLUGIN_PIXMAP, "debug.xpm");
 
-	filter_attach(f, p);
+	filter_register(f, p);
 	
 	return 0;
 }

@@ -30,7 +30,7 @@
 
 #include <sys/asoundlib.h>
 
-int alsa_midi_out_f (filter_node_t *n)
+int alsa_midi_out_f (filter_t *n)
 {
 #if 0
 	filter_buffer_t *buf;
@@ -79,7 +79,7 @@ extern int midi_io_register()
 	filter_t *f;
 
 #ifdef HAVE_ALSA
-	if (!(f = filter_alloc(alsa_midi_out_f))
+	if (!(f = filter_creat(NULL))
 	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_MIDI)
 	    || !filter_add_param(f, "client", "alsa client number", FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f, "port", "alsa port number", FILTER_PARAMTYPE_INT)
@@ -87,6 +87,7 @@ extern int midi_io_register()
 	    || !filter_add_param(f, "dest_port", "remote port number", FILTER_PARAMTYPE_INT)
 	    || filter_add(f, "midi_out", "alsa midi output"))
 		return -1;
+	f->f = alsa_midi_out_f;
 #endif
 
 	return 0;

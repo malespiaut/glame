@@ -22,7 +22,7 @@
 #include "filter.h"
 #include "midi.h"
 
-static int input2mbuf_f (filter_node_t *n)
+static int input2mbuf_f (filter_t *n)
 {
 	filter_buffer_t *buf;
 	filter_pipe_t *out;
@@ -54,10 +54,11 @@ extern int midi_debug_register()
 {
 	filter_t *f;
 	
-	if (!(f = filter_alloc(input2mbuf_f))
+	if (!(f = filter_creat(NULL))
 	    || !filter_add_output(f, PORTNAME_OUT, "midi out", FILTER_PORTTYPE_MIDI)
 	    || filter_add(f, "input_to_mbuf", "for debug puposes"))
 		return -1;
+	f->f = input2mbuf_f;
 	
 	return 0;
 }

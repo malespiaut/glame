@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.7 2000/05/16 02:11:52 mag Exp $
+ * $Id: noisegate.c,v 1.8 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -49,7 +49,7 @@
  * WARNING: Setting Releasetime/Attacktime to zero leads to distorted sound !
  */
 
-static int noisegate_f(filter_node_t *n)
+static int noisegate_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
@@ -124,40 +124,41 @@ int noisegate_register(plugin_t *p)
 {
 	filter_t *f;
 	
-	if (!(f = filter_alloc(noisegate_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+	f->f = noisegate_f;
 
 	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_SAMPLE);
 	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE);
 
-	filterpdb_add_param_float(filter_pdb(f),"threshold_on",
+	filterparamdb_add_param_float(filter_paramdb(f),"threshold_on",
 				FILTER_PARAMTYPE_FLOAT,0.0,
 				FILTERPARAM_DESCRIPTION,"if input < threshold_on noisegate is turned on",
 				FILTERPARAM_END);
 
-	filterpdb_add_param_float(filter_pdb(f),"threshold_off",
+	filterparamdb_add_param_float(filter_paramdb(f),"threshold_off",
 			FILTER_PARAMTYPE_FLOAT,0.0,
 			FILTERPARAM_DESCRIPTION,"if input > threshold_off noisegate is turned off",
 			FILTERPARAM_END);
 	
-	filterpdb_add_param_float(filter_pdb(f),"hold",
+	filterparamdb_add_param_float(filter_paramdb(f),"hold",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION,"Hold Time[ms]",
 			FILTERPARAM_END);
 	
-	filterpdb_add_param_float(filter_pdb(f),"attack",
+	filterparamdb_add_param_float(filter_paramdb(f),"attack",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION,"Attack Time[ms]",
 			FILTERPARAM_END);
 	
-	filterpdb_add_param_float(filter_pdb(f),"release",
+	filterparamdb_add_param_float(filter_paramdb(f),"release",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION,"Release Time[ms]",
 			FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "noisegate filters all signals that are below the threshold");
 	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
-	filter_attach(f, p);
+	filter_register(f, p);
 	
 	return 0;
 }

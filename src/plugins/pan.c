@@ -47,7 +47,7 @@
  *   left and right if th < 0.
  */
 
-static int pan_f(filter_node_t *n)
+static int pan_f(filter_t *n)
 {
 	filter_pipe_t *in, *mod, *pass;
 	filter_buffer_t *m_buf, *p_buf;
@@ -115,7 +115,7 @@ static int pan_f(filter_node_t *n)
  * misery among their breed! Cast thy M_PI_2 to float or use a float variable 
  * to compare against instead, and thou shalt live long and prosperous!
  */
-static int pan_set_param(filter_node_t *src, filter_param_t *param,
+static int pan_set_param(filter_t *src, filter_param_t *param,
 			 const void *val)
 {
 	const float min = -M_PI_2;
@@ -140,7 +140,7 @@ int pan_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (((f = filter_alloc(pan_f)) == NULL)
+	if (!(f = filter_creat(NULL))
 	    || !filter_add_input(f, PORTNAME_IN, "input stream to pan", 
 	                         FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, "left-out", "left output stream", 
@@ -148,8 +148,9 @@ int pan_register(plugin_t *p)
 	    || !filter_add_output(f, "right-out", "right output stream",
 	                          FILTER_PORTTYPE_SAMPLE))
 		return -1;
+	f->f = pan_f;
 
-	filterpdb_add_param_float(filter_pdb(f), "pan",
+	filterparamdb_add_param_float(filter_paramdb(f), "pan",
 				  FILTER_PARAMTYPE_POSITION, 0.0/* FIXME - use magic (invalid) default value to mark "unset"? */,
 				  FILTERPARAM_DESCRIPTION,
 				  "position in stereo field [-pi/2, pi/2]", 
@@ -158,7 +159,7 @@ int pan_register(plugin_t *p)
 	f->set_param = pan_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
-	filter_attach(f, p);
+	filter_register(f, p);
 	
 	return 0;
 }

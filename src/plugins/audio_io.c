@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.24 2000/10/28 13:45:48 richi Exp $
+ * $Id: audio_io.c,v 1.25 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -53,7 +53,7 @@ PLUGIN_SET(audio_io, "audio_out audio_in")
  * single (automatic) input port.
  */
 
-static int aio_generic_connect_in(filter_node_t *dest, filter_port_t *inp,
+static int aio_generic_connect_in(filter_t *dest, filter_port_t *inp,
                                   filter_pipe_t *pipe)
 {
 	filter_pipe_t *portishead;
@@ -74,7 +74,7 @@ static int aio_generic_connect_in(filter_node_t *dest, filter_port_t *inp,
  * are no input ports and a single (automatic) output port.
  */
 
-static int aio_generic_connect_out(filter_node_t *src, filter_port_t *outp,
+static int aio_generic_connect_out(filter_t *src, filter_port_t *outp,
                                    filter_pipe_t *pipe)
 {
 	filter_param_t *ratep;
@@ -112,7 +112,7 @@ static int aio_generic_connect_out(filter_node_t *src, filter_port_t *outp,
 
 static void aio_generic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 {
-	filter_node_t *src;
+	filter_t *src;
 	filter_pipe_t *pipe;
 	filter_port_t *inp;
 	int rate;
@@ -126,12 +126,12 @@ static void aio_generic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 			continue;
 		filterport_foreach_pipe(inp, pipe) {
 			if (rate != filterpipe_sample_rate(pipe)) {
-				filternode_set_error(src, "mismatching input samplerates");
+				filter_set_error(src, "mismatching input samplerates");
 				return;
 			}
 		}
 	}
-	filternode_clear_error(src);
+	filter_clear_error(src);
 	/* No output pipes. */
 }
 
@@ -140,13 +140,13 @@ static void aio_generic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
-	filter_node_t *n;
+	filter_t *n;
 	filter_pipe_t *out;
 	filter_port_t *outp;
 	int rate;
 
 	GLSIGH_GETARGS1(va, param);
-	n = filterparam_node(param);
+	n = filterparam_filter(param);
 
 	if (out && strcmp("position", filterparam_label(param)) == 0) {
 		/* FIXME: param setting checks belong to set_param()
@@ -173,10 +173,10 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 }
 /* Clumsy try to clean up the register mess a bit. */
 
-static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_node_t *), const char *defaultdevice)
+static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_t *), const char *defaultdevice)
 {
 	filter_t *filter;
-	filter_portdesc_t *p;
+	filter_port_t *p;
 
 	if (!f)
 		return -1;
@@ -184,37 +184,38 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 	if (!pl && !(pl = plugin_add(name)))
 		return -1;
 
-	if (!(filter = filter_alloc(f)))
+	if (!(filter = filter_creat(NULL)))
 		return -1;
 
 	p = filter_add_output(filter, PORTNAME_OUT, "output port",
 			      FILTER_PORTTYPE_SAMPLE);
-	filterpdb_add_param_float(filterportdesc_pdb(p), "position",
+	filterparamdb_add_param_float(filterport_paramdb(p), "position",
 				  FILTER_PARAMTYPE_POSITION,
 				  FILTER_PIPEPOS_DEFAULT, FILTERPARAM_END);
 
-	filterpdb_add_param_int(filter_pdb(filter), "rate",
+	filterparamdb_add_param_int(filter_paramdb(filter), "rate",
 				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
 				FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(filter), "duration", 
+	filterparamdb_add_param_float(filter_paramdb(filter), "duration", 
 				  FILTER_PARAMTYPE_TIME_S, 10.0,
 				  FILTERPARAM_END);
-	filterpdb_add_param_string(filter_pdb(filter), "device",
+	filterparamdb_add_param_string(filter_paramdb(filter), "device",
 				   FILTER_PARAMTYPE_STRING, defaultdevice,
 				   FILTERPARAM_END);
 
+	filter->f = f;
 	filter->connect_out = aio_generic_connect_out;
 	glsig_add_handler(&filter->emitter, GLSIG_PARAM_CHANGED,
 			  aio_generic_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
-	filter_attach(filter, pl);
+	filter_register(filter, pl);
 
 	return 0;
 }
 			
-static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_node_t *), const char *defaultdevice) 
+static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *), const char *defaultdevice) 
 {
 	filter_t *filter;
 	
@@ -223,22 +224,23 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 	if (!pl && !(pl = plugin_add(name)))
 		return -1;
 	
-	if (!(filter=filter_alloc(f)))
+	if (!(filter=filter_creat(NULL)))
 		return -1;
 
 	filter_add_input(filter, PORTNAME_IN, "input port",
 			 FILTER_PORTTYPE_SAMPLE);
-	filterpdb_add_param_string(filter_pdb(filter), "device",
+	filterparamdb_add_param_string(filter_paramdb(filter), "device",
 				   FILTER_PARAMTYPE_STRING, defaultdevice,
 				   FILTERPARAM_END);
 
+	filter->f = f;
 	filter->connect_in = aio_generic_connect_in;
 	glsig_add_handler(&filter->emitter, GLSIG_PIPE_CHANGED,
 			  aio_generic_fixup_pipe, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "playback stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
-	filter_attach(filter, pl);
+	filter_register(filter, pl);
 
 	return 0;
 }
@@ -248,7 +250,7 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 #include <sys/asoundlib.h>
 #include <string.h>
 
-static int alsa_audio_out_f(filter_node_t *n)
+static int alsa_audio_out_f(filter_t *n)
 {
 	typedef struct {
 		filter_pipe_t	*pipe;
@@ -526,7 +528,7 @@ void oss_convert_bufs(oss_audioparam_t *in, gl_u8 *out, int max_ch,
 /* OSS returns the max number of hardware channels supported,
  * must take care!
  */
-static int oss_audio_out_f(filter_node_t *n)
+static int oss_audio_out_f(filter_t *n)
 {
 
 	oss_audioparam_t	*in = NULL;
@@ -691,7 +693,7 @@ static int oss_audio_out_f(filter_node_t *n)
 #include <dmedia/audio.h>
 
 
-static int sgi_audio_out_f(filter_node_t *n)
+static int sgi_audio_out_f(filter_t *n)
 {
 	typedef struct {
 		filter_pipe_t 	*pipe;
@@ -883,7 +885,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 #ifdef HAVE_ESD
 #include <esd.h>
 
-static int esd_in_f(filter_node_t *n)
+static int esd_in_f(filter_t *n)
 {
 	filter_pipe_t	*pipe[2];
 	filter_buffer_t	*fbuf;
@@ -988,7 +990,7 @@ _out:
 
 /* I don't know what I'm doing, but I just try to 
  * write a simple esound output filter... */
-static int esd_out_f(filter_node_t *n)
+static int esd_out_f(filter_t *n)
 {
 	typedef struct {
 		filter_pipe_t	*pipe;
@@ -1165,7 +1167,7 @@ _entry:
 
 int audio_out_register(plugin_t *p)
 {
-	int (*audio_out)(filter_node_t *);
+	int (*audio_out)(filter_t *);
 	const char *defdev;
 
 	audio_out = NULL;
@@ -1203,7 +1205,7 @@ int audio_out_register(plugin_t *p)
 
 int audio_in_register(plugin_t *p)
 {
-	int (*audio_in)(filter_node_t *);
+	int (*audio_in)(filter_t *);
 	const char *defdev = NULL;
 
 	audio_in = NULL;

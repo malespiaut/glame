@@ -53,7 +53,7 @@
  * WARNING: Setting Releasetime/Attacktime to zero leads to distorted sound !
  */
 
-static int time_f(filter_node_t *n)
+static int time_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
@@ -171,35 +171,36 @@ int time_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(time_f)))
+	if (!(f = filter_creat(NULL)))
 		return -1;
+	f->f = time_f;
 	
 	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_SAMPLE);
 	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE);
 
-	filterpdb_add_param_float(filter_pdb(f),"time_on",
+	filterparamdb_add_param_float(filter_paramdb(f),"time_on",
 			FILTER_PARAMTYPE_TIME_MS,0.0,
 			FILTERPARAM_DESCRIPTION,"switch on time[ms]",
 			FILTERPARAM_END);
 
-	filterpdb_add_param_float(filter_pdb(f),"time_off",
+	filterparamdb_add_param_float(filter_paramdb(f),"time_off",
 			FILTER_PARAMTYPE_TIME_MS,0.0,
 			FILTERPARAM_DESCRIPTION,"switch off time[ms]",
 			FILTERPARAM_END);
 		
-	filterpdb_add_param_float(filter_pdb(f),"attack",
+	filterparamdb_add_param_float(filter_paramdb(f),"attack",
 			FILTER_PARAMTYPE_TIME_MS,0.0,
 			FILTERPARAM_DESCRIPTION,"Attack Time[ms]",
 			FILTERPARAM_END);
 
-	filterpdb_add_param_float(filter_pdb(f),"release",
+	filterparamdb_add_param_float(filter_paramdb(f),"release",
 			FILTER_PARAMTYPE_TIME_MS,0.0,
 			FILTERPARAM_DESCRIPTION,"Release Time[ms]",
 			FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "chopper selects the apropriate region, as defined by the t_on and t_off values");
 	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
-	filter_attach(f, p);
+	filter_register(f, p);
 	
 	return 0;
 }

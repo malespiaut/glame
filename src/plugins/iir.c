@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.6 2000/05/16 02:11:52 mag Exp $
+ * $Id: iir.c,v 1.7 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -224,7 +224,7 @@ glame_iir_t *chebyshev(int n, int mode, float fc, float pr){
 	return gt;	
 }
 	
-static int iir_f(filter_node_t *n)
+static int iir_f(filter_t *n)
 {
 	typedef struct {
 		gliirt *iring;
@@ -248,7 +248,7 @@ static int iir_f(filter_node_t *n)
 
 	/* Just setup a chebyshev filter
 	 * later on I want to call iir_f from different filters providing gt
-	 * having something like static int iir_f(filter_node_t *n, glame_iir_t *gt)
+	 * having something like static int iir_f(filter_t *n, glame_iir_t *gt)
 	 * Then you can register all kind of filters that are using iir_f as kernel
 	 */
 	
@@ -362,36 +362,37 @@ int iir_register(plugin_t *p)
 {
 	filter_t *f;
 	
-	if (!(f = filter_alloc(iir_f)))
+	if (!(f = filter_creat(NULL)))
 			return -1;
+	f->f = iir_f;
 	
 	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
 	
 	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
 	
-	filterpdb_add_param_int(filter_pdb(f),"mode",
+	filterparamdb_add_param_int(filter_paramdb(f),"mode",
 				FILTER_PARAMTYPE_INT,0,
 			        FILTERPARAM_DESCRIPTION,"lowpass(0)/highpass(1)",
 				FILTERPARAM_END);
 	
-	filterpdb_add_param_int(filter_pdb(f),"poles",
+	filterparamdb_add_param_int(filter_paramdb(f),"poles",
 				FILTER_PARAMTYPE_INT,2,
 			        FILTERPARAM_DESCRIPTION,"number of poles (2,4,6,...)",
 				FILTERPARAM_END);
 	
-	filterpdb_add_param_float(filter_pdb(f),"cutoff",
+	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
 			    FILTER_PARAMTYPE_FLOAT,0.1,
 			    FILTERPARAM_DESCRIPTION,"cutoff frequency (0..0.5)",
 			    FILTERPARAM_END);
 
-	filterpdb_add_param_float(filter_pdb(f),"ripple",
+	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
 			    FILTER_PARAMTYPE_FLOAT,0.5,
 			    FILTERPARAM_DESCRIPTION,"percent ripple",
 			    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "iir effect");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
-	filter_attach(f, p);
+	filter_register(f, p);
 
 	return 0;
 }

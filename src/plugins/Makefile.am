@@ -1,11 +1,11 @@
 INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) -D_REENTRANT
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
-	track_io.c swapfile_io.c audio_io.c file_io.c waveform.c \
+	swapfile_io.c audio_io.c file_io.c waveform.c \
 	basic_midi.c midi_io.c midi_debug.c rms.c fft.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
-	iir.c ladspa.c
+	iir.c
 
 # builtin filters
 lib_LTLIBRARIES = libglamebuiltins.la
@@ -17,8 +17,10 @@ else
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c rms.c
 endif
-#	track_io.c basic_midi.c midi_io.c midi_debug.c 
 libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
+
+# non compiling stuff:
+#	basic_midi.c midi_io.c midi_debug.c 
 
 
 # "real" plugins
@@ -58,9 +60,6 @@ pipe_la_LDFLAGS = -module
 
 iir_la_SOURCES = iir.c
 iir_la_LDFLAGS = -module
-
-#ladspa_la_SOURCES = ladspa.c
-#ladspa_la_LDFLAGS = -module
 
 time_la_SOURCES = time.c
 time_la_LDFLAGS = -module

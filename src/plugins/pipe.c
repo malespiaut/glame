@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.7 2000/10/28 13:45:48 richi Exp $
+ * $Id: pipe.c,v 1.8 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,7 +39,7 @@
 PLUGIN_SET(pipe, "pipe_in")
 
 
-static int pipe_f(filter_node_t *n)
+static int pipe_f(filter_t *n)
 {
 	filter_buffer_t *lbuf, *rbuf;
 	filter_pipe_t *lout, *rout;
@@ -102,7 +102,7 @@ static int pipe_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-static int pipe_connect_out(filter_node_t *source, filter_port_t *port,
+static int pipe_connect_out(filter_t *source, filter_port_t *port,
 			    filter_pipe_t *p)
 {
 	int rate;
@@ -127,20 +127,21 @@ int pipe_in_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(pipe_f))
+	if (!(f = filter_creat(NULL))
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_SAMPLE))
 		return -1;
+	f->f = pipe_f;
 
-	filterpdb_add_param_string(filter_pdb(f), "cmd", 
+	filterparamdb_add_param_string(filter_paramdb(f), "cmd", 
 				   FILTER_PARAMTYPE_STRING, NULL,
 				   FILTERPARAM_DESCRIPTION, "command string",
 				   FILTERPARAM_END);
-	filterpdb_add_param_string(filter_pdb(f), "tail",
+	filterparamdb_add_param_string(filter_paramdb(f), "tail",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_DESCRIPTION, "command string tail",
 				   FILTERPARAM_END);
-	filterpdb_add_param_int(filter_pdb(f), "rate",
+	filterparamdb_add_param_int(filter_paramdb(f), "rate",
 				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
 				FILTERPARAM_DESCRIPTION, "data samplerate",
 				FILTERPARAM_END);
@@ -150,7 +151,7 @@ int pipe_in_register(plugin_t *p)
 	 * parameter... FIXME! */
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe input");
-	filter_attach(f, p);
+	filter_register(f, p);
 
 	return 0;
 }

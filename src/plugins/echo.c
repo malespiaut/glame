@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.10 2000/05/02 09:10:18 richi Exp $
+ * $Id: echo.c,v 1.11 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -23,6 +23,7 @@
  * use of feedback buffering.
  */
 
+#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -32,23 +33,26 @@
 #include "glplugin.h"
 
 
-static int echo_f(filter_node_t *n)
+static int echo_f(filter_t *n)
 {
 	int delay;  /* in samples */
 	float mix, fbfact, infact;  /* mixing factor, 1/(1+mix) */
+	filter_port_t *in_port, *out_port;
 	filter_pipe_t *in, *out;
 	feedback_fifo_t fifo;
 	filter_buffer_t *inb, *fb;
 	SAMPLE *ins, *fs;
 	int cnt, inb_pos, fb_pos;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
-	        FILTER_ERROR_RETURN("no in- or output");
+	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	out_port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(in_port))
+	    || !(out = filterport_get_pipe(out_port)))
+	        FILTER_ERROR_RETURN("no input or no output");
 
 	delay = (int)(filterpipe_sample_rate(in) 
-		      * filterparam_val_float(filternode_get_param(n, "time"))/1000.0);
-	mix = filterparam_val_float(filternode_get_param(n, "mix"));
+		      * filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "time"))/1000.0);
+	mix = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "mix"));
 	fbfact = mix/(1.0 + mix);
 	infact = 1.0/(1.0 + mix);
 
@@ -169,24 +173,30 @@ int echo_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(echo_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-		    		FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filterpdb_add_param_float(filter_pdb(f), "time",
-				  FILTER_PARAMTYPE_TIME_MS, 0.1,
-				  FILTERPARAM_DESCRIPTION, "echo time in ms",
-				  FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "mix",
-				  FILTER_PARAMTYPE_FLOAT, 0.7,
-				  FILTERPARAM_DESCRIPTION, "mixer ratio",
-				  FILTERPARAM_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "stream with echo",
+			      FILTERPORT_END);
+
+	f->f = echo_f;
+
+	filterparamdb_add_param_float(filter_paramdb(f), "time",
+				      FILTER_PARAMTYPE_TIME_MS, 0.1,
+				      FILTERPARAM_DESCRIPTION, "echo time in ms",
+				      FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "mix",
+				      FILTER_PARAMTYPE_FLOAT, 0.7,
+				      FILTERPARAM_DESCRIPTION, "mixer ratio",
+				      FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "echo effect");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }

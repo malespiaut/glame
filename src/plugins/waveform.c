@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.10 2000/10/28 13:45:48 richi Exp $
+ * $Id: waveform.c,v 1.11 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -28,6 +28,7 @@
  * be repeated using the repeat filter. [richi]
  */
 
+#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -44,32 +45,27 @@ PLUGIN_SET(waveform, "sine const")
 /* Standard waveform connect_out and fixup_param methods. These honour
  * optional parameters "rate" and "position".
  */
-static int waveform_connect_out(filter_node_t *n, filter_port_t *port,
+static int waveform_connect_out(filter_t *n, filter_port_t *port,
 				filter_pipe_t *p)
 {
-	filter_param_t *param;
 	int rate;
 	float pos;
 
-	rate = GLAME_DEFAULT_SAMPLERATE;
-	if ((param = filternode_get_param(n, "rate")))
-		rate = filterparam_val_int(param);
-	pos = FILTER_PIPEPOS_DEFAULT;
-	if ((param = filternode_get_param(n, "position")))
-		pos = filterparam_val_float(param);
+	rate = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate"));
+	pos = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position"));
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
 }
 static void waveform_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
-	filter_node_t *n;
+	filter_t *n;
 	filter_pipe_t *out;
 
 	GLSIGH_GETARGS1(va, param);
-	n = filterparam_node(param);
+	n = filterparam_filter(param);
 
-	if ((out = filternode_get_output(n, PORTNAME_OUT))) {
+	if ((out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT)))) {
 		waveform_connect_out(n, NULL, out);
 		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	}
@@ -78,21 +74,25 @@ static void waveform_fixup_param(glsig_handler_t *h, long sig, va_list va)
 /* Standard waveform register. Does add the output port and the parameters "rate"
  * and "position". Also inits the methods.
  */
-static filter_t *waveform_filter_alloc(int (*fm)(filter_node_t *))
+static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(fm)))
+	if (!(f = filter_creat(NULL)))
 		return NULL;
-	filter_add_output(f, PORTNAME_OUT, "waveform output stream",
-			  FILTER_PORTTYPE_SAMPLE);
-	filterpdb_add_param_int(filter_pdb(f), "rate", 
-				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
-				FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "position", 
-				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
-				  FILTERPARAM_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "waveform output stream",
+			      FILTERPORT_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "rate", 
+				    FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+				    FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "position", 
+				      FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+				      FILTERPARAM_END);
 
+	f->f = fm;
 	f->connect_out = waveform_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  waveform_fixup_param, NULL);
@@ -101,44 +101,32 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_node_t *))
 }
 
 /* Helpers. */
-static int waveform_get_rate(filter_node_t *n)
+static int waveform_get_rate(filter_t *n)
 {
-	filter_param_t *param;
-
-	if ((param = filternode_get_param(n, "rate")))
-		return filterparam_val_int(param);
-	else
-		return GLAME_DEFAULT_SAMPLERATE;
+	return filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate"));
 }
 
 
 /* This filter generates a sine test signal
  * defaults to 441 Hz and 0.5 max amplitude. 
  */
-static int sine_f(filter_node_t *n)
+static int sine_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
-	filter_param_t *param;
 	SAMPLE ampl;
 	float freq;
 	int rate, i, size;
 	
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	/* globals */
 	rate = waveform_get_rate(n);
 
-	/* sane defaults */
-	ampl = 0.5;
-	freq = 441.0;
-
-	/* user overrides with parameters */
-	if ((param = filternode_get_param(n, "amplitude")))
-		ampl = filterparam_val_sample(param);
-	if ((param = filternode_get_param(n, "frequency")))
-		freq = filterparam_val_float(param);
+	/* parameters for sine */
+	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
 
 	/* FIXME: we should try to eliminate sampling frequency errors
 	 * by finding optimal size. And we should at least fill a minimum
@@ -170,17 +158,16 @@ int sine_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(sine_f)))
 		return -1;
 
-	filterpdb_add_param_float(filter_pdb(f), "amplitude",
+	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "frequency",
+	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
 				  FILTER_PARAMTYPE_FLOAT, 441.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }
 
 
@@ -190,26 +177,21 @@ int sine_register(plugin_t *p)
 /* This filter generates a constant signal,
  * signal value defaults to 0.0.
  */
-static int const_f(filter_node_t *n)
+static int const_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
-	filter_param_t *param;
 	SAMPLE val;
 	int rate, i, size;
 	
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	/* globals */
 	rate = waveform_get_rate(n);
 
-	/* sane defaults */
-	val = 0.0;
-
-	/* user overrides with parameters */
-	if ((param = filternode_get_param(n, "value")))
-		val = filterparam_val_sample(param);
+	/* parameters for const */
+	val = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "value"));
 
 	/* we will generate one buffer with 0.1 sec samples. */
 	size = rate/10;
@@ -236,12 +218,11 @@ int const_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(const_f)))
 		return -1;
 
-	filterpdb_add_param_float(filter_pdb(f), "value",
+	filterparamdb_add_param_float(filter_paramdb(f), "value",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
-	filter_attach(f, p);
 
-	return 0;
+	return filter_register(f, p);
 }

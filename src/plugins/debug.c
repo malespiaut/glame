@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.6 2000/08/14 08:48:07 richi Exp $
+ * $Id: debug.c,v 1.7 2000/11/06 09:48:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,7 +37,7 @@ PLUGIN_SET(debug, "ping");
  * hardcoded.
  * all is very simple and _synchron_(!), so dont lower dt
  * too much. */
-static int ping(filter_node_t *n)
+static int ping(filter_t *n)
 {
 	filter_buffer_t *in, *out;
 	filter_pipe_t *i, *o;
@@ -100,24 +100,25 @@ int ping_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(ping))
+	if (!(f = filter_creat(NULL))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_SAMPLE))
 		return -1;
+	f->f = ping;
 
-	filterpdb_add_param_int(filter_pdb(f), "cnt",
+	filterparamdb_add_param_int(filter_paramdb(f), "cnt",
 				FILTER_PARAMTYPE_INT, 10,
 				FILTERPARAM_END);
-	filterpdb_add_param_float(filter_pdb(f), "dt",
+	filterparamdb_add_param_float(filter_paramdb(f), "dt",
 				  FILTER_PARAMTYPE_TIME_MS, 250,
 				  FILTERPARAM_END);
-	filterpdb_add_param_int(filter_pdb(f), "size",
+	filterparamdb_add_param_int(filter_paramdb(f), "size",
 				FILTER_PARAMTYPE_INT, 128,
 				FILTERPARAM_END);
 
-	filter_attach(f, p);
+	filter_register(f, p);
 
 	return 0;
 }
