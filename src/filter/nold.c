@@ -1,7 +1,6 @@
 /*
- * <nold.c>
- *
- * $Id: nold.c,v 1.6 2000/02/14 13:24:29 richi Exp $
+ * nold.c
+ * $Id: nold.c,v 1.7 2000/02/20 15:31:42 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras
  *

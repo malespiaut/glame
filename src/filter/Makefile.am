@@ -10,8 +10,8 @@ EXTRA_DIST = filter.h filterI.h filter_methods.h filter_mm.h filter_ops.h \
 libfilter_la_SOURCES = filter.h filterI.h filter_methods.h \
 	filter.c filter_buffer.c filter_network.c filter_methods.c \
 	filter_mm.c filter_ops.c \
-	basic.c tutorial.c debug.c channel_io.c audio_io.c \
-	volume_adjust.c waveform.c file_io.c \
+	basic.c basic_sample.c tutorial.c debug.c channel_io.c audio_io.c \
+	waveform.c file_io.c file_io2.c \
 	echo.c garrison.c nold.c echo2.c distance.c \
 	midi_basic.c midi_io.c
 

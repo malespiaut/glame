@@ -1,6 +1,6 @@
 /*
  * channel_io.c
- * $Id: channel_io.c,v 1.7 2000/02/17 17:58:36 nold Exp $
+ * $Id: channel_io.c,v 1.8 2000/02/20 15:31:42 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -162,7 +162,8 @@ static int channel_in_f(filter_node_t *n)
 
 	return 0;
 }
-static int channel_in_fixup_param(filter_node_t *n, const char *param)
+static int channel_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				  const char *name, filter_param_t *param)
 {
 	filter_param_t *chan, *group;
 	filter_pipe_t *out;

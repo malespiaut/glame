@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.21 2000/02/17 17:02:16 richi Exp $
+ * $Id: filter_network.c,v 1.22 2000/02/20 15:31:42 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -157,7 +157,7 @@ int filternode_set_param(filter_node_t *n, const char *label, void *val)
 	}
 	set_param(param, val);
 
-	return n->filter->fixup_param(n, label);
+	return n->filter->fixup_param(n, NULL, label, param);
 }
 
 int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val)
@@ -178,7 +178,7 @@ int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val)
 	set_param(param, val);
 
 	/* FIXME: ummm, need fixup_pipesourceparam???? */
-	return p->source->filter->fixup_param(p->source, label);
+	return p->source->filter->fixup_param(p->source, p, label, param);
 }
 
 int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val)
@@ -199,7 +199,7 @@ int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val)
 	set_param(param, val);
 
 	/* FIXME: ummm, need fixup_pipedestparam???? */
-	return p->dest->filter->fixup_param(p->dest, label);
+	return p->dest->filter->fixup_param(p->dest, p, label, param);
 }
 
 
@@ -418,6 +418,8 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	/* signal input changes to destination node */
 	if (dest->filter->fixup_pipe(p->dest, p) == -1)
 	        goto _err_fixup;
+	/* FIXME: possible bug here - fixup_pipe could break
+	 * the connection - p would be already deleted! */
 
 	p->dest->nr_inputs++;
 	p->source->nr_outputs++;
