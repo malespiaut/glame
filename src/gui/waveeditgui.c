@@ -364,6 +364,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "size"), &length);
 		filter_add_node(net, swin, "swin");
 		filter_add_node(net, eff, "eff");
 		filter_add_node(net, swout, "swout");
@@ -633,6 +634,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "size"), &length);
 		filter_add_node(net, swin, "swin");
 		filter_add_node(net, swout, "swout");
 		filter_set_property(swin,"immutable","1");
