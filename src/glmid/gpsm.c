@@ -81,6 +81,23 @@ static struct op *_op_get_prev(struct op *op);
 struct op *_op_get_redo(gpsm_swfile_t **files, int cnt);
 struct op *_op_get_undo(gpsm_swfile_t **files, int cnt);
 
+/* Macros for easier use. */
+#define X0(item) (gpsm_item_hposition(item))
+#define X1(item) (gpsm_item_hposition(item) + gpsm_item_hsize(item) - 1)
+#define Y0(item) (gpsm_item_vposition(item))
+#define Y1(item) (gpsm_item_vposition(item) + gpsm_item_vsize(item) - 1)
+#define POS_IS_INSIDE(x, y, item) \
+        (X0(item) <= x && x <= X1(item) && Y0(item) <= y && y <= Y1(item))
+#define ITEMS_DO_OVERLAP(it1, it2) \
+        (POS_IS_INSIDE(X0(it1), Y0(it1), it2) \
+	 || POS_IS_INSIDE(X1(it1), Y0(it1), it2) \
+	 || POS_IS_INSIDE(X0(it1), Y1(it1), it2) \
+	 || POS_IS_INSIDE(X1(it1), Y1(it1), it2) \
+         || POS_IS_INSIDE(X0(it2), Y0(it2), it1) \
+	 || POS_IS_INSIDE(X1(it2), Y0(it2), it1) \
+	 || POS_IS_INSIDE(X0(it2), Y1(it2), it1) \
+	 || POS_IS_INSIDE(X1(it2), Y1(it2), it1))
+
 
 /*
  * XML input/output helpers.
@@ -231,7 +248,9 @@ static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node)
 	swfile->item.hsize = st.size/SAMPLE_SIZE;
 	swfile->item.vsize = 1;
 	hash_add_swfile(swfile);
-	gpsm_grp_insert(tree, (gpsm_item_t *)swfile, ihposition, ivposition);
+	if (gpsm_item_place(tree, (gpsm_item_t *)swfile, ihposition, ivposition) == -1)
+		DPRINTF("WARNING: placement of %s at %li, %li rejected\n",
+			gpsm_item_label(swfile), ihposition, ivposition);
 }
 static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node)
 {
@@ -255,7 +274,9 @@ static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node)
 	/* Create new group and insert it into tree. */
 	item = gpsm_newitem(GPSM_ITEM_TYPE_GRP);
 	item->label = ilabel;
-	gpsm_grp_insert(tree, item, ihposition, ivposition);
+	if (gpsm_item_place(tree, item, ihposition, ivposition) == -1)
+		DPRINTF("WARNING: placement of %s at %li, %li rejected\n",
+			gpsm_item_label(item), ihposition, ivposition);
 
 	/* Recurse down the childrens. */
 	insert_childs((gpsm_grp_t *)item, node);
@@ -354,9 +375,9 @@ static void scan_swap()
 
 	/* Add unknown group and iterate through all swapfiles adding those
 	 * not already contained in the tree. */
-	if (!(grp = gpsm_find_grp_label(gpsm_root(), NULL, "[unrecognized tracks]"))) {
-		grp = gpsm_newgrp("[unrecognized tracks]");
-		gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, 100000);
+	if (!(grp = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_UNRECOGNIZED_LABEL))) {
+		grp = gpsm_newgrp(GPSM_GRP_UNRECOGNIZED_LABEL);
+		gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp, 0, GPSM_GRP_UNRECOGNIZED_VPOS);
 	}
 	dir = sw_opendir();
 	while ((name = sw_readdir(dir)) != -1) {
@@ -380,7 +401,8 @@ static void scan_swap()
 		swfile->position = 0.0;
 
 		hash_add_swfile(swfile);
-		gpsm_grp_insert(grp, (gpsm_item_t *)swfile, 0, -1);
+		gpsm_item_place(grp, (gpsm_item_t *)swfile,
+				0, gpsm_item_vsize(grp));
 	}
 	sw_closedir(dir);
 
@@ -609,7 +631,7 @@ gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *source)
 	swfd_t sfd, dfd;
 	int res;
 
-	if (!source)
+	if (!source || !GPSM_ITEM_IS_SWFILE(source))
 		return NULL;
 
 	if ((sfd = sw_open(source->filename, O_RDONLY)) == -1)
@@ -651,7 +673,7 @@ gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *source)
 {
 	gpsm_swfile_t *swfile;
 
-	if (!source)
+	if (!source || !GPSM_ITEM_IS_SWFILE(source))
 		return NULL;
 
 	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
@@ -696,7 +718,7 @@ gpsm_grp_t *gpsm_grp_cow(gpsm_grp_t *grp)
 			c = (gpsm_item_t *)gpsm_grp_cow((gpsm_grp_t *)item);
 		else
 			continue;
-		gpsm_grp_insert(copy, c,
+		gpsm_item_place(copy, c,
 				gpsm_item_hposition(item), gpsm_item_vposition(item));
 	}
 
@@ -717,7 +739,7 @@ gpsm_grp_t *gpsm_grp_link(gpsm_grp_t *grp)
 			c = (gpsm_item_t *)gpsm_grp_link((gpsm_grp_t *)item);
 		else
 			continue;
-		gpsm_grp_insert(copy, c,
+		gpsm_item_place(copy, c,
 				gpsm_item_hposition(item), gpsm_item_vposition(item));
 	}
 
@@ -787,6 +809,9 @@ int gpsm_grp_is_hbox(gpsm_grp_t *group)
 	gpsm_item_t *item;
 	long end = -1;
 
+	if (!group || !GPSM_ITEM_IS_GRP(group))
+		return 0;
+
 	/* hbox means, we ignore vposition/vsize completely and just
 	 * have all group items sorted by their hposition. It also
 	 * means we do not allow overlapping of the "horizontal intervals"
@@ -803,6 +828,9 @@ int gpsm_grp_is_vbox(gpsm_grp_t *group)
 {
 	gpsm_item_t *item;
 	long end = -1;
+
+	if (!group || !GPSM_ITEM_IS_GRP(group))
+		return 0;
 
 	/* vbox means, we ignore hposition/hsize completely and just
 	 * have all group items sorted by their vposition. It also
@@ -916,14 +944,91 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 	}
 }
 
-/* _insert_tail handles the actual insertion of an item - at the
- * specified position inside the list. */
-static void _insert_tail(gpsm_grp_t *group, gpsm_item_t *item,
-			 gpsm_item_t *succ,
-			 long hposition, long vposition)
+static void _place_tail(gpsm_grp_t *grp,
+			gpsm_item_t *item, gpsm_item_t *succ,
+			long hpos, long vpos)
 {
-	if (hposition < 0 || vposition < 0)
-		DERROR("Uninitialized insertion position");
+	/* Do the addition, send out appropriate signals. */
+	item->parent = grp;
+	item->hposition = hpos;
+	item->vposition = vpos;
+	if (!succ)
+		list_add_tail(&item->list, &grp->items);
+	else
+		list_add_tail(&item->list, &succ->list);
+	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
+
+	/* Send out GPSM_SIG_GRP_NEWITEM signal. */
+	glsig_emit(&grp->item.emitter, GPSM_SIG_GRP_NEWITEM, grp, item);
+}
+
+int gpsm_item_can_place(gpsm_grp_t *grp, gpsm_item_t *item,
+			long hpos, long vpos)
+{
+	gpsm_item_t *it, dummy;
+	int can;
+
+	if (!grp || !GPSM_ITEM_IS_GRP(grp)
+	    || !item || (gpsm_item_t *)grp == item
+	    || hpos < 0 || vpos < 0)
+		return 0;
+
+	/* Check, if the box (hpos, vpos) - (hpos+hsize, vpos+vsize)
+	 * overlaps with a box inside grp _or_ the placement will
+	 * cause the grp to expand and overlap with something along
+	 * the grps parents.
+	 * Note that we need to ignore the item itself.
+	 */
+
+	/* FIXME: handle pre-removal (and grp fixup) of item from
+	 *        its old position! */
+
+	dummy.hposition = hpos;
+	dummy.vposition = vpos;
+	dummy.hsize = gpsm_item_hsize(item);
+	dummy.vsize = gpsm_item_vsize(item);
+	gpsm_grp_foreach_item(grp, it) {
+		if (it == item)
+			continue;
+		if (ITEMS_DO_OVERLAP(it, &dummy))
+			return 0;
+	}
+
+	/* Now we need to "recurse" upward, trying to replace the
+	 * (possibly) enlarged grp at its old position. Note that
+	 * we dont need to handle shrinking, as the larger box did
+	 * fit already. Also we can bail out, if grp->parent == NULL.
+	 */
+	if (!gpsm_item_parent(grp)
+	    || gpsm_item_hsize(grp) >= hpos + gpsm_item_hsize(item)
+	    || gpsm_item_vsize(grp) >= vpos + gpsm_item_vsize(item))
+		return 1;
+	/* Save grps size - adjust it for recursion. */
+	dummy.hsize = gpsm_item_hsize(grp);
+	dummy.vsize = gpsm_item_vsize(grp);
+	grp->item.hsize = MAX(gpsm_item_hsize(grp),
+			      hpos + gpsm_item_hsize(item));
+	grp->item.vsize = MAX(gpsm_item_vsize(grp),
+			      vpos + gpsm_item_vsize(item));
+	can = gpsm_item_can_place(gpsm_item_parent(grp), (gpsm_item_t *)grp,
+				  gpsm_item_hposition(grp),
+				  gpsm_item_vposition(grp));
+	grp->item.hsize = dummy.hsize;
+	grp->item.vsize = dummy.vsize;
+
+	return can;
+}
+
+int gpsm_item_place(gpsm_grp_t *grp, gpsm_item_t *item,
+		    long hpos, long vpos)
+{
+	gpsm_item_t *succ;
+
+	if (!gpsm_item_can_place(grp, item, hpos, vpos))
+		return -1;
+
+	/* Remove the item from its old position. */
+	gpsm_item_remove(item);
 
 	/* Register an item changed signal handler to the new item
 	 * to update the parents boundingbox, if necessary. */
@@ -931,101 +1036,156 @@ static void _insert_tail(gpsm_grp_t *group, gpsm_item_t *item,
 			  GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
 			  handle_itemchange, item);
 
-	/* Do the addition, send out GPSM_SIG_ITEM_CHANGED signal. */
-	item->parent = group;
-	item->hposition = hposition;
-	item->vposition = vposition;
-	if (!succ)
-		list_add_tail(&item->list, &group->items);
-	else
-		list_add_tail(&item->list, &succ->list);
-	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
-
-	/* Send out GPSM_SIG_GRP_NEWITEM signal. */
-	glsig_emit(&group->item.emitter, GPSM_SIG_GRP_NEWITEM, group, item);
-}
-
-int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
-		    long hposition, long vposition)
-{
-	gpsm_item_t *succ, *i;
-
-	if (!group || !item
-	    || !list_empty(&item->list) || item->parent)
-		return -1;
-
-	/* Fixup item position, handle magic -1 values. */
-	if (hposition == -1 && vposition == -1)
-		hposition = 0;
-	if (hposition == -1)
-		hposition = group->item.hsize;
-	if (vposition == -1)
-		vposition = group->item.vsize;
-
-	/* Check, if an illegal overlap would be caused by the
-	 * insertion. */
-	gpsm_grp_foreach_item(group, i) {
-		long hstart = gpsm_item_hposition(i);
-		long hend = hstart + gpsm_item_hsize(i) - 1;
-		long vstart = gpsm_item_vposition(i);
-		long vend = vstart + gpsm_item_vsize(i) - 1;
-		long ihend = hposition + MAX(0, gpsm_item_hsize(item) - 1);
-		long ivend = vposition + MAX(0, gpsm_item_vsize(item) - 1);
-		if (((hstart <= hposition && hend >= hposition)
-		     || (hstart <= ihend && hend >= ihend))
-		    && ((vstart <= vposition && vend >= vposition)
-			|| (vstart <= ivend && vend >= ivend))) {
-			DPRINTF("Overlap. Insertion rejected.\n");
-			return -1;
-		}
+	/* Find the insertion point inside the grps child list.
+	 * Try to preserve hbox / vbox properties. */
+	if (gpsm_grp_is_vbox(grp) && !gpsm_grp_is_hbox(grp)) {
+		gpsm_grp_foreach_item(grp, succ)
+			if (Y0(succ) >= vpos)
+				break;
+	} else if (gpsm_grp_is_hbox(grp) && !gpsm_grp_is_vbox(grp)) {
+		gpsm_grp_foreach_item(grp, succ)
+			if (X0(succ) >= hpos)
+				break;
+	} else /* if its neither, do vbox like */ {
+		gpsm_grp_foreach_item(grp, succ)
+			if (Y0(succ) >= vpos)
+				break;
 	}
 
-	/* Find insertion point - first sort tracks, then time - i.e. this
-	 * is vbox-like. */
-	gpsm_grp_foreach_item(group, succ) {
-		if ((gpsm_item_vposition(succ) > vposition)
-		    || (gpsm_item_vposition(succ) == vposition
-			&& gpsm_item_hposition(succ) > hposition))
-			break;
-	}
-
-	/* Do the insertion. */
-	_insert_tail(group, item, succ, hposition, vposition);
+	/* Do the placement. */
+	_place_tail(grp, item, succ, hpos, vpos);
 
 	return 0;
+}
+
+int gpsm_hbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
+			 long hpos, long vpos)
+{
+	gpsm_item_t *it;
+
+	if (!grp || !GPSM_ITEM_IS_GRP(grp)
+	    || !item || (gpsm_item_t *)grp == item
+	    || hpos < 0 || vpos < 0
+	    || !gpsm_grp_is_hbox(grp))
+		return 0;
+
+	/* Can hbox-insert is very simple, we just need to check if
+	 * hpos is inside an item of grp. Note that insertion to a
+	 * start edge position of an existing item is allowed. */
+	gpsm_grp_foreach_item(grp, it) {
+		if (item == it)
+			continue;
+		if (X0(it) < hpos && hpos <= X1(it))
+			return 0;
+	}
+
+	return 1;
+}
+
+int gpsm_vbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
+			 long hpos, long vpos)
+{
+	gpsm_item_t *it;
+
+	if (!grp || !GPSM_ITEM_IS_GRP(grp)
+	    || !item || (gpsm_item_t *)grp == item
+	    || hpos < 0 || vpos < 0
+	    || !gpsm_grp_is_vbox(grp))
+		return 0;
+
+	/* Can hbox-insert is very simple, we just need to check if
+	 * hpos is inside an item of grp. Note that insertion to a
+	 * start edge position of an existing item is allowed. */
+	gpsm_grp_foreach_item(grp, it) {
+		if (item == it)
+			continue;
+		if (Y0(it) < vpos && vpos <= Y1(it))
+			return 0;
+	}
+
+	return 1;
+}
+
+/* Transparently handle item moving top-down / back-front. */
+static void _gpsm_item_insert_space_after(gpsm_item_t *item, long dx, long dy)
+{
+	gpsm_item_t *it;
+
+	/* Top - down */
+	if (!gpsm_item_parent(item))
+		return;
+	_gpsm_item_insert_space_after((gpsm_item_t *)gpsm_item_parent(item),
+				      dx, dy);
+
+	/* Back to front. */
+	it = list_gettail(&gpsm_item_parent(item)->items, gpsm_item_t, list);
+	while (it && it != item) {
+		it->hposition += dx;
+		it->vposition += dy;
+		glsig_emit(gpsm_item_emitter(it), GPSM_SIG_ITEM_CHANGED, it);
+		it = list_getprev(&gpsm_item_parent(item)->items, it,
+				  gpsm_item_t, list);
+	}
+}
+static void _gpsm_item_insert_space_before(gpsm_item_t *item, long dx, long dy)
+{
+	gpsm_item_t *it;
+
+	/* Top - down */
+	if (!gpsm_item_parent(item))
+		return;
+	_gpsm_item_insert_space_after((gpsm_item_t *)gpsm_item_parent(item),
+				      dx, dy);
+
+	/* Back to front. */
+	it = list_gettail(&gpsm_item_parent(item)->items, gpsm_item_t, list);
+	do {
+		it->hposition += dx;
+		it->vposition += dy;
+		glsig_emit(gpsm_item_emitter(it), GPSM_SIG_ITEM_CHANGED, it);
+		if (it == item)
+			break;
+		it = list_getprev(&gpsm_item_parent(item)->items, it,
+				  gpsm_item_t, list);
+	} while (it);
 }
 
 int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 		     long hposition, long vposition)
 {
-	gpsm_item_t *succ, *i;
+	gpsm_item_t *succ;
 
-	if (!hbox || !item || !list_empty(&item->list) || item->parent
-	    || !gpsm_grp_is_hbox(hbox))
+	if (!gpsm_hbox_can_insert(hbox, item, hposition, vposition))
 		return -1;
+
+	/* Cut out the item first - closing the gap it leaves.
+	 * FIXME: whats the removal semantic we want to have? */
+	if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
+		gpsm_hbox_cut(item);
+	else
+		gpsm_vbox_cut(item);
+
+	/* Register an item changed signal handler to the new item
+	 * to update the parents boundingbox, if necessary. */
+	glsig_add_handler(&item->emitter,
+			  GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
+			  handle_itemchange, item);
 
 	/* Find insertion point - succ will point to the successor. */
 	gpsm_grp_foreach_item(hbox, succ) {
 		if (gpsm_item_hposition(succ) >= hposition)
 			break;
-		if (hposition < gpsm_item_hposition(succ) + gpsm_item_hsize(succ))
-			return -1;
 	}
 
-	/* Move all nodes beginning at succ by item hsize
-	 * - from back to front, if succ is not NULL. */
-	if (succ) {
-		i = list_gettail(&hbox->items, gpsm_item_t, list);
-		do {
-			i->hposition += gpsm_item_hsize(item);
-			glsig_emit(gpsm_item_emitter(i),
-				   GPSM_SIG_ITEM_CHANGED, i);
-			i = list_getnext(&hbox->items, i, gpsm_item_t, list);
-		} while (i && i != succ);
-	}
+	/* Move all nodes beginning at succ by item hsize. */
+	if (succ)
+		_gpsm_item_insert_space_before(succ, gpsm_item_hsize(item), 0);
+	else
+		_gpsm_item_insert_space_after((gpsm_item_t *)hbox,
+					      gpsm_item_hsize(item), 0);
 
 	/* Do the insertion. */
-	_insert_tail(hbox, item, succ, hposition, vposition);
+	_place_tail(hbox, item, succ, hposition, vposition);
 
 	return 0;
 }
@@ -1033,34 +1193,39 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 		     long hposition, long vposition)
 {
-	gpsm_item_t *succ, *i;
+	gpsm_item_t *succ;
 
-	if (!vbox || !item || !list_empty(&item->list) || item->parent
-	    || !gpsm_grp_is_vbox(vbox))
+	if (!gpsm_vbox_can_insert(vbox, item, hposition, vposition))
 		return -1;
+
+	/* Cut out the item first - closing the gap it leaves.
+	 * FIXME: whats the removal semantic we want to have? */
+	if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
+		gpsm_vbox_cut(item);
+	else
+		gpsm_hbox_cut(item);
+
+	/* Register an item changed signal handler to the new item
+	 * to update the parents boundingbox, if necessary. */
+	glsig_add_handler(&item->emitter,
+			  GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
+			  handle_itemchange, item);
 
 	/* Find insertion point - succ will point to the successor. */
 	gpsm_grp_foreach_item(vbox, succ) {
 		if (gpsm_item_vposition(succ) >= vposition)
 			break;
-		if (vposition < gpsm_item_vposition(succ) + gpsm_item_vsize(succ))
-			return -1;
 	}
 
-	/* Move all nodes beginning at succ by item hsize
-	 * - from back to front, if succ is not NULL. */
-	if (succ) {
-		i = list_gettail(&vbox->items, gpsm_item_t, list);
-		do {
-			i->vposition += gpsm_item_vsize(item);
-			glsig_emit(gpsm_item_emitter(i),
-				   GPSM_SIG_ITEM_CHANGED, i);
-			i = list_getnext(&vbox->items, i, gpsm_item_t, list);
-		} while (i && i != succ);
-	}
+	/* Move all nodes beginning at succ by item vsize. */
+	if (succ)
+		_gpsm_item_insert_space_before(succ, 0, gpsm_item_vsize(item));
+	else
+		_gpsm_item_insert_space_after((gpsm_item_t *)vbox,
+					      0, gpsm_item_vsize(item));
 
 	/* Do the insertion. */
-	_insert_tail(vbox, item, succ, hposition, vposition);
+	_place_tail(vbox, item, succ, hposition, vposition);
 
 	return 0;
 }
@@ -1078,7 +1243,7 @@ void gpsm_item_remove(gpsm_item_t *item)
 	glsig_emit(&grp->item.emitter, GPSM_SIG_GRP_REMOVEITEM, grp, item);
 
 	/* Do the removal. */
-	list_del(&item->list);
+	list_del_init(&item->list);
 	item->parent = NULL;
 	item->hposition = 0;
 	item->vposition = 0;
@@ -1087,6 +1252,52 @@ void gpsm_item_remove(gpsm_item_t *item)
 	 * and item. This will fix all other bounding boxes. */
 	glsig_emit(&grp->item.emitter, GPSM_SIG_ITEM_CHANGED, grp);
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
+}
+
+int gpsm_hbox_cut(gpsm_item_t *item)
+{
+	gpsm_item_t *succ;
+	gpsm_grp_t *parent;
+
+	if (!item || !(parent = gpsm_item_parent(item))
+	    || !gpsm_grp_is_hbox(parent))
+		return -1;
+
+	/* First remove the item, remember successor */
+	succ = list_getnext(&parent->items, item, gpsm_item_t, list);
+	gpsm_item_remove(item);
+
+	/* Then close the gap it left. */
+	if (succ)
+		_gpsm_item_insert_space_before(succ, -gpsm_item_hsize(item), 0);
+	else if (parent)
+		_gpsm_item_insert_space_after((gpsm_item_t *)parent,
+					      -gpsm_item_hsize(item), 0);
+
+	return 0;
+}
+
+int gpsm_vbox_cut(gpsm_item_t *item)
+{
+	gpsm_item_t *succ;
+	gpsm_grp_t *parent;
+
+	if (!item || !(parent = gpsm_item_parent(item))
+	    || !gpsm_grp_is_vbox(parent))
+		return -1;
+
+	/* First remove the item, remember successor */
+	succ = list_getnext(&parent->items, item, gpsm_item_t, list);
+	gpsm_item_remove(item);
+
+	/* Then close the gap it left. */
+	if (succ)
+		_gpsm_item_insert_space_before(succ, 0, -gpsm_item_vsize(item));
+	else if (parent)
+		_gpsm_item_insert_space_after((gpsm_item_t *)parent,
+					      0, -gpsm_item_vsize(item));
+
+	return 0;
 }
 
 
@@ -1108,7 +1319,7 @@ void gpsm_item_set_label(gpsm_item_t *item, const char *label)
 void gpsm_swfile_set(gpsm_swfile_t *swfile, int samplerate,
 		     float position)
 {
-	if (!swfile)
+	if (!swfile || !GPSM_ITEM_IS_SWFILE(swfile))
 		return;
 	swfile->samplerate = samplerate;
 	swfile->position = position;
@@ -1117,7 +1328,7 @@ void gpsm_swfile_set(gpsm_swfile_t *swfile, int samplerate,
 
 void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate)
 {
-	if (!swfile)
+	if (!swfile || !GPSM_ITEM_IS_SWFILE(swfile))
 		return;
 	swfile->samplerate = samplerate;
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
@@ -1125,7 +1336,7 @@ void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate)
 
 void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
 {
-	if (!swfile)
+	if (!swfile || !GPSM_ITEM_IS_SWFILE(swfile))
 		return;
 	swfile->position = position;
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
@@ -1287,6 +1498,9 @@ gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, gpsm_item_t *start,
 {
 	gpsm_item_t *item, *next;
 
+	if (!root || !GPSM_ITEM_IS_GRP(root) || !label)
+		return NULL;
+
 	if (!start) {
 		item = list_gethead(&root->items, gpsm_item_t, list);
 	} else {
@@ -1325,6 +1539,12 @@ gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
 				      const char *label)
 {
 	gpsm_item_t *item, *next;
+
+	if (!root || !GPSM_ITEM_IS_GRP(root) || !label)
+		return NULL;
+
+	if (!root || !GPSM_ITEM_IS_GRP(root))
+		return NULL;
 
 	if (!start) {
 		item = list_gethead(&root->items, gpsm_item_t, list);
@@ -1365,6 +1585,9 @@ gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
 					 long filename)
 {
 	gpsm_item_t *item, *next;
+
+	if (!root || !GPSM_ITEM_IS_GRP(root))
+		return NULL;
 
 	if (!start) {
 		item = list_gethead(&root->items, gpsm_item_t, list);
@@ -1466,7 +1689,7 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 
 		if (!(cowi = gpsm_swfile_cow((gpsm_swfile_t *)item)))
 			goto fail;
-		gpsm_grp_insert(grp, (gpsm_item_t *)cowi, 0, 0);
+		gpsm_item_place(grp, (gpsm_item_t *)cowi, 0, 0);
 		return grp;
 	}
 
@@ -1494,7 +1717,8 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 					goto fail;
 				fswfile->position = gpsm_swfile_position(it);
 				fswfile->samplerate = gpsm_swfile_samplerate(it);
-				gpsm_grp_insert(grp, (gpsm_item_t *)fswfile, 0, itvpos);
+				gpsm_item_place(grp, (gpsm_item_t *)fswfile,
+						0, itvpos);
 			}
 			ffd = sw_open(gpsm_swfile_filename(fswfile), O_RDWR);
 			fd = sw_open(gpsm_swfile_filename(it), O_RDONLY);
@@ -1589,7 +1813,7 @@ gpsm_grp_t *gpsm_collect_swfiles(gpsm_item_t *item)
 		/* Create a link to the swfile and insert it into
 		 * grp at the flattened position. */
 		it = (gpsm_item_t *)gpsm_swfile_link(files[i]);
-		gpsm_grp_insert(grp, it, hpos, vpos);
+		gpsm_item_place(grp, it, hpos, vpos);
 	}
 
 	return grp;

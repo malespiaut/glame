@@ -45,6 +45,58 @@
  * gpsm API functions.
  */
 
+/*
+ * The following will clarify some "boxing" semantics
+ * - Boxes around anything fit the exact bounding box, i.e. no
+ *   extra space can be at the box "outer" border
+ *     [item     item item   ]
+ *   is not possible and instead will become
+ *     [item     item item]
+ *   but
+ *     [    item item] 
+ *   is ok. Same goes for vertical boxes.
+ * - Insertions can happen in two ways:
+ *   * at exact position without affecting positions of other
+ *     items (but possibly affecting bounding box sizes).
+ *     Overlaps with other items are not allowed, so are possible
+ *     overlaps of the corrected bounding boxes:
+ *       /                  \
+ *       | /--------\       |
+ *       |  [item] *        |
+ *       |  [  item] [ item]|
+ *       | \--------/       |
+ *       \                  /
+ *     insertion at * is not possible, as the surrounding vbox
+ *     will overlap with the item in the outermost hbox after that.
+ *   * at exact position with moving subsequent items by the size
+ *     of the to be inserted item (and all affected items/boxes
+ *     because of bounding box enlargement). Insertion at * in the
+ *     above example would lead to
+ *       /                       \
+ *       | /-------------\       |
+ *       |  [item   item]        |
+ *       |  [  item]      [ item]|
+ *       | \-------------/       |
+ *       \                       /
+ *     which may of course not be what the user has expected.
+ *     Note that such insertion is always possible (apart from
+ *     failing, if the hbox was not there)
+ * - For item removal processes the same two modes are possible.
+ *
+ *                        HBOX         VBOX
+ *     []                  x            x
+ *     [  item]            x            x
+ *     /     \                          x
+ *     \ item/
+ *     [ [item  item]]     x            x
+ *     / /    \\           x            x
+ *     \ \item//
+ *
+ * FIXME: hbox/vbox ambiguity is really a problem, so we might
+ * rather make them explicit (perhaps convertible). I.e. at first
+ * qualified insert (FIXME: placement does not care) fix the type.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -135,6 +187,15 @@ struct gpsm_item_s {
 	long vposition;
 	long hsize;
 	long vsize;
+
+	/* FIXME: make size (in s) an explicit member updated
+	 * by swfile items and group change signals to handle
+	 * groups of different rate swfiles.
+	double duration;
+	 * FIXME again: change item.hsize to double seconds
+	 * and move item.hsize down to swfile? What about
+	 * hposition? Well...
+	 */
 };
 struct gpsm_grp_s {
 	/* An gpsm-grp is an item with a list containing further
@@ -173,6 +234,14 @@ struct gpsm_swfile_s {
 #define gpsm_swfile_filename(swfile) (((gpsm_swfile_t *)swfile)->filename)
 #define gpsm_swfile_samplerate(swfile) (((gpsm_swfile_t *)swfile)->samplerate)
 #define gpsm_swfile_position(swfile) (((gpsm_swfile_t *)swfile)->position)
+
+/* Standard group names and vpositions. */
+#define GPSM_GRP_UNRECOGNIZED_LABEL "[unrecognized tracks]"
+#define GPSM_GRP_UNRECOGNIZED_VPOS 1000000
+#define GPSM_GRP_DELETED_LABEL "[deleted]"
+#define GPSM_GRP_DELETED_VPOS 990000
+#define GPSM_GRP_CLIPBOARD_LABEL "[clipboard]"
+#define GPSM_GRP_CLIPBOARD_VPOS 980000
 
 
 /* Initializes the gpsm subsystem using the specified swapfile
@@ -249,30 +318,65 @@ int gpsm_grp_is_hbox(gpsm_grp_t *group);
 int gpsm_grp_is_vbox(gpsm_grp_t *group);
 
 
-/* Inserts the specified gpsm-item into the group at the specified
- * position. Random (non-overlapping) {hv}positioning is performed if
- * you pass -1 to {hv}position.
- * May fail, as overlapping items are not allowed. Returns
- * 0 on success and -1 on error. */
-int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
-		    long hposition, long vposition);
+/* Checks, if the item can be placed at the specified position
+ * without overlapping with existing ones. Handles pre-removal
+ * of the specified item transparently. Returns 1 if the item
+ * could be placed, 0 if not. */
+int gpsm_item_can_place(gpsm_grp_t *grp, gpsm_item_t *item,
+			long hpos, long vpos);
 
-/* Insert (and possibly move following items) item into hbox at
- * the specified hposition (and vposition). Returns 0 on success,
- * -1 on failure which could be indicating illegal overlap. */
+/* Places the specified item at the specified position inside grp.
+ * Item move is transparently handeled by first removing the item.
+ * Returns 0 on success, -1 on error. */
+int gpsm_item_place(gpsm_grp_t *grp, gpsm_item_t *item,
+                    long hpos, long vpos);
+
+/* Checks, if the item could be inserted at the specified position
+ * into the specified group. Item move is transparently handeled.
+ * Returns 1, if insertion would be successful, 0 if not. */
+int gpsm_hbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
+			 long hpos, long vpos);
+
+/* Checks, if the item could be inserted at the specified position
+ * into the specified group. Item move is transparently handeled.
+ * Returns 1, if insertion would be successful, 0 if not. */
+int gpsm_vbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
+			 long hpos, long vpos);
+
+/* Insert (and move following items) item into hbox at the specified
+ * hposition (and vposition). Handles item removal prior insertion
+ * automatically. Returns 0 on success, -1 on failure which could be
+ * indicating illegal overlap. */
 int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 		     long hposition, long vposition);
 
-/* Insert (and possibly move following items) item into vbox at
- * the specified vposition (and hposition). Returns 0 on success,
- * -1 on failure which could be indicating illegal overlap. */
+/* Insert (and move following items) item into vbox at the specified
+ * vposition (and hposition). Handles item removal prior insertion
+ * automatically. Returns 0 on success, -1 on failure which could be
+ * indicating illegal overlap. */
 int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 		     long hposition, long vposition);
 
 /* Removes the specified gpsm-item from its current group. The
  * items position will be (0,0) after this operation. If the
- * item was not member of a group this is a NOP. */
+ * item was not member of a group this is a NOP. Successive
+ * items are not moved by this operation. */
 void gpsm_item_remove(gpsm_item_t *item);
+
+/* Removes the specified gpsm-item from its current group. The
+ * items position will be (0,0) after this operation. If the
+ * item was not member of a group this is a NOP. Successive
+ * items are moved by this operation. Returns 0 on success,
+ * -1 on failure. */
+int gpsm_hbox_cut(gpsm_item_t *item);
+
+/* Removes the specified gpsm-item from its current group. The
+ * items position will be (0,0) after this operation. If the
+ * item was not member of a group this is a NOP. Successive
+ * items are moved by this operation. Returns 0 on success,
+ * -1 on failure. */
+int gpsm_vbox_cut(gpsm_item_t *item);
+
 
 
 /* Find a gpsm-grp by label in the subtree specified by root. The
