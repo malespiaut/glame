@@ -1,6 +1,6 @@
-@comment $Id: swapfile.texi,v 1.7 2000/10/10 08:22:18 richi Exp $
+@comment $Id: swapfile.texi,v 1.8 2001/03/25 17:23:35 nold Exp $
 
-@node Swapfile API, Plugin Interface, Filter Tutorial, Top
+@node Swapfile API, Plugin Interface, Conversion Layer, Top
 @chapter Swapfile API
 
 If you have any questions related to the covered (or uncovered but

@@ -1,0 +1,241 @@
+@comment $Id: conversion.texi,v 1.1 2001/03/25 17:23:35 nold Exp $
+
+@node Conversion Layer, Swapfile API, Filter Tutorial, Top
+@chapter Conversion Layer
+
+The GLAME conversion layer is meant to provide a uniform and efficient
+API for conversion of audio data between different formats. It will mainly
+be useful to the various i/o plugins, i.e. plugins doing audio i/o, file
+i/o, swapfile i/o and the like. The conversion layer is capable of
+interleaving and de-interleaving audio streams. It also performs endianness
+and type conversions of individual samples. The user has to supply
+information on the layout of source and destination data, and the conversion
+layer will internally try to find the most optimized conversion path. Use
+of extended features of current hardware like 3Dnow, ISSE, or AltiVec is
+completely hidden from the caller.
+
+This documentation describes the externally visible API the conversion layer
+presents to its callers. If you are about to write a new i/o plugin for
+GLAME, you should probably go on reading. If you want to hack up another
+optimised conversion routine for the processor of your choice, have a look
+at the source instead.
+
+Send comments on the conversion layer or this documentation to
+@email{glame-devel@@glame.sourceforge.net} (c/o nold).
+
+@menu
+* Prototypes::
+* Versioning::
+* Describing the data layout::
+* Getting your custom-tailored conversion routine::
+* Invoking data conversions::
+@end menu
+
+@node Prototypes, Versioning, , Conversion Layer
+@section Prototypes
+
+All types and methods used by the GLAME conversion layer are prefixed
+by @code{gcv_}. Prototypes can be obtained via
+
+@example
+@group
+#include <glame_conv.h>
+@end group
+@end example
+
+@node Versioning, Describing the data layout, Prototypes, Conversion Layer
+@section Versioning
+
+As the GLAME conversion layer de facto presents an ABI to third-party
+plugins, it uses its own version scheme to denote changes in its
+interface structure. The version comprises of two numbers, generation and
+revision. The revision is incremented whenever an additional feature
+is added that doesn't break existing users. Incrementing the generation
+count indicates a change in interface layout that is not backward-compatible.
+
+To obtain the version numbers of the conversion layer, call
+
+@findex gcv_get_generation
+@findex gcv_get_revision
+@tindex gcv_version_t
+@deftypefun unsigned int gcv_get_generation (gcv_version_t @var{ver})
+@deftypefunx unsigned int gcv_get_revision (gcv_version_t @var{ver})
+to get generation and revision respectively.
+@end deftypefun
+
+This documentation describes the GLAME conversion layer interface generation
+1, revision 0.
+
+@node Describing the data layout, Getting your custom-tailored conversion routine, Versioning, Conversion Layer
+@section Describing the data layout
+
+The GLAME conversion layer so far only handles tightly packed streams of audio
+data, i.e. padding is not supported yet. Furthermore, if there are multiple
+streams of audio data, each stream must carry the same number of interleave
+channels. Sample properties have to be equal among all data as well. 
+Therefore a chunk of audio data is described by the following
+properties:
+
+@itemize *
+@item Number of separate audio streams.
+@item Number of interleaved channels per audio stream.
+@item Width of a sample in bits.
+@item Type of a sample.
+@item Endianness of a sample.
+@end itemize
+
+For example, a typical stereo chunk of the form ABABABAB... is described
+as one stream, two channels interleaved. Sample properties might
+be width 16 bit, type unsigned integer, little endian. (That's the most
+common layout of Wave/PCM files actually.)
+
+Users of the conversion layer have to specify the layout of the source data,
+as well as the desired target layout. This is done using the following
+methods.
+
+@findex gcv_get_layout
+@findex gcv_drop_layout
+@tindex gcv_layout_t
+@deftypefun gcv_layout_t gcv_get_layout (void)
+@deftypefunx void gcv_drop_layout (gcv_layout_t @var{layout})
+Gets an uninitialised layout handle, or drops all ressources associated to
+a valid layout handle, respectively.
+@end deftypefun
+
+@findex gcv_set_streams
+@tindex gcv_layout_t
+@deftypefun int gcv_set_streams (gcv_layout_t @var{layout}, unsigned int @var{num_stream})
+Sets the number of individual audio streams on @var{layout} to
+@var{num_stream}. @var{layout} needs to be a valid layout handle returned
+by @code{gcv_get_layout()}. -1 is returned on error, 0 on success.
+@end deftypefun
+
+@findex gcv_set_channels
+@tindex gcv_layout_t
+@deftypefun int gcv_set_channels (gcv_layout_t @var{layout}, unsigned int @var{num_ch})
+Sets the number of interleaved audio channels per stream. @var{layout} needs
+to be a valid layout handle returned by @code{gcv_get_layout()}. -1 is 
+returned on error, 0 on success.
+@end deftypefun
+
+@findex gcv_set_width
+@tindex gcv_layout_t
+@deftypefun int gcv_set_width (gcv_layout_t @var{layout}, unsigned int @var{width})
+Sets the width of a single audio sample on @var{layout} to @var{width} bits. 
+@var{layout} needs to be a valid layout handle returned by 
+@code{gcv_get_layout()}. -1 is returned on error, 0 on success.
+@end deftypefun
+
+@findex gcv_set_type
+@tindex gcv_layout_t
+@tindex gcv_type_t
+@deftypefun int gcv_set_type (gcv_layout_t @var{layout}, gcv_type_t @var{type})
+Sets the type of a single audio sample on @var{layout} to @var{type}. 
+@var{layout} needs to be a valid layout handle returned by
+@code{gcv_get_layout()}. -1 is returned on error, 0 on success.
+@code{gcv_type_t} is defined in @file{glame_conv.h} and may be one of
+
+@table @code
+@item GCV_TYPE_INT
+for integer values;
+@item GCV_TYPE_UINT
+for unsigned integer values;
+@item GCV_TYPE_FLOAT
+for (signed) floating point values.
+@end table
+@end deftypefun
+
+@findex gcv_set_endian
+@tindex gcv_layout_t
+@tindex gcv_endian_t
+@deftypefun gcv_set_endian (gcv_layout_t @var{layout}, gcv_endian_t @var{endian})
+Sets the endianness of a single audio sample on @var{layout} to @var{endian}.
+@var{layout} needs to be a valid layout handle returned by
+@code{gcv_get_layout()}. -1 is returned on error, 0 on success.
+@code{gcv_endian_t} is defined in @file{glame_conv.h} and may be one of
+
+@table @code
+@item GCV_BIG_ENDIAN
+@item GCV_LITTLE_ENDIAN
+@item GCV_NATIVE_ENDIAN
+@end table
+
+The latter describing that the data is formatted in a machine's native
+endianness, which is determined at compile time. 
+@end deftypefun
+
+@findex gcv_set_layout
+@tindex gcv_layout_t
+@tindex gcv_type_t
+@tindex gcv_endian_t
+@deftypefun int gcv_set_layout (gcv_layout_t @var{layout}, unsigned int @var{num_stream}, unsigned int @var{num_ch}, unsigned int @var{width}, gcv_type_t @var{type}, gcv_endian_t @var{endian})
+This is a short cut to the above methods, setting all properties of a layout
+at once. See above for descriptions of individual parameters.
+@end deftypefun
+
+@node Getting your custom-tailored conversion routine, Invoking data conversions, Describing the data layout, Conversion Layer
+@section Getting your custom-tailored conversion routine
+
+Once layout of source and target data are set up, a set of conversions
+between the two of them has to be found. This step is performed transparently
+to the user when the layouts are registered with the conversion layer.
+
+@findex gcv_get_conversion
+@findex gcv_drop_conversion
+@tindex gcv_layout_t
+@tindex gcv_conv_t
+@deftypefun gcv_conv_t gcv_get_conversion (gcv_layout_t @var{source}, gcv_layout_t @var{target})
+@deftypefunx void gcv_drop_conversion (gcv_conv_t @var{cv})
+Gets a new handle on a conversion from @var{source} to @var{target}, or
+drops all associated ressources respectively. @code{gcv_get_conversion}
+returns a valid handle on success, or @code{NULL} on error.
+@end deftypefun
+
+@findex gcv_update_conversion
+@tindex gcv_layout_t
+@tindex gcv_conv_t
+@deftypefun gcv_conv_t gcv_update_conversion (gcv_conv_t @var{cv}, gcv_layout_t @var{source}, gcv_layout_t @var{target})
+This is a convenience function to be used if source or target layout change
+after a conversion has already been set up. It drop the old handle @var{cv}
+and registers a new conversion from @var{source} to @var{target}. A valid
+handle is returned on success, or @code{NULL} on error.
+@end deftypefun
+
+@table @strong
+@item FIXME 
+We might need another option to tell whether the conversion may be
+destructive. Ought not to scribble on an mmap()ed soundfile! Requiring the
+caller to copy to a safe buffer probably ain't the best calling convention
+in this case.
+@end table
+
+@node Invoking data conversions, , Getting your custom-tailored conversion routine, Conversion Layer
+@section Invoking data conversions
+
+The conversion layer operates from memory to memory only. Writing to or
+reading directly from files may be achieved via @code{mmap()}. Sockets are
+currently unsupported and must be handled via bounce buffers. This limitation
+might be dropped in future versions. Internally, bounce buffers are only
+allocated when necessary, i.e. if source and target layout match, the input
+buffer is passed on unmodified, so there's no need to special case in
+calling code.
+
+@findex gcv_do_conversion
+@tindex gcv_conv_t
+@deftypefun (char **) gcv_do_conversion (char **@var{out}, char **@var{in}, unsigned int @var{spc}, gcv_conv_t @var{cv})
+Converts data from @var{in} to @var{out} according to previously registered
+layout settings defined via @var{cv}. @var{spc} is the number of samples per
+channel to be converted. @var{in} is an array of pointers to the input data
+streams. The array's size has to match the number of streams given in the
+source layout. @var{out} is an array of pointers to memory locations that
+shall be filled with the converted data. The array's size has to match the
+number of streams given in the target layout. If @var{out} is @code{NULL}, the
+target buffers will be allocated internally by @code{gcv_do_conversion}, and
+a pointer to a @code{NULL}-terminated array of pointers to the target buffers is
+returned. Calling code is responsible to free all buffers and the array itself
+in this case. @code{gcv_do_conversion} returns @code{NULL} if an error was
+encountered, or a pointer to the array of pointers to the target buffers on
+success.
+@end deftypefun
+
+
