@@ -1,6 +1,6 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.6 2003/05/14 21:58:05 mag Exp $
+ * $Id: stretch.c,v 1.7 2003/05/14 22:31:54 mag Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  *
@@ -130,7 +130,6 @@ static int stretch_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no input or no output");
 
-	maxbsize = 1024;
 
 	sparam = filterparamdb_get_param(filter_paramdb(n), "stretchfactor");
 
@@ -144,9 +143,7 @@ static int stretch_f(filter_t *n)
 	if (bsize<1)
 		bsize=1;
 	
-	bsize = MIN(bsize, maxbsize);
-	if (bsize>maxbsize)
-		maxbsize = bsize;
+	maxbsize = 2*bsize;
 
 	if (!(win=ALLOCN(maxbsize,SAMPLE)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
@@ -183,6 +180,7 @@ static int stretch_f(filter_t *n)
 			hanning(win,bsize,osamp);
 			
 			dfak = (float)bsize/(float)osamp;
+			pos=ipos=0.0f;
 		}
 
 		
