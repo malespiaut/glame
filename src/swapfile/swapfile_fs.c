@@ -659,10 +659,16 @@ static int fsck_check_clusters(int fix)
 				return 1;
 
 			/* If the cluster has no references left attach it to
-			 * the lost-and-found file. */
+			 * the lost-and-found file. Kill non-SAMPLE sized
+			 * clusters. */
 			if (cluster->files_cnt == 0) {
 				if (!fix)
 					return 1;
+				if (cluster->size & ~(SAMPLE_SIZE-1)) {
+					DPRINTF("Killing odd-sized cluster %lX\n", name);
+					cluster_put(cluster, CLUSTERPUT_FREE);
+					goto out_freed;
+				}
 				if (!file) {
 					long name;
 					while ((file = file_get((name = rand()), 0)))
@@ -676,6 +682,7 @@ static int fsck_check_clusters(int fix)
 				unclean = 1;
 			}
 			cluster_put(cluster, 0);
+		out_freed:
 			unclean = 1;
 		}
 		closedir(dir);
