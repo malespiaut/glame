@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.6 2001/08/07 16:52:01 mag Exp $
+ * $Id: importexport.c,v 1.7 2001/08/09 15:08:23 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -132,12 +132,15 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 						   "Won't you select a file first"));
 		return;
 	}
-		
+
+
 	vpos = gpsm_item_vsize(gpsm_root());
 
 	net = filter_creat(NULL);
 	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
 		return;
+
+	gtk_widget_set_sensitive(bla, FALSE);
 
 	if (filterparam_set(filterparamdb_get_param(filter_paramdb(readfile),
 						    "filename"), &(ie->filename))==-1)
@@ -254,6 +257,7 @@ ie_fail_cleanup:
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 	net_restore_default();
+	gtk_widget_set_sensitive(bla, TRUE);	
 	return;
 
 	out:
