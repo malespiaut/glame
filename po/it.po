@@ -297,9 +297,6 @@ msgstr "Benvenuto nuovo utente di GLAME.\n"
 "È necessaria una configurazione preliminare di base.Si prega di controllare\n"
 "il pannello preferenze e controllare i settaggi \"Swapfile Path\" e\n"
 "\"Audio IO\".\n"
-msgstr "
-
-"
 
 #: src/gui/main.c:881
 msgid ""
@@ -639,11 +636,11 @@ msgstr "Applica filtro"
 
 #: src/gui/waveeditgui.c:895
 msgid "Apply custom..."
-msgstr "Applica su misura...""
+msgstr "Applica su misura..."
 
 #: src/gui/waveeditgui.c:1345
 msgid "Export selection..."
-msgstr "Esporta selezioni...""
+msgstr "Esporta selezioni..."
 
 #: src/gui/waveeditgui.c:1357
 msgid "_File"
@@ -913,7 +910,7 @@ msgstr "Categoria"
 
 #: src/gui/edit_filter/filtereditgui.c:962
 msgid "Empty file/filter or category name"
-msgstr "File/filtro o categoria vuota""
+msgstr "File/filtro o categoria vuota"
 
 #: src/gui/edit_filter/filtereditgui.c:988
 msgid "Filtername"
