@@ -174,10 +174,6 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   ythickness = GTK_STYLE(widget->style)->ythickness;
 
   layout = GLAME_HRULER (ruler)->layout;
-  pango_layout_get_extents (layout, &ink_rect, &logical_rect);
-  
-  digit_height = PANGO_PIXELS (ink_rect.height) + 1;
-  digit_offset = ink_rect.y;
 
   width = widget->allocation.width;
   height = widget->allocation.height - ythickness * 2;
@@ -209,6 +205,10 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
    */
   scale = ceil (ruler->max_size / ruler->metric->pixels_per_unit);
   unit_str_len = ruler->metric->translate (scale, unit_str, sizeof(unit_str)-1);
+  pango_layout_set_text (layout, unit_str, unit_str_len);
+  pango_layout_get_extents (layout, &ink_rect, &logical_rect);
+  digit_height = PANGO_PIXELS (ink_rect.height) + 1;
+  digit_offset = ink_rect.y;
   text_width = unit_str_len * digit_height + 1;
 
   for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
