@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.61 2001/06/18 08:18:58 richi Exp $
+ * $Id: main.c,v 1.62 2001/06/18 15:53:32 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -294,8 +294,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget * macMode;
 	GtkWidget *combo;
 	GList *combo_items;
-	char *cfg, *path, *numberbuffer, *aindev, *aoutdev;
-	char *ainplugin, *aoutplugin, *maxundobuf, *wbufsizebuf;
+	char *cfg, *path, *numberbuffer, *aindev = NULL, *aoutdev = NULL;
+	char *ainplugin = NULL, *aoutplugin = NULL, *maxundobuf, *wbufsizebuf;
 	gboolean ok=FALSE;
 	gboolean mac;
 	int maxundo, wbufsize;
@@ -359,7 +359,6 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_widget_show(vbox);
 
 	/* input filter */
-	combo = gtk_combo_new();
 	combo_items = NULL;
 	if (plugin_get("audio_in"))
 		combo_items = g_list_append(combo_items, _("audio_in"));
@@ -371,27 +370,33 @@ preferences_cb(GtkWidget * wid, void * bla)
 		combo_items = g_list_append(combo_items, _("alsa_audio_in"));
 	if (plugin_get("sgi_audio_in"))
 		combo_items = g_list_append(combo_items, _("sgi_audio_in"));
-	gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
-	g_list_free(combo_items);
-	gtk_widget_show(combo);
-	cfg = gnome_config_get_string("audio_io/input_plugin");
-	ainplugin = alloca(256);
-	strncpy(ainplugin, cfg, 255);
-	g_free(cfg);
-	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
-	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &ainplugin);
-	gtk_widget_show(GTK_COMBO(combo)->entry);
-	create_label_widget_pair(vbox, "Default input plugin (audio_in)", combo);
+	if (combo_items) {
+		combo = gtk_combo_new();
+		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
+		g_list_free(combo_items);
+		gtk_widget_show(combo);
+		cfg = gnome_config_get_string("audio_io/input_plugin");
+		ainplugin = alloca(256);
+		strncpy(ainplugin, cfg, 255);
+		g_free(cfg);
+		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
+		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &ainplugin);
+		gtk_widget_show(GTK_COMBO(combo)->entry);
+		create_label_widget_pair(vbox, "Default input plugin (audio_in)", combo);
 
-	/* input device */
-	aindev = alloca(256);
-	cfg = gnome_config_get_string("audio_io/input_dev");
-	strncpy(aindev, cfg, 255);
-	g_free(cfg);
-	create_label_edit_pair(vbox, "Default input device", "aindev", aindev);
+		/* input device */
+		aindev = alloca(256);
+		cfg = gnome_config_get_string("audio_io/input_dev");
+		strncpy(aindev, cfg, 255);
+		g_free(cfg);
+		create_label_edit_pair(vbox, "Default input device", "aindev", aindev);
+	} else {
+		combo = gtk_label_new("No audio input plugin");
+		gtk_container_add(GTK_CONTAINER(vbox), combo);
+		gtk_widget_show(combo);
+	}
 
 	/* output filter */
-	combo = gtk_combo_new();
 	combo_items = NULL;
 	if (plugin_get("audio_out"))
 		combo_items = g_list_append(combo_items, _("audio_out"));
@@ -403,25 +408,32 @@ preferences_cb(GtkWidget * wid, void * bla)
 		combo_items = g_list_append(combo_items, _("alsa_audio_out"));
 	if (plugin_get("sgi_audio_out"))
 		combo_items = g_list_append(combo_items, _("sgi_audio_out"));
-	gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
-	g_list_free(combo_items);
-	gtk_widget_show(combo);
-	cfg = gnome_config_get_string("audio_io/output_plugin");
-	aoutplugin = alloca(256);
-	strncpy(aoutplugin, cfg, 255);
-	g_free(cfg);
-	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
-	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &aoutplugin);
-	gtk_widget_show(GTK_COMBO(combo)->entry);
-	create_label_widget_pair(vbox, "Default output plugin (audio_out)", combo);
+	if (combo_items) {
+		combo = gtk_combo_new();
+		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
+		g_list_free(combo_items);
+		gtk_widget_show(combo);
+		cfg = gnome_config_get_string("audio_io/output_plugin");
+		aoutplugin = alloca(256);
+		strncpy(aoutplugin, cfg, 255);
+		g_free(cfg);
+		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
+		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &aoutplugin);
+		gtk_widget_show(GTK_COMBO(combo)->entry);
+		create_label_widget_pair(vbox, "Default output plugin (audio_out)", combo);
 
-	/* output device */
-	aoutdev = alloca(256);
-	cfg = gnome_config_get_string("audio_io/output_dev");
-	strncpy(aoutdev, cfg, 255);
-	g_free(cfg);
-	create_label_edit_pair(vbox, "Default output device",
-			       "aoutdev", aoutdev);
+		/* output device */
+		aoutdev = alloca(256);
+		cfg = gnome_config_get_string("audio_io/output_dev");
+		strncpy(aoutdev, cfg, 255);
+		g_free(cfg);
+		create_label_edit_pair(vbox, "Default output device",
+				       "aoutdev", aoutdev);
+	} else {
+		combo = gtk_label_new("No audio output plugin");
+		gtk_container_add(GTK_CONTAINER(vbox), combo);
+		gtk_widget_show(combo);
+	}
 
 	/* GLAME_WBUFSIZE */
 	wbufsize = gnome_config_get_int("filter/wbufsize");
@@ -454,10 +466,14 @@ preferences_cb(GtkWidget * wid, void * bla)
 		gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = mac;
 	gnome_config_set_bool("edit_filter/macMode",bMac);
-	gnome_config_set_string("audio_io/input_dev", aindev);
-	gnome_config_set_string("audio_io/input_plugin", ainplugin);
-	gnome_config_set_string("audio_io/output_dev", aoutdev);
-	gnome_config_set_string("audio_io/output_plugin", aoutplugin);
+	if (aindev)
+		gnome_config_set_string("audio_io/input_dev", aindev);
+	if (ainplugin)
+		gnome_config_set_string("audio_io/input_plugin", ainplugin);
+	if (aoutdev)
+		gnome_config_set_string("audio_io/output_dev", aoutdev);
+	if (aoutplugin)
+		gnome_config_set_string("audio_io/output_plugin", aoutplugin);
 	if (sscanf(wbufsizebuf, "%d", &wbufsize) == 1)
 		gnome_config_set_int("filter/wbufsize", wbufsize);
 	/* Absolutely need this gnome_config_sync() - else everything
