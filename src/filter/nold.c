@@ -1,7 +1,7 @@
 /*
  * <nold.c>
  *
- * $Id: nold.c,v 1.1 2000/02/09 21:40:35 nold Exp $
+ * $Id: nold.c,v 1.2 2000/02/10 10:55:32 nold Exp $
  *
  * Copyright (C) 2000 Daniel Kobras
  *
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include "filter.h"
 #include "util.h"
+#include "glame_types.h"
 #include <limits.h>
 
 /* esd is broken on IRIX. Let's have a go at native audio output 
@@ -46,48 +47,82 @@
 #ifdef HAVE_SGIAUDIO
 #include <dmedia/audio.h>
 
+
 static int sgi_audio_out_f(filter_node_t *n)
 {
-	enum { LEFT=0, RIGHT=1 };
-	filter_pipe_t	*pipe[2];
-	filter_buffer_t	*buf[2] = { NULL, NULL };
-	ssize_t		ssize[2] = { 0, 0 };
-	SAMPLE		out[2]
-	/* char		*device; */
-	ssize_t		pos[2] = { 0, 0 };
-	int		is_stereo;
-	int		rate;
+	typedef struct {
+		filter_pipe_t 	*pipe;
+		filter_buffer_t	*buf;
+		ssize_t		ssize;
+		ssize_t		pos;
+		ssize_t		to_go;
+	} sgi_audioparam_t;
 
-	int		ch=0, run=0;
+	sgi_audioparam_t *in;
+	filter_pipe_t	*p_in;
+	SAMPLE		**bufs;
+	
+	int		rate;
+	int		chunk_size, last_chunk;
+	
+	int		ch_active;
+	int		max_ch=0;
+	int		ch=0;
 
 	ALconfig	c;
 	ALport		p;
 	ALpv		v[1];
+	int		resource = AL_DEFAULT_OUTPUT;
 
-	pipe[LEFT] = hash_find_input("left_in", n);
-	pipe[RIGHT] = hash_find_input("right_in", n);
-	/* device = hash_find_input("device", n); */
+	DPRINTF("ENTER\n");
 
-	if(!pipe[LEFT]) {
-		pipe[LEFT]=pipe[RIGHT];
-		pipe[RIGHT]=NULL;
-	}
-	if(!pipe[LEFT]) {
-		DPRINTF("No valid input channel!\n");
+	p_in = hash_find_input("in", n);
+	if(!p_in) {
+		DPRINTF("No input channels given.\n");
 		return -1;
 	}
-	is_stereo=((pipe[RIGHT]) ? 1 : 0);
-	
-	rate = pipe[LEFT]->u.sample.rate;
-	if(pipe[RIGHT] && (rate != pipe[RIGHT]->u.sample.rate)) {
-		DPRINTF("Sample rate mismatch!\n");
-		return -1;
-	}
+	rate = p_in->u.sample.rate;
+	do {
+		max_ch++;
+		if(rate != p_in->u.sample.rate) {
+			DPRINTF("Sample rate mismatch!\n");
+			return -1;
+		}
+	} while((p_in = hash_next_input(p_in)));
+
 	if(rate <= 0) {
 		DPRINTF("No valid sample rate given.\n");
+#if 0
+		return -1;
+#else
+		DPRINTF("Defaulting to 44100.\n");
+		rate = 44100;
+#endif
+	}
+
+	in = (sgi_audioparam_t *)malloc(max_ch * sizeof(sgi_audioparam_t));
+	bufs = (SAMPLE **)malloc(max_ch * sizeof(SAMPLE *));
+	if(!in || !bufs) {
+		free(in);
+		DPRINTF("Failed to alloc input structs.\n");
 		return -1;
 	}
 
+	p_in = hash_find_input("in", n);
+	do {
+		sgi_audioparam_t *ap = &in[ch++];
+		ap->pipe = p_in;
+		ap->buf = NULL;
+		ap->ssize = 0;
+		ap->pos = 0;
+		ap->to_go = 0;
+	} while((p_in = hash_next_input(p_in)));
+	
+	if(ch != max_ch) {
+		DPRINTF("Huh!? Input pipes changed under us!?\n");
+		return -1;
+	}
+			
 	c = alNewConfig();
 	if(!c) {
 		DPRINTF("Failed to create audio configuration: %s\n",
@@ -99,15 +134,19 @@ static int sgi_audio_out_f(filter_node_t *n)
 	 * native floating point format. How charming... :-)
 	 */
 	alSetSampFmt(c, AL_SAMPFMT_FLOAT);
-	alSetChannels(c, ((is_stereo) ? AL_STEREO : AL_MONO));
+	alSetFloatMax(c, 1.0);
+	alSetChannels(c, max_ch);
 	/* Using the default queuesize... */
 
-	/* Setup to our internal format [-1.0;1.0] */
-	alSetFloatMax(c, 1.0);
-
+	DPRINTF("rate %d\n", rate);
+	if(alSetDevice(c, resource) < 0) {
+		DPRINTF("Resource invalid: %s\n",
+			alGetErrorString(oserror()));
+		return -1;
+	}
 	v[0].param = AL_RATE;
-	v[1].value.ll = alDoubleToFixed((float)(rate));
-	if(alSetParams(c, v, 1) < 0) {
+	v[0].value.ll = alDoubleToFixed(rate);
+	if(alSetParams(resource, v, 1) < 0) {
 		DPRINTF("Failed to set audio output parameters: %s\n",
 			alGetErrorString(oserror()));
 		return -1;
@@ -116,7 +155,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 		DPRINTF("Invalid sample rate.\n");
 		return -1;
 	}
-
 	p = alOpenPort("GLAME audio output", "w", c);
 	if(!p) {
 		DPRINTF("Failed to open audio output port: %s\n",
@@ -127,38 +165,46 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 	FILTER_AFTER_INIT;
 
-_next_sample:
-	do {
-		if(!buf[ch] || pos[ch] >= ssize[ch]) {
-			/* Fetch next buffer */
-			if(buf[ch])
-				sbuf_unref(buf[ch]);
-			buf[ch] = sbuf_get(pipe[ch]);
-			ssize[ch] = sbuf_size(buf[ch]);
-		}
-		if(!buf[ch])
-			goto _end;
+	ch = 0;
+	ch_active = max_ch;
+	last_chunk = 0;
 
-		out[ch] = sbuf_buf(buf[ch])[pos[ch]++];	/* Ugh! ;-) */
-	} while(ch = ++run & is_stereo);
+	while(ch_active) {
+		chunk_size = alGetFillable(p); 
+		do {
+			sgi_audioparam_t *ap = &in[ch];
+			ap->to_go -= last_chunk;
+			ap->pos += last_chunk;
+			if(!ap->to_go) {
+				/* Fetch next buffer */
+				sbuf_unref(ap->buf);
+				ap->buf = sbuf_get(ap->pipe);
+				ap->to_go = ap->ssize = sbuf_size(ap->buf);
+				ap->pos = 0;
+			}
+			if(!ap->buf) {
+				ch_active--;
+				/* FIXME Is WriteBuffers that smart? */
+				bufs[ch] = NULL;
+			} else {
+				bufs[ch] = &sbuf_buf(ap->buf)[ap->pos];
+			}
+			chunk_size = MIN(chunk_size, ap->to_go);
+		} while((ch = ++ch % max_ch));
 
-	/* This is a hack! We're writing out one sample at a time (two if
-	 * stereo). That's to get the interleaving right. alWriteBuffers()
-	 * turns out to be much better suited to what we have in mind, but
-	 * unfortunately this function was not available prior to IRIX 6.3.
-	 * So let's play it safe for a start and optimize later. Actually
-	 * it isn't as bad as it looks because alWriteFrames is extremely
-	 * fast - it just queues the samples into an internal buffer.
-	 */
-	alWriteFrames(p, out, is_stereo+1);
-	goto _next_sample;
+		/* Queue audio chunk. All-mono buffers. */
+		alWriteBuffers(p, bufs, NULL, chunk_size);
+		last_chunk = chunk_size;
+	}
 
-_end:	
 	FILTER_BEFORE_CLEANUP;
 
 	/* Drain audio output */
 	/* FIXME */
 	alClosePort(p);
+	free(bufs);
+	free(in);
+	DPRINTF("LEAVING\n");
 	return 0;
 }
 
@@ -167,15 +213,23 @@ _end:
 int nold_register()
 {
 	filter_t *f;
-
+	
 #ifdef HAVE_SGIAUDIO
-	if (!(f = filter_alloc("audio_out", "play stream", sgi_audio_out_f))
-	    || !filter_add_input(f, "left_in", "left or mono channel",
-				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_input(f, "right_in", "right channel",
-				FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f) == -1)
+	DPRINTF("Trying to register\n");
+	if (!(f = filter_alloc("audio_out", "play stream", sgi_audio_out_f))) {
+		DPRINTF("filter_alloc failed.\n");
 		return -1;
+	}
+	if(!filter_add_input(f, "in", "input channel",
+				FILTER_PORTTYPE_SAMPLE | 
+				FILTER_PORTTYPE_AUTOMATIC)) {
+		DPRINTF("filter_add_input failed.\n");
+		return -1;
+	}
+	if(!filter_add(f) == -1) {
+		DPRINTF("filter_add failed.\n");
+		return -1;
+	}
 #endif
 	return 0;
 }
