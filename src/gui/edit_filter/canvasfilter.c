@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.27 2001/07/10 23:42:57 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.28 2001/07/11 11:41:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -68,9 +68,9 @@ glame_canvas_filter_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass* parent_class;
 	glame_canvas_filter_hide_properties(GLAME_CANVAS_FILTER(object));
-	gtk_signal_emit(object,filter_signals[DELETED]);
 	glame_canvas_group_remove_item(GNOME_CANVAS_ITEM(object)->parent,GLAME_CANVAS_FILTER(object));
-	//	glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(object),GLAME_CANVAS_FILTER(object));
+	gtk_signal_emit(object,filter_signals[DELETED]);
+	//glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(object),GLAME_CANVAS_FILTER(object));
 	hash_remove_gcfilter(GLAME_CANVAS_FILTER(object));
 	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
@@ -285,7 +285,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
 							      NULL));
 	
-	gItem = GLAME_CANVAS_FILTER(gnome_canvas_item_new(group,
+	gItem = GLAME_CANVAS_FILTER(gnome_canvas_item_new(glameGroup,
 							  GLAME_CANVAS_FILTER_TYPE,
 							  NULL));
 	gGroup = GNOME_CANVAS_GROUP(gItem);
@@ -409,7 +409,6 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 			   GTK_SIGNAL_FUNC(glame_canvas_filter_event),gItem);
 	
 	
-	glame_canvas_group_set_item(glameGroup,gItem);
 	glame_canvas_filter_move(gItem, x,y);
 	
 	sprintf(numberbuffer,"%f",x);
