@@ -141,12 +141,12 @@ static void plugins_process_env(const char *env)
 
 static int plugins_register()
 {
-	/* First initialize the builtin plugins */
-	plugin_get("glamebuiltins");
-
 	/* Plugins from default paths - and "debug path" (first) */
 	plugins_process_directory("./plugins/.libs"); /* for .so */
 	plugins_process_directory(PKGLIBDIR);
+
+	/* First initialize the builtin plugins */
+	plugin_get("glamebuiltins");
 
 	/* Paths from environment. */
 	plugins_process_env("LADSPA_PATH");
