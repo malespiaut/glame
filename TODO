@@ -11,13 +11,14 @@ doc/
 
 plugins/
 	[all]
-	- provide pixmaps for all plugins (missing: echo, fft & friends,
-          iir, noisegate, pan, rms, time, sinus, const, ...)
+	- provide pixmaps for all plugins (missing: echo, fft friends,
+          iir, noisegate, pan, rms, time, ...)
 
 gui/
 	[xwolf]
 	- kool splashscreen?
 	- property editing for network (external ports/properties/section...) ?
+	- remove broken export tracking code
 
 
 Items that can be postponed forever (at least until 0.6):
