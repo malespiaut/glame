@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: filter.h,v 1.3 2000/01/25 16:11:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -168,8 +168,8 @@ struct filter {
 #define hash_find_filter(n) __hash_entry(_hash_find((n), FILTER_NAMESPACE, (*(_hash((n), FILTER_NAMESPACE))), __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_add_filter(filter) _hash_add(&(filter)->hash, _hash((filter)->name, FILTER_NAMESPACE))
 #define hash_remove_filter(filter) _hash_remove(&(filter)->hash)
-#define hash_first_filter() __hash_entry(_hash_next(NULL, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
-#define hash_next_filter(filter) __hash_entry(_hash_next(&(filter)->hash, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
+#define hash_first_filter() __hash_entry(_hash_walk(NULL, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
+#define hash_walk_filter(filter) __hash_entry(_hash_walk(&(filter)->hash, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_init_filter(filter) do { filter->namespace = FILTER_NAMESPACE; _hash_init(&(filter)->hash); } while (0)
 #define is_hashed_filter(filter) _is_hashed(&(filter)->hash)
 

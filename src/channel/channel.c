@@ -46,8 +46,6 @@ struct cg_s {
 #define hash_find_cg(group) __hash_entry(_hash_find((group), CG_NAMESPACE, (*(_hash((group), CG_NAMESPACE))), __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
 #define hash_add_cg(cg) _hash_add(&(cg)->hash, _hash((cg)->cg_name, CG_NAMESPACE))
 #define hash_remove_cg(cg) _hash_remove(&(cg)->hash)
-#define hash_first_cg() __hash_entry(_hash_next(NULL, CG_NAMESPACE, __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
-#define hash_next_cg(cg) __hash_entry(_hash_next(&(cg)->hash, CG_NAMESPACE, __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
 #define hash_init_cg(cg) do { cg->namespace = CG_NAMESPACE; _hash_init(&(cg)->hash); } while (0)
 #define is_hashed_cg(cg) _is_hashed(&(cg)->hash)
 
@@ -55,8 +53,6 @@ struct cg_s {
 #define hash_find_channel(name, group) __hash_entry(_hash_find((name), (group), (*(_hash((name), (group)))), __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
 #define hash_add_channel(c) _hash_add(&(c)->hash, _hash((c)->ch_name, (c)->cg))
 #define hash_remove_channel(c) _hash_remove(&(c)->hash)
-#define hash_first_channel(group) __hash_entry(_hash_next(NULL, (group), __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
-#define hash_next_channel(c) __hash_entry(_hash_next(&(c)->hash, (c)->group, __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
 #define hash_init_channel(c) _hash_init(&(c)->hash)
 #define is_hashed_channel(c) _is_hashed(&(c)->hash)
 
@@ -66,7 +62,7 @@ struct cg_s {
 static cg_t *cg_create(const char *name)
 {
   cg_t *cg;
-  
+
   if (hash_find_cg(name)) /* name should be unique ? */
     return NULL;
 

@@ -19,9 +19,14 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
+#include "util.h"
 #include "glame_hash.h"
 
 
@@ -32,12 +37,76 @@
 struct hash_head **hash_table = NULL;
 
 
+/* Beware! this is not signal-safe!!
+ * Add sigprocmask(all, SIGBLOCK,..) if you want to access
+ * or modify the hash from signal handlers.
+ */
+#define LOCKDEBUG
+#ifndef _REENTRANT
+#define _lock()
+#define _unlock()
+#define _lock_w()
+#define _unlock_w()
+#else
+static int semid = -1;
+static int semnum = -1;
+static inline void _lock()
+{
+	struct sembuf sop;
+
+	sop.sem_num = semnum;
+	sop.sem_op = -1;
+	sop.sem_flg = 0;
+	while (semop(semid, &sop, 1) == -1 && errno == EINTR)
+		;
+}
+static inline void _unlock()
+{
+	struct sembuf sop;
+
+	sop.sem_num = semnum;
+	sop.sem_op = 1;
+	sop.sem_flg = IPC_NOWAIT;
+	semop(semid, &sop, 1);
+}
+static inline void _lock_w()
+{
+	struct sembuf sop;
+
+	sop.sem_num = semnum;
+	sop.sem_op = -10000;
+	sop.sem_flg = 0;
+	while (semop(semid, &sop, 1) == -1 && errno == EINTR)
+		;
+#ifdef LOCKDEBUG
+	if (semctl(semid, semnum, GETVAL, 0) != 0)
+		PANIC("inappropriate use of hash_lock()/_unlock() during hash modification\n");
+#endif
+}
+static inline void _unlock_w()
+{
+	struct sembuf sop;
+
+	sop.sem_num = semnum;
+	sop.sem_op = 10000;
+	sop.sem_flg = IPC_NOWAIT;
+	semop(semid, &sop, 1);
+}
+#endif
+
+
 int hash_alloc()
 {
 	if (!(hash_table = (struct hash_head **)calloc(HASH_SIZE+1, sizeof(void *))))
 		return -1;
-
 	hash_table[HASH_SIZE] = NULL;
+
+#ifdef _REENTRANT
+	if ((semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
+		return -1;
+	semnum = 0;
+	semctl(semid, semnum, SETVAL, 10000);
+#endif
 
 	return 0;
 }
@@ -48,6 +117,7 @@ void hash_dump()
 	struct hash_head *h;
 	int i, j, cnt;
 
+	_lock();
 	for (i=0; i<HASH_SIZE; i+=STEP) {
 		cnt = 0;
 		for (j=i; j<i+STEP; j++) {
@@ -64,6 +134,18 @@ void hash_dump()
 			printf("*");
 		printf("\n");
 	}
+	_unlock();
+}
+
+
+void hash_lock()
+{
+	_lock_w();
+}
+
+void hash_unlock()
+{
+	_unlock_w();
 }
 
 
@@ -84,10 +166,10 @@ int _hashfn(const char *name, const void *namespace)
 	return (val & (HASH_SIZE-1));
 }
 
-struct hash_head *_hash_find(const char *name, const void *namespace,
-			     struct hash_head *entry,
-			     unsigned long _head, unsigned long _name,
-			     unsigned long _namespace)
+inline struct hash_head *__hash_find(const char *name, const void *namespace,
+				     struct hash_head *entry,
+				     unsigned long _head, unsigned long _name,
+				     unsigned long _namespace)
 {
 	while (entry) {
 		if (NAMESPACE(entry, _head, _namespace) == namespace
@@ -97,16 +179,32 @@ struct hash_head *_hash_find(const char *name, const void *namespace,
 	}
 	return entry;
 }
+struct hash_head *_hash_find(const char *name, const void *namespace,
+			     struct hash_head *entry,
+			     unsigned long _head, unsigned long _name,
+			     unsigned long _namespace)
+{
+	_lock();
+	entry = __hash_find(name, namespace, entry, _head, _name, _namespace);
+	_unlock();
+	return entry;
+}
 
-void _hash_add(struct hash_head *entry, struct hash_head **loc)
+inline void __hash_add(struct hash_head *entry, struct hash_head **loc)
 {
 	if ((entry->next_hash = *loc) != NULL)
 		(*loc)->pprev_hash = &entry->next_hash;
 	*loc = entry;
 	entry->pprev_hash = loc;
 }
+void _hash_add(struct hash_head *entry, struct hash_head **loc)
+{
+	_lock_w();
+	__hash_add(entry, loc);
+	_unlock_w();
+}
 
-void _hash_remove(struct hash_head *entry)
+inline void __hash_remove(struct hash_head *entry)
 {
 	if (entry->pprev_hash) {
 		if (entry->next_hash)
@@ -115,10 +213,16 @@ void _hash_remove(struct hash_head *entry)
 		entry->pprev_hash = NULL;
 	}
 }
+void _hash_remove(struct hash_head *entry)
+{
+	_lock_w();
+	__hash_remove(entry);
+	_unlock_w();
+}
 
-struct hash_head *_hash_next(struct hash_head *entry, void *namespace,
-			     unsigned long _head, unsigned long _name,
-			     unsigned long _namespace)
+inline struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
+				     unsigned long _head, unsigned long _name,
+				     unsigned long _namespace)
 {
 	struct hash_head **slot;
 
@@ -145,9 +249,12 @@ struct hash_head *_hash_next(struct hash_head *entry, void *namespace,
 
 	return entry;
 }
-
-
-
-
-
-
+struct hash_head *_hash_walk(struct hash_head *entry, void *namespace,
+			     unsigned long _head, unsigned long _name,
+			     unsigned long _namespace)
+{
+	_lock();
+	entry = __hash_walk(entry, namespace, _head, _name, _namespace);
+	_unlock();
+	return entry;
+}

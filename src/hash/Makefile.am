@@ -1,3 +1,5 @@
+INCLUDES = -I@srcdir@/../include -D_REENTRANT
+
 noinst_LTLIBRARIES = libhash.la
 
 
