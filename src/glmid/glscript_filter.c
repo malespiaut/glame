@@ -735,12 +735,14 @@ static SCM gls_glame_plugin_define(SCM s_net, SCM s_name)
 	f = scm2filter(s_net);
 	name = gh_scm2newstr(s_name, &namel);
 	if (glscript_load_mode == 0) {
+		DPRINTF("mode 0 - registering plugin\n");
 		p = glame_create_plugin(f, name);
 		free(name);
 		if (!p)
 			return SCM_BOOL_F;
 		return plugin2scm(p);
 	}
+	DPRINTF("mode 1 - returning the instance\n");
 	free(name);
 	return filter2scm(f);
 }

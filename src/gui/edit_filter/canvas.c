@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.26 2001/03/01 13:09:54 richi Exp $
+ * $Id: canvas.c,v 1.27 2001/03/01 13:18:51 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1418,7 +1418,7 @@ static void canvas_save_as(GtkWidget*w,void*blu)
 			outf = fopen(filenamebuffer,"w");
 			buffer = filter_to_string(bla);
 			fprintf(stderr,"%s\n",buffer);
-			fprintf(outf,"(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (not (filter_p newplugin)) (begin (plugin_set newplugin PLUGIN_CATEGORY \"%s\"))) newplugin)",buffer,filternamebuffer,categorynamebuffer);
+			fprintf(outf,"(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))",buffer,filternamebuffer,categorynamebuffer);
 			free(buffer);
 			fclose(outf);
 		}else{
