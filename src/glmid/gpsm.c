@@ -971,6 +971,7 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 			i->hposition += gpsm_item_hsize(item);
 			glsig_emit(gpsm_item_emitter(i),
 				   GPSM_SIG_ITEM_CHANGED, i);
+			i = list_getnext(&hbox->items, i, gpsm_item_t, list);
 		} while (i && i != succ);
 	}
 
@@ -1005,6 +1006,7 @@ int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 			i->vposition += gpsm_item_vsize(item);
 			glsig_emit(gpsm_item_emitter(i),
 				   GPSM_SIG_ITEM_CHANGED, i);
+			i = list_getnext(&vbox->items, i, gpsm_item_t, list);
 		} while (i && i != succ);
 	}
 
