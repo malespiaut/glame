@@ -33,9 +33,6 @@
 #include "gpsm.h"
 #include "glconfig.h"
 
-/* HACK */
-extern void blafoobar(int);
-
 
 int cmd_argc;
 char **cmd_argv;
@@ -83,9 +80,6 @@ void usage()
 int main(int argc, char **argv)
 {
 	int creat;
-
-	/* HACK */
-	blafoobar(0);
 
 	fprintf(stderr, "\n"
 "    CGLAME for GLAME version "VERSION", Copyright (C) 1999-2001\n"

@@ -49,7 +49,7 @@ libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
 	pan.c pipe.c iir.c flanger.c distortion.c \
 	fader.c
 libglamebuiltins_la_LDFLAGS = -export-dynamic $(GLAME_AUDIO_LIBS)
-libglamebuiltins_la_DEPENDENCIES = symbols.c
+libglamebuiltins_la_DEPENDENCIES = builtins.c
 
 # real plugins (depending on optional stuff)
 pkglib_LTLIBRARIES = \
@@ -97,7 +97,9 @@ normalize_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GN
 mixer_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
 
-symbols.c: $(libglamebuiltins_la_SOURCES) Makefile.am
-	echo 'void blafoobar(int dummy){ if (dummy == 0) return; aio_generic_register_input(); aio_generic_register_output();' > symbols.c
-	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*_register\)(.*)/\1();/' >> symbols.c; done
-	echo '}' >> symbols.c
+builtins.c: $(libglamebuiltins_la_SOURCES) Makefile.am
+	echo '#include "glplugin.h"' > builtins.c
+	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/int \1_register(plugin_t *p);/' >> builtins.c; done
+	echo 'void register_builtins() {' >> builtins.c
+	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/	\1_register(plugin_add("\1"));/' >> builtins.c; done
+	echo '}' >> builtins.c

@@ -40,12 +40,8 @@
 #include "glscript.h"
 #include "glconfig.h"
 
-/* HACK */
-#include "../plugins/symbols.c"
-
-
-/* Builtin plugins. */
-PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io arithmetic waveform ssp echo noisegate pan pipe iir flanger distortion fader")
+/* auto-generated builtin register function */
+#include "../plugins/builtins.c"
 
 
 
@@ -194,7 +190,7 @@ static int plugins_register()
 #endif
 
 	/* First initialize the builtin plugins */
-	plugin_get("builtin_plugins");
+	register_builtins();
 
 	/* Plugins from default paths - and "debug path" (first) */
 	if (!access("cglame.c", F_OK))

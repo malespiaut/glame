@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.99 2002/01/08 22:19:35 richi Exp $
+ * $Id: main.c,v 1.100 2002/01/11 23:11:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -48,7 +48,6 @@
 #include "importexport.h"
 
 /* HACK */
-extern void blafoobar(int);
 extern void swcluster_set_cache(int, int, int, size_t);
 
 
@@ -942,9 +941,6 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 
 int main(int argc, char **argv)
 {
-	/* HACK */
-	blafoobar(0);
-
 	textdomain("glame");
 
 	/* setup gnome/gtk  */
