@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.4 2000/04/04 09:07:49 nold Exp $
+@comment $Id: plugins.texi,v 1.5 2000/04/04 12:03:36 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -122,4 +122,54 @@ null, dup (tutorial.c), sinus [*** Doh! Rename to sine! ***], const (waveform.c)
 @section Effects
 
 TODO: noisegate (noisegate.c), iir (iir.c)
+
+Bla, drop
+
+@subheading @file{drop} ports
+@table @code
+@item in (input)
+Data to be dropped. Any number of input connections are allowed.
+@end table
+
+@file{drop} has no parameters.
+
+
+Blurp, one2n
+
+@subheading @file{one2n} ports
+@table @code
+@item in (input)
+Data to be replicated.
+@item out (output)
+Replicated data. Any number of output connections are allowed.
+@end table
+
+@file{one2n} has no parameters.
+
+
+Foobar, mix, mix2
+
+@subheading @file{mix} ports
+@table @code
+@item in (input)
+Audio streams to be mixed. Any number of input connections are allowed.
+@item out (output)
+Mixed audio stream.
+@end table
+
+@subheading @file{mix} parameters
+@table @code
+@item in::gain (float)
+Gain of the input.
+@item in::offset (time)
+Offset of the input data.
+@item gain (float)
+Gain of the output.
+@item phi (float)
+Position of the output.
+@end table
+
+@file{mix} does drop input data after the first input stream terminated,
+@file{mix2} does continue to mix available inputs instead. Otherwise @file{mix}
+and @file{mix2} are identical. You want to use @file{mix} for mixing feedback.
 
