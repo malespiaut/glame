@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.37 2000/02/25 13:49:33 richi Exp $
+ * $Id: filter.h,v 1.38 2000/02/29 13:06:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -154,8 +154,9 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PORTTYPE_SAMPLE    4
 #define FILTER_PORTTYPE_RMS       8
 #define FILTER_PORTTYPE_MIDI      16
+#define FILTER_PORTTYPE_CONTROL   32
 #define FILTER_PORTTYPE_MISC    128
-#define FILTER_PORTTYPE_ANY     (4|8|16|128)
+#define FILTER_PORTTYPE_ANY     (4|8|16|32|128)
 #define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
 #define FILTER_PORT_IS_COMPATIBLE(porttype, pipetype) (((porttype) & (pipetype)) == (pipetype))
 
@@ -199,6 +200,12 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PARAM_STRINGTYPE_FILENAME 1
 #define filterparamdesc_string_type(pd) ((pd)->u.string.type)
 #define filterparamdesc_string_settype(pd, t) ((pd)->u.string.type = (t))
+
+#define FILTER_PARAM_FLOATTYPE_GENERIC  0
+#define FILTER_PARAM_FLOATTYPE_TIME     1
+#define FILTER_PARAM_FLOATTYPE_POSITION 2
+#define filterparamdesc_float_type(pd) ((pd)->u.f.type)
+#define filterparamdesc_float_settype(pd, t) ((pd)->u.f.type = (t))
 
 #define filterparamdesc_list_labels(pd) ((pd)->u.list.labels)
 #define filterparamdesc_list_setlabels(pd, l) ((pd)->u.list.labels = (l))
@@ -445,6 +452,8 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
  */
 #define FILTER_PIPETYPE_SAMPLE  FILTER_PORTTYPE_SAMPLE
 #define FILTER_PIPETYPE_RMS     FILTER_PORTTYPE_RMS
+#define FILTER_PIPETYPE_MIDI    FILTER_PORTTYPE_MIDI
+#define FILTER_PIPETYPE_CONTROL FILTER_PORTTYPE_CONTROL
 #define FILTER_PIPETYPE_MISC    FILTER_PORTTYPE_MISC
 #define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
 

@@ -26,6 +26,9 @@ struct filter_paramdesc {
 		struct {
 			int type;
 		} string;
+	        struct {
+                        int type;
+	        } f;
 		struct {
 			const char **labels;
 		} list;
@@ -136,6 +139,12 @@ struct filter_pipe {
 		struct {
 			int blocksize;
 		} rms;
+	        struct {
+	                int dummy;
+	        } midi;
+	        struct {
+                        int dummy;
+	        } control;
 	} u;	
 };
 /* filter pipe hash/list addition/removal to filter nodes qualified by

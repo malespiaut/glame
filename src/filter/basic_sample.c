@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.6 2000/02/28 09:34:34 richi Exp $
+ * $Id: basic_sample.c,v 1.7 2000/02/29 13:06:49 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -342,7 +342,7 @@ static int delay_f(filter_node_t *n)
 
 	delay = 0;
 	if ((param = filternode_get_param(n, "delay")))
-	        delay = filterpipe_sample_rate(in)*filterparam_val_float(param);
+	        delay = filterpipe_sample_rate(in)*filterparam_val_float(param)/1000.0;
 	if (delay < 0)
 		FILTER_ERROR_RETURN("weird delay time");
 
@@ -391,7 +391,7 @@ static int repeat_f(filter_node_t *n)
 
 	duration = 0;
 	if ((param = filternode_get_param(n, "duration")))
-	        duration = filterpipe_sample_rate(in)*filterparam_val_float(param);
+	        duration = filterpipe_sample_rate(in)*filterparam_val_float(param)/1000.0;
 	if (duration < 0)
 		FILTER_ERROR_RETURN("weird time");
 	INIT_FEEDBACK_FIFO(fifo);
@@ -468,6 +468,7 @@ int basic_sample_register()
 {
 	filter_t *f;
 	filter_portdesc_t *d;
+	filter_paramdesc_t *p;
 
         if (!(f = filter_alloc("mix", "mix n channels", mix_f))
             || !(d = filter_add_input(f, PORTNAME_IN, "input stream",
@@ -476,9 +477,10 @@ int basic_sample_register()
 				     FILTER_PARAMTYPE_FLOAT)
             || !filter_add_output(f, PORTNAME_OUT, "mixed stream",
 				  FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f, "phi", "position of mixed stream",
-				 FILTER_PARAMTYPE_FLOAT))
+	    || !(p = filter_add_param(f, "phi", "position of mixed stream",
+				      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
+	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_POSITION);
 	f->connect_in = mix_connect_in;
 	f->connect_out = mix_connect_out;
 	f->fixup_param = mix_fixup_param;
@@ -514,10 +516,12 @@ int basic_sample_register()
 				  FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_output(f, PORTNAME_OUT, "delayed output stream",
 				   FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_param(f, "delay", "delay in s",
-				  FILTER_PARAMTYPE_FLOAT))
-	    || filter_add(f) == -1)
+	    || !(p = filter_add_param(f, "delay", "delay in ms",
+				      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
+	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
+	if (filter_add(f) == -1)
+	        return -1;
 
 	if (!(f = filter_alloc("repeat",
 			       "Repeat an audio signal for the specified time",
@@ -526,11 +530,12 @@ int basic_sample_register()
 				  FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_output(f, PORTNAME_OUT, "repeated stream",
 				   FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_param(f, "duration", "total duration in s",
-				  FILTER_PARAMTYPE_FLOAT))
-	    || filter_add(f) == -1)
+	    || !(p = filter_add_param(f, "duration", "total duration in ms",
+				      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-
+	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
+	if (filter_add(f) == -1)
+	        return -1;
 
 	return 0;
 }

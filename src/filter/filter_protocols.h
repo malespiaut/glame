@@ -28,8 +28,7 @@ struct sbuf_header {
 #define sbuf_queue(p, fb) fbuf_queue(p, fb)
 
 
-/*
- * How about some MIDI 
+/* How about some MIDI 
  */
 
 typedef struct mbuf_header {
@@ -46,5 +45,25 @@ typedef struct mbuf_header {
 #define mbuf_make_private(fb) fbuf_make_private(fb)
 #define mbuf_get(p) fbuf_get(p)
 #define mbuf_queue(p, fb) fbuf_queue(p, fb)
+
+
+/* Control input protocol. FIXME.
+ */
+
+typedef struct cbuf_header cbuf_header_t;
+struct cbuf_header {
+	char buf[1];
+};
+#define cbuf_alloc(nrsamples, filternode) \
+        fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(cbuf_header_t), \
+		   &(filternode)->net->launch_context->buffers)
+#define cbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(cbuf_header_t))/SAMPLE_SIZE)
+#define cbuf_buf(fb) ((SAMPLE *)(&((cbuf_header_t *)fbuf_buf(fb))->buf[0]))
+#define cbuf_ref(fb) fbuf_ref(fb)
+#define cbuf_unref(fb) fbuf_unref(fb)
+#define cbuf_make_private(fb) fbuf_make_private(fb)
+#define cbuf_get(p) fbuf_get(p)
+#define cbuf_queue(p, fb) fbuf_queue(p, fb)
+
 
 #endif
