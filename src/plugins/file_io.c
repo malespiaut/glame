@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.27 2000/05/04 09:53:23 richi Exp $
+ * $Id: file_io.c,v 1.28 2000/05/20 12:44:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -387,7 +387,7 @@ int write_file_register(plugin_t *pl)
 	return 0;
 }
 
-int file_io_register()
+int file_io_register(plugin_t *p)
 {
 	INIT_LIST_HEAD(&readers);
 	INIT_LIST_HEAD(&writers);

@@ -17,15 +17,10 @@ glmid/gltrack.[ch], plugins/track_io.c
 filter/
 	[richi]
         - parameters:
-          * allow shared parameters, i.e. only loosely couple
-            parameters with their domain
+          * allow shared parameters
         - general class stuff
 	  * get rid of these *_desc_t stuff - just clone example
-            instances. This will get us default parameters, too.
-          * methods: some of them are really notifier signals - 
-            provide a generic signal/signalhandler framework - this
-            should allow the GUI to register handlers, too
-            real methods are: connect_in/out, set_param
+            instances. Left to kill are portdesc and filter itself.
         - API/implementation stuff
           * are hashes really necessary? (we need lists anyway)
           * symmetry: name vs. pointer APIs

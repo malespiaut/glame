@@ -1,3 +1,15 @@
+GLAME version 0.3.4:
+====================
+Again a development phase. Many things changed between
+0.2.0 and 0.3.4:
+- filter backend rewrite which results in
+  * out of sync documentation
+  * cleaner parameter handling
+  * notifiers for GUI and the like
+- plugins more flexible, LADSPA plugin support
+- GUI has support for pipe parameters, more nice
+  context menus
+
 GLAME version 0.2.0:
 ====================
 Not much has changed since the last prerelease apart
