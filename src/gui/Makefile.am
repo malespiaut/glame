@@ -10,6 +10,6 @@ noinst_LTLIBRARIES =
 endif
 endif
 
-main_SOURCES = gui.h gui.c main.c
+main_SOURCES = gui.h gui.c main.c canvas.c
 
 main_LDADD = ../filter/libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS)

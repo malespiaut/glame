@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.2 2000/02/11 13:08:13 xwolf Exp $
+ * $Id: main.c,v 1.3 2000/02/21 17:30:56 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -47,9 +47,9 @@ int main(int argc, char *argv[])
 	gnome_init("glame",VERSION,argc,argv);
 	
 	/* splash screen */
-	about = gui_create_about();
+	//	about = gui_create_about();
 	
-	gtk_widget_show(about);
+	//gtk_widget_show(about);
 	
 	gui=malloc(sizeof(glame_gui));
 	

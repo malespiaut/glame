@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.4 2000/02/17 07:15:01 xwolf Exp $
+ * $Id: gui.c,v 1.5 2000/02/21 17:30:56 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -24,6 +24,20 @@
 #include <gnome.h>
 #include "filter.h"
 #include "gui.h"
+#include "canvas.h"
+void newcanvas(void)
+{
+	//just testing
+	
+	GnomeCanvas* canvas;
+	GnomeCanvasGroup *grp;
+	
+	gui_filter * filter = g_array_index(gui->filters,gui_filter*,gui->selectedIcon);
+
+	canvas = create_new_canvas(filter->caption);
+	grp = create_new_node(canvas,filter,50.0,50.0);
+	gtk_widget_show(canvas);
+}
 
 
 
@@ -184,7 +198,15 @@ void handle_properties(GtkWidget *menuitem, gpointer bla)
 {
 	icon_prop_activate((gpointer)gui->selectedIcon);
 }
-void handle_new_filter_net(GtkWidget *menuitem, gpointer bla){}
+void 
+handle_new_filter_net(GtkWidget *menuitem, gpointer bla)
+{
+	gui->canvas = malloc(sizeof(gui_canvas));
+	gui->canvas->canvas= create_new_canvas("Untitled.");
+	gui->canvas->net = gui_network_new("Untitled.","pixmaps/default.png");
+	gtk_widget_show(gui->canvas->canvas);
+	
+}
 void handle_filter_net_open(GtkWidget *menuitem, gpointer bla){}
 void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla){}
 
@@ -203,7 +225,7 @@ gui_filter_new(const char *pixname,filter_t* filter)
 	gui_filter * newFilter = malloc(sizeof(gui_filter));
 	newFilter->caption = filter->name;
 	newFilter->pixname = malloc(strlen(pixname));
-	//newFilter->filter = filter;
+	newFilter->filter = filter;
 	strcpy(newFilter->pixname,pixname);
 	
 	return newFilter;
@@ -250,6 +272,19 @@ void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
 	gtk_main_quit();
 }
 
+static void
+drag_data_get(GtkWidget *w,
+	      GdkDragContext *c,
+	      GtkSelectionData *data,
+	      guint info,
+	      guint time,
+	      gpointer dat)
+{
+	char msg[10];
+	sprintf(msg,"%d",(gui->selectedIcon));
+	gtk_selection_data_set(data,data->target,8,msg,sizeof(msg));
+	fprintf(stderr,"send\n");
+}
 
 /* creates main window */
 GtkWidget*
@@ -266,6 +301,13 @@ gui_create_commandwin(void)
 	
 	int i,j;
 	char lab[20];
+
+	
+	gui->target = malloc(sizeof(GtkTargetEntry[2]));
+	gui->target[0].target = "text/plain";
+	gui->target[0].flags = 0;
+	gui->target[0].info = 0;
+	
 
 	commandwin = gnome_app_new("glame",_("glame"));
 	gtk_object_set_data(GTK_OBJECT(commandwin),"commandwindow",commandwin);
@@ -328,7 +370,9 @@ gui_create_commandwin(void)
 
 	gui->filters = g_array_new(TRUE,TRUE,sizeof(gui_filter*));
 	
-	
+	gtk_drag_source_set(GTK_WIDGET(gui->iconlist),GDK_BUTTON1_MASK,gui->target,1,GDK_ACTION_COPY);
+	gtk_signal_connect(GTK_OBJECT(gui->iconlist),"drag_data_get",drag_data_get,NULL);
+
 	return commandwin;
 }
 
@@ -539,6 +583,8 @@ icon_prop_activate                (gpointer user_data)
 
 /* handels an icon select */
 
+
+
 void gui_handle_icon_sel (GnomeIconList *iconlist,
 			  gint index,
 			  GdkEvent *event,
@@ -558,15 +604,22 @@ void gui_handle_icon_sel (GnomeIconList *iconlist,
 			gtk_widget_show(prop);
 			gtk_widget_show(men);
 			gui->selectedIcon=index;
-		
+			
 			gtk_menu_popup(GTK_MENU(men),NULL,NULL,NULL,NULL,((GdkEventButton*)event)->button,GDK_CURRENT_TIME);
 		}else if(((GdkEventButton*)event)->button==1){
-			gui->selectedIcon=index;
-		}
-	
-		
-	}else
-		fprintf(stderr,"unhandled event in gui_handle_icon_sel\n");
+			if(((GdkEventButton*)event)->type==GDK_2BUTTON_PRESS){
+				gui->selectedIcon=index;
+				icon_prop_activate((gpointer)index);
+			}else{
+				gui->selectedIcon=index;
+			}
+		}else if(((GdkEventButton*)event)->button==2){
+			fprintf(stderr,"button 2\n");
+			//fleur = gdk_cursor_new(GDK_FLEUR);
+			newcanvas();
+		}else
+			fprintf(stderr,"unhandled event in gui_handle_icon_sel\n");
+	}
 }
 
 /* browses the registered filtrs and adds them to the gui */
@@ -597,3 +650,33 @@ int gui_filter_init(void)
                 return -1;
         }
 }
+
+
+gui_network* 
+gui_network_new(const char * caption, const char * pixname)
+{
+	gui_network *net = malloc(sizeof(gui_network));
+	net->caption = malloc(strlen(caption));
+	strcpy(net->caption,caption);
+	net->pixname = malloc(strlen(pixname));
+	strcpy(net->pixname,pixname);
+	
+	net->net = filternetwork_new(caption);
+	if(!(net->net))
+		fprintf(stderr,"Error creating network!\n");
+	return net;
+}
+	
+int
+gui_network_filter_add(gui_network* net, gui_filter *fil)
+{
+
+	//fil->filter = filter_get(fil->caption);
+	fil->node = filternetwork_add_node(net->net,fil->caption,fil->instance);
+	
+//	g_array_append_val(net->filters,fil);
+	return 0;
+}
+
+		
+	

@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.3 2000/02/17 07:15:01 xwolf Exp $
+ * $Id: gui.h,v 1.4 2000/02/21 17:30:56 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -36,6 +36,19 @@
 
 #include "filter.h"
 
+
+typedef struct _gui_network {
+	char *pixname;
+	char *caption;
+	filter_network_t * net;
+	GArray *filters;
+} gui_network;
+
+typedef struct _gui_canvas {
+	GnomeCanvas *canvas;
+	gui_network *net;
+} gui_canvas;
+
 typedef struct _glame_gui {
 	GtkWidget *app;
 	GtkWidget *table;
@@ -44,23 +57,35 @@ typedef struct _glame_gui {
 	GtkWidget *iconlist;
 	//  too lazy to use richis list... someone can hack this up if he feels motivated
 	GArray * filters;
+	gui_canvas * canvas;
+	GtkTargetEntry * target;
 	char **buttonlabels;
 	int selectedIcon;
 
 } glame_gui;
 
+
 typedef struct _gui_filter {
 	char * pixname;
 	char * caption;
+	char * instance;
 	// Filter data here
 	filter_t * filter;
+	filter_node_t *node;
+	
 } gui_filter;
+
+
+
 
 glame_gui * gui;
 
 int gui_filter_add(gui_filter *filter);
 
 gui_filter* gui_filter_new(const char *pixname, filter_t *filter);
+
+gui_network* gui_network_new(const char *caption, const char * pixname);
+int gui_network_filter_add(gui_network* net, gui_filter *fil);
 
 GtkWidget* gui_create_about(void);
 
@@ -78,6 +103,8 @@ void handle_new_filter_net(GtkWidget *menuitem, gpointer bla);
 void handle_filter_net_open(GtkWidget *menuitem, gpointer bla);
 void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla);
 
+void icon_prop_activate                (gpointer user_data);
+
 // these are just dummies for later
 void on_preferences_activate(GtkWidget *m,gpointer bla);
 void on_cut_activate(GtkWidget *m,gpointer bla);
@@ -91,6 +118,10 @@ GtkWidget* gui_create_commandwin(void);
 int gui_browse_registered_filters(void);
 int gui_init_filter(void);
 
+// canvas stuff
+GnomeCanvas * create_new_canvas(const char *name);
+
+GnomeCanvasGroup* create_new_node(GtkWidget *canvas, gui_filter *filter,double x, double y);
 
 
 #endif
