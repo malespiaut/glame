@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.5 2000/02/05 15:59:26 richi Exp $ 
+ * $Id: read_file.c,v 1.6 2000/02/05 16:38:27 nold Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -19,6 +19,25 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifndef HAVE_AUDIOFILE
+#include "filter.h"
+
+static int read_file_f(filter_node_t *n)
+{
+	return 0;
+}
+
+int read_file_register()
+{
+	return -1;
+}
+
+#else
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -179,3 +198,6 @@ int read_file_register()
 
 	return 0;
 }
+
+#endif
+
