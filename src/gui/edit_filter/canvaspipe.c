@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.2 2001/05/07 21:36:15 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.3 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -206,7 +206,6 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 static void
 glame_canvas_pipe_end_moved_cb(GlameCanvasPort* p,double dx, double dy, GlameCanvasPipe* pipe)
 {
-	DPRINTF("%f %f\n",dx,dy);
 	pipe->points->coords[10] += dx;
 	pipe->points->coords[11] += dy;
 	glame_canvas_pipe_reroute(pipe);
@@ -215,7 +214,6 @@ glame_canvas_pipe_end_moved_cb(GlameCanvasPort* p,double dx, double dy, GlameCan
 static gboolean
 glame_canvas_pipe_begin_moved_cb(GlameCanvasPort* p,double dx, double dy, GlameCanvasPipe* pipe)
 {
-	DPRINTF("%f %f\n",dx,dy);
 	pipe->points->coords[0] += dx;
 	pipe->points->coords[1] += dy;
 	glame_canvas_pipe_reroute(pipe);
@@ -241,9 +239,56 @@ glame_canvas_pipe_deleted_cb(glsig_handler_t* foo,long sig,va_list va)
 	gtk_object_destroy(GTK_OBJECT(gPipe));
 }
 	
-static void
+
+static gboolean
+glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p);
+
+static gboolean
+glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
+{
+
+	switch(event->type){
+	case GDK_MOTION_NOTIFY:
+		/* do something here */
+		return TRUE;
+		break;
+	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(i,event->button.time);
+		gtk_signal_disconnect_by_func(i,glame_canvas_pipe_grabbing_cb,p);
+		gtk_signal_handler_unblock_by_func(i,glame_canvas_pipe_event_cb,p);
+		return TRUE;
+	default:
+		return FALSE;
+	}
+}
+static gboolean
 glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
-{}
+{
+	GdkCursor * fleur;
+
+	switch(event->type){
+	case GDK_BUTTON_PRESS:
+		switch(event->button.button){
+		case 1:
+			/* grab the thing */
+			fleur = gdk_cursor_new(GDK_FLEUR);
+			/* block other handlers (this one ;-) */
+			gtk_signal_handler_block_by_func(GTK_OBJECT(i),glame_canvas_pipe_event_cb,p);
+			gtk_signal_connect(GTK_OBJECT(i),"event", glame_canvas_pipe_grabbing_cb, p);
+			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,fleur,
+					       event->button.time);
+			gdk_cursor_destroy(fleur);
+			return TRUE;
+			break;
+		default:
+			return FALSE;
+			break;
+		}
+	default:
+		return FALSE;
+		break;
+	}
+}
 
 GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * pipe)
 {
@@ -260,15 +305,17 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 		gPipe->points->coords[i] = 0.0;
 	
 	gPipe->line = GNOME_CANVAS_LINE(gnome_canvas_item_new(group,
-								   gnome_canvas_line_get_type(),
-								   "points",gPipe->points,
-								   "fill_color","black",
-								   "width_units",2.0,
-								   "arrow_shape_a",18.0,
-								   "arrow_shape_b",20.0,
-								   "arrow_shape_c",5.0,
-								   "last_arrowhead",TRUE,
-								   NULL));
+							      gnome_canvas_line_get_type(),
+							      "points",gPipe->points,
+							      "fill_color","black",
+							      "width_units",2.0,
+							      "arrow_shape_a",18.0,
+							      "arrow_shape_b",20.0,
+							      "arrow_shape_c",5.0,
+							      "smooth",TRUE,
+							      "spline_steps",100,
+							      "last_arrowhead",TRUE,
+							      NULL));
 	gPipe->circle = GNOME_CANVAS_ELLIPSE(gnome_canvas_item_new(group,
 								   gnome_canvas_ellipse_get_type(),
 								   "x1",0.0,
@@ -282,7 +329,7 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 	
 	hash_add_gcpipe(gPipe);
 	
-	gtk_signal_connect(GTK_OBJECT(gPipe->circle),
+	gtk_signal_connect_after(GTK_OBJECT(gPipe->circle),
 			   "event",
 			   glame_canvas_pipe_event_cb,
 			   gPipe);

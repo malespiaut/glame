@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.3 2001/05/07 21:36:15 xwolf Exp $
+ * $Id: canvasitem.h,v 1.4 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -236,6 +236,13 @@ filter_paramdb_t* glame_canvas_pipe_get_paramdb(GlameCanvasPipe* pipe);
 GlameCanvasFilter* glame_canvas_find_filter(filter_t* f);
 GlameCanvasPipe* glame_canvas_find_pipe(filter_pipe_t* f);
 GlameCanvasPort* glame_canvas_find_port(filter_port_t* f);
+
+
+/* some access macros */
+
+#define CANVAS_ITEM_CANVAS(i) GNOME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas)
+#define CANVAS_ITEM_GLAME_CANVAS(i) GLAME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas)
+#define CANVAS_ITEM_ROOT(i) gnome_canvas_root(GNOME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas))
 
 #endif
 	

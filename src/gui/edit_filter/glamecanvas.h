@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.1 2001/05/07 00:45:36 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.2 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -26,6 +26,7 @@
 
 #include <gnome.h>
 #include "filter.h"
+#include "canvasitem.h"
 /* type forwards */
 
 struct _GlameCanvas;
@@ -68,8 +69,9 @@ struct _GlameCanvasClass {
  */
 GlameCanvas* glame_canvas_new(filter_t * network);
 
-GnomeCanvasItem* glame_canvas_add_filter(GlameCanvas* canvas, const char* name);
-
+GlameCanvasFilter* glame_canvas_add_filter(GlameCanvas* canvas, filter_t *filter);
+GlameCanvasFilter* glame_canavs_add_filter_by_name(GlameCanvas * canvas, const char *name);
+GlameCanvasFilter* glame_canvas_add_filter_by_plugin(GlameCanvas* canvas, plugin_t *plug);
 
 /* new signal marshallers >:-O   */
 
@@ -78,10 +80,17 @@ void glame_canvas_marshal_NONE__DOUBLE_DOUBLE(GtkObject*,
 					      GtkSignalFunc,
 					      gpointer,
 					      GtkArg*);
-GdkImlibImage* 
-glame_gui_get_icon_from_filter(filter_t* t);
+GdkImlibImage*  glame_gui_get_icon_from_filter(filter_t* t);
 
-char*
-glame_gui_get_font(GlameCanvas* canv);
+char* glame_gui_get_font(GlameCanvas* canv);
+
+void glame_canvas_execute(GlameCanvas* canv);
+void glame_canvas_register(GlameCanvas* canv, const char* filtername, const char* category);
+void glame_canvas_save(GlameCanvas* canv, const char* filename, const char* filtername, const char* category);
+void glame_canvas_property_dialog(GlameCanvas* canv);
+void glame_canvas_set_zoom(GlameCanvas* canv, double pixelPerPoint);
+double glame_canvas_get_zoom(GlameCanvas* canv);
+void glame_canvas_view_all(GlameCanvas* canv);
+
 #endif
 

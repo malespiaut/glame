@@ -1,7 +1,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.1 2001/05/07 00:45:36 xwolf Exp $
+ * $Id: filtereditgui.h,v 1.2 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -34,7 +34,10 @@
 
 GtkWidget * 
 glame_filtereditgui_new(filter_t *net);
-
+GtkWidget * 
+glame_filtereditgui_new_cb(GtkObject* ignore, filter_t *net);
+void
+glame_load_network(GtkWidget *foo, gpointer bla);
 
 
 #endif

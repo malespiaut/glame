@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.2 2001/05/07 21:36:15 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.3 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -43,8 +43,7 @@ HASH(gcfilter, GlameCanvasFilter, 8,
 
      /*  Forward decls */
 
-     gboolean glame_canvas_filter_event(GnomeCanvasItem* foo, GdkEvent* event)
-{}
+static gboolean glame_canvas_filter_event(GnomeCanvasItem* foo, GdkEvent* event, GlameCanvasFilter* filter);
 
 /*Yukky gtk class stuff    
  * Ignore these
@@ -521,3 +520,62 @@ glame_canvas_filter_get_paramdb(GlameCanvasFilter* filter)
 	return filter_paramdb(filter->filter);
 }
 
+
+
+
+static gboolean
+glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
+{
+	
+	switch(event->type){
+	case GDK_MOTION_NOTIFY:
+		
+		glame_canvas_filter_move(filter, (double)event->button.x-filter->last_x,(double)event->button.y-filter->last_y);
+		filter->last_x = event->button.x;
+		filter->last_y = event->button.y;
+		
+		return TRUE;
+		break;
+	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(i,event->button.time);
+		gtk_signal_disconnect_by_func(i,glame_canvas_filter_grabbing_cb,filter);
+		gtk_signal_handler_unblock_by_func(i,glame_canvas_filter_event,filter);
+		return TRUE;
+	default:
+		return FALSE;
+	}
+}
+
+static gboolean
+glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
+{
+	GdkCursor * fleur;
+	
+	switch(event->type){
+	case GDK_BUTTON_PRESS:
+		switch(event->button.button){
+		case 1:
+			/* grab the thing */
+
+			/* save coords */
+ 			filter->last_x = event->button.x;
+			filter->last_y = event->button.y;
+			
+			fleur = gdk_cursor_new(GDK_FLEUR);
+			/* block other handlers (this one ;-) */
+			gtk_signal_handler_block_by_func(GTK_OBJECT(i),glame_canvas_filter_event,filter);
+			gtk_signal_connect(GTK_OBJECT(i),"event", glame_canvas_filter_grabbing_cb, filter);
+			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,fleur,
+					       event->button.time);
+			gdk_cursor_destroy(fleur);
+			return TRUE;
+			break;
+		default:
+			return FALSE;
+			break;
+		}
+	default:
+		return FALSE;
+		break;
+	}
+}

@@ -1,7 +1,7 @@
 /*
  * edit_filter.c
  *
- * $Id: main.c,v 1.5 2001/03/16 09:56:56 richi Exp $
+ * $Id: main.c,v 1.6 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -27,7 +27,8 @@
 
 #include "swapfile.h"
 #include "glmid.h"
-#include "gui.h"
+#include "glamecanvas.h"
+
 
 
 static void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
@@ -39,10 +40,11 @@ static void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
 
 static void gui_main()
 {
-	gui_network_new();
-
+	GtkWidget* commandwin;
 	// gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",
 	//		   GTK_SIGNAL_FUNC(gui_exit),NULL);
+  commandwin = glame_filtereditgui_new(NULL); 
+        gtk_widget_show(commandwin);
 
 	/* main loop */
 	gtk_main();
@@ -59,11 +61,11 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 			fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
-			if (swapfile_fsck(argv[1]) == -1) {
+/*			if (swapfile_fsck(argv[1]) == -1) {
 				perror("ERROR: Fsck failed");
 				exit(1);
 			}
-			fprintf(stderr, "WARNING: Fsck successful\n");
+	*/		fprintf(stderr, "WARNING: Fsck successful\n");
 			if (swapfile_open(argv[1], 0) == -1) {
 				perror("ERROR: Still cannot open swap");
 				exit(1);

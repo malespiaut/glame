@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.1 2001/05/07 00:45:36 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.2 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -26,46 +26,87 @@
 #include "glamecanvas.h"
 #include "canvasitem.h"
 
+/* FIXME remove these later on */
+guint nPopupTimeout;
+gboolean bMac;
+/* FIXME */
 
+/* yuck! */
+static double eventx,eventy;
+static GlameCanvas *glcanvas;
+
+
+
+/* callbacks */
+
+
+void glame_canvas_execute_cb(GlameCanvas* canv){}
+void glame_canvas_register_cb(GlameCanvas* canv){}
+void glame_canvas_save_as_cb(GlameCanvas* canv){}
+void glame_canvas_property_dialog_cb(GlameCanvas* canv){}
+void glame_canvas_zoom_in_cb(GlameCanvas* canv){}
+void glame_canvas_zoom_out_cb(GlameCanvas* canv){}
+void glame_canvas_view_all_cb(GlameCanvas* canv){}
+
+void window_close(GtkWidget *dummy, GtkWidget* window)
+{
+	gtk_object_destroy(GTK_OBJECT(window));
+}
+
+/* /callbacks */
+
+
+
+
+
+
+void
+add_filter_by_plugin_cb(GtkWidget*wid, plugin_t *plugin)
+{
+	GlameCanvasFilter* filter;
+	DPRINTF("foo\n");
+	filter = glame_canvas_add_filter_by_plugin(glcanvas, plugin);
+	glame_canvas_filter_move(filter,eventx, eventy);
+}
+
+/* static gboolean */
+/* button_on_item_event(GlameCanvas* canvas, GdkEvent* event, GnomeCanvasItem* item) */
+/* { */
+/* 	switch(event->button.button){ */
+/* 	case 1: */
+		
 
 static gboolean 
 root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 {
-	plugin_t *plug;
-	filter_t * filter;
-	filter_t* filter2;
-	filter_pipe_t *pipe;
-	GlameCanvasFilter* f;
-	int eventx, eventy;
+
+	GtkWidget *menu;
+	
 	GdkEventButton *event_button;
-	if(event->type == GDK_BUTTON_PRESS){
-		plug = plugin_get("one2n");
+	
+	switch(event->type){
+
+
+	case GDK_BUTTON_PRESS:
 		
-		filter = filter_instantiate(plug);
-		fprintf(stderr,"%s\n",filter_name(filter));
-		event_button = (GdkEventButton *) event;
-		//			gnome_canvas_c2w(canv,event->button.x,event->button.y,&event_x,&event_y);
-		eventx = event->button.x;
-		eventy = event->button.y;
+		/* check if on some item */
+		gnome_canvas_window_to_world(canvas,event->button.x,event->button.y,&eventx,&eventy);
+		glcanvas = GLAME_CANVAS(canvas);
 		
-		f = glame_canvas_filter_new(gnome_canvas_root(canvas),filter);
-		glame_canvas_filter_move(f,(double)eventx,(double)eventy);
-
-		filter2 = filter_instantiate(plug);
-		f = glame_canvas_filter_new(gnome_canvas_root(canvas),filter2);
-		glame_canvas_filter_move(f,(double)eventx+200, (double)eventy+100);
-		pipe = filterport_connect(filterportdb_get_port(filter_portdb(filter),PORTNAME_OUT),
-					  filterportdb_get_port(filter_portdb(filter2),PORTNAME_IN));
-		glame_canvas_pipe_new(gnome_canvas_root(canvas),pipe);
-
-
+		if(gnome_canvas_get_item_at(canvas,eventx, eventy)){
+			return FALSE;
+			/* hit item! */
+		}else{
+			menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
+			return TRUE;
+		}
+		break;
+	default:
+		break;
 	}
-		
-		
-
+	return FALSE;
 }
-
-
 
 
 
@@ -109,37 +150,67 @@ glame_filtereditgui_new(filter_t *net)
 	
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
-	/*
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),network_play,canvas);
+	
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),glame_canvas_execute_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Register","Registers actual filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),register_filternetwork_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Register","Registers actual filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),glame_canvas_register_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Save","Saves Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE_AS),canvas_save_as,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Save","Saves Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE_AS),glame_canvas_save_as_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Properties","Edit Filternetwork Properties","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_PROPERTIES),canvas_network_property_dialog_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Properties","Edit Filternetwork Properties","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_PROPERTIES),glame_canvas_property_dialog_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom in","Zooms in","foo",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),
-				//gnome_pixmap_new_from_file("plus.png"),
-				canvas_zoom_in_cb,canvas);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom out","Zooms out","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),canvas_zoom_out_cb,canvas);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),canvas_update_scroll_region_cb,canvas);
+				glame_canvas_zoom_in_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom out","Zooms out","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),glame_canvas_zoom_out_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),glame_canvas_view_all_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Close","Close","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),canvas_close,window);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Close","Close","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),window_close,window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Help","Help","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),gnome_help_goto,"info:glame#The_Filternetwork_Editor");
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "canvas::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_TOP, 0, 0, 0);
-	*/
+	
 	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));
 	
 	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
 	gtk_widget_show_all(window);
-	gtk_signal_connect_after(GTK_OBJECT(canvas),"event",GTK_SIGNAL_FUNC(root_event),canvas);
+	gtk_signal_connect(GTK_OBJECT(canvas),"event",GTK_SIGNAL_FUNC(root_event),canvas);
 	return window;
+}
+
+
+
+GtkWidget *
+glame_filtereditgui_new_cb(GtkObject* foo, filter_t* net)
+{
+	return glame_filtereditgui_new(net);
+}
+
+
+void
+glame_load_network(GtkWidget *foo, gpointer bla)
+{
+	GtkWidget *dialog;
+	filter_t *filter;
+	char filenamebuffer[256];
+	
+	dialog = glame_dialog_file_request("Load filternetwork",
+					   "editfilter:load", "Filename",
+					   NULL, filenamebuffer);
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
+	
+	filter = glame_load_instance(filenamebuffer);
+	if (filter) {
+		glame_filtereditgui_new(filter);
+	} else {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Error in loading network")));
+	} 
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.2 2001/05/07 21:36:15 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.3 2001/05/08 21:54:01 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -42,7 +42,7 @@
 static void
 glame_canvas_destroy (GtkObject *object)
 {
-	GTK_OBJECT_CLASS(gtk_type_class(GLAME_CANVAS_TYPE))->destroy(object);
+	gtk_object_destroy(object);
 }
 
 
@@ -100,6 +100,7 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 	filter_t * node;
 	filter_t * filter;
 	filter_port_t * port;
+	filter_pipe_t *pipe;
 	char * buffer;
 
 	if(!network){
@@ -126,6 +127,7 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 	
 	/* create pipes */
 	filter_foreach_node(network, node){
+		/* FIXME this doesn't work?
 		struct fconnection *c;
 		list_foreach(&node->connections, struct fconnection, list, c) {
 			filter_t *f;
@@ -140,6 +142,12 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 			}
 			glame_canvas_pipe_new(group,c->pipe);
 			
+		}
+		*/
+		filterportdb_foreach_port(filter_portdb(node),port){
+			filterport_foreach_pipe(port,pipe){
+				glame_canvas_pipe_new(group,pipe);
+			}
 		}
 	}
 	
@@ -197,6 +205,18 @@ glame_gui_get_icon_from_filter(filter_t *filter)
 }
 
 GlameCanvasFilter*
+glame_canvas_add_filter(GlameCanvas *canv, filter_t * filter)
+{
+	if(filter_add_node(canv->net,filter,plugin_name(filter->plugin)) == -1) {
+		DPRINTF("Error adding node!\n");
+		return NULL;
+	}
+	
+	return glame_canvas_filter_new(gnome_canvas_root(GNOME_CANVAS(canv)), filter);
+}
+
+
+GlameCanvasFilter*
 glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 {
 	filter_t *filter;
@@ -206,12 +226,5 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 		DPRINTF("Error in instantiate\n");
 		return NULL;
 	}
-	
-	
-	if(filter_add_node(canv->net,filter,plugin_name(plug)) == -1) {
-		DPRINTF("Error adding node!\n");
-		return -1;
-	}
-
-	return glame_canvas_filter_new(gnome_canvas_root(GNOME_CANVAS(canv)), filter);
+	return glame_canvas_add_filter(canv, filter);
 }
