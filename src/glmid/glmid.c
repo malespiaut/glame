@@ -23,6 +23,7 @@ static int plugins_register()
         plugin_get("midi_io");
         plugin_get("midi_debug");
 	plugin_get("rms");
+	plugin_get("arithmetic");
 	
 	/* then all the plugins in the (default) plugin path */
 	/* FIXME - by hand for now. */
@@ -33,6 +34,7 @@ static int plugins_register()
         plugin_get("nold");
         plugin_get("maggy");
         plugin_get("noisegate");
+	plugin_get("pipe");
 
 	return 0;
 }

@@ -87,7 +87,7 @@ extern int basic_midi_register()
 				FILTER_PORTTYPE_MIDI|FILTER_PORTTYPE_AUTOMATIC)
 	    || !filter_add_output(f, PORTNAME_OUT, "midi out",
 				FILTER_PORTTYPE_MIDI)
-	    || filter_add(f, "midi_mix", "mixes midi pipes"))
+	    || filter_add(f, "midi-mix", "mixes midi pipes"))
 		return -1;
 
 	return 0;

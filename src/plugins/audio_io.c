@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.9 2000/03/26 16:36:32 nold Exp $
+ * $Id: audio_io.c,v 1.10 2000/03/27 09:20:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -1131,26 +1131,26 @@ int audio_out_register()
 	audio_out = NULL;
 
 #if defined HAVE_OSS
-	if (!aio_generic_register_output("oss_audio_out", oss_audio_out_f))
+	if (!aio_generic_register_output("oss-audio-out", oss_audio_out_f))
 		audio_out = oss_audio_out_f;
 #endif
 #if defined HAVE_ALSA
-	if (!aio_generic_register_output("alsa_audio_out", alsa_audio_out_f))
+	if (!aio_generic_register_output("alsa-audio-out", alsa_audio_out_f))
 		audio_out = alsa_audio_out_f;
 #endif 
 #if defined HAVE_ESD
-	if (!aio_generic_register_output("esd_audio_out", esd_out_f)) 
+	if (!aio_generic_register_output("esd-audio-out", esd_out_f)) 
 		audio_out = esd_out_f;
 #endif
 #if defined HAVE_SGIAUDIO
-	if (!aio_generic_register_output("sgi_audio_out", sgi_audio_out_f)) 
+	if (!aio_generic_register_output("sgi-audio-out", sgi_audio_out_f)) 
 		audio_out = sgi_audio_out_f;
 #endif
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
 
-	return aio_generic_register_output("audio_out", audio_out);
+	return aio_generic_register_output("audio-out", audio_out);
 }
 
 PLUGIN_DESCRIPTION(audio_in, "audio input");
@@ -1168,7 +1168,7 @@ int audio_in_register()
 	/* TODO */
 #endif 
 #if defined HAVE_ESD
-	if (!aio_generic_register_input("esd_audio_in", esd_in_f))
+	if (!aio_generic_register_input("esd-audio-in", esd_in_f))
 		audio_in = esd_in_f;
 #endif
 #if defined HAVE_SGIAUDIO
@@ -1178,5 +1178,5 @@ int audio_in_register()
 	/* TODO */
 #endif
 
-	return aio_generic_register_input("audio_in", audio_in);
+	return aio_generic_register_input("audio-in", audio_in);
 }

@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.5 2000/03/20 09:51:53 richi Exp $
+ * $Id: echo.c,v 1.6 2000/03/27 09:20:10 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -121,11 +121,11 @@ static int echo_f(filter_node_t *n)
 
 		/* start "alignment" run */
 		for (; (cnt & 3)>0; cnt--) {
-		        SCALARPROD1_2(fs, ins, fbfact, infact);
+		        SCALARPROD_2D_1(fs, fs, ins, fbfact, infact);
 		}
 		/* do fast 4 products in one run loop */
 		for (; cnt>0; cnt-=4) {
-		        SCALARPROD4_2(fs, ins, fbfact, infact);
+		        SCALARPROD_2D_4(fs, fs, ins, fbfact, infact);
 		}
 
 		/* now we have to check which buffer has the underrun */

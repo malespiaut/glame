@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.4 2000/03/25 15:56:25 richi Exp $
+ * $Id: track_io.c,v 1.5 2000/03/27 09:20:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -154,7 +154,7 @@ int track_in_register()
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
 				  FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f, "track_in", "stream a track") == -1)
+	    || filter_add(f, "track-in", "stream a track") == -1)
 		return -1;
 	return 0;
 }
@@ -241,7 +241,7 @@ int track_out_register()
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_input(f, PORTNAME_IN, "input stream",
 				 FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f, "track_out", "store a stream into a track") == -1)
+	    || filter_add(f, "track-out", "store a stream into a track") == -1)
 		return -1;
 	return 0;
 }

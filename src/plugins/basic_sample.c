@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.6 2000/03/25 15:03:21 richi Exp $
+ * $Id: basic_sample.c,v 1.7 2000/03/27 09:20:10 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -21,27 +21,11 @@
  *
  * This file contains basic filters that operate using the sample
  * filter protocol. Contained are
- * - mix
+ * - mix, mix2
  * - volume-adjust
- * - phase-invert
  * - delay
  * - extend
  * - repeat
- * - add [broken? should add n streams instead?]
- * I like to see
- * - sub, mul
- * do you really want to see sub, when we have add ? [mag]
- * mul is just the same like volume-adjust! [mag]
- * I wanted add, sub, mul to operate on whole streams, not
- * just one stream an one constant! (see const filter in
- * waveform.c) - needs discussion [richi]
- * 
- * I propose arithmetic filters which additionally take
- * a const offset (to add) and a const factor (to multiply):
- * - add
- * - mul (with fft we get convolute for free)
- * - max, min, invert(1/x), clip (just brainstorming)
- * these would go into a seperate filter group.
  */
 
 #include <sys/time.h>
@@ -54,7 +38,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic_sample, "mix volume_adjust invert delay extend repeat add")
+PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat")
 
 
 
@@ -341,34 +325,33 @@ static int mix(filter_node_t *n, int drop)
 				break;
 			case 1:
 				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD1_1_d(s, p[j[0]].s, p[j[0]].factor);
+					SCALARPROD_1D_1(s, p[j[0]].s, p[j[0]].factor);
 				}
 				for (; icnt>0; icnt-=4) {
-					SCALARPROD4_1_d(s, p[j[0]].s, p[j[0]].factor);
+					SCALARPROD_1D_4(s, p[j[0]].s, p[j[0]].factor);
 				}
 				break;
      			case 2:
 				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD1_2_d(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
+					SCALARPROD_2D_1(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
 				}
 				for (; icnt>0; icnt-=4) {
-					SCALARPROD4_2_d(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
+					SCALARPROD_2D_4(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
 				}
 				break;
 			case 3:
 				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD1_3_d(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
+					SCALARPROD_3D_1(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
 				}
 				for (; icnt>0; icnt-=4) {
-					SCALARPROD4_3_d(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
+					SCALARPROD_3D_4(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
 				}
 				break;
 			default:
 				for (; icnt>0; icnt--) {
 					*s = 0.0;
 					for (i=0; i<jcnt; i++) {
-						*s += *(p[j[i]].s)*p[j[i]].factor;
-						p[j[i]].s++;
+						*s += *(p[j[i]].s++)*p[j[i]].factor;
 					}
 					s++;
 				}
@@ -481,7 +464,7 @@ static void mix_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 }
 
 PLUGIN_DESCRIPTION(mix, "mix streams")
-PLUGIN_PIXMAP(mix, "mix.xpm")
+PLUGIN_PIXMAP(mix, "mix1.png")
 int mix_register()
 {
 	filter_t *f;
@@ -514,7 +497,7 @@ int mix_register()
 }
 
 PLUGIN_DESCRIPTION(mix2, "mix streams")
-PLUGIN_PIXMAP(mix2, "mix.xpm")
+PLUGIN_PIXMAP(mix2, "mix2.png")
 int mix2_register()
 {
 	filter_t *f;
@@ -582,12 +565,12 @@ static int volume_adjust_f(filter_node_t *n)
 
 		/* alignment loop */
 		for (; (cnt & 3)>0; cnt--) {
-			SCALARPROD1_1(buf, scale);
+			SCALARPROD_1D_1(buf, buf, scale);
 		}
 
 		/* streamed loop */
 		for (; cnt>0; cnt-=4) {
-			SCALARPROD4_1(buf, scale);
+			SCALARPROD_1D_4(buf, buf, scale);
 		}
 
 		/* queue the modified buffer */
@@ -618,126 +601,6 @@ int volume_adjust_register()
 				  FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f, "volume-adjust", "scale samples") == -1)
 		return -1;
-	return 0;
-}
-
-
-
-
-
-/* This effect inverts the phase of a signal.  It can be used to correct
- * phase problems. */
-static int invert_f(filter_node_t *n)
-{
-	filter_pipe_t *in, *out;
-	filter_buffer_t *buf;
-	SAMPLE *s;
-	int cnt;
-
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
-		FILTER_ERROR_RETURN("no input or no output");
-
-	FILTER_AFTER_INIT;
-
-	while ((buf = sbuf_get(in))) {
-		FILTER_CHECK_STOP;
-		buf = sbuf_make_private(buf);
-		s = sbuf_buf(buf);
-		cnt = sbuf_size(buf);
-		for (; (cnt&3)>0; cnt--)
-			INVERT1(s);
-		for (; cnt>0; cnt-=4)
-			INVERT4(s);
-		sbuf_queue(out, buf);
-	}
-
-	sbuf_queue(out, buf);
-
-	FILTER_BEFORE_STOPCLEANUP;
-	FILTER_BEFORE_CLEANUP;
-
-	FILTER_RETURN;
-}
-
-PLUGIN_DESCRIPTION(invert, "invert a stream")
-PLUGIN_PIXMAP(invert, "invert.xpm")
-int invert_register()
-{
-	filter_t *f;
-
-	if (!(f = filter_alloc(invert_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input stream to invert",
-				  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "inverted output stream",
-				   FILTER_PORTTYPE_SAMPLE))
-	    || filter_add(f, "phase-invert",
-			  "Inverses the phase of the audio signal") == -1)
-		return -1;
-	return 0;
-}
-
-
-
-
-
-/* This filter can be used to correct for DC offsets */
-static int add_f(filter_node_t *n)
-{
-	filter_pipe_t *in, *out;
-	filter_buffer_t *buf;
-	filter_param_t *param;
-	SAMPLE *s,sum;
-	int cnt;
-
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
-		FILTER_ERROR_RETURN("no input or no output");
-
-	if ((param = filternode_get_param(n,"offset")))
-		sum = filterparam_val_float(param);
-	else 
-		sum=0.0;
-	
-	FILTER_AFTER_INIT;
-
-	while ((buf = sbuf_get(in))) {
-		FILTER_CHECK_STOP;
-		buf = sbuf_make_private(buf);
-		s = sbuf_buf(buf);
-		cnt = sbuf_size(buf);
-		for (; (cnt&3)>0; cnt--)
-			ADD1(s,sum);
-		for (; cnt>0; cnt-=4)
-			ADD4(s,sum);
-		sbuf_queue(out, buf);
-	}
-
-	sbuf_queue(out, buf);
-	
-	FILTER_BEFORE_STOPCLEANUP;
-	FILTER_BEFORE_CLEANUP;
-		
-	FILTER_RETURN;	
-}
-
-PLUGIN_DESCRIPTION(add, "add a constant to a stream")
-PLUGIN_PIXMAP(add, "add.xpm")
-int add_register()
-{
-	filter_t *f;
-
-	if (!(f = filter_alloc(add_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input stream",
-			    	  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "output stream with offset",
-			    	  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_param(f, "offset", "offset",
-				  FILTER_PARAMTYPE_FLOAT)))
-		return -1;
-	if (filter_add(f, "add",
-		       "Add an offset to every sample value") == -1)
-	        return -1;
 	return 0;
 }
 

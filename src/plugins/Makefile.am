@@ -4,7 +4,7 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@
 # builtin filters
 lib_LTLIBRARIES = libglamebuiltins.la
 
-libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
+libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
 	track_io.c audio_io.c file_io.c waveform.c \
 	basic_midi.c midi_io.c midi_debug.c rms.c
 libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
@@ -12,7 +12,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 # "real" plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	garrison.la nold.la maggy.la noisegate.la pan.la
+	garrison.la nold.la maggy.la noisegate.la pan.la pipe.la
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module
@@ -37,3 +37,6 @@ noisegate_la_LDFLAGS = -module
 
 pan_la_SOURCES = pan.c
 pan_la_LDFLAGS = -module
+
+pipe_la_SOURCES = pipe.c
+pipe_la_LDFLAGS = -module

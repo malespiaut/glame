@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.14 2000/03/27 09:04:22 mag Exp $
+ * $Id: file_io.c,v 1.15 2000/03/27 09:20:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -313,14 +313,14 @@ int read_file_register()
 	    || !filterport_add_param(p, "position", "position of the stream",
 				     FILTER_PARAMTYPE_FLOAT)
 	    || !(d = filter_add_param(f, "filename", "filename",
-				    FILTER_PARAMTYPE_STRING))
-	    || !filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME))
+				    FILTER_PARAMTYPE_STRING)))
 		return -1;
+	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
 	f->connect_out = read_file_connect_out;
 	f->fixup_param = read_file_fixup_param;
-	if (filter_add(f, "read_file", "Generic file read filter") == -1)
+	if (filter_add(f, "read-file", "Generic file read filter") == -1)
 		return -1;
 	return 0;
 }
@@ -337,13 +337,13 @@ int write_file_register()
 	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 	    || !(d = filter_add_param(f, "filename", "filename",
-				      FILTER_PARAMTYPE_STRING))
-	    || !filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME))
+				      FILTER_PARAMTYPE_STRING)))
 	  return -1;
+	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
 	f->fixup_param = write_file_fixup_param;
-	if (filter_add(f, "write_file", "Generic file write filter") == -1)
+	if (filter_add(f, "write-file", "Generic file write filter") == -1)
 		return -1;
 	return 0;
 }

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.13 2000/03/27 09:04:22 mag Exp $
+; $Id: glame.scm,v 1.14 2000/03/27 09:20:10 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -28,8 +28,9 @@
     (display "no help available yet.\n")))
 
 ; what output filter should we use?
-(define audio-out "audio_out")
-
+(define audio-out "audio-out")
+; what file reader should we use?
+(define read-file "read-file")
 
 ;
 ; clever scheme helpers
@@ -122,7 +123,7 @@
 (define file-to-track
   (lambda (file group track)
     (let* ((net (net-new))
-	   (rf (net-add-node net "read_file"))
+	   (rf (net-add-node net read-file))
 	   (i 1))
       (filternode_set_param rf "filename" file)
       (while-not-false
@@ -194,7 +195,7 @@
 (define testsave
   (lambda (iname oname)
     (let* ((net (net-new))
-           (rf (net-add-node net "read_file"))
+           (rf (net-add-node net read-file))
 	   (wf (net-add-node net "write_file")))
     (node-set-param rf "filename" iname)
     (node-set-param wf "filename" oname)
@@ -209,7 +210,7 @@
 (define testrms
   (lambda (fname)
     (let* ((net (net-new))
-           (rf (net-add-node net "read_file"))
+           (rf (net-add-node net read-file))
 	   (mix (net-add-node net "mix2"))
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
@@ -227,7 +228,7 @@
 (define play
   (lambda (fname)
     (let* ((net (net-new))
-	   (rf (net-add-node net "read_file"))
+	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
       (node-set-param rf "filename" fname)
       (while-not-false
@@ -244,7 +245,7 @@
 (define play-eff
   (lambda (fname effect . params)
     (let* ((net (net-new))
-	   (rf (net-add-node net "read_file"))
+	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
       (node-set-param rf "filename" fname)
       (while-not-false
@@ -259,6 +260,18 @@
 		 conn)))))
       (net-run net))))
 
+
+;
+; mp3 reader using the pipe-in filter and mpg123
+;
+
+(let* ((net (net-new))
+       (p (net-add-node net "pipe-in")))
+  (filternode_set_param p "cmd" "mpg123 -s ")
+  (filternetwork_add_output net p "out" "out" "output")
+  (filternetwork_add_param net p "tail" "filename" "filename")
+  (filternetwork_to_filter net "read-mp3" "mp3 reader")
+  (plugin_add "read-mp3" "mp3 reader" "default.png"))
 
 ;
 ; feedback echo2 macro filter
@@ -303,6 +316,7 @@
   (filternode_set_param net "mix" 0.7)
   (nodes-connect `(,one2n ,extend ,mix2) `(,one2n ,delay ,va ,mix2))
   (filternetwork_to_filter net "echo3" "echo as macro filter"))
+
 
 ;
 ; 'bouncing' macro filter, stereo needed
@@ -351,3 +365,4 @@
       (filternetwork_add_connection boun "left-out" ao "in")
       (filternetwork_add_connection boun "right-out" ao "in")
       (net-run net))))
+
