@@ -28,9 +28,9 @@ endif
 if HAVE_LIBMP3LAME
 file_mp3_out = file_mp3_out.la
 endif
-#if HAVE_LIBVORBISFILE
+if HAVE_VORBISFILE
 file_oggvorbis_out = file_oggvorbis_out.la
-#endif 
+endif 
 if HAVE_OSS
 audio_io_oss = audio_io_oss.la
 endif
@@ -84,9 +84,9 @@ file_mp3_out_la_SOURCES = file_mp3_out.c
 endif 
 file_mp3_out_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
-#if HAVE_LIBVORBISFILE
-file_vorbis_out_la_SOURCES = file_oggvorbis_out.c
-#endif 
+if HAVE_VORBISFILE
+file_oggvorbis_out_la_SOURCES = file_oggvorbis_out.c
+endif 
 file_oggvorbis_out_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
 if HAVE_OSS

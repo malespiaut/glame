@@ -204,22 +204,21 @@ static int write_oggvorbis_file_f(filter_t * n)
 	  FILTER_CHECK_STOP;
 	  wbpos = 0;
 	  /* expose the buffer to submit data */
-	    float **analysis_buffer =
-	      vorbis_analysis_buffer(&vd, vorbis_analysis_buffer_size );
-
+	  float **analysis_buffer =
+	    vorbis_analysis_buffer(&vd, vorbis_analysis_buffer_size);
 	  
 	    /* uninterleave samples to buffer */
 	    do {
 	      for (j = 0; j < channelCount; j++){
 		if (track[j].buf) {
-		  analysis_buffer[j][wbpos] = sbuf_buf(track[j].buf)[track[j].pos++]; /* FIXME ? */
+		  analysis_buffer[j][wbpos] = sbuf_buf(track[j].buf)[track[j].pos++];
 
 		  /* printf("pre eofs %i   eos %i  wbpos %i j %i\n",eofs,eos,wbpos,j); */
 /* 		  printf( "track[j].pos %i analysis_buffer[j][wbpos] %f  sbuf_buf(track[j].buf)[track[j].pos] %f\n\n", */
 /*                   track[j].pos, analysis_buffer[j][wbpos], sbuf_buf(track[j].buf)[track[j].pos]); */
 		  
 		  /* Check for end of buffer */
-		  if (track[j].pos == (sbuf_size(track[j].buf))-1) /* FIXME ? */
+		  if (track[j].pos == sbuf_size(track[j].buf))
 		    { 
 		      sbuf_unref(track[j].buf);
 		      if (!(track[j].buf = sbuf_get(track[j].p)))
@@ -238,7 +237,8 @@ static int write_oggvorbis_file_f(filter_t * n)
 	    vorbis_analysis_wrote(&vd,wbpos);
 	    /* printf ("frames %i \n",frames); */
 	    frames = wbpos;
-	    if (frames == 1) vorbis_analysis_wrote(&vd,0); /*end of samples, prepare marking end of of stream*/
+	    if (eofs == 0)
+		    vorbis_analysis_wrote(&vd,0); /*end of samples, prepare marking end of of stream*/
 	    /* get one block then analyse*/
 	    while(vorbis_analysis_blockout(&vd,&vb)==1){
 	      

@@ -459,6 +459,7 @@ AM_CONDITIONAL(HAVE_LIBMP3LAME, test x$mp3lame = xyes)
 
 
 dnl check for libvorbisfile
+have_vorbisfile=no
 AC_CHECK_HEADERS([vorbis/codec.h],
 [
   AC_CHECK_HEADERS([vorbis/vorbisfile.h],
@@ -482,6 +483,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
         AC_MSG_RESULT([3])
         AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 3, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
         AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
+	have_vorbisfile=yes
         GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm -lvorbisenc"
       ],
       [
@@ -501,6 +503,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
           AC_MSG_RESULT([4])
 	  AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 4, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
           AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
+	  have_vorbisfile=yes
           GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm -lvorbisenc"
 	],
 	[
@@ -512,6 +515,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
     LIBS="$acg_save_LIBS"
   ])
 ])
+AM_CONDITIONAL(HAVE_VORBISFILE, test x$have_vorbisfile = xyes)
 
 
 dnl
