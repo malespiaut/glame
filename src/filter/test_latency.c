@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.4 2000/01/27 14:28:53 richi Exp $
+ * $Id: test_latency.c,v 1.5 2000/02/03 18:21:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -51,23 +51,23 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!(net = filternetwork_new())) {
+	if (!(net = filternetwork_new(NULL))) {
 		fprintf(stderr, "error in filternetwork_new()\n");
 		return -1;
 	}
 
-	if (!(ping = filternode_add(net, "ping"))) {
-		fprintf(stderr, "error in filternode_add(ping)\n");
+	if (!(ping = filternetwork_add_node(net, "ping", NULL))) {
+		fprintf(stderr, "error in filternetwork_add_node(ping)\n");
 		return -1;
 	}
 	source = ping;
 
 	while (cnt) {
-		if (!(dest = filternode_add(net, "null"))) {
-			fprintf(stderr, "error in filternode_add(null)\n");
+		if (!(dest = filternetwork_add_node(net, "null", NULL))) {
+			fprintf(stderr, "error in filternetwork_add_node(null)\n");
 			return -1;
 		}
-		if (filternode_connect(source, "out", dest, "in") == -1) {
+		if (!filternetwork_add_connection(source, "out", dest, "in")) {
 			fprintf(stderr, "error in connecting\n");
 			return -1;
 		}
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 		cnt--;
 	}
 
-	if (filternode_connect(source, "out", ping, "in") == -1) {
+	if (!filternetwork_add_connection(source, "out", ping, "in")) {
 		fprintf(stderr, "error in connecting (final)\n");
 		return -1;
 	}

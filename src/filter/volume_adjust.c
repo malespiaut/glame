@@ -1,6 +1,6 @@
 /*
  * volume_adjust.c
- * $Id: volume_adjust.c,v 1.3 2000/01/27 10:30:30 richi Exp $
+ * $Id: volume_adjust.c,v 1.4 2000/02/03 18:21:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -56,7 +56,7 @@ int volume_adjust(filter_node_t *n)
 		 * same. so we need to lock the buffer (if there
 		 * are more references than our the buffer will
 		 * be copied and we dont notice, neither care) */
-		work = fbuf_lock(b);
+		work = fbuf_make_private(b);
 
 		/* ok, this is not clever - FIXME for clamping! */
 		buf = fbuf_buf(work);
@@ -65,19 +65,10 @@ int volume_adjust(filter_node_t *n)
 			buf++;
 		}
 
-		/* we are ready with processing, unlock the buffer
-		 * (we still hold a read-only reference!) */
-		fbuf_unlock(work);
-
 		/* we need to get a reference for our
 		 * destination and then queue the buffer
 		 * in the destinations pipe. */
-		fbuf_ref(work);
 		fbuf_queue(out, work);
-
-		/* now we drop our own reference of the
-		 * buffer as we are ready with it now. */
-		fbuf_unref(work);
 	}
 
 	/* forward the EOF mark */

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.9 2000/02/02 10:52:47 mag Exp $
+ * $Id: filter.c,v 1.10 2000/02/03 18:21:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,13 +30,107 @@
 static struct list_head filter_list;
 
 
-extern int filter_default_connect_out(filter_node_t *n, const char *port,
-				      filter_pipe_t *p);
-extern int filter_default_connect_in(filter_node_t *n, const char *port,
-				     filter_pipe_t *p);
-extern int filter_default_fixup(filter_node_t *n, filter_pipe_t *in);
+/* filter default methods */
+
+/* Default output connect method.
+ * Output pipe type is copied from corresponding input
+ * (or uninitialized).
+ */
+static int filter_default_connect_out(filter_node_t *n, const char *port,
+				      filter_pipe_t *p)
+{
+	filter_portdesc_t *out;
+	filter_pipe_t *in;
+
+	/* is there a port with the right name? */
+	if (!(out = hash_find_outputdesc(port, n->filter)))
+		return -1;
+
+	/* do we have a connection to this port already and are
+	 * we not a multiple connection port? */
+	if (!FILTER_PORT_IS_AUTOMATIC(out->type)
+	    && hash_find_output(port, n))
+		return -1;
+
+	/* fill pipe */
+	p->type = FILTER_PIPETYPE_UNINITIALIZED;
+
+	/* a source port has to provide pipe data info.
+	 * we copy from the first input port if any. */
+	if ((in = list_gethead_input(n))) {
+		p->type = in->type;
+		p->u = in->u;
+	}
+
+	return 0;
+}
+
+/* Default input connect method.
+ * We accept all input types.
+ */
+static int filter_default_connect_in(filter_node_t *n, const char *port,
+				     filter_pipe_t *p)
+{
+	filter_portdesc_t *in;
+
+	/* is there a port with the right name? */
+	if (!(in = hash_find_inputdesc(port, n->filter)))
+		return -1;
+
+	/* do we have a connection to this port already and are
+	 * we not a multiple connection port? */
+	if (!FILTER_PORT_IS_AUTOMATIC(in->type)
+	    && hash_find_input(port, n))
+		return -1;
+
+	return 0;
+}
+
+static int filter_default_fixup_param(filter_node_t *n, const char *name)
+{
+	/* Parameter change? In the default method
+	 * we know nothing about parameters, so we
+	 * cant do anything about it.
+	 * Forwarding is useless, too.
+	 */
+	return 0;
+}
+static int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
+{
+	filter_pipe_t *out;
+
+	/* Pipe format change is easy for us as we know
+	 * nothing about internal connections between
+	 * inputs and outputs.
+	 * So the rule of dumb is to update all output
+	 * pipe formats to the format of the input
+	 * pipe we just got. We also have to forward
+	 * the change to every output slot, of course.
+	 */
+	list_foreach_output(n, out) {
+		out->type = in->type;
+		out->u = in->u;
+		if (out->dest->filter->fixup_pipe(out->dest, out) == -1)
+			return -1;
+	}
+
+	return 0;
+}
+static int filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
+{
+	/* we dont know nothing about relationships between input
+	 * and output ports, so anything here would be senseless. */
+	return 0;
+}
+static int filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out)
+{
+	/* we dont know nothing about relationships between input
+	 * and output ports, so anything here would be senseless. */
+	return 0;
+}
 
 
+/* the API functions */
 
 filter_t *filter_alloc(const char *name, const char *description,
 		       int (*func)(filter_node_t *))
@@ -67,7 +161,10 @@ filter_t *filter_alloc(const char *name, const char *description,
 	/* fill in default methods */
 	f->connect_out = filter_default_connect_out;
 	f->connect_in = filter_default_connect_in;
-	f->fixup = filter_default_fixup;
+	f->fixup_param = filter_default_fixup_param;
+	f->fixup_pipe = filter_default_fixup_pipe;
+	f->fixup_break_in = filter_default_fixup_break_in;
+	f->fixup_break_out = filter_default_fixup_break_out;
 
 	return f;
 }
@@ -81,6 +178,23 @@ int filter_add(filter_t *filter)
 	list_add_filter(filter);
 
 	return 0;
+}
+
+
+filter_t *filter_next(filter_t *f)
+{
+	struct list_head *lh;
+
+	if (!f)
+		lh = &filter_list;
+	else
+		lh = &f->list;
+
+	lh = lh->next;
+	if (lh == &filter_list)
+		return NULL;
+
+	return list_entry(lh, filter_t, list);
 }
 
 int filter_add_input(filter_t *filter, const char *label,
@@ -212,19 +326,3 @@ int filter_init()
 	return 0;
 }
 
-
-filter_t *filter_next(filter_t *f)
-{
-	struct list_head *lh;
-
-	if (!f)
-		lh = &filter_list;
-	else
-		lh = &f->list;
-
-	lh = lh->next;
-	if (lh == &filter_list)
-		return NULL;
-
-	return list_entry(lh, filter_t, list);
-}

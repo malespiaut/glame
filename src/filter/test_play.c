@@ -1,6 +1,6 @@
 /*
  * test_play.c
- * $Id: test_play.c,v 1.2 2000/02/02 15:13:32 nold Exp $
+ * $Id: test_play.c,v 1.3 2000/02/03 18:21:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -59,27 +59,27 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!(net = filternetwork_new())) {
+	if (!(net = filternetwork_new(NULL))) {
 		fprintf(stderr, "error in filternetwork_new()\n");
 		return -1;
 	}
 
-	if (!(read_file = filternode_add(net, "read_file"))) {
-		fprintf(stderr, "error in filternode_add(read_file)\n");
+	if (!(read_file = filternetwork_add_node(net, "read_file", NULL))) {
+		fprintf(stderr, "error in filternetwork_add_node(read_file)\n");
 		return -1;
 	}
 
-	if (!(audio_out = filternode_add(net,"audio_out"))){
-		fprintf(stderr, "error in filternode_add(audio_out)\n");
+	if (!(audio_out = filternetwork_add_node(net,"audio_out", NULL))){
+		fprintf(stderr, "error in filternetwork_add_node(audio_out)\n");
 		return -1;
 	}
 
-	if (filternode_connect(read_file, "left", audio_out, "left") == -1) {
+	if (!filternetwork_add_connection(read_file, "left", audio_out, "left")) {
 		fprintf(stderr, "error in connecting\n");
 		return -1;
 	}
 
-	if (filternode_connect(read_file, "right", audio_out, "right") == -1) {
+	if (!filternetwork_add_connection(read_file, "right", audio_out, "right")) {
 		fprintf(stderr, "error in connecting\n");
 		return -1;
 	}

@@ -15,6 +15,7 @@ filter/
 	headerfile cleanup [richi]
 	do the "macro" filter stuff [richi]
 	dynamic load of filters, use dl_open [richi]
+	pending buffers need to be freed on error/terminate [richi]
 
 
 swapfile/

@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.2 2000/02/01 13:59:39 richi Exp $
+ * $Id: debug.c,v 1.3 2000/02/03 18:21:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -86,7 +86,7 @@ static int ping(filter_node_t *n)
 /* Ping is special. It creates a loop! So to prevent endless
  * fixups, we just return success for ping.
  */
-int ping_fixup(filter_node_t *n, filter_pipe_t *p)
+static int ping_fixup_pipe(filter_node_t *n, filter_pipe_t *p)
 {
 	return 0;
 }
@@ -103,7 +103,7 @@ int debug_register()
 	    || filter_add_output(f, "out", "output",
 				 FILTER_PORTTYPE_MISC) == -1)
 		return -1;
-	f->fixup = ping_fixup;
+	f->fixup_pipe = ping_fixup_pipe;
 	if (filter_add(f) == -1)
 		return -1;
 

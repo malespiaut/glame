@@ -256,14 +256,14 @@ operation. Both fbuf_alloc and fbuf_get will return with one reference of the
 buffer hold. To get additional references or to drop one reference use the
 following functions:
 
-	 int fbuf_ref(filter_buffer_t *fb);
+	 void fbuf_ref(filter_buffer_t *fb);
 
 	 fbuf_ref will get you one additional reference. A reference will
 	 protect the buffer from being modified and from being destroyed. Once
 	 the reference count drops to zero you may no longer access it or any
 	 of its contents. fbuf_ref does not copy the buffer.
 
-	 int fbuf_unref(filter_buffer_t *fb);
+	 void fbuf_unref(filter_buffer_t *fb);
 
 	 fbuf_unref will drop one reference. See above for more about
 	 references.
@@ -281,25 +281,20 @@ following functions which are actually very fast macros:
 	 assume that buffer access via fbuf_buf(fb)[pos] is fast.
 
 If you want to modify a buffer directly rather than reading from a recieved one
-and storing into a freshly allocated one you have to lock the buffer for
-writing. This additional requirement makes copy-on-demand and zero-copy
-possible. Use the following functions to lock/unlock a filter buffer:
+and storing into a freshly allocated one you have to make the buffer private.
+This additional requirement makes copy-on-demand and zero-copy possible. Use
+fbuf_make_private:
 
-	 filter_buffer_t *fbuf_lock(filter_buffer_t *fb);
+	 filter_buffer_t *fbuf_make_private(filter_buffer_t *fb);
 
-	 fbuf_lock will return a private copy of the provided buffer which
-	 you may modify. fbuf_lock will not copy the buffer if you are the
+	 fbuf_make_private will return a private copy of the provided buffer
+         which you may modify. fbuf_lock will not copy the buffer if you are the
 	 only user of the buffer, i.e. the reference count is one.
-
-	 int fbuf_unlock(filter_buffer_t *fb);
-
-	 fbuf_unlock changes the filter buffers state to shared, i.e. multiple
-	 readers may again come in.
 
 To forward a filter buffer you have to hold one reference for each output pipe
 you send the buffer to. Buffer sending is done using the following function:
 
-         int fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
+         void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
 
 	 fbuf_queue queues the specified filter buffer to the specified pipe.
 	 One reference gets eaten by this operation.
@@ -336,8 +331,9 @@ Valid but possibly ineffective just-forwarding:
 	 While valid this example illustrates ineffective use of references.
 	 As you dont need to touch the buffer after fbuf_queue() you dont need
 	 to get an additional reference and neither drop it again. Such use
-	 will cause a fbuf_lock in the destination filter to potentially copy
-	 the buffer while a perfectly valid zero-copy operation was possible.
+	 will cause a fbuf_make_private in the destination filter to potentially
+	 copy the buffer while a perfectly valid zero-copy operation was
+	 possible.
 
 Invalid modifying and forwarding of a buffer:
 
@@ -354,13 +350,9 @@ Invalid modifying and forwarding of a buffer:
 	 The correct solution is to do
 
 	 buf = fbuf_get(in);
-	 fbuf_lock(buf);
+	 fbuf_make_private(buf);
 	 fbuf_buf(buf)[0] = 1;
-	 fbuf_unlock(buf);
 	 fbuf_queue(out, buf);
-
-	 Note that you have to unlock a locked buffer before you can queue it,
-	 else the destination may see the buffer still modifying under it.
 
 
 

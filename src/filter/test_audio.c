@@ -1,6 +1,6 @@
 /*
  * test_sound.c
- * $Id: test_audio.c,v 1.2 2000/02/02 10:52:47 mag Exp $
+ * $Id: test_audio.c,v 1.3 2000/02/03 18:21:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -45,32 +45,32 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!(net = filternetwork_new())) {
+	if (!(net = filternetwork_new(NULL))) {
 		fprintf(stderr, "error in filternetwork_new()\n");
 		return -1;
 	}
 
-	if (!(sinus = filternode_add(net, "sinus"))) {
-		fprintf(stderr, "error in filternode_add(sinus)\n");
+	if (!(sinus = filternetwork_add_node(net, "sinus", NULL))) {
+		fprintf(stderr, "error in filternetwork_add_node(sinus)\n");
 		return -1;
 	}
 
-	if (!(sinus2 = filternode_add(net, "sinus"))) {
-		fprintf(stderr, "error in filternode_add(sinus)\n");
+	if (!(sinus2 = filternetwork_add_node(net, "sinus", NULL))) {
+		fprintf(stderr, "error in filternetwork_add_node(sinus)\n");
 		return -1;
 	}
 	
-	if (!(audio_out = filternode_add(net,"audio_out"))){
-		fprintf(stderr, "error in filternode_add(audio_out)\n");
+	if (!(audio_out = filternetwork_add_node(net,"audio_out", NULL))){
+		fprintf(stderr, "error in filternetwork_add_node(audio_out)\n");
 		return -1;
 	}
 
-	if (filternode_connect(sinus, "output", audio_out, "left") == -1) {
+	if (!filternetwork_add_connection(sinus, "output", audio_out, "left")) {
 		fprintf(stderr, "error in connecting\n");
 		return -1;
 	}
 
-	if (filternode_connect(sinus2, "output", audio_out, "right") == -1) {
+	if (!filternetwork_add_connection(sinus2, "output", audio_out, "right")) {
 		fprintf(stderr, "error in connecting\n");
 		return -1;
 	}

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.9 2000/02/02 11:26:45 richi Exp $
+ * $Id: filter.h,v 1.10 2000/02/03 18:21:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -21,6 +21,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
+ *
+ * For documentation on filters see doc/filter.txt
  */
 
 #include <pthread.h>
@@ -28,6 +30,7 @@
 #include "swapfile.h"
 #include "glame_hash.h"
 #include "list.h"
+#include "atomic.h"
 
 
 struct filter;
@@ -36,20 +39,23 @@ typedef struct filter filter_t;
 struct filter_node;
 typedef struct filter_node filter_node_t;
 
+struct filter_network;
+typedef struct filter_network filter_network_t;
+
 
 
 /* Parameter declaration. This is per filter_t.
  * OUTPUT may be or'ed with the type to make the parameter
  * and output one.
  */
-#define FILTER_PARAMTYPE_OUTPUT 1
-#define FILTER_PARAMTYPE_INT     2
-#define FILTER_PARAMTYPE_FLOAT   3
-#define FILTER_PARAMTYPE_SAMPLE  4
-#define FILTER_PARAMTYPE_FILE    5
-#define FILTER_PARAMTYPE_STRING  6
+#define FILTER_PARAMTYPE_OUTPUT  1
+#define FILTER_PARAMTYPE_INT     (1<<2)
+#define FILTER_PARAMTYPE_FLOAT   (2<<2)
+#define FILTER_PARAMTYPE_SAMPLE  (3<<2)
+#define FILTER_PARAMTYPE_FILE    (4<<2)
+#define FILTER_PARAMTYPE_STRING  (5<<2)
 #define FILTER_PARAM_IS_OUTPUT(type) ((type) & FILTER_PARAMTYPE_OUTPUT)
-#define FILTER_PARAMTYPE(type) ((type) & ~FILTER_PARAMTYPE_OUTPUT)
+#define FILTER_PARAMTYPE(type) ((type) & ~(FILTER_PARAMTYPE_OUTPUT))
 typedef struct {
 	struct list_head list;
 	struct hash_head hash;
@@ -83,10 +89,10 @@ typedef struct {
  * should contain any allowed pipe types.
  */
 #define FILTER_PORTTYPE_AUTOMATIC 1
-#define FILTER_PORTTYPE_SAMPLE    2
-#define FILTER_PORTTYPE_RMS       4
+#define FILTER_PORTTYPE_SAMPLE    4
+#define FILTER_PORTTYPE_RMS       8
 #define FILTER_PORTTYPE_MISC    128
-#define FILTER_PORTTYPE_ANY      -2
+#define FILTER_PORTTYPE_ANY      -4
 #define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
 #define FILTER_PORT_IS_COMPATIBLE(porttype, pipetype) (((porttype) & (pipetype)) == (pipetype))
 typedef struct {
@@ -136,24 +142,6 @@ typedef struct {
 
 
 
-/* A filter network contains a set of connected filter instances.
- * Output only and input only instances are special.
- */
-typedef struct {
-	struct list_head inputs;
-	struct list_head outputs;
-
-	int state;
-	int result;
-	pthread_mutex_t mx;
-} filter_network_t;
-
-#define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
-#define filternetwork_foreach_output(net, node) list_foreach(&(net)->outputs, filter_node_t, neto_list, node)
-
-
-
-
 /* Filter contains the abstract description of a filter and
  * contains a set of methods doing the actual work.
  */
@@ -165,48 +153,19 @@ struct filter {
 	const char *name;
 	const char *description;
 
-	/* The filter function. This is mandatory!
-	 * Just return -1 if you cant do anything
-	 * with the current setup. */
 	int (*f)(filter_node_t *);
 
-	/* Init params to default values, fill in the private
-	 * field. Called at filternode_add() time.
-	 * No default. Not required.
-	 */
 	void (*init)(filter_node_t *);
 
-	/* Buyers beware! You can do anything with the
-	 * following methods! But the semantics in case
-	 * of any default method is used is the following:
-	 * (1) connections are input[i] -> output[i]
-	 * (2) outputs with no input and inputs with no outputs
-	 *     are only allowed ON THE LAST PORTS
-	 * (3) one automatic input and one automatic output
-	 *     is allowed, BUT ONLY AS _LAST_ PORT
-	 * => mixing (2) and (3) is IMPOSSIBLE (at least with
-	 * the default connect & fixup methods
-	 */
-
-	/* These methods are called from filternode_connect()
-	 * with a freshly allocated filter pipe.
-	 * The methods have to fill their p->*_port.
-	 * The out method has to fill in the pipe type
-	 * and union, too - if available.
-	 * The out method is always called before the in one.
-	 * Just return -1 if you dont like the connection.
-	 */
 	int (*connect_out)(filter_node_t *source, const char *port,
 			   filter_pipe_t *p);
 	int (*connect_in)(filter_node_t *dest, const char *port,
 			  filter_pipe_t *p);
 
-	/* "Parameter or input changed" signal. If in is NULL, a
-	 * local parameter has changed, else the change was in
-	 * the pipe format of the input pipe in.
-	 * Just return -1 if you dont like anything.
-	 */
-	int (*fixup)(filter_node_t *n, filter_pipe_t *in);
+	int (*fixup_param)(filter_node_t *n, const char *name);
+	int (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
+	int (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
+	int (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
 
 	/* parameter specification */
 	int nr_params;
@@ -252,10 +211,13 @@ struct filter {
  * is associated with a filter network.
  */
 struct filter_node {
+        struct hash_head hash;
+        const char *name;
+
 	/* connectivity in the net */
 	filter_network_t *net;
+	struct list_head net_list;
 	struct list_head neti_list;
-	struct list_head neto_list;
 
 	/* Filter of which this filter_node is an instance,
 	 * together with a private pointer that can be filled
@@ -303,6 +265,27 @@ struct filter_node {
 
 
 
+
+/* A filter network is a "filter" which
+ * contains a set of connected filter instances.
+ */
+struct filter_network {
+        filter_node_t node;
+	struct list_head nodes;
+	struct list_head inputs;
+
+	int state;
+	int result;
+	pthread_mutex_t mx;
+};
+
+#define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
+#define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, net_list, node)
+
+
+
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -346,19 +329,27 @@ filter_t *filter_next(filter_t *f);
 /* Allocate a new filter network and initialize it.
  * Returns a filter network identifier or NULL on OOM.
  */
-filter_network_t *filternetwork_new();
+filter_network_t *filternetwork_new(const char *name);
+
+void filternetwork_delete(filter_network_t *net);
 
 /* Adds a new instance a filter to the filter network.
  * Returns a filter node identifier or NULL on error.
  */
-filter_node_t *filternode_add(filter_network_t *net, const char *filter);
+filter_node_t *filternetwork_add_node(filter_network_t *net,
+				      const char *filter, const char *name);
+
+void filternode_delete(filter_node_t *node);
 
 /* Connects the two ports source_port and dest_port of the
  * filter nodes source and dest.
  * Returns -1 if that is not possible.
  */
-int filternode_connect(filter_node_t *source, const char *source_port,
-		       filter_node_t *dest, const char *dest_port);
+filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *source_port,
+					    filter_node_t *dest, const char *dest_port);
+
+int filternetwork_break_connection(filter_pipe_t *p);
+
 
 /* Set the parameter with label label to the value pointed to by
  * val.
@@ -393,7 +384,7 @@ void filternetwork_terminate(filter_network_t *net);
  * Access is only through the fbuf_* functions and macros.
  */
 typedef struct {
-        int refcnt;
+        glame_atomic_t refcnt;
 	int size;
 	SAMPLE *buf;
 } filter_buffer_t;
@@ -408,7 +399,7 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p);
 
 /* queue (blocking!) the buffer to the output stream
  */
-int fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
+void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
 
 /* create a filter buffer with backing storage for size
  * samples (uninitialized!).
@@ -421,26 +412,18 @@ filter_buffer_t *fbuf_alloc(int size);
  * if the number of references drops to zero at any point,
  * the buffer may be freed without notice!
  */
-int fbuf_ref(filter_buffer_t *fb);
+void fbuf_ref(filter_buffer_t *fb);
 
 /* release one reference of the buffer.
  */
-int fbuf_unref(filter_buffer_t *fb);
+void fbuf_unref(filter_buffer_t *fb);
 
 
-/* lock the buffer for reading _and_ writing, i.e. try to
- * get exclusive access to it. if this does not work, a copy
- * of the buffer is generated (in this case the held reference
- * on fb is released!).
- * the exclusive locked buffer is returned (or NULL on any error)
+/* make the buffer private so you can read _and_ write.
+ * this tries to get exclusive access to the buffer either by
+ * copying it or by just doing nothing.
  */
-filter_buffer_t *fbuf_lock(filter_buffer_t *fb);
-
-/* unlock the buffer. this does not release any previous held
- * reference of the buffer! i.e. if you are completely ready
- * with the buffer you still need to do fbuf_unref one time.
- */
-int fbuf_unlock(filter_buffer_t *fb);
+filter_buffer_t *fbuf_make_private(filter_buffer_t *fb);
 
 
 #ifdef __cplusplus

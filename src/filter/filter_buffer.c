@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.6 2000/02/02 11:46:30 richi Exp $
+ * $Id: filter_buffer.c,v 1.7 2000/02/03 18:21:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,40 +29,29 @@
 #include <pthread.h>
 #include "filter.h"
 #include "util.h"
+#include "atomic.h"
 
 
 
-static pthread_mutex_t fb_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-int fbuf_ref(filter_buffer_t *fb)
+void fbuf_ref(filter_buffer_t *fb)
 {
 	if (!fb)
-		return 0;
+		return;
 
-	/* until we get an ATOMIC_INC this is necessary */
-	pthread_mutex_lock(&fb_mutex);
-	fb->refcnt++;
-	pthread_mutex_unlock(&fb_mutex);
-
-	return 0;
+	atomic_inc(&fb->refcnt);
 }
-int fbuf_unref(filter_buffer_t *fb)
+void fbuf_unref(filter_buffer_t *fb)
 {
 	if (!fb)
-		return 0;
+		return;
 
-	/* until we get an ATOMIC_INC this is necessary */
-	pthread_mutex_lock(&fb_mutex);
-	fb->refcnt--;
-	pthread_mutex_unlock(&fb_mutex);
+	atomic_dec(&fb->refcnt);
 
-	if (fb->refcnt == 0) {
+	if (ATOMIC_VAL(fb->refcnt) == 0) {
 	        free(fb->buf);
+		ATOMIC_RELEASE(fb->refcnt);
 		free(fb);
 	}
-
-	return 0;
 }
 
 static filter_buffer_t *fbuf_create(SAMPLE *buf, int size)
@@ -73,7 +62,7 @@ static filter_buffer_t *fbuf_create(SAMPLE *buf, int size)
 		return NULL;
 	fb->size = size;
 	fb->buf = buf;
-	fb->refcnt = 1;
+	ATOMIC_INIT(fb->refcnt, 1);
 
 	return fb;
 }
@@ -87,14 +76,14 @@ filter_buffer_t *fbuf_alloc(int size)
 	return fbuf_create(buf, size);
 }
 
-filter_buffer_t *fbuf_lock(filter_buffer_t *fb)
+filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 {
 	filter_buffer_t *fbcopy;
 
 	/* this is _not_ a race condition! (I believe)
 	 * if there are other possible lockers, there must
 	 * be references for them. */
-	if (fb->refcnt == 1)
+	if (ATOMIC_VAL(fb->refcnt) == 1)
 	        return fb;
 
 	if (!(fbcopy = fbuf_alloc(fb->size)))
@@ -105,13 +94,6 @@ filter_buffer_t *fbuf_lock(filter_buffer_t *fb)
 	fbuf_unref(fb);
 
 	return fbcopy;
-}
-
-int fbuf_unlock(filter_buffer_t *fb)
-{
-        /* nop - nothing special was done to fb at lock time */
-
-	return 0;
 }
 
 
@@ -141,13 +123,11 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 /* send one buffer (address) along the specified pipe.
  * as pipe-writes are atomic, this is rather simple
  */
-int fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
+void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 {
         void *buf[64]; /* weeeh - hack for write-throttling */
-	int res;
 
 	buf[0] = fbuf;
-	res = write(p->source_fd, buf, 64*sizeof(void *));
-
-	return res;
+	if (write(p->source_fd, buf, 64*sizeof(void *)) == -1)
+		fbuf_unref(fbuf);
 }

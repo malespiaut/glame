@@ -1,6 +1,6 @@
 /*
  * channel_io.c
- * $Id: channel_io.c,v 1.1 2000/01/31 10:04:04 richi Exp $
+ * $Id: channel_io.c,v 1.2 2000/02/03 18:21:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -40,7 +40,9 @@ static void do_file_in(fileid_t f, filter_pipe_t *out)
 		/* map the filecluster data */
 		mem = filecluster_mmap(fc);
 
-		/* alloc a new stream buffer and copy the data */
+		/* alloc a new stream buffer and copy the data
+		 * FIXME: split the buffer into parts not bigger
+		 *        than f.i. GLAME_BUFSIZE */
 		buf = fbuf_alloc(filecluster_size(fc)/sizeof(SAMPLE));
 		memcpy(fbuf_buf(buf), mem, filecluster_size(fc));
 
@@ -146,7 +148,7 @@ static int channel_in_f(filter_node_t *n)
 
 	return 0;
 }
-static int channel_in_fixup(filter_node_t *n, filter_pipe_t *p)
+static int channel_in_fixup_param(filter_node_t *n, filter_pipe_t *p)
 {
 	filter_param_t *chan, *group;
 	filter_pipe_t *out;
@@ -216,7 +218,7 @@ int channel_io_register()
 
 	if (!(f = filter_alloc("channel_in", "stream a channel", channel_in_f)))
 		return -1;
-	f->fixup = channel_in_fixup;
+	f->fixup_param = channel_in_fixup_param;
 	if (filter_add_param(f, "channel", "input channel",
 			     FILTER_PARAMTYPE_STRING) == -1
 	    || filter_add_param(f, "group", "input group",
