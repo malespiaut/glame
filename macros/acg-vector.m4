@@ -6,7 +6,7 @@ AC_DEFUN(ACG_CHECK_GCC_VECTOR_EXTENSION,
 [
 	AC_MSG_CHECKING([whether we support gcc SIMD extensions])
 	AC_TRY_LINK([
-		typedef float v4sf __attribute__((mode(V4SF)));
+		typedef float v4sf __attribute__((vector_size(16)));
 	],[
 		v4sf a, b, c;
 		a = b + c;
