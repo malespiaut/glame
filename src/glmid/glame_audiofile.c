@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.17 2001/12/16 21:26:10 nold Exp $
+ * $Id: glame_audiofile.c,v 1.18 2001/12/16 23:04:14 nold Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -76,6 +76,10 @@ int glame_get_filetype_by_name(char *name) {
 /* FIXME: Implement wav writer.
  */
 
+#define _AF_READ		0
+#define _AF_WRITE		1
+
+#define _AF_BUFFER_FRAMES	128
 struct _AFfilehandle {
 	FILE		*fp;	/* filp */
 	AFframecount	cnt;	/* Nr of frames */
@@ -83,15 +87,17 @@ struct _AFfilehandle {
 	int		ch;	/* Nr of channels in file */
 	int		sfmt;	/* Sample format */
 	int		width;	/* Sample width */
+	int		mode;	/* one of _AF_READ/_AF_WRITE */
 	int		err;	/* Most recent error code */	
 	union {
 		struct {
 			size_t	size;	/* Size in bytes of data region */
 			fpos_t	start;	/* Start of data region */
 			fpos_t	data;	/* Current pointer to data region */
-			int	block_align;
-			int	bps;
-			int	freq;
+			int	block_align;	/* Frame alignment */
+			int	bps;	/* Bytes per second */
+			int	freq;	/* Sample rate */
+			void	*buffer;
 		} wav;
 	} u;
 			
@@ -104,7 +110,7 @@ struct _AFfilesetup {
 	int	sfmt;	/* Sample format */
 	int	width;	/* Sample width */
 	int	rate;	/* Sample rate */
-	int	cmpr;	/* Compression type */
+	int	cmpr;	/* Compression type (not implemented) */
 };
 	
 #define RWW(fh) ((fh)->u.wav)
@@ -281,6 +287,89 @@ int wav_read_parse(AFfilehandle h)
 	return 0;
 }				
 
+static int wav_write_header(AFfilehandle h)
+{
+	gl_s32 tmp;
+	
+	if (fwrite("RIFF", 4, 1, h->fp) != 1)
+		goto err;
+	fgetpos(h->fp, &(RWW(h).start));
+	tmp = 0;
+	/* Don't know size yet, fixup later. */
+	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+		goto err;
+	if (fwrite("WAVEfmt ", 8, 1, h->fp) != 1)
+		goto err;
+	/* chunk size */
+	tmp = __gl_cpu_to_le32(16);
+	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+		goto err;
+	/* wav type (only PCM supported) */
+	tmp = __gl_cpu_to_le16(WAV_FMT_PCM);
+	if (fwrite(&tmp, 2, 1, h->fp) != 1)
+		goto err;
+	/* number of channels */
+	tmp = __gl_cpu_to_le16(h->ch);
+	if (fwrite(&tmp, 2, 1, h->fp) != 1)
+		goto err;
+	/* sample rate */
+	tmp = __gl_cpu_to_le32(RWW(h).freq);
+	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+		goto err;
+	/* avg. bytes per second */
+	tmp = __gl_cpu_to_le32(RWW(h).freq*RWW(h).block_align);
+	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+		goto err;
+	/* frame alignment */
+	tmp = __gl_cpu_to_le32(RWW(h).block_align);
+	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+		goto err;
+	/* sample width in bits */
+	tmp = __gl_cpu_to_le16(h->width);
+	if (fwrite(&tmp, 2, 1, h->fp) != 1)
+		goto err;
+	if (fwrite("data", 4, 1, h->fp) != 1)
+		goto err;
+	fgetpos(h->fp, &(RWW(h).data));
+	tmp = 0;
+	/* Don't know size yet, fixup later. */
+	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+		goto err;
+
+	return 0;
+err:
+	return -1;
+}	
+
+/* Fixup header information once the file size is known.  Basic philosophy
+ * here is: See how far we can get, and don't bother if something fails.
+ * The data is already written, and most readers can work on broken header
+ * info as well.
+ */
+static void wav_header_fixup(AFfilehandle h)
+{
+	fpos_t end;
+	gl_s32 size;
+	
+	end = ftell(h->fp);
+	if (end > 0x7ffffff) {
+		DPRINTF("Warning! File size >= 2GB. Exceeds wav limitation.\n");
+		return;
+	}
+	
+	/* data chunk */
+	if (!fsetpos(h->fp, &(RWW(h).data))) {
+		size = __gl_cpu_to_le32(end - RWW(h).data - 4);
+		fwrite(&size, 4, 1, h->fp);
+	}
+	
+	/* RIFF chunk */
+	if (!fsetpos(h->fp, &(RWW(h).start))) {
+		size = __gl_cpu_to_le32(end - RWW(h).start - 4);
+		fwrite(&size, 4, 1, h->fp);
+	}
+}
+	
 static int handle_ok(AFfilehandle h)
 {
 	return (h != AF_NULL_FILEHANDLE && h->fp != NULL);
@@ -297,9 +386,12 @@ AFfilehandle afOpenFile (const char *filename, const char *mode,
 
 	h->err = AF_ERR_NOT_IMPLEMENTED;
 	
-	if (strcmp(mode, "r") /* && strcmp(mode, "w") */) {
+	if (strcmp(mode, "r"))
+		h->mode = _AF_READ;
+	else if (strcmp(mode, "w"))
+		h->mode = _AF_WRITE;
+	else
 		goto err;
-	}
 
 	h->fp = fopen(filename, mode);
 	if (!h->fp) {
@@ -309,14 +401,35 @@ AFfilehandle afOpenFile (const char *filename, const char *mode,
 
 	/* Wave specific part starts here. Will need to clean up if we
 	 * choose to support more file types one day. */
-	RWW(h).data = 0;
-	h->ch = 0;
+	if (h->mode == _AF_READ) {
+		/* Prepare for file read */
+		RWW(h).data = 0;
+		h->ch = 0;
 
-	if (wav_read_parse(h))
-		goto err;
+		if (wav_read_parse(h))
+			goto err;
 
-	h->ffmt = AF_FILE_WAVE;
+		h->ffmt = AF_FILE_WAVE;
+	} else {
+		/* Prepare for file write */
+		if (!setup)
+			goto err;
 	
+		h->ffmt = setup->ffmt;
+		h->ch = setup->ch;
+		h->sfmt = setup->sfmt;
+		h->width = setup->width;
+		RWW(h).freq = setup->rate;
+		RWW(h).block_align = h->ch*h->width/8;
+
+		/* XXX: Beware! Assumes wav only. */
+		if (wav_write_header(h) == -1)
+			goto err;
+	}	
+	
+	if (!(RWW(h).buffer = malloc(_AF_BUFFER_FRAMES * RWW(h).block_align)))
+		goto err;
+		
 	DPRINTF("Using internal audiofile replacement.\n");
 	
 	return h;
@@ -333,6 +446,12 @@ int afCloseFile (AFfilehandle file)
 {
 	if (!handle_ok(file))
 		return 0;
+
+	if (file->mode == _AF_WRITE)
+		wav_header_fixup(file);
+	
+	if (RWW(file).buffer)
+		free(RWW(file).buffer);
 
 	if (file->fp)
 		fclose(file->fp);
@@ -479,14 +598,14 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 	}
 	
 	total = frameCount;
-	in = malloc(128*RWW(file).block_align);
+	in = (void *)RWW(file).buffer;
 	if (!in) {
 		DPRINTF("Out of memory.\n");
 		goto out;
 	}
 	
 	while (frameCount) {
-		frames = 128;
+		frames = _AF_BUFFER_FRAMES;
 		if (frameCount < frames)
 			frames = frameCount;
 		
@@ -509,21 +628,87 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 	
 out:
 	fgetpos(file->fp, &(RWW(file).data));
-	if (in)
-		free(in);
 
 	return total - frameCount;
 }
 
+static void from_float(float *in, void *out, int sfmt, int width, int len)
+{
+	switch (sfmt) {
+	case AF_SAMPFMT_UNSIGNED:
+		switch (width) {
+		case 8: {
+			gl_u8 *dst = (gl_u8 *)out;
+			while (len--)
+				*dst++ = SAMPLE2UCHAR(*in++);
+			}
+			break;
+		case 16: {
+			gl_u16 *dst = (gl_u16 *)out;
+			while (len--)
+				*dst++ = gl_cpu_to_le16(SAMPLE2USHORT(*in++));
+			 }
+			break;
+		}
+		break;
+	case AF_SAMPFMT_TWOSCOMP:
+		switch (width) {
+		case 8: {
+			gl_s8 *dst = (gl_s8 *)out;
+			while (len--)
+				*dst++ = SAMPLE2CHAR(*in++);
+			}
+			break;
+		case 16: {
+			gl_s16 *dst = (gl_s16 *)out;
+			while (len--)
+				*dst++ = gl_cpu_to_le16(SAMPLE2SHORT(*in++));
+			 }
+			break;
+		}
+		break;
+	case AF_SAMPFMT_FLOAT:
+		memcpy(out, in, len*sizeof(float));
+		break;
+	case AF_SAMPFMT_DOUBLE: {
+		double *dst = (double *)out;
+		while (len--)
+			*dst++ = *in++;
+		}	
+		break;
+	}
+}
+
 int afWriteFrames (AFfilehandle file, int track, const void *buffer, int frameCount)
 {
+	int frames, total, done;
+	
+	total = 0;
+
 	if (!handle_ok(file))
 		goto err;
 	
-	file->err = AF_ERR_NOT_IMPLEMENTED;
+	if (track != AF_DEFAULT_TRACK)
+		return -1;
 	
+	while (frameCount) {
+		frames = _AF_BUFFER_FRAMES;
+		if (frameCount < frames)
+			frames = frameCount;
+		
+		from_float((float *)buffer, RWW(file).buffer, file->sfmt,
+		           file->width, frames*file->ch);
+		done = fwrite(RWW(file).buffer, RWW(file).block_align,
+		              frames, file->fp);
+		frameCount -= done;
+		total += done;
+		
+		if (done < frames)
+			goto err;
+	}	
+
 err:
-	return -1;
+	return total;
 }
 
 
@@ -650,11 +835,15 @@ void afInitSampleFormat (AFfilesetup setup, int track, int sampleFormat,
 	
 	switch (sampleFormat) {
 	case AF_SAMPFMT_TWOSCOMP:
+		if (sampleWidth > 16)
+			DPRINTF("Not yet supported");
 		if (sampleWidth < 16)
 			DPRINTF("Warning. Selected format violates standard. "
 			        "Try using unsigned.\n");
 		break;
 	case AF_SAMPFMT_UNSIGNED:
+		if (sampleWidth > 16)
+			DPRINTF("Not yet supported");
 		if (sampleWidth > 8)
 			DPRINTF("Warning. Selected format violates standard. "
 			        "Try using twoscomp.\n");
