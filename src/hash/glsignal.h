@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.15 2004/10/23 13:09:27 richi Exp $
+ * $Id: glsignal.h,v 1.16 2004/12/26 20:57:06 richi Exp $
  *
  * Copyright (C) 2000, 2001 Richard Guenther
  *
@@ -161,28 +161,23 @@ void glsig_emit(glsig_emitter_t *e, long sig, ...);
  *   #define FIXUP_PIPE_ARGS(va, node, pipe) GLSIGH_GETARGS2(va, node, pipe)
  */
 
-#ifndef HAVE_GCC
-/* HACK! works only for passing pointers as signal data */
-#define typeof(foo) void *
-#endif
-
 #define GLSIGH_GETARGS1(va, arg1) do { \
-        arg1 = va_arg(va, typeof(arg1)); \
+        arg1 = va_arg(va, __typeof__(arg1)); \
 } while (0)
 #define GLSIGH_GETARGS2(va, arg1, arg2) do { \
-	arg1 = va_arg(va, typeof(arg1)); \
-	arg2 = va_arg(va, typeof(arg2)); \
+	arg1 = va_arg(va, __typeof__(arg1)); \
+	arg2 = va_arg(va, __typeof__(arg2)); \
 } while (0)
 #define GLSIGH_GETARGS3(va, arg1, arg2, arg3) do { \
-	arg1 = va_arg(va, typeof(arg1)); \
-	arg2 = va_arg(va, typeof(arg2)); \
-	arg3 = va_arg(va, typeof(arg3)); \
+	arg1 = va_arg(va, __typeof__(arg1)); \
+	arg2 = va_arg(va, __typeof__(arg2)); \
+	arg3 = va_arg(va, __typeof__(arg3)); \
 } while (0)
 #define GLSIGH_GETARGS4(va, arg1, arg2, arg3, arg4) do { \
-	arg1 = va_arg(va, typeof(arg1)); \
-	arg2 = va_arg(va, typeof(arg2)); \
-	arg3 = va_arg(va, typeof(arg3)); \
-	arg4 = va_arg(va, typeof(arg4)); \
+	arg1 = va_arg(va, __typeof__(arg1)); \
+	arg2 = va_arg(va, __typeof__(arg2)); \
+	arg3 = va_arg(va, __typeof__(arg3)); \
+	arg4 = va_arg(va, __typeof__(arg4)); \
 } while (0)
 
 
