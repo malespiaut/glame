@@ -3,6 +3,7 @@
 #endif
 
 #ifndef HAVE_AUDIOFILE
+#include <stdlib.h>
 #include "glame_audiofile.h"
 
 
@@ -21,15 +22,15 @@ int afCloseFile (AFfilehandle file)
 {
 }
 
-AFframecount afSeekFrame (AFfilehandle, int track, AFframecount frameoffset)
+AFframecount afSeekFrame (AFfilehandle file, int track, AFframecount frameoffset)
 {
 }
 
-int afReadFrames (AFfilehandle, int track, void *buffer, int frameCount)
+int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 {
 }
 
-int afWriteFrames (AFfilehandle, int track, const void *buffer, int frameCount)
+int afWriteFrames (AFfilehandle file, int track, const void *buffer, int frameCount)
 {
 }
 
@@ -38,11 +39,11 @@ AFframecount afGetFrameCount (AFfilehandle file, int track)
 {
 }
 
-int afGetFileFormat (AFfilehandle, int *version)
+int afGetFileFormat (AFfilehandle file, int *version)
 {
 }
 
-int afGetChannels (AFfilehandle, int track)
+int afGetChannels (AFfilehandle file, int track)
 {
 }
 
@@ -51,11 +52,11 @@ void afGetSampleFormat (AFfilehandle file, int track, int *sampfmt,
 {
 }
 
-float afGetVirtualFrameSize (AFfilehandle, int track, int expand3to4)
+float afGetVirtualFrameSize (AFfilehandle file, int track, int expand3to4)
 {
 }
 
-double afGetRate (AFfilehandle, int track)
+double afGetRate (AFfilehandle file, int track)
 {
 }
 
@@ -65,24 +66,24 @@ AFfilesetup afNewFileSetup (void)
 	return NULL;
 }
 
-void afFreeFileSetup (AFfilesetup)
+void afFreeFileSetup (AFfilesetup setup)
 {
 }
 
-void afInitFileFormat (AFfilesetup, int format)
+void afInitFileFormat (AFfilesetup setup, int format)
 {
 }
 
-void afInitChannels (AFfilesetup, int track, int nchannels)
+void afInitChannels (AFfilesetup setup, int track, int nchannels)
 {
 }
 
-void afInitSampleFormat (AFfilesetup, int track, int sampleFormat,
+void afInitSampleFormat (AFfilesetup setup, int track, int sampleFormat,
 		        int sampleWidth)
 {
 }
 
-void afInitRate (AFfilesetup, int track, double rate)
+void afInitRate (AFfilesetup setup, int track, double rate)
 {
 }
 
