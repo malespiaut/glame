@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.22 2001/04/26 13:27:24 mag Exp $
+@comment $Id: plugins.texi,v 1.23 2001/04/27 13:27:17 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -234,7 +234,7 @@ control input to other plugins. Imagine a sine wave generator hooked up
 to the position port of a panning filter... So far there is a 
 @code{sine} plugin for generating sine waves, a @code{const} plugin yielding
 a block of constant data, and a @code{rect} plugin creating a stream of
-steep pulses. @code{time} generates a single pulse, steepness of the edges
+steep pulses. @code{pulse} generates a single pulse, steepness of the edges
 can be adjusted. All plugins emit but a short
 chunk of data. For a continuous stream they have to be connected to a
 repeat node. 
@@ -287,10 +287,10 @@ Defaults to 1.0.
 Frequency of generated rectangular wave in Hz. Defaults to 440 Hz.
 @end table
 
-@subsubheading @file{time} ports
-@file{time} has no further specific ports.
+@subsubheading @file{pulse} ports
+@file{pluse} has no further specific ports.
 
-@subsubheading @file{time} parameters
+@subsubheading @file{pulse} parameters
 @table @code
 @item time_on (time)
 Time to start switching from neutral to on state. Ignored if zero.
