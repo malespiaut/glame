@@ -68,9 +68,21 @@ static inline void __file_name(char *s, int len, long name)
 static inline int __file_open(long name, int flags)
 {
 	char s[256];
+	int fd;
 
 	__file_name(s, 255, name);
-	return open(s, flags, 0666);
+	fd = open(s, flags, 0666);
+	if (fd == -1
+	    && errno == EMFILE
+	    && clusters_fdlru_maxcnt > 16) {
+		DPRINTF("WARNING! fixing clusters_fdlru_maxcnt (%i)\n", clusters_fdlru_maxcnt);
+		clusters_fdlru_maxcnt /= 2;
+		LOCKFDS;
+		__cluster_fdlru_shrink();
+		UNLOCKFDS;
+		return __file_open(name, flags); /* Try again. */
+	} else
+		return fd;
 }
 
 /* Other helpers, see bottom of file. */

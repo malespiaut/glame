@@ -801,14 +801,39 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
  * Internal helpers. No locking.
  */
 
+/* Shrink the fdlru to honour the max size set. Caller needs to hold FD lock. */
+static void __cluster_fdlru_shrink()
+{
+	while (clusters_fdlru_cnt > clusters_fdlru_maxcnt) {
+		struct swcluster *c2;
+		c2 = glame_list_gettail(&clusters_fdlru, struct swcluster, fdlru);
+		close(c2->fd);
+		c2->fd = -1;
+		glame_list_del_init(&c2->fdlru);
+		clusters_fdlru_cnt--;
+	}
+}
+
 /* Helpers for opening the clusters metadata or data file on disk. */
 static int __cluster_meta_open(long name, int flags)
 {
 	char s[256];
+	int fd;
 
 	snprintf(s, 255, "%s/%lX/%lX", swap.clusters_meta_base,
 		 name & 0xff, name >> 8);
-	return open(s, flags, 0666);
+	fd = open(s, flags, 0666);
+	if (fd == -1
+	    && errno == EMFILE
+	    && clusters_fdlru_maxcnt > 16) {
+		DPRINTF("WARNING! fixing clusters_fdlru_maxcnt (%i)\n", clusters_fdlru_maxcnt);
+		clusters_fdlru_maxcnt /= 2;
+		LOCKFDS;
+		__cluster_fdlru_shrink();
+		UNLOCKFDS;
+		return __cluster_meta_open(name, flags); /* Try again. */
+	} else
+		return fd;
 }
 
 /* Alloc and init a cluster struct. */
@@ -992,14 +1017,7 @@ static inline int __cluster_data_open(struct swcluster *c, int flags)
 		glame_list_add(&c->fdlru, &clusters_fdlru);
 		clusters_fdlru_cnt++;
 	}
-	while (clusters_fdlru_cnt > clusters_fdlru_maxcnt) {
-		struct swcluster *c2;
-		c2 = glame_list_gettail(&clusters_fdlru, struct swcluster, fdlru);
-		close(c2->fd);
-		c2->fd = -1;
-		glame_list_del_init(&c2->fdlru);
-		clusters_fdlru_cnt--;
-	}
+	__cluster_fdlru_shrink();
 	UNLOCKFDS;
 	if (c->fd == -1)
 		return __cluster_data_open(c, flags);
