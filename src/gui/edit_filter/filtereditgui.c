@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.71 2005/03/30 17:12:50 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.72 2005/03/30 20:07:19 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -963,9 +963,14 @@ static void glame_canvas_register_as_cb(gchar* name, GlameCanvas *glCanv)
 	filter_t *copy;
 	filter_t * bla = GLAME_CANVAS(glCanv)->net;
 	
-	newplug = plugin_add(name);
+	if (!(newplug = plugin_add(name))) {
+	  glame_error_dialog(_("Unable to register new plugin"), NULL);
+	  return;
+	}
+	plugin_set(newplug, PLUGIN_CATEGORY, "Custom");
+
 	copy = filter_creat(bla);
-	filter_register(copy,newplug);
+	filter_register(copy, newplug);
 }
 
 static void glame_canvas_register_cb(GtkWidget*ignore, FiltereditGui *window)
