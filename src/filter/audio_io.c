@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.3 2000/02/01 13:59:39 richi Exp $
+ * $Id: audio_io.c,v 1.4 2000/02/02 10:52:47 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -51,7 +51,8 @@ static int esd_out_f(filter_node_t *n)
 	char *host = NULL;
 	char *name = NULL;
         short int *wbuf;
-
+	int written,size,cnt=0;
+	
 	DPRINTF("esd_out_f started!\n");
 
 	format = ESD_BITS16 | ESD_STREAM | ESD_PLAY;
@@ -60,8 +61,10 @@ static int esd_out_f(filter_node_t *n)
 	 * else STEREO output. */
 	if (!(right = hash_find_input("right", n)))
 		format |= ESD_MONO;
-	else
+	else{
 		format |= ESD_STEREO;
+		printf("Stereo!\n");
+	}
 	if (!(left = hash_find_input("left", n)))
 		return -1;
 
@@ -83,9 +86,11 @@ static int esd_out_f(filter_node_t *n)
 
 	/* get the first buffers to start with something */
 	lbuf = fbuf_get(left);
-	DPRINTF("Got fbuf with size %d\n",fbuf_size(lbuf));
-	if (right)
+	DPRINTF("Got left fbuf with size %d\n",fbuf_size(lbuf));
+	if (right){
 		rbuf = fbuf_get(right);
+		printf("Got right fbuf with size %d\n",fbuf_size(rbuf));
+	}
 	else
 		rbuf = NULL;
 	lpos = rpos = 0;
@@ -109,9 +114,20 @@ static int esd_out_f(filter_node_t *n)
 					wbuf[wbpos++] = 0;
 			}
 		}
-
+		printf("wbpos %d\n",wbpos);
 		/* send audio data to esd */
-		write(esound_socket, wbuf, wbpos*sizeof(short));
+		written=0;
+		while(written<wbpos*sizeof(short int)){
+			size=write(esound_socket, wbuf+written, wbpos*sizeof(short int));
+			if(size<0){
+				DPRINTF("Error %d in write!\n",size);
+			}else {
+				written+=size;
+				if (size!=wbpos*sizeof(short int)) DPRINTF("%d bytes written!\n",size);
+			}
+			printf("written %d\n",written);
+		}
+			
 		wbpos = 0;
 
 		/* check, if we need new data */
@@ -119,14 +135,19 @@ static int esd_out_f(filter_node_t *n)
 			fbuf_unref(lbuf);
 			lbuf = fbuf_get(left);
 			lpos = 0;
+			cnt++;
+			printf("cnt=%d\n",cnt);
 		}
 		if (right && rpos >= fbuf_size(rbuf)) {
 			fbuf_unref(rbuf);
 			rbuf = fbuf_get(right);
 			rpos = 0;
+			cnt++;
+			printf("cnt=%d\n",cnt);
 		}
 	} while (lbuf || (right && rbuf));
 
+	printf("Received %d buffers.\n",cnt);
 	return 0;
 }
 #endif

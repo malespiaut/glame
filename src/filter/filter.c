@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.8 2000/02/01 09:35:55 mag Exp $
+ * $Id: filter.c,v 1.9 2000/02/02 10:52:47 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -158,6 +158,7 @@ extern int debug_register();
 extern int mix(filter_node_t *n);
 extern int volume_adjust(filter_node_t *n);
 extern int waveform_register();
+extern int read_file_register();
 
 int filter_init()
 {
@@ -185,6 +186,10 @@ int filter_init()
 	if (waveform_register() == -1)
 		return -1;
 
+	/* initialize read_file filter */
+	if (read_file_register() == -1)
+		return -1;
+	
 	if (!(f = filter_alloc("mix", "mix n channels", mix))
 	    || filter_add_input(f, "in", "input stream",
 				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) == -1

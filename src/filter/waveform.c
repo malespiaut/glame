@@ -49,11 +49,11 @@ static int sinus_f(filter_node_t *n)
 	if ((param = hash_find_param("amplitude",n)))
 		ampl = param->val.sample;
 	else
-		ampl = 1.0;
+		ampl = 0.5;
 	if ((param = hash_find_param("frequency",n)))
 		freq = param->val.sample;
 	else
-		freq = 400.0;
+		freq = 441.0;
 	if ((param = hash_find_param("duration",n)))
 		duration = param->val.i;
 	else
@@ -63,11 +63,12 @@ static int sinus_f(filter_node_t *n)
 	if ((buf = fbuf_alloc(size))==NULL) return -1;
 
 	cnt=(int)(44100.0/size*duration/1000.0);
+
 	DPRINTF("cnt=%d\n",cnt);
 	DPRINTF("Allocated Buffer with size %d! Generating Sinus!\n",size);
         for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
 
-	for(i=0;i<cnt;i++){
+	while(pthread_testcancel(),cnt--){
 		fbuf_ref(buf);
 		fbuf_queue(out,buf);
 	}
