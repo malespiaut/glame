@@ -1,4 +1,4 @@
-# $Id: glame.spec,v 1.2 2001/05/03 11:57:42 nold Exp $
+# $Id: glame.spec,v 1.3 2001/05/11 08:27:52 nold Exp $
 # RPM spec file for GLAME.
 #
 # This file is adapted from the Mandrake spec for their GLAME rpms.
@@ -7,7 +7,7 @@
 #
 %define name glame
 %define version   0.5.0CVS
-%define release   1
+%define release   2
 
 Summary:   A sound editor and synthesis tool
 Name:      %{name}
@@ -37,20 +37,16 @@ make
 
 %install
 %makeinstall
+# Don't be gross--let other info entries live. Postinst will fixup.
+rm -f "$RPM_BUILD_ROOT/%{_infodir}/dir"
 
 %post
 /sbin/ldconfig
-/sbin/install-info %{_infodir}/glame.info
-/sbin/install-info %{_infodir}/glame.info-1
-/sbin/install-info %{_infodir}/glame.info-2
-/sbin/install-info %{_infodir}/glame.info-3
+/sbin/install-info --info-dir=%{_infodir} %{_infodir}/glame.info
 
 %postun
 /sbin/ldconfig
-/sbin/install-info --delete %{_infodir}/glame.info
-/sbin/install-info --delete %{_infodir}/glame.info-1
-/sbin/install-info --delete %{_infodir}/glame.info-2
-/sbin/install-info --delete %{_infodir}/glame.info-3
+/sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/glame.info
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -65,6 +61,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_infodir}/*
 
 %changelog
+* Fri May 11 2001 Daniel Kobras <kobras@linux.de> 0.5.0CVS-2
+
+- Apply install-info fix thanks to Ronald Cole.
+- Do not package /usr/info/dir.
+
 * Thu May 03 2001 Daniel Kobras <kobras@linux.de> 0.5.0CVS-1
 
 - Merge with Mandrake's spec file for GLAME 0.4.0.
