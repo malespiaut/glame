@@ -8,22 +8,24 @@ EXTRA_DIST = glame.desktop
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
-bin_PROGRAMS = glame
+bin_PROGRAMS = glame timeline
 #bin_PROGRAMS = wavetest timeline
-noinst_LTLIBRARIES = 
+noinst_LTLIBRARIES = libglameguiutils.la
 Multimedia_DATA = glame.desktop
 endif
+
+libglameguiutils_la_SOURCES = glame_gui_utils.c glame_gui_utils.h
 
 glame_SOURCES = main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
 	waveeditgui.c waveeditgui.h
 glame_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la edit_filter/libeditfilter.la \
-        libgtkwaveform/libgtkwaveform.la \
+        libgtkwaveform/libgtkwaveform.la libglameguiutils.la\
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS) $(XML_LIBS)
 glame_LDFLAGS = -export-dynamic
 
-#timeline_SOURCES = timeline.c
-#timeline_LDADD = $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
+timeline_SOURCES = timeline.c
+timeline_LDADD = $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
 #wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
 #wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \

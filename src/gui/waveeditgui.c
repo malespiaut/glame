@@ -340,19 +340,21 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
 	}
 	/*   FIXME THIS gets mapped after the network has finished :( useless*/
-	stop_window = gnome_dialog_new("Network running...","Cancel?",NULL);
+	/*	stop_window = gnome_dialog_new("Network running...","Cancel?",NULL);
 	gtk_widget_show(stop_window);
 	gtk_widget_draw_default(stop_window);
 	gnome_dialog_button_connect(GNOME_DIALOG(stop_window),0,stop_network,net);
 	gnome_dialog_set_close(GNOME_DIALOG(stop_window),TRUE);
-
+	*/
+	
+	glame_gui_play_network(net,NULL);
 
 	/* Run the network and cleanup after it. */
-	filter_launch(net);
-	filter_start(net);
-	filter_wait(net);
-	filter_delete(net);
-	filter_delete(effect);
+/* 	filter_launch(net); */
+/* 	filter_start(net); */
+/* 	filter_wait(net); */
+/* 	filter_delete(net); */
+/* 	filter_delete(effect); */
 	gtk_editable_wave_buffer_queue_modified (editable, start, length);
 }
 

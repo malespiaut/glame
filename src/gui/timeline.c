@@ -25,15 +25,15 @@ struct timeline *timeline_new()
 	tl = g_malloc(sizeof(struct timeline));
 
 	/* table that holds both scrolling windows. */
-	tl->table = gtk_table_new(2, 2, FALSE);
+	tl->table = gtk_table_new(1, 2, TRUE);
 
-	/* Scrolling window that will held the main canvas. We share
+	/* Scrolling window that will hold the main canvas. We share
 	 * the vertical adjustment with the scrolled window below. */
 	tl->sw2 = gtk_scrolled_window_new(NULL, NULL);
 	va = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(tl->sw2));
 	ha = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(tl->sw2));
 
-	/* Scrolling window that will held the track labels canvas.
+	/* Scrolling window that will hold the track labels canvas.
 	 * This should be implicitly scrolled with the canvas. */
 	tl->sw1 = gtk_scrolled_window_new(NULL, va);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tl->sw1),
@@ -75,9 +75,9 @@ struct timeline *timeline_new()
 	/* Pack and show the whole stuff. */
 	gtk_container_add(GTK_CONTAINER(tl->sw1), tl->cv1);
 	gtk_container_add(GTK_CONTAINER(tl->sw2), tl->cv2);
-	gtk_table_attach(GTK_TABLE(tl->table), tl->sw1, 0, 1, 1, 2,
+	gtk_table_attach(GTK_TABLE(tl->table), tl->sw1, 0, 1, 0,1, 
 		GTK_EXPAND|GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach(GTK_TABLE(tl->table), tl->sw2, 1, 2, 1, 2,
+	gtk_table_attach(GTK_TABLE(tl->table), tl->sw2, 1, 2, 0,1, 
 		GTK_EXPAND|GTK_FILL, GTK_FILL, 0, 0);
 	gtk_table_attach(GTK_TABLE(tl->table), tl->ruler, 1, 2, 0, 1,
 		GTK_FILL, GTK_EXPAND|GTK_FILL, 0, 0);

@@ -77,7 +77,7 @@ static GnomeUIInfo file_menu_data[] = {
 	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
-        GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
 
