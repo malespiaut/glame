@@ -1,0 +1,351 @@
+@comment $Id: gpsm.texi,v 1.1 2001/04/27 13:01:31 richi Exp $
+
+@node GLAME Project Structure Management, Plugin Interface, Swapfile API, Top
+@chapter GLAME Project Structure Management
+
+The project structure management including track metadata and coupling
+with the swapfile/filter API.
+
+The structure is build out of gpsm-items which can be either groups
+(gpsm_grp_t) or swapfile files (gpsm_swfile_t). Think of the structure
+as of a tree with leafs all being swapfile files (or equivalent types,
+if they ever will appear) and the interior nodes being groups. Groups
+(generic: items) have horizontal (samples) and vertical (tracks) extend,
+items have horizontal (samples) and vertical (track) positions.
+
+Usage of the gpsm API is by the various GUI widgets that handle the
+swapfile and the filters such as the swapfile gui and the timeline
+gui. Also use by the scheme scripts is the preferred way to work on the
+swapfile.  Consistent updating of all interfaces can be realized by
+registering appropriate signal handlers to the gpsm-items
+emitter. Signals are sent out by all gpsm API functions and have to be
+sent out manually by everyone operating on the swapfile/gpsm-items _not_
+using the gpsm API functions.
+
+
+@menu
+* Generic operations on items::
+* The group item::
+* The swfile item::
+* GPSM signals and their semantics::
+@end menu
+
+
+@node Generic operations on items, The group item, , GLAME Project Structure Management
+@section Generic operations on items
+
+Every item in the project tree has information of its parent, a signal
+emitter where you can attach handlers to, a label and last but not least
+a 2D position and a 2D size. Those elements can be accessed using the
+following functions:
+
+@tindex gpsm_item_t
+@deftypefun {gpsm_item_t *} gpsm_item_parent (gpsm_item_t *@var{item})
+Returns the parent item of the provided item or NULL, if the item is
+the root of a gpsm tree.
+@end deftypefun
+
+@tindex gpsm_item_t
+@tindex glsig_emitter_t
+@deftypefun {glsig_emitter_t *} gpsm_item_emitter (gpsm_item_t *@var{item})
+Returns the signal emitter of the provided item.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun {const char *} gpsm_item_label (gpsm_item_t *@var{item})
+Returns the label of the provided item. Note that the result is strictly
+read-only.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun {long} gpsm_item_hposition (gpsm_item_t *@var{item})
+@deftypefunx {long} gpsm_item_vposition (gpsm_item_t *@var{item})
+@deftypefunx {long} gpsm_item_hsize (gpsm_item_t *@var{item})
+@deftypefunx {long} gpsm_item_vsize (gpsm_item_t *@var{item})
+These functions return the actual position (horizontal or vertical) or
+the actual size (horizontal or vertical) of the provided item. Both
+horizontal position and size are measured in samples. Both vertical
+position and size are measured in tracks. Positions and sizes are
+positive or zero.
+@end deftypefun
+
+
+Common operations you can carry out on an items are item destruction,
+insertion and removal, setting of the label and flattening.
+
+@tindex gpsm_item_t
+@deftypefun void gpsm_item_destroy (gpsm_item_t *@var{item})
+Destroys the provided gpsm item. The item is first removed from its
+group, if necessary and then destructed in child-first order. Appropriate
+signals are send out for this operation, namely @code{GPSM_SIG_ITEM_REMOVE}
+(and the @code{GPSM_SIG_GRP_REMOVEITEM} signal to the items group) if
+removal is required and @code{GPSM_SIG_ITEM_DESTROY}.
+@end deftypefun
+
+@tindex gpsm_item_t
+@tindex gpsm_grp_t
+@deftypefun int gpsm_grp_insert (gpsm_grp_t *@var{group}, gpsm_item_t *@var{item}, long @var{hposition}, long @var{vposition})
+Inserts the specified gpsm-item into the group at the specified
+position. Random (non-overlapping) h-/v-positioning is performed if you
+pass -1 to h-/v-position.  May fail, as overlapping items are not
+allowed. Returns 0 on success and -1 on error. Appropriate signals are
+send out for this operation, namely @code{GPSM_SIG_GRP_NEWITEM} to the
+group.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun void gpsm_item_remove (gpsm_item_t *@var{item})
+Removes the specified gpsm-item from its current group. The items
+position will be (0,0) after this operation. If the item was not member
+of a group this is a NOP. Appropriate signals are send out for this
+operation, namely @code{GPSM_SIG_ITEM_REMOVE} and the
+@code{GPSM_SIG_GRP_REMOVEITEM} signal to the items group.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun void gpsm_item_set_label (gpsm_item_t *@var{item}, const char *@var{label})
+Updates the label of the specified gpsm-item. Note that this will cause
+a @code{GPSM_SIG_ITEM_CHANGED} signal to be send out.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun void gpsm_flatten (gpsm_item_t *@var{item})
+Flattens a gpsm item, that is, out of a possible deep tree of
+horizontally and vertically spreaded swfiles make a set of vertically
+aligned (read: starting at position zero and ending at the maximum
+position) swfiles.  Returns a new group with new swfiles, one for each
+vertical track.  The data is COWed from the original tree. In the
+special case of providing a swfile as item a new group with a COW copy
+of this item is returned (without paying attention to hposition of the
+item).  On failure NULL is returned.  Note that this feature greatly
+simplifies operations such as play and export (i.e. where you only want
+to _read_ from the files).
+@end deftypefun
+
+
+
+@node The group item, The swfile item, Generic operations on items, GLAME Project Structure Management
+@section The group item
+
+Group items form the back of the gpsm tree, they contain an arbitrary number
+of items positioned relative to their parent. You can access a groups items
+via the following generic iterators:
+
+@tindex gpsm_grp_t
+@tindex gpsm_item_t
+@deftypefn Iterator {} gpsm_grp_foreach_item (gpsm_grp_t *@var{group}, gpsm_item_t *@var{item}) @{ @}
+You can iterate through all items contained in the specified @var{group}
+using the iterator (which acts like a for statement with the second
+parameter as running variable). Note that you may not delete instances
+in this loop!
+@end deftypefn
+
+@tindex gpsm_grp_t
+@tindex gpsm_item_t
+@deftypefn Iterator {} gpsm_grp_safe_foreach_item (gpsm_grp_t *@var{group}, void *@var{dummy}, gpsm_item_t *@var{item}) @{ @}
+You can iterate through all items contained in the specified @var{group}
+using the iterator (which acts like a for statement with the second
+parameter as running variable). You may delete the actual @var{item} within
+this iterator, but you have to specify another @var{dummy} pointer to use for
+this to work.
+@end deftypefn
+
+
+There are a few operations specialized to work on group items only, namely
+group creation and tree searching.
+
+@tindex gpsm_grp_t
+@deftypefun {gpsm_grp_t *} gpsm_newgrp (const char *@var{label})
+Creates a new empty gpsm group with the specified @var{label}. You have
+to insert it into a gpsm group yourself. Returns a gpsm group or NULL on
+error.
+@end deftypefun
+
+@tindex gpsm_grp_t
+@tindex gpsm_item_t
+@deftypefun {gpsm_grp_t *} gpsm_find_grp_label (gpsm_grp_t *@var{root}, gpsm_item_t *@var{start}, const char *@var{label})
+Find a gpsm-grp by label in the subtree specified by root. The search is
+started at the item start (or at the root, if you specify NULL). You can
+find all occurences by specifying the previous result as start. Returns
+a gpsm-grp, if found or NULL, if not.
+@end deftypefun
+
+@tindex gpsm_grp_t
+@tindex gpsm_item_t
+@tindex gpsm_swfile_t
+@deftypefun {gpsm_swfile_t *} gpsm_find_swfile_label (gpsm_grp_t *@var{root}, gpsm_item_t *@var{start}, const char *@var{label})
+Find a gpsm-swfile by label in the subtree specified by root. The search
+is started at the item start (or at the root, if you specify NULL). You
+can find all occurences by specifying the previous result as
+start. Returns a gpsm-swfile, if found or NULL, if not.
+@end deftypefun
+
+@tindex gpsm_grp_t
+@tindex gpsm_item_t
+@tindex gpsm_swfile_t
+@deftypefun {gpsm_swfile_t *} gpsm_find_swfile_filename (gpsm_grp_t *@var{root}, gpsm_item_t *@var{start}, long @var{filename})
+Find a gpsm-swfile by filename in the subtree specified by root. The
+search is started at the item start (or at the root, if you specify
+NULL). You can find all occurences by specifying the previous result as
+start. Returns a gpsm-swfile, if found or NULL, if not. */
+@end deftypefun
+
+@tindex gpsm_grp_t
+@tindex gpsm_item_t
+@tindex gpsm_swfile_t
+@deftypefun {gpsm_swfile_t *} gpsm_find_swfile_vposition (gpsm_grp_t *@var{root}, gpsm_item_t *@var{start}, long @var{vposition})
+Find a gpsm-swfile by vposition in the subtree specified by root. The
+search is started at the item start (or at the root, if you specify
+NULL). You can find all occurences by specifying the previous result as
+start. Returns a gpsm-swfile, if found or NULL, if not.
+@end deftypefun
+
+
+@node The swfile item, GPSM signals and their semantics, The group item, GLAME Project Structure Management
+@section The swfile item
+
+The swfile items are the leafs of the gpsm tree, they are the connection
+between the backing store and the different views. Swfiles provide a
+swapfile filename, a samplerate and a position which can be accessed
+using the following functions:
+
+@tindex gpsm_swfile_t
+@deftypefun long gpsm_swfile_filename (gpsm_swfile_t *@var{swfile})
+Returns the swapfile filename of the gpsm swfile item.
+@end deftypefun
+
+@tindex gpsm_swfile_t
+@deftypefun int gpsm_swfile_samplerate (gpsm_swfile_t *@var{swfile})
+Returns the samplerate of the gpsm swfile item.
+@end deftypefun
+
+@tindex gpsm_swfile_t
+@deftypefun float gpsm_swfile_position (gpsm_swfile_t *@var{swfile})
+Returns the stream position of the gpsm swfile item.
+@end deftypefun
+
+
+There exist a quite large number of specialized operations on swfile items,
+including file creation, copying and linking, setting of the data and
+notifying gpsm and its users about changes to the swapfile file data.
+
+@tindex gpsm_swfile_t
+@deftypefun {gpsm_swfile_t *} gpsm_newswfile (const char *@var{label})
+Creates a new spare swapfile to operate with. You have to insert it into
+a gpsm group yourself. Returns a gpsm-swfile or NULL on error.
+@end deftypefun
+
+@tindex gpsm_swfile_t
+@deftypefun {gpsm_swfile_t *} gpsm_swfile_cow (gpsm_swfile_t *@var{swfile})
+Creates a new swapfile with contents from the swapfile specified by the
+gpsm-swfile. Returns a gpsm-swfile or NULL on error.
+@end deftypefun
+
+@tindex gpsm_swfile_t
+@deftypefun {gpsm_swfile_t *} gpsm_swfile_link (gpsm_swfile_t *@var{swfile})
+Creates a new gpsm-swfile with the swapfile of the specified gpsm-swfile
+as backing store. Returns a gpsm-swfile or NULL on error.
+@end deftypefun
+
+@tindex gpsm_swfile_t
+@deftypefun void gpsm_swfile_set (gpsm_swfile_t *@var{swfile}, int @var{samplerate}, float @var{position})
+@deftypefunx void gpsm_swfile_set_samplerate (gpsm_swfile_t *@var{swfile}, int @var{samplerate})
+@deftypefunx void gpsm_swfile_set_position (gpsm_swfile_t *@var{swfile}, float @var{position})
+Updates the samplerate and/or position of the specified
+gpsm-swfile. Note that this information is per gpsm-swfile, not per
+swapfile! Note that this will cause a @code{GPSM_SIG_ITEM_CHANGED}
+signal to be send out.
+@end deftypefun
+
+@deftypefun void gpsm_notify_swapfile_change (long @var{filename}, long @var{pos}, long @var{size})
+@deftypefunx void gpsm_notify_swapfile_cut (long @var{filename}, long @var{pos}, long @var{size})
+@deftypefunx void gpsm_notify_swapfile_insert (long @var{filename}, long @var{pos}, long @var{size})
+@strong{After} you've done an operation on a swapfile such as modifying
+or cutting/inserting via @code{sw_sendfile()} you have to notify the
+GPSM about this change. The swfiles sizes will be updated and
+appropriate signals will be send out.  Note that it is generally better
+to make changes to a swapfile through gpsm functions (which dont exist
+at the moment...).
+@end deftypefun
+
+@deftypefun void gpsm_invalidate_swapfile (long @var{filename})
+If you have done changes to a swapfile which you cannot (or would not
+like to) specify explicitly you can tell gpsm and its users to start
+from scratch with this file. Note that this is a costly operation and it
+is generally better to use the finer grained notify functions above.
+@end deftypefun
+
+
+
+@node GPSM signals and their semantics, , The swfile item, GLAME Project Structure Management
+@section GPSM signals and their semantics
+
+There are a vast number of signals send out by the gpsm subsystem which
+are described syntactically and semantically here. Signal names are
+constructed with the prefix @code{GPSM_SIG} the infix denoting the type
+of object and the type of the first argument it is sent to such as
+@code{ITEM}, @code{SWFILE} and @code{GRP} and a suffix denoting the
+semantics. A list of available signals follows.
+
+The first group is the signals sent to all type of items (thus the
+@code{ITEM} infix).
+
+@table @strong
+@item GPSM_SIG_ITEM_CHANGED
+@code{GPSM_SIG_ITEM_CHANGED} has one parameter, the gpsm-item.  The
+signal will be sent out @strong{after} a change to any of the items data
+elements.  Note that @code{GPSM_SIG_ITEM_CHANGED} delivery is not
+suppressed, if the change has a semantically more specific signal like
+one of the @code{GPSM_SIG_GRP_*} or @code{GPSM_SIG_SWFILE_*}
+signals. Also a @code{GPSM_SIG_ITEM_CHANGED} signal is sent out on item
+re-position.
+
+@item GPSM_SIG_ITEM_DESTROY
+@code{GPSM_SIG_ITEM_DESTROY} has one parameter, the gpsm-item. The
+signal will be sent out @strong{before} item destruction. Note that
+items attached to a group will generally recieve a
+@code{GPSM_SIG_GRP_REMOVEITEM} signal before destruction, i.e.
+@code{gpsm_item_destroy()} will remove them first, then destruct.
+
+@item GPSM_SIG_ITEM_REMOVE
+@code{GPSM_SIG_ITEM_REMOVE} has one parameter, the gpsm-item. The signal
+will be sent out @strong{before} item removal from its group.  The
+@code{GPSM_SIG_GRP_REMOVEITEM} signal will be send out to the group
+after this signal.
+
+@end table
+
+The second group is the signals sent to groups only (thus the @code{GRP}
+infix).
+Both @code{GPSM_SIG_GRP_NEWITEM} and @code{GPSM_SIG_GRP_REMOVEITEM} have
+two parameters, the gpsm-grp as the first and the gpsm-item to be
+inserted/removed as second one. The @code{GPSM_SIG_GRP_REMOVEITEM}
+signal is sent out before item removal and after the item recieved the
+@code{GPSM_SIG_ITEM_REMOVE} signal, the @code{NEWITEM} signal after item
+addition.
+
+@strong{NOTE}: If the actual item is a group it is certainly possible
+for it to contain children!
+
+@strong{NOTE2}: You may want to attach/remove signal handlers to the
+item (and the possible childrens of a group)
+
+
+@table @strong
+@item GPSM_SIG_GRP_NEWITEM
+@item GPSM_SIG_GRP_REMOVEITEM
+@end table
+
+The third and last group is the signals sent out to swfiles only (thus
+the @code{SWFILE} infix).
+The @code{GPSM_SIG_SWFILE_*} have three parameters, the first is the
+gpsm-swfile itself, the second is a long position, the third a long size
+specifying position and size of the inserted / cutted / changed data in
+samples. This signal is sent _after_ the actual operation was carried
+out on the swapfile.
+
+@table @strong
+@item GPSM_SIG_SWFILE_INSERT
+@item GPSM_SIG_SWFILE_CUT
+@item GPSM_SIG_SWFILE_CHANGED
+@end table
