@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.33 2001/11/14 23:48:57 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.34 2001/11/16 12:20:31 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -545,7 +545,6 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	
 	y = 110.0 + yOffset;
 	
-	DPRINTF("foo\n");
 	group = GNOME_CANVAS_GROUP(CANVAS_ITEM_ROOT(filter));
 	group = GNOME_CANVAS_GROUP(gnome_canvas_item_new(group,
 				      gnome_canvas_group_get_type(),
@@ -650,7 +649,6 @@ void
 remove_handlers(GtkWidget* foo, GList* handlers)
 {
 	GList* iter = g_list_first(handlers);
-	DPRINTF("foo\n");
 	while(iter){
 		net_unlink_params((void*)iter->data);
 		iter = g_list_next(iter);

@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.10 2001/11/14 10:20:48 richi Exp $
+ * $Id: network_utils.c,v 1.11 2001/11/16 12:20:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -143,7 +143,6 @@ int net_apply_effect(filter_t *net, filter_t *effect)
 				filter_delete(e);
 				return -1;
 			}
-			DPRINTF("connected effect to %s::%s\n", filter_name(f), filterport_label(out));
 		}
 	}
 
@@ -174,7 +173,6 @@ int net_apply_node(filter_t *net, filter_t *node)
 				continue;
 			if (!filterport_connect(out, in))
 				return -1;
-			DPRINTF("connected node to %s::%s\n", filter_name(f), filterport_label(out));
 		}
 	}
 

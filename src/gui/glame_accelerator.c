@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.11 2001/09/17 11:47:12 nold Exp $
+ * $Id: glame_accelerator.c,v 1.12 2001/11/16 12:20:31 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -85,14 +85,9 @@ static gint accel_cb(GtkWidget *widget, GdkEventKey *event,
 	snprintf(spec, 255, "%s/%s",
 		 data->scope,
 		 gdk_keyval_name(event->keyval));
-	if (!(accel = hash_find_accel(spec, event->state))) {
-		DPRINTF("No accelerator for %s (state %x)\n",
-			spec, event->state);
+	if (!(accel = hash_find_accel(spec, event->state)))
 		return FALSE;
-	}
 
-	DPRINTF("Found accelerator for %s (state %x):\n%s\n",
-		spec, event->state, accel->action);
 	glame_gh_safe_eval_str(accel->action);
 
 	return TRUE;
@@ -135,7 +130,6 @@ void glame_accel_sync()
 
 	doc = glame_accels_to_xml();
 	xmlDocDumpMemory(doc, &xml, &size);
-	DPRINTF("%s\n", xml);
 	fwrite(xml, size, 1, f);
 	fclose(f);
 	free(xml);
@@ -144,8 +138,6 @@ void glame_accel_sync()
 
 static int add_accels(const char *scope, xmlNodePtr node)
 {
-	DPRINTF("Recursing for scope %s\n", scope);
-
 #ifndef xmlChildrenNode
         node = node->childs;
 #else
@@ -229,7 +221,6 @@ int glame_add_accels_from_file(const char *filename)
 	xml = malloc(st.st_size+1);
 	fread(xml, st.st_size, 1, f);
 	xml[st.st_size] = '\0';
-	DPRINTF("Processing file %s\n", filename);
 	if ((doc = xmlParseMemory(xml, st.st_size))) {
 		res = glame_add_accels_from_xml(doc);
 		xmlFreeDoc(doc);
@@ -252,8 +243,6 @@ static xmlNodePtr getScopeNode(xmlNodePtr root, const char *scope,
 	strncpy(accel_scope, accel->spec, 255);
 	if ((p = strrchr(accel_scope, '/')))
 		p[1] = '\0';
-	DPRINTF("Current scope >%s< searching for >%s<\n",
-		scope, accel_scope);
 	if (strcmp(scope, accel_scope) == 0)
 		return root;
 
@@ -284,7 +273,6 @@ static xmlNodePtr getScopeNode(xmlNodePtr root, const char *scope,
 		node_scope = &accel_scope[strlen(scope)];
 		*strchr(node_scope, '/') = '\0';
 		xmlSetProp(node, "scope", node_scope);
-		DPRINTF("Created scope node >%s<\n", node_scope);
 		snprintf(combined_scope, 255, "%s%s/", scope,
 			 node_scope);
 	}

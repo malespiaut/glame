@@ -513,7 +513,7 @@ int gpsm_set_max_saved_ops(int max)
 		op_max_listsize = max;
 	if (root)
 		while (op_listsize > op_max_listsize) {
-			DPRINTF("deleting too big list\n");
+			DPRINTF("shrinking undo stack\n");
 			op = glame_list_gettail(&oplist, struct op, list);
 			_op_delete(op);
 		}
@@ -925,7 +925,6 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 		gpsm_item_t *item;
 
 		GLSIGH_GETARGS1(va, item);
-		DPRINTF("got GPSM_SIG_ITEM_CHANGED from %s\n", item->label);
 
 		/* Are we no longer member of a group? Can't be... */
 		if (!item->parent)
@@ -941,7 +940,6 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 		gpsm_grp_t *grp;
 
 		GLSIGH_GETARGS1(va, item);
-		DPRINTF("got GPSM_SIG_ITEM_REMOVE from %s\n", item->label);
 		grp = item->parent;
 
 		/* Rebuild groups boundingbox. */

@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.12 2001/08/08 17:12:39 mag Exp $
+ * $Id: fft_plugins.c,v 1.13 2001/11/16 12:20:31 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -125,7 +125,6 @@ static void fft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	filter_port_t   *oport;
 	filter_pipe_t   *opipe, *pipe;
 
-	DPRINTF("fixup pipe\n");
 	GLSIGH_GETARGS1(va, pipe);
 	n = filterport_filter(filterpipe_dest(pipe));
 	oport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
@@ -146,7 +145,6 @@ static int fft_fixup_param(filter_param_t *param, const void *val)
 	
 	pipe = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 
-	DPRINTF("fixup param\n");
 	if (strcmp("blocksize", filterparam_label(param))==0) {
 		if (stuff<2)
 			return -1;
@@ -255,7 +253,6 @@ static int fft_f(filter_t *n){
 	free(win);
 	rfftw_destroy_plan(p);
 
-	DPRINTF("fft done\n");
 	FILTER_RETURN;
 }
 
@@ -309,7 +306,7 @@ static int ifft_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_t *n = filterport_filter(port);
 	filter_pipe_t *in;
-	DPRINTF("Checking for inpipe for node %s\n", n->name);
+
 	if(filterport_get_pipe(port))
 		return -1;
 
@@ -327,7 +324,6 @@ static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	filter_pipe_t *opipe, *pipe;
 	filter_port_t *oport;	
 
-	DPRINTF("ifft_fixup_pipe\n");
 	GLSIGH_GETARGS1(va, pipe);
 	n = filterport_filter(filterpipe_dest(pipe));
 	oport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
@@ -426,7 +422,6 @@ entry:
 	free(win);
 	rfftw_destroy_plan(p);
 	
-	DPRINTF("ifft done\n");
 	FILTER_RETURN;
 }
 
@@ -480,7 +475,6 @@ static int fft_resample_connect_out(filter_port_t *port, filter_pipe_t *p)
 	if(filterport_get_pipe(port))
 		return -1;
 
-	DPRINTF("connect out\n");
 	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
 		if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
 			rate=filterparam_val_int(param);
@@ -501,7 +495,6 @@ static int fft_resample_fixup_param(filter_param_t *param, const void *val)
 	filter_pipe_t *out, *in;
 	int rate = *((int*)val), bsize;
 
-	DPRINTF("fixup param\n");
 	if(strcmp("frequency", filterparam_label(param)) == 0) {
 		if(rate<=0)
 			return -1;
@@ -531,7 +524,6 @@ static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	filter_param_t  *param;
 	int rate = 44100, bsize = 2048;
 
-	DPRINTF("fixup pipe\n");
 	GLSIGH_GETARGS1(va, pipe);
 	n = filterport_filter(filterpipe_dest(pipe));
 	oport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
