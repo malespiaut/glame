@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.18 2002/11/10 12:56:13 richi Exp $
+ * $Id: importexport.c,v 1.19 2002/12/28 13:43:19 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -931,6 +931,9 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	for(ri=0; ri<MAX_RLABEL; ri++)
 		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(exp->renderbutton[ri])))
 			break;
+	/* ignore mono/stereo advice, if 1/2 tracks are going to be saved. */
+	if (ri == gpsm_grp_nritems(grp))
+		ri = 0;
 
 	/* Build basic network. */
 	net = filter_creat(NULL);
