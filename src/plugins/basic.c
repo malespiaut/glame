@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.12 2000/11/06 09:48:08 richi Exp $
+ * $Id: basic.c,v 1.13 2000/12/07 16:07:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -123,6 +123,7 @@ int drop_register(plugin_t *p)
 	f->connect_in = drop_connect_in;
 	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "dumpster.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "basic");
 
 	return filter_register(f, p);
 }
@@ -285,6 +286,7 @@ int one2n_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
 	plugin_set(p, PLUGIN_PIXMAP, "default.png");
+	plugin_set(p, PLUGIN_CATEGORY, "basic");
 
 	return filter_register(f, p);
 }
