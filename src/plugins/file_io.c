@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.63 2001/09/19 11:48:52 mag Exp $
+ * $Id: file_io.c,v 1.64 2001/09/19 12:52:26 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -1300,6 +1300,8 @@ lame_decode_initfile(FILE * fd, mp3data_struct * mp3data)
         if (fread(buf + len - 1, 1, 1, fd) != 1)
             return -1;  /* failed */
     }
+
+
     // now parse the current buffer looking for MP3 headers.   
     // (as of 11/00: mpglib modified so that for the first frame where 
     // headers are parsed, no data will be decoded.  
@@ -1322,17 +1324,19 @@ lame_decode_initfile(FILE * fd, mp3data_struct * mp3data)
     }
 
     if (mp3data->bitrate==0) {
-        fprintf(stderr,"Input file is freeformat.\n");
+	fprintf(stderr,"Input file is freeformat.\n"); 
     }
 
     if (mp3data->totalframes > 0) {
         /* mpglib found a Xing VBR header and computed nsamp & totalframes */
     }
     else {
-        /* set as unknown.  Later, we will take a guess based on file size
-         * ant bitrate */
+	/* set as unknown.  Later, we will take a guess based on file size
+	 * ant bitrate */
         mp3data->nsamp = MAX_U_32_NUM;
     }
+
+
     /*
        fprintf(stderr,"ret = %i NEED_MORE=%i \n",ret,MP3_NEED_MORE);
        fprintf(stderr,"stereo = %i \n",mp.fr.stereo);
@@ -1345,33 +1349,36 @@ lame_decode_initfile(FILE * fd, mp3data_struct * mp3data)
      */
 
     return 0;
-}
+};
 
-int lame_decode_fromfile(FILE * fd, short pcm_l[], short pcm_r[], mp3data_struct * mp3data)
-{	int     ret = 0, len=0;
-	unsigned char buf[4096];
+int
+lame_decode_fromfile(FILE * fd, short pcm_l[], short pcm_r[],
+                     mp3data_struct * mp3data)
+{
+    int     ret = 0, len=0;
+    unsigned char buf[1024];
 
-	/* first see if we still have data buffered in the decoder: */
-	ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-	if (ret!=0) return ret;
+    /* first see if we still have data buffered in the decoder: */
+    ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+    if (ret!=0) return ret;
 
 
-	/* read until we get a valid output frame */
-	while (1) {
-		len = fread(buf, 1, 4096, fd);
-		if (len == 0) {
-			/* we are done reading the file, but check for buffered data */
-			ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-			if (ret<=0) return -1;  // done with file
-			break;
-		}
-		
-		ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-		if (ret == -1) return -1;
-		if (ret >0) break;
+    /* read until we get a valid output frame */
+    while (1) {
+        len = fread(buf, 1, 1024, fd);
+        if (len == 0) {
+	    /* we are done reading the file, but check for buffered data */
+	    ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+	    if (ret<=0) return -1;  // done with file
+	    break;
 	}
-	return ret;
-}
+
+        ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+        if (ret == -1) return -1;
+	if (ret >0) break;
+    }
+    return ret;
+};
 
 off_t  lame_get_file_size ( const char* const filename )
 {
