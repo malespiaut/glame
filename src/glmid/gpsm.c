@@ -992,7 +992,7 @@ int gpsm_item_can_place(gpsm_grp_t *grp, gpsm_item_t *item,
 
 	dummy.hposition = hpos;
 	dummy.vposition = vpos;
-	dummy.hsize = gpsm_item_hsize(item);
+	dummy.hsize = MAX(1, gpsm_item_hsize(item));
 	dummy.vsize = MAX(1, gpsm_item_vsize(item));
 	gpsm_grp_foreach_item(grp, it) {
 		if (it == item)
@@ -1053,9 +1053,9 @@ int gpsm_item_place(gpsm_grp_t *grp, gpsm_item_t *item,
 		gpsm_grp_foreach_item(grp, succ)
 			if (X0(succ) >= hpos)
 				break;
-	} else /* if its neither, do vbox like */ {
+	} else /* if its neither, try to be clever */ {
 		gpsm_grp_foreach_item(grp, succ)
-			if (Y0(succ) >= vpos)
+			if (Y0(succ) > vpos || X0(succ) > hpos)
 				break;
 	}
 
@@ -1169,8 +1169,12 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 	 * FIXME: whats the removal semantic we want to have? */
 	if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
 		gpsm_hbox_cut(item);
-	else
+	else if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
 		gpsm_vbox_cut(item);
+	else {
+		DPRINTF("WARNING: doing ordinary remove on hbox_insert\n");
+		gpsm_item_remove(item);
+	}
 
 	/* Register an item changed signal handler to the new item
 	 * to update the parents boundingbox, if necessary. */
@@ -1209,8 +1213,12 @@ int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 	 * FIXME: whats the removal semantic we want to have? */
 	if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
 		gpsm_vbox_cut(item);
-	else
+	else if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
 		gpsm_hbox_cut(item);
+	else {
+		DPRINTF("WARNING: doing ordinary remove on vbox_insert\n");
+		gpsm_item_remove(item);
+	}
 
 	/* Register an item changed signal handler to the new item
 	 * to update the parents boundingbox, if necessary. */
