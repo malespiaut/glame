@@ -1,6 +1,6 @@
 /*
  * audio_io_midi.c
- * $Id: midi_io_alsa.c,v 1.1 2002/12/01 23:32:23 mag Exp $
+ * $Id: midi_io_alsa.c,v 1.2 2002/12/02 00:27:25 mag Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  * 
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "filter.h"
+#include <math.h>
 
 #ifdef ALSA_H_IN_SYS
 #include <sys/asoundlib.h>
@@ -36,6 +37,7 @@
 #endif
 
 static snd_seq_t* alsa_seq_handle=NULL;
+static float midifreq[128];
 
 snd_seq_t *open_alsa_sequencer() {
 
@@ -54,18 +56,19 @@ snd_seq_t *open_alsa_sequencer() {
     DPRINTF("Error creating sequencer port.\n");
     return NULL;
   }
+  
   return(seq_handle);
 }
 
 static int midi_in_alsa_f(filter_t * n)
 {
-	filter_port_t *in, *trigger, *velocity;
-	filter_pipe_t *inp, *tpipe, *vpipe;
+	filter_port_t *in, *trigger, *velocity, *freq;
+	filter_pipe_t *inp, *tpipe, *vpipe, *fpipe;
 	int npfd;
 	struct pollfd *pfd;
-	filter_buffer_t *tb,*vb, *b;
+	filter_buffer_t *tb,*vb,*fb, *b;
 	int cnt;
-	SAMPLE *tbuf, *vbuf, t, v;
+	SAMPLE *tbuf, *vbuf, *fbuf, t, v, f;
 	snd_seq_event_t *ev;
 	int i,events,pcnt;
 
@@ -88,13 +91,19 @@ static int midi_in_alsa_f(filter_t * n)
 		DPRINTF("Something wants a trigger\n");
 	}
 
+	freq = filterportdb_get_port(filter_portdb(n), "frequency");
+	fpipe = filterport_get_pipe(freq);
+
+	if(fpipe)
+		DPRINTF("Something wants a frequency\n");	
+
 	velocity = filterportdb_get_port(filter_portdb(n), "velocity");
 	vpipe = filterport_get_pipe(velocity);
 	if(vpipe)
 		DPRINTF("Something wants velocity\n");
 
-	if ( !tpipe || !vpipe)
-		FILTER_ERROR_RETURN("no trigger no velocity, what do you want??");
+	if ( !tpipe && !vpipe && !fpipe)
+		FILTER_ERROR_RETURN("you didn't connect anything to the output, so what do you expect?");
 	
 	FILTER_AFTER_INIT;
 	
@@ -104,20 +113,26 @@ static int midi_in_alsa_f(filter_t * n)
 	while ((b = sbuf_get(inp))) {
 		FILTER_CHECK_STOP;
 
-		tb = NULL;
 		if (tpipe) {
+			sbuf_ref(b);
 			tb = sbuf_make_private(b);
 			tbuf = sbuf_buf(tb);
 		}
 
 		if (vpipe) {
-			if (tb)
-				sbuf_ref(tb);
-			vb = sbuf_make_private(tb ? tb : b);
+			sbuf_ref(b);
+			vb = sbuf_make_private(b);
 			vbuf = sbuf_buf(vb);
 		}	
 
+		if (fpipe) {
+			sbuf_ref(b);
+			fb = sbuf_make_private(b);
+			fbuf = sbuf_buf(fb);
+		}
+
 		cnt = sbuf_size(b);	     
+		sbuf_unref(b);
 
 		if (poll(pfd, npfd, 0) > 0) {
 			DPRINTF("Uuuh, shalala, there's a midi event waiting for me(%d)\n", events++);
@@ -140,16 +155,16 @@ static int midi_in_alsa_f(filter_t * n)
 						ev->data.control.channel, ev->data.note.note);
 					t=1.0f;
 					v=(SAMPLE)ev->data.note.velocity;
+					f=midifreq[ev->data.note.note];
 					break;        
 				case SND_SEQ_EVENT_NOTEOFF: 
 					DPRINTF("Note Off event on Channel %2d: %5d      \n",         
 						ev->data.control.channel, ev->data.note.note);
 					t=0.0f;
-					v=0.0f;
 					break;
 				}
 				snd_seq_free_event(ev);
-				DPRINTF("t=%f, v=%f\n",t,v);
+				DPRINTF("t=%f, v=%f f=%f\n",t,v,f);
 				//}
 		}
 
@@ -165,6 +180,13 @@ static int midi_in_alsa_f(filter_t * n)
 
 			sbuf_queue(vpipe, vb);
 		}
+
+		if(fpipe) {
+			for(i=0;i<cnt;i++)
+				fbuf[i]=f;
+
+			sbuf_queue(fpipe, fb);
+		}	
 			
 	}
 
@@ -179,8 +201,12 @@ int midi_in_alsa_register(plugin_t *p)
 	filter_t *f;
 	filter_param_t *param;
 	filter_port_t *port;
+	int x;
+	float a = 440.0f; // a is 440 hz...
 
-	
+	for (x = 0; x < 128; ++x)
+		midifreq[x] = (a / 32) * pow(2.0f, ((float)x - 9.0f) / 12.0f);	
+
 	alsa_seq_handle =  open_alsa_sequencer();
 
 	if (alsa_seq_handle==NULL) {
@@ -213,7 +239,14 @@ int midi_in_alsa_register(plugin_t *p)
 		FILTER_PORTFLAG_OUTPUT,
 		FILTERPORT_DESCRIPTION, "velocity of current triggered note",
 		FILTERPORT_END);
-	
+
+	port = filterportdb_add_port(
+		filter_portdb(f), "frequency",
+		FILTER_PORTTYPE_SAMPLE,
+		FILTER_PORTFLAG_OUTPUT,
+		FILTERPORT_DESCRIPTION, "frequency of current note",
+		FILTERPORT_END);
+
 	plugin_set(p, PLUGIN_DESCRIPTION,
 		   "convert midi input to stream");
 	plugin_set(p, PLUGIN_PIXMAP, "midi_in.png");
