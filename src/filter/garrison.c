@@ -214,6 +214,110 @@ static int p2s_f (filter_node_t *n)
 	return 0;
 }
 
+/* 
+ * This is the mixer from basic.c, modified to multiply sounds instead of
+ * adding them. 
+ */
+
+static int ringmod_f (filter_node_t *n)
+{
+	filter_pipe_t  *p, **pin=NULL, *pout;
+	filter_buffer_t **in=NULL, *out, *lastout;
+	int i, eofs, *pos=NULL, opos, res=-1, rate;
+	SAMPLE s;
+
+	/* We require at least one connected input and
+	 * a connected output. Also all input pipes have
+	 * to match in the sample rate!
+	 */
+	if (filternode_nrinputs(n) == 0)
+		return -1;
+	if (!(pout = filternode_get_output(n, PORTNAME_OUT)))
+		return -1;
+	rate = filterpipe_sample_rate(filternode_get_input(n, PORTNAME_IN));
+	filternode_foreach_input(n, p)
+		if (filterpipe_sample_rate(p) != rate)
+			return -1;
+
+	/* init */
+	eofs = 0;
+	if (!(in = ALLOCN(filternode_nrinputs(n), filter_buffer_t *)))
+			return -1;
+	if (!(pos = ALLOCN(filternode_nrinputs(n), int)))
+		goto _cleanup;
+	if (!(pin = ALLOCN(filternode_nrinputs(n), filter_pipe_t *)))
+		goto _cleanup;
+
+	FILTER_AFTER_INIT;
+	
+	/* get first input buffers from all channels */
+	i=0;
+	filternode_foreach_input(n, p) {
+		pin[i] = p;
+		if (!(in[i] = sbuf_get(pin[i])))
+			eofs++;
+		pos[i] = 0;
+		i++;
+	}
+
+	/* get first output buffer */
+	out = sbuf_alloc(GLAME_WBUFSIZE, n);
+	opos = 0;
+
+	while (pthread_testcancel(), (eofs != n->nr_inputs)) {
+		s = 0;
+		for (i=0; i<n->nr_inputs; i++) {
+			/* check, if we need a new input buffer */
+			if (in[i] && (sbuf_size(in[i]) == pos[i])) {
+				/* unref the processed buffer */
+			        sbuf_unref(in[i]);
+				/* get new buffer */
+				if (!(in[i] = sbuf_get(pin[i])))
+					eofs++;
+				pos[i] = 0;
+			}
+			/* sum the channels */
+			if(in[i]){
+				s *= sbuf_buf(in[i])[pos[i]];
+				pos[i]++;
+			}
+		}
+
+		/* check, if we need a new output buffer */
+		if (sbuf_size(out) == opos) {
+			/* submit the (full) output buffer.
+			 * we have already a reference to out (ours! - and
+			 * we wont release it */
+			sbuf_queue(pout, out);
+			/* alloc new buffer */
+			out = sbuf_alloc(GLAME_WBUFSIZE, n);
+			opos = 0;
+		}
+
+		/* write the sample  */
+		sbuf_buf(out)[opos++] = s/(n->nr_inputs);
+	}
+
+	/* submit the last pending output buffer - but truncate
+	 * it to the actual necessary length */
+	lastout = sbuf_alloc(opos, n);
+	memcpy(sbuf_buf(lastout), sbuf_buf(out), sizeof(SAMPLE)*opos);
+	sbuf_unref(out);
+	sbuf_queue(pout, lastout);
+
+	FILTER_BEFORE_CLEANUP;
+	/* cleanup - FIXME, we need to do this with a
+	 * pthread_cleanup_pop() - and previous
+	 * pthread_cleanup_push() - ugh! */
+	res=0;
+_cleanup:
+	if (in) free(in);
+	if (pos) free(pos);
+        if (pin) free(pin);
+
+	return res;
+}
+
 int garrison_register()
 {
 	filter_t *f;
@@ -279,6 +383,16 @@ int garrison_register()
 	if (!(filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
 	if (!(filter_add_param(f, "val", "value to output", FILTER_PARAMTYPE_FLOAT)))
+		return -1;
+	if (filter_add(f))
+		return -1;
+
+	/***** ring modulator filter *****/
+	if ((f = filter_alloc("Ring Modulator", "", ringmod_f)) == NULL)
+		return -1;
+	if (!(filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE)))
+		return -1;
+	if (!(filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
 	if (filter_add(f))
 		return -1;
