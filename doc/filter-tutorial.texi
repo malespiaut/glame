@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.10 2000/07/31 11:57:46 nold Exp $
+@comment $Id: filter-tutorial.texi,v 1.11 2000/08/01 11:24:40 nold Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -11,7 +11,7 @@ filter programming tutorial with your help.
 * Parameter Definition::	Talking about parameters, properties and protocols...
 * Filter Categories::		Now what is this whole filter stuff anyway?
 * Filter Skeleton::		What do I need to have in a glame filter set?
-* Main Filter Method::		How does the @code{f()} function have to look like?
+* Main Filter Method::		What does the @code{f()} function have to look like?
 * Examples::                    Examples to clarify the @code{fbuf_*()} API
 * Speeeed::                     How to optimize processing
 @end menu
@@ -121,7 +121,7 @@ generic hints on which methods you may need.
 
 @findex f
 @node Main Filter Method, Examples, Filter Skeleton, Filter Tutorial
-@heading How does the @code{f()} function have to look like? Are there any restrictions?
+@heading What does the @code{f()} function have to look like? Are there any restrictions?
 Yes, of course there are!
 
 @code{f()} should begin with checking the current setup for suitability:
@@ -134,7 +134,7 @@ to denote an error, returning with no error is not allowed.
 After @code{FILTER_AFTER_INIT;} you should do the actual filter work, i.e.
 accept and send data through the ports.
 The main part of the filter and the cleanup part (freeing of all
-allocated local data, etc.) have to be seperated by placing the macro 
+allocated local data, etc.) have to be separated by placing the macro 
 @findex FILTER_RETURN
 @findex FILTER_BEFORE_CLEANUP
 @code{FILTER_BEFORE_CLEANUP;}.
@@ -275,10 +275,11 @@ fbuf_unref(buf);
 @end example
 @noindent
 While being valid, this example illustrates ineffective use of references.
-As you don't need to touch the buffer after @code{fbuf_queue()}, 
-you don't need to get an additional reference and neither need to drop it again.Such use will cause a @code{fbuf_make_private()} in the destination filter to 
-potentially copy the buffer while a perfectly valid zero-copy 
-operation was possible.
+Since you don't need to touch the buffer after @code{fbuf_queue()}, 
+you don't need to get an additional reference and neither drop it again
+afterwards. Such use will cause a @code{fbuf_make_private()} in the 
+destination filter to potentially copy the buffer while a perfectly valid 
+zero-copy operation was possible.
 
 Invalid modifying and forwarding of a buffer:
 @example
