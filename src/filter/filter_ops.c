@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.14 2000/06/25 14:53:00 richi Exp $
+ * $Id: filter_ops.c,v 1.15 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,62 +25,78 @@
 #include "filter.h"
 
 
-static int init_node(filter_node_t *n)
+/* filter_buffer.c: drain pipe to unblock source. */
+void fbuf_drain(filter_pipe_t *p);
+/* filter_buffer.c: free pending buffers. */
+void fbuf_free_buffers(struct list_head *list);
+
+
+static int init_node(filter_t *n)
 {
 	filter_pipe_t *p;
+	filter_port_t *port;
 	int fds[2];
 
 	if (!n || n->state == STATE_INITIALIZED)
 		return 0;
 	if (n->state != STATE_UNDEFINED)
 		return -1;
-	if (filternode_has_error(n)) {
+	if (filter_has_error(n)) {
 		DPRINTF("node %s has error (%s)\n", n->name,
-			filternode_errstr(n));
+			filter_errstr(n));
 	        return -1;
 	}
 
-	filternode_foreach_output(n, p) {
-		if (pipe(fds) == -1)
-			return -1;
-		p->source_fd = fds[1];
-		p->dest_fd = fds[0];
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (!filterport_is_output(port))
+			continue;
+		filterport_foreach_pipe(port, p) {
+			if (pipe(fds) == -1)
+				return -1;
+			p->source_fd = fds[1];
+			p->dest_fd = fds[0];
+		}
 	}
 	n->state = STATE_INITIALIZED;
 
 	return 0;
 }
-static int init_network(filter_node_t *n)
+static int init_network(filter_t *n)
 {
-	filter_network_t *net = (filter_network_t *)n;
+	filter_t *net = (filter_t *)n;
 
 	if (n->net)
 		net->launch_context = n->net->launch_context;
 
-	filternetwork_foreach_node(net, n)
+	filter_foreach_node(net, n)
 		if (n->ops->init(n) == -1)
 			return -1;
-	net->node.state = STATE_INITIALIZED;
+	net->state = STATE_INITIALIZED;
 
 	return 0;
 }
 
 static void *launcher(void *node)
 {
-	filter_node_t *n = (filter_node_t *)node;
+	filter_t *n = (filter_t *)node;
 	filter_pipe_t *p;
+	filter_port_t *port;
 	struct sembuf sop;
 
 	DPRINTF("%s launched (pid %i)\n", n->name, (int)getpid());
 
-	n->glerrno = n->filter->f(n);
+	n->glerrno = n->f(n);
 	if (n->glerrno == 0) {
 		/* either finish or terminate -> drain pipes, send EOFs */
-		filternode_foreach_input(n, p)
-			fbuf_drain(p);
-		filternode_foreach_output(n, p)
-			fbuf_queue(p, NULL);
-	        filternode_clear_error(n);
+		filterportdb_foreach_port(filter_portdb(n), port) {
+			filterport_foreach_pipe(port, p) {
+			        if (filterport_is_input(port))
+					fbuf_drain(p);
+				else
+					fbuf_queue(p, NULL);
+			}
+		}
+	        filter_clear_error(n);
 		DPRINTF("filter %s completed.\n", n->name);
 		pthread_exit(NULL);
 	}
@@ -88,13 +104,13 @@ static void *launcher(void *node)
 	DPRINTF("%s had failure (errstr=\"%s\")\n",
 		n->name, n->glerrstr);
 
-	/* allow failure of "unused" nodes (without connections) */
-	if (n->nr_inputs != 0 || n->nr_outputs != 0) {
-		/* signal net failure */
-		atomic_inc(&n->net->launch_context->result);
-	} else {
-		DPRINTF("ignoring failure of %s\n", n->name);
-	}
+	/* FIXME! allow failure of "unused" nodes (without connections)
+	   if (n->nr_inputs != 0 || n->nr_outputs != 0) { */
+	/* signal net failure */
+	atomic_inc(&n->net->launch_context->result);
+	/* FIXME! } else {
+	   DPRINTF("ignoring failure of %s\n", n->name);
+	   } */
 
 	/* increment filter ready semaphore */
 	sop.sem_num = 0;
@@ -106,7 +122,7 @@ static void *launcher(void *node)
 
 	return NULL;
 }
-static int launch_node(filter_node_t *n)
+static int launch_node(filter_t *n)
 {
 	if (!n || n->state == STATE_LAUNCHED)
 		return 0;
@@ -122,22 +138,23 @@ static int launch_node(filter_node_t *n)
 
 	return 0;
 }
-static int launch_network(filter_node_t *n)
+static int launch_network(filter_t *n)
 {
-	filter_network_t *net = (filter_network_t *)n;
+	filter_t *net = (filter_t *)n;
 
-	filternetwork_foreach_node(net, n)
+	filter_foreach_node(net, n)
 		if (n->ops->launch(n) == -1)
 			return -1;
-	net->node.state = STATE_LAUNCHED;
+	net->state = STATE_LAUNCHED;
 
 	return 0;
 }
 
 /* kill threads, close pipes and free pending buffers */
-static void postprocess_node(filter_node_t *n)
+static void postprocess_node(filter_t *n)
 {
 	filter_pipe_t *p;
+	filter_port_t *port;
 
 	if (!n || n->state == STATE_UNDEFINED)
 		return;
@@ -148,30 +165,32 @@ static void postprocess_node(filter_node_t *n)
 		n->state = STATE_INITIALIZED;
 	}
 
-	filternode_foreach_input(n, p)
-		if (p->source_fd != -1) {
-			close(p->source_fd);
-			p->source_fd = -1;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		filterport_foreach_pipe(port, p) {
+			if (p->source_fd != -1) {
+				close(p->source_fd);
+				p->source_fd = -1;
+			}
+			if (p->dest_fd != -1) {
+				close(p->dest_fd);
+				p->dest_fd = -1;
+			}
 		}
-	filternode_foreach_output(n, p)
-		if (p->dest_fd != -1) {
-			close(p->dest_fd);
-			p->dest_fd = -1;
-		}
+	}
 	fbuf_free_buffers(&n->buffers);
 
 	n->state = STATE_UNDEFINED;
 }
-static void postprocess_network(filter_node_t *n)
+static void postprocess_network(filter_t *n)
 {
-	filter_network_t *net = (filter_network_t *)n;
+	filter_t *net = (filter_t *)n;
 
-	filternetwork_foreach_node(net, n)
+	filter_foreach_node(net, n)
 		n->ops->postprocess(n);
-	net->node.state = STATE_UNDEFINED;
+	net->state = STATE_UNDEFINED;
 }
 
-static int wait_node(filter_node_t *n)
+static int wait_node(filter_t *n)
 {
 	int res, filter_ret;
 
@@ -183,12 +202,12 @@ static int wait_node(filter_node_t *n)
 
 	return filter_ret;
 }
-static int wait_network(filter_node_t *n)
+static int wait_network(filter_t *n)
 {
-	filter_network_t *net = (filter_network_t *)n;
+	filter_t *net = (filter_t *)n;
 	int res = 0;
 
-	filternetwork_foreach_node(net, n)
+	filter_foreach_node(net, n)
 		if (n->ops->wait(n) == -1)
 			res = -1;
 
@@ -196,14 +215,14 @@ static int wait_network(filter_node_t *n)
 }
 
 
-struct filter_node_operations filter_node_ops = {
+struct filter_operations filter_node_ops = {
 	init_node,
 	launch_node,
 	postprocess_node,
 	wait_node,
 };
 
-struct filter_node_operations filter_network_ops = {
+struct filter_operations filter_network_ops = {
 	init_network,
 	launch_network,
 	postprocess_network,

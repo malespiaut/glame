@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.10 2000/05/02 07:46:36 richi Exp $
+ * $Id: track_io.c,v 1.11 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -123,7 +123,7 @@ static void track_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
-static int track_in_connect_out(filter_node_t *n, const char *port,
+static int track_in_connect_out(filter_node_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	filter_param_t *chan, *group;

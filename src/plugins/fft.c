@@ -34,7 +34,9 @@ PLUGIN_SET(basicfft,"fft ifft fft_resample")
 
 pthread_mutex_t planlock = PTHREAD_MUTEX_INITIALIZER;
 
-static int fft_connect_out(filter_node_t *n, const char *port, filter_pipe_t *p){
+static int fft_connect_out(filter_node_t *n, filter_port_t *port,
+			   filter_pipe_t *p)
+{
 	int rate, bsize, osamp;
 	float hangle;
 	filter_pipe_t *in;
@@ -212,7 +214,9 @@ int fft_register(plugin_t *p)
 	return 0;
 }
 
-static int ifft_connect_out(filter_node_t *n, const char *port, filter_pipe_t *p){
+static int ifft_connect_out(filter_node_t *n, filter_port_t *port,
+			    filter_pipe_t *p)
+{
 	filter_pipe_t *in;
 
 	if ((in = filternode_get_input(n, PORTNAME_IN)))
@@ -296,7 +300,9 @@ int ifft_register(plugin_t *p)
 }
 
 
-static int fft_resample_connect_out(filter_node_t *n, const char *port, filter_pipe_t *p){
+static int fft_resample_connect_out(filter_node_t *n, filter_port_t *port,
+				    filter_pipe_t *p)
+{
 	int rate, bsize;
 	filter_pipe_t *in;
 	filter_param_t *param;

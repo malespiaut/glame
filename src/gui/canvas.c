@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.23 2000/05/01 11:09:04 richi Exp $
+ * $Id: canvas.c,v 1.24 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -35,8 +35,11 @@ static void
 edit_canvas_pipe_source_properties_cb(GtkWidget* bla, GlameConnection* conn);
 static void
 edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn);
+static void delete_canvas_item(GlameCanvasItem* it);
+static void connection_break_cb(GtkWidget *bla, GlameConnection* conn);
 
-void edit_canvas_item_properties(filter_pdb_t *pdb, char *label);
+
+void edit_canvas_item_properties(filter_paramdb_t *pdb, char *label);
 
 
 static GnomeUIInfo node_menu[]=
@@ -59,7 +62,7 @@ static GnomeUIInfo pipe_menu[]=
 
 static void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 {
-	edit_canvas_item_properties(filternode_pdb(item->filter->node),
+	edit_canvas_item_properties(filter_paramdb(item->filter->node),
 				    item->filter->caption);
 };
 
@@ -71,15 +74,15 @@ void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it)
 static void
 edit_canvas_pipe_source_properties_cb(GtkWidget* bla, GlameConnection* conn)
 {
-	edit_canvas_item_properties(filterpipe_sourcepdb(conn->pipe),
-				    conn->begin->port->label);
+	edit_canvas_item_properties(filterpipe_sourceparamdb(conn->pipe),
+				    filterport_label(conn->begin->port));
 }
 
 static void
 edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
 {
-	edit_canvas_item_properties(filterpipe_destpdb(conn->pipe),
-				    conn->end->port->label);
+	edit_canvas_item_properties(filterpipe_destparamdb(conn->pipe),
+				    filterport_label(conn->end->port));
 }
 
 
@@ -184,8 +187,8 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 void 
 play_network(GtkWidget *button,gui_network*net)
 {
-	filternetwork_launch(net->net);
-	filternetwork_start(net->net);
+	filter_launch(net->net);
+	filter_start(net->net);
 	net->paused = FALSE;
 }
 
@@ -193,10 +196,10 @@ void
 pause_network(GtkWidget *button,gui_network*net)
 {
 	if(net->paused){
-			filternetwork_start(net->net);
+			filter_start(net->net);
 			net->paused=FALSE;
 	} else { 
-		filternetwork_pause(net->net);
+		filter_pause(net->net);
 		net->paused=TRUE;
 	}
 }
@@ -204,7 +207,7 @@ pause_network(GtkWidget *button,gui_network*net)
 void 
 stop_network(GtkWidget *button,gui_network*net)
 {
-	filternetwork_terminate(net->net);
+	filter_terminate(net->net);
 }
 
 
@@ -410,7 +413,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 						}
 						// connected!!
 					} else {
-						DPRINTF("not inputport! %d %s",port->port_type,filterportdesc_label(port->port));
+						DPRINTF("not inputport! %d %s",port->port_type,filterport_label(port->port));
 						gtk_object_destroy(GTK_OBJECT(item->connection->line));
 						free(item->connection);
 					}	
@@ -623,15 +626,23 @@ void
 create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 {
 	filter_t *filter = f->filter;
-	filter_portdesc_t * port;
+	filter_port_t *port;
 	GlameCanvasPort *item;
 //	GtkTooltips* tt;
+	double step;
+	double border;
+	int portcount;
 
-	int portcount=filter_nrinputs(filter);
-	double step = 64.0/(float)portcount;
-	double border = 0.0;
-	filter_foreach_inputdesc(filter,port){
-		
+	portcount = 0;
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (filterport_is_input(port))
+			portcount++;
+	}
+	step = 64.0/(float)portcount;
+	border = 0.0;
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (!filterport_is_input(port))
+			continue;
 		item = glame_canvas_port_new(grp,port,
 					     0.0,border,16.0,step,
 					     0xff000090);
@@ -643,10 +654,17 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 				   port);*/
 				   
 	}
-	portcount=filter_nroutputs(filter);
+
+	portcount = 0;
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (filterport_is_output(port))
+			portcount++;
+	}
 	step = 64.0/(float)portcount;
 	border=0.0;
-	filter_foreach_outputdesc(filter,port){
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (!filterport_is_output(port))
+			continue;
 		item = glame_canvas_port_new(grp,port,
 					     80.0,border,16.0,step,
 					     0x0000ff90);
@@ -688,13 +706,13 @@ create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y)
 int
 add_connection(GlameConnection *c)
 {
-//	filter_network_t *net=(GLAME_CANVAS(c->begin->canvas))->net->net;
-	
+	filter_port_t *source, *dest;
+
 	// ooooohhh f**k this does not look nice!
-	c->pipe=filternetwork_add_connection((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node,
-				     filterportdesc_label(c->begin->port),
-					(GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter->node,
-					     filterportdesc_label(c->end->port));
+	source = filterportdb_get_port(filter_portdb((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node), filterport_label(c->begin->port));
+	dest = filterportdb_get_port(filter_portdb((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter->node), filterport_label(c->end->port));
+	
+	c->pipe = filterport_connect(source, dest);
 	if(!c->pipe)
 	{
 		DPRINTF("Connection failed!!\n");
@@ -848,7 +866,7 @@ cancel_params(GtkWidget* wig,param_callback_t* callback)
 }
 
 void
-edit_canvas_item_properties(filter_pdb_t *pdb, char *caption)
+edit_canvas_item_properties(filter_paramdb_t *pdb, char *caption)
 {
 	GtkWidget *vbox,*entry;
 	GtkAdjustment *adjust;
@@ -871,7 +889,7 @@ edit_canvas_item_properties(filter_pdb_t *pdb, char *caption)
 	
 	gtk_widget_show(vbox);
 
-	filterpdb_foreach_param(pdb, param) {
+	filterparamdb_foreach_param(pdb, param) {
 		if (FILTER_PARAM_IS_INT(param)) {
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
 
@@ -976,14 +994,14 @@ delete_canvas_item(GlameCanvasItem* it)
 		}
 		plist = g_list_next(plist);
 	}
-	filternetwork_delete_node(it->filter->node);
+	filter_delete(it->filter->node);
 	gtk_object_destroy(GTK_OBJECT(it));
 }
 
 static void
 connection_break(GlameConnection* connection)
 {
-	filternetwork_break_connection(connection->pipe);
+	filterpipe_delete(connection->pipe);
 	connection->begin->connected_ports=g_list_remove(connection->begin->connected_ports,connection);
 	connection->end->connected_ports=g_list_remove(connection->end->connected_ports,connection);
 	gtk_object_destroy(GTK_OBJECT(connection->line));

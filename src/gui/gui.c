@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.23 2000/05/01 11:09:04 richi Exp $
+ * $Id: gui.c,v 1.24 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -471,7 +471,7 @@ icon_prop_activate                (gpointer user_data)
 	GtkWidget* vbox,*vbox2,*vbox3;
 	GtkWidget* tablabel;
 	GtkWidget* frame,*frame2;
-	filter_portdesc_t *port;
+	filter_port_t *port;
 	filter_param_t *param;
 	plugin_t * plugin = plugin_get(g_array_index(gui->filters,gui_filter*,index)->caption);
 	filter_t * filter = (filter_t *)plugin_query(plugin, PLUGIN_FILTER);
@@ -522,7 +522,9 @@ icon_prop_activate                (gpointer user_data)
 	gtk_widget_show (frame);
 	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 3);
 
-	filter_foreach_inputdesc(filter,port){
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (!filterport_is_input(port))
+			continue;
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
@@ -533,8 +535,8 @@ icon_prop_activate                (gpointer user_data)
 		gtk_object_set_data(GTK_OBJECT(propBox),"vbox4",vbox3);
 		gtk_widget_show(vbox3);
 		gtk_container_add(GTK_CONTAINER(frame2),vbox3);
-		create_label_val_pair(propBox,vbox3,"Label:",port->label);
-		create_label_val_pair(propBox,vbox3,"Description:",port->description);
+		create_label_val_pair(propBox,vbox3,"Label:", filterport_label(port));
+		create_label_val_pair(propBox,vbox3,"Description:", filterport_get_property(port, FILTERPORT_DESCRIPTION));
 	}
 
 	frame = gtk_frame_new(_("Output ports"));
@@ -553,7 +555,9 @@ icon_prop_activate                (gpointer user_data)
 	gtk_widget_show (frame);
 	gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 3);
 
-	filter_foreach_outputdesc(filter,port){
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (!filterport_is_output(port))
+			continue;
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
@@ -564,8 +568,8 @@ icon_prop_activate                (gpointer user_data)
 		gtk_object_set_data(GTK_OBJECT(propBox),"vbox4",vbox3);
 		gtk_widget_show(vbox3);
 		gtk_container_add(GTK_CONTAINER(frame2),vbox3);
-		create_label_val_pair(propBox,vbox3,"Label:",port->label);
-		create_label_val_pair(propBox,vbox3,"Description:",port->description);
+		create_label_val_pair(propBox,vbox3,"Label:", filterport_label(port));
+		create_label_val_pair(propBox,vbox3,"Description:", filterport_get_property(port, FILTERPORT_DESCRIPTION));
 	}
 
 	tablabel=gtk_label_new(_("Ports"));
@@ -581,7 +585,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_container_add (GTK_CONTAINER (notebook), vbox2);
 
 
-	filterpdb_foreach_param(filter_pdb(filter), param) {
+	filterparamdb_foreach_param(filter_paramdb(filter), param) {
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
@@ -665,7 +669,7 @@ gui_network*
 gui_network_new(const char * caption, const char * pixname)
 {
 	gui_network *net = malloc(sizeof(gui_network));
-	net->net = filternetwork_new();
+	net->net = filter_alloc_network();
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	return net;
@@ -674,13 +678,13 @@ gui_network_new(const char * caption, const char * pixname)
 int
 gui_network_filter_add(gui_network* net, gui_filter *fil)
 {
-
-	fil->node = filternetwork_add_node(net->net,fil->caption, NULL);
-	if(!fil->node)
+	fil->node = filter_instantiate(plugin_get(fil->caption));
+	if(!fil->node
+	   || filter_add_node(net->net,fil->node,fil->caption) == -1) {
 		fprintf(stderr,"Error adding node!\n");
-	else {
-		net->filters=g_slist_append(net->filters,fil);
+		return -1;
 	}
+	net->filters=g_slist_append(net->filters,fil);
 		
 	return 0;
 }
@@ -756,7 +760,7 @@ void
 druid_done(GtkWidget *page,GnomeDruid* druid,druid_struct* p)
 {
 
-	p->net->net = filternetwork_new();
+	p->net->net = filter_alloc_network();
 	if(!(p->net->net))
 		fprintf(stderr,"Error creating network!\n");
 	gtk_widget_show(create_new_canvas(p->net->caption,p->net));
@@ -840,7 +844,7 @@ gui_network_new_wizard(void)
 	net->caption = NULL;
 	net->pixname = NULL;
 	net->descr = NULL;
-	net->net = filternetwork_new();
+	net->net = filter_alloc_network();
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	create_new_canvas(net);

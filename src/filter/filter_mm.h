@@ -3,7 +3,7 @@
 
 /*
  * filter_mm.h
- * $Id: filter_mm.h,v 1.7 2000/05/01 12:22:16 richi Exp $
+ * $Id: filter_mm.h,v 1.8 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -23,32 +23,18 @@
  *
  */
 
-filter_t *_filter_alloc(int flags);
-void _filter_free(filter_t *f);
+
+filter_t *_filter_alloc(int type);
+void _filter_free(filter_t *node);
+filter_t *_filter_instantiate(filter_t *f);
+// FIXME: add int _filter_apply(f, (int)(*)(filter_t *));
 
 filter_launchcontext_t *_launchcontext_alloc();
 void _launchcontext_free(filter_launchcontext_t *c);
 
 
-filter_pipe_t *_pipe_alloc(filter_portdesc_t *source, filter_portdesc_t *dest);
+filter_pipe_t *_pipe_alloc(filter_port_t *source, filter_port_t *dest);
 void _pipe_free(filter_pipe_t *p);
-
-filter_node_t *_filter_instantiate(filter_t *f, const char *name);
-void _node_free(filter_node_t *n);
-void _network_free(filter_network_t *net);
-
-
-/* future obsolete stuff */
-filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
-				   int type, const char *desc);
-void _portdesc_free(filter_portdesc_t *d);
 
 
 #endif
-
-
-
-
-
-
-

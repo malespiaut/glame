@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.23 2000/08/07 06:25:47 mag Exp $
+ * $Id: filter_protocols.h,v 1.24 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -162,7 +162,7 @@ typedef struct {
 		int dummy;
 	} u;
 } cbuf_command_t;
-static inline filter_buffer_t *cbuf_alloc(int nr, filter_node_t *n)
+static inline filter_buffer_t *cbuf_alloc(int nr, filter_t *n)
 {
 	filter_buffer_t *buf;
 	cbuf_header_t *h;

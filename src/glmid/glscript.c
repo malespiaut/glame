@@ -332,8 +332,12 @@ SCM gls_filternetwork_add_node(SCM s_net, SCM s_filter, SCM s_name)
 
 	net = (filter_network_t *)gh_scm2pointer(s_net);
 	name = gh_scm2newstr(s_name, &namel);
+	if (namel == 0) {
+		free(name);
+		return SCM_BOOL_F;
+	}
 	filter = gh_scm2newstr(s_filter, &filterl);
-	node = filternetwork_add_node(net, filter, namel == 0 ? NULL : name);
+	node = filternetwork_add_node(net, filter, name);
 	free(name);
 	free(filter);
 	if (!node)
@@ -379,7 +383,7 @@ SCM gls_filternetwork_break_connection(SCM s_p)
 	return SCM_UNSPECIFIED;
 }
 
-SCM gls_filterparam_set(filter_pdb_t *db, SCM s_label, SCM s_val)
+SCM gls_filterparam_set(filter_paramdb_t *db, SCM s_label, SCM s_val)
 {
 	filter_param_t *param;
 	char *label, *str;
@@ -387,7 +391,7 @@ SCM gls_filterparam_set(filter_pdb_t *db, SCM s_label, SCM s_val)
 	float f;
 
 	label = gh_scm2newstr(s_label, &labell);
-	param = filterpdb_get_param(db, label);
+	param = filterparamdb_get_param(db, label);
 	if (!param) {
 		res = -1;
 	} else if (FILTER_PARAM_IS_INT(param)) {
@@ -415,7 +419,7 @@ SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 	filter_node_t *n;
 
 	n = (filter_node_t *)gh_scm2pointer(s_n);
-	return gls_filterparam_set(filternode_pdb(n), s_label, s_val);
+	return gls_filterparam_set(filter_paramdb(n), s_label, s_val);
 }
 
 SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
@@ -423,7 +427,7 @@ SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
 	filter_pipe_t *p;
 
 	p = (filter_pipe_t *)gh_scm2pointer(s_p);
-	return gls_filterparam_set(filterpipe_sourcepdb(p), s_label, s_val);
+	return gls_filterparam_set(filterpipe_sourceparamdb(p), s_label, s_val);
 }
 
 SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
@@ -431,7 +435,7 @@ SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
 	filter_pipe_t *p;
 
 	p = (filter_pipe_t *)gh_scm2pointer(s_p);
-	return gls_filterparam_set(filterpipe_destpdb(p), s_label, s_val);
+	return gls_filterparam_set(filterpipe_destparamdb(p), s_label, s_val);
 }
 
 SCM gls_filternetwork_launch(SCM s_net)

@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.21 2000/10/09 16:24:02 richi Exp $
+ * $Id: filter_methods.c,v 1.22 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -35,12 +35,13 @@
  */
 static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 {
-	filter_node_t *n;
+	filter_t *n;
 	filter_pipe_t *in;
 	filter_pipe_t *out;
+	filter_port_t *port;
 
 	GLSIGH_GETARGS1(va, in);
-	n = in->dest;
+	n = filterport_filter(filterpipe_dest(in));
 
 	/* Input pipe format change is easy for us as we know
 	 * nothing about internal connections between
@@ -55,13 +56,17 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 	 * change using memcmp to prevent endless loops with
 	 * cyclic networks.
 	 */
-	filternode_foreach_output(n, out) {
-		if (out->type == in->type
-		    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
 			continue;
-		out->type = in->type;
-		out->u = in->u;
-		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+		filterport_foreach_pipe(port, out) {
+			if (out->type == in->type
+			    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+				continue;
+			out->type = in->type;
+			out->u = in->u;
+			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+		}
 	}
 }
 
@@ -73,21 +78,27 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
  * Output pipe type is copied from corresponding input
  * (or uninitialized).
  */
-int filter_default_connect_out(filter_node_t *n, const char *port,
+int filter_default_connect_out(filter_t *n, filter_port_t *outp,
 			       filter_pipe_t *p)
 {
 	filter_pipe_t *in = NULL;
+	filter_port_t *inp;
 
 	/* As with default connect in method, we accept one
 	 * connection only in this "default" mode. */
-	if (filternode_get_output(n, port))
+	if (filterport_get_pipe(outp))
 		return -1;
 
 	/* For the following stuff we need an existing input pipe
 	 * with a valid type. */
-	filternode_foreach_input(n, in)
-		if (in->type != FILTER_PIPETYPE_UNDEFINED)
-			goto found;
+	filterportdb_foreach_port(filter_portdb(n), inp) {
+		if (filterport_is_output(inp))
+			continue;
+		filterport_foreach_pipe(inp, in) {
+			if (in->type != FILTER_PIPETYPE_UNDEFINED)
+				goto found;
+		}
+	}
 	return 0;
 
  found:
@@ -103,14 +114,14 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 	return 0;
 }
 
-int filter_default_connect_in(filter_node_t *n, const char *port,
+int filter_default_connect_in(filter_t *n, filter_port_t *inp,
 			      filter_pipe_t *p)
 {
         /* We accept everything. Default checks are done by the
 	 * filternetwork_add_conection function. But as all
 	 * ports are now "automatic" we as default do accept one
 	 * connection only. */
-	if (filternode_get_input(n, port))
+	if (filterport_get_pipe(inp))
 		return -1;
 
 	/* As this is an unmanaged connection, we have to provide
@@ -122,7 +133,7 @@ int filter_default_connect_in(filter_node_t *n, const char *port,
 	return 0;
 }
 
-int filter_default_set_param(filter_node_t *n, filter_param_t *param,
+int filter_default_set_param(filter_t *n, filter_param_t *param,
 			     const void *val)
 {
 	/* We do not reject any parameter change by default.
@@ -133,88 +144,46 @@ int filter_default_set_param(filter_node_t *n, filter_param_t *param,
 
 /* Filternetwork filter methods.
  */
-
-int filter_network_init(filter_node_t *n)
-{
-	filter_network_t *net = (filter_network_t *)n;
-	filter_network_t *templ;
-	filter_node_t *node, *source, *dest;
-	filter_pipe_t *pipe, *p;
-
-	/* empty network? */
-	if (!(templ = (filter_network_t *)n->filter->priv))
-		return 0;
-
-	/* copy network from templ to net */
-
-	/* first create all nodes and copy set parameters */
-	filternetwork_foreach_node(templ, n) {
-		if (!(node = filternetwork_add_node(net, plugin_name(n->filter->plugin), n->name)))
-			return -1;
-		filterpdb_copy(filternode_pdb(node), filternode_pdb(n));
-	}
-
-	/* second create the connections (loop through all outputs)
-	 * and copy pipe parameters */
-	filternetwork_foreach_node(templ, n) {
-		filternode_foreach_output(n, pipe) {
-			source = filternetwork_get_node(net, pipe->source->name);
-			dest = filternetwork_get_node(net, pipe->dest->name);
-			if (!(p = filternetwork_add_connection(source, pipe->out_name, dest, pipe->in_name)))
-				return -1;
-			filterpdb_copy(filterpipe_sourcepdb(p),
-				       filterpipe_sourcepdb(pipe));
-			filterpdb_copy(filterpipe_destpdb(p),
-				       filterpipe_destpdb(pipe));
-		}
-	}
-
-	return 0;
-}
-
-int filter_network_f(filter_node_t *n)
+int filter_network_f(filter_t *n)
 {
 	PANIC("uh? filternetwork launched??");
 	return -1;
 }
 
-int filter_network_connect_out(filter_node_t *source, const char *port,
+int filter_network_connect_out(filter_t *source, filter_port_t *outp,
 			       filter_pipe_t *p)
 {
-	filter_portdesc_t *d;
-	struct filter_network_mapping *m;
-	filter_node_t *n;
+	filter_port_t *port;
+	filter_t *node;
 
-	if (!(d = filter_get_outputdesc(source->filter, port)))
+	if (!(node = filter_get_node(source, filterport_get_property(outp, FILTERPORT_MAP_NODE)))
+	    || !(port = filterportdb_get_port(filter_portdb(node), filterport_get_property(outp, FILTERPORT_MAP_LABEL)))
+	    || !filterport_is_output(port))
 		return -1;
-	m = (struct filter_network_mapping *)d->priv;
-	if (!(n = filternetwork_get_node(source, m->node)))
-		return -1;
-	p->out_name = m->label;
-	p->source = n;
+	p->source = port;
 
-	return n->filter->connect_out(p->source, p->out_name, p);
+	return node->connect_out(node, port, p);
 }
 
-int filter_network_connect_in(filter_node_t *dest, const char *port,
+int filter_network_connect_in(filter_t *dest, filter_port_t *inp,
 			      filter_pipe_t *p)
 {
-	struct filter_network_mapping *m;
-	filter_node_t *n;
+	filter_port_t *port;
+	filter_t *node;
 
-	m = (struct filter_network_mapping *)p->dest_port->priv;
-	if (!(n = filternetwork_get_node(dest, m->node)))
+	if (!(node = filter_get_node(dest, filterport_get_property(inp, FILTERPORT_MAP_NODE)))
+	    || !(port = filterportdb_get_port(filter_portdb(node), filterport_get_property(inp, FILTERPORT_MAP_LABEL)))
+	    || !filterport_is_input(port))
 		return -1;
-	p->in_name = m->label;
-	p->dest = n;
+	p->dest = port;
 
-	return n->filter->connect_in(p->dest, p->in_name, p);
+	return node->connect_in(node, port, p);
 }
 
-int filter_network_set_param(filter_node_t *node, filter_param_t *param,
+int filter_network_set_param(filter_t *node, filter_param_t *param,
 			     const void *val)
 {
-	filter_node_t *n;
+	filter_t *n;
 	const char *map_node, *map_label;
 	filter_param_t *p;
 
@@ -224,11 +193,11 @@ int filter_network_set_param(filter_node_t *node, filter_param_t *param,
 	if (!map_node || !map_label)
 		return -1;
 
-	if (!(n = filternetwork_get_node(FILTER_NETWORK(node), map_node))) {
+	if (!(n = filter_get_node(node, map_node))) {
 		DPRINTF("No such node %s\n", map_node);
 		return -1;
 	}
-	if (!(p = filterpdb_get_param(filternode_pdb(n), map_label))) {
+	if (!(p = filterparamdb_get_param(filter_paramdb(n), map_label))) {
 		DPRINTF("No such param %s\n", map_label);
 		return -1;
 	}

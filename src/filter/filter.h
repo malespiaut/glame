@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.61 2000/10/10 11:56:15 richi Exp $
+ * $Id: filter.h,v 1.62 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -50,13 +50,7 @@
 
 struct filter;
 typedef struct filter filter_t;
-struct filter_node;
-typedef struct filter_node filter_node_t;
-struct filter_network;
-typedef struct filter_network filter_network_t;
 
-struct filter_portdesc;
-typedef struct filter_portdesc filter_portdesc_t;
 struct filter_pipe;
 typedef struct filter_pipe filter_pipe_t;
 
@@ -65,7 +59,9 @@ typedef struct filter_buffer filter_buffer_t;
 
 
 #include "filter_param.h"
+#include "filter_port.h"
 #include "filterI.h"
+
 
 
 #ifdef __cplusplus
@@ -76,116 +72,116 @@ extern "C" {
  * Filter registry API
  */
 
+#define STATE_UNDEFINED 0
+#define STATE_INITIALIZED 1
+#define STATE_LAUNCHED 2
+#define STATE_RUNNING 3
+struct filter {
+	/* Whats this actually? Can be |ed together. */
+#define FILTERTYPE_NODE 0
+#define FILTERTYPE_NETWORK 1
+#define FILTERTYPE_PLUGIN 2
+	int type;
+
+	/* connectivity in the net - FIXME: rename to parent */
+	filter_t *net;
+        struct hash_head hash;
+	struct list_head list;
+        const char *name;
+
+	/* Filter of which this filter_node is an instance,
+	 * together with a private pointer that can be filled
+	 * in using the filters init() method. */
+
+	/********************** Work in progess start: filter_t */
+	plugin_t *plugin;
+
+	int (*f)(filter_t *);
+
+	int (*init)(filter_t *);
+
+	int (*connect_out)(filter_t *source, filter_port_t *port,
+			   filter_pipe_t *p);
+	int (*connect_in)(filter_t *dest, filter_port_t *port,
+			  filter_pipe_t *p);
+	int (*set_param)(filter_t *n, filter_param_t *param,
+			 const void *val);
+
+	/* input & output specification */
+	filter_portdb_t ports;
+	/* work in progess end. *****************************/
+
+	void *priv;
+
+	/* public state & error string */
+	int glerrno;
+	const char *glerrstr;
+
+	/* signal emitter, known signals are
+	 * GLSIG_NODE_DELETED */
+	glsig_emitter_t emitter;
+
+	/* filter node operations */
+	struct filter_operations *ops;
+
+	/* Parameter database. */
+	filter_paramdb_t params;
+
+	/* private - used by launch_filter_network & friends */
+	int state;
+	pthread_t thread;
+	struct list_head buffers;
+
+	/******************** Work in progress: filter_network_t */
+	/* Stuff used if (type & FILTERTYPE_NETWORK) only. */
+	int nr_nodes;
+	struct list_head nodes;
+	filter_launchcontext_t *launch_context;
+};
+
 
 /* Signals sent out by the filter subsystem:
  * GLSIG_PARAM_CHANGED  - filter_param_t
  * GLSIG_PARAM_DELETED  - filter_param_t
  * GLSIG_PIPE_CHANGED   - filter_pipe_t
  * GLSIG_PIPE_DELETED   - filter_pipe_t
- * GLSIG_NODE_DELETED   - filter_node_t
+ * GLSIG_FILTER_DELETED - filter_t
  */
 #define GLSIG_PARAM_CHANGED 1
 #define GLSIG_PARAM_DELETED 2
 #define GLSIG_PIPE_CHANGED 4
 #define GLSIG_PIPE_DELETED 8
-#define GLSIG_NODE_DELETED 16
-
-
-/* Filter contains the abstract description of a filter and
- * contains a set of methods doing the actual work.
- */
-#define FILTER_FLAG_NETWORK 1
-struct filter {
-	plugin_t *plugin;
-
-	int flags;
-
-	int (*f)(filter_node_t *);
-
-	int (*init)(filter_node_t *);
-
-	int (*connect_out)(filter_node_t *source, const char *port,
-			   filter_pipe_t *p);
-	int (*connect_in)(filter_node_t *dest, const char *port,
-			  filter_pipe_t *p);
-	int (*set_param)(filter_node_t *n, filter_param_t *param,
-			 const void *val);
-
-	/* signal emitter. */
-	glsig_emitter_t emitter;
-
-	/* parameter database - default values. */
-	filter_pdb_t params;
-
-	/* input & output specification */
-	struct list_head inputs;
-	struct list_head outputs;
-
-	void *priv;
-};
-#define filter_nrinputs(f) (list_count(&(f)->inputs))
-#define filter_nroutputs(f) (list_count(&(f)->outputs))
+#define GLSIG_FILTER_DELETED 16
+// FIXME: use it on port/param addition to a filter
+#define GLSIG_FILTER_CHANGED 32
 
 /* Allocates a new filter structure. You have still to
  * fill it (apart from the mandatory f() method). */
-filter_t *filter_alloc(int (*f)(filter_node_t *));
+filter_t *filter_alloc_node(int (*func)(filter_t *));
+filter_t *filter_alloc_network();
+filter_t *filter_clone(filter_t *f);
+filter_t *filter_instantiate(plugin_t *p);
+void filter_delete(filter_t *f);
 
-filter_t *filter_from_network(filter_network_t *net);
-
-filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
+filter_port_t *filter_add_inputport(filter_t *filter, const char *label,
 				    const char *description, int type);
-filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
+filter_port_t *filter_add_outputport(filter_t *filter, const char *label,
 				     const char *description, int type);
 
-void filter_delete_port(filter_t *filter, filter_portdesc_t *port);
-
-/* Filter port declaration. Type denotes the allowed pipe
- * type with FILTER_PORTTYPE_ANY is special in that it
- * accepts all kind of pipes. */
-#define FILTER_PORTTYPE_ANY       0
-#define FILTER_PORTTYPE_SAMPLE    1
-#define FILTER_PORTTYPE_RMS       2
-#define FILTER_PORTTYPE_MIDI      3
-#define FILTER_PORTTYPE_CONTROL   4
-#define FILTER_PORTTYPE_FFT       5
-#define FILTER_PORTS_ARE_COMPATIBLE(port1type, port2type) (((port1type) == (port2type)) || ((port1type) == FILTER_PORTTYPE_ANY) || ((port2type) == FILTER_PORTTYPE_ANY))
-
-/* Public access macros for the filter_portdesc_t structure.
- */
-#define filterportdesc_label(pd) ((pd)->label)
-#define filterportdesc_description(pd) ((pd)->description)
-#define filterportdesc_type(pd) ((pd)->type)
-#define filterportdesc_pdb(pd) (&(pd)->params)
+void filter_delete_port(filter_t *filter, filter_port_t *port);
 
 
 /* Attach a filter to a plugin.
  */
-void filter_attach(filter_t *, plugin_t *);
-
-
-/* Browse/find a input/output port description.
- * filter_portdesc_t *filter_get_inputdesc(filter_t *f, const char *label);
- * filter_foreach_inputdesc(filter_t *f, filter_portdesc_t *d) { }
- * filter_portdesc_t *filter_get_outputdesc(filter_t *f, const char *label);
- * filter_foreach_outputdesc(filter_t *f, filter_portdesc_t *d) { } */
-#define filter_get_inputdesc(f, n) \
-	__hash_entry(_hash_find((n), &(f)->inputs, _hash((n), &(f)->inputs), \
-		     __hash_pos(filter_portdesc_t, hash, label, nmspace)), \
-		     filter_portdesc_t, hash)
-#define filter_foreach_inputdesc(f, d) \
-	list_foreach(&(f)->inputs, filter_portdesc_t, list, d)
-#define filter_get_outputdesc(f, n) \
-	__hash_entry(_hash_find((n), &(f)->outputs, _hash((n), \
-		     &(f)->outputs), __hash_pos(filter_portdesc_t, hash, \
-		     label, nmspace)), filter_portdesc_t, hash)
-#define filter_foreach_outputdesc(f, d) \
-	list_foreach(&(f)->outputs, filter_portdesc_t, list, d)
+void filter_register(filter_t *, plugin_t *);
 
 /* Browse/find a parameter description through the parameter database
  * you can find using
- * gldb_t *filter_pdb(filter_t *f); */
-#define filter_pdb(f) (&(f)->params)
+ * gldb_t *filter_paramdb(filter_t *f); */
+#define filter_paramdb(f) (&(f)->params)
 
+#define filter_portdb(f) (&(f)->ports)
+#define filter_emitter(f) (&(f)->emitter)
 
 
 /*******************************
@@ -198,42 +194,22 @@ void filter_attach(filter_t *, plugin_t *);
  * contains a set of connected filter instances.
  * Public access macros for filter_network_t
  */
-#define filternetwork_nrnodes(net) ((net)->nr_nodes)
+#define filter_nrnodes(net) ((net)->nr_nodes)
 
 /* Browse/find a filter node in a filter network.
- * filternetwork_foreach_node(filter_network_t *net, filter_node_t *n) {}
- * filter_node_t *filternetwork_get_node(filter_network_t *net,
+ * filter_foreach_node(filter_t *net, filter_t *n) {}
+ * filter_t *filter_get_node(filter_t *net,
  *                                       const char *name); */
-#define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, list, node)
-#define filternetwork_get_node(nt, n) __hash_entry(_hash_find((n), (nt), \
-        _hash((n), (nt)), __hash_pos(filter_node_t, hash, name, net)), \
-        filter_node_t, hash)
-
-
-/* Allocate a new filter network and initialize it.
- * Returns a filter network identifier or NULL on OOM. */
-filter_network_t *filternetwork_new();
-
-/* Destroy a filter network. */
-void filternetwork_delete(filter_network_t *net);
+#define filter_foreach_node(net, node) list_foreach(&(net)->nodes, filter_t, list, node)
+#define filter_get_node(nt, n) __hash_entry(_hash_find((n), (nt), \
+        _hash((n), (nt)), __hash_pos(filter_t, hash, name, net)), \
+        filter_t, hash)
 
 
 /* Adds a new instance a filter to the filter network.
  * Returns a filter node identifier or NULL on error. */
-filter_node_t *filternetwork_add_node(filter_network_t *net,
-				      const char *filter, const char *name);
+int filter_add_node(filter_t *net, filter_t *node, const char *name);
 
-/* Remove a filter node from a filter network and destroy it. */
-void filternetwork_delete_node(filter_node_t *node);
-
-
-/* Connects the two ports source_port and dest_port of the
- * filter nodes source and dest.
- * Returns -1 if that is not possible. */
-filter_pipe_t *filternetwork_add_connection(filter_node_t *source,
-					    const char *source_port,
-					    filter_node_t *dest,
-					    const char *dest_port);
 
 /* Removes and destroys a connection from a filter network */
 void filternetwork_break_connection(filter_pipe_t *p);
@@ -241,119 +217,76 @@ void filternetwork_break_connection(filter_pipe_t *p);
 
 /* Launches a set of connected filter instances. Does not start
  * processing of the data. */
-int filternetwork_launch(filter_network_t *net);
+int filter_launch(filter_t *net);
 
 /* Starts or restarts processing of the data. */
-int filternetwork_start(filter_network_t *net);
+int filter_start(filter_t *net);
 
-/* Suspends a running network. Restart via filternetwork_start(). */
-int filternetwork_pause(filter_network_t *net);
+/* Suspends a running network. Restart via filter_start(). */
+int filter_pause(filter_t *net);
 
 /* Waits for the launched network to finish processing.
  * Returns 0 on successful completion or -1 on error
  * (in waiting or processing). */
-int filternetwork_wait(filter_network_t *net);
+int filter_wait(filter_t *net);
 
 /* Kills a launched network aborting all processing. */
-void filternetwork_terminate(filter_network_t *net);
+void filter_terminate(filter_t *net);
 
 
+/* FIXME!!! */
 /* Do wrapping from internal network nodes to external visible
  * ports/parameters */
-filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
+filter_port_t *filternetwork_add_input(filter_t *net,
 		     const char *node, const char *port,
 		     const char *label, const char *desc);
-filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
+filter_port_t *filternetwork_add_output(filter_t *net,
 		      const char *node, const char *port,
 		      const char *label, const char *desc);
-filter_param_t *filternetwork_add_param(filter_network_t *net,
+filter_param_t *filternetwork_add_param(filter_t *net,
 					const char *node, const char *param,
 					const char *label, const char *desc);
-
 /* Delete wrappers to ports/parameters */
-void filternetwork_delete_param(filter_network_t *net, filter_param_t *param);
-void filternetwork_delete_port(filter_network_t *net, filter_portdesc_t *port);
+void filternetwork_delete_port(filter_t *net, filter_port_t *port);
 
 
 /* Filternetwork to scheme code. */
-char *filternetwork_to_string(filter_network_t *net);
+char *filter_to_string(filter_t *net);
 
 
 /* Filter node is an instance of a filter. A filter node
  * is associated with a filter network.
- * Public access macros for the filter_node_t.
- * const char *filternode_name(filter_node_t *n);
- * int filternode_nrinputs(filter_node_t *n);
- * int filternode_nroutputs(filter_node_t *n); */
-#define filternode_name(n) ((n)->name)
-#define filternode_nrinputs(n) ((n)->nr_inputs)
-#define filternode_nroutputs(n) ((n)->nr_outputs)
+ * Public access macros for the filter_t.
+ * const char *filter_name(filter_t *n); */
+#define filter_name(n) ((n)->name)
 
 /* Status quering for filternodes
- * condition -- filternode_has_error(filter_node_t *n)
- * int filternode_errno(filter_node_t *n);
- * const char *filternode_errstr(filter_node_t *n); */
-#define filternode_has_error(n) ((n)->glerrno != 0)
-#define filternode_errstr(n) ((n)->glerrstr)
+ * condition -- filter_has_error(filter_t *n)
+ * int filter_errno(filter_t *n);
+ * const char *filter_errstr(filter_t *n); */
+#define filter_has_error(n) ((n)->glerrno != 0)
+#define filter_errstr(n) ((n)->glerrstr)
 
 /* Status setting (from inside the filter methods)
- * void filternode_set_error(filter_node_t *n, int errno,
+ * void filter_set_error(filter_t *n, int errno,
  *                           const char *errstr); */
-#define filternode_set_error(n, erstr) \
+#define filter_set_error(n, erstr) \
 do { \
        (n)->glerrno = -1; \
        (n)->glerrstr = (erstr); \
 } while (0)
 
-#define filternode_clear_error(n) \
+#define filter_clear_error(n) \
 do { \
         (n)->glerrno = 0; \
         (n)->glerrstr = NULL; \
 } while (0)
 
 
-/* Filternodes connection query/walk.
- * filter_pipe_t *filternode_get_input(filter_node_t *n, const char *label);
- * filter_pipe_t *filternode_next_input(filter_pipe_t *p);
- * filter_pipe_t *filternode_get_output(filter_node_t *n, const char *label);
- * filter_pipe_t *filternode_next_output(filter_pipe_t *p);
- * filternode_foreach_input(filter_node_t *n, filter_pipe_t *p) { }
- * filternode_foreach_output(filter_node_t *n, filter_pipe_t *p) { } */
-#define filternode_get_input(node, n) \
-	__hash_entry(_hash_find((n), &(node)->inputs, _hash((n), \
-                     &(node)->inputs), __hash_pos(filter_pipe_t, \
-                     input_hash, in_name, in_nmspace)), filter_pipe_t, \
-                     input_hash)
-#define filternode_next_input(p) \
-	__hash_entry(_hash_find((p)->in_name, (p)->in_nmspace, \
-                     &(p)->input_hash.next_hash, __hash_pos(filter_pipe_t, \
-                     input_hash, in_name, in_nmspace)), filter_pipe_t, \
-                     input_hash)
-#define filternode_get_output(node, n) \
-	__hash_entry(_hash_find((n), &(node)->outputs, _hash((n), \
-                     &(node)->outputs), __hash_pos(filter_pipe_t, \
-                     output_hash, out_name, out_nmspace)), filter_pipe_t, \
-                     output_hash)
-#define filternode_next_output(p) \
-        __hash_entry(_hash_find((p)->out_name, (p)->out_nmspace, \
-                     &(p)->output_hash.next_hash, __hash_pos(filter_pipe_t, \
-                     output_hash, out_name, out_nmspace)), filter_pipe_t, \
-                     output_hash)
-#define filternode_foreach_input(n, p) \
-	list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)
-#define filternode_foreach_output(n, p) \
-	list_foreach(&(n)->outputs, filter_pipe_t, output_list, p)
-
-/* Filternodes parameter query. Goes through the parameter database
- * which you can get using
- * gldb_t *filternode_pdb(filter_node_t *node); */
-#define filternode_pdb(node) (&(node)->params)
-
-
 
 /* Filter pipes represent a connection between two
  * instances of a filter. This is per filternode port
- * and depends on both filternode ports filter_portdesc.
+ * and depends on both filternode ports filter_port.
  */
 #define FILTER_PIPETYPE_UNDEFINED FILTER_PORTTYPE_ANY
 #define FILTER_PIPETYPE_SAMPLE    FILTER_PORTTYPE_SAMPLE
@@ -377,9 +310,60 @@ do { \
 #define FILTER_SAMPLEPIPE_MORE_LEFT(fp1,fp2) ((fp1)->u.sample.phi<(fp2)->u.sample.phi)
 #define FILTER_SAMPLEPIPE_MORE_RIGHT(fp1,fp2) ((fp1)->u.sample.phi>(fp2)->u.sample.phi)
 
+struct filter_pipe {
+	/* lists - source_list is the list of the source port,
+	 * dest_list is the list of the destination port.
+	 * Note that the destination ports are inputs of the
+	 * associated filters and vice versa. */
+	struct list_head source_list, dest_list;
+
+	/* pipe context - source and destination ports. */
+	filter_port_t *source;
+	filter_port_t *dest;
+
+	/* pipe specific parameters on the source/destination side */
+	filter_paramdb_t source_params;
+	filter_paramdb_t dest_params;
+
+	/* fds used for communication */
+	int source_fd, dest_fd;
+
+	/* Signal emitter. Know signals are
+	 * GLSIG_PIPE_CHANGED
+	 * GLSIG_PIPE_DELETED */
+	glsig_emitter_t emitter;
+
+	/* data type specification */
+	int type;
+	union {
+		struct {
+			int rate; 	/* sample rate, [Hz] */
+			float phi; 	/* polar coordinate, [rad] */
+		} sample;
+		struct{
+			int rate;	/* sample rate, [Hz] */
+			float phi;	/* polar coordinate, [rad] */
+			int bsize;	/* size of single fft-block in half-complex format (see fftw) */
+			int osamp;	/* oversampling factor */
+		} fft;
+		struct {
+			int blocksize;
+		} rms;
+	        struct {
+	                int dummy;
+	        } midi;
+	        struct {
+                        int dummy;
+	        } control;
+	} u;	
+};
+
 /* Public access macros for the filter_pipe_t structure.
  */
 #define filterpipe_type(fp) ((fp)->type)
+#define filterpipe_emitter(fp) (&(fp)->emitter)
+#define filterpipe_source(p) ((p)->source)
+#define filterpipe_dest(p) ((p)->dest)
 
 #define filterpipe_settype_sample(fp, freq, hangle) do { \
 	(fp)->type = FILTER_PIPETYPE_SAMPLE; \
@@ -389,8 +373,8 @@ do { \
 #define filterpipe_sample_rate(fp) ((fp)->u.sample.rate)
 #define filterpipe_sample_hangle(fp) ((fp)->u.sample.phi)
 
-#define filterpipe_sourcepdb(fp) (&(fp)->source_params)
-#define filterpipe_destpdb(fp) (&(fp)->dest_params)
+#define filterpipe_sourceparamdb(fp) (&(fp)->source_params)
+#define filterpipe_destparamdb(fp) (&(fp)->dest_params)
 
 #define filterpipe_settype_fft(fp, freq, hangle, bs, os) do { \
 	(fp)->type = FILTER_PIPETYPE_FFT; \
@@ -404,10 +388,17 @@ do { \
 #define filterpipe_fft_bsize(fp) ((fp)->u.fft.bsize)
 #define filterpipe_fft_osamp(fp) ((fp)->u.fft.osamp)
 
+
+
 /* filter buffer stuff
  */
-/* public access macros to the filter buffer fields.
- */
+struct filter_buffer {
+	struct list_head list;
+        glame_atomic_t refcnt;
+	int size;              /* size of buffer in bytes */
+	char buf[1];
+};
+/* public access macros to the filter buffer fields. */
 #ifndef DEBUG
 #define fbuf_size(fb) ((fb)==NULL ? 0 : (fb)->size)
 #define fbuf_buf(fb) ((fb)==NULL ? NULL : &(fb)->buf[0])
@@ -469,7 +460,7 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
 do { \
         struct sembuf sop; \
 	DPRINTF("%s seems ready for signalling\n", n->name); \
-        filternode_clear_error(n); \
+        filter_clear_error(n); \
         sop.sem_num = 0; \
         sop.sem_op = 1; \
         sop.sem_flg = IPC_NOWAIT; \
@@ -485,13 +476,13 @@ do { \
 
 #define FILTER_ERROR_RETURN(msg) \
 do { \
-        filternode_set_error(n, msg); \
+        filter_set_error(n, msg); \
         return -1; \
 } while (0)
 
 #define FILTER_ERROR_CLEANUP(msg) \
 do { \
-        filternode_set_error(n, msg); \
+        filter_set_error(n, msg); \
         goto _glame_filter_cleanup; \
 } while (0) 
 
@@ -526,15 +517,86 @@ do { \
  */
 #include "filter_tools.h"
 
-
-
-/* FIXME! - temporarily only?
- * Wrappers to old filter API.
+/* Compatibility #defines for old code.
  */
+#ifndef _NO_FILTER_COMPATIBILITY
+#define filter_node_t filter_t
+#define filter_network_t filter_t
+#define filter_portdesc_t filter_port_t
 
-#define filternode_get_param(n, l) filterpdb_get_param(filternode_pdb(n), l)
-#define filterpipe_get_sourceparam(p, l) filterpdb_get_param(filterpipe_sourcepdb(p), l)
-#define filterpipe_get_destparam(p, l) filterpdb_get_param(filterpipe_destpdb(p), l)
+#define GLSIG_NODE_DELETED GLSIG_FILTER_DELETED
+
+#define filter_alloc(f) filter_alloc_node(f)
+#define filter_attach(f, p) filter_register(f, p)
+#define filter_from_network(n) (n)
+#define filter_add_input(f, l, d, t) filter_add_inputport(f, l, d, t)
+#define filter_add_output(f, l, d, t) filter_add_outputport(f, l, d, t)
+
+#define filter_pdb(f) filter_paramdb(f)
+#define filterpdb_add_param_int filterparamdb_add_param_int
+#define filterpdb_add_param_float filterparamdb_add_param_float
+#define filterpdb_add_param_string filterparamdb_add_param_string
+
+#define filterportdesc_pdb(pd) filterport_paramdb(pd)
+
+#define filternode_get_input(n, l) filterport_get_pipe(filterportdb_get_port(filter_portdb(n), l))
+#define filternode_get_output(n, l) filterport_get_pipe(filterportdb_get_port(filter_portdb(n), l))
+#define filternode_next_input(p) list_getnext(&(p)->dest->pipes, p, filter_pipe_t, dest_list)
+#define filternode_next_output(p) list_getnext(&(p)->source->pipes, p, filter_pipe_t, source_list)
+static inline int filternode_nrinputs(filter_t *n)
+{
+	filter_port_t *port;
+	int nr = 0;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
+			nr += filterport_nrpipes(port);
+	}
+	return nr;
+}
+static inline int filternode_nroutputs(filter_t *n)
+{
+	filter_port_t *port;
+	int nr = 0;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_output(port))
+			nr += filterport_nrpipes(port);
+	}
+	return nr;
+}
+
+#define filternode_get_param(n, l) filterparamdb_get_param(filter_paramdb(n), l)
+#define filterpipe_get_sourceparam(p, l) filterparamdb_get_param(filterpipe_sourceparamdb(p), l)
+#define filterpipe_get_destparam(p, l) filterparamdb_get_param(filterpipe_destparamdb(p), l)
+
+#define filternode_set_error(n, erstr) filter_set_error(n, erstr)
+#define filternode_clear_error(n) filter_clear_error(n)
+
+#define filternetwork_new() filter_alloc_network()
+static inline filter_t *filternetwork_add_node(filter_t *net, const char *node, const char *name)
+{
+	filter_t *n;
+
+	if (!(n = filter_instantiate(plugin_get(node)))) {
+		DPRINTF("No plugin %s\n", node);
+		return NULL;
+	}
+	if (filter_add_node(net, n, name) == -1) {
+		filter_delete(n);
+		return NULL;
+	}
+	return n;
+}
+#define filternetwork_delete(net) filter_delete(net)
+#define filternetwork_delete_node(node) filter_delete(node)
+#define filternetwork_launch(net) filter_launch(net)
+#define filternetwork_start(net) filter_start(net)
+#define filternetwork_pause(net) filter_pause(net)
+#define filternetwork_wait(net) filter_wait(net)
+#define filternetwork_terminate(net) filter_terminate(net)
+#define filternetwork_to_string(net) filter_to_string(net)
+#define filternetwork_add_connection(n1, l1, n2, l2) filterport_connect(filterportdb_get_port(filter_portdb(n1), l1), filterportdb_get_port(filter_portdb(n2), l2))
+#define filternetwork_break_connection(p) filterpipe_delete(p)
+#endif /* _NO_FILTER_COMPATIBILITY */
 
 
 #ifdef __cplusplus

@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.13 2000/05/01 11:09:04 richi Exp $
+ * $Id: canvas.h,v 1.14 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -59,7 +59,7 @@ struct _GlameCanvasPort
 	GnomeCanvasRect parent_object;
 	
 	GList *connected_ports;
-	filter_portdesc_t *port;
+	filter_port_t *port;
 	int port_type;
 	
 };
@@ -71,7 +71,7 @@ struct _GlameCanvasPortClass
 };
 
 GtkType glame_canvas_port_get_type(void);
-GlameCanvasPort *glame_canvas_port_new(GnomeCanvasGroup *grp,filter_portdesc_t *port, gdouble x, gdouble y,gdouble width, gdouble height,guint color);
+GlameCanvasPort *glame_canvas_port_new(GnomeCanvasGroup *grp,filter_port_t *port, gdouble x, gdouble y,gdouble width, gdouble height,guint color);
 
 typedef struct _GlameConnection GlameConnection;
 struct _GlameConnection
@@ -148,11 +148,7 @@ gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 
 int add_connection(GlameConnection* c);
 
-static void delete_canvas_item(GlameCanvasItem* it);
-
 void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it);
-
-void connection_break_cb(GtkWidget *bla, GlameConnection* conn);
 
 void update_input_connection(GlameCanvasPort *p,gdouble x, gdouble y);
 void update_output_connection(GlameCanvasPort *p,gdouble x, gdouble y);

@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.6 2000/08/14 08:48:07 richi Exp $
+ * $Id: arithmetic.c,v 1.7 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -45,7 +45,7 @@ PLUGIN_SET(arithmetic, "add mul invert")
  */
 
 
-static int arithmetic_connect_in(filter_node_t *n, const char *port,
+static int arithmetic_connect_in(filter_node_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	/* We support any number of inputs. */
@@ -61,15 +61,18 @@ static int mul_f(filter_node_t *n)
 {
 	nto1_state_t *I;
 	filter_pipe_t *p, *out;
+	filter_port_t *inp, *outp;
 	filter_param_t *pmul, *padd;
 	filter_buffer_t *buf;
 	float cmul, cadd;
 	SAMPLE *s;
 	int nr, nr_active, cnt, i;
 
-	if ((nr = filternode_nrinputs(n)) == 0)
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if ((nr = filterport_nrpipes(inp)) == 0)
 		FILTER_ERROR_RETURN("no inputs");
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
 	cmul = 1.0;
 	if ((pmul = filternode_get_param(n, "factor")))
@@ -81,7 +84,7 @@ static int mul_f(filter_node_t *n)
 	if (!(I = ALLOCN(nr, nto1_state_t)))
 		FILTER_ERROR_RETURN("no memory");
 	i = 0;
-	filternode_foreach_input(n, p) {
+	filterport_foreach_pipe(inp, p) {
 		I[i++].in = p;
 	}
 
@@ -166,15 +169,18 @@ static int add_f(filter_node_t *n)
 {
 	nto1_state_t *I;
 	filter_pipe_t *p, *out;
+	filter_port_t *inp, *outp;
 	filter_param_t *pmul, *padd;
 	filter_buffer_t *buf;
 	float cmul, cadd;
 	SAMPLE *s;
 	int nr, nr_active, cnt, i;
 
-	if ((nr = filternode_nrinputs(n)) == 0)
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if ((nr = filterport_nrpipes(inp)) == 0)
 		FILTER_ERROR_RETURN("no inputs");
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
 	cmul = 1.0;
 	if ((pmul = filternode_get_param(n, "factor")))
@@ -186,7 +192,7 @@ static int add_f(filter_node_t *n)
 	if (!(I = ALLOCN(nr, nto1_state_t)))
 		FILTER_ERROR_RETURN("no memory");
 	i = 0;
-	filternode_foreach_input(n, p) {
+	filterport_foreach_pipe(inp, p) {
 		I[i++].in = p;
 	}
 
@@ -267,12 +273,15 @@ int add_register(plugin_t *p)
 static int invert_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	SAMPLE *s;
 	int cnt;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(inp))
+	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 
 	FILTER_AFTER_INIT;

@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.6 2000/10/09 16:24:03 richi Exp $
+ * $Id: pipe.c,v 1.7 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -102,17 +102,17 @@ static int pipe_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-static int pipe_connect_out(filter_node_t *source, const char *port,
+static int pipe_connect_out(filter_node_t *source, filter_port_t *port,
 			    filter_pipe_t *p)
 {
 	int rate;
 
-	if (filternode_nroutputs(source) > 1)
+	if (filterport_nrpipes(port) > 1)
 		return -1;
 
 	rate = filterparam_val_int(filternode_get_param(source, "rate"));
 
-	if (filternode_nroutputs(source) == 0) {
+	if (filterport_nrpipes(port) == 0) {
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_DEFAULT);
 	} else {
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_RIGHT);

@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.5 2000/10/10 11:56:15 richi Exp $
+ * $Id: filter_param.h,v 1.6 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -59,8 +59,8 @@
  * about its contents. */
 typedef struct {
 	gldb_t db;
-	filter_node_t *node;
-} filter_pdb_t;
+	filter_t *node;
+} filter_paramdb_t;
 
 /* The filter parameter type. You may want to access the
  * signal emitter directly. */
@@ -89,7 +89,7 @@ typedef struct {
 /* Access macros to the various fields of the filter parameter
  * structure. */
 #define filterparam_label(p) ((p)->entry.label)
-#define filterparam_node(p) (((filter_pdb_t *)((p)->entry.db))->node)
+#define filterparam_node(p) (((filter_paramdb_t *)((p)->entry.db))->node)
 
 /* Public access macros for the parameter type and the union
  */
@@ -120,11 +120,15 @@ typedef struct {
 
 /* Stdandard property names - MAP_NODE and MAP_LABEL are for internal
  * use only. The END one is used to finish the varargs list to the
- * filterpdb_add_param*() calls. */
+ * filterparamdb_add_param*() calls. */
 #define FILTERPARAM_DESCRIPTION "_desc"
 #define FILTERPARAM_END NULL
 #define FILTERPARAM_MAP_NODE "_node"
 #define FILTERPARAM_MAP_LABEL "_label"
+
+/* Delete a parameter out of its database. */
+#define filterparam_delete(param) do { if (param) gldb_delete_item(&param->entry); } while (0)
+
 
 
 #ifdef __cplusplus
@@ -154,8 +158,8 @@ char *filterparam_to_string(const filter_param_t *param);
 
 /* The API which handles defining/setting/querying parameters.
  * All this is done using a filter parameter database handle,
- * which you can get using filter_pdb(), filternode_pdb(),
- * filterportdesc_pdb(), filterpipe_sourcepdb() and filterpipe_destpdb().
+ * which you can get using filter_paramdb(), filterport_paramdb(),
+ * filterpipe_sourceparamdb() and filterpipe_destparamdb().
  */
 
 /* To add a new parameter (i.e. define it) use the following function
@@ -165,38 +169,42 @@ char *filterparam_to_string(const filter_param_t *param);
  * into the parameters property database.
  * You have to "finish" the property list by a FILTERPARAM_END argument
  * even if you did not specify any property. */
-filter_param_t *filterpdb_add_param(filter_pdb_t *db, const char *label,
-				    int type, const void *val, ...);
+filter_param_t *filterparamdb_add_param(filter_paramdb_t *db,
+					const char *label,
+					int type, const void *val, ...);
 
-/* To ease the use of the filterpdb_add_param() function with respect to
+/* To ease the use of the filterparamdb_add_param() function with respect to
  * specifying the default parameter value, the following wrappers are
  * provided which take a typed fourth parameter. Nothing else changes. */
-filter_param_t *filterpdb_add_param_int(filter_pdb_t *db, const char *label,
-					int type, int val, ...);
-filter_param_t *filterpdb_add_param_float(filter_pdb_t *db, const char *label,
-					  int type, float val, ...);
-filter_param_t *filterpdb_add_param_string(filter_pdb_t *db, const char *label,
-					   int type, const char *val, ...);
+filter_param_t *filterparamdb_add_param_int(filter_paramdb_t *db,
+					    const char *label,
+					    int type, int val, ...);
+filter_param_t *filterparamdb_add_param_float(filter_paramdb_t *db,
+					      const char *label,
+					      int type, float val, ...);
+filter_param_t *filterparamdb_add_param_string(filter_paramdb_t *db,
+					       const char *label,
+					       int type, const char *val, ...);
 
 /* To query a parameter out of the filter parameter database use the
  * following function. If NULL is returned, the parameter does not exist. */
-filter_param_t *filterpdb_get_param(filter_pdb_t *db, const char *label);
+filter_param_t *filterparamdb_get_param(filter_paramdb_t *db,
+					const char *label);
 
 /* To delete a parameter use the following function. If the paramter
  * does not exist, nothing is done. */
-void filterpdb_delete_param(filter_pdb_t *db, const char *label);
+void filterparamdb_delete_param(filter_paramdb_t *db, const char *label);
 
 /* You can iterate through all parameters of a database using the
  * following iterator (which acts like a for statement with the
  * second parameter as running variable). Note that you may not
- * delete parameters in this loop!
- */
-#define filterpdb_foreach_param(pdb, i) list_foreach(&(pdb)->db.items, \
+ * delete parameters in this loop! */
+#define filterparamdb_foreach_param(pdb, i) list_foreach(&(pdb)->db.items, \
         filter_param_t, entry.list, i)
 
 /* To just query the number of parameters stored in a parameter
  * database use the following function. */
-#define filterpdb_nrparams(pdb) (gldb_nritems(&(pdb)->db))
+#define filterparamdb_nrparams(pdb) gldb_nritems(&(pdb)->db)
 
 
 /* Internal use API. You will never want to use these.
@@ -206,13 +214,13 @@ void filterpdb_delete_param(filter_pdb_t *db, const char *label);
  * the location of the filter methods (via the filter node).
  * node may be NULL if you can ensure filterparam_set*() is
  * never called on one of its items. */
-void filterpdb_init(filter_pdb_t *db, filter_node_t *node);
+void filterparamdb_init(filter_paramdb_t *db, filter_t *node);
 
 /* Delete the database, freeing all its parameters. */
-#define filterpdb_delete(pdb) gldb_delete(&(pdb)->db)
+#define filterparamdb_delete(pdb) gldb_delete(&(pdb)->db)
 
 /* Copy all parameters from one database to another. */
-#define filterpdb_copy(d, s) gldb_copy(&(d)->db, &(s)->db)
+#define filterparamdb_copy(d, s) gldb_copy(&(d)->db, &(s)->db)
 
 
 #ifdef __cplusplus

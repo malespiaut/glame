@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.15 2000/04/25 08:58:00 richi Exp $
+ * $Id: gui.h,v 1.16 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -48,7 +48,7 @@ typedef struct _gui_network {
 	char *caption;
 	char *descr;
 	int iports,oports;
-	filter_network_t * net;
+	filter_t * net;
 	GSList *filters;
 	gboolean paused;
 } gui_network;
@@ -74,7 +74,7 @@ typedef struct _gui_filter {
 	// Filter data here
 	plugin_t * plugin;
 	filter_t * filter;
-	filter_node_t *node;
+	filter_t *node;
 	
 } gui_filter;
 

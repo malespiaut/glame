@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.7 2000/05/25 12:57:08 mainzelm Exp $
+ * $Id: rms.c,v 1.8 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -44,7 +44,9 @@ PLUGIN_SET(rms,"statistic debugrms")
  *   FIXME any speed optimizations welcome :)
  */
  
-static int statistic_connect_out(filter_node_t *n, const char *port, filter_pipe_t *p){
+static int statistic_connect_out(filter_node_t *n, filter_port_t *port,
+				 filter_pipe_t *p)
+{
 	filterpipe_type(p)=FILTER_PIPETYPE_RMS;
 	return 0;
 }

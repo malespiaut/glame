@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.40 2000/10/17 09:07:28 richi Exp $
+; $Id: glame.scm,v 1.41 2000/10/28 13:45:48 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -110,7 +110,7 @@
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node . params)
-    (let ((n (filternetwork_add_node net node "")))
+    (let ((n (filternetwork_add_node net node node)))
       (if (eq? n #f) (begin (display "no node ") 
 			    (display node) 
 			    (newline) 
@@ -521,34 +521,34 @@
 ;
 ; feedback echo2 macro filter
 ;
-;(filternetwork_to_filter
-;	(create-net ((extend "extend")
-;	     (mix2 "mix2")
-;	     (one2n "one2n")
-;	     (delay "delay")
-;	     (va "volume-adjust")) ; nodes
-;	    ((extend "in" "in" "echo source"))                     ; input
-;	    ((one2n "out" "out" "source with echo"))               ; output
-;	    ((delay "delay" "delay" "echo delay"); node param label desc
-;	     (va "factor" "mix" "echo mix ratio")
-;	     (extend "time" "extend" "time to extend")
-;	     (mix2 "gain" "gain" "output gain"))
-;	    (begin (filternode_set_param net "delay" 200)
-;		   (filternode_set_param net "extend" 600)
-;		   (filternode_set_param net "mix" 0.7)
-;		   (nodes-connect (list extend mix2 one2n delay va mix2))))
-;	"echo2" "echo as macro filter")
+(filternetwork_to_filter
+	(create-net ((extend "extend")
+	     (mix2 "mix2")
+	     (one2n "one2n")
+	     (delay "delay")
+	     (va "volume-adjust")) ; nodes
+	    ((extend "in" "in" "echo source"))                     ; input
+	    ((one2n "out" "out" "source with echo"))               ; output
+	    ((delay "delay" "delay" "echo delay"); node param label desc
+	     (va "factor" "mix" "echo mix ratio")
+	     (extend "time" "extend" "time to extend")
+	     (mix2 "gain" "gain" "output gain"))
+	    (begin (filternode_set_param net "delay" 200)
+		   (filternode_set_param net "extend" 600)
+		   (filternode_set_param net "mix" 0.7)
+		   (nodes-connect (list extend mix2 one2n delay va mix2))))
+	"echo2" "echo as macro filter")
 
-;;
-;; mp3 reader using the pipe-in filter and mpg123
-;;
-;(filternetwork_to_filter
-;	(create-net ((p "pipe-in"))
-;	    ()
-;	    ((p "out" "out" "output"))
-;	    ((p "tail" "filename" "filename"))
-;	    (filternode_set_param p "cmd" "mpg123 -q -s "))
-;	"read-mp3" "mp3-reader")
+;
+; mp3 reader using the pipe-in filter and mpg123
+;
+(filternetwork_to_filter
+	(create-net ((p "pipe-in"))
+	    ()
+	    ((p "out" "out" "output"))
+	    ((p "tail" "filename" "filename"))
+	    (filternode_set_param p "cmd" "mpg123 -q -s "))
+	"read-mp3" "mp3-reader")
 
 
 

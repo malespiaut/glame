@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.31 2000/10/09 16:24:03 richi Exp $
+ * $Id: file_io.c,v 1.32 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -214,13 +214,13 @@ static int read_file_f(filter_node_t *n)
 		FILTER_ERROR_RETURN("no outputs");
 	return RWPRIV(n)->rw->f(n);
 }
-static int read_file_connect_out(filter_node_t *n, const char *port,
+static int read_file_connect_out(filter_node_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	/* no reader -> no filename -> some "defaults".
 	 * only allow 2 connections. */
 	if (!RWPRIV(n)->rw) {
-		if (filternode_nroutputs(n) > 1)
+		if (filterport_nrpipes(port) > 1)
 			return -1;
 		filterpipe_settype_sample(p, GLAME_DEFAULT_SAMPLERATE,
 					  FILTER_PIPEPOS_DEFAULT);
@@ -236,6 +236,7 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	filter_param_t *param;
 	filter_node_t *n;
 	filter_pipe_t *p;
+	filter_port_t *port;
 	rw_t *r;
 
 	GLSIGH_GETARGS1(va, param);
@@ -284,12 +285,16 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 
  reconnect:
 	/* re-connect all pipes */
-	filternode_foreach_output(n, p) {
-		if (RWPRIV(n)->rw->connect(n, p) == -1) {
-			filternetwork_break_connection(p);
-			goto reconnect;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
+			continue;
+		filterport_foreach_pipe(port, p) {
+			if (RWPRIV(n)->rw->connect(n, p) == -1) {
+				filternetwork_break_connection(p);
+				goto reconnect;
+			}
+			glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 		}
-		glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 	}
 }
 
@@ -304,7 +309,7 @@ static int write_file_f(filter_node_t *n)
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-static int write_file_connect_in(filter_node_t *n, const char *port,
+static int write_file_connect_in(filter_node_t *n, filter_port_t *port,
 				 filter_pipe_t *p)
 {
 	/* So why is there no write_file_connect_in?? Do we really
@@ -815,6 +820,7 @@ int af_read_f(filter_node_t *n)
 {
 	int frames,i,j;
 	filter_pipe_t *p_out;
+	filter_port_t *port;
 	SAMPLE *s0, *s1;
 	short *b;
 	int fcnt, cnt;
@@ -897,8 +903,12 @@ int af_read_f(filter_node_t *n)
 		for (i=0; i < RWA(n).channelCount; i++)
 			sbuf_queue(RWA(n).track[i].p, RWA(n).track[i].buf);
 	}
-	filternode_foreach_output(n, p_out) 
-		sbuf_queue(p_out, NULL);
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
+			continue;
+		filterport_foreach_pipe(port, p_out)
+			sbuf_queue(p_out, NULL);
+	}
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
@@ -916,6 +926,7 @@ void af_read_cleanup(filter_node_t *n)
 int af_write_f(filter_node_t *n)
 {
 	filter_pipe_t *in;
+	filter_port_t *port;
 	filter_param_t *param;
 	char *filename=NULL;
 	int res=-1;
@@ -935,17 +946,21 @@ int af_write_f(filter_node_t *n)
 		FILTER_ERROR_RETURN("no memory");
 	
 	iass=0;
-	filternode_foreach_input(n, in) {
-		for(iat=0;iat<iass && FILTER_SAMPLEPIPE_MORE_LEFT(RWA(n).track[iat].p,in);iat++);
-		for(i=iass;i>iat;i--)
-			RWA(n).track[i]=RWA(n).track[i-1];
-		RWA(n).track[iat].p=in;
-		if(iass==0)
-			RWA(n).sampleRate=filterpipe_sample_rate(in);
-		else 
-			if (filterpipe_sample_rate(in)!=RWA(n).sampleRate)
-				FILTER_ERROR_RETURN("inconsistent samplerates");
-		iass++;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_output(port))
+			continue;
+		filterport_foreach_pipe(port, in) {
+			for(iat=0;iat<iass && FILTER_SAMPLEPIPE_MORE_LEFT(RWA(n).track[iat].p,in);iat++);
+			for(i=iass;i>iat;i--)
+				RWA(n).track[i]=RWA(n).track[i-1];
+			RWA(n).track[iat].p=in;
+			if(iass==0)
+				RWA(n).sampleRate=filterpipe_sample_rate(in);
+			else 
+				if (filterpipe_sample_rate(in)!=RWA(n).sampleRate)
+					FILTER_ERROR_RETURN("inconsistent samplerates");
+			iass++;
+		}
 	}
 	
 	RWA(n).fsetup=afNewFileSetup();

@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.16 2000/10/09 16:24:02 richi Exp $
+ * $Id: filter_mm.c,v 1.17 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -31,59 +31,27 @@
 #include "filter_mm.h"
 
 
-
-filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
-				   int type, const char *desc)
-{
-	filter_portdesc_t *d;
-
-	if (!(d = ALLOC(filter_portdesc_t)))
-		return NULL;
-	INIT_LIST_HEAD(&d->list);
-	INIT_HASH_HEAD(&d->hash);
-	d->label = strdup(label);
-	d->type = type;
-	d->description = strdup(desc);
-	d->filter = filter;
-	filterpdb_init(&d->params, NULL);
-	if (d->label && d->description)
-		return d;
-
-	free((char *)d->label);
-	free((char *)d->description);
-	free(d);
-	return NULL;
-}
-
-void _portdesc_free(filter_portdesc_t *d)
-{
-	if (!d)
-		return;
-	filterpdb_delete(&d->params);
-	free((char *)d->label);
-	free((char *)d->description);
-	free(d);
-}
+/* "iterator" for filter sub-nodes deletion. */
+#define filter_first_node(net) list_gethead(&(net)->nodes, \
+        filter_t, list)
 
 
-filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
-			   filter_portdesc_t *destport)
+filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
+			   filter_port_t *destport)
 {
 	filter_pipe_t *p;
 
 	if (!(p = ALLOC(filter_pipe_t)))
 		return NULL;
-	INIT_LIST_HEAD(&p->input_list);
-	INIT_HASH_HEAD(&p->input_hash);
-	INIT_LIST_HEAD(&p->output_list);
-	INIT_HASH_HEAD(&p->output_hash);
+	INIT_LIST_HEAD(&p->source_list);
+	INIT_LIST_HEAD(&p->dest_list);
 	p->source_fd = -1;
 	p->dest_fd = -1;
 
 	/* Init & copy of source/dest parameters is delayed!
 	 * -- see filter_network.c::filternetwork_add_connection() */
-	p->source_port = sourceport;
-	p->dest_port = destport;
+	p->source = sourceport;
+	p->dest = destport;
 
 	/* init emitter - redirector installation is delayed!
 	 * -- see filter_network.c::filternetwork_add_connection() */
@@ -101,62 +69,12 @@ void _pipe_free(filter_pipe_t *p)
 	glsig_emit(&p->emitter, GLSIG_PIPE_DELETED, p);
 
 	/* delete source & dest params */
-	filterpdb_delete(&p->source_params);
-	filterpdb_delete(&p->dest_params);
+	filterparamdb_delete(&p->source_params);
+	filterparamdb_delete(&p->dest_params);
 
 	/* delete signal handlers */
-	glsig_delete_all_handlers(&p->emitter);
+	glsig_delete_all(&p->emitter);
 	free(p);
-}
-
-
-filter_t *_filter_alloc(int flags)
-{
-	filter_t *f;
-
-	if (!(f = ALLOC(filter_t)))
-		return NULL;
-	f->plugin = NULL;
-	f->flags = flags;
-	f->f = NULL;
-	f->init = NULL;
-	f->connect_out = filter_default_connect_out;
-	f->connect_in = filter_default_connect_in;
-	f->set_param = filter_default_set_param;
-	if (flags & FILTER_FLAG_NETWORK) {
-		f->f = filter_network_f;
-		f->init = filter_network_init;
-		f->connect_out = filter_network_connect_out;
-		f->connect_in = filter_network_connect_in;
-		f->set_param = filter_network_set_param;
-	}
-	INIT_GLSIG_EMITTER(&f->emitter);
-	filterpdb_init(&f->params, NULL);
-	INIT_LIST_HEAD(&f->inputs);
-	INIT_LIST_HEAD(&f->outputs);
-	f->priv = NULL;
-	return f;
-}
-
-void _filter_free(filter_t *f)
-{
-	filter_portdesc_t *portd;
-
-	if (!f)
-		return;
-	filterpdb_delete(&f->params);
-	while ((portd = filter_first_input_portdesc(f))) {
-		hash_remove_portdesc(portd);
-		list_remove_portdesc(portd);
-		_portdesc_free(portd);
-	}
-	while ((portd = filter_first_output_portdesc(f))) {
-		hash_remove_portdesc(portd);
-		list_remove_portdesc(portd);
-		_portdesc_free(portd);
-	}
-	glsig_delete_all_handlers(&f->emitter);
-	free(f);
 }
 
 
@@ -197,119 +115,147 @@ void _launchcontext_free(filter_launchcontext_t *c)
 }
 
 
-static int _node_init(filter_node_t *n, const char *name)
+/* Allocate pristine filternode/network. */
+filter_t *_filter_alloc(int type)
 {
-	INIT_LIST_HEAD(&n->list);
-	INIT_HASH_HEAD(&n->hash);
-	n->priv = NULL;
-	n->ops = &filter_node_ops;
-	INIT_GLSIG_EMITTER(&n->emitter);
-	filterpdb_init(&n->params, n);
-	n->nr_inputs = 0;
-	INIT_LIST_HEAD(&n->inputs);
-	n->nr_outputs = 0;
-	INIT_LIST_HEAD(&n->outputs);
-	INIT_LIST_HEAD(&n->buffers);
-	if (!(n->name = strdup(name)))
-		return -1;
-	return 0;
+	filter_t *f;
+
+	if (!(f = ALLOC(filter_t)))
+		return NULL;
+
+	f->type = type;
+
+	f->net = NULL;
+	INIT_HASH_HEAD(&f->hash);
+	INIT_LIST_HEAD(&f->list);
+	f->name = NULL;
+
+	f->plugin = NULL;
+	if (type & FILTERTYPE_NETWORK) {
+		f->f = filter_network_f;
+		f->init = NULL;
+		f->connect_out = filter_network_connect_out;
+		f->connect_in = filter_network_connect_in;
+		f->set_param = filter_network_set_param;
+	} else {
+		f->f = NULL;
+		f->init = NULL;
+		f->connect_out = filter_default_connect_out;
+		f->connect_in = filter_default_connect_in;
+		f->set_param = filter_default_set_param;
+	}
+	filterportdb_init(&f->ports, f);
+
+	f->priv = NULL;
+
+	f->glerrno = 0;
+	f->glerrstr = NULL;
+
+	INIT_GLSIG_EMITTER(&f->emitter);
+
+	if (type & FILTERTYPE_NETWORK) {
+		f->ops = &filter_network_ops;
+	} else {
+		f->ops = &filter_node_ops;
+	}
+
+	filterparamdb_init(&f->params, f);
+
+	f->state = STATE_UNDEFINED;
+	INIT_LIST_HEAD(&f->buffers);
+
+	f->nr_nodes = 0;
+	INIT_LIST_HEAD(&f->nodes);
+	f->launch_context = NULL;
+
+	return f;
 }
 
-static void __node_free(filter_node_t *n)
+void _filter_free(filter_t *f)
 {
-	filter_pipe_t *pipe;
+	filter_t *n;
 
-	filterpdb_delete(&n->params);
-	while ((pipe = filternode_first_input(n))) {
-		hash_remove_input(pipe);
-		list_remove_input(pipe);
-		hash_remove_output(pipe);
-		list_remove_output(pipe);
-		_pipe_free(pipe);
-	}
-	while ((pipe = filternode_first_output(n))) {
-		hash_remove_input(pipe);
-		list_remove_input(pipe);
-		hash_remove_output(pipe);
-		list_remove_output(pipe);
-	       	_pipe_free(pipe);
-	}
-
-	glsig_delete_all_handlers(&n->emitter);
-	free((char *)n->name);
-	free(n);
-}
-
-void _node_free(filter_node_t *n)
-{
-	if (!n)
+	if (!f)
 		return;
 
 	/* first signal deletion */
-	glsig_emit(&n->emitter, GLSIG_NODE_DELETED, n);
+	glsig_emit(&f->emitter, GLSIG_FILTER_DELETED, f);
 
-	if (n->filter->flags & FILTER_FLAG_NETWORK)
-		_network_free((filter_network_t *)n);
-	else
-		__node_free(n);
-}
-
-static int _network_init(filter_network_t *net)
-{
-	net->node.ops = &filter_network_ops;
-	net->nr_nodes = 0;
-	INIT_LIST_HEAD(&net->nodes);
-	net->launch_context = NULL;
-	return 0;
-}
-
-void _network_free(filter_network_t *net)
-{
-	filter_node_t *n;
-
-	if (!net)
-		return;
-	while ((n = filternetwork_first_node(net))) {
+	while ((n = filter_first_node(f))) {
 		hash_remove_node(n);
 		list_remove_node(n);
-		_node_free(n);
+		_filter_free(n);
 	}
-	__node_free(&net->node);
+
+	filterportdb_delete(&f->ports);
+	filterparamdb_delete(&f->params);
+
+	glsig_delete_all(&f->emitter);
+	free((char *)f->name);
+
+	free(f);
 }
 
 
-filter_node_t *_filter_instantiate(filter_t *f, const char *name)
+filter_t *_filter_instantiate(filter_t *f)
 {
-	filter_node_t *n;
+	filter_t *n, *node, *source, *dest;
+	filter_pipe_t *pipe, *p;
+	filter_port_t *port;
 
-	if (f->flags & FILTER_FLAG_NETWORK) {
-		if (!(n = FILTER_NODE(ALLOC(filter_network_t))))
-			return NULL;
-	} else {
-		if (!(n = ALLOC(filter_node_t)))
-			return NULL;
+	/* allocate new structure. */
+	if (!(n = _filter_alloc(f->type & ~FILTERTYPE_PLUGIN)))
+		return NULL;
+
+	/* copy all the stuff. */
+	n->name = NULL;
+	n->f = f->f;
+	n->init = f->init;
+	n->connect_out = f->connect_out;
+	n->connect_in = f->connect_in;
+	n->set_param = f->set_param;
+
+	n->priv = f->priv;
+
+	glsig_copy_handlers(&n->emitter, &f->emitter);
+	glsig_copy_redirectors(&n->emitter, &f->emitter);
+	filterparamdb_copy(&n->params, &f->params);
+	filterportdb_copy(&n->ports, &f->ports);
+
+	/* copy nodes */
+	filter_foreach_node(f, node) {
+		if (filter_add_node(n, _filter_instantiate(node), node->name) == -1)
+			goto err;
 	}
 
-	if (_node_init(n, name) == -1)
-		goto err;
-	if (f->flags & FILTER_FLAG_NETWORK)
-		if (_network_init(FILTER_NETWORK(n)) == -1)
-			goto err;
+	/* and connections */
+	/* second create the connections (loop through all outputs)
+	 * and copy pipe parameters */
+	filter_foreach_node(f, node) {
+	    filterportdb_foreach_port(filter_portdb(node), port) {
+		if (!filterport_is_output(port))
+			continue;
+		filterport_foreach_pipe(port, pipe) {
+			source = filter_get_node(n, filterport_filter(filterpipe_source(pipe))->name);
+			dest = filter_get_node(n, filterport_filter(filterpipe_dest(pipe))->name);
+			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), filterport_label(filterpipe_source(pipe))),
+						     filterportdb_get_port(filter_portdb(dest), filterport_label(filterpipe_dest(pipe))))))
+				goto err;
+			filterparamdb_copy(filterpipe_sourceparamdb(p),
+					   filterpipe_sourceparamdb(pipe));
+			filterparamdb_copy(filterpipe_destparamdb(p),
+					   filterpipe_destparamdb(pipe));
+		}
+	    }
+	}
 
-	/* install signal redirector */
-	glsig_add_redirector(&n->emitter, ~0, &f->emitter);
-
-	/* copy params */
-	filterpdb_copy(&n->params, &f->params);
-	n->filter = f;
-
-	if (f->init && f->init(n) == -1)
+	if (n->init && n->init(n) == -1)
 		goto err;
 
 	return n;
 
  err:
-	_node_free(n);
+	_filter_free(n);
 	return NULL;
 }
 

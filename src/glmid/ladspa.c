@@ -46,7 +46,7 @@ static int ladspa_f(filter_node_t * n)
   const LADSPA_Descriptor * psDescriptor;
   LADSPA_PortDescriptor iPortDescriptor;
 
-  psDescriptor = (const LADSPA_Descriptor *)(n->filter->priv);
+  psDescriptor = (const LADSPA_Descriptor *)(n->priv);
   lPortCount = psDescriptor->PortCount;
   if (!lPortCount)
     FILTER_ERROR_RETURN("a LADSPA plugin has no ports");

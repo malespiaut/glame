@@ -132,6 +132,8 @@ int glame_init_with_guile(void (*main)(void))
 #ifdef HAVE_GUILE
 	argv[0] = NULL;
 	argv[1] = (char *)main;
+	/* scm_init_guile();
+	init_after_guile(0, argv); */
 	gh_enter(0, argv, init_after_guile);
 #endif
 

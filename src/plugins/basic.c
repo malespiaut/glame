@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.10 2000/08/14 08:48:07 richi Exp $
+ * $Id: basic.c,v 1.11 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,17 +47,19 @@ static int drop_f(filter_node_t *n)
 {
 	filter_buffer_t *in;
 	filter_pipe_t **inputs, *p;
+	filter_port_t *inp;
 	int active_channels, i, maxfd;
 	fd_set channels;
 
-	if (!(inputs = ALLOCN(filternode_nrinputs(n), filter_pipe_t *)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	if (!(inputs = ALLOCN(filterport_nrpipes(inp), filter_pipe_t *)))
 		FILTER_ERROR_RETURN("no memory");
 
 	/* put all input connections into an easy accessable
 	 * array - we can use it for active connection
 	 * tracking, too. */
 	active_channels = 0;
-	filternode_foreach_input(n, p)
+	filterport_foreach_pipe(inp, p)
 		inputs[active_channels++] = p;
 
 
@@ -69,7 +71,7 @@ static int drop_f(filter_node_t *n)
 		/* wait for pipe activity */
 		FD_ZERO(&channels);
 		maxfd = 0;
-		for (i=0; i<n->nr_inputs; i++)
+		for (i=0; i<filterport_nrpipes(inp); i++)
 			if (inputs[i]) {
 				FD_SET(inputs[i]->dest_fd, &channels);
 				if (inputs[i]->dest_fd > maxfd)
@@ -79,7 +81,7 @@ static int drop_f(filter_node_t *n)
 			continue;
 
 		/* just unref all pending buffers */
-		for (i=0; i<n->nr_inputs; i++)
+		for (i=0; i<filterport_nrpipes(inp); i++)
 			if (inputs[i]
 			    && FD_ISSET(inputs[i]->dest_fd, &channels)) {
 				if (!(in = fbuf_get(inputs[i]))) {
@@ -98,7 +100,7 @@ static int drop_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-static int drop_connect_in(filter_node_t *n, const char *port,
+static int drop_connect_in(filter_node_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
 	/* We accept n connections. */
@@ -137,6 +139,7 @@ static int one2n_f(filter_node_t *n)
 		int fifo_size;
 	} one2n_param_t;
 	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	one2n_param_t *p;
 	int i, res;
@@ -144,15 +147,17 @@ static int one2n_f(filter_node_t *n)
 	fd_set rset, wset;
 	int nrin = 0, nrsel = 0;
 
-	nr = filternode_nroutputs(n);
-	if (!(in = filternode_get_input(n, PORTNAME_IN)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+        outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	nr = filterport_nrpipes(outp);
+	if (!(in = filterport_get_pipe(inp)))
 		FILTER_ERROR_RETURN("no input");
 	if (!(p = ALLOCN(nr, one2n_param_t)))
 	        FILTER_ERROR_RETURN("no memory");
 
 	/* init struct */
 	i = 0;
-	filternode_foreach_output(n, out) {
+	filterport_foreach_pipe(outp, out) {
 		INIT_FEEDBACK_FIFO(p[i].fifo);
 		p[i].fifo_size = 0;
 		p[i++].out = out;
@@ -242,13 +247,13 @@ static int one2n_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-static int one2n_connect_out(filter_node_t *n, const char *port,
+static int one2n_connect_out(filter_node_t *n, filter_port_t *inp,
 			     filter_pipe_t *p)
 {
 	filter_pipe_t *in;
 
 	/* We accept any number of outputs. */
-	if ((in = filternode_get_input(n, PORTNAME_IN))) {
+	if ((in = filterport_get_pipe(inp))) {
 		p->type = in->type;
 		p->u = in->u;
 	}

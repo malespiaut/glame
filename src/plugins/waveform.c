@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.9 2000/05/02 07:46:36 richi Exp $
+ * $Id: waveform.c,v 1.10 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -44,7 +44,7 @@ PLUGIN_SET(waveform, "sine const")
 /* Standard waveform connect_out and fixup_param methods. These honour
  * optional parameters "rate" and "position".
  */
-static int waveform_connect_out(filter_node_t *n, const char *port,
+static int waveform_connect_out(filter_node_t *n, filter_port_t *port,
 				filter_pipe_t *p)
 {
 	filter_param_t *param;

@@ -1,9 +1,7 @@
-
-
 /*
  * canvas_types.c
  *
- * $Id&
+ * $Id: canvas_types.c,v 1.5 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -230,7 +228,7 @@ glame_canvas_new(gui_network *n)
 
 GlameCanvasPort * 
 glame_canvas_port_new(GnomeCanvasGroup *group,
-		      filter_portdesc_t *port,
+		      filter_port_t *port,
 		      gdouble x, gdouble y,
 		      gdouble width, gdouble height,
 		      guint color)

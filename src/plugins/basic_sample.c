@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.16 2000/08/14 08:48:07 richi Exp $
+ * $Id: basic_sample.c,v 1.17 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -74,7 +74,8 @@ static int mix(filter_node_t *n, int drop)
 		float factor;
 	} mix_param_t;
 	mix_param_t *p = NULL;
-	filter_pipe_t  *in, *out;
+	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	int i, res, cnt, icnt;
@@ -88,10 +89,12 @@ static int mix(filter_node_t *n, int drop)
 	/* We require at least one connected input and
 	 * a connected output.
 	 */
-	nr = filternode_nrinputs(n);
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	nr = filterport_nrpipes(inp);
 	if (nr == 0)
 		FILTER_ERROR_RETURN("no inputs");
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
 
 	/* init the structure, compute the needed factors */
@@ -106,7 +109,7 @@ static int mix(filter_node_t *n, int drop)
 	i = 0;
 	cnt = 1<<30;
 	nr_done = 0;
-	filternode_foreach_input(n, in) {
+	filterport_foreach_pipe(inp, in) {
 		p[i].in = in;
 		INIT_FEEDBACK_FIFO(p[i].fifo);
 		p[i].fifo_size = 0;
@@ -408,20 +411,23 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 {
 	filter_param_t *param;
 	filter_pipe_t *in;
+	filter_port_t *inp, *outp;
 	float phi = FILTER_PIPEPOS_DEFAULT;
 	int rate = GLAME_DEFAULT_SAMPLERATE;
 
-	if (!out && !(out = filternode_get_output(n, PORTNAME_OUT)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!out && !(out = filterport_get_pipe(outp)))
 		return 0;
 
 	/* get samplerate & destination phi from inputs
 	 * - rate to max rate of inputs (to allow feedback!)
 	 * - phi either to the common input phi or to
 	 *   the default phi */
-	if ((in = filternode_get_input(n, PORTNAME_IN))) {
+	if ((in = filterport_get_pipe(inp))) {
 		rate = filterpipe_sample_rate(in);
 		phi = filterpipe_sample_hangle(in);
-		filternode_foreach_input(n, in) {
+		filterport_foreach_pipe(inp, in) {
 			if (filterpipe_sample_rate(in) > rate)
 				rate = filterpipe_sample_rate(in);
 			if (filterpipe_sample_hangle(in) != phi)
@@ -441,13 +447,13 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	}
 	return 0;
 }
-static int mix_connect_in(filter_node_t *n, const char *port,
+static int mix_connect_in(filter_node_t *n, filter_port_t *port,
 			  filter_pipe_t *p)
 {
 	/* We accept any number of inputs. */
 	return 0;
 }
-static int mix_connect_out(filter_node_t *n, const char *port,
+static int mix_connect_out(filter_node_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
 	mix_fixup(n, p);
@@ -460,17 +466,19 @@ static void mix_handler(glsig_handler_t *h, long sig, va_list va)
 	filter_param_t *param;
 	filter_pipe_t *in;
 	filter_pipe_t *out;
+	filter_port_t *outp;
 
 	if (sig == GLSIG_PIPE_CHANGED) {
 		GLSIGH_GETARGS1(va, in);
-		n = in->dest;
+		n = filterport_filter(filterpipe_dest(in));
 	} else if (sig == GLSIG_PARAM_CHANGED) {
 		GLSIGH_GETARGS1(va, param);
 		n = filterparam_node(param);
 	} else
 		return;
 
-	if ((out = filternode_get_output(n, PORTNAME_OUT)))
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if ((out = filterport_get_pipe(outp)))
 		mix_fixup(n, out);
 }
 
@@ -557,13 +565,16 @@ int mix2_register(plugin_t *p)
 static int volume_adjust_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *b;
 	float scale;
 	SAMPLE *buf;
 	int cnt;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(inp))
+	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 	scale = filterparam_val_float(filternode_get_param(n, "factor"));
 
@@ -631,11 +642,14 @@ int volume_adjust_register(plugin_t *p)
 static int delay_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	int delay, chunksize;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(inp))
+	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 
 	delay = (int)(filterpipe_sample_rate(in)
@@ -706,11 +720,14 @@ int delay_register(plugin_t *p)
 static int extend_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	int time, chunksize;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(inp))
+	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 
 	time = (int)(filterpipe_sample_rate(in)
@@ -784,12 +801,15 @@ int extend_register(plugin_t *p)
 static int repeat_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
+	filter_port_t *inp, *outp;
 	filter_buffer_t *buf, *buf2;
 	feedback_fifo_t fifo;
 	int duration;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(in = filterport_get_pipe(inp))
+	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 
 	duration = filterpipe_sample_rate(in)*filterparam_val_float(filternode_get_param(n, "duration"));

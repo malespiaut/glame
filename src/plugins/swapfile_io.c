@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.1 2000/10/09 08:41:35 richi Exp $
+ * $Id: swapfile_io.c,v 1.2 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -103,13 +103,13 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
-static int swapfile_in_connect_out(filter_node_t *n, const char *port,
+static int swapfile_in_connect_out(filter_node_t *n, filter_port_t *outp,
 				   filter_pipe_t *p)
 {
 	long fname;
 	swfd_t fd;
 
-	if (filternode_nroutputs(n) > 0)
+	if (filterport_nrpipes(outp) > 0)
 		return -1;
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
 	if (fname != -1) {

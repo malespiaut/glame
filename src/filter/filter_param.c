@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.5 2000/10/09 16:24:02 richi Exp $
+ * $Id: filter_param.c,v 1.6 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -29,7 +29,7 @@
 #define ITEM(p) (&(p)->entry)
 #define PARAM(i) ((filter_param_t *)(i))
 
-static filter_param_t *pdb_alloc_item()
+static filter_param_t *paramdb_alloc_item()
 {
 	filter_param_t *p;
 
@@ -42,7 +42,7 @@ static filter_param_t *pdb_alloc_item()
 	return p;
 }
 
-static void pdb_op_delete(gldb_item_t *item)
+static void paramdb_op_delete(gldb_item_t *item)
 {
 	filter_param_t *p = PARAM(item);
 
@@ -50,18 +50,21 @@ static void pdb_op_delete(gldb_item_t *item)
 	glsig_emit(&p->emitter, GLSIG_PARAM_DELETED, p);
 
 	glsdb_delete(&p->properties);
-	glsig_delete_all_handlers(&p->emitter);
 	if (FILTER_PARAM_IS_STRING(p))
 		free(p->u.string);
+
+	/* Notify the associated filter of the change. */
+	glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
+		   ((filter_paramdb_t *)p->entry.db)->node);
+	glsig_delete_all(&p->emitter);
 }
 
-static gldb_item_t *pdb_op_copy(gldb_item_t *source)
+static gldb_item_t *paramdb_op_copy(gldb_item_t *source)
 {
 	filter_param_t *d;
 	filter_param_t *s = PARAM(source);
-	glsig_handler_t *h;
 
-	if (!(d = pdb_alloc_item()))
+	if (!(d = paramdb_alloc_item()))
 		return NULL;
 	d->type = s->type;
 
@@ -74,46 +77,42 @@ static gldb_item_t *pdb_op_copy(gldb_item_t *source)
 	/* copy property db */
 	glsdb_copy(&d->properties, &s->properties);
 
-	/* copy signal handlers - we do not
-	 * want the source-to-node redirector! */
+	/* copy signal handlers - not the redirectors. */
 	glsig_copy_handlers(&d->emitter, &s->emitter);
-	list_foreach(&d->emitter.handlers, glsig_handler_t, list, h) {
-		if (h->priv == (void *)&((filter_pdb_t *)s->entry.db)->node->emitter) {
-			glsig_delete_handler(h);
-			break;
-		}
-	}
 
 	return ITEM(d);
 }
 
-static int pdb_op_add(gldb_t *db, gldb_item_t *i)
+static int paramdb_op_add(gldb_t *db, gldb_item_t *i)
 {
 	filter_param_t *p = PARAM(i);
 	glsig_handler_t *h;
 
 	/* We can and should not try to do anything with
 	 * items of a db with no node associated. */
-	if (!((filter_pdb_t *)p->entry.db)->node)
+	if (!((filter_paramdb_t *)p->entry.db)->node)
 		return 0;
 
 	/* The task is to fix the signal redirector which
 	 * is probably attached to the item - or just to
 	 * add a new "right" one. */
 	list_foreach(&p->emitter.handlers, glsig_handler_t, list, h) {
-		if (h->priv == (void *)&((filter_pdb_t *)p->entry.db)->node->emitter)
+		if (h->priv == (void *)&((filter_paramdb_t *)p->entry.db)->node->emitter)
 			return 0;
 	}
 	glsig_add_redirector(&p->emitter, ~0,
-			     &((filter_pdb_t *)p->entry.db)->node->emitter);
+			     &((filter_paramdb_t *)p->entry.db)->node->emitter);
 	return 0;
 }
 
-static struct gldb_ops ops = { pdb_op_delete, pdb_op_copy, pdb_op_add };
+static struct gldb_ops ops = { paramdb_op_delete,
+			       paramdb_op_copy,
+			       paramdb_op_add };
 
 
-static filter_param_t *_filterpdb_add_param(filter_pdb_t *db, const char *label,
-					    int type, const void *val, va_list va)
+static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
+						const char *label, int type,
+						const void *val, va_list va)
 {
 	filter_param_t *p;
 	gldb_item_t *i;
@@ -124,7 +123,7 @@ static filter_param_t *_filterpdb_add_param(filter_pdb_t *db, const char *label,
 
 	if ((i = gldb_query_item(&db->db, label)))
 		return NULL;
-	if (!(p = pdb_alloc_item()))
+	if (!(p = paramdb_alloc_item()))
 		return NULL;
 
 	p->type = type;
@@ -139,7 +138,7 @@ static filter_param_t *_filterpdb_add_param(filter_pdb_t *db, const char *label,
 	}
 
 	if (gldb_add_item(&db->db, ITEM(p), label) == -1) {
-		pdb_op_delete(ITEM(p));
+		paramdb_op_delete(ITEM(p));
 		return NULL;
 	}
 
@@ -150,6 +149,10 @@ static filter_param_t *_filterpdb_add_param(filter_pdb_t *db, const char *label,
 		filterparam_set_property(p, key, prop);
 	}
 
+	/* Notify the associated filter of the change. */
+	glsig_emit(&p->emitter, GLSIG_FILTER_CHANGED,
+		   ((filter_paramdb_t *)p->entry.db)->node);
+
 	return p;
 }
 
@@ -158,7 +161,7 @@ static filter_param_t *_filterpdb_add_param(filter_pdb_t *db, const char *label,
 /* API stuff.
  */
 
-void filterpdb_init(filter_pdb_t *db, filter_node_t *node)
+void filterparamdb_init(filter_paramdb_t *db, filter_t *node)
 {
 	gldb_init(&db->db, &ops);
 	db->node = node;
@@ -167,56 +170,61 @@ void filterpdb_init(filter_pdb_t *db, filter_node_t *node)
 
 /* DB part. */
 
-filter_param_t *filterpdb_add_param(filter_pdb_t *db, const char *label,
-				    int type, const void *val, ...)
+filter_param_t *filterparamdb_add_param(filter_paramdb_t *db,
+					const char *label,
+					int type, const void *val, ...)
 {
 	filter_param_t *p;
 	va_list va;
 
 	va_start(va, val);
-	p = _filterpdb_add_param(db, label, type, val, va);
+	p = _filterparamdb_add_param(db, label, type, val, va);
 	va_end(va);
 
 	return p;
 }
-filter_param_t *filterpdb_add_param_int(filter_pdb_t *db, const char *label,
-					int type, int val, ...)
+filter_param_t *filterparamdb_add_param_int(filter_paramdb_t *db,
+					    const char *label,
+					    int type, int val, ...)
 {
 	filter_param_t *p;
 	va_list va;
 
 	va_start(va, val);
-	p = _filterpdb_add_param(db, label, type, &val, va);
+	p = _filterparamdb_add_param(db, label, type, &val, va);
 	va_end(va);
 
 	return p;
 }
-filter_param_t *filterpdb_add_param_float(filter_pdb_t *db, const char *label,
-					  int type, float val, ...)
+filter_param_t *filterparamdb_add_param_float(filter_paramdb_t *db,
+					      const char *label,
+					      int type, float val, ...)
 {
 	filter_param_t *p;
 	va_list va;
 
 	va_start(va, val);
-	p = _filterpdb_add_param(db, label, type, &val, va);
+	p = _filterparamdb_add_param(db, label, type, &val, va);
 	va_end(va);
 
 	return p;
 }
-filter_param_t *filterpdb_add_param_string(filter_pdb_t *db, const char *label,
-					   int type, const char *val, ...)
+filter_param_t *filterparamdb_add_param_string(filter_paramdb_t *db,
+					       const char *label,
+					       int type, const char *val, ...)
 {
 	filter_param_t *p;
 	va_list va;
 
 	va_start(va, val);
-	p = _filterpdb_add_param(db, label, type, val, va);
+	p = _filterparamdb_add_param(db, label, type, val, va);
 	va_end(va);
 
 	return p;
 }
 
-filter_param_t *filterpdb_get_param(filter_pdb_t *db, const char *label)
+filter_param_t *filterparamdb_get_param(filter_paramdb_t *db,
+					const char *label)
 {
 	gldb_item_t *i;
 
@@ -228,7 +236,7 @@ filter_param_t *filterpdb_get_param(filter_pdb_t *db, const char *label)
 	return PARAM(i);
 }
 
-void filterpdb_delete_param(filter_pdb_t *db, const char *label)
+void filterparamdb_delete_param(filter_paramdb_t *db, const char *label)
 {
 	gldb_item_t *i;
 
@@ -269,7 +277,7 @@ int filterparam_set(filter_param_t *param, const void *val)
 
 	/* Then ask the filter about the change.
 	 */
-	if (filterparam_node(param)->filter->set_param(filterparam_node(param), param, val) == -1)
+	if (filterparam_node(param)->set_param(filterparam_node(param), param, val) == -1)
 		return -1;
 
 	/* Finally do the change

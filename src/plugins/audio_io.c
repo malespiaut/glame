@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.23 2000/08/14 08:48:07 richi Exp $
+ * $Id: audio_io.c,v 1.24 2000/10/28 13:45:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -53,17 +53,17 @@ PLUGIN_SET(audio_io, "audio_out audio_in")
  * single (automatic) input port.
  */
 
-static int aio_generic_connect_in(filter_node_t *dest, const char *port,
+static int aio_generic_connect_in(filter_node_t *dest, filter_port_t *inp,
                                   filter_pipe_t *pipe)
 {
 	filter_pipe_t *portishead;
 	
 	/* Limit to stereo output */
-	if (filternode_nrinputs(dest) > 1)
+	if (filterport_nrpipes(inp) > 1)
 		return -1;
 	
 	/* Assert a common sample rate between all input pipes */
-	if ((portishead = filternode_get_input(dest, port)))
+	if ((portishead = filterport_get_pipe(inp)))
 		if (filterpipe_sample_rate(portishead) !=
 		    filterpipe_sample_rate(pipe))
 			return -1;
@@ -74,7 +74,7 @@ static int aio_generic_connect_in(filter_node_t *dest, const char *port,
  * are no input ports and a single (automatic) output port.
  */
 
-static int aio_generic_connect_out(filter_node_t *src, const char *port,
+static int aio_generic_connect_out(filter_node_t *src, filter_port_t *outp,
                                    filter_pipe_t *pipe)
 {
 	filter_param_t *ratep;
@@ -83,7 +83,7 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 	int rate = GLAME_DEFAULT_SAMPLERATE;
 
 	/* Limit to stereo capture */
-	if (filternode_nroutputs(src) > 1)
+	if (filterport_nrpipes(outp) > 1)
 		return -1;
 	
 	/* Check for default rate parameter */
@@ -95,7 +95,7 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 	 * this port to stereo right and the other port to left. We
 	 * default to centre, if we are the only port.
 	 */
-	if ((prev = filternode_get_output(src, port))) {
+	if ((prev = filterport_get_pipe(outp))) {
 		if (!filterpipe_get_sourceparam(prev, "hangle"))
 			filterpipe_sample_hangle(prev) = FILTER_PIPEPOS_LEFT;
 		phi = FILTER_PIPEPOS_RIGHT;
@@ -114,16 +114,21 @@ static void aio_generic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_node_t *src;
 	filter_pipe_t *pipe;
+	filter_port_t *inp;
 	int rate;
 
 	GLSIGH_GETARGS1(va, pipe);
-	src = pipe->dest;
+	src = filterport_filter(filterpipe_dest(pipe));
 	rate = filterpipe_sample_rate(pipe);
 
-	filternode_foreach_input(src, pipe) {
-		if (rate != filterpipe_sample_rate(pipe)) {
-		        filternode_set_error(src, "mismatching input samplerates");
-			return;
+	filterportdb_foreach_port(filter_portdb(src), inp) {
+		if (!filterport_is_input(inp))
+			continue;
+		filterport_foreach_pipe(inp, pipe) {
+			if (rate != filterpipe_sample_rate(pipe)) {
+				filternode_set_error(src, "mismatching input samplerates");
+				return;
+			}
 		}
 	}
 	filternode_clear_error(src);
@@ -137,6 +142,7 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	filter_param_t *param;
 	filter_node_t *n;
 	filter_pipe_t *out;
+	filter_port_t *outp;
 	int rate;
 
 	GLSIGH_GETARGS1(va, param);
@@ -156,7 +162,8 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		rate = filterparam_val_int(param);
 		/* Make sure to update rate param on all pipes
 		 */
-		filternode_foreach_output(n, out) {
+		outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+		filterport_foreach_pipe(outp, out) {
 			if (filterpipe_sample_rate(out) == rate)
 				continue;
 			filterpipe_sample_rate(out) = rate;
