@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.12 2001/10/01 13:02:09 nold Exp $
+ * $Id: atomic.h,v 1.13 2003/04/27 17:53:41 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,13 +27,13 @@
 #include <config.h>
 #endif
 
-#if defined CPU_X86
+#if !defined NO_ASM && defined CPU_X86
 #include "atomic_x86.h"
-#elif defined CPU_MIPS && defined HAVE_MIPS_LL_SC
+#elif !defined NO_ASM && defined CPU_MIPS && defined HAVE_MIPS_LL_SC
 #include "atomic_mips.h"
-#elif defined CPU_PPC
+#elif !defined NO_ASM && defined CPU_PPC
 #include "atomic_ppc.h"
-#elif defined CPU_ALPHA
+#elif !defined NO_ASM && defined CPU_ALPHA
 #include "atomic_alpha.h"
 #else
 /*
@@ -41,81 +41,84 @@
  * If possible, we use the much more efficient assembler versions in 
  * architecture dependent headers. It is highly recommended to drop in
  * an asm version if you port to a new platform. [dk]
+ * We now for space and simplicity reasons use one global mx to protect
+ * atomic counters. Be sure to initialize this object early. [richi]
  */
 
 #include <pthread.h>
 
 
 typedef struct {
-	pthread_mutex_t mx;
 	volatile int	cnt;
 } glame_atomic_t;
 
+/* this is defined in glmid/glmid.c */
+extern pthread_mutex_t glame_atomic_mx;
+
 #define ATOMIC_INIT(a, val) do{ \
-	pthread_mutex_init(&(a).mx, NULL); \
 	(a).cnt = (val); \
 } while(0)
 
-#define ATOMIC_RELEASE(a) pthread_mutex_destroy(&(a).mx)
+#define ATOMIC_RELEASE(a) do {} while (0)
 
 #define ATOMIC_VAL(a) ((a).cnt)
 
 
 static inline void atomic_set(glame_atomic_t *a, int val)
 {
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
 	a->cnt = val;
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 }
 
 static inline int atomic_read(glame_atomic_t *a)
 {
 	int val;
 
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
         val = a->cnt;
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 
 	return val;
 }
 
 static inline void atomic_inc(glame_atomic_t *a)
 {
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
 	a->cnt++;
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 }
 
 static inline void atomic_dec(glame_atomic_t *a)
 {
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
 	a->cnt--;
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 }
 
 static inline int atomic_dec_and_test(glame_atomic_t *a)
 {
 	int val;
 	
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
 	val = --(a->cnt);
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 	
 	return val == 0;
 }
 
 static inline void atomic_add(int val, glame_atomic_t *a)
 {
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
 	a->cnt += val;
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 }
 
 static inline void atomic_sub(int val, glame_atomic_t *a)
 {
-	pthread_mutex_lock(&a->mx);
+	pthread_mutex_lock(&glame_atomic_mx);
 	a->cnt -= val;
-	pthread_mutex_unlock(&a->mx);
+	pthread_mutex_unlock(&glame_atomic_mx);
 }
 
 #endif

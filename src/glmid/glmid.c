@@ -45,6 +45,8 @@
 /* auto-generated builtin register function */
 #include "../plugins/builtins.c"
 
+/* global atomic mx */
+pthread_mutex_t glame_atomic_mx;
 
 
 static int is_scm(const char *fname)
@@ -256,6 +258,9 @@ static void init_after_guile(int argc, char **argv)
 int glame_init(void (*main)(void), int argc, char **argv)
 {
 	sigset_t sset;
+
+	/* global atomic mx */
+	pthread_mutex_init(&glame_atomic_mx, NULL);
 
 	sigemptyset(&sset);
 	sigaddset(&sset, SIGPIPE);
