@@ -43,4 +43,22 @@ struct sbuf_header {
 #define sbuf_queue(p, fb) fbuf_queue(p, fb)
 #define sbuf_pos(fb) (((sbuf_header_t *)fbuf_buf(fb))->pos)
 
+/*
+ * How 'bout some MIDI 
+ */
+
+typedef struct mbuf_header {
+	char buf[0];
+} mbuf_header_t;
+#define mbuf_alloc(nrevents, filternode) \
+        fbuf_alloc(sizeof(midi_event_t*(nrevents) + sizeof(mbuf_header_t), \
+		   &(filternode)->net->launch_context->buffers)
+#define mbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(mbuf_header_t))/sizeof(midi_event_t)
+#define mbuf_buf(fb) ((midi_event_t *)(&((mbuf_header_t *)fbuf_buf(fb))->buf[0]))
+#define mbuf_ref(fb) fbuf_ref(fb)
+#define mbuf_unref(fb) fbuf_unref(fb)
+#define mbuf_make_private(fb) fbuf_make_private(fb)
+#define mbuf_get(p) fbuf_get(p)
+#define mbuf_queue(p, fb) fbuf_queue(p, fb)
+
 #endif
