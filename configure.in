@@ -23,6 +23,7 @@ AC_ARG_ENABLE(gui, [  --enable-gui            GUI - needs recent GTK/GNOME ], gu
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
+AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
 if test $GCC = "yes"; then

@@ -6,7 +6,7 @@ noinst_PROGRAMS = test_network
 noinst_LTLIBRARIES = libbuiltins.la
 
 # put "real" plugins here
-lib_LTLIBRARIES = libecho.la
+lib_LTLIBRARIES = echo.la
 
 # list the builtin ones here
 libbuiltins_la_SOURCES = builtins.c \
@@ -15,10 +15,13 @@ libbuiltins_la_SOURCES = builtins.c \
 	waveform.c \
 	garrison.c nold.c maggy.c \
 	basic_midi.c midi_io.c midi_debug.c
+libbuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 # the plugin rules
-libecho_la_SOURCES = echo.c
-
+echo_la_SOURCES = echo.c
+echo_la_LDFLAGS = -module
 
 test_network_SOURCES = test_network.c
-test_network_LDADD = ../filter/libfilter.la libbuiltins.la ../swapfile/libswapfile.la ../hash/libhash.la ../glmid/libglmid.la -lm -lpthread $(GLAME_DLIBS) $(GLAME_AUDIO_LIBS)
+test_network_LDADD = libbuiltins.la ../glmid/libglame.la \
+	$(GLAME_DLIBS) $(GLAME_AUDIO_LIBS)
+test_network_LDFLAGS = -export-dynamic

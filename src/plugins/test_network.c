@@ -1,6 +1,6 @@
 /*
  * test_network.c
- * $Id: test_network.c,v 1.2 2000/03/15 19:12:51 richi Exp $
+ * $Id: test_network.c,v 1.3 2000/03/16 14:21:37 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include "glame_hash.h"
 #include "filter.h"
+#include "glmid.h"
 
 
 filter_network_t *net = NULL;
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	if (filter_init() == -1) {
+	if (glmid_init(0) == -1) {
 		fprintf(stderr, "error in filter_init()\n");
 		return -1;
 	}

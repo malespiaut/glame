@@ -2,9 +2,12 @@ INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@
 
 EXTRA_DIST = glmid.h glame.scm
 
-noinst_LTLIBRARIES = libglmid.la
+lib_LTLIBRARIES = libglame.la
 data_DATA = glame.scm
 
-libglmid_la_SOURCES = glmid.h glscript.c gltrack.c gltrack.h \
+libglame_la_SOURCES = glmid.h glscript.c gltrack.c gltrack.h \
 	glplugin.c glplugin.h
+libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
+	../glmath/libglmath.la ../hash/libhash.la
+libglame_la_LDFLAGS = $(GUILE_LIBS) -lpthread -lm
 

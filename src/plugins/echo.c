@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.2 2000/03/15 16:29:32 richi Exp $
+ * $Id: echo.c,v 1.3 2000/03/16 14:21:37 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -177,8 +177,6 @@ void *echo_pixmap = NULL;
 int echo_register()
 {
 	filter_t *f;
-
-	DPRINTF("echo_register()\n");
 
 	if (!(f = filter_alloc("echo", "echo effect", echo_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",

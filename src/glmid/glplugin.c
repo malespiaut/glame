@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.2 2000/03/15 16:29:32 richi Exp $
+ * $Id: glplugin.c,v 1.3 2000/03/16 14:21:37 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -63,26 +63,27 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 	if (!(p = ALLOC(plugin_t)))
 		return NULL;
 	INIT_LIST_HEAD(&p->list);
-	
-	if (!(p->handle = dlopen(filename, RTLD_NOW))) {
-	        DPRINTF("plugin open of %s failed.\n", filename);
-		DPRINTF("dlopen error was: %s\n", dlerror());
-		goto err;
+
+	if (filename) {
+		if (!(p->handle = dlopen(filename, RTLD_NOW)))
+			goto err;
+	} else {
+		/* internal plugin */
+		p->handle = dlopen(NULL, RTLD_LAZY);
 	}
 
+	snprintf(s, 255, "%s_register", name);
+	if (!(p->reg_func = dlsym(p->handle, s)))
+		goto err_close;
 	if (!(p->name = strdup(name)))
 		goto err_close;
-
-	snprintf(s, 255, "%s_register", name);
-	p->reg_func = dlsym(p->handle, s);
 	snprintf(s, 255, "%s_pixmap", name);
 	p->pixmap = dlsym(p->handle, s);
 	snprintf(s, 255, "%s_description", name);
 	p->description = dlsym(p->handle, s);
 
-	if (p->reg_func)
-		if (p->reg_func() == -1)
-			goto err_close;
+	if (p->reg_func() == -1)
+		goto err_close;
 	return p;
 
  err_close:
@@ -95,7 +96,7 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 
 plugin_t *plugin_get(const char *name)
 {
-	plugin_t *p;
+	plugin_t *p = NULL;
 	plugin_path_t *path;
 	char filename[256];
 
@@ -106,17 +107,23 @@ plugin_t *plugin_get(const char *name)
 	if ((p = hash_find_plugin(name)))
 		return p;
 
+	/* first try to look for an "in-core" plugin */
+	if ((p = plugin_load(name, NULL)))
+		goto _found;
+
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
-		sprintf(filename, "%s/lib%s.so", path->path, name);
-		if (!(p = plugin_load(name, filename)))
-			continue;
-		hash_add_plugin(p);
-		list_add_plugin(p);
-		return p;
+		sprintf(filename, "%s/%s.so", path->path, name);
+		if ((p = plugin_load(name, filename)))
+			goto _found;
 	}
 
 	return NULL;
+
+_found:
+	hash_add_plugin(p);
+	list_add_plugin(p);
+	return p;
 }
 
 void *plugin_get_symbol(plugin_t *p, const char *symbol)
