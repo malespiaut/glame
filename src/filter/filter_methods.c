@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.23 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_methods.c,v 1.24 2001/01/18 16:02:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -60,6 +60,11 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 		if (filterport_is_input(port))
 			continue;
 		filterport_foreach_pipe(port, out) {
+			/* Dont overwrite "foreign" pipes. */
+			if (out->type != FILTER_PIPETYPE_UNDEFINED
+			    && out->type != in->type)
+				continue;
+			/* Prevent endless pipe change loops. */
 			if (out->type == in->type
 			    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
 				continue;
@@ -95,22 +100,20 @@ int filter_default_connect_out(filter_t *n, filter_port_t *outp,
 		if (filterport_is_output(inp))
 			continue;
 		filterport_foreach_pipe(inp, in) {
-			if (in->type != FILTER_PIPETYPE_UNDEFINED)
-				goto found;
+			/* We may use in to copy pipe properties if
+			 * in has a defined type and the pipe we are
+                         * copying to has the same type or undefined
+                         * type. */
+			if (in->type != FILTER_PIPETYPE_UNDEFINED
+			    && (in->type == p->type
+				|| p->type == FILTER_PIPETYPE_UNDEFINED)) {
+				p->type = in->type;
+				p->u = in->u;
+			}
 		}
 	}
-	return 0;
 
- found:
-	/* If we dont have a pipe type already (still 0), try to guess
-	 * one from the existing input. */
-	if (p->type == FILTER_PIPETYPE_UNDEFINED)
-		p->type = in->type;
-
-	/* A source port has to provide pipe data info,
-	 * we copy from the existing input. */
-	p->u = in->u;
-
+	/* Nothing suitable? Oh well... */
 	return 0;
 }
 
