@@ -3,7 +3,7 @@
 
 /*
  * filter_buffer.h
- * $Id: filter_buffer.h,v 1.9 2002/03/25 13:25:29 richi Exp $
+ * $Id: filter_buffer.h,v 1.10 2004/02/08 22:04:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -68,7 +68,7 @@ static inline char *fbuf_buf(filter_buffer_t *fb)
  * at free time).
  * Until the first time you queue the buffer the buffer is writable
  * i.e. private to you - see fbuf_make_private for further advice. */
-filter_buffer_t *fbuf_alloc(int size, struct glame_list_head *list);
+filter_buffer_t *fbuf_alloc(int size, struct glame_list_head *list) __attribute__((__malloc__));
 
 /* fbuf_realloc can be an optimization if you need to resize an
  * existing buffer. For shrinking an already private buffer it is
@@ -98,7 +98,7 @@ filter_buffer_t *fbuf_try_make_private(filter_buffer_t *fb);
  * Note that if you queue the returned buffer the private
  * status is lost and you may no longer write to it even
  * if you own another reference to it. */
-filter_buffer_t *fbuf_make_private(filter_buffer_t *fb);
+filter_buffer_t *fbuf_make_private(filter_buffer_t *fb) __attribute__((__malloc__));
 
 /* Get (blocking) the next buffer from the input stream. */
 filter_buffer_t *fbuf_get(filter_pipe_t *p);
