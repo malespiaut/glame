@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.56 2005/03/10 21:06:20 richi Exp $
+ * $Id: importexport.c,v 1.57 2005/03/11 17:02:37 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -409,8 +409,7 @@ static void ie_import_mp3(struct imp_s *ie)
 			char errmsg[1024];
 			snprintf(errmsg, 1024, _("Had %i recoverable errors, last was: %s"),
 				 ie->mad_err_cnt, ie->mad_last_err);
-			gnome_dialog_run_and_close(GNOME_DIALOG(
-				gnome_warning_dialog(errmsg)));
+			glame_warning_dialog(errmsg, NULL);
 		}
 	} else {
 		if (!ie->cancelled) {

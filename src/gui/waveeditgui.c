@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.151 2005/03/10 21:08:15 richi Exp $
+ * $Id: waveeditgui.c,v 1.152 2005/03/11 17:02:39 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -544,7 +544,7 @@ static void play_cleanup(glsig_handler_t *handler,
 			if (xruns > 0) {
 				char msg[64];
 				snprintf(msg, 64, "Had %li XRUNs", xruns);
-				gnome_dialog_run_and_close(GNOME_DIALOG(gnome_warning_dialog(msg)));
+				glame_warning_dialog(msg, NULL);
 			}
 		}
 		waveedit->pm_ain = NULL;
