@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.2 2000/02/15 18:41:25 richi Exp $
+ * $Id: filter_mm.c,v 1.3 2000/02/17 16:18:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -280,10 +280,8 @@ void _launchcontext_free(filter_launchcontext_t *c)
 
 	if (!c)
 		return;
-	while ((fb = filterlaunchcontext_first_buffer(c))) {
-		list_remove_buffer(fb);
+	while ((fb = filterlaunchcontext_first_buffer(c)))
 		_buffer_free(fb);
-	}
 	ATOMIC_RELEASE(c->result);
 	semctl(c->semid, 0, IPC_RMID, (union semun)0);
 	free(c);
@@ -330,7 +328,7 @@ static void __node_free(filter_node_t *n)
 		hash_remove_output(pipe);
 		list_remove_output(pipe);
 		pipe->dest->filter->fixup_break_out(pipe->dest, pipe);
-		_pipe_free(pipe);
+	       	_pipe_free(pipe);
 	}
 
 	/* call the cleanup routine, if one provided */
