@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.11 2001/12/10 10:18:03 richi Exp $
+ * $Id: glame_audiofile.c,v 1.12 2001/12/11 21:11:13 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -385,12 +385,13 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 			break;
 		}
 		case 24: {
+			break;
 		}
 		case 32: {
+			break;
 		}
-		case 64: {
 		}
-		}
+		break;
 	}
 	case AF_SAMPFMT_UNSIGNED: {
 		switch (file->width) {
@@ -411,12 +412,13 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 			break;
 		}
 		case 24: {
+			break;
 		}
 		case 32: {
+			break;
 		}
-		case 64: {
 		}
-		}
+		break;
 	}
 	case AF_SAMPFMT_FLOAT: {
 		/* file->width is 32 */
@@ -424,7 +426,7 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 		break;
 	}
 	case AF_SAMPFMT_DOUBLE: {
-		/* file->width is 32 */
+		/* file->width is 64 */
 		int i;
 		double *src = (double *)RWW(file).data;
 		float *dst = (float *)buffer;
