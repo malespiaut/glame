@@ -343,9 +343,8 @@ static void
 gtk_wave_view_update_units (GtkWaveView *waveview)
 {
   GtkAdjustment *adj;
-  gdouble length;
+  gdouble length, rate;
   guint32 width;
-  gdouble mult;
   gint32 j;
 
   adj = GTK_ADJUSTMENT (waveview->adjust);
@@ -361,6 +360,7 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
     }
 
   length = (gdouble) gtk_wave_buffer_get_length (waveview->wavebuffer);
+  rate = (gdouble) gtk_wave_buffer_get_rate (waveview->wavebuffer);
   width = GTK_WIDGET (waveview)->allocation.width;
 
   /* Set scrollbar in pixel units. */
@@ -379,21 +379,15 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
 
   gtk_adjustment_changed (adj);
 
-  /* Scale our values down a few decimal places to keep the ruler happy. */
-  if (waveview->zoom <= 1000.0)
-    mult = 0.01;
-  else
-    mult = 0.00001;
-
   /* This is a bit convoluted, but I want to round the units properly.
      First I convert the sample position to a pel position, and then
      convert it back into a sample position. */
 
   j = -calc_win_pel_pos (waveview, 0);
   gtk_ruler_set_range (GTK_RULER (waveview->hruler),
-                       calc_frame_pos_ext (waveview, j) * mult,
-                       calc_frame_pos_ext (waveview, j + width) * mult,
-                       0.0, 100.0);
+                       calc_frame_pos_ext (waveview, j) / rate,
+                       calc_frame_pos_ext (waveview, j + width) / rate,
+                       0.0, 1000.0);
 }
 
 
