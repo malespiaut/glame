@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(glame, 0.3.6)
+AM_INIT_AUTOMAKE(glame, 0.4.0beta)
 AM_CONFIG_HEADER(config.h)
 
 dnl Pick up additional macros from the macros directory
@@ -12,7 +12,9 @@ dnl
 dnl Switch to configure debugging stuff - sane default for now.
 dnl
 
-AC_ARG_ENABLE(debug, [  --enable-debug          lots of debugging code ], debug=$enableval, debug=1)
+AC_ARG_ENABLE(debug,
+[  --enable-debug          include lots of debugging code 
+  --disable-debug         compile for maximum optimization], debug=$enableval, debug=1)
 if test "$debug" = "no"; then
 	debug=0
 elif test "$debug" = "yes"; then
@@ -24,21 +26,6 @@ elif test $debug -eq 0; then
 	AC_DEFINE(NDEBUG)
 fi
 
-dnl
-dnl Switch to make SAMPLE a double - float is default.
-dnl
-
-AC_ARG_ENABLE(double, [  --enable-double         use double instead of float ], sample=$enableval, sample=float)
-if test "$sample" = "no"; then
-	sample=float
-elif test "$sample" = "yes"; then
-	sample=double
-	AC_MSG_WARN([Using double for SAMPLE which is not supported])
-fi
-if test "$sample" = "float"; then
-	AC_DEFINE(SAMPLE_FLOAT)
-fi
-AC_DEFINE_UNQUOTED(SAMPLE, $sample)
 
 dnl
 dnl Checks for programs.
@@ -49,7 +36,7 @@ AC_PROG_CC
 if test "$GCC" = "yes"; then
 	AC_DEFINE(HAVE_GCC)
 	if test $debug -eq 0; then
-		CFLAGS="-O3 -fomit-frame-pointer -ffast-math -fstrict-aliasing"
+		CFLAGS="-Wall -O3 -fomit-frame-pointer -ffast-math -fstrict-aliasing"
 	elif test $debug -eq 1; then
 		CFLAGS="$CFLAGS -Wall"
 	else
@@ -79,14 +66,42 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
 
+
+dnl
+dnl Switch to make SAMPLE a double - float is default.
+dnl
+
+AC_ARG_ENABLE(double, [  --enable-double         use doubles instead of floats (not recommended)], sample=$enableval, sample=float)
+if test "$sample" = "no"; then
+	sample=float
+elif test "$sample" = "yes"; then
+	sample=double
+	AC_MSG_WARN([Using double for SAMPLE which is not supported])
+fi
+if test "$sample" = "float"; then
+	AC_DEFINE(SAMPLE_FLOAT)
+fi
+AC_DEFINE_UNQUOTED(SAMPLE, $sample)
+
+
 dnl
 dnl Checks for libraries.
 dnl use GLAME_LIBS & GLAME_CFLAGS
 dnl and GLAME_DLIBS & GLAME_DCFLAGS
 dnl
 
+
+
+dnl
+dnl First check all _required_ stuff
+dnl
+
+
+dnl
 dnl pthread lib - GLAME is threaded everywhere, so global
-dnl LIBS and CFLAGS use is ok.
+dnl LIBS and CFLAGS use is necessary
+dnl
+
 ACX_PTHREAD([
 LIBS="$PTHREAD_LIBS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
@@ -97,11 +112,33 @@ AC_ERROR(You need pthreads to run glame!)
 ])
 
 dnl
+dnl GUILE check, we absolutely need it, so fail if its not there
+dnl the check has AM_CONDITIONAL(GUILE, ...) and defines HAVE_GUILE
+dnl
+
+GNOME_CHECK_GUILE("fail")
+
+dnl
+dnl We also need libxml
+dnl
+
+AMG_PATH_XML(1.8.0, , [
+AC_ERROR(You need libxml to run glame!)
+])
+
+
+
+dnl
+dnl The rest is optional stuff
+dnl
+
+
+dnl
 dnl GUI stuff - require GNOME for anything
 dnl
 
 dnl switch to disable gui
-AC_ARG_ENABLE(gui, [  --enable-gui            GUI - needs recent GTK/GNOME ], gui=$enableval, gui=yes)
+AC_ARG_ENABLE(gui, [  --disable-gui           GUI - needs recent GTK/GNOME ], gui=$enableval, gui=yes)
 
 dnl GNOME check
 if test x$gui = xyes; then
@@ -112,11 +149,6 @@ fi
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
 
-dnl
-dnl GUILE check, fail if not there
-dnl the check has AM_CONDITIONAL(GUILE, ...) and defines HAVE_GUILE
-dnl
-GNOME_CHECK_GUILE("fail")
 
 
 dnl
@@ -139,12 +171,6 @@ elif test "$sample" = "double"; then
 fi
 AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
 
-dnl
-dnl libxml check
-dnl
-
-AMG_PATH_XML(1.8.0, have_xml=yes, have_xml=no)
-AM_CONDITIONAL(HAVE_XML, test x$have_xml = xyes)
 
 dnl
 dnl Checks for various audio stuff.
@@ -292,13 +318,7 @@ dnl Disable fast assembler routines, use slower C code instead.
 dnl
 
 AC_ARG_ENABLE(asm,
-[  --enable-asm             enable fast assembler routines ], asm=$enableval, asm=yes)
-AC_ARG_WITH(simd,
-[  --with-simd[=type]       enable/disable/select simd type
-                           (auto, 3dnow, isse1) ], simd=$with_simd, simd=no)
-if test "$simd" = ""; then
-	simd=auto
-fi
+[  --disable-asm           disable fast assembler routines ], asm=$enableval, asm=yes)
 
 dnl special asm code hooks for cpu -- require GCC.
 if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
@@ -307,23 +327,11 @@ if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 		AC_DEFINE(CPU_X86);;
 	mips*)
 		AC_DEFINE(CPU_MIPS);;
+	powerpc)
+		AC_DEFINE(CPU_PPC);;
 	esac
 fi
 
-dnl Checks for subarchitectures
-if test "$simd" = "auto"; then
-	AC_MSG_WARN([Simd type autodetection not implemented])
-fi
-case "$simd" in
-3dnow)
-	AC_MSG_RESULT([Using 3dnow extensions for simd operations])
-	AC_DEFINE(X86_3DNOW);;
-isse1)
-	AC_MSG_RESULT([Using isse1 extensions for simd operations])
-	AC_DEFINE(X86_ISSE1);;
-*)
-	AC_MSG_RESULT([No specialized simd operations available]);;
-esac
 
 
 dnl

@@ -40,10 +40,7 @@
 /* define which cpu you have */
 #undef CPU_X86
 #undef CPU_MIPS
-
-/* specify subarchitecture */
-#undef X86_3DNOW
-#undef X86_ISSE1
+#undef CPU_PPC
 
 /* define which os you use */
 #undef OS_LINUX
