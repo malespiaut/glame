@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.13 2001/03/19 09:18:06 richi Exp $
+ * $Id: gui.c,v 1.14 2001/03/19 13:40:32 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -348,7 +348,7 @@ static cancel_params(GtkWidget* wig,param_callback_t* callback)
 	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_parent_window(wig)));
 }
 
-void
+GtkWidget *
 glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 {
 	GtkWidget *vbox,*entry;
@@ -444,7 +444,6 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
 	gtk_window_set_modal(GTK_WINDOW(propBox),TRUE);
-	gtk_widget_show(propBox);
 	cb = malloc(sizeof(param_callback_t));
 	cb->paramList=list;
 	cb->caption = strdup(caption);
@@ -452,4 +451,5 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",update_params,cb);
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
 	
+	return propBox;
 }

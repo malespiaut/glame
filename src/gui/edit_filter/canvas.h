@@ -4,7 +4,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.13 2001/03/19 09:18:06 richi Exp $
+ * $Id: canvas.h,v 1.14 2001/03/19 13:40:32 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -28,10 +28,6 @@
 
 
 /* FIXME: have one place with a nice, useful external visible API */
-
-/* Browse and edit a parameter database. */
-//void canvas_item_edit_properties(filter_paramdb_t *pdb, const char *caption);
-#define canvas_item_edit_properties glame_gui_filter_properties
 
 gint canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);

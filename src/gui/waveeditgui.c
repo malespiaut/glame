@@ -207,6 +207,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWidget *prop;
 	gint32 start, length;
 	long *names, nrtracks;
 	filter_t *net, *effect;
@@ -221,7 +222,8 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
-	glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
+	prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
+	gnome_dialog_run_and_close(GNOME_DIALOG(prop));
 
 	/* Create the network, add nrtracks instances of swapfile_in -
 	 * effect - swapfile_out. */

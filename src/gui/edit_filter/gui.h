@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.8 2001/03/19 09:18:06 richi Exp $
+ * $Id: gui.h,v 1.9 2001/03/19 13:40:32 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -62,9 +62,10 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 				     void (*gtksighand)(GtkWidget *, plugin_t *));
 
 
-/* Open a property box for changing the paramdb's parameters.
- * FIXME: change to return a gnome-dialog - catch ok/cancel difference. */
-void glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption);
+/* Open a property box for changing the paramdb's parameters. Returns
+ * the widget. */
+GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
+				       const char *caption);
 
 
 
