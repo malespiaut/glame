@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.3 2001/07/31 09:09:28 richi Exp $
+ * $Id: glame_param.c,v 1.4 2001/07/31 09:19:55 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -201,6 +201,11 @@ static gint editable_cb(GtkEditable *edit, GlameParam *gparam)
 	g_free(text);
 
 	return res == 0 ? TRUE : FALSE;
+}
+
+static gint curve_cb(GlameCurve* curve, GlameParam *gparam)
+{
+	DPRINTF("FIXME\n");
 }
 
 static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
@@ -424,8 +429,11 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	else if (GTK_IS_EDITABLE(gparam->u.widget))
 		gtk_signal_connect(GTK_OBJECT(gparam->u.edit), "changed",
 				   (GtkSignalFunc)editable_cb, gparam);
-	else if (GLAME_IS_CURVE(gparam->u.widget))
+	else if (GLAME_IS_CURVE(gparam->u.widget)){
+		gtk_signal_connect(GTK_OBJECT(gparam->u.curve), "curve_changed",
+				   (GtkSignalFunc)curve_cb, gparam);
 		DPRINTF("FIXME\n");
+	}
 	else if (GTK_IS_MENU_SHELL(gparam->u.widget))
 		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
 				   "selection_done",

@@ -4,7 +4,7 @@
 /*
  * glame_curve.h
  *
- * $Id: glame_curve.h,v 1.2 2001/06/22 08:49:33 richi Exp $
+ * $Id: glame_curve.h,v 1.3 2001/07/31 09:19:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -45,6 +45,8 @@ struct _GlameCurve {
 
 struct _GlameCurveClass {
   GtkCurveClass parent_class;
+
+  void (*curve_changed)(GlameCurve *curve);
 };
 
 
