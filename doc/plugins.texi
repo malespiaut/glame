@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.11 2000/04/10 07:43:15 mag Exp $
+@comment $Id: plugins.texi,v 1.12 2000/04/12 09:15:32 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -397,7 +397,8 @@ The plugins @file{mul} and @file{add} perform a simple arithmetic operations
 on several input streams. Basically, @file{mul} multiplies and @file{add}
 sums up any number of input sample streams. Operations are performed
 sample by sample--no check is performed whether sample rates match! 
-If a stream is shorter than others, it is zero-padded internally.
+If a stream is shorter than others, it is zero- (add) or one-padded (mul)
+internally.
 
 Each plugin allows one multiplicative and one additive constant to be
 set. They are interpreted differently for each plugin however, 

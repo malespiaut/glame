@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.6 2000/04/10 12:40:08 richi Exp $
+@comment $Id: cglame.texi,v 1.7 2000/04/12 09:15:32 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -33,7 +33,7 @@ session is showed below.
 @example
 $ cglame
 
-    CGLAME for GLAME version 0.1.31, Copyright (C) 1999, 2000
+    CGLAME for GLAME version 0.2.0, Copyright (C) 1999, 2000
     Alexander Ehlert, Jim Garrison, Richard Guenther, Johannes Hirche,
     Daniel Kobras.
     CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free
@@ -99,8 +99,8 @@ on success or @code{#f} on error. Void functions generally evaluate to
 @deftypefunx ( filternetwork_add_param net-id node-id param-name name description )
 @deftypefunx ( filternetwork_to_string net-id )
 @deftypefunx ( filternode_set_param node-id param-name value )
-@deftypefunx ( filterpipe_set_sourceparam node-id param-name value )
-@deftypefunx ( filterpipe_set_destparam node-id param-name value )
+@deftypefunx ( filterpipe_set_sourceparam pipe-id param-name value )
+@deftypefunx ( filterpipe_set_destparam pipe-id param-name value )
 @code{filternetwork_new} evaluates to a @code{net-id},
 @code{filternetwork_add_node} to a @code{node-id},
 @code{filternetwork_add_connection} to a @code{pipe-id}.
@@ -200,10 +200,23 @@ The following procedures can be customized by defining the
 filters than their default ones which are their names.
 
 @deftypefun ( file-to-track file group track )
-@deftypefunx ( play-track group track )
+Reads a file into the swapfile using @var{group} and @var{track-n} as
+identifiers.
+@end deftypefun
+
+@deftypefun ( play-track group track )
 @deftypefunx ( play-tracks '(group track) ... )
-@deftypefunx ( play filename )
-@deftypefunx ( play-eff filename effect '(effect ("label" value) ...) ... )
-@deftypefunx ( save-eff infile outfile effect '(effect ("label" value) ...) ... )
+Plays one (@code{play-track}) or more (@code{play-tracks}) tracks
+specified by the identifiers @var{group} and @var{track}.
+@end deftypefun
+
+@deftypefun ( play filename )
+Plays the specified file.
+@end deftypefun
+
+@deftypefun ( play-eff filename '(effect ("label" value) ...) ... )
+@deftypefunx ( save-eff infile outfile '(effect ("label" value) ...) ... )
+Plays or saves the specified file after applying the specified chain
+of effects with parameters.
 @end deftypefun
 
