@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.9 2000/02/25 18:14:18 xwolf Exp $
+ * $Id: gui.h,v 1.10 2000/03/15 15:46:59 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -37,6 +37,7 @@
 #endif
 
 #include "filter.h"
+#include "util.h"
 #include <gnome.h>
 #include <libgnomeui/gnome-canvas.h>
 
@@ -122,6 +123,8 @@ int gui_browse_registered_filters(void);
 int gui_filter_init(void);
 
 void edit_paramdesc(gui_filter *f);
+
+
 
 
 // canvas stuff

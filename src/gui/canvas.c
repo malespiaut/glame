@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.8 2000/02/25 18:14:18 xwolf Exp $
+ * $Id: canvas.c,v 1.9 2000/03/15 15:46:59 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -62,6 +62,10 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 			break;
 		case 2:
 					    
+		case 3:
+			edit_canvas_item_properties(it);
+			break;
+
 		default:
 			break;
 		}
@@ -258,6 +262,38 @@ input_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 	return FALSE;
 }
 
+static int
+is_inside(GlameCanvasPort* gport, double x, double y)
+{
+
+	GnomeCanvasRE* port = GNOME_CANVAS_RE(gport);
+	gnome_canvas_item_w2i(port,&x,&y);
+	if((port->x1<=x)&&(port->x2>=x)&&(port->y1<=y)&&(port->y2>=y))
+		return 1;
+	return 0;
+}
+static GlameCanvasPort * 
+find_output_port(GlameCanvas* canvas, double x, double y)
+{
+	GList* litem,*pitem;
+	
+	GlameCanvasPort* ret;
+	litem = g_list_first(GNOME_CANVAS_GROUP(GNOME_CANVAS(canvas)->root)->item_list);
+	while(litem){
+		pitem = g_list_first(((GlameCanvasItem*)litem->data)->input_ports);
+		while(pitem){
+			if(is_inside((GlameCanvasPort*)pitem->data,x,y))
+				return (GlameCanvasPort*)pitem->data;
+			pitem=g_list_next(pitem);
+		}
+		litem=g_list_next(litem);
+	}
+	return NULL;
+}
+		
+
+		
+
 
 static gint
 output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
@@ -266,9 +302,8 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	GnomeCanvasItem *released;
 	GlameCanvasPort *port;
 	double x,y,wx,wy;
-//	gnome_canvas_window_to_world(pitem->canvas,event->button.x,event->button.y,&wx,&wy);
+	//gnome_canvas_window_to_world(pitem->canvas,event->button.x,event->button.y,&x,&y);
 	gnome_canvas_c2w(pitem->canvas,event->button.x,event->button.y,&x,&y);
-
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		if(event->motion.state & GDK_BUTTON1_MASK){
@@ -278,35 +313,46 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 			gnome_canvas_item_set(GNOME_CANVAS_ITEM(item->connection->line),
 					      "points",item->connection->points,
 					      NULL);
+
 		} 
-		
 		return FALSE;
 	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(item),event->button.time);
 		if(item->connecting){
-			released = gnome_canvas_get_item_at(pitem->canvas,x,y);
-			if(GLAME_IS_CANVAS_PORT(released)){
-				fprintf(stderr,"port hit!\n");
-				port = GLAME_CANVAS_PORT(released);
-				if(port->port_type==GUI_PORT_TYPE_IN){
-					fprintf(stderr,"inputport! \n");
-					item->connection->end = port;
-					if(add_connection(item->connection)<0){
+
+			// Why does this not work correctly??   libgnomeui bug??
+			// released = gnome_canvas_get_item_at(pitem->canvas,x,y);
+			released = find_output_port(pitem->canvas,x,y);
+			if(released){
+				if(GLAME_IS_CANVAS_PORT(released)){
+					DPRINTF("port hit!\n");
+					port = GLAME_CANVAS_PORT(released);
+					if(port->port_type==GUI_PORT_TYPE_IN){
+						DPRINTF("inputport! \n");
+						item->connection->end = port;
+						if(add_connection(item->connection)<0){
+							DPRINTF("inner connection failed\n");
+							gtk_object_destroy(GTK_OBJECT(item->connection->line));
+							free(item->connection);	
+						}else{
+							DPRINTF("inner connection succeded!\n");
+						}
+						// connected!!
+					} else {
+						DPRINTF("not inputport! %d %s",port->port_type,filterportdesc_label(port->port));
 						gtk_object_destroy(GTK_OBJECT(item->connection->line));
-						free(item->connection);	
-					}
-					// connected!!
+						free(item->connection);
+					}	
 				} else {
-					gtk_object_destroy(GTK_OBJECT(item->connection->line));
-					free(item->connection);
-				}	
-			} else {
-				
+					DPRINTF("not canvas port %s\n",gtk_type_name(
+						released->object.klass->type));
+					
+				}
+			}else{
 				gtk_object_destroy(GTK_OBJECT(item->connection->line));
 				free(item->connection);
 			}
-			gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(item),event->button.time);
 			item->connecting = FALSE;
-
 		}
 		return FALSE;
 	default:
@@ -390,6 +436,7 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 gint
 handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 {
+	//fprintf(stderr,"%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
 	if((GLAME_CANVAS_ITEM(item))->dragging)
 		image_select(item,event,data);
 	if((GLAME_CANVAS_ITEM(item))->connecting)
@@ -418,7 +465,7 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 					     0xff000090);
 		item->port_type = GUI_PORT_TYPE_IN;
 		(GLAME_CANVAS_ITEM(grp))->input_ports=g_list_append((GLAME_CANVAS_ITEM(grp))->input_ports,item);
-
+//		gnome_canvas_item_raise(GNOME_CANVAS_ITEM(item),9999999);
 		border+=step;
 /*		gtk_signal_connect(GTK_OBJECT(item),
 				   "event",GTK_SIGNAL_FUNC(input_port_select),
@@ -473,15 +520,14 @@ add_connection(GlameConnection *c)
 //	filter_network_t *net=(GLAME_CANVAS(c->begin->canvas))->net->net;
 	
 	// ooooohhh f**k this does not look nice!
-
 	if(!filternetwork_add_connection((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node,
 				     filterportdesc_label(c->begin->port),
 					(GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter->node,
 					filterportdesc_label(c->end->port))){
-		fprintf(stderr,"Connection failed!!\n");
+	  DPRINTF("Connection failed!!\n");
 		return -1;
 	}else {
-		fprintf(stderr,"success!\n");
+		DPRINTF("success!\n");
 	}
 	
 	c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
@@ -518,6 +564,37 @@ update_output_connection(GlameCanvasPort*p, gdouble x, gdouble y)
 		connection = g_list_next(connection);
 	}
 }
+
+
+void
+edit_canvas_item_properties(GlameCanvasItem *item)
+{
+	gui_filter * gfilter = item->filter;
+	void * val;
+	filter_node_t * node = item->filter->node;
+	char *paramName,*paramValue;
+	paramName = malloc(50);
+	paramValue = malloc(50);
+	paramName[0]=paramValue[0]=0;
+	gtk_dialog_cauldron ("Set Value", 0,
+               " ( (Parameter Name:) | %Eod ) / ( (Parameter Value:) | %Ed) / ( %Bgqrxfp || %Bgqxfp ) ",
+                   &paramName,&paramValue, GNOME_STOCK_BUTTON_OK, GNOME_STOCK_BUTTON_CANCEL);
+
+	DPRINTF("%s %s\n",paramName,paramValue);
+	val = filterparamval_from_string(filter_get_paramdesc(gfilter->filter,paramName),paramValue);
+	if(filternode_set_param(node,paramName,val)<0)
+	{
+		fprintf(stderr,"Change failed!\n");
+	}else{
+		fprintf(stderr,"Success\n");
+	}
+	free(paramName);
+	free(paramValue);
+	free(val);
+		
+	
+}
+	
 
 	
 	

@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.6 2000/02/24 17:41:37 xwolf Exp $
+ * $Id: canvas.h,v 1.7 2000/03/15 15:46:59 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -145,6 +145,9 @@ gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
 gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 
 int add_connection(GlameConnection* c);
+
+void edit_canvas_item_properties(GlameCanvasItem *item);
+
 
 void update_input_connection(GlameCanvasPort *p,gdouble x, gdouble y);
 void update_output_connection(GlameCanvasPort *p,gdouble x, gdouble y);
