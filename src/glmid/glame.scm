@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.24 2000/04/10 12:40:08 richi Exp $
+; $Id: glame.scm,v 1.25 2000/04/11 14:38:45 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -70,12 +70,11 @@
 	    (apply node-set-params n params)
 	    n)))))
 
-; (net-add-nodes net "node" '("node" '("param" val)...) ...)
+; (net-add-nodes net '("node" '("param" val)...) ...)
 (define net-add-nodes
   (lambda (net . nodes)
     (if (null? nodes) '()
-	(let* ((n (if (list? (car nodes)) (apply net-add-node net (car nodes))
-		      (net-add-node net (car nodes))))
+	(let* ((n (apply net-add-node net (car nodes)))
 	       (nn (if (eq? n #f) #f (apply net-add-nodes net (cdr nodes)))))
 	  (if (eq? n #f) #f
 	      (if (eq? nn #f)
@@ -201,9 +200,8 @@
 ;
 ; play a file with automagically determining #channels _and_
 ; applying a chain of effects (with an optional list of parameters applied to each)
-; (play-eff "test.wav" "echo")
-; (play-eff "test.wav" '("echo" '("time" 500)))
-; (play-eff "test.wav" "echo" '("iir" '("attack" 100)))
+; (play-eff "test.wav" '("echo"))
+; (play-eff "test.wav" '("echo") '("iir" '("attack" 100)))
 ;
 
 (define play-eff
