@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.3 2000/02/07 10:32:05 richi Exp $
+ * $Id: echo.c,v 1.4 2000/02/07 12:43:11 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -67,6 +67,8 @@ static int echo_f(filter_node_t *n)
 		return -1;
 	}
 
+	FILTER_AFTER_INIT;
+
 	memset(ring,0,bufsiz*sizeof(SAMPLE));
 	ringp=0;
 	bin=sbuf_get(in);
@@ -98,6 +100,9 @@ static int echo_f(filter_node_t *n)
 	}
 	sbuf_queue(out,bout);
 	sbuf_queue(out,NULL);
+
+	FILTER_BEFORE_CLEANUP;
+	free(ring);
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.10 2000/02/07 10:32:05 richi Exp $ 
+ * $Id: read_file.c,v 1.11 2000/02/07 12:43:11 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -60,13 +60,13 @@ static int read_file_f(filter_node_t *n)
 	double sampleRate;
 	int sclfak;
 
-	printf("read-file started!\n");
+	DPRINTF("read-file started!\n");
 
 	left = hash_find_output("left_out",n);
 	right = hash_find_output("right_out",n);
 
 	if (!left || !right){
-		printf("Couldn't find channels!\n");
+		DPRINTF("Couldn't find channels!\n");
 		return -1;
 	}
 
@@ -173,10 +173,10 @@ static int read_file_f(filter_node_t *n)
 	free(buffer);
 	afCloseFile(file);
 	
-	printf("sent %d buffers\n",sent);
+	DPRINTF("sent %d buffers\n",sent);
 	return 0;
 _bailout:
-	printf("read-file bailout!\n");
+	DPRINTF("read-file bailout!\n");
 	afCloseFile(file);
 	return -1;
 }
