@@ -939,16 +939,28 @@ static GnomeUIInfo rmb_menu[] = {
 static int choose_effects(plugin_t *plugin)
 {
 	filter_t *filter;
+	filter_port_t *port;
 	char *cat;
+	int in = 0, out = 0;
 
 	/* Only use filters. */
 	if (!(filter = plugin_query(plugin, PLUGIN_FILTER)))
 		return 0;
 
-	/* We need "in" and "out" ports. */
-	if (!filterportdb_get_port(filter_portdb(filter), PORTNAME_IN)
-	    || !filterportdb_get_port(filter_portdb(filter), PORTNAME_OUT))
+	/* We need input and output port(s) of the same count, if
+         * greater than one it needs to match the channel count. */
+	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (!FILTER_PORTS_ARE_COMPATIBLE(filterport_type(port), FILTER_PORTTYPE_SAMPLE))
+			return 0;
+		if (filterport_is_input(port))
+			in++;
+		if (filterport_is_output(port))
+			out++;
+	}
+	if (in == 0 || out == 0 || in != out
+	    || (in > 1 && in != gtk_wave_buffer_get_num_channels(gtk_wave_view_get_buffer(GTK_WAVE_VIEW(active_waveedit->waveview)))))
 		return 0;
+
 	/* We dont like plugin categories "Routing". */
 	if (!(cat = plugin_query(plugin, PLUGIN_CATEGORY))
 	    || (strcmp(cat, "Routing") == 0))
@@ -1236,7 +1248,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * A frame is equal to n samples at one point in time
 	 * where n = number of channels. */
 	gtk_wave_view_set_zoom (GTK_WAVE_VIEW(window->waveview), 50);
-
+	gtk_wave_view_set_marker_scrolling_boundaries(GTK_WAVE_VIEW(window->waveview), 0.5, 0.5);
 	/* Set the cache size to hold 8192 pixel columns of data.
 	 * This means the user can scroll the widget's contents
 	 * back and forth and we will cache the most recently
