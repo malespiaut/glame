@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.26 2000/12/11 13:15:22 richi Exp $
+@comment $Id: filter.texi,v 1.27 2001/01/03 09:28:38 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -817,18 +817,34 @@ and the @code{GLSIG_FILTER_DELETED} signal.
 @subsection Doing Real Work
 
 Now what to do inside the @code{f()} method? Receiving, modifying, creating, and
-forwarding streams of data which are grouped into buffers is the answer. 
+forwarding streams of data which are grouped into buffers is the answer.
+Buffers generally can be in two states - private and shared. A shared buffer is
+one with possible greater than one references. Once you send out a buffer possible
+new references appear and you have to reconsider the state.
 This leads us to the filter buffer API. A filter buffer is obtained using 
 one of the following functions:
 
 @tindex filter_buffer_t
-@tindex filter_node_t
 @deftypefun {filter_buffer_t *} fbuf_alloc (int @var{size}, struct list_head *@var{list})
 @code{fbuf_alloc()} will allocate a new buffer with space for @var{size}
 bytes. The list parameter is to 
 keep track of allocated buffers for cleanup after failures. You may want to
 supply @code{&n->launch_context->buffers} for @var{list}.
 This function can return @code{NULL} if the system is short on memory.
+@end deftypefun
+
+@tindex filter_buffer_t
+@deftypefun {filter_buffer_t *} fbuf_realloc (filter_buffer_t *@var{fb}, int @var{size})
+@code{fbuf_realloc()} lets you change the size of the buffer @var{fb} to @var{size}. This ensures
+the buffer is private first (as changing the size is only allowed for private buffers)
+and if needed copies the buffer. This checking and copying is optimized into one function,
+so you really should use it if you need to. But beware - needing @code{fbuf_realloc()}
+is a sign of a badly coded algorithm. Its probably only a good idea to use it if it gets
+called on special cases and makes the code a lot simpler. The only really fast path is
+shrinking an already private buffer.
+This function can return @code{NULL} if the system is short on memory in which case the
+provided buffer @var{fb} is not modified. On success a reference to the realloced buffer
+is returned and the provided buffer @var{fb} looses one reference.
 @end deftypefun
 
 @tindex filter_buffer_t

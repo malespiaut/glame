@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.23 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_buffer.c,v 1.24 2001/01/03 09:28:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -32,6 +32,12 @@
 #include "filter_pipe.h"
 #include "filter_buffer.h"
 
+/* FIXME! Either we need all callers of fbuf_unref, fbuf_alloc and
+ * fbuf_realloc lock against concurrent access to the list passed to
+ * fbuf_alloc or we need to lock ourselves (probably using a global
+ * mutex). Done.
+ */
+static pthread_mutex_t listmx = PTHREAD_MUTEX_INITIALIZER;
 
 void fbuf_ref(filter_buffer_t *fb)
 {
@@ -52,7 +58,11 @@ void fbuf_unref(filter_buffer_t *fb)
 		DERROR("unrefing buffer without a reference");
 
 	if (atomic_dec_and_test(&fb->refcnt)) {
-		list_del(&fb->list);
+	    	if (!list_empty(&fb->list)) {
+	    		pthread_mutex_lock(&listmx);
+			list_del(&fb->list);
+			pthread_mutex_unlock(&listmx);
+		}
 		ATOMIC_RELEASE(fb->refcnt);
 		free(fb);
 	}
@@ -68,10 +78,60 @@ filter_buffer_t *fbuf_alloc(int size, struct list_head *list)
 	fb->size = size;
 	ATOMIC_INIT(fb->refcnt, 1);
 	INIT_LIST_HEAD(&fb->list);
-	if (list)
+	if (list) {
+	    	pthread_mutex_lock(&listmx);
 		list_add(&fb->list, list);
+	    	pthread_mutex_unlock(&listmx);
+	}
 
 	return fb;
+}
+
+filter_buffer_t *fbuf_realloc(filter_buffer_t *fb, int size)
+{
+    	filter_buffer_t *newfb;
+	struct list_head *list = NULL;
+
+	if (!fb)
+	    	return NULL;
+
+	if ((ATOMIC_VAL(fb->refcnt) == 1) && (size <= fb->size)) {
+	    	fb->size = size;
+		return fb;
+	}
+
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+	    	DERROR("trying to realloc a buffer without a reference");
+
+	if (ATOMIC_VAL(fb->refcnt) == 1) {
+		if (!list_empty(&fb->list)) {
+	    		pthread_mutex_lock(&listmx);
+	   		list = fb->list.prev;
+	    		list_del(&fb->list);
+		}
+	    	ATOMIC_RELEASE(fb->refcnt);
+	    	if (!(newfb = realloc(fb, sizeof(filter_buffer_t) + size))) {
+		    	ATOMIC_INIT(fb->refcnt, 1);
+			if (list) {
+				list_add(&fb->list, list);
+				pthread_mutex_unlock(&listmx);
+			}
+		    	return NULL;
+		}
+		ATOMIC_INIT(newfb->refcnt, 1);
+		if (list) {
+			list_add(&newfb->list, list);
+			pthread_mutex_unlock(&listmx);
+		}
+	} else {
+	    	if (!(newfb = fbuf_alloc(size, &fb->list)))
+		    	return NULL;
+		memcpy(fbuf_buf(newfb), fbuf_buf(fb), fbuf_size(fb));
+		fbuf_unref(fb);
+	}
+	newfb->size = size;
+
+	return newfb;
 }
 
 filter_buffer_t *fbuf_try_make_private(filter_buffer_t *fb)
@@ -194,6 +254,7 @@ void fbuf_drain(filter_pipe_t *p)
 		;
 }
 
+/* Externally locked against concurrent access of list. */
 void fbuf_free_buffers(struct list_head *list)
 {
 	filter_buffer_t *fb;

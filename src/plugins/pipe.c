@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.13 2000/12/22 10:46:53 richi Exp $
+ * $Id: pipe.c,v 1.14 2001/01/03 09:28:38 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,8 +26,12 @@
  * - pipe-inout [not implemented]
  */
 
+#define _USE_BSD
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,13 +46,11 @@ PLUGIN_SET(pipe, "pipe_in pipe_out")
 /* Helper for experimenting with hand-crafted pipes,
  * to fix brokeness of this f****** pthreads library
  */
-static int popen2(const char *command, FILE **in, FILE **out)
+static pid_t popen2(const char *command, FILE **in, FILE **out)
 {
 	char cmd[4096], *p, *argv[32];
 	int infd[2], outfd[2], argc;
-
-	/* "serialize" this a bit... - uh oh :/ */
-	sleep(5);
+	pid_t pid;
 
 	if (in && pipe(infd) == -1)
 		return -1;
@@ -69,14 +71,13 @@ static int popen2(const char *command, FILE **in, FILE **out)
 	argv[argc] = NULL;
 
 	DPRINTF("Issuing fork()\n");
-	if (/*__libc_*/fork() == 0) {
+	if ((pid = /*__libc_*/fork()) == 0) {
 		DPRINTF("(CHILD)\n");
 		/* Child. */
 		if (in)
 			dup2(infd[0], 0);
 		if (out)
 			dup2(outfd[1], 1);
-		DPRINTF("(CHILD) issuing execvp(%s)\n", argv[0]);
 		execvp(argv[0], argv);
 		exit(1);
 	}
@@ -87,7 +88,7 @@ static int popen2(const char *command, FILE **in, FILE **out)
 	if (out)
 		*out = fdopen(outfd[0], "r");
 
-	return 0;
+	return pid;
 
  err:
 	if (in)
@@ -106,6 +107,7 @@ static int pipe_in_f(filter_t *n)
 	FILE *p;
 	char cmd[256], *s;
 	int res, q;
+	pid_t pid;
 	
 	if (!(lout = filternode_get_output(n, PORTNAME_OUT))
 	    || !(s = filterparam_val_string(filternode_get_param(n, "cmd"))))
@@ -120,9 +122,9 @@ static int pipe_in_f(filter_t *n)
 	if ((s = filterparam_val_string(filternode_get_param(n, "tail"))))
 		strncat(cmd, s, 255);
 
-	popen2(cmd, NULL, &p);
-	/* if (!(p = popen(cmd, "r")))
-	   FILTER_ERROR_RETURN("popen failed"); */
+	if ((pid = popen2(cmd, NULL, &p)) == -1)
+	/* if (!(p = popen(cmd, "r"))) */
+	   FILTER_ERROR_RETURN("popen failed"); 
 	b = (short *)malloc(q*4096);
 
 	FILTER_AFTER_INIT;
@@ -156,6 +158,10 @@ static int pipe_in_f(filter_t *n)
 	FILTER_BEFORE_CLEANUP;
 
 	fclose(p); /* pclose(p); */
+	DPRINTF("killing child\n");
+	kill(pid, SIGKILL);
+	DPRINTF("wait4() result is %i\n",
+	        wait4(pid, NULL, WNOHANG, NULL));
 	free(b);
 
 	FILTER_RETURN;
@@ -248,6 +254,7 @@ static int pipe_out_f(filter_t *n)
 	FILE *p;
 	char cmd[256], *s;
 	int res = 1, q, nr, nr_active, cnt, ccnt, i;
+	pid_t pid;
 
 	/* Get the pipes. */
 	port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
@@ -274,9 +281,9 @@ static int pipe_out_f(filter_t *n)
 		} else
 			strcat(cmd, tail);
 	}
-	popen2(cmd, &p, NULL);
-	/* if (!(p = popen(cmd, "w")))
-	   FILTER_ERROR_RETURN("popen failed"); */
+	if ((pid = popen2(cmd, &p, NULL)) == -1)
+	/* if (!(p = popen(cmd, "w"))) */
+	   FILTER_ERROR_RETURN("popen failed");
 
 	b = malloc(q*GLAME_WBUFSIZE);
 
@@ -318,6 +325,8 @@ static int pipe_out_f(filter_t *n)
 	FILTER_BEFORE_CLEANUP;
 
 	fclose(p); /* pclose(p); */
+	kill(pid, SIGKILL);
+	wait4(pid, NULL, WNOHANG, NULL);
 	free(b);
 	nto1_cleanup(I);
 
