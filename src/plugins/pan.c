@@ -160,6 +160,7 @@ int pan_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Orientation");
 		
 	filter_register(f, p);
 	

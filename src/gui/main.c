@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.41 2001/04/24 11:05:23 richi Exp $
+ * $Id: main.c,v 1.42 2001/04/24 15:53:40 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -56,7 +56,7 @@ static void load_plugin_cb(GtkWidget* foo, void *bar);
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM_STOCK(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -70,6 +70,7 @@ static GnomeUIInfo filter_menu_uiinfo[] = {
 
 static GnomeUIInfo help_menu_uiinfo[] =
 {
+	GNOMEUIINFO_ITEM_DATA("Help","Opens a gnome help browser",gnome_help_goto,"info:glame",NULL),
 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
 	GNOMEUIINFO_END
 };

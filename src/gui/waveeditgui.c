@@ -856,6 +856,11 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	filter_delete(net);
 }
 
+static wave_help(GtkWidget *foo, void*bar)
+{
+	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
+}
+
 static GnomeUIInfo view_menu[] = {
 	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
 	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
@@ -890,6 +895,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Help","help",wave_help,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };

@@ -1,6 +1,6 @@
 /*
  * rms.c
- * $Id: rms.c,v 1.11 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: rms.c,v 1.12 2001/04/24 15:53:40 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -159,6 +159,7 @@ int statistic_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Calculates RMS, RMS in window & DC-Offset");
 	plugin_set(p, PLUGIN_PIXMAP, "statistic.xpm");
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH,"The_Sample_Analyst");
 	filter_register(f,p);
 
 	return 0;
@@ -216,6 +217,7 @@ int debugrms_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Eats rms buffers and shows debug output");
 	plugin_set(p, PLUGIN_PIXMAP, "debug.xpm");
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH,"The_Sample_Analyst");
 
 	filter_register(f, p);
 	
