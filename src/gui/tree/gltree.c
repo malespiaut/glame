@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.2 2004/06/30 19:42:30 ochonpaul Exp $
+ * $Id: gltree.c,v 1.3 2004/07/08 20:20:27 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -40,13 +40,16 @@ static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 static void edit_wave_cb(GtkWidget *, gpointer);
 static void timeline_cb(GtkWidget *, gpointer);
 static void delete_cb(GtkWidget * menuitem, gpointer treeview);
+static void group_cb(GtkWidget * menuitem, gpointer treeview);
 static void file_property_cb(GtkWidget * menuitem, gpointer treeview);
 static void group_property_cb(GtkWidget * menuitem, gpointer treeview);
 static void addgroup_cb(GtkWidget * menuitem, gpointer treeview);
 static void addfile_cb(GtkWidget *menu, gpointer treeview);
 static void addstereo_cb(GtkWidget *menu,  gpointer treeview);
 static void addclipboard_cb(GtkWidget * menu, gpointer treeview);
+static void linkselected_cb(GtkWidget * menu, gpointer treeview);
 static void mergeparent_cb(GtkWidget *menu, gpointer which);
+static void flatten_cb(GtkWidget *menu, gpointer which);
 static void copyselected_cb(GtkWidget *menu, gpointer which);
 static void import_cb(GtkWidget *menu, gpointer treeview);
 static void export_cb(GtkWidget *bla, gpointer treeview); 
@@ -164,17 +167,17 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) file_property_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	menuitem = gtk_menu_item_new_with_label(_("Timeline"));
-	g_signal_connect(menuitem, "activate",
-			 (GCallback) timeline_cb, which);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
-
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
 	menuitem = gtk_menu_item_new_with_label(_("Delete"));
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) delete_cb, which);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	
+	menuitem = gtk_menu_item_new_with_label(_("Group"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) group_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	
 	menuitem = gtk_separator_menu_item_new();
@@ -237,11 +240,19 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) delete_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
+	menuitem = gtk_separator_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
+
 	menuitem = gtk_menu_item_new_with_label(_("Add group"));
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) addgroup_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
+	menuitem = gtk_menu_item_new_with_label(_("Add clipboard"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) addclipboard_cb, which);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
+	
 	menuitem = gtk_menu_item_new_with_label(_("Add mono track"));
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) addfile_cb, which);
@@ -252,11 +263,16 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) addstereo_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	menuitem = gtk_menu_item_new_with_label(_("Add clipboard"));
+	menuitem = gtk_menu_item_new_with_label(_("Link selected"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) addclipboard_cb, which);
+			 (GCallback) linkselected_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
-	
+
+	menuitem = gtk_menu_item_new_with_label(_("Copy selected"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) copyselected_cb, which);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
+
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
@@ -265,9 +281,9 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) mergeparent_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
 
-	menuitem = gtk_menu_item_new_with_label(_("Copy selected"));
+	menuitem = gtk_menu_item_new_with_label(_("Flatten"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) copyselected_cb, which);
+			 (GCallback) flatten_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
 
 	menuitem = gtk_separator_menu_item_new();
@@ -369,9 +385,23 @@ edit_wave_cb(GtkWidget *widget, gpointer which)
 
 static void timeline_cb(GtkWidget *widget, gpointer which)
 {
-	DPRINTF("in timeline cb");
+	DPRINTF("FIXME");
 }
 
+static void group_cb(GtkWidget *widget, gpointer which)
+{
+	DPRINTF("FIXME");
+}
+
+static void flatten_cb(GtkWidget *widget, gpointer which)
+{
+	DPRINTF("FIXME");
+}
+
+static void linkselected_cb(GtkWidget *widget, gpointer which)
+{
+	DPRINTF("FIXME");
+}
 
 
 static void delete_cb(GtkWidget * menuitem, gpointer which)
