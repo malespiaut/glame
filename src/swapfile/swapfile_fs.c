@@ -39,9 +39,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
@@ -110,10 +112,13 @@ struct swfd {
 	struct list_head list;
 	struct swfile *file;
 	int mode;
-	off_t offset;       /* file pointer position */
+	off_t offset;         /* file pointer position */
 	struct swcluster *c;  /* current cluster */
+	off_t c_start;        /* file pointer position of start of current cluster */
 };
 #define SWFD(s) ((struct swfd *)(s))
+#define list_add_swfd(fd) list_add(&(fd)->list, &swap.fds)
+#define list_del_swfd(fd) list_del_init(&(fd)->list)
 
 static struct {
 	int fatfd;
@@ -132,6 +137,8 @@ static void _put_file(struct swfile *f);
 static struct swfile *_stat_file(long name);
 static int _read_file(struct swfile *f);
 static int _write_file(struct swfile *f);
+static struct swfile *_creat_file(long name);
+static int _truncate_file(struct swfile *f, size_t size);
 
 static struct swcluster *_get_cluster(long name);
 static void _put_cluster(struct swcluster *c);
@@ -251,18 +258,37 @@ int sw_unlink(long name)
  * - update the clusters metadata */
 int sw_link(long oldname, long newname)
 {
-	return -1;
+	return -1; /* FIXME - necessary?? sw_open(O_CREAT) && sw_sendfile(dest, source)! */
+}
+
+/* Open the (flat) swapfile directory for reading. The stream
+ * is positioned at the first file. Like opendir(3), but w/o
+ * directory specification for obvious reason. */
+SWDIR *sw_opendir()
+{
+	return (SWDIR *)opendir(swap.base);
 }
 
 /* As the namespace is rather simple the equivalent to readdir(3) is
- * just returning the names in sorted order - just start with name
- * (long)-1 and sw_readdir will get you the first used name. -1 is
- * returned, if no further entry is available. */
-long sw_readdir(long previous)
+ * just returning the names, no directory entry. Anything else
+ * is like readdir(3). If no further entries are available, -1 is returned. */
+long sw_readdir(SWDIR *d)
 {
+    	struct dirent *e;
+	long name;
+
+	while ((e = readdir((DIR *)d))) {
+		if (sscanf(e->d_name, "%li", &name) == 1)
+		    	return name;
+	}
 	return -1;
 }
 
+/* Like closedir(3). */
+int sw_closedir(SWDIR *d)
+{
+    	return closedir((DIR *)d);
+}
 
 /**********************************************************************
  * Operations on a single file. Files are organized in variable sized
@@ -277,6 +303,60 @@ long sw_readdir(long previous)
  * this way. */
 swfd_t sw_open(long name, int flags, tid_t tid)
 {
+	struct swfile *f;
+	struct swfd *fd;
+
+	/* Detect illegal/unsupported flag combinations. */
+	if (((flags & O_EXCL) && !(flags & O_CREAT))
+	    || (flags & ~(O_CREAT|O_EXCL|O_TRUNC|O_RDONLY|O_WRONLY|O_RDWR))) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	/* Alloc fd. */
+	if (!(fd = (struct swfd *)malloc(sizeof(struct swfd))))
+		return NULL;
+
+	LOCK;
+	f = _get_file(name, 0);
+
+	/* File exists and is requested to be created exclusively? */
+	if (f && (flags & O_EXCL)) {
+		errno = EEXIST;
+		goto err;
+	}
+	/* FIle does not exist and is not requested to being created? */
+	if (!f && !(flags & O_CREAT)) {
+		errno = ENOENT;
+		goto err;
+	}
+
+	/* Create file, if necessary and requested. */
+	if (!f && (flags & O_CREAT))
+		f = _creat_file(name);
+	/* Truncate file, if requested. */
+	if (flags & O_TRUNC)
+		_truncate_file(f, 0);
+	UNLOCK;
+
+	INIT_LIST_HEAD(&fd->list);
+	fd->file = f;
+	fd->mode = flags & (O_RDONLY|O_WRONLY|O_RDWR);
+	fd->offset = 0;
+	fd->c = NULL;
+	fd->c_start = 0;
+	if (f->cluster_cnt > 0)
+		fd->c = _get_cluster(f->clusters[0]);
+	list_add_swfd(fd);
+
+	errno = 0;
+	return (swfd_t)fd;
+
+ err:
+	if (f)
+		_put_file(f);
+	UNLOCK;
+	free(fd);
 	return NULL;
 }
 
@@ -284,13 +364,44 @@ swfd_t sw_open(long name, int flags, tid_t tid)
  * given to sw_open. */
 int sw_close(swfd_t fd)
 {
-	return -1;
+	struct swfd *_fd = SWFD(fd);
+
+	_put_file(_fd->file);
+	_put_cluster(_fd->c);
+	list_del_swfd(_fd);
+	free(_fd);
+
+	return 0;
 }
 
 /* Changes the size of the file fd like ftruncate(2). */
 int sw_ftruncate(swfd_t fd, off_t length)
 {
-	return -1;
+	struct swfd *_fd = SWFD(fd);
+	int res;
+
+	/* Check if its a valid truncate command. */
+	if (!(_fd->mode & O_WRONLY)) {
+		errno = EPERM;
+		return -1;
+	}
+	if (length < 0) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	/* Umm, what should happen to the file pointer posistion? */
+	if (_fd->offset >= length) {
+		_put_cluster(_fd->c);
+		_fd->c = NULL;
+	}
+
+	LOCK;
+	res = _truncate_file(_fd->file, length);
+	UNLOCK;
+
+	/* File pointer position may be unspecified now... */
+	return res;
 }
 
 /* Tries to copy count bytes from the current position of in_fd
@@ -311,7 +422,47 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 /* Update the file pointer position like lseek(2). */
 off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 {
-	return -1;
+	struct swfd *_fd = SWFD(fd);
+
+	/* We convert all seeks to SEEK_SET seeks which can be
+	 * handled by common code. */
+	switch (whence) {
+	case SEEK_END:
+		offset = _fd->file->size + offset - 1;
+		break;
+	case SEEK_CUR:
+		offset += _fd->offset;
+		break;
+	case SEEK_SET:
+		break;
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+
+	/* Just offset query? */
+	if (_fd->offset == offset)
+		return _fd->offset;
+	/* Seek inside the current cluster? */
+	if (_fd->c && _fd->c_start <= offset && _fd->c_start+_fd->c->size > offset) {
+		_fd->offset = offset;
+		return _fd->offset;
+	}
+
+	/* Now we really need to seek. Ugh. Linear search. */
+	LOCK;
+	_put_cluster(_fd->c);
+	_fd->c_start = 0;
+	_fd->c = _get_cluster(_fd->file->clusters[0]);
+	do {
+
+	} while (_fd->c && (_fd->c_start < offset || _fd->c_start+_fd->c->size >= offset));
+	if (!_fd->c)
+		_fd->c_start = -1;
+	UNLOCK;
+
+	_fd->offset = offset;
+	return _fd->offset;
 }
 
 /* Obtain information about the file - works like fstat(2), but
@@ -320,7 +471,26 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
  * can be mapped using sw_mmap. */
 int sw_fstat(swfd_t fd, struct sw_stat *buf)
 {
-	return -1;
+	struct swfd *_fd = SWFD(fd);
+
+	if (!buf)
+		return -1;
+	buf->name = _fd->file->name;
+	buf->size = _fd->file->size;
+	buf->mode = _fd->mode;
+	buf->offset = _fd->offset;
+	if (_fd->c) {
+		buf->cluster_start = _fd->c_start;
+		buf->cluster_end = _fd->c_start + _fd->c->size;
+		buf->cluster_size = _fd->c->size;
+		buf->cluster_nlink = _fd->c->usage;
+	} else {
+		buf->cluster_start = -1;
+		buf->cluster_end = -1;
+		buf->cluster_size = -1;
+		buf->cluster_nlink = -1;
+	}
+	return 0;
 }
 
 /* Maps the actual (file pointer position, see sw_lseek and sw_fstat)
@@ -358,6 +528,8 @@ static struct swfile *_get_file(long name, int need_clusters)
 
 static void _put_file(struct swfile *f)
 {
+	if (!f)
+		return;
 	if (--(f->usage) == 0) {
 		hash_remove_swfile(f);
 		if (f->flags & SWF_DIRTY)
@@ -459,6 +631,17 @@ static int _write_file(struct swfile *f)
 	return 0;
 }
 
+static struct swfile *_creat_file(long name)
+{
+	return NULL;
+}
+
+static int _truncate_file(struct swfile *f, size_t size)
+{
+	return -1;
+}
+
+
 
 static struct swcluster *_get_cluster(long name)
 {
@@ -473,6 +656,8 @@ static struct swcluster *_get_cluster(long name)
 
 static void _put_cluster(struct swcluster *c)
 {
+	if (!c)
+		return;
 	if (--(c->usage) == 0) {
 		hash_remove_swcluster(c);
 		if (c->flags & SWC_DIRTY)
@@ -563,4 +748,172 @@ static struct swfd *_sw_open(long name, int flags)
 
 static void _sw_close(struct swfd *fd)
 {
+}
+
+
+
+
+
+
+/* Cluster binary tree routines. The clusters of a file are
+ * organized in a binary tree consisting of nodes that contain
+ * the size of its siblings:
+ * t[0] = height of the tree (0, 1, 2... - example is 2)
+ * t[1]                       total sizeA
+ * t[2][3]             sizeB                sizeA-sizeB
+ * t[4][5][6][7]    sC     sB-sC         sD       sA-sB-sD
+ * t[8][9][10][11]  cID     cID          cID         cID
+ * (trees with larger height constructed the same way)
+ * For tree traversal a left branch is done with i->2*i, a right
+ * branch with i->2*i+1. The height of the tree is stored as the
+ * 0th component of the array containing the tree.
+ * The tree is always filled "from the left", i.e. leaf nodes
+ * span the tree.
+ */
+
+/* Finds the cluster with offset inside it, returns the
+ * offset of the cluster id in the tree array. Copies
+ * the cluster start position and its size to cstart/csize. */
+static int _find_cluster(long *tree, off_t offset,
+			 off_t *cstart, size_t *csize)
+{
+	long height = tree[0];
+	off_t pos;
+	int i;
+
+	pos = 0;
+	i = 1;
+	while (height--) {
+		if (pos+tree[2*i] > offset) {
+			i = 2*i;
+		} else {
+			pos += tree[2*i];
+			i = 2*i+1;
+		}
+	}
+	if (pos > offset || pos+tree[i] <= offset)
+		return -1;
+	if (cstart)
+		*cstart = pos;
+	if (csize)
+		*csize = tree[i];
+	return i+(1<<tree[0]);
+}
+
+/* Correct the tree structure to correct the size of the cluster
+ * which id is at pos in the tree structure. */
+static void _resize_cluster(long *tree, int pos, long size)
+{
+	int height, i;
+	long delta;
+
+	height = tree[0];
+	i = pos - (1<<height);
+	delta = size-tree[i];
+	do {
+		tree[i] += delta;
+		i >>= 1;
+	} while (height--);
+}
+
+/* Inserts the clusters cid[] with sizes csize[] at tree array position pos
+ * and returns the tree pointer as it may be necessary to reallocate
+ * it to make room for the extra clusters. */
+static long *_insert_clusters(long *tree, int pos, int cnt,
+			      long *cid, off_t *csize)
+{
+	/* FIXME: resize tree, find last used position */
+	int lastpos = 11223;
+
+	/* Move right end of tree by cnt positions to the right. */
+	int i, j, k, l;
+	i = lastpos;
+	j = lastpos+cnt;
+	k = lastpos-pos+1;
+	l = cnt-1;
+	while (k--) {
+		cid[l] = tree[i];
+		csize[l] = tree[i-(1<<tree[0])];
+		_resize_cluster(tree, i, 0);
+		tree[j] = cid[l];
+		_resize_cluster(tree, j, csize[l]);
+		i--;
+		j--;
+		l--;
+	}
+	/* Insert clusters from j downward. */
+	while (cnt--) {
+		tree[j] = cid[cnt];
+		_resize_cluster(tree, j, csize[cnt]);
+		j--;
+	}
+
+	return tree;
+}
+
+static long *_remove_clusters(long *tree, int pos, int cnt,
+			      long *cid, off_t *csize)
+{
+	/* First move (at most) cnt clusters after pos+cnt
+	 * by cnt positions to the left, copying cluster
+	 * information to cid/csize */
+	long newsize, newid;
+	int i = 0;
+	while (tree[pos-(1<<tree[0])] != 0) {
+		if (i<cnt) {
+			cid[i] = tree[pos];
+			csize[i] = tree[pos-(1<<tree[0])];
+		}
+		if (pos+cnt < 1<<tree[0] /* FIXME */) {
+			newsize = tree[pos+cnt-(1<<tree[0])];
+			newid = tree[pos+cnt];
+		} else {
+			newsize = 0;
+			newid = -1;
+		}
+		tree[pos] = newid;
+		_resize_cluster(tree, pos, newsize);
+		i++;
+		pos++;
+	}
+
+	/* Second, resize tree, if applicable. */
+	/* FIXME */
+	return tree;
+}
+
+/* FIXME: try to code _add_height(long *tree, int cnt) */
+static long *_double_height(long *tree)
+{
+	int i, j, cnt, height;
+	long *dest;
+
+	dest = (long *)malloc(sizeof(long)*((1<<(tree[0]+1)) + (1<<tree[0])));
+	if (!dest)
+		return NULL;
+
+	/* Fill tree height and total size */
+	dest[0] = tree[0]+1;
+	dest[1] = tree[1];
+	/* Copy nodes, old tree is completely left child of root. */
+	height = 0;
+	i = 1; j = 2;
+	while (height < dest[0]) {
+		cnt = 1<<height;
+		while (cnt--)
+			dest[j++] = tree[i++];
+		cnt = 1<<height;
+		while (cnt--)
+			dest[j++] = 0;
+		height++;
+	}
+	/* Copy leaf nodes. */
+	cnt = 1<<tree[0];
+	while (cnt--)
+		dest[j++] = tree[i++];
+	cnt = 1<<tree[0];
+	while (cnt--)
+		dest[j++] = 0;
+
+	return dest;
 }

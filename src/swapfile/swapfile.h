@@ -27,7 +27,8 @@
 
 
 
-typedef void *swfd_t; /* open file cookie, like fd/FILE */
+typedef void *swfd_t;                 /* open file cookie, like fd/FILE */
+typedef struct { int dummy; } SWDIR;  /* cookie for open directory, like DIR */
 
 struct sw_stat {
 	long name;           /* file name */
@@ -83,11 +84,18 @@ int sw_unlink(long name);
 /* Creates a new name to the file with name oldname. Like link(2). */
 int sw_link(long oldname, long newname);
 
+/* Open the (flat) swapfile directory for reading. The stream
+ * is positioned at the first file. Like opendir(3), but w/o
+ * directory specification for obvious reason. */
+SWDIR *sw_opendir();
+
 /* As the namespace is rather simple the equivalent to readdir(3) is
- * just returning the names in sorted order - just start with name
- * (long)-1 and sw_readdir will get you the first used name. -1 is
- * returned, if no further entry is available. */
-long sw_readdir(long previous);
+ * just returning the names, no directory entry. Anything else
+ * is like readdir(3). If no further entries are available, -1 is returned. */
+long sw_readdir(SWDIR *dir);
+
+/* Like closedir(3). */
+int sw_closedir(SWDIR *d);
 
 
 /**********************************************************************
