@@ -407,13 +407,31 @@ static void play_cleanup(glsig_handler_t *handler,
                     || !(changed_end = filterparamdb_get_param(
                             filter_paramdb(n), "changed_end")))
                         continue;
-                DPRINTF("Found swapfile_out node, issuing invalidate\n");
+                DPRINTF("Found swapfile_out node, issuing invalidate [%li-%li]\n",
+			filterparam_val_long(changed_start),
+			filterparam_val_long(changed_end)
+                        - filterparam_val_long(changed_start) + 1);
                 gpsm_notify_swapfile_change(
                         filterparam_val_long(filename),
                         filterparam_val_long(changed_start),
                         filterparam_val_long(changed_end)
                         - filterparam_val_long(changed_start) + 1);
         }
+
+	if (waveedit->pm_ain) {
+		filter_param_t *xrun_param;
+		xrun_param = filterparamdb_get_param(filter_paramdb(waveedit->pm_ain), "XRUNs");
+		if (xrun_param) {
+			long xruns = filterparam_val_long(xrun_param);
+			if (xruns > 0) {
+				char msg[64];
+				snprintf(msg, 64, "Had %li XRUNs", xruns);
+				gnome_dialog_run_and_close(GNOME_DIALOG(gnome_warning_dialog(msg)));
+			}
+		}
+		waveedit->pm_ain = NULL;
+	}
+
 	filter_delete(waveedit->pm_net);
 	waveedit->pm_net = NULL;
 }
@@ -520,7 +538,7 @@ static void play(GtkWaveView *waveview,
 
 	if (rec_cnt > 0) {
 		double duration;
-		ain = filter_instantiate(plugin_get("audio_in"));
+		active_waveedit->pm_ain = ain = filter_instantiate(plugin_get("audio_in"));
 		if (!extend) {
 			duration = (float)(end-start)/gpsm_swfile_samplerate(gpsm_grp_first(grp))+0.1;
 			filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
@@ -1210,6 +1228,7 @@ static void waveedit_gui_init(WaveeditGui *waveedit)
 	waveedit->toolbar = NULL;
 	waveedit->locked = 0;
 	waveedit->pm_net = NULL;
+	waveedit->pm_ain = NULL;
 	waveedit->pm_param = NULL;
 	waveedit->pm_start = 0;
 }
