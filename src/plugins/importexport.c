@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.8 2001/09/10 09:30:12 richi Exp $
+ * $Id: importexport.c,v 1.9 2001/09/11 12:09:34 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -566,7 +566,7 @@ void glame_import_dialog(struct impexp_s *ie)
 	}
 		
 	statbutton = gtk_button_new_with_label (_("Get RMS & DC-Offset"));
-	gtk_signal_connect(GTK_OBJECT(statbutton), "pressed",
+	gtk_signal_connect(GTK_OBJECT(statbutton), "clicked",
 				   (GtkSignalFunc)ie_stats_cb, ie);
 
 	gtk_widget_show (statbutton);
