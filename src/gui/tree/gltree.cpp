@@ -1,9 +1,9 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.6 2004/04/22 21:44:53 ochonpaul Exp $
+ * $Id: gltree.cpp,v 1.7 2004/04/26 20:33:32 ochonpaul Exp $
  *
- * Copyright (C) 2003 Johannes Hirche, Richard Guenther
+ * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,52 +45,44 @@ static void addgroup_cb(GtkWidget * menuitem, gpointer treeview);
 static void addfile_cb(GtkWidget *menu, gpointer treeview);
 static void addstereo_cb(GtkWidget *menu,  gpointer treeview);
 
+
+static void fill_tree_store (gpsm_item_t *item, GtkTreeStore *store,GtkTreeIter *iter)
+{
+        gpsm_item_t *it;
+	
+	if (!item || !store
+	    || !(GPSM_ITEM_IS_SWFILE(item) || GPSM_ITEM_IS_GRP(item)))
+		return;
+	gpsm_grp_foreach_item(item, it) {
+	  GtkTreeIter iter_new;
+	  gtk_tree_store_append(store,&iter_new, iter);
+	  gtk_tree_store_set(store, &iter_new, INFO, strdup(it->label),GPSM_ITEM, it,
+				   -1);
+	  if (GPSM_ITEM_IS_GRP(it)) {	    
+	    fill_tree_store (it, store,&iter_new);  //recurse
+	  }
+	}
+}
 glTree::glTree(gpsm_grp_t * newroot)
 {
 	root = newroot;
 	store = gtk_tree_store_new(N_ITEMS,
-				   //                              G_TYPE_OBJECT,
+				   // G_TYPE_OBJECT,
 				   G_TYPE_STRING, G_TYPE_POINTER);
-	GtkTreeIter iter, iter2;
-	gpsm_item_t *item;
-
-	// FIXME: need to go deeper in the tree
-	gpsm_grp_foreach_item(newroot, item) {
-		gtk_tree_store_append(store, &iter, NULL);
-		gtk_tree_store_set(store, &iter, INFO, strdup(item->label),
-				   -1);
-		gtk_tree_store_set(store, &iter, GPSM_ITEM, item, -1);
-		if (GPSM_ITEM_IS_GRP(item)) {
-			gpsm_item_t *it;
-			gpsm_grp_foreach_item(item, it) {
-				gtk_tree_store_append(store, &iter2,
-						      &iter);
-				gtk_tree_store_set(store, &iter2, INFO,
-						   strdup(it->label), -1);
-				gtk_tree_store_set(store, &iter2,
-						   GPSM_ITEM, it, -1);
-			}
-		}
-	}
-
+	
+	fill_tree_store ((gpsm_item_t*)newroot,store,NULL);
+	
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	renderer = gtk_cell_renderer_text_new();
-	// g_object_set(renderer, "editable", TRUE, NULL);
-// 	g_signal_connect(renderer, "edited", (GCallback) item_info_edited_callback, store);
-
 	column = gtk_tree_view_column_new_with_attributes("label",
 							  renderer,
 							  "text", INFO,
 							  NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
-
-
 	// g_signal_connect(tree, "row-activated", G_CALLBACK(edit_wave_cb),
 //                       NULL);
-
 	g_signal_connect(tree, "button-press-event",
 			 GCallback(click_cb), NULL);
-
 }
 
 
@@ -161,7 +153,7 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	// menuitem = gtk_separator_menu_item_new(void);
-	// gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new(void));
+// 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new(void));
 
 	menuitem = gtk_menu_item_new_with_label(_("Delete"));
 	g_signal_connect(menuitem, "activate",
@@ -366,8 +358,7 @@ static void file_property_cb(GtkWidget * menuitem, gpointer treeview)
 	GtkTreeModel *model;
 	gpsm_item_t *item;
 	GtkTreeSelection *selection;
-	GtkTreePath *path;
-
+	
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
 	
