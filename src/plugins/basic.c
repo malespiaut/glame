@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.3 2000/03/20 09:51:53 richi Exp $
+ * $Id: basic.c,v 1.4 2000/03/21 09:37:17 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -38,10 +38,11 @@ PLUGIN_DESCRIPTION(basic, "protocol independend fbuf filters (drop, one2n)")
 PLUGIN_SET(basic, "drop one2n")
 
 
-/* drop is a wastebucket for stream data. it does throw away
- * any number of input channels, producing nothing. it does
- * this asynchronly, though (so its a nice example of multiple
- * asynchronous inputs).
+/* Drop is a wastebucket for stream data. it does throw away
+ * any number of input channels, producing nothing. It does
+ * this asynchronly to avoid deadlocks due to blocking reads
+ * and writes (so its a nice example of multiple asynchronous
+ * inputs - but still rather simple).
  */
 static int drop_f(filter_node_t *n)
 {
@@ -63,7 +64,9 @@ static int drop_f(filter_node_t *n)
 
 	FILTER_AFTER_INIT;
 
-	while (pthread_testcancel(), active_channels>0) {
+	while (active_channels>0) {
+	        FILTER_CHECK_STOP;
+
 		/* wait for pipe activity */
 		FD_ZERO(&channels);
 		maxfd = 0;
@@ -88,6 +91,7 @@ static int drop_f(filter_node_t *n)
 			}
 	}
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	free(inputs);
@@ -110,42 +114,100 @@ int drop_register()
 }
 
 
-/* one2n is another channel routing filter:
- * n - times duplication of one input channel */
+
+
+
+/* one2n is another channel routing filter, it does n - times duplication
+ * of one input channel. To avoid deadlocks, this has again be done totally
+ * asynchron, both from the input and the output ends. So inbetween buffering
+ * in a queue is done per output. */
 static int one2n_f(filter_node_t *n)
 {
+	typedef struct {
+		filter_pipe_t *out;
+		feedback_fifo_t fifo;
+	} one2n_param_t;
 	filter_buffer_t *buf;
 	filter_pipe_t *in, *out;
+	one2n_param_t *p;
+	int maxfd, i, nr, eof, empty, res;
+	fd_set rset, wset;
 
+	nr = filternode_nroutputs(n);
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		FILTER_ERROR_RETURN("no input");
+	if (!(p = ALLOCN(nr, one2n_param_t)))
+	        FILTER_ERROR_RETURN("no memory");
+
+	/* init struct */
+	i = 0;
+	filternode_foreach_output(n, out) {
+		INIT_FEEDBACK_FIFO(p[i].fifo);
+		p[i++].out = out;
+	}
 
 	FILTER_AFTER_INIT;
 
-	/* get_buffer returns NULL, if there will be no more
-	 * data - i.e. NULL is an EOF mark.
-	 * the pthread_testcancel is important (do it first to
-	 * avoid deadlocks)! */
+	/* In the following loop you may miss the EOF send - but its
+	 * there, EOFs just get queued like regular buffers. Loop termination
+	 * is at input EOF and all send queues empty time.
+	 * - FIXME - do read throttling via max(bytes in a queue) and not
+	 *   adding the in fd to the rset.
+	 */
+	eof = 0;
 	do {
-		/* we get the input buffer referenced for us by
-		 * our source. */
-	        buf = fbuf_get(in);
+	        FILTER_CHECK_STOP;
 
-		/* forward the input buffer n times */
-		filternode_foreach_output(n, out) {
-			/* we need to get a reference for our
-			 * destination and then queue the buffer
-			 * in the destinations pipe. */
-			fbuf_ref(buf);
-			fbuf_queue(out, buf);
+		/* set up fd sets for select */
+		maxfd = 0;
+		FD_ZERO(&rset);
+		if (!eof) {
+			FD_SET(in->dest_fd, &rset);
+			maxfd = in->dest_fd;
+		}
+		empty = 1;
+		FD_ZERO(&wset);
+		for (i=0; i<nr; i++) {
+			if (!has_feedback(&p[i].fifo))
+				continue;
+			empty = 0;
+			FD_SET(p[i].out->source_fd, &wset);
+			if (p[i].out->source_fd > maxfd)
+				maxfd = p[i].out->source_fd;
+		}
+		if (eof && empty)
+			break;
+		res = select(maxfd+1, &rset, empty ? NULL : &wset, NULL, NULL);
+		if (res == -1)
+			perror("select");
+		if (res <= 0)
+			continue;
+
+		/* do we have input? - queue in each feedback buffer,
+		 * be clever with the references, too. */
+		if (FD_ISSET(in->dest_fd, &rset)) {
+			buf = fbuf_get(in);
+			for (i=0; i<nr-1; i++) {
+				fbuf_ref(buf);
+				add_feedback(&p[i].fifo, buf);
+			}
+			if (nr >= 1)
+				add_feedback(&p[nr-1].fifo, buf);
+			else
+				fbuf_unref(buf);
 		}
 
-		/* now we drop our own reference of the
-		 * buffer as we are ready with it now. */
-		fbuf_unref(buf);
-	} while (pthread_testcancel(), buf);
+		/* foreach output check, if we are ready to queue
+		 * a buffer. */
+		for (i=0; i<nr; i++) {
+			if (!has_feedback(&p[i].fifo)
+			    || !FD_ISSET(p[i].out->source_fd, &wset))
+				continue;
+			fbuf_queue(p[i].out, get_feedback(&p[i].fifo));
+		}
+	} while (1);
 
-
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
