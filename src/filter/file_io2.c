@@ -1,6 +1,6 @@
 /*
  * file_io2.c
- * $Id: file_io2.c,v 1.2 2000/02/21 09:35:57 mag Exp $
+ * $Id: file_io2.c,v 1.3 2000/02/21 10:13:10 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Günther
  *
@@ -108,6 +108,7 @@ static int add_reader(int (*prepare)(filter_node_t *, const char *),
 		return -1;
 	if (!(rw = ALLOC(rw_t)))
 		return -1;
+	INIT_LIST_HEAD(&rw->list);
 	rw->prepare = prepare;
 	rw->connect = connect;
 	rw->f = f;
@@ -180,7 +181,7 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
 		/* search for applicable reader */
 		list_foreach(&readers, rw_t, list, r) {
-			if (r->prepare(n, name) != -1) {
+			if (r->prepare(n, filterparam_val_string(param)) != -1) {
 				RWPRIV(n)->rw = r;
 				RWPRIV(n)->initted=1;
 				goto reconnect;
@@ -193,9 +194,12 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
  reconnect:
 	/* re-connect all pipes */
+	DPRINTF("Reconnecting.\n");
 	filternode_foreach_output(n, p)
-		if (RWPRIV(n)->rw->connect(n, p) == -1)
+		if (RWPRIV(n)->rw->connect(n, p) == -1){
 			filternetwork_break_connection(p);
+			goto reconnect;
+		}
 
 	return 0;
 }
@@ -246,6 +250,7 @@ int audiofile_prepare(filter_node_t *n, const char *filename)
 		free(RWAUDIO(n).buffer);
 		free(RWAUDIO(n).track);
 	}
+	DPRINTF("Opening %s\n",filename);
 	if ((RWAUDIO(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
 		return -1; 
@@ -255,15 +260,17 @@ int audiofile_prepare(filter_node_t *n, const char *filename)
 	afGetSampleFormat(RWAUDIO(n).file, AF_DEFAULT_TRACK, &(RWAUDIO(n).sampleFormat), &(RWAUDIO(n).sampleWidth));
 	RWAUDIO(n).frameSize = afGetFrameSize(RWAUDIO(n).file, AF_DEFAULT_TRACK, 1);
 	RWAUDIO(n).sampleRate = (int)afGetRate(RWAUDIO(n).file, AF_DEFAULT_TRACK);
-	if ((RWAUDIO(n).sampleFormat == AF_SAMPFMT_TWOSCOMP) 
-			|| (RWAUDIO(n).sampleFormat == AF_SAMPFMT_UNSIGNED)){
+	if ((RWAUDIO(n).sampleFormat != AF_SAMPFMT_TWOSCOMP)){
+		DPRINTF("Format not supported!\n");
 		return -1;
 	}
 	if ((RWAUDIO(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWAUDIO(n).frameSize))==NULL){
+		DPRINTF("Couldn't allocate buffer\n");
 		return -1;
 	}
 	RWAUDIO(n).cbuffer=(char *)RWAUDIO(n).buffer;
 	if (!(RWAUDIO(n).track=ALLOCN(RWAUDIO(n).channelCount,track_t))){
+		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
 	}
 	return 0;
