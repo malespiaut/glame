@@ -1,6 +1,7 @@
 Things to fix before 0.2.0:
 ===========================
 
+- GUI needs to support pipe parameters
 - audit all paths/makefiles wrt make install [done, do it again
   later]
 - filters/plugins
