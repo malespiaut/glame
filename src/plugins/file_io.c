@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.66 2001/09/26 09:05:12 nold Exp $
+ * $Id: file_io.c,v 1.67 2001/10/18 15:13:35 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -57,6 +57,7 @@
 #include "glplugin.h"
 #include "glame_types.h"
 #include "glame_byteorder.h"
+#include "glame_audiofile.h"
 
 
 int wav_read_prepare(filter_t *n, const char *filename);
@@ -64,14 +65,11 @@ int wav_read_connect(filter_t *n, filter_pipe_t *p);
 int wav_read_f(filter_t *n);
 void wav_read_cleanup(filter_t *n);
 
-#ifdef HAVE_AUDIOFILE
-#include <audiofile.h>
 int af_read_prepare(filter_t *n, const char *filename);
 int af_read_connect(filter_t *n, filter_pipe_t *p);
 int af_read_f(filter_t *n);
 void af_read_cleanup(filter_t *n);
 int af_write_f(filter_t *n);
-#endif
 
 #ifdef HAVE_LAME
 #ifdef HAVE_LAME_H
@@ -125,7 +123,6 @@ typedef struct {
 			gl_u16		bit_width;
 			char		*data;
 		} wav;
-#ifdef HAVE_AUDIOFILE
 		struct {
 			AFfilehandle    file;
 			AFframecount    frameCount;
@@ -138,7 +135,6 @@ typedef struct {
 			short		*buffer;
 			char		*cbuffer;
 		} audiofile;
-#endif
 #ifdef HAVE_LAME
 		struct {
 			FILE			*infile;
@@ -477,11 +473,9 @@ int file_io_register(plugin_t *p)
 #endif
 #endif
 	
-#ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
 	add_writer(af_write_f,"*.wav"); 
-#endif
 	add_reader(wav_read_prepare, wav_read_connect, 
 	           wav_read_f, wav_read_cleanup);
 
@@ -858,7 +852,6 @@ int wav_read_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-#ifdef HAVE_AUDIOFILE
 int af_read_prepare(filter_t *n, const char *filename)
 {
 	filter_param_t *fparam;
@@ -1577,8 +1570,6 @@ int lame_read_f(filter_t *n) {
 	pthread_mutex_unlock(&lamelock);
 	return 0;
 }
-
 #endif
 #endif
 
-#endif

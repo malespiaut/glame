@@ -24,9 +24,6 @@
 	This file contains the public interfaces to the Audio File Library.
 */
 
-#ifndef AUDIOFILE_H
-#define AUDIOFILE_H
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -34,6 +31,9 @@
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
 #else
+
+#ifndef AUDIOFILE_H
+#define AUDIOFILE_H
 
 #include <sys/types.h>
 #include "glame_aupvlist.h"
