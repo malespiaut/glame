@@ -51,37 +51,34 @@ PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io")
 
 int glame_load_plugin(const char *fname)
 {
+	SCM s_res;
+
     	/* Shared object plugin type? Just try to load it as such, will
 	 * fail if it is not. */
 	if (plugin_load(fname) == 0)
 		return 0;
 
-	/* Scheme macro plugin type? FIXME: more sanity check before. */
-	if (strstr(fname, ".scm")) {
-		SCM s_res;
-	        glscript_load_mode = 0;
-		s_res = glame_gh_safe_eval_file(fname);
-		if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
-			DPRINTF("Exception from .scm\n");
-			return -1;
-		}
-		return 0;
-	}
+	/* Scheme macro plugin type? We really can't detect, if
+	 * it is or not... hope guile doesnt choke on random garbage...
+	 */
 
-	return -1;
+	glscript_load_mode = 0;
+	s_res = glame_gh_safe_eval_file(fname);
+	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
+		DPRINTF("Exception from scheme code\n");
+		return -1;
+	}
+	return 0;
 }
 
 filter_t *glame_load_instance(const char *fname)
 {
 	SCM s_res;
 
-	if (!strstr(fname, ".scm"))
-		return NULL;
-
 	glscript_load_mode = 1;
 	s_res = glame_gh_safe_eval_file(fname);
 	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
-		DPRINTF("Exception from .scm\n");
+		DPRINTF("Exception from scheme code\n");
 		return NULL;
 	}
 	return last_loaded_filter_instance; /* HACK... */
