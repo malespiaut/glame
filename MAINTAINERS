@@ -7,17 +7,20 @@ Please add the filenames which are considered to belong to the
 subsystem, too.
 
 swapfile: richi
-	swapfile/*
+	src/swapfile/*
 
 filter: richi
-	filter/filter*
-	filter/* unless covered by other maintainers
+	src/filter/filter*
+	src/filter/* unless covered by other maintainers
 
 hash: richi
-	hash/*
+	src/hash/*
 
 doc: nold
 	doc/*.texi
 	doc/* unless covered by other maintainers
+
+samplemath: nold
+	src/samplemath/*
 
 please add your stuff [richi]
