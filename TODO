@@ -6,7 +6,15 @@ Things we (absolutely) need to do before 0.4.0:
 
 doc/
 	- document available filters [nold/the filter authors]
-	  All the 0.2.0 relevant stuff is documented.
+	  All the 0.2.0 relevant stuff is documented. The following
+	  filters are entirely missing:
+		fft_plugins.c:int fft_register(plugin_t *p)
+		fft_plugins.c:int ifft_register(plugin_t *p)
+		fft_plugins.c:int fft_resample_register(plugin_t *p)
+		fft_plugins.c:int fft_equalizer_register(plugin_t *p)
+		fft_plugins.c:int fft_bandpass_register(plugin_t *p)
+		flanger.c:int flanger_register(plugin_t *p)
+		time.c:int time_register(plugin_t *p)
 	- update GUI documentation [all]
 
 plugins/
@@ -61,7 +69,7 @@ gui/
 	- the timeline stuff is still missing
 	[xwolf]
 	- D&D in swapfile/wave/filternet
-	
+
 gui/edit_filter
 	[xwolf]
 	- completely rewrite the ugly event handling in filter_network
@@ -70,4 +78,6 @@ gui/edit_filter
 	- grouping!
 	- fold/unfold of groups
 	- connect for parameters of nodes of same type
+	- have GlameCanvas emit a signal after network execution so we
+	  can update the swapfiles managed through the gpsm
 	

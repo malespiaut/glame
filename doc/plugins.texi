@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.14 2000/04/12 13:43:59 nold Exp $
+@comment $Id: plugins.texi,v 1.15 2001/04/23 09:49:21 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -47,6 +47,7 @@ systems like ESD, ALSA, OSS, and native SGI. If available on the system,
 they can be accessed directly via @file{oss-audio-out}, @file{esd-audio-in} 
 and the like, using the same sets of parameters. Think of @file{audio-in} and 
 @file{audio-out} as sane default methods dependent on the system's capabilities.
+Those defaults can be configured via the GUIs preferences dialog, too.
 
 @subsubheading Common parameters
 @table @code
@@ -139,6 +140,13 @@ no default value.
 @item track (string)
 Track identifier. This parameter is required to be set and there is
 no default value.
+@item offset (int)
+This parameter denotes the offset inside the file to start readin/writing
+from. The default is -1 which denotes the start of the file (and truncation
+of the file, if its swapfile_out).
+@item size (int)
+This parameter denotes the number of samples to read/write. The default
+is -1 which means to read the whole file / write all data.
 @end table
 
 @subsubheading @file{track-in} ports
@@ -161,7 +169,9 @@ Sample stream to be stored in the swapfile.
 @subsection Abusing External Apps
 
 This hackish filter allows to stream data coming from an external
-program that communicates through unix pipes.
+program that communicates through unix pipes. Note that at the
+moment neither @code{pipe-in} nor @code{pipe-out} seem to work
+reliably, but fail inside libc.
 
 @subsubheading Common parameters
 @table @code
@@ -189,6 +199,16 @@ Sample rate of the data coming from the external program. Defaults to the
 compile-time setting of @code{GLAME_DEFAULT_SAMPLERATE} which is 
 usually 44100 Hz.
 @end table
+
+@subsubheading @file{pipe-out} ports
+@table @code
+@item out
+Streams created out of the (possible interleaved) data coming from the
+external program. You have to ensure to connect two pipes if the external
+program generates stereo output. Dataformat is signed 16 bit in 
+native endianness only.
+@end table
+
 
 @node Elementary Plugins, Effects, In- and Output, Plugin Collection
 @section Elementary Plugins
@@ -251,6 +271,19 @@ Defaults to 0.5.
 @item frequency (float)
 Frequency of generated sine wave in Hz. Defaults to 441 Hz.
 @end table
+
+@subsubheading @file{rect} ports
+@file{rect} has no further specific ports.
+
+@subsubheading @file{rect} parameters
+@table @code
+@item amplitude (sample)
+Amplitude of generated rectangular wave. Allowed value range is from 0 to 1. 
+Defaults to 1.0.
+@item frequency (float)
+Frequency of generated rectangular wave in Hz. Defaults to 440 Hz.
+@end table
+
 
 @node Junctions and Dead Ends, Mangling Data Streams, Generating Waves, Elementary Plugins
 @subsection Junctions and Dead Ends
@@ -316,6 +349,8 @@ Gain of the output stream. Defaults to 1.
 Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
+
+
 @node Mangling Data Streams, Orientation, Junctions and Dead Ends, Elementary Plugins
 @subsection Mangling Data Streams
 
@@ -364,6 +399,8 @@ Defaults to 0ms.
 The input pattern is repeated until a total time of duration seconds is
 reached. Defaults to 0s.
 @end table
+
+
 
 @node Orientation, Arithmetics, Mangling Data Streams, Elementary Plugins
 @subsection Orientation
@@ -430,6 +467,8 @@ Multiplicative constant, see above. Defaults to one.
 
 There are neither further specific ports, nor further specific parameters.
 
+
+
 @node The Sample Analyst, Catching Bugs, Arithmetics, Elementary Plugins
 @subsection The Sample Analyst
 
@@ -465,6 +504,8 @@ Input stream of RMS data to display.
 
 @file{debugrms} has no parameters.
 
+
+
 @node Catching Bugs, How to Code, The Sample Analyst, Elementary Plugins
 @subsection Catching Bugs
 
@@ -494,6 +535,8 @@ microseconds (1/4 second).
 Number of samples in a test packet. Defaults to 128 samples.
 @end table
 
+
+
 @node How to Code,, Catching Bugs, Elementary Plugins
 @subsection How to Code
 
@@ -505,6 +548,8 @@ to two output streams. In real life, the more complex @file{one2n}
 plugin can be used to achieve the same results. So use the source, not 
 these plugins. 
 
+
+
 @node Effects,, Elementary Plugins, Plugin Collection
 @section Effects
 
@@ -512,6 +557,7 @@ these plugins.
 * Echo::
 * Noisegate::
 * IIR::
+* Flanger::
 @end menu
 
 @node Echo, Noisegate,, Effects
@@ -568,7 +614,7 @@ Attack time in milliseconds, see above. Defaults to 0.
 Release time in milliseconds, see above. Defaults to 0.
 @end table
 
-@node IIR,, Noisegate, Effects
+@node IIR, Flanger, Noisegate, Effects
 @subsection IIR
 
 IIR stands for Infinite Impulse Response. This effect makes it possible to
@@ -607,3 +653,8 @@ therefore @code{cutoff} is valid only from 0 up to 0.5. Defaults to 0.1.
 to 0.5, and it is best to leave it alone unless you know what you're doing.
 @end table
 
+
+@node Flanger, , IIR, Effects
+@subsection Flanger
+
+FIXME!
