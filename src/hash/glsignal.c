@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.12 2001/04/11 18:11:50 nold Exp $
+ * $Id: glsignal.c,v 1.13 2001/05/05 14:28:34 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -34,7 +34,7 @@ static inline void _glsig_handler_exec(glsig_handler_t *h,
 	va_list vax;
 #if defined HAVE_GCC && defined __va_copy
 	__va_copy(vax, va);
-#else
+#elif !(defined OS_BSD && defined CPU_X86 && defined HAVE_GCC)
 	memcpy(vax, va, sizeof(va_list));
 #endif
 
@@ -44,7 +44,11 @@ static inline void _glsig_handler_exec(glsig_handler_t *h,
 	if (h->sigmask & GLSIG_HANDLER_RUNNING)
 		was_running = 1;
 	h->sigmask |= GLSIG_HANDLER_RUNNING;
+#if defined OS_BSD && defined CPU_X86 && defined HAVE_GCC
+	h->handler(h, sig, va);
+#else
 	h->handler(h, sig, vax);
+#endif
 	if (!was_running)
 		h->sigmask &= ~GLSIG_HANDLER_RUNNING;
 }
