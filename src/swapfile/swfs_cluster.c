@@ -84,7 +84,7 @@ static int cluster_init(int maxlru, size_t pmap_maxsize)
 		return -1;
 
 	/* Init the lru. */
-	clustersmaxlru = 1024; /* maxlru; Ignore param - match hash size */
+	clustersmaxlru = 256; /* maxlru; Ignore param - match hash size */
 	clusterslrucnt = 0;
 	INIT_LIST_HEAD(&clusterslru);
 
