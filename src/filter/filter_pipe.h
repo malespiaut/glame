@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.1 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_pipe.h,v 1.2 2000/12/18 09:51:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -147,6 +147,18 @@ struct filter_pipe {
 #define filterpipe_fft_hangle(fp) ((fp)->u.fft.phi)
 #define filterpipe_fft_bsize(fp) ((fp)->u.fft.bsize)
 #define filterpipe_fft_osamp(fp) ((fp)->u.fft.osamp)
+
+
+/* Internal structure to track filterport_connect() commands,
+ * needed for correct re-creation in filter_to_string. */
+struct fconnection {
+	struct list_head list;
+	filter_pipe_t *pipe;
+	const char *source_filter;
+	const char *source_port;
+	const char *dest_filter;
+	const char *dest_port;
+};
 
 
 #ifdef __cplusplus

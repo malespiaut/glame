@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.45 2000/12/12 18:39:06 richi Exp $
+ * $Id: filter.c,v 1.46 2000/12/18 09:51:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -100,6 +100,7 @@ filter_t *_filter_alloc()
 
 	f->nr_nodes = 0;
 	INIT_LIST_HEAD(&f->nodes);
+	INIT_LIST_HEAD(&f->connections);
 	f->launch_context = NULL;
 
 	return f;
@@ -343,8 +344,8 @@ char *filter_to_string(filter_t *net)
 	filter_t *n;
 	filter_port_t *portd;
 	filter_param_t *param;
-	filter_pipe_t *fpipe;
 	sitem_t *pitem;
+	struct fconnection *c;
 
 	if (!net || !FILTER_IS_NETWORK(net))
 		return NULL;
@@ -428,17 +429,15 @@ char *filter_to_string(filter_t *net)
 	/* iterate over all connections and create connect
 	 * commands. */
 	filter_foreach_node(net, n) {
-		filterportdb_foreach_port(filter_portdb(n), portd) {
-		    if (filterport_is_input(portd))
-			    continue;
-		    filterport_foreach_pipe(portd, fpipe) {
+		list_foreach(&n->connections, struct fconnection,
+			     list, c) {
 			len += sprintf(&buf[len], "   (let ((pipe (filter_connect %s \"%s\" %s \"%s\")))\n",
-				       filterport_filter(filterpipe_source(fpipe))->name, filterport_label(filterpipe_source(fpipe)),
-				       filterport_filter(filterpipe_dest(fpipe))->name, filterport_label(filterpipe_dest(fpipe)));
+				       c->source_filter, c->source_port,
+				       c->dest_filter, c->dest_port);
 
 			/* iterate over all pipe dest parameters creating
 			 * parameter set commands. */
-			filterparamdb_foreach_param(filterpipe_destparamdb(fpipe), param) {
+			filterparamdb_foreach_param(filterpipe_destparamdb(c->pipe), param) {
 				val = filterparam_to_string(param);
 				if (!val)
 					continue;
@@ -449,7 +448,7 @@ char *filter_to_string(filter_t *net)
 
 			/* iterate over all pipe source parameters creating
 			 * parameter set commands. */
-			filterparamdb_foreach_param(filterpipe_sourceparamdb(fpipe), param) {
+			filterparamdb_foreach_param(filterpipe_sourceparamdb(c->pipe), param) {
 				val = filterparam_to_string(param);
 				if (!val)
 					continue;
@@ -460,7 +459,6 @@ char *filter_to_string(filter_t *net)
 			
 			/* (let ((pipe... */
 			len += sprintf(&buf[len], "\t#t)\n");
-		    }
 		}
 	}
 

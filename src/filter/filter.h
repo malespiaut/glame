@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.65 2000/12/11 13:15:23 richi Exp $
+ * $Id: filter.h,v 1.66 2000/12/18 09:51:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -133,6 +133,7 @@ struct filter {
 	/* stuff used if (type & FILTERTYPE_NETWORK) */
 	int nr_nodes;
 	struct list_head nodes;
+	struct list_head connections;
 	filter_launchcontext_t *launch_context;
 };
 

@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.2 2000/12/12 17:11:24 richi Exp $
+ * $Id: filter_pipe.c,v 1.3 2000/12/18 09:51:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -77,6 +77,15 @@ static void _pipe_free(filter_pipe_t *p)
 	free(p);
 }
 
+void _connection_delete(glsig_handler_t *h, long sig, va_list va)
+{
+	struct fconnection *c;
+
+	c = (struct fconnection *)glsig_handler_private(h);
+	list_del(&c->list);
+	free(c);
+}
+
 
 /* Connection management API.
  */
@@ -84,6 +93,7 @@ static void _pipe_free(filter_pipe_t *p)
 filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 {
 	filter_pipe_t *p;
+	struct fconnection *c;
 
 	if (!source || !dest
 	    || !filterport_filter(source) || !filterport_filter(dest)
@@ -134,6 +144,21 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	 * we have to use that instead of int/out directly. */
 	list_add_pipe_dest(p, filterpipe_dest(p));
 	list_add_pipe_source(p, filterpipe_source(p));
+
+	/* as everything is set up now, we need to register the initial
+	 * connection request in the sources filter connection list. */
+	c = ALLOC(struct fconnection);
+	INIT_LIST_HEAD(&c->list);
+	c->pipe = p;
+	c->source_filter = filter_name(filterport_filter(source));
+	c->source_port = filterport_label(source);
+	c->dest_filter = filter_name(filterport_filter(dest));
+	c->dest_port = filterport_label(dest);
+	list_add(&c->list, &filterport_filter(source)->connections);
+	/* install a signalhandler for GLSIG_PIPE_DELETED which removes
+	 * the connection from this list. */
+	glsig_add_handler(filterpipe_emitter(p), GLSIG_PIPE_DELETED,
+			  _connection_delete, c);
 
 	/* signal pipe changes */
 	glsig_emit(filterpipe_emitter(p), GLSIG_PIPE_CHANGED, p);
