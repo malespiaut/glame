@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.2 2000/03/20 09:51:53 richi Exp $
+ * $Id: waveform.c,v 1.3 2000/03/20 10:43:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -35,6 +35,10 @@
 #include "filter.h"
 #include "util.h"
 #include <math.h>
+#include "glplugin.h"
+
+
+PLUGIN_SET(waveform, "sinus const")
 
 
 /* Standard waveform connect_out and fixup_param methods. These honour
@@ -152,6 +156,27 @@ static int sinus_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
+PLUGIN_DESCRIPTION(sinus, "sinus signal")
+PLUGIN_PIXMAP(sinus, "default.xpm")
+int sinus_register()
+{
+	filter_t *f;
+
+	if (!(f = waveform_filter_alloc(sinus_f))
+	    || !filter_add_param(f, "amplitude", "sinus peak amplitude(0.0-1.0)",
+				 FILTER_PARAMTYPE_SAMPLE)
+	    || !filter_add_param(f, "frequency", "sinus frequency in Hz",
+				 FILTER_PARAMTYPE_FLOAT))
+		return -1;
+	if (filter_add(f, "sinus", "generate sinus test signal") == -1)
+		return -1;
+	return 0;
+}
+
+
+
+
+
 /* This filter generates a constant signal,
  * signal value defaults to 0.0.
  */
@@ -194,21 +219,11 @@ static int const_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-
-/* Registry setup of all contained filters
- */
-int waveform_register()
+PLUGIN_DESCRIPTION(const, "constant signal")
+PLUGIN_PIXMAP(const, "default.xpm")
+int const_register()
 {
 	filter_t *f;
-
-	if (!(f = waveform_filter_alloc(sinus_f))
-	    || !filter_add_param(f, "amplitude", "sinus peak amplitude(0.0-1.0)",
-				 FILTER_PARAMTYPE_SAMPLE)
-	    || !filter_add_param(f, "frequency", "sinus frequency in Hz",
-				 FILTER_PARAMTYPE_FLOAT))
-		return -1;
-	if (filter_add(f, "sinus", "generate sinus test signal") == -1)
-		return -1;
 
 	if (!(f = waveform_filter_alloc(const_f))
 	    || !filter_add_param(f, "value", "signal value",
