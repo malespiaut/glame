@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.68 2001/11/11 22:37:08 mag Exp $
+ * $Id: file_io.c,v 1.69 2001/11/11 23:37:49 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -60,11 +60,6 @@
 #include "glame_audiofile.h"
 
 
-int wav_read_prepare(filter_t *n, const char *filename);
-int wav_read_connect(filter_t *n, filter_pipe_t *p);
-int wav_read_f(filter_t *n);
-void wav_read_cleanup(filter_t *n);
-
 int af_read_prepare(filter_t *n, const char *filename);
 int af_read_connect(filter_t *n, filter_pipe_t *p);
 int af_read_f(filter_t *n);
@@ -112,18 +107,6 @@ typedef struct {
 	union {
 	        /* put your shared state stuff here */
 		struct {
-			caddr_t		map;
-			size_t		size;
-			filter_pipe_t 	**p;
-			gl_u32		freq;
-			gl_u32		bps;
-			gl_s32		frames;
-			gl_u16		ch;
-			gl_u16		block_align;
-			gl_u16		bit_width;
-			char		*data;
-		} wav;
-		struct {
 			AFfilehandle    file;
 			AFframecount    frameCount;
 		        AFfilesetup     fsetup;
@@ -145,7 +128,6 @@ typedef struct {
 	} u;
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->priv))
-#define RWW(node) (RWPRIV(node)->u.wav)
 #define RWA(node) (RWPRIV(node)->u.audiofile)
 #define RWM(node) (RWPRIV(node)->u.lame)
 
@@ -475,9 +457,6 @@ int file_io_register(plugin_t *p)
 		   af_read_f, af_read_cleanup);
 	add_writer(af_write_f,"*.wav"); 
 
-	add_reader(wav_read_prepare, wav_read_connect, 
-	           wav_read_f, wav_read_cleanup);
-	
 	return 0;
 }
 
@@ -485,371 +464,6 @@ int file_io_register(plugin_t *p)
 
 /* The actual readers and writers.
  */
-
-typedef gl_s32 (*wav_chunk_handler_t)(filter_t *n, char *tag, char *pos, 
-                                      gl_s32 size);
-
-typedef struct {
-	char			*tag;
-	wav_chunk_handler_t	handler;
-} wav_handlers_t;
-
-#define WAV_FMT_PCM	1
-
-gl_s32 wav_chunk_ignore(filter_t *n, char *tag, char *pos, gl_s32 size)
-{
-	
-	DPRINTF("WAV chunk %s ignored. Skipping %i bytes.\n", tag, size);
-	return size;
-}
-
-gl_s32 wav_read_chunk_head(filter_t *n, char *tag, char *pos, gl_s32 size)
-{
-	if (strncasecmp(pos, "WAVE", 4)) {
-		return -1;	/* RIFF but no WAVE */
-	}
-	
-	return 4;
-}
-
-gl_s32 wav_read_chunk_format(filter_t *n, char *tag, char *pos, gl_s32 size)
-{
-	if (size < 16) {
-		DPRINTF("Illegal chunk size.\n");
-		return -1;
-	}
-	
-	/* Only uncompressed PCM handled. Leave all the tricky
-	 * stuff to dedicated libs.
-	 */
-	if (__gl_le16_to_cpup(pos) != WAV_FMT_PCM)
-		return -1;
-	
-	pos += 2;
-	RWW(n).ch = __gl_le16_to_cpup(pos);
-	pos += 2;
-	RWW(n).freq = __gl_le32_to_cpup(pos);
-	pos += 4;
-	RWW(n).bps = __gl_le32_to_cpup(pos);
-	pos += 4;
-	RWW(n).block_align = __gl_le16_to_cpup(pos);
-	pos += 2;
-	RWW(n).bit_width = __gl_le16_to_cpup(pos);
-	
-	/* Internal limitations */
-	if (RWW(n).freq < 2 || !RWW(n).ch) {
-		DPRINTF("No channels or frequency unreasonably low.\n");
-		return -1;
-	}
-	switch (RWW(n).block_align/RWW(n).ch) {
-		case 1:
-		case 2:
-			break;	/* supported */
-		default:
-			DPRINTF("Unsupported width %d.\n", 
-					RWW(n).block_align/RWW(n).ch);
-			return -1;
-	}
-	
-	return size;
-}	
-
-gl_s32 wav_read_chunk_data(filter_t *n, char *tag, char *pos, gl_s32 size)
-{
-	if (!RWW(n).ch) {
-		DPRINTF("No fmt chunk?\n");
-		return -1;
-	}
-
-	RWW(n).data = pos;
-	RWW(n).frames = size / RWW(n).block_align;
-	if (size % RWW(n).block_align) {
-		DPRINTF("WAV data not aligned.\n");
-		return -1;
-	}
-	return size;
-}
-
-wav_handlers_t wav_read_handlers[] = {
-	{ "RIFF", wav_read_chunk_head },
-	{ "fmt ", wav_read_chunk_format },
-	{ "data", wav_read_chunk_data },
-	{ "fact", wav_chunk_ignore },	/* We only handle uncompressed, ok to
-					 * ignore */
-	{ "cue ", wav_chunk_ignore },
-	{ "plst", wav_chunk_ignore },
-	{ "list", wav_chunk_ignore },
-	{ "smpl", wav_chunk_ignore },
-	{ "inst", wav_chunk_ignore },
-	{ "wavl", wav_chunk_ignore },
-	{ NULL, NULL }
-};
-	
-
-/* Currently we check with zero tolerance. Some of the checks should 
- * perhaps be more lenient and just return 0 instead of -1. Change as
- * necessary. Applies to chunk handlers above as well.
- */
-int wav_read_parse(filter_t *n, char *from, char* to)
-{
-	int i;
-	char *tag;
-	gl_s32 size;
-	wav_chunk_handler_t handler;
-	
-	RWW(n).ch = 0;
-
-	while (from < to) {
-		if (to - from < 8) {
-			/* Fail gracefully if all required chunks are present */
-			DPRINTF("Premature EOF.\n");
-			return RWW(n).data ? 0 : -1;
-		}
-		for (i=0; (handler=wav_read_handlers[i].handler); i++)
-			if (!strncasecmp(from, (tag=wav_read_handlers[i].tag), 
-			                 4)) 
-				break;
-
-		if (!handler) 
-			return -1;
-		
-		from += 4;
-		size = __gl_le32_to_cpup(from);
-		from += 4;
-		if (size < 0 || from + size > to) {
-			DPRINTF("Illegal size in %s chunk (real: %d, "
-			        "adv: %d).\n", tag, to-from, size);
-			return -1;
-		}
-		if ((size = handler(n, tag, from, size)) == -1) {
-			DPRINTF("%s handler failed.\n", tag);
-			return -1;
-		}
-		from += size + (size&1);
-			
-	}
-	return 0;
-}				
-
-int wav_read_prepare(filter_t *n, const char *filename)
-{
-	int fd;
-	struct stat statbuf;
-	filter_param_t *fparam;
-	char info[255];
-
-	fparam = filterparamdb_get_param(filter_paramdb(n), "filename");
-
-	fd = open(filename, O_RDONLY);
-	if (fd == -1) {
-		DPRINTF("%s", strerror(errno));
-		return -1;
-	}
-	if (fstat(fd, &statbuf) == -1) {
-		DPRINTF("%s", strerror(errno));
-		close(fd);
-		return -1;
-	}
-	RWW(n).size = statbuf.st_size;
-	RWW(n).map = (char *)mmap(NULL, statbuf.st_size, PROT_READ,
-				  MAP_PRIVATE, fd, 0);
-	close(fd);
-	if (RWW(n).map == MAP_FAILED) {
-		DPRINTF("%s", strerror(errno));
-		return -1;
-	}
-
-	/* Ugly black magic. Reset values that are abused later on for
-	 * state tracking.
-	 */
-	RWW(n).data = NULL;
-	RWW(n).ch = 0;
-
-	if (wav_read_parse(n, RWW(n).map, RWW(n).map + statbuf.st_size)) {
-		munmap(RWW(n).map, statbuf.st_size);
-		return -1;
-	}
-	/* All pipes get reconnected via the connect method anyway. */
-	if (RWW(n).p)
-		free(RWW(n).p);
-	RWW(n).p = (filter_pipe_t **)ALLOCN(RWW(n).ch, filter_pipe_t *);
-
-	/* Now update fparam properties */
-	sprintf(info,"4 -1"); /* wav version=unknown */
-	filterparam_set_property(fparam, "#format", info);
-
-	sprintf(info,"%d Hz",RWW(n).freq);
-	filterparam_set_property(fparam, "#samplerate", info);
-
-	sprintf(info,"%d bit",RWW(n).bit_width);
-	filterparam_set_property(fparam, "#quality", info);
-
-	sprintf(info,"%d",RWW(n).frames);
-	filterparam_set_property(fparam, "#framecount", info);
-	
-	sprintf(info,"%d",RWW(n).ch);
-	filterparam_set_property(fparam, "#channels", info);
-
-	return 0;
-}
-	
-int wav_read_connect(filter_t *n, filter_pipe_t *p)
-{
-	int i, deleted = 1;
-	filter_port_t	*outp;
-	filter_pipe_t	*out;
-	
-	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	filterport_foreach_pipe(outp, out) {
-		if (p == out)
-			deleted = 0;
-	}
-	
-	if (deleted == 1) {
-		for(i=0; i < RWW(n).ch; i++)
-			if ( RWW(n).p[i] == p ) {
-				RWW(n).p[i] = NULL;
-				return 0;
-			}
-	}
-		
-	/* Find either a free slot to put the pipe into or
-	 * an already registered pipe in which case we just
-	 * return success. */
-	for (i=0; i < RWW(n).ch; i++) {
-		if (!RWW(n).p[i]) 
-			break;
-		if (RWW(n).p[i] == p)
-			return 0;
-	}
-	/* No free slots? */
-	if (i == RWW(n).ch)
-		return -1;
-	/* Register the pipe. */
-	RWW(n).p[i] = p;
-
-	/* FIXME: While the WAV standard specifies entries for just about 
-	 *        everything, there's no information about position. For
-	 *        stereo files, left before right is merely convention,
-	 *        for quad files even conventions aren't unique anymore.
-	 *        For now, mag's algorithm will do. We're fucked anyway.
-	 */
-	switch (RWW(n).ch) {
-		case 1:
-			filterpipe_settype_sample(p, RWW(n).freq, 
-					          FILTER_PIPEPOS_CENTRE);
-			break;
-		/* TODO: sth clever... */
-		default:
-			filterpipe_settype_sample(p, RWW(n).freq, 
-					          M_PI/(RWW(n).ch-1)
-						  * i + FILTER_PIPEPOS_LEFT);
-	}
-
-	return 0;
-}
-					
-void wav_read_cleanup(filter_t *n)
-{
-	free(RWW(n).p);
-	if (RWW(n).map)
-		munmap(RWW(n).map, RWW(n).size);
-	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
-}
-	
-/* TODO: Speed optimization, handle more formats. */
-void inline wav_read_convert(filter_buffer_t *buf, int frames, int width, 
-		             unsigned int pad, int framesize, char *pos)
-{
-	SAMPLE *out = sbuf_buf(buf);
-/* Sample stub */
-#if 0	
-	while (frames--) {
-		*(out++) = XX2SAMPLE(__gl_leXX_to_cpup(pos) >> pad);
-		pos += framesize;
-	}
-#endif
-	switch (width) {
-		case 1:
-			/* No endianness conversion necessary */
-			while (frames--) {
-				*(out++) = UCHAR2SAMPLE((*pos) >> pad);
-				pos += framesize;
-			}
-			return;
-		case 2:
-			while (frames--) {
-				*(out++) = SHORT2SAMPLE((__gl_le16_to_cpup(pos))
-				                      >> pad);
-				pos += framesize;
-			}
-			return;
-		default:
-			PANIC("Unsupported width. Should have checked earlier!");
-	}
-}
-
-int wav_read_f(filter_t *n)
-{
-	filter_buffer_t *buf;
-	filter_param_t *pos_param;
-	int bufsize, blksize;
-	int align, ch, to_go, done;
-	char *pos = RWW(n).data;
-	const int pad = (RWW(n).block_align << 3)/RWW(n).ch - RWW(n).bit_width;
-	const int ssize = RWW(n).block_align/RWW(n).ch;
-	
-	/* Try to buffer approx .5 sec but honour limits. */
-	blksize = RWW(n).freq >> 1;
-
-	if (blksize < GLAME_MIN_BUFSIZE)
-		blksize = GLAME_MIN_BUFSIZE;
-	else if (blksize > GLAME_MAX_BUFSIZE/2)
-		blksize = GLAME_MAX_BUFSIZE/2;
-	
-	align = RWW(n).frames % blksize;
-	to_go = RWW(n).frames / blksize;
-	
-	if (align < GLAME_MIN_BUFSIZE && to_go) {
-		align += blksize;
-		to_go--;
-	}
-	
-	bufsize = align;
-	
-	FILTER_AFTER_INIT;
-	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
-        filterparam_val_set_pos(pos_param, 0);
-	done = 0;
-	do {
-		FILTER_CHECK_STOP;
-		
-		for (ch = 0; ch < RWW(n).ch; ch++) {
-			/* Avoid unnecessary conversion */
-			if (!RWW(n).p[ch]) {
-				pos += ssize;
-				continue;
-			}
-			buf = sbuf_make_private(sbuf_alloc(bufsize, n));
-			wav_read_convert(buf, bufsize, ssize, pad, 
-			                 RWW(n).block_align, pos);
-			sbuf_queue(RWW(n).p[ch], buf);
-			pos += ssize;
-		}
-		pos += (bufsize-1)*RWW(n).block_align;
-		done += blksize;
-		filterparam_val_set_pos(pos_param, done);
-		bufsize = blksize;
-	} while(to_go--);
-		
-	for (ch = 0; ch < RWW(n).ch; ch++)
-		sbuf_queue(RWW(n).p[ch], NULL);
-
-	FILTER_BEFORE_STOPCLEANUP;
-	FILTER_BEFORE_CLEANUP;
-	
-	FILTER_RETURN;
-}
 
 int af_read_prepare(filter_t *n, const char *filename)
 {
@@ -905,7 +519,7 @@ int af_read_prepare(filter_t *n, const char *filename)
 		DPRINTF("Kludge! Audiofile reports signed 8bit WAV, "
 		        "overriding to unsigned.\n");
 	}
-
+		
 	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t))){
 		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
