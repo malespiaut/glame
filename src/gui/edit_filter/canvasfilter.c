@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.17 2001/06/11 17:34:21 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.18 2001/06/18 08:28:41 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -527,7 +527,10 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
 	
 	filterparamdb_foreach_param(glame_canvas_filter_get_paramdb(filter),param){
-		sprintf(buffer,"%s: %s",filterparam_label(param),filterparam_to_string(param));
+		char *str;
+		str = filterparam_to_string(param);
+		snprintf(buffer, 255, "%s: %s", filterparam_label(param), str);
+		free(str);
 		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 					     gnome_canvas_text_get_type(),
 					     "x",xOffset,
