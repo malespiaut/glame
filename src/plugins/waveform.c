@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.20 2001/05/09 15:20:09 mag Exp $
+ * $Id: waveform.c,v 1.21 2001/05/09 23:01:18 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -41,7 +41,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(waveform, "sine const rect pulse")
+PLUGIN_SET(waveform, "sine const rect pulse ramp saw noise")
 
 
 /* Standard waveform connect_out and fixup_param methods. These honour
@@ -307,7 +307,205 @@ int rect_register(plugin_t *p)
 	return filter_register(f, p);
 }
 
+/* This filter generates a ramp signal,
+ */
 
+static int ramp_f(filter_t *n)
+{
+	filter_pipe_t *out;
+	filter_buffer_t *buf;
+	SAMPLE ampl;
+	float freq, bs;
+	int rate, i, size;
+	
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
+		FILTER_ERROR_RETURN("no output");
+
+	/* globals */
+	rate = waveform_get_rate(n);
+
+	/* parameters for rect */
+	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+
+	bs = (rate/freq);
+	size = (int) bs;
+
+	FILTER_AFTER_INIT;
+
+	buf = sbuf_alloc(size, n);
+	buf = sbuf_make_private(buf);
+
+        for (i=0; i<size; i++) 
+		sbuf_buf(buf)[i]=ampl * (-1.0 + 2.0*((float)i/(float)size));
+		
+	sbuf_queue(out, buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+int ramp_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = waveform_filter_alloc(ramp_f)))
+		return -1;
+
+	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+				  FILTER_PARAMTYPE_SAMPLE, 1.0,
+				  FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_SAMPLE, 440.0,
+				  FILTERPARAM_END);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "ramp signal");
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "ramp.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
+	return filter_register(f, p);
+} 
+
+
+static int saw_f(filter_t *n)
+{
+	filter_pipe_t *out;
+	filter_buffer_t *buf;
+	SAMPLE ampl, *s, w, dw;
+	float freq, bs;
+	int rate, size;
+	
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
+		FILTER_ERROR_RETURN("no output");
+
+	/* globals */
+	rate = waveform_get_rate(n);
+
+	/* parameters for rect */
+	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+
+	bs = (rate/freq);
+	size = (int)bs;
+	
+	FILTER_AFTER_INIT;
+
+	buf = sbuf_alloc(size, n);
+	buf = sbuf_make_private(buf);
+
+	/* You might think the following code is a bit weird/slow for creating a rectangular wave,
+	 * but sampling rate is integer and the blocksize real. This way the code generates a
+	 * rectangle of variable length and thereby getting closer to the desired frequency.
+	 */
+	
+	s = sbuf_buf(buf);
+	w = -ampl;
+	dw = 2.0*ampl/(size / 4.0);
+	
+	while (size--) {
+		*s++ = w;
+		w += dw;
+		if (w > ampl) {
+			dw = -dw;
+			w += 2.0*dw;
+		}
+		else if (w < -ampl) {
+			dw = -dw;
+			w += 2.0*dw;
+		}
+	}
+	
+	sbuf_queue(out, buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+int saw_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = waveform_filter_alloc(saw_f)))
+		return -1;
+
+	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+				  FILTER_PARAMTYPE_SAMPLE, 1.0,
+				  FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_SAMPLE, 440.0,
+				  FILTERPARAM_END);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "saw signal");
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "saw.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
+	return filter_register(f, p);
+}
+
+static int noise_f(filter_t *n)
+{
+	filter_pipe_t *out;
+	filter_buffer_t *buf;
+	SAMPLE ampl, *s, gain;
+	int rate;
+	
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
+		FILTER_ERROR_RETURN("no output");
+
+	/* globals */
+	rate = waveform_get_rate(n);
+
+	/* parameters for rect */
+	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	
+	FILTER_AFTER_INIT;
+
+	buf = sbuf_alloc(rate, n);
+	buf = sbuf_make_private(buf);
+
+	/* It's probably not the best swishy dishy super mathematical noise yet, 
+	 * but it's noise :) just noise dunno which color though.. */
+
+	s = sbuf_buf(buf);
+	gain = ampl*2.0/RAND_MAX;
+	
+	while (rate--)
+		*s++ = rand() * gain - ampl;
+	
+	sbuf_queue(out, buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+int noise_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = waveform_filter_alloc(noise_f)))
+		return -1;
+
+	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+				  FILTER_PARAMTYPE_SAMPLE, 1.0,
+				  FILTERPARAM_END);
+	
+	plugin_set(p, PLUGIN_DESCRIPTION, "saw signal");
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "saw.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
+	return filter_register(f, p);
+}
+
+/* This filter generates a ramp signal,
+ */
 typedef enum {
 	PULSE_MODE_NONE=0,
 	PULSE_MODE_ONESHOT=1,
