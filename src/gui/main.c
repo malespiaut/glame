@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.26 2001/04/10 12:00:47 xwolf Exp $
+ * $Id: main.c,v 1.27 2001/04/11 08:44:25 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -26,6 +26,7 @@
 #endif
 
 #include <stdlib.h>
+#include <unistd.h>
 #include "swapfile.h"
 #include "glmid.h"
 #include "swapfilegui.h"
@@ -123,13 +124,11 @@ GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 extern void edit_tree_label(GlameTreeItem * item);
 static void create_new_project_cb(GtkWidget *menu, void * blah)
 {
-	char* name;
 	gpsm_grp_t *grp;
 	GlameTreeItem *grpw;
-	name = "Unnamed";
 
 	/* Create new gpsm group. */
-	grp = gpsm_newgrp(name);
+	grp = gpsm_newgrp("Unnamed");
 	gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, -1);
 
 	/* Find out which widget it got. */
@@ -242,12 +241,16 @@ static GtkWidget* glame_about(void)
 		NULL
 	};
 	GtkWidget *about;
+	char *logo;
 
+	logo = GLAME_LOGO;
+	if (access(logo, R_OK) == -1)
+		logo = "../data/pixmaps/glame-logo.jpg";
 	about = gnome_about_new ("GLAME", VERSION, 
-				 _("Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther."),
+				 _("Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"),
 				 authors,
 				 _("GLAME comes with ABSOLUTELY NO WARRANTY. \nThis is free software."),
-				 GLAME_LOGO);
+				 logo);
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
 	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");

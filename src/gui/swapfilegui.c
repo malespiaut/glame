@@ -38,10 +38,8 @@
 
 
 /* Forward declarations. */
-static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
-		        gpointer data);
-static int double_click_cb(GtkWidget *item, GdkEventButton *event,
-		        gpointer data);
+static int click_cb(GtkWidget *item, GdkEventButton *event,
+		    gpointer data);
 static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -80,67 +78,50 @@ static GnomeUIInfo file_menu_data[] = {
 };
 
 
-static void entry_updated_cb(GtkEntry* entry, GlameTreeItem* item)
+static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)
 {
-	char * text;
-	
-	text = gtk_editable_get_chars(GTK_EDITABLE(entry),0,-1);
-	gtk_container_remove(GTK_CONTAINER(item),GTK_WIDGET(entry));
+	char *text = gtk_editable_get_chars(GTK_EDITABLE(entry), 0, -1);
+	gtk_container_remove(GTK_CONTAINER(item), GTK_WIDGET(entry));
 	gtk_widget_destroy(GTK_WIDGET(entry));
 	if (text) {
 		gpsm_item_set_label(item->item, text);
 		g_free(text);
 	}
-	glame_tree_item_update(item);
 }
-		
 void edit_tree_label(GlameTreeItem * item)
 {
-	GtkWidget * label;
-	GtkWidget * entry;
+	GtkWidget *label;
+	GtkWidget *entry;
 
+	/* Deselect item and replace GtkLabel with GtkEntry. */
 	gtk_tree_item_deselect(GTK_TREE_ITEM(item));
 	label = GTK_WIDGET((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
-	gtk_container_remove(GTK_CONTAINER(item),label);
+	gtk_container_remove(GTK_CONTAINER(item), label);
 	entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(entry), gpsm_item_label(item->item));
-	// FIXME This causes a assertion error ??
-	//		gtk_widget_destroy(GTK_WIDGET(label));
-	gtk_container_add(GTK_CONTAINER(item),entry);
-	gtk_container_check_resize(GTK_CONTAINER(item));
+	gtk_signal_connect(GTK_OBJECT(entry), "activate", edit_tree_label_cb, item);
 	gtk_widget_show(entry);
-	gtk_signal_connect(GTK_OBJECT(entry),"activate",entry_updated_cb,item);
+	gtk_container_add(GTK_CONTAINER(item), entry);
+	gtk_container_check_resize(GTK_CONTAINER(item));
 	gtk_widget_grab_focus(GTK_WIDGET(entry));
 }
 
-static int double_click_cb(GtkWidget *item, GdkEventButton *event,
-			   gpointer data)
-{
-	GlameTreeItem *i = GLAME_TREE_ITEM(item);
-	
-	if(event->button != 1)
-		return FALSE;
-	
-	if(event->type == GDK_2BUTTON_PRESS){
-		edit_tree_label(i);
-		return TRUE;
-	} else 
-		return FALSE;
-}
 
-static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
-		        gpointer data)
+static int click_cb(GtkWidget *item, GdkEventButton *event,
+		    gpointer data)
 {
 	GlameTreeItem *i = GLAME_TREE_ITEM(item);
 	GtkWidget *menu;
 
-	if (event->button != 3){
-		if(event->type == GDK_2BUTTON_PRESS){
-			edit_tree_label(i);
-			return TRUE;
-		} else 
-			return FALSE;
+	if (event->button == 1
+	    && event->type == GDK_2BUTTON_PRESS) {
+		edit_tree_label(i);
+		return TRUE;
 	}
+
+	if (event->button != 3)
+		return FALSE;
+
 	if (GPSM_ITEM_IS_SWFILE(i->item))
 		menu = gnome_popup_menu_new(file_menu_data);
 	else if (GPSM_ITEM_IS_GRP(i->item))
@@ -225,31 +206,25 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 	gpsm_item_destroy((gpsm_item_t *)group);
 }
 
-static void addgroup_string_cb(gchar *string, gpointer data)
-{
-	if (string) {
-		strncpy(data, string, 255);
-		free(string);
-	}
-}
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	GtkWidget *dialog;
-	char name[256];
 	gpsm_grp_t *grp;
+	GlameTreeItem *grpw;
 
 	if (!GPSM_ITEM_IS_GRP(item->item))
 		return;
 
-	dialog = gnome_request_dialog(FALSE, "Enter group name",
-				      "Unnamed", 255,
-				      addgroup_string_cb, name,
-				      NULL);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
-		return;
-
-	grp = gpsm_newgrp(name);
+	/* Create new gpsm group. */
+	grp = gpsm_newgrp("Unnamed");
 	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp, -1, -1);
+
+	/* Expand the parent widget. */
+	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+	/* Find out which widget it got and open an edit field. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
+	if (grpw)
+		edit_tree_label(grpw);
 }
 
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -349,17 +324,17 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_port_t *source;
 	filter_pipe_t *pipe;
 	gint i, channels;
-	char *filenamebuffer, *groupnamebuffer;
+	char *filenamebuffer;
 	gpsm_grp_t *group = NULL;
+	GlameTreeItem *grpw;
 	gpsm_item_t *it;
 
 	filenamebuffer = alloca(128);
-	groupnamebuffer = alloca(128);
 
 	/* File request dialog with group name entry. */
 	{
 		GtkWidget *dialog, *dialogVbox;
-		GtkWidget *filenameentry, *groupnameentry;
+		GtkWidget *filenameentry;
 
 		dialog = gnome_dialog_new("Import Audio File",
 					  GNOME_STOCK_BUTTON_CANCEL,
@@ -369,10 +344,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
 				   "changed", changeString_cb, filenamebuffer);
 		create_label_widget_pair(dialogVbox, "Filename", filenameentry);
-		groupnameentry = gtk_entry_new();
-		gtk_signal_connect(GTK_OBJECT(groupnameentry), "changed",
-				   changeString_cb, groupnamebuffer);
-		create_label_widget_pair(dialogVbox, "Groupname", groupnameentry);
 
 		if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 			return;
@@ -395,15 +366,12 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	}
 
 	/* Setup gpsm group. */
-	if(!groupnamebuffer)
-		group = gpsm_newgrp(g_basename(filenamebuffer));
-	else
-		group = gpsm_newgrp(groupnamebuffer);
+	group = gpsm_newgrp(g_basename(filenamebuffer));
 
 	i = 0;
 	do {
 		char swfilename[256];
-		snprintf(swfilename, 255, "%s-%i", groupnamebuffer, i);
+		snprintf(swfilename, 255, "track-%i", i);
 		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
 			goto fail_cleanup;
 		gpsm_grp_insert(group, it, 0, i);
@@ -446,6 +414,14 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	/* Insert the group into the gpsm tree. */
 	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
 			-1, -1);
+
+	/* Expand the parent widget. */
+	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+	/* Find out which widget it got and open an edit field. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)group);
+	if (grpw)
+		edit_tree_label(grpw);
 
 	return;
 
@@ -499,10 +475,8 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 	}
 
 	/* Register gtk handlers and append the item widget. */
-	//gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
-	//			 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
 	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
-				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+				 (GtkSignalFunc)click_cb,(gpointer)NULL);
 	glame_tree_append(tree, itemw);
 	glame_tree_item_update(itemw);
 
@@ -555,7 +529,7 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 
 		GLSIGH_GETARGS2(va, group, item);
 		if (GLAME_IS_TREE_ITEM(tree)
-		    && GLAME_TREE_ITEM(tree)->item != group)
+		    && GLAME_TREE_ITEM(tree)->item != (gpsm_item_t *)group)
 			DERROR("Wrong tree->item");
 
 		/* Insert item (and subitems, if necessary). */
