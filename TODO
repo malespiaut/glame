@@ -32,11 +32,6 @@ hash/
 filter/
 	[richi]
 	- allow node reparenting without breaking connections
-	- implementation stuff
-          * move (copy?) methods down to the actual users (filter_param_t
-  	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
-            existance
-	  * fix the notion of network/node to child/parent relationships
 
 swapfile/
         [richi]
@@ -52,6 +47,8 @@ glmid/
 	  copy/paste/overwrite operations on groups returning the
 	  result as new groups, i.e. not maintaining the clipboard
 	  itself, just editing operations.
+	- fix SMOB garbage collecting - introduce explicit object
+	  dependencies (start with gpsm: guilify the tree).
 
 gui/
 	[all]
@@ -63,6 +60,10 @@ gui/
 	- kewl import/export GUI
         - kewl analyze (normalize & DC-offset & lots of info) GUI
 	- kewl resample GUI
+	[richi]
+	- fix audio_io preferences to not show audio_in/out and to
+	  have params (including device and samplerate) be set by
+	  a std param setting dialog
 
 gui/swapfilegui
 	[richi]
