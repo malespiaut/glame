@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.13 2002/05/22 21:55:40 ochonpaul Exp $
+ * $Id: mixer.c,v 1.14 2002/09/23 20:15:33 ochonpaul Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -44,21 +44,21 @@ PLUGIN(mixer)
 struct apply_data_s {
 	filter_t *net;
 	filter_t *pos;
-        filter_t *pos2;
+	filter_t *pos2;
 	gpsm_item_t *item_a;
-        gpsm_item_t *grp;
-        gpsm_swfile_t *result_left;
-        gpsm_swfile_t *result_right;
-        filter_param_t *posparam;
+	gpsm_item_t *grp;
+	gpsm_swfile_t *result_left;
+	gpsm_swfile_t *result_right;
+	filter_param_t *posparam;
 	GtkWidget *dialog;
 	GtkWidget *mixer_hbox;
 	GtkWidget *counter;
 	GtkWidget *progress;
-        GtkObject *adjust;
-        GtkWidget *hscroll;
-        int stereo;
+	GtkObject *adjust;
+	GtkWidget *hscroll;
+	int stereo;
 	int previewing;
-        int applying;
+	int applying;
 	guint timeout_id;
 	long start, length;
 	int sr;
@@ -96,7 +96,7 @@ static void preview_start(struct apply_data_s *a);
 static void preview_stop(struct apply_data_s *a);
 static void apply_cb(GtkWidget * bla, struct apply_data_s *a);
 static void close_cb(GtkWidget * bla, struct apply_data_s *a);
-char *mixer_knob_formatter(gfloat lower,gfloat val, gpointer data);
+char *mixer_knob_formatter(gfloat lower, gfloat val, gpointer data);
 GtkWidget *glame_param_slider_new(filter_param_t * param,
 				  char *label_short,
 				  gfloat value,
@@ -114,19 +114,20 @@ static void cleanup(struct apply_data_s *a)
 	DPRINTF("cleanup\n");
 
 	if (a->timeout_id != -1)
-	  gtk_timeout_remove(a->timeout_id);
+		gtk_timeout_remove(a->timeout_id);
 	gtk_widget_hide(a->dialog);
 	gtk_widget_destroy(a->dialog);
-	if (a->net){
-	  filter_delete(a->net);
+	if (a->net) {
+		filter_delete(a->net);
 	}
 	gpsm_item_destroy((gpsm_item_t *) a->grp);
-	
+
 	free(a);
-	
-	for (index = 0; index <buttons_count; index++){
-	  /* printf("index=%i butcount=%i \n",index,buttons_count); */
-	  free(r[index]);}
+
+	for (index = 0; index < buttons_count; index++) {
+		/* printf("index=%i butcount=%i \n",index,buttons_count); */
+		free(r[index]);
+	}
 }
 
 static gint poll_net_cb(struct apply_data_s *a)
@@ -136,75 +137,95 @@ static gint poll_net_cb(struct apply_data_s *a)
 	int pos;
 	div_t time;
 	/* int sr; */
-	
-	if (filter_is_ready(a->net)) 
-	  {
-	    gtk_timeout_remove(a->timeout_id);
-	    a->timeout_id = -1;
-	    
-	    if (a->previewing)
-	    {  preview_stop(a);
-	    return FALSE;
-	    }
-	    if (a->applying) {
-	      gpsm_grp_t *grp;
-	      char *label;
-	      /* int is_not_centered=1; */
-	      filter_wait(a->net);
-	
-	      /* insert  track(s) in a new group */
-	      label = alloca(128);
-	      snprintf(label, 128, "Mixed: %s", gpsm_item_label(a->item_a));
-	      grp = gpsm_newgrp("mix");
-	      gpsm_item_set_label((gpsm_item_t *) grp, label);
-	      gpsm_vbox_insert(grp, (gpsm_item_t *) a->result_left, 0, 0);
-	      if (a->stereo==1)
-		gpsm_vbox_insert(grp, (gpsm_item_t *) a->result_right, 0, 1);
-	      gpsm_vbox_insert(gpsm_item_parent(a->item_a), (gpsm_item_t *) grp,
-			       gpsm_item_hposition(a->item_a),
-			       gpsm_item_vposition(a->item_a));
-	      gpsm_invalidate_swapfile(gpsm_swfile_filename(a->result_left));
-	      if (a->stereo==1)
-		gpsm_invalidate_swapfile(gpsm_swfile_filename(a->result_right));
-	      a->applying=0;
-	      
-	    }
-	   /*  close_cb(NULL,a); */
-	    cleanup(a);
-	    return FALSE;
-	  }
-	
+
+	if (filter_is_ready(a->net)) {
+		gtk_timeout_remove(a->timeout_id);
+		a->timeout_id = -1;
+
+		if (a->previewing) {
+			preview_stop(a);
+			return FALSE;
+		}
+		if (a->applying) {
+			gpsm_grp_t *grp;
+			char *label;
+			/* int is_not_centered=1; */
+			filter_wait(a->net);
+
+			/* insert  track(s) in a new group */
+			label = alloca(128);
+			snprintf(label, 128, "Mixed: %s",
+				 gpsm_item_label(a->item_a));
+			grp = gpsm_newgrp("mix");
+			gpsm_item_set_label((gpsm_item_t *) grp, label);
+			/*now, grp is inserted at root level */
+			if (gpsm_item_place
+			    (gpsm_root(), (gpsm_item_t *) grp, 0,
+			     gpsm_item_vsize(gpsm_root())) == -1)
+				DPRINTF("Cannot insert new group!?\n");
+			gpsm_vbox_insert(grp,
+					 (gpsm_item_t *) a->result_left, 0,
+					 0);
+			if (a->stereo == 1)
+				gpsm_vbox_insert(grp,
+						 (gpsm_item_t *) a->
+						 result_right, 0, 1);
+
+			/* previously: new group was inserted from a->item position, not working if mixer called from waveedit gui */
+			/*  gpsm_vbox_insert(gpsm_item_parent(a->item_a), (gpsm_item_t *) grp, */
+			/*  gpsm_item_hposition(a->item_a), */
+/* 		gpsm_item_vposition(a->item_a)); */
+
+
+			gpsm_invalidate_swapfile(gpsm_swfile_filename
+						 (a->result_left));
+			if (a->stereo == 1)
+				gpsm_invalidate_swapfile
+				    (gpsm_swfile_filename
+				     (a->result_right));
+			a->applying = 0;
+
+		}
+		/*  close_cb(NULL,a); */
+		cleanup(a);
+		return FALSE;
+	}
+
 	/* update progressbar */
-	if(a->previewing){
-	
-	/* a->posparam = */
+	if (a->previewing) {
+
+		/* a->posparam = */
 /* 	  filterparamdb_get_param(filter_paramdb(a->pos2), */
 /* 				  FILTERPARAM_LABEL_POS); */
-	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
-				MIN(1.0,
-				    (float) filterparam_val_long(a->posparam)
-		    / (float) (a->length)));
-	pos = filterparam_val_long(a->posparam);
-	time = div((pos / a->sr), 60);
-	snprintf(labelcount, 24, "%i mn %i s / %i mn %i s", time.quot,
-		 time.rem, (a->tot_time).quot, (a->tot_time).rem);
-	gtk_label_set_text(GTK_LABEL(a->counter), labelcount);
+		gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
+					MIN(1.0,
+					    (float)
+					    filterparam_val_long(a->
+								 posparam)
+					    / (float) (a->length)));
+		pos = filterparam_val_long(a->posparam);
+		time = div((pos / a->sr), 60);
+		snprintf(labelcount, 24, "%i mn %i s / %i mn %i s",
+			 time.quot, time.rem, (a->tot_time).quot,
+			 (a->tot_time).rem);
+		gtk_label_set_text(GTK_LABEL(a->counter), labelcount);
 	}
-	if(a->applying)
-	  {
-	    a->posparam =
-	      filterparamdb_get_param(filter_paramdb(a->pos2),
-				      FILTERPARAM_LABEL_POS);
-	    gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
-				    MIN(1.0,
-					(float) filterparam_val_long(a->posparam)
-					/ (float) (a->length)));
-	    snprintf(labelcount, 48, "Generating , please wait...");
-	    gtk_label_set_text(GTK_LABEL(a->counter), labelcount);
-	  }
+	if (a->applying) {
+		a->posparam =
+		    filterparamdb_get_param(filter_paramdb(a->pos2),
+					    FILTERPARAM_LABEL_POS);
+		gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
+					MIN(1.0,
+					    (float)
+					    filterparam_val_long(a->
+								 posparam)
+					    / (float) (a->length)));
+		snprintf(labelcount, 48, "Generating , please wait...");
+		gtk_label_set_text(GTK_LABEL(a->counter), labelcount);
+	}
 	return TRUE;
- 
-       
+
+
 }
 
 
@@ -213,19 +234,19 @@ static gint poll_net_cb(struct apply_data_s *a)
 static void preview_start(struct apply_data_s *a)
 {
 	/* filter_t *f; */
-  
+
 
 	if (filter_is_ready(a->net) == 0) {
 		DPRINTF("filter has not finished\n\n");
 		return;
 	}
-	
+
 	if ((filter_launch(a->net, _GLAME_WBUFSIZE) == -1) ||
 	    (filter_start(a->net) == -1))
 		goto cleanup;
-	
 
-	
+
+
 
 	a->timeout_id = gtk_timeout_add(300, (GtkFunction) poll_net_cb, a);
 	a->previewing = 1;
@@ -261,13 +282,13 @@ static void preview_cb(GtkWidget * widget, struct apply_data_s *a)
 /* make stereo mix if a->stereo=1 , else make mono mix */
 static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 {
-	
+
 	filter_t *swap_out_left, *swap_out_right, *render, *net_out;
 	filter_port_t *out, *in_l, *in_r;
 	filter_pipe_t *pipe, *pipe1;
 	double pos;
 	long swname;
-	printf("a->stereo=%i\n\n",a->stereo);
+	printf("a->stereo=%i\n\n", a->stereo);
 	if (filter_is_ready(a->net) == 0) {
 		DPRINTF("filter has not finished\n\n");
 		return;
@@ -279,9 +300,9 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 	}
 	filter_delete(net_out);
 
-	
-	if (a->stereo==0) {
-	       
+
+	if (a->stereo == 0) {
+
 		DPRINTF("\n\nmono mix\n\n");
 		a->result_left = gpsm_newswfile("mixed ");
 		render = filter_get_node(a->net, "render");
@@ -291,7 +312,7 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 		}
 
 		if (!(swap_out_left =
-		     filter_instantiate(plugin_get("swapfile-out")))) {
+		      filter_instantiate(plugin_get("swapfile-out")))) {
 			DPRINTF("error swapout left create\n\n");
 			goto cleanup;
 		}
@@ -308,8 +329,8 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 		    filterportdb_get_port(filter_portdb(swap_out_left),
 					  PORTNAME_IN);
 		if (!(out =
-		     filterportdb_get_port(filter_portdb(render),
-					   PORTNAME_OUT))) {
+		      filterportdb_get_port(filter_portdb(render),
+					    PORTNAME_OUT))) {
 			DPRINTF("error getting port l\n\n");
 			goto cleanup;
 		}
@@ -323,16 +344,17 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1)
 		    || (filter_start(a->net) == -1))
 			goto cleanup;
-	/* 	if (filter_wait(a->net) == -1) */
+		/*      if (filter_wait(a->net) == -1) */
 /* 			goto cleanup; */
 	}
 
 	/*stereo */
 	else {
-	        
+
 		DPRINTF("stereo mix");
 		a->result_left = gpsm_newswfile("mixed left");
-		gpsm_swfile_set_position(a->result_left, FILTER_PIPEPOS_LEFT);
+		gpsm_swfile_set_position(a->result_left,
+					 FILTER_PIPEPOS_LEFT);
 		a->result_right = gpsm_newswfile("mixed right");
 		gpsm_swfile_set_position(a->result_right,
 					 FILTER_PIPEPOS_RIGHT);
@@ -376,7 +398,7 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 		}
 
 
-		
+
 		in_l =
 		    filterportdb_get_port(filter_portdb(swap_out_left),
 					  PORTNAME_IN);
@@ -417,15 +439,16 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 			goto cleanup;
 
 	}
-		a->pos2 = swap_out_left;
-		a->applying = 1;
-		a->timeout_id = gtk_timeout_add(200, (GtkFunction)poll_net_cb, a);
-		/* Disable buttons. */
-		gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), PREVIEW, FALSE);
-		gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), APPLY, FALSE);
-		gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), CANCEL, FALSE);
-	
-	
+	a->pos2 = swap_out_left;
+	a->applying = 1;
+	a->timeout_id = gtk_timeout_add(200, (GtkFunction) poll_net_cb, a);
+	/* Disable buttons. */
+	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), PREVIEW,
+				   FALSE);
+	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), APPLY, FALSE);
+	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), CANCEL, FALSE);
+
+
 
 	return;
 
@@ -454,19 +477,19 @@ static gint delete_cb(GtkWidget * w, GdkEventAny * event,
 	close_cb(w, a);
 	return TRUE;
 }
- 
 
-void mono_sel_cb (GtkWidget *widget, struct apply_data_s *a)
+
+void mono_sel_cb(GtkWidget * widget, struct apply_data_s *a)
 {
-a->stereo=0;
+	a->stereo = 0;
 }
 
 
 
-void stereo_sel_cb (GtkWidget *widget, struct apply_data_s *a)
+void stereo_sel_cb(GtkWidget * widget, struct apply_data_s *a)
 {
-a->stereo=1;
-printf("a->stereo=%i\n\n",a->stereo);
+	a->stereo = 1;
+	printf("a->stereo=%i\n\n", a->stereo);
 }
 
 
@@ -475,9 +498,9 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 {
 
 	GtkWidget *label, *scrolledwindow, *viewport;
-	GtkWidget *button,*hbox1;
+	GtkWidget *button, *hbox1;
 	GSList *group;
-  	struct apply_data_s *a;
+	struct apply_data_s *a;
 	gpsm_item_t *item;
 	plugin_t *test;
 	char *text_obj, text[48], labelcount[24];
@@ -592,7 +615,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		    *eq_low_frame, *eq_low_hbox, *eq_mid_frame,
 		    *eq_mid_hbox, *eq_hi_frame, *eq_hi_hbox, *eq_lvl_frame,
 		    *eq_lvl_hbox;
-		double  gain;
+		double gain;
 
 		if (gpsm_item_hposition(item) != 0)
 			goto cleanup;	/* we dont want to handle non-aligned
@@ -971,7 +994,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		}
 		gtk_widget_show_all(glame_param);
 		gtk_container_add(GTK_CONTAINER(eq_lvl_hbox), glame_param);
-		
+
 		/* pan2 */
 		if (!(pan2 = filter_instantiate((plugin_get("pan2"))))) {
 			DPRINTF("error getting pan2");
@@ -994,39 +1017,41 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 			goto cleanup;
 		}
 		filterparam_set_double(param, gpsm_swfile_position(item));
-			
-		glame_param=glame_param_slider_new(param, "pan", gpsm_swfile_position(item), -M_PI,
-					   M_PI, M_PI / 8.0, M_PI / 2.0,
-					   0.0);
+
+		glame_param =
+		    glame_param_slider_new(param, "pan",
+					   gpsm_swfile_position(item),
+					   -M_PI, M_PI, M_PI / 8.0,
+					   M_PI / 2.0, 0.0);
 		if (!glame_param) {
 			DPRINTF("Unable to get pan2 param widget");
 			goto cleanup;
 		}
-	/* 	printf("pos=%f\n",FILTER_PIPEPOS_CENTRE); */
+		/*      printf("pos=%f\n",FILTER_PIPEPOS_CENTRE); */
 		gtk_widget_show_all(glame_param);
 		gtk_container_add(GTK_CONTAINER(eq_lvl_hbox), glame_param);
 
 	}
 	/*end of loop */
 
-     /* glame_filtereditgui_new(a->net, TRUE); *//*uncomment to see the network ,(also remove modal)*/
+/* glame_filtereditgui_new(a->net, TRUE); *//*uncomment to see the network ,(also remove modal) */
 	a->progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(a->progress),
 					 GTK_PROGRESS_LEFT_TO_RIGHT);
 	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox),
 			   a->progress, FALSE, FALSE, 3);
 	gtk_widget_show(a->progress);
-	
+
 	if (!(a->pos2 = net_apply_audio_out(a->net))) {
-	  DPRINTF("error applying audio_out");
-	  goto cleanup;
+		DPRINTF("error applying audio_out");
+		goto cleanup;
 	}
 	a->posparam = filterparamdb_get_param(filter_paramdb(a->pos2),
-				  FILTERPARAM_LABEL_POS);
+					      FILTERPARAM_LABEL_POS);
 
 
 
-	/*scrollbar (for future use )*/
+	/*scrollbar (for future use ) */
 /* 	a->adjust = gtk_adjustment_new (0.0, 0.0, 100.0, 1.0, 1.0, 1.0); */
 /* 	a->hscroll = gtk_hscrollbar_new (GTK_ADJUSTMENT (a->adjust)); */
 	/* gtk_signal_connect (GTK_OBJECT (a->adjust), "value_changed", */
@@ -1035,31 +1060,31 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 /* 	gtk_widget_show (a->hscroll); */
 
 /* 	hbox for monostereo sel and time counter */
-	 hbox1 = gtk_hbox_new (FALSE, 0);
-	 gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), hbox1, FALSE,FALSE, 0);
-	 gtk_widget_show (hbox1);
+	hbox1 = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), hbox1,
+			   FALSE, FALSE, 0);
+	gtk_widget_show(hbox1);
 
 
 	/* mono stereo selection */
 
 	label = gtk_label_new("Mix to");
-	gtk_box_pack_start(GTK_BOX(hbox1), label,
-			   FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox1), label, FALSE, FALSE, 3);
 	gtk_widget_show(label);
-	button = gtk_radio_button_new_with_label (NULL, "mono");
-	gtk_signal_connect (GTK_OBJECT (button), "clicked",
-			    GTK_SIGNAL_FUNC (mono_sel_cb), a);
-	gtk_box_pack_start (GTK_BOX(hbox1), button, FALSE,FALSE, 0);
-	gtk_widget_show (button);
+	button = gtk_radio_button_new_with_label(NULL, "mono");
+	gtk_signal_connect(GTK_OBJECT(button), "clicked",
+			   GTK_SIGNAL_FUNC(mono_sel_cb), a);
+	gtk_box_pack_start(GTK_BOX(hbox1), button, FALSE, FALSE, 0);
+	gtk_widget_show(button);
 
-	group = gtk_radio_button_group (GTK_RADIO_BUTTON (button));
+	group = gtk_radio_button_group(GTK_RADIO_BUTTON(button));
 	button = gtk_radio_button_new_with_label(group, "stereo");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
-	gtk_signal_connect (GTK_OBJECT (button), "clicked",
-			    GTK_SIGNAL_FUNC (stereo_sel_cb),a);
-	gtk_box_pack_start (GTK_BOX(hbox1), button, FALSE,FALSE, 0);
-	gtk_widget_show (button);
-	a->stereo=1;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), TRUE);
+	gtk_signal_connect(GTK_OBJECT(button), "clicked",
+			   GTK_SIGNAL_FUNC(stereo_sel_cb), a);
+	gtk_box_pack_start(GTK_BOX(hbox1), button, FALSE, FALSE, 0);
+	gtk_widget_show(button);
+	a->stereo = 1;
 
 
 
@@ -1067,15 +1092,15 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 
 	/* time counter */
 	a->length = length;
-	a->sr =filterpipe_sample_rate(filterport_get_pipe
-				   (filterportdb_get_port
-				    (filter_portdb(a->pos2), PORTNAME_IN)));
+	a->sr = filterpipe_sample_rate(filterport_get_pipe
+				       (filterportdb_get_port
+					(filter_portdb(a->pos2),
+					 PORTNAME_IN)));
 	a->tot_time = div((a->length / a->sr), 60);
 	snprintf(labelcount, 24, "%i mn %i s/ %i mn %i s", 0,
 		 0, (a->tot_time).quot, (a->tot_time).rem);
 	a->counter = gtk_label_new(labelcount);
-	gtk_box_pack_end(GTK_BOX(hbox1),
-			   a->counter, FALSE, FALSE, 3);
+	gtk_box_pack_end(GTK_BOX(hbox1), a->counter, FALSE, FALSE, 3);
 	gtk_widget_show(a->counter);
 	/* gnome_dialog_append_button_with_pixmap(GNOME_DIALOG(a->dialog), */
 	/*                                           _("Preview"), */
@@ -1141,17 +1166,15 @@ static void mute_cb(GtkWidget * widget, struct button_s *r)
 	}
 }
 
-char *mixer_knob_formatter(gfloat lower,gfloat val, gpointer data)
+char *mixer_knob_formatter(gfloat lower, gfloat val, gpointer data)
 {
 	char buf[1024];
-	
-	if (lower> 300) {	/*freq mid/high: display as x/1000K */
+
+	if (lower > 300) {	/*freq mid/high: display as x/1000K */
 		snprintf(buf, 1023,
 			 "(lambda (x) (string-append (number-&gt;string (/ (round (* x 1)) 1000)) \"K\"))");
-	} 
-	else if ((int)(lower*10) == (int)((-M_PI)*10)){
-	  snprintf(buf, 1023,
-		   " (lambda (x) 
+	} else if ((int) (lower * 10) == (int) ((-M_PI) * 10)) {
+		snprintf(buf, 1023, " (lambda (x) 
                           (if (= (round (* 10 x)) 
                            ( round (* 10 1.570))) \"RIGHT\" 
                            (if (= (round (* 10 x)) 
@@ -1160,10 +1183,12 @@ char *mixer_knob_formatter(gfloat lower,gfloat val, gpointer data)
                             0 )\"CENTER\"
                            (if (= (round(* 10 x)) 
                             1 )\"CENTER\"       
-                           (number-&gt;string (/(round (* x 10))10)) )))))"); 
+                           (number-&gt;string (/(round (* x 10))10)) )))))");
 	}
-	/* it seems we need to extend the centered area between 0 and 0.1 */ 
-	else snprintf(buf, 1023," (lambda (x) (number-&gt;string (/(round (* x 10))10)))");
+	/* it seems we need to extend the centered area between 0 and 0.1 */
+	else
+		snprintf(buf, 1023,
+			 " (lambda (x) (number-&gt;string (/(round (* x 10))10)))");
 	return g_strdup(buf);
 }
 
@@ -1184,30 +1209,24 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 		DPRINTF("alloc error");
 		return NULL;
 	}
-	 
-	snprintf(formatted, 1023, mixer_knob_formatter(lower,value, NULL));
+
+	snprintf(formatted, 1023,
+		 mixer_knob_formatter(lower, value, NULL));
 	snprintf(xml, 1511,
-		 "<?xml version=\"1.0\"?><GTK-Interface>"
-		 "  <widget>"
-		 "    <class>GtkKnob</class>"
-		 "    <name>widget</name>"
+		 "<?xml version=\"1.0\"?><GTK-Interface>" "  <widget>"
+		 "    <class>GtkKnob</class>" "    <name>widget</name>"
 		 "    <can_focus>True</can_focus>"
 		 "    <draw_value>True</draw_value>"
 		 "    <value_pos>GTK_POS_TOP</value_pos>"
 		 "    <digits>1</digits>"
 		 "    <policy>GTK_UPDATE_CONTINUOUS</policy>"
-		 "    <value>%.3f</value>"
-		 "    <lower>%.3f</lower>"
-		 "    <upper>%.3f</upper>"
-		 "    <step>%.3f</step>"
-		 "    <page>%.3f</page>"
-		 "    <page_size>%.3f</page_size>"
-		 "    <formatter>%s</formatter>"
-		 "    <tick>%.3f</tick>"
-		 "  </widget>"
-		 "</GTK-Interface>",
-		 value, lower, upper, step_increment,
-		 page_increment, page_size, formatted, value);
+		 "    <value>%.3f</value>" "    <lower>%.3f</lower>"
+		 "    <upper>%.3f</upper>" "    <step>%.3f</step>"
+		 "    <page>%.3f</page>" "    <page_size>%.3f</page_size>"
+		 "    <formatter>%s</formatter>" "    <tick>%.3f</tick>"
+		 "  </widget>" "</GTK-Interface>", value, lower, upper,
+		 step_increment, page_increment, page_size, formatted,
+		 value);
 	filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
 	hbox = gtk_hbox_new(FALSE, 0);
 	vbox = gtk_vbox_new(FALSE, 0);
