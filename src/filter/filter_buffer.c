@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.22 2000/04/17 09:46:47 richi Exp $
+ * $Id: filter_buffer.c,v 1.23 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,10 +29,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <limits.h>
-#include "filter.h"
-#include "util.h"
-#include "atomic.h"
-#include "list.h"
+#include "filter_pipe.h"
+#include "filter_buffer.h"
 
 
 void fbuf_ref(filter_buffer_t *fb)
@@ -167,11 +165,6 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 	if (fbuf && ATOMIC_VAL(fbuf->refcnt) == 0)
 		DERROR("queued buffer without holding a reference\n");
 
-	if (fbuf
-	    && p->type == FILTER_PIPETYPE_SAMPLE
-	    && sbuf_size(fbuf) < GLAME_MIN_BUFSIZE)
-		DPRINTF("queued small buffer (%i samples)\n", sbuf_size(fbuf));
-
 	buf[0] = fbuf;
 	while ((res = write(p->source_fd, buf, FBPIPE_WSIZE)) == -1
 	       && errno == EINTR)
@@ -188,7 +181,8 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 
 
 
-/* internal use API */
+/* Internal API used for cleanup in filter_ops.c
+ */
 
 void fbuf_drain(filter_pipe_t *p)
 {

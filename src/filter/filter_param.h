@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.6 2000/10/28 13:45:48 richi Exp $
+ * $Id: filter_param.h,v 1.7 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -87,13 +87,21 @@ typedef struct {
 } filter_param_t;
 
 /* Access macros to the various fields of the filter parameter
- * structure. */
+ * structure.
+ * const char *filterparam_label(filter_param_t *);
+ * filter_t *filterparam_filter(filter_paramt_t *); */
 #define filterparam_label(p) ((p)->entry.label)
-#define filterparam_node(p) (((filter_paramdb_t *)((p)->entry.db))->node)
+#define filterparam_filter(p) (((filter_paramdb_t *)((p)->entry.db))->node)
 
 /* Public access macros for the parameter type and the union
- */
+ * int filterparam_type(filter_param_t *);
+ * void *filterparam_val(filter_param_t *);
+ * int filterparam_val_int(filter_param_t *);
+ * const char *filterparam_val_string(filter_param_t *);
+ * float filterparam_val_float(filter_param_t *);
+ * SAMPLE filterparam_val_sample(filter_param_t *); */
 #define filterparam_type(p) ((p)->type)
+#define filterparam_val(p) (&(p)->u)
 #define filterparam_val_int(p) ((p)->u.i)
 #define filterparam_val_string(p) ((p)->u.string)
 #define filterparam_val_float(p) ((p)->u.f)
@@ -107,8 +115,10 @@ typedef struct {
  * filter_pipe_t *filterparam_get_sourcepipe(filter_param_t *p);
  * filter_pipe_t *filterparam_get_destpipe(filter_param_t *p);
  */
-#define filterparam_get_sourcepipe(p) (filter_pipe_t *)((char *)&(p)->entry.db - (char *)&((filter_pipe_t *)0)->source_params)
-#define filterparam_get_destpipe(p) (filter_pipe_t *)((char *)&(p)->entry.db - (char *)&((filter_pipe_t *)0)->dest_params)
+#define filterparam_get_sourcepipe(p) (filter_pipe_t *)( \
+        (char *)&(p)->entry.db - (char *)&((filter_pipe_t *)0)->source_params)
+#define filterparam_get_destpipe(p) (filter_pipe_t *)( \
+        (char *)&(p)->entry.db - (char *)&((filter_pipe_t *)0)->dest_params)
 
 
 /* Access to the property database, prototypes are
@@ -116,7 +126,8 @@ typedef struct {
  * void filterparam_set_property(filter_param_t *p, const char *label,
  *                               const char *value); */
 #define filterparam_get_property(p, w) (glsdb_query(&(p)->properties, (w)))
-#define filterparam_set_property(p, w, v) do { glsdb_set(&(p)->properties, (v), (w)); } while (0)
+#define filterparam_set_property(p, w, v) do { glsdb_set(&(p)->properties, \
+        (v), (w)); } while (0)
 
 /* Stdandard property names - MAP_NODE and MAP_LABEL are for internal
  * use only. The END one is used to finish the varargs list to the
@@ -125,9 +136,6 @@ typedef struct {
 #define FILTERPARAM_END NULL
 #define FILTERPARAM_MAP_NODE "_node"
 #define FILTERPARAM_MAP_LABEL "_label"
-
-/* Delete a parameter out of its database. */
-#define filterparam_delete(param) do { if (param) gldb_delete_item(&param->entry); } while (0)
 
 
 
@@ -153,6 +161,16 @@ int filterparam_set_string(filter_param_t *param, const char *val);
  * use the following function. The returned string has to be freed
  * by the caller. NULL is be returned on error. */
 char *filterparam_to_string(const filter_param_t *param);
+
+
+/* void filterparam_delete(filter_param_t *);
+ * Delete a parameter out of its database. */
+#define filterparam_delete(param) do { if (param) \
+        gldb_delete_item(&param->entry); } while (0)
+
+/* Redirects parameter set/query operations (by copy!) to the specified
+ * parameter. Returns 0 on success, -1 on error. */
+int filterparam_redirect(filter_param_t *source, filter_param_t *dest);
 
 
 
@@ -198,12 +216,14 @@ void filterparamdb_delete_param(filter_paramdb_t *db, const char *label);
 /* You can iterate through all parameters of a database using the
  * following iterator (which acts like a for statement with the
  * second parameter as running variable). Note that you may not
- * delete parameters in this loop! */
+ * delete parameters in this loop! 
+ * filterparamdb_foreach_param(filter_paramdb_t *, filter_param_t *) {} */
 #define filterparamdb_foreach_param(pdb, i) list_foreach(&(pdb)->db.items, \
         filter_param_t, entry.list, i)
 
 /* To just query the number of parameters stored in a parameter
- * database use the following function. */
+ * database use the following function. 
+ * int filterparamdb_nrparams(filter_paramdb_t *); */
 #define filterparamdb_nrparams(pdb) gldb_nritems(&(pdb)->db)
 
 
@@ -216,15 +236,19 @@ void filterparamdb_delete_param(filter_paramdb_t *db, const char *label);
  * never called on one of its items. */
 void filterparamdb_init(filter_paramdb_t *db, filter_t *node);
 
-/* Delete the database, freeing all its parameters. */
+/* Delete the database, freeing all its parameters.
+ * void filterparamdb_delete(filter_paramdb_t *); */
 #define filterparamdb_delete(pdb) gldb_delete(&(pdb)->db)
 
-/* Copy all parameters from one database to another. */
+/* Copy all parameters from one database to another. Returns 0
+ * on success and -1 on error.
+ * int filterparamdb_copy(filter_paramdb_t *, filter_paramdb_t *); */
 #define filterparamdb_copy(d, s) gldb_copy(&(d)->db, &(s)->db)
 
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif

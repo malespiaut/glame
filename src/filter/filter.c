@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.36 2000/10/28 13:45:48 richi Exp $
+ * $Id: filter.c,v 1.37 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -35,47 +35,198 @@
 #include "glame_sem.h"
 #include "filter.h"
 #include "filter_methods.h"
-#include "filter_mm.h"
+#include "filter_ops.h"
+
 
 
 /* helper to create automagically unique node names. */
 #define hash_unique_name_node(prefix, nt) _hash_unique_name((prefix), (nt), \
         __hash_pos(filter_t, hash, name, net))
 
-/* filter sub-nodes hash/list additions. */
+/* filter sub-nodes hash/list addition/removal. */
 #define hash_add_node(node) _hash_add(&(node)->hash, _hash((node)->name, \
         (node)->net))
 #define list_add_node(node) list_add(&(node)->list, &(node)->net->nodes);
+#define hash_remove_node(node) _hash_remove(&(node)->hash)
+#define list_remove_node(node) list_del(&(node)->list)
+
+
+
+/* Helpers for mm of filter_t.
+ */
+
+/* "iterator" for filter sub-nodes deletion. */
+#define filter_first_node(net) list_gethead(&(net)->nodes, \
+        filter_t, list)
+
+/* Allocate pristine filternode/network. */
+filter_t *_filter_alloc()
+{
+	filter_t *f;
+
+	if (!(f = ALLOC(filter_t)))
+		return NULL;
+
+	f->type = 0;
+
+	f->net = NULL;
+	INIT_HASH_HEAD(&f->hash);
+	INIT_LIST_HEAD(&f->list);
+	f->name = NULL;
+
+	f->plugin = NULL;
+	f->f = NULL;
+	f->init = NULL;
+	f->connect_out = NULL;
+	f->connect_in = NULL;
+	f->set_param = NULL;
+	filterportdb_init(&f->ports, f);
+
+	f->priv = NULL;
+
+	f->glerrno = 0;
+	f->glerrstr = NULL;
+
+	INIT_GLSIG_EMITTER(&f->emitter);
+
+	f->ops = NULL;
+
+	filterparamdb_init(&f->params, f);
+
+	f->state = STATE_UNDEFINED;
+	INIT_LIST_HEAD(&f->buffers);
+
+	f->nr_nodes = 0;
+	INIT_LIST_HEAD(&f->nodes);
+	f->launch_context = NULL;
+
+	return f;
+}
+
+void _filter_free(filter_t *f)
+{
+	filter_t *n;
+
+	if (!f)
+		return;
+
+	/* first signal deletion */
+	glsig_emit(&f->emitter, GLSIG_FILTER_DELETED, f);
+
+	while ((n = filter_first_node(f))) {
+		hash_remove_node(n);
+		list_remove_node(n);
+		_filter_free(n);
+	}
+
+	filterportdb_delete(&f->ports);
+	filterparamdb_delete(&f->params);
+
+	glsig_delete_all(&f->emitter);
+	free((char *)f->name);
+
+	free(f);
+}
+
+
+filter_t *_filter_instantiate(filter_t *f)
+{
+	filter_t *n, *node, *source, *dest;
+	filter_pipe_t *pipe, *p;
+	filter_port_t *port;
+
+	/* allocate new structure. */
+	if (!(n = _filter_alloc()))
+		return NULL;
+
+	/* copy all the stuff. */
+	n->name = NULL;
+	n->f = f->f;
+	n->init = f->init;
+	n->connect_out = f->connect_out;
+	n->connect_in = f->connect_in;
+	n->set_param = f->set_param;
+
+	n->priv = f->priv;
+
+	n->ops = f->ops;
+
+	glsig_copy_handlers(&n->emitter, &f->emitter);
+	glsig_copy_redirectors(&n->emitter, &f->emitter);
+	filterparamdb_copy(&n->params, &f->params);
+	filterportdb_copy(&n->ports, &f->ports);
+
+	/* copy nodes */
+	filter_foreach_node(f, node) {
+		if (filter_add_node(n, _filter_instantiate(node), node->name) == -1)
+			goto err;
+	}
+
+	/* and connections */
+	/* second create the connections (loop through all outputs)
+	 * and copy pipe parameters */
+	filter_foreach_node(f, node) {
+	    filterportdb_foreach_port(filter_portdb(node), port) {
+		if (!filterport_is_output(port))
+			continue;
+		filterport_foreach_pipe(port, pipe) {
+			source = filter_get_node(n, filterport_filter(filterpipe_source(pipe))->name);
+			dest = filter_get_node(n, filterport_filter(filterpipe_dest(pipe))->name);
+			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), filterport_label(filterpipe_source(pipe))),
+						     filterportdb_get_port(filter_portdb(dest), filterport_label(filterpipe_dest(pipe))))))
+				goto err;
+			filterparamdb_copy(filterpipe_sourceparamdb(p),
+					   filterpipe_sourceparamdb(pipe));
+			filterparamdb_copy(filterpipe_destparamdb(p),
+					   filterpipe_destparamdb(pipe));
+		}
+	    }
+	}
+
+	if (n->init && n->init(n) == -1)
+		goto err;
+
+	return n;
+
+ err:
+	_filter_free(n);
+	return NULL;
+}
+
+int _filter_fixup(filter_t *f)
+{
+	if (filter_nrnodes(f) == 0 && f->f && !f->ops) {
+		/* We are a partially initialized node! */
+		f->type |= FILTERTYPE_NODE;
+		f->ops = &filter_node_ops;
+		if (!f->connect_out)
+			f->connect_out = filter_default_connect_out;
+		if (!f->connect_in)
+			f->connect_in = filter_default_connect_in;
+		if (!f->set_param)
+			f->set_param = filter_default_set_param;
+	} else if (filter_nrnodes(f) > 0 && !f->f && !f->ops) {
+		/* We are a partially initialized network! */
+		f->type |= FILTERTYPE_NETWORK;
+		f->ops = &filter_network_ops;
+		f->connect_out = filter_network_connect_out;
+		f->connect_in = filter_network_connect_in;
+		f->set_param = filter_network_set_param;
+	} else if (!f->ops)
+		return -1;
+
+	return 0;
+}
 
 
 /* filter API.
  */
 
-filter_t *filter_alloc_network()
+filter_t *filter_creat(filter_t *template)
 {
-	return _filter_alloc(FILTERTYPE_NETWORK);
-}
-
-filter_t *filter_alloc_node(int (*func)(filter_t *))
-{
-	filter_t *f;
-
-	if (!func)
-		return NULL;
-	if (!(f = _filter_alloc(FILTERTYPE_NODE)))
-		return NULL;
-
-	/* fill in main filter function */
-	f->f = func;
-
-	return f;
-}
-
-filter_t *filter_clone(filter_t *f)
-{
-	if (!f || FILTER_IS_PART_OF_NETWORK(f))
-		return NULL;
-	return _filter_instantiate(f);
+	if (template)
+		return _filter_instantiate(template);
+	return _filter_alloc();
 }
 
 filter_t *filter_instantiate(plugin_t *p)
@@ -102,10 +253,16 @@ void filter_delete(filter_t *f)
 }
 
 
-void filter_register(filter_t *f, plugin_t *p)
+int filter_register(filter_t *f, plugin_t *p)
 {
 	if (FILTER_IS_PLUGIN(f) || FILTER_IS_PART_OF_NETWORK(f))
-		return;
+		return -1;
+
+	/* Try to fixate filter type, provide default methods
+	 * and operations. */
+	if (_filter_fixup(f) == -1)
+		return -1;
+
 	f->plugin = p;
 	f->type |= FILTERTYPE_PLUGIN;
 	if (FILTER_IS_NETWORK(f)) {
@@ -115,197 +272,17 @@ void filter_register(filter_t *f, plugin_t *p)
 			n->type |= FILTERTYPE_PLUGIN;
 	}
 	plugin_set(p, PLUGIN_FILTER, f);
-}
 
-
-filter_port_t *filter_add_inputport(filter_t *filter, const char *label,
-				    const char *description, int type)
-{
-	filter_port_t *port;
-
-	if (!filter || FILTER_IS_PLUGIN(filter) || !label)
-		return NULL;
-	port = filterportdb_add_port(filter_portdb(filter), label,
-				     type, FILTER_PORTFLAG_INPUT,
-				     FILTERPORT_DESCRIPTION, description,
-				     FILTERPORT_END);
-	if (!port)
-		return NULL;
-	if (FILTER_IS_PART_OF_NETWORK(filter))
-		glsig_emit(&filter->emitter, GLSIG_FILTER_CHANGED, filter);
-
-	return port;
-}
-
-filter_port_t *filter_add_outputport(filter_t *filter, const char *label,
-				     const char *description, int type)
-{
-	filter_port_t *port;
-
-	if (!filter || FILTER_IS_PLUGIN(filter) || !label)
-		return NULL;
-	port = filterportdb_add_port(filter_portdb(filter), label,
-				     type, FILTER_PORTFLAG_OUTPUT,
-				     FILTERPORT_DESCRIPTION, description,
-				     FILTERPORT_END);
-	if (!port)
-		return NULL;
-	if (FILTER_IS_PART_OF_NETWORK(filter))
-		glsig_emit(&filter->emitter, GLSIG_FILTER_CHANGED, filter);
-
-	return port;
-}
-
-void filter_delete_port(filter_t *filter, filter_port_t *port)
-{
-	if (!filter || FILTER_IS_PLUGIN(filter)
-	    || FILTER_IS_LAUNCHED(filter) || !port)
-		return;
-
-	filterport_delete(port);
-
-	if (FILTER_IS_PART_OF_NETWORK(filter))
-		glsig_emit(&filter->emitter, GLSIG_FILTER_CHANGED, filter);
+	return 0;
 }
 
 
 /* filter "network" API.
  */
 
-static void *waiter(void *network)
-{
-	filter_t *net = (filter_t *)network;
-	int res;
-
-	res = net->ops->wait(net);
-
-	DPRINTF("starting cleanup\n");
-	net->ops->postprocess(net);
-	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL;
-	DPRINTF("finished\n");
-
-	return (void *)res;
-}
-
-int filter_launch(filter_t *net)
-{
-	/* sigset_t sigs; */
-
-	if (!net || !FILTER_IS_NETWORK(net) || FILTER_IS_LAUNCHED(net))
-		return -1;
-
-	/* block EPIPE
-	sigemptyset(&sigs);
-	sigaddset(&sigs, SIG_BLOCK);
-	sigprocmask(SIG_BLOCK, &sigs, NULL); */
-
-	/* init state */
-	if (!(net->launch_context = _launchcontext_alloc()))
-		return -1;
-
-	DPRINTF("initting nodes\n");
-	if (net->ops->init(net) == -1)
-		goto out;
-
-	DPRINTF("launching nodes\n");
-	if (net->ops->launch(net) == -1)
-		goto out;
-
-	DPRINTF("launching waiter\n");
-	if (pthread_create(&net->launch_context->waiter, NULL,
-			   waiter, net) != 0)
-		goto out;
-
-	net->launch_context->state = STATE_LAUNCHED;
-	DPRINTF("all nodes launched.\n");
-
-	return 0;
-
- out:
-	DPRINTF("error.\n");
-	filter_terminate(net);
-
-	return -1;
-}
-
-int filter_start(filter_t *net)
-{
-	struct sembuf sop;
-
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || FILTER_IS_RUNNING(net))
-		return -1;
-
-	DPRINTF("waiting for nodes to complete initialization.\n");
-        sop.sem_num = 0;
-        sop.sem_op = -net->launch_context->nr_threads;
-        sop.sem_flg = 0;
-        glame_semop(net->launch_context->semid, &sop, 1);
-	if (ATOMIC_VAL(net->launch_context->result) != 0)
-		goto out;
-	net->launch_context->state = STATE_RUNNING;
-
-	return 0;
-
-out:
-	DPRINTF("Network error. Terminating.\n");
-	filter_terminate(net);
-	return -1;
-}
-
-int filter_pause(filter_t *net)
-{
-	struct sembuf sop;
-
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || !FILTER_IS_RUNNING(net))
-		return -1;
-
-        sop.sem_num = 0;
-        sop.sem_op = net->launch_context->nr_threads;
-        sop.sem_flg = IPC_NOWAIT;
-        glame_semop(net->launch_context->semid, &sop, 1);
-	net->launch_context->state = STATE_LAUNCHED;
-
-	return 0;
-}
-
-int filter_wait(filter_t *net)
-{
-	void *res;
-
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || !FILTER_IS_RUNNING(net))
-		return -1;
-
-	DPRINTF("waiting for waiter to complete\n");
-	pthread_join(net->launch_context->waiter, &res);
-
-	return (int)res;
-}
-
-void filter_terminate(filter_t *net)
-{
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net))
-		return;
-
-	atomic_set(&net->launch_context->result, 1);
-	{
-		union semun sun;
-		sun.val = 0;
-		glame_semctl(net->launch_context->semid, 0, SETVAL, sun);
-	}
-	net->launch_context->state = STATE_RUNNING;
-
-	/* "safe" cleanup */
-	filter_wait(net);
-}
-
-
 int filter_add_node(filter_t *net, filter_t *node, const char *name)
 {
-	if (!net || !FILTER_IS_NETWORK(net) || !node || !name)
+	if (!net || !node || !name)
 		return -1;
 	node->net = net;
 	if (filter_get_node(net, name) == NULL)
@@ -314,102 +291,14 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name)
 		node->name = hash_unique_name_node(name, net);
 	if (!node->name)
 		return -1;
+	_filter_fixup(node);
 	hash_add_node(node);
 	list_add_node(node);
 	net->nr_nodes++;
+	_filter_fixup(net);
 
 	return 0;
 }
-
-
-/* filternetwork filters / loading / saving
- * BIG FIXME!
- */
-
-filter_param_t *filternetwork_add_param(filter_t *net,
-					const char *node, const char *param,
-					const char *label, const char *desc)
-{
-	filter_t *n;
-	filter_param_t *od, *d;
-
-	if (!net || !FILTER_IS_NETWORK(net) || FILTER_IS_PLUGIN(net)
-	    || FILTER_IS_LAUNCHED(net)
-	    || !node || !param || !label)
-		return NULL;
-	if (!(n = filter_get_node(net, node)))
-		return NULL;
-	if (!(od = filterparamdb_get_param(filter_paramdb(n), param)))
-		return NULL;
-	/* Add param to network node. */
-	if (!(d = filterparamdb_add_param(filter_paramdb(net),
-					  label, od->type, &od->u,
-					  FILTERPARAM_DESCRIPTION, desc,
-					  FILTERPARAM_MAP_NODE, node,
-					  FILTERPARAM_MAP_LABEL, param,
-					  FILTERPARAM_END)))
-		return NULL;
-
-	return d;
-}
-
-filter_port_t *filternetwork_add_input(filter_t *net,
-				       const char *node, const char *port,
-				       const char *label, const char *desc)
-{
-	filter_t *n;
-	filter_port_t *d;
-
-	if (!net || !FILTER_IS_NETWORK(net) || FILTER_IS_PLUGIN(net)
-	    || FILTER_IS_LAUNCHED(net)
-	    || !node || !port || !label)
-		return NULL;
-	if (!(n = filter_get_node(net, node)))
-		return NULL;
-	if (!(d = filterportdb_get_port(filter_portdb(n), port))
-	    || !filterport_is_input(d))
-		return NULL;
-	d = filterportdb_add_port(filter_portdb(net), label,
-				  d->type, FILTER_PORTFLAG_INPUT,
-				  FILTERPORT_DESCRIPTION, desc,
-				  FILTERPORT_MAP_NODE, node,
-				  FILTERPORT_MAP_LABEL, port,
-				  FILTERPORT_END);
-
-	return d;
-}
-
-filter_port_t *filternetwork_add_output(filter_t *net,
-		      const char *node, const char *port,
-		      const char *label, const char *desc)
-{
-	filter_t *n;
-	filter_port_t *d;
-
-	if (!net || !FILTER_IS_NETWORK(net) || FILTER_IS_PLUGIN(net)
-	    || FILTER_IS_LAUNCHED(net)
-	    || !node || !port || !label)
-		return NULL;
-	if (!(n = filter_get_node(net, node)))
-		return NULL;
-	if (!(d = filterportdb_get_port(filter_portdb(n), port))
-	    || !filterport_is_output(d))
-		return NULL;
-	d = filterportdb_add_port(filter_portdb(net), label,
-				  d->type, FILTER_PORTFLAG_OUTPUT,
-				  FILTERPORT_DESCRIPTION, desc,
-				  FILTERPORT_MAP_NODE, node,
-				  FILTERPORT_MAP_LABEL, port,
-				  FILTERPORT_END);
-
-	return d;
-}
-
-void filternetwork_delete_port(filter_t *net, filter_port_t *p)
-{
-	filterport_delete(p);
-}
-
 
 
 

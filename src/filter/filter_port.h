@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.1 2000/10/28 13:51:32 richi Exp $
+ * $Id: filter_port.h,v 1.2 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,14 +27,9 @@
 #include "glsignal.h"
 #include "gldb.h"
 #include "gldb_string.h"
+#include "filter_types.h"
 #include "filter_param.h"
 
-
-struct filter_portdb;
-typedef struct filter_portdb filter_portdb_t;
-
-struct filter_port;
-typedef struct filter_port filter_port_t;
 
 
 /* The filter port database type. You should not care
@@ -87,6 +82,13 @@ struct filter_port {
 };
 
 /* Public access macros for the filter_portdesc_t structure.
+ * const char *filterport_label(filter_port_t *);
+ * int filterport_type(filter_port_t *);
+ * filter_paramdb_t *filterport_paramdb(filter_port_t *);
+ * int filterport_is_input(filter_port_t *);
+ * int filterport_is_output(filter_port_t *);
+ * glsig_emitter_t *filterport_emitter(filter_port_t *);
+ * filter_t *filterport_filter(filter_port_t *);
  */
 #define filterport_label(pd) ((pd)->entry.label)
 #define filterport_type(pd) ((pd)->type)
@@ -100,9 +102,10 @@ struct filter_port {
 /* Access to the property database, prototypes are
  * const char *filterport_get_property(filter_param_t *p, const char *label);
  * void filterport_set_property(filter_param_t *p, const char *label,
- *                               const char *value); */
+ *                              const char *value); */
 #define filterport_get_property(p, w) (glsdb_query(&(p)->properties, (w)))
-#define filterport_set_property(p, w, v) do { glsdb_set(&(p)->properties, (v), (w)); } while (0)
+#define filterport_set_property(p, w, v) do { glsdb_set(&(p)->properties, \
+        (v), (w)); } while (0)
 
 /* Standard property names - MAP_NODE and MAP_LABEL are for internal
  * use only. The END one is used to finish the varargs list to the
@@ -113,22 +116,45 @@ struct filter_port {
 #define FILTERPORT_MAP_LABEL "_label"
 
 
-/* Pipe list access. */
+/* Pipe list access.
+ * int filterport_nrpipes(filter_port_t *);
+ * filter_pipe_t *filterport_get_pipe(filter_port_t *);
+ * filter_pipe_t *filterport_next_pipe(filter_port_t *, filter_pipe_t *);
+ * filterport_foreach_pipe(filter_port_t *, filter_pipe_t *) {} */
 #define filterport_nrpipes(port) ((port)->nr_pipes)
-#define filterport_get_pipe(port) (filterport_is_output(port) ? list_gethead(&(port)->pipes, filter_pipe_t, source_list) : list_gethead(&(port)->pipes, filter_pipe_t, dest_list))
-#define filterport_next_pipe(port, p) (filterport_is_output(port) ? (((p)->source_list.next == &(p)->source->pipes) ? NULL : list_entry((p)->source_list.next, filter_pipe_t, source_list)) : (((p)->dest_list.next == &(p)->dest->pipes) ? NULL : list_entry((p)->dest_list.next, filter_pipe_t, dest_list)))
-
-#define filterport_foreach_pipe(port, pipe) for (pipe = filterport_is_input(port) ? list_entry((port)->pipes.next, filter_pipe_t, dest_list) : list_entry((port)->pipes.next, filter_pipe_t, source_list); filterport_is_input(port) ? &pipe->dest_list != &(port)->pipes : &pipe->source_list != &(port)->pipes; pipe = filterport_is_input(port) ? list_entry(pipe->dest_list.next, filter_pipe_t, dest_list) : list_entry(pipe->source_list.next, filter_pipe_t, source_list))
-
-
-/* Delete a port out of its database. */
-#define filterport_delete(port) do { if (port) gldb_delete_item(&port->entry); } while (0)
-
+#define filterport_get_pipe(port) (filterport_is_output(port) \
+        ? list_gethead(&(port)->pipes, filter_pipe_t, source_list) \
+        : list_gethead(&(port)->pipes, filter_pipe_t, dest_list))
+#define filterport_next_pipe(port, p) (filterport_is_output(port) \
+        ? (((p)->source_list.next == &(p)->source->pipes) \
+           ? NULL \
+           : list_entry((p)->source_list.next, filter_pipe_t, source_list)) \
+        : (((p)->dest_list.next == &(p)->dest->pipes) \
+           ? NULL \
+           : list_entry((p)->dest_list.next, filter_pipe_t, dest_list)))
+#define filterport_foreach_pipe(port, pipe) for ( \
+        pipe = filterport_is_input(port) \
+             ? list_entry((port)->pipes.next, filter_pipe_t, dest_list) \
+             : list_entry((port)->pipes.next, filter_pipe_t, source_list); \
+        filterport_is_input(port) \
+             ? &pipe->dest_list != &(port)->pipes \
+             : &pipe->source_list != &(port)->pipes; \
+        pipe = filterport_is_input(port) \
+             ? list_entry(pipe->dest_list.next, filter_pipe_t, dest_list) \
+             : list_entry(pipe->source_list.next, filter_pipe_t, source_list))
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Redirects connections to this port to another port. Works
+ * automagically for network filter ports. Returns -1 on error,
+ * 0 on success. */
+int filterport_redirect(filter_port_t *source, filter_port_t *dest);
+
+/* Delete a port out of its database. */
+void filterport_delete(filter_port_t *port);
 
 
 /* The API which handles defining/setting/querying ports.
@@ -145,31 +171,31 @@ extern "C" {
 filter_port_t *filterportdb_add_port(filter_portdb_t *node, const char *label,
 				     int type, int flags, ...);
 
-/* To query a port out of the filter port database use the
+/* filter_port_t *filterportdb_get_port(filter_portdb_t *, const char *label);
+ * To query a port out of the filter port database use the
  * following function. If NULL is returned, the port does not exist. */
-#define filterportdb_get_port(pdb, label) ((filter_port_t *)gldb_query_item(&(pdb)->db, (label)))
+#define filterportdb_get_port(pdb, label) \
+        ((filter_port_t *)gldb_query_item(&(pdb)->db, (label)))
 
-/* To delete a port use the following function. If the paramter
+/* void filterportdb_delete_port(filter_portdb_t *, const char *label);
+ * To delete a port use the following function. If the paramter
  * does not exist, nothing is done. */
-#define filterportdb_delete_port(pdb, label) filterport_delete(filterportdb_get_port(pdb, label))
+#define filterportdb_delete_port(pdb, label) \
+        filterport_delete(filterportdb_get_port(pdb, label))
 
-/* You can iterate through all ports of a database using the
+/* filterportdb_foreach_port(filter_portdb_t *, filter_port_t *) {}
+ * You can iterate through all ports of a database using the
  * following iterator (which acts like a for statement with the
  * second parameter as running variable). Note that you may not
  * delete ports in this loop! */
 #define filterportdb_foreach_port(pdb, p) list_foreach(&(pdb)->db.items, \
         filter_port_t, entry.list, p)
 
-/* To just query the number of ports stored in a port
+/* int filterportdb_nrports(filter_portdb_t *);
+ * To just query the number of ports stored in a port
  * database use the following function. */
 #define filterportdb_nrports(pdb) gldb_nritems(&(pdb)->db)
 
-
-/* Connection managing API.
- */
-filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest);
-
-void filterpipe_delete(filter_pipe_t *pipe);
 
 
 /* Internal use API. You will never want to use these.
@@ -179,11 +205,13 @@ void filterpipe_delete(filter_pipe_t *pipe);
  * the location of the filter methods (via the filter node). */
 void filterportdb_init(filter_portdb_t *db, filter_t *f);
 
-/* Delete the database, freeing all its ports. */
+/* void filterportdb_delete(filter_portdb_t *);
+ * Delete the database, freeing all its ports. */
 #define filterportdb_delete(pdb) gldb_delete(&(pdb)->db)
 
-/* Copy all ports from one database to another. Pipes are not
- * copied! */
+/* int filterportdb_copy(filter_portdb_t *, filter_portdb_t *);
+ * Copy all ports from one database to another. Pipes are not
+ * copied! Returns 0 on success, -1 on error. */
 #define filterportdb_copy(d, s) gldb_copy(&(d)->db, &(s)->db)
 
 

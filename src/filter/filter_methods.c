@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.22 2000/10/28 13:45:48 richi Exp $
+ * $Id: filter_methods.c,v 1.23 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -153,11 +153,17 @@ int filter_network_f(filter_t *n)
 int filter_network_connect_out(filter_t *source, filter_port_t *outp,
 			       filter_pipe_t *p)
 {
+	const char *map_node, *map_label;
 	filter_port_t *port;
 	filter_t *node;
 
-	if (!(node = filter_get_node(source, filterport_get_property(outp, FILTERPORT_MAP_NODE)))
-	    || !(port = filterportdb_get_port(filter_portdb(node), filterport_get_property(outp, FILTERPORT_MAP_LABEL)))
+	map_node = filterport_get_property(outp, FILTERPORT_MAP_NODE);
+	map_label = filterport_get_property(outp, FILTERPORT_MAP_LABEL);
+	if (!map_node || !map_label)
+		return -1;
+
+	if (!(node = filter_get_node(source, map_node))
+	    || !(port = filterportdb_get_port(filter_portdb(node), map_label))
 	    || !filterport_is_output(port))
 		return -1;
 	p->source = port;
@@ -168,11 +174,17 @@ int filter_network_connect_out(filter_t *source, filter_port_t *outp,
 int filter_network_connect_in(filter_t *dest, filter_port_t *inp,
 			      filter_pipe_t *p)
 {
+	const char *map_node, *map_label;
 	filter_port_t *port;
 	filter_t *node;
 
-	if (!(node = filter_get_node(dest, filterport_get_property(inp, FILTERPORT_MAP_NODE)))
-	    || !(port = filterportdb_get_port(filter_portdb(node), filterport_get_property(inp, FILTERPORT_MAP_LABEL)))
+	map_node = filterport_get_property(inp, FILTERPORT_MAP_NODE);
+	map_label = filterport_get_property(inp, FILTERPORT_MAP_LABEL);
+	if (!map_node || !map_label)
+		return -1;
+
+	if (!(node = filter_get_node(dest, map_node))
+	    || !(port = filterportdb_get_port(filter_portdb(node), map_label))
 	    || !filterport_is_input(port))
 		return -1;
 	p->dest = port;

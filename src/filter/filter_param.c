@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.6 2000/10/28 13:45:48 richi Exp $
+ * $Id: filter_param.c,v 1.7 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -118,7 +118,7 @@ static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
 	gldb_item_t *i;
 	const char *key, *prop;
 
-	if (!db || !label)
+	if (!db || FILTER_IS_PLUGIN(db->node) || !label)
 		return NULL;
 
 	if ((i = gldb_query_item(&db->db, label)))
@@ -277,7 +277,8 @@ int filterparam_set(filter_param_t *param, const void *val)
 
 	/* Then ask the filter about the change.
 	 */
-	if (filterparam_node(param)->set_param(filterparam_node(param), param, val) == -1)
+	if (filterparam_filter(param)->set_param(filterparam_filter(param),
+						 param, val) == -1)
 		return -1;
 
 	/* Finally do the change
@@ -347,4 +348,17 @@ char *filterparam_to_string(const filter_param_t *param)
 		return NULL;
 
 	return strdup(buf);
+}
+
+int filterparam_redirect(filter_param_t *source, filter_param_t *dest)
+{
+	if (!source || !dest || !filterparam_filter(dest)
+	    || filterparam_type(source) != filterparam_type(dest))
+		return -1;
+
+	filterparam_set_property(source, FILTERPARAM_MAP_NODE,
+				 filter_name(filterparam_filter(dest)));
+	filterparam_set_property(source, FILTERPARAM_MAP_LABEL,
+				 filterparam_label(dest));
+	return 0;
 }

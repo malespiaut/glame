@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.1 2000/10/28 13:51:32 richi Exp $
+ * $Id: filter_port.c,v 1.2 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -22,19 +22,8 @@
 
 #include <string.h>
 #include "filter.h"
-#include "filter_mm.h"
+#include "filter_pipe.h"
 #include "filter_port.h"
-
-
-/* filter pipe addition/removal to filter port pipes list. */
-#define list_add_pipe_source(p, port) do { list_add(&(p)->source_list, \
-        &(port)->pipes); (port)->nr_pipes++; } while (0)
-#define list_add_pipe_dest(p, port) do { list_add(&(p)->dest_list, \
-        &(port)->pipes); (port)->nr_pipes++; } while (0)
-#define list_remove_pipe_source(p) do { list_del(&(p)->source_list); \
-        (p)->source->nr_pipes--; } while (0)
-#define list_remove_pipe_dest(p) do { list_del(&(p)->dest_list); \
-        (p)->dest->nr_pipes--; } while (0)
 
 
 static filter_port_t *portdb_alloc_item()
@@ -151,7 +140,7 @@ filter_port_t *filterportdb_add_port(filter_portdb_t *db, const char *label,
 	va_list va;
 	const char *key, *prop;
 
-	if (!db || !label)
+	if (!db || FILTER_IS_PLUGIN(db->node) || !label)
 		return NULL;
 
 	if (!(p = portdb_alloc_item(db->node)))
@@ -180,85 +169,25 @@ filter_port_t *filterportdb_add_port(filter_portdb_t *db, const char *label,
 	return p;
 }
 
-
-/* Connection management API.
- */
-
-filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
+int filterport_redirect(filter_port_t *source, filter_port_t *dest)
 {
-	filter_pipe_t *p;
+	if (!source || !dest || !filterport_filter(dest)
+	    || filterport_is_input(source) != filterport_is_input(dest)
+	    || !FILTER_PORTS_ARE_COMPATIBLE(filterport_type(source),
+					    filterport_type(dest)))
+		return -1;
 
-	if (!source || !dest
-	    || !filterport_filter(source) || !filterport_filter(dest)
-	    || !filterport_is_output(source)
-	    || !filterport_is_input(dest))
-		return NULL;
-	if (FILTER_IS_LAUNCHED(filterport_filter(source))
-	    || FILTER_IS_LAUNCHED(filterport_filter(dest)))
-		return NULL;
-
-	/* do we support the out/in port type combination? */
-	if (!FILTER_PORTS_ARE_COMPATIBLE(dest->type, source->type))
-		goto _err;
-
-	/* Alloc the pipe. */
-	if (!(p = _pipe_alloc(source, dest)))
-		return NULL;
-        /* Yes, this does work. */
-	p->type = filterport_type(dest)|filterport_type(source);
-
-	/* Try to establish the connections. */
-	if (filterport_filter(source)->connect_out(filterport_filter(source), source, p) == -1)
-		goto _err;
-	if (filterport_filter(dest)->connect_in(filterport_filter(dest), dest, p) == -1)
-		goto _err;
-
-	/* Now we have source & dest fixed - so we can finally
-	 * init the parameter dbs and copy the parameters from
-	 * the port descriptors. Note that while we associate
-	 * the params with the connect_in/out mucked ports, we
-	 * copy the (default) parameters from the unmucked ports
-	 * - this is a hack introduced for filternetwork parameter
-	 * handling that could/should go away for maximum flexibility. */
-	filterparamdb_init(&p->source_params, filterport_filter(filterpipe_source(p)));
-	filterparamdb_copy(&p->source_params, &source->params);
-	filterparamdb_init(&p->dest_params, filterport_filter(filterpipe_dest(p)));
-	filterparamdb_copy(&p->dest_params, &dest->params);
-
-	/* Also the signal redirector can be installed now. Note
-	 * that GLSIG_PIPE_CHANGED is redirected to the destination node
-	 * only! This simplifies signal handling a lot as it matches
-	 * the semantics of the old fixup_pipe() method. */
-	glsig_add_redirector(filterpipe_emitter(p), ~0, filter_emitter(filterport_filter(filterpipe_dest(p))));
-	glsig_add_redirector(filterpipe_emitter(p), ~GLSIG_PIPE_CHANGED, filter_emitter(filterport_filter(filterpipe_source(p))));
-
-	/* add the pipe to all port lists/hashes.
-	 * connect_out/in may have mucked with p->dest/source, so
-	 * we have to use that instead of int/out directly. */
-	list_add_pipe_dest(p, filterpipe_dest(p));
-	list_add_pipe_source(p, filterpipe_source(p));
-
-	/* signal pipe changes */
-	glsig_emit(filterpipe_emitter(p), GLSIG_PIPE_CHANGED, p);
-
-	return p;
-
- _err:
-	_pipe_free(p);
-	return NULL;
+	filterport_set_property(source, FILTERPORT_MAP_NODE,
+				filter_name(filterport_filter(dest)));
+	filterport_set_property(source, FILTERPORT_MAP_LABEL,
+				filterport_label(dest));
+	return 0;
 }
 
-void filterpipe_delete(filter_pipe_t *p)
+void filterport_delete(filter_port_t *port)
 {
-	if (FILTER_IS_PLUGIN(filterport_filter(filterpipe_source(p)))
-	    || FILTER_IS_PLUGIN(filterport_filter(filterpipe_dest(p)))
-	    || FILTER_IS_LAUNCHED(filterport_filter(filterpipe_source(p))))
+	if (!port || FILTER_IS_PLUGIN(filterport_filter(port)))
 		return;
 
-	/* disconnect the pipe */
-	list_remove_pipe_source(p);
-	list_remove_pipe_dest(p);
-
-	/* kill the pipe */
-	_pipe_free(p);
+	gldb_delete_item(&port->entry);
 }

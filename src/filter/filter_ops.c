@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.15 2000/10/28 13:45:48 richi Exp $
+ * $Id: filter_ops.c,v 1.16 2000/11/06 09:45:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -23,6 +23,25 @@
 #include <unistd.h>
 #include "util.h"
 #include "filter.h"
+#include "filter_ops.h"
+
+
+struct filter_launchcontext {
+	int nr_threads;
+	pthread_t waiter;
+
+	int state;
+
+	int semid;
+	glame_atomic_t result;
+};
+
+struct filter_operations {
+	int (*init)(filter_t *n);
+	int (*launch)(filter_t *n);
+	void (*postprocess)(filter_t *n);
+	int (*wait)(filter_t *n);
+};
 
 
 /* filter_buffer.c: drain pipe to unblock source. */
@@ -30,6 +49,9 @@ void fbuf_drain(filter_pipe_t *p);
 /* filter_buffer.c: free pending buffers. */
 void fbuf_free_buffers(struct list_head *list);
 
+
+/* The standard filter operations, for "nodes" and for "networks".
+ */
 
 static int init_node(filter_t *n)
 {
@@ -104,13 +126,8 @@ static void *launcher(void *node)
 	DPRINTF("%s had failure (errstr=\"%s\")\n",
 		n->name, n->glerrstr);
 
-	/* FIXME! allow failure of "unused" nodes (without connections)
-	   if (n->nr_inputs != 0 || n->nr_outputs != 0) { */
 	/* signal net failure */
 	atomic_inc(&n->net->launch_context->result);
-	/* FIXME! } else {
-	   DPRINTF("ignoring failure of %s\n", n->name);
-	   } */
 
 	/* increment filter ready semaphore */
 	sop.sem_num = 0;
@@ -228,3 +245,219 @@ struct filter_operations filter_network_ops = {
 	postprocess_network,
 	wait_network,
 };
+
+
+
+/* The API for operation on/of a filter_t (network).
+ */
+
+
+filter_launchcontext_t *_launchcontext_alloc()
+{
+	filter_launchcontext_t *c;
+
+	if (!(c = ALLOC(filter_launchcontext_t)))
+		return NULL;
+	if ((c->semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1) {
+		free(c);
+		return NULL;
+	}
+	{
+		union semun sun;
+		sun.val = 0;
+		glame_semctl(c->semid, 0, SETVAL, sun);
+	}
+	ATOMIC_INIT(c->result, 0);
+	c->nr_threads = 0;
+	if (c->semid != -1)
+		return c;
+
+	free(c);
+	return NULL;
+}
+
+void _launchcontext_free(filter_launchcontext_t *c)
+{
+	if (!c)
+		return;
+	ATOMIC_RELEASE(c->result);
+	{
+		union semun sun;
+		glame_semctl(c->semid, 0, IPC_RMID, sun);
+	}
+	free(c);
+}
+
+static void *waiter(void *network)
+{
+	filter_t *net = (filter_t *)network;
+	int res;
+
+	res = net->ops->wait(net);
+
+	DPRINTF("starting cleanup\n");
+	net->ops->postprocess(net);
+	_launchcontext_free(net->launch_context);
+	net->launch_context = NULL;
+	DPRINTF("finished\n");
+
+	return (void *)res;
+}
+
+int filter_launch(filter_t *net)
+{
+	/* sigset_t sigs; */
+
+	if (!net || !FILTER_IS_NETWORK(net) || FILTER_IS_LAUNCHED(net))
+		return -1;
+
+	/* block EPIPE
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIG_BLOCK);
+	sigprocmask(SIG_BLOCK, &sigs, NULL); */
+
+	/* init state */
+	if (!(net->launch_context = _launchcontext_alloc()))
+		return -1;
+
+	DPRINTF("initting nodes\n");
+	if (net->ops->init(net) == -1)
+		goto out;
+
+	DPRINTF("launching nodes\n");
+	if (net->ops->launch(net) == -1)
+		goto out;
+
+	DPRINTF("launching waiter\n");
+	if (pthread_create(&net->launch_context->waiter, NULL,
+			   waiter, net) != 0)
+		goto out;
+
+	net->launch_context->state = STATE_LAUNCHED;
+	DPRINTF("all nodes launched.\n");
+
+	return 0;
+
+ out:
+	DPRINTF("error.\n");
+	filter_terminate(net);
+
+	return -1;
+}
+
+int filter_start(filter_t *net)
+{
+	struct sembuf sop;
+
+	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
+	    || FILTER_IS_RUNNING(net))
+		return -1;
+
+	DPRINTF("waiting for nodes to complete initialization.\n");
+        sop.sem_num = 0;
+        sop.sem_op = -net->launch_context->nr_threads;
+        sop.sem_flg = 0;
+        glame_semop(net->launch_context->semid, &sop, 1);
+	if (ATOMIC_VAL(net->launch_context->result) != 0)
+		goto out;
+	net->launch_context->state = STATE_RUNNING;
+
+	return 0;
+
+out:
+	DPRINTF("Network error. Terminating.\n");
+	filter_terminate(net);
+	return -1;
+}
+
+int filter_pause(filter_t *net)
+{
+	struct sembuf sop;
+
+	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
+	    || !FILTER_IS_RUNNING(net))
+		return -1;
+
+        sop.sem_num = 0;
+        sop.sem_op = net->launch_context->nr_threads;
+        sop.sem_flg = IPC_NOWAIT;
+        glame_semop(net->launch_context->semid, &sop, 1);
+	net->launch_context->state = STATE_LAUNCHED;
+
+	return 0;
+}
+
+int filter_wait(filter_t *net)
+{
+	void *res;
+
+	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
+	    || !FILTER_IS_RUNNING(net))
+		return -1;
+
+	DPRINTF("waiting for waiter to complete\n");
+	pthread_join(net->launch_context->waiter, &res);
+
+	return (int)res;
+}
+
+void filter_terminate(filter_t *net)
+{
+	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net))
+		return;
+
+	atomic_set(&net->launch_context->result, 1);
+	{
+		union semun sun;
+		sun.val = 0;
+		glame_semctl(net->launch_context->semid, 0, SETVAL, sun);
+	}
+	net->launch_context->state = STATE_RUNNING;
+
+	/* "safe" cleanup */
+	filter_wait(net);
+}
+
+
+
+/* Hooks for filter synchronization. Used by FILTER_AFTER_INIT
+ * and FILTER_CHECK_STOP macros from filter.h only.
+ */
+
+int filter_after_init_hook(filter_t *f)
+{
+	struct sembuf sop;
+
+	DPRINTF("%s seems ready for signalling\n", f->name);
+        filter_clear_error(f);
+
+	/* raise semaphore that counts ready filters */
+        sop.sem_num = 0;
+        sop.sem_op = 1;
+        sop.sem_flg = IPC_NOWAIT;
+        glame_semop(f->net->launch_context->semid, &sop, 1);
+
+	/* wait for manager to signal "all filters ready" */
+        sop.sem_num = 0;
+        sop.sem_op = 0;
+        sop.sem_flg = 0;
+        glame_semop(f->net->launch_context->semid, &sop, 1);
+
+	/* still check, if any filter had an error */
+	return ATOMIC_VAL(f->net->launch_context->result);
+}
+
+int filter_check_stop_hook(filter_t *f)
+{
+        struct sembuf sop;
+
+	/* check if manager said "pause/stop" */
+        sop.sem_num = 0;
+        sop.sem_op = 0;
+        sop.sem_flg = 0;
+        glame_semop(f->net->launch_context->semid, &sop, 1);
+
+	/* return if it was "pause" or really "stop" */
+	return ATOMIC_VAL(f->net->launch_context->result);
+}
+
