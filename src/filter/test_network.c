@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_network.c,v 1.6 2000/02/15 18:41:25 richi Exp $
+ * $Id: test_network.c,v 1.7 2000/02/16 13:04:01 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	struct stat sbuf;
 	int i;
 	int fd;
-	char *network;
+	char *network, str[32];
 	void *val;
 	
 	sa.sa_flags = 0;
@@ -89,8 +89,13 @@ int main(int argc, char **argv)
 	for (i=2; i<argc; i+=2) {
 		fprintf(stderr, "setting parameter %s to %s\n",
 			argv[i], argv[i+1]);
-		val = filterparamval_from_string(filter_get_paramdesc(net->node.filter, argv[i]), argv[i+1]);
-		filternode_set_param(&net->node, argv[i], val);
+		if (!(val = filterparamval_from_string(filter_get_paramdesc(net->node.filter, argv[i]), argv[i+1]))) {
+		        fprintf(stderr, "Invalid parameter string %s for parameter %s\n",
+				argv[i+1], argv[i]);
+		}
+		if (filternode_set_param(&net->node, argv[i], val) == -1) {
+			fprintf(stderr, "Cannot set parameter %s\n", argv[i]);
+		}
 		free(val);
 	}
 
@@ -99,7 +104,16 @@ int main(int argc, char **argv)
 		fprintf(stderr, "error in filternetwork_launch()\n");
 	}
 
-	fprintf(stderr, "network launched, waiting for completion\n");
+	fprintf(stderr, "network launched, press ENTER to start\n");
+	fgets(str, 32, stdin);
+
+	fprintf(stderr, "starting network\n");
+	if (filternetwork_start(net) == -1) {
+		fprintf(stderr, "error starting network!\n");
+		return -1;
+	}
+
+	fprintf(stderr, "waiting for network completion\n");
 	if (filternetwork_wait(net) == -1) {
 		fprintf(stderr, "error in filternetwork_wait()\n");
 		return -1;

@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.7 2000/02/15 18:41:25 richi Exp $
+@comment $Id: filter.texi,v 1.8 2000/02/16 13:04:01 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -751,13 +751,24 @@ provided:
 
 @tindex filter_network_t
 @deftypefun int filternetwork_launch (filter_network_t *@var{net})
-@code{filternetwork_launch()} asynchronously starts processing on a previously
+@code{filternetwork_launch()} asynchronously starts the init phase of a previously
 constructed filter network using a set of filter threads.
 @code{filternetwork_launch()} returns -1 if there were any problems launching
 the filter network or 0 on success.
 Errors in the initialisation process of the filters' @code{f()} methods are not
 reported by @code{filternetwork_launch()} but can instead be obtained by using
-@code{filternetwork_wait()}.
+@code{filternetwork_wait()} or @code{filternetwork_start()}. Processing of
+the data is not started until @code{filternetwork_start()} is called.
+@end deftypefun
+
+@tindex filter_network_t
+@deftypefun int filternetwork_start (filter_network_t *@var{net})
+@deftypefunx int filternetwork_pause (filter_network_t *@var{net})
+With @code{filternetwork_start()} you can start processing data on a
+previously launched or paused network. With @code{filternetwork_pause()}
+you can temporarily stop processing of any data in a previously started
+network. Both functions return -1 if any error occured in the process of
+starting or pausing or in the network threads.
 @end deftypefun
 
 @tindex filter_network_t

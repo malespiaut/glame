@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.3 2000/02/08 15:00:10 nold Exp $
+@comment $Id: filter-tutorial.texi,v 1.4 2000/02/16 13:04:01 richi Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -123,6 +123,11 @@ in the initialisation part, but nowhere else.
 @strong{You may not use any of the @code{?buf_*()}
 functions in the @code{INIT} section (DEADLOCK!!!)} 
 (@code{?buf_alloc()} is allowed, if you really need it)
+
+Another section primitive is the @code{FILTER_CHECK_STOP;} macro which you
+should use inside all operating loops to check for external stop or pause
+queries. The corresponding cleanup section after @code{FILTER_BEFORE_STOPCLEANUP;}
+is jumped to if any request has to be fulified.
 
 
 For more complex filters which require some sort of backlog of sample

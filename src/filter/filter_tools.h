@@ -39,4 +39,25 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
 }
 
 
+/* Here follows a set of fast computing macros for standard operations.
+ * To be implemented using ISSE/3DNOW stuff if available.
+ */
+
+#define SCALARPROD1_2(destsource1p, source2p, fact1, fact2) \
+do { \
+	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
+	destsource1p++; source2p++; \
+} while (0)
+#define SCALARPROD4_2(destsource1p, source2p, fact1, fact2) \
+do { \
+	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
+	destsource1p++; source2p++; \
+	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
+	destsource1p++; source2p++; \
+	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
+	destsource1p++; source2p++; \
+	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
+	destsource1p++; source2p++; \
+} while (0)
+
 #endif

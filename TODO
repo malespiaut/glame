@@ -7,7 +7,6 @@ libfixp/
 
 
 filter/
-	headerfile cleanup [richi]
 	dynamic load of filters, use dl_open [richi]
 
 

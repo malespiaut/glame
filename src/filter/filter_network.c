@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.19 2000/02/15 18:41:25 richi Exp $
+ * $Id: filter_network.c,v 1.20 2000/02/16 13:04:01 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -61,6 +61,8 @@ static void set_param(filter_param_t *param, void *val)
 	case FILTER_PARAMTYPE_STRING:
 		free(param->val.string);
 		param->val.string = strdup((char *)val);
+		DPRINTF("Set parameter %s to \"%s\"\n", param->desc->label,
+			param->val.string);
 		break;
 	}
 }
@@ -120,8 +122,15 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
 		res = sscanf(val, " %i ", &param.val.file);
 		break;
 	case FILTER_PARAMTYPE_STRING:
-		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) == 1)
+	        DPRINTF("Converting \"%s\"\n", val);
+		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) == 1) {
+		        DPRINTF("Result is \"%s\"\n", s);
 			return strdup(s);
+		} else if ((res = sscanf(val, " %511[^\"] ", s)) == 1) {
+		        DPRINTF("Result is \"%s\"\n", s);
+		        return strdup(s);
+		}
+		DPRINTF("Failed.");
 		break;
 	default:
 		return NULL;
@@ -209,7 +218,7 @@ int filternetwork_launch(filter_network_t *net)
 {
 	sigset_t sigs;
 
-	if (FILTERNETWORK_IS_RUNNING(net))
+	if (!net || FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
 	/* block EPIPE */
@@ -229,29 +238,56 @@ int filternetwork_launch(filter_network_t *net)
 	if (net->node.ops->launch(FILTER_NODE(net)) == -1)
 		goto out;
 
-	DPRINTF("waiting for nodes to complete initialization\n");
-	sem_op(net->launch_context->semid, 0, -net->launch_context->nr_threads);
+	/* DPRINTF("waiting for nodes to complete initialization\n");
+		sem_op(net->launch_context->semid, 0, -net->launch_context->nr_threads);
 
 	if (ATOMIC_VAL(net->launch_context->result) != 0)
-		goto out;
-	DPRINTF("all nodes ready.\n");
+		goto out; */
+	DPRINTF("all nodes launched.\n");
 
 	return 0;
 
  out:
 	DPRINTF("error.\n");
-	net->node.ops->postprocess(FILTER_NODE(net));
-	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL;
+	filternetwork_terminate(net);
 
 	return -1;
+}
+
+int filternetwork_start(filter_network_t *net)
+{
+	if (!net || !FILTERNETWORK_IS_RUNNING(net))
+		return -1;
+
+	sem_op(net->launch_context->semid, 0,
+	       -net->launch_context->nr_threads);
+	if (ATOMIC_VAL(net->launch_context->result) != 0)
+		goto out;
+
+	return 0;
+
+out:
+	DPRINTF("Network error. Terminating.\n");
+	filternetwork_terminate(net);
+	return -1;
+}
+
+int filternetwork_pause(filter_network_t *net)
+{
+	if (!net || !FILTERNETWORK_IS_RUNNING(net))
+		return -1;
+
+	sem_op(net->launch_context->semid, 0,
+	       +net->launch_context->nr_threads);
+
+	return 0;
 }
 
 int filternetwork_wait(filter_network_t *net)
 {
 	int res;
 
-       	if (!FILTERNETWORK_IS_RUNNING(net))
+	if (!net || !FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
 	res = net->node.ops->wait(FILTER_NODE(net));
@@ -266,12 +302,17 @@ int filternetwork_wait(filter_network_t *net)
 
 void filternetwork_terminate(filter_network_t *net)
 {
-	if (!net || !net->launch_context)
+	if (!net || !FILTERNETWORK_IS_RUNNING(net))
 		return;
+	atomic_set(&net->launch_context->result, 1);
 	sem_zero(net->launch_context->semid, 0);
-	net->node.ops->postprocess(FILTER_NODE(net));
+
+	/* "safe" cleanup */
+	filternetwork_wait(net);
+
+	/* net->node.ops->postprocess(FILTER_NODE(net));
 	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL;
+	net->launch_context = NULL; */
 }
 
 
@@ -947,5 +988,3 @@ filter_network_t *filternetwork_from_string(const char *buf)
 
 	return string2net(buf, NULL);
 }
-
-

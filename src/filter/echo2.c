@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.5 2000/02/14 13:24:29 richi Exp $
+ * $Id: echo2.c,v 1.6 2000/02/16 13:04:01 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -35,7 +35,7 @@ static int echo2_f(filter_node_t *n)
 {
 	filter_param_t *param;
 	int delay;  /* in samples */
-	float mix, rdiv;  /* mixing factor, 1/(1+mix) */
+	float mix, fbfact, infact;  /* mixing factor, 1/(1+mix) */
 	filter_pipe_t *in, *out;
 	feedback_fifo_t fifo;
 	filter_buffer_t *inb, *fb;
@@ -52,7 +52,8 @@ static int echo2_f(filter_node_t *n)
 	mix = 0.7;
 	if ((param = filternode_get_param(n, "mix")))
 		mix = param->val.f;
-	rdiv = 1.0/(1.0 + mix);
+	fbfact = mix/(1.0 + mix);
+	infact = 1.0/(1.0 + mix);
 
 	INIT_FEEDBACK_FIFO(fifo);
 
@@ -65,6 +66,7 @@ static int echo2_f(filter_node_t *n)
 	cnt = 0;
 	goto entry1;
 	do {
+	        FILTER_CHECK_STOP;
 		/* we need to get a reference for the queued buffer */
 		sbuf_ref(inb);
 		sbuf_queue(out, inb);
@@ -72,7 +74,7 @@ static int echo2_f(filter_node_t *n)
 		inb = sbuf_get(in);
 		add_feedback(&fifo, inb); /* this ate our reference! */
 		cnt += sbuf_size(inb);
-	} while (pthread_testcancel(), cnt <= delay);
+	} while (cnt <= delay);
 
 	/* after this we should have one unsent buffer as inb which
 	 * is queued already in the fifo and at least delay samples
@@ -86,6 +88,7 @@ static int echo2_f(filter_node_t *n)
 	 */
 	goto entry2;
 	do {
+	        FILTER_CHECK_STOP;
 		/* check for feedback (and target) buffer overrun */
 		if (fb_pos == sbuf_size(fb)) {
 			/* one target is ready, we need to queue it
@@ -115,13 +118,19 @@ static int echo2_f(filter_node_t *n)
 		fs = sbuf_buf(fb) + fb_pos;
 		inb_pos += cnt;
 		fb_pos += cnt;
-		DPRINTF("cnt=%d",cnt);
-		for (; cnt>0; cnt--) {
-			*fs = ((*fs)*mix + *ins)*rdiv;
-			fs++;
-			ins++;
+
+		/* start "alignment" run */
+		DPRINTF("Starting alignment run (cnt==%i)\n", cnt);
+		for (; (cnt & 3)>0; cnt--) {
+		        SCALARPROD1_2(fs, ins, fbfact, infact);
 		}
-		DPRINTF(" loop done.\n");
+		/* do fast 4 products in one run loop */
+		DPRINTF("Starting fast run run (cnt==%i)\n", cnt);
+		for (; cnt>0; cnt-=4) {
+		        SCALARPROD4_2(fs, ins, fbfact, infact);
+		}
+		DPRINTF("Loops done (cnt==%i).\n", cnt);
+
 		/* now we have to check which buffer has the underrun */
 		if (inb_pos == sbuf_size(inb)) {
 			/* In-buffer underrun is simple - we dont need
@@ -139,7 +148,7 @@ static int echo2_f(filter_node_t *n)
 		 * at the beginning of the loop so we can do the
 		 * EOF at in-port check here.
 		 */
-	} while (pthread_testcancel(), inb);
+	} while (inb);
 
 	/* So, whats the state now? We have a partly finished target
 	 * buffer and the fifo. So just queue the whole stuff and send
@@ -155,18 +164,20 @@ static int echo2_f(filter_node_t *n)
 	 */
 	sbuf_queue(out, fb);
 	do {
+	        FILTER_CHECK_STOP;
 		fb = get_feedback(&fifo);
 		sbuf_queue(out, fb);
 	} while (fb);
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	return 0;
 }
 
+
 /* Registry setup of all contained filters
  */
-
 int echo2_register()
 {
 	filter_t *f;

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.22 2000/02/15 18:41:25 richi Exp $
+ * $Id: filter.h,v 1.23 2000/02/16 13:04:01 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -246,48 +246,66 @@ filter_t *filter_next(filter_t *f);
  */
 #define filternetwork_nrnodes(net) ((net)->nr_nodes)
 
+/* Browse/find a filter node in a filter network.
+ * filternetwork_foreach_node(filter_network_t *net, filter_node_t *n) {}
+ * filter_node_t *filternetwork_get_node(filter_network_t *net,
+ *                                       const char *name); */
 #define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, list, node)
 #define filternetwork_get_node(nt, n) __hash_entry(_hash_find((n), (nt), \
         _hash((n), (nt)), __hash_pos(filter_node_t, hash, name, net)), \
         filter_node_t, hash)
 
+
 /* Allocate a new filter network and initialize it.
- * Returns a filter network identifier or NULL on OOM.
- */
+ * Returns a filter network identifier or NULL on OOM. */
 filter_network_t *filternetwork_new(const char *name);
 
+/* Destroy a filter network. */
 void filternetwork_delete(filter_network_t *net);
 
+
 /* Adds a new instance a filter to the filter network.
- * Returns a filter node identifier or NULL on error.
- */
+ * Returns a filter node identifier or NULL on error. */
 filter_node_t *filternetwork_add_node(filter_network_t *net,
 				      const char *filter, const char *name);
+
+/* Remove a filter node from a filter network and destroy it. */
 void filternetwork_delete_node(filter_node_t *node);
+
 
 /* Connects the two ports source_port and dest_port of the
  * filter nodes source and dest.
- * Returns -1 if that is not possible.
- */
-filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *source_port,
-					    filter_node_t *dest, const char *dest_port);
+ * Returns -1 if that is not possible. */
+filter_pipe_t *filternetwork_add_connection(filter_node_t *source,
+					    const char *source_port,
+					    filter_node_t *dest,
+					    const char *dest_port);
 
+/* Removes and destroys a connection from a filter network */
 void filternetwork_break_connection(filter_pipe_t *p);
 
-/* Launches a set of connected filter instances and starts
+
+/* Launches a set of connected filter instances. Does not start
  * processing of the data. */
 int filternetwork_launch(filter_network_t *net);
 
+/* Starts or restarts processing of the data. */
+int filternetwork_start(filter_network_t *net);
+
+/* Suspends a running network. Restart via filternetwork_start(). */
+int filternetwork_pause(filter_network_t *net);
+
 /* Waits for the launched network to finish processing.
  * Returns 0 on successful completion or -1 on error
- * (in waiting or processing).
- */
+ * (in waiting or processing). */
 int filternetwork_wait(filter_network_t *net);
 
-/* Kills a launched network aborting all processing.
- */
+/* Kills a launched network aborting all processing. */
 void filternetwork_terminate(filter_network_t *net);
 
+
+/* Do wrapping from internal network nodes to external visible
+ * ports/parameters */
 filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
 		     const char *node, const char *port,
 		     const char *label, const char *desc);
@@ -297,15 +315,11 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
 		      const char *node, const char *param,
               	      const char *label, const char *desc);
-filter_paramdesc_t *filternetwork_add_pipeparam(filter_network_t *net,
-		      filter_node_t *node, const char *param,
-              	      const char *label, const char *desc);
 
+/* Delete wrappers to ports/parameters */
 void filternetwork_delete_param(filter_network_t *net, const char *label);
 void filternetwork_delete_port(filter_network_t *net, const char *label);
 
-
-filter_t *filternetwork_get_filter(filter_network_t *net);
 
 /* Macro filters - conversion between strings and networks. */
 filter_network_t *filternetwork_from_string(const char *str);
@@ -314,8 +328,10 @@ char *filternetwork_to_string(filter_network_t *net);
 
 /* Filter node is an instance of a filter. A filter node
  * is associated with a filter network.
- * Public access macros for the filter_node_t
- */
+ * Public access macros for the filter_node_t.
+ * const char *filternode_name(filter_node_t *n);
+ * int filternode_nrinputs(filter_node_t *n);
+ * int filternode_nroutputs(filter_node_t *n); */
 #define filternode_name(n) ((n)->name)
 #define filternode_nrinputs(n) ((n)->nr_inputs)
 #define filternode_nroutputs(n) ((n)->nr_outputs)
@@ -472,9 +488,20 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
 #define FILTER_AFTER_INIT \
 do { \
 	sem_op(n->net->launch_context->semid, 0, 1); \
+	sem_op(n->net->launch_context->semid, 0, 0); \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
 } while (0);
+
+#define FILTER_CHECK_STOP \
+do { \
+        sem_op(n->net->launch_context->semid, 0, 0); \
+	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
+		goto _glame_filter_stopcleanup; \
+        pthread_testcancel(); \
+} while (0);
+
+#define FILTER_BEFORE_STOPCLEANUP _glame_filter_stopcleanup:
 
 #define FILTER_BEFORE_CLEANUP _glame_filter_cleanup:
 
