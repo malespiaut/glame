@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.11 2002/06/09 08:41:12 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.12 2002/06/11 20:21:11 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -176,7 +176,7 @@ static int alsa_audio_in_f(filter_t *n)
 	alsa_audioparam_t	*in = NULL;
 	gl_s16			*buf = NULL, *is;
 	filter_port_t           *outport;
-	filter_pipe_t		*pipe[2];
+	filter_pipe_t		**pipe, *p;
 	filter_buffer_t         *obuf;
 	filter_param_t		*param, *xrun_param;
 	
@@ -207,11 +207,13 @@ static int alsa_audio_in_f(filter_t *n)
 
 	/* For <=2 channels this makes us record left/right to
 	 * the right pipes. For >2 channels, we cant do better, either. */
-	pipe[0] = filterport_get_pipe(outport);
-	pipe[1] = filterport_next_pipe(outport, pipe[0]);
+	i = 0;
+	pipe = alloca(chancnt*sizeof(filter_pipe_t *));
+	filterport_foreach_pipe(outport, p)
+		pipe[i++] = p;
 
-	if (pipe[1] && filterpipe_sample_hangle(pipe[0]) > 
-		       filterpipe_sample_hangle(pipe[1])) 
+	if (chancnt>1
+	    && filterpipe_sample_hangle(pipe[0]) > filterpipe_sample_hangle(pipe[1])) 
 	{ 
 		filter_pipe_t *t = pipe[0]; 
 		pipe[0] = pipe[1]; 
@@ -374,7 +376,7 @@ static int alsa_audio_out_f(filter_t *n)
 
 	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	max_ch = filterport_nrpipes(inport);
-	if (!max_ch)
+	if (max_ch == 0)
 		FILTER_ERROR_RETURN("No input channels given.");
 	
 	p_in = filterport_get_pipe(inport);
