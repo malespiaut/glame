@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.102 2002/02/08 10:07:37 richi Exp $
+ * $Id: main.c,v 1.103 2002/02/12 16:02:25 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -394,6 +394,7 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 	*bar = (*bar)?FALSE:TRUE;
 }
 
+#if 0
 /* This widget should build a widget with a list of the current
  * (configured) audio I/O plugins and allow to add custom ones
  * and configure existing ones. */
@@ -468,119 +469,74 @@ static GtkWidget *audio_io_preferences_widget_new()
 
 	return vbox;
 }
+#endif
 
-static int
-preferences_cb(GtkWidget * wid, void * bla)
+static GtkWidget *preferences_tab_filteredit(long *fe_popup_timeout, long *fe_mac)
 {
-	GtkWidget * prop_box;
-	GtkWidget * tablabel;
-	GtkWidget * vbox;
-	GtkWidget * entry;
-	GtkWidget * notelabel;
-	GtkWidget * macMode;
-	GtkWidget *combo;
-	GList *combo_items;
-	char *cfg, *path, *numberbuffer, *aindev = NULL, *aoutdev = NULL;
-	char *ainplugin = NULL, *aoutplugin = NULL, *maxundobuf, *wbufsizebuf;
-	char *maxlrubuf, *maxfdsbuf, *maxmapsbuf, *maxvmbuf, *ratebuf;
-	gboolean ok=FALSE;
-	long mac;
-	long maxundo, wbufsize, maxlru, maxfds, maxmaps, maxvm, rate;
+	GtkWidget *vbox, *macMode;
 
-	/* New box. */
-        prop_box = gnome_property_box_new();
+	vbox = gtk_vbox_new(FALSE, 1);
 
-	/* Swapfile with
-	 * - swapfile location */
-        tablabel = gtk_label_new(_("Swapfile"));
-        vbox = gtk_vbox_new(FALSE,1);
-        gtk_widget_show(vbox);
+	glame_config_get_long("edit_filter/popupTimeout", fe_popup_timeout);
+	create_label_long_pair(vbox, _("Property popup timeout [ms]"),
+			       fe_popup_timeout, 50, 1000);
 
-        notelabel = gtk_label_new(_("You need lots of diskspace available at the swapfile location."));
-        gtk_widget_show(notelabel);
-        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
-        notelabel = gtk_label_new(_("GLAME doesnt handle running out of disk space very well."));
-        gtk_widget_show(notelabel);
-        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
+	glame_config_get_long("edit_filter/macMode", fe_mac);
+	macMode = gtk_check_button_new();
+	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode), *fe_mac);
+	gtk_signal_connect(GTK_OBJECT(macMode), "toggled", (GtkSignalFunc)toggle_cb, fe_mac);
+	create_label_widget_pair(vbox, _("Mac mode (one mouse button mode)"), macMode);
+	gtk_widget_show_all(vbox);
+	return vbox;
+}
+
+static GtkWidget *preferences_tab_swapfile(char *sw_path,
+					   long *sw_maxvm,
+					   long *sw_maxundo)
+{
+	GtkWidget *vbox, *entry;
+	char *cfg;
+
+        vbox = gtk_vbox_new(FALSE, 1);
+
+        gtk_container_add(GTK_CONTAINER(vbox), gtk_label_new(
+            _("You need lots of diskspace available at the swapfile location.")));
+        gtk_container_add(GTK_CONTAINER(vbox), gtk_label_new(
+            _("GLAME doesnt handle running out of disk space very well.")));
+
         entry = gnome_file_entry_new("swapfilepath", _("Swapfile Path"));
         create_label_widget_pair(vbox, _("Swapfile Path"), entry);
 	glame_config_get_string("swapfile/defaultpath", &cfg);
-        path = alloca(256);
-	strncpy(path, cfg, 255);
+	strncpy(sw_path, cfg, 255);
 	g_free(cfg);
-        gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), path);
-        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, &path);
-        notelabel = gtk_label_new(_("Dont change values below, if you dont know what you are doing."));
-        gtk_widget_show(notelabel);
-        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
-	glame_config_get_long("swapfile/maxlru", &maxlru);
-	maxlrubuf = alloca(256);
-	snprintf(maxlrubuf, 255, "%li", maxlru);
-	create_label_edit_pair(vbox, _("Maximum number of cached fragment headers"), "prefs::maxlru",
-			       maxlrubuf);
-	glame_config_get_long("swapfile/maxfds", &maxfds);
-	maxfdsbuf = alloca(256);
-	snprintf(maxfdsbuf, 255, "%li", maxfds);
-	create_label_edit_pair(vbox, _("Maximum number of cached file descriptors"), "prefs::maxfds",
-			       maxfdsbuf);
-	glame_config_get_long("swapfile/maxmaps", &maxmaps);
-	maxmapsbuf = alloca(256);
-	snprintf(maxmapsbuf, 255, "%li", maxmaps);
-	create_label_edit_pair(vbox, _("Maximum number of cached memory mappings"), "prefs::maxmaps",
-			       maxmapsbuf);
-	glame_config_get_long("swapfile/maxvm", &maxvm);
-	maxvmbuf = alloca(256);
-	snprintf(maxvmbuf, 255, "%li", maxvm);
-	create_label_edit_pair(vbox, _("Maximum virtual memory used for caching"), "prefs::maxvm",
-			       maxvmbuf);
-        notelabel = gtk_label_new(_("NOTE: Swapfile settings take effect after restart only"));
-        gtk_widget_show(notelabel);
-        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
+        gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), sw_path);
+        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, &sw_path);
 
-	{
-		GtkWidget *sep;
-		sep = gtk_hseparator_new();
-		gtk_container_add(GTK_CONTAINER(vbox), sep);
-		gtk_widget_show(sep);
-	}
+	glame_config_get_long("swapfile/maxvm", sw_maxvm);
+	*sw_maxvm /= 1024*1024;
+	create_label_long_pair(vbox, _("Maximum virtual memory used for caching [MB]"), sw_maxvm, 32, 512);
 
-	glame_config_get_long("swapfile/maxundo", &maxundo);
-	maxundobuf = alloca(256);
-	snprintf(maxundobuf, 255, "%li", maxundo);
-	create_label_edit_pair(vbox, _("Depth of undo stack"), "prefs::maxundo",
-			       maxundobuf);
-        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
+        gtk_container_add(GTK_CONTAINER(vbox), gtk_label_new(
+            _("NOTE: Swapfile settings take effect after restart only")));
 
-	/* Edit Filter with
-	 * - popup timeout
-	 * - mac mode */
-	tablabel = gtk_label_new(_("Filternetwork"));
-	vbox = gtk_vbox_new(FALSE,1);
-	gtk_widget_show(vbox);
+	gtk_container_add(GTK_CONTAINER(vbox), gtk_hseparator_new());
 
-	glame_config_get_long("edit_filter/popupTimeout", &nPopupTimeout);
-	numberbuffer = alloca(256);
-	snprintf(numberbuffer, 255, "%li", nPopupTimeout);
-	create_label_edit_pair(vbox, _("Property popup timeout [ms]"), "popupTimeout",
-			       numberbuffer);
+	glame_config_get_long("swapfile/maxundo", sw_maxundo);
+	create_label_long_pair(vbox, _("Depth of undo stack"), sw_maxundo, 1, 32);
 
-	glame_config_get_long("edit_filter/macMode", &mac);
-	bMac = mac;
-	macMode = gtk_check_button_new();
-	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
-	gtk_signal_connect(GTK_OBJECT(macMode),"toggled",(GtkSignalFunc)toggle_cb,&mac);
-	gtk_widget_show(macMode);
-	create_label_widget_pair(vbox, _("Mac mode (one mouse button mode)"),macMode);
+	gtk_widget_show_all(vbox);
+	return vbox;
+}
 
-        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
+static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
+					  char *aoutplugin, char *aoutdev,
+					  long *rate, long *wbufsize)
+{
+	GtkWidget *vbox, *combo;
+	GList *combo_items;
+	char *cfg;
 
-
-	/* Audio I/O with
-	 * - input device
-	 * - output device */
-	tablabel = gtk_label_new(_("Audio I/O"));
 	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
 
 	/* input filter */
 	combo_items = NULL;
@@ -598,7 +554,6 @@ preferences_cb(GtkWidget * wid, void * bla)
 		g_list_free(combo_items);
 		gtk_widget_show(combo);
 		glame_config_get_string("audio_io/input_plugin", &cfg);
-		ainplugin = alloca(256);
 		strncpy(ainplugin, cfg, 255);
 		g_free(cfg);
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
@@ -607,28 +562,19 @@ preferences_cb(GtkWidget * wid, void * bla)
 		create_label_widget_pair(vbox, _("Default input plugin (audio_in)"), combo);
 
 		/* input device */
-		aindev = alloca(256);
 		glame_config_get_string("audio_io/input_dev", &cfg);
 		strncpy(aindev, cfg, 255);
 		g_free(cfg);
 		create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
 		/* sample rate */
-		glame_config_get_long("audio_io/input_rate", &rate);
-		ratebuf = alloca(256);
-		snprintf(ratebuf, 255, "%li", rate);
-		create_label_edit_pair(vbox, _("Default input sample rate"), "ainrate", ratebuf);
+		glame_config_get_long("audio_io/input_rate", rate);
+		create_label_long_pair(vbox, _("Default input sample rate"), rate, 11025, 48000);
 	} else {
-		combo = gtk_label_new(_("No audio input plugin"));
-		gtk_container_add(GTK_CONTAINER(vbox), combo);
-		gtk_widget_show(combo);
+		gtk_container_add(GTK_CONTAINER(vbox),
+				  gtk_label_new(_("No audio input plugin")));
 	}
 
-	{
-		GtkWidget *sep;
-		sep = gtk_hseparator_new();
-		gtk_container_add(GTK_CONTAINER(vbox), sep);
-		gtk_widget_show(sep);
-	}
+	gtk_container_add(GTK_CONTAINER(vbox), gtk_hseparator_new());
 
 	/* output filter */
 	combo_items = NULL;
@@ -644,46 +590,75 @@ preferences_cb(GtkWidget * wid, void * bla)
 		combo = gtk_combo_new();
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
 		g_list_free(combo_items);
-		gtk_widget_show(combo);
 		glame_config_get_string("audio_io/output_plugin", &cfg);
-		aoutplugin = alloca(256);
 		strncpy(aoutplugin, cfg, 255);
 		g_free(cfg);
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
 		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &aoutplugin);
-		gtk_widget_show(GTK_COMBO(combo)->entry);
 		create_label_widget_pair(vbox, _("Default output plugin (audio_out)"), combo);
 
 		/* output device */
-		aoutdev = alloca(256);
 		glame_config_get_string("audio_io/output_dev", &cfg);
 		strncpy(aoutdev, cfg, 255);
 		g_free(cfg);
 		create_label_edit_pair(vbox, _("Default output device"),
 				       "aoutdev", aoutdev);
 	} else {
-		combo = gtk_label_new(_("No audio output plugin"));
-		gtk_container_add(GTK_CONTAINER(vbox), combo);
-		gtk_widget_show(combo);
+		gtk_container_add(GTK_CONTAINER(vbox),
+				  gtk_label_new(_("No audio output plugin")));
 	}
 
-	{
-		GtkWidget *sep;
-		sep = gtk_hseparator_new();
-		gtk_container_add(GTK_CONTAINER(vbox), sep);
-		gtk_widget_show(sep);
-	}
+	gtk_container_add(GTK_CONTAINER(vbox), gtk_hseparator_new());
 
 	/* GLAME_WBUFSIZE */
-	glame_config_get_long("filter/wbufsize", &wbufsize);
-	wbufsizebuf = alloca(256);
-	snprintf(wbufsizebuf, 255, "%li", wbufsize);
-	create_label_edit_pair(vbox, _("Size hint for audio buffers [samples]"), "prefs::wbufsize",
-			       wbufsizebuf);
+	glame_config_get_long("filter/wbufsize", wbufsize);
+	create_label_long_pair(vbox, _("Size hint for audio buffers [samples]"),
+			       wbufsize, 64, 4096);
 
+	gtk_widget_show_all(vbox);
+	return vbox;
+}
+
+static int
+preferences_cb(GtkWidget * wid, void * bla)
+{
+	GtkWidget *prop_box, *tablabel, *vbox;
+	char aio_inplugin[256], aio_outplugin[256];
+	char aio_indevice[256], aio_outdevice[256];
+	long aio_wbufsize, aio_rate; 
+	char sw_path[256];
+	long sw_maxundo, sw_maxlru, sw_maxfds, sw_maxmaps, sw_maxvm;
+	long fe_popup_timeout;
+	long fe_mac;
+	gboolean ok = FALSE;
+
+	/* New box. */
+        prop_box = gnome_property_box_new();
+
+	/* Swapfile with
+	 * - swapfile location */
+        tablabel = gtk_label_new(_("Swapfile"));
+	vbox = preferences_tab_swapfile(sw_path, &sw_maxvm, &sw_maxundo);
+        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),
+				       vbox, tablabel);
+
+	/* Edit Filter with
+	 * - popup timeout
+	 * - mac mode */
+	tablabel = gtk_label_new(_("Filternetwork"));
+	vbox = preferences_tab_filteredit(&fe_popup_timeout, &fe_mac);
+        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),
+				       vbox, tablabel);
+
+	/* Audio I/O with
+	 * - input device
+	 * - output device */
+	tablabel = gtk_label_new(_("Audio I/O"));
+	vbox = preferences_tab_audioio(aio_inplugin, aio_indevice,
+				       aio_outplugin, aio_outdevice,
+				       &aio_rate, &aio_wbufsize);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box), vbox,
 				       tablabel);
-
 
 	/* Finish. */
         gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",(GtkSignalFunc)setBoolean,&ok);
@@ -697,34 +672,30 @@ preferences_cb(GtkWidget * wid, void * bla)
         if(!ok)
 		return 0;
 
-	/* Update gnome config. */
-	glame_config_set_string("swapfile/defaultpath", path);
-	if (sscanf(maxundobuf, "%li", &maxundo) == 1)
-		glame_config_set_long("swapfile/maxundo", maxundo);
-	if (sscanf(maxlrubuf, "%li", &maxlru) == 1)
-		glame_config_set_long("swapfile/maxlru", maxlru);
-	if (sscanf(maxfdsbuf, "%li", &maxfds) == 1)
-		glame_config_set_long("swapfile/maxfds", maxfds);
-	if (sscanf(maxmapsbuf, "%li", &maxmaps) == 1)
-		glame_config_set_long("swapfile/maxmaps", maxmaps);
-	if (sscanf(maxvmbuf, "%li", &maxvm) == 1)
-		glame_config_set_long("swapfile/maxvm", maxvm);
-	if (sscanf(numberbuffer, "%li", &nPopupTimeout) == 1)
-		glame_config_set_long("edit_filter/popupTimeout", nPopupTimeout);
-	bMac = mac;
-	glame_config_set_long("edit_filter/macMode",bMac);
-	if (aindev)
-		glame_config_set_string("audio_io/input_dev", aindev);
-	if (ainplugin)
-		glame_config_set_string("audio_io/input_plugin", ainplugin);
-	if (sscanf(ratebuf, "%li", &rate) == 1)
-		glame_config_set_long("audio_io/input_rate", rate);
-	if (aoutdev)
-		glame_config_set_string("audio_io/output_dev", aoutdev);
-	if (aoutplugin)
-		glame_config_set_string("audio_io/output_plugin", aoutplugin);
-	if (sscanf(wbufsizebuf, "%li", &wbufsize) == 1)
-		glame_config_set_long("filter/wbufsize", wbufsize);
+	/* Update glame config.
+	 */
+	glame_config_set_string("swapfile/defaultpath", sw_path);
+	glame_config_set_long("swapfile/maxundo", sw_maxundo);
+	/* Do some magic with sw_maxvm number to derive the rest. */
+	sw_maxlru = 2048 * sw_maxvm / 256;
+	sw_maxfds = 128 * sw_maxvm / 256;
+	sw_maxmaps = 256 * sw_maxvm / 256;
+	sw_maxvm *= 1024*1024;
+	glame_config_set_long("swapfile/maxlru", sw_maxlru);
+	glame_config_set_long("swapfile/maxfds", sw_maxfds);
+	glame_config_set_long("swapfile/maxmaps", sw_maxmaps);
+	glame_config_set_long("swapfile/maxvm", sw_maxvm);
+	/* Filteredit */
+	nPopupTimeout = fe_popup_timeout;
+	glame_config_set_long("edit_filter/popupTimeout", nPopupTimeout);
+	bMac = fe_mac;
+	glame_config_set_long("edit_filter/macMode", bMac);
+	glame_config_set_string("audio_io/input_dev", aio_indevice);
+	glame_config_set_string("audio_io/input_plugin", aio_inplugin);
+	glame_config_set_long("audio_io/input_rate", aio_rate);
+	glame_config_set_string("audio_io/output_dev", aio_outdevice);
+	glame_config_set_string("audio_io/output_plugin", aio_outplugin);
+	glame_config_set_long("filter/wbufsize", aio_wbufsize);
 	glame_config_sync();
 
 	/* Update config derived stuff. */
