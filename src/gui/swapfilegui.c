@@ -91,13 +91,17 @@ static void entry_updated_cb(GtkEntry* entry, GlameTreeItem* item)
 		gpsm_item_set_label(item->item, text);
 		g_free(text);
 	}
+	glame_tree_item_update(item);
 }
 		
 void edit_tree_label(GlameTreeItem * item)
 {
 	GtkWidget * label;
 	GtkWidget * entry;
-
+	GtkTree *root;
+	
+	root = glame_tree_item_parent(item);
+	gtk_tree_unselect_child(root, GTK_WIDGET(item));
 	label = GTK_WIDGET((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
 	gtk_container_remove(GTK_CONTAINER(item),label);
 	entry = gtk_entry_new();
@@ -105,6 +109,7 @@ void edit_tree_label(GlameTreeItem * item)
 	// FIXME This causes a assertion error ??
 	//		gtk_widget_destroy(GTK_WIDGET(label));
 	gtk_container_add(GTK_CONTAINER(item),entry);
+	gtk_container_check_resize(GTK_CONTAINER(item));
 	gtk_widget_show(entry);
 	gtk_signal_connect(GTK_OBJECT(entry),"activate",entry_updated_cb,item);
 	gtk_widget_grab_focus(GTK_WIDGET(entry));
