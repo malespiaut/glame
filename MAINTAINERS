@@ -31,7 +31,7 @@ gui: xwolf
 	src/gui/*
 
 plugins: mag
-        rms, noisegate, iir, 
+        rms, noisegate, iir, fft, 
 	(audio|file)_io.c (with nold)
 
 please add your stuff [richi]
