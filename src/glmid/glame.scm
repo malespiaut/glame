@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.76 2002/04/29 21:18:21 richi Exp $
+; $Id: glame.scm,v 1.77 2002/05/09 13:09:27 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -273,8 +273,10 @@
 
 ; run the net, wait for completion and delete it
 (define net-run
-  (lambda (net)
-    (filter-launch net)
+  (lambda (net . bufsize)
+    (if (null? bufsize)
+	(filter-launch net)
+	(filter-launch net (car bufsize)))
     (filter-start net)
     (filter-wait net)))
 
@@ -414,7 +416,7 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
-      (filter-set-param rf "filename" fname)
+      (filter-set-param! rf "filename" fname)
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
@@ -470,8 +472,8 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (wf (net-add-node net write-file)))
-      (filter-set-param rf "filename" fname)
-      (filter-set-param wf "filename" oname)
+      (filter-set-param! rf "filename" fname)
+      (filter-set-param! wf "filename" oname)
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
@@ -481,7 +483,7 @@
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
 	       (begin (nodes-connect (append eff (list wf))) #t)))))
-      (net-run net))))
+      (net-run net (* 64 1024)))))
 
 (add-help 'save-eff '(input-filename output-filename effect ...)
 	  "apply the effects to the input and write output")
@@ -627,6 +629,25 @@
        (gpsm-invalidate-swapfile (gpsm-swfile-filename (car sp))))
      swfile-pipe)
     grp))
+
+(define gpsm-grp-find-item
+  (lambda (grp hpos vpos)
+    (if (and (= (gpsm-item-hposition grp) hpos)
+	     (= (gpsm-item-vposition grp) vpos))
+	grp
+	(if (gpsm-item-swfile? grp)
+	    #f
+	    (gpsm-grp-find-item-loop (gpsm-grp-items grp)
+				     (+ hpos (gpsm-item-hposition grp))
+				     (+ vpos (gpsm-item-vposition grp)))))))
+(define gpsm-grp-find-item-loop
+  (lambda (list hpos vpos)
+    (if (null? list)
+	#f
+	(let ((item (gpsm-grp-find-item (car list))))
+	  (if item
+	      item
+	      (gpsm-grp-find-item-loop (cdr list)))))))
 
 
 
