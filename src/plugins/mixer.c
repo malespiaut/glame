@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.15 2002/10/02 13:11:22 richi Exp $
+ * $Id: mixer.c,v 1.16 2002/12/21 20:57:26 ochonpaul Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -107,6 +107,10 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 
 /* static void reset_cb(GtkWidget * widget, NULL); */
 
+
+
+
+
 static void cleanup(struct apply_data_s *a)
 {
 	int index;
@@ -116,6 +120,15 @@ static void cleanup(struct apply_data_s *a)
 	if (a->timeout_id != -1)
 		gtk_timeout_remove(a->timeout_id);
 	gtk_widget_hide(a->dialog);
+	
+/* 	for (index = 0; index < buttons_count; index++) { */
+/* 	  printf("index=%i butcount=%i \n",index,buttons_count); */
+/* 	  gtk_widget_destroy(r[index]->mute_button); */
+/* 	  gtk_widget_destroy(r[index]->solo_button); */
+/* 	  free (r[index]); */
+/* 	} */
+
+	
 	gtk_widget_destroy(a->dialog);
 	if (a->net) {
 		filter_delete(a->net);
@@ -124,10 +137,11 @@ static void cleanup(struct apply_data_s *a)
 
 	free(a);
 
-	for (index = 0; index < buttons_count; index++) {
+	/* FIX ME This part  segfaults sometimes : the buttons are already destroyed */
+	/* for (index = 0; index < buttons_count; index++) { */
 		/* printf("index=%i butcount=%i \n",index,buttons_count); */
-		free(r[index]);
-	}
+		 /* free(r[index]); */
+/* 	} */
 }
 
 static gint poll_net_cb(struct apply_data_s *a)
