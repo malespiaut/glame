@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.8 2001/06/06 15:12:36 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.9 2001/06/11 17:34:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -124,6 +124,8 @@ void glame_canvas_select_unselect(GlameCanvas* canv, GlameCanvasFilter* filter);
 
 GtkType glame_canvas_group_get_type(void);
 void glame_canvas_group_add_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter* gItem);
+void glame_canvas_group_set_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter* gItem);
+void glame_canvas_group_raise(GlameCanvasGroup* group);
 enum {GROUP_TYPE_UNION, GROUP_TYPE_SHARING};
 struct _GlameCanvasGroup {
 	GnomeCanvasGroup parent_object;

@@ -53,6 +53,9 @@
   <accel state="0" spec="g">
 (editfilter-group-selection)
   </accel>
+  <accel state="0" spec="u">
+(editfilter-ungroup-selection)
+  </accel>
 </scope>
 
 </glame-accels>

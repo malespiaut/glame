@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.16 2001/06/06 22:50:35 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.17 2001/06/11 17:34:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -273,6 +273,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 							  GLAME_CANVAS_FILTER_TYPE,
 							  NULL));
 	gGroup = GNOME_CANVAS_GROUP(gItem);
+
 	gItem->filter = filter;
 	gItem->defaultGroup = glameGroup;
 
@@ -392,7 +393,8 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 			   GTK_SIGNAL_FUNC(glame_canvas_filter_event),gItem);
 	
 	
-	gnome_canvas_item_move(GNOME_CANVAS_ITEM(gItem),x,y);
+	glame_canvas_group_set_item(glameGroup,gItem);
+	glame_canvas_filter_move(gItem, x,y);
 	
 	sprintf(numberbuffer,"%f",x);
 	filter_set_property(filter,"canvas_x",numberbuffer);
@@ -400,7 +402,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	filter_set_property(filter,"canvas_y",numberbuffer);
 
 	glame_canvas_filter_create_ports(gItem);
-	glame_canvas_group_add_item(glameGroup,gItem);
+
 	return gItem;
 }
 
@@ -429,9 +431,9 @@ glame_canvas_filter_is_undeletable(GlameCanvasFilter *filter)
 }
 
 void
-glame_canvas_filter_move(GlameCanvasFilter *filter,
-			 gdouble dx,
-			 gdouble dy)
+_glame_canvas_filter_move(GlameCanvasFilter* filter,
+			  gdouble dx,
+			  gdouble dy)
 {
 	char buffer[10];
 	/* don't recurse! */
@@ -450,6 +452,14 @@ glame_canvas_filter_move(GlameCanvasFilter *filter,
 	sprintf(buffer,"%f",GNOME_CANVAS_ITEM(filter)->y1);
 	filter_set_property(filter->filter,
 			    "canvas_y",buffer);
+}
+void
+glame_canvas_filter_move(GlameCanvasFilter *filter,
+			 gdouble dx,
+			 gdouble dy)
+{
+	glame_canvas_group_item_moved_cb(filter,dx,dy,GNOME_CANVAS_ITEM(filter)->parent);
+
 }
 
 void
@@ -951,7 +961,7 @@ static void glame_canvas_filter_deregister_popup(GlameCanvasFilter* filter)
 	}
 }
 		
-static void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
+void _glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 {
 	filter_port_t *port;
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(filter)->parent);
@@ -961,25 +971,11 @@ static void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 }
 
 
-static void glame_canvas_filter_do_select_item(GlameCanvasFilter* filter)
+void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 {
-	GlameCanvas* canvas = CANVAS_ITEM_GLAME_CANVAS(filter);
-	GList* list = g_list_first(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent)->children);
-	while(list){
-		glame_canvas_select_add(canvas,GLAME_CANVAS_FILTER(list->data));
-		list = g_list_next(list);
-	}
+	glame_canvas_group_raise(GNOME_CANVAS_ITEM(filter)->parent);
 }
 
-static void glame_canvas_filter_do_unselect_item(GlameCanvasFilter* filter)
-{
-	GlameCanvas* canvas = CANVAS_ITEM_GLAME_CANVAS(filter);
-	GList* list = g_list_first(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent)->children);
-	while(list){
-		glame_canvas_select_unselect(canvas,GLAME_CANVAS_FILTER(list->data));
-		list = g_list_next(list);
-	}
-}
 
 
 
@@ -988,16 +984,16 @@ static void glame_canvas_filter_do_select(GlameCanvasFilter* filter, GdkEvent* e
 	/* check for modifiers */
 	if((GDK_SHIFT_MASK&event->button.state)||(GDK_CONTROL_MASK&event->button.state)){
 		if(filter->selected)
-			glame_canvas_filter_do_unselect_item(filter);
+			glame_canvas_group_unselect(GNOME_CANVAS_ITEM(filter)->parent);
 		else
-			glame_canvas_filter_do_select_item(filter);
+			glame_canvas_group_select(GNOME_CANVAS_ITEM(filter)->parent);
 		return;
 	}
 	if(filter->selected)
-		glame_canvas_filter_do_unselect_item(filter);
+		glame_canvas_group_unselect(GNOME_CANVAS_ITEM(filter)->parent);
 	else{
 		glame_canvas_select_clear(CANVAS_ITEM_GLAME_CANVAS(filter));
-		glame_canvas_filter_do_select_item(filter);
+		glame_canvas_group_select(GNOME_CANVAS_ITEM(filter)->parent);
 	}
 }
 
