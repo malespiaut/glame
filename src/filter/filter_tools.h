@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.32 2001/10/06 23:08:55 richi Exp $
+ * $Id: filter_tools.h,v 1.33 2002/02/18 21:33:15 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -36,14 +36,35 @@
 
 /* Add your favorite generic tools for filter programming here.
  */
-typedef struct queue queue_t;
-struct queue {
+
+/* this defines a buffer queue, that allows to advance within a stream
+ * by an arbitrary number of samples
+ * useful for moving windows over a stream, used by fft, timestretch,...
+ * the input queue allows to copy a buffer from an offset
+ */
+
+/* the input queue */
+typedef struct in_queue in_queue_t;
+
+struct in_queue {
 	struct glame_list_head	list;
 	filter_t		*n;
 	filter_pipe_t		*p;
 	int			off;
 	int			done;
 };
+
+/* the output queue */
+typedef struct out_queue out_queue_t;
+
+struct out_queue {
+	struct glame_list_head	list;
+	filter_t		*n;
+	filter_pipe_t		*p;
+	int			off;
+	int			done;
+};
+
 #define queue_get_next(q, qe) glame_list_getnext(&(q->list), qe, struct queue_entry, list)
 #define queue_get_head(q) glame_list_gethead(&(q->list), struct queue_entry, list)
 
@@ -53,7 +74,14 @@ struct queue_entry {
 	filter_buffer_t *fb;
 };
 
-static inline void init_queue(queue_t* q, filter_pipe_t *p, filter_t *n) 
+/**********************/
+/* in queue functions */
+/**********************/
+
+/* initialize input queue 
+ * with input pipe */
+
+static inline void init_in_queue(in_queue_t* q, filter_pipe_t *p, filter_t *n) 
 {
 	GLAME_INIT_LIST_HEAD(&(q->list));
 	q->p = p;
@@ -62,20 +90,15 @@ static inline void init_queue(queue_t* q, filter_pipe_t *p, filter_t *n)
 	q->done = 0;
 }
 
-static inline void queue_delete(queue_entry_t *qe)
+static inline void in_queue_delete(queue_entry_t *qe)
 {
 	glame_list_del(&qe->list);
 	sbuf_unref(qe->fb);
 	free(qe);
 }
 
-static inline void queue_add_delete(queue_entry_t *qe)
-{
-	glame_list_del(&qe->list);
-	free(qe);
-}
 
-static inline queue_entry_t *queue_add_tail(queue_t *q, filter_buffer_t *fb)
+static inline queue_entry_t *in_queue_add_tail(in_queue_t *q, filter_buffer_t *fb)
 {
 	struct queue_entry *qe;
 
@@ -88,15 +111,17 @@ static inline queue_entry_t *queue_add_tail(queue_t *q, filter_buffer_t *fb)
 	return qe;
 }
 
-static inline void queue_drain(queue_t *q)
+
+
+static inline void in_queue_drain(in_queue_t *q)
 {
 	queue_entry_t *qe;
 	while ((qe = queue_get_head(q)))
-		queue_delete(qe);
+		in_queue_delete(qe);
 	q->off = 0;
 }
 
-static inline int queue_shift(queue_t *q, int off) {
+static inline int in_queue_shift(in_queue_t *q, int off) {
 	struct queue_entry *qe, *oldqe;
 	filter_buffer_t		*buf;
 
@@ -114,13 +139,13 @@ static inline int queue_shift(queue_t *q, int off) {
 		off -= sbuf_size(qe->fb) - q->off;
 		oldqe = qe;
 		qe = queue_get_next(q, qe);
-		queue_delete(oldqe);
+		in_queue_delete(oldqe);
 		q->off = 0;
 entry:
 		if (!qe) {
 			buf = sbuf_get(q->p);
 			if (buf)
-				qe = queue_add_tail(q, buf);
+				qe = in_queue_add_tail(q, buf);
 			else
 				q->done = 1;
 		}
@@ -129,7 +154,7 @@ entry:
 	return off;
 }
 
-static inline int queue_copy(queue_t *q, SAMPLE *s, int cnt)
+static inline int in_queue_copy(in_queue_t *q, SAMPLE *s, int cnt)
 {
 	queue_entry_t *qe;
 	int off;
@@ -155,7 +180,7 @@ entry:
 		if (!qe) {
 			fb = sbuf_get(q->p);
 			if (fb) 
-				qe = queue_add_tail(q, fb);
+				qe = in_queue_add_tail(q, fb);
 			else
 				q->done = 1;
 		}
@@ -164,18 +189,52 @@ entry:
 	return cnt;
 }
 
-static inline int queue_copy_pad(queue_t *q, SAMPLE *s, int cnt)
+static inline int in_queue_copy_pad(in_queue_t *q, SAMPLE *s, int cnt)
 {
 	int remaining;
 
-	remaining = queue_copy(q, s, cnt);
+	remaining = in_queue_copy(q, s, cnt);
 	if (remaining)
 		memset(s+cnt-remaining, 0, remaining*SAMPLE_SIZE);
 	return remaining;
 }
 
+/***********************/
+/* out queue functions */
+/***********************/
 
-static inline int queue_add_shift(queue_t *q, int off) {
+/* initialize output queue
+ * with output pipe */
+
+static inline void init_out_queue(out_queue_t* q, filter_pipe_t *p, filter_t *n) 
+{
+	GLAME_INIT_LIST_HEAD(&(q->list));
+	q->p = p;
+	q->off = 0;
+	q->n = n;
+	q->done = 0;
+}
+
+static inline void out_queue_delete(queue_entry_t *qe)
+{
+	glame_list_del(&qe->list);
+	free(qe);
+}
+
+static inline queue_entry_t *out_queue_add_tail(out_queue_t *q, filter_buffer_t *fb)
+{
+	struct queue_entry *qe;
+
+	if (!fb)
+		return NULL;
+	qe = (struct queue_entry *)malloc(sizeof(struct queue_entry));
+	GLAME_INIT_LIST_HEAD(&qe->list);
+	qe->fb = fb;
+	glame_list_add_tail(&qe->list, &q->list);
+	return qe;
+}
+
+static inline int out_queue_shift(out_queue_t *q, int off) {
 	struct queue_entry *qe, *oldqe;
 	
 	qe = queue_get_head(q);
@@ -189,12 +248,12 @@ static inline int queue_add_shift(queue_t *q, int off) {
 		sbuf_queue(q->p, qe->fb);
 		oldqe = qe;
 		qe = queue_get_next(q, qe);
-		queue_add_delete(oldqe);
+		out_queue_delete(oldqe);
 		q->off = 0;
 entry:
 		if (!qe) {
-			qe = queue_add_tail(q, 
-			sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
+			qe = out_queue_add_tail(q, 
+						sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
 			memset((SAMPLE*)sbuf_buf(qe->fb), 0, filter_bufsize(q->n)*SAMPLE_SIZE);
 		}
 	} while (qe);
@@ -202,7 +261,7 @@ entry:
 	return off;
 }
 
-static inline int queue_add(queue_t *q, SAMPLE *s, int cnt)
+static inline int out_queue_add(out_queue_t *q, SAMPLE *s, int cnt)
 {
 	queue_entry_t *qe;
 	int off, i;
@@ -227,7 +286,7 @@ static inline int queue_add(queue_t *q, SAMPLE *s, int cnt)
 		off = 0;
 entry:
 		if (!qe) {
-			qe = queue_add_tail(q, 
+			qe = out_queue_add_tail(q, 
 			sbuf_make_private(sbuf_alloc(filter_bufsize(q->n), q->n)));
 			memset((SAMPLE*)sbuf_buf(qe->fb), 0, filter_bufsize(q->n)*SAMPLE_SIZE);
 		}
@@ -236,12 +295,12 @@ entry:
 	return cnt;
 }
 
-static inline void queue_add_drain(queue_t *q)
+static inline void out_queue_drain(out_queue_t *q)
 {
 	queue_entry_t *qe;
 	while ((qe = queue_get_head(q))) {
 		sbuf_queue(q->p, qe->fb);
-		queue_add_delete(qe);
+		out_queue_delete(qe);
 	}
 	q->off = 0;
 }
