@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.14 2002/09/23 20:15:33 ochonpaul Exp $
+ * $Id: mixer.c,v 1.15 2002/10/02 13:11:22 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -527,9 +527,9 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	if (!test) {
 		GtkWidget *dialog;
 		int ret;
-		dialog = gnome_message_box_new("TriplePara LADSPA plugin not found, you can get 
-                it at http://plugin.org.uk .
-                Equalization will be disabled.",
+		dialog = gnome_message_box_new("TriplePara LADSPA plugin not found, you can get\n" 
+                "it at http://plugin.org.uk .\n"
+                "Equalization will be disabled.",
 					       GNOME_MESSAGE_BOX_INFO, " OK ", NULL);
 		gtk_window_set_position(GTK_WINDOW(dialog),
 					GTK_WIN_POS_CENTER);
@@ -1174,16 +1174,16 @@ char *mixer_knob_formatter(gfloat lower, gfloat val, gpointer data)
 		snprintf(buf, 1023,
 			 "(lambda (x) (string-append (number-&gt;string (/ (round (* x 1)) 1000)) \"K\"))");
 	} else if ((int) (lower * 10) == (int) ((-M_PI) * 10)) {
-		snprintf(buf, 1023, " (lambda (x) 
-                          (if (= (round (* 10 x)) 
-                           ( round (* 10 1.570))) \"RIGHT\" 
-                           (if (= (round (* 10 x)) 
-                           ( round (* 10 -1.570))) \"LEFT\" 
-                           (if (= (round(* 10 x)) 
-                            0 )\"CENTER\"
-                           (if (= (round(* 10 x)) 
-                            1 )\"CENTER\"       
-                           (number-&gt;string (/(round (* x 10))10)) )))))");
+		snprintf(buf, 1023, " (lambda (x)\n" 
+                          "(if (= (round (* 10 x)) \n"
+                           "( round (* 10 1.570))) \"RIGHT\" \n"
+                           "(if (= (round (* 10 x)) \n"
+                           "( round (* 10 -1.570))) \"LEFT\" \n"
+                           "(if (= (round(* 10 x)) \n"
+                           " 0 )\"CENTER\" \n"
+                           "(if (= (round(* 10 x)) \n"
+                           " 1 )\"CENTER\"       \n"
+                           "(number-&gt;string (/(round (* x 10))10)) )))))");
 	}
 	/* it seems we need to extend the centered area between 0 and 0.1 */
 	else

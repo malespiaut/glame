@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.20 2002/03/08 16:00:04 richi Exp $
+ * $Id: flanger.c,v 1.21 2002/10/02 13:11:21 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -324,16 +324,16 @@ int flanger_register(plugin_t *p)
 				    "(2) ramp down\n"
 				    "(3) fractal",
 				    FILTERPARAM_GLADEXML,
-"<?xml version=\"1.0\"?><GTK-Interface><widget> 
-	<class>GtkOptionMenu</class> 
-	<name>widget</name> 
-	<can_focus>True</can_focus> 
-	<items>Sine
-Ramp up
-Ramp down
-Fractal</items> 
-	<initial_choice>0</initial_choice> 
-</widget></GTK-Interface>",
+"<?xml version=\"1.0\"?><GTK-Interface><widget>\n" 
+"	<class>GtkOptionMenu</class>\n"
+"	<name>widget</name>\n"
+"	<can_focus>True</can_focus>\n"
+"	<items>Sine\n"
+"Ramp up\n"
+"Ramp down\n"
+"Fractal</items>\n" 
+"	<initial_choice>0</initial_choice>\n"
+"</widget></GTK-Interface>",
 				    FILTERPARAM_LABEL, "LFO Type",
 				    FILTERPARAM_END);
 	param->set = flanger_set_param;

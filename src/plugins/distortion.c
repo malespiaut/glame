@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.10 2002/02/17 13:53:31 richi Exp $ 
+ * $Id: distortion.c,v 1.11 2002/10/02 13:11:21 richi Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -285,15 +285,15 @@ int distortion_register(plugin_t *p)
 				    "(1) fullwave rectifier"
 				    "(2) sinusoider",
 				    FILTERPARAM_GLADEXML,
-"<?xml version=\"1.0\"?><GTK-Interface><widget> 
-	<class>GtkOptionMenu</class> 
-	<name>widget</name> 
-	<can_focus>True</can_focus> 
-	<items>Half wave rectifier 
-Full Wave rectifier
-Sinusoider</items> 
-	<initial_choice>0</initial_choice> 
-</widget></GTK-Interface>", 
+"<?xml version=\"1.0\"?><GTK-Interface><widget>\n"
+"	<class>GtkOptionMenu</class>\n"
+"	<name>widget</name>\n"
+"	<can_focus>True</can_focus>\n"
+"	<items>Half wave rectifier\n"
+"Full Wave rectifier\n"
+"Sinusoider</items>\n"
+"	<initial_choice>0</initial_choice>\n"
+"</widget></GTK-Interface>", 
 	FILTERPARAM_END);
 
 
