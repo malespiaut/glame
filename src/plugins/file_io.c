@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.81 2002/03/25 14:09:24 richi Exp $
+ * $Id: file_io.c,v 1.82 2003/06/09 21:07:51 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -552,19 +552,46 @@ int write_file_register(plugin_t *pl)
 	if (af_typecnt>0) {
 		xmlparam = ALLOCN(256, char);
 		strcat(xmlparam, 
-		       "<?xml version=\"1.0\"?><GTK-Interface>"
-		       "<widget><class>GtkOptionMenu</class>"
-		       "<name>widget</name><can_focus>True</can_focus><items>auto\n");
-		
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"      <property name=\"visible\">True</property>"
+"      <property name=\"can_focus\">True</property>"
+"      <property name=\"history\">0</property>"
+"      <child>"
+"        <widget class=\"GtkMenu\" id=\"menu1\">"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Auto</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"</child>");
 		
 		af_indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);	
 		for(i=0; i<af_typecnt; i++) {
+			strcat(xmlparam,
+"	  <child>"
+"            <widget class=\"GtkMenuItem\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">"
+				);
 			strcat(xmlparam, (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, af_indices[i] ,0 ,0));
-			strcat(xmlparam,"\n");
+			strcat(xmlparam, "</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+				);
 		}
 
-		strcat(xmlparam, "</items><initial_choice>0</initial_choice></widget></GTK-Interface>");
-	
+		strcat(xmlparam,
+"        </widget>"
+"      </child>"
+"    </widget>"
+"</glade-interface>"
+			);
+
 		filterparamdb_add_param_long(filter_paramdb(f),"filetype", 
 					     FILTER_PARAMTYPE_LONG, 0, 
 					     FILTERPARAM_DESCRIPTION,

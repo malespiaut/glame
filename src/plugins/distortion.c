@@ -1,7 +1,7 @@
 /*
  * distortion.c
  *
- * $Id: distortion.c,v 1.12 2003/04/11 20:10:31 richi Exp $ 
+ * $Id: distortion.c,v 1.13 2003/06/09 21:07:51 richi Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -286,15 +286,40 @@ int distortion_register(plugin_t *p)
 				    "(1) fullwave rectifier"
 				    "(2) sinusoider",
 				    FILTERPARAM_GLADEXML,
-"<?xml version=\"1.0\"?><GTK-Interface><widget>\n"
-"	<class>GtkOptionMenu</class>\n"
-"	<name>widget</name>\n"
-"	<can_focus>True</can_focus>\n"
-"	<items>Half wave rectifier\n"
-"Full Wave rectifier\n"
-"Sinusoider</items>\n"
-"	<initial_choice>0</initial_choice>\n"
-"</widget></GTK-Interface>", 
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"      <property name=\"visible\">True</property>"
+"      <property name=\"can_focus\">True</property>"
+"      <property name=\"history\">0</property>"
+"      <child>"
+"        <widget class=\"GtkMenu\" id=\"menu1\">"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"half1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Half Wave rectifier</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"full1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Full Wave rectifier</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"sinus1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Sinusoider</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"        </widget>"
+"      </child>"
+"    </widget>"
+"</glade-interface>",
 	FILTERPARAM_END);
 
 

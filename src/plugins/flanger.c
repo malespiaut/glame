@@ -1,7 +1,7 @@
 /*
  * flanger.c
  *
- * $Id: flanger.c,v 1.22 2003/04/11 20:10:33 richi Exp $
+ * $Id: flanger.c,v 1.23 2003/06/09 21:07:51 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -325,16 +325,47 @@ int flanger_register(plugin_t *p)
 				    "(2) ramp down\n"
 				    "(3) fractal",
 				    FILTERPARAM_GLADEXML,
-"<?xml version=\"1.0\"?><GTK-Interface><widget>\n" 
-"	<class>GtkOptionMenu</class>\n"
-"	<name>widget</name>\n"
-"	<can_focus>True</can_focus>\n"
-"	<items>Sine\n"
-"Ramp up\n"
-"Ramp down\n"
-"Fractal</items>\n" 
-"	<initial_choice>0</initial_choice>\n"
-"</widget></GTK-Interface>",
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"      <property name=\"visible\">True</property>"
+"      <property name=\"can_focus\">True</property>"
+"      <property name=\"history\">0</property>"
+"      <child>"
+"        <widget class=\"GtkMenu\" id=\"menu1\">"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Sine</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item2\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Ramp up</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item3\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Ramp down</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item4\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">Fractal</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"        </widget>"
+"      </child>"
+"    </widget>"
+"</glade-interface>",
 				    FILTERPARAM_LABEL, "LFO Type",
 				    FILTERPARAM_END);
 	param->set = flanger_set_param;
