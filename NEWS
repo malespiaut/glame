@@ -1,3 +1,9 @@
+GLAME version 0.2.0:
+====================
+Not much has changed since the last prerelease apart
+from bugfixes and documentation updates.
+
+
 Current Status (as of version 0.2.0-pre2):
 ==========================================
 - usable filternetwork GUI - src/gui/glame
