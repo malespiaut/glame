@@ -42,32 +42,16 @@ int init()
 }
 
 
-/* just init the scripting subsystem and enter a scheme command
- * line waiting for commands (or a NULL line).
+
+/* just init the scripting subsystem and enter a scheme command line.
  */
 void sc_main(int argc, char **argv)
 {
-	char str[256];
-	char str2[256];
-	int done;
-
 	if (glscript_init() == -1)
 		exit(1);
 
-	done = 0;
-	fputs("glame> ", stdout);
-	while (!done) {
-		if (gets(str) == NULL) {
-			done = 1;
-		} else {
-		        sprintf(str2, "(display %s)", str);
-			gh_eval_str(str2);
-			gh_eval_str("(newline)");
-			fputs("glame> ", stdout);
-		}
-	}
-
-	exit(0);
+	scm_shell(argc, argv);
+	/* not reached. */
 }
 
 
