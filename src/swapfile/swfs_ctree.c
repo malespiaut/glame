@@ -27,9 +27,13 @@
 #include "swfs_ctree.h"
 
 
-static int log2(unsigned long n);
 static struct ctree *ctree_alloc(long cnt);
-static void ctree_build(struct ctree *t);
+
+
+static void ctree_mark_end(struct ctree *t);
+#define ctree_set_cnt(t, c) do { (t)->cnt = c; ctree_mark_end(t); } while (0)
+static void ctree_build_partial(struct ctree *t, long pos, long cnt);
+#define ctree_build(t) ctree_build_partial(t, 0, (t)->cnt)
 
 
 
@@ -43,18 +47,19 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 
 	pos = 0;
 	i = 1;
-	/* FIXME - this will not work, as the last level of the
-	 * tree (the cluster sizes) is not s64, but s32... so
+	/* Search the tree but the last level, as that
+	 * (the cluster sizes) is not s64, but s32... so
 	 * we need to seperate the last iteration. */
 	while (--height) {
-		if (pos+tree64[2*i] > offset) {
+		if (tree64[2*i] == 0
+		    || pos+tree64[2*i] > offset) {
 			i = 2*i;
 		} else {
 			pos += tree64[2*i];
 			i = 2*i+1;
 		}
 	}
-	/* Do the last chech with the sizes[] which is s32, not s64... */
+	/* Do the last check with the sizes[] which is s32, not s64... */
 	if (pos+tree32[2*i + (1<<h->height)] > offset) {
 		i = 2*i + (1<<h->height);
 	} else {
@@ -75,16 +80,6 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 }
 
 
-static void ctree_zero(struct ctree *h, long pos, long cnt)
-{
-	long i;
-
-	/* For now _very_ inefficent. */
-	for (i=pos; i<pos+cnt; i++)
-		ctree_replace1(h, i, 0, 0);
-}
-
-
 static void ctree_replace1(struct ctree *h, long pos,
 			  u32 cid, s32 size)
 {
@@ -102,21 +97,17 @@ static void ctree_replace1(struct ctree *h, long pos,
 	}
 }
 
-
 static void ctree_replace(struct ctree *h, long pos, long cnt,
-			  u32 *cid, s32 *size)
+			  u32 *cid, s32 *csize)
 {
-	long i;
+	/* Copy the id's and sizes - may overlap, so memmove. */
+	memmove(&CID(h, pos), cid, cnt*sizeof(u32));
+	memmove(&CSIZE(h, pos), csize, cnt*sizeof(s32));
 
-	/* For now _very_ inefficient. */
-	if (&CID(h, pos) < cid) {
-		for (i=pos; i<pos+cnt; i++)
-			ctree_replace1(h, i, cid[i-pos], size[i-pos]);
-	} else {
-		for (i=pos+cnt-1; i>=pos; i--)
-			ctree_replace1(h, i, cid[i-pos], size[i-pos]);
-	}
+	/* Rebuild partial tree. */
+	ctree_build_partial(h, pos, cnt);
 }
+
 
 static struct ctree *ctree_insert1(struct ctree *h, long pos,
 				   u32 cid, s32 size)
@@ -127,7 +118,6 @@ static struct ctree *ctree_insert1(struct ctree *h, long pos,
 static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 				  u32 *cid, s32 *size)
 {
-	u32 target_height;
 	struct ctree *dest;
 	u32 *ccid;
 	s32 *csize;
@@ -137,10 +127,10 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 	    || pos<0 || cnt<=0 || pos>h->cnt)
 		PANIC("Invalid arguments");
 
-	target_height = log2(h->cnt + cnt);
-	if (h->height != target_height)
-		dest = ctree_alloc(h->cnt + cnt);
-	else
+	if (CTREEMAXCNT(h->height) < h->cnt + cnt) {
+		if (!(dest = ctree_alloc(h->cnt + cnt)))
+			PANIC("Cannot alloc ctree");
+	} else
 		dest = h;
 
 	/* If cid/size array overlap the dest cid/size array,
@@ -176,8 +166,11 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 	}
 
 	/* Build the tree over the cluster sizes. */
-	dest->cnt = h->cnt + cnt;
-	ctree_build(dest);
+	ctree_set_cnt(dest, h->cnt + cnt);
+	if (h != dest)
+		ctree_build(dest);
+	else
+		ctree_build_partial(dest, pos, dest->cnt - pos);
 
 	return dest;
 }
@@ -193,23 +186,24 @@ static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
 
 	/* Fill the to be deleted cluster ids/sizes into
 	 * the provided buffers. */
-	for (i=pos; i<pos+cnt; i++) {
-		if (cid)
+	if (cid)
+		for (i=pos; i<pos+cnt; i++)
 			cid[i-pos] = CID(h, i);
-		if (csize)
+	if (csize)
+		for (i=pos; i<pos+cnt; i++)
 			csize[i-pos] = CSIZE(h, i);
-	}
 
 	/* Number of entries after to be removed entries - these
-	 * we will place (i.e. ctree_replace) at pos. */
+	 * we will place at pos. */
 	replcnt = h->cnt - pos - cnt;
-	ctree_replace(h, pos, replcnt,
-		      &CID(h, pos+cnt), &CSIZE(h, pos+cnt));
 
-	/* Zero the tail of the tree - cnt entries starting at
-	 * position pos + replcnt. Correct h->cnt. */
-	ctree_zero(h, pos+replcnt, cnt);
-	h->cnt -= cnt;
+	/* Move the tail cid/csize over the deleted cid/csize part. */
+	memmove(&CID(h, pos), &CID(h, pos+cnt), replcnt*sizeof(u32));
+	memmove(&CSIZE(h, pos), &CSIZE(h, pos+cnt), replcnt*sizeof(s32));
+
+	/* Truncate the tree and rebuild the partial tree. */
+	ctree_set_cnt(h, h->cnt - cnt);
+	ctree_build_partial(h, pos, replcnt);
 
 	return h;
 }
@@ -226,53 +220,91 @@ static struct ctree *ctree_alloc(long cnt)
 	int size;
 	struct ctree *t;
 
-	height = log2(cnt);
+	/* Start from minimum height, increase until cnt fits. */
+	height = 2;
+	while (CTREEMAXCNT(height) < cnt)
+		height++;
+
+	/* Alloc the tree and initialize it with zero elements. */
 	size = CTREESIZE(height);
 	if (!(t = (struct ctree *)malloc(size)))
 		return NULL;
-	memset(t, 0, size);
+	/* memset(t, 0, size);  Is not necessary, if ctree_set_cnt used. */
 	t->height = height;
-	t->cnt = cnt;
+	ctree_set_cnt(t, 0);
 
 	return t;
 }
 
-static void ctree_build(struct ctree *t)
+static void ctree_build_partial(struct ctree *t, long pos, long cnt)
 {
 	u32 h = t->height;
-	int i;
+	long from, to;
+	long i;
 
-	/* Zero height tree is ready with sizes only. */
-	if (h == 0)
+	/* Zero height tree is ready with sizes only. Cnt == 0 is
+	 * trivial, too. */
+	if (h == 0 || cnt == 0)
 		return;
 
 	/* Span the tree over the csizes array, first s32 sizes sum. */
-	for (i=0; i<(1<<(h-1)); i++)
+	from = pos/2;
+	to = (pos+cnt-1)/2;
+	for (i=from; i<=to; i++)
 		CSUM(t, h-1, i) = (CSIZE(t, 2*i)
 				      + CSIZE(t, 2*i+1));
 
 	/* Second the rest of the tree, s64 sums. */
 	while (--h) {
-		for (i=0; i<(1<<(h-1)); i++)
+		from /= 2;
+		to /= 2;
+		for (i=from; i<=to; i++)
 			CSUM(t, h-1, i) = (CSUM(t, h, 2*i)
 					      + CSUM(t, h, 2*i+1));
 	}
 }
 
-
-static int log2(unsigned long n)
+static void ctree_mark_end(struct ctree *t)
 {
-	int l = 0, b = 0;
+	long pos = t->cnt - 1;
+	long h = t->height;
 
-	while (n != 0) {
-		l++;
-		if (n & 1)
-			b++;
-		n = n >> 1;
+	/* Empty tree is special - we cant walk it for
+	 * element -1... */
+	if (t->cnt == 0) {
+		CSIZE(t, 0) = 0;
+		while (--h)
+			CSUM(t, h-1, 0) = 0;
+		return;
 	}
 
-	if (b>=2)
-		l++;
-
-	return l;
+	/* Walk up the tree for the last valid element and
+	 * zero all right neighbours, if we are a left leaf. */
+	if (!(pos & 1))
+		CSIZE(t, pos+1) = 0;
+	while (--h) {
+		pos /= 2;
+		if (!(pos & 1))
+			CSUM(t, h, pos+1) = 0;
+	}
 }
+
+
+
+
+#if 0
+/* Zeroes the element at position pos. Does not change h->cnt. */
+#define ctree_zero1(h, pos) ctree_replace1(h, pos, 0, 0)
+
+/* Zeroes CID and CSIZE for cnt entries starting from position pos.
+ * Does not change h->cnt. */
+static void ctree_zero(struct ctree *h, long pos, long cnt)
+{
+	/* Zero id's and sizes. */
+	memset(&CID(h, pos), 0, cnt*sizeof(u32));
+	memset(&CSIZE(h, pos), 0, cnt*sizeof(s32));
+
+	/* Rebuild partial tree. */
+	ctree_build_partial(h, pos, cnt);
+}
+#endif

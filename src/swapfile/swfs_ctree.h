@@ -78,6 +78,7 @@ struct ctree {
 };
 
 #define CTREESIZE(height) (4*(1<<height)*sizeof(s64))
+#define CTREEMAXCNT(height) (1<<(height))
 
 #define CTREE64(h) (s64 *)(h)
 #define CTREE32(h) (s32 *)(h)
@@ -97,9 +98,6 @@ struct ctree {
  * can be used for CID() and CSIZE(). */
 static long ctree_find(struct ctree *h, s64 offset, s64 *coff);
 
-/* Zeroes CID and CSIZE for cnt entries starting from position pos.
- * Does not fix h->cnt. */
-static void ctree_zero(struct ctree *h, long pos, long cnt);
 
 /* Replaces the cluster at position pos inside the ids/sizes array
  * of the cluster tree with a cluster with id cid and size size. */
@@ -115,6 +113,7 @@ static void ctree_replace1(struct ctree *h, long pos,
 static void ctree_replace(struct ctree *h, long pos, long cnt,
 			  u32 *cid, s32 *size);
 
+
 static struct ctree *ctree_insert1(struct ctree *h, long pos,
 				   u32 cid, s32 size);
 
@@ -127,6 +126,7 @@ static struct ctree *ctree_insert1(struct ctree *h, long pos,
  * cid/size array, i.e. self-insertion of a part of h. */
 static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 				  u32 *cid, s32 *size);
+
 
 /* Removes cnt clusters from position pos inside the ids/sizes array
  * of the cluster tree. Stores the removed clusters ids/sizes into
