@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: file_io.c,v 1.3 2000/02/15 18:41:25 richi Exp $ 
+ * $Id: file_io.c,v 1.4 2000/02/15 23:51:43 mag Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -27,7 +27,7 @@
 #ifndef HAVE_AUDIOFILE
 #include "filter.h"
 
-int read_file_register()
+int file_io_register()
 {
 	return 0;
 }

@@ -1,0 +1,8 @@
+(filternetwork sample
+	(node wf write_file
+		(export-param filename filename "name of savefile")
+	)
+	(node ain audio_in)
+	(connect ain left_out wf left_in)
+	(connect ain right_out wf right_in)
+)
