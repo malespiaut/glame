@@ -1047,6 +1047,10 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 		errno = EINVAL;
 		return -1;
 	}
+	if (offset < 0) {
+		errno = EINVAL;
+		return -1;
+	}
 	_fd->offset = offset;
 
 	return _fd->offset;
