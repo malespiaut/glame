@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.6 2001/04/16 20:08:19 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.7 2001/04/17 12:43:21 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,10 +63,13 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
  * the widget. */
 GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 				       const char *caption);
-/* Opens a play/pause/stop/cancel window that plays a given network */
-int glame_gui_play_network(filter_t * network, gui_network* gui_net);
-/* Same as above, but modal.   */
-int glame_gui_play_network_modal(filter_t * network, gui_network* gui_net);
+
+/* Opens a play/pause/stop/cancel window that plays a given network.
+ * If modal is TRUE, the dialog is modal, on dialog destroy the optional
+ * atExit is called with parameter data. Returns 0, if the dialog could
+ * be created, -1 on error. */
+int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
+			   GtkFunction atExit, gpointer data);
 
 /* From GNOME */
 GtkWidget * gnome_dialog_file_request(const char *windowtitle,

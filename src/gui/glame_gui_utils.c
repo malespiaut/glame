@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.6 2001/04/16 20:08:19 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.7 2001/04/17 12:43:21 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -34,7 +34,7 @@ struct foo{
 	gboolean playing;
 	guint handler_id;
 	GtkFunction atExitFunc;
-	va_list va;
+	gpointer data;
 };
 
 typedef struct foo play_struct_t;
@@ -47,12 +47,8 @@ static gint network_finish_check_cb(play_struct_t *play)
 		gtk_timeout_remove(play->handler_id);
 		DPRINTF("Network finished\n");
 		filter_terminate(play->net);
-		if(!play->gui)
-			filter_delete(play->net);
+		filter_wait(play->net);
 		gnome_dialog_close(play->dia);
-		if(play->atExitFunc)
-			(*(play->atExitFunc))(play->va);
-		free(play);
 		return FALSE;
 	}else{
 		return TRUE;
@@ -64,11 +60,13 @@ static void play_cb(GnomeDialog * dia, play_struct_t* play)
 	if(play->gui)
 		network_error_reset(play->gui);
 	filter_launch(play->net);
-	if(filter_start(play->net)<0){
-		if(play->gui){
+	if(filter_start(play->net) == -1) {
+		if (play->gui)
 			network_draw_error(play->gui);
-		}else
-			DPRINTF("Some error in network occured\n");
+		if (!play->gui) {
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error processing network")));
+			gnome_dialog_close(play->dia);
+		}
 		return;
 	}
 	play->playing = TRUE;
@@ -98,6 +96,7 @@ static void stop_cb(GnomeDialog *dia, play_struct_t* play)
 {
 	if(FILTER_IS_LAUNCHED(play->net)){
 		filter_terminate(play->net);
+		filter_wait(play->net);
 		play->playing = FALSE;
 		gnome_dialog_set_sensitive(play->dia,0,TRUE);
 		gnome_dialog_set_sensitive(play->dia,1,FALSE);
@@ -111,32 +110,41 @@ static void cancel_cb(GnomeDialog *dia, play_struct_t *play)
 {
 	if(FILTER_IS_LAUNCHED(play->net)){
 		filter_terminate(play->net);
-		if(!play->gui)
-			filter_delete(play->net);
+		filter_wait(play->net);
 	}
 	if(play->handler_id)
 		gtk_timeout_remove(play->handler_id);
 	gnome_dialog_close(play->dia);
+}
+
+
+static void play_destroy_cb(GtkWidget *widget, play_struct_t *play)
+{
+	DPRINTF("destroying widget\n");
+	if (play->atExitFunc)
+		play->atExitFunc(play->data);
 	free(play);
 }
 
-static int _glame_gui_play_network(play_struct_t * play, int modal)
+int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
+			   GtkFunction atExit, gpointer data)
 {
-	// Sanity Checks
-	if(!play->net){
-		DPRINTF("NULL pointer as network!\n");
+	play_struct_t *play;
+
+	if (!network || !FILTER_IS_NETWORK(network))
 		return -1;
-	}
-	
-	if(!FILTER_IS_NETWORK(play->net)){
-		DPRINTF("Trying to play non-network!\n");
+
+	if (!(play = malloc(sizeof(play_struct_t))))
 		return -1;
-	}
-	
-	play->dia = GNOME_DIALOG(gnome_dialog_new(filter_name(play->net),NULL));
+	play->net = network;
+	play->gui = gui;
+	play->atExitFunc = atExit;
+	play->data = data;
+
+	play->dia = GNOME_DIALOG(gnome_dialog_new(filter_name(network),NULL));
 	play->playing = FALSE;
 	play->handler_id = 0;
-	
+
 	gnome_dialog_append_button_with_pixmap(play->dia,"Play",GNOME_STOCK_PIXMAP_FORWARD);
 	gnome_dialog_append_button_with_pixmap(play->dia,"Pause",GNOME_STOCK_PIXMAP_TIMER_STOP);
 	gnome_dialog_append_button_with_pixmap(play->dia,"Stop",GNOME_STOCK_PIXMAP_STOP);	
@@ -153,37 +161,12 @@ static int _glame_gui_play_network(play_struct_t * play, int modal)
 	
 	if(modal)
 		gtk_window_set_modal(GTK_WINDOW(play->dia),TRUE);
+
+	/* Finally register cleanup stuff. */
+	gtk_signal_connect(GTK_OBJECT(play->dia), "destroy",
+			   (GtkSignalFunc)play_destroy_cb, play);
+
 	gtk_widget_show(GTK_WIDGET(play->dia));
+
 	return 0;
 }
-
-int glame_gui_play_network_modal(filter_t * network, gui_network * gui_net)
-{
-
-        play_struct_t* play;
-
-        play = malloc(sizeof(play_struct_t));
-
-        play->net = network;
-        play->gui = gui_net;
-        play->atExitFunc = NULL;
-
-        return _glame_gui_play_network(play,TRUE);
-}
-
-	
-	
-int glame_gui_play_network(filter_t * network, gui_network * gui_net)
-{
-	
-	play_struct_t* play;
-		
-	play = malloc(sizeof(play_struct_t));
-	
-	play->net = network;
-	play->gui = gui_net;
-	play->atExitFunc = NULL;
-
-	return _glame_gui_play_network(play,FALSE);
-}
-
