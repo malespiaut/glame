@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.22 2002/02/12 16:01:44 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.23 2002/02/18 22:41:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -386,11 +386,11 @@ void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, 
 
 
 
-void changeString(GtkEditable *wid, char ** returnbuffer)
+void changeString(GtkEditable *wid, char *returnbuffer)
 {
 	char * chars;
 	chars = gtk_editable_get_chars(wid,0,-1);
-        strncpy(*returnbuffer,chars,strlen(chars)+1);
+        strncpy(returnbuffer,chars,strlen(chars)+1);
 }
 
 

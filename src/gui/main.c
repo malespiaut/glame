@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.105 2002/02/17 18:00:22 richi Exp $
+ * $Id: main.c,v 1.106 2002/02/18 22:41:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -525,7 +525,7 @@ static GtkWidget *preferences_tab_swapfile(char *sw_path,
 	strncpy(sw_path, cfg, 255);
 	g_free(cfg);
         gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), sw_path);
-        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, &sw_path);
+        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, sw_path);
 
 	glame_config_get_long("swapfile/maxvm", sw_maxvm);
 	*sw_maxvm /= 1024*1024;
@@ -572,7 +572,7 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 		strncpy(ainplugin, cfg, 255);
 		g_free(cfg);
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
-		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &ainplugin);
+		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, ainplugin);
 		gtk_widget_show(GTK_COMBO(combo)->entry);
 		create_label_widget_pair(vbox, _("Default input plugin (audio_in)"), combo);
 
@@ -609,7 +609,7 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 		strncpy(aoutplugin, cfg, 255);
 		g_free(cfg);
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
-		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, &aoutplugin);
+		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, aoutplugin);
 		create_label_widget_pair(vbox, _("Default output plugin (audio_out)"), combo);
 
 		/* output device */

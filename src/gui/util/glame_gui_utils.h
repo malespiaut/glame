@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.10 2002/02/12 16:01:45 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.11 2002/02/18 22:41:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -65,7 +65,7 @@ gint glame_menu_get_active_index(GtkMenu *menu);
 
 
 /* useful callback for dialog boxes which query for string types. */
-void changeString(GtkEditable *wid, char ** returnbuffer);
+void changeString(GtkEditable *wid, char *returnbuffer);
 
 /* auch useful callback */
 void glame_help_cb(GtkWidget *bla, const char *helppath);
