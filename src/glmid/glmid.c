@@ -56,6 +56,7 @@ int glame_load_plugin(const char *fname)
 
 #ifdef HAVE_GUILE
 	/* Scheme macro plugin type? FIXME: more sanity check before. */
+	glscript_load_mode = 0;
 	if (strstr(fname, ".scm")) {
 		SCM s_res = glame_gh_safe_eval_file(fname);
 		if (gh_boolean_p(s_res) && gh_scm2bool(s_res))
@@ -101,6 +102,11 @@ static void plugins_process_directory(const char *dir)
 	    	char fname[256];
 		struct stat st;
 
+		if (!(strstr(e->d_name, ".scm")
+		      || strstr(e->d_name, ".so"))
+		    || strcmp(e->d_name, "glame.scm") == 0)
+			continue;
+
 		snprintf(fname, 255, "%s/%s", dir, e->d_name);
 		if (stat(fname, &st) == -1)
 		    	continue;
@@ -138,8 +144,10 @@ static int plugins_register()
 	plugin_get("glamebuiltins");
 
 	/* Plugins from default paths - and "debug path" (first) */
-	plugins_process_directory("./plugins/.libs");
+	plugins_process_directory("./plugins/.libs"); /* for .so */
+	//plugins_process_directory("./plugins");       /* for .scm */
 	plugins_process_directory(PKGLIBDIR);
+	//plugins_process_directory(PKGDATADIR);
 
 	/* Paths from environment. */
 	plugins_process_env("LADSPA_PATH");
