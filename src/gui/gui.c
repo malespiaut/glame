@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.8 2000/02/22 17:01:54 xwolf Exp $
+ * $Id: gui.c,v 1.9 2000/02/23 11:05:21 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -694,14 +694,15 @@ create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
 
 typedef struct _druid_struct
 {
-	GnomeDruid *druid;
+	GtkWidget *window;
 	GtkWidget *name,*descr,*icon;
 	gui_network *net;
 	int entered;
 } druid_struct;
 
 
-druid_struct *druid_data;
+/*  AAAAAAAAAAAAAAAAAAAAAAAAAARRGGHHH   FIXME FIXME FIXME Why does %$%^$%^gtk_signal_connect screw my pointer????   */
+druid_struct druid_data;
 
 /*
 void
@@ -730,21 +731,20 @@ icon_changed(GtkWidget *w,gpointer n)
 
 */
 
-void
-basic_done(GtkWidget *w, druid_struct* d)
+gboolean
+basic_done(GtkWidget *w, gpointer p)
 {
-//	druid_struct *d = (druid_struct*)n;
 	gchar* string;
-	string = gtk_editable_get_chars(GTK_EDITABLE(d->name),0,-1);
-	d->net->caption = strdup(string);
+	string = gtk_editable_get_chars(GTK_EDITABLE(druid_data.name),0,-1);
+	druid_data.net->caption = strdup(string);
 	g_free(string);
-
-	string = gtk_editable_get_chars(GTK_EDITABLE(d->icon),0,-1);
-	d->net->pixname = strdup(string);
+	string = gtk_editable_get_chars(GTK_EDITABLE(druid_data.icon),0,-1);
+	druid_data.net->pixname = strdup(string);
 	g_free(string);
-	string = gtk_editable_get_chars(GTK_EDITABLE(d->descr),0,-1);
-	d->net->descr = strdup(string);
+	string = gtk_editable_get_chars(GTK_EDITABLE(druid_data.descr),0,-1);
+	druid_data.net->descr = strdup(string);
 	g_free(string);
+	return FALSE;
 }
 
 	
@@ -758,12 +758,12 @@ add_ports_wizard(GnomeDruidPage* page)
 void 
 druid_done(GtkWidget *page,gpointer n)
 {
-	druid_struct *data = (druid_struct*)n;
-	data->net->net = filternetwork_new(data->net->caption,data->net->descr);
-	if(!(data->net->net))
+	
+	druid_data.net->net = filternetwork_new(druid_data.net->caption,druid_data.net->descr);
+	if(!(druid_data.net->net))
 		fprintf(stderr,"Error creating network!\n");
-	gtk_widget_show(create_new_canvas(data->net->caption,data->net));
-	gtk_widget_destroy(data->druid);
+	gtk_widget_show(create_new_canvas(druid_data.net->caption,druid_data.net));
+	gtk_widget_destroy(druid_data.window);
 }
 	
 
@@ -776,24 +776,18 @@ gui_network_new_wizard(void)
 	gui_network * net;       
 
 	GnomeDruidPage * page;
-	GnomeDruidPageStandard *page2;
+	GnomeDruidPageStandard *page2, *page3, *page4;
 
 	GtkWidget *name, *descr, *icon;
 
-
 	
-	druid_data = malloc(sizeof(druid_struct));
-	druid_data->entered = 7;	
 	net = malloc(sizeof(gui_network));
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window),_("Create new filter network"));
 	druid = GNOME_DRUID(gnome_druid_new());
 	gnome_druid_set_show_finish(druid,TRUE);
-	druid_data->druid=druid;
-	druid_data->net = net;
+	druid_data.net = net;
 	gtk_container_add(GTK_CONTAINER(window),GTK_WIDGET(druid));
-
-	fprintf(stderr,"%d %d\n",druid_data->net,net);
 
 	img = gdk_imlib_load_image(GLAME_LOGO);
 	wat = gdk_imlib_load_image(GLAME_DEFAULT_ICON);
@@ -807,27 +801,29 @@ gui_network_new_wizard(void)
 	name = create_label_edit_pair(page2->vbox,"Filter name");
 	descr = gtk_text_new(NULL,NULL);
 	gtk_text_set_editable(descr,TRUE);
+
 	create_label_widget_pair(page2->vbox,"Filter description",descr);
 	icon = gnome_icon_entry_new("net icon browser","Network icon");
 	create_label_widget_pair(page2->vbox,"Network icon",icon);
 
 	gtk_widget_show(GTK_WIDGET(page2));
-	gtk_signal_connect(GTK_OBJECT(page2),"next",basic_done,(gpointer)druid_data);
+	gtk_signal_connect(GTK_OBJECT(page2),"next",GTK_SIGNAL_FUNC(basic_done),&druid_data);
 	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page2));
-	page2 = GNOME_DRUID_PAGE_STANDARD(gnome_druid_page_standard_new_with_vals(_("Port declaration"),img));
-	add_ports_wizard(page2);
-	gtk_widget_show(GTK_WIDGET(page2));
-	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page2));
-	page2 = gnome_druid_page_finish_new_with_vals(_("Finished"),_("Now You are hopefully ready to create Your new network!"),img,wat);
-	gtk_signal_connect(GTK_OBJECT(page2),"finish",druid_done,druid_data);
+	page3 = GNOME_DRUID_PAGE_STANDARD(gnome_druid_page_standard_new_with_vals(_("Port declaration"),img));
+	add_ports_wizard(page3);
+	gtk_widget_show(GTK_WIDGET(page3));
+	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page3));
+	page4 = gnome_druid_page_finish_new_with_vals(_("Finished"),_("Now You are hopefully ready to create Your new network!"),img,wat);
+	gtk_signal_connect(GTK_OBJECT(page4),"finish",druid_done,&druid_data);
 
-	gtk_widget_show(GTK_WIDGET(page2));
-	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page2));
+	gtk_widget_show(GTK_WIDGET(page4));
+	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page4));
 	gtk_widget_show_all(window);	
-	druid_data->name = name;
-	druid_data->descr = descr;
-	druid_data->icon = gnome_icon_entry_gtk_entry(icon);
-
+	
+	druid_data.name = name;
+	druid_data.descr = descr;
+	druid_data.icon = gnome_icon_entry_gtk_entry(icon);
+	druid_data.window = window;
 	return 0;
 }
 
