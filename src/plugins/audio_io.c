@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.8 2000/03/25 21:33:23 nold Exp $
+ * $Id: audio_io.c,v 1.9 2000/03/26 16:36:32 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -37,7 +37,6 @@
 
 /* TODO: (before 0.2)
  *       * oss and sgi audio in.
- *       * Especially esd in/out needs further cleanups.
  *       (post 0.2)
  *       * The whole file needs a file_io'ish re-write to further
  *         centralize common code. This is post-0.2 work however. Let's
@@ -48,12 +47,7 @@ PLUGIN_DESCRIPTION(audio_io, "filter set for audio support")
 PLUGIN_SET(audio_io, "audio_out audio_in")
 
 /* Generic versions of filter methods. Called from various low-level
- * implementations
- *
- * TODO: * Handling of default 'rate' and 'hangle' parameters. 
- *         Currently we just assume sane defaults.
- *       * Must fix dynamic parameter and pipe handling, especially
- *         fixup_param method.
+ * implementations.
  */
 
 /* Generic connect_in method for audio output filters. We assume a
@@ -178,6 +172,8 @@ static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 				FILTER_PORTTYPE_AUTOMATIC)) ||
 		!filter_add_param(filter, "rate", "sample rate", 
 				FILTER_PARAMTYPE_INT) ||
+		!filter_add_param(filter, "duration", "seconds to record",
+				FILTER_PARAMTYPE_FLOAT) ||
 		!filter_add_param(filter, "device", "input device",
 				FILTER_PARAMTYPE_STRING) ||
 		!filterport_add_param(p, "position", "position of the stream",
@@ -317,7 +313,7 @@ static int alsa_audio_out_f(filter_node_t *n)
 # if SND_BIG_ENDIAN
 	ch_param.format.format = SND_PCM_SFMT_S16_BE;
 # else
-#  error Unsupported audio format.
+#  error Unsupported endianness.
 # endif
 #endif
 	ch_param.format.interleave = 1;
@@ -354,7 +350,6 @@ static int alsa_audio_out_f(filter_node_t *n)
 	FILTER_AFTER_INIT;
 			
 	ch_active = ch;
-	ch = 0;
 	to_go = blksz;
 
 	goto _entry;
@@ -373,8 +368,7 @@ static int alsa_audio_out_f(filter_node_t *n)
 			}
 			for (done = 0; done < chunk_size; done++)
 				out[max_ch*done + i] = SAMPLE2SHORT(
-					sbuf_buf(in[i].buf)[in[i].pos+done]);
-			in[i].pos += done;
+					sbuf_buf(in[i].buf)[in[i].pos++]);
 			in[i].to_go -= done;
 		}
 
@@ -395,6 +389,7 @@ static int alsa_audio_out_f(filter_node_t *n)
 
 _entry:
 		chunk_size = to_go;
+		ch = 0;
 
 		FILTER_CHECK_STOP;
 
@@ -417,7 +412,7 @@ _entry:
 				ap->to_go = to_go;
 			}
 			chunk_size = MIN(chunk_size, ap->to_go);
-		} while ((ch = ++ch % max_ch));
+		} while (++ch < max_ch);
 	} while (ch_active || (to_go != blksz));
 
 	FILTER_BEFORE_CLEANUP;
@@ -439,6 +434,13 @@ _entry:
 #include <linux/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+
+/* Use native endianness for audio output */
+#ifdef WORD_BIGENDIAN
+#define AFMT_U16_NE	AFMT_U16_BE
+#else
+#define AFMT_U16_NE	AFMT_U16_LE
+#endif
 
 typedef struct {
 	filter_pipe_t	*pipe;
@@ -474,23 +476,19 @@ void oss_convert_bufs(oss_audioparam_t *in, __u8 *out, int max_ch,
 		if (ssize == 1) 
 			for (done = 0; done < chunk_size; done++)
 				*(out + done*interleave + i) =
-					SAMPLE2UCHAR(sbuf_buf(in[i].buf)[in[i].pos+done]); 
+					SAMPLE2UCHAR(sbuf_buf(in[i].buf)[in[i].pos++]); 
 		else /* ssize == 2 */
 			for (done = 0; done < chunk_size; done++)
 				*(__u16 *)(out + done*interleave +  2*i) =
-					SAMPLE2USHORT(sbuf_buf(in[i].buf)[in[i].pos+done]);
+					SAMPLE2USHORT(sbuf_buf(in[i].buf)[in[i].pos++]);
 
-		in[i].pos += done;
 		in[i].to_go -= done;
 	}		
 }
 
 
-/* FIXME: We're fucked up if a stale pipe is connected, i.e. when
- * playing a mono file in a stereo setup. (This needs global fixing.)
- * OSS returns the max number of hardware channels supported,
+/* OSS returns the max number of hardware channels supported,
  * must take care!
- * Need to handle big endian machines.
  */
 static int oss_audio_out_f(filter_node_t *n)
 {
@@ -531,9 +529,7 @@ static int oss_audio_out_f(filter_node_t *n)
 		ap->pos = ap->to_go = 0;
 	} while ((p_in = filternode_next_input(p_in)));
 
-	/* Fix left/right mapping. Channel 0 goes left.
-	 * XXX: Is this correct? 
-	 */	
+	/* Fix left/right mapping. Channel 0 goes left. */
 	if (ch > 1)
 		if (filterpipe_sample_hangle(in[0].pipe) >
 		    filterpipe_sample_hangle(in[1].pipe)) {
@@ -563,9 +559,8 @@ static int oss_audio_out_f(filter_node_t *n)
 
 	if (ioctl(dev, SNDCTL_DSP_GETFMTS, &formats) == -1)	
 		FILTER_ERROR_CLEANUP("Error querying available audio formats.\n");
-	/* FIXME: Big endian machines??? */
-	if (formats & AFMT_U16_LE) {
-		formats = AFMT_U16_LE;
+	if (formats & AFMT_U16_NE) {
+		formats = AFMT_U16_NE;
 		ssize = 2;
 	} else if (formats & AFMT_U8) {
 		formats = AFMT_U8;	/* Must be supported */
@@ -592,7 +587,6 @@ static int oss_audio_out_f(filter_node_t *n)
 	FILTER_AFTER_INIT;
 
 	ch_active = ch;
-	ch = 0;
 
 	goto _entry;
 
@@ -615,6 +609,7 @@ static int oss_audio_out_f(filter_node_t *n)
 		} while (todo);
 	_entry:
 		chunk_size = blksz/interleave;
+		ch = 0;
 
 		FILTER_CHECK_STOP;
 
@@ -638,7 +633,7 @@ static int oss_audio_out_f(filter_node_t *n)
 				ap->to_go = blksz/interleave;
 			}
 			chunk_size = MIN(chunk_size, ap->to_go);
-		} while ((ch = ++ch % max_ch));
+		} while (++ch < max_ch);
 	} while (ch_active);
 
 	FILTER_BEFORE_CLEANUP;
@@ -672,6 +667,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 	sgi_audioparam_t *in = NULL;
 	filter_pipe_t	*p_in;
+	filter_param_t  *dev_param;
 	SAMPLE		**bufs = NULL;
 	
 	int		rate;
@@ -747,8 +743,11 @@ static int sgi_audio_out_f(filter_node_t *n)
 	alSetChannels(c, max_ch);
 	/* Using the default queuesize... */
 
-	DPRINTF("rate %d\n", rate);
-	if(alSetDevice(c, resource) < 0) {
+	if (dev_param = filternode_get_param(n, "device"))
+		resource = alGetResourceByName(AL_SYSTEM, 
+		             filterparam_val_string(dev_param),
+			     AL_DEVICE_TYPE);
+	if (alSetDevice(c, resource) < 0) {
 		DPRINTF("Resource invalid: %s\n",
 			alGetErrorString(oserror()));
 		FILTER_DO_CLEANUP;
@@ -763,7 +762,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	if(v[0].sizeOut < 0)
 		FILTER_ERROR_CLEANUP("Invalid sample rate.");
 
-	/* The QueueSized is used as an initializer to our output chunk
+	/* The QueueSize is used as an initializer to our output chunk
 	 * size later on.
 	 */
 	qsize = alGetQueueSize(c);
@@ -782,7 +781,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 	FILTER_AFTER_INIT;
 
-	ch = 0;
 	ch_active = max_ch;
 	chunk_size = 0;
 
@@ -792,10 +790,9 @@ static int sgi_audio_out_f(filter_node_t *n)
 	goto _entry;
 	
 	while(ch_active) {
+		
 		FILTER_CHECK_STOP;
-#if 0
-		DPRINTF("Writing %d sample chunk.\n", chunk_size);
-#endif
+		
 		/* Queue audio chunk. All-mono buffers. Subsequent
 		 * buffers get directed to different channels. 
 		 */
@@ -803,6 +800,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	_entry:
 		last_chunk = chunk_size;
 		chunk_size = qsize;
+		ch = 0;
 		do {
 			sgi_audioparam_t *ap = &in[ch];
 			ap->to_go -= last_chunk;
@@ -828,7 +826,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 				bufs[ch] = &sbuf_buf(ap->buf)[ap->pos];
 			}
 			chunk_size = MIN(chunk_size, ap->to_go);
-		} while((ch = ++ch % max_ch));
+		} while(++ch < max_ch);
 	}
 
 	FILTER_BEFORE_CLEANUP;
@@ -850,40 +848,42 @@ static int sgi_audio_out_f(filter_node_t *n)
 #ifdef HAVE_ESD
 #include <esd.h>
 
-/* Now I do ;) 
- * and we have an input filter
- */
-
 static int esd_in_f(filter_node_t *n)
 {
-	filter_pipe_t *pipe[2];
-	filter_buffer_t *fbuf;
+	filter_pipe_t	*pipe[2];
+	filter_buffer_t	*fbuf;
+	filter_param_t	*dev_param, *duration, *rate_param;
+	char	*in;
+	short	*buf;
+	ssize_t	buf_size = ESD_BUF_SIZE, fbuf_size;
 	
 	esd_format_t	format;
-	int rate = GLAME_DEFAULT_SAMPLERATE;
-	int bits = ESD_BITS16, channels;
-	int mode = ESD_STREAM, func = ESD_RECORD ;
-	char *in;
-	short *buf;
-	int sock;
-	int length, time, maxtime;
-	int ch, i, pos;
-	filter_param_t *dev_param;
-        char *host = NULL;
-
+        char	*host = NULL;
+	int	channels, ch, rate = GLAME_DEFAULT_SAMPLERATE;
+	int	sock, length, endless = 0;
+	float	time = 0.0, maxtime = 0.0;
 
 	if (!(channels = filternode_nroutputs(n)))
 		FILTER_ERROR_RETURN("No outputs.");
-	format = bits | mode | func | (channels == 1) ? ESD_MONO : ESD_STEREO;
 
 	dev_param = filternode_get_param(n, "device");
 	if (dev_param)
 		host = filterparam_val_string(dev_param);
 
-	sock = esd_record_stream_fallback(format, rate, host, NULL);
-	if (sock <= 0)
-		FILTER_ERROR_RETURN("Couldn't open esd socket!");
+	rate_param = filternode_get_param(n, "rate");
+	if (rate_param)
+		rate = filterparam_val_int(rate_param);
 
+	/* XXX: Don't like this part at all. Proper fix is a 'control' port
+	 * the UI can use to send start/stop signals to individual nodes
+	 * (not to the network as a whole like now). This is post-0.2 stuff.
+	 */ 
+	duration = filternode_get_param(n, "duration");
+	if (duration)
+		maxtime = filterparam_val_float(duration) * rate * 2;
+	if (maxtime <= 0.0)
+		endless = 1;
+	
 	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
 	pipe[1] = filternode_get_output(n, PORTNAME_OUT); /* Okay if NULL */
 	
@@ -894,24 +894,24 @@ static int esd_in_f(filter_node_t *n)
 		pipe[1] = t;
 	}
 	
-	if ((buf = (short *)malloc(ESD_BUF_SIZE)) == NULL)
+	format = ESD_BITS16 | ESD_STREAM | ESD_RECORD | 
+	         (channels == 1) ? ESD_MONO : ESD_STEREO;
+	sock = esd_record_stream_fallback(format, rate, host, NULL);
+	if (sock <= 0)
+		FILTER_ERROR_RETURN("Couldn't open esd socket!");
+
+	if ((buf = (short *)malloc(buf_size)) == NULL)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
+	fbuf_size = buf_size/channels;
 	
 	FILTER_AFTER_INIT;
-
-        maxtime = 10*rate*channels;	/* Moah! FIXME badly! 
-					 * (A 'duration' parameter is 
-					 * probably the best short term
-					 * fix, i.e. pre-0.2. In the long
-					 * run the UIs need a control port
-					 * to signal when we should stop
-					 * recording.)
-					 */
-	time = 0;
 	
-	while (time < maxtime) {
+	while (endless || time < maxtime) {
+		int i, pos;
+		
 		FILTER_CHECK_STOP;
-		length = ESD_BUF_SIZE;
+		
+		length = buf_size;
 		in = (char *)buf;
 		while (length) {
 			ssize_t ret;
@@ -924,21 +924,20 @@ static int esd_in_f(filter_node_t *n)
 			length -= ret;
 		}
 		for (ch = 0; ch < channels; ch++) {
-			fbuf = sbuf_make_private(
-					sbuf_alloc(ESD_BUF_SIZE/channels, n));
+			fbuf = sbuf_make_private(sbuf_alloc(fbuf_size, n));
 			if (!fbuf) {
 				DPRINTF("alloc error!\n");
 				goto _out;
 			}
 			pos = 0;
 			i = ch;
-			while (pos < ESD_BUF_SIZE/channels) {
+			while (pos < fbuf_size) {
 				sbuf_buf(fbuf)[pos++] = SHORT2SAMPLE(buf[i]);
 				i += channels;
 			}
 			sbuf_queue(pipe[ch], fbuf);
 		}
-		time += ESD_BUF_SIZE;
+		time += fbuf_size;
 	}
 _out:
 	for (ch = 0; ch < channels; ch++)
@@ -957,143 +956,160 @@ _out:
 static int esd_out_f(filter_node_t *n)
 {
 	typedef struct {
-		filter_pipe_t *in;
-		filter_buffer_t *buf;
-		SAMPLE *s;
-		int pos;
+		filter_pipe_t	*pipe;
+		filter_buffer_t	*buf;
+		int 		pos;
+		int 		to_go;
 	} esdout_param_t;
-	esdout_param_t *inputs = NULL;
-	filter_pipe_t *in;
-        short int *wbuf, *s;
-	int wbpos;
-	int i, cnt, eofs=0, res;
-	int nrinputs, iassigned, iat, rate;
-	esd_format_t format = ESD_BITS16|ESD_STREAM|ESD_PLAY;
-	int esound_socket;
+
+	esdout_param_t		*in = NULL;
+	short			neutral, *wbuf, *out = NULL;
+	filter_pipe_t		*p_in;
+
+	
 	filter_param_t *dev_param;
 	char *host = NULL;
+	
+	int rate, ssize;
+	int max_ch, ch, ch_active, to_go;
+	ssize_t blksz, chunk_size;
+	int i;
+	
+	esd_format_t format = ESD_BITS16 | ESD_STREAM | ESD_PLAY;
+	int esound_socket;
 
-	/* get number of inputs, alloc private structure */
-	if (!(nrinputs = filternode_nrinputs(n)))
+	/* Boilerplate init section - will go into a generic function one day.
+	 */
+
+	if (!(max_ch = filternode_nrinputs(n)))
 		FILTER_ERROR_RETURN("no inputs");
-	if (nrinputs > 2)
-		FILTER_ERROR_RETURN("we can handle 2 inputs at most");
-	if (!(inputs = ALLOCN(nrinputs, esdout_param_t)))
-		FILTER_ERROR_RETURN("no memory");
 
-	/* decide mono/stereo */
-	if (nrinputs == 1) {
-		format |= ESD_MONO;
-		DPRINTF("Playing mono!\n");
-	} else {
-		format |= ESD_STEREO;
-		DPRINTF("Playing stereo!\n");
-	}
+	p_in = filternode_get_input(n, PORTNAME_IN);
+	rate = filterpipe_sample_rate(p_in);
+	if (rate <= 0)
+		FILTER_ERROR_RETURN("No valid sample rate given.");
+	
+	if (!(in = ALLOCN(max_ch, esdout_param_t)))
+		FILTER_ERROR_RETURN("Failed to alloc input structs.");
 
-	wbpos = 0;
-	wbuf = (short int*)malloc(GLAME_WBUFSIZE*sizeof(short int));
-	if (!wbuf)
-		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
+	ch = 0;
+	do {
+		esdout_param_t *ap = &in[ch++];
+		ap->pipe = p_in;
+		ap->buf = NULL;
+		ap->pos = ap->to_go = 0;
+	} while ((p_in = filternode_next_input(p_in)));
 
-	rate = filterpipe_sample_rate(filternode_get_input(n,PORTNAME_IN));
-	DPRINTF("Rate is %i\n", rate);
+	/* Fixup hangle mapping. */
+	if (ch > 1)
+		if (filterpipe_sample_hangle(in[0].pipe) >
+		    filterpipe_sample_hangle(in[1].pipe)) {
+			filter_pipe_t *t = in[0].pipe;
+			in[0].pipe = in[1].pipe;
+			in[1].pipe = t;
+		}
+
+	/* ESD specific initialisation
+	 */
+
 	dev_param = filternode_get_param(n, "device");
 	if (dev_param)
 		host = filterparam_val_string(dev_param);
+	format |= (max_ch == 1) ? ESD_MONO : ESD_STEREO;
 	esound_socket = esd_play_stream_fallback(format, rate, host, NULL);
 	if (esound_socket <= 0)
 	        FILTER_ERROR_RETURN("couldn't open esd-socket connection!");
 
+	ssize = sizeof(short);
+	neutral = SAMPLE2SHORT(0.0);
+	blksz = ESD_BUF_SIZE;
+	out = (short *)malloc(blksz * max_ch * ssize);
+	if (!out)
+		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
+	wbuf = out;
+
 	FILTER_AFTER_INIT;
 
-	/* Sort all inputs by hangle and initialize private struct.
-	 * Must be done after INIT section as we mess with sbufs! */
-	/* TODO: Should use a clever to_go entry in out private
-	 * struct like all the other output routines. Then we can
-	 * avoid explicit sbuf initialisation and put the sort loop
-	 * back into init where it belongs. [dk]
-	 */
-	iassigned = 0;
-	filternode_foreach_input(n, in) {
-		/* find insertion point */
-		for (iat=0; iat < iassigned && 
-			filterpipe_sample_hangle(inputs[iat].in) < 
-			filterpipe_sample_hangle(in); iat++)
-			;
-		/* move other entries */
-		for (i=iassigned; i>iat; i--)
-			inputs[i] = inputs[i-1];
-		/* assign and initialize input */
-		inputs[iat].in = in;
-		if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
-			eofs++;
-		inputs[i].s = sbuf_buf(inputs[i].buf);
-		inputs[i].pos = 0;
-		iassigned++;
-	}
+	ch_active = ch;
+	to_go = blksz;
 
 	goto _entry;
 
-	while (eofs != nrinputs) {
-		FILTER_CHECK_STOP;
+	do {
+		ssize_t ret;
 
-		/* Convert samples to output format. */
-		wbpos = cnt;
-		for (i=0; i < nrinputs; i++) {
-			if (!inputs[i].buf) {
-				/* Add silence */
-				short neutral = SAMPLE2SHORT(0.0);
-				for (cnt=0; cnt < wbpos; cnt++)
-					wbuf[nrinputs*cnt + i] = neutral;
+		/* Convert to signed 16 bit. */
+		for (i = 0; i < max_ch; i++) {
+			int done;
+
+			if (!in[i].buf) {
+				for (done = 0; done < chunk_size; done++)
+					out[max_ch*done + i] = neutral;
 				continue;
 			}
-			inputs[i].pos += wbpos;
-			for (cnt=0; cnt < wbpos; cnt++)
-				wbuf[nrinputs*cnt + i] = 
-					SAMPLE2SHORT(*(inputs[i].s++));
+			for (done = 0; done < chunk_size; done++)
+				out[max_ch*done + i] = SAMPLE2SHORT(
+					sbuf_buf(in[i].buf)[in[i].pos++]);
+			in[i].to_go -= done;
 		}
-		
-		/* send audio data to esd */
-		cnt = wbpos * nrinputs * sizeof(short int);
-		s = wbuf;
-		do {
-			if ((res = write(esound_socket, s, cnt)) == -1) {
-				perror("error in write to esd");
-				break;
-			}
-			s += res;
-			cnt -= res;
-		} while (cnt>0);
+
+		to_go -= chunk_size;
+
+		if (!to_go) {
+			ssize_t cnt = max_ch * ssize * blksz;
+			char *s = (char *)wbuf;
+
+			do {
+				if ((ret = write(esound_socket, s, cnt)) 
+				         == -1) {
+					perror("error in write to esd");
+					break;
+				}
+				s += ret;
+				cnt -= ret;
+			} while (cnt > 0);
+			
+			out = wbuf;
+			to_go = blksz;
+
+		} else {
+			out = &out[chunk_size * max_ch];
+		}
 
 _entry:
-		/* check which input buffer had the underflow. */
-		cnt = GLAME_WBUFSIZE/nrinputs;
-		for (i=0; i<nrinputs; i++) {
-			int to_go;
-			if (!inputs[i].buf)
-				continue;
-			to_go = sbuf_size(inputs[i].buf) - inputs[i].pos;
-			if (to_go) {
-				cnt = MIN(cnt, to_go);
-				continue;
+		chunk_size = to_go;
+		ch = 0;
+		
+		FILTER_CHECK_STOP;
+
+		do {
+			esdout_param_t *ap = &in[ch];
+			if (!ap->to_go) {
+				sbuf_unref(ap->buf);
+				ap->buf = sbuf_get(ap->pipe);
+				ap->to_go = sbuf_size(ap->buf);
+				ap->pos = 0;
 			}
-			sbuf_unref(inputs[i].buf);
-			if (!(inputs[i].buf = sbuf_get(inputs[i].in))) {
-				eofs++;
-				continue;
+			if (!ap->buf) {
+				if (ap->pipe) {
+					ch_active--;
+					ap->pipe = NULL;
+					DPRINTF("Channel %d/%d stopped, "
+					        "%d active.\n",
+						ch, max_ch, ch_active);
+				}
+				ap->to_go = to_go;
 			}
-			inputs[i].s = sbuf_buf(inputs[i].buf);
-			inputs[i].pos = 0;
-			cnt = MIN(cnt, sbuf_size(inputs[i].buf));
-		}
-	}
+			chunk_size = MIN(chunk_size, ap->to_go);
+		} while (++ch < max_ch);
+	} while (ch_active || (to_go != blksz));
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	close(esound_socket);
 	free(wbuf);
-
+	free(in);
 	FILTER_RETURN;
 }
 #endif
