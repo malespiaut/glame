@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.16 2002/02/18 22:56:30 richi Exp $
+ * $Id: apply.c,v 1.17 2002/02/19 10:16:46 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -49,6 +49,7 @@ struct apply_plugin_s {
 	GtkWidget *properties;
 	GtkWidget *progress;
 	GtkWidget *dialog;
+	GtkWidget *checkbox;
 	filter_t *net;
 	filter_t *pos;
 	int previewing;
@@ -95,7 +96,9 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 			preview_stop(a);
 		else if (a->applying) {
 			gpsm_item_t *swfile, *dst;
+			gboolean lock_size;
 			filter_wait(a->net);
+			lock_size = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(a->checkbox));
 			gpsm_op_prepare((gpsm_item_t *)a->item);
 			dst = gpsm_grp_first(a->dest);
 			gpsm_grp_foreach_item(a->item, swfile) {
@@ -105,21 +108,23 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 				sw_fstat(sfd, &st);
 				dfd = sw_open(gpsm_swfile_filename(swfile), O_RDWR);
 				sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
-#if 0 /* old behavior - keep size */
-				sw_sendfile(SW_NOFILE, dfd, MIN(st.size, a->length*SAMPLE_SIZE), SWSENDFILE_CUT);
-				sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
-				sw_sendfile(dfd, sfd, MIN(st.size, a->length*SAMPLE_SIZE), SWSENDFILE_INSERT);
-				gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, MIN(a->length, st.size/SAMPLE_SIZE));
-#else /* new behavior - allow extending/shrinking */
-				sw_sendfile(SW_NOFILE, dfd, a->length*SAMPLE_SIZE, SWSENDFILE_CUT);
-				sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
-				sw_sendfile(dfd, sfd, st.size, SWSENDFILE_INSERT);
-				if (st.size/SAMPLE_SIZE > a->length)
-					gpsm_notify_swapfile_insert(gpsm_swfile_filename(swfile), a->start + a->length, st.size/SAMPLE_SIZE - a->length);
-				else if (st.size/SAMPLE_SIZE < a->length)
-					gpsm_notify_swapfile_cut(gpsm_swfile_filename(swfile), a->start, a->length - st.size/SAMPLE_SIZE);
-				gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, MIN(a->length, st.size/SAMPLE_SIZE));
-#endif
+				if (lock_size) {
+					/* old behavior - keep size */
+					sw_sendfile(SW_NOFILE, dfd, MIN(st.size, a->length*SAMPLE_SIZE), SWSENDFILE_CUT);
+					sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
+					sw_sendfile(dfd, sfd, MIN(st.size, a->length*SAMPLE_SIZE), SWSENDFILE_INSERT);
+					gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, MIN(a->length, st.size/SAMPLE_SIZE));
+				} else {
+					/* new behavior - allow extending/shrinking */
+					sw_sendfile(SW_NOFILE, dfd, a->length*SAMPLE_SIZE, SWSENDFILE_CUT);
+					sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
+					sw_sendfile(dfd, sfd, st.size, SWSENDFILE_INSERT);
+					if (st.size/SAMPLE_SIZE > a->length)
+						gpsm_notify_swapfile_insert(gpsm_swfile_filename(swfile), a->start + a->length, st.size/SAMPLE_SIZE - a->length);
+					else if (st.size/SAMPLE_SIZE < a->length)
+						gpsm_notify_swapfile_cut(gpsm_swfile_filename(swfile), a->start, a->length - st.size/SAMPLE_SIZE);
+					gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, MIN(a->length, st.size/SAMPLE_SIZE));
+				}
 				dst = gpsm_grp_next(a->dest, dst);
 			}
 			cleanup(a);
@@ -352,6 +357,12 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), a->properties,
 			   TRUE, TRUE, 3);
 	gtk_widget_show(a->properties);
+
+	a->checkbox = gtk_check_button_new_with_label(_("Lock size"));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(a->checkbox), TRUE);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), a->checkbox,
+			   TRUE, TRUE, 3);
+	gtk_widget_show(a->checkbox);
 
 	a->progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(a->progress), GTK_PROGRESS_LEFT_TO_RIGHT);
