@@ -1,1 +1,1 @@
-EXTRA_DIST = glame_types.h hash.h list.h util.h
+EXTRA_DIST = glame_types.h hash.h list.h util.h atomic.h
