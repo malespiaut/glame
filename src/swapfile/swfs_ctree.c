@@ -331,8 +331,12 @@ static void ctree_mark_end(struct ctree *t)
 	 * element -1... */
 	if (t->cnt == 0) {
 		CSIZE(t, 0) = 0;
-		while (--h)
+		CSIZE(t, 1) = 0;
+		while (--h) {
 			CSUM(t, h-1, 0) = 0;
+			CSUM(t, h-1, 1) = 0;
+		}
+		t->size = 0;
 		return;
 	}
 

@@ -601,6 +601,10 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 		return -1;
 	errno = 0;
 
+	/* If count is zero just return successfully. */
+	if (count == 0)
+		return 0;
+
 	/* To be able to easy seperate the operation, we need to
 	 * do things in a correct order.
 	 */
