@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.22 2003/05/19 20:29:55 richi Exp $
+ * $Id: ladspa.c,v 1.23 2003/05/19 21:08:19 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -498,16 +498,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		   ports. */
 		if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)
 		    || (LADSPA_IS_PORT_INPUT(iPortDescriptor)
-			&& LADSPA_IS_PORT_CONTROL(iPortDescriptor)
-			&& !(LADSPA_IS_HINT_SAMPLE_RATE
-			     (psDescriptor->PortRangeHints[lPortIndex].
-			      HintDescriptor)
-			     || LADSPA_IS_HINT_INTEGER
-			     (psDescriptor->PortRangeHints[lPortIndex].
-			      HintDescriptor)
-			     || LADSPA_IS_HINT_TOGGLED
-			     (psDescriptor->PortRangeHints[lPortIndex].
-			      HintDescriptor)))) {
+			&& LADSPA_IS_PORT_CONTROL(iPortDescriptor))) {
 			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
 				psPort =
 				    filterportdb_add_port(filter_portdb(psFilter),
