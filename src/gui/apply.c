@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.18 2002/03/22 15:33:18 richi Exp $
+ * $Id: apply.c,v 1.19 2002/04/02 09:05:15 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -141,7 +141,7 @@ static void preview_start(struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
 	const char *errmsg;
-	filter_t *n, *swin, *e;
+	filter_t *swin, *e, *ec = NULL;
 	filter_port_t *port;
 	int nrin, currin, i;
 
@@ -151,8 +151,11 @@ static void preview_start(struct apply_plugin_s *a)
 		if (filterport_is_input(port))
 			nrin++;
 
-	/* Create the preview network. */
+	/* Create the preview network.
+	 * DONT clone from a->effect! This would copy update handlers
+	 * for > 2 nodes! Instead clone from dummy clone... */
 	a->net = filter_creat(NULL);
+	ec = filter_creat(a->effect);
 	currin = nrin;
 	gpsm_grp_foreach_item(a->item, swfile) {
 		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
@@ -161,7 +164,7 @@ static void preview_start(struct apply_plugin_s *a)
 			goto err;
 		}
 		if (currin >= nrin) {
-			e = filter_creat(a->effect);
+			e = filter_creat(ec);
 			filter_add_node(a->net, e, "effect");
 			net_link_params(e, a->effect);
 			currin = 0;
@@ -178,6 +181,7 @@ static void preview_start(struct apply_plugin_s *a)
 		currin++;
 	}
 	a->pos = net_apply_audio_out(a->net);
+	filter_delete(ec);
 
 	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
 		errmsg = _("Unable to launch network");
@@ -202,6 +206,8 @@ static void preview_start(struct apply_plugin_s *a)
 		filter_delete(a->net);
 		a->net = NULL;
 	}
+	if (ec)
+		filter_delete(ec);
 }
 
 static void preview_stop(struct apply_plugin_s *a)
