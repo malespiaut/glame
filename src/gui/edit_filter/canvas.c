@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.58 2001/04/18 14:45:23 richi Exp $
+ * $Id: canvas.c,v 1.59 2001/04/18 14:55:18 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -542,10 +542,10 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 GtkWidget * 
 canvas_new_from_network(gui_network* net)
 {
-	GtkWidget *window, *canvas, *sw;
+	GtkWidget *window, *canvas, *sw, *toolbar;
 
 	GnomeDock *dock;
-
+	
 	const char *name;
 
 
@@ -563,7 +563,8 @@ canvas_new_from_network(gui_network* net)
 	gtk_widget_ref(GTK_WIDGET(dock));
 	
 	gtk_widget_show(GTK_WIDGET(dock));
-	
+	toolbar = gtk_toolbar_new(GTK_ORIENTATION_HORIZONTAL,GTK_TOOLBAR_BOTH);
+
 
 	inItem=0;
 	
@@ -578,10 +579,19 @@ canvas_new_from_network(gui_network* net)
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
 	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
-
+	
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
-
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),network_play,canvas);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Save","Saves Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE_AS),canvas_save_as,canvas);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Properties","Edit Filternetwork Properties","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_PROPERTIES),NULL,canvas);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom in","Zooms in","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),canvas_zoom_in_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom out","Zooms out","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),canvas_zoom_out_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),canvas_update_scroll_region_cb,canvas);
+	gnome_app_set_toolbar(GNOME_APP(window),GTK_TOOLBAR(toolbar));
 	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));
 	
