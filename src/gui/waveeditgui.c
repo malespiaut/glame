@@ -1149,7 +1149,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_wave_view_set_cache_size (GTK_WAVE_VIEW(window->waveview), 8192);
 
 	/* Create the swapfile buffer. */
-	window->wavebuffer = GTK_SWAPFILE_BUFFER(gtk_swapfile_buffer_new(window->swfiles));
+	window->wavebuffer = (GtkSwapfileBuffer *)gtk_swapfile_buffer_new(window->swfiles);
 	if (!window->wavebuffer) {
 		DPRINTF("Unable to create wavebuffer\n");
 		gtk_object_destroy(GTK_OBJECT(window->waveview));
