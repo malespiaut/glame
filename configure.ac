@@ -123,7 +123,8 @@ AM_PROG_LIBTOOL
 
 
 dnl Translations so far
-ALL_LINGUAS="de fr it da"
+dnl ALL_LINGUAS="de fr it da"
+ALL_LINGUAS="de fr"
 
 dnl Check for internationalization support
 AM_GNU_GETTEXT
