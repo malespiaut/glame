@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.80 2002/03/25 13:26:47 richi Exp $
+ * $Id: file_io.c,v 1.81 2002/03/25 14:09:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -241,17 +241,29 @@ static int read_file_f(filter_t *n)
 
 	/* fill in pipes */
 	port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	if (RWA(n)->channelCount == 1)
-		i = 0;
-	else
-		i = 2;
+	for (i=0; i<RWA(n)->channelCount; i++)
+		track[i].p = NULL;
 	filterport_foreach_pipe(port, pipe) {
-		if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_LEFT)
+		if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_LEFT
+		    && track[0].p == NULL) {
 			track[0].p = pipe;
-		else if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_RIGHT)
+			continue;
+		}
+		if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_RIGHT
+		    && RWA(n)->channelCount > 1 && track[1].p == NULL) {
 			track[1].p = pipe;
-		else
-			track[i++].p = pipe;
+			continue;
+		}
+		for (i=MIN(2, RWA(n)->channelCount); i<RWA(n)->channelCount; i++) {
+			if (track[i].p)
+				continue;
+			track[i].p = pipe;
+		}
+		for (i=0; i<MIN(2, RWA(n)->channelCount); i++) {
+			if (track[i].p)
+				continue;
+			track[i].p = pipe;
+		}
 	}
 
 	FILTER_AFTER_INIT;
