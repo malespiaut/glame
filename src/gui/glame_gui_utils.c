@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.24 2001/06/07 10:04:26 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.25 2001/06/13 11:18:57 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -467,8 +467,12 @@ glame_gui_build_plugin_menu_genmenu(struct list_head *entries, GtkMenu *menu,
 			gtk_widget_show(citem);
 			free(entry->u.c.name);
 		} else {
-			GtkWidget *mitem = gtk_menu_item_new_with_label(
-				plugin_name(entry->u.p.plugin));
+			char *label;
+			GtkWidget *mitem;
+			label = plugin_query(entry->u.p.plugin, PLUGIN_LABEL);
+			if (!label)
+				label = plugin_name(entry->u.p.plugin);
+			mitem = gtk_menu_item_new_with_label(label);
 			gtk_widget_show(mitem);
 			gtk_menu_append(GTK_MENU(menu), mitem);
 			if (gtksighand)
