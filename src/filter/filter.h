@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.80 2002/02/17 13:51:46 richi Exp $
+ * $Id: filter.h,v 1.81 2002/03/25 13:25:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -54,7 +54,7 @@ extern "C" {
 #endif
 
 
-#define GLAME_PLUGIN_VERSION 0x00070001
+#define GLAME_PLUGIN_VERSION 0x00070002
 
 
 /********************************

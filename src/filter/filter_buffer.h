@@ -3,7 +3,7 @@
 
 /*
  * filter_buffer.h
- * $Id: filter_buffer.h,v 1.8 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_buffer.h,v 1.9 2002/03/25 13:25:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,7 +34,7 @@ struct filter_buffer {
 	struct glame_list_head list;
         glame_atomic_t refcnt;
 	int size;              /* size of buffer in bytes */
-	char buf[1];
+	char buf[1] __attribute__ ((aligned (16)));
 };
 
 /* Public access macros to the filter buffer fields.
