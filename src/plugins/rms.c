@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.3 2000/04/05 09:00:32 richi Exp $
+ * $Id: rms.c,v 1.4 2000/04/07 14:06:50 nold Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -19,9 +19,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
- * This is maggy's filter collection!
- * Please refrain from commiting any changes to cvs, just send me a patch!
  */
 
 #include <sys/time.h>
@@ -186,13 +183,16 @@ static int debugrms_f(filter_node_t *n){
 		if (rms_get_mode(r)==RMS_WINDOW) 
 			rms_unref(r);
 		else if (rms_get_mode(r)==RMS_TOTAL){
-			DPRINTF("RMS       = %f\n",rms_get_total_rms(r));
-			DPRINTF("DC Offset = %f\n",rms_get_total_offset(r));
+			/* Don't use DPRINTF here - we want this output
+			 * even when compiled without debugging support!
+			 */
+			printf("RMS       = %f\n",rms_get_total_rms(r));
+			printf("DC Offset = %f\n",rms_get_total_offset(r));
 			rms_get_peak(r,peakrms,pos);
-			DPRINTF("Peak RMS  = %f\n",peakrms);
-			DPRINTF("Peak pos  = %ld\n",pos);
-			DPRINTF("Peak max  = %f\n",rms_max(r));
-			DPRINTF("Peak min  = %f\n",rms_min(r));
+			printf("Peak RMS  = %f\n",peakrms);
+			printf("Peak pos  = %ld\n",pos);
+			printf("Peak max  = %f\n",rms_max(r));
+			printf("Peak min  = %f\n",rms_min(r));
 			rms_unref(r);
 		} else DPRINTF("oops!\n");
 		r=rms_get(in);

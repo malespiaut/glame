@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.21 2000/04/05 16:10:32 nold Exp $
+ * $Id: file_io.c,v 1.22 2000/04/07 14:06:50 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -382,7 +382,6 @@ int file_io_register()
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
-	/* FIXME How should the writer now wether to write wav or au ??? */
 	add_writer(af_write_f,"*.wav"); 
 #endif
 	add_reader(wav_read_prepare, wav_read_connect, 
@@ -762,10 +761,9 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 {
 	int i;
 	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
-	DPRINTF("i=%d channelCount=%d\n",i,RWA(n).channelCount);
 	if (i>=RWA(n).channelCount){
 		/* Check if track is already mapped ?!
-		 * Would be strange, but ... FIXME
+		 * Would be strange, but ... 
 		 * - nope, not strange, connect gets called for each
 		 *   already connected pipes at parameter change, too!
 		 *   (as for just pipe parameter change)
@@ -774,11 +772,8 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
                  */
 		for(i=0;i<RWA(n).channelCount;i++)
 			if ((RWA(n).track[i].mapped) && RWA(n).track[i].p==p){
-				DPRINTF("already mapped i=%d!\n",i);
-				return 0; /* FIXME */
+				return 0; 
 			}
-		/* Otherwise error */
-		DPRINTF("rejecting!\n");
 		return -1;
 	} else {
 		/* Moah! what is this? does libaudiofile not provide

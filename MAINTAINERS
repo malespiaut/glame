@@ -15,21 +15,18 @@ filter: richi
 mid-layer: richi
 	src/glmid/*
 
-plugins/filters/testprograms: the filter authors
-	src/plugins/*
-
 hash: richi
 	src/hash/*
 
 doc: nold
-	doc/*.texi
-	doc/* unless covered by other maintainers
+	doc/* 
 
 glamemath: nold
 	src/glmath/*
 
 midi: garrison
 	src/plugins/midi*
+
 gui: xwolf
 	src/gui/*
 

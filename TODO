@@ -11,7 +11,6 @@ Things to fix before 0.2.0:
   * parameter names, parameter types
   * assign/create pixmaps
 - documentation
-  * GUI documentation
   * fix API documentation (changed filter part again) [done, parts
     are still missing]
   * filter writing tutorial?
@@ -21,7 +20,9 @@ TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
 doc/
+	[LATER] 
 	- document available filters [nold/the filter authors]
+	  All the 0.2.0 relevant stuff is documented.
 
 glmid/gltrack.[ch], plugins/track_io.c
 	[LATER]

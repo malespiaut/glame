@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.3 2000/04/06 11:19:49 richi Exp $
+ * $Id: noisegate.c,v 1.4 2000/04/07 14:06:50 nold Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
- * This is maggy's filter collection!
- * Please refrain from commiting any changes to cvs, just send me a patch!
  */
 
 #include <sys/time.h>
@@ -32,8 +29,8 @@
 #include "glplugin.h"
 
 /* Implementation of a noise gate using ideas found
- * in Tobi Kuriens page about Audio effect algorithms
- * FIXME forgot url...
+ * in Toby Kuriens page about Audio effect algorithms:
+ * http://users.iafrica.com/k/ku/kurient/dsp/algorithms.html
  * voila we got a full featured noise gate:
  *
  * Hold Time: If the signal falls into the gating region for long

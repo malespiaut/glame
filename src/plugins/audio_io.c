@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.13 2000/04/05 16:10:32 nold Exp $
+ * $Id: audio_io.c,v 1.14 2000/04/07 14:06:50 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -682,7 +682,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 	ALconfig	c = NULL;
 	ALport		p = NULL;
 	ALpv		v[1];
-	/* FIXME: Should be set via default "device" param */
 	int		resource = AL_DEFAULT_OUTPUT;
 	int		qsize;
 
