@@ -1,10 +1,11 @@
-@comment $Id: filter-tutorial.texi,v 1.6 2000/02/18 16:37:02 richi Exp $
+@comment $Id: filter-tutorial.texi,v 1.7 2000/02/21 14:30:37 richi Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
 
-This document is about how to write filters for glame. It only covers
-audio in/audio out types of filters. 
+This part of the document is about how to write filters for GLAME. It
+only covers parts of this at the moment, but will evolve to a decent
+filter programming tutorial with your help.
 
 @menu
 * Parameter Definition::	Talking about parameters, properties and protocols...
@@ -93,21 +94,20 @@ this class of filters is the @code{audio_out()} filter in
 @findex connect_out
 @findex fixup_param
 @findex fixup_pipe
-The third kind of filters are the inbetween filters which require connected
-input and output channels. I.e. these are the @dfn{true filters}. True 
-filters have to provide a @code{connect_out()} method, if they may change 
-any of the pipe parameters (i.e. what comes out is different from 
-what comes in, like in a resample case). They also have to provide the 
-@code{fixup_param()}
-and the @code{fixup_pipe()} methods if there are dependencies between the
-filter parameters and the output parameters or between the input 
-parameters and the output parameters (different from a one-to-one mapping).
+The third kind of filters are the inbetween filters which require
+connected input and output channels. Lets call them
+@dfn{effects}. Effects have to provide a @code{connect_out()} method, if
+they may change any of the pipe properties (i.e. what comes out is
+different from what comes in, like in a resample case). They also have
+to provide the @code{fixup_param()} and the @code{fixup_pipe()} methods
+if there are dependencies between the filter or port parameters and the
+output pipe properties or between the input pipe properties and the
+output pipe properties (different from a one-to-one mapping).
 
 @node Filter Skeleton, Main Filter Method, Filter Categories, Filter Tutorial
 @heading What do I need to have in a glame filter set?
 You will need the following functions and methods:
 @table @code
-@findex filtersetname_register
 @item filtersetname_register()
 A filter registering function of the name @code{filtersetname_register()} 
 which returns 0 on success and -1 on any error.
@@ -116,7 +116,8 @@ which returns 0 on success and -1 on any error.
 The main filter method @code{f()}. You need this for each filter contained
 in the filter set.
 @item other filter methods
-You may need to include other filter specific methods, too.
+You may need to include other filter specific methods, too. See above for
+generic hints on which methods you may need.
 @end table
 
 @findex f
@@ -147,9 +148,10 @@ functions in the @code{INIT} section (DEADLOCK!!!)}
 (@code{?buf_alloc()} is allowed, if you really need it)
 
 Another section primitive is the @code{FILTER_CHECK_STOP;} macro which you
-should use inside all operating loops to check for external stop or pause
+should use inside all operating loops to check for external stop, pause or
+terminate
 queries. The corresponding cleanup section after @code{FILTER_BEFORE_STOPCLEANUP;}
-is jumped to if any request has to be fulified.
+is jumped to if a terminating request has to be fulified.
 
 
 For more complex filters which require some sort of backlog of sample
@@ -159,23 +161,23 @@ be cared about:
 You should not allocate a ringbuffer or backlog storage via malloc,
 neither should you simply copy the data - this is not necessary - in
 fact it is completely broken. You should instead just keep all the
-fbuf's around that you need later (of course ref'ing and unref'ing them
+sbuf's around that you need later (of course ref'ing and unref'ing them
 at the appropriate time)
 
-@findex fbuf_alloc
+@findex sbuf_alloc
 @findex sbuf_make_private
 If your filter in priciple would support in-place read-modify-write of
 the data you should not allocate new buffers for the output using
-@code{fbuf_alloc()}. Instead you should grab the source buffer and do a
+@code{sbuf_alloc()}. Instead you should grab the source buffer and do a
 @code{sbuf_make_private()} on it taking the pointer returned from this as the
 ``new'' input buffer which you may modifiy now and later queue as
 output.
 
-@findex fbuf_alloc
-@findex fbuf_make_private
+@findex sbuf_alloc
+@findex sbuf_make_private
 If you do any modification of any buffer (including those which you just
-allocated privately using @code{fbuf_alloc()} or friends) 
-you must get the write-enabled buffer by calling @code{fbuf_make_private()}
+allocated privately using @code{sbuf_alloc()} or friends) 
+you must get the write-enabled buffer by calling @code{sbuf_make_private()}
 and use the return value as the buffer to be written to!
 
 
@@ -184,7 +186,8 @@ and use the return value as the buffer to be written to!
 @subsection Examples
 
 To clarify the reference counting and locking issues, in the following several
-valid and invalid example uses of the API are given.
+valid and invalid example uses of the API are given. They are valid for each
+of the filter buffer protocols such as the sbuf protocol.
 
 Valid just-forward buffers from input to output:
 @example 
@@ -254,7 +257,7 @@ fbuf_queue(out, buf);
 This is invalid as the additional @code{fbuf_ref()} does not provide you with
 a private modifable buffer, but just ensures that nobody else does
 write to or destroy the buffer (which one can't anyway as you are 
-holding a reference already---the one gotten by @code{fbuf_get()}).
+holding a reference already---the one got by @code{fbuf_get()}).
 The correct solution is to do:
 @example
 @group

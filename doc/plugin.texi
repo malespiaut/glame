@@ -1,4 +1,4 @@
-@comment $Id: plugin.texi,v 1.2 2000/02/20 15:23:42 richi Exp $
+@comment $Id: plugin.texi,v 1.3 2000/02/21 14:30:37 richi Exp $
 
 @node Plugin Interface, Function and Type Index, Swapfile API, Top
 @chapter Plugin Interface 
@@ -17,7 +17,7 @@ plugins.
 This function will return a handle to the plugin with the name @var{name}.
 If the plugin is not already loaded it will be loaded from one of the
 paths in the path list. @code{plugin_get()} returns @code{NULL} if the plugin
-cannot be found.
+cannot be found or an error occured during its initialization phase.
 @end deftypefun
 
 To access parts of the plugin the following wrapper macros should be used
