@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.25 2001/07/10 12:00:36 richi Exp $
+ * $Id: filtereditgui.c,v 1.26 2001/07/10 17:21:38 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -475,12 +475,13 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
 				       GTK_POLICY_AUTOMATIC,
 				       GTK_POLICY_AUTOMATIC);
-	gtk_widget_push_visual(gdk_rgb_get_visual());
 	gtk_widget_push_colormap((GdkColormap*)(gdk_rgb_get_cmap()));
+	gtk_widget_push_visual(gdk_rgb_get_visual());
 	canvas = GTK_WIDGET(glame_canvas_new(net));
-	GLAME_CANVAS(canvas)->openedUp = protected;
-	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
+	gtk_widget_pop_colormap();
+//	GNOME_CANVAS(canvas)->aa = 1;
+	GLAME_CANVAS(canvas)->openedUp = protected;
 	//gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
 	
 
