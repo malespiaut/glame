@@ -69,6 +69,7 @@ static inline int nto1_init(nto1_state_t **I, filter_port_t *port)
 		(*I)[i].buf = NULL;
 		(*I)[i].s = NULL;
 		(*I)[i].pos = 0;
+		i++;
 	}
 	return nr;
 }
