@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.2 2002/02/24 18:30:30 richi Exp $
+ * $Id: gtknob.c,v 1.3 2002/02/24 22:16:06 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -21,8 +21,16 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <gtk/gtk.h>
+#ifdef HAVE_LIBGLADE
+#include <glade/glade.h>
+#include <glade/glade-build.h>
+#endif
 #include "gtknob.h"
 
 /* statically include knob pixmap */
@@ -69,8 +77,8 @@ static gint gtk_knob_focus_in(GtkWidget * widget, GdkEventFocus * event);
 static gint gtk_knob_focus_out(GtkWidget * widget, GdkEventFocus * event);
 
 /* adjustment hacks */
-static void gtk_knob_set_adjustment(GtkKnob * knob,
-				    GtkAdjustment * adjustment);
+void gtk_knob_set_adjustment(GtkKnob * knob,
+			     GtkAdjustment * adj);
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data);
 
@@ -529,6 +537,11 @@ void gtk_knob_set_adjustment(GtkKnob * knob, GtkAdjustment * adjustment)
     }
 }
 
+GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob)
+{
+    return knob->adjustment;
+}
+
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data)
 {
@@ -554,3 +567,39 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
     }
 }
 
+
+#ifdef HAVE_LIBGLADE
+static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
+{
+	GtkWidget *knob;
+	GtkObject *adj;
+	GList *tmp;
+	float value = 0.0, lower = 0.0, upper = 1.0;
+
+	for (tmp = info->attributes; tmp; tmp = tmp->next) {
+		GladeAttribute *attr = tmp->data;
+		if (strcmp(attr->name, "value") == 0)
+			sscanf(attr->value, "%f", &value);
+		if (strcmp(attr->name, "lower") == 0)
+			sscanf(attr->value, "%f", &lower);
+		if (strcmp(attr->name, "upper") == 0)
+			sscanf(attr->value, "%f", &upper);
+	}
+	adj = gtk_adjustment_new(value, lower, upper, 0.1, 0.1, 0.0);
+	knob = gtk_knob_new(GTK_ADJUSTMENT(adj));
+
+	return knob;
+}
+void gtk_knob_glade_register()
+{
+	static GladeWidgetBuildData widgets[] = {
+		{ "GtkKnob", gtk_knob_glade_new, NULL },
+		{ NULL, NULL, NULL }
+	};
+	glade_register_widgets(widgets);
+}
+#else
+void gtk_knob_glade_register()
+{
+}
+#endif

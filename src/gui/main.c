@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.107 2002/02/19 10:24:12 richi Exp $
+ * $Id: main.c,v 1.108 2002/02/24 22:16:04 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -984,6 +984,7 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_LIBGLADE
 	glade_init();
+	gtk_knob_glade_register();
 #endif
 
 	/* init glame */

@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.18 2002/02/21 22:23:17 richi Exp $
+ * $Id: glame_param.c,v 1.19 2002/02/24 22:16:06 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -30,6 +30,7 @@
 #ifdef HAVE_LIBGLADE
 #include <glade/glade.h>
 #endif
+#include "gtknob.h"
 #include "glame_gui_utils.h"
 #include "glame_param.h"
 
@@ -293,12 +294,16 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_long(param));
 		} else if (GTK_IS_RANGE(gparam->widget)) {
 			gparam->u.adj = gtk_range_get_adjustment(GTK_RANGE(gparam->widget));
+		} else if (GTK_IS_KNOB(gparam->widget)) {
+			gparam->u.adj = gtk_knob_get_adjustment(GTK_KNOB(gparam->widget));
+		} else
+			DPRINTF("FIXME - unsupported XML widget\n");
+		if (GTK_IS_ADJUSTMENT(gparam->u.adj)) {
 			if (FILTER_PARAM_IS_DOUBLE(param))
 				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_double(param));
 			else if (FILTER_PARAM_IS_LONG(param))
 				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_long(param));
-		} else
-			DPRINTF("FIXME - unsupported XML widget\n");
+		}
 	} else
 #endif
 	if (FILTER_PARAM_IS_LONG(param)) {

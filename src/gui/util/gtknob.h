@@ -4,7 +4,7 @@
 /*
  * gtknob.h
  *
- * $Id: gtknob.h,v 1.2 2002/02/24 18:30:30 richi Exp $
+ * $Id: gtknob.h,v 1.3 2002/02/24 22:16:06 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -61,8 +61,11 @@ extern "C" {
 #endif
 
 
-guint      gtk_knob_get_type(void);
-GtkWidget *gtk_knob_new(GtkAdjustment * adj);
+guint          gtk_knob_get_type(void);
+GtkWidget     *gtk_knob_new(GtkAdjustment * adj);
+void           gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adj);
+GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob);
+void           gtk_knob_glade_register();
 
 
 #ifdef __cplusplus
