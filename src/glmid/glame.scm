@@ -2,6 +2,10 @@
   (lambda ()
     (display "no help available yet.\n")))
 
+; This scheme file is rated PG
+; It contains violence, coarse language
+; and maybe in future some sexscenes ;)
+
 (define ficken
   (lambda ()
     (display "selber ficken!\n")))

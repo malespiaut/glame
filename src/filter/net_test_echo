@@ -1,0 +1,14 @@
+(filternetwork play "play files with echo-effect"
+	(node rf read_file
+		(export-param filename filename "file to be played")
+	)
+	(node e2_1 echo
+		(set-param time 0.25))
+	(node e2_2 echo
+		(set-param time 0.2))
+	(node aout audio_out)
+	(connect rf out e2_1 in)
+	(connect rf out e2_2 in)
+	(connect e2_1 out aout in)
+	(connect e2_2 out aout in)
+)
