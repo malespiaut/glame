@@ -244,6 +244,20 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 	return gh_long2scm(res);
 }
 
+static SCM gls_is_swfd(SCM s_fd)
+{
+	if (swfd_p(s_fd))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_swdir(SCM s_dir)
+{
+	if (swdir_p(s_dir))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
 int glscript_init_swapfile()
 {
 	/* Register swdir and swfd SMOBs to guile. */
@@ -278,6 +292,9 @@ int glscript_init_swapfile()
 	gh_new_procedure2_0("sw_read_floatvec", gls_sw_read_floatvec);
 	gh_new_procedure2_0("sw_read_string", gls_sw_read_string);
 	gh_new_procedure2_0("sw_write", gls_sw_write);
+
+	gh_new_procedure1_0("swfd?", gls_is_swfd);
+	gh_new_procedure1_0("swdir?", gls_is_swdir);
 
 	gh_define("O_CREAT", gh_long2scm(O_CREAT));
 	gh_define("O_EXCL", gh_long2scm(O_EXCL));
