@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.4 2001/07/31 09:19:55 xwolf Exp $
+ * $Id: glame_param.c,v 1.5 2001/07/31 09:34:56 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -130,35 +130,28 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 		   GTK_EDITABLE_CLASS(GTK_OBJECT(gparam->u.edit)->klass)->update_text(gparam->u.edit, 0, -1); */
 		free(val);
 	} else if (GLAME_IS_CURVE(gparam->u.widget)) {
-		int numpoints,i;
-		gfloat (*ctlpoints)[2];
-		char* ctlbuffer;
-		filter_buffer_t *sbuf;
-
-		sbuf = sbuf_alloc(1000, NULL);
-		sbuf_make_private(sbuf);
-		gtk_curve_get_vector(GTK_CURVE(gparam->u.curve),
-				     sbuf_size(sbuf), sbuf_buf(sbuf));
-		filterparam_set(gparam->param, &sbuf);
-		sbuf_unref(sbuf);
-		glame_curve_get_control_vector(gparam->u.curve,
-					       &numpoints, &ctlpoints);
-		ctlbuffer = calloc(numpoints*2*12, sizeof(gfloat));
-		sprintf(ctlbuffer, "%d", numpoints);
-		filterparam_set_property(gparam->param, "curve-control-points",
-					 ctlbuffer);
-		i=0;
-		while(i<numpoints){
-			sprintf(&ctlbuffer[i*28], "%13.8f %13.8f ",
-				(ctlpoints)[i][0], (ctlpoints)[i][1]);
-			i++;
-		}
-		fprintf(stderr,"ctl_strin in: %s\n", ctlbuffer);
-		filterparam_set_property(gparam->param,
-					 "curve-control-points-data",
-					 ctlbuffer);
-		g_free(ctlpoints);
-		free(ctlbuffer);
+		char *ctl_vec_string, *num_string;
+		char * string_begin,*string_next;
+		gfloat (*ctl_points)[2];
+		int num_points,i;
+		if ((num_string = filterparam_get_property(gparam->param, "curve-control-points"))
+		    && (ctl_vec_string = filterparam_get_property(gparam->param, "curve-control-points-data"))) {
+			num_points = atoi(num_string);
+			fprintf(stderr,"num: %s %d\n%s\n",num_string,num_points,ctl_vec_string);
+			ctl_points = malloc(num_points*sizeof(gfloat[2]));
+			string_begin = ctl_vec_string;
+			for(i=0; i<num_points; i++){
+				ctl_points[i][0] = strtod(string_begin,&string_next);
+				string_begin=string_next;
+				ctl_points[i][1] = strtod(string_begin,&string_next);
+				string_begin=string_next;
+				/*sscanf(ctl_vec_string,"%f %f",&(ctl_points[i][0]),&(ctl_points[i][1]));*/
+				/*fprintf(stderr,"set_param: %f %f\n",ctl_points[i][0],ctl_points[i][1]);*/
+			}
+			glame_curve_set_control_vector(
+				gparam->u.curve, num_points, ctl_points);
+		} else
+			DPRINTF("No props for curve?\n");
 	} else if (GTK_IS_MENU_SHELL(gparam->u.widget)) {
 		GList *list;
 		int val;
@@ -205,7 +198,37 @@ static gint editable_cb(GtkEditable *edit, GlameParam *gparam)
 
 static gint curve_cb(GlameCurve* curve, GlameParam *gparam)
 {
-	DPRINTF("FIXME\n");
+	int numpoints,i;
+	gfloat (*ctlpoints)[2];
+	char* ctlbuffer;
+	filter_buffer_t *sbuf;
+
+	sbuf = sbuf_alloc(1000, NULL);
+	sbuf_make_private(sbuf);
+	gtk_curve_get_vector(GTK_CURVE(gparam->u.curve),
+			     sbuf_size(sbuf), sbuf_buf(sbuf));
+	filterparam_set(gparam->param, &sbuf);
+	sbuf_unref(sbuf);
+	glame_curve_get_control_vector(gparam->u.curve,
+				       &numpoints, &ctlpoints);
+	ctlbuffer = calloc(numpoints*2*12, sizeof(gfloat));
+	sprintf(ctlbuffer, "%d", numpoints);
+	filterparam_set_property(gparam->param, "curve-control-points",
+				 ctlbuffer);
+	i=0;
+	while(i<numpoints){
+		sprintf(&ctlbuffer[i*28], "%13.8f %13.8f ",
+			(ctlpoints)[i][0], (ctlpoints)[i][1]);
+		i++;
+	}
+	fprintf(stderr,"ctl_strin in: %s\n", ctlbuffer);
+	filterparam_set_property(gparam->param,
+				 "curve-control-points-data",
+				 ctlbuffer);
+	g_free(ctlpoints);
+	free(ctlbuffer);
+
+	return TRUE;
 }
 
 static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
@@ -410,10 +433,6 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			glame_curve_set_control_vector(
 				gparam->u.curve, num_points, ctl_points);
 		}
-		/* SADLY we dont have a signal we could connect to
-		 * with the gtk curve widget...
-		 * ==> FIXME, do our own curve widget.
-		 */
 	} else if (FILTER_PARAM_IS_BUF(param)) {
 		DPRINTF("FIXME! - buf params not supported\n");
 	} else
@@ -429,19 +448,18 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	else if (GTK_IS_EDITABLE(gparam->u.widget))
 		gtk_signal_connect(GTK_OBJECT(gparam->u.edit), "changed",
 				   (GtkSignalFunc)editable_cb, gparam);
-	else if (GLAME_IS_CURVE(gparam->u.widget)){
-		gtk_signal_connect(GTK_OBJECT(gparam->u.curve), "curve_changed",
+	else if (GLAME_IS_CURVE(gparam->u.widget))
+		gtk_signal_connect(GTK_OBJECT(gparam->u.curve),
+				   "curve_changed",
 				   (GtkSignalFunc)curve_cb, gparam);
-		DPRINTF("FIXME\n");
-	}
 	else if (GTK_IS_MENU_SHELL(gparam->u.widget))
-		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
+		gtk_signal_connect(GTK_OBJECT(gparam->u.menushell),
 				   "selection_done",
 				   (GtkSignalFunc)menushell_cb, gparam);
 	else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 		gparam->u.menushell = GTK_MENU_SHELL(gtk_option_menu_get_menu(
 			GTK_OPTION_MENU(gparam->u.widget)));
-		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
+		gtk_signal_connect(GTK_OBJECT(gparam->u.menushell),
 				   "selection_done",
 				   (GtkSignalFunc)menushell_cb, gparam);
 	} else
