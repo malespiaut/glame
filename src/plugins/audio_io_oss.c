@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.10 2001/04/22 14:29:00 richi Exp $
+ * $Id: audio_io_oss.c,v 1.11 2001/04/25 13:53:40 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -41,11 +41,25 @@ PLUGIN_SET(audio_io_oss, "oss_audio_in oss_audio_out")
 
 
 /* Use native endianness for audio output */
-#ifdef WORD_BIGENDIAN
-#define AFMT_U16_NE	AFMT_U16_BE
+#ifndef AFMT_U16_NE
+# ifdef WORD_BIGENDIAN
+#  define AFMT_U16_NE	AFMT_U16_BE
 #else
-#define AFMT_U16_NE	AFMT_U16_LE
+#  define AFMT_U16_NE	AFMT_U16_LE
+# endif
 #endif
+/* This one's supposed to be defined according to OSS specs, but
+ * BSD once again enjoys being different.
+ */
+#ifndef AFMT_S16_NE
+# ifdef WORD_BIGENDIAN
+#  define AFMT_S16_NE	AFMT_S16_BE
+#else
+#  define AFMT_S16_NE	AFMT_S16_LE
+# endif
+#endif
+
+
 
 typedef struct {
 	filter_pipe_t	*pipe;
