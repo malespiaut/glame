@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.47 2001/12/13 00:21:35 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.48 2001/12/13 14:48:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -298,7 +298,6 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	GlameCanvasGroup * glameGroup;
 	GnomeCanvasItem * item;
 	double x,y;
-	char numberbuffer[10];
 	char * buffer;
 
 	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
@@ -699,12 +698,11 @@ remove_handlers(GtkWidget* foo, GList* handlers)
 static void glame_canvas_filter_edit_properties_cb(GtkWidget* m,GlameCanvasFilter *filter)
 {
 	GtkWidget *p;
-	GList* selected;
 	GList* items,*iter;
 	plugin_t* plug;
 	GlameCanvas* glcanv;
 	gboolean equal=TRUE;
-	char * plugname;
+	const char * plugname;
 	filter_t* ffilter;
 	if(filter->immutable)
 		return;
@@ -799,9 +797,7 @@ void glame_canvas_filter_expand_node(GlameCanvasFilter* filter)
 		return;
 	/* dont expand opened-up filter network!! */
 	if(glame_canvas_find_canvas(filter->filter)){
-		GnomeDialog * dialog;
-		dialog = gnome_ok_cancel_dialog_modal("The network You wish to expand is already opened, do You wish to close the view?",NULL,NULL);
-		if(gnome_dialog_run_and_close(dialog))
+		if (gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_cancel_dialog_modal("The network You wish to expand is already opened, do You wish to close the view?", NULL, NULL))))
 			return;
 		else
 			gtk_object_destroy(GTO(gtk_widget_get_toplevel(GTK_WIDGET(glame_canvas_find_canvas(filter->filter)))));
@@ -877,8 +873,8 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	
 	char *labels[] = {"Name","Type","Description"};
 	char *plabels[] = {"Name","Value","Description"};
-	char ** line;
-	char * buffer;
+	const char ** line;
+	const char * buffer;
 	filter = filterItem->filter;
 
 	ports = filter_portdb(filter);
@@ -959,7 +955,7 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	gtk_container_add(GTK_CONTAINER(vbox),notebook);
 
-	gnome_dialog_button_connect_object(GNOME_DIALOG(dialog),0,gtk_object_destroy,dialog);
+	gnome_dialog_button_connect_object(GNOME_DIALOG(dialog), 0, gtk_object_destroy, GTK_OBJECT(dialog));
 	gtk_widget_show(GTK_WIDGET(dialog));
 }
 

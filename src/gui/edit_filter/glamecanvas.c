@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.44 2001/12/13 00:21:35 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.45 2001/12/13 14:48:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -733,9 +733,9 @@ filter_t* glame_canvas_collapse_selection(GlameCanvas * canv)
 {
 
 	GList *items = glame_canvas_get_selected_items(canv), *n;
-	filter_t *net, **nodes, *first;
+	filter_t *net, **nodes;
 	int i;
-	GnomeCanvas *filter;
+	GlameCanvasFilter *filter;
 	
 	gdouble x1,y1,x2,y2;
 	char buffer[10];

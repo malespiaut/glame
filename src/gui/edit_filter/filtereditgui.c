@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.45 2001/12/13 00:21:35 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.46 2001/12/13 14:48:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -178,6 +178,7 @@ glame_canvas_selecting(GlameCanvas* canvas,GdkEvent* event,GlameCanvas* glCanv)
 		break;
 		
 	}
+	return TRUE;
 }
 		
 static gboolean 
@@ -247,7 +248,7 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 				edit = gtk_menu_item_new_with_label("Paste Selection");
 				gtk_widget_show(edit);
 				gtk_signal_connect(GTK_OBJECT(edit),"activate",filtereditgui_paste_cb,glCanv);
-				gtk_menu_append(menu,edit);
+				gtk_menu_append(GTK_MENU(menu), edit);
 				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
 				return TRUE;
 			}
@@ -337,7 +338,7 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 	
 	char *labels[] = {"Name","Type","Description","Source"};
 	char *plabels[] = {"Name","Value","Description","Source"};
-	char ** line;
+	const char ** line;
 	const char * buffer;
 	filter = canvas->net;
 	
@@ -520,7 +521,6 @@ static SCM gls_editfilter_collapse_selection()
 }
 static SCM gls_editfilter_expand_selected()
 {
-	filter_t *filter;
 	GlameCanvasFilter* gfilter;
 	
 	GList * selection = glame_canvas_get_selected_items(glcanvas);

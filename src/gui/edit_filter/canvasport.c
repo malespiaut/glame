@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.26 2001/12/10 01:18:47 xwolf Exp $
+ * $Id: canvasport.c,v 1.27 2001/12/13 14:48:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -444,7 +444,7 @@ glame_canvas_port_deregister_popup(GlameCanvasPort* port)
 		glame_canvas_port_hide_properties(port);
 	}
 }
-static gboolean glame_canvas_port_cleanup_cb(GtkObject * o, GlameCanvasPort* port)
+static void glame_canvas_port_cleanup_cb(GtkObject * o, GlameCanvasPort* port)
 {
 	if(port)
 		glame_canvas_port_deregister_popup(port);
