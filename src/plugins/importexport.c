@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.21 2001/11/25 18:32:39 mag Exp $
+ * $Id: importexport.c,v 1.22 2001/11/25 21:06:56 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -78,7 +78,7 @@ struct imp_s {
 
 struct exp_s {
 	GtkWidget *dialog, *otypemenu, *compmenu, *ocompmenu;
-	GtkWidget *cancelbutton;
+	GtkWidget *cancelbutton, *appbar;
 	int typecnt;
 	int *indices;
 	GtkWidget *rbutton[MAX_SFLABEL];
@@ -634,8 +634,8 @@ void glame_import_dialog(struct imp_s *ie)
 	gtk_box_pack_start (GTK_BOX (dialog_vbox2), appbar2, TRUE, TRUE, 0);
 
 	dialog_action_area2 = GNOME_DIALOG (ie->dialog)->action_area;
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area2), GTK_BUTTONBOX_END);
-	gtk_button_box_set_spacing (GTK_BUTTON_BOX (dialog_action_area2), 8);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area2), GTK_BUTTONBOX_EDGE);
+	gtk_button_box_set_child_size (GTK_BUTTON_BOX (dialog_action_area2), 150, 30);
 	
 	gnome_dialog_append_button_with_pixmap (GNOME_DIALOG (ie->dialog),
 						_("Import"), GNOME_STOCK_PIXMAP_OPEN);
@@ -774,7 +774,7 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)  {
 	GtkWidget *dialog, *menu, *mitem, *bigbox, *typecompbox, *valbox;
 	GtkWidget *dialog_vbox2, *vbox, *frame, *frame2, *frame3, *fentry;
 	GtkWidget *framebox, *combo_entry, *frame4, *frame4box;
-	GSList *rbuttons, *renderbuttons;
+	GSList *rbuttons, *renderbuttons, *dialog_action_area;
 	int i;
 	gchar *suffix;
 
@@ -783,6 +783,10 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)  {
 	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
 	gnome_dialog_close_hides(GNOME_DIALOG(dialog), TRUE);
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
+
+	dialog_action_area = GNOME_DIALOG (dialog)->action_area;
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area), GTK_BUTTONBOX_EDGE);
+	gtk_button_box_set_child_size (GTK_BUTTON_BOX (dialog_action_area), 150, 30);
 
 	dialog_vbox2 = GNOME_DIALOG (ie->dialog)->vbox;
 	/*gtk_widget_show (dialog_vbox2);*/
@@ -824,6 +828,10 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)  {
 	gtk_widget_show(frame4box);
 	gtk_container_add(GTK_CONTAINER(frame4), frame4box);
 	
+	ie->appbar = gnome_appbar_new (TRUE, TRUE, GNOME_PREFERENCES_NEVER);
+	gtk_widget_show (ie->appbar);
+	gtk_box_pack_start (GTK_BOX (dialog_vbox2), ie->appbar, TRUE, TRUE, 0);
+
 	renderbuttons = NULL;
 	for(i=0; i<MAX_RLABEL; i++) {
 		ie->renderbutton[i]=gtk_radio_button_new_with_label(renderbuttons, rlabel[i]);
