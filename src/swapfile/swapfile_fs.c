@@ -376,7 +376,7 @@ static int fsck_scan_clusters(int fix)
 	/* Loop over all datas, deleting un-gettable clusters, but trying
 	 * to fix missing meta. */
 	for (name2 = 0; name2 < 256; name2++) {
-		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
+		snprintf(s, 255, "%s/%lX", swap.clusters_data_base, name2);
 		dir = opendir(s);
 		if (!dir) {
 			DPRINTF("WARNING! Missing hash directory %lX\n", name2);
