@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.128 2004/12/23 23:12:15 richi Exp $
+ * $Id: main.c,v 1.129 2005/01/01 23:02:18 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -712,9 +712,15 @@ static GtkWidget* glame_about(void)
 
 static GtkWidget *glame_splash(void)
 {
+	GtkWidget *a;
+
 	/* We may "specialize" the splash somewhat in the future.
-	 * For now just use the about dialog. */
-	return glame_about();
+	 * For now just use the about dialog with disabled close. */
+	a = glame_about();
+	gtk_dialog_set_default_response(GTK_DIALOG(a), GTK_RESPONSE_NONE);
+	gtk_dialog_set_response_sensitive(GTK_DIALOG(a), GTK_RESPONSE_CLOSE, FALSE);
+
+	return a;
 }
 
 
