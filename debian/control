@@ -1,0 +1,15 @@
+Source: glame
+Section: sound
+Priority: optional
+Maintainer: Daniel Kobras <kobras@debian.org>
+Build-Depends: debhelper
+Standards-Version: 3.1.1
+
+Package: glame
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: A versatile audio processor.
+ GLAME tries to provide a powerful and extensible framework for processing
+ audio files similar to what GIMP offers in the graphics area. GLAME so
+ far features a Scheme-based command line interface to set up filter 
+ networks and perform basic editing tasks.

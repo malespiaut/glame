@@ -1,0 +1,15 @@
+glame for Debian
+----------------------
+
+GLAME so far depends heavily on quite a number of external libs. For the
+I/O layer, these dependencies are resolved at build time (configure time
+actually), which is quite unfortunate for distributing binary packages.
+We would have to build one glame package with ALSA support, one without,
+one with ESD, one with ESD+ALSA, one with... you get the point. In the
+long run, we want to re-write the I/O layer to use dynamic loading, and
+thus resolve these dependencies at run time. Until then, there's really
+not much point in distributing binaries, but we may well provide the
+Debian framework within a source package, so everyone can easily build
+her own, custom-made binary .debs.
+
+ -- Daniel Kobras <kobras@debian.org>, Mon, 18 Dec 2000 11:56:53 +0100
