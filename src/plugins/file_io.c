@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.73 2001/12/03 23:20:44 mag Exp $
+ * $Id: file_io.c,v 1.74 2001/12/05 15:41:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -222,14 +222,10 @@ static int read_file_setup_param(filter_param_t *param, const void *val)
 	rw_t *r;
 	char *filename;
 
-	if (*((char**)val)==NULL)
-		return -1;
-
 	/* only position param change? - we only care for initted rw. */
-	if (RWPRIV(n)->rw
-	    && strcmp("position", filterparam_label(param)) == 0) {
+	if (strcmp("position", filterparam_label(param)) == 0) {
 		p = filterparam_get_sourcepipe(param);
-		if (RWPRIV(n)->rw->connect(n, p) == -1)
+		if (RWPRIV(n)->rw && RWPRIV(n)->rw->connect(n, p) == -1)
 			PANIC("Uh? Reject pipe that previously was ok?");
 		glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 		return 0;
@@ -237,6 +233,9 @@ static int read_file_setup_param(filter_param_t *param, const void *val)
         /* filename change! */
 	} else {
 		filename = *((char**)val);
+		if (!filename)
+			return -1;
+
 		DPRINTF("filename change to %s\n", filename);
 		/* check actual reader */
 		if (RWPRIV(n)->rw) {
