@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.30 2001/03/01 16:19:24 xwolf Exp $
+ * $Id: canvas.c,v 1.31 2001/03/01 18:38:50 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -82,9 +82,9 @@ static GnomeUIInfo pipe_menu[]=
 
 static GnomeUIInfo file_menu[]=
 {
-	GNOMEUIINFO_ITEM("_New Filter...","New Filter",canvas_create_new_cb,NULL),
-	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_open_filter,NULL),
-	GNOMEUIINFO_MENU_SAVE_ITEM(canvas_save_filter,NULL),
+//	GNOMEUIINFO_ITEM("_New Filter...","New Filter",canvas_create_new_cb,NULL),
+	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_load_network,NULL),
+//	GNOMEUIINFO_MENU_SAVE_ITEM(canvas_save_filter,NULL),
 	GNOMEUIINFO_MENU_SAVE_AS_ITEM(canvas_save_as,NULL),
 	GNOMEUIINFO_END
 };
@@ -102,8 +102,6 @@ static GnomeUIInfo root_menu[]=
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
-	GNOMEUIINFO_ITEM("Load scheme _network...","Loads scm source file as a editable network",canvas_load_network,NULL),
-	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
@@ -667,25 +665,33 @@ update_connection_points(GlameConnection *connection)
       GlameCanvasPort *dest_port=connection->end;
       
       double xs,ys,xd,yd;
-
+      double xOffset = 25.0;
+      double dist;
+      
       port_docking_coords(source_port, &xs, &ys,connection->begin_id);
       port_docking_coords(dest_port, &xd, &yd,connection->end_id);
       
       xs += GNOME_CANVAS_RE(source_port)->x2-GNOME_CANVAS_RE(source_port)->x1;
+      
+      dist = xd-xs;
+      if(dist<50.0)
+	      xOffset = dist/2.0;
+      xOffset=(xOffset<5.0)?5.0:xOffset;
+	      
 
       connection->points->coords[0]=xs;
       connection->points->coords[1]=ys;
 
-      connection->points->coords[2]=xs+25+(connection->begin_id*4);
+      connection->points->coords[2]=xs+xOffset+(connection->begin_id*4);
       connection->points->coords[3]=ys;
 
-      connection->points->coords[4]=xs+25+(connection->begin_id*4);
+      connection->points->coords[4]=xs+xOffset+(connection->begin_id*4);
       connection->points->coords[5]=(ys+yd)/2.0-connection->dy;
 
-      connection->points->coords[6]=xd-25-(connection->end_id*4);
+      connection->points->coords[6]=xd-xOffset-(connection->end_id*4);
       connection->points->coords[7]=(ys+yd)/2.0-connection->dy;
 
-      connection->points->coords[8]=xd-25-(connection->end_id*4);
+      connection->points->coords[8]=xd-xOffset-(connection->end_id*4);
       connection->points->coords[9]=yd;
 
       connection->points->coords[10]=xd;
@@ -1709,7 +1715,10 @@ static void describe_item(GtkWidget* wid,GlameCanvasItem* it)
 	desc = (char*)plugin_query(it->filter->plugin,PLUGIN_DESCRIPTION);
 	text = gtk_text_new(NULL,NULL);
 	
-	gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
+	if(desc)
+		gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
+	else
+		gtk_editable_insert_text(GTK_EDITABLE(text),"This item does not have a description",38,&pos);
 	gtk_widget_show(text);
 	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), text, TRUE, TRUE, 0);
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
@@ -1750,12 +1759,12 @@ draw_network(filter_t *filter)
 		if(numberbuffer)
 			x = atof(numberbuffer);
 		else
-			x = 0.0;
+			x += 120.0;
 		numberbuffer = filter_get_property(node,"canvas_y");
 		if(numberbuffer)
 			y = atof(numberbuffer);
 		else
-			y = 0.0;
+			y += 20.0;
 		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
 	}
 	filter_foreach_node(filter,node){
