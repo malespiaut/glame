@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.14 2001/07/11 08:15:10 richi Exp $
+@comment $Id: cglame.texi,v 1.15 2001/08/03 11:25:30 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -80,13 +80,16 @@ sections reside in the @code{glame.scm} file shipped with glame.
 @node Wrapped API, cglame Convenience, cglame Introduction, Console Frontend
 @section Wrapped API
 
-For description of the semantics of the available parts of the APIs
-please refer to the native documentation. Note that all scheme procedures
-either throw exceptions or evaluate to @code{#f} if there is any error.
-C functions which return
-0 on success are transformed to procedures evaluating to @code{#t}
-on success or @code{#f} on error. Void functions generally evaluate to
+For description of the detailled semantics of the available parts of the
+APIs please refer to the native documentation. Note that all scheme
+procedures either throw exceptions or evaluate to @code{#f} if there is
+any error.  C functions which return 0 on success are transformed to
+procedures evaluating to @code{#t} on success or @code{#f} on error if
+not using exceptions. Void functions generally evaluate to
 @code{#unspecified}.
+
+Note that this part of the documentation is incomplete. You can
+consider the Filter API, Plugin API and Swapfile API part up to date.
 
 @menu
 * Scheme Filter API::
@@ -247,7 +250,104 @@ These procedures handle filter network execution.
 @node Scheme Swapfile API, Scheme Plugin API, Scheme Filter API, Wrapped API
 @subsection Scheme Swapfile API
 
-FIXME: see @code{src/glmid/glscript_swapfile.c}
+The swapfile is a container for data in its raw form. It is modeled
+after a simple filesystem with a flat namespace (no directories) and
+names being just cardinal numbers.
+
+
+@deftypefun ( swapfile-open path )
+@deftypefunx ( swapfile-close )
+@deftypefunx ( swapfile-creat path )
+These procedures control the swapfile subsystem. @code{swapfile-open}
+initializes the subsystem from the swapfile at the specified location.
+@code{swapfile-creat} tries to create a new swapfile at the specified
+location, @code{swapfile-close} cleans up and closes the subsystem.
+@end deftypefun
+
+@deftypefun ( swdir? dir )
+@deftypefunx ( sw-opendir )
+@deftypefunx ( sw-readdir dir )
+@deftypefunx ( sw-closedir dir )
+These procedures can be used to traverse the swapfile files. Function
+is like the libc readdir routines, but as the swapfile has a flat
+namespace you dont specify a subdirectory for @code{sw-opendir}.
+@code{sw-opendir} evaluates to a @code{swdir} object.
+@code{sw-readdir} returns swapfile filenames as long as they are
+available and @code{#f} upon directory end.
+@end deftypefun
+
+@deftypefun ( sw-unlink name )
+Unlinks the specified file from the swapfile. You cannot recover
+unlinked swapfiles. Behavior is like unlink(2), i.e. if the file
+is still open the deletion of the data is postponed until close of
+the file.
+@end deftypefun
+
+@deftypefun ( swfd? fd )
+@deftypefunx ( sw-open name flags )
+@deftypefunx ( sw-close fd )
+For working with a swapfile you need to obtain a handle to it.
+Use @code{sw-open} to open the swapfile with the specified name.
+The flags argument is modeled after open(2), @code{O_CREAT},
+@code{O_EXCL}, @code{O_TRUNC}, @code{O_RDWR}, @code{O_RDONLY}
+and @code{O_WRONLY} are available. Or them together like
+@code{(+ O_CREAT O_TRUNC O_RDWR)}. @code{sw-open} evaluates
+to a file descriptor which you can identify using the @code{swfd?}
+predicate. Use @code{sw-close} if you are finished with the file.
+@end deftypefun
+
+@deftypefun ( sw-fstat fd )
+@code{sw-fstat} obtains information about an open filedescriptor.
+It evaluates to a list of the form @code{( name size mode offset
+cluster-start cluster-end cluster-size )} where all entries are
+cardinals.
+@end deftypefun
+
+@deftypefun ( sw-lseek fd offset whence )
+To seek inside a file use @code{sw-lseek} which works like lseek(2),
+i.e. it seeks relative to whence offset bytes. For whence @code{SEEK_CUR},
+@code{SEEK_SET} and @code{SEEK_END} are available. @code{sw-lseek}
+evaluates to the current file pointer position.
+@end deftypefun
+
+@deftypefun ( sw-ftruncate fd size )
+@code{sw-ftruncate} truncates the specified file to the specified size
+appending zeroes in case of enlarging.
+@end deftypefun
+
+@deftypefun ( sw-sendfile dest-fd source-fd size [flags] )
+@code{sw-sendfile} copies (by using copy on write) size bytes
+from the current filepointer position of the source-fd to the
+current filepointer position of the dest-fd. Via the optional
+flags argument you can specify the following
+@table @code
+@item SWSENDFILE_INSERT
+The data is inserted at the filepointer position of the dest-fd
+instead of overwriting and/or extending the file.
+@item SWSENDFILE_CUT
+The data is removed from the source-fd after writing to the
+dest-fd
+@end table
+For both files you can specify @code{SW_NOFILE} if it makes sense
+(i.e. for just cutting out data specify @code{SW_NOFILE} as dest-fd
+and @code{SWSENDFILE_CUT} as flag).
+@end deftypefun
+
+
+@deftypefun ( sw-read-floatvec fd size )
+@deftypefunx ( sw-read-string fd size )
+@deftypefunx ( sw-write fd data )
+Those are the basic read and write operations. Both strings and
+float vectors are supported by the scheme interface. For reading
+you need to specify the type via the procedure name, for writing
+the type is automatically determined. The read procedures read
+size number of objects from the current filepointer position.
+They evaluate to the number of objects read. @code{sw-write}
+writes the whole object to the current filepointer position and
+evaluates to the number of objects written.
+All procedures increment the filepointer position by the number
+of bytes read/written.
+@end deftypefun
 
 
 
@@ -258,17 +358,31 @@ The glame plugin midlayer API is wrapped with the following
 procedures:
 
 @deftypefun ( plugin? plugin )
-@deftypefunx ( plugin_add_path path )
-@deftypefunx ( plugin_get name )
-@deftypefunx ( plugin_name plugin )
-@deftypefunx ( plugin_query plugin key )
-@deftypefunx ( plugin_set plugin key value )
-See the C API documentation for a description of the procedures.
+This procedure checks, if the specified object represents a plugin and
+evaluates to @code{#t} in this case, else @code{#f}.
 @end deftypefun
 
-Additionally defined symbols are @code{PLUGIN_DESCRIPTION},
-@code{PLUGIN_PIXMAP}, @code{PLUGIN_CATEGORY}, @code{PLUGIN_GUI_HELP_PATH}
-and @code{PLUGIN_LABEL}.
+@deftypefun ( plugin-add-path path )
+This procedure adds the specified path to the plugin shared object
+search path that is used by the @code{plugin-get} procedure.
+@end deftypefun
+
+@deftypefun ( plugin-get name )
+Queries a plugin with the specified name out of the plugin database.
+Evaluates to a plugin or @code{#f} if a plugin with the specified name
+cannot be found.
+@end deftypefun
+
+@deftypefun ( plugin-name plugin )
+@deftypefunx ( plugin-query plugin key )
+@deftypefunx ( plugin-set! plugin key value )
+Queries the name or custom properties out of a plugin. Those procedures
+evaluate to a string, @code{plugin-set!} sets the specified property to
+the specified string. Predefined property keys are
+@code{PLUGIN_DESCRIPTION}, @code{PLUGIN_PIXMAP}, @code{PLUGIN_CATEGORY},
+@code{PLUGIN_GUI_HELP_PATH} and @code{PLUGIN_LABEL}.
+@end deftypefun
+
 
 
 
