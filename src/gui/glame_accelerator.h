@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.4 2001/06/18 08:16:46 richi Exp $
+ * $Id: glame_accelerator.h,v 1.5 2001/07/02 08:19:57 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -83,9 +83,9 @@ extern struct list_head _glame_accel_list;
 
 /* Installs a gtk signal handler to the specified widget which binds
  * to the accelerators inside the specified scope(s). 
- * Returns 0 on success, -1 on error. */
-int glame_accel_install(GtkWidget *widget,
-			const char *scope, ...);
+ * Returns the gtk signal identifier on success, 0 on error. */
+guint glame_accel_install(GtkWidget *widget,
+			  const char *scope, ...);
 
 
 #endif

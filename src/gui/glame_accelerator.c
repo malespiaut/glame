@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.7 2001/06/18 08:14:20 richi Exp $
+ * $Id: glame_accelerator.c,v 1.8 2001/07/02 08:19:57 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -384,30 +384,31 @@ void glame_accel_del_all(const char *scope)
 }
 
 
-int glame_accel_install(GtkWidget *widget,
-			const char *scope, ...)
+guint glame_accel_install(GtkWidget *widget,
+			  const char *scope, ...)
 {
 	struct accel_cb_data *data;
 	va_list va;
+	guint handler;
 
 	if (!widget || !scope)
-		return -1;
+		return 0;
 
 	va_start(va, scope);
 	if (va_arg(va, const char *) != NULL) {
 		va_end(va);
-		return -1; /* FIXME: later... */
+		return 0; /* FIXME: later... */
 	}
 
 	if (!(data = ALLOC(struct accel_cb_data)))
-		return -1;
+		return 0;
 	data->widget = widget;
 	data->scope = strdup(scope);
 
-	gtk_signal_connect(GTK_OBJECT(widget), "key_press_event",
-			   accel_cb, data);
+	handler = gtk_signal_connect(GTK_OBJECT(widget), "key_press_event",
+				     accel_cb, data);
 	gtk_signal_connect(GTK_OBJECT(widget), "destroy",
 			   accel_cb_cleanup, data);
 
-	return 0;
+	return handler;
 }
