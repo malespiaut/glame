@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.10 2000/02/22 13:21:45 richi Exp $
+ * $Id: file_io.c,v 1.11 2000/02/22 13:38:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -275,44 +275,36 @@ static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 {
 	rw_t *r;
 
-	/* only pipe param change (position)? */
-	if (p && RWPRIV(n)->rw) {
-		if (RWPRIV(n)->rw->connect(n, p) == -1)
-			filternetwork_break_connection(p);
-		return 0;
-	
-        /* filename change! */
-	} else {
-		/* check actual reader */
-		if (RWPRIV(n)->rw) {
-			/* cleanup previous stuff */
-			if (RWPRIV(n)->initted
-			    && RWPRIV(n)->rw->cleanup)
-				RWPRIV(n)->rw->cleanup(n);
-			RWPRIV(n)->initted = 0;
-
-			/* try same rw again */
-			if (RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
-				RWPRIV(n)->initted = 1;
-				goto reconnect;
-			}
-		}
-
-		RWPRIV(n)->rw = NULL;
+        /* only filename change possible in writer. */
+	/* check actual reader */
+	if (RWPRIV(n)->rw) {
+		/* cleanup previous stuff */
+		if (RWPRIV(n)->initted
+		    && RWPRIV(n)->rw->cleanup)
+			RWPRIV(n)->rw->cleanup(n);
 		RWPRIV(n)->initted = 0;
-
-		/* search for applicable reader */
-		list_foreach(&writers, rw_t, list, r) {
-			if (r->prepare(n, filterparam_val_string(param)) != -1) {
-				RWPRIV(n)->rw = r;
-				RWPRIV(n)->initted = 1;
-				goto reconnect;
-			}
+		
+		/* try same rw again */
+		if (RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
+			RWPRIV(n)->initted = 1;
+			goto reconnect;
 		}
-
-		/* no reader found */
-		return -1;
 	}
+
+	RWPRIV(n)->rw = NULL;
+	RWPRIV(n)->initted = 0;
+
+	/* search for applicable reader */
+	list_foreach(&writers, rw_t, list, r) {
+		if (r->prepare(n, filterparam_val_string(param)) != -1) {
+			RWPRIV(n)->rw = r;
+			RWPRIV(n)->initted = 1;
+			goto reconnect;
+		}
+	}
+
+	/* no reader found */
+	return -1;
 
  reconnect:
 	/* re-connect all pipes */
@@ -351,12 +343,10 @@ int file_io_register()
 	if (filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("read_file", "Generic file write filter",
+	if (!(f = filter_alloc("write_file", "Generic file write filter",
 			       write_file_f))
 	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
-	    || !filterport_add_param(p, "position", "position of the stream",
-				     FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f, "filename", "filename",
 				 FILTER_PARAMTYPE_STRING))
 		return -1;
