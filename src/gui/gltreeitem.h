@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.4 2001/03/13 13:55:38 richi Exp $
+ * $Id: gltreeitem.h,v 1.5 2001/03/21 09:19:54 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -46,7 +46,7 @@ struct _GlameTreeItem {
 	GtkTreeItem parent_object;
 
 	/* internal linkage */
-	GtkTree *parent;
+	GtkTree *tree;
 
 	/* data - from glame_editor.c:struct gledit_buffer */
 	int type;
@@ -69,11 +69,15 @@ GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
 				    int sample_rate);
 GtkWidget* glame_tree_item_new_group(const char *label);
 void       glame_tree_item_update(GlameTreeItem *item);
+GtkTree*   glame_tree_item_parent(GlameTreeItem *item);
 
 GlameTreeItem* glame_tree_find_group(GtkObject *tree, const char *label);
 GlameTreeItem* glame_tree_find_filename(GtkObject *tree, long name);
 GtkObject*     glame_tree_copy(GtkObject *tree);
 void           glame_tree_append(GtkObject *tree, GlameTreeItem *item);
+
+/* Remove the glame tree item from the tree and destroy the widget
+ * (we cannot do this w/o destroying it -- gtk is broken). */
 void           glame_tree_remove(GlameTreeItem *item);
 
 #endif

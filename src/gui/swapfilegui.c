@@ -45,6 +45,9 @@ static GtkTree *swapfile_tree = NULL;
 static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item);
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data);
+static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
+static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
+static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -55,16 +58,15 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Merge with parent", "import", NULL, NULL), /* FIXME */
-        GNOMEUIINFO_ITEM("Flatten childs", "flatten", NULL, NULL), /* FIXME */
-        GNOMEUIINFO_ITEM("Link selected", "link", NULL, NULL), /* FIXME */
-        GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Add group...", "addgroup", addgroup_cb, NULL),
+        GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
+        GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM("Link selected", "link", linkselected_cb, NULL),
+        GNOMEUIINFO_ITEM("Copy selected", "copy", copyselected_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
 	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
@@ -103,6 +105,70 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 	return TRUE;
 }
 
+/* Copy (COW, new swapfiles) all selected items as childs of the
+ * current item. */
+static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	GList *selected = GTK_TREE_SELECTION(swapfile_tree);
+
+	while (selected) {
+		GlameTreeItem *copy, *i = GLAME_TREE_ITEM(selected->data);
+		long dest_name;
+		swfd_t source, dest;
+		struct sw_stat st;
+
+		if ((source = sw_open(i->swapfile_name, O_RDONLY, TXN_NONE)) == -1)
+			goto next;
+		while ((dest = sw_open((dest_name = rand()), O_CREAT|O_RDWR|O_EXCL, TXN_NONE)) == -1)
+			;
+		sw_fstat(source, &st);
+		sw_ftruncate(dest, st.size);
+		sw_sendfile(dest, source, st.size, 0);
+		sw_close(source);
+		sw_close(dest);
+		copy = glame_tree_copy(GTK_OBJECT(i));
+		copy->swapfile_name = dest_name;
+		sw_glame_tree_append(GTK_OBJECT(item), copy);
+	next:
+		selected = g_list_next(selected);
+	}
+}
+
+/* Link (just new items, same swapfile name) all selected items as
+ * childs of the current item. */
+static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	GList *selected = GTK_TREE_SELECTION(swapfile_tree);
+
+	while (selected) {
+		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
+		GlameTreeItem *copy = glame_tree_copy(GTK_OBJECT(i));
+		sw_glame_tree_append(GTK_OBJECT(item), copy);
+		selected = g_list_next(selected);
+	}
+}
+
+/* Move all items in this group one level up in the tree
+ * (and delete the group itself). */
+static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	GList *child;
+	GtkTree *parent;
+
+	if (!GTK_TREE_ITEM_SUBTREE(item))
+		goto deletegroup;
+	parent = glame_tree_item_parent(item);
+	while (GTK_TREE_ITEM_SUBTREE(item)
+	       && (child = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item))))) {
+		GlameTreeItem *i = GLAME_TREE_ITEM(child->data);
+		GtkObject *copy = glame_tree_copy(GTK_OBJECT(i));
+		sw_glame_tree_append(GTK_OBJECT(parent), GLAME_TREE_ITEM(copy));
+		glame_tree_remove(i);
+	}
+ deletegroup:
+	glame_tree_remove(item);
+}
+
 static void addgroup_string_cb(gchar *string, gpointer data)
 {
 	if (string) {
@@ -130,10 +196,10 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	if (item->type == GLAME_TREE_ITEM_FILE) {
-		if (item->swapfile_name != -1)
-			sw_unlink(item->swapfile_name);
 		glame_tree_remove(item);
-		gtk_object_destroy(GTK_OBJECT(item));
+		if (item->swapfile_name != -1
+		    && !glame_tree_find_filename(GTK_OBJECT(swapfile_tree), item->swapfile_name))
+			sw_unlink(item->swapfile_name);
 	} else if (item->type == GLAME_TREE_ITEM_GROUP) {
 		GList *children = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item)));
 		while (children) {
@@ -142,7 +208,6 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 			children = g_list_next(children);
 		}
 		glame_tree_remove(item);
-		gtk_object_destroy(GTK_OBJECT(item));
 	}
 }
 
@@ -192,7 +257,6 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_paramdb_t *db;
 	filter_param_t *param;
 	filter_port_t *source, *dest;
-	filter_pipe_t *pipe;
 	foobar = calloc(sizeof(char),255);
 
 	we = gnome_dialog_file_request("Export As...","Filename",&foobar);
@@ -376,6 +440,7 @@ static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item)
 	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
 			         (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
 	glame_tree_append(tree, item);
+	glame_tree_item_update(item);
 	gtk_widget_show(GTK_WIDGET(item));
 }
 
@@ -481,7 +546,6 @@ void scan_swap(GtkTree *tree)
 	if (!grptree
 	    || g_list_length(gtk_container_children(GTK_CONTAINER(grptree)))) {
 		glame_tree_remove(grp);
-		gtk_object_destroy(GTK_OBJECT(grp));
 	}
 #endif
 }
@@ -499,7 +563,8 @@ static void dump_item(GlameTreeItem *item, xmlNodePtr node)
 	if (item->type == GLAME_TREE_ITEM_GROUP) {
 		child = xmlNewChild(node, NULL, "group", NULL);
 		xmlSetProp(child, "label", item->label);
-		dump_tree(GTK_TREE(GTK_TREE_ITEM_SUBTREE(item)), child);
+		if (GTK_TREE_ITEM_SUBTREE(item))
+			dump_tree(GTK_TREE(GTK_TREE_ITEM_SUBTREE(item)), child);
 	} else if (item->type == GLAME_TREE_ITEM_FILE) {
 		child = xmlNewChild(node, NULL, "file", NULL);
 		xmlSetProp(child, "label", item->label);

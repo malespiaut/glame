@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.4 2001/03/13 13:55:38 richi Exp $
+ * $Id: gltreeitem.c,v 1.5 2001/03/21 09:19:54 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -130,10 +130,14 @@ void glame_tree_item_update(GlameTreeItem *item)
 	/* Create the label out of the GlameTreeItem data. */
 	if (item->type == GLAME_TREE_ITEM_GROUP)
 		snprintf(buf, 255, "%s", item->label);
-	else if (item->type == GLAME_TREE_ITEM_FILE)
+	else if (item->type == GLAME_TREE_ITEM_FILE
+		 && item->sample_rate > 0)
 		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs",
 			 item->label, item->swapfile_name, item->sample_rate,
 			 (float)item->size/(float)item->sample_rate);
+	else if (item->type == GLAME_TREE_ITEM_FILE)
+		snprintf(buf, 255, "%s [%li] - %li samples",
+			 item->label, item->swapfile_name, item->size);
 
 	/* Update/create the GtkLabel contained in the GtkBin
 	 * (superclass of GtkItem/GtkTreeItem/GlameTreeItem) */
@@ -148,6 +152,13 @@ void glame_tree_item_update(GlameTreeItem *item)
 		gtk_label_set_text(GTK_LABEL(c->child), buf);
 }
 
+GtkTree* glame_tree_item_parent(GlameTreeItem *item)
+{
+	if (!item)
+		return NULL;
+
+	return item->tree;
+}
 
 
 /*
@@ -163,8 +174,8 @@ GlameTreeItem* glame_tree_find_group(GtkObject *t, const char *label)
 
 	/* Handle both, GtkTree and group GlameTreeItem. */
 	if (GLAME_IS_TREE_ITEM(t)
-	    && GLAME_TREE_ITEM(t)->type == GLAME_TREE_ITEM_GROUP)
-		tree = GTK_TREE(GTK_TREE_ITEM_SUBTREE(GTK_TREE_ITEM(t)));
+	    && GTK_TREE_ITEM_SUBTREE(t))
+		tree = GTK_TREE(GTK_TREE_ITEM_SUBTREE(t));
 	else if (GTK_IS_TREE(t))
 		tree = GTK_TREE(t);
 	else
@@ -201,8 +212,8 @@ GlameTreeItem* glame_tree_find_filename(GtkObject *t, long name)
 
 	/* Handle both, GtkTree and group GlameTreeItem. */
 	if (GLAME_IS_TREE_ITEM(t)
-	    && GLAME_TREE_ITEM(t)->type == GLAME_TREE_ITEM_GROUP)
-		tree = GTK_TREE(GTK_TREE_ITEM_SUBTREE(GTK_TREE_ITEM(t)));
+	    && GTK_TREE_ITEM_SUBTREE(t))
+		tree = GTK_TREE(GTK_TREE_ITEM_SUBTREE(t));
 	else if (GTK_IS_TREE(t))
 		tree = GTK_TREE(t);
 	else
@@ -283,13 +294,12 @@ void glame_tree_append(GtkObject *t, GlameTreeItem *item)
 		return;
 
 	gtk_tree_append(tree, GTK_WIDGET(item));
-	item->parent = tree;
+	item->tree = tree;
 }
 
 void glame_tree_remove(GlameTreeItem *item)
 {
-	if (!item->parent)
+	if (!item || !item->tree)
 		return;
-	gtk_container_remove(GTK_CONTAINER(item->parent), GTK_WIDGET(item));
+	gtk_container_remove(GTK_CONTAINER(item->tree), GTK_WIDGET(item));
 }
-
