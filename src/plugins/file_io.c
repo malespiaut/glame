@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.19 2000/04/03 23:06:26 nold Exp $
+ * $Id: file_io.c,v 1.20 2000/04/04 04:53:24 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -604,7 +604,7 @@ int wav_read_connect(filter_node_t *n, filter_pipe_t *p)
 		/* TODO: sth clever... */
 		default:
 			filterpipe_settype_sample(p, RWW(n).freq, 
-					          M_PI/(RWA(n).channelCount-1)
+					          M_PI/(RWW(n).ch-1)
 						  * i + FILTER_PIPEPOS_LEFT);
 	}
 	return 0;
