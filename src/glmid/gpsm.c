@@ -272,8 +272,7 @@ int gpsm_init(const char *swapfile)
 		/* Seems to be empty swapfile - use "default" xml. */
 		xml = strdup(""
 "<?xml version=\"1.0\"?>\n"
-"<swapfile>\n"
-"</swapfile>");
+"<swapfile/>\n");
 	}
 
 	/* Try to parse the xml string. */
