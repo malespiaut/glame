@@ -23,11 +23,11 @@ main (int argc, char *argv[])
   long fname;
 
   /* Init swapfile. */
-  if (argc != 3) {
+  if (argc < 3) {
 	  fprintf(stderr, "Usage: %s swap file\n", argv[0]);
 	  exit(1);
   }
-  fname = atoi(argv[2]);
+  
   if (swapfile_open(argv[1], 0) == -1) {
 	  fprintf(stderr, "Unable to open swapfile\n");
 	  exit(1);
@@ -36,8 +36,11 @@ main (int argc, char *argv[])
   /* Initialize Gtk+. */
   gtk_init (&argc, &argv);
 
+  for(i=2;i<argc;i++) {
   /* Create a Gtk+ window. */
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  
+  fname = atoi(argv[i]);
 
   /* Create a GtkWaveView widget. */
   waveview = gtk_wave_view_new ();
@@ -46,7 +49,7 @@ main (int argc, char *argv[])
 
   /* Set the zoom factor such that 1 pixel = 5 frames.  A frame is equal
      to n samples at one point in time where n = number of channels. */
-  gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), 5.0);
+  gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), 1.0);
 
   /* Set the cache size to hold 8192 pixel columns of data.  This means
      the user can scroll the widget's contents back and forth and we
@@ -71,6 +74,9 @@ main (int argc, char *argv[])
   gtk_signal_connect (GTK_OBJECT (window), "delete_event",
                       (GtkSignalFunc) quit, NULL);
   gtk_widget_show_all (window);
+  
+  }
+
   gtk_main ();
 
   /* cleanup. */

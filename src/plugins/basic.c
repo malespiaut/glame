@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.15 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: basic.c,v 1.16 2001/01/18 09:14:06 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -256,12 +256,12 @@ static int one2n_connect_out(filter_t *n, filter_port_t *inp,
 			     filter_pipe_t *p)
 {
 	filter_pipe_t *in;
-
+	
 	/* We accept any number of outputs. */
-	if ((in = filterport_get_pipe(inp))) {
+	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
 		p->type = in->type;
 		p->u = in->u;
-	}
+	};
 	return 0;
 }
 

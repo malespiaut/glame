@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft.c,v 1.9 2001/01/05 22:51:49 mag Exp $
+ * $Id: fft.c,v 1.10 2001/01/18 09:14:06 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -35,7 +35,7 @@
 #include "pthread.h"
 #include "math.h"
 
-PLUGIN_SET(basicfft,"fft ifft fft_resample")
+PLUGIN_SET(basicfft,"fft ifft fft_resample fft_equalizer fft_bandpass")
 
 pthread_mutex_t planlock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -493,6 +493,238 @@ int fft_resample_register(plugin_t *p)
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, fft_resample_fixup_param, NULL);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Resample fft-stream");
+	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	
+	filter_register(f,p);
+
+	return 0;
+}
+
+static int fft_equalizer_f(filter_t *n){
+	filter_pipe_t *in,*out;
+	filter_buffer_t *inb;
+	filter_param_t *param;
+	int bsize, blocks;
+	int i, j, step, off;
+	float f[5];
+	SAMPLE *s, *c;
+
+
+	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+		FILTER_ERROR_RETURN("no input");
+	
+	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no output");
+
+	bsize = filterpipe_fft_bsize(in);
+	DPRINTF("bsize = %d\n", bsize);
+	
+	if (!(c=ALLOCN(bsize, SAMPLE)))
+		FILTER_ERROR_RETURN("allocation error");
+	
+	off = bsize/2;
+	step = off/5;
+
+	if ((param = filternode_get_param(n,"low")))
+		f[0] = filterparam_val_float(param);
+
+	if ((param = filternode_get_param(n,"midlow")))
+		f[1] = filterparam_val_float(param);
+
+	if ((param = filternode_get_param(n,"mid")))
+		f[2] = filterparam_val_float(param);
+	
+	if ((param = filternode_get_param(n,"midhigh")))
+		f[3] = filterparam_val_float(param);
+	
+	if ((param = filternode_get_param(n,"high")))
+		f[4] = filterparam_val_float(param);
+
+	DPRINTF("f[0-4] = %f %f %f %f %f\n",f[0], f[1], f[2], f[3], f[4]);
+	
+	for(i=0; i<bsize/2;i++)
+		c[i] = c[bsize-i] = f[MIN(i/step, 4)];
+	c[bsize/2] = f[4];
+
+	FILTER_AFTER_INIT;
+	
+	goto entry;
+	
+	while (inb) {
+		FILTER_CHECK_STOP;
+		
+		inb=sbuf_make_private(inb);
+		i = 0;
+		s = sbuf_buf(inb);
+		blocks = sbuf_size(inb)/bsize;
+		for(i=0; i < blocks; i++) {
+			for(j=0; j < bsize; j++)
+				*s++ *= c[j];
+		}
+		sbuf_queue(out,inb);
+entry:
+		inb=sbuf_get(in);
+	}
+	sbuf_queue(out,NULL);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	free(c);
+
+	FILTER_RETURN;
+}
+
+int fft_equalizer_register(plugin_t *p)
+{
+	filter_t *f;
+	
+	if (!(f = filter_creat(NULL)))
+		return -1;
+	
+	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_FFT);
+	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_FFT);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"low",
+			FILTER_PARAMTYPE_FLOAT, 1.0,
+			FILTERPARAM_DESCRIPTION,"low frequency gain",
+			FILTERPARAM_END);
+
+	filterparamdb_add_param_float(filter_paramdb(f),"midlow",
+			FILTER_PARAMTYPE_FLOAT, 1.0,
+			FILTERPARAM_DESCRIPTION,"middle low frequency gain",
+			FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"mid",
+			FILTER_PARAMTYPE_FLOAT, 1.0,
+			FILTERPARAM_DESCRIPTION,"low frequency gain",
+			FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"midhigh",
+			FILTER_PARAMTYPE_FLOAT, 1.0,
+			FILTERPARAM_DESCRIPTION,"middle high frequency gain",
+			FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"high",
+			FILTER_PARAMTYPE_FLOAT, 1.0,
+			FILTERPARAM_DESCRIPTION,"high frequency gain",
+			FILTERPARAM_END);
+
+	
+	f->f = fft_equalizer_f;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "FFT 5-Band Equalizer");
+	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	
+	filter_register(f,p);
+
+	return 0;
+}
+
+static int fft_bandpass_f(filter_t *n){
+	filter_pipe_t *in,*out;
+	filter_buffer_t *inb;
+	filter_param_t *param;
+	int bsize, blocks;
+	int i, j, off, fmin, fmax, freq;
+	float gain;
+	SAMPLE *s, *c;
+
+
+	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+		FILTER_ERROR_RETURN("no input");
+	
+	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no output");
+
+	bsize = filterpipe_fft_bsize(in);
+	freq  = filterpipe_fft_rate(in);
+	DPRINTF("bsize = %d, frequency resolution = %d\n", bsize, freq/(bsize/2));
+	
+	if (!(c=ALLOCN(bsize, SAMPLE)))
+		FILTER_ERROR_RETURN("allocation error");
+	
+	off = bsize/2;
+
+	if ((param = filternode_get_param(n,"band minimum")))
+		fmin = filterparam_val_int(param);
+
+	if ((param = filternode_get_param(n,"band maximum")))
+		fmax = filterparam_val_int(param);
+
+	if ((param = filternode_get_param(n,"gain")))
+		gain = pow(10.0,filterparam_val_float(param)/20.0);
+	
+	fmin = fmin/(freq/off);
+	fmax = MIN(fmax/(freq/off), bsize/2);
+	
+	DPRINTF("fft bandfilter range: [%d-%d], gain = %f\n", fmin*(freq/off), fmax*(freq/off), gain);
+	if (fmin >= fmax) 
+		FILTER_ERROR_RETURN("FFT Band too narrow: Increase FFT blocksize or enlarge window!\n");
+	
+	for(i=fmin; i<fmax; i++)
+		c[i] = c[bsize-i] = gain;
+
+	FILTER_AFTER_INIT;
+	
+	goto entry;
+	
+	while (inb) {
+		FILTER_CHECK_STOP;
+		
+		inb=sbuf_make_private(inb);
+		i = 0;
+		s = sbuf_buf(inb);
+		blocks = sbuf_size(inb)/bsize;
+		for(i=0; i < blocks; i++) {
+			for(j=0; j < bsize; j++)
+				*s++ *= c[j];
+		}
+		sbuf_queue(out,inb);
+entry:
+		inb=sbuf_get(in);
+	}
+	sbuf_queue(out,NULL);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	free(c);
+
+	FILTER_RETURN;
+}
+
+int fft_bandpass_register(plugin_t *p)
+{
+	filter_t *f;
+	
+	if (!(f = filter_creat(NULL)))
+		return -1;
+	
+	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_FFT);
+	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_FFT);
+	
+	filterparamdb_add_param_int(filter_paramdb(f),"band minimum",
+			FILTER_PARAMTYPE_INT, 0,
+			FILTERPARAM_DESCRIPTION,"Lower band frequency limit",
+			FILTERPARAM_END);
+
+	filterparamdb_add_param_int(filter_paramdb(f),"band maximum",
+			FILTER_PARAMTYPE_INT, 44100,
+			FILTERPARAM_DESCRIPTION,"Upper band frequency limit",
+			FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"gain",
+			FILTER_PARAMTYPE_FLOAT, 0.0,
+			FILTERPARAM_DESCRIPTION,"band gain [dB]",
+			FILTERPARAM_END);
+	
+	
+	f->f = fft_bandpass_f;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "FFT Bandpass");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
 	plugin_set(p, PLUGIN_CATEGORY, "Math");
 	
