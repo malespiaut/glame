@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.26 2000/02/22 10:29:39 nold Exp $
+ * $Id: audio_io.c,v 1.27 2000/02/22 13:40:40 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -102,41 +102,41 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 
 /* Clumsy try to clean up the register mess a bit. */
 
-typedef enum {
-	AIO_INPUT = 0,
-	AIO_OUTPUT
-} aio_direction_t;
-
-static int aio_generic_register(char *name, int (*f)(filter_node_t *), 
-                                aio_direction_t dir)
+static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 {
-	typedef struct {
-		char *stream_desc;
-		char *port_desc;
-		char *port_name;
-	} aio_register_t;
-
-	aio_register_t *info;
 	filter_t *filter;
-	
-	aio_register_t input = { "record stream", "output port", PORTNAME_OUT };
-	aio_register_t output = { "playback stream", "input port", PORTNAME_IN };
+
+	if (!f)
+		return -1;
+
+	if (!(filter=filter_alloc(name, "record stream", f)) ||
+		!filter_add_output(filter, PORTNAME_OUT, "output port",
+				FILTER_PORTTYPE_SAMPLE |
+				FILTER_PORTTYPE_AUTOMATIC))
+		return -1;
+
+	filter->connect_out = aio_generic_connect_out;
+
+	if(filter_add(filter) == -1)
+		return -1;
+
+	return 0;
+}
+			
+static int aio_generic_register_output(char *name, int (*f)(filter_node_t *)) 
+{
+	filter_t *filter;
 	
 	if (!f)
 		return -1;
 	
-	info = ( dir == AIO_INPUT ) ? &input : &output;
-
-	if (!(filter=filter_alloc(name, info->stream_desc, f)) ||
-		!filter_add_input(filter, info->port_name, info->port_desc,
+	if (!(filter=filter_alloc(name, "playback stream", f)) ||
+		!filter_add_input(filter, PORTNAME_IN, "input port",
 				FILTER_PORTTYPE_SAMPLE | 
 				FILTER_PORTTYPE_AUTOMATIC))
 		return -1;
 	
-	if (dir == AIO_INPUT)
-		filter->connect_out = aio_generic_connect_out;
-	else
-		filter->connect_in = aio_generic_connect_in;
+	filter->connect_in = aio_generic_connect_in;
 
 	if(filter_add(filter) == -1)
 		return -1;
@@ -467,7 +467,7 @@ static int esd_out_f(filter_node_t *n)
 	 * (always left), else STEREO output (but with the same
 	 * samplerate, please!). */
 	filternode_foreach_input(n,swap)
-		DPRINTF("angle=%lf\n",filterpipe_sample_hangle(swap));
+		DPRINTF("angle=%f\n",filterpipe_sample_hangle(swap));
 
 	left = filternode_get_input(n, PORTNAME_IN);
 	right = filternode_next_input(left);
@@ -604,16 +604,13 @@ int audio_io_register()
 	audio_out = audio_in = NULL;
 	
 #if defined HAVE_ESD
-	if(!aio_generic_register("esd_audio_out_f", esd_out_f, 
-			AIO_OUTPUT))
+	if(!aio_generic_register_output("esd_audio_out", esd_out_f)) 
 		audio_out = esd_out_f;
-	if(!aio_generic_register("esd_audio_out_f", esd_in_f,
-			AIO_INPUT))
+	if(!aio_generic_register_input("esd_audio_in", esd_in_f))
 		audio_in = esd_in_f;
 #endif
 #if defined HAVE_SGIAUDIO
-	if(!aio_generic_register("sgi_audio_out", sgi_audio_out_f, 
-			AIO_OUTPUT))
+	if(!aio_generic_register_output("sgi_audio_out", sgi_audio_out_f)) 
 		audio_out = sgi_audio_out_f;
 #endif
 #if defined HAVE_OSS
@@ -629,8 +626,8 @@ int audio_io_register()
 	/* It's okay if there is no input filter but we require at least
 	 * one working output filter.
 	 */
-	aio_generic_register("audio_in", audio_in, AIO_INPUT);
-	return aio_generic_register("audio_out", audio_out, AIO_OUTPUT);
+	aio_generic_register_input("audio_in", audio_in);
+	return aio_generic_register_output("audio_out", audio_out);
 }
 
 
