@@ -6,6 +6,6 @@ yes n | gettextize --copy
 aclocal -I . -I macros
 libtoolize --copy --automake --ltdl
 autoheader
-autoconf
 touch ltconfig
 automake --copy --add-missing
+autoconf
