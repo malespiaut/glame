@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.13 2000/12/11 10:44:41 richi Exp $
+ * $Id: glplugin.h,v 1.14 2001/01/31 11:59:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -93,11 +93,11 @@ plugin_t *plugin_next(plugin_t *plugin);
 #define PLUGIN_SET(name, pset) char *name ## _set = pset;
 
 /* Standard db entry keys. */
-#define PLUGIN_DESCRIPTION "desc"
-#define PLUGIN_PIXMAP "pixmap"
-#define PLUGIN_CATEGORY "category"
-#define PLUGIN_FILTER "filter"
-#define PLUGIN_PARENT "parent"
+#define PLUGIN_DESCRIPTION "!desc"
+#define PLUGIN_PIXMAP "!pixmap"
+#define PLUGIN_CATEGORY "!category"
+#define PLUGIN_FILTER "!filter"
+#define PLUGIN_PARENT "!parent"
 
 
 #ifdef __cplusplus
