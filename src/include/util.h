@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.15 2002/01/18 14:59:10 richi Exp $
+ * $Id: util.h,v 1.16 2002/02/15 13:05:18 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -113,8 +113,12 @@ static inline void DPRINTF(const char *templ, ...)
 #define ALLOCN(n, type) (n == 0 ? NULL : (type *)calloc((n), sizeof(type)))
 
 /* stuff. */
-#ifdef NEED_SQRTF
-#define sqrtf(x) sqrt(x)
+#ifndef HAVE_SQRTF
+#define sqrtf(x) ((float) sqrt((float) (x)))
+#endif
+
+#ifndef HAVE_SINF
+#define sinf(x) ((float) sin((float) (x)))
 #endif
 
 #endif
