@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.46 2001/07/26 15:23:34 mag Exp $
+ * $Id: basic_sample.c,v 1.47 2001/07/27 08:41:54 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -888,7 +888,7 @@ int volume_adjust_register(plugin_t *p)
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = volume_adjust_f;
-	f->set_param = vadjust_set_param;
+	/* f->set_param = vadjust_set_param; */
 
 	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_SAMPLE,
