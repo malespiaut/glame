@@ -21,11 +21,17 @@ glame_SOURCES = \
 	main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
 	waveeditgui.c waveeditgui.h apply.c
-glame_LDADD = ../glmid/libglame.la edit_filter/libeditfilter.la \
+glame_LDADD =  \
+	../plugins/libglamebuiltins.la \
+	../glmid/libglmid.la \
+	../filter/libfilter.la \
+	../hash/libhash.la \
+	../swapfile/libswapfile.la \
+	edit_filter/libeditfilter.la \
         libgtkwaveform/libgtkwaveform.la timeline/libtimeline.la \
 	util/libglameguiutils.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(XML_LIBS) -lm ../../libltdl/libltdlc.la
-glame_LDFLAGS = -export-dynamic
+glame_LDFLAGS = -export-dynamic -dlopen self
 
 #wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
 #wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \

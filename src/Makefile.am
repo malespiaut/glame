@@ -8,7 +8,12 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter \
 bin_PROGRAMS = cglame
 
 cglame_SOURCES = cglame.c
-cglame_LDADD = glmid/libglame.la \
+cglame_LDADD = \
+	plugins/libglamebuiltins.la \
+	glmid/libglmid.la \
+	filter/libfilter.la \
+	hash/libhash.la \
+	swapfile/libswapfile.la \
 	$(GLAME_LIBS) $(GLAME_DLIBS) ../libltdl/libltdlc.la
-cglame_LDFLAGS = -export-dynamic
+cglame_LDFLAGS = -export-dynamic -dlopen self
 
