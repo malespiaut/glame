@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.18 2002/06/09 08:24:15 richi Exp $
+ * $Id: ladspa.c,v 1.19 2003/05/18 11:31:16 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -619,6 +619,16 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			if (bound_below && bound_above && !isint) {
 				/* Use GtkHScale */
 				char xml[1024];
+				float step, page;
+				int lrange, lstep, lpage;
+				/* optimize step/page dependend on min-max range */
+				lrange = floor(log10(fBound2-fBound1));
+				lstep = MIN(0, lrange-2);
+				lpage = (lrange + lstep) / 2;
+				if (lstep == lpage)
+					lpage++;
+				step = pow(10.0, lstep);
+				page = pow(10.0, lpage);
 #if 1
 				snprintf(xml, 1023,
 "<?xml version=\"1.0\"?><GTK-Interface>"
@@ -638,7 +648,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 "    <page_size>%.3f</page_size>"
 "  </widget>"
 "</GTK-Interface>",
-					 fRecommendation, fBound1, fBound2, 0.01, 0.1, 0.0);
+					 fRecommendation, fBound1, fBound2, step, page, 0.0);
 #else
 				snprintf(xml, 1023,
 "<?xml version=\"1.0\"?><GTK-Interface>"
