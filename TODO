@@ -50,10 +50,12 @@ hash/
 
 glmid/
 	[richi]
+	- need to define a glame port type for guile input/output
 
 gui/
 	[all]
-	- the timeline stuff is not ready
+	- scheme console
+	- the timeline needs interactors (and nicer view)
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
