@@ -1,9 +1,8 @@
-glame (0.3.6-1) unstable; urgency=low
+glame (0.4.0-1) unstable; urgency=low
 
-  * Initial Debian release. Comes as a source package only, see
-    README.Debian for the reasons.
+  * Initial Debian release. 
 
- -- Daniel Kobras <kobras@debian.org>  Mon, 18 Dec 2000 11:56:53 +0100
+ -- Daniel Kobras <kobras@debian.org>  Thu, 26 Apr 2001 17:17:02 +0200
 
 Local variables:
 mode: debian-changelog
