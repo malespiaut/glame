@@ -872,6 +872,7 @@ int glscript_init_filter()
 	gh_define("PLUGIN_PIXMAP", gh_str02scm(PLUGIN_PIXMAP));
 	gh_define("PLUGIN_CATEGORY", gh_str02scm(PLUGIN_CATEGORY));
 	gh_define("PLUGIN_GUI_HELP_PATH", gh_str02scm(PLUGIN_GUI_HELP_PATH));
+	gh_define("PLUGIN_LABEL", gh_str02scm(PLUGIN_LABEL));
 
 	/* HACK */
 	gh_new_procedure2_0("glame_plugin_define", gls_glame_plugin_define);
