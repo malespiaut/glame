@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: basic_sample.c,v 1.2 2000/03/17 07:33:14 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,8 +26,11 @@
  * - phase-invert
  * - delay
  * - repeat
+ * - add
  * I like to see
- * - add, sub, mul
+ * - sub, mul
+ * do you really want to see sub, when we have add ? [mag]
+ * mul is just the same like volume-adjust! [mag]
  */
 
 #include <sys/time.h>
@@ -328,6 +331,46 @@ static int invert_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
+/* This filter can be used to correct for DC offsets */
+
+static int add_f(filter_node_t *n)
+{
+	filter_pipe_t *in, *out;
+	filter_buffer_t *buf;
+	filter_param_t *param;
+	SAMPLE *s,sum;
+	int cnt;
+
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no input or no output");
+
+	if ((param = filternode_get_param(n,"offset")))
+		sum = filterparam_val_float(param);
+	else 
+		sum=0.0;
+	
+	FILTER_AFTER_INIT;
+
+	while ((buf = sbuf_get(in))) {
+		FILTER_CHECK_STOP;
+		buf = sbuf_make_private(buf);
+		s = sbuf_buf(buf);
+		cnt = sbuf_size(buf);
+		for (; (cnt&3)>0; cnt--)
+			ADD1(s,sum);
+		for (; cnt>0; cnt-=4)
+			ADD4(s,sum);
+		sbuf_queue(out, buf);
+	}
+
+	sbuf_queue(out, buf);
+	
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+		
+	FILTER_RETURN;	
+}
 
 static int delay_f(filter_node_t *n)
 {
@@ -537,6 +580,21 @@ int basic_sample_register()
 				      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
+
+	if (filter_add(f) == -1)
+		return -1;
+	
+	if (!(f = filter_alloc("add",
+				"Add an offset to every sample value",
+				add_f))
+	    || !(filter_add_input(f, PORTNAME_IN, "input stream",
+			    	  FILTER_PORTTYPE_SAMPLE))
+	    || !(filter_add_output(f, PORTNAME_OUT, "output stream with offset",
+			    	  FILTER_PORTTYPE_SAMPLE))
+	    || !(p = filter_add_param(f, "offset", "offset",
+			    	      FILTER_PARAMTYPE_FLOAT)))
+		return -1;
+	
 	if (filter_add(f) == -1)
 	        return -1;
 

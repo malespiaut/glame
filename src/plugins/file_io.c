@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: file_io.c,v 1.2 2000/03/17 07:33:14 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -57,7 +57,7 @@ int af_read_prepare(filter_node_t *n, const char *filename);
 int af_read_connect(filter_node_t *n, filter_pipe_t *p);
 int af_read_f(filter_node_t *n);
 void af_read_cleanup(filter_node_t *n);
-/* int af_write_f(filter_node_t *n); */
+int af_write_f(filter_node_t *n);
 #endif
 
 
@@ -117,7 +117,7 @@ static rw_t *add_rw(int (*prepare)(filter_node_t *, const char *),
 {
 	rw_t *rw;
 
-	if (!prepare || !f)
+	if (!prepare && !f)
 		return NULL;
 	if (!(rw = ALLOC(rw_t)))
 		return NULL;
@@ -141,7 +141,6 @@ static int add_reader(int (*prepare)(filter_node_t *, const char *),
 	if (!(rw = add_rw(prepare, connect, f, cleanup, NULL)))
 	        return -1;
 	list_add(&rw->list, &readers);
-
 	return 0;
 }
 static int add_writer(int (*f)(filter_node_t *), const char *regexp)
@@ -151,7 +150,6 @@ static int add_writer(int (*f)(filter_node_t *), const char *regexp)
 	if (!(rw = add_rw(NULL, NULL, f, NULL, regexp)))
 	        return -1;
 	list_add(&rw->list, &writers);
-
 	return 0;
 }
 
@@ -271,6 +269,10 @@ static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	regex_t rx;
 	rw_t *w;
 
+	if (p){
+		DPRINTF("Pipe change\n");
+		return 0;
+	}
         /* only filename change possible in writer. */
 	RWPRIV(n)->initted = 0;
 	RWPRIV(n)->rw = NULL;
@@ -288,11 +290,8 @@ static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		}
 		regfree(&rx);
 	}
-
 	return -1;
 }
-
-
 
 int file_io_register()
 {
@@ -334,7 +333,8 @@ int file_io_register()
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
-	/* add_writer(af_write_f, ".*(\\.wav|\\.au)$"); */
+	/* FIXME How should the writer now wether to write wav or au ??? */
+	add_writer(af_write_f,"*.wav"); 
 #endif
 
 	return 0;
@@ -347,7 +347,6 @@ int file_io_register()
 #ifdef HAVE_AUDIOFILE
 int af_read_prepare(filter_node_t *n, const char *filename)
 {
-	DPRINTF("Read %s\n",filename);
 	if ((RWA(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
 		return -1; 
@@ -361,11 +360,14 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 		DPRINTF("Format not supported!\n");
 		return -1;
 	}
+
+	if (RWA(n).buffer) free(RWA(n).buffer);
 	if ((RWA(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL){
 		DPRINTF("Couldn't allocate buffer\n");
 		return -1;
 	}
 	RWA(n).cbuffer=(char *)RWA(n).buffer;
+	if (RWA(n).track) free(RWA(n).track);
 	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t))){
 		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
@@ -373,26 +375,11 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 	return 0;
 }
 
-#if 0
-int af_write_prepare(filter_node_t *n, const char *filename)
-{
-	DPRINTF("Write %s\n",filename);
-	fsetup=afNewFileSetup();
-        afInitFileFormat(fsetup,format);
-	afInitChannels(fsetup, AF_DEFAULT_TRACK, channelCount);
-	afInitSampleFormat(fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-	file=afOpenFile(filename, "w", fsetup);
-	if (file==AF_NULL_FILEHANDLE){
-		DPRINTF("couldn't open %s\n",filename);
-		goto _bailout;
-	}
-}
-#endif
-
 int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 {
 	int i;
 	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
+	DPRINTF("i=%d channelCount=%d\n",i,RWA(n).channelCount);
 	if (i>=RWA(n).channelCount){
 		/* Check if track is already mapped ?!
 		 * Would be strange, but ... FIXME
@@ -403,10 +390,12 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 		 *   in this case
                  */
 		for(i=0;i<RWA(n).channelCount;i++)
-			if ((RWA(n).track[i].mapped) && RWA(n).track[i].p==p)
+			if ((RWA(n).track[i].mapped) && RWA(n).track[i].p==p){
+				DPRINTF("already mapped i=%d!\n",i);
 				return 0; /* FIXME */
-		
+			}
 		/* Otherwise error */
+		DPRINTF("rejecting!\n");
 		return -1;
 	} else {
 		/* Moah! what is this? does libaudiofile not provide
@@ -420,40 +409,6 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 	
 	return 0;	
 }
-int af_write_connect(filter_node_t *n, filter_pipe_t *p)
-{
-	track_t *track;
-	int i;
-	/* Connect just collects all incoming connections
-	 * mapping is done later
-	 */
-	
-	if (!RWA(n).track){
-		/* First connection to be opened */
-		if (!(RWA(n).track=ALLOC(track_t))){
-			DPRINTF("Couldn't allocate track buffer\n");
-			return -1;
-		}
-		RWA(n).channelCount=1;
-		RWA(n).track[0].p=p;
-	} else {
-		/* Connection already collected ? */
-		for(i=0;i<RWA(n).channelCount;i++)
-			if (RWA(n).track[i].p==p) return 0;
-		if (!(RWA(n).track=ALLOCN(i,track_t))){
-			DPRINTF("Couldn't allocate track buffer\n");
-			return -1;
-		}
-		/* I know it's not nice... */
-		memcpy(track,RWA(n).track,RWA(n).channelCount*sizeof(track_t));
-		free(RWA(n).track);
-		RWA(n).track=track;
-		RWA(n).channelCount++;
-		RWA(n).track[i].p=p;
-	}
-	return 0;
-}
-
 
 int af_read_f(filter_node_t *n)
 {
@@ -506,120 +461,101 @@ void af_read_cleanup(filter_node_t *n)
 	free(RWA(n).track);
 	afCloseFile(RWA(n).file);	
 }
-#endif
 
-
-
-/* old write_file code follows */
-#if 0
-static int write_file_f(filter_node_t *n)
+int af_write_f(filter_node_t *n)
 {
-	filter_pipe_t *left,*right;
-	filter_buffer_t *lbuf,*rbuf;
+	filter_pipe_t *in;
 	filter_param_t *param;
-	int sampleFormat,sampleWidth,channelCount,frameSize;
-	AFfilehandle    file=AF_NULL_FILEHANDLE;
 	char *filename=NULL;
-	int format;
-	AFfilesetup	fsetup;
-	short	*wbuf=NULL;
 	int res=-1;
-	int wbpos,framesWritten,lpos,rpos;
+	int eofs,bufsiz,wbpos;
+	int i,iat,iass;
 	
-	DPRINTF("write-file started!\n");
+	RWA(n).channelCount=filternode_nrinputs(n);
 
-	left = filternode_get_input(n, PORTNAME_LEFT_IN);
-	right = filternode_get_input(n, PORTNAME_RIGHT_IN);
+	if ((param=filternode_get_param(n,"filename")))
+		filename=filterparam_val_string(param);
+	else
+		FILTER_ERROR_RETURN("no filename");
 
-	channelCount=0;
+	if (RWA(n).channelCount==0)
+		FILTER_ERROR_RETURN("no inputs");
+	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t)))
+		FILTER_ERROR_RETURN("no memory");
 	
-	if(left)  channelCount++;
-	if(right){
-		if(!left){ 
-			left=right;
-			right=NULL;
-		}
-		channelCount++;
+	iass=0;
+	filternode_foreach_input(n, in) {
+		for(iat=0;iat<i && FILTER_SAMPLEPIPE_MORE_LEFT(RWA(n).track[iat].p,in);iat++);
+		for(i=iass;i>iat;i--)
+			RWA(n).track[i]=RWA(n).track[i-1];
+		RWA(n).track[iat].p=in;
+		if(iass==0)
+			RWA(n).sampleRate=filterpipe_sample_rate(in);
+		else 
+			if (filterpipe_sample_rate(in)!=RWA(n).sampleRate)
+				FILTER_ERROR_RETURN("inconsistent samplerates");
+		iass++;
 	}
-	if(channelCount==0) {
-		DPRINTF("No input channels\n");
-		goto _bailout;
-	} else DPRINTF("channelCount=%d\n",channelCount);
+	
+	RWA(n).fsetup=afNewFileSetup();
+	afInitFileFormat(RWA(n).fsetup,AF_FILE_WAVE);
+	afInitChannels(RWA(n).fsetup, AF_DEFAULT_TRACK, RWA(n).channelCount);
+	afInitSampleFormat(RWA(n).fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+	afInitRate(RWA(n).fsetup, AF_DEFAULT_TRACK,RWA(n).sampleRate);
+	RWA(n).file=afOpenFile(filename, "w", RWA(n).fsetup);
 
-	if ((param = filternode_get_param(n, "ext"))) {
-		if(strcmp(param->val.string,"wav")==0)
-			format=AF_FILE_WAVE;
-		else {
-			DPRINTF("unknown fileformat!\n");
-			goto _bailout;
-		}
-	} else format=AF_FILE_WAVE;
+	if (RWA(n).file==AF_NULL_FILEHANDLE)
+		goto _bailout;
+	
 
-	if ((param = filternode_get_param(n, "filename")))
-			filename=strdup(param->val.string);
-	else {
-		DPRINTF("missing filename!\n");
+	bufsiz=GLAME_WBUFSIZE*RWA(n).channelCount;
+	if ((RWA(n).buffer=(short*)malloc(bufsiz*sizeof(short)))==NULL)
 		goto _bailout;
-	}
-	fsetup=afNewFileSetup();
-	afInitFileFormat(fsetup,format);
-	afInitChannels(fsetup, AF_DEFAULT_TRACK, channelCount);
-	afInitSampleFormat(fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-	file=afOpenFile(filename, "w", fsetup);
-	if (file==AF_NULL_FILEHANDLE){
-		DPRINTF("couldn't open %s\n",filename);
-		goto _bailout;
-	}
-
-	if ((wbuf=(short*)malloc(GLAME_WBUFSIZE*sizeof(short)))==NULL){
-		DPRINTF("couldn't allocate writebuffer!\n");
-		goto _bailout;
-	}
+	
 	
 	FILTER_AFTER_INIT;
 
-	lbuf=sbuf_get(left);
-	if(right) rbuf=sbuf_get(right);
-	else rbuf=NULL;
+	eofs=RWA(n).channelCount;
+	
+	for(i=0;i<RWA(n).channelCount;i++) {
+		if (!(RWA(n).track[i].buf=sbuf_get(RWA(n).track[i].p))) eofs--;
+		RWA(n).track[i].pos=0;
+	}
 
-	do {
-		while (wbpos < GLAME_WBUFSIZE && (lbuf || rbuf)) {
-	               if (lbuf) 
-			       wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(lbuf)[lpos++]);
-	               else wbuf[wbpos++] = 0;
-		       if (right) { 
-			       if (rbuf) 
-				       wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(rbuf)[rpos++]); 
-			       else wbuf[wbpos++] = 0; 
-		       }
-		       if(lpos==sbuf_size(lbuf)){
-			       sbuf_unref(lbuf);
-			       lbuf=sbuf_get(left);
-			       lpos=0;
-		       }
-		       if ( (right) && (rpos==sbuf_size(rbuf))){
-			       sbuf_unref(rbuf);
-			       rbuf=sbuf_get(right);
-			       rpos=0;
-		       }
-		}
-		if((wbpos%channelCount)==1) DPRINTF("Oergs\n");
-		framesWritten = afWriteFrames(file, AF_DEFAULT_TRACK, wbuf, wbpos/channelCount);
+	while(eofs){
+		FILTER_CHECK_STOP;
 		wbpos=0;
-	} while (lbuf || (right && rbuf));
-
-	afCloseFile(file);
-	afFreeFileSetup(fsetup);
-
+		do{
+			/* write one interleaved frame to buffer */
+			for(i=0;i<RWA(n).channelCount;i++)
+				if (RWA(n).track[i].buf){
+					RWA(n).buffer[wbpos++]=SAMPLE2SHORT(sbuf_buf(RWA(n).track[i].buf)[RWA(n).track[i].pos++]);
+					/* Check for end of buffer */
+					if(RWA(n).track[i].pos==sbuf_size(RWA(n).track[i].buf)){
+						sbuf_unref(RWA(n).track[i].buf);
+						if (!(RWA(n).track[i].buf=sbuf_get(RWA(n).track[i].p))) eofs--;
+						RWA(n).track[i].pos=0;
+					}
+				}
+				else
+					/* if one track stops before another we have to fill up
+					 * with zeroes
+					 */
+					RWA(n).buffer[wbpos++]=0;
+		} while(wbpos<bufsiz);
+		afWriteFrames(RWA(n).file, AF_DEFAULT_TRACK, RWA(n).buffer,wbpos/RWA(n).channelCount);
+	}
+		
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
 	res=0;
 _bailout:
-	if(filename) free(filename);
-	if(wbuf) free(wbuf);
-	if (res==-1) {
-		if (file!=AF_NULL_FILEHANDLE) afCloseFile(file);
-	        FILTER_AFTER_INIT;
-	}
-	FILTER_BEFORE_CLEANUP;
+ 	afCloseFile(RWA(n).file);
+        if(RWA(n).fsetup) afFreeFileSetup(RWA(n).fsetup);
+	free(RWA(n).buffer);
+	free(RWA(n).track);
+	if (res==-1) FILTER_ERROR_RETURN("some error occured"); 
 	return res;
 }
+
 #endif

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.40 2000/03/15 16:29:32 richi Exp $
+ * $Id: filter.h,v 1.41 2000/03/17 07:33:14 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -467,6 +467,8 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 #define FILTER_SAMPLEPIPE_IS_LEFT(fp)	((fp)->u.sample.phi<0.0)
 #define FILTER_SAMPLEPIPE_IS_RIGHT(fp)	((fp)->u.sample.phi>0.0)
 #define FILTER_SAMPLEPIPE_IS_CENTRE(fp)	((fp)->u.sample.phi==0.0)
+#define FILTER_SAMPLEPIPE_MORE_LEFT(fp1,fp2) ((fp1)->u.sample.phi<(fp2)->u.sample.phi)
+#define FILTER_SAMPLEPIPE_MORE_RIGHT(fp1,fp2) ((fp1)->u.sample.phi>(fp2)->u.sample.phi)
 
 /* Public access macros for the filter_pipe_t structure.
  */

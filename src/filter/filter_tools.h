@@ -131,5 +131,17 @@ do { \
 	destsourcep++; \
 } while (0)
 
+#define ADD1(destsourcep,sum) \
+do { \
+	*destsourcep++ += sum; \
+} while (0)
+
+#define ADD4(destsourcep,sum) \
+do { \
+	*destsourcep++ += sum; \
+	*destsourcep++ += sum; \
+	*destsourcep++ += sum; \
+	*destsourcep++ += sum; \
+} while (0)
 
 #endif

@@ -1,3 +1,22 @@
+; glame.scm
+; $Id:
+;
+; Copyright (C) 2000 Richard Guenther
+;
+; This program is free software; you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 2 of the License, or
+; (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this program; if not, write to the Free Software
+; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 (define help
   (lambda ()
     (display "no help available yet.\n")))
@@ -46,14 +65,29 @@
       (filternetwork_wait net)
       (filternetwork_delete net))))
 
-
 ;
-; play a soundfile
+; test save
 ;
-
 (define while1
   (lambda (f)
     (if (boolean? (f)) #t (while1 f))))
+
+(define testsave
+  (lambda (iname oname)
+    (let* ((net (filternetwork_new "testsave" "read and save files"))
+           (rf (filternetwork_add_node net "read_file" "readfile"))
+	   (wf (filternetwork_add_node net "write_file" "writefile")))
+    (filternode_set_param rf "filename" iname)
+    (filternode_set_param wf "filename" oname)
+    (while1 (lambda () (filternetwork_add_connection rf "out" wf "in")))
+    (filternetwork_launch net)
+    (filternetwork_start net)
+    (filternetwork_wait net)
+    (filternetwork_delete net))))
+		
+;
+; play a soundfile
+;
 
 (define play
   (lambda (fname)
@@ -67,9 +101,6 @@
       (filternetwork_wait net)
       (filternetwork_delete net))))
 
-
-
 ;
 ; The "real" scheme glame midlayer
 ;
-
