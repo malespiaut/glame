@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft.c,v 1.10 2001/01/18 09:14:06 mag Exp $
+ * $Id: fft.c,v 1.11 2001/01/18 16:53:13 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -93,14 +93,13 @@ static int fft_connect_out(filter_t *n, filter_port_t *port,
 		
 		if ((param=filternode_get_param(n,"oversamp")))
 			osamp=filterparam_val_int(param);
-		DPRINTF("set values\n");
 		if (in != NULL) {
 			DPRINTF("in != NULL\n");
 			rate=filterpipe_sample_rate(in);
 			hangle=filterpipe_sample_hangle(in);
 		}
 		if (p != NULL) {
-			DPRINTF("filterpipe_settype_fft(p,rate,hangle,bsize,osamp)\n");
+			DPRINTF("filterpipe_settype_fft(p,%d ,%f ,%d, %d)\n",rate, hangle, bsize, osamp);
 			filterpipe_settype_fft(p,rate,hangle,bsize,osamp);
 		}
 	}
@@ -114,6 +113,7 @@ static void fft_fixup_param(glsig_handler_t *h, long sig, va_list va) {
 	filter_pipe_t *pipe;
 	filter_port_t *port;	
 
+	DPRINTF("fft_fixup_param\n");
 	switch (sig)
 	{
 		case GLSIG_PIPE_CHANGED:
@@ -132,14 +132,11 @@ static void fft_fixup_param(glsig_handler_t *h, long sig, va_list va) {
 			break;
 	}
 
-	DPRINTF("fft_fixup_param\n");
 
 	if ((port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))) {
 		pipe = filterport_get_pipe(port);
 		if (pipe != NULL) {
-			DPRINTF("hello\n");
 			fft_connect_out(n,NULL,pipe);
-			DPRINTF("hello2\n");
 			glsig_emit(&pipe->emitter, GLSIG_PIPE_CHANGED, pipe);
 		}
 	}
@@ -276,8 +273,11 @@ static int ifft_connect_out(filter_t *n, filter_port_t *port,
 {
 	filter_pipe_t *in;
 
-	if ((in = filternode_get_input(n, PORTNAME_IN)))
+	if ((in = filternode_get_input(n, PORTNAME_IN))) {
+		DPRINTF("Setting rate %d hangle %f\n", 
+				filterpipe_fft_rate(in), filterpipe_fft_hangle(in));
 		filterpipe_settype_sample(p,filterpipe_fft_rate(in),filterpipe_fft_hangle(in));
+	}
 	return 0;
 }
 
@@ -362,6 +362,32 @@ entry:
 	FILTER_RETURN;
 }
 
+static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
+	filter_t *n;
+	filter_pipe_t *pipe;
+	filter_port_t *port;	
+
+	switch (sig)
+	{
+		case GLSIG_PIPE_CHANGED:
+			{
+				GLSIGH_GETARGS1(va, pipe);
+				DPRINTF("GLSIG_PIPE_CHANGED");
+				n = filterport_filter(filterpipe_dest(pipe));
+			}
+			break;
+	}
+
+
+	if ((port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))) {
+		pipe = filterport_get_pipe(port);
+		if (pipe != NULL) {
+			ifft_connect_out(n, port, pipe);			
+			glsig_emit(&pipe->emitter, GLSIG_PIPE_CHANGED, pipe);
+		}
+	}
+}
+
 int ifft_register(plugin_t *p)
 {
 	filter_t *f;
@@ -374,7 +400,8 @@ int ifft_register(plugin_t *p)
 	
 	f->f = ifft_f;
 	f->connect_out = ifft_connect_out;
-
+	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, ifft_fixup_pipe, NULL);
+	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform fft-stream to audio-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
 	plugin_set(p, PLUGIN_CATEGORY, "Math");

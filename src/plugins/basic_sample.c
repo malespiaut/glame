@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.20 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: basic_sample.c,v 1.21 2001/01/18 16:53:13 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -120,9 +120,10 @@ static int mix(filter_t *n, int drop)
 		/* check rate */
 		if (rate == -1)
 			rate = filterpipe_sample_rate(in);
-		else if (rate != filterpipe_sample_rate(in))
+		else if (rate != filterpipe_sample_rate(in)) {
+			DPRINTF("rate = %d, other rate = %d\n",rate, filterpipe_sample_rate(in));
 			FILTER_ERROR_CLEANUP("non matching samplerates");
-
+		}
 		/* position factor - normalized afterwards, FIXME? */
 	        p[i].factor = fabs(cos((filterpipe_sample_hangle(p[i].in)
 					- filterpipe_sample_hangle(out))*0.5));

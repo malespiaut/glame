@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.24 2001/01/18 16:02:52 richi Exp $
+ * $Id: filter_methods.c,v 1.25 2001/01/18 16:53:12 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -66,8 +66,9 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 				continue;
 			/* Prevent endless pipe change loops. */
 			if (out->type == in->type
-			    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+			    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0) {
 				continue;
+			}
 			out->type = in->type;
 			out->u = in->u;
 			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
