@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.5 2000/02/07 10:32:05 richi Exp $
+ * $Id: debug.c,v 1.6 2000/02/09 15:37:37 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,8 +43,8 @@ static int ping(filter_node_t *n)
 	int size = 128;
 	int time;
 
-	i = hash_find_input("in", n);
-	o = hash_find_output("out", n);
+	i = hash_find_input(PORTNAME_IN, n);
+	o = hash_find_output(PORTNAME_OUT, n);
 	if (!i || !o)
 		return -1;
 
@@ -102,9 +102,9 @@ int debug_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("ping", "ping", ping))
-	    || !filter_add_input(f, "in", "input",
+	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_MISC)
-	    || !filter_add_output(f, "out", "output",
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_MISC))
 		return -1;
 	f->fixup_pipe = ping_fixup_pipe;

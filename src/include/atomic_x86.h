@@ -26,7 +26,7 @@ typedef struct { volatile int counter; } glame_atomic_t;
 #define atomic_read(v)          ((v)->counter)
 #define atomic_set(v,i)		(((v)->counter) = (i))
 
-static __inline__ void atomic_add(int i, volatile glame_atomic_t *v)
+static inline void atomic_add(int i, volatile glame_atomic_t *v)
 {
 	__asm__ __volatile__(
 		"lock ; addl %1,%0"
@@ -34,7 +34,7 @@ static __inline__ void atomic_add(int i, volatile glame_atomic_t *v)
 		:"ir" (i), "m" (__atomic_fool_gcc(v)));
 }
 
-static __inline__ void atomic_sub(int i, volatile glame_atomic_t *v)
+static inline void atomic_sub(int i, volatile glame_atomic_t *v)
 {
 	__asm__ __volatile__(
 		"lock ; subl %1,%0"
@@ -42,7 +42,7 @@ static __inline__ void atomic_sub(int i, volatile glame_atomic_t *v)
 		:"ir" (i), "m" (__atomic_fool_gcc(v)));
 }
 
-static __inline__ void atomic_inc(volatile glame_atomic_t *v)
+static inline void atomic_inc(volatile glame_atomic_t *v)
 {
 	__asm__ __volatile__(
 		"lock ; incl %0"
@@ -50,7 +50,7 @@ static __inline__ void atomic_inc(volatile glame_atomic_t *v)
 		:"m" (__atomic_fool_gcc(v)));
 }
 
-static __inline__ void atomic_dec(volatile glame_atomic_t *v)
+static inline void atomic_dec(volatile glame_atomic_t *v)
 {
 	__asm__ __volatile__(
 		"lock ; decl %0"

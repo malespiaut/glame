@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.1 2000/02/09 11:02:38 richi Exp $
+ * $Id: echo2.c,v 1.2 2000/02/09 15:37:37 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,8 +42,8 @@ static int echo_f(filter_node_t *n)
 	SAMPLE *ins, *fs;
 	int cnt, inb_pos, fb_pos;
 
-	if (!(in = hash_find_input("in", n))
-	    || !(out = hash_find_output("out", n)))
+	if (!(in = hash_find_input(PORTNAME_IN, n))
+	    || !(out = hash_find_output(PORTNAME_OUT, n)))
 		return -1;
 	delay = in->u.sample.rate; /* 1 sec. default delay */
 	if ((param = hash_find_param("time", n)))
@@ -166,13 +166,13 @@ int echo_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("echo2", "echo effect", echo_f))
-	    || !filter_add_input(f, "in", "input",
+	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f,"out","output",
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
 		    		FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"time","echo time in s",
+	    || !filter_add_param(f, "time", "echo time in s",
 		    		FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"mix","mixer ratio",
+	    || !filter_add_param(f, "mix", "mixer ratio",
 		    		FILTER_PARAMTYPE_FLOAT)
 	    || filter_add(f) == -1)
 		return -1;

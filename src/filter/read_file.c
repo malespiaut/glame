@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.11 2000/02/07 12:43:11 richi Exp $ 
+ * $Id: read_file.c,v 1.12 2000/02/09 15:37:37 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -62,8 +62,8 @@ static int read_file_f(filter_node_t *n)
 
 	DPRINTF("read-file started!\n");
 
-	left = hash_find_output("left_out",n);
-	right = hash_find_output("right_out",n);
+	left = hash_find_output(PORTNAME_LEFT_OUT, n);
+	right = hash_find_output(PORTNAME_RIGHT_OUT, n);
 
 	if (!left || !right){
 		DPRINTF("Couldn't find channels!\n");
@@ -180,6 +180,8 @@ _bailout:
 	afCloseFile(file);
 	return -1;
 }
+
+
 /* Registry setup of all contained filters
  */
 int read_file_register()
@@ -188,8 +190,10 @@ int read_file_register()
 
 	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f)))
 		return -1;
-	if (!filter_add_output(f, "left_out", "left channel",FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, "right_out", "right channel",FILTER_PORTTYPE_SAMPLE)
+	if (!filter_add_output(f, PORTNAME_LEFT_OUT, "left channel",
+			       FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f, PORTNAME_RIGHT_OUT, "right channel",
+				  FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
 		return -1;
 	 if (filter_add(f) == -1)

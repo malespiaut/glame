@@ -1,0 +1,3 @@
+n sinus sin1
+n audio_out aout
+c sin1 out aout left_in

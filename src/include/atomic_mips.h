@@ -34,7 +34,7 @@ typedef struct { volatile int counter; } glame_atomic_t;
  */
 #define __atomic_fool_gcc(x) (*(volatile struct { int a[100]; } *)x)
 
-extern __inline__ void atomic_add(int i, volatile glame_atomic_t * v)
+static inline void atomic_add(int i, volatile glame_atomic_t * v)
 {
 	unsigned long temp;
 
@@ -49,7 +49,7 @@ extern __inline__ void atomic_add(int i, volatile glame_atomic_t * v)
 		 "m" (__atomic_fool_gcc(v)));
 }
 
-extern __inline__ void atomic_sub(int i, volatile glame_atomic_t * v)
+static inline void atomic_sub(int i, volatile glame_atomic_t * v)
 {
 	unsigned long temp;
 

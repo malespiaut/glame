@@ -7,6 +7,8 @@
 #define PORTNAME_OUT "out"
 #define PORTNAME_LEFT_IN "left_in"
 #define PORTNAME_RIGHT_IN "right_in"
+#define PORTNAME_LEFT_OUT "left_out"
+#define PORTNAME_RIGHT_OUT "right_out"
 
 
 

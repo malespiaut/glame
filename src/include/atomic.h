@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.4 2000/02/09 13:14:14 richi Exp $
+ * $Id: atomic.h,v 1.5 2000/02/09 15:37:37 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,9 +39,10 @@
 
 #include <pthread.h>
 
-#if defined HAVE_GCC && defined CPU_X86
+#define USE_ASM
+#if defined USE_ASM && defined HAVE_GCC && defined CPU_X86
 #include "atomic_x86.h"
-#elif defined HAVE_GCC && defined CPU_MIPS
+#elif defined USE_ASM && defined HAVE_GCC && defined CPU_MIPS
 #include "atomic_mips.h"
 #else
 

@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.11 2000/02/09 13:14:14 richi Exp $
+ * $Id: waveform.c,v 1.12 2000/02/09 15:37:37 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -43,7 +43,7 @@ static int sinus_f(filter_node_t *n)
 	SAMPLE ampl,freq;
 	int duration,i,size,cnt;
 	
-	out = hash_find_output("output", n);
+	out = hash_find_output(PORTNAME_OUT, n);
 	if (!out) return -1;
 	
 	if ((param = hash_find_param("amplitude",n)))
@@ -77,7 +77,6 @@ static int sinus_f(filter_node_t *n)
 	while(pthread_testcancel(), cnt--){
 		sbuf_ref(buf);
 		sbuf_queue(out, buf);
-		DPRINTF("Queued %i bytes\n", sbuf_size(buf));
 	}
 	sbuf_queue(out, NULL);
 	DPRINTF("All buffers sent!\n");
@@ -105,7 +104,7 @@ int waveform_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("sinus", "generate sinus test signal", sinus_f))
-	    || !filter_add_output(f, "output", "sinus output stream",
+	    || !filter_add_output(f, PORTNAME_OUT, "sinus output stream",
 				  FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f,"amplitude","sinus peak amplitude(0.0-1.0)",
 				 FILTER_PARAMTYPE_SAMPLE)

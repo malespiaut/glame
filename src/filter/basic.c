@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.7 2000/02/07 16:12:50 richi Exp $
+ * $Id: basic.c,v 1.8 2000/02/09 15:37:37 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -104,7 +104,7 @@ static int one2n_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_pipe_t *in, *out;
 
-	if (!(in = hash_find_input("in", n)))
+	if (!(in = hash_find_input(PORTNAME_IN, n)))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -153,7 +153,7 @@ static int dup_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_pipe_t *in, *out1, *out2;
 
-	if (!(in = hash_find_input("in", n))
+	if (!(in = hash_find_input(PORTNAME_IN, n))
 	    || !(out1 = hash_find_output("out1", n))
 	    || !(out2 = hash_find_output("out2", n)))
 		return -1;
@@ -197,8 +197,8 @@ static int null_f(filter_node_t *n)
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
 
-	in = hash_find_input("in", n);
-	out = hash_find_output("out", n);
+	in = hash_find_input(PORTNAME_IN, n);
+	out = hash_find_output(PORTNAME_OUT, n);
 	if (!in || !out)
 		return -1;
 
@@ -239,9 +239,9 @@ static int mix_f(filter_node_t *n)
 	 */
 	if (n->nr_inputs == 0)
 		return -1;
-	if (!(pout = hash_find_output("out",n)))
+	if (!(pout = hash_find_output(PORTNAME_OUT,n)))
 		return -1;
-	rate = hash_find_input("in", n)->u.sample.rate;
+	rate = hash_find_input(PORTNAME_IN, n)->u.sample.rate;
 	list_foreach_input(n, p)
 		if (p->u.sample.rate != rate)
 			return -1;
@@ -332,20 +332,20 @@ int basic_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("drop", "drops n streams", drop_f))
-	    || !filter_add_input(f, "in", "input",
+	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("one2n", "replicates one input n times", one2n_f))
-	    || !filter_add_input(f, "in", "input", FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "out", "output",
+	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_ANY)
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("dup", "duplicates one input stream", dup_f))
-	    || !filter_add_input(f, "in", "input",
+	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, "out1", "output",
 				  FILTER_PORTTYPE_ANY)
@@ -355,17 +355,17 @@ int basic_register()
 		return -1;
 
 	if (!(f = filter_alloc("null", "does nothing on one input stream", null_f))
-	    || !filter_add_input(f, "in", "input",
+	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "out", "output",
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
         if (!(f = filter_alloc("mix", "mix n channels", mix_f))
-            || !filter_add_input(f, "in", "input stream",
+            || !filter_add_input(f, PORTNAME_IN, "input stream",
                                 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) 
-            || !filter_add_output(f, "out", "mixed stream",
+            || !filter_add_output(f, PORTNAME_OUT, "mixed stream",
                                 FILTER_PORTTYPE_SAMPLE)
             || filter_add(f) == -1)
                 return -1;
