@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.20 2001/05/28 09:21:57 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.21 2001/05/28 14:26:39 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -795,21 +795,30 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 			pw->widget_type = PINT;
 		} else if (FILTER_PARAM_IS_FLOAT(param)
 			   || FILTER_PARAM_IS_SAMPLE(param)) {
-			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
-			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
-			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
-			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
-			fVal = filterparam_val_float(param);
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
-			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S)
+			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S) {
+				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,0.1,1.0,1.0));
+				entry = gtk_spin_button_new(adjust, 0.1, 3);
 				snprintf(label, 255, "%s [s]",
 					 filterparam_label(param));
-			else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS)
+			} else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS) {
+				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,1.0,10.0,10.0));
+				entry = gtk_spin_button_new(adjust, 1, 1);
 				snprintf(label, 255, "%s [ms]",
 					 filterparam_label(param));
-			else
+			} else if (filterparam_type(param) == FILTER_PARAMTYPE_SAMPLE) {
+				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-1.0,1.0,0.05,1.0,1.0));
+				entry = gtk_spin_button_new(adjust, 0.05, 3);
 				snprintf(label, 255, "%s",
 					 filterparam_label(param));
+			} else {
+				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,0.1,10.0,10.0));
+				entry = gtk_spin_button_new(adjust, 0.1, 3);
+				snprintf(label, 255, "%s",
+					 filterparam_label(param));
+			}
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			fVal = filterparam_val_float(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
 			create_label_widget_pair(vbox, label, entry);
 			pw->widget = entry;
 			pw->widget_type = PFLOAT;
