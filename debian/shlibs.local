@@ -1,0 +1,3 @@
+libglame 0
+libsfftw 2 fftw2 (>= 2.1.3-4)
+libsrfftw 2 fftw2 (>= 2.1.3-4)
