@@ -9,6 +9,5 @@ EXTRA_DIST = filter.h filterI.h filter_methods.h filter_mm.h filter_ops.h \
 
 libfilter_la_SOURCES = filter.h filterI.h filter_methods.h \
 	filter.c filter_buffer.c filter_network.c filter_methods.c \
-	filter_mm.c filter_ops.c \
-	gldb_param.h gldb_param.c
+	filter_mm.c filter_ops.c
 
