@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.23 2002/02/17 13:51:46 richi Exp $
+ * $Id: filter_param.h,v 1.24 2002/02/19 09:50:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -169,10 +169,31 @@ extern "C" {
  * or a rejected change by the set_param() method of the filter. */
 int filterparam_set(filter_param_t *param, const void *val);
 
+/* Convenience wrappers for filterparam_set() which take standard
+ * long/double/char* args. */
+static inline int filterparam_set_long(filter_param_t *param, long val)
+{
+	if (!FILTER_PARAM_IS_LONG(param))
+		return -1;
+	return filterparam_set(param, &val);
+}
+static inline int filterparam_set_double(filter_param_t *param, double val)
+{
+	if (!FILTER_PARAM_IS_DOUBLE(param))
+		return -1;
+	return filterparam_set(param, &val);
+}
+static inline int filterparam_set_string(filter_param_t *param, const char *val)
+{
+	if (!FILTER_PARAM_IS_STRING(param))
+		return -1;
+	return filterparam_set(param, &val);
+}
+
 /* As filterparam_set() the following function tries to set the
  * parameters value, but this time using the value encoded in the
  * provided string. */
-int filterparam_set_string(filter_param_t *param, const char *val);
+int filterparam_from_string(filter_param_t *param, const char *val);
 
 /* To generate a string representation of the parameters value
  * use the following function. The returned string has to be freed

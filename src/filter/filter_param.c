@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.18 2002/02/17 13:51:46 richi Exp $
+ * $Id: filter_param.c,v 1.19 2002/02/19 09:50:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -445,7 +445,7 @@ int filterparam_set(filter_param_t *param, const void *val)
 	return 0;
 }
 
-int filterparam_set_string(filter_param_t *param, const char *val)
+int filterparam_from_string(filter_param_t *param, const char *val)
 {
 	filter_param_t p;
 	char s[512];
