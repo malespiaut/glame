@@ -1,7 +1,7 @@
 This file is to declare maintainers for the different subsystems.
 Maintainers take final decisions about design and applying patches.
-It is strongly discouraged to hack and cvs commit in a maintainers
-area without first communicating with him.
+It is strongly discouraged to hack and cvs commit in a maintained
+area without contacting the maintainer first.
 
 Please add the filenames which are considered to belong to the
 subsystem, too.
@@ -23,8 +23,8 @@ doc: nold
 	doc/*.texi
 	doc/* unless covered by other maintainers
 
-samplemath: nold
-	src/samplemath/*
+glamemath: nold
+	src/glmath/*
 
 midi: garrison
 	src/filter/midi*

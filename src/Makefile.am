@@ -1,4 +1,4 @@
-SUBDIRS = include hash swapfile channel filter plugin gui
+SUBDIRS = include hash swapfile channel filter plugin gui glmath
 
 INCLUDES = -I@srcdir@/include -I@srcdir@/filter -I@srcdir@/swapfile -I@srcdir@/channel -I@srcdir@/hash $(GLAME_CFLAGS)
 
