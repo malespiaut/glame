@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.21 2000/03/28 16:46:57 xwolf Exp $
+ * $Id: gui.c,v 1.22 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -201,12 +201,21 @@ void on_clear_activate(GtkWidget *m, gpointer bla){}
 
 /* Allocates a new filter type for the gui */
 gui_filter* 
-gui_filter_new(const char *pixname,filter_t* filter)
+gui_filter_new(plugin_t* plugin)
 {
-	gui_filter * newFilter = malloc(sizeof(gui_filter));
-	newFilter->caption = strdup(filter->name);
-	newFilter->pixname = strdup(pixname);
+	gui_filter * newFilter;
+	filter_t *filter;
+
+	if (!(filter = (filter_t *)plugin_query(plugin, PLUGIN_FILTER)))
+		return NULL;
+	newFilter = malloc(sizeof(gui_filter));
+	newFilter->plugin = plugin;
 	newFilter->filter = filter;
+	newFilter->caption = strdup(plugin_name(plugin));
+	if ((newFilter->pixname = plugin_query(plugin, PLUGIN_PIXMAP)))
+		newFilter->pixname = strdup(newFilter->pixname);
+	else
+		newFilter->pixname = strdup(GLAME_DEFAULT_ICON);
 	return newFilter;
 }
 
@@ -464,8 +473,9 @@ icon_prop_activate                (gpointer user_data)
 	GtkWidget* frame,*frame2;
 	filter_portdesc_t *port;
 	filter_paramdesc_t *param;
-	filter_t * filter = filter_get(g_array_index(gui->filters,gui_filter*,index)->caption);
-	
+	plugin_t * plugin = plugin_get(g_array_index(gui->filters,gui_filter*,index)->caption);
+	filter_t * filter = (filter_t *)plugin_query(plugin, PLUGIN_FILTER);
+
 	propBox = gnome_property_box_new ();
 	gtk_object_set_data (GTK_OBJECT (propBox), "propBox", propBox);
 	notebook=GNOME_PROPERTY_BOX(propBox)->notebook;
@@ -480,9 +490,11 @@ icon_prop_activate                (gpointer user_data)
 	gtk_container_add (GTK_CONTAINER (notebook), vbox);
 
 	
-	create_frame_label_val_pair(propBox,vbox,"Name",filter->name);
+	create_frame_label_val_pair(propBox,vbox,"Name",plugin_name(plugin));
 
-	create_frame_label_val_pair(propBox,vbox,"Description",filter->description);
+	if (plugin_query(plugin, PLUGIN_DESCRIPTION))
+		create_frame_label_val_pair(propBox, vbox, "Description",
+					    (char *)plugin_query(plugin, PLUGIN_DESCRIPTION));
 	
 	tablabel=gtk_label_new(_("Info"));
 	gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), 0), tablabel);
@@ -636,23 +648,13 @@ void gui_handle_icon_sel (GnomeIconList *iconlist,
 /* browses the registered filtrs and adds them to the gui */
 int gui_browse_registered_filters(void)
 {
-	filter_t * fil=NULL;
 	gui_filter* gfilt;
-	plugin_t *plugin;
-	const char *pixmap;
+	plugin_t *plugin = NULL;
 
-	/* show only filters with "plugin" */
-	while((fil=filter_next(fil))){
-		if (!(plugin = plugin_get(filter_name(fil))))
-#ifndef DEBUG
-			continue;
-#else
-		        ;
-#endif
-		if (!(pixmap = plugin_pixmap(plugin)))
-			pixmap = GLAME_DEFAULT_ICON;
-		gfilt=gui_filter_new(pixmap, fil);
-		gui_filter_add(gfilt);
+	/* browse registered plugins */
+	while((plugin = plugin_next(plugin))){
+		if ((gfilt = gui_filter_new(plugin)))
+			gui_filter_add(gfilt);
 	}
 	gnome_icon_list_select_icon(GNOME_ICON_LIST(gui->iconlist),gui->selectedIcon);
 	return 0;

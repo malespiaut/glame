@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.7 2000/03/22 10:15:45 richi Exp $
+ * $Id: basic.c,v 1.8 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,7 +34,6 @@
 #include "glplugin.h"
 
 
-PLUGIN_DESCRIPTION(basic, "protocol independend fbuf filters (drop, one2n)")
 PLUGIN_SET(basic, "drop one2n")
 
 
@@ -99,17 +98,19 @@ static int drop_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(drop, "throw away all data")
-PLUGIN_PIXMAP(drop, "dumpster.xpm")
-int drop_register()
+int drop_register(plugin_t *p)
 {
 	filter_t *f;
 
 	if (!(f = filter_alloc(drop_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
-	    || filter_add(f, "drop", "drops n streams") == -1)
+				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
+	plugin_set(p, PLUGIN_PIXMAP, "dumpster.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -234,17 +235,19 @@ static int one2n_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(one2n, "replicate stream")
-PLUGIN_PIXMAP(one2n, "default.png")
-int one2n_register()
+int one2n_register(plugin_t *p)
 {
 	filter_t *f;
 
 	if (!(f = filter_alloc(one2n_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
-	    || filter_add(f, "one2n", "replicates one input n times") == -1)
+				  FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
+	plugin_set(p, PLUGIN_PIXMAP, "default.png");
+	filter_attach(f, p);
+
 	return 0;
 }

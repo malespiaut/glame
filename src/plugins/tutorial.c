@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.2 2000/03/20 09:51:53 richi Exp $
+ * $Id: tutorial.c,v 1.3 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -33,6 +33,9 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
+
+
+PLUGIN_SET(tutorial, "null dup")
 
 
 /* null does a "null operation" on one input channel.
@@ -69,17 +72,19 @@ static int null_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(null, "do nothing")
-int null_register()
+int null_register(plugin_t *p)
 {
 	filter_t *f;
 	if (!(f = filter_alloc(null_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_ANY)
-	    || filter_add(f, "null", "does nothing on one input stream") == -1)
+				  FILTER_PORTTYPE_ANY))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "does nothing on one input stream");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -128,8 +133,7 @@ static int dup_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(dup, "duplicate stream")
-int dup_register()
+int dup_register(plugin_t *p)
 {
 	filter_t *f;
 	if (!(f = filter_alloc(dup_f))
@@ -138,14 +142,13 @@ int dup_register()
 	    || !filter_add_output(f, "out1", "output",
 				  FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, "out2", "output",
-				  FILTER_PORTTYPE_ANY)
-	    || filter_add(f, "dup", "duplicates one input stream") == -1)
+				  FILTER_PORTTYPE_ANY))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "duplicates one input stream");
+	filter_attach(f, p);
+
 	return 0;
 }
-
-
-PLUGIN_DESCRIPTION(tutorial, "tutorial filters (null, dup)")
-PLUGIN_SET(tutorial, "null dup")
 
 

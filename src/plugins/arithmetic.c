@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.2 2000/04/06 13:33:44 nold Exp $
+ * $Id: arithmetic.c,v 1.3 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -121,9 +121,7 @@ static int mul_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(mul, "multiplication filter")
-PLUGIN_PIXMAP(mul, "mul.png")
-int mul_register()
+int mul_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -138,8 +136,11 @@ int mul_register()
 	    || !(filter_add_param(f, "factor", "to be multiplied constant",
 				  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	if (filter_add(f, "mul", "multiply streams") == -1)
-	        return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
+	plugin_set(p, PLUGIN_PIXMAP, "mul.png");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -221,9 +222,7 @@ static int add_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(add, "addition filter")
-PLUGIN_PIXMAP(add, "add.png")
-int add_register()
+int add_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -238,8 +237,11 @@ int add_register()
 	    || !(filter_add_param(f, "factor", "to be multiplied constant",
 				  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	if (filter_add(f, "add", "add streams") == -1)
-	        return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
+	plugin_set(p, PLUGIN_PIXMAP, "add.png");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -282,9 +284,7 @@ static int invert_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(invert, "invert a stream")
-PLUGIN_PIXMAP(invert, "invert.xpm")
-int invert_register()
+int invert_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -292,9 +292,12 @@ int invert_register()
 	    || !(filter_add_input(f, PORTNAME_IN, "input stream to invert",
 				  FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_output(f, PORTNAME_OUT, "inverted output stream",
-				   FILTER_PORTTYPE_SAMPLE))
-	    || filter_add(f, "phase-invert",
-			  "Inverses the phase of the audio signal") == -1)
+				   FILTER_PORTTYPE_SAMPLE)))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "inverse the phase of an audio stream");
+	plugin_set(p, PLUGIN_PIXMAP, "invert.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }

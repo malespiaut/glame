@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.41 2000/04/11 14:37:54 richi Exp $
+ * $Id: filter_network.c,v 1.42 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -366,15 +366,22 @@ filter_node_t *filternetwork_add_node(filter_network_t *net,
 				      const char *filter, const char *name)
 {
 	filter_t *f;
+	plugin_t *p;
 	filter_node_t *n;
 	const char *nm = name;
 
 	if (!net || !filter)
 		return NULL;
-	if (!(f = filter_get(filter)))
+	if (!(p = plugin_get(filter))) {
+		DPRINTF("no plugin %s\n", filter);
 		return NULL;
+	}
+	if (!(f = (filter_t *)plugin_query(p, PLUGIN_FILTER))) {
+		DPRINTF("no filter entry for %s\n", filter);
+		return NULL;
+	}
 	if (!nm)
-		nm = hash_unique_name_node(f->name, net);
+		nm = hash_unique_name_node(plugin_name(p), net);
 	if (!(n = _filter_instantiate(f, nm)))
 		return NULL;
 
@@ -622,7 +629,7 @@ char *filternetwork_to_string(filter_network_t *net)
 	 * node create commands. */
 	filternetwork_foreach_node(net, n) {
 		len += sprintf(&buf[len], "\t(%s (filternetwork_add_node net \"%s\" \"%s\"))\n",
-			       n->name, n->filter->name, n->name);
+			       n->name, plugin_name(n->filter->plugin), n->name);
 	}
 	/* ((net .. */
 	len += sprintf(&buf[len-1], ")\n") - 1;

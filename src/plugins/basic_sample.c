@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.11 2000/04/05 23:49:45 nold Exp $
+ * $Id: basic_sample.c,v 1.12 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -469,9 +469,7 @@ static void mix_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 		out->dest->filter->fixup_pipe(out->dest, out);
 }
 
-PLUGIN_DESCRIPTION(mix, "mix streams")
-PLUGIN_PIXMAP(mix, "mix1.png")
-int mix_register()
+int mix_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_portdesc_t *port;
@@ -498,14 +496,15 @@ int mix_register()
 	f->connect_out = mix_connect_out;
 	f->fixup_param = mix_fixup_param;
 	f->fixup_pipe = mix_fixup_pipe;
-        if (filter_add(f, "mix", "mix n channels") == -1)
-                return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
+	plugin_set(p, PLUGIN_PIXMAP, "mix1.png");
+	filter_attach(f, p);
+
 	return 0;
 }
 
-PLUGIN_DESCRIPTION(mix2, "mix streams")
-PLUGIN_PIXMAP(mix2, "mix2.png")
-int mix2_register()
+int mix2_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_portdesc_t *port;
@@ -532,8 +531,11 @@ int mix2_register()
 	f->connect_out = mix_connect_out;
 	f->fixup_param = mix_fixup_param;
 	f->fixup_pipe = mix_fixup_pipe;
-        if (filter_add(f, "mix2", "mix n channels") == -1)
-                return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
+	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -594,9 +596,7 @@ static int volume_adjust_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(volume_adjust, "adjust the volume of a stream")
-PLUGIN_PIXMAP(volume_adjust, "default.xpm")
-int volume_adjust_register()
+int volume_adjust_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -606,9 +606,13 @@ int volume_adjust_register()
 	    || !filter_add_input(f, PORTNAME_IN, "input stream",
 				 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "scaled stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f, "volume-adjust", "scale samples") == -1)
+				  FILTER_PORTTYPE_SAMPLE))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
+	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -666,9 +670,7 @@ static int delay_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(delay, "delay a stream")
-PLUGIN_PIXMAP(delay, "delay.xpm")
-int delay_register()
+int delay_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_paramdesc_t *param;
@@ -682,8 +684,11 @@ int delay_register()
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
-	if (filter_add(f, "delay", "Delay's an audio signal") == -1)
-	        return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "delay an audio stream");
+	plugin_set(p, PLUGIN_PIXMAP, "delay.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -744,9 +749,7 @@ static int extend_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(extend, "extend a stream")
-PLUGIN_PIXMAP(extend, "extend.xpm")
-int extend_register()
+int extend_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_paramdesc_t *param;
@@ -760,8 +763,11 @@ int extend_register()
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
-	if (filter_add(f, "extend", "Extend an audio signal") == -1)
-	        return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "extend an audio stream");
+	plugin_set(p, PLUGIN_PIXMAP, "extend.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -853,9 +859,7 @@ static int repeat_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(repeat, "repeat a stream")
-PLUGIN_PIXMAP(repeat, "repeat.xpm")
-int repeat_register()
+int repeat_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_paramdesc_t *param;
@@ -870,8 +874,10 @@ int repeat_register()
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_S);
-	if (filter_add(f, "repeat",
-		       "Repeat an audio signal for the specified time") == -1)
-		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "repeat an audio stream for the specified time");
+	plugin_set(p, PLUGIN_PIXMAP, "repeat.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }

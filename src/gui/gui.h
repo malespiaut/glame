@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.14 2000/03/27 09:20:41 richi Exp $
+ * $Id: gui.h,v 1.15 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -72,6 +72,7 @@ typedef struct _gui_filter {
 	char * pixname;
 	char * caption;
 	// Filter data here
+	plugin_t * plugin;
 	filter_t * filter;
 	filter_node_t *node;
 	
@@ -84,7 +85,7 @@ glame_gui * gui;
 
 int gui_filter_add(gui_filter *filter);
 
-gui_filter* gui_filter_new(const char *pixname, filter_t *filter);
+gui_filter* gui_filter_new(plugin_t *filter);
 
 gui_network* gui_network_new(const char *caption, const char * pixname);
 gui_network* gui_network_new_wizard(void);

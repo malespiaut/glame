@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.13 2000/03/27 09:17:02 richi Exp $
+ * $Id: filter_methods.c,v 1.14 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -139,7 +139,7 @@ int filter_network_init(filter_node_t *n)
 
 	/* first create all nodes and copy set parameters */
 	filternetwork_foreach_node(templ, n) {
-		if (!(node = filternetwork_add_node(net, n->filter->name, n->name)))
+		if (!(node = filternetwork_add_node(net, plugin_name(n->filter->plugin), n->name)))
 			return -1;
 		filternode_foreach_param(n, param) {
 			if (param->desc->type == FILTER_PARAMTYPE_STRING)

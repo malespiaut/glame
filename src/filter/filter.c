@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.32 2000/03/21 14:14:07 richi Exp $
+ * $Id: filter.c,v 1.33 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,9 +27,6 @@
 #include "filter_mm.h"
 
 
-/* Global list of registered filters, static initialized. */
-static LIST_HEAD(filter_list);
-
 
 
 filter_t *filter_alloc(int (*func)(filter_node_t *))
@@ -54,37 +51,14 @@ filter_t *filter_from_network(filter_network_t *net)
 	return net->node.filter;
 }
 
-int filter_add(filter_t *filter, const char *name, const char *description)
+void filter_attach(filter_t *f, plugin_t *p)
 {
-	if (filter_get(name))
-		return -1;
-	filter->name = strdup(name);
-	filter->description = strdup(description);
-	if (!filter->name || !filter->description)
-		return -1;
-
-	hash_add_filter(filter);
-	list_add_filter(filter);
-
-	return 0;
+	if (is_hashed_filter(f))
+		return;
+	f->plugin = p;
+	plugin_set(p, PLUGIN_FILTER, f);
 }
 
-
-filter_t *filter_next(filter_t *f)
-{
-	struct list_head *lh;
-
-	if (!f)
-		lh = &filter_list;
-	else
-		lh = &f->list;
-
-	lh = lh->next;
-	if (lh == &filter_list)
-		return NULL;
-
-	return list_entry(lh, filter_t, list);
-}
 
 filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
 				    const char *description, int type)

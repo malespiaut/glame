@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.9 2000/04/07 13:33:23 richi Exp $
+ * $Id: glplugin.c,v 1.10 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,6 +27,11 @@
 #include "glplugin.h"
 
 
+typedef struct {
+	struct list_head list;
+	const char *path;
+} plugin_path_t;
+
 static struct list_head plugin_path_list = LIST_HEAD_INIT(plugin_path_list);
 static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
 
@@ -42,6 +47,20 @@ static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
 #define hash_init_plugin(p) do { _hash_init(&p->hash); (p)->namespace = PLUGIN_NAMESPACE; } while (0)
 
 
+/* Helpers.
+ */
+
+static void mangle_name(char *dest, const char *name)
+{
+	strncpy(dest, name, 32);
+	while ((dest = strchr(dest, '-')))
+		*dest = '_';
+}
+
+
+/* Plugin path & "initial load" (TODO) code.
+ */
+
 int plugin_add_path(const char *path)
 {
 	plugin_path_t *p;
@@ -55,142 +74,200 @@ int plugin_add_path(const char *path)
 	return 0;
 }
 
-static plugin_t *add_plugin(const char *name, const char *filename);
-static plugin_t *plugin_load(const char *name, const char *filename)
+
+/* The plugin stuff itself.
+ */
+
+static plugin_t *alloc_plugin(const char *name)
 {
-        char s[256], *sp, *psname;
 	plugin_t *p;
 
-	if (!(p = ALLOC(plugin_t)))
+	if (!(p = (plugin_t *)malloc(sizeof(plugin_t))))
 		return NULL;
 	INIT_LIST_HEAD(&p->list);
 	hash_init_plugin(p);
+	if (!(p->name = strdup(name))) {
+		free(p);
+		return NULL;
+	}
+	p->handle = NULL;
+	glwdb_init(&p->db);
 
-	if (!(p->name = strdup(name)))
-		goto err;
+	return p;
+}
+
+static void free_plugin(plugin_t *p)
+{
+	if (!p)
+		return;
+	if (p->name)
+		free((char *)p->name);
+	if (p->handle)
+		dlclose(p->handle);
+	gldb_delete(&p->db);
+	free(p);
+}
+
+int add_plugin(plugin_t *p)
+{
+	/* atomic check if name is occupied & add */
+	hash_lock();
+	if (__hash_find(p->name, PLUGIN_NAMESPACE,
+			_hash(p->name, PLUGIN_NAMESPACE),
+			__hash_pos(plugin_t, hash, name, namespace))) {
+		hash_unlock();
+		return -1;
+	}
+	__hash_add(&p->hash, _hash(p->name, PLUGIN_NAMESPACE));
+	hash_unlock();
+
+	list_add_plugin(p);
+
+	return 0;
+}
+
+
+
+static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
+{
+        char s[256], *sp, *psname;
+	int (*reg_func)(plugin_t *);
+	char **set;
+	plugin_t *pn;
+
 	if (!(p->handle = dlopen(filename, RTLD_NOW)))
-		goto err;
+		return -1;
 
 	/* either register() or a plugin set string */
 	snprintf(s, 255, "%s_register", name);
-	p->reg_func = dlsym(p->handle, s);
+	reg_func = dlsym(p->handle, s);
 	snprintf(s, 255, "%s_set", name);
-	p->set = dlsym(p->handle, s);
-	if (!p->reg_func && !p->set)
-		goto err_close;
+	set = dlsym(p->handle, s);
+	if (!reg_func && !set)
+		goto err;
 
-	snprintf(s, 255, "%s_pixmap", name);
-	p->pixmap = dlsym(p->handle, s);
-	snprintf(s, 255, "%s_description", name);
-	p->description = dlsym(p->handle, s);
-
-	if (p->reg_func && p->reg_func() == -1)
-		goto err_close;
-	if (p->set) {
+	if (reg_func && reg_func(p) == -1)
+		goto err;
+	if (set) {
 		/* add all plugins contained in the plugin set */
-		snprintf(s, 255, "%s", *(p->set));
+		snprintf(s, 255, "%s", *set);
 		sp = s;
 		do {
 			psname = sp;
 			if ((sp = strchr(psname, ' ')))
 				*(sp++) = '\0';
-			if (!add_plugin(psname, filename))
-				goto err_close;
+			if (!(pn = alloc_plugin(psname))
+			    || try_load_plugin(pn, psname, filename) == -1
+			    || add_plugin(pn) == -1) {
+				free_plugin(pn);
+				goto err;
+			}
 		} while (sp);
 	}
-	return p;
 
- err_close:
-	dlclose(p->handle);
+	return 0;
+
  err:
-	free((char *)(p->name));
-	free(p);
-	return NULL;
+	dlclose(p->handle);
+	p->handle = NULL;
+	return -1;
 }
 
-static plugin_t *add_plugin(const char *name, const char *filename)
-{
-	plugin_t *p;
 
-	if (!(p = plugin_load(name, filename)))
-		return NULL;
-	hash_add_plugin(p);
-	list_add_plugin(p);
-	return p;	
-}
 
 plugin_t *plugin_get(const char *nm)
 {
 	plugin_t *p = NULL;
 	plugin_path_t *path;
-	char filename[256], name[32], *s;
+	char filename[256], name[32];
 
 	if (!nm)
 		return NULL;
-
-	/* HACK! FIXME! fix name wrt -_ */
-	strncpy(name, nm, 32);
-	s = name;
-	while ((s = strchr(s, '-')))
-		*s = '_';
+	mangle_name(name, nm);
 
 	/* already loaded? */
 	if ((p = hash_find_plugin(name)))
 		return p;
 
+	/* allocate a new plugin struct */
+	if (!(p = alloc_plugin(name)))
+		return NULL;
+
 	/* first try to look for an "in-core" plugin */
-	if ((p = add_plugin(name, NULL)))
-		return p;
+	if (try_load_plugin(p, name, NULL) == 0)
+		goto found;
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
 		sprintf(filename, "%s/%s.so", path->path, name);
-		if ((p = add_plugin(name, filename)))
-			return p;
+		if (try_load_plugin(p, name, filename) == 0)
+			goto found;
 	}
 
 	/* last try LD_LIBRARY_PATH supported plugins */
 	sprintf(filename, "%s.so", name);
-	if ((p = add_plugin(name, filename)))
-	    return p;
+	if (try_load_plugin(p, name, filename) == 0)
+		goto found;
 
+	free_plugin(p);
 	return NULL;
+
+ found:
+	if (add_plugin(p) == -1) {
+		free_plugin(p);
+		return NULL;
+	}
+	return p;
 }
 
-void *plugin_get_symbol(plugin_t *p, const char *symbol)
+int plugin_set(plugin_t *p, const char *key, void *val)
 {
-	if (!p || !symbol)
+	glworm_t *w;
+
+	if (!p || !key)
+		return -1;
+	if (!(w = glworm_alloc()))
+		return -1;
+	w->u.ptr = val;
+	if (glwdb_add_item(&p->db, w, key) == -1) {
+		free(w);
+		return -1;
+	}
+	return 0;
+}
+
+void *plugin_query(plugin_t *p, const char *key)
+{
+	const glworm_t *w;
+
+	if (!p || !key)
 		return NULL;
 
-	return dlsym(p->handle, symbol);
+	if ((w = glwdb_query_item(&p->db, key)))
+		return (void *)(w->u.ptr);
+	return dlsym(p->handle, key);
 }
 
-plugin_t *plugin_add(const char *name, const char *description,
-		     const char *pixmap)
+plugin_t *plugin_add(const char *name)
 {
 	plugin_t *p;
-	void **m;
 
-	if ((p = hash_find_plugin(name)))
+	if (!(p = alloc_plugin(name)))
 		return NULL;
-	if (!(p = ALLOC(plugin_t)))
-		return NULL;
-	INIT_LIST_HEAD(&p->list);
-	hash_init_plugin(p);
 
-	p->name = strdup(name);
-	m = malloc(2*sizeof(void *));
-	if (description) {
-		m[0] = strdup(description);
-		p->description = (const char **)&m[0];
-	}
-	if (pixmap) {
-		m[1] = strdup(pixmap);
-		p->pixmap = (const char **)&m[1];
+	if (add_plugin(p) == -1) {
+		free_plugin(p);
+		return NULL;
 	}
 
-	hash_add_plugin(p);
-	list_add_plugin(p);
-	return p;	
+	return p;
 }
 
+plugin_t *plugin_next(plugin_t *plugin)
+{
+	if (!plugin)
+		return list_gethead(&plugin_list, plugin_t, list);
+	if (plugin->list.next == &plugin_list)
+		return NULL;
+	return list_entry(plugin->list.next, plugin_t, list);
+}

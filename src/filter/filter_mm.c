@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.9 2000/03/25 19:09:50 richi Exp $
+ * $Id: filter_mm.c,v 1.10 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -194,8 +194,7 @@ filter_t *_filter_alloc(int flags)
 
 	if (!(f = ALLOC(filter_t)))
 		return NULL;
-	f->name = NULL;
-	f->description = NULL;
+	f->plugin = NULL;
 	f->flags = flags;
 	f->f = NULL;
 	f->init = NULL;
@@ -218,8 +217,6 @@ filter_t *_filter_alloc(int flags)
 	INIT_LIST_HEAD(&f->inputs);
 	INIT_LIST_HEAD(&f->outputs);
 	f->private = NULL;
-	hash_init_filter(f);
-	INIT_LIST_HEAD(&f->list);
 	return f;
 }
 
@@ -245,8 +242,6 @@ void _filter_free(filter_t *f)
 		list_remove_portdesc(portd);
 		_portdesc_free(portd);
 	}
-	free((char *)f->name);
-	free((char *)f->description);
 	free(f);
 }
 

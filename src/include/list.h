@@ -1,15 +1,15 @@
-#ifndef _LINUX_LIST_H
-#define _LINUX_LIST_H
+#ifndef _LIST_H
+#define _LIST_H
 
 /*
  * list.h
  *
- * $Id: list.h,v 1.9 2000/04/11 14:39:17 richi Exp $
+ * $Id: list.h,v 1.10 2000/04/25 08:58:00 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
  * This code was taken from the Linux kernel source which is
- * Copyright (C) by Linus Torvalds
+ * Copyright (C) by Linus Torvalds and others
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,9 @@
  * sometimes we already know the next/prev entries and we can
  * generate better code by using them directly rather than
  * using the generic single-entry routines.
+ *
+ * Some of the operations are implemented as macros to allow
+ * the debugging checks print the "right" file/function.
  */
 
 struct list_head {
@@ -75,36 +78,41 @@ static inline void __list_add(struct list_head * new,
 /*
  * Insert a new entry after the specified head..
  */
+#ifndef NDEBUG
 #define list_add(n, h) do { \
-	if (!((n)->next == (n))) \
+        struct list_head *___node = (n); \
+        struct list_head *___head = (h); \
+	if (!(___node->next == ___node)) \
 		DERROR("Adding already added list item"); \
-	__list_add((n), (h), (h)->next); \
+	__list_add(___node, ___head, ___head->next); \
 } while (0)
-#if 0
-static inline void list_add(struct list_head *new, struct list_head *head)
-{
-        if (!(new->next == new))
-	       DERROR("Adding already added list item");
-	__list_add(new, head, head->next);
-}
+#else
+#define list_add(n, h) do { \
+        struct list_head *___node = (n); \
+        struct list_head *___head = (h); \
+	__list_add(___node, ___head, ___head->next); \
+} while (0)
 #endif
 
 /*
  * Insert a new entry before the specified head..
  */
-#define list_add_tail(n, h) do { \
-	if (!((n)->next == (n))) \
+#ifndef NDEBUG
+#define list_add_tail(n, t) do { \
+        struct list_head *___node = (n); \
+        struct list_head *___tail = (t); \
+	if (!(___node->next == ___node)) \
 		DERROR("Adding already added list item"); \
-	__list_add((n), (h)->prev, (h)); \
+	__list_add(___node, ___tail->prev, ___tail); \
 } while (0)
-#if 0
-static inline void list_add_tail(struct list_head *new, struct list_head *head)
-{
-        if (!(new->next == new))
-	       DERROR("Adding already added list item");
-	__list_add(new, head->prev, head);
-}
+#else
+#define list_add_tail(n, t) do { \
+        struct list_head *___node = (n); \
+        struct list_head *___tail = (t); \
+	__list_add(___node, ___tail->prev, ___tail); \
+} while (0)
 #endif
+
 
 /*
  * Delete a list entry by making the prev/next entries
@@ -120,23 +128,21 @@ static inline void __list_del(struct list_head * prev,
 	prev->next = next;
 }
 
-#define list_del(e) do { \
-	if ((e)->next == (e)) \
-		DERROR("Removing already removed list item"); \
-	__list_del((e)->prev, (e)->next); \
-	INIT_LIST_HEAD(e); \
-} while (0)
-#if 0
-static inline void list_del(struct list_head *entry)
-{
-        if (entry->next == entry)
-	       DERROR("Removing already removed list item");
-	__list_del(entry->prev, entry->next);
 #ifndef NDEBUG
-	INIT_LIST_HEAD(entry);
+#define list_del(e) do { \
+        struct list_head *___node = (e); \
+	if (___node->next == ___node) \
+		DERROR("Removing already removed list item"); \
+	__list_del(___node->prev, ___node->next); \
+	INIT_LIST_HEAD(___node); \
+} while (0)
+#else
+#define list_del(e) do { \
+        struct list_head *___node = (e); \
+	__list_del(___node->prev, ___node->next); \
+} while (0)
 #endif
-}
-#endif
+
 
 static inline int list_empty(struct list_head *head)
 {

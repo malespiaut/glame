@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.6 2000/04/17 09:18:30 richi Exp $
+ * $Id: track_io.c,v 1.7 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -138,9 +138,7 @@ static int track_in_connect_out(filter_node_t *n, const char *port,
 	return 0;
 }
 
-PLUGIN_DESCRIPTION(track_in, "track to stream")
-PLUGIN_PIXMAP(track_in, "default.xpm")
-int track_in_register()
+int track_in_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -153,9 +151,13 @@ int track_in_register()
 	    || !filter_add_param(f, "group", "input group",
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f, "track-in", "stream a track") == -1)
+				  FILTER_PORTTYPE_SAMPLE))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "track to audio stream");
+	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -228,9 +230,7 @@ static int track_out_f(filter_node_t *n)
 	return res;
 }
 
-PLUGIN_DESCRIPTION(track_out, "stream to track")
-PLUGIN_PIXMAP(track_out, "default.xpm")
-int track_out_register()
+int track_out_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -240,8 +240,12 @@ int track_out_register()
 	    || !filter_add_param(f, "group", "output group",
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_input(f, PORTNAME_IN, "input stream",
-				 FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f, "track-out", "store a stream into a track") == -1)
+				 FILTER_PORTTYPE_SAMPLE))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to track");
+	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
+	filter_attach(f, p);
+
 	return 0;
 }

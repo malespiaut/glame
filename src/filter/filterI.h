@@ -173,15 +173,9 @@ struct filter_pipe {
         list_foreach(&(p)->dest_params, filter_param_t, list, parm)
 
 
-/* the global filter hash and list */
-#define hash_add_filter(filter) do { (filter)->namespace = FILTER_NAMESPACE; \
-        _hash_add(&(filter)->hash, _hash((filter)->name, FILTER_NAMESPACE)); \
-        } while (0)
-#define list_add_filter(filter) list_add(&(filter)->list, &filter_list)
-#define hash_remove_filter(filter) _hash_remove(&(filter)->hash)
-#define hash_init_filter(filter) do { (filter)->namespace = FILTER_NAMESPACE; \
-        _hash_init(&(filter)->hash); } while (0)
-#define is_hashed_filter(filter) _is_hashed(&(filter)->hash)
+/* Global filter registry (via plugin) */
+#define is_hashed_filter(filter) ((filter)->plugin != NULL)
+
 
 /* Query first input/output port descriptions and first parameter
  * description from filter.

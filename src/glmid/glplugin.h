@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.6 2000/03/27 09:19:20 richi Exp $
+ * $Id: glplugin.h,v 1.7 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -25,29 +25,24 @@
 
 #include "list.h"
 #include "glame_hash.h"
+#include "gldb_worm.h"
 
 
 typedef struct {
-	struct list_head list;
-	const char *path;
-} plugin_path_t;
-
-typedef struct {
-	struct list_head list;
+	struct list_head list;   /* linkage in plugin list/hash */
 	struct hash_head hash;
 	void *namespace;
 
-	void *handle;
-	int (*reg_func)(void);
-	const char **set;
+	const char *name;        /* plugin name */
 
-	const char *name;
-	const char **description;
-	const char **pixmap;
+	void *handle;            /* dlopen handle */
+
+	/* Other than dlsym() information, "configurable".
+	 */
+	gldb_t db;
 } plugin_t;
+
 #define plugin_name(p) ((p) ? (p)->name : NULL)
-#define plugin_description(p) ((p) ? ((p)->description ? *((p)->description) : NULL) : NULL)
-#define plugin_pixmap(p) ((p) ? ((p)->pixmap ? *((p)->pixmap) : NULL) : NULL)
 
 
 #ifdef __cplusplus
@@ -65,24 +60,33 @@ int plugin_add_path(const char *path);
  * paths. Returns the plugin handle or NULL on error. */
 plugin_t *plugin_get(const char *name);
 
-/* Gets a non-standard symbol from the plugin shared object. Can
- * return NULL, if the symbol was not found or the value of the
- * symbol is NULL. */
-void *plugin_get_symbol(plugin_t *p, const char *symbol);
-
-/* Add a plugin manually. */
-plugin_t *plugin_add(const char *name, const char *description,
-		     const char *pixmap);
+/* Create and add a plugin manually. */
+plugin_t *plugin_add(const char *name);
 
 
-/* convenience macros for plugins to define their
- * - set
- * - description
- * - pixmap
- */
+/* Set plugin key/value pair. */
+int plugin_set(plugin_t *p, const char *key, void *val);
+
+/* Gets a information from the plugin shared object by key. Can
+ * return NULL, if the information was not found or the value of the
+ * information is NULL.
+ * As you will obviously know the actual type of the information
+ * you usually want to cast the (void *) to an appropriate type. */
+void *plugin_query(plugin_t *p, const char *key);
+
+
+/* Browse through the list of registered plugins. NULL gets
+ * the first available plugin. */
+plugin_t *plugin_next(plugin_t *plugin);
+
+
+/* Macro to create the plugin set symbol & value. */
 #define PLUGIN_SET(name, pset) char *name ## _set = pset;
-#define PLUGIN_DESCRIPTION(name, desc) char *name ## _description = desc;
-#define PLUGIN_PIXMAP(name, filename) char *name ## _pixmap = filename;
+
+/* Standard db entry keys. */
+#define PLUGIN_DESCRIPTION "desc"
+#define PLUGIN_PIXMAP "pixmap"
+#define PLUGIN_FILTER "filter"
 
 
 #ifdef __cplusplus

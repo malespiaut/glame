@@ -134,13 +134,11 @@ static int pan_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
 	return err;
 }
 	
-PLUGIN_DESCRIPTION(pan, "Place mono stream in stereo field")
-PLUGIN_PIXMAP(pan, "default.xpm")
 
 /* Most other filters try to avoid explicit reference to 'left' and 'right'
  * ports. Not so with pan, as it is tailor-made for stereo needs.
  */
-int pan_register()
+int pan_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -153,12 +151,12 @@ int pan_register()
 	                          FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f, "pan", 
 	                         "position in stereo field [-pi/2, pi/2]", 
-				 FILTER_PARAMTYPE_FLOAT)
-	    || filter_add(f, "pan", 
-	                  "Positions a mono audio stream in the stereo field"))
+				 FILTER_PARAMTYPE_FLOAT))
 		return -1;
-
 	f->fixup_param = pan_fixup_param;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
+	filter_attach(f, p);
 	
 	return 0;
 }

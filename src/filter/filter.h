@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.47 2000/04/17 09:46:47 richi Exp $
+ * $Id: filter.h,v 1.48 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -44,6 +44,7 @@
 #include "list.h"
 #include "atomic.h"
 #include "sem.h"
+#include "glplugin.h"
 
 
 struct filter;
@@ -81,12 +82,7 @@ typedef struct filter_buffer filter_buffer_t;
  */
 #define FILTER_FLAG_NETWORK 1
 struct filter {
-	struct list_head list;
-	struct hash_head hash;
-	void *namespace;
-
-	const char *name;
-	const char *description;
+	plugin_t *plugin;
 
 	int flags;
 
@@ -203,20 +199,11 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterparamdesc_list_labels(pd) ((pd)->u.list.labels)
 #define filterparamdesc_list_setlabels(pd, l) ((pd)->u.list.labels = (l))
 
-/* Adds the filter to the filter database using name and
- * description. */
-int filter_add(filter_t *filter, const char *name, const char *description);
 
-/* Browse the list of registered filters. if f is NULL gives first
- * filter. */
-filter_t *filter_next(filter_t *f);
+/* Attach a filter to a plugin.
+ */
+void filter_attach(filter_t *, plugin_t *);
 
-/* Find a named filter.
- * filter_t *filter_get(const char *name); */
-#define filter_get(n) \
-	__hash_entry(_hash_find((n), FILTER_NAMESPACE, _hash((n), \
-		     FILTER_NAMESPACE), __hash_pos(filter_t, hash, name, \
-                     namespace)), filter_t, hash)
 
 /* Browse/find a input/output port description.
  * filter_portdesc_t *filter_get_inputdesc(filter_t *f, const char *label);

@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.1 2000/03/27 12:08:31 richi Exp $
+ * $Id: pipe.c,v 1.2 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -127,9 +127,7 @@ static int pipe_connect_out(filter_node_t *source, const char *port,
 	return 0;
 }
 
-PLUGIN_DESCRIPTION(pipe_in, "pipe input")
-PLUGIN_PIXMAP(pipe_in, "default.png")
-int pipe_in_register()
+int pipe_in_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_paramdesc_t *d;
@@ -146,8 +144,9 @@ int pipe_in_register()
 		return -1;
 	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
 	f->connect_out = pipe_connect_out;
-	if (filter_add(f, "pipe-in", "pipe input") == -1)
-		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "pipe input");
+	filter_attach(f, p);
 
 	return 0;
 }

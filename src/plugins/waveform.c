@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.5 2000/04/05 16:10:32 nold Exp $
+ * $Id: waveform.c,v 1.6 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -160,9 +160,7 @@ static int sine_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(sine, "sine signal")
-PLUGIN_PIXMAP(sine, "default.xpm")
-int sine_register()
+int sine_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -172,8 +170,10 @@ int sine_register()
 	    || !filter_add_param(f, "frequency", "sine frequency in Hz",
 				 FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	if (filter_add(f, "sine", "generate sine test signal") == -1)
-		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
+	filter_attach(f, p);
+
 	return 0;
 }
 
@@ -223,9 +223,7 @@ static int const_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(const, "constant signal")
-PLUGIN_PIXMAP(const, "default.xpm")
-int const_register()
+int const_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -233,8 +231,9 @@ int const_register()
 	    || !filter_add_param(f, "value", "signal value",
 				 FILTER_PARAMTYPE_SAMPLE))
 		return -1;
-	if (filter_add(f, "const", "generate constant signal") == -1)
-		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
+	filter_attach(f, p);
 
 	return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.20 2000/04/18 17:33:23 xwolf Exp $
+ * $Id: canvas.c,v 1.21 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -594,7 +594,7 @@ handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 void
 create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 {
-	filter_t*filter =  filter_get(f->caption);
+	filter_t *filter = f->filter;
 	filter_portdesc_t * port;
 	GlameCanvasPort *item;
 //	GtkTooltips* tt;

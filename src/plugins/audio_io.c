@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.15 2000/04/11 16:39:30 nold Exp $
+ * $Id: audio_io.c,v 1.16 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -43,7 +43,6 @@
  *         stick with a little code duplication for now.
  */
 
-PLUGIN_DESCRIPTION(audio_io, "filter set for audio support")
 PLUGIN_SET(audio_io, "audio_out audio_in")
 
 /* Generic versions of filter methods. Called from various low-level
@@ -158,13 +157,16 @@ static int aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
 }
 /* Clumsy try to clean up the register mess a bit. */
 
-static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
+static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_node_t *))
 {
 	filter_t *filter;
 	filter_portdesc_t *p;
 	filter_paramdesc_t *dur, *pos;
 
 	if (!f)
+		return -1;
+
+	if (!pl && !(pl = plugin_add(name)))
 		return -1;
 
 	if (!(filter = filter_alloc(f)) ||
@@ -188,17 +190,20 @@ static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 	filter->connect_out = aio_generic_connect_out;
 	filter->fixup_param = aio_generic_fixup_param;
 
-	if (filter_add(filter, name, "record stream") == -1)
-		return -1;
+	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
+	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
+	filter_attach(filter, pl);
 
 	return 0;
 }
 			
-static int aio_generic_register_output(char *name, int (*f)(filter_node_t *)) 
+static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_node_t *)) 
 {
 	filter_t *filter;
 	
 	if (!f)
+		return -1;
+	if (!pl && !(pl = plugin_add(name)))
 		return -1;
 	
 	if (!(filter=filter_alloc(f)) ||
@@ -211,8 +216,9 @@ static int aio_generic_register_output(char *name, int (*f)(filter_node_t *))
 	filter->connect_in = aio_generic_connect_in;
 	filter->fixup_pipe = aio_generic_fixup_pipe;
 
-	if (filter_add(filter, name, "playback stream") == -1)
-		return -1;
+	plugin_set(pl, PLUGIN_DESCRIPTION, "playback stream");
+	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
+	filter_attach(filter, pl);
 
 	return 0;
 }
@@ -1129,40 +1135,36 @@ _entry:
  * directly.
  */
 
-PLUGIN_DESCRIPTION(audio_out, "audio output");
-PLUGIN_PIXMAP(audio_out, "bla.png");
-int audio_out_register()
+int audio_out_register(plugin_t *p)
 {
 	int (*audio_out)(filter_node_t *);
 
 	audio_out = NULL;
 
 #if defined HAVE_OSS
-	if (!aio_generic_register_output("oss-audio-out", oss_audio_out_f))
+	if (!aio_generic_register_output(NULL, "oss-audio-out", oss_audio_out_f))
 		audio_out = oss_audio_out_f;
 #endif
 #if defined HAVE_ALSA
-	if (!aio_generic_register_output("alsa-audio-out", alsa_audio_out_f))
+	if (!aio_generic_register_output(NULL, "alsa-audio-out", alsa_audio_out_f))
 		audio_out = alsa_audio_out_f;
 #endif 
 #if defined HAVE_ESD
-	if (!aio_generic_register_output("esd-audio-out", esd_out_f)) 
+	if (!aio_generic_register_output(NULL, "esd-audio-out", esd_out_f)) 
 		audio_out = esd_out_f;
 #endif
 #if defined HAVE_SGIAUDIO
-	if (!aio_generic_register_output("sgi-audio-out", sgi_audio_out_f)) 
+	if (!aio_generic_register_output(NULL, "sgi-audio-out", sgi_audio_out_f)) 
 		audio_out = sgi_audio_out_f;
 #endif
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
 
-	return aio_generic_register_output("audio-out", audio_out);
+	return aio_generic_register_output(p, "audio-out", audio_out);
 }
 
-PLUGIN_DESCRIPTION(audio_in, "audio input");
-PLUGIN_PIXMAP(audio_in, "bla.png");
-int audio_in_register()
+int audio_in_register(plugin_t *p)
 {
 	int (*audio_in)(filter_node_t *);
 
@@ -1175,7 +1177,7 @@ int audio_in_register()
 	/* TODO */
 #endif 
 #if defined HAVE_ESD
-	if (!aio_generic_register_input("esd-audio-in", esd_in_f))
+	if (!aio_generic_register_input(NULL, "esd-audio-in", esd_in_f))
 		audio_in = esd_in_f;
 #endif
 #if defined HAVE_SGIAUDIO
@@ -1185,5 +1187,5 @@ int audio_in_register()
 	/* TODO */
 #endif
 
-	return aio_generic_register_input("audio-in", audio_in);
+	return aio_generic_register_input(p, "audio-in", audio_in);
 }

@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.7 2000/04/05 09:00:32 richi Exp $
+ * $Id: echo.c,v 1.8 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -170,9 +170,7 @@ static int echo_f(filter_node_t *n)
 }
 
 
-PLUGIN_DESCRIPTION(echo, "echo effect")
-PLUGIN_PIXMAP(echo, "ear.xpm")
-int echo_register()
+int echo_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_paramdesc_t *d;
@@ -188,8 +186,9 @@ int echo_register()
 		    		FILTER_PARAMTYPE_FLOAT))
 		return -1;
 	filterparamdesc_float_settype(d, FILTER_PARAM_FLOATTYPE_TIME_MS);
-	if (filter_add(f, "echo", "echo effect") == -1)
-		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "echo effect");
+	filter_attach(f, p);
 
 	return 0;
 }

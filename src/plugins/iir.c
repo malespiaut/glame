@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.3 2000/04/06 14:28:31 richi Exp $
+ * $Id: iir.c,v 1.4 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -374,10 +374,7 @@ entry:
 }
 
 
-PLUGIN_DESCRIPTION(iir, "iir effect")
-PLUGIN_PIXMAP(iir, "iir.xpm")
-
-int iir_register()
+int iir_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -391,8 +388,10 @@ int iir_register()
 	    || !filter_add_param(f,"cutoff","cutoff frequency (0..0.5)",FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f,"ripple","percent ripple",FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	if (filter_add(f, "iir", "iir effect") == -1)
-		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "iir effect");
+	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	filter_attach(f, p);
 
 	return 0;
 }

@@ -402,21 +402,6 @@ SCM gls_filternetwork_terminate(SCM s_net)
 	return SCM_UNSPECIFIED;
 }
 
-/* for testing */
-SCM gls_filter_get(SCM s_name)
-{
-        filter_t *f;
-	char *name;
-	int namel;
-
-	name = gh_scm2newstr(s_name, &namel);
-	f = filter_get(name);
-	free(name);
-	if (!f)
-		return SCM_BOOL_F;
-	return gh_pointer2scm(f);
-}
-
 SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 				SCM s_label, SCM s_desc)
 {
@@ -490,19 +475,22 @@ SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
 {
 	filter_network_t *net;
 	filter_t *f;
+	plugin_t *p;
 	char *name, *desc;
-	int namel, descl, res;
+	int namel, descl;
 
 	net = gh_scm2pointer(s_net);
 	if (!(f = filter_from_network(net)))
 		return SCM_BOOL_F;
 	name = gh_scm2newstr(s_name, &namel);
+	if (!(p = plugin_add(name))) {
+		free(name);
+		return SCM_BOOL_F;
+	}
 	desc = gh_scm2newstr(s_desc, &descl);
-	res = filter_add(f, name, desc);
+	plugin_set(p, PLUGIN_DESCRIPTION, desc);
 	free(name);
 	free(desc);
-	if (res == -1)
-		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
@@ -553,33 +541,6 @@ SCM gls_plugin_name(SCM s_p)
 	return gh_str02scm((char *)plugin_name(p));
 }
 
-SCM gls_plugin_description(SCM s_p)
-{
-	plugin_t *p;
-
-	p = gh_scm2pointer(s_p);
-	return gh_str02scm((char *)plugin_description(p));
-}
-
-SCM gls_plugin_add(SCM s_name, SCM s_description, SCM s_pixmap)
-{
-	plugin_t *p;
-	char *name, *description, *pixmap;
-	int namel, descriptionl, pixmapl;
-
-	name = gh_scm2newstr(s_name, &namel);
-	description = gh_scm2newstr(s_description, &descriptionl);
-	pixmap = gh_scm2newstr(s_pixmap, &pixmapl);
-	p = plugin_add(name, descriptionl == 0 ? NULL : description,
-		       pixmapl == 0 ? NULL : pixmap);
-	free(name);
-	free(description);
-	free(pixmap);
-
-	if (!p)
-		return SCM_BOOL_F;
-	return gh_pointer2scm(p);
-}
 
 /* The scriptable track API part.
  */
@@ -668,16 +629,12 @@ int glscript_init()
 			 gls_filternetwork_add_param, 5, 0, 0);
 	gh_new_procedure("filternetwork_to_string",
 			 gls_filternetwork_to_string, 1, 0, 0);
-	gh_new_procedure("filter_get", gls_filter_get, 1, 0, 0);
 
 	/* plugin */
 	gh_new_procedure("plugin_add_path", gls_plugin_add_path,
 			 1, 0, 0);
 	gh_new_procedure("plugin_get", gls_plugin_get, 1, 0, 0);
 	gh_new_procedure("plugin_name", gls_plugin_name, 1, 0, 0);
-	gh_new_procedure("plugin_description", gls_plugin_description,
-			 1, 0, 0);
-	gh_new_procedure("plugin_add", gls_plugin_add, 3, 0, 0);
 
 	/* track */
 	gh_new_procedure("track_get", gls_track_get, 2, 0, 0);

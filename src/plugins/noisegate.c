@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.4 2000/04/07 14:06:50 nold Exp $
+ * $Id: noisegate.c,v 1.5 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -119,13 +119,10 @@ static int noisegate_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(noisegate,"noisegate effect")
-PLUGIN_PIXMAP(noisegate, "bitfence.xpm")
 
-int noisegate_register()
+int noisegate_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *p;
 	
 	if (!(f = filter_alloc(noisegate_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
@@ -136,9 +133,12 @@ int noisegate_register()
 	    || !filter_add_param(f,"threshold_off","if input > threshold_off noisegate is turned off",FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f,"hold","Hold Time[ms]",FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f,"attack","Attack Time[ms]",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_FLOAT)
-	    || filter_add(f, "noisegate", "The noisegate filters all signals that are below the threshold") == -1)
+	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_FLOAT))
 		return -1;
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "noisegate filters all signals that are below the threshold");
+	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
+	filter_attach(f, p);
 	
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.22 2000/04/07 14:06:50 nold Exp $
+ * $Id: file_io.c,v 1.23 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -324,9 +324,7 @@ static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 }
 
 
-PLUGIN_DESCRIPTION(read_file, "read a file")
-PLUGIN_PIXMAP(read_file, "default.xpm")
-int read_file_register()
+int read_file_register(plugin_t *pl)
 {
 	filter_t *f;
 	filter_portdesc_t *p;
@@ -346,14 +344,15 @@ int read_file_register()
 	f->cleanup = rw_file_cleanup;
 	f->connect_out = read_file_connect_out;
 	f->fixup_param = read_file_fixup_param;
-	if (filter_add(f, "read-file", "Generic file read filter") == -1)
-		return -1;
+
+	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
+	plugin_set(pl, PLUGIN_PIXMAP, "default.png");
+	filter_attach(f, pl);
+
 	return 0;
 }
 
-PLUGIN_DESCRIPTION(write_file, "write a file")
-PLUGIN_PIXMAP(write_file, "default.xpm")
-int write_file_register()
+int write_file_register(plugin_t *pl)
 {
 	filter_t *f;
 	filter_portdesc_t *p;
@@ -369,8 +368,11 @@ int write_file_register()
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
 	f->fixup_param = write_file_fixup_param;
-	if (filter_add(f, "write-file", "Generic file write filter") == -1)
-		return -1;
+
+	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
+	plugin_set(pl, PLUGIN_PIXMAP, "default.xpm");
+	filter_attach(f, pl);
+
 	return 0;
 }
 

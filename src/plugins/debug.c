@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.2 2000/03/20 09:51:53 richi Exp $
+ * $Id: debug.c,v 1.3 2000/04/25 08:58:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,7 +27,6 @@
 #include "glplugin.h"
 
 
-PLUGIN_DESCRIPTION(debug, "filters for debugging purposes (ping)");
 PLUGIN_SET(debug, "ping");
 
 
@@ -102,9 +101,7 @@ static int ping(filter_node_t *n)
 	return 0;
 }
 
-PLUGIN_DESCRIPTION(ping, "ping filter to measure latencies");
-PLUGIN_PIXMAP(ping, "debug.png");
-int ping_register()
+int ping_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -115,8 +112,10 @@ int ping_register()
 				  FILTER_PORTTYPE_MISC)
 	    || !filter_add_param(f, "cnt", "count", FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f, "dt", "delay time", FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f, "size", "buffer size", FILTER_PARAMTYPE_INT)
-	    || filter_add(f, "ping", "ping") == -1)
+	    || !filter_add_param(f, "size", "buffer size", FILTER_PARAMTYPE_INT))
 		return -1;
+
+	filter_attach(f, p);
+
 	return 0;
 }
