@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.55 2005/03/06 21:35:58 richi Exp $
+ * $Id: importexport.c,v 1.56 2005/03/10 21:06:20 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -346,10 +346,6 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		gettimeofday(&tv, NULL);
 		snprintf(msg, 256, _("Importing... %.3lf ksamples/s"),
 			 ((double)(ie->mad_pos+pcm->length)/(tv.tv_sec - ie->start_time.tv_sec + (tv.tv_usec - ie->start_time.tv_usec)/1000000.0)/1000.0));
-		// for gnuplot graph
-		printf("%.3lf\t%li\n",
-		       (tv.tv_sec - ie->start_time.tv_sec + (tv.tv_usec - ie->start_time.tv_usec)/1000000.0),
-		       (long)(ie->mad_pos+pcm->length));
 		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), msg);
 		gtk_progress_bar_pulse(gnome_appbar_get_progress(
 			GNOME_APPBAR(ie->appbar)));
@@ -405,7 +401,7 @@ static void ie_import_mp3(struct imp_s *ie)
 	munmap(ie->mad_buffer, s.st_size);
 	close(fd);
 
-	if (result == 0) {
+	if (result == 0 && ie->item) {
 		gpsm_item_t *item;
 		gpsm_grp_foreach_item(ie->item, item)
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
