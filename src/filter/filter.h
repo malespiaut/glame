@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.53 2000/05/04 09:53:23 richi Exp $
+ * $Id: filter.h,v 1.54 2000/05/22 10:55:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -398,7 +398,7 @@ do { \
  */
 #ifndef DEBUG
 #define fbuf_size(fb) ((fb)==NULL ? 0 : (fb)->size)
-#define fbuf_buf(fb) (&(fb)->buf[0])
+#define fbuf_buf(fb) ((fb)==NULL ? NULL : &(fb)->buf[0])
 #else
 static inline int fbuf_size(filter_buffer_t *fb)
 {
@@ -410,6 +410,8 @@ static inline int fbuf_size(filter_buffer_t *fb)
 }
 static inline char *fbuf_buf(filter_buffer_t *fb)
 {
+	if (!fb)
+		return NULL;
 	if (ATOMIC_VAL(fb->refcnt) == 0)
 		DERROR("no buffer reference for fbuf_buf");
 	return &fb->buf[0];

@@ -85,6 +85,7 @@ static inline int nto1_tail(nto1_state_t *I, int nr)
 		if (!I[i].in)
 			continue;
 		if (sbuf_size(I[i].buf) == I[i].pos) {
+			sbuf_unref(I[i].buf);
 			I[i].buf = sbuf_get(I[i].in);
 			I[i].s = sbuf_buf(I[i].buf);
 			I[i].pos = 0;

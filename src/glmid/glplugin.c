@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.15 2000/05/20 12:32:22 richi Exp $
+ * $Id: glplugin.c,v 1.16 2000/05/22 10:55:05 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -215,8 +215,10 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 {
 	/* First try to open the specified shared object. */
-	if (!(p->handle = dlopen(filename, RTLD_NOW)))
+	if (!(p->handle = dlopen(filename, RTLD_NOW))) {
+		fprintf(stderr, "dlopen(%s): %s\n", filename, dlerror());
 		return -1;
+	}
 
 	/* Then in the order stated below try to init it as plugin
 	 * of the specified type (GLAME & LADSPA supported for now. */

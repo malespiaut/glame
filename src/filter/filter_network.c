@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.49 2000/05/19 09:27:34 richi Exp $
+ * $Id: filter_network.c,v 1.50 2000/05/22 10:55:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -53,6 +53,7 @@ static void *waiter(void *network)
 	net->node.ops->postprocess(&net->node);
 	_launchcontext_free(net->launch_context);
 	net->launch_context = NULL;
+	DPRINTF("finished\n");
 
 	return (void *)res;
 }

@@ -133,9 +133,8 @@ static int ladspa_f(filter_node_t * n)
 	/* Lookup the control value. */
 	psParam = filternode_get_param(n,
 				       psDescriptor->PortNames[lPortIndex]);
-	if (!psParam)
-	  FILTER_ERROR_RETURN("LADSPA plugins require all "
-			      "parameters be set");
+	/* psParam == NULL does not happen if params were registered
+	 * appropriately. [richi] */
 	pfControlValues[lPortIndex] = filterparam_val_float(psParam);
       }
       /* We now need to wire up the control port on the LADSPA plugin
@@ -173,6 +172,9 @@ static int ladspa_f(filter_node_t * n)
   if (psDescriptor->activate)
     psDescriptor->activate(psLADSPAPluginInstance);
 
+/* LADSPA plugins seem not to handle running out of data on one
+ * input only, so the check nto1_tail() == 0 seems correct _if_
+ * we do a simple "drop" loop after the main loop. */
   while (nto1_tail(psNTo1_State, iNTo1_NR) == 0) {
 
     FILTER_CHECK_STOP;
@@ -271,15 +273,12 @@ static int ladspa_f(filter_node_t * n)
 #endif
 
     }
-
-    /* FIXME: In my opinion this code should be in nto1_tail() rather
-       than here. */
-    for (iNTo1_Index = 0; iNTo1_Index < iNTo1_NR; iNTo1_Index++)
-      if (sbuf_size(psNTo1_State[iNTo1_Index].buf)
-	  == psNTo1_State[iNTo1_Index].pos)
-	sbuf_unref(psNTo1_State[iNTo1_Index].buf);
   }
 
+  /* FIXME! need to drop remaining input buffers on still active
+   * ports! */
+
+  /* Queue EOF's */
   for (lPortIndex = 0; lPortIndex < lPortCount; lPortIndex++) {
     iPortDescriptor = psDescriptor->PortDescriptors[lPortIndex];
     if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)
