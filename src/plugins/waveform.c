@@ -1,8 +1,9 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.21 2001/05/09 23:01:18 mag Exp $
+ * $Id: waveform.c,v 1.22 2001/05/10 09:15:33 nold Exp $
  *
- * Copyright (C) 1999, 2000 Alexander Ehlert
+ * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
+ *                         Daniel Kobras, Stuart Purdie
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +25,9 @@
  * - sine
  * - const
  * - rect
+ * - ramp
+ * - saw
+ * - noise
  * - pulse
  *
  * The waveform filters should only generate "one" buffer which can then
@@ -53,8 +57,10 @@ static int waveform_connect_out(filter_t *n, filter_port_t *port,
 	int rate;
 	float pos;
 
-	rate = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate"));
-	pos = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position"));
+	rate = filterparam_val_int(filterparamdb_get_param(
+				filter_paramdb(n), "rate"));
+	pos = filterparam_val_float(filterparamdb_get_param(
+				filter_paramdb(n), "position"));
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
 }
@@ -67,14 +73,15 @@ static void waveform_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	GLSIGH_GETARGS1(va, param);
 	n = filterparam_filter(param);
 
-	if ((out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT)))) {
+	if ((out = filterport_get_pipe(filterportdb_get_port(
+					filter_portdb(n), PORTNAME_OUT)))) {
 		waveform_connect_out(n, NULL, out);
 		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	}
 }
 
-/* Standard waveform register. Does add the output port and the parameters "rate"
- * and "position". Also inits the methods.
+/* Standard waveform register. Does add the output port and the parameters
+ * "rate" and "position". Also inits the methods.
  */
 static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 {
@@ -88,11 +95,13 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 			      FILTERPORT_DESCRIPTION, "waveform output stream",
 			      FILTERPORT_END);
 	filterparamdb_add_param_int(filter_paramdb(f), "rate", 
-				    FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
-				    FILTERPARAM_END);
+	                            FILTER_PARAMTYPE_INT,
+	                            GLAME_DEFAULT_SAMPLERATE,
+	                            FILTERPARAM_END);
 	filterparamdb_add_param_float(filter_paramdb(f), "position", 
-				      FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
-				      FILTERPARAM_END);
+	                              FILTER_PARAMTYPE_POSITION,
+	                              FILTER_PIPEPOS_DEFAULT,
+	                              FILTERPARAM_END);
 
 	f->f = fm;
 	f->connect_out = waveform_connect_out;
@@ -105,7 +114,8 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 /* Helpers. */
 static int waveform_get_rate(filter_t *n)
 {
-	return filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate"));
+	return filterparam_val_int(filterparamdb_get_param(
+				filter_paramdb(n), "rate"));
 }
 
 
@@ -120,15 +130,18 @@ static int sine_f(filter_t *n)
 	float freq;
 	int rate, i, size;
 	
-	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
+	if (!(out = filterport_get_pipe(filterportdb_get_port(
+					filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	/* globals */
 	rate = waveform_get_rate(n);
 
 	/* parameters for sine */
-	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
-	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+	ampl = filterparam_val_sample(filterparamdb_get_param(
+				filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_float(filterparamdb_get_param(
+				filter_paramdb(n), "frequency"));
 
 	/* FIXME: we should try to eliminate sampling frequency errors
 	 * by finding optimal size. And we should at least fill a minimum
@@ -195,7 +208,8 @@ static int const_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for const */
-	val = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "value"));
+	val = filterparam_val_sample(filterparamdb_get_param(
+				filter_paramdb(n), "value"));
 
 	/* we will generate one buffer with 0.1 sec samples. */
 	size = GLAME_WBUFSIZE;
@@ -262,9 +276,10 @@ static int rect_f(filter_t *n)
 	buf = sbuf_alloc(size, n);
 	buf = sbuf_make_private(buf);
 
-	/* You might think the following code is a bit weird/slow for creating a rectangular wave,
-	 * but sampling rate is integer and the blocksize real. This way the code generates a
-	 * rectangle of variable length and thereby getting closer to the desired frequency.
+	/* You might think the following code is a bit weird/slow for creating
+	 * a rectangular wave, but sampling rate is integer and the blocksize
+	 * real. This way the code generates a rectangle of variable length and
+	 * thereby getting closer to the desired frequency.
 	 */
 	
 	blocks = 0;
@@ -396,9 +411,10 @@ static int saw_f(filter_t *n)
 	buf = sbuf_alloc(size, n);
 	buf = sbuf_make_private(buf);
 
-	/* You might think the following code is a bit weird/slow for creating a rectangular wave,
-	 * but sampling rate is integer and the blocksize real. This way the code generates a
-	 * rectangle of variable length and thereby getting closer to the desired frequency.
+	/* You might think the following code is a bit weird/slow for creating
+	 * a triangular wave, but sampling rate is integer and the blocksize
+	 * real. This way the code generates a triangle of variable length and
+	 * thereby getting closer to the desired frequency.
 	 */
 	
 	s = sbuf_buf(buf);
@@ -469,8 +485,8 @@ static int noise_f(filter_t *n)
 	buf = sbuf_alloc(rate, n);
 	buf = sbuf_make_private(buf);
 
-	/* It's probably not the best swishy dishy super mathematical noise yet, 
-	 * but it's noise :) just noise dunno which color though.. */
+	/* It's probably not the best swishy dishy super mathematical noise
+	 * yet, but it's noise :) just noise dunno which color though.. */
 
 	s = sbuf_buf(buf);
 	gain = ampl*2.0/RAND_MAX;
@@ -536,9 +552,6 @@ static int pulse_f(filter_t *n)
 		FILTER_ERROR_RETURN("no output port");
 
 	rate = filterpipe_sample_rate(out);
-	if (rate == 0.0)
-		FILTER_ERROR_RETURN("rate = 0.0 !");
-
 	dt = 1000.0/rate;
 
 	t_on = filterparam_val_float(
@@ -647,32 +660,37 @@ static int pulse_connect_out(filter_t *src, filter_port_t *out,
 }
 
 
-static void pulse_fixup_param(glsig_handler_t *h, long sig, va_list va)
+static int pulse_set_param(filter_t *n, filter_param_t *param,
+                            const void *val)
 {
-	filter_t *n;
-	filter_param_t *param;
 	filter_pipe_t *out;
 	int rate;	
 	
-	GLSIGH_GETARGS1(va, param);
-	n = filterparam_filter(param);
+	if (strcmp("rate", filterparam_label(param)))
+		goto done;
+
+	rate = *((int *) val);
+	if (rate <= 0)
+		return -1;
+	
 	out = filterport_get_pipe(filterportdb_get_port(
 		filter_portdb(n), "out"));
 	
+	/* Not yet connected. Parameter is valid, connect out will do
+	 * the fixup.
+	 */
 	if (!out)
-		return;
+		goto done;
 
-	if (strcmp("rate", filterparam_label(param)))
-		return;
-
-	rate = filterparam_val_int(param);
-	
 	if (rate == filterpipe_sample_rate(out))
-		return;
+		goto done;
 	
 	filterpipe_settype_sample(out, rate, 0.0);
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+done:	
+	return 0;
 }
+
 
 int pulse_register(plugin_t *p)
 {
@@ -718,8 +736,7 @@ int pulse_register(plugin_t *p)
 
 	f->f = pulse_f;
 	f->connect_out = pulse_connect_out;
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, pulse_fixup_param,
-	                  NULL);
+	f->set_param = pulse_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generates a single ramp or pulse signal");
 	plugin_set(p, PLUGIN_PIXMAP, "pulse.png");
