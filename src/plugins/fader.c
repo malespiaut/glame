@@ -1,6 +1,6 @@
 /*
  * fade.c
- * $Id: fader.c,v 1.2 2001/06/13 10:30:40 mag Exp $
+ * $Id: fader.c,v 1.3 2001/06/13 12:54:28 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -138,6 +138,7 @@ int fadein_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "do a linear volume" 
 			" envelope for selection");
   	plugin_set(p, PLUGIN_GPSMOP, fadein_gpsm);
+	plugin_set(p, PLUGIN_LABEL, "Fade In");
 	return 0;
 }
 
@@ -147,5 +148,6 @@ int fadeout_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "do a linear volume" 
 			" envelope for selection");
   	plugin_set(p, PLUGIN_GPSMOP, fadeout_gpsm);
+	plugin_set(p, PLUGIN_LABEL, "Fade Out");
 	return 0;
 }
