@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.19 2003/04/15 19:36:53 richi Exp $
+ * $Id: glame_accelerator.c,v 1.20 2003/05/25 16:42:25 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -189,6 +189,7 @@ static int add_accels(const char *scope, xmlNodePtr node)
 			if (!spec)
 				return -1;
 			desc = xmlGetProp(node, "desc");
+			desc = desc ? _(desc) : _("No description");
 			action = xmlNodeGetContent(node);
 			if (!action || strlen(action) == 0)
 				return -1;
