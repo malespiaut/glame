@@ -1,0 +1,49 @@
+The following list contains a summary of all known bugs/caveats/missing
+features you may run into and some help how to survive in these cases.
+
+- Its not a good idea to have the glame swapfile reside on a non-local
+  disk (like in your NFS mounted home) because of performace limitations.
+  As the default location set by the gui is ~/.glameswap you should change
+  that to something more reasonable (Settings/Preferences...) if your
+  home is not local.
+
+- cglame is not really up-to-date with the gpsm midlayer (read: it does
+  not know about the metadata the gui deals with) - this will be fixed
+  in a future release.
+
+- Even with --enable-low-latency GLAME is not really a real-time capable
+  synthesizer (though you're able to use GLAME as an effect generator
+  while playing guitar).
+
+- There exist some broken audio hardware or broken drivers - to name a few
+  we stomped over: the ISA soundblaster cards dont seem to be good enough
+  to allow recording in GLAME, the via8cxxx_driver in the linux kernel has
+  problems recording mono
+
+- If the online-help does not work you either need to install gnome-help
+  or put the path to the glame .info documentation into your gnome-helps
+  documentation path
+
+- There seems to be a rather large memleak either in the fft plugin or in
+  the libfftw used - but its only temporary during the plugin running.
+
+- BSD has not sufficient threads support builtin so you need to install
+  the linuxthreads package. Simple test for this is to issue
+  cglame> (test-latency 5)
+  within cglame. If it returns to the command line everything is fine -
+  if it hangs forever thread support is broken.
+
+- The pipe_in/pipe_out plugins (and the derived read-mp3.scm filter)
+  crash on most systems due to either pthread limitations or pthread
+  or libc bugs (we need to trace this) - if you're lucky, it might work
+  for you (it did for us long time ago...).
+
+- If glame panics this could be a glame bug (as usually panics are "this
+  should not happen" things) - we're interested in reports of such
+  occasions, especially if its reproducable. Please include a description
+  on how to reproduce it and the output from glame or cglame (preferrably
+  compiled with --enable-debug). In case the panicing location is inside
+  the swapfile code there may be an external source corrupting the swapfile
+  - just restart glame in this case and it will try to recover (can you
+  say fsck?).
+
