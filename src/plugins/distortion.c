@@ -1,7 +1,7 @@
 /*
  * distortion.c
  *
- * $Id: distortion.c,v 1.14 2004/10/23 13:09:29 richi Exp $ 
+ * $Id: distortion.c,v 1.15 2004/11/07 23:13:56 richi Exp $ 
  *
  * Copyright (C) 2001, 2002 Alexander Ehlert
  *
@@ -289,35 +289,12 @@ int distortion_register(plugin_t *p)
 "<?xml version=\"1.0\" standalone=\"no\"?>"
 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
 "<glade-interface>"
-"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"    <widget class=\"GtkComboBox\" id=\"widget\">"
 "      <property name=\"visible\">True</property>"
 "      <property name=\"can_focus\">True</property>"
-"      <property name=\"history\">0</property>"
-"      <child>"
-"        <widget class=\"GtkMenu\" id=\"menu1\">"
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"half1\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Half Wave rectifier</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"          <child>"
-"            <widget class=\"GtkMenuItem\" id=\"full1\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Full Wave rectifier</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"          <child>"
-"            <widget class=\"GtkMenuItem\" id=\"sinus1\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Sinusoider</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"        </widget>"
-"      </child>"
+"      <property name=\"items\" translatable=\"yes\">Half Wave rectifier\n"
+"Full Wave rectifier\n"
+"Sinusoider</property>"
 "    </widget>"
 "</glade-interface>",
 	FILTERPARAM_END);

@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.29 2004/11/07 22:41:33 richi Exp $
+ * $Id: glame_param.c,v 1.30 2004/11/07 23:13:57 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -315,6 +315,9 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		}
 		if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_long(param));
+		} else if (GTK_IS_COMBO_BOX(gparam->u.widget)) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(gparam->u.widget),
+						 filterparam_val_long(param));
 		} else if (GTK_IS_RANGE(gparam->u.widget)) {
 			gparam->u.adj = gtk_range_get_adjustment(GTK_RANGE(gparam->u.widget));
 		} else if (GTK_IS_KNOB(gparam->u.widget)) {
