@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.12 2000/12/07 16:07:03 richi Exp $
+ * $Id: glplugin.h,v 1.13 2000/12/11 10:44:41 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -54,6 +54,11 @@ extern "C" {
  * searched using the specified name in all paths. 
  * Returns -1 on error, 0 on success. */
 int plugin_add_path(const char *path);
+
+/* Tries to load a shared object type plugin from the specified
+ * location and registers all contained plugins if possible.
+ * Returns 0 on successful load, -1 on failure. */
+int plugin_load(const char *filename);
 
 /* Gets the handle of the plugin with the specified name. If not
  * already loaded, the plugin will be searched using the available

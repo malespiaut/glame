@@ -24,10 +24,13 @@
 #endif
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <string.h>
 #include "glame_hash.h"
 #include "swapfile.h"
+#include "filter.h"
 #include "glplugin.h"
 
 #ifdef HAVE_GUILE
@@ -39,6 +42,25 @@ extern int glscript_init();
 /* Builtin plugins. */
 PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform "
 	   "rms basic_midi midi_io midi_debug arithmetic basicfft swapfile_io")
+
+int glame_load_plugin(const char *fname)
+{
+    	/* Shared object plugin type? Just try to load it as such, will
+	 * fail if it is not. */
+	if (plugin_load(fname) == 0)
+		return 0;
+
+#ifdef HAVE_GUILE
+	/* Scheme macro plugin type? FIXME: more sanity check before. */
+	if (strstr(fname, ".scm")) {
+		SCM s_res = gh_eval_file(fname);
+		if (gh_boolean_p(s_res) && gh_scm2bool(s_res))
+		    	return 0;
+	}
+#endif
+
+	return -1;
+}
 
 static void plugins_process_directory(const char *dir)
 {
@@ -52,17 +74,17 @@ static void plugins_process_directory(const char *dir)
 	/* Add the path to the plugin subsystem. */
 	plugin_add_path(dir);
 
-	/* Manually try to "get" every file as plugin. */
+	/* Try to load every file as plugin. */
 	while ((e = readdir(d))) {
-		/* Get the plugins basename. */
-		char *name, *p;
-		name = strdup(e->d_name);
-		if (!(p = strstr(name, ".so")))
-			continue;
-		*p = '\0';
+	    	char fname[256];
+		struct stat st;
 
-		/* Try to get the plugin. */
-		plugin_get(name);
+		snprintf(fname, 255, "%s/%s", dir, e->d_name);
+		if (stat(fname, &st) == -1)
+		    	continue;
+		if (!S_ISREG(st.st_mode) || !(st.st_mode & S_IRUSR))
+		    	continue;
+		glame_load_plugin(fname);
 	}
 
 	closedir(d);
@@ -153,4 +175,19 @@ int glame_init_with_guile(void (*main)(void))
 	main();
 
 	return 0;
+}
+
+plugin_t *glame_create_plugin(filter_t *filter, const char *name)
+{
+	plugin_t *plugin;
+
+	if (!name || !filter)
+		return NULL;
+	if (!(plugin = plugin_add(name)))
+		return NULL;
+	if (filter_register(filter, plugin) == -1) {
+		_plugin_delete(plugin);
+		return NULL;
+	}
+	return plugin;
 }

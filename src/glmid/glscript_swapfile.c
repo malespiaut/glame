@@ -303,15 +303,6 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 	return gh_long2scm(res);
 }
 
-
-static void glgh_define(const char *token, int val)
-{
-	char str[256];
-
-	snprintf(str, 255, "(define %s %i)", token, val);
-	gh_eval_str(str);
-}
-
 int glscript_init_swapfile()
 {
 	/* Register txnid, swdir and swfd SMOBs to guile. */
@@ -330,69 +321,49 @@ int glscript_init_swapfile()
 
 
 	/* Transaction subsystem procedures. */
-	gh_new_procedure("txn_start",
-			 (SCM (*)())gls_txn_start, 1, 0, 0);
-	gh_new_procedure("txn_end",
-			 (SCM (*)())gls_txn_end, 1, 0, 0);
-	gh_new_procedure("txn_abort",
-			 (SCM (*)())gls_txn_abort, 1, 0, 0);
-	gh_new_procedure("txn_undo",
-			 (SCM (*)())gls_txn_undo, 1, 0, 0);
-	gh_new_procedure("txn_delete",
-			 (SCM (*)())gls_txn_delete, 1, 0, 0);
+	gh_new_procedure1_0("txn_start", gls_txn_start);
+	gh_new_procedure1_0("txn_end", gls_txn_end);
+	gh_new_procedure1_0("txn_abort", gls_txn_abort);
+	gh_new_procedure1_0("txn_undo", gls_txn_undo);
+	gh_new_procedure1_0("txn_delete", gls_txn_delete);
 	gh_define("TXN_NONE", txnid2scm(TXN_NONE));
 
 	/* Swapfile subsystem procedures. */
-	gh_new_procedure("swapfile_open",
-			 (SCM (*)())gls_swapfile_open, 1, 0, 0);
-	gh_new_procedure("swapfile_close",
-			 (SCM (*)())gls_swapfile_close, 0, 0, 0);
-	gh_new_procedure("swapfile_creat",
-			 (SCM (*)())gls_swapfile_creat, 2, 0, 0);
+	gh_new_procedure1_0("swapfile_open", gls_swapfile_open);
+	gh_new_procedure0_0("swapfile_close", gls_swapfile_close);
+	gh_new_procedure2_0("swapfile_creat", gls_swapfile_creat);
 
-	gh_new_procedure("sw_unlink",
-			 (SCM (*)())gls_sw_unlink, 1, 0, 0);
+	gh_new_procedure1_0("sw_unlink", gls_sw_unlink);
 
-	gh_new_procedure("sw_opendir",
-			 (SCM (*)())gls_sw_opendir, 0, 0, 0);
-	gh_new_procedure("sw_readdir",
-			 (SCM (*)())gls_sw_readdir, 1, 0, 0);
-	gh_new_procedure("sw_closedir",
-			 (SCM (*)())gls_sw_closedir, 1, 0, 0);
+	gh_new_procedure0_0("sw_opendir", gls_sw_opendir);
+	gh_new_procedure1_0("sw_readdir", gls_sw_readdir);
+	gh_new_procedure1_0("sw_closedir", gls_sw_closedir);
 
-	gh_new_procedure("sw_open",
-			 (SCM (*)())gls_sw_open, 3, 0, 0);
-	gh_new_procedure("sw_close",
-			 (SCM (*)())gls_sw_close, 1, 0, 0);
-	gh_new_procedure("sw_fstat",
-			 (SCM (*)())gls_sw_fstat, 1, 0, 0);
-	gh_new_procedure("sw_ftruncate",
-			 (SCM (*)())gls_sw_ftruncate, 2, 0, 0);
-	gh_new_procedure("sw_lseek",
-			 (SCM (*)())gls_sw_lseek, 3, 0, 0);
-	gh_new_procedure("sw_sendfile",
-			 (SCM (*)())gls_sw_sendfile, 4, 0, 0);
+	gh_new_procedure3_0("sw_open", gls_sw_open);
+	gh_new_procedure1_0("sw_close", gls_sw_close);
+	gh_new_procedure1_0("sw_fstat", gls_sw_fstat);
+	gh_new_procedure2_0("sw_ftruncate", gls_sw_ftruncate);
+	gh_new_procedure3_0("sw_lseek", gls_sw_lseek);
+	gh_new_procedure4_0("sw_sendfile", gls_sw_sendfile);
 
-	gh_new_procedure("sw_read_floatvec",
-			 (SCM (*)())gls_sw_read_floatvec, 2, 0, 0);
-	gh_new_procedure("sw_read_string",
-			 (SCM (*)())gls_sw_read_string, 2, 0, 0);
-	gh_new_procedure("sw_write", (SCM (*)())gls_sw_write, 2, 0, 0);
+	gh_new_procedure2_0("sw_read_floatvec", gls_sw_read_floatvec);
+	gh_new_procedure2_0("sw_read_string", gls_sw_read_string);
+	gh_new_procedure2_0("sw_write", gls_sw_write);
 
-	glgh_define("O_CREAT", O_CREAT);
-	glgh_define("O_EXCL", O_EXCL);
-	glgh_define("O_TRUNC", O_TRUNC);
-	glgh_define("O_RDWR", O_RDWR);
-	glgh_define("O_RDONLY", O_RDONLY);
-	glgh_define("O_WRONLY", O_WRONLY);
+	gh_define("O_CREAT", gh_long2scm(O_CREAT));
+	gh_define("O_EXCL", gh_long2scm(O_EXCL));
+	gh_define("O_TRUNC", gh_long2scm(O_TRUNC));
+	gh_define("O_RDWR", gh_long2scm(O_RDWR));
+	gh_define("O_RDONLY", gh_long2scm(O_RDONLY));
+	gh_define("O_WRONLY", gh_long2scm(O_WRONLY));
 
-	glgh_define("SWSENDFILE_INSERT", SWSENDFILE_INSERT);
-	glgh_define("SWSENDFILE_CUT", SWSENDFILE_CUT);
+	gh_define("SWSENDFILE_INSERT", gh_long2scm(SWSENDFILE_INSERT));
+	gh_define("SWSENDFILE_CUT", gh_long2scm(SWSENDFILE_CUT));
 	gh_define("SW_NOFILE", swfd2scm(SW_NOFILE));
 
-	glgh_define("SEEK_SET", SEEK_SET);
-	glgh_define("SEEK_CUR", SEEK_CUR);
-	glgh_define("SEEK_END", SEEK_END);
+	gh_define("SEEK_SET", gh_long2scm(SEEK_SET));
+	gh_define("SEEK_CUR", gh_long2scm(SEEK_CUR));
+	gh_define("SEEK_END", gh_long2scm(SEEK_END));
 
 	return 0;
 }

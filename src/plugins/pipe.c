@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.11 2000/12/08 14:27:22 richi Exp $
+ * $Id: pipe.c,v 1.12 2000/12/11 10:44:42 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -183,7 +183,7 @@ int pipe_in_register(plugin_t *p)
 static int pipe_out_f(filter_t *n)
 {
 	filter_port_t *port;
-	nto1_state_t I[2] = { {NULL, NULL, NULL, 0 }, {NULL, NULL, NULL, 0 } };
+	nto1_state_t *I;
 	SAMPLE sample;
 	short *b, *bb;
 	FILE *p;
@@ -192,12 +192,11 @@ static int pipe_out_f(filter_t *n)
 
 	/* Get the pipes. */
 	port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
-	if ((nr = filterport_nrpipes(port)) < 1)
+	if ((nr = nto1_init(&I, port)) == -1)
 		FILTER_ERROR_RETURN("insufficient inputs");
-	I[0].in = filterport_get_pipe(port);
-	I[1].in = filterport_next_pipe(port, I[0].in);
-	q = 2;
-	if (I[1].in)
+	if (nr == 1)
+		q = 2;
+	else
 		q = 4;
 
 	/* Initialize the command string out of the cmd/tail parameters.
@@ -260,6 +259,7 @@ static int pipe_out_f(filter_t *n)
 
 	pclose(p);
 	free(b);
+	nto1_cleanup(I);
 
 	FILTER_RETURN;
 }

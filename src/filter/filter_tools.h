@@ -55,6 +55,27 @@ typedef struct {
 	SAMPLE *s;
 	int pos;
 } nto1_state_t;
+static inline int nto1_init(nto1_state_t **I, filter_port_t *port)
+{
+    	int nr = filterport_nrpipes(port), i;
+	filter_pipe_t *pipe;
+	if (nr == 0)
+	    	return -1;
+	if (!(*I = ALLOCN(nr, nto1_state_t)))
+		return -1;
+	i = 0;
+	filterport_foreach_pipe(port, pipe) {
+	    	(*I)[i].in = pipe;
+		(*I)[i].buf = NULL;
+		(*I)[i].s = NULL;
+		(*I)[i].pos = 0;
+	}
+	return nr;
+}
+static inline void nto1_cleanup(nto1_state_t *I)
+{
+    	free(I);
+}
 static inline int nto1_head(nto1_state_t *I, int nr)
 {
 	int cnt, i;

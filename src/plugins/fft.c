@@ -27,7 +27,11 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
-#include "srfftw.h"	/* single precision real to complex fft */
+#ifdef SAMPLE_FLOAT 
+#include "srfftw.h"	/* real to complex fft */
+#else
+#include "rfftw.h"
+#endif
 #include "pthread.h"
 #include "math.h"
 

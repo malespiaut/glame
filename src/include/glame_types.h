@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.14 2000/04/03 12:27:15 nold Exp $
+ * $Id: glame_types.h,v 1.15 2000/12/11 10:44:41 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -35,7 +35,8 @@
 #define GLAME_MAX_BUFSIZE (64*1024)
 #define GLAME_DEFAULT_SAMPLERATE 44100
 
-typedef float SAMPLE;
+/* SAMPLE is defined by config.h now.
+ * typedef float SAMPLE; */
 #define SAMPLE_SIZE sizeof(SAMPLE)
 
 /* Sigh! Why is there no portable standard for those types? */

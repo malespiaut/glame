@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.39 2000/12/08 14:56:44 richi Exp $
+ * $Id: filter.c,v 1.40 2000/12/11 10:44:41 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -308,14 +308,14 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name)
 
 
 /* I would like to have the following syntax:
- * (let* ((net (filternetwork_new))
- *        (nodename (filternetwork_add_node net "filter" "nodename")))
+ * (let* ((net (filter_creat))
+ *        (nodename (filter_add_node net (plugin_get "filter") "nodename")))
  *    (filternode_set_param ....)
  *    (filternetwork_add_input ...)
  *    (filternetwork_add_output ...)
  *    (filternetwork_add_param ...)
  *    (filternode_set_param ....) ; wrapped ones
- *    (let ((pipe (filternetwork_add_connection node "port" node "port)))
+ *    (let ((pipe (filter_connect node "port" node "port)))
  *        (filterpipe_set_sourceparam ...)
  *        (filterpipe_set_destparam ...))
  *    net)
@@ -339,12 +339,12 @@ char *filter_to_string(filter_t *net)
 	len = 0;
 
 	/* generate the network start part */
-	len += sprintf(&buf[len], "(let *((net (filternetwork_new))\n");
+	len += sprintf(&buf[len], "(let *((net (filter_creat))\n");
 
 	/* iterate over all nodes in the network creating
 	 * node create commands. */
 	filter_foreach_node(net, n) {
-		len += sprintf(&buf[len], "\t(%s (filternetwork_add_node net \"%s\" \"%s\"))\n",
+		len += sprintf(&buf[len], "\t(%s (filter_add_node net (plugin_get \"%s\") \"%s\"))\n",
 			       n->name, plugin_name(n->plugin), n->name);
 	}
 	/* ((net .. */
@@ -404,7 +404,7 @@ char *filter_to_string(filter_t *net)
 		    if (filterport_is_input(portd))
 			    continue;
 		    filterport_foreach_pipe(portd, fpipe) {
-			len += sprintf(&buf[len], "   (let ((pipe (filternetwork_add_connection %s \"%s\" %s \"%s\")))\n",
+			len += sprintf(&buf[len], "   (let ((pipe (filter_connect %s \"%s\" %s \"%s\")))\n",
 				       filterport_filter(filterpipe_source(fpipe))->name, filterport_label(filterpipe_source(fpipe)),
 				       filterport_filter(filterpipe_dest(fpipe))->name, filterport_label(filterpipe_dest(fpipe)));
 

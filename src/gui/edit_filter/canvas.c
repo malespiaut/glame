@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.4 2000/12/08 11:17:38 xwolf Exp $
+ * $Id: canvas.c,v 1.5 2000/12/11 10:44:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -130,7 +130,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 
 	x = event->button.x;
 	y = event->button.y;
-	fprintf(stderr,"Ev: %d\n",event->type);
+	// fprintf(stderr,"Ev: %d\n",event->type);
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
@@ -218,7 +218,7 @@ add_filter_by_name(char *name)
 
  	gui_network_filter_add(canv->net,gf); 
  	gnome_canvas_window_to_world(GNOME_CANVAS(canv),event_x,event_y,&dx,&dy); 
-	fprintf(stderr,"%f %f %f %f\n",event_x,event_y,dx,dy);
+	// fprintf(stderr,"%f %f %f %f\n",event_x,event_y,dx,dy);
  	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),gf,dx,dy)); 
 	inItem=0;
 

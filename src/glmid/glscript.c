@@ -74,13 +74,10 @@ SCM pointer2scm(void *pointer, long smob_tag)
 
 void *scm2pointer(SCM pointer_smob, long smob_tag)
 {
-	struct pointer_smob *pointer = SCM2POINTERSMOB(pointer_smob);
-
 	SCM_ASSERT((SCM_NIMP(pointer_smob)
 		    && SCM_CAR(pointer_smob) == smob_tag),
 		   pointer_smob, SCM_ARG1, "scm2pointer");
-
-	return pointer->pointer;
+	return SCM2POINTERSMOB(pointer_smob)->pointer;
 }
 
 void scminvalidatepointer(SCM pointer_smob, long smob_tag)
@@ -135,21 +132,28 @@ SCM long2scm(long val, long smob_tag)
 
 long scm2long(SCM long_smob, long smob_tag)
 {
-	struct long_smob *val = SCM2LONGSMOB(long_smob);
-
 	SCM_ASSERT((SCM_NIMP(long_smob)
 		    && SCM_CAR(long_smob) == smob_tag),
 		   long_smob, SCM_ARG1, "scm2long");
-
-	return val->val;
+	return SCM2LONGSMOB(long_smob)->val;
 }
 
+/* SCM glame_guile_module; -- FIXME */
 
 int glscript_init()
 {
-	/* Tell scheme about installation directory of GLAME.
+	/* Define a new guile module and make it active for the
+	 * following defines. -- FIXME
+	SCM oldmodule = scm_selected_module();
+	scm_select_module(scm_the_root_module());
+	glame_guile_module = scm_make_module(scm_string_to_symbol(gh_str02scm("glame")));
+	scm_select_module(glame_guile_module); */
+
+	/* Tell scheme about installation directory of GLAME
+	 * and the revision of the scripting language.
 	 */
-	gh_eval_str("(define glamedir \"" PKGDATADIR "\")");
+	gh_define("glamedir", gh_str02scm(PKGDATADIR));
+	gh_define("glameversion", gh_long2scm(1));
 
 	/* Register scheme procedures for the subsystems.
 	 */
@@ -173,6 +177,9 @@ int glscript_init()
 "  `(\"" PKGDATADIR "/glame.scm\""
 "    \"glmid/glame.scm\""
 "    ,(string-append (getenv \"HOME\") \"/.glame.scm\")))");
+
+	/* Return to old selected module. -- FIXME
+	scm_select_module(oldmodule); */
 
 	return 0;
 }

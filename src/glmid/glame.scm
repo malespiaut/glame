@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.43 2000/12/08 10:43:41 richi Exp $
+; $Id: glame.scm,v 1.44 2000/12/11 10:44:41 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -102,7 +102,7 @@
 ; some high level filternetwork helpers
 ;
 
-(define net-new filternetwork_new)
+(define net-new filter_creat)
 
 (add-help 'net-new '() "generate a new filter network")
 
@@ -110,8 +110,8 @@
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node . params)
-    (let ((n (filternetwork_add_node net node node)))
-      (if (eq? n #f) (begin (display "no node ") 
+    (let ((n (filter_instantiate (plugin_get node))))
+      (if (eq? (filter_add_node net n node) #f) (begin (display "no node ") 
 			    (display node) 
 			    (newline) 
 			    #f)
@@ -134,7 +134,7 @@
 	  (if (eq? n #f) #f
 	      (if (eq? nn #f)
 		  (begin
-		    (filternetwork_delete_node n)
+		    (delete n)
 		    #f)
 		  (cons n nn)))))))
 
@@ -146,7 +146,7 @@
   (lambda nodes
     (if (null? nodes) '()
 	(begin
-	  (filternetwork_delete_node (car nodes))
+	  (delete (car nodes))
 	  (apply nodes-delete (cdr nodes))))))
 
 (add-help 'nodes-delete '(node ...) "delete nodes")
@@ -157,7 +157,7 @@
   (lambda nodes
     (map (lambda (nodes)
 	   (map-pairs
-	    (lambda (s d) (filternetwork_add_connection s "out" d "in"))
+	    (lambda (s d) (filter_connect s "out" d "in"))
 	    nodes))
 	 nodes)))
 
@@ -179,20 +179,20 @@
 ; run the net, wait for completion and delete it
 (define net-run
   (lambda (net)
-    (if (eq? #t (filternetwork_launch net))
+    (if (eq? #t (filter_launch net))
 	(begin
-	  (filternetwork_start net)
-	  (filternetwork_wait net)))))
+	  (filter_start net)
+	  (filter_wait net)))))
 
 (add-help 'net-run '(net)
 	  "run the net, wait for completion and delete it.")
 
 ; start the net (in the background, not deleting it afterwards),
-; i.e. you can use filternetwork_(pause|start|terminate) on it.
+; i.e. you can use filter_(pause|start|terminate) on it.
 (define net-run-bg
   (lambda (net)
-    (if (eq? #t (filternetwork_launch net))
-	(filternetwork_start net))
+    (if (eq? #t (filter_launch net))
+	(filter_start net))
     net))
 
 (add-help 'net-run-bg '(net)
@@ -416,7 +416,7 @@
 	   (ao (net-add-node net audio-out)))
       (node-set-params rf `("filename" ,fname))
       (while-not-false
-         (lambda () (filternetwork_add_connection rf "out" ao "in")))
+         (lambda () (filter_connect rf "out" ao "in")))
       (net-run net))))
 
 (add-help 'play '(filename) "play a soundfile")
@@ -436,7 +436,7 @@
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
-		(conn (filternetwork_add_connection rf "out" (car eff) "in")))
+		(conn (filter_connect rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
 	       (begin (nodes-connect (append eff (list ao))) #t)))))
@@ -458,7 +458,7 @@
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
-		(conn (filternetwork_add_connection rf "out" (car eff) "in")))
+		(conn (filter_connect rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
 	       (begin (nodes-connect (append eff (list wf))) #t)))))
@@ -520,7 +520,7 @@
 ;
 ; feedback echo2 macro filter
 ;
-(let ((plugin (filternetwork_to_filter
+(let ((plugin (glame_create_plugin
 	(create-net ((extend "extend")
 	     (mix2 "mix2")
 	     (one2n "one2n")
@@ -536,21 +536,35 @@
 		   (filternode_set_param net "extend" 600)
 		   (filternode_set_param net "mix" 0.7)
 		   (nodes-connect (list extend mix2 one2n delay va mix2))))
-	"echo2" "echo as macro filter")))
+	"echo2")))
+        (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
 	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
 
 ;
 ; mp3 reader using the pipe-in filter and mpg123
 ;
-(let ((plugin (filternetwork_to_filter
+(let ((plugin (glame_create_plugin
 		(create-net ((p "pipe-in"))
 	    		()
 	    		((p "out" "out" "output"))
 	    		((p "tail" "filename" "filename"))
 	    		(filternode_set_param p "cmd" "mpg123 -q -s "))
-		"read-mp3" "mp3-reader")))
+		"read-mp3")))
+	(plugin_set plugin PLUGIN_DESCRIPTION "mp3-reader")
 	(plugin_set plugin PLUGIN_CATEGORY "InOut"))
 
+;
+; load an external representation of a filter and register it as a plugin
+; using the specified plugin name and filename
+;
+(define (load-and-register-macro filename pluginname)
+	(let* ((port (open-input-file filename))
+	       (macro (read port))
+	       (eof (read port)))
+		(close-input-port port)
+		(if (and (not (eof-object? macro)) (eof-object? eof))
+			(glame_create_plugin (eval macro) pluginname)
+			#f)))
 
 
 ;------------------------------------------------------------
@@ -595,7 +609,7 @@
     (node-set-params rf `("filename" ,iname))
     (node-set-params wf `("filename" ,oname))
     (while-not-false
-      (lambda () (filternetwork_add_connection rf "out" wf "in")))
+      (lambda () (filter_connect rf "out" wf "in")))
     (net-run net))))
 
 ;
@@ -611,7 +625,7 @@
 	   (drms (net-add-node net "debugrms")))
     (node-set-params rf `("filename" ,fname))
     (while-not-false 
-      (lambda () (filternetwork_add_connection rf "out" mix "in")))
+      (lambda () (filter_connect rf "out" mix "in")))
     (nodes-connect  `(,mix ,stat ,drms))
     (net-run net))))
 
@@ -630,6 +644,6 @@
     (node-set-params rf `("filename" ,fname))
     (apply node-set-params iir params)
     (while-not-false 
-      (lambda () (filternetwork_add_connection rf "out" mix "in")))
+      (lambda () (filter_connect rf "out" mix "in")))
     (nodes-connect  `(,mix ,iir ,stat ,drms))
     (net-run net))))

@@ -10,7 +10,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 # builtin filters
 lib_LTLIBRARIES = libglamebuiltins.la
 
-if HAVE_SFFTW
+if HAVE_FFTW
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c rms.c fft.c
 else

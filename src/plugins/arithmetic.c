@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.9 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: arithmetic.c,v 1.10 2000/12/11 10:44:42 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -70,19 +70,13 @@ static int mul_f(filter_t *n)
 
 	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	if ((nr = filterport_nrpipes(inp)) == 0)
-		FILTER_ERROR_RETURN("no inputs");
 	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
 	cmul = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
 	cadd = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "add"));
 
-	if (!(I = ALLOCN(nr, nto1_state_t)))
-		FILTER_ERROR_RETURN("no memory");
-	i = 0;
-	filterport_foreach_pipe(inp, p) {
-		I[i++].in = p;
-	}
+	if ((nr = nto1_init(&I, inp)) == -1)
+		FILTER_ERROR_RETURN("no inputs");
 
 	FILTER_AFTER_INIT;
 
@@ -122,7 +116,7 @@ static int mul_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	free(I);
+	nto1_cleanup(I);
 
 	FILTER_RETURN;
 }
@@ -182,19 +176,13 @@ static int add_f(filter_t *n)
 
 	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	if ((nr = filterport_nrpipes(inp)) == 0)
-		FILTER_ERROR_RETURN("no inputs");
 	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
 	cmul = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
 	cadd = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "add"));
 
-	if (!(I = ALLOCN(nr, nto1_state_t)))
-		FILTER_ERROR_RETURN("no memory");
-	i = 0;
-	filterport_foreach_pipe(inp, p) {
-		I[i++].in = p;
-	}
+	if ((nr = nto1_init(&I, inp)) == -1)
+		FILTER_ERROR_RETURN("no inputs");
 
 	FILTER_AFTER_INIT;
 
@@ -233,7 +221,7 @@ static int add_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	free(I);
+	nto1_cleanup(I);
 
 	FILTER_RETURN;
 }

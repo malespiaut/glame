@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.18 2000/10/09 16:24:03 richi Exp $
+ * $Id: glplugin.c,v 1.19 2000/12/11 10:44:41 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -233,6 +233,36 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 }
 
 
+int plugin_load(const char *filename)
+{
+	char *s, name[256], mname[256];
+	plugin_t *p;
+
+	/* Create the plugin name out of the filename - i.e.
+	 * filename without leading path and trailing .so */
+	s = (s = strrchr(filename, '/')) ? s+1 : (char *)filename;
+	strncpy(name, s, 255);
+	s = strstr(name, ".so");
+	if (!s)
+	    	return -1; /* This cannot be a shared object plugin. */
+	*s = '\0';
+	mangle_name(mname, name);
+
+	/* Try to load the plugin with the created name. */
+	if (!(p = _plugin_alloc(mname)))
+		return -1;
+	if (try_load_plugin(p, mname, filename) == -1) {
+		_plugin_free(p);
+		return -1;
+	}
+
+	/* Add the plugin to the plugin database. */
+	if (_plugin_add(p) == -1) {
+		_plugin_free(p);
+		return -1;
+	}
+	return 0;
+}
 
 plugin_t *plugin_get(const char *nm)
 {
