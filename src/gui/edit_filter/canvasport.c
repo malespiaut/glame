@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.6 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: canvasport.c,v 1.7 2001/05/28 09:19:50 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -253,11 +253,66 @@ glame_canvas_port_grabbing_cb(GnomeCanvasLine* line, GdkEvent* event, GlameCanva
 	}
 }
 
+static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
+{
+	strncpy(*retbuffer,gtk_editable_get_chars(entry,0,-1),100);
+}
+
+static void 
+glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
+{
+	GtkWidget * nameEntry;
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	char * filenamebuffer;
+	filter_portdb_t *ports;
+	filter_port_t * newport;
+	char nameBuffer[50];
+	
+	if(port->external){
+		DPRINTF("Already exported\n");
+		return;
+	}
+	
+	filenamebuffer = calloc(100,sizeof(char));
+	
+	dialog = gnome_dialog_new("Export as...",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	vbox = GNOME_DIALOG(dialog)->vbox;
+
+	nameEntry = gtk_entry_new();
+	gtk_signal_connect(GTK_OBJECT(nameEntry),"changed",
+			   update_string_from_editable,&filenamebuffer);
+	sprintf(nameBuffer,"%s_%s",filter_name(filterport_filter(port->port)),filterport_label(port->port));
+	gtk_entry_set_text(GTK_ENTRY(nameEntry),nameBuffer);
+	create_label_widget_pair(vbox,"New port name",nameEntry);
+	
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+		ports = filter_portdb(CANVAS_ITEM_NETWORK(port));
+		if(filterport_is_output(port->port)){
+			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_OUTPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
+			filterport_redirect(newport,port->port);
+			port->external = TRUE;
+		}else if(filterport_is_input(port->port)){
+			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_INPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
+			filterport_redirect(newport,port->port);
+			port->external = TRUE;
+		}
+	}
+	glame_canvas_port_redraw(port);
+	free(filenamebuffer);
+}	
+
+static GnomeUIInfo port_menu[] = 
+{
+	GNOMEUIINFO_ITEM("_Redirect port","redirect", glame_canvas_port_redirect_cb, NULL),
+	GNOMEUIINFO_END
+};
+
 static gboolean
 glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPort* port)
 {
 	GnomeCanvasLine*line;
-
+	GtkWidget *menu;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -293,6 +348,11 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 			/* grab the thing */
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(line),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,NULL,
 					       event->button.time);
+			return TRUE;
+			break;
+		case 3:
+			menu = gnome_popup_menu_new(port_menu);
+			gnome_popup_menu_do_popup_modal(menu, NULL,NULL,&event->button, port);
 			return TRUE;
 			break;
 		default:

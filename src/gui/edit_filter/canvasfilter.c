@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.7 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.8 2001/05/28 09:19:50 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -24,6 +24,7 @@
 
 #include <gnome.h>
 #include "glamecanvas.h"
+#include "glame_gui_utils.h"
 #include "canvasitem.h"
 #include "hash.h"
 
@@ -590,26 +591,237 @@ static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* 
 		gtk_widget_show(glame_filtereditgui_new(filter->filter));
 }
 
+static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* filterItem)
+{
+		GtkWidget * dialog;
+	GtkWidget * text;
+	GtkWidget * vbox;
+	GtkWidget * notebook;
+	GtkWidget * tablabel;
+	GtkCList * list;
+	char * desc;
+	int pos=0;
+
+	filter_portdb_t * ports;
+	filter_paramdb_t * params;
+	filter_param_t * param;
+	filter_t * filter;
+	filter_port_t * port;
+	
+	char *labels[] = {"Name","Type","Description"};
+	char *plabels[] = {"Name","Value","Description"};
+	char ** line;
+	char * buffer;
+	filter = filterItem->filter;
+
+	ports = filter_portdb(filter);
+	
+	notebook = gtk_notebook_new();
+	
+	dialog = gnome_dialog_new(plugin_name(filter->plugin),GNOME_STOCK_BUTTON_OK,NULL);
+	
+
+	desc = (char*)plugin_query(filter->plugin,PLUGIN_DESCRIPTION);
+	text = gtk_text_new(NULL,NULL);
+	gtk_widget_show(text);
+	
+	if(desc)
+		gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
+	else
+		gtk_editable_insert_text(GTK_EDITABLE(text),"This item does not have a description",38,&pos);
+	tablabel = gtk_label_new("Description");
+	gtk_widget_show(tablabel);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),text,tablabel);
+
+	tablabel = gtk_label_new("Ports");
+	list = GTK_CLIST(gtk_clist_new_with_titles(3,labels));
+	gtk_clist_set_column_auto_resize(list,0,TRUE);
+	gtk_clist_set_column_auto_resize(list,1,TRUE);
+	gtk_clist_set_column_auto_resize(list,2,TRUE);
+
+	filterportdb_foreach_port(ports,port){
+		line = calloc(3,sizeof(char*));
+		if(filterport_label(port))
+			buffer = strdup(filterport_label(port));
+		else
+			buffer = strdup("Empty");
+		line[0] = buffer;
+		line[1] = (filterport_is_input(port)?"In":"Out");
+		if( filterport_get_property(port,FILTERPORT_DESCRIPTION))
+			buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
+		else
+			buffer = strdup("Empty");
+		line[2] = buffer;
+		gtk_clist_append(list,line);
+	}
+	gtk_widget_show(GTK_WIDGET(list));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
+
+	tablabel = gtk_label_new("Properties");
+	gtk_widget_show(tablabel);
+	
+	list = GTK_CLIST(gtk_clist_new_with_titles(3,plabels));
+	gtk_clist_set_column_auto_resize(list,0,TRUE);
+	gtk_clist_set_column_auto_resize(list,1,TRUE);
+	gtk_clist_set_column_auto_resize(list,2,TRUE);
+	
+	params = filter_paramdb(filter);
+	filterparamdb_foreach_param(params,param){
+		line = calloc(3,sizeof(char*));
+		if(filterparam_label(param))
+			buffer = strdup(filterparam_label(param));
+		else
+			buffer = strdup("Empty");
+		line[0] = buffer;
+		if(filterparam_to_string(param))
+			buffer = strdup(filterparam_to_string(param));
+		else
+			buffer = strdup("Empty");
+		line[1] = buffer;
+		if(filterparam_get_property(param,FILTERPARAM_DESCRIPTION))
+			buffer = strdup(filterparam_get_property(param,FILTERPARAM_DESCRIPTION));
+		else
+			buffer = strdup("Empty");
+		line[2] = buffer;
+		gtk_clist_append(list,line);
+	}
+	gtk_widget_show(GTK_WIDGET(list));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
+
+	gtk_widget_show(notebook);
+	vbox = GNOME_DIALOG(dialog)->vbox;
+	gtk_container_add(GTK_CONTAINER(vbox),notebook);
+	
+	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+}
+
+static void glame_canvas_filter_help(GtkWidget *foo, GlameCanvasFilter* filter)
+{
+	char * helppath;
+	char buffer[100];
+	helppath = plugin_query(filter->filter->plugin,PLUGIN_GUI_HELP_PATH);
+	if(!helppath)
+		helppath = strdup("Plugin_Collection");
+	sprintf(buffer,"info:glame#%s",helppath);
+	gnome_help_goto(NULL,buffer);
+}
+
+static void update_entry_text(GtkListItem* item,GtkEntry* entry)
+{
+	// this is a little kludgy.. FIXME
+	char *label;
+	label = strdup(GTK_LABEL(GTK_BIN(item)->child)->label);
+	gtk_entry_set_text(entry,label);
+	free(label);  
+}
+
+static void update_string(GtkListItem* item,char ** returnbuffer)
+{
+	// this is a little kludgy.. FIXME
+	char *label;
+	
+	label = strdup(GTK_LABEL(GTK_BIN(item)->child)->label);
+	strncpy(*returnbuffer,label,100);
+	free(label);  
+}
+
+static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
+{
+	strncpy(*retbuffer,gtk_editable_get_chars(entry,0,-1),100);
+}
+
+static void glame_canvas_filter_redirect_parameters(GtkWidget *bla, GlameCanvasFilter *item)
+{
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	GtkWidget * entry;
+	GtkWidget * list;
+	GtkWidget * listItems;
+	filter_paramdb_t * db, *topleveldb; 
+	filter_param_t *iter,*newparam;
+	GList * items=NULL;
+	char * paramnamebuffer;
+	char * externnamebuffer;
+
+	paramnamebuffer = calloc(100,sizeof(char));
+	externnamebuffer = calloc(100,sizeof(char));
+
+	dialog = gnome_dialog_new("Export parameters...",GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
+		
+	vbox = GNOME_DIALOG(dialog)->vbox;
+	
+	list = gtk_list_new();
+	entry = gtk_entry_new();
+	
+	db = filter_paramdb(item->filter);
+	topleveldb = filter_paramdb(GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas)->net);
+
+	filterparamdb_foreach_param(db,iter){
+		listItems = gtk_list_item_new_with_label(filterparam_label(iter));
+		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_entry_text,entry);
+		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_string,&paramnamebuffer);
+		gtk_signal_connect(GTK_OBJECT(entry),"changed",update_string_from_editable,&externnamebuffer);
+		gtk_widget_show(listItems);
+		items = g_list_append(items,listItems);
+	}
+	gtk_list_append_items(GTK_LIST(list),items);
+	gtk_widget_show(list);
+	create_label_widget_pair(vbox,"Select parameter:",list);
+	create_label_widget_pair(vbox,"External name:",entry);
+	switch(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	{
+	case 2:
+		DPRINTF("%s\n",paramnamebuffer);
+		if(paramnamebuffer){
+			iter = filterparamdb_get_param(db,paramnamebuffer);
+			if(iter){
+				if(*externnamebuffer)
+					newparam = filterparamdb_add_param(topleveldb,externnamebuffer,filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+				else
+					newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+				if(newparam){
+					if(filterparam_redirect(newparam,iter))
+						DPRINTF("Failed to redirect: %s\n",filterparam_label(iter));
+				}
+				
+			}
+		}
+			
+		break;
+	case 1:
+		
+		filterparamdb_foreach_param(db,iter){
+			newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+			if(newparam){
+				if(filterparam_redirect(newparam,iter))
+					DPRINTF("Failed to redirect: %s\n",filterparam_label(iter));
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	
+	free(paramnamebuffer);
+	free(externnamebuffer);
+								    
+}
+
 
 int inItem;
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
-	//GNOMEUIINFO_ITEM("_Redirect parameter","redirect",canvas_item_redirect_parameters,NULL),
+	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
-	//	GNOMEUIINFO_ITEM("_About node...","bout",canvas_item_show_description,NULL),
-	//	GNOMEUIINFO_ITEM("_Help","Show help",canvas_item_help,NULL),
+	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
+	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
 };
-
-
-
-
-
 
 
 

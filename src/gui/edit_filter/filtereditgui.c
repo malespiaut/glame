@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.8 2001/05/25 09:56:37 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.9 2001/05/28 09:19:50 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -179,7 +179,7 @@ static void canvas_delete_redirection_param_cb(GtkWidget*foo, filter_param_t* pa
 
 static void canvas_delete_redirection_port_cb(GtkWidget*foo, filter_port_t* port)
 {
-	filterportdb_delete_port(filter_portdb(CANVAS_ITEM_NETWORK(glame_canvas_find_port(port))),port);
+	filterport_delete(port);
 }
 
 
