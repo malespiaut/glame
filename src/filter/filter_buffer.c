@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.5 2000/02/02 11:35:05 richi Exp $
+ * $Id: filter_buffer.c,v 1.6 2000/02/02 11:46:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -130,14 +130,12 @@ int fbuf_unlock(filter_buffer_t *fb)
  */
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
-	filter_buffer_t *fbuf;
+        void *buf[64];
 	int res;
 
-	do {
-		res = read(p->dest_fd, &fbuf, sizeof(filter_buffer_t *));
-	} while (res == -1 && errno == EINTR);
+	res = read(p->dest_fd, buf, 64*sizeof(void *));
 
-	return res == -1 ? NULL : fbuf;
+	return res == -1 ? NULL : (filter_buffer_t *)buf[0];
 }
 
 /* send one buffer (address) along the specified pipe.
@@ -145,11 +143,11 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
  */
 int fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 {
+        void *buf[64]; /* weeeh - hack for write-throttling */
 	int res;
 
-	do {
-		res = write(p->source_fd, &fbuf, sizeof(filter_buffer_t *));
-	} while (res == -1 && errno == EINTR);
+	buf[0] = fbuf;
+	res = write(p->source_fd, buf, 64*sizeof(void *));
 
 	return res;
 }
