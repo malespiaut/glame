@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.26 2001/04/27 08:25:55 richi Exp $
+ * $Id: gui.c,v 1.27 2001/05/01 11:23:42 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -21,7 +21,14 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <values.h>
+#ifdef HAVE_LIBGLADE
+#include <glade/glade.h>
+#endif
 #include "glmid.h"
 #include "glame_gui_utils.h"
 #include "canvas.h"
@@ -231,7 +238,7 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 
 
 
-enum {PINT,PFLOAT,PSTRING,PFILE};
+enum {PINT,PFLOAT,PSTRING,PFILE,PGLADE};
 
 typedef struct {
 	GtkWidget *widget;
@@ -298,6 +305,30 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 				DPRINTF(" - success!\n");
 			g_free(strVal);
 			break;
+		case PGLADE:
+			if (GTK_IS_OPTION_MENU(item->widget)) {
+				GtkMenu *menu = GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(item->widget)));
+				GtkWidget *act = gtk_menu_get_active(menu);
+				/* Doh - gtk suxx again. */
+				GList *list;
+				DPRINTF("Menu %p - Active %p\n", menu, act);
+				list = gtk_container_children(GTK_CONTAINER(menu));
+				iVal = 0;
+				while (list) {
+					DPRINTF("%i - %p\n", iVal, list->data);
+					if ((GtkWidget *)(list->data) == act)
+						break;
+					list = g_list_next(list);
+					iVal++;
+				}
+				DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
+				if(!list || filterparam_set(item->param, &iVal) == -1)
+					DPRINTF(" - failed!\n");
+				else
+					DPRINTF(" - success!\n");
+			} else
+				/* FIXME */;
+			break;
 		}
 		list = g_list_next(list);
 	}
@@ -330,6 +361,7 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	char* cVal;
 	filter_param_t* param;
 	char label[256];
+	char *xml;
 
 	propBox = gnome_property_box_new ();
 	
@@ -340,6 +372,23 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_widget_show(vbox);
 
 	filterparamdb_foreach_param(pdb, param) {
+#ifdef HAVE_LIBGLADE
+		if ((xml = filterparam_get_property(param, FILTERPARAM_GLADEXML))) {
+			GladeXML *gxml;
+			gxml = glade_xml_new_from_memory(xml, strlen(xml), NULL, NULL);
+			entry = glade_xml_get_widget(gxml, "widget");
+			if (GTK_IS_OPTION_MENU(entry)) {
+				gtk_option_menu_set_history(GTK_OPTION_MENU(entry), filterparam_val_int(param));
+			} else
+                                /* FIXME */;
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PGLADE;
+			list = g_list_append(list,pw);			
+		} else
+#endif
 		if (FILTER_PARAM_IS_INT(param)) {
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
 

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.45 2001/04/29 11:47:57 richi Exp $
+ * $Id: main.c,v 1.46 2001/05/01 11:23:42 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -27,6 +27,9 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#ifdef HAVE_LIBGLADE
+#include <glade/glade.h>
+#endif
 #include "swapfile.h"
 #include "glmid.h"
 #include "swapfilegui.h"
@@ -556,6 +559,10 @@ int main(int argc, char **argv)
 {
 	/* setup gnome/gtk  */
 	gnome_init("glame", VERSION, argc, argv);
+
+#ifdef HAVE_LIBGLADE
+	glade_init();
+#endif
 	
 	/* remember argv[1], if necessary */
 	if (argc >= 2)
