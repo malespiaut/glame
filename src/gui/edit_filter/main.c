@@ -1,7 +1,7 @@
 /*
  * edit_filter.c
  *
- * $Id: main.c,v 1.2 2000/12/08 11:17:38 xwolf Exp $
+ * $Id: main.c,v 1.3 2001/01/29 11:40:01 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -47,8 +47,24 @@ int main(int argc, char *argv[])
 {
 	/* swapfile setup */
 	if (argc >= 2) {
-		if (swapfile_open(argv[1], 0) == 0)
-			fprintf(stderr, "swapfile %s opened.\n", argv[1]);
+		if (swapfile_open(argv[1], 0) == -1) {
+			if (errno != EBUSY) {
+				perror("ERROR: Unable to open swap");
+				exit(1);
+			}
+			fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
+			if (swapfile_fsck(argv[1]) == -1) {
+				perror("ERROR: Fsck failed");
+				exit(1);
+			}
+			fprintf(stderr, "WARNING: Fsck successful\n");
+			if (swapfile_open(argv[1], 0) == -1) {
+				perror("ERROR: Still cannot open swap");
+				exit(1);
+			}
+		}
+	} else {
+		fprintf(stderr, "WARNING: starting without a swapfile.\n");
 	}
 
 	/* setup gnome/gtk  */

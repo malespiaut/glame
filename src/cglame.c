@@ -45,7 +45,7 @@ void sc_main()
 int main(int argc, char **argv)
 {
 	fprintf(stderr, "\n"
-"    CGLAME for GLAME version "VERSION", Copyright (C) 1999, 2000\n"
+"    CGLAME for GLAME version "VERSION", Copyright (C) 1999, 2000, 2001\n"
 "    Alexander Ehlert, Jim Garrison, Richard Guenther, Johannes Hirche,\n"
 "    Daniel Kobras, Joe Navratil.\n"
 "    CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free\n"
@@ -54,8 +54,20 @@ int main(int argc, char **argv)
 
 	if (argc == 2) {
 		if (swapfile_open(argv[1], 0) == -1) {
-			perror("ERROR: Unable to open swap");
-			exit(1);
+			if (errno != EBUSY) {
+				perror("ERROR: Unable to open swap");
+				exit(1);
+			}
+			fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
+			if (swapfile_fsck(argv[1]) == -1) {
+				perror("ERROR: Fsck failed");
+				exit(1);
+			}
+			fprintf(stderr, "WARNING: Fsck successful\n");
+			if (swapfile_open(argv[1], 0) == -1) {
+				perror("ERROR: Still cannot open swap");
+				exit(1);
+			}
 		}
 	} else {
 		fprintf(stderr,
