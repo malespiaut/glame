@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.7 2001/04/13 16:41:24 nold Exp $
+@comment $Id: gui.texi,v 1.8 2001/04/19 13:59:15 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Copying, Top
 @chapter Graphical Frontend (glame)
@@ -56,12 +56,21 @@ pops up a new window of the wave editor @pxref{The Wave Editor} containing
 all items of the group, where you can easily modify them. This operation is
 not allowed for groups that in turn contain further sub-groups.
 
-@item Add group...
+@item Add group
 adds a new group to the current group.
+
+@item Add empty wave
+adds a new wave to the current group where you can f.i. start recording
+into or paste some random stuff into.
 
 @item Merge with parent
 moves all the current group's children up one level
 and deletes the current group.
+
+@item Flatten
+merges all childs of the current group into the minimum number of
+vertically aligned tracks all starting at horizontal position zero
+and of the same length.
 
 @item Delete
 deletes the current group and all its items.
@@ -80,8 +89,8 @@ imports a file as a sub-group into the current group.
 
 @item Export...
 exports all children of the group as an ordinary sound file, for example
-a WAV file. This operation is not allowed for groups that in turn contain
-further sub-groups.
+a WAV file. This operation takes place on an automatically flattened
+subtree.
 @end table
 
 @subsection Operations on items
@@ -98,6 +107,8 @@ exports the current item as an ordinary sound file, for example a WAV file.
 deletes the current item.
 @end table
 
+
+
 @node The Wave Editor, The Filternetwork Editor, The Main Window , Graphical Frontend
 @section The Wave Editor
 
@@ -112,27 +123,49 @@ in the active wave widget. You can cut and paste between different wave widgets,
 if the numbers of channels match. When you operate on multiple views of the
 same wave item at once, they will be kept in sync automatically.
 
-The @code{Apply filter} and @code{Apply custom} submenus allow you to apply
+The @code{Apply filter} submenu allows you to apply
 a pre-existing filter to the active selection. Next, you will be prompted for
-the filter's options. Alternatively, you can pop up the
+the filter's options, if there are any. Alternatively, you can pop up the
 filternetwork editor @pxref{The Filternetwork Editor},
-where you can construct a custom filter.
+where you can construct a custom filter or use @code{Apply custom} which
+creates a filternetwork framework containing necessary inputs and outputs
+specified by the current selection.
 
-The @code{Feed into filter} and @code{Feed into custom} sub-menus feed the
-active selection into the selected or a custom made filter respectively (see
-above). The wave item is not modified. This comes in handy when for instance
-you want to play a selection--simply feed into audio_out!
+To specify the current selection simply use the mouse and drag it with
+the left mousebutton pressed. Alternatively you can use the @code{Select none} 
+or @code{Select all} menu items from the @code{Select} submenu to remove
+the actual selection or select the whole wave. Pressing shift and the
+left mousebutton selects everything starting from the marker position (which
+you can set using the left mousebutton) to the current position. The selection
+and the marker position can be changed with dragging the marker or the
+selections left or right edge (the cursor will change if you move over them).
+
+To control the view use the @code{View} sumenu which contains the
+items @code{Zoom to selection}, @code{Zoom in}, @code{Zoom out},
+@code{View all} and @code{Goto marker}.
+
+Using the @code{Play all} and @code{Play selection} commands the whole
+wave or the selected part will be send to the default audio output device
+(which you can specify in the main windows preferences dialog). Using
+the @code{Record at marker} and @code{Record into selection} commands
+you can sample from the default audio input device (which you can specify
+in the main windows preferences dialog) either starting at the marker
+position and until you press the @code{STOP} button, or just inside the
+selection.
+
 
 
 @node The Filternetwork Editor, , The Wave Editor, Graphical Frontend
 @section The Filternetwork Editor
 
 The filternetwork editor is opened when you choose one of the custom
-functions in the wave editor, or the item @code{Open Filternetwork Editor} in
+functions in the wave editor, or the item @code{New Filternetwork} in
 the @code{Filternetwork} menu of the main window. The filternetwork editor
 comprises of a button bar on the bottom of the window to execute, pause and
 stop the created filternetwork, and a main canvas for connecting and adding
-new nodes to the network.
+new nodes to the network. A preexisting network can be edited by opening
+it from the @code{Open...} item in the @code{Filternetwork} menu of the
+main window.
 
 All functionality in the editing window is controlled via context sensitive
 menus bound to the right mouse button. When clicking in a background region,
