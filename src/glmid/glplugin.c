@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.19 2000/12/11 10:44:41 richi Exp $
+ * $Id: glplugin.c,v 1.20 2001/03/21 16:41:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -206,6 +206,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 			continue;
 		}
 		plugin_set(lp, PLUGIN_PARENT, p);
+		plugin_set(lp, PLUGIN_CATEGORY, "LADSPA");
 	}
 
 	return 0;
