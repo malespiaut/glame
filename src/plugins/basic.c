@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.4 2000/03/21 09:37:17 richi Exp $
+ * $Id: basic.c,v 1.5 2000/03/21 10:06:35 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -186,7 +186,8 @@ static int one2n_f(filter_node_t *n)
 		/* do we have input? - queue in each feedback buffer,
 		 * be clever with the references, too. */
 		if (FD_ISSET(in->dest_fd, &rset)) {
-			buf = fbuf_get(in);
+			if (!(buf = fbuf_get(in)))
+			        eof = 1;
 			for (i=0; i<nr-1; i++) {
 				fbuf_ref(buf);
 				add_feedback(&p[i].fifo, buf);
