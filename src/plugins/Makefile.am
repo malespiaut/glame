@@ -21,19 +21,19 @@ lib_LTLIBRARIES = libglamebuiltins.la
 # for each optional plugin we can have build dependencies
 
 if HAVE_FFTW
-fft_plugins += fft.la
+fft_plugin = fft.la
 endif
 if HAVE_OSS
-audio_io_plugins += audio_io_oss.la
+audio_io_oss = audio_io_oss.la
 endif
 if HAVE_ALSA
-audio_io_plugins += audio_io_alsa.la
+audio_io_alsa = audio_io_alsa.la
 endif
 if HAVE_ESD
-audio_io_plugins += audio_io_esd.la
+audio_io_esd = audio_io_esd.la
 endif
 if HAVE_SGI
-audio_io_plugins += audio_io_irix.la
+audio_io_irix = audio_io_irix.la
 endif
 
 
@@ -45,7 +45,8 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la time.la \
-	$(audio_io_plugins) $(fft_plugins)
+	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
+	$(fft_plugin)
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module
