@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.57 2005/03/11 17:02:37 richi Exp $
+ * $Id: importexport.c,v 1.58 2005/03/27 13:17:44 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -602,11 +602,6 @@ ie_fail_cleanup:
 	ie->importing = 0;
 	gpsm_item_destroy((gpsm_item_t *)group);
 	gtk_widget_set_sensitive(bla, TRUE);	
-}
-
-static void ie_preview_cb(GtkWidget *bla, struct imp_s *ie)
-{
-	DPRINTF("Not implemented\n");
 }
 
 static int ie_update_plabels(struct imp_s *ie)
@@ -1595,8 +1590,8 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent) 
 {	
 	struct exp_s *ie;
-	GtkWidget *label_tab1, *label_tab2, *label_tab3 ;
-	GtkWidget *dialog, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox, *vboxftype;
+	GtkWidget *label_tab1, *label_tab3;
+	GtkWidget *dialog, *bigbox, *bigbox3, *typecompbox, *valbox, *vboxftype;
 	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3, *fname, *fnamebox;
 	GtkWidget *framebox, *frame4, *frame4box,*dialog_action_area; 
 	GSList *rbuttons, *renderbuttons;
@@ -1604,14 +1599,14 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gchar *suffix, *title = "";
 
 #ifdef HAVE_LIBMP3LAME
-	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box;
+	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box, *bigbox2, *label_tab2;
+	char *string[10]={"0 best,slow","1","2 recommended","3","4","5 standard","6","7","8","9 worst"};
+	char *string2[4]={"0 stereo","1 joint stereo","2 dual mono","3 mono"};
+	char *string3[14]={"32","40","48","56","64","80","96","112","128","160","192","224","256","320"};
 #endif
 #ifdef HAVE_LIBVORBISFILE
 	GtkWidget *boxtags3,*boxtags4, *frame16, *frame16box,*frame17, *frame17box ,*frame18, *frame18box  ,*frame19, *frame19box,*frame20, *frame20box,*frame21, *frame21box, *frame22, *frame22box, *frame23, *frame23box, *frame24, *frame24box, *frame25, *frame25box,*frame26, *frame26box;
 #endif
-	char *string[10]={"0 best,slow","1","2 recommended","3","4","5 standard","6","7","8","9 worst"};
-	char *string2[4]={"0 stereo","1 joint stereo","2 dual mono","3 mono"};
-	char *string3[14]={"32","40","48","56","64","80","96","112","128","160","192","224","256","320"};
 	char *string4[2]={"stereo","mono"};
 	char *string5[11]={"0 (roughly 64kb/s)","1 (roughly 80kb/s)","2 (roughly 96kb/s)","3 (roughly 112kb/s)","4 (roughly 128kb/s)","5 (roughly 160kb/s)","6 (roughly 192kb/s)","7 (roughly 224kb/s)","8 (roughly 256kb/s)","9 (roughly 320kb/s)","10 (roughly 500kb/s)"};
 
