@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.67 2001/10/18 15:13:35 richi Exp $
+ * $Id: file_io.c,v 1.68 2001/11/11 22:37:08 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -132,8 +132,6 @@ typedef struct {
 			int		sampleRate;
 		        int             format;
 			track_t         *track;
-			short		*buffer;
-			char		*cbuffer;
 		} audiofile;
 #ifdef HAVE_LAME
 		struct {
@@ -476,9 +474,10 @@ int file_io_register(plugin_t *p)
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
 	add_writer(af_write_f,"*.wav"); 
+
 	add_reader(wav_read_prepare, wav_read_connect, 
 	           wav_read_f, wav_read_cleanup);
-
+	
 	return 0;
 }
 
@@ -888,11 +887,10 @@ int af_read_prepare(filter_t *n, const char *filename)
 	                                         AF_DEFAULT_TRACK, 1);
 	sprintf(info, "%d", RWA(n).frameSize);
 	filterparam_set_property(fparam,"#framesize", info);
-
+	
 	RWA(n).sampleRate = (int)afGetRate(RWA(n).file, AF_DEFAULT_TRACK);
 	sprintf(info, "%d Hz", RWA(n).sampleRate);
 	filterparam_set_property(fparam,"#samplerate", info);
-	DPRINTF("samplerate : %s\n", info);
 
 	if ((RWA(n).sampleFormat != AF_SAMPFMT_TWOSCOMP &&
 	     RWA(n).sampleFormat != AF_SAMPFMT_UNSIGNED) || 
@@ -907,16 +905,12 @@ int af_read_prepare(filter_t *n, const char *filename)
 		DPRINTF("Kludge! Audiofile reports signed 8bit WAV, "
 		        "overriding to unsigned.\n");
 	}
-		
-	if ((RWA(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL){
-		DPRINTF("Couldn't allocate buffer\n");
-		return -1;
-	}
-	RWA(n).cbuffer=(char *)RWA(n).buffer;
+
 	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t))){
 		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
 	}
+
 	DPRINTF("File %s: %d channel(s) %d bit %s at %d Hz, "
 		"framecount %d, framesize %d.\n",
 			filename,
@@ -992,10 +986,19 @@ int af_read_f(filter_t *n)
 	int fcnt, cnt;
 	long pos;
 	filter_param_t *pos_param;
+	short		*buffer;
+	char		*cbuffer;
 
 	/* seek to start of audiofile */
 	afSeekFrame(RWA(n).file, AF_DEFAULT_TRACK, 0);
 	fcnt = RWA(n).frameCount;
+	
+	buffer=NULL;
+
+	if ((buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL)
+		FILTER_ERROR_RETURN("couldn't allocate read buffer");
+
+	cbuffer=(char *)buffer;
 
 	FILTER_AFTER_INIT;
 	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
@@ -1005,7 +1008,7 @@ int af_read_f(filter_t *n)
 	while(fcnt){
 		FILTER_CHECK_STOP;
 		if (!(frames=afReadFrames(RWA(n).file, AF_DEFAULT_TRACK, 
-					  RWA(n).buffer,
+					  buffer,
 					  MIN(GLAME_WBUFSIZE, fcnt))))
 			break;
 		pos += frames;
@@ -1026,7 +1029,7 @@ int af_read_f(filter_t *n)
 				cnt = frames;
 				s0 = &sbuf_buf(RWA(n).track[0].buf)[RWA(n).track[0].pos];
 				s1 = &sbuf_buf(RWA(n).track[1].buf)[RWA(n).track[1].pos];
-				b = RWA(n).buffer;
+				b = buffer;
 				for (; (cnt & 3)>0; cnt--) {
 					*(s0++) = SHORT2SAMPLE(*(b++));
 					*(s1++) = SHORT2SAMPLE(*(b++));
@@ -1048,7 +1051,7 @@ int af_read_f(filter_t *n)
 				while (i < frames*RWA(n).channelCount)
 					for (j=0; j < RWA(n).channelCount; j++)
 						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-							SHORT2SAMPLE(RWA(n).buffer[i++]);
+							SHORT2SAMPLE(buffer[i++]);
 				break;
 			}
 			break;
@@ -1056,19 +1059,19 @@ int af_read_f(filter_t *n)
 			while (i < frames*RWA(n).channelCount)
 				for (j=0; j < RWA(n).channelCount; j++)
 					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] = 
-						CHAR2SAMPLE(RWA(n).cbuffer[i++]);
+						CHAR2SAMPLE(cbuffer[i++]);
 			break;
 		case 16 | AF_SAMPFMT_UNSIGNED:
 			while (i < frames*RWA(n).channelCount)
 				for (j=0; j < RWA(n).channelCount; j++)
 					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-						USHORT2SAMPLE(RWA(n).buffer[i++]);
+						USHORT2SAMPLE(buffer[i++]);
 			break;
 		case 8 | AF_SAMPFMT_UNSIGNED:
 			while (i < frames*RWA(n).channelCount)
 				for (j=0; j < RWA(n).channelCount; j++)
 					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-						UCHAR2SAMPLE(RWA(n).cbuffer[i++]);
+						UCHAR2SAMPLE(cbuffer[i++]);
 			break;
 		default:
 			PANIC("Unsupported sample format.");
@@ -1086,12 +1089,14 @@ int af_read_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
+	if(buffer!=NULL)
+		free(buffer);
+
 	return 0;
 }
 
 void af_read_cleanup(filter_t *n)
 {
-	free(RWA(n).buffer);
 	free(RWA(n).track);
 	afCloseFile(RWA(n).file);
 	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
@@ -1105,7 +1110,9 @@ int af_write_f(filter_t *n)
 	int res=-1;
 	int eofs,bufsiz,wbpos;
 	int i,iat,iass;
-	
+	int filetype;
+	short		*buffer;
+
 	RWA(n).channelCount = filterport_nrpipes(
 		filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
 
@@ -1113,6 +1120,12 @@ int af_write_f(filter_t *n)
 		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
+	
+	filetype = glame_get_filetype_by_name(filename);
+
+	if (filetype==-1)
+		FILTER_ERROR_RETURN("Filetype not recognized" 
+				    " or not supported by libaudiofile");
 
 	if (RWA(n).channelCount==0)
 		FILTER_ERROR_RETURN("no inputs");
@@ -1138,7 +1151,7 @@ int af_write_f(filter_t *n)
 	}
 	
 	RWA(n).fsetup=afNewFileSetup();
-	afInitFileFormat(RWA(n).fsetup,AF_FILE_WAVE);
+	afInitFileFormat(RWA(n).fsetup, filetype);
 	afInitChannels(RWA(n).fsetup, AF_DEFAULT_TRACK, RWA(n).channelCount);
 	afInitSampleFormat(RWA(n).fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
 	afInitRate(RWA(n).fsetup, AF_DEFAULT_TRACK,RWA(n).sampleRate);
@@ -1149,7 +1162,9 @@ int af_write_f(filter_t *n)
 	
 
 	bufsiz=GLAME_WBUFSIZE*RWA(n).channelCount;
-	if ((RWA(n).buffer=(short*)malloc(bufsiz*sizeof(short)))==NULL)
+
+	buffer=(short*)malloc(bufsiz*sizeof(short));
+	if(buffer==NULL)
 		goto _bailout;
 	
 	
@@ -1169,7 +1184,7 @@ int af_write_f(filter_t *n)
 			/* write one interleaved frame to buffer */
 			for(i=0;i<RWA(n).channelCount;i++)
 				if (RWA(n).track[i].buf){
-					RWA(n).buffer[wbpos++]=SAMPLE2SHORT(sbuf_buf(RWA(n).track[i].buf)[RWA(n).track[i].pos++]);
+					buffer[wbpos++]=SAMPLE2SHORT(sbuf_buf(RWA(n).track[i].buf)[RWA(n).track[i].pos++]);
 					/* Check for end of buffer */
 					if(RWA(n).track[i].pos==sbuf_size(RWA(n).track[i].buf)){
 						sbuf_unref(RWA(n).track[i].buf);
@@ -1181,9 +1196,9 @@ int af_write_f(filter_t *n)
 					/* if one track stops before another we have to fill up
 					 * with zeroes
 					 */
-					RWA(n).buffer[wbpos++]=0;
+					buffer[wbpos++]=0;
 		} while ((wbpos<bufsiz) && (eofs));
-		afWriteFrames(RWA(n).file, AF_DEFAULT_TRACK, RWA(n).buffer,wbpos/RWA(n).channelCount);
+		afWriteFrames(RWA(n).file, AF_DEFAULT_TRACK, buffer,wbpos/RWA(n).channelCount);
 	}
 		
 	FILTER_BEFORE_STOPCLEANUP;
@@ -1192,7 +1207,7 @@ int af_write_f(filter_t *n)
 _bailout:
  	afCloseFile(RWA(n).file);
         if(RWA(n).fsetup) afFreeFileSetup(RWA(n).fsetup);
-	free(RWA(n).buffer);
+	free(buffer);
 	free(RWA(n).track);
 	if (res==-1) FILTER_ERROR_RETURN("some error occured"); 
 	return res;
