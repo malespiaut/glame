@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.14 2001/05/05 14:36:13 richi Exp $
+ * $Id: swapfile_io.c,v 1.15 2001/05/16 00:24:45 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -38,7 +38,8 @@ static int swapfile_in_f(filter_t *n)
 	int cnt;
 	swfd_t fd;
 	struct sw_stat st;
-
+	filter_param_t *pos_param;
+	
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no output");
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
@@ -65,6 +66,8 @@ static int swapfile_in_f(filter_t *n)
 	}
 
 	FILTER_AFTER_INIT;
+	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+	filterparam_val_set_pos(pos_param, 0);
 
 	pos = 0;
 	while (size > 0) {
@@ -80,6 +83,9 @@ static int swapfile_in_f(filter_t *n)
 		if (sw_read(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE)
 		    != cnt*SAMPLE_SIZE)
 			size = 0;
+
+		pos += cnt;
+		filterparam_val_set_pos(pos_param, pos);
 
 		/* queue the buffer */
 		sbuf_queue(out, buf);
@@ -166,6 +172,7 @@ int swapfile_in_register(plugin_t *p)
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_DESCRIPTION, "size to stream or -1 for the full file",
 				FILTERPARAM_END);
+	filterparamdb_add_param_pos(filter_paramdb(f));
 
 	f->connect_out = swapfile_in_connect_out;
 
