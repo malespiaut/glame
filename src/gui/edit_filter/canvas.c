@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.8 2000/12/11 15:57:33 xwolf Exp $
+ * $Id: canvas.c,v 1.9 2000/12/11 16:38:01 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1155,6 +1155,7 @@ edit_canvas_item_properties(filter_paramdb_t *pdb, char *caption)
 
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
+	gtk_window_set_modal(GTK_WINDOW(propBox),TRUE);
 	gtk_widget_show(propBox);
 	cb = malloc(sizeof(param_callback_t));
 	cb->paramList=list;
