@@ -2573,18 +2573,24 @@ void main(void)
 exit(0);
 }
 ],
-  [AC_MSG_RESULT(found.)],
+  [AC_MSG_RESULT(found.)
+  no_alsa=""
+  ],
   [AC_MSG_RESULT(not present.)
-   AC_MSG_ERROR(Sufficiently new version of libasound not found.)]
+  no_alsa="yes"
+  ]
 )
 AC_LANG_RESTORE
 
+if test "x$no_alsa" = x ; then
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-AC_CHECK_LIB([asound], [snd_cards],,
-	[AC_MSG_ERROR(No linkable libasound was found.)]
-)
+  AC_CHECK_LIB([asound], [snd_cards],,)
 
-dnl That should be it.  Now just export out symbols:
-AC_SUBST(ALSA_CFLAGS)
-AC_SUBST(ALSA_LIBS)
+  dnl That should be it.  Now just export out symbols:
+  AC_SUBST(ALSA_CFLAGS)
+  AC_SUBST(ALSA_LIBS)
+  ifelse([$2], , :, [$2])
+else
+  ifelse([$3], , :, [$3])
+fi
 ])
