@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.53 2001/08/01 15:43:06 nold Exp $
+ * $Id: filter.c,v 1.54 2001/08/02 11:08:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -32,7 +32,6 @@
 #include <regex.h>
 #include <errno.h>
 #include "util.h"
-#include "glame_sem.h"
 #include "filter.h"
 #include "filter_methods.h"
 #include "filter_ops.h"

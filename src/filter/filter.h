@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.72 2001/06/05 14:37:13 richi Exp $
+ * $Id: filter.h,v 1.73 2001/08/02 11:08:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,7 +39,6 @@
 #include "glame_hash.h"
 #include "list.h"
 #include "atomic.h"
-#include "glame_sem.h"
 #include "glplugin.h"
 #include "glsignal.h"
 #include "filter_types.h"

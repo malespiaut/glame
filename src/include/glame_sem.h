@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther
  *
- * $Id: glame_sem.h,v 1.2 2000/09/25 08:58:26 richi Exp $
+ * $Id: glame_sem.h,v 1.3 2001/08/02 11:08:36 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,10 @@
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
+#ifndef HAVE_SYSVSEM
+#error Illegal usage of glame_sem.h
 #endif
 
 #include <sys/types.h>

@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.24 2001/07/10 13:42:05 richi Exp $
+ * $Id: filter_ops.c,v 1.25 2001/08/02 11:08:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -20,8 +20,15 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <unistd.h>
 #include <signal.h>
+#ifdef HAVE_SYSVSEM
+#include "glame_sem.h"
+#endif
 #include "util.h"
 #include "filter.h"
 #include "filter_ops.h"
@@ -94,7 +101,6 @@ static void *launcher(void *node)
 	filter_t *n = (filter_t *)node;
 	filter_pipe_t *p;
 	filter_port_t *port;
-	struct sembuf sop;
 	sigset_t sset;
 
 	DPRINTF("%s launched (pid %i)\n", n->name, (int)getpid());
@@ -102,6 +108,9 @@ static void *launcher(void *node)
 	sigemptyset(&sset);
 	sigaddset(&sset, SIGINT);
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
+#ifndef HAVE_SYSVSEM
+	atomic_inc(&n->net->launch_context->val);
+#endif
 
 	n->glerrno = n->f(n);
 	if (n->glerrno == 0) {
@@ -127,10 +136,21 @@ static void *launcher(void *node)
 	/* increment filter ready semaphore if still in startup
 	 * phase */
 	if (n->net->launch_context->state <= STATE_LAUNCHED) {
+#ifdef HAVE_SYSVSEM
+		struct sembuf sop;
 		sop.sem_num = 0;
 		sop.sem_op = 1;
 		sop.sem_flg = IPC_NOWAIT;
 		glame_semop(n->net->launch_context->semid, &sop, 1);
+#else
+		pthread_mutex_lock(&n->net->launch_context->cond_mx);
+		if (atomic_dec_and_test(&n->net->launch_context->val))
+			pthread_cond_broadcast(&n->net->launch_context->cond);
+		else
+			pthread_cond_wait(&n->net->launch_context->cond,
+					  &n->net->launch_context->cond_mx);
+		pthread_mutex_unlock(&n->net->launch_context->cond_mx);
+#endif
 	}
 
 	/* if it was an error during processing, drain the pipes
@@ -269,6 +289,7 @@ filter_launchcontext_t *_launchcontext_alloc()
 
 	if (!(c = ALLOC(filter_launchcontext_t)))
 		return NULL;
+#ifdef HAVE_SYSVSEM
 	if ((c->semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1) {
 		free(c);
 		return NULL;
@@ -278,13 +299,14 @@ filter_launchcontext_t *_launchcontext_alloc()
 		ssun.val = 0;
 		glame_semctl(c->semid, 0, SETVAL, ssun);
 	}
+#else
+	pthread_mutex_init(&c->cond_mx, NULL);
+	pthread_cond_init(&c->cond, NULL);
+	ATOMIC_INIT(c->val, 0);
+#endif
 	ATOMIC_INIT(c->result, 0);
 	c->nr_threads = 0;
-	if (c->semid != -1)
-		return c;
-
-	free(c);
-	return NULL;
+	return c;
 }
 
 void _launchcontext_free(filter_launchcontext_t *c)
@@ -292,10 +314,16 @@ void _launchcontext_free(filter_launchcontext_t *c)
 	if (!c)
 		return;
 	ATOMIC_RELEASE(c->result);
+#ifdef HAVE_SYSVSEM
 	{
 		union semun ssun;
 		glame_semctl(c->semid, 0, IPC_RMID, ssun);
 	}
+#else
+	pthread_mutex_destroy(&c->cond_mx);
+	pthread_cond_destroy(&c->cond);
+	ATOMIC_RELEASE(c->val);
+#endif
 	free(c);
 }
 
@@ -335,6 +363,9 @@ int filter_launch(filter_t *net)
 	/* init state */
 	if (!(net->launch_context = _launchcontext_alloc()))
 		return -1;
+#ifndef HAVE_SYSVSEM
+	atomic_set(&net->launch_context->val, 1);
+#endif
 
 	DPRINTF("initting nodes\n");
 	if (net->ops->init(net) == -1)
@@ -363,17 +394,28 @@ int filter_launch(filter_t *net)
 
 int filter_start(filter_t *net)
 {
-	struct sembuf sop;
-
 	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
 	    || FILTER_IS_RUNNING(net))
 		return -1;
 
 	DPRINTF("waiting for nodes to complete initialization.\n");
-        sop.sem_num = 0;
-        sop.sem_op = -net->launch_context->nr_threads;
-        sop.sem_flg = 0;
-        glame_semop(net->launch_context->semid, &sop, 1);
+#ifdef HAVE_SYSVSEM
+	{
+		struct sembuf sop;
+		sop.sem_num = 0;
+		sop.sem_op = -net->launch_context->nr_threads;
+		sop.sem_flg = 0;
+		glame_semop(net->launch_context->semid, &sop, 1);
+	}
+#else
+	pthread_mutex_lock(&net->launch_context->cond_mx);
+	if (atomic_dec_and_test(&net->launch_context->val))
+		pthread_cond_broadcast(&net->launch_context->cond);
+	else
+		pthread_cond_wait(&net->launch_context->cond,
+				  &net->launch_context->cond_mx);
+	pthread_mutex_unlock(&net->launch_context->cond_mx);
+#endif
 	if (ATOMIC_VAL(net->launch_context->result) != 0)
 		goto out;
 	net->launch_context->state = STATE_RUNNING;
@@ -388,16 +430,21 @@ out:
 
 int filter_pause(filter_t *net)
 {
-	struct sembuf sop;
-
 	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
 	    || !FILTER_IS_RUNNING(net))
 		return -1;
 
-        sop.sem_num = 0;
-        sop.sem_op = net->launch_context->nr_threads;
-        sop.sem_flg = IPC_NOWAIT;
-        glame_semop(net->launch_context->semid, &sop, 1);
+#if HAVE_SYSVSEM
+	{
+		struct sembuf sop;
+		sop.sem_num = 0;
+		sop.sem_op = net->launch_context->nr_threads;
+		sop.sem_flg = IPC_NOWAIT;
+		glame_semop(net->launch_context->semid, &sop, 1);
+	}
+#else
+	atomic_inc(&net->launch_context->val);
+#endif
 	net->launch_context->state = STATE_LAUNCHED;
 
 	return 0;
@@ -431,11 +478,15 @@ void filter_terminate(filter_t *net)
 		return;
 
 	atomic_set(&net->launch_context->result, 1);
+#ifdef HAVE_SYSVSEM
 	{
 		union semun ssun;
 		ssun.val = 0;
 		glame_semctl(net->launch_context->semid, 0, SETVAL, ssun);
 	}
+#else
+	atomic_set(&net->launch_context->val, 0);
+#endif
 	net->launch_context->state = STATE_RUNNING;
 
 	/* "safe" cleanup */
@@ -450,22 +501,34 @@ void filter_terminate(filter_t *net)
 
 int filter_after_init_hook(filter_t *f)
 {
-	struct sembuf sop;
-
 	DPRINTF("%s seems ready for signalling\n", f->name);
         filter_clear_error(f);
 
-	/* raise semaphore that counts ready filters */
-        sop.sem_num = 0;
-        sop.sem_op = 1;
-        sop.sem_flg = IPC_NOWAIT;
-        glame_semop(f->net->launch_context->semid, &sop, 1);
+#ifdef HAVE_SYSVSEM
+	{
+		struct sembuf sop;
 
-	/* wait for manager to signal "all filters ready" */
-        sop.sem_num = 0;
-        sop.sem_op = 0;
-        sop.sem_flg = 0;
-        glame_semop(f->net->launch_context->semid, &sop, 1);
+		/* raise semaphore that counts ready filters */
+		sop.sem_num = 0;
+		sop.sem_op = 1;
+		sop.sem_flg = IPC_NOWAIT;
+		glame_semop(f->net->launch_context->semid, &sop, 1);
+		
+		/* wait for manager to signal "all filters ready" */
+		sop.sem_num = 0;
+		sop.sem_op = 0;
+		sop.sem_flg = 0;
+		glame_semop(f->net->launch_context->semid, &sop, 1);
+	}
+#else
+	pthread_mutex_lock(&f->net->launch_context->cond_mx);
+	if (atomic_dec_and_test(&f->net->launch_context->val))
+		pthread_cond_broadcast(&f->net->launch_context->cond);
+	else
+		pthread_cond_wait(&f->net->launch_context->cond,
+				  &f->net->launch_context->cond_mx);
+	pthread_mutex_unlock(&f->net->launch_context->cond_mx);
+#endif
 
 	/* still check, if any filter had an error */
 	return ATOMIC_VAL(f->net->launch_context->result);
@@ -473,13 +536,23 @@ int filter_after_init_hook(filter_t *f)
 
 int filter_check_stop_hook(filter_t *f)
 {
-        struct sembuf sop;
-
 	/* check if manager said "pause/stop" */
-        sop.sem_num = 0;
-        sop.sem_op = 0;
-        sop.sem_flg = 0;
-        glame_semop(f->net->launch_context->semid, &sop, 1);
+#if HAVE_SYSVSEM
+	{
+		struct sembuf sop;
+		sop.sem_num = 0;
+		sop.sem_op = 0;
+		sop.sem_flg = 0;
+		glame_semop(f->net->launch_context->semid, &sop, 1);
+	}
+#else
+	if (atomic_read(&f->net->launch_context->val)) {
+		pthread_mutex_lock(&f->net->launch_context->cond_mx);
+		pthread_cond_wait(&f->net->launch_context->cond,
+				  &f->net->launch_context->cond_mx);
+		pthread_mutex_unlock(&f->net->launch_context->cond_mx);
+	}
+#endif
 
 	/* return if it was "pause" or really "stop" */
 	return (ATOMIC_VAL(f->net->launch_context->result)

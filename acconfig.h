@@ -51,6 +51,9 @@
 #undef OS_BSD
 #undef OS_IRIX
 
+/* define if you have working posix semaphores */
+#undef HAVE_SYSVSEM
+
 /* define if union semun is defined in <sys/sem.h> */
 #undef HAVE_SEMUN
 

@@ -3,7 +3,7 @@
 
 /*
  * filter_ops.h
- * $Id: filter_ops.h,v 1.5 2001/04/11 08:39:02 richi Exp $
+ * $Id: filter_ops.h,v 1.6 2001/08/02 11:08:36 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -23,8 +23,9 @@
  *
  */
 
+#include <pthread.h>
+#include "atomic.h"
 #include "filter_types.h"
-
 
 extern struct filter_operations filter_node_ops;
 extern struct filter_operations filter_network_ops;
@@ -35,7 +36,13 @@ struct filter_launchcontext {
 
 	int state;
 
+#ifdef HAVE_SYSVSEM
 	int semid;
+#else
+	glame_atomic_t val;
+	pthread_mutex_t cond_mx;
+	pthread_cond_t cond;
+#endif
 	glame_atomic_t result;
 };
 
