@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.14 2001/05/03 11:38:45 mag Exp $
+ * $Id: iir.c,v 1.15 2001/05/26 23:34:37 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -29,10 +29,32 @@
 #include "glplugin.h"
 
 
+PLUGIN_SET(iir, "highpass lowpass bandpass")
+
 #define GLAME_IIR_LOWPASS  0
 #define GLAME_IIR_HIGHPASS 1
 #define GLAME_IIR_BANDPASS 2
 
+/* Just query the name of the plugin we get called from
+ * to identify the right filter mode
+ * returns the filter mode or -1 on error
+ */
+
+int identify_plugin(filter_t *n){
+	const char *name = plugin_name(n->plugin);
+
+	DPRINTF("plugin name = %s\n", name);
+	
+	if (strcmp(name,"lowpass")==0)
+		return GLAME_IIR_LOWPASS;
+	else if (strcmp(name,"highpass")==0)
+		return GLAME_IIR_HIGHPASS;
+	else if (strcmp(name,"bandpass")==0)
+		return GLAME_IIR_BANDPASS;
+	else
+		return -1;
+}
+	
 /* To get better filter accuracy I decided to compute the single
  * stages of the filter seperatly and apply them one by one 
  * to the sample data. According to the DSPGUIDE chapter 20 pp339
@@ -42,7 +64,6 @@
  * But in the moment it's up to the user that he knows what he's doing. 
  * float accuracy can't be enough for certain parameters.
  */
-
 
 #define gliirt double
 
@@ -55,7 +76,8 @@ struct glame_iir {
 	int nstages;	/* Number of filterstages */
 	int na;		/* number of a coefficients per stage */
 	int nb;		/* number of b coefficients per stage */
-	gliirt fc;	/* cutoff frequency */
+	gliirt fc;	/* cutoff/center frequency */
+	gliirt bw;	/* bandwidth for bandpass */
 	gliirt ppr;	/* percent of ripple in passband */
 	gliirt spr;	/* percent of ripple in stopband */
 	gliirt **coeff;	/* Actual filter coefficients */
@@ -84,6 +106,26 @@ void free_glame_iir(glame_iir_t *gt){
 	free(gt);
 }
 
+/* freq: frequency already normalized between 0 and 0.5 of sampling
+ * R: the magic R coefficent :)
+ */
+
+glame_iir_t *calc_2polebandpass(float center, float R)
+{
+	glame_iir_t	*gt;
+	double theta;
+	
+	if ((gt=init_glame_iir(GLAME_IIR_BANDPASS, 1, 3, 2))==NULL)
+		return NULL;
+	
+	theta = 2.0*M_PI*center;
+	gt->coeff[0][0] = 1.0-R;
+	gt->coeff[0][1] = 0.0;
+	gt->coeff[0][2] = -(1.0-R)*R;
+	gt->coeff[0][3] = 2.0*R*cos(theta);
+	gt->coeff[0][4] = -R*R;
+	return gt;
+}
 
 /* chebyshev calculates coefficients for a chebyshev filter
  * a,b coefficients
@@ -239,36 +281,53 @@ static int iir_f(filter_t *n)
 	iirf_t *iirf;
 	int i,pos,j,nb,nt,z;
 	int poles, mode, rate;
-	float ripple, fc;
+	float ripple, fc, bw;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 	        FILTER_ERROR_RETURN("no in- or output");
 
 
-	/* Just setup a chebyshev filter
-	 * later on I want to call iir_f from different filters providing gt
-	 * having something like static int iir_f(filter_t *n, glame_iir_t *gt)
-	 * Then you can register all kind of filters that are using iir_f as kernel
-	 */
-	
 	rate = filterpipe_sample_rate(in);
-	mode=filterparam_val_int(filternode_get_param(n,"mode"));
-	poles=filterparam_val_int(filternode_get_param(n,"poles"));
-	fc=filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
-	if (fc < 0.0)
-		fc = 0.0;
-	else if (fc > 0.5)
-		fc = 0.5;
-	
-	ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
 
-	DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n",poles,mode,fc,ripple);
+	/* identify the filter mode */
 
-	if (!(gt=chebyshev(poles,mode,fc,ripple)))
-		FILTER_ERROR_RETURN("chebyshev failed");
+	if ((mode=identify_plugin(n))==-1)
+		FILTER_ERROR_RETURN("Doh! Filter mode not recognized\n");
 	
-	/* here follow generic code */
+	
+	if (mode < GLAME_IIR_BANDPASS) {
+		poles=filterparam_val_int(filternode_get_param(n,"poles"));
+		fc=filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
+		if (fc < 0.0)
+			fc = 0.0;
+		else if (fc > 0.5)
+			fc = 0.5;
+		
+		ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
+		
+		DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n",poles,mode,fc,ripple);
+		
+		if (!(gt=chebyshev(poles,mode,fc,ripple)))
+			FILTER_ERROR_RETURN("chebyshev failed");
+		
+	} else if (mode == GLAME_IIR_BANDPASS) {
+		fc = filterparam_val_float(filternode_get_param(n,"center"))/(float)rate;
+		if (fc < 0.0)
+			fc = 0.0;
+		else if (fc > 0.5)
+			fc = 0.5;
+		
+		bw = filterparam_val_float(filternode_get_param(n,"width"));
+		
+		DPRINTF("center = %f width = %f\n", fc, bw);
+
+		if (!(gt=calc_2polebandpass(fc, bw)))
+			FILTER_ERROR_RETURN("bandpass failed");
+
+	}
+	
+	/* here follows the generic code */
 	
 	if (gt->nstages==0)
 		FILTER_ERROR_RETURN("iir filter needs at least one stage");
@@ -362,8 +421,7 @@ entry:
 	FILTER_RETURN;
 }
 
-
-int iir_register(plugin_t *p)
+int highpass_register(plugin_t *p)
 {
 	filter_t *f;
 	
@@ -374,21 +432,6 @@ int iir_register(plugin_t *p)
 	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
 	
 	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
-	
-	filterparamdb_add_param_int(filter_paramdb(f),"mode",
-				    FILTER_PARAMTYPE_INT, 0,
-				    FILTERPARAM_DESCRIPTION, "lowpass(0)/highpass(1)",
-				    FILTERPARAM_GLADEXML,
-"<?xml version=\"1.0\"?><GTK-Interface><widget>
-    <class>GtkOptionMenu</class>
-    <name>widget</name>
-    <can_focus>True</can_focus>
-    <items>Lowpass
-Highpass
-</items>
-    <initial_choice>0</initial_choice>
-</widget></GTK-Interface>",
-				FILTERPARAM_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"poles",
 				FILTER_PARAMTYPE_INT,2,
@@ -405,9 +448,79 @@ Highpass
 			    FILTERPARAM_DESCRIPTION,"percent ripple",
 			    FILTERPARAM_END);
 	
-	plugin_set(p, PLUGIN_DESCRIPTION, "iir effect");
+	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev Lowpass");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
-	plugin_set(p, PLUGIN_CATEGORY, "Effects");
+	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	
+	filter_register(f, p);
+
+	return 0;
+}
+
+int lowpass_register(plugin_t *p)
+{
+	filter_t *f;
+	
+	if (!(f = filter_creat(NULL)))
+			return -1;
+	f->f = iir_f;
+
+	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filterparamdb_add_param_int(filter_paramdb(f),"poles",
+				FILTER_PARAMTYPE_INT,2,
+			        FILTERPARAM_DESCRIPTION,"number of poles (2,4,6,...)",
+				FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
+			    FILTER_PARAMTYPE_FLOAT, 1000,
+			    FILTERPARAM_DESCRIPTION,"cutoff frequency",
+			    FILTERPARAM_END);
+
+	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
+			    FILTER_PARAMTYPE_FLOAT,0.5,
+			    FILTERPARAM_DESCRIPTION,"percent ripple",
+			    FILTERPARAM_END);
+	
+	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev Highpass");
+	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	
+	filter_register(f, p);
+
+	return 0;
+}
+
+int bandpass_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = filter_creat(NULL)))
+		return -1;
+
+	f->f = iir_f;
+
+	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"center",
+			    FILTER_PARAMTYPE_FLOAT, 1000,
+			    FILTERPARAM_DESCRIPTION,"center frequency",
+			    FILTERPARAM_END);
+
+	filterparamdb_add_param_float(filter_paramdb(f),"width",
+			    FILTER_PARAMTYPE_FLOAT,0.5,
+			    FILTERPARAM_DESCRIPTION,"bandwidth around center",
+			    FILTERPARAM_END);
+	
+	plugin_set(p, PLUGIN_DESCRIPTION, "Biquad Bandpass");
+	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
 	
 	filter_register(f, p);
