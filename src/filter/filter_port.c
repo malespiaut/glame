@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.12 2002/05/18 13:50:04 richi Exp $
+ * $Id: filter_port.c,v 1.13 2002/05/25 13:37:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -74,6 +74,10 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 	 * This is ensured by the default_connect_out method.
 	 */
 	if (nrin > 1) {
+		/* check if we got a matching input port
+		 * - broken setup, but ladspa.c needs to be fixed else. */
+		if (!port)
+			port = filterpipe_dest(in);
 		/* Update output pipe properties. */
 		filterport_foreach_pipe(port, out) {
 			if (out->type == FILTER_PIPETYPE_UNDEFINED)
