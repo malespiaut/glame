@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.37 2002/05/23 22:26:24 mag Exp $
+@comment $Id: plugins.texi,v 1.38 2002/05/25 16:31:53 nold Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -467,16 +467,15 @@ Size in seconds of the buffer. Can be used only for SAMPLE streams.
 @node Mangling Data Streams, Orientation, Junctions and Dead Ends, Elementary Plugins
 @subsection Mangling Data Streams
 
-All the plugins described in this section operate on a single input stream 
-and transform it into a slightly mangled single output stream. 
-@file{volume-adjust} scales the amplitude of a data stream. 
-@file{delay} and @file{extend} prepend and append zero samples to a data
-stream respectively. @file{repeat} resends an input sequence over and over
-for a fixed time or for ever. @file{invert} inverts all data of the input stream, i.e. 
-each sample A is replaced by -A. @file{stretch} allows to lengthen or shorten a track in
-time, while trying to preserve its pitch. This is only possible for small stretch factors.
-The presets may be a good starting point for your own tries. It's really dependend on your
-sound, what the best parameters might be. Obviously this is no realtime effect.
+All the plugins described in this section operate on a single input stream and
+transform it into a slightly mangled single output stream.
+@file{volume-adjust} scales the amplitude of a data stream.  @file{delay} and
+@file{extend} prepend and append zero samples to a data stream respectively.
+@file{repeat} resends an input sequence over and over for a fixed time or for
+ever. @file{invert} inverts all data of the input stream, i.e.  each sample A
+is replaced by -A. @file{stretch} allows to lengthen or shorten a track in
+time, while trying to preserve its pitch. Obviously, @file{stretch} is no
+realtime effect.
 
 @subsubheading Common ports
 @table @code
@@ -519,16 +518,18 @@ reached. Defaults to 0s which is endless repetition.
 @subsubheading @file{stretch} parameters
 @table @code
 @item stretchfactor (float)
-This is the factor by that the duration of the track is stretched.
+Factor by which the duration of the track is changed. Only small deviations
+from 1 shall preserve an acceptable quality of the original sound. Larger
+values induce distortions, and are probably only useful for certain artistic
+effects.
 @item buffersize (int)
-The larger the buffersize, the more the pitch is preserved, but only for lower 
-frequencies. Higher frequencies are attenuated.
+A larger buffer size better preserves the pitch of the original sound, but
+also attenuates its high frequency part.
 @item oversampling (int)
-As the streching is done by a overlapping window technique, the higher
-the oversampling the better the quality. BUT: higher oversampling
-leads to attenuation of higher frequencies, especially with large buffersizes.
+Simply put, the higher the oversampling the better the quality. However,
+similar to the buffer size parameter above, doing a lot of oversampling
+attenuates the high frequencies.
 @end table
-
 
 
 @node Orientation, Arithmetics, Mangling Data Streams, Elementary Plugins
