@@ -1,6 +1,6 @@
 /*
  * audio_io_jack.c
- * $Id: audio_io_jack.c,v 1.1 2003/04/27 21:10:26 richi Exp $
+ * $Id: audio_io_jack.c,v 1.2 2003/04/27 21:52:17 richi Exp $
  *
  * Copyright (C) 2003 Richard Guenther
  *
@@ -41,7 +41,7 @@ struct jack_priv {
 static int jack_out_process(jack_nframes_t nframes, filter_t *n)
 {
 	DPRINTF("ping\n");
-	sbuf_unref(sbuf_get(n));
+	//FIXME - sbuf_unref(sbuf_get(n));
 }
 
 static void jack_shutdown(filter_launchcontext_t *c)
@@ -87,7 +87,7 @@ static int jack_out_launch_node(filter_t *n)
 	for (i = 0; i<nports; i++)
 	{
 		char name[64];
-		snprintf("glame_jack_out%i", i);
+		snprintf(name, 64, "glame_jack_out%i", i);
 		p->ports[i] = jack_port_register(p->client, name, JACK_DEFAULT_AUDIO_TYPE,
 						 JackPortIsOutput, 0);
 		if (!p->ports[i]) {
@@ -98,7 +98,7 @@ static int jack_out_launch_node(filter_t *n)
 	for (i = 0; i<nports; i++)
 	{
 		char name[64];
-		snprintf("%s%i", filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "device")));
+		snprintf(name, 64, "%s%i", filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "device")), i);
 		if (jack_connect(p->client, jack_port_name(p->ports[i]), name)) {
 			DPRINTF("Cannot connect to %s\n", name);
 			goto _out;
@@ -120,6 +120,8 @@ static int jack_wait_node(filter_t *n)
 }
 static void jack_postprocess_node(filter_t *n)
 {
+	struct jack_priv *p = (struct jack_priv *)(n->priv);
+
 	/* Stop processing, disconnect, deregister. */
 	jack_client_close(p->client);
 }
@@ -128,17 +130,19 @@ struct filter_operations jack_out_filter_ops;
 
 int jack_audio_out_register(plugin_t *p)
 {
+	filter_t *f;
 	int res;
-	res = aio_generic_register_output(p, "oss-audio-out",
-					  jack_audio_out_f, "/dev/dsp");
+	res = aio_generic_register_output(p, "jack-audio-out", NULL, "/dev/dsp");
 
 	/* fixup ops */
-	filter_t *f = plugin_filter(p);
+	f = plugin_query(p, PLUGIN_FILTER);
 	jack_out_filter_ops.init = f->ops->init;
 	jack_out_filter_ops.launch = jack_out_launch_node;
 	jack_out_filter_ops.launch = jack_wait_node;
 	jack_out_filter_ops.launch = jack_postprocess_node;
 	f->ops = &jack_out_filter_ops;
+
+	return res;
 }
 
 #if 0
