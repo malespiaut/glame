@@ -7,15 +7,12 @@ Things we (absolutely) need to do before 0.4.0:
 doc/
 	- document available filters [nold/the filter authors]
 	  All the 0.2.0 relevant stuff is documented.
+	- update GUI documentation
 
 plugins/
 	- provide pixmaps for all plugins (missing: echo, fft & friends,
           iir, noisegate, pan, rms, time, sinus, const, ...)
 
-gui/
-	[all]
-        - remove "feed into (custom)" (?)
-        - add "record" and "record into selection" (?)
 
 Items that can be postponed forever (at least until 0.6):
 ---------------------------------------------------------
