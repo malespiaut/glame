@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.7 2001/03/31 14:05:33 richi Exp $
+ * $Id: gltreeitem.c,v 1.8 2001/04/02 08:07:17 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -139,6 +139,11 @@ GlameTreeItem *glame_tree_find_gpsm_item(GtkObject *t, gpsm_item_t *i)
 	GList *childs;
 	GlameTreeItem *item;
 	GtkTree *tree;
+
+	/* Simple check, is t == i? */
+	if (GLAME_IS_TREE_ITEM(t)
+	    && GLAME_TREE_ITEM(t)->item == i)
+		return GLAME_TREE_ITEM(t);
 
 	/* Handle both, GtkTree and group GlameTreeItem. */
 	if (GLAME_IS_TREE_ITEM(t)

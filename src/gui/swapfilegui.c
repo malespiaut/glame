@@ -98,10 +98,8 @@ void edit_tree_label(GlameTreeItem * item)
 {
 	GtkWidget * label;
 	GtkWidget * entry;
-	GtkTree *root;
-	
-	root = glame_tree_item_parent(item);
-	gtk_tree_unselect_child(root, GTK_WIDGET(item));
+
+	gtk_tree_item_deselect(GTK_TREE_ITEM(item));
 	label = GTK_WIDGET((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
 	gtk_container_remove(GTK_CONTAINER(item),label);
 	entry = gtk_entry_new();
@@ -465,17 +463,16 @@ static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 {
 	switch (sig) {
 	case GPSM_SIG_ITEM_CHANGED: {
-		GtkObject *groupw = glsig_handler_private(handler);
-		GlameTreeItem *itemw;
+		GlameTreeItem *itemw = GLAME_TREE_ITEM(glsig_handler_private(handler));
 		gpsm_item_t *item;
 
 		GLSIGH_GETARGS1(va, item);
+		if (itemw->item != item)
+			DERROR("Wrong itemw->item");
 
-		/* Find the item widget (child of group widget passed as
-		 * private info) for the item and update it. */
-		if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
-			return;
+		/* Update the item widget. */
 		glame_tree_item_update(GLAME_TREE_ITEM(itemw));
+
 		break;
 	}
 	default:
@@ -526,31 +523,29 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 {
 	switch (sig) {
 	case GPSM_SIG_ITEM_CHANGED: {
-		GtkObject *groupw = glsig_handler_private(handler);
-		GlameTreeItem *itemw;
+		GlameTreeItem *itemw = GLAME_TREE_ITEM(glsig_handler_private(handler));
 		gpsm_item_t *item;
 
 		GLSIGH_GETARGS1(va, item);
+		if (itemw->item != item)
+			DERROR("Wrong itemw->item");
 
-		/* Find the item widget (child of group widget passed as
-		 * private info) for the item and update it. */
-		if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
-			return;
+		/* Update the item widget. */
 		glame_tree_item_update(GLAME_TREE_ITEM(itemw));
+
 		break;
 	}
 	case GPSM_SIG_GRP_REMOVEITEM: {
-		GtkObject *groupw = glsig_handler_private(handler);
+		GtkObject *tree = GTK_OBJECT(glsig_handler_private(handler));
 		GlameTreeItem *itemw;
 		gpsm_grp_t *group;
 		gpsm_item_t *item;
 
 		GLSIGH_GETARGS2(va, group, item);
+		if (!(itemw = glame_tree_find_gpsm_item(tree, item)))
+			DERROR("Cannot find item widget");
 
-		/* Find the item widget (child of group widget passed as
-		 * private info) for the item and remove it. */
-		if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
-			return;
+		/* Remove the item widget. */
 		glame_tree_remove(GLAME_TREE_ITEM(itemw));
 
 		/* Note, that our signal handler will be deleted by
@@ -559,23 +554,17 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 		break;
 	}
 	case GPSM_SIG_GRP_NEWITEM: {
-		GtkWidget *tree = glsig_handler_private(handler), *t;
+		GtkObject *tree = GTK_OBJECT(glsig_handler_private(handler));
 		gpsm_grp_t *group;
 		gpsm_item_t *item;
 
-		/*
-		 * FIXME: we need to handle subtree addition.
-		 */
-
 		GLSIGH_GETARGS2(va, group, item);
-
-		t = (GtkWidget *)glame_tree_find_gpsm_item((GtkObject *)tree,
-							   (gpsm_item_t *)group);
-		if (t)
-			tree = t;
+		if (GLAME_IS_TREE_ITEM(tree)
+		    && GLAME_TREE_ITEM(tree)->item != group)
+			DERROR("Wrong tree->item");
 
 		/* Insert item (and subitems, if necessary). */
-		handle_grp_add_treeitem(GTK_OBJECT(tree), item);
+		handle_grp_add_treeitem(tree, item);
 
 		break;
 	}
@@ -614,7 +603,7 @@ GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
 	 * for each item. -- FIXME we need to delete this handler on
 	 * widget destruction... (gtk signal!?) */
 	handler = glsig_add_handler(gpsm_item_emitter(root),
-			  GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_CHANGED,
+			  GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM,
 			  handle_grp, tree);
 	gtk_signal_connect(GTK_OBJECT(tree), "destroy",
 			   handle_rootdestroy, handler);
