@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.9 2001/12/16 22:59:29 mag Exp $
+ * $Id: importexport.c,v 1.10 2002/01/01 16:45:53 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -759,21 +759,10 @@ static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *exp)
 {
 	GtkWidget *act;
 	GList *list;
-	int val;
 
-	DPRINTF("Compression Type chosen\n");
-	act = gtk_menu_get_active(menu);
-	DPRINTF("Menu %p - Active %p\n", menu, act);
-	list = gtk_container_children(GTK_CONTAINER(menu));
-	val = 0;
-	while (list) {
-		DPRINTF("%i - %p\n", val, list->data);
-		if ((GtkWidget *)(list->data) == act)
-			break;
-		list = g_list_next(list);
-		val++;
-	}
-	exp->compression=val;
+	exp->compression = glame_menu_get_active_index(menu);
+	DPRINTF("Compression Type %d chosen\n", exp->compression);
+
 	return TRUE;
 }
 
