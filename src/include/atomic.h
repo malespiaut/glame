@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.11 2001/04/12 09:44:29 richi Exp $
+ * $Id: atomic.h,v 1.12 2001/10/01 13:02:09 nold Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 
 #if defined CPU_X86
 #include "atomic_x86.h"
-#elif defined CPU_MIPS
+#elif defined CPU_MIPS && defined HAVE_MIPS_LL_SC
 #include "atomic_mips.h"
 #elif defined CPU_PPC
 #include "atomic_ppc.h"
