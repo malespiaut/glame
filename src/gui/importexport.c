@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.2 2001/12/07 10:45:37 richi Exp $
+ * $Id: importexport.c,v 1.3 2001/12/07 15:34:37 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -860,7 +860,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	gpsm_item_t *it;
 	float pos;
 	GtkWidget *ed;
-	int i;
+	int sfi, ri;
 
 	if(exp->filename==NULL) {
 		ed=gnome_error_dialog("Select a filename first!");
@@ -872,14 +872,12 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	if (!(grp = gpsm_flatten(exp->item)))
 		return;
 	
-	for(i=0; i<MAX_SFLABEL; i++)
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(exp->rbutton[i])))
+	for(sfi=0; sfi<MAX_SFLABEL; sfi++)
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(exp->rbutton[sfi])))
 			break;
-
-	if (i==MAX_SFLABEL) {
-		DPRINTF("HAE?\n");
-		return;
-	}
+	for(ri=0; ri<MAX_RLABEL; ri++)
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(exp->renderbutton[ri])))
+			break;
 
 	/* Build basic network. */
 	net = filter_creat(NULL);
@@ -891,31 +889,39 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		goto fail_cleanup;
 
 	param = filterparamdb_get_param(db, "sampleformat");
-	if (filterparam_set(param, &(sf_format[i])) == -1)
+	if (filterparam_set(param, &(sf_format[sfi])) == -1)
 		goto fail_cleanup;
 
 	param = filterparamdb_get_param(db, "samplewidth");
-	if (filterparam_set(param, &(sf_width[i])) == -1)
+	if (filterparam_set(param, &(sf_width[sfi])) == -1)
 		goto fail_cleanup;
 
 	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
 
-	render = net_add_plugin_by_name(net, "render");
-	source = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
-	if (!(pipe = filterport_connect(source, dest)))
-		goto fail_cleanup;
-	pos = -1.57;
-	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
-	if (!(pipe = filterport_connect(source, dest)))
-		goto fail_cleanup;
-	pos = 1.57;
-	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
+	if (ri == 1 || ri == 2) {
+		render = net_add_plugin_by_name(net, "render");
+		source = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
+		if (!(pipe = filterport_connect(source, dest)))
+			goto fail_cleanup;
+		if (ri == 1)
+			pos = 0.0;
+		else
+			pos = -1.57;
+		filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
+		if (ri == 2) {
+			if (!(pipe = filterport_connect(source, dest)))
+				goto fail_cleanup;
+			pos = 1.57;
+			filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
+		}
+	}
 
 	gpsm_grp_foreach_item(grp, it)
 		if (!(swin = net_add_gpsm_input(net, (gpsm_swfile_t *)it,
 						0, -1)))
 			goto fail_cleanup;
-	if (net_apply_node(net, render) == -1)
+
+	if (net_apply_node(net, ri == 0 ? writefile : render) == -1)
 		goto fail_cleanup;
 
 	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
