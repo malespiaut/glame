@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.4 2001/06/11 08:41:46 richi Exp $
+ * $Id: glame_accelerator.c,v 1.5 2001/06/11 12:19:37 nold Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <xmlmemory.h>
 #include <parser.h>
@@ -183,8 +184,23 @@ static int add_accels(const char *scope, xmlNodePtr node)
 				full_spec, state_mask, state, action);
 			glame_accel_add(full_spec, state_mask, state, action);
 
-		} else
-			return -1;
+		} else {
+			/* libxml2 produces bogus text nodes when it
+			 * encounters any whitespace. Hack around it. [dk] */
+			char *content;
+		       
+			if (strcmp(node->name, "text"))
+				return -1;
+
+			content	= xmlNodeGetContent(node);
+			while (*content)
+				if (!isspace(*content++))
+					return -1;
+
+			DPRINTF("Encountered ficken whitespace node! "
+			        "Ignored. (Using libxml2, eh!?)\n", 
+				node->name);
+		}
 
 		node = node->next;
 	}
