@@ -516,7 +516,7 @@ static void play_update_marker(glsig_handler_t *handler,
 						    waveedit->pm_start + pos);
 }
 static void play(GtkWaveView *waveview,
-		 gint32 start, gint32 end,
+		 gint32 start, gint32 end, gint32 rec_start,
 		 gboolean restore_marker, gboolean loop,
 		 gboolean extend, gboolean enable_record)
 {
@@ -631,6 +631,10 @@ static void play(GtkWaveView *waveview,
 			filter_add_node(net, one2n, "one2n");
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
 						    start, !extend ? end - start + 1 : -1, 0);
+			if (rec_start > start) {
+				long drop = rec_start - start;
+				filterparam_set_long(filterparamdb_get_param(swout, "drop"), &drop);
+			}
 			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN)))
 				goto fail_ain;
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), render_in);
@@ -638,6 +642,10 @@ static void play(GtkWaveView *waveview,
 		} else if (flg_mute[i] && flg_rec[i]) {
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
 						    start, !extend ? end - start + 1 : -1, 0);
+			if (rec_start > start) {
+				long drop = rec_start - start;
+				filterparam_set_long(filterparamdb_get_param(swout, "drop"), &drop);
+			}
 			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
 				goto fail_ain;
 		}
@@ -699,9 +707,9 @@ static void playrecordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (end - start <= 0) {
 		start = MAX(0, gtk_wave_view_get_marker (waveview));
 		end = gtk_wave_buffer_get_length(wavebuffer);
-		play(waveview, start, end, FALSE, FALSE, TRUE, TRUE);
+		play(waveview, start, end, start, FALSE, FALSE, TRUE, TRUE);
 	} else
-		play(waveview, start, end, TRUE, FALSE, FALSE, TRUE);
+		play(waveview, start, end, start, TRUE, FALSE, FALSE, TRUE);
 }
 
 static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
@@ -712,7 +720,7 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	/* Play from marker to end, dont restore marker position. */
 	start = MAX(0, gtk_wave_view_get_marker (waveview));
 	end = gtk_wave_buffer_get_length(wavebuffer);
-	play(waveview, start, end, FALSE, FALSE, FALSE, FALSE);
+	play(waveview, start, end, start, FALSE, FALSE, FALSE, FALSE);
 }
 
 static void playselection_cb(GtkWidget *widget, GtkWaveView *waveview)
@@ -727,7 +735,7 @@ static void playselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 			_("Nothing selected"))));
 		return;
 	}
-	play(waveview, start, end, TRUE, FALSE, FALSE, FALSE);
+	play(waveview, start, end, start, TRUE, FALSE, FALSE, FALSE);
 }
 
 static void playall_cb(GtkWidget *widget, GtkWaveView *waveview)
@@ -738,7 +746,7 @@ static void playall_cb(GtkWidget *widget, GtkWaveView *waveview)
 	/* Play whole track, restore marker at stop. */
 	start = 0;
 	end = gtk_wave_buffer_get_length(wavebuffer);
-	play(waveview, start, end, TRUE, FALSE, FALSE, FALSE);
+	play(waveview, start, end, start, TRUE, FALSE, FALSE, FALSE);
 }
 
 static void recordmarker_cb(GtkWidget *widget, GtkWaveView *waveview)
@@ -749,22 +757,28 @@ static void recordmarker_cb(GtkWidget *widget, GtkWaveView *waveview)
 	/* Record from marker, dont restore marker position. */
 	start = MAX(0, gtk_wave_view_get_marker (waveview));
 	end = gtk_wave_buffer_get_length(wavebuffer) - start - 1;
-	play(waveview, start, end, FALSE, FALSE, TRUE, TRUE);
+	play(waveview, start, end, start, FALSE, FALSE, TRUE, TRUE);
 }
 
 static void recordselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 {
-	gint32 start, end;
+	gint32 start, end, marker, rec_start;
 
 	/* Play the current selection, restore marker at stop. */
 	gtk_wave_view_get_selection(waveview, &start, &end);
 	end = start + end;
+	rec_start = start;
 	if (end - start <= 0) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
 			_("Nothing selected"))));
 		return;
 	}
-	play(waveview, start, end, TRUE, FALSE, FALSE, TRUE);
+	/* check for play-before-record
+	 * do this if the marker is set before the selection */
+	marker = gtk_wave_view_get_marker (waveview);
+	if (marker >= 0 && marker < start)
+		start = marker;
+	play(waveview, start, end, rec_start, TRUE, FALSE, FALSE, TRUE);
 }
 
 
@@ -1187,6 +1201,7 @@ static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_restore,
 	if (active_waveedit)
 		play(GTK_WAVE_VIEW(active_waveedit->waveview),
 		     gh_scm2long(s_start), gh_scm2long(s_end),
+		     gh_scm2long(s_start) /* FIXME - compatibility */,
 		     gh_scm2bool(s_restore), gh_scm2bool(s_loop),
 		     gh_scm2bool(s_extend), gh_scm2bool(s_enable_record));
 	return SCM_UNSPECIFIED;
