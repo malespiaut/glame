@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.6 2000/01/31 09:56:05 richi Exp $
+ * $Id: swapfile.c,v 1.7 2000/01/31 14:27:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -1333,6 +1333,7 @@ int swap_open(char *name, int flags)
 {
 	swapd_record_t *r;
 	struct stat sbuf;
+	union semun sun;
 
 	if (swap || !name)
 		return -1;
@@ -1356,7 +1357,10 @@ int swap_open(char *name, int flags)
 	if ((swap->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		goto _nosem;
 	swap->semnum = 0;
-	semctl(swap->semid, swap->semnum, SETVAL, 0);
+	sun.val = 0;
+	semctl(swap->semid, swap->semnum, SETVAL, sun);
+	if (semctl(swap->semid, swap->semnum, GETVAL, 0) != 0)
+	        return -1;
 
 	if ((swap->fd = open(name, O_RDWR)) == -1)
 		goto _nofd;

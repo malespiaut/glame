@@ -30,6 +30,21 @@
 #include "glame_hash.h"
 
 
+#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
+/* union semun is defined by including <sys/sem.h> */
+#else
+#if !defined(_NO_XOPEN4)
+/* according to X/OPEN we have to define it ourselves */
+union semun {
+	int val;                    /* value for SETVAL */
+	struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
+	unsigned short int *array;  /* array for GETALL, SETALL */
+	struct seminfo *__buf;      /* buffer for IPC_INFO */
+};
+#endif
+#endif
+
+
 /* One page sized hashtable. */
 #define HASH_BITS (10)
 #define HASH_SIZE (1 << HASH_BITS)
@@ -92,6 +107,10 @@ static inline void _unlock_w()
 
 int hash_alloc()
 {
+#ifdef _REENTRANT
+        struct sembuf sop;
+#endif
+
 	if (!(hash_table = (struct hash_head **)calloc(HASH_SIZE+1, sizeof(void *))))
 		return -1;
 	hash_table[HASH_SIZE] = NULL;
@@ -100,7 +119,19 @@ int hash_alloc()
 	if ((semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		return -1;
 	semnum = 0;
-	semctl(semid, semnum, SETVAL, 10000);
+	/* work around IRIX & gcc bug. this combination does not support
+	 * setting values other than 0.
+         * Old code:
+	sun.val = 10000;
+	if (semctl(semid, semnum, SETVAL, sun) == -1)
+		return -1;
+	 */
+	sop.sem_num = semnum;
+	sop.sem_op = 10000;
+	sop.sem_flg = 0;
+	semop(semid, &sop, 1);
+	if (semctl(semid, semnum, GETVAL, 0) != 10000)
+		return -1;
 #endif
 
 	return 0;
