@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.10 2000/02/05 15:59:26 richi Exp $
+ * $Id: filter_network.c,v 1.11 2000/02/06 02:10:45 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,11 +27,27 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
 #include "filter.h"
 #include "util.h"
+
+
+#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
+/* union semun is defined by including <sys/sem.h> */
+#else
+#if !defined(_NO_XOPEN4)
+/* according to X/OPEN we have to define it ourselves */
+union semun {
+	int val;                    /* value for SETVAL */
+	struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
+	unsigned short int *array;  /* array for GETALL, SETALL */
+	struct seminfo *__buf;      /* buffer for IPC_INFO */
+};
+#endif
+#endif
 
 
 #define STATE_UNDEFINED 0
@@ -46,132 +62,33 @@ static int preprocess_node(filter_node_t *n);
 static int init_node(filter_node_t *n);
 static int launch_node(filter_node_t *n);
 static void postprocess_node(filter_node_t *n);
+static int wait_node(filter_node_t *n);
+
+static int preprocess_network(filter_node_t *n);
+static int init_network(filter_node_t *n);
+static int launch_network(filter_node_t *n);
+static void postprocess_network(filter_node_t *n);
+static int wait_network(filter_node_t *n);
 
 
-static void filternetwork_cleanup(filter_network_t *net)
-{
-	filter_buffer_t *buf;
+struct filter_node_operations filter_node_ops = {
+	.preprocess = preprocess_node,
+	.init = init_node,
+	.launch = launch_node,
+	.postprocess = postprocess_node,
+	.wait = wait_node,
+};
 
-	if (net->state != STATE_UNDEFINED)
-		return;
-
-	while ((buf = filternetwork_first_buffer(net))) {
-		atomic_set(&buf->refcnt, 1);
-		fbuf_unref(buf);
-	}
-}
-
-
-/* ok, we have to launch the network back-to-front
- * (i.e. it is a _directed_ network)
- * we do this recursievely - ugh(?)
- */
-int filternetwork_launch(filter_network_t *net)
-{
-	filter_node_t *n;
-	sigset_t sigs;
-	struct sembuf sop;
-
-	/* block EPIPE */
-	sigemptyset(&sigs);
-	sigaddset(&sigs, SIG_BLOCK);
-	sigprocmask(SIG_BLOCK, &sigs, NULL);
-
-	if (net->state != STATE_UNDEFINED)
-		return -1;
-
-	/* init state */
-	atomic_set(&net->result, 0);
-	net->state = STATE_LAUNCHED;
-
-	filternetwork_foreach_input(net, n)
-		if (preprocess_node(n) == -1)
-			goto out;
-
-	filternetwork_foreach_input(net, n)
-		if (init_node(n) == -1)
-			goto out;
-
-	filternetwork_foreach_input(net, n)
-		if (launch_node(n) == -1)
-			goto out;
-
-	sop.sem_num = 0;
-	sop.sem_op = -net->nr_nodes;
-	sop.sem_flg = 0;
-	semop(net->semid, &sop, 1);
-	if (ATOMIC_VAL(net->result) != 0)
-		goto out;
-
-	return 0;
-
- out:
-	filternetwork_foreach_input(net, n)
-		postprocess_node(n);
-
-	filternetwork_cleanup(net);
-
-	net->state = STATE_UNDEFINED;
-
-	return -1;
-}
-
-/* wait for the network to finish processing */
-int filternetwork_wait(filter_network_t *net)
-{
-	int res, wait_again;
-	filter_node_t *n;
-
-	if (net->state != STATE_LAUNCHED)
-		return -1;
-	net->state = STATE_UNDEFINED;
-
-	do {
-		int filter_ret = 0;
-		wait_again = 0;
-		
-		filternetwork_foreach_node(net, n) {
-			DPRINTF("Waiting for %s.\n", n->filter->name);
-			if ((res = pthread_join(n->thread, 
-			                        (void **)&filter_ret)) != 0
-			    && (res != ESRCH)) {
-				wait_again = 1;
-			}
-			if (filter_ret  == -1) {
-				DPRINTF("Output error caught. "
-					"Terminating network.\n");
-				wait_again = 0;
-				filternetwork_terminate(net);
-			}
-		}
-	} while (wait_again);
-
-	filternetwork_foreach_input(net, n)
-		postprocess_node(n);
-
-	filternetwork_cleanup(net);
-
-	DPRINTF("net result is %i\n", ATOMIC_VAL(net->result));
-
-	return ATOMIC_VAL(net->result);
-}
-
-/* kill the network */
-void filternetwork_terminate(filter_network_t *net)
-{
-	filter_node_t *n;
-
-	filternetwork_foreach_input(net, n)
-		postprocess_node(n);
-
-	filternetwork_cleanup(net);
-}
+struct filter_node_operations filter_network_ops = {
+	.preprocess = preprocess_network,
+	.init = init_network,
+	.launch = launch_network,
+	.postprocess = postprocess_network,
+	.wait = wait_network,
+};
 
 
 
-/* we preprocess the network recursively - so it has to be
- * non cyclic.
- * preprocessing does memory allocation for the file-descriptors */
 static int preprocess_node(filter_node_t *n)
 {
 	filter_pipe_t *p;
@@ -188,16 +105,22 @@ static int preprocess_node(filter_node_t *n)
         list_foreach_output(n, p)
 		p->source_fd = -1;
 
-	/* recurse on output filters */
-	list_foreach_output(n, p)
-		if (preprocess_node(p->dest) == -1)
+	return 0;
+}
+static int preprocess_network(filter_node_t *n)
+{
+	filter_network_t *net = (filter_network_t *)n;
+
+	if (preprocess_node(n) == -1)
+		return -1;
+
+	filternetwork_foreach_node(net, n)
+		if (n->ops->preprocess(n) == -1)
 			return -1;
 
 	return 0;
 }
 
-/* we initialize the network recursively.
- * initialization does alloc the pipes */
 static int init_node(filter_node_t *n)
 {
 	filter_pipe_t *p;
@@ -215,15 +138,22 @@ static int init_node(filter_node_t *n)
 		p->source_fd = fds[1];
 		p->dest_fd = fds[0];
 	}
-	
-	/* recurse on output filters */
-	list_foreach_output(n, p)
-		if (init_node(p->dest) == -1)
-			return -1;
 
 	return 0;
 }
+static int init_network(filter_node_t *n)
+{
+	filter_network_t *net = (filter_network_t *)n;
 
+	if (init_node(n) == -1)
+		return -1;
+
+	filternetwork_foreach_node(net, n)
+		if (n->ops->init(n) == -1)
+			return 1;
+
+	return 0;
+}
 
 static void *launcher(void *node)
 {
@@ -250,22 +180,13 @@ static void *launcher(void *node)
 
 	return NULL;
 }
-
-/* we launch the network recursively, but we have to do
- * this back to front (really??) */
 static int launch_node(filter_node_t *n)
 {
-	filter_pipe_t *p;
-
 	if (!n || n->state >= STATE_PRELAUNCHED)
 		return 0;
 
 	n->state = STATE_PRELAUNCHED;
 
-	/* recurse on output filters */
-	list_foreach_output(n, p)
-		if (launch_node(p->dest) == -1)
-			return -1;
 
 	/* launch filter thread */
 	if (pthread_create(&n->thread, NULL, launcher, n) != 0)
@@ -275,10 +196,18 @@ static int launch_node(filter_node_t *n)
 
 	return 0;
 }
+static int launch_network(filter_node_t *n)
+{
+	filter_network_t *net = (filter_network_t *)n;
 
-/* we postprocess the network recursively - so it has to be
- * non cyclic.
- * postprocessing does memory deallocation and fd-closing */
+	filternetwork_foreach_node(net, n)
+		if (n->ops->launch(n) == -1)
+			return -1;
+
+	return 0;
+}
+
+/* kill threads, close pipes and free pending buffers */
 static void postprocess_node(filter_node_t *n)
 {
 	filter_pipe_t *p;
@@ -301,12 +230,191 @@ static void postprocess_node(filter_node_t *n)
 			close(p->dest_fd);
 
 	n->state = STATE_UNDEFINED;
+}
+static void postprocess_network(filter_node_t *n)
+{
+	filter_network_t *net = (filter_network_t *)n;
+	filter_buffer_t *buf;
 
-	/* recurse on output filters */
-	list_foreach_output(n, p)
-		postprocess_node(p->dest);
+	postprocess_node(n);
+
+	filternetwork_foreach_node(net, n)
+		n->ops->postprocess(n);
+
+	while ((buf = filternetwork_first_buffer(net))) {
+		atomic_set(&buf->refcnt, 1);
+		fbuf_unref(buf);
+	}
+
+	net->state = STATE_UNDEFINED;
 }
 
+static int wait_node(filter_node_t *n)
+{
+	int res, filter_ret;
+
+	DPRINTF("Waiting for %s.\n", n->filter->name);
+	while ((res = pthread_join(n->thread, 
+				   (void **)&filter_ret)) != 0
+	       && (res != ESRCH))
+		;
+
+
+	n->ops->postprocess(n);
+
+	return filter_ret;
+}
+static int wait_network(filter_node_t *n)
+{
+	filter_network_t *net = (filter_network_t *)n;
+	int res = 0;
+
+	filternetwork_foreach_node(net, n)
+		if (n->ops->wait(n) == -1)
+			res = -1;
+
+	net->node.ops->postprocess(&net->node);
+
+	return res;
+}
+
+
+static int check_result(filter_network_t *net)
+{
+	filter_node_t *n;
+	struct sembuf sop;
+	int nr;
+
+	DPRINTF("waiting for %i nodes in net %s\n", net->nr_nodes,
+		net->node.name);
+
+	nr = net->nr_nodes;
+	filternetwork_foreach_node(net, n)
+	  if (n->flags & FILTER_NODEFLAG_NETWORK) {
+			if (check_result((filter_network_t *)n) != 0)
+				return -1;
+			nr--;
+	  }
+
+	sop.sem_num = 0;
+	sop.sem_op = -nr;
+	sop.sem_flg = 0;
+	semop(net->semid, &sop, 1);
+
+	if (ATOMIC_VAL(net->result) != 0)
+		return -1;
+
+	DPRINTF("net %s is ready\n", net->node.name);
+
+	return 0;
+}
+
+
+/* ok, we have to launch the network back-to-front
+ * (i.e. it is a _directed_ network)
+ * we do this recursievely - ugh(?)
+ */
+int filternetwork_launch(filter_network_t *net)
+{
+	sigset_t sigs;
+
+	/* block EPIPE */
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIG_BLOCK);
+	sigprocmask(SIG_BLOCK, &sigs, NULL);
+
+	if (net->state != STATE_UNDEFINED)
+		return -1;
+
+	/* init state */
+	atomic_set(&net->result, 0);
+	net->state = STATE_LAUNCHED;
+
+	if (net->node.ops->preprocess(&net->node) == -1)
+		goto out;
+
+	if (net->node.ops->init(&net->node) == -1)
+		goto out;
+
+	if (net->node.ops->launch(&net->node) == -1)
+		goto out;
+
+	if (check_result(net) != 0)
+		goto out;
+
+	return 0;
+
+ out:
+	net->node.ops->postprocess(&net->node);
+	net->state = STATE_UNDEFINED;
+
+	return -1;
+}
+
+/* wait for the network to finish processing */
+int filternetwork_wait(filter_network_t *net)
+{
+	int res;
+
+	if (net->state != STATE_LAUNCHED)
+		return -1;
+
+	res = net->node.ops->wait(&net->node);
+	DPRINTF("net result is %i\n", res);
+
+	return res;
+}
+
+/* kill the network */
+void filternetwork_terminate(filter_network_t *net)
+{
+	net->node.ops->postprocess(&net->node);
+}
+
+
+
+static int filternode_init(filter_node_t *n, const char *name,
+			   filter_network_t *net)
+{
+	n->flags = 0;
+	n->net = net;
+	n->name = name;
+	n->ops = &filter_node_ops;
+	n->filter = NULL;
+
+	n->nr_params = 0;
+	n->nr_inputs = 0;
+	n->nr_outputs = 0;
+	INIT_LIST_HEAD(&n->net_list);
+	INIT_LIST_HEAD(&n->params);
+	INIT_LIST_HEAD(&n->inputs);
+	INIT_LIST_HEAD(&n->outputs);
+
+	return 0;
+}
+
+static int filternetwork_init(filter_network_t *net, const char *name,
+			      filter_network_t *pnet)
+
+{
+	if (filternode_init(&net->node, name, pnet) == -1)
+		return -1;
+
+	net->node.flags = FILTER_NODEFLAG_NETWORK;
+	net->node.ops = &filter_network_ops;
+
+	net->nr_nodes = 0;
+	INIT_LIST_HEAD(&net->nodes);
+	INIT_LIST_HEAD(&net->buffers);
+
+	net->state = STATE_UNDEFINED;
+
+	ATOMIC_INIT(net->result, 0);
+	if ((net->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
+		return -1;
+
+	return 0;
+}
 
 
 /* API */
@@ -321,17 +429,7 @@ filter_network_t *filternetwork_new(const char *name)
 	if (!(net = ALLOC(filter_network_t)))
 		return NULL;
 
-	net->node.name = name;
-
-	net->nr_nodes = 0;
-	INIT_LIST_HEAD(&net->nodes);
-	INIT_LIST_HEAD(&net->inputs);
-	INIT_LIST_HEAD(&net->buffers);
-
-	net->state = STATE_UNDEFINED;
-
-	ATOMIC_INIT(net->result, 0);
-	if ((net->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1) {
+	if (filternetwork_init(net, name, NULL) == -1) {
 		free(net);
 		return NULL;
 	}
@@ -347,7 +445,7 @@ void filternetwork_delete(filter_network_t *net)
 		filternode_delete(n);
 
 	ATOMIC_RELEASE(net->result);
-	semctl(net->semid, 0, IPC_RMID, 0);
+	semctl(net->semid, 0, IPC_RMID, (union semun)0);
 
 	free(net);
 }
@@ -365,34 +463,30 @@ filter_node_t *filternetwork_add_node(filter_network_t *net, const char *filter,
 	if (!nm)
 		nm = hash_unique_name_node(f->name, net);
 
-	if (!(n = ALLOC(filter_node_t)))
-		return NULL;
+	if (f->flags & FILTER_FLAG_NETWORK) {
+		if (!(n = (filter_node_t *)ALLOC(filter_network_t)))
+			return NULL;
+		if (filternetwork_init((filter_network_t *)n, nm, net) == -1)
+			return NULL;
+	} else {
+		if (!(n = ALLOC(filter_node_t)))
+			return NULL;
+		if (filternode_init(n, nm, net) == -1)
+			return NULL;
+	}
 
 	/* basic init node */
-	n->net = net;
-	n->name = nm;
 	n->filter = f;
-	n->nr_params = 0;
-	n->nr_inputs = 0;
-	n->nr_outputs = 0;
 
 	/* call custom init() */
-	if (f->init)
-		if (!(n = f->init(n)))
-			return NULL;
-
-	/* init the list after init() to allow copy & reallocate */
-	INIT_LIST_HEAD(&n->neti_list);
-	INIT_LIST_HEAD(&n->net_list);
-	INIT_LIST_HEAD(&n->params);
-	INIT_LIST_HEAD(&n->inputs);
-	INIT_LIST_HEAD(&n->outputs);
+	if (f->init
+	    && f->init(n) == -1)
+		return NULL;
 
 	/* add node to networks net and input node lists
 	 * it will be discarded if connected. Also add it
 	 * to the hash using name/net.
 	 */
-	list_add(&n->neti_list, &net->inputs);
 	list_add(&n->net_list, &net->nodes);
 	hash_add_node(n);
 	net->nr_nodes++;
@@ -415,7 +509,6 @@ void filternode_delete(filter_node_t *node)
 	/* remove node from network */
 	if (node->net) {
 		list_del(&node->net_list);
-		list_del(&node->neti_list);
 		hash_remove_node(node);
 		node->net->nr_nodes--;
 	}
@@ -479,12 +572,6 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 
 	p->dest->nr_inputs++;
 	p->source->nr_outputs++;
-
-	/* remove the source filter from the net output filter list
-	 * and the dest filter from the net input filter list.
-	 */
-	list_del(&dest->neti_list);
-	INIT_LIST_HEAD(&dest->neti_list);
 
 	return p;
 
@@ -553,15 +640,318 @@ int filternode_setparam(filter_node_t *n, const char *label, void *val)
 }
 
 
+
+/* filternetwork filters / loading / saving
+ * BIG FIXME!
+ */
+
+static struct filter_network_mapping *create_map(const char *label,
+						 const char *node)
+{
+	struct filter_network_mapping *map;
+
+	if (!(map = ALLOC(struct filter_network_mapping)))
+		return NULL;
+	map->label = label;
+	map->node = node;
+
+	return map;
+}
+
+static int fnf_param(filter_t *f, filter_network_t *net,
+		     char *node, char *label,
+		     char *extern_label, char *desc)
+{
+	filter_node_t *n;
+	filter_paramdesc_t *d;
+
+	if (!(n = hash_find_node(node, net)))
+		return -1;
+	if (!(d = hash_find_paramdesc(label, n->filter)))
+		return -1;
+	if (!(d = filter_add_param(f, strdup(extern_label),
+				   strdup(desc), d->type)))
+		return -1;
+
+	d->private = create_map(strdup(label), strdup(node));
+
+	return 0;
+}
+
+static int fnf_input(filter_t *f, filter_network_t *net,
+		     char *node, char *label,
+		     char *extern_label, char *desc)
+{
+	filter_node_t *n;
+	filter_portdesc_t *d;
+
+	if (!(n = hash_find_node(node, net)))
+		return -1;
+	if (!(d = hash_find_inputdesc(label, n->filter)))
+		return -1;
+	if (!(d = filter_add_input(f, strdup(extern_label),
+				   strdup(desc), d->type)))
+		return -1;
+
+	d->private = create_map(strdup(label), strdup(node));
+
+	return 0;
+}
+
+static int fnf_output(filter_t *f, filter_network_t *net,
+		      char *node, char *label,
+		      char *extern_label, char *desc)
+{
+	filter_node_t *n;
+	filter_portdesc_t *d;
+
+	if (!(n = hash_find_node(node, net)))
+		return -1;
+	if (!(d = hash_find_outputdesc(label, n->filter)))
+		return -1;
+	if (!(d = filter_add_output(f, strdup(extern_label),
+				    strdup(desc), d->type)))
+		return -1;
+
+	d->private = create_map(strdup(label), strdup(node));
+
+	return 0;
+}
+
+
+int filternetwork_filter_init(filter_node_t *n)
+{
+	FILE *fd;
+	char c, node1[256], name1[256], node2[256], name2[256], desc[256];
+	filter_network_t *net = (filter_network_t *)n;
+
+
+	if (!(fd = fopen((char *)n->filter->private, "r")))
+		return -1;
+
+
+	while (fscanf(fd, "%c", &c) == 1) {
+		switch (c) {
+		case 'n':
+			fscanf(fd, " %s %s ", node1, name1);
+			if (!filternetwork_add_node(net, node1, strdup(name1)))
+				goto err;
+			break;
+		case 'c':
+			fscanf(fd, " %s %s %s %s ", node1, name1,
+			       node2, name2);
+			if (!filternetwork_add_connection(hash_find_node(node1, net),
+							  name1, hash_find_node(node2, net), name2))
+				goto err;
+			break;
+		case 'i':
+			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			break;
+		case 'o':
+			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			break;
+		case 'p':
+			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			break;
+		default:
+			break;
+		}
+	}
+
+	fclose(fd);
+	return 0;
+
+ err:
+	fclose(fd);
+	filternetwork_delete(net);
+	return -1;
+}
+
+void filternetwork_filter_cleanup(filter_node_t *n)
+{
+	filternetwork_delete((filter_network_t *)n);
+}
+
+int filternetwork_filter_f(filter_node_t *n)
+{
+	PANIC("uh? filternetwork launched??");
+	return -1;
+}
+
+int filternetwork_filter_connect_out(filter_node_t *source, const char *port,
+				     filter_pipe_t *p)
+{
+	filter_portdesc_t *d;
+	struct filter_network_mapping *m;
+	filter_node_t *n;
+
+	if (!(d = hash_find_outputdesc(port, source->filter)))
+		return -1;
+	m = (struct filter_network_mapping *)d->private;
+	if (!(n = hash_find_node(m->node, source)))
+		return -1;
+	p->out_name = m->label;
+	p->source = n;
+
+	return 0;
+}
+
+int filternetwork_filter_connect_in(filter_node_t *dest, const char *port,
+				    filter_pipe_t *p)
+{
+	filter_portdesc_t *d;
+	struct filter_network_mapping *m;
+	filter_node_t *n;
+
+	if (!(d = hash_find_inputdesc(port, dest->filter)))
+		return -1;
+	m = (struct filter_network_mapping *)d->private;
+	if (!(n = hash_find_node(m->node, dest)))
+		return -1;
+	p->in_name = m->label;
+	p->dest = n;
+
+	return 0;
+}
+
+int filternetwork_filter_fixup_param(filter_node_t *node, const char *name)
+{
+	filter_paramdesc_t *d;
+	filter_param_t *p;
+	struct filter_network_mapping *m;
+	filter_node_t *n;
+
+	if (!(p = hash_find_param(name, node)))
+		return -1;
+	if (!(d = hash_find_paramdesc(name, node->filter)))
+		return -1;
+	m = (struct filter_network_mapping *)d->private;
+	if (!(n = hash_find_node(m->node, node)))
+		return -1;
+	return filternode_setparam(n, m->label, &p->val);
+}
+
 int filternetwork_save(filter_network_t *net, const char *filename)
 {
-	/* FIXME */
-	return -1;
+	filter_node_t *n;
+	filter_pipe_t *p;
+	filter_portdesc_t *d;
+	filter_paramdesc_t *pd;
+	FILE *fd;
+
+
+	if (!(fd = fopen(filename, "w")))
+		return -1;
+
+	filternetwork_foreach_node(net, n) {
+		fprintf(fd, "n %s %s\n", n->filter->name, n->name);
+	}
+
+	filternetwork_foreach_node(net, n) {
+		list_foreach_output(n, p) {
+			fprintf(fd, "c %s %s %s %s\n", p->source->name,
+				p->out_name, p->dest->name, p->in_name);
+		}
+	}
+
+	filternetwork_foreach_node(net, n) {
+		list_foreach_inputdesc(n->filter, d) {
+			if (hash_find_input(d->label, n))
+				continue;
+			fprintf(fd, "i %s %s %s-i_%s \"%s\"\n", n->name, d->label,
+				n->name, d->label, d->description);
+		}
+		list_foreach_outputdesc(n->filter, d) {
+			if (hash_find_output(d->label, n))
+				continue;
+			fprintf(fd, "o %s %s %s-o_%s \"%s\"\n", n->name, d->label,
+				n->name, d->label, d->description);
+		}
+		list_foreach_paramdesc(n->filter, pd) {
+			fprintf(fd, "p %s %s %s-%s \"%s\"\n", n->name, pd->label,
+				n->name, pd->label, pd->description);
+		}
+	}
+
+
+	fclose(fd);
+
+	return 0;
 }
 
 filter_t *filternetwork_load(const char *filename)
 {
-	/* FIXME */
+	FILE *fd;
+	filter_t *f = NULL;
+	char c, node1[256], name1[256], node2[256], name2[256], desc[256];
+	const char *p;
+	filter_network_t *net = NULL;
+
+	if (!(fd = fopen(filename, "r")))
+		return NULL;
+
+	if (!(p = strrchr(filename, '/')))
+		p = filename;
+
+
+        if (!(f = filter_alloc(strdup(p), NULL, filternetwork_filter_f)))
+		return NULL;
+	if (!(net = filternetwork_new("test")))
+	        goto err;
+
+	f->flags = FILTER_FLAG_NETWORK;
+	f->private = strdup(filename);
+	f->init = filternetwork_filter_init;
+	f->cleanup = filternetwork_filter_cleanup;
+	f->connect_out = filternetwork_filter_connect_out;
+	f->connect_in = filternetwork_filter_connect_in;
+	f->fixup_param = filternetwork_filter_fixup_param;
+
+	while (fscanf(fd, "%c", &c) == 1) {
+		switch (c) {
+		case 'n':
+			fscanf(fd, " %s %s ", node1, name1);
+			if (!filternetwork_add_node(net, node1, strdup(name1)))
+				goto err;
+			break;
+		case 'c':
+			fscanf(fd, " %s %s %s %s ", node1, name1,
+			       node2, name2);
+			if (!filternetwork_add_connection(hash_find_node(node1, net),
+							  name1, hash_find_node(node2, net), name2))
+				goto err;
+			break;
+		case 'i':
+			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			if (fnf_input(f, net, node1, name1, name2, desc) == -1)
+				goto err;
+			break;
+		case 'o':
+			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			if (fnf_output(f, net, node1, name1, name2, desc) == -1)
+				goto err;
+			break;
+		case 'p':
+			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			if (fnf_param(f, net, node1, name1, name2, desc) == -1)
+				goto err;
+			break;
+		default:
+			DPRINTF("wrong command %c\n", c);
+			break;
+		}
+	}
+
+	fclose(fd);
+	filternetwork_delete(net);
+
+	return f;
+
+ err:
+	fclose(fd);
+	filternetwork_delete(net);
+	/* FIXME - filter_delete() umm... */
+	free(f);
 	return NULL;
 }
 

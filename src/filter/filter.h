@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.11 2000/02/05 15:59:26 richi Exp $
+ * $Id: filter.h,v 1.12 2000/02/06 02:10:45 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -68,6 +68,8 @@ typedef struct {
 	int type;
 
 	const char *description;
+
+	void *private;
 } filter_paramdesc_t;
 
 /* Parameter instance. This is per filternode_t.
@@ -107,6 +109,8 @@ typedef struct {
 	int type;
 
 	const char *description;
+
+	void *private;
 } filter_portdesc_t;
 
 /* Filter pipes represent a connection between two
@@ -148,6 +152,7 @@ typedef struct {
 /* Filter contains the abstract description of a filter and
  * contains a set of methods doing the actual work.
  */
+#define FILTER_FLAG_NETWORK 1
 struct filter {
 	struct list_head list;
 	struct hash_head hash;
@@ -156,9 +161,11 @@ struct filter {
 	const char *name;
 	const char *description;
 
+	int flags;
+
 	int (*f)(filter_node_t *);
 
-	filter_node_t *(*init)(filter_node_t *);
+	int (*init)(filter_node_t *);
         void (*cleanup)(filter_node_t *);
 
 	int (*connect_out)(filter_node_t *source, const char *port,
@@ -204,6 +211,14 @@ struct filter {
 #define list_add_paramdesc(d, f) list_add(&(d)->list, &(f)->params)
 
 
+struct filter_node_operations {
+	int (*preprocess)(filter_node_t *n);
+	int (*init)(filter_node_t *n);
+	int (*launch)(filter_node_t *n);
+	void (*postprocess)(filter_node_t *n);
+	int (*wait)(filter_node_t *n);
+};
+
 /* Filter node is an instance of a filter. A filter node
  * is associated with a filter network.
  */
@@ -215,7 +230,6 @@ struct filter_node {
 	/* connectivity in the net */
 	filter_network_t *net;
 	struct list_head net_list;
-	struct list_head neti_list;
 
 	/* Filter of which this filter_node is an instance,
 	 * together with a private pointer that can be filled
@@ -224,6 +238,9 @@ struct filter_node {
 	void *private;
 
 	int flags;
+
+	/* filter node operations */
+	struct filter_node_operations *ops;
 
 	/* parameters */
 	int nr_params;
@@ -266,6 +283,11 @@ struct filter_node {
 
 
 
+struct filter_network_mapping {
+	const char *label;
+	const char *node;
+};
+
 /* A filter network is a "filter" which
  * contains a set of connected filter instances.
  */
@@ -273,8 +295,8 @@ struct filter_network {
         filter_node_t node;
 	int nr_nodes;
 	struct list_head nodes;
-	struct list_head inputs;
 
+	/* running stuff */
 	int state;
 
 	int semid;
@@ -284,7 +306,6 @@ struct filter_network {
 };
 
 #define filternetwork_first_node(net) list_gethead(&(net)->nodes, filter_node_t, net_list)
-#define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
 #define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, net_list, node)
 
 #define filternetwork_first_buffer(net) list_gethead(&(net)->buffers, filter_buffer_t, list)

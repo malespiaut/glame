@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.6 2000/02/05 16:38:27 nold Exp $ 
+ * $Id: read_file.c,v 1.7 2000/02/06 02:10:45 nold Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -27,14 +27,9 @@
 #ifndef HAVE_AUDIOFILE
 #include "filter.h"
 
-static int read_file_f(filter_node_t *n)
-{
-	return 0;
-}
-
 int read_file_register()
 {
-	return -1;
+	return 0;
 }
 
 #else

@@ -111,7 +111,7 @@ static inline void _unlock_w()
 
 static void cleanup()
 {
-        semctl(semid, 0, IPC_RMID, 0);
+        semctl(semid, 0, IPC_RMID, (union semun)0);
 }
 
 int hash_alloc()
@@ -139,7 +139,7 @@ int hash_alloc()
 	sop.sem_op = 10000;
 	sop.sem_flg = 0;
 	semop(semid, &sop, 1);
-	if (semctl(semid, semnum, GETVAL, 0) != 10000)
+	if (semctl(semid, semnum, GETVAL, (union semun)0) != 10000)
 		return -1;
 
 	/* register cleanup handler */

@@ -1,6 +1,6 @@
-@comment $Id: swapfile.texi,v 1.1 2000/02/05 00:01:53 nold Exp $
+@comment $Id: swapfile.texi,v 1.2 2000/02/06 02:10:45 nold Exp $
 
-@node Swapfile API, , Filter API, Top
+@node Swapfile API, Function and Type Index, Filter API, Top
 @chapter Swapfile API
 
 @table @strong
@@ -17,10 +17,7 @@ after release 1.0
 If you have any questions related to the covered (or uncovered but
 related) topics in this document, please quote the questionable part of 
 this document and send the questions per e-mail to 
-@email{glame-devel@@glame.sourceforge.net} (c/o richi). If you have 
-write access
-to the source of this documentation, please insert lines like ``Q: I don't
-understand what you mean by read-only.'' 
+@email{glame-devel@@glame.sourceforge.net} (c/o richi).
 
 @menu
 * Introduction::		Musings on swapfile philosophy
@@ -31,11 +28,11 @@ understand what you mean by read-only.''
 @section Introduction
 
 This is the documentation for the swapfile subsystem of GNU/Linux Audio
-Mechanics (@acronym{GLAME}). Swapfile was designed not specifically for 
-@acronym{GLAME} but with
+Mechanics (GLAME). Swapfile was designed not specifically for 
+GLAME but with
 the idea of storing of and operating on audio streams.
 
-Swapfile provides a store for multiple independend sets of (not necessarily)
+Swapfile provides a store for multiple independent sets of (not necessarily)
 one-dimensional data. Swapfile supports transparent and unlimited undo and 
 redo of cut- and insert-like operations.
 
@@ -73,26 +70,24 @@ document the semantics.
 
 To initialize the swapfile subsystem you have to open an existing swapfile
 which in turn you may create using the 
-@command{gmkswap} utility. After finishing
+@file{gmkswap} utility. After finishing
 operation you should close it again. Use the following functions:
 
-@table @code
-@anchor{swap_open}
-@item int swap_open(char *name, int flags)
+@deftypefun int swap_open (char *@var{name}, int @var{flags})
 
-@code{swap_open()} opens the swapfile with the specified name and 
+@code{swap_open()} opens the swapfile with the specified @var{name} and 
 the specified
-flags (no flags are defined yet, use 0). Returns -1 if it was not
+@var{flags} (no flags are defined yet, use 0). Returns -1 if it was not
 possible to open the swapfile or the swapfile is in an inconsistent
 state.
+@end deftypefun
 
-@anchor{swap_close}
-@item void swap_close()
+@deftypefun void swap_close (void)
 
 @code{swap_close()} closes the swapfile and updates the metadata state of the
 on-disk version of the swapfile. This puts the swapfile into a consistent
 state.
-@end table
+@end deftypefun
 
 @node File management, Accessing file data, Initialisation, Programming Interface
 @subsection File management
@@ -101,66 +96,70 @@ To allocate and free files in a swapfile there exist two functions---well
 actually there are three, but the last one is less generic as it will turn your
 file into read-only state.
 
-@table @code
-@anchor{file_alloc}
-@item fileid_t file_alloc(off_t size)
+@tindex fileid_t
+@tindex off_t
+@deftypefun fileid_t file_alloc (off_t @var{size})
 
-@code{file_alloc()} allocates a new file of the provided size. 
+@code{file_alloc()} allocates a new file of the provided @var{size}. 
 The return value
 is a handle for all subsequent operations on the file, -1 is returned on
 error. The contents of the file are initially set to zero and its state
 will be read-write after the operation.
+@end deftypefun
 
-@anchor{file_unref}
-@item void file_unref(fileid_t fid)
-
-@code{file_unref()} drops the file identified with @code{fid} and all 
+@tindex fileid_t
+@deftypefun void file_unref (fileid_t @var{fid})
+@code{file_unref()} drops the file identified with @var{fid} and all 
 its data. This
 operation is not logged and in turn cannot be undone. @code{file_unref()} 
 accepts files in both states, read-only and read-write.
+@end deftypefun
 
 Another set of two functions lets you change and query the size of a file.
 
-@anchor{file_truncate}
-@item int file_truncate(fileid_t fid, off_t size)
-
+@tindex fileid_t
+@tindex off_t
+@deftypefun int file_truncate (fileid_t @var{fid}, off_t @var{size})
 @code{file_truncate()} takes a file in read-write state and truncates 
 its size to
-@code{size}, just like the @code{ftruncate()} call does with regular 
+@var{size}, just like the @code{ftruncate()} call does with regular 
 unix-files.
-If @code{size} is less than the current size of the file, all data after and
-including position @code{size} will be discarded.
-If @code{size} is greater than the current size of the file, subsequently
+If @var{size} is less than the current size of the file, all data after and
+including position @var{size} will be discarded.
+If @var{size} is greater than the current size of the file, subsequently
 allocated data is initially set to zero.
 @code{file_truncate()} is not logged, i.e. you cannot undo this operation. The
 state of the file does not change from read-write. @code{file_truncate()}
 will return 0 on success or -1 on error, in which case file is not modified at
 all.
+@end deftypefun
 
-@anchor{file_size}
-@item off_t file_size(fileid_t fid)
+@tindex off_t
+@tindex fileid_t
+@deftypefun off_t file_size (fileid_t @var{fid})
 
-@code{file_size()} returns the size of file identified with @code{fid} 
+@code{file_size()} returns the size of file identified with @var{fid} 
 or -1 if no such
 file exists. The state of the file does not matter, neither is it changed
 by @code{file_size()}. The file itself of course remains unchanged as well.
+@end deftypefun
 
 As mentioned above, there is another way to create a new file. This is by
 copying an existing file or a part of it.
 
-@anchor{file_copy}
-@item fileid_t file_copy(fileid_t fid, off_t pos, off_t size)
-
+@tindex fileid_t
+@tindex off_t
+@deftypefun fileid_t file_copy (fileid_t @var{fid}, off_t @var{pos}, off_t @var{size})
 @code{file_copy()} will generate a new file containing the contents 
 in the interval
-[@code{pos}, @code{pos}+@code{size}[ of the old file as 
+[@var{pos}, @var{pos}+@var{size}[ of the old file as 
 @emph{reference}---i.e. no additional
 storage is required for this operation. This has the downside that both
 files, the source and the destination are switched to state read-only
 (the initial state of the source file does not matter).
 The identifier of the duplicate is returned, or -1 on error. It is illegal to
 specify an interval not entirely contained in the source file.
-@end table
+@end deftypefun
 
 @node Accessing file data, Logged operations, File management, Programming Interface
 @subsection Accessing file data
@@ -170,47 +169,46 @@ reading (read-only state) or reading and writing (read-write state). All access
 passes through fileclusters (@pxref{Introduction}). To access parts of the 
 file data,
 you first have to get the corresponding filecluster, then @code{mmap()} 
-it and finally munmap it. The functions are
+it and finally @code{munmap()} it. The functions are
 
-@table @code
-
-@anchor{filecluster_get}
-@item filecluster_t *filecluster_get(fileid_t fid, off_t pos)
-
+@tindex filecluster_t
+@tindex fileid_t
+@tindex off_t
+@deftypefun {filecluster_t *} filecluster_get (fileid_t @var{fid}, off_t @var{pos})
 @code{filecluster_get()} will return the filecluster containing the 
-position @code{pos} of
-the file identified with @code{fid}. It is illegal to specify a 
+position @var{pos} of
+the file identified with @var{fid}. It is illegal to specify a 
 position outside
 of the file or an unexisting one, @code{NULL} is returned in these cases.
+@end deftypefun
 
-@anchor{filecluster_start}
-@item filecluster_start(filecluster_t *fc)
-@anchor{filecluster_end}
-@item filecluster_end(filecluster_t *fc)
-@anchor{filecluster_size}
-@item filecluster_size(filecluster_t *fc)
+@tindex off_t
+@tindex filecluster_t
+@deftypefn Macro off_t filecluster_start (filecluster_t *@var{fc})
+@deftypefnx Macro off_t filecluster_end (filecluster_t *@var{fc})
+@deftypefnx Macro off_t filecluster_size (filecluster_t *@var{fc})
 
-@code{filecluster_start} returns the position of the first contained datum,
-@code{filecluster_end} returns the position of the last contained datum and
-@code{filecluster_size} will return the size of the contained data in bytes.
+@code{filecluster_start()} returns the position of the first contained datum,
+@code{filecluster_end()} returns the position of the last contained datum and
+@code{filecluster_size()} will return the size of the contained data in bytes.
+@end deftypefn
 
-@anchor{filecluster_next}
-@item filecluster_next(fc)
-@anchor{filecluster_prev}
-@item filecluster_prev(fc)
+@tindex filecluster_t
+@deftypefn Macro {filecluster_t *} filecluster_next (filecluster_t *@var{fc})
+@deftypefnx Macro {filecluster_t *} filecluster_prev (filecluster_t *@var{fc})
 
-@code{filecluster_next} and @code{filecluster_prev} let you traverse the 
+@code{filecluster_next()} and @code{filecluster_prev()} let you traverse the 
 fileclusters of a file. Both may return @code{NULL} if you hit the start or 
 the end of the file. The first filecluster of a file always satisfies
-@code{filecluster_start(fc) == 0}, the last filecluster of a 
+@code{filecluster_start(@var{fc}) == 0}, the last filecluster of a 
 file satisfies
-@code{filecluster_end(fc) == file_size(fid)} and each pair of adjacent
+@code{filecluster_end(@var{fc}) == file_size(@var{fid})} and each pair of adjacent
 fileclusters satisfies 
-@code{filecluster_end(prev)+1 == filecluster_start(next)}.
+@code{filecluster_end(@var{prev})+1 == filecluster_start(@var{next})}.
+@end deftypefn
 
-@anchor{filecluster_mmap}
-@item char *filecluster_mmap(filecluster_t *fc)
-
+@tindex filecluster_t
+@deftypefun {char *} filecluster_mmap (filecluster_t *@var{fc})
 @code{filecluster_mmap()} will @code{mmap()} the data contained in 
 the filecluster and
 return a pointer to it. The @code{mmapp()}ed memory area is 
@@ -220,28 +218,28 @@ file of the filecluster is in read-only state (so you will get a
 if you try to write into it). Note that it is illegal to access parts of
 the @code{mmapp()ed} area not within the filecluster's size. Caveat emptor!
 @code{filecluster_mmap()} may change the size of the filecluster! 
-So if you want to have access to position @code{pos} in file @code{f},
+So if you want to have access to position @var{pos} in file @var{f},
 you may have to do
 
 @example
 @group
-fc = filecluster_get(f, pos);
-mem = filecluster_mmap(fc);
-while (pos > filecluster_end(fc)) @{
-        filecluster_munmap(fc);
-        fc = filecluster_next(fc);
-        mem = filecluster_mmap(fc);
+@var{fc} = filecluster_get(@var{f}, @var{pos});
+@var{mem} = filecluster_mmap(@var{fc});
+while (@var{pos} > filecluster_end(@var{fc})) @{
+        filecluster_munmap(@var{fc});
+        @var{fc} = filecluster_next(@var{fc});
+        @var{mem} = filecluster_mmap(@var{fc});
 @}
 @end group
 @end example 
+@end deftypefun
 
-@anchor{filecluster_munmap}
-@item void filecluster_munmap(filecluster_t *fc)
-
+@tindex filecluster_t
+@deftypefun void filecluster_munmap (filecluster_t *@var{fc})
 @code{munmap()}s a previously @code{mmap()}ped filecluster. It is 
 illegal to @code{munmap()} a filecluster more times than it has been 
 @code{mmap()}ped.
-@end table
+@end deftypefun
 
 @node Logged operations, Misc operations, Accessing file data, Programming Interface
 @subsection Logged operations
@@ -252,88 +250,85 @@ All those operations have to be grouped into a
 Such a transaction can be undone and
 subsequently redone.
 
-@table @code
-
 To start and end a transaction you have to use the following two functions:
 
-@anchor{file_transaction_begin}
-@item int file_transaction_begin(fileid_t fid)
-@anchor{file_transaction_end}
-@item int file_transaction_end(fileid_t fid)
-
+@tindex fileid_t
+@deftypefun int file_transaction_begin (fileid_t @var{fid})
+@deftypefunx int file_transaction_end (fileid_t @var{fid})
 @code{file_transaction_begin()} will start a new transaction for the file 
-@code{fid},
+@var{fid},
 @code{file_transaction_end()} will end it. Nested @code{begin}/@code{end} 
 calls are allowed. Both operations return 0 on success and -1 on error.
+@end deftypefun
 
-@anchor{file_transaction_undo}
-@item int file_transaction_undo(fileid_t fid)
-@anchor{file_transaction_redo}
-@item int file_transaction_redo(fileid_t fid)
-
+@tindex fileid_t
+@deftypefun int file_transaction_undo (fileid_t @var{fid})
+@deftypefunx int file_transaction_redo (fileid_t @var{fid})
 @code{file_transaction_undo()} will try to undo the last completed 
-transaction of the file @code{fid}, @code{file_transaction_redo()} will try 
+transaction of the file @var{fid}, @code{file_transaction_redo()} will try 
 to redo the last undone
 transaction of the file. It is illegal to undo a transaction currently in
 progress; you have to end it first. Note that all redo-records of a file
 are discarded once you begin a new transaction on this file.
+@end deftypefun
 
 The operations that can be undone and redone are the following ones---you may
 miss some operations commonly used, but you may notice that you can compose 
 any standard operation with the following two logged operations and the (not
-logged!) operation @code{file_copy()} (@pxref{file_copy}).
+logged!) operation @code{file_copy()}.
 
-@anchor{file_op_insert}
-@item int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
-
-@code{file_op_insert()} will insert the file @code{file} into the file 
-@code{fid} at position
-@code{pos}. @code{pos} has to be in the range of [0..@code{file_size(fid)}], 
+@tindex fileid_t
+@tindex off_t
+@deftypefun int file_op_insert (fileid_t @var{fid}, off_t @var{pos}, fileid_t @var{file})
+@code{file_op_insert()} will insert the file @var{file} into the file 
+@var{fid} at position
+@var{pos}. @var{pos} has to be in the range of [0, @code{file_size(@var{fid})}], 
 else the operation fails. Both files will change their state to read-only, 
-and you may not any longer access the inserted file @code{file}---all 
-subsequent operations on it will fail and set @var{errno} to @code{ENOENT}. 
+and you may not any longer access the inserted file @var{file}---all 
+subsequent operations on it will fail and set @code{errno} to @code{ENOENT}. 
 If this operation is undone, the
 inserted file will become accessible again.
 @code{file_op_insert()} will return 0 on success and -1 on error.
+@end deftypefun
 
-@anchor{file_op_cut}
-@item int file_op_cut(fileid_t fid, off_t pos, off_t size)
-
+@tindex fileid_t
+@tindex off_t
+@deftypefun int file_op_cut (fileid_t @var{fid}, off_t @var{pos}, off_t @var{size})
 @code{file_op_cut()} will cut the interval 
-[@code{pos}..@code{pos}+@code{size}[ out of file @code{fid}.
-The interval has to be entirely contained in @code{fid}. The file will change
+[@var{pos}, @var{pos}+@var{size}[ out of file @var{fid}.
+The interval has to be entirely contained in @var{fid}. The file will change
 its state to read-only.
 @code{file_op_cut()} will return 0 on success and -1 on error.
+@end deftypefun
 
+@noindent
 The common cut&paste operations can be composed as follows:
 
 @table @dfn
 @item copy
 @code{file_copy()}
 @item paste 
-@code{file_op_insert()} or @code{file_copy()} and @code{file_op_insert()} 
+@code{file_op_insert()}, or @code{file_copy()} and @code{file_op_insert()} 
 for multiple pastes
 @item cut
 @code{file_copy()} and @code{file_op_cut()}
 @item delete 
 @code{file_op_cut()}
 @end table
-@end table
 
 @node Misc operations, , Logged operations, Programming Interface
 @subsection Misc operations
 
-@table @code
 The semantics of the following function are not yet fully defined, it was 
-added to support the @command{swapfile_info} tool.
+added to support the @file{swapfile_info} tool.
 
-@anchor{file_next}
-@item fileid_t file_next(fileid_t fid)
+@tindex fileid_t
+@deftypefun fileid_t file_next (fileid_t @var{fid})
 
-@code{file_next()} will return the next file identifier after @code{fid}, 
-or the first one if @code{fid} is -1. -1 is returned if no further file 
+@code{file_next()} will return the next file identifier after @var{fid}, 
+or the first one if @var{fid} is -1. -1 is returned if no further file 
 does exist. Be careful! At the moment you do not get a valid reference to 
 the file, i.e. you may not operate on it in any way! So this function is 
 essentially useless at the moment.
-@end table
+@end deftypefun
 

@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.9 2000/02/02 09:58:34 richi Exp $
+ * $Id: swapfile.c,v 1.10 2000/02/06 02:10:45 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -1333,7 +1333,6 @@ int swap_open(char *name, int flags)
 {
 	swapd_record_t *r;
 	struct stat sbuf;
-	union semun sun;
 
 	if (swap || !name)
 		return -1;
@@ -1357,9 +1356,8 @@ int swap_open(char *name, int flags)
 	if ((swap->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		goto _nosem;
 	swap->semnum = 0;
-	sun.val = 0;
-	semctl(swap->semid, swap->semnum, SETVAL, sun);
-	if (semctl(swap->semid, swap->semnum, GETVAL, 0) == -1)
+	semctl(swap->semid, swap->semnum, SETVAL, (union semun)0);
+	if (semctl(swap->semid, swap->semnum, GETVAL, (union semun)0) == -1)
 	        return -1;
 
 	if ((swap->fd = open(name, O_RDWR)) == -1)
@@ -1397,7 +1395,7 @@ _err:
 _nostat:
 	close(swap->fd);
 _nofd:
-	semctl(swap->semid, 0, IPC_RMID, 0);
+	semctl(swap->semid, 0, IPC_RMID, (union semun)0);
 _nosem:
 	free(swap);
 	swap = NULL;
@@ -1426,7 +1424,7 @@ void swap_close()
       	flock(swap->fd, LOCK_SH);
 	close(swap->fd);
 
-	semctl(swap->semid, 0, IPC_RMID, 0);
+	semctl(swap->semid, 0, IPC_RMID, (union semun)0);
 
 	/* aieee! FIXME! we should free the lists in mem?? (sure!) */
 	/* and we should unmap all mappings... FIXME! */

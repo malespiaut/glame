@@ -13,7 +13,7 @@ NOTE2: The filter subsystem has not quite settled yet. So don't expect the APIs
 NOTE3: This is not a filter programming tutorial! Look for this in an other
        file.
 
-The filter subsystem has three independend APIs, one for the filter registry,
+The filter subsystem has three independent APIs, one for the filter registry,
 one for filters programming and one for using the filters and connecting them
 into so called filter networks.
 

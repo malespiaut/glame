@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.11 2000/02/05 15:59:26 richi Exp $
+ * $Id: filter.c,v 1.12 2000/02/06 02:10:45 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -150,6 +150,7 @@ filter_t *filter_alloc(const char *name, const char *description,
 	hash_init_filter(f);
 	INIT_LIST_HEAD(&f->list);
 
+	f->flags = 0;
 	f->name = name;
 	f->description = description;
 

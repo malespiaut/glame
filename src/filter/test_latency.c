@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.6 2000/02/05 15:59:26 richi Exp $
+ * $Id: test_latency.c,v 1.7 2000/02/06 02:10:45 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -80,11 +80,6 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-
-	/* we have created a cyclic network. ugh!
-	 * lets "fix" it :)
-	 */
-	list_add(&ping->neti_list, &net->inputs);
 
 	fprintf(stderr, "launching network\n");
 	if (filternetwork_launch(net) == -1) {

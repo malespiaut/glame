@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.2 2000/02/05 15:59:26 richi Exp $
+ * $Id: basic.c,v 1.3 2000/02/06 02:10:45 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -60,6 +60,7 @@ static int drop_f(filter_node_t *n)
 	list_foreach_input(n, p)
 		inputs[active_channels++] = p;
 
+
 	FILTER_AFTER_INIT;
 
 	while (pthread_testcancel(), active_channels>0) {
@@ -111,10 +112,10 @@ static int one2n_f(filter_node_t *n)
 	 * data - i.e. NULL is an EOF mark.
 	 * the pthread_testcancel is important (do it first to
 	 * avoid deadlocks)! */
-	while (pthread_testcancel(),
-	       (buf = fbuf_get(in))) {
+	do {
 		/* we get the input buffer referenced for us by
 		 * our source. */
+	        buf = fbuf_get(in);
 
 		/* forward the input buffer n times */
 		list_foreach_output(n, out) {
@@ -128,7 +129,8 @@ static int one2n_f(filter_node_t *n)
 		/* now we drop our own reference of the
 		 * buffer as we are ready with it now. */
 		fbuf_unref(buf);
-	}
+	} while (pthread_testcancel(), buf);
+
 
 	FILTER_BEFORE_CLEANUP;
 

@@ -22,6 +22,10 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,7 +40,7 @@
 #endif
 
 #ifdef DEBUG
-#define DPRINTF(msg, args...) printf(__PRETTY_FUNCTION__ ": " msg, ## args);
+#define DPRINTF(msg, args...) printf(__PRETTY_FUNCTION__ ": " msg, ## args)
 #else
 #define DPRINTF(msg, args...)
 #endif
