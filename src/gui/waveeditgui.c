@@ -99,6 +99,28 @@ static void zoomsel_cb(GtkWidget *bla, GtkWaveView *waveview)
         gtk_wave_view_set_zoom_selection(waveview);
 }
 
+/* Menu event - Goto marker. */
+static void gotomarker_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	gtk_wave_view_set_marker_and_scroll(waveview,
+					    gtk_wave_view_get_marker(waveview));
+}
+
+/* Menu event - select nothing. */
+static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview)
+{
+	gtk_wave_view_set_selection(waveview, 0, 0);
+}
+
+/* Menu event - select all. */
+static void selectall_cb(GtkWidget *w, GtkWaveView *waveview)
+{
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+
+	gtk_wave_view_set_selection(waveview, 0,
+				    gtk_wave_buffer_get_length(wavebuffer));
+}
+
 /* Menu event - Copy. */
 static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
@@ -772,9 +794,16 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 
 static GnomeUIInfo view_menu[] = {
 	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
-	GNOMEUIINFO_ITEM("Zoom full", "zommfull", zoomfull_cb, NULL),
 	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
 	GNOMEUIINFO_ITEM("Zoom out", "zommout", zoomout_cb, NULL),
+	GNOMEUIINFO_ITEM("View all", "zommfull", zoomfull_cb, NULL),
+	GNOMEUIINFO_ITEM("Goto marker", "gotomarker", gotomarker_cb, NULL),
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo select_menu[] = {
+	GNOMEUIINFO_ITEM("Select none", "selectnone", selectnone_cb, NULL),
+	GNOMEUIINFO_ITEM("Select all", "selectall", selectall_cb, NULL),
 	GNOMEUIINFO_END
 };
 
@@ -787,6 +816,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("View", view_menu),
+	GNOMEUIINFO_SUBTREE("Select", select_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Play all", "Plays the whole wave", playall_cb, NULL),
 	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playselection_cb, NULL),	
@@ -799,7 +829,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
-#define RMB_MENU_APPLY_FILTER_INDEX 15
+#define RMB_MENU_APPLY_FILTER_INDEX 16
 
 
 /* Somehow only select "effects" (one input, one output) type of
@@ -807,9 +837,20 @@ static GnomeUIInfo rmb_menu[] = {
 static int choose_effects(plugin_t *plugin)
 {
 	filter_t *filter = plugin_query(plugin, PLUGIN_FILTER);
+	char *cat;
+
+	/* We need "in" and "out" ports. */
 	if (!filterportdb_get_port(filter_portdb(filter), PORTNAME_IN)
 	    || !filterportdb_get_port(filter_portdb(filter), PORTNAME_OUT))
 		return 0;
+	/* We dont like plugin categories "Routing". */
+	if (!(cat = plugin_query(plugin, PLUGIN_CATEGORY))
+	    || (strcmp(cat, "Routing") == 0))
+		return 0;
+	/* We dont like plugins "ping". */
+	if (strcmp(plugin_name(plugin), "ping") == 0)
+		return 0;
+
 	return 1;
 }
 
