@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.43 2001/06/04 16:03:42 richi Exp $
+ * $Id: swapfilegui.c,v 1.44 2001/06/05 15:25:34 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -791,7 +791,8 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		drag_widget = NULL;
 		mode = -1;
 
-	} else if (event->type == GDK_LEAVE_NOTIFY) {
+	} else if (event->type == GDK_LEAVE_NOTIFY
+		   && ((GdkEventCrossing *)event)->mode == GDK_CROSSING_NORMAL) {
 		active_swapfilegui_item = NULL;
 
 	} else if (event->type == GDK_ENTER_NOTIFY) {
@@ -981,10 +982,12 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
 			      SwapfileGui *swapfile)
 {
-	if (event->type == GDK_ENTER_NOTIFY) {
+	if (event->type == GDK_ENTER_NOTIFY
+	    && event->mode == GDK_CROSSING_NORMAL) {
 		DPRINTF("Entered %s\n", gpsm_item_label(swapfile->root));
 		active_swapfilegui = swapfile;
-	} else if (event->type == GDK_LEAVE_NOTIFY) {
+	} else if (event->type == GDK_LEAVE_NOTIFY
+		   && event->mode == GDK_CROSSING_NORMAL) {
 		DPRINTF("Left %s\n", gpsm_item_label(swapfile->root));
 		if (active_swapfilegui != swapfile)
 			DPRINTF("But was not active (%s)!\n",
