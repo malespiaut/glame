@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.84 2001/04/26 13:10:09 richi Exp $
+ * $Id: canvas.c,v 1.85 2001/04/26 14:26:29 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -853,7 +853,7 @@ canvas_output_port_motion(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(item),event->button.time);
 		if(item->connecting){
 			gtk_object_destroy(GTK_OBJECT(item->connection->line));
-
+			item->connection->line=NULL;
 			// Why does this not work correctly??   libgnomeui bug??
 			released = gnome_canvas_get_item_at(pitem->canvas,x,y);
 			//released = GNOME_CANVAS_ITEM(find_output_port(GLAME_CANVAS(pitem->canvas),x,y));
