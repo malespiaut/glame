@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.28 2003/04/15 20:32:56 richi Exp $
+ * $Id: swapfile_io.c,v 1.29 2004/05/09 20:59:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -272,11 +272,6 @@ static int swapfile_out_f(filter_t *n)
 
 	size = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
-	/* Limit size to current file size, if not -1 (which allows extension). */
-	if (size != -1) {
-		sw_fstat(fd, &st);
-		size = MIN(size, ((long)(st.size/SAMPLE_SIZE)) - offset);
-	}
 
 	pos_param = filterparamdb_get_param(
 		filter_paramdb(n), FILTERPARAM_LABEL_POS);
