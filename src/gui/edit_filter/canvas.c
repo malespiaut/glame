@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.23 2001/02/28 23:54:32 xwolf Exp $
+ * $Id: canvas.c,v 1.24 2001/03/01 10:26:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -573,11 +573,13 @@ find_output_port(GlameCanvas* canvas, double x, double y)
 	
 	litem = g_list_first(GNOME_CANVAS_GROUP(GNOME_CANVAS(canvas)->root)->item_list);
 	while(litem){
-		pitem = g_list_first(((GlameCanvasItem*)litem->data)->input_ports);
-		while(pitem){
-			if(is_inside((GlameCanvasPort*)pitem->data,x,y))
-				return (GlameCanvasPort*)pitem->data;
-			pitem=g_list_next(pitem);
+		if(((GlameCanvasItem*)litem->data)->input_ports){
+			pitem = g_list_first(((GlameCanvasItem*)litem->data)->input_ports);
+			while(pitem){
+				if(is_inside((GlameCanvasPort*)pitem->data,x,y))
+					return (GlameCanvasPort*)pitem->data;
+				pitem=g_list_next(pitem);
+			}
 		}
 		litem=g_list_next(litem);
 	}
@@ -745,10 +747,11 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	case GDK_BUTTON_RELEASE:
 		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(item),event->button.time);
 		if(item->connecting){
-			
+			gtk_object_destroy(GTK_OBJECT(item->connection->line));
+
 			// Why does this not work correctly??   libgnomeui bug??
-			//released = gnome_canvas_get_item_at(pitem->canvas,x,y);
-			released = GNOME_CANVAS_ITEM(find_output_port(GLAME_CANVAS(pitem->canvas),x,y));
+			released = gnome_canvas_get_item_at(pitem->canvas,x,y);
+			//released = GNOME_CANVAS_ITEM(find_output_port(GLAME_CANVAS(pitem->canvas),x,y));
 			if(released){
 				if(GLAME_IS_CANVAS_PORT(released)){
 					DPRINTF("port hit!\n");
@@ -758,26 +761,24 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 						item->connection->end = port;
 						if(add_connection(item->connection)<0){
 							DPRINTF("inner connection failed\n");
-							gtk_object_destroy(GTK_OBJECT(item->connection->line));
 							free(item->connection);	
 						}else{
 							DPRINTF("inner connection succeded!\n");
-														
+
 						}
 						// connected!!
 					} else {
 						DPRINTF("not inputport! %d %s",port->port_type,filterport_label(port->port));
-						gtk_object_destroy(GTK_OBJECT(item->connection->line));
-						free(item->connection);
+						free(item->connection);	
 					}	
 				} else {
 					DPRINTF("not canvas port %s\n",gtk_type_name(
 							released->object.klass->type));
-					
+					free(item->connection);	
+										
 				}
 			}else{
-				gtk_object_destroy(GTK_OBJECT(item->connection->line));
-				free(item->connection);
+				free(item->connection);	
 			}
 			item->connecting = FALSE;
 		}
@@ -791,12 +792,25 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 
 
 static void
-reorder_port_connections(GlameCanvasPort* port)
+reorder_outport_connections(GlameCanvasPort* port)
 {
 	GList *list = g_list_first(port->connected_ports);
 	int count=1;
 	while(list){
 	      ((GlameConnection*)(list->data))->end_id = count++;
+		list = g_list_next(list);
+	}
+	update_input_connection(port,0.0,0.0);
+}
+
+
+static void
+reorder_inport_connections(GlameCanvasPort* port)
+{
+	GList *list = g_list_first(port->connected_ports);
+	int count=1;
+	while(list){
+	      ((GlameConnection*)(list->data))->begin_id = count++;
 		list = g_list_next(list);
 	}
 	update_input_connection(port,0.0,0.0);
@@ -1308,7 +1322,8 @@ connection_break(GlameConnection* connection)
 	connection->end->connected_ports=g_list_remove(connection->end->connected_ports,connection);
 	gtk_object_destroy(GTK_OBJECT(connection->line));
 	gtk_object_destroy(GTK_OBJECT(connection->circle));
-	reorder_port_connections(connection->end);
+	reorder_outport_connections(connection->end);
+	reorder_inport_connections(connection->begin);
 	free (connection);
 }
 
