@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.40 2004/10/23 13:09:22 richi Exp $
+ * $Id: filter_ops.c,v 1.41 2004/12/26 20:55:29 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Richard Guenther
  *
@@ -227,16 +227,17 @@ static void postprocess_network(filter_t *n)
 
 static int wait_node(filter_t *n)
 {
-	int res, filter_ret;
+	int res;
+	void *filter_ret;
 
 	DPRINTF("Waiting for %s.\n", n->name);
 	while ((res = pthread_join(n->thread, 
-				   (void **)&filter_ret)) != 0
+				   &filter_ret)) != 0
 	       && (res != ESRCH))
 		;
 	n->state = STATE_INITIALIZED;
 
-	return filter_ret;
+	return filter_ret == NULL ? 0 : -1;
 }
 static int wait_network(filter_t *n)
 {
