@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.22 2001/04/24 12:07:49 richi Exp $
+ * $Id: filter_ops.c,v 1.23 2001/04/29 11:46:41 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -124,11 +124,27 @@ static void *launcher(void *node)
 	/* signal net failure */
 	atomic_inc(&n->net->launch_context->result);
 
-	/* increment filter ready semaphore */
-	sop.sem_num = 0;
-	sop.sem_op = 1;
-	sop.sem_flg = IPC_NOWAIT;
-	glame_semop(n->net->launch_context->semid, &sop, 1);
+	/* increment filter ready semaphore if still in startup
+	 * phase */
+	if (n->net->launch_context->state <= STATE_LAUNCHED) {
+		sop.sem_num = 0;
+		sop.sem_op = 1;
+		sop.sem_flg = IPC_NOWAIT;
+		glame_semop(n->net->launch_context->semid, &sop, 1);
+	}
+
+	/* if it was an error during processing, drain the pipes
+	 * and send eofs */
+	if (n->net->launch_context->state >= STATE_RUNNING) {
+		filterportdb_foreach_port(filter_portdb(n), port) {
+			filterport_foreach_pipe(port, p) {
+			        if (filterport_is_input(port))
+					fbuf_drain(p);
+				else
+					fbuf_queue(p, NULL);
+			}
+		}
+	}
 
 	pthread_exit((void *)-1);
 
@@ -340,7 +356,7 @@ int filter_launch(filter_t *net)
 
  out:
 	DPRINTF("error.\n");
-	filter_terminate(net);
+	filter_terminate(net); /* FIXME - this seems to be error prone. */
 
 	return -1;
 }
