@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.71 2001/11/25 23:04:35 mag Exp $
+ * $Id: file_io.c,v 1.72 2001/12/03 22:06:53 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -607,21 +607,21 @@ int write_file_f(filter_t *n)
 	filter_pipe_t *in;
 	filter_port_t *port;
 	char *filename;
-	int res=-1;
-	int eofs,bufsiz,wbpos;
+	int res=-1, failed=0;
+	int eofs,wbpos;
 	int i,iat,iass;
 	int filetype;
-	short		*buffer;
+	char *errstring = "write file failed";
 
 	/* audiofile stuff */
 	AFfilehandle    file;
-	AFframecount    frameCount;
 	AFfilesetup     fsetup;
 	int             sampleFormat,sampleWidth;
-	int             channelCount,frameSize;
+	int             channelCount, compression;
 	int		sampleRate;
-	int             format;
 	track_t         *track;
+	SAMPLE          *buffer;
+	int             buffer_size, written, frames;
 
 	channelCount = filterport_nrpipes(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
 
@@ -641,7 +641,11 @@ int write_file_f(filter_t *n)
 		else
 			filetype=af_indices[filetype];
 	}
-		
+
+	sampleFormat=filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "sampleformat"));
+	sampleWidth=filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "samplewidth"));
+	compression=filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "compression"));
+
 	if (filetype==-1)
 		FILTER_ERROR_RETURN("Filetype not recognized" 
 				    " or not supported by libaudiofile");
@@ -651,7 +655,7 @@ int write_file_f(filter_t *n)
 
 	if (!(track=ALLOCN(channelCount,track_t)))
 		FILTER_ERROR_RETURN("no memory");
-	
+
 	iass=0;
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		if (filterport_is_output(port))
@@ -673,21 +677,34 @@ int write_file_f(filter_t *n)
 	fsetup=afNewFileSetup();
 	afInitFileFormat(fsetup, filetype);
 	afInitChannels(fsetup, AF_DEFAULT_TRACK, channelCount);
-	afInitSampleFormat(fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+	afInitSampleFormat(fsetup, AF_DEFAULT_TRACK, sampleFormat, sampleWidth);
+
 	afInitRate(fsetup, AF_DEFAULT_TRACK,sampleRate);
+	afInitCompression(fsetup, AF_DEFAULT_TRACK, compression);
+ 
 	file=afOpenFile(filename, "w", fsetup);
-
-	if (file==AF_NULL_FILEHANDLE)
-		goto _bailout;
 	
+	if (file==AF_NULL_FILEHANDLE) {
+		errstring = "couldn't open file";
+		goto _bailout;
+	}
 
-	bufsiz=GLAME_WBUFSIZE*channelCount;
+	if (afSetVirtualSampleFormat(file, AF_DEFAULT_TRACK, AF_SAMPFMT_FLOAT, 32)==-1) {
+		errstring = "virtual method failed, get newer libaudiofile!";
+		goto _bailout;
+	}
+		
+	if (afSetVirtualPCMMapping(file, AF_DEFAULT_TRACK, 1.0, 0.0, -1.0, 1.0)==-1) {
+		errstring = "virtual method failed, get newer libaudiofile!";
+		goto _bailout; 
+	}
+	
+	buffer_size = 2048*channelCount;
 
-	buffer=(short*)malloc(bufsiz*sizeof(short));
+	buffer = ALLOCN(buffer_size, SAMPLE);
 	if(buffer==NULL)
 		goto _bailout;
-	
-	
+
 	FILTER_AFTER_INIT;
 
 	eofs=channelCount;
@@ -704,7 +721,7 @@ int write_file_f(filter_t *n)
 			/* write one interleaved frame to buffer */
 			for(i=0;i<channelCount;i++)
 				if (track[i].buf){
-					buffer[wbpos++]=SAMPLE2SHORT(sbuf_buf(track[i].buf)[track[i].pos++]);
+					buffer[wbpos++]=sbuf_buf(track[i].buf)[track[i].pos++];
 					/* Check for end of buffer */
 					if(track[i].pos==sbuf_size(track[i].buf)){
 						sbuf_unref(track[i].buf);
@@ -716,20 +733,28 @@ int write_file_f(filter_t *n)
 					/* if one track stops before another we have to fill up
 					 * with zeroes
 					 */
-					buffer[wbpos++]=0;
-		} while ((wbpos<bufsiz) && (eofs));
-		afWriteFrames(file, AF_DEFAULT_TRACK, buffer,wbpos/channelCount);
+					buffer[wbpos++]=0.0;
+		} while ((wbpos<buffer_size) && (eofs));
+		frames = wbpos/channelCount;
+		if (frames>0) {
+			written = afWriteFrames(file, AF_DEFAULT_TRACK, buffer, frames);
+			if (written!=frames) {
+				failed=1;
+				errstring="couldn't write all frames(disk full?)";
+				break;
+			}
+		}
 	}
-		
+
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
-	res=0;
+	if (failed==0)
+		res=0;
 _bailout:
  	afCloseFile(file);
         if(fsetup) afFreeFileSetup(fsetup);
-	free(buffer);
-	free(track);
-	if (res==-1) FILTER_ERROR_RETURN("some error occured"); 
+	free(buffer); 
+	if (res==-1) FILTER_ERROR_RETURN(errstring); 
 	return res;
 }
 
@@ -783,6 +808,20 @@ int write_file_register(plugin_t *pl)
 					    FILTERPARAM_END);
 	}
 
+	filterparamdb_add_param_int(filter_paramdb(f), "sampleformat",
+				    FILTER_PARAMTYPE_INT, AF_SAMPFMT_TWOSCOMP,
+				    //	    FILTERPARAM_HIDDEN, "FIXME",
+				    FILTERPARAM_END);
+
+	filterparamdb_add_param_int(filter_paramdb(f), "samplewidth",
+				    FILTER_PARAMTYPE_INT, 16,
+				    // FILTERPARAM_HIDDEN, "FIXME",
+				    FILTERPARAM_END);
+	
+	filterparamdb_add_param_int(filter_paramdb(f), "compression",
+				    FILTER_PARAMTYPE_INT, AF_COMPRESSION_NONE,
+				    //FILTERPARAM_HIDDEN, "FIXME",
+				    FILTERPARAM_END);
 	f->f = write_file_f;
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
