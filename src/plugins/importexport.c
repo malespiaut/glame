@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.17 2001/11/11 22:50:46 mag Exp $
+ * $Id: importexport.c,v 1.18 2001/11/11 23:40:39 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -318,7 +318,7 @@ static void ie_update_plabels(struct impexp_s *ie) {
 }
 
 static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
-	filter_t **ssp, **maxrms, *net, *readfile;
+	filter_t **ssp, **maxrms, *readfile;
 	filter_param_t *param;
 	GtkWidget *ed;
 	float rms, mrms, percentage;
@@ -337,22 +337,24 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 	ssp = ALLOCN(ie->chancnt, filter_t*);
 	maxrms = ALLOCN(ie->chancnt, filter_t*);
 
-	net = filter_creat(NULL);
-	readfile = net_add_plugin_by_name(net, "read_file");
+	ie->net = filter_creat(NULL);
+	ie->importing = 1;
+
+	readfile = net_add_plugin_by_name(ie->net, "read_file");
 	filterparam_set(filterparamdb_get_param(filter_paramdb(readfile), "filename"), 
 			&(ie->filename));
 
 	DPRINTF("setup %d channels\n", ie->chancnt);
 
 	for(i=0; i<ie->chancnt; i++) {
-		ssp[i] = net_add_plugin_by_name(net, "ssp_streamer");
+		ssp[i] = net_add_plugin_by_name(ie->net, "ssp_streamer");
 		if(ssp[i]==NULL) {
 			gnome_error_dialog("Couldn't create ssp plugin");
 			goto _ie_stats_cleanup;
 		}
 			
 		filterparam_set(filterparamdb_get_param(filter_paramdb(ssp[i]), "bsize"), &bsize);
-		maxrms[i] = net_add_plugin_by_name(net, "maxrms");
+		maxrms[i] = net_add_plugin_by_name(ie->net, "maxrms");
 		if(maxrms[i]==NULL) {
 			gnome_error_dialog("Couldn't create maxrms plugin");
 			goto _ie_stats_cleanup;
@@ -371,52 +373,66 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 					FILTERPARAM_LABEL_POS);
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Analyzing");
 	
-	if ((filter_launch(net, GLAME_BULK_BUFSIZE) == -1) ||
-	    (filter_start(net) == -1))
+	ie->cancelled=0;
+
+	if ((filter_launch(ie->net, GLAME_BULK_BUFSIZE) == -1) ||
+	    (filter_start(ie->net) == -1))
 		goto _ie_stats_cleanup;
 	
 	DPRINTF("Start network for %d samples\n",ie->frames);
 
-	while(!filter_is_ready(net)) {
+	while(!filter_is_ready(ie->net)) {
 		while (gtk_events_pending())
 			gtk_main_iteration();
 		
 		usleep(40000);
 		percentage = (float)filterparam_val_pos(param)/(float)ie->frames;
+		if(percentage>1.0)
+			percentage = 1.0;
 		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
 					  percentage);
 	}
-	ie->frames = filterparam_val_pos(param);
-	sprintf(buffer, "%d", ie->frames);
-	filterparam_set_property(filterparamdb_get_param(filter_paramdb(ie->readfile), "filename"),
-				 "#framecount", 
-				 buffer);
 
-	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
-	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);
-	ie->gotstats = 1;
-	mrms = 0.0;
+	if (ie->cancelled==0) {
+		ie->frames = filterparam_val_pos(param);
+		sprintf(buffer, "%d", ie->frames);
+		filterparam_set_property(filterparamdb_get_param(filter_paramdb(ie->readfile), "filename"),
+					 "#framecount", 
+					 buffer);
+		ie->gotstats = 1;
 
-	for(i=0; i<ie->chancnt; i++) {
-		param = filterparamdb_get_param(filter_paramdb(maxrms[i]),
+
+		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
+		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);
+		
+		mrms = 0.0;
+		
+		for(i=0; i<ie->chancnt; i++) {
+			param = filterparamdb_get_param(filter_paramdb(maxrms[i]),
 						"maxrms");
-		rms = filterparam_val_float(param);
-		if(rms>mrms)
-			mrms = rms;
+			rms = filterparam_val_float(param);
+			if(rms>mrms)
+				mrms = rms;
+		}
+
+		ie->maxrms = mrms;
+
+		sprintf(buffer, "%f", mrms);
+		gtk_label_set_text(GTK_LABEL(ie->fi_plabel[5]), buffer);
+
+		ie_update_plabels(ie);
+	} else {
+		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Cancelled.");
+		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);
 	}
-
-	ie->maxrms = mrms;
-
-	sprintf(buffer, "%f", mrms);
-	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[5]), buffer);
-
-	ie_update_plabels(ie);
-
+	
  _ie_stats_cleanup:
 	DPRINTF("Cleanup");
 	free(ssp);
 	free(maxrms);
-	filter_delete(net);
+	ie->importing=0;
+	ie->cancelled=0;
+	filter_delete(ie->net);
 	gtk_widget_set_sensitive(bla, TRUE);	
 }
 
