@@ -54,18 +54,6 @@
 #undef OS_BSD
 #undef OS_IRIX
 
-/* define if you have working posix semaphores */
-#undef HAVE_SYSVSEM
-
-/* define if union semun is defined in <sys/sem.h> */
-#undef HAVE_SEMUN
-
-/* define if semctl works ok in all cases */
-#undef SEMCTL_OK
-
-/* define if you have working posix semaphores */
-#undef HAVE_POSIXSEM
-
 /* define if you use pthreads (always defined for GLAME) */
 #undef USE_PTHREADS
 

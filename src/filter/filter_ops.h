@@ -3,7 +3,7 @@
 
 /*
  * filter_ops.h
- * $Id: filter_ops.h,v 1.8 2001/11/05 11:08:59 richi Exp $
+ * $Id: filter_ops.h,v 1.9 2001/11/11 12:59:33 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -27,12 +27,6 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_SYSVSEM
-#include "glame_sem.h"
-#define USE_SYSVSEM
-#endif
-#undef USE_SYSVSEM /* not supported at the moment */
-
 #include <pthread.h>
 #include "atomic.h"
 #include "filter_types.h"
@@ -47,13 +41,10 @@ struct filter_launchcontext {
 	int state;
 	int bufsize;
 
-#ifdef USE_SYSVSEM
-	int semid;
-#else
 	glame_atomic_t val;
 	pthread_mutex_t cond_mx;
 	pthread_cond_t cond;
-#endif
+
 	glame_atomic_t result;
 };
 
