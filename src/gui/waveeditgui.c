@@ -426,7 +426,8 @@ static void play_update_marker(glsig_handler_t *handler,
 	waveedit = (WaveeditGui *)glsig_handler_private(handler);
 	pos = filterparam_val_long(waveedit->pm_param);
 	gtk_wave_view_set_marker_and_scroll(
-		GTK_WAVE_VIEW(waveedit->waveview), waveedit->pm_start + pos);
+		GTK_WAVE_VIEW(waveedit->waveview),
+		waveedit->pm_start + (pos % waveedit->pm_size));
 }
 static void play(GtkWaveView *waveview,
 		 gint32 start, gint32 end,
@@ -564,8 +565,9 @@ static void play(GtkWaveView *waveview,
 			  glame_network_notificator_destroy_gpsm, grp);
 	active_waveedit->pm_net = net;
 	active_waveedit->pm_param = filterparamdb_get_param(
-		filter_paramdb(loop && swin ? swin : (aout ? aout : swout)), FILTERPARAM_LABEL_POS);
+		filter_paramdb(aout ? aout : swout), FILTERPARAM_LABEL_POS);
 	active_waveedit->pm_start = start;
+	active_waveedit->pm_size = end - start + 1;
 	if (play_cnt == 0)
 		glame_network_notificator_set_wbufsize(emitter, GLAME_BULK_BUFSIZE);
 	if (glame_network_notificator_run(emitter, 10) == -1) {
