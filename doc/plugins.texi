@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.5 2000/04/04 12:03:36 richi Exp $
+@comment $Id: plugins.texi,v 1.6 2000/04/04 19:03:01 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -110,54 +110,71 @@ depends on the desired sound format.
 @node Elementary Plugins, Effects, File I/O, Plugin Collection
 @section Elementary Plugins
 
-TODO: mul, add, phase-invert (arithmetic.c), drop, one2n (basic.c), 
-mix1/2, volume-adjust, delay, extend, repeat (basic_sample.c),
+TODO: mul, add, phase-invert (arithmetic.c), 
+volume-adjust, delay, extend, repeat (basic_sample.c),
 ping (debug.c), echo (echo.c), pan (pan.c), pipe-in (pipe.c),
 statistic, debugrms (rms.c), track-in, track-out (track_io.c), 
 null, dup (tutorial.c), sinus [*** Doh! Rename to sine! ***], const (waveform.c)
 
 *** Add them here first. Will move to new sections as appropriate. ***
 
-@node Effects,, Elementary Plugins, Plugin Collection
-@section Effects
+@menu 
+* Junctions and Dead Ends::
+@end menu
 
-TODO: noisegate (noisegate.c), iir (iir.c)
+@node Junctions and Dead Ends,,, Elementary Plugins
+@subsection Junctions and Dead Ends
 
-Bla, drop
+In a filter network, data streams don't get created from nowhere, neither
+do they disappear into a big black void: there must be a plugin at each
+endpoint of a connection. These Plugins in turn are allowed to dump data or
+create new streams.
 
-@subheading @file{drop} ports
+The @file{drop} plugin is used as a sink for data that is no longer needed 
+within the network. Any incoming data is simply discarded. It's the dead
+end of a network.
+
+If the same stream of data is needed more than once, it cannot simply be 
+applied several times to different ports, it has to be duplicated first. 
+@file{one2n} is the plugin to perform this task, it forks the network, so
+to speak.
+
+@file{mix} on the other hand acts as a junction and merges several data
+streams into one, just like an ordinary mixing desk. The @file{mix} plugin
+comes in two flavours, @file{mix}, and @file{mix2}. The only time to worry
+about the differences is when you want to create loops in your network: 
+@file{mix} drops all input data after the first input stream has terminated,
+@file{mix2} continues to mix available inputs instead. Otherwise @file{mix}
+and @file{mix2} are identical. Use @file{mix} for mixing feedback.
+
+@subsubheading @file{drop} ports
 @table @code
 @item in (input)
-Data to be dropped. Any number of input connections are allowed.
+Data to be dropped. Any number of input connections is allowed.
 @end table
 
 @file{drop} has no parameters.
 
-
-Blurp, one2n
-
-@subheading @file{one2n} ports
+@subsubheading @file{one2n} ports
 @table @code
 @item in (input)
-Data to be replicated.
+Stream to be replicated.
 @item out (output)
-Replicated data. Any number of output connections are allowed.
+Replicated stream. Any number of output connections is allowed.
 @end table
 
 @file{one2n} has no parameters.
 
-
-Foobar, mix, mix2
-
-@subheading @file{mix} ports
+@subsubheading @file{mix} ports
 @table @code
 @item in (input)
-Audio streams to be mixed. Any number of input connections are allowed.
+Audio streams to be mixed. Any number of input connections is allowed.
 @item out (output)
 Mixed audio stream.
 @end table
 
-@subheading @file{mix} parameters
+@subsubheading @file{mix} parameters
+FIXME: Must become more descriptive. Add value ranges etc.
 @table @code
 @item in::gain (float)
 Gain of the input.
@@ -169,7 +186,8 @@ Gain of the output.
 Position of the output.
 @end table
 
-@file{mix} does drop input data after the first input stream terminated,
-@file{mix2} does continue to mix available inputs instead. Otherwise @file{mix}
-and @file{mix2} are identical. You want to use @file{mix} for mixing feedback.
+@node Effects,, Elementary Plugins, Plugin Collection
+@section Effects
+
+TODO: noisegate (noisegate.c), iir (iir.c)
 
