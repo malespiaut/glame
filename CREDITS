@@ -1,5 +1,7 @@
-All low-level assembler locking and atomic ops code and the list.h code
-        was copied from the linux kernel source which was written by
+The following people have unknowingly contributed to GLAME:
+
+All low-level assembler locking and atomic ops code, and the list.h code
+        were copied from the linux kernel source which was written by
         Linus Torvalds and many many others. hash.h also was largely
         inspired by the hashing code used in the mm of the linux kernel.
 
@@ -8,16 +10,26 @@ src/gui/libgtkwaveform and src/util/glame_*ruler* were "stolen" from the
 	          David A. Bartold <foxx@mail.utexas.edu>
         and have contributions from Ben De Rydt <ben.de.rydt@pandora.be>.
 
-LADSPA support was added initially by Richard Furse
+And there are even tough folks who knowingly contributed to GLAME:
 
-The time filter was contributed by Stuart Purdie and was later renamed
-	to pulse and cleaned up by nold.
+Richard Furse
+	Initially added LADSPA support.
 
-Lots of cool plugin icons were contributed by Jesse Duke <darkphotn@yahoo.com>
+Stuart Purdie
+	Contributed time filter. (Metamorphed into pulse in the meantime.)
 
-Menu and toobar icons were contributed by Kristian Korseby <kristian@korseby.net>
+Jesse Duke <darkphotn@yahoo.com>
+	Lots of cool plugin icons.
 
-Random stuff (mostly .cvsignores) was contributed by Jim Garrison.
+Kristian Korseby <kristian@korseby.net>
+	Menu and toobar icons.
 
-The glame.de domain is sponsored by Dirk Staneker <jsux@glame.de>.
+Laurent Georget <lgeorget@club-internet.fr>
+	French translation.
+
+Jim Garrison
+	Random stuff (mostly .cvsignores).
+
+Dirk Staneker <jsux@glame.de>
+	Sponsor of the glame.de domain.
 
