@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.20 2001/12/17 14:56:33 richi Exp $
+ * $Id: glame_audiofile.c,v 1.21 2001/12/17 15:21:19 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -267,9 +267,11 @@ int wav_read_parse(AFfilehandle h)
 			if (!strncasecmp(tag, wav_read_handlers[i].tag, 4)) 
 				break;
 
-		if (!handler) 
+		if (!handler) {
+			DPRINTF("No handler for chunk '%c%c%c%c' size %i\n", tag[0], tag[1], tag[2], tag[3]);
 			return -1;
-		
+		}
+
 		size = __gl_le32_to_cpup(len);
 		if (size < 0) {
 			DPRINTF("Illegal size %d in %s chunk.\n", size, tag);
@@ -289,51 +291,52 @@ int wav_read_parse(AFfilehandle h)
 
 static int wav_write_header(AFfilehandle h)
 {
-	gl_s32 tmp;
+	gl_s32 tmp32;
+	gl_s16 tmp16;
 	
 	if (fwrite("RIFF", 4, 1, h->fp) != 1)
 		goto err;
 	RWW(h).start = ftell(h->fp);
-	tmp = 0;
+	tmp32 = 0;
 	/* Don't know size yet, fixup later. */
-	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+	if (fwrite(&tmp32, 4, 1, h->fp) != 1)
 		goto err;
 	if (fwrite("WAVEfmt ", 8, 1, h->fp) != 1)
 		goto err;
 	/* chunk size */
-	tmp = __gl_cpu_to_le32(16);
-	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+	tmp16 = __gl_cpu_to_le32(16);
+	if (fwrite(&tmp16, 4, 1, h->fp) != 1)
 		goto err;
 	/* wav type (only PCM supported) */
-	tmp = __gl_cpu_to_le16(WAV_FMT_PCM);
-	if (fwrite(&tmp, 2, 1, h->fp) != 1)
+	tmp16 = __gl_cpu_to_le16(WAV_FMT_PCM);
+	if (fwrite(&tmp16, 2, 1, h->fp) != 1)
 		goto err;
 	/* number of channels */
-	tmp = __gl_cpu_to_le16(h->ch);
-	if (fwrite(&tmp, 2, 1, h->fp) != 1)
+	tmp16 = __gl_cpu_to_le16(h->ch);
+	if (fwrite(&tmp16, 2, 1, h->fp) != 1)
 		goto err;
 	/* sample rate */
-	tmp = __gl_cpu_to_le32(RWW(h).freq);
-	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+	tmp32 = __gl_cpu_to_le32(RWW(h).freq);
+	if (fwrite(&tmp32, 4, 1, h->fp) != 1)
 		goto err;
 	/* avg. bytes per second */
-	tmp = __gl_cpu_to_le32(RWW(h).freq*RWW(h).block_align);
-	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+	tmp32 = __gl_cpu_to_le32(RWW(h).freq*RWW(h).block_align);
+	if (fwrite(&tmp32, 4, 1, h->fp) != 1)
 		goto err;
 	/* frame alignment */
-	tmp = __gl_cpu_to_le32(RWW(h).block_align);
-	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+	tmp16 = __gl_cpu_to_le16(RWW(h).block_align);
+	if (fwrite(&tmp16, 2, 1, h->fp) != 1)
 		goto err;
 	/* sample width in bits */
-	tmp = __gl_cpu_to_le16(h->width);
-	if (fwrite(&tmp, 2, 1, h->fp) != 1)
+	tmp16 = __gl_cpu_to_le16(h->width);
+	if (fwrite(&tmp16, 2, 1, h->fp) != 1)
 		goto err;
 	if (fwrite("data", 4, 1, h->fp) != 1)
 		goto err;
 	RWW(h).data = ftell(h->fp);
-	tmp = 0;
+	tmp32 = 0;
 	/* Don't know size yet, fixup later. */
-	if (fwrite(&tmp, 4, 1, h->fp) != 1)
+	if (fwrite(&tmp32, 4, 1, h->fp) != 1)
 		goto err;
 
 	return 0;
@@ -639,15 +642,19 @@ static void from_float(float *in, void *out, int sfmt, int width, int len)
 		switch (width) {
 		case 8: {
 			gl_u8 *dst = (gl_u8 *)out;
-			while (len--)
-				*dst++ = SAMPLE2UCHAR(*in++);
+			while (len--) {
+				*dst++ = SAMPLE2UCHAR(*in);
+				in++;
+			}
 			}
 			break;
 		case 16: {
 			gl_u16 *dst = (gl_u16 *)out;
-			while (len--)
-				*dst++ = gl_cpu_to_le16(SAMPLE2USHORT(*in++));
-			 }
+			while (len--) {
+				*dst++ = gl_cpu_to_le16(SAMPLE2USHORT(*in));
+				in++;
+			}
+			}
 			break;
 		}
 		break;
@@ -655,15 +662,19 @@ static void from_float(float *in, void *out, int sfmt, int width, int len)
 		switch (width) {
 		case 8: {
 			gl_s8 *dst = (gl_s8 *)out;
-			while (len--)
-				*dst++ = SAMPLE2CHAR(*in++);
+			while (len--) {
+				*dst++ = SAMPLE2CHAR(*in);
+				in++;
+			}
 			}
 			break;
 		case 16: {
 			gl_s16 *dst = (gl_s16 *)out;
-			while (len--)
-				*dst++ = gl_cpu_to_le16(SAMPLE2SHORT(*in++));
-			 }
+			while (len--) {
+				*dst++ = gl_cpu_to_le16(SAMPLE2SHORT(*in));
+				in++;
+			}
+			}
 			break;
 		}
 		break;
@@ -674,7 +685,7 @@ static void from_float(float *in, void *out, int sfmt, int width, int len)
 		double *dst = (double *)out;
 		while (len--)
 			*dst++ = *in++;
-		}	
+		}
 		break;
 	}
 }
@@ -702,10 +713,11 @@ int afWriteFrames (AFfilehandle file, int track, const void *buffer, int frameCo
 		              frames, file->fp);
 		frameCount -= done;
 		total += done;
-		
+		((float *)buffer) += done*file->ch;
+
 		if (done < frames)
 			goto err;
-	}	
+	}
 
 err:
 	return total;
