@@ -90,7 +90,7 @@ static int read_file_f(filter_node_t *n)
 			fbuf_ref(lbuf);
 			fbuf_queue(left,lbuf);
 			fbuf_queue(right,lbuf);
-			sent++;
+			sent+=2;
 		}else{
 			lbuf=fbuf_alloc(GLAME_WBUFSIZE*4/sampleWidth);
 			rbuf=fbuf_alloc(GLAME_WBUFSIZE*4/sampleWidth);
@@ -103,6 +103,7 @@ static int read_file_f(filter_node_t *n)
 			}
 			fbuf_queue(left,lbuf);
 			fbuf_queue(right,rbuf);
+			sent+=2;
 		}
 	}
 
