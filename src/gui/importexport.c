@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.43 2004/11/07 22:33:43 richi Exp $
+ * $Id: importexport.c,v 1.44 2004/12/03 21:13:30 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1126,8 +1126,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 
 struct exp_s {
-	GtkWidget *dialog, *ocompmenu;
-	GtkComboBox *otypemenu;
+	GtkWidget *dialog, *ocomp_combo_box;
+	GtkWidget *otype_combo_box;
 	GtkWidget *cancelbutton, *appbar;
 	int typecnt, comptypes;
 	int *indices, *comparray;
@@ -1158,7 +1158,8 @@ static int export_default_sample_option = 0;
 
 static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *exp)
 {
-	exp->compression = glame_menu_get_active_index(menu);
+	exp->compression = gtk_combo_box_get_active (GTK_COMBO_BOX(exp->ocomp_combo_box));
+	// exp->compression = glame_menu_get_active_index(menu);
 	DPRINTF("Compression Type %li chosen\n", exp->compression);
 
 	return TRUE;
@@ -1168,24 +1169,20 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 {
 	int i, sformtypes;
 	int *sformarray;
-
 	gchar *complabel;
-	GtkWidget *menuitem, *compmenu;
-
-	compmenu = gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->ocompmenu));
-	if (compmenu)
-		gtk_widget_destroy(compmenu);
-
-	compmenu = gtk_menu_new();
-	
-	menuitem=gtk_menu_item_new_with_label("none");
-	gtk_widget_show(menuitem);
-	gtk_menu_append(GTK_MENU(compmenu), menuitem);
 
 	if (ftype == -1) { /* auto filetype */
-		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
+		gtk_widget_set_sensitive(ie->ocomp_combo_box, FALSE);
 		goto done;
 	}
+	
+		
+	for(i=ie->comptypes+1; i>=0; i--){
+		DPRINTF("remove index %i\n",i);
+		gtk_combo_box_remove_text ( GTK_COMBO_BOX (ie->ocomp_combo_box),i);
+	}	
+
+	gtk_combo_box_append_text(GTK_COMBO_BOX (ie->ocomp_combo_box),"none");
 
 	sformtypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_SAMPLE_FORMATS, AF_QUERY_VALUE_COUNT, ftype, 0);
 	DPRINTF("%d sample formats\n", sformtypes);
@@ -1203,20 +1200,15 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 				snprintf(numbuf, 15, "%i", ie->comparray[i]);
 				complabel = numbuf;
 			}
-			menuitem = gtk_menu_item_new_with_label(complabel);
-			gtk_widget_show(menuitem);
-			gtk_menu_append(GTK_MENU(compmenu), menuitem);
+			gtk_combo_box_append_text(GTK_COMBO_BOX (ie->ocomp_combo_box),complabel);
 		}
-		gtk_widget_set_sensitive(ie->ocompmenu, TRUE);
-		gtk_signal_connect(GTK_OBJECT(compmenu),
-				   "selection_done",
-				   (GtkSignalFunc)ie_comp_menu_cb, ie);
-	} else
-		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
+		gtk_widget_set_sensitive(ie->ocomp_combo_box, TRUE);
+			} else
+		gtk_widget_set_sensitive(ie->ocomp_combo_box, FALSE);
 
  done:	
-	gtk_option_menu_set_menu(GTK_OPTION_MENU (ie->ocompmenu), compmenu);
-	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->ocompmenu), 0);
+	return;
+	
 }
 
 
@@ -1309,9 +1301,10 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	int totalframes;
 	float percentage;
 	gchar *output_plugin = "write_file";
-	const gchar *string;
-	int temp1 = 0;
-
+	const gchar *string = NULL;
+	// gchar *string2 = NULL;
+	int  index;
+	
 	gtk_widget_set_sensitive(bla, FALSE);
 
 	if(exp->filename==NULL) {
@@ -1383,7 +1376,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	if (filterparam_set(param, &(exp->filename)) == -1)
 		goto fail_cleanup;
 	
-	/* not mp3 */
+	/* uncompressed */
 	if (!strcmp(output_plugin , "write_file")) {
 	  param = filterparamdb_get_param(db, "sampleformat");
 	  if (filterparam_set(param, &(sf_format[sfi])) == -1)
@@ -1409,24 +1402,21 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	else if (!strcmp(output_plugin , "write_mp3_file")) {
 	  ri = 2; /* set as stereo to connect a render filter, Lame has its own mono/stereo conversion (mode)*/
 	  /* Lame quality */
-	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->quality_select)->entry));
+	  index = gtk_combo_box_get_active (GTK_COMBO_BOX(exp->quality_select));
+	  if (index == -1) goto fail_cleanup; 
 	  param = filterparamdb_get_param(db, "lame encoding quality");
-	  if (filterparam_from_string(param, string) == -1)
-	    goto fail_cleanup;
+ 	  if (filterparam_set_long(param, index) == -1)
+	    goto fail_cleanup; 
 	  /* Lame mode */
-	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->mode_select)->entry));
-	  if (!strcmp(string,"0 stereo")) temp1 = 1;
-	  else if (!strcmp( string,"1 joint stereo")) temp1 = 0; /*invert stereo and jstereo for mp3 plugin fix */
-	  else if (!strcmp(string, "2 dual mono")) temp1 = 2 ;
-	  else if (!strcmp(string,"3 mono")) temp1 = 3 ;
+	  index = gtk_combo_box_get_active (GTK_COMBO_BOX(exp->mode_select));
 	  param = filterparamdb_get_param(db, "lame mode");
-	  if (filterparam_set_long(param, temp1) == -1)
+          if (filterparam_set_long(param, index) == -1)
 	    goto fail_cleanup;
 	  /* Lame bitrate */
-	  string =  gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->bitrate_select)->entry));
-	  param = filterparamdb_get_param(db, "lame encoding bitrate");
-	  if (filterparam_set_long(param, atoi(string)) == -1)
-	    goto fail_cleanup;
+	  index = gtk_combo_box_get_active (GTK_COMBO_BOX(exp->bitrate_select));
+          param = filterparamdb_get_param(db, "lame encoding bitrate");
+	  if (filterparam_set_long(param, index) == -1)
+	   goto fail_cleanup;
 	  /* mp3 tags */
 	  string = gtk_entry_get_text (GTK_ENTRY (exp->title));
 	  param = filterparamdb_get_param(db, "Id3tag_Title");
@@ -1462,14 +1452,15 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	else if (!strcmp(output_plugin , "write_oggvorbis_file")) {
 	  	  
 	  /* vorbis quality */
-	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->quality_select_ogg)->entry));
+	  index = gtk_combo_box_get_active (GTK_COMBO_BOX(exp->quality_select_ogg));
 	  param = filterparamdb_get_param(db, "vorbis encoding quality");
-	  filterparam_from_string(param, string);
-	  DPRINTF("Vorbis qual = %s",string);
+	  if (filterparam_set_long(param, index) == -1)
+	    goto fail_cleanup; 
+	  DPRINTF("Vorbis qual index = %i\n",index);
 
 	  /* render mode (mono or stereo) */
-	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->mode_select_ogg)->entry));
-	  ri = (strcmp(string,"stereo")) ? 1 : 2 ;
+	  index = gtk_combo_box_get_active (GTK_COMBO_BOX(exp->mode_select_ogg));
+	  ri = (index==1) ? 1 : 2 ;
 
 	  string = gtk_entry_get_text (GTK_ENTRY (exp->title_ogg));
 	  param = filterparamdb_get_param(db, "Title");
@@ -1592,7 +1583,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box;
 #endif
 #ifdef HAVE_LIBVORBISFILE
-	GtkWidget *boxtags3,*boxtags4, *frame16, *frame16box,*frame17, *frame17box ,*frame18, *frame18box  ,*frame19, *frame19box,*frame20, *frame20box,*frame21, *frame21box, *frame22, *frame22box, *frame23, *frame23box, *frame24, *frame24box, *frame25, *frame25box;
+	GtkWidget *boxtags3,*boxtags4, *frame16, *frame16box,*frame17, *frame17box ,*frame18, *frame18box  ,*frame19, *frame19box,*frame20, *frame20box,*frame21, *frame21box, *frame22, *frame22box, *frame23, *frame23box, *frame24, *frame24box, *frame25, *frame25box,*frame26, *frame26box;
 #endif
 
 
@@ -1685,9 +1676,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_box_pack_start (GTK_BOX (typecompbox), frame2, FALSE, FALSE,0);
 
 	/* compression combo-box, build by simulating a type choose */
-	ie->ocompmenu = gtk_option_menu_new ();
-	gtk_widget_show(ie->ocompmenu);
-	gtk_container_add(GTK_CONTAINER(frame2), ie->ocompmenu);
+	ie->ocomp_combo_box = gtk_combo_box_new_text ();
+	gtk_widget_show(ie->ocomp_combo_box);
+	gtk_container_add(GTK_CONTAINER(frame2),ie->ocomp_combo_box);
 	
 	frame4 = gtk_frame_new(_("Render Options"));
 	gtk_widget_show(frame4);
@@ -1728,30 +1719,30 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	}
 	
 	/* now construct option menu with available filetypes */
-	ie->otypemenu = GTK_COMBO_BOX(gtk_combo_box_new_text());
-	gtk_widget_show(GTK_WIDGET(ie->otypemenu));
-	gtk_box_pack_start(GTK_BOX(framebox), GTK_WIDGET(ie->otypemenu), FALSE, FALSE, 0);
-
+	ie->otype_combo_box = gtk_combo_box_new_text ();
+	
 	ie->typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
 	ie->indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);
-	gtk_combo_box_append_text(ie->otypemenu, "auto");
+	gtk_combo_box_append_text(GTK_COMBO_BOX (ie->otype_combo_box), "auto");
 	for(i=0; i<ie->typecnt; i++)  {
 		suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL,
 					       ie->indices[i] ,0 ,0);
-		gtk_combo_box_append_text(ie->otypemenu, suffix);
+		gtk_combo_box_append_text(GTK_COMBO_BOX (ie->otype_combo_box), suffix);
 	}
 #ifdef HAVE_LIBMP3LAME 
-	gtk_combo_box_append_text(ie->otypemenu, "mp3");
+	gtk_combo_box_append_text(GTK_COMBO_BOX (ie->otype_combo_box), "mp3");
 	ie->mp3_menu_index = ++i; 
 #endif 
 #ifdef HAVE_LIBVORBISFILE
-	gtk_combo_box_append_text(ie->otypemenu, "ogg vorbis");
+	gtk_combo_box_append_text(GTK_COMBO_BOX (ie->otype_combo_box),"ogg vorbis");
 	ie->ogg_menu_index = ++i;
 #endif
-	gtk_combo_box_set_active(ie->otypemenu,
+	gtk_combo_box_set_active(GTK_COMBO_BOX (ie->otype_combo_box),
 				 ie->filetype == -1 ? 0 : ie->filetype);
-	ie_type_menu_cb(ie->otypemenu, ie);
-
+	ie_type_menu_cb(GTK_COMBO_BOX (ie->otype_combo_box), ie);
+	
+	gtk_box_pack_start(GTK_BOX(framebox), GTK_WIDGET(ie->otype_combo_box), FALSE, FALSE, 0);
+	gtk_widget_show(GTK_WIDGET(ie->otype_combo_box));
 #ifdef HAVE_LIBMP3LAME	
 	/*** Mp3 lame tab ***/
 	label_tab2 = gtk_label_new(_("Mp3 (Lame)"));
@@ -1774,17 +1765,13 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame6box = gtk_vbox_new (TRUE, 6);
 	gtk_widget_show (frame6box);
 	gtk_container_add(GTK_CONTAINER(frame6), frame6box);
-	GList *glist_mp3 = NULL;
+	ie->quality_select = gtk_combo_box_new_text ();
 	char *string[10]={"0 best,slow","1","2 recommended","3","4","5 standard","6","7","8","9 worst"};
 	for (i=0 ;i<10; i++) {
-	  glist_mp3 = g_list_append (glist_mp3, string[i]);
-	  /* printf("string %s \n",string[i]); */
-	}
-	ie->quality_select = gtk_combo_new();
-	gtk_combo_set_popdown_strings (GTK_COMBO (ie->quality_select), glist_mp3);
-	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->quality_select)->entry), FALSE);
-	gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->quality_select)->entry), "2 recommended");
-	gtk_box_pack_start (GTK_BOX (frame6box/* 5box */), ie->quality_select, TRUE, TRUE, 0);
+		gtk_combo_box_append_text (GTK_COMBO_BOX (ie->quality_select ),string[i]);
+	 	}
+	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->quality_select), 2);
+	gtk_box_pack_start (GTK_BOX(frame6box), ie->quality_select, TRUE, TRUE, 0);
 	gtk_widget_show (ie->quality_select);
 	
 	/* Lame mode */
@@ -1794,18 +1781,15 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame7box = gtk_vbox_new (TRUE, 7);
 	gtk_widget_show (frame7box);
 	gtk_container_add(GTK_CONTAINER(frame7), frame7box);
-	glist_mp3 = NULL; 
+	ie->mode_select = gtk_combo_box_new_text ();
 	char *string2[4]={"0 stereo","1 joint stereo","2 dual mono","3 mono"};
 	for (i=0 ;i<4; i++) {
-	  glist_mp3 = g_list_append (glist_mp3, string2[i]);
-	}
-	ie->mode_select = gtk_combo_new();
-	gtk_combo_set_popdown_strings (GTK_COMBO (ie->mode_select), glist_mp3);
-	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->mode_select)->entry), FALSE);
-	gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->mode_select)->entry), "1 joint stereo");
+		gtk_combo_box_append_text (GTK_COMBO_BOX (ie->mode_select ),string2[i]);
+		}
+	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->mode_select), 1);
 	gtk_box_pack_start (GTK_BOX (frame7box), ie->mode_select, TRUE, TRUE, 0);
 	gtk_widget_show (ie->mode_select);
-	
+
 	/* Lame bitrate */
 	frame8 = gtk_frame_new("Bitrate");
 	gtk_widget_show(frame8);
@@ -1813,18 +1797,16 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame8box = gtk_vbox_new (TRUE, 8);
 	gtk_widget_show (frame8box);
 	gtk_container_add(GTK_CONTAINER(frame8), frame8box);
-	glist_mp3 = NULL; 
+	ie->bitrate_select = gtk_combo_box_new_text ();
+
 	char *string3[14]={"32","40","48","56","64","80","96","112","128","160","192","224","256","320"};
 	for (i=0 ;i<14; i++) {
-	  glist_mp3 = g_list_append (glist_mp3, string3[i]);
-	}
-	ie->bitrate_select = gtk_combo_new();
-	gtk_combo_set_popdown_strings (GTK_COMBO (ie->bitrate_select), glist_mp3);
-	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->bitrate_select)->entry), FALSE);
-	gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->bitrate_select)->entry), "128");
+		gtk_combo_box_append_text (GTK_COMBO_BOX (ie->bitrate_select ),string3[i]);
+	 	}
+	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->bitrate_select), 8);
 	gtk_box_pack_start (GTK_BOX (frame8box), ie->bitrate_select, TRUE, TRUE, 0);
 	gtk_widget_show (ie->bitrate_select);
-	
+
 	/* Lame mp3 id3 tags */
 	boxtags = gtk_vbox_new (TRUE, 9);
 	gtk_box_pack_start (GTK_BOX (bigbox2), boxtags, TRUE, TRUE, 0);
@@ -1841,7 +1823,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame9box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame9box);
 	gtk_container_add(GTK_CONTAINER(frame9), frame9box);
-	ie->title = gtk_entry_new_with_max_length (128);
+	ie->title = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame9box), ie->title, TRUE, TRUE, 0);
 	gtk_widget_show(ie->title);
 
@@ -1851,7 +1833,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame10box = gtk_vbox_new (TRUE, 10);
 	gtk_widget_show (frame10box);
 	gtk_container_add(GTK_CONTAINER(frame10), frame10box);
-	ie->artist = gtk_entry_new_with_max_length (128);
+	ie->artist = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame10box), ie->artist, TRUE, TRUE, 0);
 	gtk_widget_show(ie->artist);
 
@@ -1861,7 +1843,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame11box = gtk_vbox_new (TRUE, 11);
 	gtk_widget_show (frame11box);
 	gtk_container_add(GTK_CONTAINER(frame11), frame11box);
-	ie->album = gtk_entry_new_with_max_length (128);
+	ie->album = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame11box), ie->album, TRUE, TRUE, 0);
 	gtk_widget_show(ie->album);
 
@@ -1871,7 +1853,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame12box = gtk_vbox_new (TRUE, 12);
 	gtk_widget_show (frame12box);
 	gtk_container_add(GTK_CONTAINER(frame12), frame12box);
-	ie->year = gtk_entry_new_with_max_length (128);
+	ie->year = gtk_entry_new_with_max_length (4);
 	gtk_box_pack_start (GTK_BOX (frame12box), ie->year, TRUE, TRUE, 0);
 	gtk_widget_show(ie->year);
 	
@@ -1881,7 +1863,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame13box = gtk_vbox_new (TRUE, 13);
 	gtk_widget_show (frame13box);
 	gtk_container_add(GTK_CONTAINER(frame13), frame13box);
-	ie->comment = gtk_entry_new_with_max_length (128);
+	ie->comment = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame13box), ie->comment, TRUE, TRUE, 0);
 	gtk_widget_show(ie->comment);
 	
@@ -1891,7 +1873,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame14box = gtk_vbox_new (TRUE, 14);
 	gtk_widget_show (frame14box);
 	gtk_container_add(GTK_CONTAINER(frame14), frame14box);
-	ie->track = gtk_entry_new_with_max_length (128);
+	ie->track = gtk_entry_new_with_max_length (4);
 	gtk_box_pack_start (GTK_BOX (frame14box), ie->track, TRUE, TRUE, 0);
 	gtk_widget_show(ie->track);
 
@@ -1901,7 +1883,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame15box = gtk_vbox_new (TRUE, 15);
 	gtk_widget_show (frame15box);
 	gtk_container_add(GTK_CONTAINER(frame15), frame15box);
-	ie->genre = gtk_entry_new_with_max_length (128);
+	ie->genre = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame15box), ie->genre, TRUE, TRUE, 0);
 	gtk_widget_show(ie->genre);
 #endif
@@ -1929,17 +1911,15 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame24box = gtk_vbox_new (TRUE, 7);
 	gtk_widget_show (frame24box);
 	gtk_container_add(GTK_CONTAINER(frame24), frame24box);
-	GList *glist_ogg_qual = NULL;
-	char *string5[11]={"4 (roughly 128kb/s)","0 (roughly 64kb/s)","1 (roughly 80kb/s)","2 (roughly 96kb/s)","3 (roughly 112kb/s)","5 (roughly 160kb/s)","6 (roughly 192kb/s)","7 (roughly 224kb/s)","8 (roughly 256kb/s)","9 (roughly 320kb/s)","10 (roughly 500kb/s)"};
+	ie->quality_select_ogg = gtk_combo_box_new_text ();
+	char *string5[11]={"0 (roughly 64kb/s)","1 (roughly 80kb/s)","2 (roughly 96kb/s)","3 (roughly 112kb/s)","4 (roughly 128kb/s)","5 (roughly 160kb/s)","6 (roughly 192kb/s)","7 (roughly 224kb/s)","8 (roughly 256kb/s)","9 (roughly 320kb/s)","10 (roughly 500kb/s)"};
 	for (i=0 ;i<11; i++) {
-	  glist_ogg_qual = g_list_append (glist_ogg_qual, string5[i]);
+	  gtk_combo_box_append_text (GTK_COMBO_BOX (ie->quality_select_ogg ),string5[i]);
 	}
-	ie->quality_select_ogg = gtk_combo_new();
-	gtk_combo_set_popdown_strings (GTK_COMBO (ie->quality_select_ogg), glist_ogg_qual);
-	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->quality_select_ogg)->entry), FALSE);
+	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->quality_select_ogg), 4);
 	gtk_box_pack_start (GTK_BOX (frame24box), ie->quality_select_ogg, TRUE, TRUE, 0);
 	gtk_widget_show (ie->quality_select_ogg);
-
+	
 	/* Oggvorbis mode */
 	frame17 = gtk_frame_new("Mode");
 	gtk_widget_show(frame17);
@@ -1947,18 +1927,25 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame17box = gtk_vbox_new (TRUE, 7);
 	gtk_widget_show (frame17box);
 	gtk_container_add(GTK_CONTAINER(frame17), frame17box);
-	GList *glist_ogg = NULL;
+	ie->mode_select_ogg = gtk_combo_box_new_text ();
 	char *string4[2]={"stereo","mono"};
 	for (i=0 ;i<2; i++) {
-	  glist_ogg = g_list_append (glist_ogg, string4[i]);
+	  gtk_combo_box_append_text (GTK_COMBO_BOX (ie->mode_select_ogg ),string4[i]);
+	  
 	}
-	ie->mode_select_ogg = gtk_combo_new();
-	gtk_combo_set_popdown_strings (GTK_COMBO (ie->mode_select_ogg), glist_ogg);
-	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->mode_select_ogg)->entry), FALSE);
-	/* gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->mode_select_ogg)->entry), "1 joint stereo"); */
 	gtk_box_pack_start (GTK_BOX (frame17box), ie->mode_select_ogg, TRUE, TRUE, 0);
+	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->mode_select_ogg), 0);
 	gtk_widget_show (ie->mode_select_ogg);
 
+	/* empty frame */
+	frame26 = gtk_frame_new(" ");
+	gtk_widget_show(frame26);
+	gtk_box_pack_start (GTK_BOX (frame25box), frame26, TRUE, TRUE, 0);
+	frame26box = gtk_vbox_new (TRUE, 7);
+	gtk_widget_show (frame26box);
+	gtk_container_add(GTK_CONTAINER(frame26), frame26box);
+
+	
 	boxtags3 = gtk_vbox_new (TRUE, 9);
 	gtk_box_pack_start (GTK_BOX (bigbox3), boxtags3, TRUE, TRUE, 0);
 	gtk_widget_show (boxtags3);
@@ -1975,7 +1962,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame16box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame16box);
 	gtk_container_add(GTK_CONTAINER(frame16), frame16box);
-	ie->title_ogg = gtk_entry_new_with_max_length (128);
+	ie->title_ogg = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame16box), ie->title_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->title_ogg);
 
@@ -1986,7 +1973,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame18box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame18box);
 	gtk_container_add(GTK_CONTAINER(frame18), frame18box);
-	ie->artist_ogg = gtk_entry_new_with_max_length (128);
+	ie->artist_ogg = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame18box), ie->artist_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->artist_ogg);
 
@@ -1997,7 +1984,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame19box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame19box);
 	gtk_container_add(GTK_CONTAINER(frame19), frame19box);
-	ie->album_ogg = gtk_entry_new_with_max_length (128);
+	ie->album_ogg = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame19box), ie->album_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->album_ogg);
 
@@ -2008,7 +1995,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame20box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame20box);
 	gtk_container_add(GTK_CONTAINER(frame20), frame20box);
-	ie->year_ogg = gtk_entry_new_with_max_length (128);
+	ie->year_ogg = gtk_entry_new_with_max_length (4);
 	gtk_box_pack_start (GTK_BOX (frame20box), ie->year_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->year_ogg);
 
@@ -2019,7 +2006,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame21box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame21box);
 	gtk_container_add(GTK_CONTAINER(frame21), frame21box);
-	ie->comment_ogg = gtk_entry_new_with_max_length (128);
+	ie->comment_ogg = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame21box), ie->comment_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->comment_ogg);
 	
@@ -2030,7 +2017,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame22box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame22box);
 	gtk_container_add(GTK_CONTAINER(frame22), frame22box);
-	ie->track_ogg = gtk_entry_new_with_max_length (128);
+	ie->track_ogg = gtk_entry_new_with_max_length (3);
 	gtk_box_pack_start (GTK_BOX (frame22box), ie->track_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->track_ogg);
 
@@ -2041,7 +2028,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	frame23box = gtk_vbox_new (TRUE, 9);
 	gtk_widget_show (frame23box);
 	gtk_container_add(GTK_CONTAINER(frame23), frame23box);
-	ie->genre_ogg = gtk_entry_new_with_max_length (128);
+	ie->genre_ogg = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame23box), ie->genre_ogg, TRUE, TRUE, 0);
 	gtk_widget_show(ie->genre_ogg);
 
@@ -2062,9 +2049,10 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), HELP,
 				    GTK_SIGNAL_FUNC(glame_help_cb), "The_Export_Dialog");
 
-	gtk_signal_connect(GTK_OBJECT(ie->otypemenu),
-			   "changed",
-			   GTK_SIGNAL_FUNC(ie_type_menu_cb), ie);
+	g_signal_connect(GTK_OBJECT(ie->otype_combo_box),"changed",GTK_SIGNAL_FUNC(ie_type_menu_cb), ie);
+
+	g_signal_connect(GTK_OBJECT(ie->ocomp_combo_box),  "changed", (GtkSignalFunc)ie_comp_menu_cb, ie); 
+
 
 	/* in case we have a non gnome compliant wm */
 	gtk_signal_connect(GTK_OBJECT(ie->dialog),
