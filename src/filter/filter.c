@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.7 2000/01/31 10:04:04 richi Exp $
+ * $Id: filter.c,v 1.8 2000/02/01 09:35:55 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -157,6 +157,7 @@ extern int audio_io_register();
 extern int debug_register();
 extern int mix(filter_node_t *n);
 extern int volume_adjust(filter_node_t *n);
+extern int waveform_register();
 
 int filter_init()
 {
@@ -178,6 +179,10 @@ int filter_init()
 
 	/* initialize debug & profile filters */
 	if (debug_register() == -1)
+		return -1;
+
+	/* initialize waveform filters */
+	if (waveform_register() == -1)
 		return -1;
 
 	if (!(f = filter_alloc("mix", "mix n channels", mix))
