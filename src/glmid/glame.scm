@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.34 2000/09/20 16:41:51 mainzelm Exp $
+; $Id: glame.scm,v 1.35 2000/09/21 09:23:06 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -60,7 +60,7 @@
 (define-macro (help . maybe-command)
   `(help-helper ',maybe-command))
 
-p(add-help 'help '(command) "help") 
+(add-help 'help '(command) "help") 
 
 (add-help 'quit '() "exit GLAME")
 
@@ -311,44 +311,6 @@ p(add-help 'help '(command) "help")
 (add-help 'save-eff '(input-filename output-filename effect ...)
 	  "apply the effects to the input and write output")
 
-;--------------------------------------------------------------
-;
-; Macro filters for common use (and tutorial purposes)
-;
-
-;
-; mp3 reader using the pipe-in filter and mpg123
-;
-
-(let* ((net (net-new))
-       (p (net-add-node net "pipe-in")))
-  (filternode_set_param p "cmd" "mpg123 -q -s ")
-  (filternetwork_add_output net p "out" "out" "output")
-  (filternetwork_add_param net p "tail" "filename" "filename")
-  (filternetwork_to_filter net "read-mp3" "mp3 reader"))
-
-;
-; feedback echo2 macro filter
-;
-
-(let* ((net (net-new))
-       (extend (net-add-node net "extend"))
-       (mix2 (net-add-node net "mix"))
-       (one2n (net-add-node net "one2n"))
-       (delay (net-add-node net "delay"))
-       (va (net-add-node net "volume-adjust")))
-  (filternetwork_add_input net extend "in" "in" "echo source")
-  (filternetwork_add_output net one2n "out" "out" "source with echo")
-  (filternetwork_add_param net delay "delay" "delay" "echo delay")
-  (filternetwork_add_param net va "factor" "mix" "echo mix ratio")
-  (filternetwork_add_param net extend "time" "extend" "time to extend")
-  (filternetwork_add_param net mix2 "gain" "gain" "output gain")
-  (filternode_set_param net "delay" 200)
-  (filternode_set_param net "extend" 600)
-  (filternode_set_param net "mix" 0.7)
-  (nodes-connect `(,extend ,mix2 ,one2n ,delay ,va ,mix2))
-  (filternetwork_to_filter net "echo2" "echo as macro filter"))
-
 ;;; Macro to create a new filternetwork
 ;;;
 ;;; (create-net ((node "name") ...)
@@ -393,9 +355,17 @@ p(add-help 'help '(command) "help")
 	    `(let ((,(caar nodes) (net-add-node net ,(cadar nodes))))
 	       ,(lp (cdr nodes)))))))
 
-;;; above examples:
 
-(create-net ((extend "extend")
+;--------------------------------------------------------------
+;
+; Macro filters for common use (and tutorial purposes)
+;
+
+;
+; feedback echo2 macro filter
+;
+(filternetwork_to_filter
+	(create-net ((extend "extend")
 	     (mix2 "mix2")
 	     (one2n "one2n")
 	     (delay "delay")
@@ -410,12 +380,20 @@ p(add-help 'help '(command) "help")
 		   (filternode_set_param net "extend" 600)
 		   (filternode_set_param net "mix" 0.7)
 		   (nodes-connect (list extend mix2 one2n delay va mix2))))
+	"echo2" "echo as macro filter")
 
-(create-net ((p "pipe-in"))
+;
+; mp3 reader using the pipe-in filter and mpg123
+;
+(filternetwork_to_filter
+	(create-net ((p "pipe-in"))
 	    ()
 	    ((p "out" "out" "output"))
 	    ((p "tail" "filename" "filename"))
 	    (filternode_set_param p "cmd" "mpg123 -q -s "))
+	"read-mp3" "mp3-reader")
+
+
 
 ;------------------------------------------------------------
 ;
