@@ -58,7 +58,7 @@ struct _WaveeditGui {
 	int locked;
 
 	/* state for playmarker functionality */
-	filter_t *pm_net;
+	filter_t *pm_net, *pm_ain;
 	filter_param_t *pm_param;
 	long pm_start;
 	long pm_size;
