@@ -6,7 +6,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	rms.c fft_plugins.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
-	iir.c flanger.c \
+	iir.c flanger.c distortion.c\
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm
 
@@ -43,7 +43,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	pan.la pipe.la iir.la noisegate.la flanger.la \
+	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la\
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
 
@@ -70,6 +70,9 @@ iir_la_LDFLAGS = -module -avoid-version
 
 flanger_la_SOURCES = flanger.c
 flanger_la_LDFLAGS = -module -avoid-version
+
+distortion_la_SOURCES = distortion.c
+distortion_la_LDFLAGS = -module -avoid-version
 
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
