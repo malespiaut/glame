@@ -6,16 +6,19 @@ Things we (absolutely) need to do before 0.4.0:
 
 doc/
 	- document available filters [nold/the filter authors]
-	  All the 0.2.0 relevant stuff is documented. The following
-	  filters are entirely missing:
+	  The following filters are still missing:
 		fft_plugins.c:int fft_register(plugin_t *p)
 		fft_plugins.c:int ifft_register(plugin_t *p)
 		fft_plugins.c:int fft_resample_register(plugin_t *p)
 		fft_plugins.c:int fft_equalizer_register(plugin_t *p)
 		fft_plugins.c:int fft_bandpass_register(plugin_t *p)
-		flanger.c:int flanger_register(plugin_t *p)
-		time.c:int time_register(plugin_t *p)
-	- update GUI documentation [all]
+
+plugins/
+	- fix mix filter [richi]
+
+
+Stuff that can pe postponed for 0.4.x:
+--------------------------------------
 
 plugins/
 	[all]
@@ -25,6 +28,7 @@ plugins/
 gui/
 	[xwolf]
 	- kool splashscreen?
+
 
 Items that can be postponed forever (at least until 0.6):
 ---------------------------------------------------------
@@ -56,6 +60,11 @@ filter/
 swapfile/
         [richi]
 	- implement the transactions, restore undo/redo
+
+hash/
+	[richi]
+	- add notion of "private" (?) signal handlers to glsignal which
+          would be not copied - could remove some uglyness...
 
 glmid/
 	[richi]
