@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.52 2001/04/09 11:43:41 richi Exp $
+; $Id: glame.scm,v 1.53 2001/04/19 08:51:52 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -475,13 +475,15 @@
 		    (sw_ftruncate fd2 16)
 		    (sw_lseek fd2 0 SEEK_SET)
 		    (sw_sendfile fd2 fd1 16 0)
-		    (let ((result (sw-contents fd2)))
+		    (sw_lseek fd2 4 SEEK_SET)
+		    (sw_write fd2 "XXXXX")
+		    (let ((result (string-append (sw-contents fd1) (sw-contents fd2))))
 		      (sw_close fd1)
 		      (sw_close fd2)
 		      (sw_unlink 998)
 		      (sw_unlink 999)
 		      result)))))
-      (swtest "file COW" test "Hallo wie gehts?"))))
+      (swtest "file COW" test "Hallo wie gehts?HallXXXXX gehts?"))))
 
 (define swtest-all
   (lambda ()

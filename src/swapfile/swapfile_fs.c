@@ -62,7 +62,7 @@
 
 /* Some operations have two implementations, one cooked up out
  * of swapfile API functions, one out of lowlevel ones. */
-#undef USE_COOKED_OPS
+#define USE_COOKED_OPS
 
 
 /* The global "state" of the swapfile and its locks. The
