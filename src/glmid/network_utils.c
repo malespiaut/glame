@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.13 2002/02/19 09:49:46 richi Exp $
+ * $Id: network_utils.c,v 1.14 2003/06/01 14:09:37 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -124,6 +124,7 @@ int net_apply_effect(filter_t *net, filter_t *effect)
 		/* Use the first "matching" node output. */
 		filterportdb_foreach_port(filter_portdb(f), out) {
 			if (!filterport_is_output(out)
+			    || filterport_get_property(out, "!CONTROL")
 			    || !FILTER_PORTS_ARE_COMPATIBLE(filterport_type(out), FILTER_PORTTYPE_SAMPLE)
 			    || filterport_get_pipe(out))
 				continue;
@@ -137,6 +138,7 @@ int net_apply_effect(filter_t *net, filter_t *effect)
 			/* Use the first "matching" effect input. */
 			filterportdb_foreach_port(filter_portdb(e), in) {
 				if (filterport_is_input(in)
+			    	    && !filterport_get_property(in, "!CONTROL")
 				    && FILTER_PORTS_ARE_COMPATIBLE(filterport_type(in), FILTER_PORTTYPE_SAMPLE))
 					break;
 			}
@@ -159,7 +161,8 @@ int net_apply_node(filter_t *net, filter_t *node)
 		return -1;
 
 	filterportdb_foreach_port(filter_portdb(node), in)
-		if (filterport_is_input(in))
+		if (filterport_is_input(in)
+		    && !filterport_get_property(in, "!CONTROL"))
 			break;
 	if (!in)
 		return -1;
@@ -169,6 +172,7 @@ int net_apply_node(filter_t *net, filter_t *node)
 			continue;
 		filterportdb_foreach_port(filter_portdb(f), out) {
 			if (!filterport_is_output(out)
+			    || filterport_get_property(out, "!CONTROL")
 			    || !FILTER_PORTS_ARE_COMPATIBLE(filterport_type(out), filterport_type(in))
 			    || filterport_get_pipe(out))
 				continue;

@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.24 2003/05/19 20:32:01 richi Exp $
+ * $Id: apply.c,v 1.25 2003/06/01 14:09:37 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -154,7 +154,8 @@ static void preview_start(struct apply_plugin_s *a)
 	/* Find out plugin input count. */
 	nrin = 0;
 	filterportdb_foreach_port(filter_portdb(a->effect), port)
-		if (filterport_is_input(port))
+		if (filterport_is_input(port)
+		    && !filterport_get_property(port, "!CONTROL"))
 			nrin++;
 
 	loop = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(a->loop_checkbox));
@@ -257,7 +258,8 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	/* Find out plugin input count. */
 	nrin = 0;
 	filterportdb_foreach_port(filter_portdb(a->effect), port)
-		if (filterport_is_input(port))
+		if (filterport_is_input(port)
+		    && !filterport_get_property(port, "!CONTROL"))
 			nrin++;
 
 	/* Create the apply network and the destination swfile. */
@@ -292,6 +294,8 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		j = 0;
 		filterportdb_foreach_port(filter_portdb(e), eout) {
 			if (!filterport_is_output(eout))
+				continue;
+			if (filterport_get_property(eout, "!CONTROL")) /* ignore LADSPA control ports */
 				continue;
 			if (j++ == currin)
 				break;
