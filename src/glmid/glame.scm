@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.69 2001/08/07 09:11:21 richi Exp $
+; $Id: glame.scm,v 1.70 2001/08/10 12:30:33 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -392,7 +392,7 @@
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo " "Leute, " "wie gehts?")))
 		    (sw-lseek fd 6 SEEK_SET)
-		    (sw-sendfile SW-NOFILE fd 7 SWSENDFILE_CUT)
+		    (sw-sendfile SW_NOFILE fd 7 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -404,7 +404,7 @@
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo Leute, wie gehts?")))
 		    (sw-lseek fd 6 SEEK_SET)
-		    (sw-sendfile SW-NOFILE fd 7 SWSENDFILE_CUT)
+		    (sw-sendfile SW_NOFILE fd 7 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -415,8 +415,8 @@
   (lambda ()
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo Leute, wie gehts?")))
-		    (sw-lseek fd -5 SEEK_END)
-		    (sw-sendfile SW-NOFILE fd 6 SWSENDFILE_CUT)
+		    (sw-lseek fd -6 SEEK_END)
+		    (sw-sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -427,8 +427,8 @@
   (lambda ()
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo " "Leute, wie " "gehts?")))
-		    (sw-lseek fd -5 SEEK_END)
-		    (sw-sendfile SW-NOFILE fd 6 SWSENDFILE_CUT)
+		    (sw-lseek fd -6 SEEK_END)
+		    (sw-sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -439,8 +439,8 @@
   (lambda ()
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo " "Leute," " wie gehts?")))
-		    (sw-lseek fd -5 SEEK_END)
-		    (sw-sendfile SW-NOFILE fd 6 SWSENDFILE_CUT)
+		    (sw-lseek fd -6 SEEK_END)
+		    (sw-sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -452,7 +452,7 @@
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo Leute, wie gehts?")))
 		    (sw-lseek fd 0 SEEK_SET)
-		    (sw-sendfile SW-NOFILE fd 6 SWSENDFILE_CUT)
+		    (sw-sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -464,7 +464,7 @@
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo " "Leute, wie" " gehts?")))
 		    (sw-lseek fd 0 SEEK_SET)
-		    (sw-sendfile SW-NOFILE fd 6 SWSENDFILE_CUT)
+		    (sw-sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -476,7 +476,7 @@
     (let ((test (lambda ()
 		  (let ((fd (sw-creat 999 "Hallo Leute," " wie" " gehts?")))
 		    (sw-lseek fd 0 SEEK_SET)
-		    (sw-sendfile SW-NOFILE fd 6 SWSENDFILE_CUT)
+		    (sw-sendfile SW_NOFILE fd 6 SWSENDFILE_CUT)
 		    (let ((result (sw-contents fd)))
 		      (sw-close fd)
 		      (sw-unlink 999)
@@ -700,6 +700,18 @@
 (add-help 'play-files '(file ...)
 	  "play a set of files by mixing them together for stereo output")
 
+(define mix-files
+  (lambda (file . files)
+    (let* ((net (net-new))
+	   (render (net-add-node net "mix"))
+	   (aout (net-add-node net audio-out))
+	   (right (filter-connect render "out" aout "in")))
+      (for-each
+        (lambda (fname)
+	  (let ((rf (net-add-node net read-file (list "filename" fname))))
+	    (node-connect-n rf "out" render "in")))
+	(cons file files))
+      (net-run net))))
 
 ;
 ; load, process and save file
@@ -752,7 +764,8 @@
 (define swap-to-file
   (lambda (fname sf1 . sfiles)
     (let* ((net (net-new))
-	   (rf (net-add-node net "write-file" (list "filename" fname))))
+	   (rf (net-add-node net "write-file")))
+      (filter-set-param! rf "filename" fname)
       (for-each
         (lambda (sf)
 	  (nodes-connect (list (net-add-node net
