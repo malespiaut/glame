@@ -1,0 +1,307 @@
+# Localized messages for the Glame sound editor
+# Copyright (C) 2001 Daniel Kobras
+# Daniel Kobras <kobras@linux.de>, 2001.
+#
+#: main.c:367 main.c:392
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Glame 0.5.2\n"
+"POT-Creation-Date: 2001-08-03 17:42+0200\n"
+"PO-Revision-Date: 2001-08-04 17:28+0200\n"
+"Last-Translator: Daniel Kobras <kobras@linux.de>\n"
+"Language-Team: de <de@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ISO-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: main.c:69
+msgid "_New Project"
+msgstr "_Neues Projekt"
+
+#: main.c:69
+msgid "Creates a new Project group"
+msgstr "Legt eine neue Projektgruppe an"
+
+#: main.c:70
+msgid "Edit File..."
+msgstr "Bearbeite Datei..."
+
+#: main.c:70
+msgid "Imports a file and opens the waveedit window"
+msgstr "Importiert eine Datei und öffnet das Waveedit-Fenster"
+
+#: main.c:72
+msgid "Empty [deleted]"
+msgstr "Lösche [deleted]"
+
+#: main.c:72
+msgid "Kills [deleted] folder"
+msgstr "Leert den Ordner [deleted]"
+
+#: main.c:74
+msgid "Show _console"
+msgstr "Zeige _Konsole"
+
+#: main.c:74
+msgid "Shows the GLAME console"
+msgstr "Zeigt die GLAME-Console an"
+
+#: main.c:75
+msgid "Sync"
+msgstr "Sync"
+
+#: main.c:75
+msgid "Syncs meta to disk"
+msgstr "Speichert Metadaten auf Platte"
+
+#: main.c:85
+msgid "New Filternetwork"
+msgstr "Neues Filternetzwerk"
+
+#: main.c:85
+msgid "Creates a new filternetwork"
+msgstr "Erstellt ein neues Filternetzwerk"
+
+#: main.c:88 main.c:300
+msgid "Load Plugin"
+msgstr "Lade Plugin"
+
+#: main.c:88
+msgid "Loads and registers a plugin"
+msgstr "Lädt und registriert ein Plugin"
+
+#: main.c:94
+msgid "_Help"
+msgstr "_Hilfe"
+
+#: main.c:94
+msgid "Opens a gnome help browser"
+msgstr "Öffnet die Glame-Hilfe"
+
+#: main.c:95
+msgid "Quick Start Guide"
+msgstr "Kurzeinführung"
+
+#: main.c:95
+msgid "Opens a gnome help browser with the quick start guide"
+msgstr "Öffnet die Glame-Kurzeinführung"
+
+#: main.c:110
+msgid "_Project"
+msgstr "_Projekt"
+
+#: main.c:117
+msgid "_Filternetwork"
+msgstr "_Filternetzwerk"
+
+#: main.c:161
+msgid "Unnamed"
+msgstr "Unbenannt"
+
+#: main.c:190
+msgid "Error importing"
+msgstr "Fehler beim Importieren"
+
+#: main.c:206
+msgid "Edit audio file"
+msgstr "Bearbeite Audiodatei"
+
+#: main.c:208 main.c:301
+msgid "Filename"
+msgstr "Dateiname"
+
+#: main.c:269
+msgid "Failed to create importing network"
+msgstr "Das Import-Netzwerk konnte nicht erstellt werden"
+
+#: main.c:288
+msgid "Cannot open wave editor"
+msgstr "Kann Wavebearbeitungsfenster nicht öffnen"
+
+#: main.c:308
+msgid "Error loading plugin"
+msgstr "Schwerer Ausnahmefehler beim Laden des Plugins"
+
+#: main.c:466
+msgid "Swapfile"
+msgstr "Auslagerungsdatei"
+
+#: main.c:470
+msgid "You need lots of diskspace available at the swapfile location."
+msgstr ""
+"Die Auslagerungsdatei benötigt eine Partition mit viel freiem Speicherplatz"
+
+#: main.c:473
+msgid "GLAME doesnt handle running out of disk space very well."
+msgstr ""
+"Glame versteht es nicht besonders gut, mit dem Fehlerfall einer komplett "
+"beschriebenen Platte umzugehen"
+
+#: main.c:466 main.c:477
+msgid "Swapfile Path"
+msgstr "Pfad zur Auslagerungsdatei"
+
+#: main.c:484
+msgid "NOTE: Swapfile settings take effect after restart only"
+msgstr ""
+"Die geänderten Einstellungen für die Auslagerungsdatei werden erst nach "
+"einem Neustart aktiv"
+
+#: main.c:490
+msgid "Depth of undo stack"
+msgstr "Anzahl der Schritte, die rückgängig gemacht werden können"
+
+#: main.c:497
+msgid "Filternetwork"
+msgstr "Filternetzwerk"
+
+#: main.c:504
+msgid "Property popup timeout [ms]"
+msgstr "Verzögerung Einstellungshinweise [ms]"
+
+#: main.c:511
+msgid "toggled"
+msgstr ""
+
+#: main.c:513
+msgid "Mac mode (one mouse button mode)"
+msgstr "Mac-Modus (eine Maustaste)"
+
+#: main.c:521
+msgid "Audio I/O"
+msgstr "Audio-Ein/Ausgabe"
+
+#: main.c:549
+msgid "Default input plugin (audio_in)"
+msgstr "Standard-Audioeingabeplugin (audio_in)"
+
+#: main.c:556
+msgid "Default input device"
+msgstr "Standard-Eingabegerät"
+
+#: main.c:558
+msgid "No audio input plugin"
+msgstr "Kein Audioeingabeplugin"
+
+#: main.c:587
+msgid "Default output plugin (audio_out)"
+msgstr "Standard-Audioausgabeplugin (audio_out)"
+
+#: main.c:594
+msgid "Default output device"
+msgstr "Standard-Ausgabegerät"
+
+#: main.c:597
+msgid "No audio output plugin"
+msgstr "Kein Audioausgabeplugin"
+
+#: main.c:606
+msgid "Size hint for audio buffers [samples]"
+msgstr "Bevorzugte Größe der Audiopuffer [Abtastpunkte]"
+
+#: main.c:660
+msgid "Richard Guenther [Richi]"
+msgstr "Richard Günther [Richi]"
+
+#: main.c:661
+msgid "Alexander Ehlert [Mag]"
+msgstr ""
+
+#: main.c:662
+msgid "Daniel Kobras [*nold]"
+msgstr ""
+
+#: main.c:663
+msgid "Johannes Hirche [XWolf]"
+msgstr ""
+
+#: main.c:664
+msgid "and others"
+msgstr "und andere"
+
+#: main.c:674
+msgid "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
+msgstr "Copyright (C) 1999-2001 R. Günther, A. Ehlert, J. Hirche, D. Kobras"
+
+#: main.c:676
+msgid ""
+"GLAME comes with ABSOLUTELY NO WARRANTY. \n"
+"This is free software."
+msgstr ""
+"GLAME wird OHNE JEGLICHE GARANTIEN vertrieben. \n"
+"Dies ist Freie Software."
+
+#: main.c:723
+#, c-format
+msgid ""
+"The GLAME swapfile subsystem is about to commit suicide.\n"
+"The reason for this is:\n"
+"    %s\n"
+"The current pending libc error is:\n"
+"    %s\n"
+"Just restart GLAME after fixing the above (which may be\n"
+"an internal GLAME error, too).\n"
+"\n"
+"-- BYE BYE.\n"
+msgstr ""
+"Im Auslagerungs-Subsystem von GLAME ist ein schwerer Ausnahmefehler "
+"aufgetreten.\nDer Grund dafür ist:\n"
+"    %s\n"
+"Zuletzt wurde von libc folgender Fehler registriert:\n"
+"    %s\n"
+"Bitte sorgen Sie dafür, dass die Fehlerursache (das kann auch ein "
+"GLAME-interner Fehler sein) behoben wird.\n"
+"\n"
+"-- BIS ZUM NÄCHSTEN MAL.\n"
+
+#: main.c:770
+msgid ""
+"Welcome first-time user of GLAME.\n"
+"We need to do some basic setup stuff. Please run through\n"
+"the preferences dialog and check the \"Swapfile Path\" and\n"
+"\"Audio IO\" settings.\n"
+msgstr ""
+"Willkommen bei GLAME.\n"
+"Sie benutzen dieses Programm zum ersten Mal und müssen daher einige\n"
+"grundlegende Einstellungen vornehmen. Bitte überprüfen Sie den\n"
+"Pfad der Auslagerungsdatei und die Audio-Ein/Ausgabeeinstellungen.\n"
+
+#: main.c:784
+msgid ""
+"GLAME was somehow unable to create its swapfile\n"
+"Please check the configuration.\n"
+msgstr ""
+"GLAME war nicht in der Lage, eine Auslagerungsdatei zu erstellen.\n"
+"Bitte überprüfen Sie die Programmeinstellungen.\n"
+
+#: main.c:791
+msgid ""
+"GLAME was unable to open/init its swapfile\n"
+"Please check the configuration and/or check for\n"
+"GLAME messages on the console.\n"
+msgstr ""
+"GLAME war nicht in der Lage, die Auslagerungsdatei zu öffen/initialisieren.\n"
+"Bitte überprüfen Sie die Programmeinstellungen und berücksichtigen Sie\n"
+"eventuelle Ausgaben auf der Konsole.\n" 
+
+#: main.c:859
+msgid "    GLAME version "
+msgstr "    GLAME Version "
+
+#: main.c:859
+msgid ""
+", Copyright (C) 1999-2001 by\n"
+"    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
+"    Daniel Kobras. GLAME comes with ABSOLUTELY NO\n"
+"    WARRANTY. This is free software, and you are welcome to\n"
+"    redistribute it under certain conditions.\n"
+"\n"
+msgstr ""
+", Copyright (C) 1999-2001 von\n"
+"    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
+"    Daniel Kobras. GLAME wird OHNE JEGLICHE GARANTIEN\n"
+"    vertrieben. Dies ist Freie Software und kann unter\n"
+"    bestimmten Bedingungen beliebig weiter vertrieben\n"
+"    werden.\n"
+"\n"
