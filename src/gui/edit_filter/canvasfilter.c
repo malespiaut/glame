@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.49 2001/12/17 02:47:04 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.50 2001/12/17 09:44:58 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -774,6 +774,16 @@ static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* 
 	}
 }
 
+static void glame_canvas_group_selection_cb(GtkWidget *foo, GlameCanvasFilter* filter)
+{
+	glame_canvas_group_selected(CANVAS_ITEM_GLAME_CANVAS(filter));
+}
+
+static void glame_canvas_ungroup_cb(GtkWidget *foo, GlameCanvasFilter* filter)
+{
+	glame_canvas_ungroup_selected(CANVAS_ITEM_GLAME_CANVAS(filter));
+}
+
 static void glame_canvas_copy_selected_cb(GtkWidget *foo, GlameCanvasFilter* filter)
 {
 	glame_canvas_copy_selected(CANVAS_ITEM_GLAME_CANVAS(filter));
@@ -1066,36 +1076,55 @@ static void glame_canvas_filter_redirect_parameters(GtkWidget *bla, GlameCanvasF
 
 
 int inItem;
+
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
-	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
-	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),	
+	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
+	GNOMEUIINFO_ITEM("_Expand","Expand",glame_canvas_filter_expand_node_cb,NULL),
+	GNOMEUIINFO_ITEM("_Open down","Open down",glame_canvas_filter_open_node_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Copy Selected","Copy Selected",glame_canvas_copy_selected_cb,NULL),
+	GNOMEUIINFO_ITEM("_Group selection","Group selection",glame_canvas_group_selection_cb,NULL),
+	GNOMEUIINFO_ITEM("_Ungroup","Ungroup",glame_canvas_ungroup_cb,NULL),
+	GNOMEUIINFO_ITEM("Cop_y selection","Copy selection",glame_canvas_copy_selected_cb,NULL),
 	GNOMEUIINFO_ITEM("_Collapse selection","Collapse selection",glame_canvas_filter_collapse_selection_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
-	GNOMEUIINFO_END
-};
-
-static GnomeUIInfo node_menu_network[]=
-{
-	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
 	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
-	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
-	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
-	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
-	GNOMEUIINFO_ITEM("_Expand","Expand",glame_canvas_filter_expand_node_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Copy Selected","Copy Selected",glame_canvas_copy_selected_cb,NULL),
-	GNOMEUIINFO_ITEM("Co_llapse selection","Collapse selection",glame_canvas_filter_collapse_selection_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
 	GNOMEUIINFO_END
 };
+#define NODE_MENU_EXPAND_INDEX 2
+#define NODE_MENU_OPEN_DOWN_INDEX 3
+#define NODE_MENU_GROUP_SELECTED_INDEX 7
+#define NODE_MENU_UNGROUP_INDEX 8
+#define NODE_MENU_COPY_SELECTED_INDEX 9
+#define NODE_MENU_COLLAPSE_SELECTION_INDEX 10
 
+
+static GtkWidget *glame_canvas_filter_get_popup_menu(GlameCanvasFilter *filter)
+{
+	GtkWidget *menu;
+
+	/* Build menu, disable/enable items based on context. */
+	menu = gnome_popup_menu_new(node_menu);
+
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_EXPAND_INDEX].widget,
+				 FILTER_IS_NETWORK(filter->filter) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_OPEN_DOWN_INDEX].widget,
+				 FILTER_IS_NETWORK(filter->filter) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_GROUP_SELECTED_INDEX].widget,
+				 filter->selected ? TRUE : FALSE);
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_UNGROUP_INDEX].widget,
+				 filter->selected ? TRUE : FALSE);
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_COPY_SELECTED_INDEX].widget,
+				 filter->selected ? TRUE : FALSE);
+	gtk_widget_set_sensitive(node_menu[NODE_MENU_COLLAPSE_SELECTION_INDEX].widget,
+				 filter->selected ? TRUE : FALSE);
+
+	return menu;
+}
 
 
 static void glame_canvas_filter_deregister_popup(GlameCanvasFilter* filter);
@@ -1103,7 +1132,6 @@ static void glame_canvas_filter_deregister_popup(GlameCanvasFilter* filter);
 static gboolean
 glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {
-	GtkWidget * menu;
 	double dx,dy;
 
 	switch(event->type){
@@ -1130,18 +1158,9 @@ glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvas
 		gnome_canvas_item_ungrab(i,event->button.time);
 		gtk_signal_disconnect_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_filter_grabbing_cb),filter);
 		gtk_signal_handler_unblock_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_filter_event),filter);
-		switch(event->button.button){
-		case 1:
-			if(bMac){
-				if(FILTER_IS_NETWORK(filter->filter))
-					menu = gnome_popup_menu_new(node_menu_network);
-				else
-					menu = gnome_popup_menu_new(node_menu);
-				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,filter);
-				break;		
-			}
-		default:
-			break;
+		if (bMac && event->button.button == 1) {
+			gnome_popup_menu_do_popup(glame_canvas_filter_get_popup_menu(filter),
+						  NULL,NULL,&event->button,filter);
 		}
 		
 		return TRUE;
@@ -1218,7 +1237,7 @@ static gboolean
 glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {
 	GdkCursor * fleur;
-	GtkWidget * menu;
+
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -1247,30 +1266,17 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 			break;
 		case 3:
 			/* popup menu */
-			/* check for network */
-			if(FILTER_IS_NETWORK(filter->filter))
-				menu = gnome_popup_menu_new(node_menu_network);
-			else
-				menu = gnome_popup_menu_new(node_menu);
-			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,filter);
+			gnome_popup_menu_do_popup(glame_canvas_filter_get_popup_menu(filter),
+						  NULL,NULL,&event->button,filter);
 			break;	
 		default:
 			return FALSE;
 			break;
 		}
 	case GDK_2BUTTON_PRESS:
-		switch(event->button.button){
-		case 1:
-			if(bMac){
-				if(FILTER_IS_NETWORK(filter->filter))
-					menu = gnome_popup_menu_new(node_menu_network);
-				else
-					menu = gnome_popup_menu_new(node_menu);
-				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,filter);
-				break;		
-			}
-		default:
-			break;
+		if (bMac && event->button.button == 1) {
+			gnome_popup_menu_do_popup(glame_canvas_filter_get_popup_menu(filter),
+						  NULL,NULL,&event->button,filter);
 		}
 		break;
 	case GDK_ENTER_NOTIFY:

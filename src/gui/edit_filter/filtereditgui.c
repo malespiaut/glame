@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.46 2001/12/13 14:48:06 richi Exp $
+ * $Id: filtereditgui.c,v 1.47 2001/12/17 09:44:58 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -245,10 +245,12 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 			if(!onItem){
 				GtkWidget* edit;
 				menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
-				edit = gtk_menu_item_new_with_label("Paste Selection");
-				gtk_widget_show(edit);
-				gtk_signal_connect(GTK_OBJECT(edit),"activate",filtereditgui_paste_cb,glCanv);
-				gtk_menu_append(GTK_MENU(menu), edit);
+				if (glCanv->clipBoard) {
+					edit = gtk_menu_item_new_with_label("Paste");
+					gtk_widget_show(edit);
+					gtk_signal_connect(GTK_OBJECT(edit),"activate",filtereditgui_paste_cb,glCanv);
+					gtk_menu_append(GTK_MENU(menu), edit);
+				}
 				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
 				return TRUE;
 			}
