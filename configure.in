@@ -42,11 +42,10 @@ if test "$GCC" = "yes"; then
 else
   AC_MSG_WARN([Compilers other than gcc are not supported])
 fi
-AC_PROG_CC_STDC
 
 AC_PROG_INSTALL
 AC_LIBTOOL_DLOPEN
-AC_PROG_LIBTOOL
+AM_PROG_LIBTOOL
 
 
 
