@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.22 2000/02/21 09:35:57 mag Exp $
+ * $Id: filter.c,v 1.23 2000/02/21 16:10:51 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -41,7 +41,7 @@ extern int basic_sample_register();
 extern int tutorial_register();
 extern int channel_io_register();
 extern int audio_io_register();
-extern int file_io2_register();
+extern int file_io_register();
 extern int debug_register();
 extern int waveform_register();
 extern int echo_register();
@@ -74,7 +74,7 @@ int filter_init()
 		return -1;
 
 	/* initialize file input & output filters */
-	if (file_io2_register() == -1)
+	if (file_io_register() == -1)
 		return -1;
 
 	/* initialize debug & profile filters */

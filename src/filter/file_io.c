@@ -1,8 +1,8 @@
 /*
- * read_file.c
- * $Id: file_io.c,v 1.7 2000/02/20 15:26:29 richi Exp $ 
+ * file_io.c
+ * $Id: file_io.c,v 1.8 2000/02/21 16:10:51 richi Exp $
  *
- * Copyright (C) 1999, 2000 Alexander Ehlert
+ * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,32 +18,355 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
+ *
+ * Generic audiofile reader filter. Every generic reader should honour
+ * the per-pipe parameter "position" by just selecting the "best matching"
+ * channel of the file for the pipe. Remixing is not required, as is
+ * duplicate channel output. The real position of the stream should be set
+ * exact though.
+ * Every generic reader should have a
+ * - prepare method which does audiofile header reading and checking if
+ *   it can handle the file. Fixup of the output pipes type is required, too.
+ *   prepare is a unification of the connect_out & fixup_param method.
+ * - f method which does the actual reading
+ * - cleanup method to cleanup the private shared state
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#ifndef HAVE_AUDIOFILE
-#include "filter.h"
-
-int file_io_register()
-{
-	return 0;
-}
-
-#else
-
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "filter.h"
-#include "util.h"
-#include <audiofile.h>
 #include <string.h>
 #include <math.h>
+#include "filter.h"
+#include "util.h"
 
+#ifdef HAVE_AUDIOFILE
+#include <audiofile.h>
+int audiofile_prepare(filter_node_t *n, const char *filename);
+int audiofile_connect(filter_node_t *n, filter_pipe_t *p);
+int audiofile_f(filter_node_t *n);
+void audiofile_cleanup(filter_node_t *n);
+#endif
+
+
+typedef struct {
+	struct list_head list;
+	int (*prepare)(filter_node_t *, const char *);
+	int (*connect)(filter_node_t *, filter_pipe_t *);
+	int (*f)(filter_node_t *);
+	void (*cleanup)(filter_node_t *);
+} rw_t;
+
+typedef struct {
+	filter_pipe_t   *p;
+	filter_buffer_t *buf;
+	int             pos;
+	int		mapped;
+} track_t;
+
+typedef struct {
+	rw_t *rw;
+	int initted;
+	union {
+		struct {
+			int dummy;
+		} dummy;
+#ifdef HAVE_AUDIOFILE
+		struct {
+			AFfilehandle    file;
+			AFframecount    frameCount;
+			int             sampleFormat,sampleWidth;
+			int             channelCount,frameSize;
+			int		sampleRate;
+			track_t         *track;
+			short		*buffer;
+			char		*cbuffer;
+			/* put your shared state stuff here */
+		} audiofile;
+#endif
+	} u;
+} rw_private_t;
+#define RWPRIV(node) ((rw_private_t *)((node)->private))
+#define RWAUDIO(node) (RWPRIV(node)->u.audiofile)
+
+/* the readers list */
+static struct list_head readers;
+
+
+static int add_reader(int (*prepare)(filter_node_t *, const char *),
+		      int (*connect)(filter_node_t *, filter_pipe_t *),
+		      int (*f)(filter_node_t *),
+		      void (*cleanup)(filter_node_t *))
+{
+	rw_t *rw;
+
+	if (!prepare || !f)
+		return -1;
+	if (!(rw = ALLOC(rw_t)))
+		return -1;
+	INIT_LIST_HEAD(&rw->list);
+	rw->prepare = prepare;
+	rw->connect = connect;
+	rw->f = f;
+	rw->cleanup = cleanup;
+	list_add(&rw->list, &readers);
+
+	return 0;
+}
+
+
+static int read_file_init(filter_node_t *n)
+{
+	rw_private_t *p;
+
+	if (!(p = ALLOC(rw_private_t)))
+		return -1;
+	n->private = p;
+	return 0;
+}
+static void read_file_cleanup(filter_node_t *n)
+{
+	if (RWPRIV(n)->rw
+	    && RWPRIV(n)->rw->cleanup)
+		RWPRIV(n)->rw->cleanup(n);
+	free(RWPRIV(n));
+}
+static int read_file_f(filter_node_t *n)
+{
+	/* require set filename (a selected reader) and
+	 * at least one connected output. */
+	if (!RWPRIV(n)->initted)
+		return -1;
+	if (!filternode_get_output(n, PORTNAME_OUT))
+		return -1;
+	return RWPRIV(n)->rw->f(n);
+}
+static int read_file_connect_out(filter_node_t *n, const char *port,
+				 filter_pipe_t *p)
+{
+	/* no reader -> no filename -> some "defaults" */
+	if (!RWPRIV(n)->rw) {
+		filterpipe_settype_sample(p, 44100, FILTER_PIPEPOS_DEFAULT);
+		return 0;
+	}
+
+	/* pass request to readers prepare, it can reject the
+	 * connection, but not the file here. */
+	return RWPRIV(n)->rw->connect(n, p);
+}
+static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				 const char *name, filter_param_t *param)
+{
+	rw_t *r;
+
+	/* only pipe param change (position)? */
+	if (p && RWPRIV(n)->rw) {
+		if (RWPRIV(n)->rw->connect(n, p) == -1)
+			filternetwork_break_connection(p);
+		return 0;
+	
+        /* filename change! */
+	} else {
+		/* check actual reader */
+		if (RWPRIV(n)->rw) {
+			/* cleanup previous stuff */
+			if (RWPRIV(n)->initted
+			    && RWPRIV(n)->rw->cleanup)
+				RWPRIV(n)->rw->cleanup(n);
+			RWPRIV(n)->initted = 0;
+
+			/* try same rw again */
+			if (RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
+				RWPRIV(n)->initted = 1;
+				goto reconnect;
+			}
+		}
+
+		RWPRIV(n)->rw = NULL;
+		RWPRIV(n)->initted = 0;
+
+		/* search for applicable reader */
+		list_foreach(&readers, rw_t, list, r) {
+			if (r->prepare(n, filterparam_val_string(param)) != -1) {
+				RWPRIV(n)->rw = r;
+				RWPRIV(n)->initted = 1;
+				goto reconnect;
+			}
+		}
+
+		/* no reader found */
+		return -1;
+	}
+
+ reconnect:
+	/* re-connect all pipes */
+	filternode_foreach_output(n, p)
+		if (RWPRIV(n)->rw->connect(n, p) == -1){
+			filternetwork_break_connection(p);
+			goto reconnect;
+		}
+
+	return 0;
+}
+
+
+int file_io_register()
+{
+	filter_t *f;
+	filter_portdesc_t *p;
+
+	INIT_LIST_HEAD(&readers);
+
+	if (!(f = filter_alloc("read_file", "Generic file read filter",
+			       read_file_f))
+	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
+				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
+	    || !filterport_add_param(p, "position", "position of the stream",
+				     FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_param(f, "filename", "filename",
+				 FILTER_PARAMTYPE_STRING))
+		return -1;
+	f->init = read_file_init;
+	f->cleanup = read_file_cleanup;
+	f->connect_out = read_file_connect_out;
+	f->fixup_param = read_file_fixup_param;
+	if (filter_add(f) == -1)
+		return -1;
+
+#ifdef HAVE_AUDIOFILE
+	add_reader(audiofile_prepare, audiofile_connect,
+		   audiofile_f, audiofile_cleanup);
+#endif
+
+	return 0;
+}
+
+
+/* The actual readers.
+ */
+#ifdef HAVE_AUDIOFILE
+int audiofile_prepare(filter_node_t *n, const char *filename)
+{
+	DPRINTF("Opening %s\n",filename);
+	if ((RWAUDIO(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
+		DPRINTF("File not found!\n"); 
+		return -1; 
+	}
+	RWAUDIO(n).frameCount=afGetFrameCount(RWAUDIO(n).file, AF_DEFAULT_TRACK);
+	RWAUDIO(n).channelCount = afGetChannels(RWAUDIO(n).file, AF_DEFAULT_TRACK);
+	afGetSampleFormat(RWAUDIO(n).file, AF_DEFAULT_TRACK, &(RWAUDIO(n).sampleFormat), &(RWAUDIO(n).sampleWidth));
+	RWAUDIO(n).frameSize = afGetFrameSize(RWAUDIO(n).file, AF_DEFAULT_TRACK, 1);
+	RWAUDIO(n).sampleRate = (int)afGetRate(RWAUDIO(n).file, AF_DEFAULT_TRACK);
+	if ((RWAUDIO(n).sampleFormat != AF_SAMPFMT_TWOSCOMP)){
+		DPRINTF("Format not supported!\n");
+		return -1;
+	}
+	if ((RWAUDIO(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWAUDIO(n).frameSize))==NULL){
+		DPRINTF("Couldn't allocate buffer\n");
+		return -1;
+	}
+	RWAUDIO(n).cbuffer=(char *)RWAUDIO(n).buffer;
+	if (!(RWAUDIO(n).track=ALLOCN(RWAUDIO(n).channelCount,track_t))){
+		DPRINTF("Couldn't allocate track buffer\n");
+		return -1;
+	}
+	return 0;
+}
+
+int audiofile_connect(filter_node_t *n, filter_pipe_t *p)
+{
+	int i;
+	for(i=0;(i<RWAUDIO(n).channelCount) && (RWAUDIO(n).track[i].mapped);i++);
+	if (i>=RWAUDIO(n).channelCount){
+		/* Check if track is already mapped ?!
+		 * Would be strange, but ... FIXME
+		 * - nope, not strange, connect gets called for each
+		 *   already connected pipes at parameter change, too!
+		 *   (as for just pipe parameter change)
+		 * - you should fixup, i.e. re-route perhaps, reject, whatever
+		 *   in this case
+                 */
+		for(i=0;i<RWAUDIO(n).channelCount;i++)
+			if ((RWAUDIO(n).track[i].mapped) && RWAUDIO(n).track[i].p==p)
+				return 0; /* FIXME */
+		
+		/* Otherwise error */
+		return -1;
+	} else {
+		/* Moah! what is this? does libaudiofile not provide
+		 * some "direct" information on position??
+		 */
+		filterpipe_settype_sample(p,RWAUDIO(n).sampleRate,
+			(M_PI/(RWAUDIO(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
+		RWAUDIO(n).track[i].p=p;
+		RWAUDIO(n).track[i].mapped=1;
+	}	
+	
+	return 0;	
+}
+
+int audiofile_f(filter_node_t *n)
+{
+	int frames,i,j;
+	filter_pipe_t *p_out;
+
+	FILTER_AFTER_INIT;
+
+	while(RWAUDIO(n).frameCount){
+		FILTER_CHECK_STOP;
+		if (!(frames=afReadFrames(RWAUDIO(n).file, AF_DEFAULT_TRACK, RWAUDIO(n).buffer,
+					  MIN(GLAME_WBUFSIZE,RWAUDIO(n).frameCount))))
+			break;
+		RWAUDIO(n).frameCount-=frames;
+		for(i=0;i<RWAUDIO(n).channelCount;i++){
+			RWAUDIO(n).track[i].buf=sbuf_alloc(frames,n);
+			RWAUDIO(n).track[i].buf=sbuf_make_private(RWAUDIO(n).track[i].buf);
+			RWAUDIO(n).track[i].pos=0;
+		}
+		i=0;
+		while(i<frames*RWAUDIO(n).channelCount){
+			for(j=0;j<RWAUDIO(n).channelCount;j++){
+				switch(RWAUDIO(n).sampleWidth) {
+				case 16 :
+					sbuf_buf(RWAUDIO(n).track[j].buf)[RWAUDIO(n).track[j].pos++]=SHORT2SAMPLE(RWAUDIO(n).buffer[i++]);
+					break;
+				case  8 :
+					sbuf_buf(RWAUDIO(n).track[j].buf)[RWAUDIO(n).track[j].pos++]=CHAR2SAMPLE(RWAUDIO(n).cbuffer[i++]);
+					break;
+				}
+			}
+		}
+		for(i=0;i<RWAUDIO(n).channelCount;i++)
+			sbuf_queue(RWAUDIO(n).track[i].p,RWAUDIO(n).track[i].buf);
+	}
+	filternode_foreach_output(n,p_out) 
+		sbuf_queue(p_out,NULL);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	return 0;
+}
+
+void audiofile_cleanup(filter_node_t *n)
+{
+	if (!RWPRIV(n)->initted)
+		return;
+	free(RWAUDIO(n).buffer);
+	free(RWAUDIO(n).track);
+	afCloseFile(RWAUDIO(n).file);	
+}
+#endif
+
+
+
+/* old write_file code follows */
+#if 0
 static int write_file_f(filter_node_t *n)
 {
 	filter_pipe_t *left,*right;
@@ -154,244 +477,4 @@ _bailout:
 	FILTER_BEFORE_CLEANUP;
 	return res;
 }
-	
-
-static int read_file_f(filter_node_t *n)
-{
-	typedef struct {
-		filter_pipe_t 	*p;
-		filter_buffer_t *buf;
-		int		pos;
-	} track_t;
-	filter_pipe_t	*p_out;
-	filter_param_t	*param;
-	int		activecnt;
-	track_t		*track=NULL;
-	
-	AFfilehandle    file;
-        AFframecount    frameCount;
-	int 		sampleFormat,sampleWidth,channelCount,frameSize;
-	short int 	*buffer;
-	char 		*cbuffer;
-	int 		frames;
-	int 		i,j;
-	double 		sampleRate;
-
-	DPRINTF("read-file started!\n");
-
-	p_out = filternode_get_output(n, PORTNAME_OUT);
-
-	if (!p_out){
-		DPRINTF("Couldn't find channels!\n");
-		return -1;
-	}
-
-	if (!(param = filternode_get_param(n, "filename"))) {
-		DPRINTF("Missing parameter filename!\n");
-		return -1;
-	}
-
-	DPRINTF("Opening %s\n",filterparam_val_string(param));
-
-	if ((file=afOpenFile(filterparam_val_string(param),"r",NULL))==NULL){
-		DPRINTF("File not found!\n");
-		return -1;
-	}
-
-	frameCount=afGetFrameCount(file, AF_DEFAULT_TRACK);
-	channelCount = afGetChannels(file, AF_DEFAULT_TRACK);
-	afGetSampleFormat(file, AF_DEFAULT_TRACK, &sampleFormat, &sampleWidth);
-	frameSize = afGetFrameSize(file, AF_DEFAULT_TRACK, 1);
-	sampleRate = afGetRate(file, AF_DEFAULT_TRACK);
-	
-	if ((sampleFormat != AF_SAMPFMT_TWOSCOMP) && (sampleFormat != AF_SAMPFMT_UNSIGNED)){
-		DPRINTF("Format not yet supported!\n");
-		goto _bailout;
-	}
-	
-	if ((buffer=(short int*)malloc(GLAME_WBUFSIZE*frameSize))==NULL){
-		DPRINTF("Couldn't allocate buffer!\n");
-		goto _bailout;
-	}
-
-	FILTER_AFTER_INIT;
-
-	activecnt=0;
-	filternode_foreach_output(n,p_out) activecnt++;
-
-	DPRINTF("%d pipes active\n",activecnt);
-
-	if (activecnt<channelCount){
-		DPRINTF("Not enough output pipes connected!\n");
-		goto _cleanup;
-	} else {
-		if (!(track=(track_t *)malloc(activecnt*sizeof(track_t)))){
-			DPRINTF("alloc track failed!\n");
-			goto _cleanup;
-		}
-		
-		/* store active pipes */
-		p_out=filternode_get_output(n, PORTNAME_OUT);
-		i=0;
-		do {
-			track[i].p=p_out;
-			/* FIXME is it ok to set this stuff in here ? 
-			 * where else...
-			 * It's not ok here, but IMHO sampleRate should go into sbuf -> more flexible!
-			 */
-			p_out->type = FILTER_PIPETYPE_SAMPLE;
-			p_out->u.sample.rate = (int)sampleRate;
-			i++;
-			p_out=filternode_next_output(p_out);
-		} while(i!=channelCount);
-	
-		/* send EOF's to all useless output pipes */
-		while(p_out){
-			sbuf_queue(p_out,NULL);
-			p_out=filternode_next_output(p_out);
-		}
-	}
-	cbuffer=(char *)buffer;
-
-	while(pthread_testcancel(),frameCount){
-		if (!(frames=afReadFrames(file, AF_DEFAULT_TRACK, buffer,MIN(GLAME_WBUFSIZE,frameCount))))
-				break;
-		frameCount-=frames;
-
-		for(i=0;i<channelCount;i++){
-			track[i].buf=sbuf_alloc(frames,n);
-			track[i].buf=sbuf_make_private(track[i].buf);
-			track[i].pos=0;
-			if(i<=SBUF_POS_RIGHT)
-				sbuf_pos(track[i].buf)=i;
-			else
-				sbuf_pos(track[i].buf)=SBUF_POS_ANY;
-		}
-		i=0;
-		while(i<frames*channelCount){
-			for(j=0;j<channelCount;j++){
-				switch(sampleWidth) {
-				case 16 : 
-					sbuf_buf(track[j].buf)[track[j].pos++]=SHORT2SAMPLE(buffer[i++]);
-					break;
-				case  8 : 
-					sbuf_buf(track[j].buf)[track[j].pos++]=CHAR2SAMPLE(cbuffer[i++]);
-					break;
-				}
-			}
-		}	
-		for(i=0;i<channelCount;i++) sbuf_queue(track[i].p,track[i].buf);
-	}
-
-_cleanup:
-	/* clean exit, send EOF to each pipe
-	 * FIXME does it matter if NULL is sent twice to a port?
-	 */
-	filternode_foreach_output(n,p_out)
-		sbuf_queue(p_out,NULL);
-	FILTER_BEFORE_CLEANUP;
-
-	free(track);
-	free(buffer);
-	afCloseFile(file);
-	
-	return 0;
-_bailout:
-	DPRINTF("read-file bailout!\n");
-	afCloseFile(file);
-	return -1;
-}
-
-#if 0
-
-int read_file_connect_out(filter_node_t *n, const char *port,
-			  filter_pipe_t *p)
-{
-	/* FIXME */
-	filterpipe_settype_sample(p, 44100, FILTER_PIPEPOS_DEFAULT);
-
-	return 0;
-}
-
-int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
-			  const char *name, filter_param_t *prm)
-{
-	filter_pipe_t *left,*right;
-	filter_param_t *param;
-	char *filename;
-	AFfilehandle    file;
-	int channelCount;
-	
-	if ((param = filternode_get_param(n, "filename"))) {
-                 filename=strdup(param->val.string);
-        } else {
-                 DPRINTF("Missing parameter filename!\n");
-                 return -1;
-        }
-	
-	if ((file=afOpenFile(filename,"r",NULL))==NULL){
-	         DPRINTF("File not found!\n");
-	         return -1;
-	}
-
-	channelCount = afGetChannels(file, AF_DEFAULT_TRACK);
-	afCloseFile(file);
-	
-	left = filternode_get_output(n, PORTNAME_LEFT_OUT);
-	right = filternode_get_output(n, PORTNAME_RIGHT_OUT);
-	
-	if (left && right && (channelCount==1)){
-		DPRINTF("Running mono mode!\n");
-		filternetwork_break_connection(right);
-	}else{
-		DPRINTF("Running stereo mode!\n");
-	}
-	return 0;
-}
-
 #endif
-
-/* Registry setup of all contained filters
- */
-int file_io_register()
-{
-	filter_t *f;
-
-	if (!(f = filter_alloc("read_file", "This filter reads various audiofile formats\n"
-					    "supported by libaudiofile including:       \n"
-					    " - Microsoft Wav                 (.wav)    \n"
-					    " - Sun audio                     (.au)     \n"
-					    " - Audio Interchange File Format (.aiff)   \n"
-					    " etc.                                      \n"
-					    " For more information consult libaudiofile \n"
-					    " documentation.                            \n\n"
-					    "(c) Alexander Ehlert 2000                  \n", read_file_f)))
-		return -1;
-	if (!filter_add_output(f, PORTNAME_OUT, "output channels",
-			       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC)
-	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
-		return -1;
-#if 0
-	f->connect_out = read_file_connect_out;
-	f->fixup_param = read_file_fixup_param;
-#endif	
-	if (filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("write_file", "writes audiofile", write_file_f)))
-		return -1;
-	if (!filter_add_input(f, PORTNAME_LEFT_IN, "left channel",
-				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_input(f, PORTNAME_RIGHT_IN, "right channel",
-		    		 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
-		return -1;
-
-	if (filter_add(f) == -1)
-		return -1;
-	
-	return 0;
-}
-
-#endif
-

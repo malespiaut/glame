@@ -11,7 +11,7 @@ libfilter_la_SOURCES = filter.h filterI.h filter_methods.h \
 	filter.c filter_buffer.c filter_network.c filter_methods.c \
 	filter_mm.c filter_ops.c \
 	basic.c basic_sample.c tutorial.c debug.c channel_io.c audio_io.c \
-	waveform.c file_io2.c \
+	waveform.c file_io.c \
 	echo.c garrison.c nold.c echo2.c \
 	basic_midi.c midi_io.c
 
