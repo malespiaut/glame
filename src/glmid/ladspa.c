@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.12 2001/08/08 09:16:42 richi Exp $
+ * $Id: ladspa.c,v 1.13 2002/02/11 12:43:36 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -165,7 +165,9 @@ static int ladspa_f(filter_t * n)
 		FILTER_ERROR_RETURN("malloc() failure");
 
 	for (iNTo1_Index = 0; iNTo1_Index < iNTo1_NR; iNTo1_Index++) {
+		psNTo1_State[iNTo1_Index].n = n;
 		psNTo1_State[iNTo1_Index].buf = NULL;
+		psNTo1_State[iNTo1_Index].s = NULL;
 		psNTo1_State[iNTo1_Index].pos = 0;
 	}
 
