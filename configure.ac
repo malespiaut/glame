@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(glame, 0.7.1pre1)
+AC_INIT(glame, 1.1CVS)
 AC_CONFIG_SRCDIR(configure.ac)
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_CONFIG_HEADER(config.h)
@@ -79,7 +79,6 @@ else
   AC_MSG_ERROR([Compilers other than gcc are not supported])
 fi
 AM_PROG_CC_C_O
-AC_PROG_CXX
 
 AC_PROG_INSTALL
 AC_LIBLTDL_CONVENIENCE
@@ -442,6 +441,17 @@ if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 	esac
 fi
 
+dnl
+dnl Check for gcc SIMD support
+dnl
+
+AC_ARG_ENABLE(simd,
+[  --disable-simd          disable fast simd routines ], simd=$enableval, simd=yes)
+if test x$simd = xyes; then
+  ACG_CHECK_GCC_VECTOR_EXTENSION([AC_DEFINE(HAVE_GCC_SIMD,, [gcc SIMD extensions])])
+else
+  AC_MSG_NOTICE([SIMD support disabled])
+fi
 
 
 dnl At the very last, concat GLAME_* to GLAME_GUI_*
