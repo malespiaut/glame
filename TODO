@@ -1,13 +1,6 @@
 TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
-Pending for 0.5.2:
-------------------
-
-- fix SIGSEGVs
-- fix filters for RT param update
-- fix issues with non-modal dialogs in edit_filter
-
 
 Items pending for 0.5.x:
 ------------------------
@@ -26,6 +19,7 @@ plugins/
           iir, rms, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
+	- fix filters for RT param update
 	[richi]
 	- do gpsm invalidating using swapfile_out filter output params
 
@@ -65,6 +59,7 @@ glmid/
 
 gui/
 	[all]
+	- fix issues with non-modal dialogs in edit_filter
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?

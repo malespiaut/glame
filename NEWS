@@ -1,3 +1,14 @@
+GLAME development version 0.5.2:
+================================
+Bugfixed sneak preview release after LinuxTag. Changes since 0.5.1:
+- re-enabled (and reimplemented) grouping in the filternetwork editor
+- more do-what-user-would-expect in swapfile and waveedit GUI
+- undo for deletion of tracks within the swapfile GUI
+- realtime parameter updates for some plugins
+- less modal dialogs
+- better user interaction on errors
+- bugfixes
+
 GLAME development version 0.5.1:
 ================================
 Feature sneak preview release for LinuxTag. Changes since 0.4.x:
