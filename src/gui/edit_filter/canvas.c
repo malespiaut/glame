@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.51 2001/04/17 09:43:09 richi Exp $
+ * $Id: canvas.c,v 1.52 2001/04/17 12:44:31 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -469,7 +469,7 @@ network_error_reset(gui_network *net)
 static void 
 network_play(GtkWidget *button,GlameCanvas* glCanv)
 {
-	glame_gui_play_network_modal(glCanv->net->net,glCanv->net);
+	glame_gui_play_network(glCanv->net->net, glCanv->net, TRUE, NULL, NULL);
 }
 
 static void canvas_add_filter_by_name_cb(GtkWidget*wid, plugin_t *plugin)
