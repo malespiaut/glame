@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.3 2000/02/24 12:29:49 richi Exp $
+ * $Id: basic_sample.c,v 1.4 2000/02/24 13:59:10 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -91,9 +91,12 @@ static int mix_f(filter_node_t *n)
 		factor += inputs[i].factor;
 		i++;
 	}
+	/* FIXME: on linux (glibc) we want this to be cosf() - i.e.
+	 * operate on floats w/o casting to double. On non glibc
+	 * platforms like solaris cosf does not exist. ugh. */
 	for (i=0; i<nrinputs; i++) {
 		inputs[i].factor /= factor;
-		inputs[i].factor *= cosf(filterpipe_sample_hangle(inputs[i].in) - filterpipe_sample_hangle(out));
+		inputs[i].factor *= cos(filterpipe_sample_hangle(inputs[i].in) - filterpipe_sample_hangle(out));
 	}
 
 	FILTER_AFTER_INIT;

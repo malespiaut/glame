@@ -41,8 +41,10 @@ static int do_open(char *name, off_t *size)
 
 	if ((fd = open(name, O_RDWR|O_CREAT, 0666)) == -1)
 		return -1;
+#if 0 /* flock is broken on solaris */
 	if (flock(fd, LOCK_EX|LOCK_NB) == -1)
 		goto _close;
+#endif
 
 	if (fstat(fd, &sbuf) == -1)
 		goto _unlock;
@@ -63,15 +65,19 @@ static int do_open(char *name, off_t *size)
 	return fd;
 
  _unlock:
+#if 0
 	flock(fd, LOCK_SH);
  _close:
+#endif
 	close(fd);
 	return -1;
 }
 
 static void do_close(int fd)
 {
+#if 0
 	flock(fd, LOCK_SH);
+#endif
 	close(fd);
 }
 

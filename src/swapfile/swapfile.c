@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.11 2000/02/11 14:42:15 nold Exp $
+ * $Id: swapfile.c,v 1.12 2000/02/24 13:59:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -1147,8 +1147,10 @@ static int _swap_open_blkdev(swap_t *s, int flags)
 {
 	struct stat sbuf;
 
+#if 0   /* flock is broken on solaris */
       	if (flock(s->fd, LOCK_EX|LOCK_NB) == -1)
 		goto _nolock;
+#endif
 	if (fstat(s->fd, &sbuf) == -1)
 		goto _nostat;
 	s->size = sbuf.st_blocks*512;
@@ -1156,8 +1158,10 @@ static int _swap_open_blkdev(swap_t *s, int flags)
 	return 0;
 
 _nostat:
+#if 0
 	flock(s->fd, LOCK_SH);
 _nolock:
+#endif
 	return -1;
 }
 
@@ -1165,8 +1169,10 @@ static int _swap_open_file(swap_t *s, int flags)
 {
 	struct stat sbuf;
 
+#if 0 /* flock is broken on solaris */
        	if (flock(s->fd, LOCK_EX|LOCK_NB) == -1)
 		goto _nolock;
+#endif
 	if (fstat(s->fd, &sbuf) == -1)
 		goto _nostat;
 	s->size = sbuf.st_size;
@@ -1174,8 +1180,10 @@ static int _swap_open_file(swap_t *s, int flags)
 	return 0;
 
 _nostat:
+#if 0
       	flock(s->fd, LOCK_SH);
 _nolock:
+#endif
 	return -1;
 }
 
@@ -1393,7 +1401,9 @@ void swap_close()
 	munmap(r, swap->meta_size);
 	fsync(swap->fd);
 
+#if 0 /* flock is broken on solaris */
       	flock(swap->fd, LOCK_SH);
+#endif
 	close(swap->fd);
 
 	sem_remove(swap->semid);

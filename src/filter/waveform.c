@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.14 2000/02/17 17:58:36 nold Exp $
+ * $Id: waveform.c,v 1.15 2000/02/24 13:59:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -71,8 +71,11 @@ static int sinus_f(filter_node_t *n)
 	DPRINTF("Allocated Buffer with size %d(%i)! Generating Sinus!\n",
 		size, sbuf_size(buf));
 	buf = sbuf_make_private(buf);
+	/* FIXME: on linux (glibc) we want this to be sinf() - i.e.
+	 * operate on floats w/o casting to double. On non glibc
+	 * platforms like solaris sinf does not exist. ugh. */
         for (i=0; i<size; i++)
-		sbuf_buf(buf)[i] = ampl*sinf(i*2*M_PI/size);
+		sbuf_buf(buf)[i] = ampl*sin(i*2*M_PI/size);
 
 	FILTER_AFTER_INIT;
 
