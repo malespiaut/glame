@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.20 2001/01/31 10:38:45 nold Exp $
+ * $Id: canvas.c,v 1.21 2001/01/31 11:37:08 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -336,6 +336,7 @@ node_select(GtkWidget*wid, char* name)
 
 typedef struct {
 	char* categorie;
+	int count;
 	GtkWidget * submenu;
 } catmenu;	
 
@@ -362,6 +363,7 @@ GSList* append_to_categorie(GSList* cats,plugin_t *plug)
 	//not found
 	newcat = malloc(sizeof(catmenu));
 	newcat->submenu = gtk_menu_new();
+	newcat->count = 0;
 	gtk_widget_show(newcat->submenu);
 	newcat->categorie = strdup(catpath);
 	cats=g_slist_append(cats,newcat);
@@ -369,7 +371,8 @@ GSList* append_to_categorie(GSList* cats,plugin_t *plug)
 	newitem = gtk_menu_item_new_with_label((gchar*)strdup(plugin_name(plug)));
 	gtk_widget_show(newitem);
 	gtk_menu_append(GTK_MENU(newcat->submenu),newitem);
-	gtk_signal_connect(GTK_OBJECT(newitem),"activate",node_select,(gchar*)plugin_name(plug));	
+	newcat->count++;
+	gtk_signal_connect(GTK_OBJECT(newitem),"activate",node_select,(gchar*)plugin_name(plug));
 	return cats;
 }
 
@@ -400,8 +403,8 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 			if(event->button.button==3){
 				cat = malloc(sizeof(catmenu));
 				cat->categorie = strdup("Default");
+				cat->count = 0;
 				cat->submenu = gtk_menu_new();
-				gtk_widget_show(cat->submenu);
 				categories = g_slist_append(categories,cat);
 				
 				nodes=gui_browse_registered_filters(); 
@@ -418,10 +421,12 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 				}
 				for(i=0;i<g_slist_length(categories);i++){
 					cat = (catmenu*)((GSList*)g_slist_nth(categories,i)->data);
+					if(cat->count){
 					item = gtk_menu_item_new_with_label(cat->categorie);
 					gtk_menu_item_set_submenu(GTK_MENU_ITEM(item),cat->submenu);
 					gtk_widget_show(item);
 					gtk_menu_append(GTK_MENU(submenu),item);
+					}
 				}
 				gtk_widget_show(submenu);
 				gtk_menu_item_set_submenu(GTK_MENU_ITEM(par),submenu);

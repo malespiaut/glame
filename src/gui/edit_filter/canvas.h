@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.5 2000/12/13 16:26:51 xwolf Exp $
+ * $Id: canvas.h,v 1.6 2001/01/31 11:37:08 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -83,6 +83,7 @@ struct _GlameConnection
 	GnomeCanvasPoints *points;
 	GnomeCanvasEllipse* circle;
 	filter_pipe_t *pipe;
+	GList * property_texts;
 };
 
 
