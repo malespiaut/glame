@@ -1,6 +1,11 @@
 TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
+
+Stuff queued for backporting:
+-----------------------------
+
+
 Items pending:
 --------------
 
@@ -8,9 +13,8 @@ include/
 	- Consider moving includes beyond a glame/ directory
 
 doc/
-	- add filteredit section to the quick start guide
 	- add cglame section to the quick start guide
-	- intl for other than main widget needs to be done
+	- intl for dialogs/plugins
   	- filter writing tutorial
 
 data/pixmaps/
@@ -31,6 +35,7 @@ plugins/
 	- redo render with right semantics
 	- write set param method for ladspa plugins
 	- better ladspa gui
+
 hash/
 	[all]
         - glsimd
@@ -45,6 +50,8 @@ filter/
 	- make params & ports referenced counted objects that have
 	  references in port/paramdbs, should clean up redirects
 	  a lot, allows for shared params and the like
+	- allow scheme expression for param_set - should allow for
+	  powerful wrapped params
 
 swapfile/
         [richi]
@@ -104,6 +111,7 @@ gui/waveeditgui
 	- add pan/mix sliders
 	- poll for selection change at play time, updating
 	  swin params
+	- make wave scrolling on play optional
 
 gui/libgtkwaveform
 	[xwolf]
