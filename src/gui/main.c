@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.123 2004/10/31 22:08:34 richi Exp $
+ * $Id: main.c,v 1.124 2004/11/16 19:58:49 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -396,83 +396,6 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 	*bar = (*bar)?FALSE:TRUE;
 }
 
-#if 0
-/* This widget should build a widget with a list of the current
- * (configured) audio I/O plugins and allow to add custom ones
- * and configure existing ones. */
-static GtkWidget *audio_io_preferences_widget_new()
-{
-	GtkWidget *vbox;
-	GtkWidget *hbox1;
-	GtkWidget *vbox2;
-	GtkWidget *label1;
-	GtkWidget *list1;
-	GtkWidget *vbox1;
-	GtkWidget *hbox2;
-	GtkWidget *entry1;
-	GtkWidget *combo_entry2;
-	GtkWidget *combo1;
-	GtkWidget *combo_entry1;
-	GtkWidget *hbox3;
-	GtkWidget *button1;
-	GtkWidget *button2;
-
-	vbox = gtk_vbox_new(FALSE, 0);
-
-	hbox1 = gtk_hbox_new (FALSE, 0);
-	gtk_widget_show (hbox1);
-	gtk_container_add (GTK_CONTAINER (vbox), hbox1);
-
-	vbox2 = gtk_vbox_new (FALSE, 0);
-	gtk_widget_show (vbox2);
-	gtk_box_pack_start (GTK_BOX (hbox1), vbox2, TRUE, TRUE, 0);
-
-	label1 = gtk_label_new (_("Audio plugins"));
-	gtk_widget_show (label1);
-	gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 0);
-
-	list1 = gtk_list_new ();
-	gtk_widget_show (list1);
-	gtk_box_pack_start (GTK_BOX (vbox2), list1, TRUE, TRUE, 0);
-
-	vbox1 = gtk_vbox_new (FALSE, 0);
-	gtk_widget_show (vbox1);
-	gtk_box_pack_start (GTK_BOX (hbox1), vbox1, TRUE, TRUE, 0);
-
-	hbox2 = gtk_hbox_new (FALSE, 0);
-	gtk_widget_show (hbox2);
-	gtk_box_pack_start (GTK_BOX (vbox1), hbox2, TRUE, TRUE, 0);
-
-	entry1 = gnome_entry_new (NULL);
-	gtk_widget_show (entry1);
-	gtk_box_pack_start (GTK_BOX (hbox2), entry1, TRUE, TRUE, 0);
-
-	combo_entry2 = gnome_entry_gtk_entry (GNOME_ENTRY (entry1));
-	gtk_widget_show (combo_entry2);
-
-	combo1 = gtk_combo_new ();
-	gtk_widget_show (combo1);
-	gtk_box_pack_start (GTK_BOX (hbox2), combo1, TRUE, TRUE, 0);
-
-	combo_entry1 = GTK_COMBO (combo1)->entry;
-	gtk_widget_show (combo_entry1);
-
-	hbox3 = gtk_hbox_new (FALSE, 0);
-	gtk_widget_show (hbox3);
-	gtk_box_pack_start (GTK_BOX (vbox1), hbox3, TRUE, TRUE, 0);
-
-	button1 = gtk_button_new_with_label (_("Add"));
-	gtk_widget_show (button1);
-	gtk_box_pack_start (GTK_BOX (hbox3), button1, TRUE, TRUE, 0);
-
-	button2 = gtk_button_new_with_label (_("Apply"));
-	gtk_widget_show (button2);
-	gtk_box_pack_start (GTK_BOX (hbox3), button2, TRUE, TRUE, 0);
-
-	return vbox;
-}
-#endif
-
 static GtkWidget *preferences_tab_filteredit(long *fe_popup_timeout, long *fe_mac)
 {
 	GtkWidget *vbox, *macMode;
@@ -546,6 +469,21 @@ static GtkWidget *preferences_tab_swapfile(char *sw_path,
 	return vbox;
 }
 
+static gint changeCombo(GtkComboBox *combo, char *string)
+{
+	GtkTreeModel *model;
+	GtkTreeIter i;
+	GValue val;
+
+	if (!gtk_combo_box_get_active_iter(combo, &i))
+		return FALSE;
+	model = gtk_combo_box_get_model(combo);
+	gtk_tree_model_get_value(model, &i, 0, &val);
+	strcpy(string, g_value_get_string(&val));
+
+	return TRUE;
+}
+
 static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 					  char *aoutplugin, char *aoutdev,
 					  long *rate, long *wbufsize)
@@ -557,37 +495,30 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 	vbox = gtk_vbox_new(FALSE, 1);
 
 	/* input filter */
-	combo_items = NULL;
+	combo = gtk_combo_box_new_text();
+	gtk_widget_show(combo);
+	glame_config_get_string("audio_io/input_plugin", &cfg);
+	strncpy(ainplugin, cfg, 255);
+	g_free(cfg);
+	gtk_combo_box_append_text(GTK_COMBO_BOX(combo), ainplugin);
 	if (plugin_get("oss_audio_in"))
-		combo_items = g_list_append(combo_items, (gpointer)"oss_audio_in");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "oss_audio_in");
 	if (plugin_get("esd_audio_in"))
-		combo_items = g_list_append(combo_items, (gpointer)"esd_audio_in");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "esd_audio_in");
 	if (plugin_get("alsa_audio_in"))
-		combo_items = g_list_append(combo_items, (gpointer)"alsa_audio_in");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "alsa_audio_in");
 	if (plugin_get("sgi_audio_in"))
-		combo_items = g_list_append(combo_items, (gpointer)"sgi_audio_in");
-	if (combo_items) {
-		combo = gtk_combo_new();
-		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
-		g_list_free(combo_items);
-		gtk_widget_show(combo);
-		glame_config_get_string("audio_io/input_plugin", &cfg);
-		strncpy(ainplugin, cfg, 255);
-		g_free(cfg);
-		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
-		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, ainplugin);
-		gtk_widget_show(GTK_COMBO(combo)->entry);
-		create_label_widget_pair(vbox, _("Default input plugin (audio_in)"), combo);
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "sgi_audio_in");
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	gtk_signal_connect(GTK_OBJECT(combo), "changed", (GtkSignalFunc)changeCombo, ainplugin);
+	create_label_widget_pair(vbox, _("Default input plugin (audio_in)"), combo);
 
-		/* input device */
-		glame_config_get_string("audio_io/input_dev", &cfg);
-		strncpy(aindev, cfg, 255);
-		g_free(cfg);
-		create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
-	} else {
-		gtk_container_add(GTK_CONTAINER(vbox),
-				  gtk_label_new(_("No audio input plugin")));
-	}
+	/* input device */
+	glame_config_get_string("audio_io/input_dev", &cfg);
+	strncpy(aindev, cfg, 255);
+	g_free(cfg);
+	create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
+
 	/* sample rate */
 	glame_config_get_long("audio_io/input_rate", rate);
 	create_label_long_pair(vbox, _("Default input sample rate"), rate, 11025, 48000);
@@ -595,36 +526,29 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 	gtk_container_add(GTK_CONTAINER(vbox), gtk_hseparator_new());
 
 	/* output filter */
-	combo_items = NULL;
+	combo = gtk_combo_box_new_text();
+	glame_config_get_string("audio_io/output_plugin", &cfg);
+	strncpy(aoutplugin, cfg, 255);
+	g_free(cfg);
+	gtk_combo_box_append_text(GTK_COMBO_BOX(combo), aoutplugin);
 	if (plugin_get("oss_audio_out"))
-		combo_items = g_list_append(combo_items, (gpointer)"oss_audio_out");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "oss_audio_out");
 	if (plugin_get("esd_audio_out"))
-		combo_items = g_list_append(combo_items, (gpointer)"esd_audio_out");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "esd_audio_out");
 	if (plugin_get("alsa_audio_out"))
-		combo_items = g_list_append(combo_items, (gpointer)"alsa_audio_out");
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "alsa_audio_out");
 	if (plugin_get("sgi_audio_out"))
-		combo_items = g_list_append(combo_items, (gpointer)"sgi_audio_out");
-	if (combo_items) {
-		combo = gtk_combo_new();
-		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
-		g_list_free(combo_items);
-		glame_config_get_string("audio_io/output_plugin", &cfg);
-		strncpy(aoutplugin, cfg, 255);
-		g_free(cfg);
-		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
-		gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", (GtkSignalFunc)changeString, aoutplugin);
-		create_label_widget_pair(vbox, _("Default output plugin (audio_out)"), combo);
+		gtk_combo_box_append_text(GTK_COMBO_BOX(combo), "sgi_audio_out");
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	gtk_signal_connect(GTK_OBJECT(combo), "changed", (GtkSignalFunc)changeCombo, aoutplugin);
+	create_label_widget_pair(vbox, _("Default output plugin (audio_out)"), combo);
 
-		/* output device */
-		glame_config_get_string("audio_io/output_dev", &cfg);
-		strncpy(aoutdev, cfg, 255);
-		g_free(cfg);
-		create_label_edit_pair(vbox, _("Default output device"),
-				       "aoutdev", aoutdev);
-	} else {
-		gtk_container_add(GTK_CONTAINER(vbox),
-				  gtk_label_new(_("No audio output plugin")));
-	}
+	/* output device */
+	glame_config_get_string("audio_io/output_dev", &cfg);
+	strncpy(aoutdev, cfg, 255);
+	g_free(cfg);
+	create_label_edit_pair(vbox, _("Default output device"),
+			       "aoutdev", aoutdev);
 
 	gtk_container_add(GTK_CONTAINER(vbox), gtk_hseparator_new());
 
