@@ -1646,11 +1646,14 @@ next_entry:
 			if (!next)
 				next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
+			else
+				vposition -= gpsm_item_vposition(item);
 		} else
 			next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
 			item = (gpsm_item_t *)item->parent;
+			vposition += gpsm_item_vposition(item);
 			if (item == (gpsm_item_t *)root)
 				return NULL;
 			next = list_getnext(&item->parent->items, item,
