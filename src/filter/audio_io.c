@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.10 2000/02/07 11:00:53 richi Exp $
+ * $Id: audio_io.c,v 1.11 2000/02/07 11:19:47 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -75,7 +75,7 @@ static int esd_in_f(filter_node_t *n)
 	}
 	
 	if ((buf=(short int*)malloc(ESD_BUF_SIZE))==NULL){
-		DDPRINTF("Couldn't alloc input buffer!\n");
+		DPRINTF("Couldn't alloc input buffer!\n");
 		return -1;
 	}
 
