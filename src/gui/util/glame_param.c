@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.26 2003/04/27 11:53:54 nold Exp $
+ * $Id: glame_param.c,v 1.27 2003/06/08 12:55:25 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -293,7 +293,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			gparam->widget = gparam->u.widget;
 		if (!gparam->widget) {
 			DPRINTF("Broken xml param description\n%s\n", xml);
-			return NULL;
+			goto noxml;
 		}
 		if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_long(param));
@@ -303,15 +303,20 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			gparam->u.adj = gtk_knob_get_adjustment(GTK_KNOB(gparam->u.widget));
 		} else if (GTK_IS_SPIN_BUTTON(gparam->u.widget)) {
 			gparam->u.adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(gparam->u.widget));
-		} else
+		} else {
 			DPRINTF("FIXME - unsupported XML widget\n");
+			gparam->widget = NULL;
+			goto noxml;
+		}
 		if (GTK_IS_ADJUSTMENT(gparam->u.adj)) {
 			if (FILTER_PARAM_IS_DOUBLE(param))
 				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_double(param));
 			else if (FILTER_PARAM_IS_LONG(param))
 				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_long(param));
 		}
-	} else
+		goto cont;
+	}
+noxml:
 #endif
 	if (FILTER_PARAM_IS_LONG(param)) {
 		gparam->label = gtk_label_new(label);
@@ -420,6 +425,9 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	} else
 		DPRINTF("FIXME! - unsupported param type\n");
 
+#ifdef HAVE_LIBGLADE
+cont:
+#endif
 	/* Build the hbox, connect to the entry. */
 	gtk_box_set_homogeneous(GTK_BOX(gparam), TRUE);
 	gtk_box_set_spacing(GTK_BOX(gparam), 10);

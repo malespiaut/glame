@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.17 2003/05/26 21:13:39 richi Exp $
+ * $Id: gtknob.c,v 1.18 2003/06/08 12:55:26 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -599,7 +599,7 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 }
 
 
-#ifdef HAVE_LIBGLADE
+#if 0 && defined HAVE_LIBGLADE
 #include "glscript.h"
 
 static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
@@ -754,7 +754,7 @@ void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
 }
 
 
-#ifdef HAVE_LIBGLADE
+#if 0 && defined HAVE_LIBGLADE
 void gtk_knob_glade_register()
 {
 	static GladeWidgetBuildData widgets[] = {
