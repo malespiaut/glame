@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.25 2000/02/22 08:04:36 mag Exp $
+ * $Id: audio_io.c,v 1.26 2000/02/22 10:29:39 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -130,14 +130,16 @@ static int aio_generic_register(char *name, int (*f)(filter_node_t *),
 	if (!(filter=filter_alloc(name, info->stream_desc, f)) ||
 		!filter_add_input(filter, info->port_name, info->port_desc,
 				FILTER_PORTTYPE_SAMPLE | 
-				FILTER_PORTTYPE_AUTOMATIC) ||
-		filter_add(filter) == -1)
+				FILTER_PORTTYPE_AUTOMATIC))
 		return -1;
 	
 	if (dir == AIO_INPUT)
 		filter->connect_out = aio_generic_connect_out;
 	else
 		filter->connect_in = aio_generic_connect_in;
+
+	if(filter_add(filter) == -1)
+		return -1;
 
 	return 0;
 }
