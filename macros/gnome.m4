@@ -45,7 +45,8 @@ AC_DEFUN([ACG_GNOME_INIT_HOOK],[
 
 	if test "x$want_gnome" = xyes; then
 
-	    AC_PATH_PROG(GNOME_CONFIG,gnome-config,no,$gnome_config_prefix/bin:$PATH:/opt/gnome/bin)
+	    gnome_ac_is_buggy_PATH="$gnome_config_prefix/bin:$PATH:/opt/gnome/bin"
+	    AC_PATH_PROG(GNOME_CONFIG,gnome-config,no,[$gnome_ac_is_buggy_PATH])
 	    if test "$GNOME_CONFIG" = "no"; then
 	      no_gnome_config="yes"
 	    else
