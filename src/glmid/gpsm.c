@@ -612,7 +612,7 @@ gpsm_swfile_t *gpsm_newswfile(const char *label)
 	gpsm_swfile_t *swfile;
 	swfd_t fd;
 
-	if (!label)
+	if (!root || !label)
 		return NULL;
 
 	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
@@ -639,7 +639,7 @@ gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *source)
 	swfd_t sfd, dfd;
 	int res;
 
-	if (!source || !GPSM_ITEM_IS_SWFILE(source))
+	if (!root || !source || !GPSM_ITEM_IS_SWFILE(source))
 		return NULL;
 
 	if ((sfd = sw_open(source->filename, O_RDONLY)) == -1)
@@ -681,7 +681,7 @@ gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *source)
 {
 	gpsm_swfile_t *swfile;
 
-	if (!source || !GPSM_ITEM_IS_SWFILE(source))
+	if (!root || !source || !GPSM_ITEM_IS_SWFILE(source))
 		return NULL;
 
 	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
@@ -703,7 +703,7 @@ gpsm_grp_t *gpsm_newgrp(const char *label)
 {
 	gpsm_grp_t *group;
 
-	if (!label)
+	if (!root || !label)
 		return NULL;
 
 	group = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);
@@ -716,6 +716,9 @@ gpsm_grp_t *gpsm_grp_cow(gpsm_grp_t *grp)
 {
 	gpsm_grp_t *copy;
 	gpsm_item_t *item;
+
+	if (!root || !grp)
+		return NULL;
 
 	copy = gpsm_newgrp(gpsm_item_label(grp));
 	gpsm_grp_foreach_item(grp, item) {
@@ -738,6 +741,9 @@ gpsm_grp_t *gpsm_grp_link(gpsm_grp_t *grp)
 	gpsm_grp_t *copy;
 	gpsm_item_t *item;
 
+	if (!root || !grp)
+		return NULL;
+
 	copy = gpsm_newgrp(gpsm_item_label(grp));
 	gpsm_grp_foreach_item(grp, item) {
 		gpsm_item_t *c;
@@ -758,7 +764,7 @@ gpsm_grp_t *gpsm_grp_link(gpsm_grp_t *grp)
 
 void gpsm_item_destroy(gpsm_item_t *item)
 {
-	if (!item)
+	if (!root || !item)
 		return;
 
 	/* First make item unreachable. */
@@ -817,7 +823,7 @@ int gpsm_grp_is_hbox(gpsm_grp_t *group)
 	gpsm_item_t *item;
 	long end = -1;
 
-	if (!group || !GPSM_ITEM_IS_GRP(group))
+	if (!root || !group || !GPSM_ITEM_IS_GRP(group))
 		return 0;
 
 	/* hbox means, we ignore vposition/vsize completely and just
@@ -837,7 +843,7 @@ int gpsm_grp_is_vbox(gpsm_grp_t *group)
 	gpsm_item_t *item;
 	long end = -1;
 
-	if (!group || !GPSM_ITEM_IS_GRP(group))
+	if (!root || !group || !GPSM_ITEM_IS_GRP(group))
 		return 0;
 
 	/* vbox means, we ignore hposition/hsize completely and just
@@ -976,7 +982,7 @@ int gpsm_item_can_place(gpsm_grp_t *grp, gpsm_item_t *item,
 	gpsm_item_t *it, dummy;
 	int can;
 
-	if (!grp || !GPSM_ITEM_IS_GRP(grp)
+	if (!root || !grp || !GPSM_ITEM_IS_GRP(grp)
 	    || !item || (gpsm_item_t *)grp == item
 	    || hpos < 0 || vpos < 0)
 		return 0;
@@ -1032,7 +1038,7 @@ int gpsm_item_place(gpsm_grp_t *grp, gpsm_item_t *item,
 {
 	gpsm_item_t *succ;
 
-	if (!gpsm_item_can_place(grp, item, hpos, vpos))
+	if (!root || !gpsm_item_can_place(grp, item, hpos, vpos))
 		return -1;
 
 	/* Remove the item from its old position. */
@@ -1071,7 +1077,7 @@ int gpsm_hbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
 {
 	gpsm_item_t *it;
 
-	if (!grp || !GPSM_ITEM_IS_GRP(grp)
+	if (!root || !grp || !GPSM_ITEM_IS_GRP(grp)
 	    || !item || (gpsm_item_t *)grp == item
 	    || hpos < 0 || vpos < 0
 	    || !gpsm_grp_is_hbox(grp))
@@ -1095,7 +1101,7 @@ int gpsm_vbox_can_insert(gpsm_grp_t *grp, gpsm_item_t *item,
 {
 	gpsm_item_t *it;
 
-	if (!grp || !GPSM_ITEM_IS_GRP(grp)
+	if (!root || !grp || !GPSM_ITEM_IS_GRP(grp)
 	    || !item || (gpsm_item_t *)grp == item
 	    || hpos < 0 || vpos < 0
 	    || !gpsm_grp_is_vbox(grp))
@@ -1163,7 +1169,7 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 {
 	gpsm_item_t *succ;
 
-	if (!gpsm_hbox_can_insert(hbox, item, hposition, vposition))
+	if (!root || !gpsm_hbox_can_insert(hbox, item, hposition, vposition))
 		return -1;
 
 	/* Cut out the item first - closing the gap it leaves.
@@ -1203,7 +1209,7 @@ int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 {
 	gpsm_item_t *succ;
 
-	if (!gpsm_vbox_can_insert(vbox, item, hposition, vposition))
+	if (!root || !gpsm_vbox_can_insert(vbox, item, hposition, vposition))
 		return -1;
 
 	/* Cut out the item first - closing the gap it leaves.
@@ -1242,7 +1248,7 @@ void gpsm_item_remove(gpsm_item_t *item)
 {
 	gpsm_grp_t *grp;
 
-	if (!item || list_empty(&item->list) || !(grp = item->parent))
+	if (!root || !item || list_empty(&item->list) || !(grp = item->parent))
 		return;
 
 	/* First send out GPSM_SIG_GRP_REMOVEITEM signal. This will
@@ -1267,7 +1273,7 @@ int gpsm_hbox_cut(gpsm_item_t *item)
 	gpsm_item_t *succ;
 	gpsm_grp_t *parent;
 
-	if (!item || !(parent = gpsm_item_parent(item))
+	if (!root || !item || !(parent = gpsm_item_parent(item))
 	    || !gpsm_grp_is_hbox(parent))
 		return -1;
 
@@ -1290,7 +1296,7 @@ int gpsm_vbox_cut(gpsm_item_t *item)
 	gpsm_item_t *succ;
 	gpsm_grp_t *parent;
 
-	if (!item || !(parent = gpsm_item_parent(item))
+	if (!root || !item || !(parent = gpsm_item_parent(item))
 	    || !gpsm_grp_is_vbox(parent))
 		return -1;
 
@@ -1317,7 +1323,7 @@ int gpsm_vbox_cut(gpsm_item_t *item)
 
 void gpsm_item_set_label(gpsm_item_t *item, const char *label)
 {
-	if (!item || !label)
+	if (!root || !item || !label)
 		return;
 	free(item->label);
 	item->label = strdup(label);
@@ -1327,7 +1333,7 @@ void gpsm_item_set_label(gpsm_item_t *item, const char *label)
 void gpsm_swfile_set(gpsm_swfile_t *swfile, int samplerate,
 		     float position)
 {
-	if (!swfile || !GPSM_ITEM_IS_SWFILE(swfile))
+	if (!root || !swfile || !GPSM_ITEM_IS_SWFILE(swfile))
 		return;
 	swfile->samplerate = samplerate;
 	swfile->position = position;
@@ -1336,7 +1342,7 @@ void gpsm_swfile_set(gpsm_swfile_t *swfile, int samplerate,
 
 void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate)
 {
-	if (!swfile || !GPSM_ITEM_IS_SWFILE(swfile))
+	if (!root || !swfile || !GPSM_ITEM_IS_SWFILE(swfile))
 		return;
 	swfile->samplerate = samplerate;
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
@@ -1344,7 +1350,7 @@ void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate)
 
 void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
 {
-	if (!swfile || !GPSM_ITEM_IS_SWFILE(swfile))
+	if (!root || !swfile || !GPSM_ITEM_IS_SWFILE(swfile))
 		return;
 	swfile->position = position;
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);

@@ -37,10 +37,84 @@ long swdir_smob_tag;
 #define scminvalidateswdir(s) scminvalidatepointer(s, swdir_smob_tag)
 #define swdir_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swdir_smob_tag)
 
-long swfd_smob_tag;
-#define scm2swfd(s) (swfd_t)scm2long(s, swfd_smob_tag)
-#define swfd2scm(p) long2scm(p, swfd_smob_tag)
+long swfd_smob_tag = 0;
+struct swfd_smob {
+	swfd_t swfd;
+};
+#define SCM2SWFDSMOB(s) ((struct swfd_smob *)SCM_SMOB_DATA(s))
 #define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
+SCM swfd2scm(swfd_t swfd);
+swfd_t scm2swfd(SCM swfd_smob);
+
+static scm_sizet free_swfd(SCM swfd_smob)
+{
+	struct swfd_smob *swfd = SCM2SWFDSMOB(swfd_smob);
+
+	/* Delete the swfd, if it is neither plugin, nor part
+	 * of a network and not running. */
+	if (swfd->swfd != -1) {
+		DPRINTF("GCing swfd %li\n", (long)(swfd->swfd));
+		sw_close(swfd->swfd);
+		swfd->swfd = -1;
+	}
+
+	return sizeof(struct swfd_smob);
+}
+
+static int print_swfd(SCM swfd_smob, SCM port, scm_print_state *pstate)
+{
+	struct swfd_smob *swfd = SCM2SWFDSMOB(swfd_smob);
+	char buf[256];
+
+	snprintf(buf, 255, "#<swfd %li>", (long)(swfd->swfd));
+	scm_puts(buf, port);
+
+	return 1;
+}
+
+static SCM equalp_swfd(SCM swfd_smob1, SCM swfd_smob2)
+{
+	struct swfd_smob *swfd1 = SCM2SWFDSMOB(swfd_smob1);
+	struct swfd_smob *swfd2 = SCM2SWFDSMOB(swfd_smob2);
+
+	if (swfd1->swfd == swfd2->swfd)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+SCM swfd2scm(swfd_t swfd)
+{
+	struct swfd_smob *smob;
+	SCM swfd_smob;
+
+	if (!swfd)
+		GLAME_THROW();
+
+	smob = (struct swfd_smob *)malloc(sizeof(struct swfd_smob));
+	smob->swfd = swfd;
+
+	SCM_NEWSMOB(swfd_smob, swfd_smob_tag, smob);
+
+	return swfd_smob;
+}
+
+swfd_t scm2swfd(SCM swfd_smob)
+{
+	SCM_ASSERT(swfd_p(swfd_smob),
+		   swfd_smob, SCM_ARG1, "scm2swfd");
+	return SCM2SWFDSMOB(swfd_smob)->swfd;
+}
+
+void scminvalidateswfd(SCM swfd_smob)
+{
+	struct swfd_smob *swfd = SCM2SWFDSMOB(swfd_smob);
+
+	SCM_ASSERT(swfd_p(swfd_smob),
+		   swfd_smob, SCM_ARG1, "scminvalidateswfd");
+
+	swfd->swfd = -1;
+}
+
 
 
 
@@ -127,6 +201,7 @@ static SCM gls_sw_close(SCM s_fd)
 	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-close");
 	if (sw_close(scm2swfd(s_fd)) == -1)
 		GLAME_THROW_ERRNO();
+	scminvalidateswfd(s_fd);
 	return SCM_UNSPECIFIED;
 }
 
@@ -271,9 +346,10 @@ int glscript_init_swapfile()
 	scm_set_smob_print(swdir_smob_tag, print_pointer);
 	scm_set_smob_equalp(swdir_smob_tag, equalp_pointer);
 	swfd_smob_tag = scm_make_smob_type("swfd",
-					   sizeof(struct long_smob));
-	scm_set_smob_print(swfd_smob_tag, print_long);
-	scm_set_smob_equalp(swfd_smob_tag, equalp_long);
+					   sizeof(struct swfd_smob));
+	scm_set_smob_free(swfd_smob_tag, free_swfd);
+	scm_set_smob_print(swfd_smob_tag, print_swfd);
+	scm_set_smob_equalp(swfd_smob_tag, equalp_swfd);
 
 
 	/* Swapfile subsystem procedures. */
@@ -316,26 +392,6 @@ int glscript_init_swapfile()
 	gh_define("SEEK_SET", gh_long2scm(SEEK_SET));
 	gh_define("SEEK_CUR", gh_long2scm(SEEK_CUR));
 	gh_define("SEEK_END", gh_long2scm(SEEK_END));
-
-	/* compatibility */
-	gh_new_procedure1_0("swapfile_open", gls_swapfile_open);
-	gh_new_procedure0_0("swapfile_close", gls_swapfile_close);
-	gh_new_procedure2_0("swapfile_creat", gls_swapfile_creat);
-	gh_new_procedure1_0("sw_unlink", gls_sw_unlink);
-	gh_new_procedure0_0("sw_opendir", gls_sw_opendir);
-	gh_new_procedure1_0("sw_readdir", gls_sw_readdir);
-	gh_new_procedure1_0("sw_closedir", gls_sw_closedir);
-	gh_new_procedure2_0("sw_open", gls_sw_open);
-	gh_new_procedure1_0("sw_close", gls_sw_close);
-	gh_new_procedure1_0("sw_fstat", gls_sw_fstat);
-	gh_new_procedure2_0("sw_ftruncate", gls_sw_ftruncate);
-	gh_new_procedure3_0("sw_lseek", gls_sw_lseek);
-	gh_new_procedure("sw_sendfile", (SCM (*)())gls_sw_sendfile,
-			 3, 1, 0);
-	gh_new_procedure2_0("sw_read_floatvec", gls_sw_read_floatvec);
-	gh_new_procedure2_0("sw_read_string", gls_sw_read_string);
-	gh_new_procedure2_0("sw_write", gls_sw_write);
-
 
 	return 0;
 }

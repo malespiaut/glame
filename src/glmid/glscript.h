@@ -28,6 +28,8 @@
 
 #include <guile/gh.h>
 #include "filter.h"
+#include "gpsm.h"
+#include "swapfile.h"
 
 
 /* Initializes the guile scripting subsystem. Returns 0 on success,
@@ -111,10 +113,10 @@ long scm2long(SCM long_smob, long smob_tag);
  */
 
 extern long gpsmitem_smob_tag;
-#define scm2gpsmitem(s) (gpsm_item_t *)scm2pointer(s, gpsmitem_smob_tag)
-#define gpsmitem2scm(p) pointer2scm((void *)p, gpsmitem_smob_tag)
-#define scminvalidategpsmitem(s) scminvalidatepointer(s, gpsmitem_smob_tag)
 #define gpsmitem_p(s) (SCM_NIMP(s) && SCM_CAR(s) == gpsmitem_smob_tag)
+SCM gpsmitem2scm(gpsm_item_t *item);
+gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob);
+void scminvalidategpsmitem(SCM gpsmitem_smob);
 
 extern long pipe_smob_tag;
 #define scm2pipe(s) ((filter_pipe_t *)scm2pointer(s, pipe_smob_tag))
@@ -153,8 +155,9 @@ extern long swdir_smob_tag;
 #define swdir_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swdir_smob_tag)
 
 extern long swfd_smob_tag;
-#define scm2swfd(s) (swfd_t)scm2long(s, swfd_smob_tag)
-#define swfd2scm(p) long2scm(p, swfd_smob_tag)
+SCM swfd2scm(swfd_t swfd);
+swfd_t scm2swfd(SCM swfd_smob);
+void scminvalidateswfd(SCM swfd_smob);
 #define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
 
 
