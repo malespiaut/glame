@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.1 2000/02/07 12:58:09 nold Exp $
+@comment $Id: filter-tutorial.texi,v 1.2 2000/02/07 13:54:31 richi Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -51,4 +51,27 @@ in the initialisation part, but nowhere else.
 @strong{You may not use any of the @code{?buf_*()}
 functions in the @code{INIT} section (DEADLOCK!!!)} 
 (@code{?buf_alloc()} is allowed, if you really need it)
+
+
+For more complex filters which require some sort of backlog of sample
+data or which do modify an input stream the following issues have to
+be cared about:
+
+You should not allocate a ringbuffer or backlog storage via malloc,
+neither should you simply copy the data - this is not necessary - in
+fact it is completely broken. You should instead just keep all the
+fbuf's around that you need later (of course ref'ing and unref'ing them
+at the appropriate time)
+
+If your filter in priciple would support in-place read-modify-write of
+the data you should not allocate new buffers for the output using
+@code{fbuf_alloc()}. Instead you should grab the source buffer and do a
+@code{sbuf_make_private()} on it taking the pointer returned from this as the
+"new" input buffer which you may modifiy now and later queue as
+output.
+
+If you do any modification of any buffer (including those which you just
+allocated privately using @code{fbuf_alloc()} or friends) 
+you must get the write-enabled buffer by calling @code{fbuf_make_private()}
+and using the return value as the buffer to be written to!
 
