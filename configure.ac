@@ -444,15 +444,18 @@ ACG_PKG_CHECK_MODULES(MAD, mad,
 ])
 
 dnl check for libvorbisfile
-AC_CHECK_HEADERS([vorbis/codec.h])
-AC_CHECK_HEADERS([vorbis/vorbisfile.h],
+AC_CHECK_HEADERS([vorbis/codec.h],
 [
-  AC_DEFINE(HAVE_LIBVORBISFILE,, [have libvorbisfile library])
-  GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis"
-], [], [
-#if HAVE_VORBIS_CODEC_H
-#include <vorbis/codec.h>
-#endif
+  AC_CHECK_HEADERS([vorbis/vorbisfile.h],
+  [
+    acg_save_LIBS="$LIBS"
+    AC_CHECK_LIB(vorbisfile, ov_open,
+    [ 
+      AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
+      GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis"
+    ],,[-lvorbis -logg -lm])
+    LIBS="$acg_save_LIBS"
+  ])
 ])
 
 
