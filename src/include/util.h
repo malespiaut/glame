@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.11 2000/10/09 16:24:03 richi Exp $
+ * $Id: util.h,v 1.12 2000/10/17 09:02:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,22 +34,25 @@
 #include <stdarg.h>
 
 #if !defined HAVE_GCC || defined __cplusplus
-#define __PRETTY_FUNCTION__ __FILE__ 
+#define __PRETTY_FUNCTION__ __FILE__
+#endif
+#if !defined HAVE_GCC
 #define __attribute__(x)
 #endif
 
-static void __glame_do_panic(const char *, const char *,
-			     const char *) __attribute__((__noreturn__)) __attribute__((__unused__));
-static void __glame_do_panic(const char *file, const char *func,
-			     const char *msg)
+static void __glame_do_panic(const char *, int, const char *) __attribute__((__noreturn__)) __attribute__((__unused__));
+static void __glame_do_panic(const char *specifier, int line, const char *msg)
 {
-	fprintf(stderr, "\nPANIC in file %s, function %s:\n%s\n",
-		file, func, msg);
+	fprintf(stderr, "\nPANIC in %s::%i\n%s\n", specifier, line, msg);
 	perror("errno says");
 	*((int *)0) = 0;
 	exit(1);
 }
-#define PANIC(msg) __glame_do_panic(__FILE__, __PRETTY_FUNCTION__, msg)
+#if !defined HAVE_GCC || defined __cplusplus
+#define PANIC(msg) __glame_do_panic(__FILE__, __LINE__, msg)
+#else
+#define PANIC(msg) __glame_do_panic(__FILE__ ": " __PRETTY_FUNCTION__, __LINE__, msg)
+#endif
 
 #ifndef NDEBUG
 #define DERROR(msg) PANIC(msg)
