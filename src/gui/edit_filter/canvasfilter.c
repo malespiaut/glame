@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.41 2001/11/28 13:09:42 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.42 2001/11/28 14:01:33 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -30,6 +30,7 @@
 #include "util/glame_gui_utils.h"
 #include "canvasitem.h"
 #include "hash.h"
+#include "network_utils.h"
 
 extern long bMac;
 extern long nPopupTimeout;
@@ -300,8 +301,6 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	double x,y;
 	char numberbuffer[10];
 	char * buffer;
-	char* cimmutable;
-	gboolean immutable;
 
 	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
 							      NULL));
@@ -314,36 +313,24 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	gItem->filter = filter;
 	gItem->defaultGroup = GNOME_CANVAS_GROUP(glameGroup);
 
-	buffer = filter_get_property(filter,"canvas_x");
-	if(buffer)
-		x = atoi(buffer);
-	else{
+	if ((buffer = filter_get_property(filter,"canvas_x")))
+		x = atof(buffer);
+	else
 		x = 0.0;
-		sprintf(numberbuffer,"%f",x);
-		filter_set_property(filter,"canvas_x",numberbuffer);
-	}
-	buffer = filter_get_property(filter,"canvas_y");
-	if(buffer)
-		y = atoi(buffer);
-	else{
+	if ((buffer = filter_get_property(filter,"canvas_y")))
+		y = atof(buffer);
+	else
 		y = 0.0;
-		sprintf(numberbuffer,"%f",y);
-                filter_set_property(filter,"canvas_y",numberbuffer);
-	}
 
-	cimmutable = filter_get_property(filter,"immutable");
-	if(cimmutable)
-		immutable = atoi(cimmutable);
+	if ((buffer = filter_get_property(filter,"immutable")))
+		gItem->immutable = atoi(buffer);
 	else 
-		immutable = FALSE;
-	gItem->immutable = immutable;
+		gItem->immutable = FALSE;
 
-	cimmutable = filter_get_property(filter,"undeletable");
-	if(cimmutable)
-		immutable = atoi(cimmutable);
+	if ((buffer = filter_get_property(filter,"undeletable")))
+		gItem->undeletable = atoi(buffer);
 	else 
-		immutable = FALSE;
-	gItem->undeletable = immutable;
+		gItem->undeletable = FALSE;
 	
 	/* add geometry stuff */
 	
@@ -438,9 +425,9 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	
 	_glame_canvas_filter_move(gItem, x,y);
 	
-	sprintf(numberbuffer,"%f",x);
+	sprintf(numberbuffer,"%.1f",x);
 	filter_set_property(filter,"canvas_x",numberbuffer);
-	sprintf(numberbuffer,"%f",y);
+	sprintf(numberbuffer,"%.1f",y);
 	filter_set_property(filter,"canvas_y",numberbuffer);
 
 	glame_canvas_filter_create_ports(gItem);
@@ -487,13 +474,11 @@ _glame_canvas_filter_move(GlameCanvasFilter* filter,
 	gnome_canvas_item_move(GNOME_CANVAS_ITEM(filter),
 			       dx,dy);
 
-	sprintf(buffer,"%f",GNOME_CANVAS_ITEM(filter)->x1);
-	filter_set_property(filter->filter,
-			    "canvas_x",buffer);
+	sprintf(buffer,"%.1f",GNOME_CANVAS_ITEM(filter)->x1);
+	filter_set_property(filter->filter, "canvas_x", buffer);
 	
-	sprintf(buffer,"%f",GNOME_CANVAS_ITEM(filter)->y1);
-	filter_set_property(filter->filter,
-			    "canvas_y",buffer);
+	sprintf(buffer,"%.1f",GNOME_CANVAS_ITEM(filter)->y1);
+	filter_set_property(filter->filter, "canvas_y", buffer);
 }
 void
 glame_canvas_filter_move(GlameCanvasFilter *filter,
@@ -907,7 +892,7 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 		line[0] = buffer;
 		line[1] = (filterport_is_input(port)?"In":"Out");
 		if( filterport_get_property(port,FILTERPORT_DESCRIPTION))
-			buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
+			buffer = strdup(filterport_get_property(port,FILTERPORT_DESCRIPTION));
 		else
 			buffer = strdup("Empty");
 		line[2] = buffer;

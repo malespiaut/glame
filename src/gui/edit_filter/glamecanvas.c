@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.34 2001/11/28 13:09:42 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.35 2001/11/28 14:01:33 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -326,7 +326,7 @@ void glame_canvas_redraw(GlameCanvas *canv)
 			node = filter_get_node(network,filterport_get_property(port,FILTERPORT_MAP_NODE));
 			buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
 			if (!node || !buffer )
-			continue;
+				continue;
 			glame_canvas_port_set_external(glame_canvas_find_port(filterportdb_get_port(filter_portdb(node),buffer)),TRUE);
 		}
 	}
