@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.60 2001/09/26 09:47:55 richi Exp $
+ * $Id: swapfilegui.c,v 1.61 2001/10/05 08:38:23 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -565,9 +565,10 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 
 	/* Query the file name. */
 	filename = alloca(256);
+	*filename = '\0';
 	we = glame_dialog_file_request("Export As...", "swapfilegui:exportas",
 				       "Filename", NULL, filename);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)))
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)) || !*filename)
 		return;
 
 	/* Build temporary group out of flattened item->item. */
@@ -641,13 +642,14 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		
 	} else {
 
-	filenamebuffer = alloca(256);
-
 	/* Query the file name. */
+	filenamebuffer = alloca(256);
+	*filenamebuffer = '\0';
 	dialog = glame_dialog_file_request("Import audio file",
 					   "swapfilegui:import",
 					   "Filename", NULL, filenamebuffer);
-	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
+	   || !*filenamebuffer)
 		return;
 
 	/* Setup core network. */

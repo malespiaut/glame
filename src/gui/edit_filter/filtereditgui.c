@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.30 2001/07/13 09:01:43 richi Exp $
+ * $Id: filtereditgui.c,v 1.31 2001/10/05 08:38:23 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -550,11 +550,13 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 	GtkWidget *dialog;
 	filter_t *filter;
 	char filenamebuffer[256];
-	
+
+	filenamebuffer[0] = '\0';
 	dialog = glame_dialog_file_request("Load filternetwork",
 					   "editfilter:load", "Filename",
 					   NULL, filenamebuffer);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
+	    || !filenamebuffer[0])
 		return;
 	
 	filter = glame_load_instance(filenamebuffer);
@@ -602,6 +604,7 @@ static void glame_canvas_save_as_cb(GtkWidget*ignore,GlameCanvas *canvas)
 
 	/* Open a file request dialog with additional fields for
 	 * filter name and category. */
+	filenamebuffer[0] = '\0';
 	dialog = glame_dialog_file_request("Save network as...",
 					   "editfilter:saveas", "Filename",
 					   NULL, filenamebuffer);

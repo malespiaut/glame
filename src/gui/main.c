@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.80 2001/09/25 08:09:24 richi Exp $
+ * $Id: main.c,v 1.81 2001/10/05 08:38:23 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -201,13 +201,14 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	GlameTreeItem *grpw;
 	gpsm_item_t *it;
 
-	filenamebuffer = alloca(256);
-
 	/* Query the file name. */
+	filenamebuffer = alloca(256);
+	*filenamebuffer = '\0';
 	dialog = glame_dialog_file_request(_("Edit audio file"),
 					   "swapfilegui:import",
 					   _("Filename"), NULL, filenamebuffer);
-	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
+	   || !*filenamebuffer)
 		return;
 
 	/* Setup core network. */
@@ -298,10 +299,12 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 	GtkWidget *dialog;
 	char filenamebuffer[256];
 
+	filenamebuffer[0] = '\0';
 	dialog = glame_dialog_file_request(_("Load Plugin"),
 					   "main:load_plugin", _("Filename"),
 					   NULL, filenamebuffer);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
+	    || !*filenamebuffer)
 		return;
 
 	if (glame_load_plugin(filenamebuffer) == -1)
