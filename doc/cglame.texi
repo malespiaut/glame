@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.4 2000/03/24 18:26:32 nold Exp $
+@comment $Id: cglame.texi,v 1.5 2000/03/25 15:05:18 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -99,6 +99,8 @@ on success or @code{#f} on error. Void functions generally evaluate to
 @deftypefunx ( filternetwork_add_param net-id node-id param-name name description )
 @deftypefunx ( filternetwork_to_string net-id )
 @deftypefunx ( filternode_set_param node-id param-name value )
+@deftypefunx ( filterpipe_set_sourceparam node-id param-name value )
+@deftypefunx ( filterpipe_set_destparam node-id param-name value )
 @code{filternetwork_new} evaluates to a @code{net-id},
 @code{filternetwork_add_node} to a @code{node-id},
 @code{filternetwork_add_connection} to a @code{pipe-id}.
