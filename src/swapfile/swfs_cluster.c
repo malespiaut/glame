@@ -419,6 +419,7 @@ static struct swcluster *cluster_unshare(struct swcluster *c)
 
 	/* If we have only one reference to a file, we might just
 	 * return the cluster. */
+	_cluster_needfiles(c);
 	if (c->files_cnt <= 1) {
 		UNLOCKCLUSTER(c);
 		return c;
