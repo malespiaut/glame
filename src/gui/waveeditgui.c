@@ -619,7 +619,7 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* Play from marker to end, dont restore marker position. */
 	start = MAX(0, gtk_wave_view_get_marker (waveview));
-	end = gtk_wave_buffer_get_length(wavebuffer) - start - 1;
+	end = gtk_wave_buffer_get_length(wavebuffer);
 	play(waveview, start, end, FALSE, FALSE, FALSE, FALSE);
 }
 
