@@ -5,7 +5,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c \
 	ssp.c normalize.c fft_plugins.c \
 	echo.c debug.c tutorial.c \
-	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
+	nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c flanger.c distortion.c\
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm
