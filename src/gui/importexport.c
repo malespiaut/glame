@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.4 2001/12/07 22:28:00 mag Exp $
+ * $Id: importexport.c,v 1.5 2001/12/09 16:11:53 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -962,7 +962,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 
 	gpsm_grp_foreach_item(grp, it)
 		if (!(swin = net_add_gpsm_input(net, (gpsm_swfile_t *)it,
-						0, -1)))
+						0, -1, 0)))
 			goto fail_cleanup;
 
 	if (net_apply_node(net, ri == 0 ? writefile : render) == -1)

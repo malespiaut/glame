@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.8 2001/11/19 10:04:50 richi Exp $
+ * $Id: normalize.c,v 1.9 2001/12/09 16:11:53 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -88,7 +88,7 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 		ssp = net_add_plugin_by_name(net, "ssp_streamer");
 		maxrms = net_add_plugin_by_name(net, "maxrms");
 		swap = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
-					  start, length);
+					  start, length, 0);
 
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(swap), PORTNAME_OUT), 
 					filterportdb_get_port(filter_portdb(ssp), PORTNAME_IN)))
@@ -142,7 +142,7 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 	gpsm_grp_foreach_item(grp, item) {
 		adjust = net_add_plugin_by_name(net, "volume_adjust");
 		swap = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
-					  start, length);
+					  start, length, 0);
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(swap), PORTNAME_OUT), 
 					filterportdb_get_port(filter_portdb(adjust), PORTNAME_IN)))
 			goto cleanup;

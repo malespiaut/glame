@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.12 2001/11/11 21:41:57 richi Exp $
+ * $Id: apply.c,v 1.13 2001/12/09 16:11:53 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -114,7 +114,7 @@ static void preview_start(struct apply_plugin_s *a)
 	/* Create the preview network. */
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile)
-		if (!net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length)) {
+		if (!net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0)) {
 			errmsg = "Unable to create input node";
 			goto err;
 		}
@@ -189,7 +189,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile) {
 		filter_port_t *ein, *eout;
-		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
+		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
 		swout = net_add_gpsm_output(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
 		e = filter_creat(a->effect);
 		filter_add_node(a->net, e, "effect");
