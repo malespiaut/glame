@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.77 2002/01/01 18:57:08 richi Exp $
+ * $Id: file_io.c,v 1.78 2002/01/01 22:03:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -17,24 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *
- * Generic audiofile reader filter. Every generic reader should honour
- * the per-pipe parameter "position" by just selecting the "best matching"
- * channel of the file for the pipe. Remixing is not required, neither is
- * duplicate channel output. The real position of the stream should be set
- * exact though.
- * Every generic reader should have a
- * - prepare method which does audiofile header reading and checking if
- *   it can handle the file. Fixup of the output pipes type is required, too.
- *   prepare is a unification of the connect_out & fixup_param method.
- * - f method which does the actual reading
- * - cleanup method to cleanup the private shared state
- * Every generic writer should just have a
- * - f method which does all setup and the actual writing, just terminate
- *   with an error if something is wrong
- * A writer should register itself with a regular expression of filenames
- * it wants to handle.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,12 +49,9 @@ typedef struct {
 	filter_pipe_t   *p;
 	filter_buffer_t *buf;
 	int             pos;
-	int		mapped;
 } track_t;
 
 typedef struct {
-	int initted;
-
 	AFfilehandle    file;
 	AFframecount    frameCount;
 	AFfilesetup     fsetup;
@@ -90,15 +69,11 @@ static void read_file_cleanup(glsig_handler_t *h, long sig, va_list va)
 	filter_t *n;
 
 	GLSIGH_GETARGS1(va, n);
-	if (!RWA(n)) {
-		DPRINTF("ficken\n");
+	if (!n->priv)
 		return;
-	}
-	if (RWA(n)->initted) {
+	if (RWA(n)->file != AF_NULL_FILEHANDLE)
 		afCloseFile(RWA(n)->file);
-		RWA(n)->file = AF_NULL_FILEHANDLE;
-	}
-	free(RWA(n));
+	free(n->priv);
 	n->priv = NULL;
 }
 
@@ -109,6 +84,9 @@ static int read_file_init(filter_t *n)
 	if (!(p = ALLOC(read_file_private_t)))
 		return -1;
 	n->priv = p;
+	RWA(n)->file = AF_NULL_FILEHANDLE;
+	RWA(n)->channelCount = 0;
+	RWA(n)->sampleRate = GLAME_DEFAULT_SAMPLERATE;
 	glsig_add_handler(&n->emitter, GLSIG_FILTER_DELETED,
 			  read_file_cleanup, NULL);
 
@@ -118,19 +96,41 @@ static int read_file_init(filter_t *n)
 static int read_file_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_t *n = filterport_filter(port);
+	filter_pipe_t *pipe;
+	int have_left = 0, have_right = 0;
 
-	/* no valid file -> some "defaults", only allow 2 connections. */
-	if (RWA(n)->file == AF_NULL_FILEHANDLE) {
-		if (filterport_nrpipes(port) > 1)
-			return -1;
-		filterpipe_settype_sample(p, GLAME_DEFAULT_SAMPLERATE,
-					  FILTER_PIPEPOS_DEFAULT);
+	/* Allow 2 connections if no valid file is set, else
+	 * the number of available channels. */
+	if ((RWA(n)->file == AF_NULL_FILEHANDLE
+	     && filterport_nrpipes(port) > 1)
+	    || (RWA(n)->file != AF_NULL_FILEHANDLE
+		&& filterport_nrpipes(port) >= RWA(n)->channelCount))
+		return -1;
+
+	/* If we have one channel, pos is center. */
+	if (RWA(n)->file != AF_NULL_FILEHANDLE
+	    && RWA(n)->channelCount == 1) {
+		filterpipe_settype_sample(p, RWA(n)->sampleRate,
+					  FILTER_PIPEPOS_CENTRE);
 		return 0;
 	}
-
-	/* Check to not exceed number of tracks in file. */
-	if (filterport_nrpipes(port) >= RWA(n)->channelCount)
-		return -1;
+	
+        /* Else fill left, then right, then all remaining center. */
+	filterport_foreach_pipe(port, pipe) {
+		if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_LEFT)
+			have_left = 1;
+		else if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_RIGHT)
+			have_right = 1;
+	}
+	if (!have_left)
+		filterpipe_settype_sample(p, RWA(n)->sampleRate,
+					  FILTER_PIPEPOS_LEFT);
+	else if (!have_right)
+		filterpipe_settype_sample(p, RWA(n)->sampleRate,
+					  FILTER_PIPEPOS_RIGHT);
+	else
+		filterpipe_settype_sample(p, RWA(n)->sampleRate,
+					  FILTER_PIPEPOS_CENTRE);
 
 	return 0;
 }
@@ -160,8 +160,12 @@ static int read_file_set_filename(filter_param_t *fparam, const void *val)
 		return 0;
 
 	n = filterparam_filter(fparam);
-	if (RWA(n)->file != AF_NULL_FILEHANDLE)
+	if (RWA(n)->file != AF_NULL_FILEHANDLE) {
 		afCloseFile(RWA(n)->file);
+		RWA(n)->file = AF_NULL_FILEHANDLE;
+		RWA(n)->channelCount = 0;
+		RWA(n)->sampleRate = GLAME_DEFAULT_SAMPLERATE;
+	}
 
 	if ((RWA(n)->file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
@@ -212,12 +216,12 @@ static int read_file_f(filter_t *n)
 	long frames,i,j;
 	filter_pipe_t *p_out;
 	filter_port_t *port;
-	SAMPLE *s0, *s1;
-	long fcnt, cnt;
+	long fcnt;
 	long pos;
 	filter_param_t *pos_param;
 	SAMPLE *buffer;
 	track_t *track;
+	filter_pipe_t *pipe;
 
 	if (RWA(n)->file == AF_NULL_FILEHANDLE)
 		FILTER_ERROR_RETURN("Invalid filename");
@@ -233,7 +237,22 @@ static int read_file_f(filter_t *n)
 		FILTER_ERROR_RETURN("virtual method failed, get newer libaudiofile!");
 
 	track = ALLOCN(RWA(n)->channelCount, track_t);
-	buffer=ALLOCN(GLAME_WBUFSIZE*RWA(n)->channelCount, SAMPLE);
+	buffer = ALLOCN(GLAME_WBUFSIZE*RWA(n)->channelCount, SAMPLE);
+
+	/* fill in pipes */
+	port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (RWA(n)->channelCount == 1)
+		i = 0;
+	else
+		i = 2;
+	filterport_foreach_pipe(port, pipe) {
+		if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_LEFT)
+			track[0].p = pipe;
+		else if (filterpipe_sample_hangle(pipe) == (float)FILTER_PIPEPOS_RIGHT)
+			track[1].p = pipe;
+		else
+			track[i++].p = pipe;
+	}
 
 	FILTER_AFTER_INIT;
 	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
@@ -264,12 +283,9 @@ static int read_file_f(filter_t *n)
 			sbuf_queue(track[i].p, track[i].buf);
 	}
 
-	filterportdb_foreach_port(filter_portdb(n), port) {
-		if (filterport_is_input(port))
-			continue;
-		filterport_foreach_pipe(port, p_out)
-			sbuf_queue(p_out, NULL);
-	}
+	/* Queue EOFs. */
+	filterport_foreach_pipe(port, p_out)
+		sbuf_queue(p_out, NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;

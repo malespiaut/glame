@@ -30,7 +30,6 @@ audio_in_register();
 	/* file_io */
 read_file_register();
 write_file_register();
-file_io_register();
 
 	/* swapfile_io */
 swapfile_in_register();
