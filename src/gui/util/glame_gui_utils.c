@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.26 2002/06/02 18:00:18 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.27 2002/07/30 08:10:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -549,7 +549,14 @@ GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 
 GtkWidget* glame_load_icon_widget(const char* filename,int x, int y)
 {
-	return gnome_pixmap_new_from_imlib(glame_load_icon(filename,x,y));
+	GdkImlibImage *icon;
+	GtkWidget *pixmap;
+
+	icon = glame_load_icon(filename,x,y);
+	pixmap = gnome_pixmap_new_from_imlib(icon);
+	gdk_imlib_destroy_image(icon);
+
+	return pixmap;
 }
 
 
