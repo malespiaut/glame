@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.4 2000/04/11 23:03:21 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.5 2000/04/13 04:17:33 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -38,9 +38,12 @@ static void gtk_wave_draw_draw(GtkWidget *widget, GdkRectangle *area);
 static void gtk_wave_draw_size_request(GtkWidget *widget, GtkRequisition *req);
 static gint gtk_wave_draw_configure(GtkWidget *widget, 
 				    GdkEventConfigure *event);
-static gint gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw, gfloat *data, 
-					   glong n_samples, glong start,
-					   gint by_ref);
+static void gtk_wave_draw_assign_callback(GtkWaveDraw *wavedraw,
+					  WaveData *wavedata,
+					  gfloat (*callback)(gint,glong,glong,gint));
+static gpointer gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw, 
+					       gfloat *data, 
+					       glong n_samples, glong start);
 static gint gtk_wave_draw_expose(GtkWidget *widget, GdkEventExpose *event);
 static void gtk_wave_draw_destroy(GtkObject *object);
 
@@ -214,12 +217,14 @@ gtk_wave_draw_add_wave(GtkWaveDraw *wavedraw,
 		       glong  start)
 {
   gfloat *data_cache;
+  WaveData *s_wd;
 
   data_cache = g_malloc(sizeof(gfloat) * n_samples);
   memcpy(data_cache, data, sizeof(gfloat) * n_samples);
   
-  return gtk_wave_draw_add_wave_backend(wavedraw, data_cache,
-					n_samples, start, 0);
+  s_wd = (WaveData *)gtk_wave_draw_add_wave_backend(wavedraw, data_cache,
+						    n_samples, start);
+  return s_wd->wave_idx;
 }
 /**********************************************************************
  *    Function: gtk_wave_draw_add_wave_by_reference()
@@ -233,10 +238,49 @@ gtk_wave_draw_add_wave_by_reference(GtkWaveDraw *wavedraw,
 				    glong  n_samples,
 				    glong  start)
 {
-  return gtk_wave_draw_add_wave_backend(wavedraw, data,
-					n_samples, start, 1);
-}
+  WaveData *s_wd;
 
+  s_wd = (WaveData *)gtk_wave_draw_add_wave_backend(wavedraw, data,
+						    n_samples, start);
+  s_wd->by_ref = 1;
+
+  return s_wd->wave_idx;
+}
+/**********************************************************************
+ *    Function: gtk_wave_draw_assign_callback
+ *
+ * Description: Wrapper for gtk_wave_draw_add_wave_backend that
+ *              uses a callback mechanism to obtain data.
+ **********************************************************************/
+static void
+gtk_wave_draw_assign_callback(GtkWaveDraw *wavedraw,
+			      WaveData *wavedata,
+			      gfloat (*callback)(gint,glong,glong,gint))
+{
+  wavedata->call = callback;
+  wavedata->by_ref = 2;
+}
+/**********************************************************************
+ *    Function: gtk_wave_draw_add_wave_by_call()
+ *
+ * Description: Wrapper for gtk_wave_draw_add_wave_backend that
+ *              uses a callback mechanism to obtain data.
+ **********************************************************************/
+gint
+gtk_wave_draw_add_wave_by_call(GtkWaveDraw *wavedraw,
+			       gfloat (*callback)(gint,glong,glong,gint),
+			       glong  n_samples,
+			       glong  start)
+{
+  WaveData *s_wd;
+
+  s_wd = gtk_wave_draw_add_wave_backend(wavedraw, NULL,
+					n_samples, start);
+  
+  gtk_wave_draw_assign_callback(wavedraw, s_wd, callback);
+
+  return s_wd->wave_idx;
+}
 /**********************************************************************
  *    Function: CompareWaveIdx
  *
@@ -263,12 +307,11 @@ CompareWaveIdx(gconstpointer sWaveData1,
  * Description: Adds a set of wave data to the current waves;
  *              returns a 'wave index" number for the new data set.
  **********************************************************************/
-static gint
+static gpointer
 gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw,
 			       gfloat *data,
 			       glong  n_samples,
-			       glong  start,
-			       gint   by_ref)
+			       glong  start)
 {
   gint new_idx;
   WaveData *wavedata;
@@ -277,7 +320,9 @@ gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw,
   g_return_if_fail(wavedraw != NULL);
   g_return_if_fail(GTK_IS_WAVE_DRAW(wavedraw));
   
+  /* Allocate it and set it to 0's */
   wavedata = (WaveData *)g_malloc(sizeof(WaveData));
+  memset(wavedata, 0, sizeof(wavedata));
 
   /* Loop through and find the first free number */
   for (node = wavedraw->wavelist, new_idx = 0; 
@@ -293,7 +338,6 @@ gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw,
    * should have been called via gtk_wave_draw_add_wave()
    */
   wavedata->data = data;
-  wavedata->by_ref = by_ref;
 
   /* 
    * Secondly, create two new markers and put 'em at the start and end.
@@ -327,7 +371,7 @@ gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw,
   wavedraw->n_waves++;
   wavedraw->dirty = 1;
 
-  return new_idx;
+  return wavedata;
 }
 
 /**********************************************************************
@@ -450,7 +494,12 @@ gtk_wave_draw_draw(GtkWidget *widget,
     if ((stop = (start + n_samples - 1)) < start_disp)
       continue;
 
-    p_val = wavedata->data;
+    if (wavedata->by_ref == 2) {
+      p_val = (wavedata->call)(wavedata->wave_idx, 
+			       start, stop, 
+			       wavedraw->n_points_per_pixel);
+    } else
+      p_val = wavedata->data;
 
     /* Set the color from the widget */
     gdk_color_alloc(gdk_colormap_get_system(), &wavedata->color);
