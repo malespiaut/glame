@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.7 2001/07/31 16:16:52 mag Exp $
+ * $Id: glame_param.c,v 1.8 2001/08/07 15:44:35 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -321,7 +321,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	if (FILTER_PARAM_IS_INT(param)) {
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_float(param),
+			filterparam_val_int(param),
 			-MAXINT, MAXINT, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
