@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.23 2003/05/19 21:08:19 richi Exp $
+ * $Id: ladspa.c,v 1.24 2003/05/25 10:40:14 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -29,6 +29,7 @@
 #include <dlfcn.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 #include <ladspa.h>
 #include "filter.h"
 #include "util.h"
@@ -89,7 +90,7 @@ static int ladspa_f(filter_t * n)
 				iNTo1_NR++;
 		} else {
 			psPipe = filterport_get_pipe(psPort);
-			if (!psPipe)
+			if (!psPipe && filterport_is_input(psPort))
 				FILTER_ERROR_RETURN
 					("LADSPA plugins require all "
 					 "inputs be connected");
@@ -127,9 +128,12 @@ static int ladspa_f(filter_t * n)
 	if (psParam != NULL) {
 		/* ok, we have a sound generator there
 		 * give it some time to rumble */
-		glame_timer = TIME2CNT(unsigned long, 
+		glame_timer = TIME2CNT(long,
 				       filterparam_val_double(psParam)*1000.0,
 				       lSampleRate);
+		/* 0 means infinity. */
+		if (glame_timer == 0)
+			glame_timer = LONG_MAX;
 	}
 	else 
 		glame_timer = 1;
@@ -791,7 +795,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		filterparamdb_add_param_double(filter_paramdb(psFilter),
 					    "GLAME Duration",
 					    FILTER_PARAMTYPE_TIME_S,
-					    5.0,
+					    0.0,
 					    FILTERPARAM_END);
 	}
 
