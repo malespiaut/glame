@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.25 2001/04/27 09:23:09 richi Exp $
+ * $Id: glplugin.c,v 1.26 2001/05/06 19:09:30 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,8 +26,10 @@
 #include "util.h"
 #include "list.h"
 #include "glplugin.h"
-#include "ladspa.h"
 
+#ifdef WITH_LADSPA
+#include <ladspa.h>
+#endif
 
 typedef struct {
 	struct list_head list;
@@ -181,6 +183,15 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	return 0;
 }
 
+#ifndef WITH_LADSPA
+static int try_init_ladspa_plugin(plugin_t *p, const char *name,
+                                  const char *filename)
+{
+	return -1;
+}
+
+#else
+
 int installLADSPAPlugin(const LADSPA_Descriptor *desc, plugin_t *p);
 
 static int try_init_ladspa_plugin(plugin_t *p, const char *name,
@@ -214,6 +225,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 
 	return 0;
 }
+#endif
 
 static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 {
