@@ -11,7 +11,8 @@ Depends: ${shlibs:Depends}
 Recommends: ladspa-plugin, ${shlibs:Recommends}
 Suggests: gnome-help
 Description: A versatile audio processor.
- GLAME tries to provide a powerful and extensible framework for processing
- audio files similar to what GIMP offers in the graphics area. GLAME so
- far features a Scheme-based command line interface to set up filter 
- networks and perform basic editing tasks.
+ GLAME provides a powerful and extensible framework for processing
+ audio files similar to what GIMP offers in the graphics area.  GLAME so
+ far features a graphical frontend to set up filter networks and perform
+ basic audio editing tasks.  A flexible Scheme-based command line editor
+ offers low-level access for scripting purposes.
