@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.61 2001/07/23 10:57:49 richi Exp $
+; $Id: glame.scm,v 1.62 2001/07/31 13:54:46 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -36,28 +36,31 @@
 (define (filternode_set_param node label value)
   (call-with-current-continuation
    (lambda (return)
-     (map (lambda (param)
-	    (if (string=? (param-label param) label)
-		(return (param-set! param value))))
-	  (filter-params node))
+     (for-each
+       (lambda (param)
+	 (if (string=? (param-label param) label)
+	     (return (param-set! param value))))
+       (filter-params node))
      #f)))
 
 (define (filterpipe_set_sourceparam pipe label value)
   (call-with-current-continuation
    (lambda (return)
-     (map (lambda (param)
-	    (if (string=? (param-label param) label)
-		(return (param-set! param value))))
-	  (pipe-source-params pipe))
+     (for-each
+       (lambda (param)
+	 (if (string=? (param-label param) label)
+	     (return (param-set! param value))))
+       (pipe-source-params pipe))
      #f)))
 
 (define (filterpipe_set_destparam pipe label value)
   (call-with-current-continuation
    (lambda (return)
-     (map (lambda (param)
-	    (if (string=? (param-label param) label)
-		(return (param-set! param value))))
-	  (pipe-dest-params pipe))
+     (for-each
+       (lambda (param)
+	 (if (string=? (param-label param) label)
+	     (return (param-set! param value))))
+       (pipe-dest-params pipe))
      #f)))
 
 
@@ -190,7 +193,7 @@
 (add-help 'nodes-delete '(node ...) "delete nodes")
 
 ; linear connect the nodes
-; (nodes-connect `(,node ,node ...) `(..) ...)
+; (nodes-connect (list node node ...) (list ...) ...)
 (define nodes-connect
   (lambda nodes
     (map (lambda (nodes)
@@ -202,7 +205,7 @@
 (add-help 'nodes-connect '((node ...) ...)
 	  "linear connect the nodes of each list")
 
-; (node-set-params node `("label" ,value) `("label" ...) ...)
+; (node-set-params node (list "label" value) (list "label" ...) ...)
 (define node-set-params
   (lambda (node . params)
     (map (lambda (p)
@@ -270,14 +273,15 @@
 (define sw-creat
   (lambda (fname . contents)
     (let ((fd (sw_open fname (+ O_CREAT O_RDWR O_TRUNC))))
-      (map (lambda (str)
-	     (let ((tfd (sw_open 1278369 (+ O_CREAT O_RDWR O_TRUNC O_EXCL))))
-	       (sw_write tfd str)
-	       (sw_lseek tfd 0 SEEK_SET)
-	       (sw_sendfile fd tfd (string-length str) SWSENDFILE_INSERT)
-	       (sw_close tfd)
-	       (sw_unlink 1278369)))
-	   contents)
+      (for-each
+        (lambda (str)
+	  (let ((tfd (sw_open 1278369 (+ O_CREAT O_RDWR O_TRUNC O_EXCL))))
+	    (sw_write tfd str)
+	    (sw_lseek tfd 0 SEEK_SET)
+	    (sw_sendfile fd tfd (string-length str) SWSENDFILE_INSERT)
+	    (sw_close tfd)
+	    (sw_unlink 1278369)))
+	contents)
       (sw_lseek fd 0 SEEK_SET)
       fd)))
 
@@ -636,7 +640,7 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
-      (node-set-params rf `("filename" ,fname))
+      (node-set-params rf (list "filename" fname))
       (while-not-false
          (lambda () (filter-connect rf "out" ao "in")))
       (net-run net))))
@@ -654,7 +658,7 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
-      (node-set-params rf `("filename" ,fname))
+      (node-set-params rf (list "filename" fname))
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
@@ -675,8 +679,8 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (wf (net-add-node net write-file)))
-      (node-set-params rf `("filename" ,fname))
-      (node-set-params wf `("filename" ,oname))
+      (node-set-params rf (list "filename" fname))
+      (node-set-params wf (list "filename" oname))
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
@@ -697,19 +701,27 @@
 (define file-to-swap
   (lambda (fname sf1 . sfiles)
     (let* ((net (net-new))
-	   (rf (net-add-node net read-file `("filename" ,fname))))
-      (map (lambda (sf)
-	     (nodes-connect `(,rf ,(net-add-node net "swapfile-out" `("filename" ,sf) `("flags" 3)))))
-	   (cons sf1 sfiles))
+	   (rf (net-add-node net read-file (list "filename" fname))))
+      (for-each
+        (lambda (sf)
+	  (nodes-connect (list rf (net-add-node net
+						"swapfile-out"
+						(list "filename" sf)
+						(list "flags" 3)))))
+	(cons sf1 sfiles))
       (net-run net))))
 
 (define swap-to-file
   (lambda (fname sf1 . sfiles)
     (let* ((net (net-new))
-	   (rf (net-add-node net "write-file" `("filename" ,fname))))
-      (map (lambda (sf)
-	     (nodes-connect `(,(net-add-node net "swapfile-in" `("filename" ,sf)) ,rf)))
-	   (cons sf1 sfiles))
+	   (rf (net-add-node net "write-file" (list "filename" fname))))
+      (for-each
+        (lambda (sf)
+	  (nodes-connect (list (net-add-node net
+					     "swapfile-in" 
+					     (list "filename" sf))
+			       rf)))
+	(cons sf1 sfiles))
       (net-run net))))
 
 
@@ -797,8 +809,8 @@
     (let* ((net (net-new))
            (rf (net-add-node net read-file))
 	   (wf (net-add-node net "write_file")))
-    (node-set-params rf `("filename" ,iname))
-    (node-set-params wf `("filename" ,oname))
+    (node-set-params rf (list "filename" iname))
+    (node-set-params wf (list "filename" oname))
     (while-not-false
       (lambda () (filter-connect rf "out" wf "in")))
     (net-run net))))
@@ -814,10 +826,10 @@
 	   (mix (net-add-node net "mix2"))
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
-    (node-set-params rf `("filename" ,fname))
+    (node-set-params rf (list "filename" fname))
     (while-not-false 
       (lambda () (filter-connect rf "out" mix "in")))
-    (nodes-connect  `(,mix ,stat ,drms))
+    (nodes-connect  (list mix stat drms))
     (net-run net))))
 
 ;
@@ -832,11 +844,11 @@
 	   (iir (net-add-node net "iir"))
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
-    (node-set-params rf `("filename" ,fname))
+    (node-set-params rf (list "filename" fname))
     (apply node-set-params iir params)
     (while-not-false 
       (lambda () (filter-connect rf "out" mix "in")))
-    (nodes-connect  `(,mix ,iir ,stat ,drms))
+    (nodes-connect  (list mix iir stat drms))
     (net-run net))))
 
 (define play-files
@@ -846,12 +858,13 @@
 	   (aout (net-add-node net audio-out))
 	   (left (filter-connect render "out" aout "in"))
 	   (right (filter-connect render "out" aout "in")))
-      (map (lambda (fname)
-	     (let ((rf (net-add-node net read-file)))
-	       (while-not-false
-		 (lambda () (filter-connect rf "out" render "in")))
-	       (node-set-params rf `("filename" ,fname))))
-	   (cons file files))
+      (for-each
+        (lambda (fname)
+	  (let ((rf (net-add-node net read-file)))
+	    (while-not-false
+	      (lambda () (filter-connect rf "out" render "in")))
+	    (node-set-params rf (list "filename" fname))))
+	(cons file files))
       (filterpipe_set_sourceparam left "position" -1.57)
       (filterpipe_set_sourceparam right "position" 1.57)
       (net-run net))))
