@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.8 2000/04/06 14:29:02 richi Exp $
+ * $Id: glplugin.c,v 1.9 2000/04/07 13:33:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -114,7 +114,6 @@ static plugin_t *add_plugin(const char *name, const char *filename)
 
 	if (!(p = plugin_load(name, filename)))
 		return NULL;
-	fprintf(stderr, "adding plugin %s\n", p->name);
 	hash_add_plugin(p);
 	list_add_plugin(p);
 	return p;	
