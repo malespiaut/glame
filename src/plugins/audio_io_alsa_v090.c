@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.13 2001/12/16 19:48:11 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.14 2002/01/27 12:34:42 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -47,6 +47,7 @@ int configure_pcm(snd_pcm_t *handle,
 		  int nperiods)
 {
 	int err, format, psize = 0, dir = 0;
+	int periods;
 
 	if ((err = snd_pcm_hw_params_any (handle, hw_params)) < 0)  {
 		DPRINTF("ALSA: no configurations available\n");
@@ -87,6 +88,8 @@ int configure_pcm(snd_pcm_t *handle,
 	}
 
 	/* ALSA doesn't suck :) (that's Josh's opinion) */
+	/*
+	DPRINTF("trying to set periods to %d\n", nperiods);
 	
 	if ((err = snd_pcm_hw_params_set_periods_near(handle, hw_params,
 						      nperiods, 0)) < 0) {
@@ -94,8 +97,7 @@ int configure_pcm(snd_pcm_t *handle,
 		DPRINTF("%s\n", snd_strerror(err));
 		return -1;
 	}
-
-	nperiods = snd_pcm_hw_params_get_periods(hw_params, 0);
+	*/
 	
 	if ((err = snd_pcm_hw_params_set_period_size_near (handle, hw_params, periodsize, 0)) < 0) {
 		DPRINTF( "ALSA: failed to set period size near %d\n", psize);
@@ -105,7 +107,24 @@ int configure_pcm(snd_pcm_t *handle,
 	}
 
 	psize = snd_pcm_hw_params_get_period_size(hw_params, &dir);
+	periods = snd_pcm_hw_params_get_periods(hw_params, 0);
 
+	/* for the (un)likely case the drivers fucks up 
+	 * a couple of times alsa returned negative values
+	 * before it blew up */
+	if (periods<0) {
+		DPRINTF("nperiods =%d ?!, complain to alsa-devel...\n", periods);
+		DPRINTF("trying to set periods to %d\n", nperiods);
+	
+		if ((err = snd_pcm_hw_params_set_periods_near(handle, hw_params,
+						      nperiods, 0)) < 0) {
+			DPRINTF("ALSA: failed to set period count near %d\n", nperiods);
+			DPRINTF("%s\n", snd_strerror(err));
+			return -1;
+		}
+		nperiods = snd_pcm_hw_params_get_periods(hw_params, 0);
+	}
+		
 	DPRINTF("periodsize = %d, periods=%d\n", psize, nperiods);
 
 	if ((err = snd_pcm_hw_params (handle, hw_params)) < 0) {
