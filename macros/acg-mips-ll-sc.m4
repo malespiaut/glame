@@ -3,7 +3,7 @@ dnl (i.e. if we are running on a machine > R3000).
 dnl Daniel Kobras 01-10-2001
 dnl Usage: ACG_CHECK_MIPS_LL_SC([ACTION-IF-AVAILABLE, [ACTION-IF-UNAVAILABLE])
 
-AC_DEFUN(ACG_CHECK_MIPS_LL_SC,
+AC_DEFUN([ACG_CHECK_MIPS_LL_SC],
 [
 AC_MSG_CHECKING(for ll and sc opcodes)
 AC_TRY_COMPILE(

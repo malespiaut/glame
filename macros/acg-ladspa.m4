@@ -1,4 +1,4 @@
-dnl $Id: acg-ladspa.m4,v 1.2 2001/05/28 14:58:52 richi Exp $
+dnl $Id: acg-ladspa.m4,v 1.3 2004/10/28 18:59:45 nold Exp $
 dnl Autoconf check for LADSPA header.
 dnl Daniel Kobras <kobras@linux.de>
 dnl
@@ -8,7 +8,7 @@ dnl Enables switches --enable-ladspa, and --with-ladspa-dir=DIR.
 dnl Substitutes LADSPA_CFLAGS as appropriate.
 dnl Exports AM_CONDITIONAL called LADSPA.
 dnl NOTE: Without --enable-ladspa, defaults to NOT-FOUND!
-AC_DEFUN(ACG_PATH_LADSPA,
+AC_DEFUN([ACG_PATH_LADSPA],
 [
 	AC_ARG_ENABLE(ladspa, [  --enable-ladspa         Try to compile with LADSPA support],
 		[

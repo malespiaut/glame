@@ -7,7 +7,7 @@
 dnl AMG_PATH_XML2([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for XML, and define XML_CFLAGS and XML_LIBS
 dnl
-AC_DEFUN(AMG_PATH_XML2,[ 
+AC_DEFUN([AMG_PATH_XML2],[ 
 AC_ARG_WITH(xml2-prefix,
             [  --with-xml2-prefix=PFX   Prefix where libxml is installed (optional)],
             xml_config_prefix="$withval", xml_config_prefix="")

@@ -2,7 +2,7 @@
 # on some other unixes.
 # Richard Guenther 00-4-10
 
-AC_DEFUN(AC_FUNC_MADVISE,
+AC_DEFUN([AC_FUNC_MADVISE],
 [
 AC_MSG_CHECKING(for madvise)
 AC_TRY_COMPILE(

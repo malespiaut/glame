@@ -5,7 +5,7 @@ dnl ACG_PATH_ALSA(MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix= --with-alsa-enc-prefix= --disable-alsatest
 dnl
-AC_DEFUN(ACG_PATH_ALSA,
+AC_DEFUN([ACG_PATH_ALSA],
 [dnl
 dnl Get the clfags and libraries for alsa
 dnl
