@@ -1,4 +1,4 @@
-This is GLAME 2.0.0 - GNU/Linux Audio Mechanics stable release.
+This is GLAME 2.0.1 - GNU/Linux Audio Mechanics stable release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
@@ -41,17 +41,12 @@ in a scheme shell after launching cglame and have access to the
 backends and the midlayer API. Look into src/glmid/glame.scm for some
 example scheme code.
 
-With the GUI 'glame' you are provided with a full featured filter network
-editor that allows you to create custom effects and to do realtime
-processing. Also viewing and editing (cut & paste and applying effects)
-of waves is supported. Basic sequencing of waves is supported via the
-preliminary timeline.
+With the GUI 'glame' you are provided with a full featured wave-editor.
+A filter network editor allows you to create custom effects and do realtime
+processing.
 
-Want more? Then join our devel team at SourceForge! An e-mail to
-glame-devel@lists.sourceforge.net will get you going.
-
-You want to contribute? Please join our mailinglist (see above) and ask
-for a task. If you just want to write some filters a start is the excellent
+You want to contribute? Please join our mailinglist (glame-devel@lists.sourceforge.net)
+and ask for a task. If you just want to write some filters a start is the excellent
 filter API documentation in doc/ and of course many existing filters whose
 source can be found in the src/plugins directory.
 
@@ -64,9 +59,8 @@ Requirements
   On all platforms gcc is required to compile GLAME, using version
   3.3 or later is highly recommended.
 - You need glibc-2.x on Linux.
-- For the GUI part, you need recent versions of the Gtk+-2.4 and GNOME-2.6
-  libraries with deprecated features built in.  Older libraries from the
-  2.x series may work but were not tested.
+- For the GUI part, you need recent versions of the Gtk+-2.6 and GNOME-2.6
+  libraries with deprecated features built in.
 - The scripting part makes use of guile; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
   expected (latest 1.4 and latest 1.6 releases are known to work).
@@ -83,7 +77,7 @@ Requirements
   OSS may suffice, too.
 
 
-Current Status (as of version 2.0.0):
+Current Status (as of version 2.0.1):
 =====================================
 - usable GUI - src/gui/glame
   * wave editor
