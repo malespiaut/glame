@@ -107,37 +107,31 @@ static int pan_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-/* BUGBUGBUG! According to docs, we need to fixup a failed param change 
- * ourselves via filternode_set_param(). Now guess what 
- * filternode_set_param() calls as its fixup method... Here's a quick and
- * dirty band aid that is definitely not threadsafe. richi needs to fix
- * properly. (WTH is going on here anyway. For all I know it shouldn't 
- * recurse as min and max are valid param settings!)
+/* XXX: Never ever again shalt thou forget those words for they art written 
+ * in the blood of many good and pious men:
+ * Wanderer, if thou cometh to Sparta, tell people not to compare float
+ * values against double constants, or they shall bring hatred and 
+ * misery among their breed! Cast thy M_PI_2 to float or use a float variable 
+ * to compare against instead, and thou shalt live long and prosperous!
  */
 static int pan_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
                            const char *name, filter_param_t *param)
 {
-	float min = -M_PI_2;
-	float max = M_PI_2;
+	const float min = -M_PI_2;
+	const float max = M_PI_2;
 	float pan;
-	static int norecurse = 0;
+	int err = -1;
 
-	if (norecurse) {
-		norecurse = 0;
-		return 0;
-	}
-	
 	pan = filterparam_val_float(param);
-	if (pan < -M_PI_2) {
-		norecurse = 1;
-		filternode_set_param(src, "pan", &min);
-		return -1;
-	} else if (pan > M_PI_2) {
-		norecurse = 1;
-		filternode_set_param(src, "pan", &max);
-		return -1;
-	}
-	return 0;
+	
+	if (pan < min)
+		filterparam_set(param, &min);
+	else if (pan > max)
+		filterparam_set(param, &max);
+	else
+		err = 0;
+
+	return err;
 }
 	
 PLUGIN_DESCRIPTION(pan, "Place mono stream in stereo field")
