@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.24 2001/01/02 23:27:34 mag Exp $
+ * $Id: filter_tools.h,v 1.25 2001/01/05 22:43:01 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -29,8 +29,10 @@
 typedef struct queue queue_t;
 struct queue {
 	struct list_head	list;
-	filter_pipe_t		*in;
+	filter_t		*n;
+	filter_pipe_t		*p;
 	int			off;
+	int			done;
 };
 #define queue_get_next(q, qe) list_getnext(&(q->list), qe, struct queue_entry, list)
 #define queue_get_head(q) list_gethead(&(q->list), struct queue_entry, list)
@@ -41,17 +43,25 @@ struct queue_entry {
 	filter_buffer_t *fb;
 };
 
-static inline void INIT_QUEUE(queue_t* q, filter_pipe_t *p) 
+static inline void init_queue(queue_t* q, filter_pipe_t *p, filter_t *n) 
 {
 	INIT_LIST_HEAD(&(q->list));
-	q->in = p;
+	q->p = p;
 	q->off = 0;
+	q->n = n;
+	q->done = 0;
 }
 
 static inline void queue_delete(queue_entry_t *qe)
 {
 	list_del(&qe->list);
 	sbuf_unref(qe->fb);
+	free(qe);
+}
+
+static inline void queue_add_delete(queue_entry_t *qe)
+{
+	list_del(&qe->list);
 	free(qe);
 }
 
@@ -78,7 +88,12 @@ static inline void queue_drain(queue_t *q)
 
 static inline int queue_shift(queue_t *q, int off) {
 	struct queue_entry *qe, *oldqe;
-	
+	filter_buffer_t		*buf;
+
+	if (q->done) {
+		return off;
+	}
+
 	qe = queue_get_head(q);
 	goto entry;
 	do {
@@ -92,8 +107,13 @@ static inline int queue_shift(queue_t *q, int off) {
 		queue_delete(oldqe);
 		q->off = 0;
 entry:
-		if (!qe)
-			qe = queue_add_tail(q, sbuf_get(q->in));
+		if (!qe) {
+			buf = sbuf_get(q->p);
+			if (buf)
+				qe = queue_add_tail(q, buf);
+			else
+				q->done = 1;
+		}
 	} while (qe);
 
 	return off;
@@ -103,7 +123,11 @@ static inline int queue_copy(queue_t *q, SAMPLE *s, int cnt)
 {
 	queue_entry_t *qe;
 	int off;
+	filter_buffer_t *fb;
 
+	if (q->done) {
+		return cnt;
+	}
 	qe = queue_get_head(q);
 	off = q->off;
 	goto entry;
@@ -118,8 +142,13 @@ static inline int queue_copy(queue_t *q, SAMPLE *s, int cnt)
 		qe = queue_get_next(q, qe);
 		off = 0;
 entry:
-		if (!qe)
-			qe = queue_add_tail(q, sbuf_get(q->in));
+		if (!qe) {
+			fb = sbuf_get(q->p);
+			if (fb) 
+				qe = queue_add_tail(q, fb);
+			else
+				q->done = 1;
+		}
 	} while (qe);
 
 	return cnt;
@@ -136,6 +165,76 @@ static inline int queue_copy_pad(queue_t *q, SAMPLE *s, int cnt)
 }
 
 
+static inline int queue_add_shift(queue_t *q, int off) {
+	struct queue_entry *qe, *oldqe;
+	
+	qe = queue_get_head(q);
+	goto entry;
+	do {
+		if ((sbuf_size(qe->fb) - q->off) > off) {
+			q->off += off;
+			return 0;
+		}
+		off -= sbuf_size(qe->fb) - q->off;
+		sbuf_queue(q->p, qe->fb);
+		oldqe = qe;
+		qe = queue_get_next(q, qe);
+		queue_add_delete(oldqe);
+		q->off = 0;
+entry:
+		if (!qe) {
+			qe = queue_add_tail(q, 
+			sbuf_make_private(sbuf_alloc(GLAME_WBUFSIZE, q->n)));
+			memset((SAMPLE*)sbuf_buf(qe->fb), 0, GLAME_WBUFSIZE*SAMPLE_SIZE);
+		}
+	} while (qe);
+
+	return off;
+}
+
+static inline int queue_add(queue_t *q, SAMPLE *s, int cnt)
+{
+	queue_entry_t *qe;
+	int off, i;
+	SAMPLE *x;
+	
+	qe = queue_get_head(q);
+	off = q->off;
+	goto entry;
+	do {
+		if ((sbuf_size(qe->fb) - off) > cnt) {
+			x = sbuf_buf(qe->fb)+off;
+			for(i=0; i<cnt; i++)
+				*x++ += *s++;
+			return 0;
+		}
+		x = sbuf_buf(qe->fb)+off;
+		for(i=0; i<sbuf_size(qe->fb)-off; i++)
+			*x++ += *s++;
+			
+		cnt -= sbuf_size(qe->fb) - off;
+		qe = queue_get_next(q, qe);
+		off = 0;
+entry:
+		if (!qe) {
+			qe = queue_add_tail(q, 
+			sbuf_make_private(sbuf_alloc(GLAME_WBUFSIZE, q->n)));
+			memset((SAMPLE*)sbuf_buf(qe->fb), 0, GLAME_WBUFSIZE*SAMPLE_SIZE);
+		}
+	} while (qe);
+
+	return cnt;
+}
+
+static inline void queue_add_drain(queue_t *q)
+{
+	queue_entry_t *qe;
+	while ((qe = queue_get_head(q))) {
+		sbuf_queue(q->p, qe->fb);
+		queue_add_delete(qe);
+	}
+	q->off = 0;
+}
 
 /* Support for feedback and generic fifo queues
  * inside a filter.
