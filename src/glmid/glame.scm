@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.46 2001/01/29 11:38:56 richi Exp $
+; $Id: glame.scm,v 1.47 2001/03/20 09:55:20 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -619,7 +619,7 @@
 ;
 (let ((plugin (glame_create_plugin
 	(create-net ((extend "extend")
-	     (mix2 "mix2")
+	     (mix "mix")
 	     (one2n "one2n")
 	     (delay "delay")
 	     (va "volume-adjust")) ; nodes
@@ -628,11 +628,11 @@
 	    ((delay "delay" "delay" "echo delay"); node param label desc
 	     (va "factor" "mix" "echo mix ratio")
 	     (extend "time" "extend" "time to extend")
-	     (mix2 "gain" "gain" "output gain"))
+	     (mix "gain" "gain" "output gain"))
 	    (begin (filternode_set_param net "delay" 200)
 		   (filternode_set_param net "extend" 600)
 		   (filternode_set_param net "mix" 0.7)
-		   (nodes-connect (list extend mix2 one2n delay va mix2))))
+		   (nodes-connect (list extend mix one2n delay va mix))))
 	"echo2")))
         (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
 	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
