@@ -4,8 +4,6 @@ TODOs of the various subsystems/programs, [] tells about the
 doc/
 	- document available filters [nold/the filter authors]
 	  All the 0.2.0 relevant stuff is documented.
-  	- fix API documentation (changed filter part again) [done, parts
-    	  are still missing]
   	- filter writing tutorial?
 
 plugins/
@@ -13,12 +11,9 @@ plugins/
 
 filter/
 	[richi]
-        - parameters:
-          * allow shared parameters
         - API stuff
-          * are hashes really necessary? (we need lists anyway)
 	  * Completely script (the new) filter API - use smobs?
-	  * Update documentation
+            Partly done.
 	- implementation stuff
           * move (copy?) methods down to the actual users (filter_param_t
   	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
@@ -31,8 +26,6 @@ swapfile/
 
 gui/
 	[all]
-	- get rid of the icon canvas for the filter stuff and do it
-          in categorized popup menu
 	- allow load/save of networks
 	- we need some ideas how to do the wave-editing stuff, especially
           how to couple it with the filter stuff.

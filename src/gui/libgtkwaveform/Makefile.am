@@ -2,8 +2,10 @@ INCLUDES = -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/include \
 	$(GNOME_INCLUDEDIR)
 
 if HAVE_GNOME
-
 noinst_LTLIBRARIES = libgtkwaveform.la
+noinst_PROGRAMS = test
+endif
+
 
 libgtkwaveform_la_SOURCES = \
   gtkswapfilebuffer.c      gtkswapfilebuffer.h  \
@@ -15,11 +17,8 @@ libgtkwaveform_la_SOURCES = \
   gtkwave.c                gtkwave.h
 
 
-noinst_PROGRAMS = test
-
 test_SOURCES = test.c
 test_LDADD = ../../swapfile/libswapfile.la libgtkwaveform.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
-endif
 
