@@ -1,0 +1,6 @@
+(filternetwork latency "test network - this is simply ./test_latency"
+	(node ping ping)
+	(node null null)
+	(connect ping out null in)
+	(connect null out ping in)
+)
