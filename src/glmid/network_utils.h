@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.1 2001/05/28 08:09:53 richi Exp $
+ * $Id: network_utils.h,v 1.2 2001/06/28 12:44:15 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -32,6 +32,10 @@
 #include "gpsm.h"
 
 
+/* Adds an instance of the specified plugin (by name) to the network.
+ * Returns the created instance or NULL on error. */
+filter_t *net_add_plugin_by_name(filter_t *net, const char *plugin);
+
 /* Adds a swapfile_in node to the network streaming the gpsm node
  * swfile from start with size length (or full, if length -1).
  * Returns the added node or NULL on error. */
@@ -48,10 +52,21 @@ filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
  * "out" ports in the network. Returns 0 on success, -1 on error. */
 int net_apply_effect(filter_t *net, filter_t *effect);
 
+/* Applys the provided node (already inside the net) to all unconnected
+ * "out" ports in the network. Returns 0 on success, -1 on error. */
+int net_apply_node(filter_t *net, filter_t *node);
+
 /* Feeds all unconnected "out" ports into an audio_out filter doing
  * correct positioning/mixing, if necessary. Returns the audio out
  * filter on success, NULL on error. */
 filter_t *net_apply_audio_out(filter_t *net);
+
+/* Tunes params to a bulk network operation that does not care about
+ * latency. */
+void net_prepare_bulk();
+
+/* Restores tuning params to the default ones set in user preferences. */
+void net_restore_default();
 
 
 #endif

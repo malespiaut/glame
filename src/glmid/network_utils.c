@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.1 2001/05/28 08:09:53 richi Exp $
+ * $Id: network_utils.c,v 1.2 2001/06/28 12:44:15 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -23,6 +23,29 @@
 
 #include "network_utils.h"
 
+
+filter_t *net_add_plugin_by_name(filter_t *net, const char *plugin)
+{
+	plugin_t *p;
+	filter_t *f;
+
+	if (!net || !plugin)
+		return NULL;
+	if (!(p = plugin_get(plugin))) {
+		DPRINTF("No such plugin %s\n", plugin);
+		return NULL;
+	}
+	if (!(f = filter_instantiate(p))) {
+		DPRINTF("Cannot instantiate %s\n", plugin);
+		return NULL;
+	}
+	if (filter_add_node(net, f, plugin) == -1) {
+		DPRINTF("Cannot add %s to network\n", plugin);
+		filter_delete(f);
+		return NULL;
+	}
+	return f;
+}
 
 filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
 			     long start, long length)
@@ -119,6 +142,34 @@ int net_apply_effect(filter_t *net, filter_t *effect)
 	return 0;
 }
 
+int net_apply_node(filter_t *net, filter_t *node)
+{
+	filter_port_t *out, *in;
+	filter_t *f;
+
+	if (!net || !node)
+		return -1;
+
+	if (!(in = filterportdb_get_port(filter_portdb(node), PORTNAME_IN)))
+		return -1;
+
+	filter_foreach_node(net, f) {
+		if (f == node)
+			continue;
+		if (!(out = filterportdb_get_port(filter_portdb(f),
+						  PORTNAME_OUT)))
+			continue;
+		if (filterport_get_pipe(out))
+			continue;
+
+		if (!filterport_connect(out, in))
+			return -1;
+		DPRINTF("connected node to %s\n", filter_name(f));
+	}
+
+	return 0;
+}
+
 filter_t *net_apply_audio_out(filter_t *net)
 {
 	filter_port_t *out, *in;
@@ -168,4 +219,21 @@ filter_t *net_apply_audio_out(filter_t *net)
 		filterpipe_sourceparamdb(pipe), "position"), &pos);
 
 	return aout;
+}
+
+static saved_wbufsize = -1;
+void net_prepare_bulk()
+{
+	if (saved_wbufsize == -1) {
+		saved_wbufsize = GLAME_WBUFSIZE;
+		GLAME_WBUFSIZE = 32768;
+	}
+}
+
+void net_restore_default()
+{
+	if (saved_wbufsize != -1) {
+		GLAME_WBUFSIZE = saved_wbufsize;
+		saved_wbufsize = -1;
+	}
 }
