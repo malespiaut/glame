@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.22 2003/04/20 21:56:01 richi Exp $
+ * $Id: importexport.c,v 1.23 2003/05/22 20:48:53 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -40,6 +40,9 @@
 #include "network_utils.h"
 #include "waveeditgui.h"
 #include "glame_audiofile.h"
+#ifdef HAVE_LIBMAD
+#include <mad.h>
+#endif
 
 
      
@@ -81,7 +84,7 @@ struct imp_s {
 	int destroyed;
 	gpsm_item_t *item;
 	GtkWidget *dialog;
-	GtkWidget *edit, *appbar, *checkresample, *rateentry;
+	GtkWidget *edit, *appbar, *checkresample, *rateentry, *getstats;
 	filter_t *readfile;
 	gchar *filename;
 	unsigned int frames;
@@ -91,6 +94,11 @@ struct imp_s {
 	plugin_t *resample;
 	GtkWidget *fi_plabel[MAX_PROPS];
 	int reallydone;
+#ifdef HAVE_LIBMAD
+	int mad_length;
+	int mad_pos;
+	char *mad_buffer;
+#endif
 };
 
 
@@ -131,6 +139,123 @@ static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
 	return TRUE;
 }
 
+#ifdef HAVE_LIBMAD
+static enum mad_flow
+ie_import_mp3_error(void *data, struct mad_stream *stream,
+		    struct mad_frame *frame)
+{
+	return MAD_FLOW_BREAK;
+}
+static enum mad_flow
+ie_import_mp3_input(void *data, struct mad_stream *stream)
+{
+	struct imp_s *ie = data;
+	if (!ie->mad_length)
+		return MAD_FLOW_STOP;
+	mad_stream_buffer(stream, ie->mad_buffer, ie->mad_length);
+	ie->mad_length = 0;
+	return MAD_FLOW_CONTINUE;
+}
+static enum mad_flow
+ie_import_mp3_output(void *data, struct mad_header const *header,
+		     struct mad_pcm *pcm)
+{
+	struct imp_s *ie = data;
+	SAMPLE *buf;
+	int i;
+
+	if (ie->mad_pos == 0) {
+		/* alloc gpsm group, etc. */
+		ie->item = gpsm_newgrp(g_basename(ie->filename));
+		for (i=0; i<pcm->channels; ++i) {
+			char label[16];
+			gpsm_swfile_t *swfile;
+			snprintf(label, 16, "channel-%i", i);
+			swfile = gpsm_newswfile(label);
+			gpsm_swfile_set(swfile, pcm->samplerate,
+					pcm->channels == 2
+					? (i == 0
+					   ? FILTER_PIPEPOS_LEFT
+					   : FILTER_PIPEPOS_RIGHT)
+					: (pcm->channels == 1
+					   ? FILTER_PIPEPOS_CENTRE
+					   : 0.0));
+			gpsm_item_place(ie->item, swfile, 0, i);
+		}
+	}
+
+	buf = malloc(SAMPLE_SIZE*pcm->length);
+	for (i=0; i<pcm->channels; ++i) {
+		unsigned int nsamples = pcm->length;
+		mad_fixed_t const *data = pcm->samples[i];
+		SAMPLE *b = buf;
+		gpsm_swfile_t *file = gpsm_find_swfile_vposition((gpsm_grp_t *)ie->item, NULL, i);
+		swfd_t fd;
+		fd = sw_open(gpsm_swfile_filename(file), O_RDWR);
+		sw_lseek(fd, 0, SEEK_END);
+
+		while (nsamples--)
+		    *b++ = mad_f_todouble(*data++);
+
+		sw_write(fd, buf, SAMPLE_SIZE*pcm->length);
+		sw_close(fd);
+	}
+	free(buf);
+
+	ie->mad_pos += pcm->length;
+
+	return MAD_FLOW_CONTINUE;
+}
+#endif
+static void ie_import_mp3(struct imp_s *ie)
+{
+#ifdef HAVE_LIBMAD
+	int fd;
+	struct stat s;
+	char *buf;
+	struct mad_decoder decoder;
+	int result;
+
+	fd = open(ie->filename, O_RDONLY);
+	if (fd == -1)
+		return;
+	fstat(fd, &s);
+	ie->mad_length = s.st_size;
+	ie->mad_buffer = mmap(NULL, s.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (ie->mad_buffer == MAP_FAILED) {
+		close(fd);
+		return;
+	}
+
+	mad_decoder_init(&decoder, ie,
+			 ie_import_mp3_input, 0, 0,
+			 ie_import_mp3_output,
+			 ie_import_mp3_error, 0);
+	ie->mad_pos = 0;
+	ie->importing = 1;
+
+	result = mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);
+	mad_decoder_finish(&decoder);
+
+	munmap(buf, s.st_size);
+	close(fd);
+
+	if (result == 0) {
+		gpsm_item_t *item;
+		gpsm_grp_foreach_item(ie->item, item)
+			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
+	} else {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Failed importing mp3 file")));
+		gpsm_item_destroy(ie->item);
+		ie->item = NULL;
+	}
+
+	ie->importing = 0;
+	ie_import_cleanup(ie);
+#endif
+}
+
 static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 {
 	filter_t *readfile, *swout, *resample;
@@ -159,6 +284,13 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 		DPRINTF("no file given (%p)\n", ie->filename);
 		return;
 	}
+
+	if (ie->gotfile==2) {
+		ie_import_mp3(ie);
+		return;
+	}
+
+
 	DPRINTF("%i file %p\n", ie->gotfile, ie->filename);
 
 	ie->net = filter_creat(NULL);
@@ -382,6 +514,8 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
 		return;
 	}
+	if (ie->gotfile==2)
+		return;
 
 	gtk_widget_set_sensitive(bla, FALSE);
 
@@ -508,14 +642,34 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 		return;
 	}
 
+#ifdef HAVE_LIBMAD
+	/* check if its an mp3 */
+	if (strstr(ie->filename, ".mp3") != NULL) {
+		/* FIXME - ie_update_mp3labels */
+		DPRINTF("Seems we got a mp3 file\n");
+		ie->gotfile = 2;
+		ie->gotstats = 0;
+		gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), "MPEG AUDIO");
+		for(i=1; i<MAX_PROPS; i++)
+			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "-");
+		gtk_widget_set_sensitive(ie->checkresample, FALSE);
+		gtk_widget_set_sensitive(ie->rateentry, FALSE);
+		gtk_widget_set_sensitive(ie->getstats, FALSE);
+		return;
+	}
+#endif
+
 	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
 	if (filterparam_set(fparam, &(ie->filename))==-1) {
 		for(i=0; i<MAX_PROPS; i++)
 			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "nan");
 		return;
 	}
-	
+
 	ie_update_plabels(ie);
+	gtk_widget_set_sensitive(ie->checkresample, TRUE);
+	gtk_widget_set_sensitive(ie->rateentry, TRUE);
+	gtk_widget_set_sensitive(ie->getstats, TRUE);
 	ie->gotfile = 1;
 	ie->gotstats = 0;
 }
@@ -638,7 +792,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 		gtk_misc_set_alignment (GTK_MISC (ie->fi_plabel[i]), 0, 0.5);
 	}
 		
-	statbutton = gtk_button_new_with_label (_("Get RMS & DC-Offset"));
+	ie->getstats = statbutton = gtk_button_new_with_label (_("Get RMS & DC-Offset"));
 	gtk_signal_connect(GTK_OBJECT(statbutton), "clicked",
 				   (GtkSignalFunc)ie_stats_cb, ie);
 
