@@ -81,7 +81,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	vorbis_comment vc;	/* struct that stores all the user comments */
 	vorbis_dsp_state vd;	/* central working state for the packet->PCM decoder */
 	vorbis_block vb;	/* local working space for packet->PCM decode */
-
+        float **analysis_buffer = NULL;
 
 	channelCount =
 	  filterport_nrpipes(filterportdb_get_port
@@ -89,8 +89,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 
 	/* Limit to 1 or 2 input ports . Ogg can encode more channels, but player i know can't read . */
 	if (channelCount > 2){
-	  FILTER_ERROR_RETURN(" This filter can only connect to one or two input port. Insert a render filter if more or less than 2 ports.");
-	}
+	  FILTER_ERROR_RETURN(" This filter can only connect to one or two input port. Insert a render filter if more or less 		than 2 ports.");}
 
 	filename =
 	  filterparam_val_string(filterparamdb_get_param
@@ -100,10 +99,10 @@ static int write_oggvorbis_file_f(filter_t * n)
 
 	oggvorbis_file = fopen(filename, "w+");
 	if (!oggvorbis_file)
-	  FILTER_ERROR_RETURN("can't open/create file ");
+	  FILTER_ERROR_CLEANUP("can't open/create file ");
 
 	if (!(track = ALLOCN(channelCount, track_t)))
-	  FILTER_ERROR_RETURN("no memory");
+	  FILTER_ERROR_CLEANUP("no memory");
 
 	iass = 0;
 	filterportdb_foreach_port(filter_portdb(n), port) {
@@ -120,7 +119,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	    if (iass == 0)
 	      sampleRate = filterpipe_sample_rate(in);
 	    else if (filterpipe_sample_rate(in) != sampleRate)
-	      FILTER_ERROR_RETURN
+	      FILTER_ERROR_CLEANUP
 		("inconsistent samplerates");
 	    iass++;
 	  }
@@ -145,7 +144,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	/* Vorbis */
 	vorbis_info_init(&vi);
 	quality = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "vorbis encoding quality"));
-	ret = vorbis_encode_init_vbr(&vi, eofs, sampleRate/* 44100 */, quality/10);
+	ret = vorbis_encode_init_vbr(&vi, eofs, sampleRate, quality/10);
 	if (ret)
 	  FILTER_ERROR_CLEANUP
 	    ("couldn't init vorbis (bad parameters ?).");
@@ -160,7 +159,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	vorbis_comment_add_tag(&vc, "COMMENT",filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Comment")));
 	vorbis_comment_add_tag(&vc, "TRACK",filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Track")));
 	vorbis_comment_add_tag(&vc, "GENRE",filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Genre")));
-	/* puts(filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Title"))); */	
+	
 	/* set up the analysis state and auxiliary encoding storage */
 	vorbis_analysis_init(&vd, &vi);
 	vorbis_block_init(&vd, &vb);
@@ -204,8 +203,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	  FILTER_CHECK_STOP;
 	  wbpos = 0;
 	  /* expose the buffer to submit data */
-	  float **analysis_buffer =
-	    vorbis_analysis_buffer(&vd, vorbis_analysis_buffer_size);
+	  analysis_buffer = vorbis_analysis_buffer(&vd, vorbis_analysis_buffer_size);
 	  
 	    /* uninterleave samples to buffer */
 	    do {
@@ -213,10 +211,6 @@ static int write_oggvorbis_file_f(filter_t * n)
 		if (track[j].buf) {
 		  analysis_buffer[j][wbpos] = sbuf_buf(track[j].buf)[track[j].pos++];
 
-		  /* printf("pre eofs %i   eos %i  wbpos %i j %i\n",eofs,eos,wbpos,j); */
-/* 		  printf( "track[j].pos %i analysis_buffer[j][wbpos] %f  sbuf_buf(track[j].buf)[track[j].pos] %f\n\n", */
-/*                   track[j].pos, analysis_buffer[j][wbpos], sbuf_buf(track[j].buf)[track[j].pos]); */
-		  
 		  /* Check for end of buffer */
 		  if (track[j].pos == sbuf_size(track[j].buf))
 		    { 
@@ -282,9 +276,10 @@ static int write_oggvorbis_file_f(filter_t * n)
 	vorbis_comment_clear(&vc);
 	vorbis_info_clear(&vi);
 	fclose(oggvorbis_file);
-	/* if (analysis_buffer) */
-/* 	  free(analysis_buffer); */
-	if (track)
+	/*FIXME: segfault when cancelling export */
+	/*if (analysis_buffer)
+	  free (analysis_buffer);*/
+        if (track)
 	  free(track);
 	FILTER_RETURN;
 		
@@ -362,99 +357,27 @@ int write_oggvorbis_file_register(plugin_t * pl)
 	param =
 	    filterparamdb_add_param_long(filter_paramdb(f),
 					 "vorbis encoding quality",
-					 FILTER_PARAMTYPE_LONG, 4,
+					 FILTER_PARAMTYPE_LONG,2,
 					 FILTERPARAM_DESCRIPTION,
 					 "Vorbis encoding quality (vbr)\n",
 					 FILTERPARAM_GLADEXML,
 					 "<?xml version=\"1.0\" standalone=\"no\"?>"
 					 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
 					 "<glade-interface>"
-					 "    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+					 "    <widget class=\"GtkComboBox\" id=\"widget\">"
 					 "      <property name=\"visible\">True</property>"
 					 "      <property name=\"can_focus\">True</property>"
-					 "      <property name=\"history\">0</property>"
-					 "      <child>"
-					 "        <widget class=\"GtkMenu\" id=\"menu1\">"
-					 "	  <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item0\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0 (roughly 64kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "	  <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item1\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.1 (roughly 80kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "	  <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item2\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.2 (roughly 96kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "	  <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item3\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.3 (roughly 112kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "           <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item4\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.4 (roughly 128kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "          <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item5\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.5 (roughly 160kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "          <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item6\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.6 (roughly 192kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "          <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item7\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.7 (roughly 224kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "          <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item8\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.8 (roughly 256kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "          <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item9\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">0.9 (roughly 320kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "          <child>"
-					 "            <widget class=\"GtkMenuItem\" id=\"item10\">"
-					 "              <property name=\"visible\">True</property>"
-					 "              <property name=\"label\" translatable=\"yes\">1 (roughly 500kb/s)</property>"
-					 "              <property name=\"use_underline\">True</property>"
-					 "            </widget>"
-					 "          </child>"
-					 "        </widget>"
-					 "      </child>"
-					 "    </widget>"
+					 "<property name=\"items\" translatable=\"yes\">0 (roughly 64kb/s)\n"
+					 "0.1 (roughly 80kb/s)\n"
+					 "0.2 (roughly 96kb/s)\n"
+					 "0.3 (roughly 112kb/s)\n"
+					 "0.4 (roughly 128kb/s)\n"
+					 "0.5 (roughly 160kb/s)\n"
+	 				 "0.6 (roughly 192kb/s)\n" 
+				         "0.7 (roughly 224kb/s)\n"
+					 "0.8 (roughly 256kb/s)\n"
+					 "0.9 (roughly 320kb/s)\n"
+					 "1 (roughly 500kb/s)</property>"			 					                            "       </widget>"
 					 "</glade-interface>",
 					 FILTERPARAM_LABEL,
 					 "Vorbis encoding quality (vbr)",
