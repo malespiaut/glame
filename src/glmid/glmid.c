@@ -56,9 +56,10 @@ int glame_load_plugin(const char *fname)
 
 #ifdef HAVE_GUILE
 	/* Scheme macro plugin type? FIXME: more sanity check before. */
-	glscript_load_mode = 0;
 	if (strstr(fname, ".scm")) {
-		SCM s_res = glame_gh_safe_eval_file(fname);
+		SCM s_res;
+	        glscript_load_mode = 0;
+		s_res = glame_gh_safe_eval_file(fname);
 		if (gh_boolean_p(s_res) && gh_scm2bool(s_res))
 		    	return 0;
 	}
@@ -145,9 +146,7 @@ static int plugins_register()
 
 	/* Plugins from default paths - and "debug path" (first) */
 	plugins_process_directory("./plugins/.libs"); /* for .so */
-	//plugins_process_directory("./plugins");       /* for .scm */
 	plugins_process_directory(PKGLIBDIR);
-	//plugins_process_directory(PKGDATADIR);
 
 	/* Paths from environment. */
 	plugins_process_env("LADSPA_PATH");
@@ -182,6 +181,8 @@ static void init_after_guile(int argc, char **argv)
 #endif
 	if (glscript_init() == -1)
 		exit(1);
+	plugins_process_directory("./plugins");       /* for .scm */
+	plugins_process_directory(PKGDATADIR);
 	((void (*)(void))argv[1])();
 }
 #endif
