@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.5 2004/04/18 20:51:18 ochonpaul Exp $
+ * $Id: gltree.cpp,v 1.6 2004/04/22 21:44:53 ochonpaul Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -30,6 +30,7 @@
 #include "waveeditgui.h"
 #include "util/glame_gui_utils.h"
 #include "swapfile.h"
+
 static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 			 gpointer userdata);
 static void edit_wave_cb(GtkTreeView * treeview, GtkTreePath * path,
@@ -40,7 +41,9 @@ static void timeline_cb(GtkTreeView * treeview, GtkTreePath * path,
 static void delete_cb(GtkWidget * menuitem, gpointer treeview);
 static void file_property_cb(GtkWidget * menuitem, gpointer treeview);
 static void group_property_cb(GtkWidget * menuitem, gpointer treeview);
-
+static void addgroup_cb(GtkWidget * menuitem, gpointer treeview);
+static void addfile_cb(GtkWidget *menu, gpointer treeview);
+static void addstereo_cb(GtkWidget *menu,  gpointer treeview);
 
 glTree::glTree(gpsm_grp_t * newroot)
 {
@@ -165,6 +168,21 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) delete_cb, treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
+	menuitem = gtk_menu_item_new_with_label(_("Add group"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) addgroup_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	menuitem = gtk_menu_item_new_with_label(_("Add mono track"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) addfile_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	menuitem = gtk_menu_item_new_with_label(_("Add stereo track"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) addstereo_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
 	gtk_widget_show_all(menu);
 
 	/* Note: event can be NULL here when called from view_onPopupMenu;
@@ -257,7 +275,7 @@ edit_wave_cb(GtkTreeView * treeview, GtkTreePath * path,
 		}
 		gtk_quit_add_destroy(1, GTK_OBJECT(we));
 		gtk_widget_show_all(GTK_WIDGET(we));
-		// deselect_all(active_swapfilegui); 
+		// deselect_all(active_swapfilegui); //FIXME : to be adapted
 	}
 }
 
@@ -282,39 +300,59 @@ static void timeline_cb(GtkTreeView * treeview, GtkTreePath * path,
 
 static void delete_cb(GtkWidget * menuitem, gpointer treeview)
 {
-	GtkTreeIter iter;
+        GtkTreeIter iter, iter2;
 	GtkTreeModel *model;
 	gpsm_item_t *item;
 	gpsm_grp_t *deleted;
 	GtkTreeSelection *selection;
+	gboolean     valid;
+	gchar *comp;
 
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
 
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
-		// deselect_all(active_swapfilegui); 
-		if (!
-		    (deleted =
-		     gpsm_find_grp_label(gpsm_root(), NULL,
-					 GPSM_GRP_DELETED_LABEL))) {
-			deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
-			gpsm_item_place(gpsm_root(),
-					(gpsm_item_t *) deleted, 0,
-					GPSM_GRP_DELETED_VPOS);
-		} else if ((gpsm_item_t *) deleted == item) {
-			gpsm_item_destroy((gpsm_item_t *) deleted);
-			return;
-		}
-		gpsm_item_place(deleted, item,
-				0, gpsm_item_vsize(deleted) + 1);
+	  gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	  // deselect_all(active_swapfilegui); 
+	  deleted = gpsm_find_grp_label(gpsm_root(), NULL,
+					GPSM_GRP_DELETED_LABEL);
+
+	  
+	  if ((deleted))  {
+	    // Search for [deleted]  iter 
+	    valid = gtk_tree_model_get_iter_first(model, &iter2);
+	    while (valid)
+	      {			
+		gtk_tree_model_get(model, &iter2, INFO, &comp, -1);
+		if (!g_ascii_strncasecmp (GPSM_GRP_DELETED_LABEL, comp,8)) break;
+		valid = gtk_tree_model_iter_next(model, &iter2);
+	      }
+
+	    if ((gpsm_item_t *) deleted == item) {
+	      gpsm_item_destroy((gpsm_item_t *) deleted);
+	      gtk_tree_store_remove(GTK_TREE_STORE(model), &iter2);
+	      return;
+	    }
+	  }
+	  else if (!(deleted))  {
+	    deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
+	    gpsm_item_place(gpsm_root(), (gpsm_item_t *) deleted, 0,
+			    GPSM_GRP_DELETED_VPOS);
+	    gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, NULL);
+	    gtk_tree_store_set (GTK_TREE_STORE(model), &iter2,
+				INFO,GPSM_GRP_DELETED_LABEL ,GPSM_ITEM,(gpsm_item_t *) deleted,-1); 
+	  
+	  } 
+	  gpsm_item_place(deleted, item,
+			  0, gpsm_item_vsize(deleted) + 1);
 		
-		if (!gtk_tree_store_remove(GTK_TREE_STORE(model), &iter)) {
-			DPRINTF("Remove failed.");
-		}
+	  if (!gtk_tree_store_remove(GTK_TREE_STORE(model), &iter)) {
+	    DPRINTF("Remove failed."); }
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter, &iter2);
+	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter, INFO, item->label, GPSM_ITEM, item,
+			     -1);
+	  
 	}
-
-
 }
 
 
@@ -415,5 +453,136 @@ static void group_property_cb(GtkWidget * menuitem, gpointer treeview)
 			    INFO, g_name,-1); 
 
 
+	}
+}
+
+static void addgroup_cb(GtkWidget *menu, gpointer treeview)
+{
+	gpsm_grp_t *grp;
+	gpsm_item_t *item;
+	GtkTreeSelection *selection;
+	GtkTreeIter iter, iter2;
+	GtkTreeModel *model;
+	
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+	
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	  gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	if (!GPSM_ITEM_IS_GRP(item)
+	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
+		return;
+
+	// Create new gpsm group. 
+	grp = gpsm_newgrp(_("Unnamed group"));
+	gpsm_vbox_insert((gpsm_grp_t *)item, (gpsm_item_t *)grp,
+			 0, gpsm_item_vsize(item));
+	// Update tree store
+	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, INFO, _("Unnamed group"), GPSM_ITEM, grp,
+			     -1);
+	/* Expand the parent widget. */
+	// gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+	/* Find out which widget it got and open an edit field. */
+	// grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
+// 	if (grpw)
+// 		edit_tree_label(grpw);
+// 	deselect_all(active_swapfilegui);
+	}
+}
+
+
+
+/* Append an empty mono wave (without group) to the current vbox. */
+static void addfile_cb(GtkWidget *menu, gpointer treeview)
+{
+	gpsm_swfile_t *swfile;
+	gpsm_item_t *item;
+	GtkTreeSelection *selection;
+	GtkTreeIter iter,iter2 ;
+	GtkTreeModel *model;
+
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+	
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	  gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	  if (!GPSM_ITEM_IS_GRP(item)
+	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
+		return;
+	  
+	  // Create new gpsm swfile and insert it. 
+	swfile = gpsm_newswfile(_("Unnamed track"));
+	gpsm_vbox_insert((gpsm_grp_t *)item,
+			 (gpsm_item_t *)swfile,
+			 0, gpsm_item_vsize(item));
+	// Update tree store
+	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, INFO, _("Unnamed track"), GPSM_ITEM, (gpsm_item_t *)swfile,
+			     -1);
+
+	// /* Expand the parent widget. */
+// 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+// 	/* Find out which widget it got and open an edit field. */
+// 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)swfile);
+// 	if (grpw)
+// 		edit_tree_label(grpw);
+// 	deselect_all(active_swapfilegui);
+	}
+}
+
+
+/* Append an empty stereo wave (with group) to the current vbox. */
+static void addstereo_cb(GtkWidget *menu,  gpointer treeview)
+{
+        gpsm_swfile_t *left, *right ;
+	gpsm_grp_t *grp;
+	gpsm_item_t *item;
+	GtkTreeSelection *selection;
+	GtkTreeIter iter,iter2,iter3, iter4 ;
+	GtkTreeModel *model;
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+	
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	  gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	  if (!GPSM_ITEM_IS_GRP(item)
+	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
+	    return;
+	
+	  /* Create new group and two gpsm swfiles and insert it. */
+	  grp = gpsm_newgrp(_("Unnamed stereo track "));
+	  left = gpsm_newswfile(_("left"));
+	  gpsm_swfile_set_position(left, FILTER_PIPEPOS_LEFT);
+	  right = gpsm_newswfile(_("right"));
+	  gpsm_swfile_set_position(right, FILTER_PIPEPOS_RIGHT);
+	  gpsm_vbox_insert(grp, (gpsm_item_t *)left, 0, 0);
+	  gpsm_vbox_insert(grp, (gpsm_item_t *)right, 0, 1);
+	  gpsm_vbox_insert((gpsm_grp_t *)item,
+			   (gpsm_item_t *)grp,
+			   0, gpsm_item_vsize(item));
+	  // Update tree store
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, INFO, _("Unnamed stereo track"), GPSM_ITEM, (gpsm_item_t *)grp,
+			     -1);
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter3, &iter2);
+	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter3, INFO, _("left"), GPSM_ITEM, (gpsm_item_t *)left,
+			     -1);
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter4, &iter2);
+	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter4, INFO, _("right"), GPSM_ITEM, (gpsm_item_t *)right,
+			     -1);
+// 	/* Expand the parent widget. */
+// 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+// 	/* Find out which widget it got and open an edit field. */
+// 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
+// 	if (grpw)
+// 		edit_tree_label(grpw);
+// 	deselect_all(active_swapfilegui);
+// 
 	}
 }
