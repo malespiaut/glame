@@ -82,6 +82,7 @@ struct hash_head {
  * for any usable c-pointer. */
 #define CG_NAMESPACE ((void *)(0xffff0010))
 #define FILTER_NAMESPACE ((void *)(0xffff0020))
+#define PLUGIN_NAMESPACE ((void *)(0xffff0030))
 
 /* initialize global hashtable.
  * returns -1 on error */

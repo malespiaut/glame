@@ -24,7 +24,6 @@
 #endif
 
 #include <stdio.h>
-#include "rw.h"
 #include "channel.h"
 #include "filter.h"
 #include "util.h"
@@ -33,7 +32,6 @@
 int init()
 {
 	if (hash_alloc() == -1
-	    || rw_init() == -1
 	    || filter_init() == -1
 	    || init_channel() == -1)
 		return -1;
