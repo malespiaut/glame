@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.25 2001/08/02 11:08:36 richi Exp $
+ * $Id: filter_ops.c,v 1.26 2001/08/03 08:34:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -105,9 +105,11 @@ static void *launcher(void *node)
 
 	DPRINTF("%s launched (pid %i)\n", n->name, (int)getpid());
 
+#ifdef HAVE_PTHREAD_SIGMASK
 	sigemptyset(&sset);
 	sigaddset(&sset, SIGINT);
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
+#endif
 #ifndef HAVE_SYSVSEM
 	atomic_inc(&n->net->launch_context->val);
 #endif
@@ -333,9 +335,11 @@ static void *waiter(void *network)
 	int res;
 	sigset_t sset;
 
+#ifdef HAVE_PTHREAD_SIGMASK
 	sigemptyset(&sset);
 	sigaddset(&sset, SIGINT);
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
+#endif
 
 	res = net->ops->wait(net);
 

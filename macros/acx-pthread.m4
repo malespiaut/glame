@@ -34,7 +34,7 @@ dnl (with help from M. Frigo), as well as ac_pthread and hb_pthread
 dnl macros posted by AFC to the autoconf macro repository.  We are also
 dnl grateful for the helpful feedback of numerous users.
 dnl
-dnl @version $Id: acx-pthread.m4,v 1.2 2000/09/24 13:50:44 richi Exp $
+dnl @version $Id: acx-pthread.m4,v 1.3 2001/08/03 08:34:32 richi Exp $
 dnl @author Steven G. Johnson <stevenj@alum.mit.edu> and Alejandro Forero Cuervo <bachue@bachue.com>
 
 AC_DEFUN([ACX_PTHREAD], [
@@ -237,6 +237,30 @@ if test x"$acx_pthread_ok" = xyes; then
 else
         PTHREAD_CC="$CC"
 fi
+
+dnl Next, check if we have pthread_sigmask - Mac OS X does not
+dnl have this f.i.
+dnl Define HAVE_PTHREAD_SIGMASK if it is supported.
+if test x"$acx_pthread_ok" = xyes; then
+        AC_MSG_CHECKING([for pthread_sigmask])
+        save_CFLAGS="$CFLAGS"
+	save_LIBS="$LIBS"
+	save_CC="$CC"
+        CFLAGS="$save_CFLAGS $PTHREAD_CFLAGS"
+	LIBS="$save_LIBS $PTHREAD_LIBS"
+	CC="$PTHREAD_CC"
+        AC_TRY_LINK_FUNC(pthread_sigmask, acx_pthread_sigmask_ok=yes)
+        if  test x"$acx_pthread_ok" = xyes; then
+                AC_MSG_RESULT([yes])
+	        AC_DEFINE(HAVE_PTHREAD_SIGMASK)
+        else
+                AC_MSG_RESULT(no)
+        fi
+        CFLAGS="$save_CFLAGS"
+        LIBS="$save_LIBS"
+        CC="$save_CC"
+fi
+
 
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(PTHREAD_CFLAGS)

@@ -66,6 +66,9 @@
 /* define if you use pthreads (always defined for GLAME) */
 #undef USE_PTHREADS
 
+/* define if you have pthread_sigmask(3) available */
+#undef HAVE_PTHREAD_SIGMASK
+
 /* define if your libc supports the madvise system call */
 #undef HAVE_MADVISE
 
