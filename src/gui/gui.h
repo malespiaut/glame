@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.12 2000/03/20 17:51:47 xwolf Exp $
+ * $Id: gui.h,v 1.13 2000/03/23 11:05:42 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -29,9 +29,9 @@
 
 #define GUI_BUTTONS_X 4
 #define GUI_BUTTONS_Y 2
-#define GLAME_LOGO "pixmaps/glame-logo.jpg"
+#define GLAME_LOGO PKGDATADIR "/glame-logo.jpg"
 #define GLAME_DEFAULT_ICON "gnome-tigert.png"
-#define GLAME_PIXMAP_PATH "data/pixmaps/"
+#define GLAME_PIXMAP_PATH PKGDATADIR
 #define GLAME_EMERGENCY_PIXMAP "/usr/X11R6/include/X11/bitmaps/xlogo32"
 #ifdef HAVE_CONFIG_H
 #include <config.h>

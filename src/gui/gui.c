@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.18 2000/03/20 17:51:47 xwolf Exp $
+ * $Id: gui.c,v 1.19 2000/03/23 11:05:42 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -216,31 +216,36 @@ gui_filter_add(gui_filter *filter)
 {
 	char* newpix;
 	const char* mimetype;
+
 	g_array_append_val(gui->filters,filter);
+
 	newpix=gnome_pixmap_file(filter->pixname);
-	if(newpix)
-		strcpy(filter->pixname,newpix);
-	else{
-		newpix = g_concat_dir_and_file(GLAME_PIXMAP_PATH,filter->pixname);
-		if(g_file_test(newpix,G_FILE_TEST_ISFILE)){
-			mimetype = gnome_mime_type(newpix);
-			if(!strncmp(mimetype,"image",5)){
-				strcpy(filter->pixname,newpix);
-			}else{
-				free(filter->pixname);
-				filter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);
-			}
-			free(newpix);
-		}else{
-			free(filter->pixname); 
-			filter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+	if(newpix){
+	    	free(filter->pixname);
+		filter->pixname = newpix;
+		goto found;
+	}
+	free(newpix);
+
+	newpix = g_concat_dir_and_file(GLAME_PIXMAP_PATH,filter->pixname);
+	if(g_file_test(newpix,G_FILE_TEST_ISFILE)){
+		mimetype = gnome_mime_type(newpix);
+                if(strncmp(mimetype,"image",5) == 0){
+		    	free(filter->pixname);
+			filter->pixname = newpix;
+			goto found;
 		}
 	}
+	free(newpix);
+
+	free(filter->pixname);
+	filter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);
 	if(!filter->pixname){
 		fprintf(stderr,"Warning! No adequate pixmaps were found!\ntrying fallback X resources!\n");
-		free(filter->pixname);
 		filter->pixname = strdup(GLAME_EMERGENCY_PIXMAP);
 	}
+
+found:
 	return gnome_icon_list_append(GNOME_ICON_LIST(gui->iconlist),filter->pixname,filter->caption);
 }
 
