@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.13 2002/02/11 12:43:36 richi Exp $
+ * $Id: ladspa.c,v 1.14 2002/02/11 16:20:57 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -540,20 +540,26 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 
 		if (LADSPA_IS_PORT_INPUT(iPortDescriptor)
 		    && LADSPA_IS_PORT_CONTROL(iPortDescriptor)) {
+			filter_param_t *param;
+			int bound_below = 0, bound_above = 0;
 			fBound1 = 0;
 			fBound2 = 0;
 			if (LADSPA_IS_HINT_BOUNDED_BELOW
 			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor))
+			     HintDescriptor)) {
+				bound_below = 1;
 				fBound1 =
 				    psDescriptor->
 				    PortRangeHints[lPortIndex].LowerBound;
+			}
 			if (LADSPA_IS_HINT_BOUNDED_ABOVE
 			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor))
+			     HintDescriptor)) {
+				bound_above = 1;
 				fBound2 =
 				    psDescriptor->
 				    PortRangeHints[lPortIndex].UpperBound;
+			}
 			if (LADSPA_IS_HINT_SAMPLE_RATE
 			    (psDescriptor->PortRangeHints[lPortIndex].
 			     HintDescriptor)) {
@@ -565,7 +571,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			    && LADSPA_IS_HINT_LOGARITHMIC
 			    (psDescriptor->PortRangeHints[lPortIndex].
 			     HintDescriptor))
-				fRecommendation = sqrt(fBound1 * fBound2);
+				fRecommendation = 0.0; /* -- assume db, 0 is sane default, then. (was: sqrt(fBound1 * fBound2);) */
 			else
 				fRecommendation =
 				    0.5 * (fBound1 + fBound2);
@@ -575,14 +581,85 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 				fRecommendation =
 				    (LADSPA_Data) (long) (fRecommendation +
 							  0.5);
-			filterparamdb_add_param_float(filter_paramdb
-						      (psFilter),
-						      psDescriptor->
-						      PortNames
-						      [lPortIndex],
-						      FILTER_PARAMTYPE_FLOAT,
-						      fRecommendation,
-						      FILTERPARAM_END);
+			param = filterparamdb_add_param_float(
+				filter_paramdb(psFilter),
+				psDescriptor->PortNames[lPortIndex],
+				FILTER_PARAMTYPE_FLOAT, fRecommendation,
+				FILTERPARAM_END);
+			if (bound_below && bound_above) {
+				/* Use GtkHScale */
+				char xml[1024];
+				snprintf(xml, 1023,
+"<?xml version=\"1.0\"?><GTK-Interface>"
+"  <widget>"
+"    <class>GtkHScale</class>"
+"    <name>widget</name>"
+"    <can_focus>True</can_focus>"
+"    <draw_value>True</draw_value>"
+"    <value_pos>GTK_POS_LEFT</value_pos>"
+"    <digits>3</digits>"
+"    <policy>GTK_UPDATE_CONTINUOUS</policy>"
+"    <value>%.3f</value>"
+"    <lower>%.3f</lower>"
+"    <upper>%.3f</upper>"
+"    <step>%.3f</step>"
+"    <page>%.3f</page>"
+"    <page_size>%.3f</page_size>"
+"  </widget>"
+"</GTK-Interface>",
+					 fRecommendation, fBound1, fBound2, 0.1, 0.5, 0.0);
+				filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
+			} else if (bound_below) {
+				/* Use GtkSpinButton */
+				char xml[1024];
+				snprintf(xml, 1023,
+"<?xml version=\"1.0\"?><GTK-Interface>"
+"  <widget>"
+"    <class>GtkSpinButton</class>"
+"    <name>widget</name>"
+"    <can_focus>True</can_focus>"
+"    <climb_rate>1</climb_rate>"
+"    <digits>3</digits>"
+"    <numeric>True</numeric>"
+"    <update_policy>GTK_UPDATE_ALWAYS</update_policy>"
+"    <snap>False</snap>"
+"    <wrap>False</wrap>"
+"    <value>%.3f</value>"
+"    <lower>%.3f</lower>"
+"    <upper>%.3f</upper>"
+"    <step>%.3f</step>"
+"    <page>%.3f</page>"
+"    <page_size>0.0</page_size>"
+"  </widget>"
+"</GTK-Interface>",
+					 fRecommendation, fBound1, 1e19, 0.1, 0.5);
+				filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
+			} else if (bound_above) {
+				/* Use GtkSpinButton */
+				char xml[1024];
+				snprintf(xml, 1023,
+"<?xml version=\"1.0\"?><GTK-Interface>"
+"  <widget>"
+"    <class>GtkSpinButton</class>"
+"    <name>widget</name>"
+"    <can_focus>True</can_focus>"
+"    <climb_rate>1</climb_rate>"
+"    <digits>3</digits>"
+"    <numeric>True</numeric>"
+"    <update_policy>GTK_UPDATE_ALWAYS</update_policy>"
+"    <snap>False</snap>"
+"    <wrap>False</wrap>"
+"    <value>%.3f</value>"
+"    <lower>%.3f</lower>"
+"    <upper>%.3f</upper>"
+"    <step>%.3f</step>"
+"    <page>%.3f</page>"
+"    <page_size>0.0</page_size>"
+"  </widget>"
+"</GTK-Interface>",
+					 fRecommendation, -1e19, fBound2, 0.1, 0.5);
+				filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
+			}
 		}
 	}
 
