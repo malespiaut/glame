@@ -49,6 +49,24 @@ PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io")
 
 
 
+static int is_scm(const char *fname)
+{
+	FILE *f;
+	char c;
+
+	if (!(f = fopen(fname, "r")))
+		return 0;
+
+	if (fscanf(f, " %c", &c) != 1
+	    || c != '(') {
+		fclose(f);
+		return 0;
+	}
+
+	fclose(f);
+	return 1;
+}
+
 int glame_load_plugin(const char *fname)
 {
 	SCM s_res;
@@ -61,13 +79,13 @@ int glame_load_plugin(const char *fname)
 	/* Scheme macro plugin type? We really can't detect, if
 	 * it is or not... hope guile doesnt choke on random garbage...
 	 */
+	if (!is_scm(fname))
+		return -1;
 
 	glscript_load_mode = 0;
 	s_res = glame_gh_safe_eval_file(fname);
-	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
-		DPRINTF("Exception from scheme code\n");
+	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res))
 		return -1;
-	}
 	return 0;
 }
 
@@ -75,12 +93,13 @@ filter_t *glame_load_instance(const char *fname)
 {
 	SCM s_res;
 
+	if (!is_scm(fname))
+		return NULL;
+
 	glscript_load_mode = 1;
 	s_res = glame_gh_safe_eval_file(fname);
-	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
-		DPRINTF("Exception from scheme code\n");
+	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res))
 		return NULL;
-	}
 	return last_loaded_filter_instance; /* HACK... */
 }
 
