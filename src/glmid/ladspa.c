@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.30 2003/08/08 19:56:34 richi Exp $
+ * $Id: ladspa.c,v 1.31 2003/08/08 20:14:03 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -289,8 +289,12 @@ static int ladspa_f(filter_t * n)
 					psDescriptor->PortNames[lPortIndex]);
 				/* psParam == NULL does not happen if params were registered
 				 * appropriately. [richi] */
-				pfControlValues[lPortIndex] =
-					filterparam_val_double(psParam);
+				if (FILTER_PARAM_IS_DOUBLE(psParam))
+					pfControlValues[lPortIndex] =
+						filterparam_val_double(psParam);
+				else if (FILTER_PARAM_IS_LONG(psParam))
+					pfControlValues[lPortIndex] =
+						filterparam_val_long(psParam);
 				psDescriptor->connect_port(psLADSPAPluginInstance,
 							   lPortIndex,
 							   pfControlValues +
