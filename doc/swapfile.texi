@@ -1,4 +1,4 @@
-@comment $Id: swapfile.texi,v 1.8 2001/03/25 17:23:35 nold Exp $
+@comment $Id: swapfile.texi,v 1.9 2001/04/18 16:34:25 richi Exp $
 
 @node Swapfile API, Plugin Interface, Conversion Layer, Top
 @chapter Swapfile API
@@ -92,6 +92,16 @@ into a consistent state.
 Tries to create an empty swapfile on @var{name} of the specified
 @var{size}.
 @end deftypefun
+
+
+@deftypefun int swapfile_fsck (char *@var{name}, int @var{force})
+
+Checks the swapfile on @var{name} for consistency and tries to correct
+all errors. Useful in case of an unclean swapfile or with @var{force}
+specified as 1 rather than 0. Returns 0 on success and -1 on error
+(which usually means non correctable errors).
+@end deftypefun
+
 
 
 

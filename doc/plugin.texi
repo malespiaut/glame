@@ -1,4 +1,4 @@
-@comment $Id: plugin.texi,v 1.9 2000/12/11 10:41:58 richi Exp $
+@comment $Id: plugin.texi,v 1.10 2001/04/18 16:34:25 richi Exp $
 
 @node Plugin Interface, GLAME Database Interface, Swapfile API, Top
 @chapter Plugin Interface 
@@ -52,7 +52,11 @@ This function returns the plugin's name.
 Using these functions you can set and query key/value pairs either stored
 through dynamic library symbols or through a little per plugin database.
 @code{plugin_query()} returns @code{NULL}, if there is no information about
-the specified key.
+the specified key. As a general rule of dumb you should start your keywords
+with a '!' to prevent conflicts with dynamic symbols.
+Standard keywords are accessible using the defines @code{PLUGIN_DESCRIPTION},
+@code{PLUGIN_PIXMAP}, @code{PLUGIN_CATEGORY} and the internally used
+keywords @code{PLUGIN_FILTER} and @code{PLUGIN_PARENT}.
 @end deftypefun
 
 To browse through all registered plugins you can use the following function.
@@ -79,5 +83,9 @@ necessary to register anything in the plugin to any subsystem.
 This optional symbol of the type @code{char *} should contain a list
 of additional @code{plugin} names inside the object file seperated
 by spaces. You will need a seperate @code{_register} symbol for each
-of the specified additional plugin names.
+of the specified additional plugin names. Use the @code{PLUGIN_SET}
+macro to create a symbol like that. Provide two arguments, the first
+should be an identifier matching the file name without filename extension,
+the second one should be the space seperated plugin list string.
 @end table
+

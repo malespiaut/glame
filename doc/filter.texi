@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.27 2001/01/03 09:28:38 richi Exp $
+@comment $Id: filter.texi,v 1.28 2001/04/18 16:34:25 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -103,6 +103,14 @@ of this filter. You can use the glame signal API to register signal
 handlers.
 @end deftypefun
 
+@tindex gldb_t
+@deftypefun {gldb_t *} filter_propertydb (filter_t *@var{f})
+Using this function you get access to the filters property database.
+You will need it to add, remove or query filter properties using the API
+provided by the @code{filter_set_property()} and @code{filter_get_property()}
+functions.
+@end deftypefun
+
 @deftypefun int filter_nrnodes (filter_t *@var{f})
 Use this function to obtain the number of child filters associated
 with the filter @var{f}.
@@ -155,6 +163,14 @@ filter instance.
 
 @deftypefun int FILTER_IS_NETWORK (filter_t *@var{f})
 Returns a non-zero value, if this filter instance has childs.
+@end deftypefun
+
+@deftypefun int FILTER_IS_NODE (filter_t *@var{f})
+Returns a non-zero value, if this filter instance does not have childs.
+@end deftypefun
+
+@deftypefun int FILTER_IS_LAUNCHED (filter_t *@var{f})
+Returns a non-zero value, if this filter instance is busy.
 @end deftypefun
 
 
@@ -213,6 +229,31 @@ function to save and potentially recreate a constructed network of
 which this filter is the container. The string representation is
 executable scheme code.
 @end deftypefun
+
+
+@tindex filter_t
+@deftypefun int filter_add_node (filter_t *@var{net}, filter_t *@var{f}, const char *@var{name})
+This function inserts the filter instance @var{f} into the (now turned into
+a network) filter instance @var{net} using the name @var{name} which you can
+use later to query the inserted filter out of the network. If @var{name} is
+not unique inside the network it gets adjusted. Returns 0 on success and -1
+on error.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun {filter_t *} filter_get_node (filter_t *@var{net}, const char *@var{name})
+Queries the network @var{net} for a filter uniquely named @var{name} and returns
+that instance. Returns @code{NULL}, if there is no such named instance inside
+the network.
+@end deftypefun
+
+@tindex filter_t
+@deftypefn Iterator {} filter_foreach_node (filter_t *@var{net}, filter_t *@var{f}) @{ @}
+You can iterate through all filter instances inside the network @var{net} using
+the following iterator (which acts like a for statement with the second
+parameter as running variable). Note that you may not delete instances in
+this loop!
+@end deftypefn
 
 
 
@@ -672,6 +713,13 @@ starting, pausing or in the filter threads.
 finish processing.  @code{filter_wait()} returns 0 if the filter
 terminated regularly, and -1 if there were any errors, either in waiting
 for the filter or in processing the filter.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun int filter_is_ready (filter_t *@var{net})
+@code{filter_is_ready()} queries if the network has finished processing.
+Instead of @code{filter_wait()} this does not block. Returns 1, if the
+network has finished, 0 if it is still operating, -1 on error.
 @end deftypefun
 
 @tindex filter_t

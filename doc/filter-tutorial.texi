@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.12 2001/03/25 17:23:35 nold Exp $
+@comment $Id: filter-tutorial.texi,v 1.13 2001/04/18 16:34:25 richi Exp $
 
 @node Filter Tutorial, Conversion Layer, Filter API, Top
 @chapter Filter Tutorial
@@ -320,6 +320,7 @@ fbuf_queue(out, buf);
 @node Speeeed, , Examples, Filter Tutorial
 @section Speeeed
 
-FIXME - this section still needs to be written. Topics: constructing efficient
-loops, using the streaming macros.
+For now look into @code{src/hash/glsimd.h} if you can find useful
+streamed (SIMD) operations you can use. Those usually exist in
+efficient assembler versions.
 
