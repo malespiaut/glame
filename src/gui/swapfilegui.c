@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.53 2001/07/13 09:01:43 richi Exp $
+ * $Id: swapfilegui.c,v 1.54 2001/07/13 09:51:33 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -248,12 +248,19 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	selected = GTK_TREE_SELECTION(glame_tree_item_parent(item));
 	while (selected) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
-		gpsm_swfile_t *copy;
+		gpsm_item_t *copy;
 
-		if (!GPSM_ITEM_IS_SWFILE(i->item))
+		/* Dont allow copying myself into myself. */
+		if (item->item == i->item)
+			continue;
+
+		if (GPSM_ITEM_IS_SWFILE(i->item))
+			copy = (gpsm_item_t *)gpsm_swfile_cow((gpsm_swfile_t *)i->item);
+		else if (GPSM_ITEM_IS_GRP(i->item))
+			copy = (gpsm_item_t *)gpsm_grp_cow((gpsm_grp_t *)i->item);
+		else
 			goto next;
-		copy = gpsm_swfile_cow((gpsm_swfile_t *)i->item);
-		gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)copy,
+		gpsm_grp_insert((gpsm_grp_t *)item->item, copy,
 				-1, -1);
 
 	next:
@@ -273,13 +280,19 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	selected = GTK_TREE_SELECTION(glame_tree_item_parent(item));
 	while (selected) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
-		gpsm_swfile_t *copy;
+		gpsm_item_t *copy;
 
-		if (!GPSM_ITEM_IS_SWFILE(i->item))
+		/* Dont allow copying myself into myself. */
+		if (item->item == i->item)
+			continue;
+
+		if (GPSM_ITEM_IS_SWFILE(i->item))
+			copy = (gpsm_item_t *)gpsm_swfile_link((gpsm_swfile_t *)i->item);
+		else if (GPSM_ITEM_IS_GRP(i->item))
+			copy = (gpsm_item_t *)gpsm_grp_link((gpsm_grp_t *)i->item);
+		else
 			goto next;
-
-		copy = gpsm_swfile_link((gpsm_swfile_t *)i->item);
-		gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)copy,
+		gpsm_grp_insert((gpsm_grp_t *)item->item, copy,
 				-1, -1);
 
 	next:
