@@ -25,7 +25,9 @@ Summary of known bugs and misfeatures in GLAME
   disk (like in your NFS mounted home) because of performace limitations.
   As the default location set by the gui is ~/.glameswap you should change
   that to something more reasonable (Settings/Preferences...) if your
-  home is not local.
+  home is not local. Also very large swapfiles may become painfully slow
+  as directories are grewing (if youre using ext2), choosing reiserfs
+  in this situation may help (untested).
 
 - cglame is not really up-to-date with the gpsm midlayer (read: it does
   not know about the metadata the gui deals with) - this will be fixed
@@ -55,8 +57,9 @@ Summary of known bugs and misfeatures in GLAME
 
 - The pipe_in/pipe_out plugins (and the derived read-mp3.scm filter)
   crash on most systems due to either pthread limitations or pthread
-  or libc bugs (we need to trace this) - if you're lucky, it might work
-  for you (it did for us long time ago...).
+  or libc or kernel bugs (we need to trace this) - if you're lucky, it
+  might work for you (it does for me on a debian potato system with
+  kernel 2.4.[34]).
 
 - If glame panics this could be a glame bug (as usually panics are "this
   should not happen" things) - we're interested in reports of such
