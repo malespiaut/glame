@@ -38,6 +38,7 @@
 #include "glplugin.h"
 #include "glsimd.h"
 #include "glscript.h"
+#include "glconfig.h"
 
 
 /* Builtin plugins. */
@@ -219,9 +220,6 @@ static void init_after_guile(int argc, char **argv)
 		exit(1);
 	atexit(glame_cleanup);
 
-	/* Load configuration. */
-	glame_config_load();
-
 	/* Load non-scheme plugins. */
 	if (plugins_register() == -1)
 		exit(1);
@@ -232,6 +230,15 @@ static void init_after_guile(int argc, char **argv)
 	add_plugin_path(PKGSCRIPTSDIR);
 	load_plugins_from_path("./plugins");       /* for .scm */
 	load_plugins_from_path(PKGSCRIPTSDIR);
+
+	/* Load configuration. */
+	glame_config_load();
+
+	/* Set defaults, where we dont have any reasonable place/time
+	 * to do this. */
+	glame_config_get_long_with_default("swapfile/maxundo", 5);
+	_GLAME_WBUFSIZE = glame_config_get_long_with_default(
+		"filter/wbufsize", 1024);
 
 	glame_main();
 }

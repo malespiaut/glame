@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.84 2001/11/04 13:49:54 richi Exp $
+ * $Id: main.c,v 1.85 2001/11/06 09:47:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -323,6 +323,7 @@ static int update_preferences()
 	char s[256];
 	gboolean def;
 	long maxundo, res = 0;
+	long wbufsize;
 
 	/* Check, if we have anything configured already. */
 	if (glame_config_get_string("swapfile/defaultpath", &swappath) == -1)
@@ -330,19 +331,16 @@ static int update_preferences()
 	else
 		free(swappath);
 
-	/* Update globals. */
-	nPopupTimeout = glame_config_get_long_with_default("edit_filter/popupTimeout", 200);
-	bMac = glame_config_get_long_with_default("edit_filter/macMode", FALSE);
-
 	/* Set default swapfile path and max. undo depth */
 	snprintf(s, 255, "%s/.glameswap", g_get_home_dir());
 	swappath = glame_config_get_string_with_default("swapfile/defaultpath", s);
 
-	maxundo = glame_config_get_long_with_default("swapfile/maxundo", 5);
+	glame_config_get_long("swapfile/maxundo", &maxundo);
 	gpsm_set_max_saved_ops(maxundo);
 
 	/* GLAME_WBUFSIZE */
-	_GLAME_WBUFSIZE = glame_config_get_long_with_default("filter/wbufsize", 1024);
+	glame_config_get_long("filter/wbufsize", &wbufsize);
+	_GLAME_WBUFSIZE = wbufsize;
 
 	/* Update IO plugin setup - audio_out */
 	aoutplugin = glame_config_get_string_with_default("audio_io/output_plugin",
@@ -765,6 +763,13 @@ static void gui_main()
 	char configpath[255];
 	char *path;
 
+	/* Init GUI dependend subsystems. */
+	glame_accel_init();
+	glame_swapfilegui_init();
+	glame_waveeditgui_init();
+	glame_filtereditgui_init();
+	glame_timeline_init();
+
 	/* Update preferences. */
 	if (update_preferences() == -1) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_dialog(
@@ -801,13 +806,6 @@ _("Welcome first-time user of GLAME.\n"
 		goto run_prefs;
 	}
 	g_free(path);
-
-	/* Init GUI dependend subsystems. */
-	glame_accel_init();
-	glame_swapfilegui_init();
-	glame_waveeditgui_init();
-	glame_filtereditgui_init();
-	glame_timeline_init();
 
 	/* Register a swapfile panic handler. */
 	swapfile_register_panic_handler(on_swapfile_panic);

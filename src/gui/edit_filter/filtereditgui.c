@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.36 2001/11/05 14:44:15 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.37 2001/11/06 09:47:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -31,6 +31,7 @@
 #include "glscript.h"
 #include "util/glame_gui_utils.h"
 #include "glame_accelerator.h"
+#include "glconfig.h"
 #include "glamecanvas.h"
 #include "canvasitem.h"
 #include "filtereditgui.h"
@@ -447,6 +448,11 @@ glame_filtereditgui_init(void)
 			    gls_editfilter_ungroup_selected);
 	gh_new_procedure1_0("editfilter-new",
 			    gls_editfilter_new);
+
+	nPopupTimeout = glame_config_get_long_with_default(
+		"edit_filter/popupTimeout", 200);
+	bMac = glame_config_get_long_with_default(
+		"edit_filter/macMode", FALSE);
 }
 
 
