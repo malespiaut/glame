@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.143 2003/05/25 15:01:59 richi Exp $
+ * $Id: waveeditgui.c,v 1.144 2003/05/26 21:31:18 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -1498,16 +1498,16 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				 _("Export"), _("Export"),
 				 GTK_SIGNAL_FUNC(wave_export_cb), window,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Zoom in"), _("Zoom in"), _("Zoom in"),
-				glame_load_icon_widget("zoom_in.png",24,24),
-				GTK_SIGNAL_FUNC(zoomin_cb), window->waveview);
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Zoom out"), _("Zoom out"), _("Zoom out"),
-				glame_load_icon_widget("zoom_out.png",24,24),
-				GTK_SIGNAL_FUNC(zoomout_cb), window->waveview);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_REFRESH,
+				 GTK_STOCK_ZOOM_IN,
+				 _("Zoom in"), _("Zoom in"), 
+				 GTK_SIGNAL_FUNC(zoomin_cb), window->waveview,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_ZOOM_OUT,
+				 _("Zoom out"), _("Zoom out"), 
+				 GTK_SIGNAL_FUNC(zoomout_cb), window->waveview,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+				 GTK_STOCK_ZOOM_FIT,
 				 _("View all"), _("View all"), 
 				 GTK_SIGNAL_FUNC(zoomfull_cb), window->waveview,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
