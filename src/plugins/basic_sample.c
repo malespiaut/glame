@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.54 2001/11/28 22:20:52 richi Exp $
+ * $Id: basic_sample.c,v 1.55 2002/01/27 12:26:19 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -726,7 +726,7 @@ static void render_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	 * looking for matching samplerates and possibly fixing all
 	 * outgoing pipes. */
 	GLSIGH_GETARGS1(va, pipe);
-	port = filterpipe_source(pipe);
+	port = filterpipe_dest(pipe);
 	rate = filterpipe_sample_rate(pipe);
 	filterport_foreach_pipe(port, pipe)
 		if (filterpipe_sample_rate(pipe) != rate) {
@@ -764,10 +764,12 @@ static int render_connect_in(filter_port_t *port, filter_pipe_t *p)
 
 	/* We accept any number of inputs. Fixup is done through
 	 * raised GLSIG_PIPE_CHANGED. But we need matching samplerates! */
-	if (!(in = filterport_get_pipe(port)))
-		return 0;
-	if (filterpipe_sample_rate(in) != filterpipe_sample_rate(p))
-		return -1;
+	if ((in = filterport_get_pipe(port))) {
+		if (filterpipe_sample_rate(in) != filterpipe_sample_rate(p))
+			return -1;
+	}
+	glsig_add_handler(filterpipe_emitter(p), GLSIG_PIPE_CHANGED,
+			  render_fixup_pipe, NULL);
 
 	return 0;
 }
@@ -786,6 +788,7 @@ static int render_connect_out(filter_port_t *port, filter_pipe_t *p)
 		rate = filterpipe_sample_rate(pipe);
 	filterpipe_settype_sample(p, rate,
 				  FILTER_PIPEPOS_DEFAULT);
+
 	return 0;
 }
 int render_register(plugin_t *p)
@@ -801,6 +804,7 @@ int render_register(plugin_t *p)
 				   FILTER_PORTFLAG_INPUT,
 				   FILTERPORT_DESCRIPTION, "input stream",
 				   FILTERPORT_END);
+	in->connect = render_connect_in;
 	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 				    FILTER_PORTTYPE_SAMPLE,
 				    FILTER_PORTFLAG_OUTPUT,
@@ -810,13 +814,10 @@ int render_register(plugin_t *p)
 				      FILTER_PARAMTYPE_POSITION,
 				      FILTER_PIPEPOS_DEFAULT,
 				      FILTERPARAM_END);
-
-	f->f = render_f;
-	in->connect = render_connect_in;
 	out->connect = render_connect_out;
 
-	glsig_add_handler(filterport_emitter(in), GLSIG_PIPE_CHANGED,
-			  render_fixup_pipe, NULL);
+	f->f = render_f;
+
 	glsig_add_handler(filter_emitter(f), GLSIG_PARAM_CHANGED,
 			  render_fixup_param, NULL);
 

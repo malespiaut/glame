@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.38 2002/01/23 14:43:18 richi Exp $
+ * $Id: audio_io.c,v 1.39 2002/01/27 12:26:19 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -150,7 +150,7 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		hangle = filterparam_val_float(param);
 
 		filterpipe_sample_hangle(out) = hangle;
-		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+		glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
 
 		return;
 	}
@@ -168,8 +168,9 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		filterport_foreach_pipe(outp, out) {
 			if (filterpipe_sample_rate(out) == rate)
 				continue;
-			filterpipe_sample_rate(out) = rate;
-			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+			filterpipe_settype_sample(out, rate,
+						  filterpipe_sample_hangle(out));
+			glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
 		}
 	}
 }
@@ -228,12 +229,16 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 					      FILTER_PIPEPOS_DEFAULT,
 					      FILTERPARAM_END);
 	param->set = aio_generic_set_param;
+	glsig_add_handler(filterparam_emitter(param), GLSIG_PARAM_CHANGED,
+			  aio_generic_fixup_param, NULL);
 
 	param = filterparamdb_add_param_int(filter_paramdb(filter), "rate",
 					    FILTER_PARAMTYPE_INT,
 					    GLAME_DEFAULT_SAMPLERATE,
 					    FILTERPARAM_END);
 	param->set = aio_generic_set_param;
+	glsig_add_handler(filterparam_emitter(param), GLSIG_PARAM_CHANGED,
+			  aio_generic_fixup_param, NULL);
 
 	param = filterparamdb_add_param_float(filter_paramdb(filter),
 					      "duration", 
@@ -249,9 +254,6 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 	param->set = aio_generic_set_param;
 
 	filter->f = f;
-
-	glsig_add_handler(&filter->emitter, GLSIG_PARAM_CHANGED,
-			  aio_generic_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "input.png");
