@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.63 2004/12/26 20:56:32 richi Exp $
+ * $Id: canvasfilter.c,v 1.64 2005/03/19 21:59:31 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -193,33 +193,6 @@ static void glame_canvas_filter_destroy_cb(glsig_handler_t *handler,
 GlameCanvasFilter* glame_canvas_find_filter(filter_t *f)
 {
 	return hash_find_gcfilter(f);
-}
-     
-void glame_canvas_remove_unparented_filters(filter_t *parent)
-{
-	GlameCanvasFilter * gcf;
-	GList *victims = NULL, *iter;
-	int i;
-	for(i=0;i<(1<<8);i++){
-		gcf = hash_getslot_gcfilter(i);
-		
-		while(gcf){
-			if(gcf->filter->net != parent){
-				/* FIXME doesnt take other windows into account! */
-				victims = g_list_append(victims,gcf);
-			}
-			gcf = hash_next_gcfilter(gcf);
-		}
-	}
-	if(victims){
-		iter = g_list_first(victims);
-		while(iter){
-			hash_remove_gcfilter(iter->data);
-			gtk_object_destroy(GTO(iter->data));
-			iter = g_list_next(iter);
-		}
-		g_list_free(victims);
-	}
 }
 
 
@@ -807,11 +780,6 @@ static void glame_canvas_ungroup_cb(GtkWidget *foo, GlameCanvasFilter* filter)
 static void glame_canvas_copy_selected_cb(GtkWidget *foo, GlameCanvasFilter* filter)
 {
 	glame_canvas_copy_selected(CANVAS_ITEM_GLAME_CANVAS(filter));
-}
-
-static void glame_canvas_paste_selection_cb(GtkWidget *foo, GlameCanvasFilter* filter)
-{
-	glame_canvas_paste_selection(CANVAS_ITEM_GLAME_CANVAS(filter));
 }
 
 static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
