@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.85 2002/06/06 21:29:11 richi Exp $
+ * $Id: swapfilegui.c,v 1.86 2002/06/11 07:20:29 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -551,7 +551,7 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 	}
 	gpsm_item_place(deleted, item->item,
-			0, gpsm_item_vsize(deleted));
+			0, gpsm_item_vsize(deleted)+1);
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
