@@ -351,6 +351,14 @@ fi
 dnl
 AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
 
+dnl Several subdirs to clean up our own data layout.
+pkgpixmapsdir='$(pkgdatadir)/pixmaps'
+pkgscriptsdir='$(pkgdatadir)/scripts'
+
+dnl Define install targets pkgpixmaps_FOO and pkgscrips_FOO.
+AC_SUBST(pkgpixmapsdir)
+AC_SUBST(pkgscriptsdir)
+
 AC_SUBST(GLAME_LIBS)
 AC_SUBST(GLAME_CFLAGS)
 AC_SUBST(GLAME_DLIBS)
