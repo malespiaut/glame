@@ -43,8 +43,10 @@
  *   hash_add_node(struct node *)
  *   hash_remove_node(struct node *)
  *   hash_find_node(int id)
+ *   hash_next_node(struct node *)
  *   hash_init_node(struct node *)
  *   is_hashed_node(struct node *)
+ *   hash_getslot_node(int slot)
  * 
  * So the HASH macro would have the following prototype:
  * HASH(symbol name, type recordtype, int hashbits, expr comparison,
@@ -56,6 +58,11 @@
 #define HASH(FOOBAR, FOOBARtype, HASH_BITS, HASH_COMPARE, HASH_HASHFN_FROM_PARAMS, HASH_HASHFN_FROM_TYPE, params...) \
 \
 static FOOBARtype *FOOBAR##_hash_table[1<<HASH_BITS]; \
+\
+static inline FOOBARtype *hash_getslot_##FOOBAR(int slot) \
+{ \
+    return FOOBAR##_hash_table[slot&((1<<HASH_BITS)-1)]; \
+} \
 \
 static inline FOOBARtype *hash_find_##FOOBAR(params) \
 { \
@@ -71,6 +78,11 @@ inside: \
       break; \
   } \
   return FOOBAR; \
+} \
+\
+static inline FOOBARtype *hash_next_##FOOBAR(FOOBARtype *FOOBAR) \
+{ \
+        return (FOOBAR)->next_##FOOBAR##_hash; \
 } \
 \
 static inline void hash_add_##FOOBAR(FOOBARtype *FOOBAR) \
