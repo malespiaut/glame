@@ -1640,7 +1640,7 @@ gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
   if (check_marker (waveview, &frame, &length, &win_pos_new) < 0)
     {
       /* no action necessary */
-      return;
+      /* WRONG! we might still need to scroll... return; */
     }
 
   width = waveview->area->allocation.width;
