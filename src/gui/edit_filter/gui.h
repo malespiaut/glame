@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.3 2000/12/11 17:35:32 xwolf Exp $
+ * $Id: gui.h,v 1.4 2001/03/01 13:59:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -49,6 +49,7 @@ typedef struct _gui_network {
 	char *descr;
 	int iports,oports;
 	filter_t * net;
+	GtkWidget *canvas;
 	gboolean paused;
 } gui_network;
 

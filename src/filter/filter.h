@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.66 2000/12/18 09:51:55 richi Exp $
+ * $Id: filter.h,v 1.67 2001/03/01 13:59:14 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -104,6 +104,7 @@ struct filter {
 	int (*set_param)(filter_t *n, filter_param_t *param,
 			 const void *val);
 	void *priv;
+	void *gui_priv;
 
 	/* Port database. */
 	filter_portdb_t ports;

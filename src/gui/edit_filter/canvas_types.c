@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.5 2000/12/13 16:26:51 xwolf Exp $
+ * $Id: canvas_types.c,v 1.6 2001/03/01 13:59:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -224,6 +224,7 @@ glame_canvas_new(gui_network *n)
 	GlameCanvas *g;
 	g = gtk_type_new(glame_canvas_get_type());
 	g->net = n;
+	n->canvas = g;
 	return GTK_WIDGET(g);
 }
 
@@ -299,7 +300,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "width_units",1.0,
 			      "fill_color_rgba",0x55555550,
 			      NULL);
-	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
+	item->nameBox = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_rect_get_type(),
 			      "x1",0.0,
 			      "y1",64.0,
@@ -359,6 +360,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	gtk_signal_connect(GTK_OBJECT(gitem),"event",GTK_SIGNAL_FUNC(image_select),item);
 	create_ports(GNOME_CANVAS_GROUP(item),gfilter);
 	gtk_signal_connect(GTK_OBJECT(item),"event",GTK_SIGNAL_FUNC(handle_events),item);
+	gfilter->gui_priv = item;
 	return GLAME_CANVAS_ITEM(item);
 	
 

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.27 2001/03/01 13:18:51 richi Exp $
+ * $Id: canvas.c,v 1.28 2001/03/01 13:59:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -155,9 +155,11 @@ glame_canvas_item_show_props(GnomeCanvasItem * item)
 		DPRINTF("props != zero!\n");
 		return;
 	}
+		
+
 	filterparamdb_foreach_param(filter_paramdb(GLAME_CANVAS_ITEM(item->parent)->filter),iter){
 		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
-		fprintf(stderr,"%s\n",buffer);
+		DPRINTF("%s\n",buffer);
 		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
 					     gnome_canvas_text_get_type(),
 					     "x",48.0,
@@ -174,6 +176,25 @@ glame_canvas_item_show_props(GnomeCanvasItem * item)
 		y_coord+=16.0;
 		GLAME_CANVAS_ITEM(item->parent)->property_texts = g_list_append(GLAME_CANVAS_ITEM(item->parent)->property_texts,text);
 		
+	}
+	y_coord+=10.0;
+	if(filter_has_error(GLAME_CANVAS_ITEM(item->parent)->filter)){
+		sprintf(buffer,"ERROR: %s",filter_errstr(GLAME_CANVAS_ITEM(item->parent)->filter));
+		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
+					     gnome_canvas_text_get_type(),
+					     "x",48.0,
+					     "y",y_coord,
+					     "text",buffer,
+					     "clip_width",94.0,
+					     "clip_height",16.0,
+					     "fill_color","red",
+					     "anchor",GTK_ANCHOR_NORTH,
+					     "justification",GTK_JUSTIFY_CENTER, // GTK_JUSTIFY_LEFT doesn't work?? why??? wtf?? gnomeui broken?? Me stupid??
+					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					     "clip",0,
+					     NULL);
+		GLAME_CANVAS_ITEM(item->parent)->property_texts = g_list_append(GLAME_CANVAS_ITEM(item->parent)->property_texts,text);
+			
 	}
 }
 
@@ -317,10 +338,46 @@ add_filter_by_name(char *name)
 
 
 void 
+network_error(gui_network *net)
+{
+	filter_t *node;
+	GlameCanvasItem *item;
+	filter_foreach_node(net->net,node){
+		if(node->gui_priv){
+			item = (GlameCanvasItem*)node->gui_priv;
+			if(filter_has_error(node)){
+				gnome_canvas_item_set(item->nameBox,
+						      "fill_color","red",
+						      NULL);
+			}
+		}
+	}
+}
+
+void
+network_error_reset(gui_network *net)
+{
+	filter_t *node;
+	GlameCanvasItem *item;
+	filter_foreach_node(net->net,node){
+		if(node->gui_priv){
+			item = (GlameCanvasItem*)node->gui_priv;
+			gnome_canvas_item_set(item->nameBox,
+					      "fill_color","white",
+					      NULL);
+		}
+	}
+}
+
+void 
 play_network(GtkWidget *button,gui_network*net)
 {
+	network_error_reset(net);
 	filter_launch(net->net);
-	filter_start(net->net);
+	
+	if(filter_start(net->net)<0){
+		network_error(net);
+	}
 	net->paused = FALSE;
 }
 
@@ -1639,6 +1696,10 @@ draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 {
       	gui_network * net;       
 	GtkWidget * canv;
+	filter_t * node;
+	GlameCanvasItem* new_item;
+	double x,y;
+	char * numberbuffer;
 
 	if(!FILTER_IS_NETWORK(item->filter)){
 	      fprintf(stderr,"Not a network!\n");
@@ -1650,10 +1711,17 @@ draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 	net->pixname = NULL;
 	net->descr = NULL;
 	net->net = item->filter;
-
-	canv=create_new_canvas(net);
+	
+	create_new_canvas(net);
+	canv = net->canvas;
 	//	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
-
-	
-	
+	filter_foreach_node(item->filter,node){
+		
+		new_item = glame_canvas_item_new(gnome_canvas_root(GNOME_CANVAS(canv)),node,0.0,0.0);
+		numberbuffer = filter_get_property(node,"canvas_x");
+		x = atof(numberbuffer);
+		numberbuffer = filter_get_property(node,"canvas_y");
+		y = atof(numberbuffer);
+		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
+	}
 }
