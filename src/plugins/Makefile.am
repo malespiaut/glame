@@ -98,9 +98,14 @@ mixer_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEU
 
 
 builtins.c: $(libglamebuiltins_la_SOURCES) Makefile.am
+	rm -f builtins.c
 	echo '#include "glplugin.h"' > builtins.c
 	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/int \1_register(plugin_t *p);/' >> builtins.c; done
 	echo 'void register_builtins() {' >> builtins.c
 	echo '	plugin_t *p;' >> builtins.c
 	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/	if ((p = plugin_add("\1"))) \1_register(p);/' >> builtins.c; done
 	echo '}' >> builtins.c
+
+maintainer-clean-local:
+	rm -f builtins.c
+
