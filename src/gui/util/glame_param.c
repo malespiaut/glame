@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.17 2002/02/19 09:51:11 richi Exp $
+ * $Id: glame_param.c,v 1.18 2002/02/21 22:23:17 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -436,6 +436,20 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		filterparam_emitter(param),
 		GLSIG_PARAM_CHANGED|GLSIG_PARAM_DELETED, handle_param, gparam);
 	glsig_dont_copy_handler(gparam->fhandler);
+
+	return GTK_WIDGET(gparam);
+}
+
+GtkWidget *glame_param_new_without_label(filter_param_t *param)
+{
+	GlameParam *gparam;
+
+	gparam = (GlameParam *)glame_param_new(param);
+	if (!gparam)
+		return NULL;
+
+	gtk_widget_destroy(gparam->label);
+	gparam->label = NULL;
 
 	return GTK_WIDGET(gparam);
 }

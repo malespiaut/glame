@@ -4,7 +4,7 @@
 /*
  * glame_param.h
  *
- * $Id: glame_param.h,v 1.3 2001/07/31 12:26:32 mag Exp $
+ * $Id: glame_param.h,v 1.4 2002/02/21 22:23:17 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -76,8 +76,9 @@ struct _GlameParamClass
 };
 
 
-GtkType    glame_param_get_type (void);
-GtkWidget* glame_param_new      (filter_param_t *param);
+GtkType    glame_param_get_type          (void);
+GtkWidget* glame_param_new               (filter_param_t *param);
+GtkWidget* glame_param_new_without_label (filter_param_t *param);
 
 
 #ifdef __cplusplus
