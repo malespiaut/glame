@@ -634,47 +634,54 @@ static int fsck_check_clusters(int fix)
 	DIR *dir;
 	struct dirent *e;
 	int unclean = 0;
-	long name;
+	long name, name2;
+	char s[256];
 	struct swcluster *cluster;
 	struct swfile *file = NULL;
 
 	/* Loop over all clusters, checking files & references. */
-	dir = opendir(swap.clusters_meta_base);
-	while ((e = readdir(dir))) {
-		if (sscanf(e->d_name, "%lX", &name) != 1)
-			continue;
-		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
-		if (!cluster)
-			continue; /* Huh?? */
-
-		/* Fix the cluster. */
-		unclean |= fsck_cluster(cluster, fix);
-		if (unclean && !fix)
-			return 1;
-
-		/* If the cluster has no references left attach it to
-		 * the lost-and-found file. */
-		if (cluster->files_cnt == 0) {
-			if (!fix)
-				return 1;
-			if (!file) {
-				long name;
-				while ((file = file_get((name = rand()), 0)))
-					file_put(file, 0);
-				file = file_get(name, FILEGET_CREAT|FILEGET_READCLUSTERS);
+	for (name2 = 0; name2 < 256; name2++) {
+		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
+		dir = opendir(s);
+		while ((e = readdir(dir))) {
+			if (sscanf(e->d_name, "%lX", &name) != 1)
+				continue;
+			name = name2 | (name << 8);
+			cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+			if (!cluster) {
+				DPRINTF("Cannot get cluster %lX?\n", name);
+				continue; /* Huh?? */
 			}
-			file->clusters = ctree_insert1(file->clusters, file->clusters->cnt,
-						       cluster->name, cluster->size);
-			file->flags |= SWF_DIRTY;
-			cluster_addfileref(cluster, file->name);
+			
+			/* Fix the cluster. */
+			unclean |= fsck_cluster(cluster, fix);
+			if (unclean && !fix)
+				return 1;
+
+			/* If the cluster has no references left attach it to
+			 * the lost-and-found file. */
+			if (cluster->files_cnt == 0) {
+				if (!fix)
+					return 1;
+				if (!file) {
+					long name;
+					while ((file = file_get((name = rand()), 0)))
+						file_put(file, 0);
+					file = file_get(name, FILEGET_CREAT|FILEGET_READCLUSTERS);
+				}
+				file->clusters = ctree_insert1(file->clusters, file->clusters->cnt,
+							       cluster->name, cluster->size);
+				file->flags |= SWF_DIRTY;
+				cluster_addfileref(cluster, file->name);
+				unclean = 1;
+			}
+			cluster_put(cluster, 0);
 			unclean = 1;
 		}
-		cluster_put(cluster, 0);
-		unclean = 1;
+		closedir(dir);
 	}
 	if (file)
 		file_put(file, FILEPUT_SYNC);
-	closedir(dir);
 
 	return unclean;
 }
