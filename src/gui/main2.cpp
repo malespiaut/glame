@@ -1,9 +1,9 @@
 /*
- * main.c
+ * main2.cpp
  *
- * $Id: main2.cpp,v 1.2 2004/02/08 21:50:20 richi Exp $
+ * $Id: main2.cpp,v 1.3 2004/02/08 22:05:27 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche, Richard Guenther
+ * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,11 +52,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 /* HACK */
 extern void swcluster_set_cache(int, int, int, size_t);
-#ifdef __cplusplus
-}
-#endif
 
 /* Globals. */
 static GtkWidget *swapfile;
@@ -65,6 +63,10 @@ GtkWidget *glame_appbar;
 
 extern long nPopupTimeout;
 extern long bMac;
+
+#ifdef __cplusplus
+}
+#endif
 
 /* Forward declarations. */ 
  static void create_new_project_cb(GtkWidget *menu, void * blah); 
@@ -918,7 +920,7 @@ _("Welcome first-time user of GLAME.\n"
 	glame_config_get_string("swapfile/defaultpath", &path);
 	DPRINTF("path: %s\n",path);
 	if (!g_file_test(path,G_FILE_TEST_IS_DIR)) {
-		if (swapfile_creat(path, -1)) {
+		if (swapfile_creat(path, 0)) {
 			char msg[256];
 			char *errmsg = strerror(errno);
 			snprintf(msg, 255, _("GLAME was unable to create its swapfile\nbecause of \"%s\".\nPlease check the configuration.\n"), errmsg);
