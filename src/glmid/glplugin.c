@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.3 2000/03/16 14:21:37 richi Exp $
+ * $Id: glplugin.c,v 1.4 2000/03/17 13:57:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,7 +39,7 @@ static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
 #define hash_find_plugin(nm) __hash_entry(_hash_find((nm), PLUGIN_NAMESPACE, \
         _hash((nm), PLUGIN_NAMESPACE), __hash_pos(plugin_t, hash, name, \
         namespace)), plugin_t, hash)
-#define hash_init_plugin(p) _hash_init(&p->hash)
+#define hash_init_plugin(p) do { _hash_init(&p->hash); (p)->namespace = PLUGIN_NAMESPACE; } while (0)
 
 
 int plugin_add_path(const char *path)
@@ -63,14 +63,10 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 	if (!(p = ALLOC(plugin_t)))
 		return NULL;
 	INIT_LIST_HEAD(&p->list);
+	hash_init_plugin(p);
 
-	if (filename) {
-		if (!(p->handle = dlopen(filename, RTLD_NOW)))
-			goto err;
-	} else {
-		/* internal plugin */
-		p->handle = dlopen(NULL, RTLD_LAZY);
-	}
+	if (!(p->handle = dlopen(filename, RTLD_NOW)))
+		goto err;
 
 	snprintf(s, 255, "%s_register", name);
 	if (!(p->reg_func = dlsym(p->handle, s)))
@@ -118,9 +114,11 @@ plugin_t *plugin_get(const char *name)
 			goto _found;
 	}
 
+	DPRINTF("%s NOT found.\n", name);
 	return NULL;
 
 _found:
+	DPRINTF("found %s.\n", name);
 	hash_add_plugin(p);
 	list_add_plugin(p);
 	return p;

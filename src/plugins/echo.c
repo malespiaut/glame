@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.3 2000/03/16 14:21:37 richi Exp $
+ * $Id: echo.c,v 1.4 2000/03/17 13:57:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include "filter.h"
 #include "util.h"
+#include "glplugin.h"
 
 
 static int echo_f(filter_node_t *n)
@@ -169,11 +170,8 @@ static int echo_f(filter_node_t *n)
 }
 
 
-/* Registry setup of all contained filters
- */
-const char *echo_description = "The echo effect";
-void *echo_pixmap = NULL;
-
+PLUGIN_DESCRIPTION(echo, "echo effect")
+PLUGIN_PIXMAP_FILE(echo, "ear.xpm")
 int echo_register()
 {
 	filter_t *f;

@@ -1,6 +1,6 @@
 /*
  * test_network.c
- * $Id: test_network.c,v 1.3 2000/03/16 14:21:37 richi Exp $
+ * $Id: test_network.c,v 1.4 2000/03/17 13:57:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -68,13 +68,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (hash_alloc() == -1) {
-		fprintf(stderr, "error in initting global hash\n");
-		return -1;
-	}
-	
-	if (glmid_init(0) == -1) {
-		fprintf(stderr, "error in filter_init()\n");
+	if (glame_init() == -1) {
+		fprintf(stderr, "error in glame_init()\n");
 		return -1;
 	}
 

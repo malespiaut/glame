@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.14 2000/03/15 16:52:29 xwolf Exp $
+ * $Id: gui.c,v 1.15 2000/03/17 13:57:21 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -625,13 +625,8 @@ int gui_browse_registered_filters(void)
 /* inits filter stuff */
 int gui_filter_init(void)
 {
-	if (hash_alloc() == -1) {
-                fprintf(stderr, "error in initting global hash\n");
-                return -1;
-        }
-        
-        if (glmid_init(0) == -1) {
-                fprintf(stderr, "error in glmid_init()\n");
+        if (glame_init() == -1) {
+                fprintf(stderr, "error in glame_init()\n");
                 return -1;
         }
 	return 0;

@@ -336,6 +336,19 @@ SCM gls_filternetwork_terminate(SCM s_net)
 	return SCM_UNSPECIFIED;
 }
 
+/* for testing */
+SCM gls_filter_get(SCM s_name)
+{
+        filter_t *f;
+	char *name;
+	int namel;
+
+	name = gh_scm2newstr(s_name, &namel);
+	f = filter_get(name);
+	free(name);
+	return gh_pointer2scm(f);
+}
+
 
 /* The scriptable plugin API part.
  */
@@ -431,6 +444,7 @@ int glscript_init()
 			 gls_filternetwork_wait, 1, 0, 0);
 	gh_new_procedure("filternetwork_terminate",
 			 gls_filternetwork_terminate, 1, 0, 0);
+	gh_new_procedure("filter_get", gls_filter_get, 1, 0, 0);
 
 	/* plugin */
 	gh_new_procedure("plugin_add_path", gls_plugin_add_path,

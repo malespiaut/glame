@@ -31,30 +31,14 @@
 #include "util.h"
 
 
-int init()
-{
-	if (hash_alloc() == -1)
-		return -1;
-
-	return 0;
-}
-
-void cleanup()
-{
-	swap_close();
-}
-
 
 /* just init the scripting subsystem and enter a scheme command line.
  */
-void sc_main(int argc, char **argv)
+void sc_main()
 {
-	if (glmid_init(1) == -1)
-		exit(1);
-
 	gh_eval_str("(plugin_add_path \"plugins/.libs\")");
 
-	scm_shell(argc, argv);
+	scm_shell(0, NULL);
 	/* not reached. */
 }
 
@@ -75,20 +59,17 @@ int main(int argc, char **argv)
 "(quit) gets you out of here.\n"
 "(help) gets you some additional help.\n\n");
 
-	if (init() == -1) {
-		fprintf(stderr, "Error in init!");
-		exit(1);
-	}
-
 	if (argc == 2) {
 		if (swap_open(argv[1], 0) == -1) {
 			perror("Unable to open swap");
-			exit(0);
+			exit(1);
 		}
-		atexit(cleanup);
 	}
 
-	gh_enter(argc, argv, sc_main);
+	if (glame_init_with_guile(sc_main) == -1) {
+	        fprintf(stderr, "glame init failed!\n");
+		exit(1);
+	}
 	/* not reached */
 
 	return 0;

@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.3 2000/03/16 18:05:11 richi Exp $
+ * $Id: glplugin.h,v 1.4 2000/03/17 13:57:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -71,10 +71,22 @@ void *plugin_get_symbol(plugin_t *p, const char *symbol);
 
 
 /* convenience macros for plugins to define their
+ * - description
  * - pixmap
  */
-#define plugin_pixmap_file(name, filename)
-#define plugin_pixmap_xpm(name, xpmcode)
+#define PLUGIN_DESCRIPTION(name, desc) char *name ## _description = desc;
+#define PLUGIN_PIXMAP_FILE(name, filename) \
+void *name ## _pixmap() \
+{ \
+  /* FIXME */ \
+  return NULL; \
+}
+#define PLUGIN_PIXMAP_XPM(name, xpmcode) \
+void *name ## _pixmap() \
+{ \
+  /* FIXME */ \
+  return NULL; \
+}
 
 
 #ifdef __cplusplus

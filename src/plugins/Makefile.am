@@ -3,14 +3,13 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@
 EXTRA_DIST = net_test_play net_test_audio net_test_echo net_test_echo2
 
 noinst_PROGRAMS = test_network
-noinst_LTLIBRARIES = libbuiltins.la
+#noinst_LTLIBRARIES = libbuiltins.la
 
 # put "real" plugins here
-lib_LTLIBRARIES = echo.la
+lib_LTLIBRARIES = libbuiltins.la echo.la
 
 # list the builtin ones here
-libbuiltins_la_SOURCES = builtins.c \
-	basic.c basic_sample.c tutorial.c debug.c \
+libbuiltins_la_SOURCES = basic.c basic_sample.c tutorial.c debug.c \
 	track_io.c audio_io.c file_io.c \
 	waveform.c \
 	garrison.c nold.c maggy.c \
