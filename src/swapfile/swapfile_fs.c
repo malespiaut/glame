@@ -38,6 +38,7 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <pthread.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
@@ -49,6 +50,7 @@
 #endif
 #include "list.h"
 #include "hash.h"
+#include "pmap.h"
 #include "swapfile.h"
 
 #ifdef HAVE_CONFIG_H
@@ -58,16 +60,15 @@
 /* The global "state" of the swapfile and its locks. The
  * locks are for namespace operations atomicy. */
 static struct {
-	int fatfd;
 	char *files_base;
 	char *clusters_data_base;
 	char *clusters_meta_base;
-	int maxnamelen;
 	struct list_head fds;
 } swap;
 
-#define LOCK do {} while (0)
-#define UNLOCK do {} while (0)
+static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK do { pthread_mutex_lock(&swmx); } while (0)
+#define UNLOCK do { pthread_mutex_unlock(&swmx); } while (0)
 
 
 /* We want to have a clean (static) namespace... */
@@ -86,15 +87,13 @@ struct swfd {
 	s64 offset;          /* file pointer position */
 	s64 c_start;         /* start of current cluster */
 	struct swcluster *c; /* current cluster */
+	txnid_t tid;         /* parent for transactions */
 };
 #define SWFD(s) ((struct swfd *)(s))
 #define list_add_swfd(fd) list_add(&(fd)->list, &swap.fds)
 #define list_del_swfd(fd) list_del_init(&(fd)->list)
 
 
-
-static struct swfd *_sw_open(long name, int flags);
-static void _sw_close(struct swfd *fd);
 
 
 /**********************************************************************
@@ -109,35 +108,31 @@ static void _sw_close(struct swfd *fd);
  *  - unclean swap */
 int swapfile_open(char *name, int flags)
 {
-	char str[512];
-	struct stat s;
-	int fd;
+	char str[256];
 
-	/* Open name and check if its a directory. */
-	fd = open(name, 0);
-	if (fd == -1)
-		goto err;
-	if (fstat(fd, &s) == -1)
-		goto err_close;
-	if (!S_ISDIR(s.st_mode))
-		goto err_close;
+	/* Check for correct swapfile directory setup. */
+	if (access(name, R_OK|W_OK|X_OK|F_OK) == -1)
+		return -1;
+	snprintf(str, 255, "%s/clusters.data", name);
+	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1)
+		return -1;
+	snprintf(str, 255, "%s/clusters.meta", name);
+	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1)
+		return -1;
 
 	/* Initialize swap structure. */
-	swap.fatfd = fd;
 	swap.files_base = strdup(name);
-	sprintf(str, "%s/clusters.data", name);
+	snprintf(str, 255, "%s/clusters.data", name);
 	swap.clusters_data_base = strdup(str);
-	sprintf(str, "%s/clusters.meta", name);
+	snprintf(str, 255, "%s/clusters.meta", name);
 	swap.clusters_meta_base = strdup(str);
-	swap.maxnamelen = strlen(swap.clusters_meta_base)+32;
 	INIT_LIST_HEAD(&swap.fds);
 
-	return 0;
+	/* Initialize pmap subsystem. */
+	if (pmap_init(100*1024*1024) == -1)
+		return -1;
 
- err_close:
-	close(fd);
- err:
-	return -1;
+	return 0;
 }
 
 /* Closes and updates a previously opened swap file/partition
@@ -146,25 +141,31 @@ void swapfile_close()
 {
 	struct swfd *f;
 
-	/* close all files */
+	/* Close all files */
 	while ((f = list_gethead(&swap.fds, struct swfd, list))) {
 		sw_close(f);
 	}
-	close(swap.fatfd);
+
+	/* Cleanup swap structure. */
+	free(swap.files_base);
+	free(swap.clusters_data_base);
+	free(swap.clusters_meta_base);
+
+	/* Cleanup pmap subsystem. */
+	pmap_close();
 }
 
 /* Tries to create an empty swapfile on name of size size. */
 int swapfile_creat(char *name, size_t size)
 {
-	char *s;
+	char s[256];
 
 	if (mkdir(name, 0777) == -1)
 		return -1;
-	s = alloca(strlen(name)+32);
-	sprintf(s, "%s/clusters.meta", name);
+	snprintf(s, 255, "%s/clusters.meta", name);
 	if (mkdir(s, 0777) == -1)
 		return -1;
-	sprintf(s, "%s/clusters.data", name);
+	snprintf(s, 255, "%s/clusters.data", name);
 	if (mkdir(s, 0777) == -1)
 		return -1;
 
@@ -253,7 +254,7 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 		return NULL;
 
 	LOCK;
-	f = file_get(name, 0);
+	f = file_get(name, FILEGET_READCLUSTERS);
 
 	/* File is unlinked. */
 	if (f && (f->flags & SWF_UNLINKED)) {
@@ -277,21 +278,26 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 
 	/* Create file, if necessary and requested. */
 	if (!f && (flags & O_CREAT)) {
-		if (!(f = file_get(name, FILEGET_CREAT)))
+		if (!(f = file_get(name, FILEGET_CREAT|FILEGET_READCLUSTERS)))
 			goto err; /* FIXME: which errno? */
 	}
 	/* Truncate file, if requested. */
 	if (flags & O_TRUNC)
 		file_truncate(f, 0);
-	UNLOCK;
 
 	INIT_LIST_HEAD(&fd->list);
 	fd->file = f;
 	fd->mode = flags & (O_RDONLY|O_WRONLY|O_RDWR);
 	fd->offset = 0;
-	fd->c = NULL;
+	fd->c = cluster_get(CID(f->clusters, 0), 0, -1);
 	fd->c_start = 0;
+	fd->tid = tid;
 	list_add_swfd(fd);
+	UNLOCK;
+
+	/* Add a "unimplemented txn" transaction. */
+	if (tid != TXN_NONE)
+		txn_finish_unimplemented(txn_start(tid), "no transaction support for swapfile for now");
 
 	errno = 0;
 	return (swfd_t)fd;
@@ -309,10 +315,11 @@ int sw_close(swfd_t fd)
 {
 	struct swfd *_fd = SWFD(fd);
 
-	/* FIXME: locking against broken close() close() on same fd. */
+	LOCK;
 	list_del_swfd(_fd);
 	cluster_put(_fd->c, 0);
 	file_put(_fd->file, 0);
+	UNLOCK;
 	free(_fd);
 
 	return 0;
@@ -325,7 +332,7 @@ int sw_ftruncate(swfd_t fd, off_t length)
 	int res;
 
 	/* Check if its a valid truncate command. */
-	if (!(_fd->mode & O_WRONLY)) {
+	if (_fd->mode == O_RDONLY) {
 		errno = EPERM;
 		return -1;
 	}
@@ -334,18 +341,27 @@ int sw_ftruncate(swfd_t fd, off_t length)
 		return -1;
 	}
 
-	/* Umm, what should happen to the file pointer posistion? */
+	/* File pointer position now outside of the file? */
 	if (_fd->offset >= length) {
 		cluster_put(_fd->c, 0);
 		_fd->c = NULL;
 	}
 
+	/* Global truncate lock, as we do interesting things inside
+	 * file_truncate. */
 	LOCK;
 	res = file_truncate(_fd->file, length);
 	UNLOCK;
+	if (res == -1)
+		return -1;
 
-	/* File pointer position may be unspecified now... */
-	return res;
+	/* File pointer position now inside the file? */
+	if (!_fd->c && _fd->offset >= 0 && _fd->offset < length) {
+		_fd->c = file_getcluster(_fd->file, _fd->offset,
+					 &_fd->c_start, 0);
+	}
+
+	return 0;
 }
 
 /* Tries to copy count bytes from the current position of in_fd
@@ -385,15 +401,18 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	}
 
 	/* Just offset query? */
-	if (_fd->offset == offset)
+	if (_fd->c && _fd->offset == offset)
 		return _fd->offset;
+
 	/* Seek inside the current cluster? */
-	if (_fd->c && _fd->c_start <= offset && _fd->c_start+_fd->c->size > offset) {
+	if (_fd->c
+	    && _fd->c_start <= offset
+	    && _fd->c_start+_fd->c->size > offset) {
 		_fd->offset = offset;
 		return _fd->offset;
 	}
 
-	/* Now we really need to seek. Ugh. Linear search. */
+	/* Now we really need to seek. */
 	cluster_put(_fd->c, 0);
 	_fd->c = file_getcluster(_fd->file, offset, &_fd->c_start, 0);
 	if (!_fd->c)
@@ -401,6 +420,78 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	_fd->offset = offset;
 
 	return _fd->offset;
+}
+
+/* Like read(2), read count bytes from the current filepointer
+ * position to the array pointed to by buf. */
+ssize_t sw_read(swfd_t fd, void *buf, size_t count)
+{
+	struct sw_stat stat;
+	char *mem;
+	size_t dcnt, cnt = count;
+
+	/* Check, if we will cross the file end and correct
+	 * the cnt appropriately. */
+	if (sw_fstat(fd, &stat) == -1)
+		return -1;
+	if (stat.offset + count > stat.size)
+		cnt -= stat.offset + count - stat.size;
+
+	while (cnt > 0) {
+		if (sw_fstat(fd, &stat) == -1
+		    || !(mem = sw_mmap(NULL, PROT_READ|PROT_WRITE,
+				       MAP_SHARED, fd)))
+			return -1;
+
+		dcnt = MIN(stat.cluster_size
+			   - (stat.offset - stat.cluster_start), cnt);
+		memcpy(&((char *)buf)[count-cnt],
+		       &mem[stat.offset - stat.cluster_start], dcnt);
+
+		if (sw_munmap(mem) == -1
+		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1)
+			return -1;
+
+		cnt -= dcnt;
+	}
+
+	return count-cnt;
+}
+
+/* Like write(2), write count bytes from buf starting at the current
+ * filepointer position. */
+ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
+{
+	struct sw_stat stat;
+	char *mem;
+	size_t dcnt, cnt = count;
+
+	/* Check, if we need to expand the file. */
+	if (sw_fstat(fd, &stat) == -1)
+		return -1;
+	if (stat.offset + count > stat.size)
+		if (sw_ftruncate(fd, stat.offset + count) == -1)
+			return -1;
+
+	while (cnt > 0) {
+		if (sw_fstat(fd, &stat) == -1
+		    || !(mem = sw_mmap(NULL, PROT_READ|PROT_WRITE,
+				       MAP_SHARED, fd)))
+			return -1;
+
+		dcnt = MIN(stat.cluster_size
+			   - (stat.offset - stat.cluster_start), cnt);
+		memcpy(&mem[stat.offset - stat.cluster_start],
+		       &((const char *)buf)[count-cnt], dcnt);
+
+		if (sw_munmap(mem) == -1
+		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1)
+			return -1;
+
+		cnt -= dcnt;
+	}
+
+	return count-cnt;
 }
 
 /* Obtain information about the file - works like fstat(2), but
@@ -434,28 +525,15 @@ int sw_fstat(swfd_t fd, struct sw_stat *buf)
  * as they are determined by the actual cluster offset/size. */
 void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 {
-	return NULL;
+	struct swfd *_fd = SWFD(fd);
+
+	if (!_fd->c)
+		return NULL; /* FIXME - provide private zero mapping? */
+	return cluster_mmap(_fd->c, start, prot, flags);
 }
 
 /* Unmaps a previously mapped part of a file. Like munmap(2). */
 int sw_munmap(void *start)
 {
-	return -1;
-}
-
-
-
-/******************************************************************
- * Internal stuff.
- */
-
-
-
-static struct swfd *_sw_open(long name, int flags)
-{
-	return NULL;
-}
-
-static void _sw_close(struct swfd *fd)
-{
+	return cluster_munmap(start);
 }

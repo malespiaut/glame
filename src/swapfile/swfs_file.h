@@ -42,7 +42,6 @@ struct swfile {
 	long name;
 	int usage;    /* number of references to this struct swfile */
 	int flags;    /* SWF_* */
-	int open_cnt; /* number of current opens (fd's) */
 	int fd;       /* the fd of the metadata */
 
 	/* Fields created out of the file metadata */
@@ -77,6 +76,9 @@ static struct swcluster *file_getcluster(struct swfile *f,
 					 int flags);
 
 
+/* Truncate the file to the given size. Returns 0 on success
+ * and -1 on error. */
 static int file_truncate(struct swfile *f, s64 size);
+
 
 #endif

@@ -32,14 +32,15 @@
 #include "swfs_file.h"
 
 
+/* The in-memory files hash and its lock. */
 HASH(swfile, struct swfile, 8,
      (swfile->name == name),
      (name),
      (swfile->name),
      long name)
-
-#define LOCKFILES do {} while (0)
-#define UNLOCKFILES do {} while (0)
+static pthread_mutex_t filesmx = PTHREAD_MUTEX_INITIALIZER;
+#define LOCKFILES do { pthread_mutex_lock(&filesmx); } while (0)
+#define UNLOCKFILES do { pthread_mutex_unlock(&filesmx); } while (0)
 
 #define LOCKFILE(f) do {} while (0)
 #define UNLOCKFILE(f) do {} while (0)
@@ -48,8 +49,8 @@ HASH(swfile, struct swfile, 8,
 static int __file_open(long name, int flags);
 static struct swfile *_file_creat(long name);
 static struct swfile *_file_stat(long name);
-static int _file_readclusters(struct swfile *f);
-static int _file_writeclusters(struct swfile *f);
+static void _file_readclusters(struct swfile *f);
+static void _file_writeclusters(struct swfile *f);
 
 
 
@@ -125,10 +126,12 @@ static void file_put(struct swfile *f, int flags)
 		if (f->flags & SWF_UNLINKED) {
 			/* SWF_UNLINKED files have the clusters in core. */
 			for (i=0; i<f->clusters->cnt; i++) {
-				c = cluster_get(CID(f->clusters, i),
-						CLUSTERGET_READFILES,
-						CSIZE(f->clusters, i));
-				cluster_delfileref(c, f->name);
+				if (!(c = cluster_get(CID(f->clusters, i),
+						      CLUSTERGET_READFILES,
+						      CSIZE(f->clusters, i))))
+					PANIC("Cannot get filecluster");
+				if (cluster_delfileref(c, f->name) == -1)
+					PANIC("Cannot del fileref");
 				cluster_put(c, 0);
 			}
 		} else {
@@ -175,9 +178,107 @@ static struct swcluster *file_getcluster(struct swfile *f,
 	return cluster_get(cid, flags, csize);
 }
 
+/* This function is protected by a global lock, so no locking
+ * necessary (against ctree modifying). */
 static int file_truncate(struct swfile *f, s64 size)
 {
-	/* FIXME */
+	struct swcluster *c, *c2;
+	char *m, *m2;
+	long cid;
+	s32 csize;
+
+	if (f->flags & SWF_NOT_IN_CORE)
+		DERROR("called with ctree not in core");
+
+	/* Well :) Simple cases first... */
+	if (f->clusters->total_size == size)
+		return 0;
+
+	/* File grows. This is the easy case. At least for now,
+	 * as we do this rather stupid and inefficient (read: we
+	 * really want to avoid creating new clusters) */
+	if (f->clusters->total_size < size) {
+		/* Allocate a new cluster, append it to the file
+		 * and insert the file reference. */
+		c = cluster_alloc(size - f->clusters->total_size);
+		cluster_addfileref(c, f->name);
+		LOCKFILE(f);
+		cid = c->name;
+		csize = c->size;
+		f->clusters = _insert_clusters(f->clusters, f->clusters->cnt,
+					       1, &cid, &csize);
+		UNLOCKFILE(f);
+		cluster_put(c, 0);
+		return 0;
+	}
+
+	/* File shrinks. Ugh - this is complicated. */
+	if (f->clusters->total_size > size) {
+		/* Start from the last cluster, removing complete
+		 * truncated clusters. */
+		while (f->clusters->total_size - CSIZE(f->clusters, f->clusters->cnt-1)) {
+			/* Get the cluster for later deleting the file
+			 * reference. */
+			if (!(c = cluster_get(CID(f->clusters, f->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(f->clusters, f->clusters->cnt-1))))
+				PANIC("cannot get cluster");
+			/* Remove the cluster from the tree. */
+			_replace_cluster(f->clusters, f->clusters->cnt-1,
+					 0, 0);
+			f->clusters->cnt--;
+			/* Delete the file reference. */
+			if (cluster_delfileref(c, f->name) == -1)
+				PANIC("cannot delete fileref");
+			cluster_put(c, 0);
+		}
+
+		/* If necessary, split the last cluster and remove
+		 * the second part. */
+		if (f->clusters->total_size == size)
+			return 0;
+		if (!(c = cluster_get(CID(f->clusters, f->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(f->clusters, f->clusters->cnt-1))))
+			PANIC("cannot get cluster");
+		/* Simple case of only one user of the to be split
+		 * cluster - just truncate it to the right length. */
+		if (c->files_cnt == 1) {
+			/* Correct cluster and the ctree. */
+			c->size -= f->clusters->total_size - size;
+			_replace_cluster(f->clusters, f->clusters->cnt-1,
+					 c->name, c->size);
+			/* Correct the on-disk file, if necessary. */
+			if (c->flags & SWC_CREAT) {
+				cluster_put(c, 0);
+				return 0;
+			}
+			if (c->fd == -1)
+				if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
+					PANIC("cannot open cluster");
+			if (ftruncate(c->fd, c->size) == -1)
+				PANIC("cannot truncate cluster file");
+			cluster_put(c, 0);
+			return 0;
+		}
+
+		/* Umm, now we have to either split the cluster to
+		 * allow it to be shared afterwards - or - for now
+		 * just to be simple - copy the cluster. */
+		LOCKFILE(f);
+		c2 = cluster_alloc(c->size - (f->clusters->total_size - size));
+		cluster_addfileref(c2, f->name);
+		_replace_cluster(f->clusters, f->clusters->cnt-1,
+				 c2->name, c2->size);
+		cluster_delfileref(c, f->name);
+		m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED);
+		m2 = cluster_mmap(c2, NULL, PROT_WRITE, MAP_SHARED);
+		memcpy(m2, m, c2->size);
+		cluster_munmap(m);
+		cluster_munmap(m2);
+		cluster_put(c, 0);
+		cluster_put(c2, 0);
+		UNLOCKFILE(f);
+
+		return -1;
+	}
+
 	return -1;
 }
 
@@ -187,6 +288,7 @@ static int file_truncate(struct swfile *f, s64 size)
  * Internal functions.
  */
 
+/* Helper for opening the metadata file. */
 static int __file_open(long name, int flags)
 {
 	char s[256];
@@ -210,7 +312,6 @@ static struct swfile *_file_creat(long name)
 	f->name = name;
 	f->usage = 1;
 	f->flags = SWF_DIRTY;
-	f->open_cnt = 0;
 	f->fd = -1;
 
 	/* Allocate a minimal cluster tree. */
@@ -247,54 +348,57 @@ static struct swfile *_file_stat(long name)
 	f->name = name;
 	f->flags = SWF_NOT_IN_CORE;
 	f->usage = 1;
-	f->open_cnt = 0;
 	f->clusters = NULL;
 	hash_add_swfile(f);
 
 	return f;
 }
 
-static int _file_readclusters(struct swfile *f)
+/* Reads the cluster tree into memory. Needs to have the
+ * on-disk file already open. SWF_DIRTY state and internal
+ * errors will cause a PANIC. !SWF_NOT_IN_CORE results in a
+ * nop. */
+static void _file_readclusters(struct swfile *f)
 {
 	struct stat st;
 
 	if (f->flags & SWF_DIRTY)
-		PANIC("read into dirty state");
-	if (!(f->flags & SWF_NOT_IN_CORE)) {
-		DPRINTF("called with cluster tree already in core");
-		return 0;
-	}
+		PANIC("Read into dirty state");
+	if (!(f->flags & SWF_NOT_IN_CORE))
+		return;
 
 	/* Load cluster tree. */
 	if (fstat(f->fd, &st) == -1)
-		PANIC("Umm");
-	f->clusters = (struct ctree *)malloc(st.st_size);
-	if (!f->clusters)
-		return -1;
+		PANIC("Cannot stat");
+	if (!(f->clusters = (struct ctree *)malloc(st.st_size)))
+		PANIC("No memory for cluster tree");
 	if (read(f->fd, f->clusters, st.st_size) != st.st_size)
-		PANIC("Umm");
+		PANIC("Cannot read cluster tree");
 	if (st.st_size != CTREESIZE(f->clusters->height))
-		PANIC("Corrupted file?");
-
+		PANIC("Corrupted cluster tree file");
 	f->flags &= ~SWF_NOT_IN_CORE;
-	return 0;
 }
 
-static int _file_writeclusters(struct swfile *f)
+/* Write the clusters tree to the on-disk representation of
+ * the file. Creates this file, if necessary. Calling with
+ * SWF_DIRTY not set or SWF_NOT_IN_CORE or SWF_UNLINKED set
+ * results in a nop.
+ * On internal failures a PANIC is caused. */
+static void _file_writeclusters(struct swfile *f)
 {
-	if ((f->flags & SWF_NOT_IN_CORE) || !(f->flags & SWF_DIRTY))
-		PANIC("Umm..");
+	if (!(f->flags & SWF_DIRTY)
+	    || (f->flags & SWF_NOT_IN_CORE)
+	    || (f->flags & SWF_UNLINKED))
+		return;
 
 	if (f->fd == -1
 	    && (f->fd = __file_open(f->name, O_RDWR|O_CREAT|O_EXCL)) == -1)
 		PANIC("Inconsistent in-core/on-disk state");
 
-	ftruncate(f->fd, CTREESIZE(f->clusters->height));
-	lseek(f->fd, 0, SEEK_SET);
-	if (write(f->fd, f->clusters, CTREESIZE(f->clusters->height))
-	    != CTREESIZE(f->clusters->height))
-		return -1;
-
+	if (ftruncate(f->fd, CTREESIZE(f->clusters->height)) == -1
+	    || lseek(f->fd, 0, SEEK_SET) != 0
+	    || (write(f->fd, f->clusters, CTREESIZE(f->clusters->height))
+		!= CTREESIZE(f->clusters->height)))
+		PANIC("Cannot write the cluster tree");
 	f->flags &= ~SWF_DIRTY;
-	return 0;
 }

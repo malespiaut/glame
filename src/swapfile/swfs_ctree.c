@@ -111,7 +111,7 @@ static struct ctree *_insert_clusters(struct ctree *h, int pos,
 		dest = h;
 
 	/* Fill the cluster ids/sizes into the destination tree. */
-	for (i=h->cnt-1; i>=h->cnt-pos; i--) {
+	for (i=(long)(h->cnt)-1; i>=(long)(h->cnt)-pos; i--) {
 		CID(dest, i+cnt) = CID(h, i);
 		CSIZE(dest, i+cnt) = CSIZE(h, i);
 	}
@@ -125,6 +125,7 @@ static struct ctree *_insert_clusters(struct ctree *h, int pos,
 	}
 
 	/* Build the tree over the cluster sizes. */
+	dest->cnt = h->cnt + cnt;
 	build_tree(dest);
 
 	return dest;

@@ -25,33 +25,42 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "util.h"
 #include "hash.h"
+#include "pmap.h"
 #include "swfs_cluster.h"
 
 
+/* The in-memory cluster hash and a lock protecting it. */
 HASH(swcluster, struct swcluster, 10,
      (swcluster->name == name),
      (name),
      (swcluster->name),
      long name)
-
 #define LOCKCLUSTERS do {} while (0)
 #define UNLOCKCLUSTERS do {} while (0)
 
+/* Per cluster lock that protects the files list/cnt and the
+ * cluster size/flags. */
 #define LOCKCLUSTER(c) do {} while (0)
 #define UNLOCKCLUSTER(c) do {} while (0)
 
 
+/* The internal helpers (with no locking) */
 static int __cluster_data_open(long name, int flags);
 static int __cluster_meta_open(long name, int flags);
 static struct swcluster *_cluster_creat(long name);
 static struct swcluster *_cluster_stat(long name, s32 known_size);
-static int _cluster_readfiles(struct swcluster *c);
-static int _cluster_writefiles(struct swcluster *c);
+static void _cluster_readfiles(struct swcluster *c);
+static void _cluster_writefiles(struct swcluster *c);
 
+
+/***********************************************************************
+ * API stuff. For documentation see headerfile.
+ */
 
 static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 {
@@ -92,9 +101,17 @@ static void cluster_put(struct swcluster *c, int flags)
 		hash_remove_swcluster(c);
 		UNLOCKCLUSTERS;
 
-		/* Close the data fd. */
+		/* Close the data fd - or create the file, if
+		 * necessary. */
 		if (c->fd != -1)
 			close(c->fd);
+		else if ((c->flags & SWC_CREAT) && c->files_cnt != 0) {
+			if ((c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1
+			    || ftruncate(c->fd, c->size) == -1)
+				PANIC("Cannot create/write cluster");
+			close(c->fd);
+			c->flags &= ~SWC_CREAT;
+		}
 
 		/* If there are no users (files) left, unlink the
 		 * on-disk representations. */
@@ -124,7 +141,31 @@ static void cluster_put(struct swcluster *c, int flags)
 	}
 }
 
-static int cluster_addfileref(struct swcluster *c, long file)
+static struct swcluster *cluster_alloc(s32 size)
+{
+	static pthread_mutex_t mx = PTHREAD_MUTEX_INITIALIZER;
+	struct swcluster *c;
+	long cid;
+
+	/* This lock protects against racing free cid finding. */
+	pthread_mutex_lock(&mx);
+
+	/* Try, until we find an unallocated cid. */
+	cid = rand();
+	while ((c = cluster_get(cid, 0, -1))) {
+		cluster_put(c, 0);
+		cid = rand();
+	}
+
+	if ((c = _cluster_creat(cid)))
+		c->size = size;
+
+	pthread_mutex_unlock(&mx);
+
+	return c;
+}
+
+static void cluster_addfileref(struct swcluster *c, long file)
 {
 	LOCKCLUSTER(c);
 	/* Bring in the files list, if necessary. */
@@ -139,8 +180,6 @@ static int cluster_addfileref(struct swcluster *c, long file)
 	c->files[c->files_cnt] = file;
 	c->files_cnt++;
 	UNLOCKCLUSTER(c);
-
-	return 0;
 }
 
 static int cluster_delfileref(struct swcluster *c, long file)
@@ -175,9 +214,36 @@ static int cluster_delfileref(struct swcluster *c, long file)
 	return -1;
 }
 
+void *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
+{
+	/* Need to create the file? Also truncate to the right size. */
+	if (c->flags & SWC_CREAT) {
+		c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT);
+		if (c->fd == -1
+		    || ftruncate(c->fd, c->size) == -1)
+			PANIC("Cannot open/creat cluster data");
+		c->flags &= ~SWC_CREAT;
+	}
+	/* Open the cluster datafile, if necessary. */
+	if (c->fd == -1)
+		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
+			PANIC("Cluster vanished under us?");
+	return pmap_map(start, c->size, prot, flags, c->fd, 0);
+}
+
+int cluster_munmap(void *start)
+{
+	return pmap_unmap(start);
+}
 
 
 
+
+/***********************************************************************
+ * Internal helpers. No locking.
+ */
+
+/* Helpers for opening the clusters metadata or data file on disk. */
 static int __cluster_meta_open(long name, int flags)
 {
 	char s[256];
@@ -193,6 +259,11 @@ static int __cluster_data_open(long name, int flags)
 	return open(s, flags, 0666);
 }
 
+/* Create a new in-memory representation of a cluster with name
+ * entirely from scratch. To be useful you have to know no on-disk
+ * or in-memory representation for this cluster exists. Initial
+ * state is SWC_DIRTY|SWC_CREAT.
+ * Returns a cluster reference or NULL if no memory was available. */
 static struct swcluster *_cluster_creat(long name)
 {
 	struct swcluster *c;
@@ -213,6 +284,13 @@ static struct swcluster *_cluster_creat(long name)
 	return c;
 }
 
+/* Create a new in-memory representation of a cluster. Information
+ * is generated using the on-disk representation - and an optional
+ * provided size of the cluster (this will skip the stat of the
+ * on-disk representation), which can be -1 if you dont know it or
+ * if the cluster exists at all.
+ * Returns a cluster reference, or NULL if anything went wrong.
+ * Initial state of the cluster will be SWC_NOT_IN_CORE. */
 static struct swcluster *_cluster_stat(long name, s32 known_size)
 {
 	struct swcluster *c;
@@ -246,51 +324,57 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 	return c;
 }
 
-static int _cluster_readfiles(struct swcluster *c)
+/* Reads the list of cluster users into memory. It is an error
+ * to call this operation on a SWC_DIRTY cluster. For clusters
+ * which already have the list this is a nop. Any internal error
+ * causes a PANIC. Clears SWC_NOT_IN_CORE flag. */
+static void _cluster_readfiles(struct swcluster *c)
 {
 	int fd;
 	struct stat stat;
 
 	if (c->flags & SWC_DIRTY)
 		PANIC("read into dirty state");
-	if (!(c->flags & SWC_NOT_IN_CORE)) {
-		DPRINTF("called with files already in core");
-		return 0;
-	}
+	if (!(c->flags & SWC_NOT_IN_CORE))
+		return;
 
 	/* Load files list. */
 	if ((fd = __cluster_meta_open(c->name, O_RDWR)) == -1
 	    || fstat(fd, &stat) == -1)
 		PANIC("metadata vanished under us");
 	if (!(c->files = (long *)malloc(stat.st_size)))
-		return -1;
+		PANIC("no memory for files list");
 	c->files_cnt = stat.st_size/sizeof(long);
 	if (read(fd, c->files, stat.st_size) != stat.st_size)
 		PANIC("cannot read cluster metadata");
-	close(fd);
-
 	c->flags &= ~SWC_NOT_IN_CORE;
-	return 0;
-}
-
-static int _cluster_writefiles(struct swcluster *c)
-{
-	int fd;
-
-	if (!(c->flags & SWC_DIRTY)) {
-		DPRINTF("called non dirty");
-		return 0;
-	}
-	if (c->flags & SWC_NOT_IN_CORE)
-		PANIC("called with files not in core");
-
-	if ((fd = __cluster_meta_open(c->name, O_RDWR|O_CREAT)) == -1
-	    || ftruncate(fd, c->files_cnt*sizeof(long)) == -1
-	    || write(fd, c->files, c->files_cnt*sizeof(long)) != c->files_cnt*sizeof(long))
-		PANIC("cannot write cluster metadata");
 	close(fd);
-
-	c->flags &= ~SWC_DIRTY;
-	return 0;
 }
 
+/* Writes the list of cluster users - the file list - to
+ * the on-disk metadata file of the cluster. This file gets
+ * created, if it is necessary.
+ * If the cluster is not SWC_DIRTY this has no effect. The
+ * SWC_DIRTY flag is cleared. Also for SWC_NOT_IN_CORE this
+ * is a nop, too.
+ * Failure is not permitted at any stage of this operation,
+ * so we PANIC in this case. */
+static void _cluster_writefiles(struct swcluster *c)
+{
+	int fd, size;
+
+	if (!(c->flags & SWC_DIRTY)
+	    || c->flags & SWC_NOT_IN_CORE)
+		return;
+
+	/* Open the metadatafile for writing (creating it, if it
+	 * does not already exist), truncate it to the right
+	 * size and write the file ids to the file. */
+	size = c->files_cnt*sizeof(long);
+	if ((fd = __cluster_meta_open(c->name, O_RDWR|O_CREAT)) == -1
+	    || ftruncate(fd, size) == -1
+	    || write(fd, c->files, size) != size)
+		PANIC("cannot write cluster metadata");
+	c->flags &= ~SWC_DIRTY;
+	close(fd);
+}

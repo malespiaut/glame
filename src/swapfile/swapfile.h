@@ -49,6 +49,11 @@
  * storage requirement for metadata is quite difficult.
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "glame_types.h"
 #include "txn.h"
 
@@ -154,6 +159,14 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode);
 
 /* Update the file pointer position like lseek(2). */
 off_t sw_lseek(swfd_t fd, off_t offset, int whence);
+
+/* Like read(2), read count bytes from the current filepointer
+ * position to the array pointed to by buf. */
+ssize_t sw_read(swfd_t fd, void *buf, size_t count);
+
+/* Like write(2), write count bytes from buf starting at the current
+ * filepointer position. */
+ssize_t sw_write(swfd_t fd, const void *buf, size_t count);
 
 /* Obtain information about the file - works like fstat(2), but
  * with different struct stat. Also included is information about

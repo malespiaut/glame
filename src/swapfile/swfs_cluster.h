@@ -69,16 +69,29 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size);
 #define CLUSTERPUT_SYNC 1
 static void cluster_put(struct swcluster *c, int flags);
 
+
+/* Allocates a new cluster with room for size bytes of data.
+ * Returns a cluster reference on success, NULL on failure. */
+static struct swcluster *cluster_alloc(s32 size);
+
+
 /* Adds the specified file to the list of users of this cluster. */
-static int cluster_addfileref(struct swcluster *c, long file);
+static void cluster_addfileref(struct swcluster *c, long file);
 
 /* Deletes the specified file from the list of users of this
- * cluster. */
+ * cluster. Returns 0 if this was succesful and -1 if there
+ * was no such user file. */
 static int cluster_delfileref(struct swcluster *c, long file);
 
 
-static struct swcluster *cluster_create();
-static int cluster_truncate(struct swcluster *c, s32 size);
+/* Creates a memory map of the cluster c possibly at address
+ * start with protection and flags like mmap(2). */
+static void *cluster_mmap(struct swcluster *c,void *start,
+			  int prot, int flags);
+
+/* Unmaps a previously mmapped cluster. Returns 0 on success
+ * and -1 on error (invalid supplied address) */
+static int cluster_munmap(void *start);
 
 
 #endif
