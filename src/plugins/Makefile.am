@@ -1,9 +1,9 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c \
-	ssp.c fft_plugins.c \
+	ssp.c normalize.c fft_plugins.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c flanger.c distortion.c\
@@ -43,7 +43,8 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la\
+	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
+	normalize.la\
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
 
@@ -98,3 +99,8 @@ if HAVE_SGI
 audio_io_irix_la_SOURCES = audio_io_irix.c audio_io.h
 endif
 audio_io_irix_la_LDFLAGS = -module -avoid-version $(SGIAUDIO_LIBS)
+
+if HAVE_GNOME
+normalize_la_SOURCES = normalize.c
+endif
+normalize_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
