@@ -36,7 +36,12 @@
 (let ((pos (waveedit-get-scroll))) (waveedit-set-scroll-position! (- (caddr (cddr pos)) (car pos))))
   </accel>
   <accel state="0" spec="space">
-(waveedit-play)
+(let ((grp (waveedit-gpsm-grp))
+      (sel (waveedit-get-selection))
+      (mar (waveedit-get-marker)))
+  (if (&lt;= (cdr sel) 0)
+      (waveedit-play mar (- (gpsm-item-hsize grp) mar) #f #f)
+      (waveedit-play (car sel) (+ (car sel) (cdr sel)) #t #f)))
   </accel>
 </scope>
 
