@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.1 2001/06/04 16:02:50 richi Exp $
+ * $Id: glame_accelerator.c,v 1.2 2001/06/06 12:02:36 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -84,6 +84,7 @@ static SCM delete_widget(SCM s_widget)
 {
 	GtkWidget *widget = (GtkWidget *)gh_scm2long(s_widget);
 	gtk_widget_destroy(widget);
+	return SCM_UNSPECIFIED;
 }
 
 static gint accel_cb(GtkWidget *widget, GdkEventKey *event,
@@ -165,14 +166,34 @@ int glame_accel_add(const char *spec, const char *action)
 	return 0;
 }
 
+static void _free_accel(struct accel *accel)
+{
+	hash_remove_accel(accel);
+	list_del(&accel->list);
+	free(accel->spec);
+	free(accel->action);
+	free(accel);
+}
+
 void glame_accel_del(const char *spec)
 {
-	/* FIXME */
+	struct accel *accel;
+
+	if (!(accel = hash_find_accel(spec)))
+		return;
+	_free_accel(accel);
 }
 
 void glame_accel_del_all(const char *scope)
 {
-	/* FIXME */
+	struct accel *accel, *dummy;
+	int len;
+
+	len = strlen(scope);
+	list_safe_foreach(&accel_list, struct accel, list, dummy, accel) {
+		if (strncmp(accel->spec, scope, len) == 0)
+			_free_accel(accel);
+	}
 }
 
 
