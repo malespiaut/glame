@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.12 2004/05/22 21:37:28 ochonpaul Exp $
+ * $Id: gltree.cpp,v 1.13 2004/05/28 21:28:57 ochonpaul Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -51,6 +51,7 @@ static void addfile_cb(GtkWidget *menu, gpointer treeview);
 static void addstereo_cb(GtkWidget *menu,  gpointer treeview);
 static void addclipboard_cb(GtkWidget * menu, gpointer treeview);
 static void mergeparent_cb(GtkWidget *menu, gpointer which);
+static void copyselected_cb(GtkWidget *menu, gpointer which);
 static void import_cb(GtkWidget *menu, gpointer treeview);
 static void export_cb(GtkWidget *bla, gpointer treeview); 
 
@@ -265,6 +266,11 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 	menuitem = gtk_menu_item_new_with_label(_("Merge with parent"));
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) mergeparent_cb, which);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
+
+	menuitem = gtk_menu_item_new_with_label(_("Copy selected"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) copyselected_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);	
 
 	menuitem = gtk_separator_menu_item_new();
@@ -728,6 +734,67 @@ static void mergeparent_cb(GtkWidget *menu, gpointer which)
 				   gtk_tree_model_get_path(model,&iter2),
 				   FALSE);
 }
+
+
+/* Copy (COW, new swapfiles) the selected item as child of the
+ * current item. */
+static void copyselected_cb(GtkWidget *menu, gpointer which)
+{
+        gpsm_item_t *selected_item, *dest_item;
+	GtkTreeIter *dest_iter = (GtkTreeIter *)which, selected_iter, iter3, iter4;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
+	GtkTreeSelection *selection;
+	gboolean valid = TRUE;
+
+	gtk_tree_model_get(model, dest_iter, glTree::GPSM_ITEM, &dest_item, -1);
+	if (!GPSM_ITEM_IS_GRP(dest_item))
+		return;
+
+	selection = gtk_tree_view_get_selection(glTree::tree);
+	if (!gtk_tree_selection_get_selected(selection, &model, &selected_iter)) return;
+	gtk_tree_model_get(model, &selected_iter, glTree::GPSM_ITEM, &selected_item, -1);
+	
+	gpsm_item_t *copy;
+
+	/* Dont allow copying myself into myself. */
+	if (selected_item == dest_item)
+	  return;
+
+	if (GPSM_ITEM_IS_SWFILE(selected_item))
+	  copy = (gpsm_item_t *)gpsm_swfile_cow((gpsm_swfile_t *)selected_item);
+	else if (GPSM_ITEM_IS_GRP(selected_item))
+	  copy = (gpsm_item_t *)gpsm_grp_cow((gpsm_grp_t *)selected_item);
+	else
+	  return;
+	if (gpsm_grp_is_vbox((gpsm_grp_t *)dest_item))
+	  gpsm_vbox_insert((gpsm_grp_t *)dest_item, copy,
+			   0, gpsm_item_vsize(dest_item));
+	else if (gpsm_grp_is_hbox((gpsm_grp_t *)dest_item))
+	  gpsm_hbox_insert((gpsm_grp_t *)dest_item, copy,
+			   gpsm_item_hsize(dest_item), 0);
+	else {
+	  gnome_dialog_run_and_close(GNOME_DIALOG(
+						  gnome_error_dialog(_("Cannot place item into irregular group"))));
+	  gpsm_item_destroy(copy);
+	  
+	}
+
+	// Update tree store: Clear then fill the parent reading the gpsm tree
+	if (!gtk_tree_model_iter_children(model,  &iter3, dest_iter)){ DPRINTF("no child\n");return; }
+	while (valid){
+	    iter4 = iter3;     
+	    valid = gtk_tree_model_iter_next(model ,&iter3);
+	    gtk_tree_store_remove(GTK_TREE_STORE(model) ,&iter4);
+	  }
+	  fill_tree_store((gpsm_item_t *) dest_item, GTK_TREE_STORE(model), dest_iter);
+	 	
+	  // Expand the parent widget. 
+	  gtk_tree_view_expand_row(glTree::tree,
+				   gtk_tree_model_get_path(model,dest_iter),
+				   FALSE);
+          // deselect_all(active_swapfilegui);
+}
+
 
 static void import_cb(GtkWidget *menu, gpointer which)
 {
