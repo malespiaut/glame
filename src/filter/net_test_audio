@@ -1,4 +1,4 @@
-(filternetwork test-audio
+(filternetwork test-audio "the tuuut-er"
 	(node sin1 sinus)
 	(node aout audio_out)
 	(connect sin1 out aout in)

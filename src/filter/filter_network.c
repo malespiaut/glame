@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.25 2000/02/22 15:27:16 richi Exp $
+ * $Id: filter_network.c,v 1.26 2000/02/22 15:58:28 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -777,15 +777,21 @@ char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
 }
 
 
-#define FNREGEXP_ARGCOMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+|\"[^\"]*\")[[:space:]]*([[:alnum:]._-]*|\"[^\"]*\")[[:space:]]*\\)|[[:space:]]*\\)"
+#define CMD       "([[:alpha:]-]+)"
+#define IDENT     "([[:alpha:]][[:alnum:]_-]*)"
+#define IDENT_OPT "([[:alpha:]]?|[[:alpha:]][[:alnum:]_-]*)"
+#define ARG       "([[:alnum:]._-]+|\"[^\"]*\")"
+#define ARG_OPT   "([[:alnum:]._-]*|\"[^\"]*\")"
 
-#define FNREGEXP_NODE "[[:space:]]*([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)"
-#define FNREGEXP_CONNECT "[[:space:]]*([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]*"
-#define FNREGEXP_SETPARAM "[[:space:]]*([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]*|\"[^\"]*\")[[:space:]]*\\)"
+#define FNREGEXP_ARGCOMMAND "[[:space:]]*\\([[:space:]]*"CMD"[[:space:]]+"IDENT"[[:space:]]+"ARG"[[:space:]]*"ARG_OPT"[[:space:]]*\\)|[[:space:]]*\\)"
 
-#define FNREGEXP_COMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]._-]+)[[:space:]]+|[[:space:]]*\\)"
+#define FNREGEXP_NODE "[[:space:]]*"IDENT"[[:space:]]+"IDENT
+#define FNREGEXP_CONNECT "[[:space:]]*"IDENT"[[:space:]]+"IDENT"[[:space:]]+"IDENT"[[:space:]]+"IDENT"[[:space:]]*"
+#define FNREGEXP_SETPARAM "[[:space:]]*"IDENT"[[:space:]]+"ARG"[[:space:]]*\\)"
 
-#define FNREGEXP_FILTERNETWORK "[[:space:]]*\\([[:space:]]*filternetwork[[:space:]]+([[:alnum:]._-]+)[[:space:]]+"
+#define FNREGEXP_COMMAND "[[:space:]]*\\([[:space:]]*"CMD"[[:space:]]+|[[:space:]]*\\)"
+
+#define FNREGEXP_FILTERNETWORK "[[:space:]]*\\([[:space:]]*filternetwork[[:space:]]+"IDENT"[[:space:]]+"ARG"[[:space:]]+"
 
 static int parse_node(filter_network_t *net, char **buf)
 {
@@ -956,7 +962,7 @@ filter_network_t *string2net(char *buf, filter_network_t *net)
 	if (!(buf = glame_parse(buf, FNREGEXP_FILTERNETWORK, argv, 0)))
 		goto err;
 	if (!net) {
-		if (!(net = filternetwork_new(argv[0]))) {
+		if (!(net = filternetwork_new(argv[0], argv[1]))) {
 			DPRINTF("unable to create network\n");
 			goto err;
 		}

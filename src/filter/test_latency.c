@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.10 2000/02/16 13:04:01 richi Exp $
+ * $Id: test_latency.c,v 1.11 2000/02/22 15:58:28 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!(net = filternetwork_new("test"))) {
+	if (!(net = filternetwork_new("test", "test"))) {
 		fprintf(stderr, "error in filternetwork_new()\n");
 		return -1;
 	}

@@ -1,4 +1,4 @@
-(filternetwork play
+(filternetwork play "play files with echo-effect"
 	(node rf read_file
 		(export-param filename filename "file to be played")
 	)
