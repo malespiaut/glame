@@ -177,8 +177,8 @@ void scminvalidatefilter(SCM filter_smob)
 static SCM filterp(SCM filter_smob)
 {
 	if (filter_p(filter_smob))
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		return SCM_BOOL_T;
+	return SCM_BOOL_f;
 }
 
 
