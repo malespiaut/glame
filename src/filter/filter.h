@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.20 2000/02/14 13:23:40 richi Exp $
+ * $Id: filter.h,v 1.21 2000/02/14 15:03:58 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -424,17 +424,17 @@ int filternode_get_paramstring(filter_node_t *n, const char *label,
  * val.
  * Returns -1 if that is not possible.
  */
-int filterpipe_setparam(filter_pipe_t *p, const char *label, void *val);
+int filterpipe_set_param(filter_pipe_t *p, const char *label, void *val);
 
 /* set a parameter from a value contained in a string, returns sscanf
  * result, i.e. 1 on success */
-int filterpipe_setparamstring(filter_pipe_t *p, const char *label,
-			      const char *val);
+int filterpipe_set_paramstring(filter_pipe_t *p, const char *label,
+			       const char *val);
 
 /* get a parameter as a string, returns snprintf result, i.e. number
  * of printed characters */
-int filterpipe_getparamstring(filter_pipe_t *p, const char *label,
-			      char *val, ssize_t s);
+int filterpipe_get_paramstring(filter_pipe_t *p, const char *label,
+			       char *val, ssize_t s);
 
 
 

@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.5 2000/02/10 14:50:52 nold Exp $
+@comment $Id: filter.texi,v 1.6 2000/02/14 15:03:58 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -105,14 +105,21 @@ structure on success and @code{NULL} on error.
 @tindex filter_paramdesc_t
 @tindex filter_t
 @deftypefun {filter_paramdesc_t *} filter_add_param (filter_t *@var{filter}, const char *@var{label}, const char *@var{description}, int @var{type})
+@deftypefunx {filter_paramdesc_t *} filter_add_pipeparam (filter_t *@var{filter}, const char *@var{port}, const char *@var{label}, const char *@var{description}, int @var{type})
 @code{filter_add_param()} adds a parameter with the specified @var{label} and
-@var{description} to the filter. @var{type} specifies the type of the parameter
+@var{description} to the filter. @code{filter_add_pipepara()} adds a parameter to the specified port, parameter values can be set per pipe. @var{type} specifies the type of the parameter
 including a flag @code{FILTER_PARAMTYPE_OUTPUT} which will specify the
 parameter as an output one. The currently supported parameter types are
 @code{FILTER_PARAMTYPE_INT}, @code{FILTER_PARAMTYPE_FLOAT}, @code{FILTER_PARAMTYPE_SAMPLE},
 @code{FILTER_PARAMTYPE_FILE} and @code{FILTER_PARAMTYPE_STRING}.
 @code{filter_add_param()} will return the parameter description structure on
 success and @code{NULL} on error.
+@end deftypefun
+
+@deftypefun void filter_delete_port (filter_t *@var{filter}, filter_portdesc_t *@var{port})
+@deftypefunx void filter_delete_param (filter_t *@var{filter}, filter_paramdesc_t *@var{param})
+Both functions delete a port from a filter or a parameter from a filter or
+a filter port.
 @end deftypefun
 
 @tindex filter_t
@@ -132,8 +139,8 @@ type @code{filter_t} to get access to the @code{name}, @code{description},
 @code{parameter}, @code{inputs} and @code{output} fields.
 
 @tindex filter_t
-@deftypefun {filter_t *} hash_find_filter (char *@var{name})
-@code{hash_find_filter()} will return a handle to the filter with the
+@deftypefun {filter_t *} filter_get (char *@var{name})
+@code{filter_get()} will return a handle to the filter with the
 specified @var{name}, or @code{NULL} if no such filter is registered.
 @end deftypefun
 
@@ -167,13 +174,13 @@ or input ports the following functions can be used.
 
 @tindex filter_portdesc_t
 @tindex filter_t
-@deftypefun {filter_portdesc_t *} hash_find_inputdesc (const char *@var{label}, filter_t *@var{f})
+@deftypefun {filter_portdesc_t *} filter_get_inputdesc (filter_t *@var{f}, const char *@var{label})
 @tindex filter_portdesc_t
 @tindex filter_t
-@deftypefunx {filter_portdesc_t *} hash_find_outputdesc (const char *@var{label}, filter_t *@var{f})
+@deftypefunx {filter_portdesc_t *} filter_get_outputdesc (filter_t *@var{f}, const char *@var{label})
 @tindex filter_paramdesc_t
 @tindex filter_t
-@deftypefunx {filter_paramdesc_t *} hash_find_paramdesc (const char *@var{label}, filter_t *@var{f})
+@deftypefunx {filter_paramdesc_t *} filter_get_paramdesc (filter_t *@var{f}, const char *@var{label})
 All these functions find input port, output port or parameter
 description structures by the name of the port or parameter specified by
 @var{label}. @code{NULL} is returned, if a port or parameter with the specified 
@@ -182,13 +189,13 @@ name does not exist.
 
 @tindex filter_portdesc_t
 @tindex filter_t
-@deftypefn Iterator {} list_foreach_inputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
+@deftypefn Iterator {} filter_foreach_inputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
 @tindex filter_portdesc_t
 @tindex filter_t
-@deftypefnx Iterator {} list_foreach_outputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
+@deftypefnx Iterator {} filter_foreach_outputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
 @tindex filter_paramdesc_t
 @tindex filter_t
-@deftypefnx Iterator {} list_foreach_paramdesc (filter_t *@var{f}, filter_paramdesc_t *@var{d}) @{ @}
+@deftypefnx Iterator {} filter_foreach_paramdesc (filter_t *@var{f}, filter_paramdesc_t *@var{d}) @{ @}
 All these macros are @code{for} statement-like constructs which loop
 through all available input port, output port or parameter descriptions
 of a filter using the provided variable @var{d}.
@@ -211,6 +218,17 @@ Both macros return the description of the parameter or the port.
 @deftypefunx int filterportdesc_type (filter_portdesc_t *@var{d})
 Both macros return the type of the parameter or the port.
 @end deftypefun
+
+@deftypefun int filterportdesc_nrparams (filter_portdesc_t *@var{d})
+@deftypefunx {filter_paramdesc_t *} filterportdesc_get_paramdesc (filter_portdesc_t *@var{d}, const char *@var{label})
+These are functions to access the number of parameters a port has and to
+query its parameter descriptions.
+@end deftypefun
+
+@deftypefn Iterator {} filterportdesc_foreach_paramdesc (filter_portdesc_t *@var{d}, filter_paramdesc_t *@var{p})
+This iterator iterates through all available parameter descriptions attached
+to the port @var{d}.
+@end deftypefn
 
 
 @node The Filter Programming API, The Filter Network API,The Filter Registry API, Filter API
@@ -282,7 +300,7 @@ Otherwise return 0.
 
 @tindex filter_node_t
 @deftypefn Method int fixup_param (filter_node_t *@var{n}, const char *@var{name})
-@code{fixup_param()} gets called by @code{filternode_setparam()}. I.e. 
+@code{fixup_param()} gets called by @code{filternode_set_param()}. I.e. 
 you may accept or
 reject a parameter change for the filter. Return -1 if you do not like
 anything about the setup. You have to fix the pipe parameters of
@@ -330,13 +348,13 @@ respectively.
 
 @tindex filter_pipe_t
 @tindex filter_node_t
-@deftypefun {filter_pipe_t *} hash_find_input (const char *@var{label}, filter_node_t *@var{n})
+@deftypefun {filter_pipe_t *} filternode_get_input (filter_node_t *@var{n}, const char *@var{label})
 @tindex filter_pipe_t
 @tindex filter_node_t
-@deftypefunx {filter_pipe_t *} hash_find_output (const char *@var{label}, filter_node_t *@var{n})
+@deftypefunx {filter_pipe_t *} filternode_get_output (filter_node_t *@var{n}, const char *@var{label})
 @tindex filter_param_t
 @tindex filter_node_t
-@deftypefunx {filter_param_t *} hash_find_param (const char *@var{label}, filter_node_t *@var{n})
+@deftypefunx {filter_param_t *} filternode_get_param (filter_node_t *@var{n}, const char *@var{label})
 These functions will find a connected input or output port or a set
 parameter by providing its @var{label} and the filternode instance.
 The functions will return @code{NULL} if there is no such connection or no
@@ -345,9 +363,9 @@ such set parameter. For a description of the returned structures see
 @end deftypefun
 
 @tindex filter_pipe_t
-@deftypefun {filter_pipe_t *} hash_next_input (filter_pipe_t *@var{p})
+@deftypefun {filter_pipe_t *} filternode_next_input (filter_pipe_t *@var{p})
 @tindex filter_pipe_t
-@deftypefunx {filter_pipe_t *} hash_next_output (filter_pipe_t *@var{p})
+@deftypefunx {filter_pipe_t *} filternode_next_output (filter_pipe_t *@var{p})
 These functions will return the next connection on the same port where
 the first connection on the port was accessed using the above
 functions. This is useful for ports with the @code{FILTER_PORTTYPE_AUTOMATIC}
@@ -356,10 +374,10 @@ flag set only.
 
 @tindex filter_node_t
 @tindex filter_pipe_t
-@deftypefn Iterator {} list_foreach_input (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
+@deftypefn Iterator {} filternode_foreach_input (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
 @tindex filter_node_t
 @tindex filter_pipe_t
-@deftypefnx Iterator {} list_foreach_output (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
+@deftypefnx Iterator {} filternode_foreach_output (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
 These programming structures loop through all connected inputs or
 outputs. This is useful for filters with only one input or output port
 which additionally is of the type @code{FILTER_PORTTYPE_AUTOMATIC}. It acts
@@ -389,6 +407,13 @@ With the appropriate
 type specific function you can get access to the type specific parameters of
 the pipe.
 @end deftypefun
+
+@deftypefun int filterpipe_nrparams (filter_pipe_t *@var{p})
+@deftypefunx {filter_param_t *} filterpipe_get_param (filter_pipe_t *@var{p}, const char *@var{label})
+With these functions you get access to the number of set parameters on a pipe
+and to the actual parameter by name.
+@end deftypefun
+
 
 @findex connect_out
 @findex fixup_param
@@ -649,6 +674,17 @@ if an error occured.
 filter nodes.
 @end deftypefun
 
+@deftypefun int filternetwork_nrnodes (filter_network_t *@var{net})
+@deftypefunx {filter_node_t *} filternetwork_get_node (filter_network_t *@var{net}, const char *@var{name})
+With this functions you can query the number of nodes in the network and
+get access to them by name.
+@end deftypefun
+
+@deftypefn Iterator {} filternetwork_foreach_node (filter_network_t *@var{net}, filter_node_t *@var{node})
+This iterator iterates through all nodes in the network.
+@end deftypefn
+
+
 @tindex filter_node_t
 @tindex filter_network_t
 @deftypefun {filter_node_t *} filternetwork_add_node (filter_network_t *@var{net}, const char *@var{filter}, const char *@var{name})
@@ -685,28 +721,28 @@ to a sane state of the network.
 @end deftypefun
 
 @tindex filter_node_t
-@deftypefun int filternode_setparam (filter_node_t *@var{n}, const char *@var{label}, void *@var{val})
-@code{filternode_setparam()} sets the parameter with the specified @var{label}
+@deftypefun int filternode_set_param (filter_node_t *@var{n}, const char *@var{label}, void *@var{val})
+@code{filternode_set_param()} sets the parameter with the specified @var{label}
 of the filter node @var{n} to the value pointed to by @var{val}. The type of the value
-pointed at can be obtained by using the @code{hash_find_paramdesc()} function
+pointed at can be obtained by using the @code{filter_get_paramdesc()} function
 operating on the filter of the filter node.
-@code{filternode_setparam()} returns 0 on success or -1 if the parameter set or
+@code{filternode_set_param()} returns 0 on success or -1 if the parameter set or
 change is not possible or causes any problems in the network.
 @end deftypefun
 
-@deftypefun int filternode_setparamstring (filter_node_t *@var{n}, const char *@var{label}, const char *@var{val})
-@code{filternode_setparamstring()} sets the parameter with the specified @var{label}
+@deftypefun int filternode_set_paramstring (filter_node_t *@var{n}, const char *@var{label}, const char *@var{val})
+@code{filternode_set_paramstring()} sets the parameter with the specified @var{label}
 of the filter node @var{n} to the value described by the string @var{val}. The type of the value
-should be obtained by using the @code{hash_find_paramdesc()} function
+should be obtained by using the @code{filter_get_paramdesc()} function
 operating on the filter of the filter node before constructing the string.
-@code{filternode_setparam()} returns 0 on success or -1 if the parameter set or
+@code{filternode_set_param()} returns 0 on success or -1 if the parameter set or
 change is not possible or causes any problems in the network.
 @end deftypefun
 
-@deftypefun int filternode_getparamstring (filter_node_t *@var{n}, const char *@var{label}, char *@var{val}, ssize_t @var{size})
-@code{filternode_getparamstring()} gets the value of the parameter of the specified @var{label}
+@deftypefun int filternode_get_paramstring (filter_node_t *@var{n}, const char *@var{label}, char *@var{val}, ssize_t @var{size})
+@code{filternode_get_paramstring()} gets the value of the parameter of the specified @var{label}
 of the filter node @var{n} and converts it to a string using the @var{val} variable as storage with the specified maximum size @var{size}.
-@code{filternode_getparamstring()} returns 0 on success or -1 if the parameter set or
+@code{filternode_get_paramstring()} returns 0 on success or -1 if the parameter set or
 change is not possible or causes any problems in the network.
 @end deftypefun
 
