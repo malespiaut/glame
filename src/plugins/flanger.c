@@ -36,7 +36,8 @@ static int flanger_f(filter_t *n)
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	
-	float	ef_gain, ct_gain, dry_gain, ampl, sweep_rate, pdepth, swdepth, fampl;
+	float	ef_gain, ct_gain, dry_gain, rampl, sweep_rate, pdepth, swdepth, fampl,
+		rfampl1, rfampl2;
 	int	rate, rbsize, pos, cpos, fpos, swpdepth;
 	SAMPLE  *ringbuf, *s;
 	int	*lfo, lfosize, i, lfopos, lfotype;
@@ -76,8 +77,10 @@ static int flanger_f(filter_t *n)
 	if ((param=filternode_get_param(n,"lfo type")))
 			lfotype=filterparam_val_int(param);
 	
-	ampl = dry_gain + ef_gain;
+	rampl = 1.0/(dry_gain + ef_gain);
 	fampl = 1.0 + ct_gain;
+	rfampl1 = 1.0/fampl;
+	rfampl2 = ct_gain/fampl;
 	rate = filterpipe_sample_rate(in);
 	rbsize = TIME2CNT(int, pdepth, rate);
 	DPRINTF("ringbuffer size = %d\n", rbsize);
@@ -125,16 +128,14 @@ static int flanger_f(filter_t *n)
 		s = &sbuf_buf(buf)[0];
 		for(i=0; i < sbuf_size(buf); i++) {
 			fpos = cpos + lfo[lfopos];
-			do {
-			 	if (fpos >= rbsize)
-					fpos -= rbsize;
-			 	else if (fpos < 0)
-					fpos += rbsize;
-			} while ((fpos<0) || (fpos>rbsize));
-			ringbuf[pos] = (*s + ringbuf[cpos]*ct_gain) / fampl;
+			if (fpos >= rbsize)
+				fpos -= rbsize;
+			 else if (fpos < 0)
+				fpos += rbsize;
+			ringbuf[pos] = *s * rfampl1 + ringbuf[cpos] * rfampl2;
 			*s *= dry_gain;
 			*s += ringbuf[fpos]*ef_gain;
-			*s /= ampl;
+			*s *= rampl;
 			s++;
 			lfopos++;
 			if (lfopos == lfosize)
