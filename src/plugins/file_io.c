@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.52 2001/05/28 11:58:01 richi Exp $
+ * $Id: file_io.c,v 1.53 2001/07/05 13:59:02 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -206,11 +206,16 @@ static void rw_file_cleanup(glsig_handler_t *h, long sig, va_list va)
 	filter_t *n;
 
 	GLSIGH_GETARGS1(va, n);
+	if (!RWPRIV(n)) {
+		DPRINTF("ficken\n");
+		return;
+	}
 	if (RWPRIV(n)->rw
 	    && RWPRIV(n)->rw->cleanup 
 	    && RWPRIV(n)->initted)
 		RWPRIV(n)->rw->cleanup(n);
 	free(RWPRIV(n));
+	n->priv = NULL;
 }
 static int rw_file_init(filter_t *n)
 {
