@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.33 2000/09/19 14:37:24 mainzelm Exp $
+; $Id: glame.scm,v 1.34 2000/09/20 16:41:51 mainzelm Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -349,8 +349,73 @@ p(add-help 'help '(command) "help")
   (nodes-connect `(,extend ,mix2 ,one2n ,delay ,va ,mix2))
   (filternetwork_to_filter net "echo2" "echo as macro filter"))
 
+;;; Macro to create a new filternetwork
+;;;
+;;; (create-net ((node "name") ...)
+;;;             ((input-node "port" "label" "desc") ...)
+;;;             ((output-node "port" "label" "desc") ...)
+;;;             ((param-node "param" "label" "desc") ...)
+;;;             body-expr) 
+;;; --> new filternetwork
 
+(define-macro (create-net nodes input output params body)
+  `(let ((net (net-new)))
+     ,(let lp ((nodes nodes))
+	(if (null? nodes)
+	    (let lp ((input input))
+	       (if (null? input)
+		   (let lp ((output output))
+		     (if (null? output)
+			 (let lp ((params params))
+			   (if (null? params)
+			       `(begin ,body net)
+			       (let ((first (car params)))
+			   `(begin (filternetwork_add_param net 
+							     ,(car first)
+							     ,(cadr first)
+							     ,(caddr first)
+							     ,(cadddr first))
+				   ,(lp (cdr params))))))
+			 (let ((first (car output)))
+			   `(begin (filternetwork_add_output net 
+							     ,(car first)
+							     ,(cadr first)
+							     ,(caddr first)
+							     ,(cadddr first))
+				   ,(lp (cdr output))))))
+		   (let ((first (car input)))
+		     `(begin (filternetwork_add_input net 
+						      ,(car first)
+						      ,(cadr first)
+						      ,(caddr first)
+						      ,(cadddr first))
+			     ,(lp (cdr input))))))
+	    `(let ((,(caar nodes) (net-add-node net ,(cadar nodes))))
+	       ,(lp (cdr nodes)))))))
 
+;;; above examples:
+
+(create-net ((extend "extend")
+	     (mix2 "mix2")
+	     (one2n "one2n")
+	     (delay "delay")
+	     (va "volume-adjust")) ; nodes
+	    ((extend "in" "in" "echo source"))                     ; input
+	    ((one2n "out" "out" "source with echo"))               ; output
+	    ((delay "delay" "delay" "echo delay"); node param label desc
+	     (va "factor" "mix" "echo mix ratio")
+	     (extend "time" "extend" "time to extend")
+	     (mix2 "gain" "gain" "output gain"))
+	    (begin (filternode_set_param net "delay" 200)
+		   (filternode_set_param net "extend" 600)
+		   (filternode_set_param net "mix" 0.7)
+		   (nodes-connect (list extend mix2 one2n delay va mix2))))
+
+(create-net ((p "pipe-in"))
+	    ()
+	    ((p "out" "out" "output"))
+	    ((p "tail" "filename" "filename"))
+	    (filternode_set_param p "cmd" "mpg123 -q -s "))
 
 ;------------------------------------------------------------
 ;
