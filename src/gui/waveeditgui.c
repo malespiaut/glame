@@ -37,7 +37,7 @@
 #include "glmid.h"
 #include "glame_gui_utils.h"
 #include "waveeditgui.h"
-#include "edit_filter/canvas.h"
+#include "edit_filter/filtereditgui.h"
 #include "clipboard.h"
 
 
@@ -421,17 +421,13 @@ static struct network_run_s *network_run_create(filter_t *net,
 	return cs;
 }
 
-
+#if 0
 /* 
  * Transforms menu and its callbacks 
+ *  --- to be externalized [richi]
  */
 
 static void normalize_cb(GtkWidget *w, plugin_t *plugin);
-
-static GnomeUIInfo transform_menu[] = {
-	GNOMEUIINFO_ITEM("Normalize", "normalize", normalize_cb, NULL),
-	GNOMEUIINFO_END
-};
 
 static void normalize_second_cb(struct network_run_s *cs)
 {
@@ -584,6 +580,35 @@ fail:
 	filter_delete(maxrms);
 	filter_delete(net);
 }
+#endif
+
+/* Menu event - Apply operation. */
+static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	gint32 start, length;
+	gpsm_grp_t *grp;
+	int (*operation)(gpsm_item_t *, long, long);
+
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	grp = gtk_swapfile_buffer_get_item(swapfile);
+
+	if (!(operation = plugin_query(plugin, PLUGIN_GPSMOP))) {
+		DPRINTF("No such operation %s\n", plugin_name(plugin));
+		return;
+	}
+	DPRINTF("Executing operation %s on %s [%li, %li[\n",
+		plugin_name(plugin), gpsm_item_label(grp),
+		(long)start, (long)start+length);
+
+	if (operation((gpsm_item_t *)grp, start, length) == -1)
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Error executing")));
+
+	DPRINTF("%s finished.\n", plugin_name(plugin));
+}
 
 /* Menu event - Apply filter. */
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
@@ -675,9 +700,8 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 }
 
 /* Menu event - play actual selection using audio_out. */
-static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
+static void playselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
@@ -735,9 +759,8 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
-static void playall_cb(GtkWidget *bla, plugin_t *plugin)
+static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gpsm_item_t *item;
@@ -791,9 +814,8 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 }
 
 /* Menu event - record into selection. */
-static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
+static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
@@ -878,9 +900,8 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 }
 
 /* Menu event - record starting at marker position. */
-static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
+static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start;
@@ -970,9 +991,8 @@ static void apply_custom_cb_cleanup(GtkWidget *foo, gpsm_item_t *item)
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 	}
 }
-static void apply_custom_cb(GtkWidget * foo, gpointer bar)
+static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 {
-	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	GlameCanvas *canvas;
@@ -1048,18 +1068,23 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	filter_delete(net);
 }
 
-static void wave_help(GtkWidget *foo, void*bar)
+static void wave_help_cb(GtkWidget *foo, void*bar)
 {
 	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
 }
 
-static void wave_close_cb(GtkWidget *foo, void *bar)
+static void wave_close_cb(GtkWidget *foo, GtkObject *waveview)
 {
-	gtk_object_destroy(GTK_OBJECT(actual_waveview));
+	if (!waveview)
+		waveview = GTK_OBJECT(actual_waveview);
+	gtk_object_destroy(waveview);
 }
 
 
-static GnomeUIInfo dummy_menu[] = {
+static GnomeUIInfo dummy1_menu[] = {
+	GNOMEUIINFO_END
+};
+static GnomeUIInfo dummy2_menu[] = {
 	GNOMEUIINFO_END
 };
 
@@ -1075,18 +1100,19 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_ITEM("Record at marker", "Records starting at marker position", recordmarker_cb, NULL),	
 	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("Transforms", transform_menu),
-	GNOMEUIINFO_SUBTREE("Apply filter", dummy_menu),
-	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
+	GNOMEUIINFO_SUBTREE("Apply operation", dummy1_menu),
+	GNOMEUIINFO_SUBTREE("Apply filter", dummy2_menu),
+	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection", apply_custom_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Close","Close",wave_close_cb,NULL),
+	GNOMEUIINFO_ITEM("Close","Close",wave_close_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Help","help",wave_help,NULL),
+	GNOMEUIINFO_ITEM("Help","help",wave_help_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
 #define RMB_MENU_PLAY_SELECTION_INDEX 6
 #define RMB_MENU_RECORD_SELECTION_INDEX 9
+#define RMB_MENU_APPLY_OP_INDEX 11
 #define RMB_MENU_APPLY_FILTER_INDEX 12
 
 
@@ -1094,8 +1120,12 @@ static GnomeUIInfo rmb_menu[] = {
  * filters... */
 static int choose_effects(plugin_t *plugin)
 {
-	filter_t *filter = plugin_query(plugin, PLUGIN_FILTER);
+	filter_t *filter;
 	char *cat;
+
+	/* Only use filters. */
+	if (!(filter = plugin_query(plugin, PLUGIN_FILTER)))
+		return 0;
 
 	/* We need "in" and "out" ports. */
 	if (!filterportdb_get_port(filter_portdb(filter), PORTNAME_IN)
@@ -1114,6 +1144,16 @@ static int choose_effects(plugin_t *plugin)
 	return 1;
 }
 
+/* Somehow only select "operations" */
+static int choose_ops(plugin_t *plugin)
+{
+	/* Only use filters. */
+	if (!(plugin_query(plugin, PLUGIN_GPSMOP)))
+		return 0;
+
+	return 1;
+}
+
 /* Button press event. */
 static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 			    gpointer user_data) 
@@ -1122,7 +1162,7 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	GtkWaveBuffer *wavebuffer;
 	GtkSwapfileBuffer *swapfile;
 	GtkWidget *menu;
-	GtkMenu *filter_menu;
+	GtkMenu *filter_menu, *op_menu;
 	gpsm_item_t *item;
 	gint32 sel_start, sel_length, marker_pos;
 	guint32 nrtracks;
@@ -1140,11 +1180,16 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 
 	/* Build the menu, fixup lots of stuff. */
 	menu = gnome_popup_menu_new(rmb_menu);
+
 	filter_menu = glame_gui_build_plugin_menu(choose_effects, apply_cb);
 	gtk_widget_show(GTK_WIDGET(filter_menu));
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[RMB_MENU_APPLY_FILTER_INDEX].widget), GTK_WIDGET(filter_menu));
 	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_APPLY_FILTER_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
+
+	op_menu = glame_gui_build_plugin_menu(choose_ops, applyop_cb);
+	gtk_widget_show(GTK_WIDGET(op_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[RMB_MENU_APPLY_OP_INDEX].widget), GTK_WIDGET(op_menu));
 
 	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_PLAY_SELECTION_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
@@ -1182,6 +1227,14 @@ static void waveedit_wavebuffer_destroy_cb(GtkWidget *widget,
 					   gpsm_item_t *item)
 {
 	gpsm_item_destroy(item);
+}
+
+/* Waveedit GUI cleanup stuff, we need to destroy the window
+ * if the waveview widget goes away. */
+static void waveedit_waveview_destroy_cb(GtkWidget *widget,
+					 GtkObject *window)
+{
+	gtk_object_destroy(window);
 }
 
 GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
@@ -1244,6 +1297,8 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * delete and destroy events from the window. */
 	gtk_signal_connect(GTK_OBJECT(window), "delete_event",
 			   (GtkSignalFunc)waveedit_window_delete_cb, NULL);
+	gtk_signal_connect(GTK_OBJECT(waveview), "destroy",
+			   (GtkSignalFunc)waveedit_waveview_destroy_cb, window);
 	gtk_signal_connect_after(GTK_OBJECT(wavebuffer), "destroy",
 				 (GtkSignalFunc)waveedit_wavebuffer_destroy_cb,
 				 swfiles);
@@ -1262,7 +1317,24 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				"View all", "View all", "View all",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),
 				zoomfull_cb, waveview);
-	/* gtk_toolbar_append_space(GTK_TOOLBAR(toolbar)); */
+	/* Play button that should change to Stop if pressed, different
+	 * callback than "Play all"/"Play selection" - play from marker.
+	 * FIXME. */
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Play", "Play", "Play",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
+				playselection_cb, waveview);
+	/* Keep last. */
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Close", "Close", "Close",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
+				wave_close_cb, waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Help", "Help", "Help",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
+				wave_help_cb, waveview);
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "waveedit::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
