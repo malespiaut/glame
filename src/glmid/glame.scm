@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.21 2000/04/06 12:58:47 richi Exp $
+; $Id: glame.scm,v 1.22 2000/04/06 14:41:03 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -46,7 +46,7 @@
 
 (define while-not-false
   (lambda (f)
-    (if (eqv? #f (f)) #t (while-not-false f))))
+    (if (eq? #f (f)) #t (while-not-false f))))
 
 (define repeat-n
   (lambda (x n)
@@ -62,7 +62,7 @@
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node)
-    (if (eqv? (filter_get node) #f) (plugin_get node))
+    (if (eq? (filter_get node) #f) (plugin_get node))
     (filternetwork_add_node net node "")))
 
 ; (net-add-nodes net '("node" "node" ...))
@@ -103,7 +103,7 @@
 ; run the net, wait for completion and delete it
 (define net-run
   (lambda (net)
-    (if (eqv? #t (filternetwork_launch net))
+    (if (eq? #t (filternetwork_launch net))
 	(begin
 	  (filternetwork_start net)
 	  (filternetwork_wait net)
@@ -113,7 +113,7 @@
 ; i.e. you can use filternetwork_(pause|start|terminate) on it.
 (define net-run-bg
   (lambda (net)
-    (if (eqv? #t (filternetwork_launch net))
+    (if (eq? #t (filternetwork_launch net))
 	(filternetwork_start net))
     net))
 
@@ -136,7 +136,7 @@
       (while-not-false
        (lambda ()
 	 (let ((to (net-add-node net "track-out")))
-	   (if (eqv? (filternetwork_add_connection rf "out" to "in") #f)
+	   (if (eq? (filternetwork_add_connection rf "out" to "in") #f)
 	       (begin (filternetwork_delete_node to) #f)
 	       (begin
 		 (node-set-params to
@@ -203,7 +203,7 @@
        (lambda ()
 	 (let* ((eff (net-add-node net effect))
 		(conn (filternetwork_add_connection rf "out" eff "in")))
-	   (if (eqv? conn #f)
+	   (if (eq? conn #f)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
 		 (apply node-set-params eff params)
@@ -226,7 +226,7 @@
        (lambda ()
 	 (let* ((eff (net-add-node net effect))
 		(conn (filternetwork_add_connection rf "out" eff "in")))
-	   (if (eqv? conn #f)
+	   (if (eq? conn #f)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
 		 (apply node-set-params eff params)
