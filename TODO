@@ -4,21 +4,26 @@ supposed to fix it.
 
 Known BUGS that should be fixed before 0.5.3:
 ---------------------------------------------
-- new import dialog needs to be finished and replace the
-  existing one
+- default configuration/updating needs to go from gui/main.c
+  to glmid/glmid.c and made more sensible (like killing
+  various globals)
+- toolbar icons of the waveedit window are not really intuitive...
+  (select all, select none, menu)
+- fix zoom out zooming too much (should stay at view all)
 
 Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
+- import dialog needs to be finished
+- new export dialog needs to be done and replace the existing one
+- glame_audiofile needs support for wav reading/writing and
+  mp3/ogg reading
 - with apply, rt adjustments of params is not supported
-- toolbar icons of the waveedit window are not really intuitive...
 - main/[Edit wave...] wavewidget needs a [Save] toolbar item
   that exports the wave back (and [Close] should delete the wave
   from the swapfile)
-- new export dialog needs to be done and replace the existing one
 - intl for other than main widget needs to be done
 - looping support for swapfile_in filter and GUI
-- use new config subsystem in a sane way (move most of the defaults
-  to some place in glmid/glmid.c)
+- maybe disable timeline
 
 
 Other items pending:
