@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.87 2001/11/09 16:51:49 richi Exp $
+ * $Id: main.c,v 1.88 2001/11/11 22:34:34 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -323,7 +323,7 @@ static int update_preferences()
 	char s[256];
 	gboolean def;
 	long maxundo, res = 0;
-	long wbufsize;
+	long wbufsize, maxlru, maxfds, maxmaps, maxvm;
 
 	/* Check, if we have anything configured already. */
 	if (glame_config_get_string("swapfile/defaultpath", &swappath) == -1)
@@ -337,6 +337,12 @@ static int update_preferences()
 
 	glame_config_get_long("swapfile/maxundo", &maxundo);
 	gpsm_set_max_saved_ops(maxundo);
+
+	maxlru = glame_config_get_long_with_default("swapfile/maxlru", 2048);
+	maxfds = glame_config_get_long_with_default("swapfile/maxfds", 128);
+	maxmaps = glame_config_get_long_with_default("swapfile/maxmaps", 256);
+	maxvm = glame_config_get_long_with_default("swapfile/maxvm", 256*1024*1024);
+	swcluster_set_cache(maxlru, maxfds, maxmaps, maxvm);
 
 	/* GLAME_WBUFSIZE */
 	glame_config_get_long("filter/wbufsize", &wbufsize);
@@ -441,9 +447,10 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GList *combo_items;
 	char *cfg, *path, *numberbuffer, *aindev = NULL, *aoutdev = NULL;
 	char *ainplugin = NULL, *aoutplugin = NULL, *maxundobuf, *wbufsizebuf;
+	char *maxlrubuf, *maxfdsbuf, *maxmapsbuf, *maxvmbuf;
 	gboolean ok=FALSE;
 	long mac;
-	long maxundo, wbufsize;
+	long maxundo, wbufsize, maxlru, maxfds, maxmaps, maxvm;
 
 	/* New box. */
         prop_box = gnome_property_box_new();
@@ -468,6 +475,29 @@ preferences_cb(GtkWidget * wid, void * bla)
 	g_free(cfg);
         gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), path);
         gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", (GtkSignalFunc)changeString, &path);
+        notelabel = gtk_label_new(_("Dont change values below, if you dont know what you are doing."));
+        gtk_widget_show(notelabel);
+        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
+	glame_config_get_long("swapfile/maxlru", &maxlru);
+	maxlrubuf = alloca(256);
+	snprintf(maxlrubuf, 255, "%d", maxlru);
+	create_label_edit_pair(vbox, _("Maximum number of cached fragment headers"), "prefs::maxlru",
+			       maxlrubuf);
+	glame_config_get_long("swapfile/maxfds", &maxfds);
+	maxfdsbuf = alloca(256);
+	snprintf(maxfdsbuf, 255, "%d", maxfds);
+	create_label_edit_pair(vbox, _("Maximum number of cached file descriptors"), "prefs::maxfds",
+			       maxfdsbuf);
+	glame_config_get_long("swapfile/maxmaps", &maxmaps);
+	maxmapsbuf = alloca(256);
+	snprintf(maxmapsbuf, 255, "%d", maxmaps);
+	create_label_edit_pair(vbox, _("Maximum number of cached memory mappings"), "prefs::maxmaps",
+			       maxmapsbuf);
+	glame_config_get_long("swapfile/maxvm", &maxvm);
+	maxvmbuf = alloca(256);
+	snprintf(maxvmbuf, 255, "%d", maxvm);
+	create_label_edit_pair(vbox, _("Maximum virtual memory used for caching"), "prefs::maxvm",
+			       maxvmbuf);
         notelabel = gtk_label_new(_("NOTE: Swapfile settings take effect after restart only"));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
@@ -609,6 +639,14 @@ preferences_cb(GtkWidget * wid, void * bla)
 	glame_config_set_string("swapfile/defaultpath", path);
 	if (sscanf(maxundobuf, "%d", &maxundo) == 1)
 		glame_config_set_long("swapfile/maxundo", maxundo);
+	if (sscanf(maxlrubuf, "%d", &maxlru) == 1)
+		glame_config_set_long("swapfile/maxlru", maxlru);
+	if (sscanf(maxfdsbuf, "%d", &maxfds) == 1)
+		glame_config_set_long("swapfile/maxfds", maxfds);
+	if (sscanf(maxmapsbuf, "%d", &maxmaps) == 1)
+		glame_config_set_long("swapfile/maxmaps", maxmaps);
+	if (sscanf(maxvmbuf, "%d", &maxvm) == 1)
+		glame_config_set_long("swapfile/maxvm", maxvm);
 	if (sscanf(numberbuffer, "%d", &nPopupTimeout) == 1)
 		glame_config_set_long("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = mac;
