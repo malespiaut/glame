@@ -443,15 +443,7 @@ glame_gpsm_store_get_value(GtkTreeModel * tree_model,
 	  
        case GPSM_STORE_TRACK_DURATION:
 	 if (GPSM_ITEM_IS_SWFILE(iter->user_data)){
-	   swfd_t fd ;
-	   struct sw_stat st;
-	   long size = -1;
-	   fd = sw_open(gpsm_swfile_filename(iter->user_data),
-			O_RDONLY);
-	   if (fd != -1 && sw_fstat(fd, &st) != -1)
-	     size = st.size/SAMPLE_SIZE;
-	   sw_close(fd);
-	   snprintf(durationtext, 32, "%.0f", (float)size/(float)gpsm_swfile_samplerate(iter->user_data)); 
+	   snprintf(durationtext, 32, "%.0f", (float)gpsm_item_hsize(iter->user_data)/(float)gpsm_swfile_samplerate(iter->user_data)); 
 	   g_value_init(value, G_TYPE_STRING);
 	   g_value_set_string(value,durationtext);
 	 }

@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.23 2003/04/20 21:56:01 richi Exp $
+ * $Id: gltreeitem.c,v 1.24 2004/06/30 21:31:29 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -165,17 +165,10 @@ void glame_tree_item_update(GlameTreeItem *item)
 				 : hbox && vbox ? " [BOX]" : " [XXXX]");
 		}
 	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
-		swfd_t fd = sw_open(gpsm_swfile_filename(item->item),
-				    O_RDONLY);
-		struct sw_stat st;
-		long size = -1;
-		if (fd != -1 && sw_fstat(fd, &st) != -1)
-			size = st.size/SAMPLE_SIZE;
-		sw_close(fd);
 		snprintf(buf, 255, "%s - %iHz, %.3fs - (%.3fs, %li)",
 			 gpsm_item_label(item->item),
 			 gpsm_swfile_samplerate(item->item),
-			 (float)size/(float)gpsm_swfile_samplerate(item->item),
+			 (float)gpsm_item_hsize(item->item)/(float)gpsm_swfile_samplerate(item->item),
 			 (float)gpsm_item_hposition(item->item)/(float)gpsm_swfile_samplerate(item->item),
 			 gpsm_item_vposition(item->item));
 	}
