@@ -1,4 +1,4 @@
-# $Id: glame.spec,v 1.7 2001/11/09 11:12:31 nold Exp $
+# $Id: glame.spec,v 1.8 2004/10/28 19:05:56 nold Exp $
 # RPM spec file for GLAME.
 #
 # This file is adapted from the Mandrake spec for their GLAME rpms.
@@ -6,7 +6,7 @@
 # Renaud Chaillat <rchaillat@mandrakesoft.com>.
 #
 %define name glame
-%define version   0.5.3CVS
+%define version   1.1CVS
 %define release   1
 
 Summary:   A sound editor and synthesis tool
@@ -60,6 +60,34 @@ rm -rf $RPM_BUILD_ROOT
 %{_infodir}/glame*
 
 %changelog
+* Thu Oct 28 2004 Daniel Kobras <kobras@linux.de> 1.0.3
+
+- New upstream version.
+
+* Fri Jun 27 2003 Richard Günther <richi@users.sf.net> 1.0.1
+
+- New upstream version.
+
+* Sat Apr 19 2003 Richard Günther <richi@users.sf.net> 1.0.0
+
+- New upstream version.
+
+* Thu Nov 21 2002 Richard Günther <richi@users.sf.net> 0.6.4
+
+- New upstream version.
+
+* Sun Mar 24 2002 Daniel Kobras <kobras@linux.de> 0.6.2
+
+- New upstream version.
+
+* Sun Jan 27 2002 Daniel Kobras <kobras@linux.de> 0.6.1
+
+- New upstream version.
+
+* Sun Dec 23 2001 Daniel Kobras <kobras@linux.de> 0.6.0
+
+- New stable release.
+
 * Fri Nov 09 2001 Daniel Kobras <kobras@linux.de> 0.5.3CVS
 
 - New upstream version.
