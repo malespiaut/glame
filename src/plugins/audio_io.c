@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.20 2000/05/08 13:54:03 nold Exp $
+ * $Id: audio_io.c,v 1.21 2000/05/15 14:03:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -572,8 +572,7 @@ static int oss_audio_out_f(filter_node_t *n)
 	/* Ugly OSS ioctl() mess. Keep your eyes closed and proceed. */
 
 	dev_param = filternode_get_param(n, "device");
-	dev = open(dev_param ? filterparam_val_string(dev_param) : "/dev/dsp", 
-	           O_WRONLY);
+	dev = open(filterparam_val_string(dev_param), O_WRONLY);
 	if (dev == -1)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
 
@@ -773,7 +772,8 @@ static int sgi_audio_out_f(filter_node_t *n)
 	alSetChannels(c, max_ch);
 	/* Using the default queuesize... */
 
-	if (dev_param = filternode_get_param(n, "device"))
+	dev_param = filternode_get_param(n, "device");
+	if (filterparam_val_string(dev_param))
 		resource = alGetResourceByName(AL_SYSTEM, 
 		             filterparam_val_string(dev_param),
 			     AL_DEVICE_TYPE);
