@@ -56,28 +56,28 @@
   <accel state="0" spec="space" desc="Play from marker">
 (let ((grp (waveedit-gpsm-grp))
       (mar (waveedit-get-marker)))
-  (waveedit-play mar (gpsm-item-hsize grp) #f #f #f #f))
+  (waveedit-play mar (gpsm-item-hsize grp) mar #f #f #f #f))
   </accel>
   <accel state="4" spec="space" desc="Play selection">
 (let ((grp (waveedit-gpsm-grp))
       (sel (waveedit-get-selection)))
   (if (&lt;= (cdr sel) 0)
-      (waveedit-play 0 (gpsm-item-hsize grp) #t #f #f #f)
-      (waveedit-play (car sel) (+ (car sel) (cdr sel)) #t #f #f #f)))
+      (waveedit-play 0 (gpsm-item-hsize grp) 0 #t #f #f #f)
+      (waveedit-play (car sel) (+ (car sel) (cdr sel)) (car sel) #t #f #f #f)))
   </accel>
   <accel state="1" spec="space" desc="Play selection, looping">
 (let ((grp (waveedit-gpsm-grp))
       (sel (waveedit-get-selection)))
   (if (&lt;= (cdr sel) 0)
-      (waveedit-play 0 (gpsm-item-hsize grp) #t #t #f #f)
-      (waveedit-play (car sel) (+ (car sel) (cdr sel)) #t #t #f #f)))
+      (waveedit-play 0 (gpsm-item-hsize grp) 0 #t #t #f #f)
+      (waveedit-play (car sel) (+ (car sel) (cdr sel)) (car sel) #t #t #f #f)))
   </accel>
   <accel state="5" spec="space" desc="Play from marker through selection">
 (let ((grp (waveedit-gpsm-grp))
       (mar (waveedit-get-marker))
       (sel (waveedit-get-selection)))
   (if (&gt; (cdr sel) 0)
-      (waveedit-play (if (&lt; mar (+ (car sel) (cdr sel))) mar (car sel)) (+ (car sel) (cdr sel)) #t #f #f #f)))
+      (waveedit-play (if (&lt; mar (+ (car sel) (cdr sel))) mar (car sel)) (+ (car sel) (cdr sel)) (if (&lt; mar (+ (car sel) (cdr sel))) mar (car sel)) #t #f #f #f)))
   </accel>
 			  
 

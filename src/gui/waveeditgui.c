@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.136 2003/04/15 20:11:10 richi Exp $
+ * $Id: waveeditgui.c,v 1.137 2003/04/15 20:29:19 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -610,7 +610,7 @@ static void play(GtkWaveView *waveview,
 		double duration;
 		active_waveedit->pm_ain = ain = filter_instantiate(plugin_get("audio_in"));
 		if (!extend) {
-			duration = (float)(end-start)/gpsm_swfile_samplerate(gpsm_grp_first(grp))+0.1;
+			duration = (double)(end-start+1)/gpsm_swfile_samplerate(gpsm_grp_first(grp));
 			filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
 		}
 		filter_add_node(net, ain, "audio-in");
@@ -633,22 +633,19 @@ static void play(GtkWaveView *waveview,
 			one2n = filter_instantiate(plugin_get("one2n"));
 			filter_add_node(net, one2n, "one2n");
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
-						    start, !extend ? end - start + 1 : -1, 0);
-			if (rec_start > start) {
-				long drop = rec_start - start;
-				filterparam_set_long(filterparamdb_get_param(swout, "drop"), &drop);
-			}
+						    rec_start, !extend ? end - rec_start + 1 : -1, 0);
+			filterparam_set_long(filterparamdb_get_param(filter_paramdb(swout), "drop"), rec_start - start);
 			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN)))
 				goto fail_ain;
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), render_in);
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+			swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
+						  start, rec_start - start + 1, loop ? 1 : 0);
+			filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), render_in);
 		} else if (flg_mute[i] && flg_rec[i]) {
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
-						    start, !extend ? end - start + 1 : -1, 0);
-			if (rec_start > start) {
-				long drop = rec_start - start;
-				filterparam_set_long(filterparamdb_get_param(swout, "drop"), &drop);
-			}
+						    rec_start, !extend ? end - rec_start + 1 : -1, 0);
+			filterparam_set_long(filterparamdb_get_param(filter_paramdb(swout), "drop"), rec_start - start);
 			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
 				goto fail_ain;
 		}
@@ -668,7 +665,7 @@ static void play(GtkWaveView *waveview,
 	active_waveedit->pm_start = start;
 	active_waveedit->pm_size = end - start + 1;
 	active_waveedit->pm_loop = loop;
-	if (play_cnt == 0)
+	if (0 && play_cnt == 0)
 		glame_network_notificator_set_wbufsize(emitter, GLAME_BULK_BUFSIZE);
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;
@@ -1177,23 +1174,25 @@ static SCM gls_waveedit_gpsm_grp()
 	return SCM_BOOL_F;
 }
 
-static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_restore,
-			     SCM s_loop, SCM s_extend, SCM s_enable_record)
+static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_rec_start,
+			     SCM s_restore, SCM s_loop, SCM s_extend,
+			     SCM s_enable_record)
 {
 	SCM_ASSERT(gh_exact_p(s_start), s_start, SCM_ARG1, "waveedit-play");
 	SCM_ASSERT(gh_exact_p(s_end), s_end, SCM_ARG2, "waveedit-play");
+	SCM_ASSERT(gh_exact_p(s_rec_start), s_rec_start, SCM_ARG3, "waveedit-play");
 	SCM_ASSERT(gh_boolean_p(s_restore), s_restore,
-		   SCM_ARG3, "waveedit-play");
-	SCM_ASSERT(gh_boolean_p(s_loop), s_loop,
 		   SCM_ARG4, "waveedit-play");
-	SCM_ASSERT(gh_boolean_p(s_extend), s_extend,
+	SCM_ASSERT(gh_boolean_p(s_loop), s_loop,
 		   SCM_ARG5, "waveedit-play");
-	SCM_ASSERT(gh_boolean_p(s_enable_record), s_enable_record,
+	SCM_ASSERT(gh_boolean_p(s_extend), s_extend,
 		   SCM_ARG6, "waveedit-play");
+	SCM_ASSERT(gh_boolean_p(s_enable_record), s_enable_record,
+		   SCM_ARG7, "waveedit-play");
 	if (active_waveedit)
 		play(GTK_WAVE_VIEW(active_waveedit->waveview),
 		     gh_scm2long(s_start), gh_scm2long(s_end),
-		     gh_scm2long(s_start) /* FIXME - compatibility */,
+		     gh_scm2long(s_rec_start),
 		     gh_scm2bool(s_restore), gh_scm2bool(s_loop),
 		     gh_scm2bool(s_extend), gh_scm2bool(s_enable_record));
 	return SCM_UNSPECIFIED;
@@ -1278,7 +1277,7 @@ void glame_waveeditgui_init()
 	gh_new_procedure1_0("waveedit-set-scroll-position!",
 			    gls_waveedit_set_scroll_position);
 	gh_new_procedure("waveedit-play", (SCM (*)())gls_waveedit_play,
-			 6, 0, 0);
+			 7, 0, 0);
 	gh_new_procedure0_0("waveedit-cut", gls_waveedit_cut);
 	gh_new_procedure0_0("waveedit-copy", gls_waveedit_copy);
 	gh_new_procedure0_0("waveedit-paste", gls_waveedit_paste);
