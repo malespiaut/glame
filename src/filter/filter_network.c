@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.46 2000/05/02 07:46:36 richi Exp $
+ * $Id: filter_network.c,v 1.47 2000/05/04 07:42:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -364,13 +364,12 @@ filter_param_t *filternetwork_add_param(filter_network_t *net,
 	if (!(od = filterpdb_get_param(filternode_pdb(n), param)))
 		return NULL;
 	if (!(d = filterpdb_add_param(filter_pdb(net->node.filter),
-				      label, od->type, &od->u)))
+				      label, od->type, &od->u,
+				      FILTERPARAM_DESCRIPTION, desc,
+				      FILTERPARAM_MAP_NODE, node,
+				      FILTERPARAM_MAP_LABEL, param,
+				      FILTERPARAM_END)))
 		return NULL;
-	filterparam_set_property(d, FILTERPARAM_DESCRIPTION, desc);
-
-	filterparam_set_property(d, FILTERPARAM_MAP_NODE, node);
-	filterparam_set_property(d, FILTERPARAM_MAP_LABEL, param);
-
 	return d;
 }
 
