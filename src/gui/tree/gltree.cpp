@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.10 2004/05/21 20:22:56 richi Exp $
+ * $Id: gltree.cpp,v 1.11 2004/05/21 22:05:58 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -35,16 +35,14 @@
 
 
 /* static members of glTree.  */
-GtkWidget *glTree::tree = NULL;
+GtkTreeView *glTree::tree = NULL;
 GtkTreeStore *glTree::store = NULL;
+GtkTreeIter glTree::iter;
 
 static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 			 gpointer userdata);
-static void edit_wave_cb(GtkTreeView * treeview, GtkTreePath * path,
-			 GtkTreeViewColumn * col, gpointer userdata);
-static void edit_wave_from_menu_cb(GtkWidget * menuitem, gpointer treeview);
-static void timeline_cb(GtkTreeView * treeview, GtkTreePath * path,
-			GtkTreeViewColumn * col, gpointer userdata);
+static void edit_wave_cb(GtkWidget *, gpointer);
+static void timeline_cb(GtkWidget *, gpointer);
 static void delete_cb(GtkWidget * menuitem, gpointer treeview);
 static void file_property_cb(GtkWidget * menuitem, gpointer treeview);
 static void group_property_cb(GtkWidget * menuitem, gpointer treeview);
@@ -89,7 +87,7 @@ glTree::glTree(gpsm_grp_t * newroot)
 	
 	fill_tree_store ((gpsm_item_t*)newroot,store,NULL);
 	
-	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+	tree = GTK_TREE_VIEW(gtk_tree_view_new_with_model(GTK_TREE_MODEL(store)));
 	
 	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes("label",
@@ -102,6 +100,9 @@ glTree::glTree(gpsm_grp_t * newroot)
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
 
+	// don't show the header(s)
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
+
 	g_signal_connect(tree, "button-press-event",
 			 GCallback(click_cb), NULL);
 }
@@ -109,19 +110,12 @@ glTree::glTree(gpsm_grp_t * newroot)
 /* Menu event - Apply operation. */
 static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 {
-        
 	gpsmop_func_t operation;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	// GtkTreePath *path;
+	GtkTreeIter *iter = &glTree::iter;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(glTree::tree));
-
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	}
+	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
 
 	if (!(operation = (gpsmop_func_t)plugin_query(plugin, PLUGIN_GPSMOP))) {
 		DPRINTF("No such operation %s\n", plugin_name(plugin));
@@ -153,7 +147,7 @@ static int choose_ops(plugin_t *plugin)
 
 void
 view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
-		gpointer userdata)
+		       gpointer which)
 {
         GtkWidget *menu, *menuitem, *op_menu;
 	
@@ -161,17 +155,17 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 
 	menuitem = gtk_menu_item_new_with_label(_("Edit"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) edit_wave_from_menu_cb, treeview);
+			 (GCallback) edit_wave_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Track Properties..."));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) file_property_cb, treeview);
+			 (GCallback) file_property_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Timeline"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) timeline_cb, treeview);
+			 (GCallback) timeline_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_separator_menu_item_new();
@@ -179,15 +173,13 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 
 	menuitem = gtk_menu_item_new_with_label(_("Delete"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) delete_cb, treeview);
+			 (GCallback) delete_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
-	menuitem = gtk_menu_item_new_with_label(_("Operations"));
-	g_signal_connect(menuitem, "activate",
-			 NULL, NULL);
+	menuitem = gtk_menu_item_new_with_label(_("Apply Operation"));
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
@@ -196,9 +188,9 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
-	menuitem = gtk_menu_item_new_with_label(_("Export"));
+	menuitem = gtk_menu_item_new_with_label(_("Export..."));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) export_cb, treeview);
+			 (GCallback) export_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	gtk_widget_show_all(menu);
@@ -213,7 +205,7 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 
 void
 view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
-		gpointer userdata)
+		    gpointer which)
 {
 	GtkWidget *menu, *menuitem, *op_menu;
 	
@@ -221,18 +213,18 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 
 	menuitem = gtk_menu_item_new_with_label(_("Edit"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) edit_wave_from_menu_cb, treeview);
+			 (GCallback) edit_wave_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Group Properties..."));
 	g_signal_connect(menuitem, "activate",
 			 (GCallback)group_property_cb,
-			 treeview);
+			 which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Timeline"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) timeline_cb, treeview);
+			 (GCallback) timeline_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	
@@ -241,30 +233,28 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 
 	menuitem = gtk_menu_item_new_with_label(_("Delete"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) delete_cb, treeview);
+			 (GCallback) delete_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Add group"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) addgroup_cb, treeview);
+			 (GCallback) addgroup_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Add mono track"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) addfile_cb, treeview);
+			 (GCallback) addfile_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Add stereo track"));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) addstereo_cb, treeview);
+			 (GCallback) addstereo_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
-	menuitem = gtk_menu_item_new_with_label(_("Operations"));
-	// g_signal_connect(menuitem, "activate",
-	// 			 NULL, NULL);
+	menuitem = gtk_menu_item_new_with_label(_("Apply Operation"));
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
@@ -273,14 +263,14 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 	menuitem = gtk_separator_menu_item_new();
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 	
-	menuitem = gtk_menu_item_new_with_label(_("Import"));
+	menuitem = gtk_menu_item_new_with_label(_("Import..."));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) import_cb, treeview);
+			 (GCallback) import_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	menuitem = gtk_menu_item_new_with_label(_("Export"));
+	menuitem = gtk_menu_item_new_with_label(_("Export..."));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) export_cb, treeview);
+			 (GCallback) export_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	gtk_widget_show_all(menu);
@@ -297,122 +287,89 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 static gboolean
 click_cb(GtkWidget * treeview, GdkEventButton * event, gpointer userdata)
 {
-	GtkTreeIter iter;
-	GtkTreeModel *model;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	GtkTreePath *path;
-	gpsm_item_t *item;
+	gpsm_item_t *item = NULL;
 	GtkTreeSelection *selection;
 
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 
-	if (gtk_tree_selection_count_selected_rows(selection) <= 1) {
-		/* Get tree path for row that was clicked */
-		gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(treeview),
-					      (int) event->x,
-					      (int) event->y, &path, NULL,
-					      NULL, NULL);
-	}
-	// Select right clicked row 
-	if (gtk_tree_selection_count_selected_rows(selection) <= 1) {
-		{
-			gtk_tree_selection_unselect_all(selection);
-			gtk_tree_selection_select_path(selection, path);
-		}
-	}
+	/* Get tree path for row that was clicked */
+	gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(treeview),
+				      (int) event->x, (int) event->y,
+				      &path, NULL, NULL, NULL);
+	if (!path)
+		return FALSE;
+
+	if (gtk_tree_model_get_iter(model, &glTree::iter, path))
+		gtk_tree_model_get(model, &glTree::iter, glTree::GPSM_ITEM, &item, -1);
+	gtk_tree_path_free(path);
+	if (!item)
+		return FALSE;
+
 	// double click
 	if (event->type == GDK_2BUTTON_PRESS && event->button == 1) {
-		edit_wave_cb(GTK_TREE_VIEW(treeview), path, NULL, NULL);
+		edit_wave_cb(NULL, &glTree::iter);
 		return TRUE;
 	}
 	// single click with the right mouse button 
-	if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
-		g_print("Single right click on the tree view.\n");
-
-		model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
-
-		if (gtk_tree_model_get_iter(model, &iter, path)) {
-			gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM,
-					   &item, -1);
-			if (GPSM_ITEM_IS_SWFILE(item))	view_swfile_popup_menu(treeview, event, NULL);
-			else if (GPSM_ITEM_IS_GRP(item)) view_grp_popup_menu(treeview, event, NULL);
-			gtk_tree_path_free(path);
-			return TRUE;
-		}
-
-		return FALSE;
+	else if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
+		if (GPSM_ITEM_IS_SWFILE(item))
+			view_swfile_popup_menu(treeview, event, &glTree::iter);
+		else if (GPSM_ITEM_IS_GRP(item))
+		        view_grp_popup_menu(treeview, event, &glTree::iter);
+		return TRUE;
 	}
+
 	return FALSE;
 }
 
 
 static void
-edit_wave_cb(GtkTreeView * treeview, GtkTreePath * path,
-	     GtkTreeViewColumn * col, gpointer userdata)
+edit_wave_cb(GtkWidget *widget, gpointer which)
 {
-	GtkTreeSelection *selection;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gchar *label;
 	gpsm_item_t *item;
 	WaveeditGui *we;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_model_get(model, iter, glTree::INFO, &label,
+			   glTree::GPSM_ITEM, &item, -1);
 
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_tree_model_get(model, &iter, glTree::INFO, &label, glTree::GPSM_ITEM,
-				   &item, -1);
-
-		we = glame_waveedit_gui_new(label, item);
-		if (!we) {
-			gnome_dialog_run_and_close(
-				GNOME_DIALOG(gnome_error_dialog(_("Cannot open wave editor"))));
-			return;
-		}
-		gtk_quit_add_destroy(1, GTK_OBJECT(we));
-		gtk_widget_show_all(GTK_WIDGET(we));
-		// deselect_all(active_swapfilegui); //FIXME : to be adapted
+	we = glame_waveedit_gui_new(label, item);
+	if (!we) {
+	       gnome_dialog_run_and_close(
+		      GNOME_DIALOG(gnome_error_dialog(_("Cannot open wave editor"))));
+	       return;
 	}
+	gtk_quit_add_destroy(1, GTK_OBJECT(we));
+	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
 
-static void edit_wave_from_menu_cb(GtkWidget * menuitem, gpointer treeview)
+static void timeline_cb(GtkWidget *widget, gpointer which)
 {
-
-	edit_wave_cb(GTK_TREE_VIEW(treeview), NULL, NULL, NULL);
-
-}
-
-
-
-
-static void timeline_cb(GtkTreeView * treeview, GtkTreePath * path,
-			GtkTreeViewColumn * col, gpointer userdata)
-{
-	g_print("in timeline cb");
+	DPRINTF("in timeline cb");
 }
 
 
 
-static void delete_cb(GtkWidget * menuitem, gpointer treeview)
+static void delete_cb(GtkWidget * menuitem, gpointer which)
 {
-        GtkTreeIter iter, iter2;
-	GtkTreeModel *model;
+        GtkTreeIter *iter = (GtkTreeIter *)which, iter2;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
 	gpsm_grp_t *deleted;
-	GtkTreeSelection *selection;
 	gboolean     valid;
 	gchar *comp;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_model_get(model, iter,
+			   glTree::GPSM_ITEM, &item, -1);
 
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	  // deselect_all(active_swapfilegui); 
-	  deleted = gpsm_find_grp_label(gpsm_root(), NULL,
-					GPSM_GRP_DELETED_LABEL);
-
-	  
-	  if ((deleted))  {
+	deleted = gpsm_find_grp_label(gpsm_root(), NULL,
+				      GPSM_GRP_DELETED_LABEL);
+	if ((deleted))  {
 	    // Search for [deleted]  iter 
 	    valid = gtk_tree_model_get_iter_first(model, &iter2);
 	    while (valid)
@@ -440,32 +397,27 @@ static void delete_cb(GtkWidget * menuitem, gpointer treeview)
 	  gpsm_item_place(deleted, item,
 			  0, gpsm_item_vsize(deleted) + 1);
 		
-	  if (!gtk_tree_store_remove(GTK_TREE_STORE(model), &iter)) {
+	  if (!gtk_tree_store_remove(GTK_TREE_STORE(model), iter)) {
 	    DPRINTF("Remove failed."); }
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter, &iter2);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter, glTree::INFO, item->label, glTree::GPSM_ITEM, item,
+	  gtk_tree_store_append(GTK_TREE_STORE(model), iter, &iter2);
+	  gtk_tree_store_set(GTK_TREE_STORE(model), iter, glTree::INFO, item->label, glTree::GPSM_ITEM, item,
 			     -1);
 	  
-	}
 }
 
 
-static void file_property_cb(GtkWidget * menuitem, gpointer treeview)
+static void file_property_cb(GtkWidget * menuitem, gpointer which)
 {
 	GtkWidget *dialog, *vbox;
 	char f_name[1024];
 	double f_pos;
 	long f_rate;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
 	
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	  strncpy(f_name, gpsm_item_label(item), 1024);
+        gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+        strncpy(f_name, gpsm_item_label(item), 1024);
 	f_pos = gpsm_swfile_position(item);
 	f_rate = gpsm_swfile_samplerate(item);
 
@@ -498,26 +450,21 @@ static void file_property_cb(GtkWidget * menuitem, gpointer treeview)
 	gpsm_item_set_label(item, f_name);
 	gpsm_swfile_set((gpsm_swfile_t *)item,
 			f_rate, f_pos);
-	gtk_tree_store_set (GTK_TREE_STORE(gtk_tree_view_get_model (GTK_TREE_VIEW(treeview))), &iter,
+	gtk_tree_store_set (GTK_TREE_STORE(model), iter,
 			    glTree::INFO, f_name,-1); 
-	}
 }
 
 
-static void group_property_cb(GtkWidget * menuitem, gpointer treeview)
+static void group_property_cb(GtkWidget * menuitem, gpointer which)
 {
 	GtkWidget *dialog, *vbox;
 	char g_name[1024];
-	GtkTreeIter iter;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	  strncpy(g_name, gpsm_item_label(item), 1024);
+        gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	strncpy(g_name, gpsm_item_label(item), 1024);
 
 	  dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
 	// gnome_dialog_set_parent(GNOME_DIALOG(dialog),
@@ -540,25 +487,18 @@ static void group_property_cb(GtkWidget * menuitem, gpointer treeview)
 
 	/* update group and gtk_tree*/
 	gpsm_item_set_label(item, g_name);
-	gtk_tree_store_set (GTK_TREE_STORE(gtk_tree_view_get_model (GTK_TREE_VIEW(treeview))), &iter,
+	gtk_tree_store_set (GTK_TREE_STORE(model), iter,
 			    glTree::INFO, g_name,-1); 
-
-
-	}
 }
 
-static void addgroup_cb(GtkWidget *menu, gpointer treeview)
+static void addgroup_cb(GtkWidget *menu, gpointer which)
 {
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
-	GtkTreeIter iter, iter2;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which, iter2;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
+	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
 	if (!GPSM_ITEM_IS_GRP(item)
 	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 		return;
@@ -568,7 +508,7 @@ static void addgroup_cb(GtkWidget *menu, gpointer treeview)
 	gpsm_vbox_insert((gpsm_grp_t *)item, (gpsm_item_t *)grp,
 			 0, gpsm_item_vsize(item));
 	// Update tree store
-	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
 	gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, _("Unnamed group"), glTree::GPSM_ITEM, grp,
 			     -1);
 	/* Expand the parent widget. */
@@ -579,26 +519,22 @@ static void addgroup_cb(GtkWidget *menu, gpointer treeview)
 // 	if (grpw)
 // 		edit_tree_label(grpw);
 // 	deselect_all(active_swapfilegui);
-	}
+
 }
 
 
 
 /* Append an empty mono wave (without group) to the current vbox. */
-static void addfile_cb(GtkWidget *menu, gpointer treeview)
+static void addfile_cb(GtkWidget *menu, gpointer which)
 {
 	gpsm_swfile_t *swfile;
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
-	GtkTreeIter iter,iter2 ;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which,iter2 ;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	  if (!GPSM_ITEM_IS_GRP(item)
+        gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	if (!GPSM_ITEM_IS_GRP(item)
 	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 		return;
 	  
@@ -608,7 +544,7 @@ static void addfile_cb(GtkWidget *menu, gpointer treeview)
 			 (gpsm_item_t *)swfile,
 			 0, gpsm_item_vsize(item));
 	// Update tree store
-	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
 	gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, _("Unnamed track"), glTree::GPSM_ITEM, (gpsm_item_t *)swfile,
 			     -1);
 
@@ -620,24 +556,20 @@ static void addfile_cb(GtkWidget *menu, gpointer treeview)
 // 	if (grpw)
 // 		edit_tree_label(grpw);
 // 	deselect_all(active_swapfilegui);
-	}
+
 }
 
 
 /* Append an empty stereo wave (with group) to the current vbox. */
-static void addstereo_cb(GtkWidget *menu,  gpointer treeview)
+static void addstereo_cb(GtkWidget *menu,  gpointer which)
 {
         gpsm_swfile_t *left, *right ;
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
-	GtkTreeIter iter,iter2,iter3, iter4 ;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which,iter2,iter3, iter4 ;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
+	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
 	  if (!GPSM_ITEM_IS_GRP(item)
 	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 	    return;
@@ -654,7 +586,7 @@ static void addstereo_cb(GtkWidget *menu,  gpointer treeview)
 			   (gpsm_item_t *)grp,
 			   0, gpsm_item_vsize(item));
 	  // Update tree store
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
 	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, _("Unnamed stereo track"), glTree::GPSM_ITEM, (gpsm_item_t *)grp,
 			     -1);
 	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter3, &iter2);
@@ -672,34 +604,30 @@ static void addstereo_cb(GtkWidget *menu,  gpointer treeview)
 // 		edit_tree_label(grpw);
 // 	deselect_all(active_swapfilegui);
 // 
-	}
 }
 
 
-static void import_cb(GtkWidget *menu, gpointer treeview)
+static void import_cb(GtkWidget *menu, gpointer which)
 {
 	gpsm_item_t *imported;
 	gpsm_item_t *item;
-	GtkTreeSelection *selection;
-	GtkTreeIter iter, iter2 ;
-	GtkTreeModel *model;
+	GtkTreeIter *iter = (GtkTreeIter *)which, iter2 ;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 	const gchar *label;
 
-	imported = (glame_import_dialog(GTK_WINDOW(treeview)));
+	imported = glame_import_dialog(GTK_WINDOW(glTree::tree));
 	if (!imported)
 		return;
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	  if (!GPSM_ITEM_IS_GRP(item)
-	      || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
+	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	if (!GPSM_ITEM_IS_GRP(item)
+	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item))
 	    return;
-	  label = gpsm_item_label (imported); //item label to update treestore
-	  if (gpsm_grp_is_vbox((gpsm_grp_t *)item)
+	label = gpsm_item_label (imported); //item label to update treestore
+	if (gpsm_grp_is_vbox((gpsm_grp_t *)item)
 	    && gpsm_vbox_insert((gpsm_grp_t *)item, imported,
 				0, gpsm_item_vsize(item)) == 0){
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
 	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, label, glTree::GPSM_ITEM, (gpsm_item_t *)imported,
 			     -1);
 	  fill_tree_store (imported, GTK_TREE_STORE(model) ,&iter2);
@@ -708,7 +636,7 @@ static void import_cb(GtkWidget *menu, gpointer treeview)
 	else if (gpsm_grp_is_hbox((gpsm_grp_t *)item)
 		 && gpsm_hbox_insert((gpsm_grp_t *)item, imported,
 				     gpsm_item_hsize(item), 0) == 0){
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, &iter);
+	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
 	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, label, glTree::GPSM_ITEM, (gpsm_item_t *)imported,
 			     -1);
 	  fill_tree_store (imported, GTK_TREE_STORE(model) ,&iter2);
@@ -719,24 +647,16 @@ static void import_cb(GtkWidget *menu, gpointer treeview)
 	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(("Cannot place imported wave"))));
 		
 	gpsm_item_destroy(imported);
-	}
 }
 
 
 
-static void export_cb(GtkWidget *menu, gpointer treeview)
+static void export_cb(GtkWidget *menu, gpointer which)
 {
+	GtkTreeIter *iter = (GtkTreeIter *)which;
         gpsm_item_t *item;
-	GtkTreeSelection *selection;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
+	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 
-        selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	  gtk_tree_model_get(model, &iter, glTree::GPSM_ITEM, &item, -1);
-	  gnome_dialog_run_and_close(glame_export_dialog(item,  NULL)); // FIXME: cannot get the parent window 
-	// deselect_all(active_swapfilegui);
-
-	}
+	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
+	gnome_dialog_run_and_close(glame_export_dialog(item, GTK_WINDOW(glTree::tree)));
 }

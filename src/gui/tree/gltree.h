@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.4 2004/05/21 20:22:56 richi Exp $
+ * $Id: gltree.h,v 1.5 2004/05/21 22:05:58 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -49,8 +49,9 @@ struct glTree
 
 	gpsm_grp_t *root;
 
-	static GtkWidget *tree;
+	static GtkTreeView *tree;
 	static GtkTreeStore *store;
+	static GtkTreeIter iter;
 };
 
 
