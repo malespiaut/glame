@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.18 2000/12/13 16:26:51 xwolf Exp $
+ * $Id: canvas.c,v 1.19 2000/12/18 13:15:58 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -23,6 +23,7 @@
  */
 
 
+#include "glmid.h"
 #include "canvas.h"
 #include <values.h>
 
@@ -46,13 +47,10 @@ static void canvas_load_scheme(GtkWidget*bla,void*blu);
 static void canvas_save_filter(GtkWidget*bla,void*blu){}
 static void canvas_save_as(GtkWidget*bla,void*blu);
 static void register_filternetwork_cb(GtkWidget*bla,void*blu);
-static void add_canvas_node_cb(GtkWidget*bla,void*blu);
-static void add_canvas_input_port_cb(GtkWidget*bla,void*blu){}
-static void add_canvas_output_port_cb(GtkWidget*bla,void*blu){}
 static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu);
 static void redirect_params(GtkWidget *bla, GlameCanvasItem *item);
 void edit_canvas_item_properties(filter_paramdb_t *pdb, const char *label);
-static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
+//static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
 int event_x,event_y;
 GtkWidget *win;
 GtkObject *globalcanvas;
@@ -143,7 +141,7 @@ edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
 void 
 glame_canvas_item_show_props(GnomeCanvasItem * item)
 {
-	GnomeCanvasText * text;
+	GnomeCanvasItem * text;
 	filter_param_t * iter;
 	
 	float y_coord=88.0;
@@ -177,12 +175,11 @@ glame_canvas_item_show_props(GnomeCanvasItem * item)
 void
 empty_props_list(GnomeCanvasItem* item,void* bla)
 {
-	gtk_object_destroy(item);
+	gtk_object_destroy(GTK_OBJECT(item));
 }
 void 
 glame_canvas_item_hide_props(GnomeCanvasItem * item)
 {
-	GnomeCanvasText * text;
 	if(!GLAME_CANVAS_ITEM(item->parent)->property_texts){
 		DPRINTF("props == zero!\n");
 		return;
@@ -271,15 +268,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	}
 	return TRUE;
 }
-		
 
-		
-static gint 
-delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
-{
-	gtk_object_destroy(GTK_OBJECT(win));
-	return TRUE;
-}
 
 static int
 add_filter_by_name(char *name)
@@ -309,31 +298,6 @@ add_filter_by_name(char *name)
 	inItem=0;
 	return 0;
 
-}
-
-
-static void
-dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data, guint info, guint time)
-{
-
-/*	GnomeCanvasGroup*grp;
-	int selected;
-	gui_filter *gf;
-	gui_filter *inst;
-	double dx,dy;
-	GlameCanvas* canv;
-	
-	canv = GLAME_CANVAS(win);
-	inst = malloc(sizeof(gui_filter));
-	selected = atoi(data->data);
-	gf = g_array_index(gui->filters,gui_filter*,selected);
-
-	memcpy(inst,gf,sizeof(gui_filter));
-
-	gui_network_filter_add(canv->net,inst);
-	gnome_canvas_window_to_world(GNOME_CANVAS(canv),x,y,&dx,&dy);
-	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),inst,dx,dy));
-*/
 }
 
 
@@ -493,10 +457,6 @@ create_new_canvas(gui_network* net)
 	
 
 	inItem=0;
-	//gtk_signal_connect(GTK_OBJECT(window),
-	//		   "delete_event",
-	//		   GTK_SIGNAL_FUNC(delete_canvas),
-	//		   NULL);
 	
 	sw = gtk_scrolled_window_new(NULL,NULL);
 	gtk_widget_show(sw);
@@ -910,7 +870,7 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 gint
 handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 {
-	DPRINTF("%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
+	//DPRINTF("%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
 
 	if((GLAME_CANVAS_ITEM(item))->dragging)
 		image_select(item,event,data);
@@ -1339,7 +1299,7 @@ static void changeString(GtkEditable *wid, char ** returnbuffer)
 }
 
 
-static void canvas_save_as(GtkWidget*bla,void*blu)
+static void canvas_save_as(GtkWidget*w,void*blu)
 {
 	GtkWidget * dialog;
 	GtkWidget * fileEntry;
@@ -1352,25 +1312,28 @@ static void canvas_save_as(GtkWidget*bla,void*blu)
 	char * filternamebuffer;
 	char * categorynamebuffer;
 	FILE* outf;
-	filter_t * bla;
+	filter_t *bla;
 
 	filenamebuffer=calloc(100,sizeof(char));
 	filternamebuffer=calloc(100,sizeof(char));
 	categorynamebuffer=calloc(100,sizeof(char));
 	
 	dialog = gnome_dialog_new("Save network as...",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-	dialogVbox = GTK_VBOX (GNOME_DIALOG (dialog)->vbox);
+	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
 	
 	fileEntry = gnome_file_entry_new(NULL,"Filename");
-	gtk_signal_connect(gnome_file_entry_gtk_entry(fileEntry),"changed",changeString,&filenamebuffer);
+	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
+			   "changed",changeString,&filenamebuffer);
 	create_label_widget_pair(dialogVbox,"Filename",fileEntry);
 	
 	filternameentry = gtk_entry_new();
-	gtk_signal_connect(filternameentry,"changed",changeString,&filternamebuffer);
+	gtk_signal_connect(GTK_OBJECT(filternameentry),"changed",
+			   changeString,&filternamebuffer);
 	create_label_widget_pair(dialogVbox,"Filtername",filternameentry);
 	
 	categoryEntry = gtk_entry_new();
-	gtk_signal_connect(categoryEntry,"changed",changeString,&categorynamebuffer);
+	gtk_signal_connect(GTK_OBJECT(categoryEntry),"changed",
+			   changeString,&categorynamebuffer);
 	create_label_widget_pair(dialogVbox,"Category",categoryEntry);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
 
@@ -1389,7 +1352,7 @@ static void canvas_save_as(GtkWidget*bla,void*blu)
 			fclose(outf);
 		}else{
 			errorbox = gnome_warning_dialog("Please enter filename next time...");
-			gnome_dialog_run_and_close(errorbox);
+			gnome_dialog_run_and_close(GNOME_DIALOG(errorbox));
 		}
 	}
 	free(filenamebuffer);
@@ -1409,15 +1372,14 @@ static void canvas_load_scheme(GtkWidget*bla,void*blu)
 	GtkWidget * fileEntry;
 	GtkWidget * dialog;
 	GtkWidget * vbox;
-	GtkWidget * errorbox;
 	char * filenamebuffer;
 	filenamebuffer = calloc(100,sizeof(char));
 
 	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+	vbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
 
 	fileEntry = gnome_file_entry_new("Load","Filename");
-	gtk_signal_connect(gnome_file_entry_gtk_entry(fileEntry),"changed",changeString,&filenamebuffer);
+	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
 	create_label_widget_pair(vbox,"Filename",fileEntry);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
 		if(glame_load_plugin(filenamebuffer)){
@@ -1429,8 +1391,6 @@ static void canvas_load_scheme(GtkWidget*bla,void*blu)
 	free(filenamebuffer);
 }
 
-static void add_canvas_node_cb(GtkWidget*bla,void*blu){}
-
 
 
 static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
@@ -1438,7 +1398,6 @@ static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
 	GtkWidget * nameEntry;
 	GtkWidget * dialog;
 	GtkWidget * vbox;
-	GtkWidget * errorbox;
 	char * filenamebuffer;
 
 	filter_portdb_t *ports;
@@ -1447,10 +1406,11 @@ static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
 	filenamebuffer = calloc(100,sizeof(char));
 
 	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+	vbox = GNOME_DIALOG(dialog)->vbox;
 
 	nameEntry = gtk_entry_new();
-	gtk_signal_connect(nameEntry,"changed",changeString,&filenamebuffer);
+	gtk_signal_connect(GTK_OBJECT(nameEntry),"changed",
+			   changeString,&filenamebuffer);
 	create_label_widget_pair(vbox,"New port name",nameEntry);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
 		ports = filter_portdb(GLAME_CANVAS(globalcanvas)->net->net);  // ugh FIXME globals suck
@@ -1488,8 +1448,8 @@ static void update_entry_text(GtkListItem* item,GtkEntry* entry)
 
 static void redirect_params(GtkWidget *bla, GlameCanvasItem *item)
 {
-	GtkWidget * dialog,*dialog2;
-	GtkWidget * vbox,*vbox2;
+	GtkWidget * dialog;
+	GtkWidget * vbox;
 	GtkWidget * entry;
 	GtkWidget * list;
 	GtkWidget * listItems;
@@ -1498,14 +1458,13 @@ static void redirect_params(GtkWidget *bla, GlameCanvasItem *item)
 	GList * items=NULL;
 	char * paramnamebuffer;
 	char * externnamebuffer;
-	int ok=0;
 
 	paramnamebuffer = calloc(100,sizeof(char));
 	externnamebuffer = calloc(100,sizeof(char));
 
 	dialog = gnome_dialog_new("Select parameter",GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
 		
-	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+	vbox = GNOME_DIALOG(dialog)->vbox;
 	
 	list = gtk_list_new();
 	entry = gtk_entry_new();
@@ -1515,8 +1474,8 @@ static void redirect_params(GtkWidget *bla, GlameCanvasItem *item)
 
 	filterparamdb_foreach_param(db,iter){
 		listItems = gtk_list_item_new_with_label(filterparam_label(iter));
-		gtk_signal_connect(listItems,"select",update_entry_text,entry);
-		gtk_signal_connect(listItems,"select",update_string,&paramnamebuffer);
+		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_entry_text,entry);
+		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_string,&paramnamebuffer);
 		gtk_widget_show(listItems);
 		items = g_list_append(items,listItems);
 	}
@@ -1567,12 +1526,12 @@ static void describe_item(GtkWidget* wid,GlameCanvasItem* it)
 	int pos=0;
 	
 	dialog = gnome_dialog_new(plugin_name(it->filter->plugin),GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+	vbox = GNOME_DIALOG(dialog)->vbox;
 	desc = (char*)plugin_query(it->filter->plugin,PLUGIN_DESCRIPTION);
 	text = gtk_text_new(NULL,NULL);
 	
 	gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
 	gtk_widget_show(text);
 	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), text, TRUE, TRUE, 0);
-	gnome_dialog_run_and_close(dialog);
+	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
 }
