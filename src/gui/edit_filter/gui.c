@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.7 2001/02/08 01:10:08 xwolf Exp $
+ * $Id: gui.c,v 1.8 2001/03/02 00:05:34 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -229,7 +229,7 @@ gui_network_new_wizard(void)
 	net->net = filter_creat(NULL);
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
-	canv=create_new_canvas(net);
+	canv=canvas_new_from_network(net);
 	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
 	
 	return net;

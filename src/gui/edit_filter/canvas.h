@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.9 2001/03/01 13:59:14 xwolf Exp $
+ * $Id: canvas.h,v 1.10 2001/03/02 00:05:34 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -149,8 +149,15 @@ GlameCanvasItem* glame_canvas_item_new(GnomeCanvasGroup * group,
 #define GUI_PORT_TYPE_OUT 2
 #define GUI_PORT_TYPE_EXTERNAL 4
 
+
+
+
+
+void canvas_item_create_ports(GnomeCanvasGroup* grp,filter_t *f);
+GtkWidget * canvas_new_from_network(gui_network* net);
+
 gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
-gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
+gint canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 
 int add_connection(GlameConnection* c);
 void update_connection(GlameConnection *c);

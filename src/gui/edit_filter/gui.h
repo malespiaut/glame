@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.4 2001/03/01 13:59:14 xwolf Exp $
+ * $Id: gui.h,v 1.5 2001/03/02 00:05:34 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -94,16 +94,6 @@ void edit_paramdesc(filter_t *f);
 
 void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
 				    
-
-
-
-// canvas stuff
-GtkWidget * create_new_canvas(gui_network*);
-
-
-GtkObject* create_new_node(GnomeCanvas *canvas, filter_t *filter,double x, double y);
-
-void create_ports(GnomeCanvasGroup* grp, filter_t *f);
 
 
 

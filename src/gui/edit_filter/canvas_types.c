@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.6 2001/03/01 13:59:14 xwolf Exp $
+ * $Id: canvas_types.c,v 1.7 2001/03/02 00:05:34 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -357,8 +357,8 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 				       "image",image,
 				       NULL);
 
-	gtk_signal_connect(GTK_OBJECT(gitem),"event",GTK_SIGNAL_FUNC(image_select),item);
-	create_ports(GNOME_CANVAS_GROUP(item),gfilter);
+	gtk_signal_connect(GTK_OBJECT(gitem),"event",GTK_SIGNAL_FUNC(canvas_item_node_selected),item);
+	canvas_item_create_ports(GNOME_CANVAS_GROUP(item),gfilter);
 	gtk_signal_connect(GTK_OBJECT(item),"event",GTK_SIGNAL_FUNC(handle_events),item);
 	gfilter->gui_priv = item;
 	return GLAME_CANVAS_ITEM(item);
