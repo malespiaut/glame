@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.7 2001/07/13 09:01:43 richi Exp $
+ * $Id: apply.c,v 1.8 2001/07/27 12:25:09 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -190,6 +190,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	}
 
 	/* Create the apply network. */
+	net_prepare_bulk();
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile) {
 		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
@@ -210,7 +211,6 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	gpsm_op_prepare((gpsm_item_t *)a->item);
 	a->have_undo = 1;
 
-	net_prepare_bulk();
 	if (filter_launch(a->net) == -1) {
 		errmsg = "Unable to launch network";
 		goto err;

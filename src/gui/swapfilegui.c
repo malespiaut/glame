@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.56 2001/07/17 09:28:56 richi Exp $
+ * $Id: swapfilegui.c,v 1.57 2001/07/27 12:25:09 nold Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -575,6 +575,7 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Build basic network. */
+	net_prepare_bulk();
 	net = filter_creat(NULL);
 	writefile = net_add_plugin_by_name(net, "write_file");
 	db = filter_paramdb(writefile);
@@ -601,7 +602,6 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (net_apply_node(net, render) == -1)
 		goto fail_cleanup;
 
-	net_prepare_bulk();
 	if (filter_launch(net) == -1
 	    || filter_start(net) == -1)
 		goto fail_cleanup;
@@ -642,6 +642,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Setup core network. */
+	net_prepare_bulk();
 	net = filter_creat(NULL);
 	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
 		return;
@@ -679,7 +680,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
 
 	channels = i;
-	net_prepare_bulk();
 	filter_launch(net);
 	filter_start(net);
 	if (filter_wait(net) != 0)
