@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.10 2001/12/03 22:03:19 mag Exp $
+ * $Id: glame_audiofile.c,v 1.11 2001/12/10 10:18:03 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -32,6 +32,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "util.h"
+#include "glsimd.h"
 #include "glame_audiofile.h"
 #include "glame_types.h"
 #include "glame_byteorder.h"
@@ -363,7 +364,76 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 	if (RWW(file).start+RWW(file).size < RWW(file).data+len)
 		len = RWW(file).start+RWW(file).size-RWW(file).data;
 
-	memcpy(buffer, RWW(file).data, len);
+	/* memcpy(buffer, RWW(file).data, len); */
+	switch (file->sfmt) {
+	case AF_SAMPFMT_TWOSCOMP: {
+		switch (file->width) {
+		case 8: {
+			int i;
+			gl_s8 *src = (gl_s8 *)RWW(file).data;
+			float *dst = (float *)buffer;
+			for (i=0; i<frameCount*file->ch; i++)
+				dst[i] = CHAR2SAMPLE(src[i]);
+			break;
+		}
+		case 16: {
+			int i;
+			gl_s16 *src = (gl_s16 *)RWW(file).data;
+			float *dst = (float *)buffer;
+			for (i=0; i<frameCount*file->ch; i++)
+				dst[i] = SHORT2SAMPLE(src[i]);
+			break;
+		}
+		case 24: {
+		}
+		case 32: {
+		}
+		case 64: {
+		}
+		}
+	}
+	case AF_SAMPFMT_UNSIGNED: {
+		switch (file->width) {
+		case 8: {
+			int i;
+			gl_u8 *src = (gl_u8 *)RWW(file).data;
+			float *dst = (float *)buffer;
+			for (i=0; i<frameCount*file->ch; i++)
+				dst[i] = UCHAR2SAMPLE(src[i]);
+			break;
+		}
+		case 16: {
+			int i;
+			gl_u16 *src = (gl_u16 *)RWW(file).data;
+			float *dst = (float *)buffer;
+			for (i=0; i<frameCount*file->ch; i++)
+				dst[i] = USHORT2SAMPLE(src[i]);
+			break;
+		}
+		case 24: {
+		}
+		case 32: {
+		}
+		case 64: {
+		}
+		}
+	}
+	case AF_SAMPFMT_FLOAT: {
+		/* file->width is 32 */
+		memcpy(buffer, RWW(file).data, len);
+		break;
+	}
+	case AF_SAMPFMT_DOUBLE: {
+		/* file->width is 32 */
+		int i;
+		double *src = (double *)RWW(file).data;
+		float *dst = (float *)buffer;
+		for (i=0; i<frameCount*file->ch; i++)
+			dst[i] = src[i];
+		break;
+	}
+	}
+
 	RWW(file).data += len;
 
 	return len/RWW(file).block_align;
@@ -420,8 +490,9 @@ void afGetSampleFormat (AFfilehandle file, int track, int *sampfmt,
 	if (track != AF_DEFAULT_TRACK)
 		return;
 
-	*sampfmt = file->sfmt;
-	*sampwidth = file->width;
+	/* FIXME */
+	*sampfmt = /* AF_SAMPFMT_FLOAT; */ file->sfmt;
+	*sampwidth = /* 32; */ file->width;
 }
 
 float afGetVirtualFrameSize (AFfilehandle file, int track, int expand3to4)
@@ -432,7 +503,8 @@ float afGetVirtualFrameSize (AFfilehandle file, int track, int expand3to4)
 	if (track != AF_DEFAULT_TRACK)
 		return 0.0;
 
-	return (float) RWW(file).block_align;
+	/* FIXME */
+	return (float) (sizeof(float) * file->ch);
 }
 
 double afGetRate (AFfilehandle file, int track)
@@ -538,20 +610,36 @@ void *afQueryPointer (int querytype, int arg1, int arg2, int arg3, int arg4)
 }
 
 
-int afSetVirtualSampleFormat(AFfilehandle, int track,int sampleFormat, int sampleWidth) 
+int afSetVirtualSampleFormat(AFfilehandle file, int track,
+			     int sampleFormat, int sampleWidth) 
 {
-	DPRINTF("afSetVirtualSampleFormat not yet implemented in wrapper\n");
-	return -1; 
+	if (track != AF_DEFAULT_TRACK
+	    || sampleFormat != AF_SAMPFMT_FLOAT
+	    || sampleWidth != 32)
+		return -1;
+	return 0; 
 }
 
 int afSetVirtualPCMMapping(AFfilehandle file, int track, 
-			    double slope, double intercept, double minClip, double maxClip) 
+			   double slope, double intercept,
+			   double minClip, double maxClip) 
 {
-	DPRINTF("afSetVirtualPCMMapping not yet implemented in wrapper\n");
-	return -1;
+	if (track != AF_DEFAULT_TRACK
+	    /* || slope != whats that? */
+	    || intercept != 0.0
+	    || minClip != -1.0
+	    || maxClip != 1.0)
+		return -1;
+	return 0;
 }
 
-Void afInitCompression(AFfilesetup setup, int track, int compression) {
+void afInitCompression(AFfilesetup setup, int track, int compression)
+{
+	/* FIXME: error handling!? */
+	if (track != AF_DEFAULT_TRACK
+	    || compression != AF_COMPRESSION_NONE)
+		return;
+	return;
 }
 
 #endif
