@@ -1,5 +1,5 @@
 (filternetwork play
-	(node rf read_file2
+	(node rf read_file
 		(export-param filename filename "file to be played")
 	)
 	(node aout audio_out)

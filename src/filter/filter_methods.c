@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.4 2000/02/20 15:22:46 richi Exp $
+ * $Id: filter_methods.c,v 1.5 2000/02/21 16:11:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -42,10 +42,6 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 	filter_portdesc_t *out;
 	filter_pipe_t *in;
 
-	/* is there a port with the right name? */
-	if (!(out = filter_get_outputdesc(n->filter, port)))
-		return -1;
-
 	/* fill in a sane pipe type */
 	p->type = FILTER_PIPETYPE_DEFAULT(out->type);
 
@@ -59,22 +55,12 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 	return 0;
 }
 
-/* Default input connect method.
- * We accept all input types.
- */
 int filter_default_connect_in(filter_node_t *n, const char *port,
 			      filter_pipe_t *p)
 {
-	filter_portdesc_t *in;
-
-	/* is there a port with the right name? */
-	if (!(in = filter_get_inputdesc(n->filter, port)))
-		return -1;
-
-	/* do we support the requested pipe type? */
-	if (!FILTER_PORT_IS_COMPATIBLE(in->type, p->type))
-		return -1;
-
+        /* We accept everything. Default checks are done by the
+	 * filternetwork_add_conection function.
+         */
 	return 0;
 }
 
@@ -180,13 +166,10 @@ int filter_network_connect_out(filter_node_t *source, const char *port,
 int filter_network_connect_in(filter_node_t *dest, const char *port,
 			      filter_pipe_t *p)
 {
-	filter_portdesc_t *d;
 	struct filter_network_mapping *m;
 	filter_node_t *n;
 
-	if (!(d = filter_get_inputdesc(dest->filter, port)))
-		return -1;
-	m = (struct filter_network_mapping *)d->private;
+	m = (struct filter_network_mapping *)p->dest_port->private;
 	if (!(n = filternetwork_get_node(dest, m->node)))
 		return -1;
 	p->in_name = m->label;

@@ -1,9 +1,11 @@
 (filternetwork play
-	(node rf read_file2
+	(node rf read_file
 		(export-param filename filename "file to be played")
 	)
-	(node e2_1 echo2)
-	(node e2_2 echo2)
+	(node e2_1 echo2
+		(set-param time 0.2))
+	(node e2_2 echo2
+		(set-param time 0.2))
 	(node aout audio_out)
 	(connect rf out e2_1 in)
 	(connect rf out e2_2 in)

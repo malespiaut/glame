@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.22 2000/02/20 15:31:42 richi Exp $
+ * $Id: filter_network.c,v 1.23 2000/02/21 16:11:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -385,10 +385,13 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	if (FILTERNODE_IS_RUNNING(source))
 		return NULL;
 
+	/* are there ports with the specified names? */
 	if (!(in = filter_get_outputdesc(source->filter, source_port))
 	    || !(out = filter_get_inputdesc(dest->filter, dest_port)))
 		return NULL;
 
+	/* are there already connections to the ports and do
+	 * they not have the AUTOMATIC flag set? */
 	if (!(FILTER_PORT_IS_AUTOMATIC(in->type))
 	    && filternode_get_output(source, in->label))
 	        return NULL;
@@ -404,6 +407,11 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	p->dest = dest;
 	if (source->filter->connect_out(source, source_port, p) == -1)
 		goto _err;
+
+	/* do we support the requested pipe type? */
+	if (!FILTER_PORT_IS_COMPATIBLE(in->type, p->type))
+		return NULL;
+
 	if (dest->filter->connect_in(dest, dest_port, p) == -1)
 		goto _err;
 
@@ -769,15 +777,15 @@ char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
 }
 
 
-#define FNREGEXP_ARGCOMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+|\"[^\"]*\")[[:space:]]*([[:alnum:]_-]*|\"[^\"]*\")[[:space:]]*\\)|[[:space:]]*\\)"
+#define FNREGEXP_ARGCOMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+|\"[^\"]*\")[[:space:]]*([[:alnum:]._-]*|\"[^\"]*\")[[:space:]]*\\)|[[:space:]]*\\)"
 
-#define FNREGEXP_NODE "[[:space:]]*([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)"
-#define FNREGEXP_CONNECT "[[:space:]]*([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]*"
-#define FNREGEXP_SETPARAM "[[:space:]]*([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]*|\"[^\"]*\")[[:space:]]*\\)"
+#define FNREGEXP_NODE "[[:space:]]*([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)"
+#define FNREGEXP_CONNECT "[[:space:]]*([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]+)[[:space:]]*"
+#define FNREGEXP_SETPARAM "[[:space:]]*([[:alnum:]._-]+)[[:space:]]+([[:alnum:]._-]*|\"[^\"]*\")[[:space:]]*\\)"
 
-#define FNREGEXP_COMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]_-]+)[[:space:]]+|[[:space:]]*\\)"
+#define FNREGEXP_COMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]._-]+)[[:space:]]+|[[:space:]]*\\)"
 
-#define FNREGEXP_FILTERNETWORK "[[:space:]]*\\([[:space:]]*filternetwork[[:space:]]+([[:alnum:]_-]+)[[:space:]]+"
+#define FNREGEXP_FILTERNETWORK "[[:space:]]*\\([[:space:]]*filternetwork[[:space:]]+([[:alnum:]._-]+)[[:space:]]+"
 
 static int parse_node(filter_network_t *net, char **buf)
 {

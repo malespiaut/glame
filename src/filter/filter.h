@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.29 2000/02/21 10:40:01 mag Exp $
+ * $Id: filter.h,v 1.30 2000/02/21 16:11:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -154,7 +154,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PORTTYPE_RMS       8
 #define FILTER_PORTTYPE_MIDI      16
 #define FILTER_PORTTYPE_MISC    128
-#define FILTER_PORTTYPE_ANY      -4
+#define FILTER_PORTTYPE_ANY     (4|8|16|128)
 #define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
 #define FILTER_PORT_IS_COMPATIBLE(porttype, pipetype) (((porttype) & (pipetype)) == (pipetype))
 
