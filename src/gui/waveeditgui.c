@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.147 2004/10/23 13:09:24 richi Exp $
+ * $Id: waveeditgui.c,v 1.148 2004/12/23 18:59:25 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -189,6 +189,7 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void paste_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void replace_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void mix_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void crop_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void cut_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void delete_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void undo_cb(GtkWidget *bla, GtkWaveView *waveview);
@@ -200,6 +201,7 @@ static GnomeUIInfo edit_menu[] = {
 	GNOMEUIINFO_ITEM(N_("Paste"), NULL, paste_cb, NULL),
 	GNOMEUIINFO_ITEM(N_("Replace"), NULL, replace_cb, NULL),
 	GNOMEUIINFO_ITEM(N_("Mix"), NULL, mix_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Crop to selection"), NULL, crop_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM(N_("Delete"), NULL, delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -212,9 +214,10 @@ static GnomeUIInfo edit_menu[] = {
 #define EDIT_MENU_PASTE_INDEX 2
 #define EDIT_MENU_REPLACE_INDEX 3
 #define EDIT_MENU_MIX_INDEX 4
-#define EDIT_MENU_DELETE_INDEX 6
-#define EDIT_MENU_UNDO_INDEX 8
-#define EDIT_MENU_REDO_INDEX 9
+#define EDIT_MENU_CROP_INDEX 5
+#define EDIT_MENU_DELETE_INDEX 7
+#define EDIT_MENU_UNDO_INDEX 9
+#define EDIT_MENU_REDO_INDEX 10
 
 /* Menu event - Copy. */
 static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
@@ -370,6 +373,32 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* Remove the selection. */
 	selectnone_cb(bla, waveview);
+	gpsm_item_destroy(item);
+}
+
+/* Menu event - Crop to selection. */
+static void crop_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
+	gint32 start, length, total_size;
+	gpsm_item_t *item;
+
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	if (length <= 0)
+		return;
+
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
+	total_size = gpsm_item_hsize(item);
+	if (gpsm_op_prepare(item) == -1)
+		DPRINTF("Error preparing for undo\n");
+	if (clipboard_delete(item, 0, start-1) == -1
+	    || clipboard_delete(item, length, total_size-start-1) == -1)
+		DPRINTF("Error cropping\n");
+
 	gpsm_item_destroy(item);
 }
 
@@ -1083,6 +1112,8 @@ static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_MIX_INDEX].widget,
 				 clipboard_can_paste(item)
 				 && (marker_pos >= 0) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_CROP_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_DELETE_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_UNDO_INDEX].widget,
