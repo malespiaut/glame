@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.33 2001/04/24 16:41:21 nold Exp $
+ * $Id: audio_io.c,v 1.34 2001/04/27 08:26:43 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -266,6 +266,7 @@ int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
 	filterparamdb_add_param_string(filter_paramdb(filter), "device",
 				   FILTER_PARAMTYPE_STRING, defaultdevice,
 				   FILTERPARAM_END);
+	filterparamdb_add_param_pos(filter_paramdb(filter));
 
 	filter->f = f;
 	filter->connect_in = aio_generic_connect_in;

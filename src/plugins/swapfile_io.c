@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.12 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: swapfile_io.c,v 1.13 2001/04/27 08:26:43 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -192,7 +192,8 @@ static int swapfile_out_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
-	long fname, offset, size, cnt;
+	filter_param_t *pos_param;
+	long fname, offset, size, cnt, pos;
 	swfd_t fd;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
@@ -215,6 +216,10 @@ static int swapfile_out_f(filter_t *n)
 	}
 	size = filterparam_val_int(filternode_get_param(n, "size"));
 
+	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+	filterparam_val_set_pos(pos_param, 0);
+	pos = 0;
+
 	FILTER_AFTER_INIT;
 
 	while ((size != 0) && (buf = sbuf_get(in))) {
@@ -229,6 +234,8 @@ static int swapfile_out_f(filter_t *n)
 		if (sw_write(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE)
 		    != cnt*SAMPLE_SIZE)
 			DPRINTF("Did not write the whole buffer!?");
+		pos += cnt;
+		filterparam_val_set_pos(pos_param, pos);
 
 		/* Update size, if necessary. */
 		if (size != -1)
@@ -277,6 +284,7 @@ int swapfile_out_register(plugin_t *p)
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_DESCRIPTION, "max size to record or -1 for the full stream",
 				FILTERPARAM_END);
+	filterparamdb_add_param_pos(filter_paramdb(f));
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to swapfile file");
 	plugin_set(p, PLUGIN_PIXMAP, "output.png");

@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.11 2001/04/25 13:53:40 nold Exp $
+ * $Id: audio_io_oss.c,v 1.12 2001/04/27 08:26:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -171,8 +171,9 @@ static int oss_audio_out_f(filter_t *n)
 	int	ch, max_ch, interleave, ch_active;
 	int	chunk_size;
 
-	filter_param_t *dev_param;
+	filter_param_t *dev_param, *pos_param;
 	int	dev = -1;
+	int     pos = 0;
 
 	max_ch = filternode_nrinputs(n);
 	if (!max_ch)
@@ -282,6 +283,10 @@ _fmt_retry:
 	DPRINTF("Allocated %d byte conversion buffer at %p.\n", blksz, out);
 	interleave = max_ch * ssize; 
 
+	pos_param = filterparamdb_get_param(filter_paramdb(n),
+					    FILTERPARAM_LABEL_POS);
+	filterparam_val_set_pos(pos_param, 0);
+
 	FILTER_AFTER_INIT;
 
 	ch_active = ch;
@@ -291,7 +296,7 @@ _fmt_retry:
 	do {
 		ssize_t todo = chunk_size * interleave;
 		void *wpos = out;
-		
+
 		oss_convert_bufs(in, out, max_ch, sign*ssize, chunk_size, 
 		                 interleave);
 		do {
@@ -302,6 +307,8 @@ _fmt_retry:
 			       	       "Samples might be dropped\n");
 				break;
 			}
+			filterparam_val_set_pos(pos_param, pos);
+			pos += done/interleave;
 			todo -= done;
 			wpos += ssize * done;
 		} while (todo);
