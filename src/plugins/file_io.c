@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.17 2000/04/03 09:55:37 richi Exp $
+ * $Id: file_io.c,v 1.18 2000/04/03 17:22:10 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -558,6 +558,13 @@ int wav_read_prepare(filter_node_t *n, const char *filename)
 		DPRINTF("%s", strerror(errno));
 		return -1;
 	}
+
+	/* Ugly black magic. Reset values that are abused later on for
+	 * state tracking.
+	 */
+	RWW(n).data = NULL;
+	RWW(n).ch = 0;
+
 	if (wav_read_parse(n, RWW(n).map, RWW(n).map + statbuf.st_size)) {
 		munmap(RWW(n).map, statbuf.st_size);
 		return -1;
