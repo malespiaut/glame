@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.7 2000/02/17 17:58:36 nold Exp $
+ * $Id: echo2.c,v 1.8 2000/02/17 18:06:39 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -46,7 +46,7 @@ static int echo2_f(filter_node_t *n)
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 	        return -1;
 
-	delay = filterpipe_sample_rate(in); /* 1 sec. default delay */
+	delay = filterpipe_sample_rate(in)/10; /* 0.1 sec. default delay */
 	if ((param = filternode_get_param(n, "time")))
 		delay = (int)(filterpipe_sample_rate(in) 
 				* filterparam_val_float(param));

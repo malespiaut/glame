@@ -2,8 +2,8 @@ TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
 
-libfixp/
-	nothing? do we need it? [belbo]
+doc/
+	document available filters [the filter autors]
 
 
 filter/
@@ -22,8 +22,9 @@ channel/
 
 
 rw/
-	needs to be redone or integrated with the GUI effort
+	needs to be redone or integrated with the GUI effort [XWolf]
 
 
 glame/cglame
 	nothing there [all]
+
