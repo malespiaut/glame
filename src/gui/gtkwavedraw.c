@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.6 2000/04/13 04:31:53 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.7 2000/04/18 00:31:20 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -494,9 +494,13 @@ gtk_wave_draw_draw(GtkWidget *widget,
     if ((stop = (start + n_samples - 1)) < start_disp)
       continue;
 
+    start_sample = MAX(start, start_disp);
+    stop_sample = MIN(stop, stop_disp);
+    disp_samples = stop_sample - start_sample + 1;
+    
     if (wavedata->by_ref == 2) {
       p_val = (wavedata->call)(wavedata->wave_idx, 
-			       start, stop, 
+			       start_sample, stop_sample, 
 			       wavedraw->n_points_per_pixel);
     } else
       p_val = wavedata->data;
@@ -505,10 +509,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
     gdk_color_alloc(gdk_colormap_get_system(), &wavedata->color);
     gdk_gc_set_foreground(wavedraw->wavedraw_gc, &wavedata->color);
 
-    start_sample = MAX(start, start_disp);
-    stop_sample = MIN(stop, stop_disp);
-    disp_samples = stop_sample - start_sample + 1;
-    
     start_x = (start_sample - start_disp) * scale_x;
     stop_x = (glong)((stop_sample - start_disp) * scale_x);
     disp_x = stop_x - start_x;
