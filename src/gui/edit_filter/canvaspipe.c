@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.1 2001/05/07 00:45:36 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.2 2001/05/07 21:36:15 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -176,6 +176,7 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 	double sourcex,sourcey,destx,desty;
 	GlameCanvasPort *port;
 	int pipes;
+	double y1,y2, dummy;
 
 	/* find coords */
 	
@@ -183,18 +184,21 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 	pipes = filterport_nrpipes(filterpipe_source(p->pipe));
 
 	sourcex = GNOME_CANVAS_RE(port)->x1 + 16.0;
-	sourcey = ((GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(float)(pipes+1))*p->sourceId;
-
+	sourcey = GNOME_CANVAS_RE(port)->y1 + ((GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(float)(pipes+1))*p->sourceId;
+	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(port),&sourcex,&sourcey);
+	
 	port = glame_canvas_find_port(filterpipe_dest(p->pipe));
 	pipes = filterport_nrpipes(filterpipe_dest(p->pipe));
 
 	destx = GNOME_CANVAS_RE(port)->x1;
-	desty = ((GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(float)(pipes+1))*p->destId;
+	
+	desty = GNOME_CANVAS_RE(port)->y1 + ((GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(float)(pipes+1))*p->destId;
+	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(port),&destx,&desty);
 	
 	p->points->coords[0] = sourcex;
 	p->points->coords[1] = sourcey;
 	p->points->coords[10] = destx;
-	p->points->coords[11] = destx;
+	p->points->coords[11] = desty;
 	glame_canvas_pipe_reroute(p);
 }
 
@@ -202,17 +206,20 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 static void
 glame_canvas_pipe_end_moved_cb(GlameCanvasPort* p,double dx, double dy, GlameCanvasPipe* pipe)
 {
+	DPRINTF("%f %f\n",dx,dy);
 	pipe->points->coords[10] += dx;
 	pipe->points->coords[11] += dy;
 	glame_canvas_pipe_reroute(pipe);
 }
 
-static void
+static gboolean
 glame_canvas_pipe_begin_moved_cb(GlameCanvasPort* p,double dx, double dy, GlameCanvasPipe* pipe)
 {
+	DPRINTF("%f %f\n",dx,dy);
 	pipe->points->coords[0] += dx;
 	pipe->points->coords[1] += dy;
 	glame_canvas_pipe_reroute(pipe);
+	return FALSE;
 }
 
 static void

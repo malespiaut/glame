@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.1 2001/05/07 00:45:36 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.2 2001/05/07 21:36:15 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -105,8 +105,10 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 	if(!network){
 		network = filter_creat(NULL);
 	} else {
-		if(!FILTER_IS_NETWORK(network))
+		if(!FILTER_IS_NETWORK(network)){
+			DPRINTF("Not network\n");
 			return NULL;
+		}
 	}
 
 	g = gtk_type_new(glame_canvas_get_type());
@@ -152,7 +154,6 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 	}
 	
 	/*canvas_update_scroll_region(GLAME_CANVAS(canv));*/
-	
 	return g;
 }
 
@@ -160,20 +161,22 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 
 /* uuuuh :-\  */
 void glame_canvas_marshal_NONE__DOUBLE_DOUBLE(GtkObject* obj,
-					      GtkSignalFunc func,
-					      gpointer func_data,
-					      GtkArg* args)
+						  GtkSignalFunc func,
+						  gpointer func_data,
+						  GtkArg* args)
 {
 
 	GtkSignal_NONE__DOUBLE_DOUBLE rfunc;
-	gboolean* return_val;
+	//	gint *return_val;
+	
 	//return_val = GTK_RETLOC_BOOL(args[2]);
 	rfunc = (GtkSignal_NONE__DOUBLE_DOUBLE)func;
-	//*return_val = 
-	(*rfunc)(obj,
-			       GTK_VALUE_DOUBLE(args[0]),
-			       GTK_VALUE_DOUBLE(args[1]),
-			       func_data);
+	
+	//*return_val =
+ 	(*rfunc)(obj,
+		 GTK_VALUE_DOUBLE(args[0]),
+		 GTK_VALUE_DOUBLE(args[1]),
+		 func_data);
 }
 	
 
@@ -191,4 +194,24 @@ glame_gui_get_icon_from_filter(filter_t *filter)
 	/* HACK */
 
 	return gdk_imlib_load_image("test.png");
+}
+
+GlameCanvasFilter*
+glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
+{
+	filter_t *filter;
+
+	filter = filter_instantiate(plug);
+	if(!filter){
+		DPRINTF("Error in instantiate\n");
+		return NULL;
+	}
+	
+	
+	if(filter_add_node(canv->net,filter,plugin_name(plug)) == -1) {
+		DPRINTF("Error adding node!\n");
+		return -1;
+	}
+
+	return glame_canvas_filter_new(gnome_canvas_root(GNOME_CANVAS(canv)), filter);
 }

@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.2 2001/05/04 15:40:37 xwolf Exp $
+ * $Id: canvasitem.h,v 1.3 2001/05/07 21:36:15 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -24,6 +24,8 @@
 #ifndef _CANVASITEM_H
 #define _CANVASITEM_H
 
+#include <gnome.h>
+#include "filter.h"
 
 /* Type forwards */
 
@@ -42,9 +44,9 @@ typedef struct _GlameCanvasFilter GlameCanvasFilter;
 typedef struct _GlameCanvasPort GlameCanvasPort;
 typedef struct _GlameCanvasPipe GlameCanvasPipe;
 
-typedef struct _GlameCanvasFilter GlameCanvasFilterClass;
-typedef struct _GlameCanvasPort GlameCanvasPortClass;
-typedef struct _GlameCanvasPipe GlameCanvasPipeClass;
+typedef struct _GlameCanvasFilterClass GlameCanvasFilterClass;
+typedef struct _GlameCanvasPortClass GlameCanvasPortClass;
+typedef struct _GlameCanvasPipeClass GlameCanvasPipeClass;
 
 /* GTK Type defines */
 
@@ -85,37 +87,25 @@ struct _GlameCanvasFilter {
 	GnomeCanvasGroup parent_object;
 
 	/*  public */
-	filter_t *filter; 
-	double x, y;
+	filter_t *filter;
+	double x;
+	double y;
 	GnomeCanvasText *label;
 	GnomeCanvasRect *labelBox;
 
 	/* private */
-	gboolean immutable : FALSE;
-	gboolean undeletable : FALSE;
-	gboolean connecting : FALSE;
-	gboolean dragging : FALSE;
+	gboolean immutable;
+	gboolean undeletable;
+	gboolean connecting;
+	gboolean dragging;
 	
 	double last_x, last_y;
-	gint timeout_id : 0;
-	GList *property_texts : NULL;
+	gint timeout_id;
+	GList *property_texts;
 
-	GlameCanvasFilter **pprev_filter_hash;
-	GlameCanvasFilter *next_filter_hash;
+	GlameCanvasFilter **pprev_gcfilter_hash;
+	GlameCanvasFilter *next_gcfilter_hash;
 };
-
-/*
- *
-HASH(GCfilter, GlameCanvasFilter, 8,
-	(GCfilter->filter == key ),
-	((long)key/4),
-	((long)GCfilter->filter/4),
-	filter_t * key)
-
-	GlameCanvasFilter* hash_find_GCfilter(filter_t*);
-	void hash_add_GCFilter(GlameCanvasFilter*);
-
- */
 
 struct _GlameCanvasFilterClass {
 	GnomeCanvasGroupClass parent_class;
@@ -123,12 +113,16 @@ struct _GlameCanvasFilterClass {
 	void (* moved) (GlameCanvasFilter *filter,
 			double x,
 			double y);
+	void (* deleted) (GlameCanvasFilter *filter);
 };
 
 /* I hope these have descriptive names */
 
 /* public */
-GtkType * glame_canvas_filter_get_type(void);
+GtkType glame_canvas_filter_get_type(void);
+
+GlameCanvasFilter * glame_canvas_filter_new(GnomeCanvasGroup *group,
+					    filter_t * filter);
 
 void glame_canvas_filter_set_immutable(GlameCanvasFilter* filter, gboolean immutable);
 gboolean glame_canvas_filter_is_immutable(GlameCanvasFilter *filter);
@@ -160,7 +154,12 @@ struct _GlameCanvasPort {
 	double x, y;
 	double x_size, y_size;
 	
-	GList * property_texts;
+	GnomeCanvasText* name;
+	
+	gboolean external;
+	
+	GlameCanvasPort **pprev_gcport_hash;
+	GlameCanvasPort *next_gcport_hash;
 };
 
 struct _GlameCanvasPortClass {
@@ -171,19 +170,21 @@ struct _GlameCanvasPortClass {
 };
 
 /* public */
-GtkType * glame_canvas_port_get_type(void);
+
+GtkType glame_canvas_port_get_type(void);
 gboolean glame_canvas_port_is_external(GlameCanvasPort* port);
 void glame_canvas_port_show_properties(GlameCanvasPort* port);
 void glame_canvas_port_hide_properties(GlameCanvasPort* port);
 void glame_canvas_port_redraw(GlameCanvasPort* port);
 void glame_canvas_port_set_external(GlameCanvasPort* port, gboolean external);
 
-filter_paramdb_t* glame_canvas_port_get_paramdb(GlameCanvasPort* port);
+/*filter_paramdb_t* glame_canvas_port_get_paramdb(GlameCanvasPort* port);*/
 
 /* private */
 double glame_canvas_port_get_connection_y_offset(GlameCanvasPort *port, GlameCanvasPipe* pipe);
-void glame_canvas_port_move(GlameCanvasPort, double x, double y);
+void glame_canvas_port_move(GlameCanvasPort*, double x, double y);
 
+GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group,filter_port_t*port, double pos_x, double pos_y, double height);
 
 /***********************************************
  *
@@ -201,13 +202,15 @@ struct _GlameCanvasPipe {
 
 	
 	/* private */
-
+	gint sourceId;
+	gint destId;
 	GList *property_texts;
 	GnomeCanvasPoints *points;
-	GnomeCanvasLine *lineStart;
-	GnomeCanvasLine *lineMid;
-	GnomeCanvasLine *lineEnd;
+	GnomeCanvasLine *line;
 	GnomeCanvasEllipse *circle;
+
+	GlameCanvasPipe **pprev_gcpipe_hash;
+	GlameCanvasPipe *next_gcpipe_hash;
 };
 
 
@@ -218,7 +221,7 @@ struct _GlameCanvasPipeClass {
 };
 
 /* public */
-GtkType * glame_canvas_pipe_get_type(void);
+GtkType glame_canvas_pipe_get_type(void);
 
 void glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe);
 void glame_canvas_pipe_hide_properties(GlameCanvasPipe* pipe);
@@ -227,6 +230,12 @@ void glame_canvas_pipe_hide_properties(GlameCanvasPipe* pipe);
 filter_paramdb_t* glame_canvas_pipe_get_paramdb(GlameCanvasPipe* pipe);
 
 
+
+/* global hash functions */
+
+GlameCanvasFilter* glame_canvas_find_filter(filter_t* f);
+GlameCanvasPipe* glame_canvas_find_pipe(filter_pipe_t* f);
+GlameCanvasPort* glame_canvas_find_port(filter_port_t* f);
 
 #endif
 	

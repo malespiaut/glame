@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.1 2001/05/07 00:45:36 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.2 2001/05/07 21:36:15 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -87,6 +87,7 @@ glame_canvas_filter_class_init(GlameCanvasFilterClass* class)
 			       2,
 			       GTK_TYPE_DOUBLE,
 			       GTK_TYPE_DOUBLE);
+	
 	filter_signals[DELETED] = 
 		gtk_signal_new("deleted",
 			       GTK_RUN_LAST,
@@ -189,9 +190,9 @@ glame_canvas_filter_create_ports(GlameCanvasFilter* filter)
 	filter_pos_x = GNOME_CANVAS_ITEM(filter)->x1;
 	filter_pos_y = GNOME_CANVAS_ITEM(filter)->y1;
 	
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(filter)->parent,&filter_pos_x, &filter_pos_y);
+	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(filter),&filter_pos_x, &filter_pos_y);
 	
-	//fprintf(stderr,"%f %f\n",filter_pos_x, filter_pos_y);
+	DPRINTF("%f %f\n",filter_pos_x, filter_pos_y);
 	portPos = filter_pos_y;
 	
 	/* input ports */
