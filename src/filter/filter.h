@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.36 2000/02/25 13:09:31 richi Exp $
+ * $Id: filter.h,v 1.37 2000/02/25 13:49:33 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -182,7 +182,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PARAMTYPE_SAMPLE  (3<<2)
 #define FILTER_PARAMTYPE_FILE    (4<<2)
 #define FILTER_PARAMTYPE_STRING  (5<<2)
-#define FILTER_PARAMTYPE_LIST    (6<<3)
+#define FILTER_PARAMTYPE_LIST    (6<<2)
 #define FILTER_PARAM_IS_OUTPUT(type) ((type) & FILTER_PARAMTYPE_OUTPUT)
 #define FILTER_PARAMTYPE(type) ((type) & ~(FILTER_PARAMTYPE_OUTPUT))
 
