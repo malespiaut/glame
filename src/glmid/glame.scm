@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.74 2001/12/13 14:39:47 mainzelm Exp $
+; $Id: glame.scm,v 1.75 2002/01/27 15:09:44 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -940,3 +940,62 @@
 
 (add-help 'test-latency '(number)
 	  "Checks latency of a chain of number null filters")
+
+
+(define test-filter-rate
+  (lambda (in out msg)
+    (if (not (= (pipe-samplerate in) (pipe-samplerate out)))
+	(throw (string->symbol (string-append msg ": samplerate error"))))))
+(define test-filter-position
+  (lambda (in out msg)
+    (if (not (= (pipe-position in) (pipe-position out)))
+	(throw (string->symbol (string-append msg ": position error"))))))
+
+(define test-filter
+  (lambda (filter . what)
+    (display "testing ") (display filter)
+    (catch #t
+	   (lambda ()
+	     (let* ((net (net-new))
+		    (in (net-add-node net "const"))
+		    (f (net-add-node net filter))
+		    (out (net-add-node net "drop"))
+		    (inp (filter-connect in "out" f "in"))
+		    (outp (filter-connect f "out" out "in")))
+	       (for-each (lambda (m) (m inp outp "initial")) what)
+	       (filter-set-param! in "rate" 10)
+	       (for-each (lambda (m) (m inp outp "rate change")) what)
+	       (filter-set-param! in "position" 1.0)
+	       (for-each (lambda (m) (m inp outp "position change")) what)
+	       (pipe-delete outp)
+	       (set! outp (filter-connect f "out" out "in"))
+	       (for-each (lambda (m) (m inp outp "reconnect")) what)
+	       (filter-delete net)
+	       (display " - passed.") (newline)))
+	   (lambda args
+	     (display " - failed (") (display (symbol->string (car args))) (display ").") (newline)))))
+
+(define test-filter-all
+  (lambda ()
+    (test-filter "null" test-filter-rate test-filter-position)
+    (test-filter "one2n" test-filter-rate test-filter-position)
+    (test-filter "buffer" test-filter-rate test-filter-position)
+    (test-filter "mix" test-filter-rate)
+    (test-filter "render" test-filter-rate)
+    (test-filter "volume-adjust" test-filter-rate test-filter-position)
+    (test-filter "delay" test-filter-rate test-filter-position)
+    (test-filter "extend" test-filter-rate test-filter-position)
+    (test-filter "repeat" test-filter-rate test-filter-position)
+    (test-filter "mul" test-filter-rate test-filter-position)
+    (test-filter "add" test-filter-rate test-filter-position)
+    (test-filter "invert" test-filter-rate test-filter-position)
+    (test-filter "echo" test-filter-rate test-filter-position)
+    (test-filter "noisegate" test-filter-rate test-filter-position)
+    (test-filter "highpass" test-filter-rate test-filter-position)
+    (test-filter "lowpass" test-filter-rate test-filter-position)
+    (test-filter "bandpass" test-filter-rate test-filter-position)
+    (test-filter "bandpass_a" test-filter-rate test-filter-position)
+    (test-filter "flanger" test-filter-rate test-filter-position)
+    (test-filter "distortion" test-filter-rate test-filter-position)
+    (test-filter "echo2" test-filter-rate)
+    ))
