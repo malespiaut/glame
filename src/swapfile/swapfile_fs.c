@@ -239,8 +239,98 @@ int swapfile_creat(const char *name, size_t size)
 }
 
 
+/* FSCK helpers. */
+static int swapfile_fsck_scan_clusters()
+{
+	int fixed_something = 0;
+	char s[256];
+	DIR *dir;
+	struct dirent *e;
+	int i;
+	long name;
+	struct swcluster *cluster;
+	struct swfile *file;
+
+	/* Loop over all metas, deleting un-gettable clusters. */
+	dir = opendir(swap.clusters_meta_base);
+	while ((e = readdir(dir))) {
+		if (sscanf(e->d_name, "%li", &name) != 1) {
+			if (strcmp(e->d_name, ".") != 0
+			    && strcmp(e->d_name, "..") != 0) {
+				DPRINTF("WARNING! Strange file %s in clusters meta directory.\n", e->d_name);
+			}
+			continue;
+		}
+		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+		if (cluster) {
+			cluster_put(cluster, 0);
+			continue;
+		}
+		DPRINTF("Deleting stale cluster %li\n", name);
+		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
+		unlink(s);
+		snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
+		unlink(s);
+		fixed_something = 1;
+	}
+	closedir(dir);
+
+	/* Loop over all datas, deleting un-gettable clusters. */
+	dir = opendir(swap.clusters_data_base);
+	while ((e = readdir(dir))) {
+		if (sscanf(e->d_name, "%li", &name) != 1) {
+			if (strcmp(e->d_name, ".") != 0
+			    && strcmp(e->d_name, "..") != 0) {
+				DPRINTF("WARNING! Strange file %s in clusters data directory.\n", e->d_name);
+			}
+			continue;
+		}
+		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+		if (cluster) {
+			cluster_put(cluster, 0);
+			continue;
+		}
+		DPRINTF("Deleting stale cluster %li\n", name);
+		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
+		unlink(s);
+		snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
+		unlink(s);
+		fixed_something = 1;
+	}
+	closedir(dir);
+
+	/* Loop over all clusters, checking files & references. */
+	dir = opendir(swap.clusters_meta_base);
+	while ((e = readdir(dir))) {
+		if (sscanf(e->d_name, "%li", &name) != 1)
+			continue;
+		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+		if (!cluster)
+			continue; /* Huh?? */
+	check_again:
+		for (i=0; i<cluster->files_cnt; i++) {
+			file = file_get(cluster->files[i], 0);
+			if (file) {
+				file_put(file, 0);
+				continue;
+			}
+			DPRINTF("Deleting stale fileref %li -> %li\n", name,
+				cluster->files[i]);
+			cluster_delfileref(cluster, cluster->files[i]);
+			fixed_something = 1;
+			goto check_again;
+		}
+		if (cluster->files_cnt == 0)
+			fixed_something = 1;
+		cluster_put(cluster, CLUSTERPUT_FREE);
+	}
+	closedir(dir);
+
+	return fixed_something;
+}
+
 /* Tries to recover from an "unclean shutdown". */
-int swapfile_fsck(const char *name)
+int swapfile_fsck(const char *name, int force)
 {
 	char str[256];
 	FILE *f;
@@ -249,7 +339,7 @@ int swapfile_fsck(const char *name)
 	long nm;
 
 	/* Can we open the swapfile w/o check? */
-	if (swapfile_open(name, 0) == 0) {
+	if (swapfile_open(name, 0) == 0 && !force) {
 		swapfile_close();
 		return 0;
 	}
@@ -259,17 +349,18 @@ int swapfile_fsck(const char *name)
 		return -1;
 
 	/* Not EBUSY (unclean)? */
-	if (errno != EBUSY)
+	if (errno != EBUSY && !force)
 		return -1;
 
 	/* Try to recover - clear stale lock. */
 	snprintf(str, 255, "%s/.lock", name);
-	if (!(f = fopen(str, "r+")))
+	if (!(f = fopen(str, "r+")) && !force)
 		return -1;
-	fscanf(f, "%i", &pid);
-	if (kill(pid, 0) == -1 && errno != ESRCH) {
-		errno = EBUSY;
-		return -1;
+	if (fscanf(f, "%i", &pid) == 1) {
+		if (kill(pid, 0) == -1 && errno != ESRCH) {
+			errno = EBUSY;
+			return -1;
+		}
 	}
 
 	/* Overwrite stale .lock with our own identification */
@@ -293,6 +384,10 @@ int swapfile_fsck(const char *name)
 	/* We are now ready for a few checks of the filesystems
 	 * integrity. */
 	swap.fsck = 1;
+
+	/* Loop over all clusters and try to get the associated files
+	 * fixing stale references and clusters (AGAIN). */
+	swapfile_fsck_scan_clusters();
 
 	/* Loop over all files and try to "touch" them. */
 	dir = sw_opendir();
@@ -349,6 +444,11 @@ int swapfile_fsck(const char *name)
 		continue;
 	}
 	sw_closedir(dir);
+
+	/* Loop over all clusters and try to get the associated files
+	 * fixing stale references and clusters (AGAIN). */
+	if (swapfile_fsck_scan_clusters())
+		DPRINTF("WARNING! fsck may be incomplete!\n");
 
 	swapfile_close();
 

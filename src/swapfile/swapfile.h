@@ -102,7 +102,7 @@ void swapfile_close();
 int swapfile_creat(const char *name, size_t size);
 
 /* Tries to recover from unclean shutdown. */
-int swapfile_fsck(const char *name);
+int swapfile_fsck(const char *name, int force);
 
 
 

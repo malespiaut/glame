@@ -52,13 +52,20 @@ int main(int argc, char **argv)
 "    conditions.\n\n");
 
 	if (argc == 2) {
+#ifdef DEBUG
+		fprintf(stderr, "In DEBUG mode, fsck forced.\n");
+		if (swapfile_fsck(argv[1], 1) == -1) {
+			perror("ERROR: Fsck failed");
+			exit(1);
+		}
+#endif
 		if (swapfile_open(argv[1], 0) == -1) {
 			if (errno != EBUSY) {
 				perror("ERROR: Unable to open swap");
 				exit(1);
 			}
 			fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
-			if (swapfile_fsck(argv[1]) == -1) {
+			if (swapfile_fsck(argv[1], 0) == -1) {
 				perror("ERROR: Fsck failed");
 				exit(1);
 			}
