@@ -43,6 +43,7 @@
  *   hash_add_node(struct node *)
  *   hash_remove_node(struct node *)
  *   hash_find_node(int id)
+ *   hash_find_next_node(int id, struct node *)
  *   hash_next_node(struct node *)
  *   hash_init_node(struct node *)
  *   is_hashed_node(struct node *)
@@ -68,6 +69,24 @@ static inline FOOBARtype *hash_find_##FOOBAR(params) \
 { \
   FOOBARtype *FOOBAR = FOOBAR##_hash_table[(HASH_HASHFN_FROM_PARAMS)&((1<<HASH_BITS)-1)]; \
   goto inside; \
+\
+  for (;;) { \
+    FOOBAR = FOOBAR->next_##FOOBAR##_hash; \
+inside: \
+    if (!FOOBAR) \
+      break; \
+    if (HASH_COMPARE) \
+      break; \
+  } \
+  return FOOBAR; \
+} \
+\
+static inline FOOBARtype *hash_find_next_##FOOBAR(params, FOOBARtype *FOOBAR) \
+{ \
+  if (!FOOBAR) { \
+    FOOBAR = FOOBAR##_hash_table[(HASH_HASHFN_FROM_PARAMS)&((1<<HASH_BITS)-1)]; \
+    goto inside; \
+  } \
 \
   for (;;) { \
     FOOBAR = FOOBAR->next_##FOOBAR##_hash; \

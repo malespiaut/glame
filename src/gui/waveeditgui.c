@@ -174,7 +174,8 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 		if (sw_sendfile(fd, temp_fd[i], st.size, SWSENDFILE_INSERT) == -1)
 			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
-		gpsm_swfile_notify_insert(files[i], start+gpsm_item_hposition(files[i]), st.size/SAMPLE_SIZE);
+		gpsm_notify_swapfile_insert(gpsm_swfile_filename(files[i]),
+					    start+gpsm_item_hposition(files[i]), st.size/SAMPLE_SIZE);
 	}
 }
 
@@ -211,7 +212,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 			if (sw_sendfile(temp_fd[i], fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
 				DPRINTF("*** sw_sendfile failed\n");
 			sw_close(fd);
-			gpsm_swfile_notify_cut(files[i], sstart, ssize);
+			gpsm_notify_swapfile_cut(gpsm_swfile_filename(files[i]),
+						 sstart, ssize);
 		}
 		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
 	}
@@ -249,7 +251,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 			if (sw_sendfile(SW_NOFILE, fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
 				DPRINTF("*** sw_sendfile failed\n");
 			sw_close(fd);
-			gpsm_swfile_notify_cut(files[i], sstart, ssize);
+			gpsm_notify_swapfile_cut(gpsm_swfile_filename(files[i]),
+						 sstart, ssize);
 		}
 	}
 }

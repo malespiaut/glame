@@ -404,14 +404,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_delete(net);
 
 	/* Notify gpsm of the change. */
-	gpsm_grp_foreach_item(group, it) {
-		swfd_t fd;
-		struct sw_stat st;
-		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
-		sw_fstat(fd, &st);
-		sw_close(fd);
-		gpsm_swfile_notify_insert((gpsm_swfile_t *)it, 0, st.size/SAMPLE_SIZE);
-	}
+	gpsm_grp_foreach_item(group, it)
+		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 
 	/* Insert the group into the gpsm tree. */
 	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,

@@ -146,6 +146,8 @@ struct gpsm_swfile_s {
          * about the swapfile file location/metadata. The gpsm-swfile
          * vsize is always 1. */
 	gpsm_item_t item;
+	gpsm_swfile_t *next_swfile_hash;
+	gpsm_swfile_t **pprev_swfile_hash;
 	long filename;
 	int samplerate;
 	float position;
@@ -230,20 +232,26 @@ int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 void gpsm_item_remove(gpsm_item_t *item);
 
 
-/* Find a gpsm-grp by label in the subtree specified by root. You may
- * want to pass gpsm_root() here. Returns a gpsm-grp, if found or
- * NULL, if not. */
-gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, const char *label);
+/* Find a gpsm-grp by label in the subtree specified by root. The
+ * search is started at the item start (or at the root, if you specify
+ * NULL). You can find all occurences by specifying the previous
+ * result as start. Returns a gpsm-grp, if found or NULL, if not. */
+gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, gpsm_item_t *start,
+				const char *label);
 
-/* Find a gpsm-swfile by label in the subtree specified by root. You may
- * want to pass gpsm_root() here. Returns a gpsm-swfile, if found or
- * NULL, if not. */
-gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, const char *label);
+/* Find a gpsm-swfile by label in the subtree specified by root. The
+ * search is started at the item start (or at the root, if you specify
+ * NULL). You can find all occurences by specifying the previous
+ * result as start. Returns a gpsm-swfile, if found or NULL, if not. */
+gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
+				      const char *label);
 
-/* Find a gpsm-swfile by swapfile filename in the subtree specified by
- * root. You may want to pass gpsm_root() here. Returns a gpsm-swfile,
- * if found or NULL, if not. */
-gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, long filename);
+/* Find a gpsm-swfile by filename  in the subtree specified by root. The
+ * search is started at the item start (or at the root, if you specify
+ * NULL). You can find all occurences by specifying the previous
+ * result as start. Returns a gpsm-swfile, if found or NULL, if not. */
+gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
+					 long filename);
 
 
 /* Updates the label of the specified gpsm-item. Note that this will
@@ -266,12 +274,16 @@ void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate);
  * this will cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
 void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position);
 
-/* _After_ you've done a lowlevel operation on an swfiles swapfile such
+/* _After_ you've done an operation on a swapfile such
  * as modifying or cutting/inserting via sw_sendfile() you have to notify
- * the GPSM about this change. The swfiles size will be updated and
- * appropriate signals will be send out. */
-void gpsm_swfile_notify_change(gpsm_swfile_t *swfile, long pos, long size);
-void gpsm_swfile_notify_cut(gpsm_swfile_t *swfile, long pos, long size);
-void gpsm_swfile_notify_insert(gpsm_swfile_t *swfile, long pos, long size);
+ * the GPSM about this change. The swfiles sizes will be updated and
+ * appropriate signals will be send out.
+ * Note that it is generally better to make changes to a swapfile through
+ * gpsm functions (which dont exist at the moment...). */
+void gpsm_notify_swapfile_change(long filename, long pos, long size);
+void gpsm_notify_swapfile_cut(long filename, long pos, long size);
+void gpsm_notify_swapfile_insert(long filename, long pos, long size);
+void gpsm_invalidate_swapfile(long filename);
+
 
 #endif

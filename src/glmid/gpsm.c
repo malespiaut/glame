@@ -27,9 +27,16 @@
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gpsm.h"
+#include "hash.h"
 
 
 static gpsm_grp_t *root = NULL;
+HASH(swfile, gpsm_swfile_t, 8,
+     (swfile->filename == filename),
+     (filename),
+     (swfile->filename),
+     long filename)
+
 
 static gpsm_item_t *gpsm_newitem(int type);
 
@@ -139,6 +146,7 @@ static void insert_node(gpsm_grp_t *tree, xmlNodePtr node)
 		swfile->position = iposition;
 		swfile->item.hsize = st.size/SAMPLE_SIZE;
 		swfile->item.vsize = 1;
+		hash_add_swfile(swfile);
 
 	} else if (strcmp(node->name, "group") == 0) {
 		item = gpsm_newitem(GPSM_ITEM_TYPE_GRP);
@@ -177,7 +185,7 @@ static void scan_swap()
 
 	/* Add unknown group and iterate through all swapfiles adding those
 	 * not already contained in the tree. */
-	if (!(grp = gpsm_find_grp_label(gpsm_root(), "unknown"))) {
+	if (!(grp = gpsm_find_grp_label(gpsm_root(), NULL, "[unrecognized tracks]"))) {
 		grp = gpsm_newgrp("[unrecognized tracks]");
 		gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, 100000);
 	}
@@ -185,7 +193,7 @@ static void scan_swap()
 	while ((name = sw_readdir(dir)) != -1) {
 		if (name == 0)
 			continue;
-		if ((swfile = gpsm_find_swfile_filename(gpsm_root(), name)))
+		if (gpsm_find_swfile_filename(gpsm_root(), NULL, name))
 			continue;
 		fd = sw_open(name, O_RDONLY, TXN_NONE);
 		sw_fstat(fd, &st);
@@ -198,6 +206,7 @@ static void scan_swap()
 		swfile->samplerate = 44100;
 		swfile->position = 0.0;
 
+		hash_add_swfile(swfile);
 		gpsm_grp_insert(grp, (gpsm_item_t *)swfile, 0, -1);
 	}
 	sw_closedir(dir);
@@ -269,6 +278,10 @@ int gpsm_init(const char *swapfile)
 	/* Create the tree root group and recurse down the xml tree. */
         root = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);
 	root->item.label = strdup("(root)");
+	root->item.hposition = 0;
+	root->item.vposition = 0;
+	root->item.hsize = 0;
+	root->item.vsize = 0;
         insert_childs(root, xmlDocGetRootElement(doc));
 
 	/* Search for not xml-ed swapfile. */
@@ -352,11 +365,12 @@ static gpsm_item_t *gpsm_newitem(int type)
 	item->label = NULL;
 	item->hposition = 0;
 	item->vposition = 0;
-	item->hsize = -1;
-	item->vsize = -1;
+	item->hsize = 0;
+	item->vsize = 0;
 	if (GPSM_ITEM_IS_GRP(item))
 		INIT_LIST_HEAD(&((gpsm_grp_t *)item)->items);
 	else if (GPSM_ITEM_IS_SWFILE(item)) {
+		hash_init_swfile((gpsm_swfile_t *)item);
 		item->hsize = 0;
 		item->vsize = 1;
 		((gpsm_swfile_t *)item)->filename = -1;
@@ -386,6 +400,7 @@ gpsm_swfile_t *gpsm_newswfile(const char *label)
 	sw_close(fd);
 	swfile->samplerate = GLAME_DEFAULT_SAMPLERATE;
 	swfile->position = 0.0;
+	hash_add_swfile(swfile);
 
 	return swfile;
 }
@@ -430,6 +445,7 @@ gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *source)
 	swfile->item.vsize = source->item.vsize;
 	swfile->samplerate = source->samplerate;
 	swfile->position = source->position;
+	hash_add_swfile(swfile);
 
 	return swfile;
 }
@@ -450,6 +466,7 @@ gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *source)
 	swfile->filename = source->filename;
 	swfile->samplerate = source->samplerate;
 	swfile->position = source->position;
+	hash_add_swfile(swfile);
 
 	return swfile;
 }
@@ -476,6 +493,8 @@ void gpsm_item_destroy(gpsm_item_t *item)
 
 	/* First make item unreachable. */
 	gpsm_item_remove(item);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		hash_remove_swfile((gpsm_swfile_t *)item);
 
 	/* Send out the GPSM_SIG_ITEM_DESTROY signal. */
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_DESTROY, item);
@@ -484,7 +503,7 @@ void gpsm_item_destroy(gpsm_item_t *item)
 	if (GPSM_ITEM_IS_SWFILE(item)) {
 		gpsm_swfile_t *swfile = (gpsm_swfile_t *)item;
 		/* We may delete unreachable swapfiles. */
-		if (!gpsm_find_swfile_filename(gpsm_root(), swfile->filename))
+		if (!hash_find_swfile(swfile->filename))
 			sw_unlink(swfile->filename);
 	} else if (GPSM_ITEM_IS_GRP(item)) {
 		gpsm_grp_t *group = (gpsm_grp_t *)item;
@@ -543,6 +562,22 @@ static void gpsm_grp_fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 	if (hsize != group->item.hsize || vsize != group->item.vsize)
 		glsig_emit(&group->item.emitter, GPSM_SIG_ITEM_CHANGED, group);
 }
+static void gpsm_grp_remove_boundingbox(gpsm_grp_t *group, gpsm_item_t *ritem)
+{
+	long hsize, vsize;
+	gpsm_item_t *item;
+
+	/* We have to check for too large bb. */
+	hsize = group->item.hsize;
+	vsize = group->item.vsize;
+	group->item.hsize = 0;
+	group->item.vsize = 0;
+	list_foreach(&group->items, gpsm_item_t, list, item)
+		if (item != ritem)
+			_add_item_boundingbox(group, item);
+	if (hsize != group->item.hsize || vsize != group->item.vsize)
+		glsig_emit(&group->item.emitter, GPSM_SIG_ITEM_CHANGED, group);
+}
 static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 {
 	switch (sig) {
@@ -569,11 +604,11 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 		DPRINTF("got GPSM_SIG_ITEM_REMOVE from %s\n", item->label);
 		grp = item->parent;
 
+		/* Rebuild groups boundingbox. */
+		gpsm_grp_remove_boundingbox(grp, item);
+
 		/* Remove this signal handler, we will no longer need it. */
 		glsig_delete_handler(handler);
-
-		/* Rebuild groups boundingbox. */
-		gpsm_grp_fixup_boundingbox(grp, item);
 
 		/* We dont need to send a signal out here, this will
 		 * be done in gpsm_item_remove() anyway.
@@ -686,72 +721,144 @@ void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
 	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
 }
 
-void gpsm_swfile_notify_change(gpsm_swfile_t *swfile, long pos, long size)
-{
-	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CHANGED, swfile, pos, size);
-#ifdef DEBUG
-	{
-		swfd_t fd;
-		struct sw_stat st;
-		fd = sw_open(gpsm_swfile_filename(swfile), O_RDONLY, TXN_NONE);
-		sw_fstat(fd, &st);
-		sw_close(fd);
-		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
-			DPRINTF("WARNING! We missed a swfile notification!\n");
-			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, (long)st.size/SAMPLE_SIZE);
-			swfile->item.hsize = st.size/SAMPLE_SIZE;
-			glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
-		}
-	}
-#endif
-}
 
-void gpsm_swfile_notify_cut(gpsm_swfile_t *swfile, long pos, long size)
+
+/*
+ * Connection with lowlevel swapfile API.
+ */
+
+void gpsm_notify_swapfile_change(long filename, long pos, long size)
 {
-	/* Fix size if it is going beyont the end of the item. */
-	if (pos + size > swfile->item.hsize)
-		size = swfile->item.hsize - pos;
-	if (size <= 0)
+	gpsm_swfile_t *swfile;
+#ifdef DEBUG
+	swfd_t fd;
+	struct sw_stat st;
+	long file_size;
+
+	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1) {
+		DPRINTF("Invalid filename\n");
 		return;
-
-	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CUT, swfile, pos, size);
-	swfile->item.hsize -= size;
-#ifdef DEBUG
-	{
-		swfd_t fd;
-		struct sw_stat st;
-		fd = sw_open(gpsm_swfile_filename(swfile), O_RDONLY, TXN_NONE);
-		sw_fstat(fd, &st);
-		sw_close(fd);
-		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
-			DPRINTF("WARNING! We missed a swfile notification!\n");
-			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, (long)st.size/SAMPLE_SIZE);
-			swfile->item.hsize = st.size/SAMPLE_SIZE;
-		}
 	}
+	sw_fstat(fd, &st);
+	file_size = st.size/SAMPLE_SIZE;
+	sw_close(fd);
 #endif
-	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+
+	/* Loop over all references sending out the changed signal. */
+	while ((swfile = hash_find_next_swfile(filename, swfile))) {
+		glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CHANGED,
+			   swfile, pos, size);
+#ifdef DEBUG
+		if (gpsm_item_hsize(swfile) != file_size)
+			DPRINTF("WARNING! Unnoticed swapfile change!\n");
+#endif
+	}
 }
 
-void gpsm_swfile_notify_insert(gpsm_swfile_t *swfile, long pos, long size)
+void gpsm_notify_swapfile_cut(long filename, long pos, long size)
 {
-	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_INSERT, swfile, pos, size);
-	swfile->item.hsize += size;
+	gpsm_swfile_t *swfile = NULL;
 #ifdef DEBUG
-	{
-		swfd_t fd;
-		struct sw_stat st;
-		fd = sw_open(gpsm_swfile_filename(swfile), O_RDONLY, TXN_NONE);
-		sw_fstat(fd, &st);
-		sw_close(fd);
-		if (st.size/SAMPLE_SIZE != swfile->item.hsize) {
-			DPRINTF("WARNING! We missed a swfile notification!\n");
-			DPRINTF("Fixing size from %li to %li\n", swfile->item.hsize, (long)st.size/SAMPLE_SIZE);
-			swfile->item.hsize = st.size/SAMPLE_SIZE;
-		}
+	swfd_t fd;
+	struct sw_stat st;
+	long file_size;
+
+	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1) {
+		DPRINTF("Invalid filename\n");
+		return;
 	}
+	sw_fstat(fd, &st);
+	file_size = st.size/SAMPLE_SIZE;
+	sw_close(fd);
 #endif
-	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+
+	/* Loop over all references fixing sizes and sending out
+	 * the appropriate signals. */
+	while ((swfile = hash_find_next_swfile(filename, swfile))) {
+		glsig_emit(gpsm_item_emitter(swfile),
+			   GPSM_SIG_SWFILE_CUT, swfile, pos, size);
+		swfile->item.hsize -= size;
+		glsig_emit(gpsm_item_emitter(swfile),
+			   GPSM_SIG_ITEM_CHANGED, swfile);
+#ifdef DEBUG
+		if (gpsm_item_hsize(swfile) != file_size)
+			DPRINTF("WARNING! Unnoticed swapfile change!\n");
+#endif
+	}
+}
+
+void gpsm_notify_swapfile_insert(long filename, long pos, long size)
+{
+	gpsm_swfile_t *swfile = NULL;
+#ifdef DEBUG
+	swfd_t fd;
+	struct sw_stat st;
+	long file_size;
+
+	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1) {
+		DPRINTF("Invalid filename\n");
+		return;
+	}
+	sw_fstat(fd, &st);
+	file_size = st.size/SAMPLE_SIZE;
+	sw_close(fd);
+#endif
+
+	/* Loop over all references fixing sizes and sending out
+	 * the appropriate signals. */
+	while ((swfile = hash_find_next_swfile(filename, swfile))) {
+		glsig_emit(gpsm_item_emitter(swfile),
+			   GPSM_SIG_SWFILE_INSERT, swfile, pos, size);
+		swfile->item.hsize += size;
+		glsig_emit(gpsm_item_emitter(swfile),
+			   GPSM_SIG_ITEM_CHANGED, swfile);
+#ifdef DEBUG
+		if (gpsm_item_hsize(swfile) != file_size)
+			DPRINTF("WARNING! Unnoticed swapfile change!\n");
+#endif
+	}
+}
+
+void gpsm_invalidate_swapfile(long filename)
+{
+	gpsm_swfile_t *swfile = NULL;
+	swfd_t fd;
+	struct sw_stat st;
+	long old_size, new_size;
+
+	/* Stat the file. */
+	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1)
+		return;
+	sw_fstat(fd, &st);
+	new_size = st.size/SAMPLE_SIZE;
+	sw_close(fd);
+
+	/* Loop over all references fixing sizes and sending out
+	 * the appropriate signals. */
+	while ((swfile = hash_find_next_swfile(filename, swfile))) {
+		old_size = gpsm_item_hsize(swfile);
+
+		/* First fix size by extending/cutting. */
+		if (old_size < st.size/SAMPLE_SIZE) {
+			glsig_emit(gpsm_item_emitter(swfile),
+				   GPSM_SIG_SWFILE_INSERT, swfile, old_size,
+				   new_size - old_size);
+			swfile->item.hsize = new_size;
+			glsig_emit(gpsm_item_emitter(swfile),
+				   GPSM_SIG_ITEM_CHANGED, swfile);
+		} else if (old_size > st.size/SAMPLE_SIZE) {
+			glsig_emit(gpsm_item_emitter(swfile),
+				   GPSM_SIG_SWFILE_CUT, swfile,
+				   new_size, old_size - new_size);
+			swfile->item.hsize = new_size;
+			glsig_emit(gpsm_item_emitter(swfile),
+				   GPSM_SIG_ITEM_CHANGED, swfile);
+		}
+
+		/* Second invalidate old data. */
+		glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CHANGED,
+			   swfile, 0, MIN(old_size, new_size));
+	}
 }
 
 
@@ -765,67 +872,110 @@ gpsm_grp_t *gpsm_root(void)
 	return root;
 }
 
-gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, const char *label)
+gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, gpsm_item_t *start,
+				const char *label)
 {
-	gpsm_item_t *item;
-	gpsm_grp_t *group;
+	gpsm_item_t *item, *next;
 
-	/* Breath first search. */
-	list_foreach(&root->items, gpsm_item_t, list, item) {
-		if (!GPSM_ITEM_IS_GRP(item))
-			continue;
-		if (strcmp(item->label, label) == 0)
+	if (!start) {
+		item = list_gethead(&root->items, gpsm_item_t, list);
+	} else {
+		item = start;
+		goto next_entry;
+	}
+
+	while (item) {
+		if (GPSM_ITEM_IS_GRP(item)
+		    && strcmp(item->label, label) == 0)
 			return (gpsm_grp_t *)item;
-	}
-	list_foreach(&root->items, gpsm_item_t, list, item) {
-		if (!GPSM_ITEM_IS_GRP(item))
-			continue;
-		if ((group = gpsm_find_grp_label((gpsm_grp_t *)item, label)))
-			return group;
-	}
-
-	return NULL;
-}
-
-gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, const char *label)
-{
-	gpsm_item_t *item;
-	gpsm_swfile_t *swfile;
-
-	/* Breath first search. */
-	list_foreach(&root->items, gpsm_item_t, list, item) {
-		if (!GPSM_ITEM_IS_SWFILE(item))
-			continue;
-		if (strcmp(item->label, label) == 0)
-			return (gpsm_swfile_t *)item;
-	}
-	list_foreach(&root->items, gpsm_item_t, list, item) {
-		if (!GPSM_ITEM_IS_GRP(item))
-			continue;
-		if ((swfile = gpsm_find_swfile_label((gpsm_grp_t *)item, label)))
-			return swfile;
+next_entry:
+		if (GPSM_ITEM_IS_GRP(item))
+			next = list_gethead(&((gpsm_grp_t *)item)->items,
+					    gpsm_item_t, list);
+		else
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		while (!next) {
+			item = (gpsm_item_t *)item->parent;
+			if (item == (gpsm_item_t *)root)
+				return NULL;
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		}
+		item = next;
 	}
 
 	return NULL;
 }
 
-gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, long filename)
+gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
+				      const char *label)
 {
-	gpsm_item_t *item;
-	gpsm_swfile_t *swfile;
+	gpsm_item_t *item, *next;
 
-	/* Breath first search. */
-	list_foreach(&root->items, gpsm_item_t, list, item) {
-		if (!GPSM_ITEM_IS_SWFILE(item))
-			continue;
-		if (((gpsm_swfile_t *)item)->filename == filename)
-			return (gpsm_swfile_t *)item;
+	if (!start) {
+		item = list_gethead(&root->items, gpsm_item_t, list);
+	} else {
+		item = start;
+		goto next_entry;
 	}
-	list_foreach(&root->items, gpsm_item_t, list, item) {
-		if (!GPSM_ITEM_IS_GRP(item))
-			continue;
-		if ((swfile = gpsm_find_swfile_filename((gpsm_grp_t *)item, filename)))
-			return swfile;
+
+	while (item) {
+		if (GPSM_ITEM_IS_SWFILE(item)
+		    && strcmp(item->label, label) == 0)
+			return (gpsm_swfile_t *)item;
+next_entry:
+		if (GPSM_ITEM_IS_GRP(item))
+			next = list_gethead(&((gpsm_grp_t *)item)->items,
+					    gpsm_item_t, list);
+		else
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		while (!next) {
+			item = (gpsm_item_t *)item->parent;
+			if (item == (gpsm_item_t *)root)
+				return NULL;
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		}
+		item = next;
+	}
+
+	return NULL;
+}
+
+
+gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
+					 long filename)
+{
+	gpsm_item_t *item, *next;
+
+	if (!start) {
+		item = list_gethead(&root->items, gpsm_item_t, list);
+	} else {
+		item = start;
+		goto next_entry;
+	}
+
+	while (item) {
+		if (GPSM_ITEM_IS_SWFILE(item)
+		    && gpsm_swfile_filename(item) == filename)
+			return (gpsm_swfile_t *)item;
+next_entry:
+		if (GPSM_ITEM_IS_GRP(item))
+			next = list_gethead(&((gpsm_grp_t *)item)->items,
+					    gpsm_item_t, list);
+		else
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		while (!next) {
+			item = (gpsm_item_t *)item->parent;
+			if (item == (gpsm_item_t *)root)
+				return NULL;
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		}
+		item = next;
 	}
 
 	return NULL;
