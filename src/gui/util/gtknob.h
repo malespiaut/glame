@@ -4,7 +4,7 @@
 /*
  * gtknob.h
  *
- * $Id: gtknob.h,v 1.3 2002/02/24 22:16:06 richi Exp $
+ * $Id: gtknob.h,v 1.4 2002/04/10 19:57:33 ochonpaul Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -49,7 +49,14 @@ struct _GtkKnob {
     gint old_value;
 
     GtkAdjustment *adjustment;
-};
+
+    gchar show_min[8];
+    gchar show_max[8];
+    gchar show_val[8];
+    GdkFont *font;
+    GdkGC *gc;
+   
+  };
 
 struct _GtkKnobClass {
     GtkWidgetClass parent_class;
