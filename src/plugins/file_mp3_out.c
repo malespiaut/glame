@@ -1,6 +1,6 @@
 /*
- * file_io.c
- * $Id: file_mp3_out.c,v 1.3 2004/02/19 21:33:59 ochonpaul Exp $
+ * file_mp3_out.c
+ * $Id: file_mp3_out.c,v 1.4 2004/02/26 20:53:04 ochonpaul Exp $
  *
  * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
  *
@@ -75,7 +75,7 @@ static int write_mp3_file_f(filter_t * n)
 	int count = 0;
 	char *filename;
 	FILE *mp3_file /* = fopen (filename, "w+") */ ;
-
+	int quality, bitrate, mode;
 	channelCount =
 	    filterport_nrpipes(filterportdb_get_port
 			       (filter_portdb(n), PORTNAME_IN));
@@ -91,8 +91,7 @@ static int write_mp3_file_f(filter_t * n)
 				   (filter_paramdb(n), "filename"));
 	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
-	
-	
+		
 	mp3_file = fopen(filename, "w+");
 
 	if (!(track = ALLOCN(channelCount, track_t)))
@@ -148,12 +147,30 @@ static int write_mp3_file_f(filter_t * n)
 	gfp = lame_init();
 	ret_code = lame_init_params(gfp);
 	if (ret_code < 0)
-		DPRINTF("Error on lame init");
+		FILTER_ERROR_STOP ("couldn't init lame.");
+	
+	quality = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame encoding quality"));
+	if (lame_set_quality(gfp, quality)<0) FILTER_ERROR_STOP
+				    ("error  setting lame quality.");
+	DPRINTF("qual %i\n",quality);
+	
+/* 	bitrate = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame encoding bitrate")); */
+/* 	if (bitrate == 0) bitrate = 128; */
+/* 	else if  (bitrate == 1) bitrate = 64; */
+/* 	else if  (bitrate == 2) bitrate = 196; */
+/* 	if (lame_set_brate(gfp, bitrate)<0) FILTER_ERROR_STOP */
+/* 				    ("error  setting lame bitrate."); */
+/* 	DPRINTF("bitrate %i\n",bitrate); */
+/* 	printf("bitrate= %i \n\n",lame_get_brate(gfp)); */
+
+	mode = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame mode"));
+	if (lame_set_mode(gfp, mode)<0) FILTER_ERROR_STOP
+				    ("error  setting lame mode.");
+	DPRINTF("mode %i\n",mode);
+
 	lame_print_config(gfp);
 	lame_print_internals(gfp);
 	
-
-
 	while (eofs) {
 		FILTER_CHECK_STOP;
 		wbpos = 0;
@@ -257,7 +274,235 @@ int write_mp3_file_register(plugin_t * pl)
 					   FILTERPARAM_END);
 
 	
+		param = filterparamdb_add_param_long(filter_paramdb(f), "lame encoding quality", FILTER_PARAMTYPE_LONG, 0 ,
+				    FILTERPARAM_DESCRIPTION, 
+				    "Lame encoding quality\n",
+				    FILTERPARAM_GLADEXML,
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"      <property name=\"visible\">True</property>"
+"      <property name=\"can_focus\">True</property>"
+"      <property name=\"history\">0</property>"
+"      <child>"
+"        <widget class=\"GtkMenu\" id=\"menu1\">"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item0\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">0 (slow)</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">1</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item2\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">2 (recommended)</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item4\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">3</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"           <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item5\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">4</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item6\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">5 (standard)</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item7\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">6</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item8\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">7</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item9\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">8</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"          <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item10\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">9</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"        </widget>"
+"      </child>"
+"    </widget>"
+"</glade-interface>",
+				    FILTERPARAM_LABEL, "Lame encoding quality",
+				    FILTERPARAM_END);
 
+	/* 	param = filterparamdb_add_param_long(filter_paramdb(f), "lame encoding bitrate", FILTER_PARAMTYPE_LONG, 0 , */
+/* 				    FILTERPARAM_DESCRIPTION,  */
+/* 				    "Lame encoding bitrate\n", */
+/* 				    FILTERPARAM_GLADEXML, */
+/* "<?xml version=\"1.0\" standalone=\"no\"?>" */
+/* "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">" */
+/* "<glade-interface>" */
+/* "    <widget class=\"GtkOptionMenu\" id=\"widget\">" */
+/* "      <property name=\"visible\">True</property>" */
+/* "      <property name=\"can_focus\">True</property>" */
+/* "      <property name=\"history\">0</property>" */
+/* "      <child>" */
+/* "        <widget class=\"GtkMenu\" id=\"menu1\">" */
+/* "	  <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item0\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">128</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "	  <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item1\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">64</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "	  <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item2\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">196</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "	  <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item4\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">3</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "           <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item5\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">4</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "          <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item6\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">5 (standard)</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "          <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item7\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">6</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "          <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item8\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">7</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "          <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item9\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">8</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "          <child>" */
+/* "            <widget class=\"GtkMenuItem\" id=\"item10\">" */
+/* "              <property name=\"visible\">True</property>" */
+/* "              <property name=\"label\" translatable=\"yes\">9</property>" */
+/* "              <property name=\"use_underline\">True</property>" */
+/* "            </widget>" */
+/* "          </child>" */
+/* "        </widget>" */
+/* "      </child>" */
+/* "    </widget>" */
+/* "</glade-interface>", */
+/* 				    FILTERPARAM_LABEL, "Lame encoding bitrate", */
+/* 				    FILTERPARAM_END); */
+
+	
+		param = filterparamdb_add_param_double(filter_paramdb(f), "lame mode", FILTER_PARAMTYPE_LONG, 0 ,
+						     FILTERPARAM_DESCRIPTION, "Lame mode \n",
+						     FILTERPARAM_GLADEXML,
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>"
+"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"      <property name=\"visible\">True</property>"
+"      <property name=\"can_focus\">True</property>"
+"      <property name=\"history\">0</property>"
+"      <child>"
+"        <widget class=\"GtkMenu\" id=\"menu1\">"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item0\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">0 stereo</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item1\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">1 jstereo</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item2\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"label\" translatable=\"yes\">2 dual channel </property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"	  <child>"
+"            <widget class=\"GtkMenuItem\" id=\"item4\">"
+"              <property name=\"visible\">True</property>"
+"              <property name=\"active\">False</property>"
+"              <property name=\"label\" translatable=\"yes\">3 mono</property>"
+"              <property name=\"use_underline\">True</property>"
+"            </widget>"
+"          </child>"
+"        </widget>"
+"      </child>"
+"    </widget>"
+"</glade-interface>",
+				    FILTERPARAM_LABEL, "Lame mode",
+				    FILTERPARAM_END);
+	
 
 
 	filterparamdb_add_param_pos(filter_paramdb(f));
