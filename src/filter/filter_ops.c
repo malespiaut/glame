@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.20 2001/04/02 08:07:54 richi Exp $
+ * $Id: filter_ops.c,v 1.21 2001/04/22 14:20:27 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -36,7 +36,7 @@ struct filter_operations {
 };
 
 #define STATE_RUNNING 3
-#define FILTER_IS_RUNNING(f) ((f)->launch_context && (f)->launch_context->state >= STATE_RUNNING)
+#define FILTER_IS_RUNNING(f) (((f)->launch_context && (f)->launch_context->state >= STATE_RUNNING) || ((f)->net && (f)->net->launch_context && (f)->net->launch_context->state >= STATE_RUNNING))
 
 
 /* filter_buffer.c: drain pipe to unblock source. */
@@ -74,12 +74,12 @@ static int init_node(filter_t *n)
 
 	return 0;
 }
-static int init_network(filter_t *n)
+static int init_network(filter_t *net)
 {
-	filter_t *net = (filter_t *)n;
+	filter_t *n;
 
-	if (n->net)
-		net->launch_context = n->net->launch_context;
+	if (net->net)
+		net->launch_context = net->net->launch_context;
 
 	filter_foreach_node(net, n)
 		if (n->ops->init(n) == -1)
@@ -468,4 +468,3 @@ int filter_check_stop_hook(filter_t *f)
 	/* return if it was "pause" or really "stop" */
 	return ATOMIC_VAL(f->net->launch_context->result);
 }
-
