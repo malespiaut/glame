@@ -316,15 +316,15 @@ static void insert_node_op(xmlNodePtr node)
 	}
 	i=0;
 	while (node) {
-		if (i == icnt) {
-			DPRINTF("Too many pairs in op\n");
-			break;
-		}
 		if (strcmp(node->name, "text") == 0)
 			goto next; /* Ignore */
 		else if (strcmp(node->name, "pair") != 0) {
 			DPRINTF("Invalid <op> child entry\n");
 			return;
+		}
+		if (i == icnt) {
+			DPRINTF("Too many pairs in op\n");
+			break;
 		}
 		if (!(c = xmlGetProp(node, "file"))) {
 			DPRINTF("Invalid <pair>\n");
