@@ -105,14 +105,14 @@ int main(int argc, char **argv)
 
 	/* Find out the swapfile filename and if we are allowed to
 	 * create it. */
-	if (argc > 1 && strcmp(argv[1], "-c") == 0) {
-		creat = 1;
+	if (argc > 2) {
 		swfname = argv[2];
-	} else if (argc > 1 && strcmp(argv[1], "-s") == 0) {
 		creat = 0;
-		swfname = argv[2];
-	} else
-		swfname = NULL;
+		if (!strcmp(argv[1], "-c"))
+			creat = 1;
+		else if (strcmp(argv[1], "-s"))
+			swfname = NULL;
+	}
 
 	if (swfname && argc > 3) {
 		cmd_argc = argc - 3;
