@@ -31,6 +31,10 @@
 #include "grange.h"
 #include "util.h"
 
+/* static xpms for rec/mute buttons */
+#include "rec.xpm"
+#include "mute.xpm"
+
 
 /* Stuff for new ruler.
  */
@@ -1770,11 +1774,23 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 #endif
 	  cnt = gtk_wave_buffer_get_num_channels(wavebuffer);
 	  while (cnt--) {
+		  GdkPixmap *rec_pixmap, *mute_pixmap;
+		  GdkBitmap *rec_bitmap, *mute_bitmap;
 		  vbox = gtk_vbox_new(FALSE, 0);
-		  tb = gtk_toggle_button_new_with_label("rec");
+		  tb = gtk_toggle_button_new();
+		  rec_pixmap = gdk_pixmap_create_from_xpm_d(
+			  GTK_WIDGET(tb)->window, &rec_bitmap, NULL, rec_xpm);
+		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
+		  gtk_container_add(GTK_CONTAINER(tb),
+				    gtk_pixmap_new(rec_pixmap, rec_bitmap));
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
-		  tb = gtk_toggle_button_new_with_label("mute");
+		  tb = gtk_toggle_button_new();
+		  mute_pixmap = gdk_pixmap_create_from_xpm_d(
+			  GTK_WIDGET(tb)->window, &mute_bitmap, NULL, mute_xpm);
+		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
+		  gtk_container_add(GTK_CONTAINER(tb),
+				    gtk_pixmap_new(mute_pixmap, mute_bitmap));
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
