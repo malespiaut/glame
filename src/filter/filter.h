@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.45 2000/04/06 11:45:05 richi Exp $
+ * $Id: filter.h,v 1.46 2000/04/06 11:54:11 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -416,7 +416,7 @@ do { \
  * val.
  * Returns -1 if that is not possible.
  */
-int filternode_set_param(filter_node_t *n, const char *label, void *val);
+int filternode_set_param(filter_node_t *n, const char *label, const void *val);
 
 
 /* Public access macros for filter_param_t - the parameter instance which
@@ -440,13 +440,14 @@ int filternode_set_param(filter_node_t *n, const char *label, void *val);
  *   free(val);
  *   free(str);
  */
-char *filterparam_to_string(filter_param_t *param);
-void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
+char *filterparam_to_string(const filter_param_t *param);
+void *filterparamval_from_string(const filter_paramdesc_t *pdesc,
+				 const char *val);
 
 /* Set already existant parameter. To be used mainly in the
  * fixup_param method to avoid recursing on it.
  */
-void filterparam_set(filter_param_t *param, void *val);
+void filterparam_set(filter_param_t *param, const void *val);
 
 
 /* Filter pipes represent a connection between two
@@ -502,8 +503,10 @@ void filterparam_set(filter_param_t *param, void *val);
  * the value pointed to by val.
  * Returns -1 if that is not possible.
  */
-int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val);
-int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val);
+int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label,
+			       const void *val);
+int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
+			     const void *val);
 
 
 

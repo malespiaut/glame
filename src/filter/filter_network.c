@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.39 2000/04/06 11:45:05 richi Exp $
+ * $Id: filter_network.c,v 1.40 2000/04/06 11:54:11 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,7 +43,7 @@
 /* filter node API.
  */
 
-void filterparam_set(filter_param_t *param, void *val)
+void filterparam_set(filter_param_t *param, const void *val)
 {
 	if (!param || !val)
 		return;
@@ -68,7 +68,7 @@ void filterparam_set(filter_param_t *param, void *val)
 	}
 }
 
-char *filterparam_to_string(filter_param_t *param)
+char *filterparam_to_string(const filter_param_t *param)
 {
 	char buf[512];
 
@@ -99,7 +99,8 @@ char *filterparam_to_string(filter_param_t *param)
 	return strdup(buf);
 }
 
-void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
+void *filterparamval_from_string(const filter_paramdesc_t *pdesc,
+				 const char *val)
 {
 	filter_param_t param;
 	char s[512];
@@ -143,7 +144,7 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
 }
 
 
-int filternode_set_param(filter_node_t *n, const char *label, void *val)
+int filternode_set_param(filter_node_t *n, const char *label, const void *val)
 {
 	filter_param_t *param;
 	filter_paramdesc_t *pdesc;
@@ -163,7 +164,8 @@ int filternode_set_param(filter_node_t *n, const char *label, void *val)
 	return n->filter->fixup_param(n, NULL, label, param);
 }
 
-int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val)
+int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label,
+			       const void *val)
 {
 	filter_param_t *param;
 	filter_paramdesc_t *pdesc;
@@ -184,7 +186,8 @@ int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val)
 	return p->source->filter->fixup_param(p->source, p, label, param);
 }
 
-int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val)
+int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
+			     const void *val)
 {
 	filter_param_t *param;
 	filter_paramdesc_t *pdesc;

@@ -126,7 +126,7 @@ static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 #define UCHAR2SAMPLE(s) ((SAMPLE)(gl_u8)(s)/(SAMPLE)(1<<7) - 1.0)
 
 /* convert time in ms to number of samples */
-#define TIME2CNT(type, time, rate) (type)(time*rate/1000.0)
+#define TIME2CNT(type, time, rate) (type)(((time)*(rate))/1000.0)
 
 
 /* Here follows a set of fast computing macros for standard operations.
