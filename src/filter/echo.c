@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.5 2000/02/09 02:08:16 mag Exp $
+ * $Id: echo.c,v 1.6 2000/02/14 00:51:26 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -36,7 +36,7 @@ static int echo_f(filter_node_t *n)
 	
 	int echotime;
 	int bufsiz;
-	SAMPLE *ring;
+	SAMPLE *ring=NULL;
 	int ringp;
 	float mix;
 	int binpos,boutpos;
@@ -47,7 +47,9 @@ static int echo_f(filter_node_t *n)
 
 	if(!in || !out){
 		DPRINTF("Couldn't find ports!\n");
-		return -1;
+		/* FIXME exit quietly, probably filter is just disconnected */
+		FILTER_AFTER_INIT;
+		goto _cleanup;
 	}
 
 	if((param = hash_find_param("time",n)))
@@ -106,14 +108,24 @@ static int echo_f(filter_node_t *n)
 	sent++;
 
 	DPRINTF("sent=%d received=%d\n",sent,received);
+_cleanup:
+	/* FIXME? before cleanup after cleanup sowhat... */
+	
 	FILTER_BEFORE_CLEANUP;
 	free(ring);
-
 	return 0;
 }
 
 /* Registry setup of all contained filters
  */
+void echo_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
+{
+	filter_pipe_t *out;
+	/* FIXME Hmm if input pipe breaks, just disconnect output pipe */
+	out=hash_find_output("out",n);
+	if (out) filternetwork_break_connection(out);
+}
+
 int echo_register()
 {
 	filter_t *f;
@@ -126,9 +138,12 @@ int echo_register()
 	    || !filter_add_param(f,"time","echo time in ms",
 		    		FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f,"mix","mixer ratio",
-		    		FILTER_PARAMTYPE_FLOAT)
-	    || filter_add(f) == -1)
+		    		FILTER_PARAMTYPE_FLOAT))
 		return -1;
 
+	f->fixup_break_in = echo_fixup_break_in;
+
+	if (filter_add(f) == -1)
+		return -1;
 	return 0;
 }

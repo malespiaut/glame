@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.18 2000/02/09 15:37:37 richi Exp $
+ * $Id: audio_io.c,v 1.19 2000/02/14 00:51:26 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -84,7 +84,8 @@ static int esd_in_f(filter_node_t *n)
 	FILTER_AFTER_INIT;
 	
 	while(pthread_testcancel(),1){
-		length=read(sock,buf,ESD_BUF_SIZE);
+		length=0;
+		while(length<ESD_BUF_SIZE) length+=read(sock,buf+length,ESD_BUF_SIZE-length);
 		if (!length){
 			DPRINTF("Read failed!\n");
 			return -1;
@@ -92,13 +93,20 @@ static int esd_in_f(filter_node_t *n)
 		DPRINTF("sampled %d bytes!\n",length);
 		lpos=rpos=i=0;
 		lbuf=sbuf_alloc(length/4,n);	/* FIXME 16bit stereo only */
+		lbuf=sbuf_make_private(lbuf);
 		rbuf=sbuf_alloc(length/4,n);
+		rbuf=sbuf_make_private(rbuf);
+		if(!lbuf || !rbuf){
+			DPRINTF("alloc error!\n");
+			return -1;
+		}
 		while(i<length/2){
 			sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
 			sbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buf[i++]);
-			sbuf_queue(left,lbuf);
-			sbuf_queue(right,rbuf);
-		}	
+		}
+		DPRINTF("lpos=%d, rpos=%d, i=%d\n",lpos,rpos,i);
+		sbuf_queue(left,lbuf);
+		sbuf_queue(right,rbuf);
 	}
 	sbuf_queue(left,NULL);
 	sbuf_queue(right,NULL);
@@ -181,8 +189,10 @@ static int esd_out_f(filter_node_t *n)
 	DPRINTF("Waiting for buffers to come...\n");
 	lbuf = sbuf_get(left);
 	DPRINTF("Got left sbuf with size %i\n", sbuf_size(lbuf));
-	rbuf = sbuf_get(right);
-	DPRINTF("Got right sbuf with size %i\n", sbuf_size(rbuf));
+	if(right){
+		rbuf = sbuf_get(right);
+		DPRINTF("Got right sbuf with size %i\n", sbuf_size(rbuf));
+	}
 	lpos = rpos = 0;
 
 	do {

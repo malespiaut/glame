@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.3 2000/02/10 11:07:19 richi Exp $
+ * $Id: echo2.c,v 1.4 2000/02/14 00:51:26 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -44,7 +44,11 @@ static int echo2_f(filter_node_t *n)
 
 	if (!(in = hash_find_input(PORTNAME_IN, n))
 	    || !(out = hash_find_output(PORTNAME_OUT, n)))
-		return -1;
+	{
+		FILTER_AFTER_INIT;
+		goto _cleanup;
+	}
+
 	delay = in->u.sample.rate; /* 1 sec. default delay */
 	if ((param = hash_find_param("time", n)))
 		delay = (int)(in->u.sample.rate*param->val.f);
@@ -101,6 +105,7 @@ static int echo2_f(filter_node_t *n)
 			 */
 		entry2:
 			fb = get_feedback(&fifo);
+			if (!fb) DPRINTF("Feedback FIFO empty!\n");
 			fb = sbuf_make_private(fb);
 			fb_pos = 0;
 		}
@@ -113,23 +118,26 @@ static int echo2_f(filter_node_t *n)
 		fs = sbuf_buf(fb) + fb_pos;
 		inb_pos += cnt;
 		fb_pos += cnt;
+		DPRINTF("cnt=%d",cnt);
 		for (; cnt>0; cnt--) {
 			*fs = ((*fs)*mix + *ins)*rdiv;
 			fs++;
 			ins++;
 		}
-
+		DPRINTF(" loop done.\n");
 		/* now we have to check which buffer has the underrun */
 		if (inb_pos == sbuf_size(inb)) {
 			/* In-buffer underrun is simple - we dont need
 			 * the current one for anything anymore -> drop
 			 * it. Then we just get a new one.
 			 */
+			DPRINTF("sbuf_unref");
 			sbuf_unref(inb);
 			inb = sbuf_get(in);
 			inb_pos = 0;
+			DPRINTF(" done\n");
 		}
-
+		DPRINTF("pthread_testcancel()\n");
 		/* the check for the feedback buffer underrun is
 		 * at the beginning of the loop so we can do the
 		 * EOF at in-port check here.
@@ -154,6 +162,7 @@ static int echo2_f(filter_node_t *n)
 		sbuf_queue(out, fb);
 	} while (fb);
 
+_cleanup:
 	FILTER_BEFORE_CLEANUP;
 
 	return 0;
@@ -161,6 +170,14 @@ static int echo2_f(filter_node_t *n)
 
 /* Registry setup of all contained filters
  */
+
+void echo2_fixup_break_in(filter_node_t *n,filter_pipe_t *in)
+{
+	filter_pipe_t *out;
+	out=hash_find_output(PORTNAME_OUT,n);
+	if(out) filternetwork_break_connection(out);
+}
+
 int echo2_register()
 {
 	filter_t *f;
@@ -173,8 +190,11 @@ int echo2_register()
 	    || !filter_add_param(f, "time", "echo time in s",
 		    		FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f, "mix", "mixer ratio",
-		    		FILTER_PARAMTYPE_FLOAT)
-	    || filter_add(f) == -1)
+		    		FILTER_PARAMTYPE_FLOAT))
+		return -1;
+	f->fixup_break_in = echo2_fixup_break_in;
+	
+	if (filter_add(f) == -1)
 		return -1;
 
 	return 0;

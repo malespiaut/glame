@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.8 2000/02/09 15:37:37 richi Exp $
+ * $Id: basic.c,v 1.9 2000/02/14 00:51:26 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -347,9 +347,9 @@ int basic_register()
 	if (!(f = filter_alloc("dup", "duplicates one input stream", dup_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "out1", "output",
+	    || !filter_add_output(f, "line1_out", "output",
 				  FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "out2", "output",
+	    || !filter_add_output(f, "line2_out", "output",
 				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;

@@ -9,7 +9,7 @@ EXTRA_DIST = filter.h filter_buffer.h filter_tools.h filter_protocols.h
 libfilter_la_SOURCES = filter.c filter.h filter_buffer.h \
 	filter_buffer.c filter_network.c \
 	basic.c debug.c channel_io.c audio_io.c \
-	volume_adjust.c waveform.c read_file.c \
+	volume_adjust.c waveform.c file_io.c \
 	echo.c garrison.c nold.c echo2.c
 
 

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.15 2000/02/10 11:07:19 richi Exp $
+ * $Id: filter.c,v 1.16 2000/02/14 00:51:26 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -276,7 +276,7 @@ extern int audio_io_register();
 extern int debug_register();
 extern int volume_adjust(filter_node_t *n);
 extern int waveform_register();
-extern int read_file_register();
+extern int file_io_register();
 extern int echo_register();
 extern int echo2_register();
 
@@ -307,7 +307,7 @@ int filter_init()
 		return -1;
 
 	/* initialize read_file filter */
-	if (read_file_register() == -1)
+	if (file_io_register() == -1)
 		return -1;
 	
 	/* initialize echo filter */

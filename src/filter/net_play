@@ -1,9 +1,5 @@
 n read_file rf
 n audio_out aout
-n echo bla1
-n echo bla2
-c rf left_out bla1 in
-c rf right_out bla2 in
-c bla1 out aout left_in
-c bla2 out aout right_in
+c rf left_out aout left_in
+c rf right_out aout right_in
 p rf filename filename file to be played
