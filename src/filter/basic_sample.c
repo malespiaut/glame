@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.7 2000/02/29 13:06:49 richi Exp $
+ * $Id: basic_sample.c,v 1.8 2000/03/14 14:29:26 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -98,7 +98,7 @@ static int mix_f(filter_node_t *n)
 	 * platforms like solaris cosf does not exist. ugh. */
 	for (i=0; i<nrinputs; i++) {
 		inputs[i].factor /= factor;
-		inputs[i].factor *= cos(filterpipe_sample_hangle(inputs[i].in) - filterpipe_sample_hangle(out));
+		// inputs[i].factor *= cos(filterpipe_sample_hangle(inputs[i].in) - filterpipe_sample_hangle(out));
 	}
 
 	FILTER_AFTER_INIT;
@@ -348,9 +348,10 @@ static int delay_f(filter_node_t *n)
 
 	FILTER_AFTER_INIT;
 
-	/* send "delay" zero samples, 0.1 sec's per buffer */
-	chunksize = filterpipe_sample_rate(in)/10;
+	/* send "delay" zero samples, GLAME_WBUFSIZE samples per buffer */
+	chunksize = GLAME_WBUFSIZE; // filterpipe_sample_rate(in)/10;
 	buf = sbuf_alloc(chunksize, n);
+	memset(sbuf_buf(buf), 0, SAMPLE_SIZE*chunksize);
 	for (; delay/chunksize > 0; delay -= chunksize) {
 		sbuf_ref(buf);
 		sbuf_queue(out, buf);
@@ -360,6 +361,7 @@ static int delay_f(filter_node_t *n)
 	/* send the rest in one buffer */
 	if (delay > 0) {
 		buf = sbuf_alloc(delay, n);
+		memset(sbuf_buf(buf), 0, SAMPLE_SIZE*delay);
 		sbuf_queue(out, buf);
 	}
 

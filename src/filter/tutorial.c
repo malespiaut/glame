@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.2 2000/02/28 09:34:34 richi Exp $
+ * $Id: tutorial.c,v 1.3 2000/03/14 14:29:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -124,9 +124,9 @@ int tutorial_register()
 	if (!(f = filter_alloc("dup", "duplicates one input stream", dup_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "line1_out", "output",
+	    || !filter_add_output(f, "out1", "output",
 				  FILTER_PORTTYPE_ANY)
-	    || !filter_add_output(f, "line2_out", "output",
+	    || !filter_add_output(f, "out2", "output",
 				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;

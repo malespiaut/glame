@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.6 2000/02/22 15:22:55 richi Exp $
+ * $Id: filter_methods.c,v 1.7 2000/03/14 14:29:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -91,8 +91,13 @@ int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 	 * the change to every output slot, of course.
 	 * We need to stop the fixup as soon as a failure
 	 * occours - the pipe may be broken.
+	 * FIXME: this does "simple" check if anything would
+	 * change using memcmp to prevent endless loops with
+	 * cyclic networks.
 	 */
 	filternode_foreach_output(n, out) {
+		if (out->type == in->type && memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+			continue;
 		out->type = in->type;
 		out->u = in->u;
 		if (out->dest->filter->fixup_pipe(out->dest, out) == -1)

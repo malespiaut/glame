@@ -1,7 +1,7 @@
 (filternetwork test-audio "the tuuut-er"
 	(node sin1 sinus)
 	(node rep repeat
-		(set-param duration 10)
+		(set-param duration 10000)
 		(export-param duration duration "duration of the tuut"))
 	(node aout audio_out)
 	(connect sin1 out rep in)

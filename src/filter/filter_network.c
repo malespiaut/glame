@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.29 2000/02/29 09:49:59 nold Exp $
+ * $Id: filter_network.c,v 1.30 2000/03/14 14:29:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -756,12 +756,14 @@ char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
 		return NULL;
 	if (!(m = (regmatch_t *)malloc(sizeof(regmatch_t)*(e.re_nsub+1))))
 		goto out;
-	if (regexec(&e, str, e.re_nsub+1, m, 0) != 0)
+	if (regexec(&e, str, e.re_nsub+1, m, 0) != 0) {
+		DPRINTF("parse error.\n");
 		goto out;
+	}
 
 	for (i=1; i<=e.re_nsub; i++) {
 		if (m[i].rm_so == -1
-		    || m[i].rm_so == m[i].rm_eo-1
+		    || m[i].rm_so == m[i].rm_eo
 		    || nargvmask & (1<<(i-1))) {
 			argv[i-1] = NULL;
 		} else {
@@ -853,6 +855,7 @@ static int parse_node(filter_network_t *net, char **buf)
 	return 0;
 
 err:
+	DPRINTF("%s\n", *buf);
 	glame_parse_free(argv, 8);
 	return -1;
 }
@@ -871,8 +874,11 @@ static int parse_connect(filter_network_t *net, char **buf)
 		return -1;
 	*buf = b;
 	if (!(p = filternetwork_add_connection(filternetwork_get_node(net, argv[0]), argv[1],
-					       filternetwork_get_node(net, argv[2]), argv[3])))
+					       filternetwork_get_node(net, argv[2]), argv[3]))) {
+		DPRINTF("unable to add connection %s::%s - %s::%s\n", argv[0], argv[1],
+			argv[2], argv[3]);
 		return -1;
+	}
 
 	do {
 		glame_parse_free(argv, 8);
@@ -899,6 +905,7 @@ static int parse_connect(filter_network_t *net, char **buf)
 	return 0;
 
 err:
+	DPRINTF("%s\n", *buf);
 	glame_parse_free(argv, 8);
 	return -1;
 }
@@ -956,6 +963,7 @@ static int parse_command(filter_network_t *net, char **buf)
 	return 1;
 
 err:
+	DPRINTF("%s\n", *buf);
 	glame_parse_free(argv, 8);
 	return -1;
 }

@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.6 2000/02/24 14:27:36 nold Exp $
+ * $Id: filter_ops.c,v 1.7 2000/03/14 14:29:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -69,6 +69,7 @@ static void *launcher(void *node)
 	n->glerrno = n->filter->f(n);
 	if (n->glerrno == 0) {
 	        filternode_clear_error(n);
+		DPRINTF("filter %s completed.\n", n->filter->name);
 		pthread_exit(NULL);
 	}
 

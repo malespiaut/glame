@@ -5,7 +5,7 @@ noinst_LTLIBRARIES = libfilter.la
 
 EXTRA_DIST = filter.h filterI.h filter_methods.h filter_mm.h filter_ops.h \
 	filter_tools.h filter_protocols.h \
-	net_test_play net_test_audio net_test_echo net_test_latency
+	net_test_play net_test_audio net_test_echo net_test_echo2 net_test_latency
 
 
 libfilter_la_SOURCES = filter.h filterI.h filter_methods.h \
