@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# $Id: rules,v 1.6 2001/07/03 14:39:36 nold Exp $
+# $Id: rules,v 1.7 2001/11/11 17:05:26 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -51,10 +51,8 @@ install: build
 
 	$(MAKE) install DESTDIR=`pwd`/debian/glame/
 	# Clean up unwanted static lib + lib metadata. Waaaay
-	# easier that teaching libtool about it. :/
-	-find `pwd`/debian/glame/usr/lib -name "*.a" -exec rm {} \;
-	-find `pwd`/debian/glame/usr/lib -name "*.la" -exec rm {} \;
-	-rm `pwd`/debian/glame/usr/lib/libglame.so
+	# easier than teaching libtool about it. :/
+	-find `pwd`/debian/glame/usr/lib/glame -name "*.{,l}a" -exec rm {} \;
 
 # Build architecture-independent files here.
 binary-indep: build install
