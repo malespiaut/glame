@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.28 2001/04/20 12:29:38 richi Exp $
+ * $Id: filter_buffer.c,v 1.29 2001/04/22 14:21:36 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -284,13 +284,16 @@ void fbuf_drain(filter_pipe_t *p)
 void fbuf_free_buffers(struct list_head *list)
 {
 	filter_buffer_t *fb;
+	int nr_freed = 0;
 
 	while (!list_empty(list)) {
 		fb = list_gethead(list, filter_buffer_t, list);
 		if (ATOMIC_VAL(fb->refcnt) == 0)
 			DERROR("buffer without reference still in buffer list");
-		DPRINTF("freeing buffer\n");
 		atomic_set(&fb->refcnt, 1);
 		fbuf_unref(fb);
+		nr_freed++;
 	}
+	if (nr_freed > 0)
+		DPRINTF("freed %i buffers\n", nr_freed);
 }
