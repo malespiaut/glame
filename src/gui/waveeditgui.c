@@ -35,6 +35,7 @@
 #include "glame_types.h"
 #include "glscript.h"
 #include "glplugin.h"
+#include "glconfig.h"
 #include "swapfile.h"
 #include "glmid.h"
 #include "util/glame_gui_utils.h"
@@ -514,8 +515,9 @@ static void play(GtkWaveView *waveview,
 	}
 
 	emitter = glame_network_notificator_creat(net);
-	glsig_add_handler(emitter, GLSIG_NETWORK_TICK,
-			  play_update_marker, active_waveedit);
+	if (glame_config_get_long_with_default("waveedit/scroll", 1))
+		glsig_add_handler(emitter, GLSIG_NETWORK_TICK,
+				  play_update_marker, active_waveedit);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
 			  play_cleanup, active_waveedit);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.104 2002/02/17 13:53:31 richi Exp $
+ * $Id: main.c,v 1.105 2002/02/17 18:00:22 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -490,6 +490,21 @@ static GtkWidget *preferences_tab_filteredit(long *fe_popup_timeout, long *fe_ma
 	return vbox;
 }
 
+static GtkWidget *preferences_tab_waveedit(long *we_scroll)
+{
+	GtkWidget *vbox, *macMode;
+
+	vbox = gtk_vbox_new(FALSE, 1);
+
+	glame_config_get_long("waveedit/scroll", we_scroll);
+	macMode = gtk_check_button_new();
+	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode), *we_scroll);
+	gtk_signal_connect(GTK_OBJECT(macMode), "toggled", (GtkSignalFunc)toggle_cb, we_scroll);
+	create_label_widget_pair(vbox, _("Scroll wave while playing"), macMode);
+	gtk_widget_show_all(vbox);
+	return vbox;
+}
+
 static GtkWidget *preferences_tab_swapfile(char *sw_path,
 					   long *sw_maxvm,
 					   long *sw_maxundo)
@@ -629,7 +644,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	char sw_path[256];
 	long sw_maxundo, sw_maxlru, sw_maxfds, sw_maxmaps, sw_maxvm;
 	long fe_popup_timeout;
-	long fe_mac;
+	long fe_mac, we_scroll;
 	gboolean ok = FALSE;
 
 	/* New box. */
@@ -647,6 +662,13 @@ preferences_cb(GtkWidget * wid, void * bla)
 	 * - mac mode */
 	tablabel = gtk_label_new(_("Filternetwork"));
 	vbox = preferences_tab_filteredit(&fe_popup_timeout, &fe_mac);
+        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),
+				       vbox, tablabel);
+
+	/* Waveedit with
+	 * - scrolling */
+	tablabel = gtk_label_new(_("Waveedit"));
+	vbox = preferences_tab_waveedit(&we_scroll);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),
 				       vbox, tablabel);
 
@@ -690,6 +712,9 @@ preferences_cb(GtkWidget * wid, void * bla)
 	glame_config_set_long("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = fe_mac;
 	glame_config_set_long("edit_filter/macMode", bMac);
+	/* Waveedit */
+	glame_config_set_long("waveedit/scroll", we_scroll);
+	/* Audio I/O */
 	glame_config_set_string("audio_io/input_dev", aio_indevice);
 	glame_config_set_string("audio_io/input_plugin", aio_inplugin);
 	glame_config_set_long("audio_io/input_rate", aio_rate);

@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.21 2002/01/09 19:29:41 richi Exp $
+@comment $Id: gui.texi,v 1.22 2002/02/17 18:00:22 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -540,7 +540,7 @@ including the swapfile setup and your audio setup. Note that some
 changes take effect only after restarting GLAME.
 
 The preferences dialog presents you with three tabs, namely the
-@dfn{Swapfile}, @dfn{Filternetwork} and @dfn{Audio I/O} tabs.
+@dfn{Swapfile}, @dfn{Filternetwork}, @dfn{Waveedit} and @dfn{Audio I/O} tabs.
 We're going through them separately.
 
 The first tab is the @dfn{Swapfile} tab which has the following
@@ -558,13 +558,11 @@ undo. This is a global number. Remember that each step of undo needs
 space in the swapfile.
 
 @item Caching
-You are not supposed to change the caching parameters if you don't known what's
-going on internally. The only parameter you may want to tune is the @dfn{maximum
-virtual memory used for caching} parameter--if you have lots of ram. This
-parameter is in bytes, and if you change it, you need to change the number of
-cached memory mappings by the same factor (it's a good idea to scale the other
-ones, too, but thats not necessary and may break for Linux kernels older than
-2.4).
+Here you can specify the maximum amount of virtual memory used for caching
+wave data. Note that the physical caching is done by the operating system
+as we are using memory map based access. Specifying more than about
+three quarters of available physical memory does not make sense and will
+slow things down.
 @end table
 
 
@@ -581,6 +579,16 @@ the left button. This is only useful if you are using mice with less
 than two buttons.
 @end table
 
+The @code{Waveedit} tab lets you configure some UI parameters
+which are
+
+@table @code
+@item Wave scrolling
+Whether the wave view should scroll while playing. This is usually
+a good idea, but on slow machines disabling this may fix dropouts
+during playback.
+
+@end table
 
 The @code{Audio I/O} tab lets you configure the default audio input
 and output device.
