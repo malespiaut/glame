@@ -1,7 +1,14 @@
 <?xml version="1.0"?>
 <glame-accels>
 
+<accel state="0" spec="list_keybindings">
+(glame-accel-edit-dialog "" #f)
+</accel>
+
 <scope scope="swapfile">
+  <accel state="0" spec="F1">
+(glame-accel-edit-dialog "swapfile" #f)
+  </accel>
   <accel state="4" spec="l">
 (if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) -1.57))
   </accel>
@@ -17,6 +24,9 @@
 </scope>
 
 <scope scope="waveview">
+  <accel state="0" spec="F1">
+(glame-accel-edit-dialog "waveview" #f)
+  </accel>
   <accel state="0" spec="Prior">
 (waveedit-set-zoom! (* (waveedit-get-zoom) 0.75))
   </accel>
@@ -54,6 +64,9 @@
 </scope>
 
 <scope scope="filteredit">
+  <accel state="0" spec="F1">
+(glame-accel-edit-dialog "filteredit" #f)
+  </accel>
   <accel state="0" spec="v">
 (editfilter-view-all)
   </accel>
@@ -90,6 +103,9 @@
 </scope>
 
 <scope scope="timeline">
+  <accel state="0" spec="F1">
+(glame-accel-edit-dialog "timeline" #f)
+  </accel>
   <accel state="0" spec="Up">
 (let ((item (timeline-active-item)))
   (if (gpsm-item? item)
