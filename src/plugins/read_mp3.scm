@@ -8,7 +8,7 @@
 	    		((p "tail" "filename" "filename"))
 	    		(filternode_set_param p "cmd" "mpg123 -q -s "))
 		"read-mp3")))
-	(if (filter_p plugin)
+	(if (filter? plugin)
 	   plugin
 	   (begin
 		(plugin_set plugin PLUGIN_DESCRIPTION "mp3-reader")

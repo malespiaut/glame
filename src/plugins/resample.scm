@@ -9,7 +9,7 @@
 		(filternode_set_param fft "blocksize" 2048); frequency accuracy = 43 Hz
 		(nodes-connect (list fft res ifft))))
 	"Resample")))
-	(if (filter_p plugin)
+	(if (filter? plugin)
 	   plugin
 	   (begin
 		(plugin_set plugin PLUGIN_DESCRIPTION "FFT Resample macro filter")

@@ -14,7 +14,7 @@
 		      (nodes-connect (list one2n fft fft_bandpass ifft mix))
 		      (nodes-connect (list one2n mix))))
 	"Bass Boost")))
-	(if (filter_p plugin)
+	(if (filter? plugin)
 	   plugin
 	   (begin
 		(plugin_set plugin PLUGIN_DESCRIPTION "Bass Boost macro filter")

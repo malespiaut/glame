@@ -18,9 +18,10 @@
 		   (filternode_set_param net "mix" 0.7)
 		   (nodes-connect (list extend mix one2n delay va mix))))
 	"echo2")))
-	(if (filter_p plugin)
+	(if (filter? plugin)
 	   plugin
 	   (begin
 	      (plugin_set plugin PLUGIN_PIXMAP "echo.png")
               (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
 	      (plugin_set plugin PLUGIN_CATEGORY "Effects"))))
+
