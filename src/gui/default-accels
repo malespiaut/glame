@@ -94,6 +94,8 @@
   <accel state="4" spec="z" desc="Undo"> (waveedit-undo) </accel>
   <accel state="4" spec="r" desc="Redo"> (waveedit-redo) </accel>
   <accel state="4" spec="s" desc="Export selection"> (waveedit-export-selection) </accel>
+
+  <accel state="0" spec="s" desc="Toggle wave scrolling"> (glame-config-set! 'waveedit/scroll (abs (- (glame-config-get 'waveedit/scroll) 1))) </accel>
 </scope>
 
 <scope scope="filteredit">
