@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.5 2000/03/21 10:06:35 richi Exp $
+ * $Id: basic.c,v 1.6 2000/03/21 12:58:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -130,8 +130,9 @@ static int one2n_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_pipe_t *in, *out;
 	one2n_param_t *p;
-	int maxfd, i, nr, eof, empty, res;
+	int maxfd, i, nr, eof, empty, oneempty, res;
 	fd_set rset, wset;
+	int nrin = 0, nrsel = 0;
 
 	nr = filternode_nroutputs(n);
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
@@ -160,24 +161,29 @@ static int one2n_f(filter_node_t *n)
 
 		/* set up fd sets for select */
 		maxfd = 0;
-		FD_ZERO(&rset);
-		if (!eof) {
-			FD_SET(in->dest_fd, &rset);
-			maxfd = in->dest_fd;
-		}
-		empty = 1;
+		empty = 1; oneempty = 0;
 		FD_ZERO(&wset);
 		for (i=0; i<nr; i++) {
-			if (!has_feedback(&p[i].fifo))
+			if (!has_feedback(&p[i].fifo)) {
+				oneempty = 1;
 				continue;
+			}
 			empty = 0;
 			FD_SET(p[i].out->source_fd, &wset);
 			if (p[i].out->source_fd > maxfd)
 				maxfd = p[i].out->source_fd;
 		}
+		FD_ZERO(&rset);
+		if (!eof && oneempty) {
+			FD_SET(in->dest_fd, &rset);
+			if (in->dest_fd > maxfd)
+				maxfd = in->dest_fd;
+		}
 		if (eof && empty)
 			break;
-		res = select(maxfd+1, &rset, empty ? NULL : &wset, NULL, NULL);
+		nrsel++;
+		res = select(maxfd+1, eof || (!oneempty && !empty) ? NULL : &rset,
+			     empty ? NULL : &wset, NULL, NULL);
 		if (res == -1)
 			perror("select");
 		if (res <= 0)
@@ -186,6 +192,7 @@ static int one2n_f(filter_node_t *n)
 		/* do we have input? - queue in each feedback buffer,
 		 * be clever with the references, too. */
 		if (FD_ISSET(in->dest_fd, &rset)) {
+			nrin++;
 			if (!(buf = fbuf_get(in)))
 			        eof = 1;
 			for (i=0; i<nr-1; i++) {
@@ -207,6 +214,8 @@ static int one2n_f(filter_node_t *n)
 			fbuf_queue(p[i].out, get_feedback(&p[i].fifo));
 		}
 	} while (1);
+
+	DPRINTF("%i input buffers, %i times select()\n", nrin, nrsel);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
