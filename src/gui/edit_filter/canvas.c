@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.67 2001/04/20 11:21:03 xwolf Exp $
+ * $Id: canvas.c,v 1.68 2001/04/20 11:49:26 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -123,12 +123,6 @@ static GnomeUIInfo pipe_menu[]=
 
 
 GnomeUIInfo *node_select_menu;
-
-static GnomeUIInfo root_menu[]=
-{
-	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
-	GNOMEUIINFO_END
-};
 
 static GnomeUIInfo port_menu[] = 
 {
@@ -392,7 +386,7 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		}else{
 			switch(event->button.button){
 			case 1:
-				canvas_item_show_description(NULL,GNOME_CANVAS_ITEM(item)->parent);
+				canvas_item_show_description(NULL,GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(item)->parent));
 				break;
 			}
 		}
@@ -538,7 +532,6 @@ static gint
 root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 {
 	GtkWidget*menu;
-	GtkWidget*par;
 	GdkEventButton *event_button;
 
 	gint mouseButton = bMac?1:3;
@@ -1565,7 +1558,7 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
 		}
 		red = malloc(sizeof(Redirection));
-		red->source = blu;
+		red->source = GNOME_CANVAS_ITEM(blu);
 		red->type = 1;
 		red->externalName = strdup(filenamebuffer);
 		canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(blu)->canvas);
@@ -1644,17 +1637,18 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 					newparam = filterparamdb_add_param(topleveldb,externnamebuffer,filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
 				else
 					newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
-				if(newparam)
+				if(newparam){
 					if(filterparam_redirect(newparam,iter)){
 						fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
 					} else {
 						red = malloc(sizeof(Redirection));
-						red->source = item;
+						red->source = GNOME_CANVAS_ITEM(item);
 						red->type = 2;
 						red->externalName = strdup(externnamebuffer);
 						canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas);
 						canv->net->redirectedParameters = g_list_append(canv->net->redirectedParameters,red);
 					}
+				}
 				
 			}
 		}
@@ -1664,18 +1658,18 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 		
 		filterparamdb_foreach_param(db,iter){
 			newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
-			if(newparam)
+			if(newparam){
 				if(filterparam_redirect(newparam,iter)){
 					fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
 				}else{
 					red = malloc(sizeof(Redirection));
-					red->source = item;
+					red->source = GNOME_CANVAS_ITEM(item);
 					red->type = 2;
 					red->externalName = strdup(filterparam_label(iter));
 					canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas);
 					canv->net->redirectedParameters = g_list_append(canv->net->redirectedParameters,red);
 				}
-
+			}
 		}
 		break;
 	default:
@@ -1766,7 +1760,7 @@ static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 	filterparamdb_foreach_param(params,param){
 		line = calloc(3,sizeof(char*));
 		if(filterparam_label(param))
-			buffer = filterparam_label(param);
+			buffer = strdup(filterparam_label(param));
 		else
 			buffer = strdup("Empty");
 		line[0] = buffer;
@@ -1959,7 +1953,7 @@ static void canvas_delete_redirection_cb(GtkWidget*foo, Redirection *red)
 		filterportdb_delete_port(filter_portdb(canvas->net->net),red->externalName);
 		canvas->net->redirectedPorts = g_list_remove(canvas->net->redirectedPorts,red);
 		GLAME_CANVAS_PORT(red->source)->port_type &= 0xfffffff-GUI_PORT_TYPE_EXTERNAL;
-		canvas_item_redraw(GNOME_CANVAS_ITEM(red->source)->parent);
+		canvas_item_redraw(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(red->source)->parent));
 		//free(red); //hack
 		break;
 	case 2:
@@ -1984,12 +1978,14 @@ static void redirection_list_cb(GtkCList *list, gint row, gint column,
 			       GdkEvent* event, GList *reds)
 {
 	GtkWidget * menu;
-	int butt = bMac?1:3;
 	Redirection* foo;
 	menu = gnome_popup_menu_new(redirection_menu);
 	foo = g_list_nth_data(reds,row);
+	gtk_clist_unselect_row(list,row,0);
 	if(foo)
-		gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,foo);
+		if(gnome_popup_menu_do_popup_modal(menu,NULL,NULL,&event->button,foo)>=0)
+			gtk_clist_remove(list,row);
+
 }
 
 	
@@ -2023,16 +2019,13 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	*/
 	
 	GtkWidget * dialog;
-	GtkWidget * text;
 	GtkWidget * vbox;
 	GtkWidget * notebook;
 	GtkWidget * tablabel;
 	GtkCList * list;
 
 	GnomeCanvasItem* item;
-	char * desc;
-	int pos=0;
-
+		
 	filter_portdb_t * ports;
 	filter_paramdb_t * params;
 	filter_param_t * param;
@@ -2101,7 +2094,7 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	filterparamdb_foreach_param(params,param){
 		line = calloc(4,sizeof(char*));
 		if(filterparam_label(param))
-			buffer = filterparam_label(param);
+			buffer = strdup(filterparam_label(param));
 		else
 			buffer = strdup("Empty");
 		line[0] = buffer;
