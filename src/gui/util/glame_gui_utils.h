@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.2 2001/06/19 12:09:01 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.3 2001/06/22 08:49:21 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -101,22 +101,41 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 				     const char *pattern,
 				     char *returnbuffer);
 
-/* Create a progress indicator (gtk progress bar, if size > 0, gnome
- * animator if size == -1) that polls parameter pos. The progress indicator
- * widget is destroyed on parameter destruction, early destruction of
- * the widget is handled fine. */
-GtkWidget *glame_progress_indicator(filter_param_t *pos, long size);
+
+/* Creates a notificator for network finish. Add handlers _before_
+ * launching the network! Returns a signal emitter on success, NULL
+ * on error.
+ * The returned emitter will emit GLSIG_NETWORK_DONE after network
+ * finish. See below for a set of standard handlers you may want
+ * to execute.
+ * The returned emitter will emit GLSIG_NETWORK_TICK for each tick
+ * (see timeout specification below) the network is running. */
+#define GLSIG_NETWORK_DONE 1
+#define GLSIG_NETWORK_TICK 2
+glsig_emitter_t *glame_network_notificator_creat(filter_t *net);
+
+/* Runs (launches the network and starts the polling timeout handler)
+ * a previously created (glame_network_notificator_creat) notificator.
+ * Specify the timeout value for the gtk_timeout_handler (10-100 is
+ * a good range).
+ * Returns 0 on success, -1 on network launch/start error. */
+int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout);
+
+/* Standard handler which deletes the finished network. Provide NULL
+ * as private handler data. */
+void glame_network_notificator_delete_network(glsig_handler_t *,
+					      long, va_list);
+
+/* Standard handler which destroys a gpsm item. Provide the gpsm item
+ * as private handler data. */
+void glame_network_notificator_destroy_gpsm(glsig_handler_t *, long, va_list);
 
 
-/* Run a network asynchronily and clean up (network) after completion
- * (displaying an error log, if a failure occured). Returns 0, if network
- * start was ok, -1 on error in which case the network is not deleted.
- * Runs the provided callback after completion (or not, if NULL). */
-int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data);
 
 /* Load a GdkImage which is suitable for canvas operation/taskbars(?)
  * if nothing is found it will try to return the glame default icon. */
 GdkImlibImage* glame_load_icon(const char* filename, int x, int y);
+
 /* Same as above, but returns the image as a gnomepixmap (a widget) */
 GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
 

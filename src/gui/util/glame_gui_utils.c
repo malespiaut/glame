@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.2 2001/06/18 08:30:14 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.3 2001/06/22 08:49:21 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -30,8 +30,10 @@
 #include <glade/glade.h>
 #endif
 #include "glmid.h"
-#include "glame_gui_utils.h"
+#include "gpsm.h"
 #include "glame_curve.h"
+#include "edit_filter/filtereditgui.h"
+#include "glame_gui_utils.h"
 
 
 
@@ -288,95 +290,6 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 
 
 
-struct gpi_s {
-	GtkWidget *widget;
-	filter_param_t *pos;
-	long size;
-	glsig_handler_t *handler;
-	guint tid;
-};
-static void gpi_widget_destroy(GtkWidget *w, struct gpi_s *gpi)
-{
-	gtk_timeout_remove(gpi->tid);
-	glsig_delete_handler(gpi->handler);
-	free(gpi);
-}
-static void gpi_param_delete(glsig_handler_t *handler, long sig, va_list va)
-{
-	struct gpi_s *gpi = glsig_handler_private(handler);
-	gtk_object_destroy(GTK_OBJECT(gpi->widget));
-}
-static gint gpi_timeout(struct gpi_s *gpi)
-{
-	gfloat state = (float)filterparam_val_pos(gpi->pos)/(float)gpi->size;
-	gtk_progress_bar_update(GTK_PROGRESS_BAR(gpi->widget), state);
-	return TRUE;
-}
-GtkWidget *glame_progress_indicator(filter_param_t *pos, long size)
-{
-	struct gpi_s *gpi;
-
-	if (!pos)
-		return NULL;
-
-	gpi = ALLOC(struct gpi_s);
-	gpi->pos = pos;
-	gpi->size = size;
-
-	gpi->widget = gtk_progress_bar_new();
-	gtk_progress_bar_set_bar_style(GTK_PROGRESS_BAR(gpi->widget),
-				       GTK_PROGRESS_CONTINUOUS);
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(gpi->widget),
-					 GTK_PROGRESS_LEFT_TO_RIGHT);
-	gpi->tid = gtk_timeout_add(200, (GtkFunction)gpi_timeout, gpi);
-
-	gpi->handler = glsig_add_handler(&pos->emitter, GLSIG_PARAM_DELETED,
-					 gpi_param_delete, gpi);
-	gtk_signal_connect(GTK_OBJECT(gpi->widget), "destroy",
-			   gpi_widget_destroy, gpi);
-
-	return gpi->widget;
-}
-
-
-
-struct garn_s {
-	filter_t *net;
-	guint tid;
-	GtkFunction callback;
-	gpointer data;
-};
-gint garn_poll(struct garn_s *garn)
-{
-	if (!filter_is_ready(garn->net))
-		return TRUE;
-	filter_terminate(garn->net);
-	filter_delete(garn->net);
-	if (garn->callback)
-		garn->callback(garn->data);
-	free(garn);
-	return FALSE;
-}
-int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data)
-{
-	struct garn_s *garn;
-
-	if (filter_launch(net) == -1)
-		return -1;
-	garn = ALLOC(struct garn_s);
-	garn->net = net;
-	garn->callback = callback;
-	garn->data = data;
-	garn->tid = gtk_timeout_add(500, (GtkFunction)garn_poll, garn);
-	if (filter_start(net) == -1) {
-		gtk_timeout_remove(garn->tid);
-		filter_terminate(net);
-		free(garn);
-		return -1;
-	}
-	return 0;
-}
-
 
 
 /*
@@ -468,7 +381,7 @@ glame_gui_build_plugin_menu_genmenu(struct list_head *entries, GtkMenu *menu,
 			gtk_widget_show(citem);
 			free(entry->u.c.name);
 		} else {
-			char *label;
+			const char *label;
 			GtkWidget *mitem;
 			label = plugin_query(entry->u.p.plugin, PLUGIN_LABEL);
 			if (!label)
@@ -935,7 +848,7 @@ GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 {
 	GdkImlibImage* image = NULL;
 	GdkImlibImage* imagetmp = NULL;
-	char * file;
+	const char * file;
 	char * filepath;
 
 	fprintf(stderr,"load: %s\n",filename);
@@ -980,4 +893,83 @@ GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 GtkWidget* glame_load_icon_widget(const char* filename,int x, int y)
 {
 	return gnome_pixmap_new_from_imlib(glame_load_icon(filename,x,y));
+}
+
+
+
+
+/*
+ * Async. network <-> GUI interaction and cleanup.
+ */
+
+struct network_notificator {
+	glsig_emitter_t emitter;
+	guint timeout_handler_id;
+	filter_t *net;
+};
+
+static gint network_notificator_timeout(struct network_notificator *n)
+{
+	if (!filter_is_ready(n->net)) {
+		/* Run tick handlers. */
+		glsig_emit(&n->emitter, GLSIG_NETWORK_TICK, n->net);
+		return TRUE;
+	}
+
+	/* Run cleanup handlers. */
+	glsig_emit(&n->emitter, GLSIG_NETWORK_DONE, n->net);
+
+	/* Cleanup notificator. */
+	glsig_delete_all(&n->emitter);
+	free(n);
+
+	/* Remove timeout handler. */
+	return FALSE;
+}
+
+glsig_emitter_t *glame_network_notificator_creat(filter_t *net)
+{
+	struct network_notificator *n;
+
+	/* Init notification stuff. */
+	n = ALLOC(struct network_notificator);
+	INIT_GLSIG_EMITTER(&n->emitter);
+	n->net = net;
+
+	return &n->emitter;
+}
+
+int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout)
+{
+	struct network_notificator *n = (struct network_notificator *)emitter;
+	/* First launch & start the network. Cleanup in case of
+	 * errors. */
+	if (filter_launch(n->net) == -1
+	    || filter_start(n->net) == -1) {
+		free(n);
+		return -1;
+	}
+
+	/* Everything went ok, install gtk_timeout handler for polling. */
+	n->timeout_handler_id = gtk_timeout_add(
+		timeout, (GtkFunction)network_notificator_timeout, n);
+
+	return 0;
+}
+
+void glame_network_notificator_delete_network(glsig_handler_t *handler,
+					      long sig, va_list va)
+{
+	filter_t *net;
+
+	GLSIGH_GETARGS1(va, net);
+
+	filter_terminate(net);
+	filter_delete(net);
+}
+
+void glame_network_notificator_destroy_gpsm(glsig_handler_t *handler,
+					    long sig, va_list va)
+{
+	gpsm_item_destroy((gpsm_item_t *)glsig_handler_private(handler));
 }
