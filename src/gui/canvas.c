@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.12 2000/03/20 17:49:43 xwolf Exp $
+ * $Id: canvas.c,v 1.13 2000/03/21 10:52:53 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -27,6 +27,7 @@
 
 
 #include "canvas.h"
+#include <values.h>
 
 
 
@@ -743,14 +744,193 @@ update_output_connection(GlameCanvasPort*p, gdouble x, gdouble y)
 	}
 }
 
+enum {PINT,PFLOAT,PSTRING,PFILE};
+
+typedef struct {
+	GtkWidget *widget;
+	filter_paramdesc_t* param;
+	int widget_type;
+} param_widget_t;
+
+typedef struct {
+	GList* paramList;
+	gui_filter* gfilter;
+} param_callback_t;
+
+
+
+void
+update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
+{
+	GList* list = g_list_first(callback->paramList);
+	void *val;
+	char *strVal; 
+	int iVal;
+	float fVal;
+	filter_node_t * node = callback->gfilter->node;
+	param_widget_t* item;
+	
+	DPRINTF("entry");
+
+	while(list){
+		fprintf(stderr,".");
+		item = (param_widget_t*)(list->data);
+		switch(item->widget_type){
+		case PINT:
+			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
+			
+			if(filternode_set_param(node,filterparamdesc_label(item->param),&iVal)<0)
+			{
+				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
+			}else{
+				DPRINTF("Success\n");
+			}
+			break;
+		case PFLOAT:
+			fVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
+			if(filternode_set_param(node,filterparamdesc_label(item->param),&fVal)<0)
+			{
+				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
+			}else{
+				DPRINTF("Success\n");
+			}
+			break;
+		case PSTRING:
+			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
+			val = filterparamval_from_string(item->param,strVal);
+			if(filternode_set_param(node,filterparamdesc_label(item->param),strVal)<0)
+			{
+				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
+			}else{
+				DPRINTF("Success\n");
+			}
+			free(val);
+			g_free(strVal);
+			break;
+		case PFILE:
+			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
+			val = filterparamval_from_string(item->param,strVal);
+			if(filternode_set_param(node,filterparamdesc_label(item->param),strVal)<0)
+			{
+				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
+			}else{
+				DPRINTF("Success\n");
+			}
+			free(val);
+			g_free(strVal);
+			break;
+		}
+		list = g_list_next(list);
+		
+	}
+}
+
+void
+cancel_params(GtkWidget* wig,param_callback_t* callback)
+{
+	g_list_free(callback->paramList);
+	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_parent_window(wig)));
+}
 
 void
 edit_canvas_item_properties(GlameCanvasItem *item)
 {
 	gui_filter * gfilter = item->filter;
-	void * val;
-	filter_node_t * node = item->filter->node;
-	char *paramName,*paramValue;
+	
+	filter_paramdesc_t *param;
+	GtkWidget *vbox,*entry;
+	GtkAdjustment *adjust;
+	param_widget_t *pw;
+	param_callback_t* cb;
+	
+	GList * list=NULL;
+	
+	GtkWidget* propBox;
+	GtkWidget* tablabel;
+
+	
+	propBox = gnome_property_box_new ();
+	
+	tablabel=gtk_label_new(_(gfilter->caption));
+
+	vbox = gtk_vbox_new(FALSE,3);
+	
+	gtk_widget_show(vbox);
+	
+	filter_foreach_paramdesc(gfilter->filter,param){
+		switch(filterparamdesc_type(param)){
+		case FILTER_PARAMTYPE_INT:
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
+			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PINT;
+			list = g_list_append(list,pw);
+			break;
+		case FILTER_PARAMTYPE_FLOAT:
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
+			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PFLOAT;
+			list = g_list_append(list,pw);
+			break;
+		case FILTER_PARAMTYPE_SAMPLE:
+			break;
+		case FILTER_PARAMTYPE_STRING:
+			switch(filterparamdesc_string_type(param)){
+			case FILTER_PARAM_STRINGTYPE_GENERIC:
+				entry = gnome_entry_new("blubb");
+				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PSTRING;
+				list = g_list_append(list,pw);
+				break;
+			case FILTER_PARAM_STRINGTYPE_FILENAME:
+				entry = gnome_file_entry_new("blahh",filterparamdesc_label(param));
+				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PFILE;
+				list = g_list_append(list,pw);
+				break;
+			default:
+				entry = gnome_entry_new("blubb");
+				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PSTRING;
+				list = g_list_append(list,pw);
+				break;
+			}
+			break;
+		}
+	}
+	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),vbox,tablabel);
+
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
+	gtk_widget_show(propBox);
+	cb = malloc(sizeof(param_callback_t));
+	cb->paramList=list;
+	cb->gfilter = gfilter;
+	
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",update_params,cb);
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
+	
+		       	/*
 	paramName = malloc(50);
 	paramValue = malloc(50);
 	paramName[0]=paramValue[0]=0;
@@ -762,15 +942,13 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 	val = filterparamval_from_string(filter_get_paramdesc(gfilter->filter,paramName),paramValue);
 	if(filternode_set_param(node,paramName,val)<0)
 	{
-		fprintf(stderr,"Change failed!\n");
+		DPRINTF("Change failed!\n");
 	}else{
-		fprintf(stderr,"Success\n");
+		DPRINTF("Success\n");
 	}
 	free(paramName);
 	free(paramValue);
-	free(val);
-		
-	
+	free(val);*/
 }
 	
 
