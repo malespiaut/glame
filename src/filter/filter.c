@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.49 2001/05/23 12:33:07 richi Exp $
+ * $Id: filter.c,v 1.50 2001/05/27 22:28:27 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -155,7 +155,8 @@ filter_t *_filter_instantiate(filter_t *f)
 	n->connect_out = f->connect_out;
 	n->connect_in = f->connect_in;
 	n->set_param = f->set_param;
-
+	
+	n->plugin = f->plugin;
 	n->priv = f->priv;
 
 	n->ops = f->ops;
