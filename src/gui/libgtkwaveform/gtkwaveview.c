@@ -497,7 +497,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 
   offset = -calc_win_pel_pos (waveview, 0);
   waveview->drawn_offset = offset;
-  width = waveview->expose_width;
+  width = MIN(waveview->area->allocation.width, waveview->expose_width);
   start_x = MAX(0, calc_win_pel_ext(waveview, waveview->expose_x));
 
   /* First, paint all cached x coords. */
