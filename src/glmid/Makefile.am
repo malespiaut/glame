@@ -18,7 +18,8 @@ libglmid_la_SOURCES = \
 	glscript_swapfile.c glscript_filter.c glscript_gpsm.c \
 	$(LADSPA_FILES) \
 	gpsm.c gpsm.h clipboard.c clipboard.h \
-	network_utils.c network_utils.h
+	network_utils.c network_utils.h \
+	glame_audiofile.c
 libglmid_la_LDFLAGS = -export-dynamic \
 	$(GUILE_LIBS) $(PTHREAD_LIB) $(XML_LIBS) -lm
 
