@@ -25,8 +25,8 @@
 /* define if you have libsndfile */
 #undef HAVE_SNDFILE
 
-/* define if you have single precision fftw */
-#undef HAVE_SFFTW
+/* define if you have fftw of SAMPLE precision */
+#undef HAVE_FFTW
 
 /* define if you have guile */
 #undef HAVE_GUILE
@@ -49,6 +49,9 @@
 /* define if semctl works ok in all cases */
 #undef SEMCTL_OK
 
+/* define if you have working posix semaphores */
+#undef HAVE_POSIXSEM
+
 /* define if you use pthreads (always defined for GLAME) */
 #undef USE_PTHREADS
 
@@ -63,4 +66,10 @@
 
 /* define if <byteswap.h> is present */
 #undef HAVE_BYTESWAP_H
+
+/* define to the type you want for SAMPLE (float or double) */
+#define SAMPLE float
+
+/* define, if the SAMPLE type is std (float) */
+#undef SAMPLE_FLOAT
 

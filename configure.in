@@ -25,6 +25,22 @@ elif test $debug -eq 0; then
 fi
 
 dnl
+dnl Switch to make SAMPLE a double - float is default.
+dnl
+
+AC_ARG_ENABLE(double, [  --enable-double         use double instead of float ], sample=$enableval, sample=float)
+if test "$sample" = "no"; then
+	sample=float
+elif test "$sample" = "yes"; then
+	sample=double
+	AC_MSG_WARN([Using double for SAMPLE which is not supported])
+fi
+if test "$sample" = "float"; then
+	AC_DEFINE(SAMPLE_FLOAT)
+fi
+AC_DEFINE_UNQUOTED(SAMPLE, $sample)
+
+dnl
 dnl Checks for programs.
 dnl
 
@@ -104,16 +120,24 @@ GNOME_CHECK_GUILE("fail")
 
 
 dnl
-dnl check for single precision fftw
+dnl check for single/double precision fftw
 dnl
-AC_CHECK_LIB(sfftw, fftw2d_create_plan, sfl=yes, sfl=no)
-AC_CHECK_HEADER(sfftw.h,, sfl=no)
-if test $sfl = yes; then
-	GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lsfftw -lsrfftw"
-	AC_DEFINE(HAVE_SFFTW)
+if test "$sample" = "float"; then
+	AC_CHECK_LIB(sfftw, fftw2d_create_plan, fftw=yes, fftw=no)
+	AC_CHECK_HEADER(sfftw.h,, fftw=no)
+	if test $fftw = yes; then
+		GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lsfftw -lsrfftw"
+		AC_DEFINE(HAVE_FFTW)
+	fi
+elif test "$sample" = "double"; then
+	AC_CHECK_LIB(fftw, fftw2d_create_plan, fftw=yes, fftw=no)
+	AC_CHECK_HEADER(fftw.h,, fftw=no)
+	if test $fftw = yes; then
+		GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lfftw -lrfftw"
+		AC_DEFINE(HAVE_FFTW)
+	fi
 fi
-AM_CONDITIONAL(HAVE_SFFTW, test x$sfl = xyes)
-
+AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
 
 dnl
 dnl Checks for various audio stuff.
@@ -223,6 +247,9 @@ AC_TYPE_PID_T
 dnl Check for broken SYSV semaphores
 ACG_CHECK_SEMUN
 ACG_CHECK_SEMCTL
+
+dnl Check for POSIX semaphores
+ACG_CHECK_POSIX_SEMAPHORES
 
 dnl Checks for library functions.
 AC_FUNC_MMAP
