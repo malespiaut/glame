@@ -135,8 +135,11 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0)
+	if (length <= 0) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Nothing selected")));
 		return;
+	}
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (GPSM_ITEM_IS_SWFILE(item))
@@ -175,7 +178,8 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	if (nrtracks != temp_nrtracks) {
-		DPRINTF("clipboard nrtracks do not match\n");
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Clipboard has different number of tracks")));
 		return;
 	}
 
@@ -215,8 +219,11 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0)
+	if (length <= 0) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Nothing selected")));
 		return;
+	}
 	DPRINTF("Cutting selection from %i of length %i\n", start, length);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
@@ -258,8 +265,11 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0)
+	if (length <= 0) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Nothing selected")));
 		return;
+	}
 	DPRINTF("Deleting selection from %i of length %i\n", start, length);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
@@ -410,8 +420,11 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	int rate, i;
 	
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0)
+	if (length <= 0) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Nothing selected")));
 		return;
+	}
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
@@ -458,10 +471,13 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	/* Run the network through play window */
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, item, TRUE));
+			       network_cleanup_create(net, item, TRUE),
+			       "Apply", NULL, NULL, 0);
 	return;
 
  fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create network")));
 	filter_delete(effect);
 	filter_delete(net);
 }
@@ -481,8 +497,11 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 	int rate;
 	char *dev;
 
-	if (!plugin_get("audio_out"))
+	if (!plugin_get("audio_out")) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("No audio output support")));
 		return;
+	}
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -518,7 +537,8 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE));
+			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE),
+			       "Play", "Pause", "Stop", 0);
 	return;
 
  fail:
@@ -540,8 +560,11 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 	int rate;
 	char *dev;
 
-	if (!plugin_get("audio_out"))
+	if (!plugin_get("audio_out")) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("No audio output support")));
 		return;
+	}
 
 	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
 	if (!grp)
@@ -571,7 +594,8 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE));
+			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE),
+			       "Play", "Pause", "Stop", 0);
 	return;
 
  fail:
@@ -596,8 +620,11 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	float duration;
 	char *dev;
 
-	if (!plugin_get("audio_in"))
+	if (!plugin_get("audio_in")) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("No audio input support")));
 		return;
+	}
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -661,7 +688,8 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE));
+			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE),
+			       "Record", "Pause", "Stop", 1);
 	return;
 
  fail:
@@ -684,8 +712,11 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	filter_t *swout;
 	char *dev;
 
-	if (!plugin_get("audio_in"))
+	if (!plugin_get("audio_in")) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("No audio input support")));
 		return;
+	}
 
 	start = gtk_wave_view_get_marker(waveview);
 	if (start < 0)
@@ -748,7 +779,8 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE));
+			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE),
+			       "Record", "Pause", "Stop", 1);
 	return;
 
  fail:
@@ -756,12 +788,26 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	filter_delete(net);
 }
 
+static void apply_custom_cb_cleanup(GtkWidget *foo, gpsm_item_t *item)
+{
+	if (GPSM_ITEM_IS_SWFILE(item))
+		gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
+	else if (GPSM_ITEM_IS_GRP(item)) {
+		gpsm_item_t *it;
+		gpsm_grp_foreach_item(item, it) {
+			if (!GPSM_ITEM_IS_SWFILE(it))
+				continue;
+			gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
+		}
+	}
+}
 static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 {
 	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GlameCanvas *canvas;
 	gint32 start, length, marker, wavesize;
 	long nrtracks;
 	gpsm_swfile_t **files;
@@ -815,16 +861,18 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 
 		y_position += 100;
 	}
-	draw_network(net);
-	/* FIXME wave widget has to be asyncronously notified :-\ 
-	for (i=0; i<nrtracks; i++) {
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, files[i], start, length);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED, fles[i]);
-	}
-	*/
+
+	/* Pop up the custom generated canvas - the wave widget is
+	 * updated after destruction. FIXME - if gpsm is modified, the
+	 * signal handler data is invalid. */
+	canvas = draw_network(net);
+	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
+			   (GtkSignalFunc)apply_custom_cb_cleanup, item);
 	return;
 
  fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create network")));
 	filter_delete(net);
 }
 
