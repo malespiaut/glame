@@ -680,14 +680,13 @@ static void
 on_area_realize (GtkWidget *widget, gpointer userdata)
 {
   GtkWaveView *waveview = GTK_WAVE_VIEW (userdata);
-  
+
   if (waveview->marker_gc == NULL)
     {
       waveview->marker_gc = gdk_gc_new (waveview->area->window);
       gdk_gc_copy (waveview->marker_gc, waveview->area->style->white_gc);
       gdk_gc_set_function (waveview->marker_gc, GDK_XOR);
     }
-  gtk_widget_set_rc_style(GTK_WIDGET(waveview));
   gdk_gc_set_exposures(waveview->area->style->bg_gc [GTK_STATE_NORMAL],TRUE);
 }
 
@@ -782,7 +781,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
                                waveview->ampl_zoom);
               gdk_draw_line (window, waveview->area->style->dark_gc [GTK_STATE_NORMAL], 0, k, width, k);
             }
-
+	  
           /* Basically, this is just a fast, convoluted version of:
              j = (x * 50) + offset; where x is an integer selected such that
              j is a modulus of 50 in the range of: [0,50) */
@@ -802,7 +801,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       /* Reset clipping. */
       gdk_gc_set_clip_mask (widget->style->fg_gc [GTK_STATE_NORMAL], NULL);
       gdk_gc_set_clip_mask (widget->style->fg_gc [GTK_STATE_SELECTED], NULL);
-      gdk_gc_set_clip_mask (widget->style->white_gc, NULL);
+      gdk_gc_set_clip_mask (widget->style->bg_gc [GTK_STATE_NORMAL], NULL);
       gdk_gc_set_clip_mask (widget->style->bg_gc [GTK_STATE_SELECTED], NULL);
       gdk_gc_set_clip_mask (widget->style->dark_gc [GTK_STATE_NORMAL], NULL);
       gdk_gc_set_clip_mask (waveview->marker_gc, NULL);
