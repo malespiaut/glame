@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.32 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: audio_io.c,v 1.33 2001/04/24 16:41:21 nold Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -37,11 +37,8 @@
 #include "glplugin.h"
 
 /* TODO: (post 0.2)
- *       * alsa, oss and sgi audio in. Implement when we have a proper
- *         control interface from UI to filters.
- *       * The whole file needs a file_io'ish re-write to further
- *         centralize common code. This is post-0.2 work however. Let's
- *         stick with a little code duplication for now.
+ *       * alsa and sgi audio in.
+ *       * big fat rewrite based on common i/o layer.
  */
 
 PLUGIN_SET(audio_io, "audio_out audio_in")
@@ -141,28 +138,34 @@ static void aio_generic_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
-	filter_t *n;
-	filter_pipe_t *out;
-	filter_port_t *outp;
-	int rate;
 
 	GLSIGH_GETARGS1(va, param);
-	n = filterparam_filter(param);
-	out = filterparam_get_sourcepipe(param);
 
-	if (out && strcmp("position", filterparam_label(param)) == 0) {
-		/* FIXME: param setting checks belong to set_param()
-		 * now. fixup_param is only fixup. */
-		float hangle = filterparam_val_float(param);
-		if (hangle <= -M_PI || hangle > M_PI)
+	if (strcmp("position", filterparam_label(param)) == 0) {
+		float hangle;
+		filter_pipe_t *out;
+
+		out = filterparam_get_sourcepipe(param);
+		if (!out)
 			return;
+
+		hangle = filterparam_val_float(param);
+
 		filterpipe_sample_hangle(out) = hangle;
 		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 
-	} else if (strcmp("rate", filterparam_label(param)) == 0) {
+		return;
+	}
+	if (strcmp("rate", filterparam_label(param)) == 0) {
+		int rate;
+		filter_pipe_t *out;
+		filter_port_t *outp;
+		filter_t *n;
+
 		rate = filterparam_val_int(param);
-		/* Make sure to update rate param on all pipes
-		 */
+
+		/* Make sure to update rate param on all pipes */
+		n = filterparam_filter(param);
 		outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
 		filterport_foreach_pipe(outp, out) {
 			if (filterpipe_sample_rate(out) == rate)
@@ -173,6 +176,30 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	}
 }
 
+static int aio_generic_set_param(filter_t *src, filter_param_t *param,
+                                 const void *val)
+{
+	if (!strcmp("position", filterparam_label(param))) {
+		float hangle = *((float *) val);
+		if (hangle <= -M_PI || hangle > M_PI)
+			return -1;
+		return 0;
+	}
+	if (!strcmp("rate", filterparam_label(param))) {
+		int rate = *((int *) val);
+		if (rate > 0)
+			return 0;
+		return -1;
+	}
+	if (!strcmp("duration", filterparam_label(param))) {
+		float duration = *((float *) val);
+		if (duration < 0.0)
+			return -1;
+		return 0;
+	}
+	return 0;
+}
+			
 /* Clumsy try to clean up the register mess a bit. */
 
 int aio_generic_register_input(plugin_t *pl, char *name,
@@ -208,6 +235,7 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 
 	filter->f = f;
 	filter->connect_out = aio_generic_connect_out;
+	filter->set_param = aio_generic_set_param;
 	glsig_add_handler(&filter->emitter, GLSIG_PARAM_CHANGED,
 			  aio_generic_fixup_param, NULL);
 
