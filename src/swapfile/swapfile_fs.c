@@ -144,27 +144,27 @@ static int _swapfile_init(const char *name, int force)
 		return -1;
 	}
 	snprintf(str, 255, "%s/clusters.data", name);
-	if (stat(name, &st) == -1
+	if (stat(str, &st) == -1
 	    || !S_ISDIR(st.st_mode) || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 		errno = ENOENT;
 		return -1;
 	}
 	snprintf(str, 255, "%s/clusters.meta", name);
-	if (stat(name, &st) == -1
+	if (stat(str, &st) == -1
 	    || !S_ISDIR(st.st_mode) || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 		errno = ENOENT;
 		return -1;
 	}
 	for (hash = 0; hash < 256; hash++) {
 		snprintf(str, 255, "%s/clusters.data/%lX", name, hash);
-		if (stat(name, &st) == -1
+		if (stat(str, &st) == -1
 		    || !S_ISDIR(st.st_mode)
 		    || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 			errno = ENOENT;
 			return -1;
 		}
 		snprintf(str, 255, "%s/clusters.meta/%lX", name, hash);
-		if (stat(name, &st) == -1
+		if (stat(str, &st) == -1
 		    || !S_ISDIR(st.st_mode)
 		    || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 			errno = ENOENT;
