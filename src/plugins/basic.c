@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.30 2001/11/28 22:20:52 richi Exp $
+ * $Id: basic.c,v 1.31 2001/12/16 18:16:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -508,7 +508,7 @@ static int buffer_set_time(filter_param_t *param, const void *val)
 	pipe = filterport_get_pipe(
 		filterportdb_get_port(filter_portdb(f), PORTNAME_IN));
 	if (!pipe || filterpipe_type(pipe) != FILTER_PIPETYPE_SAMPLE)
-		return -1;
+		return 0; /* FIXME - network load! return -1; */
 
 	s = filterparam_val_float(param)*filterpipe_sample_rate(pipe)*SAMPLE_SIZE;
 	size = filterparamdb_get_param(filter_paramdb(f), "size");
