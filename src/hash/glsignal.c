@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.8 2000/10/28 13:43:27 richi Exp $
+ * $Id: glsignal.c,v 1.9 2000/12/12 18:24:10 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,7 +42,7 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 
 	if (!emitter || !sigmask || !handler)
 		return NULL;
-	if (!(h = (glsig_handler_t *)malloc(sizeof(glsig_handler_t))))
+	if (!(h = ALLOC(glsig_handler_t)))
 		return NULL;
 	INIT_LIST_HEAD(&h->list);
 	h->sigmask = sigmask;

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.15 2000/12/12 17:30:48 xwolf Exp $
+ * $Id: canvas.c,v 1.16 2000/12/12 18:24:10 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1089,7 +1089,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 		case PSTRING:
 			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
 			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
-			if(filterparam_set(item->param, strVal) == -1)
+			if(filterparam_set(item->param, &strVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");
@@ -1098,7 +1098,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 		case PFILE:
 			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
 			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
-			if(filterparam_set(item->param, strVal) == -1)
+			if(filterparam_set(item->param, &strVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");

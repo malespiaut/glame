@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.8 2000/12/11 13:15:23 richi Exp $
+ * $Id: filter_param.h,v 1.9 2000/12/12 18:24:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -116,9 +116,9 @@ typedef struct {
  * filter_pipe_t *filterparam_get_destpipe(filter_param_t *p);
  */
 #define filterparam_get_sourcepipe(p) (filter_pipe_t *)( \
-        (char *)&(p)->entry.db - (char *)&((filter_pipe_t *)0)->source_params)
+        (char *)((p)->entry.db) - (char *)&((filter_pipe_t *)0)->source_params)
 #define filterparam_get_destpipe(p) (filter_pipe_t *)( \
-        (char *)&(p)->entry.db - (char *)&((filter_pipe_t *)0)->dest_params)
+        (char *)((p)->entry.db) - (char *)&((filter_pipe_t *)0)->dest_params)
 
 
 /* Access to the property database, prototypes are

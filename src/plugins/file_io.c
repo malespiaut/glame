@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.35 2000/12/12 17:11:25 richi Exp $
+ * $Id: file_io.c,v 1.36 2000/12/12 18:24:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -242,12 +242,13 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	GLSIGH_GETARGS1(va, param);
 	n = filterparam_filter(param);
 
-	/* only position param change? */
+	/* only position param change? - we only care for initted rw. */
 	if (RWPRIV(n)->rw
 	    && strcmp("position", filterparam_label(param)) == 0) {
 		p = filterparam_get_sourcepipe(param);
 		if (RWPRIV(n)->rw->connect(n, p) == -1)
-			/* filterpipe_delete(p) -- FIXME, we may not do this. */;
+			PANIC("Uh? Reject pipe that previously was ok?");
+		glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 		return;
 	
         /* filename change! */
@@ -623,16 +624,21 @@ int wav_read_connect(filter_t *n, filter_pipe_t *p)
 {
 	int i;
 
+	/* Find either a free slot to put the pipe into or
+	 * an already registered pipe in which case we just
+	 * return success. */
 	for (i=0; i < RWW(n).ch; i++) {
 		if (!RWW(n).p[i]) 
 			break;
 		if (RWW(n).p[i] == p)
 			return 0;
 	}
+	/* No free slots? */
 	if (i == RWW(n).ch)
 		return -1;
-
+	/* Register the pipe. */
 	RWW(n).p[i] = p;
+
 	/* FIXME: While the WAV standard specifies entries for just about 
 	 *        everything, there's no information about position. For
 	 *        stereo files, left before right is merely convention,
@@ -650,6 +656,7 @@ int wav_read_connect(filter_t *n, filter_pipe_t *p)
 					          M_PI/(RWW(n).ch-1)
 						  * i + FILTER_PIPEPOS_LEFT);
 	}
+
 	return 0;
 }
 					

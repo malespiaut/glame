@@ -261,6 +261,8 @@ static SCM gls_filter_connect(SCM s_source, SCM s_source_port,
 						     dest_port));
 	free(source_port);
 	free(dest_port);
+	if (!p)
+		return SCM_BOOL_F;
 	return pipe2scm(p);
 }
 
