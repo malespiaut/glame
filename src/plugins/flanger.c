@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.12 2001/07/31 16:18:46 mag Exp $
+ * $Id: flanger.c,v 1.13 2001/07/31 17:08:30 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -107,10 +107,10 @@ static int flanger_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
-	filter_param_t *param;
+	filter_param_t *dparam, *swdparam, *swrparam, *drwparam, *fbgparam, *lfoparam, *dbgparam;
 	
 	float	efgain = 1.0, fbgain = 0.0, drywet = 1.0, 
-		sweep_rate = 0.5, pdepth = 10.0, swdepth = 5.0, fampl;
+		sweep_rate = 0.5, pdepth = 10.0, swdepth = 5.0, fampl, dbgain;
 	int	rate, rbsize, pos, cpos, fpos, swpdepth;
 	SAMPLE  *ringbuf, *efringbuf, *s;
 	int	*lfo, lfosize, i, lfopos, lfotype = 0;
@@ -120,26 +120,31 @@ static int flanger_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no in/output connected");
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "depth")))
-			pdepth=filterparam_val_float(param);
+	dparam=filterparamdb_get_param(filter_paramdb(n), "depth");
+	pdepth=filterparam_val_float(dparam);
 
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "sweep depth")))
-	                swdepth=filterparam_val_float(param);
+	swdparam=filterparamdb_get_param(filter_paramdb(n), "sweep depth");
+	swdepth=filterparam_val_float(swdparam);
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "sweep rate")))
-	                sweep_rate=filterparam_val_float(param);
+	swrparam=filterparamdb_get_param(filter_paramdb(n), "sweep rate");
+	sweep_rate=filterparam_val_float(swrparam);
 
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "drywet")))
-	                drywet=filterparam_val_float(param);
+	drwparam=filterparamdb_get_param(filter_paramdb(n), "drywet");
+	drywet=filterparam_val_float(drwparam);
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "feedback gain")))
-	                fbgain=filterparam_val_float(param);
+	fbgparam=filterparamdb_get_param(filter_paramdb(n), "feedback gain");
+	fbgain=filterparam_val_float(fbgparam);
 	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "lfo type")))
-			lfotype=filterparam_val_int(param);
+	dbgparam=filterparamdb_get_param(filter_paramdb(n), "dbgain");
+	dbgain=DB2GAIN(filterparam_val_float(dbgparam));
+	
+	lfoparam=filterparamdb_get_param(filter_paramdb(n), "lfo type");
+	lfotype=filterparam_val_int(lfoparam);
+	
 	
 	efgain = 1.0 - drywet;
 	fampl = 1.0 + fbgain;
+	fampl/=dbgain;
 	drywet /= fampl;
 	efgain /= fampl;
 	fbgain /= fampl;
@@ -191,6 +196,17 @@ static int flanger_f(filter_t *n)
 	goto entry;
 	while (buf) {
 		FILTER_CHECK_STOP;
+	
+		drywet=filterparam_val_float(drwparam);
+		fbgain=filterparam_val_float(fbgparam);
+		dbgain=DB2GAIN(filterparam_val_float(dbgparam));
+	
+		efgain = 1.0 - drywet;
+		fampl = 1.0 + fbgain;
+		fampl/=dbgain;
+		drywet /= fampl;
+		efgain /= fampl;
+		fbgain /= fampl;
 		
 		/* got an input buffer */
 		s = &sbuf_buf(buf)[0];
@@ -202,7 +218,8 @@ static int flanger_f(filter_t *n)
 				fpos += rbsize;
 
 			efringbuf[pos] = *s;
-			ringbuf[pos] = *s = *s * drywet + efringbuf[fpos] * efgain + ringbuf[cpos] * fbgain;
+			*s = *s * drywet + efringbuf[fpos] * efgain + ringbuf[cpos] * fbgain;
+			ringbuf[pos] = *s = sin(*s); /* Saturate signal, sin may not be the fastest, optimize it if you care :) */
 			s++;
 			lfopos++;
 			if (lfopos == lfosize)
@@ -276,10 +293,12 @@ int flanger_register(plugin_t *p)
 				      FILTERPARAM_DESCRIPTION, "feedback gain",
 				      FILTERPARAM_LABEL, "Feedback Gain",
 				      FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(param, "dbgain", FILTER_PARAMTYPE_FLOAT, 6.0,
+				      FILTERPARAM_DESCRIPTION, "Attenuate/Amplify output signal",
+				      FILTERPARAM_LABEL, "Gain [dB]",
+				      FILTERPARAM_END);
 
-	/* FIXME 
-	 * should change PARAMTYPE_INT to PARAMTYPE_MUTUAL to enable togglebutton in GUI
-	*/
 	filterparamdb_add_param_int(param, "lfo type", FILTER_PARAMTYPE_INT, 0 ,
 				    FILTERPARAM_DESCRIPTION, 
 				    "(0) sinus"
