@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.50 2000/05/22 10:55:04 richi Exp $
+ * $Id: filter_network.c,v 1.51 2000/05/26 08:53:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -105,6 +105,7 @@ int filternetwork_start(filter_network_t *net)
 	    || FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
+	DPRINTF("waiting for nodes to complete initialization.\n");
 	sem_op(net->launch_context->semid, 0,
 	       -net->launch_context->nr_threads);
 	if (ATOMIC_VAL(net->launch_context->result) != 0)
