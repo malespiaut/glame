@@ -27,10 +27,12 @@
  * this should be changable w/o any code breakage!
  */
 
-#define GLAME_WBUFSIZ 16384
+#define GLAME_WBUFSIZE 16384
 
 typedef float SAMPLE;
 #define SAMPLE_SIZE sizeof(SAMPLE)
 
+/* FIXME */
+#define SAMPLE2SHORT(s) ((short)((s)*(1<<15)))
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * wav_file.c
- * $Id: wav_file.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: wav_file.c,v 1.3 2000/01/31 10:06:47 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -201,7 +201,7 @@ int wav_write(const char *filename, const char *group)
   if (write(fd,hdr,sizeof(wave_header)) == -1)
     goto _freemem;
 
-  if (!(buffer=(short *)malloc(GLAME_WBUFSIZ*sizeof(short))))
+  if (!(buffer=(short *)malloc(GLAME_WBUFSIZE*sizeof(short))))
     goto _freemem;
   
   for(i=0;i<chan_cnt;i++)
@@ -217,7 +217,7 @@ int wav_write(const char *filename, const char *group)
 	  pos[0]=pos[1]=0;
 	  while (!(done))
 	  {
-	  	while ( (b_off<GLAME_WBUFSIZ) && (!(done)) )
+	  	while ( (b_off<GLAME_WBUFSIZE) && (!(done)) )
 	  	{
 			  for(i=0;i<chan_cnt;i++){
 				  *buffer++=(short)*isample[i]++;	/* FIXME more subtle conversion from float to short needed */
