@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.14 2000/04/10 07:43:15 mag Exp $
+ * $Id: maggy.c,v 1.15 2000/04/10 08:33:51 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -64,12 +64,12 @@ int maggy_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("resample", "resample one input stream", resample_f))
+	if (!(f = filter_alloc(resample_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				 FILTER_PORTTYPE_ANY)
-	    || filter_add(f) == -1)
+	    || filter_add(f,"resample","not that it would do really anything..") == -1)
 		return -1;
 
 	return 0;
