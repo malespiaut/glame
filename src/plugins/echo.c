@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.22 2002/02/17 13:53:31 richi Exp $
+ * $Id: echo.c,v 1.23 2002/05/29 22:23:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,8 +39,8 @@ PLUGIN(echo)
 
 static int echo_f(filter_t *n)
 {
-	int delay;  /* in samples */
-	float mix, fbfact, infact;  /* mixing factor, 1/(1+mix) */
+	long delay;  /* in samples */
+	double mix, fbfact, infact;  /* mixing factor, 1/(1+mix) */
 	filter_port_t *in_port, *out_port;
 	filter_pipe_t *in, *out;
 	feedback_fifo_t fifo;
@@ -54,7 +54,7 @@ static int echo_f(filter_t *n)
 	    || !(out = filterport_get_pipe(out_port)))
 	        FILTER_ERROR_RETURN("no input or no output");
 
-	delay = (int)(filterpipe_sample_rate(in) 
+	delay = (long)(filterpipe_sample_rate(in) 
 		      * filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "time"))/1000.0);
 	mix = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "mix"));
 	fbfact = mix/(1.0 + mix);
