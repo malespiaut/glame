@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.111 2002/04/12 18:15:43 richi Exp $
+ * $Id: main.c,v 1.112 2002/04/12 18:35:38 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -38,6 +38,7 @@
 #include "timeline/timeline.h"
 #include "edit_filter/filtereditgui.h"
 #include "util/glame_gui_utils.h"
+#include "util/gtknob.h"
 #include "gltreeitem.h"
 #include "gpsm.h"
 #include "clipboard.h"
@@ -205,7 +206,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	WaveeditGui *we;
 
 	/* Run the import dialog. */
-	file = glame_import_dialog(NULL);
+	file = glame_import_dialog(GTK_WINDOW(app));
 	if (!file)
 		return;
 
@@ -235,7 +236,7 @@ static void import_cb(GtkWidget *menu, void *data)
 	int res;
 
 	/* Run the import dialog. */
-	file = glame_import_dialog(NULL);
+	file = glame_import_dialog(GTK_WINDOW(app));
 	if (!file)
 		return;
 
@@ -986,7 +987,7 @@ int main(int argc, char **argv)
 	textdomain("glame");
 
 	/* setup gnome/gtk  */
-	gnome_init("glame", VERSION, argc, argv);
+	gnome_init("glame0.7", VERSION, argc, argv);
 
 #ifdef HAVE_LIBGLADE
 	glade_init();

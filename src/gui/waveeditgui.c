@@ -172,7 +172,7 @@ static void exportselection_cb(GtkWidget *w, GtkWaveView *waveview)
                         goto err;
         }
 
-	gnome_dialog_run_and_close(glame_export_dialog((gpsm_item_t *)grp, NULL));
+	gnome_dialog_run_and_close(glame_export_dialog((gpsm_item_t *)grp, GTK_WINDOW(active_waveedit)));
 
  err:
 	gpsm_item_destroy((gpsm_item_t *)grp);
@@ -755,7 +755,7 @@ static void wave_export_cb(GtkWidget *foo, void *bar)
 	/* FIXME: we dont really know, if the user will press cancel. */
 	if (active_waveedit)
 		active_waveedit->modified = 0;
-	gnome_dialog_run_and_close(glame_export_dialog((gpsm_item_t *)active_waveedit->swfiles, NULL));
+	gnome_dialog_run_and_close(glame_export_dialog((gpsm_item_t *)active_waveedit->swfiles, GTK_WINDOW(active_waveedit)));
 }
 
 static void wave_help_cb(GtkWidget *foo, void*bar)

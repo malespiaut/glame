@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.15 2002/04/12 08:58:20 richi Exp $
+ * $Id: importexport.c,v 1.16 2002/04/12 18:35:38 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -566,7 +566,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 	gtk_container_set_border_width (GTK_CONTAINER (ie->dialog), 1);
 	gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
-	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), TRUE);
+	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(ie->dialog), FALSE);
 	if (parent)
 		gnome_dialog_set_parent(GNOME_DIALOG(ie->dialog), parent);
@@ -1035,7 +1035,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	/* open new dialog window */
 	dialog = ie->dialog = gnome_dialog_new(NULL, NULL);
 	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
-	gnome_dialog_close_hides(GNOME_DIALOG(dialog), TRUE);
+	gnome_dialog_close_hides(GNOME_DIALOG(dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
 	if (parent)
 		gnome_dialog_set_parent(GNOME_DIALOG(dialog), parent);

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.79 2002/04/12 08:58:20 richi Exp $
+ * $Id: swapfilegui.c,v 1.80 2002/04/12 18:35:38 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -588,7 +588,7 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	gnome_dialog_run_and_close(glame_export_dialog(item->item, NULL));
+	gnome_dialog_run_and_close(glame_export_dialog(item->item, GTK_WINDOW(active_swapfilegui->app)));
 	deselect_all(active_swapfilegui);
 }
 
@@ -596,7 +596,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	gpsm_item_t *imported;
 
-	imported = glame_import_dialog(NULL);
+	imported = glame_import_dialog(GTK_WINDOW(active_swapfilegui->app));
 	if (!imported)
 		return;
 
