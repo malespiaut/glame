@@ -9,7 +9,8 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	iir.c flanger.c distortion.c\
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
 	audio_io_alsa_v090.c audio_io_irix.c \
-	echo2.scm resample.scm bassboost.scm read_mp3.scm
+	echo2.scm resample.scm bassboost.scm read_mp3.scm \
+	fader.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
@@ -45,7 +46,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
-	normalize.la\
+	normalize.la fader.la\
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
 
@@ -76,6 +77,9 @@ flanger_la_LDFLAGS = -module -avoid-version
 distortion_la_SOURCES = distortion.c
 distortion_la_LDFLAGS = -module -avoid-version
 
+fader_la_SOURCES = fader.c
+fader_la_LDFLAGS = -module -avoid-version
+
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
 endif
@@ -105,3 +109,4 @@ if HAVE_GNOME
 normalize_la_SOURCES = normalize.c
 endif
 normalize_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
+

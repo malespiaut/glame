@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.3 2001/05/29 07:52:45 richi Exp $
+ * $Id: normalize.c,v 1.4 2001/06/12 16:59:34 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -34,8 +34,6 @@
 #include "glplugin.h"
 #include "math.h"
 #include "gpsm.h"
-
-PLUGIN_SET(norm, "normalize")
 
 static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 {
