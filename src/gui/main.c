@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.74 2001/07/17 09:28:56 richi Exp $
+ * $Id: main.c,v 1.75 2001/07/26 14:43:57 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -42,6 +42,7 @@
 #include "clipboard.h"
 #include "glame_accelerator.h"
 #include "glame_console.h"
+#include "network_utils.h"
 
 
 /* Globals. */
@@ -54,6 +55,7 @@ extern gboolean bMac;
 
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
+static void edit_file_cb(GtkWidget *menu, void *data);
 static void show_console_cb(GtkWidget *menu, void *blah);
 static void emptytrash_cb(GtkWidget *menu, void *blah);
 static void sync_cb(GtkWidget *menu, void *blah);
@@ -66,12 +68,13 @@ static void load_plugin_cb(GtkWidget* foo, void *bar);
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
+	GNOMEUIINFO_ITEM (_("Edit File..."), "Imports a file and opens the waveedit window", edit_file_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM (_("Show _console"), "Shows the GLAME console", show_console_cb, NULL),
 	GNOMEUIINFO_ITEM (_("Sync"), "Syncs meta to disk", sync_cb, NULL),
-	GNOMEUIINFO_ITEM (_("Empty Trash"), "Kills [deleted] folder", emptytrash_cb, NULL),
+	GNOMEUIINFO_ITEM (_("Empty [deleted]"), "Kills [deleted] folder", emptytrash_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -165,6 +168,124 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 		return;
 	}
 	edit_tree_label(grpw);
+}
+
+static void edit_file_cb(GtkWidget *menu, void *data)
+{
+	plugin_t *import;
+	int (*operation)(gpsm_item_t *, long, long);
+	long vpos;
+	gpsm_item_t *file;
+	WaveeditGui *we;
+
+	/* HACK(?) */
+	vpos = gpsm_item_vsize(gpsm_root());
+
+	if ((import = plugin_get("import"))
+	    && (operation = plugin_query(import, PLUGIN_GPSMOP))) {
+		if (operation(gpsm_root(), 0, 0) == -1)
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error importing")));
+	} else {
+
+	GtkWidget *dialog;
+	filter_t *net = NULL, *readfile, *swout;
+	filter_port_t *source;
+	filter_pipe_t *pipe;
+	gint i, channels;
+	char *filenamebuffer;
+	gpsm_grp_t *group = NULL;
+	GlameTreeItem *grpw;
+	gpsm_item_t *it;
+
+	filenamebuffer = alloca(256);
+
+	/* Query the file name. */
+	dialog = glame_dialog_file_request("Edit audio file",
+					   "swapfilegui:import",
+					   "Filename", NULL, filenamebuffer);
+	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
+
+	/* Setup core network. */
+	net = filter_creat(NULL);
+	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
+		return;
+	if (filterparam_set(filterparamdb_get_param(filter_paramdb(readfile),
+						    "filename"),
+			    &filenamebuffer) == -1)
+		goto fail_cleanup;
+	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
+	filter_add_node(net, readfile, "readfile");
+
+	/* Setup gpsm group. */
+	group = gpsm_newgrp(g_basename(filenamebuffer));
+
+	i = 0;
+	do {
+		char swfilename[256];
+		snprintf(swfilename, 255, "track-%i", i);
+		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
+			goto fail_cleanup;
+		gpsm_item_place(group, it, 0, i);
+		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
+					    0, -1, 3);
+		if (!(pipe = filterport_connect(
+			source, filterportdb_get_port(
+				filter_portdb(swout), PORTNAME_IN)))) {
+			DPRINTF("Connection failed for channel %d\n",i+1);
+			gpsm_item_destroy(it);
+			filter_delete(swout);
+			break;
+		}
+		gpsm_swfile_set((gpsm_swfile_t *)it,
+				filterpipe_sample_rate(pipe),
+				filterpipe_sample_hangle(pipe));
+		i++;
+	} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
+
+	channels = i;
+	net_prepare_bulk();
+	filter_launch(net);
+	filter_start(net);
+	if (filter_wait(net) != 0)
+		goto fail_cleanup;
+	filter_delete(net);
+	net_restore_default();
+
+	/* Notify gpsm of the change. */
+	gpsm_grp_foreach_item(group, it)
+		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
+
+	/* Insert the group into the gpsm tree. */
+	gpsm_item_place(gpsm_root(), (gpsm_item_t *)group,
+			0, gpsm_item_vsize(gpsm_root()));
+	goto out;
+
+ fail_cleanup:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create importing network")));
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)group);
+	net_restore_default();
+	return;
+
+	out:
+	}
+
+	if (!(file = gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
+		DPRINTF("No file at %li\n", vpos);
+		return;
+	} else if (!(file = gpsm_item_parent(file))) {
+		DPRINTF("Cannot find imported file at %li\n", vpos);
+		return;
+	}
+	we = glame_waveedit_gui_new(gpsm_item_label(file), file);
+	if (!we) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Cannot open wave editor")));
+		return;
+	}
+	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
 
