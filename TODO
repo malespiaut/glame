@@ -24,8 +24,7 @@ Other items pending:
 --------------------
 
 include/
-	- prefix LIST_ stuff with GLAME_ (BSD namespace)
-          or move includes beyond a glame/ directory
+	- Consider moving includes beyond a glame/ directory
 
 doc/
 	- better documentation for cglame, tutorial like
