@@ -1,9 +1,10 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.11 2001/09/11 11:58:01 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.12 2001/12/03 22:04:30 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
- *
+ * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
+ * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -27,6 +28,7 @@
 #include <string.h>
 #include "audio_io.h"
 #include <endian.h>
+#include <pthread.h>
 
 PLUGIN_SET(audio_io_alsa, "alsa_audio_in alsa_audio_out")
 
@@ -34,40 +36,22 @@ PLUGIN_SET(audio_io_alsa, "alsa_audio_in alsa_audio_out")
 configure code shamelessly stolen from Paul Barton Davis       
 */
 
+pthread_mutex_t audio_io_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int configure_pcm(snd_pcm_t *handle, 
 		  snd_pcm_hw_params_t *hw_params, 
 		  snd_pcm_sw_params_t *sw_params, 
 		  int chancnt,
 		  int rate,
-		  int periodsize)
+		  int periodsize,
+		  int nperiods)
 {
-  /* just hardcoded fragments = 4 here, because it works with my hoontech card 
-   * FIXME? should we make fragments user configurable
-   */
+	int err, format, psize = 0, dir = 0;
 
-	int err, format, fragments = 3 , psize = 0, dir = 0;
-	int minp, maxp;
-	
 	if ((err = snd_pcm_hw_params_any (handle, hw_params)) < 0)  {
-		DPRINTF("ALSA: no playback configurations available\n");
+		DPRINTF("ALSA: no configurations available\n");
 		return -1;
 	}
-
-	if ((err = snd_pcm_hw_params_set_periods_integer (handle, hw_params)) < 0) {
-		DPRINTF( "ALSA: cannot restrict period size to integral value.\n");
-		return -1;
-	}
-	
-	/*
-	if ((err = snd_pcm_hw_params_set_access (handle, hw_params, 
-						 SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) < 0) {
-		if ((err = snd_pcm_hw_params_set_access (handle, hw_params, 
-							 SND_PCM_ACCESS_MMAP_INTERLEAVED)) < 0) {
-			DPRINTF("ALSA: mmap-based access is not possible\n");
-			return -1;
-		}
-	}
-	*/
 
 	if ((err = snd_pcm_hw_params_set_access(handle, hw_params,
 						SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
@@ -102,33 +86,19 @@ int configure_pcm(snd_pcm_t *handle,
 		return -1;
 	}
 
-	/* ALSA suxx */
+	/* ALSA doesn't suck :) (that's Josh's opinion) */
 	
-	minp = 4;
-	maxp = snd_pcm_hw_params_get_periods_max(hw_params, 0);
-
-	DPRINTF("minp = %d, maxp =%d\n", minp, maxp);
-
-	fragments = minp;
-	
-	while ((snd_pcm_hw_params_test_periods(handle, hw_params, fragments++, 0)<0) && (fragments<maxp));
-
-	if ((err = snd_pcm_hw_params_set_periods(handle, hw_params, fragments-1, 0)) < 0) {
-		DPRINTF("ALSA: cannot set fragment count minimum to %d\n", fragments);
+	if ((err = snd_pcm_hw_params_set_periods_near(handle, hw_params,
+						      nperiods, 0)) < 0) {
+		DPRINTF("ALSA: failed to set period count near %d\n", nperiods);
 		DPRINTF("%s\n", snd_strerror(err));
 		return -1;
 	}
-   
-	fragments = snd_pcm_hw_params_get_periods(hw_params, 0);
 
-	DPRINTF("Now we've got %d periods. Amazing.\n", fragments);
-
-	psize = periodsize;
+	nperiods = snd_pcm_hw_params_get_periods(hw_params, 0);
 	
-	while ((snd_pcm_hw_params_test_period_size(handle, hw_params, psize++, 0)<0) && (psize<65535));
-	
-	if ((err = snd_pcm_hw_params_set_period_size (handle, hw_params, psize-1, 0)) < 0) {
-		DPRINTF( "ALSA: cannot set fragment length to %d\n", psize);
+	if ((err = snd_pcm_hw_params_set_period_size_near (handle, hw_params, periodsize, 0)) < 0) {
+		DPRINTF( "ALSA: failed to set period size near %d\n", psize);
 		psize = snd_pcm_hw_params_get_period_size(hw_params, &dir);
 		DPRINTF("ALSA: set to %d\n", psize);
 		return -1;
@@ -136,10 +106,7 @@ int configure_pcm(snd_pcm_t *handle,
 
 	psize = snd_pcm_hw_params_get_period_size(hw_params, &dir);
 
-	if ((err = snd_pcm_hw_params_set_buffer_size (handle, hw_params, fragments * psize)) < 0) {
-		DPRINTF( "ALSA: cannot set buffer length to %d\n", fragments * psize);
-		/*return -1;*/
-	}
+	DPRINTF("periodsize = %d, periods=%d\n", psize, nperiods);
 
 	if ((err = snd_pcm_hw_params (handle, hw_params)) < 0) {
 		DPRINTF( "ALSA: cannot set hardware parameters\n");
@@ -153,20 +120,8 @@ int configure_pcm(snd_pcm_t *handle,
 		return -1;
 	}
 
-	if ((err = snd_pcm_sw_params_set_stop_threshold (handle, sw_params, fragments * psize)) < 0) {
+	if ((err = snd_pcm_sw_params_set_stop_threshold (handle, sw_params, nperiods * psize)) < 0) {
 		DPRINTF( "ALSA: cannot set stop threshold\n");
-		return -1;
-	}
-
-	/* dunno what the silence stuff is about ? someone please enlighten me */
-	if ((err = snd_pcm_sw_params_set_silence_threshold (handle, sw_params, 0)) < 0) {
-		DPRINTF( "ALSA: cannot set silence threshold\n");
-		return -1;
-	}
-
-	if ((err = snd_pcm_sw_params_set_silence_size (handle, sw_params, 
-						       0)) < 0) { /* fragments = 0*/
-		DPRINTF("ALSA: cannot set silence size\n");
 		return -1;
 	}
 
@@ -254,8 +209,13 @@ static int alsa_audio_in_f(filter_t *n)
 	
 	/* ALSA specific initialisation.
 	 */
-	
+
+	/* I'm not sure whether snd_pcm_open is threadsafe */
+
+	//pthread_mutex_lock(&audio_io_mutex);
 	err=snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+	//pthread_mutex_unlock(&audio_io_mutex);
+
 	if (err<0)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
 	handleisok = 1;
@@ -270,15 +230,17 @@ static int alsa_audio_in_f(filter_t *n)
 
 	snd_pcm_hw_params_alloca(&params);
 	snd_pcm_sw_params_alloca(&swparams);
-	err = snd_pcm_hw_params_any(handle, params);
-	
-	configure_pcm(handle, params, swparams, chancnt, rate, GLAME_WBUFSIZE);
+
+	err = configure_pcm(handle, params, swparams, chancnt, rate, GLAME_WBUFSIZE, 4);
+
+	if (err == -1)
+		FILTER_ERROR_CLEANUP("configuration of audio device failed");
 
 	snd_pcm_sw_params_dump(swparams, log);
 	snd_pcm_dump(handle, log);
 
 	blksz = snd_pcm_hw_params_get_period_size(params, &dir);
-	
+
 	if (blksz<0)
 		DPRINTF("%s\n", snd_strerror(blksz));
 		
@@ -299,15 +261,19 @@ static int alsa_audio_in_f(filter_t *n)
 		FILTER_CHECK_STOP;
 
 		if ((ret=snd_pcm_readi(handle, buf, blksz)) != blksz)
-			if ((snd_pcm_status(handle, status))<0) {
-				FILTER_ERROR_STOP("couldn't get device status");
-			}
-		if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
+		  {
+		    if ((snd_pcm_status(handle, status))<0) {
+		      FILTER_ERROR_STOP("couldn't get device status");
+		    }
+		    if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN)
+		      {
 			dropouts ++;
 			if ((snd_pcm_prepare(handle))<0) {
-				FILTER_ERROR_STOP("read error on alsa device");
+			  FILTER_ERROR_STOP("read error on alsa device");
 			}
-		}
+		      }
+		  }
+
 		for(i=0;i<chancnt;i++){
 			obuf = sbuf_make_private(sbuf_alloc(blksz, n));
 			s = sbuf_buf(obuf);
@@ -411,10 +377,18 @@ static int alsa_audio_out_f(filter_t *n)
 	if (filterparam_val_string(dev_param) != NULL)
 		pcm_name = filterparam_val_string(dev_param);
 
+	/* I'm not sure whether snd_pcm_open is threadsafe */
+
+	//	pthread_mutex_lock(&audio_io_mutex);
 	err = snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+	//pthread_mutex_unlock(&audio_io_mutex);
+
 	if (err<0)
-		FILTER_ERROR_CLEANUP("Could not open audio device.");
-	
+	  {
+	    DPRINTF ("Failed to open ALSA audio device: %s\n", snd_strerror (err));
+	    FILTER_ERROR_CLEANUP("Could not open audio device.");
+	  }
+
 	handleisok = 1;
 	/* set back to blocking io */
 	snd_pcm_nonblock(handle, 0);
@@ -438,7 +412,7 @@ static int alsa_audio_out_f(filter_t *n)
 	snd_pcm_hw_params_alloca(&params);
 	snd_pcm_sw_params_alloca(&swparams);
 	
-	err = configure_pcm(handle, params, swparams, max_ch, rate, GLAME_WBUFSIZE);
+	err = configure_pcm(handle, params, swparams, max_ch, rate, GLAME_WBUFSIZE, 4);
 
 	if (err == -1)
 		FILTER_ERROR_CLEANUP("configuration of audio device failed");
@@ -560,7 +534,6 @@ _entry:
 	FILTER_RETURN;
 					
 }
-
 
 int alsa_audio_out_register(plugin_t *p)
 {
