@@ -54,13 +54,13 @@ AC_ARG_ENABLE(debug,
   --disable-debug         compile for maximum optimization], glame_debug=$enableval, glame_debug="")
 if test "$swdebug" = "yes" -o "$glame_debug" = "yes"; then
 	AC_DEFINE(DEBUG,, [general debugging])
-	glame_debug_gcc_cflags="-g -O0"
+	glame_debug_gcc_cflags="-g -O"
 elif test "$glame_debug" = "no"; then
 	AC_DEFINE(NDEBUG,, [disable debugging code])
-	glame_debug_gcc_cflags="-O3 -ffast-math -fstrict-aliasing"
+	glame_debug_gcc_cflags="-O3 -funroll-loops -ffast-math -fomit-frame-pointer"
 else
 	if test -z "$CFLAGS"; then
-		CFLAGS="-O2"
+		CFLAGS="-O2 -g -funroll-loops -ffast-math"
 	fi
 	glame_debug_gcc_cflags="$CFLAGS"
 fi
