@@ -1955,11 +1955,8 @@ gtk_wave_view_set_marker_scrolling_boundaries (GtkWaveView *waveview,
 }
 
 static void
-scroll_and_draw_marker (GtkWaveView *waveview, 
-                        gint32  frame, 
-                        gint32  win_width,
-                        gint32  wave_length,
-                        gdouble start_offset)
+scroll (GtkWaveView *waveview, 
+        gint32  frame, gint32  win_width, gint32  wave_length, gdouble start_offset)
 {
   GtkAdjustment *adj = GTK_ADJUSTMENT (waveview->adjust);
   gint32 frame_offset, max_offset;
@@ -1974,10 +1971,6 @@ scroll_and_draw_marker (GtkWaveView *waveview,
 
   /* this will do the scrolling for us */
   gtk_adjustment_set_value (adj, frame_offset);
-
-  /* remove the old marker, and draw the new one */
-  draw_marker_from_frame_pos (waveview, waveview->marker);
-  draw_marker_from_frame_pos (waveview, frame);
 
   gtk_wave_view_update_units (waveview);
 }
@@ -1996,6 +1989,9 @@ gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
       return;
     }
 
+  /* Hide marker before scrolling.  */
+  draw_marker_from_frame_pos (waveview, waveview->marker);
+
   width = waveview->area->allocation.width;
 
   /* calculate the amount of scroll */
@@ -2004,23 +2000,21 @@ gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
        win_pos_new > width * (1.0 - waveview->marker_scroll_stop))) 
     {
       /* we're moving to the right */
-      scroll_and_draw_marker (waveview, frame, width, length,
-                              waveview->marker_scroll_start);
+      scroll (waveview, frame, width, length,
+              waveview->marker_scroll_start);
     }
   else if (win_pos_new >= width ||
            (frame < waveview->marker && 
             win_pos_new < width * waveview->marker_scroll_stop)) 
     {
       /* we're moving to the left */
-      scroll_and_draw_marker (waveview, frame, width, length,
-                              1.0 - waveview->marker_scroll_start);
+      scroll (waveview, frame, width, length,
+              1.0 - waveview->marker_scroll_start);
     }
-  else
-    {
-      /* redraw the marker */
-      draw_marker_from_frame_pos (waveview, waveview->marker);
-      draw_marker_from_frame_pos (waveview, frame);
-    }
+  /* Else just redraw the marker.  */
+
+  /* Show marker at new position.  */
+  draw_marker_from_frame_pos (waveview, frame);
 
   /* set the new marker */
   waveview->marker = frame;
