@@ -1,9 +1,3 @@
-msgid "Error importing"
-msgstr "Erreur d'importation"
-
-msgid "Edit audio file"
-msgstr "Editer un fichier audio"
-
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Free Software Foundation, Inc.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
@@ -12,122 +6,95 @@ msgstr "Editer un fichier audio"
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-01-13 19:13+0100\n"
+"POT-Creation-Date: 2002-01-14 10:19+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=CHARSET\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Content-Transfer-Encoding: ENCODING\n"
 
-#: ../src/gui/apply.c:118 src/gui/apply.c:118
+#: src/gui/apply.c:118
 msgid "Unable to create input node"
-msgstr ""
+msgstr "Impossible de créer le module d'entrée"
 
-#: ../src/gui/apply.c:122 src/gui/apply.c:122
+#: src/gui/apply.c:122
 msgid "Unable to apply effect node(s)"
-msgstr ""
+msgstr "Impossible d'appliquer le(s) module(s)"
 
-#: ../src/gui/apply.c:133 ../src/gui/apply.c:217 src/gui/apply.c:133
-#: src/gui/apply.c:217
+#: src/gui/apply.c:133 src/gui/apply.c:217
 msgid "Unable to launch network"
-msgstr ""
+msgstr "Impossible de charger le réseau "
 
-#: ../src/gui/apply.c:197 src/gui/apply.c:197
+#: src/gui/apply.c:197
 msgid "Cannot construct network"
-msgstr ""
+msgstr "Impossible de créer le réseau"
 
-#: ../src/gui/apply.c:299 src/gui/apply.c:299
+#: src/gui/apply.c:299
 msgid "Preview"
-msgstr ""
+msgstr "Lecture"
 
-#: ../src/gui/apply.c:301 ../src/gui/main.c:454 src/gui/apply.c:301
-#: src/gui/main.c:454
+#: src/gui/apply.c:301 src/gui/main.c:454 src/gui/main.c:455
 msgid "Apply"
-msgstr ""
+msgstr "Appliquer"
 
-#: ../src/gui/apply.c:314 src/gui/apply.c:314
+#: src/gui/apply.c:314
 #, possible-c-format
 msgid "Parameters of %s"
-msgstr ""
+msgstr "Paramètres de %s"
 
-#: ../src/gui/edit_filter/canvasfilter.c:810
 #: src/gui/edit_filter/canvasfilter.c:810
 msgid ""
 "The network You wish to expand is already opened, do You wish to close the "
 "view?"
 msgstr ""
+"Le réseau que vous souhaitez étendre est déjà ouvert, voulez vous fermer\n"
+"son affichage?"
 
-#: ../src/gui/edit_filter/canvasfilter.c:884
-#: ../src/gui/edit_filter/canvasfilter.c:885
-#: ../src/gui/edit_filter/canvasfilter.c:905
-#: ../src/gui/edit_filter/filtereditgui.c:341
-#: ../src/gui/edit_filter/filtereditgui.c:342
 #: src/gui/edit_filter/canvasfilter.c:884
 #: src/gui/edit_filter/canvasfilter.c:885
 #: src/gui/edit_filter/canvasfilter.c:905
 #: src/gui/edit_filter/filtereditgui.c:341
 #: src/gui/edit_filter/filtereditgui.c:342
 msgid "Description"
-msgstr ""
+msgstr "Description"
 
-#: ../src/gui/edit_filter/canvasfilter.c:884
-#: ../src/gui/edit_filter/canvasfilter.c:885
-#: ../src/gui/edit_filter/filtereditgui.c:341
-#: ../src/gui/edit_filter/filtereditgui.c:342
 #: src/gui/edit_filter/canvasfilter.c:884
 #: src/gui/edit_filter/canvasfilter.c:885
 #: src/gui/edit_filter/filtereditgui.c:341
 #: src/gui/edit_filter/filtereditgui.c:342
 msgid "Name"
-msgstr ""
+msgstr "Nom"
 
-#: ../src/gui/edit_filter/canvasfilter.c:884
-#: ../src/gui/edit_filter/filtereditgui.c:341
 #: src/gui/edit_filter/canvasfilter.c:884
 #: src/gui/edit_filter/filtereditgui.c:341
 msgid "Type"
-msgstr ""
+msgstr "Type"
 
-#: ../src/gui/edit_filter/canvasfilter.c:885
-#: ../src/gui/edit_filter/filtereditgui.c:342
 #: src/gui/edit_filter/canvasfilter.c:885
 #: src/gui/edit_filter/filtereditgui.c:342
 msgid "Value"
-msgstr ""
+msgstr "Valeur"
 
-#: ../src/gui/edit_filter/canvasfilter.c:904
 #: src/gui/edit_filter/canvasfilter.c:904
 msgid "This item does not have a description"
-msgstr ""
+msgstr "Cet élément n'a pas de description"
 
-#: ../src/gui/edit_filter/canvasfilter.c:909
-#: ../src/gui/edit_filter/filtereditgui.c:355
 #: src/gui/edit_filter/canvasfilter.c:909
 #: src/gui/edit_filter/filtereditgui.c:355
 msgid "Ports"
-msgstr ""
+msgstr "Ports"
 
-#: ../src/gui/edit_filter/canvasfilter.c:918
-#: ../src/gui/edit_filter/filtereditgui.c:365
 #: src/gui/edit_filter/canvasfilter.c:918
 #: src/gui/edit_filter/filtereditgui.c:365
 msgid "In"
-msgstr ""
+msgstr "Entrée"
 
-#: ../src/gui/edit_filter/canvasfilter.c:918
-#: ../src/gui/edit_filter/filtereditgui.c:365
 #: src/gui/edit_filter/canvasfilter.c:918
 #: src/gui/edit_filter/filtereditgui.c:365
 msgid "Out"
-msgstr ""
+msgstr "Sortie"
 
-#: ../src/gui/edit_filter/canvasfilter.c:922
-#: ../src/gui/edit_filter/canvasfilter.c:944
-#: ../src/gui/edit_filter/canvasfilter.c:949
-#: ../src/gui/edit_filter/filtereditgui.c:370
-#: ../src/gui/edit_filter/filtereditgui.c:401
-#: ../src/gui/edit_filter/filtereditgui.c:406
 #: src/gui/edit_filter/canvasfilter.c:922
 #: src/gui/edit_filter/canvasfilter.c:944
 #: src/gui/edit_filter/canvasfilter.c:949
@@ -135,1012 +102,986 @@ msgstr ""
 #: src/gui/edit_filter/filtereditgui.c:401
 #: src/gui/edit_filter/filtereditgui.c:406
 msgid "Empty"
-msgstr ""
+msgstr "Vide"
 
-#: ../src/gui/edit_filter/canvasfilter.c:929
-#: ../src/gui/edit_filter/filtereditgui.c:351
-#: ../src/gui/edit_filter/filtereditgui.c:692
 #: src/gui/edit_filter/canvasfilter.c:929
 #: src/gui/edit_filter/filtereditgui.c:351
+#: src/gui/edit_filter/filtereditgui.c:384
 #: src/gui/edit_filter/filtereditgui.c:692
 msgid "Properties"
-msgstr ""
+msgstr "Propriétés"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1008
 #: src/gui/edit_filter/canvasfilter.c:1008
 msgid "Export parameters..."
-msgstr ""
+msgstr "Exporter les paramètres:"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1008
 #: src/gui/edit_filter/canvasfilter.c:1008
 msgid "Remap All"
-msgstr ""
+msgstr "Redessiner tout"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1028
 #: src/gui/edit_filter/canvasfilter.c:1028
 msgid "Select parameter:"
-msgstr ""
+msgstr "Selectionner le paramètre:"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1029
 #: src/gui/edit_filter/canvasfilter.c:1029
 msgid "External name:"
-msgstr ""
+msgstr "Nom externe:"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1075
-#: ../src/gui/edit_filter/canvaspipe.c:295
+#: src/gui/edit_filter/canvasfilter.c:1075
+msgid "Delete node"
+msgstr "Supprimer le  module"
+
 #: src/gui/edit_filter/canvasfilter.c:1075
 #: src/gui/edit_filter/canvaspipe.c:295
 msgid "_Delete"
-msgstr ""
+msgstr "_Supprimer"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1076
+#: src/gui/edit_filter/canvasfilter.c:1076
+msgid "Expand"
+msgstr "Etendre"
+
 #: src/gui/edit_filter/canvasfilter.c:1076
 msgid "_Expand"
-msgstr ""
+msgstr "_Etendre"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1077
+#: src/gui/edit_filter/canvasfilter.c:1077
+msgid "Open down"
+msgstr "Open down"
+
 #: src/gui/edit_filter/canvasfilter.c:1077
 msgid "_Open down"
-msgstr ""
+msgstr "_Open down"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1079
 #: src/gui/edit_filter/canvasfilter.c:1079
 msgid "_Redirect parameter"
-msgstr ""
+msgstr "_rediriger un paramètre"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1081
+#: src/gui/edit_filter/canvasfilter.c:1081
+msgid "Group selection"
+msgstr "Grouper"
+
 #: src/gui/edit_filter/canvasfilter.c:1081
 msgid "_Group selection"
-msgstr ""
+msgstr "_Grouper"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1082
+#: src/gui/edit_filter/canvasfilter.c:1082
+msgid "Ungroup"
+msgstr "Dégrouper"
+
 #: src/gui/edit_filter/canvasfilter.c:1082
 msgid "_Ungroup"
-msgstr ""
+msgstr "_Dégrouper"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1083
 #: src/gui/edit_filter/canvasfilter.c:1083
 msgid "Cop_y selection"
-msgstr ""
+msgstr "_Copier la selection"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1084
+#: src/gui/edit_filter/canvasfilter.c:1083
+msgid "Copy selection"
+msgstr "Copier la selection"
+
+#: src/gui/edit_filter/canvasfilter.c:1084
+msgid "Collapse selection"
+msgstr "Ecraser la selection"
+
 #: src/gui/edit_filter/canvasfilter.c:1084
 msgid "_Collapse selection"
-msgstr ""
+msgstr "_Ecraser la selection"
 
-#: ../src/gui/edit_filter/canvasfilter.c:1086
 #: src/gui/edit_filter/canvasfilter.c:1086
 msgid "_About node..."
-msgstr ""
+msgstr "A pr_opos du module..."
 
-#: ../src/gui/edit_filter/canvasfilter.c:1087 ../src/gui/main.c:100
-#: src/gui/edit_filter/canvasfilter.c:1087 src/gui/main.c:100
+#: src/gui/edit_filter/canvasfilter.c:1087
+msgid "Show help"
+msgstr "Afficher l'aide"
+
+#: src/gui/edit_filter/canvasfilter.c:1087 src/gui/main.c:95
+#: src/gui/main.c:100 src/gui/main.c:101
 msgid "_Help"
 msgstr "_Aide"
 
-#: ../src/gui/edit_filter/canvaspipe.c:292
+#: src/gui/edit_filter/canvaspipe.c:292
+msgid "Source properties"
+msgstr "Propriétés de la source"
+
 #: src/gui/edit_filter/canvaspipe.c:292
 msgid "_Source properties..."
-msgstr ""
+msgstr "Propriétés de la _source..."
 
-#: ../src/gui/edit_filter/canvaspipe.c:293
 #: src/gui/edit_filter/canvaspipe.c:293
 msgid "D_estination properties..."
-msgstr ""
+msgstr "Propriétés de la d_estination"
 
-#: ../src/gui/edit_filter/canvaspipe.c:376
+#: src/gui/edit_filter/canvaspipe.c:293
+msgid "Destination properties"
+msgstr "Propriétés de la destination"
+
+#: src/gui/edit_filter/canvaspipe.c:295
+msgid "Delete pipe"
+msgstr "Supprimer la connection"
+
 #: src/gui/edit_filter/canvaspipe.c:376
 #, possible-c-format
 msgid "Samplerate: %d"
-msgstr ""
+msgstr "Fréquence d'échant.: %d"
 
-#: ../src/gui/edit_filter/canvaspipe.c:399
 #: src/gui/edit_filter/canvaspipe.c:399
 #, possible-c-format
 msgid "Hangle: %f"
 msgstr ""
 
-#: ../src/gui/edit_filter/canvaspipe.c:425
 #: src/gui/edit_filter/canvaspipe.c:425
 msgid "Source params:"
-msgstr ""
+msgstr "Paramètres de la source:"
 
-#: ../src/gui/edit_filter/canvaspipe.c:480
 #: src/gui/edit_filter/canvaspipe.c:480
 msgid "Dest params:"
-msgstr ""
+msgstr "Paramètres de la destination:"
 
-#: ../src/gui/edit_filter/canvaspipe.c:664
-#: ../src/gui/edit_filter/canvasport.c:478
-#: ../src/gui/edit_filter/canvasport.c:507
 #: src/gui/edit_filter/canvaspipe.c:664 src/gui/edit_filter/canvasport.c:478
 #: src/gui/edit_filter/canvasport.c:507
 msgid "last_arrowhead"
 msgstr ""
 
-#: ../src/gui/edit_filter/canvasport.c:244
 #: src/gui/edit_filter/canvasport.c:244
 msgid "_Redirect port"
-msgstr ""
+msgstr "_Rediriger le port"
 
-#: ../src/gui/edit_filter/canvasport.c:381
 #: src/gui/edit_filter/canvasport.c:381
 msgid "Export as..."
-msgstr ""
+msgstr "Exporter sous..."
 
-#: ../src/gui/edit_filter/canvasport.c:389
 #: src/gui/edit_filter/canvasport.c:389
 msgid "New port name"
-msgstr ""
+msgstr "Nom du nouveau port"
 
-#: ../src/gui/edit_filter/canvasport.c:622
 #: src/gui/edit_filter/canvasport.c:622
 #, possible-c-format
 msgid "Label: %s"
-msgstr ""
+msgstr "Etiquette: %s"
 
-#: ../src/gui/edit_filter/filtereditgui.c:249
 #: src/gui/edit_filter/filtereditgui.c:249
 msgid "_Paste"
-msgstr ""
+msgstr "_Coller"
 
-#: ../src/gui/edit_filter/filtereditgui.c:282
 #: src/gui/edit_filter/filtereditgui.c:282
 msgid "Delete Port"
-msgstr ""
+msgstr "Supprimer le port"
 
-#: ../src/gui/edit_filter/filtereditgui.c:290
+#: src/gui/edit_filter/filtereditgui.c:283
+#: src/gui/edit_filter/filtereditgui.c:291
+msgid "Deletes selected redirection"
+msgstr "Supprime la redirection sélectionnée"
+
 #: src/gui/edit_filter/filtereditgui.c:290
 msgid "Delete Parameter"
-msgstr ""
+msgstr "Supprimer paramètre"
 
-#: ../src/gui/edit_filter/filtereditgui.c:341
-#: ../src/gui/edit_filter/filtereditgui.c:342
 #: src/gui/edit_filter/filtereditgui.c:341
 #: src/gui/edit_filter/filtereditgui.c:342
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
-#: ../src/gui/edit_filter/filtereditgui.c:375
-#: ../src/gui/edit_filter/filtereditgui.c:411
 #: src/gui/edit_filter/filtereditgui.c:375
 #: src/gui/edit_filter/filtereditgui.c:411
 msgid "Unknown"
-msgstr ""
+msgstr "Inconnu"
 
-#: ../src/gui/edit_filter/filtereditgui.c:384
 #: src/gui/edit_filter/filtereditgui.c:384
 msgid "Parameters"
-msgstr ""
+msgstr "Paramètres"
 
-#: ../src/gui/edit_filter/filtereditgui.c:684
-#: ../src/gui/edit_filter/filtereditgui.c:790
 #: src/gui/edit_filter/filtereditgui.c:684
 #: src/gui/edit_filter/filtereditgui.c:790
 msgid "Execute"
-msgstr ""
+msgstr "Lancer"
 
-#: ../src/gui/edit_filter/filtereditgui.c:684
-#: ../src/gui/edit_filter/filtereditgui.c:790
 #: src/gui/edit_filter/filtereditgui.c:684
 #: src/gui/edit_filter/filtereditgui.c:790
 msgid "Executes Filternetwork"
-msgstr ""
+msgstr "Lancer le réseau de filtres"
 
-#: ../src/gui/edit_filter/filtereditgui.c:686
 #: src/gui/edit_filter/filtereditgui.c:686
 msgid "Register"
-msgstr ""
+msgstr "Référencer"
 
-#: ../src/gui/edit_filter/filtereditgui.c:686
 #: src/gui/edit_filter/filtereditgui.c:686
 msgid "Registers actual filternetwork"
-msgstr ""
+msgstr "Référencer le réseau actuel"
 
-#: ../src/gui/edit_filter/filtereditgui.c:688
 #: src/gui/edit_filter/filtereditgui.c:688
 msgid "Save"
-msgstr ""
+msgstr "Enregistrer"
 
-#: ../src/gui/edit_filter/filtereditgui.c:688
 #: src/gui/edit_filter/filtereditgui.c:688
 msgid "Saves Filternetwork"
-msgstr ""
+msgstr "Enregistrer le réseau de filtres"
 
-#: ../src/gui/edit_filter/filtereditgui.c:692
 #: src/gui/edit_filter/filtereditgui.c:692
 msgid "Edit Filternetwork Properties"
-msgstr ""
+msgstr "Editer le réseau de filtres"
 
-#: ../src/gui/edit_filter/filtereditgui.c:694 ../src/gui/waveeditgui.c:68
-#: ../src/gui/waveeditgui.c:1182 src/gui/edit_filter/filtereditgui.c:694
-#: src/gui/waveeditgui.c:68 src/gui/waveeditgui.c:1182
+#: src/gui/edit_filter/filtereditgui.c:694 src/gui/waveeditgui.c:68
+#: src/gui/waveeditgui.c:1182
 msgid "Zoom in"
-msgstr ""
+msgstr "Zoomer plus"
 
-#: ../src/gui/edit_filter/filtereditgui.c:694
 #: src/gui/edit_filter/filtereditgui.c:694
 msgid "Zooms in"
-msgstr ""
+msgstr "Zoome plus"
 
-#: ../src/gui/edit_filter/filtereditgui.c:697 ../src/gui/waveeditgui.c:69
-#: ../src/gui/waveeditgui.c:1186 src/gui/edit_filter/filtereditgui.c:697
-#: src/gui/waveeditgui.c:69 src/gui/waveeditgui.c:1186
+#: src/gui/edit_filter/filtereditgui.c:697 src/gui/waveeditgui.c:69
+#: src/gui/waveeditgui.c:1186
 msgid "Zoom out"
-msgstr ""
+msgstr "Zoomer moins"
 
-#: ../src/gui/edit_filter/filtereditgui.c:697
 #: src/gui/edit_filter/filtereditgui.c:697
 msgid "Zooms out"
-msgstr ""
+msgstr "Zoome moins"
 
-#: ../src/gui/edit_filter/filtereditgui.c:700
 #: src/gui/edit_filter/filtereditgui.c:700
 msgid "Adjusts scroll region"
-msgstr ""
+msgstr "Ajuste l'affichage"
 
-#: ../src/gui/edit_filter/filtereditgui.c:700 ../src/gui/waveeditgui.c:70
-#: ../src/gui/waveeditgui.c:1190 src/gui/edit_filter/filtereditgui.c:700
-#: src/gui/waveeditgui.c:70 src/gui/waveeditgui.c:1190
+#: src/gui/edit_filter/filtereditgui.c:700 src/gui/waveeditgui.c:70
+#: src/gui/waveeditgui.c:1190
 msgid "View all"
-msgstr ""
+msgstr "Voir tout"
 
-#: ../src/gui/edit_filter/filtereditgui.c:703
 #: src/gui/edit_filter/filtereditgui.c:703
 msgid "Add last"
-msgstr ""
+msgstr "Ajouter le dernier"
 
-#: ../src/gui/edit_filter/filtereditgui.c:703
 #: src/gui/edit_filter/filtereditgui.c:703
 msgid "Adds last filter"
-msgstr ""
+msgstr "Ajoute le dernier filtre"
 
-#: ../src/gui/edit_filter/filtereditgui.c:707
-#: ../src/gui/glame_accelerator.c:489 ../src/gui/waveeditgui.c:1222
 #: src/gui/edit_filter/filtereditgui.c:707 src/gui/glame_accelerator.c:489
 #: src/gui/waveeditgui.c:1222
 msgid "Close"
-msgstr ""
+msgstr "Fermer"
 
-#: ../src/gui/edit_filter/filtereditgui.c:709 ../src/gui/waveeditgui.c:1226
 #: src/gui/edit_filter/filtereditgui.c:709 src/gui/waveeditgui.c:1226
 msgid "Help"
-msgstr ""
+msgstr "Aide"
 
-#: ../src/gui/edit_filter/filtereditgui.c:737
 #: src/gui/edit_filter/filtereditgui.c:737
 msgid "Load filternetwork"
-msgstr ""
+msgstr "Charger un réseau de filtres"
 
-#: ../src/gui/edit_filter/filtereditgui.c:738
-#: ../src/gui/edit_filter/filtereditgui.c:845 ../src/gui/main.c:255
 #: src/gui/edit_filter/filtereditgui.c:738
-#: src/gui/edit_filter/filtereditgui.c:845 src/gui/main.c:255
+#: src/gui/edit_filter/filtereditgui.c:845 src/gui/main.c:209
+#: src/gui/main.c:255 src/gui/main.c:256 src/gui/main.c:301
 msgid "Filename"
 msgstr "Nom du fichier"
 
-#: ../src/gui/edit_filter/filtereditgui.c:752
 #: src/gui/edit_filter/filtereditgui.c:752
 msgid ""
 "Error in loading network\n"
 "Check out the glame-console output for more information"
 msgstr ""
+"Erreur de chargement du réseau de filtres\n"
+"Vérifier les messages de la console glame pour plus d'informations"
 
-#: ../src/gui/edit_filter/filtereditgui.c:826 ../src/gui/waveeditgui.c:539
 #: src/gui/edit_filter/filtereditgui.c:826 src/gui/waveeditgui.c:539
 msgid "Stop"
-msgstr ""
+msgstr "Stop"
 
-#: ../src/gui/edit_filter/filtereditgui.c:844
 #: src/gui/edit_filter/filtereditgui.c:844
 msgid "Save network as..."
-msgstr ""
+msgstr "Sauver le réseau comme..."
 
-#: ../src/gui/edit_filter/filtereditgui.c:848
 #: src/gui/edit_filter/filtereditgui.c:848
 msgid "Filter name"
-msgstr ""
+msgstr "Nom du filtre"
 
-#: ../src/gui/edit_filter/filtereditgui.c:850
 #: src/gui/edit_filter/filtereditgui.c:850
 msgid "Category"
-msgstr ""
+msgstr "Catégorie"
 
-#: ../src/gui/edit_filter/filtereditgui.c:859
 #: src/gui/edit_filter/filtereditgui.c:859
 msgid "Empty file/filter or category name"
-msgstr ""
+msgstr "Fichier/filtre ou catégorie vide"
 
-#: ../src/gui/edit_filter/filtereditgui.c:884
 #: src/gui/edit_filter/filtereditgui.c:884
 msgid "Filtername"
-msgstr ""
+msgstr "Nom du filtre"
 
-#: ../src/gui/glame_accelerator.c:415 src/gui/glame_accelerator.c:415
+#: src/gui/glame_accelerator.c:415
 msgid "Binding"
-msgstr ""
+msgstr "Action"
 
-#: ../src/gui/glame_accelerator.c:415 src/gui/glame_accelerator.c:415
+#: src/gui/glame_accelerator.c:415
 msgid "Key"
-msgstr ""
+msgstr "Touche"
 
-#: ../src/gui/glame_accelerator.c:415 src/gui/glame_accelerator.c:415
+#: src/gui/glame_accelerator.c:415
 msgid "Scope"
-msgstr ""
+msgstr "Utilisé dans"
 
-#: ../src/gui/glame_accelerator.c:443 src/gui/glame_accelerator.c:443
+#: src/gui/glame_accelerator.c:443
 msgid "SHIFT-"
-msgstr ""
+msgstr "SHIFT-"
 
-#: ../src/gui/glame_accelerator.c:445 src/gui/glame_accelerator.c:445
+#: src/gui/glame_accelerator.c:445
 msgid "CTRL-"
-msgstr ""
+msgstr "CTRL-"
 
-#: ../src/gui/glame_accelerator.c:447 src/gui/glame_accelerator.c:447
+#: src/gui/glame_accelerator.c:447
 msgid "MOD1-"
-msgstr ""
+msgstr "MOD1-"
 
-#: ../src/gui/glame_accelerator.c:449 src/gui/glame_accelerator.c:449
+#: src/gui/glame_accelerator.c:449
 msgid "MOD2-"
-msgstr ""
+msgstr "MOD2-"
 
-#: ../src/gui/glame_accelerator.c:451 src/gui/glame_accelerator.c:451
+#: src/gui/glame_accelerator.c:451
 msgid "MOD3-"
-msgstr ""
+msgstr "MOD3-"
 
-#: ../src/gui/glame_accelerator.c:453 src/gui/glame_accelerator.c:453
+#: src/gui/glame_accelerator.c:453
 msgid "MOD4-"
-msgstr ""
+msgstr "MOD4-"
 
-#: ../src/gui/glame_accelerator.c:455 src/gui/glame_accelerator.c:455
+#: src/gui/glame_accelerator.c:455
 msgid "MOD5-"
-msgstr ""
+msgstr "MOD5-"
 
-#: ../src/gui/importexport.c:47 src/gui/importexport.c:47
+#: src/gui/importexport.c:47
 msgid "16 bit signed"
 msgstr ""
 
-#: ../src/gui/importexport.c:47 src/gui/importexport.c:47
+#: src/gui/importexport.c:47
 msgid "24 bit signed"
 msgstr ""
 
-#: ../src/gui/importexport.c:47 src/gui/importexport.c:47
+#: src/gui/importexport.c:47
 msgid "32 bit signed"
 msgstr ""
 
-#: ../src/gui/importexport.c:48 src/gui/importexport.c:48
+#: src/gui/importexport.c:48
 msgid "32 bit float"
 msgstr ""
 
-#: ../src/gui/importexport.c:48 src/gui/importexport.c:48
+#: src/gui/importexport.c:48
 msgid "64 bit float"
 msgstr ""
 
-#: ../src/gui/importexport.c:48 src/gui/importexport.c:48
+#: src/gui/importexport.c:48
 msgid "8 bit unsigned"
 msgstr ""
 
-#: ../src/gui/importexport.c:53 src/gui/importexport.c:53
+#: src/gui/importexport.c:53
 msgid "mono"
-msgstr ""
+msgstr "mono"
 
-#: ../src/gui/importexport.c:53 src/gui/importexport.c:53
+#: src/gui/importexport.c:53
 msgid "original"
-msgstr ""
+msgstr "original"
 
-#: ../src/gui/importexport.c:53 src/gui/importexport.c:53
+#: src/gui/importexport.c:53
 msgid "stereo"
-msgstr ""
+msgstr "stereo"
 
-#: ../src/gui/importexport.c:59 src/gui/importexport.c:59
+#: src/gui/importexport.c:59
 msgid "Channels"
-msgstr ""
+msgstr "Canaux"
 
-#: ../src/gui/importexport.c:59 src/gui/importexport.c:59
+#: src/gui/importexport.c:59
 msgid "Format"
-msgstr ""
+msgstr "Format"
 
-#: ../src/gui/importexport.c:59 src/gui/importexport.c:59
+#: src/gui/importexport.c:59
 msgid "Quality"
-msgstr ""
+msgstr "Qualité"
 
-#: ../src/gui/importexport.c:59 src/gui/importexport.c:59
+#: src/gui/importexport.c:59
 msgid "Samplerate"
-msgstr ""
+msgstr "Fréq. d'échant."
 
-#: ../src/gui/importexport.c:60 src/gui/importexport.c:60
+#: src/gui/importexport.c:60
 msgid "Compression"
-msgstr ""
+msgstr "Compression"
 
-#: ../src/gui/importexport.c:60 src/gui/importexport.c:60
+#: src/gui/importexport.c:60
 msgid "DC Offset"
-msgstr ""
+msgstr "DC Offset"
 
-#: ../src/gui/importexport.c:60 src/gui/importexport.c:60
+#: src/gui/importexport.c:60
 msgid "Duration"
-msgstr ""
+msgstr "Durée"
 
-#: ../src/gui/importexport.c:60 src/gui/importexport.c:60
+#: src/gui/importexport.c:60
 msgid "Max RMS"
-msgstr ""
+msgstr "Max RMS"
 
-#: ../src/gui/importexport.c:152 ../src/gui/importexport.c:374
 #: src/gui/importexport.c:152 src/gui/importexport.c:374
 msgid "Select a file first!"
-msgstr ""
+msgstr "Sélectionnez un fichier svp."
 
-#: ../src/gui/importexport.c:193 src/gui/importexport.c:193
+#: src/gui/importexport.c:193
 #, possible-c-format
 msgid "track-%i"
-msgstr ""
+msgstr "Piste-%i"
 
-#: ../src/gui/importexport.c:203 src/gui/importexport.c:203
+#: src/gui/importexport.c:203
 msgid "resample"
-msgstr ""
+msgstr "rééchantilloner"
 
-#: ../src/gui/importexport.c:205 src/gui/importexport.c:205
+#: src/gui/importexport.c:205
 msgid "frequency"
-msgstr ""
+msgstr "fréquence"
 
-#: ../src/gui/importexport.c:210 src/gui/importexport.c:210
+#: src/gui/importexport.c:210
 msgid "(1)nsource = NULL\n"
-msgstr ""
+msgstr "(1)nsource = NULL\n"
 
-#: ../src/gui/importexport.c:213 src/gui/importexport.c:213
+#: src/gui/importexport.c:213
 msgid "Connection to resample failed"
-msgstr ""
+msgstr "Connexion au rééchantill. a échoué"
 
-#: ../src/gui/importexport.c:221 src/gui/importexport.c:221
+#: src/gui/importexport.c:221
 msgid "(2) nsource = NULL\n"
-msgstr ""
+msgstr "(2) nsource = NULL\n"
 
-#: ../src/gui/importexport.c:229 src/gui/importexport.c:229
+#: src/gui/importexport.c:229
 #, possible-c-format
 msgid "Connection failed for channel %d\n"
-msgstr ""
+msgstr "La connexion au canal %d a échouée\n"
 
-#: ../src/gui/importexport.c:243 src/gui/importexport.c:243
+#: src/gui/importexport.c:243
 msgid "Importing"
-msgstr ""
+msgstr "En cours d'import"
 
-#: ../src/gui/importexport.c:265 ../src/gui/importexport.c:450
 #: src/gui/importexport.c:265 src/gui/importexport.c:450
 msgid "Done."
-msgstr ""
+msgstr "Fin."
 
-#: ../src/gui/importexport.c:285 src/gui/importexport.c:285
+#: src/gui/importexport.c:285 src/gui/main.c:269
 msgid "Failed to create importing network"
 msgstr "Impossible d'importer le réseau de filtres "
 
-#: ../src/gui/importexport.c:295 src/gui/importexport.c:295
+#: src/gui/importexport.c:295
 msgid "Not implemented\n"
-msgstr ""
+msgstr "Non implémenté\n"
 
-#: ../src/gui/importexport.c:306 src/gui/importexport.c:306
+#: src/gui/importexport.c:306
 msgid "Here\n"
-msgstr ""
+msgstr "Ici\n"
 
-#: ../src/gui/importexport.c:309 src/gui/importexport.c:309
+#: src/gui/importexport.c:309
 msgid "#format"
 msgstr ""
 
-#: ../src/gui/importexport.c:311 src/gui/importexport.c:311
+#: src/gui/importexport.c:311
 #, possible-c-format
 msgid "%d %d"
-msgstr ""
+msgstr "%d %d"
 
-#: ../src/gui/importexport.c:312 src/gui/importexport.c:312
+#: src/gui/importexport.c:312
 #, possible-c-format
 msgid "format property: %s, ftype=%d, version=%d\n"
-msgstr ""
+msgstr "propriété du format: %s, ftype=%d, version=%d\n"
 
-#: ../src/gui/importexport.c:314 src/gui/importexport.c:314
+#: src/gui/importexport.c:314
 #, possible-c-format
 msgid "%s format"
 msgstr ""
 
-#: ../src/gui/importexport.c:316 src/gui/importexport.c:316
+#: src/gui/importexport.c:316
 msgid "You shouldn't see this :)"
-msgstr ""
+msgstr "Vous ne devriez pas faire cela :)"
 
-#: ../src/gui/importexport.c:318 ../src/gui/importexport.c:341
-#: ../src/gui/importexport.c:357 ../src/gui/importexport.c:507
 #: src/gui/importexport.c:318 src/gui/importexport.c:341
 #: src/gui/importexport.c:357 src/gui/importexport.c:507
 msgid "nan"
 msgstr ""
 
-#: ../src/gui/importexport.c:322 src/gui/importexport.c:322
+#: src/gui/importexport.c:322
 msgid "#samplerate"
 msgstr ""
 
-#: ../src/gui/importexport.c:331 src/gui/importexport.c:331
+#: src/gui/importexport.c:331
 msgid "#quality"
 msgstr ""
 
-#: ../src/gui/importexport.c:334 src/gui/importexport.c:334
+#: src/gui/importexport.c:334
 msgid "#channels"
 msgstr ""
 
-#: ../src/gui/importexport.c:339 src/gui/importexport.c:339
+#: src/gui/importexport.c:339
 msgid "#compression"
 msgstr ""
 
-#: ../src/gui/importexport.c:343 ../src/gui/importexport.c:445
 #: src/gui/importexport.c:343 src/gui/importexport.c:445
 msgid "#framecount"
 msgstr ""
 
-#: ../src/gui/importexport.c:355 src/gui/importexport.c:355
+#: src/gui/importexport.c:355
 #, possible-c-format
 msgid "%d:%02d min"
 msgstr ""
 
-#: ../src/gui/importexport.c:360 ../src/gui/importexport.c:465
 #: src/gui/importexport.c:360 src/gui/importexport.c:465
 #, possible-c-format
 msgid "%f"
-msgstr ""
+msgstr "%f"
 
-#: ../src/gui/importexport.c:392 src/gui/importexport.c:392
+#: src/gui/importexport.c:392
 #, possible-c-format
 msgid "setup %d channels\n"
-msgstr ""
+msgstr "setup %d canaux\n"
 
-#: ../src/gui/importexport.c:395 src/gui/importexport.c:395
+#: src/gui/importexport.c:395
 msgid "ssp_streamer"
 msgstr ""
 
-#: ../src/gui/importexport.c:397 src/gui/importexport.c:397
+#: src/gui/importexport.c:397
 msgid "Couldn't create ssp plugin"
-msgstr ""
+msgstr "Impossible de  créer le plugin ssp"
 
-#: ../src/gui/importexport.c:401 src/gui/importexport.c:401
+#: src/gui/importexport.c:401
 msgid "bsize"
 msgstr ""
 
-#: ../src/gui/importexport.c:402 ../src/gui/importexport.c:457
 #: src/gui/importexport.c:402 src/gui/importexport.c:457
 msgid "maxrms"
 msgstr ""
 
-#: ../src/gui/importexport.c:404 src/gui/importexport.c:404
+#: src/gui/importexport.c:404
 msgid "Couldn't create maxrms plugin"
-msgstr ""
+msgstr "Impossible de créer le plugin maxrms"
 
-#: ../src/gui/importexport.c:419 src/gui/importexport.c:419
+#: src/gui/importexport.c:419
 msgid "Analyzing"
-msgstr ""
+msgstr "Analyse en cours"
 
-#: ../src/gui/importexport.c:427 src/gui/importexport.c:427
+#: src/gui/importexport.c:427
 #, possible-c-format
 msgid "Start network for %d samples\n"
-msgstr ""
+msgstr "Lancer le réseau pour %d échantillons\n"
 
-#: ../src/gui/importexport.c:470 src/gui/importexport.c:470
+#: src/gui/importexport.c:470
 msgid "Cancelled."
-msgstr ""
+msgstr "Annulé"
 
-#: ../src/gui/importexport.c:475 src/gui/importexport.c:475
+#: src/gui/importexport.c:475
 msgid "Cleanup"
-msgstr ""
+msgstr "Nettoyage"
 
-#: ../src/gui/importexport.c:497 src/gui/importexport.c:497
+#: src/gui/importexport.c:497
 #, possible-c-format
 msgid "Got filename %s\n"
-msgstr ""
+msgstr "Fichier %s\n"
 
-#: ../src/gui/importexport.c:547 src/gui/importexport.c:547
+#: src/gui/importexport.c:547
 msgid "read-file"
-msgstr ""
+msgstr "read-file"
 
-#: ../src/gui/importexport.c:553 ../src/gui/importexport.c:656
 #: src/gui/importexport.c:553 src/gui/importexport.c:656
 msgid "Resample"
-msgstr ""
+msgstr "Rééchantill."
 
-#: ../src/gui/importexport.c:582 src/gui/importexport.c:582
+#: src/gui/importexport.c:582
 msgid "Import File"
-msgstr ""
+msgstr "Importer fichier"
 
-#: ../src/gui/importexport.c:582 src/gui/importexport.c:582
+#: src/gui/importexport.c:582
 msgid "gpsmop::import::filename"
 msgstr ""
 
-#: ../src/gui/importexport.c:599 src/gui/importexport.c:599
+#: src/gui/importexport.c:599
 msgid "File Information"
-msgstr ""
+msgstr "Informations fichier"
 
-#: ../src/gui/importexport.c:622 src/gui/importexport.c:622
+#: src/gui/importexport.c:622
 msgid "-"
-msgstr ""
+msgstr "-"
 
-#: ../src/gui/importexport.c:632 src/gui/importexport.c:632
+#: src/gui/importexport.c:632
 msgid "Get RMS & DC-Offset"
-msgstr ""
+msgstr "Calculer RMS & DC-Offset"
 
-#: ../src/gui/importexport.c:664 src/gui/importexport.c:664
+#: src/gui/importexport.c:664
 msgid "Rate"
-msgstr ""
+msgstr "Freq."
 
-#: ../src/gui/importexport.c:691 src/gui/importexport.c:691
+#: src/gui/importexport.c:691
 msgid "Import"
-msgstr ""
+msgstr "Importer"
 
-#: ../src/gui/importexport.c:761 src/gui/importexport.c:761
+#: src/gui/importexport.c:761
 #, possible-c-format
 msgid "Compression Type %d chosen\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:778 src/gui/importexport.c:778
+#: src/gui/importexport.c:778
 msgid "none"
 msgstr ""
 
-#: ../src/gui/importexport.c:783 src/gui/importexport.c:783
+#: src/gui/importexport.c:783
 #, possible-c-format
 msgid "%d sample formats\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:786 src/gui/importexport.c:786
+#: src/gui/importexport.c:786
 #, possible-c-format
 msgid "%d\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:789 src/gui/importexport.c:789
+#: src/gui/importexport.c:789
 #, possible-c-format
 msgid "%d compression codecs\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:804 ../src/gui/importexport.c:1159
 #: src/gui/importexport.c:804 src/gui/importexport.c:1159
 msgid "selection_done"
 msgstr ""
 
-#: ../src/gui/importexport.c:848 src/gui/importexport.c:848
+#: src/gui/importexport.c:848
 msgid "window was killed\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:856 src/gui/importexport.c:856
+#: src/gui/importexport.c:856
 msgid "cancel pressed in export window\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:894 src/gui/importexport.c:894
+#: src/gui/importexport.c:894
 msgid "Select a filename first!"
-msgstr ""
+msgstr "Sélectionnez d'abord un fichier svp"
 
-#: ../src/gui/importexport.c:916 src/gui/importexport.c:916
+#: src/gui/importexport.c:916
 msgid "write_file"
 msgstr ""
 
-#: ../src/gui/importexport.c:923 src/gui/importexport.c:923
+#: src/gui/importexport.c:923
 msgid "sampleformat"
 msgstr ""
 
-#: ../src/gui/importexport.c:927 src/gui/importexport.c:927
+#: src/gui/importexport.c:927
 msgid "samplewidth"
 msgstr ""
 
-#: ../src/gui/importexport.c:932 src/gui/importexport.c:932
+#: src/gui/importexport.c:932
 msgid "filetype"
 msgstr ""
 
-#: ../src/gui/importexport.c:937 src/gui/importexport.c:937
+#: src/gui/importexport.c:937
 msgid "compression"
 msgstr ""
 
-#: ../src/gui/importexport.c:944 ../src/gui/waveeditgui.c:467
-#: ../src/gui/waveeditgui.c:469 src/gui/importexport.c:944
-#: src/gui/waveeditgui.c:467 src/gui/waveeditgui.c:469
+#: src/gui/importexport.c:944 src/gui/waveeditgui.c:467
+#: src/gui/waveeditgui.c:469
 msgid "render"
 msgstr ""
 
-#: ../src/gui/importexport.c:952 ../src/gui/importexport.c:957
-#: ../src/gui/waveeditgui.c:473 ../src/gui/waveeditgui.c:476
 #: src/gui/importexport.c:952 src/gui/importexport.c:957
 #: src/gui/waveeditgui.c:473 src/gui/waveeditgui.c:476
 msgid "position"
 msgstr ""
 
-#: ../src/gui/importexport.c:972 src/gui/importexport.c:972
+#: src/gui/importexport.c:972
 msgid "Exporting"
-msgstr ""
+msgstr "Export en cours"
 
-#: ../src/gui/importexport.c:1002 src/gui/importexport.c:1002
+#: src/gui/importexport.c:1002
 msgid "Error!"
-msgstr ""
+msgstr "erreur!"
 
-#: ../src/gui/importexport.c:1003 src/gui/importexport.c:1003
+#: src/gui/importexport.c:1003
 msgid "Failed to create exporting network"
-msgstr ""
+msgstr "impossible de créer le réseau d'exportation"
 
-#: ../src/gui/importexport.c:1054 src/gui/importexport.c:1054
+#: src/gui/importexport.c:1054
 msgid "Export File"
-msgstr ""
+msgstr "Exporter fichier"
 
-#: ../src/gui/importexport.c:1054 src/gui/importexport.c:1054
+#: src/gui/importexport.c:1054
 msgid "gpsmop::export::filename"
 msgstr ""
 
-#: ../src/gui/importexport.c:1066 src/gui/importexport.c:1066
+#: src/gui/importexport.c:1066
 msgid "File Format"
-msgstr ""
+msgstr "Format du fichier"
 
-#: ../src/gui/importexport.c:1073 src/gui/importexport.c:1073
+#: src/gui/importexport.c:1073
 msgid "Compression Type"
-msgstr ""
+msgstr "Type de compression"
 
-#: ../src/gui/importexport.c:1077 src/gui/importexport.c:1077
+#: src/gui/importexport.c:1077
 msgid "Render Options"
-msgstr ""
+msgstr "Options de sortie"
 
-#: ../src/gui/importexport.c:1096 src/gui/importexport.c:1096
+#: src/gui/importexport.c:1096
 msgid "Sample Format"
-msgstr ""
+msgstr "Format"
 
-#: ../src/gui/importexport.c:1120 src/gui/importexport.c:1120
+#: src/gui/importexport.c:1120
 #, possible-c-format
 msgid "typecnt=%d\n"
 msgstr ""
 
-#: ../src/gui/importexport.c:1122 src/gui/importexport.c:1122
+#: src/gui/importexport.c:1122
 msgid "auto"
-msgstr ""
+msgstr "auto"
 
-#: ../src/gui/importexport.c:1148 ../src/gui/waveeditgui.c:1218
 #: src/gui/importexport.c:1148 src/gui/waveeditgui.c:1218
 msgid "Export"
-msgstr ""
+msgstr "Export"
 
-#: ../src/gui/main.c:74 src/gui/main.c:74
+#: src/gui/main.c:70 src/gui/main.c:74 src/gui/main.c:75
 msgid "Creates a new Project group"
 msgstr "Créer un nouveau groupe Projet "
 
-#: ../src/gui/main.c:74 src/gui/main.c:74
+#: src/gui/main.c:70 src/gui/main.c:74 src/gui/main.c:75
 msgid "_New Project"
 msgstr "_Nouveau Projet"
 
-#: ../src/gui/main.c:75 src/gui/main.c:75
+#: src/gui/main.c:71 src/gui/main.c:75 src/gui/main.c:76
 msgid "Edit File..."
 msgstr "Editer un fichier"
 
-#: ../src/gui/main.c:75 src/gui/main.c:75
+#: src/gui/main.c:71 src/gui/main.c:75 src/gui/main.c:76
 msgid "Imports a file and opens the waveedit window"
 msgstr "Importer un fichier et ouvrir une fenetre d'édition audio"
 
-#: ../src/gui/main.c:76 ../src/gui/swapfilegui.c:99 src/gui/main.c:76
-#: src/gui/swapfilegui.c:99
-msgid "Import..."
-msgstr ""
-
-#: ../src/gui/main.c:76 src/gui/main.c:76
-msgid "Imports a file"
-msgstr ""
-
-#: ../src/gui/main.c:78 src/gui/main.c:78
+#: src/gui/main.c:73 src/gui/main.c:78 src/gui/main.c:79
 msgid "Empty [deleted]"
 msgstr "Vider [deleted]"
 
-#: ../src/gui/main.c:78 src/gui/main.c:78
+#: src/gui/main.c:73 src/gui/main.c:78 src/gui/main.c:79
 msgid "Kills [deleted] folder"
-msgstr "Tuer un dossier [effacé]"
+msgstr "Tuer un dossier [deleted]"
 
-#: ../src/gui/main.c:80 src/gui/main.c:80
+#: src/gui/main.c:75 src/gui/main.c:80 src/gui/main.c:81
 msgid "Show _console"
 msgstr "Afficher _console"
 
-#: ../src/gui/main.c:80 src/gui/main.c:80
+#: src/gui/main.c:75 src/gui/main.c:80 src/gui/main.c:81
 msgid "Shows the GLAME console"
 msgstr "Afficher la console GLAME"
 
-#: ../src/gui/main.c:81 src/gui/main.c:81
+#: src/gui/main.c:76 src/gui/main.c:77 src/gui/swapfilegui.c:99
+msgid "Import..."
+msgstr "Importer..."
+
+#: src/gui/main.c:76 src/gui/main.c:77
+msgid "Imports a file"
+msgstr "Importe un fichier"
+
+#: src/gui/main.c:76 src/gui/main.c:81 src/gui/main.c:82
 msgid "Sync"
 msgstr "Sync"
 
-#: ../src/gui/main.c:81 src/gui/main.c:81
+#: src/gui/main.c:76 src/gui/main.c:81 src/gui/main.c:82
 msgid "Syncs meta to disk"
-msgstr "Sync meta to disk"
+msgstr "Synchronise le fichier d'échange sur  disque"
 
-#: ../src/gui/main.c:91 src/gui/main.c:91
+#: src/gui/main.c:86 src/gui/main.c:91 src/gui/main.c:92
 msgid "Creates a new filternetwork"
 msgstr "Créer un nouveau réseau de filtres"
 
-#: ../src/gui/main.c:91 src/gui/main.c:91
+#: src/gui/main.c:86 src/gui/main.c:91 src/gui/main.c:92
 msgid "New Filternetwork"
 msgstr "Nouveau réseau de filtres"
 
-#: ../src/gui/main.c:94 ../src/gui/main.c:254 src/gui/main.c:94
-#: src/gui/main.c:254
+#: src/gui/main.c:89 src/gui/main.c:94 src/gui/main.c:95 src/gui/main.c:254
+#: src/gui/main.c:255 src/gui/main.c:300
 msgid "Load Plugin"
 msgstr "Charger Plugin"
 
-#: ../src/gui/main.c:94 src/gui/main.c:94
+#: src/gui/main.c:89 src/gui/main.c:94 src/gui/main.c:95
 msgid "Loads and registers a plugin"
 msgstr "Charger et référencer un Plugin"
 
-#: ../src/gui/main.c:100 src/gui/main.c:100
+#: src/gui/main.c:95 src/gui/main.c:100 src/gui/main.c:101
 msgid "Opens a gnome help browser"
 msgstr "Ouvrir un navigateur d'aide gnome"
 
-#: ../src/gui/main.c:101 src/gui/main.c:101
+#: src/gui/main.c:96 src/gui/main.c:101 src/gui/main.c:102
 msgid "Opens a gnome help browser with the quick start guide"
 msgstr "Ouvrir un navigateur d'aide avec le guide rapide"
 
-#: ../src/gui/main.c:101 src/gui/main.c:101
+#: src/gui/main.c:96 src/gui/main.c:101 src/gui/main.c:102
 msgid "Quick Start Guide"
 msgstr "Guide rapide"
 
-#: ../src/gui/main.c:102 src/gui/main.c:102
+#: src/gui/main.c:102 src/gui/main.c:103
 msgid "List key-bindings"
-msgstr ""
+msgstr "Liste des raccourcis clavier"
 
-#: ../src/gui/main.c:102 src/gui/main.c:102
+#: src/gui/main.c:102 src/gui/main.c:103
 msgid "Lists the current key-bindings"
-msgstr ""
+msgstr "Liste des raccourcis clavier actuels"
 
-#: ../src/gui/main.c:118 src/gui/main.c:118
+#: src/gui/main.c:111 src/gui/main.c:118 src/gui/main.c:119
 msgid "_Project"
-msgstr "_Projet"
+msgstr "P_rojet"
 
-#: ../src/gui/main.c:125 src/gui/main.c:125
+#: src/gui/main.c:118 src/gui/main.c:125 src/gui/main.c:126
 msgid "_Filternetwork"
 msgstr "_Réseau de filtres"
 
 #. Create new gpsm group.
-#: ../src/gui/main.c:175 ../src/gui/swapfilegui.c:405
-#: ../src/gui/swapfilegui.c:432 ../src/gui/swapfilegui.c:493
-#: src/gui/main.c:175 src/gui/swapfilegui.c:405 src/gui/swapfilegui.c:432
+#: src/gui/main.c:162 src/gui/main.c:175 src/gui/main.c:176
+#: src/gui/swapfilegui.c:405 src/gui/swapfilegui.c:432
 #: src/gui/swapfilegui.c:493
 msgid "Unnamed"
 msgstr "Sans nom"
 
-#: ../src/gui/main.c:214 ../src/gui/swapfilegui.c:559 src/gui/main.c:214
+#: src/gui/main.c:191
+msgid "Error importing"
+msgstr "Erreur d'importation"
+
+#: src/gui/main.c:207
+msgid "Edit audio file"
+msgstr "Editer un fichier audio"
+
+#: src/gui/main.c:214 src/gui/main.c:215 src/gui/main.c:287
 #: src/gui/swapfilegui.c:559
 msgid "Cannot open wave editor"
 msgstr "Ne peut ouvrir l'éditeur audio"
 
-#: ../src/gui/main.c:243 ../src/gui/swapfilegui.c:617 src/gui/main.c:243
-#: src/gui/swapfilegui.c:617
+#: src/gui/main.c:243 src/gui/main.c:244 src/gui/swapfilegui.c:617
 msgid "Cannot place imported wave"
-msgstr ""
+msgstr "Ne peut placer le son importé"
 
-#: ../src/gui/main.c:263 src/gui/main.c:263
+#: src/gui/main.c:263 src/gui/main.c:264 src/gui/main.c:309
 msgid "Error loading plugin"
 msgstr "Erreur de chargement plugin"
 
-#: ../src/gui/main.c:416 src/gui/main.c:416
+#: src/gui/main.c:416 src/gui/main.c:417
 msgid "Audio plugins"
-msgstr ""
+msgstr "Plugins audio"
 
-#: ../src/gui/main.c:450 src/gui/main.c:450
+#: src/gui/main.c:450 src/gui/main.c:451
 msgid "Add"
-msgstr ""
+msgstr "Ajouter"
 
 #. Swapfile with
 #. * - swapfile location
-#: ../src/gui/main.c:484 src/gui/main.c:484
+#: src/gui/main.c:471 src/gui/main.c:484 src/gui/main.c:485
 msgid "Swapfile"
-msgstr "Tampon audio"
+msgstr "Fichier d'échange"
 
-#: ../src/gui/main.c:488 src/gui/main.c:488
+#: src/gui/main.c:475 src/gui/main.c:488 src/gui/main.c:489
 msgid "You need lots of diskspace available at the swapfile location."
-msgstr "Il faut beaucoup d'espace disque pour le fichier du tampon audio."
+msgstr "Il faut beaucoup d'espace disque pour le fichier d'échange audio."
 
-#: ../src/gui/main.c:491 src/gui/main.c:491
+#: src/gui/main.c:478 src/gui/main.c:491 src/gui/main.c:492
 msgid "GLAME doesnt handle running out of disk space very well."
 msgstr "GLAME ne peut pas supporter un espace disque devenu nul ."
 
-#: ../src/gui/main.c:494 ../src/gui/main.c:495 src/gui/main.c:494
-#: src/gui/main.c:495
+#: src/gui/main.c:481 src/gui/main.c:482 src/gui/main.c:494 src/gui/main.c:495
+#: src/gui/main.c:496
 msgid "Swapfile Path"
-msgstr "Emplacement (chemin) du tampon audio"
+msgstr "Emplacement (chemin) du fichier d'échange "
 
-#: ../src/gui/main.c:502 src/gui/main.c:502
-msgid "Dont change values below, if you dont know what you are doing."
-msgstr ""
-
-#: ../src/gui/main.c:508 src/gui/main.c:508
-msgid "Maximum number of cached fragment headers"
-msgstr ""
-
-#: ../src/gui/main.c:513 src/gui/main.c:513
-msgid "Maximum number of cached file descriptors"
-msgstr ""
-
-#: ../src/gui/main.c:518 src/gui/main.c:518
-msgid "Maximum number of cached memory mappings"
-msgstr ""
-
-#: ../src/gui/main.c:523 src/gui/main.c:523
-msgid "Maximum virtual memory used for caching"
-msgstr ""
-
-#: ../src/gui/main.c:525 src/gui/main.c:525
+#: src/gui/main.c:489 src/gui/main.c:525 src/gui/main.c:526
 msgid "NOTE: Swapfile settings take effect after restart only"
-msgstr "Les modifications du tampon audio sont effectives  seulement après redémarrage . "
+msgstr "Les modifications du fichier d'échange  sont effectives  seulement après redémarrage . "
 
-#: ../src/gui/main.c:531 src/gui/main.c:531
+#: src/gui/main.c:495 src/gui/main.c:531 src/gui/main.c:532
 msgid "Depth of undo stack"
 msgstr "Nombre de Undo possibles"
+
+#: src/gui/main.c:502 src/gui/main.c:503
+msgid "Dont change values below, if you dont know what you are doing."
+msgstr ""
+"Ne changez pas les valeurs ci-dessous, sauf si vous savez ce que vous faites"
 
 #. Edit Filter with
 #. * - popup timeout
 #. * - mac mode
-#: ../src/gui/main.c:538 src/gui/main.c:538
+#: src/gui/main.c:502 src/gui/main.c:538 src/gui/main.c:539
 msgid "Filternetwork"
 msgstr "Réseau de filtres"
 
-#: ../src/gui/main.c:545 src/gui/main.c:545
+#: src/gui/main.c:508 src/gui/main.c:509
+msgid "Maximum number of cached fragment headers"
+msgstr "Nbre maximum de fragments d'entête en cache"
+
+#: src/gui/main.c:509 src/gui/main.c:545 src/gui/main.c:546
 msgid "Property popup timeout [ms]"
 msgstr "Délai  pour afficher les propriétés [ms]"
 
-#: ../src/gui/main.c:554 src/gui/main.c:554
+#: src/gui/main.c:513 src/gui/main.c:514
+msgid "Maximum number of cached file descriptors"
+msgstr "Nbre maximum de descripteurs de fichiers en cache"
+
+#: src/gui/main.c:518 src/gui/main.c:554 src/gui/main.c:555
 msgid "Mac mode (one mouse button mode)"
 msgstr "Mode Mac (souris à un bouton)"
+
+#: src/gui/main.c:518 src/gui/main.c:519
+msgid "Maximum number of cached memory mappings"
+msgstr "Nbre maximum de maps mémoires en cache"
+
+#: src/gui/main.c:523 src/gui/main.c:524
+msgid "Maximum virtual memory used for caching"
+msgstr "Maximum de mémoire virtuelle utilisée pour le cache"
 
 #. Audio I/O with
 #. * - input device
 #. * - output device
-#: ../src/gui/main.c:562 src/gui/main.c:562
+#: src/gui/main.c:526 src/gui/main.c:562 src/gui/main.c:563
 msgid "Audio I/O"
 msgstr "Audio Entrées/Sorties"
 
-#: ../src/gui/main.c:588 src/gui/main.c:588
+#: src/gui/main.c:552 src/gui/main.c:588 src/gui/main.c:589
 msgid "Default input plugin (audio_in)"
 msgstr "Plugin d'entrée par défaut (audio_in)"
 
-#: ../src/gui/main.c:595 src/gui/main.c:595
+#: src/gui/main.c:559 src/gui/main.c:595 src/gui/main.c:596
 msgid "Default input device"
 msgstr "Périphérique d'entrée par défaut "
 
-#: ../src/gui/main.c:597 src/gui/main.c:597
+#: src/gui/main.c:561 src/gui/main.c:597 src/gui/main.c:598
 msgid "No audio input plugin"
 msgstr "Pas de plugin d'entrée audio par défaut"
 
-#: ../src/gui/main.c:624 src/gui/main.c:624
+#: src/gui/main.c:588 src/gui/main.c:624 src/gui/main.c:625
 msgid "Default output plugin (audio_out)"
 msgstr "Plugin de sortie par défaut (audio_out)"
 
-#: ../src/gui/main.c:631 src/gui/main.c:631
+#: src/gui/main.c:595 src/gui/main.c:631 src/gui/main.c:632
 msgid "Default output device"
 msgstr "Périphérique de sortie par défaut"
 
-#: ../src/gui/main.c:634 src/gui/main.c:634
+#: src/gui/main.c:598 src/gui/main.c:634 src/gui/main.c:635
 msgid "No audio output plugin"
 msgstr "Pas de plugin de sortie audio par défaut"
 
-#: ../src/gui/main.c:643 src/gui/main.c:643
+#: src/gui/main.c:607 src/gui/main.c:643 src/gui/main.c:644
 msgid "Size hint for audio buffers [samples]"
 msgstr "Taille suggérée des buffers [nb échantillons]"
 
-#: ../src/gui/main.c:711 src/gui/main.c:711
+#: src/gui/main.c:669 src/gui/main.c:711 src/gui/main.c:712
 msgid "Richard Guenther [Richi]"
 msgstr "Richard Günther [Richi]"
 
-#: ../src/gui/main.c:712 src/gui/main.c:712
+#: src/gui/main.c:670 src/gui/main.c:712 src/gui/main.c:713
 msgid "Alexander Ehlert [Mag]"
 msgstr ""
 
-#: ../src/gui/main.c:713 src/gui/main.c:713
+#: src/gui/main.c:671 src/gui/main.c:713 src/gui/main.c:714
 msgid "Daniel Kobras [*nold]"
 msgstr ""
 
-#: ../src/gui/main.c:714 src/gui/main.c:714
+#: src/gui/main.c:672 src/gui/main.c:714 src/gui/main.c:715
 msgid "Johannes Hirche [XWolf]"
 msgstr ""
 
-#: ../src/gui/main.c:715 src/gui/main.c:715
+#: src/gui/main.c:673 src/gui/main.c:715 src/gui/main.c:716
 msgid "and others"
 msgstr "et d'autres"
 
-#: ../src/gui/main.c:724 src/gui/main.c:724
-msgid "GLAME"
-msgstr ""
-
-#: ../src/gui/main.c:725 src/gui/main.c:725
+#: src/gui/main.c:683 src/gui/main.c:725 src/gui/main.c:726
 msgid "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
 msgstr "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
 
-#: ../src/gui/main.c:729 src/gui/main.c:729
+#: src/gui/main.c:687 src/gui/main.c:729 src/gui/main.c:730
 msgid ""
 "This program is free software; you can redistribute it and/or modifyit under "
 "the terms of the GNU General Public License as published bythe Free Software "
@@ -1154,8 +1095,15 @@ msgid ""
 "this program; if not, write to the Free SoftwareFoundation, Inc., 59 Temple "
 "Place, Suite 330, Boston, MA  02111-1307  USA"
 msgstr ""
+"Ce programme est un logiciel libre; vous pouvez le redistribuer et/ou le modifier sous les termes de la GNU General Public License publiée par la Free Software Foundation; soit la version 2 de la Licence, soit (à votre choix) une version ultérieure.\\n\"\n"
+"\"Ce programme est distribué dans l'espoir qu'il soit utile, mais SANS AUCUNE GARANTIE. Voir la Gnu General Public License pour plus de détails .\\n\"\n"
+"\"Vous devriez avoir reçu une copy de la GNU General Public License avec ce programme; sinon, écrivez à la Free Software Foundation  Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"
 
-#: ../src/gui/main.c:785 src/gui/main.c:785 src/gui/main.c:786
+#: src/gui/main.c:724 src/gui/main.c:725
+msgid "GLAME"
+msgstr "GLAME"
+
+#: src/gui/main.c:744 src/gui/main.c:786 src/gui/main.c:787
 #, c-format
 msgid ""
 "The GLAME swapfile subsystem is about to commit suicide.\n"
@@ -1178,7 +1126,7 @@ msgstr ""
 "\n"
 "-- Au revoir \n"
 
-#: ../src/gui/main.c:835 src/gui/main.c:835 src/gui/main.c:836
+#: src/gui/main.c:791 src/gui/main.c:836 src/gui/main.c:837
 msgid ""
 "Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
@@ -1188,23 +1136,28 @@ msgstr ""
 "Bienvenue, nouvel utilisateur de GLAME.\n"
 "Il faut d'abord effectuer une configuration de base . \n"
 "SVP, allez dans la boite de dialogue  Préférences et vérifiez \n"
-"le \"chemin du tampon audio\" et les réglages des \"entrées/sorties audio\".\n"
+"le \"chemin du fichier d'échange audio\" et les réglages des \"entrées/sorties audio\".\n"
 
-#: ../src/gui/main.c:842 src/gui/main.c:842 src/gui/main.c:843
+#: src/gui/main.c:843 src/gui/main.c:844
 msgid ""
 "You didnt change/check the configuration.\n"
 "GLAME is exiting now.\n"
 msgstr ""
+"Vous n'avez pas changé/vérifié la configuration.\n"
+"Glame va se terminer.\n"
 
-#: ../src/gui/main.c:853 src/gui/main.c:853 src/gui/main.c:854
-#, c-format
+#: src/gui/main.c:854 src/gui/main.c:855
+#, possible-c-format
 msgid ""
 "GLAME was unable to create its swapfile\n"
 "because of \"%s\".\n"
 "Please check the configuration.\n"
 msgstr ""
+"Glame n'a pas pu créer son fichier d'échange audio\n"
+"à cause de \"%s\". \n"
+"\"Vérifiez la configuration svp.\n"
 
-#: ../src/gui/main.c:862 src/gui/main.c:862
+#: src/gui/main.c:863 src/gui/main.c:864
 #, possible-c-format
 msgid ""
 "GLAME was unable to open/init its swapfile\n"
@@ -1212,12 +1165,16 @@ msgid ""
 "Please check the configuration and/or check for\n"
 "GLAME messages on the console.\n"
 msgstr ""
+"Glame ne peut pas ouvrir/initialiser son fichier d'échange audio\n"
+"à cause de \"%s\"\n"
+"Vérifiez la configuration et/ou vérifiez les \n"
+"messages de Glame dans le terminal\n"
 
-#: ../src/gui/main.c:923 src/gui/main.c:923 src/gui/main.c:924
+#: src/gui/main.c:886 src/gui/main.c:924 src/gui/main.c:925
 msgid "    GLAME version "
 msgstr "    GLAME Version "
 
-#: ../src/gui/main.c:923 src/gui/main.c:923 src/gui/main.c:924
+#: src/gui/main.c:886 src/gui/main.c:924 src/gui/main.c:925
 msgid ""
 ", Copyright (C) 1999-2001 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
@@ -1233,282 +1190,389 @@ msgstr ""
 "    sous certaines conditions.\n"
 " \n"
 
-#: ../src/gui/swapfilegui.c:82 ../src/gui/swapfilegui.c:112
-#: ../src/gui/waveeditgui.c:737 src/gui/swapfilegui.c:82
-#: src/gui/swapfilegui.c:112 src/gui/waveeditgui.c:737
+#: src/gui/swapfilegui.c:82 src/gui/swapfilegui.c:112
+#: src/gui/waveeditgui.c:737
 msgid "Edit"
-msgstr ""
+msgstr "Editer"
 
-#: ../src/gui/swapfilegui.c:83 src/gui/swapfilegui.c:83
+#: src/gui/swapfilegui.c:82 src/gui/swapfilegui.c:112
+msgid "edit"
+msgstr "editer"
+
+#: src/gui/swapfilegui.c:83
 msgid "Timeline"
 msgstr ""
 
-#: ../src/gui/swapfilegui.c:85 ../src/gui/swapfilegui.c:114
-#: ../src/gui/waveeditgui.c:159 src/gui/swapfilegui.c:85
-#: src/gui/swapfilegui.c:114 src/gui/waveeditgui.c:159
+#: src/gui/swapfilegui.c:83
+msgid "timeline"
+msgstr ""
+
+#: src/gui/swapfilegui.c:85 src/gui/swapfilegui.c:114
+#: src/gui/waveeditgui.c:159
 msgid "Delete"
-msgstr ""
+msgstr "Supprimer"
 
-#: ../src/gui/swapfilegui.c:87 src/gui/swapfilegui.c:87
+#: src/gui/swapfilegui.c:85 src/gui/swapfilegui.c:114
+#: src/gui/waveeditgui.c:159
+msgid "delete"
+msgstr "supprimer"
+
+#: src/gui/swapfilegui.c:87
 msgid "Add group"
-msgstr ""
+msgstr "Ajouter un groupe"
 
-#: ../src/gui/swapfilegui.c:88 src/gui/swapfilegui.c:88
+#: src/gui/swapfilegui.c:87
+msgid "addgroup"
+msgstr "ajouter un groupe"
+
+#: src/gui/swapfilegui.c:88
 msgid "Add clipboard"
+msgstr "Ajouter un presse papier"
+
+#: src/gui/swapfilegui.c:88
+msgid "addclipboard"
 msgstr ""
 
-#: ../src/gui/swapfilegui.c:89 src/gui/swapfilegui.c:89
+#: src/gui/swapfilegui.c:89
 msgid "Add mono wave"
-msgstr ""
+msgstr "Ajouter une piste mono"
 
-#: ../src/gui/swapfilegui.c:90 src/gui/swapfilegui.c:90
+#: src/gui/swapfilegui.c:89
+msgid "addfile"
+msgstr "ajouter un fichier"
+
+#: src/gui/swapfilegui.c:90
 msgid "Add stereo wave"
+msgstr "Ajouter une piste stéréo"
+
+#: src/gui/swapfilegui.c:90
+msgid "addstereo"
 msgstr ""
 
-#: ../src/gui/swapfilegui.c:91 src/gui/swapfilegui.c:91
+#: src/gui/swapfilegui.c:91
 msgid "Link selected"
-msgstr ""
+msgstr "Lier la sélection"
 
-#: ../src/gui/swapfilegui.c:92 src/gui/swapfilegui.c:92
+#: src/gui/swapfilegui.c:91
+msgid "link"
+msgstr "Lier"
+
+#: src/gui/swapfilegui.c:92
 msgid "Copy selected"
+msgstr "Copier la selection"
+
+#: src/gui/swapfilegui.c:92 src/gui/waveeditgui.c:156
+msgid "copy"
 msgstr ""
 
-#: ../src/gui/swapfilegui.c:94 src/gui/swapfilegui.c:94
+#: src/gui/swapfilegui.c:94
 msgid "Merge with parent"
-msgstr ""
+msgstr "Déplacer vers parent"
 
-#: ../src/gui/swapfilegui.c:95 src/gui/swapfilegui.c:95
+#: src/gui/swapfilegui.c:94 src/gui/swapfilegui.c:99 src/gui/swapfilegui.c:201
+#: src/gui/waveeditgui.c:809
+msgid "import"
+msgstr "importer"
+
+#: src/gui/swapfilegui.c:95
 msgid "Flatten"
-msgstr ""
+msgstr "Aplanir"
 
-#: ../src/gui/swapfilegui.c:97 ../src/gui/swapfilegui.c:118
-#: ../src/gui/waveeditgui.c:748 src/gui/swapfilegui.c:97
+#: src/gui/swapfilegui.c:95
+msgid "flatten"
+msgstr "aplanir"
+
+#: src/gui/swapfilegui.c:97 src/gui/swapfilegui.c:116
 #: src/gui/swapfilegui.c:118 src/gui/waveeditgui.c:748
 msgid "Apply operation"
-msgstr ""
+msgstr "Effectuer une operation"
 
-#: ../src/gui/swapfilegui.c:100 ../src/gui/swapfilegui.c:120
+#: src/gui/swapfilegui.c:100 src/gui/swapfilegui.c:120
+msgid "Export swapfile tracks"
+msgstr "Exporter pistes "
+
 #: src/gui/swapfilegui.c:100 src/gui/swapfilegui.c:120
 msgid "Export..."
-msgstr ""
+msgstr "Exporter..."
 
-#: ../src/gui/swapfilegui.c:116 src/gui/swapfilegui.c:116
+#: src/gui/swapfilegui.c:116 src/gui/swapfilegui.c:118
 msgid "Group"
-msgstr ""
+msgstr "Groupe"
 
-#: ../src/gui/swapfilegui.c:190 ../src/gui/waveeditgui.c:314
+#: src/gui/swapfilegui.c:118
+msgid "group"
+msgstr "group"
+
 #: src/gui/swapfilegui.c:190 src/gui/waveeditgui.c:314
 msgid "Error executing"
-msgstr ""
+msgstr "Erreur d'execution"
 
-#: ../src/gui/swapfilegui.c:201 ../src/gui/waveeditgui.c:809
-#: src/gui/swapfilegui.c:201 src/gui/waveeditgui.c:809
-msgid "import"
-msgstr ""
-
-#: ../src/gui/swapfilegui.c:283 ../src/gui/swapfilegui.c:327
 #: src/gui/swapfilegui.c:283 src/gui/swapfilegui.c:327
 msgid "Cannot place item into irregular group"
-msgstr ""
+msgstr "Ne peut placer l'élément dans un groupe"
 
-#: ../src/gui/swapfilegui.c:433 src/gui/swapfilegui.c:433
+#: src/gui/swapfilegui.c:433
 msgid "left"
-msgstr ""
+msgstr "gauche"
 
-#: ../src/gui/swapfilegui.c:435 src/gui/swapfilegui.c:435
+#: src/gui/swapfilegui.c:435
 msgid "right"
-msgstr ""
+msgstr "droite"
 
-#: ../src/gui/swapfilegui.c:519 src/gui/swapfilegui.c:519
+#: src/gui/swapfilegui.c:519
 msgid "Clipboard is empty"
-msgstr ""
+msgstr "Presse papier vide"
 
-#: ../src/gui/swapfilegui.c:576 src/gui/swapfilegui.c:576
+#: src/gui/swapfilegui.c:576
 msgid "Cannot open timeline"
-msgstr ""
+msgstr "ne peut ouvrir timeline"
 
-#: ../src/gui/swapfilegui.c:584 src/gui/swapfilegui.c:584
+#: src/gui/swapfilegui.c:584
 msgid ""
 "The timeline is highly experimental\n"
 "and may cause unexpected effects\n"
 "within other parts of GLAME.\n"
 "Be warned."
 msgstr ""
+"Les timelines sont expérimentales\n"
+"et peuvent avoir des effets inattendus\n"
+"sur les autres parties de Glame.\n"
+"Attention!"
 
-#: ../src/gui/swapfilegui.c:650 src/gui/swapfilegui.c:650
+#: src/gui/swapfilegui.c:650
 msgid "Drop into hbox"
 msgstr ""
 
-#: ../src/gui/swapfilegui.c:655 src/gui/swapfilegui.c:655
+#: src/gui/swapfilegui.c:655
 msgid "Drop into vbox"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:67 src/gui/waveeditgui.c:67
+#: src/gui/waveeditgui.c:67
 msgid "Zoom to selection"
+msgstr "Zoomer la selection"
+
+#: src/gui/waveeditgui.c:67
+msgid "zommsel"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:71 src/gui/waveeditgui.c:71
+#: src/gui/waveeditgui.c:68
+msgid "zommin"
+msgstr ""
+
+#: src/gui/waveeditgui.c:69
+msgid "zommout"
+msgstr ""
+
+#: src/gui/waveeditgui.c:70
+msgid "zommfull"
+msgstr ""
+
+#: src/gui/waveeditgui.c:71
 msgid "Goto marker"
+msgstr "Aller au curseur"
+
+#: src/gui/waveeditgui.c:71
+msgid "gotomarker"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:122 ../src/gui/waveeditgui.c:1199
 #: src/gui/waveeditgui.c:122 src/gui/waveeditgui.c:1199
 msgid "Select none"
+msgstr "Annuler selection"
+
+#: src/gui/waveeditgui.c:122
+msgid "selectnone"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:123 ../src/gui/waveeditgui.c:1195
 #: src/gui/waveeditgui.c:123 src/gui/waveeditgui.c:1195
 msgid "Select all"
+msgstr "Tout selectionner"
+
+#: src/gui/waveeditgui.c:123
+msgid "selectall"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:155 src/gui/waveeditgui.c:155
+#: src/gui/waveeditgui.c:155
 msgid "Cut"
+msgstr "Couper"
+
+#: src/gui/waveeditgui.c:155
+msgid "cut"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:156 src/gui/waveeditgui.c:156
+#: src/gui/waveeditgui.c:156
 msgid "Copy"
-msgstr ""
+msgstr "Copier"
 
-#: ../src/gui/waveeditgui.c:157 src/gui/waveeditgui.c:157
+#: src/gui/waveeditgui.c:157
 msgid "Paste"
+msgstr "Coller"
+
+#: src/gui/waveeditgui.c:157
+msgid "paste"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:161 src/gui/waveeditgui.c:161
+#: src/gui/waveeditgui.c:161
 msgid "Undo"
+msgstr "Défaire"
+
+#: src/gui/waveeditgui.c:161
+msgid "undo"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:162 src/gui/waveeditgui.c:162
+#: src/gui/waveeditgui.c:162
 msgid "Redo"
+msgstr "Refaire"
+
+#: src/gui/waveeditgui.c:162
+msgid "redo"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:182 ../src/gui/waveeditgui.c:219
-#: ../src/gui/waveeditgui.c:241 src/gui/waveeditgui.c:182
-#: src/gui/waveeditgui.c:219 src/gui/waveeditgui.c:241
+#: src/gui/waveeditgui.c:182 src/gui/waveeditgui.c:219
+#: src/gui/waveeditgui.c:241
 msgid "Ensured by rmb callback"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:186 src/gui/waveeditgui.c:186
+#: src/gui/waveeditgui.c:186
 msgid "Failed copying\n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:204 ../src/gui/waveeditgui.c:223
-#: ../src/gui/waveeditgui.c:245 ../src/gui/waveeditgui.c:698
 #: src/gui/waveeditgui.c:204 src/gui/waveeditgui.c:223
 #: src/gui/waveeditgui.c:245 src/gui/waveeditgui.c:698
 msgid "Error preparing for undo\n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:206 src/gui/waveeditgui.c:206
+#: src/gui/waveeditgui.c:206
 msgid "Error pasting\n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:225 src/gui/waveeditgui.c:225
+#: src/gui/waveeditgui.c:225
 msgid "Error cutting\n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:247 src/gui/waveeditgui.c:247
+#: src/gui/waveeditgui.c:247
 msgid "Error deleting\n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:264 src/gui/waveeditgui.c:264
+#: src/gui/waveeditgui.c:264
 msgid "Error during undo"
-msgstr ""
+msgstr "Erreur pendant undo"
 
-#: ../src/gui/waveeditgui.c:278 src/gui/waveeditgui.c:278
+#: src/gui/waveeditgui.c:278
 msgid "Error during redo"
-msgstr ""
+msgstr "reeur pendant redo"
 
-#: ../src/gui/waveeditgui.c:354 ../src/gui/waveeditgui.c:1207
 #: src/gui/waveeditgui.c:354 src/gui/waveeditgui.c:1207
 msgid "Play"
-msgstr ""
+msgstr "Lecture"
 
-#: ../src/gui/waveeditgui.c:439 src/gui/waveeditgui.c:439
+#: src/gui/waveeditgui.c:439
 msgid "No audio output support"
-msgstr ""
+msgstr "Pas de sortie audio disponible"
 
-#: ../src/gui/waveeditgui.c:444 src/gui/waveeditgui.c:444
+#: src/gui/waveeditgui.c:444
 msgid "No audio input support"
-msgstr ""
+msgstr "Pas d'entrée audio disponible"
 
-#: ../src/gui/waveeditgui.c:468 src/gui/waveeditgui.c:468
+#: src/gui/waveeditgui.c:468
 msgid "audio-out"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:484 src/gui/waveeditgui.c:484
+#: src/gui/waveeditgui.c:484
 msgid "duration"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:486 src/gui/waveeditgui.c:486
+#: src/gui/waveeditgui.c:486
 msgid "audio-in"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:502 ../src/gui/waveeditgui.c:503
 #: src/gui/waveeditgui.c:502 src/gui/waveeditgui.c:503
 msgid "one2n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:529 src/gui/waveeditgui.c:529
+#: src/gui/waveeditgui.c:529
 msgid "Cannot play/record wave"
-msgstr ""
+msgstr "Ne peut enregistrer/lire"
 
-#: ../src/gui/waveeditgui.c:547 src/gui/waveeditgui.c:547
+#: src/gui/waveeditgui.c:547
 msgid "Cannot play wave"
-msgstr ""
+msgstr "Ne peut lire"
 
-#: ../src/gui/waveeditgui.c:591 ../src/gui/waveeditgui.c:628
 #: src/gui/waveeditgui.c:591 src/gui/waveeditgui.c:628
 msgid "Nothing selected"
-msgstr ""
+msgstr "Pas de sélection"
 
-#: ../src/gui/waveeditgui.c:707 src/gui/waveeditgui.c:707
+#: src/gui/waveeditgui.c:707
 msgid "Failed to create network"
-msgstr ""
+msgstr "Impossible de créer le reseau audio"
 
-#: ../src/gui/waveeditgui.c:738 src/gui/waveeditgui.c:738
+#: src/gui/waveeditgui.c:738
 msgid "View"
-msgstr ""
+msgstr "Vue"
 
-#: ../src/gui/waveeditgui.c:739 src/gui/waveeditgui.c:739
+#: src/gui/waveeditgui.c:739
 msgid "Select"
-msgstr ""
+msgstr "Selectionner"
 
-#: ../src/gui/waveeditgui.c:741 src/gui/waveeditgui.c:741
+#: src/gui/waveeditgui.c:741
 msgid "Play all"
-msgstr ""
+msgstr "Lire tout"
 
-#: ../src/gui/waveeditgui.c:742 src/gui/waveeditgui.c:742
+#: src/gui/waveeditgui.c:741
+msgid "Plays the whole wave"
+msgstr "Lit  tout le son "
+
+#: src/gui/waveeditgui.c:742
 msgid "Play selection"
-msgstr ""
+msgstr "Lire  sélection"
 
-#: ../src/gui/waveeditgui.c:743 src/gui/waveeditgui.c:743
+#: src/gui/waveeditgui.c:742
+msgid "Plays the actual selection"
+msgstr "Lit la sélection actuelle"
+
+#: src/gui/waveeditgui.c:743
 msgid "Play from marker"
-msgstr ""
+msgstr "Lire depuis curseur"
 
-#: ../src/gui/waveeditgui.c:745 src/gui/waveeditgui.c:745
+#: src/gui/waveeditgui.c:743
+msgid "Plays from marker position"
+msgstr "Lit à partir du curseur"
+
+#: src/gui/waveeditgui.c:745
 msgid "Record at marker"
-msgstr ""
+msgstr "Enreg. depuis curseur"
 
-#: ../src/gui/waveeditgui.c:746 src/gui/waveeditgui.c:746
+#: src/gui/waveeditgui.c:745
+msgid "Records starting at marker position"
+msgstr "L'enreg. part du curseur"
+
+#: src/gui/waveeditgui.c:746
 msgid "Record into selection"
-msgstr ""
+msgstr "Enreg. dans sélection"
 
-#: ../src/gui/waveeditgui.c:749 src/gui/waveeditgui.c:749
+#: src/gui/waveeditgui.c:746
+msgid "Records into the actual selection"
+msgstr "Enregistre dans la sélection actuelle"
+
+#: src/gui/waveeditgui.c:749
 msgid "Apply filter"
-msgstr ""
+msgstr "Appliquer un filtre"
 
-#: ../src/gui/waveeditgui.c:750 src/gui/waveeditgui.c:750
+#: src/gui/waveeditgui.c:750
 msgid "Apply custom..."
-msgstr ""
+msgstr "Appliquer perso..."
 
-#: ../src/gui/waveeditgui.c:793 src/gui/waveeditgui.c:793
+#: src/gui/waveeditgui.c:750
+msgid "Creates a filternetwork window for applying it to the selection"
+msgstr "Crée une fenêtre de réseau de filtres pour l'appliquer à la sélection"
+
+#: src/gui/waveeditgui.c:793
 msgid "Routing"
-msgstr ""
+msgstr "Routage"
 
-#: ../src/gui/waveeditgui.c:1156 src/gui/waveeditgui.c:1156
+#: src/gui/waveeditgui.c:1156
 msgid "Unable to create wavebuffer\n"
 msgstr ""
 
-#: ../src/gui/waveeditgui.c:1212 src/gui/waveeditgui.c:1212
+#: src/gui/waveeditgui.c:1212
 msgid "Menu"
-msgstr ""
+msgstr "Menu"
