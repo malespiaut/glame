@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.37 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter.c,v 1.38 2000/11/11 16:17:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -140,6 +140,7 @@ filter_t *_filter_instantiate(filter_t *f)
 		return NULL;
 
 	/* copy all the stuff. */
+	n->type = f->type & ~FILTERTYPE_PLUGIN;
 	n->name = NULL;
 	n->f = f->f;
 	n->init = f->init;

@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.16 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_ops.c,v 1.17 2000/11/11 16:17:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -21,6 +21,7 @@
  */
 
 #include <unistd.h>
+#include <signal.h>
 #include "util.h"
 #include "filter.h"
 #include "filter_ops.h"
@@ -104,8 +105,13 @@ static void *launcher(void *node)
 	filter_pipe_t *p;
 	filter_port_t *port;
 	struct sembuf sop;
+	sigset_t sset;
 
 	DPRINTF("%s launched (pid %i)\n", n->name, (int)getpid());
+
+	sigemptyset(&sset);
+	sigaddset(&sset, SIGINT);
+	pthread_sigmask(SIG_BLOCK, &sset, NULL);
 
 	n->glerrno = n->f(n);
 	if (n->glerrno == 0) {
@@ -292,6 +298,11 @@ static void *waiter(void *network)
 {
 	filter_t *net = (filter_t *)network;
 	int res;
+	sigset_t sset;
+
+	sigemptyset(&sset);
+	sigaddset(&sset, SIGINT);
+	pthread_sigmask(SIG_BLOCK, &sset, NULL);
 
 	res = net->ops->wait(net);
 
