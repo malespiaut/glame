@@ -7,5 +7,8 @@ src/gui/libgtkwaveform was "stolen" from the libgtkwaveformi-0.2.2
 	package which is maintained by David A. Bartold <foxx@mail.utexas.edu>
         and has contributions from Ben De Rydt <ben.de.rydt@pandora.be>
 
+LADSPA support was added initially by Richard Furse, src/include/ladspa.h
+	is from the LADSPA version 1 distribution
+
 The glame.de domain is sponsored by Dirk Stanecker <dirk.stanecker@student.uni-tuebingen.de>
 
