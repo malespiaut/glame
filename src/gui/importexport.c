@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.45 2004/12/07 22:07:12 ochonpaul Exp $
+ * $Id: importexport.c,v 1.46 2004/12/22 21:55:08 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1126,7 +1126,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 
 struct exp_s {
-	GtkWidget *dialog, *ocomp_combo_box;
+	GtkWidget *dialog, *ocomp_combo_box, *filechooser;
 	GtkWidget *otype_combo_box;
 	GtkWidget *cancelbutton, *appbar;
 	int typecnt, comptypes;
@@ -1213,30 +1213,58 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 }
 
 
+void set_export_filename (struct exp_s *ie, gchar *ext)
+{
+	char *filename;
+	filename = g_strconcat(gpsm_item_label(ie->item), ext,NULL);
+	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(ie->filechooser),filename);
+	if (filename) g_free(filename);
+	return ;
+}
+
 static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 {
 	int val;
+	gchar  *str1;
 
 	val = gtk_combo_box_get_active(menu);
-#ifdef HAVE_LIBMP3LAME
+	#ifdef HAVE_LIBMP3LAME
 	if (val == ie->mp3_menu_index) {
 		make_comp_menu(ie, -1);
 		ie->filetype = 99;
-	} else 
+		set_export_filename(ie, ".mp3");
+		return TRUE;
+			} else 
 #endif
 #ifdef HAVE_LIBVORBISFILE
 	if (val == ie->ogg_menu_index) {
 		make_comp_menu(ie, -1);
 		ie->filetype = 100;
+		set_export_filename(ie, ".ogg");
+		return TRUE;
 	} else
 #endif
-	if (val>0) {
+		if (val>0) {
 		make_comp_menu(ie, ie->indices[val-1]);
 		ie->filetype=val;
+		
+		// file extension 
+		str1 = g_strdup ((char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL,(ie->indices[val-1]), 0 , 0));
+		// special cases
+		if (!g_ascii_strncasecmp(str1, "next",4)) str1 = g_strdup("au"); 
+		else if (!g_ascii_strncasecmp(str1, "bicsf",5)) str1 = g_strdup("bicsf"); 
+		else if (!g_ascii_strncasecmp(str1, "nist",5)) str1 = g_strdup("nist"); 
+		// Others: ext from 3 first label letters
+		else str1 = g_strndup (str1,3);
+		str1 = g_strconcat(".",str1,NULL);
+		set_export_filename(ie, str1);
+		if (str1) g_free(str1);
+		
 	} else {
 		make_comp_menu(ie, -1);
 		ie->filetype=-1;
 		ie->compression = AF_COMPRESSION_NONE;
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(ie->filechooser) ,gpsm_item_label(ie->item));
 	}
 
 	return TRUE;
@@ -1271,12 +1299,12 @@ static void exp_cancel_cb(GtkWidget *bla, struct exp_s *e)
 	export_cleanup(e);
 }
 
-static gint export_filename_cb(GtkEditable *edit, struct exp_s *exp)
+/* static gint export_filename_cb(GtkFileChooser *filechooser, struct exp_s *exp)
 {
 	gchar *filename;
 
-	filename = gtk_editable_get_chars(edit, 0, -1);
-	
+	filename = gtk_file_chooser_get_filename(filechooser);
+puts(	filename );
 	if(exp->filename != NULL)
 		g_free(exp->filename);
 	
@@ -1286,6 +1314,7 @@ static gint export_filename_cb(GtkEditable *edit, struct exp_s *exp)
 
 	return TRUE;
 }
+*/
 
 static void export_cb(GtkWidget *bla, struct exp_s *exp) 
 {
@@ -1307,7 +1336,10 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	int  index;
 	
 	gtk_widget_set_sensitive(bla, FALSE);
-
+	
+	g_free(exp->filename);
+	exp->filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(exp->filechooser));
+	
 	if(exp->filename==NULL) {
 		ed=gnome_error_dialog("Select a filename first!");
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
@@ -1377,7 +1409,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	if (filterparam_set(param, &(exp->filename)) == -1)
 		goto fail_cleanup;
 	
-	/* uncompressed */
+	/* main tab */
 	if (!strcmp(output_plugin , "write_file")) {
 	  param = filterparamdb_get_param(db, "sampleformat");
 	  if (filterparam_set(param, &(sf_format[sfi])) == -1)
@@ -1549,7 +1581,9 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	exp->running = 0;
 
 	/* remember new defaults */
-	export_default_filetype = exp->filetype;
+	/* first check mp3 and ogg special type */
+	if ((exp->filetype == 99) || (exp->filetype == 100)) {  export_default_filetype=  (exp->filetype == 99 ? exp->mp3_menu_index  : exp->ogg_menu_index );}
+	else {export_default_filetype = exp->filetype;}
 	export_default_compression = exp->compression;
 	export_default_render_option = ri;
 	export_default_sample_option = sfi;
@@ -1573,9 +1607,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 {	
 	struct exp_s *ie;
 	GtkWidget *notebook,*label_tab1, *label_tab2, *label_tab3 ;
-	GtkWidget *dialog, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox;
-	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3, *fentry, *fname, *fnamebox;
-	GtkWidget *framebox, *combo_entry, *frame4, *frame4box, *edit, *dialog_action_area; 
+	GtkWidget *dialog, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox, *vboxftype;
+	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3,  *fname, *fnamebox;
+	GtkWidget *framebox, *frame4, *frame4box,*dialog_action_area; 
 	GSList *rbuttons, *renderbuttons;
 	int i;
 	gchar *suffix, *title = "";
@@ -1596,7 +1630,6 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie->filetype = export_default_filetype;
 	ie->compression = export_default_compression;
 	ie->running = 0;
-	ie->mp3_menu_index = 0;
 
 	/* open new dialog window */
 	title = g_strdup_printf ("Export: %s", gpsm_item_label(item));
@@ -1620,49 +1653,53 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 	hbox = gtk_hbox_new (FALSE, 0);
 	gtk_widget_show (hbox);
-	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), hbox, TRUE, TRUE, 0);
 
 	bigbox = gtk_hbox_new (FALSE, 0);
 	gtk_widget_show (bigbox);
 	gtk_box_pack_start (GTK_BOX (dialog_vbox2), bigbox, TRUE, TRUE, 0);
 
 		
-	fname = gtk_frame_new(_("File name"));
+	fname = gtk_frame_new(_("Export as:"));
 	gtk_widget_show(fname);
 	gtk_box_pack_start (GTK_BOX (hbox), fname,TRUE, TRUE, 0);
 	fnamebox =  gtk_hbox_new(FALSE, 0);
 	gtk_widget_show(fnamebox);
 	gtk_container_add(GTK_CONTAINER(fname), fnamebox);
-
-	fentry = gnome_file_entry_new ("gpsmop::export::filename", "Export File");
+	
+	ie->filechooser = gtk_file_chooser_widget_new(GTK_FILE_CHOOSER_ACTION_SAVE);
+	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(ie->filechooser) ,gpsm_item_label(item));
+	gtk_widget_show(ie->filechooser);
+	gtk_box_pack_start (GTK_BOX (fnamebox), ie->filechooser, TRUE, TRUE, 0);
+	
+	/* fentry = gnome_file_entry_new ("gpsmop::export::filename", "Export File");
 	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fentry), TRUE);
 	gtk_widget_show(fentry);
-	gtk_box_pack_start (GTK_BOX (fnamebox), fentry, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (fnamebox), fentry, TRUE, TRUE, 0); 
 
-	combo_entry = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fentry));
-	gtk_widget_show(combo_entry);
+	 combo_entry = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fentry));
+	gtk_widget_show(combo_entry); */
 
-	//	edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(GNOME_FILE_ENTRY(fentry)->gentry))));
-	edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry))));
+	/*edit = GTK_WIDGET(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry)))); */
 	
-	g_signal_connect(GTK_OBJECT(edit), "changed",
-			   (GtkSignalFunc)export_filename_cb, ie);
-
+	/*g_signal_connect(GTK_OBJECT(fentry), "changed",
+			   (GtkSignalFunc)export_cb, ie); */
+	vboxftype = gtk_vbox_new (FALSE, 0); 
+	gtk_widget_show(vboxftype);
+	gtk_box_pack_start (GTK_BOX (hbox), vboxftype , FALSE, FALSE, 0);
 	frame = gtk_frame_new(_("File Format"));
 	gtk_widget_show(frame);
-	gtk_box_pack_start (GTK_BOX (hbox), frame, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vboxftype ), frame, FALSE, FALSE, 0);
 	framebox =  gtk_hbox_new(FALSE, 0);
 	gtk_widget_show(framebox);
 	gtk_container_add(GTK_CONTAINER(frame), framebox);
-
-
-
+		
 	notebook = gtk_notebook_new();
 	gtk_widget_show (notebook);
-	gtk_box_pack_start (GTK_BOX (vbox), GTK_WIDGET(notebook), FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), GTK_WIDGET(notebook), TRUE, TRUE, 0);
 	
-	/*** Uncompressed tab ***/
-	label_tab1 = gtk_label_new(_("Uncompressed"));
+	/*** MAin tab ***/
+	label_tab1 = gtk_label_new(_("Main"));
 	gtk_widget_show (label_tab1);
 	bigbox = gtk_hbox_new (FALSE, 0); 
 	gtk_widget_show(bigbox);
@@ -1719,7 +1756,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_box_pack_start (GTK_BOX (valbox), ie->rbutton[i], FALSE, FALSE,0);
 	}
 	
-	/* now construct option menu with available filetypes */
+	/* now construct combo box filetypes */
 	ie->otype_combo_box = gtk_combo_box_new_text ();
 	
 	ie->typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
@@ -1744,6 +1781,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	
 	gtk_box_pack_start(GTK_BOX(framebox), GTK_WIDGET(ie->otype_combo_box), FALSE, FALSE, 0);
 	gtk_widget_show(GTK_WIDGET(ie->otype_combo_box));
+	
 #ifdef HAVE_LIBMP3LAME	
 	/*** Mp3 lame tab ***/
 	label_tab2 = gtk_label_new(_("Mp3 (Lame)"));
