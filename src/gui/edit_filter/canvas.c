@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.22 2001/02/08 01:10:08 xwolf Exp $
+ * $Id: canvas.c,v 1.23 2001/02/28 23:54:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -44,11 +44,13 @@ static gint root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data);
 static void canvas_create_new_cb(GtkWidget *bla,void*blu){}
 static void canvas_open_filter(GtkWidget*bla,void*blu){}
 static void canvas_load_scheme(GtkWidget*bla,void*blu);
+static void canvas_load_network(GtkWidget*bla,void*blu);
 static void canvas_save_filter(GtkWidget*bla,void*blu){}
 static void canvas_save_as(GtkWidget*bla,void*blu);
 static void register_filternetwork_cb(GtkWidget*bla,void*blu);
 static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu);
 static void redirect_params(GtkWidget *bla, GlameCanvasItem *item);
+static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item);
 static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter);
 void edit_canvas_item_properties(filter_paramdb_t *pdb, const char *label);
 //static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
@@ -63,6 +65,7 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Delete","Delete node",delete_canvas_item_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Open Up","Open up",draw_network_cb,NULL),
 	GNOMEUIINFO_ITEM("_About node...","bout",describe_item,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
@@ -99,6 +102,7 @@ static GnomeUIInfo root_menu[]=
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
+	GNOMEUIINFO_ITEM("Load scheme _network...","Loads scm source file as a editable network",canvas_load_network,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -275,12 +279,13 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 static int
 add_filter_by_name(char *name)
 {
-	GnomeCanvasGroup*grp;
+        GnomeCanvasItem * item;
 	filter_t *filter;
 	double dx,dy;
 	GlameCanvas* canv;
 	plugin_t *plug;
-
+	char numberbuffer[10];
+	double x1,x2,y1,y2;
 
 	canv = GLAME_CANVAS(win);
 	plug = plugin_get(name);
@@ -296,7 +301,15 @@ add_filter_by_name(char *name)
 	}
 	gnome_canvas_window_to_world(GNOME_CANVAS(canv),event_x,event_y,&dx,&dy); 
 	// fprintf(stderr,"%f %f %f %f\n",event_x,event_y,dx,dy);
- 	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),filter,dx,dy)); 
+ 	item = GNOME_CANVAS_ITEM(create_new_node(GNOME_CANVAS(canv),filter,dx,dy)); 
+	gnome_canvas_item_request_update(item);
+	gnome_canvas_item_get_bounds(item,&x1,&y1,&x2,&y2);
+	sprintf(numberbuffer,"%8f",x1);
+	if(filter_set_property(filter,"canvas_x",numberbuffer))
+	      DPRINTF("Set Prop failed!\n");
+	sprintf(numberbuffer,"%8f",y1);
+	if(filter_set_property(filter,"canvas_y",numberbuffer))
+	      DPRINTF("Set Prop failed!\n");
 	inItem=0;
 	return 0;
 
@@ -572,19 +585,14 @@ find_output_port(GlameCanvas* canvas, double x, double y)
 }
 		
 static void
-port_docking_coords(GlameCanvasPort* port,double *x, double *y)
+port_docking_coords(GlameCanvasPort* port,double *x, double *y, int id)
 {
 	GnomeCanvasRE* rect = GNOME_CANVAS_RE(port);
 	int i,items = g_list_length(port->connected_ports);
 	GList* list = g_list_first(port->connected_ports);
 	double difference,step;
 	if(items>1){
-		step=difference = (1.0/(double)(items*(items+1)))*(rect->y2-rect->y1);
-		for(i=1;i<items;i++){
-			move_single_connection(((GlameConnection*)(list->data)),0.0,-i*step);
-			list=g_list_next(list);
-		}
-		*y=(double)(items)/(double)(items+1)*(rect->y2-rect->y1);
+		*y=(rect->y1) + (double)(id)/(double)(items+1)*(rect->y2-rect->y1);
 	}else{
 		*y=(rect->y1+rect->y2)*0.5;
 		
@@ -592,7 +600,124 @@ port_docking_coords(GlameCanvasPort* port,double *x, double *y)
 	*x=rect->x1;
 	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(rect),x,y);
 }
-		
+
+static gint
+update_connection_points(GlameConnection *connection)
+{
+      GlameCanvasPort *source_port=connection->begin;
+      GlameCanvasPort *dest_port=connection->end;
+      
+      double xs,ys,xd,yd;
+
+      port_docking_coords(source_port, &xs, &ys,connection->begin_id);
+      port_docking_coords(dest_port, &xd, &yd,connection->end_id);
+      
+      xs += GNOME_CANVAS_RE(source_port)->x2-GNOME_CANVAS_RE(source_port)->x1;
+
+      connection->points->coords[0]=xs;
+      connection->points->coords[1]=ys;
+
+      connection->points->coords[2]=xs+25+(connection->begin_id*4);
+      connection->points->coords[3]=ys;
+
+      connection->points->coords[4]=xs+25+(connection->begin_id*4);
+      connection->points->coords[5]=(ys+yd)/2.0;
+
+      connection->points->coords[6]=xd-25-(connection->end_id*4);
+      connection->points->coords[7]=(ys+yd)/2.0;
+
+      connection->points->coords[8]=xd-25-(connection->end_id*4);
+      connection->points->coords[9]=yd;
+
+      connection->points->coords[10]=xd;
+      connection->points->coords[11]=yd; 
+
+      gnome_canvas_item_set(connection->line,
+			    "points",connection->points,
+			    NULL);
+      
+      gnome_canvas_item_set(connection->circle,
+			    "x1",((xs+xd)/2.0)-6.0,
+			    "x2",((xs+xd)/2.0)+6.0,
+			    "y1",((ys+yd)/2.0)-6.0,
+			    "y2",((ys+yd)/2.0)+6.0,
+			    NULL);
+
+}
+
+
+static gint
+connect_canvas_ports(GlameConnection* connection)
+{
+      GlameCanvasPort *source_port=connection->begin;
+      GlameCanvasPort *dest_port=connection->end;
+     
+      double xs,ys,xd,yd;
+
+      
+
+      port_docking_coords(source_port, &xs, &ys,connection->begin_id);
+      port_docking_coords(dest_port, &xd, &yd,connection->end_id);
+      
+      xs += GNOME_CANVAS_RE(source_port)->x2-GNOME_CANVAS_RE(source_port)->x1;
+
+      connection->points = gnome_canvas_points_new(6);
+
+      
+      connection->points->coords[0]=xs;
+      connection->points->coords[1]=ys;
+
+      connection->points->coords[2]=xs+25+(connection->begin_id*4);
+      connection->points->coords[3]=ys;
+
+      connection->points->coords[4]=xs+25+(connection->begin_id*4);
+      connection->points->coords[5]=(ys+yd)/2.0;
+
+      connection->points->coords[6]=xd-25-(connection->end_id*4);
+      connection->points->coords[7]=(ys+yd)/2.0;
+
+      connection->points->coords[8]=xd-25-(connection->end_id*4);
+      connection->points->coords[9]=yd;
+
+      connection->points->coords[10]=xd;
+      connection->points->coords[11]=yd;
+      fprintf(stderr,"%d %d\n",connection->begin_id,connection->end_id);
+
+      if(connection->line)
+	    gtk_object_destroy(connection->line);
+      connection->line = GNOME_CANVAS_ITEM(gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(source_port)->parent->parent),
+								    gnome_canvas_line_get_type(),
+								    "points",connection->points,
+								    "fill_color","black",
+								    "width_units",2.0,
+								    "arrow_shape_a",18.0,
+								    "arrow_shape_b",20.0,
+								    "arrow_shape_c",5.0,
+								    "last_arrowhead",TRUE,
+								    NULL));
+      gnome_canvas_item_raise_to_top(connection->line);
+
+      connection->circle = GNOME_CANVAS_ELLIPSE(gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(source_port)->parent->parent),
+								      gnome_canvas_ellipse_get_type(),
+								      "x1",((xs+xd)/2.0)-6.0,
+								      "x2",((xs+xd)/2.0)+6.0,
+								      "y1",((ys+yd)/2.0)-6.0,
+								      "y2",((ys+yd)/2.0)+6.0,
+								      "fill_color","black",
+								      "width_pixels",5,
+								      NULL));
+      gtk_signal_connect(GTK_OBJECT(connection->circle),
+			 "event",GTK_SIGNAL_FUNC(connection_select),
+			 connection);
+      connection->property_texts=NULL;
+      update_input_connection(source_port,0.0,0.0);
+      update_output_connection(dest_port,0.0,0.0);
+      connection->begin = GLAME_CANVAS_PORT(source_port);
+      connection->end   = GLAME_CANVAS_PORT(dest_port);
+      return 0;
+}
+						
+      
 
 
 static gint
@@ -637,34 +762,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 							free(item->connection);	
 						}else{
 							DPRINTF("inner connection succeded!\n");
-							port_docking_coords(port,&x,&y);
-							gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(item->connection->line),&x,&y);
-							item->connection->points->coords[2]=x;
-							item->connection->points->coords[3]=y;
-							gnome_canvas_item_set(GNOME_CANVAS_ITEM(item->connection->line),
-									      "points",item->connection->points,NULL);
-							wx = item->connection->points->coords[0] + item->connection->points->coords[2];
-							wx *= 0.5;
-							wx -= 6.0;
-							wy = item->connection->points->coords[1] + item->connection->points->coords[3];
-							wy *= 0.5;
-							wy -= 6.0;
-							item->connection->circle = 
-								GNOME_CANVAS_ELLIPSE(
-									gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
-											      gnome_canvas_ellipse_get_type(),
-											      "x1",wx,
-											      "x2",wx+12.0,
-											      "y1",wy,
-											      "y2",wy+12.0,
-											      "fill_color","black",
-											      "width_pixels",5,
-											      NULL));
-							gtk_signal_connect(GTK_OBJECT(item->connection->circle),
-									   "event",GTK_SIGNAL_FUNC(connection_select),
-									   item->connection);
-							item->connection->property_texts=NULL;
-							
+														
 						}
 						// connected!!
 					} else {
@@ -691,68 +789,17 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 }
 
 
-// this funktion expects world coordinates!
-void 
-set_single_connection(GlameConnection* c, gdouble x, gdouble y)
-{
-
-
-	gdouble mx,my;
-	
-	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(c->line)->parent,&x,&y);
-	
-	c->points->coords[2]=x;
-	c->points->coords[3]=y;
-
-	gnome_canvas_item_set(GNOME_CANVAS_ITEM(c->line),
-			      "points",c->points,NULL);
-
-	mx = c->points->coords[2]+c->points->coords[0];
-	my = c->points->coords[3]+c->points->coords[1];
-	
-	mx*=0.5;
-	my*=0.5;
-
-
-	/* FIXME this is stupid, but I'm not in the mood for debugging coordinate systems just now....    [xwolf] */
-	gtk_object_destroy(GTK_OBJECT(c->circle));
-	c->circle = GNOME_CANVAS_ELLIPSE(gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(c->line)->parent),
-							       gnome_canvas_ellipse_get_type(),
-							       "x1",mx-6.0,
-							       "x2",mx+6.0,
-							       "y1",my-6.0,
-							       "y2",my+6.0,
-							       "fill_color","black",
-							       "width_pixels",5,
-							       NULL));
-	gtk_signal_connect(GTK_OBJECT(c->circle),
-			   "event",GTK_SIGNAL_FUNC(connection_select),
-			   c);
-	/*	gnome_canvas_item_set(GNOME_CANVAS_ITEM(c->circle),
-		"x1",mx-6.0,
-		"y1",my-6.0,
-		"x2",mx+6.0,
-		"y2",my+6.0,
-		NULL);*/
-}
-
-
 
 static void
 reorder_port_connections(GlameCanvasPort* port)
 {
 	GList *list = g_list_first(port->connected_ports);
-	int length  = g_list_length(list);
-	double y,ystep,x;
-	x = GNOME_CANVAS_RE(port)->x1;
-	ystep = (GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(double)(length+1);
-	y =  GNOME_CANVAS_RE(port)->y1+ystep;
-	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(port)->parent,&x,&y);
+	int count=1;
 	while(list){
-		set_single_connection(list->data,x,y);
+	      ((GlameConnection*)(list->data))->end_id = count++;
 		list = g_list_next(list);
-		y+=ystep;
 	}
+	update_input_connection(port,0.0,0.0);
 }
 		
 
@@ -1007,20 +1054,14 @@ add_connection(GlameConnection *c)
 	}else {
 		DPRINTF("success!\n");
 	}
-	
+
 	c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
 	c->end->connected_ports=g_list_append(c->end->connected_ports,c);
+	c->begin_id = g_list_length(c->begin->connected_ports);
+	c->end_id = g_list_length(c->end->connected_ports);
+	connect_canvas_ports(c);
 	return 0;
 	
-}
-
-void 
-move_single_connection(GlameConnection* c, gdouble x, gdouble y)
-{
-	c->points->coords[2]+=x;
-	c->points->coords[3]+=y;
-	gnome_canvas_item_set(GNOME_CANVAS_ITEM(c->line),"points",c->points,NULL);
-	gnome_canvas_item_move(GNOME_CANVAS_ITEM(c->circle),x*0.5,y*0.5);
 }
 
 	    
@@ -1029,25 +1070,10 @@ void
 update_input_connection(GlameCanvasPort*p, gdouble x, gdouble y)
 {
 	GList* connection = g_list_first(p->connected_ports);
-	GnomeCanvasRE* circle;
-	gdouble x_2,y_2;
-	x_2 = x*0.5;
-	y_2 = y*0.5;
+	
 	while(connection){
-		((GlameConnection*)(connection->data))->points->coords[2]+=x;
-		((GlameConnection*)(connection->data))->points->coords[3]+=y;
-		circle = GNOME_CANVAS_RE(((GlameConnection*)(connection->data))->circle);
-		gnome_canvas_item_set(GNOME_CANVAS_ITEM(((GlameConnection*)(connection->data))->line),
-				      "points",((GlameConnection*)(connection->data))->points,
-				      NULL);
-		if(circle)
-			gnome_canvas_item_set(GNOME_CANVAS_ITEM(circle),
-					      "x1",circle->x1+x_2,
-					      "x2",circle->x2+x_2,
-					      "y1",circle->y1+y_2,
-					      "y2",circle->y2+y_2,
-					      NULL);
-		connection = g_list_next(connection);
+	      update_connection_points((GlameConnection*)(connection->data));
+	      connection = g_list_next(connection);
 	}
 }
 
@@ -1055,25 +1081,10 @@ void
 update_output_connection(GlameCanvasPort*p, gdouble x, gdouble y)
 {
 	GList* connection = g_list_first(p->connected_ports);
-	GnomeCanvasRE* circle;
-	gdouble x_2,y_2;
-	x_2 = x*0.5;
-	y_2 = y*0.5;
+	
 	while(connection){
-		((GlameConnection*)(connection->data))->points->coords[2]-=x;
-		((GlameConnection*)(connection->data))->points->coords[3]-=y;
-		gnome_canvas_item_set(GNOME_CANVAS_ITEM(((GlameConnection*)(connection->data))->line),
-				      "points",((GlameConnection*)(connection->data))->points,
-				      NULL);
-		circle = GNOME_CANVAS_RE(((GlameConnection*)(connection->data))->circle);
-		if(circle)
-			gnome_canvas_item_set(GNOME_CANVAS_ITEM(circle),
-					      "x1",circle->x1-x_2,
-					      "x2",circle->x2-x_2,
-					      "y1",circle->y1-y_2,
-					      "y2",circle->y2-y_2,
-					      NULL);
-		connection = g_list_next(connection);
+	      update_connection_points((GlameConnection*)(connection->data));
+	      connection = g_list_next(connection);
 	}
 }
 
@@ -1393,7 +1404,33 @@ static void register_filternetwork_cb(GtkWidget*bla,void*blu)
 }
 
 
+static void
+canvas_load_network(GtkWidget *bla, void *blu)
+{
+      
+	GtkWidget * fileEntry;
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	char * filenamebuffer;
+	filenamebuffer = calloc(100,sizeof(char));
 
+	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	vbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+
+	fileEntry = gnome_file_entry_new("Load","Filename");
+	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
+	create_label_widget_pair(vbox,"Filename",fileEntry);
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+		if(glame_load_plugin(filenamebuffer)){
+		      
+			// load_plugin doesn't really give anything sensible back
+			//errorbox = gnome_warning_dialog("Loading failed...");
+			//gnome_dialog_run_and_close(errorbox);
+		}
+		fprintf(stderr,"FIXME!! I'm missing :-)\n");
+	}
+	free(filenamebuffer);
+}
 static void canvas_load_scheme(GtkWidget*bla,void*blu)
 {
 	GtkWidget * fileEntry;
@@ -1561,4 +1598,29 @@ static void describe_item(GtkWidget* wid,GlameCanvasItem* it)
 	gtk_widget_show(text);
 	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), text, TRUE, TRUE, 0);
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+}
+
+
+static void
+draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
+{
+      	gui_network * net;       
+	GtkWidget * canv;
+
+	if(!FILTER_IS_NETWORK(item->filter)){
+	      fprintf(stderr,"Not a network!\n");
+	      return;
+	}
+	net = malloc(sizeof(gui_network));
+
+	net->caption = NULL;
+	net->pixname = NULL;
+	net->descr = NULL;
+	net->net = item->filter;
+
+	canv=create_new_canvas(net);
+	//	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
+
+	
+	
 }
