@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.28 2004/10/23 13:09:26 richi Exp $
+ * $Id: glame_param.c,v 1.29 2004/11/07 22:41:33 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -146,6 +146,9 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 		gtk_option_menu_set_history(
 			GTK_OPTION_MENU(gparam->u.widget),
 			filterparam_val_long(gparam->param));
+	} else if (GTK_IS_COMBO_BOX(gparam->u.widget)) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(gparam->u.widget),
+					 filterparam_val_long(gparam->param));
 	} else
 		DPRINTF("FIXME: unhandled widget type\n");
 
@@ -252,6 +255,21 @@ static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 		res = filterparam_set(gparam->param, &val);
 	else
 		DPRINTF("Illegal value for menu\n");
+	gparam->updating = 0;
+
+	return res == 0 ? TRUE : FALSE;
+}
+
+static gint combobox_cb(GtkComboBox *cb, GlameParam *gparam)
+{
+	int res;
+	long val;
+
+	if (gparam->updating)
+		return TRUE;
+
+	val = gtk_combo_box_get_active(cb);
+	res = filterparam_set(gparam->param, &val);
 	gparam->updating = 0;
 
 	return res == 0 ? TRUE : FALSE;
@@ -449,6 +467,10 @@ cont:
 		gtk_signal_connect(GTK_OBJECT(gtk_option_menu_get_menu(GTK_OPTION_MENU(gparam->u.widget))),
 				   "selection_done",
 				   (GtkSignalFunc)optionmenu_cb, gparam);
+	else if (GTK_IS_COMBO_BOX(gparam->u.widget))
+		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
+				   "changed",
+				   (GtkSignalFunc)combobox_cb, gparam);
 	else
 		DPRINTF("FIXME - unsupported widget type\n");
 
