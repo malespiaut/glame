@@ -65,12 +65,16 @@ static void _op_delete(struct op *op);
 static struct op *_op_prepare(gpsm_item_t *item);
 static int _op_cow(struct op *op);
 static void _op_add(struct op *op);
-static void _op_fixswfiles(struct op *op);
+static void _op_fix_swfiles(struct op *op);
 static int _op_undo(struct op *op);
 static struct op *_op_find_filename(long filename);
 static struct op *_op_find_filename_before(long filename, struct op *op);
 static struct op *_op_find_saved(long filename);
 struct op *_op_get(gpsm_item_t *item);
+static struct op *_op_kill_redo(struct op *op);
+static struct op *_op_get_prev(struct op *op);
+struct op *_op_get_redo(gpsm_swfile_t **files, int cnt);
+struct op *_op_get_undo(gpsm_swfile_t **files, int cnt);
 
 
 /*
@@ -1416,9 +1420,10 @@ int gpsm_op_prepare(gpsm_item_t *item)
 		return -1;
 
 	/* We need to possibly kill off a redo-record. */
-	if ((op = _op_get(item)) && op->is_undo)
-		_op_delete(op);
+	if ((op = _op_get(item)))
+		_op_kill_redo(op);
 
+	/* Start new op. */
 	if (!(op = _op_prepare(item)))
 		return -1;
 	op->is_undo = 0;
@@ -1435,41 +1440,20 @@ int gpsm_op_prepare(gpsm_item_t *item)
 
 int gpsm_op_can_undo(gpsm_item_t *item)
 {
-	struct op *op, *prev;
-	int i,j;
+	struct op *op;
 
 	if (!item)
 		return 0;
 
+	/* Get the top operation, if its not redo we can undo. */
 	op = _op_get(item);
 	if (!op)
 		return 0;
 	if (!op->is_undo)
 		return 1;
 
-	/* Now we need to check if there is a previous correct
-	 * undo op. Note that such has to have a matching pairs
-	 * array (apart from permutation), so just searching for
-	 * the previous op of one file is ok. */
-	prev = _op_find_filename_before(op->pair[0].file, op);
-	if (!prev)
-		return 0;
-	for (i=0; i<op->nrpairs; i++) {
-		for (j=0; j<prev->nrpairs; j++)
-			if (op->pair[i].file == prev->pair[j].file)
-				break;
-		if (j == prev->nrpairs)
-			return 0;
-	}
-	for (i=0; i<prev->nrpairs; i++) {
-		for (j=0; j<op->nrpairs; j++)
-			if (prev->pair[i].file == op->pair[j].file)
-				break;
-		if (j == op->nrpairs)
-			return 0;
-	}
-
-	return 1;
+	/* If there is underlying undo, we can undo, too. */
+	return _op_get_prev(op) ? 1 : 0;
 }
 
 int gpsm_op_can_redo(gpsm_item_t *item)
@@ -1493,12 +1477,10 @@ int gpsm_op_undo(gpsm_item_t *item)
 	if (!item || !(op = _op_get(item)))
 		return -1;
 
-	/* If op is undoed item, kill it, get again. */
-	if (op->is_undo) {
-		_op_delete(op);
-		if (!(op = _op_get(item)))
-			return -1;
-	}
+	/* Kill possible redos. */
+	op = _op_kill_redo(op);
+	if (op->is_undo)
+		return -1;
 
 	/* Prepare for redo. */
 	if (!(redo = _op_prepare(item)))
@@ -1527,12 +1509,10 @@ int gpsm_op_undo_and_forget(gpsm_item_t *item)
 	if (!item || !(op = _op_get(item)))
 		return -1;
 
-	/* If op is undoed item, kill it, get again. */
-	if (op->is_undo) {
-		_op_delete(op);
-		if (!(op = _op_get(item)))
-			return -1;
-	}
+	/* Kill possible redos. */
+	op = _op_kill_redo(op);
+	if (op->is_undo)
+		return -1;
 
 	/* Undo. */
 	if (_op_undo(op) == -1)
@@ -1623,8 +1603,6 @@ static struct op *_op_new(int nrpairs)
  * point to their latest operation available. */
 static void _op_delete(struct op *op)
 {
-	gpsm_swfile_t *swfile;
-	struct op *prev_op;
 	int i;
 
 	if (!list_empty(&op->list)) {
@@ -1632,23 +1610,43 @@ static void _op_delete(struct op *op)
 		op_listsize--;
 	}
 
-	/* Loop through all files, find the latest op for it and correct
-	 * all swfiles. Also kill saved file. */
+	/* Fix all refed swfiles. */
+	_op_fix_swfiles(op);
+
+	/* Loop through all pairs, killing the saved files. */
 	for (i=0; i<op->nrpairs; i++) {
 		if (op->pair[i].saved == -1)
 			continue;
 		sw_unlink(op->pair[i].saved);
-		prev_op = _op_find_filename(op->pair[i].file);
-		swfile = NULL;
-		while ((swfile = hash_find_next_swfile(op->pair[i].file, swfile))) {
-			if (!prev_op)
-				swfile->last_op_time = (struct timeval){0,0};
-			else
-				swfile->last_op_time = prev_op->time;
-		}
 	}
 
 	free(op);
+}
+
+/* Kills overlapping redos (if an underlying undo is available),
+ * also partial ones. */
+static struct op *_op_kill_redo(struct op *op)
+{
+	struct op *prev, *op2;
+	int i;
+
+	if (op->is_undo) {
+		/* If there is no prev op, do nothing, else kill off
+		 * the redo and return the prev. */
+		if (!(prev = _op_get_prev(op)))
+			return op;
+		_op_delete(op);
+		return prev;
+	}
+
+	/* Now we need to kill "partially overlapping" redos. */
+	for (i=0; i<op->nrpairs; i++) {
+		op2 = _op_find_filename(op->pair[i].file);
+		if (op2 != op)
+			_op_delete(op2);
+	}
+
+	return op;
 }
 
 /* Finds the operation containing the saved swapfile file with the
@@ -1692,47 +1690,184 @@ static struct op *_op_find_filename(long filename)
 	return _op_find_filename_before(filename, (struct op *)&oplist);
 }
 
+/* Check if an operation has a previous "correct" operation (can only
+ * be undo). */
+static struct op *_op_get_prev(struct op *op)
+{
+	struct op *prev;
+	int i, j;
+
+	/* The first prev is good enough. */
+	prev = _op_find_filename_before(op->pair[0].file, op);
+	if (!prev)
+		return NULL;
+
+	/* Counts have to match. */
+	if (prev->nrpairs != op->nrpairs)
+		return NULL;
+
+	/* Now we have to check there are no ops "inbetween". */
+	for (i=1; i<op->nrpairs; i++)
+		if (_op_find_filename_before(op->pair[i].file, op) != prev)
+			return NULL;
+
+	/* And we have to check for exact match of both file sets. */
+	for (i=0; i<op->nrpairs; i++) {
+		for (j=0; j<prev->nrpairs; j++)
+			if (op->pair[i].file == prev->pair[j].file)
+				break;
+		if (j == prev->nrpairs)
+			return NULL;
+	}
+	for (i=0; i<prev->nrpairs; i++) {
+		for (j=0; j<op->nrpairs; j++)
+			if (prev->pair[i].file == op->pair[j].file)
+				break;
+		if (j == op->nrpairs)
+			return NULL;
+	}
+
+	return prev;
+}
+
+/* Return the pending redo operation of the provided files, if
+ * available, or NULL. */
+struct op *_op_get_redo(gpsm_swfile_t **files, int cnt)
+{
+	struct op *op;
+	int i, j;
+
+	/* As redo is always "on top", if it is redo, its also
+	 * the most recent op of file 0. */
+	op = _op_find_filename(gpsm_swfile_filename(files[0]));
+	if (!op || !op->is_undo)
+		return NULL;
+
+	/* We need to check, if the file sets are equal. It should
+	 * be enough to check for equality of the array sizes here,
+	 * as else something else is broken, too. */
+	if (op->nrpairs != cnt)
+		return NULL;
+
+	/* As redo is always "on top", equal times are now required
+	 * for all swfiles. */
+	for (i=1; i<cnt; i++)
+		if (!timercmp(&files[i]->last_op_time,
+			      &files[0]->last_op_time, ==))
+			return NULL;
+
+	/* We need to check, if the file sets are equal. */
+	for (i=0; i<cnt; i++) {
+		for (j=0; j<op->nrpairs; j++)
+			if (op->pair[j].file == files[i]->filename)
+				break;
+		if (j == op->nrpairs)
+			return NULL;
+	}
+	for (j=0; j<op->nrpairs; j++) {
+		for (i=0; i<cnt; i++)
+			if (op->pair[j].file == files[i]->filename)
+				break;
+		if (i == cnt)
+			return NULL;
+	}
+
+	return op;
+
+}
+
+/* Return the pending undo operation of the provided files, if
+ * available, or NULL. */
+struct op *_op_get_undo(gpsm_swfile_t **files, int cnt)
+{
+	struct op *op, *op2;
+	int i, j;
+
+	/* As undo is not required to be "on top", but one level
+	 * of redo (different op on each swfile possible!) is
+	 * allowed, we need to find the undo first, i.e. start
+	 * with file 0, possibly skip redo and check for each
+	 * other file, if there is the same und op pending.
+	 */
+
+	/* Start with file 0 and find the only possible candidate
+	 * for the pending undo op. */
+	op = _op_find_filename(gpsm_swfile_filename(files[0]));
+	if (!op)
+		return NULL;
+	if (op->is_undo)
+		op = _op_find_filename_before(gpsm_swfile_filename(files[0]), op);
+	if (!op)
+		return NULL;
+
+	/* We need to check, if the file sets are equal. It should
+	 * be enough to check for equality of the array sizes here,
+	 * as else something else is broken, too. */
+	if (op->nrpairs != cnt)
+		return NULL;
+
+	/* Check the other files - matching timestamp is good enough,
+	 * matching op, too, of course. */
+	for (i=1; i<cnt; i++) {
+		if (timercmp(&files[i]->last_op_time,
+			     &files[0]->last_op_time, ==))
+			continue;
+		/* Ok, so skip the first op (which needs to be
+		 * a redo) and match the two ops. */
+		op2 = _op_find_filename(files[i]->filename);
+		if (!op2 || !op2->is_undo)
+			return NULL;
+		op2 = _op_find_filename_before(files[i]->filename, op2);
+		if (op2 != op)
+			return NULL;
+	}
+
+	/* We need to check, if the file sets are equal. */
+	for (i=0; i<cnt; i++) {
+		for (j=0; j<op->nrpairs; j++)
+			if (op->pair[j].file == files[i]->filename)
+				break;
+		if (j == op->nrpairs)
+			return NULL;
+	}
+	for (j=0; j<op->nrpairs; j++) {
+		for (i=0; i<cnt; i++)
+			if (op->pair[j].file == files[i]->filename)
+				break;
+		if (i == cnt)
+			return NULL;
+	}
+
+	return op;
+}
+
 /* Get the latest operation available for the subtree item. Returns
  * an operation, if exists and is complete. Else returns NULL. */
 struct op *_op_get(gpsm_item_t *item)
 {
 	gpsm_swfile_t **files;
 	struct op *op;
-	int cnt, i,j ;
+	int cnt;
 
 	/* Get the files of the subtree, reject empty. */
 	cnt = _gpsm_get_swfiles(item, &files);
 	if (cnt == 0)
 		return NULL;
 
-	/* Check if there is undo pending for the whole set. */
-	for (i=0; i<cnt; i++)
-		if ((files[i]->last_op_time.tv_sec == 0
-		     && files[i]->last_op_time.tv_usec == 0)
-		    || !timercmp(&files[i]->last_op_time,
-				 &files[0]->last_op_time, ==)) {
-			free(files);
-			return NULL;
-		}
+	/* Redo pending? */
+	if ((op = _op_get_redo(files, cnt))) {
+		free(files);
+		return op;
+	}
 
-	/* Get the operation struct. */
-	op = _op_find_filename(gpsm_swfile_filename(files[0]));
-	if (!op)
-		PANIC("Undo pending, but no op!?");
-
-	/* Check, if the set is really the whole set. */
-	for (i=0; i<op->nrpairs; i++) {
-		for (j=0; j<cnt; j++)
-			if (gpsm_swfile_filename(files[j]) == op->pair[i].file)
-				break;
-		if (j==cnt) {
-			free(files);
-			return NULL;
-		}
+	/* Undo pending? */
+	if ((op = _op_get_undo(files, cnt))) {
+		free(files);
+		return op;
 	}
 
 	free(files);
-	return op;
+	return NULL;
 }
 
 /* Alloc, init, but do _not_ add to oplist, fix all swfiles nor cow. */
@@ -1800,7 +1935,7 @@ static int _op_cow(struct op *op)
 static void _op_add(struct op *op)
 {
 	list_add(&op->list, &oplist);
-	_op_fixswfiles(op);
+	_op_fix_swfiles(op);
 	op_listsize++;
 	while (op_listsize > op_max_listsize) {
 		DPRINTF("deleting too big list\n");
@@ -1809,17 +1944,22 @@ static void _op_add(struct op *op)
 	}
 }
 
-/* Fix all swfiles last_op_time referenced by the operation op to the
- * ops time. */
-static void _op_fixswfiles(struct op *op)
+/* Fix all swfiles last_op_time referenced by the operation op by
+ * searching for the most recent available op in the oplist. */
+static void _op_fix_swfiles(struct op *op)
 {
 	int i;
 
 	for (i=0; i<op->nrpairs; i++) {
 		gpsm_swfile_t *swfile = NULL;
+		struct op *recent = _op_find_filename(op->pair[i].file);
 		while ((swfile = hash_find_next_swfile(op->pair[i].file,
-						       swfile)))
-			swfile->last_op_time = op->time;
+						       swfile))) {
+			if (!recent)
+				swfile->last_op_time = (struct timeval){0,0};
+			else
+				swfile->last_op_time = recent->time;
+		}
 	}
 }
 
