@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.67 2001/07/05 13:59:28 mag Exp $
+ * $Id: main.c,v 1.68 2001/07/06 12:12:36 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -138,7 +138,8 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, -1);
 
 	/* Find out which widget it got. */
-	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(swapfile), (gpsm_item_t *)grp);
+	grpw = glame_tree_find_gpsm_item(
+		GTK_OBJECT(SWAPFILE_GUI(swapfile)->tree), (gpsm_item_t *)grp);
 	if (!grpw) {
 		DPRINTF("Umm, cant find widget for new project.\n");
 		return;
