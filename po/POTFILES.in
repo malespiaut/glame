@@ -1,0 +1,5 @@
+# List of source files containing translatable strings.
+
+# So far we're in testing mode still. Only a single file for now.
+src/gui/main.c
+
