@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.1 2001/07/30 08:22:37 richi Exp $
+ * $Id: glame_param.c,v 1.2 2001/07/31 08:43:28 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -208,9 +208,8 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 	return res == 0 ? TRUE : FALSE;
 }
 
-static gint optionmenu_cb(GtkOptionMenu *om, GlameParam *gparam)
+static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 {
-	GtkMenu *menu;
 	GtkWidget *act;
 	GList *list;
 	int res = -1, val;
@@ -221,7 +220,6 @@ static gint optionmenu_cb(GtkOptionMenu *om, GlameParam *gparam)
 	gparam->updating = 1;
 
 	/* Doh - GTK suxx again. */
-	menu = GTK_MENU(gtk_option_menu_get_menu(om));
 	act = gtk_menu_get_active(menu);
 	DPRINTF("Menu %p - Active %p\n", menu, act);
 	list = gtk_container_children(GTK_CONTAINER(menu));
@@ -400,7 +398,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		DPRINTF("FIXME\n");
 	else if (GTK_IS_OPTION_MENU(gparam->u.widget))
 		/* FIXME - option menu seems unsupportable */
-		gtk_signal_connect(GTK_OBJECT(gparam->u.widget), "released",
+		gtk_signal_connect(GTK_OBJECT(gtk_option_menu_get_menu(GTK_OPTION_MENU(gparam->u.widget))), "selection_done",
 				   (GtkSignalFunc)optionmenu_cb, gparam);
 	else
 		DPRINTF("FIXME - unsupported widget type\n");
