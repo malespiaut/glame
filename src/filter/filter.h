@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.44 2000/04/05 08:56:29 richi Exp $
+ * $Id: filter.h,v 1.45 2000/04/06 11:45:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -443,6 +443,10 @@ int filternode_set_param(filter_node_t *n, const char *label, void *val);
 char *filterparam_to_string(filter_param_t *param);
 void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 
+/* Set already existant parameter. To be used mainly in the
+ * fixup_param method to avoid recursing on it.
+ */
+void filterparam_set(filter_param_t *param, void *val);
 
 
 /* Filter pipes represent a connection between two

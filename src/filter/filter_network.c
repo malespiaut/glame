@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.38 2000/03/29 09:47:17 richi Exp $
+ * $Id: filter_network.c,v 1.39 2000/04/06 11:45:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,8 +43,11 @@
 /* filter node API.
  */
 
-static void set_param(filter_param_t *param, void *val)
+void filterparam_set(filter_param_t *param, void *val)
 {
+	if (!param || !val)
+		return;
+
 	switch (FILTER_PARAMTYPE(param->desc->type)) {
 	case FILTER_PARAMTYPE_INT:
 		param->val.i = *(int *)val;
@@ -155,7 +158,7 @@ int filternode_set_param(filter_node_t *n, const char *label, void *val)
 		hash_add_param(param, n);
 		list_add_param(param, n);
 	}
-	set_param(param, val);
+	filterparam_set(param, val);
 
 	return n->filter->fixup_param(n, NULL, label, param);
 }
@@ -175,7 +178,7 @@ int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val)
 		hash_add_sourceparam(param, p);
 		list_add_sourceparam(param, p);
 	}
-	set_param(param, val);
+	filterparam_set(param, val);
 
 	/* FIXME: ummm, need fixup_pipesourceparam???? */
 	return p->source->filter->fixup_param(p->source, p, label, param);
@@ -196,7 +199,7 @@ int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val)
 		hash_add_destparam(param, p);
 		list_add_destparam(param, p);
 	}
-	set_param(param, val);
+	filterparam_set(param, val);
 
 	/* FIXME: ummm, need fixup_pipedestparam???? */
 	return p->dest->filter->fixup_param(p->dest, p, label, param);
