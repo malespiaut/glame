@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.25 2001/04/10 10:55:30 richi Exp $
+ * $Id: main.c,v 1.26 2001/04/10 12:00:47 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -266,6 +266,7 @@ static void glame_splash(void)
 	GtkWidget* foo;
 
 	foo = glame_about();
+	gtk_object_destroy(GTK_WIDGET((GNOME_DIALOG(foo))->action_area));
 
 #ifdef DEBUG
 	gtk_timeout_add(1000,remove_splash,foo);
