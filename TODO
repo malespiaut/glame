@@ -4,12 +4,8 @@ supposed to fix it.
 
 Known BUGS that should be fixed before 0.5.3:
 ---------------------------------------------
-- default configuration/updating needs to go from gui/main.c
-  to glmid/glmid.c and made more sensible (like killing
-  various globals)
-- toolbar icons of the waveedit window are not really intuitive...
-  (select all, select none, menu)
-- fix zoom out zooming too much (should stay at view all)
+- testing
+
 
 Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
