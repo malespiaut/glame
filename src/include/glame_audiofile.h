@@ -598,4 +598,8 @@ int afSeekMisc (AFfilehandle, int miscellaneousid, int offset);
 
 #endif /* HAVE_AUDIOFILE */
 
+/* glame helper functions *//
+
+int glame_get_filetype_by_name(char*);
+
 #endif /* AUDIOFILE_H */
