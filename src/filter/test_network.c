@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_network.c,v 1.3 2000/02/09 12:33:24 richi Exp $
+ * $Id: test_network.c,v 1.4 2000/02/10 11:07:19 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -22,6 +22,7 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,13 +30,31 @@
 #include "filter.h"
 
 
+filter_network_t *net = NULL;
+
+static void cleanup(int sig)
+{
+	filternetwork_terminate(net);
+	filternetwork_delete(net);
+	exit(0);
+}
 
 int main(int argc, char **argv)
 {
-	filter_network_t *net;
+	struct sigaction sa;
 	filter_node_t *n;
 	filter_t *f;
 	int i;
+
+	
+	sa.sa_flags = 0;
+	sa.sa_handler = cleanup;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_sigaction = NULL;
+	if (sigaction(SIGINT, &sa, NULL) == -1)
+		perror("sigaction");
+	if (sigaction(SIGTERM, &sa, NULL) == -1)
+		perror("sigaction");
 
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s network {param value}\n", argv[0]);

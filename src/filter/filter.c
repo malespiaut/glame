@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.14 2000/02/09 23:33:47 nold Exp $
+ * $Id: filter.c,v 1.15 2000/02/10 11:07:19 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -278,6 +278,7 @@ extern int volume_adjust(filter_node_t *n);
 extern int waveform_register();
 extern int read_file_register();
 extern int echo_register();
+extern int echo2_register();
 
 int filter_init()
 {
@@ -311,6 +312,10 @@ int filter_init()
 	
 	/* initialize echo filter */
 	if (echo_register() == -1)
+		return -1;
+
+	/* initialize echo2 filter */
+	if (echo2_register() == -1)
 		return -1;
 	
 	if (!(f = filter_alloc("volume_adjust", "scale samples",

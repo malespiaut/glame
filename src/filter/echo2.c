@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.2 2000/02/09 15:37:37 richi Exp $
+ * $Id: echo2.c,v 1.3 2000/02/10 11:07:19 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -31,7 +31,7 @@
 #include "util.h"
 
 
-static int echo_f(filter_node_t *n)
+static int echo2_f(filter_node_t *n)
 {
 	filter_param_t *param;
 	int delay;  /* in samples */
@@ -161,11 +161,11 @@ static int echo_f(filter_node_t *n)
 
 /* Registry setup of all contained filters
  */
-int echo_register()
+int echo2_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("echo2", "echo effect", echo_f))
+	if (!(f = filter_alloc("echo2", "echo effect", echo2_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",

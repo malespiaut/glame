@@ -31,7 +31,14 @@ if test $GCC = "yes"; then
 	fi
 fi
 
+dnl
 dnl Checks for libraries.
+dnl use GLAME_LIBS & GLAME_CFLAGS
+
+GLAME_LIBS=""
+GLAME_CFLAGS=""
+
+
 
 dnl GTK checks disabled for now
 dnl 
@@ -51,19 +58,42 @@ dnl GLIB_LIBS="$GLIB_LDFLAGS `echo $GTK_LIBS | sed 's/^.*\(-lglib[^ ]*\).*$/\1/'
 dnl 
 dnl changequote([,])dnl
 
+
+dnl
+dnl Checks for various audio stuff.
+dnl
+
 dnl check for libaudiofile
-AUDIOFILE_LIBS=""
-AC_CHECK_LIB(audiofile, afCloseFile, AUDIOFILE_LIBS="-laudiofile")
-if ! test -z $AUDIOFILE_LIBS; then
+AC_CHECK_LIB(audiofile, afCloseFile, laf=yes, laf=no)
+AC_CHECK_HEADER(audiofile.h,, laf=no)
+if test $laf = yes; then
+	GLAME_LIBS="$GLAME_LIBS -laudiofile"
 	AC_DEFINE(HAVE_AUDIOFILE)
+fi
+
+dnl check for libsndfile - FIXME
+lsf=no
+if test $lsf = yes; then
+	GLAME_LIBS="$GLAME_LIBS -lsndfile"
+	AC_DEFINE(HAVE_SNDFILE)
 fi
 
 dnl check for esd
 AM_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
+	GLAME_LIBS="$GLAME_LIBS $ESD_LIBS"
+	GLAME_CFLAGS="$GLAME_CFLAGS $ESD_CFLAGS"
 	AC_DEFINE(HAVE_ESD)
-	AUDIOFILE_LIBS=
 fi
+
+dnl check for native IRIX audio
+AC_CHECK_LIB(audio, alWriteBuffers, la=yes, la=no)
+AC_CHECK_HEADER(dmedia/audio.h,, la=no)
+if test $la = yes; then
+	GLAME_LIBS="$GLAME_LIBS -laudio"
+	AC_DEFINE(HAVE_SGIAUDIO)
+fi
+
 
 dnl check for electric fence
 efence=""
@@ -96,8 +126,9 @@ AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
-AC_SUBST(DEBUG_LIBS)
-AC_SUBST(AUDIOFILE_LIBS)
+AC_SUBST(GLAME_LIBS)
+AC_SUBST(GLAME_CFLAGS)
+
 
 case "$host_cpu" in
 i?86)

@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.12 2000/02/09 15:37:37 richi Exp $ 
+ * $Id: read_file.c,v 1.13 2000/02/10 11:07:19 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -180,6 +180,15 @@ _bailout:
 	afCloseFile(file);
 	return -1;
 }
+int read_file_connect_out(filter_node_t *n, const char *port,
+			  filter_pipe_t *p)
+{
+	/* FIXME */
+	p->type = FILTER_PIPETYPE_SAMPLE;
+	p->u.sample.rate = 44100;
+
+	return 0;
+}
 
 
 /* Registry setup of all contained filters
@@ -196,7 +205,8 @@ int read_file_register()
 				  FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
 		return -1;
-	 if (filter_add(f) == -1)
+	f->connect_out = read_file_connect_out;
+	if (filter_add(f) == -1)
 		return -1;
 
 	return 0;
