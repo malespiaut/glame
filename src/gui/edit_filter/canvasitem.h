@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.1 2001/05/03 22:58:10 xwolf Exp $
+ * $Id: canvasitem.h,v 1.2 2001/05/04 15:40:37 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -99,7 +99,23 @@ struct _GlameCanvasFilter {
 	double last_x, last_y;
 	gint timeout_id : 0;
 	GList *property_texts : NULL;
+
+	GlameCanvasFilter **pprev_filter_hash;
+	GlameCanvasFilter *next_filter_hash;
 };
+
+/*
+ *
+HASH(GCfilter, GlameCanvasFilter, 8,
+	(GCfilter->filter == key ),
+	((long)key/4),
+	((long)GCfilter->filter/4),
+	filter_t * key)
+
+	GlameCanvasFilter* hash_find_GCfilter(filter_t*);
+	void hash_add_GCFilter(GlameCanvasFilter*);
+
+ */
 
 struct _GlameCanvasFilterClass {
 	GnomeCanvasGroupClass parent_class;
