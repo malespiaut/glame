@@ -1,3 +1,17 @@
+GLAME version 0.4.0beta:
+========================
+Feature freeze and bug squashing phase. The GUI has been
+largely rewritten and extended. Changes since 0.2.0:
+- filter backend rewrite
+- new midlayer for handling the swapfile and its
+  metadata transparently (not scripted yet)
+- LADSPA plugin support
+- more and better plugins
+- one central GUI for filter network and wave stuff
+- full featured filter network widget
+- swapfile viewing widget as basis for the
+- wave viewing and editing widget
+
 GLAME version 0.3.4:
 ====================
 Again a development phase. Many things changed between

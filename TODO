@@ -1,8 +1,8 @@
 TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
-Things we absolutely need to do before 0.4.0:
----------------------------------------------
+Things we (absolutely) need to do before 0.4.0:
+-----------------------------------------------
 
 doc/
 	- document available filters [nold/the filter authors]
@@ -15,20 +15,21 @@ plugins/
 	- file_io needs fixed libaudiofile support
 
 hash/
-        - glsimd [all]
+	[all]
+        - glsimd
           * think of useful SIMD operations with good (ask richi) API 
 	  * at LEAST replace existing macros with SIMD API calls 
 
 gui/
 	[all]
-	- the timeline stuff is still missing
 
 
-Items that can be postponed forever:
-------------------------------------
+Items that can be postponed forever (at least until 0.6):
+---------------------------------------------------------
 
 hash/
-        - glsimd [all]
+	[all]
+        - glsimd
           * do 3dnow, isse, mmx, etc. versions of existing operations
           * think of how to do run-time detection/profiling
 
@@ -43,3 +44,7 @@ filter/
 swapfile/
         [richi]
 	- implement the transactions, restore undo/redo
+
+gui/
+	[all]
+	- the timeline stuff is still missing
