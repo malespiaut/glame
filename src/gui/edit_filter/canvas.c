@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.29 2001/03/01 15:16:42 xwolf Exp $
+ * $Id: canvas.c,v 1.30 2001/03/01 16:19:24 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1528,6 +1528,7 @@ canvas_load_network(GtkWidget *bla, void *blu)
 	GtkWidget * fileEntry;
 	GtkWidget * dialog;
 	GtkWidget * vbox;
+	filter_t *filter;
 	char * filenamebuffer;
 	filenamebuffer = calloc(100,sizeof(char));
 
@@ -1538,13 +1539,10 @@ canvas_load_network(GtkWidget *bla, void *blu)
 	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
 	create_label_widget_pair(vbox,"Filename",fileEntry);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		if(glame_load_plugin(filenamebuffer)){
-		      
-			// load_plugin doesn't really give anything sensible back
-			//errorbox = gnome_warning_dialog("Loading failed...");
-			//gnome_dialog_run_and_close(errorbox);
-		}
-		fprintf(stderr,"FIXME!! I'm missing :-)\n");
+		filter = glame_load_instance(filenamebuffer);
+		if(filter)
+			draw_network(filter);
+
 	}
 	free(filenamebuffer);
 }
@@ -1717,11 +1715,10 @@ static void describe_item(GtkWidget* wid,GlameCanvasItem* it)
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
 }
 
-
-static void
-draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
+void
+draw_network(filter_t *filter)
 {
-      	gui_network * net;       
+   	gui_network * net;       
 	GtkWidget * canv;
 	filter_t * node;
 	filter_port_t *port;
@@ -1731,31 +1728,37 @@ draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 	GlameConnection *connection;
 	double x,y;
 	char * numberbuffer;
-
-	if(!FILTER_IS_NETWORK(item->filter)){
-	      fprintf(stderr,"Not a network!\n");
-	      return;
+	
+	if(!FILTER_IS_NETWORK(filter)){
+		fprintf(stderr,"Not a network!\n");
+		return;
 	}
 	net = malloc(sizeof(gui_network));
 
 	net->caption = NULL;
 	net->pixname = NULL;
 	net->descr = NULL;
-	net->net = item->filter;
+	net->net = filter;
 	
 	create_new_canvas(net);
 	canv = net->canvas;
 	//	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
-	filter_foreach_node(item->filter,node){
+	filter_foreach_node(filter,node){
 		
 		new_item = glame_canvas_item_new(gnome_canvas_root(GNOME_CANVAS(canv)),node,0.0,0.0);
 		numberbuffer = filter_get_property(node,"canvas_x");
-		x = atof(numberbuffer);
+		if(numberbuffer)
+			x = atof(numberbuffer);
+		else
+			x = 0.0;
 		numberbuffer = filter_get_property(node,"canvas_y");
-		y = atof(numberbuffer);
+		if(numberbuffer)
+			y = atof(numberbuffer);
+		else
+			y = 0.0;
 		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
 	}
-	filter_foreach_node(item->filter,node){
+	filter_foreach_node(filter,node){
 		list = g_list_first(((GlameCanvasItem*)(node->gui_priv))->output_ports);
 		while(list){
 			filterport_foreach_pipe(GLAME_CANVAS_PORT(list->data)->port,pipe){
@@ -1767,4 +1770,10 @@ draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 			list = g_list_next(list);
 		}
 	}
+}
+
+static void
+draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
+{
+	draw_network(item->filter);
 }
