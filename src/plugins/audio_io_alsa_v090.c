@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.7 2001/06/29 22:35:55 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.8 2001/07/04 09:37:16 uid21825 Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -87,7 +87,7 @@ int configure_pcm(snd_pcm_t *handle,
 		return -1;
 	}
 
-	if ((err = snd_pcm_hw_params_set_rate (handle, hw_params, rate, 0)) < 0) {
+	if ((err = snd_pcm_hw_params_set_rate_near(handle, hw_params, rate, 0)) < 0) {
 		DPRINTF( "ALSA: cannot set sample/frame rate to %d\n", rate);
 		return -1;
 	}
