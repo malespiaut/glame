@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.28 2001/03/01 13:59:14 xwolf Exp $
+ * $Id: canvas.c,v 1.29 2001/03/01 15:16:42 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1125,7 +1125,34 @@ create_new_node(GnomeCanvas *canvas, filter_t *filter,double x, double y)
 }
 
 
-
+void
+add_connection_with_pipe(GlameConnection *c)
+{
+	filter_port_t *dest;
+	GlameCanvasItem * item;
+	GList * ports;
+	GlameCanvasPort * destPort=NULL;
+	c->line=NULL;
+	dest = filterpipe_dest(c->pipe);
+	item = GLAME_CANVAS_ITEM(filterport_filter(dest)->gui_priv);
+	ports = g_list_first(item->input_ports);
+	while(ports){
+		if(GLAME_CANVAS_PORT(ports->data)->port == dest)
+			destPort=GLAME_CANVAS_PORT(ports->data);
+		ports = g_list_next(ports);
+	}
+	if(!destPort){
+		fprintf(stderr,"Fatal! Port not found, this can't happen!\n");
+		return;
+	}
+	c->end = destPort;
+	c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
+	c->end->connected_ports=g_list_append(c->end->connected_ports,c);
+	c->begin_id = g_list_length(c->begin->connected_ports);
+	c->end_id = g_list_length(c->end->connected_ports);
+	connect_canvas_ports(c);
+}
+	
 int
 add_connection(GlameConnection *c)
 {
@@ -1697,7 +1724,11 @@ draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
       	gui_network * net;       
 	GtkWidget * canv;
 	filter_t * node;
+	filter_port_t *port;
+	filter_pipe_t *pipe;
+	GList *list;
 	GlameCanvasItem* new_item;
+	GlameConnection *connection;
 	double x,y;
 	char * numberbuffer;
 
@@ -1723,5 +1754,17 @@ draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 		numberbuffer = filter_get_property(node,"canvas_y");
 		y = atof(numberbuffer);
 		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
+	}
+	filter_foreach_node(item->filter,node){
+		list = g_list_first(((GlameCanvasItem*)(node->gui_priv))->output_ports);
+		while(list){
+			filterport_foreach_pipe(GLAME_CANVAS_PORT(list->data)->port,pipe){
+				connection = malloc(sizeof(GlameConnection));
+				connection->pipe = pipe;
+				connection->begin = GLAME_CANVAS_PORT(list->data);
+				add_connection_with_pipe(connection);
+			}
+			list = g_list_next(list);
+		}
 	}
 }
