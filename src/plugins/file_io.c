@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.46 2001/04/19 16:19:34 mag Exp $
+ * $Id: file_io.c,v 1.47 2001/04/19 16:39:31 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -259,9 +259,9 @@ static void read_file_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 	filter_pipe_t	*pipe;
 	
 	GLSIGH_GETARGS1(va, pipe);
-	n = filterport_filter(filterpipe_dest(in));
+	n = filterport_filter(filterpipe_dest(pipe));
 	if (RWPRIV(n)->rw) {
-		RWPRIV(n)->rw->connect(n, in);
+		RWPRIV(n)->rw->connect(n, pipe);
 	}
 }
 
