@@ -1,5 +1,5 @@
 dnl Code shamelessly stolen from glib-config by Sebastian Rittau
-dnl AM_PATH_XML([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
+dnl AMG_PATH_XML([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 AC_DEFUN(AMG_PATH_XML,[
 AC_ARG_WITH(xml-prefix,
             [  --with-xml-prefix=PFX    Prefix where libxml is installed (optional)],
@@ -42,7 +42,6 @@ dnl
       AC_TRY_RUN([
 #include <stdlib.h>
 #include <stdio.h>
-#include <xmlversion.h>
 #include <parser.h>
 
 int
@@ -60,30 +59,10 @@ main()
     exit(1);
   }
 
-  tmp_version = xmlStrdup(LIBXML_DOTTED_VERSION);
-  if(sscanf(tmp_version, "%d.%d.%d", &xml_major_version, &xml_minor_version, &xml_micro_version) != 3) {
-    printf("%s, bad version string\n", "$min_xml_version");
-    exit(1);
-  }
+  xml_major_version = $xml_config_major_version;
+  xml_minor_version = $xml_config_minor_version;
+  xml_micro_version = $xml_config_micro_version;
 
-  if((xml_major_version != $xml_config_major_version) ||
-     (xml_minor_version != $xml_config_minor_version) ||
-     (xml_micro_version != $xml_config_micro_version))
-    {
-      printf("\n*** 'xml-config --version' returned %d.%d.%d, but libxml (%d.%d.%d)\n", 
-             $xml_config_major_version, $xml_config_minor_version, $xml_config_micro_version,
-             xml_major_version, xml_minor_version, xml_micro_version);
-      printf("*** was found! If xml-config was correct, then it is best\n");
-      printf("*** to remove the old version of libxml. You may also be able to fix the error\n");
-      printf("*** by modifying your LD_LIBRARY_PATH enviroment variable, or by editing\n");
-      printf("*** /etc/ld.so.conf. Make sure you have run ldconfig if that is\n");
-      printf("*** required on your system.\n");
-      printf("*** If xml-config was wrong, set the environment variable XML_CONFIG\n");
-      printf("*** to point to the correct copy of xml-config, and remove the file config.cache\n");
-      printf("*** before re-running configure\n");
-    }
-  else
-    {
       if ((xml_major_version > major) ||
           ((xml_major_version == major) && (xml_minor_version > minor)) ||
           ((xml_major_version == major) && (xml_minor_version == minor) &&
@@ -107,7 +86,6 @@ main()
           printf("*** modify your LD_LIBRARY_PATH enviroment variable, or edit /etc/ld.so.conf\n");
           printf("*** so that the correct libraries are found at run-time))\n");
         }
-    }
   return 1;
 }
 ],, no_xml=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
