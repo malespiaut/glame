@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.10 2001/04/09 09:18:48 richi Exp $
+ * $Id: gltreeitem.c,v 1.11 2001/04/27 09:24:20 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -94,7 +94,17 @@ void glame_tree_item_update(GlameTreeItem *item)
 
 	/* Create the label out of the gpsm item data. */
 	if (GPSM_ITEM_IS_GRP(item->item)) {
-		snprintf(buf, 255, "%s", gpsm_item_label(item->item));
+#ifdef DEBUG
+		snprintf(buf, 255, "%s [%li %li %li %li]",
+			 gpsm_item_label(item->item),
+			 gpsm_item_hposition(item->item),
+			 gpsm_item_vposition(item->item),
+			 gpsm_item_hsize(item->item),
+			 gpsm_item_vsize(item->item));
+#else
+		snprintf(buf, 255, "%s",
+			 gpsm_item_label(item->item));
+#endif
 	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
 		swfd_t fd = sw_open(gpsm_swfile_filename(item->item),
 				    O_RDONLY, TXN_NONE);
@@ -103,11 +113,21 @@ void glame_tree_item_update(GlameTreeItem *item)
 		if (fd != -1 && sw_fstat(fd, &st) != -1)
 			size = st.size/SAMPLE_SIZE;
 		sw_close(fd);
+#ifdef DEBUG
+		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs [%li %li]",
+			 gpsm_item_label(item->item),
+			 gpsm_swfile_filename(item->item),
+			 gpsm_swfile_samplerate(item->item),
+			 (float)size/(float)gpsm_swfile_samplerate(item->item),
+			 gpsm_item_hposition(item->item),
+			 gpsm_item_hsize(item->item));
+#else
 		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs",
 			 gpsm_item_label(item->item),
 			 gpsm_swfile_filename(item->item),
 			 gpsm_swfile_samplerate(item->item),
 			 (float)size/(float)gpsm_swfile_samplerate(item->item));
+#endif
 	}
 
 	/* Update/create the GtkLabel contained in the GtkBin
