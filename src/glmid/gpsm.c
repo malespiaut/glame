@@ -1184,15 +1184,31 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 	if (!root || !gpsm_hbox_can_insert(hbox, item, hposition, vposition))
 		return -1;
 
-	/* Cut out the item first - closing the gap it leaves.
-	 * FIXME: whats the removal semantic we want to have? */
-	if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
-		gpsm_hbox_cut(item);
-	else if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
-		gpsm_vbox_cut(item);
-	else {
-		DPRINTF("WARNING: doing ordinary remove on hbox_insert\n");
-		gpsm_item_remove(item);
+	/* Find insertion point FIRST, because removing the item
+	 * may invalidate insertion position
+	 * - succ will point to the successor. */
+	gpsm_grp_foreach_item(hbox, succ) {
+		if (gpsm_item_hposition(succ) >= hposition)
+			break;
+	}
+	/* Insertion position == current position? Fixup for item removal. */
+	if (succ == item)
+		succ = glame_list_getnext(&hbox->items, succ, gpsm_item_t, list);
+	/* Remember insertion vposition relative to succ. */
+	if (succ)
+		hposition = gpsm_item_hposition(succ) + gpsm_item_hsize(item) - hposition;
+
+	if (gpsm_item_parent(item)) {
+		/* Cut out the item first - closing the gap it leaves.
+		 * FIXME: whats the removal semantic we want to have? */
+		if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
+			gpsm_hbox_cut(item);
+		else if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
+			gpsm_vbox_cut(item);
+		else {
+			DPRINTF("WARNING: doing ordinary remove on hbox_insert\n");
+			gpsm_item_remove(item);
+		}
 	}
 
 	/* Register an item changed signal handler to the new item
@@ -1200,12 +1216,6 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 	glsig_add_handler(&item->emitter,
 			  GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
 			  handle_itemchange, item);
-
-	/* Find insertion point - succ will point to the successor. */
-	gpsm_grp_foreach_item(hbox, succ) {
-		if (gpsm_item_hposition(succ) >= hposition)
-			break;
-	}
 
 	/* Move all nodes beginning at succ by item hsize. */
 	if (succ)
@@ -1215,7 +1225,9 @@ int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
 					      gpsm_item_hsize(item), 0);
 
 	/* Do the insertion. */
-	_place_tail(hbox, item, succ, hposition, vposition);
+	_place_tail(hbox, item, succ,
+		    !succ ? hposition : gpsm_item_hposition(succ)-hposition,
+		    vposition);
 
 	return 0;
 }
@@ -1228,15 +1240,31 @@ int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 	if (!root || !gpsm_vbox_can_insert(vbox, item, hposition, vposition))
 		return -1;
 
-	/* Cut out the item first - closing the gap it leaves.
-	 * FIXME: whats the removal semantic we want to have? */
-	if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
-		gpsm_vbox_cut(item);
-	else if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
-		gpsm_hbox_cut(item);
-	else {
-		DPRINTF("WARNING: doing ordinary remove on vbox_insert\n");
-		gpsm_item_remove(item);
+	/* Find insertion point FIRST, because removing the item
+	 * may invalidate insertion position
+	 * - succ will point to the successor. */
+	gpsm_grp_foreach_item(vbox, succ) {
+		if (gpsm_item_vposition(succ) >= vposition)
+			break;
+	}
+	/* Insertion position == current position? Fixup for item removal. */
+	if (succ == item)
+		succ = glame_list_getnext(&vbox->items, succ, gpsm_item_t, list);
+	/* Remember insertion vposition relative to succ. */
+	if (succ)
+		vposition = gpsm_item_vposition(succ) + gpsm_item_vsize(item) - vposition;
+
+	if (gpsm_item_parent(item)) {
+		/* Cut out the item first - closing the gap it leaves.
+		 * FIXME: whats the removal semantic we want to have? */
+		if (gpsm_grp_is_vbox(gpsm_item_parent(item)))
+			gpsm_vbox_cut(item);
+		else if (gpsm_grp_is_hbox(gpsm_item_parent(item)))
+			gpsm_hbox_cut(item);
+		else {
+			DPRINTF("WARNING: doing ordinary remove on vbox_insert\n");
+			gpsm_item_remove(item);
+		}
 	}
 
 	/* Register an item changed signal handler to the new item
@@ -1244,12 +1272,6 @@ int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 	glsig_add_handler(&item->emitter,
 			  GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
 			  handle_itemchange, item);
-
-	/* Find insertion point - succ will point to the successor. */
-	gpsm_grp_foreach_item(vbox, succ) {
-		if (gpsm_item_vposition(succ) >= vposition)
-			break;
-	}
 
 	/* Move all nodes beginning at succ by item vsize. */
 	if (succ)
@@ -1259,7 +1281,8 @@ int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
 					      0, gpsm_item_vsize(item));
 
 	/* Do the insertion. */
-	_place_tail(vbox, item, succ, hposition, vposition);
+	_place_tail(vbox, item, succ, hposition,
+		    !succ ? vposition : gpsm_item_vposition(succ)-vposition);
 
 	return 0;
 }
