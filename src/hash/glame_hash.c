@@ -109,6 +109,11 @@ static inline void _unlock_w()
 #endif
 
 
+static void cleanup()
+{
+        semctl(semid, 0, IPC_RMID, 0);
+}
+
 int hash_alloc()
 {
 #ifdef _REENTRANT
@@ -136,6 +141,9 @@ int hash_alloc()
 	semop(semid, &sop, 1);
 	if (semctl(semid, semnum, GETVAL, 0) != 10000)
 		return -1;
+
+	/* register cleanup handler */
+	atexit(cleanup);
 #endif
 
 	return 0;

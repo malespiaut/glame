@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.8 2000/02/01 13:59:39 richi Exp $
+ * $Id: swapfile.c,v 1.9 2000/02/02 09:58:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -1359,7 +1359,7 @@ int swap_open(char *name, int flags)
 	swap->semnum = 0;
 	sun.val = 0;
 	semctl(swap->semid, swap->semnum, SETVAL, sun);
-	if (semctl(swap->semid, swap->semnum, GETVAL, 0) != 0)
+	if (semctl(swap->semid, swap->semnum, GETVAL, 0) == -1)
 	        return -1;
 
 	if ((swap->fd = open(name, O_RDWR)) == -1)
@@ -1425,6 +1425,8 @@ void swap_close()
 
       	flock(swap->fd, LOCK_SH);
 	close(swap->fd);
+
+	semctl(swap->semid, 0, IPC_RMID, 0);
 
 	/* aieee! FIXME! we should free the lists in mem?? (sure!) */
 	/* and we should unmap all mappings... FIXME! */
