@@ -1,4 +1,252 @@
+2000-10-10  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/filter/filter.h, src/filter/filter_network.c, src/filter/filter_param.h, src/glmid/Makefile.am, src/glmid/glmid.c, src/glmid/glmid.h, src/glmid/glscript.c, src/hash/glame_hash.h, src/hash/gldb.h, src/hash/gldb_string.h, src/hash/gldb_worm.h, src/hash/glsignal.h:
+	fixed missing functions in filter_network.c
+	added extern "C" where appropriate
+	disabled gltrack
+
+	* doc/cglame.texi, doc/filter.texi:
+	updated documentation - was already mostly uptodate
+
+2000-10-10  mainzelm  <mainzelm@wolf>
+
+	* src/glmid/glame.scm: Code beautification.
+
+2000-10-10  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* doc/swapfile.texi: Whoo, whats that?? Documentation??? Can't be... :)
+
+	* src/swapfile/pmap.c, src/swapfile/pmap.h, src/swapfile/swfs_cluster.c:
+	little cleanup
+
+2000-10-09  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/glmid/glmid.c, src/glmid/glplugin.c, src/glmid/glplugin.h, src/glmid/glscript.c, src/glmid/gltrack.c, src/glmid/ladspa.c, src/hash/glame_hash.c, src/hash/glame_hash.h, src/hash/gldb.c, src/hash/gldb.h, src/hash/glsignal.c, src/hash/glsignal.h, src/include/list.h, src/include/util.h, src/plugins/file_io.c, src/plugins/pipe.c, src/swapfile/swapfile.h, src/swapfile/swapfile_fs.c, src/swapfile/swapfile_test.c, src/swapfile/swfs_cluster.c, src/swapfile/swfs_cluster.h, src/swapfile/swfs_ctree.c, src/swapfile/txn.c, src/swapfile/txn.h, src/filter/filter.h, src/filter/filterI.h, src/filter/filter_methods.c, src/filter/filter_mm.c, src/filter/filter_network.c, src/filter/filter_param.c:
+	first(?) pile of fixes to at least get GLAME compile with g++
+
+	* src/gui/main.c: allow a swapfile to be specified for the gui
+
+	* src/plugins/Makefile.am, src/plugins/swapfile_io.c:
+	added swapfile_io - I like the new API, it looks a lot simpler than
+	track_io. And it works :) Played didge.mp3 from a swapfile.
+
+	* src/glmid/glame.scm, src/glmid/glmid.c, src/glmid/glscript.c:
+	scripted the whole txn and swapfile stuff - done some convenience wrappers
+	in scm and a "little" testsuite
+
+	* src/swapfile/Makefile.am, src/swapfile/pmap.c, src/swapfile/pmap.h, src/swapfile/swapfile.h, src/swapfile/swapfile_fs.c, src/swapfile/swapfile_info.c, src/swapfile/swapfile_test.c, src/swapfile/swfs_cluster.c, src/swapfile/swfs_cluster.h, src/swapfile/swfs_ctree.c, src/swapfile/swfs_ctree.h, src/swapfile/swfs_file.c, src/swapfile/swfs_file.h:
+	lots of bugfixes/changes/optimizations... too many to enumerate, detailled
+	log is in the bk tree...
+
+	* src/include/hash.h:
+	added hash_next_ and hash_getslot_ to allow traversing of the whole
+	hash chain
+
+	* src/include/util.h:
+	made PANIC call an external, not inlined function that is marked
+	__attribute__((noreturn)) to minimize impact of those checks
+
+2000-10-04  Daniel Kobras  <kobras@linux.de>
+
+	* src/include/util.h: Added subtle space to gcc varargs expansion. [dk]
+
+2000-10-03  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/swapfile/Makefile.am, src/swapfile/swapfile.h, src/swapfile/swapfile_fs.c, src/swapfile/swapfile_test.c, src/swapfile/swfs_cluster.c, src/swapfile/swfs_cluster.h, src/swapfile/swfs_ctree.c, src/swapfile/swfs_file.c, src/swapfile/swfs_file.h:
+	First working snapshot. Added two API functions (sw_read/sw_write).
+
+	* src/filter/filter_param.c, src/hash/gldb.c, src/hash/gldb.h, src/hash/gldb_string.c, src/hash/gldb_worm.c:
+	simplified gldb API (how did this manage to hide from a merge so long...)
+
+2000-10-01  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/swapfile/Makefile.am, src/swapfile/swapfile_fs.c, src/swapfile/swfs_cluster.c, src/swapfile/swfs_cluster.h, src/swapfile/swfs_ctree.c, src/swapfile/swfs_ctree.h, src/swapfile/swfs_file.c, src/swapfile/swfs_file.h:
+	more code, no API changes this time.
+
+2000-09-27  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/swapfile/swapfile.h, src/swapfile/swapfile_fs.c, src/swapfile/txn.c, src/swapfile/txn.h:
+	the daily API changes
+
+2000-09-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* autogen.sh, configure.in:
+	work around an autoconf/libtool/automake bug (autoconf 2.49a only)
+
+	* src/swapfile/swapfile.h, src/swapfile/swapfile_fs.c, src/swapfile/txn.c, src/swapfile/txn.h:
+	WTF?? IRIX uses tid_t as thread id... so tid_t -> txnid_t.
+
+	* src/swapfile/swapfile.h, src/swapfile/swapfile_fs.c:
+	two changes to the readdir and friends API part.
+	some more implementation.
+
+	* src/include/glame_sem.h: fixed missing default (fail) return value.
+
+	* src/include/list.h: doh! fixed this cut&paste bug with list_del_init
+
+2000-09-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* macros/acx-pthread.m4: moved up check for lthread library
+
+	* configure.in: umm, we should not require autoconf-2.49a right now...
+
+	* src/glmid/glmid.c, src/glmid/glscript.c, src/glmid/gltrack.c, src/glmid/gltrack.h, src/gui/Makefile.am, src/gui/wavetest.c, src/plugins/Makefile.am, src/swapfile/Makefile.am, src/swapfile/gmkswap.c, src/swapfile/swapfile.c, src/swapfile/swapfile.h, src/swapfile/swapfileI.h, src/swapfile/swapfile_fs.c, src/swapfile/swapfile_hash.h, configure.in, src/cglame.c:
+	Added new swapfile API and tried to fix all users (it does compile
+	and link). The implementation is not ready yet.
+
+2000-09-21  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/swapfile/Makefile.am, src/swapfile/pmap.c, src/swapfile/pmap.h, src/swapfile/txn.c, src/swapfile/txn.h:
+	added generic page mapping facility and generic transaction
+	facility (unused by now)
+
+	* src/swapfile/swapfile.c, src/swapfile/swapfileI.h:
+	use new generic hash in swapfile
+	fixed IRIX compilation bug
+
+	* src/glmid/glame.scm:
+	killed old macro filters read-mp3/echo2 and use new create-net
+	facility
+
+2000-09-20  mainzelm  <mainzelm@wolf>
+
+	* src/glmid/glame.scm: Added create-net macro.
+	Untested version, someone should check if it works at all...
+
+2000-09-19  mainzelm  <mainzelm@wolf>
+
+	* src/glmid/glame.scm: Added help for single commands
+
+2000-08-16  Daniel Kobras  <kobras@linux.de>
+
+	* doc/cglame.texi: play-eff syntax in example was obsolete. [dk]
+
+2000-08-14  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/include/hash.h: first usable generic hash creator
+
+	* src/plugins/arithmetic.c, src/plugins/audio_io.c, src/plugins/basic.c, src/plugins/basic_sample.c, src/plugins/debug.c, src/plugins/file_io.c, src/plugins/pipe.c, src/filter/filter.h, src/filter/filter_methods.c, src/filter/filter_network.c:
+	little cleanup (read: simplification) to filter subsystem:
+	- all ports are AUTOMATIC
+	- default connect_in/connect_out accept only one connection
+	-> for more complex stuff you should always have connect_in/out
+	- pipe/port types are no longer "inclusive" (read: no hierarchy),
+	  so ->type is not a mask any more
+
+	* src/include/list.h: added list_del_init()
+
+2000-08-07  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/plugins/Makefile.am, configure.in:
+	fixed conditional compile of fft.c - wolf does not have it
+
+	* src/swapfile/swapfile.c: slight optimization
+
+	* configure.in: add -fstrict-aliasing for optimized code
+
+2000-08-07  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* MAINTAINERS: we need more cvs traffic :)
+
+	* src/plugins/fft.c: fft, ifft & fft_resample filter
+
+	* acconfig.h, configure.in:
+	added check for single precision fftw library
+
+	* src/plugins/file_io.c, src/plugins/time.c, src/Makefile.am, src/filter/filter.h, src/filter/filterI.h, src/filter/filter_protocols.h, src/glmid/glame.scm, src/glmid/glmid.c, src/gui/Makefile.am, src/plugins/Makefile.am:
+	added FFT protocol incl. FFT, IFFT and FFT-Resample filter
+
+2000-08-05  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/plugins/time.c, src/plugins/Makefile.am:
+	update to glame 0.3.0 (compiles, but untested)
+
+2000-08-04  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/plugins/Makefile.am, src/plugins/time.c:
+	added time.c from Stuart Purdie (still 0.2 code, though)
+
+	* src/filter/filter_protocols.h: it dit not even compile...
+
+2000-08-03  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/filter/filter.h, src/filter/filter_protocols.h:
+	- added FFT protocol
+
+2000-08-01  mainzelm  <mainzelm@wolf>
+
+	* src/glmid/glame.scm:
+	Added a small help system and documented most of the procedures with it. Corrected some indentations ;-)
+
+2000-08-01  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/glmid/glame.scm, src/glmid/glscript.c:
+	fixed back compatibility bug
+
+2000-08-01  Daniel Kobras  <kobras@linux.de>
+
+	* doc/filter-tutorial.texi:
+	More spelling/grammar fixes. [Wildmage/nold]
+
+2000-07-31  Daniel Kobras  <kobras@linux.de>
+
+	* doc/filter-tutorial.texi, doc/filter.texi, doc/glame.texi:
+	Spelling fixes. [Wildmage/nold]
+
+2000-07-28  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/filter/filterI.h: removed unnecessary forward declaration
+
+2000-06-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* macros/gnome-gnorba-check.m4, macros/gnome-guile-checks.m4, macros/gnome-orbit-check.m4, macros/gnome.m4, src/filter/filter.h, src/filter/filter_mm.c, src/filter/filter_network.c, src/filter/filter_ops.c, src/hash/glame_hash.c, src/include/Makefile.am, src/include/glame_sem.h, src/include/sem.h, src/swapfile/swapfile.c, Makefile.am, acconfig.h, acinclude.m4, autogen.sh, configure.in, macros/Makefile.am, macros/acg-func-madvise.m4, macros/acg-sysv-sem.m4, macros/aclocal-include.m4, macros/acx-pthread.m4:
+	done macros/ dir
+	semaphore wrapper cleanup
+
+2000-06-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* configure.in: change thread libs & flags to be global ones.
+	compiling works again on BSE, but as I have no lthreads
+	available, I dont know if it fixes the BSE bugs magically
+	(with -pthread it doesnt, of course)
+
+	* acinclude.m4, configure.in:
+	maybe I found the right thing(TM) todo wrt BSE threads...
+
+2000-05-26  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/include/sem.h: partially fix for the BSE suxx and hangs problem
+
+	* acinclude.m4, configure.in: fixed pthread lib check
+
+	* src/filter/filter_ops.c: another debug printf
+
+	* src/filter/filter_network.c: again more debugging printf
+
+	* src/filter/filter.h: extra debugging printf
+
+2000-05-25  mainzelm  <mainzelm@wolf>
+
+	* src/plugins/rms.c: Replaced ulong by unsigned long.
+
+2000-05-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/glmid/glplugin.c, src/glmid/glplugin.h:
+	added key PLUGIN_PARENT to denote which plugins are contained in which plugin set -> could be a GUI hint for grouping them together.
+
+	* src/glmid/glplugin.c, src/glmid/ladspa.c, src/filter/filter.h, src/filter/filter_network.c, src/filter/filter_tools.h:
+	Fixes for bugs LADSPA support showed me. LADSPA support is now tested
+	and works.
+
+2000-05-20  Jim Garrison  <garrison@users.sourceforge.net>
+
+	* src/gui/Makefile.am: added glame.desktop to EXTRA_DIST
+
+	* src/gui/Makefile.am, src/gui/glame.desktop: Added GLAME to GNOME menu
+
 2000-05-20  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* ChangeLog: GLAME 0.3.4 changelog
 
 	* src/include/Makefile.am, src/plugins/file_io.c, NEWS, README, TODO:
 	just decided to publically bump the version number this time.
@@ -836,7 +1084,7 @@
 	bugfixes
 	removed parsing code -> use scheme/cglame
 
-	* Makefile.am, configure.in, data/Makefile.am, data/pixmaps/Makefile.am, src/Makefile.am, src/data/Makefile.am, src/data/pixmaps/Makefile.am, src/data/pixmaps/default.png, src/data/pixmaps/glame-logo.jpg:
+	* Makefile.am, configure.in, data/Makefile.am, data/pixmaps/Makefile.am, src/Makefile.am:
 	moved data directory away from src/
 
 2000-03-20  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
@@ -1119,7 +1367,7 @@
 
 2000-02-23  Jim Garrison  <garrison@users.sourceforge.net>
 
-	* .cvsignore, doc/.cvsignore, src/.cvsignore, src/channel/.cvsignore, src/data/.cvsignore, src/data/pixmaps/.cvsignore, src/glmath/.cvsignore, src/gui/.cvsignore, src/hash/.cvsignore, src/include/.cvsignore, src/plugin/.cvsignore, src/swapfile/.cvsignore:
+	* .cvsignore, doc/.cvsignore, src/.cvsignore, src/channel/.cvsignore, src/glmath/.cvsignore, src/gui/.cvsignore, src/hash/.cvsignore, src/include/.cvsignore, src/plugin/.cvsignore, src/swapfile/.cvsignore:
 	.cvsignore
 	Figured I would add them since they were already on my local dist.
 
@@ -1166,8 +1414,7 @@
 
 2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
 
-	* configure.in, src/Makefile.am, src/data/Makefile.am, src/data/pixmaps/Makefile.am:
-	distribute & install the data stuff
+	* configure.in, src/Makefile.am: distribute & install the data stuff
 
 	* src/include/list.h: fixed NDEBUG vs DEBUG issue wrt to sanity checks
 
@@ -1565,12 +1812,6 @@
 
 	* src/filter/garrison.c:
 	Initial pan filter (untested until I get a sound card working in linux)
-
-2000-02-11  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
-
-	* src/data/pixmaps/default.png, src/data/pixmaps/glame-logo.jpg:
-	added logo for about screen
-	added default icon-pixmap
 
 2000-02-11  Daniel Kobras  <kobras@linux.de>
 
