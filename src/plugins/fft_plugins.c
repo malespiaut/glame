@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.14 2002/02/17 13:53:31 richi Exp $
+ * $Id: fft_plugins.c,v 1.15 2002/02/18 21:33:39 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -166,7 +166,7 @@ static int fft_fixup_param(filter_param_t *param, const void *val)
 }
 
 static int fft_f(filter_t *n){
-	queue_t		queue;
+	in_queue_t    queue;
 	filter_pipe_t *in,*out;
 	filter_buffer_t *outb,*outb2;
 	filter_param_t *param;
@@ -198,7 +198,7 @@ static int fft_f(filter_t *n){
 	if (!(win=hanning(bsize)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 
-	init_queue(&queue, in, n);
+	init_in_queue(&queue, in, n);
 	
 	FILTER_AFTER_INIT;
 	
@@ -214,11 +214,11 @@ static int fft_f(filter_t *n){
 		s = sbuf_buf(outb);
 		
 		for(cnt=0; cnt<obufcnt; cnt++) {
-			if (queue_copy_pad(&queue, s, bsize)) {
+			if (in_queue_copy_pad(&queue, s, bsize)) {
 				cnt++;
 				break;
 			}
-			queue_shift(&queue, ooff);
+			in_queue_shift(&queue, ooff);
 			s += bsize;
 		}
 		
@@ -244,7 +244,7 @@ static int fft_f(filter_t *n){
 		sbuf_queue(out, outb2);
 	}
 	sbuf_queue(out, NULL);
-	queue_drain(&queue);
+	in_queue_drain(&queue);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
@@ -339,7 +339,7 @@ static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 }
 
 static int ifft_f(filter_t *n){
-	queue_t		queue;
+	out_queue_t	queue;
 	filter_pipe_t	*in, *out;
 	filter_buffer_t *inb;
 	rfftw_plan p;
@@ -379,7 +379,7 @@ static int ifft_f(filter_t *n){
 	for (j=0; j < bsize; j++)
 		win[j] *= gain;
 	
-	init_queue(&queue, out, n);
+	init_out_queue(&queue, out, n);
 
 	FILTER_AFTER_INIT;
 
@@ -405,15 +405,15 @@ static int ifft_f(filter_t *n){
 		s = sbuf_buf(inb);
 		
 		for (i=0; i<ibufcnt; i++) {
-			queue_add(&queue, s, bsize);
-			queue_add_shift(&queue, ooff);
+			out_queue_add(&queue, s, bsize);
+			out_queue_shift(&queue, ooff);
 			s += bsize;
 		}
 		sbuf_unref(inb);
 entry:		
 		inb = sbuf_make_private(sbuf_get(in));
 	}
-	queue_add_drain(&queue);
+	out_queue_drain(&queue);
 	sbuf_queue(out,NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
