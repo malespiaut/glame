@@ -1,3 +1,83 @@
+2000-02-06  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/FAQ, /cvsroot/glame/glame/doc/filter.txt, /cvsroot/glame/glame/doc/maintainers.txt, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/doc/TODO, /cvsroot/glame/glame/MAINTAINERS, /cvsroot/glame/glame/Makefile.am, /cvsroot/glame/glame/TODO:
+	moved documentation around as nold suggested.
+	added FAQ
+
+2000-02-06  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/test_network.c:
+	Added new test app for filter networks. [richi]
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/filter.txt, /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/doc/plugin.txt, /cvsroot/glame/glame/doc/swapfile.texi, /cvsroot/glame/glame/doc/TODO, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/include/util.h, /cvsroot/glame/glame/src/swapfile/swapfile.c:
+	Documentation update. [dk]
+	Filter API update, part too-much. [richi]
+
+2000-02-05  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/read_file.c:
+	read_file build broke w/o libaudiofile. [dk]
+
+2000-02-05  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.h, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/doc/plugin.txt:
+	fixed makefile, added files
+
+	* /cvsroot/glame/glame/doc/filter.txt, /cvsroot/glame/glame/doc/TODO, /cvsroot/glame/glame/src/channel/channel.c, /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/channel_io.c, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/filter/test_audio.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/filter/test_play.c, /cvsroot/glame/glame/src/filter/volume_adjust.c, /cvsroot/glame/glame/src/filter/waveform.c, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/hash/glame_hash.h, /cvsroot/glame/glame/doc/Makefile.am:
+	more work on the filter API
+
+2000-02-05  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/development.txt, /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/doc/maintainers.txt, /cvsroot/glame/glame/doc/swapfile.txt:
+	txt -> texi conversion, part 2 and other minor stuff. [dk]
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/doc/swapfile.texi:
+	Converting doc/ to texinfo (round one). [dk]
+
+2000-02-04  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/filter.txt:
+	Spelling fixes for richi's convenience. [dk]
+
+2000-02-04  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/include/glame_types.h:
+	glametypes.h: added defines CHAR2SAMPLE, SAMPLE2CHAR
+	read_file.c: now capable of 8/16bit sample files, does dodgy resampling to 44,1 kHz(just for testing purposes)
+
+2000-02-03  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/development.txt:
+	removed bogous comment but didnt add any useful stuff
+
+	* /cvsroot/glame/glame/doc/Makefile.am: distribute new files - sigh!
+
+	* /cvsroot/glame/glame/doc/maintainers.txt, /cvsroot/glame/glame/doc/wishlist.txt:
+	added documentation files for having lists of wishes and maintainers
+
+	* /cvsroot/glame/glame/src/filter/test_audio.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/filter/test_play.c, /cvsroot/glame/glame/src/filter/volume_adjust.c, /cvsroot/glame/glame/doc/filter.txt, /cvsroot/glame/glame/doc/TODO, /cvsroot/glame/glame/src/filter/channel_io.c, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c:
+	filter API extension (and some minor modifications)
+
+2000-02-03  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/include/atomic.h:
+	Grrr..., richi wants to do broken things. [dk]
+
+	* /cvsroot/glame/glame/src/include/atomic.h, /cvsroot/glame/glame/src/include/Makefile.am:
+	Added basic version of atomic arithmetic operations. [dk]
+
+2000-02-03  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/masterplan.txt, /cvsroot/glame/glame/doc/TODO, /cvsroot/glame/glame/README:
+	A to Q in masterplan, minor documentation update
+
+2000-02-03  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/ChangeLog, /cvsroot/glame/glame/src/cglame.c, /cvsroot/glame/glame/src/glame.c:
+	Fixed error handling in filter network - preventing stalls. [dk]
+	Added pointer to test files in src/filter/ to {,c}glame. [dk]
+	Updated ChangeLog. [dk]
+
 2000-02-03  garrison  <garrison@fs1>
 
 	* /cvsroot/glame/glame/doc/masterplan.txt:
