@@ -78,13 +78,11 @@ gui/libgtkwaveform
 
 gui/edit_filter
 	[xwolf]
-	- completely rewrite the ugly event handling in filter_network
 	- add realtime controls
 	- add support for custom property dialogs (glade & friends)
 	- grouping!
 	- fold/unfold of groups
 	- connect for parameters of nodes of same type
-	- implement model-view-controller paradigma, aka drive gui through backend signals
 	- have GlameCanvas emit a signal after network execution so we
 	  can update the swapfiles managed through the gpsm
 
