@@ -97,6 +97,19 @@ static SCM gls_gpsm_item_hposition(SCM s_item)
 	return gh_long2scm(gpsm_item_hposition(item));
 }
 
+static SCM gls_gpsm_item_set_hposition(SCM s_item, SCM s_hpos)
+{
+	gpsm_item_t *item;
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG1, "gpsm-item-set-hposition!");
+	SCM_ASSERT(gh_exact_p(s_hpos) && gh_scm2long(s_hpos) >= 0, s_hpos,
+		   SCM_ARG2, "gpsm-item-set-hposition!");
+	item = scm2gpsmitem(s_item);
+	item->hposition = gh_scm2long(s_hpos);
+	glsig_emit(gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED, item);
+	return SCM_UNSPECIFIED;
+}
+
 static SCM gls_gpsm_item_vposition(SCM s_item)
 {
 	gpsm_item_t *item;
@@ -104,6 +117,19 @@ static SCM gls_gpsm_item_vposition(SCM s_item)
 		   SCM_ARG1, "gpsm-item-vposition");
 	item = scm2gpsmitem(s_item);
 	return gh_long2scm(gpsm_item_vposition(item));
+}
+
+static SCM gls_gpsm_item_set_vposition(SCM s_item, SCM s_vpos)
+{
+	gpsm_item_t *item;
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG1, "gpsm-item-set-vposition!");
+	SCM_ASSERT(gh_exact_p(s_vpos) && gh_scm2long(s_vpos) >= 0, s_vpos,
+		   SCM_ARG2, "gpsm-item-set-vposition!");
+	item = scm2gpsmitem(s_item);
+	item->vposition = gh_scm2long(s_vpos);
+	glsig_emit(gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED, item);
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_item_hsize(SCM s_item)
@@ -547,7 +573,11 @@ int glscript_init_gpsm()
 	gh_new_procedure1_0("gpsm-item-label", gls_gpsm_item_label);
 	gh_new_procedure2_0("gpsm-item-set-label!", gls_gpsm_item_set_label);
 	gh_new_procedure1_0("gpsm-item-hposition", gls_gpsm_item_hposition);
+	gh_new_procedure2_0("gpsm-item-set-hposition!",
+			    gls_gpsm_item_set_hposition);
 	gh_new_procedure1_0("gpsm-item-vposition", gls_gpsm_item_vposition);
+	gh_new_procedure2_0("gpsm-item-set-vposition!",
+			    gls_gpsm_item_set_vposition);
 	gh_new_procedure1_0("gpsm-item-hsize", gls_gpsm_item_hsize);
 	gh_new_procedure1_0("gpsm-item-vsize", gls_gpsm_item_vsize);
 	gh_new_procedure1_0("gpsm-grp?", gls_gpsm_is_grp);
