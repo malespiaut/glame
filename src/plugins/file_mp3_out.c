@@ -1,6 +1,6 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.11 2004/11/16 18:57:23 richi Exp $
+ * $Id: file_mp3_out.c,v 1.12 2004/12/03 21:14:59 ochonpaul Exp $
  *
  * Copyright (C) 2004 Richard Guenther, Laurent Georget
  *
@@ -88,17 +88,17 @@ static int write_mp3_file_f(filter_t * n)
 				   (filter_paramdb(n), "filename"));
 	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
-
+	
 	bitrate = filterparam_val_long(filterparamdb_get_param(
 				filter_paramdb(n), "lame encoding bitrate"));
-	if (bitrate < 0 || bitrate > 13)
+        if (bitrate < 0 || bitrate > 13)
 		FILTER_ERROR_RETURN("Unsupported bitrate");
 	bitrate = (int[]){ 32, 40, 48, 56, 64, 80, 96, 112,
 			   128, 160, 192, 224, 256, 320 }[bitrate];
 	DPRINTF("bitrate %i\n", bitrate);
-		
 	if (!(track = ALLOCN(channelCount, track_t)))
 		FILTER_ERROR_RETURN("no memory");
+
 
 	iass = 0;
 	filterportdb_foreach_port(filter_portdb(n), port) {
@@ -135,8 +135,6 @@ static int write_mp3_file_f(filter_t * n)
 	filterparam_val_set_pos(pos_param, 0);
 	pos = 0;
 
-
-	/* mp3_buf = ALLOCN(mp3_buf_size, unsigned char); */
 	gfp = lame_init();
 	if (gfp == NULL)
 		FILTER_ERROR_CLEANUP("Cannot initialize lame");
@@ -154,11 +152,9 @@ static int write_mp3_file_f(filter_t * n)
 		FILTER_ERROR_CLEANUP("error setting lame bitrate.");
 	
 	mode = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame mode"));
-	/* jstereo is first in list to be the default, so reverse */
-	mode = (mode == 1) ? 0 : 1;
 	if (lame_set_mode(gfp, mode)<0)
 		FILTER_ERROR_CLEANUP("error setting lame mode.");
-	DPRINTF("mode %i\n",mode);
+	DPRINTF("mode  %i\n",mode);
 	
 	lame_set_bWriteVbrTag(gfp,0);
 	id3tag_set_title(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Title")));
@@ -298,7 +294,7 @@ int write_mp3_file_register(plugin_t * pl)
 					       FILTER_PARAMTYPE_FILENAME, NULL,
 					       FILTERPARAM_END);
 	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Title",
-					       FILTER_PARAMTYPE_STRING, "",
+					       FILTER_PARAMTYPE_STRING,NULL, 
 					       FILTERPARAM_END);
 	param = filterparamdb_add_param_string(filter_paramdb(f), "Id3tag_Artist",
 					       FILTER_PARAMTYPE_STRING, "",
@@ -374,7 +370,7 @@ int write_mp3_file_register(plugin_t * pl)
 				    FILTERPARAM_END);
 
 	
-		param = filterparamdb_add_param_double(filter_paramdb(f), "lame mode", FILTER_PARAMTYPE_LONG,0,
+		param = filterparamdb_add_param_double(filter_paramdb(f), "lame mode", FILTER_PARAMTYPE_LONG,1,
 						     FILTERPARAM_DESCRIPTION, "Lame mode \n",
 						     FILTERPARAM_GLADEXML,
 "<?xml version=\"1.0\" standalone=\"no\"?>"
@@ -383,8 +379,8 @@ int write_mp3_file_register(plugin_t * pl)
 "    <widget class=\"GtkComboBox\" id=\"widget\">"
 "      <property name=\"visible\">True</property>"
 "      <property name=\"can_focus\">True</property>"
-"      <property name=\"items\" translatable=\"yes\">1 joint stereo\n"
-"0 stereo\n"
+"      <property name=\"items\" translatable=\"yes\">0 stereo\n"
+"1 joint stereo\n"
 "2 dual channel\n"
 "3 mono</property>"
 "    </widget>"
