@@ -452,8 +452,48 @@ AC_CHECK_HEADERS([vorbis/codec.h],
     acg_save_LIBS="$LIBS"
     AC_CHECK_LIB(vorbisfile, ov_open,
     [ 
-      AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
-      GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm"
+      AC_MSG_CHECKING([for number of arguments in ov_read_float])
+      AC_COMPILE_IFELSE(
+      [
+        #include <vorbis/vorbisfile.h>
+	void acg_check_func(void)
+	{
+	  OggVorbis_File *f;
+	  float ***ch;
+	  int *bs;
+	  ov_read_float(f, ch, bs);
+	}
+      ],
+      [
+        AC_MSG_RESULT([3])
+        AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 3, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
+        AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
+        GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm"
+      ],
+      [
+        AC_COMPILE_IFELSE(
+        [
+          #include <vorbis/vorbisfile.h>
+  	  void acg_check_func(void)
+  	  {
+  	    OggVorbis_File *f;
+  	    float ***ch;
+	    int s;
+  	    int *bs;
+  	    ov_read_float(f, ch, s, bs);
+  	  }
+        ],
+        [
+          AC_MSG_RESULT([4])
+	  AC_DEFINE(GL_OV_READ_FLOAT_ARGS, 4, [Define to the number of arguments ov_read_float() from libvorbisfile takes])
+          AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
+          GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm"
+	],
+	[
+	  AC_MSG_RESULT([failed])
+	  AC_MSG_WARN([Unsupported version of ov_read_float(). Vorbis support disabled.])
+	])
+      ])
     ],,[-lvorbis -logg -lm])
     LIBS="$acg_save_LIBS"
   ])
