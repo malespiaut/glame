@@ -43,7 +43,7 @@
 (waveedit-set-scroll-position! 0)
   </accel>
   <accel state="0" spec="End">
-(let ((pos (waveedit-get-scroll))) (waveedit-set-scroll-position! (- (caddr (cddr pos)) (car pos))))
+(let ((pos (waveedit-get-scroll))) (waveedit-set-scroll-position! (caddr (cddr pos))))
   </accel>
   <accel state="0" spec="space">
 (let ((grp (waveedit-gpsm-grp))

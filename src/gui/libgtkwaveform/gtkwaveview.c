@@ -417,6 +417,7 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
   adj->lower = 0.0;
   adj->upper = length;
   adj->step_increment = waveview->zoom * 32.0;
+  adj->upper += adj->step_increment; /* why? gtk bug? */
   adj->page_size = width * waveview->zoom;
   adj->page_increment = adj->page_size;
 
@@ -1161,12 +1162,16 @@ gtk_wave_view_button_release_event (GtkWidget *widget,
     }
  
   /* dragging outside the border */
-  if (x < 0 && GTK_ADJUSTMENT (waveview->adjust)->value > 0.0)
+  if (x < 0 && GTK_ADJUSTMENT (waveview->adjust)->value >= 0.0)
       x = 0;
   else if (x >= waveview->area->allocation.width)
-      x = waveview->area->allocation.width - 1;
+      x = waveview->area->allocation.width /* - 1  no, round up this way */;
 
   frame = calc_frame_pos_win (waveview, x);
+  if (frame < 0)
+	  frame = 0;
+  if (waveview->wavebuffer && frame >= gtk_wave_buffer_get_length(waveview->wavebuffer))
+      frame = gtk_wave_buffer_get_length(waveview->wavebuffer) - 1; /* correct for round up */
 
   if (FLAGS_IS_CLEAR (waveview->drag_flags))
     return;
