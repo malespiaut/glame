@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.6 2000/04/04 19:03:01 nold Exp $
+@comment $Id: plugins.texi,v 1.7 2000/04/05 16:14:57 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -16,14 +16,22 @@ on pipe @code{out}. Each parameter is followed by its type--e.g. integer,
 float, or string--in parentheses.
 
 @menu
-* Audio I/O::
-* File I/O::
+* In- and Output::
 * Elementary Plugins::
 * Effects::
 @end menu
 
-@node Audio I/O, File I/O,, Plugin Collection
-@section Audio I/O
+@node In- and Output, Elementary Plugins,, Plugin Collection
+
+@menu
+* Audio I/O::
+* File I/O::
+* Swapfile I/O::
+* Abusing External Apps::
+@end menu
+
+@node Audio I/O, File I/O,, In- and Output
+@subsection Audio I/O
 
 The @file{audio-in} and @file{audio-out} plugins handle communication between 
 GLAME and the sound hardware. @file{audio-in} is for recording, 
@@ -34,33 +42,34 @@ they can be accessed directly via @file{oss-audio-out}, @file{esd-audio-in}
 and the like, using the same sets of parameters. Think of @file{audio-in} and 
 @file{audio-out} as sane default methods dependent on the system's capabilities.
 
-@subheading Common parameters
+@subsubheading Common parameters
 @table @code
 @item device (string)
 Sound device to be used. Note: While audio-in and audio-out are generic plugins,
 interpretation of the device parameter is dependent on the underlying sound
 system which the value is passed to unmodified. For example, OSS takes devices
-parameters like @file{/dev/dsp} where ALSA would like @code{0:0}.
+parameters like @file{/dev/dsp} where ALSA would like @code{0:0}. If
+@code{device} is not set, the sound system's default device is used.
 @end table
 
-@subheading @file{audio-in} ports
+@subsubheading @file{audio-in} ports
 @table @code
 @item out (output)
 Recorded stream of sample data. Maximum number of allowed out-connections 
 depends on hardware capabilities.
 @end table
 
-@subheading @file{audio-in} parameters
+@subsubheading @file{audio-in} parameters
 @table @code
 @item rate (integer)
 The sample rate in Hertz.
 @item duration (float)
-Recording time in seconds.
+Recording time in seconds. Defaults to no limit.
 @item out::position (float)
 Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
-@subheading @file{audio-out} ports
+@subsubheading @file{audio-out} ports
 @table @code
 @item in (input)
 Sample stream to play back. Maximum number of allowed in-connections
@@ -70,35 +79,36 @@ depends on hardware capabilities.
 @file{audio-out} has no further specific parameters.
 
 
-@node File I/O, Elementary Plugins, Audio I/O, Plugin Collection
-@section File I/O
+@node File I/O, Swapfile I/O, Audio I/O, In- and Output
+@subsection File I/O
 Transactions from and to files are handled by the plugins @file{read-file}
 and @file{write-file}. @file{read-file} is guaranteed to be able to read
 WAV files. Anything else is up to helper libraries that may or may not be
 installed on a system. @file{write-file} so far only second guesses the
 desired output format from the suffix of the given filename.
 
-@subheading Common parameters
+@subsubheading Common parameters
 @table @code
 @item filename (string)
 Name of the file to be read from or written to. The writer takes the
-filename suffix as a hint to the desired type of output.
+filename suffix as a hint to the desired type of output. The 
+@code{filename} parameter has no default and is required to be set.
 @end table
 
-@subheading @file{read-file} ports
+@subsubheading @file{read-file} ports
 @table @code
 @item out (output)
 Sample data read in from a sound file. The number of allowed out-connections
 varies from file to file.
 @end table
 
-@subheading @file{read-file} parameters
+@subsubheading @file{read-file} parameters
 @table @code
 @item out::position (float)
 Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
-@subheading @file{write-file} ports
+@subsubheading @file{write-file} ports
 @table @code
 @item in (input)
 Sample stream to store to a sound file. Maximum number of allowed in-connections
@@ -107,22 +117,80 @@ depends on the desired sound format.
 
 @file{write-file} has no further specific parameters.
 
-@node Elementary Plugins, Effects, File I/O, Plugin Collection
+@node Swapfile I/O, Abusing External Apps, File I/O, In- and Output
+@subsection Swapfile I/O
+
+TODO: track-in, track-out (track_io.c)
+
+@node Abusing External Apps,, Swapfile I/O, In- and Output
+@subsection Abusing External Apps
+
+TODO: pipe-in (pipe.c)
+
+@node Elementary Plugins, Effects, In- and Output, Plugin Collection
 @section Elementary Plugins
 
 TODO: mul, add, phase-invert (arithmetic.c), 
 volume-adjust, delay, extend, repeat (basic_sample.c),
-ping (debug.c), echo (echo.c), pan (pan.c), pipe-in (pipe.c),
-statistic, debugrms (rms.c), track-in, track-out (track_io.c), 
-null, dup (tutorial.c), sinus [*** Doh! Rename to sine! ***], const (waveform.c)
+ping (debug.c), pan (pan.c), 
+statistic, debugrms (rms.c), 
+null, dup (tutorial.c)
 
 *** Add them here first. Will move to new sections as appropriate. ***
 
 @menu 
+* Generating Waves::
 * Junctions and Dead Ends::
+* Orientation::
 @end menu
 
-@node Junctions and Dead Ends,,, Elementary Plugins
+@node Generating Waves, Junctions and Dead Ends,, Elementary Plugins
+@subsection Generating Waves
+
+GLAME comes with a number of plugins to generate waveforms within a 
+filter network. They can be useful as a debugging aid, but also as 
+control input to other plugins. Imagine a sine wave generator hooked up
+to the position port of a panning filter... So far there are is a 
+@code{sine} plugin for generating sine waves, and a @code{const}
+plugin yielding a block of constant data. Both plugins emit but a short
+chunk of data. For a continuous stream they have to be connected to a
+repeat node. 
+
+@subsubheading Common ports
+@table @code
+@item out (output)
+Generated data stream. Only one connection is allowed.
+@end table
+
+@subsubheading Common parameters
+@table @code
+@item position (float)
+Horizontal placement of sample stream in radians from -pi to pi.
+@item rate (int)
+Samplerate of generated data stream. Defaults to compile-time setting
+of GLAME_DEFAULT_SAMPLERATE, usually 44100 Hz.
+@end table
+
+@file{const} has no further specific ports.
+
+@subsubheading @file{const} parameters
+@table @code
+@item value (sample)
+Constant signal value. Defaults to 0.
+@end table
+
+@file{sine} has no further specific ports.
+
+@subsubheading @file{sine} parameters
+@table @code
+@item amplitude (sample)
+Amplitude of generated sine wave. Allowed value range is from 0 to 1. 
+Defaults to 0.5.
+@item frequency (float)
+Frequency of generated sine wave in Hz. Defaults to 441 Hz.
+@end table
+
+@node Junctions and Dead Ends, Orientation, Generating Waves, Elementary Plugins
 @subsection Junctions and Dead Ends
 
 In a filter network, data streams don't get created from nowhere, neither
@@ -182,12 +250,17 @@ Gain of the input.
 Offset of the input data.
 @item gain (float)
 Gain of the output.
-@item phi (float)
-Position of the output.
+@item position (float)
+Horizontal placement of sample stream in radians from -pi to pi.
 @end table
+
+@node Orientation,, Junctions and Dead Ends, Elementary Plugins
+@section Orientation
+
+TODO: pan (pan.c)
 
 @node Effects,, Elementary Plugins, Plugin Collection
 @section Effects
 
-TODO: noisegate (noisegate.c), iir (iir.c)
+TODO: echo (echo.c), noisegate (noisegate.c), iir (iir.c)
 
