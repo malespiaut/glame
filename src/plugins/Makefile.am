@@ -43,14 +43,9 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
 
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-<<<<<<< Makefile.am
-	pan.la pipe.la iir.la noisegate.la time.la flanger.la
-#pkglib_LTLIBRARIES = debug.la tutorial.la
-=======
-	pan.la pipe.la iir.la noisegate.la time.la \
+	pan.la pipe.la iir.la noisegate.la time.la flanger.la \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugin)
->>>>>>> 1.33
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module
@@ -76,10 +71,9 @@ iir_la_LDFLAGS = -module
 time_la_SOURCES = time.c
 time_la_LDFLAGS = -module
 
-<<<<<<< Makefile.am
 flanger_la_SOURCES = flanger.c
 flanger_la_LDFLAGS = -module
-=======
+
 if HAVE_FFTW
 fft_la_SOURCES = fft.c
 endif
@@ -104,4 +98,3 @@ if HAVE_SGI
 audio_io_irix_la_SOURCES = audio_io_irix.c audio_io.h
 endif
 audio_io_irix_la_LDFLAGS = -module $(SGIAUDIO_LIBS)
->>>>>>> 1.33
