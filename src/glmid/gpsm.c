@@ -195,7 +195,7 @@ static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node)
 		irate = 44100;
 	if (!(c = xmlGetProp(node, "position")))
 		c = "0.0";
-	if (sscanf(c, "%f", &iposition) != -1)
+	if (sscanf(c, "%f", &iposition) != 1)
 		iposition = 0.0;
 	if (!(c = xmlGetProp(node, "hpos")))
 		c = "0";
@@ -1278,6 +1278,8 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 				snprintf(label, 255, "Track %li", itvpos);
 				if (!(fswfile = gpsm_newswfile(label)))
 					goto fail;
+				fswfile->position = gpsm_swfile_position(it);
+				fswfile->samplerate = gpsm_swfile_samplerate(it);
 				gpsm_grp_insert(grp, (gpsm_item_t *)fswfile, 0, itvpos);
 			}
 			ffd = sw_open(gpsm_swfile_filename(fswfile), O_RDWR);
