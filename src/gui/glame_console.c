@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.2 2001/06/13 11:59:17 richi Exp $
+ * $Id: glame_console.c,v 1.3 2001/06/13 13:34:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,6 +29,7 @@
 #include <guile/gh.h>
 #include <libguile/ports.h>
 #include "util.h"
+#include "glscript.h"
 #include "glame_console.h"
 
 
@@ -37,15 +38,9 @@ static GtkWidget *text = NULL;
 static GdkColor fore, back;
 
 
-static gint hide_cb(GtkWidget *window, GdkEventAny *event)
-{
-	gtk_widget_hide(window);
-	return TRUE;
-}
-
 static void port_write(SCM port, void *data, size_t size)
 {
-	glame_console_printf("%s", data);
+	glame_console_printf("%.*s", (int)size, data);
 }
 static void port_register()
 {
@@ -73,9 +68,44 @@ static void port_register()
 	scm_set_current_error_port(s_port);
 }
 
+static gint hide_cb(GtkWidget *window, GdkEventAny *event)
+{
+	gtk_widget_hide(window);
+	return TRUE;
+}
+
+static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
+{
+	char prt_cmd[32];
+	char *cmd;
+	SCM s_res;
+
+	if (event->type != GDK_KEY_PRESS
+	    || (event->keyval != GDK_KP_Enter
+		&& event->keyval != GDK_ISO_Enter
+		&& event->keyval != GDK_3270_Enter
+		&& event->keyval != GDK_Return))
+		return FALSE;
+	cmd = gtk_entry_get_text(GTK_ENTRY(entry));
+	if (!cmd)
+		return FALSE;
+	glame_console_printf("GLAME> %s\n", cmd);
+	s_res = glame_gh_safe_eval_str(cmd);
+#ifdef SCM_EQ_P
+	if (!SCM_UNBNDP(s_res) && !SCM_EQ_P(s_res, SCM_UNSPECIFIED)) {
+#else
+	if (!SCM_UNBNDP(s_res) && !(SCM_UNSPECIFIED==s_res)) {
+#endif
+		gh_display(s_res);
+		gh_newline();
+	}
+	gtk_entry_set_text(GTK_ENTRY(entry), "");
+	return FALSE;
+}
+
 int glame_console_init()
 {
-	GtkWidget *scroll;
+	GtkWidget *scroll, *label, *entry, *vbox, *hbox;
 	GdkColormap *colormap;
 
 	if (console)
@@ -84,20 +114,34 @@ int glame_console_init()
 	console = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(console), "GLAME "VERSION" console");
 	gtk_window_set_default_size(GTK_WINDOW(console), 400, 200);
+	vbox = gtk_vbox_new(FALSE, 10);
 	scroll = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
 				       GTK_POLICY_AUTOMATIC,
 				       GTK_POLICY_ALWAYS);
 	text = gtk_text_new(NULL, NULL);
 	gtk_text_set_editable(GTK_TEXT(text), FALSE);
+	hbox = gtk_hbox_new(FALSE, 10);
+	label = gtk_label_new("GLAME>");
+	entry = gtk_entry_new();
 
+	gtk_signal_connect(GTK_OBJECT(entry), "key_press_event",
+			   entry_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(console), "delete_event",
 			   hide_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(console), "destroy_event",
 			   hide_cb, NULL);
 
 	gtk_container_add(GTK_CONTAINER(scroll), text);
-	gtk_container_add(GTK_CONTAINER(console), scroll);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox), entry, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
+	gtk_container_add(GTK_CONTAINER(console), vbox);
+	gtk_widget_show(label);
+	gtk_widget_show(entry);
+	gtk_widget_show(hbox);
+	gtk_widget_show(vbox);
 	gtk_widget_show(text);
 	gtk_widget_show(scroll);
 
