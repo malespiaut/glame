@@ -359,9 +359,6 @@ glame_hruler_get_stride (GlameRuler *ruler)
   ythickness = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->ythickness;
 
   layout = GLAME_HRULER (ruler)->layout;
-  pango_layout_get_extents (layout, &ink_rect, &logical_rect);
-
-  digit_height = PANGO_PIXELS (ink_rect.height) + 1;
 
   width = widget->allocation.width;
    
@@ -379,6 +376,9 @@ glame_hruler_get_stride (GlameRuler *ruler)
    */
   scale = ceil (ruler->max_size / ruler->metric->pixels_per_unit);
   unit_str_len = ruler->metric->translate (scale, unit_str, sizeof(unit_str)-1);
+  pango_layout_set_text (layout, unit_str, unit_str_len);
+  pango_layout_get_extents (layout, &ink_rect, &logical_rect);
+  digit_height = PANGO_PIXELS (ink_rect.height) + 1;
   text_width = unit_str_len * digit_height + 1;
 
   for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
