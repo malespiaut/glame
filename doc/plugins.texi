@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.9 2000/04/06 12:39:28 richi Exp $
+@comment $Id: plugins.texi,v 1.10 2000/04/06 15:46:00 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -22,6 +22,12 @@ float, or string--in parentheses.
 @end menu
 
 @node In- and Output, Elementary Plugins,, Plugin Collection
+@section In- and Output
+
+GLAME has several ways of importing and exporting audio data: via the
+sound card, an external file, or an external program. Furthermore, GLAME
+has its own so-called swapfile that is used as a large internal cache for
+audio data.
 
 @menu
 * Audio I/O::
@@ -120,49 +126,51 @@ depends on the desired sound format.
 @node Swapfile I/O, Abusing External Apps, File I/O, In- and Output
 @subsection Swapfile I/O
 
-The two filters @file{track-in} and @file{track-out} are for streaming
-a swapfile into the network or storing a stream into the swapfile. Both
-filters read from / store to the notion of tracks represented by a
-track group identifier and a track identifier. Both filters are one filter
-per stream ones.
+The two plugins @file{track-in} and @file{track-out} are for streaming
+a swapfile into the network and storing a stream into the swapfile
+respectively. Both refer to tracks via a track group identifier and a track 
+identifier.
 
 @subsubheading Common parameters
 @table @code
-@item group
-Track group identifier
-@item track
-Track identifier
+@item group (string)
+Track group identifier. This parameter is required to be set and there is
+no default value.
+@item track (string)
+Track identifier. This parameter is required to be set and there is
+no default value.
 @end table
 
 @subsubheading @file{track-in} ports
 @table @code
-@item out
+@item out (output)
 Sample stream coming out of the swapfile.
 @end table
-@file{track-in} has no specific parameters.
+
+@file{track-in} has no further specific parameters.
 
 @subsubheading @file{track-out} ports
 @table @code
-@item in
+@item in (input)
 Sample stream to be stored in the swapfile.
 @end table
-@file{track-out} has no specific parameters.
 
-
+@file{track-out} has no further specific parameters.
 
 @node Abusing External Apps,, Swapfile I/O, In- and Output
 @subsection Abusing External Apps
 
 This hackish filter allows to stream data coming from an external
-program which was launched using @code{fork()} and @code{exec()} and
-communicating through unix pipes.
+program that communicates through unix pipes.
 
 @subsubheading Common parameters
 @table @code
-@item cmd
-Command string of the program which should be launched.
-@item tail
-Extra tail to be appended to the command string, usually a filename.
+@item cmd (string)
+Command string of the program which should be launched. This parameter is 
+required to be set and there is no default value.
+@item tail (string)
+Extra tail to be appended to the command string, usually a filename. It
+defaults to an empty string.
 @end table
 
 @subsubheading @file{pipe-in} ports
@@ -170,33 +178,30 @@ Extra tail to be appended to the command string, usually a filename.
 @item out
 Streams created out of the (possible interleaved) data coming from the
 external program. You have to ensure to connect two pipes if the external
-program generates stereo output. Dataformat is s16 only.
+program generates stereo output. Dataformat is signed 16 bit in 
+native endianness only.
 @end table
 
 @subsubheading @file{pipe-in} parameters
 @table @code
 @item rate
-Sample rate of the data coming from the external program. Defaults to
-@code{GLAME_DEFAULT_SAMPLERATE} which is 44100Hz.
+Sample rate of the data coming from the external program. Defaults to the
+compile-time setting of @code{GLAME_DEFAULT_SAMPLERATE} which is 
+usually 44100 Hz.
 @end table
-
-
 
 @node Elementary Plugins, Effects, In- and Output, Plugin Collection
 @section Elementary Plugins
 
-TODO: mul, add (arithmetic.c), 
-ping (debug.c), 
-statistic, debugrms (rms.c), 
-null, dup (tutorial.c)
-
-*** Add them here first. Will move to new sections as appropriate. ***
-
 @menu 
-* Generating Waves::
-* Junctions and Dead Ends::
-* Mangling Data Streams::
-* Orientation::
+* Generating Waves::		Sound out of Nowhere
+* Junctions and Dead Ends::	Splitting, mixing and merging
+* Mangling Data Streams::	Shifting and rescaling
+* Orientation::			Panning
+* Arithmetics::			Adding and multiplying streams
+* The Sample Analyst::		Sample statistics
+* Catching Bugs::		Sending network pings
+* How to Code::			Useless plugins
 @end menu
 
 @node Generating Waves, Junctions and Dead Ends,, Elementary Plugins
@@ -360,7 +365,7 @@ The input pattern is repeated until a total time of duration seconds is
 reached. Defaults to 0s.
 @end table
 
-@node Orientation,, Mangling Data Streams, Elementary Plugins
+@node Orientation, Arithmetics, Mangling Data Streams, Elementary Plugins
 @subsection Orientation
 
 The @file{pan} plugin distributes a mono sample stream to two stereo
@@ -385,8 +390,207 @@ As the position property ranges from -pi to pi, values with magnitude
 larger than pi/2 (i.e. positions in the 'back') are mirrored to the front.
 @end table
 
+@node Arithmetics, The Sample Analyst, Orientation, Elementary Plugins
+@subsection Arithmetics
+
+The plugins @file{mul} and @file{add} perform a simple arithmetic operations
+on several input streams. Basically, @file{mul} multiplies and @file{add}
+sums up any number of input sample streams. Operations are performed
+sample by sample--no check is performed whether sample rates match! 
+If a stream is shorter than others, it is zero-padded internally.
+
+Each plugin allows one multiplicative and one additive constant to be
+set. They are interpreted differently for each plugin however, 
+reflecting the different algorithms:
+
+@file{mul} calculates each output sample by taking one sample from each
+input pipe, adding @code{add} to it, multiplying the results, and
+finally multiplying the result by @code{factor}.
+
+@file{add} calculates each output sample by taking one sample from each
+input pipe, summing them all up, adding the @code{add} parameter, and
+multiplying the result by @code{factor}.
+
+@subsubheading Common ports
+@table @code
+@item in (input)
+Input sample stream. Any number of input connections is allowed.
+@item out (out)
+Output sample stream of computed data. Only one connection is allowed.
+@end table
+
+@subsubheading Common parameters
+@table @code
+@item add (float)
+Additive constant, see above. Defaults to zero.
+@item factor (float)
+Multiplicative constant, see above. Defaults to one.
+@end table
+
+There are neither further specific ports, nor further specific parameters.
+
+@node The Sample Analyst, Catching Bugs, Arithmetics, Elementary Plugins
+@subsection The Sample Analyst
+
+Analyzing sample data for things like peak values or a DC offset is
+crucial for tuning parameters right on other plugins. The @file{statistic}
+plugin is kind enough to take the burden of calculating those values. Its
+output is obviously not a stream of sample data, but of statistical
+values called an RMS stream. Unfortunately, RMS work within GLAME is still
+in its early stages, so currently there is only one simple test plugin,
+@file{debugrms}, that can actually understand an RMS input stream and
+prints some of the gathered statistics to the console. 
+
+@subsubheading @file{statistic} ports
+@table @code
+@item in (input)
+Input sample stream to be analyzed. Only one connection is allowed.
+@item out (output)
+RMS data stream of gathered statistical data. Only one connection is
+allowed.
+@end table
+
+@subsubheading @file{statistic} parameters
+@table @code
+@item windowsize (time)
+Time in milliseconds of window for a single chunk of RMS data.
+@end table
+
+@subsubheading @file{debugrms} ports
+@table @code
+@item in (input)
+Input stream of RMS data to display.
+@end table
+
+@file{debugrms} has no parameters.
+
+@node Catching Bugs, How to Code, The Sample Analyst, Elementary Plugins
+@subsection Catching Bugs
+
+Ping is a tool familiar to admins to test integrity and latency of a
+network connection. The @file{ping} plugin does the same within a GLAME
+filter network. It sends out a data packet from its output port and 
+measures the time until the packet arrives at its input port. Obviously,
+the filter network should have a loop structure or ping will wait 
+endlessly for an input. Debugging output goes to the console.
+
+@subsubheading @file{ping} ports
+@table @code
+@item in (input)
+Input port packets are received at.
+@item out (output)
+Output port packets are sent from.
+@end table
+
+@subsubheading @file{ping} parameters
+@table @code
+@item cnt (integer)
+Number of packets to send. Defaults to 10.
+@item dt (integer)
+Time in microseconds between successive packets. Defaults to 250000 
+microseconds (1/4 second).
+@item size (int)
+Number of samples in a test packet. Defaults to 128 samples.
+@end table
+
+@node How to Code,, Catching Bugs, Elementary Plugins
+@subsection How to Code
+
+The @file{null} and @file{dup} plugins aren't really meant to be used,
+they are simple reference implementations for developers looking for a
+quick introduction to plugin programming. @file{null} passes an input
+stream unmodified to its output, @file{dup} duplicates an input stream
+to two output streams. In real life, the more complex @file{one2n}
+plugin can be used to achieve the same results. So use the source, not 
+these plugins. 
+
 @node Effects,, Elementary Plugins, Plugin Collection
 @section Effects
 
-TODO: echo (echo.c), noisegate (noisegate.c), iir (iir.c)
+@menu
+* Echo::
+* Noisegate::
+* IIR::
+@end menu
+
+@node Echo, Noisegate,, Effects
+@subsection Echo
+
+Guess what! The @file{echo} plugin adds an echo to an input stream.
+
+@subsubheading @file{echo} ports
+@table @code
+@item in (input)
+Stream of input sample data. Only one connection is allowed.
+@item out (output)
+Mixed stream of input and echoed data. Only one connection is allowed.
+@end table
+
+@subsubheading @file{echo} parameters
+@table @code
+@item time (time)
+Delay time for echo in milliseconds. Defaults to 100 milliseconds.
+@item mix (float)
+Mix ratio of echoed to original stream. Defaults to 0.7.
+@end table
+
+@node Noisegate, IIR, Echo, Effects
+@subsection Noisegate
+
+A noisegate is used to filter out noise below a certain threshold from an
+input stream. Its operation can be tuned by a number of parameters. 
+When the input signal (its absolute value actually) falls below 
+@code{threshold_on} for more than @file{hold} time, @file{noisegate}
+suppresses output until the signal goes back up and above threshold_off.
+Switching from and to zero output is usually not done instantaneously as this
+would lead to distorted sound. Instead, a fading time can be given by
+@code{attack} and @code{release} respectively. 
+
+@subsubheading @file{noisegate} ports
+@table @code
+@item in (input)
+@item out (output)
+@end table
+
+@subsubheading @file{noisegate} parameters
+@table @code
+@item threshold_on (float)
+@item threshold_off (float)
+On and off threshold for sample data between 0 and 1, see above. Default to 0.
+A noisegating effect is only achieved if @code{threshold_on} is less than
+@code{threshold_off}.
+@item hold (time)
+Hold time in milliseconds, see above. Defaults to 0.
+@item attack (time)
+Attack time in milliseconds, see above. Defaults to 1.
+@item release (time)
+Release time in milliseconds, see above. Defaults to 1.
+@end table
+
+@node IIR,, Noisegate, Effects
+@subsection IIR
+
+*** TODO: IIR description. For now ask Mag or consult a standard textbook. ***
+
+@subsubheading @file{iir} ports
+@table @code
+@item in (input)
+Input stream of sample data. Only one connection is allowed.
+@item out (output)
+Output stream of filtered sample data. Only one connection is allowed.
+@end table
+
+@subsubheading @file{iir} parameters
+@table @code
+@item mode (integer)
+Mode of operation. 0 specifies a low pass, 1 a high pass filter. Defaults 
+to low pass.
+@item poles (integer)
+Number of poles. Defaults to 2.
+@item cutoff (float)
+Cut off frequency between 0 and 0.5. Defaults to 0.1.
+@item ripple (float)
+Ripple ratio. Defaults to 0.5.
+@end table
+
 
