@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.8 2001/06/27 09:19:12 richi Exp $
+ * $Id: canvas_types.c,v 1.9 2001/06/28 08:59:15 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -277,6 +277,7 @@ static void timeline_canvas_group_update(TimelineCanvasItem *item)
 {
 	TimelineCanvasGroup *group = TIMELINE_CANVAS_GROUP(item);
 	double x1, y1, x2, y2;
+	gpsm_item_t *it;
 
 	/* Update the rect hsize. */
 	x2 = _HUNIT(gpsm_item_hsize(item->item)/44100.0/*FIXME*/);
@@ -298,6 +299,17 @@ static void timeline_canvas_group_update(TimelineCanvasItem *item)
 
 	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));
 	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(group->text)); /* doenst seem to handle position change only -- GNOME bug */
+
+	/* Somehow we need to trigger updates on all childs. Ugh. */
+	gpsm_grp_foreach_item(item->item, it) {
+		GnomeCanvasItem *child;
+		child = timeline_canvas_find_gpsm_item(group, it);
+		if (!child) {
+			DPRINTF("FUCK\n");
+			continue;
+		}
+		timeline_canvas_item_update(TIMELINE_CANVAS_ITEM(child));
+	}
 }
 
 TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
