@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.9 2001/04/29 11:47:20 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.10 2001/05/03 11:45:31 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -246,6 +246,8 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 			    && trackpos[i] >= trackst[i].cluster_start/SAMPLE_SIZE
 			    && trackpos[i] <= trackst[i].cluster_end/SAMPLE_SIZE)
 				trackm[i] = sw_mmap(NULL, PROT_READ, MAP_SHARED, swapfile->fd[i]);
+			if (trackm[i] == MAP_FAILED)
+				trackm[i] = NULL;
 		}
 	}
 
