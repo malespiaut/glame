@@ -4,7 +4,7 @@
 /*
  * timeline_canvas.h
  *
- * $Id: timeline_canvas.h,v 1.2 2001/07/30 09:12:46 xwolf Exp $
+ * $Id: timeline_canvas.h,v 1.3 2003/05/18 19:24:30 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -31,7 +31,7 @@
 #include <gnome.h>
 #include "gpsm.h"
 
-
+G_BEGIN_DECLS
 /* Types
  */
 
@@ -232,5 +232,5 @@ TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,
 GnomeCanvasItem *timeline_canvas_find_gpsm_item(GnomeCanvasGroup *grp,
 						gpsm_item_t *item);
 
-
+G_END_DECLS
 #endif

@@ -3,7 +3,7 @@
 
 /*
  * timeline.h
- * $Id: timeline.h,v 1.4 2001/08/06 08:19:12 richi Exp $
+ * $Id: timeline.h,v 1.5 2003/05/18 19:24:29 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -32,7 +32,7 @@
 #include "util/glame_ruler.h"
 #include "timeline_canvas.h"
 
-
+G_BEGIN_DECLS
 struct _TimelineGuiClass;
 struct _TimelineGui;
 typedef struct _TimelineGuiClass TimelineGuiClass;
@@ -71,5 +71,5 @@ GtkType timeline_gui_get_type();
 GtkWidget *glame_timeline_new_with_window(const char *caption,
 					  gpsm_grp_t *root);
 
-
+G_END_DECLS
 #endif
