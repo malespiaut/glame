@@ -57,6 +57,8 @@ gui/
 
 gui/swapfilegui
 	[richi]
+	- make it a full fledged window like the other widgets
+          -> reduce pollution of main.c
 	- seperate into subdirectory
 	- progress bar for import & export
 	- better UI
