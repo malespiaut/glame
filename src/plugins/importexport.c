@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.2 2001/06/15 20:25:22 mag Exp $
+ * $Id: importexport.c,v 1.3 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -29,14 +29,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <gtk/gtk.h>
+#include <gnome.h>
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
 #include "gpsm.h"
 #include "swapfile.h"
-#include "gtk/gtk.h"
-#include "gnome.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 
 #ifdef HAVE_AUDIOFILE
 #include "audiofile.h"

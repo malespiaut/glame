@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui/util -I@top_srcdir@/src/gui/edit_filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) $(GUILE_INCS) -D_REENTRANT $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.20 2001/06/11 17:34:21 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.21 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -31,7 +31,7 @@
 #include <stroke.h>
 #endif
 #include "glscript.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "glame_accelerator.h"
 /* FIXME remove these later on */
 guint nPopupTimeout;

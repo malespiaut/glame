@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.14 2001/06/12 07:44:58 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.15 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -29,7 +29,7 @@
 #include "glamecanvas.h"
 #include "canvasitem.h"
 #include "hash.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "glame_accelerator.h"
 
      

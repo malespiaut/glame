@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.2 2001/05/30 09:44:19 richi Exp $
+ * $Id: apply.c,v 1.3 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,7 +29,7 @@
 #include "gpsm.h"
 #include "filter.h"
 #include "glplugin.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "network_utils.h"
 
 

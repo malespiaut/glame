@@ -4,7 +4,7 @@
 /*
  * filtergui.h
  *
- * $Id: filtergui.h,v 1.1 2001/03/21 09:44:17 xwolf Exp $
+ * $Id: filtergui.h,v 1.2 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -24,7 +24,7 @@
  *
  */
 
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 
 
 /* Create a new filter network. The data is contained in the 

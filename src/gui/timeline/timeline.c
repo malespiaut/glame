@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.5 2001/06/19 09:58:22 richi Exp $
+ * $Id: timeline.c,v 1.6 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -27,7 +27,7 @@
 #include <gnome.h>
 #include "glscript.h"
 #include "glame_accelerator.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "waveeditgui.h"
 #include "canvas_types.h"
 #include "timeline.h"

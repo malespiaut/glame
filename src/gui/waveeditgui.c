@@ -30,13 +30,13 @@
 #include <gtk/gtk.h>
 #include <gnome.h>
 #include <guile/gh.h>
-#include "gtkwaveview.h"
-#include "gtkswapfilebuffer.h"
+#include "libgtkwaveform/gtkwaveview.h"
+#include "libgtkwaveform/gtkswapfilebuffer.h"
 #include "glame_types.h"
 #include "glplugin.h"
 #include "swapfile.h"
 #include "glmid.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "waveeditgui.h"
 #include "edit_filter/filtereditgui.h"
 #include "clipboard.h"

@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/gui -I@top_srcdir@/src/gui/edit_filter -I@top_srcdir@/src/filter -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui/util $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS)  $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/gui -I@top_srcdir@/src/gui/edit_filter -I@top_srcdir@/src/filter -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS)  $(XML_CFLAGS)
 
 
 EXTRA_DIST = canvas.h main.c

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.11 2001/06/06 15:12:36 xwolf Exp $
+ * $Id: canvasport.c,v 1.12 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -28,7 +28,7 @@
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "hash.h"
 #include <X11/bitmaps/hlines3>
 extern gboolean bMac;

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.63 2001/06/19 09:59:02 richi Exp $
+ * $Id: main.c,v 1.64 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -34,8 +34,9 @@
 #include "glmid.h"
 #include "swapfilegui.h"
 #include "waveeditgui.h"
-#include "filtereditgui.h"
-#include "glame_gui_utils.h"
+#include "timeline/timeline.h"
+#include "edit_filter/filtereditgui.h"
+#include "util/glame_gui_utils.h"
 #include "gltreeitem.h"
 #include "gpsm.h"
 #include "clipboard.h"

@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.1 2001/06/14 15:24:43 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.2 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -32,7 +32,7 @@
 #include <libgnomeui/gnome-canvas.h>
 #include "filter.h"
 #include "util.h"
-#include "glamecanvas.h"
+#include "edit_filter/glamecanvas.h"
 
 
 #define GLAME_LOGO PKGPIXMAPSDIR "/glame-logo.jpg"

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.46 2001/06/13 13:34:26 richi Exp $
+ * $Id: swapfilegui.c,v 1.47 2001/06/19 12:09:01 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -35,9 +35,9 @@
 #include "gltreeitem.h"
 #include "waveeditgui.h"
 #include "filter.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "clipboard.h"
-#include "timeline.h"
+#include "timeline/timeline.h"
 #include "glscript.h"
 #include "swapfilegui.h"
 

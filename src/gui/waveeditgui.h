@@ -23,8 +23,8 @@
 #define _WAVEEDITGUI_H
 
 #include <gtk/gtk.h>
-#include "gtkwaveview.h"
-#include "gtkswapfilebuffer.h"
+#include "libgtkwaveform/gtkwaveview.h"
+#include "libgtkwaveform/gtkswapfilebuffer.h"
 #include "gpsm.h"
 
 

@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.10 2001/06/06 15:12:36 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.11 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -29,7 +29,7 @@
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "hash.h"
 
 

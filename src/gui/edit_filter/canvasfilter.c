@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.18 2001/06/18 08:28:41 richi Exp $
+ * $Id: canvasfilter.c,v 1.19 2001/06/19 12:09:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -27,7 +27,7 @@
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "filtereditgui.h"
-#include "glame_gui_utils.h"
+#include "util/glame_gui_utils.h"
 #include "canvasitem.h"
 #include "hash.h"
 
