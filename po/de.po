@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glame CVS\n"
 "POT-Creation-Date: 2002-12-01 19:31+0100\n"
-"PO-Revision-Date: 2002-10-05 22:00+10\n"
+"PO-Revision-Date: 2003-05-26 00:26+0200\n"
 "Last-Translator: Richard Guenther <richi@glame.de>\n"
 "Language-Team: glame-devel <glame-devel@lists.sf.net>\n"
 "MIME-Version: 1.0\n"
@@ -158,7 +158,7 @@ msgstr "Mac-Modus (eine Maustaste)"
 
 #: src/gui/main.c:507
 msgid "Scroll wave while playing"
-msgstr ""
+msgstr "Wellenform beim Abspielen mitbewegen"
 
 #: src/gui/main.c:522
 msgid "You need lots of diskspace available at the swapfile location."
@@ -176,9 +176,8 @@ msgid "Swapfile Path"
 msgstr "Pfad zur Auslagerungsdatei"
 
 #: src/gui/main.c:537
-#, fuzzy
 msgid "Maximum virtual memory used for caching [MB]"
-msgstr "Maximal genutzter Speicher für Caching"
+msgstr "Maximal genutzter virtueller Speicher für Caching"
 
 #: src/gui/main.c:540
 msgid "NOTE: Swapfile settings take effect after restart only"
@@ -203,7 +202,6 @@ msgid "No audio input plugin"
 msgstr "Kein Audioeingabeplugin"
 
 #: src/gui/main.c:595
-#, fuzzy
 msgid "Default input sample rate"
 msgstr "Standard-Eingabegerät"
 
@@ -233,7 +231,7 @@ msgstr "Filternetzwerk"
 
 #: src/gui/main.c:675
 msgid "Waveedit"
-msgstr ""
+msgstr "Wellenform-Editor"
 
 #: src/gui/main.c:683
 msgid "Audio I/O"
@@ -315,7 +313,6 @@ msgstr ""
 "Pfad der Auslagerungsdatei und die Audio-Ein/Ausgabeeinstellungen.\n"
 
 #: src/gui/main.c:883
-#, fuzzy
 msgid ""
 "You didnt change/check the configuration.\n"
 "GLAME is exiting now.\n"
@@ -362,9 +359,8 @@ msgstr "Bearbeiten"
 
 #: src/gui/swapfilegui.c:85 src/gui/swapfilegui.c:117
 #: src/gui/edit_filter/filtereditgui.c:677
-#, fuzzy
 msgid "Properties..."
-msgstr "Eigenschaften"
+msgstr "Eigenschaften..."
 
 #: src/gui/swapfilegui.c:86
 msgid "Timeline"
@@ -486,11 +482,11 @@ msgstr "Parameter von %s"
 
 #: src/gui/apply.c:415
 msgid "Lock size"
-msgstr ""
+msgstr "Größe festhalten"
 
 #: src/gui/apply.c:419
 msgid "Loop previewing"
-msgstr ""
+msgstr "Wiederholen"
 
 #: src/gui/glame_accelerator.c:497 src/gui/waveeditgui.c:1497
 #: src/gui/edit_filter/filtereditgui.c:799
@@ -499,23 +495,23 @@ msgstr "Schließen"
 
 #: src/gui/importexport.c:604
 msgid "File Information"
-msgstr ""
+msgstr "Dateiinformation"
 
 #: src/gui/importexport.c:637
 msgid "Get RMS & DC-Offset"
-msgstr ""
+msgstr "Mittelwert und Offset bestimmen"
 
 #: src/gui/importexport.c:661
 msgid "Resample"
-msgstr ""
+msgstr "Resampeln"
 
 #: src/gui/importexport.c:669
 msgid "Rate"
-msgstr ""
+msgstr "Frequenz"
 
 #: src/gui/importexport.c:696
 msgid "Import"
-msgstr ""
+msgstr "Importieren"
 
 #: src/gui/importexport.c:1176 src/gui/waveeditgui.c:1454
 msgid "Export"
@@ -556,9 +552,8 @@ msgid "Select all"
 msgstr "Alles selektieren"
 
 #: src/gui/waveeditgui.c:129
-#, fuzzy
 msgid "Export selection"
-msgstr "Selektion kopieren"
+msgstr "Selektion exportieren"
 
 #: src/gui/waveeditgui.c:196
 msgid "Cut"
@@ -574,11 +569,11 @@ msgstr "Einfügen"
 
 #: src/gui/waveeditgui.c:199
 msgid "Replace"
-msgstr ""
+msgstr "Ersetzen"
 
 #: src/gui/waveeditgui.c:200
 msgid "Mix"
-msgstr ""
+msgstr "Mischen"
 
 #: src/gui/waveeditgui.c:204
 msgid "Undo"
@@ -590,19 +585,17 @@ msgstr "Wiederholen"
 
 #: src/gui/waveeditgui.c:367
 msgid "Error during undo"
-msgstr ""
+msgstr "Fehler während Rückgängigmachen"
 
 #: src/gui/waveeditgui.c:381
 msgid "Error during redo"
-msgstr ""
+msgstr "Fehler während Wiederholen"
 
 #: src/gui/waveeditgui.c:457 src/gui/waveeditgui.c:1484
-#, fuzzy
 msgid "Play/Record"
-msgstr "Aufnehmen"
+msgstr "Abspielen/Aufnehmen"
 
 #: src/gui/waveeditgui.c:457
-#, fuzzy
 msgid "PlayRecord"
 msgstr "Aufnehmen"
 
@@ -667,27 +660,22 @@ msgid "Apply custom..."
 msgstr "Erweitert anwenden..."
 
 #: src/gui/waveeditgui.c:1345
-#, fuzzy
 msgid "Export selection..."
 msgstr "Exportieren als..."
 
 #: src/gui/waveeditgui.c:1357
-#, fuzzy
 msgid "_File"
 msgstr "Dateiname"
 
 #: src/gui/waveeditgui.c:1364 src/gui/edit_filter/filtereditgui.c:713
-#, fuzzy
 msgid "_Edit"
 msgstr "Bearbeiten"
 
 #: src/gui/waveeditgui.c:1371 src/gui/edit_filter/filtereditgui.c:720
-#, fuzzy
 msgid "_View"
 msgstr "Ansicht"
 
 #: src/gui/waveeditgui.c:1378
-#, fuzzy
 msgid "_Select"
 msgstr "Selektieren"
 
@@ -798,17 +786,17 @@ msgstr "Winkel: %f"
 #: src/gui/edit_filter/canvaspipe.c:483
 #, c-format
 msgid "FFT blocksize: %i"
-msgstr ""
+msgstr "FFT Blockgröße: %i"
 
 #: src/gui/edit_filter/canvaspipe.c:508
 #, c-format
 msgid "FFT oversampling: %i"
-msgstr ""
+msgstr "FFT Oversampling: %i"
 
 #: src/gui/edit_filter/canvaspipe.c:560
 #, c-format
 msgid "SSP blocksize: %i"
-msgstr ""
+msgstr "SSP Blockgröße: %i"
 
 #: src/gui/edit_filter/canvaspipe.c:588
 msgid "Source params:"
@@ -849,17 +837,15 @@ msgstr "Unbekannt"
 
 #: src/gui/edit_filter/filtereditgui.c:390
 msgid "Parameters"
-msgstr ""
+msgstr "Parameter"
 
 #: src/gui/edit_filter/filtereditgui.c:675
-#, fuzzy
 msgid "Save as..."
-msgstr "Netzwerk speichern als..."
+msgstr "Speichern als..."
 
 #: src/gui/edit_filter/filtereditgui.c:676
-#, fuzzy
 msgid "Register..."
-msgstr "Registrieren"
+msgstr "Registrieren..."
 
 #: src/gui/edit_filter/filtereditgui.c:679
 #: src/gui/edit_filter/filtereditgui.c:773
@@ -868,12 +854,10 @@ msgid "Execute"
 msgstr "Ausführen"
 
 #: src/gui/edit_filter/filtereditgui.c:690
-#, fuzzy
 msgid "Collapse"
 msgstr "Schließen"
 
 #: src/gui/edit_filter/filtereditgui.c:706
-#, fuzzy
 msgid "_Network"
 msgstr "_Filternetzwerk"
 
