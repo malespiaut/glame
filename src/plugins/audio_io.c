@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.26 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: audio_io.c,v 1.27 2001/04/06 18:22:10 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <limits.h>
 #include "glame_types.h"
@@ -147,6 +148,7 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 
 	GLSIGH_GETARGS1(va, param);
 	n = filterparam_filter(param);
+	out = filterparam_get_sourcepipe(param);
 
 	if (out && strcmp("position", filterparam_label(param)) == 0) {
 		/* FIXME: param setting checks belong to set_param()
@@ -154,7 +156,6 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		float hangle = filterparam_val_float(param);
 		if (hangle <= -M_PI || hangle > M_PI)
 			return;
-		out = filterparam_get_sourcepipe(param);
 		filterpipe_sample_hangle(out) = hangle;
 		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 
