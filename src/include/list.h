@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.15 2000/10/28 13:41:57 richi Exp $
+ * $Id: list.h,v 1.16 2001/03/28 09:34:57 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -223,7 +223,7 @@ static inline void list_unsplice(struct list_head *list,
 
 /* Iterate through all list items using entryvar. It is safe to remove entryvar, but _only_
  * entryvar. Provide an additional dummy pointer for internal use. */
-#define list_safe_foreach(listptr, type, member, dummy, entryvar) for (entryvar = list_entry((listptr)->next, type, member), dummy = (listptr)->next->next; &entryvar->member != (listp); entryvar = list_entry((struct list_head *)dummy, type, member), dummy = ((struct list_head *)dummy)->next) 
+#define list_safe_foreach(listptr, type, member, dummy, entryvar) for (entryvar = list_entry((listptr)->next, type, member), dummy = (listptr)->next->next; &entryvar->member != (listptr); entryvar = list_entry((struct list_head *)dummy, type, member), dummy = ((struct list_head *)dummy)->next) 
 
 /* Count the number of items in the list. */
 static inline int list_count(struct list_head *l)
