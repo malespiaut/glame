@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.15 2002/02/17 13:53:31 richi Exp $
+ * $Id: apply.c,v 1.16 2002/02/18 22:56:30 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -26,6 +26,7 @@
 #endif
 
 #include <gnome.h>
+#include "swapfile.h"
 #include "gpsm.h"
 #include "filter.h"
 #include "glplugin.h"
@@ -42,6 +43,7 @@
  * by gtk callbacks. */
 struct apply_plugin_s {
 	gpsm_grp_t *item;
+	gpsm_grp_t *dest;
 	long start, length;
 	filter_t *effect;
 	GtkWidget *properties;
@@ -49,7 +51,6 @@ struct apply_plugin_s {
 	GtkWidget *dialog;
 	filter_t *net;
 	filter_t *pos;
-	int have_undo;
 	int previewing;
 	int applying;
 	guint timeout_id;
@@ -70,6 +71,8 @@ static void cleanup(struct apply_plugin_s *a)
 	gtk_widget_destroy(a->dialog);
 	if (a->net)
 		filter_delete(a->net);
+	if (a->dest)
+		gpsm_item_destroy((gpsm_item_t *)a->dest);
 	filter_delete(a->effect);
 	gpsm_item_destroy((gpsm_item_t *)a->item);
 	free(a);
@@ -91,10 +94,34 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 		if (a->previewing)
 			preview_stop(a);
 		else if (a->applying) {
-			gpsm_item_t *swfile;
+			gpsm_item_t *swfile, *dst;
 			filter_wait(a->net);
-			gpsm_grp_foreach_item(a->item, swfile)
-				gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, a->length);
+			gpsm_op_prepare((gpsm_item_t *)a->item);
+			dst = gpsm_grp_first(a->dest);
+			gpsm_grp_foreach_item(a->item, swfile) {
+				swfd_t sfd, dfd;
+				struct sw_stat st;
+				sfd = sw_open(gpsm_swfile_filename(dst), O_RDONLY);
+				sw_fstat(sfd, &st);
+				dfd = sw_open(gpsm_swfile_filename(swfile), O_RDWR);
+				sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
+#if 0 /* old behavior - keep size */
+				sw_sendfile(SW_NOFILE, dfd, MIN(st.size, a->length*SAMPLE_SIZE), SWSENDFILE_CUT);
+				sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
+				sw_sendfile(dfd, sfd, MIN(st.size, a->length*SAMPLE_SIZE), SWSENDFILE_INSERT);
+				gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, MIN(a->length, st.size/SAMPLE_SIZE));
+#else /* new behavior - allow extending/shrinking */
+				sw_sendfile(SW_NOFILE, dfd, a->length*SAMPLE_SIZE, SWSENDFILE_CUT);
+				sw_lseek(dfd, a->start*SAMPLE_SIZE, SEEK_SET);
+				sw_sendfile(dfd, sfd, st.size, SWSENDFILE_INSERT);
+				if (st.size/SAMPLE_SIZE > a->length)
+					gpsm_notify_swapfile_insert(gpsm_swfile_filename(swfile), a->start + a->length, st.size/SAMPLE_SIZE - a->length);
+				else if (st.size/SAMPLE_SIZE < a->length)
+					gpsm_notify_swapfile_cut(gpsm_swfile_filename(swfile), a->start, a->length - st.size/SAMPLE_SIZE);
+				gpsm_notify_swapfile_change(gpsm_swfile_filename(swfile), a->start, MIN(a->length, st.size/SAMPLE_SIZE));
+#endif
+				dst = gpsm_grp_next(a->dest, dst);
+			}
 			cleanup(a);
 		}
 		return FALSE;
@@ -184,13 +211,18 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	gpsm_item_t *swfile;
 	filter_t *swin, *swout, *e;
 	const char *errmsg;
+	int i = 0;
 
-	/* Create the apply network. */
+	/* Create the apply network and the destination swfile. */
 	a->net = filter_creat(NULL);
+	a->dest = gpsm_newgrp("Apply");
 	gpsm_grp_foreach_item(a->item, swfile) {
 		filter_port_t *ein, *eout;
+		gpsm_swfile_t *dst;
 		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
-		swout = net_add_gpsm_output(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
+		dst = gpsm_newswfile("Apply");
+		gpsm_vbox_insert(a->dest, (gpsm_item_t *)dst, 0, i++);
+		swout = net_add_gpsm_output(a->net, dst, 0, -1, 0);
 		e = filter_creat(a->effect);
 		filter_add_node(a->net, e, "effect");
 		if (!swin || !swout || !e) {
@@ -209,9 +241,6 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 				   filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 	}
 	a->pos = swout;
-
-	gpsm_op_prepare((gpsm_item_t *)a->item);
-	a->have_undo = 1;
 
 	if (filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1) {
 		errmsg = _("Unable to launch network");
@@ -236,14 +265,16 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		filter_delete(a->net);
 		a->net = NULL;
 	}
+	if (a->dest) {
+		gpsm_item_destroy((gpsm_item_t *)a->dest);
+		a->dest = NULL;
+	}
 }
 
 static void cancel_cb(GtkWidget *widget, struct apply_plugin_s *a)
 {
 	if (a->net)
 		filter_terminate(a->net);
-	if (a->have_undo)
-		gpsm_op_undo_and_forget((gpsm_item_t *)a->item);
 	cleanup(a);
 }
 
@@ -278,13 +309,13 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	/* Basic init. */
 	a = (struct apply_plugin_s *)malloc(sizeof(struct apply_plugin_s));
 	a->item = gpsm_collect_swfiles(item);
+	a->dest = NULL;
 	a->start = start;
 	a->length = length;
 	a->effect = filter_instantiate(plugin);
 	if (!a->effect)
 		goto err;
 	a->net = NULL;
-	a->have_undo = 0;
 	a->previewing = 0;
 	a->applying = 0;
 	a->timeout_id = -1;
