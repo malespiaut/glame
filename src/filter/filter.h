@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.39 2000/03/15 13:05:34 richi Exp $
+ * $Id: filter.h,v 1.40 2000/03/15 16:29:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -121,8 +121,8 @@ struct filter {
 #define filter_nrinputs(f) (list_count(&(f)->inputs))
 #define filter_nroutputs(f) (list_count(&(f)->outputs))
 
-/* inits the filter subsystem */
-int filter_init();
+/* inits the filter subsystem - dummy for compatibility. */
+#define filter_init() (0)
 
 /* Allocates a new filter structure. You have still to
  * fill it.

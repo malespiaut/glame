@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: echo.c,v 1.2 2000/03/15 16:29:32 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -171,9 +171,14 @@ static int echo_f(filter_node_t *n)
 
 /* Registry setup of all contained filters
  */
+const char *echo_description = "The echo effect";
+void *echo_pixmap = NULL;
+
 int echo_register()
 {
 	filter_t *f;
+
+	DPRINTF("echo_register()\n");
 
 	if (!(f = filter_alloc("echo", "echo effect", echo_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",

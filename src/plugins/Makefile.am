@@ -1,14 +1,24 @@
 INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) -D_REENTRANT
 
+EXTRA_DIST = net_test_play net_test_audio net_test_echo net_test_echo2 net_test_latency
+
 noinst_PROGRAMS = test_latency test_network
 noinst_LTLIBRARIES = libbuiltins.la
 
-EXTRA_DIST = net_test_play net_test_audio net_test_echo net_test_echo2 net_test_latency
+# put "real" plugins here
+lib_LTLIBRARIES = libecho.la
 
-libbuiltins_la_SOURCES = basic.c basic_sample.c tutorial.c debug.c track_io.c audio_io.c \
-	waveform.c file_io.c \
-	echo.c garrison.c nold.c \
-	basic_midi.c midi_io.c midi_debug.c maggy.c
+# list the builtin ones here
+libbuiltins_la_SOURCES = builtins.c \
+	basic.c basic_sample.c tutorial.c debug.c \
+	track_io.c audio_io.c file_io.c \
+	waveform.c \
+	garrison.c nold.c maggy.c \
+	basic_midi.c midi_io.c midi_debug.c
+
+# the plugin rules
+libecho_la_SOURCES = echo.c
+
 
 
 test_latency_SOURCES = test_latency.c

@@ -8,8 +8,8 @@ bin_PROGRAMS = cglame
 endif
 
 cglame_SOURCES = cglame.c
-cglame_LDADD = swapfile/libswapfile.la filter/libfilter.la hash/libhash.la glmid/libglmid.la \
-	plugins/libbuiltins.la \
+cglame_LDADD = plugins/libbuiltins.la swapfile/libswapfile.la filter/libfilter.la hash/libhash.la glmid/libglmid.la \
 	$(GLAME_LIBS) $(GLAME_DLIBS) $(GLAME_AUDIO_LIBS) \
 	$(GUILE_LIBS) -lm -lpthread
+cglame_LDFLAGS = -rdynamic
 

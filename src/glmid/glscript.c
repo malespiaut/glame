@@ -28,7 +28,8 @@
 #include <guile/gh.h>
 #include <swapfile.h>
 #include <filter.h>
-#include "glscript.h"
+#include <glplugin.h>
+#include <gltrack.h>
 
 
 /* The scriptable swapfile API part.
@@ -336,6 +337,50 @@ SCM gls_filternetwork_terminate(SCM s_net)
 }
 
 
+/* The scriptable plugin API part.
+ */
+
+SCM gls_plugin_add_path(SCM s_path)
+{
+	char *path;
+	int pathl, res;
+
+	path = gh_scm2newstr(s_path, &pathl);
+	res = plugin_add_path(path);
+	free(path);
+	if (res == -1)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+
+SCM gls_plugin_get(SCM s_name)
+{
+	plugin_t *p;
+	char *name;
+	int namel;
+
+	name = gh_scm2newstr(s_name, &namel);
+	p = plugin_get(name);
+	free(name);
+	return gh_pointer2scm(p);
+}
+
+SCM gls_plugin_name(SCM s_p)
+{
+	plugin_t *p;
+
+	p = gh_scm2pointer(s_p);
+	return gh_str02scm(plugin_name(p));
+}
+
+SCM gls_plugin_description(SCM s_p)
+{
+	plugin_t *p;
+
+	p = gh_scm2pointer(s_p);
+	return gh_str02scm(plugin_description(p));
+}
+
 
 /* The scriptable track API part.
  */
@@ -386,6 +431,14 @@ int glscript_init()
 			 gls_filternetwork_wait, 1, 0, 0);
 	gh_new_procedure("filternetwork_terminate",
 			 gls_filternetwork_terminate, 1, 0, 0);
+
+	/* plugin */
+	gh_new_procedure("plugin_add_path", gls_plugin_add_path,
+			 1, 0, 0);
+	gh_new_procedure("plugin_get", gls_plugin_get, 1, 0, 0);
+	gh_new_procedure("plugin_name", gls_plugin_name, 1, 0, 0);
+	gh_new_procedure("plugin_description", gls_plugin_description,
+			 1, 0, 0);
 
 	return 0;
 }

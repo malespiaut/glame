@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.1 2000/03/15 13:06:16 richi Exp $
+ * $Id: glplugin.h,v 1.2 2000/03/15 16:29:32 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -41,12 +41,12 @@ typedef struct {
 	int (*reg_func)(void);
 
 	const char *name;
-	const char *description;
-	void *pixmap;
+	const char **description;
+	void **pixmap;
 } plugin_t;
 #define plugin_name(p) ((p)->name)
-#define plugin_description(p) ((p)->description)
-#define plugin_pixmap(p) ((p)->pixmap)
+#define plugin_description(p) (*((p)->description))
+#define plugin_pixmap(p) (*((p)->pixmap))
 
 
 #ifdef __cplusplus

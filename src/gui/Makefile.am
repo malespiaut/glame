@@ -13,5 +13,5 @@ endif
 main_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
 
 main_LDADD = ../filter/libfilter.la ../plugins/libbuiltins.la ../glmid/libglmid.la ../swapfile/libswapfile.la ../hash/libhash.la -lm -lpthread $(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GUILE_LIBS) $(GNOMEUI_LIBS)
-
+main_LDFLAGS = -rdynamic
 

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.29 2000/03/15 13:05:34 richi Exp $
+ * $Id: filter.c,v 1.30 2000/03/15 16:29:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,96 +27,10 @@
 #include "filter_mm.h"
 
 
-/* Global list of registered filters. */
-static struct list_head filter_list;
+/* Global list of registered filters, static initialized. */
+static LIST_HEAD(filter_list);
 
 
-/* Filter subsystem initialization. Includes registration of
- * compiled in filters.
- */
-
-/* include all static filter headers here */
-extern int basic_register();
-extern int basic_sample_register();
-extern int tutorial_register();
-extern int track_io_register();
-extern int audio_io_register();
-extern int file_io_register();
-extern int debug_register();
-extern int waveform_register();
-extern int echo_register();
-extern int garrison_register();
-extern int nold_register();
-extern int basic_midi_register();
-extern int midi_io_register();
-extern int midi_debug_register();
-extern int maggy_register();
-
-int filter_init()
-{
-	INIT_LIST_HEAD(&filter_list);
-
-	/* initialize basic filters */
-	if (basic_register() == -1)
-		return -1;
-
-	/* initialize basic filters using sample protocol */
-	if (basic_sample_register() == -1)
-		return -1;
-
-	/* initialize filters out of the tutorial */
-	if (tutorial_register() == -1)
-		return -1;
-
-	/* initialize track input & output filters */
-	if (track_io_register() == -1)
-		return -1;
-
-	/* initialize audio input & output filters */
-	if (audio_io_register() == -1)
-		return -1;
-
-	/* initialize file input & output filters */
-	if (file_io_register() == -1)
-		return -1;
-
-	/* initialize debug & profile filters */
-	if (debug_register() == -1)
-		return -1;
-
-	/* initialize waveform filters */
-	if (waveform_register() == -1)
-		return -1;
-
-	/* initialize echo filter */
-	if (echo_register() == -1)
-		return -1;
-
-	if (garrison_register() == -1)
-		return -1;
-
-	if (nold_register() == -1)
-		return -1;
-	
-	if (basic_midi_register() == -1)
-		return -1;
-
-	if (midi_io_register() == -1)
-		return -1;
-
-	if (midi_debug_register() == -1)
-		return -1;
-
-	if (maggy_register() == -1)
-		return -1;
-
-	return 0;
-}
-
-
-
-/* The API.
- */
 
 filter_t *filter_alloc(const char *name, const char *description,
 		       int (*func)(filter_node_t *))

@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.1 2000/03/15 13:06:16 richi Exp $
+ * $Id: glplugin.c,v 1.2 2000/03/15 16:29:32 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include "util.h"
+#include "list.h"
 #include "glplugin.h"
 
 
@@ -38,6 +39,7 @@ static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
 #define hash_find_plugin(nm) __hash_entry(_hash_find((nm), PLUGIN_NAMESPACE, \
         _hash((nm), PLUGIN_NAMESPACE), __hash_pos(plugin_t, hash, name, \
         namespace)), plugin_t, hash)
+#define hash_init_plugin(p) _hash_init(&p->hash)
 
 
 int plugin_add_path(const char *path)
@@ -46,6 +48,7 @@ int plugin_add_path(const char *path)
 
 	if (!(p = ALLOC(plugin_path_t)))
 		return -1;
+	INIT_LIST_HEAD(&p->list);
 	p->path = strdup(path);
 	list_add_plugin_path(p);
 
@@ -54,17 +57,28 @@ int plugin_add_path(const char *path)
 
 static plugin_t *plugin_load(const char *name, const char *filename)
 {
+        char s[256];
 	plugin_t *p;
 
 	if (!(p = ALLOC(plugin_t)))
 		return NULL;
-	if (!(p->handle = dlopen(filename, RTLD_NOW)))
+	INIT_LIST_HEAD(&p->list);
+	
+	if (!(p->handle = dlopen(filename, RTLD_NOW))) {
+	        DPRINTF("plugin open of %s failed.\n", filename);
+		DPRINTF("dlopen error was: %s\n", dlerror());
 		goto err;
+	}
+
 	if (!(p->name = strdup(name)))
 		goto err_close;
-	p->reg_func = dlsym(p->handle, "plugin_register");
-	p->pixmap = dlsym(p->handle, "pixmap");
-	p->description = dlsym(p->handle, "description");
+
+	snprintf(s, 255, "%s_register", name);
+	p->reg_func = dlsym(p->handle, s);
+	snprintf(s, 255, "%s_pixmap", name);
+	p->pixmap = dlsym(p->handle, s);
+	snprintf(s, 255, "%s_description", name);
+	p->description = dlsym(p->handle, s);
 
 	if (p->reg_func)
 		if (p->reg_func() == -1)
@@ -94,7 +108,7 @@ plugin_t *plugin_get(const char *name)
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
-		sprintf(filename, "%s/%s.so", path->path, name);
+		sprintf(filename, "%s/lib%s.so", path->path, name);
 		if (!(p = plugin_load(name, filename)))
 			continue;
 		hash_add_plugin(p);

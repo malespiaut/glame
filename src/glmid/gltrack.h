@@ -3,7 +3,7 @@
 
 /*
  * gltrack.h
- * $Id: gltrack.h,v 1.1 2000/03/15 13:06:16 richi Exp $
+ * $Id: gltrack.h,v 1.2 2000/03/15 16:29:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -60,10 +60,6 @@ struct track_s {
 #define track_name(chan) ((const char *)((chan)->name))
 #define track_fid(chan) ((chan)->fid)
 
-
-
-/* init the track subsystem */
-int init_track();
 
 
 /* adds track to track group.

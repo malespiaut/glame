@@ -100,11 +100,6 @@ static void tg_free(tg_t *cg)
 
 /* public API */
 
-int init_track()
-{
-	return 0;
-}
-
 int add_track(const char *group, const char *chan,
 	      int fid, int type, int freq)
 {

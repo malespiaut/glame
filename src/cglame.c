@@ -25,17 +25,14 @@
 
 #include <stdio.h>
 #include <guile/gh.h>
-#include "glscript.h"
-#include "gltrack.h"
+#include "glmid.h"
 #include "filter.h"
 #include "util.h"
 
 
 int init()
 {
-	if (hash_alloc() == -1
-	    || filter_init() == -1
-	    || init_track() == -1)
+	if (hash_alloc() == -1)
 		return -1;
 
 	return 0;
@@ -47,8 +44,10 @@ int init()
  */
 void sc_main(int argc, char **argv)
 {
-	if (glscript_init() == -1)
+	if (glmid_init(1) == -1)
 		exit(1);
+
+	gh_eval_str("(plugin_add_path \"plugins/.libs\")");
 
 	scm_shell(argc, argv);
 	/* not reached. */
