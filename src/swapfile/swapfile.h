@@ -22,6 +22,14 @@
  *
  */
 
+#include "glame_types.h"
+
+#define USE_LFS
+#ifdef USE_LFS
+typedef gl_s64 soff_t;
+#else
+typedef gl_s32 soff_t;
+#endif
 
 struct cluster_s;
 typedef struct cluster_s cluster_t;
@@ -65,13 +73,13 @@ void swap_close();
 
 /* Creates a new file and reserves size space for data (initially 0).
  * Returns file id or -1 on error */
-fileid_t file_alloc(off_t size);
+fileid_t file_alloc(soff_t size);
 
 /* Deletes a file and its corresponding data */
 void file_unref(fileid_t fid);
 
 /* get size of file */
-off_t file_size(fileid_t fid);
+soff_t file_size(fileid_t fid);
 
 /* tool to loop through the set of files in swapfile */
 fileid_t file_next(fileid_t fid);
@@ -79,7 +87,7 @@ fileid_t file_next(fileid_t fid);
 
 /* Changes the size (creating trailing 0s or truncating the tail)
  * of the file. Works only on rw files, NOT UNDOABLE! */
-int file_truncate(fileid_t fid, off_t size);
+int file_truncate(fileid_t fid, soff_t size);
 
 
 /* Copies part [pos...pos+size-1] of fid into a new file
@@ -87,7 +95,7 @@ int file_truncate(fileid_t fid, off_t size);
  * Returns -1 on error.
  * RETURNED FILE IS RO!
  * THIS WILL MARK fid RO, TOO! */
-fileid_t file_copy(fileid_t fid, off_t pos, off_t size);
+fileid_t file_copy(fileid_t fid, soff_t pos, soff_t size);
 
 
 /* Inserts file into fid at position pos (i.e. first byte of
@@ -97,14 +105,14 @@ fileid_t file_copy(fileid_t fid, off_t pos, off_t size);
  * THIS WILL EAT file! YOU HAVE TO file_copy file, IF
  * YOU WANT TO CONTINUE TO USE file!
  */
-int file_op_insert(fileid_t fid, off_t pos, fileid_t file);
+int file_op_insert(fileid_t fid, soff_t pos, fileid_t file);
 
 /* Cuts part [pos...pos+size-1] of fid.
  * Returns -1 on error.
  * If you need the deleted part, use file_op_delete
  * instead.
  */
-int file_op_cut(fileid_t fid, off_t pos, off_t size);
+int file_op_cut(fileid_t fid, soff_t pos, soff_t size);
 
 
 /* transaction grouping:
@@ -125,7 +133,7 @@ int file_transaction_redo(fileid_t fid);
  * position pos.
  * Returns NULL on error.
  */
-filecluster_t *filecluster_get(fileid_t fid, off_t pos);
+filecluster_t *filecluster_get(fileid_t fid, soff_t pos);
 
 /* filecluster_next returns the next cluster or NULL.
  * filecluster_start returns the position of the first byte.

@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.14 2000/04/17 09:17:34 richi Exp $
+ * $Id: swapfile.c,v 1.15 2000/04/25 08:56:17 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -59,14 +59,14 @@
 
 
 typedef struct {
-	int fd;           /* file descriptor */
-	off_t size;       /* full size */
+	int fd;            /* file descriptor */
+	soff_t size;       /* full size */
 
-	off_t data_off;   /* offsett for raw data */
-	off_t data_size;  /* size for raw data */
+	soff_t data_off;   /* offsett for raw data */
+	soff_t data_size;  /* size for raw data */
 
-	off_t meta_off;   /* offsett for meta data */
-	off_t meta_size;  /* size for meta data */
+	soff_t meta_off;   /* offsett for meta data */
+	soff_t meta_size;  /* size for meta data */
 
 	/* last used ids for clusters, logentries and fileheads */
 	int cid, lid, fid;
@@ -105,7 +105,7 @@ static void cluster_unref(cluster_t *c);
 static void _log_clear(filehead_t *f, logentry_t *start, int direction);
 static logentry_t *_logentry_findbyid(filehead_t *f, int id);
 static void _ffree(filehead_t *f);
-static void __fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff);
+static void __fcpopulate(filecluster_t *fc, cluster_t *c, int coff);
 
 
 
@@ -184,6 +184,8 @@ static cluster_t *__cluster_alloc(int id)
 	INIT_LIST_HEAD(&c->c_list);
 	INIT_LIST_HEAD(&c->rfc_list);
 	INIT_LIST_HEAD(&c->map_list);
+	ATOMIC_INIT(c->refcnt, 0);
+	ATOMIC_INIT(c->mmapcnt, 0);
 
 	return c;
 }
@@ -386,7 +388,7 @@ static filehead_t *_filehead_findbyid(int id)
 	return NULL;
 }
 
-static off_t _filehead_size(filehead_t *f)
+static soff_t _filehead_size(filehead_t *f)
 {
 	filecluster_t *first, *last;
 
@@ -399,7 +401,7 @@ static off_t _filehead_size(filehead_t *f)
 	return last->off + last->size - first->off;
 }
 
-static filecluster_t *_filecluster_findbyoff(filehead_t *f, off_t off, filecluster_t *hint)
+static filecluster_t *_filecluster_findbyoff(filehead_t *f, soff_t off, filecluster_t *hint)
 {
 	struct list_head *lh;
 	filecluster_t *fc;
@@ -507,8 +509,8 @@ static int _cluster_read(swapd_record_t *r)
 		return -1;
 	c->off = r->u.cluster.off;
 	c->size = r->u.cluster.size;
-	c->refcnt = r->u.cluster.refcnt;
-	c->mmapcnt = 0;
+	ATOMIC_VAL(c->refcnt) = r->u.cluster.refcnt;
+	ATOMIC_VAL(c->mmapcnt) = 0;
 	c->buf = NULL;
 
 	_cluster_add(c, NULL);
@@ -522,7 +524,7 @@ static void _cluster_write(swapd_record_t *r, cluster_t *c)
 
 	r->u.cluster.off = c->off;
 	r->u.cluster.size = c->size;
-	r->u.cluster.refcnt = c->refcnt;
+	r->u.cluster.refcnt = ATOMIC_VAL(c->refcnt);
 	r->u.cluster.id = c->id;
 }
 
@@ -764,18 +766,21 @@ static void cluster_unref(cluster_t *c)
 	/* if we are about to release our last reference,
 	 * we can do special things and sanity checks.
 	 */
-	if (c->refcnt == 1) {
-		if (c->mmapcnt > 0)
+	if (ATOMIC_VAL(c->refcnt) == 1) {
+		if (ATOMIC_VAL(c->mmapcnt) > 0)
 			DERROR("cluster has still mappings!");
 		__cluster_forgetmap(c);
+
+		/* FIXME: try to merge cluster with previous/next
+		 * one. */
 	}
 
-	c->refcnt--;
+	atomic_dec(&c->refcnt);
 }
 
 static int _cluster_try_munmap(cluster_t *c)
 {
-	if (c->mmapcnt > 0)
+	if (ATOMIC_VAL(c->mmapcnt) > 0)
 		return -1;
 
 	__cluster_munmap(c);
@@ -809,7 +814,7 @@ static void _drain_mmapcache()
 
 /* pos is relative to c, has to be CLUSTER_MINSIZE aligned!,
  * c->buf[pos] is in tail cluster. */
-static cluster_t *_cluster_split_aligned(cluster_t *c, off_t pos)
+static cluster_t *_cluster_split_aligned(cluster_t *c, int pos)
 {
 	cluster_t *tail;
 
@@ -839,11 +844,11 @@ static cluster_t *_cluster_split_aligned(cluster_t *c, off_t pos)
  * search for a cluster is started just after hint. If hint is NULL,
  * search is started at the beginning of the swapfile.
  * We basically walk the cluster list and search for the biggest cluster */
-cluster_t *_cluster_alloc(off_t size, cluster_t *hint)
+cluster_t *_cluster_alloc(soff_t size, cluster_t *hint)
 {
 	cluster_t *best, *c;
 	struct list_head *le, *hintle;
-	off_t aligned_size;
+	soff_t aligned_size;
 
 	if (!hint)
 		hintle = &swap->map;
@@ -856,7 +861,7 @@ cluster_t *_cluster_alloc(off_t size, cluster_t *hint)
 		if (le == &swap->map)
 			continue;
 		c = list_entry(le, cluster_t, c_list);
-		if (c->refcnt > 0)
+		if (ATOMIC_VAL(c->refcnt) > 0)  /* FIXME - race */
 			continue;
 		if (!best
 		    || ((best->size < size) && (c->size > best->size))
@@ -892,7 +897,7 @@ char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
 	}
 
 	cluster_ref(cluster);
-	cluster->mmapcnt++;
+	atomic_inc(&cluster->mmapcnt);
 
 	if (swap->mapped_size > swap->mapped_max)
 		_drain_mmapcache();
@@ -910,10 +915,11 @@ char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
  */
 void _cluster_munmap(cluster_t *cluster)
 {
-	cluster->mmapcnt--;
 #if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_MUNMAP)
-	if (!cluster->mmapcnt)
+	if (atomic_dec_and_test(&cluster->mmapcnt))
 		madvise(cluster->buf, cluster->size, SWAPFILE_MADV_MUNMAP);
+#else
+	atomic_dec(&cluster->mmapcnt);
 #endif
 	cluster_unref(cluster);
 
@@ -929,7 +935,7 @@ void _cluster_munmap(cluster_t *cluster)
  * the fc helpers do reference counting for the clusters
  */
 
-static void __fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
+static void __fcpopulate(filecluster_t *fc, cluster_t *c, int coff)
 {
 	fc->cluster = c;
 	fc->coff = coff;
@@ -940,7 +946,7 @@ static void __fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
 		list_add(&fc->rfc_list, &fc->cluster->rfc_list);
 	}
 }
-static inline void _fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
+static inline void _fcpopulate(filecluster_t *fc, cluster_t *c, int coff)
 {
 	__fcpopulate(fc, c, coff);
 	_filecluster_check(fc);
@@ -951,10 +957,10 @@ static inline void _fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
  * cannot fail by definition.
  * returns the filecluster containing pos.
  */
-static filecluster_t *__filecluster_split(filecluster_t *fc, off_t pos, cluster_t *tail)
+static filecluster_t *__filecluster_split(filecluster_t *fc, int pos, cluster_t *tail)
 {
 	filecluster_t *fctail = NULL;
-	off_t coff = 0;
+	int coff = 0;
 
 	if (pos == 0 || pos == fc->size)
 		DERROR("Check caller - possible value, but unnecessary!");
@@ -981,12 +987,12 @@ static filecluster_t *__filecluster_split(filecluster_t *fc, off_t pos, cluster_
 /* pos is relative to fc start, fc is split in 2 to 3 fcs,
  * returned is the pointer to the fc which contains pos,
  * or NULL on error (no memory usually) */
-static filecluster_t *_filecluster_split(filecluster_t *fc, off_t pos)
+static filecluster_t *_filecluster_split(filecluster_t *fc, int pos)
 {
 	cluster_t *tail;
 	filecluster_t *fc2;
 	struct list_head *lh;
-	off_t aligned_pos;
+	int aligned_pos;
 
 	if (pos < 0 || pos > fc->size)
 		DERROR("filecluster split at weird size");
@@ -1078,7 +1084,7 @@ void _file_fixoff(filehead_t *f, filecluster_t *from)
 {
 	struct list_head *lh;
 	filecluster_t *fc;
-	off_t pos;
+	soff_t pos;
 
 	if (!from) {
 		pos = 0;
@@ -1479,7 +1485,7 @@ void swap_close()
 
 /* ok, we do lazy allocation on mmap :)
  * the bottom side is that we do not check against overcommited memory :( */
-fileid_t file_alloc(off_t size)
+fileid_t file_alloc(soff_t size)
 {
 	filehead_t *f;
 	filecluster_t *fc;
@@ -1516,7 +1522,7 @@ _err:
 	return -1;
 }
 
-fileid_t file_copy(fileid_t fid, off_t pos, off_t size)
+fileid_t file_copy(fileid_t fid, soff_t pos, soff_t size)
 {
 	filecluster_t *fcstart, *fcend;
 	filehead_t *f, *c;
@@ -1569,10 +1575,10 @@ void file_unref(fileid_t fid)
 	_swap_unlock();
 }
 
-off_t file_size(fileid_t fid)
+soff_t file_size(fileid_t fid)
 {
 	filehead_t *f;
-	off_t size = -1;
+	soff_t size = -1;
 
 	_swap_lock();
 
@@ -1588,11 +1594,11 @@ off_t file_size(fileid_t fid)
 	return size;
 }
 
-int file_truncate(fileid_t fid, off_t size)
+int file_truncate(fileid_t fid, soff_t size)
 {
 	filehead_t *f;
 	filecluster_t *fc, *nfc;
-	off_t oldsize;
+	soff_t oldsize;
 
 	_swap_lock();
 
@@ -1623,7 +1629,7 @@ int file_truncate(fileid_t fid, off_t size)
 			 * we do have to do it! think of a splitted dual used
 			 * cluster of which one part got freed...
 			 */
-			if (fc->cluster->refcnt == 1
+			if (ATOMIC_VAL(fc->cluster->refcnt) == 1
 			    && fc->size != fc->cluster->size) {
 				/* map the cluster - its a non-ref, just in
 				 * cache map */
@@ -1745,7 +1751,7 @@ fileid_t file_next(fileid_t fid)
 }
 
 
-int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
+int file_op_insert(fileid_t fid, soff_t pos, fileid_t file)
 {
 	filehead_t *fd, *fs;
 	logentry_t *l;
@@ -1798,7 +1804,7 @@ _err:
 	return -1;
 }
 
-int file_op_cut(fileid_t fid, off_t pos, off_t size)
+int file_op_cut(fileid_t fid, soff_t pos, soff_t size)
 {
 	filehead_t *f;
 	logentry_t *l;
@@ -2043,7 +2049,7 @@ int file_transaction_redo(fileid_t fid)
 	return res;
 }
 
-filecluster_t *filecluster_get(fileid_t fid, off_t pos)
+filecluster_t *filecluster_get(fileid_t fid, soff_t pos)
 {
 	filecluster_t *fc = NULL;
 	filehead_t *f;

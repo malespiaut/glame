@@ -34,7 +34,7 @@
 #include "swapfile.h"
 
 
-static int do_open(char *name, off_t *size)
+static int do_open(char *name, soff_t *size)
 {
 	struct stat sbuf;
 	int fd;
@@ -81,11 +81,11 @@ static void do_close(int fd)
 	close(fd);
 }
 
-static int do_init(int fd, off_t size)
+static int do_init(int fd, soff_t size)
 {
 	swapd_header_t header;
 	swapd_record_t record;
-	off_t pos;
+	soff_t pos;
 	int i;
 
 	/* write header */
@@ -165,7 +165,7 @@ _alignerr:
 int main(int argc, char **argv)
 {
 	char *swapname;
-	off_t size;
+	soff_t size;
 	int fd;
 
 	fprintf(stderr, "\n"

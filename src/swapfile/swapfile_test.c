@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.9 2000/04/17 09:17:34 richi Exp $
+ * $Id: swapfile_test.c,v 1.10 2000/04/25 08:56:17 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -97,11 +97,11 @@ do { \
 
 
 /* helpers for "data initialisation" */
-int do_write_file(fileid_t fid, off_t from, off_t size, char val)
+int do_write_file(fileid_t fid, soff_t from, soff_t size, char val)
 {
 	filecluster_t *fc;
 	char *mem;
-	off_t to;
+	soff_t to;
 
 	if (size == 0)
 		return 0;
@@ -121,11 +121,11 @@ int do_write_file(fileid_t fid, off_t from, off_t size, char val)
 	return 0;
 }
 
-int check_val_file(fileid_t fid, off_t from, off_t size, int val)
+int check_val_file(fileid_t fid, soff_t from, soff_t size, int val)
 {
 	filecluster_t *fc;
 	char *mem;
-	off_t to;
+	soff_t to;
 
 	if (size == 0)
 		return 0;
@@ -148,9 +148,9 @@ int check_val_file(fileid_t fid, off_t from, off_t size, int val)
 	return 0;
 }
 
-int check_file_size(fileid_t fid, off_t size)
+int check_file_size(fileid_t fid, soff_t size)
 {
-	off_t s;
+	soff_t s;
 
 	if ((s = file_size(fid)) == -1)
 		return -1;
@@ -168,7 +168,7 @@ int trash_swap()
 {
 	fileid_t fid = -1, oldfid = -1;
 	filecluster_t *fc;
-	off_t size, pos, step;
+	soff_t size, pos, step;
 	char *mem;
 	int i;
 
@@ -233,7 +233,7 @@ int test_file_alloc()
 		-1
 	};
 	fileid_t fid;
-	off_t size, tsize;
+	soff_t size, tsize;
 	int *sp;
 
 

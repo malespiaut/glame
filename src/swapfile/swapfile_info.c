@@ -1,6 +1,6 @@
 /*
  * swapfile_info.c
- * $Id: swapfile_info.c,v 1.5 2000/04/17 09:17:34 richi Exp $
+ * $Id: swapfile_info.c,v 1.6 2000/04/25 08:56:17 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -26,20 +26,20 @@
 
 void process_file(fileid_t fid)
 {
-	off_t size;
+	soff_t size;
 	filecluster_t *fc;
 
 	printf("Found file with id %i\n", fid);
 
 	size = file_size(fid);
-	printf("\ttotal size is %i bytes\n", (int)size);
+	printf("\ttotal size is %lli bytes\n", size);
 
 	/* check internal consistency */
 	fc = filecluster_get(fid, 0);
 	while (fc) {
 		if (fc->cluster
 		    && fc->size > fc->cluster->size - fc->coff)
-			printf("\twrong size of filecluster at %i (%i@%i) - cluster size is %i\n",
+			printf("\twrong size of filecluster at %lli (%i@%i) - cluster size is %i\n",
 			       fc->off, fc->size, fc->coff, fc->cluster->size - fc->coff);
 		fc = filecluster_next(fc);
 	}

@@ -25,6 +25,8 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include "list.h"
+#include "atomic.h"
+#include "glame_types.h"
 
 
 #ifndef MIN
@@ -55,19 +57,19 @@ typedef struct filehead_s filehead_t;
 
 struct cluster_s {
 	struct list_head c_list; /* global, swap-index sorted list */
-	int refcnt;              /* reference-count, cluster is free if == 0 */
-	off_t off;               /* offset in swap */
-	off_t size;              /* raw size of cluster */
+	glame_atomic_t refcnt;   /* reference-count, cluster is free if == 0 */
+	soff_t off;              /* offset in swap */
+	int size;                /* raw size of cluster */
 
 	int id;                  /* unique identifier (used at load/save time) */
 
-	int mmapcnt;             /* count of mappings */
+	glame_atomic_t mmapcnt;  /* count of mappings */
 	char *buf;               /* address of mmapped region */
 
 	struct list_head rfc_list; /* reverse filecluster-list, unsorted */
 	struct list_head map_list; /* mmap LRU cache list */
 };
-#define cluster_ref(cluster) do { (cluster)->refcnt++; } while (0)
+#define cluster_ref(cluster) do { atomic_inc(&(cluster)->refcnt); } while (0)
 #define cluster_is_mapped(c) ((c)->buf != NULL)
 
 
@@ -96,11 +98,11 @@ struct filehead_s {
 struct filecluster_s {
 	struct list_head fc_list;   /* file-cluster list */
 	filehead_t *f;
-	off_t off;                  /* offset in file */
-	off_t size;                 /* size of filecluster */
+	soff_t off;                 /* offset in file */
+	int size;                   /* size of filecluster */
 	cluster_t *cluster;         /* corresponding cluster or NULL,
 				       if hole */
-	off_t coff;                 /* offset in cluster */
+	int coff;                   /* offset in cluster */
 	struct list_head rfc_list;  /* reverse filecluster-list */
 };
 #define fc_prev(fc) (((fc)->fc_list.prev == &fc->f->fc_list) ? NULL : list_entry((fc)->fc_list.prev, filecluster_t, fc_list))
@@ -114,13 +116,13 @@ struct logentry_s {
 	int op;
 	union {
 		struct {
-			off_t pos;
-			off_t size;
+			soff_t pos;
+			soff_t size;
 			filehead_t *f;
 		} insert;
 		struct {
-			off_t pos;
-			off_t size;
+			soff_t pos;
+			soff_t size;
 			filehead_t *f;
 		} delete;
 		struct {
@@ -151,9 +153,9 @@ typedef struct {
 	char magic[16];
 	union {
 		struct {
-			off_t size;
-			off_t data_off, data_size;
-			off_t meta_off, meta_size;
+			soff_t size;
+			soff_t data_off, data_size;
+			soff_t meta_off, meta_size;
 		} header;
 		struct {
 			char reserved[256-16];
@@ -179,8 +181,8 @@ typedef struct {
 	int type;
 	union {
 		struct {
-			off_t off;
-			off_t size;
+			soff_t off;
+			int size;
 			int refcnt;
 			int id;
 		} cluster;
@@ -192,10 +194,10 @@ typedef struct {
 		} filehead;
 		struct {
 			int fid;
-			off_t off;
-			off_t size;
+			soff_t off;
+			int size;
 			int cid;
-			off_t coff;
+			int coff;
 		} filecluster;
 		struct {
 			int fid;
@@ -203,13 +205,13 @@ typedef struct {
 			int op;
 			union {
 				struct {
-					off_t pos;
-					off_t size;
+					soff_t pos;
+					soff_t size;
 					int fid;
 				} insert;
 				struct {
-					off_t pos;
-					off_t size;
+					soff_t pos;
+					soff_t size;
 					int fid;
 				} delete;
 				struct {
@@ -229,5 +231,3 @@ typedef struct {
 
 
 #endif
-
-
