@@ -43,6 +43,20 @@ int clipboard_is_empty()
 	return root == NULL;
 }
 
+long clipboard_hsize()
+{
+	if (!root)
+		return 0;
+	return gpsm_item_hsize(root);
+}
+
+long clipboard_vsize()
+{
+	if (!root)
+		return 0;
+	return gpsm_item_vsize(root);
+}
+
 
 gpsm_grp_t *clipboard_get()
 {
@@ -132,7 +146,7 @@ int copy_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
 /* Pastes from source to dest at position pos. Handles out-of dest file
  * positions. Returns 0 on success, -1 on error. */
 static int paste_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
-		     long pos)
+		     long pos, int flags)
 {
 	swfd_t sfd, dfd;
 	int res = 0;
@@ -152,16 +166,21 @@ static int paste_one(gpsm_swfile_t *dest, gpsm_swfile_t *source,
 		sw_unlink(name);
 		sw_ftruncate(zfd, -pos*SAMPLE_SIZE);
 		res |= sw_sendfile(dfd, zfd, -pos*SAMPLE_SIZE,
-				   SWSENDFILE_INSERT);
+				   flags);
 		sw_close(zfd);
 	}
 	if (sw_lseek(dfd, abs(pos)*SAMPLE_SIZE, SEEK_SET) == -1)
 		res = -1;
 	res |= sw_sendfile(dfd, sfd, gpsm_item_hsize(source)*SAMPLE_SIZE,
-			   SWSENDFILE_INSERT);
-	gpsm_notify_swapfile_insert(gpsm_swfile_filename(dest),
-				    MIN(gpsm_item_hsize(dest), MAX(0, pos)),
-				    (-MIN(0, pos) + gpsm_item_hsize(source) + MAX(0, pos - gpsm_item_hsize(dest))));
+			   flags);
+	if (flags & SWSENDFILE_INSERT)
+		gpsm_notify_swapfile_insert(gpsm_swfile_filename(dest),
+					    MIN(gpsm_item_hsize(dest), MAX(0, pos)),
+					    (-MIN(0, pos) + gpsm_item_hsize(source) + MAX(0, pos - gpsm_item_hsize(dest))));
+	else
+		gpsm_notify_swapfile_change(gpsm_swfile_filename(dest),
+					    MIN(gpsm_item_hsize(dest), MAX(0, pos)),
+					    (-MIN(0, pos) + gpsm_item_hsize(source) + MAX(0, pos - gpsm_item_hsize(dest))));
 	if (res != 0)
 		goto err;
 	sw_close(dfd);
@@ -274,13 +293,43 @@ int clipboard_paste(gpsm_item_t *item, long pos)
 	/* paste from single file into single file is simple. */
 	source = (gpsm_swfile_t *)gpsm_grp_first(root);
 	if (GPSM_ITEM_IS_SWFILE(item))
-		return paste_one((gpsm_swfile_t *)item, source, pos);
+		return paste_one((gpsm_swfile_t *)item, source,
+				 pos, SWSENDFILE_INSERT);
 
 	/* now for the complicated multi-file to group case. */
 	dest = (gpsm_swfile_t *)gpsm_grp_first(item);
 	do {
 		if (paste_one(dest, source,
-			      pos - gpsm_item_hposition(dest)) == -1)
+			      pos - gpsm_item_hposition(dest),
+			      SWSENDFILE_INSERT) == -1)
+			return -1;
+
+		source = (gpsm_swfile_t *)gpsm_grp_next(root, source);
+		dest = (gpsm_swfile_t *)gpsm_grp_next(item, dest);
+	} while (source && dest);
+
+	return 0;
+}
+
+int clipboard_replace(gpsm_item_t *item, long pos)
+{
+	gpsm_swfile_t *source, *dest;
+
+	if (!item || pos < 0 || !clipboard_can_paste(item))
+		return -1;
+
+	/* paste from single file into single file is simple. */
+	source = (gpsm_swfile_t *)gpsm_grp_first(root);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		return paste_one((gpsm_swfile_t *)item, source,
+				 pos, 0);
+
+	/* now for the complicated multi-file to group case. */
+	dest = (gpsm_swfile_t *)gpsm_grp_first(item);
+	do {
+		if (paste_one(dest, source,
+			      pos - gpsm_item_hposition(dest),
+			      0) == -1)
 			return -1;
 
 		source = (gpsm_swfile_t *)gpsm_grp_next(root, source);

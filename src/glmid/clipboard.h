@@ -39,6 +39,11 @@ int clipboard_is_empty();
 /* Empties the clipboard. Useful for cleanup. */
 void clipboard_empty();
 
+/* Returns the hsize of the clipboard. */
+long clipboard_hsize();
+
+/* Returns the vsize of the clipboard. */
+long clipboard_vsize();
 
 /* Returns a COW copy of the current contents of the clipboard or
  * NULL, if it was empty. */
@@ -69,6 +74,12 @@ int clipboard_copy(gpsm_item_t *item, long pos, long size);
  * position pos. The contents of the clipboard do not change.
  * Returns 0 on success, -1 on error. */
 int clipboard_paste(gpsm_item_t *item, long pos);
+
+/* Does a "replace" operation on the specified gpsm subtree at the
+ * position pos. The contents of the clipboard do not change.
+ * Returns 0 on success, -1 on error. */
+int clipboard_replace(gpsm_item_t *item, long pos);
+
 
 
 #endif
