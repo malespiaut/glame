@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.31 2003/04/21 12:16:07 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.32 2003/04/22 21:46:52 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -713,7 +713,7 @@ gint glame_menu_get_active_index(GtkMenu *menu)
 
 void glame_help_goto(void *ignore, const char *url)
 {
-        GError *ret;
+        GError *ret = NULL;
         gnome_url_show(url, &ret);
 }
 

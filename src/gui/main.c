@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.116 2003/04/21 12:16:06 richi Exp $
+ * $Id: main.c,v 1.117 2003/04/22 21:46:51 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -639,6 +639,11 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 	return vbox;
 }
 
+static void pref_help_cb(GnomePropertyBox *box, gint page)
+{
+	glame_help_goto(NULL, "info:glame#The_Preferences_Dialog");
+}
+
 static int
 preferences_cb(GtkWidget * wid, void * bla)
 {
@@ -690,12 +695,12 @@ preferences_cb(GtkWidget * wid, void * bla)
 	/* Finish. */
         gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",(GtkSignalFunc)setBoolean,&ok);
         gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->apply_button));
-        gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->help_button));
+	gtk_signal_connect(GTK_OBJECT(prop_box), "help", GTK_SIGNAL_FUNC(pref_help_cb), NULL);
         gtk_widget_show(prop_box);
 
 
 	/* Run the dialog. */
-        gnome_dialog_run_and_close(GNOME_DIALOG(prop_box));
+        gnome_dialog_run(GNOME_DIALOG(prop_box));
         if(!ok)
 		return 0;
 
