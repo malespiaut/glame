@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.6 2000/03/25 21:16:14 richi Exp $
+ * $Id: glplugin.c,v 1.7 2000/03/27 09:19:20 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -55,7 +55,7 @@ int plugin_add_path(const char *path)
 	return 0;
 }
 
-static plugin_t *plugin_add(const char *name, const char *filename);
+static plugin_t *add_plugin(const char *name, const char *filename);
 static plugin_t *plugin_load(const char *name, const char *filename)
 {
         char s[256], *sp;
@@ -94,7 +94,7 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 			name = sp;
 			if ((sp = strchr(name, ' ')))
 				*(sp++) = '\0';
-			plugin_add(name, filename);
+			add_plugin(name, filename);
 		} while (sp);
 	}
 	return p;
@@ -107,7 +107,7 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 	return NULL;
 }
 
-static plugin_t *plugin_add(const char *name, const char *filename)
+static plugin_t *add_plugin(const char *name, const char *filename)
 {
 	plugin_t *p;
 
@@ -132,19 +132,19 @@ plugin_t *plugin_get(const char *name)
 		return p;
 
 	/* first try to look for an "in-core" plugin */
-	if ((p = plugin_add(name, NULL)))
+	if ((p = add_plugin(name, NULL)))
 		return p;
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
 		sprintf(filename, "%s/%s.so", path->path, name);
-		if ((p = plugin_add(name, filename)))
+		if ((p = add_plugin(name, filename)))
 			return p;
 	}
 
 	/* last try LD_LIBRARY_PATH supported plugins */
 	sprintf(filename, "%s.so", name);
-	if ((p = plugin_add(name, filename)))
+	if ((p = add_plugin(name, filename)))
 	    return p;
 
 	return NULL;
@@ -157,3 +157,33 @@ void *plugin_get_symbol(plugin_t *p, const char *symbol)
 
 	return dlsym(p->handle, symbol);
 }
+
+plugin_t *plugin_add(const char *name, const char *description,
+		     const char *pixmap)
+{
+	plugin_t *p;
+	void **m;
+
+	if ((p = hash_find_plugin(name)))
+		return NULL;
+	if (!(p = ALLOC(plugin_t)))
+		return NULL;
+	INIT_LIST_HEAD(&p->list);
+	hash_init_plugin(p);
+
+	p->name = strdup(name);
+	m = malloc(2*sizeof(void *));
+	if (description) {
+		m[0] = strdup(description);
+		p->description = (const char **)&m[0];
+	}
+	if (pixmap) {
+		m[1] = strdup(pixmap);
+		p->pixmap = (const char **)&m[1];
+	}
+
+	hash_add_plugin(p);
+	list_add_plugin(p);
+	return p;	
+}
+

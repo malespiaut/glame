@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.5 2000/03/20 09:47:13 richi Exp $
+ * $Id: glplugin.h,v 1.6 2000/03/27 09:19:20 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -45,9 +45,9 @@ typedef struct {
 	const char **description;
 	const char **pixmap;
 } plugin_t;
-#define plugin_name(p) ((p)->name)
-#define plugin_description(p) ((p)->description ? *((p)->description) : NULL)
-#define plugin_pixmap(p) ((p)->pixmap ? *((p)->pixmap) : NULL)
+#define plugin_name(p) ((p) ? (p)->name : NULL)
+#define plugin_description(p) ((p) ? ((p)->description ? *((p)->description) : NULL) : NULL)
+#define plugin_pixmap(p) ((p) ? ((p)->pixmap ? *((p)->pixmap) : NULL) : NULL)
 
 
 #ifdef __cplusplus
@@ -69,6 +69,10 @@ plugin_t *plugin_get(const char *name);
  * return NULL, if the symbol was not found or the value of the
  * symbol is NULL. */
 void *plugin_get_symbol(plugin_t *p, const char *symbol);
+
+/* Add a plugin manually. */
+plugin_t *plugin_add(const char *name, const char *description,
+		     const char *pixmap);
 
 
 /* convenience macros for plugins to define their

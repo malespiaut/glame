@@ -561,6 +561,25 @@ SCM gls_plugin_description(SCM s_p)
 	return gh_str02scm((char *)plugin_description(p));
 }
 
+SCM gls_plugin_add(SCM s_name, SCM s_description, SCM s_pixmap)
+{
+	plugin_t *p;
+	char *name, *description, *pixmap;
+	int namel, descriptionl, pixmapl;
+
+	name = gh_scm2newstr(s_name, &namel);
+	description = gh_scm2newstr(s_description, &descriptionl);
+	pixmap = gh_scm2newstr(s_pixmap, &pixmapl);
+	p = plugin_add(name, descriptionl == 0 ? NULL : description,
+		       pixmapl == 0 ? NULL : pixmap);
+	free(name);
+	free(description);
+	free(pixmap);
+
+	if (!p)
+		return SCM_BOOL_F;
+	return gh_pointer2scm(p);
+}
 
 /* The scriptable track API part.
  */
@@ -658,6 +677,7 @@ int glscript_init()
 	gh_new_procedure("plugin_name", gls_plugin_name, 1, 0, 0);
 	gh_new_procedure("plugin_description", gls_plugin_description,
 			 1, 0, 0);
+	gh_new_procedure("plugin_add", gls_plugin_add, 3, 0, 0);
 
 	/* track */
 	gh_new_procedure("track_get", gls_track_get, 2, 0, 0);
