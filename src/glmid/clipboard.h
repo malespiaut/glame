@@ -32,6 +32,9 @@
 
 #include "gpsm.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* If the clipboard does contain data, 1 is returned, else 0. */
 int clipboard_is_empty();
@@ -86,5 +89,7 @@ int clipboard_replace(gpsm_item_t *item, long pos);
 int clipboard_mix(gpsm_item_t *item, long pos);
 
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

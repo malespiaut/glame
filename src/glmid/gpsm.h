@@ -106,6 +106,9 @@
 #include "list.h"
 #include "glsignal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct gpsm_item_s;
 typedef struct gpsm_item_s gpsm_item_t;
@@ -511,5 +514,9 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
 void gpsm_position_transform(gpsm_item_t *source, gpsm_grp_t *dest,
 			     long *hpos, long *vpos);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -3,7 +3,7 @@
 
 /*
  * glmid.h
- * $Id: glmid.h,v 1.11 2001/07/13 09:00:08 richi Exp $
+ * $Id: glmid.h,v 1.12 2003/05/18 19:25:04 xwolf Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -31,6 +31,10 @@
 #include "glplugin.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Initializes all glame subsystems, including the scheme
  * scripting part using guile, if available. Returns 0 on
  * success, -1 on error.
@@ -55,5 +59,8 @@ filter_t *glame_load_instance(const char *fname);
  * on error and the registered plugin on success. */
 plugin_t *glame_create_plugin(filter_t *filter, const char *name);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

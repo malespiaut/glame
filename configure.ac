@@ -80,6 +80,8 @@ else
 fi
 AM_PROG_CC_C_O
 
+AC_PROG_CXX
+
 dnl Apple's preprocessor on MacOS X causes headaches. Turning off
 dnl preprocessing switches to a sane cpp.
 AC_PROG_CPP

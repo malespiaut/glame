@@ -4,7 +4,7 @@
 /*
  * glconfig.h
  *
- * $Id: glconfig.h,v 1.2 2001/11/02 09:23:23 richi Exp $
+ * $Id: glconfig.h,v 1.3 2003/05/18 19:25:04 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,7 +29,9 @@
 #endif
 
 #include "glscript.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* NOTE, that for GLAME config space access to work you need to have
  * initialized glscript.
@@ -70,5 +72,7 @@ void glame_config_set_double(const char *key, double value);
 int glame_config_get_double(const char *key, double *value);
 double glame_config_get_double_with_default(const char *key, double def);
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif
