@@ -1,6 +1,6 @@
 /*
  * audio_io_irix.c
- * $Id: audio_io_irix.c,v 1.5 2002/04/29 18:13:28 richi Exp $
+ * $Id: audio_io_irix.c,v 1.6 2003/05/18 11:03:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -231,6 +231,7 @@ static int sgi_audio_out_f(filter_t *n)
 int sgi_audio_out_register(plugin_t *p)
 {
 	return aio_generic_register_output(p, "sgi-audio-out",
-					   sgi_audio_out_f, NULL);
+					   sgi_audio_out_f, NULL)
+		? 0 : -1;
 }
 

@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.19 2002/06/09 19:07:44 richi Exp $
+ * $Id: audio_io_oss.c,v 1.20 2003/05/18 11:03:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -504,12 +504,14 @@ _out:
 int oss_audio_out_register(plugin_t *p)
 {
 	return aio_generic_register_output(p, "oss-audio-out",
-					   oss_audio_out_f, "/dev/dsp");
+					   oss_audio_out_f, "/dev/dsp")
+		? 0 : -1;
 }
 
 int oss_audio_in_register(plugin_t *p)
 {
 	return aio_generic_register_input(p, "oss-audio-in",
-	                                  oss_audio_in_f, "/dev/dsp");
+	                                  oss_audio_in_f, "/dev/dsp")
+		? 0 : -1;
 }
 

@@ -1,7 +1,7 @@
 /*
  * audio_io_alsa_v090.c
  *
- * $Id: audio_io_alsa.c,v 1.17 2003/04/15 20:27:57 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.18 2003/05/18 11:03:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -658,11 +658,13 @@ static int alsa_audio_out_f(filter_t * n)
 int alsa_audio_out_register(plugin_t * p)
 {
 	return aio_generic_register_output(p, "alsa-audio-out",
-					   alsa_audio_out_f, "plughw:0,0");
+					   alsa_audio_out_f, "plughw:0,0")
+		? 0 : -1;
 }
 
 int alsa_audio_in_register(plugin_t * p)
 {
 	return aio_generic_register_input(p, "alsa-audio-in",
-					  alsa_audio_in_f, "plughw:0,0");
+					  alsa_audio_in_f, "plughw:0,0")
+		? 0 : -1;
 }

@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.11 2002/04/29 18:20:40 richi Exp $
+ * $Id: audio_io_esd.c,v 1.12 2003/05/18 11:03:43 richi Exp $
  *
  * Copyright (C) 2001,2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -208,5 +208,6 @@ _entry:
 int esd_audio_out_register(plugin_t *p)
 {
 	return aio_generic_register_output(p, "esd-audio-out",
-					   esd_out_f, NULL);
+					   esd_out_f, NULL)
+		? 0 : -1;
 }

@@ -1,6 +1,6 @@
 /*
  * audio_io_jack.c
- * $Id: audio_io_jack.c,v 1.2 2003/04/27 21:52:17 richi Exp $
+ * $Id: audio_io_jack.c,v 1.3 2003/05/18 11:03:43 richi Exp $
  *
  * Copyright (C) 2003 Richard Guenther
  *
@@ -132,27 +132,32 @@ int jack_audio_out_register(plugin_t *p)
 {
 	filter_t *f;
 	int res;
-	res = aio_generic_register_output(p, "jack-audio-out", NULL, "/dev/dsp");
+
+	f = aio_generic_register_output(p, "jack-audio-out", NULL, "/dev/dsp");
+	if (!f)
+		return -1;
 
 	/* fixup ops */
-	f = plugin_query(p, PLUGIN_FILTER);
 	jack_out_filter_ops.init = f->ops->init;
 	jack_out_filter_ops.launch = jack_out_launch_node;
 	jack_out_filter_ops.launch = jack_wait_node;
 	jack_out_filter_ops.launch = jack_postprocess_node;
 	f->ops = &jack_out_filter_ops;
 
-	return res;
+	return 0;
 }
 
 #if 0
 int jack_audio_in_register(plugin_t *p)
 {
+	filter_t *f;
 	int res;
-	res = aio_generic_register_input(p, "oss-audio-in",
-	                                 jack_audio_in_f, "/dev/dsp");
+
+	f = aio_generic_register_input(p, "oss-audio-in", jack_audio_in_f, "/dev/dsp");
+	if (!f)
+		return -1;
 
 	/* fixup ops */
-	
+
 }
 #endif
