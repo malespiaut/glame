@@ -164,6 +164,8 @@ static int plugins_register()
 	add_plugin_path(PKGLIBDIR);
 #ifdef HAVE_LADSPA
 	add_plugin_path(getenv("LADSPA_PATH"));
+	add_plugin_path("/usr/lib/ladspa");
+	add_plugin_path("/usr/local/lib/ladspa");
 #endif
 	
 	/* First initialize the builtin plugins */
@@ -174,6 +176,8 @@ static int plugins_register()
 	load_plugins_from_path(PKGLIBDIR);
 #ifdef HAVE_LADSPA
 	load_plugins_from_path(getenv("LADSPA_PATH"));
+	load_plugins_from_path("/usr/lib/ladspa");
+	load_plugins_from_path("/usr/local/lib/ladspa");
 #endif
 
 	return 0;
