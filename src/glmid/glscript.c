@@ -32,13 +32,15 @@
 #include <gltrack.h>
 
 
-/* The scriptable swapfile API part.
- */
-
 #define gh_scm2fileid_t gh_scm2long
 #define gh_fileid_t2scm gh_long2scm
 #define gh_scm2off_t gh_scm2long
 #define gh_off_t2scm gh_long2scm 
+
+
+#if 0
+/* The scriptable swapfile API part.
+ */
 
 static SCM gls_file_alloc(SCM s_size)
 {
@@ -161,6 +163,7 @@ static SCM gls_file_transaction_redo(SCM s_fid)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
+#endif
 
 
 
@@ -538,6 +541,7 @@ SCM gls_track_delete(SCM s_track)
 
 int glscript_init()
 {
+#if 0
 	/* swapfile */
 	gh_new_procedure("file_alloc", gls_file_alloc, 1, 0, 0);
 	gh_new_procedure("file_unref", gls_file_unref, 1, 0, 0);
@@ -554,6 +558,7 @@ int glscript_init()
 			 1, 0, 0);
 	gh_new_procedure("file_transaction_redo", gls_file_transaction_redo,
 			 1, 0, 0);
+#endif
 
 	/* filter */
 	gh_new_procedure("filternetwork_new", gls_filternetwork_new, 0, 0, 0);

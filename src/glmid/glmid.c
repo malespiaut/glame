@@ -96,7 +96,7 @@ static int plugins_register()
 
 static void glame_cleanup()
 {
-	swap_close();
+	swapfile_close();
 }
 
 int glame_init()

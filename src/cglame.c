@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 "    conditions.\n\n");
 
 	if (argc == 2) {
-		if (swap_open(argv[1], 0) == -1) {
+		if (swapfile_open(argv[1], 0) == -1) {
 			perror("ERROR: Unable to open swap");
 			exit(1);
 		}

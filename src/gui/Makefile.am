@@ -6,7 +6,8 @@ EXTRA_DIST = gui.h canvas.h glame.desktop
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
-bin_PROGRAMS = glame wavetest
+bin_PROGRAMS = glame
+#bin_PROGRAMS = glame wavetest
 noinst_LTLIBRARIES = 
 Multimedia_DATA = glame.desktop
 endif
@@ -18,8 +19,8 @@ glame_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
 glame_LDFLAGS = -export-dynamic
 
 
-wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
-wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
-glame_LDFLAGS = -export-dynamic
+#wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
+#wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
+#	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
+#wavetest_LDFLAGS = -export-dynamic
 

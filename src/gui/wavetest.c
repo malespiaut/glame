@@ -50,6 +50,7 @@ static gfloat *swapfile_callback(gint wave_idx,
 	wave = (gfloat *)malloc(sizeof(gfloat)*(to-from+1+step-1)/step);
 
 	w = wave;
+#if 0 /* FIXME... :) */
 	while (from <= to) {
 		if (!(fc = filecluster_get(fid, from*sizeof(gfloat)))) {
 			printf("no filecluster at %li\n", from);
@@ -65,6 +66,7 @@ static gfloat *swapfile_callback(gint wave_idx,
 		}
 		filecluster_munmap(fc);
 	}
+#endif
 
 	return wave;
 }
@@ -130,7 +132,7 @@ int main(int argc, char **argv)
   wavedraw = gtk_wave_draw_new();
   gtk_widget_show(wavedraw);
 
-  if (argc > 1 && swap_open(argv[1], 0) == 0) {
+  if (argc > 1 && swapfile_open(argv[1], 0) == 0) {
 	  /* Some basic starting stuff */
 	  gtk_wave_draw_zoom(GTK_WAVE_DRAW(wavedraw), 0, 10000);
 	  gtk_wave_draw_set_resolution(GTK_WAVE_DRAW(wavedraw), 10);

@@ -42,10 +42,11 @@ if test "$GCC" = "yes"; then
 else
   AC_MSG_WARN([Compilers other than gcc are not supported])
 fi
+AC_PROG_CC_STDC
 
 AC_PROG_INSTALL
 AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
+AC_PROG_LIBTOOL
 
 
 
@@ -219,6 +220,7 @@ ACG_CHECK_SEMCTL
 dnl Checks for library functions.
 AC_FUNC_MMAP
 AC_FUNC_MADVISE
+AC_FUNC_ALLOCA
 
 
 dnl special code hooks for os

@@ -23,23 +23,22 @@
  */
 
 #include "glame_types.h"
+#include "txn.h"
 
-#define USE_LFS
-#ifdef USE_LFS
-typedef gl_s64 soff_t;
-#else
-typedef gl_s32 soff_t;
-#endif
 
-struct cluster_s;
-typedef struct cluster_s cluster_t;
 
-struct filecluster_s;
-typedef struct filecluster_s filecluster_t;
+typedef void *swfd_t; /* open file cookie, like fd/FILE */
 
-typedef int fileid_t;
-
-#include "swapfileI.h"
+struct sw_stat {
+	long name;           /* file name */
+	size_t size;         /* file size in bytes */
+	int mode;            /* active protection */
+	off_t offset;        /* current file pointer position */
+	off_t cluster_start; /* start of current cluster */
+	off_t cluster_end;   /* end of current cluster */
+	size_t cluster_size; /* size of current cluster */
+	int cluster_nlink;   /* number of users for the current cluster */
+};
 
 
 
@@ -47,8 +46,9 @@ typedef int fileid_t;
 extern "C" {
 #endif
 
-/**************************
- * init
+
+/**********************************************************************
+ * Initialization/cleanup
  */
 
 /* Tries to open an existing swap file/partition.
@@ -56,106 +56,88 @@ extern "C" {
  * Failures can be
  *  - missing swap file/parition
  *  - in use swap
- *  - unclean swap
- */
-int swap_open(char *name, int flags);
+ *  - unclean swap */
+int swapfile_open(char *name, int flags);
 
 /* Closes and updates a previously opened swap file/partition
- * and marks it clean
+ * and marks it clean. */
+void swapfile_close();
+
+/* Tries to create an empty swapfile on name of size size. */
+int swapfile_creat(char *name, size_t size);
+
+
+
+/**********************************************************************
+ * Operations on the swapfile namespace. Unlike a unix filesystem
+ * the swapfile filesystem has names composed out of a single "long".
+ * Also the swapfile name hierarchy is flat - i.e. no directories.
+ * Names are >=0, negative values are reserved.
+ * All namespace operations are atomic (i.e. thread safe) and not
+ * undoable (well - just sw_unlink is not undoable).
  */
-void swap_close();
+
+/* Deletes a name from the filesystem. Like unlink(2). */
+int sw_unlink(long name);
+
+/* Creates a new name to the file with name oldname. Like link(2). */
+int sw_link(long oldname, long newname);
+
+/* As the namespace is rather simple the equivalent to readdir(3) is
+ * just returning the names in sorted order - just start with name
+ * (long)-1 and sw_readdir will get you the first used name. -1 is
+ * returned, if no further entry is available. */
+long sw_readdir(long previous);
 
 
-
-/**************************
- * file
+/**********************************************************************
+ * Operations on a single file. Files are organized in variable sized
+ * clusters. Access to the file is limited to mapping those clusters.
  */
 
-/* Creates a new file and reserves size space for data (initially 0).
- * Returns file id or -1 on error */
-fileid_t file_alloc(soff_t size);
+/* Open a file like open(2) - flags can be O_CREAT, O_EXCL,
+ * O_RDWR, O_RDONLY, O_WRONLY with same semantics as open(2).
+ * Returns a file descriptor on success, -1 on error.
+ * The optional transaction id is used for all operations
+ * operating on the swfd_t, they can be undone and redone
+ * this way. */
+swfd_t sw_open(long name, int flags, tid_t tid);
 
-/* Deletes a file and its corresponding data */
-void file_unref(fileid_t fid);
+/* Closes a file descriptor. Like close(2). Also closes the transaction
+ * given to sw_open. */
+int sw_close(swfd_t fd);
 
-/* get size of file */
-soff_t file_size(fileid_t fid);
+/* Changes the size of the file fd like ftruncate(2). */
+int sw_ftruncate(swfd_t fd, off_t length);
 
-/* tool to loop through the set of files in swapfile */
-fileid_t file_next(fileid_t fid);
+/* Tries to copy count bytes from the current position of in_fd
+ * to the current position of out_fd (updating both file pointer
+ * positions). The actual number of copied bytes is returned, or
+ * -1 on an error.
+ * Two different modes are supported (may be or'ed together):
+ * - SWSENDFILE_INSERT inserts into, rather than overwrites/extends
+ *   the destination file
+ * - SWSENDFILE_CUT removes copied data from the source file
+ * The destination file descriptor may be SW_NOFILE, in that case
+ * no data is actually written (useful with SWSENDFILE_CUT). */
+ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode);
 
+/* Update the file pointer position like lseek(2). */
+off_t sw_lseek(swfd_t fd, off_t offset, int whence);
 
-/* Changes the size (creating trailing 0s or truncating the tail)
- * of the file. Works only on rw files, NOT UNDOABLE! */
-int file_truncate(fileid_t fid, soff_t size);
+/* Obtain information about the file - works like fstat(2), but
+ * with different struct stat. Also included is information about
+ * the actual (file pointer position, see sw_lseek) cluster which
+ * can be mapped using sw_mmap. */
+int sw_fstat(swfd_t fd, struct sw_stat *buf);
 
+/* Maps the actual (file pointer position, see sw_lseek and sw_fstat)
+ * cluster into memory with parameters like mmap(2) - no size/offset
+ * as they are determined by the actual cluster offset/size. */
+void *sw_mmap(void *start, int prot, int flags, swfd_t fd);
 
-/* Copies part [pos...pos+size-1] of fid into a new file
- * and returns its file id.
- * Returns -1 on error.
- * RETURNED FILE IS RO!
- * THIS WILL MARK fid RO, TOO! */
-fileid_t file_copy(fileid_t fid, soff_t pos, soff_t size);
-
-
-/* Inserts file into fid at position pos (i.e. first byte of
- * file will be at position pos of fid).
- * Returns -1 on error.
- * THIS WILL MARK fid RO!
- * THIS WILL EAT file! YOU HAVE TO file_copy file, IF
- * YOU WANT TO CONTINUE TO USE file!
- */
-int file_op_insert(fileid_t fid, soff_t pos, fileid_t file);
-
-/* Cuts part [pos...pos+size-1] of fid.
- * Returns -1 on error.
- * If you need the deleted part, use file_op_delete
- * instead.
- */
-int file_op_cut(fileid_t fid, soff_t pos, soff_t size);
-
-
-/* transaction grouping:
- * transactions are for undo/redo support and for future
- * always-consistent swap.
- */
-/* Begin starts a new transaction. Returns -1 on error. */
-int file_transaction_begin(fileid_t fid);
-/* End ends the last transaction. Returns -1 on error. */
-int file_transaction_end(fileid_t fid);
-/* Undo undos the last transaction. Returns -1 on error. */
-int file_transaction_undo(fileid_t fid);
-/* Redo redos the last undone transaction. Returns -1 on error. */
-int file_transaction_redo(fileid_t fid);
-
-
-/* Returns the filecluster of fid containing the byte at
- * position pos.
- * Returns NULL on error.
- */
-filecluster_t *filecluster_get(fileid_t fid, soff_t pos);
-
-/* filecluster_next returns the next cluster or NULL.
- * filecluster_start returns the position of the first byte.
- * filecluster_end returns the position of the last byte.
- * filecluster_size returns the number of bytes.
- */
-#define filecluster_next(fc) (fc_next(fc))
-#define filecluster_prev(fc) (fc_prev(fc))
-#define filecluster_start(fc) ((fc)->off)
-#define filecluster_end(fc) ((fc)->off + (fc)->size - 1)
-#define filecluster_size(fc) ((fc)->size)
-
-/* Generates a temporary mapping of the fileclusters data.
- * Returns NULL on error.
- * WATCH OUT! CREATING THE MAPPING CAN ALTER THE FILECLUSTERS
- * END AND SIZE!
- */
-char *filecluster_mmap(filecluster_t *fc);
-
-/* Unmaps previously mapped data. */
-void filecluster_munmap(filecluster_t *fc);
-
+/* Unmaps a previously mapped part of a file. Like munmap(2). */
+int sw_munmap(void *start);
 
 
 #ifdef __cplusplus

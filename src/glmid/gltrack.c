@@ -104,7 +104,7 @@ static void tg_free(tg_t *cg)
 /* public API */
 
 int track_add(const char *group, const char *chan,
-	      int fid, int rate, float hangle, float offset)
+	      long fname, int rate, float hangle, float offset)
 {
 	track_t *c;
 	tg_t *cg;
@@ -124,7 +124,7 @@ int track_add(const char *group, const char *chan,
 	hash_init_track(c);
 	INIT_LIST_HEAD(&c->ch_list);
 
-	c->fid = fid;
+	c->fname = fname;
 	c->hangle = hangle;
 	c->rate = rate;
 	c->offset = offset;
@@ -166,7 +166,7 @@ int track_delete(track_t *chan)
 	list_del(&chan->ch_list);
 	hash_remove_track(chan);
 
-	file_unref(chan->fid);
+	sw_unlink(chan->fname);
 
 	/* try to kill the track group */
 	tg_free(chan->cg);

@@ -34,139 +34,11 @@
 #include "swapfile.h"
 
 
-static int do_open(char *name, soff_t *size)
-{
-	struct stat sbuf;
-	int fd;
-
-	if ((fd = open(name, O_RDWR|O_CREAT, 0666)) == -1)
-		return -1;
-#if 0 /* flock is broken on solaris */
-	if (flock(fd, LOCK_EX|LOCK_NB) == -1)
-		goto _close;
-#endif
-
-	if (fstat(fd, &sbuf) == -1)
-		goto _unlock;
-	if (S_ISBLK(sbuf.st_mode)) {
-		*size = sbuf.st_blocks*512;
-	} else if (S_ISREG(sbuf.st_mode)) {
-		if (*size != -1) {
-			if (ftruncate(fd, *size) == -1)
-				goto _unlock;
-		} else {
-			*size = sbuf.st_size;
-		}
-	} else {
-		fprintf(stderr, "Unsupported file type\n");
-		goto _unlock;
-	}
-
-	return fd;
-
- _unlock:
-#if 0
-	flock(fd, LOCK_SH);
- _close:
-#endif
-	close(fd);
-	return -1;
-}
-
-static void do_close(int fd)
-{
-#if 0
-	flock(fd, LOCK_SH);
-#endif
-	close(fd);
-}
-
-static int do_init(int fd, soff_t size)
-{
-	swapd_header_t header;
-	swapd_record_t record;
-	soff_t pos;
-	int i;
-
-	/* write header */
-
-	memcpy(header.magic, SWAP_MAGIC, 16);
-	header.u.header.size = size;
-	header.u.header.data_off = 1024*1024; /* UH! FIXME! */
-	header.u.header.data_size = size - header.u.header.data_off;
-	header.u.header.meta_off = CLUSTER_MINSIZE;
-	header.u.header.meta_size = header.u.header.data_off - header.u.header.meta_off;
-
-	if (lseek(fd, 0, SEEK_SET) == -1)
-		return -1;
-	if (write(fd, &header, sizeof(header)) != sizeof(header))
-		return -1;
-
-	/* write metadata (clusters & EOF record) */
- 
-	if (lseek(fd, header.u.header.meta_off, SEEK_SET) == -1)
-		return -1;
-
-	memcpy(record.magic, RECORD_MAGIC, 4);
-
-	pos = header.u.header.data_off;
-	i = 0;
-	while (pos < size) {
-		record.type = RECORD_TYPE_CLUSTER;
-		record.u.cluster.off = pos;
-		record.u.cluster.size = MIN(CLUSTER_MAXSIZE, size - pos);
-		record.u.cluster.refcnt = 0;
-		record.u.cluster.id = i++;
-		pos += record.u.cluster.size;
-		if (write(fd, &record, sizeof(record)) != sizeof(record))
-			return -1;
-	}
-
-	record.type = RECORD_TYPE_EOF;
-	if (write(fd, &record, sizeof(record)) != sizeof(record))
-		return -1;
-
-	return 0;
-}
-
-static int test_conf(void)
-{
-	int align;
-
-#ifdef _SC_MMAP_FIXED_ALIGNMENT
-	align = sysconf(_SC_MMAP_FIXED_ALIGNMENT);
-	if (align != 0 && align != -1) {
-		if (align > CLUSTER_MINSIZE)
-			goto _alignerr;
-		else
-			return 0;
-	}
-#endif
-#ifdef _SC_PAGESIZE
-	align = sysconf(_SC_PAGESIZE);
-	if (align != 0 && align != -1) {
-		if (align > CLUSTER_MINSIZE)
-			goto _alignerr;
-		else
-			return 0;
-	}
-#endif
-
-	return 0;
-
-_alignerr:
-	fprintf(stderr, "You have found an arch with too large page (%i)!\n",
-		align);
-	fprintf(stderr, "Go and fix swapfileI.h!\n");
-	return -1;
-}
-
 
 int main(int argc, char **argv)
 {
 	char *swapname;
-	soff_t size;
-	int fd;
+	size_t size;
 
 	fprintf(stderr, "\n"
 "    gmkswap version "VERSION", Copyright (C) 1999, 2000 Richard Guenther\n"
@@ -182,18 +54,9 @@ int main(int argc, char **argv)
 	if (argc == 3)
 		size = 1024*1024*atol(argv[2]);
 
-	if (test_conf() == -1)
-		exit(1);
-
-	if ((fd = do_open(swapname, &size)) == -1) {
-		perror("unable to open swapspace");
-		exit(1);
-	}
-
 	if (size < 1024*1024*4) {
 		fprintf(stderr, "You don't want to have only %li bytes for swap!\n",
 			(long)size);
-		do_close(fd);
 		goto _usage;
 	}
 
@@ -203,15 +66,20 @@ int main(int argc, char **argv)
 	sleep(5);
 	fprintf(stderr, "\nSetting up swap...\n");
 
-	if (do_init(fd, size) == -1) {
-		perror("Error in initting swap space");
-		do_close(fd);
-		goto _usage;
+	/* Create swap. */
+	if (swapfile_creat(swapname, size) == -1) {
+		fprintf(stderr, "...failed (cannot create).\n");
+		exit(1);
 	}
 
-	do_close(fd);
-	fprintf(stderr, "...all done.\n");
+	/* Try to open/close swap. */
+	if (swapfile_open(swapname, 0) == -1) {
+		fprintf(stderr, "...failed (cannot open created swap).\n");
+		exit(1);
+	}
+	swapfile_close();
 
+	fprintf(stderr, "...all done.\n");
 	return 0;
 
 

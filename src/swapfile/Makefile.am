@@ -1,20 +1,20 @@
 INCLUDES = -I@top_srcdir@/src/include $(GLAME_DCFLAGS) -D_REENTRANT
 
 noinst_LTLIBRARIES = libswapfile.la
-noinst_PROGRAMS = swapfile_test swapfile_info
+#noinst_PROGRAMS = swapfile_test swapfile_info
 bin_PROGRAMS = gmkswap
 
 
-libswapfile_la_SOURCES = swapfile.c swapfile.h swapfileI.h \
+libswapfile_la_SOURCES = swapfile_fs.c swapfile.h \
 	pmap.h pmap.c \
 	txn.h txn.c
 
-swapfile_test_SOURCES = swapfile_test.c
-swapfile_test_LDADD = libswapfile.la $(GLAME_DLIBS)
+#swapfile_test_SOURCES = swapfile_test.c
+#swapfile_test_LDADD = libswapfile.la $(GLAME_DLIBS)
 
-swapfile_info_SOURCES = swapfile_info.c
-swapfile_info_LDADD = libswapfile.la
+#swapfile_info_SOURCES = swapfile_info.c
+#swapfile_info_LDADD = libswapfile.la
 
 gmkswap_SOURCES = gmkswap.c
-gmkswap_LDADD =
+gmkswap_LDADD = libswapfile.la
 

@@ -3,7 +3,7 @@
 
 /*
  * gltrack.h
- * $Id: gltrack.h,v 1.3 2000/03/25 15:03:56 richi Exp $
+ * $Id: gltrack.h,v 1.4 2000/09/24 13:20:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -45,14 +45,14 @@ struct track_s {
 	int rate;      /* SAMPLEs per second */ 
 	float hangle;  /* position, [-pi, pi] */
 
-	fileid_t fid;  /* swapfile->file holding rawdata */
+	long fname;    /* swapfile file holding rawdata */
 	float offset;  /* track offset on timeline (ms) */
 };
 #define track_size(chan) (file_size((chan)->fid))
 #define track_rate(chan) ((chan)->rate)
 #define track_hangle(chan) ((chan)->hangle)
 #define track_name(chan) ((const char *)((chan)->name))
-#define track_fid(chan) ((chan)->fid)
+#define track_fname(chan) ((chan)->fname)
 #define track_offset(chan) ((chan)->offset)
 
 
@@ -61,7 +61,7 @@ struct track_s {
  * returns -1 on error
  */
 int track_add(const char *group, const char *track,
-	      int fid, int rate, float hangle, float offset);
+	      long fname, int rate, float hangle, float offset);
 
 /* get track by track group name & track name, if name == NULL
  * the first track of the group is returned */
