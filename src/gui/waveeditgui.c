@@ -884,7 +884,9 @@ static int choose_effects(plugin_t *plugin)
 	    || (strcmp(cat, "Routing") == 0))
 		return 0;
 	/* We dont like plugins "ping". */
-	if (strcmp(plugin_name(plugin), "ping") == 0)
+	if (strcmp(plugin_name(plugin), "ping") == 0
+	    || strcmp(plugin_name(plugin), "fft") == 0
+	    || strcmp(plugin_name(plugin), "ifft") == 0)
 		return 0;
 
 	return 1;
