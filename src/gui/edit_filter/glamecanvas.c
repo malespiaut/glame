@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.30 2001/11/18 19:12:16 richi Exp $
+ * $Id: glamecanvas.c,v 1.31 2001/11/19 23:29:18 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -300,8 +300,42 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 void glame_canvas_redraw(GlameCanvas *canv)
 {
 	filter_t *node;
+	GlameCanvasFilter *gf;
+	GnomeCanvasGroup* root;
+	filter_pipe_t *pipe;
+	filter_port_t *port;
+	filter_t *network;
+	GList *newNodes = NULL, *iter = NULL;
+
+	root = gnome_canvas_root(GNOME_CANVAS(canv));
+	network = canv->net;
+	
 	filter_foreach_node(canv->net,node){
-		glame_canvas_filter_redraw(glame_canvas_find_filter(node));
+		gf = glame_canvas_find_filter(node);
+		if(gf){
+			glame_canvas_filter_redraw(gf);
+		}else{
+			
+			glame_canvas_filter_new(root,node);
+			newNodes = g_list_append(newNodes,node);
+		}
+	}
+	if(newNodes){
+		iter = g_list_first(newNodes);
+		while(iter){
+			node = (filter_t*)iter->data;
+			filterportdb_foreach_port(filter_portdb(node), port) {
+				filterport_foreach_pipe(port, pipe) {
+					/* Skip connections not from/to a node
+					 * in network. */
+					if (filterport_filter(filterpipe_connection_source(pipe))->net != network
+					    || filterport_filter(filterpipe_connection_dest(pipe))->net != network)
+						continue;
+					glame_canvas_pipe_new(root, pipe);
+				}
+			}
+			iter = g_list_next(iter);
+		}
 	}
 }
 

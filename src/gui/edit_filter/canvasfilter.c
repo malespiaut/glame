@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.35 2001/11/18 19:12:16 richi Exp $
+ * $Id: canvasfilter.c,v 1.36 2001/11/19 23:29:18 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -750,9 +750,11 @@ static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* 
 
 static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
 {
+	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
 	if(FILTER_IS_NETWORK(filter->filter))
 		filter_expand(filter->filter);
 	filter_delete(filter->filter);
+	glame_canvas_redraw(canv);
 }
 
 static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* filterItem)
