@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.24 2001/01/03 09:28:38 richi Exp $
+ * $Id: filter_buffer.c,v 1.25 2001/03/20 09:54:57 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -184,10 +185,27 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
         void *buf[FBPIPE_WCNT];
+	struct timeval timeout;
+	fd_set fds;
 	int res;
 
 	if (!p)
 		return NULL;
+
+	/* Wait for data with timeout. */
+	do {
+		FD_ZERO(&fds);
+		FD_SET(p->dest_fd, &fds);
+		timeout.tv_sec = 5;
+		timeout.tv_usec = 0;
+		res = select(p->dest_fd+1, &fds, NULL, NULL, &timeout);
+	} while (res == -1 && errno == EINTR);
+
+	/* Timeout? -> Deadlock. Break it returning NULL. */
+	if (res == 0) {
+		fprintf(stderr, "Timeout from select! Possible deadlock.\n");
+		return NULL;
+	}
 
 	/* now I want to know it... */
 	while ((res = read(p->dest_fd, buf, FBPIPE_WSIZE)) == -1
