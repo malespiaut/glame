@@ -1,0 +1,54 @@
+@comment $Id: filter-tutorial.texi,v 1.1 2000/02/07 12:58:09 nold Exp $
+
+@node Filter Tutorial, Swapfile API, Filter API, Top
+@chapter Filter Tutorial
+
+This document is about how to write filters for glame. It only covers
+audio in/audio out type of filters. 
+
+First of all, what do I need to have in a glame filter?
+You usually will need four functions:
+@table @code
+@findex filtername_register
+@item filtername_register()
+A filter registering function of the name @code{filtername_register()} 
+which returns 0 on success and -1 on any error.
+@findex f
+@item f() 
+The main filter method @code{f()}.
+@findex fixup_pipe
+@item fixup_pipe()
+If you have output ports whose data type/format depends on any input 
+port, the @code{fixup_pipe()} method is needed.
+@findex fixup_param
+@item fixup_param()
+If you have parameters which affect data type/format of any output 
+port, make use of the @code{fixup_param()} method.
+@end table
+
+@findex f
+@heading How does the @code{f()} function have to look like? Are there any restrictions?
+Yes of course! There are!
+
+@code{f()} should begin with checking the current setup for suitability,
+i.e. look at the parameters and input types/formats. And it should set up
+all necessary local things. @emph{After} this initialisation the macro
+@findex FILTER_AFTER_INIT
+@code{FILTER_AFTER_INIT;} has to appear! 
+Before this macro you may simply return -1
+to denote an error, returning with no error is not allowed.
+After @code{FILTER_AFTER_INIT;} you should do the actual filter work, i.e.
+accept and send data through the ports.
+The main part of the filter and the cleanup part (freeing of all
+local allocated data, etc.) have to be seperated by placing the macro 
+@findex FILTER_BEFORE_CLEANUP
+@code{FILTER_BEFORE_CLEANUP;}.
+Neither in the main part, nor in the cleanup part may you just return with
+a return value of -1 (i.e. just fail). Instead you have to cleanup yourself,
+including sending @code{EOF}s to your output ports. So basically you may fail
+in the initialisation part, but nowhere else.
+
+@strong{You may not use any of the @code{?buf_*()}
+functions in the @code{INIT} section (DEADLOCK!!!)} 
+(@code{?buf_alloc()} is allowed, if you really need it)
+
