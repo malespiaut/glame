@@ -895,10 +895,6 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SUBTREE("Apply filter", dummy2_menu),
 	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection", apply_custom_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Close","Close",wave_close_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Help","help",wave_help_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
 #define RMB_MENU_PLAY_SELECTION_INDEX 6
@@ -961,11 +957,8 @@ static int choose_ops(plugin_t *plugin)
 	return 1;
 }
 
-/* Button press event. */
-static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
-			    gpointer user_data) 
+static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 {
-	GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
 	GtkWaveBuffer *wavebuffer;
 	GtkSwapfileBuffer *swapfile;
 	GtkWidget *menu;
@@ -973,9 +966,6 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	gpsm_item_t *item;
 	gint32 sel_start, sel_length, marker_pos;
 	guint32 nrtracks;
-  
-	if (event->button != 3 || active_waveedit->locked)
-		return;
 
 	/* Get stuff we need for enabling/disabling items. */
 	wavebuffer = gtk_wave_view_get_buffer (waveview);
@@ -1017,7 +1007,33 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_REDO_INDEX].widget,
 				 gpsm_op_can_redo(item) ? TRUE : FALSE);
 
+	return menu;
+}
+
+/* Button press event. */
+static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
+			    gpointer user_data) 
+{
+	GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
+	GtkWidget *menu;
+  
+	if (event->button != 3 || active_waveedit->locked)
+		return;
+
+	menu = waveedit_build_menu(waveview);
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
+}
+
+/* Button press event. */
+static void waveedit_rmb_cb2(GtkWidget *widget, GtkWaveView *waveview)
+{
+	GtkWidget *menu;
+  
+	if (active_waveedit->locked)
+		return;
+
+	menu = waveedit_build_menu(waveview);
+	gnome_popup_menu_do_popup(menu, NULL, NULL, NULL, waveview);
 }
 
 static void handle_enter(GtkWidget *tree, GdkEventCrossing *event,
@@ -1327,6 +1343,11 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				"Play", "Play", "Play",
 				glame_load_icon_widget("play.png",24,24),
 				playtoolbar_cb, window->waveview);
+	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
+				"Menu", "Menu", "Menu",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),
+				waveedit_rmb_cb2, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
