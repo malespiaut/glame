@@ -5,6 +5,10 @@ glame_dev_TEXINFOS = filter.texi filter-tutorial.texi swapfile.texi \
 		 gldb.texi glsignal.texi conversion.texi gpsm.texi \
 		 plugin.texi 
 %.html:	%.texi	
-	@cd @srcdir@ && rm -f $@
-	cd @srcdir@ && $(MAKEINFO) --html $<
-	ln -sf ../pix glame
+	@rm -f $@
+	@test -e pix || ln -sf @srcdir@/pix .
+	$(MAKEINFO) -P @srcdir@ --html --no-split $<
+
+clean-local:
+	test -L pix && rm -f pix
+	rm -f glame.html glame-dev.html
