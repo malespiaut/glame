@@ -3,7 +3,7 @@
 
 /*
  * glsimd.h
- * $Id: glsimd.h,v 1.1 2001/03/05 15:04:07 richi Exp $
+ * $Id: glsimd.h,v 1.2 2001/04/01 16:35:47 mainzelm Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -27,6 +27,7 @@
 #include <config.h>
 #endif
 
+#include <sys/types.h>
 #include <sys/uio.h>
 #include "glame_types.h"
 
