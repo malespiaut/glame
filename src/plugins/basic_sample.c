@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.45 2001/07/07 08:28:43 mag Exp $
+ * $Id: basic_sample.c,v 1.46 2001/07/26 15:23:34 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,7 +42,6 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
-
 
 PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat")
 
@@ -806,6 +805,37 @@ int render_register(plugin_t *p)
 
 /* this is simple, it does work with one channel
  * only. */
+
+/* use set_param to link factor and dbgain parameters */
+
+static int vadjust_set_param(filter_t *n, filter_param_t *param, const void *val) {
+	float ngain, gain;
+	filter_param_t *anyscale;
+	
+	gain = *((float*)val);
+	
+	if (!strcmp("factor", filterparam_label(param))) {
+		anyscale = filterparamdb_get_param(filter_paramdb(n), "dbgain");
+		ngain = DB2GAIN(filterparam_val_float(anyscale));
+		if (gain!=ngain) {
+			ngain = GAIN2DB(gain);
+			filterparam_set(anyscale, &ngain);
+		} else
+			return -1;
+	}
+	
+	if (!strcmp("dbgain", filterparam_label(param))) {
+		anyscale = filterparamdb_get_param(filter_paramdb(n), "factor");
+		ngain = GAIN2DB(filterparam_val_float(anyscale));
+		if (gain!=ngain) {
+			ngain = DB2GAIN(gain);
+			filterparam_set(anyscale, &ngain);
+		} else
+			return -1;
+	}
+	return 0;
+}
+		
 static int volume_adjust_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
@@ -821,7 +851,7 @@ static int volume_adjust_f(filter_t *n)
 	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 	scale = filterparamdb_get_param(filter_paramdb(n), "factor");
-
+	
 	FILTER_AFTER_INIT;
 
 	/* do the actual work */
@@ -858,6 +888,7 @@ int volume_adjust_register(plugin_t *p)
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = volume_adjust_f;
+	f->set_param = vadjust_set_param;
 
 	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_SAMPLE,
@@ -873,7 +904,11 @@ int volume_adjust_register(plugin_t *p)
 	filterparamdb_add_param_float(filter_paramdb(f), "factor",
 				      FILTER_PARAMTYPE_FLOAT, 1.0,
 				      FILTERPARAM_END);
-
+	
+	filterparamdb_add_param_float(filter_paramdb(f), "dbgain",
+				      FILTER_PARAMTYPE_FLOAT, 0.0,
+				      FILTERPARAM_END);
+	
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "volume_adjust.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Volume");
