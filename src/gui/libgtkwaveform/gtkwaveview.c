@@ -444,12 +444,12 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
       datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
 
       /* Allocate some temp space. */
-      data = g_malloc (g_wavefile_type_width (datatype) * n_channels * 2048);
+      data = g_malloc (g_wavefile_type_width (datatype) * n_channels * 8192);
 
       /* Allocate more temp space if the data source datatype is not s16.
          We then have to convert it to s16 data for cache use. */
       if (datatype != G_WAVEFILE_TYPE_S16)
-        data16 = g_new (gint16, n_channels * 2048);
+        data16 = g_new (gint16, n_channels * 8192);
       else
         data16 = (gint16*) data;
 
@@ -474,7 +474,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
       delta = (guint32) (2147483648.0 / waveview->zoom);
       while (pos <= last_sample_offset)
         {
-          size = MIN (2048, last_sample_offset - pos + 1);
+          size = MIN (8192, last_sample_offset - pos + 1);
 
           /* Read data chunk. */
           gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
@@ -508,6 +508,21 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
                   count++;
                 }
             }
+
+	  /* Be nice to the user */
+	  while (gtk_events_pending()) {
+	    gtk_main_iteration();
+	    if (waveview->expose_count != 0) {
+	      GdkRectangle notdone, temp;
+	      gint32 offdiff;
+	      offdiff = offset - (-calc_win_pel_pos(waveview, 0));
+	      notdone.x = min_val + count + offdiff;
+	      notdone.width = max_val + 1 - (min_val + count) + offdiff;
+	      gdk_rectangle_union(&waveview->expose_area, &notdone, &temp);
+	      waveview->expose_area = temp;
+	      return;
+	    }
+	  }
 
           /* Increment position in data source. */
           pos += size;
@@ -641,10 +656,13 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
 
   waveview->expose_count++;
 
-  if (event->count > 0)
+  if (event->count > 0 || waveview->drawing)
     return;
 
+ again:
   /* Done accumulating sequential expose events, now process them. */
+  waveview->drawing = 1;
+  waveview->expose_count = 0;
 
   sel_bg_gc = widget->style->bg_gc [GTK_STATE_SELECTED];
   unsel_bg_gc = widget->style->white_gc;
@@ -733,7 +751,9 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       gdk_gc_set_clip_mask (waveview->marker_gc, NULL);
     }
 
-  waveview->expose_count = 0;
+  waveview->drawing = 0;
+  if (waveview->expose_count != 0)
+	  goto again;
 }
 
 
@@ -1280,6 +1300,7 @@ gtk_wave_view_init (GtkWaveView *waveview)
   waveview->select_channels = 0xffffffff;
 
   waveview->drawn_offset = 0;
+  waveview->drawing = 0;
 
   waveview->channels = NULL;
   waveview->n_channels = 0;
