@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.7 2004/04/26 20:33:32 ochonpaul Exp $
+ * $Id: gltree.cpp,v 1.8 2004/05/03 21:09:42 ochonpaul Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -29,7 +29,10 @@
 #include "gltree.h"
 #include "waveeditgui.h"
 #include "util/glame_gui_utils.h"
-#include "swapfile.h"
+// #include "swapfile.h"
+#include "glscript.h"
+
+GtkWidget  *global_treeview ; // FIXME: global used in applyop_cb
 
 static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 			 gpointer userdata);
@@ -73,6 +76,8 @@ glTree::glTree(gpsm_grp_t * newroot)
 	fill_tree_store ((gpsm_item_t*)newroot,store,NULL);
 	
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+	global_treeview = tree; // FIXME: global used in applyop_cb
+	
 	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes("label",
 							  renderer,
@@ -85,13 +90,57 @@ glTree::glTree(gpsm_grp_t * newroot)
 			 GCallback(click_cb), NULL);
 }
 
+/* Menu event - Apply operation. */
+static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
+{
+        
+	gpsmop_func_t operation;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	// GtkTreePath *path;
+	gpsm_item_t *item;
+	GtkTreeSelection *selection;
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(global_treeview));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	}
+
+	if (!(operation = (gpsmop_func_t)plugin_query(plugin, PLUGIN_GPSMOP))) {
+		DPRINTF("No such operation %s\n", plugin_name(plugin));
+		return;
+	}
+	DPRINTF("Executing operation %s on %s [%li, %li[\n",
+		plugin_name(plugin), gpsm_item_label(item),
+		(long)0, (long)gpsm_item_hsize(item));
+
+	if (operation(item, 0, gpsm_item_hsize(item)) == -1)
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog(_("Error executing"))));
+
+	DPRINTF("%s finished.\n", plugin_name(plugin));
+// 	deselect_all(active_swapfilegui);
+}
+
+
+static int choose_ops(plugin_t *plugin)
+{
+	/* Only use filters, hide Import */
+	if (!plugin_query(plugin, PLUGIN_GPSMOP)
+	    || strcmp(plugin_name(plugin), "import") == 0)
+		return 0;
+
+	return 1;
+}
 
 
 void
 view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 		gpointer userdata)
 {
-	GtkWidget *menu, *menuitem;
+        GtkWidget *menu, *menuitem, *op_menu;
 	
 	menu = gtk_menu_new();
 
@@ -110,14 +159,24 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) timeline_cb, treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	// menuitem = gtk_separator_menu_item_new(void);
-	// gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new(void));
+	menuitem = gtk_separator_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
 	menuitem = gtk_menu_item_new_with_label(_("Delete"));
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) delete_cb, treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	
+	menuitem = gtk_separator_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
+	menuitem = gtk_menu_item_new_with_label(_("Operations"));
+	g_signal_connect(menuitem, "activate",
+			 NULL, NULL);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
+	gtk_menu_item_set_submenu (GTK_MENU_ITEM(menuitem) , op_menu);
 	gtk_widget_show_all(menu);
 
 	/* Note: event can be NULL here when called from view_onPopupMenu;
@@ -132,7 +191,7 @@ void
 view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 		gpointer userdata)
 {
-	GtkWidget *menu, *menuitem;
+	GtkWidget *menu, *menuitem, *op_menu;
 	
 	menu = gtk_menu_new();
 
@@ -152,8 +211,9 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) timeline_cb, treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	// menuitem = gtk_separator_menu_item_new(void);
-// 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new(void));
+	
+	menuitem = gtk_separator_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
 
 	menuitem = gtk_menu_item_new_with_label(_("Delete"));
 	g_signal_connect(menuitem, "activate",
@@ -174,6 +234,17 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) addstereo_cb, treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	menuitem = gtk_separator_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
+
+	menuitem = gtk_menu_item_new_with_label(_("Operations"));
+	g_signal_connect(menuitem, "activate",
+			 NULL, NULL);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
+	gtk_menu_item_set_submenu (GTK_MENU_ITEM(menuitem) , op_menu);
 
 	gtk_widget_show_all(menu);
 
