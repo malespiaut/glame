@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.4 2001/05/28 08:08:38 richi Exp $
+ * $Id: filter_port.c,v 1.5 2001/07/10 16:28:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -189,8 +189,36 @@ int filterport_redirect(filter_port_t *source, filter_port_t *dest)
 
 void filterport_delete(filter_port_t *port)
 {
-	if (!port || FILTER_IS_PLUGIN(filterport_filter(port)))
+	const char *map_node, *map_label;
+	filter_t *node, *net = filterport_filter(port);
+	filter_port_t *dport;
+
+	if (!port || FILTER_IS_PLUGIN(net))
 		return;
+
+	/* If connections to this port get redirected, delete all
+	 * pipes at the destination that originate here. */
+	if ((map_node = filterport_get_property(port, FILTERPORT_MAP_NODE))
+	    && (map_label = filterport_get_property(port,
+						    FILTERPORT_MAP_LABEL))
+	    && (node = filter_get_node(net, map_node))
+	    && (dport = filterportdb_get_port(filter_portdb(node),
+					      map_label))) {
+		filter_pipe_t *pipe;
+	again:
+		filterport_foreach_pipe(dport, pipe) {
+			if ((strcmp(pipe->source_filter, filter_name(net)) == 0
+			     && strcmp(pipe->source_port,
+				       filterport_label(port)) == 0)
+			    || (strcmp(pipe->dest_filter,
+				       filter_name(net)) == 0
+				&& strcmp(pipe->dest_port,
+					  filterport_label(port)) == 0)) {
+				filterpipe_delete(pipe);
+				goto again;
+			}
+		}
+	}
 
 	gldb_delete_item(&port->entry);
 }
