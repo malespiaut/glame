@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.21 2001/04/22 14:28:03 richi Exp $
+ * $Id: basic.c,v 1.22 2001/04/24 12:08:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -142,6 +142,7 @@ static int one2n_f(filter_t *n)
 		filter_pipe_t *out;
 		feedback_fifo_t fifo;
 		int fifo_size;
+		int feedback;
 	} one2n_param_t;
 	filter_pipe_t *in, *out;
 	filter_port_t *inp, *outp;
@@ -166,6 +167,7 @@ static int one2n_f(filter_t *n)
 	filterport_foreach_pipe(outp, out) {
 		INIT_FEEDBACK_FIFO(p[i].fifo);
 		p[i].fifo_size = 0;
+		p[i].feedback = filterpipe_is_feedback(out);
 		p[i++].out = out;
 	}
 
@@ -221,7 +223,8 @@ static int one2n_f(filter_t *n)
 		if (res == 0) {
 			/* Can only happen after timeout -> adjust fifo size,
 			 * but only if we can read from the input and write
-			 * to at least one empty fifo output. */
+			 * to at least one empty fifo output that is not
+			 * feedback. */
 			fd_set inset, outset;
 			/* Network paused? */
 			if (filter_is_ready(n))
@@ -231,7 +234,8 @@ static int one2n_f(filter_t *n)
 			maxfd = in->dest_fd;
 			FD_ZERO(&outset);
 			for (i=0; i<nr; i++) {
-				if (has_feedback(&p[i].fifo))
+				if (has_feedback(&p[i].fifo)
+				    || p[i].feedback)
 					continue;
 				FD_SET(p[i].out->source_fd, &outset);
 				if (p[i].out->source_fd > maxfd)
@@ -243,9 +247,11 @@ static int one2n_f(filter_t *n)
 			if (!FD_ISSET(in->dest_fd, &inset))
 				continue;
 			for (i=0; i<nr; i++) {
-				if (has_feedback(&p[i].fifo))
+				if (has_feedback(&p[i].fifo)
+				    || p[i].feedback)
 					continue;
-				if (FD_ISSET(p[i].out->source_fd, &outset)) {
+				if (FD_ISSET(p[i].out->source_fd, &outset)
+				    && maxallowedfifo < 1024*1024) {
 					maxallowedfifo *= 2;
 					DPRINTF("Adjusting fifo size, fifo now %i (%.3fs at 44.1kHz)\n", maxallowedfifo/SAMPLE_SIZE, ((float)maxallowedfifo)/44100);
 					break;
