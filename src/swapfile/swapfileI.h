@@ -53,6 +53,8 @@ struct cluster_s {
 	struct list_head map_list; /* mmap LRU cache list */
 };
 #define cluster_ref(cluster) do { (cluster)->refcnt++; } while (0)
+#define cluster_is_mapped(c) ((c)->buf != NULL)
+
 
 
 
