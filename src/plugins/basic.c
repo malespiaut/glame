@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.22 2001/04/24 12:08:40 richi Exp $
+ * $Id: basic.c,v 1.23 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -124,7 +124,8 @@ int drop_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "drop.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
-
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
+	
 	return filter_register(f, p);
 }
 
@@ -337,6 +338,7 @@ int one2n_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
 	plugin_set(p, PLUGIN_PIXMAP, "one2n.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
 
 	return filter_register(f, p);
 }

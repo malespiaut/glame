@@ -211,6 +211,7 @@ int flanger_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "flanger effect");
 	/* plugin_set(p, PLUGIN_PIXMAP, "flanger.xpm"); */
 	plugin_set(p, PLUGIN_CATEGORY, "Effects");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Flanger");
 
 	return filter_register(f, p);
 }

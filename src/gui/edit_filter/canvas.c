@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.78 2001/04/24 11:31:49 xwolf Exp $
+ * $Id: canvas.c,v 1.79 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -81,6 +81,7 @@ static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item);
 
 static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *item);
 static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it);
+static void canvas_item_help(GtkWidget *foo, GlameCanvasItem* it);
 void canvas_load_network(GtkWidget *bla, void *blu);
 static void canvas_save_as(GtkWidget*w,GlameCanvas *data);
 static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu);
@@ -105,6 +106,7 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Open Up","Open up",draw_network_cb,NULL),
 	GNOMEUIINFO_ITEM("_About node...","bout",canvas_item_show_description,NULL),
+	GNOMEUIINFO_ITEM("_Help","Show help",canvas_item_help,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
 };
@@ -221,6 +223,17 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 	}
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(item->parent));
 
+}
+
+static void canvas_item_help(GtkWidget *foo, GlameCanvasItem* it)
+{
+	char * helppath;
+	char buffer[100];
+	helppath = plugin_query(it->filter->plugin,PLUGIN_GUI_HELP_PATH);
+	if(!helppath)
+		helppath = strdup("Plugin_Collection");
+	sprintf(buffer,"info:glame#%s",helppath);
+	gnome_help_goto(NULL,buffer);
 }
 
 static void 
@@ -556,7 +569,6 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 		       
 
 
-
 GtkWidget * 
 canvas_new_from_network(gui_network* net)
 {
@@ -611,6 +623,8 @@ canvas_new_from_network(gui_network* net)
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom in","Zooms in","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),canvas_zoom_in_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom out","Zooms out","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),canvas_zoom_out_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),canvas_update_scroll_region_cb,canvas);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Help","Help","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),gnome_help_goto,"info:glame#The_Filternetwork_Editor");
 	gnome_app_set_toolbar(GNOME_APP(window),GTK_TOOLBAR(toolbar));
 	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));

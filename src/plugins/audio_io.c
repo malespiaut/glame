@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.31 2001/04/14 17:37:31 nold Exp $
+ * $Id: audio_io.c,v 1.32 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -214,7 +214,7 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "input.png");
 	plugin_set(pl, PLUGIN_CATEGORY, "Input");
-	
+	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
 	filter_register(filter, pl);
 
 	return 0;
@@ -247,6 +247,7 @@ int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
 	plugin_set(pl, PLUGIN_DESCRIPTION, "playback stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "output.png");
         plugin_set(pl, PLUGIN_CATEGORY, "Output");
+	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
 	
 	filter_register(filter, pl);
 
@@ -285,6 +286,7 @@ int audio_out_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "playback stream");
 	plugin_set(p, PLUGIN_PIXMAP, "output.png");
         plugin_set(p, PLUGIN_CATEGORY, "Output");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
 
 	audio_out_f = filter_instantiate(audio_out);
 	return filter_register(audio_out_f, p);
@@ -313,6 +315,7 @@ int audio_in_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(p, PLUGIN_PIXMAP, "input.png");
         plugin_set(p, PLUGIN_CATEGORY, "Input");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
 
 	audio_in_f = filter_instantiate(audio_in);
 	return filter_register(audio_in_f, p);

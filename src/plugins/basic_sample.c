@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.31 2001/04/22 23:11:41 mag Exp $
+ * $Id: basic_sample.c,v 1.32 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -555,6 +555,7 @@ int mix_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until first stream end allowing feedback");
 	plugin_set(p, PLUGIN_PIXMAP, "mix1.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
 	return filter_register(f, p);
 }
 
@@ -601,6 +602,7 @@ int mix2_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until the last input stream ended");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
   
 	return filter_register(f, p);
 }
@@ -681,6 +683,7 @@ int volume_adjust_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "volume_adjust.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Volume");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
 }
@@ -766,6 +769,7 @@ int delay_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "delay an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "delay.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
 }
@@ -854,6 +858,7 @@ int extend_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "extend an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "extend.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
 }
@@ -973,6 +978,7 @@ int repeat_register(plugin_t *p)
 		   "repeat an audio stream for the specified time");
 	plugin_set(p, PLUGIN_PIXMAP, "repeat.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
 }

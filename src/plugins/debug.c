@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.9 2001/04/10 13:58:31 richi Exp $
+ * $Id: debug.c,v 1.10 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -118,6 +118,7 @@ int ping_register(plugin_t *p)
 				FILTER_PARAMTYPE_INT, 128,
 				FILTERPARAM_END);
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Catching_Bugs");
 	filter_register(f, p);
 
 	return 0;

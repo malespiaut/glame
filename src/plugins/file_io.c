@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.48 2001/04/19 18:10:08 mag Exp $
+ * $Id: file_io.c,v 1.49 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -421,6 +421,7 @@ int read_file_register(plugin_t *pl)
 	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "input.png");
 	plugin_set(pl, PLUGIN_CATEGORY, "Input");
+	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "File_I_O");
 	
 	filter_register(f, pl);
 
@@ -449,6 +450,7 @@ int write_file_register(plugin_t *pl)
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "output.png");
 	plugin_set(pl, PLUGIN_CATEGORY, "Output");
+	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "File_I_O");
 	
 	filter_register(f, pl);
 

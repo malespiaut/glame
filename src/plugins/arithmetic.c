@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.13 2001/04/11 08:37:27 richi Exp $
+ * $Id: arithmetic.c,v 1.14 2001/04/24 14:08:06 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -152,6 +152,7 @@ int mul_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
 	plugin_set(p, PLUGIN_PIXMAP, "prod.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Arithmetics");
 	
 	return filter_register(f, p);
 }
@@ -257,6 +258,7 @@ int add_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
 	plugin_set(p, PLUGIN_PIXMAP, "sum.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Arithmetics");
 
 	return filter_register(f, p);
 }
