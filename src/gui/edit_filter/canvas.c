@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.37 2001/03/16 09:56:56 richi Exp $
+ * $Id: canvas.c,v 1.38 2001/03/19 09:18:05 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -66,7 +66,7 @@ static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item);
 static void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it);
 static void canvas_connection_edit_source_properties_cb(GtkWidget* bla, GlameConnection* conn);
 static void canvas_connection_edit_dest_properties_cb(GtkWidget* bla, GlameConnection* conn);
-static void canvas_add_filter_by_name_cb(GtkWidget*wid, char* name);
+static void canvas_add_filter_by_name_cb(GtkWidget*wid, plugin_t *plugin);
 static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data);
 static void canvas_connection_destroy_cb(GtkWidget*bla,GlameConnection* conn);
 static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpointer data);
@@ -415,69 +415,22 @@ network_stop(GtkWidget *button,gui_network*net)
 {
 	filter_terminate(net->net);
 }
-static void canvas_add_filter_by_name_cb(GtkWidget*wid, char* name)
+static void canvas_add_filter_by_name_cb(GtkWidget*wid, plugin_t *plugin)
 {
-	canvas_add_filter_by_name(name);
+	canvas_add_filter_by_name(plugin_name(plugin));
 	
 }
 
-typedef struct {
-	char* categorie;
-	int count;
-	GtkWidget * submenu;
-} catmenu;	
-
 	
-GSList* append_to_categorie(GSList* cats,plugin_t *plug)
-{
-	char* catpath;
-
-	GSList * item;
-	GtkWidget *newitem;
-	catmenu* newcat;
-	char* cdefault="Default";
-	catpath = plugin_query(plug,PLUGIN_CATEGORY);
-	if(!catpath)
-		catpath = cdefault;
-	item = cats;
-	while(item){
-		if(!(strcmp(catpath,(char*)(((catmenu*)(item->data))->categorie)))){
-			newcat = (catmenu*)(item->data);
-			goto found;
-		}
-		item = g_slist_next(item);
-	}
-	//not found
-	newcat = malloc(sizeof(catmenu));
-	newcat->submenu = gtk_menu_new();
-	newcat->count = 0;
-	gtk_widget_show(newcat->submenu);
-	newcat->categorie = strdup(catpath);
-	cats=g_slist_append(cats,newcat);
- found:
-	newitem = gtk_menu_item_new_with_label((gchar*)strdup(plugin_name(plug)));
-	gtk_widget_show(newitem);
-	gtk_menu_append(GTK_MENU(newcat->submenu),newitem);
-	newcat->count++;
-	gtk_signal_connect(GTK_OBJECT(newitem),"activate",canvas_add_filter_by_name_cb,(gchar*)plugin_name(plug));
-	return cats;
-}
-
 static gint
 root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 {
 	GtkWidget*submenu;
-	GtkWidget*menu,*item;
+	GtkWidget*menu;
 	GtkWidget*par;
 	GdkEventButton *event_button;
-	GSList * nodes,*it;
-	int i;
 
-	catmenu  *cat;
-	GSList * categories=NULL;
-	
 
-	plugin_t * plugin;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		if(!inItem){
@@ -488,33 +441,9 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 			event_y = event->button.y;
 			win=GTK_WIDGET(canv);
 			if(event->button.button==3){
-				cat = malloc(sizeof(catmenu));
-				cat->categorie = strdup("Default");
-				cat->count = 0;
-				cat->submenu = gtk_menu_new();
-				categories = g_slist_append(categories,cat);
-				
-				nodes=gui_browse_registered_filters(); 
 				menu = gnome_popup_menu_new(root_menu);
-				submenu = gtk_menu_new();
 				par = root_menu[0].widget; // eeevil hack to change menu
-				
-				for(i=0;i<g_slist_length(nodes);i++){ 
-					it = g_slist_nth(nodes,i); 
-					plugin = (plugin_t*)(it->data);
-//					item = gtk_menu_item_new_with_label((gchar*)plugin_name(plugin));
-//				        gtk_widget_show(item);
-					categories = append_to_categorie(categories,plugin);
-				}
-				for(i=0;i<g_slist_length(categories);i++){
-					cat = (catmenu*)((GSList*)g_slist_nth(categories,i)->data);
-					if(cat->count){
-					item = gtk_menu_item_new_with_label(cat->categorie);
-					gtk_menu_item_set_submenu(GTK_MENU_ITEM(item),cat->submenu);
-					gtk_widget_show(item);
-					gtk_menu_append(GTK_MENU(submenu),item);
-					}
-				}
+				submenu = glame_gui_build_plugin_menu(NULL, canvas_add_filter_by_name_cb);
 				gtk_widget_show(submenu);
 				gtk_menu_item_set_submenu(GTK_MENU_ITEM(par),submenu);
 				
@@ -1199,6 +1128,7 @@ canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y)
 	}
 }
 
+#if 0
 enum {PINT,PFLOAT,PSTRING,PFILE};
 
 typedef struct {
@@ -1379,7 +1309,7 @@ canvas_item_edit_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
 	
 }
-	
+#endif	
 
 	
 	

@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.12 2001/03/16 09:56:56 richi Exp $
+ * $Id: gui.c,v 1.13 2001/03/19 09:18:06 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -21,7 +21,8 @@
  *
  */
 
-#include <glmid.h>
+#include <values.h>
+#include "glmid.h"
 #include "gui.h"
 #include "canvas.h"
 
@@ -106,22 +107,6 @@ void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, 
 }
 
 
-/* browses the registered filtrs and returns a list of strings */
-GSList* gui_browse_registered_filters(void)
-{
-      GSList *ret=NULL;
-      plugin_t *plugin = NULL;
-
-	/* browse registered plugins */
-      while((plugin = plugin_next(plugin))){
-	      if(plugin_query(plugin,PLUGIN_FILTER)){
-		      ret=g_slist_append(ret,(gpointer)plugin);
-	      }
-      }
-      return ret;
-	    
-}
-
 
 GtkWidget*
 create_label_edit_pair(GtkWidget *vbox,const char *clabel)
@@ -182,3 +167,289 @@ gui_network_new(void)
 	return net;
 }
 
+
+
+
+typedef struct {
+	struct list_head list;
+	int is_category;
+	union {
+		struct {
+			const char *name;
+			struct list_head list;
+		} c;
+		struct {
+			plugin_t *plugin;
+		} p;
+	} u;
+} ggbpm_entry;
+static void
+glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
+{
+	ggbpm_entry *entry;
+	ggbpm_entry *cat;
+	const char *catname;
+
+	/* Create entry for plugin with catname */
+	entry = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
+	INIT_LIST_HEAD(&entry->list);
+	entry->is_category = 0;
+	entry->u.p.plugin = plugin;
+	if (!(catname = plugin_query(plugin, PLUGIN_CATEGORY)))
+		catname = "Default";
+
+	/* Search for old cat. subtree */
+	cat = list_gethead(cats, ggbpm_entry, list);
+	while (cat) {
+		if (strcmp(cat->u.c.name, catname) == 0) {
+			list_add_tail(&entry->list, &cat->u.c.list);
+			return;
+		}
+		cat = list_getnext(cats, cat, ggbpm_entry, list);
+	}
+
+	/* Need to create new one */
+	cat = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
+	INIT_LIST_HEAD(&cat->list);
+	cat->is_category = 1;
+	cat->u.c.name = catname;
+	INIT_LIST_HEAD(&cat->u.c.list);
+	list_add_tail(&cat->list, cats);
+	list_add_tail(&entry->list, &cat->u.c.list);
+}
+
+/* Build a gtk menu from the registered plugins, selecting them
+ * via callback. */
+GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
+				     void (*gtksighand)(GtkWidget *, plugin_t *))
+{
+	GtkWidget *menu;
+	plugin_t *plugin = NULL;
+	LIST_HEAD(categories);
+	ggbpm_entry *cat;
+
+	/* Build tree of selected categories/plugins. */
+	while ((plugin = plugin_next(plugin))) {
+		if (!plugin_query(plugin, PLUGIN_FILTER))
+			continue;
+		if (select && !select(plugin))
+			continue;
+		glame_gui_build_plugin_menu_add_item(&categories, plugin);
+	}
+
+	/* Build the actual GtkMenu out of the tree (and free the tree
+	 * while traversing it). */
+	menu = gtk_menu_new();
+	while ((cat = list_gethead(&categories, ggbpm_entry, list))) {
+		GtkWidget *catmenu, *catmenuitem;
+		ggbpm_entry *item;
+		catmenu = gtk_menu_new();
+		catmenuitem = gtk_menu_item_new_with_label(cat->u.c.name);
+		while ((item = list_gethead(&cat->u.c.list, ggbpm_entry, list))) {
+			GtkWidget *mitem = gtk_menu_item_new_with_label(plugin_name(item->u.p.plugin));
+			gtk_widget_show(mitem);
+			gtk_menu_append(GTK_MENU(catmenu), mitem);
+			if (gtksighand)
+				gtk_signal_connect(GTK_OBJECT(mitem), "activate",
+						   gtksighand, item->u.p.plugin);
+			list_del(&item->list);
+			free(item);
+		}
+		gtk_widget_show(catmenu);
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(catmenuitem), catmenu);
+		gtk_widget_show(catmenuitem);
+		gtk_menu_append(GTK_MENU(menu), catmenuitem);
+		list_del(&cat->list);
+		free(cat);
+	}
+
+	return GTK_MENU(menu);
+}
+
+
+
+
+enum {PINT,PFLOAT,PSTRING,PFILE};
+
+typedef struct {
+	GtkWidget *widget;
+	filter_param_t* param;
+	int widget_type;
+} param_widget_t;
+
+typedef struct {
+	GList* paramList;
+	char *caption;
+} param_callback_t;
+
+
+static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
+{
+      gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
+}
+
+static void
+update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
+{
+	GList* list = g_list_first(callback->paramList);
+	char *strVal; 
+	int iVal;
+	float fVal;
+	char *caption = callback->caption;
+	param_widget_t* item;
+	
+	while(list){
+		item = (param_widget_t*)(list->data);
+		DPRINTF("param: %s\n", filterparam_label(item->param));
+		switch(item->widget_type){
+		case PINT:
+			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
+			DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
+			if(filterparam_set(item->param, &iVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			break;
+		case PFLOAT:
+			fVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
+			DPRINTF("Setting %s::%s to %f", caption, filterparam_label(item->param), fVal);
+			if(filterparam_set(item->param, &fVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			break;
+		case PSTRING:
+			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
+			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
+			if(filterparam_set(item->param, &strVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			g_free(strVal);
+			break;
+		case PFILE:
+			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
+			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
+			if(filterparam_set(item->param, &strVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			g_free(strVal);
+			break;
+		}
+		list = g_list_next(list);
+	}
+}
+
+void
+static cancel_params(GtkWidget* wig,param_callback_t* callback)
+{
+	g_list_free(callback->paramList);
+	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_parent_window(wig)));
+}
+
+void
+glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
+{
+	GtkWidget *vbox,*entry;
+	GtkAdjustment *adjust;
+	param_widget_t *pw;
+	param_callback_t* cb;
+	char * prop;
+	GList * list=NULL;
+	
+	GtkWidget* propBox;
+	GtkWidget* tablabel;
+	int iVal;
+	float fVal;
+	char* cVal;
+	filter_param_t* param;
+	propBox = gnome_property_box_new ();
+	
+	tablabel=gtk_label_new(_(caption));
+
+	vbox = gtk_vbox_new(FALSE,3);
+	
+	gtk_widget_show(vbox);
+
+	filterparamdb_foreach_param(pdb, param) {
+		if (FILTER_PARAM_IS_INT(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
+
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
+			iVal = filterparam_val_int(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PINT;
+			list = g_list_append(list,pw);
+		} else if (FILTER_PARAM_IS_FLOAT(param)
+			   || FILTER_PARAM_IS_SAMPLE(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
+			fVal = filterparam_val_float(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PFLOAT;
+			list = g_list_append(list,pw);
+		} else if (FILTER_PARAM_IS_STRING(param)) {
+			switch(filterparam_type(param)){
+			case FILTER_PARAMTYPE_FILENAME:
+				entry = gnome_file_entry_new("blahh",filterparam_label(param));
+				if((prop = filterparam_get_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER)))
+				      gtk_signal_connect_after(GTK_OBJECT(entry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),prop);
+				
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PFILE;
+				list = g_list_append(list,pw);
+				break;
+			default:
+			        entry = gnome_entry_new("blubb");
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				cVal =  filterparam_val_string(param);
+				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
+				free(cVal);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PSTRING;
+				list = g_list_append(list,pw);
+				break;
+			}
+		} else {
+			entry = gnome_entry_new("blubb");
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PSTRING;
+			list = g_list_append(list,pw);
+			break;
+		}
+	}
+	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),vbox,tablabel);
+
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
+	gtk_window_set_modal(GTK_WINDOW(propBox),TRUE);
+	gtk_widget_show(propBox);
+	cb = malloc(sizeof(param_callback_t));
+	cb->paramList=list;
+	cb->caption = strdup(caption);
+	
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",update_params,cb);
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
+	
+}

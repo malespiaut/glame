@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.7 2001/03/16 09:56:56 richi Exp $
+ * $Id: gui.h,v 1.8 2001/03/19 09:18:06 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -48,11 +48,24 @@
 
 gui_network* gui_network_new();
 
-GSList* gui_browse_registered_filters(void);
-
 void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
 
 void changeString(GtkEditable *wid, char ** returnbuffer);
+
+
+/* Build a menu (hidden) out of the registered plugins which you can
+ * either select all (NULL select callback) or select by returning
+ * non-zero from the select callback. Each menu item is connected
+ * to the signal handler gtksighand, if specified, which is passed the
+ * actual plugin. */
+GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
+				     void (*gtksighand)(GtkWidget *, plugin_t *));
+
+
+/* Open a property box for changing the paramdb's parameters.
+ * FIXME: change to return a gnome-dialog - catch ok/cancel difference. */
+void glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption);
+
 
 
 #endif
