@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.50 2001/05/13 11:58:14 richi Exp $
+ * $Id: main.c,v 1.51 2001/05/13 12:07:29 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -42,7 +42,6 @@
 
 
 /* Globals. */
-static char *swname = NULL;
 static GtkWidget *swapfile;
 static GtkWidget *app;
 
@@ -279,7 +278,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	char *cfg, *path, *numberbuffer, *aindev, *aoutdev;
 	char *ainplugin, *aoutplugin, *maxundobuf;
 	gboolean ok=FALSE;
-	gboolean mac, foo;
+	gboolean mac;
 	int maxundo;
 
 	/* New box. */
@@ -578,13 +577,9 @@ int main(int argc, char **argv)
 #ifdef HAVE_LIBGLADE
 	glade_init();
 #endif
-	
-	/* remember argv[1], if necessary */
-	if (argc >= 2)
-		swname = argv[1];
 
 	/* init glame */
-	glame_init_with_guile(gui_main);
+	glame_init(gui_main);
 
 	return 1;
 }

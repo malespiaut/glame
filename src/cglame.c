@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 "    (quit) gets you out of here.\n"
 "    (help) gets you some additional help.\n\n");
 
-	if (glame_init_with_guile(sc_main) == -1) {
+	if (glame_init(sc_main) == -1) {
 	        fprintf(stderr, "glame init failed!\n");
 		swapfile_close();
 		exit(1);

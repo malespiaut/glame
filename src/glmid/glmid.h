@@ -3,7 +3,7 @@
 
 /*
  * glmid.h
- * $Id: glmid.h,v 1.8 2001/04/11 08:39:02 richi Exp $
+ * $Id: glmid.h,v 1.9 2001/05/13 12:07:29 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -27,10 +27,6 @@
 #include "glplugin.h"
 
 
-/* Initializes all glame subsystems. Returns 0 on success,
- * -1 on error. */
-int glame_init();
-
 /* Initializes all glame subsystems, including the scheme
  * scripting part using guile, if available. Returns 0 on
  * success, -1 on error.
@@ -38,7 +34,7 @@ int glame_init();
  * have to provide a main function that will be executed, if
  * everything went right - glame_init_with_guile does not
  * return until main exits. */
-int glame_init_with_guile(void (*main)(void));
+int glame_init(void (*main)(void));
 
 
 /* Loads the plugin(s) out of the specified file and registers

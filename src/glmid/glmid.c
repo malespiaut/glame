@@ -37,9 +37,6 @@
 #ifdef HAVE_GUILE
 #include <guile/gh.h>
 #include "glscript.h"
-extern filter_t *scm2filter(SCM filter_smob);
-extern long filter_smob_tag;
-#define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
 #endif
 
 /* Builtin plugins. */
@@ -172,7 +169,6 @@ static int plugins_register()
 {
 	/* Add plugin paths. */
 	add_plugin_path("./plugins/.libs");
-	add_plugin_path("./plugins/_libs");
 	add_plugin_path(PKGLIBDIR);
 #ifdef HAVE_LADSPA
 	add_plugin_path(getenv("LADSPA_PATH"));
@@ -183,7 +179,6 @@ static int plugins_register()
 
 	/* Plugins from default paths - and "debug path" (first) */
 	load_plugins_from_path("./plugins/.libs"); /* for .so */
-	load_plugins_from_path("./plugins/_libs"); /* for .so */
 	load_plugins_from_path(PKGLIBDIR);
 #ifdef HAVE_LADSPA
 	load_plugins_from_path(getenv("LADSPA_PATH"));
@@ -197,52 +192,46 @@ static void glame_cleanup()
 	swapfile_close();
 }
 
-int glame_init()
-{
-	glsimd_init(0);
-	if (hash_alloc() == -1)
-		return -1;
-	if (plugins_register() == -1)
-		return -1;
-	atexit(glame_cleanup);
 
-	return 0;
-}
-
-#ifdef HAVE_GUILE
 static void init_after_guile(int argc, char **argv)
 {
-#ifndef NDEBUG
+#if defined HAVE_GUILE && !defined NDEBUG
 	/* We dont like guiles signal handlers for debugging
 	 * purposes. */
 	scm_restore_signals();
 #endif
-	if (glscript_init() == -1)
-		exit(1);
-	load_plugins_from_path("./plugins");       /* for .scm */
-	load_plugins_from_path(PKGSCRIPTSDIR);
-	((void (*)(void))argv[1])();
-}
-#endif
 
-int glame_init_with_guile(void (*main)(void))
-{
-	if (glame_init() == -1)
-		return -1;
+	/* Init lowlevel GLAME subsystems. */
+	glsimd_init(0);
+	if (hash_alloc() == -1)
+		exit(1);
+	if (plugins_register() == -1)
+		exit(1);
+	atexit(glame_cleanup);
 
 #ifdef HAVE_GUILE
-	{
-		char *argv[2];
-		argv[0] = NULL;
-		argv[1] = (char *)main;
-		/* scm_init_guile();
-		   init_after_guile(0, argv); */
-		gh_enter(0, argv, init_after_guile);
-	}
+	/* Init scripting. */
+	if (glscript_init() == -1)
+		exit(1);
+	add_plugin_path(PKGSCRIPTSDIR);
+	load_plugins_from_path("./plugins");       /* for .scm */
+	load_plugins_from_path(PKGSCRIPTSDIR);
 #endif
 
-	/* not reached if HAVE_GUILE */
-	main();
+	((void (*)(void))argv[1])();
+}
+
+int glame_init(void (*main)(void))
+{
+	char *argv[2];
+	argv[0] = NULL;
+	argv[1] = (char *)main;
+
+#ifdef HAVE_GUILE
+	gh_enter(0, argv, init_after_guile);
+#else
+	init_after_guile(0, argv);
+#endif
 
 	return 0;
 }
