@@ -1,0 +1,14 @@
+(filternetwork sample
+	(node rf read_file
+		(export-param filename infile "infile")
+	)
+	(node wf write_file
+		(export-param filename outfile "outfile")
+	)
+	(node el echo2)
+	(node er echo2)
+	(connect rf out el in)
+	(connect rf out er in)
+	(connect el out wf in)
+	(connect er out wf in)
+)
