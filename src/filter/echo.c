@@ -1,8 +1,8 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.8 2000/02/17 17:58:36 nold Exp $
+ * $Id: echo.c,v 1.9 2000/02/25 14:15:04 richi Exp $
  *
- * Copyright (C) 1999, 2000 Alexander Ehlert 
+ * Copyright (C) 2000 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
+ *
+ * This is a sample implementation of an echo filter to show the right
+ * use of feedback buffering.
  */
 
 #include <sys/time.h>
@@ -30,105 +33,144 @@
 
 static int echo_f(filter_node_t *n)
 {
-	filter_buffer_t *bin,*bout;
-	filter_pipe_t *in,*out;
 	filter_param_t *param;
-	
-	int echotime;
-	int bufsiz;
-	SAMPLE *ring=NULL;
-	int ringp;
-	float mix;
-	int binpos,boutpos;
-        int sent=0,received=0;
-	
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
+	int delay;  /* in samples */
+	float mix, fbfact, infact;  /* mixing factor, 1/(1+mix) */
+	filter_pipe_t *in, *out;
+	feedback_fifo_t fifo;
+	filter_buffer_t *inb, *fb;
+	SAMPLE *ins, *fs;
+	int cnt, inb_pos, fb_pos;
 
-	if(!in || !out){
-		DPRINTF("Couldn't find ports!\n");
-		return -1;
-	}
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	        FILTER_ERROR_RETURN("no in- or output");
 
-	if((param = filternode_get_param(n, "time")))
-		echotime=filterparam_val_int(param);
-	else
-		echotime=100;
+	delay = filterpipe_sample_rate(in)/10; /* 0.1 sec. default delay */
+	if ((param = filternode_get_param(n, "time")))
+		delay = (int)(filterpipe_sample_rate(in) 
+				* filterparam_val_float(param));
+	mix = 0.7;
+	if ((param = filternode_get_param(n, "mix")))
+		mix = filterparam_val_float(param);
+	fbfact = mix/(1.0 + mix);
+	infact = 1.0/(1.0 + mix);
 
-	if((param = filternode_get_param(n, "mix")))
-		mix=filterparam_val_float(param);
-	else
-		mix=0.7;
-	
-	bufsiz=44100*echotime/1000;
-	if(bufsiz==0) bufsiz=1;
-	
-	if ((ring=(SAMPLE *)malloc(bufsiz*sizeof(SAMPLE)))==NULL){
-		DPRINTF("Couldn't alloc ringbuffer!\n");
-		return -1;
-	}
+	INIT_FEEDBACK_FIFO(fifo);
+
 
 	FILTER_AFTER_INIT;
 
-	memset(ring,0,bufsiz*sizeof(SAMPLE));
-	ringp=0;
-	bin=sbuf_get(in);
-	binpos=0;
-	
-	while(pthread_testcancel(),bin){
-		received++;
-		bout=sbuf_alloc(sbuf_size(bin), n);
-		boutpos=0;
-		while(binpos<sbuf_size(bin)){
-			ring[ringp++]=sbuf_buf(bin)[binpos];
-			if (ringp==bufsiz)
-				ringp=0;
-			sbuf_buf(bout)[boutpos++]=(sbuf_buf(bin)[binpos]+mix*ring[ringp])/(1.0+mix);
-			binpos++;
+	/* First fill the feedback buffer with at least(!)
+	 * delay samples and just forward all buffers completely
+	 * in this delay. The goto is clever :) */
+	cnt = 0;
+	goto entry1;
+	do {
+	        FILTER_CHECK_STOP;
+		sbuf_queue(out, inb); /* this really ate one reference */
+	entry1:
+		inb = sbuf_get(in);
+		sbuf_ref(inb);
+		add_feedback(&fifo, inb); /* this "ate" one reference! */
+		cnt += sbuf_size(inb);
+	} while (cnt <= delay);
+
+	/* after this we should have one unsent buffer as inb which
+	 * is queued already in the fifo and at least delay samples
+	 * in the fifo. The position of the first to be processed
+	 * sample in the current inb is cnt-delay.
+	 */
+	inb_pos = cnt - delay;
+
+	/* While we get new input samples do the effect using the entry
+	 * from the fifo as send buffer. The goto is clever again :)
+	 */
+	goto entry2;
+	do {
+	        FILTER_CHECK_STOP;
+		/* check for feedback (and target) buffer overrun */
+		if (fb_pos == sbuf_size(fb)) {
+			/* one target is ready, we need to queue it
+			 * _and_ put it back into the fifo, so we
+			 * need another reference to it.
+			 */
+			sbuf_ref(fb);
+			sbuf_queue(out, fb);
+			add_feedback(&fifo, fb);
+
+			/* Now get the next feedback/target buffer
+			 * from the fifo. And prepare it for write
+			 * access.
+			 */
+		entry2:
+			fb = get_feedback(&fifo);
+			fb = sbuf_make_private(fb);
+			fb_pos = 0;
 		}
-		sbuf_queue(out,bout);
-		sent++;
-		sbuf_unref(bin);
-		bin=sbuf_get(in);
-		binpos=0;
-	}
 
-	/* Empty ring buffer */
-	
-	bout=sbuf_alloc(bufsiz,n);
-	for(boutpos=0;boutpos<bufsiz;boutpos++){
-		sbuf_buf(bout)[boutpos]=(ring[ringp++]*mix)/(1.0+mix);
-		if (ringp==bufsiz)
-			ringp=0;
-	}
-	sbuf_queue(out,bout);
-	sbuf_queue(out,NULL);
-	sent++;
+		/* to be able to do a "fast loop" we check for the
+		 * minimum available buffer size here.
+		 */
+		cnt = MIN(sbuf_size(fb) - fb_pos, sbuf_size(inb) - inb_pos);
+		ins = sbuf_buf(inb) + inb_pos;
+		fs = sbuf_buf(fb) + fb_pos;
+		inb_pos += cnt;
+		fb_pos += cnt;
 
-	DPRINTF("sent=%d received=%d\n",sent,received);
-	
+		/* start "alignment" run */
+		for (; (cnt & 3)>0; cnt--) {
+		        SCALARPROD1_2(fs, ins, fbfact, infact);
+		}
+		/* do fast 4 products in one run loop */
+		for (; cnt>0; cnt-=4) {
+		        SCALARPROD4_2(fs, ins, fbfact, infact);
+		}
+
+		/* now we have to check which buffer has the underrun */
+		if (inb_pos == sbuf_size(inb)) {
+			/* In-buffer underrun is simple - we dont need
+			 * the current one for anything anymore -> drop
+			 * it. Then we just get a new one.
+			 */
+			sbuf_unref(inb);
+			inb = sbuf_get(in);
+			inb_pos = 0;
+		}
+		/* the check for the feedback buffer underrun is
+		 * at the beginning of the loop so we can do the
+		 * EOF at in-port check here.
+		 */
+	} while (inb);
+
+	/* So, whats the state now? We have a partly finished target
+	 * buffer and the fifo. So just queue the whole stuff and send
+	 * an EOF afterwards.
+	 * FIXME? Is this correct echo? I.e. the stream is extended by
+	 * exactly delay samples, of course we could do an endless
+	 * feedback with virtual zero input until the samples all settle
+	 * to zero?? Hohumm...
+	 */
+	/* Remember: we dont need no extra references here as we let the
+	 * buffers go and not queue them again in the fifo. The while
+	 * condition at the end lets us automagically send the EOF mark.
+	 */
+	sbuf_queue(out, fb);
+	do {
+	        FILTER_CHECK_STOP;
+		fb = get_feedback(&fifo);
+		sbuf_queue(out, fb);
+	} while (fb);
+
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
-	free(ring);
-	return 0;
+
+	FILTER_RETURN;
 }
+
 
 /* Registry setup of all contained filters
  */
-void echo_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
-{
-	filter_pipe_t *out;
-	/* FIXME Hmm if input pipe breaks, just disconnect output pipe.
-	 * [richi] As we can cope with weird in/out in f(), this automatic
-         *         breakage can lead to a collapse of the entire network
-	 *         which is not "nice" for the user.
-	 *         So please break connections only actively, not passively
-	 *         (i.e. a parameter which forbids an output/input may break
-	 *         it, but a missing input/output should not break the other
-	 *         one - chicken and egg problem.) */
-	out=filternode_get_output(n, PORTNAME_OUT);
-	if (out) filternetwork_break_connection(out);
-}
-
 int echo_register()
 {
 	filter_t *f;
@@ -136,17 +178,15 @@ int echo_register()
 	if (!(f = filter_alloc("echo", "echo effect", echo_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT,"output",
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
 		    		FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"time","echo time in ms",
-		    		FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f,"mix","mixer ratio",
+	    || !filter_add_param(f, "time", "echo time in s",
+		    		FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_param(f, "mix", "mixer ratio",
 		    		FILTER_PARAMTYPE_FLOAT))
 		return -1;
-
-	f->fixup_break_in = echo_fixup_break_in;
-
 	if (filter_add(f) == -1)
 		return -1;
+
 	return 0;
 }

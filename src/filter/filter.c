@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.25 2000/02/24 23:06:06 mag Exp $
+ * $Id: filter.c,v 1.26 2000/02/25 14:15:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -45,7 +45,6 @@ extern int file_io_register();
 extern int debug_register();
 extern int waveform_register();
 extern int echo_register();
-extern int echo2_register();
 extern int garrison_register();
 extern int nold_register();
 extern int basic_midi_register();
@@ -89,10 +88,6 @@ int filter_init()
 
 	/* initialize echo filter */
 	if (echo_register() == -1)
-		return -1;
-
-	/* initialize echo2 filter */
-	if (echo2_register() == -1)
 		return -1;
 
 	if (garrison_register() == -1)

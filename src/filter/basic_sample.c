@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.4 2000/02/24 13:59:10 richi Exp $
+ * $Id: basic_sample.c,v 1.5 2000/02/25 14:15:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -21,11 +21,12 @@
  *
  * This file contains basic filters that operate using the sample
  * filter protocol. Contained are
- * - mix
- * - volume-adjust
+ * - mix [broken?]
+ * - volume-adjust [broken?]
  * - phase-invert
- * I like to have
  * - delay
+ * I like to see
+ * - add, sub, mul
  */
 
 #include <sys/time.h>
@@ -327,6 +328,53 @@ static int invert_f(filter_node_t *n)
 }
 
 
+static int delay_f(filter_node_t *n)
+{
+	filter_pipe_t *in, *out;
+	filter_buffer_t *buf;
+	filter_param_t *param;
+	int delay, chunksize;
+
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no input or no output");
+
+	delay = 0;
+	if ((param = filternode_get_param(n, "delay")))
+	        delay = filterpipe_sample_rate(in)*filterparam_val_float(param);
+	if (delay < 0)
+		FILTER_ERROR_RETURN("weird delay time");
+
+	FILTER_AFTER_INIT;
+
+	/* send "delay" zero samples, 0.1 sec's per buffer */
+	chunksize = filterpipe_sample_rate(in)/10;
+	buf = sbuf_alloc(chunksize, n);
+	for (; delay/chunksize > 0; delay -= chunksize) {
+		sbuf_ref(buf);
+		sbuf_queue(out, buf);
+	}
+	sbuf_unref(buf);
+
+	/* send the rest in one buffer */
+	if (delay > 0) {
+		buf = sbuf_alloc(delay, n);
+		sbuf_queue(out, buf);
+	}
+
+	/* just forward all incoming buffers now */
+	while ((buf = sbuf_get(in))) {
+		FILTER_CHECK_STOP;
+		sbuf_queue(out, buf);
+	}
+	sbuf_queue(out, buf);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
 
 /* Registry setup of all contained filters
  */
@@ -370,6 +418,18 @@ int basic_sample_register()
 				  FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_output(f, PORTNAME_OUT, "inverted output stream",
 				   FILTER_PORTTYPE_SAMPLE))
+	    || filter_add(f) == -1)
+		return -1;
+
+	if (!(f = filter_alloc("delay",
+			       "Delay's an audio signal",
+			       delay_f))
+	    || !(filter_add_input(f, PORTNAME_IN, "input stream to delay",
+				  FILTER_PORTTYPE_SAMPLE))
+	    || !(filter_add_output(f, PORTNAME_OUT, "delayed output stream",
+				   FILTER_PORTTYPE_SAMPLE))
+	    || !(filter_add_param(f, "delay", "delay in s",
+				  FILTER_PARAMTYPE_FLOAT))
 	    || filter_add(f) == -1)
 		return -1;
 
