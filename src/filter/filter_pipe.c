@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.7 2001/05/10 07:59:03 richi Exp $
+ * $Id: filter_pipe.c,v 1.8 2001/05/11 11:45:41 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -78,8 +78,10 @@ static void _pipe_free(filter_pipe_t *p)
 	glsig_delete_all(&p->emitter);
 
 	/* kill connection */
-	list_del(&p->connection->list);
-	free(p->connection);
+	if (p->connection) {
+		list_del(&p->connection->list);
+		free(p->connection);
+	}
 
 	free(p);
 }
