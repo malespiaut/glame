@@ -1,6 +1,6 @@
 /*
  * glsimd.c
- * $Id: glsimd.c,v 1.4 2002/02/21 21:59:31 richi Exp $
+ * $Id: glsimd.c,v 1.5 2003/04/23 20:55:09 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -93,8 +93,34 @@ void glsimd_init(int force_c)
 void c_scalar_product_1d(SAMPLE *result, long cnt,
 			 SAMPLE *c1, SAMPLE f1)
 {
+#ifdef HAVE_GCC_SIMD
+	/* For different alignment of result/c1 and small cnt, do ordinary C. */
+	if (cnt < 8*GLAME_4VECTOR_ALIGN/SAMPLE_SIZE
+	    || (((long)result & ~(GLAME_4VECTOR_ALIGN-1))
+	        != ((long)c1 & ~(GLAME_4VECTOR_ALIGN-1))))
+#endif
 	while (cnt--)
 		*(result++) = f1 * *(c1++);
+#ifdef HAVE_GCC_SIMD
+	else {
+		int pre = ((long)result & (GLAME_4VECTOR_ALIGN-1)) / SAMPLE_SIZE;
+		int vcnt = (cnt - pre) / (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+		int post = (cnt - pre) % (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+		while (pre--)
+			*(result++) = f1 * *(c1++);
+		{
+			float f1v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f1, f1, f1, f1 };
+			//const v4sf f1v = { f1, f1, f1, f1 };
+			while (vcnt--) {
+				*(v4sf *)result = *(v4sf *)f1v * *(v4sf *)c1;
+				result += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+				c1 += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+			}
+		}
+		while (post--)
+			*(result++) = f1 * *(c1++);
+	}
+#endif
 }
 void c_scalar_product_1dI(SAMPLE *result_c1, long cnt, SAMPLE f1)
 {
@@ -105,9 +131,43 @@ void c_scalar_product_2d(SAMPLE *result, long cnt,
 			 SAMPLE *c1, SAMPLE f1,
 			 SAMPLE *c2, SAMPLE f2)
 {
+#ifdef HAVE_GCC_SIMD
+	/* For different alignment of result/c1 and small cnt, do ordinary C. */
+	if (cnt < 4*GLAME_4VECTOR_ALIGN/SAMPLE_SIZE
+	    || (((long)result & ~(GLAME_4VECTOR_ALIGN-1))
+	        != ((long)c1 & ~(GLAME_4VECTOR_ALIGN-1)))
+	    || (((long)result & ~(GLAME_4VECTOR_ALIGN-1))
+		!= ((long)c2 & ~(GLAME_4VECTOR_ALIGN-1))))
+#endif
 	while (cnt--)
 		*(result++) = f1 * *(c1++)
 			+ f2 * *(c2++);
+#ifdef HAVE_GCC_SIMD
+	else {
+		int pre = ((long)result & (GLAME_4VECTOR_ALIGN-1)) / SAMPLE_SIZE;
+		int vcnt = (cnt - pre) / (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+		int post = (cnt - pre) % (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+		while (pre--)
+			*(result++) = f1 * *(c1++)
+				+ f2 * *(c2++);
+		{
+			float f1v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f1, f1, f1, f1 };
+			float f2v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f2, f2, f2, f2 };
+			//const v4sf f1v = { f1, f1, f1, f1 };
+			//const v4sf f2v = { f2, f2, f2, f2 };
+			while (vcnt--) {
+				*(v4sf *)result = *(v4sf *)f1v * *(v4sf *)c1
+					+ *(v4sf *)f2v * *(v4sf *)c2;
+				result += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+				c1 += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+				c2 += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
+			}
+		}
+		while (post--)
+			*(result++) = f1 * *(c1++)
+				+ f2 * *(c2++);
+	}
+#endif
 }
 void c_scalar_product_2dI(SAMPLE *result_c1, long cnt, SAMPLE f1,
 			  SAMPLE *c2, SAMPLE f2)

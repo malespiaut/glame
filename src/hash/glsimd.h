@@ -3,7 +3,7 @@
 
 /*
  * glsimd.h
- * $Id: glsimd.h,v 1.4 2001/04/11 08:37:59 richi Exp $
+ * $Id: glsimd.h,v 1.5 2003/04/23 20:55:09 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -30,6 +30,16 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include "glame_types.h"
+
+
+/* GCC vector types for SAMPLE (aka float).
+ */
+#ifdef HAVE_GCC_SIMD
+typedef float v4sf __attribute__((mode(V4SF)));
+typedef float v2sf __attribute__((mode(V2SF)));
+#define GLAME_4VECTOR_ALIGN ((int)__alignof__(v4sf))
+#define GLAME_2VECTOR_ALIGN ((int)__alignof__(v2sf))
+#endif
 
 
 /* SIMD operations through a virtual function table containing
