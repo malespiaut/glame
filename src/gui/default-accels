@@ -92,6 +92,34 @@
       (let ((newpos (+ (gpsm-item-vposition item) 1)))
         (gpsm-item-set-vposition! item newpos))))
   </accel>
+  <accel state="0" spec="Right">
+(let ((item (timeline-active-item)))
+  (if (gpsm-item? item)
+      (let ((newpos (+ (gpsm-item-hposition item) 4410)))
+        (gpsm-item-set-hposition! item newpos))))
+  </accel>
+  <accel state="1" spec="Right">
+(let ((item (timeline-active-group)))
+  (if (gpsm-item? item)
+      (let ((newpos (+ (gpsm-item-hposition item) 4410)))
+        (gpsm-item-set-hposition! item newpos))))
+  </accel>
+  <accel state="0" spec="Left">
+(let ((item (timeline-active-item)))
+  (if (gpsm-item? item)
+      (let ((newpos (- (gpsm-item-hposition item) 4410)))
+        (if (&gt; newpos 0)
+            (gpsm-item-set-hposition! item newpos)
+            (gpsm-item-set-hposition! item 0)))))
+  </accel>
+  <accel state="1" spec="Left">
+(let ((item (timeline-active-group)))
+  (if (gpsm-item? item)
+      (let ((newpos (- (gpsm-item-hposition item) 4410)))
+        (if (&gt; newpos 0)
+            (gpsm-item-set-hposition! item newpos)
+            (gpsm-item-set-hposition! item 0)))))
+  </accel>
 </scope>
 
 </glame-accels>
