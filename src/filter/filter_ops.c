@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.28 2001/10/06 23:08:55 richi Exp $
+ * $Id: filter_ops.c,v 1.29 2001/11/05 11:08:59 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -26,9 +26,6 @@
 
 #include <unistd.h>
 #include <signal.h>
-#ifdef HAVE_SYSVSEM
-#include "glame_sem.h"
-#endif
 #include "util.h"
 #include "filter.h"
 #include "filter_ops.h"
@@ -111,7 +108,7 @@ static void *launcher(void *node)
 	sigaddset(&sset, SIGINT);
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
 #endif
-#ifndef HAVE_SYSVSEM
+#ifndef USE_SYSVSEM
 	atomic_inc(&n->net->launch_context->val);
 #endif
 
@@ -139,7 +136,7 @@ static void *launcher(void *node)
 	/* increment filter ready semaphore if still in startup
 	 * phase */
 	if (n->net->launch_context->state <= STATE_LAUNCHED) {
-#ifdef HAVE_SYSVSEM
+#ifdef USE_SYSVSEM
 		struct sembuf sop;
 		sop.sem_num = 0;
 		sop.sem_op = 1;
@@ -169,6 +166,7 @@ static void *launcher(void *node)
 		}
 	}
 
+	DPRINTF("%s exiting after error\n", n->name);
 	pthread_exit((void *)-1);
 
 	return NULL;
@@ -294,7 +292,7 @@ static filter_launchcontext_t *_launchcontext_alloc(int bufsize)
 
 	if (!(c = ALLOC(filter_launchcontext_t)))
 		return NULL;
-#ifdef HAVE_SYSVSEM
+#ifdef USE_SYSVSEM
 	if ((c->semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1) {
 		free(c);
 		return NULL;
@@ -320,7 +318,7 @@ static void _launchcontext_free(filter_launchcontext_t *c)
 	if (!c)
 		return;
 	ATOMIC_RELEASE(c->result);
-#ifdef HAVE_SYSVSEM
+#ifdef USE_SYSVSEM
 	{
 		union semun ssun;
 		glame_semctl(c->semid, 0, IPC_RMID, ssun);
@@ -336,7 +334,7 @@ static void _launchcontext_free(filter_launchcontext_t *c)
 static void *waiter(void *network)
 {
 	filter_t *net = (filter_t *)network;
-	struct launch_context *c;
+	struct filter_launchcontext *c;
 	int res;
 	sigset_t sset;
 
@@ -373,7 +371,7 @@ int filter_launch(filter_t *net, int bufsize)
 	/* init state */
 	if (!(net->launch_context = _launchcontext_alloc(bufsize)))
 		return -1;
-#ifndef HAVE_SYSVSEM
+#ifndef USE_SYSVSEM
 	atomic_set(&net->launch_context->val, 1);
 #endif
 
@@ -384,6 +382,15 @@ int filter_launch(filter_t *net, int bufsize)
 	DPRINTF("launching nodes\n");
 	if (net->ops->launch(net) == -1)
 		goto out;
+
+	/* need to wait for all nodes to complete initialization
+	 * - FIXME polling is broken
+	 * - FIXME SYSVSEM version missing/impossible
+	 * - FIXME - doesnt work anyway, racy wrt concurrently
+	 *         increasing/decreasing val */
+	DPRINTF("waiting for nodes to complete initialization\n");
+	while (atomic_read(&net->launch_context->val) != 1)
+		usleep(1000);
 
 	DPRINTF("launching waiter\n");
 	if (pthread_create(&net->launch_context->waiter, NULL,
@@ -409,7 +416,7 @@ int filter_start(filter_t *net)
 		return -1;
 
 	DPRINTF("waiting for nodes to complete initialization.\n");
-#ifdef HAVE_SYSVSEM
+#ifdef USE_SYSVSEM
 	{
 		struct sembuf sop;
 		sop.sem_num = 0;
@@ -444,7 +451,7 @@ int filter_pause(filter_t *net)
 	    || !FILTER_IS_RUNNING(net))
 		return -1;
 
-#if HAVE_SYSVSEM
+#if USE_SYSVSEM
 	{
 		struct sembuf sop;
 		sop.sem_num = 0;
@@ -488,7 +495,7 @@ void filter_terminate(filter_t *net)
 		return;
 
 	atomic_set(&net->launch_context->result, 1);
-#ifdef HAVE_SYSVSEM
+#ifdef USE_SYSVSEM
 	{
 		union semun ssun;
 		ssun.val = 0;
@@ -514,7 +521,7 @@ int filter_after_init_hook(filter_t *f)
 	DPRINTF("%s seems ready for signalling\n", f->name);
         filter_clear_error(f);
 
-#ifdef HAVE_SYSVSEM
+#ifdef USE_SYSVSEM
 	{
 		struct sembuf sop;
 
@@ -547,7 +554,7 @@ int filter_after_init_hook(filter_t *f)
 int filter_check_stop_hook(filter_t *f)
 {
 	/* check if manager said "pause/stop" */
-#if HAVE_SYSVSEM
+#if USE_SYSVSEM
 	{
 		struct sembuf sop;
 		sop.sem_num = 0;
