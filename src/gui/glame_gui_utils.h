@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.17 2001/05/30 14:43:09 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.18 2001/06/01 09:30:40 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -36,7 +36,7 @@
 
 
 #define GLAME_LOGO PKGPIXMAPSDIR "/glame-logo.jpg"
-#define GLAME_DEFAULT_ICON "gnome-question.png"
+#define GLAME_DEFAULT_ICON "default.png"
 #define GLAME_PIXMAP_PATH PKGPIXMAPSDIR
 #define GLAME_EMERGENCY_PIXMAP "/usr/X11R6/include/X11/bitmaps/xlogo32"
 
