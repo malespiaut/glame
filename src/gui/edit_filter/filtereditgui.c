@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.67 2005/03/06 20:49:57 richi Exp $
+ * $Id: filtereditgui.c,v 1.68 2005/03/06 21:35:58 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -830,8 +830,7 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 		gtk_quit_add_destroy(1, GTK_OBJECT(feg));
 		gtk_widget_show(feg);
 	} else {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Error in loading network\nCheck out the glame-console output for more information"))));
+		glame_error_dialog(_("Error in loading network\nCheck out the glame-console output for more information"), NULL);
 	} 
 
 	g_free(filename);
@@ -941,8 +940,7 @@ static void glame_canvas_save_as_cb(GtkWidget*ignore, FiltereditGui *window)
 	if (!filenamebuffer[0]
 	    || !filternamebuffer[0]
 	    || !categorynamebuffer[0]) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Empty file/filter or category name"))));
+		glame_error_dialog(_("Empty file/filter or category name"), NULL);
 		return;
 	}
 

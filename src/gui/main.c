@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.130 2005/03/06 20:49:55 richi Exp $
+ * $Id: main.c,v 1.131 2005/03/06 21:35:58 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -201,8 +201,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
  	 * track modification to update bool. */
  	we = glame_waveedit_gui_new(gpsm_item_label(file), file); 
  	if (!we) { 
- 		gnome_dialog_run_and_close(GNOME_DIALOG( 
- 			gnome_error_dialog(_("Cannot open wave editor")))); 
+		glame_error_dialog(_("Cannot open wave editor"), NULL);
  		gpsm_item_destroy(file); 
  		return; 
  	} 
@@ -234,7 +233,7 @@ static void import_cb(GtkWidget *menu, void *data)
  		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted, 
  				0, GPSM_GRP_DELETED_VPOS); 
  	if (res == -1) { 
- 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave")))); 
+ 		glame_error_dialog(_("Cannot place imported wave"), NULL); 
  		gpsm_item_destroy(file); 
  	} 
  } 
@@ -252,8 +251,7 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		if (glame_load_plugin(filename) == -1) 
-			gnome_dialog_run_and_close(GNOME_DIALOG( 
-							   gnome_error_dialog(_("Error loading plugin"))));
+			glame_error_dialog(_("Error loading plugin"), NULL);
 		g_free(filename);
 	}
 	gtk_widget_destroy(dialog);
@@ -758,7 +756,7 @@ static void on_swapfile_panic(const char *msg)
 		 "an internal GLAME error, too).\n\n"
 		 "-- BYE BYE.\n"),
 		 msg, strerror(errno));
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(message)));
+	glame_error_dialog(message, NULL);
 
 	/* Try to save the current gpsm tree. May even lock up. Ugh. */
 	gpsm_sync();
@@ -806,8 +804,7 @@ _("Welcome first-time user of GLAME.\n"
 "\"Audio IO\" settings.\n"))));
 	run_prefs:
 		if (!preferences_cb(NULL, NULL)) {
-			gnome_dialog_run_and_close(
-				GNOME_DIALOG(gnome_error_dialog(_("You didnt change/check the configuration.\nGLAME is exiting now.\n"))));
+			glame_error_dialog(_("You didnt change/check the configuration.\nGLAME is exiting now.\n"), NULL);
 			exit(1);
 		}
 	}
@@ -819,8 +816,7 @@ _("Welcome first-time user of GLAME.\n"
 			char msg[256];
 			char *errmsg = strerror(errno);
 			snprintf(msg, 255, _("GLAME was unable to create its swapfile\nbecause of \"%s\".\nPlease check the configuration.\n"), errmsg);
-			gnome_dialog_run_and_close(
-				GNOME_DIALOG(gnome_error_dialog(msg)));
+			glame_error_dialog(msg, NULL);
 			goto run_prefs;
 		}
 	}
@@ -842,8 +838,7 @@ _("Welcome first-time user of GLAME.\n"
 		char msg[256];
 		char *errmsg = strerror(errno);
 		snprintf(msg, 255, "GLAME was unable to open/init its swapfile\nbecause of \"%s\".\nPlease check the configuration and/or check for\nGLAME messages on the console.\n", errmsg);
-		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog(msg)));
+		glame_error_dialog(msg, NULL);
 		goto run_prefs;
 	}
 	g_free(path);

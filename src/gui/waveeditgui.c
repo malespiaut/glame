@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.148 2004/12/23 18:59:25 richi Exp $
+ * $Id: waveeditgui.c,v 1.149 2005/03/06 21:35:58 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -413,8 +413,7 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 			gtk_wave_view_get_select_channels(waveview));
 
 	if (gpsm_op_undo(item) == -1)
-		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog(_("Error during undo"))));
+		glame_error_dialog(_("Error during undo"), NULL);
 	gpsm_item_destroy(item);
 }
 
@@ -429,8 +428,7 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 			gtk_wave_view_get_select_channels(waveview));
 
 	if (gpsm_op_redo(item) == -1)
-		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog(_("Error during redo"))));
+		glame_error_dialog(_("Error during redo"), NULL);
 	gpsm_item_destroy(item);
 }
 
@@ -469,8 +467,7 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 		(long)start, (long)start+length);
 
 	if (operation((gpsm_item_t *)grp, start, length) == -1)
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Error executing"))));
+		glame_error_dialog(_("Error executing"), NULL);
 
 	DPRINTF("%s finished.\n", plugin_name(plugin));
 }
@@ -629,13 +626,11 @@ static void play(GtkWaveView *waveview,
 		return;
 
 	if (play_cnt != 0 && !plugin_get("audio_out")) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("No audio output support"))));
+		glame_error_dialog(_("No audio output support"), NULL);
 		return;
 	}
 	if (rec_cnt != 0 && !plugin_get("audio_in")) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("No audio input support"))));
+		glame_error_dialog(_("No audio input support"), NULL);
 		return;
 	}
 
@@ -769,15 +764,13 @@ static void play(GtkWaveView *waveview,
 fail_ain:
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
-		"Your audio device cannot record to so much tracks")));
+	glame_error_dialog(_("Your audio device cannot record to so much tracks"), NULL);
 	return;
 
 fail_other:
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
-		"Error constructing recording/playing network")));
+	glame_error_dialog(_("Error constructing recording/playing network"), NULL);
 	return;
 }
 
@@ -819,8 +812,7 @@ static void playselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 	gtk_wave_view_get_selection(waveview, &start, &end);
 	end = start + end;
 	if (end - start <= 0) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
-			_("Nothing selected"))));
+		glame_error_dialog(_("Nothing selected"), NULL);
 		return;
 	}
 	play(waveview, start, end, start, TRUE, FALSE, FALSE, FALSE);
@@ -857,8 +849,7 @@ static void recordselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 	end = start + end;
 	rec_start = start;
 	if (end - start <= 0) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
-			_("Nothing selected"))));
+		glame_error_dialog(_("Nothing selected"), NULL);
 		return;
 	}
 	/* check for play-before-record
@@ -943,8 +934,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	return;
 
  fail:
-	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog(_("Failed to create network"))));
+	glame_error_dialog(_("Failed to create network"), NULL);
 	gpsm_item_destroy(item);
 	gpsm_item_destroy((gpsm_item_t *)files);
 	filter_delete(net);

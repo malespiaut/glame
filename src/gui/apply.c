@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.26 2004/10/23 13:09:23 richi Exp $
+ * $Id: apply.c,v 1.27 2005/03/06 21:35:58 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -212,7 +212,7 @@ static void preview_start(struct apply_plugin_s *a)
  err:
 	gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
 	gtk_main_iteration_do(FALSE);
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(errmsg)));
+	glame_error_dialog(errmsg, NULL);
 	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
 	if (a->net) {
 		filter_delete(a->net);
@@ -325,7 +325,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
  err:
 	gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
 	gtk_main_iteration_do(FALSE);
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(errmsg)));
+	glame_error_dialog(errmsg, NULL);
 	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
 	if (a->net) {
 		filter_delete(a->net);

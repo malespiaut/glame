@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.9 2004/12/25 19:29:35 richi Exp $
+ * $Id: gltree.c,v 1.10 2005/03/06 21:35:59 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -129,8 +129,7 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 		(long)0, (long)gpsm_item_hsize(item));
 
 	if (operation(item, 0, gpsm_item_hsize(item)) == -1)
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog(_("Error executing"))));
+		glame_error_dialog(_("Error executing"), NULL);
 
 	DPRINTF("%s finished.\n", plugin_name(plugin));
 	// deselect_all(active_);
@@ -393,9 +392,8 @@ edit_wave_cb(GtkWidget *widget, gpointer which)
 
 	we = glame_waveedit_gui_new(label, item);
 	if (!we) {
-	       gnome_dialog_run_and_close(
-		      GNOME_DIALOG(gnome_error_dialog(_("Cannot open wave editor"))));
-	       return;
+		glame_error_dialog(_("Cannot open wave editor"), NULL);
+		return;
 	}
 	gtk_quit_add_destroy(1, GTK_OBJECT(we));
 	gtk_widget_show_all(GTK_WIDGET(we));
@@ -487,8 +485,7 @@ static void linkselected_cb(GtkWidget *widget, gpointer which)
 		gpsm_hbox_insert((gpsm_grp_t *)item, copy,
 				 gpsm_item_hsize(item), 0);
 	else {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-		       gnome_error_dialog(_("Cannot place item into irregular group"))));
+		glame_error_dialog(_("Cannot place item into irregular group"), NULL);
 		gpsm_item_destroy(copy);
 	}
 	//deselect_all(active_swapfilegui);
@@ -717,8 +714,7 @@ static void addclipboard_cb(GtkWidget * menu, gpointer which)
 
 	/* Create new gpsm group. */
 	if (!(grp = clipboard_get())) {
-	  gnome_dialog_run_and_close(GNOME_DIALOG
-				     (gnome_error_dialog(_("Clipboard is empty"))));
+	  glame_error_dialog(_("Clipboard is empty"), NULL);
 	  return;
 	}
 		gpsm_vbox_insert((gpsm_grp_t *) item, (gpsm_item_t *) grp,
@@ -800,10 +796,8 @@ static void copyselected_cb(GtkWidget *menu, gpointer which)
 	  gpsm_hbox_insert((gpsm_grp_t *)dest_item, copy,
 			   gpsm_item_hsize(dest_item), 0);
 	else {
-	  gnome_dialog_run_and_close(GNOME_DIALOG(
-						  gnome_error_dialog(_("Cannot place item into irregular group"))));
+	  glame_error_dialog(_("Cannot place item into irregular group"), NULL);
 	  gpsm_item_destroy(copy);
-	  
 	}
 }
 
@@ -836,7 +830,7 @@ static void import_cb(GtkWidget *menu, gpointer which)
 	}
 
 
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(("Cannot place imported wave"))));
+	glame_error_dialog(_("Cannot place imported wave"), NULL);
 		
 	gpsm_item_destroy(imported);
 }

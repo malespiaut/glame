@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.54 2005/01/29 13:42:08 richi Exp $
+ * $Id: importexport.c,v 1.55 2005/03/06 21:35:58 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -240,8 +240,7 @@ static void ie_import_ogg(struct imp_s *ie)
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
 	} else /* if (ret < 0) */ {
 		if (!ie->cancelled)
-			gnome_dialog_run_and_close(GNOME_DIALOG(
-				gnome_error_dialog(_("Error importing Ogg file."))));
+			glame_error_dialog(_("Error importing Ogg file."), NULL);
 		gpsm_item_destroy(ie->item);
 		ie->item = NULL;
 	}
@@ -422,8 +421,7 @@ static void ie_import_mp3(struct imp_s *ie)
 			char errmsg[1024];
 			snprintf(errmsg, 1024, _("Failed importing mp3 file: %s"),
 				 ie->mad_last_err);
-			gnome_dialog_run_and_close(GNOME_DIALOG(
-				gnome_error_dialog(errmsg)));
+			glame_error_dialog(errmsg, NULL);
 		}
 		gpsm_item_destroy(ie->item);
 		ie->item = NULL;
@@ -447,7 +445,6 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	long newrate;
 	gboolean dorsmpl;
 	gpsm_item_t *it;
-	GtkWidget *ed;
 
 	if (ie->importing)
 		return;
@@ -457,26 +454,23 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	//ie->importing = 0;
 
 	if(ie->gotfile==0) {
-		ed = gnome_error_dialog("Select a file first!");
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Select a file first!"),
+				   GTK_WINDOW(ie->dialog));
 		return;
 	} else if (ie->gotfile==2) {
 #ifdef HAVE_LIBMAD
 		ie_import_mp3(ie);
 #else
-		ed = gnome_error_dialog("Sorry, no mp3 support.\nInstall libmad and rebuild.");
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Sorry, no mp3 support.\nInstall libmad and rebuild."),
+				   GTK_WINDOW(ie->dialog));
 #endif
 		return;
 	} else if (ie->gotfile==3) {
 #ifdef HAVE_LIBVORBISFILE
 		ie_import_ogg(ie);
 #else
-		ed = gnome_error_dialog("Sorry, no ogg support.\nInstall libvorbisfile and rebuild.");
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Sorry, no ogg support.\nInstall libvorbisfile and rebuild."),
+				   GTK_WINDOW(ie->dialog));
 #endif
 		return;
 	}
@@ -607,8 +601,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	return;
 
 ie_fail_cleanup:
-	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog("Failed to create importing network")));
+	glame_error_dialog(_("Failed to create importing network"), NULL);
 	filter_delete(ie->net);
 	ie->net = NULL;
 	ie->importing = 0;
@@ -691,16 +684,14 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 {
 	filter_t **ssp, **maxrms, *readfile;
 	filter_param_t *param;
-	GtkWidget *ed;
 	float rms, mrms, percentage;
 	int i;
 	long bsize=1;
 	char buffer[128];
 
 	if(ie->gotfile==0) {
-		ed=gnome_error_dialog("Select a file first!");
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Select a file first!"),
+				   GTK_WINDOW(ie->dialog));
 		return;
 	}
 	if (ie->gotfile==2)
@@ -723,14 +714,14 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 	for(i=0; i<ie->chancnt; i++) {
 		ssp[i] = net_add_plugin_by_name(ie->net, "ssp_streamer");
 		if(ssp[i]==NULL) {
-			gnome_error_dialog("Couldn't create ssp plugin");
+			glame_error_dialog(_("Couldn't create ssp plugin"), NULL);
 			goto _ie_stats_cleanup;
 		}
 			
 		filterparam_set(filterparamdb_get_param(filter_paramdb(ssp[i]), "bsize"), &bsize);
 		maxrms[i] = net_add_plugin_by_name(ie->net, "maxrms");
 		if(maxrms[i]==NULL) {
-			gnome_error_dialog("Couldn't create maxrms plugin");
+			glame_error_dialog(_("Couldn't create maxrms plugin"), NULL);
 			goto _ie_stats_cleanup;
 		}
 
@@ -1332,7 +1323,6 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	gpsm_grp_t *grp;
 	gpsm_item_t *it;
 	double pos;
-	GtkWidget *ed;
 	int sfi, ri;
 	int totalframes;
 	float percentage;
@@ -1346,9 +1336,8 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	exp->filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(exp->filechooser));
 	
 	if(exp->filename==NULL) {
-		ed=gnome_error_dialog("Select a filename first!");
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Select a filename first!"),
+				   GTK_WINDOW(exp->dialog));
 		gtk_widget_set_sensitive(bla, TRUE);
 		return;
 	}
@@ -1379,10 +1368,9 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		&& strcasecmp(strrchr(exp->filename, '.'), ".mp3") == 0)) {
 		output_plugin = "write_mp3_file";
 #ifndef HAVE_LIBMP3LAME
-		ed = gnome_error_dialog(_("Sorry, no mp3 encoding support.\n"
-					  "Install Lame encoder and rebuild Glame."));
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Sorry, no mp3 encoding support.\n"
+				     "Install Lame encoder and rebuild Glame."),
+				   GTK_WINDOW(exp->dialog));
 		gpsm_item_destroy((gpsm_item_t *)grp);
 		return;
 #endif
@@ -1396,10 +1384,9 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		&& strcasecmp(strrchr(exp->filename, '.'), ".ogg") == 0)) {
 		output_plugin = "write_oggvorbis_file";
 #ifndef HAVE_LIBVORBISFILE
-		ed = gnome_error_dialog(_("Sorry, no OggVorbis encoding support.\n"
-					  "Install Ogg and Vorbis libraries rebuild Glame."));
-		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		glame_error_dialog(_("Sorry, no OggVorbis encoding support.\n"
+				     "Install Ogg and Vorbis libraries rebuild Glame."),
+				   GTK_WINDOW(exp->dialog));
 		gpsm_item_destroy((gpsm_item_t *)grp);
 		return;
 #endif

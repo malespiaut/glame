@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.37 2004/12/26 20:56:33 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.38 2005/03/06 21:35:59 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -193,7 +193,7 @@ void glame_network_error_dialog(filter_t *net, const char *header)
 			snprintf(msg+cnt, 4096-cnt, " %s: %s\n",
 				 filter_name(node), filter_errstr(node));
 	}
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(msg)));
+	glame_error_dialog(msg, NULL);
 }
 
 
@@ -715,5 +715,14 @@ void glame_help_goto(void *ignore, const char *url)
         gnome_url_show(url, &ret);
 }
 
-
+void glame_error_dialog(const char *message, GtkWindow *parent)
+{
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(parent,
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+			message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+}
 
