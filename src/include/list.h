@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.23 2004/05/18 07:50:31 richi Exp $
+ * $Id: list.h,v 1.24 2004/05/19 08:49:49 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -225,7 +225,7 @@ static inline void glame_list_unsplice(struct glame_list_head *list,
  * entryvar, but _only_ entryvar. Provide an additional dummy pointer
  * for internal use. */
 #ifdef __cplusplus
-#define glame_list_safe_foreach(listptr, type, member, dummy_ignored, entryvar) for (entryvar = glame_list_entry((listptr)->next, type, member), struct glame_list_head *dummy = (listptr)->next->next; (&entryvar->member != (listptr) && (!glame_list_empty(&entryvar->member) || DERROR_eval("glame_list_safe_foreach remove error"))) || (entryvar = NULL); entryvar = glame_list_entry(dummy, type, member), dummy = ((struct glame_list_head *)dummy)->next) 
+#define glame_list_safe_foreach(listptr, type, member, dummy_ignored, entryvar) for (glame_list_head *dummy = (entryvar = glame_list_entry((listptr)->next, type, member), (listptr)->next->next); (&entryvar->member != (listptr) && (!glame_list_empty(&entryvar->member) || DERROR_eval("glame_list_safe_foreach remove error"))) || (entryvar = NULL); entryvar = glame_list_entry(dummy, type, member), dummy = ((struct glame_list_head *)dummy)->next) 
 #else
 #define glame_list_safe_foreach(listptr, type, member, dummy, entryvar) for (entryvar = glame_list_entry((listptr)->next, type, member), dummy = (void *)(listptr)->next->next; (&entryvar->member != (listptr) && (!glame_list_empty(&entryvar->member) || DERROR_eval("glame_list_safe_foreach remove error"))) || (entryvar = NULL); entryvar = glame_list_entry((struct glame_list_head *)dummy, type, member), dummy = (void *)((struct glame_list_head *)dummy)->next) 
 #endif
