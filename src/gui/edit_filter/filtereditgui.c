@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.63 2003/04/21 12:16:06 richi Exp $
+ * $Id: filtereditgui.c,v 1.64 2003/05/26 21:31:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -796,16 +796,12 @@ glame_filtereditgui_new(filter_t *net, gboolean prot)
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_PROPERTIES,_("Properties"),_("Edit Filternetwork Properties"),GTK_SIGNAL_FUNC(glame_canvas_property_dialog_cb),window,-1);
 
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Zoom in"),_("Zooms in"),"foo",
-				glame_load_icon_widget("zoom_in.png",24,24),
-				GTK_SIGNAL_FUNC(glame_canvas_zoom_in_cb),window);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Zoom out"),_("Zooms out"),"foo",
-				glame_load_icon_widget("zoom_out.png",24,24),
-				GTK_SIGNAL_FUNC(glame_canvas_zoom_out_cb),canvas);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_REFRESH,_("View all"),_("Adjusts scroll region"),GTK_SIGNAL_FUNC(glame_canvas_view_all_cb),window,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_ZOOM_IN,_("Zoom in"),_("Adjust scroll region"),GTK_SIGNAL_FUNC(glame_canvas_zoom_in_cb),window,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_ZOOM_OUT,_("Zoom out"),_("Adjust scroll region"),GTK_SIGNAL_FUNC(glame_canvas_zoom_out_cb),window,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_ZOOM_FIT,_("View all"),_("Adjust scroll region"),GTK_SIGNAL_FUNC(glame_canvas_view_all_cb),window,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_DND_MULTIPLE,_("Add last"),_("Adds last filter"),GTK_SIGNAL_FUNC(glame_canvas_add_last_cb), window,-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_COPY,_("Add last"),_("Adds last filter"),GTK_SIGNAL_FUNC(glame_canvas_add_last_cb), window,-1);
 
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_CLOSE,_("Close"),_("Close"),GTK_SIGNAL_FUNC(window_close),window,-1);
