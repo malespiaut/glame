@@ -79,6 +79,7 @@ else
   AC_MSG_ERROR([Compilers other than gcc are not supported])
 fi
 AM_PROG_CC_C_O
+AC_PROG_CXX
 
 AC_PROG_INSTALL
 AC_LIBLTDL_CONVENIENCE
@@ -193,7 +194,8 @@ dnl central GUI includes/libs
 
 if test x$gui = xyes; then
 dnl GNOME2 check
-  packages="libgnome-2.0 libgnomeui-2.0 libgnomecanvas-2.0 libglade-2.0 gobject-2.0 glib-2.0"
+dnl  packages="libgnome-2.0 libgnomeui-2.0 libgnomecanvas-2.0 libglade-2.0 gobject-2.0 glib-2.0"
+  packages="libgnome-2.0 libgnomeui-2.0 libgnomecanvas-2.0 gobject-2.0 glib-2.0"
   AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
   if test x$PKG_CONFIG = xno; then
     AC_MSG_ERROR([You need pkg-config installed to use gnome2 libraries])
@@ -216,7 +218,8 @@ dnl GNOME2 check
   AC_SUBST(GLIB_GENMARSHAL)
   AC_MSG_RESULT($GLAME_GUI_LIBDIR $GLAME_GUI_LIBS)
   AC_DEFINE(HAVE_GNOME2, 1, [define if you have gnome2 libs])
-  AC_DEFINE(HAVE_LIBGLADE,, [wether we have libglade])
+dnl disabled glade support until we fix it 
+dnl AC_DEFINE(HAVE_LIBGLADE,, [wether we have libglade])
   AMG_PATH_XML2(2.0.0, , [
 	AC_MSG_ERROR([You need at least libxml 2.0.0 to run glame!
 Hint: You also need to have the appropriate xml development package
