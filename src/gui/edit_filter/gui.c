@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.15 2001/03/19 19:12:08 xwolf Exp $
+ * $Id: gui.c,v 1.16 2001/03/21 00:59:05 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -23,7 +23,7 @@
 
 #include <values.h>
 #include "glmid.h"
-#include "gui.h"
+#include "glame_gui_utils.h"
 #include "canvas.h"
 
 

@@ -1,13 +1,13 @@
-#ifndef _GUI_H
-#define _GUI_H
+#ifndef _GLAME_GUI_UTILS_H
+#define _GLAME_GUI_UTILS_H
 
 
 /*
- * gui.h
+ * glame_gui_utils.h
  *
- * $Id: gui.h,v 1.9 2001/03/19 13:40:32 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.1 2001/03/21 00:59:05 xwolf Exp $
  *
- * Copyright (C) 2000 Johannes Hirche
+ * Copyright (C) 2001 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
- * This is broken code, just a beginning, beware
+ * This file (will) have all the visible gui functions 
  */
 
-#define GUI_BUTTONS_X 4
-#define GUI_BUTTONS_Y 2
 #define GLAME_LOGO PKGDATADIR "/glame-logo.jpg"
 #define GLAME_DEFAULT_ICON "gnome-question.png"
 #define GLAME_PIXMAP_PATH PKGDATADIR
@@ -44,12 +41,17 @@
 #include "canvas_types.h"
 
 
-/* FIXME: have one place with a nice, useful external visible API */
-
+/* Create a new filter network. The data is contained in the 
+ * gui_network struct which contains the filter_t * as well.
+ * If the filter_t creation succeded a editing window is created.
+ */
 gui_network* gui_network_new();
 
+/* creates a hbox with the label and the widget and adds it 
+ * to the specified vbox */
 void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
 
+/* useful callback for dialog boxes which query for string types. */
 void changeString(GtkEditable *wid, char ** returnbuffer);
 
 
@@ -70,3 +72,4 @@ GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 
 
 #endif
+

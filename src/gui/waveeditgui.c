@@ -33,7 +33,7 @@
 #include "glame_types.h"
 #include "glplugin.h"
 #include "swapfile.h"
-#include "edit_filter/gui.h"
+#include "glame_gui_utils.h"
 #include "waveeditgui.h"
 
 

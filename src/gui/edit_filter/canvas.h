@@ -4,7 +4,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.14 2001/03/19 13:40:32 richi Exp $
+ * $Id: canvas.h,v 1.15 2001/03/21 00:59:05 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -24,15 +24,13 @@
  *
  */
 
-#include "gui.h"
-
-
-/* FIXME: have one place with a nice, useful external visible API */
+#include "glame_gui_utils.h"
 
 gint canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
 void canvas_item_create_ports(GnomeCanvasGroup* grp,filter_t *f);
 GtkWidget * canvas_new_from_network(gui_network* net);
+void canvas_item_redraw(GlameCanvasItem* item);
 
 
 #endif

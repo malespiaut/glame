@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.40 2001/03/19 19:12:08 xwolf Exp $
+ * $Id: canvas.c,v 1.41 2001/03/21 00:59:05 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -57,9 +57,6 @@ static void canvas_update_scroll_region(GlameCanvas* canv);
 static GlameCanvas* draw_network(filter_t *filter);
 static void update_string(GtkListItem* item,char ** returnbuffer);
 static void update_entry_text(GtkListItem* item,GtkEntry* entry);
-/* This is from gui.c - FIXME */
-void changeString(GtkEditable *wid, char ** returnbuffer);
-
 
 /* Menu callbacks */
 static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item);
@@ -1374,6 +1371,7 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
 		}
 	}
+	canvas_item_redraw(GNOME_CANVAS_ITEM(blu)->parent);
 	free(filenamebuffer);
 }
 

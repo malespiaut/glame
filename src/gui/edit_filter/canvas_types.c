@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.8 2001/03/02 10:28:13 xwolf Exp $
+ * $Id: canvas_types.c,v 1.9 2001/03/21 00:59:05 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -24,7 +24,7 @@
 
 
 #include "canvas.h"
-
+#include "/usr/X11R6/include/X11/bitmaps/hlines3"
 
 static gpointer parent_class = NULL;
 static gpointer canvas_parent_class = NULL;
@@ -367,3 +367,35 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 
 
 }
+
+void
+canvas_item_redraw(GlameCanvasItem* item)
+{
+	
+	GList * port;
+	GlameCanvasPort* gPort;
+	static GdkBitmap *bitmap=NULL;
+	int foo=1;
+
+	port = g_list_first(item->input_ports);
+	
+	do{
+		while(port){
+			gPort = GLAME_CANVAS_PORT(port->data);
+			if(gPort->port_type&GUI_PORT_TYPE_EXTERNAL){
+				if(!bitmap)
+					bitmap = gdk_bitmap_create_from_data(GTK_WIDGET(GNOME_CANVAS_ITEM(gPort)->canvas)->window,hlines3_bits,1,3);
+				gtk_object_set(gPort, "fill_stipple",bitmap, NULL);
+				gnome_canvas_item_request_update(gPort);
+			} else {
+				gtk_object_set(gPort, "fill_stipple", NULL, NULL);
+				gnome_canvas_item_request_update(gPort);
+			}
+			port = g_list_next(port);
+		}
+		port = g_list_first(item->output_ports);
+	}
+	while(foo--);
+
+}
+				       
