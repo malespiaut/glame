@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.77 2001/08/07 09:12:48 richi Exp $
+ * $Id: main.c,v 1.78 2001/08/08 09:38:38 nold Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -30,6 +30,7 @@
 #ifdef HAVE_LIBGLADE
 #include <glade/glade.h>
 #endif
+#include <libintl.h>
 #include "swapfile.h"
 #include "glmid.h"
 #include "swapfilegui.h"
@@ -64,13 +65,13 @@ static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
-	GNOMEUIINFO_ITEM (_("Edit File..."), "Imports a file and opens the waveedit window", edit_file_cb, NULL),
+	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), N_("Creates a new Project group"), create_new_project_cb, NULL),
+	GNOMEUIINFO_ITEM (N_("Edit File..."), N_("Imports a file and opens the waveedit window"), edit_file_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM (_("Empty [deleted]"), "Kills [deleted] folder", emptytrash_cb, NULL),
+	GNOMEUIINFO_ITEM (N_("Empty [deleted]"), N_("Kills [deleted] folder"), emptytrash_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM (_("Show _console"), "Shows the GLAME console", show_console_cb, NULL),
-	GNOMEUIINFO_ITEM (_("Sync"), "Syncs meta to disk", sync_cb, NULL),
+	GNOMEUIINFO_ITEM (N_("Show _console"), N_("Shows the GLAME console"), show_console_cb, NULL),
+	GNOMEUIINFO_ITEM (N_("Sync"), N_("Syncs meta to disk"), sync_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -80,17 +81,17 @@ static void new_network_cb(GtkWidget *menu, void *blah);
 extern void glame_load_network(GtkWidget *bla, void *blu);
 static void load_plugin_cb(GtkWidget* foo, void *bar);
 static GnomeUIInfo filter_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM(N_("New Filternetwork"), "Creates a new filternetwork", new_network_cb, NULL),
+	GNOMEUIINFO_MENU_NEW_ITEM(N_("New Filternetwork"), N_("Creates a new filternetwork"), new_network_cb, NULL),
 	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("Load Plugin"),N_("Loads and registers a plugin"), load_plugin_cb,NULL),
 	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo help_menu_uiinfo[] =
 {
-	GNOMEUIINFO_ITEM_DATA("_Help","Opens a gnome help browser",gnome_help_goto,"info:glame",NULL),
-	GNOMEUIINFO_ITEM_DATA("Quick Start Guide", "Opens a gnome help browser with the quick start guide", gnome_help_goto, "info:glame#Quick_Start_Guide", NULL),
+	GNOMEUIINFO_ITEM_DATA(N_("_Help"),N_("Opens a gnome help browser"),gnome_help_goto,"info:glame",NULL),
+	GNOMEUIINFO_ITEM_DATA(N_("Quick Start Guide"), N_("Opens a gnome help browser with the quick start guide"), gnome_help_goto, "info:glame#Quick_Start_Guide", NULL),
 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
 	GNOMEUIINFO_END
 };
@@ -156,7 +157,7 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	GlameTreeItem *grpw;
 
 	/* Create new gpsm group. */
-	grp = gpsm_newgrp("Unnamed");
+	grp = gpsm_newgrp(_("Unnamed"));
 	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
 			    0, gpsm_item_vsize(gpsm_root())) == -1)
 		DPRINTF("Cannot insert new group!?\n");
@@ -185,7 +186,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	if ((import = plugin_get("import"))
 	    && (operation = plugin_query(import, PLUGIN_GPSMOP))) {
 		if (operation((gpsm_item_t *)gpsm_root(), 0, 0) == -1)
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error importing")));
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
 	} else {
 
 	GtkWidget *dialog;
@@ -201,9 +202,9 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	filenamebuffer = alloca(256);
 
 	/* Query the file name. */
-	dialog = glame_dialog_file_request("Edit audio file",
+	dialog = glame_dialog_file_request(_("Edit audio file"),
 					   "swapfilegui:import",
-					   "Filename", NULL, filenamebuffer);
+					   _("Filename"), NULL, filenamebuffer);
 	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
 
@@ -264,7 +265,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 
  fail_cleanup:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog("Failed to create importing network")));
+		gnome_error_dialog(_("Failed to create importing network"))));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 	net_restore_default();
@@ -283,7 +284,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	we = glame_waveedit_gui_new(gpsm_item_label(file), file);
 	if (!we) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Cannot open wave editor")));
+			gnome_error_dialog(_("Cannot open wave editor"))));
 		return;
 	}
 	gtk_widget_show_all(GTK_WIDGET(we));
@@ -295,15 +296,15 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 	GtkWidget *dialog;
 	char filenamebuffer[256];
 
-	dialog = glame_dialog_file_request("Load Plugin",
-					   "main:load_plugin", "Filename",
+	dialog = glame_dialog_file_request(_("Load Plugin"),
+					   "main:load_plugin", _("Filename"),
 					   NULL, filenamebuffer);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
 
 	if (glame_load_plugin(filenamebuffer) == -1)
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Error loading plugin")));
+			gnome_error_dialog(_("Error loading plugin"))));
 }
 
 
@@ -471,7 +472,7 @@ preferences_cb(GtkWidget * wid, void * bla)
         notelabel = gtk_label_new(_("GLAME doesnt handle running out of disk space very well."));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
-        entry = gnome_file_entry_new("swapfilepath", "Swapfilepath");
+        entry = gnome_file_entry_new("swapfilepath", _("Swapfile Path"));
         create_label_widget_pair(vbox, _("Swapfile Path"), entry);
 	cfg = gnome_config_get_string("swapfile/defaultpath");
         path = alloca(256);
@@ -650,12 +651,18 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 static GtkWidget* glame_about(void)
 {
+	/* FIXME: gnome_about_new() apparently does not gettext() the
+	 * authors argument, and gettext() cannot handle argvz-style
+	 * string arrays. Looks like we might have to work around the
+	 * issue by allocating dynamically. But it sucks. Leave it
+	 * untranslated for now.
+	 */
 	const gchar *authors[]={
-		"Richard Guenther [Richi]",
-		"Alexander Ehlert [Mag]",
-		"Daniel Kobras [*nold]",
-		"Johannes Hirche [XWolf]",
-		"and others",
+		N_("Richard Guenther [Richi]"),
+		N_("Alexander Ehlert [Mag]"),
+		N_("Daniel Kobras [*nold]"),
+		N_("Johannes Hirche [XWolf]"),
+		N_("and others"),
 		NULL
 	};
 	GtkWidget *about;
@@ -714,14 +721,14 @@ static void on_swapfile_panic(const char *msg)
 
 	/* Tell the user what happened. */
 	snprintf(message, 1023,
-		 "The GLAME swapfile subsystem is about to commit suicide.\n"
+		 _("The GLAME swapfile subsystem is about to commit suicide.\n"
 		 "The reason for this is:\n"
 		 "    %s\n"
 		 "The current pending libc error is:\n"
 		 "    %s\n"
 		 "Just restart GLAME after fixing the above (which may be\n"
 		 "an internal GLAME error, too).\n\n"
-		 "-- BYE BYE.\n",
+		 "-- BYE BYE.\n"),
 		 msg, strerror(errno));
 	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(message)));
 
@@ -761,10 +768,10 @@ static void gui_main()
 	gnome_config_push_prefix(configpath);
 	if (update_preferences() == -1) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_dialog(
-"Welcome first-time user of GLAME.\n"
+_("Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
 "the preferences dialog and check the \"Swapfile Path\" and\n"
-"\"Audio IO\" settings.\n")));
+"\"Audio IO\" settings.\n"))));
 	run_prefs:
 		preferences_cb(NULL, NULL);
 	}
@@ -775,16 +782,16 @@ static void gui_main()
 		if (swapfile_creat(path, -1)) {
 			gnome_dialog_run_and_close(
 				GNOME_DIALOG(gnome_error_dialog(
-"GLAME was somehow unable to create its swapfile\n"
-"Please check the configuration.\n")));
+_("GLAME was somehow unable to create its swapfile\n"
+"Please check the configuration.\n"))));
 			goto run_prefs;
 		}
 	}
 	if (gpsm_init(path) == -1) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
-"GLAME was unable to open/init its swapfile\n"
+_("GLAME was unable to open/init its swapfile\n"
 "Please check the configuration and/or check for\n"
-"GLAME messages on the console.\n")));
+"GLAME messages on the console.\n"))));
 		goto run_prefs;
 	}
 	g_free(path);
@@ -849,12 +856,12 @@ static void gui_main()
 
 	/* Pop up console. */
 	glame_console_init();
-	glame_console_printf(
-"    GLAME version "VERSION", Copyright (C) 1999-2001 by\n"
+	glame_console_printf("%s%s%s",
+_("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
 "    Daniel Kobras. GLAME comes with ABSOLUTELY NO\n"
 "    WARRANTY. This is free software, and you are welcome to\n"
-"    redistribute it under certain conditions.\n\n");
+"    redistribute it under certain conditions.\n\n"));
 
 	/* main loop */
        	gtk_main();
@@ -863,6 +870,8 @@ static void gui_main()
 
 int main(int argc, char **argv)
 {
+	textdomain("glame");
+
 	/* setup gnome/gtk  */
 	gnome_init("glame", VERSION, argc, argv);
 
