@@ -1,4 +1,4 @@
-@comment $Id: gpsm.texi,v 1.1 2001/04/27 13:01:31 richi Exp $
+@comment $Id: gpsm.texi,v 1.2 2001/05/04 08:02:10 richi Exp $
 
 @node GLAME Project Structure Management, Plugin Interface, Swapfile API, Top
 @chapter GLAME Project Structure Management
@@ -28,6 +28,7 @@ using the gpsm API functions.
 * The group item::
 * The swfile item::
 * GPSM signals and their semantics::
+* Undo and redo support::
 @end menu
 
 
@@ -277,7 +278,7 @@ is generally better to use the finer grained notify functions above.
 
 
 
-@node GPSM signals and their semantics, , The swfile item, GLAME Project Structure Management
+@node GPSM signals and their semantics, Undo and redo support, The swfile item, GLAME Project Structure Management
 @section GPSM signals and their semantics
 
 There are a vast number of signals send out by the gpsm subsystem which
@@ -349,3 +350,74 @@ out on the swapfile.
 @item GPSM_SIG_SWFILE_CUT
 @item GPSM_SIG_SWFILE_CHANGED
 @end table
+
+
+@node Undo and redo support, , GPSM signals and their semantics, GLAME Project Structure Management
+@section Undo and redo support
+
+GPSM provides an easy way to support undo and redo at the scope of a
+GPSM group (or a single swfile). To be able to do this you need to
+manually save the state of a group before operating on it, undo and
+redo then can automatically roll back to these saved states.
+
+The maximum number of saved states can be configured by using the
+following function (it is safe to call it before or after @code{gpsm_init()}):
+
+@deftypefun int gpsm_set_max_saved_ops (int @var{max})
+Changes (or just queries, if max < 0) the maximum number of states saved
+for undo/redo. Returns the actual set value.
+@end deftypefun
+
+The following functions treating with undo and redo are available:
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_prepare (gpsm_item_t *@var{item})
+Save the current state of the provided subtree for later undo.  Returns
+0 on success, -1 on failure.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_can_undo (gpsm_item_t *@var{item})
+Returns 1 if undo is pending for the subtree item and can be undone at
+this point, else returns 0.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_undo (gpsm_item_t *@var{item})
+Rolls back to the latest saved state of the provided subtree.  Returns 0
+on success, -1 on error (such as no undo pending or possible).  Saves
+the actual state for later redo.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_undo_and_forget (gpsm_item_t *@var{item})
+Rolls back to the latest saved state of the provided subtree.  Returns 0
+on success, -1 on error (such as no undo pending or possible).  Does not
+save the actual state for later redo.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_can_redo (gpsm_item_t *@var{item})
+Returns 1 if redo is pending for the subtree item and can be redone at
+this point, else returns 0.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_redo (gpsm_item_t *@var{item})
+Rolls back to the state before the previous undo to the provided
+subtree. Returns 0 on success, -1 on error (such as no redo pending or
+possible). Saves the actual state for later undo.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_redo_and_forget (gpsm_item_t *@var{item})
+Rolls back to the state before the previous undo to the provided
+subtree. Returns 0 on success, -1 on error (such as no redo pending or
+possible). Does not save the actual state for later undo.
+@end deftypefun
+
+@tindex gpsm_item_t
+@deftypefun int gpsm_op_forget (gpsm_item_t *@var{item})
+Kills off the latest saved state of the provided subtree. Returns 0 on
+success, -1 on error (no pending undo or redo).
+@end deftypefun
