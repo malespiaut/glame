@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.23 2001/04/23 18:18:41 xwolf Exp $
+ * $Id: gui.c,v 1.24 2001/04/24 16:32:51 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -396,7 +396,6 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 				create_label_widget_pair(vbox,filterparam_label(param),entry);
 				cVal =  filterparam_val_string(param);
 				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
-				free(cVal);
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
 				pw->param = param;
