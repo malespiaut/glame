@@ -14,7 +14,6 @@ doc/
 
 plugins/
 	[all]
-	- file_io needs fixed libaudiofile support
 	- provide pixmaps for all plugins (missing: fft friends,
           iir, rms, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
@@ -22,7 +21,6 @@ plugins/
 	- fix filters for RT param update
 	[richi]
 	- do gpsm invalidating using swapfile_out filter output params
-	- add posparam to audio_io_esd
 
 hash/
 	[all]
@@ -47,9 +45,6 @@ swapfile/
 	- resolve issues with ENOSPC and swapfile
 
 hash/
-	[richi]
-	- add notion of "private" (?) signal handlers to glsignal which
-          would be not copied - could remove some uglyness...
 
 glmid/
 	[richi]
@@ -64,7 +59,6 @@ gui/
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
-	- redo parameter windows to emit signals directly
 	[mag]
 	- kewl import/export GUI
         - kewl analyze (normalize & DC-offset & lots of info) GUI
@@ -82,13 +76,12 @@ gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
 	- toolbar needs work
-	- kill off playing dialog
-	- add playing keyboard shortcuts
 	- do glame_ruler with time, samples, beats mode
 	- show actual sample value/rms/position for marker
 
 gui/libgtkwaveform
 	[richi]
+	- !!! fix redrawing errors !!!
 	- break up gtkwaveview into simple waveview without
           scrollbar, make a container that can contain multiple
           gtkwavebuffers
@@ -100,9 +93,10 @@ gui/libgtkwaveform
 gui/edit_filter
 	[xwolf]
 	- add realtime controls
-	- add support for custom property dialogs (glade & guile-gtk? & friends)
+	- add support for custom property dialogs (glade & guile-gtk?
+          & friends)
 	- fold/unfold of groups
+	- duplication of groups
 	- connect for parameters of nodes of same type
-	- have GlameCanvas emit a signal after network execution so we
-	  can update the swapfiles managed through the gpsm
-
+	- have GlameCanvas check swapfile_out nodes for modified range
+	  after network execution and invalidate the swapfiles appropriately
