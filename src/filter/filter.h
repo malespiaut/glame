@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.30 2000/02/21 16:11:13 richi Exp $
+ * $Id: filter.h,v 1.31 2000/02/21 17:48:05 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <math.h>
 #include <errno.h>
 #include "glame_types.h"
 #include "swapfile.h"
@@ -426,10 +427,12 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 #define FILTER_PIPEPOS_RIGHT		M_PI_2
 #define	FILTER_PIPEPOS_CENTRE		0.0	/* Umm, needed at all? [dk] */
 #define FILTER_PIPEPOS_DEFAULT		FILTER_PIPEPOS_CENTRE
-#define FILTER_PIPEPOS_IS_LEFT(pos)	((pos)<0)
-#define FILTER_PIPEPOS_IS_RIGHT(pos)	((pos)>0)
-#define FILTER_SAMPLEPIPE_IS_LEFT(fp)	((fp)->u.sample.phi<0)
-#define FILTER_SAMPLEPIPE_IS_RIGHT(fp)	((fp)->u.sample.phi>0)
+#define FILTER_PIPEPOS_IS_LEFT(pos)	((pos)<0.0)
+#define FILTER_PIPEPOS_IS_RIGHT(pos)	((pos)>0.0)
+#define FILTER_PIPEPOS_IS_CENTRE(pos)	((pos)==0.0)
+#define FILTER_SAMPLEPIPE_IS_LEFT(fp)	((fp)->u.sample.phi<0.0)
+#define FILTER_SAMPLEPIPE_IS_RIGHT(fp)	((fp)->u.sample.phi>0.0)
+#define FILTER_SAMPLEPIPE_IS_CENTRE(fp)	((fp)->u.sample.phi==0.0)
 
 /* Public access macros for the filter_pipe_t structure.
  */
