@@ -3,7 +3,7 @@
 
 /*
  * glsimd.h
- * $Id: glsimd.h,v 1.6 2004/10/19 15:42:56 richi Exp $
+ * $Id: glsimd.h,v 1.7 2005/03/20 19:25:40 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -53,23 +53,23 @@ struct glsimd_ops_table {
 	 * stored in cnt scalars in result. For the non determined
 	 * dimension variant scalar_product_Nd dim specifies the
 	 * dimension. */
-	void (*scalar_product_1d)(SAMPLE *result, long cnt,
-				  SAMPLE *c1, SAMPLE f1);
-	void (*scalar_product_1dI)(SAMPLE *result_c1,  long cnt, SAMPLE f1);
-	void (*scalar_product_2d)(SAMPLE *result, long cnt,
-				  SAMPLE *c1, SAMPLE f1,
-				  SAMPLE *c2, SAMPLE f2);
-	void (*scalar_product_2dI)(SAMPLE *result_c1,  long cnt, SAMPLE f1,
-				   SAMPLE *c2, SAMPLE f2);
-	void (*scalar_product_3d)(SAMPLE *result, long cnt,
-				  SAMPLE *c1, SAMPLE f1,
-				  SAMPLE *c2, SAMPLE f2,
-				  SAMPLE *c3, SAMPLE f3);
-	void (*scalar_product_3dI)(SAMPLE *result_c1,  long cnt, SAMPLE f1,
-				   SAMPLE *c2, SAMPLE f2,
-				   SAMPLE *c3, SAMPLE f3);
-	void (*scalar_product_Nd)(SAMPLE *result, long cnt,
-				  SAMPLE **c1, SAMPLE *f1, long dim);
+	void (*scalar_product_1d)(SAMPLE * restrict result, long cnt,
+				  SAMPLE * restrict c1, SAMPLE f1);
+	void (*scalar_product_1dI)(SAMPLE * restrict result_c1,  long cnt, SAMPLE f1);
+	void (*scalar_product_2d)(SAMPLE * restrict result, long cnt,
+				  SAMPLE * restrict c1, SAMPLE f1,
+				  SAMPLE * restrict c2, SAMPLE f2);
+	void (*scalar_product_2dI)(SAMPLE * restrict result_c1,  long cnt, SAMPLE f1,
+				   SAMPLE * restrict c2, SAMPLE f2);
+	void (*scalar_product_3d)(SAMPLE * restrict result, long cnt,
+				  SAMPLE * restrict c1, SAMPLE f1,
+				  SAMPLE * restrict c2, SAMPLE f2,
+				  SAMPLE * restrict c3, SAMPLE f3);
+	void (*scalar_product_3dI)(SAMPLE * restrict result_c1,  long cnt, SAMPLE f1,
+				   SAMPLE * restrict c2, SAMPLE f2,
+				   SAMPLE * restrict c3, SAMPLE f3);
+	void (*scalar_product_Nd)(SAMPLE * restrict result, long cnt,
+				  SAMPLE * restrict *c1, SAMPLE * restrict f1, long dim);
 
 #if 0 /* Not yet implemented. */
 	/* Routines we commonly need for things like audio and file io.
@@ -119,26 +119,26 @@ void glsimd_init(int force_c);
 
 static inline gl_s16 SAMPLE2SHORT(SAMPLE s)
 {
-        return (gl_s16)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))
-                *(s<0.0 ? (1<<15) : (1<<15)-1));
+        return (gl_s16)((s<-1.0f ? -1.0f : (s>1.0f ? 1.0f : s))
+                *(s<0.0f ? (1<<15) : (1<<15)-1));
 }
 
 static inline gl_u16 SAMPLE2USHORT(SAMPLE s)
 {       
-        s += 1.0, s *= 0.5;
-        return (gl_u16)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<16)-1));
+        s += 1.0f, s *= 0.5f;
+        return (gl_u16)((s<0.0f ? 0.0f : (s>1.0f ? 1.0f : s))*((1<<16)-1));
 }
 
 static inline gl_s8 SAMPLE2CHAR(SAMPLE s)
 {
-        return (gl_s8)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))
-                *(s<0.0 ? (1<<7) : (1<<7)-1));
+        return (gl_s8)((s<-1.0f ? -1.0f : (s>1.0f ? 1.0f : s))
+                *(s<0.0f ? (1<<7) : (1<<7)-1));
 }
 
 static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 {
-        s += 1.0, s *= 0.5;
-        return (gl_u8)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<7)-1));
+        s += 1.0f, s *= 0.5f;
+        return (gl_u8)((s<0.0f ? 0.0f : (s>1.0f ? 1.0f : s))*((1<<7)-1));
 }
 
 
