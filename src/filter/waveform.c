@@ -69,15 +69,17 @@ static int sinus_f(filter_node_t *n)
         for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
 
 	FILTER_AFTER_INIT;
+	DPRINTF("Semaphores done!\n");
 
 	while(pthread_testcancel(),cnt--){
 		fbuf_ref(buf);
+		DPRINTF("Sent Buffer %d\n",cnt);
 		fbuf_queue(out,buf);
 	}
 	fbuf_queue(out,NULL);			
 
 	FILTER_BEFORE_CLEANUP;
-
+	DPRINTF("Exiting.\n");
 	fbuf_unref(buf);
 
 	return 0;

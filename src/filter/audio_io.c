@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.6 2000/02/07 00:09:07 mag Exp $
+ * $Id: audio_io.c,v 1.7 2000/02/07 04:33:54 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -81,6 +81,8 @@ static int esd_in_f(filter_node_t *n)
 
 	printf("Start sampling!\n");
 
+	FILTER_AFTER_INIT;
+	
 	while(pthread_testcancel(),1){
 		length=read(sock,buf,ESD_BUF_SIZE);
 		if (!length){
@@ -89,8 +91,8 @@ static int esd_in_f(filter_node_t *n)
 		}
 		printf("sampled %d bytes!\n",length);
 		lpos=rpos=i=0;
-		lbuf=fbuf_alloc(length/4);	/* FIXME 16bit stereo only */
-		rbuf=fbuf_alloc(length/4);
+		lbuf=fbuf_alloc(length/4,SAMPLE_SIZE,n);	/* FIXME 16bit stereo only */
+		rbuf=fbuf_alloc(length/4,SAMPLE_SIZE,n);
 		while(i<length/2){
 			fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
 			fbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buf[i++]);
@@ -100,6 +102,9 @@ static int esd_in_f(filter_node_t *n)
 	}
 	fbuf_queue(left,NULL);
 	fbuf_queue(right,NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
 	free(buf);
 	return 0;
 }
@@ -163,6 +168,8 @@ static int esd_out_f(filter_node_t *n)
 		rbuf = NULL;
 	lpos = rpos = 0;
 
+	FILTER_AFTER_INIT;
+	
 	do {
 		/* write into wbuf until wbuf is full or
 		 * either left or right is empty.
@@ -211,6 +218,8 @@ static int esd_out_f(filter_node_t *n)
 		}
 	} while (lbuf || (right && rbuf));
 
+	FILTER_BEFORE_CLEANUP;
+
 	printf("Received %d buffers.\n",cnt);
 	return 0;
 }
@@ -224,18 +233,18 @@ int audio_io_register()
 
 #if defined HAVE_ESD
 	if (!(f = filter_alloc("audio_out", "play stream", esd_out_f))
-	    || filter_add_input(f, "left_in", "left or mono channel",
-				FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_input(f, "right_in", "right channel",
-				FILTER_PORTTYPE_SAMPLE) == -1
+	    || !filter_add_input(f, "left_in", "left or mono channel",
+				FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_input(f, "right_in", "right channel",
+				FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("audio_in","record stream",esd_in_f))
-	    || filter_add_output(f,"left_out","left channel",
-		    		FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_output(f,"right_out","right channel",
-		    		FILTER_PORTTYPE_SAMPLE) == -1
+	    || !filter_add_output(f,"left_out","left channel",
+		    		FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f,"right_out","right channel",
+		    		FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
 

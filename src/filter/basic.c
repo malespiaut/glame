@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.4 2000/02/07 00:09:07 mag Exp $
+ * $Id: basic.c,v 1.5 2000/02/07 04:33:54 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -257,7 +257,7 @@ static int mix_f(filter_node_t *n)
 	}
 
 	/* get first output buffer */
-	out = fbuf_alloc(GLAME_WBUFSIZE);
+	out = fbuf_alloc(GLAME_WBUFSIZE,SAMPLE_SIZE,n);
 	opos = 0;
 
 	while (pthread_testcancel(), (eofs != n->nr_inputs)) {
@@ -286,7 +286,7 @@ static int mix_f(filter_node_t *n)
 			 * we wont release it */
 			fbuf_queue(pout, out);
 			/* alloc new buffer */
-			out = fbuf_alloc(GLAME_WBUFSIZE);
+			out = fbuf_alloc(GLAME_WBUFSIZE,SAMPLE_SIZE,n);
 			opos = 0;
 		}
 
@@ -296,7 +296,7 @@ static int mix_f(filter_node_t *n)
 
 	/* submit the last pending output buffer - but truncate
 	 * it to the actual necessary length */
-	lastout = fbuf_alloc(opos);
+	lastout = fbuf_alloc(opos,SAMPLE_SIZE,n);
 	memcpy(fbuf_buf(lastout), fbuf_buf(out), sizeof(SAMPLE)*opos);
 	fbuf_unref(out);
 	fbuf_queue(pout, lastout);
@@ -351,10 +351,10 @@ int basic_register()
 		return -1;
 
         if (!(f = filter_alloc("mix", "mix n channels", mix_f))
-            || filter_add_input(f, "in", "input stream",
-                                FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) == -1
-            || filter_add_output(f, "out", "mixed stream",
-                                FILTER_PORTTYPE_SAMPLE) == -1
+            || !filter_add_input(f, "in", "input stream",
+                                FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) 
+            || !filter_add_output(f, "out", "mixed stream",
+                                FILTER_PORTTYPE_SAMPLE)
             || filter_add(f) == -1)
                 return -1;
 

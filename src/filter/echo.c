@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.1 2000/02/07 00:09:07 mag Exp $
+ * $Id: echo.c,v 1.2 2000/02/07 04:33:54 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -73,7 +73,7 @@ static int echo_f(filter_node_t *n)
 	binpos=0;
 	
 	while(pthread_testcancel(),bin){
-		bout=fbuf_alloc(fbuf_size(bin));
+		bout=fbuf_alloc(fbuf_size(bin),SAMPLE_SIZE,n);
 		boutpos=0;
 		while(binpos<fbuf_size(bin)){
 			ring[ringp++]=fbuf_buf(bin)[binpos];
@@ -90,7 +90,7 @@ static int echo_f(filter_node_t *n)
 	
 	/* Empty ring buffer */
 	
-	bout=fbuf_alloc(bufsiz);
+	bout=fbuf_alloc(bufsiz,SAMPLE_SIZE,n);
 	for(boutpos=0;boutpos<bufsiz;boutpos++){
 		fbuf_buf(bout)[boutpos]=(ring[ringp++]*mix)/(1.0+mix);
 		if (ringp==bufsiz)
@@ -109,14 +109,14 @@ int echo_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("echo", "echo effect", echo_f))
-	    || filter_add_input(f, "in", "input",
-				FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_output(f,"out","output",
-		    		FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"time","echo time in ms",
-		    		FILTER_PARAMTYPE_INT) == -1
-	    || filter_add_param(f,"mix","mixer ratio",
-		    		FILTER_PARAMTYPE_FLOAT) == -1
+	    || !filter_add_input(f, "in", "input",
+				FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f,"out","output",
+		    		FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_param(f,"time","echo time in ms",
+		    		FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f,"mix","mixer ratio",
+		    		FILTER_PARAMTYPE_FLOAT)
 	    || filter_add(f) == -1)
 		return -1;
 

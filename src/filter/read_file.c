@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.8 2000/02/07 00:09:07 mag Exp $ 
+ * $Id: read_file.c,v 1.9 2000/02/07 04:33:54 mag Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -188,9 +188,9 @@ int read_file_register()
 
 	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f)))
 		return -1;
-	if (filter_add_output(f, "left_out", "left channel",FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_output(f, "right_out", "right channel",FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING) == -1)
+	if (!filter_add_output(f, "left_out", "left channel",FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f, "right_out", "right channel",FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
 		return -1;
 	 if (filter_add(f) == -1)
 		return -1;
