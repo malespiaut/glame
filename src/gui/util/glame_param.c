@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.30 2004/11/07 23:13:57 richi Exp $
+ * $Id: glame_param.c,v 1.31 2004/11/16 19:21:26 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -142,10 +142,6 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 				gparam->u.curve, num_points, ctl_points);
 		} else
 			DPRINTF("No props for curve?\n");
-	} else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
-		gtk_option_menu_set_history(
-			GTK_OPTION_MENU(gparam->u.widget),
-			filterparam_val_long(gparam->param));
 	} else if (GTK_IS_COMBO_BOX(gparam->u.widget)) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(gparam->u.widget),
 					 filterparam_val_long(gparam->param));
@@ -240,26 +236,6 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 	return res == 0 ? TRUE : FALSE;
 }
 
-static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
-{
-	int res = -1;
-	long val;
-
-	if (gparam->updating)
-		return TRUE;
-
-	gparam->updating = 1;
-
-	val = glame_menu_get_active_index(menu);
-	if (val != -1)
-		res = filterparam_set(gparam->param, &val);
-	else
-		DPRINTF("Illegal value for menu\n");
-	gparam->updating = 0;
-
-	return res == 0 ? TRUE : FALSE;
-}
-
 static gint combobox_cb(GtkComboBox *cb, GlameParam *gparam)
 {
 	int res;
@@ -313,9 +289,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			DPRINTF("Broken xml param description\n%s\n", xml);
 			goto noxml;
 		}
-		if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
-			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_long(param));
-		} else if (GTK_IS_COMBO_BOX(gparam->u.widget)) {
+		if (GTK_IS_COMBO_BOX(gparam->u.widget)) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(gparam->u.widget),
 						 filterparam_val_long(param));
 		} else if (GTK_IS_RANGE(gparam->u.widget)) {
@@ -466,10 +440,6 @@ cont:
 			gtk_signal_connect(GTK_OBJECT(gparam->u.curve),
 			   "curve_changed",
 			   (GtkSignalFunc)curve_cb, gparam);
-	else if (GTK_IS_OPTION_MENU(gparam->u.widget))
-		gtk_signal_connect(GTK_OBJECT(gtk_option_menu_get_menu(GTK_OPTION_MENU(gparam->u.widget))),
-				   "selection_done",
-				   (GtkSignalFunc)optionmenu_cb, gparam);
 	else if (GTK_IS_COMBO_BOX(gparam->u.widget))
 		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
 				   "changed",
