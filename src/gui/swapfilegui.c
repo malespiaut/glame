@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.77 2002/01/11 23:21:30 richi Exp $
+ * $Id: swapfilegui.c,v 1.78 2002/02/18 22:55:47 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -586,10 +586,6 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 	}
 }
 
-void changeString_cb(GtkEditable *wid, char *returnbuffer)
-{
-	strncpy(returnbuffer, gtk_editable_get_chars(wid, 0, -1), 100);
-}
 static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	glame_export_dialog(item->item, NULL);
@@ -1039,6 +1035,7 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
 		handle_grp_add_treeitem(GTK_OBJECT(swapfile->tree), item);
 
 	gtk_widget_show(swapfile->tree);
-	active_swapfilegui = swapfile;
+	if (!active_swapfilegui)
+		active_swapfilegui = swapfile;
 	return swapfile;
 }
