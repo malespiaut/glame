@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.50 2001/07/02 08:20:43 richi Exp $
+ * $Id: swapfilegui.c,v 1.51 2001/07/03 09:33:39 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -980,19 +980,8 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
 			      SwapfileGui *swapfile)
 {
-	if (event->type == GDK_ENTER_NOTIFY) {
-		DPRINTF("Entered %s\n", gpsm_item_label(swapfile->root));
+	if (event->type == GDK_ENTER_NOTIFY)
 		active_swapfilegui = swapfile;
-	} else if (event->type == GDK_LEAVE_NOTIFY
-		   && event->mode == GDK_CROSSING_NORMAL) {
-		DPRINTF("Left %s\n", gpsm_item_label(swapfile->root));
-		if (active_swapfilegui != swapfile)
-			DPRINTF("But was not active (%s)!\n",
-				active_swapfilegui ?
-				gpsm_item_label(active_swapfilegui->root)
-				: "none");
-		/* active_swapfilegui = NULL; */
-	}
 }
 
 
@@ -1113,8 +1102,6 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
 
 	/* Track the active swapfilegui via enter/leave events. */
 	gtk_signal_connect(GTK_OBJECT(swapfile), "enter_notify_event",
-			   handle_enterleave, swapfile);
-	gtk_signal_connect(GTK_OBJECT(swapfile), "leave_notify_event",
 			   handle_enterleave, swapfile);
 
 	/* Add all existing childs of the root group to the tree. */

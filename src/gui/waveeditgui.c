@@ -1040,10 +1040,8 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 static void handle_enter(GtkWidget *tree, GdkEventCrossing *event,
 			 WaveeditGui *waveedit)
 {
-	if (event->type == GDK_ENTER_NOTIFY) {
-		DPRINTF("Entering\n");
+	if (event->type == GDK_ENTER_NOTIFY)
 		active_waveedit = waveedit;
-	}
 }
 
 
@@ -1135,7 +1133,6 @@ static SCM gls_waveedit_set_scroll_position(SCM s_pos)
 		   SCM_ARG1, "waveedit-set-scroll-position!");
 	if (!active_waveedit)
 		return SCM_UNSPECIFIED;
-	DPRINTF("Scroll to %li\n", gh_scm2long(s_pos));
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(
 		GTK_WAVE_VIEW(active_waveedit->waveview)->adjust),
 				 gh_scm2long(s_pos));
