@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.22 2001/06/05 13:33:04 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.23 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -869,9 +869,10 @@ int glame_gui_update_paramdb(filter_paramdb_t *pdb, GList *list)
 
 
 
-GdkImlibImage* glame_load_icon(const char *filename)
+GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 {
 	GdkImlibImage* image = NULL;
+	GdkImlibImage* imagetmp = NULL;
 	char * file;
 	char * filepath;
 
@@ -902,13 +903,19 @@ GdkImlibImage* glame_load_icon(const char *filename)
 	}
 	if(!filepath)
 		filepath = g_concat_dir_and_file("../data/pixmaps", GLAME_DEFAULT_ICON);
-		
-	image = gdk_imlib_load_image(filepath);
+	
+	imagetmp = gdk_imlib_load_image(filepath);
 	g_free(filepath);
-	return image;
+	if(x && y){
+		image = gdk_imlib_clone_scaled_image(imagetmp, x,y);
+		gdk_imlib_destroy_image(imagetmp);
+		return image;
+	}else{
+		return imagetmp;
+	}
 }
 
-GtkWidget* glame_load_icon_widget(const char* filename)
+GtkWidget* glame_load_icon_widget(const char* filename,int x, int y)
 {
-	return gnome_pixmap_new_from_imlib(glame_load_icon(filename));
+	return gnome_pixmap_new_from_imlib(glame_load_icon(filename,x,y));
 }

@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.10 2001/06/05 18:21:45 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.11 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -22,10 +22,14 @@
  *
  */
 
+#include <sys/param.h>
+#include <stdio.h>
+#include <math.h>
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
 #include "hash.h"
+#include "glame_gui_utils.h"
 #include "glame_accelerator.h"
 
      
@@ -210,7 +214,7 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 		buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
 		if (!node || !buffer )
 			continue;
-		glame_canvas_port_set_external(filterportdb_get_port(filter_portdb(node),buffer),TRUE);
+		glame_canvas_port_set_external(glame_canvas_find_port(filterportdb_get_port(filter_portdb(node),buffer)),TRUE);
 	}
 	
 	/*canvas_update_scroll_region(GLAME_CANVAS(canv));*/
@@ -257,7 +261,7 @@ glame_gui_get_font(GlameCanvas* canv)
 GdkImlibImage*
 glame_gui_get_icon_from_filter(filter_t *filter)
 {
-	return glame_load_icon(plugin_query(filter->plugin, PLUGIN_PIXMAP));
+	return glame_load_icon(plugin_query(filter->plugin, PLUGIN_PIXMAP),0,0);
 
 }
 
@@ -329,16 +333,15 @@ void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup
 {
 	group->children = g_list_remove(group->children,item);
 	if(!group->children) /* no more children */
-		glame_canvas_group_destroy(group);
+		glame_canvas_group_destroy(GTO(group));
 }
 
 void glame_canvas_group_add_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter* gItem)
 {
-	DPRINTF("%d %d\n",glameGroup,gItem);
 	gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(gItem), GNOME_CANVAS_GROUP(glameGroup));
 	glameGroup->children = g_list_append(glameGroup->children,gItem);
-	gtk_signal_connect(gItem, "deleted", glame_canvas_group_remove_item_cb,glameGroup);
-	gtk_signal_connect(gItem, "moved", glame_canvas_group_item_moved_cb,glameGroup);
+	gtk_signal_connect(GTO(gItem), "deleted", GTK_SIGNAL_FUNC(glame_canvas_group_remove_item_cb),glameGroup);
+	gtk_signal_connect(GTO(gItem), "moved", GTK_SIGNAL_FUNC(glame_canvas_group_item_moved_cb),glameGroup);
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.10 2001/06/02 20:53:06 xwolf Exp $
+ * $Id: canvasport.c,v 1.11 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -21,10 +21,14 @@
  *
  *
  */
-
+#include <sys/param.h>
+#include <stdio.h>
+#include <math.h>
+#include <errno.h>
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
+#include "glame_gui_utils.h"
 #include "hash.h"
 #include <X11/bitmaps/hlines3>
 extern gboolean bMac;
@@ -115,7 +119,7 @@ glame_canvas_port_class_init(GlameCanvasPortClass* class)
 	gtk_object_class_add_signals(object_class,port_signals,LAST_SIGNAL);
 	
 	class->moved = NULL;
-	class->connections_changed = glame_canvas_port_connections_changed_cb;
+	class->connections_changed = (void(*)(GlameCanvasPort*))glame_canvas_port_connections_changed_cb;
 }
 
 static void
@@ -185,7 +189,7 @@ glame_canvas_port_moved_cb(GlameCanvasFilter* f, double dx, double dy, GlameCanv
 void
 glame_canvas_port_deleted_cb(GlameCanvasFilter* f, GlameCanvasPort *p)
 {
-	glame_canvas_port_destroy(p);
+	glame_canvas_port_destroy(GTK_OBJECT(p));
 }
 
 
@@ -212,9 +216,7 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 	GtkWidget* menu;
 	GnomeCanvas * canvas;
 	GlameCanvasPort* otherPort;
-	double eventx, eventy;
 	filter_pipe_t* pipe;
-	double pixperunt;
 
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
@@ -233,9 +235,9 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 		return TRUE;
 		break;
 	case GDK_2BUTTON_PRESS:
-		gnome_canvas_item_ungrab(port,event->button.time);
-		gtk_signal_disconnect_by_func(port,glame_canvas_port_grabbing_cb,port);
-		gtk_signal_handler_unblock_by_func(port,glame_canvas_port_event_cb,port);
+		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(port),event->button.time);
+		gtk_signal_disconnect_by_func(GTK_OBJECT(port),GTK_SIGNAL_FUNC(glame_canvas_port_grabbing_cb),port);
+		gtk_signal_handler_unblock_by_func(GTK_OBJECT(port),GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),port);
 		canvas = CANVAS_ITEM_CANVAS(port);
 		gnome_canvas_item_hide(GNOME_CANVAS_ITEM(line));
 		
@@ -248,9 +250,9 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 		return TRUE;
 		break;	
 	case GDK_BUTTON_RELEASE:
-		gnome_canvas_item_ungrab(port,event->button.time);
-		gtk_signal_disconnect_by_func(port,glame_canvas_port_grabbing_cb,port);
-		gtk_signal_handler_unblock_by_func(port,glame_canvas_port_event_cb,port);
+		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(port),event->button.time);
+		gtk_signal_disconnect_by_func(GTO(port),GTK_SIGNAL_FUNC(glame_canvas_port_grabbing_cb),port);
+		gtk_signal_handler_unblock_by_func(GTO(port),GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),port);
 		canvas = CANVAS_ITEM_CANVAS(port);
 		gnome_canvas_item_hide(GNOME_CANVAS_ITEM(line));
 		
@@ -277,11 +279,12 @@ glame_canvas_port_grabbing_cb(GlameCanvasPort* port, GdkEvent* event, GlameCanva
 	default:
 		return FALSE;
 	}
+        return FALSE;
 }
 
 static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
 {
-	strncpy(*retbuffer,gtk_editable_get_chars(entry,0,-1),100);
+	strncpy(*retbuffer,gtk_editable_get_chars(GTK_EDITABLE(entry),0,-1),100);
 }
 
 static void 
@@ -371,7 +374,7 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 		switch(event->button.button){
 		case 1:
 			/* block other handlers (this one ;-) */
-			gtk_signal_handler_block_by_func(GTK_OBJECT(port),glame_canvas_port_event_cb,port);
+			gtk_signal_handler_block_by_func(GTK_OBJECT(port),GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),port);
 			/* show line and attach handler */
 			last_x = event->button.x;
 			last_y = event->button.y;
@@ -383,7 +386,7 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 					      "points",points,
 					      NULL);
 			gnome_canvas_item_show(GNOME_CANVAS_ITEM(line));
-			gtk_signal_connect(GTK_OBJECT(port),"event", glame_canvas_port_grabbing_cb, port);
+			gtk_signal_connect(GTK_OBJECT(port),"event", GTK_SIGNAL_FUNC(glame_canvas_port_grabbing_cb), port);
 			/* grab the thing */
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(port),GDK_BUTTON_MOTION_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,NULL,
 					       event->button.time);
@@ -439,14 +442,14 @@ GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *p
 		p->realPort = port;
 
 	hash_add_gcport(p);
-	gtk_signal_connect(GTK_OBJECT(p),"event",glame_canvas_port_event_cb,p);
+	gtk_signal_connect(GTK_OBJECT(p),"event",GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),p);
 	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_filter(filterport_filter(port))),
 			   "moved",
-			   glame_canvas_port_moved_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_port_moved_cb),
 			   p);
 	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_filter(filterport_filter(port))),
 			   "deleted",
-			   glame_canvas_port_deleted_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_port_deleted_cb),
 			   p);
 	return p;
 }
@@ -476,8 +479,6 @@ glame_canvas_port_set_external(GlameCanvasPort* port,
 void
 glame_canvas_port_show_properties(GlameCanvasPort* port)
 {
-	filter_param_t* param;
-	float y = 100.0;
 	GnomeCanvasGroup * group = GNOME_CANVAS_GROUP(port);
 	
 	char * font = glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(port)->canvas));
@@ -514,7 +515,6 @@ glame_canvas_port_redraw(GlameCanvasPort * port)
 {
 	/* check for external */
 	static GdkBitmap *bitmap=NULL;
-	DPRINTF("FOO\N");
 	if(!bitmap)
 		bitmap = gdk_bitmap_create_from_data(GTK_WIDGET(CANVAS_ITEM_CANVAS(port))->window,hlines3_bits,1,3);
 	

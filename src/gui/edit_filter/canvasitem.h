@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.8 2001/06/05 18:21:45 xwolf Exp $
+ * $Id: canvasitem.h,v 1.9 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -133,7 +133,7 @@ gboolean glame_canvas_filter_is_undeletable(GlameCanvasFilter *filter);
 
 void glame_canvas_filter_move(GlameCanvasFilter* filter, double dx, double dy);
 void glame_canvas_filter_redraw(GlameCanvasFilter *filter);
-void glame_canvas_filter_show_properties(GlameCanvasFilter * filter);
+guint glame_canvas_filter_show_properties(GlameCanvasFilter * filter);
 void glame_canvas_filter_hide_properties(GlameCanvasFilter * filter);
 
 filter_paramdb_t * glame_canvas_filter_get_paramdb(GlameCanvasFilter *filter);
@@ -181,7 +181,7 @@ void glame_canvas_port_hide_properties(GlameCanvasPort* port);
 void glame_canvas_port_redraw(GlameCanvasPort* port);
 void glame_canvas_port_set_external(GlameCanvasPort* port, gboolean external);
 void glame_canvas_port_pipe_deleted_cb(GlameCanvasPipe* pipe, GlameCanvasPort* port);
-
+GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * pipe);
 /*filter_paramdb_t* glame_canvas_port_get_paramdb(GlameCanvasPort* port);*/
 
 /* private */

@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.9 2001/05/30 14:43:10 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.10 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -23,10 +23,13 @@
  */
 
 
-
+#include <sys/param.h>
+#include <stdio.h>
+#include <math.h>
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
+#include "glame_gui_utils.h"
 #include "hash.h"
 
 
@@ -180,7 +183,6 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 	double sourcex,sourcey,destx,desty;
 	GlameCanvasPort *port;
 	int pipes;
-	double y1,y2, dummy;
 
 	/* find coords */
 	
@@ -239,7 +241,6 @@ glame_canvas_pipe_deleted_cb(glsig_handler_t* foo,long sig,va_list va)
 {
 	
 	GlameCanvasPipe* gPipe = glsig_handler_private(foo);
-	filter_pipe_t* pipe = gPipe->pipe;
 	gtk_signal_emit_by_name(GTK_OBJECT(gPipe),"deleted");
 	gtk_object_destroy(GTK_OBJECT(gPipe));
 }
@@ -293,8 +294,8 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 		break;
 	case GDK_BUTTON_RELEASE:
 		gnome_canvas_item_ungrab(i,event->button.time);
-		gtk_signal_disconnect_by_func(i,glame_canvas_pipe_grabbing_cb,p);
-		gtk_signal_handler_unblock_by_func(i,glame_canvas_pipe_event_cb,p);
+		gtk_signal_disconnect_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_pipe_grabbing_cb),p);
+		gtk_signal_handler_unblock_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_pipe_event_cb),p);
 		return TRUE;
 	case GDK_2BUTTON_PRESS:
 		switch(event->button.button){
@@ -306,8 +307,8 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 			break;
 		}
 		gnome_canvas_item_ungrab(i,event->button.time);
-		gtk_signal_disconnect_by_func(i,glame_canvas_pipe_grabbing_cb,p);
-		gtk_signal_handler_unblock_by_func(i,glame_canvas_pipe_event_cb,p);
+		gtk_signal_disconnect_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_pipe_grabbing_cb),p);
+		gtk_signal_handler_unblock_by_func(GTO(i),GTK_SIGNAL_FUNC(glame_canvas_pipe_event_cb),p);
 		return TRUE;
 		break;
 
@@ -328,8 +329,8 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 			/* grab the thing */
 			fleur = gdk_cursor_new(GDK_FLEUR);
 			/* block other handlers (this one ;-) */
-			gtk_signal_handler_block_by_func(GTK_OBJECT(i),glame_canvas_pipe_event_cb,p);
-			gtk_signal_connect(GTK_OBJECT(i),"event", glame_canvas_pipe_grabbing_cb, p);
+			gtk_signal_handler_block_by_func(GTK_OBJECT(i),GTK_SIGNAL_FUNC(glame_canvas_pipe_event_cb),p);
+			gtk_signal_connect(GTK_OBJECT(i),"event", GTK_SIGNAL_FUNC(glame_canvas_pipe_grabbing_cb), p);
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(i),GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,fleur,
 					       event->button.time);
 			gdk_cursor_destroy(fleur);
@@ -359,6 +360,7 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 		return FALSE;
 		break;
 	}
+	return FALSE;
 }
 
 GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * pipe)
@@ -407,9 +409,9 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 	hash_add_gcpipe(gPipe);
 	
 	gtk_signal_connect_after(GTK_OBJECT(gPipe->circle),
-			   "event",
-			   glame_canvas_pipe_event_cb,
-			   gPipe);
+				 "event",
+				 GTK_SIGNAL_FUNC(glame_canvas_pipe_event_cb),
+				 gPipe);
 	
 	gSource = glame_canvas_find_port(filterpipe_connection_source(pipe));
 	gDest = glame_canvas_find_port(filterpipe_connection_dest(pipe));
@@ -417,31 +419,31 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 	/* connect to movement of ports */
 	gtk_signal_connect(GTK_OBJECT(gDest),
 			   "moved",
-			   glame_canvas_pipe_end_moved_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_pipe_end_moved_cb),
 			   gPipe);
 	
 	gtk_signal_connect(GTK_OBJECT(gSource),
 			   "moved",
-			   glame_canvas_pipe_begin_moved_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_pipe_begin_moved_cb),
 			   gPipe);
 
 	/* connect to reordering of connections at port */
 	gtk_signal_connect(GTK_OBJECT(gDest),
 			   "connections_changed",
-			   glame_canvas_pipe_port_changed_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_pipe_port_changed_cb),
 			   gPipe);
 	
 	gtk_signal_connect(GTK_OBJECT(gSource),
 			   "connections_changed",
-			   glame_canvas_pipe_port_changed_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_pipe_port_changed_cb),
 			   gPipe);
 
 	gtk_signal_connect(GTK_OBJECT(gPipe),"deleted",
-			   glame_canvas_port_pipe_deleted_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_port_pipe_deleted_cb),
 			   gSource);
 
 	gtk_signal_connect(GTK_OBJECT(gPipe),"deleted",
-			   glame_canvas_port_pipe_deleted_cb,
+			   GTK_SIGNAL_FUNC(glame_canvas_port_pipe_deleted_cb),
 			   gDest);
 
 

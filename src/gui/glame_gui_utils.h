@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.18 2001/06/01 09:30:40 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.19 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -116,8 +116,8 @@ int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data);
 
 /* Load a GdkImage which is suitable for canvas operation/taskbars(?)
  * if nothing is found it will try to return the glame default icon. */
-GdkImlibImage* glame_load_icon(const char* filename);
+GdkImlibImage* glame_load_icon(const char* filename, int x, int y);
 /* Same as above, but returns the image as a gnomepixmap (a widget) */
-GtkWidget* glame_load_icon_widget(const char* filename);
+GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
 
 #endif

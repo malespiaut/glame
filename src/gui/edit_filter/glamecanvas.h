@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.7 2001/06/05 18:21:45 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.8 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -27,6 +27,7 @@
 #include <gnome.h>
 #include "glmid.h"
 #include "canvasitem.h"
+
 /* type forwards */
 
 struct _GlameCanvas;
@@ -77,7 +78,7 @@ struct _GlameCanvasClass {
 GlameCanvas* glame_canvas_new(filter_t * network);
 
 GlameCanvasFilter* glame_canvas_add_filter(GlameCanvas* canvas, filter_t *filter);
-GlameCanvasFilter* glame_canavs_add_filter_by_name(GlameCanvas * canvas, const char *name);
+GlameCanvasFilter* glame_canvas_add_filter_by_name(GlameCanvas * canvas, const char *name);
 GlameCanvasFilter* glame_canvas_add_filter_by_plugin(GlameCanvas* canvas, plugin_t *plug);
 
 /* new signal marshallers >:-O   */
@@ -117,8 +118,12 @@ void glame_canvas_select_unselect(GlameCanvas* canv, GlameCanvasFilter* filter);
 #define GLAME_IS_CANVAS_GROUP_CLASS(object)  (GTK_CHECK_CLASS_TYPE((object), GLAME_CANVAS_GROUP_TYPE))
 #define GLAME_CANVAS_GROUP_GET_CLASS(object) ((GlameCanvasGroupClass*) (((GtkObject*) (obj))->klass))
 
-GtkType glame_canvas_group_get_type(void);
+/* save me from getting finger sores */
+#define GCI(item) GNOME_CANVAS_ITEM(item)
+#define GTO(object) GTK_OBJECT(object)
 
+GtkType glame_canvas_group_get_type(void);
+void glame_canvas_group_add_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter* gItem);
 enum {GROUP_TYPE_UNION, GROUP_TYPE_SHARING};
 struct _GlameCanvasGroup {
 	GnomeCanvasGroup parent_object;

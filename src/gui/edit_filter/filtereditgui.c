@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.14 2001/06/05 18:21:45 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.15 2001/06/06 15:12:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -21,7 +21,9 @@
  *
  *
  */
-
+#include <sys/param.h>
+#include <stdio.h>
+#include <math.h>
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
@@ -29,6 +31,8 @@
 #include <stroke.h>
 #endif
 #include "glscript.h"
+#include "glame_gui_utils.h"
+#include "glame_accelerator.h"
 /* FIXME remove these later on */
 guint nPopupTimeout;
 gboolean bMac;
@@ -104,7 +108,7 @@ button_down_cb(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 }
 #endif
 		
-
+#if 0
 static void group_all(GlameCanvas* canv)
 {
 	filter_t* iter;
@@ -122,14 +126,13 @@ static void group_all(GlameCanvas* canv)
 			glame_canvas_group_add_item(group,f2);
 	}
 }
-	
+#endif
 static gboolean 
 root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 {
 
 	GtkWidget *menu;
 	
-	GdkEventButton *event_button;
 	GnomeCanvasItem* onItem;	
 	/* assign global for accels :( */
 	
@@ -349,7 +352,6 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 void
 glame_filtereditgui_install_accels(GtkWidget* window)
 {
-	DPRINTF("window: %d\n",window);
 	if (glame_accel_install(window, "filteredit", NULL) == -1){
                 DPRINTF("accel install failed\n");
 		return;
@@ -405,6 +407,7 @@ static SCM gls_editfilter_delete_selection(void)
 	}
 	g_list_free(glcanvas->selectedItems);
 	glcanvas->selectedItems = NULL;
+	return SCM_UNSPECIFIED;
 }
 	
 
@@ -454,8 +457,8 @@ glame_filtereditgui_new(filter_t *net)
 				       GTK_POLICY_AUTOMATIC,
 				       GTK_POLICY_AUTOMATIC);
 	gtk_widget_push_visual(gdk_rgb_get_visual());
-	gtk_widget_push_colormap(gdk_rgb_get_cmap());
-	canvas = glame_canvas_new(net);
+	gtk_widget_push_colormap((GdkColormap*)(gdk_rgb_get_cmap()));
+	canvas = GTK_WIDGET(glame_canvas_new(net));
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
 	//gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
@@ -468,16 +471,16 @@ glame_filtereditgui_new(filter_t *net)
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Register","Registers actual filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),glame_canvas_register_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Save","Saves Filternetwork","foo",
-				glame_load_icon_widget("save.png"),
+				glame_load_icon_widget("save.png",24,24),
 				glame_canvas_save_as_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Properties","Edit Filternetwork Properties","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_PROPERTIES),glame_canvas_property_dialog_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom in","Zooms in","foo",
-				glame_load_icon_widget("zoom_in.png"),
+				glame_load_icon_widget("zoom_in.png",24,24),
 				glame_canvas_zoom_in_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom out","Zooms out","foo",
-				glame_load_icon_widget("zoom_out.png"),
+				glame_load_icon_widget("zoom_out.png",24,24),
 				glame_canvas_zoom_out_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),glame_canvas_view_all_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
