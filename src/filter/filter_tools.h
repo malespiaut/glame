@@ -44,10 +44,20 @@ static inline short SAMPLE2SHORT(SAMPLE s)
 {
         return (short)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<15));
 }
+static inline unsigned short SAMPLE2USHORT(SAMPLE s)
+{	
+	s += 1.0;
+	return (unsigned short)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<15));
+}
 #define SHORT2SAMPLE(s) ((SAMPLE)s/(SAMPLE)(1<<15))
 static inline signed char SAMPLE2CHAR(SAMPLE s)
 {
         return (char)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<7));
+}
+static inline unsigned char SAMPLE2UCHAR(SAMPLE s)
+{
+	s += 1.0;
+	return (unsigned char)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<7));
 }
 #define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
 

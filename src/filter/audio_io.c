@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.32 2000/02/25 15:20:39 richi Exp $
+ * $Id: audio_io.c,v 1.33 2000/02/27 23:55:51 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -71,7 +71,8 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 {
 	filter_param_t *ratep;
 	filter_pipe_t *prev;
-	float phi = FILTER_PIPEPOS_CENTRE, rate = 44100;
+	float phi = FILTER_PIPEPOS_CENTRE;
+	int rate = 44100;
 
 	/* Limit to stereo capture */
 	if (filternode_nroutputs(src) > 1)
@@ -143,6 +144,195 @@ static int aio_generic_register_output(char *name, int (*f)(filter_node_t *))
 
 	return 0;
 }
+
+#ifdef HAVE_OSS
+#include <linux/soundcard.h>
+#include <linux/types.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
+/* FIXME: We're fucked up if a stale pipe is connected, i.e. when
+ * playing a mono file in a stereo setup. (This needs global fixing.)
+ * OSS returns the max number of hardware channels supported,
+ * must take care!
+ * Need to handle big endian machines.
+ */
+static int oss_audio_out_f(filter_node_t *n)
+{
+	typedef struct {
+		filter_pipe_t	*pipe;
+		filter_buffer_t *buf;
+		int		pos;
+		int		to_go;
+	} oss_audioparam_t;
+
+	oss_audioparam_t	*in = NULL;
+	__u8			*out = NULL;
+	filter_pipe_t		*p_in;
+	int			rate;
+	int			formats;
+	int			blksz, ssize = 0;
+
+	int	ch, max_ch, interleave, ch_active;
+	int	chunk_size;
+	int	i;
+
+	int	dev = -1;
+
+	max_ch = filternode_nrinputs(n);
+	if (!max_ch)
+		FILTER_ERROR_CLEANUP("No input channels given!");
+
+	/* The connect and fixup methods already make sure we have a 
+	 * common sample rate among all pipes. */
+	p_in = filternode_get_input(n, PORTNAME_IN);
+	rate = filterpipe_sample_rate(p_in);
+	if (rate <= 0)
+		FILTER_ERROR_CLEANUP("No valid sample rate given.");
+
+	in = (oss_audioparam_t *)malloc(max_ch * sizeof(oss_audioparam_t));
+	if (!in)
+		FILTER_ERROR_CLEANUP("Failed to alloc input structs.");
+
+	ch = 0;
+	do {
+		oss_audioparam_t *ap = &in[ch++];
+		ap->pipe = p_in;
+		ap->buf = NULL;
+		ap->pos = ap->to_go = 0;
+	} while ((p_in = filternode_next_input(p_in)));
+
+	/* Fix left/right mapping. Channel 0 goes left.
+	 * XXX: Is this correct? 
+	 */	
+	if (ch > 1)
+		if (filterpipe_sample_hangle(in[0].pipe) >
+		    filterpipe_sample_hangle(in[1].pipe)) {
+			filter_pipe_t *t = in[0].pipe;
+			in[0].pipe = in[1].pipe;
+			in[1].pipe = t;
+		}
+	
+	/* Ugly OSS ioctl() mess. Keep your eyes closed and proceed. */
+
+	dev = open("/dev/dsp", O_WRONLY);
+	if (dev == -1)
+		FILTER_ERROR_CLEANUP("Could not open audio device.");
+
+	if (ioctl(dev, SNDCTL_DSP_SPEED, &rate) == -1)
+		FILTER_ERROR_CLEANUP("Unsupported sample rate.");
+	DPRINTF("Hardware sample rate: %d.\n", rate);
+
+	if (ioctl(dev, SOUND_PCM_WRITE_CHANNELS, &ch) == -1)
+		FILTER_ERROR_CLEANUP("Unable to set number of channels.");
+	if (max_ch != ch) {
+		DPRINTF("Warning! %d channels connected but hardware supports only %d.\n", max_ch, ch);
+		max_ch = ch;
+	}
+
+	if (ioctl(dev, SNDCTL_DSP_GETFMTS, &formats) == -1)	
+		FILTER_ERROR_CLEANUP("Error querying available audio formats.\n");
+	/* FIXME: Big endian machines??? */
+	if (formats & AFMT_U16_LE) {
+		formats = AFMT_U16_LE;
+		ssize = 2;
+	} else if (formats & AFMT_U8) {
+		formats = AFMT_U8;	/* Must be supported */
+		ssize = 1;
+	} else 
+		PANIC("OSS implementation not to specs!");
+
+	if (ioctl(dev, SNDCTL_DSP_SETFMT, &formats) == -1)
+		FILTER_ERROR_CLEANUP("Unable to set sample format");
+
+	if (ioctl(dev, SNDCTL_DSP_GETBLKSIZE, &blksz) == -1)
+		FILTER_ERROR_CLEANUP("Couldn't query size of audio buffer.");
+	if (blksz <= 0)
+		PANIC("Illegal size of audio buffer!");
+
+	/* Allocate conversion buffer */
+	out = (__u8 *)malloc(blksz);
+	if (!out)
+		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
+	
+	interleave = max_ch * ssize; 
+
+	FILTER_AFTER_INIT;
+
+	ch_active = ch;
+	ch = 0;
+
+	goto _entry;
+
+	do {
+		for (i = 0; i < max_ch; i++) {
+			int done = 0;
+			if (!in[i].buf) {
+				if (ssize == 1) {
+					__u8 neutral = SAMPLE2UCHAR(0.0);
+					for (done = 0; done < chunk_size; done++)
+						*(out + done*interleave + i) =
+							neutral;
+				} else {
+					__u16 neutral = SAMPLE2USHORT(0.0);
+					for (done = 0; done < chunk_size; done++)
+						*(__u16 *)(out + done*interleave + 2*i) =
+							neutral;
+				}
+				continue;
+			}
+			if (ssize == 1) 
+				for (done = 0; done < chunk_size; done++)
+					*(out + done*interleave + i) =
+						SAMPLE2UCHAR(
+							sbuf_buf(in[i].buf)[in[i].pos+done]); 
+			else /* ssize == 2 */
+				for (done = 0; done < chunk_size; done++)
+					*(__u16 *)(out + done*interleave +  2*i) =
+						SAMPLE2USHORT(
+							sbuf_buf(in[i].buf)[in[i].pos+done]);
+
+			in[i].pos += done;
+			in[i].to_go -= done;
+		}
+		if (write(dev, out, chunk_size*interleave) == -1)
+			DERROR("Audio device had failure. Samples might be dropped\n");	
+	_entry:
+		chunk_size = blksz/interleave;
+
+		FILTER_CHECK_STOP;
+
+		do {
+			oss_audioparam_t *ap = &in[ch];
+			if (!ap->to_go) {
+				/* Fetch next buffer */
+				sbuf_unref(ap->buf);
+				ap->buf = sbuf_get(ap->pipe);
+				ap->to_go = sbuf_size(ap->buf);
+				ap->pos = 0;
+			}
+			if (!ap->buf) {
+				if (ap->pipe) {
+					ch_active--;
+					ap->pipe = NULL;
+					DPRINTF("Channel %d/%d stopped, %d active.\n", ch, max_ch, ch_active);
+				}
+				ap->to_go = blksz/interleave;
+			}
+			chunk_size = MIN(chunk_size, ap->to_go);
+		} while ((ch = ++ch % max_ch));
+	} while (ch_active);
+
+	FILTER_BEFORE_CLEANUP;
+	FILTER_BEFORE_STOPCLEANUP;
+
+	if (dev != -1)
+		close(dev);
+	free(out);
+	free(in);
+	FILTER_RETURN;
+}
+#endif
 
 
 /* esd is broken on IRIX. Let's have a go at native audio output 
@@ -578,17 +768,18 @@ int audio_io_register()
 	audio_out = audio_in = NULL;
 	
 #if defined HAVE_ESD
-	if(!aio_generic_register_output("esd_audio_out", esd_out_f)) 
+	if (!aio_generic_register_output("esd_audio_out", esd_out_f)) 
 		audio_out = esd_out_f;
-	if(!aio_generic_register_input("esd_audio_in", esd_in_f))
+	if (!aio_generic_register_input("esd_audio_in", esd_in_f))
 		audio_in = esd_in_f;
 #endif
 #if defined HAVE_SGIAUDIO
-	if(!aio_generic_register_output("sgi_audio_out", sgi_audio_out_f)) 
+	if (!aio_generic_register_output("sgi_audio_out", sgi_audio_out_f)) 
 		audio_out = sgi_audio_out_f;
 #endif
 #if defined HAVE_OSS
-	/* TODO */
+	if (!aio_generic_register_output("oss_audio_out", oss_audio_out_f))
+		audio_out = oss_audio_out_f;
 #endif
 #if defined HAVE_ALSA
 	/* TODO */
