@@ -315,7 +315,7 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	}
 
-	if (gpsm_op_undo_and_forget(item) == -1) {
+	if (gpsm_op_undo(item) == -1) {
 		DPRINTF("Error during undo for %p\n", item);
 		return;
 	}
@@ -324,7 +324,21 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Redo. */
 static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	/* FIXME */
+	GtkSwapfileBuffer *swapfile;
+	gpsm_item_t *item;
+
+	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
+	item = gtk_swapfile_buffer_get_item(swapfile);
+
+	if (!gpsm_op_can_redo(item)) {
+		DPRINTF("No redo for %p possible\n", item);
+		return;
+	}
+
+	if (gpsm_op_redo(item) == -1) {
+		DPRINTF("Error during redo for %p\n", item);
+		return;
+	}
 }
 
 
@@ -1005,6 +1019,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
+#define RMB_MENU_UNDO_INDEX 7
+#define RMB_MENU_REDO_INDEX 8
 #define RMB_MENU_APPLY_FILTER_INDEX 19
 
 
@@ -1038,6 +1054,7 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 {
 	GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
 	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	GtkWidget *menu;
 	GtkMenu *filter_menu;
   
@@ -1049,11 +1066,22 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 		DPRINTF("not editable\n");
 		return;
 	}
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 
+	/* Build the menu, fixup lots of stuff. */
 	menu = gnome_popup_menu_new(rmb_menu);
 	filter_menu = glame_gui_build_plugin_menu(choose_effects, apply_cb);
 	gtk_widget_show(GTK_WIDGET(filter_menu));
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[RMB_MENU_APPLY_FILTER_INDEX].widget), GTK_WIDGET(filter_menu));
+	if (gpsm_op_can_undo(gtk_swapfile_buffer_get_item(swapfile)))
+		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_UNDO_INDEX].widget, TRUE);
+	else
+		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_UNDO_INDEX].widget, FALSE);
+	if (gpsm_op_can_redo(gtk_swapfile_buffer_get_item(swapfile)))
+		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_REDO_INDEX].widget, TRUE);
+	else
+		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_REDO_INDEX].widget, FALSE);
+
 	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
