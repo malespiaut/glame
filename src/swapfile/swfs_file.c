@@ -186,6 +186,7 @@ static void file_put(struct swfile *f, int flags)
 			_file_writeclusters(f);
 		UNLOCKFILE(f);
 	}
+	file_check(f);
 }
 
 static struct swcluster *file_getcluster(struct swfile *f,
@@ -264,7 +265,6 @@ static struct swcluster *file_getcluster_private(struct swfile *f,
 		ctree_replace1(f->clusters, pos, cc->name, cc->size);
 		f->flags |= SWF_DIRTY;
 		cluster_delfileref(c, f->name);
-		_file_check(f);
 
 		/* Drop the original cluster, re-get the copied cluster
 		 * with right flags (and drop the reference from unshare). */
@@ -272,6 +272,7 @@ static struct swcluster *file_getcluster_private(struct swfile *f,
 		c = cluster_get(cc->name, flags, csize);
 		cluster_put(cc, 0);
 	}
+	_file_check(f);
 	UNLOCKFILE(f);
 
 	return c;
@@ -305,8 +306,8 @@ static int file_truncate(struct swfile *f, s64 size)
 			UNLOCKFILE(f);
 			return -1;
 		}
+		_file_check(f);
 		UNLOCKFILE(f);
-		file_check(f);
 		return 0;
 	}
 
@@ -322,14 +323,15 @@ static int file_truncate(struct swfile *f, s64 size)
 			if (!(c = cluster_get(CID(f->clusters, f->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(f->clusters, f->clusters->cnt-1))))
 				SWAPFILE_MARK_UNCLEAN("cannot get cluster");
 			/* Remove the cluster from the tree. */
-			ctree_remove(f->clusters, f->clusters->cnt-1,
-				     1, NULL, NULL);
-			f->flags |= SWF_DIRTY;
-			/* Delete the file reference. */
-			if (c && cluster_delfileref(c, f->name) == -1)
-				SWAPFILE_MARK_UNCLEAN("cannot delete fileref");
-			if (c)
+			if (c) {
+				ctree_remove(f->clusters, f->clusters->cnt-1,
+					     1, NULL, NULL);
+				f->flags |= SWF_DIRTY;
+				/* Delete the file reference. */
+				if (cluster_delfileref(c, f->name) == -1)
+					SWAPFILE_MARK_UNCLEAN("cannot delete fileref");
 				cluster_put(c, 0);
+			}
 		}
 
 		/* If necessary, split the last cluster and remove
@@ -340,8 +342,8 @@ static int file_truncate(struct swfile *f, s64 size)
 				- (f->clusters->size-size);
 			_file_cluster_truncatetail(f, cpos, csize);
 		}
+		_file_check(f);
 		UNLOCKFILE(f);
-		file_check(f);
 		return 0;
 	}
 	UNLOCKFILE(f);
@@ -407,12 +409,14 @@ static int file_insert(struct swfile *df, s64 dpos,
 			     sf, cpos_sfirst, cpos_slast-cpos_sfirst);
 
 	if (df != sf) {
+		_file_check(df);
+		_file_check(sf);
 		UNLOCKFILE(df);
 		UNLOCKFILE(sf);
-	} else
+	} else {
+		_file_check(df);
 		UNLOCKFILE(df);
-	file_check(df);
-	file_check(sf);
+	}
 
 	return 0;
 }
@@ -502,8 +506,8 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 	else
 		DERROR("Duh! Failed to handle case!?");
 
+	_file_check(f);
 	UNLOCKFILE(f);
-	file_check(f);
 
 	return 0;
 }
@@ -802,6 +806,7 @@ static int _file_grow(struct swfile *f, s64 delta)
 		cluster_put(c, 0);
 		delta -= size_goal;
 	}
+	_file_check(f);
 	return 0;
 }
 

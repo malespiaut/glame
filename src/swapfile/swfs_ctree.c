@@ -40,7 +40,11 @@ static void ctree_build_partial(struct ctree *t, long pos, long cnt);
         ctree_set_cnt(t, (t)->cnt); \
         ctree_build_partial(t, 0, (t)->cnt); \
 } while (0)
-
+#ifdef SWDEBUG
+#define ctree_check_dbg(t) do { if (ctree_check(t) == -1) SWPANIC("Corrupt ctree"); } while(0)
+#else
+#define ctree_check_dbg(t) do { } while (0)
+#endif
 
 
 static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
@@ -114,6 +118,8 @@ static void ctree_replace1(struct ctree *h, long pos,
 		pos = pos >> 1;
 		CSUM(h, height, pos) += delta;
 	}
+
+	ctree_check_dbg(h);
 }
 
 static void ctree_replace(struct ctree *h, long pos, long cnt,
@@ -125,6 +131,8 @@ static void ctree_replace(struct ctree *h, long pos, long cnt,
 
 	/* Rebuild partial tree. */
 	ctree_build_partial(h, pos, cnt);
+
+	ctree_check_dbg(h);
 }
 
 
@@ -191,6 +199,8 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 	else
 		ctree_build_partial(dest, pos, dest->cnt - pos);
 
+	ctree_check_dbg(h);
+
 	return dest;
 }
 
@@ -232,6 +242,8 @@ static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
 			pos--;
 	}
 	ctree_build_partial(h, pos, replcnt);
+
+	ctree_check_dbg(h);
 
 	return h;
 }

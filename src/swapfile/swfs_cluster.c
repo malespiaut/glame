@@ -867,8 +867,8 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 		snprintf(sd, 255, "%s/%lX/%lX", swap.clusters_data_base,
 			 name & 0xff, name >> 8);
 		if (stat(sd, &dstat) == -1) {
-			free(c);
 			pthread_mutex_destroy(&c->mx);
+			free(c);
 			return NULL;
 		}
 		known_size = dstat.st_size;
