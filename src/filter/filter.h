@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.58 2000/08/07 06:25:47 mag Exp $
+ * $Id: filter.h,v 1.59 2000/08/14 08:48:06 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -136,19 +136,16 @@ filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
 
 void filter_delete_port(filter_t *filter, filter_portdesc_t *port);
 
-/* Filter port declaration. Type is a mask actually which
- * should contain any allowed pipe types.
- */
-#define FILTER_PORTTYPE_AUTOMATIC 1
-#define FILTER_PORTTYPE_SAMPLE    4
-#define FILTER_PORTTYPE_RMS       8
-#define FILTER_PORTTYPE_MIDI      16
-#define FILTER_PORTTYPE_CONTROL   32
-#define FILTER_PORTTYPE_FFT	64
-#define FILTER_PORTTYPE_MISC    128
-#define FILTER_PORTTYPE_ANY     (4|8|16|32|64|128)
-#define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
-#define FILTER_PORT_IS_COMPATIBLE(porttype, pipetype) (((porttype) & (pipetype)) == (pipetype))
+/* Filter port declaration. Type denotes the allowed pipe
+ * type with FILTER_PORTTYPE_ANY is special in that it
+ * accepts all kind of pipes. */
+#define FILTER_PORTTYPE_ANY       0
+#define FILTER_PORTTYPE_SAMPLE    1
+#define FILTER_PORTTYPE_RMS       2
+#define FILTER_PORTTYPE_MIDI      3
+#define FILTER_PORTTYPE_CONTROL   4
+#define FILTER_PORTTYPE_FFT       5
+#define FILTER_PORTS_ARE_COMPATIBLE(port1type, port2type) (((port1type) == (port2type)) || ((port1type) == FILTER_PORTTYPE_ANY) || ((port2type) == FILTER_PORTTYPE_ANY))
 
 /* Public access macros for the filter_portdesc_t structure.
  */
@@ -355,13 +352,12 @@ do { \
  * instances of a filter. This is per filternode port
  * and depends on both filternode ports filter_portdesc.
  */
-#define FILTER_PIPETYPE_SAMPLE  FILTER_PORTTYPE_SAMPLE
-#define FILTER_PIPETYPE_RMS     FILTER_PORTTYPE_RMS
-#define FILTER_PIPETYPE_MIDI    FILTER_PORTTYPE_MIDI
-#define FILTER_PIPETYPE_CONTROL FILTER_PORTTYPE_CONTROL
-#define FILTER_PIPETYPE_MISC    FILTER_PORTTYPE_MISC
-#define FILTER_PIPETYPE_FFT	FILTER_PORTTYPE_FFT
-#define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
+#define FILTER_PIPETYPE_UNDEFINED FILTER_PORTTYPE_ANY
+#define FILTER_PIPETYPE_SAMPLE    FILTER_PORTTYPE_SAMPLE
+#define FILTER_PIPETYPE_RMS       FILTER_PORTTYPE_RMS
+#define FILTER_PIPETYPE_MIDI      FILTER_PORTTYPE_MIDI
+#define FILTER_PIPETYPE_CONTROL   FILTER_PORTTYPE_CONTROL
+#define FILTER_PIPETYPE_FFT       FILTER_PORTTYPE_FFT
 
 /* Common values for hangle value of a filter pipe
  */

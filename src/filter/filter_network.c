@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.52 2000/06/25 14:53:00 richi Exp $
+ * $Id: filter_network.c,v 1.53 2000/08/14 08:48:06 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -265,28 +265,22 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	    || !(in = filter_get_inputdesc(dest->filter, dest_port)))
 		return NULL;
 
-	/* are there already connections to the ports and do
-	 * they not have the AUTOMATIC flag set? */
-	if (!(FILTER_PORT_IS_AUTOMATIC(out->type))
-	    && filternode_get_output(source, out->label))
-	        return NULL;
-	if (!(FILTER_PORT_IS_AUTOMATIC(in->type))
-	    && filternode_get_input(dest, in->label))
-	        return NULL;
+	/* do we support the out/in port type combination? */
+	if (!FILTER_PORTS_ARE_COMPATIBLE(in->type, out->type))
+		goto _err;
 
+	/* Alloc the pipe. */
 	if (!(p = _pipe_alloc(out, in)))
 		return NULL;
 	p->in_name = in->label;
 	p->out_name = out->label;
 	p->source = source;
 	p->dest = dest;
+	p->type = in->type|out->type; /* Yes, this does work. */
+
+	/* Try to establish the connections. */
 	if (source->filter->connect_out(source, source_port, p) == -1)
 		goto _err;
-
-	/* do we support the requested pipe type? */
-	if (!FILTER_PORT_IS_COMPATIBLE(in->type, p->type))
-		goto _err;
-
 	if (dest->filter->connect_in(dest, dest_port, p) == -1)
 		goto _err;
 

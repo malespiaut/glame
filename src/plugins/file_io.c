@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.29 2000/08/07 06:25:48 mag Exp $
+ * $Id: file_io.c,v 1.30 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -304,6 +304,13 @@ static int write_file_f(filter_node_t *n)
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
+static int write_file_connect_in(filter_node_t *n, const char *port,
+				 filter_pipe_t *p)
+{
+	/* So why is there no write_file_connect_in?? Do we really
+	 * support any number of inputs? Seems all is _f() time... */
+	return 0;
+}
 static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
@@ -343,7 +350,7 @@ int read_file_register(plugin_t *pl)
 		return -1;
 
 	p = filter_add_output(f, PORTNAME_OUT, "output channels",
-			      FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC);
+			      FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_float(filterportdesc_pdb(p), "position", 
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
@@ -371,12 +378,13 @@ int write_file_register(plugin_t *pl)
 		return -1;
 
 	filter_add_input(f, PORTNAME_IN, "input channels",
-			 FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC);
+			 FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_string(filter_pdb(f), "filename",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
 
 	f->init = rw_file_init;
+	f->connect_in = write_file_connect_in;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  write_file_fixup_param, NULL);
 

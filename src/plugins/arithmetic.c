@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.5 2000/05/02 07:46:36 richi Exp $
+ * $Id: arithmetic.c,v 1.6 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -44,6 +44,13 @@ PLUGIN_SET(arithmetic, "add mul invert")
  * a volume-adjust with more features.
  */
 
+
+static int arithmetic_connect_in(filter_node_t *n, const char *port,
+				 filter_pipe_t *p)
+{
+	/* We support any number of inputs. */
+	return 0;
+}
 
 
 /* This filter can be used to multiply inputs after adding a
@@ -127,11 +134,11 @@ int mul_register(plugin_t *p)
 
 	if (!(f = filter_alloc(mul_f))
 	    || !(filter_add_input(f, PORTNAME_IN, "input streams",
-			    	  FILTER_PORTTYPE_SAMPLE
-				  |FILTER_PORTTYPE_AUTOMATIC))
+			    	  FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_output(f, PORTNAME_OUT, "output stream",
 				   FILTER_PORTTYPE_SAMPLE)))
 		return -1;
+	f->connect_in = arithmetic_connect_in;
 
 	filterpdb_add_param_float(filter_pdb(f), "add",
 				  FILTER_PARAMTYPE_FLOAT, 0.0,
@@ -231,11 +238,12 @@ int add_register(plugin_t *p)
 
 	if (!(f = filter_alloc(add_f))
 	    || !(filter_add_input(f, PORTNAME_IN, "input streams",
-			    	  FILTER_PORTTYPE_SAMPLE
-				  |FILTER_PORTTYPE_AUTOMATIC))
+			    	  FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_output(f, PORTNAME_OUT, "output stream",
 				   FILTER_PORTTYPE_SAMPLE)))
 		return -1;
+	f->connect_in = arithmetic_connect_in;
+
 	filterpdb_add_param_float(filter_pdb(f), "add",
 				  FILTER_PARAMTYPE_FLOAT, 0.0,
 				  FILTERPARAM_END);

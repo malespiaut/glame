@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.15 2000/05/02 07:46:36 richi Exp $
+ * $Id: basic_sample.c,v 1.16 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -441,6 +441,12 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	}
 	return 0;
 }
+static int mix_connect_in(filter_node_t *n, const char *port,
+			  filter_pipe_t *p)
+{
+	/* We accept any number of inputs. */
+	return 0;
+}
 static int mix_connect_out(filter_node_t *n, const char *port,
 			   filter_pipe_t *p)
 {
@@ -477,7 +483,7 @@ int mix_register(plugin_t *p)
 		return -1;
 
 	port = filter_add_input(f, PORTNAME_IN, "input stream",
-				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE);
+				FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "gain",
 				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "offset",
@@ -492,6 +498,7 @@ int mix_register(plugin_t *p)
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
 
+	f->connect_in = mix_connect_in;
 	f->connect_out = mix_connect_out;
 
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
@@ -513,7 +520,7 @@ int mix2_register(plugin_t *p)
 		return -1;
 
 	port = filter_add_input(f, PORTNAME_IN, "input stream",
-				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE);
+				FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "gain",
 				  FILTER_PARAMTYPE_FLOAT, 1.0, FILTERPARAM_END);
 	filterpdb_add_param_float(filterportdesc_pdb(port), "offset",
@@ -528,6 +535,7 @@ int mix2_register(plugin_t *p)
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
 
+	f->connect_in = mix_connect_in;
 	f->connect_out = mix_connect_out;
 
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,

@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.19 2000/05/19 09:27:34 richi Exp $
+ * $Id: filter_methods.c,v 1.20 2000/08/14 08:48:06 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -76,21 +76,29 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 int filter_default_connect_out(filter_node_t *n, const char *port,
 			       filter_pipe_t *p)
 {
-	filter_pipe_t *in;
-	int t;
+	filter_pipe_t *in = NULL;
 
-	/* fill in a sane pipe type - check for possible match */
-	t = (p->source_port->type & p->dest_port->type) & ~FILTER_PORTTYPE_AUTOMATIC;
-	if (!t)
-	        return -1;
-	p->type = 1<<(ffs(t)-1);
-	/* a source port has to provide pipe data info.
-	 * we copy from the first input port if any. 
-	 */
-	if ((in = filternode_first_input(n))) {
+	/* As with default connect in method, we accept one
+	 * connection only in this "default" mode. */
+	if (filternode_get_output(n, port))
+		return -1;
+
+	/* For the following stuff we need an existing input pipe
+	 * with a valid type. */
+	filternode_foreach_input(n, in)
+		if (in->type != FILTER_PIPETYPE_UNDEFINED)
+			goto found;
+	return 0;
+
+ found:
+	/* If we dont have a pipe type already (still 0), try to guess
+	 * one from the existing input. */
+	if (p->type == FILTER_PIPETYPE_UNDEFINED)
 		p->type = in->type;
-		p->u = in->u;
-	}
+
+	/* A source port has to provide pipe data info,
+	 * we copy from the existing input. */
+	p->u = in->u;
 
 	return 0;
 }
@@ -99,8 +107,11 @@ int filter_default_connect_in(filter_node_t *n, const char *port,
 			      filter_pipe_t *p)
 {
         /* We accept everything. Default checks are done by the
-	 * filternetwork_add_conection function.
-         */
+	 * filternetwork_add_conection function. But as all
+	 * ports are now "automatic" we as default do accept one
+	 * connection only. */
+	if (filternode_get_input(n, port))
+		return -1;
 
 	/* As this is an unmanaged connection, we have to provide
 	 * a default handler for the GLSIG_PIPE_CHANGED signal,

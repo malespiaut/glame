@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.9 2000/05/01 11:09:04 richi Exp $
+ * $Id: basic.c,v 1.10 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -98,15 +98,22 @@ static int drop_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
+static int drop_connect_in(filter_node_t *n, const char *port,
+			   filter_pipe_t *p)
+{
+	/* We accept n connections. */
+	return 0;
+}
+
 int drop_register(plugin_t *p)
 {
 	filter_t *f;
 
 	if (!(f = filter_alloc(drop_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY))
+				 FILTER_PORTTYPE_ANY))
 		return -1;
-
+	f->connect_in = drop_connect_in;
 	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "dumpster.xpm");
 	filter_attach(f, p);
@@ -235,6 +242,19 @@ static int one2n_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
+static int one2n_connect_out(filter_node_t *n, const char *port,
+			     filter_pipe_t *p)
+{
+	filter_pipe_t *in;
+
+	/* We accept any number of outputs. */
+	if ((in = filternode_get_input(n, PORTNAME_IN))) {
+		p->type = in->type;
+		p->u = in->u;
+	}
+	return 0;
+}
+
 int one2n_register(plugin_t *p)
 {
 	filter_t *f;
@@ -242,8 +262,9 @@ int one2n_register(plugin_t *p)
 	if (!(f = filter_alloc(one2n_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_ANY)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY))
+				  FILTER_PORTTYPE_ANY))
 		return -1;
+	f->connect_out = one2n_connect_out;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
 	plugin_set(p, PLUGIN_PIXMAP, "default.png");

@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.22 2000/05/16 12:03:58 nold Exp $
+ * $Id: audio_io.c,v 1.23 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -181,8 +181,7 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 		return -1;
 
 	p = filter_add_output(filter, PORTNAME_OUT, "output port",
-			      FILTER_PORTTYPE_SAMPLE |
-			      FILTER_PORTTYPE_AUTOMATIC);
+			      FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_float(filterportdesc_pdb(p), "position",
 				  FILTER_PARAMTYPE_POSITION,
 				  FILTER_PIPEPOS_DEFAULT, FILTERPARAM_END);
@@ -221,8 +220,7 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 		return -1;
 
 	filter_add_input(filter, PORTNAME_IN, "input port",
-			 FILTER_PORTTYPE_SAMPLE | 
-			 FILTER_PORTTYPE_AUTOMATIC);
+			 FILTER_PORTTYPE_SAMPLE);
 	filterpdb_add_param_string(filter_pdb(filter), "device",
 				   FILTER_PARAMTYPE_STRING, defaultdevice,
 				   FILTERPARAM_END);

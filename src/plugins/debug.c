@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.5 2000/05/02 07:46:36 richi Exp $
+ * $Id: debug.c,v 1.6 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -62,20 +62,20 @@ static int ping(filter_node_t *n)
 		usleep(dt*1000);
 
 		/* create new buffer */
-		out = fbuf_alloc(size, &n->net->nodes);
+		out = sbuf_alloc(size, n);
 
 		gettimeofday(&start, NULL);
 
 		/* queue buffer */
-		fbuf_queue(o, out);
+		sbuf_queue(o, out);
 
 		/* get input buffer (blocks) */
-		in = fbuf_get(i);
+		in = sbuf_get(i);
 
 		gettimeofday(&end, NULL);
 
 		/* free the buffer */
-		fbuf_unref(in);
+		sbuf_unref(in);
 		
 		time = ((end.tv_sec - start.tv_sec)*1000000
 			+ (end.tv_usec - start.tv_usec));
@@ -85,10 +85,10 @@ static int ping(filter_node_t *n)
 	}
 
 	/* send an EOF */
-	fbuf_queue(o, NULL);
+	sbuf_queue(o, NULL);
 
 	/* wait for EOF passed through */
-	in = fbuf_get(i);
+	in = sbuf_get(i);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
@@ -102,9 +102,9 @@ int ping_register(plugin_t *p)
 
 	if (!(f = filter_alloc(ping))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_MISC)
+				 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_MISC))
+				  FILTER_PORTTYPE_SAMPLE))
 		return -1;
 
 	filterpdb_add_param_int(filter_pdb(f), "cnt",

@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.4 2000/05/02 09:10:18 richi Exp $
+ * $Id: pipe.c,v 1.5 2000/08/14 08:48:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -129,7 +129,7 @@ int pipe_in_register(plugin_t *p)
 
 	if (!(f = filter_alloc(pipe_f))
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
+				  FILTER_PORTTYPE_SAMPLE))
 		return -1;
 
 	filterpdb_add_param_string(filter_pdb(f), "cmd", 
