@@ -1,4 +1,4 @@
-# $Id: glame.spec,v 1.4 2001/05/17 09:13:39 nold Exp $
+# $Id: glame.spec,v 1.5 2001/07/03 14:42:35 nold Exp $
 # RPM spec file for GLAME.
 #
 # This file is adapted from the Mandrake spec for their GLAME rpms.
@@ -6,7 +6,7 @@
 # Renaud Chaillat <rchaillat@mandrakesoft.com>.
 #
 %define name glame
-%define version   0.5.0CVS
+%define version   0.5.1
 %define release   3
 
 Summary:   A sound editor and synthesis tool
@@ -59,6 +59,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_infodir}/glame*
 
 %changelog
+* Tue Jul 03 2001 Daniel Kobras <kobras@linux.de> 0.5.1
+
+- New upstream version.
+
 * Thu May 17 2001 Daniel Kobras <kobras@linux.de> 0.5.0CVS-3
 
 - Better fix for /usr/info/dir issue, kudos to Pavel Polischouk.

@@ -1,3 +1,9 @@
+glame (0.5.1-1) unstable; urgency=low
+
+  * New upstream version. (Just a dummy entry for DIY, no upload.)
+
+ -- Daniel Kobras <kobras@debian.org>  Tue,  3 Jul 2001 16:40:24 +0200
+
 glame (0.4.2-1) unstable; urgency=low
 
   * New upstream version. Includes LGPL'ed version of ladspa.h.
