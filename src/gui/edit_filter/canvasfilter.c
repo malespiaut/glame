@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.15 2001/06/06 15:12:36 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.16 2001/06/06 22:50:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -274,8 +274,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 							  NULL));
 	gGroup = GNOME_CANVAS_GROUP(gItem);
 	gItem->filter = filter;
-
-	
+	gItem->defaultGroup = glameGroup;
 
 	buffer = filter_get_property(filter,"canvas_x");
 	if(buffer)
@@ -438,11 +437,11 @@ glame_canvas_filter_move(GlameCanvasFilter *filter,
 	/* don't recurse! */
 	if(gtk_signal_n_emissions_by_name(GTO(filter),"moved"))
 		return;
-	gnome_canvas_item_move(GNOME_CANVAS_ITEM(filter),
-			       dx,dy);
 
 	gtk_signal_emit_by_name(GTK_OBJECT(filter),"moved",
 				dx,dy);
+	gnome_canvas_item_move(GNOME_CANVAS_ITEM(filter),
+			       dx,dy);
 
 	sprintf(buffer,"%f",GNOME_CANVAS_ITEM(filter)->x1);
 	filter_set_property(filter->filter,
@@ -961,20 +960,45 @@ static void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 	}
 }
 
+
+static void glame_canvas_filter_do_select_item(GlameCanvasFilter* filter)
+{
+	GlameCanvas* canvas = CANVAS_ITEM_GLAME_CANVAS(filter);
+	GList* list = g_list_first(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent)->children);
+	while(list){
+		glame_canvas_select_add(canvas,GLAME_CANVAS_FILTER(list->data));
+		list = g_list_next(list);
+	}
+}
+
+static void glame_canvas_filter_do_unselect_item(GlameCanvasFilter* filter)
+{
+	GlameCanvas* canvas = CANVAS_ITEM_GLAME_CANVAS(filter);
+	GList* list = g_list_first(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent)->children);
+	while(list){
+		glame_canvas_select_unselect(canvas,GLAME_CANVAS_FILTER(list->data));
+		list = g_list_next(list);
+	}
+}
+
+
+
 static void glame_canvas_filter_do_select(GlameCanvasFilter* filter, GdkEvent* event)
 {
 	/* check for modifiers */
 	if((GDK_SHIFT_MASK&event->button.state)||(GDK_CONTROL_MASK&event->button.state)){
 		if(filter->selected)
-			glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+			glame_canvas_filter_do_unselect_item(filter);
 		else
-			glame_canvas_select_add(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+			glame_canvas_filter_do_select_item(filter);
 		return;
 	}
 	if(filter->selected)
-		glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
-	else
-		glame_canvas_select_exclusive(CANVAS_ITEM_GLAME_CANVAS(filter),filter);
+		glame_canvas_filter_do_unselect_item(filter);
+	else{
+		glame_canvas_select_clear(CANVAS_ITEM_GLAME_CANVAS(filter));
+		glame_canvas_filter_do_select_item(filter);
+	}
 }
 
 

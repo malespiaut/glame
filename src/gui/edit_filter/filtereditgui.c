@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.15 2001/06/06 15:12:36 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.16 2001/06/06 22:50:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -365,6 +365,7 @@ glame_filtereditgui_install_accels(GtkWidget* window)
 	glame_accel_add("filteredit/10-minus", "(editfilter-zoom-out)");
 	glame_accel_add("filteredit/10-bracketleft", "(editfilter-zoom-out 4.0)");
 	glame_accel_add("filteredit/10-d","(editfilter-delete-selection)");
+	glame_accel_add("filteredit/10-g","(editfilter-group-selection)");
 }
 
 
@@ -396,9 +397,9 @@ static SCM gls_editfilter_view_all()
 	return SCM_UNSPECIFIED;
 }
 
-static SCM gls_editfilter_delete_selection(void)
+static SCM gls_editfilter_delete_selection(SCM list)
 {
-	/* FIXME hack for now. make more generic */
+
 	GList *iter;
 	iter = g_list_first(glcanvas->selectedItems);
 	while(iter){
@@ -411,6 +412,25 @@ static SCM gls_editfilter_delete_selection(void)
 }
 	
 
+static SCM gls_editfilter_selected_items()
+{
+	GList *selected;
+	SCM s_items = SCM_LIST0;
+	selected = g_list_first(glcanvas->selectedItems);
+	while(selected){
+		GlameCanvasFilter *filter = GLAME_CANVAS_FILTER(selected->data);
+		s_items = gh_cons(gh_long2scm((long)filter),s_items);
+		selected = g_list_next(selected);
+	}
+	return s_items;
+}
+
+static SCM gls_editfilter_group_selected()
+{
+	DPRINTF("foo\n");
+	glame_canvas_group_selected(glcanvas);
+	return SCM_UNSPECIFIED;
+}
 void
 glame_filtereditgui_init(void)
 {
@@ -422,7 +442,10 @@ glame_filtereditgui_init(void)
 			    gls_editfilter_zoom_out);
 	gh_new_procedure0_0("editfilter-delete-selection",
 			    gls_editfilter_delete_selection);
-	
+	gh_new_procedure0_0("editfilter-get-selection",
+			    gls_editfilter_selected_items);
+	gh_new_procedure0_0("editfilter-group-selection",
+			    gls_editfilter_group_selected);
 }
 	
 
