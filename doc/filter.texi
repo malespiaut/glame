@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.4 2000/02/08 15:00:10 nold Exp $
+@comment $Id: filter.texi,v 1.5 2000/02/10 14:50:52 nold Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -145,14 +145,24 @@ argument. Else you will get the next registered filter or @code{NULL}
 if there are no more filters left.
 @end deftypefun
 
+To access information contained in the filter_t structure use the following
+macros.
+
+@deftypefun {const char *} filter_name (filter_t *@var{f})
+@deftypefunx {const char *} filter_description (filter_t *@var{f})
+@deftypefunx int filter_nrparams (filter_t *@var{f})
+@deftypefunx int filter_nrinputs (filter_t *@var{f})
+@deftypefunx int filter_nroutputs (filter_t *@var{f})
+These macros return information about the filters name, its short
+description and the number of parameters and input and output ports.
+@end deftypefun
+
+
 @node Getting Filter Info, , Finding Filters, The Filter Registry API
 @subsection Getting Filter Info
 
 To query information about an existing filter like available parameters, output
-or input ports the following functions can be used. Additional information,
-especially the information returned by the functions is contained in the
-@file{filter.h} headerfile. You may look at the structures @code{filter_paramdesc_t} 
-and @code{filter_portdesc_t}, also @code{filter_t} provides information. 
+or input ports the following functions can be used.
 @emph{Remember that any structures returned by this functions are strictly read-only.}
 
 @tindex filter_portdesc_t
@@ -172,17 +182,36 @@ name does not exist.
 
 @tindex filter_portdesc_t
 @tindex filter_t
-@deftypefn Macro {} list_foreach_inputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
+@deftypefn Iterator {} list_foreach_inputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
 @tindex filter_portdesc_t
 @tindex filter_t
-@deftypefnx Macro {} list_foreach_outputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
+@deftypefnx Iterator {} list_foreach_outputdesc (filter_t *@var{f}, filter_portdesc_t *@var{d}) @{ @}
 @tindex filter_paramdesc_t
 @tindex filter_t
-@deftypefnx Macro {} list_foreach_paramdesc (filter_t *@var{f}, filter_paramdesc_t *@var{d}) @{ @}
+@deftypefnx Iterator {} list_foreach_paramdesc (filter_t *@var{f}, filter_paramdesc_t *@var{d}) @{ @}
 All these macros are @code{for} statement-like constructs which loop
 through all available input port, output port or parameter descriptions
 of a filter using the provided variable @var{d}.
 @end deftypefn
+
+To access the various fields of the port and parameter description structures
+the following macros should be used.
+
+@deftypefun {const char *} filterparamdesc_label (filter_paramdesc_t *@var{d})
+@deftypefunx {const char *} filterportdesc_label (filter_portdesc_t *@var{d})
+Both macros return the label of the parameter or the port.
+@end deftypefun
+
+@deftypefun {const char *} filterparamdesc_description (filter_paramdesc_t *@var{d})
+@deftypefunx {const char *} filterportdesc_description (filter_portdesc_t *@var{d})
+Both macros return the description of the parameter or the port.
+@end deftypefun
+
+@deftypefun int filterparamdesc_type (filter_paramdesc_t *@var{d})
+@deftypefunx int filterportdesc_type (filter_portdesc_t *@var{d})
+Both macros return the type of the parameter or the port.
+@end deftypefun
+
 
 @node The Filter Programming API, The Filter Network API,The Filter Registry API, Filter API
 @section The Filter Programming API
@@ -198,6 +227,7 @@ they are used by the filter network API.
 * Accessing Filter Ports and Parameters::
 * Doing Real Work::
 * Examples::
+* Working on SAMPLEs::
 @end menu
 
 @node Filter Methods, Accessing Filter Ports and Parameters, , The Filter Programming API
@@ -289,6 +319,15 @@ As important as the semantics of the filters methods are the functions through
 which a filter can access its connected ports and its parameters. The
 description of these functions will follow.
 
+@deftypefun {const char *} filternode_name (filter_node_t *@var{n})
+@deftypefunx int filternode_nrparams (filter_node_t *@var{n})
+@deftypefunx int filternode_nrinputs (filter_node_t *@var{n})
+@deftypefunx int filternode_nroutputs (filter_node_t *@var{n})
+These macros return the name of the filter node, the number of set
+parameters, and the number of connections on the input and output ports
+respectively.
+@end deftypefun
+
 @tindex filter_pipe_t
 @tindex filter_node_t
 @deftypefun {filter_pipe_t *} hash_find_input (const char *@var{label}, filter_node_t *@var{n})
@@ -306,9 +345,9 @@ such set parameter. For a description of the returned structures see
 @end deftypefun
 
 @tindex filter_pipe_t
-@deftypefun {filter_pipe_t *} hash_next_input (filter_pipe_t *@var{n})
+@deftypefun {filter_pipe_t *} hash_next_input (filter_pipe_t *@var{p})
 @tindex filter_pipe_t
-@deftypefunx {filter_pipe_t *} hash_next_output (filter_pipe_t *@var{n})
+@deftypefunx {filter_pipe_t *} hash_next_output (filter_pipe_t *@var{p})
 These functions will return the next connection on the same port where
 the first connection on the port was accessed using the above
 functions. This is useful for ports with the @code{FILTER_PORTTYPE_AUTOMATIC}
@@ -317,16 +356,53 @@ flag set only.
 
 @tindex filter_node_t
 @tindex filter_pipe_t
-@deftypefn Macro {} list_foreach_input (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
+@deftypefn Iterator {} list_foreach_input (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
 @tindex filter_node_t
 @tindex filter_pipe_t
-@deftypefnx Macro {} list_foreach_output (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
+@deftypefnx Iterator {} list_foreach_output (filter_node_t *@var{n}, filter_pipe_t *@var{p}) @{ @}
 These programming structures loop through all connected inputs or
 outputs. This is useful for filters with only one input or output port
 which additionally is of the type @code{FILTER_PORTTYPE_AUTOMATIC}. It acts
 like the @code{for} construct, i.e. the parameter @var{p} is assigned 
 the input or output pipe on each loop iteration.
 @end deftypefn
+
+@tindex filter_pipe_t
+@tindex filter_param_t
+To access information in the @code{filter_pipe_t} and 
+@code{filter_param_t} structures
+you should use the following macros:
+
+@deftypefun int filterparam_val_int (filter_param_t *@var{p})
+@deftypefunx float filterparam_val_float (filter_param_t *@var{p})
+@deftypefunx fileid_t filterparam_val_file (filter_param_t *@var{p})
+@deftypefunx SAMPLE filterparam_val_sample (filter_param_t *@var{p})
+@deftypefunx {char *} filterparam_val_string (filter_param_t *@var{p})
+These macros return the value of the parameter. You should use the macro
+which corresponds to the parameter type (which you should know anyway).
+@end deftypefun
+
+@deftypefun int filterpipe_type (filter_pipe_t *@var{p})
+@deftypefunx int filterpipe_sample_rate (filter_pipe_t *@var{p})
+@code{filterpipe_type} allows you to query the type of the pipe. 
+With the appropriate
+type specific function you can get access to the type specific parameters of
+the pipe.
+@end deftypefun
+
+@findex connect_out
+@findex fixup_param
+To initialize the pipe inside the @code{connect_out()} or the 
+@code{fixup_param()} method you
+should use one of the following boilerplate functions:
+
+@deftypefun void filterpipe_settype_sample (filter_pipe_t *@var{p}, int @var{rate})
+@tindex FILTER_PIPETYPE_SAMPLE
+This sets the pipe type to @code{FILTER_PIPETYPE_SAMPLE} and 
+initializes the type
+specific @code{rate} field to the value provided.
+@end deftypefun
+
 
 @node Doing Real Work, Examples, Accessing Filter Ports and Parameters, The Filter Programming API
 @subsection Doing Real Work
@@ -384,13 +460,9 @@ following functions which are actually very fast macros:
 @code{fbuf_size()} returns 0 if @var{fb} is @code{NULL}.
 @end deftypefun
 
-@tindex SAMPLE
 @tindex filter_buffer_t
-@deftypefun {SAMPLE *} fbuf_buf (filter_buffer_t *@var{fb})
-@code{fbuf_buf()} returns a pointer to the buffer contents. You may safely
-assume that buffer access via @code{fbuf_buf(@var{fb})[@var{pos}]} is fast. You may
-want to cast the return type to the actual atom type in the buffer,
-@code{SAMPLE} is just a common default.
+@deftypefun {char *} fbuf_buf (filter_buffer_t *@var{fb})
+@code{fbuf_buf()} returns a pointer to the buffer contents.
 @end deftypefun
 
 If you want to modify a buffer directly rather than reading from a received one
@@ -417,8 +489,11 @@ One reference gets eaten by this operation. @code{fbuf_queue()} copes with
 a @code{NULL} @var{p} by unref'ing @var{fb}.
 @end deftypefun
 
+For extended protocols on top of the @code{fbuf} API you may look into 
+@xref{Working on SAMPLEs}.
 
-@node Examples, , Doing Real Work, The Filter Programming API
+
+@node Examples, Working on SAMPLEs, Doing Real Work, The Filter Programming API
 @subsection Examples
 
 To clarify the reference counting and locking issues, in the following several
@@ -429,8 +504,8 @@ Valid just-forward buffers from input to output:
 @group
 @findex fbuf_get
 @findex fbuf_queue
-@var{buf} = fbuf_get(@var{in});
-fbuf_queue(@var{out}, @var{buf});
+buf = fbuf_get(in);
+fbuf_queue(out, buf);
 @end group
 @end example
 @noindent
@@ -442,9 +517,9 @@ Invalid attempt to forward a buffer to two outputs:
 @group
 @findex fbuf_get
 @findex fbuf_queue
-@var{buf} = fbuf_get(@var{in});
-fbuf_queue(@var{out1}, @var{buf});
-fbuf_queue(@var{out2}, @var{buf});
+buf = fbuf_get(in);
+fbuf_queue(out1, buf);
+fbuf_queue(out2, buf);
 @end group
 @end example
 @noindent
@@ -459,10 +534,10 @@ Valid but possibly ineffective just-forwarding:
 @findex fbuf_ref
 @findex fbuf_queue
 @findex fbuf_unref
-@var{buf} = fbuf_get(@var{in});
-fbuf_ref(@var{buf});
-fbuf_queue(@var{out}, @var{buf});
-fbuf_unref(@var{buf});
+buf = fbuf_get(in);
+fbuf_ref(buf);
+fbuf_queue(out, buf);
+fbuf_unref(buf);
 @end group
 @end example
 @noindent
@@ -481,11 +556,11 @@ Invalid modifying and forwarding of a buffer:
 @findex fbuf_buf
 @findex fbuf_unref
 @findex fbuf_queue
-@var{buf} = fbuf_get(@var{in});
-fbuf_ref(@var{buf});
-fbuf_buf(@var{buf})[0] = 1;
-fbuf_unref(@var{buf});
-fbuf_queue(@var{out}, @var{buf});
+buf = fbuf_get(in);
+fbuf_ref(buf);
+fbuf_buf(buf)[0] = 1;
+fbuf_unref(buf);
+fbuf_queue(out, buf);
 @end group
 @end example
 @noindent
@@ -500,12 +575,36 @@ The correct solution is to do:
 @findex fbuf_make_private
 @findex fbuf_buf
 @findex fbuf_queue
-@var{buf} = fbuf_get(@var{in});
-@var{buf} = fbuf_make_private(@var{buf});
-fbuf_buf(@var{buf})[0] = 1;
-fbuf_queue(@var{out}, @var{buf});
+buf = fbuf_get(in);
+buf = fbuf_make_private(buf);
+fbuf_buf(buf)[0] = 1;
+fbuf_queue(out, buf);
 @end group
 @end example
+
+@node Working on SAMPLEs, , Examples, The Filter Programming API
+@subsection Working on SAMPLEs
+
+There is one extended protocol defined at the moment. This is the sbuf
+protocol which is just a very simple @code{SAMPLE}-only 
+transportation protocol with no fields in the header actually used. 
+So only the functions with parameters or semantics different from their
+@code{fbuf_*} equivalents are listed here. As for the rest, you may assume that
+wrappers exist with the appropriate @code{sbuf_*} name but the same parameters
+and semantics as described in the @code{fbuf_*} sections.
+
+@deftypefun {filter_buffer_t *} sbuf_alloc (int @var{size}, filter_node_t *@var{n})
+@code{sbuf_alloc()} allocates a new buffer containing space for @var{size}
+numbers
+of @code{SAMPLE}s and assigns the buffer to the filter node @var{n}.
+@end deftypefun
+@deftypefun int sbuf_size (filter_buffer_t *@var{fb})
+@code{sbuf_size()} returns the size of the buffer as number of @code{SAMPLE}s.
+@end deftypefun
+@deftypefun {SAMPLE *} sbuf_buf (filter_buffer_t *@var{fb})
+@code{sbuf_buf()} returns a pointer to this buffer.
+@end deftypefun
+
 
 @node The Filter Network API, , The Filter Programming API, Filter API
 @section The Filter Network API

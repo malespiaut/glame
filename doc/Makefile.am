@@ -4,9 +4,7 @@ info_TEXINFOS = glame.texi
 glame_TEXINFOS = filter.texi filter-tutorial.texi swapfile.texi \
                  plugin.texi
 
-SUFFIXES = .html
-
-.texi.html:	
+%.html:	%.texi	
 	@cd @srcdir@ && rm -f $@
 	cd @srcdir@ && $(MAKEINFO) --html $<
 

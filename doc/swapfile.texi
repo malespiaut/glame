@@ -1,4 +1,4 @@
-@comment $Id: swapfile.texi,v 1.4 2000/02/08 15:00:10 nold Exp $
+@comment $Id: swapfile.texi,v 1.5 2000/02/10 14:50:52 nold Exp $
 
 @node Swapfile API, Plugin Interface, Filter Tutorial, Top
 @chapter Swapfile API
@@ -184,18 +184,18 @@ of the file or an unexisting one, @code{NULL} is returned in these cases.
 
 @tindex off_t
 @tindex filecluster_t
-@deftypefn Macro off_t filecluster_start (filecluster_t *@var{fc})
-@deftypefnx Macro off_t filecluster_end (filecluster_t *@var{fc})
-@deftypefnx Macro off_t filecluster_size (filecluster_t *@var{fc})
+@deftypefun off_t filecluster_start (filecluster_t *@var{fc})
+@deftypefunx off_t filecluster_end (filecluster_t *@var{fc})
+@deftypefunx off_t filecluster_size (filecluster_t *@var{fc})
 
 @code{filecluster_start()} returns the position of the first contained datum,
 @code{filecluster_end()} returns the position of the last contained datum and
 @code{filecluster_size()} will return the size of the contained data in bytes.
-@end deftypefn
+@end deftypefun
 
 @tindex filecluster_t
-@deftypefn Macro {filecluster_t *} filecluster_next (filecluster_t *@var{fc})
-@deftypefnx Macro {filecluster_t *} filecluster_prev (filecluster_t *@var{fc})
+@deftypefun {filecluster_t *} filecluster_next (filecluster_t *@var{fc})
+@deftypefunx {filecluster_t *} filecluster_prev (filecluster_t *@var{fc})
 
 @code{filecluster_next()} and @code{filecluster_prev()} let you traverse the 
 fileclusters of a file. Both may return @code{NULL} if you hit the start or 
@@ -205,7 +205,7 @@ file satisfies
 @code{filecluster_end(@var{fc}) == file_size(@var{fid})} and each pair of adjacent
 fileclusters satisfies 
 @code{filecluster_end(@var{prev})+1 == filecluster_start(@var{next})}.
-@end deftypefn
+@end deftypefun
 
 @tindex filecluster_t
 @deftypefun {char *} filecluster_mmap (filecluster_t *@var{fc})
@@ -223,12 +223,12 @@ you may have to do
 
 @example
 @group
-@var{fc} = filecluster_get(@var{f}, @var{pos});
-@var{mem} = filecluster_mmap(@var{fc});
-while (@var{pos} > filecluster_end(@var{fc})) @{
-        filecluster_munmap(@var{fc});
-        @var{fc} = filecluster_next(@var{fc});
-        @var{mem} = filecluster_mmap(@var{fc});
+fc = filecluster_get(f, pos);
+mem = filecluster_mmap(fc);
+while (pos > filecluster_end(fc)) @{
+        filecluster_munmap(fc);
+        fc = filecluster_next(fc);
+        mem = filecluster_mmap(fc);
 @}
 @end group
 @end example 
