@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.25 2001/04/11 08:37:27 richi Exp $
+ * $Id: basic_sample.c,v 1.26 2001/04/18 09:14:16 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -344,17 +344,20 @@ static int mix(filter_t *n, int drop)
 			case 1:
 				glsimd.scalar_product_1d(s, icnt,
 							 p[j[0]].s, p[j[0]].factor);
+				s += icnt;
 				break;
      			case 2:
 				glsimd.scalar_product_2d(s, icnt,
 							 p[j[0]].s, p[j[0]].factor,
 							 p[j[1]].s, p[j[1]].factor);
+				s += icnt;
 				break;
 			case 3:
 				glsimd.scalar_product_3d(s, icnt,
 							 p[j[0]].s, p[j[0]].factor,
 							 p[j[1]].s, p[j[1]].factor,
 							 p[j[2]].s, p[j[2]].factor);
+				s += icnt;
 				break;
 			default:
 				for (; icnt>0; icnt--) {
