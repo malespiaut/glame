@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.6 2001/07/10 12:00:36 richi Exp $
+ * $Id: filtereditgui.h,v 1.7 2001/11/04 15:00:08 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -28,6 +28,35 @@
 #include <gnome.h>
 #include "edit_filter/glamecanvas.h"
 #include "edit_filter/canvasitem.h"
+#include "filter.h"
+
+
+struct _FiltereditGuiClass;
+struct _FiltereditGui;
+typedef struct _FiltereditGuiClass FiltereditGuiClass;
+typedef struct _FiltereditGui FiltereditGui;
+
+#define FILTEREDIT_GUI_TYPE (filteredit_gui_get_type())
+#define FILTEREDIT_GUI(object) (GTK_CHECK_CAST((object), FILTEREDIT_GUI_TYPE, FiltereditGui))
+#define FILTEREDIT_GUI_CLASS(object) (GTK_CHECK_CLASS_CAST((object), FILTEREDIT_GUI_TYPE, FiltereditGuiClass))
+#define IS_FILTEREDIT_GUI(object) (GTK_CHECK_TYPE((object), FILTEREDIT_GUI_TYPE))
+#define IS_FILTEREDIT_GUI_CLASS(object) (GTK_CHECK_CLASS_TYPE((object), FILTEREDIT_GUI_TYPE))
+#define FILTEREDIT_GUI_GET_CLASS(object) ((FiltereditGuiClass*) (((GtkObject*) (obj))->klass))
+
+struct _FiltereditGuiClass {
+	GnomeAppClass parent_class;
+
+};
+
+struct _FiltereditGui {
+	GnomeApp parent_object;
+
+	GlameCanvas *canvas;
+	GtkToolbar *toolbar;
+
+	int pm_playing;
+};
+
 
 
 GtkWidget *glame_filtereditgui_new(filter_t *net, gboolean protected);

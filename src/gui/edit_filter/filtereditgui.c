@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.32 2001/10/29 22:36:35 richi Exp $
+ * $Id: filtereditgui.c,v 1.33 2001/11/04 15:00:08 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -49,7 +49,8 @@ static GlameCanvas *glcanvas;
 /* callbacks */
 
 
-void glame_canvas_execute_cb(GtkObject*foo, GlameCanvas* canv);
+//void glame_canvas_execute_cb(GtkObject*foo, GlameCanvas* canv);
+void glame_canvas_execute_cb(GtkObject*foo, FiltereditGui *gui);
 static void glame_canvas_register_cb(GtkWidget* ignore, GlameCanvas* canv);
 static void glame_canvas_save_as_cb(GtkWidget* ignore, GlameCanvas* canv);
 void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv);
@@ -455,32 +456,70 @@ glame_filtereditgui_init(void)
 	gh_new_procedure1_0("editfilter-new",
 			    gls_editfilter_new);
 }
+
+static void filteredit_gui_destroy(GtkObject *filteredit)
+{
+	GnomeAppClass* parent_class;
+	parent_class = gtk_type_class(gnome_app_get_type());
+	GTK_OBJECT_CLASS(parent_class)->destroy(filteredit);
+}
+
+static void filteredit_gui_class_init(FiltereditGuiClass *class)
+{
+	GtkObjectClass *object_class;
+	object_class = GTK_OBJECT_CLASS(class);
+	object_class->destroy = filteredit_gui_destroy;
+}
+
+static void filteredit_gui_init(FiltereditGui *filteredit)
+{
+	filteredit->canvas = NULL;
+	filteredit->toolbar = NULL;
+}
+
+GtkType filteredit_gui_get_type(void)
+{
+	static GtkType filteredit_gui_type = 0;
 	
+	if (!filteredit_gui_type){
+		GtkTypeInfo filteredit_gui_info = {
+			"FiltereditGui",
+			sizeof(FiltereditGui),
+			sizeof(FiltereditGuiClass),
+			(GtkClassInitFunc)filteredit_gui_class_init,
+			(GtkObjectInitFunc)filteredit_gui_init,
+			NULL,NULL,(GtkClassInitFunc)NULL,};
+		filteredit_gui_type = gtk_type_unique(
+			gnome_app_get_type(), &filteredit_gui_info);
+		gtk_type_set_chunk_alloc(filteredit_gui_type, 8);
+	}
+
+	return filteredit_gui_type;
+}	
 
 GtkWidget * 
 glame_filtereditgui_new(filter_t *net, gboolean protected)
 {
-	GtkWidget *window, *canvas, *sw, *toolbar;
-
+	FiltereditGui *window;
+	GtkWidget *canvas, *sw, *toolbar;
 	GnomeDock *dock;
-	
 	const char *name;
 	
 	if(net && filter_name(net))
 		name = strdup(filter_name(net));
 	else
 		name = strdup("Untitled");
-	
 
+	window = FILTEREDIT_GUI(gtk_type_new(filteredit_gui_get_type()));
+	gnome_app_construct(GNOME_APP(window), "glame0.5", _(name));
 
-	window = gnome_app_new("glame0.5", _(name));
 	glame_filtereditgui_install_accels(window);
 	dock = GNOME_DOCK(GNOME_APP(window)->dock);
 	gtk_widget_ref(GTK_WIDGET(dock));
 	
 	gtk_widget_show(GTK_WIDGET(dock));
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_HORIZONTAL,GTK_TOOLBAR_BOTH);
-
+	window->toolbar = toolbar;
 
 	sw = gtk_scrolled_window_new(NULL,NULL);
 	gtk_widget_show(sw);
@@ -490,6 +529,7 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 	gtk_widget_push_colormap((GdkColormap*)(gdk_rgb_get_cmap()));
 	gtk_widget_push_visual(gdk_rgb_get_visual());
 	canvas = GTK_WIDGET(glame_canvas_new(net));
+	window->canvas = canvas;
 	gtk_widget_pop_visual();
 	gtk_widget_pop_colormap();
 //	GNOME_CANVAS(canvas)->aa = 1;
@@ -499,7 +539,8 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
 	
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),glame_canvas_execute_cb,canvas);
+	//gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),glame_canvas_execute_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Execute","Executes Filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),glame_canvas_execute_cb,window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Register","Registers actual filternetwork","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),glame_canvas_register_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
@@ -529,7 +570,7 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 			      "canvas::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_TOP, 0, 0, 0);
-	
+
 	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));
 	
@@ -539,7 +580,7 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 #ifdef HAVE_LIBSTROKE
 	stroke_init();
 #endif
-	return window;
+	return GTK_WIDGET(window);
 }
 
 
@@ -568,16 +609,64 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 	} 
 }
 
-
-void glame_canvas_execute_cb(GtkObject* foo,GlameCanvas* canv)
+static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
 {
-	/* FIXME:
-	 * - we want to have gpsm notified of any swapfile changes
-	 *   at network finish/stop time (scan for swapfile_out nodes
-	 *   inside the network and look for the changed_start/changed_end
-	 *   parameters)
+	FiltereditGui *gui;
+	filter_t *n;
+	gui = (FiltereditGui *)glsig_handler_private(handler);
+	gui->pm_playing = 0;
+	filter_terminate(gui->canvas->net);
+
+	/* Scan network for swapfile_out nodes and issue gpsm invalidate
+	 * signals. */
+	filter_foreach_node(gui->canvas->net, n) {
+		filter_param_t *changed_start, *changed_end, *filename;
+		if (!(filename = filterparamdb_get_param(
+			filter_paramdb(n), "filename"))
+		    || !(changed_start = filterparamdb_get_param(
+			    filter_paramdb(n), "changed_start"))
+		    || !(changed_end = filterparamdb_get_param(
+			    filter_paramdb(n), "changed_end")))
+			continue;
+		DPRINTF("Found swapfile_out node, issuing invalidate\n");
+		gpsm_notify_swapfile_change(
+			filterparam_val_int(filename),
+			filterparam_val_int(changed_start),
+			filterparam_val_int(changed_end)
+			- filterparam_val_int(changed_start) + 1);
+	}
+
+	/* FIXME: exchange Stop toolbar button for Execute button. */
+}
+
+void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
+{
+	glsig_emitter_t *emitter;
+
+	/* A simple state machine, like the one in waveeditgui. */
+
+	if (gui->pm_playing) {
+		/* Playing - abort the network, cleanup will
+		 * happen automagically. */
+		filter_terminate(gui->canvas->net);
+		return;
+	}
+
+	/* Not playing - setup and play.
 	 */
-	glame_gui_play_network(canv->net,canv,FALSE /* FIXME TRUE */, NULL,NULL,  "Start", "Pause", "Stop", 0);
+
+	emitter = glame_network_notificator_creat(gui->canvas->net);
+	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
+			  execute_cleanup, gui);
+	gui->pm_playing = 1;
+	if (glame_network_notificator_run(emitter, 100) == -1) {
+		gui->pm_playing = 0;
+		gnome_dialog_run_and_close(
+			GNOME_DIALOG(gnome_error_dialog("Cannot execute network")));
+		return;
+	}
+
+	/* FIXME: exchange Execute toolbar button for Stop button. */
 }
 
 void

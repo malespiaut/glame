@@ -772,15 +772,6 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	filter_delete(net);
 }
 
-static void apply_custom_cb_cleanup(GtkWidget *foo, gpsm_item_t *item)
-{
-	gpsm_item_t *it;
-	gpsm_grp_foreach_item(item, it) {
-		if (!GPSM_ITEM_IS_SWFILE(it))
-			continue;
-		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-	}
-}
 static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
@@ -844,13 +835,8 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 		DPRINTF("Error preparing for undo\n");
 
 	/* Pop up the custom generated canvas - the wave widget is
-	 * updated after destruction. FIXME - if gpsm is modified, the
-	 * signal handler data is invalid. 
-	 * This hack can be removed once filtereditgui execute stuff
-	 * handles this itself (swapfile_out support is in place). */
+	 * updated by filtereditgui, if changed. */
 	canvas = glame_filtereditgui_new(net, FALSE);
-	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
-			   (GtkSignalFunc)apply_custom_cb_cleanup, item);
 	return;
 
  fail:
