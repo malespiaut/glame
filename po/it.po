@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: glame CVS\n"
-"POT-Creation-Date: 2002-11-14 22:33+0100\n"
+"POT-Creation-Date: 2002-12-01 19:31+0100\n"
 "PO-Revision-Date: 2002-11-14 22:33+0100\n"
 "Last-Translator: Benno Senoner <benno@gardena.net>\n"
 "Language-Team: glame-devel <glame-devel@lists.sf.net>\n"
@@ -71,7 +71,7 @@ msgstr "Nuova rete di filtri"
 msgid "Creates a new filternetwork"
 msgstr "Crea una nuova rete di filtri"
 
-#: src/gui/main.c:95 src/gui/main.c:262
+#: src/gui/main.c:95 src/gui/main.c:264
 msgid "Load Plugin"
 msgstr "Carica Plugin"
 
@@ -121,144 +121,147 @@ msgstr "Rete di Filtri"
 msgid "Unnamed"
 msgstr "Senza nome"
 
-#: src/gui/main.c:219 src/gui/swapfilegui.c:564
+#: src/gui/main.c:221 src/gui/swapfilegui.c:564
 msgid "Cannot open wave editor"
 msgstr "Non riesco ad aprire il wave editor"
 
-#: src/gui/main.c:251 src/gui/swapfilegui.c:618
+#: src/gui/main.c:253 src/gui/swapfilegui.c:618
 msgid "Cannot place imported wave"
 msgstr "Non riesco ad inserire la forma d'onda importata"
 
-#: src/gui/main.c:263 src/gui/edit_filter/filtereditgui.c:840
+#: src/gui/main.c:265 src/gui/edit_filter/filtereditgui.c:840
 #: src/gui/edit_filter/filtereditgui.c:948
 msgid "Filename"
 msgstr "Nome file"
 
-#: src/gui/main.c:271
+#: src/gui/main.c:273
 msgid "Error loading plugin"
 msgstr "Errore durante il caricamento del plugin"
 
-#: src/gui/main.c:430
-msgid "plugins"
+#: src/gui/main.c:432
+#, fuzzy
+msgid "Audio plugins"
 msgstr "plugins"
 
-#: src/gui/main.c:464
+#: src/gui/main.c:466
 msgid "Add"
 msgstr "Aggiungi"
 
-#: src/gui/main.c:468 src/gui/apply.c:388
+#: src/gui/main.c:470 src/gui/apply.c:388
 msgid "Apply"
 msgstr "Applica"
 
-#: src/gui/main.c:483
+#: src/gui/main.c:485
 msgid "Property popup timeout [ms]"
 msgstr "Timeout nel popup Proprietà [ms]"
 
-#: src/gui/main.c:490
+#: src/gui/main.c:492
 msgid "Mac mode (one mouse button mode)"
 msgstr "Modalità Mac (un solo bottone mouse)"
 
-#: src/gui/main.c:505
+#: src/gui/main.c:507
 msgid "Scroll wave while playing"
 msgstr "Scrolling della forma d'onda durante il play"
 
-#: src/gui/main.c:520
+#: src/gui/main.c:522
 msgid "You need lots of diskspace available at the swapfile location."
 msgstr "Necessiti di molto spazio sul disco nel percorso file di swap"
 
-#: src/gui/main.c:522
+#: src/gui/main.c:524
 msgid "GLAME doesnt handle running out of disk space very well."
 msgstr "GLAME non gestisce molto bene la carenza di spazio sul disco"
 
-#: src/gui/main.c:524 src/gui/main.c:526
+#: src/gui/main.c:526 src/gui/main.c:528
 msgid "Swapfile Path"
 msgstr "Percorso file di swap"
 
-#: src/gui/main.c:535
+#: src/gui/main.c:537
 msgid "Maximum virtual memory used for caching [MB]"
 msgstr "Memoria virtuale massima usata per la cache [MB]"
 
-#: src/gui/main.c:538
+#: src/gui/main.c:540
 msgid "NOTE: Swapfile settings take effect after restart only"
-msgstr "NOTA: I cambiamenti dei settaggi relativi al file di swap sono effettivi al prossimo avvio"
+msgstr ""
+"NOTA: I cambiamenti dei settaggi relativi al file di swap sono effettivi al "
+"prossimo avvio"
 
-#: src/gui/main.c:543
+#: src/gui/main.c:545
 msgid "Depth of undo stack"
 msgstr "Profondità dello stack undo"
 
-#: src/gui/main.c:580
+#: src/gui/main.c:582
 msgid "Default input plugin (audio_in)"
 msgstr "input plugin (audio_in) predefinito"
 
-#: src/gui/main.c:586
+#: src/gui/main.c:588
 msgid "Default input device"
 msgstr "Dispositivo di input predefinito"
 
-#: src/gui/main.c:589
+#: src/gui/main.c:591
 msgid "No audio input plugin"
 msgstr "Nessun plugin audio di input"
 
-#: src/gui/main.c:593
+#: src/gui/main.c:595
 msgid "Default input sample rate"
 msgstr "sample rate di input predefinita"
 
-#: src/gui/main.c:616
+#: src/gui/main.c:618
 msgid "Default output plugin (audio_out)"
 msgstr "plugin di output (audio_out) predefinito"
 
-#: src/gui/main.c:622
+#: src/gui/main.c:624
 msgid "Default output device"
 msgstr "device di output predefinito"
 
-#: src/gui/main.c:626
+#: src/gui/main.c:628
 msgid "No audio output plugin"
 msgstr "Nessun plugin audio di output"
 
-#: src/gui/main.c:633
+#: src/gui/main.c:635
 msgid "Size hint for audio buffers [samples]"
 msgstr "Suggerimento grandezza buffer audio [samples]"
 
-#: src/gui/main.c:658
+#: src/gui/main.c:660
 msgid "Swapfile"
 msgstr "File di swap"
 
-#: src/gui/main.c:666
+#: src/gui/main.c:668
 msgid "Filternetwork"
 msgstr "Rete di filtri"
 
-#: src/gui/main.c:673
+#: src/gui/main.c:675
 msgid "Waveedit"
 msgstr "Editor Wave"
 
-#: src/gui/main.c:681
+#: src/gui/main.c:683
 msgid "Audio I/O"
 msgstr "Audio I/O"
 
-#: src/gui/main.c:750
+#: src/gui/main.c:752
 msgid "Richard Guenther [Richi]"
 msgstr "Richard Guenther [Richi]"
 
-#: src/gui/main.c:751
+#: src/gui/main.c:753
 msgid "Alexander Ehlert [Mag]"
 msgstr "Alexander Ehlert [Mag]"
 
-#: src/gui/main.c:752
+#: src/gui/main.c:754
 msgid "Daniel Kobras [*nold]"
 msgstr "Daniel Kobras [*nold]"
 
-#: src/gui/main.c:753
+#: src/gui/main.c:755
 msgid "Johannes Hirche [XWolf]"
 msgstr "Johannes Hirche [XWolf]"
 
-#: src/gui/main.c:754
+#: src/gui/main.c:756
 msgid "and others"
 msgstr "e altri"
 
-#: src/gui/main.c:764
+#: src/gui/main.c:766
 msgid "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
 msgstr "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
 
-#: src/gui/main.c:768
+#: src/gui/main.c:770
 msgid ""
 "This program is free software; you can redistribute it and/or modifyit under "
 "the terms of the GNU General Public License as published bythe Free Software "
@@ -273,7 +276,7 @@ msgid ""
 "Place, Suite 330, Boston, MA  02111-1307  USA"
 msgstr ""
 
-#: src/gui/main.c:824
+#: src/gui/main.c:826
 #, c-format
 msgid ""
 "The GLAME swapfile subsystem is about to commit suicide.\n"
@@ -287,39 +290,42 @@ msgid ""
 "-- BYE BYE.\n"
 msgstr ""
 
-#: src/gui/main.c:874
+#: src/gui/main.c:876
 msgid ""
 "Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
 "the preferences dialog and check the \"Swapfile Path\" and\n"
 "\"Audio IO\" settings.\n"
-msgstr "Benvenuto nuovo utente di GLAME.\n"
+msgstr ""
+"Benvenuto nuovo utente di GLAME.\n"
 "È necessaria una configurazione preliminare di base.Si prega di controllare\n"
 "il pannello preferenze e controllare i settaggi \"Swapfile Path\" e\n"
 "\"Audio IO\".\n"
 
-#: src/gui/main.c:881
+#: src/gui/main.c:883
 msgid ""
 "You didnt change/check the configuration.\n"
 "GLAME is exiting now.\n"
-msgstr "Non hai cambiato/controllato la configurazione.\n"
+msgstr ""
+"Non hai cambiato/controllato la configurazione.\n"
 "Ora GLAME terminerà la sua esecuzione.\n"
 
-#: src/gui/main.c:892
+#: src/gui/main.c:894
 #, c-format
 msgid ""
 "GLAME was unable to create its swapfile\n"
 "because of \"%s\".\n"
 "Please check the configuration.\n"
-msgstr "GLAME non è stato in grado di creare il file di swap\n"
+msgstr ""
+"GLAME non è stato in grado di creare il file di swap\n"
 "a causa di \"%s\".\n"
 "Si prega di controllare la configurazione.\n"
 
-#: src/gui/main.c:962
+#: src/gui/main.c:964
 msgid "    GLAME version "
 msgstr "   GLAME versione "
 
-#: src/gui/main.c:962
+#: src/gui/main.c:964
 msgid ""
 ", Copyright (C) 1999-2001 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
@@ -424,11 +430,11 @@ msgid ""
 "and may cause unexpected effects\n"
 "within other parts of GLAME.\n"
 "Be warned."
-msgstr "Il supporto timeline è sperimentale\n"
+msgstr ""
+"Il supporto timeline è sperimentale\n"
 "e può causare effetti indesiderati\n"
 "in altri moduli di GLAME.\n"
 "Sei stato avvertito."
-
 
 #: src/gui/swapfilegui.c:725
 msgid "Drop into hbox"
@@ -893,7 +899,8 @@ msgstr "Carica rete di filtri"
 msgid ""
 "Error in loading network\n"
 "Check out the glame-console output for more information"
-msgstr "Errore durante il caricamente della rete di filtri\n"
+msgstr ""
+"Errore durante il caricamente della rete di filtri\n"
 "Controllare la console di glame per maggiori informazioni"
 
 #: src/gui/edit_filter/filtereditgui.c:947
