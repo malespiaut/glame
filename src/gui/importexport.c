@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.48 2004/12/31 15:02:35 richi Exp $
+ * $Id: importexport.c,v 1.49 2005/01/02 21:23:27 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -940,7 +940,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	ie->reallydone = 0;
 
 	gtk_container_set_border_width (GTK_CONTAINER (ie->dialog), 1);
-	gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
+	//gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
+	gtk_window_set_resizable (GTK_WINDOW(ie->dialog),FALSE);
 	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(ie->dialog), FALSE);
 	if (parent)
@@ -1127,7 +1128,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 
 
 struct exp_s {
-	GtkWidget *dialog, *ocomp_combo_box, *filechooser;
+	GtkWidget *dialog, *notebook, *ocomp_combo_box, *filechooser;
 	GtkWidget *otype_combo_box;
 	GtkWidget *cancelbutton, *appbar;
 	int typecnt, comptypes;
@@ -1143,12 +1144,12 @@ struct exp_s {
 #ifdef HAVE_LIBMP3LAME
         GtkWidget *quality_select, *mode_select, *bitrate_select;
         GtkWidget *title, *artist, *album, *year, *comment, *track, *genre;
-	int mp3_menu_index;
+	int mp3_menu_index, mp3tab_num ;
 #endif
 #ifdef HAVE_LIBVORBISFILE
         GtkWidget *quality_select_ogg, *mode_select_ogg, *bitrate_select_ogg;
         GtkWidget *title_ogg, *artist_ogg, *album_ogg, *year_ogg, *comment_ogg, *track_ogg, *genre_ogg;
-	int ogg_menu_index;
+	int ogg_menu_index, oggvorbistab_num;
 #endif
 };
 
@@ -1229,6 +1230,7 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 		make_comp_menu(ie, -1);
 		ie->filetype = 99;
 		set_export_filename(ie, ".mp3");
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),ie->mp3tab_num );
 		return TRUE;
 			} else 
 #endif
@@ -1237,6 +1239,7 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 		make_comp_menu(ie, -1);
 		ie->filetype = 100;
 		set_export_filename(ie, ".ogg");
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),ie->oggvorbistab_num );
 		return TRUE;
 	} else
 #endif
@@ -1254,6 +1257,8 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 		else str1 = g_strndup (str1,3);
 		str1 = g_strconcat(".",str1,NULL);
 		set_export_filename(ie, str1);
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),0);
+
 		if (str1) g_free(str1);
 		
 	} else {
@@ -1261,6 +1266,7 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 		ie->filetype=-1;
 		ie->compression = AF_COMPRESSION_NONE;
 		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(ie->filechooser) ,gpsm_item_label(ie->item));
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),0);
 	}
 
 	return TRUE;
@@ -1602,7 +1608,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent) 
 {	
 	struct exp_s *ie;
-	GtkWidget *notebook,*label_tab1, *label_tab2, *label_tab3 ;
+	GtkWidget *label_tab1, *label_tab2, *label_tab3 ;
 	GtkWidget *dialog, *bigbox, *bigbox2 , *bigbox3, *typecompbox, *valbox, *vboxftype;
 	GtkWidget *dialog_vbox2, *vbox, *hbox, *frame, *frame2, *frame3,  *fname, *fnamebox;
 	GtkWidget *framebox, *frame4, *frame4box,*dialog_action_area; 
@@ -1635,7 +1641,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	title = g_strdup_printf ("Export: %s", gpsm_item_label(item));
 	dialog = ie->dialog = gnome_dialog_new(title , NULL);
 	if (title) free(title);
-	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
+	//gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
+	gtk_window_set_resizable (GTK_WINDOW(dialog),TRUE);
 	gnome_dialog_close_hides(GNOME_DIALOG(dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
 	if (parent)
@@ -1694,16 +1701,16 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show(framebox);
 	gtk_container_add(GTK_CONTAINER(frame), framebox);
 		
-	notebook = gtk_notebook_new();
-	gtk_widget_show (notebook);
-	gtk_box_pack_start (GTK_BOX (vbox), GTK_WIDGET(notebook), TRUE, TRUE, 0);
+	ie->notebook = gtk_notebook_new();
+	gtk_widget_show (ie->notebook);
+	gtk_box_pack_start (GTK_BOX (vbox), GTK_WIDGET(ie->notebook), TRUE, TRUE, 0);
 	
 	/*** MAin tab ***/
 	label_tab1 = gtk_label_new(_("Main"));
 	gtk_widget_show (label_tab1);
 	bigbox = gtk_hbox_new (FALSE, 0); 
 	gtk_widget_show(bigbox);
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),bigbox,label_tab1);
+	gtk_notebook_append_page(GTK_NOTEBOOK(ie->notebook),bigbox,label_tab1);
 
 	typecompbox = gtk_vbox_new (TRUE, 5);
 	gtk_widget_show (typecompbox);
@@ -1788,8 +1795,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show (label_tab2);
 	bigbox2 = gtk_hbox_new (FALSE, 0); 
 	gtk_widget_show(bigbox2);
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), bigbox2 ,label_tab2);
-
+	gtk_notebook_append_page(GTK_NOTEBOOK(ie->notebook), bigbox2 ,label_tab2);
+	ie->mp3tab_num = 1;
 	frame5 = gtk_frame_new("MP3 Lame settings");
 	gtk_widget_show(frame5);
 	gtk_box_pack_start (GTK_BOX (bigbox2), frame5, TRUE, TRUE, 0);
@@ -1931,8 +1938,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show (label_tab3);
 	bigbox3 = gtk_hbox_new (FALSE, 0); 
 	gtk_widget_show(bigbox3);
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), bigbox3 ,label_tab3);
-
+	gtk_notebook_append_page(GTK_NOTEBOOK(ie->notebook), bigbox3 ,label_tab3);
+	ie->oggvorbistab_num = (ie->mp3tab_num = 1) ? 2 : 1;
 	frame25 = gtk_frame_new("Ogg Vorbis settings (vbr)");
 	gtk_widget_show(frame25);
 	gtk_box_pack_start (GTK_BOX (bigbox3), frame25, TRUE, TRUE, 0);
