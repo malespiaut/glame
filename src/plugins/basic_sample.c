@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.47 2001/07/27 08:41:54 richi Exp $
+ * $Id: basic_sample.c,v 1.48 2001/07/31 06:51:07 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,6 +42,7 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
+#include "filter_methods.h"
 
 PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat")
 
@@ -814,24 +815,20 @@ static int vadjust_set_param(filter_t *n, filter_param_t *param, const void *val
 	
 	gain = *((float*)val);
 	
-	if (!strcmp("factor", filterparam_label(param))) {
+	if (strcmp("factor", filterparam_label(param))==0) {
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "dbgain");
-		ngain = DB2GAIN(filterparam_val_float(anyscale));
-		if (gain!=ngain) {
-			ngain = GAIN2DB(gain);
-			filterparam_set(anyscale, &ngain);
-		} else
-			return -1;
+		ngain = GAIN2DB(gain);
+		n->set_param = filter_default_set_param;
+		filterparam_set(anyscale, &ngain);
+		n->set_param = vadjust_set_param;
 	}
 	
-	if (!strcmp("dbgain", filterparam_label(param))) {
+	if (strcmp("dbgain", filterparam_label(param))==0) {
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "factor");
-		ngain = GAIN2DB(filterparam_val_float(anyscale));
-		if (gain!=ngain) {
-			ngain = DB2GAIN(gain);
-			filterparam_set(anyscale, &ngain);
-		} else
-			return -1;
+		ngain = DB2GAIN(gain);
+		n->set_param=filter_default_set_param;
+		filterparam_set(anyscale, &ngain);
+		n->set_param = vadjust_set_param;
 	}
 	return 0;
 }
@@ -888,7 +885,6 @@ int volume_adjust_register(plugin_t *p)
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = volume_adjust_f;
-	/* f->set_param = vadjust_set_param; */
 
 	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_SAMPLE,
@@ -908,6 +904,8 @@ int volume_adjust_register(plugin_t *p)
 	filterparamdb_add_param_float(filter_paramdb(f), "dbgain",
 				      FILTER_PARAMTYPE_FLOAT, 0.0,
 				      FILTERPARAM_END);
+	
+	f->set_param = vadjust_set_param;
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "volume_adjust.png");

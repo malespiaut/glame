@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.9 2001/07/09 08:02:38 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.10 2001/07/31 06:51:07 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -44,7 +44,7 @@ int configure_pcm(snd_pcm_t *handle,
    * FIXME? should we make fragments user configurable
    */
 
-	int err, format, fragments = 2 , psize = 0, dir = 0;
+	int err, format, fragments = 3 , psize = 0, dir = 0;
 	int minp, maxp;
 	
 	if ((err = snd_pcm_hw_params_any (handle, hw_params)) < 0)  {
@@ -105,7 +105,7 @@ int configure_pcm(snd_pcm_t *handle,
 
 	/* ALSA suxx */
 	
-	minp = 2;
+	minp = 4;
 	maxp = snd_pcm_hw_params_get_periods_max(hw_params, 0);
 
 	DPRINTF("minp = %d, maxp =%d\n", minp, maxp);
@@ -209,6 +209,8 @@ static int alsa_audio_in_f(filter_t *n)
 	int endless = 0;
 	int chancnt;	
 	int dir, i, err, j, ret;
+	int handleisok = 0;
+
 	SAMPLE *s;
 
 	snd_pcm_t		*handle;
@@ -254,8 +256,12 @@ static int alsa_audio_in_f(filter_t *n)
 	/* ALSA specific initialisation.
 	 */
 	
-	if (snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_CAPTURE, 0))
+	err=snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+	if (err<0)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
+	handleisok = 1;
+	/* set back to blocking io */
+	snd_pcm_nonblock(handle, 0);
 	
 	/* FIXME: Can we assume s16 native endian is always supported?
 	 *        (The plugin stuff performs a limited set of conversions.)
@@ -322,7 +328,8 @@ static int alsa_audio_in_f(filter_t *n)
 
 	DPRINTF("had %ld dropouts while capturing\n", dropouts);
 
-	snd_pcm_close(handle);
+	if(handleisok==1)
+		snd_pcm_close(handle);
 	
 	free(buf);
 	free(in);
@@ -353,6 +360,7 @@ static int alsa_audio_out_f(filter_t *n)
 	
 	int dir, i, err, dropouts;
 	int fragments;
+	int handleisok = 0;
 
 	snd_pcm_t		*handle;
 	snd_pcm_format_t	format;
@@ -404,8 +412,13 @@ static int alsa_audio_out_f(filter_t *n)
 	if (filterparam_val_string(dev_param) != NULL)
 		pcm_name = filterparam_val_string(dev_param);
 
-	if (snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_PLAYBACK, 0))
+	err = snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+	if (err<0)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
+	
+	handleisok = 1;
+	/* set back to blocking io */
+	snd_pcm_nonblock(handle, 0);
 	
 	/* FIXME: Can we assume s16 native endian is always supported?
 	 *        (The plugin stuff performs a limited set of conversions.)
@@ -450,9 +463,6 @@ static int alsa_audio_out_f(filter_t *n)
 
 	memset(out, 0, blksz*ssize*max_ch);
 	
-	for(i=0;i<fragments;i++)
-		snd_pcm_writei(handle, out, blksz);
-		
 	pos=0;
 	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
@@ -460,6 +470,9 @@ static int alsa_audio_out_f(filter_t *n)
 	snd_pcm_status_alloca(&status);
 
 	FILTER_AFTER_INIT;
+	
+	for(i=0;i<fragments;i++)
+		snd_pcm_writei(handle, out, blksz);
 			
 	ch_active = ch;
 	to_go = blksz;
@@ -540,7 +553,8 @@ _entry:
 	FILTER_BEFORE_CLEANUP;
 	FILTER_BEFORE_STOPCLEANUP;
 
-	snd_pcm_close(handle);
+	if(handleisok==1)
+		snd_pcm_close(handle);
 	
 	DPRINTF("had %d dropouts\n", dropouts);
 
