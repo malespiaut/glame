@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.47 2004/12/25 19:29:35 richi Exp $
+ * $Id: importexport.c,v 1.48 2004/12/31 15:02:35 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1174,14 +1174,13 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 
 	if (ftype == -1) { /* auto filetype */
 		gtk_widget_set_sensitive(ie->ocomp_combo_box, FALSE);
-		goto done;
+		return;
 	}
-	
-		
+
 	for(i=ie->comptypes+1; i>=0; i--){
 		DPRINTF("remove index %i\n",i);
 		gtk_combo_box_remove_text ( GTK_COMBO_BOX (ie->ocomp_combo_box),i);
-	}	
+	}
 
 	gtk_combo_box_append_text(GTK_COMBO_BOX (ie->ocomp_combo_box),"none");
 
@@ -1205,12 +1204,8 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 	 		gtk_combo_box_set_active (GTK_COMBO_BOX (ie->ocomp_combo_box), 0);
 		}
 		gtk_widget_set_sensitive(ie->ocomp_combo_box, TRUE);
-			} else
+	} else
 		gtk_widget_set_sensitive(ie->ocomp_combo_box, FALSE);
-
- done:	
-	return;
-	
 }
 
 
