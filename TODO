@@ -7,7 +7,6 @@ doc/
 
 
 filter/
-	dynamic load of filters, use dl_open [richi]
 
 
 swapfile/
@@ -18,11 +17,7 @@ swapfile/
 
 
 channel/
-	status unknown [maggy/richi/others?]
-
-
-rw/
-	needs to be redone or integrated with the GUI effort [XWolf]
+	status unknown [maggy/richi/XWolf/others?]
 
 
 glame/cglame

@@ -16,6 +16,9 @@ filter: richi
 hash: richi
 	src/hash/*
 
+plugin: richi
+	src/plugin/plugin.[ch]
+
 doc: nold
 	doc/*.texi
 	doc/* unless covered by other maintainers
