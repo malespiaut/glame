@@ -26,8 +26,16 @@ gui: xwolf
      richi
         src/gui/libgtkwaveform/*
 
+io: mag, nold
+	src/plugins/*io*.c
+
 plugins: mag
-        rms, noisegate, iir, fft, 
-	(audio|file)_io.c (with nold)
+	src/plugins/* (unless listed elsewhere)
+
+debian: nold
+	debian/*
+
+rpm: nold
+	glame.spec
 
 please add your stuff [richi]
