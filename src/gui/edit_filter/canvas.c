@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.53 2001/04/17 17:23:38 xwolf Exp $
+ * $Id: canvas.c,v 1.54 2001/04/17 23:18:56 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1535,23 +1535,80 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 
 static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 {
-	GtkWidget *dialog;
+	GtkWidget * dialog;
 	GtkWidget * text;
 	GtkWidget * vbox;
+	GtkWidget * notebook;
+	GtkWidget * tablabel;
+	GtkCList * list;
 	char * desc;
 	int pos=0;
+
+	filter_portdb_t * ports;
+	filter_paramdb_t * params;
+	filter_param_t * param;
+	filter_t * filter;
+	filter_port_t * port;
+	
+	char *labels[] = {"Name","Type","Description"};
+	char *plabels[] = {"Name","Value","Description"};
+	char ** line;
+	filter = it->filter;
+
+	ports = filter_portdb(filter);
+	
+	notebook = gtk_notebook_new();
 	
 	dialog = gnome_dialog_new(plugin_name(it->filter->plugin),GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GNOME_DIALOG(dialog)->vbox;
+	
+
 	desc = (char*)plugin_query(it->filter->plugin,PLUGIN_DESCRIPTION);
 	text = gtk_text_new(NULL,NULL);
+	gtk_widget_show(text);
 	
 	if(desc)
 		gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
 	else
 		gtk_editable_insert_text(GTK_EDITABLE(text),"This item does not have a description",38,&pos);
-	gtk_widget_show(text);
-	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), text, TRUE, TRUE, 0);
+	tablabel = gtk_label_new("Description");
+	gtk_widget_show(tablabel);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),text,tablabel);
+
+	tablabel = gtk_label_new("Ports");
+	list = GTK_CLIST(gtk_clist_new_with_titles(3,labels));
+	gtk_clist_set_column_auto_resize(list,2,TRUE);
+	filterportdb_foreach_port(ports,port){
+		line = calloc(3,sizeof(char*));
+		line[0] = strdup(filterport_label(port));
+		line[1]=(filterport_is_input(port)?"In":"Out");
+		line[2]=strdup(filterport_get_property(port,FILTERPORT_DESCRIPTION));
+		gtk_clist_append(list,line);
+	}
+	gtk_widget_show(GTK_WIDGET(list));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
+
+	tablabel = gtk_label_new("Properties");
+	gtk_widget_show(tablabel);
+	
+	list = GTK_CLIST(gtk_clist_new_with_titles(3,plabels));
+	gtk_clist_set_column_auto_resize(list,1,TRUE);
+	gtk_clist_set_column_auto_resize(list,2,TRUE);
+	
+	params = filter_paramdb(filter);
+	filterparamdb_foreach_param(params,param){
+		line = calloc(3,sizeof(char*));
+		line[0] = strdup(filterparam_label(param));
+		line[1] = strdup(filterparam_to_string(param));
+		line[2] = strdup(filterparam_get_property(param,FILTERPARAM_DESCRIPTION));
+		gtk_clist_append(list,line);
+	}
+	gtk_widget_show(GTK_WIDGET(list));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
+
+	gtk_widget_show(notebook);
+	vbox = GNOME_DIALOG(dialog)->vbox;
+	gtk_container_add(GTK_CONTAINER(vbox),notebook);
+	
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
 }
 
