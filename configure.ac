@@ -438,7 +438,11 @@ if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 		AC_DEFINE(CPU_PPC,, [ppc cpu]);;
 	alpha*)
 		AC_DEFINE(CPU_ALPHA,, [alpha cpu]);;
+	*)
+		AC_DEFINE(NO_ASM,, [no asm support]);;
 	esac
+else
+	AC_DEFINE(NO_ASM,, [no asm support])
 fi
 
 dnl
