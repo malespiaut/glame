@@ -127,47 +127,78 @@ static int fsck_check_clusters(int fix);
  * Initialization/cleanup
  */
 
-/* Tries to open an existing swap file/partition.
- * Returns 0 on success, -1 on failure.
- * Failures can be
- *  - missing swap file/parition
- *  - in use swap
- *  - unclean swap */
-int swapfile_open(const char *name, int flags)
+static int _swapfile_init(const char *name, int force)
 {
 	char str[256];
+	struct stat st;
+	long hash;
 	int fd;
+	FILE *f;
 
-	if (SWAPFILE_OK()) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	/* Check for correct swapfile directory setup. */
-	if (access(name, R_OK|W_OK|X_OK|F_OK) == -1) {
+	/* Check for correct swapfile directory setup:
+	 * - main directories, clusters.data & clusters.meta
+	 * - hash directories. */
+	if (stat(name, &st) == -1
+	    || !S_ISDIR(st.st_mode) || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 		errno = ENOENT;
 		return -1;
 	}
 	snprintf(str, 255, "%s/clusters.data", name);
-	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1) {
+	if (stat(name, &st) == -1
+	    || !S_ISDIR(st.st_mode) || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 		errno = ENOENT;
 		return -1;
 	}
 	snprintf(str, 255, "%s/clusters.meta", name);
-	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1) {
+	if (stat(name, &st) == -1
+	    || !S_ISDIR(st.st_mode) || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
 		errno = ENOENT;
 		return -1;
 	}
+	for (hash = 0; hash < 256; hash++) {
+		snprintf(str, 255, "%s/clusters.data/%lX", name, hash);
+		if (stat(name, &st) == -1
+		    || !S_ISDIR(st.st_mode)
+		    || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
+			errno = ENOENT;
+			return -1;
+		}
+		snprintf(str, 255, "%s/clusters.meta/%lX", name, hash);
+		if (stat(name, &st) == -1
+		    || !S_ISDIR(st.st_mode)
+		    || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
+			errno = ENOENT;
+			return -1;
+		}
+	}
 
-	/* Place the .lock file, write pid. */
+	/* Try to place a .lock file exclusievely. */
 	snprintf(str, 255, "%s/.lock", name);
-	if ((fd = open(str, O_RDWR|O_CREAT|O_EXCL, 0666)) == -1) {
+	if ((fd = open(str, O_RDWR|O_CREAT|O_EXCL, 0666)) == -1 && !force) {
 		errno = EBUSY;
 		return -1;
 	}
-	snprintf(str, 255, "%li\nGLAME " VERSION "\n", (long)getpid());
-	write(fd, str, strlen(str));
-	close(fd);
+	if (fd == -1) {
+		long pid;
+		if (!(f = fopen(str, "r+")))
+			return -1;
+		if (fscanf(f, "%li", &pid) == 1) {
+			if (kill(pid, 0) == 0 || errno != ESRCH) {
+				fclose(f);
+				errno = EBUSY;
+				return -1;
+			}
+		}
+		fclose(f);
+		unlink(str);
+		if ((fd = open(str, O_RDWR|O_CREAT|O_EXCL, 0666)) == -1) {
+			errno = EBUSY;
+			return -1;
+		}
+	}
+	f = fdopen(fd, "w");
+	fprintf(f, "%li\nGLAME " VERSION "\n", (long)getpid());
+	fclose(f);
 
 	/* Initialize swap structure. */
 	swap.files_base = strdup(name);
@@ -180,8 +211,29 @@ int swapfile_open(const char *name, int flags)
 	swap.ro = 0;
 
 	/* Initialize cluster subsystem. */
-	if (cluster_init(256, 128, 256, 256*1024*1024) == -1)
-		goto err;
+	if (cluster_init(2048, 128, 256, 256*1024*1024) == -1)
+		return -1;
+
+	return 0;
+}
+
+/* Tries to open an existing swap file/partition.
+ * Returns 0 on success, -1 on failure.
+ * Failures can be
+ *  - missing swap file/parition
+ *  - in use swap
+ *  - unclean swap */
+int swapfile_open(const char *name, int flags)
+{
+	char str[256];
+
+	if (SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (_swapfile_init(name, 0) == -1)
+		return -1;
 
 	/* Do basic fsck to check if we're really clean. */
 	if (fsck_scan_clusters(0) == 1
@@ -194,13 +246,7 @@ int swapfile_open(const char *name, int flags)
 		return -1;
 	}
 
-	errno = 0;
 	return 0;
-
- err:
-	snprintf(str, 255, "%s/.lock", name);
-	unlink(str);
-	return -1;
 }
 
 void swapfile_sync()
@@ -275,25 +321,25 @@ static int fsck_scan_clusters(int fix)
 {
 	int unclean = 0;
 	char s[256];
-	DIR *dir, *dir2;
+	DIR *dir;
 	struct dirent *e;
 	int fd;
 	long name, name2;
 	struct swcluster *cluster;
 
 	/* Loop over all metas, deleting un-gettable clusters. */
-	dir = opendir(swap.clusters_meta_base);
-	while ((e = readdir(dir))) {
-		if (sscanf(e->d_name, "%lX", &name2) != 1) {
-			if (strcmp(e->d_name, ".") != 0
-			    && strcmp(e->d_name, "..") != 0) {
-				DPRINTF("WARNING! Strange file %s in clusters meta directory.\n", e->d_name);
-			}
+	for (name2 = 0; name2 < 256; name2++) {
+		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
+		dir = opendir(s);
+		if (!dir) {
+			DPRINTF("WARNING! Missing hash directory %lX\n", name2);
+			if (!fix)
+				return 1;
+			if (mkdir(s, 0777) == -1)
+				DPRINTF("ERROR recreating hash directory %s\n", s);
 			continue;
 		}
-		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
-		dir2 = opendir(s);
-		while ((e = readdir(dir2))) {
+		while ((e = readdir(dir))) {
 			if (sscanf(e->d_name, "%lX", &name) != 1) {
 				if (strcmp(e->d_name, ".") != 0
 				    && strcmp(e->d_name, "..") != 0) {
@@ -309,8 +355,10 @@ static int fsck_scan_clusters(int fix)
 				continue;
 			}
 			/* Unclean - remove stale cluster, if fix is set. */
-			if (!fix)
+			if (!fix) {
+				closedir(dir);
 				return 1;
+			}
 			unclean = 1;
 			DPRINTF("Deleting stale cluster %lX\n", name);
 			snprintf(s, 255, "%s/%lX/%lX", swap.clusters_meta_base,
@@ -321,25 +369,23 @@ static int fsck_scan_clusters(int fix)
 			unlink(s);
 
 		}
-		closedir(dir2);
-
+		closedir(dir);
 	}
-	closedir(dir);
 
 	/* Loop over all datas, deleting un-gettable clusters, but trying
 	 * to fix missing meta. */
-	dir = opendir(swap.clusters_data_base);
-	while ((e = readdir(dir))) {
-		if (sscanf(e->d_name, "%lX", &name2) != 1) {
-			if (strcmp(e->d_name, ".") != 0
-			    && strcmp(e->d_name, "..") != 0) {
-				DPRINTF("WARNING! Strange file %s in clusters data directory.\n", e->d_name);
-			}
+	for (name2 = 0; name2 < 256; name2++) {
+		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
+		dir = opendir(s);
+		if (!dir) {
+			DPRINTF("WARNING! Missing hash directory %lX\n", name2);
+			if (!fix)
+				return 1;
+			if (mkdir(s, 0777) == -1)
+				DPRINTF("ERROR recreating hash directory %s\n", s);
 			continue;
 		}
-		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
-		dir2 = opendir(s);
-		while ((e = readdir(dir2))) {
+		while ((e = readdir(dir))) {
 			if (sscanf(e->d_name, "%lX", &name) != 1) {
 				if (strcmp(e->d_name, ".") != 0
 				    && strcmp(e->d_name, "..") != 0) {
@@ -354,8 +400,10 @@ static int fsck_scan_clusters(int fix)
 				 name & 0xff, name >> 8);
 			if (access(s, R_OK) == -1) {
 				/* Unclean - try to fix, if fix is set. */
-				if (!fix)
+				if (!fix) {
+					closedir(dir);
 					return 1;
+				}
 				unclean = 1;
 				if ((fd = open(s, O_RDWR|O_CREAT, 0666)) != -1) {
 					DPRINTF("Recreating missing metadata file for cluster %lX\n", name);
@@ -376,8 +424,10 @@ static int fsck_scan_clusters(int fix)
 				continue;
 			}
 			/* Unclean - remove stale cluster, if fix is set. */
-			if (!fix)
+			if (!fix) {
+				closedir(dir);
 				return 1;
+			}
 			unclean = 1;
 			DPRINTF("Deleting stale cluster %lX\n", name);
 			unlink(s);
@@ -386,9 +436,8 @@ static int fsck_scan_clusters(int fix)
 			unlink(s);
 
 		}
-		closedir(dir2);
+		closedir(dir);
 	}
-	closedir(dir);
 
 	return unclean;
 }
@@ -599,55 +648,22 @@ static int fsck_check_clusters(int fix)
 /* Tries to recover from an "unclean shutdown". */
 int swapfile_fsck(const char *name, int force)
 {
-	char str[256];
-	FILE *f;
-	long pid;
 	int unclean;
 
+	if (SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	/* Can we open the swapfile w/o check? */
-	if (swapfile_open(name, 0) == 0) {
+	if (_swapfile_init(name, 0) == 0) {
 		swapfile_close();
 		if (!force)
 			return 0;
 	}
 
-	/* No swapfile? */
-	if (errno == ENOENT)
-		return -1;
-
-	/* Not EBUSY (unclean)? */
-	if (errno != EBUSY && !force)
-		return -1;
-
-	/* Try to recover - clear stale lock. */
-	snprintf(str, 255, "%s/.lock", name);
-	f = fopen(str, "r+");
-	if (!f && force)
-		f = fopen(str, "w+");
-	if (!f)
-		return -1;
-	if (fscanf(f, "%li", &pid) == 1) {
-		if (kill(pid, 0) == -1 && errno != ESRCH) {
-			errno = EBUSY;
-			return -1;
-		}
-	}
-
-	/* Overwrite stale .lock with our own identification */
-	fseek(f, 0, SEEK_SET);
-	fprintf(f, "%li\nGLAME " VERSION "\n", (long)getpid());
-	fclose(f);
-
-	/* Initialize swap structure. */
-	swap.files_base = strdup(name);
-	snprintf(str, 255, "%s/clusters.data", name);
-	swap.clusters_data_base = strdup(str);
-	snprintf(str, 255, "%s/clusters.meta", name);
-	swap.clusters_meta_base = strdup(str);
-	INIT_LIST_HEAD(&swap.fds);
-
-	/* Initialize cluster subsystem. */
-	if (cluster_init(2048, 128, 256, 256*1024*1024) == -1)
+	/* Force init of the swapfile. */
+	if (_swapfile_init(name, 1) == -1)
 		return -1;
 
 	/* We are now ready for a few checks of the filesystems
