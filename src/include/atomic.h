@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.1 2000/02/03 15:17:40 nold Exp $
+ * $Id: atomic.h,v 1.2 2000/02/03 15:22:29 nold Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@ typedef struct {
 	} while(0)
 
 #define ATOMIC_RELEASE(a)	pthread_mutex_destroy(&(a).mx)
+
+#define ATOMIC_VAL(a)	((a).cnt)
 
 static inline void atomic_set(glame_atomic_t *a, int val)
 {
