@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.44 2000/12/12 17:11:24 richi Exp $
+ * $Id: filter.c,v 1.45 2000/12/12 18:39:06 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -459,7 +459,7 @@ char *filter_to_string(filter_t *net)
 			}
 			
 			/* (let ((pipe... */
-			len += sprintf(&buf[len-1], ")\n") - 1;
+			len += sprintf(&buf[len], "\t#t)\n");
 		    }
 		}
 	}
