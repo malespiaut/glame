@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.50 2001/03/30 20:02:11 mag Exp $
+; $Id: glame.scm,v 1.51 2001/03/31 14:29:49 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -655,39 +655,39 @@
         (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
 	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
 
-(let ((plugin (glame_create_plugin
-	(create-net ((one2n "one2n")
-		(fft "fft")
-		(fft_bandpass "fft_bandpass")
-		(ifft "ifft")
-		(mix "mix"))
-	       ((one2n "in" "in" "bassboost in"))
-	       ((mix "out" "out" "bassboost out"))
-	       ((fft_bandpass "band maximum" "band maximum" "boost frequency limit")
-	        (fft_bandpass "gain" "gain" "gain of passband in dB"))
-	       (begin (filternode_set_param net "band maximum" 1000)
-		      (filternode_set_param net "gain" 3); amplification by 3dB
-		      (filternode_set_param fft "blocksize" 2048)
-		      (nodes-connect (list one2n fft fft_bandpass ifft mix))
-		      (nodes-connect (list one2n mix))))
-	"Bass Boost")))
-	(plugin_set plugin PLUGIN_DESCRIPTION "Bass Boost macro filter")
-	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
+;(let ((plugin (glame_create_plugin
+;	(create-net ((one2n "one2n")
+;		(fft "fft")
+;		(fft_bandpass "fft_bandpass")
+;		(ifft "ifft")
+;		(mix "mix"))
+;	       ((one2n "in" "in" "bassboost in"))
+;	       ((mix "out" "out" "bassboost out"))
+;	       ((fft_bandpass "band maximum" "band maximum" "boost frequency limit")
+;	        (fft_bandpass "gain" "gain" "gain of passband in dB"))
+;	       (begin (filternode_set_param net "band maximum" 1000)
+;		      (filternode_set_param net "gain" 3); amplification by 3dB
+;		      (filternode_set_param fft "blocksize" 2048)
+;		      (nodes-connect (list one2n fft fft_bandpass ifft mix))
+;		      (nodes-connect (list one2n mix))))
+;	"Bass Boost")))
+;	(plugin_set plugin PLUGIN_DESCRIPTION "Bass Boost macro filter")
+;	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
 
-(let ((plugin (glame_create_plugin
-	(create-net ((fft "fft")
-		(res "fft_resample")
-		(ifft "ifft"))
-	((fft "in" "in" "resample in"))
-	((ifft "out" "out" "resample out"))
-	((res "frequency" "frequency" "new sample frequency"))
-	(begin (filternode_set_param net "frequency" 44100)
-		(filternode_set_param fft "blocksize" 2048); frequency accuracy = 43 Hz
-		(nodes-connect (list fft res ifft))))
-	"Resample")))
-	(plugin_set plugin PLUGIN_DESCRIPTION "FFT Resample macro filter")
-	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
-	
+;(let ((plugin (glame_create_plugin
+;	(create-net ((fft "fft")
+;		(res "fft_resample")
+;		(ifft "ifft"))
+;	((fft "in" "in" "resample in"))
+;	((ifft "out" "out" "resample out"))
+;	((res "frequency" "frequency" "new sample frequency"))
+;	(begin (filternode_set_param net "frequency" 44100)
+;		(filternode_set_param fft "blocksize" 2048); frequency accuracy = 43 Hz
+;		(nodes-connect (list fft res ifft))))
+;	"Resample")))
+;	(plugin_set plugin PLUGIN_DESCRIPTION "FFT Resample macro filter")
+;	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
+
 ; mp3 reader using the pipe-in filter and mpg123
 ; FIXME: does not work due to bug in pipe-in -- disabled
 ;
