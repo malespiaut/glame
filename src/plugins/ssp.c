@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.11 2001/08/08 09:15:30 richi Exp $
+ * $Id: ssp.c,v 1.12 2001/09/11 12:34:42 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -149,8 +149,7 @@ static int maxrms_f(filter_t *n)
 		FILTER_ERROR_RETURN("no input");
 	
 	param = filterparamdb_get_param(filter_paramdb(n), "maxrms");
-
-	filterparam_set(param, &maxrms);
+	filterparam_val_float(param) = maxrms;
 
 	DPRINTF("crash vorher?\n");
 	
@@ -176,8 +175,7 @@ entry:
 	};
 
 	maxrms = sqrtf(maxrms);
-
-	filterparam_set(param, &maxrms);
+	filterparam_val_float(param) = maxrms;
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
