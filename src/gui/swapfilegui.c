@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.69 2001/12/11 16:27:46 richi Exp $
+ * $Id: swapfilegui.c,v 1.70 2001/12/11 21:12:27 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -513,6 +513,9 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 		deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
 		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
 				0, GPSM_GRP_DELETED_VPOS);
+	} else if ((gpsm_item_t *)deleted == item->item) {
+		gpsm_item_destroy((gpsm_item_t *)deleted);
+		return;
 	}
 	gpsm_item_place(deleted, item->item,
 			0, gpsm_item_vsize(deleted));
@@ -529,6 +532,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 			gnome_error_dialog("Cannot open wave editor")));
 		return;
 	}
+	gtk_quit_add_destroy(1, GTK_OBJECT(we));
 	gtk_widget_show_all(GTK_WIDGET(we));
 	deselect_all(active_swapfilegui);
 }
@@ -545,11 +549,12 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 			gnome_error_dialog("Cannot open timeline")));
 		return;
 	}
+	gtk_quit_add_destroy(1, GTK_OBJECT(tl));
 	gtk_widget_show_all(tl);
 	deselect_all(active_swapfilegui);
 	if (!warning_shown) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_warning_dialog_parented("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned.", tl)));
+			gnome_warning_dialog_parented("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned.", GTK_WINDOW(tl))));
 		warning_shown = 1;
 	}
 }

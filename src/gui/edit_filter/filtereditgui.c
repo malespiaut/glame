@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.43 2001/12/06 23:53:05 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.44 2001/12/11 21:12:27 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -690,7 +690,10 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 	
 	filter = glame_load_instance(filenamebuffer);
 	if (filter) {
-		glame_filtereditgui_new(filter, FALSE);
+		GtkWidget *feg;
+		feg = glame_filtereditgui_new(filter, FALSE);
+		gtk_quit_add_destroy(1, GTK_OBJECT(feg));
+		gtk_widget_show(feg);
 	} else {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog("Error in loading network\nCheck out the glame-console output for more information")));

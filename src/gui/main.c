@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.94 2001/12/07 11:23:52 richi Exp $
+ * $Id: main.c,v 1.95 2001/12/11 21:12:26 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -155,7 +155,10 @@ static void emptytrash_cb(GtkWidget *menu, void * blah)
 
 static void new_network_cb(GtkWidget *menu, void * blah)
 {
-	gtk_widget_show(glame_filtereditgui_new(NULL, FALSE));
+	GtkWidget *feg;
+	feg = glame_filtereditgui_new(NULL, FALSE);
+	gtk_quit_add_destroy(1, GTK_OBJECT(feg));
+	gtk_widget_show(feg);
 }
 
 extern void edit_tree_label(GlameTreeItem * item);
@@ -207,6 +210,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	}
 	gtk_signal_connect(GTK_OBJECT(we), "destroy",
 			   (GtkSignalFunc)edit_file_cleanup_cb, file);
+	gtk_quit_add_destroy(1, GTK_OBJECT(we));
 	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
@@ -362,9 +366,79 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 	*bar = (*bar)?FALSE:TRUE;
 }
 
+/* This widget should build a widget with a list of the current
+ * (configured) audio I/O plugins and allow to add custom ones
+ * and configure existing ones. */
 static GtkWidget *audio_io_preferences_widget_new()
 {
-	return NULL;
+	GtkWidget *vbox;
+	GtkWidget *hbox1;
+	GtkWidget *vbox2;
+	GtkWidget *label1;
+	GtkWidget *list1;
+	GtkWidget *vbox1;
+	GtkWidget *hbox2;
+	GtkWidget *entry1;
+	GtkWidget *combo_entry2;
+	GtkWidget *combo1;
+	GtkWidget *combo_entry1;
+	GtkWidget *hbox3;
+	GtkWidget *button1;
+	GtkWidget *button2;
+
+	vbox = gtk_vbox_new(FALSE, 0);
+
+	hbox1 = gtk_hbox_new (FALSE, 0);
+	gtk_widget_show (hbox1);
+	gtk_container_add (GTK_CONTAINER (vbox), hbox1);
+
+	vbox2 = gtk_vbox_new (FALSE, 0);
+	gtk_widget_show (vbox2);
+	gtk_box_pack_start (GTK_BOX (hbox1), vbox2, TRUE, TRUE, 0);
+
+	label1 = gtk_label_new (_("Audio plugins"));
+	gtk_widget_show (label1);
+	gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 0);
+
+	list1 = gtk_list_new ();
+	gtk_widget_show (list1);
+	gtk_box_pack_start (GTK_BOX (vbox2), list1, TRUE, TRUE, 0);
+
+	vbox1 = gtk_vbox_new (FALSE, 0);
+	gtk_widget_show (vbox1);
+	gtk_box_pack_start (GTK_BOX (hbox1), vbox1, TRUE, TRUE, 0);
+
+	hbox2 = gtk_hbox_new (FALSE, 0);
+	gtk_widget_show (hbox2);
+	gtk_box_pack_start (GTK_BOX (vbox1), hbox2, TRUE, TRUE, 0);
+
+	entry1 = gnome_entry_new (NULL);
+	gtk_widget_show (entry1);
+	gtk_box_pack_start (GTK_BOX (hbox2), entry1, TRUE, TRUE, 0);
+
+	combo_entry2 = gnome_entry_gtk_entry (GNOME_ENTRY (entry1));
+	gtk_widget_show (combo_entry2);
+
+	combo1 = gtk_combo_new ();
+	gtk_widget_show (combo1);
+	gtk_box_pack_start (GTK_BOX (hbox2), combo1, TRUE, TRUE, 0);
+
+	combo_entry1 = GTK_COMBO (combo1)->entry;
+	gtk_widget_show (combo_entry1);
+
+	hbox3 = gtk_hbox_new (FALSE, 0);
+	gtk_widget_show (hbox3);
+	gtk_box_pack_start (GTK_BOX (vbox1), hbox3, TRUE, TRUE, 0);
+
+	button1 = gtk_button_new_with_label (_("Add"));
+	gtk_widget_show (button1);
+	gtk_box_pack_start (GTK_BOX (hbox3), button1, TRUE, TRUE, 0);
+
+	button2 = gtk_button_new_with_label (_("Apply"));
+	gtk_widget_show (button2);
+	gtk_box_pack_start (GTK_BOX (hbox3), button2, TRUE, TRUE, 0);
+
+	return vbox;
 }
 
 static int
@@ -722,13 +796,8 @@ static void resize_horiz_cb(GtkWidget *widget, GtkRequisition *req,
 
 static void gui_quit(GtkWidget *widget, gpointer data)
 {
-	/* FIXME: we want these to occour _after_ gtk shutdown.
-	 *        This seems not to be possible.
-	 */
-	clipboard_empty();
-	gpsm_close();
-	/* glame_accel_sync(); -- disabled, until we get GUI support */
-
+	/* This doesnt seem to destroy windows "correctly"
+	 * - cleanup is still missing for Edit File... */
 	gtk_main_quit();
 }
 
@@ -841,8 +910,15 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 "    WARRANTY. This is free software, and you are welcome to\n"
 "    redistribute it under certain conditions.\n\n"));
 
-	/* main loop */
+	/* Main event loop */
        	gtk_main();
+
+	/* Cleanup after gtk - tear down GLAME midlayer/backends. */
+	clipboard_empty();
+	gpsm_close();
+	/* glame_accel_sync(); -- disabled, until we get GUI support */
+
+	/* Exit to guile here - no way back. */
 }
 
 
@@ -862,6 +938,8 @@ int main(int argc, char **argv)
 
 	/* init glame */
 	glame_init(gui_main, argc, argv);
+
+	DPRINTF("Returned to main\n");
 
 	return 1;
 }
