@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.7 2000/01/31 10:09:08 richi Exp $
+ * $Id: filter.h,v 1.8 2000/02/02 09:53:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -392,8 +392,7 @@ void filternetwork_terminate(filter_network_t *net);
  * Access is only through the fbuf_* functions and macros.
  */
 typedef struct {
-	int semid;
-	int semnum;
+        int refcnt;
 	int size;
 	SAMPLE *buf;
 } filter_buffer_t;
