@@ -1,4 +1,4 @@
-INCLUDES = -I@srcdir@/../include $(GLAME_DCFLAGS) -D_REENTRANT
+INCLUDES = -I@top_srcdir@/src/include $(GLAME_DCFLAGS) -D_REENTRANT
 
 noinst_LTLIBRARIES = libswapfile.la
 noinst_PROGRAMS = swapfile_test swapfile_info

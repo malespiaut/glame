@@ -10,14 +10,16 @@ swapfile: richi
 	src/swapfile/*
 
 filter: richi
-	src/filter/filter*
-	src/filter/* unless covered by other maintainers
+	src/filter/*
+
+mid-layer: richi
+	src/glmid/*
+
+plugins/filters/testprograms: the filter authors
+	src/plugins/*
 
 hash: richi
 	src/hash/*
-
-plugin: richi
-	src/plugin/plugin.[ch]
 
 doc: nold
 	doc/*.texi
@@ -27,6 +29,6 @@ glamemath: nold
 	src/glmath/*
 
 midi: garrison
-	src/filter/midi*
+	src/plugins/midi*
 
 please add your stuff [richi]

@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <guile/gh.h>
 #include "glscript.h"
-#include "channel.h"
+#include "gltrack.h"
 #include "filter.h"
 #include "util.h"
 
@@ -35,7 +35,7 @@ int init()
 {
 	if (hash_alloc() == -1
 	    || filter_init() == -1
-	    || init_channel() == -1)
+	    || init_track() == -1)
 		return -1;
 
 	return 0;

@@ -80,7 +80,7 @@ struct hash_head {
 
 /* Global namespaces. You should define them to values not valid
  * for any usable c-pointer. */
-#define CG_NAMESPACE ((void *)(0xffff0010))
+#define TG_NAMESPACE ((void *)(0xffff0010))
 #define FILTER_NAMESPACE ((void *)(0xffff0020))
 #define PLUGIN_NAMESPACE ((void *)(0xffff0030))
 
