@@ -17,8 +17,8 @@ AC_DEFUN([ACG_CHECK_STUFF],
 ],[
 	AC_MSG_RESULT([yes])
 ],[
-	AC_MSG_RESULT([no - defining to sqrt])
-	AC_DEFINE_UNQUOTED(sqrtf, sqrt)
+	AC_MSG_RESULT([no])
+	AC_DEFINE(NEED_SQRTF)
 ])
 	LIBS="$ac_saved_libs"
 

@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.13 2001/04/18 07:33:13 nold Exp $
+ * $Id: util.h,v 1.14 2001/08/08 11:45:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -103,5 +103,10 @@ static inline void DPRINTF(const char *templ, ...)
 /* alloc zeroed mem, malloc/calloc syntax. */
 #define ALLOC(type) (type *)calloc(1, sizeof(type))
 #define ALLOCN(n, type) (n == 0 ? NULL : (type *)calloc((n), sizeof(type)))
+
+/* stuff. */
+#ifdef NEED_SQRTF
+#define sqrtf(x) sqrt(x)
+#endif
 
 #endif
