@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.69 2001/07/10 08:42:38 richi Exp $
+ * $Id: main.c,v 1.70 2001/07/10 09:04:46 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -166,8 +166,9 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 
 
 /* Update globals derived from preferences and provide defaults to
- * all configurables. */
-static void update_preferences()
+ * all configurables.
+ * Returns -1 if it seems we didnt have a valid config for now. */
+static int update_preferences()
 {
 	filter_t *filter;
 	char *swappath = NULL;
@@ -175,7 +176,7 @@ static void update_preferences()
 	char *aoutplugin = NULL, *aoutdev = NULL;
 	char s[256];
 	gboolean def;
-	int maxundo;
+	int maxundo, res = 0;
 
 	/* Update globals. */
 	nPopupTimeout = gnome_config_get_int_with_default(
@@ -190,8 +191,10 @@ static void update_preferences()
 	/* Set default swapfile path and max. undo depth */
 	sprintf(s, "swapfile/defaultpath=%s/.glameswap", g_get_home_dir());
 	swappath = gnome_config_get_string_with_default(s, &def);
-	if (def)
+	if (def) {
 		gnome_config_set_string("swapfile/defaultpath", swappath);
+		res = -1;
+	}
 	maxundo = gnome_config_get_int_with_default(
 		"swapfile/maxundo=5", &def);
 	if (def)
@@ -278,6 +281,8 @@ static void update_preferences()
 	g_free(ainplugin);
 	if (aindev)
 		g_free(aindev);
+
+	return res;
 }
 
 
@@ -318,6 +323,12 @@ preferences_cb(GtkWidget * wid, void * bla)
         vbox = gtk_vbox_new(FALSE,1);
         gtk_widget_show(vbox);
 
+        notelabel = gtk_label_new("You need lots of diskspace available at the swapfile location.");
+        gtk_widget_show(notelabel);
+        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
+        notelabel = gtk_label_new("GLAME doesnt handle running out of disk space very well.");
+        gtk_widget_show(notelabel);
+        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
         entry = gnome_file_entry_new("swapfilepath", "Swapfilepath");
         create_label_widget_pair(vbox, "Swapfile Path", entry);
 	cfg = gnome_config_get_string("swapfile/defaultpath");
@@ -589,22 +600,33 @@ static void gui_main()
 	/* Update preferences. */
 	sprintf(configpath,"/%s/", "glame0.5");
 	gnome_config_push_prefix(configpath);
-	update_preferences();
+	if (update_preferences() == -1) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_dialog(
+"Welcome first-time user of GLAME.\n"
+"We need to do some basic setup stuff. Please run through\n"
+"the preferences dialog and check the \"Swapfile Path\" and\n"
+"\"Audio IO\" settings.\n")));
+	run_prefs:
+		preferences_cb(NULL, NULL);
+	}
 
 	path = gnome_config_get_string("swapfile/defaultpath");
 	DPRINTF("path: %s\n",path);
 	if (!g_file_test(path,G_FILE_TEST_ISDIR)) {
 		if (swapfile_creat(path, -1)) {
-			fprintf(stderr, "Unable to create swapfile at %s\n",
-				path);
-			fprintf(stderr, "Fixup by hand in ~/.gnome/glame0.5\n");
-			exit(1);
+			gnome_dialog_run_and_close(
+				GNOME_DIALOG(gnome_error_dialog(
+"GLAME was somehow unable to create its swapfile\n"
+"Please check the configuration.\n")));
+			goto run_prefs;
 		}
 	}
 	if (gpsm_init(path) == -1) {
-		fprintf(stderr, "Somehow could not initialize gpsm\n");
-		fprintf(stderr, "Perhaps check swapfile setup at %s\n", path);
-		exit(1);
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
+"GLAME was unable to open/init its swapfile\n"
+"Please check the configuration and/or check for\n"
+"GLAME messages on the console.\n")));
+		goto run_prefs;
 	}
 	g_free(path);
 
