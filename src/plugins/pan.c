@@ -55,7 +55,7 @@ PLUGIN(pan)
 
 static int pan_f(filter_t *n)
 {
-	filter_pipe_t *in, *mod, *pass;
+	filter_pipe_t *in, *left, *right, *mod, *pass;
 	filter_buffer_t *m_buf, *p_buf;
 	int size;
 	float scale;
@@ -64,35 +64,28 @@ static int pan_f(filter_t *n)
 	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("No input.");
 	
-	/* Use pipe position by default, pan param may override. */	
-	scale = filterpipe_sample_hangle(in);
-	if (fabs(scale) > M_PI_2)
-		scale = -scale + M_PI*(scale > 0 ? 1.0 : -1.0);
-	/* doh - FIXME - this does nolonger work. Always overriden
-	 * at least by the default value of the parameter.
-	 */
-	scale = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "pan"));
 	
-	if (!(mod = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "left-out")))
-	    || !(pass = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "right-out"))))
+	if (!(left = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "left-out")))
+	    || !(right = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "right-out"))))
 		FILTER_ERROR_RETURN("Must connect all output ports.");
-
-	 /* FIXME: Move to fixup_pipe - too lazy now. */
-	filterpipe_sample_hangle(mod) = FILTER_PIPEPOS_LEFT;
-	filterpipe_sample_hangle(pass) = FILTER_PIPEPOS_RIGHT;
-
-	if (scale < 0.0) {
-		filter_pipe_t *tmp = mod;
-		mod = pass;
-		pass = tmp;
-		scale *= -1.0;
-	}
-	
-	scale = tan(M_PI_4-scale/2.0);
 	
 	FILTER_AFTER_INIT;
 
 	while ((p_buf = sbuf_get(in))) {
+		/* Find out what/how to scale. */
+		scale = filterparam_val_float(
+			filterparamdb_get_param(filter_paramdb(n), "pan"));
+		if (scale < 0.0) {
+			pass = left;
+			mod = right;
+			scale *= -1.0;
+		} else {
+			pass = right;
+			mod = left;
+		}
+		scale = tan(M_PI_4-scale/2.0);
+
+		/* Modify one, pass the other. */
 		size = sbuf_size(p_buf);
 		m_buf = sbuf_make_private(sbuf_alloc(size, n));
 		p = sbuf_buf(p_buf);
@@ -105,13 +98,30 @@ static int pan_f(filter_t *n)
 		FILTER_CHECK_STOP;
 	}
 
-	sbuf_queue(pass, NULL);
-	sbuf_queue(mod, NULL);
+	sbuf_queue(left, NULL);
+	sbuf_queue(right, NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
+}
+
+static void pan_pipe_changed(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_pipe_t *in, *out;
+	filter_t *n;
+
+	GLSIGH_GETARGS1(va, in);
+	n = filterport_filter(filterpipe_dest(in));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "left-out"));
+	if (out && filterpipe_sample_rate(out) != filterpipe_sample_rate(in))
+		filterpipe_settype_sample(out, filterpipe_sample_rate(in),
+					  filterpipe_sample_hangle(out));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "right-out"));
+	if (out && filterpipe_sample_rate(out) != filterpipe_sample_rate(in))
+		filterpipe_settype_sample(out, filterpipe_sample_rate(in),
+					  filterpipe_sample_hangle(out));
 }
 
 /* XXX: Never ever again shalt thou forget those words for they art written 
@@ -136,7 +146,54 @@ static int pan_set_param(filter_param_t *param, const void *val)
 
 	return 0;
 }
-	
+
+static int pan_left_connect_out(filter_port_t *port, filter_pipe_t *pipe)
+{
+	filter_pipe_t *in;
+	filter_t *n;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
+
+	/* Only one connection per port. */
+	if (filterport_get_pipe(port))
+		return -1;
+
+	/* Set pipe type and properties. */
+	n = filterport_filter(port);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	if (in)
+		rate = filterpipe_sample_rate(in);
+	filterpipe_settype_sample(pipe, rate, FILTER_PIPEPOS_LEFT);
+
+	return 0;
+}
+
+static int pan_right_connect_out(filter_port_t *port, filter_pipe_t *pipe)
+{
+	filter_pipe_t *in;
+	filter_t *n;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
+
+	/* Only one connection per port. */
+	if (filterport_get_pipe(port))
+		return -1;
+
+	/* Set pipe type and properties. */
+	n = filterport_filter(port);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	if (in)
+		rate = filterpipe_sample_rate(in);
+	filterpipe_settype_sample(pipe, rate, FILTER_PIPEPOS_RIGHT);
+
+	return 0;
+}
+
+static int pan_connect_in(filter_port_t *port, filter_pipe_t *pipe)
+{
+	if (filterport_get_pipe(port))
+		return -1;
+	glsig_add_handler(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED,
+			  pan_pipe_changed, NULL);
+}
 
 /* Most other filters try to avoid explicit reference to 'left' and 'right'
  * ports. Not so with pan, as it is tailor-made for stereo needs.
@@ -145,25 +202,29 @@ int pan_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_param_t *pan;
+	filter_port_t *port;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = pan_f;
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+	port = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_INPUT,
 			      FILTERPORT_DESCRIPTION, "input stream to pan",
 			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), "left-out",
+	port->connect = pan_connect_in;
+	port = filterportdb_add_port(filter_portdb(f), "left-out",
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_DESCRIPTION, "left output stream",
 			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), "right-out",
+	port->connect = pan_left_connect_out;
+	port = filterportdb_add_port(filter_portdb(f), "right-out",
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_DESCRIPTION, "right output stream",
 			      FILTERPORT_END);
+	port->connect = pan_right_connect_out;
 
 	pan = filterparamdb_add_param_float(filter_paramdb(f), "pan",
 				  FILTER_PARAMTYPE_POSITION, 0.0/* FIXME - use magic (invalid) default value to mark "unset"? */,
