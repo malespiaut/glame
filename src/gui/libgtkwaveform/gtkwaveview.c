@@ -647,7 +647,6 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 	     }
 	  }
 
-#if 0
 	  /* Be nice to the user. */
 	  if (gtk_events_pending()) {
 		  /* Handle all pending events => stall redrawing. */
@@ -669,7 +668,6 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 			  goto out;
 		  }
 	  }
-#endif
 
           /* Increment position in data source. */
           pos += size;
@@ -783,7 +781,6 @@ on_area_realize (GtkWidget *widget, gpointer userdata)
       gdk_gc_copy (waveview->marker_gc, waveview->area->style->white_gc);
       gdk_gc_set_function (waveview->marker_gc, GDK_XOR);
     }
-  gdk_gc_set_exposures(waveview->area->style->bg_gc [GTK_STATE_NORMAL],TRUE);
   gtk_wave_view_update_label(waveview);
 }
 
@@ -986,7 +983,6 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
 {
   GtkWaveView *waveview = GTK_WAVE_VIEW (data);
   guint32 offset, width, height;
-  guint32 shift;
 
   offset = -calc_win_pel_pos (waveview, 0);
 
@@ -998,34 +994,8 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
   if (!GTK_WIDGET_REALIZED (waveview->area))
     return;
 
-  if (offset > waveview->drawn_offset)
-    {
-      /* Find out how many pixels we moved. */
-      shift = offset - waveview->drawn_offset;
-
-      /* Copy and redraw as needed. */
-      if (shift >= width)
-        gtk_widget_queue_draw (GTK_WIDGET (waveview->area));
-      else
-        {
-          gdk_window_copy_area (waveview->area->window, waveview->area->style->bg_gc [GTK_STATE_NORMAL], 0, 0, waveview->area->window, shift, 0, width - shift, height);
-          gtk_wave_view_redraw_area (waveview, width - 1, width - shift);
-        }
-    }
-  else
-    {
-      /* Find out how many pixels we moved. */
-      shift = waveview->drawn_offset - offset;
-
-      /* Copy and redraw as needed. */
-      if (shift >= width)
-        gtk_widget_queue_draw (GTK_WIDGET (waveview->area));
-      else
-        {
-          gdk_window_copy_area (waveview->area->window, waveview->area->style->bg_gc [GTK_STATE_NORMAL], shift, 0, waveview->area->window, 0, 0, width - shift, height);
-          gtk_wave_view_redraw_area (waveview, 0, shift);
-        }
-    }
+  gdk_window_scroll (waveview->area->window, waveview->drawn_offset - offset, 0);
+  gdk_window_process_updates (waveview->area->window, FALSE);
 }
 
 /* The meaning of the different flags. */
