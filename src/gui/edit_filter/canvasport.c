@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.25 2001/11/28 14:01:33 richi Exp $
+ * $Id: canvasport.c,v 1.26 2001/12/10 01:18:47 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -444,13 +444,16 @@ glame_canvas_port_deregister_popup(GlameCanvasPort* port)
 		glame_canvas_port_hide_properties(port);
 	}
 }
-
+static gboolean glame_canvas_port_cleanup_cb(GtkObject * o, GlameCanvasPort* port)
+{
+	if(port)
+		glame_canvas_port_deregister_popup(port);
+}
 static gboolean
 glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPort* port)
 {
 
 	GtkWidget *menu;
-
 	if(!points)
 		points = gnome_canvas_points_new(2);
 	if(!line){
@@ -523,6 +526,7 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 		glame_canvas_port_register_popup(port);
 		return TRUE;
 		break;
+	case GDK_DESTROY:		
 	case GDK_LEAVE_NOTIFY:
 		glame_canvas_port_deregister_popup(port);
 		return TRUE;
@@ -560,6 +564,7 @@ GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *p
 
 	hash_add_gcport(p);
 	gtk_signal_connect(GTK_OBJECT(p),"event",GTK_SIGNAL_FUNC(glame_canvas_port_event_cb),p);
+	gtk_signal_connect(GTK_OBJECT(p),"destroy",GTK_SIGNAL_FUNC(glame_canvas_port_cleanup_cb),p);
 	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_filter(filterport_filter(port))),
 			   "moved",
 			   GTK_SIGNAL_FUNC(glame_canvas_port_moved_cb),
