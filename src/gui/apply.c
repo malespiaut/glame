@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.19 2002/04/02 09:05:15 richi Exp $
+ * $Id: apply.c,v 1.20 2002/04/21 17:07:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -49,7 +49,7 @@ struct apply_plugin_s {
 	GtkWidget *properties;
 	GtkWidget *progress;
 	GtkWidget *dialog;
-	GtkWidget *checkbox;
+	GtkWidget *checkbox, *loop_checkbox;
 	filter_t *net;
 	filter_t *pos;
 	int previewing;
@@ -131,9 +131,12 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 		}
 		return FALSE;
 	}
+
 	/* update progressbar */
-	posparam = filterparamdb_get_param(filter_paramdb(a->pos), FILTERPARAM_LABEL_POS);
-	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress), MIN(1.0, (float)filterparam_val_long(posparam)/(float)(a->length)));
+	posparam = filterparamdb_get_param(filter_paramdb(a->pos),
+					   FILTERPARAM_LABEL_POS);
+	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
+				MIN(1.0, (float)(filterparam_val_long(posparam) % a->length)/(float)(a->length)));
 	return TRUE;
 }
 
@@ -144,12 +147,15 @@ static void preview_start(struct apply_plugin_s *a)
 	filter_t *swin, *e, *ec = NULL;
 	filter_port_t *port;
 	int nrin, currin, i;
+	gboolean loop;
 
 	/* Find out plugin input count. */
 	nrin = 0;
 	filterportdb_foreach_port(filter_portdb(a->effect), port)
 		if (filterport_is_input(port))
 			nrin++;
+
+	loop = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(a->loop_checkbox));
 
 	/* Create the preview network.
 	 * DONT clone from a->effect! This would copy update handlers
@@ -158,7 +164,7 @@ static void preview_start(struct apply_plugin_s *a)
 	ec = filter_creat(a->effect);
 	currin = nrin;
 	gpsm_grp_foreach_item(a->item, swfile) {
-		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
+		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, loop ? 1 : 0);
 		if (!swin) {
 			errmsg = _("Unable to create input node");
 			goto err;
@@ -180,7 +186,8 @@ static void preview_start(struct apply_plugin_s *a)
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), port);
 		currin++;
 	}
-	a->pos = net_apply_audio_out(a->net);
+	net_apply_audio_out(a->net);
+	a->pos = swin;
 	filter_delete(ec);
 
 	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
@@ -289,7 +296,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 				   filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 		currin++;
 	}
-	a->pos = swout;
+	a->pos = swin;
 
 	if (filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1) {
 		errmsg = _("Unable to launch network");
@@ -349,7 +356,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 			long start, long length)
 {
 	struct apply_plugin_s *a;
-	GtkWidget *label;
+	GtkWidget *label, *hbox;
 	char s[256], *help;
 
 	if (!item || !plugin)
@@ -402,11 +409,18 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 			   TRUE, TRUE, 3);
 	gtk_widget_show(a->properties);
 
+	hbox = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), hbox,
+			   TRUE, TRUE, 3);
 	a->checkbox = gtk_check_button_new_with_label(_("Lock size"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(a->checkbox), TRUE);
-	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), a->checkbox,
-			   TRUE, TRUE, 3);
+	gtk_box_pack_start(GTK_BOX(hbox), a->checkbox, TRUE, TRUE, 3);
 	gtk_widget_show(a->checkbox);
+	a->loop_checkbox = gtk_check_button_new_with_label(_("Loop previewing"));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(a->loop_checkbox), FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), a->loop_checkbox, TRUE, TRUE, 3);
+	gtk_widget_show(a->loop_checkbox);
+	gtk_widget_show(hbox);
 
 	a->progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(a->progress), GTK_PROGRESS_LEFT_TO_RIGHT);
