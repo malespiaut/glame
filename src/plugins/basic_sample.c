@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.41 2001/06/05 14:40:07 richi Exp $
+ * $Id: basic_sample.c,v 1.42 2001/06/12 15:18:13 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,7 +27,6 @@
  * - delay
  * - extend
  * - repeat
- * - fade
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +44,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat fade")
+PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat")
 
 
 
@@ -1172,98 +1171,6 @@ int repeat_register(plugin_t *p)
 		   "repeat an audio stream for the specified time");
 	plugin_set(p, PLUGIN_PIXMAP, "repeat.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
-	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
-  
-	return filter_register(f, p);
-}
-
-
-
-static int fade_f(filter_t *n)
-{
-	filter_pipe_t *in, *out;
-	filter_port_t *inp, *outp;
-	filter_buffer_t *buf;
-	long size;
-	int mode, i;
-	float gain, fak;
-	SAMPLE *s;
-	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
-	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	if (!(in = filterport_get_pipe(inp))
-	    || !(out = filterport_get_pipe(outp)))
-		FILTER_ERROR_RETURN("no input or no output");
-
-
-	size = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "size"));
-	if (size <= 0)
-		FILTER_ERROR_RETURN("0 or negative sized region");
-
-	fak = 1.0 / (float)size;
-	
-	mode = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "mode"));
-	if ( (mode < 0) || (mode > 1))
-		FILTER_ERROR_RETURN("wrong mode");
-	
-	if (mode == 1) {
-		gain = 1.0;
-		fak = -fak;
-	} else
-		gain = 0.0;
-
-	FILTER_AFTER_INIT;
-
-	while ((buf = sbuf_get(in))) {
-		FILTER_CHECK_STOP;
-		buf = sbuf_make_private(buf);
-		s = sbuf_buf(buf);
-		i = sbuf_size(buf);
-		while (i--) {
-			*(s++) *= gain;
-			gain += fak;
-		}
-		sbuf_queue(out, buf);
-	}
-
-	sbuf_queue(out, NULL);
-	FILTER_BEFORE_STOPCLEANUP;
-	FILTER_BEFORE_CLEANUP;
-
-	FILTER_RETURN;
-
-}
-
-int fade_register(plugin_t *p)
-{
-	filter_t *f;
-
-	if (!(f = filter_creat(NULL)))
-		return -1;
-	f->f = fade_f;
-
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "input stream to fade",
-			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "faded stream",
-			      FILTERPORT_END);
-	filterparamdb_add_param_int(filter_paramdb(f),"mode",
-				    FILTER_PARAMTYPE_INT, 0,
-				    FILTERPARAM_DESCRIPTION, "(0) fade in (1) fade out",
-				    FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "size",
-				    FILTER_PARAMTYPE_INT, 0,
-				    FILTERPARAM_DESCRIPTION, "size of region to fade",
-				    FILTERPARAM_END);
-
-	plugin_set(p, PLUGIN_DESCRIPTION,
-		   "fade in/out a selected region");
-	plugin_set(p, PLUGIN_PIXMAP, "fade.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Volume");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
