@@ -234,7 +234,7 @@ dnl central GUI includes/libs
 
 if test x$gui = xyes; then
 dnl GNOME2 check
-  packages="libgnome-2.0 libgnomeui-2.0 libgnomecanvas-2.0 libglade-2.0 gobject-2.0 glib-2.0"
+  packages="libgnome-2.0 libgnomeui-2.0 libgnomecanvas-2.0 libglade-2.0 gobject-2.0 glib-2.0 gtk+-2.0 >= 2.6.0"
   AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
   if test x$PKG_CONFIG = xno; then
     AC_MSG_ERROR([You need pkg-config installed to use gnome2 libraries])
@@ -381,16 +381,18 @@ if test "x$alsa" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
-dnl check for Jack
-AC_CHECK_HEADER(jack/jack.h, jack=yes, jack=no)
-if test x$jack = xyes; then
-	JACK_CFLAGS="`pkg-config --cflags jack`"
-	JACK_LIBS="`pkg-config --libs jack`"
-	AC_DEFINE(HAVE_JACK,, [have jack library])
-fi
+dnl Jack support is not ready
+dnl dnl check for Jack
+dnl AC_CHECK_HEADER(jack/jack.h, jack=yes, jack=no)
+jack="no"
+dnl if test x$jack = xyes; then
+dnl 	JACK_CFLAGS="`pkg-config --cflags jack`"
+dnl 	JACK_LIBS="`pkg-config --libs jack`"
+dnl 	AC_DEFINE(HAVE_JACK,, [have jack library])
+dnl fi
 AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
-AC_SUBST(JACK_CFLAGS)
-AC_SUBST(JACK_LIBS)
+dnl AC_SUBST(JACK_CFLAGS)
+dnl AC_SUBST(JACK_LIBS)
 
 dnl
 dnl Check for LADSPA support
