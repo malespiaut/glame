@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.23 2001/11/25 22:05:43 richi Exp $
+ * $Id: importexport.c,v 1.24 2001/11/27 10:28:13 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -680,7 +680,7 @@ void glame_import_dialog(struct imp_s *ie)
 			   "delete-event",
 			   GTK_SIGNAL_FUNC(ie_windowkilled), ie);
 
-	gtk_widget_show(ie->dialog);
+	gnome_dialog_run(ie->dialog);
 }
 
 static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *ie)
