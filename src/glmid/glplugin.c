@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.28 2001/05/28 15:04:19 richi Exp $
+ * $Id: glplugin.c,v 1.29 2001/06/07 08:11:05 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -202,6 +202,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 {
 	LADSPA_Descriptor_Function desc_func;
 	const LADSPA_Descriptor *desc;
+	char category[256];
 	plugin_t *lp;
 	int i;
 
@@ -223,7 +224,8 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 			continue;
 		}
 		plugin_set(lp, PLUGIN_PARENT, p);
-		plugin_set(lp, PLUGIN_CATEGORY, "LADSPA");
+		snprintf(category, 255, "LADSPA/%c", lp->name[0]);
+		plugin_set(lp, PLUGIN_CATEGORY, strdup(category));
 	}
 
 	return 0;
