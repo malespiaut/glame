@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.51 2001/07/03 09:33:39 richi Exp $
+ * $Id: swapfilegui.c,v 1.52 2001/07/06 12:12:56 mag Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -1109,5 +1109,6 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
 		handle_grp_add_treeitem(GTK_OBJECT(swapfile->tree), item);
 
 	gtk_widget_show(swapfile->tree);
+	active_swapfilegui = swapfile;
 	return swapfile;
 }
