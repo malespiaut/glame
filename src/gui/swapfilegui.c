@@ -497,9 +497,7 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 			sw_close(fd);
 		} else {
 			DPRINTF("%s does not exist\n", ilabel);
-			ifd = -1;
-			irate = -1;
-			isize = -1;
+			return;
 		}
 
 		item = glame_tree_item_new_file(ilabel, ifd, irate, isize);
@@ -525,6 +523,34 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 	gtk_widget_show(item);
 
 	insert_childs(GTK_OBJECT(item), node);
+}
+
+
+/*
+ * Scan the swapfile and add all non-xmled files to a seperate
+ * group.
+ */
+void scan_swap(GtkTree *tree)
+{
+	GlameTreeItem *item;
+	GlameTreeItem *grp;
+	SWDIR *dir;
+	long name;
+
+	if (!(grp = glame_tree_find_group(GTK_OBJECT(tree), "unnamed"))) {
+		grp = GLAME_TREE_ITEM(glame_tree_item_new_group("unnamed"));
+		glame_tree_append(GTK_OBJECT(tree), grp);
+	}
+	dir = sw_opendir();
+	while ((name = sw_readdir(dir)) != -1) {
+		if (name == 0)
+			continue;
+		if ((item = glame_tree_find_filename(GTK_OBJECT(tree), name)))
+			continue;
+		item = GLAME_TREE_ITEM(glame_tree_item_new_file("unnamed", name, -1, -1));
+		glame_tree_append(GTK_OBJECT(grp), item);
+	}
+	sw_closedir(dir);
 }
 
 
@@ -633,7 +659,7 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
         insert_childs(GTK_OBJECT(tree), xmlDocGetRootElement(doc));
 
 	/* Search for not xml-ed swapfile. */
-	/* FIXME */
+	scan_swap(GTK_TREE(tree));
 
 	swapfile_tree = GTK_TREE(tree);
 	gtk_container_add(GTK_CONTAINER(window), tree);
