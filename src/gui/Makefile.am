@@ -8,8 +8,11 @@ EXTRA_DIST = gui.h canvas.h glame.desktop
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
+if HAVE_XML
 bin_PROGRAMS = treetest timeline wavetest
-#bin_PROGRAMS = glame wavetest
+else
+bin_PROGRAMS = timeline wavetest
+endif
 noinst_LTLIBRARIES = 
 Multimedia_DATA = glame.desktop
 endif
