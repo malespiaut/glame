@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.7 2001/10/06 23:08:55 richi Exp $
+ * $Id: network_utils.c,v 1.8 2001/11/09 16:52:09 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -223,24 +223,6 @@ filter_t *net_apply_audio_out(filter_t *net)
 		filter_delete(render);
 	if (aout)
 		filter_delete(aout);
-	return NULL;
-}
-
-char *net_get_error_str(filter_t *net)
-{
-	char msg[256];
-	filter_t *node;
-
-	if (!net)
-		return NULL;
-	filter_foreach_node(net, node) {
-		if (filter_errstr(node)) {
-			snprintf(msg, 256, "Error processing net
-work:\n%s: %s\n", filter_name(node), filter_errstr(node));
-			return strdup(msg);
-		}
-	}
-
 	return NULL;
 }
 
