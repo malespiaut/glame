@@ -41,17 +41,14 @@
 #if (SCM_MINOR_VERSION < 7)
 /* use GLAME_NEWCELL instead of SCM_NEWCELL */
 #define GLAME_NEWCELL(z) SCM_NEWCELL(z)
+#endif
 #define glame_scm2newstr(obj, lenp) gh_scm2newstr (obj, lenp)
 #define glame_scm2long(obj) scm_num2long (obj, SCM_ARG1, "somewhere")
 #define glame_scm2double(obj) scm_num2dbl (obj, "somewhere")
-
 #define scm_str2string(str) gh_str02scm (str)
-#endif
 
 #if (SCM_MINOR_VERSION == 7)
 #define GLAME_NEWCELL(z) z = scm_cell (SCM_UNPACK(z), 0)
-
-
 #endif
 
 #else /* Guile 1.4.x */
