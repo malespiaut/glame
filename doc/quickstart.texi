@@ -1,4 +1,4 @@
-@comment $Id: quickstart.texi,v 1.5 2001/12/23 13:29:19 nold Exp $
+@comment $Id: quickstart.texi,v 1.6 2001/12/23 14:59:27 nold Exp $
 
 @node Quick Start Guide, Graphical Frontend, Copying, Top
 @chapter Quick Start Guide
@@ -146,8 +146,10 @@ What's left to do? Back to the Swapfile GUI. It's about time to finally rename
 the No More Angelina project to Hymn to Heather. How? Go figure. You really
 should have gotten a good feeling of how GLAME works by now. Next, get the
 pop-up menu up on Hymn to Heather. Select @dfn{Export...}, and save your song
-as, say, @file{heather.wav}. As you may have guessed, the suffix determines the
-type of file Hymn to Heather is stored as. Want details on that one? Hey, enough
+as, say, @file{heather.wav}. As you may have guessed, by default the suffix
+determines the type of file Hymn to Heather is stored as. For some additional
+control, you can explicitly specify the desired file type and sample format via
+several rather obvious buttons and menus. Want details on that one? Hey, enough
 is enough! Go read the proper docs if you're that interested. Or try on of the
 @dfn{Help} entries that will present you a context sensitive entry from the
 manual. 
