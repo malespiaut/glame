@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.16 2001/08/05 12:29:55 richi Exp $
+@comment $Id: cglame.texi,v 1.17 2005/03/28 18:27:08 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -114,144 +114,144 @@ The basic filter subsystem types, @code{filter_t}, @code{filter_port_t},
 @code{filter_pipe_t} and @code{filter_param_t} exist as native scheme
 types and such can be type checked.
 
-@deftypefun ( filter? obj )
-@deftypefunx ( port? obj )
-@deftypefunx ( pipe? obj )
-@deftypefunx ( param? obj )
+@defun filter? obj
+@defunx port? obj
+@defunx pipe? obj
+@defunx param? obj 
 These procedures check @code{obj} for being of the specified type and
 evaluate to @code{#t} if this is the case and @code{#f} otherwise.
-@end deftypefun
+@end defun
 
 Out of a filter object you can get information and subobjects using
 the following procedures:
 
-@deftypefun ( filter-name filter )
-@deftypefunx ( filter-nodes filter )
-@deftypefunx ( filter-ports filter )
-@deftypefunx ( filter-params filter )
+@defun filter-name filter
+@defunx filter-nodes filter
+@defunx filter-ports filter
+@defunx filter-params filter
 These procedures evaluate to a string containing the filters name or
 to lists of the specified object type representing the actual subobjects
 associated with the filter.
-@end deftypefun
+@end defun
 
 Out of a port object you can get information and subobjects using
 the following procedures:
 
-@deftypefun ( port-label port )
-@deftypefunx ( port-pipes port )
-@deftypefunx ( port-params port )
+@defun port-label port
+@defunx port-pipes port
+@defunx port-params port
 These procedures evaluate to a string containing the ports label or
 to lists of the specified object type representing the actual subobjects
 associated with the port.
-@end deftypefun
+@end defun
 
 Out of a param object you can get and modify information using the following
 procedures:
 
-@deftypefun ( param-label param )
-@deftypefunx ( param-value param )
-@deftypefunx ( param-set! param value )
+@defun param-label param
+@defunx param-value param
+@defunx param-set! param value
 These procedures evaluate to a string containing the label of the
 param object, the actual value of the param whose type depends on
 the param objects type or a boolean denoting the success of a param
 set command.
-@end deftypefun
+@end defun
 
 Out of a pipe object you can get information and subobjects using
 the following procedures:
 
-@deftypefun ( pipe-samplerate pipe )
-@deftypefunx ( pipe-position pipe )
-@deftypefunx ( pipe-source-params pipe )
-@deftypefunx ( pipe-dest-params pipe )
+@defun pipe-samplerate pipe
+@defunx pipe-position pipe
+@defunx pipe-source-params pipe
+@defunx pipe-dest-params pipe
 These procedures evaluate to an exact number containing the samplerate
 of the data flowing through the pipe, a number containing the position
 of the audio stream or
 to lists of the specified object type representing the actual subobjects
 associated with the pipe.
-@end deftypefun
+@end defun
 
 Pipe objects can be queried for the actual protocol type using the
 following procedures:
 
-@deftypefun ( pipe-sample? pipe )
-@deftypefunx ( pipe-fft? pipe )
-@deftypefunx ( pipe-ssp? pipe )
+@defun pipe-sample? pipe
+@defunx pipe-fft? pipe
+@defunx pipe-ssp? pipe
 These procedures check @code{pipe} for being of the specified protocol type and
 evaluate to @code{#t} if this is the case and @code{#f} otherwise.
-@end deftypefun
+@end defun
 
 Usually you can attach key/value pairs to a per object database. Those
 object properties can be queried and modified using the following generic
 interface:
 
-@deftypefun ( set-property! obj key value )
-@deftypefunx ( get-property obj key )
+@defun set-property! obj key value
+@defunx get-property obj key
 These procedures evaluate to @code{#unspecified} or a string object
 containing the value associated with the specified key or @code{#f} if
 this key has no associated value. Note that for both @code{key} and
 @code{value} only string objects are allowed.
 Predefined key values are @code{FILTERPARAM_DESCRIPTION},
 @code{FILTERPARAM_GLADEXML} and @code{FILTERPORT_DESCRIPTION}.
-@end deftypefun
+@end defun
 
 
 The following procedures handle object serialization and creation
 and destruction of objects.
 
-@deftypefun ( filter-new [filter|plugin] )
-@deftypefunx ( filter-delete filter )
-@deftypefunx ( port-delete port )
-@deftypefunx ( param-delete param )
-@deftypefunx ( pipe-delete pipe )
+@defun filter-new [filter|plugin]
+@defunx filter-delete filter
+@defunx port-delete port
+@defunx param-delete param
+@defunx pipe-delete pipe
 @code{filter-new} constructs a new filter object by either cloning
 from a filter or a plugin object or creating an empty network from
 scratch. The delete procedures destruct the specified objects.
-@end deftypefun
+@end defun
 
-@deftypefun ( filter->string filter )
-@deftypefunx ( param->string param )
+@defun filter->string filter
+@defunx param->string param
 While the first procedure returns a string containing a scheme
 expression being able to recreate the filter object, the second
 procedure just evaluates to a string containing the value of the
 specified param.
-@end deftypefun
+@end defun
 
-@deftypefun ( filter-add-node filter filter node-name )
-@deftypefunx ( filter-connect filter port-name filter port-name )
+@defun filter-add-node filter filter node-name
+@defunx filter-connect filter port-name filter port-name
 @code{filter-add-node} adds the specified filter (second parameter) to
 the specified network (first parameter) using the identifier specified
 as third parameter.
 @code{filter-connect} connects the two specified parameters via the
 specified ports identified by their port names. @code{filter-connect}
 evaluates to a pipe object.
-@end deftypefun
+@end defun
 
-@deftypefun ( filternetwork-add-input filter filter port-name name description )
-@deftypefunx ( filternetwork-add-output filter filter port-name name description )
-@deftypefunx ( filternetwork-add-param filter filter param-name name description )
+@defun filternetwork-add-input filter filter port-name name description
+@defunx filternetwork-add-output filter filter port-name name description
+@defunx filternetwork-add-param filter filter param-name name description
 Procedures to be used for exporting ports and params to the outside world
 in a macro filter. The first parameter is the actual network, the second
 parameter is the node that gets exported from. These procedures evaluate
 to a port or a param object.
-@end deftypefun
+@end defun
 
-@deftypefun ( glame_create_plugin filter name )
-@deftypefunx ( glame_plugin_define filter name )
+@defun glame_create_plugin filter name
+@defunx glame_plugin_define filter name
 @code{glame_create_plugin} creates and registers a new plugin using the
 specified name and associate it with the provided filter. Evaluates to a
 plugin or to @code{#f} on error.
 @code{glame_plugin_define} is used internally for transparently registering
 or filter loading.
-@end deftypefun
+@end defun
 
-@deftypefun ( filter-launch filter )
-@deftypefunx ( filter-start filter )
-@deftypefunx ( filter-pause filter )
-@deftypefunx ( filter-wait filter )
-@deftypefunx ( filter-terminate filter )
+@defun filter-launch filter
+@defunx filter-start filter
+@defunx filter-pause filter
+@defunx filter-wait filter
+@defunx filter-terminate filter
 These procedures handle filter network execution.
-@end deftypefun
+@end defun
 
 
 
@@ -263,37 +263,37 @@ after a simple filesystem with a flat namespace (no directories) and
 names being just cardinal numbers.
 
 
-@deftypefun ( swapfile-open path )
-@deftypefunx ( swapfile-close )
-@deftypefunx ( swapfile-creat path )
+@defun swapfile-open path
+@defunx swapfile-close
+@defunx swapfile-creat path
 These procedures control the swapfile subsystem. @code{swapfile-open}
 initializes the subsystem from the swapfile at the specified location.
 @code{swapfile-creat} tries to create a new swapfile at the specified
 location, @code{swapfile-close} cleans up and closes the subsystem.
-@end deftypefun
+@end defun
 
-@deftypefun ( swdir? dir )
-@deftypefunx ( sw-opendir )
-@deftypefunx ( sw-readdir dir )
-@deftypefunx ( sw-closedir dir )
+@defun swdir? dir
+@defunx sw-opendir
+@defunx sw-readdir dir
+@defunx sw-closedir dir
 These procedures can be used to traverse the swapfile files. Function
 is like the libc readdir routines, but as the swapfile has a flat
 namespace you dont specify a subdirectory for @code{sw-opendir}.
 @code{sw-opendir} evaluates to a @code{swdir} object.
 @code{sw-readdir} returns swapfile filenames as long as they are
 available and @code{#f} upon directory end.
-@end deftypefun
+@end defun
 
-@deftypefun ( sw-unlink name )
+@defun sw-unlink name
 Unlinks the specified file from the swapfile. You cannot recover
 unlinked swapfiles. Behavior is like unlink(2), i.e. if the file
 is still open the deletion of the data is postponed until close of
 the file.
-@end deftypefun
+@end defun
 
-@deftypefun ( swfd? fd )
-@deftypefunx ( sw-open name flags )
-@deftypefunx ( sw-close fd )
+@defun swfd? fd
+@defunx sw-open name flags
+@defunx sw-close fd
 For working with a swapfile you need to obtain a handle to it.
 Use @code{sw-open} to open the swapfile with the specified name.
 The flags argument is modeled after open(2), @code{O_CREAT},
@@ -302,28 +302,28 @@ and @code{O_WRONLY} are available. Or them together like
 @code{(+ O_CREAT O_TRUNC O_RDWR)}. @code{sw-open} evaluates
 to a file descriptor which you can identify using the @code{swfd?}
 predicate. Use @code{sw-close} if you are finished with the file.
-@end deftypefun
+@end defun
 
-@deftypefun ( sw-fstat fd )
+@defun sw-fstat fd
 @code{sw-fstat} obtains information about an open filedescriptor.
 It evaluates to a list of the form @code{( name size mode offset
 cluster-start cluster-end cluster-size )} where all entries are
 cardinals.
-@end deftypefun
+@end defun
 
-@deftypefun ( sw-lseek fd offset whence )
+@defun sw-lseek fd offset whence
 To seek inside a file use @code{sw-lseek} which works like lseek(2),
 i.e. it seeks relative to whence offset bytes. For whence @code{SEEK_CUR},
 @code{SEEK_SET} and @code{SEEK_END} are available. @code{sw-lseek}
 evaluates to the current file pointer position.
-@end deftypefun
+@end defun
 
-@deftypefun ( sw-ftruncate fd size )
+@defun sw-ftruncate fd size
 @code{sw-ftruncate} truncates the specified file to the specified size
 appending zeroes in case of enlarging.
-@end deftypefun
+@end defun
 
-@deftypefun ( sw-sendfile dest-fd source-fd size [flags] )
+@defun sw-sendfile dest-fd source-fd size [flags]
 @code{sw-sendfile} copies (by using copy on write) size bytes
 from the current filepointer position of the source-fd to the
 current filepointer position of the dest-fd. Via the optional
@@ -339,12 +339,12 @@ dest-fd
 For both files you can specify @code{SW_NOFILE} if it makes sense
 (i.e. for just cutting out data specify @code{SW_NOFILE} as dest-fd
 and @code{SWSENDFILE_CUT} as flag).
-@end deftypefun
+@end defun
 
 
-@deftypefun ( sw-read-floatvec fd size )
-@deftypefunx ( sw-read-string fd size )
-@deftypefunx ( sw-write fd data )
+@defun sw-read-floatvec fd size
+@defunx sw-read-string fd size
+@defunx sw-write fd data
 Those are the basic read and write operations. Both strings and
 float vectors are supported by the scheme interface. For reading
 you need to specify the type via the procedure name, for writing
@@ -355,7 +355,7 @@ writes the whole object to the current filepointer position and
 evaluates to the number of objects written.
 All procedures increment the filepointer position by the number
 of bytes read/written.
-@end deftypefun
+@end defun
 
 
 
@@ -365,31 +365,31 @@ of bytes read/written.
 The glame plugin midlayer API is wrapped with the following
 procedures:
 
-@deftypefun ( plugin? plugin )
+@defun plugin? plugin
 This procedure checks, if the specified object represents a plugin and
 evaluates to @code{#t} in this case, else @code{#f}.
-@end deftypefun
+@end defun
 
-@deftypefun ( plugin-add-path path )
+@defun plugin-add-path path
 This procedure adds the specified path to the plugin shared object
 search path that is used by the @code{plugin-get} procedure.
-@end deftypefun
+@end defun
 
-@deftypefun ( plugin-get name )
+@defun plugin-get name
 Queries a plugin with the specified name out of the plugin database.
 Evaluates to a plugin or @code{#f} if a plugin with the specified name
 cannot be found.
-@end deftypefun
+@end defun
 
-@deftypefun ( plugin-name plugin )
-@deftypefunx ( plugin-query plugin key )
-@deftypefunx ( plugin-set! plugin key value )
+@defun plugin-name plugin
+@defunx plugin-query plugin key
+@defunx plugin-set! plugin key value
 Queries the name or custom properties out of a plugin. Those procedures
 evaluate to a string, @code{plugin-set!} sets the specified property to
 the specified string. Predefined property keys are
 @code{PLUGIN_DESCRIPTION}, @code{PLUGIN_PIXMAP}, @code{PLUGIN_CATEGORY},
 @code{PLUGIN_GUI_HELP_PATH} and @code{PLUGIN_LABEL}.
-@end deftypefun
+@end defun
 
 
 
@@ -404,118 +404,118 @@ API also wraps swapfile modification of wave data.
 For global control and initialization the following procedures are
 available:
 
-@deftypefun ( gpsm-init path )
-@deftypefunx ( gpsm-sync )
-@deftypefunx ( gpsm-close )
+@defun gpsm-init path
+@defunx gpsm-sync
+@defunx gpsm-close
 These procedures handle initialization and cleanup of the gpsm
 and the swapfile subsystem. As path you need to specify the path
 to the to be used swapfile. @code{gpsm-sync} syncs all gpsm
 metadata to disk.
-@end deftypefun
+@end defun
 
 The gpsm subsystem builds on a tree of gpsm items which are derived
 from a generic item type. Available item types are the gpsm group
 which just contains a list of children, and the gpsm swapfile which
 represents a wave with its metadata and swapfile representation.
 
-@deftypefun ( gpsm-item? item )
-@deftypefunx ( gpsm-grp? item )
-@deftypefunx ( gpsm-swfile? item )
+@defun gpsm-item? item
+@defunx gpsm-grp? item
+@defunx gpsm-swfile? item
 These predicates check if the provided object is an gpsm item, or
 one of the derived types, a gpsm group or a gpsm swapfile.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-item-parent item )
-@deftypefunx ( gpsm-item-label item )
-@deftypefunx ( gpsm-item-hposition item )
-@deftypefunx ( gpsm-item-vposition item )
-@deftypefunx ( gpsm-item-hsize item )
-@deftypefunx ( gpsm-item-vsize item )
+@defun gpsm-item-parent item
+@defunx gpsm-item-label item
+@defunx gpsm-item-hposition item
+@defunx gpsm-item-vposition item
+@defunx gpsm-item-hsize item
+@defunx gpsm-item-vsize item
 These procedures give access to the basic gpsm type, the gpsm item.
 They evaluate to the items parent item, to its label or its position
 and extension.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-grp-items item )
+@defun gpsm-grp-items item
 @code{gpsm-grp-items} evaluates to the list of childs of the group.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-swfile-filename item )
-@deftypefunx ( gpsm-swfile-samplerate item )
-@deftypefunx ( gpsm-swfile-position item )
+@defun gpsm-swfile-filename item
+@defunx gpsm-swfile-samplerate item
+@defunx gpsm-swfile-position item
 These procedures give access to the gpsm swapfile type. They evaluate
 to the wave swapfile metadata, respective the swapfile filename, its
 samplerate and position in the stereo field.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-item-set-label! item label )
-@deftypefunx ( gpsm-swfile-set-samplerate! item rate )
-@deftypefunx ( gpsm-swfile-set-position! item position )
+@defun gpsm-item-set-label! item label
+@defunx gpsm-swfile-set-samplerate! item rate
+@defunx gpsm-swfile-set-position! item position
 These procedues modify one of the gpsm type properties.
-@end deftypefun
+@end defun
 
 
 For creating, copying, linking and destroying of items the following
 procedures are available:
 
-@deftypefun ( gpsm-newswfile label )
-@deftypefunx ( gpsm-swfile-cow swfile )
-@deftypefunx ( gpsm-swfile-link swfile )
-@end deftypefun
+@defun gpsm-newswfile label
+@defunx gpsm-swfile-cow swfile
+@defunx gpsm-swfile-link swfile
+@end defun
 
-@deftypefun ( gpsm-newgrp label )
-@end deftypefun
+@defun gpsm-newgrp label
+@end defun
 
-@deftypefun ( gpsm-item-destroy item )
-@end deftypefun
+@defun gpsm-item-destroy item
+@end defun
 
 
 For structuring, modifying and traversing of the gpsm tree the
 following procedures are available:
 
-@deftypefun ( gpsm-root )
+@defun gpsm-root
 Evaluates to the gpsm tree root item.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-grp-hbox? grp )
-@deftypefunx ( gpsm-grp-vbox? grp )
+@defun gpsm-grp-hbox? grp
+@defunx gpsm-grp-vbox? grp
 Predicates that check, if the specified group is a hbox (a set of
 horizontally sorted, non-overlapping items), or a vbox (a set of
 vertically sorted, non-overlapping items).
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-item-can-place? grp item hposition vposition )
-@deftypefunx ( gpsm-item-place grp item hposition vposition )
+@defun gpsm-item-can-place? grp item hposition vposition
+@defunx gpsm-item-place grp item hposition vposition
 Placing happens without moving unaffected items. Placing needs to
 happen at a position where the needed space is already available.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-item-remove item )
+@defun gpsm-item-remove item
 Removing happens without moving unaffected items and reverses
 a previous @code{gpsm-item-place} operation.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-hbox-can-insert? grp item hposition vposition )
-@deftypefunx ( gpsm-hbox-insert grp item hposition vposition )
+@defun gpsm-hbox-can-insert? grp item hposition vposition
+@defunx gpsm-hbox-insert grp item hposition vposition
 Insertion moves adjacend items horizontally by the size of the inserted
 item. Only the starting position needs to be unoccupied.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-vbox-can-insert? grp item hposition vposition )
-@deftypefunx ( gpsm-vbox-insert grp item hposition vposition )
+@defun gpsm-vbox-can-insert? grp item hposition vposition
+@defunx gpsm-vbox-insert grp item hposition vposition
 Insertion moves adjacend items vertically by the size of the inserted
 item. Only the starting position needs to be unoccupied.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-hbox-cut item )
+@defun gpsm-hbox-cut item
 Cutting moves adjacend items horizontally by the size of the cutted
 item, reversing a previous @code{gpsm-hbox-insert} operation.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-vbox-cut item )
+@defun gpsm-vbox-cut item
 Cutting moves adjacend items vertically by the size of the cutted
 item, reversing a previous @code{gpsm-vbox-insert} operation.
-@end deftypefun
+@end defun
 
 
 For the provided notification facility of changes to the underlying
@@ -523,51 +523,51 @@ wave object (the swapfile file), the following procedures need to
 be called, whenever a change is made bypassing the gpsm subsystem.
 They all take a swapfile filename instead of a gpsm object.
 
-@deftypefun ( gpsm-notify-swapfile-change name position size )
-@deftypefunx ( gpsm-notify-swapfile-cut name position size )
-@deftypefunx ( gpsm-notify-swapfile-insert name position size )
-@deftypefunx ( gpsm-invalidate-swapfile name )
+@defun gpsm-notify-swapfile-change name position size
+@defunx gpsm-notify-swapfile-cut name position size
+@defunx gpsm-notify-swapfile-insert name position size
+@defunx gpsm-invalidate-swapfile name
 Via these procedures you signal a change within the specified region
 of the swapfile with the specified name. Either just data modification
 or insertion or deletion of the region. Via @code{gpsm-invalidate-swapfile}
 you tell the gpsm subsystem to drop all its knowledge of the data of
 the swapfile, including its current size.
-@end deftypefun
+@end defun
 
 
 The gpsm subsystem transparently provides undo and redo operations for
 swapfiles via the following procedures:
 
-@deftypefun ( gpsm-op-prepare item )
+@defun gpsm-op-prepare item
 Prepares the subtree specified by the provided item for later undo,
 i.e. restoring of the current state.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-op-forget item )
+@defun gpsm-op-forget item
 Forgets the most recent stored state of the subtree specified by the
 provided item.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-op-can-undo? item )
-@deftypefunx ( gpsm-op-undo item )
-@deftypefunx ( gpsm-op-undo-and-forget item )
+@defun gpsm-op-can-undo? item
+@defunx gpsm-op-undo item
+@defunx gpsm-op-undo-and-forget item
 @code{gpsm-op-can-undo?} evaluates to @code{#t} if there is a previous
 state available that can be restored now for the subtree specified by
 the provided item. @code{gpsm-op-undo} restores this state and remembers
 the current one for later redo. @code{gpsm-op-undo-and-forget} does not
 remember the current state for later redo.
-@end deftypefun
+@end defun
 
-@deftypefun ( gpsm-op-can-redo? item )
-@deftypefunx ( gpsm-op-redo item )
-@deftypefunx ( gpsm-op-redo-and-forget item )
+@defun gpsm-op-can-redo? item
+@defunx gpsm-op-redo item
+@defunx gpsm-op-redo-and-forget item
 @code{gpsm-op-can-redo?} evaluates to @code{#t} if there is a previous
 state available created by an @code{gpsm-op-undo} operation for the
 subtree specified by the provided item. @code{gpsm-op-redo} restores
 this state and remembers the current one for later
 undo. @code{gpsm-op-redo-and-forget} does not remember the current state
 for later undo.
-@end deftypefun
+@end defun
 
 
 
@@ -591,37 +591,37 @@ via @code{(help command)} or @code{(help)}.
 @node Network setup, Cooked operations,, cglame Convenience
 @subsection Network setup
 
-@deftypefun ( net-new )
+@defun net-new
 Creates a new filternetwork. @code{net-new} evaluates to a
 filter.
-@end deftypefun
+@end defun
 
-@deftypefun ( net-add-node filter node '("label" value) ... )
-@deftypefunx ( net-add-nodes filter node '(node '("label" value) ...) ... )
-@deftypefunx ( nodes-delete filter ... )
+@defun net-add-node filter node '("label" value) ...
+@defunx net-add-nodes filter node '(node '("label" value) ...) ...
+@defunx nodes-delete filter ...
 @code{net-add-node} adds a single node with optional parameters
 to the network specified by @var{filter}. @code{net-add-nodes}
 adds a set of nodes with optional parameters to the network.
 @code{net-add-node} evaluates to a @code{filter}, @code{net-add-nodes}
 to a list of @code{filter}s. Using @code{nodes-delete} you can delete
 nodes from a network.
-@end deftypefun
+@end defun
 
-@deftypefun ( nodes-connect nodes ... )
+@defun nodes-connect nodes ...
 @code{nodes-connect} linearily connects the specified lists of
 @code{filter}s.
-@end deftypefun
+@end defun
 
-@deftypefun ( node-set-params filter '("label" value) ... )
+@defun node-set-params filter '("label" value) ...
 Using @code{node-set-params} you can set the parameters of the
 specified @var{filter}.
-@end deftypefun
+@end defun
 
-@deftypefun ( net-run filter )
-@deftypefunx ( net-run-bg filter )
+@defun net-run filter
+@defunx net-run-bg filter
 @code{net-run} starts processing of the network and waits until completion.
 @code{net-run-bg} starts processing of the network and returns immediately.
-@end deftypefun
+@end defun
 
 
 @node Cooked operations,, Network setup, cglame Convenience
@@ -631,13 +631,13 @@ The following procedures can be customised by setting
 @code{audio-out}, @code{read-file} or @code{write-file} to other
 filters than their default ones like @code{(set! read-file "read-mp3")}.
 
-@deftypefun ( play filename )
+@defun play filename
 Plays the specified file.
-@end deftypefun
+@end defun
 
-@deftypefun ( play-eff filename '(effect ("label" value) ...) ... )
-@deftypefunx ( save-eff infile outfile '(effect ("label" value) ...) ... )
+@defun play-eff filename '(effect ("label" value) ...) ...
+@defunx save-eff infile outfile '(effect ("label" value) ...) ...
 Plays or saves the specified file after applying the specified chain
 of effects with parameters.
-@end deftypefun
+@end defun
 

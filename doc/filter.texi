@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.35 2003/04/15 18:58:49 richi Exp $
+@comment $Id: filter.texi,v 1.36 2005/03/28 18:27:09 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -560,10 +560,10 @@ Returns @code{NULL}, if no further pipe is available.
 @end deftypefun
 
 @tindex filter_port_t
-@deftypefn Iterator filterport_foreach_pipe ( filter_port_t *@var{port}, filter_pipe_t *@var{pipe}) @{ @}
+@deftypefun Iterator filterport_foreach_pipe (filter_port_t *@var{port}, filter_pipe_t *@var{pipe})
 A different way to iterate through all available pipes is using this
 iterator. But you may not delete pipes while iterating.
-@end deftypefn
+@end deftypefun
 
 
 @tindex filter_port_t
@@ -608,11 +608,11 @@ exist, nothing is done.
 
 @tindex filter_portdb_t
 @tindex filter_port_t
-@deftypefn Iterator filterportdb_foreach_port ( filter_portdb_t *@var{db}, filter_port_t *@var{port}) @{ @}
+@deftypefun Iterator filterportdb_foreach_port ( filter_portdb_t *@var{db}, filter_port_t *@var{port})
 You can iterate through all ports of a database using the following
 iterator (which acts like a for statement with the second parameter as
 running variable). Note that you may not delete ports in this loop!
-@end deftypefn
+@end deftypefun
 
 @tindex filter_portdb_t
 @deftypefun int filterportdb_nrports (filter_portdb_t *@var{db})
