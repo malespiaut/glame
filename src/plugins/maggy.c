@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.3 2000/03/20 09:51:53 richi Exp $
+ * $Id: maggy.c,v 1.4 2000/03/20 10:04:01 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -279,20 +279,20 @@ int maggy_register()
 	    || filter_add(f, "noisegate", "The noisegate filters all signals that are below the threshold") == -1)
 		return -1;
 	
-	if (!(f = filter_alloc("statistic","Calculates RMS, RMS in window & DC-Offset",statistic_f))
+	if (!(f = filter_alloc(statistic_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 		    		 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 		    		 FILTER_PORTTYPE_RMS)
 	    || !(p=filter_add_param(f,"windowsize","timeslice in ms for which peak rms is calculated",FILTER_PARAMTYPE_FLOAT))
-	    || filter_add(f)==-1)
+	    || filter_add(f,"statistic","Calculates RMS, RMS in window & DC-Offset")==-1)
 		return -1;
 	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
 
-	if (!(f = filter_alloc("debugrms","eats rms buffers and shows debug output",debugrms_f))
+	if (!(f = filter_alloc(debugrms_f))
 	    || !filter_add_input(f,PORTNAME_IN, "input",
 		    		 FILTER_PORTTYPE_RMS)
-	    || filter_add(f)==-1)
+	    || filter_add(f, "debugrms","eats rms buffers and shows debug output")==-1)
 		return -1;
 	
 	return 0;
