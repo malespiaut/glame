@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.29 2003/06/09 20:51:45 richi Exp $
+ * $Id: ladspa.c,v 1.30 2003/08/08 19:56:34 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -201,8 +201,13 @@ static int ladspa_f(filter_t * n)
 							[lPortIndex]);
 			/* psParam == NULL does not happen if params were registered
 			 * appropriately. [richi] */
-			pfControlValues[lPortIndex] =
-				filterparam_val_double(psParam);
+			if (FILTER_PARAM_IS_DOUBLE(psParam))
+				pfControlValues[lPortIndex] =
+					filterparam_val_double(psParam);
+			else if (FILTER_PARAM_IS_LONG(psParam))
+				pfControlValues[lPortIndex] =
+					filterparam_val_long(psParam);
+
 /* 
  * We now need to wire up the control port on the LADSPA plugin
  * to the point in the control ports array. For an input port
