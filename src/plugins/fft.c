@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: 
+ * $Id: fft.c,v 1.8 2001/01/02 23:29:47 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -57,17 +57,27 @@ static int fft_connect_out(filter_t *n, filter_port_t *port,
 	float hangle;
 	filter_pipe_t *in;
 	filter_param_t *param;
-
-	if ((in = filternode_get_input(n, PORTNAME_IN))) {
+	filter_port_t *in_port;
+	
+	DPRINTF("fft_connect_out\n");
+	
+	if ((in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN))) {
+		in = filterport_get_pipe(in_port);
 		if ((param=filternode_get_param(n,"blocksize")))
 			bsize=filterparam_val_int(param);
 		
 		if ((param=filternode_get_param(n,"oversamp")))
 			osamp=filterparam_val_int(param);
-
-		rate=filterpipe_sample_rate(in);
-		hangle=filterpipe_sample_hangle(in);
-		filterpipe_settype_fft(p,rate,hangle,bsize,osamp);
+		DPRINTF("set values\n");
+		if (in != NULL) {
+			DPRINTF("in != NULL\n");
+			rate=filterpipe_sample_rate(in);
+			hangle=filterpipe_sample_hangle(in);
+		}
+		if (p != NULL) {
+			DPRINTF("filterpipe_settype_fft(p,rate,hangle,bsize,osamp)\n");
+			filterpipe_settype_fft(p,rate,hangle,bsize,osamp);
+		}
 	}
 	
 	return 0;
@@ -76,25 +86,49 @@ static int fft_connect_out(filter_t *n, filter_port_t *port,
 static void fft_fixup_param(glsig_handler_t *h, long sig, va_list va) {
 	filter_param_t *param;
 	filter_t *n;
-	filter_pipe_t *out;
-	
-	GLSIGH_GETARGS1(va, param);
-	n=filterparam_filter(param);
-	
-	if ((out = filternode_get_output(n, PORTNAME_OUT))) {
-		fft_connect_out(n,NULL,out);
-		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+	filter_pipe_t *pipe;
+	filter_port_t *port;	
+
+	switch (sig)
+	{
+		case GLSIG_PIPE_CHANGED:
+			{
+				GLSIGH_GETARGS1(va, pipe);
+				DPRINTF("GLSIG_PIPE_CHANGED");
+				n = filterport_filter(filterpipe_dest(pipe));
+			}
+			break;
+		case GLSIG_PARAM_CHANGED:
+			{
+				GLSIGH_GETARGS1(va, param);
+				DPRINTF("GLSIG_PARAM_CHANGED");
+				n = filterparam_filter(param);
+			}
+			break;
+	}
+
+	DPRINTF("fft_fixup_param\n");
+
+	if ((port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))) {
+		pipe = filterport_get_pipe(port);
+		if (pipe != NULL) {
+			DPRINTF("hello\n");
+			fft_connect_out(n,NULL,pipe);
+			DPRINTF("hello2\n");
+			glsig_emit(&pipe->emitter, GLSIG_PIPE_CHANGED, pipe);
+		}
 	}
 }
 
 static int fft_f(filter_t *n){
+	queue_t		queue;
 	filter_pipe_t *in,*out;
-	filter_buffer_t *inb,*outb;
+	filter_buffer_t *outb,*outb2;
 	filter_param_t *param;
 	rfftw_plan p;
-	SAMPLE *overlap,*iptr,*optr,*win;
-	int osamp,bsize;
-	int ioff,i,j,ooff,todo,z;
+	SAMPLE *overlap, *s, *win;
+	int osamp, bsize;
+	int ooff, obufsize, obufcnt, cnt, i, j;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
 		FILTER_ERROR_RETURN("no input");
@@ -111,7 +145,7 @@ static int fft_f(filter_t *n){
 	/* plans are not threadsafe! */
 	
 	pthread_mutex_lock(&planlock);
-	p = rfftw_create_plan(bsize, FFTW_REAL_TO_COMPLEX, FFTW_ESTIMATE);
+	p = rfftw_create_plan(bsize, FFTW_REAL_TO_COMPLEX, FFTW_ESTIMATE | FFTW_IN_PLACE);
 	pthread_mutex_unlock(&planlock);
 	
 	if (!(overlap=ALLOCN(bsize,SAMPLE)))
@@ -119,97 +153,59 @@ static int fft_f(filter_t *n){
 	if (!(win=hanning(bsize)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 
-	for(i=0;i<bsize;i++)
-		DPRINTF("%f, ",win[i]);
-	DPRINTF("\n");
+	INIT_QUEUE(&queue, in);
+	
 	FILTER_AFTER_INIT;
 	
-	inb=sbuf_get(in);
-	inb=sbuf_make_private(inb);
-	iptr=sbuf_buf(inb);
-	outb=sbuf_alloc(GLAME_WBUFSIZE,n);
-	outb=sbuf_make_private(outb);
-	optr=sbuf_buf(outb);
-	ioff=0;
-	ooff=0;
+	ooff = bsize / osamp;
+	obufsize = MAX(bsize, (GLAME_WBUFSIZE / bsize) * bsize);
+	obufcnt = obufsize / bsize;
+
+	DPRINTF("ooff = %d, obufsize=%d, obufcnt=%d\n", ooff, obufsize, obufcnt);
 	
-	while(inb){
+	do {
 		FILTER_CHECK_STOP;
+		outb = sbuf_make_private(sbuf_alloc(obufsize, n));
+		s = sbuf_buf(outb);
 		
-		if (osamp==1) {
-			todo=MIN(sbuf_size(inb)-ioff,GLAME_WBUFSIZE-ooff);
-			i=todo/bsize;
-			if (i!=0) {
-				z=0;
-				for(j=0;j<i*bsize;j++){
-					iptr[j]*=win[z++];
-					if (z>bsize) z=0;
-				}
-				rfftw(p,i,(fftw_real *)iptr,1,bsize,(fftw_real *)optr,1,bsize);
-				iptr+=i*bsize;
-			  	optr+=i*bsize;
-				ioff+=i*bsize;
-				ooff+=i*bsize;
+		for(cnt=0; cnt<obufcnt; cnt++) {
+			if (queue_copy_pad(&queue, s, bsize)) {
+				cnt++;
+				break;
 			}
-			else
-			{
-				memcpy(overlap,iptr,todo*SAMPLE_SIZE); 
-				sbuf_unref(inb);
-				inb=sbuf_get(in);
-				if (inb) {
-					inb=sbuf_make_private(inb);
-					ioff=MIN(bsize-todo,sbuf_size(inb));
-					memcpy(overlap+todo,sbuf_buf(inb),ioff*SAMPLE_SIZE); 
-					iptr=sbuf_buf(inb)+ioff;
-				}
-				else 
-				{
-					memset(overlap+todo,0,(bsize-todo)*SAMPLE_SIZE); 
-				}
-				for(j=0;j<bsize;j++)
-					overlap[j]*=win[j];
-				rfftw_one(p,(fftw_real *)overlap,optr);
-				optr+=bsize;
-				ooff+=bsize;
-			}
-			if (ooff==GLAME_WBUFSIZE) {
-				sbuf_queue(out,outb);
-				outb=sbuf_alloc(GLAME_WBUFSIZE,n);
-				outb=sbuf_make_private(outb);
-				ooff=0;
-				optr=sbuf_buf(outb);
-			}
-			if (ioff==sbuf_size(inb)) {
-				sbuf_unref(inb);
-				inb=sbuf_get(in);
-				if (!(inb)) goto out;
-				inb=sbuf_make_private(inb);
-				ioff=0;
-				iptr=sbuf_buf(inb);
-			}
+			queue_shift(&queue, ooff);
+			s += bsize;
 		}
-	}
-out:
-	if ((ooff!=GLAME_WBUFSIZE) && (ooff!=0))
-	{
-		inb=sbuf_alloc(ooff,n);
-		inb=sbuf_make_private(inb);
-		memcpy(sbuf_buf(inb),sbuf_buf(outb),ooff*SAMPLE_SIZE);
-		sbuf_unref(outb);
-		outb=inb;
-		sbuf_queue(out,outb);
-	}
-	else if (ooff==0) sbuf_unref(outb);
-	else sbuf_queue(out,outb);
-	sbuf_queue(out,NULL);
+	/*	
+		s = sbuf_buf(outb);
+		for(i=0; i<cnt; i++)
+			for(j=0;j<bsize;j++)
+				*s++ *= win[j];
+	*/	
+		rfftw(p, cnt, (fftw_real *)sbuf_buf(outb), 1, bsize, NULL, 1, 1);
 	
+		if (cnt == obufcnt)
+			sbuf_queue(out, outb);
+	} while (cnt == obufcnt);
+
+	if (cnt == 0) {
+		sbuf_unref(outb);
+	} else {
+		outb2 = sbuf_make_private(sbuf_alloc(cnt*bsize, n));
+		memcpy(sbuf_buf(outb2), sbuf_buf(outb), cnt*bsize*SAMPLE_SIZE);
+		sbuf_unref(outb);
+		sbuf_queue(out, outb2);
+	}
+	sbuf_queue(out, NULL);
+
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	free(overlap);
+	queue_drain(&queue);
+
 	free(win);
 	rfftw_destroy_plan(p);
-	
+
 	FILTER_RETURN;
 }
 
@@ -261,7 +257,7 @@ static int ifft_f(filter_t *n){
 	filter_pipe_t *in,*out;
 	filter_buffer_t *inb;
 	rfftw_plan p;
-	SAMPLE *overlap,*win;
+	SAMPLE *overlap,*win, *s;
 	int osamp,bsize,i,j;
 	float gain;
 	
@@ -294,14 +290,14 @@ static int ifft_f(filter_t *n){
 		FILTER_CHECK_STOP;
 		
 		/* In case we have no oversampling, we can process in place */
-		if (osamp==1) {
-			rfftw(p,sbuf_size(inb)/bsize,(fftw_real *)sbuf_buf(inb),1,bsize,NULL,1,1);
-			j=0;
-			for(i=0;i<sbuf_size(inb);i++){
-				sbuf_buf(inb)[i]*=gain*win[j++];
-				if (j>bsize) j=0;
-			}
+		rfftw(p,sbuf_size(inb)/bsize,(fftw_real *)sbuf_buf(inb),1,bsize,NULL,1,1);
+		
+		s = sbuf_buf(inb);
+		
+		for(i=0;i<sbuf_size(inb);i++){
+			*s++ *= gain;
 		}
+		
 		sbuf_queue(out,inb);
 entry:
 		inb=sbuf_get(in);
