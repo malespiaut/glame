@@ -199,14 +199,10 @@ typedef struct {
 	int nr_threads;
 
 	int state;
-	struct list_head buffers;	
 
 	int semid;
 	glame_atomic_t result;
 } filter_launchcontext_t;
-#define filterlaunchcontext_first_buffer(c) list_gethead(&(c)->buffers, \
-        filter_buffer_t, list)
-
 
 
 struct filter_node_operations {
@@ -254,6 +250,7 @@ struct filter_node {
 	/* private - used by launch_filter_network & friends */
 	int state;
 	pthread_t thread;
+	struct list_head buffers;
 };
 /* filter node hash/list addition/removal to filter networks.
  */
@@ -319,6 +316,6 @@ struct filter_network {
 /* drain pipe to unblock source.
  */
 void fbuf_drain(filter_pipe_t *p);
-
+void fbuf_free_buffers(struct list_head *list);
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.17 2000/03/19 23:53:15 mag Exp $
+ * $Id: filter_protocols.h,v 1.18 2000/03/24 11:08:14 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -60,7 +60,7 @@ struct rms_header {
 	} u;
 };
 
-#define rms_alloc(filternode) fbuf_alloc(sizeof(rms_header_t),&(filternode)->net->launch_context->buffers)
+#define rms_alloc(filternode) fbuf_alloc(sizeof(rms_header_t),&(filternode)->buffers)
 #define rms_size(fb) ((fb)==NULL?0:sizeof(rms_header_t))
 #define rms_buf(fb) ((rms_header_t *)(fbuf_buf(fb)))
 #define rms_ref(fb) fbuf_ref(fb)
@@ -113,7 +113,7 @@ struct sbuf_header {
 };
 #define sbuf_alloc(nrsamples, filternode) \
         fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(sbuf_header_t), \
-		   &(filternode)->net->launch_context->buffers)
+		   &(filternode)->buffers)
 #define sbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(sbuf_header_t))/SAMPLE_SIZE)
 #define sbuf_buf(fb) ((SAMPLE *)(&((sbuf_header_t *)fbuf_buf(fb))->buf[0]))
 #define sbuf_ref(fb) fbuf_ref(fb)
@@ -132,7 +132,7 @@ typedef struct mbuf_header {
 
 #define mbuf_alloc(nrevents, filternode) \
         fbuf_alloc(sizeof(midi_event_t)*(nrevents) + sizeof(mbuf_header_t), \
-		   &(filternode)->net->launch_context->buffers)
+		   &(filternode)->buffers)
 #define mbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(mbuf_header_t))/sizeof(midi_event_t))
 #define mbuf_buf(fb) ((midi_event_t *)(&((mbuf_header_t *)fbuf_buf(fb))->buf[0]))
 #define mbuf_ref(fb) fbuf_ref(fb)
@@ -151,7 +151,7 @@ struct cbuf_header {
 };
 #define cbuf_alloc(nrsamples, filternode) \
         fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(cbuf_header_t), \
-		   &(filternode)->net->launch_context->buffers)
+		   &(filternode)->buffers)
 #define cbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(cbuf_header_t))/SAMPLE_SIZE)
 #define cbuf_buf(fb) ((SAMPLE *)(&((cbuf_header_t *)fbuf_buf(fb))->buf[0]))
 #define cbuf_ref(fb) fbuf_ref(fb)

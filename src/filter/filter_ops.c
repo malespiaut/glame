@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.10 2000/03/23 16:31:04 richi Exp $
+ * $Id: filter_ops.c,v 1.11 2000/03/24 11:08:14 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -150,6 +150,7 @@ static void postprocess_node(filter_node_t *n)
 			close(p->dest_fd);
 			p->dest_fd = -1;
 		}
+	fbuf_free_buffers(&n->buffers);
 
 	n->state = STATE_UNDEFINED;
 }

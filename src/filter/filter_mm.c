@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.7 2000/03/20 09:42:44 richi Exp $
+ * $Id: filter_mm.c,v 1.8 2000/03/24 11:08:14 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -259,7 +259,6 @@ filter_launchcontext_t *_launchcontext_alloc()
 		return NULL;
 	if ((c->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) != -1)
 		sem_zero(c->semid, 0);
-	INIT_LIST_HEAD(&c->buffers);
 	ATOMIC_INIT(c->result, 0);
 	c->nr_threads = 0;
 	if (c->semid != -1)
@@ -275,8 +274,6 @@ void _launchcontext_free(filter_launchcontext_t *c)
 
 	if (!c)
 		return;
-	while ((fb = filterlaunchcontext_first_buffer(c)))
-		_buffer_free(fb);
 	ATOMIC_RELEASE(c->result);
 	sem_remove(c->semid);
 	free(c);
@@ -294,6 +291,7 @@ static int _node_init(filter_node_t *n, const char *name)
 	INIT_LIST_HEAD(&n->inputs);
 	n->nr_outputs = 0;
 	INIT_LIST_HEAD(&n->outputs);
+	INIT_LIST_HEAD(&n->buffers);
 	if (!(n->name = strdup(name)))
 		return -1;
 	return 0;

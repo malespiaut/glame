@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.18 2000/03/24 09:26:47 richi Exp $
+ * $Id: filter_buffer.c,v 1.19 2000/03/24 11:08:14 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,12 +34,6 @@
 #include "atomic.h"
 #include "list.h"
 
-
-void _buffer_free(filter_buffer_t *fb)
-{
-	atomic_set(&fb->refcnt, 1);
-	fbuf_unref(fb);
-}
 
 void fbuf_ref(filter_buffer_t *fb)
 {
@@ -169,6 +163,10 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
                 PANIC("pipe writes are not atomic!");
 }
 
+
+
+/* internal use API */
+
 void fbuf_drain(filter_pipe_t *p)
 {
 	char buf[128];
@@ -177,4 +175,15 @@ void fbuf_drain(filter_pipe_t *p)
 	fcntl(p->source_fd, F_SETFL, O_NONBLOCK);
 	while (read(p->dest_fd, buf, 128) != -1)
 		;
+}
+
+void fbuf_free_buffers(struct list_head *list)
+{
+	filter_buffer_t *fb;
+
+	while (!list_empty(list)) {
+		fb = list_gethead(list, filter_buffer_t, list);
+		atomic_set(&fb->refcnt, 1);
+		fbuf_unref(fb);
+	}
 }
