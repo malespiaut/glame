@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.17 2001/12/02 17:52:56 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.18 2001/12/03 12:05:53 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -601,6 +601,8 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb)
 	vbox = gtk_vbox_new(FALSE, 3);
 	filterparamdb_foreach_param(pdb, param) {
 		gparam = glame_param_new(param);
+		if (!gparam)
+			continue;
 		gtk_container_add(GTK_CONTAINER(vbox), gparam);
 		gtk_widget_show_all(gparam);
 	}
