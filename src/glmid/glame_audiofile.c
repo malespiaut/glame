@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.14 2001/12/16 17:11:18 nold Exp $
+ * $Id: glame_audiofile.c,v 1.15 2001/12/16 17:35:04 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -186,6 +186,8 @@ static gl_s32 wav_read_chunk_format(AFfilehandle h, char *tag, gl_s32 size)
 				tag, size);
 		fseek(h->fp, size-16, SEEK_CUR);
 	}
+
+	DPRINTF("wav format freq %i, balign %i, ch %i\n", RWW(h).freq, RWW(h).block_align, h->ch);
 	
 	return size;
 }	
@@ -240,8 +242,8 @@ int wav_read_parse(AFfilehandle h)
 	h->ch = 0;
 
 	while (!feof(h->fp)) {
-		if (fread(tag, 4, 1, h->fp) != 1 ||
-		    fread(len, 4, 1, h->fp) != 1) {
+		if (fread(tag, 4, 1, h->fp) != 1
+		    || fread(len, 4, 1, h->fp) != 1) {
 			/* Fail gracefully if all required chunks are present */
 			DPRINTF("Premature EOF.\n");
 			return RWW(h).data ? 0 : -1;
@@ -370,9 +372,9 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 		case 8: {
 			int i, j;
 			gl_s8 *src = (gl_s8 *)in;
-			for (j=0; j < frames; j++) {
+			for (j=0; j < frames; j++, src++) {
 				for (i=0; i < ch; i++)
-					*out++ = (float) *src++;
+					*out++ = CHAR2SAMPLE(*src);
 				src += skip;
 			}
 			break;
@@ -382,9 +384,9 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 			gl_s16 *src = (gl_s16 *)in;
 			for (j=0; j < frames; j++) {
 				for (i=0; i < ch; i++, src++)
-					*out++ = (float)(gl_s16)
-						(__gl_le16_to_cpup(src));
-				(char *)src += skip;
+					*out++ = SHORT2SAMPLE((gl_s16)
+						(__gl_le16_to_cpup(src)));
+				((char *)src) += skip;
 			}
 			break;
 		}
@@ -398,8 +400,8 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 			int i, j;
 			gl_u8 *src = (gl_u8 *)in;
 			for (j=0; j < frames; j++) {
-				for (i=0; i < ch; i++)
-					*out++ = (float) *src++;
+				for (i=0; i < ch; i++, src++)
+					*out++ = UCHAR2SAMPLE(*src);
 				src += skip;
 			}
 			break;
@@ -409,9 +411,9 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 			gl_u16 *src = (gl_u16 *)in;
 			for (j=0; j < frames; j++) {
 				for (i=0; i < ch; i++, src++)
-					*out++ = (float)(gl_u16)
-						(__gl_le16_to_cpup(src));
-				(char *)src += skip;
+					*out++ = USHORT2SAMPLE((gl_u16)
+						(__gl_le16_to_cpup(src)));
+				((char *)src) += skip;
 			}
 			break;
 		}
@@ -428,7 +430,7 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 		for (j=0; j < frames; j++) {
 			for (i=0; i < ch; i++)
 				*out++ = *src++;
-			(char *)src += skip;
+			((char *)src) += skip;
 		}
 		}
 		break;
@@ -442,7 +444,7 @@ static void to_float(void *in, float *out, int ifmt, int width, int ch,
 		for (j=0; j < frames; j++) {
 			for (i=0; i < ch; i++)
 				*out++ = (float) *src++;
-			(char *)src += skip;
+			((char *)src) += skip;
 		}
 		}
 		break;
@@ -491,9 +493,9 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 		}
 		
 		to_float(in, buffer, file->sfmt, file->width, file->ch,
-	                 RWW(file).block_align-file->ch*file->width,
+	                 RWW(file).block_align-file->ch*file->width/8,
 			 frames);
-	
+		((float *)buffer) += frames*file->ch;
 	}
 	
 out:
