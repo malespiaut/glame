@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.31 2000/02/24 12:29:49 richi Exp $
+ * $Id: audio_io.c,v 1.32 2000/02/25 15:20:39 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -56,9 +56,9 @@ static int aio_generic_connect_in(filter_node_t *dest, const char *port,
 	
 	/* Assert a common sample rate between all input pipes */
 	if ((portishead = filternode_get_input(dest, port)))
-			if (filterpipe_sample_rate(portishead) !=
-			    filterpipe_sample_rate(pipe))
-				return -1;
+		if (filterpipe_sample_rate(portishead) !=
+		    filterpipe_sample_rate(pipe))
+			return -1;
 	return 0;
 }
 
@@ -432,139 +432,133 @@ static int esd_in_f(filter_node_t *n)
  * write a simple esound output filter... */
 static int esd_out_f(filter_node_t *n)
 {
-	filter_pipe_t *left, *right,*swap;
-	filter_buffer_t *lbuf, *rbuf;
-	int lpos, rpos;
+	typedef struct {
+		filter_pipe_t *in;
+		filter_buffer_t *buf;
+		SAMPLE *s;
+		int pos;
+	} esdout_param_t;
+	esdout_param_t *inputs = NULL;
+	filter_pipe_t *in;
+        short int *wbuf, *s;
 	int wbpos;
-	
-	int rate;
-	esd_format_t	format = ESD_BITS16|ESD_STREAM|ESD_PLAY;
+	int i, cnt, eofs, res;
+	int nrinputs, iassigned, iat, rate;
+	esd_format_t format = ESD_BITS16|ESD_STREAM|ESD_PLAY;
 	int esound_socket;
-	char *host = NULL;
-	char *name = NULL;
-        short int *wbuf = NULL;
-	int written,size,cnt=0;
-	
-	/* query both input channels, one channel only -> MONO
-	 * (always left), else STEREO output (but with the same
-	 * samplerate, please!). */
-	filternode_foreach_input(n,swap)
-		DPRINTF("angle=%f\n",filterpipe_sample_hangle(swap));
+	char *host, *name;
 
-	left = filternode_get_input(n, PORTNAME_IN);
-	right = filternode_next_input(left);
-	
-	if (!FILTER_SAMPLEPIPE_IS_LEFT(left)){
-		swap=left;
-		left=right;
-		right=swap;
+	/* get number of inputs, alloc private structure */
+	if (!(nrinputs = filternode_nrinputs(n)))
+		FILTER_ERROR_RETURN("no inputs");
+	if (nrinputs > 2)
+		FILTER_ERROR_RETURN("we can handle 2 inputs at most");
+	if (!(inputs = ALLOCN(nrinputs, esdout_param_t)))
+		FILTER_ERROR_RETURN("no memory");
+
+	/* sort all inputs into the private structure by hangle */
+	iassigned = 0;
+	filternode_foreach_input(n, in) {
+		/* find insertion point */
+		for (iat=0; iat<iassigned && filterpipe_sample_hangle(inputs[iat].in) < filterpipe_sample_hangle(in); iat++)
+			;
+		/* move other entries */
+		for (i=iassigned; i>iat; i--)
+			inputs[i] = inputs[i-1];
+		/* assign input */
+		inputs[iat].in = in;
+		iassigned++;
 	}
 
-	/* right only? */
-	if (!left) {
-		left = right;
-		right = NULL;
-	}
-	/* no channel? */
-	if (!left)
-		FILTER_ERROR_RETURN("no input channel");
-	rate = filterpipe_sample_rate(left);
-	/* right channel different sample rate? */
-	if (right && filterpipe_sample_rate(right) != rate)
-		FILTER_ERROR_RETURN("sample rates do not match");
-	/* finally decide mono/stereo */
-	if (!right)
+	/* decide mono/stereo */
+	if (nrinputs == 1) {
 		format |= ESD_MONO;
-	else
+		DPRINTF("Playing mono!\n");
+	} else {
 		format |= ESD_STEREO;
+		DPRINTF("Playing stereo!\n");
+	}
 
 	wbpos = 0;
 	wbuf = (short int*)malloc(GLAME_WBUFSIZE*sizeof(short int));
-	if (wbuf==NULL)
+	if (!wbuf)
 		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
 
-	if (!rate) {
-		DPRINTF("Input filter didn't supply rate info! Fix it!\n");
-		rate=44100;
-	}
-	
-	if(format&ESD_MONO) 
-		DPRINTF("Playing mono!\n");
-	else
-		DPRINTF("Playing stereo!\n");
-	
-	DPRINTF("Trying to open esd-socket with rate=%d!\n",rate);
+	rate = filterpipe_sample_rate(inputs[0].in);
+	DPRINTF("Rate is %i\n", rate);
 	esound_socket = esd_play_stream_fallback(format, rate, host, name);
-	if (esound_socket<=0) {
-	        DPRINTF("couldn't open esd-socket connection!\n");
-	        return -1;
-        }
-	DPRINTF("esound_socket %d\n",esound_socket);
+	if (esound_socket <= 0)
+	        FILTER_ERROR_RETURN("couldn't open esd-socket connection!");
 	
+
 	FILTER_AFTER_INIT;
 
-
-	/* get the first buffers to start with something */
-	DPRINTF("Waiting for buffers to come...\n");
-	lbuf = sbuf_get(left);
-	DPRINTF("Got left sbuf with size %i\n", sbuf_size(lbuf));
-	if(right){
-		rbuf = sbuf_get(right);
-		DPRINTF("Got right sbuf with size %i\n", sbuf_size(rbuf));
+	/* get first input buffers from all channels and init the
+	 * structure. */
+	for (i=0; i<nrinputs; i++) {
+		if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
+			eofs++;
+		inputs[i].s = sbuf_buf(inputs[i].buf);
+		inputs[i].pos = 0;
 	}
-	lpos = rpos = 0;
 
-	do {
-		/* write into wbuf until wbuf is full or
-		 * either left or right is empty.
-		 * if either channel gets empty during play
-		 * we fill in zeros for it. */
-		while (wbpos < GLAME_WBUFSIZE
-		       && (!lbuf || lpos < sbuf_size(lbuf))
-		       && (!right || !rbuf || rpos < sbuf_size(rbuf))) {
-			if (lbuf)
-				wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(lbuf)[lpos++]);
-			else
-				wbuf[wbpos++] = 0;
-			if (right) {
-				if (rbuf)
-					wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(rbuf)[rpos++]);
-				else
-					wbuf[wbpos++] = 0;
+	while (eofs != nrinputs) {
+		FILTER_CHECK_STOP;
+
+		/* find the maximum number of samples we can process
+		 * without getting an additional buffer. */
+		cnt = GLAME_WBUFSIZE/nrinputs;
+		for (i=0; i<nrinputs; i++) {
+			if (!inputs[i].buf
+			    || sbuf_size(inputs[i].buf) - inputs[i].pos >= cnt)
+				continue;
+			cnt = sbuf_size(inputs[i].buf) - inputs[i].pos;
+		}
+
+		/* fix the end positions */
+		for (i=0; i<nrinputs; i++)
+			if (inputs[i].buf)
+				inputs[i].pos += cnt;
+
+		/* in one run process cnt number of samples. */
+		wbpos = cnt;
+		s = wbuf;
+		for (; cnt>0; cnt--) {
+			for (i=0; i<nrinputs; i++) {
+				if (!inputs[i].buf)
+					continue;
+				*(s++) = SAMPLE2SHORT(*(inputs[i].s++));
 			}
 		}
+
 		/* send audio data to esd */
-		written=0;
-		while(written<wbpos*sizeof(short int)){
-			size=write(esound_socket, wbuf+written, wbpos*sizeof(short int));
-			if(size<0){
-				DPRINTF("Error %d in write!\n",size);
-			}else {
-				written+=size;
-				if (size!=wbpos*sizeof(short int)) DPRINTF("%d bytes written!\n",size);
+		cnt = wbpos * nrinputs * sizeof(short int);
+		s = wbuf;
+		do {
+			if ((res = write(esound_socket, s, cnt)) == -1) {
+				perror("error in write to esd");
+				break;
 			}
-		}
-			
-		wbpos = 0;
+			s += res;
+			cnt -= res;
+		} while (cnt>0);
 
-		/* check, if we need new data */
-		if (lbuf && lpos >= sbuf_size(lbuf)) {
-			sbuf_unref(lbuf);
-			lbuf = sbuf_get(left);
-			lpos = 0;
-			cnt++;
+		/* check which input buffer had the underflow. */
+		for (i=0; i<nrinputs; i++) {
+			if (!inputs[i].buf
+			    || inputs[i].pos != sbuf_size(inputs[i].buf))
+				continue;
+			sbuf_unref(inputs[i].buf);
+			if (!(inputs[i].buf = sbuf_get(inputs[i].in)))
+				eofs++;
+			inputs[i].s = sbuf_buf(inputs[i].buf);
+			inputs[i].pos = 0;
 		}
-		if (rbuf && rpos >= sbuf_size(rbuf)) {
-			sbuf_unref(rbuf);
-			rbuf = sbuf_get(right);
-			rpos = 0;
-			cnt++;
-		}
-	} while (lbuf || (right && rbuf));
+	}
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	DPRINTF("Received %d buffers.\n",cnt);
 	close(esound_socket);
 	free(wbuf);
 
