@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.5 2000/03/20 10:39:46 richi Exp $
+ * $Id: file_io.c,v 1.6 2000/03/20 23:47:21 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -379,10 +379,21 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 	afGetSampleFormat(RWA(n).file, AF_DEFAULT_TRACK, &(RWA(n).sampleFormat), &(RWA(n).sampleWidth));
 	RWA(n).frameSize = afGetFrameSize(RWA(n).file, AF_DEFAULT_TRACK, 1);
 	RWA(n).sampleRate = (int)afGetRate(RWA(n).file, AF_DEFAULT_TRACK);
-	if ((RWA(n).sampleFormat != AF_SAMPFMT_TWOSCOMP)){
+	if ((RWA(n).sampleFormat != AF_SAMPFMT_TWOSCOMP &&
+	     RWA(n).sampleFormat != AF_SAMPFMT_UNSIGNED) || 
+	    (RWA(n).sampleWidth != 8 && RWA(n).sampleWidth != 16)) {
 		DPRINTF("Format not supported!\n");
 		return -1;
 	}
+	if (RWA(n).sampleWidth == 8 && 
+	    RWA(n).sampleFormat == AF_SAMPFMT_TWOSCOMP && 
+	    afGetFileFormat(RWA(n).file, NULL) == AF_FILE_WAVE) {
+		RWA(n).sampleFormat = AF_SAMPFMT_UNSIGNED;
+		DPRINTF("Kludge! Audiofile reports signed 8bit WAV, "
+		        "overriding to unsigned.\n");
+	}
+		
+			
 
 	if (RWA(n).buffer) free(RWA(n).buffer);
 	if ((RWA(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL){
@@ -395,6 +406,16 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
 	}
+	DPRINTF("File %s: %d channel(s) %d bit %s at %d Hz, "
+		"%d frames, framesize %d.\n",
+			filename,
+			RWA(n).channelCount, RWA(n).sampleWidth, 
+			RWA(n).sampleFormat == AF_SAMPFMT_TWOSCOMP ?
+			"signed" : 
+			RWA(n).sampleFormat == AF_SAMPFMT_UNSIGNED ? 
+			"unsigned" : "unknown",
+			RWA(n).sampleRate, (int)RWA(n).frameCount, 
+			RWA(n).frameSize);
 	return 0;
 }
 
@@ -442,33 +463,51 @@ int af_read_f(filter_node_t *n)
 
 	while(RWA(n).frameCount){
 		FILTER_CHECK_STOP;
-		if (!(frames=afReadFrames(RWA(n).file, AF_DEFAULT_TRACK, RWA(n).buffer,
-					  MIN(GLAME_WBUFSIZE,RWA(n).frameCount))))
+		if (!(frames=afReadFrames(RWA(n).file, AF_DEFAULT_TRACK, 
+					  RWA(n).buffer,
+					  MIN(GLAME_WBUFSIZE, RWA(n).frameCount))))
 			break;
 		RWA(n).frameCount-=frames;
-		for(i=0;i<RWA(n).channelCount;i++){
-			RWA(n).track[i].buf=sbuf_alloc(frames,n);
-			RWA(n).track[i].buf=sbuf_make_private(RWA(n).track[i].buf);
-			RWA(n).track[i].pos=0;
+		for (i=0; i < RWA(n).channelCount; i++){
+			RWA(n).track[i].buf =
+				sbuf_make_private(sbuf_alloc(frames,n));
+			RWA(n).track[i].pos = 0;
 		}
 		i=0;
-		while(i<frames*RWA(n).channelCount){
-			for(j=0;j<RWA(n).channelCount;j++){
-				switch(RWA(n).sampleWidth) {
-				case 16 :
-					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++]=SHORT2SAMPLE(RWA(n).buffer[i++]);
-					break;
-				case  8 :
-					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++]=CHAR2SAMPLE(RWA(n).cbuffer[i++]);
-					break;
-				}
-			}
+		/* XXX: Dangerous but for now happens to work! */
+		switch (RWA(n).sampleWidth | RWA(n).sampleFormat) {
+			case 16 | AF_SAMPFMT_TWOSCOMP:
+				while (i < frames*RWA(n).channelCount)
+					for (j=0; j < RWA(n).channelCount; j++)
+						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
+							SHORT2SAMPLE(RWA(n).buffer[i++]);
+				break;
+			case 8 | AF_SAMPFMT_TWOSCOMP:
+				while (i < frames*RWA(n).channelCount)
+					for (j=0; j < RWA(n).channelCount; j++)
+						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] = 
+							CHAR2SAMPLE(RWA(n).cbuffer[i++]);
+				break;
+			case 16 | AF_SAMPFMT_UNSIGNED:
+				while (i < frames*RWA(n).channelCount)
+					for (j=0; j < RWA(n).channelCount; j++)
+						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
+							USHORT2SAMPLE(RWA(n).buffer[i++]);
+				break;
+			case 8 | AF_SAMPFMT_UNSIGNED:
+				while (i < frames*RWA(n).channelCount)
+					for (j=0; j < RWA(n).channelCount; j++)
+						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
+							UCHAR2SAMPLE(RWA(n).cbuffer[i++]);
+				break;
+			default:
+				PANIC("Unsupported sample format.");
 		}
-		for(i=0;i<RWA(n).channelCount;i++)
-			sbuf_queue(RWA(n).track[i].p,RWA(n).track[i].buf);
+		for (i=0; i < RWA(n).channelCount; i++)
+			sbuf_queue(RWA(n).track[i].p, RWA(n).track[i].buf);
 	}
-	filternode_foreach_output(n,p_out) 
-		sbuf_queue(p_out,NULL);
+	filternode_foreach_output(n, p_out) 
+		sbuf_queue(p_out, NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
