@@ -96,7 +96,6 @@ struct _GtkWaveView
 
   /* Wave aquisition and conversion buffers. */
   gpointer        data;
-  gint16          *data16;
 
   /* Which button is pressed down during a drag. */
   guint           drag_flags;       /* bit mask */

@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include <gtk/gtk.h>
+#include <math.h>
 #include "util/glame_hruler.h"
 #include "gtkwaveview.h"
 #include "gtkeditablewavebuffer.h"
@@ -160,7 +161,6 @@ gtk_wave_view_new (void)
   waveview->normal_cursor = NULL;
 
   waveview->data = NULL;
-  waveview->data16 = NULL;
 
   return GTK_WIDGET (waveview);
 }
@@ -197,8 +197,6 @@ gtk_wave_view_real_destroy (GtkObject *obj)
 
   if (waveview->data != NULL)
     g_free(waveview->data);
-  if (waveview->data16 != waveview->data && waveview->data16 != NULL)
-    g_free(waveview->data16);
 
   GTK_OBJECT_CLASS (parent_class)->destroy (obj); 
 }
@@ -275,7 +273,7 @@ calc_frame_pos_win (GtkWaveView *waveview, gint32 win_pel_pos)
 
 static void gtk_wave_view_cache_free (GtkWaveView *waveview);
 static void gtk_wave_view_cache_create (GtkWaveView *waveview);
-static void gtk_wave_view_cache_add (GtkWaveView *waveview, guint32 x, gint16 *min, gint16 *max);
+static void gtk_wave_view_cache_add (GtkWaveView *waveview, guint32 x, gfloat *min, gfloat *max);
 static gint gtk_wave_view_cache_paint (GtkWaveView *waveview, gint32 offset, gint32 x);
 static void gtk_wave_view_cache_invalidate (GtkWaveView *waveview);
 static void gtk_wave_view_cache_invalidate_range (GtkWaveView *waveview, gint32 start, gint32 length);
@@ -315,7 +313,8 @@ gtk_wave_view_cache_create (GtkWaveView *waveview)
 
 
 static void
-gtk_wave_view_cache_add (GtkWaveView *waveview, guint32 x, gint16 *min, gint16 *max)
+gtk_wave_view_cache_add (GtkWaveView *waveview, guint32 x,
+			 gfloat *min, gfloat *max)
 {
   guint32 i, size, offset;
   GtkWaveViewCacheEntry *e;
@@ -329,10 +328,10 @@ gtk_wave_view_cache_add (GtkWaveView *waveview, guint32 x, gint16 *min, gint16 *
   for (i = 0; i < waveview->n_channels; i++)
     {
       e = &waveview->channels [i].cache [offset];
-      e->min = min [i];
-      e->max = max [i];
+      e->min = float_to_s16(min[i]);
+      e->max = float_to_s16(max[i]);
 
-      min [i] = max [i] = 0;
+      min[i] = max[i] = 0.0f;
     }
 }
 
@@ -509,12 +508,10 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   guint32   i, j, width, start_x, offset;
   gint16    max_val, min_val;
   gboolean  exact;
-  gint16    max [waveview->n_channels], min [waveview->n_channels];
+  gfloat    max [waveview->n_channels], min [waveview->n_channels];
   guint32   sample_offset, last_sample_offset, pos, size;
   guint32   accum, count, oldcount, delta;
-  guint32   pos16;
-  gpointer  data;
-  gint16   *data16;
+  gfloat    *data;
 
   if (waveview->wavebuffer == NULL)
     return;
@@ -553,12 +550,12 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
    * we gotta do a lot of calculations to figure out their values. */
   n_channels = waveview->n_channels;
 
+  /* Datatype will be F4NI - asserted by gtk_wave_view_add_buffer. */
   datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
 
 #define REDRAW_BUFFER 1024
   /* Temporary space is in waveview. */
   data = waveview->data;
-  data16 = waveview->data16;
 
   /* Approximate sample # range we need to recalc for the cache. */
   sample_offset = calc_frame_pos_win (waveview, min_val);
@@ -573,7 +570,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 	  last_sample_offset = n_samples - 1;
 
   for (j = 0; j < waveview->n_channels; j++)
-	  min[j] = max[j] = 0;
+	  min[j] = max[j] = 0.0f;
 
   pos = sample_offset;
   accum = 1073741824U; /* 2147483648 / 2, round to nearest unit */
@@ -594,17 +591,12 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
              /* Read data chunk. */
 	     gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
 
-	     /* Convert data to s16 if it's not already in that format. */
-	     if (datatype != G_WAVEFILE_TYPE_S16)
-		g_wavefile_type_convert (waveview->n_channels, size, G_WAVEFILE_TYPE_S16, data16, datatype, data);
-
-	     pos16 = 0;
 	     for (i = 0; i < size; i++) {
 		/* For each sample of a track, keep min and max values. */
 		for (j = 0; j < n_channels; j++) {
-		   gint16 val = data16[pos16++];
+		   gfloat val = data[j*size + i];
 		   if (val < min[j]) min[j] = val;
-		   if (val > max[j]) max[j] = val;
+		   else if (val > max[j]) max[j] = val;
                 }
 
 		/* Do Bresenham's algorithm */
@@ -628,15 +620,10 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 		/* Read data chunk. */
 		gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
 
-		/* Convert data to s16 if it's not already in that format.  */
-		if (datatype != G_WAVEFILE_TYPE_S16)
-		   g_wavefile_type_convert (waveview->n_channels, size, G_WAVEFILE_TYPE_S16, data16, datatype, data);
-
-		pos16 = 0;
-		for (i = 0; i < size; i++) {
-		   /* For each sample of a track, keep min and max values. */
-		   for (j = 0; j < n_channels; j++) {
-		      gint16 val = abs(data16[pos16++]);
+		/* For each sample of a track, keep min and max values. */
+		for (j = 0; j < n_channels; j++) {
+		   for (i = 0; i < size; i++) {
+		      gfloat val = fabs(data[j*size+i]);
 		      if (val > max[j]) { 
 			 max[j] = val;
 			 min[j] = -val;
@@ -1713,8 +1700,6 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
   g_free (waveview->channels);
   if (waveview->data)
     g_free(waveview->data);
-  if (waveview->data16 != waveview->data && waveview->data16)
-    g_free(waveview->data16);
 
   if (waveview->wavebuffer != NULL)
     {
@@ -1772,11 +1757,9 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       gtk_wave_view_cache_create (waveview);
 
       datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
+      if (datatype != G_WAVEFILE_TYPE_F4NI)
+	DERROR("Can only handle float non-interleaved data\n");
       waveview->data = g_malloc(g_wavefile_type_width (datatype) * waveview->n_channels * REDRAW_BUFFER);
-      if (datatype != G_WAVEFILE_TYPE_S16)
-	waveview->data16 = g_new(gint16, waveview->n_channels * REDRAW_BUFFER);
-      else
-	waveview->data16 = (gint16 *)waveview->data;
     }
   else
     {
@@ -1785,7 +1768,6 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       waveview->n_channels = 0;
       waveview->marker = -1;
       waveview->data = NULL;
-      waveview->data16 = NULL;
     }
 
   gtk_wave_view_update_units (waveview);
