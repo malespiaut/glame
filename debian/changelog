@@ -1,26 +1,54 @@
 glame (0.5.4-1) unstable; urgency=low
 
-  * New upstream version. (Just a dummy entry for DIY, no upload.)
+  * New upstream version.
 
- -- Daniel Kobras <kobras@debian.org>  Mon, 10 Dec 2001 11:27:40 +0200
+ -- Daniel Kobras <kobras@debian.org>  Mon, 10 Dec 2001 13:24:23 +0100
 
-glame (0.5.3-1) unstable; urgency=low
+glame (0.4.2-6) unstable; urgency=low
 
-  * New upstream version. (Just a dummy entry for DIY, no upload.)
+  * Really nailed ia64 build failures finally. Include proper prototype
+    for strdup() in libxml2 check, and all works fine and dandy.
+  * Removed emacs crap from end of changelog. 
 
- -- Daniel Kobras <kobras@debian.org>  Thu,  8 Nov 2001 11:27:40 +0200
+ -- Daniel Kobras <kobras@debian.org>  Tue, 20 Nov 2001 17:46:18 +0100
 
-glame (0.5.2-1) unstable; urgency=low
+glame (0.4.2-5) unstable; urgency=low
 
-  * New upstream version. (Just a dummy entry for DIY, no upload.)
+  * Quote dots in libxml version check. This fix is pulled from the
+    upstream devel branch and my best guess at fixing the build
+    failures in ia64. 
 
- -- Daniel Kobras <kobras@debian.org>  Tue, 17 Jul 2001 12:40:24 +0200
+ -- Daniel Kobras <kobras@debian.org>  Mon, 19 Nov 2001 17:46:12 +0100
 
-glame (0.5.1-1) unstable; urgency=low
+glame (0.4.2-4) unstable; urgency=low
 
-  * New upstream version. (Just a dummy entry for DIY, no upload.)
+  * Only use fast locking primitives when compiling for a recent enough
+    mips cpu.  The fix mucks with automake stuff, so add the assorted
+    pile of build dependencies, and call autogen.sh before configuring.
+  * Fix autogen.sh to call automake before autoconf. (What the...?)
+  * Add --force option to automake call for the benefit of automake 1.5.
+  * Add DEB_{BUILD,HOST}_GNU_TYPE to debian/rules to ease cross compiling.
 
- -- Daniel Kobras <kobras@debian.org>  Tue,  3 Jul 2001 16:40:24 +0200
+ -- Daniel Kobras <kobras@debian.org>  Mon, 15 Oct 2001 10:31:03 +0200
+
+glame (0.4.2-3) unstable; urgency=low
+
+  * Fix crash when importing compressed files.
+  * Remove lintian override, update standards version to
+    a plugin-aware 3.5.6.
+  * Don't clobber upstream config.{guess,sub}.
+
+ -- Daniel Kobras <kobras@debian.org>  Wed, 19 Sep 2001 11:26:47 +0200
+
+glame (0.4.2-2) unstable; urgency=low
+
+  * Look for ladspa plugins in /usr/lib/ladspa and /usr/local/lib/ladspa
+    by default. Added hint to README.Debian to use LADSPA_PATH for further 
+    directories. Closes: #103270
+  * We have a virtual package ladspa-plugin now. Recommend it. Closes: #103268
+  * Add hack to always use latest autotools helpers.
+
+ -- Daniel Kobras <kobras@debian.org>  Tue,  3 Jul 2001 17:51:19 +0200
 
 glame (0.4.2-1) unstable; urgency=low
 
@@ -53,7 +81,3 @@ glame (0.4.0-1) unstable; urgency=low
   * Added lintian overrides for plugins.
 
  -- Daniel Kobras <kobras@debian.org>  Thu, 26 Apr 2001 17:51:57 +0200
-
-Local variables:
-mode: debian-changelog
-End:
