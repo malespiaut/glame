@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.21 2001/04/18 15:34:54 xwolf Exp $
+ * $Id: canvas_types.c,v 1.22 2001/04/20 08:10:23 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -123,15 +123,11 @@ glame_canvas_item_class_init(GlameCanvasItemClass *class)
 	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
 	
 	object_class->destroy = glame_canvas_item_destroy;
-	
-	//canvas_item_class->event = glame_canvas_item_event;
-	
 }
 
 static void
 glame_canvas_port_class_init(GlameCanvasPortClass *class)
 {
-
 	GtkObjectClass *object_class;
 
 	GlameCanvasPortClass *canvas_rect_class;
@@ -143,30 +139,20 @@ glame_canvas_port_class_init(GlameCanvasPortClass *class)
 	canvas_port_parent_class = gtk_type_class (GNOME_TYPE_CANVAS_RECT);
 	
 	object_class->destroy = glame_canvas_port_destroy;
-	
 }
 
 static void
 glame_canvas_class_init(GlameCanvasClass *class)
 {
-	// FIXME
-	// hmmm... i don't really know what i'm doing here...
-	
 	GtkObjectClass *object_class;
 	GnomeCanvasClass *canvas_item_class;
-	//GnomeCanvasGroupClass *canvas_group_class;
 	
 	object_class = GTK_OBJECT_CLASS (class);
 	canvas_item_class = GNOME_CANVAS_CLASS (class);
-	//canvas_group_class = GNOME_CANVAS_GROUP_CLASS (class);
 	
-	//glame_canvas_item_class = class;
 	canvas_parent_class = gtk_type_class (GNOME_TYPE_CANVAS);
 	
 	object_class->destroy = glame_canvas_destroy;
-	
-	//canvas_item_class->event = glame_canvas_item_event;
-	
 }
 
 
@@ -203,9 +189,6 @@ glame_canvas_init (GlameCanvas *item)
 static void
 glame_canvas_item_destroy (GtkObject *object)
 {
-  //GlameCanvasItem *item = GLAME_CANVAS_ITEM (object);
-  //	GnomeCanvasGroup *group = GNOME_CANVAS_GROUP (object);
-
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }
 
@@ -213,7 +196,6 @@ static void
 glame_canvas_destroy (GtkObject *object)
 {
 	gtk_object_destroy(object);
-
 }
 
 static void
@@ -225,7 +207,6 @@ glame_canvas_port_destroy (GtkObject *object)
 GtkWidget * 
 glame_canvas_new(gui_network *n)
 {
-
 	GlameCanvas *g;
 	g = gtk_type_new(glame_canvas_get_type());
 	g->net = n;
@@ -265,24 +246,19 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 		      gdouble x,
 		      gdouble y)
 {
-	
 	GnomeCanvasPoints* points;
 	GdkImlibImage *image;
-	
 	GnomeCanvasItem *iitem;
 	GlameCanvasItem *item;
 	GnomeCanvasItem *gitem;
 	char*filepath;
-
 	char*namebuffer;
 	char fontbuffer[250];
 	gint fontsize;
+
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
-	
-	
-
 	item->last_x = item->last_y = 0.0;
 
 	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
@@ -345,31 +321,33 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "clip",0,
 			      "text",filter_name(gfilter),
 			      NULL);
-	namebuffer = plugin_query(gfilter->plugin, PLUGIN_PIXMAP);
-	namebuffer = namebuffer?namebuffer:strdup(GLAME_DEFAULT_ICON);
 
-	
-	filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,namebuffer);
-	fprintf(stderr,"%s\n",filepath);
-	if(g_file_test(filepath,G_FILE_TEST_ISFILE)){
-		fprintf(stderr,"exists\n");
-		image = gdk_imlib_load_image(filepath);
-	} else {
-		filepath = g_concat_dir_and_file("../data/pixmaps",namebuffer);
-		fprintf(stderr,"%s\n",filepath);
-		if(g_file_test(filepath,G_FILE_TEST_ISFILE)){
-			fprintf(stderr,"exists\n");
-			image = gdk_imlib_load_image(filepath);
-		} else
-			image = gdk_imlib_load_image(gnome_pixmap_file(GLAME_DEFAULT_ICON));
+	/* Find icon for item. */
+	image = NULL;
+	namebuffer = plugin_query(gfilter->plugin, PLUGIN_PIXMAP);
+	if (!namebuffer)
+		namebuffer = GLAME_DEFAULT_ICON;
+	filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH, namebuffer);
+	if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+		g_free(filepath);
+		filepath = g_concat_dir_and_file("../data/pixmaps", namebuffer);
 	}
+	if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+		g_free(filepath);
+		filepath = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+	}
+	if (g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+		image = gdk_imlib_load_image(filepath);
+	}
+	g_free(filepath);
+
 	gitem = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 				       gnome_canvas_image_get_type(),
 				       "x",48.0,
 				       "y",32.0,
 				       "width",64.0,
 				       "height",64.0,
-				       "image",image,
+				       image ? "image" : NULL,image,
 				       NULL);
 
 	gtk_signal_connect(GTK_OBJECT(gitem),"event",GTK_SIGNAL_FUNC(canvas_item_node_selected),item);
@@ -377,23 +355,19 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	gtk_signal_connect(GTK_OBJECT(item),"event",GTK_SIGNAL_FUNC(handle_events),item);
 	gfilter->gui_priv = item;
 	return GLAME_CANVAS_ITEM(item);
-	
-
-
-
 }
 
 void
 canvas_item_redraw(GlameCanvasItem* item)
 {
-	
 	GList * port;
 	GlameCanvasPort* gPort;
 	static GdkBitmap *bitmap=NULL;
 	int foo=1;
 
+	/* Dirty HACK to loop through input and output ports which you
+	 * should have been solved using a function [richi]. */
 	port = g_list_first(item->input_ports);
-	
 	do{
 		while(port){
 			gPort = GLAME_CANVAS_PORT(port->data);
@@ -409,8 +383,6 @@ canvas_item_redraw(GlameCanvasItem* item)
 			port = g_list_next(port);
 		}
 		port = g_list_first(item->output_ports);
-	}
-	while(foo--);
-
+	} while (foo--);
 }
-				       
+
