@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.20 2001/11/18 14:48:09 richi Exp $
+ * $Id: filter_param.h,v 1.21 2001/11/28 22:19:36 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -157,6 +157,7 @@ struct filter_param {
 #define FILTERPARAM_DESCRIPTION "_desc"
 #define FILTERPARAM_LABEL "_showlabel"
 #define FILTERPARAM_GLADEXML "_xml"
+#define FILTERPARAM_HIDDEN "_hidden"
 #define FILTERPARAM_END NULL
 #define FILTERPARAM_MAP_NODE "_node"
 #define FILTERPARAM_MAP_LABEL "_label"

@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.9 2001/09/25 11:23:36 xwolf Exp $
+ * $Id: glame_param.c,v 1.10 2001/11/28 22:19:36 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -294,7 +294,8 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	const char *label;
 	char *xml;
 
-	if (!param || FILTER_PARAM_IS_POS(param))
+	if (!param || FILTER_PARAM_IS_POS(param)
+	    || filterparam_get_property(param, FILTERPARAM_HIDDEN))
 		return NULL;
 
 	gparam = GLAME_PARAM(gtk_type_new(glame_param_get_type()));
