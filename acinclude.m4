@@ -2500,26 +2500,26 @@ fi
 
 
 dnl Check for the presence of the library
-if test $enable_alsatest = yes; then
-	AC_MSG_CHECKING(for working libasound)
-	AC_TRY_RUN([
-#include <sys/asoundlib.h>
-void main(void)
-{
-	snd_cards();
-	exit(0);
-}
-],
-	[
-	dnl add the alsa library
-	ALSA_LIBS="$ALSA_LIBS -lasound"
-	LDFLAGS="$ALSA_LIBS -lasound"
-	AC_MSG_RESULT($ALSA_LIBS)
-	],
-	[AC_MSG_RESULT("not found. ")],
-	[AC_MSG_RESULT(unsopported)]
-	)
-fi
+dnl if test $enable_alsatest = yes; then
+dnl 	AC_MSG_CHECKING(for working libasound)
+dnl 	AC_TRY_RUN([
+dnl #include <sys/asoundlib.h>
+dnl void main(void)
+dnl {
+dnl 	snd_cards();
+dnl 	exit(0);
+dnl }
+dnl ],
+dnl 	[
+dnl 	dnl add the alsa library
+dnl 	ALSA_LIBS="$ALSA_LIBS -lasound"
+dnl 	LDFLAGS="$ALSA_LIBS -lasound"
+dnl 	AC_MSG_RESULT($ALSA_LIBS)
+dnl 	],
+dnl 	[AC_MSG_RESULT("not found. ")],
+dnl 	[AC_MSG_RESULT(unsopported)]
+dnl 	)
+dnl fi
 
 dnl Check for a working version of libasound that is of the right version.
 min_alsa_version=ifelse([$1], ,0.1.1,$1)
