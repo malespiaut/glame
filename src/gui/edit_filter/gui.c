@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.10 2001/03/16 01:12:54 xwolf Exp $
+ * $Id: gui.c,v 1.11 2001/03/16 01:54:10 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -207,7 +207,7 @@ void changeString(GtkEditable *wid, char ** returnbuffer)
 {
 	char * chars;
 	chars = gtk_editable_get_chars(wid,0,-1);
-        strncpy(*returnbuffer,chars,strlen(chars));
+        strncpy(*returnbuffer,chars,strlen(chars)+1);
 }
 
 
