@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.19 2001/04/19 16:51:41 richi Exp $
+ * $Id: gui.c,v 1.20 2001/04/19 23:22:29 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -25,29 +25,6 @@
 #include "glmid.h"
 #include "glame_gui_utils.h"
 #include "canvas.h"
-
-
-#if 0
-// these are just dummies for later
-static void on_preferences_activate(GtkWidget *m,gpointer bla){}
-static void on_cut_activate(GtkWidget *m,gpointer bla){}
-static void on_copy_activate(GtkWidget *m, gpointer bla){}
-static void on_paste_activate(GtkWidget *m, gpointer bla){}
-static void on_clear_activate(GtkWidget *m, gpointer bla){}
-#endif
-
-
-/* Allocates a new filter type for the gui */ 
-/* gui_filter*  */
-/* gui_filter_new(plugin_t* plugin) */
-/* { */
-/* 	gui_filter * newFilter; */
-/* 	newFilter = malloc(sizeof(gui_filter)); */
-/* 	newFilter->plugin = plugin; */
-/* 	return newFilter; */
-/* } */
-
-
 
 
 /* creates a hbox with two labels in it, adds it to the box box in window win   */
@@ -144,6 +121,8 @@ gui_network_new(void)
 	net->caption = NULL;
 	net->pixname = NULL;
 	net->descr = NULL;
+	net->redirectedPorts = NULL;
+	net->redirectedParameters = NULL;
 	net->net = filter_creat(NULL);
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
