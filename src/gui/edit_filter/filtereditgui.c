@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.47 2001/12/17 09:44:58 richi Exp $
+ * $Id: filtereditgui.c,v 1.48 2001/12/17 10:20:55 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -246,7 +246,7 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 				GtkWidget* edit;
 				menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
 				if (glCanv->clipBoard) {
-					edit = gtk_menu_item_new_with_label("Paste");
+					edit = gtk_menu_item_new_with_label("_Paste");
 					gtk_widget_show(edit);
 					gtk_signal_connect(GTK_OBJECT(edit),"activate",filtereditgui_paste_cb,glCanv);
 					gtk_menu_append(GTK_MENU(menu), edit);
@@ -484,14 +484,14 @@ static SCM gls_editfilter_delete_selection()
 }
 	
 
-static SCM gls_editfilter_selected_items()
+static SCM gls_editfilter_get_selection()
 {
 	GList *selected;
 	SCM s_items = SCM_LIST0;
-	selected = g_list_first(glcanvas->selectedItems);
+	selected = glame_canvas_get_selected_items(glcanvas);
 	while(selected){
-		GlameCanvasFilter *filter = GLAME_CANVAS_FILTER(selected->data);
-		s_items = gh_cons(gh_long2scm((long)filter),s_items);
+		filter_t *filter = (filter_t *)selected->data;
+		s_items = gh_cons(filter2scm(filter), s_items);
 		selected = g_list_next(selected);
 	}
 	return s_items;
@@ -516,11 +516,28 @@ static SCM gls_editfilter_new(SCM s_filter)
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_editfilter_set_clipboard(SCM s_net)
+{
+	SCM_ASSERT(filter_p(s_net),
+		   s_net, SCM_ARG1, "editfilter-set-clipboard!");
+	glcanvas->clipBoard = scm2filter(s_net);
+	scminvalidatefilter(s_net);
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_editfilter_clipboard()
+{
+	if (!glcanvas->clipBoard)
+		GLAME_THROW();
+	return filter2scm(glcanvas->clipBoard);
+}
+
 static SCM gls_editfilter_collapse_selection()
 {
 	glame_canvas_collapse_selection(glcanvas);
 	return SCM_UNSPECIFIED;
 }
+
 static SCM gls_editfilter_expand_selected()
 {
 	GlameCanvasFilter* gfilter;
@@ -533,6 +550,17 @@ static SCM gls_editfilter_expand_selected()
 			if(gfilter)
 				glame_canvas_filter_expand_node(gfilter);
 		}
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_editfilter_network()
+{
+	return filter2scm(glcanvas->net);
+}
+
+static SCM gls_editfilter_redraw()
+{
+	glame_canvas_full_redraw(glcanvas);
 	return SCM_UNSPECIFIED;
 }
 				
@@ -548,7 +576,7 @@ glame_filtereditgui_init(void)
 	gh_new_procedure0_0("editfilter-delete-selection",
 			    gls_editfilter_delete_selection);
 	gh_new_procedure0_0("editfilter-get-selection",
-			    gls_editfilter_selected_items);
+			    gls_editfilter_get_selection);
 	gh_new_procedure0_0("editfilter-group-selection",
 			    gls_editfilter_group_selected);
 	gh_new_procedure0_0("editfilter-ungroup-selection",
@@ -559,6 +587,14 @@ glame_filtereditgui_init(void)
 			    gls_editfilter_collapse_selection);
 	gh_new_procedure0_0("editfilter-expand-selected",
 			    gls_editfilter_expand_selected);
+	gh_new_procedure0_0("editfilter-clipboard",
+			    gls_editfilter_clipboard);
+	gh_new_procedure1_0("editfilter-set-clipboard!",
+			    gls_editfilter_set_clipboard);
+	gh_new_procedure0_0("editfilter-network",
+			    gls_editfilter_network);
+	gh_new_procedure0_0("editfilter-redraw",
+			    gls_editfilter_redraw);
 	nPopupTimeout = glame_config_get_long_with_default(
 		"edit_filter/popupTimeout", 200);
 	bMac = glame_config_get_long_with_default(
