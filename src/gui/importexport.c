@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.29 2003/07/08 17:11:23 richi Exp $
+ * $Id: importexport.c,v 1.30 2003/07/08 20:29:39 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -260,8 +260,7 @@ ie_import_mp3_error(void *data, struct mad_stream *stream,
 		ie->mad_err_cnt++;
 	DPRINTF("MAD error pos=%i: %s\n", ie->mad_pos, ie->mad_last_err);
 	/* Ignore recoverable errors. */
-	if (ie->mad_pos == 0
-	    && MAD_RECOVERABLE(stream->error))
+	if (MAD_RECOVERABLE(stream->error))
 		return MAD_FLOW_IGNORE;
 	return MAD_FLOW_BREAK;
 }
