@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.27 2001/04/19 08:18:28 richi Exp $
+ * $Id: filter_buffer.c,v 1.28 2001/04/20 12:29:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -263,10 +263,6 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 		fbuf_unref(fbuf);
 	} else if (res != FBPIPE_WSIZE)
                 PANIC("pipe writes are not atomic!");
-
-#ifdef LOW_LATENCY
-	sched_yield();
-#endif
 }
 
 
