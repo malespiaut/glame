@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.152 2005/03/11 17:02:39 richi Exp $
+ * $Id: waveeditgui.c,v 1.153 2005/03/30 16:21:39 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -440,9 +440,6 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
  * Complex stuff like apply, play, record, etc.
  */
 
-#define TOOLBAR_PLAY_DEL 6
-#define TOOLBAR_PLAY_INS 9
-
 static void recordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
 
@@ -507,12 +504,8 @@ static void play_cleanup(glsig_handler_t *handler,
 					 waveedit->pm_marker);
 
 	/* Restore normal play button.  */
-	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar),
- 				 GTK_STOCK_MEDIA_PLAY, _("Play"), _("Play"),
- 				 GTK_SIGNAL_FUNC(playtoolbar_cb), waveedit->waveview,
- 				 TOOLBAR_PLAY_INS);
+	gtk_widget_hide(waveedit->stopbutton);
+	gtk_widget_show(waveedit->playbutton);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -747,12 +740,9 @@ static void play(GtkWaveView *waveview,
 	}
 
 	/* Exchange play for stop button.  */
-	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(active_waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar),
- 				 GTK_STOCK_MEDIA_STOP, _("Stop"), _("Stop"),
- 				 GTK_SIGNAL_FUNC(playtoolbar_cb), active_waveedit->waveview,
- 				 TOOLBAR_PLAY_INS);
+	gtk_widget_show(active_waveedit->stopbutton);
+	gtk_widget_hide(active_waveedit->playbutton);
+
 	active_waveedit->locked = 1;
 
 	return;
@@ -1598,9 +1588,15 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				glame_load_icon_widget("select_none.png",24,24),
 				GTK_SIGNAL_FUNC(selectnone_cb), window->waveview);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+	window->playbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_MEDIA_PLAY, _("Play"), _("Play"),
 				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview, -1);
+	window->stopbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+ 				 GTK_STOCK_MEDIA_STOP, _("Stop"), _("Stop"),
+ 				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview,
+ 				 -1);
+	gtk_widget_hide(window->stopbutton);
+
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_MEDIA_RECORD, _("Record"), _("Record"),
 				 GTK_SIGNAL_FUNC(recordtoolbar_cb), window->waveview, -1);
