@@ -87,11 +87,6 @@
   <accel state="0" spec="u">
 (editfilter-ungroup-selection)
   </accel>
-  <scope scope="oscillator">
-    <accel state="0" spec="u">
-(editfilter-ungroup-selection)
-    </accel>
-  </scope>
 </scope>
 
 <scope scope="timeline">
