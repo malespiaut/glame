@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.26 2002/07/14 12:41:19 richi Exp $
+ * $Id: canvaspipe.c,v 1.27 2002/07/29 23:47:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -151,11 +151,11 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	xd = p->points->coords[10];
 	yd = p->points->coords[11];
 	
-
+	xOffset = 25.0;
 	dist = xd-xs;
 	if(dist<50.0)
 		xOffset = dist/2.0;
-	xOffset=(xOffset<5.0)?5.0:xOffset;
+	xOffset=(xOffset<12.0)?12.0:xOffset;
 	
 	
 	p->points->coords[2]=xs+xOffset+(p->sourceId*4);
@@ -164,10 +164,10 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	p->points->coords[4]=xs+xOffset+(p->sourceId*4);
 	p->points->coords[5]=(ys+yd)/2.0 + dy;
 	
-	p->points->coords[6]=xd-25.0-(p->destId*4);
+	p->points->coords[6]=xd-xOffset-(p->destId*4);
 	p->points->coords[7]=(ys+yd)/2.0+dy;
 	
-	p->points->coords[8]=xd-25.0-(p->destId*4);
+	p->points->coords[8]=xd-xOffset-(p->destId*4);
 	p->points->coords[9]=yd;
 	
 	gnome_canvas_item_set(GNOME_CANVAS_ITEM(p->line),
