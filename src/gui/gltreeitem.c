@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.19 2002/04/12 12:34:44 richi Exp $
+ * $Id: gltreeitem.c,v 1.20 2002/04/12 16:26:27 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -117,6 +117,9 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 #else
 		slider = gtk_knob_new(itemw->pos_adj);
 		gtk_knob_set_formatter(GTK_KNOB(slider), knob_formatter, NULL);
+		gtk_knob_add_tick(GTK_KNOB(slider), FILTER_PIPEPOS_LEFT);
+		gtk_knob_add_tick(GTK_KNOB(slider), FILTER_PIPEPOS_RIGHT);
+		gtk_knob_add_tick(GTK_KNOB(slider), FILTER_PIPEPOS_CENTRE);
 		gtk_box_pack_start(GTK_BOX(itemw->hbox), slider, FALSE, FALSE, 5);
 #endif
 		gtk_signal_connect(GTK_OBJECT(itemw->pos_adj), "value_changed",
