@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.64 2005/03/19 21:59:31 richi Exp $
+ * $Id: canvasfilter.c,v 1.65 2005/03/30 19:38:19 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -840,9 +840,10 @@ static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanva
 	char buffer[20];
 	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
 	
+	gnome_canvas_item_get_bounds(GCI(filter),&x1,&y1,&x2,&y2);
+
 	net = glame_canvas_collapse_selection(canv);
 	if(!net)return;
-	gnome_canvas_item_get_bounds(GCI(filter),&x1,&y1,&x2,&y2);
 	
 	snprintf(buffer,9,"%.1f",x1); 
 	filter_set_property(net, "canvas_x", buffer);
