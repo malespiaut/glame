@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.5 2001/05/17 22:38:36 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.6 2001/05/18 15:07:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -25,6 +25,9 @@
 #include <gnome.h>
 #include "glamecanvas.h"
 #include "canvasitem.h"
+#ifdef HAVE_LIBSTROKE
+#include <stroke.h>
+#endif
 
 /* FIXME remove these later on */
 guint nPopupTimeout;
@@ -43,7 +46,7 @@ static GlameCanvas *glcanvas;
 void glame_canvas_execute_cb(GtkObject*foo, GlameCanvas* canv);
 void glame_canvas_register_cb(GtkObject* foo, GlameCanvas* canv){}
 void glame_canvas_save_as_cb(GtkObject* foo, GlameCanvas* canv){}
-void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv){}
+void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv);
 void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv){}
 void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv){}
 void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv){}
@@ -74,6 +77,32 @@ add_filter_by_plugin_cb(GtkWidget*wid, plugin_t *plugin)
 /* { */
 /* 	switch(event->button.button){ */
 /* 	case 1: */
+
+#ifdef HAVE_LIBSTROKE		
+static guint button_down_sighandlerid;
+
+static gboolean 
+button_down_cb(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
+{
+	char translation[50];
+	switch(event->type){
+	case GDK_BUTTON_RELEASE:
+		if(stroke_trans(translation)){
+			fprintf(stderr,"translation: %s\n",translation);
+		}else{
+			fprintf(stderr,"failed translation: %s\n",translation);
+		}
+		gtk_signal_disconnect(canvas,button_down_sighandlerid);
+		break;
+	case GDK_MOTION_NOTIFY:
+		stroke_record(event->button.x, event->button.y);
+		break;
+	default:
+		break;
+	}
+	return FALSE;
+}
+#endif
 		
 
 static void group_all(GlameCanvas* canv)
@@ -101,36 +130,216 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 	GtkWidget *menu;
 	
 	GdkEventButton *event_button;
-	
+	GnomeCanvasItem* onItem;	
 	switch(event->type){
 
-
 	case GDK_BUTTON_PRESS:
-		
-		/* check if on some item */
+		  /* check if on some item */
 		gnome_canvas_window_to_world(canvas,event->button.x,event->button.y,&eventx,&eventy);
 		glcanvas = GLAME_CANVAS(canvas);
-		
-		if(gnome_canvas_get_item_at(canvas,eventx, eventy)){
-			return FALSE;
-			/* hit item! */
-		}else{
-			if(event->button.button==1){
+		onItem = gnome_canvas_get_item_at(canvas,eventx, eventy);
+
+		switch(event->button.button){
+		case 1:
+#if 0
+			if(!onItem){
 				group_all(glCanv);
-				return TRUE;
-			}else{
-			menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
-			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
-			return TRUE;
 			}
+#endif
+			break;
+		case 2:
+			if(!onItem){
+#ifdef HAVE_LIBSTROKE			  
+			button_down_sighandlerid = gtk_signal_connect(GTK_OBJECT(canvas),"event",GTK_SIGNAL_FUNC(button_down_cb),glCanv);
+#endif
+			}
+			break;
+		case 3:
+			if(!onItem){
+				menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
+				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
+				return TRUE;
+			}
+			break;
+		default:
+			break;
 		}
-		break;
 	default:
 		break;
 	}
 	return FALSE;
 }
 
+
+
+static void canvas_delete_redirection_param_cb(GtkWidget*foo, filter_param_t* param)
+{
+	filterparam_delete(param);
+}
+
+static void canvas_delete_redirection_port_cb(GtkWidget*foo, filter_port_t* port)
+{
+	filterportdb_delete_port(filter_portdb(CANVAS_ITEM_NETWORK(glame_canvas_find_port(port))),port);
+}
+
+
+
+static GnomeUIInfo redirection_menu_port[] = 
+{
+	GNOMEUIINFO_ITEM_STOCK("Delete Port","Deletes selected redirection",
+			       canvas_delete_redirection_port_cb,
+			       GNOME_STOCK_MENU_TRASH),
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo redirection_menu_param[] = 
+{
+	GNOMEUIINFO_ITEM_STOCK("Delete Parameter","Deletes selected redirection",
+			       canvas_delete_redirection_param_cb,
+			       GNOME_STOCK_MENU_TRASH),
+	GNOMEUIINFO_END
+};
+
+static void redirection_list_port_cb(GtkCList *list, gint row, gint column,
+			       GdkEvent* event, GList *reds)
+{
+	GtkWidget * menu;
+	filter_port_t *port;
+	menu = gnome_popup_menu_new(redirection_menu_port);
+	port = g_list_nth_data(reds,row);
+	gtk_clist_unselect_row(list,row,0);
+	if(port)
+		if(gnome_popup_menu_do_popup_modal(menu,NULL,NULL,&event->button,port)>=0)
+			gtk_clist_remove(list,row);
+
+}
+static void redirection_list_param_cb(GtkCList *list, gint row, gint column,
+			       GdkEvent* event, GList *reds)
+{
+	GtkWidget * menu;
+	filter_param_t* foo;
+	menu = gnome_popup_menu_new(redirection_menu_param);
+	foo = g_list_nth_data(reds,row);
+	gtk_clist_unselect_row(list,row,0);
+	if(foo)
+		if(gnome_popup_menu_do_popup_modal(menu,NULL,NULL,&event->button,foo)>=0)
+			gtk_clist_remove(list,row);
+
+}
+
+void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
+{
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	GtkWidget * notebook;
+	GtkWidget * tablabel;
+	GtkCList * list;
+
+		
+	filter_portdb_t * ports;
+	filter_paramdb_t * params;
+	filter_param_t * param;
+	filter_t * filter;
+	filter_port_t * port;
+	GList * redPorts=NULL;
+	GList * redParms=NULL;
+	
+	char *labels[] = {"Name","Type","Description","Source"};
+	char *plabels[] = {"Name","Value","Description","Source"};
+	char ** line;
+	const char * buffer;
+	filter = canvas->net;
+	
+	ports = filter_portdb(filter);
+	
+	notebook = gtk_notebook_new();
+	
+	dialog = gnome_dialog_new("Properties",GNOME_STOCK_BUTTON_OK,NULL);
+	
+
+
+	tablabel = gtk_label_new("Ports");
+	list = GTK_CLIST(gtk_clist_new_with_titles(4,labels));
+	gtk_clist_set_column_auto_resize(list,0,TRUE);
+	gtk_clist_set_column_auto_resize(list,1,TRUE);
+	gtk_clist_set_column_auto_resize(list,2,TRUE);
+	gtk_clist_set_column_auto_resize(list,3,TRUE);
+	
+	filterportdb_foreach_port(ports,port){
+		line = calloc(4,sizeof(char*));
+		buffer = filterport_label(port);
+		if(buffer)
+			line[0] = strdup(filterport_label(port));
+		else
+			line[0] = strdup("Empty");
+		line[1] = (filterport_is_input(port)?"In":"Out");
+		buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
+		if(buffer)
+			line[2] = strdup(buffer);
+		else
+			line[2] = strdup("Empty");
+		
+		buffer = filterport_get_property(port,FILTERPORT_MAP_NODE);
+		if(buffer)
+			line[3] = strdup(buffer);
+		else
+			line[3]= strdup("Unkown");
+		redPorts = g_list_append(redPorts,port);
+		gtk_clist_append(list,line);
+	}
+	//if(!canvas->net->openedUp)
+		gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_port_cb,redPorts);
+	gtk_widget_show(GTK_WIDGET(list));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
+
+	tablabel = gtk_label_new("Properties");
+	gtk_widget_show(tablabel);
+	
+	list = GTK_CLIST(gtk_clist_new_with_titles(4,plabels));
+	gtk_clist_set_column_auto_resize(list,0,TRUE);
+	gtk_clist_set_column_auto_resize(list,1,TRUE);
+	gtk_clist_set_column_auto_resize(list,2,TRUE);
+	gtk_clist_set_column_auto_resize(list,3,TRUE);
+	
+	params = filter_paramdb(filter);
+	filterparamdb_foreach_param(params,param){
+		line = calloc(4,sizeof(char*));
+		buffer = filterparam_label(param);
+		if(buffer)
+			line[0] = strdup(buffer);
+		else
+			line[0] = strdup("Empty");
+		buffer = filterparam_to_string(param);
+		if(buffer)
+			line[1] = strdup(buffer);
+		else
+			line[1] = strdup("Empty");
+		buffer = filterparam_get_property(param,FILTERPARAM_DESCRIPTION);
+		if(buffer)
+			line[2] = strdup(buffer);
+		else
+			line[2] = strdup("Empty");
+		buffer = filterparam_get_property(param,FILTERPARAM_MAP_NODE);
+		if(buffer)
+			line[3] = strdup(buffer);
+		else
+			line[3] = strdup("Unkown");
+		redParms = g_list_append(redParms,param);
+		gtk_clist_append(list,line);
+	}
+	gtk_widget_show(GTK_WIDGET(list));
+	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_param_cb,redParms);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
+	
+	gtk_widget_show(notebook);
+	vbox = GNOME_DIALOG(dialog)->vbox;
+	gtk_container_add(GTK_CONTAINER(vbox),notebook);
+	
+	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+	g_list_free(redPorts);
+	g_list_free(redParms);
+	
+}
 
 
 
@@ -201,6 +410,9 @@ glame_filtereditgui_new(filter_t *net)
 	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
 	gtk_widget_show_all(window);
 	gtk_signal_connect(GTK_OBJECT(canvas),"event",GTK_SIGNAL_FUNC(root_event),canvas);
+#ifdef HAVE_LIBSTROKE
+	stroke_init();
+#endif
 	return window;
 }
 

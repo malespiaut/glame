@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.7 2001/05/17 22:38:36 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.8 2001/05/18 15:07:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -183,7 +183,7 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 
 	/* find coords */
 	
-	port = glame_canvas_find_port(filterpipe_source(p->pipe));
+	port = glame_canvas_find_port(filterpipe_connection_source(p->pipe));
 	pipes = filterport_nrpipes(filterpipe_source(p->pipe));
 	
 	if(!port){
@@ -194,7 +194,7 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 	sourcey = GNOME_CANVAS_RE(port)->y1 + ((GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(float)(pipes+1))*p->sourceId;
 	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(port),&sourcex,&sourcey);
 	
-	port = glame_canvas_find_port(filterpipe_dest(p->pipe));
+	port = glame_canvas_find_port(filterpipe_connection_dest(p->pipe));
 	pipes = filterport_nrpipes(filterpipe_dest(p->pipe));
 
 	destx = GNOME_CANVAS_RE(port)->x1;
@@ -274,13 +274,13 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 static void canvas_pipe_source_properties_cb(GtkObject * foo, filter_pipe_t* pipe)
 {
 	GtkWidget *p = glame_gui_filter_properties(filterpipe_sourceparamdb(pipe),
-                                                   filterport_label(filterpipe_source(pipe)));
+                                                   filterport_label(filterpipe_connection_source(pipe)));
         gnome_dialog_run_and_close(GNOME_DIALOG(p));
 }
 static void canvas_pipe_dest_properties_cb(GtkObject * foo, filter_pipe_t* pipe)
 {
 	GtkWidget *p = glame_gui_filter_properties(filterpipe_destparamdb(pipe),
-                                                   filterport_label(filterpipe_dest(pipe)));
+                                                   filterport_label(filterpipe_connection_dest(pipe)));
         gnome_dialog_run_and_close(GNOME_DIALOG(p));
 }
 static void canvas_pipe_delete_cb(GtkObject* foo, filter_pipe_t* pipe)
@@ -384,8 +384,8 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 			   glame_canvas_pipe_event_cb,
 			   gPipe);
 	
-	gSource = glame_canvas_find_port(filterpipe_source(pipe));
-	gDest = glame_canvas_find_port(filterpipe_dest(pipe));
+	gSource = glame_canvas_find_port(filterpipe_connection_source(pipe));
+	gDest = glame_canvas_find_port(filterpipe_connection_dest(pipe));
 
 	/* connect to movement of ports */
 	gtk_signal_connect(GTK_OBJECT(gDest),
@@ -419,9 +419,9 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 
 
 	/* reorder all pipes */
-	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),
+	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_connection_dest(pipe))),
 				"connections_changed");
-	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_source(pipe))),
+	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_connection_source(pipe))),
 				"connections_changed");
 	
 	return gPipe;

@@ -89,3 +89,6 @@
 
 /* define, if you have libglade */
 #undef HAVE_LIBGLADE
+
+/* define, if you have/want libstroke */
+#undef HAVE_LIBSTROKE

@@ -248,6 +248,29 @@ if test $lsf = yes; then
 	AC_DEFINE(HAVE_SNDFILE)
 fi
 
+dnl 
+dnl check for libstroke
+dnl
+AC_ARG_ENABLE(libstroke, [  --enable-libstroke     enable libstroke support], strokes=$enableval, strokes=no)
+if test x$strokes = xyes; then
+dnl first check for normal positions
+AC_CHECK_HEADER(stroke.h, strokes=yes, strokes=no)
+if test x$strokes = xno; then
+dnl look for debian version
+stroke_save_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="-I/usr/X11R6/include"
+	AC_CHECK_HEADERS([stroke.h X11/stroke.h], strokes=yes, strokes=no)
+CPPFLAGS="$stroke_save_CPPFLAGS"
+	if test x$strokes = xyes; then
+		GNOME_INCLUDEDIR="$GNOME_INCLUDEDIR -I/usr/X11R6/include"
+		GNOME_LIBDIR="$GNOME_LIBDIR -L/usr/X11R6/lib"
+		GNOME_LIBS="$GNOME_LIBS -lstroke"
+	fi
+fi
+if test x$strokes = xyes; then
+	AC_DEFINE(HAVE_LIBSTROKE)
+fi
+fi
 dnl
 dnl check for lame - doesnt work with static only libmp3lame,
 dnl so disable is possible

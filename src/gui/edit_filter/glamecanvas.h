@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.4 2001/05/17 22:38:36 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.5 2001/05/18 15:07:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -25,7 +25,7 @@
 #define _GLAME_CANVAS_H
 
 #include <gnome.h>
-#include "filter.h"
+#include "glmid.h"
 #include "canvasitem.h"
 /* type forwards */
 

@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.5 2001/05/11 01:08:03 xwolf Exp $
+ * $Id: canvasitem.h,v 1.6 2001/05/18 15:07:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -149,11 +149,12 @@ struct _GlameCanvasPort {
 	/* public */
 
 	filter_port_t *port;
-	
+  
 	/* private */
 	double x, y;
 	double x_size, y_size;
 	
+	filter_port_t *realPort;
 	GnomeCanvasText* name;
 	
 	gboolean external;
@@ -245,6 +246,7 @@ GlameCanvasPort* glame_canvas_find_port(filter_port_t* f);
 #define CANVAS_ITEM_CANVAS(i) GNOME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas)
 #define CANVAS_ITEM_GLAME_CANVAS(i) GLAME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas)
 #define CANVAS_ITEM_ROOT(i) gnome_canvas_root(GNOME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas))
+#define CANVAS_ITEM_NETWORK(i) (GLAME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas)->net)
 
 #endif
 	

@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.6 2001/05/17 22:38:36 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.7 2001/05/18 15:07:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -584,6 +584,12 @@ static void glame_canvas_filter_delete_cb(GtkWidget* foo, GlameCanvasFilter* fil
 	filter_delete(filter->filter);
 }
 
+static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
+{
+	if(FILTER_IS_NETWORK(filter->filter))
+		gtk_widget_show(glame_filtereditgui_new(filter->filter));
+}
+
 
 int inItem;
 static GnomeUIInfo node_menu[]=
@@ -593,7 +599,7 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	//	GNOMEUIINFO_ITEM("_Open Up","Open up",draw_network_cb,NULL),
+	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
 	//	GNOMEUIINFO_ITEM("_About node...","bout",canvas_item_show_description,NULL),
 	//	GNOMEUIINFO_ITEM("_Help","Show help",canvas_item_help,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),

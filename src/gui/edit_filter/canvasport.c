@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.5 2001/05/11 11:50:04 xwolf Exp $
+ * $Id: canvasport.c,v 1.6 2001/05/18 15:07:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -71,14 +71,16 @@ glame_canvas_port_connections_changed_cb(GlameCanvasPort *p, gpointer userdata)
 	GlameCanvasPipe* gPipe;
 
 	int count = 1;
-	
-	filterport_foreach_pipe(p->port, pipe){
+	filterport_foreach_pipe(p->realPort, pipe){
 		gPipe = glame_canvas_find_pipe(pipe);
 		if(gPipe){
-			if(filterport_is_input(p->port))
+			if(filterport_is_input(p->port)){
 				gPipe->sourceId = count++;
-			else if(filterport_is_output(p->port))
-				gPipe->destId = count++;
+			}else{
+				if(filterport_is_output(p->port)){
+					gPipe->destId = count++;
+				}
+			}
 		}
 	}
 }
@@ -310,7 +312,8 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *port, double x, double y, double height)
 {
 	GlameCanvasPort *p;
-
+	char * buffer;
+	filter_t* red_node;
 	p = GLAME_CANVAS_PORT(gnome_canvas_item_new(group,
 						    glame_canvas_port_get_type(),
 						    "x1",x,
@@ -322,7 +325,20 @@ GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *p
 						    "fill_color_rgba",
 						    (filterport_is_input(port)?0xff000000:0x0000ff00),
 						    NULL));
+
+
 	p->port = port;
+	/* ugly... check for redirection */
+	buffer = filterport_get_property(port,FILTERPORT_MAP_NODE);
+	if(buffer){
+		/* we're being redirected! */
+		red_node = filter_get_node(filterport_filter(port),buffer);
+		if(!red_node)
+			abort();
+		p->realPort = filterportdb_get_port(filter_portdb(red_node),filterport_get_property(port,FILTERPORT_MAP_LABEL));
+	}else
+		p->realPort = port;
+
 	hash_add_gcport(p);
 	gtk_signal_connect(GTK_OBJECT(p),"event",glame_canvas_port_event_cb,p);
 	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_filter(filterport_filter(port))),
