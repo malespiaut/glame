@@ -762,7 +762,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
-	gint32 start, length, marker;
+	gint32 start, length, marker, wavesize;
 	long nrtracks;
 	gpsm_swfile_t **files;
 	gpsm_item_t *item;
@@ -771,6 +771,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	float y_position = 20.0;
 	char position_buffer[20];
 
+	wavesize = gtk_wave_buffer_get_length(wavebuffer);
 	marker = gtk_wave_view_get_marker(waveview);
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0 && marker < 0)
@@ -785,10 +786,11 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *swout;
-		if (length <= 0)
+		if (length <= 0 && wavesize - marker <= 0)
 			goto no_swin;
 		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
-					  start, length);
+					  length > 0 ? start : marker,
+					  length > 0 ? length : -1);
 		if (!swin)
 			goto fail;
 		filter_set_property(swin,"immutable","1");
