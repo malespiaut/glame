@@ -3,7 +3,7 @@
  *
  * Convenience library for common mathematical routines on audio samples.
  *
- * $Id: lina.c,v 1.1 2000/02/21 11:00:14 nold Exp $
+ * $Id: lina.c,v 1.2 2000/02/22 10:26:23 nold Exp $
  *
  * Copyright (C) 2000 Daniel Kobras
  *
@@ -70,7 +70,6 @@ void glm_print_matrix(SAMPLE mat[][], unsigned int n)
  *               
  */
 
-#if DAMN_THIS_CODE_IS_BUGGY_BUT_WHERE_DID_I_PUT_MY_FIXED_VERSION
 int glm_solve_linear(SAMPLE *x, SAMPLE a[][], SAMPLE *b, unsigned int n)
 {
 	int ret=-1;
@@ -106,20 +105,34 @@ int __glm_solve_linear(SAMPLE *x, SAMPLE a[][], SAMPLE *b, unsigned int n)
 	 */
 
 	for(row = 0; row < n; row++) {
-		if(m[row][row] == (SAMPLE)0)
-			return -1;
+		if(m[row][row] == (SAMPLE)0) {
+			SAMPLE tmp = b[row];
+			i=row;
+			while(++i < n)
+				if(m[i][row] != (SAMPLE)0)
+					break;
+			if(i == n)
+				return -1;
+			b[row] = b[i];
+			b[i] = tmp;
+			for(col = row; col < n; col++) {
+				SAMPLE tmp=m[row][col];
+				m[row][col] = m[i][col];
+				m[i][col]=tmp;
+			}
+		}
 		b[row] /= m[row][row];
 		for(col = row+1; col < n; col++) {
 			m[row][col] /= m[row][row];
-			for(i = row+1; i < n; i++) {
+			for(i = row+1; i < n; i++)
 				m[i][col] -= m[row][col]*m[i][row];
-				b[i] -= b[row]*m[i][row];
-			}
 		}
+		for(i = row+1; i < n; i++)
+			b[i] -= b[row]*m[i][row];
 	}
 	/* We have a Jordan triangle now with diagonal elements all 1,
 	 * elements below all zero. We didn't bother setting those
-	 * values in a[i][j] though!
+	 * values in m[i][j] though!
 	 */
 	row = n-1;
 	do {
@@ -152,17 +165,34 @@ int glm_invert_matrix(SAMPLE inv[][], SAMPLE mat[][], unsigned int n)
 	} while(i--);
 
 	for(row = 0; row < n; row++) {
-		if(a[row][row] == (SAMPLE)0)
-			return -1;
+		if(a[row][row] == (SAMPLE)0) {
+			i=row;
+			while(++i < n)
+				if(a[i][row] != (SAMPLE)0)
+					break;
+			if(i == n)
+				return -1;
+			for(col = 0; col < n; col++) {
+				SAMPLE tmp = b[row][col];
+				b[row][col] = b[i][col];
+				b[i][col] = tmp;
+			}
+			for(col = row; col < n; col++) {
+				SAMPLE tmp=a[row][col];
+				a[row][col] = a[i][col];
+				a[i][col]=tmp;
+			}
+		}
 		for(j=0; j < n; j++)
 			b[row][j] /= a[row][row];
 		for(col = row+1; col < n; col++) {
 			a[row][col] /= a[row][row];
-			for(i = row+1; i < n; i++) {
+			for(i = row+1; i < n; i++)
 				a[i][col] -= a[row][col]*a[i][row];
-				for(j=0; j < n; j++)
-					b[i][j] -= b[row][j]*a[i][row];
-			}
+		}
+		for(i = row+1; i < n; i++) {
+			for(j=0; j < n; j++)
+				b[i][j] -= b[row][j]*a[i][row];
 		}
 	}
 	/* We have a Jordan triangle now with diagonal elements all 1,
@@ -217,8 +247,6 @@ int glm_poly_interpolate(SAMPLE *a, SAMPLE *x, SAMPLE *b, unsigned int n)
 
 	return ret;
 }
-
-#endif
 
 /*
  * Evaluate polynom of order n, a[n]*x^n + a[n-1]*x^(n-1) + ... + a[0]
