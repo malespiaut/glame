@@ -2,7 +2,7 @@
  * gui_main.c
  *
  * Copyright (C) 2001 Johannes Hirche
- * $Id: gui_main.c,v 1.2 2001/03/15 12:54:11 richi Exp $
+ * $Id: gui_main.c,v 1.3 2001/03/15 14:30:24 xwolf Exp $
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ GtkWidget *app;
 /* Forward declarations. */
 static void create_new_swapfile_cb(GtkWidget *menu, void * blah);
 static void open_swapfile_cb(GtkWidget *menu, void *blah);
-
+extern void gui_quit(GtkWidget *widget, gpointer data);
 GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 				      const char *label,
 				      char ** returnbuffer);
@@ -50,7 +50,7 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_OPEN_ITEM (open_swapfile_cb, NULL),
 	GNOMEUIINFO_MENU_CLOSE_ITEM (NULL, NULL), /* FIXME */
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_MENU_EXIT_ITEM (gui_exit, NULL),
+	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
 };
 

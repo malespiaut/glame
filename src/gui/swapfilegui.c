@@ -518,7 +518,7 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 	//	gtk_container_add(GTK_CONTAINER(window), tree);
 	gtk_widget_show(tree);
 
-	//	swapfile_gui = window;
+	swapfile_gui = tree;
 	free(xml);
 	xmlFreeDoc(doc);
 

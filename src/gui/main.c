@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.10 2001/03/15 12:54:11 richi Exp $
+ * $Id: main.c,v 1.11 2001/03/15 14:30:24 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -35,7 +35,7 @@
 static char *swname;
 static GtkWidget *swapfile;
 
-static void gui_quit(GtkWidget *widget, gpointer data)
+void gui_quit(GtkWidget *widget, gpointer data)
 {
 	glame_waveedit_cleanup();
 	glame_swapfile_gui_destroy();
