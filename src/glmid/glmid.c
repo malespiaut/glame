@@ -41,8 +41,8 @@
 
 
 /* Builtin plugins. */
-PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform "
-	   "rms arithmetic swapfile_io ssp")
+PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io")
+
 
 
 int glame_load_plugin(const char *fname)
@@ -180,7 +180,7 @@ static int plugins_register()
 "  %s\n", PKGLIBDIR);
 
 	/* First initialize the builtin plugins */
-	plugin_get("glamebuiltins");
+	plugin_get("builtin_plugins");
 
 	/* Plugins from default paths - and "debug path" (first) */
 	load_plugins_from_path("./plugins/.libs"); /* for .so */
