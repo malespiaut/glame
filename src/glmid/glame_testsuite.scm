@@ -399,7 +399,9 @@
 (define test-gpsm-init-tree-do-grp
   (lambda (item-spec)
     (let ((grp (gpsm-newgrp "foo")))
-      (test-gpsm-init-tree-do-list grp item-spec))))
+      (if (null? item-spec)
+	  grp
+	  (test-gpsm-init-tree-do-list grp item-spec)))))
 (define test-gpsm-init-tree-do-file
   (lambda (item-spec)
     (let* ((swfile (gpsm-newswfile "foo"))
@@ -441,19 +443,27 @@
     (let ((file (test-gpsm-init-tree-do-file size)))
       (gpsm-hbox-insert hbox file hpos vpos)
       hbox)))
-	   
+
+(define test-gpsm-item-move
+  (lambda (grp)
+    (let* ((grp1 (car (gpsm-grp-items grp)))
+	   (grp2 (cadr (gpsm-grp-items grp))))
+      (gpsm-vbox-insert grp1 (car (gpsm-grp-items grp2)) 0 0)
+      grp)))
 
 ; main gpsm testing routines
 
 (define test-gpsm
   (lambda (test-name test-init test-expect test-proc . test-params)
     (display test-name)
-    (let ((init (test-gpsm-spec-to-tree test-init)))
-      (if (equal? (test-gpsm-tree-to-spec
-		   (apply test-proc (cons init test-params)))
-		  test-expect)
+    (let* ((init (test-gpsm-spec-to-tree test-init))
+	   (test-result (test-gpsm-tree-to-spec (apply test-proc (cons init test-params)))))
+      (if (equal? test-result test-expect)
 	  (display " - passed.")
-	  (display " - FAILED!"))
+	  (begin
+	    (display " - FAILED!") (newline)
+	    (display "   expected: ") (display test-expect) (newline)
+	    (display "   got:      ") (display test-result)))
       (newline)
       (gpsm-item-destroy init))))
 
@@ -474,6 +484,10 @@
 	       '((0 0 ((0 0 10) (0 1 10))) (10 0 ((0 0 10) (0 1 10))))
 	       '((0 0 ((0 0 10) (0 1 10))) (10 1 5) (15 0 ((0 0 10) (0 1 10))))
 	       test-gpsm-hbox-insert 10 1 5)
+    (test-gpsm "item move"
+	       '((0 0 ((0 0 10))) (0 1 ()))
+	       '((0 0 ()) (0 0 ((0 0 10))))
+	       test-gpsm-item-move)
 ))
 
 
