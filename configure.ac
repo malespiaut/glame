@@ -5,9 +5,6 @@ AC_CONFIG_SRCDIR(configure.ac)
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_CONFIG_HEADER(config.h)
 
-dnl Pick up additional macros from the macros directory
-AM_ACLOCAL_INCLUDE(macros)
-
 dnl Disable re-creation of *.in files by default
 AM_MAINTAINER_MODE
 
