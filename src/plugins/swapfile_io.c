@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.21 2001/07/13 08:58:29 richi Exp $
+ * $Id: swapfile_io.c,v 1.22 2001/08/01 15:06:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -331,7 +331,7 @@ int swapfile_out_register(plugin_t *p)
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_END);
 	filterparamdb_add_param_int(filter_paramdb(f), "offset",
-				FILTER_PARAMTYPE_INT, -1,
+				FILTER_PARAMTYPE_INT, 0,
 				FILTERPARAM_DESCRIPTION, "offset to start writing",
 				FILTERPARAM_END);
 	filterparamdb_add_param_int(filter_paramdb(f), "size",
