@@ -23,6 +23,7 @@
  * docs/drag_algorithm.txt
  */
 
+#include <string.h>
 #include <gtk/gtk.h>
 #include "util/glame_hruler.h"
 #include "gtkwaveview.h"
@@ -227,13 +228,13 @@ calc_ext_pel_win (GtkWaveView *waveview, gint32 win_pel_pos)
   return win_pel_pos + ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
 }
 
-
+#if 0 /* unused */
 static gint32
 calc_frame_pos_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 {
   return (gint32) (ext_pel_pos * waveview->zoom);
 }
-
+#endif
 
 static gint32
 calc_frame_pos_win (GtkWaveView *waveview, gint32 win_pel_pos)
