@@ -74,20 +74,29 @@ int pmap_unmap(void *start);
 int pmap_discard(void *start);
 
 
-/* pmap_uncache tries to unmap any possible chached mapping of the
- * specified type - all protections are affected. Note that only unused
- * mappings can be unmapped this way. */
-int pmap_uncache(size_t size, int flags, int fd, off_t offset);
-
-/* pmap_invalidate marks all mappings of the specified file as
- * not reusable, if they cannot be uncached. This is useful because
- * if an fd gets closed and reused later clashes may occur. */
-void pmap_invalidate(int fd);
-
-
 /* Try to drain the cache as much as possible - unmapping all unused
  * mappings. Do this if you are short on virtual memory. */
 void pmap_shrink();
+
+
+/* pmap_uncache tries to unmap any unused cached mapping of the specified
+ * type. Note that size/offset are not treated exact, but all mappings
+ * overlapping that area are affected by the operation. Also protection
+ * and flags do not have to match exactly, but only include one of the
+ * specified bits - i.e. -1 will select all.
+ * pmap_uncache returns -1, if there were used mappings inside the specified
+ * region, else 0. Note that this result is not exactly reliable, as at
+ * return time another thread may have created another mapping inside the
+ * specified area. You have to lock against this case yourself. */
+int pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset);
+
+/* Like pmap_uncache pmap_invalidate unmaps any unused cached mapping
+ * which can be specified like with pmap_uncache. But unlike pmap_uncache
+ * it does prevent mappings that cannot be unmapped from being reused
+ * (Note: not from _new_ mappings being created!). This is especially
+ * useful to prevent mappings to be wrongly reused if closing the file
+ * descriptor and reusing it with another file. */
+void pmap_invalidate(size_t size, int prot, int flags, int fd, off_t offset);
 
 
 #endif

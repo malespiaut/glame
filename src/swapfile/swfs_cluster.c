@@ -396,7 +396,8 @@ static int cluster_truncate(struct swcluster *c, s32 size)
 
 	if (c->files_cnt > 1
 	    || (c->fd != -1
-		&& pmap_uncache(c->size, MAP_SHARED, c->fd, 0) == -1)) {
+		&& pmap_uncache(c->size, PROT_READ|PROT_WRITE,
+				MAP_SHARED|MAP_PRIVATE, c->fd, 0) == -1)) {
 		UNLOCKCLUSTER(c);
 		return -1;
 	}
@@ -593,7 +594,8 @@ static void _cluster_put(struct swcluster *c)
 		_cluster_createdata(c);
 	/* Kill possible mappings and close the file. */
 	if (c->fd != -1) {
-		pmap_invalidate(c->fd);
+		pmap_invalidate(c->size, PROT_READ|PROT_WRITE,
+				MAP_SHARED|MAP_PRIVATE, c->fd, 0);
 		close(c->fd);
 	}
 

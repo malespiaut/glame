@@ -139,6 +139,17 @@ static void _map_free(struct mapping *m)
 	free(m);
 }
 
+#ifndef MAP_ANONYMOUS
+static int _fms_fd = -1;
+#endif
+static inline void *_fast_mmap_something(size_t size)
+{
+#ifdef MAP_ANONYMOUS
+	return mmap(0, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+#else
+	return mmap(0, size, PROT_NONE, MAP_PRIVATE, _fms_fd, 0);
+#endif
+}
 
 /* Try to shrink lru list, if necessary. */
 static int _shrink_lru(size_t minfree)
@@ -147,14 +158,13 @@ static int _shrink_lru(size_t minfree)
 	void *mem;
 
 	while (pmap_lrucnt > pmap_lrumaxcnt
-	       || (mem = mmap(0, minfree, PROT_READ,
-			   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
+	       || (mem = _fast_mmap_something(minfree)) == MAP_FAILED) {
 		m = list_gettail(&pmap_lru, struct mapping, lru);
 		if (!m)
 		    	return -1;
 		_map_free(m);
 	}
-	munmap(mem, pmap_minfree);
+	munmap(mem, minfree);
 	return 0;
 }
 
@@ -184,19 +194,56 @@ static inline void _map_unref(struct mapping *m)
 	}
 }
 
-int _pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset)
+/* Uncaches all mappings of the specified type from the lru. */
+void _pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset)
 {
+	struct list_head *mn;
 	struct mapping *m;
 
-	if (!(m = hash_find_mappingp(size, flags, prot, fd, offset)))
-		return 0;
-	if (m->refcnt != 0)
-		return -1;
-	_map_free(m);
-
-	return 0;
+	/* Scan the lru for mappings of the specified type. */
+	mn = pmap_lru.next;
+	while (mn != &pmap_lru) {
+		m = list_entry(mn, struct mapping, lru);
+		mn = mn->next;
+		if (m->fd == fd
+		    && (m->prot & prot) && (m->flags & flags)
+		    && ((m->offset>=offset && m->offset<offset+size)
+			|| (offset>=m->offset && offset<m->offset+m->size)))
+			_map_free(m);
+	}
 }
 
+/* Invalidates mappings of the specified type - does not uncache
+ * mappings, so do an _pmap_uncache first. If do_invalidate is 0
+ * matching mappings are only counted. The number of invalidated
+ * mappings is returned. */
+int _pmap_invalidate(size_t size, int prot, int flags, int fd,
+		     off_t offset, int do_invalidate)
+{
+	struct mapping *m;
+	int i, cnt = 0;
+
+	/* Scan the mappingv hash. */
+	for (i=0; i<((1<<8)-1); i++) {
+		m = hash_getslot_mappingv(i);
+		while (m) {
+			if (m->fd == fd
+			    && (m->prot & prot) && (m->flags & flags)
+			    && ((m->offset>=offset && m->offset<offset+size)
+				|| (offset>=m->offset
+				    && offset<m->offset+m->size))) {
+				cnt++;
+				if (do_invalidate) {
+					hash_remove_mappingp(m);
+					m->fd = -1;
+				}
+			}
+			m = hash_next_mappingv(m);
+		}
+	}
+
+	return cnt;
+}
 
 
 /* API.
@@ -212,6 +259,10 @@ int pmap_init(size_t minfree)
 	pmap_lrumaxcnt = 32;
 	pthread_mutex_init(&pmap_mutex, NULL);
 
+#ifndef MAP_ANONYMOUS
+	_fms_fd = open("/dev/zero", O_RDONLY);
+#endif
+
 	return 0;
 }
 
@@ -225,6 +276,10 @@ void pmap_close()
 	    while ((m = mappingv_hash_table[i]))
 		_map_free(m);
 	}
+
+#ifndef MAP_ANONYMOUS
+	close(fd);
+#endif
 
 	pthread_mutex_destroy(&pmap_mutex);
 }
@@ -331,55 +386,29 @@ int pmap_discard(void *start)
 	return 0;
 }
 
-int pmap_uncache(size_t size, int flags, int fd, off_t offset)
-{
-	pthread_mutex_lock(&pmap_mutex);
-	if (_pmap_uncache(size, PROT_READ, flags, fd, offset) == -1
-	    || _pmap_uncache(size, PROT_WRITE, flags, fd, offset) == -1
-	    || _pmap_uncache(size, PROT_READ|PROT_WRITE,
-			     flags, fd, offset) == -1) {
-		pthread_mutex_unlock(&pmap_mutex);
-		return -1;
-	}
-	pthread_mutex_unlock(&pmap_mutex);
-	return 0;
-}
-
-void pmap_invalidate(int fd)
-{
-	struct list_head *mn;
-	struct mapping *m;
-	int i;
-
-	pthread_mutex_lock(&pmap_mutex);
-
-	/* Scan the lru for mappings of fd. */
-	mn = pmap_lru.next;
-	while (mn != &pmap_lru) {
-		m = list_entry(mn, struct mapping, lru);
-		mn = mn->next;
-		if (m->fd == fd)
-			_map_free(m);
-	}
-
-	/* Scan the mappingv hash. */
-	for (i=0; i<((1<<8)-1); i++) {
-		m = hash_getslot_mappingv(i);
-		while (m) {
-			if (m->fd == fd) {
-				hash_remove_mappingp(m);
-				m->fd = -1;
-			}
-			m = hash_next_mappingv(m);
-		}
-	}
-
-	pthread_mutex_unlock(&pmap_mutex);
-}
-
 void pmap_shrink()
 {
 	pthread_mutex_lock(&pmap_mutex);
 	_shrink_lru((size_t)1 << (sizeof(size_t)*8-2));
+	pthread_mutex_unlock(&pmap_mutex);
+}
+
+int pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset)
+{
+	int res;
+
+	pthread_mutex_lock(&pmap_mutex);
+	_pmap_uncache(size, prot, flags, fd, offset);
+	res = _pmap_invalidate(size, prot, flags, fd, offset, 0);
+	pthread_mutex_unlock(&pmap_mutex);
+
+	return res;
+}
+
+void pmap_invalidate(size_t size, int prot, int flags, int fd, off_t offset)
+{
+	pthread_mutex_lock(&pmap_mutex);
+	_pmap_uncache(size, prot, flags, fd, offset);
+	_pmap_invalidate(size, prot, flags, fd, offset, 1);
 	pthread_mutex_unlock(&pmap_mutex);
 }
