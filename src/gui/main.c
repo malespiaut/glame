@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.125 2004/12/03 21:23:17 ochonpaul Exp $
+ * $Id: main.c,v 1.126 2004/12/22 21:26:40 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -33,7 +33,6 @@
 #include <glade/glade.h>
 #endif
 #include <libintl.h>
-#include "swapfile.h"
 #include "glmid.h"
 #include "tree/gltree.h"
 #include "waveeditgui.h"
@@ -41,7 +40,6 @@
 #include "edit_filter/filtereditgui.h"
 #include "util/glame_gui_utils.h"
 #include "util/gtknob.h"
-#include "gltreeitem.h"
 #include "gpsm.h"
 #include "clipboard.h"
 #include "glame_accelerator.h"
@@ -167,7 +165,6 @@ static void new_network_cb(GtkWidget *menu, void * blah)
  	gtk_widget_show(feg); 
 } 
 
-//void edit_tree_label(GlameTreeItem * item); 
 static void create_new_project_cb(GtkWidget *menu, void * blah) 
 { 
 	gpsm_grp_t *grp; 
@@ -178,17 +175,7 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
  			    0, gpsm_item_vsize(gpsm_root())) == -1 
  	    && gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp, 
  			       0, gpsm_item_vsize(gpsm_root())+1) == -1) 
-	  { DPRINTF("Cannot insert new group!?\n"); }
-
-/* Find out which widget it got. */ 
- 	// grpw = glame_tree_find_gpsm_item( 
-//  		GTK_OBJECT(SWAPFILE_GUI(swapfile)->tree), (gpsm_item_t *)grp); 
-//  	if (!grpw) { 
-//  		DPRINTF("Umm, cant find widget for new project.\n"); 
-//  		return; 
-//  	} 
- 	// edit_tree_label(grpw); 
-
+		DPRINTF("Cannot insert new group!?\n");
 } 
 
 static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file) 
@@ -803,7 +790,6 @@ static void gui_main()
 
 	/* Init GUI dependend subsystems. */
 	glame_accel_init();
-//	glame_swapfilegui_init();
 	glame_waveeditgui_init();
 	glame_filtereditgui_init();
 	glame_timeline_init();
@@ -849,7 +835,6 @@ _("Welcome first-time user of GLAME.\n"
 	swapfile_register_panic_handler(on_swapfile_panic);
 
 	/* create swapfile gui - in a scrolled window */
-	//swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
 	swapfile = glame_gltree_init(gpsm_root());
 	if (!swapfile)
 		return;
@@ -888,12 +873,7 @@ _("Welcome first-time user of GLAME.\n"
 	/* Connect auto-horizontal-resize callback. */
 	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
 			   (GtkSignalFunc)resize_horiz_cb, app);
-#if 0
-	/* Register accelerators. */
-	SWAPFILE_GUI(swapfile)->accel_handler =
-		glame_accel_install(app, "swapfile", NULL);
-	SWAPFILE_GUI(swapfile)->app = app;
-#endif
+
 	/* Pop up splash screen. */
 	glame_splash();
 
