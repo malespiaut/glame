@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.15 2000/04/25 09:05:23 richi Exp $
+ * $Id: filter_methods.c,v 1.16 2000/04/27 09:10:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -112,20 +112,6 @@ void filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 	}
 }
 
-void filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
-{
-	/* we dont know nothing about relationships between input
-	 * and output ports, so anything here would be senseless. */
-	return;
-}
-
-void filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out)
-{
-	/* we dont know nothing about relationships between input
-	 * and output ports, so anything here would be senseless. */
-	return;
-}
-
 
 
 /* Filternetwork filter methods.
@@ -181,11 +167,6 @@ int filter_network_init(filter_node_t *n)
 	}
 
 	return 0;
-}
-
-void filter_network_cleanup(filter_node_t *n)
-{
-	/* NOP? */
 }
 
 int filter_network_f(filter_node_t *n)

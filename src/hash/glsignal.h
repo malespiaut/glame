@@ -15,16 +15,15 @@
  *
  * Brief description of the available API follows: 
  *
- * typedef void (glsig_callb_t)(glsig_handler_t *, long, ...);
+ * typedef void (glsig_callb_t)(glsig_handler_t *, long, va_list va);
  *   The type of the used callback functions through which signals
  *   are supposed to be handled.
  *
- * INIT_GLSIG_EMITTER(glsig_emitter_t *emitter, glsig_emitter_t *parent);
- *   Inits the a static or embedded emitter and assigns it the parent
- *   parent in the emitter hierarchy.
+ * INIT_GLSIG_EMITTER(glsig_emitter_t *emitter);
+ *   Inits an emitter.
  *
  * glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
- *	                      int sigmask, glsig_callb_t *, void *private);
+ *	                      long sigmask, glsig_callb_t *, void *private);
  *   Adds a signal handler to the emitter using the specified sigmask
  *   and the callback handler. The private data is stored in the handlers
  *   ->private field which you should access using glsig_handler_private().
@@ -37,6 +36,10 @@
  * void glsig_emit(glsig_emitter_t *emitter, int sig, void *data);
  *   Emits the signal sig from the emitter and provides the data datum
  *   to the callbacks. signals are emitted bottom to top in the hierarchy.
+ *
+ * int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
+ *   Copies all handlers from one emitter to another - same "private"
+ *   data, of course. Can return -1 on memory shortage.
  *
  * void glsig_delete_handler(glsig_handler_t *handler);
  *   Removes and destroyes the specified handler from its emitter.
@@ -78,12 +81,14 @@ struct glsig_handler {
 } while (0)
 
 
-
 glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
-		  int sigmask, glsig_callb_t *handler, void *private);
+		  long sigmask, glsig_callb_t *handler, void *private);
 
 glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter,
 				      glsig_emitter_t *dest);
+
+
+int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
 
 void glsig_delete_handler(glsig_handler_t *h);
 
@@ -105,7 +110,6 @@ static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
 }
 
 
-#ifdef HAVE_GCC
 /* Some strange macros to ease expansion of the varargs in the
  * handler function. Unfortunately only gcc supports typeof, so...
  *
@@ -138,7 +142,6 @@ static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
 	arg3 = va_arg(va, typeof(arg3)); \
 	arg4 = va_arg(va, typeof(arg4)); \
 } while (0)
-#endif
 
 
 #endif

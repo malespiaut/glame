@@ -13,8 +13,6 @@ int filter_default_set_param(filter_node_t *n, filter_param_t *param,
 void filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
 				const char *name, filter_param_t *param);
 void filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in);
-void filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in);
-void filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out);
 
 
 /* network filter methods.

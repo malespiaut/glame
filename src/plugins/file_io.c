@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.24 2000/04/25 09:05:23 richi Exp $
+ * $Id: file_io.c,v 1.25 2000/04/27 09:10:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -179,6 +179,17 @@ static int add_writer(int (*f)(filter_node_t *), const char *regexp)
 
 
 /* generic read&write methods */
+static void rw_file_cleanup(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_node_t *n;
+
+	GLSIGH_GETARGS1(va, n);
+	if (RWPRIV(n)->rw
+	    && RWPRIV(n)->rw->cleanup 
+	    && RWPRIV(n)->initted)
+		RWPRIV(n)->rw->cleanup(n);
+	free(RWPRIV(n));
+}
 static int rw_file_init(filter_node_t *n)
 {
 	rw_private_t *p;
@@ -186,15 +197,10 @@ static int rw_file_init(filter_node_t *n)
 	if (!(p = ALLOC(rw_private_t)))
 		return -1;
 	n->private = p;
+	glsig_add_handler(&n->emitter, GLSIG_NODE_DELETED,
+			  rw_file_cleanup, NULL);
+
 	return 0;
-}
-static void rw_file_cleanup(filter_node_t *n)
-{
-	if (RWPRIV(n)->rw
-	    && RWPRIV(n)->rw->cleanup 
-	    && RWPRIV(n)->initted)
-		RWPRIV(n)->rw->cleanup(n);
-	free(RWPRIV(n));
 }
 
 /* read methods */
@@ -338,7 +344,6 @@ int read_file_register(plugin_t *pl)
 	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
 	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
 	f->init = rw_file_init;
-	f->cleanup = rw_file_cleanup;
 	f->connect_out = read_file_connect_out;
 	f->fixup_param = read_file_fixup_param;
 
@@ -363,7 +368,6 @@ int write_file_register(plugin_t *pl)
 	  return -1;
 	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
 	f->init = rw_file_init;
-	f->cleanup = rw_file_cleanup;
 	f->fixup_param = write_file_fixup_param;
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");

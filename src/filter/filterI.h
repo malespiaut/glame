@@ -237,6 +237,10 @@ struct filter_node {
 	int glerrno;
 	const char *glerrstr;
 
+	/* signal emitter, known signals are
+	 * GLSIG_NODE_DELETED */
+	glsig_emitter_t emitter;
+
 	/* filter node operations */
 	struct filter_node_operations *ops;
 

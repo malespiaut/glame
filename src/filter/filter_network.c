@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.43 2000/04/25 09:05:23 richi Exp $
+ * $Id: filter_network.c,v 1.44 2000/04/27 09:10:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -493,9 +493,6 @@ void filternetwork_break_connection(filter_pipe_t *p)
 	list_remove_output(p);
 	hash_remove_output(p);
 	p->dest->nr_inputs--;
-
-	/* notify the connected nodes */
-	glsig_emit(&p->emitter, GLSIG_PIPE_DELETED, p);
 
 	/* kill the pipe */
 	_pipe_free(p);

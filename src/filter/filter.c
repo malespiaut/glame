@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.33 2000/04/25 08:58:00 richi Exp $
+ * $Id: filter.c,v 1.34 2000/04/27 09:10:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *

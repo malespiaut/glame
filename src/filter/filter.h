@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.49 2000/04/25 09:05:23 richi Exp $
+ * $Id: filter.h,v 1.50 2000/04/27 09:10:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -83,10 +83,12 @@ typedef struct filter_buffer filter_buffer_t;
  * GLSIG_PARAM_CHANGED  - fixup_param() parameters
  * GLSIG_PIPE_CHANGED   - filter_pipe_t
  * GLSIG_PIPE_DELETED   - filter_pipe_t
+ * GLSIG_NODE_DELETED   - filter_node_t
  */
 #define GLSIG_PARAM_CHANGED 1
 #define GLSIG_PIPE_CHANGED 2
 #define GLSIG_PIPE_DELETED 4
+#define GLSIG_NODE_DELETED 8
 
 
 /* Filter contains the abstract description of a filter and
@@ -101,7 +103,6 @@ struct filter {
 	int (*f)(filter_node_t *);
 
 	int (*init)(filter_node_t *);
-        void (*cleanup)(filter_node_t *);
 
 	int (*connect_out)(filter_node_t *source, const char *port,
 			   filter_pipe_t *p);
@@ -112,8 +113,6 @@ struct filter {
 	void (*fixup_param)(filter_node_t *n, filter_pipe_t *p,
 			    const char *name, filter_param_t *param);
 	void (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
-	void (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
-	void (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
 
 	/* parameter specification */
 	struct list_head params;
