@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.20 2001/06/20 19:56:26 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.21 2001/07/03 09:27:36 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -1018,7 +1018,7 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 			/* raise to top */
 			glame_canvas_filter_raise_to_top(filter);
 			/* perform selects */
-			glame_canvas_filter_do_select(filter,event);
+		/*	glame_canvas_filter_do_select(filter,event);  // FIXME!  */
 
                         /* grab the thing */
 			
