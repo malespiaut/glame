@@ -23,6 +23,12 @@ plugins/
           -> deadlock (because no feedback -> no fifo adjustion)
 	- fix filters for RT param update
 	- make offset/size params of swapfile_in RT
+	- redo swapfile_in/out:
+	  * allow RT adjustment of offset/size for swapfile_in
+	  * allow specifying of pre-/post(?)- zero region
+	- remove position pipe param from read_file
+	- change pan filter to just change pipe position
+	- redo render with right semantics
 
 hash/
 	[all]
@@ -61,13 +67,10 @@ glmid/glame_audiofile
 	- support mp3/ogg reading/writing
 
 gui/
-	[all]
-	- fix issues with non-modal dialogs in edit_filter
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
 	[mag]
-	- kewl import/export GUI
         - kewl analyze (normalize & DC-offset & lots of info) GUI
 	- kewl resample GUI
 	[richi]
@@ -94,8 +97,7 @@ gui/waveeditgui
 	- toolbar needs work - ICONS!
 	- do glame_ruler with time, samples, beats mode
 	- show actual sample value/rms/position for marker
-	- improve recording, add rec/play/mute buttons for
-	  selective full duplex recording/playback
+	- fix active button (rec/mute) issues wrt key-bindings
 	- poll for selection change at play time, updating
 	  swin params
 
@@ -115,11 +117,12 @@ gui/libgtkwaveform2
 
 gui/edit_filter
 	[xwolf]
+	- do (simple) autorouter
 	- remove port export marking, if removing exported port from
 	  net properties dialog (fix that! - integrate in canvas directly?)
 	- add drag&drop from swapfilegui (create swapfile_in/out nodes)
 	- add realtime controls
 	- add support for custom property dialogs (glade & guile-gtk?
           & friends)
-	- do grouping using expand/collapse functionality of the backend
+	- do grouping using expand/collapse functionality of the backend?
 
