@@ -1,19 +1,8 @@
 TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
-
-Known BUGS that should be fixed before 0.6.0:
----------------------------------------------
-- audit/fix available gettext entries, merge external
-  patches
-- documentation
-  * document normalize,
-    fix fade (-> fadein, fadeout),
-    fix read_file/write_file, 
-    fix statistic/debugrms (-> ssp_streamer, maxrms)
-
-Other items pending:
---------------------
+Items pending:
+--------------
 
 include/
 	- Consider moving includes beyond a glame/ directory
