@@ -8,13 +8,10 @@ Things to fix before 0.2.0:
 - audit all paths/makefiles wrt make install [done, do it again
   later]
 - filters/plugins
-  * which to keep, which additionally needed
-  * filter names (_ vs -)
   * parameter names, parameter types
   * assign/create pixmaps
 - documentation
-  * UI/GUI documentation
-  * document available filters
+  * GUI documentation
   * fix API documentation (changed filter part again) [done, parts
     are still missing]
   * filter writing tutorial?
