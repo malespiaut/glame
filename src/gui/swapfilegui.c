@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.93 2003/04/15 20:46:04 richi Exp $
+ * $Id: swapfilegui.c,v 1.94 2003/04/15 21:04:39 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -256,8 +256,9 @@ static gint click_cb(GtkWidget *item, GdkEventButton *event,
         } else
 		return FALSE;
 
+	DPRINTF("popup\n");
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i,NULL);
-	return TRUE;
+	return FALSE;
 }
 
 /* Copy (COW, new swapfiles) all selected items as childs of the
@@ -756,7 +757,7 @@ static gint drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			cursor = NULL;
 		}
 		if (drag_widget == item)
-			return TRUE; /* nop */
+			return FALSE; /* nop */
 
 		source = drag_widget->item;
 		dest = item->item;
@@ -911,8 +912,8 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 	}
 
 	/* Register gtk handlers and append the item widget. */
-	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
-				 (GtkSignalFunc)click_cb,(gpointer)NULL);
+	gtk_signal_connect(GTK_OBJECT(itemw), "button_press_event",
+			   (GtkSignalFunc)click_cb,(gpointer)NULL);
 
 	/* Look where we want to add the item (match gpsm list order). */
 	if (!gpsm_item_parent(item)
