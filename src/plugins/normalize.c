@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.11 2002/01/01 18:29:40 mag Exp $
+ * $Id: normalize.c,v 1.12 2002/01/03 22:09:53 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -34,6 +34,7 @@
 #include "glplugin.h"
 #include "math.h"
 #include "gpsm.h"
+#include "util/glame_gui_utils.h"
 #include "network_utils.h"
 
 PLUGIN(normalize)
@@ -648,6 +649,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 	}
 
 	gtk_widget_destroy(ns->dialog);
+	gpsm_item_destroy(ns->grp);
 	cleanup_task_list(ns);
 	free(ns);
 	return;
@@ -657,6 +659,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 	filter_delete(net);
 	cleanup_task_list(ns);
 	gpsm_op_undo_and_forget(ns->grp);
+	gpsm_item_destroy(ns->grp);
 	free(ns);
 	return;
  fail_cleanup:
