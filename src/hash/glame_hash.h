@@ -84,6 +84,11 @@ struct hash_head {
 #define FILTER_NAMESPACE ((void *)(0xffff0020))
 #define PLUGIN_NAMESPACE ((void *)(0xffff0030))
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* initialize global hashtable.
  * returns -1 on error */
 int hash_alloc();
@@ -157,6 +162,9 @@ const char *_hash_unique_name(const char *prefix, void *nmspace,
 
 #define _is_hashed(hhead) ((hhead)->pprev_hash != NULL)
 
-
+#ifdef __cplusplus
+}
 #endif
 
+
+#endif

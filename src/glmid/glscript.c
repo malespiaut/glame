@@ -29,7 +29,6 @@
 #include <swapfile.h>
 #include <filter.h>
 #include <glplugin.h>
-#include <gltrack.h>
 
 
 #define gh_scm2swfd(s) (swfd_t)gh_scm2long(s)
@@ -642,6 +641,7 @@ SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 }
 
 
+#if 0
 /* The scriptable track API part.
  */
 
@@ -670,6 +670,7 @@ SCM gls_track_delete(SCM s_track)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
+#endif
 
 
 int glscript_init()
@@ -715,11 +716,12 @@ int glscript_init()
 	sprintf(str, "(define SEEK_END %i)", SEEK_END); gh_eval_str(str);
 
 	/* filter */
-	gh_new_procedure("filternetwork_new", (SCM (*)())gls_filternetwork_new, 0, 0, 0);
-	gh_new_procedure("filternetwork_delete", (SCM (*)())gls_filternetwork_delete,
-			 1, 0, 0);
-	gh_new_procedure("filternetwork_add_node", (SCM (*)())gls_filternetwork_add_node,
-			 3, 0, 0);
+	gh_new_procedure("filternetwork_new",
+			 (SCM (*)())gls_filternetwork_new, 0, 0, 0);
+	gh_new_procedure("filternetwork_delete",
+			 (SCM (*)())gls_filternetwork_delete, 1, 0, 0);
+	gh_new_procedure("filternetwork_add_node",
+			 (SCM (*)())gls_filternetwork_add_node, 3, 0, 0);
 	gh_new_procedure("filternetwork_delete_node",
 			 (SCM (*)())gls_filternetwork_delete_node, 1, 0, 0);
 	gh_new_procedure("filternetwork_add_connection",
@@ -760,9 +762,11 @@ int glscript_init()
 	gh_new_procedure("plugin_name", (SCM (*)())gls_plugin_name, 1, 0, 0);
 	gh_new_procedure("plugin_query", (SCM (*)())gls_plugin_query_string, 2, 0, 0);
 
+#if 0
 	/* track */
 	gh_new_procedure("track_get", (SCM (*)())gls_track_get, 2, 0, 0);
 	gh_new_procedure("track_delete", (SCM (*)())gls_track_delete, 1, 0, 0);
+#endif
 
 
 	/* load glame scheme libraries (if existent):

@@ -3,7 +3,7 @@
 
 /*
  * gldb_string.h
- * $Id: gldb_string.h,v 1.2 2000/05/01 12:22:16 richi Exp $
+ * $Id: gldb_string.h,v 1.3 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -33,6 +33,11 @@ typedef struct {
 #define sitem_label(si) ((si)->entry.label)
 #define sitem_str(si) ((si)->str)
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void glsdb_init(gldb_t *db);
 
 #define glsdb_delete(db) gldb_delete(db)
@@ -43,6 +48,10 @@ void glsdb_init(gldb_t *db);
 void glsdb_set(gldb_t *db, const char *str, const char *label);
 void glsdb_remove(gldb_t *db, const char *label);
 char *glsdb_query(gldb_t *db, const char *label);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

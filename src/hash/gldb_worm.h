@@ -3,7 +3,7 @@
 
 /*
  * gldb_worm.h
- * $Id: gldb_worm.h,v 1.2 2000/05/01 12:22:16 richi Exp $
+ * $Id: gldb_worm.h,v 1.3 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -44,6 +44,10 @@ typedef struct {
 } glworm_t;
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void glwdb_init(gldb_t *db);
 
 glworm_t *glworm_alloc();
@@ -52,6 +56,10 @@ int glwdb_add_item(gldb_t *db, glworm_t *item, const char *label);
 const glworm_t *glwdb_query_item(gldb_t *db, const char *label);
 
 #define glwdb_foreach_item(db, i) list_foreach(&(db)->items, glworm_t, item.list, i)
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.54 2000/10/09 16:24:02 richi Exp $
+ * $Id: filter_network.c,v 1.55 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -390,6 +390,12 @@ filter_param_t *filternetwork_add_param(filter_network_t *net,
 	return d;
 }
 
+void filternetwork_delete_param(filter_network_t *net, filter_param_t *p)
+{
+	filterpdb_delete_param(filter_pdb(net->node.filter),
+			       filterparam_label(p));
+}
+
 filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
 		     const char *node, const char *port,
 		     const char *label, const char *desc)
@@ -436,6 +442,13 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 	d->priv = create_map(strdup(port), strdup(node));
 
 	return d;
+}
+
+void filternetwork_delete_port(filter_network_t *net, filter_portdesc_t *p)
+{
+	if (p->priv)
+		free(p->priv);
+	filter_delete_port(net->node.filter, p);
 }
 
 

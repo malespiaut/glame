@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.7 2000/10/09 16:24:03 richi Exp $
+ * $Id: glsignal.h,v 1.8 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -103,6 +103,10 @@ struct glsig_handler {
 } while (0)
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 		  long sigmask, glsig_callb_t *handler, void *priv);
 
@@ -130,6 +134,10 @@ static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
 	}
 	va_end(va);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 
 /* Some strange macros to ease expansion of the varargs in the

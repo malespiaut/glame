@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.4 2000/10/09 16:24:03 richi Exp $
+ * $Id: gldb.h,v 1.5 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -106,6 +106,9 @@ struct gldb_item {
 };
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Init previously allocated/embedded database. */
 void gldb_init(gldb_t *db, struct gldb_ops *ops);
@@ -146,6 +149,10 @@ void gldb_remove_item(gldb_item_t *item);
 
 /* Queries an item from the database using label as key. */
 gldb_item_t *gldb_query_item(gldb_t *db, const char *label);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

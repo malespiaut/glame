@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.60 2000/10/09 16:24:02 richi Exp $
+ * $Id: filter.h,v 1.61 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -68,6 +68,9 @@ typedef struct filter_buffer filter_buffer_t;
 #include "filterI.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*******************************
  * Filter registry API
@@ -268,8 +271,8 @@ filter_param_t *filternetwork_add_param(filter_network_t *net,
 					const char *label, const char *desc);
 
 /* Delete wrappers to ports/parameters */
-void filternetwork_delete_param(filter_network_t *net, const char *label);
-void filternetwork_delete_port(filter_network_t *net, const char *label);
+void filternetwork_delete_param(filter_network_t *net, filter_param_t *param);
+void filternetwork_delete_port(filter_network_t *net, filter_portdesc_t *port);
 
 
 /* Filternetwork to scheme code. */
@@ -533,5 +536,9 @@ do { \
 #define filterpipe_get_sourceparam(p, l) filterpdb_get_param(filterpipe_sourcepdb(p), l)
 #define filterpipe_get_destparam(p, l) filterpdb_get_param(filterpipe_destpdb(p), l)
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.4 2000/05/04 09:53:23 richi Exp $
+ * $Id: filter_param.h,v 1.5 2000/10/10 11:56:15 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -127,6 +127,9 @@ typedef struct {
 #define FILTERPARAM_MAP_LABEL "_label"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Parameter setting/reading stuff API.
  */
@@ -211,5 +214,9 @@ void filterpdb_init(filter_pdb_t *db, filter_node_t *node);
 /* Copy all parameters from one database to another. */
 #define filterpdb_copy(d, s) gldb_copy(&(d)->db, &(s)->db)
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
