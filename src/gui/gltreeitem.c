@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.5 2001/03/21 09:19:54 richi Exp $
+ * $Id: gltreeitem.c,v 1.6 2001/03/30 08:53:35 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -30,8 +30,6 @@
 
 static void glame_tree_item_destroy(GtkObject *object)
 {
-	GlameTreeItem *item = GLAME_TREE_ITEM(object);
-	free(item->label);
 	GTK_OBJECT_CLASS(gtk_type_class(GTK_TYPE_TREE_ITEM))->destroy(object);
 }
 
@@ -44,11 +42,8 @@ static void glame_tree_item_class_init(GlameTreeItemClass *class)
 
 static void glame_tree_item_init(GlameTreeItem *item)
 {
-	item->type = -1;
-	item->label = NULL;
-	item->swapfile_name = -1;
-	item->sample_rate = -1;
-	item->size = -1;
+	item->item = NULL;
+	item->tree = NULL;
 }
 
 GtkType glame_tree_item_get_type(void)
@@ -72,42 +67,17 @@ GtkType glame_tree_item_get_type(void)
 	return glame_tree_item_type;
 }
 
-GtkWidget* glame_tree_item_new(void)
+GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 {
-	GlameTreeItem *item;
-	item = gtk_type_new(glame_tree_item_get_type());
-	return GTK_WIDGET(item);
+	GlameTreeItem *itemw;
+
+	itemw = gtk_type_new(glame_tree_item_get_type());
+        itemw->item = (gpsm_item_t *)item;
+	glame_tree_item_update(itemw);
+
+	return GTK_WIDGET(itemw);
 }
 
-GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
-				    int sample_rate)
-{
-        GlameTreeItem *item;
-
-        if (!(item = GLAME_TREE_ITEM(glame_tree_item_new())))
-		return NULL;
-        item->type = GLAME_TREE_ITEM_FILE;
-	item->label = strdup(label);
-        item->swapfile_name = swapfile_name;
-        item->sample_rate = sample_rate;
-        item->size = -1;
-	glame_tree_item_update(item);
-
-	return GTK_WIDGET(item);
-}
-
-GtkWidget* glame_tree_item_new_group(const char *label)
-{
-        GlameTreeItem *item;
-
-        if (!(item = GLAME_TREE_ITEM(glame_tree_item_new())))
-		return NULL;
-        item->type = GLAME_TREE_ITEM_GROUP;
-	item->label = strdup(label);
-	glame_tree_item_update(item);
-
-	return GTK_WIDGET(item);
-}
 
 void glame_tree_item_update(GlameTreeItem *item)
 {
@@ -115,29 +85,23 @@ void glame_tree_item_update(GlameTreeItem *item)
 	GtkWidget *l;
 	char buf[256];
 
-	/* Update size. */
-	if (item->type == GLAME_TREE_ITEM_FILE
-	    && item->swapfile_name != -1) {
-		swfd_t fd = sw_open(item->swapfile_name, O_RDONLY, TXN_NONE);
+	/* Create the label out of the gpsm item data. */
+	if (GPSM_ITEM_IS_GRP(item->item)) {
+		snprintf(buf, 255, "%s", gpsm_item_label(item->item));
+	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
+		swfd_t fd = sw_open(gpsm_swfile_filename(item->item),
+				    O_RDONLY, TXN_NONE);
 		struct sw_stat st;
-		if (fd != -1
-		    && sw_fstat(fd, &st) != -1) {
-			item->size = st.size/SAMPLE_SIZE;
-		}
+		long size = -1;
+		if (fd != -1 && sw_fstat(fd, &st) != -1)
+			size = st.size/SAMPLE_SIZE;
 		sw_close(fd);
-	}
-
-	/* Create the label out of the GlameTreeItem data. */
-	if (item->type == GLAME_TREE_ITEM_GROUP)
-		snprintf(buf, 255, "%s", item->label);
-	else if (item->type == GLAME_TREE_ITEM_FILE
-		 && item->sample_rate > 0)
 		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs",
-			 item->label, item->swapfile_name, item->sample_rate,
-			 (float)item->size/(float)item->sample_rate);
-	else if (item->type == GLAME_TREE_ITEM_FILE)
-		snprintf(buf, 255, "%s [%li] - %li samples",
-			 item->label, item->swapfile_name, item->size);
+			 gpsm_item_label(item->item),
+			 gpsm_swfile_filename(item->item),
+			 gpsm_swfile_samplerate(item->item),
+			 (float)size/(float)gpsm_swfile_samplerate(item->item));
+	}
 
 	/* Update/create the GtkLabel contained in the GtkBin
 	 * (superclass of GtkItem/GtkTreeItem/GlameTreeItem) */
@@ -165,8 +129,7 @@ GtkTree* glame_tree_item_parent(GlameTreeItem *item)
  * Helpers for managing a tree of GlameTreeItems.
  */
 
-
-GlameTreeItem* glame_tree_find_group(GtkObject *t, const char *label)
+GlameTreeItem *glame_tree_find_gpsm_item(GtkObject *t, gpsm_item_t *i)
 {
 	GList *childs;
 	GlameTreeItem *item;
@@ -185,8 +148,7 @@ GlameTreeItem* glame_tree_find_group(GtkObject *t, const char *label)
 	childs = gtk_container_children(GTK_CONTAINER(tree));
 	while (childs) {
 		item = GLAME_TREE_ITEM(childs->data);
-		if (item->type == GLAME_TREE_ITEM_GROUP
-		    && strcmp(label, item->label) == 0)
+		if (item->item == i)
 			return item;
 		childs = g_list_next(childs);
 	}
@@ -195,86 +157,13 @@ GlameTreeItem* glame_tree_find_group(GtkObject *t, const char *label)
 	childs = gtk_container_children(GTK_CONTAINER(tree));
 	while (childs) {
 		item = GLAME_TREE_ITEM(childs->data);
-		if (item->type == GLAME_TREE_ITEM_GROUP
-                    && (item = glame_tree_find_group(GTK_OBJECT(item), label)))
+		if (GPSM_ITEM_IS_GRP(item->item)
+                    && (item = glame_tree_find_gpsm_item(GTK_OBJECT(item), i)))
 			return item;
 		childs = g_list_next(childs);
 	}
 
         return NULL;
-}
-
-GlameTreeItem* glame_tree_find_filename(GtkObject *t, long name)
-{
-	GList *childs;
-	GlameTreeItem *item;
-	GtkTree *tree;
-
-	/* Handle both, GtkTree and group GlameTreeItem. */
-	if (GLAME_IS_TREE_ITEM(t)
-	    && GTK_TREE_ITEM_SUBTREE(t))
-		tree = GTK_TREE(GTK_TREE_ITEM_SUBTREE(t));
-	else if (GTK_IS_TREE(t))
-		tree = GTK_TREE(t);
-	else
-		return NULL;
-
-        /* First check direct children. */
-	childs = gtk_container_children(GTK_CONTAINER(tree));
-	while (childs) {
-		item = GLAME_TREE_ITEM(childs->data);
-		if (item->type == GLAME_TREE_ITEM_FILE
-                    && item->swapfile_name == name)
-			return item;
-		childs = g_list_next(childs);
-	}
-
-        /* Then recurse. */
-	childs = gtk_container_children(GTK_CONTAINER(tree));
-	while (childs) {
-		item = GLAME_TREE_ITEM(childs->data);
-		if (item->type == GLAME_TREE_ITEM_GROUP
-                    && (item = glame_tree_find_filename(GTK_OBJECT(item), name)))
-			return item;
-		childs = g_list_next(childs);
-	}
-
-        return NULL;
-}
-
-GtkObject* glame_tree_copy(GtkObject *t)
-{
-	/* Handle both, GtkTree and group GlameTreeItem. */
-	if (GLAME_IS_TREE_ITEM(t)) {
-		GlameTreeItem *item = GLAME_TREE_ITEM(t);
-		GtkTree *tree;
-		if (item->type == GLAME_TREE_ITEM_FILE) {
-			GlameTreeItem *i = GLAME_TREE_ITEM(
-				glame_tree_item_new_file(item->label,
-				     item->swapfile_name, item->sample_rate));
-			i->size = item->size;
-			return GTK_OBJECT(i);
-		}
-		item = GLAME_TREE_ITEM(glame_tree_item_new_group(item->label));
-		tree = GTK_TREE(glame_tree_copy(GTK_OBJECT(GTK_TREE_ITEM_SUBTREE(item))));
-		gtk_tree_item_set_subtree(GTK_TREE_ITEM(item),
-					  GTK_WIDGET(tree));
-		return GTK_OBJECT(item);
-
-	} else if (GTK_IS_TREE(t)) {
-		GtkWidget *tree = GTK_WIDGET(t);
-		GList *children = gtk_container_children(GTK_CONTAINER(tree));
-		tree = gtk_tree_new();
-		while (children) {
-			GlameTreeItem *item = GLAME_TREE_ITEM(children->data);
-			item = GLAME_TREE_ITEM(glame_tree_copy(GTK_OBJECT(item)));
-			gtk_tree_append(GTK_TREE(tree), GTK_WIDGET(item));
-			children = g_list_next(children);
-		}
-		return GTK_OBJECT(tree);
-	}
-
-	return NULL;
 }
 
 void glame_tree_append(GtkObject *t, GlameTreeItem *item)
@@ -283,7 +172,7 @@ void glame_tree_append(GtkObject *t, GlameTreeItem *item)
 
 	/* Handle both, GtkTree and group GlameTreeItem. */
 	if (GLAME_IS_TREE_ITEM(t)
-	    && GLAME_TREE_ITEM(t)->type == GLAME_TREE_ITEM_GROUP) {
+	    && GPSM_ITEM_IS_GRP(GLAME_TREE_ITEM(t)->item)) {
 		if (!GTK_TREE_ITEM_SUBTREE(t))
 			gtk_tree_item_set_subtree(GTK_TREE_ITEM(t),
 						  gtk_tree_new());

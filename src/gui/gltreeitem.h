@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.5 2001/03/21 09:19:54 richi Exp $
+ * $Id: gltreeitem.h,v 1.6 2001/03/30 08:53:35 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -26,6 +26,7 @@
 
 #include <gtk/gtktree.h>
 #include <gtk/gtktreeitem.h>
+#include "gpsm.h"
 
 
 #define GLAME_TYPE_TREE_ITEM (glame_tree_item_get_type())
@@ -37,23 +38,13 @@
 typedef struct _GlameTreeItem GlameTreeItem;
 typedef struct _GlameTreeItemClass GlameTreeItemClass;
 
-enum {
-	GLAME_TREE_ITEM_FILE = 1,
-	GLAME_TREE_ITEM_GROUP = 2
-};
-
 struct _GlameTreeItem {
 	GtkTreeItem parent_object;
 
 	/* internal linkage */
 	GtkTree *tree;
 
-	/* data - from glame_editor.c:struct gledit_buffer */
-	int type;
-	char *label;
-	long swapfile_name;
-	int  sample_rate;
-	long size; /* in samples, useful for consistency check with swapfile */
+	gpsm_item_t *item;
 };
 
 struct _GlameTreeItemClass {
@@ -64,20 +55,17 @@ struct _GlameTreeItemClass {
 
 
 GtkType    glame_tree_item_get_type(void);
-GtkWidget* glame_tree_item_new(void);
-GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
-				    int sample_rate);
-GtkWidget* glame_tree_item_new_group(const char *label);
+GtkWidget* glame_tree_item_new(gpsm_item_t *item);
 void       glame_tree_item_update(GlameTreeItem *item);
 GtkTree*   glame_tree_item_parent(GlameTreeItem *item);
 
-GlameTreeItem* glame_tree_find_group(GtkObject *tree, const char *label);
-GlameTreeItem* glame_tree_find_filename(GtkObject *tree, long name);
-GtkObject*     glame_tree_copy(GtkObject *tree);
-void           glame_tree_append(GtkObject *tree, GlameTreeItem *item);
+void       glame_tree_append(GtkObject *tree, GlameTreeItem *item);
 
 /* Remove the glame tree item from the tree and destroy the widget
  * (we cannot do this w/o destroying it -- gtk is broken). */
-void           glame_tree_remove(GlameTreeItem *item);
+void       glame_tree_remove(GlameTreeItem *item);
+
+GlameTreeItem *glame_tree_find_gpsm_item(GtkObject *tree, gpsm_item_t *item);
+
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.19 2001/03/27 21:04:19 xwolf Exp $
+ * $Id: main.c,v 1.20 2001/03/30 08:53:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -33,6 +33,7 @@
 #include "filtergui.h"
 #include "glame_gui_utils.h"
 #include "gltreeitem.h"
+#include "gpsm.h"
 
 /* Globals. */
 static char *swname = NULL;
@@ -49,7 +50,7 @@ GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 				      const char *label,
 				      char ** returnbuffer);
 void glame_about(void);
-extern GtkTree *swapfile_tree;
+//extern GtkTree *swapfile_tree;
 
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
@@ -127,9 +128,9 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	char* name;
 	GlameTreeItem *grp;
 	name = "Unnamed\0";
-	grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
-	sw_glame_tree_append(GTK_OBJECT(swapfile_tree),grp);
-	edit_tree_label(grp);
+//	grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
+//	sw_glame_tree_append(GTK_OBJECT(swapfile_tree),grp);
+//	edit_tree_label(grp);
 	
 }
 
@@ -223,7 +224,7 @@ static void glame_about(void)
 static void gui_quit(GtkWidget *widget, gpointer data)
 {
 	glame_waveedit_cleanup();
-	glame_swapfile_gui_destroy();
+	gpsm_close();
 	gtk_main_quit();
 }
 
@@ -257,10 +258,11 @@ static void gui_main()
 
 	/* create swapfile gui */
 	if (swname)
-		swapfile = glame_swapfile_gui_new(swname);
+		gpsm_init(swname);
 	else
-		swapfile = glame_swapfile_gui_new(path);
+		gpsm_init(path);
 	g_free(path);
+	swapfile = glame_swapfile_widget_new(gpsm_root());
 	if (!swapfile)
 		return;
 

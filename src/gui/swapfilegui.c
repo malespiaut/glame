@@ -37,12 +37,7 @@
 #include <gnome.h>
 
 
-/* The swapfile widget. */
-GtkTree *swapfile_tree = NULL;
-
-
 /* Forward declarations. */
-void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item);
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data);
 static int double_click_cb(GtkWidget *item, GdkEventButton *event,
@@ -84,21 +79,17 @@ static GnomeUIInfo file_menu_data[] = {
 };
 
 
-static int entry_updated_cb(GtkEntry* entry, GlameTreeItem* item)
+static void entry_updated_cb(GtkEntry* entry, GlameTreeItem* item)
 {
 	char * text;
 	
-
 	text = gtk_editable_get_chars(GTK_EDITABLE(entry),0,-1);
-	if(text){
-		if(item->label)
-			free(item->label);
-		item->label = strdup(text);
+	gtk_container_remove(GTK_CONTAINER(item),GTK_WIDGET(entry));
+	gtk_widget_destroy(GTK_WIDGET(entry));
+	if (text) {
+		gpsm_item_set_label(item->item, text);
 		g_free(text);
 	}
-	gtk_container_remove(GTK_CONTAINER(item),entry);
-	gtk_widget_destroy(GTK_WIDGET(entry));
-	glame_tree_item_update(item);
 }
 		
 void edit_tree_label(GlameTreeItem * item)
@@ -109,7 +100,7 @@ void edit_tree_label(GlameTreeItem * item)
 	label = GTK_LABEL((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
 	gtk_container_remove(GTK_CONTAINER(item),label);
 	entry = gtk_entry_new();
-	gtk_entry_set_text(GTK_ENTRY(entry),item->label);
+	gtk_entry_set_text(GTK_ENTRY(entry), gpsm_item_label(item->item));
 	// FIXME This causes a assertion error ??
 	//		gtk_widget_destroy(GTK_WIDGET(label));
 	gtk_container_add(GTK_CONTAINER(item),entry);
@@ -117,7 +108,7 @@ void edit_tree_label(GlameTreeItem * item)
 	gtk_signal_connect(GTK_OBJECT(entry),"activate",entry_updated_cb,item);
 	gtk_widget_grab_focus(GTK_WIDGET(entry));
 }
-	
+
 static int double_click_cb(GtkWidget *item, GdkEventButton *event,
 			   gpointer data)
 {
@@ -142,9 +133,9 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 	if (event->button != 3)
 		return FALSE;
 
-	if (i->type == GLAME_TREE_ITEM_FILE)
+	if (GPSM_ITEM_IS_SWFILE(i->item))
 		menu = gnome_popup_menu_new(file_menu_data);
-	else if (i->type == GLAME_TREE_ITEM_GROUP)
+	else if (GPSM_ITEM_IS_GRP(i->item))
 		menu = gnome_popup_menu_new(group_menu_data);
         else
 		return FALSE;
@@ -157,6 +148,7 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
  * current item. */
 static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 {
+#if 0 // FIXME
 	GList *selected = GTK_TREE_SELECTION(swapfile_tree);
 
 	while (selected) {
@@ -180,12 +172,14 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	next:
 		selected = g_list_next(selected);
 	}
+#endif
 }
 
 /* Link (just new items, same swapfile name) all selected items as
  * childs of the current item. */
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 {
+#if 0 // FIXME
 	GList *selected = GTK_TREE_SELECTION(swapfile_tree);
 
 	while (selected) {
@@ -194,27 +188,29 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 		sw_glame_tree_append(GTK_OBJECT(item), copy);
 		selected = g_list_next(selected);
 	}
+#endif
 }
 
 /* Move all items in this group one level up in the tree
  * (and delete the group itself). */
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	GList *child;
-	GtkTree *parent;
+	struct list_head *dummy;
+	gpsm_grp_t *group;
+	gpsm_item_t *i;
 
-	if (!GTK_TREE_ITEM_SUBTREE(item))
-		goto deletegroup;
-	parent = glame_tree_item_parent(item);
-	while (GTK_TREE_ITEM_SUBTREE(item)
-	       && (child = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item))))) {
-		GlameTreeItem *i = GLAME_TREE_ITEM(child->data);
-		GtkObject *copy = glame_tree_copy(GTK_OBJECT(i));
-		sw_glame_tree_append(GTK_OBJECT(parent), GLAME_TREE_ITEM(copy));
-		glame_tree_remove(i);
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+	group = (gpsm_grp_t *)item->item;
+
+	gpsm_grp_safe_foreach_item(group, dummy, i) {
+		long hpos, vpos;
+		hpos = gpsm_item_hposition(i);
+		vpos = gpsm_item_vposition(i);
+		gpsm_item_remove(i);
+		gpsm_grp_insert(gpsm_item_parent(group), i, hpos, vpos);
 	}
- deletegroup:
-	glame_tree_remove(item);
+	gpsm_item_destroy((gpsm_item_t *)group);
 }
 
 static void addgroup_string_cb(gchar *string, gpointer data)
@@ -228,35 +224,25 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	GtkWidget *dialog;
 	char name[256];
-	GlameTreeItem *grp;
+	gpsm_grp_t *grp;
+
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
 
 	dialog = gnome_request_dialog(FALSE, "Enter group name",
 				      "Unnamed", 255,
 				      addgroup_string_cb, name,
-				      swapfile_tree);
+				      NULL);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
 
-	grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
-	sw_glame_tree_append(GTK_OBJECT(item), grp);
+	grp = gpsm_newgrp(name);
+	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp, -1, -1);
 }
 
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	if (item->type == GLAME_TREE_ITEM_FILE) {
-		glame_tree_remove(item);
-		if (item->swapfile_name != -1
-		    && !glame_tree_find_filename(GTK_OBJECT(swapfile_tree), item->swapfile_name))
-			sw_unlink(item->swapfile_name);
-	} else if (item->type == GLAME_TREE_ITEM_GROUP) {
-		GList *children = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item)));
-		while (children) {
-			GlameTreeItem *it = GLAME_TREE_ITEM(children->data);
-			delete_cb(menu, it);
-			children = g_list_next(children);
-		}
-		glame_tree_remove(item);
-	}
+	gpsm_item_destroy(item->item);
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -264,21 +250,23 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 	GtkWidget *we;
 	long names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
 	int i;
-	GList *children;
-	GlameTreeItem *it;
 
-	if (item->type == GLAME_TREE_ITEM_FILE) {
-		we = glame_waveedit_gui_new(item->label, 1, item->sample_rate,
-					    item->swapfile_name);
-	} else if (item->type == GLAME_TREE_ITEM_GROUP) {
-		children = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item)));
-		for (i=0; i<MIN(g_list_length(children), GTK_SWAPFILE_BUFFER_MAX_TRACKS); i++) {
-			it = GLAME_TREE_ITEM(g_list_nth_data(children, i));
-			if (it->type != GLAME_TREE_ITEM_FILE)
+	/* FIXME: have waveedit gui take an gpsm_item_t* */
+	if (GPSM_ITEM_IS_SWFILE(item->item)) {
+		we = glame_waveedit_gui_new(gpsm_item_label(item->item), 1,
+					    gpsm_swfile_samplerate(item->item),
+					    gpsm_swfile_filename(item->item));
+	} else if (GPSM_ITEM_IS_GRP(item->item)) {
+		gpsm_grp_t *group = (gpsm_grp_t *)item->item;
+		gpsm_item_t *it;
+		i=0;
+		gpsm_grp_foreach_item(group, it) {
+			if (!GPSM_ITEM_IS_SWFILE(it))
 				return;
-			names[i] = it->swapfile_name;
+			names[i++] = gpsm_swfile_filename(it);
 		}
-		we = glame_waveedit_gui_new_a(item->label, g_list_length(children), it->sample_rate,
+		we = glame_waveedit_gui_new_a(gpsm_item_label(item->item), i,
+					      gpsm_swfile_samplerate(it),
 					      names);
 	}
 	if (!we) {
@@ -288,17 +276,15 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 	gtk_widget_show_all(we);
 }
 
-void changeString_cb(GtkEditable *wid, char ** returnbuffer)
+void changeString_cb(GtkEditable *wid, char *returnbuffer)
 {
-	strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
+	strncpy(returnbuffer, gtk_editable_get_chars(wid, 0, -1), 100);
 }
 static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	GtkWidget * we;
 	long name;
 	int i;
-	GList * children;
-	GlameTreeItem *it;
 	char * foobar;
 	plugin_t *p_writefile, *p_swapfile_in;
 	filter_t *net, *swapfile_in[GTK_SWAPFILE_BUFFER_MAX_TRACKS], *writefile;
@@ -320,33 +306,32 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 		filterparam_set(param, &foobar);
 		dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
 
-		if(item->type == GLAME_TREE_ITEM_FILE){
+		if (GPSM_ITEM_IS_SWFILE(item->item)) {
 			p_swapfile_in = plugin_get("swapfile_in");
 			swapfile_in[0] = filter_instantiate(p_swapfile_in);
 			filter_add_node(net, swapfile_in[0], "swapfile_in");
 			db = filter_paramdb(swapfile_in[0]);
 			param = filterparamdb_get_param(db, "filename");
-			filterparam_set(param, &(item->swapfile_name));
+			filterparam_set(param, &gpsm_swfile_filename(item->item));
 			param = filterparamdb_get_param(db, "rate");
-			filterparam_set(param, &(item->sample_rate));
+			filterparam_set(param, &gpsm_swfile_samplerate(item->item));
 		
 			source = filterportdb_get_port(filter_portdb(swapfile_in[0]), PORTNAME_OUT);
 			filterport_connect(source,dest);
-		} else if (item->type == GLAME_TREE_ITEM_GROUP) {
+		} else if (GPSM_ITEM_IS_GRP(item->item)) {
+			gpsm_item_t *it;
 			p_swapfile_in = plugin_get("swapfile_in");
-			children = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item)));
-			for (i=0; i<MIN(g_list_length(children), GTK_SWAPFILE_BUFFER_MAX_TRACKS); i++) {
-				it = GLAME_TREE_ITEM(g_list_nth_data(children, i));
-				if (it->type != GLAME_TREE_ITEM_FILE)
+			gpsm_grp_foreach_item(item->item, it) {
+				if (!GPSM_ITEM_IS_SWFILE(it))
 					return;
-				name = it->swapfile_name;
+				name = gpsm_swfile_filename(it);
 				swapfile_in[i] = filter_instantiate(p_swapfile_in);
 				filter_add_node(net, swapfile_in[i], "swapfile");
 				db = filter_paramdb(swapfile_in[i]);
 				param = filterparamdb_get_param(db, "filename");
-				filterparam_set(param, &(it->swapfile_name));
+				filterparam_set(param, &gpsm_swfile_filename(it));
 				param = filterparamdb_get_param(db, "rate");
-				filterparam_set(param, &(it->sample_rate));
+				filterparam_set(param, &gpsm_swfile_samplerate(it));
 				source = filterportdb_get_port(filter_portdb(swapfile_in[i]), PORTNAME_OUT); 
 				filterport_connect(source,dest);
 			}
@@ -366,270 +351,178 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	*/
 	GtkWidget * dialog;
 	GtkWidget * dialogVbox;
-	GtkWidget * newItem;
-	GtkWidget * newTrak;
 	plugin_t *p_readfile, *p_swapfile_out;
 	filter_t *net, *readfile, *swapfile_out[2]; /* lame stereo hack */
-	filter_paramdb_t *db;
 	filter_param_t *param;
 	filter_port_t *source, *dest;
 	filter_pipe_t *pipe;
-	swfd_t fd;
 	gint i, channels;
-	glong name, names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
 	
-	char * filenamebuffer, *groupnamebuffer;
+	char filenamebuffer[128], groupnamebuffer[128];
 
 	GtkWidget * filenameentry;
 	GtkWidget * groupnameentry;
-	
-	filenamebuffer = calloc(100,sizeof(char));
-	groupnamebuffer = calloc(100,sizeof(char));
+	gpsm_grp_t *group;
+	gpsm_item_t *it;
+
 	
 	dialog = gnome_dialog_new("Import Audio File",GNOME_STOCK_BUTTON_CANCEL, GNOME_STOCK_BUTTON_OK,NULL);
 	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
-	
 	filenameentry = gnome_file_entry_new("import_cb","Filename");
 	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
-			   "changed",changeString_cb,&filenamebuffer);
-	
-
+			   "changed",changeString_cb,filenamebuffer);
 	create_label_widget_pair(dialogVbox,"Filename",filenameentry);
-
 	groupnameentry = gtk_entry_new();
 	gtk_signal_connect(GTK_OBJECT(groupnameentry),"changed",
-			   changeString_cb,&groupnamebuffer);
+			   changeString_cb,groupnamebuffer);
 	create_label_widget_pair(dialogVbox,"Groupname",groupnameentry);
 	
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-
-		
-		
-		//sprintf(cbuffer,"(file-to-swap \"%s\" %d %d)",filenamebuffer,name,name+1);
-		//gh_eval_str(cbuffer);
-
-
-		if (!(p_readfile = plugin_get("read_file"))) {
-			DPRINTF("read_file not found\n");
-			return;
-		} else
-			g_assert((readfile = filter_instantiate(p_readfile)));
-
-		net = filter_creat(NULL);
-
-		filter_add_node(net, readfile, "readfile");
-
-		if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
-			DPRINTF("swapfile_out not found\n");
-			return;
-		} 
-		
-		g_assert((db = filter_paramdb(readfile)));
-		g_assert((param = filterparamdb_get_param(db, "filename")));
-		filterparam_set(param, &filenamebuffer); 
-		g_assert((source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT)));
-		
-				
-		if(!groupnamebuffer)
-			groupnamebuffer = g_basename(filenamebuffer);
-		newItem = glame_tree_item_new_group(groupnamebuffer);
-		sw_glame_tree_append(GTK_OBJECT(item), GLAME_TREE_ITEM(newItem));
-		
-		i = 0;
-		do {
-			while((fd=sw_open((name=(rand()>>8)), O_CREAT | O_EXCL, TXN_NONE))==-1);
-			names[i] = name;
-			sw_close(fd);
-			DPRINTF("Found free file at #%li\n", name);
-			g_assert((swapfile_out[i] = filter_instantiate(p_swapfile_out)));
-			g_assert((db = filter_paramdb(swapfile_out[i])));
-			g_assert((param = filterparamdb_get_param(db, "filename")));
-			filterparam_set(param, &name);
-			filter_add_node(net, swapfile_out[i], "swapfile_out");
-			g_assert((dest = filterportdb_get_port(filter_portdb(swapfile_out[i]), 
-				 PORTNAME_IN)));
-			if (!(filterport_connect(source, dest))) {
-				DPRINTF("Connection failed for channel %d\n",i+1);
-				sw_unlink(name);
-				filter_delete(swapfile_out[i]);
-				goto launch;
-			} else {
-				pipe = filterport_get_pipe(dest);
-				newTrak = glame_tree_item_new_file((filterpipe_sample_hangle(pipe)<0)?"Left":"Right",name,
-								   filterpipe_sample_rate(pipe));
-				sw_glame_tree_append(GTK_OBJECT(newItem), GLAME_TREE_ITEM(newTrak));
-				i++;
-			}
-		} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
-launch:
-		channels = i;
-		filter_launch(net);
-		filter_start(net);
-		filter_wait(net);	/* ok we could do that more nicely, but not now.. */
-		
-		filter_delete(net);
-		
-
-		/* update items */
-		i = 0;
-		do {
-		  newTrak = glame_tree_find_filename(GTK_OBJECT(swapfile_tree),names[i]);
-		  glame_tree_item_update(newTrak);
-		  i++;
-		} while (i < channels);
-	}
-}
-
-
-/* Helper for item insertion (includes signal connect and show)
- */
-void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item)
-{
-	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
-			         (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
-				 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
-	glame_tree_append(tree, item);
-	glame_tree_item_update(item);
-	gtk_widget_show(GTK_WIDGET(item));
-}
-
-
-/*
- * Construct an GtkTree out of an xml document node.
- */
-static void insert_node(GtkObject *tree, xmlNodePtr node);
-static void insert_childs(GtkObject *tree, xmlNodePtr node)
-{
-        node = node->xmlChildrenNode;
-        if (!node)
+	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
 
-	while (node) {
-		insert_node(tree, node);
-		node = node->next;
+	if (!(p_readfile = plugin_get("read_file"))
+	    || !(readfile = filter_instantiate(p_readfile)))
+		return;
+	net = filter_creat(NULL);
+	filter_add_node(net, readfile, "readfile");
+
+	if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
+		DPRINTF("swapfile_out not found\n");
+		return;
 	}
-}
-static void insert_node(GtkObject *tree, xmlNodePtr node)
-{
-        GtkWidget *item;
+		
+	g_assert((param = filterparamdb_get_param(filter_paramdb(readfile), "filename")));
+	filterparam_set(param, &filenamebuffer); 
+	g_assert((source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT)));
+			
+	if(!groupnamebuffer)
+		group = gpsm_newgrp(g_basename(filenamebuffer));
+	else
+		group = gpsm_newgrp(groupnamebuffer);
+	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
+			-1, -1);
 
-	if (strcmp(node->name, "file") == 0) {
-		char *ilabel, *c;
-		long ifd, irate;
-		int fd;
-
-		/* Extract file information. */
-		if (!(c = xmlGetProp(node, "label")))
-			c = "(unnamed)";
-		ilabel = strdup(c);
-		if (!(c = xmlGetProp(node, "fd")))
-			c = "-1";
-		ifd = atoi(c);
-		if (!(c = xmlGetProp(node, "rate")))
-			c = "44100";
-		irate = atoi(c);
-
-		/* Check, if the file is really there (and update info) */
-		if ((fd = sw_open(ifd, O_RDONLY, TXN_NONE)) != -1) {
-			sw_close(fd);
-		} else {
-			DPRINTF("%s does not exist\n", ilabel);
-			return;
+	i = 0;
+	do {
+		it = (gpsm_item_t *)gpsm_newswfile(groupnamebuffer);
+		if (!(swapfile_out[i] = filter_instantiate(p_swapfile_out))
+		    || !(param = filterparamdb_get_param(filter_paramdb(swapfile_out[i]), "filename")))
+			goto fail_cleanup;
+		filterparam_set(param, &gpsm_swfile_filename(it));
+		filter_add_node(net, swapfile_out[i], "swapfile_out");
+		if (!(dest = filterportdb_get_port(filter_portdb(swapfile_out[i]),
+						   PORTNAME_IN))
+		    || !(pipe = filterport_connect(source, dest))) {
+			DPRINTF("Connection failed for channel %d\n",i+1);
+			goto fail_cleanup;
 		}
+		gpsm_swfile_samplerate(it) = filterpipe_sample_rate(pipe);
+		gpsm_swfile_position(it) = filterpipe_sample_hangle(pipe);
+		gpsm_grp_insert(group, it, 0, i);
+		i++;
+	} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
 
-		item = glame_tree_item_new_file(ilabel, ifd, irate);
+	channels = i;
+	filter_launch(net);
+	filter_start(net);
+	filter_wait(net); /* ok we could do that more nicely, but not now.. */
+	filter_delete(net);
 
-	} else if (strcmp(node->name, "group") == 0) {
-		char *ilabel, *c;
+	/* update items - FIXME! use GPSM_SIG_SWFILE_INSERT */
+	gpsm_grp_foreach_item(group, it)
+		glsig_emit(gpsm_item_emitter(it), GPSM_SIG_ITEM_CHANGED, it);
 
-		if (!(c = xmlGetProp(node, "label")))
-			c = "(unnamed)";
-		ilabel = strdup(c);
+	return;
 
-		item = glame_tree_item_new_group(ilabel);
+ fail_cleanup:
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)group);
+}
 
-	} else if (strcmp(node->name, "swapfile") == 0) {
-		DERROR("Illegal <swapfile> tag position");
-	} else {
+
+
+static void handle_changeitem(glsig_handler_t *handler, long sigmask, va_list va)
+{
+	GtkObject *groupw = glsig_handler_private(handler);
+	GlameTreeItem *itemw;
+	gpsm_item_t *item;
+
+	GLSIGH_GETARGS1(va, item);
+
+	/* Find the item widget (child of group widget passed as
+	 * private info) for the item and update it. */
+	if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
 		return;
-	}
-
-	sw_glame_tree_append(GTK_OBJECT(tree), GLAME_TREE_ITEM(item));
-	insert_childs(GTK_OBJECT(item), node);
+	glame_tree_item_update(GLAME_TREE_ITEM(itemw));
 }
 
-
-/*
- * Scan the swapfile and add all non-xmled files to a seperate
- * group.
- */
-void scan_swap(GtkTree *tree)
+static void handle_removeitem(glsig_handler_t *handler, long sigmask, va_list va)
 {
-	GlameTreeItem *item;
-	GlameTreeItem *grp;
-	GtkTree *grptree;
-	SWDIR *dir;
-	long name;
+	GtkObject *groupw = glsig_handler_private(handler);
+	GlameTreeItem *itemw;
+	gpsm_grp_t *group;
+	gpsm_item_t *item;
 
-	/* Add unknown group and iterate through all swapfiles adding those
-	 * not already contained in the tree. */
-	if (!(grp = glame_tree_find_group(GTK_OBJECT(tree), "unknown"))) {
-		grp = GLAME_TREE_ITEM(glame_tree_item_new_group("unknown"));
-		sw_glame_tree_append(GTK_OBJECT(tree), grp);
-	}
-	dir = sw_opendir();
-	while ((name = sw_readdir(dir)) != -1) {
-		if (name == 0)
-			continue;
-		if ((item = glame_tree_find_filename(GTK_OBJECT(tree), name)))
-			continue;
-		item = GLAME_TREE_ITEM(glame_tree_item_new_file("unnamed", name, -1));
-		sw_glame_tree_append(GTK_OBJECT(grp), item);
-	}
-	sw_closedir(dir);
+	GLSIGH_GETARGS2(va, group, item);
 
-	/* Check if the unknown group is empty and if so, remove it.
-	 * FIXME - segfaults */
-#if 0
-	grptree = GTK_TREE_ITEM_SUBTREE(grp);
-	if (!grptree
-	    || g_list_length(gtk_container_children(GTK_CONTAINER(grptree)))) {
-		glame_tree_remove(grp);
-	}
-#endif
-}
-
-
-/*
- * Dump the GtkTree into an xml document node.
- */
-static void dump_tree(GtkTree *tree, xmlNodePtr node);
-static void dump_item(GlameTreeItem *item, xmlNodePtr node)
-{
-	xmlNodePtr child;
-	char s[256];
-
-	if (item->type == GLAME_TREE_ITEM_GROUP) {
-		child = xmlNewChild(node, NULL, "group", NULL);
-		xmlSetProp(child, "label", item->label);
-		if (GTK_TREE_ITEM_SUBTREE(item))
-			dump_tree(GTK_TREE(GTK_TREE_ITEM_SUBTREE(item)), child);
-	} else if (item->type == GLAME_TREE_ITEM_FILE) {
-		child = xmlNewChild(node, NULL, "file", NULL);
-		xmlSetProp(child, "label", item->label);
-		snprintf(s, 255, "%li", item->swapfile_name);
-		xmlSetProp(child, "fd", s);
-		snprintf(s, 255, "%i", item->sample_rate);
-		xmlSetProp(child, "rate", s);
-	}
-}
-static void dump_tree(GtkTree *tree, xmlNodePtr node)
-{
-	if (!tree)
+	/* Find the item widget (child of group widget passed as
+	 * private info) for the item and remove it. */
+	if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
 		return;
-	gtk_container_foreach(GTK_CONTAINER(tree),
-			      (GtkCallback)dump_item, node);
+	glame_tree_remove(GLAME_TREE_ITEM(itemw));
+}
+
+static void handle_newitem(glsig_handler_t *handler, long sigmask, va_list va)
+{
+	GtkWidget *tree = glsig_handler_private(handler), *t;
+	GtkWidget *itemw;
+	gpsm_grp_t *group;
+	gpsm_item_t *item;
+
+	GLSIGH_GETARGS2(va, group, item);
+
+	t = (GtkWidget *)glame_tree_find_gpsm_item((GtkObject *)tree,
+						   (gpsm_item_t *)group);
+	if (t)
+		tree = t;
+
+	/* Construct the item widget and register signal handlers
+	 * to the new item. */
+	itemw = glame_tree_item_new(item);
+	if (GPSM_ITEM_IS_GRP(item)) {
+		glsig_add_handler(gpsm_item_emitter(item),
+				  GPSM_SIG_GRP_NEWITEM, handle_newitem, itemw);
+		glsig_add_handler(gpsm_item_emitter(item),
+				  GPSM_SIG_GRP_REMOVEITEM, handle_removeitem, itemw);
+		glsig_add_handler(gpsm_item_emitter(item),
+				  GPSM_SIG_ITEM_CHANGED, handle_changeitem, itemw);
+	} else if (GPSM_ITEM_IS_SWFILE(item)) {
+		glsig_add_handler(gpsm_item_emitter(item),
+				  GPSM_SIG_ITEM_CHANGED, handle_changeitem, itemw);
+	} else
+		return;
+
+	/* Register gtk handlers and append the item widget. */
+	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
+			         (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
+				 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
+	glame_tree_append(GTK_OBJECT(tree), GLAME_TREE_ITEM(itemw));
+	glame_tree_item_update(GLAME_TREE_ITEM(itemw));
+	gtk_widget_show(itemw);
+}
+
+
+static void gpsm_private_rebuild(gpsm_grp_t *group, glsig_handler_t *handler)
+{
+	gpsm_item_t *item;
+
+	list_foreach(&group->items, gpsm_item_t, list, item) {
+		glsig_handler_exec(handler, GPSM_SIG_GRP_NEWITEM,
+				   group, item);
+		if (GPSM_ITEM_IS_GRP(item))
+			gpsm_private_rebuild((gpsm_grp_t *)item, handler);
+	}
 }
 
 
@@ -637,60 +530,13 @@ static void dump_tree(GtkTree *tree, xmlNodePtr node)
  * Externally visible API.
  */
 
-GtkWidget *glame_swapfile_gui_new(const char *swapfile)
+GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
 {
-	xmlDocPtr doc;
 	GtkWidget *tree;
-	char *xml;
-	int fd;
+	glsig_handler_t *handler;
 
-	if (swapfile_tree)
+	if (!root)
 		return NULL;
-	if (swapfile_open(swapfile, 0) == -1) {
-		if (errno != EBUSY) {
-			perror("ERROR: Unable to open swap");
-			return NULL;
-		}
-		fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
-		if (swapfile_fsck(swapfile) == -1) {
-			perror("ERROR: Fsck failed");
-			return NULL;
-		}
-		fprintf(stderr, "WARNING: Fsck successful\n");
-		if (swapfile_open(swapfile, 0) == -1) {
-			perror("ERROR: Still cannot open swap");
-			return NULL;
-		}
-	}
-
-	/* Read swapfile 0 into a character buffer for libxml. */
-	if ((fd = sw_open(0, O_RDONLY, TXN_NONE)) != -1) {
-		struct sw_stat st;
-		if (sw_fstat(fd, &st) == -1
-		    || !(xml = malloc(st.size+1))) {
-			sw_close(fd);
-			return NULL;
-		}
-		if (sw_read(fd, xml, st.size) != st.size) {
-			sw_close(fd);
-			free(xml);
-			return NULL;
-		}
-		xml[st.size] = '\0';
-		sw_close(fd);
-	} else {
-		/* Seems to be empty swapfile - use "default" xml. */
-		xml = strdup("\
-<?xml version=\"1.0\"?>
-<swapfile>
-</swapfile>");
-	}
-
-	/* Try to parse the xml string. */
-	if (!(doc = xmlParseMemory(xml, strlen(xml)))) {
-		free(xml);
-		return NULL;
-	}
 
 	/* Create the toplevel tree. */
         tree = gtk_tree_new();
@@ -698,54 +544,11 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
         gtk_tree_set_view_lines(GTK_TREE(tree), TRUE);
         gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_BROWSE);
 
-	/* Recurse down the xml tree. */
-        insert_childs(GTK_OBJECT(tree), xmlDocGetRootElement(doc));
+	/* Add the root group and cause "newitem" signals to be sent
+	 * for each item. */
+	handler = glsig_add_handler(gpsm_item_emitter(root),
+			  GPSM_SIG_GRP_NEWITEM, handle_newitem, tree);
+	gpsm_private_rebuild(root, handler);
 
-	/* Search for not xml-ed swapfile. */
-	scan_swap(GTK_TREE(tree));
-
-	swapfile_tree = GTK_TREE(tree);
-	gtk_widget_show(tree);
-
-	free(xml);
-	xmlFreeDoc(doc);
-
-	return GTK_WIDGET(swapfile_tree);
-}
-
-
-void glame_swapfile_gui_destroy()
-{
-	xmlDocPtr doc;
-	xmlNodePtr root;
-	xmlChar *xml;
-	int size, fd;
-
-	if (!swapfile_tree)
-		return;
-
-	/* Save swapfile_tree as xml into swapfile 0 */
-	doc = xmlNewDoc("1.0");
-	root = xmlNewNode(NULL, "swapfile");
-	dump_tree(swapfile_tree, root);
-	xmlDocSetRootElement(doc, root);
-	xmlDocDumpMemory(doc, &xml, &size);
-	DPRINTF("%i bytes xml %s\n", size, xml);
-	fd = sw_open(0, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE);
-	sw_write(fd, xml, size);
-	sw_close(fd);
-	free(xml);
-	xmlFreeDoc(doc);
-
-	/* FIXME: kill swapfile_tree */
-	gtk_widget_destroy(swapfile_tree);
-	swapfile_tree = NULL;
-
-	swapfile_close();
-}
-
-void glame_swapfile_gui_add_toplevel_group(const char *name)
-{
-	GlameTreeItem *grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
-	sw_glame_tree_append(GTK_OBJECT(swapfile_tree), grp);
+	return tree;
 }
