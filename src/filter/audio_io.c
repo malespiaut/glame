@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.35 2000/02/28 15:37:49 nold Exp $
+ * $Id: audio_io.c,v 1.36 2000/02/29 08:24:52 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -632,7 +632,7 @@ static int esd_out_f(filter_node_t *n)
 	filter_pipe_t *in;
         short int *wbuf, *s;
 	int wbpos;
-	int i, cnt, eofs, res;
+	int i, cnt, eofs=0, res;
 	int nrinputs, iassigned, iat, rate;
 	esd_format_t format = ESD_BITS16|ESD_STREAM|ESD_PLAY;
 	int esound_socket;
