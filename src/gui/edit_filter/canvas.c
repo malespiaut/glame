@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.50 2001/04/16 21:24:36 xwolf Exp $
+ * $Id: canvas.c,v 1.51 2001/04/17 09:43:09 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -70,7 +70,7 @@ static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item);
 
 static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *item);
 static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it);
-static void canvas_load_network(GtkWidget *bla, void *blu);
+void canvas_load_network(GtkWidget *bla, void *blu);
 static void canvas_save_as(GtkWidget*w,GlameCanvas *data);
 static void canvas_load_scheme(GtkWidget*bla,void*blu);
 static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu);
@@ -1346,7 +1346,7 @@ canvas_update_scroll_region(GlameCanvas* canv)
 
 }
 
-static void canvas_load_network(GtkWidget *bla, void *blu)
+void canvas_load_network(GtkWidget *bla, void *blu)
 {
       
 	GtkWidget * fileEntry;
@@ -1367,7 +1367,7 @@ static void canvas_load_network(GtkWidget *bla, void *blu)
 		if(filter){
 			draw_network(filter);
 		}else{
-			DPRINTF("glame_load_instance return NULL!\n");
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error in loading .scm file")));
 		}
 
 	}
@@ -1389,11 +1389,8 @@ static void canvas_load_scheme(GtkWidget*bla,void*blu)
 	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
 	create_label_widget_pair(vbox,"Filename",fileEntry);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		if(glame_load_plugin(filenamebuffer)){
-			// load_plugin doesn't really give anything sensible back
-			//errorbox = gnome_warning_dialog("Loading failed...");
-			//gnome_dialog_run_and_close(errorbox);
-		}
+		if(glame_load_plugin(filenamebuffer) == -1)
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error loading plugin")));
 	}
 	free(filenamebuffer);
 }
