@@ -206,9 +206,6 @@ static int plugins_register()
 	load_plugins_from_path("/usr/local/lib/ladspa");
 #endif
 
-	/* Tail of message. */
-	fprintf(stderr, "Plugin installation OK\n");
-
 	return 0;
 }
 
