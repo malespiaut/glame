@@ -1,4 +1,5 @@
 EXTRA_DIST = coding-style.txt
+SUBDIRS = pix
 info_TEXINFOS = glame.texi glame-dev.texi
 glame_TEXINFOS = plugins.texi gui.texi cglame.texi quickstart.texi
 glame_dev_TEXINFOS = filter.texi filter-tutorial.texi swapfile.texi \
