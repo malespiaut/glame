@@ -57,6 +57,12 @@
   <accel state="0" spec="v">
 (editfilter-view-all)
   </accel>
+  <accel state="0" spec="e">
+(editfilter-expand-selected)
+  </accel>
+  <accel state="0" spec="c">
+(editfilter-collapse-selection)
+  </accel>
   <accel state="1" spec="plus">
 (editfilter-zoom-in)
   </accel>
