@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.9 2001/11/14 10:20:48 richi Exp $
+ * $Id: network_utils.h,v 1.10 2001/12/09 16:09:56 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -40,7 +40,7 @@ filter_t *net_add_plugin_by_name(filter_t *net, const char *plugin);
  * swfile from start with size length (or full, if length -1).
  * Returns the added node or NULL on error. */
 filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
-			     long start, long length);
+			     long start, long length, long flags);
 
 /* Adds a swapfile_out node to the network streaming into the gpsm node
  * swfile from start (truncated, if -1) with size length (or unlimited,

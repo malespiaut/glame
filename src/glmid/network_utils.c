@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.11 2001/11/16 12:20:31 richi Exp $
+ * $Id: network_utils.c,v 1.12 2001/12/09 16:09:56 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -48,7 +48,7 @@ filter_t *net_add_plugin_by_name(filter_t *net, const char *plugin)
 }
 
 filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
-			     long start, long length)
+			     long start, long length, long flags)
 {
 	filter_t *f;
 	long swname, swrate;
@@ -70,6 +70,7 @@ filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
 	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "rate"), &swrate);
 	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "position"), &swpos);
 	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "offset"), &start);
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "flags"), &flags);
 	if (length != -1)
 		filterparam_set(filterparamdb_get_param(filter_paramdb(f), "size"), &length);
 
