@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.10 2001/05/21 07:56:19 nold Exp $
+@comment $Id: gui.texi,v 1.11 2001/06/28 15:01:21 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -21,11 +21,12 @@ with the option you were looking for.
 
 @menu
 * The Main Window::
+* The Timeline::
 * The Wave Editor::
 * The Filternetwork Editor::
 @end menu
 
-@node The Main Window, The Wave Editor, , Graphical Frontend
+@node The Main Window, The Timeline, , Graphical Frontend
 @section The Main Window
 
 On startup, @file{glame} will present you an application window in well-known
@@ -43,6 +44,15 @@ This will insert a new item into the tree view of the swapfile and pop up
 an editing field where you can change the project's name. Double-clicking on
 an item allows you to change the name later as well.
 
+By selecting @code{Show console} from the project menu get access to the
+powerful backend of glame via a scheme scripting language (or just view
+some error logs popping up there).
+
+You can manually load plugins into glame by using the @code{Load Plugin}
+menu item from the project menu. This is useful for instance to use
+external LADSPA plugins or custom filternetworks you didnt put into
+the default GLAME search directory.
+
 Now you're all set to start importing @dfn{files} into your new project, or to
 subdivide it further into @dfn{groups}. A context sensitive menu offering
 operations on groups or items respectively pops up when you press the
@@ -56,12 +66,38 @@ pops up a new window of the wave editor @pxref{The Wave Editor} containing
 all items of the group, where you can easily modify them. This operation is
 not allowed for groups that in turn contain further sub-groups.
 
+@item Timeline
+pops up a new window of the timeline @pxref{The Timeline} containing 
+all items of the group, where you can easily modify them. This operation is
+not allowed for single items.
+
+@item Delete
+deletes the current group and all its items.
+
 @item Add group
 adds a new group to the current group.
 
-@item Add empty wave
-adds a new wave to the current group where you can f.i. start recording
-into or paste some random stuff into.
+@item Add clipboard
+adds the contents of the clipboard as a new group to the current
+group. The clipboard contents are populated by the edit operations in
+the wave editor.
+
+@item Add mono wave
+adds a new mono wave to the current group where you can f.i. start
+recording into or paste some random stuff into.
+
+@item Add stereo wave
+adds a new stereo wave group to the current group where you can
+f.i. start recording into or paste some random stuff into.
+
+@item Link selected
+links the selected item into the current group. Linking
+means that a change on the link will also modify the original and vice versa.
+
+@item Copy selected
+copies the selected item into the current group.
+Copying means that changing the copy will not alter the original and vice
+versa.
 
 @item Merge with parent
 moves all the current group's children up one level
@@ -72,17 +108,10 @@ merges all childs of the current group into the minimum number of
 vertically aligned tracks all starting at horizontal position zero
 and of the same length.
 
-@item Delete
-deletes the current group and all its items.
-
-@item Link selected
-links the selected item into the current group. Linking
-means that a change on the link will also modify the original and vice versa.
-
-@item Copy selected
-copies the selected item into the current group.
-Copying means that changing the copy will not alter the original and vice
-versa.
+@item Apply operation
+like the apply operation menu from the wave editor this applies the
+selected operation to the whole current item or group. Useful operations
+include things like normalize.
 
 @item Import...
 imports a file as a sub-group into the current group.
@@ -100,36 +129,62 @@ subtree.
 pops up a new window of the wave editor @pxref{The Wave Editor},
 where you can modify the selected item.
 
-@item Export...
-exports the current item as an ordinary sound file, for example a WAV file.
-
 @item Delete
 deletes the current item.
+
+@item Group
+puts the current item into a new group.
+
+@item Apply operation
+like the apply operation menu from the wave editor this applies the
+selected operation to the whole current item or group. Useful operations
+include things like normalize.
+
+@item Export...
+exports the current item as an ordinary sound file, for example a WAV file.
 @end table
 
 
+@node The Timeline, The Wave Editor, The Main Window, Graphical Frontend
+@section The Timeline
 
-@node The Wave Editor, The Filternetwork Editor, The Main Window , Graphical Frontend
+The timeline pops up when the @code{Timeline} function is applied to a
+group in the main window. The timeline presents a time vs. track view
+of the group. At the top of the window a ruler is presented which shows
+the time in seconds.
+
+The active item and group appear highlighted. You can move the active
+item horizontally (in time) using the mouse by clicking and dragging.
+You can move items vertically (changing the track an item is in) by
+using the up and down arrow keys. You can move whole groups vertically
+by using the up and down arrow keys in conjunction with the shift
+modifier key.
+
+Like in any other window the @code{Close} and @code{Help} toolbar entries
+close the window or bring up the gnome help browser with this documentation.
+
+
+@node The Wave Editor, The Filternetwork Editor, The Timeline, Graphical Frontend
 @section The Wave Editor
 
 The wave editor pops up when the @code{Edit} function is applied to either a
 group or a single item. Editing is done on all items of a particular group
 at once. Functions to edit and explore the current items can be reached via
-the right mouse button.
+the right mouse button or the toolbar.
 
 Simple editing can be done using the ordinary @code{Cut}, @code{Copy},
-@code{Paste} and @code{Delete} operations, that work on the current selection
-in the active wave widget. You can cut and paste between different wave widgets,
-if the numbers of channels match. When you operate on multiple views of the
-same wave item at once, they will be kept in sync automatically.
+@code{Paste}, @code{Delete}, @code{Undo} and @code{Redo} operations
+inside the @code{Edit} submenu, that work on the current selection in
+the active wave widget. You can cut and paste between different wave
+widgets, if the numbers of channels match. When you operate on multiple
+views of the same wave item at once, they will be kept in sync
+automatically.
 
-The @code{Apply filter} submenu allows you to apply
-a pre-existing filter to the active selection. Next, you will be prompted for
-the filter's options, if there are any. Alternatively, you can pop up the
-filternetwork editor @pxref{The Filternetwork Editor},
-where you can construct a custom filter or use @code{Apply custom} which
-creates a filternetwork framework containing necessary inputs and outputs
-specified by the current selection.
+To control the view use the @code{View} submenu which contains the
+items @code{Zoom to selection}, @code{Zoom in}, @code{Zoom out},
+@code{View all} and @code{Goto marker}. The zoom in, zoom out and
+view all functionalities can also be reached from the appropriate
+toolbar entries.
 
 To specify the current selection simply use the mouse and drag it with
 the left mousebutton pressed. Alternatively you can use the @code{Select none} 
@@ -140,9 +195,9 @@ you can set using the left mousebutton) to the current position. The selection
 and the marker position can be changed with dragging the marker or the
 selections left or right edge (the cursor will change if you move over them).
 
-To control the view use the @code{View} sumenu which contains the
-items @code{Zoom to selection}, @code{Zoom in}, @code{Zoom out},
-@code{View all} and @code{Goto marker}.
+Like in any other window the @code{Close} and @code{Help} menu entries
+close the window or bring up the gnome help browser with this documentation.
+Those items can also be reached from the toolbar.
 
 Using the @code{Play all} and @code{Play selection} commands the whole
 wave or the selected part will be send to the default audio output device
@@ -151,7 +206,28 @@ the @code{Record at marker} and @code{Record into selection} commands
 you can sample from the default audio input device (which you can specify
 in the main windows preferences dialog) either starting at the marker
 position and until you press the @code{STOP} button, or just inside the
-selection.
+selection. Using the play button from the toolbar will start playing
+from the marker position and will advance it until you either press the
+stop button (which will appear at the place of the play button after
+start) or the wave has ended.
+
+The @code{Apply operation} submenu allows you to apply operations like
+normalize or fade to the current selection. Operations may pop up windows
+for additional arguments or not.
+
+The @code{Apply filter} submenu allows you to apply a pre-existing
+filter to the active selection. Inside the apply window the list of
+available parameters for the filter will appear which you may edit. With
+the preview button you can figure out what the result after applying the
+filter will sound like (you can abort the preview by pressing the
+preview button again). Press the apply button if you are satisfied with
+the setup. Press the cancel button if you dont want to modify the wave.
+
+Alternatively, you can pop up the filternetwork editor
+@pxref{The Filternetwork Editor}, where you can construct a custom
+filter or use @code{Apply custom...} which creates a filternetwork
+framework containing necessary inputs and outputs specified by the
+current selection.
 
 
 
