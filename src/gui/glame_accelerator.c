@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.17 2002/01/09 19:40:45 richi Exp $
+ * $Id: glame_accelerator.c,v 1.18 2002/08/12 09:00:57 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -165,7 +165,7 @@ static int add_accels(const char *scope, xmlNodePtr node)
 			add_accels(combined_scope, node);
 
 		} else if (strcmp(node->name, "accel") == 0) {
-			char *spec, *action, *s;
+			char *spec, *action, *desc, *s;
 			guint state, state_mask;
 			char full_spec[256];
 
@@ -183,12 +183,13 @@ static int add_accels(const char *scope, xmlNodePtr node)
 			spec = xmlGetProp(node, "spec");
 			if (!spec)
 				return -1;
+			desc = xmlGetProp(node, "desc");
 			action = xmlNodeGetContent(node);
 			if (!action || strlen(action) == 0)
 				return -1;
 
 			snprintf(full_spec, 255, "%s%s", scope, spec);
-			glame_accel_add(full_spec, state_mask, state, action);
+			glame_accel_add(full_spec, state_mask, state, action, desc);
 
 		} else {
 			/* with libxml2 we need to handle extra
@@ -301,6 +302,8 @@ xmlDocPtr glame_accels_to_xml()
 		snprintf(s, 255, "%i", accel->state);
 		xmlSetProp(entry, "state", s);
 		xmlSetProp(entry, "spec", strrchr(accel->spec, '/')+1);
+		if (accel->desc)
+			xmlSetProp(entry, "desc", accel->desc);
 		xmlNodeSetContent(entry, accel->action);
 	}
 	xmlDocSetRootElement(doc, docroot);
@@ -315,11 +318,13 @@ static void _free_accel(struct accel *accel)
 	glame_list_del(&accel->list);
 	free(accel->spec);
 	free(accel->action);
+	if (accel->desc)
+		free(accel->desc);
 	free(accel);
 }
 
 int glame_accel_add(const char *spec, guint state_mask, guint state,
-		    const char *action)
+		    const char *action, const char *desc)
 {
 	struct accel *accel, *old;
 
@@ -334,6 +339,7 @@ int glame_accel_add(const char *spec, guint state_mask, guint state,
 	accel->state = state;
 	accel->spec = strdup(spec);
 	accel->action = strdup(action);
+	accel->desc = desc ? strdup(desc) : NULL;
 
 	if ((old = hash_find_accel(spec, state)))
 		_free_accel(old);
@@ -412,18 +418,19 @@ guint glame_accel_widget_data_cb(GtkWidget *widget, gpointer spec)
 GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 {
 	GtkWidget *sw, *clist;
-	static char *labels[] = { "Scope", "Key", "Binding" };
+	static char *labels[] = { "Scope", "Key", "Description", "Binding" };
 	struct accel *accel, *dummy;
 
-	clist = gtk_clist_new_with_titles(3, labels);
+	clist = gtk_clist_new_with_titles(4, labels);
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 1, TRUE);
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 2, TRUE);
+	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 3, TRUE);
 
 	glame_accel_safe_foreach(dummy, accel) {
 		char e_scope[1024];
 		char e_key[1024];
-		char *line[3], *p, *pp;
+		char *line[4], *p, *pp;
 
 		if (strncmp(accel->spec, scope, strlen(scope)) != 0)
 			continue;
@@ -463,7 +470,8 @@ GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 
 		line[0] = e_scope;
 		line[1] = e_key;
-		line[2] = accel->action;
+		line[2] = accel->desc ? accel->desc : "No description";
+		line[3] = accel->action;
 
 		gtk_clist_append(GTK_CLIST(clist), line);
 	}

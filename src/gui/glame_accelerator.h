@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.11 2001/12/16 22:26:16 richi Exp $
+ * $Id: glame_accelerator.h,v 1.12 2002/08/12 09:00:57 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -55,7 +55,7 @@ xmlDocPtr glame_accels_to_xml();
 /* Adds the binding spec -> action to the accelerator table replacing
  * an already existing one. Returns 0 on success, -1 on error. */
 int glame_accel_add(const char *spec, guint state_mask, guint state,
-		    const char *action);
+		    const char *action, const char *desc);
 
 /* Deletes all bindings to spec from the accelerator table. */
 void glame_accel_del(const char *spec, guint state);
@@ -73,6 +73,7 @@ struct accel {
 	guint state;
 	char *spec;
 	char *action;
+	char *desc;
 };
 
 /* Iterates (safe to delete actual item) through all available
