@@ -62,7 +62,7 @@ struct _WaveeditGui {
 	filter_t *pm_net;
 	filter_param_t *pm_param;
 	long pm_start;
-
+	long pm_marker;
 };
 
 
