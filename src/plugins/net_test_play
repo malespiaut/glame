@@ -1,8 +1,0 @@
-(filternetwork play "plays arbitrary audio files"
-	(node rf read_file
-		(export-param filename filename "file to be played")
-	)
-	(node aout audio_out)
-	(connect rf out aout in)
-	(connect rf out aout in)
-)

@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.3 2000/03/17 08:08:25 mag Exp $
+ * $Id: file_io.c,v 1.4 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -178,9 +178,9 @@ static int read_file_f(filter_node_t *n)
 	/* require set filename (a selected reader) and
 	 * at least one connected output. */
 	if (!RWPRIV(n)->initted)
-		return -1;
+		FILTER_ERROR_RETURN("invalid file");
 	if (!filternode_get_output(n, PORTNAME_OUT))
-		return -1;
+		FILTER_ERROR_RETURN("no outputs");
 	return RWPRIV(n)->rw->f(n);
 }
 static int read_file_connect_out(filter_node_t *n, const char *port,
@@ -243,11 +243,13 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
  reconnect:
 	/* re-connect all pipes */
-	filternode_foreach_output(n, p)
-		if (RWPRIV(n)->rw->connect(n, p) == -1){
+	filternode_foreach_output(n, p) {
+		if (RWPRIV(n)->rw->connect(n, p) == -1) {
 			filternetwork_break_connection(p);
 			goto reconnect;
 		}
+		p->dest->filter->fixup_pipe(p->dest, p);
+	}
 
 	return 0;
 }
@@ -301,8 +303,7 @@ int file_io_register()
 	INIT_LIST_HEAD(&readers);
 	INIT_LIST_HEAD(&writers);
 
-	if (!(f = filter_alloc("read_file", "Generic file read filter",
-			       read_file_f))
+	if (!(f = filter_alloc(read_file_f))
 	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 	    || !filterport_add_param(p, "position", "position of the stream",
@@ -314,11 +315,10 @@ int file_io_register()
 	f->cleanup = rw_file_cleanup;
 	f->connect_out = read_file_connect_out;
 	f->fixup_param = read_file_fixup_param;
-	if (filter_add(f) == -1)
+	if (filter_add(f, "read_file", "Generic file read filter") == -1)
 		return -1;
 
-	if (!(f = filter_alloc("write_file", "Generic file write filter",
-			       write_file_f))
+	if (!(f = filter_alloc(write_file_f))
 	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 	    || !filter_add_param(f, "filename", "filename",
@@ -327,7 +327,7 @@ int file_io_register()
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
 	f->fixup_param = write_file_fixup_param;
-	if (filter_add(f) == -1)
+	if (filter_add(f, "write_file", "Generic file write filter") == -1)
 		return -1;
 
 #ifdef HAVE_AUDIOFILE

@@ -174,7 +174,7 @@ int garrison_register()
 	filter_t *f;
 
 	/***** pan filter *****/
-	if ((f = filter_alloc("pan", "Positions a mono audio stream in the stereo field", pan_f)) == NULL)
+	if ((f = filter_alloc(pan_f)) == NULL)
 		return -1;
 	if (!(filter_add_input(f, PORTNAME_IN, "input stream to pan", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
@@ -182,18 +182,18 @@ int garrison_register()
 		return -1;
 	if (!(filter_add_param(f, "pan", "position in stereo field", FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	if (filter_add(f))
+	if (filter_add(f, "pan", "Positions a mono audio stream in the stereo field"))
 		return -1;
 
 #if 0
 	/***** balance filter *****/
-	if ((f = filter_alloc("Balance", "Mixes wet/dry signals", bal_f)) == NULL)
+	if ((f = filter_alloc(bal_f)) == NULL)
 		return -1;
-	if (filter_add(f))
+	if (filter_add(f, "Balance", "Mixes wet/dry signals"))
 		return -1;
 
 	/***** echo3 filter *****/
-	if ((f = filter_alloc("Echo 3", "echo", echo3_f)) == NULL)
+	if ((f = filter_alloc(echo3_f)) == NULL)
 		return -1;
 	if (!(filter_add_input(f, "delay", "delay time (in samples)", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
@@ -203,21 +203,21 @@ int garrison_register()
 		return -1;
 	if (!(filter_add_param(f, "feedback", "feedback ratio", FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	if (filter_add(f))
+	if (filter_add(f, "echo3", "echo"))
 		return -1;
 
 	/***** parameter to stream *****/
-	if ((f = filter_alloc("p2s", "Converts parameter to stream", p2s_f)) == NULL)
+	if ((f = filter_alloc(p2s_f)) == NULL)
 		return -1;
 	if (!(filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
 	if (!(filter_add_param(f, "val", "value to output", FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	if (filter_add(f))
+	if (filter_add(f, "p2s", "Converts parameter to stream"))
 		return -1;
 
 	/***** ring modulator filter *****/
-	if ((f = filter_alloc("ringmod", "Ring Modulator", ringmod_f)) == NULL)
+	if ((f = filter_alloc(ringmod_f)) == NULL)
 		return -1;
 	if (!(filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
@@ -225,7 +225,7 @@ int garrison_register()
 		return -1;
 	if (!(filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
-	if (filter_add(f))
+	if (filter_add(f, "ringmod", "Ring Modulator"))
 		return -1;
 #endif
 

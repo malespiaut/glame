@@ -82,12 +82,12 @@ extern int basic_midi_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("midi_mix", "mixes midi pipes", midi_mix_f))
+	if (!(f = filter_alloc(midi_mix_f))
 	    || !filter_add_input(f, PORTNAME_IN, "midi in",
 				FILTER_PORTTYPE_MIDI|FILTER_PORTTYPE_AUTOMATIC)
 	    || !filter_add_output(f, PORTNAME_OUT, "midi out",
 				FILTER_PORTTYPE_MIDI)
-	    || filter_add(f))
+	    || filter_add(f, "midi_mix", "mixes midi pipes"))
 		return -1;
 
 	return 0;

@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: debug.c,v 1.2 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -24,6 +24,11 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "filter.h"
+#include "glplugin.h"
+
+
+PLUGIN_DESCRIPTION(debug, "filters for debugging purposes (ping)");
+PLUGIN_SET(debug, "ping");
 
 
 /* this is a latency metering filter, pinging short packets
@@ -97,32 +102,21 @@ static int ping(filter_node_t *n)
 	return 0;
 }
 
-/* Ping is special. It creates a loop! So to prevent endless
- * fixups, we just return success for ping.
- */
-static int ping_fixup_pipe(filter_node_t *n, filter_pipe_t *p)
-{
-	return 0;
-}
-
-
-
-int debug_register()
+PLUGIN_DESCRIPTION(ping, "ping filter to measure latencies");
+PLUGIN_PIXMAP(ping, "debug.png");
+int ping_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("ping", "ping", ping))
+	if (!(f = filter_alloc(ping))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_MISC)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 				  FILTER_PORTTYPE_MISC)
 	    || !filter_add_param(f, "cnt", "count", FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f, "dt", "delay time", FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f, "size", "buffer size", FILTER_PARAMTYPE_INT))
+	    || !filter_add_param(f, "size", "buffer size", FILTER_PARAMTYPE_INT)
+	    || filter_add(f, "ping", "ping") == -1)
 		return -1;
-	f->fixup_pipe = ping_fixup_pipe;
-	if (filter_add(f) == -1)
-		return -1;
-
 	return 0;
 }

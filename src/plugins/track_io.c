@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: track_io.c,v 1.2 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -20,9 +20,10 @@
  *
  */
 
-#include "filter.h"
-#include "swapfile.h"
-#include "gltrack.h"
+#include <glmid.h>
+
+
+PLUGIN_SET(track_io, "track_in track_out")
 
 
 /* Read a track (swapfile file with associated information) into
@@ -99,7 +100,8 @@ static int track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	/* fix the output pipe stream information */
 	filterpipe_settype_sample(out, track_freq(c), 
 				  FILTER_PIPEPOS_DEFAULT);
-	return out->dest->filter->fixup_pipe(out->dest, out);
+	out->dest->filter->fixup_pipe(out->dest, out);
+	return 0;
 }
 static int track_in_connect_out(filter_node_t *n, const char *port,
 				 filter_pipe_t *p)
@@ -119,6 +121,30 @@ static int track_in_connect_out(filter_node_t *n, const char *port,
 				  FILTER_PIPEPOS_DEFAULT);
 	return 0;
 }
+
+PLUGIN_DESCRIPTION(track_in, "track to stream")
+PLUGIN_PIXMAP(track_in, "default.xpm")
+int track_in_register()
+{
+	filter_t *f;
+
+	if (!(f = filter_alloc(track_in_f)))
+		return -1;
+	f->fixup_param = track_in_fixup_param;
+	f->connect_out = track_in_connect_out;
+	if (!filter_add_param(f, "track", "input track",
+			      FILTER_PARAMTYPE_STRING)
+	    || !filter_add_param(f, "group", "input group",
+				 FILTER_PARAMTYPE_STRING)
+	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
+				  FILTER_PORTTYPE_SAMPLE)
+	    || filter_add(f, "track_in", "stream a track") == -1)
+		return -1;
+	return 0;
+}
+
+
+
 
 
 /* Store an audio stream into a track (swapfile file with associated
@@ -182,25 +208,13 @@ static int track_out_f(filter_node_t *n)
 	return res;
 }
 
-
-int track_io_register()
+PLUGIN_DESCRIPTION(track_out, "stream to track")
+PLUGIN_PIXMAP(track_out, "default.xpm")
+int track_out_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("track_in", "stream a track", track_in_f)))
-		return -1;
-	f->fixup_param = track_in_fixup_param;
-	f->connect_out = track_in_connect_out;
-	if (!filter_add_param(f, "track", "input track",
-			      FILTER_PARAMTYPE_STRING)
-	    || !filter_add_param(f, "group", "input group",
-				 FILTER_PARAMTYPE_STRING)
-	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("track_out", "store a stream into a track", track_out_f))
+	if (!(f = filter_alloc(track_out_f))
 	    || !filter_add_param(f, "track", "output track",
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_param(f, "group", "output group",
@@ -209,8 +223,7 @@ int track_io_register()
 				 FILTER_PARAMTYPE_INT)
 	    || !filter_add_input(f, PORTNAME_IN, "input stream",
 				 FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f) == -1)
+	    || filter_add(f, "track_out", "store a stream into a track") == -1)
 		return -1;
-
 	return 0;
 }

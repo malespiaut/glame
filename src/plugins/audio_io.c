@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: audio_io.c,v 1.2 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -28,10 +28,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "glame_types.h"
 #include "filter.h"
 #include "util.h"
-#include <limits.h>
+#include "glplugin.h"
+
+
+PLUGIN_DESCRIPTION(audio_io, "filter set for audio support")
+PLUGIN_SET(audio_io, "audio_out audio_in")
 
 
 /* Generic versions of filter methods. Called from various low-level
@@ -110,15 +115,13 @@ static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 	if (!f)
 		return -1;
 
-	if (!(filter=filter_alloc(name, "record stream", f)) ||
-		!filter_add_output(filter, PORTNAME_OUT, "output port",
-				FILTER_PORTTYPE_SAMPLE |
-				FILTER_PORTTYPE_AUTOMATIC))
+	if (!(filter = filter_alloc(f))
+	    || !filter_add_output(filter, PORTNAME_OUT, "output port",
+				  FILTER_PORTTYPE_SAMPLE
+				  | FILTER_PORTTYPE_AUTOMATIC))
 		return -1;
-
 	filter->connect_out = aio_generic_connect_out;
-
-	if(filter_add(filter) == -1)
+	if(filter_add(filter, name, "record stream") == -1)
 		return -1;
 
 	return 0;
@@ -131,15 +134,13 @@ static int aio_generic_register_output(char *name, int (*f)(filter_node_t *))
 	if (!f)
 		return -1;
 	
-	if (!(filter=filter_alloc(name, "playback stream", f)) ||
-		!filter_add_input(filter, PORTNAME_IN, "input port",
-				FILTER_PORTTYPE_SAMPLE | 
-				FILTER_PORTTYPE_AUTOMATIC))
+	if (!(filter = filter_alloc(f))
+	    || !filter_add_input(filter, PORTNAME_IN, "input port",
+				 FILTER_PORTTYPE_SAMPLE
+				 | FILTER_PORTTYPE_AUTOMATIC))
 		return -1;
-	
 	filter->connect_in = aio_generic_connect_in;
-
-	if(filter_add(filter) == -1)
+	if (filter_add(filter, name, "playback stream") == -1)
 		return -1;
 
 	return 0;
@@ -757,16 +758,21 @@ static int esd_out_f(filter_node_t *n)
 #endif
 
 
-/* Try to register all working audio output filters. The default 'audio_out'
- * filter will be the one the most specific to our hardware.
+
+/* The registration functions.
+ * Only two "real" plugins will appear - the generic audio_out
+ * and the audio_in plugin/filter. Others are only accessible
+ * directly.
  */
-int audio_io_register()
+
+PLUGIN_DESCRIPTION(audio_out, "audio output");
+PLUGIN_PIXMAP(audio_out, "bla.png");
+int audio_out_register()
 {
 	int (*audio_out)(filter_node_t *);
-	int (*audio_in)(filter_node_t *);	
-	
-	audio_out = audio_in = NULL;
-	
+
+	audio_out = NULL;
+
 #if defined HAVE_OSS
 	if (!aio_generic_register_output("oss_audio_out", oss_audio_out_f))
 		audio_out = oss_audio_out_f;
@@ -777,8 +783,6 @@ int audio_io_register()
 #if defined HAVE_ESD
 	if (!aio_generic_register_output("esd_audio_out", esd_out_f)) 
 		audio_out = esd_out_f;
-	if (!aio_generic_register_input("esd_audio_in", esd_in_f))
-		audio_in = esd_in_f;
 #endif
 #if defined HAVE_SGIAUDIO
 	if (!aio_generic_register_output("sgi_audio_out", sgi_audio_out_f)) 
@@ -788,13 +792,33 @@ int audio_io_register()
 	/* TODO */
 #endif
 
-	/* It's okay if there is no input filter but we require at least
-	 * one working output filter.
-	 */
-	aio_generic_register_input("audio_in", audio_in);
 	return aio_generic_register_output("audio_out", audio_out);
 }
 
+PLUGIN_DESCRIPTION(audio_in, "audio input");
+PLUGIN_PIXMAP(audio_in, "bla.png");
+int audio_in_register()
+{
+	int (*audio_in)(filter_node_t *);
 
+	audio_in = NULL;
 
+#if defined HAVE_OSS
+	/* TODO */
+#endif
+#if defined HAVE_ALSA
+	/* TODO */
+#endif 
+#if defined HAVE_ESD
+	if (!aio_generic_register_input("esd_audio_in", esd_in_f))
+		audio_in = esd_in_f;
+#endif
+#if defined HAVE_SGIAUDIO
+	/* TODO */
+#endif
+#if defined HAVE_SUNAUDIO
+	/* TODO */
+#endif
 
+	return aio_generic_register_input("audio_in", audio_in);
+}

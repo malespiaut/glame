@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: waveform.c,v 1.2 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -63,7 +63,7 @@ static int waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
 	if ((out = filternode_get_output(n, PORTNAME_OUT))) {
 		waveform_connect_out(n, NULL, out);
-		return out->dest->filter->fixup_pipe(n, out);
+		out->dest->filter->fixup_pipe(n, out);
 	}
 	return 0;
 }
@@ -71,12 +71,11 @@ static int waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
 /* Standard waveform register. Does add the output port and the parameters "rate"
  * and "position". Also inits the methods.
  */
-static filter_t *waveform_filter_alloc(const char *name, const char *description,
-				       int (*fm)(filter_node_t *))
+static filter_t *waveform_filter_alloc(int (*fm)(filter_node_t *))
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(name, description, fm))
+	if (!(f = filter_alloc(fm))
 	    || !filter_add_output(f, PORTNAME_OUT, "waveform output stream",
 				  FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f, "rate", "samplerate of the generated output",
@@ -202,20 +201,20 @@ int waveform_register()
 {
 	filter_t *f;
 
-	if (!(f = waveform_filter_alloc("sinus", "generate sinus test signal", sinus_f))
+	if (!(f = waveform_filter_alloc(sinus_f))
 	    || !filter_add_param(f, "amplitude", "sinus peak amplitude(0.0-1.0)",
 				 FILTER_PARAMTYPE_SAMPLE)
 	    || !filter_add_param(f, "frequency", "sinus frequency in Hz",
 				 FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	if (filter_add(f) == -1)
+	if (filter_add(f, "sinus", "generate sinus test signal") == -1)
 		return -1;
 
-	if (!(f = waveform_filter_alloc("const", "generate constant signal", const_f))
+	if (!(f = waveform_filter_alloc(const_f))
 	    || !filter_add_param(f, "value", "signal value",
 				 FILTER_PARAMTYPE_SAMPLE))
 		return -1;
-	if (filter_add(f) == -1)
+	if (filter_add(f, "const", "generate constant signal") == -1)
 		return -1;
 
 	return 0;

@@ -1,7 +1,6 @@
-
 /*
  * maggy.c
- * $Id: maggy.c,v 1.2 2000/03/19 23:53:16 mag Exp $
+ * $Id: maggy.c,v 1.3 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -266,8 +265,8 @@ int maggy_register()
 {
 	filter_t *f;
 	filter_paramdesc_t *p;
-	
-	if (!(f = filter_alloc("noisegate", "The noisegate filters all signals that are below the threshold", noisegate_f))
+
+	if (!(f = filter_alloc(noisegate_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
@@ -277,7 +276,7 @@ int maggy_register()
 	    || !filter_add_param(f,"hold","Hold Time[ms]",FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f,"attack","Attack Time[ms]",FILTER_PARAMTYPE_INT)
 	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_INT)
-	    || filter_add(f) == -1)
+	    || filter_add(f, "noisegate", "The noisegate filters all signals that are below the threshold") == -1)
 		return -1;
 	
 	if (!(f = filter_alloc("statistic","Calculates RMS, RMS in window & DC-Offset",statistic_f))

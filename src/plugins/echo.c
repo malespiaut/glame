@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.4 2000/03/17 13:57:21 richi Exp $
+ * $Id: echo.c,v 1.5 2000/03/20 09:51:53 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -171,22 +171,24 @@ static int echo_f(filter_node_t *n)
 
 
 PLUGIN_DESCRIPTION(echo, "echo effect")
-PLUGIN_PIXMAP_FILE(echo, "ear.xpm")
+PLUGIN_PIXMAP(echo, "ear.xpm")
 int echo_register()
 {
 	filter_t *f;
+	filter_paramdesc_t *d;
 
-	if (!(f = filter_alloc("echo", "echo effect", echo_f))
+	if (!(f = filter_alloc(echo_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 		    		FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f, "time", "echo time in ms",
-		    		FILTER_PARAMTYPE_FLOAT)
+	    || !(d = filter_add_param(f, "time", "echo time in ms",
+				      FILTER_PARAMTYPE_FLOAT))
 	    || !filter_add_param(f, "mix", "mixer ratio",
 		    		FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	if (filter_add(f) == -1)
+	filterparamdesc_float_settype(d, FILTER_PARAM_FLOATTYPE_TIME);
+	if (filter_add(f, "echo", "echo effect") == -1)
 		return -1;
 
 	return 0;
