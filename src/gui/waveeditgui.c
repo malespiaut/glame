@@ -266,15 +266,54 @@ static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 /* GUI is single-threaded, so this should actually work... */
 static GtkWaveView *actual_waveview;
 
+struct network_cleanup_s {
+	filter_t *net;
+	gpsm_item_t *item;
+	int invalidate;
+};
+static void network_cleanup_cb(struct network_cleanup_s *cs)
+{
+	DPRINTF("starting cleanup\n");
+	if (cs->net) {
+		filter_terminate(cs->net);
+		filter_wait(cs->net);
+		filter_delete(cs->net);
+		DPRINTF("deleted filternetwork\n");
+	}
+	if (cs->invalidate && cs->item) {
+		if (GPSM_ITEM_IS_SWFILE(cs->item)) {
+			gpsm_invalidate_swapfile(gpsm_swfile_filename(cs->item));
+		} else {
+			gpsm_item_t *it;
+			gpsm_grp_foreach_item(cs->item, it) {
+				if (!GPSM_ITEM_IS_SWFILE(it))
+					continue;
+				gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
+			}
+		}
+		DPRINTF("invalidated swfiles\n");
+	} else if (cs->item) {
+		gpsm_item_destroy(cs->item);
+		DPRINTF("destroyed item\n");
+	}
+	free(cs);
+}
+static struct network_cleanup_s *network_cleanup_create(filter_t *net,
+							gpsm_item_t *item,
+							int invalidate)
+{
+	struct network_cleanup_s *cs;
+	cs = malloc(sizeof(struct network_cleanup_s));
+	cs->net = net;
+	cs->item = item;
+	cs->invalidate = invalidate;
+	return cs;
+}
+
+
 /* Menu event - Apply filter. */
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 {
-
-	/* FIXME FIXME FIXME 
-	   enable cancel button.
-	   fix richis bogus loop ;) 
-	   well. cancel is fine,but that's about it :-( 	*/
-	   
 	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
@@ -333,21 +372,119 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	}
 	
 	/* Run the network through play window */
-	//	glame_gui_play_network(net,NULL);
-	glame_gui_play_network(net,NULL);
-	/* Run the network and cleanup after it. */
-/*  	filter_launch(net); */
-/* 	filter_start(net); */
-/* 	filter_wait(net); */
-/* 	filter_delete(net); */
-/* 	filter_delete(effect); */
-
-	for (i=0; i<nrtracks; i++) {
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_SWFILE_CHANGED, files[i], start, length);
-		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED, files[i]);
-	}
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_cleanup_cb,
+			       network_cleanup_create(net, item, TRUE));
 }
 
+/* Menu event - feed into filter. */
+static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	gint32 start, length;
+	gpsm_item_t *item;
+	gpsm_grp_t *grp;
+	filter_t *net, *aout;
+	int rate;
+
+	if (!plugin_get("audio_out"))
+		return;
+
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	if (length <= 0)
+		return;
+	DPRINTF("Playing [%li, +%li]\n", (long)start, (long)length);
+
+	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
+	if (!grp)
+		return;
+
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+
+	/* Create the basic network - audio_out. */
+	net = filter_creat(NULL);
+	aout = filter_instantiate(plugin_get("audio_out"));
+	filter_add_node(net, aout, "aout");
+
+	gpsm_grp_foreach_item(grp, item) {
+		filter_t *swin;
+		long swname;
+		if (!GPSM_ITEM_IS_SWFILE(item))
+			continue;
+		swname = gpsm_swfile_filename(item);
+		swin = filter_instantiate(plugin_get("swapfile_in"));
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		filter_add_node(net, swin, "swin");
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN)))
+			goto fail;
+	}
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_cleanup_cb,
+			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE));
+	return;
+
+ fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot play")));
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
+}
+
+static void playall_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	gpsm_item_t *item;
+	gpsm_grp_t *grp;
+	filter_t *net, *aout;
+	int rate;
+
+	if (!plugin_get("audio_out"))
+		return;
+
+	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
+	if (!grp)
+		return;
+
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+
+	/* Create the basic network - audio_out. */
+	net = filter_creat(NULL);
+	aout = filter_instantiate(plugin_get("audio_out"));
+	filter_add_node(net, aout, "aout");
+
+	gpsm_grp_foreach_item(grp, item) {
+		filter_t *swin;
+		long swname;
+		if (!GPSM_ITEM_IS_SWFILE(item))
+			continue;
+		swname = gpsm_swfile_filename(item);
+		swin = filter_instantiate(plugin_get("swapfile_in"));
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
+		filter_add_node(net, swin, "swin");
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN)))
+			goto fail;
+	}
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_cleanup_cb,
+			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE));
+	return;
+
+ fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot play")));
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
+}
 
 /* Menu event - feed into filter. */
 static void feed_cb(GtkWidget *bla, plugin_t *plugin)
@@ -404,7 +541,10 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 		filter_add_node(net, eff, "eff");
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
 	}
-	glame_gui_play_network(net,NULL);
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_cleanup_cb,
+			       network_cleanup_create(net, NULL, FALSE));
 }
 
 static void feed_custom_cb(GtkWidget * foo, gpointer bar)
@@ -533,6 +673,9 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("View", view_menu),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Play", "Plays the whole wave", playall_cb, NULL),
+	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playselection_cb, NULL),	
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_SUBTREE("Feed into filter", NULL),
 	GNOMEUIINFO_ITEM("Apply Custom", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
@@ -540,6 +683,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
+#define RMB_MENU_APPLY_FILTER_INDEX 12
+#define RMB_MENU_FEED_FILTER_INDEX 13
 
 
 /* Somehow only select "effects" (one input, one output) type of
@@ -587,8 +732,8 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	feed_menu = glame_gui_build_plugin_menu(choose_effects_input_only, feed_cb);
 	gtk_widget_show(GTK_WIDGET(filter_menu));
 	gtk_widget_show(GTK_WIDGET(feed_menu));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[9].widget), GTK_WIDGET(filter_menu));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[10].widget), GTK_WIDGET(feed_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[RMB_MENU_APPLY_FILTER_INDEX].widget), GTK_WIDGET(filter_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[RMB_MENU_FEED_FILTER_INDEX].widget), GTK_WIDGET(feed_menu));
 	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
