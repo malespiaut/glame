@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.5 2000/03/21 09:38:09 richi Exp $
+ * $Id: audio_io.c,v 1.6 2000/03/23 18:46:20 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -873,15 +873,18 @@ static int esd_in_f(filter_node_t *n)
 	int sock;
 	int length,time,maxtime;
 	int i,lpos,rpos;
-        char *host=NULL;
-	char *name=NULL;
+	filter_param_t *dev_param;
+        char *host = NULL;
 
 	/* FIXME some parameter handling to be added */
 
 	DPRINTF("esd_in_f started!\n");
 
 	format = bits | channels | mode | func;
-	sock = esd_record_stream_fallback( format, rate, host, name );
+	dev_param = filternode_get_param(n, "device");
+	if (dev_param)
+		host = filterparam_val_string(dev_param);
+	sock = esd_record_stream_fallback(format, rate, host, NULL);
 	if (sock <= 0)
 		FILTER_ERROR_RETURN("Couldn't open esd socket!");
 
@@ -960,7 +963,8 @@ static int esd_out_f(filter_node_t *n)
 	int nrinputs, iassigned, iat, rate;
 	esd_format_t format = ESD_BITS16|ESD_STREAM|ESD_PLAY;
 	int esound_socket;
-	char *host, *name;
+	filter_param_t *dev_param;
+	char *host = NULL;
 
 	/* get number of inputs, alloc private structure */
 	if (!(nrinputs = filternode_nrinputs(n)))
@@ -986,7 +990,10 @@ static int esd_out_f(filter_node_t *n)
 
 	rate = filterpipe_sample_rate(filternode_get_input(n,PORTNAME_IN));
 	DPRINTF("Rate is %i\n", rate);
-	esound_socket = esd_play_stream_fallback(format, rate, host, name);
+	dev_param = filternode_get_param(n, "device");
+	if (dev_param)
+		host = filterparam_val_string(dev_param);
+	esound_socket = esd_play_stream_fallback(format, rate, host, NULL);
 	if (esound_socket <= 0)
 	        FILTER_ERROR_RETURN("couldn't open esd-socket connection!");
 
