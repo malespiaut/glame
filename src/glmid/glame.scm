@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.41 2000/10/28 13:45:48 richi Exp $
+; $Id: glame.scm,v 1.42 2000/11/11 16:19:57 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -182,8 +182,7 @@
     (if (eq? #t (filternetwork_launch net))
 	(begin
 	  (filternetwork_start net)
-	  (filternetwork_wait net)
-	  (filternetwork_delete net)))))
+	  (filternetwork_wait net)))))
 
 (add-help 'net-run '(net)
 	  "run the net, wait for completion and delete it.")

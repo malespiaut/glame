@@ -98,9 +98,10 @@ AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
 dnl
 dnl GUILE check, fail if not there
+dnl the check has AM_CONDITIONAL(GUILE, ...) and defines HAVE_GUILE
 dnl
-
 GNOME_CHECK_GUILE("fail")
+
 
 dnl
 dnl check for single precision fftw

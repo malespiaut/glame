@@ -19,17 +19,26 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <dirent.h>
+#include <string.h>
+#include "glame_hash.h"
+#include "swapfile.h"
+#include "glplugin.h"
+
+#ifdef HAVE_GUILE
 #include <guile/gh.h>
-#include <glame_hash.h>
-#include <swapfile.h>
-#include <glplugin.h>
 
 extern int glscript_init();
+#endif
 
-/* builtin plugins */
-PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform rms basic_midi midi_io midi_debug arithmetic basicfft swapfile_io")
+/* Builtin plugins. */
+PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform "
+	   "rms basic_midi midi_io midi_debug arithmetic basicfft swapfile_io")
 
 static void plugins_process_directory(const char *dir)
 {
@@ -106,9 +115,11 @@ int glame_init()
 	if (plugins_register() == -1)
 		return -1;
 	atexit(glame_cleanup);
+
 	return 0;
 }
 
+#ifdef HAVE_GUILE
 static void init_after_guile(int argc, char **argv)
 {
 #ifndef NDEBUG
@@ -120,24 +131,26 @@ static void init_after_guile(int argc, char **argv)
 		exit(1);
 	((void (*)(void))argv[1])();
 }
+#endif
 
 int glame_init_with_guile(void (*main)(void))
 {
-#ifdef HAVE_GUILE
-	char *argv[2];
-#endif
-
 	if (glame_init() == -1)
 		return -1;
+
 #ifdef HAVE_GUILE
-	argv[0] = NULL;
-	argv[1] = (char *)main;
-	/* scm_init_guile();
-	init_after_guile(0, argv); */
-	gh_enter(0, argv, init_after_guile);
+	{
+		char *argv[2];
+		argv[0] = NULL;
+		argv[1] = (char *)main;
+		/* scm_init_guile();
+		   init_after_guile(0, argv); */
+		gh_enter(0, argv, init_after_guile);
+	}
 #endif
 
 	/* not reached if HAVE_GUILE */
 	main();
+
 	return 0;
 }
