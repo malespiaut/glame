@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.27 2000/02/20 15:38:48 richi Exp $
+ * $Id: filter.h,v 1.28 2000/02/21 10:34:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -117,9 +117,9 @@ struct filter {
 };
 #define filter_name(f) ((f)->name)
 #define filter_description(f) ((f)->description)
-#define filter_nrparams(f) (list_count((f)->params))
-#define filter_nrinputs(f) (list_count((f)->inputs))
-#define filter_nroutputs(f) (list_count((f)->outputs))
+#define filter_nrparams(f) (list_count(&(f)->params))
+#define filter_nrinputs(f) (list_count(&(f)->inputs))
+#define filter_nroutputs(f) (list_count(&(f)->outputs))
 
 /* inits the filter subsystem */
 int filter_init();
@@ -163,7 +163,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterportdesc_label(pd) ((pd)->label)
 #define filterportdesc_description(pd) ((pd)->description)
 #define filterportdesc_type(pd) ((pd)->type)
-#define filterportdesc_nrparams(pd) (list_count((pd)->params))
+#define filterportdesc_nrparams(pd) (list_count(&(pd)->params))
 #define filterportdesc_foreach_paramdesc(pd, d) \
         list_foreach(&(pd)->params, filter_paramdesc_t, list, d)
 #define filterportdesc_get_paramdesc(pd, nm) \
