@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.56 2001/08/07 10:01:51 mag Exp $
+ * $Id: file_io.c,v 1.57 2001/08/07 16:52:53 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -281,7 +281,7 @@ static int read_file_setup_param(filter_t *n, filter_param_t *param, const void 
 	rw_t *r;
 	char *filename;
 
-	if (val==NULL)
+	if (*((char**)val)==NULL)
 		return -1;
 
 	/* only position param change? - we only care for initted rw. */
@@ -369,7 +369,7 @@ static int write_file_setup_param(filter_t *n, filter_param_t *param, const void
 	RWPRIV(n)->rw = NULL;
 
 	/* no filename - no writer. */
-	if(val==NULL)
+	if(*((char**)val)==NULL)
 		return -1;
 
 	/* find applicable writer */
@@ -1344,7 +1344,7 @@ lame_decode_initfile(FILE * fd, mp3data_struct * mp3data)
 
 int lame_decode_fromfile(FILE * fd, short pcm_l[], short pcm_r[], mp3data_struct * mp3data)
 {	int     ret = 0, len=0;
-	unsigned char buf[1024];
+	unsigned char buf[4096];
 
 	/* first see if we still have data buffered in the decoder: */
 	ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
@@ -1353,7 +1353,7 @@ int lame_decode_fromfile(FILE * fd, short pcm_l[], short pcm_r[], mp3data_struct
 
 	/* read until we get a valid output frame */
 	while (1) {
-		len = fread(buf, 1, 1024, fd);
+		len = fread(buf, 1, 4096, fd);
 		if (len == 0) {
 			/* we are done reading the file, but check for buffered data */
 			ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
@@ -1379,9 +1379,7 @@ off_t  lame_get_file_size ( const char* const filename )
 
 int lame_read_prepare(filter_t *n, const char *filename)
 {
-	int done, len, max, err;
 	char buffer[128];
-	short pcm[2][1152];
 	double flen, totalseconds;
 	unsigned long tmp_num_samples;
 	filter_param_t	*fparam;
