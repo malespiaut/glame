@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.23 2001/04/06 22:38:07 xwolf Exp $
+ * $Id: main.c,v 1.24 2001/04/09 23:28:37 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -47,7 +47,7 @@ extern guint nPopupTimeout;
 static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
-static void glame_about(void);
+static GtkWidget* glame_about(void);
 
 
 /* Menus. */
@@ -231,7 +231,7 @@ preferences_cb(GtkWidget * wid, void * bla)
  * The GLAME About dialog.
  */
 
-static void glame_about(void)
+static GtkWidget* glame_about(void)
 {
 	const gchar *authors[]={
 		"Richard Guenther [Richi]",
@@ -252,8 +252,22 @@ static void glame_about(void)
 	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
 	gtk_widget_show(about);
+	return about;
 }
 
+static gint remove_splash(GtkWidget* foo)
+{
+	gtk_object_destroy(GTK_OBJECT(foo));
+	return FALSE;
+}
+static void glame_splash(void)
+{
+	GtkWidget* foo;
+
+	foo = glame_about();
+
+	gtk_timeout_add(2000,remove_splash,foo);
+}
 
 /*
  * Real main and cleanup stuff.
@@ -349,11 +363,11 @@ int main(int argc, char **argv)
 {
 	/* setup gnome/gtk  */
 	gnome_init("glame", VERSION, argc, argv);
-
+	
 	/* remember argv[1], if necessary */
 	if (argc >= 2)
 		swname = argv[1];
-
+	glame_splash();
 	/* init glame */
 	glame_init_with_guile(gui_main);
 
