@@ -50,6 +50,11 @@ int glame_init()
 
 static void init_after_guile(int argc, char **argv)
 {
+#ifndef NDEBUG
+	/* We dont like guiles signal handlers for debugging
+	 * purposes. */
+	scm_restore_signals();
+#endif
 	if (glscript_init() == -1)
 		exit(1);
 	((void (*)(void))argv[1])();
