@@ -17,21 +17,16 @@ int glame_get_filetype_by_name(char *name) {
 
 	suffix = strrchr(name, '.');
 	suffix++;
-	DPRINTF("Got suffix %s for file %s\n", suffix, name);
 	
-	DPRINTF("Query audiofile library\n");
 	incnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
 
-	DPRINTF("audiofile supports %d formats\n", incnt);
 	indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);
 
 	type = -1;
 	for(i=0;i<incnt;i++) {
 		/* pointer for query_label MUST NOT be freed */
 		ausuff = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, indices[i] ,0 ,0);
-		DPRINTF("Format %d, suffix %s, res %d\n", indices[i], ausuff);
 		if (strcmp(suffix, ausuff)==0) {
-			DPRINTF("match found for type %d!\n",indices[i]);
 			type = indices[i];
 			break;
 		};
@@ -40,7 +35,6 @@ int glame_get_filetype_by_name(char *name) {
 	/* try a sloppy match */
 	if (type==-1) {
 		len = strlen(suffix);
-		DPRINTF("Sloppy match for %d chars\n", len);
 		for(i=0;i<incnt;i++) {
 			ausuff = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, indices[i] ,0 ,0);
 			if(strncmp(suffix, ausuff, len)==0) {
