@@ -975,6 +975,11 @@ static void wave_close_cb(GtkWidget *foo, void *bar)
 	gtk_object_destroy(GTK_OBJECT(actual_waveview));
 }
 
+
+static GnomeUIInfo dummy_menu[] = {
+	GNOMEUIINFO_END
+};
+
 static GnomeUIInfo view_menu[] = {
 	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
 	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
@@ -990,8 +995,7 @@ static GnomeUIInfo select_menu[] = {
 	GNOMEUIINFO_END
 };
 
-static GnomeUIInfo rmb_menu[] = {
-	GNOMEUIINFO_SEPARATOR,
+static GnomeUIInfo edit_menu[] = {
 	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
 	GNOMEUIINFO_ITEM("Copy", "copy", copy_cb, NULL),
 	GNOMEUIINFO_ITEM("Paste", "paste", paste_cb, NULL),
@@ -1000,7 +1004,18 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Undo", "undo", undo_cb, NULL),
 	GNOMEUIINFO_ITEM("Redo", "redo", redo_cb, NULL),	
+	GNOMEUIINFO_END
+};
+#define EDIT_MENU_CUT_INDEX 0
+#define EDIT_MENU_COPY_INDEX 1
+#define EDIT_MENU_PASTE_INDEX 2
+#define EDIT_MENU_DELETE_INDEX 4
+#define EDIT_MENU_UNDO_INDEX 6
+#define EDIT_MENU_REDO_INDEX 7
+
+static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_SUBTREE("Edit", edit_menu),
 	GNOMEUIINFO_SUBTREE("View", view_menu),
 	GNOMEUIINFO_SUBTREE("Select", select_menu),
 	GNOMEUIINFO_SEPARATOR,
@@ -1010,7 +1025,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_ITEM("Record at marker", "Records starting at marker position", recordmarker_cb, NULL),	
 	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
+	GNOMEUIINFO_SUBTREE("Apply filter", dummy_menu),
 	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Close","Close",wave_close_cb,NULL),
@@ -1019,9 +1034,9 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
-#define RMB_MENU_UNDO_INDEX 7
-#define RMB_MENU_REDO_INDEX 8
-#define RMB_MENU_APPLY_FILTER_INDEX 19
+#define RMB_MENU_PLAY_SELECTION_INDEX 6
+#define RMB_MENU_RECORD_SELECTION_INDEX 9
+#define RMB_MENU_APPLY_FILTER_INDEX 11
 
 
 /* Somehow only select "effects" (one input, one output) type of
@@ -1057,30 +1072,46 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	GtkSwapfileBuffer *swapfile;
 	GtkWidget *menu;
 	GtkMenu *filter_menu;
+	gpsm_item_t *item;
+	gint32 sel_start, sel_length, marker_pos;
+	guint32 nrtracks;
   
 	if (event->button != 3)
 		return;
 
+	/* Get stuff we need for enabling/disabling items. */
 	wavebuffer = gtk_wave_view_get_buffer (waveview);
-	if (!GTK_IS_EDITABLE_WAVE_BUFFER (wavebuffer)) {
-		DPRINTF("not editable\n");
-		return;
-	}
 	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	nrtracks = gtk_wave_buffer_get_num_channels(wavebuffer);
+	gtk_wave_view_get_selection(waveview, &sel_start, &sel_length);
+	marker_pos = gtk_wave_view_get_marker(waveview);
 
 	/* Build the menu, fixup lots of stuff. */
 	menu = gnome_popup_menu_new(rmb_menu);
 	filter_menu = glame_gui_build_plugin_menu(choose_effects, apply_cb);
 	gtk_widget_show(GTK_WIDGET(filter_menu));
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[RMB_MENU_APPLY_FILTER_INDEX].widget), GTK_WIDGET(filter_menu));
-	if (gpsm_op_can_undo(gtk_swapfile_buffer_get_item(swapfile)))
-		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_UNDO_INDEX].widget, TRUE);
-	else
-		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_UNDO_INDEX].widget, FALSE);
-	if (gpsm_op_can_redo(gtk_swapfile_buffer_get_item(swapfile)))
-		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_REDO_INDEX].widget, TRUE);
-	else
-		gtk_widget_set_sensitive(rmb_menu[RMB_MENU_REDO_INDEX].widget, FALSE);
+	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_APPLY_FILTER_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+
+	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_PLAY_SELECTION_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(rmb_menu[RMB_MENU_RECORD_SELECTION_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_CUT_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_COPY_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_PASTE_INDEX].widget,
+				 (nrtracks == temp_nrtracks) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_DELETE_INDEX].widget,
+				 (sel_length > 0) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_UNDO_INDEX].widget,
+				 gpsm_op_can_undo(item) ? TRUE : FALSE);
+	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_REDO_INDEX].widget,
+				 gpsm_op_can_redo(item) ? TRUE : FALSE);
 
 	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
