@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.32 2001/12/23 15:07:50 richi Exp $
+@comment $Id: plugins.texi,v 1.33 2002/01/20 22:48:29 mag Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -1075,12 +1075,21 @@ Gain of high range band (not in dB)
 
 @node Normalize, Fade in/out, , Operations
 
-The normalize operation applied to a set of tracks normalizes the tracks
-amplitude to 1.0 by looking at the peak values. Normalizing can be
-started by choosing the normalize operation from the item or group
-context menu in the main window, which will normalize the whole tracks,
-or from the waveedit window by choosing the normalize operation from the
-context menu, which will normalize the currently selected region.
+The normalize function can be invoked from the main menu or from the waveeditor widget.
+Normalize scans all given tracks for the highest peak in amplitude or the highest RMS
+peak for a given frequency window. You can normalize the signal in three different modes:
+@table @code
+@item Peak
+The maximum peak is adjusted to 1.0 with a factor given by the 1.0 divided by the max. peak.
+@item Volume
+The maximum peak is adjusted to the given amplitude(either absolute or dB).
+@item Volume/Frequency
+The signal is scanned for the highest RMS energy in the given frequency and then adjusted
+to the given amplitude (either absolute or dB).
+@end table
+By pressing the analyze button in the normalize GUI, the file is just scanned and the
+found results are presented in the text box. If you don't press analyze, this step is done
+automatically after pressing the ok button.
 
 @node Fade in/out, , Normalize, Operations
 
