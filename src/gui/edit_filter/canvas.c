@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.3 2000/12/07 17:37:38 xwolf Exp $
+ * $Id: canvas.c,v 1.4 2000/12/08 11:17:38 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -450,7 +450,7 @@ create_new_canvas(gui_network* net)
 	gtk_widget_show_all(window);
 	gtk_signal_connect_after(GTK_OBJECT(canvas),"event",root_event,NULL);
 	globalcanvas = canvas;
-	return canvas;
+	return window;
 }
 
 

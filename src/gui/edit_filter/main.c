@@ -1,7 +1,7 @@
 /*
  * edit_filter.c
  *
- * $Id: main.c,v 1.1 2000/12/07 14:28:31 xwolf Exp $
+ * $Id: main.c,v 1.2 2000/12/08 11:17:38 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -36,7 +36,7 @@ static void gui_main()
 
   gui_network_new_wizard();
   
-  //  gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
+//  gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
   
 	/* main loop */
   gtk_main();

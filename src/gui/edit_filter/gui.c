@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.2 2000/12/07 17:37:38 xwolf Exp $
+ * $Id: gui.c,v 1.3 2000/12/08 11:17:38 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -297,7 +297,7 @@ gui_network_new_wizard(void)
 {
 	
 	gui_network * net;       
-
+	GtkWidget * canv;
 	net = malloc(sizeof(gui_network));
 	net->filters = NULL;
 	
@@ -308,7 +308,9 @@ gui_network_new_wizard(void)
 	net->net = filter_creat(NULL);
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
-	create_new_canvas(net);
+	canv=create_new_canvas(net);
+	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
+	
 	return 0;
 }
 
