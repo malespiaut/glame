@@ -29,11 +29,23 @@
 #include "glplugin.h"
 #include "srfftw.h"	/* single precision real to complex fft */
 #include "pthread.h"
+#include "math.h"
 
 PLUGIN_SET(basicfft,"fft ifft fft_resample")
 
 pthread_mutex_t planlock = PTHREAD_MUTEX_INITIALIZER;
 
+SAMPLE *hanning(int n) {
+	SAMPLE *win;
+	int i;
+	
+	if (!(win=ALLOCN(n,SAMPLE)))
+		return NULL;
+	for(i=0;i<n;i++)
+		win[i]=0.5-0.5*cos((SAMPLE)i/(SAMPLE)(n-1)*2.0*M_PI);
+	return win;
+}
+	
 static int fft_connect_out(filter_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
@@ -76,9 +88,9 @@ static int fft_f(filter_t *n){
 	filter_buffer_t *inb,*outb;
 	filter_param_t *param;
 	rfftw_plan p;
-	SAMPLE *overlap,*iptr,*optr;
+	SAMPLE *overlap,*iptr,*optr,*win;
 	int osamp,bsize;
-	int ioff,i,ooff,todo;
+	int ioff,i,j,ooff,todo,z;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
 		FILTER_ERROR_RETURN("no input");
@@ -98,8 +110,14 @@ static int fft_f(filter_t *n){
 	p = rfftw_create_plan(bsize, FFTW_REAL_TO_COMPLEX, FFTW_ESTIMATE);
 	pthread_mutex_unlock(&planlock);
 	
-	overlap=ALLOCN(bsize,SAMPLE);
-	
+	if (!(overlap=ALLOCN(bsize,SAMPLE)))
+		FILTER_ERROR_RETURN("couldn't allocate overlap buffer");
+	if (!(win=hanning(bsize)))
+		FILTER_ERROR_RETURN("couldn't allocate window buffer");
+
+	for(i=0;i<bsize;i++)
+		DPRINTF("%f, ",win[i]);
+	DPRINTF("\n");
 	FILTER_AFTER_INIT;
 	
 	inb=sbuf_get(in);
@@ -118,6 +136,11 @@ static int fft_f(filter_t *n){
 			todo=MIN(sbuf_size(inb)-ioff,GLAME_WBUFSIZE-ooff);
 			i=todo/bsize;
 			if (i!=0) {
+				z=0;
+				for(j=0;j<i*bsize;j++){
+					iptr[j]*=win[z++];
+					if (z>bsize) z=0;
+				}
 				rfftw(p,i,(fftw_real *)iptr,1,bsize,(fftw_real *)optr,1,bsize);
 				iptr+=i*bsize;
 			  	optr+=i*bsize;
@@ -139,6 +162,8 @@ static int fft_f(filter_t *n){
 				{
 					memset(overlap+todo,0,(bsize-todo)*SAMPLE_SIZE); 
 				}
+				for(j=0;j<bsize;j++)
+					overlap[j]*=win[j];
 				rfftw_one(p,(fftw_real *)overlap,optr);
 				optr+=bsize;
 				ooff+=bsize;
@@ -178,6 +203,7 @@ out:
 	FILTER_BEFORE_CLEANUP;
 
 	free(overlap);
+	free(win);
 	rfftw_destroy_plan(p);
 	
 	FILTER_RETURN;
@@ -206,7 +232,8 @@ int fft_register(plugin_t *p)
 	f->f = fft_f;
 	f->connect_out = fft_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, fft_fixup_param, NULL);
-	
+	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, fft_fixup_param, NULL);
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform audio-stream to fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.xpm");
 
@@ -229,8 +256,8 @@ static int ifft_f(filter_t *n){
 	filter_pipe_t *in,*out;
 	filter_buffer_t *inb;
 	rfftw_plan p;
-	SAMPLE *overlap;
-	int osamp,bsize,i;
+	SAMPLE *overlap,*win;
+	int osamp,bsize,i,j;
 	float gain;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
@@ -248,7 +275,10 @@ static int ifft_f(filter_t *n){
 	p = rfftw_create_plan(bsize, FFTW_COMPLEX_TO_REAL, FFTW_ESTIMATE | FFTW_IN_PLACE);
 	pthread_mutex_unlock(&planlock);
 
-	overlap=ALLOCN(bsize,SAMPLE);
+	if (!(overlap=ALLOCN(bsize,SAMPLE)))
+		FILTER_ERROR_RETURN("couldn't allocate overlap buffer");
+	if (!(win=hanning(bsize)))
+		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 	
 	FILTER_AFTER_INIT;
 
@@ -261,8 +291,11 @@ static int ifft_f(filter_t *n){
 		/* In case we have no oversampling, we can process in place */
 		if (osamp==1) {
 			rfftw(p,sbuf_size(inb)/bsize,(fftw_real *)sbuf_buf(inb),1,bsize,NULL,1,1);
-			for(i=0;i<sbuf_size(inb);i++)
-				sbuf_buf(inb)[i]*=gain;
+			j=0;
+			for(i=0;i<sbuf_size(inb);i++){
+				sbuf_buf(inb)[i]*=gain*win[j++];
+				if (j>bsize) j=0;
+			}
 		}
 		sbuf_queue(out,inb);
 entry:
@@ -275,6 +308,7 @@ entry:
 	FILTER_BEFORE_CLEANUP;
 	
 	free(overlap);
+	free(win);
 	rfftw_destroy_plan(p);
 	
 	FILTER_RETURN;
