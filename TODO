@@ -15,8 +15,8 @@ doc/
 plugins/
 	[all]
 	- file_io needs fixed libaudiofile support
-	- provide pixmaps for all plugins (missing: echo, fft friends,
-          iir, noisegate, pan, rms, time, ...)
+	- provide pixmaps for all plugins (missing: fft friends,
+          iir, rms, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
 	- add position hint parameters to null and drop
@@ -35,7 +35,7 @@ filter/
   	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
             existance
 	  * fix the notion of network/node to child/parent relationships
-	  * higher order parameters (waveform)
+	  * higher order parameters (waveform) need save/load support
 
 swapfile/
         [richi]
@@ -53,7 +53,7 @@ glmid/
 
 gui/
 	[all]
-	- the timeline stuff is still missing
+	- the timeline stuff is not ready
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
@@ -67,7 +67,7 @@ gui/swapfilegui
 gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
-	- toolbar for zoom/select/play/record/close
+	- toolbar needs work
 
 gui/libgtkwaveform
 	[richi]
@@ -90,4 +90,4 @@ gui/edit_filter
 	- implement model-view-controller paradigma, aka drive gui through backend signals
 	- have GlameCanvas emit a signal after network execution so we
 	  can update the swapfiles managed through the gpsm
-	
+
