@@ -839,7 +839,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 
 static void wave_export_cb(GtkWidget *foo, void *bar)
 {
-	glame_export_dialog(active_waveedit->swfiles, NULL);
+	glame_export_dialog((gpsm_item_t *)active_waveedit->swfiles, NULL);
 }
 
 static void wave_help_cb(GtkWidget *foo, void*bar)

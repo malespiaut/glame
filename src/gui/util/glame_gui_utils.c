@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.18 2001/12/03 12:05:53 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.19 2001/12/13 14:53:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -571,7 +571,7 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption, const ch
 
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
 	if (helppath)
-		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button), "clicked", glame_help_cb, helppath);
+		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button), "clicked", glame_help_cb, (gpointer)helppath);
 	else
 		gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button));

@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.40 2001/12/11 09:10:08 richi Exp $
+ * $Id: glplugin.c,v 1.41 2001/12/13 14:58:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -166,7 +166,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 
 	/* Check version, if it doesnt match exactly, bail out. */
 	if (version && *version != GLAME_PLUGIN_VERSION) {
-		DPRINTF("Wrong plugin version %x\n", *version);
+		DPRINTF("Wrong plugin version %lx\n", *version);
 		return -1;
 	}
 

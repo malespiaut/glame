@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.10 2001/11/28 22:19:36 richi Exp $
+ * $Id: glame_param.c,v 1.11 2001/12/13 14:53:24 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -292,7 +292,9 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	GlameParam *gparam;
 	const char *param_label;
 	const char *label;
+#ifdef HAVE_LIBGLADE
 	char *xml;
+#endif
 
 	if (!param || FILTER_PARAM_IS_POS(param)
 	    || filterparam_get_property(param, FILTERPARAM_HIDDEN))
