@@ -30,5 +30,7 @@ glamemath: nold
 
 midi: garrison
 	src/plugins/midi*
+gui: xwolf
+	src/gui/*
 
 please add your stuff [richi]

@@ -24,7 +24,7 @@ setup filter networks, go to src/filter and try the executable
 test_network on various of the net_test_* files supplied there. A brief
 summary on how to setup your own net_test_ files is in the texinfo 
 documentation in doc/. A preliminary GUI is there as well, just try
-src/gui/main. You can query filter properties, create networks, set
+src/gui/glame. You can query filter properties, create networks, set
 parameters and listen to the output - that's all at the moment.
 
 The only really useful UI is cglame, console glame for now. You will end
