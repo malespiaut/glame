@@ -159,6 +159,9 @@ gtk_wave_view_new (void)
   waveview->drag_cursor = NULL;
   waveview->normal_cursor = NULL;
 
+  waveview->data = NULL;
+  waveview->data16 = NULL;
+
   return GTK_WIDGET (waveview);
 }
 
@@ -191,6 +194,11 @@ gtk_wave_view_real_destroy (GtkObject *obj)
     gdk_gc_unref (waveview->marker_gc);
     waveview->marker_gc = NULL;
   }
+
+  if (waveview->data != NULL)
+    g_free(waveview->data);
+  if (waveview->data16 != waveview->data && waveview->data16 != NULL)
+    g_free(waveview->data16);
 
   GTK_OBJECT_CLASS (parent_class)->destroy (obj); 
 }
@@ -546,18 +554,13 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
       /* we gotta do a lot of calculations to figure out their values.      */
       n_channels = waveview->n_channels;
 
+      /* In principle this is always G_WAVEFILE_TYPE_S16 for Glame. */
       datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
 
 #define REDRAW_BUFFER 1024
-      /* Allocate some temp space. */
-      data = g_malloc (g_wavefile_type_width (datatype) * n_channels * REDRAW_BUFFER);
-
-      /* Allocate more temp space if the data source datatype is not s16.
-         We then have to convert it to s16 data for cache use. */
-      if (datatype != G_WAVEFILE_TYPE_S16)
-        data16 = g_new (gint16, n_channels * REDRAW_BUFFER);
-      else
-        data16 = (gint16*) data;
+      /* Temporary space is in waveview. */
+      data = waveview->data;
+      data16 = waveview->data16;
 
       /* Approximate sample # range we need to recalc for the cache. */
       sample_offset = calc_frame_pos_win (waveview, min_val);
@@ -677,9 +680,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
         }
 
     out:
-      if (data16 != (void*) data)
-        g_free (data16);
-      g_free (data);
+      ;
     }
 
   /* Show marker. */
@@ -1712,6 +1713,10 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 
   gtk_wave_view_cache_free (waveview);
   g_free (waveview->channels);
+  if (waveview->data)
+    g_free(waveview->data);
+  if (waveview->data16 != waveview->data && waveview->data16)
+    g_free(waveview->data16);
 
   if (waveview->wavebuffer != NULL)
     {
@@ -1732,6 +1737,8 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 
   if (wavebuffer != NULL)
     {
+      GWavefileType datatype;
+
       gtk_object_ref (GTK_OBJECT (waveview->wavebuffer));
       gtk_object_sink (GTK_OBJECT (waveview->wavebuffer));
 
@@ -1765,6 +1772,13 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       waveview->marker = 0;
 
       gtk_wave_view_cache_create (waveview);
+
+      datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
+      waveview->data = g_malloc(g_wavefile_type_width (datatype) * waveview->n_channels * REDRAW_BUFFER);
+      if (datatype != G_WAVEFILE_TYPE_S16)
+	waveview->data16 = g_new(gint16, waveview->n_channels * REDRAW_BUFFER);
+      else
+	waveview->data16 = (gint16 *)waveview->data;
     }
   else
     {
@@ -1772,6 +1786,8 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       waveview->cache_tag = NULL;
       waveview->n_channels = 0;
       waveview->marker = -1;
+      waveview->data = NULL;
+      waveview->data16 = NULL;
     }
 
   gtk_widget_queue_draw (GTK_WAVE_VIEW (waveview)->area);
