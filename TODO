@@ -14,6 +14,8 @@ Known BUGS that should be fixed before 0.6.0:
 - intl for other than main widget needs to be done
 - looping support for swapfile_in filter and GUI
 - maybe disable timeline
+- fix or disable expand/collapse in filternetwork editor
+- fix filter_collapse not traversing all connections correctly
 
 
 Other items pending:
@@ -25,6 +27,8 @@ include/
 doc/
 	- better documentation for cglame, tutorial like
   	- filter writing tutorial
+	- update editfilter documentation - have a tutorial
+	  like introduction
 
 data/pixmaps/
 	- provide pixmaps for plugins lacking one
@@ -45,7 +49,6 @@ hash/
 
 filter/
 	[richi]
-	- allow node reparenting without breaking connections
 
 swapfile/
         [richi]
@@ -125,3 +128,4 @@ gui/edit_filter
           & friends)
 	- fold/unfold of groups
 	- connect for parameters of nodes of same type
+	- do grouping using expand/collapse functionality of the backend
