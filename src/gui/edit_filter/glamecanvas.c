@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.52 2004/12/26 20:56:32 richi Exp $
+ * $Id: glamecanvas.c,v 1.53 2005/03/19 22:00:46 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -442,16 +442,17 @@ void glame_canvas_add_last(GlameCanvas* canvas)
 void glame_canvas_group_delete(GlameCanvasGroup* group)
 {
 
-	GList* iter;
+	GList *iter, *niter;
 
 	iter = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
 	while(iter){
+		niter = g_list_next(iter);
 		if(GLAME_IS_CANVAS_FILTER(iter->data)){
 			filter_delete(GLAME_CANVAS_FILTER(iter->data)->filter);
 		}else if(GLAME_IS_CANVAS_GROUP(iter->data)){
 			glame_canvas_group_delete(GLAME_CANVAS_GROUP(iter->data));
 		}
-		iter = g_list_next(iter);
+		iter = niter;
 	}
 }
 
