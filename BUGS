@@ -88,7 +88,3 @@ Summary of known bugs and misfeatures in GLAME
 
 07-15-01 Not all (nearly none) parameters of filternetworks show realtime
   response on modification while a network is running.
-
-12-10-01 The audiofile wrapper is broken, so you get distorted waves at
-  the moment. Use recent audiofile library (0.2.2) to avoid using the
-  wrapper.
