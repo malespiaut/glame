@@ -564,13 +564,15 @@ static void play(GtkWaveView *waveview,
 			filter_add_node(net, one2n, "one2n");
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
 						    start, !extend ? end - start + 1 : -1, 0);
-			filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN));
+			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN)))
+				goto fail_ain;
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), render_in);
 			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
 		} else if (flg_mute[i] && flg_rec[i]) {
 			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
 						    start, !extend ? end - start + 1 : -1, 0);
-			filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+			if (!filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
+				goto fail_ain;
 		}
 	}
 
@@ -608,10 +610,11 @@ static void play(GtkWaveView *waveview,
 
 	return;
 
- fail:
-	glame_network_error_dialog(net, _("Cannot play wave"));
+fail_ain:
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
+		"Your audio device cannot record to so much tracks")));
 }
 
 
@@ -793,7 +796,7 @@ static void wave_close_cb(GtkWidget *foo, GtkObject *window)
 	    || GTK_WAVE_VIEW(active_waveedit->waveview)->drawing)
 		return;
 	if (active_waveedit->modified)
-		if (gnome_dialog_run_and_close(gnome_ok_cancel_dialog_modal_parented("Wave modified.\nDo you really want to close?", NULL, NULL, active_waveedit)) == 1)
+		if (gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_cancel_dialog_modal_parented("Wave modified.\nDo you really want to close?", NULL, NULL, GTK_WINDOW(active_waveedit)))) == 1)
 			return;
 	gtk_object_destroy(GTK_OBJECT(active_waveedit));
 }
