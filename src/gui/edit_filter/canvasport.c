@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.16 2001/07/10 13:26:19 richi Exp $
+ * $Id: canvasport.c,v 1.17 2001/07/10 15:20:08 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -188,10 +188,20 @@ glame_canvas_port_moved_cb(GlameCanvasFilter* f, double dx, double dy, GlameCanv
 	return FALSE;
 }
 
-static void glame_canvas_port_destroy_cb(glsig_handler_t *foo, long sig,
+static void glame_canvas_port_destroy_cb(glsig_handler_t *handler, long sig,
 					 va_list va)
 {
-	GlameCanvasPort *gPort = GLAME_CANVAS_PORT(glsig_handler_private(foo));
+	GlameCanvasPort *gPort;
+	filter_port_t *port;
+
+	/* Ignore not existing ports (and delete handler) */
+	GLSIGH_GETARGS1(va, port);
+	if (!hash_find_gcport(port)) {
+		glsig_delete_handler(handler);
+		return;
+	}
+
+	gPort = GLAME_CANVAS_PORT(glsig_handler_private(handler));
 	gtk_object_destroy(GTK_OBJECT(gPort));
 }
 
@@ -294,6 +304,15 @@ static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
 static void 
 glame_canvas_port_redirected_port_deleted_cb(glsig_handler_t* handler, long sig, va_list va)
 {
+	filter_port_t *port;
+
+	/* Ignore requests from deleted ports (and delete handler) */
+	GLSIGH_GETARGS1(va, port);
+	if (!hash_find_gcport(port)) {
+		glsig_delete_handler(handler);
+		return;
+	}
+
 	glame_canvas_port_set_external(GLAME_CANVAS_PORT(glsig_handler_private(handler)),FALSE);
 }
 static void 

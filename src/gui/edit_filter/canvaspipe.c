@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.16 2001/07/10 13:26:19 richi Exp $
+ * $Id: canvaspipe.c,v 1.17 2001/07/10 15:20:08 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -239,10 +239,19 @@ glame_canvas_pipe_port_changed_cb(GlameCanvasPort* p, GlameCanvasPipe* pipe)
 }
 
 static void
-glame_canvas_pipe_deleted_cb(glsig_handler_t* foo,long sig,va_list va)
+glame_canvas_pipe_deleted_cb(glsig_handler_t *handler,long sig,va_list va)
 {
-	
-	GlameCanvasPipe* gPipe = GLAME_CANVAS_PIPE(glsig_handler_private(foo));
+	GlameCanvasPipe* gPipe;
+	filter_pipe_t *pipe;
+
+	/* Ignore not existing pipes (and delete handler) */
+	GLSIGH_GETARGS1(va, pipe);
+	if (!hash_find_gcpipe(pipe)) {
+		glsig_delete_handler(handler);
+		return;
+	}
+
+	gPipe = GLAME_CANVAS_PIPE(glsig_handler_private(handler));
 	gtk_signal_emit_by_name(GTK_OBJECT(gPipe),"deleted");
 	gtk_object_destroy(GTK_OBJECT(gPipe));
 }
