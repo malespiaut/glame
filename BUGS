@@ -39,7 +39,7 @@ Summary of known bugs and misfeatures in GLAME
 - There exist some broken audio hardware or broken drivers - to name a few
   we stomped over: the ISA soundblaster cards dont seem to be good enough
   to allow recording in GLAME, the via8cxxx_driver in the linux kernel has
-  problems recording mono.
+  problems recording mono (supposed to be fixed with recent driver versions).
 
 - If the online-help does not work you either need to install gnome-help
   or put the path to the glame .info documentation into your gnome-helps
@@ -48,11 +48,12 @@ Summary of known bugs and misfeatures in GLAME
 - There seems to be a rather large memleak either in the fft plugin or in
   the libfftw used - but its only temporary during the plugin running.
 
-- BSD has not sufficient threads support builtin so you need to install
-  the linuxthreads package. Simple test for this is to issue
+- BSD may have not sufficient threads support. Simple test for this is to
+  issue
   cglame> (test-latency 5)
   within cglame. If it returns to the command line everything is fine -
-  if it hangs forever thread support is broken.
+  if it hangs forever thread support is broken (try installing the
+  linuxthreads package in this case).
 
 - The pipe_in/pipe_out plugins (and the derived read-mp3.scm filter)
   crash on some systems due to either pthread limitations or pthread
@@ -87,3 +88,6 @@ Summary of known bugs and misfeatures in GLAME
 07-15-01 Not all (nearly none) parameters of filternetworks show realtime
   response on modification while a network is running.
 
+11-08-01 Within the Apply filter... dialog adjusting parameters while
+  previewing has no effect (in case of applying this is a feature, with
+  previewing its a bug).

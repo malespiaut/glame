@@ -1,3 +1,17 @@
+GLAME development version 0.5.3:
+================================
+Bugfixing and pre-0.6 testing release. Changes since 0.5.2:
+- split documentation into devel and users section
+- start of localization of GLAME
+- use libltdl to support more architectures / static builds
+- filter subsystem now uses pthread mutexes/conditions, so systems
+  with broken userspace thread libraries (like BSD) should work
+- the waveedit/timeline windows got a more sophisticated ruler
+- real time updates of parameters are now supported everywhere
+  (in case the plugin cares)
+- we got a cool import dialog
+- bugfixes
+
 GLAME development version 0.5.2:
 ================================
 Bugfixed sneak preview release after LinuxTag. Changes since 0.5.1:

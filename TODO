@@ -2,11 +2,6 @@ TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
 
-Known BUGS that should be fixed before 0.5.3:
----------------------------------------------
-- testing
-
-
 Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
 - import dialog needs to be finished
@@ -67,6 +62,8 @@ glmid/
 	  itself, just editing operations.
 	- fix SMOB garbage collecting - introduce explicit object
 	  dependencies (start with gpsm: guilify the tree).
+	- fix gpsm placing/inserting checks for overlaps, fix
+	  copy/link in swapfilegui then to use insert not place
 
 gui/
 	[all]
