@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.24 2002/01/01 17:48:05 richi Exp $
+ * $Id: glame_audiofile.c,v 1.25 2002/02/27 22:40:08 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -931,7 +931,7 @@ long afQueryLong (int querytype, int arg1, int arg2, int arg3, int arg4)
 void *afQueryPointer (int querytype, int arg1, int arg2, int arg3, int arg4)
 {
 	static int glame_audiofile_ids[] = { AF_FILE_WAVE };
-	static char *glame_audiofile_labels[] = { [AF_FILE_WAVE] = "wave" };
+	static char *glame_audiofile_labels[] = { NULL, NULL, NULL, NULL, "wave" };
 	switch (querytype) {
 	case AF_QUERYTYPE_FILEFMT:
 		switch (arg1) {
