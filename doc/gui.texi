@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.23 2002/04/27 12:44:13 richi Exp $
+@comment $Id: gui.texi,v 1.24 2005/03/28 20:26:43 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -25,13 +25,12 @@ being able to display texinfo docs. (The standard gnome-help is.)
 
 @menu
 * The Main Window::
-* The Timeline::
 * The Wave Editor::
 * The Filternetwork Editor::
 * Dialogs::
 @end menu
 
-@node The Main Window, The Timeline, , Graphical Frontend
+@node The Main Window, The Wave Editor, , Graphical Frontend
 @section The Main Window
 
 On startup, @file{glame} will present you with an application window in
@@ -62,10 +61,6 @@ pops up a new window of the wave editor @pxref{The Wave Editor} containing
 all items of the group, where you can easily modify them. This operation is
 not allowed for groups that in turn contain further sub-groups. Opening
 a wave editor can be done by using the @code{w} key, too.
-
-@item Timeline
-pops up a new window of the timeline @pxref{The Timeline} containing all items
-of the group. This operation is not allowed for single items.
 
 @item Delete
 deletes the current group and all its items.
@@ -256,31 +251,7 @@ documentation, or jump directly to the quick start guide.
 
 
 
-@node The Timeline, The Wave Editor, The Main Window, Graphical Frontend
-@section The Timeline
-
-@strong{The timeline view is highly experimental and may cause other
-parts of GLAME to fail operating on modified tracks. You can usually
-recover from this situation by flattening the affected subtree, but
-this may be not the thing you want to do. Be warned.}
-
-The timeline pops up when the @code{Timeline} function is applied to a
-group in the main window. The timeline presents a time vs. track view
-of the group. At the top of the window there is a ruler which shows
-the time in seconds.
-
-The active item and group appear highlighted. You can move the active
-item horizontally (in time) using the mouse by clicking and dragging.
-You can move items vertically (changing the track an item is in) by
-using the up and down arrow keys. You can move whole groups vertically
-by using the up and down arrow keys in conjunction with the shift
-modifier key.
-
-Like in any other window, the @code{Close} and @code{Help} toolbar entries
-close the window, or bring up the gnome help browser with this documentation,
-respectively.
-
-@node The Wave Editor, The Filternetwork Editor, The Timeline, Graphical Frontend
+@node The Wave Editor, The Filternetwork Editor, The Main Window, Graphical Frontend
 @section The Wave Editor
 
 The wave editor pops up when the @code{Edit} function is applied to either a
