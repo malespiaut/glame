@@ -4,7 +4,6 @@ supposed to fix it.
 
 Known BUGS that should be fixed before 0.5.3:
 ---------------------------------------------
-- the waveform widget broke by adding the signal handler
 - new import dialog needs to be finished and replace the
   existing one
 
