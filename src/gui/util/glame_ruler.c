@@ -365,10 +365,10 @@ glame_ruler_expose (GtkWidget      *widget,
       gdk_draw_pixmap (widget->window,
 		       ruler->non_gr_exp_gc,
 		       ruler->backing_store,
-		       0, 0, 0, 0,
-		       widget->allocation.width,
-		       widget->allocation.height);
-      
+		       event->area.x, event->area.y,
+		       event->area.x, event->area.y,
+		       event->area.width, event->area.height);
+
       glame_ruler_draw_pos (ruler);
     }
 
