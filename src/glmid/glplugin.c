@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.45 2004/10/23 13:09:23 richi Exp $
+ * $Id: glplugin.c,v 1.46 2005/01/11 16:27:25 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003 Richard Guenther
  *
@@ -62,9 +62,9 @@ static struct glame_list_head plugin_list = GLAME_LIST_HEAD_INIT(plugin_list);
 /* Helpers.
  */
 
-static void mangle_name(char *dest, const char *name)
+static void mangle_name(char *dest, size_t len, const char *name)
 {
-	strncpy(dest, name, 32);
+	strncpy(dest, name, len);
 	while ((dest = strchr(dest, '-')))
 		*dest = '_';
 }
@@ -188,7 +188,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 		psname = sp;
 		if ((sp = strchr(psname, ' ')))
 			*(sp++) = '\0';
-		mangle_name(name, psname);
+		mangle_name(name, 32, psname);
 		if (!(pn = _plugin_alloc(name)))
 			return -1;
 		plugin_set(pn, PLUGIN_PARENT, p);
@@ -300,7 +300,7 @@ int plugin_load(const char *filename)
 	    && !(s = strstr(name, ".so")))
 	    	return -1; /* This cannot be a shared object plugin. */
 	*s = '\0';
-	mangle_name(mname, name);
+	mangle_name(mname, 256, name);
 
 	/* Already loaded? - fail. */
 	if (hash_find_plugin(mname) != NULL)
@@ -330,7 +330,7 @@ plugin_t *plugin_get(const char *nm)
 
 	if (!nm)
 		return NULL;
-	mangle_name(name, nm);
+	mangle_name(name, 32, nm);
 
 	/* already loaded? */
 	if ((p = hash_find_plugin(name)))
@@ -346,13 +346,13 @@ plugin_t *plugin_get(const char *nm)
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
-		sprintf(filename, "%s/%s", path->path, name);
+		snprintf(filename, 256, "%s/%s", path->path, name);
 		if (try_load_plugin(p, name, filename) == 0)
 			goto found;
 	}
 
 	/* last try LD_LIBRARY_PATH supported plugins */
-	sprintf(filename, "%s", name);
+	snprintf(filename, 256, "%s", name);
 	if (try_load_plugin(p, name, filename) == 0)
 		goto found;
 
@@ -407,7 +407,7 @@ plugin_t *plugin_add(const char *name)
 
 	if (!name)
 		return NULL;
-	mangle_name(nm, name);
+	mangle_name(nm, 32, name);
 
 	if (!(p = _plugin_alloc(nm)))
 		return NULL;
