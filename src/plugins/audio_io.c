@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.43 2002/05/12 17:39:43 richi Exp $
+ * $Id: audio_io.c,v 1.44 2002/06/09 08:41:11 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -78,8 +78,8 @@ static int aio_generic_connect_out(filter_port_t *outp, filter_pipe_t *pipe)
 	float phi = FILTER_PIPEPOS_CENTRE;
 	int rate = GLAME_DEFAULT_SAMPLERATE;
 
-	/* Limit to stereo capture */
-	if (filterport_nrpipes(outp) > 1)
+	/* Limit to stereo capture - not */
+	if (0 && filterport_nrpipes(outp) > 1)
 		return -1;
 	
 	/* Check for default rate parameter */

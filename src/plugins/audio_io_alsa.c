@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.10 2002/05/12 17:39:43 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.11 2002/06/09 08:41:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -204,10 +204,9 @@ static int alsa_audio_in_f(filter_t *n)
 	chancnt = filterport_nrpipes(outport);
 	if (chancnt==0)
 		FILTER_ERROR_RETURN("No output channels!");
-	if (chancnt>2)
-		FILTER_ERROR_RETURN("Only 2 channels supported");
-	
 
+	/* For <=2 channels this makes us record left/right to
+	 * the right pipes. For >2 channels, we cant do better, either. */
 	pipe[0] = filterport_get_pipe(outport);
 	pipe[1] = filterport_next_pipe(outport, pipe[0]);
 
