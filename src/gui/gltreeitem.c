@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.16 2002/01/01 22:06:39 richi Exp $
+ * $Id: gltreeitem.c,v 1.17 2002/02/18 22:55:28 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -87,7 +87,7 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
         itemw->item = (gpsm_item_t *)item;
 	itemw->hbox = gtk_hbox_new(FALSE, 5);
 	itemw->label = GTK_LABEL(gtk_label_new(NULL));
-	gtk_label_set_justify(GTK_LABEL(itemw->label), GTK_JUSTIFY_LEFT);
+	gtk_misc_set_alignment(GTK_MISC(itemw->label), 0.0, 0.5);
 	itemw->pos_adj = NULL;
 	if (GPSM_ITEM_IS_SWFILE(item)) {
 		GtkWidget *slider;
@@ -125,13 +125,20 @@ void glame_tree_item_update(GlameTreeItem *item)
 		else if (gpsm_item_vsize(item->item) == 0)
 			snprintf(buf, 255, "%s",
 				 gpsm_item_label(item->item));
-		else
-			snprintf(buf, 255, "%s - %li tracks, %li samples - (%li, %li)",
+		else {
+			int hbox, vbox;
+			hbox = gpsm_grp_is_hbox((gpsm_grp_t *)item->item);
+			vbox = gpsm_grp_is_vbox((gpsm_grp_t *)item->item);
+			snprintf(buf, 255, "%s - %li tracks, %li samples - (%li, %li)%s",
 				 gpsm_item_label(item->item),
 				 gpsm_item_vsize(item->item),
 				 gpsm_item_hsize(item->item),
 				 gpsm_item_hposition(item->item),
-				 gpsm_item_vposition(item->item));
+				 gpsm_item_vposition(item->item),
+				 hbox && !vbox ? " [HBOX]"
+				 : !hbox && vbox ? " [VBOX]"
+				 : hbox && vbox ? " [BOX]" : " [XXXX]");
+		}
 	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
 		swfd_t fd = sw_open(gpsm_swfile_filename(item->item),
 				    O_RDONLY);
