@@ -735,7 +735,7 @@ void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
 
 void gpsm_notify_swapfile_change(long filename, long pos, long size)
 {
-	gpsm_swfile_t *swfile;
+	gpsm_swfile_t *swfile = NULL;
 #ifdef DEBUG
 	swfd_t fd;
 	struct sw_stat st;
@@ -984,5 +984,164 @@ next_entry:
 		item = next;
 	}
 
+	return NULL;
+}
+
+gpsm_swfile_t *gpsm_find_swfile_vposition(gpsm_grp_t *root, gpsm_item_t *start,
+					  long vposition)
+{
+	gpsm_item_t *item, *next;
+
+	if (!start) {
+		item = list_gethead(&root->items, gpsm_item_t, list);
+	} else {
+		item = start;
+		goto next_entry;
+	}
+
+	while (item) {
+		if (GPSM_ITEM_IS_SWFILE(item)
+		    && gpsm_item_vposition(item) == vposition)
+			return (gpsm_swfile_t *)item;
+next_entry:
+		if (GPSM_ITEM_IS_GRP(item))
+			next = list_gethead(&((gpsm_grp_t *)item)->items,
+					    gpsm_item_t, list);
+		else
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		while (!next) {
+			item = (gpsm_item_t *)item->parent;
+			if (item == (gpsm_item_t *)root)
+				return NULL;
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		}
+		item = next;
+	}
+
+	return NULL;
+}
+
+
+
+/*
+ * Complex operations.
+ */
+
+gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
+{
+	gpsm_grp_t *grp;
+	gpsm_item_t *it, *next;
+	char label[256];
+	long hpos, vpos;
+
+	if (!item)
+		return NULL;
+
+	snprintf(label, 255, "Flattened COW copy of %s",
+		 gpsm_item_label(item));
+	if (!(grp = gpsm_newgrp(label)))
+		return NULL;
+
+	/* Handle the special case of swfile item first. */
+	if (GPSM_ITEM_IS_SWFILE(item)) {
+		gpsm_swfile_t *cowi;
+
+		if (!(cowi = gpsm_swfile_cow((gpsm_swfile_t *)item)))
+			goto fail;
+		gpsm_grp_insert(grp, (gpsm_item_t *)cowi, 0, 0);
+		return grp;
+	}
+
+	/* The rest is for the usual case of item being a group.
+	 * Traverse the subtree and insert the found swfiles into
+	 * newly created ones in the grp. */
+	hpos = vpos = 0;
+	it = list_gethead(&((gpsm_grp_t *)item)->items, gpsm_item_t, list);
+	while (it) {
+		/* If its a swfile, process it - remember, its position
+		 * needs to be adjusted by hpos/vpos. */
+		if (GPSM_ITEM_IS_SWFILE(it)) {
+			gpsm_swfile_t *fswfile;
+			swfd_t ffd, fd;
+			struct sw_stat st, st2;
+			long ithpos, itvpos;
+			int res;
+
+			ithpos = gpsm_item_hposition(it) + hpos;
+			itvpos = gpsm_item_vposition(it) + vpos;
+			fswfile = gpsm_find_swfile_vposition(grp, NULL, itvpos);
+			if (!fswfile) {
+				snprintf(label, 255, "Track %li", itvpos);
+				if (!(fswfile = gpsm_newswfile(label)))
+					goto fail;
+				gpsm_grp_insert(grp, (gpsm_item_t *)fswfile, 0, itvpos);
+			}
+			ffd = sw_open(gpsm_swfile_filename(fswfile), O_RDWR, TXN_NONE);
+			fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+			sw_fstat(fd, &st);
+			sw_fstat(ffd, &st2);
+			if (ithpos*SAMPLE_SIZE + st.size > st2.size)
+				sw_ftruncate(ffd, ithpos*SAMPLE_SIZE + st.size);
+			sw_lseek(ffd, ithpos*SAMPLE_SIZE, SEEK_SET);
+			res = sw_sendfile(ffd, fd, st.size, 0);
+			sw_close(fd);
+			sw_close(ffd);
+			if (res == -1)
+				goto fail;
+		}
+
+		/* Find the next item to be processed - looks
+		 * complicated, but thats iterative tree traversal. */
+		if (GPSM_ITEM_IS_GRP(it)) {
+			next = list_gethead(&((gpsm_grp_t *)it)->items,
+					    gpsm_item_t, list);
+			hpos += gpsm_item_hposition(it);
+			vpos += gpsm_item_vposition(it);
+		} else
+			next = list_getnext(&it->parent->items, it,
+					    gpsm_item_t, list);
+		while (!next) {
+			it = (gpsm_item_t *)it->parent;
+			if (it == item)
+				break;
+			hpos -= gpsm_item_hposition(it);
+			vpos -= gpsm_item_vposition(it);
+			next = list_getnext(&it->parent->items, it,
+					    gpsm_item_t, list);
+		}
+		it = next;
+	}
+
+	/* Fix the length of all swfiles - set it to the maximum.
+	 * And notify gpsm of the change (invalidate). */
+	hpos = 0;
+	gpsm_grp_foreach_item(grp, it) {
+		swfd_t fd;
+		struct sw_stat st;
+		if (!GPSM_ITEM_IS_SWFILE(it))
+			continue;
+		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+		sw_fstat(fd, &st);
+		if (st.size > hpos)
+			hpos = st.size;
+		sw_close(fd);
+	}
+	gpsm_grp_foreach_item(grp, it) {
+		swfd_t fd;
+		if (!GPSM_ITEM_IS_SWFILE(it))
+			continue;
+		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+		sw_ftruncate(fd, hpos);
+		sw_close(fd);
+		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
+	}
+
+	return grp;
+
+ fail:
+	DPRINTF("failed!\n");
+	gpsm_item_destroy((gpsm_item_t *)grp);
 	return NULL;
 }

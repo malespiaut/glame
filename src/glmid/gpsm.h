@@ -253,6 +253,13 @@ gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
 gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
 					 long filename);
 
+/* Find a gpsm-swfile by vposition in the subtree specified by root. The
+ * search is started at the item start (or at the root, if you specify
+ * NULL). You can find all occurences by specifying the previous
+ * result as start. Returns a gpsm-swfile, if found or NULL, if not. */
+gpsm_swfile_t *gpsm_find_swfile_vposition(gpsm_grp_t *root, gpsm_item_t *start,
+					  long vposition);
+
 
 /* Updates the label of the specified gpsm-item. Note that this will
  * cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
@@ -284,6 +291,20 @@ void gpsm_notify_swapfile_change(long filename, long pos, long size);
 void gpsm_notify_swapfile_cut(long filename, long pos, long size);
 void gpsm_notify_swapfile_insert(long filename, long pos, long size);
 void gpsm_invalidate_swapfile(long filename);
+
+
+/* Flattens a gpsm item, that is, out of a possible deep tree of
+ * horizontally and vertically spreaded swfiles make a set of
+ * vertically aligned (read: starting at position zero and ending
+ * at the maximum position) swfiles.
+ * Returns a new group with new swfiles, one for each vertical track.
+ * The data is COWed from the original tree. In the special case of
+ * providing a swfile as item a new group with a COW copy of this
+ * item is returned (without paying attention to hposition of the item).
+ * On failure NULL is returned.
+ * Note that this feature greatly simplifies operations such as play
+ * and export (i.e. where you only want to _read_ from the files). */
+gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
 
 
 #endif
