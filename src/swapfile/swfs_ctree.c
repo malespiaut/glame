@@ -36,7 +36,10 @@ static void ctree_mark_end(struct ctree *t);
 	ctree_mark_end(t); \
 } while (0)
 static void ctree_build_partial(struct ctree *t, long pos, long cnt);
-#define ctree_build(t) ctree_build_partial(t, 0, (t)->cnt)
+#define ctree_build(t) do { \
+        ctree_set_cnt(t, (t)->cnt); \
+        ctree_build_partial(t, 0, (t)->cnt); \
+} while (0)
 
 
 
@@ -54,7 +57,7 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 	 * (the cluster sizes) is not s64, but s32... so
 	 * we need to seperate the last iteration. */
 	while (--height) {
-		if (tree64[2*i] == 0
+		if (pos == offset
 		    || pos+tree64[2*i] > offset) {
 			i = 2*i;
 		} else {
@@ -79,7 +82,19 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 		*coff = pos;
 
 	/* Offset inside size/cid subarray. */
-	return i-2*(1<<h->height);
+	i = i-2*(1<<h->height);
+
+	/* If out of range, something is broken. */
+	if (i<0 || i>=h->cnt) {
+		/* FUCK! why does this happen at all (in _consistent_ ctree!)?
+		 * HACK!
+		DPRINTF("Search for offset %li, gives %li\n", (long)offset, i);
+		ctree_dump(h);
+		DERROR("Uh, out of range ctree find?"); */
+		return -1;
+	}
+
+	return i;
 }
 
 
@@ -228,7 +243,9 @@ int ctree_check(struct ctree *t)
 	long i;
 
 	/* Check size/h/cnt consistency. */
-	if (CTREEMAXCNT(h) < t->cnt || t->size < t->cnt) {
+	if (CTREEMAXCNT(h) < t->cnt
+	    || t->size < t->cnt
+	    || (t->cnt == 0 && t->size != 0)) {
 		DPRINTF("Inconsistent height %li, cnt %li, size %li\n",
 			(long)h, (long)t->cnt, (long)t->size);
 		return -1;
@@ -261,6 +278,31 @@ int ctree_check(struct ctree *t)
 	}
 
 	return 0;
+}
+
+void ctree_dump(struct ctree *t)
+{
+	long i, j;
+
+	/* Print header. */
+	printf("CTREE %p: height %i, cnt %i, size %li\n", t,
+	       (int)t->height, (int)t->cnt, (long)t->size);
+
+	printf("0\t%li\n", (long)t->size);
+	for (i=1; i<t->height; i++) {
+		printf("%li\t", i);
+		for (j=0; j<(1<<i); j++)
+			printf("%li ", (long)CSUM(t, i, j));
+		printf("\n");
+	}
+	printf("SIZE\t");
+	for (j=0; j<CTREEMAXCNT(t->height); j++)
+		printf("%li ", (long)CSIZE(t, j));
+	printf("\n");
+	printf("CID\t");
+	for (j=0; j<CTREEMAXCNT(t->height); j++)
+		printf("%li ", (long)CID(t, j));
+	printf("\n");
 }
 
 
@@ -332,9 +374,9 @@ static void ctree_mark_end(struct ctree *t)
 	if (t->cnt == 0) {
 		CSIZE(t, 0) = 0;
 		CSIZE(t, 1) = 0;
-		while (--h) {
-			CSUM(t, h-1, 0) = 0;
-			CSUM(t, h-1, 1) = 0;
+		while (--h>0) {
+			CSUM(t, h, 0) = 0;
+			CSUM(t, h, 1) = 0;
 		}
 		t->size = 0;
 		return;

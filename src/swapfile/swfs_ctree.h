@@ -148,5 +148,6 @@ static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
  * -1 otherwise. */
 int ctree_check(struct ctree *t);
 
+void ctree_dump(struct ctree *t);
 
 #endif
