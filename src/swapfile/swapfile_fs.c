@@ -1403,7 +1403,7 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 		return MAP_FAILED;
 	}
 
-	if (flags & MAP_FIXED) {
+	if (flags & ~(MAP_PRIVATE|MAP_SHARED)) {
 		errno = EINVAL;
 		return MAP_FAILED;
 	}
