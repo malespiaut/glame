@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.3 2001/06/13 09:25:42 richi Exp $
+ * $Id: glame_accelerator.h,v 1.4 2001/06/18 08:16:46 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -33,6 +33,9 @@
 /* Initialize the accelerator subsystem. Returns 0 on success, -1
  * on error. */
 int glame_accel_init();
+
+/* Sync the accelerator table to disk (~.glame-accels). */
+void glame_accel_sync();
 
 
 /* Constructs the accelerator table from the provided xml document.
