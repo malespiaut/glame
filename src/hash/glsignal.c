@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.16 2004/03/26 16:25:20 richi Exp $
+ * $Id: glsignal.c,v 1.17 2004/03/26 18:38:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -61,8 +61,12 @@ static void glsig_redirector(glsig_handler_t *h, long sig, va_list va)
 {
 	glsig_emitter_t *dest = (glsig_emitter_t *)glsig_handler_private(h);
 
-	glame_list_foreach(&dest->handlers, glsig_handler_t, list, h)
-		_glsig_handler_exec(h, sig, va);
+	glame_list_foreach(&dest->handlers, glsig_handler_t, list, h) {
+		va_list vac;
+		va_copy(vac, va);
+		_glsig_handler_exec(h, sig, vac);
+		va_end(vac);
+	}
 	_glsig_after_emit(dest);
 }
 
