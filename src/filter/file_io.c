@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: file_io.c,v 1.5 2000/02/17 17:58:36 nold Exp $ 
+ * $Id: file_io.c,v 1.6 2000/02/17 23:38:48 mag Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -158,38 +158,42 @@ _bailout:
 
 static int read_file_f(filter_node_t *n)
 {
-	filter_pipe_t *left,*right;
-	filter_buffer_t	*lbuf,*rbuf;
+	typedef struct {
+		filter_pipe_t 	*p;
+		filter_buffer_t *buf;
+		int		pos;
+	} track_t;
+	filter_pipe_t	*p_out;
 	filter_param_t	*param;
-	char	*filename;
+	int		activecnt;
+	track_t		*track=NULL;
+	
 	AFfilehandle    file;
         AFframecount    frameCount;
-	int sampleFormat,sampleWidth,channelCount,frameSize;
-	short int *buffer;
-	char *cbuffer;
-	int rpos,lpos,olpos,orpos,frames,sent=0;
-	int i,j;
-	double sampleRate;
-	int sclfak;
+	int 		sampleFormat,sampleWidth,channelCount,frameSize;
+	short int 	*buffer;
+	char 		*cbuffer;
+	int 		frames;
+	int 		i,j;
+	double 		sampleRate;
 
 	DPRINTF("read-file started!\n");
 
-	left = filternode_get_output(n, PORTNAME_LEFT_OUT);
-	right = filternode_get_output(n, PORTNAME_RIGHT_OUT);
+	p_out = filternode_get_output(n, PORTNAME_OUT);
 
-	if ((!left && !right)){
+	if (!p_out){
 		DPRINTF("Couldn't find channels!\n");
 		return -1;
 	}
 
-	if ((param = filternode_get_param(n, "filename"))) {
-		filename=strdup(param->val.string);
-	} else {
+	if (!(param = filternode_get_param(n, "filename"))) {
 		DPRINTF("Missing parameter filename!\n");
 		return -1;
 	}
-	
-	if ((file=afOpenFile(filename,"r",NULL))==NULL){
+
+	DPRINTF("Opening %s\n",filterparam_val_string(param));
+
+	if ((file=afOpenFile(filterparam_val_string(param),"r",NULL))==NULL){
 		DPRINTF("File not found!\n");
 		return -1;
 	}
@@ -200,20 +204,11 @@ static int read_file_f(filter_node_t *n)
 	frameSize = afGetFrameSize(file, AF_DEFAULT_TRACK, 1);
 	sampleRate = afGetRate(file, AF_DEFAULT_TRACK);
 	
-	sclfak=(int)(44100.0/sampleRate);	/* FIXME Quickhack, should be done by resample filter and better...*/
-	
-	DPRINTF("framesize=%d channelCount=%d frameCount=%d sampleRate=%.2f sclfak=%d\n",frameSize,channelCount,(int)frameCount,sampleRate,sclfak);
-
 	if ((sampleFormat != AF_SAMPFMT_TWOSCOMP) && (sampleFormat != AF_SAMPFMT_UNSIGNED)){
 		DPRINTF("Format not yet supported!\n");
 		goto _bailout;
 	}
 	
-        if ((channelCount > 2)){
-		DPRINTF("Max. 2 channels allowed!\n");
-		goto _bailout;
-	}
-
 	if ((buffer=(short int*)malloc(GLAME_WBUFSIZE*frameSize))==NULL){
 		DPRINTF("Couldn't allocate buffer!\n");
 		goto _bailout;
@@ -221,75 +216,93 @@ static int read_file_f(filter_node_t *n)
 
 	FILTER_AFTER_INIT;
 
+	activecnt=0;
+	filternode_foreach_output(n,p_out) activecnt++;
+
+	DPRINTF("%d pipes active\n",activecnt);
+
+	if (activecnt<channelCount){
+		DPRINTF("Not enough output pipes connected!\n");
+		goto _cleanup;
+	} else {
+		if (!(track=(track_t *)malloc(activecnt*sizeof(track_t)))){
+			DPRINTF("alloc track failed!\n");
+			goto _cleanup;
+		}
+		
+		/* store active pipes */
+		p_out=filternode_get_output(n, PORTNAME_OUT);
+		i=0;
+		do {
+			track[i].p=p_out;
+			/* FIXME is it ok to set this stuff in here ? 
+			 * where else...
+			 * It's not ok here, but IMHO sampleRate should go into sbuf -> more flexible!
+			 */
+			p_out->type = FILTER_PIPETYPE_SAMPLE;
+			p_out->u.sample.rate = (int)sampleRate;
+			i++;
+			p_out=filternode_next_output(p_out);
+		} while(i!=channelCount);
+	
+		/* send EOF's to all useless output pipes */
+		while(p_out){
+			sbuf_queue(p_out,NULL);
+			p_out=filternode_next_output(p_out);
+		}
+	}
 	cbuffer=(char *)buffer;
 
 	while(pthread_testcancel(),frameCount){
 		if (!(frames=afReadFrames(file, AF_DEFAULT_TRACK, buffer,MIN(GLAME_WBUFSIZE,frameCount))))
 				break;
 		frameCount-=frames;
-		if (channelCount==1){
-			lbuf=sbuf_alloc(frames*sclfak, n);
-			i=0;
-			lpos=0;
-			while(i<frames){
-				olpos=lpos;
+
+		for(i=0;i<channelCount;i++){
+			track[i].buf=sbuf_alloc(frames,n);
+			track[i].buf=sbuf_make_private(track[i].buf);
+			track[i].pos=0;
+			if(i<=SBUF_POS_RIGHT)
+				sbuf_pos(track[i].buf)=i;
+			else
+				sbuf_pos(track[i].buf)=SBUF_POS_ANY;
+		}
+		i=0;
+		while(i<frames*channelCount){
+			for(j=0;j<channelCount;j++){
 				switch(sampleWidth) {
 				case 16 : 
-					sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
+					sbuf_buf(track[j].buf)[track[j].pos++]=SHORT2SAMPLE(buffer[i++]);
 					break;
 				case  8 : 
-					sbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					sbuf_buf(track[j].buf)[track[j].pos++]=CHAR2SAMPLE(cbuffer[i++]);
 					break;
-				}
-				for(j=1;j<sclfak;j++) sbuf_buf(lbuf)[lpos++]=sbuf_buf(lbuf)[olpos];
-			}
-			sbuf_queue(left,lbuf);
-			sent+=2;
-		}else{
-			lbuf=sbuf_alloc(frames*sclfak, n);
-			rbuf=sbuf_alloc(frames*sclfak, n);
-			i=0;
-			rpos=0;
-			lpos=0;
-			while(i<frames*2){
-				olpos=lpos;
-				orpos=rpos;
-				switch(sampleWidth){
-				case 16 :
-					sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
-					sbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buffer[i++]);
-					break;
-				case  8 :
-					sbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
-					sbuf_buf(rbuf)[rpos++]=CHAR2SAMPLE(cbuffer[i++]);
-					break;
-				}
-				for(j=1;j<sclfak;j++){
-					sbuf_buf(lbuf)[lpos++]=sbuf_buf(lbuf)[olpos];
-					sbuf_buf(rbuf)[rpos++]=sbuf_buf(rbuf)[orpos];
 				}
 			}
-			sbuf_queue(left,lbuf);
-			sbuf_queue(right,rbuf);
-			sent+=2;
-		}
+		}	
+		for(i=0;i<channelCount;i++) sbuf_queue(track[i].p,track[i].buf);
 	}
 
-	sbuf_queue(left,NULL);
-	sbuf_queue(right,NULL);
-
+_cleanup:
+	/* clean exit, send EOF to each pipe
+	 * FIXME does it matter if NULL is sent twice to a port?
+	 */
+	filternode_foreach_output(n,p_out)
+		sbuf_queue(p_out,NULL);
 	FILTER_BEFORE_CLEANUP;
 
+	free(track);
 	free(buffer);
 	afCloseFile(file);
 	
-	DPRINTF("sent %d buffers\n",sent);
 	return 0;
 _bailout:
 	DPRINTF("read-file bailout!\n");
 	afCloseFile(file);
 	return -1;
 }
+
+#if 0
 
 int read_file_connect_out(filter_node_t *n, const char *port,
 			  filter_pipe_t *p)
@@ -335,6 +348,7 @@ int read_file_fixup_param(filter_node_t *n, const char *NAME)
 	return 0;
 }
 
+#endif
 
 /* Registry setup of all contained filters
  */
@@ -342,17 +356,24 @@ int file_io_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f)))
+	if (!(f = filter_alloc("read_file", "This filter reads various audiofile formats\n"
+					    "supported by libaudiofile including:       \n"
+					    " - Microsoft Wav                 (.wav)    \n"
+					    " - Sun audio                     (.au)     \n"
+					    " - Audio Interchange File Format (.aiff)   \n"
+					    " etc.                                      \n"
+					    " For more information consult libaudiofile \n"
+					    " documentation.                            \n\n"
+					    "(c) Alexander Ehlert 2000                  \n", read_file_f)))
 		return -1;
-	if (!filter_add_output(f, PORTNAME_LEFT_OUT, "left channel",
-			       FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_RIGHT_OUT, "right channel",
-				  FILTER_PORTTYPE_SAMPLE)
+	if (!filter_add_output(f, PORTNAME_OUT, "output channels",
+			       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC)
 	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
 		return -1;
+#if 0
 	f->connect_out = read_file_connect_out;
 	f->fixup_param = read_file_fixup_param;
-	
+#endif	
 	if (filter_add(f) == -1)
 		return -1;
 
