@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.14 2000/04/07 14:06:50 nold Exp $
+ * $Id: audio_io.c,v 1.15 2000/04/11 16:39:30 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -1017,6 +1017,12 @@ static int esd_out_f(filter_node_t *n)
 	if (dev_param)
 		host = filterparam_val_string(dev_param);
 	format |= (max_ch == 1) ? ESD_MONO : ESD_STEREO;
+	/* Beware. If no esd server was running, it will be started now.
+	 * Startup latency is really erratic. I've seen it jump from
+	 * unmeasurable to 10 seconds if only one more thread was spawned in
+	 * the filter chain! 100% reproducable. This sucks.
+	 */
+	DPRINTF("Starting up esd stream - occasionally takes a long time.\n");
 	esound_socket = esd_play_stream_fallback(format, rate, host, NULL);
 	if (esound_socket <= 0)
 	        FILTER_ERROR_RETURN("couldn't open esd-socket connection!");
