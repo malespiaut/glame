@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.9 2000/12/12 18:24:10 richi Exp $
+ * $Id: glsignal.c,v 1.10 2001/04/09 09:17:58 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -23,15 +23,46 @@
 #include "glsignal.h"
 
 
+#define GLSIG_HANDLER_RUNNING (1<<31)
+
+
+/* Execute a signal handler doing preparation for lazy deletion. */
+static inline void _glsig_handler_exec(glsig_handler_t *h,
+				       long sig, va_list va)
+{
+	int was_running = 0;
+
+	/* !h->handler means this handler is really deleted. */
+	if (!h->handler || !(h->sigmask & sig))
+		return;
+	if (h->sigmask & GLSIG_HANDLER_RUNNING)
+		was_running = 1;
+	h->sigmask |= GLSIG_HANDLER_RUNNING;
+	h->handler(h, sig, va);
+	if (!was_running)
+		h->sigmask &= ~GLSIG_HANDLER_RUNNING;
+}
+
+/* Second run through the signal handler list - delete all handlers
+ * marked for delayed deletion. */
+static inline void _glsig_after_emit(glsig_emitter_t *e)
+{
+	glsig_handler_t *h;
+	struct list_head *dummy;
+
+	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
+		if (!h->handler && !(h->sigmask & GLSIG_HANDLER_RUNNING))
+			glsig_delete_handler(h);
+}
+
+
 static void glsig_redirector(glsig_handler_t *h, long sig, va_list va)
 {
 	glsig_emitter_t *dest = (glsig_emitter_t *)glsig_handler_private(h);
 
-	list_foreach(&dest->handlers, glsig_handler_t, list, h) {
-		if (!(h->sigmask & sig))
-			continue;
-		h->handler(h, sig, va);
-	}
+	list_foreach(&dest->handlers, glsig_handler_t, list, h)
+		_glsig_handler_exec(h, sig, va);
+	_glsig_after_emit(dest);
 }
 
 
@@ -67,8 +98,8 @@ int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source)
 	list_foreach(&source->handlers, glsig_handler_t, list, h) {
 		if (h->handler == glsig_redirector)
 			continue;
-		if (!glsig_add_handler(dest, h->sigmask, h->handler,
-				       h->priv))
+		if (!glsig_add_handler(dest, h->sigmask & ~GLSIG_HANDLER_RUNNING,
+				       h->handler, h->priv))
 			return -1;
 	}
 	return 0;
@@ -81,8 +112,8 @@ int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source)
 	list_foreach(&source->handlers, glsig_handler_t, list, h) {
 		if (h->handler != glsig_redirector)
 			continue;
-		if (!glsig_add_handler(dest, h->sigmask, h->handler,
-				       h->priv))
+		if (!glsig_add_handler(dest, h->sigmask & ~GLSIG_HANDLER_RUNNING,
+				       h->handler, h->priv))
 			return -1;
 	}
 	return 0;
@@ -90,6 +121,11 @@ int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source)
 
 void glsig_delete_handler(glsig_handler_t *h)
 {
+	/* If we are running mark us for delayed deletion. */
+	if (h->sigmask & GLSIG_HANDLER_RUNNING) {
+		h->handler = NULL;
+		return;
+	}
 	list_del(&h->list);
 	free(h);
 }
@@ -99,4 +135,29 @@ void glsig_delete_all(glsig_emitter_t *e)
 	while (!list_empty(&e->handlers))
 		glsig_delete_handler(list_entry(e->handlers.next,
 						glsig_handler_t, list));
+}
+
+
+void glsig_handler_exec(glsig_handler_t *h, long sig, ...)
+{
+	va_list va;
+	va_start(va, sig);
+	_glsig_handler_exec(h, sig, va);
+	va_end(va);
+}
+
+/* We use signal sign bit in the mask to signal "in execution".
+ * This way we implement delayed removal/destruction of signal
+ * handlers. Delayed deletion is signalled via NULL handler->handler. */
+void glsig_emit(glsig_emitter_t *e, long sig, ...)
+{
+	glsig_handler_t *h;
+	va_list va;
+
+	va_start(va, sig);
+	list_foreach(&e->handlers, glsig_handler_t, list, h)
+		_glsig_handler_exec(h, sig, va);
+	va_end(va);
+
+	_glsig_after_emit(e);
 }

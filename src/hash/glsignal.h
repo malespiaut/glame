@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.10 2001/03/30 08:52:02 richi Exp $
+ * $Id: glsignal.h,v 1.11 2001/04/09 09:17:58 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -133,29 +133,9 @@ void glsig_delete_handler(glsig_handler_t *h);
 
 void glsig_delete_all(glsig_emitter_t *e);
 
+void glsig_handler_exec(glsig_handler_t *h, long sig, ...);
 
-static inline void glsig_handler_exec(glsig_handler_t *h, long sig, ...)
-{
-	va_list va;
-	va_start(va, sig);
-	h->handler(h, sig, va);
-	va_end(va);
-}
-
-static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
-{
-	glsig_handler_t *h;
-	struct list_head *dummy;
-	va_list va;
-
-	va_start(va, sig);
-	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h) {
-		if (!(h->sigmask & sig))
-			continue;
-		h->handler(h, sig, va);
-	}
-	va_end(va);
-}
+void glsig_emit(glsig_emitter_t *e, long sig, ...);
 
 #ifdef __cplusplus
 }
