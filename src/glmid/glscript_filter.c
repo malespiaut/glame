@@ -212,8 +212,11 @@ static SCM gls_is_param(SCM s_param)
 
 static SCM gls_filter_creat(SCM s_filter)
 {
-	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "filter_creat");
-	return filter2scm(filter_creat(scm2filter(s_filter)));
+	filter_t *f = NULL;
+	/* s_filter is optional. */
+	if (filter_p(s_filter))
+		f = scm2filter(s_filter);
+	return filter2scm(filter_creat(f));
 }
 
 static SCM gls_filter_instantiate(SCM s_plugin)
