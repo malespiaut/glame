@@ -8,7 +8,7 @@ Standards-Version: 3.5.3
 Package: glame
 Architecture: any
 Depends: ${shlibs:Depends}
-Recommends: ${shlibs:Recommends}
+Recommends: ladspa-plugin, ${shlibs:Recommends}
 Suggests: gnome-help
 Description: A versatile audio processor.
  GLAME tries to provide a powerful and extensible framework for processing
