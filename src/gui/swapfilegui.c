@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.33 2001/04/22 15:28:44 richi Exp $
+ * $Id: swapfilegui.c,v 1.34 2001/04/23 08:21:52 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -316,7 +316,7 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 
 	/* Query the file name. */
 	filename = alloca(256);
-	we = glame_dialog_file_request("Export As...", "swapfilegui/exportas",
+	we = glame_dialog_file_request("Export As...", "swapfilegui:exportas",
 				       "Filename", NULL, filename);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)))
 		return;
@@ -384,7 +384,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 
 	/* Query the file name. */
 	dialog = glame_dialog_file_request("Import audio file",
-					   "swapfilegui/import",
+					   "swapfilegui:import",
 					   "Filename", NULL, filenamebuffer);
 	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.71 2001/04/22 23:32:09 xwolf Exp $
+ * $Id: canvas.c,v 1.72 2001/04/23 08:21:52 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1332,13 +1332,13 @@ static void canvas_save_as(GtkWidget*w,GlameCanvas *glCanv)
 	/* Open a file request dialog with additional fields for
 	 * filter name and category. */
 	dialog = glame_dialog_file_request("Save network as...",
-					   "editfilter/saveas", "Filename",
+					   "editfilter:saveas", "Filename",
 					   NULL, filenamebuffer);
 	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
 	create_label_edit_pair(dialogVbox, "Filter name",
-			       "editfilter/saveas/name", filternamebuffer);
+			       "editfilter:saveas:name", filternamebuffer);
 	create_label_edit_pair(dialogVbox, "Category",
-			       "editfilter/saveas/category", categorynamebuffer);
+			       "editfilter:saveas:category", categorynamebuffer);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
 
@@ -1458,7 +1458,7 @@ void canvas_load_network(GtkWidget *bla, void *blu)
 	char filenamebuffer[256];
 
 	dialog = glame_dialog_file_request("Load filternetwork",
-					   "editfilter/load", "Filename",
+					   "editfilter:load", "Filename",
 					   NULL, filenamebuffer);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
