@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.8 2000/05/01 11:09:04 richi Exp $
+ * $Id: glplugin.h,v 1.9 2000/05/20 12:32:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -62,6 +62,10 @@ plugin_t *plugin_get(const char *name);
 
 /* Create and add a plugin manually. */
 plugin_t *plugin_add(const char *name);
+
+/* Remove a plugin. USE WITH EXTREME CARE! YOU HAVE TO ENSURE
+ * NO USER IS LEFT YOURSELF! */
+void _plugin_delete(plugin_t *p);
 
 
 /* Set plugin key/value pair. */

@@ -5,7 +5,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	basic_midi.c midi_io.c midi_debug.c rms.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
-	iir.c
+	iir.c ladspa.c
 
 # builtin filters
 lib_LTLIBRARIES = libglamebuiltins.la
@@ -57,3 +57,5 @@ pipe_la_LDFLAGS = -module
 iir_la_SOURCES = iir.c
 iir_la_LDFLAGS = -module
 
+#ladspa_la_SOURCES = ladspa.c
+#ladspa_la_LDFLAGS = -module

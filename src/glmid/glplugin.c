@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.14 2000/05/16 16:25:56 richi Exp $
+ * $Id: glplugin.c,v 1.15 2000/05/20 12:32:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -25,6 +25,7 @@
 #include "util.h"
 #include "list.h"
 #include "glplugin.h"
+#include "ladspa.h"
 
 
 typedef struct {
@@ -39,12 +40,15 @@ static struct list_head plugin_list = LIST_HEAD_INIT(plugin_list);
 #define plugin_foreach_path(p) list_foreach(&plugin_path_list, plugin_path_t, \
         list, p)
 #define list_add_plugin(p) list_add(&(p)->list, &plugin_list)
+#define list_del_plugin(p) list_del(&(p)->list)
 #define hash_add_plugin(p) _hash_add(&(p)->hash, _hash((p)->name, \
         PLUGIN_NAMESPACE))
+#define hash_remove_plugin(p) _hash_remove(&(p)->hash)
 #define hash_find_plugin(nm) __hash_entry(_hash_find((nm), PLUGIN_NAMESPACE, \
         _hash((nm), PLUGIN_NAMESPACE), __hash_pos(plugin_t, hash, name, \
         namespace)), plugin_t, hash)
 #define hash_init_plugin(p) do { _hash_init(&p->hash); (p)->namespace = PLUGIN_NAMESPACE; } while (0)
+#define is_hashed_plugin(p) _is_hashed(&(p)->hash)
 
 
 /* Helpers.
@@ -78,7 +82,7 @@ int plugin_add_path(const char *path)
 /* The plugin stuff itself.
  */
 
-/*static*/ plugin_t *alloc_plugin(const char *name)
+static plugin_t *_plugin_alloc(const char *name)
 {
 	plugin_t *p;
 
@@ -96,7 +100,7 @@ int plugin_add_path(const char *path)
 	return p;
 }
 
-/*static*/ void free_plugin(plugin_t *p)
+static void _plugin_free(plugin_t *p)
 {
 	if (!p)
 		return;
@@ -108,7 +112,7 @@ int plugin_add_path(const char *path)
 	free(p);
 }
 
-/*static*/ int add_plugin(plugin_t *p)
+static int _plugin_add(plugin_t *p)
 {
 	/* atomic check if name is occupied & add */
 	hash_lock();
@@ -127,47 +131,101 @@ int plugin_add_path(const char *path)
 }
 
 
+static int try_load_plugin(plugin_t *p, const char *name,
+			   const char *filename);
 
-static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
+static int try_init_glame_plugin(plugin_t *p, const char *name,
+				 const char *filename)
 {
-        char s[256], *sp, *psname;
 	int (*reg_func)(plugin_t *);
 	char **set;
+        char s[256], *sp, *psname;
 	plugin_t *pn;
 
-	if (!(p->handle = dlopen(filename, RTLD_NOW)))
-		return -1;
-
-	/* either register() or a plugin set string */
+	/* GLAME plugins do have either name_register() or
+	 * name_set symbols defined. */
 	snprintf(s, 255, "%s_register", name);
 	reg_func = dlsym(p->handle, s);
 	snprintf(s, 255, "%s_set", name);
 	set = dlsym(p->handle, s);
 	if (!reg_func && !set)
-		goto err;
+		return -1;
 
+	/* First call the name_register() function if
+	 * provided. */
 	if (reg_func && reg_func(p) == -1)
-		goto err;
-	if (set) {
-		/* add all plugins contained in the plugin set */
-		snprintf(s, 255, "%s", *set);
-		sp = s;
-		do {
-			psname = sp;
-			if ((sp = strchr(psname, ' ')))
-				*(sp++) = '\0';
-			if (!(pn = alloc_plugin(psname))
-			    || try_load_plugin(pn, psname, filename) == -1
-			    || add_plugin(pn) == -1) {
-				free_plugin(pn);
-				continue;
-			}
-		} while (sp);
+		return -1;
+
+	/* If there is no name_set string, we are done now. */
+	if (!set)
+		return 0;
+
+	/* If there is a name_set string try to initialize
+	 * plugins with the space seperated names in the string. */
+	snprintf(s, 255, "%s", *set);
+	sp = s;
+	do {
+		psname = sp;
+		if ((sp = strchr(psname, ' ')))
+			*(sp++) = '\0';
+		if (!(pn = _plugin_alloc(psname))
+		    || !(pn->handle = dlopen(filename, RTLD_NOW))
+		    || try_init_glame_plugin(pn, psname, filename) == -1
+		    || _plugin_add(pn) == -1) {
+			_plugin_free(pn);
+			continue;
+		}
+	} while (sp);
+
+	return 0;
+}
+
+int installLADSPAPlugin(const LADSPA_Descriptor *desc, plugin_t *p);
+
+static int try_init_ladspa_plugin(plugin_t *p, const char *name,
+				  const char *filename)
+{
+	LADSPA_Descriptor_Function desc_func;
+	const LADSPA_Descriptor *desc;
+	plugin_t *lp;
+	int i;
+
+	/* First get the descriptor providing function of the
+	 * plugin(set). If its not there, its no LADSPA plugin. */
+	desc_func = (LADSPA_Descriptor_Function)dlsym(p->handle,
+						      "ladspa_descriptor");
+	if (!desc_func)
+		return -1;
+
+	/* Loop through all available descriptors and create
+	 * GLAME wrappers for them. */
+	for (i=0; (desc = desc_func(i)) != NULL; i++) {
+		if (!(lp = _plugin_alloc(desc->Label))
+		    || !(lp->handle = dlopen(filename, RTLD_NOW))
+		    || installLADSPAPlugin(desc, lp) == -1
+		    || _plugin_add(lp) == -1) {
+			_plugin_free(lp);
+			continue;
+		}
 	}
 
 	return 0;
+}
 
- err:
+static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
+{
+	/* First try to open the specified shared object. */
+	if (!(p->handle = dlopen(filename, RTLD_NOW)))
+		return -1;
+
+	/* Then in the order stated below try to init it as plugin
+	 * of the specified type (GLAME & LADSPA supported for now. */
+	if (try_init_glame_plugin(p, name, filename) == 0)
+		return 0;
+	if (try_init_ladspa_plugin(p, name, filename) == 0)
+		return 0;
+
+	/* Too bad, thats obviously not a valid plugin. */
 	dlclose(p->handle);
 	p->handle = NULL;
 	return -1;
@@ -190,7 +248,7 @@ plugin_t *plugin_get(const char *nm)
 		return p;
 
 	/* allocate a new plugin struct */
-	if (!(p = alloc_plugin(name)))
+	if (!(p = _plugin_alloc(name)))
 		return NULL;
 
 	/* first try to look for an "in-core" plugin */
@@ -209,12 +267,12 @@ plugin_t *plugin_get(const char *nm)
 	if (try_load_plugin(p, name, filename) == 0)
 		goto found;
 
-	free_plugin(p);
+	_plugin_free(p);
 	return NULL;
 
  found:
-	if (add_plugin(p) == -1) {
-		free_plugin(p);
+	if (_plugin_add(p) == -1) {
+		_plugin_free(p);
 		return NULL;
 	}
 	return p;
@@ -257,16 +315,26 @@ plugin_t *plugin_add(const char *name)
 		return NULL;
 	mangle_name(nm, name);
 
-	if (!(p = alloc_plugin(nm)))
+	if (!(p = _plugin_alloc(nm)))
 		return NULL;
 
-	if (add_plugin(p) == -1) {
-		free_plugin(p);
+	if (_plugin_add(p) == -1) {
+		_plugin_free(p);
 		return NULL;
 	}
 
 	return p;
 }
+
+void _plugin_delete(plugin_t *p)
+{
+	if (is_hashed_plugin(p)) {
+		list_del_plugin(p);
+		hash_remove_plugin(p);
+	}
+	_plugin_free(p);
+}
+
 
 plugin_t *plugin_next(plugin_t *plugin)
 {
