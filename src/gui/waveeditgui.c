@@ -59,7 +59,7 @@ static void reset_temp(int nrtracks)
 
 	/* Generate additionally needed tracks. */
 	for (i=temp_nrtracks; i<nrtracks; i++) {
-		while ((temp_fd[i] = sw_open(rand(), O_CREAT|O_EXCL|O_RDWR, TXN_NONE)) == -1)
+		while ((temp_fd[i] = sw_open((temp_fname[i] = rand()), O_CREAT|O_EXCL|O_RDWR, TXN_NONE)) == -1)
 			;
 	}
 	temp_nrtracks = nrtracks;
