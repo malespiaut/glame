@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.12 2000/02/20 15:25:55 richi Exp $
+ * $Id: basic.c,v 1.13 2000/02/24 12:29:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -46,7 +46,7 @@ static int drop_f(filter_node_t *n)
 	fd_set channels;
 
 	if (!(inputs = ALLOCN(filternode_nrinputs(n), filter_pipe_t *)))
-		return -1;
+		FILTER_ERROR_RETURN("no memory");
 
 	/* put all input connections into an easy accessable
 	 * array - we can use it for active connection
@@ -87,7 +87,7 @@ static int drop_f(filter_node_t *n)
 
 	free(inputs);
 
-	return 0;
+	FILTER_RETURN;
 }
 
 
@@ -99,7 +99,7 @@ static int one2n_f(filter_node_t *n)
 	filter_pipe_t *in, *out;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
-		return -1;
+		FILTER_ERROR_RETURN("no input");
 
 	FILTER_AFTER_INIT;
 
@@ -129,7 +129,7 @@ static int one2n_f(filter_node_t *n)
 
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
 

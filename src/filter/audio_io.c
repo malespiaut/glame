@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.30 2000/02/22 17:19:20 nold Exp $
+ * $Id: audio_io.c,v 1.31 2000/02/24 12:29:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -182,19 +182,15 @@ static int sgi_audio_out_f(filter_node_t *n)
 	int		ret = -1;
 
 	max_ch = filternode_nrinputs(n);
-	if(!max_ch) {
-		DPRINTF("No input channels given.\n");
-		FILTER_DO_CLEANUP;
-	}
+	if (!max_ch)
+	        FILTER_ERROR_CLEANUP("No input channels given.");
 
 	/* The connect and fixup methods already make sure we have a 
 	 * common sample rate among all pipes. */
 	p_in = filternode_get_input(n, PORTNAME_IN);
 	rate = filterpipe_sample_rate(p_in);
-	if(rate <= 0) {
-		DPRINTF("No valid sample rate given.\n");
-		FILTER_DO_CLEANUP;
-	}
+	if (rate <= 0)
+		FILTER_ERROR_CLEANUP("No valid sample rate given.");
 
 	/* 'in' is our internal array of pipe goodies. 'bufs' was added
 	 * to make use of libaudio's spiffy feature to interleave 
@@ -202,10 +198,8 @@ static int sgi_audio_out_f(filter_node_t *n)
 	 */
 	in = (sgi_audioparam_t *)malloc(max_ch * sizeof(sgi_audioparam_t));
 	bufs = (SAMPLE **)malloc(max_ch * sizeof(SAMPLE *));
-	if(!in || !bufs) {
-		DPRINTF("Failed to alloc input structs.\n");
-		FILTER_DO_CLEANUP;
-	}
+	if(!in || !bufs)
+		FILTER_ERROR_CLEANUP("Failed to alloc input structs.");
 
 	/* Cycle through the input pipes to set up our internal
 	 * struct.
@@ -257,10 +251,9 @@ static int sgi_audio_out_f(filter_node_t *n)
 			alGetErrorString(oserror()));
 		FILTER_DO_CLEANUP;
 	}
-	if(v[0].sizeOut < 0) {
-		DPRINTF("Invalid sample rate.\n");
-		FILTER_DO_CLEANUP;
-	}
+	if(v[0].sizeOut < 0)
+		FILTER_ERROR_CLEANUP("Invalid sample rate.");
+
 	/* The QueueSized is used as an initializer to our output chunk
 	 * size later on.
 	 */
@@ -281,7 +274,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	/* May not fail from now on... */
 	ret = 0;
 	FILTER_AFTER_INIT;
-	
+
 	ch = 0;
 	ch_active = max_ch;
 	chunk_size = 0;
@@ -375,18 +368,12 @@ static int esd_in_f(filter_node_t *n)
 
 	format = bits | channels | mode | func;
 	sock = esd_record_stream_fallback( format, rate, host, name );
-	if (sock <= 0){
-		DPRINTF("Couldn't open esd socket!\n");
-		return -1;
-	}
+	if (sock <= 0)
+		FILTER_ERROR_RETURN("Couldn't open esd socket!");
 
-	left = filternode_get_output(n, PORTNAME_OUT);
-	right = filternode_get_output(n, PORTNAME_OUT);
-	
-	if (!left || !right){
-		DPRINTF("Couldn't find output pipes!\n");
-		return -1;
-	}
+	if (!(left = filternode_get_output(n, PORTNAME_OUT))
+	    || !(right = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("Couldn't find output pipes!");
 	
 	if (filterpipe_sample_hangle(left) > filterpipe_sample_hangle(right)) {
 		filter_pipe_t *t = left;
@@ -394,24 +381,23 @@ static int esd_in_f(filter_node_t *n)
 		right = t;
 	}
 	
-	if ((buf=(short int*)malloc(ESD_BUF_SIZE))==NULL){
-		DPRINTF("Couldn't alloc input buffer!\n");
-		return -1;
-	}
+	if ((buf=(short int*)malloc(ESD_BUF_SIZE))==NULL)
+		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
 
         maxtime=10*rate*2;
 	time=0;
 	
-	DPRINTF("Start sampling!\n");
-
 	FILTER_AFTER_INIT;
+
+	DPRINTF("Start sampling!\n");
 	
 	while(pthread_testcancel(),time<maxtime){
-		length=0;
-		while(length<ESD_BUF_SIZE) length+=read(sock,buf+length,ESD_BUF_SIZE-length);
-		if (!length){
+		length = 0;
+		while (length<ESD_BUF_SIZE)
+		        length += read(sock, buf+length, ESD_BUF_SIZE-length);
+		if (length == -1) {
 			DPRINTF("Read failed!\n");
-			return -1;
+			break;
 		}
 		DPRINTF("sampled %d bytes!\n",length);
 		lpos=rpos=i=0;
@@ -421,7 +407,7 @@ static int esd_in_f(filter_node_t *n)
 		rbuf=sbuf_make_private(rbuf);
 		if(!lbuf || !rbuf){
 			DPRINTF("alloc error!\n");
-			return -1;
+			break;
 		}
 		while(i<length/2){
 			sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
@@ -437,8 +423,9 @@ static int esd_in_f(filter_node_t *n)
 
 	FILTER_BEFORE_CLEANUP;
 
+	close(sock);
 	free(buf);
-	return 0;
+	FILTER_RETURN;
 }
 
 /* I don't know what I'm doing, but I just try to 
@@ -480,11 +467,11 @@ static int esd_out_f(filter_node_t *n)
 	}
 	/* no channel? */
 	if (!left)
-		return -1;
+		FILTER_ERROR_RETURN("no input channel");
 	rate = filterpipe_sample_rate(left);
 	/* right channel different sample rate? */
 	if (right && filterpipe_sample_rate(right) != rate)
-		return -1;
+		FILTER_ERROR_RETURN("sample rates do not match");
 	/* finally decide mono/stereo */
 	if (!right)
 		format |= ESD_MONO;
@@ -493,12 +480,10 @@ static int esd_out_f(filter_node_t *n)
 
 	wbpos = 0;
 	wbuf = (short int*)malloc(GLAME_WBUFSIZE*sizeof(short int));
-	if (wbuf==NULL){
-		DPRINTF("couldn't alloc wbuf!\n");
-		return -1;
-	}
+	if (wbuf==NULL)
+		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
 
-	if(!rate){
+	if (!rate) {
 		DPRINTF("Input filter didn't supply rate info! Fix it!\n");
 		rate=44100;
 	}
@@ -583,7 +568,7 @@ static int esd_out_f(filter_node_t *n)
 	close(esound_socket);
 	free(wbuf);
 
-	return 0;
+	FILTER_RETURN;
 }
 #endif
 

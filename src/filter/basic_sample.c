@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.2 2000/02/21 13:03:48 richi Exp $
+ * $Id: basic_sample.c,v 1.3 2000/02/24 12:29:49 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -72,16 +72,16 @@ static int mix_f(filter_node_t *n)
 	 */
 	nrinputs = filternode_nrinputs(n);
 	if (nrinputs == 0)
-		return -1;
+		FILTER_ERROR_RETURN("no inputs");
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
-		return -1;
+		FILTER_ERROR_RETURN("no output");
 
 	/* init the structure, compute the needed factors */
 	eofs = 0;
 	factor = 0.0;
 	i = 0;
 	if (!(inputs = ALLOCN(nrinputs, mix_param_t)))
-		return -1;
+		FILTER_ERROR_RETURN("no memory");
 
 	filternode_foreach_input(n, p) {
 		inputs[i].in = p;
@@ -164,7 +164,7 @@ static int mix_f(filter_node_t *n)
 
 	free(inputs);
 
-	return 0;
+	FILTER_RETURN;
 }
 
 /* shared destination pipe property fixup code */
@@ -226,7 +226,7 @@ static int mix_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 
 	filternode_foreach_input(n, p)
 		if (filterpipe_sample_rate(p) != filterpipe_sample_rate(in)) {
-			filternetwork_break_connection(in);
+		        filternode_set_error(n, "sample rates do not match");
 			return -1;
 		}
 	return mix_fixup_param(n, NULL, NULL, NULL);
@@ -247,7 +247,7 @@ static int volume_adjust_f(filter_node_t *n)
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
-		return -1;
+		FILTER_ERROR_RETURN("no input or no output");
 	scale = 1.0;
 	if ((scaleparam = filternode_get_param(n, "factor")))
 		scale = filterparam_val_float(scaleparam);
@@ -284,7 +284,7 @@ static int volume_adjust_f(filter_node_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
 
@@ -297,10 +297,9 @@ static int invert_f(filter_node_t *n)
 	SAMPLE *s;
 	int cnt;
 
-	in = filternode_get_input(n, PORTNAME_IN);	
-	out = filternode_get_output(n, PORTNAME_OUT);	
-	if (!in || !out)
-		return -1;
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no input or no output");
 
 	FILTER_AFTER_INIT;
 
@@ -321,7 +320,7 @@ static int invert_f(filter_node_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
 

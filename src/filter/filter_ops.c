@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.4 2000/02/22 15:22:55 richi Exp $
+ * $Id: filter_ops.c,v 1.5 2000/02/24 12:29:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -66,13 +66,14 @@ static void *launcher(void *node)
 
 	DPRINTF("%s launched\n", n->filter->name);
 
-	if (n->filter->f(n) == 0) {
-	        /* increment filter ready semaphore - if broken
-		 * return code... to prevent deadlocks */
+	n->glerrno = n->filter->f(n);
+	if (n->glerrno == 0) {
+	        filternode_clear_error(n);
 		pthread_exit(NULL);
 	}
 
-	DPRINTF("%s had failure\n", n->filter->name);
+	DPRINTF("%s had failure (errstr=\"%s\")\n",
+		n->filter->name, n->glerrstr);
 
 	/* set result */
 	atomic_inc(&n->net->launch_context->result);

@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.12 2000/02/23 12:31:12 richi Exp $
+ * $Id: echo2.c,v 1.13 2000/02/24 12:29:49 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -44,7 +44,7 @@ static int echo2_f(filter_node_t *n)
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
-	        return -1;
+	        FILTER_ERROR_RETURN("no in- or output");
 
 	delay = filterpipe_sample_rate(in)/10; /* 0.1 sec. default delay */
 	if ((param = filternode_get_param(n, "time")))
@@ -165,7 +165,7 @@ static int echo2_f(filter_node_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
 

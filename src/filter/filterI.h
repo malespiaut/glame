@@ -213,6 +213,10 @@ struct filter_node {
 	filter_t *filter;
 	void *private;
 
+	/* public state & error string */
+	int glerrno;
+	const char *glerrstr;
+
 	/* filter node operations */
 	struct filter_node_operations *ops;
 
@@ -247,6 +251,11 @@ struct filter_node {
 #define filternode_first_param(node) list_gethead(&(node)->params, \
         filter_param_t, list)
 
+#define filternode_clear_error(n) \
+do { \
+	(n)->glerrno = 0; \
+	(n)->glerrstr = NULL; \
+} while (0)
 
 
 struct filter_network_mapping {

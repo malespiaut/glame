@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.34 2000/02/22 15:27:16 richi Exp $
+ * $Id: filter.h,v 1.35 2000/02/24 12:29:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -339,6 +339,23 @@ char *filternetwork_to_string(filter_network_t *net);
 #define filternode_nrinputs(n) ((n)->nr_inputs)
 #define filternode_nroutputs(n) ((n)->nr_outputs)
 
+/* Status quering for filternodes
+ * condition -- filternode_has_error(filter_node_t *n)
+ * int filternode_errno(filter_node_t *n);
+ * const char *filternode_errstr(filter_node_t *n); */
+#define filternode_has_error(n) ((n)->glerrno != 0)
+#define filternode_errno(n) ((n)->glerrno)
+#define filternode_errstr(n) ((n)->glerrstr)
+
+/* Status setting (from inside the filter methods)
+ * void filternode_set_error(filter_node_t *n, int errno,
+ *                           const char *errstr); */
+#define filternode_set_error(n, erstr) \
+do { \
+       (n)->glerrno = -1; \
+       (n)->glerrstr = (erstr); \
+} while (0)
+
 /* Filternodes connection query/walk.
  * filter_pipe_t *filternode_get_input(filter_node_t *n, const char *label);
  * filter_pipe_t *filternode_next_input(filter_pipe_t *p);
@@ -504,11 +521,24 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
  */
 #define FILTER_AFTER_INIT \
 do { \
+        filternode_clear_error(n); \
 	sem_op(n->net->launch_context->semid, 0, 1); \
 	sem_op(n->net->launch_context->semid, 0, 0); \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
-} while (0);
+} while (0)
+
+#define FILTER_ERROR_RETURN(msg) \
+do { \
+        filternode_set_error(n, msg); \
+        return -1; \
+} while (0)
+
+#define FILTER_ERROR_CLEANUP(msg) \
+do { \
+        filternode_set_error(n, msg); \
+        goto _glame_filter_cleanup; \
+} while (0) 
 
 #define FILTER_DO_CLEANUP goto _glame_filter_cleanup
 
@@ -518,11 +548,13 @@ do { \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_stopcleanup; \
         pthread_testcancel(); \
-} while (0);
+} while (0)
 
 #define FILTER_BEFORE_STOPCLEANUP _glame_filter_stopcleanup:
 
 #define FILTER_BEFORE_CLEANUP _glame_filter_cleanup:
+
+#define FILTER_RETURN return n->glerrno
 
 
 /* Additional filter protocols (aka fbuf_*, sbuf_*, etc.)
