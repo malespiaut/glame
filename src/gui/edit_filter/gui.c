@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.25 2001/04/25 15:50:42 richi Exp $
+ * $Id: gui.c,v 1.26 2001/04/27 08:25:55 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -403,16 +403,8 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 				list = g_list_append(list,pw);
 				break;
 			}
-		} else {
-			entry = gnome_entry_new("blubb");
-			create_label_widget_pair(vbox,filterparam_label(param),entry);
-			pw = malloc(sizeof(param_widget_t));
-			pw->widget = entry;
-			pw->param = param;
-			pw->widget_type = PSTRING;
-			list = g_list_append(list,pw);
-			break;
-		}
+		} else
+			/* nothing */ ;
 	}
 	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),vbox,tablabel);
 
