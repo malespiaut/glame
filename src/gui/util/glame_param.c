@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.25 2003/04/20 21:56:06 richi Exp $
+ * $Id: glame_param.c,v 1.26 2003/04/27 11:53:54 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -25,7 +25,7 @@
 #include <config.h>
 #endif
 
-#include <values.h>
+#include <limits.h>
 #include <gnome.h>
 #ifdef HAVE_LIBGLADE
 #include <glade/glade.h>
@@ -317,7 +317,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_long(param),
-			-MAXINT, MAXINT, 1.0, 10.0, 0.0));
+			-INT_MAX, INT_MAX, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -331,7 +331,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		}
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_double(param),
-			0.0, MAXFLOAT, 1.0, 10.0, 0.0));
+			0.0, FLT_MAX, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1.0, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -345,7 +345,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		}
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_double(param),
-			0.0, MAXFLOAT, 0.1, 1.0, 0.0));
+			0.0, FLT_MAX, 0.1, 1.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -377,7 +377,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_double(param),
-			-MAXFLOAT, MAXFLOAT, 0.1, 10.0, 0.0));
+			-FLT_MAX, FLT_MAX, 0.1, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);

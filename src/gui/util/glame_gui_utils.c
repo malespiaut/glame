@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.32 2003/04/22 21:46:52 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.33 2003/04/27 11:53:54 nold Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -22,7 +22,6 @@
  */
 
 #include <sys/param.h>
-#include <values.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
