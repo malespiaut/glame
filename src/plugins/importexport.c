@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.19 2001/11/12 23:11:35 mag Exp $
+ * $Id: importexport.c,v 1.20 2001/11/14 09:10:14 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -44,8 +44,8 @@
 PLUGIN_SET(importexport, "import export")
 
 static char ftlabel[8][10] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
-static char qlabel[4][7] = { "8 bit", "16 bit", "24 bit", "float" };
-
+static char sflabel[6][32] = { "16 bit signed", "24 bit signed", "32 bit signed", "8 bit unsigned", "32 bit float", "64 bit float" };
+#define MAX_SFLABEL 6
 #define MAX_PROPS 7
 
 static char fproplabel[7][20] = { "Format", "Samplerate", "Quality", "Channels", 
@@ -76,6 +76,7 @@ struct exp_s {
 	GtkWidget *dialog, *otypemenu, *compmenu, *ocompmenu;
 	int typecnt;
 	int *indices;
+	GtkWidget *rbutton[4];
 };
 
 void ie_import_cleanup(struct impexp_s *ie) 
@@ -668,36 +669,57 @@ void glame_import_dialog(struct impexp_s *ie)
 	gtk_widget_show(ie->dialog);
 };
 
+static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *ie) {
+	DPRINTF("Compression Type chosen\n");
+	return TRUE;
+}
+
 void make_comp_menu(struct exp_s *ie, int ftype) {
-	int comptypes, i;
+	int comptypes, i, sformtypes;
 	int *comparray;
+	int *sformarray;
+
 	gchar *complabel;
 	GtkWidget *menuitem;
 
 	gtk_widget_destroy(ie->compmenu);
 
 	ie->compmenu = gtk_menu_new();
+	gtk_widget_show(ie->compmenu);
+	
+	menuitem=gtk_menu_item_new_with_label("none");
+	gtk_widget_show(menuitem);
+	gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
+
+	sformtypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_SAMPLE_FORMATS, AF_QUERY_VALUE_COUNT, ftype, 0);
+	DPRINTF("%d sample formats\n", sformtypes);
+	sformarray = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_SAMPLE_FORMATS, AF_QUERY_VALUES, ftype, 0);
+	for(i=0; i<sformtypes;i ++) 
+		DPRINTF("%d\n", sformarray[i]);
+	
 	comptypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUE_COUNT, ftype, 0);
 	if (comptypes>0) {
 		comparray = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUES, ftype, 0);
 		for(i=0; i<comptypes;i++) {
 			complabel = (char*)afQueryPointer(AF_QUERYTYPE_COMPRESSION, AF_QUERY_LABEL, comparray[i], 0 ,0);
 			menuitem = gtk_menu_item_new_with_label(complabel);
-			gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
 			gtk_widget_show(menuitem);
+			gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
 		}
-	}
+		gtk_widget_set_sensitive(ie->ocompmenu, TRUE);
+		gtk_signal_connect(GTK_OBJECT(ie->compmenu),
+				   "selection_done",
+				   (GtkSignalFunc)ie_comp_menu_cb, ie);
+	} else
+		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
 	
 	gtk_option_menu_set_menu(GTK_OPTION_MENU (ie->ocompmenu), ie->compmenu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->ocompmenu), 0);
-	gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(ie->dialog)->vbox), ie->ocompmenu, FALSE, FALSE, 0);
-	
-	
-	gtk_widget_show(ie->ocompmenu);
+			   
 }
 
+
 static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie) {
-	int ftype;
 	GtkWidget *act;
 	GList *list;
 	int val;
@@ -722,16 +744,62 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie) {
 }
 
 GtkWidget *glame_export_dialog(struct exp_s *ie)  {
-	GtkWidget	*dialog, *optionmenu, *menu, *mitem;
+	GtkWidget *dialog, *optionmenu, *menu, *mitem, *bigbox, *typecompbox, *valbox;
+	GtkWidget *dialog_vbox2, *vbox, *frame, *frame2, *frame3, *fentry;
+	GSList *rbuttons;
 	int i;
 	gchar *suffix;
 
 	/* open new dialog window */
 	dialog = ie->dialog = gnome_dialog_new(NULL, NULL);
+	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
 	gnome_dialog_close_hides(GNOME_DIALOG(dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
-	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
 
+	dialog_vbox2 = GNOME_DIALOG (ie->dialog)->vbox;
+	gtk_widget_show (dialog_vbox2);
+
+	vbox = gtk_vbox_new (FALSE, 0);
+	gtk_widget_show (vbox);
+	gtk_box_pack_start (GTK_BOX (dialog_vbox2), vbox, TRUE, TRUE, 0);
+
+	bigbox = gtk_hbox_new (FALSE, 0);
+	gtk_widget_show (bigbox);
+	gtk_box_pack_start (GTK_BOX (dialog_vbox2), bigbox, TRUE, TRUE, 0);
+
+	typecompbox = gtk_vbox_new (TRUE, 5);
+	gtk_widget_show (typecompbox);
+	gtk_box_pack_start (GTK_BOX (bigbox), typecompbox, TRUE, TRUE, 0);
+
+	fentry = gnome_file_entry_new ("gpsmop::export::filename", "Export File");
+	gtk_widget_show(fentry);
+	gtk_box_pack_start (GTK_BOX (vbox), fentry, TRUE, TRUE, 0);
+
+	frame = gtk_frame_new("File Format");
+	gtk_widget_show(frame);
+	gtk_box_pack_start (GTK_BOX (typecompbox), frame, TRUE, TRUE, 0);
+
+	frame2 = gtk_frame_new("Compression Type");
+	gtk_widget_show(frame2);
+	gtk_box_pack_start (GTK_BOX (typecompbox), frame2, TRUE, TRUE, 0);
+
+	frame3 = gtk_frame_new("Sample Format");
+	gtk_widget_show(frame3);
+	gtk_box_pack_start (GTK_BOX (bigbox), frame3, TRUE, TRUE, 0);
+	valbox = gtk_vbox_new (TRUE, 5);
+	gtk_widget_show (valbox);
+	gtk_container_add(GTK_CONTAINER(frame3), valbox);
+	
+	rbuttons = NULL;
+	for(i=0; i<MAX_SFLABEL; i++) {
+		ie->rbutton[i] = gtk_radio_button_new_with_label(rbuttons, sflabel[i]);
+		rbuttons = gtk_radio_button_group(GTK_RADIO_BUTTON(ie->rbutton[i]));
+	}
+
+	for(i=0; i<MAX_SFLABEL; i++) {
+		gtk_widget_show(ie->rbutton[i]);
+		gtk_box_pack_start (GTK_BOX (valbox), ie->rbutton[i], TRUE, TRUE, 0);
+	}
 
 	/* now construct option menu with available filetypes */
 	ie->typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
@@ -739,29 +807,47 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)  {
 	ie->indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);
 
 	ie->otypemenu = optionmenu = gtk_option_menu_new ();
-	gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(dialog)->vbox), optionmenu, FALSE, FALSE, 0);
 	gtk_widget_show(optionmenu);
+
 	menu = gtk_menu_new();
+	gtk_widget_show(menu);
+	
+	DPRINTF("typecnt=%d\n", ie->typecnt);
 
 	for(i=0; i<ie->typecnt; i++)  {
 		suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, ie->indices[i] ,0 ,0);
 		mitem = gtk_menu_item_new_with_label(suffix);
-		gtk_menu_append (GTK_MENU (menu), mitem);
 		gtk_widget_show(mitem);
+		gtk_menu_append (GTK_MENU (menu), mitem);
 	}
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu), menu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (optionmenu), 0);
-	gtk_signal_connect(GTK_OBJECT(menu),
-				   "selection_done",
-				   (GtkSignalFunc)ie_type_menu_cb, ie);
-	
-	ie->ocompmenu = gtk_option_menu_new ();
-	ie->compmenu = gtk_menu_new();
-	
-	if (ie->typecnt>0)
-		make_comp_menu(ie, ie->indices[0]);
+	gtk_container_add(GTK_CONTAINER(frame), optionmenu);
+	gtk_container_set_border_width(GTK_CONTAINER(optionmenu), 5);
 
+
+
+	ie->ocompmenu = gtk_option_menu_new ();
+	gtk_widget_show(ie->ocompmenu);
+	gtk_container_add(GTK_CONTAINER(frame2), ie->ocompmenu);
+	gtk_container_set_border_width(GTK_CONTAINER(ie->ocompmenu), 5);
+
+
+
+	ie->compmenu = gtk_menu_new();
+	gtk_widget_show(ie->compmenu);
+
+	if (ie->typecnt>0) {
+		make_comp_menu(ie, ie->indices[0]);
+	}
+
+	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	gtk_widget_show(dialog);
+	
+	gtk_signal_connect(GTK_OBJECT(menu),
+			   "selection_done",
+			   (GtkSignalFunc)ie_type_menu_cb, ie);
 	return dialog;
 }
 
