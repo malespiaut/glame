@@ -1243,7 +1243,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 
 	/* Create a Gtk+ window. */
 	window = WAVEEDIT_GUI(gtk_type_new(waveedit_gui_get_type()));
-	gnome_app_construct(GNOME_APP(window), "glame0.5", _(title));
+	gnome_app_construct(GNOME_APP(window), "glame0.7", _(title));
 	window->root = item;
 	window->swfiles = swfiles;
 	window->modified = 0;

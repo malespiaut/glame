@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.18 2001/12/13 14:50:45 richi Exp $
+ * $Id: timeline.c,v 1.19 2002/04/12 18:15:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -628,7 +628,7 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 		return NULL;
 
 	window = TIMELINE_GUI(gtk_type_new(timeline_gui_get_type()));
-	gnome_app_construct(GNOME_APP(window), "glame0.5", _(caption));
+	gnome_app_construct(GNOME_APP(window), "glame0.7", _(caption));
 
 
 	/* Construct a scrolled window and embed the

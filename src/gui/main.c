@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.110 2002/03/29 18:39:25 richi Exp $
+ * $Id: main.c,v 1.111 2002/04/12 18:15:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -922,7 +922,7 @@ _("Welcome first-time user of GLAME.\n"
 	gtk_widget_show(scrollview);
 
 	/* Create main window. */
-	app = gnome_app_new ("glame0.5", NULL);
+	app = gnome_app_new ("glame0.7", NULL);
 	gtk_object_set_data (GTK_OBJECT (app), "app", app);
 	dock = GNOME_APP (app)->dock;
 	gtk_widget_ref (dock);
