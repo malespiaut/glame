@@ -49,7 +49,8 @@ static inline unsigned short SAMPLE2USHORT(SAMPLE s)
 	s += 1.0;
 	return (unsigned short)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<15));
 }
-#define SHORT2SAMPLE(s) ((SAMPLE)s/(SAMPLE)(1<<15))
+#define SHORT2SAMPLE(s)  ((SAMPLE)(signed short)s/(SAMPLE)(1<<15))
+#define USHORT2SAMPLE(s) ((SAMPLE)(unsigned short)s/(SAMPLE)(1<<15) - 1.0)
 static inline signed char SAMPLE2CHAR(SAMPLE s)
 {
         return (char)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<7));
@@ -59,7 +60,8 @@ static inline unsigned char SAMPLE2UCHAR(SAMPLE s)
 	s += 1.0;
 	return (unsigned char)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<7));
 }
-#define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
+#define CHAR2SAMPLE(s)  ((SAMPLE)(signed char)s/(SAMPLE)(1<<7))
+#define UCHAR2SAMPLE(s) ((SAMPLE)(unsigned char)s/(SAMPLE)(1<<7) - 1.0)
 
 /* convert time in ms to number of samples */
 #define TIME2CNT(type, time, rate) (type)(time*rate/1000.0)
