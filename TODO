@@ -71,11 +71,19 @@ gui/swapfilegui
 	- seperate into subdirectory
 	- progress bar for import & export
 	- better UI
+	  * Edit wave... should delete swapfile at waveedit close
+            time, a Save toolbar entry is needed, too (which exports
+            the wave back)
+          * Record wave... should do things like Edit wave, but start
+            with an empty wave, ready for recording (after recording
+            being in Edit wave mode)
+	[XWolf]
+	- add drag&drop to filtereditgui
 
 gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
-	- toolbar needs work
+	- toolbar needs work - ICONS!
 	- do glame_ruler with time, samples, beats mode
 	- show actual sample value/rms/position for marker
 
@@ -92,11 +100,12 @@ gui/libgtkwaveform
 
 gui/edit_filter
 	[xwolf]
+	- add drag&drop from swapfilegui (create swapfile_in/out nodes)
+	- duplication of groups
 	- add realtime controls
 	- add support for custom property dialogs (glade & guile-gtk?
           & friends)
 	- fold/unfold of groups
-	- duplication of groups
 	- connect for parameters of nodes of same type
 	- have GlameCanvas check swapfile_out nodes for modified range
 	  after network execution and invalidate the swapfiles appropriately
