@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.24 2001/11/27 10:28:13 richi Exp $
+ * $Id: importexport.c,v 1.25 2001/12/04 10:58:26 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -717,7 +717,11 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 	if (comptypes>0) {
 		comparray = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUES, ftype, 0);
 		for(i=0; i<comptypes;i++) {
-			complabel = (char*)afQueryPointer(AF_QUERYTYPE_COMPRESSION, AF_QUERY_LABEL, comparray[i], 0 ,0);
+			char numbuf[16];
+			if (!(complabel = (char*)afQueryPointer(AF_QUERYTYPE_COMPRESSION, AF_QUERY_LABEL, comparray[i], 0 ,0))) {
+				snprintf(numbuf, 15, "%i", comparray[i]);
+				complabel = numbuf;
+			}
 			menuitem = gtk_menu_item_new_with_label(complabel);
 			gtk_widget_show(menuitem);
 			gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
