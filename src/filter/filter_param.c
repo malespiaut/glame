@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.10 2000/12/12 18:24:00 richi Exp $
+ * $Id: filter_param.c,v 1.11 2001/04/27 08:25:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -135,6 +135,8 @@ static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
 		p->u.sample = *(SAMPLE *)val;
 	} else if (FILTER_PARAM_IS_STRING(p)) {
 		p->u.string = *(const char **)val ? strdup(*(const char **)val) : NULL;
+	} else if (FILTER_PARAM_IS_POS(p)) {
+		p->u.pos = *(long *)val;
 	}
 
 	if (gldb_add_item(&db->db, ITEM(p), label) == -1) {
@@ -222,6 +224,23 @@ filter_param_t *filterparamdb_add_param_string(filter_paramdb_t *db,
 
 	return p;
 }
+static filter_param_t *_filterparamdb_add_param_pos(filter_paramdb_t *db, ...)
+{
+	filter_param_t *p;
+	va_list va;
+	long val = 0;
+
+	va_start(va, db);
+	p = _filterparamdb_add_param(db, FILTERPARAM_LABEL_POS,
+				     FILTER_PARAMTYPE_POS, &val, va);
+	va_end(va);
+
+	return p;
+}
+filter_param_t *filterparamdb_add_param_pos(filter_paramdb_t *db)
+{
+	return _filterparamdb_add_param_pos(db, FILTERPARAM_END);
+}
 
 filter_param_t *filterparamdb_get_param(filter_paramdb_t *db,
 					const char *label)
@@ -274,6 +293,9 @@ int filterparam_set(filter_param_t *param, const void *val)
 		    || (param->u.string && *val
 		        && strcmp(param->u.string, *(const char **)val) == 0))
 			return 0;
+	} else if (FILTER_PARAM_IS_POS(param)) {
+		if (param->u.pos == *(long *)val)
+			return 0;
 	}
 #endif
 
@@ -296,6 +318,8 @@ int filterparam_set(filter_param_t *param, const void *val)
 		char *vval = *(const char **)val ? strdup(*(const char **)val) : NULL;
 		free(param->u.string);
 		param->u.string = vval;
+	} else if (FILTER_PARAM_IS_POS(param)) {
+		param->u.pos = *(long *)val;
 	}
 
 	/* and signal the change.
@@ -324,7 +348,9 @@ int filterparam_set_string(filter_param_t *param, const char *val)
 		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) != 1)
 			res = sscanf(val, " %511[^\"] ", s);
 		p.u.string = s;
-	} else
+	} else if (FILTER_PARAM_IS_POS(param))
+		res = sscanf(val, " %li ", &p.u.pos);
+	else
 		return -1;
 	if (res != 1)
 		return -1;
@@ -348,6 +374,8 @@ char *filterparam_to_string(const filter_param_t *param)
 		snprintf(buf, 511, "%f", param->u.sample);
 	else if (FILTER_PARAM_IS_STRING(param) && param->u.string)
 		snprintf(buf, 511, "\"%s\"", param->u.string);
+	else if (FILTER_PARAM_IS_POS(param))
+		snprintf(buf, 511, "%li", param->u.pos);
 	else
 		return NULL;
 

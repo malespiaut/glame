@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.11 2001/04/24 11:21:02 richi Exp $
+ * $Id: filter_param.h,v 1.12 2001/04/27 08:25:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -54,6 +54,10 @@
 #define FILTER_PARAMTYPE_STRING_M 39
 #define FILTER_PARAM_IS_STRING(p) ((p)->type >= FILTER_PARAMTYPE_STRING && (p)->type <= FILTER_PARAMTYPE_STRING_M)
 
+#define FILTER_PARAMTYPE_POS      40
+#define FILTER_PARAMTYPE_POS_M    49
+#define FILTER_PARAM_IS_POS(p) ((p)->type >= FILTER_PARAMTYPE_POS && (p)->type <= FILTER_PARAMTYPE_POS_M)
+
 #define FILTER_PARAM_PROPERTY_FILE_FILTER "!filefilter"
 
 /* The filter parameter database type. You should not care
@@ -84,6 +88,7 @@ typedef struct {
 		float f;
 		SAMPLE sample;
 		char *string;
+		long pos;
 	} u;
 } filter_param_t;
 
@@ -107,6 +112,11 @@ typedef struct {
 #define filterparam_val_string(p) ((p)->u.string)
 #define filterparam_val_float(p) ((p)->u.f)
 #define filterparam_val_sample(p) ((p)->u.sample)
+#define filterparam_val_pos(p) ((p)->u.pos)
+#define filterparam_val_set_pos(p, v) do { (p)->u.pos = (v); } while (0)
+
+/* Standard parameter label used for signalling actual position. */
+#define FILTERPARAM_LABEL_POS "actual_position"
 
 
 /* If you know that a particular parameter is stored in a pipes
@@ -204,6 +214,7 @@ filter_param_t *filterparamdb_add_param_float(filter_paramdb_t *db,
 filter_param_t *filterparamdb_add_param_string(filter_paramdb_t *db,
 					       const char *label,
 					       int type, const char *val, ...);
+filter_param_t *filterparamdb_add_param_pos(filter_paramdb_t *db);
 
 /* To query a parameter out of the filter parameter database use the
  * following function. If NULL is returned, the parameter does not exist. */
