@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.34 2001/04/19 12:42:05 richi Exp $
+ * $Id: main.c,v 1.35 2001/04/19 16:05:05 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -233,7 +233,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* output device */
 	cfg = gnome_config_get_string_with_default("audio_io/output_dev=/dev/dsp", &foo);
-	entry = gnome_entry_new("popupTimeout");
+	entry = gnome_entry_new("aoutdev");
 	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))), cfg);
 	create_label_widget_pair(vbox, "Default output device", entry);
 	gtk_widget_show(entry);
