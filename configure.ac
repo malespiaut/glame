@@ -370,6 +370,15 @@ if test "x$alsa" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
+dnl check for Jack
+AC_CHECK_HEADER(jack/jack.h, jack=yes, jack=no)
+if test x$jack = xyes; then
+	GLAME_CFLAGS="$GLAME_CFLAGS `pkg-config --cflags jack`"
+	GLAME_LIBS="$GLAME_LIBS `pkg-config --libs jack`"
+	AC_DEFINE(HAVE_JACK,, [have jack library])
+fi
+AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
+
 dnl
 dnl Check for LADSPA support
 dnl
