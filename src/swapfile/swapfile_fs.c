@@ -62,7 +62,8 @@
 /* Some operations have two implementations, one cooked up out
  * of swapfile API functions, one out of lowlevel ones. Other
  * have an optimized hardcoded path for common usage patterns. */
-#undef USE_COOKED_OPS
+#undef USE_COOKED_OPS_WRITE
+#undef USE_COOKED_OPS_READ
 
 
 /* The global "state" of the swapfile and its locks. The
@@ -244,6 +245,7 @@ void swapfile_close()
 int swapfile_creat(const char *name, size_t size)
 {
 	char s[256];
+	long i;
 
 	if (mkdir(name, 0777) == -1)
 		return -1;
@@ -254,6 +256,16 @@ int swapfile_creat(const char *name, size_t size)
 	if (mkdir(s, 0777) == -1)
 		return -1;
 
+	/* Set up the "hashes" */
+	for (i=0; i<256; i++) {
+		snprintf(s, 255, "%s/clusters.meta/%lX", name, i);
+		if (mkdir(s, 0777) == -1)
+			return -1;
+		snprintf(s, 255, "%s/clusters.data/%lX", name, i);
+		if (mkdir(s, 0777) == -1)
+			return -1;
+	}
+
 	return 0;
 }
 
@@ -263,36 +275,54 @@ static int fsck_scan_clusters(int fix)
 {
 	int unclean = 0;
 	char s[256];
-	DIR *dir;
+	DIR *dir, *dir2;
 	struct dirent *e;
 	int fd;
-	long name;
+	long name, name2;
 	struct swcluster *cluster;
 
 	/* Loop over all metas, deleting un-gettable clusters. */
 	dir = opendir(swap.clusters_meta_base);
 	while ((e = readdir(dir))) {
-		if (sscanf(e->d_name, "%li", &name) != 1) {
+		if (sscanf(e->d_name, "%lX", &name2) != 1) {
 			if (strcmp(e->d_name, ".") != 0
 			    && strcmp(e->d_name, "..") != 0) {
 				DPRINTF("WARNING! Strange file %s in clusters meta directory.\n", e->d_name);
 			}
 			continue;
 		}
-		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
-		if (cluster) {
-			cluster_put(cluster, 0);
-			continue;
+		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
+		dir2 = opendir(s);
+		while ((e = readdir(dir2))) {
+			if (sscanf(e->d_name, "%lX", &name) != 1) {
+				if (strcmp(e->d_name, ".") != 0
+				    && strcmp(e->d_name, "..") != 0) {
+					DPRINTF("WARNING! Strange file %s in clusters meta directory.\n", e->d_name);
+				}
+				continue;
+			}
+			name = name2 | (name << 8);
+
+			cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+			if (cluster) {
+				cluster_put(cluster, 0);
+				continue;
+			}
+			/* Unclean - remove stale cluster, if fix is set. */
+			if (!fix)
+				return 1;
+			unclean = 1;
+			DPRINTF("Deleting stale cluster %lX\n", name);
+			snprintf(s, 255, "%s/%lX/%lX", swap.clusters_meta_base,
+				 name & 0xff, name >> 8);
+			unlink(s);
+			snprintf(s, 255, "%s/%lX/%lX", swap.clusters_data_base,
+				 name & 0xff, name >> 8);
+			unlink(s);
+
 		}
-		/* Unclean - remove stale cluster, if fix is set. */
-		if (!fix)
-			return 1;
-		unclean = 1;
-		DPRINTF("Deleting stale cluster %li\n", name);
-		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
-		unlink(s);
-		snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
-		unlink(s);
+		closedir(dir2);
+
 	}
 	closedir(dir);
 
@@ -300,46 +330,63 @@ static int fsck_scan_clusters(int fix)
 	 * to fix missing meta. */
 	dir = opendir(swap.clusters_data_base);
 	while ((e = readdir(dir))) {
-		if (sscanf(e->d_name, "%li", &name) != 1) {
+		if (sscanf(e->d_name, "%lX", &name2) != 1) {
 			if (strcmp(e->d_name, ".") != 0
 			    && strcmp(e->d_name, "..") != 0) {
 				DPRINTF("WARNING! Strange file %s in clusters data directory.\n", e->d_name);
 			}
 			continue;
 		}
-		/* Create the meta, if not exisiting. */
-		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
-		if (access(s, R_OK) == -1) {
-			/* Unclean - try to fix, if fix is set. */
+		snprintf(s, 255, "%s/%lX", swap.clusters_meta_base, name2);
+		dir2 = opendir(s);
+		while ((e = readdir(dir2))) {
+			if (sscanf(e->d_name, "%lX", &name) != 1) {
+				if (strcmp(e->d_name, ".") != 0
+				    && strcmp(e->d_name, "..") != 0) {
+					DPRINTF("WARNING! Strange file %s in clusters meta directory.\n", e->d_name);
+				}
+				continue;
+			}
+			name = name2 | (name << 8);
+
+			/* Create the meta, if not exisiting. */
+			snprintf(s, 255, "%s/%lX/%lX", swap.clusters_meta_base,
+				 name & 0xff, name >> 8);
+			if (access(s, R_OK) == -1) {
+				/* Unclean - try to fix, if fix is set. */
+				if (!fix)
+					return 1;
+				unclean = 1;
+				if ((fd = open(s, O_RDWR|O_CREAT, 0666)) != -1) {
+					DPRINTF("Recreating missing metadata file for cluster %lX\n", name);
+				/* We need to add a dummy reference to prevent
+				 * cluster from being deleted. */
+					cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+					if (cluster) {
+						cluster_addfileref(cluster, 1);
+						cluster_put(cluster, 0);
+					}
+					close(fd);
+				} else
+					DPRINTF("FAILED recreating metadata!\n");
+			}
+			cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+			if (cluster) {
+				cluster_put(cluster, 0);
+				continue;
+			}
+			/* Unclean - remove stale cluster, if fix is set. */
 			if (!fix)
 				return 1;
 			unclean = 1;
-			if ((fd = open(s, O_RDWR|O_CREAT, 0666)) != -1) {
-				DPRINTF("Recreating missing metadata file for cluster %li\n", name);
-				/* We need to add a dummy reference to prevent
-				 * cluster from being deleted. */
-				cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
-				if (cluster) {
-					cluster_addfileref(cluster, 1);
-					cluster_put(cluster, 0);
-				}
-				close(fd);
-			} else
-				DPRINTF("FAILED recreating metadata!\n");
+			DPRINTF("Deleting stale cluster %lX\n", name);
+			unlink(s);
+			snprintf(s, 255, "%s/%lX/%lX", swap.clusters_data_base,
+				 name & 0xff, name >> 8);
+			unlink(s);
+
 		}
-		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
-		if (cluster) {
-			cluster_put(cluster, 0);
-			continue;
-		}
-		/* Unclean - remove stale cluster, if fix is set. */
-		if (!fix)
-			return 1;
-		unclean = 1;
-		DPRINTF("Deleting stale cluster %li\n", name);
-		unlink(s);
-		snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
-		unlink(s);
+		closedir(dir2);
 	}
 	closedir(dir);
 
@@ -359,7 +406,7 @@ static int fsck_file(struct swfile *file, int fix)
 
 		/* We're going to force a rebuild. */
 		unclean = 1;
-		DPRINTF("File %li has inconsistent ctree - rebuilding\n", file->name);
+		DPRINTF("File %lX has inconsistent ctree - rebuilding\n", file->name);
 		ctree_build(file->clusters);
 		file->flags |= SWF_DIRTY;
 	}
@@ -376,7 +423,7 @@ static int fsck_file(struct swfile *file, int fix)
 		if (!fix)
 			return 1;
 		unclean = 1;
-		DPRINTF("Removing not exisiting cluster %li from ctree of file %li\n", (long)CID(file->clusters, i), file->name);
+		DPRINTF("Removing not exisiting cluster %lX from ctree of file %lX\n", (long)CID(file->clusters, i), file->name);
 		file->clusters = ctree_remove(file->clusters, i, 1,
 					      NULL, NULL);
 		file->flags |= SWF_DIRTY;
@@ -410,7 +457,7 @@ static int fsck_file(struct swfile *file, int fix)
 		if (!fix)
 			return 1;
 		unclean = 1;
-		DPRINTF("Fixing incorrect number of references %li -> %li (off by %i)\n", file->name, cluster->name, cnt);
+		DPRINTF("Fixing incorrect number of references %lX -> %lX (off by %i)\n", file->name, cluster->name, cnt);
 		for (; cnt>0; cnt--)
 			cluster_addfileref(cluster, file->name);
 
@@ -437,8 +484,8 @@ static int fsck_check_files(int fix)
 		if (!file) {
 			if (!fix)
 				return 1;
-			DPRINTF("Deleting stale file %li\n", nm);
-			snprintf(s, 255, "%s/%li", swap.files_base, nm);
+			DPRINTF("Deleting stale file %lX\n", nm);
+			snprintf(s, 255, "%s/%lX", swap.files_base, nm);
 			unlink(s);
 			unclean = 1;
 			continue;
@@ -485,7 +532,7 @@ static int fsck_cluster(struct swcluster *cluster, int fix)
 	delete_ref:
 		if (!fix)
 			return 1;
-		DPRINTF("Deleting stale fileref %li -> %li\n",
+		DPRINTF("Deleting stale fileref %lX -> %lX\n",
 			cluster->name, cluster->files[i]);
 		cluster_delfileref(cluster, cluster->files[i]);
 		unclean = 1;
@@ -511,7 +558,7 @@ static int fsck_check_clusters(int fix)
 	/* Loop over all clusters, checking files & references. */
 	dir = opendir(swap.clusters_meta_base);
 	while ((e = readdir(dir))) {
-		if (sscanf(e->d_name, "%li", &name) != 1)
+		if (sscanf(e->d_name, "%lX", &name) != 1)
 			continue;
 		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
 		if (!cluster)
@@ -554,7 +601,8 @@ int swapfile_fsck(const char *name, int force)
 {
 	char str[256];
 	FILE *f;
-	int pid, unclean;
+	long pid;
+	int unclean;
 
 	/* Can we open the swapfile w/o check? */
 	if (swapfile_open(name, 0) == 0) {
@@ -578,7 +626,7 @@ int swapfile_fsck(const char *name, int force)
 		f = fopen(str, "w+");
 	if (!f)
 		return -1;
-	if (fscanf(f, "%i", &pid) == 1) {
+	if (fscanf(f, "%li", &pid) == 1) {
 		if (kill(pid, 0) == -1 && errno != ESRCH) {
 			errno = EBUSY;
 			return -1;
@@ -679,7 +727,10 @@ long sw_readdir(SWDIR *d)
 	}
 
 	while ((e = readdir((DIR *)d))) {
-		if (sscanf(e->d_name, "%li", &name) == 1)
+		if (strcmp(e->d_name, "clusters.meta") == 0
+		    || strcmp(e->d_name, "clusters.data") == 0)
+			continue;
+		if (sscanf(e->d_name, "%lX", &name) == 1)
 		    	return name;
 	}
 	return -1;
@@ -980,7 +1031,7 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	return _fd->offset;
 }
 
-#ifdef USE_COOKED_OPS
+#ifdef USE_COOKED_OPS_READ
 /* Like read(2), read count bytes from the current filepointer
  * position to the array pointed to by buf. */
 ssize_t sw_read(swfd_t fd, void *buf, size_t count)
@@ -1088,7 +1139,7 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 }
 #endif
 
-#ifdef USE_COOKED_OPS
+#ifdef USE_COOKED_OPS_WRITE
 /* Like write(2), write count bytes from buf starting at the current
  * filepointer position. */
 ssize_t sw_write(swfd_t fd, const void *buf, size_t count)

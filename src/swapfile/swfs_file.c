@@ -59,7 +59,7 @@ static pthread_mutex_t filesmx = PTHREAD_MUTEX_INITIALIZER;
 /* Helpers for opening the metadata file. */
 static inline void __file_name(char *s, int len, long name)
 {
-	snprintf(s, len, "%s/%li", swap.files_base, name);
+	snprintf(s, len, "%s/%lX", swap.files_base, name);
 }
 static inline int __file_open(long name, int flags)
 {

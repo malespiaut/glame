@@ -737,7 +737,8 @@ static int __cluster_meta_open(long name, int flags)
 {
 	char s[256];
 
-	snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
+	snprintf(s, 255, "%s/%lX/%lX", swap.clusters_meta_base,
+		 name & 0xff, name >> 8);
 	return open(s, flags, 0666);
 }
 
@@ -812,7 +813,8 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 #ifndef SWDEBUG
 	if (known_size == -1) {
 #endif
-		snprintf(sd, 255, "%s/%li", swap.clusters_data_base, name);
+		snprintf(sd, 255, "%s/%lX/%lX", swap.clusters_data_base,
+			 name & 0xff, name >> 8);
 		if (stat(sd, &dstat) == -1) {
 			free(c);
 			pthread_mutex_destroy(&c->mx);
@@ -901,7 +903,8 @@ static inline int __cluster_data_open(struct swcluster *c, int flags)
 
 	if (c->fd != -1)
 		return 0;
-	snprintf(s, 255, "%s/%li", swap.clusters_data_base, c->name);
+	snprintf(s, 255, "%s/%lX/%lX", swap.clusters_data_base,
+		 c->name & 0xff, c->name >> 8);
 	c->fd = open(s, flags, 0666);
 	if (c->fd == -1) {
 		if (errno == EMFILE && clusters_fdlru_maxcnt > 16) {
@@ -1002,9 +1005,11 @@ static void _cluster_put(struct swcluster *c)
 	/* If there are no users (files) left, unlink the
 	 * on-disk representations. */
 	if (!(c->flags & SWC_NOT_IN_CORE) && c->files_cnt == 0) {
-		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, c->name);
+		snprintf(s, 255, "%s/%lX/%lX", swap.clusters_meta_base,
+			 c->name & 0xff, c->name >> 8);
 		unlink(s);
-		snprintf(s, 255, "%s/%li", swap.clusters_data_base, c->name);
+		snprintf(s, 255, "%s/%lX/%lX", swap.clusters_data_base,
+			 c->name & 0xff, c->name >> 8);
 		unlink(s);
 	} else if (c->flags & SWC_DIRTY)
 		_cluster_writefiles(c);
