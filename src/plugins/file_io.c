@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.9 2000/03/21 14:14:07 richi Exp $
+ * $Id: file_io.c,v 1.10 2000/03/24 15:27:12 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -465,7 +465,8 @@ int af_read_f(filter_node_t *n)
 	short *b;
 	int cnt;
 
-	/* FIXME! reposition af to start of the file [richi] */
+	/* seek to start of audiofile */
+	afSeekFrame(RWA(n).file, AF_DEFAULT_TRACK, 0);
 
 	FILTER_AFTER_INIT;
 
