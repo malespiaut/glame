@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.6 2000/02/22 10:29:37 xwolf Exp $
+ * $Id: gui.c,v 1.7 2000/02/22 11:44:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -20,28 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-#define DEBUG 1
-#include <gnome.h>
-#include "filter.h"
+
 #include "gui.h"
-#include "canvas.h"
-
-
-void newcanvas(void)
-{
-	//just testing
-	
-	GnomeCanvas* canvas;
-	GnomeCanvasGroup *grp;
-	
-	gui_filter * filter = g_array_index(gui->filters,gui_filter*,gui->selectedIcon);
-
-	canvas = create_new_canvas(filter->caption,NULL);
-	grp = create_new_node(canvas,filter,50.0,50.0);
-	gtk_widget_show(canvas);
-}
-
-
 
 /* Main menu, shamelessly cut out of glade output */
 static GnomeUIInfo file_menu_menu_uiinfo[] =
@@ -203,7 +183,7 @@ void handle_properties(GtkWidget *menuitem, gpointer bla)
 void 
 handle_new_filter_net(GtkWidget *menuitem, gpointer bla)
 {
-	GlameCanvas *canv;
+	GtkWidget *canv;
 	
 	gui_network * net;
 
@@ -230,7 +210,8 @@ gui_filter*
 gui_filter_new(const char *pixname,filter_t* filter)
 {
 	gui_filter * newFilter = malloc(sizeof(gui_filter));
-	newFilter->caption = filter->name;
+	newFilter->caption = malloc(strlen(filter->name));
+	strcpy(newFilter->caption,filter->name);
 	newFilter->pixname = malloc(strlen(pixname));
 	newFilter->filter = filter;
 	strcpy(newFilter->pixname,pixname);
@@ -399,7 +380,7 @@ void create_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, const 
 				  (GtkDestroyNotify) gtk_widget_unref);
 	gtk_widget_show (hbox);
 	gtk_box_pack_start(GTK_BOX (box), hbox,TRUE,TRUE,3);
-	gtk_container_set_border_width(hbox,2);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox),2);
 
 	gtk_widget_ref (propname);
 	gtk_object_set_data_full (GTK_OBJECT (win), "probname", propname,
@@ -607,7 +588,7 @@ void gui_handle_icon_sel (GnomeIconList *iconlist,
 			men=gtk_menu_new();
 			prop=gtk_menu_item_new_with_label("Properties");
 			gtk_menu_append(GTK_MENU(men),prop);
-			gtk_signal_connect_object(GTK_OBJECT(prop),"activate",GTK_SIGNAL_FUNC(icon_prop_activate),index);
+			gtk_signal_connect_object(GTK_OBJECT(prop),"activate",GTK_SIGNAL_FUNC(icon_prop_activate),(gpointer)index);
 			gtk_widget_show(prop);
 			gtk_widget_show(men);
 			gui->selectedIcon=index;
@@ -623,7 +604,6 @@ void gui_handle_icon_sel (GnomeIconList *iconlist,
 		}else if(((GdkEventButton*)event)->button==2){
 			fprintf(stderr,"button 2\n");
 			//fleur = gdk_cursor_new(GDK_FLEUR);
-			newcanvas();
 		}else
 			fprintf(stderr,"unhandled event in gui_handle_icon_sel\n");
 	}
@@ -634,13 +614,13 @@ int gui_browse_registered_filters(void)
 {
 	filter_t * fil=NULL;
 	gui_filter* gfilt;
-	int i=0;
 	
 	while((fil=filter_next(fil))){
 		gfilt=gui_filter_new(GLAME_DEFAULT_ICON,fil);
 		gui_filter_add(gfilt);
 	}
-	gnome_icon_list_select_icon(gui->iconlist,gui->selectedIcon);
+	gnome_icon_list_select_icon(GNOME_ICON_LIST(gui->iconlist),gui->selectedIcon);
+	return 0;
 }
 
 
@@ -656,6 +636,7 @@ int gui_filter_init(void)
                 fprintf(stderr, "error in filter_init()\n");
                 return -1;
         }
+	return 0;
 }
 
 
@@ -753,26 +734,26 @@ gui_network_new_wizard(void)
 	GnomeDruidPage * page;
 	GnomeDruidPageStandard *page2;
 
-	GtkWidget *name, *descript, *nroports, *nriports, *icon;
+	GtkWidget *name, *nroports, *nriports, *icon;
 	
 	net = malloc(sizeof(gui_network));
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window),_("Create new filter network"));
-	druid = gnome_druid_new();
+	druid = GNOME_DRUID(gnome_druid_new());
 	gnome_druid_set_show_finish(druid,TRUE);
 
-	gtk_container_add(GTK_CONTAINER(window),druid);
+	gtk_container_add(GTK_CONTAINER(window),GTK_WIDGET(druid));
 
 
 
 	img = gdk_imlib_load_image(GLAME_LOGO);
 	wat = gdk_imlib_load_image(GLAME_DEFAULT_ICON);
-	page = gnome_druid_page_start_new_with_vals(_("Filternetwork creation"),_("This druid will assist You in the creation of Your new filter network type"),img,wat);
-	gtk_widget_show(page);
+	page = GNOME_DRUID_PAGE(gnome_druid_page_start_new_with_vals(_("Filternetwork creation"),_("This druid will assist You in the creation of Your new filter network type"),img,wat));
+	gtk_widget_show(GTK_WIDGET(page));
       	gnome_druid_append_page(druid,page);
 	gnome_druid_set_page(druid,page);
 
-	page2 = gnome_druid_page_standard_new_with_vals(_("Basic Parameters"),img);
+	page2 = GNOME_DRUID_PAGE_STANDARD(gnome_druid_page_standard_new_with_vals(_("Basic Parameters"),img));
 	
 	name = create_label_edit_pair(page2->vbox,"Filter name");
 	nroports = create_label_edit_pair(page2->vbox,"Number of output ports");
@@ -783,8 +764,8 @@ gui_network_new_wizard(void)
 	gtk_signal_connect(GTK_OBJECT(nroports),"changed",oports_changed,net);
 	gtk_signal_connect(GTK_OBJECT(nriports),"changed",iports_changed,net);
 	
-	gtk_widget_show(page2);
-	gnome_druid_append_page(druid,page2);
+	gtk_widget_show(GTK_WIDGET(page2));
+	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page2));
 
 	gtk_widget_show_all(window);	
 

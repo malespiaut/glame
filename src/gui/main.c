@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.3 2000/02/21 17:30:56 xwolf Exp $
+ * $Id: main.c,v 1.4 2000/02/22 11:44:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -25,7 +25,6 @@
 #include <config.h>
 #endif
 
-#include <gnome.h>
 #include "gui.h"
 
 
@@ -34,22 +33,16 @@
 
 int main(int argc, char *argv[])
 {
-	GtkWidget *about;
 	GtkWidget *commandwin;
 
 	/* dummy buttons */
-	gui_filter * bla;
+
 	char *labels[]={
-		"bla1","bla2","bla3","bla4"};
+		"These","Buttons","Are","Reserved","For","Future","Use","[XWolf]"};
 	
 	/* setup gnome/gtk  */
 	
 	gnome_init("glame",VERSION,argc,argv);
-	
-	/* splash screen */
-	//	about = gui_create_about();
-	
-	//gtk_widget_show(about);
 	
 	gui=malloc(sizeof(glame_gui));
 	

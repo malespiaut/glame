@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.2 2000/02/22 08:50:30 xwolf Exp $
+ * $Id: canvas.h,v 1.3 2000/02/22 11:44:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -26,11 +26,6 @@
  *
  */
 
-
-
-#include <gnome.h>
-#include <libgnomeui/gnome-canvas.h>
-//#include "filter.h"
 #include "gui.h"
 
 
@@ -72,7 +67,7 @@ struct _GlameCanvasItemClass
 
 
 GtkType glame_canvas_item_get_type(void);
-GnomeCanvasItem* glame_canvas_item_new(GnomeCanvasGroup * group,
+GlameCanvasItem* glame_canvas_item_new(GnomeCanvasGroup * group,
 				       gui_filter * gfilter,
 				       gdouble world_x,
 				       gdouble world_y);

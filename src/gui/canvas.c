@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.2 2000/02/22 08:50:30 xwolf Exp $
+ * $Id: canvas.c,v 1.3 2000/02/22 11:44:14 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -27,8 +27,6 @@
 
 
 #include "canvas.h"
-#include <gnome.h>
-#include <libgnomeui/gnome-app-helper.h>
 
 
 
@@ -121,7 +119,7 @@ glame_canvas_class_init(GlameCanvasClass *class)
 	canvas_item_class = GNOME_CANVAS_CLASS (class);
 	//canvas_group_class = GNOME_CANVAS_GROUP_CLASS (class);
 	
-	glame_canvas_item_class = class;
+	//glame_canvas_item_class = class;
 	canvas_parent_class = gtk_type_class (GNOME_TYPE_CANVAS);
 	
 	object_class->destroy = glame_canvas_destroy;
@@ -148,8 +146,8 @@ glame_canvas_init (GlameCanvas *item)
 static void
 glame_canvas_item_destroy (GtkObject *object)
 {
-	GlameCanvasItem *item = GLAME_CANVAS_ITEM (object);
-	GnomeCanvasGroup *group = GNOME_CANVAS_GROUP (object);
+  //GlameCanvasItem *item = GLAME_CANVAS_ITEM (object);
+  //	GnomeCanvasGroup *group = GNOME_CANVAS_GROUP (object);
 
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }
@@ -166,32 +164,29 @@ GtkWidget * glame_canvas_new(gui_network *n)
 	GlameCanvas *g;
 	g = gtk_type_new(glame_canvas_get_type());
 	g->net = n;
-	return g;
+	return GTK_WIDGET(g);
 }
 
-GnomeCanvasItem*
+GlameCanvasItem*
 glame_canvas_item_new(GnomeCanvasGroup *group,
 		      gui_filter *gfilter,
 		      gdouble x,
 		      gdouble y)
 {
 	
-	GnomeCanvasGroup * grp, *root;
-	GnomeCanvasItem *frame, *text;
 	GnomeCanvasPoints* points;
 	GdkImlibImage *image;
-	double affine[6];
+
 	GnomeCanvasItem *iitem;
 	GlameCanvasItem *item;
-	GtkWidget* pic;
 
 	
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
-	grp = item;
+	
 
-	gnome_canvas_item_new(grp,
+	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_rect_get_type(),
 			      "x1",0.0,
 			      "y1",0.0,
@@ -202,7 +197,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "fill_color_rgba",0x55555550,
 			      NULL);
 
-	gnome_canvas_item_new(grp,
+	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_rect_get_type(),
 			      "x1",80.0,
 			      "y1",0.0,
@@ -212,7 +207,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "width_units",1.0,
 			      "fill_color_rgba",0x55555550,
 			      NULL);
-	gnome_canvas_item_new(grp,
+	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_rect_get_type(),
 			      "x1",0.0,
 			      "y1",64.0,
@@ -228,14 +223,14 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	points->coords[1] = 0.0;
 	points->coords[2] = 80.0;
 	points->coords[3] = 0.0;
-	gnome_canvas_item_new(grp,
+	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_line_get_type(),
 			      "points",points,
 			      "fill_color","black",
 			      "width_units",1.0,
 			      NULL);
 
-	gnome_canvas_item_new(grp,
+	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_text_get_type(),
 			      "x",48.0,
 			      "y",67.0,
@@ -252,7 +247,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	
 
 	image = gdk_imlib_load_image(gfilter->pixname);
-	gnome_canvas_item_new(grp,
+	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_image_get_type(),
 			      "x",48.0,
 			      "y",32.0,
@@ -261,9 +256,9 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "image",image,
 			      NULL);
 	
-	create_ports(grp,gfilter);
+	create_ports(GNOME_CANVAS_GROUP(item),gfilter);
 	
-	return grp;
+	return GLAME_CANVAS_ITEM(item);
 	
 
 
@@ -272,7 +267,8 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 		
 static gint delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
 {
-	gtk_object_destroy(win);
+	gtk_object_destroy(GTK_OBJECT(win));
+	return TRUE;
 }
 
 
@@ -305,17 +301,12 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	
 
 	gui_network_filter_add(canv->net,inst);
-	gnome_canvas_window_to_world(canv,x,y,&dx,&dy);
-	grp = create_new_node(canv,inst,dx,dy);
-	  //gui_network_filter_add(gui->canvas->net,inst);
-	  //	gnome_canvas_window_to_world(gui->canvas->canvas,x,y,&dx,&dy);
-	  //grp = create_new_node(gui->canvas->canvas,inst,dx,dy);
-	       
-	
+	gnome_canvas_window_to_world(GNOME_CANVAS(canv),x,y,&dx,&dy);
+	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),inst,dx,dy));
 	
 }
 
-GnomeCanvas * 
+GtkWidget * 
 create_new_canvas(const char *name, gui_network* net)
 {
 	GtkWidget *window, *canvas, *sw;
@@ -377,8 +368,8 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 	filter_t*filter =  filter_get(f->caption);
 	filter_portdesc_t * port;
 	GnomeCanvasItem*item;
-	GtkTooltips* tt;
-	int i=0;
+//	GtkTooltips* tt;
+
 	int portcount=filter_nrinputs(filter);
 	double step = 64.0/(float)portcount;
 	double border = 0.0;
@@ -397,7 +388,7 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 		//	tt = gtk_tooltips_new();
 		//      gtk_tooltips_set_tip(tt,GTK_WIDGET(item),filterportdesc_label(port),NULL);
 		gtk_signal_connect(GTK_OBJECT(item),
-				   "event",input_port_select,
+				   "event",GTK_SIGNAL_FUNC(input_port_select),
 				   port);
 				   
 	}
@@ -419,7 +410,7 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 //		tt = gtk_tooltips_new();
 //		gtk_tooltips_set_tip(tt,GTK_WIDGET(item),filterportdesc_label(port),NULL);
 		gtk_signal_connect(GTK_OBJECT(item),
-				   "event",output_port_select,
+				   "event",GTK_SIGNAL_FUNC(output_port_select),
 				   port);
 	}
 }
@@ -431,8 +422,8 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 
 
 
-GnomeCanvasGroup* 
-create_new_node(GtkWidget *canvas, gui_filter *filter,double x, double y)
+GtkWidget*
+create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y)
 {
 
 	GlameCanvasItem *item;
@@ -443,8 +434,8 @@ create_new_node(GtkWidget *canvas, gui_filter *filter,double x, double y)
 	item = glame_canvas_item_new(root,
 				     filter,
 				     0.0,0.0);
-	gnome_canvas_item_move(item,x,y);
-	
+	gnome_canvas_item_move(GNOME_CANVAS_ITEM(item),x,y);
+	return GTK_WIDGET(item);
 }
 				     
 	
