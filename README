@@ -1,4 +1,4 @@
-This is GLAME v0.025 - GNU/Linux Audio Mechanics ALPHA release.
+This is GLAME v0.1.29 - GNU/Linux Audio Mechanics ALPHA release.
 
 This will be the first usable wav editor for linux.
 It will be actually a lot more than a wav editor! [richi]
@@ -8,7 +8,7 @@ Authors in alphabetical order
 with their real names
 	Daniel Kobras,
 	Alexander Ehlert,
-	Richard Günther,
+	Richard Guenther,
 	Johannes Hirche.
 
 CVS, mailinglist and homepage are now hosted by sourceforge. Have a look at
@@ -24,8 +24,13 @@ setup filter networks, go to src/filter and try the executable
 test_network on various of the net_test_* files supplied there. A brief
 summary on how to setup your own net_test_ files is in the texinfo 
 documentation in doc/. A preliminary GUI is there as well, just try
-src/gui/main. You can query filter properties at the moment and have fun
-testing a little drag'n'drop but that's about all at the moment.
+src/gui/main. You can query filter properties, create networks, set
+parameters and listen to the output - that's all at the moment.
+
+The only really useful UI is cglame, console glame for now. You will end
+in a scheme shell after launching cglame and have access to the backends
+and the midlayer API. Look into src/glmid/play.scm for some example scheme
+stuff (try "(load "play.scm")" at the guile> command prompt). 
 
 Want more? Then join our devel team at SourceForge! An e-mail to
 glame-devel@lists.sourceforge.net will get you going.
@@ -38,8 +43,7 @@ Requirements
 ============
 - Supported platforms so far are Linux and IRIX, we occasionally try to 
   make it compile on Solaris, AIX, and BSD.
-- POSIX realtime signals are needed, leading to a minimal requirement of
-  glibc2.1 on Linux.
+- You may need glibc2.x on Linux, other versions were not tested.
 - For the GUI part, it's best to try with the very latest versions of
   GTK+, GNOME libs. configure --disable-gui is your friend...
 - The scripting part makes use of GUILE; upgrading to the lastest and 
@@ -80,16 +84,32 @@ Version 0.025:
 - second public release, main APIs complete and documented
 - can play wavs including echo effect
 
+Version 0.1.29:
+- usable filternetwork GUI
+- usable console UI
+- plugins work
+- feedback inside the net does work
+- lots of bugfixes
+
+
 Features:
 =========
 
 Wanted features? yes...
-Implemented features? no...
+Implemented features? partly...
 
-There is no frontend yet, but the backends support
+The backends support
 - swapfile: * unlimited undo/redo
 - filter:   * threaded, real-time audio-processing with connected
               filter-networks
+
+The midlayer does
+- plugins
+- scripting with guile (on top of the midlayer and the backends)
+
+The UIs are
+- cglame - the schemed console UI
+- gui/main - the filternetwork GUI
 
 
 Thats all folks!

@@ -1,4 +1,4 @@
-@comment $Id: plugin.texi,v 1.4 2000/02/22 16:55:26 nold Exp $
+@comment $Id: plugin.texi,v 1.5 2000/03/15 19:12:51 richi Exp $
 
 @node Plugin Interface, Function and Type Index, Swapfile API, Top
 @chapter Plugin Interface 
@@ -53,18 +53,19 @@ If you want to create a plugin, your dynamic object should contain the
 following standard symbols with the described information attached. The
 targeted subsystem may require additional defined symbols. Please refer
 to the subsystems' documentation for information about those symbol
-names and required contents.
+names and required contents. You should substitute the plugins name for
+the @code{plugin} prefix of the symbols to prevent symbol name clashes.
 
 @table @code
 @item plugin_register
 A function of type @code{(int (*)(void))} which does everything
 necessary to register anything in the plugin to any subsystem.
 
-@item description
+@item plugin_description
 A description string which should contain a short description of the
 function of the plugin, its creator and a copyright notice.
 
-@item pixmap
-An optional pixmap in a formatthe specific subsystem can handle.
+@item plugin_pixmap
+An optional pixmap in a format the specific subsystem can handle.
 @end table
 

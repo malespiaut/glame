@@ -440,6 +440,9 @@ int glscript_init()
 	gh_new_procedure("plugin_description", gls_plugin_description,
 			 1, 0, 0);
 
+	/* FIXME!!! (path...) */
+	gh_eval_str("(load \"glmid/glame.scm\")");
+
 	return 0;
 }
 

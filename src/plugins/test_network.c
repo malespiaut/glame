@@ -1,6 +1,6 @@
 /*
- * test_latency.c
- * $Id: test_network.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * test_network.c
+ * $Id: test_network.c,v 1.2 2000/03/15 19:12:51 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -54,7 +54,9 @@ int main(int argc, char **argv)
 	sa.sa_flags = 0;
 	sa.sa_handler = cleanup;
 	sigemptyset(&sa.sa_mask);
+#ifdef HAVE_POSIX_RTSIG
 	sa.sa_sigaction = NULL;
+#endif
 	if (sigaction(SIGINT, &sa, NULL) == -1)
 		perror("sigaction");
 	if (sigaction(SIGTERM, &sa, NULL) == -1)

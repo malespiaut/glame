@@ -45,10 +45,6 @@ dnl and GLAME_DLIBS & GLAME_DCFLAGS
 dnl
 AC_CHECK_POSIX_RTSIG
 
-if test -z "$HAVE_POSIX_RTSIG"; then
-	AC_MSG_ERROR([Libc does not support POSIX realtime signals])
-fi
-
 
 dnl
 dnl GUI stuff

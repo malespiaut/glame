@@ -63,11 +63,16 @@ int main(int argc, char **argv)
 "    This is free software, and you are welcome to redistribute it\n"
 "    under certain conditions.\n\n");
 
+	fprintf(stderr,
+"    Quick help:\n"
+"    (quit) gets you out of here.\n"
+"    (help) gets you some additional help.\n");
+
 	if (init() == -1)
 		PANIC("Error in init!");
 
 	if (argc != 2) {
-	        fprintf(stderr, "Usage: %s swapfile\n\n", argv[0]);
+	        fprintf(stderr, "Usage: %s [swapfile]\n\n", argv[0]);
 	} else {
 		if (swap_open(argv[1], 0) == -1) {
 			perror("Unable to open swap");
