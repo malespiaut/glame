@@ -1,0 +1,60 @@
+@comment $Id: gldb.texi,v 1.1 2000/11/15 09:38:24 richi Exp $
+
+@node GLAME Database Interface, GLAME Signal Interface, Plugin Interface, Top
+@chapter GLAME Database Interface
+
+The purpose for this generic small database framework is to be able to
+have many databases with a very small footprint for their hook and
+reasonable minimum item size. The item query time is O(N).  Note that
+there is no locking internal to a database - at least no guaranteed one,
+so you may want to have per database mutexes.
+
+Only one "type" of items may be stored in the database - type is
+destinguished by the database operations, the copy and the delete
+operation. These operate on all items and such either need to find about
+the items type themself or assume equal types.
+
+Note that embedding a @code{gldb_t *} rather than a @code{struct db_ops
+*} in the item does allow more flexibility such as a single linked list
+implementation or some other tricky use of the db/item framework.
+
+The presented framework is not intended for direct use but rather for
+use as a basis for own item types with corresponding wrappers to the gldb
+API.
+
+@menu
+* The Basic GLAME Database Types::
+* The Internal gldb Operations::
+* The GLAME Database API::
+* Existing GLAME Database Specializations::
+@end menu
+
+
+@node The Basic GLAME Database Types, The Internal gldb Operations, , GLAME Database Interface
+@subsection The Basic GLAME Database Types
+
+
+@node The Internal gldb Operations, The GLAME Database API, The Basic GLAME Database Types, GLAME Database Interface
+@subsection The Internal gldb Operations
+
+
+@node The GLAME Database API, Existing GLAME Database Specializations, The Internal gldb Operations, GLAME Database Interface
+@subsection The GLAME Database API
+
+
+@node Existing GLAME Database Specializations, , The GLAME Database API, GLAME Database Interface
+@subsection Existing GLAME Database Specializations
+
+Two generic specializations exist, the string database and the WORM database.
+Also the filter parameter database and the filter port database are
+specializations of the generic GLAME database framework, but they are not
+covered in this document.
+
+@menu
+* The String Database::
+* The WORM Database::
+@end menu
+
+@node The String Database, The WORM Database, , Existing GLAME Database Specializations
+
+@node The WORM Database, , The String Database, Existing GLAME Database Specializations

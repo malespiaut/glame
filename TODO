@@ -11,33 +11,28 @@ doc/
 plugins/
 	- we need pixmaps
 
-glmid/gltrack.[ch], plugins/track_io.c
-	- rethink wrt wave gui
-
 filter/
 	[richi]
         - parameters:
           * allow shared parameters
-        - general class stuff
-	  * get rid of these *_desc_t stuff - just clone example
-            instances. Left to kill are portdesc and filter itself.
-        - API/implementation stuff
+        - API stuff
           * are hashes really necessary? (we need lists anyway)
-          * symmetry: name vs. pointer APIs
-	  * there are way too many API functions...
+	  * Completely script (the new) filter API - use smobs?
+	  * Update documentation
+	- implementation stuff
+          * move (copy?) methods down to the actual users (filter_param_t
+  	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
+            existance
+	  * fix the notion of network/node to child/parent relationships
 
 swapfile/
         [richi]
-	- redo transactions and high level operations, i.e.
-	  clean them up - first step done (it works)
-	- redo the lowlevel part (fuse runtime and on-disk structures,
-	  use meta part of the swapfile directly)
+	- implement the transactions, restore undo/redo
 
 gui/
 	[all]
+	- get rid of the icon canvas for the filter stuff and do it
+          in categorized popup menu
+	- allow load/save of networks
 	- we need some ideas how to do the wave-editing stuff, especially
           how to couple it with the filter stuff.
-	- needs to support pipe parameters
-  	- this middle/right button stuff needs to be changed to
-    	  context menus
-

@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.9 2000/07/31 11:57:46 nold Exp $
+@comment $Id: glame.texi,v 1.10 2000/11/15 09:38:24 richi Exp $
 
 
 @c %**start of header
@@ -97,6 +97,8 @@ Copyright @copyright{} 2000 Richard G@"unther, Daniel Kobras.
 * Filter Tutorial::	Writing plugins for GLAME.
 * Swapfile API::	Using GLAME's flexible backing store.
 * Plugin Interface::	GLAME's dynamically loadable modules.
+* GLAME Database Interface:: GLAME's implementation of a generic database
+* GLAME Signal Interface:: GLAME's implementation of generic signalling
 
 ==References==
 
@@ -142,8 +144,10 @@ translation approved by the Free Software Foundation.
 @include filter-tutorial.texi
 @include swapfile.texi
 @include plugin.texi
+@include gldb.texi
+@include glsignal.texi
 
-@node Function and Type Index, , Plugin Interface, Top
+@node Function and Type Index, , GLAME Signal Interface, Top
 @unnumbered Function and Type Index
 @printindex fn
 

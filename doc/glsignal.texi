@@ -1,0 +1,21 @@
+@comment $Id: glsignal.texi,v 1.1 2000/11/15 09:38:24 richi Exp $
+
+@node GLAME Signal Interface, Function and Type Index, GLAME Database Interface, Top
+@chapter GLAME Signal Interface
+
+Generic signals via callbacks (@code{glsig_handler_t}), issuable from a
+glsig_emitter. Signal masks are supported, as is a hierarchy of the
+signal emitters.
+
+WARNING! No explicit threading support is included, i.e. do your own
+locking (you have to protect the emitter against concurrent addition and
+removal of handlers and emit of signals). Also a handler will be invoked
+in the thread context of the emitter, not in the one which added the
+handler. If you want to emit signals from real signal handlers you have
+to ensure yourself that your handlers are signal safe - also they should
+be reentrant as parallel invocation from different threads is not
+protected against.
+
+Brief description of the available API follows: 
+
+FIXME - create out of glsignal.h
