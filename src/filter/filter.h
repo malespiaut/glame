@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.71 2001/05/28 08:08:38 richi Exp $
+ * $Id: filter.h,v 1.72 2001/06/05 14:37:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -342,48 +342,6 @@ do { \
  * for convenience.
  */
 #include "filter_tools.h"
-
-
-
-
-/* Compatibility #defines for old code.
- */
-
-#ifndef _NO_FILTER_COMPATIBILITY
-
-#define filter_add_input(f, l, d, t) filterportdb_add_port(filter_portdb(f), l, t, FILTER_PORTFLAG_INPUT, FILTERPORT_DESCRIPTION, d, FILTERPORT_END)
-#define filter_add_output(f, l, d, t) filterportdb_add_port(filter_portdb(f), l, t, FILTER_PORTFLAG_OUTPUT, FILTERPORT_DESCRIPTION, d, FILTERPORT_END)
-
-#define filternode_get_input(n, l) filterport_get_pipe(filterportdb_get_port(filter_portdb(n), l))
-#define filternode_get_output(n, l) filterport_get_pipe(filterportdb_get_port(filter_portdb(n), l))
-#define filternode_next_input(p) list_getnext(&(p)->dest->pipes, p, filter_pipe_t, dest_list)
-#define filternode_next_output(p) list_getnext(&(p)->source->pipes, p, filter_pipe_t, source_list)
-static inline int filternode_nrinputs(filter_t *n)
-{
-	filter_port_t *port;
-	int nr = 0;
-	filterportdb_foreach_port(filter_portdb(n), port) {
-		if (filterport_is_input(port))
-			nr += filterport_nrpipes(port);
-	}
-	return nr;
-}
-static inline int filternode_nroutputs(filter_t *n)
-{
-	filter_port_t *port;
-	int nr = 0;
-	filterportdb_foreach_port(filter_portdb(n), port) {
-		if (filterport_is_output(port))
-			nr += filterport_nrpipes(port);
-	}
-	return nr;
-}
-
-#define filternode_get_param(n, l) filterparamdb_get_param(filter_paramdb(n), l)
-#define filterpipe_get_sourceparam(p, l) filterparamdb_get_param(filterpipe_sourceparamdb(p), l)
-#define filterpipe_get_destparam(p, l) filterparamdb_get_param(filterpipe_destparamdb(p), l)
-
-#endif /* _NO_FILTER_COMPATIBILITY */
 
 
 #ifdef __cplusplus
