@@ -515,41 +515,35 @@ static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
 }
 
 /* Toolbar event - play from marker using audio_out. */
-struct playmarker_state {
-	WaveeditGui *waveedit;
-	filter_t *net;
-	filter_param_t *param;
-	long start;
-};
 static void playmarker_cleanup(glsig_handler_t *handler,
 			       long sig, va_list va)
 {
-	struct playmarker_state *s;
-	s = (struct playmarker_state *)glsig_handler_private(handler);
-	s->net = NULL;
+	WaveeditGui *waveedit;
+	waveedit = (WaveeditGui *)glsig_handler_private(handler);
+	waveedit->pm_net = NULL;
+	waveedit->locked = 0;
 
 	/* restore normal play button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(s->waveedit->toolbar)), 3)->data);
-	gtk_toolbar_insert_item(GTK_TOOLBAR(s->waveedit->toolbar),
+		GTK_CONTAINER(waveedit->toolbar)), 3)->data);
+	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
 				"Play", "Play", "Play",
 				glame_load_icon_widget("play.png",24,24),
-				playmarker_cb, s->waveedit->waveview, 4);
+				playmarker_cb, waveedit->waveview, 4);
 }
 static void playmarker_update_marker(glsig_handler_t *handler,
 				     long sig, va_list va)
 {
-	struct playmarker_state *s;
+	WaveeditGui *waveedit;
 	long pos;
 
-	s = (struct playmarker_state *)glsig_handler_private(handler);
-	pos = filterparam_val_pos(s->param);
+	waveedit = (WaveeditGui *)glsig_handler_private(handler);
+	pos = filterparam_val_pos(waveedit->pm_param);
 	gtk_wave_view_set_marker_and_scroll(
-		GTK_WAVE_VIEW(s->waveedit->waveview), s->start + pos);
+		GTK_WAVE_VIEW(waveedit->waveview), waveedit->pm_start + pos);
 }
 static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	static struct playmarker_state state = { NULL, NULL, NULL, -1 };
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start;
@@ -564,16 +558,11 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	 * - playing, a button press will stop playing
 	 */
 
-	/* Dont abort for foreign toolbar button press
-	 * (and dont try to start either). */
-	if (state.net && state.waveedit != active_waveedit)
-		return;
-
-	if (state.net) {
+	if (active_waveedit->pm_net) {
 		/* Playing state - abort the network.
 		 * Cleanup will happen automatically. */
 
-		filter_terminate(state.net);
+		filter_terminate(active_waveedit->pm_net);
 		return;
 	}
 
@@ -607,20 +596,19 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	emitter = glame_network_notificator_creat(net);
 	glsig_add_handler(emitter, GLSIG_NETWORK_TICK,
-			  playmarker_update_marker, &state);
+			  playmarker_update_marker, active_waveedit);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
-			  playmarker_cleanup, &state);
+			  playmarker_cleanup, active_waveedit);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
 			  glame_network_notificator_delete_network, NULL);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
 			  glame_network_notificator_destroy_gpsm, grp);
-	state.waveedit = active_waveedit;
-	state.net = net;
-	state.param = filterparamdb_get_param(
+	active_waveedit->pm_net = net;
+	active_waveedit->pm_param = filterparamdb_get_param(
 		filter_paramdb(aout), FILTERPARAM_LABEL_POS);
-	state.start = start;
+	active_waveedit->pm_start = start;
 	if (glame_network_notificator_run(emitter, 10) == -1) {
-		state.net = NULL;
+		active_waveedit->pm_net = NULL;
 		filter_delete(net);
 		gpsm_item_destroy((gpsm_item_t *)grp);
 		gnome_dialog_run_and_close(
@@ -630,11 +618,12 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* exchange play for stop button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(state.waveedit->toolbar)), 3)->data);
-	gtk_toolbar_insert_item(GTK_TOOLBAR(state.waveedit->toolbar),
+		GTK_CONTAINER(active_waveedit->toolbar)), 3)->data);
+	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
 				"Stop", "Stop", "Stop",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
-				playmarker_cb, state.waveedit->waveview, 4);
+				playmarker_cb, active_waveedit->waveview, 4);
+	active_waveedit->locked = 1;
 
 	return;
 
@@ -905,7 +894,7 @@ static void wave_help_cb(GtkWidget *foo, void*bar)
 
 static void wave_close_cb(GtkWidget *foo, GtkObject *window)
 {
-	if (active_waveedit)
+	if (active_waveedit && !active_waveedit->locked)
 		gtk_object_destroy(GTK_OBJECT(active_waveedit));
 }
 
@@ -996,7 +985,7 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	gint32 sel_start, sel_length, marker_pos;
 	guint32 nrtracks;
   
-	if (event->button != 3)
+	if (event->button != 3 || active_waveedit->locked)
 		return;
 
 	/* Get stuff we need for enabling/disabling items. */
@@ -1047,6 +1036,11 @@ static void handle_enter(GtkWidget *tree, GdkEventCrossing *event,
 {
 	if (event->type == GDK_ENTER_NOTIFY)
 		active_waveedit = waveedit;
+}
+
+static gint event_block(GtkObject *object, GdkEventAny *event, gpointer data)
+{
+	return TRUE;
 }
 
 
@@ -1187,6 +1181,10 @@ static void waveedit_gui_init(WaveeditGui *waveedit)
 	waveedit->waveview = NULL;
 	waveedit->wavebuffer = NULL;
 	waveedit->toolbar = NULL;
+	waveedit->locked = 0;
+	waveedit->pm_net = NULL;
+	waveedit->pm_param = NULL;
+	waveedit->pm_start = 0;
 }
 
 GtkType waveedit_gui_get_type(void)
@@ -1263,7 +1261,6 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 		gtk_widget_show(window->waveview);
 		gtk_widget_show(vbox);
 		gnome_app_set_contents(GNOME_APP(window), vbox);
-		//gnome_app_set_contents(GNOME_APP(window), window->waveview);
 	}
 
 	/* Set the Waveform widget's data stream to point to our wavebuffer. */
@@ -1315,6 +1312,8 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 			   (GtkSignalFunc)waveedit_rmb_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(window), "enter_notify_event",
 			   handle_enter, window);
+	gtk_signal_connect(GTK_OBJECT(window), "delete_event",
+			   event_block, NULL);
 
 	/* Add accelerator handler. */
 	glame_accel_install(GTK_WIDGET(window), "waveview", NULL);

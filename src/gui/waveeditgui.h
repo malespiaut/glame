@@ -25,6 +25,7 @@
 #include <gtk/gtk.h>
 #include "libgtkwaveform/gtkwaveview.h"
 #include "libgtkwaveform/gtkswapfilebuffer.h"
+#include "filter.h"
 #include "gpsm.h"
 
 
@@ -53,6 +54,15 @@ struct _WaveeditGui {
 	GtkWidget *waveview;
 	GtkSwapfileBuffer *wavebuffer;
 	GtkWidget *toolbar;
+
+	/* wether we need to block further operations (async. one in work) */
+	int locked;
+
+	/* state for playmarker functionality */
+	filter_t *pm_net;
+	filter_param_t *pm_param;
+	long pm_start;
+
 };
 
 
