@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.52 2005/01/19 21:06:06 ochonpaul Exp $
+ * $Id: importexport.c,v 1.53 2005/01/23 21:17:57 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -102,7 +102,7 @@ struct imp_s {
 	plugin_t *resample;
 	GtkWidget *fi_plabel[MAX_PROPS];
 	int reallydone;
-	#ifdef HAVE_LIBMAD
+#ifdef HAVE_LIBMAD
 	int mad_length;
 	int mad_pos;
 	int mad_err;
@@ -511,8 +511,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 		dorsmpl=FALSE;
 		
 	/* Setup gpsm group. */
-	group = gpsm_newgrp(g_basename(ie->filename));
-	
+	group = gpsm_newgrp(g_path_get_basename(g_filename_to_utf8(ie->filename,strlen(ie->filename),NULL, NULL, NULL)));
 	i = 0;
 	do {
 		char swfilename[256];
@@ -821,10 +820,11 @@ static void ie_filename_cb(GtkFileChooser *filechooser, struct imp_s *ie)
 	char *mimetype;
 	int i;
 		
-	if (gtk_file_chooser_get_filename(filechooser)){
-	ie->filename = g_filename_to_utf8(gtk_file_chooser_get_filename(filechooser),-1,NULL,NULL,NULL); }
+	if (ie->filename) free (ie->filename);
+	ie->filename = gtk_file_chooser_get_filename(filechooser) ;
 	if (access(ie->filename, R_OK) == -1)
 		return;
+	if (old_imp_path) free(old_imp_path); 
 	old_imp_path = gtk_file_chooser_get_current_folder(filechooser);
 	
 	/* Basic checks. */
@@ -971,10 +971,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	gtk_widget_set_size_request (filechooser ,200, 200);
 	gtk_widget_show (filechooser);
 	gtk_box_pack_start (GTK_BOX (hbox3), filechooser, TRUE, TRUE, 0);
-	g_signal_connect (filechooser,
-                     	"selection-changed",
-                    	 G_CALLBACK (ie_filename_cb),
-                     	 ie); 
+	g_signal_connect (filechooser,"selection-changed",
+                    	 G_CALLBACK (ie_filename_cb), ie); 
 
 	//combo_entry2 = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fileentry2));
 	//gtk_widget_show (combo_entry2);
@@ -1240,7 +1238,7 @@ static gint ie_type_menu_cb(GtkComboBox *menu, struct exp_s *ie)
 		set_export_filename(ie, ".mp3");
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),ie->mp3tab_num );
 		return TRUE;
-			} else 
+	} else 
 #endif
 #ifdef HAVE_LIBVORBISFILE
 	if (val == ie->ogg_menu_index) {
@@ -1354,6 +1352,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		gtk_widget_set_sensitive(bla, TRUE);
 		return;
 	}
+	if (old_exp_path) g_free(old_exp_path);
 	old_exp_path = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(exp->filechooser));
 	
 	/* Build temporary group out of flattened item->item. */
