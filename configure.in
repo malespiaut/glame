@@ -33,8 +33,6 @@ dnl Global debug flag
 AC_ARG_ENABLE(debug,
 [  --enable-debug          include lots of debugging code 
   --disable-debug         compile for maximum optimization], debug=$enableval, debug="")
-echo $CFLAGS
-sleep 5
 if test "$swdebug" = "yes" -o "$debug" = "yes"; then
 	AC_DEFINE(DEBUG)
 	debug_gcc_cflags="-g -O0"
