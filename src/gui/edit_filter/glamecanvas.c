@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.41 2001/12/06 08:44:55 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.42 2001/12/06 10:54:56 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -707,11 +707,15 @@ GList* glame_canvas_find_items_in_region(GlameCanvas *canv, gdouble x1,gdouble y
 	GList * retlist=NULL;
 	GlameCanvasFilter* gcf;
 	filter_t *f;
+	double ix1,ix2,iy1,iy2;
 	filter_foreach_node(canv->net, f){
 		gcf = glame_canvas_find_filter(f);
 		if(gcf){
-			if(in_between(x1,x2,GCI(gcf)->x1))
-				if(in_between(y1,y2,GCI(gcf)->y1))
+			gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(gcf),
+                                                     &ix1,&iy1,&ix2,&iy2);
+
+			if(in_between(x1,x2,ix1))
+				if(in_between(y1,y2,iy1))
 					retlist = g_list_append(retlist,gcf);
 		}
 	}
