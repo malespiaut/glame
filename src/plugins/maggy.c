@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.13 2000/04/03 00:47:37 mag Exp $
+ * $Id: maggy.c,v 1.14 2000/04/10 07:43:15 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -31,6 +31,46 @@
 #include "util.h"
 #include "glplugin.h"
 
-int maggy_register(){
+
+static int resample_f(filter_node_t *n)
+{
+	filter_pipe_t *in, *out;
+	filter_buffer_t *buf;
+
+	in = filternode_get_input(n, PORTNAME_IN);
+	out = filternode_get_output(n, PORTNAME_OUT);
+	if (!in || !out)
+		return -1;
+
+	FILTER_AFTER_INIT;
+
+	/* The loop condition is at the end to get and
+	 * forward the EOF mark. */
+	do {
+		FILTER_CHECK_STOP;
+		/* get an input buffer */
+		buf = sbuf_get(in);
+
+		sbuf_queue(out, buf);
+	} while (buf);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	return 0;
+}
+
+int maggy_register()
+{
+	filter_t *f;
+
+	if (!(f = filter_alloc("resample", "resample one input stream", resample_f))
+	    || !filter_add_input(f, PORTNAME_IN, "input",
+				 FILTER_PORTTYPE_ANY)
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
+				 FILTER_PORTTYPE_ANY)
+	    || filter_add(f) == -1)
+		return -1;
+
 	return 0;
 }

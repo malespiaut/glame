@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.10 2000/04/06 15:46:00 nold Exp $
+@comment $Id: plugins.texi,v 1.11 2000/04/10 07:43:15 mag Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -557,14 +557,14 @@ would lead to distorted sound. Instead, a fading time can be given by
 @item threshold_on (float)
 @item threshold_off (float)
 On and off threshold for sample data between 0 and 1, see above. Default to 0.
-A noisegating effect is only achieved if @code{threshold_on} is less than
+A noisegating effect is only achieved if @code{threshold_on} is equal or less than
 @code{threshold_off}.
 @item hold (time)
 Hold time in milliseconds, see above. Defaults to 0.
 @item attack (time)
-Attack time in milliseconds, see above. Defaults to 1.
+Attack time in milliseconds, see above. Defaults to 0.
 @item release (time)
-Release time in milliseconds, see above. Defaults to 1.
+Release time in milliseconds, see above. Defaults to 0.
 @end table
 
 @node IIR,, Noisegate, Effects
