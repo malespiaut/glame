@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.59 2001/04/18 14:55:18 xwolf Exp $
+ * $Id: canvas.c,v 1.60 2001/04/18 15:34:54 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -131,8 +131,6 @@ static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Play...","Plays the active network",network_play,NULL),
-	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("View...",view_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Load plugin...","Loads scm source file",canvas_load_scheme,NULL),
@@ -189,6 +187,7 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 	GlameCanvasItem* gitem = GLAME_CANVAS_ITEM(item->parent);
 	float y_coord=100.0;
 	char buffer[100];
+	gint fontsize;
 	
 	if(gitem->timeout_id){
 		gtk_timeout_remove(gitem->timeout_id);
@@ -198,8 +197,9 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 		DPRINTF("props != zero!\n");
 		return;
 	}
-		
-	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(item->canvas)->pixels_per_unit*12.0));
+	fontsize = (int)(GNOME_CANVAS(item->canvas)->pixels_per_unit*12.0);
+	fontsize = (fontsize<2.0)?2.0:fontsize;
+	sprintf(fontbuffer,CANVAS_FONT_STRING,fontsize);
 	filterparamdb_foreach_param(filter_paramdb(GLAME_CANVAS_ITEM(item->parent)->filter),iter){
 		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
 		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
@@ -250,7 +250,7 @@ show_port_properties(GlameCanvasPort * item)
 	float y_coord=100.0;
 	char buffer[100];
 	int inOut;
-
+	gint fontsize;
 	gtk_timeout_remove(nPopupTimeoutId);
 	
 	if(item->property_texts){
@@ -259,8 +259,9 @@ show_port_properties(GlameCanvasPort * item)
 	}
 
 	inOut = (item->port_type&GUI_PORT_TYPE_IN)?1:0;
-	
-	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas)->pixels_per_unit*12.0));
+	fontsize = (int)(GNOME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas)->pixels_per_unit*12.0);
+	fontsize = (fontsize<2.0)?2.0:fontsize;
+	sprintf(fontbuffer,CANVAS_FONT_STRING,fontsize);
 	sprintf(buffer,"Name: %s",filterport_label(item->port));
 	text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent),
 				     gnome_canvas_text_get_type(),
@@ -1376,10 +1377,12 @@ canvas_zoom_out_cb(GtkWidget *bla, GlameCanvas*canv)
 {
 	filter_t *filter;
 	char fontbuffer[256];
-
+	gint fontsize;
 	gnome_canvas_set_pixels_per_unit(GNOME_CANVAS(canv),GNOME_CANVAS(canv)->pixels_per_unit/2.0);
 	gnome_canvas_update_now(GNOME_CANVAS(canv));
-	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
+	fontsize = (int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0);
+	fontsize = (fontsize<2.0)?2.0:fontsize;
+	sprintf(fontbuffer,CANVAS_FONT_STRING,fontsize);
 	filter_foreach_node(canv->net->net,filter){
 		gnome_canvas_item_set(GLAME_CANVAS_ITEM(filter->gui_priv)->text,"font",fontbuffer,NULL);
 	}
@@ -1390,9 +1393,13 @@ canvas_zoom_in_cb(GtkWidget *bla, GlameCanvas*canv)
 {
 	filter_t *filter;
 	char fontbuffer[256];
+	gint fontsize;
+
 	gnome_canvas_set_pixels_per_unit(GNOME_CANVAS(canv),GNOME_CANVAS(canv)->pixels_per_unit*2.0);
 	gnome_canvas_update_now(GNOME_CANVAS(canv));
-	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
+	fontsize = (int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0);
+	fontsize = (fontsize<2.0)?2.0:fontsize;
+	sprintf(fontbuffer,CANVAS_FONT_STRING,fontsize);
 	filter_foreach_node(canv->net->net,filter){
 		gnome_canvas_item_set(GNOME_CANVAS_ITEM(GLAME_CANVAS_ITEM(filter->gui_priv)->text),"font",fontbuffer,NULL);
 	}

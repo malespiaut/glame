@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.20 2001/04/18 14:45:23 richi Exp $
+ * $Id: canvas_types.c,v 1.21 2001/04/18 15:34:54 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -276,6 +276,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 
 	char*namebuffer;
 	char fontbuffer[250];
+	gint fontsize;
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
@@ -327,7 +328,9 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "fill_color","black",
 			      "width_units",1.0,
 			      NULL);
-	sprintf(fontbuffer,CANVAS_FONT_STRING,(int)(GNOME_CANVAS_ITEM(group)->canvas->pixels_per_unit*12.0));
+	fontsize = (int)(GNOME_CANVAS_ITEM(group)->canvas->pixels_per_unit*12.0);
+	fontsize = (fontsize<2.0)?2.0:fontsize;
+	sprintf(fontbuffer,CANVAS_FONT_STRING,fontsize);
 	item->text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_text_get_type(),
 			      "x",48.0,
