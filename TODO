@@ -1,8 +1,8 @@
 TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
-Stuff that was postponed for 0.4.x:
------------------------------------
+Items pending for 0.5.x:
+------------------------
 
 doc/
 	- better documentation for scheme API
@@ -15,9 +15,6 @@ plugins/
           iir, noisegate, pan, rms, time, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
-          ==> buffering filter for manual intervention (?), this one
-              could also do buffer re-coalescing (?) - have two inputs,
-              one to be buffered, one to auto-hint the buffersize (?)
 
 hash/
 	[all]
@@ -33,6 +30,7 @@ filter/
   	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
             existance
 	  * fix the notion of network/node to child/parent relationships
+	  * higher order parameters (waveform)
 
 swapfile/
         [richi]
@@ -46,7 +44,7 @@ hash/
 glmid/
 	[richi]
 	- script gpsm
-	- add simple undo/redo stack to gpsm
+  	- fix undo with partial redo pending (kill off full redo)
 
 gui/
 	[all]
@@ -65,7 +63,7 @@ gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
 	- toolbar for zoom/select/play/record/close
-	- disable paste/undo/redo menu items, if op not possible
+	- disable paste/etc. menu items, if op not possible
 	  (think about other ops, too - play/record, etc.)
 
 gui/libgtkwaveform
