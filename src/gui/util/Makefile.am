@@ -10,6 +10,6 @@ endif
 libglameguiutils_la_SOURCES = \
 	glame_gui_utils.c glame_gui_utils.h \
 	glame_curve.c glame_curve.h \
-	glame_param.c glame_param.h
-#	glame_ruler.c glame_ruler.h glame_hruler.c glame_hruler.h
+	glame_param.c glame_param.h \
+	glame_ruler.c glame_ruler.h glame_hruler.c glame_hruler.h
 

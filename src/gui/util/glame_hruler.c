@@ -151,8 +151,10 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   gint digit_offset;
   gint text_width;
   gint pos;
+#if 0
   PangoLayout *layout;
   PangoRectangle logical_rect, ink_rect;
+#endif
 
   g_return_if_fail (ruler != NULL);
   g_return_if_fail (GLAME_IS_HRULER (ruler));
@@ -169,11 +171,15 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   xthickness = widget->style->klass->xthickness;
   ythickness = widget->style->klass->ythickness;
 
+#if 0
   layout = gtk_widget_create_pango_layout (widget, "012456789");
   pango_layout_get_extents (layout, &ink_rect, &logical_rect);
   
   digit_height = PANGO_PIXELS (ink_rect.height) + 1;
   digit_offset = ink_rect.y;
+#endif
+  digit_height = 10 /* FIXME */;
+  digit_offset = 2 /* FIXME */;
 
   width = widget->allocation.width;
   height = widget->allocation.height - ythickness * 2;
@@ -254,6 +260,7 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
 	  /* draw label */
 	  if (i == 0)
 	    {
+#if 0
 	      unit_str = ruler->metric->translate (cur);
 	      pango_layout_set_text (layout, unit_str, -1);
               g_free (unit_str);
@@ -263,11 +270,19 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
 	      gdk_draw_layout (ruler->backing_store, gc,
 			       pos + 2, ythickness + PANGO_PIXELS (logical_rect.y - digit_offset),
 			       layout);
+#endif
+	      unit_str = ruler->metric->translate (cur);
+	      gdk_draw_string(ruler->backing_store, font, gc,
+			      pos + 2, ythickness + font->ascent -1,
+			      unit_str);
+              g_free (unit_str);
 	    }
 	}
     }
 
+#if 0
   gtk_object_unref (GTK_OBJECT (layout));
+#endif
 }
 
 static void
@@ -342,8 +357,10 @@ glame_hruler_get_stride (GlameRuler *ruler)
   gchar *unit_str;
   gint digit_height;
   gint text_width;
+#if 0
   PangoLayout *layout;
   PangoRectangle logical_rect, ink_rect;
+#endif
 
   g_return_if_fail (ruler != NULL);
   g_return_if_fail (GLAME_IS_HRULER (ruler));
@@ -357,10 +374,13 @@ glame_hruler_get_stride (GlameRuler *ruler)
 
   ythickness = widget->style->klass->ythickness;
 
+#if 0
   layout = gtk_widget_create_pango_layout (widget, "012456789");
   pango_layout_get_extents (layout, &ink_rect, &logical_rect);
   
   digit_height = PANGO_PIXELS (ink_rect.height) + 1;
+#endif
+  digit_height = 10 /* FIXME */;
 
   width = widget->allocation.width;
    
