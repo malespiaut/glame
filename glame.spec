@@ -1,4 +1,4 @@
-# $Id: glame.spec,v 1.5 2001/07/03 14:42:35 nold Exp $
+# $Id: glame.spec,v 1.6 2001/07/03 14:59:41 richi Exp $
 # RPM spec file for GLAME.
 #
 # This file is adapted from the Mandrake spec for their GLAME rpms.
@@ -32,7 +32,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %build
 
-%configure --enable-low-latency --disable-mp3lame
+%configure --disable-mp3lame
 make 
 
 %install
