@@ -1,4 +1,4 @@
-@comment $Id: swapfile.texi,v 1.10 2001/04/27 13:02:37 richi Exp $
+@comment $Id: swapfile.texi,v 1.11 2001/05/05 14:36:27 richi Exp $
 
 @node Swapfile API, GLAME Project Structure Management, Conversion Layer, Top
 @chapter Swapfile API
@@ -144,13 +144,11 @@ Like closedir(3).
 
 @tindex swfd_t
 @tindex txnid_t
-@deftypefun swfd_t sw_open (long @var{name}, int @var{flags}, txnid_t @var{tid})
+@deftypefun swfd_t sw_open (long @var{name}, int @var{flags})
 
 Open a file like open(2) - flags can be @code{O_CREAT}, @code{O_EXCL},
 @code{O_RDWR}, @code{O_RDONLY}, @code{O_WRONLY} with same semantics as
-open(2).  Returns a file descriptor on success, -1 on error.  The
-optional transaction id is used for all operations operating on the file
-descriptor, they can be undone and redone this way.
+open(2).  Returns a file descriptor on success, -1 on error.
 @end deftypefun
 
 
