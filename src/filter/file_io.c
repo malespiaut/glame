@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: file_io.c,v 1.6 2000/02/17 23:38:48 mag Exp $ 
+ * $Id: file_io.c,v 1.7 2000/02/20 15:26:29 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -313,7 +313,8 @@ int read_file_connect_out(filter_node_t *n, const char *port,
 	return 0;
 }
 
-int read_file_fixup_param(filter_node_t *n, const char *NAME)
+int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
+			  const char *name, filter_param_t *prm)
 {
 	filter_pipe_t *left,*right;
 	filter_param_t *param;
