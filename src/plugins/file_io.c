@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.40 2001/03/20 14:05:53 richi Exp $
+ * $Id: file_io.c,v 1.41 2001/03/20 16:28:56 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -1071,8 +1071,8 @@ _bailout:
 #ifdef HAVE_LAME
 int lame_read_prepare(filter_t *n, const char *filename)
 {
-	int done, len;
-	char buffer[100];
+	int done, len, max;
+	char buffer[128];
 	short pcm[2][1152];
 	
 	lame_decode_init();
@@ -1096,8 +1096,9 @@ int lame_read_prepare(filter_t *n, const char *filename)
 		DPRINTF("Freeing track\n");
 		free(RWM(n).track);
 	}
+	max = 0;
 	do {
-		len = read(RWM(n).fd, buffer, 10); /* readimg larger buffers doesn't work !*/
+		len = read(RWM(n).fd, buffer, 10); /* reading larger buffers doesn't work !*/
 		done = lame_decode1_headers(buffer, len, pcm[0], pcm[1], RWM(n).mp3data);
 		DPRINTF("len = %d done = %d header = %d chan=%d freq=%d\n",
 			len, done, RWM(n).mp3data->header_parsed,
@@ -1106,7 +1107,10 @@ int lame_read_prepare(filter_t *n, const char *filename)
 			DPRINTF("Error while scanning mp3file\n");
 			return -1;
 		}
-	} while (!RWM(n).mp3data->header_parsed);
+		max++;
+	} while ((!RWM(n).mp3data->header_parsed) || (max>200));
+	if (!RWM(n).mp3data->header_parsed)
+		return -1;
 	DPRINTF("Found mp3 file: channels=%d, freq=%d\n", 
 		RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate);
 	RWM(n).track = ALLOCN(RWM(n).mp3data->stereo, track_t);
@@ -1150,14 +1154,14 @@ int lame_read_f(filter_t *n) {
 	filter_pipe_t *p_out;
 	filter_port_t *port;
 	ssize_t len;
-	int done, i, j;
-	char buffer[100];
+	int done, i, j, ret = -1;
+	char buffer[128];
 	short s[2][4096];
 	
 	FILTER_AFTER_INIT;
 	do {
 		FILTER_CHECK_STOP;
-		len = read(RWM(n).fd, buffer, 100);
+		len = read(RWM(n).fd, buffer, 128);
 		done = lame_decode(buffer, len, s[0], s[1]);
 		if (done > 4096) {
 			DPRINTF("pcm buffer to small\n");
@@ -1170,8 +1174,11 @@ int lame_read_f(filter_t *n) {
 					sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
 				sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
 			}
-		}
+		} else if (done < 0)
+			goto _lame_bailout;
 	} while (len > 0);
+	ret = 0;
+_lame_bailout:
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		if (filterport_is_input(port))
 			continue;
@@ -1182,7 +1189,8 @@ int lame_read_f(filter_t *n) {
 	FILTER_BEFORE_CLEANUP;
 	close(RWM(n).fd);
 	DPRINTF("read_finished\n");
-	return 0;	
+	if (ret == -1) FILTER_ERROR_RETURN("error reading mp3 file\n");
+	return ret;	
 }
 
 #endif
