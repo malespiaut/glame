@@ -4,7 +4,7 @@
 /*
  * glconfig.h
  *
- * $Id: glconfig.h,v 1.1 2001/10/29 22:36:35 richi Exp $
+ * $Id: glconfig.h,v 1.2 2001/11/02 09:23:23 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -50,7 +50,6 @@ void glame_config_sync();
  * the GLAME config space. Returns #unspecified on error. */
 SCM glame_config_get(const char *key, SCM s_default);
 void glame_config_set(const char *key, SCM s_value);
-SCM glame_config_creat(const char *key);
 
 
 /* Simple functions for reading/writing string/long/double values

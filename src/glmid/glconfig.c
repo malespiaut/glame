@@ -1,7 +1,7 @@
 /*
  * glconfig.c
  *
- * $Id: glconfig.c,v 1.1 2001/10/29 22:36:35 richi Exp $
+ * $Id: glconfig.c,v 1.2 2001/11/02 09:23:23 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -75,17 +75,6 @@ void glame_config_set(const char *key, SCM s_value)
 	s_gcs = gh_lookup("glame-config-set!");
 	s_key = gh_str02scm(key);
 	gh_call2(s_gcs, s_key, s_value);
-}
-
-SCM glame_config_creat(const char *key)
-{
-	SCM s_gcc;
-	SCM s_key;
-
-	/* FIXME: catch. */
-	s_gcc = gh_lookup("glame-config-creat");
-	s_key = gh_str02scm(key);
-	return gh_call1(s_gcc, s_key);
 }
 
 
