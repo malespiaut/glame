@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.10 2001/07/03 11:14:12 richi Exp $
+ * $Id: timeline.c,v 1.11 2001/07/05 13:58:17 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -114,10 +114,7 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 		GdkEventMotion *mevent = (GdkEventMotion *)event;
 		double x1, x2, y1, y2, scale;
 
-		/* Not an interesting event. */
-		if (!(mevent->state & GDK_BUTTON1_MASK))
-			break;
-
+		/* Not an interesting event - but update ruler. */
 		/* CAVEAT: the event coordinates dont seem to honour
 		 *         the canvas root groups affine (zoom) - we
 		 *         have to explicitly handle it. Ugh. */
@@ -128,6 +125,17 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			else
 				scale = 1.0;
 			mevent->x /= scale;
+		}
+
+		if (!(mevent->state & GDK_BUTTON1_MASK)) {
+			long hposition, dummy;
+			timeline_canvas_item_w2gpsm(
+				&hposition, &dummy,
+				&dummy, &dummy,
+				44100/* FIXME */,
+				mevent->x, 0.0, 0.0, 0.0);
+			update_ruler_position(active_timeline, hposition);
+			break;
 		}
 
 		/* We need file and the files rect params anyway. */
