@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.60 2003/04/21 12:16:06 richi Exp $
+ * $Id: canvasfilter.c,v 1.61 2003/05/25 16:40:29 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -584,11 +584,21 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
 	
 	filterparamdb_foreach_param(glame_canvas_filter_get_paramdb(filter),param){
+		filter_port_t *port;
 		char *str;
+
 #ifndef DEBUG
+		/* ignore hidden */
 		if (filterparam_get_property(param, FILTERPARAM_HIDDEN))
 			continue;
 #endif
+		/* ignore connected control port params */
+		if ((port = filterportdb_get_port(glame_canvas_filter_get_portdb(filter),
+						  filterparam_label(param)))
+		    && filterport_get_property(port, "!CONTROL")
+		    && filterport_get_pipe(port))
+			continue;
+
 		if (FILTER_PARAM_IS_BUF(param)) {
 			snprintf(buffer, 255, "%s (%s)", filterparam_label(param),
 			 	 param->u.buf ? "set" : "unset");

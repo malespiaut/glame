@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.35 2003/05/19 20:32:02 richi Exp $
+ * $Id: canvasport.c,v 1.36 2003/05/25 16:40:29 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -558,8 +558,12 @@ GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *p
 			color = 0x00ffff00;
 		else
 			color = 0xff000000;
-	} else
-		color = 0x0000ff00;
+	} else {
+		if (filterport_get_property(port, "!CONTROL"))
+			color = 0x00ffff00;
+		else
+			color = 0x0000ff00;
+	}
 	p = GLAME_CANVAS_PORT(gnome_canvas_item_new(group,
 						    glame_canvas_port_get_type(),
 						    "x1",x,
