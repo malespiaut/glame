@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.16 2001/04/23 12:18:16 mag Exp $
+@comment $Id: plugins.texi,v 1.17 2001/04/24 12:10:28 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -656,11 +656,12 @@ to 0.5, and it is best to leave it alone unless you know what you're doing.
 
 @node Flanger, , IIR, Effects
 @subsection Flanger
-The flanger effect is essentially a variable delay, that operates on a comb filtered
-signal. The variation of the delay is given by a low frequency oscillation (LFO).
-Dependent on the type of LFO you get different effects. The flanger is especially
-useful for guitar and voice sounds. With the right settings this implementation of the
-flanger can be used as detune effect using a ramp up/down LFO and setting dry gain to zero.
+The flanger effect is essentially a variable delay, that operates on a comb
+filtered signal. The variation of the delay is given by a low frequency
+oscillation (LFO). Dependent on the type of LFO you get different effects. The
+flanger is especially useful for guitar and voice sounds. With the right
+settings this implementation of the flanger can be used as a detune effect using
+a ramp up/down LFO and setting dry gain to zero.
 
 @subsubheading @file{flanger} ports
 @table @code
@@ -673,24 +674,33 @@ Output stream of processed sample data. Only one connection is allowed.
 @subsubheading @file{flanger} parameters
 @table @code
 @item depth (float)
-Size of the comb filter delay buffer in ms. A larger depth allows for a larger sweep depth
-and more dramatic effect.
+Size of the comb filter delay buffer in ms. A larger depth allows for a larger
+sweep depth and more dramatic effects.
 @item sweep depth (float)
-Sweep depth gives the maximum oscillation amplitude of the LFO in ms and thereby modifies the 
-intensity of the effect. The maximum value it can take is depth/2.
+Sweep depth gives the maximum oscillation amplitude of the LFO in ms and
+thereby modifies the intensity of the effect. The maximum value it can take is
+depth/2.
 @item sweep rate (float)
-Specifies the oscillation frequency for the LFO. Good values are between 0.5 and 10 Hz.
-Higher frequencies generate rather weird sounds..
+Specifies the oscillation frequency for the LFO. Good values are between 0.5
+and 10 Hz. Higher frequencies generate rather weird sounds.
 @item dry gain (float)
-This parameter modifies the amount of the original signal added to the output. Setting this parameter to 0.0 you get the effect sound only.
+This parameter modifies the amount of the original signal added to the output.
+Setting this parameter to 0.0, you get the effect sound only.
 @item effect gain (float)
 This parameter modifies the amount of the effect signal added to the output.
 @item feedback gain (float)
-This parameter modifies the amount of dry signal taken from the middle tap of the ringbuffer and
-added to the original sound, e.g. it controls the comb filter.
-@item LFO Type (int)
-At the present time you can choose between three different LFO Types:
-(0) ramp up, generate a signal with higher frequency
-(1) ramp down, generate a signal with low frequency
-(2) sinus, generates an up and down sweeping sound, use it for original flanger sound
+This parameter modifies the amount of dry signal taken from the middle tap of
+the ringbuffer and added to the original sound, i.e. it controls the comb
+filter.
+@item LFO type (int)
+At the present time you can choose between three different LFO types:
+@table @code
+@item 0
+ramp up, generate a signal with higher frequency
+@item 1
+ramp down, generate a signal with lower frequency
+@item 2 
+sine wave, generates a sound sweeping up and down. Use for genuine flanger
+sound.
+@end table
 @end table
