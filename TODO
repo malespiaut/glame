@@ -47,7 +47,8 @@ hash/
           * think of useful SIMD operations with good (ask richi) API 
           * do 3dnow, isse, mmx, etc. versions of existing operations
           * think of how to do run-time detection/profiling
-          * use http://mega-nerd.com/FPcast/ FP->int conversion stuff
+	  * implement fast conversion routine from float to int,
+	    see http://mega-nerd.com/FPcast/
 
 filter/
 	[richi]
