@@ -32,6 +32,9 @@
 #include "gltreeitem.h"
 #include "waveeditgui.h"
 #include "swapfilegui.h"
+#include "filter.h"
+#include "edit_filter/gui.h"
+#include <gnome.h>
 
 
 /* The swapfile widget. */
@@ -40,11 +43,13 @@ static GtkTree *swapfile_tree = NULL;
 
 
 /* Forward declarations. */
-static void rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
+static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data);
 
-
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
+static void import_cb(GtkWidget *menu, GlameTreeItem *item);
+static void import_to_group_cb(GtkWidget *menu, GlameTreeItem *item);
+
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -53,7 +58,8 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_ITEM("Flatten childs", "flatten", NULL, NULL), /* FIXME */
         GNOMEUIINFO_ITEM("Link selected", "link", NULL, NULL), /* FIXME */
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Import...", "import", NULL, NULL), /* FIXME */
+        GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
+        GNOMEUIINFO_ITEM("Import to group...", "importtogroup", import_to_group_cb, NULL),
         GNOMEUIINFO_ITEM("Delete", "delete", NULL, NULL), /* FIXME */
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
@@ -67,23 +73,24 @@ static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_END
 };
 
-static void rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
+static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data)
 {
 	GlameTreeItem *i = GLAME_TREE_ITEM(item);
 	GtkWidget *menu;
 
 	if (event->button != 3)
-		return;
+		return FALSE;
 
 	if (i->type == GLAME_TREE_ITEM_FILE)
 		menu = gnome_popup_menu_new(file_menu_data);
 	else if (i->type == GLAME_TREE_ITEM_GROUP)
 		menu = gnome_popup_menu_new(group_menu_data);
         else
-		return;
+		return FALSE;
 
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i);
+	return TRUE;
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -115,6 +122,330 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 	gtk_widget_show_all(we);
 }
 
+void changeString_cb(GtkEditable *wid, char ** returnbuffer)
+{
+	strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
+}
+
+void
+create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
+{
+	GtkWidget*hbox,*label;
+	hbox = gtk_hbox_new(TRUE,5);
+	gtk_container_add(GTK_CONTAINER(vbox),hbox);
+	label = gtk_label_new(clabel);
+	gtk_container_add(GTK_CONTAINER(hbox),label);
+	gtk_container_add(GTK_CONTAINER(hbox),w);
+	gtk_widget_show(hbox);
+	gtk_widget_show(label);
+	gtk_widget_show(w);
+
+}
+
+static void import_to_group_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+
+	/*   Blah!
+	     FIXME!
+	*/
+	gchar *buffer;
+	GtkWidget * dialog;
+	GtkWidget * dialogVbox;
+	GtkWidget * newItem;
+	GtkWidget * newTrak;
+	plugin_t *p_readfile, *p_swapfile_out;
+	filter_t *net, *readfile, *swapfile_out[2]; /* lame stereo hack */
+	filter_paramdb_t *db;
+	filter_param_t *param;
+	filter_port_t *source, *dest;
+	filter_pipe_t *pipe;
+	swfd_t fd;
+	gint i, name;
+	struct sw_stat st;
+	char cbuffer[50];
+	
+	char * filenamebuffer, *groupnamebuffer;
+
+	GtkWidget * filenameentry;
+	GtkWidget * groupnameentry;
+	
+	filenamebuffer = calloc(100,sizeof(char));
+
+	
+	dialog = gnome_dialog_new("Import Audio File",GNOME_STOCK_BUTTON_CANCEL, GNOME_STOCK_BUTTON_OK,NULL);
+	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+	
+	filenameentry = gnome_file_entry_new("import_cb","Filename");
+	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
+			   "changed",changeString_cb,&filenamebuffer);
+	
+
+	create_label_widget_pair(dialogVbox,"Filename",filenameentry);
+
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+
+		
+		
+		//sprintf(cbuffer,"(file-to-swap \"%s\" %d %d)",filenamebuffer,name,name+1);
+		//gh_eval_str(cbuffer);
+
+
+		if (!(p_readfile = plugin_get("read_file"))) {
+			g_print("read_file not found");
+			return;
+		} else
+			g_assert((readfile = filter_instantiate(p_readfile)));
+
+		net = filter_creat(NULL);
+
+		filter_add_node(net, readfile, "readfile");
+
+		if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
+			g_print("swapfile_out not found");
+			return;
+		} 
+		
+		g_assert((db = filter_paramdb(readfile)));
+		g_assert((param = filterparamdb_get_param(db, "filename")));
+		filterparam_set(param, &filenamebuffer); 
+		g_assert((source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT)));
+		
+				
+		for(i=0; i<2;i++) {
+			name = 1;
+			while((fd=sw_open(name, O_CREAT | O_EXCL, TXN_NONE))==-1) name++;
+			sw_close(fd);
+			g_print("Found free file at #%d\n", name);
+			g_assert((swapfile_out[i] = filter_instantiate(p_swapfile_out)));
+			g_assert((db = filter_paramdb(swapfile_out[i])));
+			g_assert((param = filterparamdb_get_param(db, "filename")));
+			filterparam_set(param, &name);
+			filter_add_node(net, swapfile_out[i], "swapfile_out");
+			g_assert((dest = filterportdb_get_port(filter_portdb(swapfile_out[i]), 
+				 PORTNAME_IN)));
+			if (!(filterport_connect(source, dest))) {
+				g_print("Connection failed for channel %d\n",i+1);
+				sw_unlink(name);
+				filter_delete(swapfile_out[i]);
+				goto launch;
+			} else {
+				pipe = filterport_get_pipe(dest);
+				newTrak = glame_tree_item_new_file((filterpipe_sample_hangle(pipe)<0)?"Left":"Right",name,
+								   filterpipe_sample_rate(pipe), 
+								   0);
+				gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
+							 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+				glame_tree_append(item,newTrak);
+				
+			}
+		};
+launch:
+		filter_launch(net);
+		filter_start(net);
+		filter_wait(net);	/* ok we could do that more nicely, but not now.. */
+		
+		filter_delete(net);
+	}
+
+	
+	// find out size
+
+	fd = sw_open(name-1,O_RDONLY,TXN_NONE);
+	sw_fstat(fd,&st);
+	
+	i = st.size/SAMPLE_SIZE;
+	
+	newTrak = glame_tree_find_filename(swapfile_tree,name-1);
+	GLAME_TREE_ITEM(newTrak)->size = i;
+	glame_tree_item_update(newTrak);
+	sw_close(fd);
+
+	fd = sw_open(name,O_RDONLY,TXN_NONE);
+	sw_fstat(fd,&st);
+	
+	i = st.size/SAMPLE_SIZE;
+	
+	newTrak = glame_tree_find_filename(swapfile_tree,name);
+	GLAME_TREE_ITEM(newTrak)->size = i;
+	glame_tree_item_update(newTrak);
+	sw_close(fd);
+	
+
+/*
+
+
+
+
+
+	newTrak = glame_tree_item_new_file("left",name,44100,-1);
+	gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
+				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	glame_tree_append(newItem,newTrak);
+	newTrak = glame_tree_item_new_file("right",name+1,44100,-1);
+	gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
+				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	glame_tree_append(newItem,newTrak);
+*/
+		
+};
+static void import_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+
+	/*   Blah!
+	     FIXME!
+	*/
+	gchar *buffer;
+	GtkWidget * dialog;
+	GtkWidget * dialogVbox;
+	GtkWidget * newItem;
+	GtkWidget * newTrak;
+	plugin_t *p_readfile, *p_swapfile_out;
+	filter_t *net, *readfile, *swapfile_out[2]; /* lame stereo hack */
+	filter_paramdb_t *db;
+	filter_param_t *param;
+	filter_port_t *source, *dest;
+	filter_pipe_t *pipe;
+	swfd_t fd;
+	gint i, name;
+	struct sw_stat st;
+	char cbuffer[50];
+	
+	char * filenamebuffer, *groupnamebuffer;
+
+	GtkWidget * filenameentry;
+	GtkWidget * groupnameentry;
+	
+	filenamebuffer = calloc(100,sizeof(char));
+	groupnamebuffer = calloc(100,sizeof(char));
+	
+	dialog = gnome_dialog_new("Import Audio File",GNOME_STOCK_BUTTON_CANCEL, GNOME_STOCK_BUTTON_OK,NULL);
+	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+	
+	filenameentry = gnome_file_entry_new("import_cb","Filename");
+	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
+			   "changed",changeString_cb,&filenamebuffer);
+	
+
+	create_label_widget_pair(dialogVbox,"Filename",filenameentry);
+
+	groupnameentry = gtk_entry_new();
+	gtk_signal_connect(GTK_OBJECT(groupnameentry),"changed",
+			   changeString_cb,&groupnamebuffer);
+	create_label_widget_pair(dialogVbox,"Groupname",groupnameentry);
+	
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+
+		
+		
+		//sprintf(cbuffer,"(file-to-swap \"%s\" %d %d)",filenamebuffer,name,name+1);
+		//gh_eval_str(cbuffer);
+
+
+		if (!(p_readfile = plugin_get("read_file"))) {
+			g_print("read_file not found");
+			return;
+		} else
+			g_assert((readfile = filter_instantiate(p_readfile)));
+
+		net = filter_creat(NULL);
+
+		filter_add_node(net, readfile, "readfile");
+
+		if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
+			g_print("swapfile_out not found");
+			return;
+		} 
+		
+		g_assert((db = filter_paramdb(readfile)));
+		g_assert((param = filterparamdb_get_param(db, "filename")));
+		filterparam_set(param, &filenamebuffer); 
+		g_assert((source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT)));
+		
+				
+		if(!groupnamebuffer)
+			groupnamebuffer = g_basename(filenamebuffer);
+		newItem = glame_tree_item_new_group(groupnamebuffer);
+		gtk_signal_connect_after(GTK_OBJECT(newItem), "button_press_event",
+					 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+		glame_tree_append(item,newItem);
+		
+		for(i=0; i<2;i++) {
+			name = 1;
+			while((fd=sw_open(name, O_CREAT | O_EXCL, TXN_NONE))==-1) name++;
+			sw_close(fd);
+			g_print("Found free file at #%d\n", name);
+			g_assert((swapfile_out[i] = filter_instantiate(p_swapfile_out)));
+			g_assert((db = filter_paramdb(swapfile_out[i])));
+			g_assert((param = filterparamdb_get_param(db, "filename")));
+			filterparam_set(param, &name);
+			filter_add_node(net, swapfile_out[i], "swapfile_out");
+			g_assert((dest = filterportdb_get_port(filter_portdb(swapfile_out[i]), 
+				 PORTNAME_IN)));
+			if (!(filterport_connect(source, dest))) {
+				g_print("Connection failed for channel %d\n",i+1);
+				sw_unlink(name);
+				filter_delete(swapfile_out[i]);
+				goto launch;
+			} else {
+				pipe = filterport_get_pipe(dest);
+				newTrak = glame_tree_item_new_file((filterpipe_sample_hangle(pipe)<0)?"Left":"Right",name,
+								   filterpipe_sample_rate(pipe), 
+								   0);
+				gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
+							 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+				glame_tree_append(newItem,newTrak);
+				
+			}
+		};
+launch:
+		filter_launch(net);
+		filter_start(net);
+		filter_wait(net);	/* ok we could do that more nicely, but not now.. */
+		
+		filter_delete(net);
+	}
+
+	
+	// find out size
+
+	fd = sw_open(name-1,O_RDONLY,TXN_NONE);
+	sw_fstat(fd,&st);
+	
+	i = st.size/SAMPLE_SIZE;
+	
+	newTrak = glame_tree_find_filename(swapfile_tree,name-1);
+	GLAME_TREE_ITEM(newTrak)->size = i;
+	glame_tree_item_update(newTrak);
+	sw_close(fd);
+
+	fd = sw_open(name,O_RDONLY,TXN_NONE);
+	sw_fstat(fd,&st);
+	
+	i = st.size/SAMPLE_SIZE;
+	
+	newTrak = glame_tree_find_filename(swapfile_tree,name);
+	GLAME_TREE_ITEM(newTrak)->size = i;
+	glame_tree_item_update(newTrak);
+	sw_close(fd);
+	
+
+/*
+
+
+
+
+
+	newTrak = glame_tree_item_new_file("left",name,44100,-1);
+	gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
+				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	glame_tree_append(newItem,newTrak);
+	newTrak = glame_tree_item_new_file("right",name+1,44100,-1);
+	gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
+				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	glame_tree_append(newItem,newTrak);
+*/
+		
+};
 
 /*
  * Construct an GtkTree out of an xml document node.
@@ -188,7 +519,7 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 		DERROR("Unknown tag");
 	}
 
-	gtk_signal_connect(GTK_OBJECT(item), "button_press_event",
+	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
 			   (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
 	glame_tree_append(GTK_OBJECT(tree), GLAME_TREE_ITEM(item));
 	gtk_widget_show(item);
@@ -278,16 +609,7 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 		xml = strdup("\
 <?xml version=\"1.0\"?>
 <swapfile>
-<group label=\"project1\">
-<group label=\"music\">
-<file fd=\"1\" label=\"left\"/>
-<file fd=\"2\" label=\"right\"/>
-</group>
-</group>
-<group label=\"library\">
-<file fd=\"10\" label=\"bla\"/>
-<file fd=\"11\" label=\"blubb\"/>
-</group>
+<group label=\"project1\"/>
 </swapfile>");
 	}
 
