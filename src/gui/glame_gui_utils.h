@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.5 2001/04/09 15:42:45 nold Exp $
+ * $Id: glame_gui_utils.h,v 1.6 2001/04/16 20:08:19 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,8 +63,10 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
  * the widget. */
 GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 				       const char *caption);
-
+/* Opens a play/pause/stop/cancel window that plays a given network */
 int glame_gui_play_network(filter_t * network, gui_network* gui_net);
+/* Same as above, but modal.   */
+int glame_gui_play_network_modal(filter_t * network, gui_network* gui_net);
 
 /* From GNOME */
 GtkWidget * gnome_dialog_file_request(const char *windowtitle,

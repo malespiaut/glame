@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.48 2001/04/11 10:05:28 xwolf Exp $
+ * $Id: canvas.c,v 1.49 2001/04/16 20:08:19 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -32,11 +32,9 @@ static void canvas_item_show_properties(GnomeCanvasItem * item);
 static void canvas_item_delete_property_list(gpointer item, gpointer bla);
 static void canvas_item_hide_properties(GnomeCanvasItem * item);
 static int canvas_add_filter_by_name(const char *name);
-static void network_draw_error(gui_network *net);
-static void network_error_reset(gui_network *net);
-static void network_play(GtkWidget *button,gui_network*net);
-static void network_pause(GtkWidget *button,gui_network*net);
-static void network_stop(GtkWidget *button,gui_network*net);
+void network_draw_error(gui_network *net);
+void network_error_reset(gui_network *net);
+static void network_play(GtkWidget *button,GlameCanvas *glCanv);
 static gint root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas* data);
 static void canvas_port_calculate_docking_coords(GlameCanvasPort* port,double *x, double *y, int id);
 static gint canvas_connection_update_points(GlameConnection *connection);
@@ -119,6 +117,8 @@ GnomeUIInfo *node_select_menu;
 static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Play...","Plays the active network",network_play,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Load plugin...","Loads scm source file",canvas_load_scheme,NULL),
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
@@ -434,7 +434,7 @@ canvas_add_filter_by_name(const char *name)
 }
 
 
-static void 
+void 
 network_draw_error(gui_network *net)
 {
 	filter_t *node;
@@ -451,7 +451,7 @@ network_draw_error(gui_network *net)
 	}
 }
 
-static void
+void
 network_error_reset(gui_network *net)
 {
 	filter_t *node;
@@ -467,34 +467,11 @@ network_error_reset(gui_network *net)
 }
 
 static void 
-network_play(GtkWidget *button,gui_network*net)
+network_play(GtkWidget *button,GlameCanvas* glCanv)
 {
-	network_error_reset(net);
-	filter_launch(net->net);
-	
-	if(filter_start(net->net)<0){
-		network_draw_error(net);
-	}
-	net->paused = FALSE;
+	glame_gui_play_network_modal(glCanv->net->net,glCanv->net);
 }
 
-static void 
-network_pause(GtkWidget *button,gui_network*net)
-{
-	if(net->paused){
-		filter_start(net->net);
-		net->paused=FALSE;
-	} else { 
-		filter_pause(net->net);
-		net->paused=TRUE;
-	}
-}
-
-static void 
-network_stop(GtkWidget *button,gui_network*net)
-{
-	filter_terminate(net->net);
-}
 static void canvas_add_filter_by_name_cb(GtkWidget*wid, plugin_t *plugin)
 {
 	canvas_add_filter_by_name(plugin_name(plugin));
@@ -543,11 +520,9 @@ GtkWidget *
 canvas_new_from_network(gui_network* net)
 {
 	GtkWidget *window, *canvas, *sw;
-	GtkWidget *buttonbox,*button;
 
 	GnomeDock *dock;
 
-	GnomeDockItem *item;
 	const char *name = strdup("Untitled");
 	window = gnome_app_new(name,_(name));
 	dock = GNOME_DOCK(GNOME_APP(window)->dock);
@@ -573,26 +548,7 @@ canvas_new_from_network(gui_network* net)
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
 
-	gnome_app_set_contents(GNOME_APP(window),sw);
-
-	buttonbox = gtk_hbutton_box_new();
-	item =  GNOME_DOCK_ITEM(gnome_dock_item_new("buttons",GNOME_DOCK_ITEM_BEH_NORMAL));
-	
-	gtk_container_add(GTK_CONTAINER(item),buttonbox);
-	gnome_dock_add_item(dock,item,GNOME_DOCK_BOTTOM,1,0,0,TRUE);
-
-	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_FORWARD),"Play");
-	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(GTK_OBJECT(button),"clicked",network_play,net);
-
-	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_TIMER_STOP),"Pause");
-	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(GTK_OBJECT(button),"clicked",network_pause,net);
-
-	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_STOP),"STOP");
-	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(GTK_OBJECT(button),"clicked",network_stop,net);
-	
+	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));
 	
 	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
