@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.48 2003/04/11 20:10:02 richi Exp $
+ * $Id: glamecanvas.c,v 1.49 2003/04/15 19:00:38 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -62,7 +62,7 @@ glame_canvas_destroy (GtkObject *object)
 	DPRINTF("Destroying glamecanvas\n");
 	if(GLAME_CANVAS(object)->net){
 		if (!GLAME_CANVAS(object)->openedUp) {
-			filter_terminate(GLAME_CANVAS(object)->net);
+			filter_terminate(GLAME_CANVAS(object)->net->launch_context);
 			filter_delete(GLAME_CANVAS(object)->net);
 			GLAME_CANVAS(object)->net = NULL;
 		}

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.60 2003/04/11 20:10:01 richi Exp $
+ * $Id: filtereditgui.c,v 1.61 2003/04/15 19:00:32 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -883,7 +883,7 @@ static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
 		return;
 
 	gui->pm_playing = 0;
-	filter_terminate(gui->canvas->net);
+	filter_terminate(gui->canvas->net->launch_context);
 
 	/* Scan network for swapfile_out nodes and issue gpsm invalidate
 	 * signals. */
@@ -921,7 +921,7 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 	if (gui->pm_playing) {
 		/* Playing - abort the network, cleanup will
 		 * happen automagically. */
-		filter_terminate(gui->canvas->net);
+		filter_terminate(gui->canvas->net->launch_context);
 		return;
 	}
 
@@ -1035,7 +1035,7 @@ static void glame_canvas_add_last_cb(GtkObject* foo, FiltereditGui *window)
 static void window_close(GtkWidget *dummy, GtkWidget* window)
 {
 	if (FILTEREDIT_GUI(window)->pm_playing)
-		filter_terminate(FILTEREDIT_GUI(window)->canvas->net);
+		filter_terminate(FILTEREDIT_GUI(window)->canvas->net->launch_context);
 	gtk_widget_destroy(GTK_WIDGET(window));
 }
 

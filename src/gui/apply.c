@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.20 2002/04/21 17:07:12 richi Exp $
+ * $Id: apply.c,v 1.21 2003/04/15 19:00:18 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -55,6 +55,7 @@ struct apply_plugin_s {
 	int previewing;
 	int applying;
 	guint timeout_id;
+	filter_launchcontext_t *context;
 };
 
 /* Button numbers. */
@@ -89,7 +90,7 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 {
 	filter_param_t *posparam;
 
-	if (filter_is_ready(a->net)) {
+	if (filter_is_ready(a->context)) {
 		gtk_timeout_remove(a->timeout_id);
 		a->timeout_id = -1;
 		if (a->previewing)
@@ -97,7 +98,7 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 		else if (a->applying) {
 			gpsm_item_t *swfile, *dst;
 			gboolean lock_size;
-			filter_wait(a->net);
+			filter_wait(a->context);
 			lock_size = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(a->checkbox));
 			gpsm_op_prepare((gpsm_item_t *)a->item);
 			dst = gpsm_grp_first(a->dest);
@@ -129,6 +130,7 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 			}
 			cleanup(a);
 		}
+		filter_launchcontext_unref(&a->context);
 		return FALSE;
 	}
 
@@ -190,11 +192,11 @@ static void preview_start(struct apply_plugin_s *a)
 	a->pos = swin;
 	filter_delete(ec);
 
-	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
+	if (!(a->context = filter_launch(a->net, _GLAME_WBUFSIZE))) {
 		errmsg = _("Unable to launch network");
 		goto err;
 	}
-	filter_start(a->net);
+	filter_start(a->context);
 	a->timeout_id = gtk_timeout_add(100, (GtkFunction)poll_net_cb, a);
 
 	/* Disable buttons / change function. */
@@ -220,7 +222,7 @@ static void preview_start(struct apply_plugin_s *a)
 static void preview_stop(struct apply_plugin_s *a)
 {
 	/* Cleanup after the network. */
-	filter_terminate(a->net);
+	filter_terminate(a->context);
 	filter_delete(a->net);
 	a->net = NULL;
 
@@ -298,11 +300,11 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	}
 	a->pos = swin;
 
-	if (filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1) {
+	if (!(a->context = filter_launch(a->net, GLAME_BULK_BUFSIZE))) {
 		errmsg = _("Unable to launch network");
 		goto err;
 	}
-	filter_start(a->net);
+	filter_start(a->context);
 	a->timeout_id = gtk_timeout_add(100, (GtkFunction)poll_net_cb, a);
 
 	/* Disable buttons. */
@@ -330,7 +332,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 static void cancel_cb(GtkWidget *widget, struct apply_plugin_s *a)
 {
 	if (a->net)
-		filter_terminate(a->net);
+		filter_terminate(a->context);
 	cleanup(a);
 }
 

@@ -101,7 +101,7 @@ static size_t free_filter(SCM filter_smob)
 	if (filter->filter
 	    && !FILTER_IS_PART_OF_NETWORK(filter->filter)
 	    && !FILTER_IS_PLUGIN(filter->filter)
-	    && filter_is_ready(filter->filter) != 0) {
+	    && filter_is_ready(filter->filter->launch_context) != 0) {
 		DPRINTF("GCing %p (%s)\n", filter->filter,
 			filter_name(filter->filter));
 		filter_delete(filter->filter);
@@ -554,27 +554,21 @@ static SCM gls_get_property(SCM s_obj, SCM s_label)
 
 static SCM gls_filter_launch(SCM s_net, SCM s_bufsize)
 {
+	filter_launchcontext_t *c;
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_launch");
 	SCM_ASSERT(SCM_UNBNDP(s_bufsize) || gh_exact_p(s_bufsize),
 		   s_bufsize, SCM_ARG2, "filter-launch");
-	if (filter_launch(scm2filter(s_net),
-			  SCM_UNBNDP(s_bufsize) ? _GLAME_WBUFSIZE : glame_scm2long(s_bufsize)) == -1)
+	if (!(c = filter_launch(scm2filter(s_net),
+				SCM_UNBNDP(s_bufsize) ? _GLAME_WBUFSIZE : glame_scm2long(s_bufsize))))
 		GLAME_THROW();
+	filter_launchcontext_unref(&c); /* FIXME */
 	return SCM_UNSPECIFIED;
 }
 
-static SCM gls_filter_start(SCM s_net)
+static SCM gls_filter_start(SCM s_net) /* FIXME */
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_start");
-	if (filter_start(scm2filter(s_net)) == -1)
-		GLAME_THROW();
-	return SCM_UNSPECIFIED;
-}
-
-static SCM gls_filter_pause(SCM s_net)
-{
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_pause");
-	if (filter_pause(scm2filter(s_net)) == -1)
+	if (filter_start(scm2filter(s_net)->launch_context) == -1)
 		GLAME_THROW();
 	return SCM_UNSPECIFIED;
 }
@@ -584,9 +578,9 @@ void killnet(int sig)
 {
 	DPRINTF("got SIGINT - trying to terminate network\n");
 	if (waitingnet)
-		filter_terminate(waitingnet);
+		filter_terminate(waitingnet->launch_context);
 }
-static SCM gls_filter_wait(SCM s_net)
+static SCM gls_filter_wait(SCM s_net) /* FIXME */
 {
 	filter_t *net;
 	struct sigaction sa, oldsa;
@@ -603,7 +597,7 @@ static SCM gls_filter_wait(SCM s_net)
 	sigaction(SIGINT, &sa, &oldsa);
 
 	/* Do the actual wait. */
-	res = filter_wait(net);
+	res = filter_wait(net->launch_context);
 
 	/* Cleanup. */
 	sigaction(SIGINT, &oldsa, NULL);
@@ -613,10 +607,10 @@ static SCM gls_filter_wait(SCM s_net)
 	return SCM_UNSPECIFIED;
 }
 
-static SCM gls_filter_terminate(SCM s_net)
+static SCM gls_filter_terminate(SCM s_net) /* FIXME */
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter-terminate");
-	filter_terminate(scm2filter(s_net));
+	filter_terminate(scm2filter(s_net)->launch_context);
 	return SCM_UNSPECIFIED;
 }
 
@@ -1031,7 +1025,6 @@ int glscript_init_filter()
 
 	glame_reg_export ("filter-launch", 1, 1, 0, gls_filter_launch);
 	glame_reg_export ("filter-start", 1, 0, 0, gls_filter_start);
-	glame_reg_export ("filter-pause", 1, 0, 0, gls_filter_pause);
 	glame_reg_export ("filter-wait", 1, 0, 0, gls_filter_wait);
 	glame_reg_export ("filter-terminate", 1, 0, 0, gls_filter_terminate);
 

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.79 2002/11/07 12:39:40 richi Exp $
+; $Id: glame.scm,v 1.80 2003/04/15 19:00:03 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -284,7 +284,7 @@
 	  "run the net, wait for completion and delete it.")
 
 ; start the net (in the background, not deleting it afterwards),
-; i.e. you can use filter-(pause|start|terminate) on it.
+; i.e. you can use filter-(start|terminate) on it.
 (define net-run-bg
   (lambda (net)
     (filter-launch net)

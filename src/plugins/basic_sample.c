@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.65 2002/06/09 18:57:23 richi Exp $
+ * $Id: basic_sample.c,v 1.66 2003/04/15 19:00:47 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -256,7 +256,7 @@ static int mix_f(filter_t *n)
 #ifdef FIFO_AUTOADJUST
 		if (res == 0) {
 			/* Network paused? */
-			if (filter_is_ready(n))
+			if (filter_is_ready(n->launch_context))
 				continue;
 			/* If we have a ready-to-read (or full fifo?) feedback
 			 * input and a not-ready-to-write output we have to
@@ -275,7 +275,7 @@ static int mix_f(filter_t *n)
 #else
 		if (res == 0) {
 			/* Network paused? */
-			if (filter_is_ready(n))
+			if (filter_is_ready(n->launch_context))
 				continue;
 			FILTER_ERROR_STOP("Deadlock");
 		}

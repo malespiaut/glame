@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.34 2002/04/09 09:22:21 richi Exp $
+ * $Id: basic.c,v 1.35 2003/04/15 19:00:42 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -250,7 +250,7 @@ static int one2n_f(filter_t *n)
 			 * pipes (implicitly guaranteed by res == 0). */
 			fd_set inset, outset;
 			/* Network paused? */
-			if (filter_is_ready(n))
+			if (filter_is_ready(n->launch_context))
 				continue;
 			FD_ZERO(&inset);
 			FD_SET(in->dest_fd, &inset);
@@ -284,7 +284,7 @@ static int one2n_f(filter_t *n)
 #else
 		if (res == 0) {
 			/* Network paused? */
-			if (filter_is_ready(n))
+			if (filter_is_ready(n->launch_context))
 				continue;
 			FILTER_ERROR_STOP("Deadlock");
 		}

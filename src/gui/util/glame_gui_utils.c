@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.28 2003/04/11 20:10:23 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.29 2003/04/15 19:00:40 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -581,6 +581,7 @@ struct network_notificator {
 	glsig_handler_t *delete_handler;
 	filter_t *net;
 	int wbufsize;
+	filter_launchcontext_t *context;
 };
 
 static void network_notificator_delete(glsig_handler_t *handler, long sig,
@@ -600,12 +601,14 @@ static void network_notificator_delete(glsig_handler_t *handler, long sig,
 
 	/* Cleanup notificator. */
 	glsig_delete_all(&n->emitter);
+
+	filter_launchcontext_unref(&n->context);
 	free(n);
 }
 
 static gint network_notificator_timeout(struct network_notificator *n)
 {
-	if (!filter_is_ready(n->net)) {
+	if (!filter_is_ready(n->context)) {
 		/* Run tick handlers. */
 		glsig_emit(&n->emitter, GLSIG_NETWORK_TICK, n->net);
 		return TRUE;
@@ -619,6 +622,8 @@ static gint network_notificator_timeout(struct network_notificator *n)
 
 	/* Cleanup notificator. */
 	glsig_delete_all(&n->emitter);
+
+	filter_launchcontext_unref(&n->context);
 	free(n);
 
 	/* Remove timeout handler. */
@@ -634,6 +639,7 @@ glsig_emitter_t *glame_network_notificator_creat(filter_t *net)
 	INIT_GLSIG_EMITTER(&n->emitter);
 	n->net = net;
 	n->wbufsize = _GLAME_WBUFSIZE;
+	n->context = NULL;
 
 	return &n->emitter;
 }
@@ -650,8 +656,8 @@ int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout)
 	struct network_notificator *n = (struct network_notificator *)emitter;
 	/* First launch & start the network. Cleanup in case of
 	 * errors. */
-	if (filter_launch(n->net, n->wbufsize) == -1
-	    || filter_start(n->net) == -1) {
+	if (!(n->context = filter_launch(n->net, n->wbufsize))
+	    || filter_start(n->context) == -1) {
 		free(n);
 		return -1;
 	}
@@ -674,7 +680,7 @@ void glame_network_notificator_delete_network(glsig_handler_t *handler,
 
 	GLSIGH_GETARGS1(va, net);
 
-	filter_terminate(net);
+	filter_terminate(net->launch_context);
 	filter_delete(net);
 }
 

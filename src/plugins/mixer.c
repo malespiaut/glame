@@ -1,7 +1,7 @@
 /*
  * mixer.c
  *
- * $Id: mixer.c,v 1.17 2003/04/11 20:10:37 richi Exp $
+ * $Id: mixer.c,v 1.18 2003/04/15 19:00:51 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -46,6 +46,7 @@ struct apply_data_s {
 	filter_t *net;
 	filter_t *pos;
 	filter_t *pos2;
+	filter_launchcontext_t *context;
 	gpsm_item_t *item_a;
 	gpsm_item_t *grp;
 	gpsm_swfile_t *result_left;
@@ -66,24 +67,25 @@ struct apply_data_s {
 	div_t tot_time;
 };
 
-/*datas for special buttons (reset,solo,mute...):one for each button */
+/* datas for special buttons (reset,solo,mute...):one for each button */
 struct button_s {
 	filter_param_t *param;
 	double value;
 	double before_mute;
 	GtkWidget *mute_button;
 	GtkWidget *solo_button;
-} *r[264];
+};
 
 /* globals */
-double before_solo[32];
+static struct button_s *r[264];
+static double before_solo[32];
 /* double valsolo; */
-filter_param_t **param_solo;
-GtkWidget **solo_button;
-GtkWidget **mute_button;
-int buttons_count;		/* global */
-int solos_count;		/* global */
-int chanels_count;
+static filter_param_t **param_solo;
+static GtkWidget **solo_button;
+static GtkWidget **mute_button;
+static int buttons_count;
+static int solos_count;
+static int chanels_count;
 
 /* Button numbers. */
 #define PREVIEW 0
@@ -153,7 +155,7 @@ static gint poll_net_cb(struct apply_data_s *a)
 	div_t time;
 	/* int sr; */
 
-	if (filter_is_ready(a->net)) {
+	if (filter_is_ready(a->context)) {
 		gtk_timeout_remove(a->timeout_id);
 		a->timeout_id = -1;
 
@@ -165,7 +167,7 @@ static gint poll_net_cb(struct apply_data_s *a)
 			gpsm_grp_t *grp;
 			char *label;
 			/* int is_not_centered=1; */
-			filter_wait(a->net);
+			filter_wait(a->context);
 
 			/* insert  track(s) in a new group */
 			label = alloca(128);
@@ -251,13 +253,13 @@ static void preview_start(struct apply_data_s *a)
 	/* filter_t *f; */
 
 
-	if (filter_is_ready(a->net) == 0) {
+	if (filter_is_ready(a->context) == 0) {
 		DPRINTF("filter has not finished\n\n");
 		return;
 	}
 
-	if ((filter_launch(a->net, _GLAME_WBUFSIZE) == -1) ||
-	    (filter_start(a->net) == -1))
+	if (!(a->context = filter_launch(a->net, _GLAME_WBUFSIZE)) ||
+	    (filter_start(a->context) == -1))
 		goto cleanup;
 
 
@@ -274,7 +276,7 @@ static void preview_start(struct apply_data_s *a)
 
 static void preview_stop(struct apply_data_s *a)
 {
-	filter_terminate(a->net);
+	filter_terminate(a->context);
 	gtk_timeout_remove(a->timeout_id);
 	a->previewing = 0;
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), APPLY, TRUE);
@@ -304,7 +306,7 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 	double pos;
 	long swname;
 	printf("a->stereo=%i\n\n", a->stereo);
-	if (filter_is_ready(a->net) == 0) {
+	if (filter_is_ready(a->context) == 0) {
 		DPRINTF("filter has not finished\n\n");
 		return;
 	}
@@ -356,10 +358,10 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 		}
 		gpsm_swfile_set_samplerate(a->result_left,
 					   filterpipe_sample_rate(pipe));
-		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1)
-		    || (filter_start(a->net) == -1))
+		if (!(a->context = filter_launch(a->net, GLAME_BULK_BUFSIZE))
+		    || (filter_start(a->context) == -1))
 			goto cleanup;
-		/*      if (filter_wait(a->net) == -1) */
+		/*      if (filter_wait(a->context) == -1) */
 /* 			goto cleanup; */
 	}
 
@@ -449,8 +451,8 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 		filterparam_set(filterparamdb_get_param
 				(filterpipe_sourceparamdb(pipe1),
 				 "position"), &pos);
-		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1)
-		    || (filter_start(a->net) == -1))
+		if (!(a->context = filter_launch(a->net, GLAME_BULK_BUFSIZE))
+		    || (filter_start(a->context) == -1))
 			goto cleanup;
 
 	}
@@ -476,7 +478,7 @@ static void close_cb(GtkWidget * bla, struct apply_data_s *a)
 {
 	gtk_timeout_remove(a->timeout_id);
 	if (a->net) {
-		filter_terminate(a->net);
+		filter_terminate(a->context);
 		filter_delete(a->net);
 	}
 	if (a->grp)
@@ -524,6 +526,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 
 	a = (struct apply_data_s *) malloc(sizeof(struct apply_data_s));
 	a->net = NULL;
+	a->context = NULL;
 	a->stereo = 1;		/*default to stereo mix */
 	a->previewing = 0;
 	a->applying = 0;

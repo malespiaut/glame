@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.20 2003/04/11 20:09:59 richi Exp $
+ * $Id: importexport.c,v 1.21 2003/04/15 19:00:20 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -75,6 +75,7 @@ static char *fproplabel[] = { "Format", "Samplerate", "Quality", "Channels",
 
 struct imp_s {
 	filter_t *net;
+	filter_launchcontext_t *context;
 	int cancelled;
 	int importing;
 	int destroyed;
@@ -109,7 +110,7 @@ static void ie_cancel_cb(GtkWidget *bla, struct imp_s *ie)
 {
 	DPRINTF("cancel pressed\n");
 	if (ie->importing==1) {
-		filter_terminate(ie->net);
+		filter_terminate(ie->context);
 		ie->cancelled = 1;
 		DPRINTF("Network was running. Importing terminated.\n");
 	}
@@ -123,7 +124,7 @@ static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
 {
 	struct imp_s *ie = (struct imp_s*)data;
 	if(ie->importing==1) {
-		filter_terminate(ie->net);
+		filter_terminate(ie->context);
 	}
 	ie->destroyed=1;
 	ie->cancelled=1;
@@ -246,11 +247,11 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Importing");
 	
 
-	if ((filter_launch(ie->net, GLAME_BULK_BUFSIZE) == -1) ||
-	    (filter_start(ie->net) == -1))
+	if (!(ie->context = filter_launch(ie->net, GLAME_BULK_BUFSIZE)) ||
+	    (filter_start(ie->context) == -1))
 		goto ie_fail_cleanup;
 
-	while(!filter_is_ready(ie->net)) {
+	while(!filter_is_ready(ie->context)) {
 		while (gtk_events_pending())
 			gtk_main_iteration();
 		
@@ -261,8 +262,9 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar),
 					  percentage);
 	}
-	filter_wait(ie->net);
+	filter_wait(ie->context);
 	filter_delete(ie->net);
+	filter_launchcontext_unref(&ie->context);
 	ie->net = NULL;
 	
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
@@ -424,13 +426,13 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 	
 	ie->cancelled=0;
 
-	if ((filter_launch(ie->net, GLAME_BULK_BUFSIZE) == -1) ||
-	    (filter_start(ie->net) == -1))
+	if (!(ie->context = filter_launch(ie->net, GLAME_BULK_BUFSIZE)) ||
+	    (filter_start(ie->context) == -1))
 		goto _ie_stats_cleanup;
 	
 	DPRINTF("Start network for %d samples\n",ie->frames);
 
-	while(!filter_is_ready(ie->net)) {
+	while(!filter_is_ready(ie->context)) {
 		while (gtk_events_pending())
 			gtk_main_iteration();
 		
@@ -474,6 +476,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Cancelled.");
 		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar), 0.0);
 	}
+	filter_launchcontext_unref(&ie->context);
 	
  _ie_stats_cleanup:
 	DPRINTF("Cleanup");
@@ -762,6 +765,7 @@ struct exp_s {
 	long filetype, compression;
 	int running;
 	filter_t *net;
+	filter_launchcontext_t *context;
 };
 
 static long export_default_filetype = -1; /* auto */
@@ -854,7 +858,7 @@ static void export_cleanup(struct exp_s *e)
 {
 	//gtk_signal_disconnect_by_data(e->cancelbutton, e);
 	if (e->running==1) {
-		filter_terminate(e->net);
+		filter_terminate(e->context);
 		return;
 	}
 	if (e->dialog)
@@ -998,14 +1002,14 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 
 	exp->net = net;
 
-	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
-	    || filter_start(net) == -1)
+	if (!(exp->context = filter_launch(net, GLAME_BULK_BUFSIZE))
+	    || filter_start(exp->context) == -1)
 		goto fail_cleanup;
 
 	exp->running=1;
 	totalframes = gpsm_item_hsize(grp);
 
-	while(!filter_is_ready(exp->net)) {
+	while(!filter_is_ready(exp->context)) {
 		while (gtk_events_pending())
 			gtk_main_iteration();
 		
@@ -1025,6 +1029,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	export_default_sample_option = sfi;
 
 	filter_delete(net);
+	filter_launchcontext_unref(&exp->context);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	export_cleanup(exp);
 	return;

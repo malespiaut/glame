@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.134 2003/04/11 22:18:17 xwolf Exp $
+ * $Id: waveeditgui.c,v 1.135 2003/04/15 19:00:25 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -541,7 +541,7 @@ static void play(GtkWaveView *waveview,
 		/* Playing state - abort the network.
 		 * Cleanup will happen automatically. */
 
-		filter_terminate(active_waveedit->pm_net);
+		filter_terminate(active_waveedit->pm_net->launch_context);
 		return;
 	}
 
@@ -615,7 +615,8 @@ static void play(GtkWaveView *waveview,
 		}
 		filter_add_node(net, ain, "audio-in");
 		ain_out = filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT);
-		gpsm_op_prepare((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
+		if (gpsm_op_prepare((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile)) == -1)
+			DPRINTF("Error preparing for undo\n");
 	}
 
 	i = -1;

@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.19 2003/04/11 20:10:38 richi Exp $
+ * $Id: normalize.c,v 1.20 2003/04/15 19:00:53 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -466,6 +466,7 @@ static void analyze_rms(struct normalize_s *ns) {
 	task_entry_t *te, *ote, *task, *last;
 	filter_t *net, *ssp, *maxrms, *swap;
 	filter_param_t	*param;
+	filter_launchcontext_t *context;
 	float percentage, mrms;
 	int num = 0;
 	gpsm_item_t* item;
@@ -510,15 +511,15 @@ static void analyze_rms(struct normalize_s *ns) {
 		param = filterparamdb_get_param(filter_paramdb(ssp), "bsize");
 		filterparam_set(param, &bsize);
 
-		if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
-		    || filter_start(net) == -1)
+		if (!(context = filter_launch(net, GLAME_BULK_BUFSIZE))
+		    || filter_start(context) == -1)
 			goto fail_cleanup;
 		
 		param = filterparamdb_get_param(filter_paramdb(swap), 
 						FILTERPARAM_LABEL_POS);
 
 		ns->running=1;
-		while(!filter_is_ready(net)) {
+		while(!filter_is_ready(context)) {
 			while (gtk_events_pending())
 				gtk_main_iteration();
 			usleep(40000);
@@ -532,6 +533,7 @@ static void analyze_rms(struct normalize_s *ns) {
 			gnome_appbar_set_progress_percentage(GNOME_APPBAR(ns->appbar),
 						  percentage);
 		}
+		filter_launchcontext_unref(&context);
 		ns->running = 0;
 
 		done+=filterparam_val_long(param);
@@ -562,7 +564,7 @@ static void analyze_rms(struct normalize_s *ns) {
 	return;
 
  cancel_cleanup:
-	filter_terminate(net);
+	filter_terminate(context);
 	filter_delete(net);
 	gpsm_item_destroy(ns->grp);
 	cleanup_task_list(ns);
@@ -579,6 +581,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 	int num;
 	filter_t *net, *vadjust, *swapi, *swapo;
 	filter_param_t	*param;
+	filter_launchcontext_t *context;
 	char label[128];
 	double gain, percentage;
 	long done = 0;
@@ -613,15 +616,15 @@ static void normalize_do_task(struct normalize_s *ns) {
 		filterparam_set(param, &gain);
 
 
-		if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
-		    || filter_start(net) == -1)
+		if (!(context = filter_launch(net, GLAME_BULK_BUFSIZE))
+		    || filter_start(context) == -1)
 			goto fail_cleanup;
 
 		param = filterparamdb_get_param(filter_paramdb(swapi), 
 						FILTERPARAM_LABEL_POS);
 
 		ns->running=1;
-		while(!filter_is_ready(net)) {
+		while(!filter_is_ready(context)) {
 			while (gtk_events_pending())
 				gtk_main_iteration();
 			usleep(40000);
@@ -636,6 +639,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 						  percentage);
 		}
 		ns->running = 0;
+		filter_launchcontext_unref(&context);
 	
 		done+=filterparam_val_long(param);
 		DPRINTF("posparam=%ld\n", filterparam_val_long(param));
@@ -655,7 +659,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 	return;
 
  cancel_cleanup:
-	filter_terminate(net);
+	filter_terminate(context);
 	filter_delete(net);
 	cleanup_task_list(ns);
 	gpsm_op_undo_and_forget(ns->grp);
