@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.35 2001/05/28 11:58:01 richi Exp $
+ * $Id: audio_io.c,v 1.36 2001/07/27 08:41:13 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -306,11 +306,11 @@ int audio_out_register(plugin_t *p)
 	plugin_get("audio_io_alsa");
 	plugin_get("audio_io_esd");
 	plugin_get("audio_io_irix");
+	if ((aout = plugin_get("esd-audio-out")))
+		audio_out = aout;
 	if ((aout = plugin_get("oss-audio-out")))
 		audio_out = aout;
 	if ((aout = plugin_get("alsa-audio-out")))
-		audio_out = aout;
-	if ((aout = plugin_get("esd-audio-out")))
 		audio_out = aout;
 	if ((aout = plugin_get("sgi-audio-out")))
 		audio_out = aout;
@@ -335,11 +335,11 @@ int audio_in_register(plugin_t *p)
 	plugin_get("audio_io_alsa");
 	plugin_get("audio_io_esd");
 	plugin_get("audio_io_irix");
+	if ((ain = plugin_get("esd-audio-in")))
+		audio_in = ain;
 	if ((ain = plugin_get("oss-audio-in")))
 		audio_in = ain;
 	if ((ain = plugin_get("alsa-audio-in")))
-		audio_in = ain;
-	if ((ain = plugin_get("esd-audio-in")))
 		audio_in = ain;
 	if ((ain = plugin_get("sgi-audio-in")))
 		audio_in = ain;
