@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.4 2000/03/21 05:56:44 mag Exp $
+ * $Id: audio_io.c,v 1.5 2000/03/21 09:38:09 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -121,16 +121,19 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
  */
 
 /* FIXME: F*** API changes caught me. fixup pipe changed from int to void.
- * Is break_connection correct?
+ * Is break_connection correct? - no [richi]
  */
 static void aio_generic_fixup_pipe(filter_node_t *src, filter_pipe_t *pipe)
 {
 	int rate = filterpipe_sample_rate(pipe);
 
 	filternode_foreach_input(src, pipe) {
-		if (rate != filterpipe_sample_rate(pipe))
-			filternetwork_break_connection(pipe);
+		if (rate != filterpipe_sample_rate(pipe)) {
+		        filternode_set_error(src, "mismatching input samplerates");
+			return;
+		}
 	}
+	filternode_clear_error(src);
 	/* No output pipes. */
 }
 
@@ -155,11 +158,12 @@ static int aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
 
 	rate = filterparam_val_int(param);
 	
-	/* Make sure to update rate param on all pipes even if some
-	 * fixup methods fail!
+	/* Make sure to update rate param on all pipes
 	 */
 	filternode_foreach_output(src, pipe) {
-		filterpipe_sample_rate(pipe) = rate;
+		if (filterpipe_sample_rate(pipe) == rate)
+			continue;
+		filterpipe_sample_rate(pipe) = rate; /* WTF?? */
 		src->filter->fixup_pipe(src, pipe);
 	}
 	return 0;
