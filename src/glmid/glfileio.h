@@ -3,7 +3,7 @@
 
 /*
  * glfileio.h
- * $Id: glfileio.h,v 1.1 2001/10/17 09:09:30 mag Exp $
+ * $Id: glfileio.h,v 1.2 2001/10/17 09:18:20 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -101,5 +101,36 @@ enum {
 
 /* query reader/writer plugin */
 glfileio_query_t *glfile_plugin_query(glfileio_plugin_t*);
+
+
+/* richi's version */
+
+#define GLFILE_VALID_SAMPLERATE 1
+#define GLFILE_VALID_NR_CHANNELS 2
+#define GLFILE_VALID_NR_SAMPLES 4
+#define GLFILE_VALID_FILETYPE 4
+typedef struct {
+	int valid;
+	int samplerate;
+	int nr_channels;
+	long nr_samples;
+	/* etc. */
+
+	int filetype;
+	union {
+		struct {
+		} blaficken_mp3_special_stuff;
+		/* etc. */
+	};
+} glfile_t;
+
+glfile_t *glfile_alloc();
+int glfile_open(const char *name, glfile_t *file);
+int glfile_creat(const char *name, glfile_t *file);
+void glfile_close(glfile_t *file);
+
+int glfile_read(glfile_t *file, long pos, long cnt, float *data);
+int glfile_write(glfile_t *file, long pos, long cnt, float *data);
+
 
 #endif
