@@ -1,6 +1,6 @@
 /*
  * glsimd.c
- * $Id: glsimd.c,v 1.8 2004/12/26 20:59:02 richi Exp $
+ * $Id: glsimd.c,v 1.9 2005/01/16 15:48:00 richi Exp $
  *
  * Copyright (C) 2001, 2002 Richard Guenther
  *
@@ -75,12 +75,6 @@ void glsimd_init(int force_c)
         /* Forced C only operations? */
 	if (force_c)
 		return;
-
-	/* Also, with SAMPLE == double, optimized versions will
-	 * certainly not work. */
-#ifndef SAMPLE_FLOAT
-	return;
-#endif
 
 	/* FIXME: now we should
          * 1. detect hardware capabilities

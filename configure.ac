@@ -150,22 +150,9 @@ dnl to fallbacks if not
 ACG_CHECK_STUFF
 
 
-dnl
-dnl Switch to make SAMPLE a double - float is default.
-dnl -- disabled.
-dnl
-
-dnl AC_ARG_ENABLE(double, [  --enable-double         use doubles instead of floats (not recommended)], sample=$enableval, sample=float)
-dnl if test "$sample" = "no"; then
-	sample=float
-dnl elif test "$sample" = "yes"; then
-dnl	sample=double
-dnl	AC_MSG_WARN([Using double for SAMPLE which is not supported])
-dnl fi
-if test "$sample" = "float"; then
-	AC_DEFINE(SAMPLE_FLOAT,, [use float as sample type])
-fi
-AC_DEFINE_UNQUOTED(SAMPLE, $sample, [type to use as sample])
+dnl Only float is supported as SAMPLE type.
+AC_DEFINE(SAMPLE_FLOAT,, [use float as sample type])
+AC_DEFINE_UNQUOTED(SAMPLE, float, [type to use as sample])
 
 
 
@@ -284,20 +271,11 @@ fi
 dnl
 dnl check for single/double precision fftw
 dnl
-if test "$sample" = "float"; then
-	AC_CHECK_LIB(sfftw, fftw2d_create_plan, fftw=yes, fftw=no)
-	AC_CHECK_HEADER(sfftw.h,, fftw=no)
-	if test $fftw = yes; then
-		FFTW_LIBS="-lsfftw -lsrfftw"
-		AC_DEFINE(HAVE_FFTW,, [have fftw])
-	fi
-elif test "$sample" = "double"; then
-	AC_CHECK_LIB(fftw, fftw2d_create_plan, fftw=yes, fftw=no)
-	AC_CHECK_HEADER(fftw.h,, fftw=no)
-	if test $fftw = yes; then
-		FFTW_LIBS="-lfftw -lrfftw"
-		AC_DEFINE(HAVE_FFTW,, [have fftw])
-	fi
+AC_CHECK_LIB(sfftw, fftw2d_create_plan, fftw=yes, fftw=no)
+AC_CHECK_HEADER(sfftw.h,, fftw=no)
+if test $fftw = yes; then
+	FFTW_LIBS="-lsfftw -lsrfftw"
+	AC_DEFINE(HAVE_FFTW,, [have fftw])
 fi
 AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
 AC_SUBST(FFTW_LIBS)

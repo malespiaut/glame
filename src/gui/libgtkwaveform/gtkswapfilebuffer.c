@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.22 2005/01/01 22:56:05 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.23 2005/01/16 15:48:00 richi Exp $
  *
  * Copyright (c) 2000, 2001, 2002, 2004 Richard Guenther
  *
@@ -141,11 +141,7 @@ static GWavefileType
 gtk_swapfile_buffer_get_datatype (GtkWaveBuffer *wavebuffer)
 {
 	/* Use glame native format to avoid another copy. */
-#ifdef SAMPLE_FLOAT
 	return G_WAVEFILE_TYPE_F4NI;
-#else
-	return G_WAVEFILE_TYPE_F8NI;
-#endif
 }
 
 static guint32

@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.20 2004/10/23 13:09:29 richi Exp $
+ * $Id: fft_plugins.c,v 1.21 2005/01/16 15:48:00 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002 Alexander Ehlert
  *
@@ -31,11 +31,7 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
-#ifdef SAMPLE_FLOAT 
 #include "srfftw.h"	/* real to complex fft */
-#else
-#include "rfftw.h"
-#endif
 #include "pthread.h"
 #include "math.h"
 
