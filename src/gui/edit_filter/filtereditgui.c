@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.31 2001/10/05 08:38:23 richi Exp $
+ * $Id: filtereditgui.c,v 1.32 2001/10/29 22:36:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -36,8 +36,8 @@
 #include "filtereditgui.h"
 
 /* FIXME remove these later on */
-guint nPopupTimeout;
-gboolean bMac;
+long nPopupTimeout;
+long bMac;
 /* FIXME */
 
 /* yuck! */

@@ -17,6 +17,9 @@ Known BUGS that should be fixed before 0.6.0:
 - new export dialog needs to be done and replace the existing one
 - intl for other than main widget needs to be done
 - looping support for swapfile_in filter and GUI
+- split documentation to be ready for (partial) localization
+- use new config subsystem in a sane way (move most of the defaults
+  to some place in glmid/glmid.c)
 
 
 Other items pending:

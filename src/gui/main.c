@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.82 2001/10/06 23:08:55 richi Exp $
+ * $Id: main.c,v 1.83 2001/10/29 22:36:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -44,6 +44,7 @@
 #include "glame_accelerator.h"
 #include "glame_console.h"
 #include "network_utils.h"
+#include "glconfig.h"
 
 #include "../plugins/symbols.c"
 
@@ -53,8 +54,8 @@ static GtkWidget *swapfile;
 static GtkWidget *app;
 GtkWidget *glame_appbar;
 
-extern guint nPopupTimeout;
-extern gboolean bMac;
+extern long nPopupTimeout;
+extern long bMac;
 
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
@@ -321,42 +322,25 @@ static int update_preferences()
 	char *aoutplugin = NULL, *aoutdev = NULL;
 	char s[256];
 	gboolean def;
-	int maxundo, res = 0;
+	long maxundo, res = 0;
 
 	/* Update globals. */
-	nPopupTimeout = gnome_config_get_int_with_default(
-		"edit_filter/popupTimeout=200", &def);
-	if (def)
-		gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
-	bMac = gnome_config_get_bool_with_default(
-		"edit_filter/macMode=false", &def);
-	if (def)
-		gnome_config_set_bool("edit_filter/macMode", bMac);
+	nPopupTimeout = glame_config_get_long_with_default("edit_filter/popupTimeout", 200);
+	bMac = glame_config_get_long_with_default("edit_filter/macMode", FALSE);
 
 	/* Set default swapfile path and max. undo depth */
-	sprintf(s, "swapfile/defaultpath=%s/.glameswap", g_get_home_dir());
-	swappath = gnome_config_get_string_with_default(s, &def);
-	if (def) {
-		gnome_config_set_string("swapfile/defaultpath", swappath);
-		res = -1;
-	}
-	maxundo = gnome_config_get_int_with_default(
-		"swapfile/maxundo=5", &def);
-	if (def)
-		gnome_config_set_int("swapfile/maxundo", maxundo);
-	gpsm_set_max_saved_ops(maxundo);
+	snprintf(s, 255, "%s/.glameswap", g_get_home_dir());
+	swappath = glame_config_get_string_with_default("swapfile/defaultpath", s);
+
+	if (!glame_config_get_long("swapfile/maxundo", &maxundo))
+		gpsm_set_max_saved_ops(maxundo);
 
 	/* GLAME_WBUFSIZE */
-	_GLAME_WBUFSIZE = gnome_config_get_int_with_default(
-		"filter/wbufsize=1024", &def);
-	if (def)
-		gnome_config_set_int("filter/wbufsize", _GLAME_WBUFSIZE);
+	_GLAME_WBUFSIZE = glame_config_get_long_with_default("filter/wbufsize", 1024);
 
 	/* Update IO plugin setup - audio_out */
-	aoutplugin = gnome_config_get_string_with_default(
-		"audio_io/output_plugin=audio_out", &def);
-	if (def)
-		gnome_config_set_string("audio_io/output_plugin", aoutplugin);
+	aoutplugin = glame_config_get_string_with_default("audio_io/output_plugin",
+					     "audio_out");
 	if (!plugin_get(aoutplugin)) {
 		DPRINTF("No plugin %s - using audio_out\n", aoutplugin);
 		g_free(aoutplugin);
@@ -365,10 +349,8 @@ static int update_preferences()
 			goto ain;
 	}
 	aoutdev = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(aoutplugin), PLUGIN_FILTER)), "device"));
-	snprintf(s, 255, "audio_io/output_dev=%s", aoutdev ? aoutdev : "");
-	aoutdev = gnome_config_get_string_with_default(s, &def);
-	if (def)
-		gnome_config_set_string("audio_io/output_dev", aoutdev);
+	snprintf(s, 255, "%s", aoutdev ? aoutdev : "");
+	aoutdev = glame_config_get_string_with_default("audio_io/output_dev", s);
 	filter = filter_instantiate(plugin_get(aoutplugin));
 	if (filter) {
 		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
@@ -378,10 +360,8 @@ static int update_preferences()
 
  ain:
 	/* Update IO plugin setup - audio_in */
-	ainplugin = gnome_config_get_string_with_default(
-		"audio_io/input_plugin=audio_in", &def);
-	if (def)
-		gnome_config_set_string("audio_io/input_plugin", ainplugin);
+	ainplugin = glame_config_get_string_with_default("audio_io/input_plugin",
+					    "audio_in");
 	if (!plugin_get(ainplugin)) {
 		DPRINTF("No plugin %s - using audio_in\n", ainplugin);
 		g_free(ainplugin);
@@ -390,10 +370,8 @@ static int update_preferences()
 			goto sync;
 	}
 	aindev = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(ainplugin), PLUGIN_FILTER)), "device"));
-	snprintf(s, 255, "audio_io/input_dev=%s", aindev ? aindev : "");
-	aindev = gnome_config_get_string_with_default(s, &def);
-	if (def)
-		gnome_config_set_string("audio_io/input_dev", aindev);
+	snprintf(s, 255, "%s", aindev ? aindev : "");
+	aindev = glame_config_get_string_with_default("audio_io/input_dev", s);
 	filter = filter_instantiate(plugin_get(ainplugin));
 	if (filter) {
 		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
@@ -403,7 +381,7 @@ static int update_preferences()
 
  sync:
 	/* Sync changes. */
-	gnome_config_sync();
+	glame_config_sync();
 
 	/* Display summary. */
 	DPRINTF(
@@ -442,6 +420,10 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 	*bar = (*bar)?FALSE:TRUE;
 }
 
+static GtkWidget *audio_io_preferences_widget_new()
+{
+}
+
 static int
 preferences_cb(GtkWidget * wid, void * bla)
 {
@@ -456,8 +438,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 	char *cfg, *path, *numberbuffer, *aindev = NULL, *aoutdev = NULL;
 	char *ainplugin = NULL, *aoutplugin = NULL, *maxundobuf, *wbufsizebuf;
 	gboolean ok=FALSE;
-	gboolean mac;
-	int maxundo, wbufsize;
+	long mac;
+	long maxundo, wbufsize;
 
 	/* New box. */
         prop_box = gnome_property_box_new();
@@ -476,7 +458,7 @@ preferences_cb(GtkWidget * wid, void * bla)
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
         entry = gnome_file_entry_new("swapfilepath", _("Swapfile Path"));
         create_label_widget_pair(vbox, _("Swapfile Path"), entry);
-	cfg = gnome_config_get_string("swapfile/defaultpath");
+	glame_config_get_string("swapfile/defaultpath", &cfg);
         path = alloca(256);
 	strncpy(path, cfg, 255);
 	g_free(cfg);
@@ -485,7 +467,7 @@ preferences_cb(GtkWidget * wid, void * bla)
         notelabel = gtk_label_new(_("NOTE: Swapfile settings take effect after restart only"));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
-	maxundo = gnome_config_get_int("swapfile/maxundo");
+	glame_config_get_long("swapfile/maxundo", &maxundo);
 	maxundobuf = alloca(256);
 	snprintf(maxundobuf, 255, "%d", maxundo);
 	create_label_edit_pair(vbox, _("Depth of undo stack"), "prefs::maxundo",
@@ -499,13 +481,13 @@ preferences_cb(GtkWidget * wid, void * bla)
 	vbox = gtk_vbox_new(FALSE,1);
 	gtk_widget_show(vbox);
 
-	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
+	glame_config_get_long("edit_filter/popupTimeout", &nPopupTimeout);
 	numberbuffer = alloca(256);
 	snprintf(numberbuffer, 255, "%d", nPopupTimeout);
 	create_label_edit_pair(vbox, _("Property popup timeout [ms]"), "popupTimeout",
 			       numberbuffer);
 
-	mac = gnome_config_get_bool("edit_filter/macMode");
+	glame_config_get_long("edit_filter/macMode", &mac);
 	bMac = mac;
 	macMode = gtk_check_button_new();
 	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
@@ -538,7 +520,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
 		g_list_free(combo_items);
 		gtk_widget_show(combo);
-		cfg = gnome_config_get_string("audio_io/input_plugin");
+		glame_config_get_string("audio_io/input_plugin", &cfg);
 		ainplugin = alloca(256);
 		strncpy(ainplugin, cfg, 255);
 		g_free(cfg);
@@ -549,7 +531,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 		/* input device */
 		aindev = alloca(256);
-		cfg = gnome_config_get_string("audio_io/input_dev");
+		glame_config_get_string("audio_io/input_dev", &cfg);
 		strncpy(aindev, cfg, 255);
 		g_free(cfg);
 		create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
@@ -574,7 +556,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
 		g_list_free(combo_items);
 		gtk_widget_show(combo);
-		cfg = gnome_config_get_string("audio_io/output_plugin");
+		glame_config_get_string("audio_io/output_plugin", &cfg);
 		aoutplugin = alloca(256);
 		strncpy(aoutplugin, cfg, 255);
 		g_free(cfg);
@@ -585,7 +567,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 		/* output device */
 		aoutdev = alloca(256);
-		cfg = gnome_config_get_string("audio_io/output_dev");
+		glame_config_get_string("audio_io/output_dev", &cfg);
 		strncpy(aoutdev, cfg, 255);
 		g_free(cfg);
 		create_label_edit_pair(vbox, _("Default output device"),
@@ -597,7 +579,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	}
 
 	/* GLAME_WBUFSIZE */
-	wbufsize = gnome_config_get_int("filter/wbufsize");
+	glame_config_get_long("filter/wbufsize", &wbufsize);
 	wbufsizebuf = alloca(256);
 	snprintf(wbufsizebuf, 255, "%d", wbufsize);
 	create_label_edit_pair(vbox, _("Size hint for audio buffers [samples]"), "prefs::wbufsize",
@@ -620,26 +602,24 @@ preferences_cb(GtkWidget * wid, void * bla)
 		return 0;
 
 	/* Update gnome config. */
-	gnome_config_set_string("swapfile/defaultpath", path);
+	glame_config_set_string("swapfile/defaultpath", path);
 	if (sscanf(maxundobuf, "%d", &maxundo) == 1)
-		gnome_config_set_int("swapfile/maxundo", maxundo);
+		glame_config_set_long("swapfile/maxundo", maxundo);
 	if (sscanf(numberbuffer, "%d", &nPopupTimeout) == 1)
-		gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
+		glame_config_set_long("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = mac;
-	gnome_config_set_bool("edit_filter/macMode",bMac);
+	glame_config_set_long("edit_filter/macMode",bMac);
 	if (aindev)
-		gnome_config_set_string("audio_io/input_dev", aindev);
+		glame_config_set_string("audio_io/input_dev", aindev);
 	if (ainplugin)
-		gnome_config_set_string("audio_io/input_plugin", ainplugin);
+		glame_config_set_string("audio_io/input_plugin", ainplugin);
 	if (aoutdev)
-		gnome_config_set_string("audio_io/output_dev", aoutdev);
+		glame_config_set_string("audio_io/output_dev", aoutdev);
 	if (aoutplugin)
-		gnome_config_set_string("audio_io/output_plugin", aoutplugin);
+		glame_config_set_string("audio_io/output_plugin", aoutplugin);
 	if (sscanf(wbufsizebuf, "%d", &wbufsize) == 1)
-		gnome_config_set_int("filter/wbufsize", wbufsize);
-	/* Absolutely need this gnome_config_sync() - else everything
-	 * is lost (gnome suxx)! */
-	gnome_config_sync();
+		glame_config_set_long("filter/wbufsize", wbufsize);
+	glame_config_sync();
 
 	/* Update config derived stuff. */
 	update_preferences();
@@ -780,8 +760,6 @@ static void gui_main()
 	char *path;
 
 	/* Update preferences. */
-	sprintf(configpath,"/%s/", "glame0.5");
-	gnome_config_push_prefix(configpath);
 	if (update_preferences() == -1) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_dialog(
 _("Welcome first-time user of GLAME.\n"
@@ -796,7 +774,7 @@ _("Welcome first-time user of GLAME.\n"
 		}
 	}
 
-	path = gnome_config_get_string("swapfile/defaultpath");
+	glame_config_get_string("swapfile/defaultpath", &path);
 	DPRINTF("path: %s\n",path);
 	if (!g_file_test(path,G_FILE_TEST_ISDIR)) {
 		if (swapfile_creat(path, -1)) {

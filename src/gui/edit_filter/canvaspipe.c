@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.19 2001/07/31 16:16:52 mag Exp $
+ * $Id: canvaspipe.c,v 1.20 2001/10/29 22:36:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -33,8 +33,8 @@
 #include "hash.h"
 
 
-extern gboolean bMac;
-extern guint nPopupTimeout;
+extern long bMac;
+extern long nPopupTimeout;
 
 HASH(gcpipe, GlameCanvasPipe, 8,
 	(gcpipe->pipe == key ),

@@ -16,6 +16,7 @@ libglmid_la_SOURCES = \
 	glplugin.c glplugin.h \
 	glscript.c glscript.h \
 	glscript_swapfile.c glscript_filter.c glscript_gpsm.c \
+	glconfig.c glconfig.h \
 	$(LADSPA_FILES) \
 	gpsm.c gpsm.h clipboard.c clipboard.h \
 	network_utils.c network_utils.h \

@@ -211,17 +211,20 @@ static void init_after_guile(int argc, char **argv)
 	scm_restore_signals();
 #endif
 
-#if 1
 	lt_dlinit();
-#endif
 
 	/* Init lowlevel GLAME subsystems. */
 	glsimd_init(0);
 	if (hash_alloc() == -1)
 		exit(1);
+	atexit(glame_cleanup);
+
+	/* Load configuration. */
+	glame_config_load();
+
+	/* Load non-scheme plugins. */
 	if (plugins_register() == -1)
 		exit(1);
-	atexit(glame_cleanup);
 
 	/* Init scripting. */
 	if (glscript_init() == -1)

@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.31 2001/07/31 16:16:52 mag Exp $
+ * $Id: canvasfilter.c,v 1.32 2001/10/29 22:36:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -31,8 +31,8 @@
 #include "canvasitem.h"
 #include "hash.h"
 
-extern gboolean bMac;
-extern guint nPopupTimeout;
+extern long bMac;
+extern long nPopupTimeout;
 
 HASH(gcfilter, GlameCanvasFilter, 8,
 	(gcfilter->filter == key ),

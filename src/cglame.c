@@ -31,6 +31,7 @@
 #include "filter.h"
 #include "util.h"
 #include "gpsm.h"
+#include "glconfig.h"
 
 #include "plugins/symbols.c"
 
@@ -42,6 +43,8 @@ char *swfname;
  */
 void sc_main()
 {
+	if (!swfname)
+		swfname = glame_config_get_string("swapfile/defaultpath", NULL);
 	if (swfname && gpsm_init(swfname) == -1)
 		exit(1);
 

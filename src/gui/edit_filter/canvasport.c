@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.20 2001/07/13 09:01:43 richi Exp $
+ * $Id: canvasport.c,v 1.21 2001/10/29 22:36:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -31,8 +31,8 @@
 #include "util/glame_gui_utils.h"
 #include "hash.h"
 #include <X11/bitmaps/hlines3>
-extern gboolean bMac;
-extern guint nPopupTimeout;
+extern long bMac;
+extern long nPopupTimeout;
 
 HASH(gcport, GlameCanvasPort, 8,
 	(gcport->port == key ),

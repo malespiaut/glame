@@ -40,6 +40,7 @@
 #include "swapfile.h"
 #include "gpsm.h"
 #include "hash.h"
+#include "glconfig.h"
 
 
 
@@ -66,7 +67,7 @@ struct op {
 
 /* List of ops, sorted by time, head is latest, configurables */
 struct glame_list_head oplist;
-static int op_max_listsize = 5;
+static long op_max_listsize = 5;
 static int op_listsize;
 
 
@@ -484,6 +485,7 @@ empty:
 	/* Init the op list. */
 	GLAME_INIT_LIST_HEAD(&oplist);
 	op_listsize = 0;
+	glame_config_get_long("swapfile/maxundo", &op_max_listsize);
 
 	/* Create the tree root group and recurse down the xml tree. */
         root = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);
