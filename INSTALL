@@ -26,10 +26,6 @@ to get a .deb package build which you may then install using dpkg.
 
 Note that there are quite a lot of configure options (./configure --help)
 of which the following may come handy if the build process is failing:
-- --disable-mp3lame disables the use of the mp3lame library for reading
-  mp3 files - this may be necessary if you only have a static version of
-  this libaray installed (symptoms for this are no file I/O plugins
-  available, i.e. not working Import/Export)
 - --disable-gui disables the use of gnome - and thus the generation of
   the graphical user interface binary
 

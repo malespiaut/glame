@@ -1,4 +1,4 @@
-This is GLAME 0.7.1 - GNU/Linux Audio Mechanics beta release.
+This is GLAME 1.1.0 - GNU/Linux Audio Mechanics beta release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
@@ -19,7 +19,7 @@ http://glame.sourceforge.net/ or http://www.glame.de/
 For end user discussion and sharing of tips and tricks regarding the use of
 GLAME, join the mailing list <glame-users@lists.sourceforge.net>.
 Subscription information can be found at 
-http://sourceforge.net/mail/?group_id=1627
+http://lists.sourceforge.net/mailman/listinfo/glame-users
 
 Tuebingen 16.07.2001
 
@@ -29,6 +29,7 @@ Quick Start for the impatient
 If you got a glame tarball just do the usual
 > ./configure && make && make install
 and you will get the programs 'glame' and 'cglame' installed.
+
 If you checked out the glame cvs first do
 > ./autogen.sh
 If you do not want to install glame, you can find 'glame' in
@@ -63,26 +64,26 @@ Requirements
   On all platforms gcc is required to compile GLAME, using version
   2.95.2 or later is highly recommended.
 - You may need glibc2.x on Linux, other versions were not tested.
-- For the GUI part, it's best to try with recent versions of the
-  Gtk+ and GNOME libs (those from the gnome distributions starting at
-  version 1.0 should suffice). configure --disable-gui is your friend...
+- For the GUI part, you need recent versions of the Gtk+-2.0 and GNOME-2.0
+  libraries with deprecated features built in.
+  configure --disable-gui is your friend...
 - The scripting part makes use of guile; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
-  expected (version 1.3.4 and up are known to work).
-- Another requirement is a recent libxml which is used by the midlayer.
+  expected (latest 1.4 and latest 1.6 releases are known to work).
+- Another requirement is a recent libxml2 which is used by the midlayer.
 - For developing you need autoconf version 2.5 or later and automake
   of the 1.6 series as well as recent libtool and gettext at least
   version 0.11.3.
 - For full-featured I/O to files a recent version of libaudiofile is
   needed (at least 0.2.2 is required for libaudiofile support to be
   included).
+- To enable Mp3 and Ogg importing support you need to have libmad and
+  libvorbisfile of at least version 1.0 installed.
 - For full-featured I/O to your soundcard use ALSA version 0.9, though
   OSS may suffice, too.
-- Glame uses Gnome1 at the moment, Gnome2 users may read the BUGS file
-  and search for workarounds for some problems there.
 
 
-Current Status (as of version 0.7.1):
+Current Status (as of version 1.1.0):
 =====================================
 - usable GUI - src/gui/glame
   * wave editor
