@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.51 2001/06/18 08:22:04 richi Exp $
+ * $Id: filter.c,v 1.52 2001/07/05 14:22:05 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -393,16 +393,38 @@ char *filter_to_string(filter_t *net)
 				       n->name, val);
 			free(val);
 			glsdb_foreach_item(filterparam_propertydb(param), pitem) {
+				char *propval, *s, *d;
+				propval = malloc(strlen(sitem_str(pitem))+256);
+				s = sitem_str(pitem);
+				d = propval;
+				while (*s) {
+					if (*s == '"')
+						*d++ = '\\';
+					*d++ = *s++;
+				}
+				*d = '\0';
 				len += sprintf(&buf[len],
 "\n     (set-property! param \"%s\" \"%s\")",
 					       sitem_label(pitem),
-					       sitem_str(pitem));
+					       propval);
+				free(propval);
 			}
 			len += sprintf(&buf[len], ")\n");
 		}
 		glsdb_foreach_item(filter_propertydb(n), pitem) {
+			char *propval, *s, *d;
+			propval = malloc(strlen(sitem_str(pitem))+256);
+			s = sitem_str(pitem);
+			d = propval;
+			while (*s) {
+				if (*s == '"')
+					*d++ = '\\';
+				*d++ = *s++;
+			}
+			*d = '\0';
 			len += sprintf(&buf[len], "   (set-property! %s \"%s\" \"%s\")\n",
-				       n->name, sitem_label(pitem), sitem_str(pitem));
+				       n->name, sitem_label(pitem), propval);
+			free(propval);
 		}
 	}
 
@@ -475,8 +497,19 @@ char *filter_to_string(filter_t *net)
 
 	/* Last, create property set commands for the network. */
 	glsdb_foreach_item(filter_propertydb(net), pitem) {
+		char *propval, *s, *d;
+		propval = malloc(strlen(sitem_str(pitem))+256);
+		s = sitem_str(pitem);
+		d = propval;
+		while (*s) {
+			if (*s == '"')
+				*d++ = '\\';
+			*d++ = *s++;
+		}
+		*d = '\0';
 		len += sprintf(&buf[len], "   (set-property! net \"%s\" \"%s\")\n",
-			       sitem_label(pitem), sitem_str(pitem));
+			       sitem_label(pitem), propval);
+		free(propval);
 	}
 
 	/* (let* ... */
