@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.24 2000/02/21 17:48:05 nold Exp $
+ * $Id: audio_io.c,v 1.25 2000/02/22 08:04:36 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -464,6 +464,9 @@ static int esd_out_f(filter_node_t *n)
 	/* query both input channels, one channel only -> MONO
 	 * (always left), else STEREO output (but with the same
 	 * samplerate, please!). */
+	filternode_foreach_input(n,swap)
+		DPRINTF("angle=%lf\n",filterpipe_sample_hangle(swap));
+
 	left = filternode_get_input(n, PORTNAME_IN);
 	right = filternode_next_input(left);
 	

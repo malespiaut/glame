@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.8 2000/02/21 16:10:51 richi Exp $
+ * $Id: file_io.c,v 1.9 2000/02/22 08:04:36 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -47,12 +47,15 @@
 
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
-int audiofile_prepare(filter_node_t *n, const char *filename);
-int audiofile_connect(filter_node_t *n, filter_pipe_t *p);
-int audiofile_f(filter_node_t *n);
+int audiofile_prepare_read(filter_node_t *n, const char *filename);
+int audiofile_connect_out(filter_node_t *n, filter_pipe_t *p);
+int audiofile_connect_in(filter_node_t *n, filter_pipe_t *p);
+int audiofile_read_f(filter_node_t *n);
 void audiofile_cleanup(filter_node_t *n);
 #endif
 
+#define FILE_IO_MODE_READ	1
+#define FILE_IO_MODE_WRITE	2
 
 typedef struct {
 	struct list_head list;
@@ -60,6 +63,7 @@ typedef struct {
 	int (*connect)(filter_node_t *, filter_pipe_t *);
 	int (*f)(filter_node_t *);
 	void (*cleanup)(filter_node_t *);
+	int mode;
 } rw_t;
 
 typedef struct {
@@ -72,6 +76,7 @@ typedef struct {
 typedef struct {
 	rw_t *rw;
 	int initted;
+	int mode;
 	union {
 		struct {
 			int dummy;
@@ -80,28 +85,29 @@ typedef struct {
 		struct {
 			AFfilehandle    file;
 			AFframecount    frameCount;
+			AFfilesetup     fsetup;
 			int             sampleFormat,sampleWidth;
 			int             channelCount,frameSize;
 			int		sampleRate;
+			int		format;
 			track_t         *track;
 			short		*buffer;
 			char		*cbuffer;
-			/* put your shared state stuff here */
 		} audiofile;
 #endif
 	} u;
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->private))
-#define RWAUDIO(node) (RWPRIV(node)->u.audiofile)
-
+#define RWA(node) (RWPRIV(node)->u.audiofile)
+ 
 /* the readers list */
-static struct list_head readers;
+static struct list_head io_handlers;
 
-
-static int add_reader(int (*prepare)(filter_node_t *, const char *),
-		      int (*connect)(filter_node_t *, filter_pipe_t *),
-		      int (*f)(filter_node_t *),
-		      void (*cleanup)(filter_node_t *))
+static int add_io_handler(int (*prepare)(filter_node_t *, const char *),
+			 int (*connect)(filter_node_t *, filter_pipe_t *),
+			 int (*f)(filter_node_t *),
+			 void (*cleanup)(filter_node_t *),
+			 int mode)
 {
 	rw_t *rw;
 
@@ -114,39 +120,60 @@ static int add_reader(int (*prepare)(filter_node_t *, const char *),
 	rw->connect = connect;
 	rw->f = f;
 	rw->cleanup = cleanup;
-	list_add(&rw->list, &readers);
+	rw->mode = mode;
+	list_add(&rw->list, &io_handlers);
 
 	return 0;
 }
 
 
-static int read_file_init(filter_node_t *n)
+static int file_read_init(filter_node_t *n)
 {
 	rw_private_t *p;
 
 	if (!(p = ALLOC(rw_private_t)))
 		return -1;
 	n->private = p;
+	p->mode = FILE_IO_MODE_READ;
 	return 0;
 }
-static void read_file_cleanup(filter_node_t *n)
+
+static int file_write_init(filter_node_t *n)
+{
+	rw_private_t *p;
+
+	if (!(p = ALLOC(rw_private_t)))
+		return -1;
+	n->private = p;
+	p->mode = FILE_IO_MODE_WRITE;
+	return 0;
+}
+	
+static void file_io_cleanup(filter_node_t *n)
 {
 	if (RWPRIV(n)->rw
 	    && RWPRIV(n)->rw->cleanup)
 		RWPRIV(n)->rw->cleanup(n);
 	free(RWPRIV(n));
 }
-static int read_file_f(filter_node_t *n)
+
+static int file_io_f(filter_node_t *n)
 {
 	/* require set filename (a selected reader) and
 	 * at least one connected output. */
 	if (!RWPRIV(n)->initted)
 		return -1;
-	if (!filternode_get_output(n, PORTNAME_OUT))
-		return -1;
+	if (RWPRIV(n)->mode==FILE_IO_MODE_READ){
+		if (!filternode_get_output(n, PORTNAME_OUT))
+			return -1;
+	} else {
+		if (!filternode_get_input(n,PORTNAME_IN))
+			return -1;
+	}
 	return RWPRIV(n)->rw->f(n);
 }
-static int read_file_connect_out(filter_node_t *n, const char *port,
+
+static int file_io_connect_out(filter_node_t *n, const char *port,
 				 filter_pipe_t *p)
 {
 	/* no reader -> no filename -> some "defaults" */
@@ -159,7 +186,14 @@ static int read_file_connect_out(filter_node_t *n, const char *port,
 	 * connection, but not the file here. */
 	return RWPRIV(n)->rw->connect(n, p);
 }
-static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
+
+static int file_io_connect_in(filter_node_t *n, const char *port,
+				filter_pipe_t *p)
+{
+	return RWPRIV(n)->rw->connect(n, p);
+}
+
+static int file_io_fixup_param(filter_node_t *n, filter_pipe_t *p,
 				 const char *name, filter_param_t *param)
 {
 	rw_t *r;
@@ -172,7 +206,7 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	
         /* filename change! */
 	} else {
-		/* check actual reader */
+		/* check actual reader/writer */
 		if (RWPRIV(n)->rw) {
 			/* cleanup previous stuff */
 			if (RWPRIV(n)->initted
@@ -190,12 +224,15 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		RWPRIV(n)->rw = NULL;
 		RWPRIV(n)->initted = 0;
 
-		/* search for applicable reader */
-		list_foreach(&readers, rw_t, list, r) {
-			if (r->prepare(n, filterparam_val_string(param)) != -1) {
-				RWPRIV(n)->rw = r;
-				RWPRIV(n)->initted = 1;
-				goto reconnect;
+		/* search for applicable reader or writer*/
+		list_foreach(&io_handlers, rw_t, list, r) {
+			if ( RWPRIV(n)->mode == r->mode )
+				{
+				if (r->prepare(n, filterparam_val_string(param)) != -1) {
+					RWPRIV(n)->rw = r;
+					RWPRIV(n)->initted = 1;
+					goto reconnect;
+				}
 			}
 		}
 
@@ -205,25 +242,31 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
  reconnect:
 	/* re-connect all pipes */
-	filternode_foreach_output(n, p)
-		if (RWPRIV(n)->rw->connect(n, p) == -1){
-			filternetwork_break_connection(p);
-			goto reconnect;
-		}
-
+	if(RWPRIV(n)->mode==FILE_IO_MODE_READ){
+		filternode_foreach_output(n, p)
+			if (RWPRIV(n)->rw->connect(n, p) == -1){
+				filternetwork_break_connection(p);
+				goto reconnect;
+			}
+	} else {
+		filternode_foreach_input(n,p)
+			if (RWPRIV(n)->rw->connect(n, p) == -1){
+				filternetwork_break_connection(p);
+				goto reconnect;
+			}
+	}
 	return 0;
 }
-
 
 int file_io_register()
 {
 	filter_t *f;
 	filter_portdesc_t *p;
 
-	INIT_LIST_HEAD(&readers);
+	INIT_LIST_HEAD(&io_handlers);
 
 	if (!(f = filter_alloc("read_file", "Generic file read filter",
-			       read_file_f))
+			       file_io_f))
 	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 	    || !filterport_add_param(p, "position", "position of the stream",
@@ -231,58 +274,122 @@ int file_io_register()
 	    || !filter_add_param(f, "filename", "filename",
 				 FILTER_PARAMTYPE_STRING))
 		return -1;
-	f->init = read_file_init;
-	f->cleanup = read_file_cleanup;
-	f->connect_out = read_file_connect_out;
-	f->fixup_param = read_file_fixup_param;
+	f->init = file_read_init;
+	f->cleanup = file_io_cleanup;
+	f->connect_out = file_io_connect_out;
+	f->fixup_param = file_io_fixup_param;
 	if (filter_add(f) == -1)
 		return -1;
 
+	if (!(f = filter_alloc("write_file", "Generic file write filter",
+				file_io_f))
+	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
+			    		FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
+	    || !filter_add_param(f, "filename", "filename",FILTER_PARAMTYPE_STRING))
+		return -1;
+	f->init = file_write_init;
+	f->cleanup = file_io_cleanup;
+	f->connect_in = file_io_connect_in;
+	f->fixup_param = file_io_fixup_param;
+	if (filter_add(f) == -1)
+		return -1;
+					
 #ifdef HAVE_AUDIOFILE
-	add_reader(audiofile_prepare, audiofile_connect,
-		   audiofile_f, audiofile_cleanup);
+	add_io_handler(audiofile_prepare_read, audiofile_connect_out,
+			audiofile_read_f, audiofile_cleanup,FILE_IO_MODE_READ);
+/*	add_io_handler(audiofile_prepare_write, audiofile_connect_in,
+			audiofile_write_f, audiofile_cleanup,FILE_IO_MODE_WRITE);
+*/
 #endif
 
 	return 0;
 }
 
 
-/* The actual readers.
+/* The actual readers and writers.
  */
 #ifdef HAVE_AUDIOFILE
-int audiofile_prepare(filter_node_t *n, const char *filename)
+int audiofile_prepare_read(filter_node_t *n, const char *filename)
 {
-	DPRINTF("Opening %s\n",filename);
-	if ((RWAUDIO(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
+	DPRINTF("Read %s\n",filename);
+	if ((RWA(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
 		return -1; 
 	}
-	RWAUDIO(n).frameCount=afGetFrameCount(RWAUDIO(n).file, AF_DEFAULT_TRACK);
-	RWAUDIO(n).channelCount = afGetChannels(RWAUDIO(n).file, AF_DEFAULT_TRACK);
-	afGetSampleFormat(RWAUDIO(n).file, AF_DEFAULT_TRACK, &(RWAUDIO(n).sampleFormat), &(RWAUDIO(n).sampleWidth));
-	RWAUDIO(n).frameSize = afGetFrameSize(RWAUDIO(n).file, AF_DEFAULT_TRACK, 1);
-	RWAUDIO(n).sampleRate = (int)afGetRate(RWAUDIO(n).file, AF_DEFAULT_TRACK);
-	if ((RWAUDIO(n).sampleFormat != AF_SAMPFMT_TWOSCOMP)){
+	RWA(n).frameCount=afGetFrameCount(RWA(n).file, AF_DEFAULT_TRACK);
+	RWA(n).channelCount = afGetChannels(RWA(n).file, AF_DEFAULT_TRACK);
+	afGetSampleFormat(RWA(n).file, AF_DEFAULT_TRACK, &(RWA(n).sampleFormat), &(RWA(n).sampleWidth));
+	RWA(n).frameSize = afGetFrameSize(RWA(n).file, AF_DEFAULT_TRACK, 1);
+	RWA(n).sampleRate = (int)afGetRate(RWA(n).file, AF_DEFAULT_TRACK);
+	if ((RWA(n).sampleFormat != AF_SAMPFMT_TWOSCOMP)){
 		DPRINTF("Format not supported!\n");
 		return -1;
 	}
-	if ((RWAUDIO(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWAUDIO(n).frameSize))==NULL){
+	if ((RWA(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL){
 		DPRINTF("Couldn't allocate buffer\n");
 		return -1;
 	}
-	RWAUDIO(n).cbuffer=(char *)RWAUDIO(n).buffer;
-	if (!(RWAUDIO(n).track=ALLOCN(RWAUDIO(n).channelCount,track_t))){
+	RWA(n).cbuffer=(char *)RWA(n).buffer;
+	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t))){
 		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
 	}
 	return 0;
 }
 
-int audiofile_connect(filter_node_t *n, filter_pipe_t *p)
+/*
+int audiofile_prepare_write(filter_node_t *n, const char *filename)
+{
+	DPRINTF("Write %s\n",filename);
+	fsetup=afNewFileSetup();
+        afInitFileFormat(fsetup,format);
+	afInitChannels(fsetup, AF_DEFAULT_TRACK, channelCount);
+	afInitSampleFormat(fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+	file=afOpenFile(filename, "w", fsetup);
+	if (file==AF_NULL_FILEHANDLE){
+		DPRINTF("couldn't open %s\n",filename);
+		goto _bailout;
+	}
+}
+*/
+int audiofile_connect_in(filter_node_t *n, filter_pipe_t *p)
+{
+	track_t *track;
+	int i;
+	/* Connect just collects all incoming connections
+	 * mapping is done later
+	 */
+	
+	if (!RWA(n).track){
+		/* First connection to be opened */
+		if (!(RWA(n).track=ALLOC(track_t))){
+			DPRINTF("Couldn't allocate track buffer\n");
+			return -1;
+		}
+		RWA(n).channelCount=1;
+		RWA(n).track[0].p=p;
+	} else {
+		/* Connection already collected ? */
+		for(i=0;i<RWA(n).channelCount;i++)
+			if (RWA(n).track[i].p==p) return 0;
+		if (!(RWA(n).track=ALLOCN(i,track_t))){
+			DPRINTF("Couldn't allocate track buffer\n");
+			return -1;
+		}
+		/* I know it's not nice... */
+		memcpy(track,RWA(n).track,RWA(n).channelCount*sizeof(track_t));
+		free(RWA(n).track);
+		RWA(n).track=track;
+		RWA(n).channelCount++;
+		RWA(n).track[i].p=p;
+	}
+	return 0;
+}
+int audiofile_connect_out(filter_node_t *n, filter_pipe_t *p)
 {
 	int i;
-	for(i=0;(i<RWAUDIO(n).channelCount) && (RWAUDIO(n).track[i].mapped);i++);
-	if (i>=RWAUDIO(n).channelCount){
+	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
+	if (i>=RWA(n).channelCount){
 		/* Check if track is already mapped ?!
 		 * Would be strange, but ... FIXME
 		 * - nope, not strange, connect gets called for each
@@ -291,8 +398,8 @@ int audiofile_connect(filter_node_t *n, filter_pipe_t *p)
 		 * - you should fixup, i.e. re-route perhaps, reject, whatever
 		 *   in this case
                  */
-		for(i=0;i<RWAUDIO(n).channelCount;i++)
-			if ((RWAUDIO(n).track[i].mapped) && RWAUDIO(n).track[i].p==p)
+		for(i=0;i<RWA(n).channelCount;i++)
+			if ((RWA(n).track[i].mapped) && RWA(n).track[i].p==p)
 				return 0; /* FIXME */
 		
 		/* Otherwise error */
@@ -301,48 +408,48 @@ int audiofile_connect(filter_node_t *n, filter_pipe_t *p)
 		/* Moah! what is this? does libaudiofile not provide
 		 * some "direct" information on position??
 		 */
-		filterpipe_settype_sample(p,RWAUDIO(n).sampleRate,
-			(M_PI/(RWAUDIO(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
-		RWAUDIO(n).track[i].p=p;
-		RWAUDIO(n).track[i].mapped=1;
+		filterpipe_settype_sample(p,RWA(n).sampleRate,
+			(M_PI/(RWA(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
+		RWA(n).track[i].p=p;
+		RWA(n).track[i].mapped=1;
 	}	
 	
 	return 0;	
 }
 
-int audiofile_f(filter_node_t *n)
+int audiofile_read_f(filter_node_t *n)
 {
 	int frames,i,j;
 	filter_pipe_t *p_out;
 
 	FILTER_AFTER_INIT;
 
-	while(RWAUDIO(n).frameCount){
+	while(RWA(n).frameCount){
 		FILTER_CHECK_STOP;
-		if (!(frames=afReadFrames(RWAUDIO(n).file, AF_DEFAULT_TRACK, RWAUDIO(n).buffer,
-					  MIN(GLAME_WBUFSIZE,RWAUDIO(n).frameCount))))
+		if (!(frames=afReadFrames(RWA(n).file, AF_DEFAULT_TRACK, RWA(n).buffer,
+					  MIN(GLAME_WBUFSIZE,RWA(n).frameCount))))
 			break;
-		RWAUDIO(n).frameCount-=frames;
-		for(i=0;i<RWAUDIO(n).channelCount;i++){
-			RWAUDIO(n).track[i].buf=sbuf_alloc(frames,n);
-			RWAUDIO(n).track[i].buf=sbuf_make_private(RWAUDIO(n).track[i].buf);
-			RWAUDIO(n).track[i].pos=0;
+		RWA(n).frameCount-=frames;
+		for(i=0;i<RWA(n).channelCount;i++){
+			RWA(n).track[i].buf=sbuf_alloc(frames,n);
+			RWA(n).track[i].buf=sbuf_make_private(RWA(n).track[i].buf);
+			RWA(n).track[i].pos=0;
 		}
 		i=0;
-		while(i<frames*RWAUDIO(n).channelCount){
-			for(j=0;j<RWAUDIO(n).channelCount;j++){
-				switch(RWAUDIO(n).sampleWidth) {
+		while(i<frames*RWA(n).channelCount){
+			for(j=0;j<RWA(n).channelCount;j++){
+				switch(RWA(n).sampleWidth) {
 				case 16 :
-					sbuf_buf(RWAUDIO(n).track[j].buf)[RWAUDIO(n).track[j].pos++]=SHORT2SAMPLE(RWAUDIO(n).buffer[i++]);
+					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++]=SHORT2SAMPLE(RWA(n).buffer[i++]);
 					break;
 				case  8 :
-					sbuf_buf(RWAUDIO(n).track[j].buf)[RWAUDIO(n).track[j].pos++]=CHAR2SAMPLE(RWAUDIO(n).cbuffer[i++]);
+					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++]=CHAR2SAMPLE(RWA(n).cbuffer[i++]);
 					break;
 				}
 			}
 		}
-		for(i=0;i<RWAUDIO(n).channelCount;i++)
-			sbuf_queue(RWAUDIO(n).track[i].p,RWAUDIO(n).track[i].buf);
+		for(i=0;i<RWA(n).channelCount;i++)
+			sbuf_queue(RWA(n).track[i].p,RWA(n).track[i].buf);
 	}
 	filternode_foreach_output(n,p_out) 
 		sbuf_queue(p_out,NULL);
@@ -357,9 +464,9 @@ void audiofile_cleanup(filter_node_t *n)
 {
 	if (!RWPRIV(n)->initted)
 		return;
-	free(RWAUDIO(n).buffer);
-	free(RWAUDIO(n).track);
-	afCloseFile(RWAUDIO(n).file);	
+	free(RWA(n).buffer);
+	free(RWA(n).track);
+	afCloseFile(RWA(n).file);	
 }
 #endif
 
