@@ -188,7 +188,7 @@ static void glame_cleanup()
 	swapfile_close();
 }
 
-
+static void (*glame_main)();
 static void init_after_guile(int argc, char **argv)
 {
 #if !defined NDEBUG
@@ -212,17 +212,13 @@ static void init_after_guile(int argc, char **argv)
 	load_plugins_from_path("./plugins");       /* for .scm */
 	load_plugins_from_path(PKGSCRIPTSDIR);
 
-	((void (*)(void))argv[1])();
+	glame_main();
 }
 
-int glame_init(void (*main)(void))
+int glame_init(void (*main)(void), int argc, char **argv)
 {
-	char *argv[2];
-	argv[0] = NULL;
-	argv[1] = (char *)main;
-
-	gh_enter(0, argv, init_after_guile);
-
+	glame_main = main;
+	gh_enter(argc, argv, init_after_guile);
 	return 0;
 }
 

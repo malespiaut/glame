@@ -3,7 +3,7 @@
 
 /*
  * glmid.h
- * $Id: glmid.h,v 1.10 2001/05/28 15:04:19 richi Exp $
+ * $Id: glmid.h,v 1.11 2001/07/13 09:00:08 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -38,7 +38,7 @@
  * have to provide a main function that will be executed, if
  * everything went right - glame_init_with_guile does not
  * return until main exits. */
-int glame_init(void (*main)(void));
+int glame_init(void (*main)(void), int argc, char **argv);
 
 
 /* Loads the plugin(s) out of the specified file and registers
