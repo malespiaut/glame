@@ -226,9 +226,6 @@ launch:
 		global_bufs = g_list_append(global_bufs, gbuf);
 		add_gledit_buffer_to_clist(gbuf);
 			
-		filter_delete(readfile);
-		for(i=0; i<2; i++)
-			filter_delete(swapfile_out[i]);
 		filter_delete(net);
 	}
 	
