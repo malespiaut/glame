@@ -1,3 +1,16 @@
+# Check for pthreads. Stolen from GNOME (see below).
+AC_DEFUN(AC_CHECK_PTHREADS,[
+	PTHREAD_LIB=""
+	AC_CHECK_LIB(pthread, pthread_create, PTHREAD_LIB="-lpthread",
+		[AC_CHECK_LIB(pthreads, pthread_create, PTHREAD_LIB="-lpthreads",
+		    [AC_CHECK_LIB(c_r, pthread_create, PTHREAD_LIB="-lc_r",
+			[AC_CHECK_FUNC(pthread_create)]
+		    )]
+		)]
+	)
+	AC_SUBST(PTHREAD_LIB)
+])
+
 # Check for madvise function (present in glibc2.?) and
 # on some other unixes.
 # Richard Guenther 00-4-10

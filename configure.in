@@ -64,7 +64,7 @@ dnl Checks for libraries.
 dnl use GLAME_LIBS & GLAME_CFLAGS
 dnl and GLAME_DLIBS & GLAME_DCFLAGS
 dnl
-
+AC_CHECK_PTHREADS
 
 dnl
 dnl GUI stuff - require GNOME for anything
