@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.16 2000/02/10 12:42:20 richi Exp $
+ * $Id: filter_network.c,v 1.17 2000/02/11 14:42:15 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -22,8 +22,6 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,22 +31,7 @@
 #include <errno.h>
 #include "filter.h"
 #include "util.h"
-
-
-#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
-/* union semun is defined by including <sys/sem.h> */
-#else
-#if !defined(_NO_XOPEN4)
-/* according to X/OPEN we have to define it ourselves */
-union semun {
-	int val;                    /* value for SETVAL */
-	struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
-	unsigned short int *array;  /* array for GETALL, SETALL */
-	struct seminfo *__buf;      /* buffer for IPC_INFO */
-};
-#endif
-#endif
-
+#include "sem.h"
 
 #define STATE_UNDEFINED 0
 #define STATE_PREPROCESSED 1
@@ -171,10 +154,7 @@ static void *launcher(void *node)
 	atomic_inc(&n->launch_context->result);
 
 	/* increment filter ready semaphore */
-	sop.sem_num = 0;
-	sop.sem_op = 1;
-	sop.sem_flg = 0;
-	semop(n->launch_context->semid, &sop, 1);
+	sem_op(n->launch_context->semid, 0, 1);
 
 	pthread_exit((void *)-1);
 
@@ -279,7 +259,6 @@ static int wait_network(filter_node_t *n)
 int filternetwork_launch(filter_network_t *net)
 {
 	sigset_t sigs;
-	struct sembuf sop;
 
 	/* block EPIPE */
 	sigemptyset(&sigs);
@@ -293,7 +272,7 @@ int filternetwork_launch(filter_network_t *net)
 	net->node.launch_context->state = STATE_LAUNCHED;
 	net->node.launch_context->nr_threads = 0;
 	atomic_set(&net->node.launch_context->result, 0);
-	semctl(net->node.launch_context->semid, 0, SETVAL, (union semun)0);
+	sem_zero(net->node.launch_context->semid, 0);
 
 	if (net->node.ops->preprocess(&net->node) == -1)
 		goto out;
@@ -304,12 +283,9 @@ int filternetwork_launch(filter_network_t *net)
 	if (net->node.ops->launch(&net->node) == -1)
 		goto out;
 
-	sop.sem_num = 0;
-	sop.sem_op = -net->node.launch_context->nr_threads;
-	sop.sem_flg = 0;
-	while (semop(net->node.launch_context->semid, &sop, 1) == -1
-	       && errno == EINTR)
-		;
+	sem_op(net->node.launch_context->semid, 0, 
+			-net->node.launch_context->nr_threads);
+
 	if (ATOMIC_VAL(net->node.launch_context->result) != 0)
 		return -1;
 
@@ -429,7 +405,7 @@ void filternetwork_delete(filter_network_t *net)
 
 	if (net->node.launch_context) {
 		ATOMIC_RELEASE(net->node.launch_context->result);
-		semctl(net->node.launch_context->semid, 0, IPC_RMID, (union semun)0);
+		sem_remove(net->node.launch_context->semid);
 	}
 
 	free(net);

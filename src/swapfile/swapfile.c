@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.10 2000/02/06 02:10:45 nold Exp $
+ * $Id: swapfile.c,v 1.11 2000/02/11 14:42:15 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,8 +25,6 @@
 #endif
 
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 #include <sys/mman.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -38,22 +36,7 @@
 #include <errno.h>
 #include "swapfile.h"
 #include "util.h"
-
-
-#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
-/* union semun is defined by including <sys/sem.h> */
-#else
-#if !defined(_NO_XOPEN4)
-/* according to X/OPEN we have to define it ourselves */
-union semun {
-	int val;                    /* value for SETVAL */
-	struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
-	unsigned short int *array;  /* array for GETALL, SETALL */
-	struct seminfo *__buf;      /* buffer for IPC_INFO */
-};
-#endif
-#endif
-
+#include "sem.h"
 
 /* TODO:
  *
@@ -131,23 +114,12 @@ static void _fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff);
  */
 static inline void _swap_lock()
 {
-	struct sembuf sop;
-
-	sop.sem_num = swap->semnum;
-	sop.sem_op = -1;
-	sop.sem_flg = 0;
-	while (semop(swap->semid, &sop, 1) == -1 && errno == EINTR)
-		;
+	sem_op(swap->semid, swap->semnum, -1);
 }
 
 static inline void _swap_unlock()
 {
-	struct sembuf sop;
-
-	sop.sem_num = swap->semnum;
-	sop.sem_op = 1;
-	sop.sem_flg = IPC_NOWAIT;
-	semop(swap->semid, &sop, 1);
+	sem_op(swap->semid, swap->semnum, 1);
 }
 
 
@@ -1356,8 +1328,8 @@ int swap_open(char *name, int flags)
 	if ((swap->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		goto _nosem;
 	swap->semnum = 0;
-	semctl(swap->semid, swap->semnum, SETVAL, (union semun)0);
-	if (semctl(swap->semid, swap->semnum, GETVAL, (union semun)0) == -1)
+	sem_zero(swap->semid, swap->semnum);
+	if (sem_get(swap->semid, swap->semnum) == -1)
 	        return -1;
 
 	if ((swap->fd = open(name, O_RDWR)) == -1)
@@ -1395,7 +1367,7 @@ _err:
 _nostat:
 	close(swap->fd);
 _nofd:
-	semctl(swap->semid, 0, IPC_RMID, (union semun)0);
+	sem_remove(swap->semid);
 _nosem:
 	free(swap);
 	swap = NULL;
@@ -1424,7 +1396,7 @@ void swap_close()
       	flock(swap->fd, LOCK_SH);
 	close(swap->fd);
 
-	semctl(swap->semid, 0, IPC_RMID, (union semun)0);
+	sem_remove(swap->semid);
 
 	/* aieee! FIXME! we should free the lists in mem?? (sure!) */
 	/* and we should unmap all mappings... FIXME! */

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.18 2000/02/10 17:08:14 richi Exp $
+ * $Id: filter.h,v 1.19 2000/02/11 14:42:14 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,8 +30,6 @@
 #endif
 
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -40,6 +38,7 @@
 #include "glame_hash.h"
 #include "list.h"
 #include "atomic.h"
+#include "sem.h"
 
 
 struct filter;
@@ -349,15 +348,7 @@ struct filter_network {
 
 #define FILTER_AFTER_INIT \
 do { \
-	struct sembuf sop; \
-	sop.sem_num = 0; \
-	sop.sem_op = 1; \
-	sop.sem_flg = 0; \
-	semop(n->launch_context->semid, &sop, 1); \
-	sop.sem_op = 0; \
-	while (semop(n->launch_context->semid, &sop, 1) == -1 \
-               && errno == EINTR) \
-                ; \
+	sem_op(n->launch_context->semid, 0, 1); \
 	if (ATOMIC_VAL(n->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
 } while (0);
