@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.10 2000/03/30 12:00:10 mag Exp $
+ * $Id: maggy.c,v 1.11 2000/03/30 13:48:34 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -49,7 +49,7 @@ PLUGIN_SET(maggy,"iir")
 
 /* This type should cover every possible IIR filter */
 
-#define gliirt	float
+#define gliirt double
 
 typedef struct glame_iir glame_iir_t;
 struct glame_iir {
@@ -103,10 +103,10 @@ void free_glame_iir(glame_iir_t *gt){
  * online version http://www.dspguide.com
  */
 
-#define chebtype float
+#define chebtype gliirt
 
 int chebyshev_stage(glame_iir_t *gt, int n){
-	chebtype h,rp,ip,es,kx,vx,t,w,m,d,k,sum;
+	chebtype h,rp,ip,es,kx,vx,t,w,m,d,k,gain;
 	chebtype *x,*y,*a,*b;
 	int res=-1,i;
 	
@@ -127,9 +127,9 @@ int chebyshev_stage(glame_iir_t *gt, int n){
 	h=M_PI/((chebtype)gt->np*2.0)+n*M_PI/(chebtype)gt->np;
 	rp=-cos(h);
 	ip=sin(h);
-	/*
+	
 	DPRINTF("rp=%f ip=%f np=%d h=%f ppr=%f\n",rp,ip,gt->np,h,gt->ppr);
-	*/
+	
 	if(gt->ppr>0.0) {
 		h=100.0/(100.0-gt->ppr);
 		es=sqrt(h*h-1.0);
@@ -141,9 +141,9 @@ int chebyshev_stage(glame_iir_t *gt, int n){
 		rp*=(h-1.0/h)*0.5/kx;
 		ip*=(h+1.0/h)*0.5/kx;
 	}
-/*
+
 	DPRINTF("rp=%f ip=%f es=%f kx=%f vx=%f h=%f\n",rp,ip,es,kx,vx,h);
-*/
+
 	t=2.0*tan(0.5);
 	w=2.0*M_PI*gt->fc;
 	m=rp*rp+ip*ip;
@@ -153,11 +153,11 @@ int chebyshev_stage(glame_iir_t *gt, int n){
 	x[2]=x[0];
 	y[0]=(8.0-2.0*m*t*t)/d;
 	y[1]=(-4.0-4.0*rp*t-m*t*t)/d;
-/*
+
 	DPRINTF("\nt=%f\nw=%f\nm=%f\nd=%f\n",t,w,m,d);
 	DPRINTF("\nx0=%f\nx1=%f\nx2=%f\ny1=%f\ny2=%f\n",x[0],x[1],x[2],y[0],y[1]);
-*/
-	if (gt->mode)
+
+	if (gt->mode==GLAME_IIR_HIGHPASS)
 		k=-cos(w*0.5+0.5)/cos(w*0.5-0.5);
 	else
 		k=sin(0.5-w*0.5)/sin(0.5+w*0.5);
@@ -167,21 +167,22 @@ int chebyshev_stage(glame_iir_t *gt, int n){
 	a[2]=(x[0]*k*k-x[1]*k+x[2])/d;
 	b[0]=(2.0*k+y[0]+y[0]*k*k-2.0*y[1]*k)/d;
 	b[1]=(-k*k-y[0]*k+y[1])/d;
-	if(gt->mode){
+	if(gt->mode==GLAME_IIR_HIGHPASS){
 		a[1]=-a[1];
-		b[1]=-b[1];
+		b[0]=-b[0];
 	}
-	/* Adjust gain for single stages
-	 * FIXME Don't know if that works
-	 */
-	/*
-	sum=a[0]+abs(a[1])+a[2];
-	DPRINTF("a0=%f a1=%f a2=%f\n",a[0],a[1],a[2]);
-	for(i=0;i<3;i++) a[i]/=sum;
-*/
+	
+	DPRINTF("n=%d a0=%e a1=%e a2=%e b1=%e b2=%e\n",n,a[0],a[1],a[2],b[0],b[1]);
 /*
-	DPRINTF("n=%d a0=%f a1=%f a2=%f b1=%f b2=%f sum=%f\n",n,a[0],a[1],a[2],b[0],b[1],sum);
-*/	
+	if(gt->mode==GLAME_IIR_HIGHPASS)
+		gain=(a[0]-a[1]+a[2])/(b[0]-b[1]);
+	else
+		gain=(a[0]+a[1]+a[2])/(-b[0]-b[1]);
+	for(i=0;i<3;i++) a[i]/=gain;
+*/
+
+	DPRINTF("n=%d a0=%e a1=%e a2=%e b1=%e b2=%e gain=%e\n",n,a[0],a[1],a[2],b[0],b[1],gain);
+	
 	gt->coeff[n][0]=(gliirt)(a[0]);
 	gt->coeff[n][1]=(gliirt)(a[1]);
 	gt->coeff[n][2]=(gliirt)(a[2]);
@@ -256,7 +257,7 @@ static int iir_f(filter_node_t *n)
 	 * Then you can register all kind of filters that are using iir_f as kernel
 	 */
 	
-	if (!(gt=chebyshev(4,GLAME_IIR_LOWPASS,0.2,0.5)))
+	if (!(gt=chebyshev(2,GLAME_IIR_LOWPASS,0.1,0.5)))
 		FILTER_ERROR_RETURN("chebyshev failed");
 	
 	/* here follow generic code */
@@ -301,18 +302,18 @@ static int iir_f(filter_node_t *n)
 				for(j=0;j<gt->na;j++){
 					z=iirf[i].ipos-j;
 					if (z<0)
-						z=gt->na-z;
+						z=gt->na+z;
 					else if (z>gt->na)
-						z=z-gt->na;
+						z=z-gt->na-1;
 					iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].iring[z];
 				}
 				/* y[n]=y[n]+b1*y[n-1]+b2*y[n-2]+... */
 				for(j=gt->na;j<nt;j++){
 					z=iirf[i].opos-j-1;
 					if (z<0)
-						z=gt->nb-z;
-					else if (z>gt->nb)
-						z=z-gt->nb;
+						z=nb+z;
+					else if (z>nb)
+						z=z-nb-1;
 				  	iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].oring[z];
 				}
 				/* Feed output of last stage to next stage */
@@ -320,7 +321,7 @@ static int iir_f(filter_node_t *n)
 					iirf[i+1].iring[iirf[i+1].ipos]=iirf[i].oring[iirf[i].opos];
 			}
 			/* At least I process it in place :) */
-			sbuf_buf(inb)[pos++]=iirf[gt->nstages-1].oring[iirf[gt->nstages-1].opos];
+			sbuf_buf(inb)[pos++]=(SAMPLE)iirf[gt->nstages-1].oring[iirf[gt->nstages-1].opos];
 			/* Adjust ringbuffers */
 			for(i=0;i<gt->nstages;i++){
 				iirf[i].ipos++;
@@ -338,11 +339,14 @@ entry:
 		pos=0;
 	}
 	while(inb);
-	
+
+	sbuf_queue(out,inb);
+
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	for(i=0;i<gt->nstages;i++){
+		DPRINTF("Free stage %d\n",i);
 		free(iirf[i].iring);
 		free(iirf[i].oring);
 	}

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.14 2000/03/27 09:20:10 richi Exp $
+; $Id: glame.scm,v 1.15 2000/03/30 13:48:34 mag Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -220,7 +220,23 @@
     (nodes-connect  `(,mix ,stat ,drms))
     (net-run net))))
 
+;
+; test iir
+;
 
+(define testiir
+  (lambda (fname)
+    (let* ((net (net-new))
+           (rf (net-add-node net read-file))
+	   (mix (net-add-node net "mix2"))
+	   (iir (net-add-node net "iir"))
+	   (stat (net-add-node net "statistic"))
+	   (drms (net-add-node net "debugrms")))
+    (node-set-param rf "filename" fname)
+    (while-not-false 
+      (lambda () (filternetwork_add_connection rf "out" mix "in")))
+    (nodes-connect  `(,mix ,iir ,stat ,drms))
+    (net-run net))))
 ;
 ; play a soundfile - automagically finds the number of channels
 ;
