@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.10 2000/03/20 10:04:01 richi Exp $
+ * $Id: filter_methods.c,v 1.11 2000/03/20 10:13:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -51,11 +51,15 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 	 * we copy from the first input port if any. 
 	 */
 	if ((in = filternode_first_input(n))) {
+#if 0
 		/* default_connect_out does only work if
 		 * - inputs of the filter are the same type
 		 */
-		if (p->source_port->type != in->type)
-			PANIC("you need a connect_out method!");
+		if (p->type != in->type) {
+			DPRINTF("in %s:\n", n->filter->name);
+			DERROR("you need a connect_out method!");
+		}
+#endif
 
 		p->type = in->type;
 		p->u = in->u;
