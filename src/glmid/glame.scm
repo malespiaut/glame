@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.32 2000/08/07 06:25:47 mag Exp $
+; $Id: glame.scm,v 1.33 2000/09/19 14:37:24 mainzelm Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -30,26 +30,37 @@
 
 (define (display-command command)
   (let ((command-args-text (assq command *help-text*)))
-    (write (cons command (cadr command-args-text)))
-    (display " -> ")
-    (display (cddr command-args-text))
-    (newline)
-    (newline)))
+    (if command-args-text
+	(begin 
+	  (write (cons command (cadr command-args-text)))
+	  (display " -> ")
+	  (display (cddr command-args-text))
+	  (newline)
+	  (newline))
+	(begin (display "unknown command or no help available")
+	       (newline)))))
   
 (define (commands-w/help)
-  (map (lambda (command-args-text) (car command-args-text)) *help-text*))
+  (map car *help-text*))
 
 ; GLAME 0.2.0 compatibility
 (define (plugin_description p) (plugin_query p "desc"))
 
-(define help
-  (lambda ()
-    (display "online help not complete yet ")
-    (newline)
-    (display "Please refer to the GLAME manual or the info pages.")
-    (newline)
-    (for-each display-command (commands-w/help))))
+(define (help-helper maybe-command)
+  (let ((commands-w/help (commands-w/help)))
+    (if (null? maybe-command)
+	(begin
+	  (display "online help not complete yet ")
+	  (newline)
+	  (display "Please refer to the GLAME manual or the info pages.")
+	  (newline)
+	  (for-each display-command commands-w/help))
+	(display-command (car maybe-command)))))
 
+(define-macro (help . maybe-command)
+  `(help-helper ',maybe-command))
+
+p(add-help 'help '(command) "help") 
 
 (add-help 'quit '() "exit GLAME")
 
