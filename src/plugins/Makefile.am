@@ -3,15 +3,15 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c \
-	rms.c fft.c \
+	rms.c fft_plugins.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c flanger.c\
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_irix.c \
-	echo2.scm fft_resample.scm fft_bandpass.scm read_mp3.scm
+	echo2.scm resample.scm bassboost.scm read_mp3.scm
 
 # macro filters
-pkgdata_DATA = echo2.scm fft_resample.scm fft_bandpass.scm read_mp3.scm
+pkgdata_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
 
 # builtin filters
 lib_LTLIBRARIES = libglamebuiltins.la
@@ -20,7 +20,7 @@ lib_LTLIBRARIES = libglamebuiltins.la
 # for each optional plugin we can have build dependencies
 
 if HAVE_FFTW
-fft_plugin = fft.la
+fft_plugins_plugin = fft_plugins.la
 endif
 if HAVE_OSS
 audio_io_oss = audio_io_oss.la
@@ -45,7 +45,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la time.la flanger.la \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
-	$(fft_plugin)
+	$(fft_plugins_plugin)
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module
@@ -75,9 +75,9 @@ flanger_la_SOURCES = flanger.c
 flanger_la_LDFLAGS = -module
 
 if HAVE_FFTW
-fft_la_SOURCES = fft.c
+fft_plugins_la_SOURCES = fft_plugins.c
 endif
-fft_la_LDFLAGS = -module
+fft_plugins_la_LDFLAGS = -module
 
 if HAVE_OSS
 audio_io_oss_la_SOURCES = audio_io_oss.c audio_io.h

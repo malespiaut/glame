@@ -44,7 +44,7 @@ extern long filter_smob_tag;
 
 /* Builtin plugins. */
 PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform "
-	   "rms basic_midi midi_io midi_debug arithmetic basicfft swapfile_io")
+	   "rms arithmetic swapfile_io")
 
 
 int glame_load_plugin(const char *fname)
