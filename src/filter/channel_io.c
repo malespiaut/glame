@@ -1,6 +1,6 @@
 /*
  * channel_io.c
- * $Id: channel_io.c,v 1.4 2000/02/07 10:32:05 richi Exp $
+ * $Id: channel_io.c,v 1.5 2000/02/07 16:26:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -182,6 +182,24 @@ static int channel_in_fixup_param(filter_node_t *n, const char *param)
 
 	return 0;
 }
+static int channel_in_connect_out(filter_node_t *n, const char *port,
+				 filter_pipe_t *p)
+{
+	filter_param_t *chan, *group;
+	channel_t *c;
+
+	if (!(chan = hash_find_param("channel", n))
+	    || !(group = hash_find_param("group", n)))
+		return 0;
+	if (!(c = get_channel(chan->val.string, group->val.string)))
+		return 0;
+
+	/* fix the output pipe stream information */
+	p->type = FILTER_PIPETYPE_SAMPLE;
+	p->u.sample.rate = channel_freq(c);
+
+	return 0;
+}
 
 
 static int channel_out_f(filter_node_t *n)
@@ -238,6 +256,7 @@ int channel_io_register()
 	if (!(f = filter_alloc("channel_in", "stream a channel", channel_in_f)))
 		return -1;
 	f->fixup_param = channel_in_fixup_param;
+	f->connect_out = channel_in_connect_out;
 	if (!filter_add_param(f, "channel", "input channel",
 			      FILTER_PARAMTYPE_STRING)
 	    || !filter_add_param(f, "group", "input group",
