@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.9 2000/02/22 08:04:36 mag Exp $
+ * $Id: file_io.c,v 1.10 2000/02/22 13:21:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -47,15 +47,15 @@
 
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
-int audiofile_prepare_read(filter_node_t *n, const char *filename);
-int audiofile_connect_out(filter_node_t *n, filter_pipe_t *p);
-int audiofile_connect_in(filter_node_t *n, filter_pipe_t *p);
-int audiofile_read_f(filter_node_t *n);
-void audiofile_cleanup(filter_node_t *n);
+int af_read_prepare(filter_node_t *n, const char *filename);
+int af_read_connect(filter_node_t *n, filter_pipe_t *p);
+int af_read_f(filter_node_t *n);
+/* int af_write_prepare(filter_node_t *n, const char *filename);
+int af_write_connect(filter_node_t *n, filter_pipe_t *p);
+int af_write_f(filter_node_t *n); */
+void af_rw_cleanup(filter_node_t *n);
 #endif
 
-#define FILE_IO_MODE_READ	1
-#define FILE_IO_MODE_WRITE	2
 
 typedef struct {
 	struct list_head list;
@@ -63,7 +63,6 @@ typedef struct {
 	int (*connect)(filter_node_t *, filter_pipe_t *);
 	int (*f)(filter_node_t *);
 	void (*cleanup)(filter_node_t *);
-	int mode;
 } rw_t;
 
 typedef struct {
@@ -76,8 +75,8 @@ typedef struct {
 typedef struct {
 	rw_t *rw;
 	int initted;
-	int mode;
 	union {
+	        /* put your shared state stuff here */
 		struct {
 			int dummy;
 		} dummy;
@@ -85,11 +84,11 @@ typedef struct {
 		struct {
 			AFfilehandle    file;
 			AFframecount    frameCount;
-			AFfilesetup     fsetup;
+		        AFfilesetup     fsetup;
 			int             sampleFormat,sampleWidth;
 			int             channelCount,frameSize;
 			int		sampleRate;
-			int		format;
+		        int             format;
 			track_t         *track;
 			short		*buffer;
 			char		*cbuffer;
@@ -99,57 +98,70 @@ typedef struct {
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->private))
 #define RWA(node) (RWPRIV(node)->u.audiofile)
- 
-/* the readers list */
-static struct list_head io_handlers;
 
-static int add_io_handler(int (*prepare)(filter_node_t *, const char *),
-			 int (*connect)(filter_node_t *, filter_pipe_t *),
-			 int (*f)(filter_node_t *),
-			 void (*cleanup)(filter_node_t *),
-			 int mode)
+/* the readers & the writers list */
+static struct list_head readers;
+static struct list_head writers;
+
+
+static rw_t *add_rw(int (*prepare)(filter_node_t *, const char *),
+		    int (*connect)(filter_node_t *, filter_pipe_t *),
+		    int (*f)(filter_node_t *),
+		    void (*cleanup)(filter_node_t *))
 {
 	rw_t *rw;
 
 	if (!prepare || !f)
-		return -1;
+		return NULL;
 	if (!(rw = ALLOC(rw_t)))
-		return -1;
+		return NULL;
 	INIT_LIST_HEAD(&rw->list);
 	rw->prepare = prepare;
 	rw->connect = connect;
 	rw->f = f;
 	rw->cleanup = cleanup;
-	rw->mode = mode;
-	list_add(&rw->list, &io_handlers);
+
+	return rw;
+}
+static int add_reader(int (*prepare)(filter_node_t *, const char *),
+		      int (*connect)(filter_node_t *, filter_pipe_t *),
+		      int (*f)(filter_node_t *),
+		      void (*cleanup)(filter_node_t *))
+{
+	rw_t *rw;
+
+	if (!(rw = add_rw(prepare, connect, f, cleanup)))
+	        return -1;
+	list_add(&rw->list, &readers);
+
+	return 0;
+}
+static int add_writer(int (*prepare)(filter_node_t *, const char *),
+		      int (*connect)(filter_node_t *, filter_pipe_t *),
+		      int (*f)(filter_node_t *),
+		      void (*cleanup)(filter_node_t *))
+{
+	rw_t *rw;
+
+	if (!(rw = add_rw(prepare, connect, f, cleanup)))
+	        return -1;
+	list_add(&rw->list, &writers);
 
 	return 0;
 }
 
 
-static int file_read_init(filter_node_t *n)
+/* generic read&write methods */
+static int rw_file_init(filter_node_t *n)
 {
 	rw_private_t *p;
 
 	if (!(p = ALLOC(rw_private_t)))
 		return -1;
 	n->private = p;
-	p->mode = FILE_IO_MODE_READ;
 	return 0;
 }
-
-static int file_write_init(filter_node_t *n)
-{
-	rw_private_t *p;
-
-	if (!(p = ALLOC(rw_private_t)))
-		return -1;
-	n->private = p;
-	p->mode = FILE_IO_MODE_WRITE;
-	return 0;
-}
-	
-static void file_io_cleanup(filter_node_t *n)
+static void rw_file_cleanup(filter_node_t *n)
 {
 	if (RWPRIV(n)->rw
 	    && RWPRIV(n)->rw->cleanup)
@@ -157,23 +169,18 @@ static void file_io_cleanup(filter_node_t *n)
 	free(RWPRIV(n));
 }
 
-static int file_io_f(filter_node_t *n)
+/* read methods */
+static int read_file_f(filter_node_t *n)
 {
 	/* require set filename (a selected reader) and
 	 * at least one connected output. */
 	if (!RWPRIV(n)->initted)
 		return -1;
-	if (RWPRIV(n)->mode==FILE_IO_MODE_READ){
-		if (!filternode_get_output(n, PORTNAME_OUT))
-			return -1;
-	} else {
-		if (!filternode_get_input(n,PORTNAME_IN))
-			return -1;
-	}
+	if (!filternode_get_output(n, PORTNAME_OUT))
+		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-
-static int file_io_connect_out(filter_node_t *n, const char *port,
+static int read_file_connect_out(filter_node_t *n, const char *port,
 				 filter_pipe_t *p)
 {
 	/* no reader -> no filename -> some "defaults" */
@@ -186,14 +193,7 @@ static int file_io_connect_out(filter_node_t *n, const char *port,
 	 * connection, but not the file here. */
 	return RWPRIV(n)->rw->connect(n, p);
 }
-
-static int file_io_connect_in(filter_node_t *n, const char *port,
-				filter_pipe_t *p)
-{
-	return RWPRIV(n)->rw->connect(n, p);
-}
-
-static int file_io_fixup_param(filter_node_t *n, filter_pipe_t *p,
+static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 				 const char *name, filter_param_t *param)
 {
 	rw_t *r;
@@ -206,7 +206,7 @@ static int file_io_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	
         /* filename change! */
 	} else {
-		/* check actual reader/writer */
+		/* check actual reader */
 		if (RWPRIV(n)->rw) {
 			/* cleanup previous stuff */
 			if (RWPRIV(n)->initted
@@ -224,15 +224,12 @@ static int file_io_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		RWPRIV(n)->rw = NULL;
 		RWPRIV(n)->initted = 0;
 
-		/* search for applicable reader or writer*/
-		list_foreach(&io_handlers, rw_t, list, r) {
-			if ( RWPRIV(n)->mode == r->mode )
-				{
-				if (r->prepare(n, filterparam_val_string(param)) != -1) {
-					RWPRIV(n)->rw = r;
-					RWPRIV(n)->initted = 1;
-					goto reconnect;
-				}
+		/* search for applicable reader */
+		list_foreach(&readers, rw_t, list, r) {
+			if (r->prepare(n, filterparam_val_string(param)) != -1) {
+				RWPRIV(n)->rw = r;
+				RWPRIV(n)->initted = 1;
+				goto reconnect;
 			}
 		}
 
@@ -242,31 +239,104 @@ static int file_io_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
  reconnect:
 	/* re-connect all pipes */
-	if(RWPRIV(n)->mode==FILE_IO_MODE_READ){
-		filternode_foreach_output(n, p)
-			if (RWPRIV(n)->rw->connect(n, p) == -1){
-				filternetwork_break_connection(p);
-				goto reconnect;
-			}
-	} else {
-		filternode_foreach_input(n,p)
-			if (RWPRIV(n)->rw->connect(n, p) == -1){
-				filternetwork_break_connection(p);
-				goto reconnect;
-			}
-	}
+	filternode_foreach_output(n, p)
+		if (RWPRIV(n)->rw->connect(n, p) == -1){
+			filternetwork_break_connection(p);
+			goto reconnect;
+		}
+
 	return 0;
 }
+
+/* write methods */
+static int write_file_f(filter_node_t *n)
+{
+	/* require set filename (a selected reader) and
+	 * at least one connected output. */
+	if (!RWPRIV(n)->initted)
+		return -1;
+	if (!filternode_get_input(n, PORTNAME_IN))
+		return -1;
+	return RWPRIV(n)->rw->f(n);
+}
+static int write_file_connect_in(filter_node_t *n, const char *port,
+				 filter_pipe_t *p)
+{
+	/* no writer -> no filename -> accept connection (for now) */
+	if (!RWPRIV(n)->rw)
+		return 0;
+
+	/* pass request to readers prepare, it can reject the
+	 * connection, but not the file here. */
+	return RWPRIV(n)->rw->connect(n, p);
+}
+static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				  const char *name, filter_param_t *param)
+{
+	rw_t *r;
+
+	/* only pipe param change (position)? */
+	if (p && RWPRIV(n)->rw) {
+		if (RWPRIV(n)->rw->connect(n, p) == -1)
+			filternetwork_break_connection(p);
+		return 0;
+	
+        /* filename change! */
+	} else {
+		/* check actual reader */
+		if (RWPRIV(n)->rw) {
+			/* cleanup previous stuff */
+			if (RWPRIV(n)->initted
+			    && RWPRIV(n)->rw->cleanup)
+				RWPRIV(n)->rw->cleanup(n);
+			RWPRIV(n)->initted = 0;
+
+			/* try same rw again */
+			if (RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
+				RWPRIV(n)->initted = 1;
+				goto reconnect;
+			}
+		}
+
+		RWPRIV(n)->rw = NULL;
+		RWPRIV(n)->initted = 0;
+
+		/* search for applicable reader */
+		list_foreach(&writers, rw_t, list, r) {
+			if (r->prepare(n, filterparam_val_string(param)) != -1) {
+				RWPRIV(n)->rw = r;
+				RWPRIV(n)->initted = 1;
+				goto reconnect;
+			}
+		}
+
+		/* no reader found */
+		return -1;
+	}
+
+ reconnect:
+	/* re-connect all pipes */
+	filternode_foreach_input(n, p)
+		if (RWPRIV(n)->rw->connect(n, p) == -1){
+			filternetwork_break_connection(p);
+			goto reconnect;
+		}
+
+	return 0;
+}
+
+
 
 int file_io_register()
 {
 	filter_t *f;
 	filter_portdesc_t *p;
 
-	INIT_LIST_HEAD(&io_handlers);
+	INIT_LIST_HEAD(&readers);
+	INIT_LIST_HEAD(&writers);
 
 	if (!(f = filter_alloc("read_file", "Generic file read filter",
-			       file_io_f))
+			       read_file_f))
 	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 	    || !filterport_add_param(p, "position", "position of the stream",
@@ -274,32 +344,34 @@ int file_io_register()
 	    || !filter_add_param(f, "filename", "filename",
 				 FILTER_PARAMTYPE_STRING))
 		return -1;
-	f->init = file_read_init;
-	f->cleanup = file_io_cleanup;
-	f->connect_out = file_io_connect_out;
-	f->fixup_param = file_io_fixup_param;
+	f->init = rw_file_init;
+	f->cleanup = rw_file_cleanup;
+	f->connect_out = read_file_connect_out;
+	f->fixup_param = read_file_fixup_param;
 	if (filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("write_file", "Generic file write filter",
-				file_io_f))
-	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
-			    		FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
-	    || !filter_add_param(f, "filename", "filename",FILTER_PARAMTYPE_STRING))
+	if (!(f = filter_alloc("read_file", "Generic file write filter",
+			       write_file_f))
+	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
+				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
+	    || !filterport_add_param(p, "position", "position of the stream",
+				     FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_param(f, "filename", "filename",
+				 FILTER_PARAMTYPE_STRING))
 		return -1;
-	f->init = file_write_init;
-	f->cleanup = file_io_cleanup;
-	f->connect_in = file_io_connect_in;
-	f->fixup_param = file_io_fixup_param;
+	f->init = rw_file_init;
+	f->cleanup = rw_file_cleanup;
+	f->connect_in = write_file_connect_in;
+	f->fixup_param = write_file_fixup_param;
 	if (filter_add(f) == -1)
 		return -1;
-					
+
 #ifdef HAVE_AUDIOFILE
-	add_io_handler(audiofile_prepare_read, audiofile_connect_out,
-			audiofile_read_f, audiofile_cleanup,FILE_IO_MODE_READ);
-/*	add_io_handler(audiofile_prepare_write, audiofile_connect_in,
-			audiofile_write_f, audiofile_cleanup,FILE_IO_MODE_WRITE);
-*/
+	add_reader(af_read_prepare, af_read_connect,
+		   af_read_f, af_rw_cleanup);
+	/* add_writer(af_write_prepare, af_write_connect,
+		   af_write_f, af_rw_cleanup); */
 #endif
 
 	return 0;
@@ -309,7 +381,7 @@ int file_io_register()
 /* The actual readers and writers.
  */
 #ifdef HAVE_AUDIOFILE
-int audiofile_prepare_read(filter_node_t *n, const char *filename)
+int af_read_prepare(filter_node_t *n, const char *filename)
 {
 	DPRINTF("Read %s\n",filename);
 	if ((RWA(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
@@ -337,8 +409,8 @@ int audiofile_prepare_read(filter_node_t *n, const char *filename)
 	return 0;
 }
 
-/*
-int audiofile_prepare_write(filter_node_t *n, const char *filename)
+#if 0
+int af_write_prepare(filter_node_t *n, const char *filename)
 {
 	DPRINTF("Write %s\n",filename);
 	fsetup=afNewFileSetup();
@@ -351,8 +423,40 @@ int audiofile_prepare_write(filter_node_t *n, const char *filename)
 		goto _bailout;
 	}
 }
-*/
-int audiofile_connect_in(filter_node_t *n, filter_pipe_t *p)
+#endif
+
+int af_read_connect(filter_node_t *n, filter_pipe_t *p)
+{
+	int i;
+	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
+	if (i>=RWA(n).channelCount){
+		/* Check if track is already mapped ?!
+		 * Would be strange, but ... FIXME
+		 * - nope, not strange, connect gets called for each
+		 *   already connected pipes at parameter change, too!
+		 *   (as for just pipe parameter change)
+		 * - you should fixup, i.e. re-route perhaps, reject, whatever
+		 *   in this case
+                 */
+		for(i=0;i<RWA(n).channelCount;i++)
+			if ((RWA(n).track[i].mapped) && RWA(n).track[i].p==p)
+				return 0; /* FIXME */
+		
+		/* Otherwise error */
+		return -1;
+	} else {
+		/* Moah! what is this? does libaudiofile not provide
+		 * some "direct" information on position??
+		 */
+		filterpipe_settype_sample(p,RWA(n).sampleRate,
+			(M_PI/(RWA(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
+		RWA(n).track[i].p=p;
+		RWA(n).track[i].mapped=1;
+	}	
+	
+	return 0;	
+}
+int af_write_connect(filter_node_t *n, filter_pipe_t *p)
 {
 	track_t *track;
 	int i;
@@ -385,39 +489,9 @@ int audiofile_connect_in(filter_node_t *n, filter_pipe_t *p)
 	}
 	return 0;
 }
-int audiofile_connect_out(filter_node_t *n, filter_pipe_t *p)
-{
-	int i;
-	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
-	if (i>=RWA(n).channelCount){
-		/* Check if track is already mapped ?!
-		 * Would be strange, but ... FIXME
-		 * - nope, not strange, connect gets called for each
-		 *   already connected pipes at parameter change, too!
-		 *   (as for just pipe parameter change)
-		 * - you should fixup, i.e. re-route perhaps, reject, whatever
-		 *   in this case
-                 */
-		for(i=0;i<RWA(n).channelCount;i++)
-			if ((RWA(n).track[i].mapped) && RWA(n).track[i].p==p)
-				return 0; /* FIXME */
-		
-		/* Otherwise error */
-		return -1;
-	} else {
-		/* Moah! what is this? does libaudiofile not provide
-		 * some "direct" information on position??
-		 */
-		filterpipe_settype_sample(p,RWA(n).sampleRate,
-			(M_PI/(RWA(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
-		RWA(n).track[i].p=p;
-		RWA(n).track[i].mapped=1;
-	}	
-	
-	return 0;	
-}
 
-int audiofile_read_f(filter_node_t *n)
+
+int af_read_f(filter_node_t *n)
 {
 	int frames,i,j;
 	filter_pipe_t *p_out;
@@ -460,7 +534,7 @@ int audiofile_read_f(filter_node_t *n)
 	return 0;
 }
 
-void audiofile_cleanup(filter_node_t *n)
+void af_rw_cleanup(filter_node_t *n)
 {
 	if (!RWPRIV(n)->initted)
 		return;
