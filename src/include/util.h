@@ -27,7 +27,11 @@
 #include <stdio.h>
 
 
-#define PANIC(msg) do { fprintf(stderr, msg "\n"); perror("errno"); *((int *)0)=0; } while (0)
+#ifndef NDEBUG
+#define PANIC(msg) do { fprintf(stderr, "\nPANIC in file " __FILE__ ", function " __PRETTY_FUNCTION__ ":\n" msg "\n"); perror("errno says"); *((int *)0)=0; } while (0)
+#else
+#define PANIC(msg)
+#endif
 
 #ifndef MIN
 #define MIN(a, b) ((a)<(b)?(a):(b))

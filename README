@@ -1,20 +1,29 @@
-This is GLAME - GNU Linux Audio Mechanics
+This is GLAME - GNU/Linux Audio Mechanics.
 
 This will be the first usable wav editor for linux.
 It will be actually a lot more than a wav editor! [richi]
 
-Authors XWolf, Maggy and richi...
+Authors in alphabetical order
+	Belbo, Maggy, richi and XWolf
+with their real names
+	Daniel Kobras,
+	Alexander Ehlert,
+	Richard Günther,
+	Johannes Hirche.
 
-Tuebingen 25.10.99
+CVS, mailinglist and homepage are now hosted by sourceforge. Have a look at
+http://glame.sourceforge.net/
+
+Tuebingen 29.01.2000
 
 
 Current Status (brief ChangeLog):
 =================================
 Version ??? to 0.0001:
 - a lot of brainwork done
-- first class definitions soon to approach [xwolf]
+- first class definitions soon to approach [XWolf]
 - swapfile is there [richi]
-- majordomo is there [belbo/xwolf]
+- majordomo is there [Belbo/XWolf]
 
 Version 0.002 (*applause!*):
 - filter-network code and basic filters are there [richi]
@@ -24,7 +33,29 @@ Version 0.004:
 - more directories :)
 - rw handler framework
 
+Version 0.011:
+- all important parts of the swapfile API are frozen now  [richi]
+- a regression suite for the swapfile subsystem is there,
+  swapfile even passes all tests!  [richi]
+- documentation for the swapfile API is there  [richi]
+- the filter API has changed a lot and probably will even
+  more...  [richi]
+- we have more filters  [richi, Maggy]
+- rw handler framework is obsolete and not yet replaced
+
 
 Features:
 =========
 
+Wanted features? yes...
+Implemented features? no...
+
+There is no frontend yet, but the backends support
+- swapfile: * unlimited undo/redo
+- filter:   * threaded, real-time audio-processing with connected
+              filter-networks
+
+
+Thats all folks!
+
+	Yours, GLAME-Team.

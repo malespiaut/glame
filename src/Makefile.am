@@ -7,7 +7,7 @@ bin_PROGRAMS = glame
 
 glame_SOURCES = glame.c
 glame_LDADD = channel/libchannel.la swapfile/libswapfile.la filter/libfilter.la rw/librw.la hash/libhash.la \
-	-lpthread
+	$(DEBUG_LIBS) -lpthread
 
 
 
