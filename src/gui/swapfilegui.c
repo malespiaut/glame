@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.47 2001/06/19 12:09:01 richi Exp $
+ * $Id: swapfilegui.c,v 1.48 2001/06/19 16:00:47 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -56,7 +56,6 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
 static void flatten_cb(GtkWidget *menu, GlameTreeItem *item);
-static void collect_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -92,7 +91,6 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
         GNOMEUIINFO_ITEM("Flatten", "flatten", flatten_cb, NULL),
-        GNOMEUIINFO_ITEM("Collect", "collect", collect_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply operation", dummy1_menu),
 	GNOMEUIINFO_SEPARATOR,
@@ -101,7 +99,12 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
-#define GROUP_MENU_APPLYOP_INDEX 17
+#define GROUP_MENU_ADDGROUP_INDEX 6
+#define GROUP_MENU_ADDCLIPBOARD_INDEX 7
+#define GROUP_MENU_ADDMONO_INDEX 8
+#define GROUP_MENU_ADDSTEREO_INDEX 9
+#define GROUP_MENU_APPLYOP_INDEX 16
+#define GROUP_MENU_IMPORT_INDEX 18
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -208,6 +211,16 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 		op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
 		gtk_widget_show(GTK_WIDGET(op_menu));
 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(group_menu_data[GROUP_MENU_APPLYOP_INDEX].widget), GTK_WIDGET(op_menu));
+		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_ADDGROUP_INDEX].widget,
+					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
+		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_ADDCLIPBOARD_INDEX].widget,
+					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
+		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_ADDMONO_INDEX].widget,
+					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
+		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_ADDSTEREO_INDEX].widget,
+					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
+		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_IMPORT_INDEX].widget,
+					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
         } else
 		return TRUE;
 
@@ -314,46 +327,15 @@ static void flatten_cb(GtkWidget *menu, GlameTreeItem *item)
 	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
 }
 
-/* Collect the group using gpsm_collect and replace it with the
- * collected group. */
-static void collect_cb(GtkWidget *menu, GlameTreeItem *item)
-{
-	gpsm_grp_t *group, *parent;
-	gpsm_item_t *old;
-	long hpos, vpos;
-
-	if (!GPSM_ITEM_IS_GRP(item->item))
-		return;
-	old = item->item;
-
-	/* Collect the active group. */
-	if (!(group = gpsm_collect_swfiles(old))) {
-	        DPRINTF("gpsm_collect failed!?\n");
-		return;
-	}
-
-	/* Destroy the active group and insert the collected one. */
-	parent = gpsm_item_parent(old);
-	hpos = gpsm_item_hposition(old);
-	vpos = gpsm_item_vposition(old);
-	gpsm_item_destroy(old);
-	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
-}
-
+/* Append an empty mono wave (without group) to the current vbox. */
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	gpsm_swfile_t *swfile;
 	GlameTreeItem *grpw;
 
-	if (!GPSM_ITEM_IS_GRP(item->item))
+	if (!GPSM_ITEM_IS_GRP(item->item)
+	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
 		return;
-
-	/* Only create waves inside a vbox. */
-	if (!gpsm_grp_is_vbox((gpsm_grp_t *)item->item)) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Cannot insert wave here.")));
-		return;
-	}
 
 	/* Create new gpsm swfile and insert it. */
 	swfile = gpsm_newswfile("Unnamed");
@@ -370,21 +352,16 @@ static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 		edit_tree_label(grpw);
 }
 
+/* Append an empty stereo wave (with group) to the current vbox. */
 static void addstereo_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	gpsm_swfile_t *left, *right;
 	gpsm_grp_t *grp;
 	GlameTreeItem *grpw;
 
-	if (!GPSM_ITEM_IS_GRP(item->item))
+	if (!GPSM_ITEM_IS_GRP(item->item)
+	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
 		return;
-
-	/* Only create waves inside a vbox. */
-	if (!gpsm_grp_is_vbox((gpsm_grp_t *)item->item)) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Cannot insert wave here.")));
-		return;
-	}
 
 	/* Create new group and two gpsm swfiles and insert it. */
 	grp = gpsm_newgrp("Unnamed");
@@ -427,7 +404,7 @@ static void group_cb(GtkWidget *menu, GlameTreeItem *item)
 	hpos = gpsm_item_hposition(it);
 	vpos = gpsm_item_vposition(it);
 	gpsm_item_remove(it);
-	gpsm_grp_insert(grp, it, -1, -1);
+	gpsm_grp_insert(grp, it, 0, 0);
 	gpsm_grp_insert(parent, (gpsm_item_t *)grp, hpos, vpos);
 
 	/* Find out which widget it got and open an edit field. */
@@ -441,12 +418,14 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 	gpsm_grp_t *grp;
 	GlameTreeItem *grpw;
 
-	if (!GPSM_ITEM_IS_GRP(item->item))
+	if (!GPSM_ITEM_IS_GRP(item->item)
+	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
 		return;
 
 	/* Create new gpsm group. */
 	grp = gpsm_newgrp("Unnamed");
-	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp, -1, -1);
+	gpsm_vbox_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp,
+			 0, gpsm_item_vsize(item->item));
 
 	/* Expand the parent widget. */
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
@@ -462,13 +441,18 @@ static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item)
 	gpsm_grp_t *grp;
 	GlameTreeItem *grpw;
 
-	if (!GPSM_ITEM_IS_GRP(item->item))
+	if (!GPSM_ITEM_IS_GRP(item->item)
+	    || !gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
 		return;
 
 	/* Create new gpsm group. */
-	if (!(grp = clipboard_get()))
+	if (!(grp = clipboard_get())) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Clipboard is empty")));
 		return;
-	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp, -1, -1);
+	}
+	gpsm_vbox_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp,
+			 0, gpsm_item_vsize(item->item));
 
 	/* Expand the parent widget. */
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
