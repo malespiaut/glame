@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.21 2000/04/25 08:58:00 richi Exp $
+ * $Id: canvas.c,v 1.22 2000/04/25 14:56:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -32,15 +32,17 @@ static void connection_break(GlameConnection* connection);
 
 static GnomeUIInfo node_menu[]=
 {
-	GNOMEUIINFO_ITEM("Delete","Delete node",delete_canvas_item_cb,NULL),
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_item_properties_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Delete","Delete node",delete_canvas_item_cb,NULL),
 	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo pipe_menu[]=
 {
-	GNOMEUIINFO_ITEM("Delete","Delete pipe",connection_break_cb,NULL),
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_pipe_properties_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Delete","Delete pipe",connection_break_cb,NULL),
 	GNOMEUIINFO_END
 };
 
