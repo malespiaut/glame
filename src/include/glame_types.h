@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.15 2000/12/11 10:44:41 richi Exp $
+ * $Id: glame_types.h,v 1.16 2001/04/19 08:17:53 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,9 +30,22 @@
  * this should be changable w/o any code breakage!
  */
 
+/* The recommended buffer size is GLAME_WBUFSIZE, the minimum
+ * and maximum allowed sizes are GLAME_MIN_BUFSIZE and GLAME_MAX_BUFSIZE.
+ * These numbers are specified in number of samples. */
+#define GLAME_LL_MAX_BUFSIZE 1024
+#define GLAME_HL_MAX_BUFSIZE (64*1024)
+#ifdef LOW_LATENCY
+/* 128 samples at 44.1kHz ~3ms builtin min. latency */
+#define GLAME_WBUFSIZE 128
+#define GLAME_MIN_BUFSIZE 64
+#define GLAME_MAX_BUFSIZE GLAME_LL_MAX_BUFSIZE
+#else
 #define GLAME_WBUFSIZE 16384
 #define GLAME_MIN_BUFSIZE 512
-#define GLAME_MAX_BUFSIZE (64*1024)
+#define GLAME_MAX_BUFSIZE GLAME_HL_MAX_BUFSIZE
+#endif
+
 #define GLAME_DEFAULT_SAMPLERATE 44100
 
 /* SAMPLE is defined by config.h now.
