@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.34 2002/02/19 09:50:30 richi Exp $
+@comment $Id: filter.texi,v 1.35 2003/04/15 18:58:49 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -720,44 +720,50 @@ They usually will launch lots of threads and while a filter network is
 operating you may not modify its structure.
 
 @tindex filter_t
-@deftypefun int filter_launch (filter_t *@var{net})
+@tindex filter_launchcontext_t
+@deftypefun {filter_launchcontext_t *} filter_launch (filter_t *@var{net}, int bufsize)
 @code{filter_launch()} asynchronously starts the init phase of a
 previously constructed filter using a set of filter threads.
-@code{filter_launch()} returns -1 if there were any problems launching
-the filter or 0 on success.  Errors in the initialisation
+@code{filter_launch()} returns @code{NULL} if there were any problems launching
+the filter or a handle on success.  Errors in the initialisation
 process of the filters' @code{f()} methods are not reported by
 @code{filter_launch()} but can instead be obtained by using
 @code{filter_wait()} or @code{filter_start()}. Processing of the data is
-not started until @code{filter_start()} is called.
+not started until @code{filter_start()} is called. You need to specify a hint
+for the buffersize used by the network.
 @end deftypefun
 
-@tindex filter_t
-@deftypefun int filter_start (filter_t *@var{net})
-@deftypefunx int filter_pause (filter_t *@var{net})
+@tindex filter_launchcontext_t
+@deftypefun void filter_launchcontext_unref (filter_launchcontext_t *@var{handle})
+This frees the handle returned by @code{filter_launch()} if you dont need
+it anymore.
+@end deftypefun
+
+@tindex filter_launchcontext_t
+@deftypefun int filter_start (filter_launchcontext_t *@var{handle})
 With @code{filter_start()} you can start processing data on a previously
-launched or paused filter. With @code{filter_pause()} you can
-temporarily stop processing of any data in a previously started
-filter. Both functions return -1 if any error occured in the process of
-starting, pausing or in the filter threads.
+launched filter.
+The function returns -1 if any error occured in the process of
+starting or in the filter threads.
 @end deftypefun
 
-@tindex filter_t
-@deftypefun int filter_wait (filter_t *@var{net})
+@tindex filter_launchcontext_t
+@deftypefun int filter_wait (filter_launchcontext_t *@var{handle})
 @code{filter_wait()} waits for a previously launched filter to
 finish processing.  @code{filter_wait()} returns 0 if the filter
 terminated regularly, and -1 if there were any errors, either in waiting
 for the filter or in processing the filter.
 @end deftypefun
 
-@tindex filter_t
-@deftypefun int filter_is_ready (filter_t *@var{net})
+@tindex filter_launchcontext_t
+@deftypefun int filter_is_ready (filter_launchcontext_t *@var{handle})
 @code{filter_is_ready()} queries if the network has finished processing.
 Instead of @code{filter_wait()} this does not block. Returns 1, if the
 network has finished, 0 if it is still operating, -1 on error.
 @end deftypefun
 
-@tindex filter_t
-@deftypefun void filter_terminate (filter_t *@var{net})
+@tindex filter_launchcontext_t
+@deftypefun void filter_terminate (filter_launchcontext_t *@var{handle})
 @code{filter_terminate} kills a previously launched filter. It
 doesn't wait for it to finish processing all data.
 @end deftypefun

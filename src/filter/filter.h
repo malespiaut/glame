@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.81 2002/03/25 13:25:29 richi Exp $
+ * $Id: filter.h,v 1.82 2003/04/15 18:58:51 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -54,7 +54,7 @@ extern "C" {
 #endif
 
 
-#define GLAME_PLUGIN_VERSION 0x00070002
+#define GLAME_PLUGIN_VERSION 0x01000000
 
 
 /********************************
@@ -243,26 +243,26 @@ filter_t *filter_collapse(const char *name, filter_t **nodes);
 /* Launches a set of connected filter instances. Does not start
  * processing of the data. Processing will be done with the
  * provided preferred buffersize. */
-int filter_launch(filter_t *net, int bufsize);
+filter_launchcontext_t *filter_launch(filter_t *net, int bufsize);
 
-/* Starts or restarts processing of the data. */
-int filter_start(filter_t *net);
+/* Releases the context returned by filter_launch. */
+void filter_launchcontext_unref(filter_launchcontext_t **context);
 
-/* Suspends a running network. Restart via filter_start(). */
-int filter_pause(filter_t *net);
+/* Starts processing of the data. */
+int filter_start(filter_launchcontext_t *context);
 
 /* Waits for the launched network to finish processing.
  * Returns 0 on successful completion or -1 on error
  * (in waiting or processing). */
-int filter_wait(filter_t *net);
+int filter_wait(filter_launchcontext_t *context);
 
 /* Queries the network if it is ready processing. This function
  * does not block. Returns 1, if the network is ready, 0 if it
  * is still operating or -1 on error (NULL net). */
-int filter_is_ready(filter_t *net);
+int filter_is_ready(filter_launchcontext_t *context);
 
 /* Kills a launched network aborting all processing. */
-void filter_terminate(filter_t *net);
+void filter_terminate(filter_launchcontext_t *context);
 
 
 /* Filternetwork to scheme code. */
@@ -298,9 +298,8 @@ int f(filter_t *n)
 	FILTER_RETURN;
 }
 #endif
-/* The following use the (internal!) functions */
+/* The following uses the (internal!) function */
 int filter_after_init_hook(filter_t *f);
-int filter_check_stop_hook(filter_t *f);
 #define FILTER_AFTER_INIT \
 do { \
 	if (filter_after_init_hook(n) != 0) \
@@ -330,7 +329,7 @@ do { \
 
 #define FILTER_CHECK_STOP \
 do { \
-	if (filter_check_stop_hook(n) != 0) \
+	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_stopcleanup; \
         pthread_testcancel(); \
 } while (0)

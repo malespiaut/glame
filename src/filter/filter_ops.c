@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.35 2002/09/29 13:49:54 richi Exp $
+ * $Id: filter_ops.c,v 1.36 2003/04/15 18:58:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -40,7 +40,6 @@ struct filter_operations {
 };
 
 #define STATE_RUNNING 3
-#define FILTER_IS_RUNNING(f) (((f)->launch_context && (f)->launch_context->state >= STATE_RUNNING) || ((f)->net && (f)->net->launch_context && (f)->net->launch_context->state >= STATE_RUNNING))
 
 
 /* filter_buffer.c: drain pipe to unblock source. */
@@ -97,6 +96,7 @@ static int init_network(filter_t *net)
 static void *launcher(void *node)
 {
 	filter_t *n = (filter_t *)node;
+	filter_launchcontext_t *c = n->net->launch_context;
 	filter_pipe_t *p;
 	filter_port_t *port;
 	sigset_t sset;
@@ -109,7 +109,7 @@ static void *launcher(void *node)
 	sigaddset(&sset, SIGPIPE);
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
 #endif
-	atomic_inc(&n->net->launch_context->val);
+	atomic_inc(&c->val);
 
 	n->glerrno = n->f(n);
 
@@ -142,18 +142,17 @@ static void *launcher(void *node)
 		n->name, n->glerrstr);
 
 	/* signal net failure */
-	atomic_inc(&n->net->launch_context->result);
+	atomic_inc(&c->result);
 
 	/* increment filter ready semaphore if still in startup
 	 * phase */
-	if (n->net->launch_context->state <= STATE_LAUNCHED) {
-		pthread_mutex_lock(&n->net->launch_context->cond_mx);
-		if (atomic_dec_and_test(&n->net->launch_context->val))
-			pthread_cond_broadcast(&n->net->launch_context->cond);
+	if (c->state <= STATE_LAUNCHED) {
+		pthread_mutex_lock(&c->cond_mx);
+		if (atomic_dec_and_test(&c->val))
+			pthread_cond_broadcast(&c->cond);
 		else
-			pthread_cond_wait(&n->net->launch_context->cond,
-					  &n->net->launch_context->cond_mx);
-		pthread_mutex_unlock(&n->net->launch_context->cond_mx);
+			pthread_cond_wait(&c->cond, &c->cond_mx);
+		pthread_mutex_unlock(&c->cond_mx);
 	}
 
 	DPRINTF("%s exiting after error\n", n->name);
@@ -199,11 +198,9 @@ static void postprocess_node(filter_t *n)
 	if (!n || n->state == STATE_UNDEFINED)
 		return;
 
-	if (n->state == STATE_LAUNCHED
-	    && pthread_cancel(n->thread) != ESRCH) {
-		pthread_join(n->thread, NULL);
-		n->state = STATE_INITIALIZED;
-	}
+	/* join thread to cleanup thread resources */
+	pthread_join(n->thread, NULL);
+	n->state = STATE_INITIALIZED;
 
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		filterport_foreach_pipe(port, p) {
@@ -222,7 +219,6 @@ static void postprocess_node(filter_t *n)
 		DPRINTF("freed %i buffers created by %s\n",
 			freed, filter_name(n));
 
-	n->launch_context = NULL;
 	n->state = STATE_UNDEFINED;
 }
 static void postprocess_network(filter_t *n)
@@ -280,39 +276,52 @@ struct filter_operations filter_network_ops = {
  */
 
 
-static filter_launchcontext_t *_launchcontext_alloc(int bufsize)
+static filter_launchcontext_t *_launchcontext_alloc(int bufsize, filter_t *net)
 {
 	filter_launchcontext_t *c;
 
 	if (!(c = ALLOC(filter_launchcontext_t)))
 		return NULL;
 
+	ATOMIC_INIT(c->refcnt, 1);
+
 	pthread_mutex_init(&c->cond_mx, NULL);
 	pthread_cond_init(&c->cond, NULL);
 	ATOMIC_INIT(c->val, 0);
 
 	ATOMIC_INIT(c->result, 0);
+	c->net = net;
 	c->nr_threads = 0;
 	c->bufsize = bufsize;
 	return c;
 }
 
-static void _launchcontext_free(filter_launchcontext_t *c)
+static filter_launchcontext_t *_launchcontext_ref(filter_launchcontext_t *c)
 {
+	atomic_inc(&c->refcnt);
+	return c;
+}
+
+void filter_launchcontext_unref(filter_launchcontext_t **c_)
+{
+	filter_launchcontext_t *c = *c_;
 	if (!c)
+		PANIC("unref'ing freed launchcontext");
+	if (!atomic_dec_and_test(&c->refcnt))
 		return;
 	ATOMIC_RELEASE(c->result);
 	pthread_mutex_destroy(&c->cond_mx);
 	pthread_cond_destroy(&c->cond);
 	ATOMIC_RELEASE(c->val);
+	ATOMIC_RELEASE(c->refcnt);
 	free(c);
+	*c_ = NULL;
+	DPRINTF("launchcontext freed.\n");
 }
 
-static void *waiter(void *network)
+static void *waiter(void *context)
 {
-	filter_t *net = (filter_t *)network;
-	struct filter_launchcontext *c;
-	int res;
+	filter_launchcontext_t *c = (filter_launchcontext_t *)context;
 	sigset_t sset;
 
 #ifdef HAVE_PTHREAD_SIGMASK
@@ -321,37 +330,40 @@ static void *waiter(void *network)
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
 #endif
 
-	res = net->ops->wait(net);
+	DPRINTF("waiting for network to finish\n");
+	c->net->ops->wait(c->net);
 
 	DPRINTF("starting cleanup\n");
-	c = net->launch_context;
-	net->ops->postprocess(net);
+	c->net->ops->postprocess(c->net);
 
 	/* defer final launchcontext freeing to filter_wait(). */
-	net->launch_context = c;
-	net->launch_context->state = STATE_RUNNING-1;
+	c->state = STATE_UNDEFINED;
+	filter_launchcontext_unref(&c);
 	DPRINTF("finished\n");
 
-	return (void *)res;
+	return NULL;
 }
 
-int filter_launch(filter_t *net, int bufsize)
+filter_launchcontext_t *filter_launch(filter_t *net, int bufsize)
 {
+	filter_launchcontext_t *c = NULL;
 	/* sigset_t sigs; */
 
 	if (!net || !FILTER_IS_NETWORK(net) || net->net
 	    || FILTER_IS_LAUNCHED(net))
-		return -1;
+		return NULL;
 
 	/* block EPIPE
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIG_BLOCK);
 	sigprocmask(SIG_BLOCK, &sigs, NULL); */
 
-	/* init state */
-	if (!(net->launch_context = _launchcontext_alloc(bufsize)))
-		return -1;
-	atomic_set(&net->launch_context->val, 1);
+	/* init state, network nodes dont hold references to it (FIXME?) */
+	c = _launchcontext_alloc(bufsize, net);
+	if (!c)
+		return NULL;
+	net->launch_context = c;
+	atomic_set(&c->val, 1);
 
 	DPRINTF("initting nodes\n");
 	if (net->ops->init(net) == -1)
@@ -366,109 +378,95 @@ int filter_launch(filter_t *net, int bufsize)
 	 * - FIXME - doesnt work anyway, racy wrt concurrently
 	 *         increasing/decreasing val */
 	DPRINTF("waiting for nodes to complete initialization\n");
-	while (atomic_read(&net->launch_context->val) != 1)
+	while (atomic_read(&c->val) != 1)
 		usleep(1000);
 
 	DPRINTF("launching waiter\n");
-	if (pthread_create(&net->launch_context->waiter, NULL,
-			   waiter, net) != 0)
+	_launchcontext_ref(c); /* for waiter */
+	if (pthread_create(&c->waiter, NULL, waiter, c) != 0)
 		goto out;
 
-	net->launch_context->state = STATE_LAUNCHED;
+	c->state = STATE_LAUNCHED;
 	DPRINTF("all nodes launched.\n");
 
-	return 0;
+	/* pass reference to caller */
+	return c;
 
  out:
 	DPRINTF("error.\n");
-	filter_terminate(net); /* FIXME - this seems to be error prone. */
+	filter_terminate(c); /* FIXME - this seems to be error prone. */
+	filter_launchcontext_unref(&c);
 
-	return -1;
+	return NULL;
 }
 
-int filter_start(filter_t *net)
+int filter_start(filter_launchcontext_t *context)
 {
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || FILTER_IS_RUNNING(net))
+	if (!context || context->state >= STATE_RUNNING)
 		return -1;
 
 	DPRINTF("waiting for nodes to complete initialization.\n");
 
-	pthread_mutex_lock(&net->launch_context->cond_mx);
-	if (atomic_dec_and_test(&net->launch_context->val))
-		pthread_cond_broadcast(&net->launch_context->cond);
+	pthread_mutex_lock(&context->cond_mx);
+	if (atomic_dec_and_test(&context->val))
+		pthread_cond_broadcast(&context->cond);
 	else
-		pthread_cond_wait(&net->launch_context->cond,
-				  &net->launch_context->cond_mx);
-	pthread_mutex_unlock(&net->launch_context->cond_mx);
+		pthread_cond_wait(&context->cond, &context->cond_mx);
+	pthread_mutex_unlock(&context->cond_mx);
+	context->state = STATE_RUNNING;
 
-	if (ATOMIC_VAL(net->launch_context->result) != 0)
+	if (ATOMIC_VAL(context->result) != 0)
 		goto out;
-	net->launch_context->state = STATE_RUNNING;
 
 	return 0;
 
 out:
 	DPRINTF("Network error. Terminating.\n");
-	filter_terminate(net);
+	filter_terminate(context);
 	return -1;
 }
 
-int filter_pause(filter_t *net)
+int filter_wait(filter_launchcontext_t *context)
 {
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || !FILTER_IS_RUNNING(net))
+	if (!context || context->state < STATE_RUNNING)
 		return -1;
-
-	atomic_inc(&net->launch_context->val);
-	net->launch_context->state = STATE_LAUNCHED;
-
-	return 0;
-}
-
-int filter_wait(filter_t *net)
-{
-	void *res;
-
-	if (!net || !FILTER_IS_NETWORK(net))
-		return -1;
-	if (!FILTER_IS_LAUNCHED(net)
-	    || !FILTER_IS_RUNNING(net)) {
-		if (net->launch_context) {
-			_launchcontext_free(net->launch_context);
-			net->launch_context = NULL;
-		}
-		return -1;
-	}
 
 	DPRINTF("waiting for waiter to complete\n");
-	pthread_join(net->launch_context->waiter, &res);
+	pthread_join(context->waiter, NULL);
 
-	/* clean up launchcontext. */
-	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL;
-
-	return (int)res;
+	return ATOMIC_VAL(context->result);
 }
 
-int filter_is_ready(filter_t *net)
+int filter_is_ready(filter_launchcontext_t *context)
 {
-	if (!net)
+	if (!context)
 		return -1;
-	return !FILTER_IS_RUNNING(net) ? 1 : 0;
+	return context->state < STATE_LAUNCHED ? 1 : 0;
 }
 
-void filter_terminate(filter_t *net)
+void filter_terminate(filter_launchcontext_t *context)
 {
-	if (!net || !FILTER_IS_NETWORK(net) || !net->launch_context)
+	if (!context)
 		return;
 
-	atomic_set(&net->launch_context->result, 1);
-	atomic_set(&net->launch_context->val, 0);
-	net->launch_context->state = STATE_RUNNING;
+	if (context->state == STATE_LAUNCHED) {
+		/* signal initialization error and let threads terminate */
+		atomic_inc(&context->result);
+		pthread_mutex_lock(&context->cond_mx);
+		if (atomic_dec_and_test(&context->val))
+			pthread_cond_broadcast(&context->cond);
+		else
+			pthread_cond_wait(&context->cond, &context->cond_mx);
+		pthread_mutex_unlock(&context->cond_mx);
+		context->state = STATE_RUNNING;
+	} else {
+		/* signal threads to bail out at next FILTER_CHECK_STOP */
+		atomic_inc(&context->result);
+	}
 
 	/* "safe" cleanup */
-	filter_wait(net);
+	filter_wait(context);
+	atomic_dec(&context->result);
 }
 
 
@@ -494,17 +492,3 @@ int filter_after_init_hook(filter_t *f)
 	return ATOMIC_VAL(f->net->launch_context->result);
 }
 
-int filter_check_stop_hook(filter_t *f)
-{
-	/* check if manager said "pause/stop" */
-	if (atomic_read(&f->net->launch_context->val)) {
-		pthread_mutex_lock(&f->net->launch_context->cond_mx);
-		pthread_cond_wait(&f->net->launch_context->cond,
-				  &f->net->launch_context->cond_mx);
-		pthread_mutex_unlock(&f->net->launch_context->cond_mx);
-	}
-
-	/* return if it was "pause" or really "stop" */
-	return (ATOMIC_VAL(f->net->launch_context->result)
-	        || filter_errno(f));
-}

@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.34 2002/03/25 19:30:32 richi Exp $
+ * $Id: filter_buffer.c,v 1.35 2003/04/15 18:58:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -203,7 +203,7 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 		timeout.tv_usec = 0;
 		res = select(p->dest_fd+1, &fds, NULL, NULL, &timeout);
 	} while ((res == -1 && errno == EINTR)
-		 || (res == 0 && filter_is_ready(filterport_filter(filterpipe_source(p)))));
+		 || (res == 0 && filter_is_ready(filterport_filter(filterpipe_source(p))->launch_context)));
 
 	/* Timeout? -> Deadlock. Break it returning NULL. */
 	if (res == 0) {

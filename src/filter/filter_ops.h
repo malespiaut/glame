@@ -3,7 +3,7 @@
 
 /*
  * filter_ops.h
- * $Id: filter_ops.h,v 1.9 2001/11/11 12:59:33 richi Exp $
+ * $Id: filter_ops.h,v 1.10 2003/04/15 18:58:53 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -35,6 +35,9 @@ extern struct filter_operations filter_node_ops;
 extern struct filter_operations filter_network_ops;
 
 struct filter_launchcontext {
+	glame_atomic_t refcnt;
+	filter_t *net;
+
 	int nr_threads;
 	pthread_t waiter;
 
@@ -47,5 +50,6 @@ struct filter_launchcontext {
 
 	glame_atomic_t result;
 };
+
 
 #endif
