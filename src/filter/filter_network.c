@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.12 2000/02/07 10:32:05 richi Exp $
+ * $Id: filter_network.c,v 1.13 2000/02/08 12:53:11 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -431,8 +431,10 @@ void filternetwork_delete(filter_network_t *net)
 	while ((n = filternetwork_first_node(net)))
 		filternode_delete(n);
 
-	ATOMIC_RELEASE(net->node.launch_context->result);
-	semctl(net->node.launch_context->semid, 0, IPC_RMID, (union semun)0);
+	if (net->node.launch_context) {
+		ATOMIC_RELEASE(net->node.launch_context->result);
+		semctl(net->node.launch_context->semid, 0, IPC_RMID, (union semun)0);
+	}
 
 	free(net);
 }
@@ -594,6 +596,8 @@ int filternode_setparam(filter_node_t *n, const char *label, void *val)
 	filter_param_t *param;
 	filter_paramdesc_t *pdesc;
 
+	if (!n || !label || !val)
+		return -1;
 	if (!(pdesc = hash_find_paramdesc(label, n->filter)))
 		return -1;
 	if (!(param = hash_find_param(label, n))) {
@@ -624,6 +628,83 @@ int filternode_setparam(filter_node_t *n, const char *label, void *val)
 	n->filter->fixup_param(n, label);
 
 	return 0;
+}
+
+int filternode_setparamstring(filter_node_t *n, const char *label,
+			      const char *val)
+{
+	filter_param_t *param;
+	filter_paramdesc_t *pdesc;
+	int res = -1;
+
+	if (!n || !label || !val)
+		return -1;
+	if (!(pdesc = hash_find_paramdesc(label, n->filter)))
+		return -1;
+	if (!(param = hash_find_param(label, n))) {
+		if (!(param = ALLOC(filter_param_t)))
+			return -1;
+		param->label = pdesc->label;
+		hash_add_param(param, n);
+	}
+
+	switch (FILTER_PARAMTYPE(pdesc->type)) {
+	case FILTER_PARAMTYPE_INT:
+		res = sscanf(val, " %i ", &param->val.i);
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		res = sscanf(val, " %f ", &param->val.f);
+		break;
+	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
+		res = sscanf(val, " %f ", (float *)&param->val.sample);
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		res = sscanf(val, " %i ", &param->val.file);
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		if ((param->val.string = strdup(val)))
+			res = 1;
+		break;
+	}
+
+	n->filter->fixup_param(n, label);
+
+	return res;
+}
+
+int filternode_getparamstring(filter_node_t *n, const char *label,
+			      char *val, ssize_t s)
+{
+	filter_param_t *param;
+	filter_paramdesc_t *pdesc;
+	int res = -1;
+
+	if (!n || !label || !val)
+		return -1;
+	if (!(pdesc = hash_find_paramdesc(label, n->filter)))
+		return -1;
+	if (!(param = hash_find_param(label, n)))
+		return -1;
+
+	switch (FILTER_PARAMTYPE(pdesc->type)) {
+	case FILTER_PARAMTYPE_INT:
+		res = snprintf(val, s, "%i", param->val.i);
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		res = snprintf(val, s, "%f", param->val.f);
+		break;
+	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
+		res = snprintf(val, s, "%f", param->val.sample);
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		res = snprintf(val, s, "%i", param->val.file);
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		res = snprintf(val, s, "%s", param->val.string);
+		break;
+	}
+
+	return res;
 }
 
 
@@ -731,14 +812,18 @@ int filternetwork_filter_init(filter_node_t *n)
 							  name1, hash_find_node(node2, net), name2))
 				goto err;
 			break;
-		case 'i':
-			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+		case 'i': /* skip */
+			fgets(desc, 256, fd);
 			break;
-		case 'o':
-			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+		case 'o': /* skip */
+			fgets(desc, 256, fd);
 			break;
-		case 'p':
-			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+		case 'p': /* skip */
+			fgets(desc, 256, fd);
+			break;
+		case 's':
+			fscanf(fd, " %s %s ", name1, desc);
+			filternode_setparamstring(&net->node, name1, desc);
 			break;
 		default:
 			break;
@@ -824,6 +909,7 @@ int filternetwork_save(filter_network_t *net, const char *filename)
 	filter_pipe_t *p;
 	filter_portdesc_t *d;
 	filter_paramdesc_t *pd;
+	char val[256];
 	FILE *fd;
 
 
@@ -845,18 +931,22 @@ int filternetwork_save(filter_network_t *net, const char *filename)
 		list_foreach_inputdesc(n->filter, d) {
 			if (hash_find_input(d->label, n))
 				continue;
-			fprintf(fd, "i %s %s %s-i_%s \"%s\"\n", n->name, d->label,
+			fprintf(fd, "i %s %s %s-i_%s %s\n", n->name, d->label,
 				n->name, d->label, d->description);
 		}
 		list_foreach_outputdesc(n->filter, d) {
 			if (hash_find_output(d->label, n))
 				continue;
-			fprintf(fd, "o %s %s %s-o_%s \"%s\"\n", n->name, d->label,
+			fprintf(fd, "o %s %s %s-o_%s %s\n", n->name, d->label,
 				n->name, d->label, d->description);
 		}
 		list_foreach_paramdesc(n->filter, pd) {
-			fprintf(fd, "p %s %s %s-%s \"%s\"\n", n->name, pd->label,
+			fprintf(fd, "p %s %s %s-%s %s\n", n->name, pd->label,
 				n->name, pd->label, pd->description);
+			if (hash_find_param(pd->label, n)) {
+				filternode_getparamstring(n, pd->label, val, 255);
+				fprintf(fd, "s %s-%s %s\n", n->name, pd->label, val);
+			}
 		}
 	}
 
@@ -910,19 +1000,25 @@ filter_t *filternetwork_load(const char *filename)
 				goto err;
 			break;
 		case 'i':
-			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			fscanf(fd, " %s %s %s ", node1, name1, name2);
+			fgets(desc, 255, fd);
 			if (fnf_input(f, net, node1, name1, name2, desc) == -1)
 				goto err;
 			break;
 		case 'o':
-			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			fscanf(fd, " %s %s %s ", node1, name1, name2);
+			fgets(desc, 255, fd);
 			if (fnf_output(f, net, node1, name1, name2, desc) == -1)
 				goto err;
 			break;
 		case 'p':
-			fscanf(fd, " %s %s %s %[^\"] ", node1, name1, name2, desc);
+			fscanf(fd, " %s %s %s ", node1, name1, name2);
+			fgets(desc, 255, fd);
 			if (fnf_param(f, net, node1, name1, name2, desc) == -1)
 				goto err;
+			break;
+		case 's':
+			fgets(desc, 256, fd);
 			break;
 		default:
 			DPRINTF("wrong command %c\n", c);

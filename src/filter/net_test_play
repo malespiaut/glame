@@ -1,0 +1,9 @@
+n read_file rf
+n audio_out aout
+n echo echol
+n echo echor
+c rf left_out echol in
+c rf right_out echor in
+c echol out aout left_in
+c echor out aout right_in
+p rf filename filename file to be played

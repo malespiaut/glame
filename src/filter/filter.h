@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.13 2000/02/07 10:32:05 richi Exp $
+ * $Id: filter.h,v 1.14 2000/02/08 12:53:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -476,6 +476,16 @@ void filternetwork_break_connection(filter_pipe_t *p);
  * Returns -1 if that is not possible.
  */
 int filternode_setparam(filter_node_t *n, const char *label, void *val);
+
+/* set a parameter from a value contained in a string, returns sscanf
+ * result, i.e. 1 on success */
+int filternode_setparamstring(filter_node_t *n, const char *label,
+			      const char *val);
+
+/* get a parameter as a string, returns snprintf result, i.e. number
+ * of printed characters */
+int filternode_getparamstring(filter_node_t *n, const char *label,
+			      char *val, ssize_t s);
 
 
 /* Launches a set of connected filter instances and starts

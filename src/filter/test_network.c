@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_network.c,v 1.1 2000/02/06 11:40:11 nold Exp $
+ * $Id: test_network.c,v 1.2 2000/02/08 12:53:11 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -35,9 +35,10 @@ int main(int argc, char **argv)
 	filter_network_t *net;
 	filter_node_t *n;
 	filter_t *f;
+	int i;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s network\n", argv[0]);
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s network {param value}\n", argv[0]);
 		exit(1);
 	}
 
@@ -68,6 +69,12 @@ int main(int argc, char **argv)
 	if (!(n = filternetwork_add_node(net, f->name, NULL))) {
 		fprintf(stderr, "error in filternetwork_add_node(%s)\n", f->name);
 		return -1;
+	}
+
+	for (i=2; i<argc; i+=2) {
+		fprintf(stderr, "setting parameter %s to %s\n",
+			argv[i], argv[i+1]);
+		filternode_setparamstring(n, argv[i], argv[i+1]);
 	}
 
 	fprintf(stderr, "launching network\n");
