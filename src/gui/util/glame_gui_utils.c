@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.1 2001/06/14 15:24:43 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.2 2001/06/18 08:30:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -685,6 +685,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 			sbuf_make_private(sbuf);
 			gtk_curve_get_vector(GTK_CURVE(item->widget), sbuf_size(sbuf), sbuf_buf(sbuf));
 			filterparam_set(item->param, &sbuf);
+			sbuf_unref(sbuf);
 			curve = GLAME_CURVE(item->widget);
 			gCurve = GTK_CURVE(item->widget);
 			glame_curve_get_control_vector(curve,&numpoints,&ctlpoints);
