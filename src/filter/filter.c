@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.63 2002/07/30 08:13:57 richi Exp $
+ * $Id: filter.c,v 1.64 2002/08/12 12:54:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -386,7 +386,7 @@ filter_t *filter_collapse(const char *name, filter_t **nodes)
 	filter_port_t *port;
 	filter_pipe_t *pipe;
 
-	if (!name || !nodes)
+	if (!name || !nodes || !(*nodes))
 		return NULL;
 
 	/* Whats the nodes (and new net) parent - is it the same? */
