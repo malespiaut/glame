@@ -38,7 +38,11 @@
  */
 void sc_main()
 {
-	scm_shell(0, NULL);
+	gh_eval_str(
+"(let ((guile-user (resolve-module '(guile-user))))"
+"  (module-use! guile-user (resolve-interface '(glame)))"
+"  (set-repl-prompt! \"glame> \")"
+"  (top-repl))");
 	/* not reached. */
 }
 
