@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.13 2002/05/25 13:37:04 richi Exp $
+ * $Id: filter_port.c,v 1.14 2003/05/19 20:32:01 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -44,6 +44,8 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 	/* Count number of input ports. */
 	nrin = 0;
 	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_get_property(port, "!CONTROL")) /* ignore LADSPA control ports */
+			continue;
 		if (filterport_is_input(port))
 			nrin++;
 	}
@@ -155,6 +157,8 @@ static int default_connect_output(filter_port_t *port, filter_pipe_t *pipe)
 	filterportdb_foreach_port(filter_portdb(n), inp) {
 		if (!filterport_is_input(inp))
 			continue;
+		if (filterport_get_property(inp, "!CONTROL")) /* ignore LADSPA control ports */
+			continue;
 		if (index == 0)
 			break;
 		index--;
@@ -163,6 +167,8 @@ static int default_connect_output(filter_port_t *port, filter_pipe_t *pipe)
 		/* Ok, count inputs. */
 		index = 0;
 		filterportdb_foreach_port(filter_portdb(n), inp) {
+			if (filterport_get_property(inp, "!CONTROL")) /* ignore LADSPA control ports */
+				continue;
 			if (filterport_is_input(inp))
 				index++;
 		}
@@ -173,6 +179,8 @@ static int default_connect_output(filter_port_t *port, filter_pipe_t *pipe)
 		}
 		/* Else just use the one found input. */
 		filterportdb_foreach_port(filter_portdb(n), inp) {
+			if (filterport_get_property(inp, "!CONTROL")) /* ignore LADSPA control ports */
+				continue;
 			if (filterport_is_input(inp))
 				break;
 		}

@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.23 2003/05/18 21:21:53 richi Exp $
+ * $Id: apply.c,v 1.24 2003/05/19 20:32:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -181,6 +181,8 @@ static void preview_start(struct apply_plugin_s *a)
 		filterportdb_foreach_port(filter_portdb(e), port) {
 			if (!filterport_is_input(port))
 				continue;
+			if (filterport_get_property(port, "!CONTROL")) /* ignore LADSPA control ports */
+				continue;
 			if (i == currin)
 				break;
 			i++;
@@ -281,6 +283,8 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		j = 0;
 		filterportdb_foreach_port(filter_portdb(e), ein) {
 			if (!filterport_is_input(ein))
+				continue;
+			if (filterport_get_property(ein, "!CONTROL")) /* ignore LADSPA control ports */
 				continue;
 			if (j++ == currin)
 				break;

@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.140 2003/04/21 12:16:06 richi Exp $
+ * $Id: waveeditgui.c,v 1.141 2003/05/19 20:32:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -939,6 +939,8 @@ static int choose_effects(plugin_t *plugin)
 	/* We need input and output port(s) of the same count, if
          * greater than one it needs to match the channel count. */
 	filterportdb_foreach_port(filter_portdb(filter), port) {
+		if (filterport_get_property(port, "!CONTROL")) /* ignore LADSPA control ports */
+			continue;
 		if (!FILTER_PORTS_ARE_COMPATIBLE(filterport_type(port), FILTER_PORTTYPE_SAMPLE))
 			return 0;
 		if (filterport_is_input(port))
