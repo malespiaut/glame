@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.28 2001/05/03 17:46:56 mag Exp $
+ * $Id: filter_protocols.h,v 1.29 2001/05/25 11:42:02 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -68,7 +68,7 @@ struct sbuf_header {
 };
 #define sbuf_alloc(nrsamples, filternode) \
         fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(sbuf_header_t), \
-		   &(filternode)->buffers)
+		   filternode ? &((filter_t *)(filternode))->buffers : NULL)
 #define sbuf_realloc(sbuf, nrsamples) \
 	fbuf_realloc(sbuf, SAMPLE_SIZE*(nrsamples) + sizeof(sbuf_header_t))
 #define sbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(sbuf_header_t))/SAMPLE_SIZE)
