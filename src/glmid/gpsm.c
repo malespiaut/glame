@@ -359,7 +359,7 @@ static void scan_swap()
 		if (name == 0)
 			continue;
 		/* File in tree? */
-		if (gpsm_find_swfile_filename(gpsm_root(), NULL, name))
+		if (hash_find_swfile(name))
 			continue;
 		/* File in op list as saved? */
 		if (_op_find_saved(name))
