@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.75 2002/01/07 23:02:35 richi Exp $
+ * $Id: swapfilegui.c,v 1.76 2002/01/08 22:19:35 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -240,7 +240,7 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_ADDSTEREO_INDEX].widget,
 					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
 		gtk_widget_set_sensitive(group_menu_data[GROUP_MENU_IMPORT_INDEX].widget,
-					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
+					 gpsm_grp_is_vbox((gpsm_grp_t *)i->item) || gpsm_grp_is_hbox((gpsm_grp_t *)i->item) ? TRUE : FALSE);
         } else
 		return TRUE;
 
@@ -272,8 +272,18 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 			copy = (gpsm_item_t *)gpsm_grp_cow((gpsm_grp_t *)i->item);
 		else
 			goto next;
-		gpsm_item_place((gpsm_grp_t *)item->item, copy,
-				0, gpsm_item_vsize(item->item));
+		if (gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
+			gpsm_vbox_insert((gpsm_grp_t *)item->item, copy,
+					 0, gpsm_item_vsize(item->item));
+		else if (gpsm_grp_is_hbox((gpsm_grp_t *)item->item))
+			gpsm_hbox_insert((gpsm_grp_t *)item->item, copy,
+					 gpsm_item_hsize(item->item), 0);
+		else {
+			gnome_dialog_run_and_close(GNOME_DIALOG(
+				gnome_error_dialog(_("Cannot place item into irregular group"))));
+			gpsm_item_destroy(copy);
+			break;
+		}
 
 	next:
 		selected = g_list_next(selected);
@@ -306,8 +316,18 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 			copy = (gpsm_item_t *)gpsm_grp_link((gpsm_grp_t *)i->item);
 		else
 			goto next;
-		gpsm_item_place((gpsm_grp_t *)item->item, copy,
-				0, gpsm_item_vsize(item->item));
+		if (gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
+			gpsm_vbox_insert((gpsm_grp_t *)item->item, copy,
+					 0, gpsm_item_vsize(item->item));
+		else if (gpsm_grp_is_hbox((gpsm_grp_t *)item->item))
+			gpsm_hbox_insert((gpsm_grp_t *)item->item, copy,
+					 gpsm_item_hsize(item->item), 0);
+		else {
+			gnome_dialog_run_and_close(GNOME_DIALOG(
+				gnome_error_dialog(_("Cannot place item into irregular group"))));
+			gpsm_item_destroy(copy);
+			break;
+		}
 
 	next:
 		selected = g_list_next(selected);
@@ -584,10 +604,18 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (!imported)
 		return;
 
-	if (gpsm_vbox_insert((gpsm_grp_t *)item->item, imported, 0, 0) == -1) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave"))));
-		gpsm_item_destroy(imported);
-	}
+	if (gpsm_grp_is_vbox((gpsm_grp_t *)item->item)
+	    && gpsm_vbox_insert((gpsm_grp_t *)item->item, imported,
+				0, gpsm_item_vsize(item->item)) == 0)
+		return;
+	if (gpsm_grp_is_hbox((gpsm_grp_t *)item->item)
+	    && gpsm_hbox_insert((gpsm_grp_t *)item->item, imported,
+				gpsm_item_hsize(item->item), 0) == 0)
+		return;
+
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
+		_("Cannot place imported wave"))));
+	gpsm_item_destroy(imported);
 }
 
 

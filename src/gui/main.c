@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.98 2001/12/23 15:02:46 richi Exp $
+ * $Id: main.c,v 1.99 2002/01/08 22:19:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -166,14 +166,20 @@ static void new_network_cb(GtkWidget *menu, void * blah)
 extern void edit_tree_label(GlameTreeItem * item);
 static void create_new_project_cb(GtkWidget *menu, void * blah)
 {
-	gpsm_grp_t *grp;
+	gpsm_grp_t *grp, *deleted;
 	GlameTreeItem *grpw;
+
+	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
+		gpsm_item_remove((gpsm_item_t *)deleted);
 
 	/* Create new gpsm group. */
 	grp = gpsm_newgrp(_("Unnamed"));
 	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
 			    0, gpsm_item_vsize(gpsm_root())) == -1)
 		DPRINTF("Cannot insert new group!?\n");
+	if (deleted)
+		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
+				0, GPSM_GRP_DELETED_VPOS);
 
 	/* Find out which widget it got. */
 	grpw = glame_tree_find_gpsm_item(
@@ -219,13 +225,22 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 static void import_cb(GtkWidget *menu, void *data)
 {
 	gpsm_item_t *file;
+	gpsm_grp_t *deleted;
+	int res;
 
 	/* Run the import dialog. */
 	file = glame_import_dialog(NULL);
 	if (!file)
 		return;
 
-	if (gpsm_vbox_insert(gpsm_root(), file, 0, 0) == -1) {
+	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
+		gpsm_item_remove((gpsm_item_t *)deleted);
+	res = gpsm_vbox_insert(gpsm_root(), file,
+			       0, gpsm_item_vsize(gpsm_root()));
+	if (deleted)
+		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
+				0, GPSM_GRP_DELETED_VPOS);
+	if (res == -1) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave"))));
 		gpsm_item_destroy(file);
 	}
