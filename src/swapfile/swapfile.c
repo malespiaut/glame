@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.17 2000/06/25 14:53:00 richi Exp $
+ * $Id: swapfile.c,v 1.18 2000/08/07 13:46:57 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -686,7 +686,7 @@ static void _logentry_write(swapd_record_t *r, logentry_t *le)
  * (apart from mmap/munmap)
  */
 
-#define ZEROMAP_READ
+#undef ZEROMAP_READ
 static int __cluster_zeromap(cluster_t *c, int prot)
 {
 	int fd;
@@ -747,8 +747,12 @@ static inline void __cluster_forgetmap(cluster_t *c)
 	 */
 	if (!cluster_is_mapped(c))
 		return;
+#if 0
 #if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_FORGET)
 	madvise(c->buf, c->size, SWAPFILE_MADV_FORGET);
+#endif
+#else	
+	msync(c->buf, c->size, MS_INVALIDATE);
 #endif
 	munmap(c->buf, c->size);
 	c->buf = NULL;
