@@ -53,9 +53,11 @@
 #include "pmap.h"
 #include "swapfile.h"
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+
+/* Some operations have two implementations, one cooked up out
+ * of swapfile API functions, one out of lowlevel ones. */
+#undef USE_COOKED_OPS
+
 
 /* The global "state" of the swapfile and its locks. The
  * locks are for namespace operations atomicy. */
@@ -503,6 +505,7 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	return _fd->offset;
 }
 
+#ifdef USE_COOKED_OPS
 /* Like read(2), read count bytes from the current filepointer
  * position to the array pointed to by buf. */
 ssize_t sw_read(swfd_t fd, void *buf, size_t count)
@@ -510,20 +513,23 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 	struct sw_stat stat;
 	char *mem;
 	size_t dcnt, cnt;
+	int err = 0;
 
 	/* Check, if we will cross the file end and correct
-	 * the cnt appropriately. */
+	 * the count appropriately. */
 	if (sw_fstat(fd, &stat) == -1)
 		return -1;
 	if (stat.offset + count > stat.size)
-		cnt -= stat.offset + count - stat.size;
+		count -= stat.offset + count - stat.size;
 
 	cnt = count;
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
 		    || (mem = (char *)sw_mmap(NULL, PROT_READ,
-					      MAP_SHARED, fd)) == MAP_FAILED)
+					      MAP_SHARED, fd)) == MAP_FAILED) {
+			err = 1;
 			break;
+		}
 
 		dcnt = MIN(stat.cluster_size
 			   - (stat.offset - stat.cluster_start), cnt);
@@ -531,15 +537,73 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 		       &mem[stat.offset - stat.cluster_start], dcnt);
 
 		if (sw_munmap(mem) == -1
-		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1)
+		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1) {
+			err = 1;
 			break;
+		}
 
 		cnt -= dcnt;
 	}
 
+	if (err && (count-cnt == 0))
+		return -1;
 	return count-cnt;
 }
+#else
+/* Like read(2), read count bytes from the current filepointer
+ * position to the array pointed to by buf. */
+ssize_t sw_read(swfd_t fd, void *buf, size_t count)
+{
+	size_t dcnt, cnt;
+	struct swfd *_fd;
+	struct swcluster *c;
+	s64 coff;
+	ssize_t res;
+	int err = 0;
 
+	LOCK;
+	if (!(_fd = hash_find_swfd(fd)) || !buf || count<0) {
+		UNLOCK;
+		errno = EINVAL;
+		return -1;
+	}
+	UNLOCK;
+
+	/* Check, if we will cross the file end and correct
+	 * the count appropriately. */
+	if (_fd->file->clusters->size < _fd->offset + count)
+		count -= _fd->offset + count - _fd->file->clusters->size;
+
+	cnt = count;
+	while (cnt > 0) {
+		if (!(c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+			err = 1;
+			break;
+		}
+
+		dcnt = MIN(c->size - (_fd->offset - coff), cnt);
+		if ((res = cluster_read(c, &((char *)buf)[count-cnt], dcnt,
+					_fd->offset - coff)) != dcnt) {
+			if (res == -1)
+				err = 1;
+			else
+				cnt -= res;
+			cluster_put(c, 0);
+			break;
+		}
+
+		cluster_put(c, 0);
+		_fd->offset += dcnt;
+		cnt -= dcnt;
+	}
+
+	if (err && (count-cnt == 0))
+		return -1;
+	return count-cnt;
+}
+#endif
+
+#ifdef USE_COOKED_OPS
 /* Like write(2), write count bytes from buf starting at the current
  * filepointer position. */
 ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
@@ -548,6 +612,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	char *mem;
 	size_t dcnt, cnt = count;
 	s64 old_size = -1, old_offset;
+	int err = 0;
 
 	/* Check, if we need to expand the file. */
 	if (sw_fstat(fd, &stat) == -1)
@@ -562,8 +627,10 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
 		    || (mem = (char *)sw_mmap(NULL, PROT_WRITE,
-					      MAP_SHARED, fd)) == MAP_FAILED)
+					      MAP_SHARED, fd)) == MAP_FAILED) {
+			err = 1;
 			break;
+		}
 
 		dcnt = MIN(stat.cluster_size
 			   - (stat.offset - stat.cluster_start), cnt);
@@ -571,8 +638,10 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 		       &((const char *)buf)[count-cnt], dcnt);
 
 		if (sw_munmap(mem) == -1
-		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1)
+		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1) {
+			err = 1;
 			break;
+		}
 
 		cnt -= dcnt;
 	}
@@ -584,8 +653,78 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 			sw_ftruncate(fd, old_offset + (count-cnt));
 	}
 
+	if (err && (count-cnt == 0))
+		return -1;
 	return count-cnt;
 }
+#else
+/* Like write(2), write count bytes from buf starting at the current
+ * filepointer position. */
+ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
+{
+	size_t dcnt, cnt = count;
+	struct swfd *_fd;
+	struct swcluster *c;
+	s64 coff, old_size = -1, old_offset;
+	ssize_t res;
+	int err = 0;
+
+	LOCK;
+	if (!(_fd = hash_find_swfd(fd)) || !buf || count<0) {
+		UNLOCK;
+		errno = EINVAL;
+		return -1;
+	}
+	UNLOCK;
+
+	/* Check, if we need to expand the file. */
+	if (_fd->offset + count > _fd->file->clusters->size) {
+		old_size = _fd->file->clusters->size;
+		old_offset = _fd->offset;
+		LOCK;
+		err = file_truncate(_fd->file, _fd->offset + count);
+		UNLOCK;
+		if (err == -1)
+			return -1;
+	}
+
+	while (cnt > 0) {
+		if (!(c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+			err = 1;
+			break;
+		}
+
+		dcnt = MIN(c->size - (_fd->offset - coff), cnt);
+		if ((res = cluster_write(c, &((char *)buf)[count-cnt], dcnt,
+					 _fd->offset - coff)) != dcnt) {
+			if (res == -1)
+				err = 1;
+			else
+				cnt -= res;
+			cluster_put(c, 0);
+			break;
+		}
+
+		cluster_put(c, 0);
+		_fd->offset += dcnt;
+		cnt -= dcnt;
+	}
+
+	/* Did we have to truncate the file and were not be able
+	 * to write all data? We may have to fix the truncation here. */
+	if (count != cnt && old_size != -1) {
+		if (old_offset + (count-cnt) > old_size) {
+			LOCK;
+			file_truncate(_fd->file, old_offset + (count-cnt));
+			UNLOCK;
+		}
+	}
+
+	if (err && (count-cnt == 0))
+		return -1;
+	return count-cnt;
+}
+#endif
 
 /* Obtain information about the file - works like fstat(2), but
  * with different struct stat. Also included is information about
