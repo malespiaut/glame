@@ -301,15 +301,15 @@ dnl
 dnl check for libaudiofile, use audiofile-config, if available
 AC_CHECK_PROG(afconfig, audiofile-config, yes, no)
 ac_saved_ldflags=$LDFLAGS
-ac_saved_cflags=$CFLAGS
+ac_saved_cppflags=$CPPFLAGS
 if test $afconfig = yes; then
 	LDFLAGS="$LDFLAGS `audiofile-config --libs`"
-	CFLAGS="$CFLAGS `audiofile-config --cflags`"
+	CPPFLAGS="$CPPFLAGS `audiofile-config --cflags`"
 fi
 AC_CHECK_LIB(audiofile, afGetVirtualFrameSize, laf=yes, laf=no)
 AC_CHECK_HEADER(audiofile.h,, laf=no)
 LDFLAGS=$ac_saved_ldflags
-CFLAGS=$ac_saved_cflags
+CPPFLAGS=$ac_saved_cppflags
 if test $laf = yes; then
         if test $afconfig = yes; then
 		GLAME_LIBS="$GLAME_LIBS `audiofile-config --libs`"

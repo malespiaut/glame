@@ -28,9 +28,9 @@ fi
 dnl add the alsa library
 ALSA_LIBS="$ALSA_LIBS -lasound"
 
-ac_save_CFLAGS=$CFLAGS
+ac_save_CPPFLAGS=$CPPFLAGS
 ac_save_LDFLAGS=$LDFLAGS
-CFLAGS=$ALSA_CFLAGS
+CPPFLAGS=$ALSA_CFLAGS
 LDFLAGS=$ALSA_LIBS
 
 AC_CHECK_HEADER(alsa/asoundlib.h, ac_have_alsa=yes, ac_have_alsa=no)
@@ -71,7 +71,7 @@ AC_MSG_RESULT(no)
 ac_have_alsa=no
 ])
 
-CFLAGS=$ac_save_CFLAGS
+CPPFLAGS=$ac_save_CPPFLAGS
 LDFLAGS=$ac_save_LDFLAGS
 
 if test x$ac_have_alsa = xyes; then
