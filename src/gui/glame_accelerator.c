@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.12 2001/11/16 12:20:31 richi Exp $
+ * $Id: glame_accelerator.c,v 1.13 2001/12/16 16:14:01 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -36,6 +36,7 @@
 #include <xmlmemory.h>
 #include <parser.h>
 #include <gdk/gdk.h>
+#include <gnome.h>
 #include "util.h"
 #include "list.h"
 #include "hash.h"
@@ -388,3 +389,91 @@ guint glame_accel_install(GtkWidget *widget,
 
 	return handler;
 }
+
+
+
+GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
+{
+	GtkWidget *sw, *clist;
+	static char *labels[] = { "Scope", "Key", "Binding" };
+	struct accel *accel, *dummy;
+
+	clist = gtk_clist_new_with_titles(3, labels);
+	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
+	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 1, TRUE);
+	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 2, TRUE);
+
+	glame_accel_safe_foreach(dummy, accel) {
+		char e_scope[1024];
+		char e_key[1024];
+		char *line[3], *p, *pp;
+
+		if (strncmp(accel->spec, scope, strlen(scope)) != 0) {
+			DPRINTF("Ignoring %s (for %s)\n", accel->spec, scope);
+			continue;
+		}
+
+		/* Create scope */
+		strncpy(e_scope, accel->spec + strlen(scope), 1024);
+		p = strrchr(e_scope, '/');
+		if (p[1] == '\0')
+			p--;
+		*p = '\0';
+
+		/* Create key */
+		p = e_key;
+		if (accel->state & GDK_SHIFT_MASK)
+			p += sprintf(p, "SHIFT-");
+		if (accel->state & GDK_CONTROL_MASK)
+			p += sprintf(p, "CTRL-");
+		if (accel->state & GDK_MOD1_MASK)
+			p += sprintf(p, "MOD1-");
+		if (accel->state & GDK_MOD2_MASK)
+			p += sprintf(p, "MOD2-");
+		if (accel->state & GDK_MOD3_MASK)
+			p += sprintf(p, "MOD3-");
+		if (accel->state & GDK_MOD4_MASK)
+			p += sprintf(p, "MOD4-");
+		if (accel->state & GDK_MOD5_MASK)
+			p += sprintf(p, "MOD5-");
+		pp = strrchr(accel->spec, '/');
+		if (pp[1] == '\0')
+			pp--;
+		sprintf(p, "%s", pp+1);
+
+		line[0] = e_scope;
+		line[1] = e_key;
+		line[2] = accel->action;
+
+		gtk_clist_append(GTK_CLIST(clist), line);
+	}
+
+	sw = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(sw), clist);
+	gtk_widget_set_usize(sw, 500, 300);
+
+	return sw;
+}
+
+GtkWidget *glame_accel_edit_dialog(const char *scope, int edit,
+				   GtkWindow *parent)
+{
+	GtkWidget *dialog, *accel_widget;
+
+	accel_widget = glame_accel_edit_widget(scope, edit);
+	if (!accel_widget)
+		return NULL;
+
+	dialog = gtk_type_new(gnome_dialog_get_type());
+	gnome_dialog_append_button_with_pixmap(
+		GNOME_DIALOG(dialog), "Close", GNOME_STOCK_PIXMAP_CLOSE);
+	gnome_dialog_set_sensitive(GNOME_DIALOG(dialog), 0, TRUE);
+	if (parent)
+		gnome_dialog_set_parent(GNOME_DIALOG(dialog), parent);
+
+	gtk_container_add(GTK_CONTAINER(GNOME_DIALOG(dialog)->vbox), accel_widget);
+	gtk_widget_show_all(accel_widget);
+
+	return dialog;
+}
+

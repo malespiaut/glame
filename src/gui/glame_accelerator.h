@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.9 2001/11/22 09:12:04 richi Exp $
+ * $Id: glame_accelerator.h,v 1.10 2001/12/16 16:14:01 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -78,7 +78,7 @@ struct accel {
 /* Iterates (safe to delete actual item) through all available
  * bindings. */
 extern struct glame_list_head _glame_accel_list;
-#define glame_accel_safe_foreach(dummy, accel) glame_list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel)
+#define glame_accel_safe_foreach(dummy, entry) glame_list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, entry)
 
 
 /* Installs a gtk signal handler to the specified widget which binds
@@ -86,6 +86,17 @@ extern struct glame_list_head _glame_accel_list;
  * Returns the gtk signal identifier on success, 0 on error. */
 guint glame_accel_install(GtkWidget *widget,
 			  const char *scope, ...);
+
+
+
+/* Accelerator edit/list widget. Operations are restricted to the
+ * specified scope. Pass TRUE to allow editing, FALSE sets read-only. */
+GtkWidget *glame_accel_edit_widget(const char *scope, int edit);
+
+/* Accelerator edit/list dialog. See glame_accel_edit_widget for
+ * options. Parent is the dialog parent window. */
+GtkWidget *glame_accel_edit_dialog(const char *scope, int edit,
+				   GtkWindow *parent);
 
 
 #endif
