@@ -440,6 +440,12 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 	if (!_ifd || _ifd->file->clusters->size - _ifd->offset < count)
 		return -1;
 
+	/* We need an output file with bytes to be overridden already
+	 * there (for ~SWSENDFILE_INSERT mode). */
+	if (!(mode & SWSENDFILE_INSERT)
+	    && _ofd && _ofd->offset+count > _ofd->file->clusters->size)
+	        return -1;
+
 	/* If source and destination file are the same we do not
 	 * allow overlapping areas as we do not handle them correctly. */
 	if (_ifd && _ofd && _ifd->file == _ofd->file

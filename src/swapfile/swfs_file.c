@@ -432,7 +432,7 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 	    && pos <= coff_last) {
 		dcnt = CSIZE(f->clusters, cpos_last)
 			- (coff_last+CSIZE(f->clusters, cpos_last)
-			   - pos+count);
+			   - (pos+count));
 		_file_cluster_truncatehead(f, cpos_last,
 					   CSIZE(f->clusters, cpos_last)-dcnt);
 		count -= dcnt;
