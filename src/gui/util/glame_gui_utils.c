@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.16 2001/11/09 16:51:16 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.17 2001/12/02 17:52:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -672,8 +672,29 @@ GtkWidget* glame_load_icon_widget(const char* filename,int x, int y)
 struct network_notificator {
 	glsig_emitter_t emitter;
 	guint timeout_handler_id;
+	glsig_handler_t *delete_handler;
 	filter_t *net;
 };
+
+static void network_notificator_delete(glsig_handler_t *handler, long sig,
+				       va_list va)
+{
+	struct network_notificator *n;
+	n = (struct network_notificator *)glsig_handler_private(handler);
+
+	/* Kill timeout handler. */
+	gtk_timeout_remove(n->timeout_handler_id);
+
+	/* Kill delete handler. */
+	glsig_delete_handler(n->delete_handler);
+
+	/* Run cleanup handlers. */
+	glsig_emit(&n->emitter, GLSIG_NETWORK_DONE, n->net);
+
+	/* Cleanup notificator. */
+	glsig_delete_all(&n->emitter);
+	free(n);
+}
 
 static gint network_notificator_timeout(struct network_notificator *n)
 {
@@ -682,6 +703,9 @@ static gint network_notificator_timeout(struct network_notificator *n)
 		glsig_emit(&n->emitter, GLSIG_NETWORK_TICK, n->net);
 		return TRUE;
 	}
+
+	/* Kill delete handler. */
+	glsig_delete_handler(n->delete_handler);
 
 	/* Run cleanup handlers. */
 	glsig_emit(&n->emitter, GLSIG_NETWORK_DONE, n->net);
@@ -717,9 +741,13 @@ int glame_network_notificator_run(glsig_emitter_t *emitter, int timeout)
 		return -1;
 	}
 
-	/* Everything went ok, install gtk_timeout handler for polling. */
+	/* Everything went ok, install gtk_timeout handler for polling,
+	 * filter handler for deletion. */
 	n->timeout_handler_id = gtk_timeout_add(
 		timeout, (GtkFunction)network_notificator_timeout, n);
+	n->delete_handler = glsig_add_handler(filter_emitter(n->net),
+					      GLSIG_FILTER_DELETED,
+					      network_notificator_delete, n);
 
 	return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.40 2001/11/28 14:10:56 richi Exp $
+ * $Id: filtereditgui.c,v 1.41 2001/12/02 17:52:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -476,8 +476,7 @@ static void filteredit_gui_destroy(GtkObject *filteredit)
 {
 	GnomeAppClass* parent_class;
 	DPRINTF("Destroying filtereditgui\n");
-	if (FILTEREDIT_GUI(filteredit)->pm_playing)
-		filter_terminate(FILTEREDIT_GUI(filteredit)->canvas->net);
+	FILTEREDIT_GUI(filteredit)->deleted = TRUE;
 	parent_class = gtk_type_class(gnome_app_get_type());
 	GTK_OBJECT_CLASS(parent_class)->destroy(filteredit);
 }
@@ -491,6 +490,7 @@ static void filteredit_gui_class_init(FiltereditGuiClass *class)
 
 static void filteredit_gui_init(FiltereditGui *filteredit)
 {
+	filteredit->deleted = FALSE;
 	filteredit->canvas = NULL;
 	filteredit->toolbar = NULL;
 }
@@ -630,7 +630,11 @@ static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
 {
 	FiltereditGui *gui;
 	filter_t *n;
+
 	gui = (FiltereditGui *)glsig_handler_private(handler);
+	if (gui->deleted)
+		return;
+
 	gui->pm_playing = 0;
 	filter_terminate(gui->canvas->net);
 
@@ -777,5 +781,7 @@ static void glame_canvas_add_last_cb(GtkObject* foo, GlameCanvas* canv)
 
 static void window_close(GtkWidget *dummy, GtkWidget* window)
 {
+	if (FILTEREDIT_GUI(window)->pm_playing)
+		filter_terminate(FILTEREDIT_GUI(window)->canvas->net);
 	gtk_widget_destroy(GTK_WIDGET(window));
 }

@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.8 2001/11/05 10:19:08 richi Exp $
+ * $Id: filtereditgui.h,v 1.9 2001/12/02 17:52:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -50,6 +50,8 @@ struct _FiltereditGuiClass {
 
 struct _FiltereditGui {
 	GnomeApp parent_object;
+
+	int deleted;
 
 	GlameCanvas *canvas;
 	GtkToolbar *toolbar;
