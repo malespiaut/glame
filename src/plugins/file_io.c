@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.79 2002/02/17 13:53:31 richi Exp $
+ * $Id: file_io.c,v 1.80 2002/03/25 13:26:47 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -261,25 +261,34 @@ static int read_file_f(filter_t *n)
 
 	while(fcnt){
 		FILTER_CHECK_STOP;
-		if (!(frames=afReadFrames(RWA(n)->file, AF_DEFAULT_TRACK, 
-					  buffer,
-					  MIN(GLAME_WBUFSIZE, fcnt))))
+		frames = afReadFrames(RWA(n)->file, AF_DEFAULT_TRACK, 
+				      buffer,
+				      MIN(GLAME_WBUFSIZE, fcnt));
+		if (frames == 0) {
+			DPRINTF("Umm - this should not happen? Read less than expected.\n");
 			break;
+		}
+		if (frames == -1)
+			FILTER_ERROR_STOP("Error reading");
+
 		pos += frames;
+		fcnt -= frames;
 		filterparam_val_set_pos(pos_param, pos);
-		fcnt-=frames;
-		for (i=0; i < RWA(n)->channelCount; i++){
+
+		/* allocate sbufs */
+		for (i=0; i<RWA(n)->channelCount; i++) {
 			track[i].buf =
 				sbuf_make_private(sbuf_alloc(frames,n));
 			track[i].pos = 0;
 		}
-		i=0;
-		while (i < frames*RWA(n)->channelCount)
-			for (j=0; j < RWA(n)->channelCount; j++)
-				sbuf_buf(track[j].buf)[track[j].pos++] =
-					buffer[i++] ;
-
-		for (i=0; i < RWA(n)->channelCount; i++)
+		/* de-interleave data into sbufs */
+		i = 0;
+		while (i<frames*RWA(n)->channelCount)
+			for (j=0; j<RWA(n)->channelCount; j++)
+				sbuf_buf(track[j].buf)[track[j].pos++]
+					= buffer[i++];
+		/* queue sbufs */
+		for (i=0; i<RWA(n)->channelCount; i++)
 			sbuf_queue(track[i].p, track[i].buf);
 	}
 
