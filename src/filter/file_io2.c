@@ -1,6 +1,6 @@
 /*
  * file_io2.c
- * $Id: file_io2.c,v 1.1 2000/02/20 15:26:29 richi Exp $
+ * $Id: file_io2.c,v 1.2 2000/02/21 09:35:57 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Günther
  *
@@ -63,6 +63,13 @@ typedef struct {
 } rw_t;
 
 typedef struct {
+	filter_pipe_t   *p;
+	filter_buffer_t *buf;
+	int             pos;
+	int		mapped;
+} track_t;
+
+typedef struct {
 	rw_t *rw;
 	int initted;
 	union {
@@ -71,13 +78,20 @@ typedef struct {
 		} dummy;
 #ifdef HAVE_AUDIOFILE
 		struct {
-			int dummy;
+			AFfilehandle    file;
+			AFframecount    frameCount;
+			int             sampleFormat,sampleWidth,channelCount,frameSize;
+			int		sampleRate;
+			track_t         *track;
+			short		*buffer;
+			char		*cbuffer;
 			/* put your shared state stuff here */
 		} audiofile;
 #endif
 	} u;
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->private))
+#define RWAUDIO(node) (RWPRIV(node)->u.audiofile)
 
 /* the readers list */
 static struct list_head readers;
@@ -168,6 +182,7 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		list_foreach(&readers, rw_t, list, r) {
 			if (r->prepare(n, name) != -1) {
 				RWPRIV(n)->rw = r;
+				RWPRIV(n)->initted=1;
 				goto reconnect;
 			}
 		}
@@ -220,19 +235,102 @@ int file_io2_register()
 
 /* The actual readers.
  */
-
+#ifdef HAVE_AUDIOFILE
 int audiofile_prepare(filter_node_t *n, const char *filename)
 {
-	return -1;
+	/* Check for idiot :) */
+	if ((RWAUDIO(n).file!=AF_NULL_FILEHANDLE)){
+		/* uff we already opened a file ?!*/
+		/* FIXME can this ever happen ? */
+		afCloseFile(RWAUDIO(n).file);
+		free(RWAUDIO(n).buffer);
+		free(RWAUDIO(n).track);
+	}
+	if ((RWAUDIO(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
+		DPRINTF("File not found!\n"); 
+		return -1; 
+	}
+	RWAUDIO(n).frameCount=afGetFrameCount(RWAUDIO(n).file, AF_DEFAULT_TRACK);
+	RWAUDIO(n).channelCount = afGetChannels(RWAUDIO(n).file, AF_DEFAULT_TRACK);
+	afGetSampleFormat(RWAUDIO(n).file, AF_DEFAULT_TRACK, &(RWAUDIO(n).sampleFormat), &(RWAUDIO(n).sampleWidth));
+	RWAUDIO(n).frameSize = afGetFrameSize(RWAUDIO(n).file, AF_DEFAULT_TRACK, 1);
+	RWAUDIO(n).sampleRate = (int)afGetRate(RWAUDIO(n).file, AF_DEFAULT_TRACK);
+	if ((RWAUDIO(n).sampleFormat == AF_SAMPFMT_TWOSCOMP) 
+			|| (RWAUDIO(n).sampleFormat == AF_SAMPFMT_UNSIGNED)){
+		return -1;
+	}
+	if ((RWAUDIO(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWAUDIO(n).frameSize))==NULL){
+		return -1;
+	}
+	RWAUDIO(n).cbuffer=(char *)RWAUDIO(n).buffer;
+	if (!(RWAUDIO(n).track=ALLOCN(RWAUDIO(n).channelCount,track_t))){
+		return -1;
+	}
+	return 0;
 }
 int audiofile_connect(filter_node_t *n, filter_pipe_t *p)
 {
-	return -1;
+	int i;
+	for(i=0;(i<RWAUDIO(n).channelCount) && (RWAUDIO(n).track[i].mapped);i++);
+	if (i>=RWAUDIO(n).channelCount){
+		/* Check if track is already mapped ?! Would be strange, but ... FIXME*/
+		for(i=0;i<RWAUDIO(n).channelCount;i++)
+			if ((RWAUDIO(n).track[i].mapped) && RWAUDIO(n).track[i].p==p)
+				return 0;
+		
+		/* Otherwise error */
+		return -1;
+	} else {
+		filterpipe_settype_sample(p,RWAUDIO(n).sampleRate,
+			(M_PI/(RWAUDIO(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
+		RWAUDIO(n).track[i].p=p;
+		RWAUDIO(n).track[i].mapped=1;
+	}	
+	
+	return 0;	
 }
 int audiofile_f(filter_node_t *n)
 {
-	return -1;
+	int frames,i,j;
+	filter_pipe_t *p_out;
+
+	FILTER_AFTER_INIT;
+
+	while(pthread_testcancel(),RWAUDIO(n).frameCount){
+		if (!(frames=afReadFrames(RWAUDIO(n).file, AF_DEFAULT_TRACK, RWAUDIO(n).buffer,
+					  MIN(GLAME_WBUFSIZE,RWAUDIO(n).frameCount))))
+			break;
+		RWAUDIO(n).frameCount-=frames;
+		for(i=0;i<RWAUDIO(n).channelCount;i++){
+			RWAUDIO(n).track[i].buf=sbuf_alloc(frames,n);
+			RWAUDIO(n).track[i].buf=sbuf_make_private(RWAUDIO(n).track[i].buf);
+			RWAUDIO(n).track[i].pos=0;
+		}
+		i=0;
+		while(i<frames*RWAUDIO(n).channelCount){
+			for(j=0;j<RWAUDIO(n).channelCount;j++){
+				switch(RWAUDIO(n).sampleWidth) {
+				case 16 :
+					sbuf_buf(RWAUDIO(n).track[j].buf)[RWAUDIO(n).track[j].pos++]=SHORT2SAMPLE(RWAUDIO(n).buffer[i++]);
+					break;
+				case  8 :
+					sbuf_buf(RWAUDIO(n).track[j].buf)[RWAUDIO(n).track[j].pos++]=CHAR2SAMPLE(RWAUDIO(n).cbuffer[i++]);
+					break;
+				}
+			}
+		}
+		for(i=0;i<RWAUDIO(n).channelCount;i++) sbuf_queue(RWAUDIO(n).track[i].p,RWAUDIO(n).track[i].buf);
+	}
+	filternode_foreach_output(n,p_out) 
+		sbuf_queue(p_out,NULL);
+	FILTER_BEFORE_CLEANUP;
+	return 0;
 }
+
 void audiofile_cleanup(filter_node_t *n)
 {
+	free(RWAUDIO(n).buffer);
+	free(RWAUDIO(n).track);
+	afCloseFile(RWAUDIO(n).file);	
 }
+#endif

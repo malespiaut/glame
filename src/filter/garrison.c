@@ -20,6 +20,7 @@
  */
 
 #include "filter.h"
+#include <math.h>
 
 /* This filter positions a mono sound in the stereo field */
 
