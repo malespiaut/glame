@@ -1,8 +1,8 @@
-#ifndef _FOOBAR_HASH_H
-#define _FOOBAR_HASH_H
+#ifndef _HASH_H
+#define _HASH_H
 
 /*
- * foobar_hash.h
+ * hash.h
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -26,89 +26,81 @@
 #include <config.h>
 #endif
 
-#include "FOOBAR.h"
-
-/* #define inline */
-
-/* customize, i.e. duplicate/prefix the macros/functions
- *
- * basic functions are
- *  - hash_alloc_foobar
- *  - hash_free_foobar
- *  - hash_add_foobar
- *  - hash_remove_foobar
- *  - hash_find_foobar
- *
- * you need to fix
- *  - struct foobar
- *  - input, _foobar_hashfn, _foobar_compare
- *
- * foobartype needs the fields
- *  - foobartype *next_hash
- *  - foobartype **pprev_hash
- *
- * ATM the hash is set up as "string" hash
+/* Static hashtable generator, use like
+ *   struct node {
+ *       struct node **pprev_node_hash;
+ *       struct node *next_node_hash;
+ *       int id;
+ *       ...
+ *   };
+ *   HASH(node, struct node, 8,
+ *        (node->id == id),
+ *        (id),
+ *        (node->id),
+ *        int id)
+ * to have a struct node hash with id as the hash key and a
+ * 1<<8 sized hashtable. The following functions are created:
+ *   hash_add_node(struct node *)
+ *   hash_remove_node(struct node *)
+ *   hash_find_node(int id)
+ *   hash_init_node(struct node *)
+ *   is_hashed_node(struct node *)
+ * 
+ * So the HASH macro would have the following prototype:
+ * HASH(symbol name, type recordtype, int hashbits, expr comparison,
+ *      expr hash(...), expr hash(recordtype), hash arguments...)
  */
 
 
-#define FOOBAR_HASH_BITS (8)
-#define FOOBAR_HASH_SIZE (1 << FOOBAR_HASH_BITS)
-extern foobartype **foobar_hash_table;
 
-#define hash_alloc_foobar() do { \
-  foobar_hash_table = (foobartype **)malloc(FOOBAR_HASH_SIZE*sizeof(foobartype *)); \
-  memset(foobar_hash_table, 0, FOOBAR_HASH_SIZE*sizeof(foobartype *)); \
-} while (0)
-#define hash_free_foobar() do { \
-  free(foobar_hash_table); \
-} while (0)
-
-static inline int _foobar_hashfn(const char *str)
-{
-  int i, val = 0;
-
-  for (i=0; i<strlen(str); i++)
-    val += str[i];
-
-  return (val & (FOOBAR_HASH_SIZE-1));
-}
-#define _foobar_compare(str, n) (strcmp((n)->name, str) == 0)
-
-
-#define foobar_hash(str) (foobar_hash_table + _foobar_hashfn(str))
-
-static inline foobartype *__find_foobar(const char *str, foobartype *t)
-{
-  goto inside;
-
-  for (;;) { 
-    t = t->next_hash;
-inside:
-    if (!t)
-      break;
-    if (_foobar_compare(str, t))
-      break;
-  }
-  return t;
-}
-#define hash_find_foobar(str) __find_foobar(str, *(foobar_hash(str)))
-
-#define __hash_add_foobar(t, tt) do { \
-  if (((t)->next_hash = *(tt)) != NULL) \
-    (*(tt))->pprev_hash = &(t)->next_hash; \
-  *(tt) = (t); \
-  (t)->pprev_hash = (tt); \
-} while (0)
-#define hash_add_foobar(t) __hash_add_foobar(t, foobar_hash((t)->name))
-
-#define hash_remove_foobar(t) do { \
-  if ((t)->pprev_hash) { \
-    if ((t)->next_hash) \
-      (t)->next_hash->pprev_hash = (t)->pprev_hash; \
-    *(t)->pprev_hash = (t)->next_hash; \
-    (t)->pprev_hash = NULL; \
+#define HASH(FOOBAR, FOOBARtype, HASH_BITS, HASH_COMPARE, HASH_HASHFN_FROM_PARAMS, HASH_HASHFN_FROM_TYPE, params...) \
+\
+static FOOBARtype *FOOBAR##_hash_table[1<<HASH_BITS]; \
+\
+static inline FOOBARtype *hash_find_##FOOBAR(params) \
+{ \
+  FOOBARtype *FOOBAR = FOOBAR##_hash_table[(HASH_HASHFN_FROM_PARAMS)&((1<<HASH_BITS)-1)]; \
+  goto inside; \
+\
+  for (;;) { \
+    FOOBAR = FOOBAR->next_##FOOBAR##_hash; \
+inside: \
+    if (!FOOBAR) \
+      break; \
+    if (HASH_COMPARE) \
+      break; \
   } \
-} while (0)
+  return FOOBAR; \
+} \
+\
+static inline void hash_add_##FOOBAR(FOOBARtype *FOOBAR) \
+{ \
+        FOOBARtype **tt = &FOOBAR##_hash_table[(HASH_HASHFN_FROM_TYPE)&((1<<HASH_BITS)-1)]; \
+	if (((FOOBAR)->next_##FOOBAR##_hash = *(tt)) != NULL) \
+		(*(tt))->pprev_##FOOBAR##_hash = &(FOOBAR)->next_##FOOBAR##_hash; \
+	*(tt) = (FOOBAR); \
+	(FOOBAR)->pprev_##FOOBAR##_hash = (tt); \
+} \
+\
+static inline void hash_remove_##FOOBAR(FOOBARtype *t) \
+{ \
+	if (!t->pprev_##FOOBAR##_hash) \
+		return; \
+	if (t->next_##FOOBAR##_hash) \
+		t->next_##FOOBAR##_hash->pprev_##FOOBAR##_hash = t->pprev_##FOOBAR##_hash; \
+	*t->pprev_##FOOBAR##_hash = t->next_##FOOBAR##_hash; \
+	t->pprev_##FOOBAR##_hash = NULL; \
+} \
+\
+static inline void hash_init_##FOOBAR(FOOBARtype *t) \
+{ \
+	t->pprev_##FOOBAR##_hash = NULL; \
+} \
+\
+static inline int is_hashed_##FOOBAR(FOOBARtype *t) \
+{ \
+	return t->pprev_##FOOBAR##_hash != NULL; \
+}
 
 
 #endif
