@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.10 2002/01/01 17:55:42 mag Exp $
+ * $Id: normalize.c,v 1.11 2002/01/01 18:29:40 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -48,7 +48,7 @@ struct task_entry {
 
 struct normalize_s {
 	GtkWidget *dialog, *appbar, *text, *spin_db, *spin_abs, *spin_freq;
-	GtkWidget *recalc_button, *simulate_button, *ok_button;
+	GtkWidget *analyze_button, *simulate_button, *ok_button;
 	task_entry_t *head;
 	gpsm_item_t *grp;
 	long total_size, start, length;
@@ -142,7 +142,7 @@ static gint paranoia_cb(GtkWidget *bla, struct normalize_s* ns) {
 }
 
 static void simulate_cb(GtkWidget *, struct normalize_s*);
-static void recalc_cb(GtkWidget *, struct normalize_s*);
+static void analyze_cb(GtkWidget *, struct normalize_s*);
 static void normalize_cb(GtkWidget *, struct normalize_s*);
 
 void normalize_dialog(struct normalize_s* norms)
@@ -373,7 +373,7 @@ void normalize_dialog(struct normalize_s* norms)
   gtk_widget_show(hbox1);
   gtk_box_pack_start (GTK_BOX (vbox1), hbox1, FALSE, FALSE, 0);
 
-  norms->recalc_button = button5 = gtk_button_new_with_label (_("Recalc"));
+  norms->analyze_button = button5 = gtk_button_new_with_label (_("Analyze"));
   gtk_widget_ref (button5);
   gtk_object_set_data_full (GTK_OBJECT (dialog1), "button5", button5,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -381,7 +381,7 @@ void normalize_dialog(struct normalize_s* norms)
   gtk_box_pack_start (GTK_BOX (hbox1), button5, TRUE, TRUE, 0);
 
   gtk_signal_connect(GTK_OBJECT(button5), "clicked",
-		     (GtkSignalFunc)recalc_cb, norms);
+		     (GtkSignalFunc)analyze_cb, norms);
 
   norms->simulate_button = button4 = gtk_button_new_with_label (_("Simulate"));
   gtk_widget_ref (button4);
@@ -691,17 +691,17 @@ static void simulate_cb(GtkWidget *button, struct normalize_s* ns) {
 static void normalize_cb(GtkWidget *button, struct normalize_s* ns) {
 	DPRINTF("working like a dog every night and day ;)\n");
 	gtk_widget_set_sensitive(ns->ok_button, FALSE);
-	gtk_widget_set_sensitive(ns->recalc_button, FALSE);
+	gtk_widget_set_sensitive(ns->analyze_button, FALSE);
 	gtk_widget_set_sensitive(ns->simulate_button, FALSE);
 	normalize_do_task(ns);
 }
 
-static void recalc_cb(GtkWidget *button, struct normalize_s* ns) {
-	gtk_widget_set_sensitive(ns->recalc_button, FALSE);
+static void analyze_cb(GtkWidget *button, struct normalize_s* ns) {
+	gtk_widget_set_sensitive(ns->analyze_button, FALSE);
 	gtk_widget_set_sensitive(ns->ok_button, FALSE);
 	gtk_widget_set_sensitive(ns->simulate_button, FALSE);
 	analyze_rms(ns);
-	gtk_widget_set_sensitive(ns->recalc_button, TRUE);
+	gtk_widget_set_sensitive(ns->analyze_button, TRUE);
 	gtk_widget_set_sensitive(ns->ok_button, TRUE);
 	gtk_widget_set_sensitive(ns->simulate_button, TRUE);
 }
@@ -726,14 +726,6 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 
 
 	DPRINTF("Size of all selected tracks: %ld\n", ns->total_size);
-
-	gtk_widget_set_sensitive(ns->ok_button, FALSE);
-	gtk_widget_set_sensitive(ns->recalc_button, FALSE);
-	gtk_widget_set_sensitive(ns->simulate_button, FALSE);
-	analyze_rms(ns);
-	gtk_widget_set_sensitive(ns->ok_button, TRUE);
-	gtk_widget_set_sensitive(ns->recalc_button, TRUE);
-	gtk_widget_set_sensitive(ns->simulate_button, TRUE);
 
 	return 0;
 }
