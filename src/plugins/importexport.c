@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.7 2001/08/09 15:08:23 mag Exp $
+ * $Id: importexport.c,v 1.8 2001/09/10 09:30:12 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -48,10 +48,6 @@ PLUGIN_SET(importexport, "import export")
 static char ftlabel[8][10] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
 static char qlabel[4][7] = { "8 bit", "16 bit", "24 bit", "float" };
 
-/* just define these as long as audiofile can't support it all */
-#define GL_FILE_MP3 1001
-#define GL_FILE_OGG 1002
-
 int get_filetype_by_name(char *name) {
 	char *suffix;
 
@@ -60,21 +56,26 @@ int get_filetype_by_name(char *name) {
 	
 	if(strcmp(suffix, ".wav")==0)
 		return AF_FILE_WAVE;
-	
+#ifdef AF_FILE_AIFF	
 	if(strcmp(suffix, ".aiff")==0)
 		return AF_FILE_AIFF;
-	
+#endif
+#ifdef AF_FILE_NEXTSND	
 	if(strcmp(suffix, ".snd")==0)
 		return AF_FILE_NEXTSND;
-	
+#endif
+#ifdef AF_FILE_IRCAM	
 	if(strcmp(suffix, ".sf")==0)
 		return AF_FILE_IRCAM;
-	
+#endif
+#ifdef AF_FILE_OGG
 	if(strcmp(suffix, ".ogg")==0)
-		return GL_FILE_OGG;
-
+		return AF_FILE_OGG;
+#endif
+#ifdef AF_FILE_MP3
 	if(strcmp(suffix, ".mp3")==0)
-		return GL_FILE_MP3;
+		return AF_FILE_MP3;
+#endif
 
 	return -1;
 }
