@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.10 2002/01/01 16:45:53 mag Exp $
+ * $Id: importexport.c,v 1.11 2002/01/01 17:56:19 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -757,9 +757,6 @@ struct exp_s {
 
 static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *exp)
 {
-	GtkWidget *act;
-	GList *list;
-
 	exp->compression = glame_menu_get_active_index(menu);
 	DPRINTF("Compression Type %d chosen\n", exp->compression);
 
@@ -816,8 +813,6 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 
 static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
 {
-	GtkWidget *act;
-	GList *list;
 	int val;
 
 	val = glame_menu_get_active_index(menu);
