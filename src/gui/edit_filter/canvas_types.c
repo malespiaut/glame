@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.7 2001/03/02 00:05:34 xwolf Exp $
+ * $Id: canvas_types.c,v 1.8 2001/03/02 10:28:13 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -224,7 +224,7 @@ glame_canvas_new(gui_network *n)
 	GlameCanvas *g;
 	g = gtk_type_new(glame_canvas_get_type());
 	g->net = n;
-	n->canvas = g;
+	n->canvas = GTK_WIDGET(g);
 	return GTK_WIDGET(g);
 }
 
