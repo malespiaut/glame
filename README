@@ -1,17 +1,17 @@
-This is GLAME 1.1.0 - GNU/Linux Audio Mechanics beta release.
+This is GLAME 2.0.0 - GNU/Linux Audio Mechanics stable release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
 and compatible systems. Supported platforms are Linux, BSD and IRIX.
 
 Authors in chronological order
-	mag, XWolf, richi, nold, navratil
+	mag, XWolf, richi, nold, Laurent
 with their real names
 	Alexander Ehlert,
 	Johannes Hirche,
 	Richard Guenther,
 	Daniel Kobras,
-	Joe Navratil
+	Laurent Georget
 
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/ or http://www.glame.de/
@@ -21,7 +21,7 @@ GLAME, join the mailing list <glame-users@lists.sourceforge.net>.
 Subscription information can be found at 
 http://lists.sourceforge.net/mailman/listinfo/glame-users
 
-Tuebingen 16.07.2001
+Tuebingen Sun, 09 Jan 2005
 
 
 Quick Start for the impatient
@@ -58,15 +58,15 @@ source can be found in the src/plugins directory.
 
 Requirements
 ============
-- Supported platforms so far are Linux, IRIX6.5 and BSD, we occasionally try
-  to make it compile on Solaris, AIX and HP-UX. Supported (tested)
-  architectures are Intel x86 compatible, PowerPC and MIPS (IRIX only).
+- The only supported platform so far is GNU/Linux, but Glame may
+  compile and run on any sufficiently POSIX compatible system.
+  Supported (tested) architectures are Intel x86 compatible and PowerPC.
   On all platforms gcc is required to compile GLAME, using version
-  2.95.2 or later is highly recommended.
-- You may need glibc2.x on Linux, other versions were not tested.
-- For the GUI part, you need recent versions of the Gtk+-2.0 and GNOME-2.0
-  libraries with deprecated features built in.
-  configure --disable-gui is your friend...
+  3.3 or later is highly recommended.
+- You need glibc-2.x on Linux.
+- For the GUI part, you need recent versions of the Gtk+-2.4 and GNOME-2.6
+  libraries with deprecated features built in.  Older libraries from the
+  2.x series may work but were not tested.
 - The scripting part makes use of guile; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
   expected (latest 1.4 and latest 1.6 releases are known to work).
@@ -77,18 +77,17 @@ Requirements
 - For full-featured I/O to files a recent version of libaudiofile is
   needed (at least 0.2.2 is required for libaudiofile support to be
   included).
-- To enable Mp3 and Ogg importing support you need to have libmad and
-  libvorbisfile of at least version 1.0 installed.
-- For full-featured I/O to your soundcard use ALSA version 0.9, though
+- To enable Mp3 and Ogg import and export support you need to have libmad and
+  libvorbisfile and libvorbisenc of at least version 1.0 installed.
+- For full-featured I/O to your soundcard use ALSA version 1.0, though
   OSS may suffice, too.
 
 
-Current Status (as of version 1.1.0):
+Current Status (as of version 2.0.0):
 =====================================
 - usable GUI - src/gui/glame
   * wave editor
   * filter network editor for customizing filters
-  * timeline (preliminary) for sequencing
 - usable console UI - src/cglame
   * scripting of GLAME via the Scheme language
 - user and development documentation
