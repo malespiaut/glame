@@ -66,7 +66,7 @@ Summary of known bugs and misfeatures in GLAME
   - just restart glame in this case and it will try to recover (can you
   say fsck?).
  
-07-15-01 Modifications made in the timeline GUI and the swapfile GUI are
+07-15-01 Modifications made in the swapfile GUI are
   not reflected by existing waveedit views. To work around this re-open
   affected waveedit views.
 
@@ -78,7 +78,7 @@ Summary of known bugs and misfeatures in GLAME
   place from the GUI where you can issue the play command.
 
 07-15-01 Closing windows while there is action going on may lead to
-  segfaults. Dont do that.
+  segfaults. Don't do that.
 
 07-15-01 Not all (nearly none) parameters of filternetworks show realtime
   response on modification while a network is running.
