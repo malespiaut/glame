@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.6 2001/07/12 08:45:40 richi Exp $
+ * $Id: apply.c,v 1.7 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -118,7 +118,7 @@ static void preview_start(struct apply_plugin_s *a)
 	/* Create the preview network. */
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile)
-		if (net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length) == -1) {
+		if (!net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length)) {
 			errmsg = "Unable to create input node";
 			goto err;
 		}
@@ -193,7 +193,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile) {
 		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
-		swout = net_add_gpsm_output(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
+		swout = net_add_gpsm_output(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
 		e = filter_creat(a->effect);
 		filter_add_node(a->net, e, "effect");
 		if (!swin || !swout || !e) {
@@ -325,9 +325,9 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 
 	/* The signals. */
 	gtk_signal_connect(GTK_OBJECT(a->dialog), "delete_event",
-			   delete_cb, a);
+			   (GtkSignalFunc)delete_cb, a);
 	gtk_signal_connect(GTK_OBJECT(a->dialog), "key_press_event",
-			   key_cb, a);
+			   (GtkSignalFunc)key_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), PREVIEW,
 				    preview_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), APPLY,

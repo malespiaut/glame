@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.19 2001/07/10 23:42:57 xwolf Exp $
+ * $Id: canvasport.c,v 1.20 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -184,7 +184,7 @@ gboolean
 glame_canvas_port_moved_cb(GlameCanvasFilter* f, double dx, double dy, GlameCanvasPort *p)
 {
 	if(!hash_find_gcport(p->port)){
-		gtk_signal_disconnect_by_data(f,p);
+		gtk_signal_disconnect_by_data(GTK_OBJECT(f), p);
 		return TRUE;
 	}
 	glame_canvas_port_move(p, dx, dy);

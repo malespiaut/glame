@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.12 2001/07/06 12:14:53 mag Exp $
+ * $Id: timeline.c,v 1.13 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -467,7 +467,8 @@ static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 		/* Recurse. */
 		gpsm_grp_foreach_item(item, it)
 			handle_grp_add_item(GNOME_CANVAS_GROUP(grp), it);
-		gtk_signal_connect(GTK_OBJECT(grp),"event",group_event,NULL);
+		gtk_signal_connect(GTK_OBJECT(grp), "event",
+				   (GtkSignalFunc)group_event,NULL);
 
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		TimelineCanvasFile *file;
@@ -478,7 +479,8 @@ static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 		TIMELINE_CANVAS_ITEM(file)->gpsm_handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
 			handle_file, file);
-		gtk_signal_connect(GTK_OBJECT(file),"event",file_event,NULL);
+		gtk_signal_connect(GTK_OBJECT(file), "event",
+				   (GtkSignalFunc)file_event, NULL);
 	}
 }
 
@@ -602,11 +604,12 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 		handle_root, window);
 
 	/* Add handler for enter events to track the active timeline. */
-	gtk_signal_connect(GTK_OBJECT(window->canvas),"event", root_event, NULL);
+	gtk_signal_connect(GTK_OBJECT(window->canvas),"event",
+			   (GtkSignalFunc)root_event, NULL);
 	gtk_signal_connect(GTK_OBJECT(window->canvas), "enter_notify_event",
-			   handle_timeline_enter, window);
+			   (GtkSignalFunc)handle_timeline_enter, window);
 	gtk_signal_connect(GTK_OBJECT(window->canvas), "destroy",
-			   handle_timeline_destroy, window);
+			   (GtkSignalFunc)handle_timeline_destroy, window);
 
 
 	/* Construct the toplevel window with ruler and toolbar
@@ -625,9 +628,9 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	gtk_widget_show(swindow);
 	gtk_widget_show(vbox);
 	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(swindow))), "changed",
-			   ruler_update_cb, window);
+			   (GtkSignalFunc)ruler_update_cb, window);
 	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(swindow))), "value_changed",
-			   ruler_update_cb, window);
+			   (GtkSignalFunc)ruler_update_cb, window);
 	gnome_app_set_contents(GNOME_APP(window), vbox);
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
@@ -655,5 +658,5 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	/* Add accelerator handler. */
 	glame_accel_install(GTK_WIDGET(window), "timeline", NULL);
 
-	return window;
+	return GTK_WIDGET(window);
 }

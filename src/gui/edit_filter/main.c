@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.8 2001/05/17 22:38:36 xwolf Exp $
+ * $Id: main.c,v 1.9 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	gnome_init("glame", VERSION, argc, argv);
 
 	/* init glame */
-	glame_init(gui_main);
+	glame_init(gui_main, argc, argv);
 
 	/* not reached */
 	return 0;

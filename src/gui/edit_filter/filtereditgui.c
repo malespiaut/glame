@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.29 2001/07/12 08:47:15 richi Exp $
+ * $Id: filtereditgui.c,v 1.30 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -25,14 +25,16 @@
 #include <stdio.h>
 #include <math.h>
 #include <gnome.h>
-#include "glamecanvas.h"
-#include "canvasitem.h"
 #ifdef HAVE_LIBSTROKE
 #include <stroke.h>
 #endif
 #include "glscript.h"
 #include "util/glame_gui_utils.h"
 #include "glame_accelerator.h"
+#include "glamecanvas.h"
+#include "canvasitem.h"
+#include "filtereditgui.h"
+
 /* FIXME remove these later on */
 guint nPopupTimeout;
 gboolean bMac;
@@ -387,9 +389,8 @@ static SCM gls_editfilter_view_all()
 	return SCM_UNSPECIFIED;
 }
 
-static SCM gls_editfilter_delete_selection(SCM list)
+static SCM gls_editfilter_delete_selection()
 {
-
 	GList *iter;
 	iter = g_list_first(glcanvas->selectedItems);
 	while(iter){
@@ -568,7 +569,12 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 
 void glame_canvas_execute_cb(GtkObject* foo,GlameCanvas* canv)
 {
-	DPRINTF("foo\n");
+	/* FIXME:
+	 * - we want to have gpsm notified of any swapfile changes
+	 *   at network finish/stop time (scan for swapfile_out nodes
+	 *   inside the network and look for the changed_start/changed_end
+	 *   parameters)
+	 */
 	glame_gui_play_network(canv->net,canv,FALSE /* FIXME TRUE */, NULL,NULL,  "Start", "Pause", "Stop", 0);
 }
 

@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.24 2001/07/11 22:51:20 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.25 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -342,7 +342,9 @@ GlameCanvasGroup* glame_canvas_group_root(GlameCanvasGroup* group)
 {
 	if(!GLAME_IS_CANVAS_GROUP(GNOME_CANVAS_ITEM(group)->parent))
 		return group;
-	else glame_canvas_group_root(GNOME_CANVAS_ITEM(group)->parent);
+	else 
+		return glame_canvas_group_root(
+			GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(group)->parent));
 }
 
 guint glame_canvas_group_root_id(GlameCanvasGroup* group)
@@ -367,8 +369,6 @@ void glame_canvas_group_move(GlameCanvasGroup* group, double x, double y)
 
 void glame_canvas_group_item_moved_cb(GlameCanvasFilter* item, double x, double y, GlameCanvasGroup* group)
 {
-	
-	GList *list;
 	GlameCanvasGroup* root = glame_canvas_group_root(group);
 	
 	glame_canvas_group_move(root,x,y);
@@ -386,11 +386,12 @@ void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 	while(iter){
 		if(GLAME_IS_CANVAS_FILTER(iter->data)){
 			GlameCanvasGroup *newgrp;
-		DPRINTF("found filter: %s\n",filter_name(GLAME_CANVAS_FILTER(iter->data)->filter));
-			newgrp = GLAME_CANVAS_GROUP(gnome_canvas_item_new(root,
-											    glame_canvas_group_get_type(),
-											    NULL));
-			gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(iter->data),newgrp);
+			DPRINTF("found filter: %s\n",filter_name(GLAME_CANVAS_FILTER(iter->data)->filter));
+			newgrp = GLAME_CANVAS_GROUP(gnome_canvas_item_new(
+				root,
+				glame_canvas_group_get_type(),
+				NULL));
+			gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(iter->data),GNOME_CANVAS_GROUP(newgrp));
 		}else if(GLAME_IS_CANVAS_GROUP(iter->data)){
 			DPRINTF("Reparenting group %d to root\n",GLAME_CANVAS_GROUP(iter->data)->id);
 			gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(iter->data),root);
@@ -560,7 +561,7 @@ void glame_canvas_view_all(GlameCanvas* canv)
 
 void glame_canvas_select_add(GlameCanvas* canvas, GlameCanvasFilter* filter)
 {
-	GlameCanvasGroup* root = glame_canvas_group_root(filter);
+	GlameCanvasGroup* root = glame_canvas_group_root(GLAME_CANVAS_GROUP(filter));
 	glame_canvas_filter_set_selected(filter,TRUE);
 	if(!g_list_find(canvas->selectedItems,root)){
 		canvas->selectedItems = g_list_append(canvas->selectedItems,root);
@@ -577,7 +578,6 @@ void glame_canvas_select_exclusive(GlameCanvas* canvas, GlameCanvasFilter* filte
 void glame_canvas_select_clear(GlameCanvas *canvas)
 {
 	GList* iter;
-	GList* removed = NULL;
 
 	iter = g_list_first(canvas->selectedItems);
 	while(iter){
@@ -596,17 +596,17 @@ void glame_canvas_select_unselect(GlameCanvas* canvas, GlameCanvasFilter* filter
 
 void glame_canvas_group_selected(GlameCanvas* canvas)
 {
-	GList * iter, *list;
+	GList *list;
 	GlameCanvasGroup* group;
-	gboolean found = FALSE;
-	GlameCanvasGroup* newgroup;
+
 	group = GLAME_CANVAS_GROUP(gnome_canvas_item_new(gnome_canvas_root(GNOME_CANVAS(canvas)),
 							 glame_canvas_group_get_type(),
 							 NULL));
 	list = g_list_first(canvas->selectedItems);
 	while(list){
 		DPRINTF("reparenting %d to %d\n",glame_canvas_group_root_id(list->data),glame_canvas_group_root_id(group));
-		gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(list->data),group);
+		gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(list->data),
+					   GNOME_CANVAS_GROUP(group));
 		list = g_list_next(list);
 	}
 	glame_canvas_select_clear(canvas);

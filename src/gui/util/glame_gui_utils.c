@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.6 2001/07/10 09:33:32 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.7 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -282,8 +282,8 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 			   returnbuffer);
 	if (pattern)
 		gtk_signal_connect_after(GTK_OBJECT(fileEntry), "browse-clicked",
-					 glame_dialog_file_request_browse_cb,
-					 pattern);
+					 (GtkSignalFunc)glame_dialog_file_request_browse_cb,
+					 (gpointer)pattern);
         create_label_widget_pair(dialogVbox, "Filename", fileEntry);
 	return dialog;
 }

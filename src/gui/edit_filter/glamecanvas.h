@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.13 2001/07/11 22:51:20 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.14 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -144,5 +144,17 @@ struct _GlameCanvasGroupClass {
 	GnomeCanvasGroupClass parent_class;
 };
 
-#endif
 
+guint glame_canvas_group_root_id(GlameCanvasGroup* group);
+void glame_canvas_group_delete(GlameCanvasGroup* group);
+void glame_canvas_group_select(GlameCanvasGroup* group);
+void glame_canvas_group_unselect(GlameCanvasGroup* group);
+void glame_canvas_group_selected(GlameCanvas* canvas);
+void glame_canvas_ungroup_selected(GlameCanvas* canvas);
+void glame_canvas_add_last(GlameCanvas* canvas);
+void glame_canvas_group_item_moved_cb(GlameCanvasFilter* item,
+				      double x, double y,
+				      GlameCanvasGroup* group);
+
+
+#endif

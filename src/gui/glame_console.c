@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.4 2001/06/14 13:25:29 richi Exp $
+ * $Id: glame_console.c,v 1.5 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -83,7 +83,6 @@ static gint hide_cb(GtkWidget *window, GdkEventAny *event)
 
 static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
 {
-	char prt_cmd[32];
 	char *cmd;
 	SCM s_res;
 	struct history_entry *hentry;
@@ -195,11 +194,11 @@ int glame_console_init()
 	entry = gtk_entry_new();
 
 	gtk_signal_connect(GTK_OBJECT(entry), "key_press_event",
-			   entry_cb, NULL);
+			   (GtkSignalFunc)entry_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(console), "delete_event",
-			   hide_cb, NULL);
+			   (GtkSignalFunc)hide_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(console), "destroy_event",
-			   hide_cb, NULL);
+			   (GtkSignalFunc)hide_cb, NULL);
 
 	gtk_container_add(GTK_CONTAINER(scroll), text);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);

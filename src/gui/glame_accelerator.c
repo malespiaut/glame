@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.9 2001/07/03 09:33:39 richi Exp $
+ * $Id: glame_accelerator.c,v 1.10 2001/07/13 09:01:43 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -394,9 +394,9 @@ guint glame_accel_install(GtkWidget *widget,
 	data->scope = strdup(scope);
 
 	handler = gtk_signal_connect(GTK_OBJECT(widget), "key_press_event",
-				     accel_cb, data);
+				     (GtkSignalFunc)accel_cb, data);
 	gtk_signal_connect(GTK_OBJECT(widget), "destroy",
-			   accel_cb_cleanup, data);
+			   (GtkSignalFunc)accel_cb_cleanup, data);
 
 	return handler;
 }

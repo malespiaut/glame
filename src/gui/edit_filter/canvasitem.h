@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.12 2001/07/11 22:51:20 xwolf Exp $
+ * $Id: canvasitem.h,v 1.13 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -138,6 +138,10 @@ void glame_canvas_filter_hide_properties(GlameCanvasFilter * filter);
 
 filter_paramdb_t * glame_canvas_filter_get_paramdb(GlameCanvasFilter *filter);
 filter_portdb_t* glame_canvas_filter_get_portdb(GlameCanvasFilter* filter);
+
+void _glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter);
+void _glame_canvas_filter_move(GlameCanvasFilter* filter,
+			       gdouble dx, gdouble dy);
 
 /********************************************
  *

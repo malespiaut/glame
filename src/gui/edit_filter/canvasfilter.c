@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.29 2001/07/11 22:51:20 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.30 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -284,7 +284,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	glameGroup = GLAME_CANVAS_GROUP(gnome_canvas_item_new(group, GLAME_CANVAS_GROUP_TYPE,
 							      NULL));
 	
-	gItem = GLAME_CANVAS_FILTER(gnome_canvas_item_new(glameGroup,
+	gItem = GLAME_CANVAS_FILTER(gnome_canvas_item_new(GNOME_CANVAS_GROUP(glameGroup),
 							  GLAME_CANVAS_FILTER_TYPE,
 							  NULL));
 	gGroup = GNOME_CANVAS_GROUP(gItem);
@@ -472,7 +472,7 @@ glame_canvas_filter_move(GlameCanvasFilter *filter,
 			 gdouble dx,
 			 gdouble dy)
 {
-	glame_canvas_group_item_moved_cb(filter,dx,dy,GNOME_CANVAS_ITEM(filter)->parent);
+	glame_canvas_group_item_moved_cb(filter,dx,dy,GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
 }
 
 void
@@ -1000,7 +1000,7 @@ void _glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 
 void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
 {
-	glame_canvas_group_raise(GNOME_CANVAS_ITEM(filter)->parent);
+	glame_canvas_group_raise(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
 }
 
 
@@ -1013,14 +1013,14 @@ static void glame_canvas_filter_do_select(GlameCanvasFilter* filter, GdkEvent* e
 		if(filter->selected)
 			glame_canvas_group_unselect(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
 		else
-			glame_canvas_group_select(GNOME_CANVAS_ITEM(filter)->parent);
+			glame_canvas_group_select(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
 		return;
 	}
 	if(filter->selected)
-		glame_canvas_group_unselect(GNOME_CANVAS_ITEM(filter)->parent);
+		glame_canvas_group_unselect(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
 	else{
 		glame_canvas_select_clear(CANVAS_ITEM_GLAME_CANVAS(filter));
-		glame_canvas_group_select(GNOME_CANVAS_ITEM(filter)->parent);
+		glame_canvas_group_select(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
 	}
 }
 
@@ -1029,7 +1029,7 @@ glame_canvas_filter_info(GlameCanvasFilter* f)
 {
 	fprintf(stderr,"name: %s\n",filter_name(f->filter));
 	fprintf(stderr,"parent id: %d\n", GLAME_CANVAS_GROUP(GCI(f)->parent)->id);
-	fprintf(stderr,"rood group id: %d\n",glame_canvas_group_root_id(GCI(f)->parent));
+	fprintf(stderr,"rood group id: %d\n",glame_canvas_group_root_id(GLAME_CANVAS_GROUP(GCI(f)->parent)));
 }
 	
 			
@@ -1104,7 +1104,3 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 	}
 	return FALSE;
 }
-
-
-
-

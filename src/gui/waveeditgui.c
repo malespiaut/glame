@@ -695,7 +695,7 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 	filter_add_node(net, ain, "ain");
 
 	/* Left - or mono. */
-	swout = net_add_gpsm_output(net, (gpsm_swfile_t *)left, start, length);
+	swout = net_add_gpsm_output(net, (gpsm_swfile_t *)left, start, length, 0);
 	if (!swout)
 		goto fail;
 	if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
@@ -704,7 +704,7 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* Right. */
 	if (right) {
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)right, start, length);
+		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)right, start, length, 0);
 		if (!swout)
 			goto fail;
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
@@ -774,7 +774,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	filter_add_node(net, ain, "ain");
 
 	/* Left - or mono. */
-	swout = net_add_gpsm_output(net, (gpsm_swfile_t *)left, start, -1);
+	swout = net_add_gpsm_output(net, (gpsm_swfile_t *)left, start, -1, 0);
 	if (!swout)
 		goto fail;
 	if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
@@ -783,7 +783,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* Right. */
 	if (right) {
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)right, start, -1);
+		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)right, start, -1, 0);
 		if (!swout)
 			goto fail;
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
@@ -861,7 +861,8 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	no_swin:
 		swout = net_add_gpsm_output(net, files[i],
 					    length > 0 ? start : marker,
-					    length > 0 ? length : -1);
+					    length > 0 ? length : -1,
+					    0);
 		if (!swout)
 			goto fail;
 		filter_set_property(swout,"immutable","1");
@@ -879,7 +880,9 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 
 	/* Pop up the custom generated canvas - the wave widget is
 	 * updated after destruction. FIXME - if gpsm is modified, the
-	 * signal handler data is invalid. */
+	 * signal handler data is invalid. 
+	 * This hack can be removed once filtereditgui execute stuff
+	 * handles this itself (swapfile_out support is in place). */
 	canvas = glame_filtereditgui_new(net, FALSE);
 	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
 			   (GtkSignalFunc)apply_custom_cb_cleanup, item);
@@ -1331,9 +1334,9 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_signal_connect(GTK_OBJECT(window->waveview), "button_press_event",
 			   (GtkSignalFunc)waveedit_rmb_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(window), "enter_notify_event",
-			   handle_enter, window);
+			   (GtkSignalFunc)handle_enter, window);
 	gtk_signal_connect(GTK_OBJECT(window), "delete_event",
-			   event_block, NULL);
+			   (GtkSignalFunc)event_block, NULL);
 
 	/* Add accelerator handler. */
 	glame_accel_install(GTK_WIDGET(window), "waveview", NULL);

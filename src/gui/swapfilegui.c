@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.52 2001/07/06 12:12:56 mag Exp $
+ * $Id: swapfilegui.c,v 1.53 2001/07/13 09:01:43 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -147,7 +147,8 @@ void edit_tree_label(GlameTreeItem * item)
 	gtk_container_remove(GTK_CONTAINER(item), label);
 	entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(entry), gpsm_item_label(item->item));
-	gtk_signal_connect(GTK_OBJECT(entry), "activate", edit_tree_label_cb, item);
+	gtk_signal_connect(GTK_OBJECT(entry), "activate",
+			   (GtkSignalFunc)edit_tree_label_cb, item);
 	gtk_widget_show(entry);
 	gtk_container_add(GTK_CONTAINER(item), entry);
 	gtk_container_check_resize(GTK_CONTAINER(item));
@@ -578,7 +579,6 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	GtkWidget *dialog;
-	plugin_t *p_swapfile_out;
 	filter_t *net = NULL, *readfile, *swout;
 	filter_port_t *source;
 	filter_pipe_t *pipe;
@@ -608,11 +608,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
 	filter_add_node(net, readfile, "readfile");
 
-	if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
-		DPRINTF("swapfile_out not found\n");
-		return;
-	}
-
 	/* Setup gpsm group. */
 	group = gpsm_newgrp(g_basename(filenamebuffer));
 
@@ -623,12 +618,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
 			goto fail_cleanup;
 		gpsm_grp_insert(group, it, 0, i);
-		if (!(swout = filter_instantiate(p_swapfile_out)))
-			goto fail_cleanup;
-		filter_add_node(net, swout, "swapfile_out");
-		if (filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"),
-				    &gpsm_swfile_filename(it)) == -1)
-			goto fail_cleanup;
+		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
+					    0, -1, 3);
 		if (!(pipe = filterport_connect(
 			source, filterportdb_get_port(
 				filter_portdb(swout), PORTNAME_IN)))) {
@@ -878,26 +869,26 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 			handle_grp, itemw);
 		/* drag&drop handlers */
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_press_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "enter_notify_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "leave_notify_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		itemw->handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
 			handle_swfile, itemw);
 		/* drag&drop handlers */
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_press_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "enter_notify_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "leave_notify_event",
-				   drag_start_stop_cb, itemw);
+				   (GtkSignalFunc)drag_start_stop_cb, itemw);
 	}
 
 	/* Register gtk handlers and append the item widget. */
@@ -1102,7 +1093,7 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
 
 	/* Track the active swapfilegui via enter/leave events. */
 	gtk_signal_connect(GTK_OBJECT(swapfile), "enter_notify_event",
-			   handle_enterleave, swapfile);
+			   (GtkSignalFunc)handle_enterleave, swapfile);
 
 	/* Add all existing childs of the root group to the tree. */
 	gpsm_grp_foreach_item(root, item)

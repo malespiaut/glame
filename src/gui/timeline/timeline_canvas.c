@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: timeline_canvas.c,v 1.1 2001/07/06 12:14:53 mag Exp $
+ * $Id: timeline_canvas.c,v 1.2 2001/07/13 09:01:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -302,7 +302,7 @@ static void timeline_canvas_group_update(TimelineCanvasItem *item)
 	/* Somehow we need to trigger updates on all childs. Ugh. */
 	gpsm_grp_foreach_item(item->item, it) {
 		GnomeCanvasItem *child;
-		child = timeline_canvas_find_gpsm_item(group, it);
+		child = timeline_canvas_find_gpsm_item(GNOME_CANVAS_GROUP(group), it);
 		if (!child) {
 			DPRINTF("FUCK\n");
 			continue;
