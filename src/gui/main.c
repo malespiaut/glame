@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.129 2005/01/01 23:02:18 richi Exp $
+ * $Id: main.c,v 1.130 2005/03/06 20:49:55 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -242,19 +242,21 @@ static void import_cb(GtkWidget *menu, void *data)
 static void load_plugin_cb(GtkWidget*bla,void*blu) 
 { 
  	GtkWidget *dialog; 
- 	char filenamebuffer[256]; 
+ 	char *filename;
 
- 	filenamebuffer[0] = '\0'; 
- 	dialog = glame_dialog_file_request(_("Load Plugin"), 
- 					   "main:load_plugin", _("Filename"), 
- 					   NULL, filenamebuffer); 
- 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)) 
- 	    || !*filenamebuffer) 
- 		return; 
-
- 	if (glame_load_plugin(filenamebuffer) == -1) 
- 		gnome_dialog_run_and_close(GNOME_DIALOG( 
- 			gnome_error_dialog(_("Error loading plugin")))); 
+	dialog = gtk_file_chooser_dialog_new(
+		_("Load Plugin"), NULL,
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		if (glame_load_plugin(filename) == -1) 
+			gnome_dialog_run_and_close(GNOME_DIALOG( 
+							   gnome_error_dialog(_("Error loading plugin"))));
+		g_free(filename);
+	}
+	gtk_widget_destroy(dialog);
 } 
 
 

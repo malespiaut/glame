@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.66 2005/01/16 15:30:33 richi Exp $
+ * $Id: filtereditgui.c,v 1.67 2005/03/06 20:49:57 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -810,17 +810,20 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 {
 	GtkWidget *dialog;
 	filter_t *filter;
-	char filenamebuffer[256];
+	char *filename;
 
-	filenamebuffer[0] = '\0';
-	dialog = glame_dialog_file_request(_("Load filternetwork"),
-					   "editfilter:load", _("Filename"),
-					   NULL, filenamebuffer);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
-	    || !filenamebuffer[0])
+	dialog = gtk_file_chooser_dialog_new(
+		_("Load filternetwork"), NULL,
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_ACCEPT) {
+		gtk_widget_destroy(dialog);
 		return;
-	
-	filter = glame_load_instance(filenamebuffer);
+	}
+	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+	filter = glame_load_instance(filename);
 	if (filter) {
 		GtkWidget *feg;
 		feg = glame_filtereditgui_new(filter, FALSE);
@@ -830,6 +833,9 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog(_("Error in loading network\nCheck out the glame-console output for more information"))));
 	} 
+
+	g_free(filename);
+	gtk_widget_destroy(dialog);
 }
 
 static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
