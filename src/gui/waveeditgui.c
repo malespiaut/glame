@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.142 2003/05/25 13:25:40 richi Exp $
+ * $Id: waveeditgui.c,v 1.143 2003/05/25 15:01:59 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -230,9 +230,11 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (length <= 0)
 		return;
 
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	if (clipboard_copy(item, start, length) == -1)
 		DPRINTF("Failed copying\n");
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Paste. */
@@ -248,15 +250,19 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	oldsize = gpsm_item_hsize(item);
-	if (!clipboard_can_paste(item))
+	if (!clipboard_can_paste(item)) {
+		gpsm_item_destroy(item);
 		return;
+	}
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_paste(item, pos) == -1)
 		DPRINTF("Error pasting\n");
 	gtk_wave_view_set_selection(waveview, pos, gpsm_item_hsize(item) - oldsize);
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Replace. */
@@ -272,15 +278,19 @@ static void replace_cb(GtkWidget *bla, GtkWaveView *waveview)
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	size = clipboard_hsize();
-	if (!clipboard_can_paste(item))
+	if (!clipboard_can_paste(item)) {
+		gpsm_item_destroy(item);
 		return;
+	}
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_replace(item, pos) == -1)
 		DPRINTF("Error replacing\n");
 	gtk_wave_view_set_selection(waveview, pos, size);
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Mix. */
@@ -296,15 +306,19 @@ static void mix_cb(GtkWidget *bla, GtkWaveView *waveview)
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	size = clipboard_hsize();
-	if (!clipboard_can_paste(item))
+	if (!clipboard_can_paste(item)) {
+		gpsm_item_destroy(item);
 		return;
+	}
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_mix(item, pos) == -1)
 		DPRINTF("Error mixing\n");
 	gtk_wave_view_set_selection(waveview, pos, size);
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Cut. */
@@ -321,7 +335,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (length <= 0)
 		return;
 
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_cut(item, start, length) == -1)
@@ -329,6 +344,7 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* Remove the selection. */
 	selectnone_cb(bla, waveview);
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Delete. */
@@ -345,7 +361,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (length <= 0)
 		return;
 
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_delete(item, start, length) == -1)
@@ -353,6 +370,7 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* Remove the selection. */
 	selectnone_cb(bla, waveview);
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Undo. */
@@ -362,11 +380,13 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_t *item;
 
 	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 
 	if (gpsm_op_undo(item) == -1)
 		gnome_dialog_run_and_close(
 			GNOME_DIALOG(gnome_error_dialog(_("Error during undo"))));
+	gpsm_item_destroy(item);
 }
 
 /* Menu event - Redo. */
@@ -376,11 +396,13 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_t *item;
 
 	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 
 	if (gpsm_op_redo(item) == -1)
 		gnome_dialog_run_and_close(
 			GNOME_DIALOG(gnome_error_dialog(_("Error during redo"))));
+	gpsm_item_destroy(item);
 }
 
 
@@ -436,8 +458,10 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	gpsm_item_t *item;
 	
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+				gtk_wave_view_get_select_channels(waveview));
 	gpsmop_apply_plugin(item, plugin, start, length);
+	gpsm_item_destroy(item);
 }
 
 
@@ -811,7 +835,8 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	if (length <= 0 && marker < 0)
 		return;
 
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	files = gpsm_collect_swfiles(item);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
@@ -853,6 +878,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	/* Prepare for undo -- NO(!?). FIXME -- Yes, still FIXME. */
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
+	gpsm_item_destroy(item);
 
 	/* Pop up the custom generated canvas - the wave widget is
 	 * updated by filtereditgui, if changed. */
@@ -862,6 +888,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
  fail:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
 		gnome_error_dialog(_("Failed to create network"))));
+	gpsm_item_destroy(item);
 	gpsm_item_destroy((gpsm_item_t *)files);
 	filter_delete(net);
 }
@@ -985,13 +1012,12 @@ static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 	GtkMenu *filter_menu, *op_menu;
 	gpsm_item_t *item;
 	gint32 sel_start, sel_length, marker_pos;
-	guint32 nrtracks;
 
 	/* Get stuff we need for enabling/disabling items. */
 	wavebuffer = gtk_wave_view_get_buffer (waveview);
 	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
-	nrtracks = gtk_wave_buffer_get_num_channels(wavebuffer);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_active(swapfile,
+			gtk_wave_view_get_select_channels(waveview));
 	gtk_wave_view_get_selection(waveview, &sel_start, &sel_length);
 	marker_pos = gtk_wave_view_get_marker(waveview);
 
@@ -1036,6 +1062,7 @@ static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_REDO_INDEX].widget,
 				 gpsm_op_can_redo(item) ? TRUE : FALSE);
 
+	gpsm_item_destroy(item);
 	return menu;
 }
 
