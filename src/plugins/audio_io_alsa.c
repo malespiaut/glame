@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.9 2002/04/29 18:17:39 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.10 2002/05/12 17:39:43 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -178,7 +178,7 @@ static int alsa_audio_in_f(filter_t *n)
 	filter_port_t           *outport;
 	filter_pipe_t		*pipe[2];
 	filter_buffer_t         *obuf;
-	filter_param_t		*param;
+	filter_param_t		*param, *xrun_param;
 	
 	/* Alsa Stuff */
 
@@ -232,6 +232,9 @@ static int alsa_audio_in_f(filter_t *n)
 		maxsamples = (int)(filterparam_val_double(param) * rate);
 	if (maxsamples <= 0.0)
 		endless = 1;
+
+	xrun_param = filterparamdb_get_param(filter_paramdb(n), "XRUNs");
+	filterparam_val_long(xrun_param) = 0;
 	
 	/* ALSA specific initialisation.
 	 */
@@ -319,6 +322,7 @@ static int alsa_audio_in_f(filter_t *n)
 
 	for(i=0;i<chancnt;i++)
 		sbuf_queue(pipe[i], NULL);
+	filterparam_val_long(xrun_param) = dropouts;
 	DPRINTF("had %i dropouts while capturing\n", dropouts);
 
 	FILTER_BEFORE_CLEANUP;

@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.42 2002/04/29 18:20:40 richi Exp $
+ * $Id: audio_io.c,v 1.43 2002/05/12 17:39:43 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -252,6 +252,11 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 					       defaultdevice,
 					       FILTERPARAM_END);
 	param->set = aio_generic_set_param;
+
+	filterparamdb_add_param_long(filter_paramdb(filter), "XRUNs",
+				     FILTER_PARAMTYPE_LONG, 0,
+				     FILTERPARAM_HIDDEN, "FIXME",
+				     FILTERPARAM_END);
 
 	filter->f = f;
 
