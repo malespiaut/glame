@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.6 2002/03/19 23:12:51 richi Exp $
+ * $Id: mixer.c,v 1.7 2002/04/10 20:34:46 ochonpaul Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -38,6 +38,7 @@
 #include "edit_filter/filtereditgui.h"
 #include "util/glame_gui_utils.h"
 #include "util/gtknob.h"
+
 PLUGIN(mixer)
 
 struct apply_data_s {
@@ -62,16 +63,16 @@ struct button_s {
         filter_param_t *param;
         double  value; 
         double before_mute;
-        GtkToggleButton *mute_button;
-        GtkToggleButton *solo_button;
+        GtkWidget *mute_button;
+        GtkWidget *solo_button;
         } *r[264];
 
 /* globals */
 double before_solo[32]; 
 /* double valsolo; */
 filter_param_t **param_solo;
-GtkToggleButton **solo_button;
-GtkToggleButton **mute_button;
+GtkWidget **solo_button;
+GtkWidget **mute_button;
 int buttons_count;/* global */
 int solos_count;/* global */
 int chanels_count;
@@ -148,9 +149,9 @@ static gint poll_net_cb(struct apply_data_s *a)
 	pos = filterparam_val_long(posparam);
 	/* sr=filterpipe_sample_rate(filterport_get_pipe(filterportdb_get_port(filter_portdb(a->pos),PORTNAME_IN))); */
 	time = div((pos / a->sr), 60);
-	snprintf(labelcount, 24, "%i mn %i sec / %i mn %i s", time.quot,
+	snprintf(labelcount, 24, "%i mn %i s / %i mn %i s", time.quot,
 		 time.rem, (a->tot_time).quot, (a->tot_time).rem);
-	gtk_label_set_text((a->counter), labelcount);
+	gtk_label_set_text(GTK_LABEL(a->counter), labelcount);
 	return TRUE;
 
 }
@@ -422,8 +423,8 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	solos_count=0;
 	chanels_count=0;
 	param_solo = ALLOCN(32,filter_param_t*);
-	solo_button=ALLOCN(32,GtkToggleButton*);
-	mute_button=ALLOCN(32,GtkToggleButton*);
+	solo_button=ALLOCN(32,GtkWidget*);
+	mute_button=ALLOCN(32,GtkWidget*);
 
 	/* Check if triplePara LADSPA plugin is available */
 	test = plugin_get("triplePara");
@@ -445,7 +446,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	gtk_window_set_position(GTK_WINDOW(a->dialog), GTK_WIN_POS_CENTER);
 	gtk_window_set_policy(GTK_WINDOW(a->dialog), FALSE, TRUE, TRUE);
 	if (test)
-	  {gtk_window_set_default_size(GTK_WINDOW(a->dialog), 750, 650);}
+	  {gtk_window_set_default_size(GTK_WINDOW(a->dialog), 650, 500);}
 	else 
 	  {gtk_window_set_default_size(GTK_WINDOW(a->dialog), 750, 350);}
 	gnome_dialog_append_button_with_pixmap(GNOME_DIALOG(a->dialog),
@@ -474,8 +475,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 				    APPLY, apply_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog),
 				    CANCEL, close_cb, a);
-	/*gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE); */
-	/* gtk_widget_show(a->dialog); */
+	
 	/* Mixer title */
 	text_obj = gpsm_item_label(obj);
 	snprintf(text, 127, "Mixer: %s", text_obj);
@@ -493,9 +493,6 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	viewport = gtk_viewport_new(NULL, NULL);
 	gtk_widget_show(viewport);
 	gtk_container_add(GTK_CONTAINER(scrolledwindow), viewport);
-	gtk_box_pack_start(GTK_BOX(scrolledwindow), viewport, TRUE, TRUE,
-			   0);
-
 	/* 1 hbox for all chanels  */
 	a->mixer_hbox = gtk_hbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(viewport), a->mixer_hbox);
@@ -509,7 +506,6 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		goto cleanup;
 	}
 	
-
 	/* the big  loop */
 	gpsm_grp_foreach_item(a->grp, item) {
 		filter_param_t *param;
@@ -531,9 +527,9 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		/* 1 frame for each  chanel ,a vbox in it */
 		chanel_frame = gtk_frame_new(text);
 		gtk_widget_show(chanel_frame);
-		gtk_box_pack_start(GTK_BOX(a->mixer_hbox),
-				   GTK_WIDGET(chanel_frame), FALSE,
+		gtk_box_pack_start(GTK_BOX(a->mixer_hbox),GTK_WIDGET(chanel_frame), FALSE,
 				   FALSE, 0);
+		/* gtk_container_add(GTK_CONTAINER(a->mixer_hbox), a->mixer_hbox); */
 		chanel_vbox = gtk_vbox_new(FALSE, 0);
 		gtk_container_add(GTK_CONTAINER(chanel_frame),chanel_vbox);
 		gtk_container_set_border_width(GTK_CONTAINER(chanel_vbox),3);
@@ -647,7 +643,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		  filterparam_set(param, &gain);
 		  /* 1 frame for eq_low , eq_low_hbox in it */
 		  eq_low_frame = gtk_frame_new("Eq low");
-		 		  gtk_widget_show(eq_low_frame);
+		  gtk_widget_show(eq_low_frame);
 		  gtk_box_pack_start(GTK_BOX(eq_vbox),GTK_WIDGET(eq_low_frame), FALSE,
 				     FALSE, 0);
 		  eq_low_hbox = gtk_hbox_new(FALSE, 0);
@@ -741,7 +737,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		    goto cleanup;
 		  }
 		
-		  glame_param = glame_param_slider_new(param, "Hz", 8000, 3900,15000, 1, 100, 100);
+		  glame_param = glame_param_slider_new(param, "Hz", 8000, 4000,15000, 1, 100, 100);
 		  if (!glame_param) {
 		    DPRINTF("Unable to get param widget");
 		    goto cleanup;
@@ -810,34 +806,29 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 			DPRINTF("Unable to get volmix param");
 			goto cleanup;
 		}
-		glame_param =glame_param_slider_new(param, "dB", 0, -100.000, 20.000, 1.000, 4.000, 1.000);
+		glame_param =glame_param_slider_new(param, "dB", 0, -80.000, 20.000, 1.000, 4.000, 1.000);
 		if (!glame_param) {
 			DPRINTF("Unable to get volmix param widget");
 			goto cleanup;
 		}
 		gtk_widget_show_all(glame_param);
-/* 		gtk_container_add(GTK_CONTAINER(chanel_vbox),glame_param_vol); */
 		gtk_container_add(GTK_CONTAINER(eq_lvl_hbox), glame_param);
-		gtk_box_pack_start(GTK_BOX(chanel_vbox), GTK_WIDGET(eq_lvl_hbox), FALSE, FALSE, 0);
 		/* pan2 */
 		if (!(pan2 = filter_instantiate((plugin_get("pan2"))))) {
 			DPRINTF("error getting pan2");
 			goto cleanup;
 		}
 		filter_add_node(a->net, pan2, "pan2");
-
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(volmix), PORTNAME_OUT),
 					filterportdb_get_port(filter_portdb(pan2),PORTNAME_IN))) {
 			DPRINTF(" error connecting pan2 to volmix\n");
 			goto cleanup;
 		}
-
 		param = filterparamdb_get_param(filter_paramdb(pan2),"position");
 		if (!param) {
 			DPRINTF("Unable to get pan2 param");
 			goto cleanup;
 		}
-/* 		filterparam_set_property(param, FILTERPARAM_LABEL, "pan"); */
 		filterparam_set_double(param, phi);
 
 /* 		phi = filterparam_val_double(filterparamdb_get_param(filter_paramdb(swap_in), "position")); */
@@ -947,19 +938,18 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 				  gfloat lower,
 				  gfloat upper,
 				  gfloat step_increment,
-
 				  gfloat page_increment, gfloat page_size)
 {
 	char xml[1024];
-	GtkWidget *hbox,*vbox, *label, *widget,*button;
-	        
+	GtkWidget *hbox,*vbox, *label, *widget,*button,*toggle_button;
+
 	r[buttons_count] = (struct button_s *) malloc(sizeof(struct button_s));
 	if (r[buttons_count] == NULL){DPRINTF("alloc error");return NULL;}
 	
 	snprintf(xml, 1023,
 		 "<?xml version=\"1.0\"?><GTK-Interface>"
 		 "  <widget>"
-		 "    <class>GtkVScale</class>"
+		 "    <class>GtkKnob</class>"
 		 "    <name>widget</name>"
 		 "    <can_focus>True</can_focus>"
 		 "    <draw_value>True</draw_value>"
@@ -979,7 +969,7 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 	filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
 	hbox = gtk_hbox_new(FALSE, 0);
 	vbox = gtk_vbox_new(FALSE, 0);
-	/* gtk_widget_set_usize (hbox,50,100); */
+	
 	gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(vbox), FALSE, FALSE, 0);
 	label = gtk_label_new(label_short);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
@@ -987,32 +977,31 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 	gtk_box_pack_start(GTK_BOX(hbox),widget, FALSE, FALSE, 0);
 	/* 	reset button */
 	button = gtk_button_new_with_label ("R");
-	/* gtk_widget_set_usize (button,10,20); */
 	r[buttons_count]->param=param;
 	r[buttons_count]->value=value;
 	gtk_signal_connect (GTK_OBJECT (button), "clicked",
 			    GTK_SIGNAL_FUNC (reset_cb), r[buttons_count]);
 	gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
 	
-	if(lower==-100) /* a volume_adjust param so display solo and mute buttons */
+	if(lower==-80) /* a volume_adjust param so display solo and mute buttons */
 	  {
 	    /* solo button */
-	    button= gtk_toggle_button_new_with_label ("S");
-	    r[buttons_count]->solo_button=button;
+	    toggle_button= gtk_toggle_button_new_with_label ("S");
+	    r[buttons_count]->solo_button=toggle_button;
 	    param_solo[solos_count]=param;
-	    solo_button[solos_count]=button;
-	    gtk_signal_connect (GTK_OBJECT (button), "clicked",
+	    solo_button[solos_count]=toggle_button;
+	    gtk_signal_connect (GTK_OBJECT (toggle_button), "clicked",
 				GTK_SIGNAL_FUNC (solo_cb), r[buttons_count]);
-	    gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+	    gtk_box_pack_start(GTK_BOX(vbox), toggle_button, FALSE, FALSE, 0);
 	    
 	   
 	    /* mute button*/
-	    button = gtk_toggle_button_new_with_label ("M");
-	    gtk_signal_connect (GTK_OBJECT (button), "clicked",
+	    toggle_button = gtk_toggle_button_new_with_label ("M");
+	    gtk_signal_connect (GTK_OBJECT (toggle_button), "clicked",
 				GTK_SIGNAL_FUNC (mute_cb), r[buttons_count]);
-	    gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
-	    r[buttons_count]->mute_button= button;
-	    mute_button[solos_count]=button;
+	    gtk_box_pack_start(GTK_BOX(vbox), toggle_button, FALSE, FALSE, 0);
+	    r[buttons_count]->mute_button= toggle_button;
+	    mute_button[solos_count]=toggle_button;
 	    solos_count++;
 	  }
 	buttons_count++;
