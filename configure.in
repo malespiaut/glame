@@ -194,6 +194,14 @@ if test $lsf = yes; then
 	AC_DEFINE(HAVE_SNDFILE)
 fi
 
+dnl check for lame - richi FIX it, if you don't like it :)
+AC_CHECK_LIB(mp3lame, lame_decode, lame=yes, lame=no)
+AC_CHECK_HEADER(lame.h,,lame=no)
+if test $lame = yes; then
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lmp3lame"
+	AC_DEFINE(HAVE_LAME)
+fi
+
 dnl check for esd
 AM_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then

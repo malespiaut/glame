@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.38 2001/03/16 13:42:50 mag Exp $
+ * $Id: file_io.c,v 1.39 2001/03/20 13:50:20 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -45,6 +45,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <regex.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -71,6 +72,13 @@ void af_read_cleanup(filter_t *n);
 int af_write_f(filter_t *n);
 #endif
 
+#ifdef HAVE_LAME
+#include "lame.h"
+int lame_read_prepare(filter_t *n, const char *filename);
+int lame_read_connect(filter_t *n, filter_pipe_t *p);
+int lame_read_f(filter_t *n);
+void lame_read_cleanup(filter_t *n);
+#endif
 
 PLUGIN_SET(file_io, "read_file write_file")
 
@@ -122,11 +130,20 @@ typedef struct {
 			char		*cbuffer;
 		} audiofile;
 #endif
+#ifdef HAVE_LAME
+		struct {
+			int			fd;
+			lame_global_flags	*lgflags;
+			mp3data_struct		*mp3data;
+			track_t			*track;
+		} lame;
+#endif
 	} u;
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->priv))
 #define RWW(node) (RWPRIV(node)->u.wav)
 #define RWA(node) (RWPRIV(node)->u.audiofile)
+#define RWM(node) (RWPRIV(node)->u.lame)
 
 /* the readers & the writers list */
 static struct list_head readers;
@@ -427,6 +444,8 @@ int file_io_register(plugin_t *p)
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
+	add_reader(lame_read_prepare, lame_read_connect,
+		   lame_read_f, lame_read_cleanup);
 	add_writer(af_write_f,"*.wav"); 
 #endif
 	add_reader(wav_read_prepare, wav_read_connect, 
@@ -1046,5 +1065,124 @@ _bailout:
 	if (res==-1) FILTER_ERROR_RETURN("some error occured"); 
 	return res;
 }
+
+#ifdef HAVE_LAME
+int lame_read_prepare(filter_t *n, const char *filename)
+{
+	int done, len;
+	char buffer[100];
+	short pcm[2][1152];
+	
+	lame_decode_init();
+	DPRINTF("lame_read_prepare\n");
+	if ((RWM(n).fd = open(filename, O_RDONLY)) == -1 ) { 
+		DPRINTF("File not found!\n"); 
+		return -1; 
+	}
+	
+	if (RWM(n).mp3data == NULL) {
+		DPRINTF("allocating mp3data\n");
+		RWM(n).mp3data = ALLOCN(1, mp3data_struct);
+	}
+	/*
+	if (RWM(n).lgflags == NULL) {
+		DPRINTF("allocating lgflags\n");
+		RWM(n).lgflags = ALLOCN(1, lame_global_flags);
+	}
+	*/
+	if (RWM(n).track) {
+		DPRINTF("Freeing track\n");
+		free(RWM(n).track);
+	}
+	do {
+		len = read(RWM(n).fd, buffer, 10); /* readimg larger buffers doesn't work !*/
+		done = lame_decode1_headers(buffer, len, pcm[0], pcm[1], RWM(n).mp3data);
+		DPRINTF("len = %d done = %d header = %d chan=%d freq=%d\n",
+			len, done, RWM(n).mp3data->header_parsed,
+			RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate);
+		if (done == -1) {
+			DPRINTF("Error while scanning mp3file\n");
+			return -1;
+		}
+	} while (!RWM(n).mp3data->header_parsed);
+	DPRINTF("Found mp3 file: channels=%d, freq=%d\n", 
+		RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate);
+	RWM(n).track = ALLOCN(RWM(n).mp3data->stereo, track_t);
+	return 0;
+}
+
+int lame_read_connect(filter_t *n, filter_pipe_t *p) {
+	int i;
+	
+        for(i=0; i<RWM(n).mp3data->stereo;i++) {
+		if (RWM(n).track[i].mapped == 1) {
+			if (RWM(n).track[i].p == p) {
+				filterpipe_settype_sample(p, RWM(n).mp3data->samplerate,
+							     i*M_PI+FILTER_PIPEPOS_LEFT);
+				return 0;
+			}
+		} else if ((RWM(n).track[i].mapped == 0)) {
+			RWM(n).track[i].mapped = 1;
+			RWM(n).track[i].p = p;
+			filterpipe_settype_sample(p, RWM(n).mp3data->samplerate,
+						     i*M_PI+FILTER_PIPEPOS_LEFT);
+			return 0;
+		} 
+	}
+
+	return -1;
+};
+
+void lame_read_cleanup(filter_t *n) {
+	DPRINTF("cleanup\n");
+	close(RWM(n).fd);
+	free(RWM(n).track);
+	free(RWM(n).mp3data);
+	/*
+	free(RWM(n).lgflags);
+	*/
+	DPRINTF("cleanup finished\n");
+};
+
+int lame_read_f(filter_t *n) {
+	filter_pipe_t *p_out;
+	filter_port_t *port;
+	ssize_t len;
+	int done, i, j;
+	char buffer[100];
+	short s[2][4096];
+	
+	FILTER_AFTER_INIT;
+	do {
+		FILTER_CHECK_STOP;
+		len = read(RWM(n).fd, buffer, 100);
+		done = lame_decode(buffer, len, s[0], s[1]);
+		if (done > 4096) {
+			DPRINTF("pcm buffer to small\n");
+			raise(11);
+		}
+		if (done > 0) {
+			for(i=0; i<RWM(n).mp3data->stereo; i++) {
+				RWM(n).track[i].buf = sbuf_make_private(sbuf_alloc(done, n));
+				for (j=0; j<done; j++)
+					sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
+				sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
+			}
+		}
+	} while (len > 0);
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
+			continue;
+		filterport_foreach_pipe(port, p_out)
+			sbuf_queue(p_out, NULL);
+	}
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+	close(RWM(n).fd);
+	DPRINTF("read_finished\n");
+	return 0;	
+}
+
+#endif
 
 #endif
