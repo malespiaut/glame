@@ -1,7 +1,7 @@
 /*
  * <nold.c>
  *
- * $Id: nold.c,v 1.2 2000/02/10 10:55:32 nold Exp $
+ * $Id: nold.c,v 1.3 2000/02/10 14:54:21 nold Exp $
  *
  * Copyright (C) 2000 Daniel Kobras
  *
@@ -53,7 +53,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 	typedef struct {
 		filter_pipe_t 	*pipe;
 		filter_buffer_t	*buf;
-		ssize_t		ssize;
 		ssize_t		pos;
 		ssize_t		to_go;
 	} sgi_audioparam_t;
@@ -61,6 +60,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	sgi_audioparam_t *in;
 	filter_pipe_t	*p_in;
 	SAMPLE		**bufs;
+	SAMPLE		*zero_buf;
 	
 	int		rate;
 	int		chunk_size, last_chunk;
@@ -73,6 +73,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	ALport		p;
 	ALpv		v[1];
 	int		resource = AL_DEFAULT_OUTPUT;
+	int		qsize;
 
 	DPRINTF("ENTER\n");
 
@@ -92,12 +93,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 	if(rate <= 0) {
 		DPRINTF("No valid sample rate given.\n");
-#if 0
 		return -1;
-#else
-		DPRINTF("Defaulting to 44100.\n");
-		rate = 44100;
-#endif
 	}
 
 	in = (sgi_audioparam_t *)malloc(max_ch * sizeof(sgi_audioparam_t));
@@ -113,7 +109,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 		sgi_audioparam_t *ap = &in[ch++];
 		ap->pipe = p_in;
 		ap->buf = NULL;
-		ap->ssize = 0;
 		ap->pos = 0;
 		ap->to_go = 0;
 	} while((p_in = hash_next_input(p_in)));
@@ -155,6 +150,11 @@ static int sgi_audio_out_f(filter_node_t *n)
 		DPRINTF("Invalid sample rate.\n");
 		return -1;
 	}
+	qsize = alGetQueueSize(c);
+	if(qsize <= 0) {
+		DPRINTF("Invalid QueueSize.\n");
+		return -1;
+	}
 	p = alOpenPort("GLAME audio output", "w", c);
 	if(!p) {
 		DPRINTF("Failed to open audio output port: %s\n",
@@ -163,14 +163,30 @@ static int sgi_audio_out_f(filter_node_t *n)
 	}
 	alFreeConfig(c);
 
+	/* Uh-uh! Playing dirty games here! Wish me luck... */
+	zero_buf = (SAMPLE *)calloc(qsize, sizeof(SAMPLE));
+	
 	FILTER_AFTER_INIT;
 
 	ch = 0;
 	ch_active = max_ch;
-	last_chunk = 0;
+	chunk_size = 0;
 
+	/* Not really necessary as chunk_size is 0 so alWriteBuffers()
+	 * would return immediately. But hey, evil gotos are fun!
+	 */
+	goto _entry;
+	
 	while(ch_active) {
-		chunk_size = alGetFillable(p); 
+
+#if 0
+		DPRINTF("Writing %d sample chunk.\n", chunk_size);
+#endif
+		/* Queue audio chunk. All-mono buffers. */
+		alWriteBuffers(p, (void **)bufs, NULL, chunk_size);
+	_entry:
+		last_chunk = chunk_size;
+		chunk_size = qsize;
 		do {
 			sgi_audioparam_t *ap = &in[ch];
 			ap->to_go -= last_chunk;
@@ -179,22 +195,20 @@ static int sgi_audio_out_f(filter_node_t *n)
 				/* Fetch next buffer */
 				sbuf_unref(ap->buf);
 				ap->buf = sbuf_get(ap->pipe);
-				ap->to_go = ap->ssize = sbuf_size(ap->buf);
+				ap->to_go = sbuf_size(ap->buf);
 				ap->pos = 0;
 			}
 			if(!ap->buf) {
-				ch_active--;
-				/* FIXME Is WriteBuffers that smart? */
-				bufs[ch] = NULL;
+				if(bufs[ch] != zero_buf) {
+					ch_active--;
+					bufs[ch] = zero_buf;
+				}
+				ap->to_go = qsize;
 			} else {
 				bufs[ch] = &sbuf_buf(ap->buf)[ap->pos];
 			}
 			chunk_size = MIN(chunk_size, ap->to_go);
 		} while((ch = ++ch % max_ch));
-
-		/* Queue audio chunk. All-mono buffers. */
-		alWriteBuffers(p, bufs, NULL, chunk_size);
-		last_chunk = chunk_size;
 	}
 
 	FILTER_BEFORE_CLEANUP;
