@@ -4,14 +4,8 @@ supposed to fix it.
 
 Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
-- import dialog needs to be finished
-- new export dialog needs to be done and replace the existing one
-- move importexport plugin to src/gui - no longer gpsm op
-- glame_audiofile needs support for wav writing and
-  mp3/ogg reading
-- main/[Edit wave...] should not append wave to gpsm tree, rather
-  register a gtk handler for waveedit window destroy and destroy
-  gpsm
+- import and export dialogs need to be finished
+- fix glame_audiofile to support virtual interface
 - intl for other than main widget needs to be done
 - looping support for swapfile_in filter and GUI
 - maybe disable timeline
@@ -71,6 +65,10 @@ glmid/
 	  dependencies (start with gpsm: guilify the tree).
 	- fix gpsm placing/inserting checks for overlaps, fix
 	  copy/link in swapfilegui then to use insert not place
+
+glmid/glame_audiofile
+	[nold]
+	- support mp3/ogg reading/writing
 
 gui/
 	[all]
