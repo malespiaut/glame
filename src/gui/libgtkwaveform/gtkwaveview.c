@@ -525,7 +525,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 
       datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
 
-#define REDRAW_BUFFER 8192
+#define REDRAW_BUFFER 1024
       /* Allocate some temp space. */
       data = g_malloc (g_wavefile_type_width (datatype) * n_channels * REDRAW_BUFFER);
 
