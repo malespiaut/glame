@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.17 2001/05/29 07:52:45 richi Exp $
+ * $Id: iir.c,v 1.18 2001/05/29 22:33:53 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -33,11 +33,12 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(iir, "highpass lowpass bandpass")
+PLUGIN_SET(iir, "highpass lowpass bandpass bandpass_a")
 
-#define GLAME_IIR_LOWPASS  0
-#define GLAME_IIR_HIGHPASS 1
-#define GLAME_IIR_BANDPASS 2
+#define GLAME_IIR_LOWPASS    0
+#define GLAME_IIR_HIGHPASS   1
+#define GLAME_IIR_BANDPASS   2
+#define GLAME_IIR_BANDPASS_A 3
 
 /* Just query the name of the plugin we get called from
  * to identify the right filter mode
@@ -58,6 +59,8 @@ int identify_plugin(filter_t *n){
 		return GLAME_IIR_HIGHPASS;
 	else if (strcmp(name,"bandpass")==0)
 		return GLAME_IIR_BANDPASS;
+	else if (strcmp(name,"bandpass_a")==0)
+		return GLAME_IIR_BANDPASS_A;
 	else
 		return -1;
 }
@@ -104,6 +107,32 @@ glame_iir_t *init_glame_iir(int mode, int nstages, int na, int nb){
 			dum->coeff[i]=(gliirt *)malloc((na+nb)*sizeof(gliirt));
 	}
 	return dum;
+}
+
+glame_iir_t *combine_iir_stages(int mode, glame_iir_t *first, glame_iir_t *second){
+	int stages, i, j, cnt;
+	glame_iir_t *gt;
+	
+	stages = first->nstages + second->nstages;
+	
+	if ((first->na != second->na) || (first->nb != second->nb))
+		return NULL;
+	
+	if ((gt = init_glame_iir(mode, stages, first->na, first->nb))==NULL)
+		return NULL;
+	
+	cnt = first->na + first->nb;
+	
+	/* copy coefficients */
+	for(i=0; i<first->nstages; i++)
+		for(j=0; j<cnt; j++)
+			gt->coeff[i][j]=first->coeff[i][j];
+
+	for(i=first->nstages; i<stages; i++)
+		for(j=0; j<cnt; j++)
+			gt->coeff[i][j]=second->coeff[i-first->nstages][j];
+
+	return gt;
 }
 
 void free_glame_iir(glame_iir_t *gt){
@@ -290,11 +319,11 @@ static int iir_f(filter_t *n)
 	
 	filter_pipe_t *in, *out;
 	filter_buffer_t *inb;
-	glame_iir_t *gt;
+	glame_iir_t *gt, *first, *second;
 	iirf_t *iirf;
 	int i,pos,j,nb,nt,z;
-	int poles, mode, rate;
-	float ripple, fc, bw;
+	int stages, mode, rate;
+	float ripple, fc, ufc, lfc, bw;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
@@ -310,18 +339,46 @@ static int iir_f(filter_t *n)
 	
 	
 	if (mode < GLAME_IIR_BANDPASS) {
-		poles=filterparam_val_int(filternode_get_param(n,"poles"));
-		fc=filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
+		stages = filterparam_val_int(filternode_get_param(n,"stages"));
+		fc = filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
-		ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
+		ripple = filterparam_val_float(filternode_get_param(n,"ripple"));
 		
-		DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n",poles,mode,fc,ripple);
+		DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n", stages*2,mode,fc,ripple);
 		
-		if (!(gt=chebyshev(poles,mode,fc,ripple)))
+		if (!(gt=chebyshev(stages*2, mode, fc, ripple)))
 			FILTER_ERROR_RETURN("chebyshev failed");
 		
 	} else if (mode == GLAME_IIR_BANDPASS) {
+		stages = filterparam_val_int(filternode_get_param(n,"stages"));
+		
+		fc = filterparam_val_float(filternode_get_param(n,"center"))/(float)rate;
+		fc = CLAMP(fc, 0.0, 0.5);
+		
+		bw = filterparam_val_float(filternode_get_param(n,"width"))/(float)rate;
+		bw = CLAMP(bw, 0.0, 0.5);
+
+		ufc = fc + bw*0.5;
+		lfc = fc - bw*0.5;
+		ufc = CLAMP(ufc, 0.0, 0.5);
+		lfc = CLAMP(lfc, 0.0, 0.5);
+		
+		ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
+		
+		if (!(first=chebyshev(stages*2,GLAME_IIR_LOWPASS,ufc,ripple)))
+			FILTER_ERROR_RETURN("chebyshev failed");
+		
+		if (!(second=chebyshev(stages*2,GLAME_IIR_HIGHPASS,lfc,ripple)))
+			FILTER_ERROR_RETURN("chebyshev failed");
+		
+		if (!(gt = combine_iir_stages(mode, first, second)))
+			FILTER_ERROR_RETURN("combine stages failed");
+		
+		free_glame_iir(first);
+		free_glame_iir(second);
+
+	} else if (mode == GLAME_IIR_BANDPASS_A) {
 		fc = filterparam_val_float(filternode_get_param(n,"center"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
@@ -441,9 +498,9 @@ int highpass_register(plugin_t *p)
 	
 	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"poles",
-				FILTER_PARAMTYPE_INT,2,
-			        FILTERPARAM_DESCRIPTION,"number of poles (2,4,6,...)",
+	filterparamdb_add_param_int(filter_paramdb(f),"stages",
+				FILTER_PARAMTYPE_INT,1,
+			        FILTERPARAM_DESCRIPTION,"number of stages",
 				FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
@@ -478,9 +535,9 @@ int lowpass_register(plugin_t *p)
 	
 	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"poles",
-				FILTER_PARAMTYPE_INT,2,
-			        FILTERPARAM_DESCRIPTION,"number of poles (2,4,6,...)",
+	filterparamdb_add_param_int(filter_paramdb(f),"stages",
+				FILTER_PARAMTYPE_INT,1,
+			        FILTERPARAM_DESCRIPTION,"number of stages",
 				FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
@@ -516,6 +573,11 @@ int bandpass_register(plugin_t *p)
 	
 	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
 	
+	filterparamdb_add_param_int(filter_paramdb(f),"stages",
+				FILTER_PARAMTYPE_INT,1,
+			        FILTERPARAM_DESCRIPTION,"number of stages",
+				FILTERPARAM_END);
+	
 	filterparamdb_add_param_float(filter_paramdb(f),"center",
 			    FILTER_PARAMTYPE_FLOAT, 1000,
 			    FILTERPARAM_DESCRIPTION,"center frequency",
@@ -526,7 +588,45 @@ int bandpass_register(plugin_t *p)
 			    FILTERPARAM_DESCRIPTION,"bandwidth around center",
 			    FILTERPARAM_END);
 	
-	plugin_set(p, PLUGIN_DESCRIPTION, "Biquad Bandpass");
+	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
+			    FILTER_PARAMTYPE_FLOAT,0.5,
+			    FILTERPARAM_DESCRIPTION,"percent ripple",
+			    FILTERPARAM_END);
+	
+	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev 2-stage Bandpass");
+	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	
+	filter_register(f, p);
+
+	return 0;
+}
+
+int bandpass_a_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = filter_creat(NULL)))
+		return -1;
+
+	f->f = iir_f;
+
+	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filterparamdb_add_param_float(filter_paramdb(f),"center",
+			    FILTER_PARAMTYPE_FLOAT, 1000,
+			    FILTERPARAM_DESCRIPTION,"center frequency",
+			    FILTERPARAM_END);
+
+	filterparamdb_add_param_float(filter_paramdb(f),"width",
+			    FILTER_PARAMTYPE_FLOAT,500,
+			    FILTERPARAM_DESCRIPTION,"bandwidth around center",
+			    FILTERPARAM_END);
+	
+	plugin_set(p, PLUGIN_DESCRIPTION, "Biquad Bandpass (analog modelled bandpass)");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
