@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.16 2000/02/09 12:33:24 richi Exp $
+ * $Id: filter.h,v 1.17 2000/02/09 21:40:35 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -24,6 +24,10 @@
  *
  * For documentation on filters see doc/filter.txt
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/ipc.h>

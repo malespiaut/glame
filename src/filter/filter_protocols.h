@@ -1,6 +1,10 @@
 #ifndef _FILTER_PROTOCOLS_H
 #define _FILTER_PROTOCOLS_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 /* Standard portnames.
  */
 #define PORTNAME_IN "in"
