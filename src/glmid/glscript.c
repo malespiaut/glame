@@ -75,8 +75,7 @@ SCM pointer2scm(void *pointer, long smob_tag)
 
 void *scm2pointer(SCM pointer_smob, long smob_tag)
 {
-	SCM_ASSERT((SCM_NIMP(pointer_smob)
-		    && SCM_CAR(pointer_smob) == smob_tag),
+	SCM_ASSERT(SCM_SMOB_PREDICATE(smob_tag, pointer_smob),
 		   pointer_smob, SCM_ARG1, "scm2pointer");
 	return SCM2POINTERSMOB(pointer_smob)->pointer;
 }
@@ -85,8 +84,7 @@ void scminvalidatepointer(SCM pointer_smob, long smob_tag)
 {
 	struct pointer_smob *pointer = SCM2POINTERSMOB(pointer_smob);
 
-	SCM_ASSERT((SCM_NIMP(pointer_smob)
-		    && SCM_CAR(pointer_smob) == smob_tag),
+	SCM_ASSERT(SCM_SMOB_PREDICATE(smob_tag, pointer_smob),
 		   pointer_smob, SCM_ARG1, "scminvalidatepointer");
 
 	pointer->pointer = NULL;
@@ -133,8 +131,7 @@ SCM long2scm(long val, long smob_tag)
 
 long scm2long(SCM long_smob, long smob_tag)
 {
-	SCM_ASSERT((SCM_NIMP(long_smob)
-		    && SCM_CAR(long_smob) == smob_tag),
+	SCM_ASSERT(SCM_SMOB_PREDICATE(smob_tag, long_smob),
 		   long_smob, SCM_ARG1, "scm2long");
 	return SCM2LONGSMOB(long_smob)->val;
 }

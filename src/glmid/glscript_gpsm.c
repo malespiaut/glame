@@ -36,7 +36,6 @@ struct gpsmitem_smob {
 	gpsm_item_t *item;
 };
 #define SCM2GPSMITEMSMOB(s) ((struct gpsmitem_smob *)SCM_SMOB_DATA(s))
-#define gpsmitem_p(s) (SCM_NIMP(s) && SCM_CAR(s) == gpsmitem_smob_tag)
 SCM gpsmitem2scm(gpsm_item_t *item);
 gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob);
 

@@ -116,7 +116,7 @@ long scm2long(SCM long_smob, long smob_tag);
  */
 
 extern long gpsmitem_smob_tag;
-#define gpsmitem_p(s) (SCM_NIMP(s) && SCM_CAR(s) == gpsmitem_smob_tag)
+#define gpsmitem_p(s) (SCM_SMOB_PREDICATE(gpsmitem_smob_tag, (s)))
 SCM gpsmitem2scm(gpsm_item_t *item);
 gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob);
 void scminvalidategpsmitem(SCM gpsmitem_smob);
@@ -125,43 +125,43 @@ extern long pipe_smob_tag;
 #define scm2pipe(s) ((filter_pipe_t *)scm2pointer(s, pipe_smob_tag))
 #define pipe2scm(p) pointer2scm(p, pipe_smob_tag)
 #define scminvalidatepipe(s) scminvalidatepointer(s, pipe_smob_tag)
-#define pipe_p(s) (SCM_NIMP(s) && SCM_CAR(s) == pipe_smob_tag)
+#define pipe_p(s) (SCM_SMOB_PREDICATE(pipe_smob_tag, (s)))
 
 extern long port_smob_tag;
 #define scm2port(s) ((filter_port_t *)scm2pointer(s, port_smob_tag))
 #define port2scm(p) pointer2scm(p, port_smob_tag)
 #define scminvalidateport(s) scminvalidatepointer(s, port_smob_tag)
-#define port_p(s) (SCM_NIMP(s) && SCM_CAR(s) == port_smob_tag)
+#define port_p(s) (SCM_SMOB_PREDICATE(port_smob_tag, (s)))
 
 extern long param_smob_tag;
 #define scm2param(s) ((filter_param_t *)scm2pointer(s, param_smob_tag))
 #define param2scm(p) pointer2scm(p, param_smob_tag)
 #define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
-#define param_p(s) (SCM_NIMP(s) && SCM_CAR(s) == param_smob_tag)
+#define param_p(s) (SCM_SMOB_PREDICATE(param_smob_tag, (s)))
 
 extern long plugin_smob_tag;
 #define scm2plugin(s) ((plugin_t *)scm2pointer(s, plugin_smob_tag))
 #define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
 #define scminvalidateplugin(s) scminvalidatepointer(s, plugin_smob_tag)
-#define plugin_p(s) (SCM_NIMP(s) && SCM_CAR(s) == plugin_smob_tag)
+#define plugin_p(s) (SCM_SMOB_PREDICATE(plugin_smob_tag, (s)))
 
 extern long filter_smob_tag;
 filter_t *scm2filter(SCM filter_smob);
 SCM filter2scm(filter_t *filter);
 void scminvalidatefilter(SCM filter_smob);
-#define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
+#define filter_p(s) (SCM_SMOB_PREDICATE(filter_smob_tag, (s)))
 
 extern long swdir_smob_tag;
 #define scm2swdir(s) (SWDIR *)scm2pointer(s, swdir_smob_tag)
 #define swdir2scm(p) pointer2scm((void *)p, swdir_smob_tag)
 #define scminvalidateswdir(s) scminvalidatepointer(s, swdir_smob_tag)
-#define swdir_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swdir_smob_tag)
+#define swdir_p(s) (SCM_SMOB_PREDICATE(swdir_smob_tag, (s)))
 
 extern long swfd_smob_tag;
 SCM swfd2scm(swfd_t swfd);
 swfd_t scm2swfd(SCM swfd_smob);
 void scminvalidateswfd(SCM swfd_smob);
-#define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
+#define swfd_p(s) (SCM_SMOB_PREDICATE(swfd_smob_tag, (s)))
 
 /* glame_reg_export
  * This macro adds func to the current module and exports it

@@ -32,17 +32,12 @@
  */
 
 long swdir_smob_tag;
-#define scm2swdir(s) (SWDIR *)scm2pointer(s, swdir_smob_tag)
-#define swdir2scm(p) pointer2scm((void *)p, swdir_smob_tag)
-#define scminvalidateswdir(s) scminvalidatepointer(s, swdir_smob_tag)
-#define swdir_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swdir_smob_tag)
 
 long swfd_smob_tag = 0;
 struct swfd_smob {
 	swfd_t swfd;
 };
 #define SCM2SWFDSMOB(s) ((struct swfd_smob *)SCM_SMOB_DATA(s))
-#define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
 SCM swfd2scm(swfd_t swfd);
 swfd_t scm2swfd(SCM swfd_smob);
 

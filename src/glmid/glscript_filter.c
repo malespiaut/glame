@@ -40,22 +40,8 @@ filter_t *last_loaded_filter_instance;
  */
 
 long pipe_smob_tag;
-#define scm2pipe(s) ((filter_pipe_t *)scm2pointer(s, pipe_smob_tag))
-#define pipe2scm(p) pointer2scm(p, pipe_smob_tag)
-#define scminvalidatepipe(s) scminvalidatepointer(s, pipe_smob_tag)
-#define pipe_p(s) (SCM_NIMP(s) && SCM_CAR(s) == pipe_smob_tag)
-
 long port_smob_tag;
-#define scm2port(s) ((filter_port_t *)scm2pointer(s, port_smob_tag))
-#define port2scm(p) pointer2scm(p, port_smob_tag)
-#define scminvalidateport(s) scminvalidatepointer(s, port_smob_tag)
-#define port_p(s) (SCM_NIMP(s) && SCM_CAR(s) == port_smob_tag)
-
 long param_smob_tag;
-#define scm2param(s) ((filter_param_t *)scm2pointer(s, param_smob_tag))
-#define param2scm(p) pointer2scm(p, param_smob_tag)
-#define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
-#define param_p(s) (SCM_NIMP(s) && SCM_CAR(s) == param_smob_tag)
 
 static int print_param(SCM param_smob, SCM port, scm_print_state *pstate)
 {
@@ -74,10 +60,6 @@ static int print_param(SCM param_smob, SCM port, scm_print_state *pstate)
 }
 
 long plugin_smob_tag;
-#define scm2plugin(s) ((plugin_t *)scm2pointer(s, plugin_smob_tag))
-#define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
-#define scminvalidateplugin(s) scminvalidatepointer(s, plugin_smob_tag)
-#define plugin_p(s) (SCM_NIMP(s) && SCM_CAR(s) == plugin_smob_tag)
 
 
 /* SMOB for filter_launchcontext_t.
@@ -88,7 +70,7 @@ struct launchcontext_smob {
 	filter_launchcontext_t *context;
 };
 #define SCM2LAUNCHCONTEXTSMOB(s) ((struct launchcontext_smob *)SCM_SMOB_DATA(s))
-#define launchcontext_p(s) (SCM_NIMP(s) && SCM_CAR(s) == launchcontext_smob_tag)
+#define launchcontext_p(s) (SCM_SMOB_PREDICATE(launchcontext_smob_tag, (s)))
 SCM launchcontext2scm(filter_launchcontext_t *context);
 filter_launchcontext_t *scm2launchcontext(SCM launchcontext_smob);
 
@@ -132,7 +114,6 @@ struct filter_smob {
 	filter_t *filter;
 };
 #define SCM2FILTERSMOB(s) ((struct filter_smob *)SCM_SMOB_DATA(s))
-#define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
 SCM filter2scm(filter_t *filter);
 filter_t *scm2filter(SCM filter_smob);
 
