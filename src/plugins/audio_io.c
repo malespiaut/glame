@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.10 2000/03/27 09:20:10 richi Exp $
+ * $Id: audio_io.c,v 1.11 2000/03/28 14:49:21 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -35,9 +35,9 @@
 #include "util.h"
 #include "glplugin.h"
 
-/* TODO: (before 0.2)
- *       * oss and sgi audio in.
- *       (post 0.2)
+/* TODO: (post 0.2)
+ *       * alsa, oss and sgi audio in. Implement when we have a proper
+ *         control interface from UI to filters.
  *       * The whole file needs a file_io'ish re-write to further
  *         centralize common code. This is post-0.2 work however. Let's
  *         stick with a little code duplication for now.
@@ -885,7 +885,7 @@ static int esd_in_f(filter_node_t *n)
 		endless = 1;
 	
 	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
-	pipe[1] = filternode_get_output(n, PORTNAME_OUT); /* Okay if NULL */
+	pipe[1] = filternode_next_output(pipe[0]); /* Okay if NULL */
 	
 	if (pipe[1] && filterpipe_sample_hangle(pipe[0]) > 
 	               filterpipe_sample_hangle(pipe[1])) {
