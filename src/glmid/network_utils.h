@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.8 2001/11/11 21:41:24 richi Exp $
+ * $Id: network_utils.h,v 1.9 2001/11/14 10:20:48 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -66,7 +66,8 @@ filter_t *net_apply_audio_out(filter_t *net);
 
 /* Links params of two filters, i.e. updates of source will update
  * dest, too (but not the other way around). */
-void net_link_params(filter_t *dest, filter_t *source);
+void *net_link_params(filter_t *dest, filter_t *source);
+void net_unlink_params(void *handle);
 
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.9 2001/11/11 21:41:24 richi Exp $
+ * $Id: network_utils.c,v 1.10 2001/11/14 10:20:48 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -262,7 +262,7 @@ static void lp_update(glsig_handler_t *h, long sig, va_list va)
 	filterparam_set(dst_p, filterparam_val(src_p));
 }
 
-void net_link_params(filter_t *dest, filter_t *source)
+void *net_link_params(filter_t *dest, filter_t *source)
 {
 	struct lp_x *lp;
 
@@ -279,5 +279,16 @@ void net_link_params(filter_t *dest, filter_t *source)
 	lp->dst_delete_handler = glsig_add_handler(
 		filter_emitter(dest), GLSIG_FILTER_DELETED,
 		lp_cleanup, lp);
+
+	return lp;
+}
+
+void net_unlink_params(void *handle)
+{
+	struct lp_x *lp = (struct lp_x *)handle;
+	glsig_delete_handler(lp->upd_handler);
+	glsig_delete_handler(lp->src_delete_handler);
+	glsig_delete_handler(lp->dst_delete_handler);
+	free(lp);
 }
 
