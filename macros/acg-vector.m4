@@ -8,7 +8,7 @@ AC_DEFUN([ACG_CHECK_GCC_VECTOR_EXTENSION],
 	AC_TRY_LINK([
 		typedef float v4sf __attribute__((vector_size(16)));
 	],[
-		v4sf a, b, c;
+		v4sf a, b, c = { 0.0, 0.0, 0.0, 0.0 };
 		a = b + c;
 	],[
 		AC_MSG_RESULT([yes])

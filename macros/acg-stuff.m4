@@ -10,7 +10,7 @@ AC_DEFUN([ACG_CHECK_STUFF],
 	LIBS="$ac_saved_libs"
 
 	AC_MSG_CHECKING([wether stdarg.h has va_copy support])
-	AC_TRY_COMPILE(
+	AC_TRY_LINK(
 	[
 #include <stdarg.h>
 int foo(int a, ...)
