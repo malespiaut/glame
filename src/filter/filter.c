@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.59 2001/11/18 19:11:25 richi Exp $
+ * $Id: filter.c,v 1.60 2001/11/25 21:33:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -341,7 +341,7 @@ int filter_expand(filter_t *net)
 		filterportdb_foreach_port(filter_portdb(node), port) {
 			filterport_foreach_pipe(port, pipe) {
 				if (filterport_filter(pipe->real_source) == net) {
-					glame_list_del_init(&pipe->list);
+					glame_list_del(&pipe->list);
 					pipe->real_source = port;
 					glame_list_add(&pipe->list, &node->connections);
 				} else if (filterport_filter(pipe->real_dest) == net) {
@@ -366,6 +366,129 @@ int filter_expand(filter_t *net)
 	}
 
 	return 0;
+}
+
+filter_t *filter_collapse(const char *name, filter_t **nodes)
+{
+	filter_t *net, *parent, **n, **nn;
+	filter_port_t *port;
+	filter_pipe_t *pipe;
+
+	if (!name || !nodes)
+		return NULL;
+
+	/* Whats the nodes (and new net) parent - is it the same? */
+	parent = (*nodes)->net;
+	n = nodes;
+	while (*n) {
+		if (FILTER_IS_LAUNCHED(*n))
+			return NULL;
+		if ((*n)->net != parent)
+			return NULL;
+		n++;
+	}
+
+	/* Create the new network, add it and specify wrapped
+	 * inputs/outputs. */
+	net = filter_creat(NULL);
+	filter_add_node(parent, net, name);
+	n = nodes;
+	while (*n) {
+		/* Loop through all connections on *n, checking
+		 * if they go outwards of nodes, adding appropriate
+		 * ports/redirections to net and fixing the pipe's
+		 * real connection.
+		 */
+
+		/* Scan through ports of nodes exporting them, if
+		 * necessary.
+		 * -- FIXME: we dont scan pipes from outside to
+		 *           inside an inside network.
+		 */
+		filterportdb_foreach_port(filter_portdb(*n), port) {
+			filter_port_t *port3;
+			char nm[256];
+			int outwards = 0;
+			filterport_foreach_pipe(port, pipe) {
+				filter_port_t *port2;
+				outwards = 1;
+				nn = nodes;
+				while (*nn) {
+					filterportdb_foreach_port(filter_portdb(*nn), port2) {
+						if (port == port2)
+							continue;
+						if (pipe->real_source == port2
+						    || pipe->real_dest == port2)
+							outwards = 0;
+					}
+					nn++;
+				}
+				if (outwards)
+					break;
+			}
+			if (!outwards)
+				continue;
+
+			snprintf(nm, 256, "%s::%s", filter_name(*n), filterport_label(port));
+			port3 = filterportdb_add_port(filter_portdb(net), nm,
+						      filterport_type(port),
+						      port->flags, FILTERPORT_END);
+			filterport_redirect(port3, port);
+
+			/* Again loop through the pipes, fixing the
+			 * connection information.
+			 */
+			filterport_foreach_pipe(port, pipe) {
+				filter_port_t *port2;
+				outwards = 1;
+				nn = nodes;
+				while (*nn) {
+					filterportdb_foreach_port(filter_portdb(*nn), port2) {
+						if (port == port2)
+							continue;
+						if (pipe->real_source == port2
+						    || pipe->real_dest == port2)
+							outwards = 0;
+					}
+					nn++;
+				}
+				if (outwards) {
+					if (filterport_is_input(port)) {
+						pipe->real_dest = port3;
+					} else {
+						glame_list_del(&pipe->list);
+						pipe->real_source = port3;
+						glame_list_add(&pipe->list, &net->connections);
+					}
+				}
+			}
+		}
+		n++;
+	}
+
+	/* Move the nodes. */
+	n = nodes;
+	while (*n) {
+		/* Remove from old net. */
+		(*n)->net->nr_nodes--;
+		glame_list_remove_node(*n);
+		hash_remove_node(*n);
+
+		/* Add to new net. */
+		(*n)->net = net;
+		hash_add_node(*n);
+		glame_list_add_node(*n);
+		net->nr_nodes++;
+
+		n++;
+	}
+	_filter_fixup(net);
+
+	/* FIXME - we need to alter export information of the
+	 * parent network.
+	 */
+
+	return net;
 }
 
 

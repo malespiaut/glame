@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.78 2001/11/19 10:04:27 richi Exp $
+ * $Id: filter.h,v 1.79 2001/11/25 21:33:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -223,6 +223,11 @@ int filter_remove(filter_t *node);
 
 /* Expands a network into its parent. Returns 0 on success, -1 on error. */
 int filter_expand(filter_t *net);
+
+/* Collapses a part of a network (NULL terminated array of filters in
+ * nodes) to a subnet which is created, placed and returned.
+ * Returns NULL on error, the created subnet on success. */
+filter_t *filter_collapse(const char *name, filter_t **nodes);
 
 /* Browse/find a filter node hanging off another filter.
  * filter_foreach_node(filter_t *parent, filter_t *f) {}
