@@ -5,7 +5,9 @@ noinst_PROGRAMS = swapfile_test swapfile_info
 bin_PROGRAMS = gmkswap
 
 
-libswapfile_la_SOURCES = swapfile.c swapfile.h swapfileI.h swapfile_hash.h
+libswapfile_la_SOURCES = swapfile.c swapfile.h swapfileI.h \
+	pmap.h pmap.c \
+	txn.h txn.c
 
 swapfile_test_SOURCES = swapfile_test.c
 swapfile_test_LDADD = libswapfile.la $(GLAME_DLIBS)
