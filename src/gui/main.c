@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.32 2001/04/17 09:43:42 richi Exp $
+ * $Id: main.c,v 1.33 2001/04/18 17:49:41 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -42,7 +42,7 @@ static GtkWidget *swapfile;
 static GtkWidget *app;
 
 extern guint nPopupTimeout;
-
+extern gboolean bMac;
 
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
@@ -148,6 +148,11 @@ setBoolean(GtkWidget * foo, gboolean * bar)
 {
 	*bar = TRUE;
 }
+static void
+toggle_cb(GtkWidget*foo, gboolean *bar)
+{
+	*bar = (*bar)?FALSE:TRUE;
+}
 
 void
 preferences_cb(GtkWidget * wid, void * bla)
@@ -157,11 +162,13 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget * vbox;
 	GtkWidget * entry;
 	GtkWidget * notelabel;
+	GtkWidget * macMode;
+	gboolean dummy;
 	char *path,*defaultpath;
 	int val = 0;
 	gboolean ok=FALSE;
 	char * numberbuffer;
-
+	gboolean mac;
 	numberbuffer = calloc(sizeof(char),20);
         path = calloc(sizeof(char),255);
         prop_box = gnome_property_box_new();
@@ -179,7 +186,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 	}
         gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))),defaultpath);
 
-
+	mac = gnome_config_get_bool_with_default("edit_filter/macMode=false",&dummy);
+	bMac = mac;
         notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox),notelabel);
@@ -193,13 +201,18 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_widget_show(vbox);
 	entry = gnome_entry_new("popupTimeout");
 	create_label_widget_pair(vbox,"Popup Timeout [ms]",entry);
-	
+	macMode = gtk_check_button_new();
+	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
+	gtk_signal_connect(GTK_OBJECT(macMode),"toggled",toggle_cb,&mac);
+	gtk_widget_show(macMode);
+	create_label_widget_pair(vbox,"Mac Mode",macMode);
+
 	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
 	sprintf(numberbuffer,"%d",nPopupTimeout);
 	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),numberbuffer);
 	gtk_widget_show(entry);
  	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),"changed",changeString,&numberbuffer);
-		
+	
 
 
         gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",setBoolean,&ok);
@@ -219,9 +232,11 @@ preferences_cb(GtkWidget * wid, void * bla)
  			gnome_config_set_int("edit_filter/popupTimeout",atoi(numberbuffer));
 			nPopupTimeout = atoi(numberbuffer);
 		}
+		gnome_config_set_bool("edit_filter/macMode",mac);
+		bMac = mac;
                	gnome_config_sync();
         }
-        DPRINTF("dialog: %d\n",val);
+	DPRINTF("dialog: %d\n",val);
 	g_free(defaultpath);
 	free(path);
 	free(numberbuffer);
@@ -331,7 +346,7 @@ static void gui_main()
 		gnome_config_set_int("edit_filter/popupTimeout",200);
 		gnome_config_sync();
 	}
-
+	bMac = gnome_config_get_bool_with_default("edit_filter/macMode=false",&defaultval);
 	/* create swapfile gui */
 	if (swname)
 		gpsm_init(swname);

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.60 2001/04/18 15:34:54 xwolf Exp $
+ * $Id: canvas.c,v 1.61 2001/04/18 17:49:42 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -79,6 +79,7 @@ static void canvas_zoom_out_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_update_scroll_region_cb(GtkWidget*bla, GlameCanvas* canv);
 
 guint nPopupTimeout = 200;
+gboolean bMac;
 static guint nPopupTimeoutId;
 int event_x,event_y;
 GtkWidget *win;
@@ -106,14 +107,6 @@ static GnomeUIInfo pipe_menu[]=
 	GNOMEUIINFO_END
 };
 
-static GnomeUIInfo file_menu[]=
-{
-//	GNOMEUIINFO_ITEM("_New Filter...","New Filter",canvas_create_new_cb,NULL),
-	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_load_network,NULL),
-//	GNOMEUIINFO_MENU_SAVE_ITEM(canvas_save_filter,NULL),
-	GNOMEUIINFO_MENU_SAVE_AS_ITEM(canvas_save_as,NULL),
-	GNOMEUIINFO_END
-};
 
 GnomeUIInfo *node_select_menu;
 
@@ -135,8 +128,6 @@ static GnomeUIInfo root_menu[]=
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Load plugin...","Loads scm source file",canvas_load_scheme,NULL),
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
 	GNOMEUIINFO_END
 };
 
@@ -342,7 +333,7 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	char numberbuffer[10];
 	x = event->button.x;
 	y = event->button.y;
-	//	fprintf(stderr,"Ev: %d\n",event->type);
+//	fprintf(stderr,"Ev: %d\n",event->type);
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 	      inItem=1;
@@ -357,7 +348,39 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		      gtk_timeout_remove(it->timeout_id);
 	      it->timeout_id = 0;
 	      canvas_item_hide_properties(item);
-	      break;
+	      
+	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
+		it->dragging = FALSE;
+		//update coord.strings
+		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->x1);
+		if(filter_set_property(it->filter,"canvas_x",numberbuffer))
+			fprintf(stderr,"set prop failed\n");
+		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->y1);
+		if(filter_set_property(it->filter,"canvas_y",numberbuffer))
+			fprintf(stderr,"set prop failed\n");
+		
+		break;
+
+	case GDK_2BUTTON_PRESS:
+		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
+		if(bMac){
+			                     // handle borken single button mouse
+			switch(event->button.button){
+			case 1:
+				menu = gnome_popup_menu_new(node_menu);
+				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,it);
+				break;	
+			}
+		}else{
+			switch(event->button.button){
+			case 1:
+				canvas_item_show_description(NULL,GNOME_CANVAS_ITEM(item)->parent);
+				break;
+			}
+		}
+		break;
+
 	case GDK_BUTTON_PRESS:
 	      switch(event->button.button){
 	      case 1:
@@ -365,7 +388,7 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 			it->last_y = y;
 			fleur = gdk_cursor_new(GDK_FLEUR);
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(data),
-					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,
+					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,
 					       fleur,
 					       event->button.time);
 			gdk_cursor_destroy(fleur);
@@ -398,18 +421,6 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 			it->last_x = x;
 			it->last_y = y;
 		}
-		break;
-	case GDK_BUTTON_RELEASE:
-		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
-		it->dragging = FALSE;
-		//update coord.strings
-		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->x1);
-		if(filter_set_property(it->filter,"canvas_x",numberbuffer))
-				fprintf(stderr,"set prop failed\n");
-		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->y1);
-		if(filter_set_property(it->filter,"canvas_y",numberbuffer))
-				fprintf(stderr,"set prop failed\n");
-				
 		break;
 	default:
 		break;
@@ -510,7 +521,7 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 	GtkWidget*par;
 	GdkEventButton *event_button;
 
-
+	gint mouseButton = bMac?1:3;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		if(!inItem){
@@ -520,7 +531,7 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 			event_x = event->button.x;
 			event_y = event->button.y;
 			win=GTK_WIDGET(canv);
-			if(event->button.button==3){
+			if(event->button.button==mouseButton){
 				menu = gnome_popup_menu_new(root_menu);
 				par = root_menu[0].widget; // eeevil hack to change menu
 				submenu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, canvas_add_filter_by_name_cb));
@@ -608,7 +619,7 @@ static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpo
 
 	GtkWidget * menu;
 
-		
+	gint mouseButton = bMac?1:3;
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
@@ -620,13 +631,11 @@ static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpo
 		hide_port_properties(GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_BUTTON_PRESS:
-		switch(event->button.button){
-		case 3:
+		if(event->button.button== mouseButton){
 			menu = gnome_popup_menu_new(port_menu);
 			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,item);
-		default:
-			break;
 		}
+		break;
 	default:
 		break;		
 		
@@ -998,6 +1007,19 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 		inItem = 1;
 		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,(GtkFunction)show_port_properties,GLAME_CANVAS_PORT(item));
 		break;
+	case GDK_2BUTTON_PRESS:
+		if(bMac){
+			gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(parent),event->button.time);
+			menu = gnome_popup_menu_new(port_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,item);
+			
+			if(parent->connecting){
+			gtk_object_destroy(GTK_OBJECT(parent->connection->line));
+			free(parent->connection);	
+			parent->connecting = FALSE;
+			}
+		}
+		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
@@ -1026,7 +1048,7 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 			newconn->begin = GLAME_CANVAS_PORT(item);
 			parent->connection = newconn;
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(parent),
-					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,
+					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,
 					       fleur,
 					       event->button.time);
 			gdk_cursor_destroy(fleur);
@@ -1036,6 +1058,7 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 		case 3:
 			menu = gnome_popup_menu_new(port_menu);
 			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,item);
+			break;
 		default:
 			break;
 		}
