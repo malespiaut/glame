@@ -1,9 +1,9 @@
 /*
  * edit_filter.c
  *
- * $Id: main.c,v 1.1 2001/02/18 23:50:22 mag Exp $
+ * $Id: main.c,v 1.2 2001/02/19 14:55:21 xwolf Exp $
  *
- * Copyright (C) 2000 Johannes Hirch, Alexander Ehlert
+ * Copyright (C) 2000 Johannes Hirche, Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
