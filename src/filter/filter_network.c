@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.20 2000/02/16 13:04:01 richi Exp $
+ * $Id: filter_network.c,v 1.21 2000/02/17 17:02:16 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -61,8 +61,6 @@ static void set_param(filter_param_t *param, void *val)
 	case FILTER_PARAMTYPE_STRING:
 		free(param->val.string);
 		param->val.string = strdup((char *)val);
-		DPRINTF("Set parameter %s to \"%s\"\n", param->desc->label,
-			param->val.string);
 		break;
 	}
 }
@@ -122,15 +120,11 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
 		res = sscanf(val, " %i ", &param.val.file);
 		break;
 	case FILTER_PARAMTYPE_STRING:
-	        DPRINTF("Converting \"%s\"\n", val);
 		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) == 1) {
-		        DPRINTF("Result is \"%s\"\n", s);
 			return strdup(s);
 		} else if ((res = sscanf(val, " %511[^\"] ", s)) == 1) {
-		        DPRINTF("Result is \"%s\"\n", s);
 		        return strdup(s);
 		}
-		DPRINTF("Failed.");
 		break;
 	default:
 		return NULL;
@@ -238,11 +232,6 @@ int filternetwork_launch(filter_network_t *net)
 	if (net->node.ops->launch(FILTER_NODE(net)) == -1)
 		goto out;
 
-	/* DPRINTF("waiting for nodes to complete initialization\n");
-		sem_op(net->launch_context->semid, 0, -net->launch_context->nr_threads);
-
-	if (ATOMIC_VAL(net->launch_context->result) != 0)
-		goto out; */
 	DPRINTF("all nodes launched.\n");
 
 	return 0;
@@ -291,7 +280,6 @@ int filternetwork_wait(filter_network_t *net)
 		return -1;
 
 	res = net->node.ops->wait(FILTER_NODE(net));
-	DPRINTF("net result is %i\n", res);
 
 	net->node.ops->postprocess(&net->node);
 	_launchcontext_free(net->launch_context);
@@ -345,7 +333,7 @@ void filternetwork_delete(filter_network_t *net)
 	f = net->node.filter;
 	_network_free(net);
 	if (!is_hashed_filter(f))
-		_filter_free(net->node.filter);
+		_filter_free(f);
 }
 
 filter_node_t *filternetwork_add_node(filter_network_t *net,
@@ -739,7 +727,7 @@ void glame_parse_free(char **argv, int argc)
 	}
 }
 
-char *glame_parse(const char *str, const char *exp, char **argv, int nargvmask)
+char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
 {
 	regex_t e;
 	regmatch_t *m;
@@ -806,17 +794,15 @@ static int parse_node(filter_network_t *net, char **buf)
 		DPRINTF("error in adding node (filter %s)\n", argv[1]);
 		goto err;
 	}
-	DPRINTF("added node %s (filter %s)\n", argv[1], argv[0]);
-	glame_parse_free(argv, 8);
 
 	do {
+	        glame_parse_free(argv, 8);
+
 		/* parse node specific commands with args */
 		if (!(b = glame_parse(*buf, FNREGEXP_ARGCOMMAND, argv, 0)))
 			return -1;
 		*buf = b;
 		if (!argv[0]) {
-			DPRINTF("finished node\n");
-			glame_parse_free(argv, 8);
 			return 0;
 		} else if (strcmp(argv[0], "export-input") == 0) {
 			if (!filternetwork_add_input(net, n->name, argv[1],
@@ -837,8 +823,6 @@ static int parse_node(filter_network_t *net, char **buf)
 			free(val);
 		} else
 			goto err;
-
-		glame_parse_free(argv, 8);
 	} while (1);
 
 	return 0;
@@ -864,8 +848,6 @@ static int parse_connect(filter_network_t *net, char **buf)
 	if (!(p = filternetwork_add_connection(filternetwork_get_node(net, argv[0]), argv[1],
 					       filternetwork_get_node(net, argv[2]), argv[3])))
 		return -1;
-	DPRINTF("added connection %s %s %s %s\n", argv[0], argv[1],
-		argv[2], argv[3]);
 
 	do {
 		glame_parse_free(argv, 8);
@@ -909,10 +891,13 @@ static int parse_setparam(filter_network_t *net, char **buf)
 		return -1;
 	*buf = b;
 
-	if (!(val = filterparamval_from_string(filter_get_paramdesc(FILTER_NODE(net)->filter, argv[0]), argv[1])))
+	if (!(val = filterparamval_from_string(filter_get_paramdesc(FILTER_NODE(net)->filter, argv[0]), argv[1]))) {
+	        glame_parse_free(argv, 8);
 		return -1;
+	}
 	filternode_set_param(FILTER_NODE(net), argv[0], val);
 	free(val);
+	glame_parse_free(argv, 8);
 
 	return 0;
 }
@@ -932,18 +917,22 @@ static int parse_command(filter_network_t *net, char **buf)
 		return 0;
 	} else if (strcmp(argv[0], "node") == 0) {
 		if (parse_node(net, buf) == -1)
-			return -1;
-		return 1;
+			goto err;
 	} else if (strcmp(argv[0], "connect") == 0) {
 		if (parse_connect(net, buf) == -1)
-			return -1;
-		return 1;
+			goto err;
 	} else if (strcmp(argv[0], "set-param") == 0) {
 		if (parse_setparam(net, buf) == -1)
-			return -1;
-		return 1;
+			goto err;
 	} else
-		return -1;
+		goto err;
+
+	glame_parse_free(argv, 8);
+	return 1;
+
+err:
+	glame_parse_free(argv, 8);
+	return -1;
 }
 
 filter_network_t *string2net(char *buf, filter_network_t *net)
@@ -970,21 +959,26 @@ filter_network_t *string2net(char *buf, filter_network_t *net)
 	if (res == -1)
 		goto err_net;
 
+	glame_parse_free(argv, 8);
 	return net;
 
 err_net:
 	if (freenet)
 		filternetwork_delete(net);
 err:
+	glame_parse_free(argv, 8);
 	return NULL;
 }
 
 filter_network_t *filternetwork_from_string(const char *buf)
 {
 	filter_network_t *net;
+	char *str;
 
-	if (!buf)
+	if (!buf || !(str = strdup(buf)))
 		return NULL;
 
-	return string2net(buf, NULL);
+	net = string2net(str, NULL);
+	free(str);
+	return net;
 }

@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.1 2000/02/14 13:23:40 richi Exp $
+ * $Id: filter_ops.c,v 1.2 2000/02/17 17:02:16 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -55,7 +55,7 @@ static int init_network(filter_node_t *n)
 	filternetwork_foreach_node(net, n)
 		if (n->ops->init(n) == -1)
 			return -1;
-	n->state = STATE_INITIALIZED;
+	net->node.state = STATE_INITIALIZED;
 
 	return 0;
 }
