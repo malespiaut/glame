@@ -453,7 +453,7 @@ AC_CHECK_HEADERS([vorbis/codec.h],
     AC_CHECK_LIB(vorbisfile, ov_open,
     [ 
       AC_DEFINE(HAVE_LIBVORBISFILE, 1, [have libvorbisfile library])
-      GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis"
+      GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis -logg -lm"
     ],,[-lvorbis -logg -lm])
     LIBS="$acg_save_LIBS"
   ])
