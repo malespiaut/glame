@@ -3,8 +3,9 @@ glame (2.0.0-1) unstable; urgency=low
   * New upstream version.
   * debian/control: Adjust build dependencies to Gnome 2 and recent
     libglade.
+  * debian/control: Tighten versioned build dependency on Alsa.
 
- -- Daniel Kobras <kobras@debian.org>  Sun,  9 Jan 2005 16:52:39 +0100
+ -- Daniel Kobras <kobras@debian.org>  Sun,  9 Jan 2005 16:56:14 +0100
 
 glame (1.0.3-1) unstable; urgency=low
 
