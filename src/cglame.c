@@ -23,6 +23,7 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <guile/gh.h>
 #include "glmid.h"
@@ -38,6 +39,10 @@ int init()
 	return 0;
 }
 
+void cleanup()
+{
+	swap_close();
+}
 
 
 /* just init the scripting subsystem and enter a scheme command line.
@@ -57,27 +62,30 @@ void sc_main(int argc, char **argv)
 int main(int argc, char **argv)
 {
 	fprintf(stderr, "\n"
-"    GLAME version "VERSION", Copyright (C) 1999, 2000 Alexander Ehlert,\n"
-"    Richard Guenther, Johannes Hirche, Daniel Kobras.\n"
-"    GLAME comes with ABSOLUTELY NO WARRANTY.\n"
-"    This is free software, and you are welcome to redistribute it\n"
-"    under certain conditions.\n\n");
+"    CGLAME for GLAME version "VERSION", Copyright (C) 1999, 2000\n"
+"    Alexander Ehlert, Jim Garrison, Richard Guenther, Johannes Hirche,\n"
+"    Daniel Kobras.\n"
+"    CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free\n"
+"    software, and you are welcome to redistribute it under certain\n"
+"    conditions.\n\n"
+"    Usage: cglame [swapfile]\n\n");
 
 	fprintf(stderr,
-"    Quick help:\n"
-"    (quit) gets you out of here.\n"
-"    (help) gets you some additional help.\n");
+"Quick help:\n"
+"(quit) gets you out of here.\n"
+"(help) gets you some additional help.\n\n");
 
-	if (init() == -1)
-		PANIC("Error in init!");
+	if (init() == -1) {
+		fprintf(stderr, "Error in init!");
+		exit(1);
+	}
 
-	if (argc != 2) {
-	        fprintf(stderr, "Usage: %s [swapfile]\n\n", argv[0]);
-	} else {
+	if (argc == 2) {
 		if (swap_open(argv[1], 0) == -1) {
 			perror("Unable to open swap");
 			exit(0);
 		}
+		atexit(cleanup);
 	}
 
 	gh_enter(argc, argv, sc_main);

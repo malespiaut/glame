@@ -1,6 +1,6 @@
 INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) -D_REENTRANT
 
-EXTRA_DIST = net_test_play net_test_audio net_test_echo net_test_echo2 net_test_latency
+EXTRA_DIST = net_test_play net_test_audio net_test_echo net_test_echo2
 
 noinst_PROGRAMS = test_network
 noinst_LTLIBRARIES = libbuiltins.la

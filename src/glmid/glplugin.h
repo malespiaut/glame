@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.2 2000/03/15 16:29:32 richi Exp $
+ * $Id: glplugin.h,v 1.3 2000/03/16 18:05:11 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -68,6 +68,13 @@ plugin_t *plugin_get(const char *name);
  * return NULL, if the symbol was not found or the value of the
  * symbol is NULL. */
 void *plugin_get_symbol(plugin_t *p, const char *symbol);
+
+
+/* convenience macros for plugins to define their
+ * - pixmap
+ */
+#define plugin_pixmap_file(name, filename)
+#define plugin_pixmap_xpm(name, xpmcode)
 
 
 #ifdef __cplusplus

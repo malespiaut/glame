@@ -1,6 +1,10 @@
 TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
+Things to fix before 0.2.0:
+- audit all paths/makefiles wrt make install
+
+
 doc/
 	- document available filters [nold/the filter authors]
 

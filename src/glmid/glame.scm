@@ -8,8 +8,7 @@
 
 (define ficken
   (lambda ()
-    (display "selber ficken!\n")))
-
+    (display "selber ficken!\n") (quit)))
 
 
 ;
@@ -67,3 +66,10 @@
       (filternetwork_start net)
       (filternetwork_wait net)
       (filternetwork_delete net))))
+
+
+
+;
+; The "real" scheme glame midlayer
+;
+
