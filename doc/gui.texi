@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.8 2001/04/19 13:59:15 richi Exp $
+@comment $Id: gui.texi,v 1.9 2001/04/24 11:59:52 xwolf Exp $
 
 @node Graphical Frontend, Console Frontend, Copying, Top
 @chapter Graphical Frontend (glame)
@@ -161,16 +161,15 @@ selection.
 The filternetwork editor is opened when you choose one of the custom
 functions in the wave editor, or the item @code{New Filternetwork} in
 the @code{Filternetwork} menu of the main window. The filternetwork editor
-comprises of a button bar on the bottom of the window to execute, pause and
-stop the created filternetwork, and a main canvas for connecting and adding
+comprises of a tool bar at the top of the window to execute, save and
+other functions, and a main canvas for connecting and adding
 new nodes to the network. A preexisting network can be edited by opening
 it from the @code{Open...} item in the @code{Filternetwork} menu of the
 main window.
 
 All functionality in the editing window is controlled via context sensitive
 menus bound to the right mouse button. When clicking in a background region,
-the general menu opens up, providing entries to add nodes, 
-load additional plugins and save and load whole filter networks.
+the add menu opens up, providing entries to add nodes, 
 Plugins are bundled into categories to speed up finding the desired item.
 
 When a new node is added, its icon appears on the editing canvas.
@@ -182,7 +181,7 @@ The icon in the middle of the box offers context menus for manipulating
 parameters of the underlying plugin. 
 
 To connect two plugins, click on the output port using the left mouse button,
-and drag the pipe to the desired input port. If a connection is possible,
+and drag the appearing pipe to the desired input port. If a connection is possible,
 a pipe connection will be drawn. To manipulate per-pipe parameters of the
 connected nodes, a context menu is attached to the small black ball placed in
 the middle of the pipe.
@@ -190,8 +189,21 @@ the middle of the pipe.
 Finally, if you hover over an icon or port for a little while, the current
 parameter settings are shown, and the node is raised to the top.
 The hovering delay can be adjusted in the preferences window.
+The same applies for the connection between two nodes.
 
-After a network is drawn, it can be started using the @code{play} button. If 
-anything is not set up correctly, the malicious plugin will be drawn in red,
+The created network can be executed with the corresponding button in the toolbar. 
+A new window will popup with play/pause/stop/cancel buttons.
+If anything is not set up correctly, the malicious plugin will be drawn in red,
 and the error will be displayed when hovering over it.
+
+Once you found your network adequate you may save it using the @code{Save} button in the
+toolbar. You can also register the network as a new plugin that can be used in other 
+networks. Before you have to add ports to your toplevel and/or redirect parameters from 
+nodes. Ports can be redirected by choosing the @code{Connect to external port} from the
+context menu of the port. Parameters are redirected by choosing @code{redirect parameters}
+from the context menu of the node. 
+You can delete or look at the external interface by selecting the @code{properties} button.
+
+As last feature the zoomlevel may be adjusted with the @code{zoom in} and @code{zoom out}
+buttons. The @code{View all} button recenters your view and adjusts the scrollable region.
 
