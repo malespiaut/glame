@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.12 2000/02/24 13:59:10 richi Exp $
+ * $Id: swapfile.c,v 1.13 2000/04/10 11:54:15 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -666,6 +666,9 @@ static int __cluster_mmap(cluster_t *c, int prot)
 	buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
 	if (buf == MAP_FAILED)
 		return -1;
+#if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_MMAP)
+	madvise(buf, c->size, SWAPFILE_MADV_MMAP);
+#endif
 
 	c->buf = buf;
 	list_add(&c->map_list, &swap->mapped);
@@ -683,6 +686,9 @@ static inline void __cluster_forgetmap(cluster_t *c)
 	 */
 	if (!cluster_is_mapped(c))
 		return;
+#if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_FORGET)
+	madvise(c->buf, c->size, SWAPFILE_MADV_FORGET);
+#endif
 	munmap(c->buf, c->size);
 	c->buf = NULL;
 	swap->mapped_size -= c->size;
@@ -848,10 +854,16 @@ char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
  * The real unmapping is done by _drain_mmapcache() if the amount
  * of mapped memory is too high, of by cluster_unref() if we
  * released the last reference to the cluster.
+ * As a hint to the OS we will mark the pages of the cluster as
+ * probably not needed if the mmapcnt goes to zero.
  */
 void _cluster_munmap(cluster_t *cluster)
 {
 	cluster->mmapcnt--;
+#if (defined HAVE_MADVISE) && (defined SWAPFILE_MADV_MUNMAP)
+	if (!cluster->mmapcnt)
+		madvise(cluster->buf, cluster->size, SWAPFILE_MADV_MUNMAP);
+#endif
 	cluster_unref(cluster);
 
 	if (swap->mapped_size > swap->mapped_max)

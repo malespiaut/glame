@@ -31,6 +31,21 @@
 #define MIN(a, b) ((a)<(b)?(a):(b))
 #endif
 
+/* madvise stuff, this is highly OS dependend. */
+#undef SWAPFILE_MADV_MMAP
+#undef SWAPFILE_MADV_MUNMAP
+#undef SWAPFILE_MADV_FORGET
+#if defined HAVE_MADVISE
+#  if defined OS_LINUX
+/* no manpages for now :( */
+#  elif defined OS_BSD
+#      define SWAPFILE_MADV_MUNMAP MADV_DONTNEED
+#      define SWAPFILE_MADV_FORGET MADV_FREE
+#  elif defined OS_IRIX
+#      define SWAPFILE_MADV_MUNMAP MADV_DONTNEED
+#  endif
+#endif
+
 struct logentry_s;
 typedef struct logentry_s logentry_t;
 
