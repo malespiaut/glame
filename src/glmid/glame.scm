@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.59 2001/07/04 12:29:16 uid21825 Exp $
+; $Id: glame.scm,v 1.60 2001/07/20 09:19:52 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -837,3 +837,20 @@
       (lambda () (filter-connect rf "out" mix "in")))
     (nodes-connect  `(,mix ,iir ,stat ,drms))
     (net-run net))))
+
+(define play-files
+  (lambda (file . files)
+    (let* ((net (net-new))
+	   (render (net-add-node net "render"))
+	   (aout (net-add-node net audio-out))
+	   (left (filter-connect render "out" aout "in"))
+	   (right (filter-connect render "out" aout "in")))
+      (map (lambda (fname)
+	     (let ((rf (net-add-node net read-file)))
+	       (while-not-false
+		 (lambda () (filter-connect rf "out" render "in")))
+	       (node-set-params rf `("filename" ,fname))))
+	   (cons file files))
+      (filterpipe_set_sourceparam left "position" -1.57)
+      (filterpipe_set_sourceparam right "position" 1.57)
+      (net-run net))))
