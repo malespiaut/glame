@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.8 2001/04/19 16:11:28 nold Exp $
+ * $Id: audio_io_oss.c,v 1.9 2001/04/20 10:20:31 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -237,12 +237,13 @@ _fmt_retry:
 		ssize = 1;		/* according to specs. */
 		sign = 1;
 	} else {
-		formats = AFMT_S16_NE;
-		ssize = 2;
-		sign = -1;
+		DPRINTF("No suitable hw-supported formats found. "
+		        "Trying emulated formats.\n");
+		formats = AFMT_QUERY;	/* Dummy value we check below. */
 	}
 
-	if (ioctl(dev, SNDCTL_DSP_SETFMT, &formats) == -1) {
+	if (formats == AFMT_QUERY || 
+	    ioctl(dev, SNDCTL_DSP_SETFMT, &formats) == -1) {
 		softformats &= ~formats;
 		formats = softformats;
 		if (formats)
@@ -290,6 +291,10 @@ _fmt_retry:
 			todo -= done;
 			wpos += ssize * done;
 		} while (todo);
+#ifdef LOW_LATENCY
+		/* Force starting audio output--errors deliberately ignored. */
+		ioctl(dev, SNDCTL_DSP_POST, NULL);
+#endif
 	_entry:
 		chunk_size = blksz/interleave;
 		ch = 0;
