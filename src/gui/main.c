@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.93 2001/12/07 10:42:35 richi Exp $
+ * $Id: main.c,v 1.94 2001/12/07 11:23:52 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -63,6 +63,7 @@ extern long bMac;
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void edit_file_cb(GtkWidget *menu, void *data);
+static void import_cb(GtkWidget *menu, void *data);
 static void show_console_cb(GtkWidget *menu, void *blah);
 static void emptytrash_cb(GtkWidget *menu, void *blah);
 static void sync_cb(GtkWidget *menu, void *blah);
@@ -73,6 +74,7 @@ static GtkWidget* glame_about(void);
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), N_("Creates a new Project group"), create_new_project_cb, NULL),
 	GNOMEUIINFO_ITEM (N_("Edit File..."), N_("Imports a file and opens the waveedit window"), edit_file_cb, NULL),
+	GNOMEUIINFO_ITEM (N_("Import..."), N_("Imports a file"), import_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM (N_("Empty [deleted]"), N_("Kills [deleted] folder"), emptytrash_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -208,6 +210,20 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
+static void import_cb(GtkWidget *menu, void *data)
+{
+	gpsm_item_t *file;
+
+	/* Run the import dialog. */
+	file = glame_import_dialog(NULL);
+	if (!file)
+		return;
+
+	if (gpsm_vbox_insert(gpsm_root(), file, 0, 0) == -1) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave"))));
+		gpsm_item_destroy(file);
+	}
+}
 
 static void load_plugin_cb(GtkWidget*bla,void*blu)
 {
