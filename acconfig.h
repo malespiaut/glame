@@ -35,3 +35,6 @@
 /* define to disable default debugging code */
 #undef NDEBUG
 
+/* define if <byteswap.h> is present */
+#undef HAVE_BYTESWAP_H
+

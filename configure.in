@@ -52,12 +52,13 @@ dnl        simply not an option. [dk]
 
 dnl Check endianness
 AC_C_BIGENDIAN
+AC_CHECK_HEADER(byteswap.h,AC_DEFINE(HAVE_BYTESWAP_H),)
 
 dnl Check width of basic types
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
-dnl FIXME: Check long long to define u64?
+AC_CHECK_SIZEOF(long long)
 
 dnl
 dnl Checks for libraries.
