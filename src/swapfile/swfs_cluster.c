@@ -423,7 +423,7 @@ static struct swcluster *cluster_unshare(struct swcluster *c)
 	/* Now we have to copy the whole cluster (and return the copy
 	 * instead of the original). */
 	if (!(cc = cluster_alloc(c->size))
-	    || (m = _cluster_mmap(c, NULL, PROT_READ, MAP_PRIVATE/* FIXME */)) == MAP_FAILED
+	    || (m = _cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
 	    || (mc = _cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
 		SWPANIC("Cannot alloc/mmap clusters");
 	memcpy(mc, m, c->size);
@@ -457,7 +457,7 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
 
 	LOCKCLUSTER(c);
 	if (c->size < offset+count)
-		DERROR("Write extends cluster size");// FIXME? count = c->size - offset;
+		DERROR("Write extends cluster size");
 	_cluster_needdata(c);
 	res = pwrite(c->fd, buf, count, offset);
 	UNLOCKCLUSTER(c);

@@ -51,14 +51,17 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 	u32 height = h->height;
 	long i;
 
+	/* If offset requested is outside of the tree, fail. */
+	if (offset < 0 || offset >= h->size)
+		return -1;
+
 	pos = 0;
 	i = 1;
 	/* Search the tree but the last level, as that
 	 * (the cluster sizes) is not s64, but s32... so
 	 * we need to seperate the last iteration. */
 	while (--height) {
-		if (pos == offset
-		    || pos+tree64[2*i] > offset) {
+		if (pos+tree64[2*i] > offset) {
 			i = 2*i;
 		} else {
 			pos += tree64[2*i];
@@ -73,9 +76,11 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 		i = 2*i+1 + (1<<h->height);
 	}
 
-	/* Outside of allocated area? */
-	if (pos > offset || pos+tree32[i] <= offset)
+	/* Outside of allocated area? Broken cluster size? */
+	if (tree32[i] == 0 || pos > offset || pos+tree32[i] <= offset) {
+		DERROR("Weird search result!\n");
 		return -1;
+	}
 
 	/* Fill start offset, size and return id */
 	if (coff)
@@ -86,11 +91,7 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 
 	/* If out of range, something is broken. */
 	if (i<0 || i>=h->cnt) {
-		/* FUCK! why does this happen at all (in _consistent_ ctree!)?
-		 * HACK!
-		DPRINTF("Search for offset %li, gives %li\n", (long)offset, i);
-		ctree_dump(h);
-		DERROR("Uh, out of range ctree find?"); */
+		DERROR("Uh, out of range ctree find?");
 		return -1;
 	}
 
