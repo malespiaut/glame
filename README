@@ -30,6 +30,11 @@ testing a little drag'n'drop but that's about all at the moment.
 Want more? Then join our devel team at SourceForge! An e-mail to
 glame-devel@lists.sourceforge.net will get you going.
 
+You want to contribute? Please join our mailinglist (see above) and ask
+for a task. If you just want to write some filters a start is the excellent
+filter API documentation in doc/
+
+
 Current Status (brief ChangeLog):
 =================================
 Version ??? to 0.0001:
