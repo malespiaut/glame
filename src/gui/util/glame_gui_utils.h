@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.18 2005/03/06 21:35:59 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.19 2005/03/11 16:59:45 richi Exp $
  *
  * Copyright (C) 2001, 2002 Johannes Hirche
  *
@@ -154,6 +154,12 @@ GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
 
 /* Displays an error dialog. */
 void glame_error_dialog(const char *message, GtkWindow *parent);
+
+/* Displays a warning dialog. */
+void glame_warning_dialog(const char *message, GtkWindow *parent);
+
+/* Displays an information dialog. */
+void glame_info_dialog(const char *message, GtkWindow *parent);
 
 /* Displays an error dialog with the specified header, listing nodes
  * and corresponding error strings. */

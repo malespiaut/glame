@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.38 2005/03/06 21:35:59 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.39 2005/03/11 16:59:45 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -719,8 +719,30 @@ void glame_error_dialog(const char *message, GtkWindow *parent)
 {
 	GtkWidget *dialog;
 	dialog = gtk_message_dialog_new(parent,
-			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_DIALOG_MODAL,
 			GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+			message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+}
+
+void glame_warning_dialog(const char *message, GtkWindow *parent)
+{
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(parent,
+			GTK_DIALOG_MODAL,
+			GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE,
+			message);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+}
+
+void glame_info_dialog(const char *message, GtkWindow *parent)
+{
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(parent,
+			GTK_DIALOG_MODAL,
+			GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
 			message);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
