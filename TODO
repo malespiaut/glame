@@ -63,6 +63,7 @@ gui/
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
+	- redo parameter windows to emit signals directly
 
 gui/swapfilegui
 	[richi]
@@ -90,8 +91,7 @@ gui/libgtkwaveform
 gui/edit_filter
 	[xwolf]
 	- add realtime controls
-	- add support for custom property dialogs (glade & friends)
-	- grouping!
+	- add support for custom property dialogs (glade & guile-gtk? & friends)
 	- fold/unfold of groups
 	- connect for parameters of nodes of same type
 	- have GlameCanvas emit a signal after network execution so we
