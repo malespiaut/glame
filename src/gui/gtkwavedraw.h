@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.h
  *
- * $Id: gtkwavedraw.h,v 1.4 2000/04/13 04:17:33 navratil Exp $
+ * $Id: gtkwavedraw.h,v 1.5 2000/04/13 04:31:53 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -50,10 +50,10 @@ typedef struct _WaveData {
   gint     wave_idx;
   
   gfloat   *data;                /* Data to be graphed */
-  float    (*call)(gint wave_idx,/* Function to use to get the data to be */
-		   glong from,   /* graphed, if applicable */
-		   glong to,
-		   gint step);
+  gfloat   *(*call)(gint wave_idx,/* Function to use to get the data to be */
+		    glong from,   /* graphed, if applicable */
+		    glong to,
+		    gint step);
   gint     by_ref;               /* Are we responsible for freeing the data
 				  * when the widget is destroyed? */
   glong    *marker;              /* Any/all "saved points" for the data, 
@@ -114,10 +114,10 @@ gint       gtk_wave_draw_add_wave_by_reference (GtkWaveDraw *wavedraw,
 						glong  n_samples,
 						glong  start);
 gint       gtk_wave_draw_add_wave_by_call (GtkWaveDraw *wavedraw,
-					   gfloat (*callback)(gint wave_idx,
-							      glong from, 
-							      glong to, 
-							      gint step),
+					   gfloat *(*callback)(gint wave_idx,
+							       glong from, 
+							       glong to, 
+							       gint step),
 					   glong n_samples,
 					   glong start);
 void       gtk_wave_draw_set_color        (GtkWaveDraw *wavedraw,

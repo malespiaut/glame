@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.5 2000/04/13 04:17:33 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.6 2000/04/13 04:31:53 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -40,7 +40,7 @@ static gint gtk_wave_draw_configure(GtkWidget *widget,
 				    GdkEventConfigure *event);
 static void gtk_wave_draw_assign_callback(GtkWaveDraw *wavedraw,
 					  WaveData *wavedata,
-					  gfloat (*callback)(gint,glong,glong,gint));
+					  gfloat *(*callback)(gint,glong,glong,gint));
 static gpointer gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw, 
 					       gfloat *data, 
 					       glong n_samples, glong start);
@@ -255,7 +255,7 @@ gtk_wave_draw_add_wave_by_reference(GtkWaveDraw *wavedraw,
 static void
 gtk_wave_draw_assign_callback(GtkWaveDraw *wavedraw,
 			      WaveData *wavedata,
-			      gfloat (*callback)(gint,glong,glong,gint))
+			      gfloat *(*callback)(gint,glong,glong,gint))
 {
   wavedata->call = callback;
   wavedata->by_ref = 2;
@@ -268,7 +268,7 @@ gtk_wave_draw_assign_callback(GtkWaveDraw *wavedraw,
  **********************************************************************/
 gint
 gtk_wave_draw_add_wave_by_call(GtkWaveDraw *wavedraw,
-			       gfloat (*callback)(gint,glong,glong,gint),
+			       gfloat *(*callback)(gint,glong,glong,gint),
 			       glong  n_samples,
 			       glong  start)
 {
