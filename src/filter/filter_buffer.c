@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.29 2001/04/22 14:21:36 richi Exp $
+ * $Id: filter_buffer.c,v 1.30 2001/04/24 12:07:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -211,7 +211,7 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 
 	/* Timeout? -> Deadlock. Break it returning NULL. */
 	if (res == 0) {
-		fprintf(stderr, "Timeout from select! Possible deadlock.\n");
+		filter_set_error(filterport_filter(filterpipe_dest(p)), "Deadlock");
 		return NULL;
 	}
 

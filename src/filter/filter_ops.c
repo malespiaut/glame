@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.21 2001/04/22 14:20:27 richi Exp $
+ * $Id: filter_ops.c,v 1.22 2001/04/24 12:07:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -466,5 +466,6 @@ int filter_check_stop_hook(filter_t *f)
         glame_semop(f->net->launch_context->semid, &sop, 1);
 
 	/* return if it was "pause" or really "stop" */
-	return ATOMIC_VAL(f->net->launch_context->result);
+	return (ATOMIC_VAL(f->net->launch_context->result)
+	        || filter_errno(f));
 }
