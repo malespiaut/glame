@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.48 2001/03/20 14:06:25 richi Exp $
+; $Id: glame.scm,v 1.49 2001/03/21 09:20:10 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -466,6 +466,23 @@
 		      result)))))
       (swtest "Unaligned insert" test "Hallo Leute, wie gehts?"))))
 
+(define swtest-filecow
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998 "Hallo wie gehts?"))
+			(fd2 (sw-creat 999)))
+		    (sw_lseek fd1 0 SEEK_SET)
+		    (sw_ftruncate fd2 16)
+		    (sw_lseek fd2 0 SEEK_SET)
+		    (sw_sendfile fd2 fd1 16 0)
+		    (let ((result (sw-contents fd2)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "file COW" test "Hallo wie gehts?"))))
+
 (define swtest-all
   (lambda ()
     (and (swtest-rw-simple)
@@ -479,7 +496,8 @@
 	 (swtest-cut-tail-aligned)
 	 (swtest-cut-tail-unaligned)
 	 (swtest-insert-aligned)
-	 (swtest-insert-unaligned))))
+	 (swtest-insert-unaligned)
+	 (swtest-filecow))))
 
 
 
