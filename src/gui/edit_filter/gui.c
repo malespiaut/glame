@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.14 2001/03/19 13:40:32 richi Exp $
+ * $Id: gui.c,v 1.15 2001/03/19 19:12:08 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -288,7 +288,7 @@ static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter
       gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
 }
 
-static void
+static gint
 update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 {
 	GList* list = g_list_first(callback->paramList);
@@ -339,13 +339,15 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 		}
 		list = g_list_next(list);
 	}
+	return TRUE;
 }
 
-void
+gint
 static cancel_params(GtkWidget* wig,param_callback_t* callback)
 {
 	g_list_free(callback->paramList);
-	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_parent_window(wig)));
+	// FIXME. does list_free kill the structs, too? mem leak
+	return FALSE;
 }
 
 GtkWidget *

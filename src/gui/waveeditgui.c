@@ -203,6 +203,11 @@ static GtkWaveView *actual_waveview;
 /* Menu event - Apply filter. */
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 {
+
+	/* FIXME FIXME FIXME 
+	   enable cancel button.
+	   fix richis bogus loop ;) */
+	   
 	GtkWaveView *waveview = actual_waveview;
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
@@ -223,7 +228,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
 	prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
-	gnome_dialog_run_and_close(GNOME_DIALOG(prop));
+	fprintf(stderr,"BUTTON: %d\n",gnome_dialog_run_and_close(GNOME_DIALOG(prop)));
 
 	/* Create the network, add nrtracks instances of swapfile_in -
 	 * effect - swapfile_out. */
