@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.12 2001/09/11 12:34:42 richi Exp $
+ * $Id: ssp.c,v 1.13 2001/09/19 11:49:52 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -84,13 +84,13 @@ static int ssp_streamer_f(filter_t *n)
 			if (pos == bsize)
 				pos = 0;
 			s++;
-			*(ssp++) = accu;
+			*ssp++ = accu;
 		}
 
 		sbuf_unref(buf);
 		ssp_queue(out, obuf);
 entry:
-		buf = sbuf_make_private(sbuf_get(in));
+		buf = sbuf_get(in);
 	};
 	
 	ssp_queue(out, NULL);
@@ -149,9 +149,8 @@ static int maxrms_f(filter_t *n)
 		FILTER_ERROR_RETURN("no input");
 	
 	param = filterparamdb_get_param(filter_paramdb(n), "maxrms");
-	filterparam_val_float(param) = maxrms;
 
-	DPRINTF("crash vorher?\n");
+	filterparam_val_float(param) = maxrms;
 	
 	FILTER_AFTER_INIT;
 	
