@@ -8,30 +8,23 @@
  * stream piped through the filter network.
  * Access is only through the fbuf_* functions and macros.
  */
-typedef struct {
+struct filter_buffer;
+typedef struct filter_buffer filter_buffer_t;
+struct filter_buffer {
 	struct list_head list;
         glame_atomic_t refcnt;
-        int atom_size;   /* size of one buffer entry */
-	int size;        /* size of buffer in atoms */
-	int buf_pos;     /* position (timestamp) of buffer start in atoms */
-	void *buf;
-} filter_buffer_t;
+	int size;              /* size of buffer in bytes */
+	char buf[0];
+};
 
 #define fbuf_size(fb) ((fb)->size)
-#define fbuf_atomsize(fb) ((fb)->atom_size)
-#define fbuf_bufpos(fb) ((fb)->buf_pos)
-#define fbuf_buf(fb) ((SAMPLE *)((fb)->buf))
+#define fbuf_buf(fb) (&(fb)->buf[0])
 
-
-/* _fbuf_alloc creates a filter buffer with backing storage for size
- * number of atoms (uninitialized!).
- * The buffer is initially one time referenced.
- * The fbuf_alloc macro is for your convenience and takes a
- * filter_node_t *node as third argument. */
-filter_buffer_t *_fbuf_alloc(int size, int atom_size, struct list_head *list);
-#define fbuf_alloc(s, as, node) _fbuf_alloc((s), (as), &(node)->net->buffers)
-
-#define fbuf_setpos(fb, pos) do { (fb)->buf_pos = (pos); } while (0)
+/* fbuf_alloc creates a filter buffer with backing storage for size
+ * bytes. The buffer is initially one time referenced.
+ * If supplied the buffer is linked into the list (and removed from it
+ * at free time) */
+filter_buffer_t *fbuf_alloc(int size, struct list_head *list);
 
 
 
@@ -55,3 +48,26 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p);
 
 /* Queue (blocking!) the buffer to the output stream. */
 void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
+
+
+
+
+/* "Simple" macros for the common use of filter buffers as
+ * SAMPLE containing streams.
+ */
+
+struct sbuf_header {
+	int pos;
+	char buf[0];
+};
+#define sbuf_alloc(nrsamples, filternode) \
+        fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(struct sbuf_header), \
+		   &(filternode)->launch_context->buffers)
+#define sbuf_size(fb) ((fbuf_size(fb)-sizeof(struct sbuf_header))/SAMPLE_SIZE)
+#define sbuf_buf(fb) ((SAMPLE *)(&((struct sbuf_header *)fbuf_buf(fb))->buf[0]))
+#define sbuf_ref(fb) fbuf_ref(fb)
+#define sbuf_unref(fb) fbuf_unref(fb)
+#define sbuf_make_private(fb) fbuf_make_private(fb)
+#define sbuf_get(p) fbuf_get(p)
+#define sbuf_queue(p, fb) fbuf_queue(p, fb)
+

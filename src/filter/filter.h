@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.12 2000/02/06 02:10:45 nold Exp $
+ * $Id: filter.h,v 1.13 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,6 +29,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <pthread.h>
+#include <errno.h>
 #include "glame_types.h"
 #include "swapfile.h"
 #include "glame_hash.h"
@@ -211,6 +212,16 @@ struct filter {
 #define list_add_paramdesc(d, f) list_add(&(d)->list, &(f)->params)
 
 
+typedef struct {
+	int nr_threads;
+
+	int state;
+	struct list_head buffers;	
+
+	int semid;
+	glame_atomic_t result;
+} filter_launchcontext_t;
+
 struct filter_node_operations {
 	int (*preprocess)(filter_node_t *n);
 	int (*init)(filter_node_t *n);
@@ -256,6 +267,7 @@ struct filter_node {
 
 	/* private - used by launch_filter_network & friends */
 	int state;
+	filter_launchcontext_t *launch_context;
 	pthread_t thread;
 };
 
@@ -295,20 +307,12 @@ struct filter_network {
         filter_node_t node;
 	int nr_nodes;
 	struct list_head nodes;
-
-	/* running stuff */
-	int state;
-
-	int semid;
-	glame_atomic_t result;
-
-	struct list_head buffers;
 };
 
 #define filternetwork_first_node(net) list_gethead(&(net)->nodes, filter_node_t, net_list)
 #define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, net_list, node)
 
-#define filternetwork_first_buffer(net) list_gethead(&(net)->buffers, filter_buffer_t, list)
+#define filternetwork_first_buffer(net) list_gethead(&(net)->node.launch_context->buffers, filter_buffer_t, list)
 
 #define FILTER_AFTER_INIT \
 do { \
@@ -316,10 +320,12 @@ do { \
 	sop.sem_num = 0; \
 	sop.sem_op = 1; \
 	sop.sem_flg = 0; \
-	semop(n->net->semid, &sop, 1); \
+	semop(n->launch_context->semid, &sop, 1); \
 	sop.sem_op = 0; \
-	semop(n->net->semid, &sop, 1); \
-	if (ATOMIC_VAL(n->net->result) != 0) \
+	while (semop(n->launch_context->semid, &sop, 1) == -1 \
+               && errno == EINTR) \
+                ; \
+	if (ATOMIC_VAL(n->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
 } while (0);
 

@@ -1,6 +1,6 @@
 /*
  * channel_io.c
- * $Id: channel_io.c,v 1.3 2000/02/05 15:59:26 richi Exp $
+ * $Id: channel_io.c,v 1.4 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,7 +43,7 @@ static void do_file_in(filter_node_t *n, fileid_t f, filter_pipe_t *out)
 		/* alloc a new stream buffer and copy the data
 		 * FIXME: split the buffer into parts not bigger
 		 *        than f.i. GLAME_BUFSIZE */
-		buf = fbuf_alloc(filecluster_size(fc)/SAMPLE_SIZE, SAMPLE_SIZE, n);
+		buf = fbuf_alloc(filecluster_size(fc), &n->net->nodes);
 		memcpy(fbuf_buf(buf), mem, filecluster_size(fc));
 
 		/* queue the buffer */
@@ -73,7 +73,7 @@ static int do_file_out(filter_node_t *n, filter_pipe_t *in)
 	       (buf = fbuf_get(in))) {
 		/* fix size of swapfile file wrt to input buffer */
 		file_truncate(file, file_size(file)
-			      + fbuf_size(buf)*sizeof(SAMPLE));
+			      + fbuf_size(buf));
 
 		/* copy the buffer */
 		p = 0;
@@ -81,7 +81,7 @@ static int do_file_out(filter_node_t *n, filter_pipe_t *in)
 			fc = filecluster_get(file, pos);
 			mem = filecluster_mmap(fc);
 			memcpy(mem, fbuf_buf(buf)+p, filecluster_size(fc));
-			p += filecluster_size(fc)/sizeof(SAMPLE);
+			p += filecluster_size(fc);
 			pos += filecluster_size(fc);
 			filecluster_munmap(fc);
 		}

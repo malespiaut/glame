@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.11 2000/02/06 02:10:45 nold Exp $
+ * $Id: filter_network.c,v 1.12 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -168,13 +168,13 @@ static void *launcher(void *node)
 	DPRINTF("%s had failure\n", n->filter->name);
 
 	/* set result */
-	atomic_inc(&n->net->result);
+	atomic_inc(&n->launch_context->result);
 
 	/* increment filter ready semaphore */
 	sop.sem_num = 0;
 	sop.sem_op = 1;
 	sop.sem_flg = 0;
-	semop(n->net->semid, &sop, 1);
+	semop(n->launch_context->semid, &sop, 1);
 
 	pthread_exit((void *)-1);
 
@@ -187,10 +187,10 @@ static int launch_node(filter_node_t *n)
 
 	n->state = STATE_PRELAUNCHED;
 
-
 	/* launch filter thread */
 	if (pthread_create(&n->thread, NULL, launcher, n) != 0)
 		return -1;
+	n->launch_context->nr_threads++;
 
 	n->state = STATE_LAUNCHED;
 
@@ -245,8 +245,6 @@ static void postprocess_network(filter_node_t *n)
 		atomic_set(&buf->refcnt, 1);
 		fbuf_unref(buf);
 	}
-
-	net->state = STATE_UNDEFINED;
 }
 
 static int wait_node(filter_node_t *n)
@@ -279,37 +277,6 @@ static int wait_network(filter_node_t *n)
 }
 
 
-static int check_result(filter_network_t *net)
-{
-	filter_node_t *n;
-	struct sembuf sop;
-	int nr;
-
-	DPRINTF("waiting for %i nodes in net %s\n", net->nr_nodes,
-		net->node.name);
-
-	nr = net->nr_nodes;
-	filternetwork_foreach_node(net, n)
-	  if (n->flags & FILTER_NODEFLAG_NETWORK) {
-			if (check_result((filter_network_t *)n) != 0)
-				return -1;
-			nr--;
-	  }
-
-	sop.sem_num = 0;
-	sop.sem_op = -nr;
-	sop.sem_flg = 0;
-	semop(net->semid, &sop, 1);
-
-	if (ATOMIC_VAL(net->result) != 0)
-		return -1;
-
-	DPRINTF("net %s is ready\n", net->node.name);
-
-	return 0;
-}
-
-
 /* ok, we have to launch the network back-to-front
  * (i.e. it is a _directed_ network)
  * we do this recursievely - ugh(?)
@@ -317,18 +284,21 @@ static int check_result(filter_network_t *net)
 int filternetwork_launch(filter_network_t *net)
 {
 	sigset_t sigs;
+	struct sembuf sop;
 
 	/* block EPIPE */
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIG_BLOCK);
 	sigprocmask(SIG_BLOCK, &sigs, NULL);
 
-	if (net->state != STATE_UNDEFINED)
+	if (net->node.launch_context->state != STATE_UNDEFINED)
 		return -1;
 
 	/* init state */
-	atomic_set(&net->result, 0);
-	net->state = STATE_LAUNCHED;
+	net->node.launch_context->state = STATE_LAUNCHED;
+	net->node.launch_context->nr_threads = 0;
+	atomic_set(&net->node.launch_context->result, 0);
+	semctl(net->node.launch_context->semid, 0, SETVAL, (union semun)0);
 
 	if (net->node.ops->preprocess(&net->node) == -1)
 		goto out;
@@ -339,14 +309,20 @@ int filternetwork_launch(filter_network_t *net)
 	if (net->node.ops->launch(&net->node) == -1)
 		goto out;
 
-	if (check_result(net) != 0)
-		goto out;
+	sop.sem_num = 0;
+	sop.sem_op = -net->node.launch_context->nr_threads;
+	sop.sem_flg = 0;
+	while (semop(net->node.launch_context->semid, &sop, 1) == -1
+	       && errno == EINTR)
+		;
+	if (ATOMIC_VAL(net->node.launch_context->result) != 0)
+		return -1;
 
 	return 0;
 
  out:
 	net->node.ops->postprocess(&net->node);
-	net->state = STATE_UNDEFINED;
+	net->node.launch_context->state = STATE_UNDEFINED;
 
 	return -1;
 }
@@ -356,12 +332,13 @@ int filternetwork_wait(filter_network_t *net)
 {
 	int res;
 
-	if (net->state != STATE_LAUNCHED)
+	if (net->node.launch_context->state != STATE_LAUNCHED)
 		return -1;
 
 	res = net->node.ops->wait(&net->node);
 	DPRINTF("net result is %i\n", res);
 
+	net->node.launch_context->state = STATE_UNDEFINED;
 	return res;
 }
 
@@ -369,6 +346,7 @@ int filternetwork_wait(filter_network_t *net)
 void filternetwork_terminate(filter_network_t *net)
 {
 	net->node.ops->postprocess(&net->node);
+	net->node.launch_context->state = STATE_UNDEFINED;
 }
 
 
@@ -390,6 +368,9 @@ static int filternode_init(filter_node_t *n, const char *name,
 	INIT_LIST_HEAD(&n->inputs);
 	INIT_LIST_HEAD(&n->outputs);
 
+	if (net)
+		n->launch_context = net->node.launch_context;
+
 	return 0;
 }
 
@@ -405,13 +386,6 @@ static int filternetwork_init(filter_network_t *net, const char *name,
 
 	net->nr_nodes = 0;
 	INIT_LIST_HEAD(&net->nodes);
-	INIT_LIST_HEAD(&net->buffers);
-
-	net->state = STATE_UNDEFINED;
-
-	ATOMIC_INIT(net->result, 0);
-	if ((net->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
-		return -1;
 
 	return 0;
 }
@@ -421,20 +395,33 @@ static int filternetwork_init(filter_network_t *net, const char *name,
 
 filter_network_t *filternetwork_new(const char *name)
 {
-	filter_network_t *net;
+	filter_network_t *net = NULL;
+	filter_launchcontext_t *lc = NULL;
 
 	if (!name)
 		return NULL;
 
 	if (!(net = ALLOC(filter_network_t)))
 		return NULL;
+	if (!(lc = ALLOC(filter_launchcontext_t)))
+		goto _err;
 
-	if (filternetwork_init(net, name, NULL) == -1) {
-		free(net);
-		return NULL;
-	}
+	if (filternetwork_init(net, name, NULL) == -1)
+		goto _err;
+
+	if ((lc->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
+		goto _err;
+	INIT_LIST_HEAD(&lc->buffers);
+	ATOMIC_INIT(lc->result, 0);
+	lc->state = STATE_UNDEFINED;
+	net->node.launch_context = lc;
 
 	return net;
+
+ _err:
+	free(net);
+	free(lc);
+	return NULL;
 }
 
 void filternetwork_delete(filter_network_t *net)
@@ -444,8 +431,8 @@ void filternetwork_delete(filter_network_t *net)
 	while ((n = filternetwork_first_node(net)))
 		filternode_delete(n);
 
-	ATOMIC_RELEASE(net->result);
-	semctl(net->semid, 0, IPC_RMID, (union semun)0);
+	ATOMIC_RELEASE(net->node.launch_context->result);
+	semctl(net->node.launch_context->semid, 0, IPC_RMID, (union semun)0);
 
 	free(net);
 }
@@ -896,8 +883,9 @@ filter_t *filternetwork_load(const char *filename)
 
         if (!(f = filter_alloc(strdup(p), NULL, filternetwork_filter_f)))
 		return NULL;
-	if (!(net = filternetwork_new("test")))
+	if (!(net = ALLOC(filter_network_t)))
 	        goto err;
+	filternetwork_init(net, NULL, NULL);
 
 	f->flags = FILTER_FLAG_NETWORK;
 	f->private = strdup(filename);

@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.9 2000/02/07 04:33:54 mag Exp $ 
+ * $Id: read_file.c,v 1.10 2000/02/07 10:32:05 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -90,7 +90,7 @@ static int read_file_f(filter_node_t *n)
 	
 	sclfak=(int)(44100.0/sampleRate);	/* FIXME Quickhack, should be done by resample filter and better...*/
 	
-	printf("framesize=%d channelCount=%d frameCount=%d sampleRate=%.2f sclfak=%d\n",frameSize,channelCount,frameCount,sampleRate,sclfak);
+	DPRINTF("framesize=%d channelCount=%d frameCount=%d sampleRate=%.2f sclfak=%d\n",frameSize,channelCount,(int)frameCount,sampleRate,sclfak);
 
 	if ((sampleFormat != AF_SAMPFMT_TWOSCOMP) && (sampleFormat != AF_SAMPFMT_UNSIGNED)){
 		DPRINTF("Format not yet supported!\n");
@@ -116,28 +116,28 @@ static int read_file_f(filter_node_t *n)
 				break;
 		frameCount-=frames;
 		if (channelCount==1){
-			lbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
+			lbuf=sbuf_alloc(frames*sclfak, n);
 			i=0;
 			lpos=0;
 			while(i<frames){
 				olpos=lpos;
 				switch(sampleWidth) {
 				case 16 : 
-					fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
+					sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
 					break;
 				case  8 : 
-					fbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					sbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
 					break;
 				}
-				for(j=1;j<sclfak;j++) fbuf_buf(lbuf)[lpos++]=fbuf_buf(lbuf)[olpos];
+				for(j=1;j<sclfak;j++) sbuf_buf(lbuf)[lpos++]=sbuf_buf(lbuf)[olpos];
 			}
-			fbuf_ref(lbuf);
-			fbuf_queue(left,lbuf);
-			fbuf_queue(right,lbuf);
+			sbuf_ref(lbuf);
+			sbuf_queue(left,lbuf);
+			sbuf_queue(right,lbuf);
 			sent+=2;
 		}else{
-			lbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
-			rbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
+			lbuf=sbuf_alloc(frames*sclfak, n);
+			rbuf=sbuf_alloc(frames*sclfak, n);
 			i=0;
 			rpos=0;
 			lpos=0;
@@ -146,27 +146,27 @@ static int read_file_f(filter_node_t *n)
 				orpos=rpos;
 				switch(sampleWidth){
 				case 16 :
-					fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
-					fbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buffer[i++]);
+					sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
+					sbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buffer[i++]);
 					break;
 				case  8 :
-					fbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
-					fbuf_buf(rbuf)[rpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					sbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					sbuf_buf(rbuf)[rpos++]=CHAR2SAMPLE(cbuffer[i++]);
 					break;
 				}
 				for(j=1;j<sclfak;j++){
-					fbuf_buf(lbuf)[lpos++]=fbuf_buf(lbuf)[olpos];
-					fbuf_buf(rbuf)[rpos++]=fbuf_buf(rbuf)[orpos];
+					sbuf_buf(lbuf)[lpos++]=sbuf_buf(lbuf)[olpos];
+					sbuf_buf(rbuf)[rpos++]=sbuf_buf(rbuf)[orpos];
 				}
 			}
-			fbuf_queue(left,lbuf);
-			fbuf_queue(right,rbuf);
+			sbuf_queue(left,lbuf);
+			sbuf_queue(right,rbuf);
 			sent+=2;
 		}
 	}
 
-	fbuf_queue(left,NULL);
-	fbuf_queue(right,NULL);
+	sbuf_queue(left,NULL);
+	sbuf_queue(right,NULL);
 
 	FILTER_BEFORE_CLEANUP;
 

@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.7 2000/02/07 04:33:54 mag Exp $
+ * $Id: audio_io.c,v 1.8 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -156,6 +156,7 @@ static int esd_out_f(filter_node_t *n)
 		return -1;
 	}
 
+	FILTER_AFTER_INIT;
 
 	/* get the first buffers to start with something */
 	lbuf = fbuf_get(left);

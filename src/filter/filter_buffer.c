@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.8 2000/02/05 15:59:26 richi Exp $
+ * $Id: filter_buffer.c,v 1.9 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -49,31 +49,21 @@ void fbuf_unref(filter_buffer_t *fb)
 
 	if (ATOMIC_VAL(fb->refcnt) == 0) {
 		list_del(&fb->list);
-	        free(fb->buf);
 		ATOMIC_RELEASE(fb->refcnt);
 		free(fb);
 	}
 }
 
-filter_buffer_t *_fbuf_alloc(int size, int atom_size, struct list_head *list)
+filter_buffer_t *fbuf_alloc(int size, struct list_head *list)
 {
 	filter_buffer_t *fb;
 
-	if (!(fb = ALLOC(filter_buffer_t)))
+	if (!(fb = (filter_buffer_t *)malloc(sizeof(filter_buffer_t) + size)))
 		return NULL;
 
-	fb->buf = NULL;
-	if (size > 0
-	    && !(fb->buf = malloc(atom_size*size))) {
-		free(fb);
-		return NULL;
-	}
-	fb->atom_size = atom_size;
 	fb->size = size;
-	fb->buf_pos = 0;
 	ATOMIC_INIT(fb->refcnt, 1);
 	INIT_LIST_HEAD(&fb->list);
-
 	if (list)
 		list_add(&fb->list, list);
 
@@ -90,10 +80,9 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 	if (ATOMIC_VAL(fb->refcnt) == 1)
 	        return fb;
 
-	if (!(fbcopy = _fbuf_alloc(fb->size, fb->atom_size, &fb->list)))
+	if (!(fbcopy = fbuf_alloc(fb->size, &fb->list)))
 		return NULL;
-	memcpy(fbcopy->buf, fb->buf, sizeof(SAMPLE)*fb->size);
-	fbcopy->buf_pos = fb->buf_pos;
+	memcpy(fbuf_buf(fbcopy), fbuf_buf(fb), fb->size);
 
 	/* release reference to old buffer */
 	fbuf_unref(fb);
@@ -103,17 +92,12 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 
 
 
-/* ok, this is supposed to get a new buffer address from the
- * pipe. BLOCKING! - i.e. the caller can do a simple
- * for (i=0; i<cnt; i++)
- *        buf[i] = get_buffer(pipe[i]);
- * and is guaranteed to have all buffers updated.
- * a NULL return-value is special (EOF mark). remember, the EOF
- * has to be forwarded to all output-channels!
- * NULL is also a good error-condition marker - EOF lets the
- * filter quit anyway.
- * as pipe-writes are atomic, pipe-reads (of this low quantity)
- * are atomic, too (??).
+/* fbuf_get reads the address of the next pending filter buffer
+ * from the input pipe p.
+ * As NULL is an EOF marker, it is suitable as error marker, too.
+ * FIXME? Pipe writes of certain quantity are atomic, reads, too?
+ * FIXME! Wrt. to write throttling there need to be changes at the
+ *        read end, too.
  */
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
@@ -125,8 +109,11 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 	return res == -1 ? NULL : (filter_buffer_t *)buf[0];
 }
 
-/* send one buffer (address) along the specified pipe.
- * as pipe-writes are atomic, this is rather simple
+/* fbuf_queue writes the address of the supplied filter buffer
+ * to the output pipe. In case of errors we become a fbuf_unref
+ * operation.
+ * FIXME? Pipe writes of certain quantities are atomic?
+ * FIXME! Write throttling in the current form is not "nice"!
  */
 void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 {

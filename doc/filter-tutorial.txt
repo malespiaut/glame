@@ -1,0 +1,29 @@
+This document is about how to write filters for glame. It only covers
+audio in/audio out type of filters. nold will integrate this into the
+texi documentation of the filter subsystem.
+
+First of all, what do I need to have a glame filter?
+You usually will need four functions:
+ - a filter registering function of the name filtername_register()
+   which returns 0 on success and -1 on any error
+ - the main filter method f
+ - if you have output ports whose data type/format depends on any
+   input port the fixup_pipe method
+ - if you have parameters which affect data type/format of any output
+   port the fixup_param method
+
+How does the f function have to look like? Are there any restrictions?
+Yes of course! There are!
+The f function should begin with checking the current setup for suitability,
+i.e. look at the parameters and input types/formats. And it should set up
+all necessary local things. _After_ this initialisation the macro
+FILTER_AFTER_INIT; has to appear! Before this macro you may simply return -1
+to denote an error, returning with no error is not allowed.
+After this FILTER_AFTER_INIT; you should do the actual filter work, i.e.
+accept and send data through the ports.
+After this main part of the filter and before the cleanup (freeing of all
+local allocated data, etc.) you have to put the macro FILTER_BEFORE_CLEANUP;.
+Neither in the main part, nor in the cleanup part may you just return with
+a return value of -1 (i.e. just fail). Instead you have to cleanup yourself,
+including sending EOF's to your output ports. So basically you may fail
+in the initialisation part, but nowhere else.

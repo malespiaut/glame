@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.2 2000/02/07 04:33:54 mag Exp $
+ * $Id: echo.c,v 1.3 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -69,35 +69,35 @@ static int echo_f(filter_node_t *n)
 
 	memset(ring,0,bufsiz*sizeof(SAMPLE));
 	ringp=0;
-	bin=fbuf_get(in);
+	bin=sbuf_get(in);
 	binpos=0;
 	
 	while(pthread_testcancel(),bin){
-		bout=fbuf_alloc(fbuf_size(bin),SAMPLE_SIZE,n);
+		bout=sbuf_alloc(sbuf_size(bin), n);
 		boutpos=0;
-		while(binpos<fbuf_size(bin)){
-			ring[ringp++]=fbuf_buf(bin)[binpos];
+		while(binpos<sbuf_size(bin)){
+			ring[ringp++]=sbuf_buf(bin)[binpos];
 			if (ringp==bufsiz)
 				ringp=0;
-			fbuf_buf(bout)[boutpos++]=(fbuf_buf(bin)[binpos]+mix*ring[ringp])/(1.0+mix);
+			sbuf_buf(bout)[boutpos++]=(sbuf_buf(bin)[binpos]+mix*ring[ringp])/(1.0+mix);
 			binpos++;
 		}
-		fbuf_queue(out,bout);
-		fbuf_unref(bin);
-		bin=fbuf_get(in);
+		sbuf_queue(out,bout);
+		sbuf_unref(bin);
+		bin=sbuf_get(in);
 		binpos=0;
 	}
 	
 	/* Empty ring buffer */
 	
-	bout=fbuf_alloc(bufsiz,SAMPLE_SIZE,n);
+	bout=sbuf_alloc(bufsiz,n);
 	for(boutpos=0;boutpos<bufsiz;boutpos++){
-		fbuf_buf(bout)[boutpos]=(ring[ringp++]*mix)/(1.0+mix);
+		sbuf_buf(bout)[boutpos]=(ring[ringp++]*mix)/(1.0+mix);
 		if (ringp==bufsiz)
 			ringp=0;
 	}
-	fbuf_queue(out,bout);
-	fbuf_queue(out,NULL);
+	sbuf_queue(out,bout);
+	sbuf_queue(out,NULL);
 
 	return 0;
 }

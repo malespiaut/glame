@@ -1,6 +1,6 @@
 /*
  * volume_adjust.c
- * $Id: volume_adjust.c,v 1.5 2000/02/05 15:59:26 richi Exp $
+ * $Id: volume_adjust.c,v 1.6 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -49,7 +49,7 @@ int volume_adjust(filter_node_t *n)
 	 * the pthread_testcancel is important (do it first to
 	 * avoid deadlocks)! */
 	while (pthread_testcancel(),
-	       (b = fbuf_get(in))) {
+	       (b = sbuf_get(in))) {
 		/* we get the input buffer referenced for us by
 		 * our source. */
 
@@ -58,11 +58,11 @@ int volume_adjust(filter_node_t *n)
 		 * same. so we need to lock the buffer (if there
 		 * are more references than our the buffer will
 		 * be copied and we dont notice, neither care) */
-		work = fbuf_make_private(b);
+		work = sbuf_make_private(b);
 
 		/* ok, this is not clever - FIXME for clamping! */
-		buf = fbuf_buf(work);
-		for (i=0; i<fbuf_size(work); i++) {
+		buf = sbuf_buf(work);
+		for (i=0; i<sbuf_size(work); i++) {
 			*buf = *buf*scale;
 			buf++;
 		}
@@ -70,11 +70,11 @@ int volume_adjust(filter_node_t *n)
 		/* we need to get a reference for our
 		 * destination and then queue the buffer
 		 * in the destinations pipe. */
-		fbuf_queue(out, work);
+		sbuf_queue(out, work);
 	}
 
 	/* forward the EOF mark */
-	fbuf_queue(out, b);
+	sbuf_queue(out, b);
 
 	FILTER_BEFORE_CLEANUP;
 

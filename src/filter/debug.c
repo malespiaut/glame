@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.4 2000/02/05 15:59:26 richi Exp $
+ * $Id: debug.c,v 1.5 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -54,7 +54,7 @@ static int ping(filter_node_t *n)
 		usleep(dt);
 
 		/* create new buffer */
-		out = fbuf_alloc(size, SAMPLE_SIZE, n);
+		out = fbuf_alloc(size, &n->net->nodes);
 
 		gettimeofday(&start, NULL);
 

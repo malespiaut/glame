@@ -60,27 +60,27 @@ static int sinus_f(filter_node_t *n)
 		duration = 10000;
 	
 	size=(int)(44100.0/freq);
-	if ((buf = fbuf_alloc(size, SAMPLE_SIZE, n))==NULL) return -1;
+	if ((buf = sbuf_alloc(size, n))==NULL) return -1;
 
 	cnt=(int)(44100.0/size*duration/1000.0);
 
 	DPRINTF("cnt=%d\n",cnt);
 	DPRINTF("Allocated Buffer with size %d! Generating Sinus!\n",size);
-        for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
+        for(i=0;i<size;i++) sbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
 
 	FILTER_AFTER_INIT;
 	DPRINTF("Semaphores done!\n");
 
 	while(pthread_testcancel(),cnt--){
-		fbuf_ref(buf);
+		sbuf_ref(buf);
 		DPRINTF("Sent Buffer %d\n",cnt);
-		fbuf_queue(out,buf);
+		sbuf_queue(out,buf);
 	}
-	fbuf_queue(out,NULL);			
+	sbuf_queue(out,NULL);			
 
 	FILTER_BEFORE_CLEANUP;
 	DPRINTF("Exiting.\n");
-	fbuf_unref(buf);
+	sbuf_unref(buf);
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.5 2000/02/07 04:33:54 mag Exp $
+ * $Id: basic.c,v 1.6 2000/02/07 10:32:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -250,56 +250,56 @@ static int mix_f(filter_node_t *n)
 	/* get first input buffers from all channels */
 	i=0;
 	list_foreach_input(n,pin[i]){
-		if (!(in[i] = fbuf_get(pin[i])))
+		if (!(in[i] = sbuf_get(pin[i])))
 			eofs++;
 		pos[i] = 0;
 		i++;
 	}
 
 	/* get first output buffer */
-	out = fbuf_alloc(GLAME_WBUFSIZE,SAMPLE_SIZE,n);
+	out = sbuf_alloc(GLAME_WBUFSIZE, n);
 	opos = 0;
 
 	while (pthread_testcancel(), (eofs != n->nr_inputs)) {
 		s = 0;
 		for (i=0; i<n->nr_inputs; i++) {
 			/* check, if we need a new input buffer */
-			if (in[i] && (fbuf_size(in[i]) == pos[i])) {
+			if (in[i] && (sbuf_size(in[i]) == pos[i])) {
 				/* unref the processed buffer */
-			        fbuf_unref(in[i]);
+			        sbuf_unref(in[i]);
 				/* get new buffer */
-				if (!(in[i] = fbuf_get(pin[i])))
+				if (!(in[i] = sbuf_get(pin[i])))
 					eofs++;
 				pos[i] = 0;
 			}
 			/* sum the channels */
 			if(in[i]){
-				s += fbuf_buf(in[i])[pos[i]];
+				s += sbuf_buf(in[i])[pos[i]];
 				pos[i]++;
 			}
 		}
 
 		/* check, if we need a new output buffer */
-		if (fbuf_size(out) == opos) {
+		if (sbuf_size(out) == opos) {
 			/* submit the (full) output buffer.
 			 * we have already a reference to out (ours! - and
 			 * we wont release it */
-			fbuf_queue(pout, out);
+			sbuf_queue(pout, out);
 			/* alloc new buffer */
-			out = fbuf_alloc(GLAME_WBUFSIZE,SAMPLE_SIZE,n);
+			out = sbuf_alloc(GLAME_WBUFSIZE, n);
 			opos = 0;
 		}
 
 		/* write the sample  */
-		fbuf_buf(out)[opos++] = s/(n->nr_inputs);
+		sbuf_buf(out)[opos++] = s/(n->nr_inputs);
 	}
 
 	/* submit the last pending output buffer - but truncate
 	 * it to the actual necessary length */
-	lastout = fbuf_alloc(opos,SAMPLE_SIZE,n);
-	memcpy(fbuf_buf(lastout), fbuf_buf(out), sizeof(SAMPLE)*opos);
-	fbuf_unref(out);
-	fbuf_queue(pout, lastout);
+	lastout = sbuf_alloc(opos, n);
+	memcpy(sbuf_buf(lastout), sbuf_buf(out), sizeof(SAMPLE)*opos);
+	sbuf_unref(out);
+	sbuf_queue(pout, lastout);
 
 	/* cleanup - FIXME, we need to do this with a
 	 * pthread_cleanup_pop() - and previous
