@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.h,v 1.8 2001/05/13 12:10:17 richi Exp $
+ * $Id: gtkswapfilebuffer.h,v 1.9 2001/08/07 09:14:17 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -68,8 +68,6 @@ struct _GtkSwapfileBufferClass
   GtkEditableWaveBufferClass object_class;
 };
 
-
-#define GTK_SWAPFILE_BUFFER_MAX_TRACKS 16
 
 GtkType      gtk_swapfile_buffer_get_type (void);
 GtkObject   *gtk_swapfile_buffer_new(gpsm_grp_t *item);

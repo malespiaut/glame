@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.57 2001/07/27 12:25:09 nold Exp $
+ * $Id: swapfilegui.c,v 1.58 2001/08/07 09:14:17 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -677,7 +677,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 				filterpipe_sample_rate(pipe),
 				filterpipe_sample_hangle(pipe));
 		i++;
-	} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
+	} while (1);
 
 	channels = i;
 	filter_launch(net);
