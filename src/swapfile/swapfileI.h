@@ -61,8 +61,10 @@ struct cluster_s {
 struct filehead_s {
 	struct list_head fh_list;
 	struct list_head fc_list;
+	filehead_t **pprev_hash;
+	filehead_t *next_hash;
+
 	fileid_t fid;
-	int flags;
 	int begincnt;               /* level of begin() calls */
 	int logpos;                 /* position in log after undo (begin pos) (or -1) */
 	logentry_t *top;            /* latest transaction vs actual state */
@@ -94,6 +96,7 @@ struct logentry_s {
 	union {
 		struct {
 			off_t pos;
+			off_t size;
 			filehead_t *f;
 		} insert;
 		struct {
@@ -162,7 +165,6 @@ typedef struct {
 		} cluster;
 		struct {
 			fileid_t fid;
-			int flags;
 			int begincnt;
 			int logpos;
 		} filehead;
@@ -180,6 +182,7 @@ typedef struct {
 			union {
 				struct {
 					off_t pos;
+					off_t size;
 					int fid;
 				} insert;
 				struct {

@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.1 2000/01/20 14:54:19 richi Exp $
+ * $Id: swapfile.c,v 1.2 2000/01/24 10:21:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -94,8 +94,14 @@ typedef struct {
 	int semid, semnum;
 } swap_t;
 
+
 static swap_t *swap = NULL;
 
+/* "visible" files hashtable */
+#define SWAPFILE_HASH_BITS (8)
+#define SWAPFILE_HASH_SIZE (1 << SWAPFILE_HASH_BITS)
+filehead_t **swapfile_hash_table;
+#include "swapfile_hash.h"
 
 
 /************************************************************
@@ -310,11 +316,9 @@ static void _logentry_remove(logentry_t *le)
 
 	switch (le->op) {
 	case LOGENTRY_INSERT:
-		le->u.insert.f->flags &= ~FILEFLAG_USED;
 		_ffree(le->u.insert.f);
 		break;
 	case LOGENTRY_DELETE:
-		le->u.delete.f->flags &= ~FILEFLAG_USED;
 		_ffree(le->u.delete.f);
 		break;
 	default:
@@ -522,7 +526,6 @@ static int _filehead_read(swapd_record_t *r)
 
 	if (!(fh = __filehead_alloc(r->u.filehead.fid)))
 		return -1;
-	fh->flags = r->u.filehead.flags;
 	fh->begincnt = r->u.filehead.begincnt;
 	fh->logpos = r->u.filehead.logpos;
 
@@ -536,7 +539,6 @@ static void _filehead_write(swapd_record_t *r, filehead_t *fh)
 	_swapd_record_prepare(r, RECORD_TYPE_FILEHEAD);
 
 	r->u.filehead.fid = fh->fid;
-	r->u.filehead.flags = fh->flags;
 	r->u.filehead.begincnt = fh->begincnt;
 	r->u.filehead.logpos = fh->logpos;
 }
@@ -603,6 +605,7 @@ static int _logentry_read(swapd_record_t *r)
 	switch (le->op) {
 	case LOGENTRY_INSERT:
 		le->u.insert.pos = r->u.logentry.u.insert.pos;
+		le->u.insert.size = r->u.logentry.u.insert.size;
 		if (!(le->u.insert.f = _filehead_findbyid(r->u.logentry.u.insert.fid))) {
 			fprintf(stderr, "stale insert logentry without file\n");
 			goto _err;
@@ -638,6 +641,7 @@ static void _logentry_write(swapd_record_t *r, logentry_t *le)
 	switch (le->op) {
 	case LOGENTRY_INSERT:
 		r->u.logentry.u.insert.pos = le->u.insert.pos;
+		r->u.logentry.u.insert.size = le->u.insert.size;
 		r->u.logentry.u.insert.fid = le->u.insert.f->fid;
 		break;
 	case LOGENTRY_DELETE:
@@ -803,7 +807,7 @@ static filecluster_t *_fcnew(filehead_t *f, cluster_t *c, off_t coff)
 	return fc;
 }
 
-static void __fcsplit(filecluster_t *fc, off_t pos, cluster_t *tail)
+static void __filecluster_split(filecluster_t *fc, off_t pos, cluster_t *tail)
 {
 	filecluster_t *fctail = NULL;
 	off_t coff = 0;
@@ -821,19 +825,22 @@ static void __fcsplit(filecluster_t *fc, off_t pos, cluster_t *tail)
 }
 
 /* pos is relative to fc start, fc is split in 2 to 3 fcs */
-static int _fcsplit(filecluster_t *fc, off_t pos)
+static int _filecluster_split(filecluster_t *fc, off_t pos)
 {
 	cluster_t *tail;
 	filecluster_t *fc2;
 	struct list_head *lh;
 	off_t aligned_pos;
 
-	if (pos <= 0 || pos >= fc->size)
+	if (pos < 0 || pos >= fc->size)
 		PANIC("filecluster split at weird size");
+
+	if (pos == 0)
+		return 0;
 
 	/* split of a hole is easy */
 	if (!fc->cluster) {
-		__fcsplit(fc, pos, NULL);
+		__filecluster_split(fc, pos, NULL);
 		return 0;
 	}
 
@@ -847,13 +854,13 @@ static int _fcsplit(filecluster_t *fc, off_t pos)
 		lh = &fc->cluster->rfc_list;
 		while (lh = lh->next, lh != &fc->cluster->rfc_list) {
 			fc2 = list_entry(lh, filecluster_t, rfc_list);
-			__fcsplit(fc2, pos, tail);
+			__filecluster_split(fc2, pos, tail);
 		}
 	} else if (aligned_pos >= fc->size) {
 		lh = &fc->cluster->rfc_list;
 		while (lh = lh->next, lh != &fc->cluster->rfc_list) {
 			fc2 = list_entry(lh, filecluster_t, rfc_list);
-			__fcsplit(fc2, pos, fc->cluster);
+			__filecluster_split(fc2, pos, fc->cluster);
 		}
 	} else {
 		if (!(tail = _cluster_split_aligned(fc->cluster, aligned_pos)))
@@ -861,11 +868,10 @@ static int _fcsplit(filecluster_t *fc, off_t pos)
 		lh = &fc->cluster->rfc_list;
 		while (lh = lh->next, lh != &fc->cluster->rfc_list) {
 			fc2 = list_entry(lh, filecluster_t, rfc_list);
-			__fcsplit(fc2, aligned_pos, tail);
-			__fcsplit(fc2, pos, fc->cluster);
+			__filecluster_split(fc2, aligned_pos, tail);
+			__filecluster_split(fc2, pos, fc->cluster);
 		}
 	}
-
 
 	return 0;
 }
@@ -877,7 +883,6 @@ static filehead_t *_fnew()
 
 	if (!(f = __filehead_alloc(-1)))
 		return NULL;
-	f->flags = FILEFLAG_WRITABLE;
 
 	_filehead_add(f, NULL);
 
@@ -887,9 +892,6 @@ static filehead_t *_fnew()
 static void _ffree(filehead_t *f)
 {
 	filecluster_t *fc;
-
-	if (f->flags & FILEFLAG_USED)
-		PANIC("Trying to free used file!");
 
 	list_del(&f->fh_list);
 
@@ -903,137 +905,88 @@ static void _ffree(filehead_t *f)
 	free(f);
 }
 
-
-/* searches filecluster with pos and splits this cluster
- * so that *posfc is the cluster with the next cluster
- * being the one with pos at the beginning */
-static int _fsplit(filehead_t *f, off_t pos, filecluster_t **posfc)
+void _file_fixoff(filehead_t *f, filecluster_t *from)
 {
+	struct list_head *lh;
 	filecluster_t *fc;
+	off_t pos;
 
-	*posfc = NULL;
-	if (!(fc = _filecluster_findbyoff(f, pos)))
-		return -1;
-
-	/* no split necessary */
-	if (filecluster_start(fc) == pos) {
-		*posfc = fc_prev(fc);
-		return 0;
+	if (!from) {
+		pos = 0;
+		lh = &f->fc_list;
+	} else {
+		pos = filecluster_end(from) + 1;
+		lh = &from->fc_list;
 	}
-
-	/* split fc */
-	if (_fcsplit(fc, pos - fc->off) == -1)
-		return -1;
-	*posfc = fc;
-	return 0;
+	while (lh = lh->next, lh != &f->fc_list) {
+		fc = list_entry(lh, filecluster_t, fc_list);
+		fc->off = pos;
+		pos += fc->size;
+	}
 }
 
-/* this eats fsource! */
-static void _finsert(filehead_t *fdest, filehead_t *fsource,
-		     filecluster_t *after, off_t pos)
+void _file_insert(filehead_t *f, filecluster_t *after, filehead_t *fi)
 {
-	filecluster_t *first, *last, *fc = NULL;
-	off_t delta, size;
+	struct list_head *lh, *lhi;
 
-	/* first, fixup the to be inserted clusters wrt
-	 * fid and off and find first/last cluster */
-	first = fclist_head(fsource);
-	last = fclist_tail(fsource);
-	delta = pos - first->off;
-	list_foreach(&fsource->fc_list, filecluster_t, fc_list, fc,
-		     fc->f = fdest;
-	       fc->off += delta);
-
-	/* second, fixup the tail of the destination file
-	 * wrt off */
-	size = last->off + last->size - first->off;
 	if (!after)
-		fc = fclist_head(fdest);
+		lh = &f->fc_list;
 	else
-		fc = fc_next(fc);
-	while (fc) {
-		fc->off += size;
-		fc = fc_next(fc);
+		lh = &after->fc_list;
+
+	while (lhi = fi->fc_list.prev, lhi != &fi->fc_list) {
+		list_del(lhi);
+		list_add(lhi, lh);
 	}
-
-	/* third, insert the clusters after cluster after */
-	if (after)
-		list_splice(&fsource->fc_list, &after->fc_list);
-	else
-		list_splice(&fsource->fc_list, &fdest->fc_list);
-
-	/* last, kill fsource */
-	INIT_LIST_HEAD(&fsource->fc_list);
-	_ffree(fsource);
 }
 
-static void _fdelete(filehead_t *f, filecluster_t *from, filecluster_t *to)
+filehead_t *_file_copy(filehead_t *f, filecluster_t *from, filecluster_t *to)
 {
-	struct list_head *lh, *lhend;
-	filecluster_t *fc;
-
-	lh = from->fc_list.prev;
-	lhend = to->fc_list.next;
-	do {
-		fc = list_entry(lh->next, filecluster_t, fc_list);
-		_filecluster_remove(fc);
-		free(fc);
-	} while (lh->next != lhend);
-}
-
-static void _fmove(filehead_t *f, filecluster_t *from, filecluster_t *to,
-		   filehead_t *dest)
-{
-	filecluster_t *fc;
-	struct list_head *tail, *le;
-	off_t size;
-
-	tail = to->fc_list.next;
-
-	/* first, move away the to be moved part of f into dest */
-	list_unsplice(&dest->fc_list, &from->fc_list, &to->fc_list);
-
-	/* second, fixup tail of f wrt to off */
-	size = to->off + to->size - from->off;
-	le = tail;
-	while (le != &f->fc_list) {
-		fc = list_entry(le, filecluster_t, fc_list);
-		fc->off -= size;
-		le = le->next;
-	}
-
-	/* third, fixup dest wrt to f and off */
-	size = from->off;
-	list_foreach(&dest->fc_list, filecluster_t, fc_list, fc,
-		     do {
-			     fc->f = dest;
-			     fc->off -= size;
-		     } while (0));
-}
-
-filehead_t *_fcopy(filehead_t *f)
-{
+	struct list_head *lh;
 	filehead_t *c;
-	filecluster_t *fc, *cc;
+	filecluster_t *fc, *fcc;
 
 	if (!(c = _fnew()))
 		return NULL;
 
-	list_foreach(&f->fc_list, filecluster_t, fc_list, fc,
-		     if (!(cc = _fcnew(f, fc->cluster, fc->coff)))
-		     goto _killit;
-		     cc->off = fc->off;
-		     cc->size = fc->size;
-		     list_add_tail(&cc->fc_list, &c->fc_list));
+	lh = &from->fc_list;
+	do {
+		fc = list_entry(lh, filecluster_t, fc_list);
+		if (!(fcc = _fcnew(c, fc->cluster, fc->coff)))
+			goto _killit;
+		fcc->off = fc->off;
+		fcc->size = fc->size;
+		list_add_tail(&fcc->fc_list, &c->fc_list);
 
-	c->flags &= ~FILEFLAG_WRITABLE;
-	f->flags &= ~FILEFLAG_WRITABLE;
+		lh = lh->next;
+	} while (fc != to);
 
 	return c;
 
 _killit:
 	_ffree(c);
 	return NULL;
+}
+
+filehead_t *_file_delete(filehead_t *f, filecluster_t *from, filecluster_t *to, filehead_t *c)
+{
+	struct list_head *lh;
+	filecluster_t *fc;
+
+	if (!c && !(c = _fnew()))
+		return NULL;
+
+	lh = &from->fc_list;
+	do {
+		fc = list_entry(lh, filecluster_t, fc_list);
+		lh = lh->next;
+
+		list_del(&fc->fc_list);
+		fc->f = c;
+		list_add_tail(&fc->fc_list, &c->fc_list);
+	} while (fc != to);
+
+	return c;
 }
 
 
@@ -1044,9 +997,6 @@ _killit:
 static logentry_t *_lenew(filehead_t *f, int op)
 {
 	logentry_t *l;
-
-	if (f->flags & FILEFLAG_USED)
-		PANIC("Used file into _lenew!");
 
 	if (!(l = __logentry_alloc(-1)))
 		return NULL;
@@ -1228,6 +1178,8 @@ int swap_open(char *name, int flags)
 	if (swap || !name)
 		return -1;
 
+	hash_alloc_swapfile();
+
 	errno = ENOMEM;
 	if (!(swap = ALLOC(swap_t)))
 		goto _nomem;
@@ -1339,6 +1291,9 @@ fileid_t file_alloc(off_t size)
 
 	_filecluster_add(fc, &f->fc_list);
 
+	/* finally hash the file */
+	hash_add_file(f);
+
  _out:
 	_swap_unlock();
 	return f->fid;
@@ -1346,6 +1301,40 @@ fileid_t file_alloc(off_t size)
 _freef:
 	_ffree(f);
 _err:
+	_swap_unlock();
+	return -1;
+}
+
+fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size)
+{
+	filecluster_t *fcstart, *fcend;
+	filehead_t *f, *c;
+
+	_swap_lock();
+
+	errno = ENOENT;
+	if (!(f = hash_find_file(fid)))
+		goto _err;
+	errno = EINVAL;
+	if (!(fcstart = _filecluster_findbyoff(f, pos))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size)))
+		goto _err;
+
+	/* split clusters if necessary */
+	if (_filecluster_split(fcstart, pos - filecluster_start(fcstart)) == -1
+	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
+		goto _err;
+	fcstart = _filecluster_findbyoff(f, pos);
+	fcend = _filecluster_findbyoff(f, pos+size);
+
+	if (!(c = _file_copy(f, fcstart, fcend)))
+		goto _err;
+
+	hash_add_file(c);
+	_swap_unlock();
+	return c->fid;
+
+ _err:
 	_swap_unlock();
 	return -1;
 }
@@ -1358,31 +1347,21 @@ fileid_t file_copy(fileid_t fid)
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
-		goto _out;
-	/* we do not allow copy of used file
-	 * because user should not have access to such file id */
-	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 
 	errno = ENOMEM;
-	if (!(c = _fcopy(f)))
+	if (!(c = _file_copy(f, fclist_head(f), fclist_tail(f))))
 		return -1;
 
-	f->flags &= ~FILEFLAG_WRITABLE;
-	c->flags &= ~FILEFLAG_WRITABLE;
 	fidc = c->fid;
+
+	/* hash the file copy */
+	hash_add_file(c);
 
  _out:
 	_swap_unlock();
 	return fidc;
-}
-
-fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size)
-{
-	/* FIXME */
-	return -1;
 }
 
 void file_unref(fileid_t fid)
@@ -1391,11 +1370,10 @@ void file_unref(fileid_t fid)
 
 	_swap_lock();
 
-	if (!(f = _filehead_findbyid(fid)))
-		goto _out;
-	if (f->flags & FILEFLAG_USED)
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 
+	hash_remove_file(f);
 	_ffree(f);
 
  _out:
@@ -1410,10 +1388,7 @@ off_t file_size(fileid_t fid)
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
-		goto _out;
-	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 
 	size = _filehead_size(f);
@@ -1432,11 +1407,7 @@ int file_truncate(fileid_t fid, off_t size)
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
-		goto _err;
-	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED
-	    || !(f->flags & FILEFLAG_WRITABLE))
+	if (!(f = hash_find_file(fid)))
 		goto _err;
 
 	oldsize = _filehead_size(f);
@@ -1466,6 +1437,7 @@ int file_truncate(fileid_t fid, off_t size)
 		nfc->size = size;
 		_filecluster_add(nfc, NULL);
 	} else {
+		/* truncate file */
 		while ((fc = _filecluster_findbyoff(f, size))) {
 			if (fc->off == size) {
 				/* throw away filecluster */
@@ -1473,7 +1445,6 @@ int file_truncate(fileid_t fid, off_t size)
 				free(fc);
 			} else {
 				fc->size = size - fc->off;
-				goto _out;
 			}
 		}
 	}
@@ -1495,21 +1466,19 @@ fileid_t file_next(fileid_t fid)
 	_swap_lock();
 
 	if (fid == -1) {
-		if ((fh = list_gethead(&swap->files, filehead_t, fh_list)))
-			goto _out;
-		goto _err;
+		if (!(fh = list_gethead(&swap->files, filehead_t, fh_list)))
+			goto _err;
+	} else {
+		if (!(fh = hash_find_file(fid)))
+			goto _err;
 	}
-
-	if (!(fh = _filehead_findbyid(fid)))
-		goto _err;
 
 	do {
 		if (fh->fh_list.next == &swap->files)
 			goto _err;
 		fh = list_entry(fh->fh_list.next, filehead_t, fh_list);
-	} while (fh->flags & FILEFLAG_USED);
+	} while (!is_hashed_file(fh));
 
- _out:
 	_swap_unlock();
 	return fh->fid;
 
@@ -1521,38 +1490,38 @@ fileid_t file_next(fileid_t fid)
 
 int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
 {
-	filehead_t *fd;
-	filehead_t *fs, *fscopy;
+	filehead_t *fd, *fs;
 	logentry_t *l;
-	filecluster_t *fc;
+	filecluster_t *at;
 
 	_swap_lock();
 	
 	errno = ENOENT;
-	if (!(fd = _filehead_findbyid(fid))
-	    || !(fs = _filehead_findbyid(file)))
+	if (!(fd = hash_find_file(fid))
+	    || !(fs = hash_find_file(file)))
 		goto _err;
 	errno = EINVAL;
-	if ((fd->flags & FILEFLAG_USED)
-	    || (fs->flags & FILEFLAG_USED))
+	if (!(at = _filecluster_findbyoff(fd, pos)))
 		goto _err;
 	errno = ENOMEM;
-	if (!(fscopy = _fcopy(fs)))
-		goto _err;
 	if (!(l = _lenew(fd, LOGENTRY_INSERT)))
-		goto _freefscopy;
-
-	l->u.insert.pos = pos;
-	l->u.insert.f = fscopy;
-	fscopy->flags |= FILEFLAG_USED;
-
-	if (_fsplit(fd, pos, &fc) == -1)
+		goto _err;
+	if (_filecluster_split(at, pos - filecluster_start(at)) == -1)
 		goto _freele;
 
-	_finsert(fd, fs, fc, pos);
-	_logentry_add(l, &swap->log);
+	/* build logentry */
+	l->u.insert.pos = pos;
+	l->u.insert.size = _filehead_size(fs);
+	l->u.insert.f = fs;
 
-	fd->flags &= ~FILEFLAG_WRITABLE;
+	/* do the operation */
+	at = fc_prev(_filecluster_findbyoff(fs, pos));
+	_file_insert(fd, at, fs);
+	_file_fixoff(fd, at);
+
+	/* finish it */
+	hash_remove_file(fs);
+	_logentry_add(l, &swap->log);
 
 	_swap_unlock();
 	return 0;
@@ -1560,8 +1529,6 @@ int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
 
 _freele:
 	free(l);
-_freefscopy:
-	_ffree(fscopy);
 _err:
 	_swap_unlock();
 	return -1;
@@ -1569,46 +1536,45 @@ _err:
 
 fileid_t file_op_delete(fileid_t fid, off_t pos, off_t size)
 {
-	filehead_t *f;
-	filehead_t *fd;
-	logentry_t *l;
+	filehead_t *f, *fd;
 	filecluster_t *fcstart, *fcend;
+	logentry_t *l;
 
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
+	if (!(f = hash_find_file(fid)))
 		goto _err;
 	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
+	if (!(fcstart = _filecluster_findbyoff(f, pos))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size)))
 		goto _err;
+
+	/* split clusters if necessary */
+	if (_filecluster_split(fcstart, pos - filecluster_start(fcstart)) == -1
+	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
+		goto _err;
+	fcstart = _filecluster_findbyoff(f, pos);
+	fcend = _filecluster_findbyoff(f, pos+size);
+
+	/* create user copy of the to be deleted part */
+	if (!(fd = _file_copy(f, fcstart, fcend)))
+		goto _err;
+	_file_fixoff(fd, NULL);
+
+	/* create the log entry */
 	errno = ENOMEM;
-	if (!(fd = _fnew()))
-		goto _err;
 	if (!(l = _lenew(f, LOGENTRY_DELETE)))
 		goto _freefd;
-
-	/* move deleted part into fd */
-	if (_fsplit(f, pos, &fcstart) == -1
-	    || _fsplit(f, pos + size, &fcend) == -1)
-		goto _freele;
-	if (!fcstart)
-		fcstart = list_gethead(&f->fc_list, filecluster_t, fc_list);
-	else
-		fcstart = list_entry(fcstart->fc_list.next, filecluster_t, fc_list);
-	_fmove(f, fcstart, fcend, fd);
-
 	l->u.delete.pos = pos;
 	l->u.delete.size = size;
-	if (!(l->u.delete.f = _fcopy(fd))) {
-		_finsert(f, fd, _filecluster_findbyoff(f, pos - 1), pos);
+	if (!(l->u.delete.f = _file_delete(f, fcstart, fcend, NULL)))
 		goto _freele;
-	}
-	l->u.delete.f->flags |= FILEFLAG_USED;
 
+	/* finish the operation */
+	_file_fixoff(f, NULL);
+	hash_add_file(fd);
 	_logentry_add(l, &swap->log);
-
-	f->flags &= ~FILEFLAG_WRITABLE;
 
 	_swap_unlock();
 	return fd->fid;
@@ -1623,9 +1589,48 @@ _err:
 	return -1;
 }
 
-fileid_t file_op_cut(fileid_t fid, off_t pos, off_t size)
+int file_op_cut(fileid_t fid, off_t pos, off_t size)
 {
-	/* FIXME */
+	filehead_t *f;
+	logentry_t *l;
+	filecluster_t *fcstart, *fcend;
+
+	_swap_lock();
+
+	errno = ENOENT;
+	if (!(f = hash_find_file(fid)))
+		goto _err;
+	errno = EINVAL;
+	if (!(fcstart = _filecluster_findbyoff(f, pos))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size)))
+		goto _err;
+
+	/* split clusters if necessary */
+	if (_filecluster_split(fcstart, pos - filecluster_start(fcstart)) == -1
+	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
+		goto _err;
+	fcstart = _filecluster_findbyoff(f, pos);
+	fcend = _filecluster_findbyoff(f, pos+size);
+
+	/* first set up the logentry */
+	errno = ENOMEM;
+	if (!(l = _lenew(f, LOGENTRY_DELETE)))
+		goto _err;
+	l->u.delete.pos = pos;
+	l->u.delete.size = size;
+	if (!(l->u.delete.f = _file_delete(f, fcstart, fcend, NULL)))
+		goto _freele;
+
+	_file_fixoff(f, NULL);
+	_logentry_add(l, &swap->log);
+
+	_swap_unlock();
+	return 0;
+
+_freele:
+	free(l);
+_err:
+	_swap_unlock();
 	return -1;
 }
 
@@ -1636,10 +1641,7 @@ int file_transaction_begin(fileid_t fid)
 	int res = -1;
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
-		goto _out;
-	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 
 	res = 0;
@@ -1667,10 +1669,10 @@ int file_transaction_end(fileid_t fid)
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 	errno = EINVAL;
-	if (!f->begincnt || f->flags & FILEFLAG_USED)
+	if (!f->begincnt)
 		goto _out;
 
 	res = 0;
@@ -1691,18 +1693,16 @@ int file_transaction_end(fileid_t fid)
 
 int file_transaction_undo(fileid_t fid)
 {
-	filehead_t *f, *fh;
+	filehead_t *f;
 	logentry_t *l;
 	int res = -1;
 
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
-		goto _out;
 	if (f->begincnt)
 		goto _out;
 
@@ -1722,20 +1722,21 @@ int file_transaction_undo(fileid_t fid)
 		l = _logentry_prev(f, l);
 		switch (l->op) {
 		case LOGENTRY_INSERT:
-			_fdelete(l->f, _filecluster_findbyoff(l->f, l->u.insert.pos),
-				 _filecluster_findbyoff(l->f, l->u.insert.pos + _filehead_size(l->u.insert.f)));
+			_file_delete(f, _filecluster_findbyoff(f, l->u.insert.pos),
+				     _filecluster_findbyoff(f, l->u.insert.pos + l->u.insert.size),
+				     l->u.insert.f);
+			hash_add_file(l->u.insert.f);
 			break;
 		case LOGENTRY_DELETE:
-			if (!(fh = _fcopy(l->u.delete.f)))
-				PANIC("no mem for _fcopy"); /* ummmm..... !? */
-			_finsert(l->f, fh,
-				 _filecluster_findbyoff(l->f, l->u.delete.pos - 1),
-				 l->u.delete.pos);
+			_file_insert(f, _filecluster_findbyoff(f, l->u.delete.pos - 1),
+				     l->u.delete.f);
+			_ffree(l->u.delete.f);
 			break;
 		default:
 		}
+		_file_fixoff(l->f, NULL);
 	} while (l->op != LOGENTRY_BEGIN);
-	
+
 	/* remember the begin-id */
 	f->logpos = l->lid;
 
@@ -1746,17 +1747,14 @@ int file_transaction_undo(fileid_t fid)
 
 int file_transaction_redo(fileid_t fid)
 {
-	filehead_t *f, *fh;
+	filehead_t *f;
 	logentry_t *l;
 	int res = -1;
 
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
-		goto _out;
-	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 
 	res = 0;
@@ -1773,17 +1771,18 @@ int file_transaction_redo(fileid_t fid)
 		l = _logentry_next(f, l);
 		switch (l->op) {
 		case LOGENTRY_INSERT:
-			if (!(fh = _fcopy(l->u.delete.f)))
-				PANIC("no mem for _fcopy"); /* ummmm..... !? */
-			_finsert(l->f, fh,  _filecluster_findbyoff(l->f, l->u.insert.pos - 1),
-				 l->u.insert.pos);
+			_file_insert(f, _filecluster_findbyoff(f, l->u.insert.pos - 1),
+				     l->u.insert.f);
+			hash_remove_file(l->u.insert.f);
 			break;
 		case LOGENTRY_DELETE:
-			_fdelete(l->f, _filecluster_findbyoff(l->f, l->u.delete.pos),
-				 _filecluster_findbyoff(l->f, l->u.delete.size));
+			l->u.delete.f = _file_delete(f, _filecluster_findbyoff(f, l->u.delete.pos),
+						     _filecluster_findbyoff(f, l->u.delete.size),
+						     NULL);
 			break;
 		default:
 		}
+		_file_fixoff(l->f, NULL);
 	} while (l->op != LOGENTRY_END);
 
 	/* remember the next begin-id */
@@ -1806,10 +1805,7 @@ filecluster_t *filecluster_get(fileid_t fid, off_t pos)
 	_swap_lock();
 
 	errno = ENOENT;
-	if (!(f = _filehead_findbyid(fid)))
-		goto _out;
-	errno = EINVAL;
-	if (f->flags & FILEFLAG_USED)
+	if (!(f = hash_find_file(fid)))
 		goto _out;
 	fc = _filecluster_findbyoff(f, pos);
 
@@ -1828,7 +1824,7 @@ char *filecluster_mmap(filecluster_t *fc)
 	_swap_lock();
 
 	errno = EINVAL;
-	if (fc->f->flags & FILEFLAG_USED)
+	if (!is_hashed_file(fc->f))
 		goto _out;
 
 	/* do late allocation of cluster */
@@ -1838,13 +1834,13 @@ char *filecluster_mmap(filecluster_t *fc)
 		if (!(c = _cluster_alloc(fc->size, pfc ? pfc->cluster : NULL)))
 			goto _out;
 		if (c->size < fc->size)
-			_fcsplit(fc, c->size);
+			_filecluster_split(fc, c->size);
 		_fcpopulate(fc, c, 0);
 		zero = 1;
 	}
 
 	mem = _cluster_mmap(fc->cluster, zero,
-			    fc->f->flags & FILEFLAG_WRITABLE ? PROT_READ|PROT_WRITE : PROT_READ);
+			    fc->cluster->refcnt == 1 ? PROT_READ|PROT_WRITE : PROT_READ);
 	mem += fc->coff;
 
  _out:
