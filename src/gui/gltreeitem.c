@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.2 2001/03/12 09:41:51 richi Exp $
+ * $Id: gltreeitem.c,v 1.3 2001/03/13 11:21:38 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <gnome.h>
+#include "glame_types.h"
+#include "swapfile.h"
 #include "gltreeitem.h"
 
 static void glame_tree_item_destroy(GtkObject *object)
@@ -78,7 +80,7 @@ GtkWidget* glame_tree_item_new(void)
 }
 
 GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
-				    int sample_rate, int size)
+				    int sample_rate)
 {
         GlameTreeItem *item;
 
@@ -88,7 +90,7 @@ GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
 	item->label = strdup(label);
         item->swapfile_name = swapfile_name;
         item->sample_rate = sample_rate;
-        item->size = size;
+        item->size = -1;
 	glame_tree_item_update(item);
 
 	return GTK_WIDGET(item);
@@ -111,9 +113,21 @@ void glame_tree_item_update(GlameTreeItem *item)
 {
 	GtkBin *c;
 	GtkWidget *l;
+	char buf[256];
+
+	/* Update size. */
+	if (item->type == GLAME_TREE_ITEM_FILE
+	    && item->swapfile_name != -1) {
+		swfd_t fd = sw_open(item->swapfile_name, O_RDONLY, TXN_NONE);
+		struct sw_stat st;
+		if (fd != -1
+		    && sw_fstat(fd, &st) != -1) {
+			item->size = st.size/SAMPLE_SIZE;
+		}
+		sw_close(fd);
+	}
 
 	/* Create the label out of the GlameTreeItem data. */
-	char buf[256];
 	if (item->type == GLAME_TREE_ITEM_GROUP)
 		snprintf(buf, 255, "%s", item->label);
 	else if (item->type == GLAME_TREE_ITEM_FILE)
@@ -223,11 +237,13 @@ GtkObject* glame_tree_copy(GtkObject *t)
 	if (GLAME_IS_TREE_ITEM(t)) {
 		GlameTreeItem *item = GLAME_TREE_ITEM(t);
 		GtkTree *tree;
-		if (item->type == GLAME_TREE_ITEM_FILE)
-			return GTK_OBJECT(
+		if (item->type == GLAME_TREE_ITEM_FILE) {
+			GlameTreeItem *i = GLAME_TREE_ITEM(
 				glame_tree_item_new_file(item->label,
-				     item->swapfile_name, item->sample_rate,
-				     item->size));
+				     item->swapfile_name, item->sample_rate));
+			i->size = item->size;
+			return GTK_OBJECT(i);
+		}
 		item = GLAME_TREE_ITEM(glame_tree_item_new_group(item->label));
 		tree = GTK_TREE(glame_tree_copy(GTK_OBJECT(GTK_TREE_ITEM_SUBTREE(item))));
 		gtk_tree_item_set_subtree(GTK_TREE_ITEM(item),

@@ -244,8 +244,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 			} else {
 				pipe = filterport_get_pipe(dest);
 				newTrak = glame_tree_item_new_file((filterpipe_sample_hangle(pipe)<0)?"Left":"Right",name,
-								   filterpipe_sample_rate(pipe), 
-								   0);
+								   filterpipe_sample_rate(pipe));
 				gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
 							 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
 				glame_tree_append(newItem,newTrak);
@@ -269,10 +268,8 @@ launch:
 		fd = sw_open(names[i],O_RDONLY,TXN_NONE);
 		sw_fstat(fd,&st);
 		sw_close(fd);
-		len = st.size/SAMPLE_SIZE;
 	
 		newTrak = glame_tree_find_filename(swapfile_tree,names[i]);
-		GLAME_TREE_ITEM(newTrak)->size = len;
 		glame_tree_item_update(newTrak);
 		i++;
 	} while (i < channels);
@@ -309,7 +306,7 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 
 	if (strcmp(node->name, "file") == 0) {
 		char *ilabel, *c;
-		long ifd, irate, isize;
+		long ifd, irate;
 		struct sw_stat st;
 		int fd;
 
@@ -323,25 +320,16 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 		if (!(c = xmlGetProp(node, "rate")))
 			c = "44100";
 		irate = atoi(c);
-		if (!(c = xmlGetProp(node, "size")))
-			c = "-1";
-		isize = atoi(c);
 
 		/* Check, if the file is really there (and update info) */
 		if ((fd = sw_open(ifd, O_RDONLY, TXN_NONE)) != -1) {
-			sw_fstat(fd, &st);
-			if (isize != -1 && st.size != isize*SAMPLE_SIZE) {
-				DPRINTF("size %li does not match %i\n",
-					isize, st.size);
-			}
-			isize = st.size/SAMPLE_SIZE;
 			sw_close(fd);
 		} else {
 			DPRINTF("%s does not exist\n", ilabel);
 			return;
 		}
 
-		item = glame_tree_item_new_file(ilabel, ifd, irate, isize);
+		item = glame_tree_item_new_file(ilabel, ifd, irate);
 
 	} else if (strcmp(node->name, "group") == 0) {
 		char *ilabel, *c;
@@ -388,7 +376,7 @@ void scan_swap(GtkTree *tree)
 			continue;
 		if ((item = glame_tree_find_filename(GTK_OBJECT(tree), name)))
 			continue;
-		item = GLAME_TREE_ITEM(glame_tree_item_new_file("unnamed", name, -1, -1));
+		item = GLAME_TREE_ITEM(glame_tree_item_new_file("unnamed", name, -1));
 		glame_tree_append(GTK_OBJECT(grp), item);
 	}
 	sw_closedir(dir);
@@ -415,8 +403,6 @@ static void dump_item(GlameTreeItem *item, xmlNodePtr node)
 		xmlSetProp(child, "fd", s);
 		snprintf(s, 255, "%i", item->sample_rate);
 		xmlSetProp(child, "rate", s);
-		snprintf(s, 255, "%li", item->size);
-		xmlSetProp(child, "size", s);
 	}
 }
 static void dump_tree(GtkTree *tree, xmlNodePtr node)

@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.2 2001/03/12 09:41:51 richi Exp $
+ * $Id: gltreeitem.h,v 1.3 2001/03/13 11:21:38 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -62,7 +62,7 @@ struct _GlameTreeItemClass {
 GtkType    glame_tree_item_get_type(void);
 GtkWidget* glame_tree_item_new(void);
 GtkWidget* glame_tree_item_new_file(const char *label, long swapfile_name,
-				    int sample_rate, int size);
+				    int sample_rate);
 GtkWidget* glame_tree_item_new_group(const char *label);
 void       glame_tree_item_update(GlameTreeItem *item);
 
