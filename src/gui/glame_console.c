@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.3 2001/06/13 13:34:55 richi Exp $
+ * $Id: glame_console.c,v 1.4 2001/06/14 13:25:29 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -36,7 +36,14 @@
 static GtkWidget *console = NULL;
 static GtkWidget *text = NULL;
 static GdkColor fore, back;
-
+struct history_entry {
+	struct list_head list;
+	char *cmd;
+};
+static LIST_HEAD(history_list);
+static int history_cnt = 0;
+static struct history_entry *history = NULL;
+static char *history_edited = NULL;
 
 static void port_write(SCM port, void *data, size_t size)
 {
@@ -79,27 +86,89 @@ static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
 	char prt_cmd[32];
 	char *cmd;
 	SCM s_res;
+	struct history_entry *hentry;
 
-	if (event->type != GDK_KEY_PRESS
-	    || (event->keyval != GDK_KP_Enter
-		&& event->keyval != GDK_ISO_Enter
-		&& event->keyval != GDK_3270_Enter
-		&& event->keyval != GDK_Return))
+	if (event->type != GDK_KEY_PRESS)
 		return FALSE;
-	cmd = gtk_entry_get_text(GTK_ENTRY(entry));
-	if (!cmd)
-		return FALSE;
-	glame_console_printf("GLAME> %s\n", cmd);
-	s_res = glame_gh_safe_eval_str(cmd);
+
+	if (event->keyval == GDK_KP_Enter
+	    || event->keyval == GDK_ISO_Enter
+	    || event->keyval == GDK_3270_Enter
+	    || event->keyval == GDK_Return) {
+		/* Catch ENTER - execute command. */
+		cmd = gtk_entry_get_text(GTK_ENTRY(entry));
+		if (!cmd)
+			return FALSE;
+
+		/* add cmd to history and adjust current history pointer */
+		hentry = ALLOC(struct history_entry);
+		INIT_LIST_HEAD(&hentry->list);
+		hentry->cmd = strdup(cmd);
+		list_add(&hentry->list, &history_list);
+		if (++history_cnt > 128) {
+			hentry = list_gettail(&history_list,
+					      struct history_entry, list);
+			list_del(&hentry->list);
+			free(hentry->cmd);
+			free(hentry);
+		}
+		history = NULL;
+		if (history_edited) {
+			free(history_edited);
+			history_edited = NULL;
+		}
+
+		glame_console_printf("GLAME> %s\n", cmd);
+		s_res = glame_gh_safe_eval_str(cmd);
+		if (!SCM_UNBNDP(s_res)
 #ifdef SCM_EQ_P
-	if (!SCM_UNBNDP(s_res) && !SCM_EQ_P(s_res, SCM_UNSPECIFIED)) {
+		    && !SCM_EQ_P(s_res, SCM_UNSPECIFIED)
 #else
-	if (!SCM_UNBNDP(s_res) && !(SCM_UNSPECIFIED==s_res)) {
+		    && !(SCM_UNSPECIFIED==s_res)
 #endif
-		gh_display(s_res);
-		gh_newline();
+			) {
+			gh_display(s_res);
+			gh_newline();
+		}
+		gtk_entry_set_text(GTK_ENTRY(entry), "");
+		return FALSE;
+
+	} else if (event->keyval == GDK_Up
+		   || event->keyval == GDK_Down) {
+		/* Catch history - remember edited text */
+		cmd = gtk_entry_get_text(GTK_ENTRY(entry));
+		if (!history || strcmp(cmd, history->cmd) != 0) {
+			if (history_edited)
+				free(history_edited);
+			history_edited = strdup(cmd);
+		}
+		hentry = NULL;
+		if (!history && event->keyval == GDK_Up)
+			hentry = list_gethead(&history_list,
+					      struct history_entry, list);
+		else if (history && event->keyval == GDK_Up)
+			hentry = list_getnext(&history_list, history,
+					      struct history_entry, list);
+		else if (history && event->keyval == GDK_Down)
+			hentry = list_getprev(&history_list, history,
+					      struct history_entry, list);
+		if (hentry || event->keyval == GDK_Down)
+			history = hentry;
+		if (history)
+			gtk_entry_set_text(GTK_ENTRY(entry), history->cmd);
+		else if (event->keyval == GDK_Down)
+			gtk_entry_set_text(GTK_ENTRY(entry), history_edited);
+		gtk_signal_emit_stop_by_name(GTK_OBJECT(entry),
+                                             "key_press_event");
+		return TRUE;
+	} else if (event->keyval == GDK_Tab) {
+		/* Autocompletion */
+		/* FIXME */
+		gtk_signal_emit_stop_by_name(GTK_OBJECT(entry),
+                                             "key_press_event");
+		return TRUE;
 	}
-	gtk_entry_set_text(GTK_ENTRY(entry), "");
+
 	return FALSE;
 }
 
