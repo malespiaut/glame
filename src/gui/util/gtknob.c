@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.8 2002/04/12 09:32:06 richi Exp $
+ * $Id: gtknob.c,v 1.9 2002/04/12 12:08:38 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -696,7 +696,7 @@ static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
 	format_s = glame_gh_safe_eval_str(code);
 	if (!gh_procedure_p(format_s))
 		return g_strdup("Error");
-	res_s = gh_call1(set_s, gh_double2scm(value));
+	res_s = gh_call1(format_s, gh_double2scm(value));
 	if (!gh_string_p(res_s))
 		return g_strdup("Error");
 	res = gh_scm2newstr(res_s, &len);
