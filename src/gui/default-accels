@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<glame-accels>
+
+<scope scope="swapfile">
+  <accel state="4" spec="l">
+(if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) -1.57))
+  </accel>
+  <accel state="4" spec="r">
+(if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) 1.57))
+  </accel>
+  <accel state="0" spec="Right">
+(let ((item (swapfilegui-active-item))) (if (gpsm-item? item) (gpsm-item-set-hposition! item (+ (gpsm-item-hposition item) 22050))))
+  </accel>
+  <accel state="4" spec="d">
+(begin (display "Hello World!") (newline))
+  </accel>
+</scope>
+
+<scope scope="waveview">
+  <accel state="0" spec="Prior">
+(waveedit-set-zoom! (* (waveedit-get-zoom) 0.75))
+  </accel>
+  <accel state="0" spec="Next">
+(waveedit-set-zoom! (* (waveedit-get-zoom) 1.33))
+  </accel>
+  <accel state="0" spec="Left">
+(let* ((pos (waveedit-get-scroll)) (newpos (- (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (&lt; newpos 0) 0 newpos)))
+  </accel>
+  <accel state="0" spec="Right">
+(let* ((pos (waveedit-get-scroll)) (newpos (+ (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (&gt; newpos (- (caddr (cddr pos)) (car pos))) (- (caddr (cddr pos)) (car pos)) newpos)))
+  </accel>
+</scope>
+
+<scope scope="filteredit">
+  <accel state="0" spec="v">
+(editfilter-view-all)
+  </accel>
+  <accel state="1" spec="plus">
+(editfilter-zoom-in)
+  </accel>
+  <accel state="0" spec="bracketright">
+(editfilter-zoom-in 4.0)
+  </accel>
+  <accel state="0" spec="minus">
+(editfilter-zoom-out)
+  </accel>
+  <accel state="0" spec="bracketleft">
+(editfilter-zoom-out 4.0)
+  </accel>
+  <accel state="0" spec="d">
+(editfilter-delete-selection)
+  </accel>
+  <accel state="0" spec="g">
+(editfilter-group-selection)
+  </accel>
+</scope>
+
+</glame-accels>
+
