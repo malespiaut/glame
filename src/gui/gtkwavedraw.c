@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.3 2000/04/11 01:22:46 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.4 2000/04/11 23:03:21 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -664,7 +664,7 @@ gtk_wave_draw_set_resolution (GtkWaveDraw *wavedraw,
 {
   g_return_if_fail(wavedraw != NULL);
   g_return_if_fail(GTK_IS_WAVE_DRAW(wavedraw));
-  g_return_if_fail(resolution <= 0);
+  g_return_if_fail(resolution > 0);
 
   wavedraw->n_points_per_pixel = resolution;
 }
