@@ -1165,7 +1165,7 @@ void glame_waveeditgui_init()
 static void waveedit_gui_destroy(GtkObject *waveedit)
 {
 	GnomeAppClass* parent_class;
-	parent_class = gtk_type_class(GNOME_TYPE_APP);
+	parent_class = gtk_type_class(gnome_app_get_type());
 	GTK_OBJECT_CLASS(parent_class)->destroy(waveedit);
 	if (WAVEEDIT_GUI(waveedit)->swfiles)
 		gpsm_item_destroy((gpsm_item_t *)WAVEEDIT_GUI(waveedit)->swfiles);
@@ -1200,7 +1200,7 @@ GtkType waveedit_gui_get_type(void)
 			(GtkObjectInitFunc)waveedit_gui_init,
 			NULL,NULL,(GtkClassInitFunc)NULL,};
 		waveedit_gui_type = gtk_type_unique(
-			GNOME_TYPE_APP, &waveedit_gui_info);
+			gnome_app_get_type(), &waveedit_gui_info);
 		gtk_type_set_chunk_alloc(waveedit_gui_type, 8);
 	}
 
