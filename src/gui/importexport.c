@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.34 2004/01/10 15:38:56 richi Exp $
+ * $Id: importexport.c,v 1.35 2004/01/10 16:34:29 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -112,6 +112,7 @@ struct imp_s {
 	int mad_bufsize;
 	char *mad_buf;
 #endif
+	struct timeval start_time;
 };
 
 
@@ -314,6 +315,7 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 			gpsm_item_place((gpsm_grp_t *)ie->item, (gpsm_item_t *)swfile, 0, i);
 			ie->mad_swfds[i] = sw_open(gpsm_swfile_filename(swfile), O_RDWR);
 		}
+		gettimeofday(&ie->start_time, NULL);
 	}
 
 	if (!ie->mad_buf
@@ -337,6 +339,16 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 
 	/* all 32 frames show some progress and check for user input */
 	if (ie->mad_pos/(1152*32) < (ie->mad_pos+pcm->length)/(1152*32)) {
+		struct timeval tv;
+		char msg[256];
+		gettimeofday(&tv, NULL);
+		snprintf(msg, 256, _("Importing... %.3lf ksamples/s"),
+			 ((double)(ie->mad_pos+pcm->length)/(tv.tv_sec - ie->start_time.tv_sec + (tv.tv_usec - ie->start_time.tv_usec)/1000000.0)/1000.0));
+		// for gnuplot graph
+		printf("%.3lf\t%li\n",
+		       (tv.tv_sec - ie->start_time.tv_sec + (tv.tv_usec - ie->start_time.tv_usec)/1000000.0),
+		       (long)(ie->mad_pos+pcm->length));
+		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), msg);
 		gtk_progress_bar_pulse(gnome_appbar_get_progress(
 			GNOME_APPBAR(ie->appbar)));
 		while (gtk_events_pending())
