@@ -175,12 +175,6 @@ void scminvalidatefilter(SCM filter_smob)
 	filter->filter = NULL;
 }
 
-static SCM filterp(SCM filter_smob)
-{
-	if (filter_p(filter_smob))
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
-}
 
 
 
@@ -188,20 +182,45 @@ static SCM filterp(SCM filter_smob)
 /* The scriptable filter API part.
  */
 
+static SCM gls_is_filter(SCM s_filter)
+{
+	if (filter_p(s_filter))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_port(SCM s_port)
+{
+	if (port_p(s_port))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_pipe(SCM s_pipe)
+{
+	if (pipe_p(s_pipe))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_param(SCM s_param)
+{
+	if (param_p(s_param))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
 static SCM gls_filter_creat(SCM s_filter)
 {
-	filter_t *filter = NULL;
-	if (filter_p(s_filter))
-		filter = scm2filter(s_filter);
-	return filter2scm(filter_creat(filter));
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "filter_creat");
+	return filter2scm(filter_creat(scm2filter(s_filter)));
 }
 
 static SCM gls_filter_instantiate(SCM s_plugin)
 {
-	plugin_t *plugin = scm2plugin(s_plugin);
-	if (!plugin)
-		return SCM_BOOL_F;
-	return filter2scm(filter_instantiate(plugin));
+	SCM_ASSERT(plugin_p(s_plugin), s_plugin,
+		   SCM_ARG1, "filter_instantiate");
+	return filter2scm(filter_instantiate(scm2plugin(s_plugin)));
 }
 
 static SCM gls_create_plugin(SCM s_filter, SCM s_name)
@@ -211,6 +230,8 @@ static SCM gls_create_plugin(SCM s_filter, SCM s_name)
 	char *name;
 	int namel;
 
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "create_plugin");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG2, "create_plugin");
 	filter = scm2filter(s_filter);
 	name = gh_scm2newstr(s_name, &namel);
 	p = glame_create_plugin(filter, name);
@@ -222,10 +243,8 @@ static SCM gls_create_plugin(SCM s_filter, SCM s_name)
 
 static SCM gls_filter_to_string(SCM s_net)
 {
-	filter_t *net;
-
-	net = scm2filter(s_net);
-	return gh_str02scm((char *)filter_to_string(net));
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_to_string");
+	return gh_str02scm((char *)filter_to_string(scm2filter(s_net)));
 }
 
 
@@ -237,6 +256,9 @@ static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	int namel;
 	int res;
 
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_add_node");
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG2, "filter_add_node");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG3, "filter_add_node");
 	net = scm2filter(s_net);
 	filter = scm2filter(s_filter);
 	name = gh_scm2newstr(s_name, &namel);
@@ -255,6 +277,12 @@ static SCM gls_filter_connect(SCM s_source, SCM s_source_port,
 	char *source_port, *dest_port;
 	int source_portl, dest_portl;
 
+	SCM_ASSERT(filter_p(s_source), s_source, SCM_ARG1, "filter_connect");
+	SCM_ASSERT(gh_string_p(s_source_port), s_source_port,
+		   SCM_ARG2, "filter_connect");
+	SCM_ASSERT(filter_p(s_dest), s_dest, SCM_ARG3, "filter_connect");
+	SCM_ASSERT(gh_string_p(s_dest_port), s_dest_port,
+		   SCM_ARG4, "filter_connect");
 	source = scm2filter(s_source);
 	dest = scm2filter(s_dest);
 	source_port = gh_scm2newstr(s_source_port, &source_portl);
@@ -305,6 +333,9 @@ static SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 {
 	filter_t *n;
 
+	SCM_ASSERT(filter_p(s_n), s_n, SCM_ARG1, "filternode_set_param");
+	SCM_ASSERT(gh_string_p(s_label), s_label,
+		   SCM_ARG2, "filternode_set_param");
 	n = scm2filter(s_n);
 	return gls_filterparam_set(filter_paramdb(n), s_label, s_val);
 }
@@ -328,30 +359,24 @@ static SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
 
 static SCM gls_filter_launch(SCM s_net)
 {
-	filter_t *net;
-
-	net = scm2filter(s_net);
-	if (filter_launch(net) == -1)
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_launch");
+	if (filter_launch(scm2filter(s_net)) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
 static SCM gls_filter_start(SCM s_net)
 {
-	filter_t *net;
-
-	net = scm2filter(s_net);
-	if (filter_start(net) == -1)
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_start");
+	if (filter_start(scm2filter(s_net)) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
 static SCM gls_filter_pause(SCM s_net)
 {
-	filter_t *net;
-
-	net = scm2filter(s_net);
-	if (filter_pause(net) == -1)
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_pause");
+	if (filter_pause(scm2filter(s_net)) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
@@ -369,6 +394,7 @@ static SCM gls_filter_wait(SCM s_net)
 	struct sigaction sa, oldsa;
 	int res;
 
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_wait");
 	net = scm2filter(s_net);
 
 	/* We need to do some tricks to allow for SIGINT to
@@ -391,10 +417,8 @@ static SCM gls_filter_wait(SCM s_net)
 
 static SCM gls_filter_terminate(SCM s_net)
 {
-	filter_t *net;
-
-	net = scm2filter(s_net);
-	filter_terminate(net);
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_terminate");
+	filter_terminate(scm2filter(s_net));
 	return SCM_UNSPECIFIED;
 }
 
@@ -661,11 +685,19 @@ static SCM gls_get_pipes(SCM s_obj)
 /* The scriptable plugin API part.
  */
 
+static SCM gls_is_plugin(SCM s_plugin)
+{
+	if (plugin_p(s_plugin))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
 static SCM gls_plugin_add_path(SCM s_path)
 {
 	char *path;
 	int pathl, res;
 
+	SCM_ASSERT(gh_string_p(s_path), s_path, SCM_ARG1, "plugin_add_path");
 	path = gh_scm2newstr(s_path, &pathl);
 	res = plugin_add_path(path);
 	free(path);
@@ -680,6 +712,7 @@ static SCM gls_plugin_get(SCM s_name)
 	char *name;
 	int namel;
 
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "plugin_get");
 	name = gh_scm2newstr(s_name, &namel);
 	p = plugin_get(name);
 	free(name);
@@ -690,6 +723,7 @@ static SCM gls_plugin_name(SCM s_p)
 {
 	plugin_t *p;
 
+	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin_name");
 	p = scm2plugin(s_p);
 	return gh_str02scm((char *)plugin_name(p));
 }
@@ -701,6 +735,8 @@ static SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 	int keyl;
 	void *val;
 
+	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin_query_string");
+	SCM_ASSERT(gh_string_p(s_key), s_key, SCM_ARG2, "plugin_query_string");
 	p = scm2plugin(s_p);
 	key = gh_scm2newstr(s_key, &keyl);
 	val = plugin_query(p, key);
@@ -717,6 +753,9 @@ static SCM gls_plugin_set_string(SCM s_p, SCM s_key, SCM s_val)
 	char *val;
 	int keyl, vall;
 
+	SCM_ASSERT(plugin_p(s_p), s_p, SCM_ARG1, "plugin_set_string");
+	SCM_ASSERT(gh_string_p(s_key), s_key, SCM_ARG2, "plugin_set_string");
+	SCM_ASSERT(gh_string_p(s_val), s_val, SCM_ARG3, "plugin_set_string");
 	p = scm2plugin(s_p);
 	key = gh_scm2newstr(s_key, &keyl);
 	val = gh_scm2newstr(s_val, &vall);
@@ -733,6 +772,9 @@ static SCM gls_glame_plugin_define(SCM s_net, SCM s_name)
 	char *name;
 	int namel;
 
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "glame_plugin_define");
+	SCM_ASSERT(gh_string_p(s_name), s_name,
+		   SCM_ARG2, "glame_plugin_define");
 	f = scm2filter(s_net);
 	name = gh_scm2newstr(s_name, &namel);
 	if (glscript_load_mode == 0) {
@@ -758,7 +800,6 @@ int glscript_init_filter()
 	scm_set_smob_free(filter_smob_tag, free_filter);
 	scm_set_smob_print(filter_smob_tag, print_filter);
 	scm_set_smob_equalp(filter_smob_tag, equalp_filter);
-	gh_new_procedure("filter?", (SCM (*)())filterp, 1, 0, 0);
 
 	/* Register the pipe, param, port and plugin SMOB to guile. */
 	pipe_smob_tag = scm_make_smob_type("pipe",
@@ -778,8 +819,12 @@ int glscript_init_filter()
 	scm_set_smob_print(plugin_smob_tag, print_pointer);
 	scm_set_smob_equalp(plugin_smob_tag, equalp_pointer);
 
-
 	/* filter */
+	gh_new_procedure1_0("filter?", gls_is_filter);
+	gh_new_procedure1_0("port?", gls_is_port);
+	gh_new_procedure1_0("pipe?", gls_is_pipe);
+	gh_new_procedure1_0("param?", gls_is_param);
+
 	gh_new_procedure1_0("get_name", gls_get_name);
 	gh_new_procedure3_0("set_property", gls_set_property);
 	gh_new_procedure2_0("get_property", gls_get_property);
@@ -789,7 +834,6 @@ int glscript_init_filter()
 	gh_new_procedure1_0("get_params", gls_get_params);
 	gh_new_procedure1_0("get_pipes", gls_get_pipes);
 
-	gh_new_procedure1_0("filter_p", filterp);
 	gh_new_procedure0_1("filter_creat", gls_filter_creat);
 	gh_new_procedure1_0("filter_instantiate", gls_filter_instantiate);
 	gh_new_procedure2_0("glame_create_plugin", gls_create_plugin);
@@ -814,6 +858,7 @@ int glscript_init_filter()
 
 
 	/* plugin */
+	gh_new_procedure1_0("plugin?", gls_is_plugin);
 	gh_new_procedure1_0("plugin_add_path", gls_plugin_add_path);
 	gh_new_procedure1_0("plugin_get", gls_plugin_get);
 	gh_new_procedure1_0("plugin_name", gls_plugin_name);
@@ -823,6 +868,7 @@ int glscript_init_filter()
 	gh_define("PLUGIN_DESCRIPTION", gh_str02scm(PLUGIN_DESCRIPTION));
 	gh_define("PLUGIN_PIXMAP", gh_str02scm(PLUGIN_PIXMAP));
 	gh_define("PLUGIN_CATEGORY", gh_str02scm(PLUGIN_CATEGORY));
+	gh_define("PLUGIN_GUI_HELP_PATH", gh_str02scm(PLUGIN_GUI_HELP_PATH));
 
 	/* HACK */
 	gh_new_procedure2_0("glame_plugin_define", gls_glame_plugin_define);
