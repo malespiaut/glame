@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.6 2000/05/01 11:09:04 richi Exp $
+ * $Id: noisegate.c,v 1.7 2000/05/16 02:11:52 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -124,17 +124,36 @@ int noisegate_register(plugin_t *p)
 {
 	filter_t *f;
 	
-	if (!(f = filter_alloc(noisegate_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"threshold_on","if input < threshold_on noisegate is turned on",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"threshold_off","if input > threshold_off noisegate is turned off",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"hold","Hold Time[ms]",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"attack","Attack Time[ms]",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_FLOAT))
+	if (!(f = filter_alloc(noisegate_f)))
 		return -1;
+
+	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_SAMPLE);
+	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE);
+
+	filterpdb_add_param_float(filter_pdb(f),"threshold_on",
+				FILTER_PARAMTYPE_FLOAT,0.0,
+				FILTERPARAM_DESCRIPTION,"if input < threshold_on noisegate is turned on",
+				FILTERPARAM_END);
+
+	filterpdb_add_param_float(filter_pdb(f),"threshold_off",
+			FILTER_PARAMTYPE_FLOAT,0.0,
+			FILTERPARAM_DESCRIPTION,"if input > threshold_off noisegate is turned off",
+			FILTERPARAM_END);
+	
+	filterpdb_add_param_float(filter_pdb(f),"hold",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION,"Hold Time[ms]",
+			FILTERPARAM_END);
+	
+	filterpdb_add_param_float(filter_pdb(f),"attack",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION,"Attack Time[ms]",
+			FILTERPARAM_END);
+	
+	filterpdb_add_param_float(filter_pdb(f),"release",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION,"Release Time[ms]",
+			FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "noisegate filters all signals that are below the threshold");
 	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");

@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.5 2000/05/01 11:09:04 richi Exp $
+ * $Id: iir.c,v 1.6 2000/05/16 02:11:52 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -233,7 +233,6 @@ static int iir_f(filter_node_t *n)
 		int	opos;
 	} iirf_t;
 	
-	filter_param_t *param;
 	filter_pipe_t *in, *out;
 	filter_buffer_t *inb;
 	glame_iir_t *gt;
@@ -254,25 +253,10 @@ static int iir_f(filter_node_t *n)
 	 */
 	
 
-	if ((param=filternode_get_param(n,"mode")))
-		mode=filterparam_val_int(param);
-	else
-		mode=GLAME_IIR_LOWPASS;
-	
-	if ((param=filternode_get_param(n,"poles")))
-		poles=filterparam_val_int(param);
-	else
-		poles=2;
-
-	if ((param=filternode_get_param(n,"cutoff")))
-		fc=filterparam_val_float(param);
-	else
-		fc=0.1;
-	
-	if ((param=filternode_get_param(n,"ripple")))
-		ripple=filterparam_val_float(param);
-	else
-		ripple=0.5;
+	mode=filterparam_val_int(filternode_get_param(n,"mode"));
+	poles=filterparam_val_int(filternode_get_param(n,"poles"));
+	fc=filterparam_val_float(filternode_get_param(n,"cutoff"));
+	ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
 
 	DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n",poles,mode,fc,ripple);
 
@@ -296,9 +280,9 @@ static int iir_f(filter_node_t *n)
 			DPRINTF("b[%d]=%f ",j-gt->nb,gt->coeff[i][j]);
 		DPRINTF("\n");
 		if (!(iirf[i].iring=ALLOCN(gt->na,gliirt)))
-			FILTER_ERROR_RETURN("memory allocation error");
+			FILTER_ERROR_CLEANUP("memory allocation error");
 		if (!(iirf[i].oring=ALLOCN(gt->nb+1,gliirt)))
-			FILTER_ERROR_RETURN("memory allocation error");
+			FILTER_ERROR_CLEANUP("memory allocation error");
 		iirf[i].ipos=0;
 		iirf[i].opos=0;
 	}
@@ -377,18 +361,34 @@ entry:
 int iir_register(plugin_t *p)
 {
 	filter_t *f;
+	
+	if (!(f = filter_alloc(iir_f)))
+			return -1;
+	
+	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
+	
+	filterpdb_add_param_int(filter_pdb(f),"mode",
+				FILTER_PARAMTYPE_INT,0,
+			        FILTERPARAM_DESCRIPTION,"lowpass(0)/highpass(1)",
+				FILTERPARAM_END);
+	
+	filterpdb_add_param_int(filter_pdb(f),"poles",
+				FILTER_PARAMTYPE_INT,2,
+			        FILTERPARAM_DESCRIPTION,"number of poles (2,4,6,...)",
+				FILTERPARAM_END);
+	
+	filterpdb_add_param_float(filter_pdb(f),"cutoff",
+			    FILTER_PARAMTYPE_FLOAT,0.1,
+			    FILTERPARAM_DESCRIPTION,"cutoff frequency (0..0.5)",
+			    FILTERPARAM_END);
 
-	if (!(f = filter_alloc(iir_f))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-		    		FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"mode","lowpass(0)/highpass(1)",FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f,"poles","number of poles (2,4,6,...)",FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f,"cutoff","cutoff frequency (0..0.5)",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"ripple","percent ripple",FILTER_PARAMTYPE_FLOAT))
-		return -1;
-
+	filterpdb_add_param_float(filter_pdb(f),"ripple",
+			    FILTER_PARAMTYPE_FLOAT,0.5,
+			    FILTERPARAM_DESCRIPTION,"percent ripple",
+			    FILTERPARAM_END);
+	
 	plugin_set(p, PLUGIN_DESCRIPTION, "iir effect");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
 	filter_attach(f, p);
