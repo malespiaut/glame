@@ -24,6 +24,8 @@
 #endif
 
 #include <stdio.h>
+#include <guile/gh.h>
+#include "glscript.h"
 #include "channel.h"
 #include "filter.h"
 #include "util.h"
@@ -40,6 +42,35 @@ int init()
 }
 
 
+/* just init the scripting subsystem and enter a scheme command
+ * line waiting for commands (or a NULL line).
+ */
+void sc_main(int argc, char **argv)
+{
+	char str[256];
+	char str2[256];
+	int done;
+
+	if (glscript_init() == -1)
+		exit(1);
+
+	done = 0;
+	fputs("glame> ", stdout);
+	while (!done) {
+		if (gets(str) == NULL) {
+			done = 1;
+		} else {
+		        sprintf(str2, "(display %s)", str);
+			gh_eval_str(str2);
+			gh_eval_str("(newline)");
+			fputs("glame> ", stdout);
+		}
+	}
+
+	exit(0);
+}
+
+
 int main(int argc, char **argv)
 {
 	fprintf(stderr, "\n"
@@ -52,9 +83,17 @@ int main(int argc, char **argv)
 	if (init() == -1)
 		PANIC("Error in init!");
 
-	fprintf(stderr, "FIXME!\n");
-	fprintf(stderr, "[You probably want to have a look at src/filter/ for "
-			"some sample code\nthat actually works. Watch out for "
-			"executables named test_*.]\n");
-	exit(1);
+	if (argc != 2) {
+	        fprintf(stderr, "Usage: %s swapfile\n\n", argv[0]);
+	} else {
+		if (swap_open(argv[1], 0) == -1) {
+			perror("Unable to open swap");
+			exit(0);
+		}
+	}
+
+	gh_enter(argc, argv, sc_main);
+	/* not reached */
+
+	return 0;
 }

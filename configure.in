@@ -65,6 +65,8 @@ if test x$have_gtk = xyes; then
 fi
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
+GNOME_CHECK_GUILE()
+
 
 dnl
 dnl Checks for various audio stuff.
@@ -178,4 +180,5 @@ AC_SUBST(GLAME_DCFLAGS)
 AC_SUBST(GLAME_AUDIO_LIBS)
 AC_SUBST(GLAME_AUDIO_CFLAGS)
 
-AC_OUTPUT(Makefile doc/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/channel/Makefile src/plugin/Makefile src/include/Makefile src/gui/Makefile src/glmath/Makefile src/data/Makefile src/data/pixmaps/Makefile)
+AC_OUTPUT(Makefile doc/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/channel/Makefile src/plugin/Makefile src/include/Makefile src/gui/Makefile src/glmath/Makefile src/data/Makefile src/data/pixmaps/Makefile src/glmid/Makefile)
+

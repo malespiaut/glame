@@ -16,6 +16,9 @@
 /* define if you have libsndfile */
 #undef HAVE_SNDFILE
 
+/* define if you have guile */
+#undef HAVE_GUILE
+
 /* define if we have gcc */
 #undef HAVE_GCC
 
