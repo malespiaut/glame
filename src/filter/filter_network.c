@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.15 2000/02/09 12:33:24 richi Exp $
+ * $Id: filter_network.c,v 1.16 2000/02/10 12:42:20 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -531,6 +531,13 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	if (!(in = hash_find_outputdesc(source_port, source->filter))
 	    || !(out = hash_find_inputdesc(dest_port, dest->filter)))
 		return NULL;
+
+	if (!(FILTER_PORT_IS_AUTOMATIC(in->type))
+	    && hash_find_output(in->label, source))
+	        return NULL;
+	if (!(FILTER_PORT_IS_AUTOMATIC(out->type))
+	    && hash_find_input(out->label, dest))
+	        return NULL;
 
 	if (!(p = ALLOC(filter_pipe_t)))
 		return NULL;
