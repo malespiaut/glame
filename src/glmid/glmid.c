@@ -91,7 +91,33 @@ filter_t *glame_load_instance(const char *fname)
 #endif
 }
 
-static void plugins_process_directory(const char *dir)
+static void add_plugin_path(const char *path)
+{
+	char *tmp, *dir, *p;
+	DIR *d;
+
+	if (!path || !(tmp = p = strdup(path)))
+		return;
+
+	dir = p;
+	do {
+		if ((p = strchr(p, ':')))
+			*p++ = '\0';
+
+		/* Try to open the directory and add the path to
+		 * the plugin subsystem. */
+		if ((d = opendir(dir))) {
+			closedir(d);
+			plugin_add_path(dir);
+		}
+
+		dir = p;
+	} while (dir);
+
+	free(tmp);
+}
+
+static void load_plugins_from_directory(const char *dir)
 {
 	DIR *d;
 	struct dirent *e;
@@ -100,16 +126,16 @@ static void plugins_process_directory(const char *dir)
 	if (!(d = opendir(dir)))
 		return;
 
-	/* Add the path to the plugin subsystem. */
-	plugin_add_path(dir);
-
 	/* Try to load every file as plugin. */
 	while ((e = readdir(d))) {
 	    	char fname[256];
 		struct stat st;
+		char *ext;
 
-		if (!(strstr(e->d_name, ".scm")
-		      || strstr(e->d_name, ".so"))
+		/* Only take .so and .scm, but not glame.scm */
+		if (!(ext = strrchr(e->d_name, '.'))
+		    || !(strcmp(ext, ".scm")
+			 || strcmp(ext, ".so"))
 		    || strcmp(e->d_name, "glame.scm") == 0)
 			continue;
 
@@ -124,37 +150,38 @@ static void plugins_process_directory(const char *dir)
 	closedir(d);
 }
 
-static void plugins_process_env(const char *env)
+static void load_plugins_from_path(const char *path)
 {
-	char *e, *path, *dir;
+	char *tmp, *dir, *p;
 
-	if (!(e = getenv("LADSPA_PATH"))
-	    || !(path = strdup(e)))
+	if (!path || !(tmp = p = strdup(path)))
 		return;
-	e = path;
 
-	dir = path;
+	dir = p;
 	do {
-		if ((path = strchr(path, ':')))
-			*path++ = '\0';
-		plugins_process_directory(dir);
-		dir = path;
+		if ((p = strchr(p, ':')))
+			*p++ = '\0';
+		load_plugins_from_directory(dir);
+		dir = p;
 	} while (dir);
 
-	free(e);
+	free(tmp);
 }
 
 static int plugins_register()
 {
-	/* Plugins from default paths - and "debug path" (first) */
-	plugins_process_directory("./plugins/.libs"); /* for .so */
-	plugins_process_directory(PKGLIBDIR);
+	/* Add plugin paths. */
+	add_plugin_path("./plugins/.libs");
+	add_plugin_path(PKGLIBDIR);
+	add_plugin_path(getenv("LADSPA_PATH"));
 
 	/* First initialize the builtin plugins */
 	plugin_get("glamebuiltins");
 
-	/* Paths from environment. */
-	plugins_process_env("LADSPA_PATH");
+	/* Plugins from default paths - and "debug path" (first) */
+	load_plugins_from_path("./plugins/.libs"); /* for .so */
+	load_plugins_from_path(PKGLIBDIR);
+	load_plugins_from_path(getenv("LADSPA_PATH"));
 
 	return 0;
 }
@@ -186,8 +213,8 @@ static void init_after_guile(int argc, char **argv)
 #endif
 	if (glscript_init() == -1)
 		exit(1);
-	plugins_process_directory("./plugins");       /* for .scm */
-	plugins_process_directory(PKGSCRIPTSDIR);
+	load_plugins_from_path("./plugins");       /* for .scm */
+	load_plugins_from_path(PKGSCRIPTSDIR);
 	((void (*)(void))argv[1])();
 }
 #endif
