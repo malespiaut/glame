@@ -16,7 +16,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* NEW_GUILE is set to 1 if we are using Guile > 1.5, 0 for Guile 1.4
+/* NEW_GUILE is set to 1 if we are using Guile >= 1.7, 0 up to Guile 1.6
    to make it possible to make localized compatibility that doesn't
    have to be in this header because the feature isn't use much.
 */
@@ -35,7 +35,11 @@
 #ifdef SCM_MAJOR_VERSION
 /* this works because Guile 1.4 doesn't define SCM_MAJOR_VERSION */
 
+#if (SCM_MINOR_VERSION >= 7)
 #define NEW_GUILE 1
+#else
+#define NEW_GUILE 0
+#endif
 
 /* Glame wrapper functions: */
 #if (SCM_MINOR_VERSION < 7)
