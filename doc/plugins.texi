@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.26 2001/05/03 12:32:46 mag Exp $
+@comment $Id: plugins.texi,v 1.27 2001/07/02 09:51:26 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -216,9 +216,9 @@ native endianness only.
 
 @menu 
 * Generating Waves::		Sound out of Nowhere
-* Junctions and Dead Ends::	Splitting, mixing and merging
+* Junctions and Dead Ends::	Splitting, mixing, merging and buffering
 * Mangling Data Streams::	Shifting and rescaling
-* Orientation::			Panning
+* Orientation::			Panning and rendering
 * Arithmetics::			Adding and multiplying streams
 * The Sample Analyst::		Sample statistics
 * Catching Bugs::		Sending network pings
@@ -325,6 +325,9 @@ to speak.
 streams into one, just like an ordinary mixing desk.  @file{mix} drops
 all input data after all non-feedback input streams have terminated.
 
+For some networks you may need intermediate buffering of data to prevent
+deadlocks. The @file{buffer} filter is the one you should consider using.
+
 @subsubheading @file{drop} ports
 @table @code
 @item in (input)
@@ -362,6 +365,22 @@ Defaults to 0.
 Gain of the output stream. Defaults to 1.
 @item position (float)
 Horizontal placement of sample stream in radians from -pi to pi.
+@end table
+
+@subsubheading @file{buffer} ports
+@table @code
+@item in (input)
+Data stream to be buffered. Exactly one connection is allowed.
+@item out (output)
+Buffered data stream. Exactly one connection is allowed.
+@end table
+
+@subsubheading @file{buffer} parameters
+@table @code
+@item size (int)
+Size in bytes of the buffer.
+@item time (float)
+Size in seconds of the buffer. Can be used only for SAMPLE streams.
 @end table
 
 
@@ -457,6 +476,33 @@ the @code{pan} parameter is set. Allowed values range from -pi/2 to pi/2.
 As the position property ranges from -pi to pi, values with magnitude 
 larger than pi/2 (i.e. positions in the 'back') are mirrored to the front.
 @end table
+
+
+The @file{render} plugin renders any number of input streams with respect
+to their position inside the stereo field to any number of output streams
+with respect of their positions given by the pipe source position parameter
+of the connections. You can render your multi-track song to a stereo setup
+for example.
+
+@subsubheading @file{render} ports
+@table @code
+@item in (input)
+Stream(s) to render. Any number of connections allowed.
+@item out (output)
+Output stream(s). Any number of connections allowed.
+@end table
+
+@subsubheading @file{render} parameters
+@table @code
+@item out::position (float)
+Parameter controlling the position of the output stream
+inside the stereo field. By default 0.0 is assumed (which is forward, or
+mono). The position property ranges from -pi to pi. To render multiple
+tracks to a stereo speaker setup provide -1.57 (left) and 1.57 (right) to
+two connected output pipes.
+@end table
+
+
 
 @node Arithmetics, The Sample Analyst, Orientation, Elementary Plugins
 @subsection Arithmetics
