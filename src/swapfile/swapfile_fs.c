@@ -1066,7 +1066,7 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 	 * handled by common code. */
 	switch (whence) {
 	case SEEK_END:
-		offset = _fd->file->clusters->size + offset - 1;
+		offset = _fd->file->clusters->size + offset;
 		break;
 	case SEEK_CUR:
 		offset += _fd->offset;
