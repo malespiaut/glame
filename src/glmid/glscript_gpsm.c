@@ -45,7 +45,8 @@ static scm_sizet free_gpsmitem(SCM gpsmitem_smob)
 	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
 
 	/* Delete the item if it is not the root item and
-	 * has no parent. */
+	 * has no parent. -- NOT. */
+#if 0
 	if (item->item
 	    && item->item != gpsm_root()
 	    && !gpsm_item_parent(item->item)) {
@@ -54,6 +55,7 @@ static scm_sizet free_gpsmitem(SCM gpsmitem_smob)
 		gpsm_item_destroy(item->item);
 		item->item = NULL;
 	}
+#endif
 
 	return sizeof(struct gpsmitem_smob);
 }
