@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.80 2002/04/12 18:35:38 richi Exp $
+ * $Id: swapfilegui.c,v 1.81 2002/04/13 12:08:51 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -69,6 +69,8 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
 static void handle_grp(glsig_handler_t *handler, long sig, va_list va);
 static void group_cb(GtkWidget *menu, GlameTreeItem *item);
+static void file_property_cb(GtkMenu *menu, GlameTreeItem *item);
+static void group_property_cb(GtkMenu *menu, GlameTreeItem *item);
 
 static GnomeUIInfo dummy1_menu[] = {
 	GNOMEUIINFO_END
@@ -80,6 +82,7 @@ static GnomeUIInfo dummy2_menu[] = {
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM(N_("Edit"), NULL, edit_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Properties..."), NULL, group_property_cb, NULL),
         GNOMEUIINFO_ITEM(N_("Timeline"), NULL, timeline_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM(N_("Delete"), NULL, delete_cb, NULL),
@@ -101,15 +104,17 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
-#define GROUP_MENU_ADDGROUP_INDEX 6
-#define GROUP_MENU_ADDCLIPBOARD_INDEX 7
-#define GROUP_MENU_ADDMONO_INDEX 8
-#define GROUP_MENU_ADDSTEREO_INDEX 9
-#define GROUP_MENU_APPLYOP_INDEX 16
-#define GROUP_MENU_IMPORT_INDEX 18
+#define GROUP_MENU_ADDGROUP_INDEX 7
+#define GROUP_MENU_ADDCLIPBOARD_INDEX 8
+#define GROUP_MENU_ADDMONO_INDEX 9
+#define GROUP_MENU_ADDSTEREO_INDEX 10
+#define GROUP_MENU_APPLYOP_INDEX 17
+#define GROUP_MENU_IMPORT_INDEX 19
+
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM(N_("Edit"), NULL, edit_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Properties..."), NULL, file_property_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM(N_("Delete"), NULL, delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -121,7 +126,7 @@ static GnomeUIInfo file_menu_data[] = {
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
-#define FILE_MENU_APPLYOP_INDEX 7
+#define FILE_MENU_APPLYOP_INDEX 8
 
 
 static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)
@@ -212,7 +217,7 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 
 	if (event->button == 1
 	    && event->type == GDK_2BUTTON_PRESS) {
-		edit_tree_label(i);
+		edit_cb(NULL, i);
 		return TRUE;
 	}
 
@@ -612,6 +617,78 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
 		_("Cannot place imported wave"))));
 	gpsm_item_destroy(imported);
+}
+
+static void file_property_cb(GtkMenu *menu, GlameTreeItem *item)
+{
+	GtkWidget *dialog, *vbox;
+	char f_name[1024];
+	double f_pos;
+	long f_rate;
+
+	strncpy(f_name, gpsm_item_label(item->item), 1024);
+	f_pos = gpsm_swfile_position(item->item);
+	f_rate = gpsm_swfile_samplerate(item->item);
+
+	dialog = gtk_type_new(gnome_dialog_get_type());
+	gnome_dialog_set_parent(GNOME_DIALOG(dialog),
+				GTK_WINDOW(active_swapfilegui->app));
+	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+
+	vbox = GNOME_DIALOG(dialog)->vbox;
+
+	/* file name */
+	create_label_edit_pair(vbox, "Track name:",
+			       "swapfile::fileprop::name", f_name);
+
+	/* file samplerate */
+	create_label_long_pair(vbox, "Samplerate:", &f_rate, 1, 96000);
+
+	/* file position */
+	create_label_double_pair(vbox, "Position:", &f_pos, -M_PI, M_PI);
+
+	if (gnome_dialog_run_and_close(GNOME_DIALOG(dialog)) == 1)
+		return;
+
+	/* update file */
+	gpsm_item_set_label(item->item, f_name);
+	gpsm_swfile_set((gpsm_swfile_t *)item->item,
+			f_rate, f_pos);
+}
+
+static void group_property_cb(GtkMenu *menu, GlameTreeItem *item)
+{
+	GtkWidget *dialog, *vbox;
+	char g_name[1024];
+
+	strncpy(g_name, gpsm_item_label(item->item), 1024);
+
+	dialog = gtk_type_new(gnome_dialog_get_type());
+	gnome_dialog_set_parent(GNOME_DIALOG(dialog),
+				GTK_WINDOW(active_swapfilegui->app));
+	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+
+	vbox = GNOME_DIALOG(dialog)->vbox;
+
+	/* group name */
+	create_label_edit_pair(vbox, "Group name:",
+			       "swapfile::groupprop::name", g_name);
+
+	if (gnome_dialog_run_and_close(GNOME_DIALOG(dialog)) == 1)
+		return;
+
+	/* update group */
+	gpsm_item_set_label(item->item, g_name);
 }
 
 
