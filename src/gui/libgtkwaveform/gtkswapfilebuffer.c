@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.13 2001/05/13 12:10:17 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.14 2001/05/30 07:39:07 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -444,16 +444,14 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 	 * Ensure theyre equal sized and rated. */
 	gpsm_grp_foreach_item(item, it) {
 		gpsm_item_t *it2;
-		if (!GPSM_ITEM_IS_SWFILE(it))
-			return NULL;
 		if (rate == -1)
 			rate = gpsm_swfile_samplerate(it);
 		if (gpsm_swfile_samplerate(it) != rate)
 			return NULL;
 		gpsm_grp_foreach_item(item, it2)
-			if (GPSM_ITEM_IS_SWFILE(it2)
-			    && it != it2
-			    && gpsm_swfile_filename(it) == gpsm_swfile_filename(it2))
+			if (it != it2
+			    && (gpsm_swfile_filename(it) == gpsm_swfile_filename(it2)
+				|| gpsm_item_vposition(it) == gpsm_item_vposition(it2)))
 				return NULL;
 		nrtracks++;
 	}
