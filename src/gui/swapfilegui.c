@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.39 2001/05/18 09:35:51 richi Exp $
+ * $Id: swapfilegui.c,v 1.40 2001/05/29 07:51:49 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -58,6 +58,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item);
 static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
 static void handle_grp(glsig_handler_t *handler, long sig, va_list va);
+static void group_cb(GtkWidget *menu, GlameTreeItem *item);
 
 static GnomeUIInfo dummy1_menu[] = {
 	GNOMEUIINFO_END
@@ -98,6 +99,8 @@ static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply operation", dummy2_menu),
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM("Group", "group", group_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -186,13 +189,13 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 
 	if (GPSM_ITEM_IS_SWFILE(i->item)) {
 		menu = gnome_popup_menu_new(file_menu_data);
-		op_menu = glame_gui_build_plugin_menu(choose_ops, applyop_cb);
+		op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
 		gtk_widget_show(GTK_WIDGET(op_menu));
 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(file_menu_data[FILE_MENU_APPLYOP_INDEX].widget), GTK_WIDGET(op_menu));
 
 	} else if (GPSM_ITEM_IS_GRP(i->item)) {
 		menu = gnome_popup_menu_new(group_menu_data);
-		op_menu = glame_gui_build_plugin_menu(choose_ops, applyop_cb);
+		op_menu = GTK_WIDGET(glame_gui_build_plugin_menu(choose_ops, applyop_cb));
 		gtk_widget_show(GTK_WIDGET(op_menu));
 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(group_menu_data[GROUP_MENU_APPLYOP_INDEX].widget), GTK_WIDGET(op_menu));
         } else
@@ -267,8 +270,8 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 
 	gpsm_grp_safe_foreach_item(group, dummy, i) {
 		long hpos, vpos;
-		hpos = gpsm_item_hposition(i);
-		vpos = gpsm_item_vposition(i);
+		hpos = gpsm_item_hposition(i) + gpsm_item_hposition(group);
+		vpos = gpsm_item_vposition(i) + gpsm_item_vposition(group);
 		gpsm_item_remove(i);
 		gpsm_grp_insert(gpsm_item_parent(group), i, hpos, vpos);
 	}
@@ -348,6 +351,35 @@ static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 		edit_tree_label(grpw);
 }
 
+static void group_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	gpsm_grp_t *grp, *parent;
+	gpsm_item_t *it;
+	long hpos, vpos;
+	GlameTreeItem *grpw;
+	GtkObject *tree;
+
+	if (!GPSM_ITEM_IS_SWFILE(item->item))
+		return;
+
+	/* Create new gpsm group, move item into it and re-insert
+	 * it at old item position. */
+	parent = gpsm_item_parent(item->item);
+	tree = GTK_OBJECT(item->tree);
+	grp = gpsm_newgrp(gpsm_item_label(item->item));
+	it = item->item;
+	hpos = gpsm_item_hposition(it);
+	vpos = gpsm_item_vposition(it);
+	gpsm_item_remove(it);
+	gpsm_grp_insert(grp, it, -1, -1);
+	gpsm_grp_insert(parent, (gpsm_item_t *)grp, hpos, vpos);
+
+	/* Find out which widget it got and open an edit field. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(tree), (gpsm_item_t *)grp);
+	if (grpw)
+		edit_tree_label(grpw);
+}
+
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	gpsm_grp_t *grp;
@@ -414,7 +446,7 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 	GtkWidget *tl;
 		
 	tl = glame_timeline_new_with_window(gpsm_item_label(item->item),
-					    item->item);
+					    (gpsm_grp_t *)item->item);
 	if (!tl) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog("Cannot open timeline")));
@@ -595,6 +627,55 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 }
 
 
+/*
+ * FIXME: We probably want to
+ * - handle modifiers (shift, ctrl)
+ * - show actual operation (based on modifier) in taskbar
+ * - support horizontal "add before" (drop on swfile)
+ * - support vertical "add before" (drop on swfile)
+ * - support "add at tail" (drop on group)
+ */
+static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
+			       GlameTreeItem *item)
+{
+	static GlameTreeItem *drag_widget = NULL;
+	gpsm_item_t *source, *dest;
+	long hpos, vpos;
+
+	if (event->button != 1)
+		return;
+
+	if (event->type == GDK_BUTTON_PRESS) {
+		/* drag&drop start */
+		drag_widget = NULL;
+		if (!GPSM_ITEM_IS_SWFILE(item->item))
+			return; /* only swfiles for now */
+		drag_widget = item;
+
+	} else if (event->type == GDK_BUTTON_RELEASE) {
+		/* drag&drop end */
+		if (!drag_widget)
+			return; /* spurious event - ignore */
+		if (drag_widget == item)
+			return; /* nop */
+
+		DPRINTF("drag&drop: %s on %s\n",
+			gpsm_item_label(drag_widget->item),
+			gpsm_item_label(item->item));
+
+		/* Transform position and do remove/insert cycle. */
+		source = drag_widget->item;
+		dest = item->item;
+		gpsm_position_transform(source, gpsm_item_parent(dest),
+					&hpos, &vpos);
+		gpsm_item_remove(source);
+		DPRINTF("inserting at %li %li\n", hpos, gpsm_item_vposition(dest));
+		gpsm_grp_insert(gpsm_item_parent(dest), source,
+				hpos, gpsm_item_vposition(dest));
+		drag_widget = NULL;
+	}
+}
+
 
 static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 {
@@ -618,7 +699,8 @@ static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 
 static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 {
-	GlameTreeItem *itemw;
+	GlameTreeItem *itemw, *nextw;
+	gpsm_item_t *next;
 
 	if (!tree || !item
 	    || !(GPSM_ITEM_IS_SWFILE(item) || GPSM_ITEM_IS_GRP(item)))
@@ -632,16 +714,36 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 			gpsm_item_emitter(item),
 			GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_CHANGED,
 			handle_grp, itemw);
+		/* drag&drop handlers */
+		gtk_signal_connect(GTK_OBJECT(itemw), "button_press_event",
+				   drag_start_stop_cb, itemw);
+		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
+				   drag_start_stop_cb, itemw);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		itemw->handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
 			handle_swfile, itemw);
+		/* drag&drop handlers */
+		gtk_signal_connect(GTK_OBJECT(itemw), "button_press_event",
+				   drag_start_stop_cb, itemw);
+		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
+				   drag_start_stop_cb, itemw);
 	}
 
 	/* Register gtk handlers and append the item widget. */
 	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
 				 (GtkSignalFunc)click_cb,(gpointer)NULL);
-	glame_tree_append(tree, itemw);
+
+	/* Look where we want to add the item (match gpsm list order). */
+	if (!gpsm_item_parent(item)
+	    || !(next = gpsm_grp_next(gpsm_item_parent(item), item))
+	    || !(nextw = glame_tree_find_gpsm_item(tree, next)))
+		glame_tree_append(tree, itemw);
+	else
+		glame_tree_insert(tree, itemw,
+				  gtk_tree_child_position(
+					  nextw->tree, GTK_WIDGET(nextw)));
+
 	glame_tree_item_update(itemw);
 
 	/* If item is a group we need to recurse down the items. */
