@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.1 2001/06/14 16:04:58 mag Exp $
+ * $Id: importexport.c,v 1.2 2001/06/15 20:25:22 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -43,6 +43,8 @@
 
 PLUGIN_SET(importexport, "import export")
 
+extern GtkWidget *glame_appbar;
+
 typedef struct {
 	long	filename;
 	swfd_t	fd;
@@ -68,7 +70,7 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 	/* Audiofile stuff */
 
 	AFfilehandle	afile;
-	AFframecount	aframes, framecnt;
+	AFframecount	aframes, pframes, framecnt;
 	AFfilesetup	fsetup;
 	int		channels;
 	int		rate, cnt, framesize, buffersize;
@@ -76,6 +78,8 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 	SAMPLE		*buffer;
 	SAMPLE		**p;
 
+	GtkProgress	*procbar;
+	
 	if (!(GPSM_ITEM_IS_GRP(item)))
 		return -1;
 	
@@ -97,7 +101,7 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 	/* This has to be called after setting the virtual sample format */
 	afSetVirtualPCMMapping(afile, AF_DEFAULT_TRACK, 1.0, 0.0, -1.0, 1.0);
 
-	aframes = afGetFrameCount(afile, AF_DEFAULT_TRACK);
+	pframes = aframes = afGetFrameCount(afile, AF_DEFAULT_TRACK);
 	channels = afGetChannels(afile, AF_DEFAULT_TRACK);
 	DPRINTF("channels = %d\n", channels);
 	DPRINTF("frames   = %ld\n", aframes);
@@ -152,12 +156,22 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 		hangle += dh;
 	}
 
+	procbar = gnome_appbar_get_progress(GNOME_APPBAR(glame_appbar));
+	gnome_appbar_set_status(GNOME_APPBAR(glame_appbar), "Loading file...");
+	gtk_progress_set_show_text(GTK_PROGRESS (procbar), TRUE);
+
 	while(aframes > 0) {
 		SAMPLE *s;
 		framecnt = afReadFrames(afile, AF_DEFAULT_TRACK, buffer, MIN(cnt, aframes));
 		aframes -= framecnt;
 		s = buffer;
 
+		gtk_progress_bar_update(GTK_PROGRESS_BAR(procbar), 
+					1.0-(double)aframes/(double)pframes);
+
+		while (gtk_events_pending())
+			gtk_main_iteration();
+		
 		while (framecnt>0) {
 			
 			todo = framecnt;
@@ -201,13 +215,14 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 		}
 		
 	}
-	DPRINTF("Finished Reading\n");
+	/* set main window back to normal */
+	gnome_appbar_pop(GNOME_APPBAR(glame_appbar));
+	gtk_progress_bar_update(GTK_PROGRESS_BAR(procbar), 0.0);
+
 	/* Close all files */
 	for (i=0;i<channels;i++)
 		sw_close(chans[i].fd);
 	free(chans);
-
-	DPRINTF("beginning gpsm stuff\n");
 
 	/* Notify gpsm of the change. */
 	gpsm_grp_foreach_item(group, it) 
