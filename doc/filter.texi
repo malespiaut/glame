@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.13 2000/02/22 16:55:26 nold Exp $
+@comment $Id: filter.texi,v 1.14 2000/03/20 09:44:00 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -66,13 +66,8 @@ network by instantiating it.
 @node Filter Initialisation, The Filter Registry API, Introducing the Filter Subsystem, Filter API
 @section Filter Initialisation
 
-To initialize the filter subsystem you have to call @code{filter_init()} 
-somewhere early in your program. @code{filter_init()} will register a basic 
-set of filters and set up additional required structures.
-
-@deftypefun int filter_init (void)
-@code{filter_init()} will return 0 on success and -1 on error.
-@end deftypefun
+The filter subsystem is initialized statically. To register available
+filters you have to call @code{glame_init()} from the glame midlayer.
 
 
 @node The Filter Registry API, The Filter Programming API, Filter Initialisation, Filter API
@@ -103,9 +98,9 @@ Fourth, add the filter to the filter registry using @code{filter_add()}.
 
 @tindex filter_t
 @tindex filter_node_t
-@deftypefun {filter_t *} filter_alloc (const char *@var{name}, const char *@var{description}, int (*@var{f})(filter_node_t *))
-@code{filter_alloc()} will allocate a new filter structure with name @var{name}
-and description @var{description}. The filter method will be set to the
+@deftypefun {filter_t *} filter_alloc (int (*@var{f})(filter_node_t *))
+@code{filter_alloc()} will allocate a new filter structure.
+The filter method will be set to the
 provided function @code{@var{f}()} which is the only mandatory method for 
 filters.
 @code{filter_alloc()} returns a handle to the filter or @code{NULL} on error.
@@ -114,13 +109,12 @@ For the description of optional filter methods you can look at
 @end deftypefun
 
 @tindex filter_t
-@deftypefun {filter_t *} filter_from_string (const char *@var{name}, const char *@var{description}, const char *@var{filter})
-@code{filter_from_string()} is another possibility to create a new filter.
+@deftypefun {filter_t *} filter_from_network (filter_network_t *@var{net})
+@code{filter_from_network()} is another possibility to create a new filter.
 Unlike @code{filter_alloc()} you get a full featured filter, including all
 ports and parameters. You just have to add it to the database using 
-@code{filter_add()}. To see that this indeed makes sense, have a look at the 
-@code{filternetwork_to_string()} function and the specification of the 
-textual representation of filter networks 
+@code{filter_add()}. Using this function you get the ability to turn a
+complex filter network into an easily usable filter
 (@pxref{Using Filter Networks as Filters}).
 @end deftypefun
 
@@ -173,8 +167,9 @@ from filter @var{f} or one of its ports.
 @end deftypefun
 
 @tindex filter_t
-@deftypefun int filter_add (filter_t *@var{f})
-@code{filter_add()} will finally add the filter to the registry. After adding
+@deftypefun int filter_add (filter_t *@var{f}, const char *@var{name}, const char *@var{description})
+@code{filter_add()} will add the filter to the registry using the specified
+@var{name} and @var{description}. After adding
 the filter you may not modify it, neither by adding additional inputs
 or outputs, nor by adding parameters or changing their types.
 @end deftypefun
@@ -523,7 +518,7 @@ return the pipes sample rate and its horizontal angle respectively.
 With these functions you get access to the set parameters on the source
 or destination end of a pipe by name. These functions
 will return @code{NULL} if either no such parameter does exist or it was never
-set.
+set. @strong{DEPRECATED}
 @end deftypefun
 
 To get access to the parameters of a filter node and to access the information
@@ -694,11 +689,10 @@ Constructing a network of filters is documented by referencing and
 commenting the necessary functions to do so.
 
 @tindex filter_network_t
-@deftypefun {filter_network_t *} filternetwork_new (const char *@var{name}, const char *@var{description})
+@deftypefun {filter_network_t *} filternetwork_new ()
 @code{filternetwork_new()} allocates and initializes a new filter network
 descriptor to which subsequent filters can be added. Connections 
-between those filters can be established. You have to provide a name for
-it and a short description for it, too.
+between those filters can be established.
 @code{filternetwork_new()} returns a handle to the new filter network or 
 @code{NULL} if an error occured.
 @end deftypefun
@@ -770,7 +764,7 @@ set or change operation is not possible or causes any problems in the network.
 @deftypefun int filterpipe_set_sourceparam (filter_pipe_t *@var{p}, const char *@var{label}, void *@var{val})
 @deftypefunx int filterpipe_set_destparam (filter_pipe_t *@var{p}, const char *@var{label}, void *@var{val})
 With these functions you can set the per-pipe-end parameters just like you
-can set parameters using @code{filternode_set_param}.
+can set parameters using @code{filternode_set_param}. @strong{DEPRECATED}
 @end deftypefun
 
 
@@ -832,51 +826,11 @@ network into a string and returns a pointer to it. NULL is returned on
 error. You have to @code{free()} the returned string later.
 @end deftypefun
 
-@tindex filter_network_t
-@deftypefun {filter_network_t *} filternetwork_from_string (const char *@var{net})
-@code{filternetwork_from_string()} creates a filternetwork from the
-description stored in @var{net}. Returns the filternetwork identifier or NULL
-on error.
-@end deftypefun
-
-@tindex filter_t
-@deftypefun {filter_t *} filter_from_string (const char *@var{name}, const char *@var{description}, const char *@var{f})
-@code{filter_from_string()} takes a literal description of a filternetwork
-and turns it into a filter you can instantiate. You still have to add the filter
-to the database using @code{filter_add()}. Returns the filter identifier or
-NULL on error.
-@end deftypefun
-
 
 @node Textual Representation of Filter Networks, , Using Filter Networks as Filters, The Filter Network API
 @subsection Textual Representation of Filter Networks
 
-FIXME, this section still has to be written. For now, an example should provide
-enough information.
-
-@example
-(filternetwork play "Play an audio file"
-        (node rf read_file
-                (export-param filename filename "file to be played")
-        )
-        (node aout audio_out)
-        (connect rf out aout in)
-        (connect rf out aout in)
-)
-@end example
-
-Brief summary of allowed commands in the contexts.
-
-@table @code
-@item filternetwork
-@code{node}, @code{connect}, @code{set-param}
-
-@item node
-@code{export-param}, @code{export-input}, @code{export-output}, @code{set-param}
-
-@item connect
-@code{set-sourceparam}, @code{set-destparam}
-@end table
-
-In other contexts, no commands are allowed.
+@strong{NOTE!} this is now more part of the glame midlayer, only the
+@code{filternetwork_to_string()} function is here which generates
+executable scheme code.
 

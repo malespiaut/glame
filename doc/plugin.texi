@@ -1,4 +1,4 @@
-@comment $Id: plugin.texi,v 1.5 2000/03/15 19:12:51 richi Exp $
+@comment $Id: plugin.texi,v 1.6 2000/03/20 09:44:00 richi Exp $
 
 @node Plugin Interface, Function and Type Index, Swapfile API, Top
 @chapter Plugin Interface 
@@ -33,9 +33,9 @@ have a @code{description} symbol assigned.
 @end deftypefun
 
 @tindex plugin_t
-@deftypefun {void *} plugin_pixmap (plugin_t *@var{p})
-@code{plugin_pixmap()} returns a pointer to the @code{pixmap} symbol
-of the plugin.
+@deftypefun {const char *} plugin_pixmap (plugin_t *@var{p})
+@code{plugin_pixmap()} returns a pointer to the specified pixmap
+filename or @code{NULL}, if none was specified.
 @end deftypefun
 
 You can get access to other (non standard) symbols of the plugin's
@@ -68,4 +68,3 @@ function of the plugin, its creator and a copyright notice.
 @item plugin_pixmap
 An optional pixmap in a format the specific subsystem can handle.
 @end table
-
