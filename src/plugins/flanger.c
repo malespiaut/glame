@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.17 2001/12/16 19:47:22 mag Exp $
+ * $Id: flanger.c,v 1.18 2002/02/15 13:29:36 nold Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -231,7 +231,7 @@ static int flanger_f(filter_t *n)
 
 			efringbuf[pos] = *s;
 			*s = *s * drywet + efringbuf[fpos] * efgain + ringbuf[cpos] * fbgain;
-			ringbuf[pos] = *s = sin(*s); /* Saturate signal, sin may not be the fastest, optimize it if you care :) */
+			ringbuf[pos] = *s = sinf(*s); /* Saturate signal */
 			s++;
 			lfopos++;
 			if (lfopos == lfosize)

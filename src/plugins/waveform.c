@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.27 2001/08/08 09:15:30 richi Exp $
+ * $Id: waveform.c,v 1.28 2002/02/15 13:29:36 nold Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -158,11 +158,9 @@ static int sine_f(filter_t *n)
 
 	buf = sbuf_alloc(size, n);
 	buf = sbuf_make_private(buf);
-	/* FIXME: on linux (glibc) we want this to be sinf() - i.e.
-	 * operate on floats w/o casting to double. On non glibc
-	 * platforms like solaris sinf does not exist. ugh. */
+	 
         for (i=0; i<size; i++)
-		sbuf_buf(buf)[i] = ampl*sin(i*2*M_PI*freq/rate);
+		sbuf_buf(buf)[i] = ampl*sinf(i*2*M_PI*freq/rate);
 
 	sbuf_queue(out, buf);
 	sbuf_queue(out, NULL);
