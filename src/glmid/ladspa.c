@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.26 2003/05/25 13:00:42 richi Exp $
+ * $Id: ladspa.c,v 1.27 2003/05/25 16:38:33 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -89,7 +89,8 @@ static int ladspa_f(filter_t * n)
 			(filter_portdb(n), psDescriptor->PortNames[lPortIndex]);
 		if (!psPort)
 			continue;
-		if (filterport_get_property(psPort, "!CONTROL")) {
+		if (filterport_is_input(psPort)
+		    && filterport_get_property(psPort, "!CONTROL")) {
 			if (filterport_get_pipe(psPort))
 				iNTo1_NR++;
 		} else {
@@ -360,7 +361,7 @@ static int ladspa_f(filter_t * n)
 			}
 		} else {
 	/* We have no buffers coming in. Therefore we can choose our own
-			   sample count. Large counts are good. */
+	   sample count. Large counts are good. */
 			lRunSampleCount = GLAME_WBUFSIZE;
 			if  (iNTo1_NR==0)
 				glame_timer -= GLAME_WBUFSIZE;
@@ -410,24 +411,21 @@ static int ladspa_f(filter_t * n)
 		   we wrote to and release the input buffers we read from. If were
 		   supporting control outputs we would handle these here too. */
 		for (lPortIndex = 0; lPortIndex < lPortCount; lPortIndex++) {
-
 			iPortDescriptor =
 			    psDescriptor->PortDescriptors[lPortIndex];
 			if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)
 			    && LADSPA_IS_PORT_OUTPUT(iPortDescriptor))
 				sbuf_queue(ppsAudioPorts[lPortIndex],
 					   ppsBuffers[lPortIndex]);
-
-#if 0
-			/* Test code: output the data in any control outputs to stdout: */
-			if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
-			    && LADSPA_IS_PORT_OUTPUT(iPortDescriptor))
-				printf("Control output (%s/%s): %g\n",
-				       psDescriptor->Name,
-				       psDescriptor->PortNames[lPortIndex],
-				       pfControlValues[lPortIndex]);
-#endif
-
+			else if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)
+				 && LADSPA_IS_PORT_OUTPUT(iPortDescriptor)
+				 && ppsAudioPorts[lPortIndex]) {
+				filter_buffer_t *sbuf = sbuf_make_private(sbuf_alloc(lRunSampleCount, n));
+				SAMPLE *s = sbuf_buf(sbuf);
+				for (i=0; i<lRunSampleCount; ++i)
+					s[i] = pfControlValues[lPortIndex];
+				sbuf_queue(ppsAudioPorts[lPortIndex], sbuf);
+			}
 		}
 	}
 
@@ -503,42 +501,31 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		    psDescriptor->PortDescriptors[lPortIndex];
 
 		/* LADSPA audio ports are translated directly to GLAME sample
-		   ports. */
-		if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)
-		    || (LADSPA_IS_PORT_INPUT(iPortDescriptor)
-			&& LADSPA_IS_PORT_CONTROL(iPortDescriptor))) {
-			if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
-				psPort =
-				    filterportdb_add_port(filter_portdb(psFilter),
-							  psDescriptor->PortNames[lPortIndex],
-							  FILTER_PORTTYPE_SAMPLE,
-							  FILTER_PORTFLAG_INPUT,
-							  FILTERPORT_DESCRIPTION,
-							  psDescriptor->PortNames[lPortIndex],
-							  FILTERPORT_END);
-				if (LADSPA_IS_PORT_AUDIO(iPortDescriptor))
-					bHasAudioInput = 1;
-				else
-					filterport_set_property(psPort, "!CONTROL", "true");
-			} else {	/* LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
-
-				psPort =
-				    filterportdb_add_port(filter_portdb
-							  (psFilter),
-							  psDescriptor->
-							  PortNames
-							  [lPortIndex],
-							  FILTER_PORTTYPE_SAMPLE,
-							  FILTER_PORTFLAG_OUTPUT,
-							  FILTERPORT_DESCRIPTION,
-							  psDescriptor->
-							  PortNames
-							  [lPortIndex],
-							  FILTERPORT_END);
-			}
-			if (!psPort)
-				return -1;
+		 * ports. Control ports get transformed to audio ports marked
+		 * with the !CONTROL property. */
+		if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
+			psPort = filterportdb_add_port(filter_portdb(psFilter),
+						       psDescriptor->PortNames[lPortIndex],
+						       FILTER_PORTTYPE_SAMPLE,
+						       FILTER_PORTFLAG_INPUT,
+						       FILTERPORT_DESCRIPTION,
+						       psDescriptor->PortNames[lPortIndex],
+						       FILTERPORT_END);
+			if (LADSPA_IS_PORT_AUDIO(iPortDescriptor))
+				bHasAudioInput = 1;
+		} else /* if (LADSPA_IS_PORT_OUTPUT(iPortDescriptor)) */ {
+			psPort = filterportdb_add_port(filter_portdb(psFilter),
+						       psDescriptor->PortNames[lPortIndex],
+						       FILTER_PORTTYPE_SAMPLE,
+						       FILTER_PORTFLAG_OUTPUT,
+						       FILTERPORT_DESCRIPTION,
+						       psDescriptor->PortNames[lPortIndex],
+						       FILTERPORT_END);
 		}
+		if (LADSPA_IS_PORT_CONTROL(iPortDescriptor))
+			filterport_set_property(psPort, "!CONTROL", "true");
+		if (!psPort)
+			return -1;
 
 		/* Interpret input controls as parameters. In fact they could be
 		   varied, but we're using a simple model for now. Perhaps this is
