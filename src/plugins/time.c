@@ -1,12 +1,12 @@
 /*
- * $Id:
+ * $Id: time.c,v 1.7 2001/04/24 15:42:59 nold Exp $
  * time.c
  *
  * A simple time gate.  It will switch on at a specified time, or switch
  * off at a specified time, or skip a block, or only pass a block.
  * Exact behavior depends on the settings of the start and stop values.
  *
- * Copyright (C) 2000 Stuart Purdie
+ * Copyright (C) 2000, 2001 Stuart Purdie, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,133 +32,125 @@
 #include "util.h"
 #include "glplugin.h"
 
-#define TIME_FLAG_CLEAR 	0
-#define TIME_FLAG_ATTACK 	1
-#define TIME_FLAG_DECAY 	2
-#define TIME_FLAG_ALWAYS_ON 	4
-#define TIME_FLAG_ALWAYS_OFF 	8
+typedef enum {
+	TIME_MODE_NONE=0,
+	TIME_MODE_ONESHOT=1,
+	TIME_MODE_INVERT=2
+} time_mode_t;
 
-
-/* Implementation of a programable single action chopper.  Attack / decay
- * system taken from noisegate.c
- *
- * t_on and t_off are held as a fixed sample number
- *
- * Attacktime: After the chopper is turned on the signal is faded
- *             to full amplitude within attacktime
- *             
- * Releasetime: After the chopper is turned off the signal is faded
- *              to zero amplitude within releasetime
- *
- * WARNING: Setting Releasetime/Attacktime to zero leads to distorted sound !
- */
+typedef enum {
+	TIME_STATE_LEVEL,
+	TIME_STATE_ATTACK,
+	TIME_STATE_DECAY,
+	TIME_STATE_DONE
+} time_state_t;
 
 static int time_f(filter_t *n)
 {
-	filter_pipe_t *in, *out;
-	filter_buffer_t *buf;
+	filter_pipe_t *out;
 	filter_param_t *param;
-  	// Hmm, not a very portable code - really
-	long long t_on = 0, t_off = 0;
-	long long sno = 0;	/* need infinite precision here.  Needs to
-				 * be an integer (mathematical style), so
-				 * float is out.
-				 */
-	float gain=1.0, attack=1.0, release=1.0;
-
-	int i;
-	int flag = TIME_FLAG_CLEAR;
+	float rate, dt;
+	float t_on = 0.0, t_off = 0.0;
+	float duration = 0.0, sno = 0.0;
+	float attack = 1.0, release = 1.0;
+	SAMPLE gain;
+	time_state_t state = TIME_STATE_LEVEL;
+	time_mode_t mode = TIME_MODE_NONE;
 	
-	in = filternode_get_input(n, PORTNAME_IN);
 	out = filternode_get_output(n, PORTNAME_OUT);
-	if (!in || !out)
-		FILTER_ERROR_RETURN("no in/output port(s)");
+	if (!out)
+		FILTER_ERROR_RETURN("no output port");
 
-	if ((param=filternode_get_param(n,"time_on")))
-			t_on=TIME2CNT(long long,filterparam_val_float(param),filterpipe_sample_rate(in));
-	if ((param=filternode_get_param(n,"time_off")))
-			t_off=TIME2CNT(long long,filterparam_val_float(param),filterpipe_sample_rate(in));
-	if ((param=filternode_get_param(n,"attack")))
-		if (filterparam_val_float(param)>0.0)
-			attack=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
-	if ((param=filternode_get_param(n,"release")))
-		if (filterparam_val_float(param)>0.0)
-			release=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
-
-/* Define the inital conditions for the filter */
-
-	if(t_on == t_off) { /* avoids a not well defined case - makes it always on*/
-		t_on = 0;
-		t_off = 0;
-		flag = TIME_FLAG_ALWAYS_ON;
-		}
-
-	if(t_on < t_off) {
-		if(t_on == 0) 
-			gain = 1.0; /* Single switch off */
+	rate = filterpipe_sample_rate(out);
+	dt = 1000.0/rate;
+	
+	if ((param=filternode_get_param(n, "time_on")))
+			t_on = filterparam_val_float(param);
+	if ((param=filternode_get_param(n, "time_off")))
+			t_off = filterparam_val_float(param);
+	if ((param=filternode_get_param(n, "duration")))
+			duration = filterparam_val_float(param);
+	
+	if ((param=filternode_get_param(n, "attack"))) {
+		attack = filterparam_val_float(param);
+		if (!(attack > 0.0))
+			attack = 1.0;
 		else
-			gain = 0.0; /* Pass block */
-		}
-	else {
-		if(t_off == 0)
-			gain = 0.0; /* Single switch on */
+			attack = dt/attack;
+	}
+	if ((param=filternode_get_param(n, "release"))) {
+		release = filterparam_val_float(param);
+		if (!(release > 0.0))
+			release = 1.0;
 		else
-			gain = 1.0; /* Reject block */
-		}
+			release = dt/release;
+	}
 
+	if (!(t_on > 0.0 && t_off > 0.0))
+		mode |= TIME_MODE_ONESHOT;
+
+	if (t_off < t_on)
+		mode |= TIME_MODE_INVERT;
+
+	if (!!(mode & TIME_MODE_ONESHOT) == !!(~mode & TIME_MODE_INVERT)) 
+		gain = 1.0;
+	else 
+		gain = 0.0;
+
+	DPRINTF("mode %s%s, gain %f\n", 
+	        mode & TIME_MODE_ONESHOT ? "oneshot" : "pulse",
+		mode & TIME_MODE_INVERT ? " invert" : "", 
+		gain);
 
 	FILTER_AFTER_INIT;
 	
-	do {
+	while (state != TIME_STATE_DONE) {
+		int i;
+		filter_buffer_t *buf;
+		SAMPLE *s;
+
 		FILTER_CHECK_STOP;
-		buf = sbuf_get(in);
 
-		if (buf){
-			if(flag == TIME_FLAG_ALWAYS_ON) {
-				; /* do nothing to the buffer */
+		buf = sbuf_alloc(GLAME_WBUFSIZE, n);
+		if (!buf)
+			break;
+		
+		buf = sbuf_make_private(buf);
+		s = sbuf_buf(buf);
+		
+		for (i=0; i<sbuf_size(buf); sno+=dt, i++) {
+			
+			if (sno > duration) {
+				sbuf_realloc(buf, i);
+				state = TIME_STATE_DONE;
+				break;
+			}
+			
+			if (sno > t_on)
+				state = TIME_STATE_ATTACK;
+			
+			if (sno > t_off)
+				state = TIME_STATE_DECAY;
+			
+			if (state == TIME_STATE_ATTACK) {
+				gain += attack;
+				if (gain > 1.0) {
+					gain = 1.0;
+					state = TIME_STATE_LEVEL;
 				}
-			else {
-				buf=sbuf_make_private(buf);
-				for(i=0;i<sbuf_size(buf);i++) {
-					if(flag == TIME_FLAG_ALWAYS_OFF) {
-						sbuf_buf(buf)[i] = 0.0;
-						}
-					else {
-						if(sno == t_on)
-							flag = TIME_FLAG_ATTACK;
-						if(sno == t_off)
-							flag = TIME_FLAG_DECAY;
-						sno++;
+			} else if (state == TIME_STATE_DECAY) {
+				gain -= release;
+				if (gain < 0.0) {
+					gain = 0.0;
+					state = TIME_STATE_LEVEL;
+				}
+			}
+			*s++ = gain;
+		}
+		sbuf_queue(out, buf);
+	}
 
-						if(flag == TIME_FLAG_ATTACK) {
-							gain += attack;
-							if(gain >= 1.0) {
-								gain = 1.0;
-								if(t_off < t_on)
-									flag = TIME_FLAG_ALWAYS_ON;
-								else
-									flag = TIME_FLAG_CLEAR;
-								}
-							}
-
-						if(flag == TIME_FLAG_DECAY) {
-							gain-=release;
-							if(gain <= 0.0) {
-								gain = 0.0;
-								if(t_on < t_off)
-									flag = TIME_FLAG_ALWAYS_OFF;
-								else
-									flag = TIME_FLAG_CLEAR;
-								}
-							}
-
-						sbuf_buf(buf)[i]=gain*sbuf_buf(buf)[i];
-						} /* else FLAG_ALWAYS_OFF */
-					} /* for() */
-				} /* else FLAG_ALWAYS_ON */
-			} /* if(buf) */ 
-			sbuf_queue(out, buf);
-		} while (pthread_testcancel(), buf);
+	sbuf_queue(out, NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
@@ -166,6 +158,47 @@ static int time_f(filter_t *n)
 	FILTER_RETURN;
 }
 
+static int time_connect_out(filter_t *src, filter_port_t *out,
+                            filter_pipe_t *pipe)
+{
+	filter_param_t *param;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
+	
+	if ((param = filternode_get_param(src, "rate")))
+		rate = filterparam_val_int(param);
+
+	filterpipe_settype_sample(pipe, rate, 0.0);
+
+	return 0;
+}
+
+
+static void time_fixup_param(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_t *n;
+	filter_param_t *param;
+	filter_pipe_t *out;
+	int rate;	
+	
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_filter(param);
+	out = filterport_get_pipe(filterportdb_get_port(
+		filter_portdb(n), "out"));
+	
+	if (!out)
+		return;
+
+	if (strcmp("rate", filterparam_label(param)))
+		return;
+
+	rate = filterparam_val_int(param);
+	
+	if (rate == filterpipe_sample_rate(out))
+		return;
+	
+	filterpipe_settype_sample(out, rate, 0.0);
+	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+}
 
 int time_register(plugin_t *p)
 {
@@ -173,32 +206,44 @@ int time_register(plugin_t *p)
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	f->f = time_f;
 	
-	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_SAMPLE);
 	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"time_on",
-			FILTER_PARAMTYPE_TIME_MS,0.0,
-			FILTERPARAM_DESCRIPTION,"switch on time[ms]",
+	filterparamdb_add_param_float(filter_paramdb(f), "time_on",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION, "switch on time[ms]",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"time_off",
-			FILTER_PARAMTYPE_TIME_MS,0.0,
-			FILTERPARAM_DESCRIPTION,"switch off time[ms]",
+	filterparamdb_add_param_float(filter_paramdb(f), "time_off",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION, "switch off time[ms]",
 			FILTERPARAM_END);
 		
-	filterparamdb_add_param_float(filter_paramdb(f),"attack",
-			FILTER_PARAMTYPE_TIME_MS,0.0,
-			FILTERPARAM_DESCRIPTION,"Attack Time[ms]",
+	filterparamdb_add_param_float(filter_paramdb(f), "duration",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION, "end output after[ms]",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"release",
-			FILTER_PARAMTYPE_TIME_MS,0.0,
-			FILTERPARAM_DESCRIPTION,"Release Time[ms]",
+	filterparamdb_add_param_float(filter_paramdb(f), "attack",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION, "Attack Time[ms]",
+			FILTERPARAM_END);
+
+	filterparamdb_add_param_float(filter_paramdb(f), "release",
+			FILTER_PARAMTYPE_TIME_MS, 0.0,
+			FILTERPARAM_DESCRIPTION, "Release Time[ms]",
 			FILTERPARAM_END);
 	
-	plugin_set(p, PLUGIN_DESCRIPTION, "chopper selects the apropriate region, as defined by the t_on and t_off values");
+	filterparamdb_add_param_int(filter_paramdb(f), "rate",
+			FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+			FILTERPARAM_END);
+
+	f->f = time_f;
+	f->connect_out = time_connect_out;
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, time_fixup_param,
+	                  NULL);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "generates a single ramp or pulse signal");
 	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
 	plugin_set(p, PLUGIN_CATEGORY, "Time");
 	filter_register(f, p);
