@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.73 2001/04/23 08:55:10 richi Exp $
+ * $Id: canvas.c,v 1.74 2001/04/23 10:09:57 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1189,7 +1189,17 @@ canvas_add_node_from_filter(GnomeCanvas *canvas, filter_t *filter,double x, doub
 	return GTK_OBJECT(item);
 }
 
-
+static void
+canvas_connection_connect_from_connection_full(GlameConnection *c)
+{
+	c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
+	c->end->connected_ports=g_list_append(c->end->connected_ports,c);
+	c->begin_id = g_list_length(c->begin->connected_ports);
+	c->end_id = g_list_length(c->end->connected_ports);
+	glsig_add_handler(filterpipe_emitter(c->pipe),GLSIG_PIPE_DELETED,canvas_connection_destroy,c);
+	canvas_connection_do_connect(c);
+}
+	
 static void
 canvas_connection_connect_from_pipe(GlameConnection *c)
 {
@@ -1212,12 +1222,7 @@ canvas_connection_connect_from_pipe(GlameConnection *c)
 			return;
 		}
 		c->end = destPort;
-		c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
-		c->end->connected_ports=g_list_append(c->end->connected_ports,c);
-		c->begin_id = g_list_length(c->begin->connected_ports);
-		c->end_id = g_list_length(c->end->connected_ports);
-		glsig_add_handler(filterpipe_emitter(c->pipe),GLSIG_PIPE_DELETED,canvas_connection_destroy,c);
-		canvas_connection_do_connect(c);
+		canvas_connection_connect_from_connection_full(c);
 	}
 }
 	
@@ -1238,14 +1243,8 @@ canvas_connection_connect(GlameConnection *c)
 	}else {
 		DPRINTF("success!\n");
 	}
-	glsig_add_handler(filterpipe_emitter(c->pipe),GLSIG_PIPE_DELETED,canvas_connection_destroy,c);
-	c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
-	c->end->connected_ports=g_list_append(c->end->connected_ports,c);
-	c->begin_id = g_list_length(c->begin->connected_ports);
-	c->end_id = g_list_length(c->end->connected_ports);
-	canvas_connection_do_connect(c);
+	canvas_connection_connect_from_connection_full(c);
 	return 0;
-	
 }
 
 	    
@@ -1798,7 +1797,7 @@ draw_network(filter_t *filter)
 		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
 		glsig_add_handler(filter_emitter(node),GLSIG_FILTER_DELETED,canvas_node_deleted,new_item);
 	}
-	filter_foreach_node(filter,node){
+/*	filter_foreach_node(filter,node){
 		list = g_list_first(((GlameCanvasItem*)(node->gui_priv))->output_ports);
 		while(list){
 			filterport_foreach_pipe(GLAME_CANVAS_PORT(list->data)->port,pipe){
@@ -1810,7 +1809,7 @@ draw_network(filter_t *filter)
 			list = g_list_next(list);
 		}
 	}
-#if 0
+*/
 	filter_foreach_node(filter, node) {
 		struct fconnection *c;
 		list_foreach(&node->connections, struct fconnection, list, c) {
@@ -1819,7 +1818,7 @@ draw_network(filter_t *filter)
 			filter_t *f;
 
 			begini = (GlameCanvasItem*)(node->gui_priv);
-			if (!(f = filter_get(filter, c->dest_filter)))
+			if (!(f = filter_get_node(filter, c->dest_filter)))
 				/* FUCK */ continue;
 			endi = (GlameCanvasItem*)(f->gui_priv);
 
@@ -1839,14 +1838,13 @@ draw_network(filter_t *filter)
 
 			connection = malloc(sizeof(GlameConnection));
 			connection->pipe = c->pipe;
-			connection->begini = begini;
-			connection->endi = endi;
-			connection->beginp = beginp;
-			connection->endp = endp;
-			canvas_connection_connect_from_pipe(connection);
+			connection->begin = beginp;
+			connection->end = endp;
+			connection->line = NULL;
+			canvas_connection_connect_from_connection_full(connection);
 		}
 	}
-#endif
+
 	canvas_update_scroll_region(GLAME_CANVAS(canv));
 	return GLAME_CANVAS(canv);
 }
