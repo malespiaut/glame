@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.6 2000/05/16 02:47:53 mag Exp $
+ * $Id: rms.c,v 1.7 2000/05/25 12:57:08 mainzelm Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -166,7 +166,7 @@ static int debugrms_f(filter_node_t *n){
 	filter_pipe_t *in;
 	filter_buffer_t *r;
 	float peakrms;
-	ulong pos;
+	unsigned long pos;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
 		FILTER_ERROR_RETURN("no input");
