@@ -58,9 +58,9 @@ AC_DEFUN([GNOME_INIT_HOOK],[
 	        GNOME_LIBS="`$GNOME_CONFIG --libs-only-l gnome`"
 	        GNOMEUI_LIBS="`$GNOME_CONFIG --libs-only-l gnomeui`"
 	        GNOMEGNORBA_LIBS="`$GNOME_CONFIG --libs-only-l gnorba gnomeui`"
-	        GTKXMHTML_LIBS="`$GNOME_CONFIG --libs-only-l gtkxmhtml`"
-		ZVT_LIBS="`$GNOME_CONFIG --libs-only-l zvt`"
-	        GNOME_LIBDIR="`$GNOME_CONFIG --libs-only-L gnorba gnomeui`"
+	        GTKXMHTML_LIBS="`$GNOME_CONFIG --libs gtkxmhtml`"
+		ZVT_LIBS="`$GNOME_CONFIG --libs zvt`"
+	        GNOME_LIBDIR="`$GNOME_CONFIG --libs-only-L gnorba gnomeui gnome`"
 	        GNOME_INCLUDEDIR="`$GNOME_CONFIG --cflags gnorba gnomeui glib gtk`"
                 $1
 	      else
