@@ -1,7 +1,7 @@
 /*
  * glame_hash.c
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,14 +24,12 @@
 #endif
 
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include "util.h"
-#include "glame_sem.h"
 #include "glame_hash.h"
 
 /* One page sized hashtable. */
@@ -40,80 +38,20 @@
 
 struct hash_head **hash_table = NULL;
 
+static pthread_mutex_t hash_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* Beware! this is not signal-safe!!
- * Add sigprocmask(all, SIGBLOCK,..) if you want to access
- * or modify the hash from signal handlers.
- */
-#ifndef USE_PTHREADS
-#define _lock()
-#define _unlock()
-#define _lock_w()
-#define _unlock_w()
-#else
-static int semid = -1;
-static int semnum = -1;
-static inline void _lock()
-{
-	struct sembuf sop;
-	sop.sem_num = semnum;
-	sop.sem_op = -1;
-	sop.sem_flg = 0;
-	glame_semop(semid, &sop, 1);
-}
-static inline void _unlock()
-{
-	struct sembuf sop;
-	sop.sem_num = semnum;
-	sop.sem_op = 1;
-	sop.sem_flg = IPC_NOWAIT;
-	glame_semop(semid, &sop, 1);
-}
-static inline void _lock_w()
-{
-	struct sembuf sop;
-	sop.sem_num = semnum;
-	sop.sem_op = -10000;
-	sop.sem_flg = 0;
-	glame_semop(semid, &sop, 1);
-}
-static inline void _unlock_w()
-{
-	struct sembuf sop;
-	sop.sem_num = semnum;
-	sop.sem_op = 10000;
-	sop.sem_flg = IPC_NOWAIT;
-	glame_semop(semid, &sop, 1);
-}
-#endif
+#define _lock_w() pthread_mutex_lock(&hash_mutex);
+#define _unlock_w() pthread_mutex_unlock(&hash_mutex);
+#define _lock() _lock_w()
+#define _unlock() _unlock_w()
 
 
-static void cleanup()
-{
-	union semun ssun;
-	glame_semctl(semid, 0, IPC_RMID, ssun);
-}
 
 int hash_alloc()
 {
 	if (!(hash_table = (struct hash_head **)calloc(HASH_SIZE+1, sizeof(void *))))
 		return -1;
 	hash_table[HASH_SIZE] = NULL;
-
-#ifdef USE_PTHREADS
-	if ((semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
-		return -1;
-	semnum = 0;
-	{
-		union semun ssun;
-		ssun.val = 10000;
-		if (glame_semctl(semid, semnum, SETVAL, ssun) == -1)
-			return -1;
-	}
-
-	/* register cleanup handler */
-	atexit(cleanup);
-#endif
 
 	return 0;
 }
