@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.5 2000/05/02 07:46:36 richi Exp $
+ * $Id: glsignal.c,v 1.6 2000/05/09 11:32:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -56,7 +56,6 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
 				      glsig_emitter_t *dest)
 {
-	void *bla = dest->handlers.next;
 	return glsig_add_handler(emitter, sigmask, glsig_redirector, dest);
 }
 

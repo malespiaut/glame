@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.5 2000/05/02 07:46:36 richi Exp $
+ * $Id: glsignal.h,v 1.6 2000/05/09 11:32:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -145,6 +145,11 @@ static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
  *
  *   #define FIXUP_PIPE_ARGS(va, node, pipe) GLSIGH_GETARGS2(va, node, pipe)
  */
+
+#ifndef HAVE_GCC
+/* HACK! works only for passing pointers as signal data */
+#define typeof(foo) void *
+#endif
 
 #define GLSIGH_GETARGS1(va, arg1) do { \
         arg1 = va_arg(va, typeof(arg1)); \
