@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.20 2002/02/24 22:39:00 richi Exp $
+ * $Id: glame_param.c,v 1.21 2002/06/02 18:00:49 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -370,7 +370,8 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->u.edit = GTK_EDITABLE(gnome_entry_gtk_entry(
 			GNOME_ENTRY(GNOME_FILE_ENTRY(gparam->widget)->gentry)));
 		gtk_entry_set_text(GTK_ENTRY(gparam->u.edit),
-				   filterparam_val_string(param));
+				   filterparam_val_string(param)
+				   ? filterparam_val_string(param) : "");
 	} else if (FILTER_PARAM_IS_DOUBLE(param)) {
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
