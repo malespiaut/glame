@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.72 2001/04/23 08:21:52 richi Exp $
+ * $Id: canvas.c,v 1.73 2001/04/23 08:55:10 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1810,6 +1810,43 @@ draw_network(filter_t *filter)
 			list = g_list_next(list);
 		}
 	}
+#if 0
+	filter_foreach_node(filter, node) {
+		struct fconnection *c;
+		list_foreach(&node->connections, struct fconnection, list, c) {
+			GlameCanvasItem *begini, *endi;
+			GlameCanvasPort *beginp, *endp;
+			filter_t *f;
+
+			begini = (GlameCanvasItem*)(node->gui_priv);
+			if (!(f = filter_get(filter, c->dest_filter)))
+				/* FUCK */ continue;
+			endi = (GlameCanvasItem*)(f->gui_priv);
+
+			list = g_list_first(begini->output_ports);
+			while (list && strcmp(filterport_label(GLAME_CANVAS_PORT(list->data)->port), c->source_port) != 0)
+				list = g_list_next(list);
+			if (!list)
+				/* FUCK */ continue;
+			beginp = GLAME_CANVAS_PORT(list->data);
+
+			list = g_list_first(endi->input_ports);
+			while (list && strcmp(filterport_label(GLAME_CANVAS_PORT(list->data)->port), c->dest_port) != 0)
+				list = g_list_next(list);
+			if (!list)
+				/* FUCK */ continue;
+			endp = GLAME_CANVAS_PORT(list->data);
+
+			connection = malloc(sizeof(GlameConnection));
+			connection->pipe = c->pipe;
+			connection->begini = begini;
+			connection->endi = endi;
+			connection->beginp = beginp;
+			connection->endp = endp;
+			canvas_connection_connect_from_pipe(connection);
+		}
+	}
+#endif
 	canvas_update_scroll_region(GLAME_CANVAS(canv));
 	return GLAME_CANVAS(canv);
 }
