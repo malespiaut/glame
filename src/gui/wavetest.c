@@ -47,7 +47,7 @@ static gfloat *swapfile_callback(gint wave_idx,
 	printf("callback with from %li to %li step %i\n", from, to, step);
 	if (wave)
 		free(wave);
-	wave = (gfloat *)malloc(sizeof(gfloat)*(to-from+step-1)/step);
+	wave = (gfloat *)malloc(sizeof(gfloat)*(to-from+1+step-1)/step);
 
 	w = wave;
 	while (from <= to) {
@@ -56,6 +56,7 @@ static gfloat *swapfile_callback(gint wave_idx,
 			return NULL;
 		}
 		s = (gfloat *)filecluster_mmap(fc);
+		s = s + from - filecluster_start(fc)/sizeof(gfloat);
 		while (from <= filecluster_end(fc)/sizeof(gfloat)
 		       && from <= to) {
 			*w++ = *s;
@@ -131,7 +132,7 @@ int main(int argc, char **argv)
 
   if (argc > 1 && swap_open(argv[1], 0) == 0) {
 	  /* Some basic starting stuff */
-	  gtk_wave_draw_zoom(GTK_WAVE_DRAW(wavedraw), 0, npoints);
+	  gtk_wave_draw_zoom(GTK_WAVE_DRAW(wavedraw), 0, 10000);
 	  gtk_wave_draw_set_resolution(GTK_WAVE_DRAW(wavedraw), 10);
 
 	  /* Add a swapfile wave - HACK */
