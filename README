@@ -3,14 +3,14 @@ This is GLAME v0.1.31 - GNU/Linux Audio Mechanics BETA release.
 GLAME will be the first usable wav editor for Linux.
 ---- FIXME! glame is not a wav editor [richi]
 
-Authors in alphabetical order
-	garrison, nold, mag, richi and XWolf
+Authors in chronological order
+	mag, XWolf, richi, nold, garrison
 with their real names
-	Jim Garrison,
-	Daniel Kobras,
 	Alexander Ehlert,
+	Johannes Hirche,
 	Richard Guenther,
-	Johannes Hirche.
+	Daniel Kobras,
+	Jim Garrison.
 
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/
@@ -18,15 +18,22 @@ http://glame.sourceforge.net/
 Tuebingen 23.03.2000
 
 
-Quick Start for the impatient [FIXME]
+Quick Start for the impatient
 =============================
-If you have all necessary libraries for building the gui frontend you
-can find the 'glame' executable in src/gui/
+If you got a glame tarball just do the usual
+> ./configure && make && make install
+and you will get the programs 'glame', 'cglame' and 'gmkswap' installed.
+If you checked out the glame cvs first do
+> ./autogen.sh
+If you do not want to install glame, you can find 'glame' in
+'src/gui/glame', 'cglame' in 'src/cglame' and 'gmkswap' in 'src/swapfile'.
 
-The only really useful UI is cglame, console glame for now. You will end
+The only really useful UI is 'cglame', console glame for now. You will end
 in a scheme shell after launching cglame and have access to the backends
-and the midlayer API. Look into src/glmid/play.scm for some example scheme
-stuff (try "(load "play.scm")" at the guile> command prompt). 
+and the midlayer API. Look into src/glmid/glame.scm for some example scheme
+code.
+With the GUI 'glame' you do not have access to all features of glame at
+the moment. But experimenting with filternetworks is possible.
 
 Want more? Then join our devel team at SourceForge! An e-mail to
 glame-devel@lists.sourceforge.net will get you going.
@@ -34,6 +41,7 @@ glame-devel@lists.sourceforge.net will get you going.
 You want to contribute? Please join our mailinglist (see above) and ask
 for a task. If you just want to write some filters a start is the excellent
 filter API documentation in doc/
+
 
 Requirements
 ============
@@ -45,10 +53,12 @@ Requirements
 - The scripting part makes use of GUILE; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
   expected.
+- For developing you need recent versions of autoconf, automake and
+  libtool.
 
 
-Current Status (as of version 0.1.31):
-======================================
+Current Status (as of version 0.1.33):
+==========================================
 - usable filternetwork GUI - src/gui/glame
 - usable console UI - src/cglame
 - the glame midlayer which supports

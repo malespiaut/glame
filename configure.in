@@ -1,10 +1,14 @@
 dnl Process this file with autoconf to produce a configure script.
+
 AC_INIT(configure.in)
+AM_INIT_AUTOMAKE(glame, 0.1.33)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(glame, 0.1.32)
 
 
-dnl one switch to configure debugging stuff - sane default for now
+dnl
+dnl Switch to configure debugging stuff - sane default for now.
+dnl
+
 AC_ARG_ENABLE(debug, [  --enable-debug          lots of debugging code ], debug=$enableval, debug=1)
 if test "$debug" = "no"; then
 	debug=0
@@ -17,15 +21,17 @@ elif test $debug -eq 0; then
 	AC_DEFINE(NDEBUG)
 fi
 
-dnl switch to disable gui
-AC_ARG_ENABLE(gui, [  --enable-gui            GUI - needs recent GTK/GNOME ], gui=$enableval, gui=yes)
 
+dnl
 dnl Checks for programs.
+dnl
+
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
+dnl Compiling without gcc is not supported but may succeed.
 if test $GCC = "yes"; then
 	AC_DEFINE(HAVE_GCC)
 	if test $debug -eq 0; then
@@ -39,8 +45,10 @@ else
   AC_MSG_WARN([Compilers other than gcc are not supported])
 fi
 
+
 dnl Check endianness
 AC_C_BIGENDIAN
+
 
 dnl
 dnl Checks for libraries.
@@ -51,24 +59,24 @@ AC_CHECK_POSIX_RTSIG
 
 
 dnl
-dnl GUI stuff
+dnl GUI stuff - require GNOME for anything
 dnl
 
-dnl GTK check
+dnl switch to disable gui
+AC_ARG_ENABLE(gui, [  --enable-gui            GUI - needs recent GTK/GNOME ], gui=$enableval, gui=yes)
+
+dnl GNOME check
 if test x$gui = xyes; then
-  AM_PATH_GTK(1.2.0, [have_gtk=yes],
-    [AC_MSG_RESULT(Test for GTK failed. See the file 'INSTALL' for help.)
-    have_gtk=no])
+  GNOME_INIT_HOOK([have_gnome=yes],,)
 else
   AC_MSG_RESULT([GUI was disabled.])
 fi
-AM_CONDITIONAL(HAVE_GTK, test x$have_gtk=xyes)
-
-dnl GNOME check
-if test x$have_gtk = xyes; then
-  GNOME_INIT_HOOK([have_gnome=yes],,)
-fi
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
+
+
+dnl
+dnl GUILE check, fail if not there
+dnl
 
 GNOME_CHECK_GUILE("fail")
 
@@ -186,4 +194,3 @@ AC_SUBST(GLAME_AUDIO_LIBS)
 AC_SUBST(GLAME_AUDIO_CFLAGS)
 
 AC_OUTPUT(Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmath/Makefile src/glmid/Makefile)
-
