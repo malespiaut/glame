@@ -23,6 +23,7 @@ AC_PROG_INSTALL
 AM_PROG_LIBTOOL
 
 if test $GCC = "yes"; then
+	AC_DEFINE(HAVE_GCC)
 	if test $debug -lt 2; then
 		CFLAGS="$CFLAGS -Wall"
 	else
@@ -97,6 +98,14 @@ AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 AC_SUBST(DEBUG_LIBS)
 AC_SUBST(AUDIOFILE_LIBS)
+
+case "$host_cpu" in
+i?86)
+	AC_DEFINE(CPU_X86);;
+mips*)
+	AC_DEFINE(CPU_MIPS);;
+esac
+ 
 
 
 AC_OUTPUT(Makefile src/Makefile src/filter/Makefile src/libfixp/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile doc/Makefile)
