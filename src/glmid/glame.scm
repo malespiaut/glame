@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.22 2000/04/06 14:41:03 richi Exp $
+; $Id: glame.scm,v 1.23 2000/04/10 11:54:42 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -59,18 +59,38 @@
 
 (define net-new filternetwork_new)
 
+; (net-add-node net "node" '("param" val) ...)
 ; (net-add-node net "node")
 (define net-add-node
-  (lambda (net node)
+  (lambda (net node . params)
     (if (eq? (filter_get node) #f) (plugin_get node))
-    (filternetwork_add_node net node "")))
+    (let ((n (filternetwork_add_node net node "")))
+      (if (eq? n #f) #f
+	  (begin
+	    (apply node-set-params n params)
+	    n)))))
 
-; (net-add-nodes net '("node" "node" ...))
+; (net-add-nodes net "node" '("node" '("param" val)...) ...)
 (define net-add-nodes
-  (lambda (net nodes)
+  (lambda (net . nodes)
     (if (null? nodes) '()
-	(cons (net-add-node net (car nodes))
-	      (net-add-nodes net (cdr nodes))))))
+	(let* ((n (if (list? (car nodes)) (apply net-add-node net (car nodes))
+		      (net-add-node net (car nodes))))
+	       (nn (if (eq? n #f) #f (apply net-add-nodes net (cdr nodes)))))
+	  (if (eq? n #f) #f
+	      (if (eq? nn #f)
+		  (begin
+		    (filternetwork_delete_node n)
+		    #f)
+		  (cons n nn)))))))
+
+; (nodes-delete node node ...)
+(define nodes-delete
+  (lambda nodes
+    (if (null? nodes) '()
+	(begin
+	  (filternetwork_delete_node (car nodes))
+	  (apply nodes-delete (cdr nodes))))))
 
 ; linear connect the nodes
 ; (nodes-connect `(,node ,node ...) `(..) ...)
@@ -99,6 +119,8 @@
 (define nodes-set-params
   (lambda (nodes . params)
     (map (lambda (n) (node-set-params n params)) nodes)))
+
+
 
 ; run the net, wait for completion and delete it
 (define net-run
@@ -189,26 +211,25 @@
 
 ;
 ; play a file with automagically determining #channels _and_
-; applying an effect (with a list of parameters applied to it)
-; example: (play-eff "test.wav" "echo" '("time" 500))
+; applying a chain of effects (with an optional list of parameters applied to each)
+; (play-eff "test.wav" "echo")
+; (play-eff "test.wav" '("echo" '("time" 500)))
+; (play-eff "test.wav" "echo" '("iir" '("attack" 100)))
 ;
 
 (define play-eff
-  (lambda (fname effect . params)
+  (lambda (fname . effects)
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
       (node-set-param rf "filename" fname)
       (while-not-false
        (lambda ()
-	 (let* ((eff (net-add-node net effect))
-		(conn (filternetwork_add_connection rf "out" eff "in")))
+	 (let* ((eff (apply net-add-nodes net effects))
+		(conn (filternetwork_add_connection rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
-	       (begin (filternetwork_delete_node eff) #f)
-	       (begin
-		 (apply node-set-params eff params)
-		 (nodes-connect `(,eff ,ao))
-		 conn)))))
+	       (begin (apply nodes-delete eff) #f)
+	       (begin (nodes-connect (append eff (list ao))) #t)))))
       (net-run net))))
 
 ;
@@ -246,7 +267,7 @@
 
 (let* ((net (net-new))
        (p (net-add-node net "pipe-in")))
-  (filternode_set_param p "cmd" "mpg123 -s ")
+  (filternode_set_param p "cmd" "mpg123 -q -s ")
   (filternetwork_add_output net p "out" "out" "output")
   (filternetwork_add_param net p "tail" "filename" "filename")
   (filternetwork_to_filter net "read-mp3" "mp3 reader")
