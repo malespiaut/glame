@@ -1,3 +1,5 @@
-n sinus sin1
-n audio_out aout
-c sin1 out aout left_in
+(filternetwork test-audio
+	(node sin1 sinus)
+	(node aout audio_out)
+	(connect sin1 out aout left_in)
+)

@@ -16,7 +16,7 @@ void _buffer_free(filter_buffer_t *fb);
 struct filter_paramdesc {
 	struct list_head list;
 	struct hash_head hash;
-	void *namespace;
+	void *namespace; /* NOTE: this is filter_t/portdesc_t */
 
 	const char *label;
 	int type;
@@ -40,8 +40,9 @@ struct filter_param {
 	struct list_head list;
 	struct hash_head hash;
 	const char *label;
-	void *namespace;
+	void *namespace; /* NOTE: this is node/pipe */
 
+	filter_paramdesc_t *desc;
 	union {
 		int i;
 		float f;
@@ -51,11 +52,19 @@ struct filter_param {
 	} val;
 };
 /* parameter hash/list addition/removal to filter nodes or
- * to filter pipes (the macros are transparent wrt to this).
+ * to filter pipes (the remove macros are transparent wrt to this).
  */
-#define hash_add_param(p, nodepipe) do { (p)->namespace = nodepipe; \
-        _hash_add(&(p)->hash, _hash((p)->label, nodepipe)); } while (0)
-#define list_add_param(p, nodepipe) list_add(&(p)->list, &(nodepipe)->params)
+#define hash_add_param(p, node) do { (p)->namespace = node; \
+        _hash_add(&(p)->hash, _hash((p)->label, node)); } while (0)
+#define hash_add_sourceparam(p, pp) do { \
+        (p)->namespace = &(pp)->source_params; _hash_add(&(p)->hash, \
+	_hash((p)->label, &(pp)->source_params)); } while (0)
+#define hash_add_destparam(p, pp) do { \
+        (p)->namespace = &(pp)->dest_params; _hash_add(&(p)->hash, \
+	_hash((p)->label, &(pp)->dest_params)); } while (0)
+#define list_add_param(p, node) list_add(&(p)->list, &(node)->params)
+#define list_add_sourceparam(p, pp) list_add(&(p)->list, &(pp)->source_params)
+#define list_add_destparam(p, pp) list_add(&(p)->list, &(pp)->dest_params)
 #define hash_remove_param(p) _hash_remove(&(p)->hash)
 #define list_remove_param(p) list_del(&(p)->list)
 
@@ -70,7 +79,7 @@ struct filter_portdesc {
 
 	const char *description;
 
-	int nr_params;
+        filter_t *filter;
 	struct list_head params;
 
 	void *private;
@@ -103,8 +112,10 @@ struct filter_pipe {
 	int source_fd, dest_fd;
 
 	/* pipe specific parameters */
-	int nr_params;
-	struct list_head params;
+	filter_portdesc_t *source_port;
+	struct list_head source_params;
+	filter_portdesc_t *dest_port;
+	struct list_head dest_params;
 
 	/* data type specification */
 	int type;
@@ -134,8 +145,10 @@ struct filter_pipe {
 #define list_remove_output(p) list_del(&(p)->output_list)
 /* query parameters from the pipe.
  */
-#define filterpipe_first_param(p) list_gethead(&(p)->params, filter_param_t, \
-        list)
+#define filterpipe_first_sourceparam(p) list_gethead(&(p)->source_params, \
+	filter_param_t, list)
+#define filterpipe_first_destparam(p) list_gethead(&(p)->source_params, \
+	filter_param_t, list)
 
 
 
@@ -187,11 +200,11 @@ struct filter_node_operations {
 #define STATE_LAUNCHED 2
 struct filter_node {
         struct hash_head hash;
+	struct list_head list;
         const char *name;
 
 	/* connectivity in the net */
 	filter_network_t *net;
-	struct list_head net_list;
 
 	/* Filter of which this filter_node is an instance,
 	 * together with a private pointer that can be filled
@@ -203,7 +216,6 @@ struct filter_node {
 	struct filter_node_operations *ops;
 
 	/* parameters */
-	int nr_params;
 	struct list_head params;
 
 	/* Pipes connected as input/output. All input/output pipes are linked
@@ -222,9 +234,9 @@ struct filter_node {
  */
 #define hash_add_node(node) _hash_add(&(node)->hash, _hash((node)->name, \
         (node)->net))
-#define list_add_node(node, nt) list_add(&(node)->net_list, &(nt)->nodes);
+#define list_add_node(node) list_add(&(node)->list, &(node)->net->nodes);
 #define hash_remove_node(node) _hash_remove(&(node)->hash)
-#define list_remove_node(node) list_del(&(node)->net_list)
+#define list_remove_node(node) list_del(&(node)->list)
 /* query first input/output pipe and first parameter from filter node
  */
 #define filternode_first_input(node) list_gethead(&(node)->inputs, \
@@ -240,6 +252,9 @@ struct filter_network_mapping {
 	const char *label;
 	const char *node;
 };
+#define filterdesc_map_label(d) (((struct filter_network_mapping *)(d)->private)->label)
+#define filterdesc_map_node(d) (((struct filter_network_mapping *)(d)->private)->node)
+
 
 struct filter_network {
         filter_node_t node;
@@ -251,7 +266,7 @@ struct filter_network {
 /* query first filter node in filter network.
  */
 #define filternetwork_first_node(net) list_gethead(&(net)->nodes, \
-        filter_node_t, net_list)
+        filter_node_t, list)
 
 
 /* convenience type converters.

@@ -1,9 +1,12 @@
-n read_file rf
-n audio_out aout
-n echo2 echol
-n echo2 echor
-c rf left_out echol in
-c rf right_out echor in
-c echol out aout left_in
-c echor out aout right_in
-p rf filename filename file to be played
+(filternetwork play
+	(node rf read_file
+		(export-param filename filename "file to be played")
+	)
+	(node aout audio_out)
+	(node echol echo2)
+	(node echor echo2)
+	(connect rf left_out echol in)
+	(connect rf right_out echor in)
+	(connect echol out aout left_in)
+	(connect echor out aout right_in)
+)

@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_network.c,v 1.5 2000/02/14 13:24:29 richi Exp $
+ * $Id: test_network.c,v 1.6 2000/02/15 18:41:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -22,6 +22,9 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -42,10 +45,11 @@ static void cleanup(int sig)
 int main(int argc, char **argv)
 {
 	struct sigaction sa;
-	filter_node_t *n;
-	filter_t *f;
+	struct stat sbuf;
 	int i;
-
+	int fd;
+	char *network;
+	void *val;
 	
 	sa.sa_flags = 0;
 	sa.sa_handler = cleanup;
@@ -71,29 +75,23 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!(f = filternetwork_load(argv[1]))) {
-		fprintf(stderr, "error in filternetwork_load(%s)\n", argv[1]);
+	/* argh! */
+	if ((fd = open(argv[1], O_RDONLY)) == -1)
 		return -1;
-	}
-	if (filter_add(f) == -1) {
-		fprintf(stderr, "error in filter_add()\n");
-		return -1;
-	}
+	fstat(fd, &sbuf);
+	network = mmap(NULL, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
-	if (!(net = filternetwork_new("test"))) {
-		fprintf(stderr, "error in filternetwork_new()\n");
-		return -1;
-	}
-
-	if (!(n = filternetwork_add_node(net, f->name, NULL))) {
-		fprintf(stderr, "error in filternetwork_add_node(%s)\n", f->name);
+	if (!(net = filternetwork_from_string(network))) {
+		fprintf(stderr, "error in string_to_filternetwork()\n");
 		return -1;
 	}
 
 	for (i=2; i<argc; i+=2) {
 		fprintf(stderr, "setting parameter %s to %s\n",
 			argv[i], argv[i+1]);
-		filternode_set_paramstring(n, argv[i], argv[i+1]);
+		val = filterparamval_from_string(filter_get_paramdesc(net->node.filter, argv[i]), argv[i+1]);
+		filternode_set_param(&net->node, argv[i], val);
+		free(val);
 	}
 
 	fprintf(stderr, "launching network\n");

@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.1 2000/02/14 13:23:40 richi Exp $
+ * $Id: filter_mm.c,v 1.2 2000/02/15 18:41:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -38,6 +38,8 @@ filter_paramdesc_t *_paramdesc_alloc(const char *label, int type,
 
 	if (!(d = ALLOC(filter_paramdesc_t)))
 		return NULL;
+	INIT_LIST_HEAD(&d->list);
+	INIT_HASH_HEAD(&d->hash);
 	d->label = strdup(label);
 	d->type = type;
 	d->description = strdup(desc);
@@ -66,27 +68,58 @@ filter_param_t *_param_alloc(filter_paramdesc_t *d)
 
 	if (!(p = ALLOC(filter_param_t)))
 		return NULL;
+	INIT_LIST_HEAD(&p->list);
+	INIT_HASH_HEAD(&p->hash);
 	p->label = d->label;
+	p->desc = d;
+	switch (FILTER_PARAMTYPE(d->type)) {
+	case FILTER_PARAMTYPE_INT:
+		p->val.i = 0;
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		p->val.f = 0.0;
+		break;
+	case FILTER_PARAMTYPE_SAMPLE:
+		p->val.sample = 0;
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		p->val.file = -1;
+		break;
+	case FILTER_PARAMTYPE_STRING:
+	        p->val.string = NULL;
+		break;
+	default:
+		return NULL;
+	}
 	return p;
 }
 
 void _param_free(filter_param_t *p)
 {
+	switch (FILTER_PARAMTYPE(p->desc->type)) {
+	case FILTER_PARAMTYPE_STRING:
+		free(p->val.string);
+		break;
+	default:
+		break;
+	}
 	free(p);
 }
 
 
-filter_portdesc_t *_portdesc_alloc(const char *label, int type,
-				   const char *desc)
+filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
+				   int type, const char *desc)
 {
 	filter_portdesc_t *d;
 
 	if (!(d = ALLOC(filter_portdesc_t)))
 		return NULL;
+	INIT_LIST_HEAD(&d->list);
+	INIT_HASH_HEAD(&d->hash);
 	d->label = strdup(label);
 	d->type = type;
 	d->description = strdup(desc);
-	d->nr_params = 0;
+	d->filter = filter;
 	INIT_LIST_HEAD(&d->params);
 	if (d->label && d->description)
 		return d;
@@ -114,16 +147,23 @@ void _portdesc_free(filter_portdesc_t *d)
 }
 
 
-filter_pipe_t *_pipe_alloc()
+filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
+			   filter_portdesc_t *destport)
 {
 	filter_pipe_t *p;
 
 	if (!(p = ALLOC(filter_pipe_t)))
 		return NULL;
+	INIT_LIST_HEAD(&p->input_list);
+	INIT_HASH_HEAD(&p->input_hash);
+	INIT_LIST_HEAD(&p->output_list);
+	INIT_HASH_HEAD(&p->output_hash);
 	p->source_fd = -1;
 	p->dest_fd = -1;
-	p->nr_params = 0;
-	INIT_LIST_HEAD(&p->params);
+	p->source_port = sourceport;
+	INIT_LIST_HEAD(&p->source_params);
+	p->dest_port = destport;
+	INIT_LIST_HEAD(&p->dest_params);
 	return p;
 }
 
@@ -133,7 +173,12 @@ void _pipe_free(filter_pipe_t *p)
 
 	if (!p)
 		return;
-	while ((param = filterpipe_first_param(p))) {
+	while ((param = filterpipe_first_sourceparam(p))) {
+		hash_remove_param(param);
+		list_remove_param(param);
+		_param_free(param);
+	}
+	while ((param = filterpipe_first_destparam(p))) {
 		hash_remove_param(param);
 		list_remove_param(param);
 		_param_free(param);
@@ -168,11 +213,8 @@ filter_t *_filter_alloc(const char *name, const char *description, int flags)
 		f->connect_in = filter_network_connect_in;
 		f->fixup_param = filter_network_fixup_param;
 	}
-	f->nr_params = 0;
 	INIT_LIST_HEAD(&f->params);
-	f->nr_inputs = 0;
 	INIT_LIST_HEAD(&f->inputs);
-	f->nr_outputs = 0;
 	INIT_LIST_HEAD(&f->outputs);
 	f->private = NULL;
 	hash_init_filter(f);
@@ -250,9 +292,10 @@ void _launchcontext_free(filter_launchcontext_t *c)
 
 static int _node_init(filter_node_t *n, const char *name)
 {
+	INIT_LIST_HEAD(&n->list);
+	INIT_HASH_HEAD(&n->hash);
 	n->private = NULL;
 	n->ops = &filter_node_ops;
-	n->nr_params = 0;
 	INIT_LIST_HEAD(&n->params);
 	n->nr_inputs = 0;
 	INIT_LIST_HEAD(&n->inputs);

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.18 2000/02/14 13:23:40 richi Exp $
+ * $Id: filter_network.c,v 1.19 2000/02/15 18:41:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,17 +39,172 @@
 
 
 
-struct filternetspec {
-	char **lines;
-	int nr_lines;
-};
 
-
-
-/* ok, we have to launch the network back-to-front
- * (i.e. it is a _directed_ network)
- * we do this recursievely - ugh(?)
+/* filter node API.
  */
+
+static void set_param(filter_param_t *param, void *val)
+{
+	switch (FILTER_PARAMTYPE(param->desc->type)) {
+	case FILTER_PARAMTYPE_INT:
+		param->val.i = *(int *)val;
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		param->val.f = *(float *)val;
+		break;
+	case FILTER_PARAMTYPE_SAMPLE:
+		param->val.sample = *(SAMPLE *)val;
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		param->val.file = *(fileid_t *)val;
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		free(param->val.string);
+		param->val.string = strdup((char *)val);
+		break;
+	}
+}
+
+char *filterparam_to_string(filter_param_t *param)
+{
+	char buf[512];
+
+	if (!param)
+		return NULL;
+
+	switch (FILTER_PARAMTYPE(param->desc->type)) {
+	case FILTER_PARAMTYPE_INT:
+		snprintf(buf, 511, "%i", param->val.i);
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		snprintf(buf, 511, "%f", param->val.f);
+		break;
+	case FILTER_PARAMTYPE_SAMPLE:
+		/* FIXME: this is SAMPLE type specific */
+		snprintf(buf, 511, "%f", param->val.sample);
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		snprintf(buf, 511, "%i", param->val.file);
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		snprintf(buf, 511, "\"%s\"", param->val.string);
+		break;
+	default:
+		return NULL;
+	}
+
+	return strdup(buf);
+}
+
+void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
+{
+	filter_param_t param;
+	char s[512];
+	void *m;
+	int res;
+
+	if (!pdesc || !val)
+		return NULL;
+
+	switch (FILTER_PARAMTYPE(pdesc->type)) {
+	case FILTER_PARAMTYPE_INT:
+		res = sscanf(val, " %i ", &param.val.i);
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		res = sscanf(val, " %f ", &param.val.f);
+		break;
+	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
+		res = sscanf(val, " %f ", &param.val.sample);
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		res = sscanf(val, " %i ", &param.val.file);
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) == 1)
+			return strdup(s);
+		break;
+	default:
+		return NULL;
+	}
+	if (res != 1)
+		return NULL;
+
+	if (!(m = malloc(sizeof(param.val))))
+		return NULL;
+	memcpy(m, &param.val, sizeof(param.val));
+
+	return m;
+}
+
+
+int filternode_set_param(filter_node_t *n, const char *label, void *val)
+{
+	filter_param_t *param;
+	filter_paramdesc_t *pdesc;
+
+	if (!n || !label || !val)
+		return -1;
+	if (!(pdesc = filter_get_paramdesc(n->filter, label)))
+		return -1;
+	if (!(param = filternode_get_param(n, label))) {
+		if (!(param = _param_alloc(pdesc)))
+			return -1;
+		hash_add_param(param, n);
+		list_add_param(param, n);
+	}
+	set_param(param, val);
+
+	return n->filter->fixup_param(n, label);
+}
+
+int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val)
+{
+	filter_param_t *param;
+	filter_paramdesc_t *pdesc;
+
+	if (!p || !label || !val)
+		return -1;
+	if (!(pdesc = filterportdesc_get_paramdesc(p->source_port, label)))
+		return -1;
+	if (!(param = filterpipe_get_sourceparam(p, label))) {
+		if (!(param = _param_alloc(pdesc)))
+			return -1;
+		hash_add_sourceparam(param, p);
+		list_add_sourceparam(param, p);
+	}
+	set_param(param, val);
+
+	/* FIXME: ummm, need fixup_pipesourceparam???? */
+	return p->source->filter->fixup_param(p->source, label);
+}
+
+int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val)
+{
+	filter_param_t *param;
+	filter_paramdesc_t *pdesc;
+
+	if (!p || !label || !val)
+		return -1;
+	if (!(pdesc = filterportdesc_get_paramdesc(p->dest_port, label)))
+		return -1;
+	if (!(param = filterpipe_get_destparam(p, label))) {
+		if (!(param = _param_alloc(pdesc)))
+			return -1;
+		hash_add_destparam(param, p);
+		list_add_destparam(param, p);
+	}
+	set_param(param, val);
+
+	/* FIXME: ummm, need fixup_pipedestparam???? */
+	return p->dest->filter->fixup_param(p->dest, label);
+}
+
+
+
+
+/* filter network API.
+ */
+
 int filternetwork_launch(filter_network_t *net)
 {
 	sigset_t sigs;
@@ -92,7 +247,6 @@ int filternetwork_launch(filter_network_t *net)
 	return -1;
 }
 
-/* wait for the network to finish processing */
 int filternetwork_wait(filter_network_t *net)
 {
 	int res;
@@ -105,21 +259,21 @@ int filternetwork_wait(filter_network_t *net)
 
 	net->node.ops->postprocess(&net->node);
 	_launchcontext_free(net->launch_context);
+	net->launch_context = NULL;
+
 	return res;
 }
 
-/* kill the network */
 void filternetwork_terminate(filter_network_t *net)
 {
+	if (!net || !net->launch_context)
+		return;
+	sem_zero(net->launch_context->semid, 0);
 	net->node.ops->postprocess(FILTER_NODE(net));
 	_launchcontext_free(net->launch_context);
+	net->launch_context = NULL;
 }
 
-
-
-
-
-/* API */
 
 filter_network_t *filternetwork_new(const char *name)
 {
@@ -172,8 +326,8 @@ filter_node_t *filternetwork_add_node(filter_network_t *net,
 	/* Add node to networks node list and to the hash using name/net.
 	 */
 	n->net = net;
-	list_add_node(n, net);
 	hash_add_node(n);
+	list_add_node(n);
 	net->nr_nodes++;
 
 	return n;
@@ -213,7 +367,7 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	    && filternode_get_input(dest, out->label))
 	        return NULL;
 
-	if (!(p = _pipe_alloc()))
+	if (!(p = _pipe_alloc(out)))
 		return NULL;
 	p->in_name = out->label;
 	p->out_name = in->label;
@@ -271,131 +425,10 @@ void filternetwork_break_connection(filter_pipe_t *p)
 }
 
 
-int filternode_set_param(filter_node_t *n, const char *label, void *val)
-{
-	filter_param_t *param;
-	filter_paramdesc_t *pdesc;
-
-	if (!n || !label || !val)
-		return -1;
-	if (!(pdesc = filter_get_paramdesc(n->filter, label)))
-		return -1;
-	if (!(param = filternode_get_param(n, label))) {
-		if (!(param = _param_alloc(pdesc)))
-			return -1;
-		hash_add_param(param, n);
-		list_add_param(param, n);
-	}
-
-	switch (FILTER_PARAMTYPE(pdesc->type)) {
-	case FILTER_PARAMTYPE_INT:
-		param->val.i = *(int *)val;
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		param->val.f = *(float *)val;
-		break;
-	case FILTER_PARAMTYPE_SAMPLE:
-		param->val.sample = *(SAMPLE *)val;
-		break;
-	case FILTER_PARAMTYPE_FILE:
-		param->val.file = *(fileid_t *)val;
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		param->val.string = *(char **)val;
-		break;
-	}
-
-	return n->filter->fixup_param(n, label);
-}
-
-int filternode_set_paramstring(filter_node_t *n, const char *label,
-			       const char *val)
-{
-	filter_param_t *param;
-	filter_paramdesc_t *pdesc;
-	int res = -1;
-
-	if (!n || !label || !val)
-		return -1;
-	if (!(pdesc = filter_get_paramdesc(n->filter, label)))
-		return -1;
-	if (!(param = filternode_get_param(n, label))) {
-		if (!(param = _param_alloc(pdesc)))
-			return -1;
-		hash_add_param(param, n);
-		list_add_param(param, n);
-	}
-
-	switch (FILTER_PARAMTYPE(pdesc->type)) {
-	case FILTER_PARAMTYPE_INT:
-		res = sscanf(val, " %i ", &param->val.i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		res = sscanf(val, " %f ", &param->val.f);
-		break;
-	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
-		res = sscanf(val, " %f ", (float *)&param->val.sample);
-		break;
-	case FILTER_PARAMTYPE_FILE:
-		res = sscanf(val, " %i ", &param->val.file);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		if ((param->val.string = strdup(val)))
-			res = 1;
-		break;
-	}
-
-	if (res == 1)
-	        res = n->filter->fixup_param(n, label);
-
-	return res;
-}
-
-int filternode_get_paramstring(filter_node_t *n, const char *label,
-			       char *val, ssize_t s)
-{
-	filter_param_t *param;
-	filter_paramdesc_t *pdesc;
-	int res = -1;
-
-	if (!n || !label || !val)
-		return -1;
-	if (!(pdesc = filter_get_paramdesc(n->filter, label)))
-		return -1;
-	if (!(param = filternode_get_param(n, label)))
-		return -1;
-
-	switch (FILTER_PARAMTYPE(pdesc->type)) {
-	case FILTER_PARAMTYPE_INT:
-		res = snprintf(val, s, "%i", param->val.i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		res = snprintf(val, s, "%f", param->val.f);
-		break;
-	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
-		res = snprintf(val, s, "%f", param->val.sample);
-		break;
-	case FILTER_PARAMTYPE_FILE:
-		res = snprintf(val, s, "%i", param->val.file);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		res = snprintf(val, s, "%s", param->val.string);
-		break;
-	}
-
-	return res >=0 ? 0 : -1;
-}
-
-
 
 /* filternetwork filters / loading / saving
  * BIG FIXME!
  */
-
-filter_t *filternetwork_get_filter(filter_network_t *net)
-{
-	return net->node.filter;
-}
 
 static struct filter_network_mapping *create_map(const char *label,
 						 const char *node)
@@ -417,6 +450,8 @@ filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
 	filter_node_t *n;
 	filter_paramdesc_t *d;
 
+	if (!net || !node || !param || !label)
+		return NULL;
 	if (is_hashed_filter(net->node.filter))
 		return NULL;
 	if (!(n = filternetwork_get_node(net, node)))
@@ -439,6 +474,8 @@ filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
 	filter_node_t *n;
 	filter_portdesc_t *d;
 
+	if (!net || !node || !port || !label)
+		return NULL;
 	if (is_hashed_filter(net->node.filter))
 		return NULL;
 	if (!(n = filternetwork_get_node(net, node)))
@@ -461,6 +498,8 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 	filter_node_t *n;
 	filter_portdesc_t *d;
 
+	if (!net || !node || !port || !label)
+		return NULL;
 	if (is_hashed_filter(net->node.filter))
 		return NULL;
 	if (!(n = filternetwork_get_node(net, node)))
@@ -478,23 +517,149 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 
 
 /* I would like to have the following syntax:
-(filternetwork name
-   (node p ping
-      (export-input in pingin "input of ping"
-         (export-param gain gain "gain of bla"))
-      (export-output out pingout "out of ping")
-      (export-param rate pingrate "hasdk")
-      (set-param foo 5))
-   (node n null)
-# connections follow
-   (connect p out n in
-      (set-param gain 7))
-   (connect n out p in)
-   (set-param pingrate 10)
-)
- * now do this with regular expressions...
- * "parens": '[[:space:]]*\((([^()]*|\()*)\) 
+ * (filternetwork name
+ *   (node p ping
+ *     (export-input in pingin "input of ping")
+ *     (export-output out pingout "out of ping")
+ *     (export-param rate pingrate "hasdk")
+ *     (set-param foo 5))
+ *   (node n null)
+ *   (connect p out n in
+ *     (set-sourceparam gain 7)
+ *     (set-destparam foo "ha"))
+ *   (connect n out p in)
+ *   (set-param pingrate 10))
  */
+char *filternetwork_to_string(filter_network_t *net)
+{
+	char *buf, *s;
+	int len;
+	filter_node_t *n;
+	filter_portdesc_t *portd;
+	filter_paramdesc_t *paramd;
+	filter_param_t *param;
+	filter_pipe_t *fpipe;
+
+	if (!net)
+		return NULL;
+
+	/* we lineary process the network to create a
+	 * "nice looking" string representation. */
+
+	/* first alloc a big-enough buffer FIXME - br0ken. */
+	if (!(buf = (char *)malloc(64*1024)))
+		return NULL;
+	len = 0;
+
+	/* generate the network start part */
+	len += sprintf(&buf[len], "(filternetwork %s\n",
+		       net->node.name);
+
+	/* iterate over all nodes in the network creating
+	 * node create commands. */
+	filternetwork_foreach_node(net, n) {
+		len += sprintf(&buf[len], "\t(node %s %s\n",
+			       n->name, n->filter->name);
+
+		/* iterate over all exported inputs/outputs
+		 * and params possibly creating export commands. */
+		filter_foreach_inputdesc(net->node.filter, portd) {
+			/* check, if exported output is "our" one */
+			if (strcmp(n->name, filterdesc_map_node(portd)) != 0
+			    || !filter_get_inputdesc(n->filter, filterdesc_map_label(portd)))
+				continue;
+			len += sprintf(&buf[len], "\t\t(export-input %s %s \"%s\")\n",
+				       filterdesc_map_label(portd),
+				       portd->label, portd->description);
+			/* port parameters are magically exported
+			 * too - they are set "directly" using the
+			 * filterpipe_set_param() call - only querying
+			 * those parameter descriptors is little bit
+			 * messy ATM.
+			 */
+		}
+		filter_foreach_outputdesc(net->node.filter, portd) {
+			/* check, if exported output is "our" one */
+			if (strcmp(n->name, filterdesc_map_node(portd)) != 0
+			    || !filter_get_outputdesc(n->filter, filterdesc_map_label(portd)))
+				continue;
+			len += sprintf(&buf[len], "\t\t(export-output %s %s \"%s\")\n",
+				       filterdesc_map_label(portd),
+				       portd->label, portd->description);
+			/* port parameters - dto. */
+		}
+		filter_foreach_paramdesc(net->node.filter, paramd) {
+			/* check, if exported param is "our" one */
+			if (strcmp(n->name, filterdesc_map_node(paramd)) != 0
+			    || !filter_get_paramdesc(n->filter, filterdesc_map_label(paramd)))
+				continue;
+			len += sprintf(&buf[len], "\t\t(export-param %s %s \"%s\")\n",
+				       filterdesc_map_label(paramd),
+				       paramd->label, paramd->description);
+		}
+
+		/* iterate over all set parameters and create
+		 * parameter set commands. */
+		filter_foreach_paramdesc(n->filter, paramd) {
+			if (!(param = filternode_get_param(n, paramd->label)))
+				continue;
+			len += sprintf(&buf[len], "\t\t(set-param %s %s)\n",
+				       paramd->label,
+				       (s = filterparam_to_string(param)));
+			free(s);
+		}
+
+		/* (node */
+		len += sprintf(&buf[len-1], ")\n") - 1;
+	}
+
+	/* iterate over all connections and create connect
+	 * commands. */
+	filternetwork_foreach_node(net, n) {
+		filternode_foreach_input(n, fpipe) {
+			len += sprintf(&buf[len], "\t(connect %s %s %s %s\n",
+				       fpipe->source->name, fpipe->out_name,
+				       fpipe->dest->name, fpipe->in_name);
+
+			/* iterate over all pipe dest parameters creating
+			 * parameter set commands. */
+			portd = filter_get_inputdesc(n->filter,
+						     fpipe->in_name);
+			filterportdesc_foreach_paramdesc(portd, paramd) {
+				if (!(param = filterpipe_get_destparam(fpipe, paramd->label)))
+					continue;
+				len += sprintf(&buf[len], "\t\t(set-param %s %s)\n",
+					       paramd->label,
+					       (s = filterparam_to_string(param)));
+				free(s);
+			}
+
+			/* iterate over all pipe source parameters creating
+			 * parameter set commands. */
+			portd = filter_get_inputdesc(fpipe->source->filter,
+						     fpipe->out_name);
+			filterportdesc_foreach_paramdesc(portd, paramd) {
+				if (!(param = filterpipe_get_sourceparam(fpipe, paramd->label)))
+					continue;
+				len += sprintf(&buf[len], "\t\t(set-param %s %s)\n",
+					       paramd->label,
+					       (s = filterparam_to_string(param)));
+				free(s);
+			}
+			
+			/* (connect */
+			len += sprintf(&buf[len-1], ")\n") - 1;
+		}
+	}
+
+	/* (filternetwork */
+	len += sprintf(&buf[len-1], ")\n") - 1;
+
+	DPRINTF("Created \"%s\" as network string\n", buf);
+
+	return buf;
+}
+
 
 /* Expression parsing using regular expressions and returning an
  * argv like result (by modifying the argument!).
@@ -517,7 +682,23 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
  *   with argv[0] == command, argv[1] == ...
  * 2. special match the rest of the args to the command using argv[1].
  */
-char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
+void glame_parse_init(char **argv, int argc)
+{
+	int i;
+	for (i=0; i<argc; i++)
+		argv[i] = NULL;
+}
+
+void glame_parse_free(char **argv, int argc)
+{
+	int i;
+	for (i=0; i<argc; i++) {
+		free(argv[i]);
+		argv[i] = NULL;
+	}
+}
+
+char *glame_parse(const char *str, const char *exp, char **argv, int nargvmask)
 {
 	regex_t e;
 	regmatch_t *m;
@@ -536,11 +717,15 @@ char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
 		    || nargvmask & (1<<(i-1))) {
 			argv[i-1] = NULL;
 		} else {
-			argv[i-1] = &str[m[i].rm_so];
-			str[m[i].rm_eo] = '\0';
+			argv[i-1] = (char *)malloc(m[i].rm_eo-m[i].rm_so+1);
+			strncpy(argv[i-1], &str[m[i].rm_so],
+				m[i].rm_eo-m[i].rm_so);
+			argv[i-1][m[i].rm_eo-m[i].rm_so] = '\0';
+      			/* DPRINTF("%i) \"%s\"\n", i-1, argv[i-1]); */
 		}
 	}
 	str = &str[m[0].rm_eo];
+	/* DPRINTF("-> \"%s\"\n", str); */
 
 	free(m);
 	regfree(&e);
@@ -552,110 +737,215 @@ char *glame_parse(char *str, const char *exp, char **argv, int nargvmask)
 	return NULL;
 }
 
-int filternetwork_save(filter_network_t *net, const char *filename)
+
+#define FNREGEXP_ARGCOMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+|\"[^\"]*\")[[:space:]]*([[:alnum:]_-]*|\"[^\"]*\")[[:space:]]*\\)|[[:space:]]*\\)"
+
+#define FNREGEXP_NODE "[[:space:]]*([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)"
+#define FNREGEXP_CONNECT "[[:space:]]*([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]+)[[:space:]]*"
+#define FNREGEXP_SETPARAM "[[:space:]]*([[:alnum:]_-]+)[[:space:]]+([[:alnum:]_-]*|\"[^\"]*\")[[:space:]]*\\)"
+
+#define FNREGEXP_COMMAND "[[:space:]]*\\([[:space:]]*([[:alpha:]_-]+)[[:space:]]+|[[:space:]]*\\)"
+
+#define FNREGEXP_FILTERNETWORK "[[:space:]]*\\([[:space:]]*filternetwork[[:space:]]+([[:alnum:]_-]+)[[:space:]]+"
+
+static int parse_node(filter_network_t *net, char **buf)
 {
+	char *argv[8];
+	char *b;
 	filter_node_t *n;
-	filter_pipe_t *p;
-	filter_portdesc_t *d;
-	filter_paramdesc_t *pd;
-	char val[256];
-	FILE *fd;
+	void *val;
 
+	glame_parse_init(argv, 8);
 
-	if (!(fd = fopen(filename, "w")))
+	/* parse " name filter" */
+	if (!(b = glame_parse(*buf, FNREGEXP_NODE, argv, 0)))
 		return -1;
-
-	filternetwork_foreach_node(net, n) {
-		fprintf(fd, "n %s %s\n", n->filter->name, n->name);
+	*buf = b;
+	if (!(n = filternetwork_add_node(net, argv[1], argv[0]))) {
+		DPRINTF("error in adding node (filter %s)\n", argv[1]);
+		goto err;
 	}
+	DPRINTF("added node %s (filter %s)\n", argv[1], argv[0]);
+	glame_parse_free(argv, 8);
 
-	filternetwork_foreach_node(net, n) {
-		filternode_foreach_output(n, p) {
-			fprintf(fd, "c %s %s %s %s\n", p->source->name,
-				p->out_name, p->dest->name, p->in_name);
-		}
-	}
+	do {
+		/* parse node specific commands with args */
+		if (!(b = glame_parse(*buf, FNREGEXP_ARGCOMMAND, argv, 0)))
+			return -1;
+		*buf = b;
+		if (!argv[0]) {
+			DPRINTF("finished node\n");
+			glame_parse_free(argv, 8);
+			return 0;
+		} else if (strcmp(argv[0], "export-input") == 0) {
+			if (!filternetwork_add_input(net, n->name, argv[1],
+						     argv[2], argv[3]))
+				goto err;
+		} else if (strcmp(argv[0], "export-output") == 0) {
+			if (!filternetwork_add_output(net, n->name, argv[1],
+						      argv[2], argv[3]))
+				goto err;
+		} else if (strcmp(argv[0], "export-param") == 0) {
+			if (!filternetwork_add_param(net, n->name, argv[1],
+						     argv[2], argv[3]))
+				goto err;
+		} else if (strcmp(argv[0], "set-param") == 0) {
+			if (!(val = filterparamval_from_string(filter_get_paramdesc(n->filter, argv[1]), argv[2])))
+				goto err;
+			filternode_set_param(n, argv[1], val);
+			free(val);
+		} else
+			goto err;
 
-	filternetwork_foreach_node(net, n) {
-		filter_foreach_inputdesc(n->filter, d) {
-			if (filternode_get_input(n, d->label))
-				continue;
-			fprintf(fd, "i %s %s %s-i_%s %s\n", n->name, d->label,
-				n->name, d->label, d->description);
-		}
-		filter_foreach_outputdesc(n->filter, d) {
-			if (filternode_get_output(n, d->label))
-				continue;
-			fprintf(fd, "o %s %s %s-o_%s %s\n", n->name, d->label,
-				n->name, d->label, d->description);
-		}
-		filter_foreach_paramdesc(n->filter, pd) {
-			fprintf(fd, "p %s %s %s-%s %s\n", n->name, pd->label,
-				n->name, pd->label, pd->description);
-			if (filternode_get_param(n, pd->label)) {
-				filternode_get_paramstring(n, pd->label, val, 255);
-				fprintf(fd, "s %s-%s %s\n", n->name, pd->label, val);
-			}
-		}
-	}
+		glame_parse_free(argv, 8);
+	} while (1);
 
+	return 0;
 
-	fclose(fd);
+err:
+	glame_parse_free(argv, 8);
+	return -1;
+}
+
+static int parse_connect(filter_network_t *net, char **buf)
+{
+	char *argv[8];
+	char *b;
+	filter_pipe_t *p;
+	void *val;
+
+	glame_parse_init(argv, 8);
+
+	/* parse " n1 p1 n2 p2" */
+	if (!(b = glame_parse(*buf, FNREGEXP_CONNECT, argv, 0)))
+		return -1;
+	*buf = b;
+	if (!(p = filternetwork_add_connection(filternetwork_get_node(net, argv[0]), argv[1],
+					       filternetwork_get_node(net, argv[2]), argv[3])))
+		return -1;
+	DPRINTF("added connection %s %s %s %s\n", argv[0], argv[1],
+		argv[2], argv[3]);
+
+	do {
+		glame_parse_free(argv, 8);
+
+		/* parse connection specific commands with args */
+		if (!(b = glame_parse(*buf, FNREGEXP_ARGCOMMAND, argv, 0)))
+			goto err;
+		*buf = b;
+		if (!argv[0]) {
+			return 0;
+		} else if (strcmp(argv[0], "set-sourceparam") == 0) {
+			if (!(val = filterparamval_from_string(filterportdesc_get_paramdesc(p->source_port, argv[1]), argv[2])))
+				goto err;
+			filterpipe_set_sourceparam(p, argv[1], val);
+			free(val);
+		} else if (strcmp(argv[0], "set-destparam") == 0) {
+			if (!(val = filterparamval_from_string(filterportdesc_get_paramdesc(p->dest_port, argv[1]), argv[2])))
+				goto err;
+			filterpipe_set_destparam(p, argv[1], val);
+			free(val);
+		} else
+			goto err;
+	} while (1);
+	return 0;
+
+err:
+	glame_parse_free(argv, 8);
+	return -1;
+}
+
+static int parse_setparam(filter_network_t *net, char **buf)
+{
+	char *argv[8];
+	char *b;
+	void *val;
+
+	glame_parse_init(argv, 8);
+
+	/* parse " param value)" */
+	if (!(b = glame_parse(*buf, FNREGEXP_SETPARAM, argv, 0)))
+		return -1;
+	*buf = b;
+
+	if (!(val = filterparamval_from_string(filter_get_paramdesc(FILTER_NODE(net)->filter, argv[0]), argv[1])))
+		return -1;
+	filternode_set_param(FILTER_NODE(net), argv[0], val);
+	free(val);
 
 	return 0;
 }
 
-
-filter_t *filternetwork_load(const char *filename)
+static int parse_command(filter_network_t *net, char **buf)
 {
-	struct stat sbuf;
-	FILE *fd;
-	char c, node1[256], name1[256], node2[256], name2[256], desc[256];
-	const char *p;
-	char line[1024], **lines;
-	int nr_lines;
-	filter_network_t *net = NULL;
-	filter_t *f;
-	struct filternetspec *spec;
+	char *argv[8];
+	char *b;
 
-	if (stat(filename, &sbuf) == -1
-	    || !S_ISREG(sbuf.st_mode))
-		return NULL;
-	if (!(fd = fopen(filename, "r")))
-		return NULL;
+	glame_parse_init(argv, 8);
 
-	if (!(p = strrchr(filename, '/')))
-		p = filename;
-	if (!(net = filternetwork_new(strdup(p))))
-	        goto err;
+	/* parse "(command " or ")" */
+	if (!(b = glame_parse(*buf, FNREGEXP_COMMAND, argv, 0)))
+		return -1;
+	*buf = b;
+	if (!argv[0]) {
+		return 0;
+	} else if (strcmp(argv[0], "node") == 0) {
+		if (parse_node(net, buf) == -1)
+			return -1;
+		return 1;
+	} else if (strcmp(argv[0], "connect") == 0) {
+		if (parse_connect(net, buf) == -1)
+			return -1;
+		return 1;
+	} else if (strcmp(argv[0], "set-param") == 0) {
+		if (parse_setparam(net, buf) == -1)
+			return -1;
+		return 1;
+	} else
+		return -1;
+}
 
-	/* read the file contents line by line and
-	 * store this lines into a buffer of line-pointers
-	 * linked through the filters private field.
-	 */
-	nr_lines = 0;
-	lines = NULL;
+filter_network_t *string2net(char *buf, filter_network_t *net)
+{
+	char *argv[8];
+	int freenet = 0, res;
 
-	while (fgets(line, 1023, fd)) {
-		lines = realloc(lines, (nr_lines+1)*sizeof(char *));
-		lines[nr_lines++] = strdup(line);
+	glame_parse_init(argv, 8);
+
+	/* parse "(filternetwork name" */
+	if (!(buf = glame_parse(buf, FNREGEXP_FILTERNETWORK, argv, 0)))
+		goto err;
+	if (!net) {
+		if (!(net = filternetwork_new(argv[0]))) {
+			DPRINTF("unable to create network\n");
+			goto err;
+		}
+		freenet = 1;
 	}
 
-	spec = ALLOC(struct filternetspec);
-	spec->lines = lines;
-	spec->nr_lines = nr_lines;
-	net->node.filter->private = spec;
+	do {
+		res = parse_command(net, &buf);
+	} while (res > 0);
+	if (res == -1)
+		goto err_net;
 
-	fclose(fd);
-	f = filternetwork_get_filter(net);
-	filternetwork_delete(net);
+	return net;
 
-	return f;
-
- err:
-	fclose(fd);
-	filternetwork_delete(net);
-	/* FIXME - filter_delete() umm... */
-	free(f);
+err_net:
+	if (freenet)
+		filternetwork_delete(net);
+err:
 	return NULL;
 }
+
+filter_network_t *filternetwork_from_string(const char *buf)
+{
+	filter_network_t *net;
+
+	if (!buf)
+		return NULL;
+
+	return string2net(buf, NULL);
+}
+
+

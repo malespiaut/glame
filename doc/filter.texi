@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.6 2000/02/14 15:03:58 richi Exp $
+@comment $Id: filter.texi,v 1.7 2000/02/15 18:41:25 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -105,9 +105,9 @@ structure on success and @code{NULL} on error.
 @tindex filter_paramdesc_t
 @tindex filter_t
 @deftypefun {filter_paramdesc_t *} filter_add_param (filter_t *@var{filter}, const char *@var{label}, const char *@var{description}, int @var{type})
-@deftypefunx {filter_paramdesc_t *} filter_add_pipeparam (filter_t *@var{filter}, const char *@var{port}, const char *@var{label}, const char *@var{description}, int @var{type})
+@deftypefunx {filter_paramdesc_t *} filterport_add_param (filter_portdesc_t *@var{port}, const char *@var{label}, const char *@var{description}, int @var{type})
 @code{filter_add_param()} adds a parameter with the specified @var{label} and
-@var{description} to the filter. @code{filter_add_pipepara()} adds a parameter to the specified port, parameter values can be set per pipe. @var{type} specifies the type of the parameter
+@var{description} to the filter. @code{filterport_add_param()} adds a parameter to the specified port, parameter values can be set per pipe. @var{type} specifies the type of the parameter
 including a flag @code{FILTER_PARAMTYPE_OUTPUT} which will specify the
 parameter as an output one. The currently supported parameter types are
 @code{FILTER_PARAMTYPE_INT}, @code{FILTER_PARAMTYPE_FLOAT}, @code{FILTER_PARAMTYPE_SAMPLE},
@@ -338,7 +338,6 @@ which a filter can access its connected ports and its parameters. The
 description of these functions will follow.
 
 @deftypefun {const char *} filternode_name (filter_node_t *@var{n})
-@deftypefunx int filternode_nrparams (filter_node_t *@var{n})
 @deftypefunx int filternode_nrinputs (filter_node_t *@var{n})
 @deftypefunx int filternode_nroutputs (filter_node_t *@var{n})
 These macros return the name of the filter node, the number of set
@@ -400,6 +399,13 @@ These macros return the value of the parameter. You should use the macro
 which corresponds to the parameter type (which you should know anyway).
 @end deftypefun
 
+@deftypefun {char *} filterparam_to_string (filter_param_t *@var{p})
+@deftypefunx {void *} filterparamval_from_string (filter_paramdesc_t *@var{d}, const char *@var{val})
+With these functions conversion between strings and parameters is supported.
+Both functions return pointers to storage you have to free by your own.
+@end deftypefun
+
+
 @deftypefun int filterpipe_type (filter_pipe_t *@var{p})
 @deftypefunx int filterpipe_sample_rate (filter_pipe_t *@var{p})
 @code{filterpipe_type} allows you to query the type of the pipe. 
@@ -408,10 +414,16 @@ type specific function you can get access to the type specific parameters of
 the pipe.
 @end deftypefun
 
-@deftypefun int filterpipe_nrparams (filter_pipe_t *@var{p})
-@deftypefunx {filter_param_t *} filterpipe_get_param (filter_pipe_t *@var{p}, const char *@var{label})
-With these functions you get access to the number of set parameters on a pipe
-and to the actual parameter by name.
+@deftypefun int filterpipe_set_sourceparam (filter_pipe_t *@var{p}, const char *@var{label}, void *@var{val})
+@deftypefunx int filterpipe_set_destparam (filter_pipe_t *@var{p}, const char *@var{label}, void *@var{val})
+With these functions you can set the per pipe-end parameters just like you
+can set parameters using @code{filternode_set_param}.
+@end deftypefun
+
+@deftypefun {filter_param_t *} filterpipe_get_sourceparam (filter_pipe_t *@var{p}, const char *@var{label})
+@deftypefunx {filter_param_t *} filterpipe_get_destparam (filter_pipe_t *@var{p}, const char *@var{label})
+With these functions you get access to the set parameters on the source
+or the destination end of a pipe by name.
 @end deftypefun
 
 
@@ -730,22 +742,6 @@ operating on the filter of the filter node.
 change is not possible or causes any problems in the network.
 @end deftypefun
 
-@deftypefun int filternode_set_paramstring (filter_node_t *@var{n}, const char *@var{label}, const char *@var{val})
-@code{filternode_set_paramstring()} sets the parameter with the specified @var{label}
-of the filter node @var{n} to the value described by the string @var{val}. The type of the value
-should be obtained by using the @code{filter_get_paramdesc()} function
-operating on the filter of the filter node before constructing the string.
-@code{filternode_set_param()} returns 0 on success or -1 if the parameter set or
-change is not possible or causes any problems in the network.
-@end deftypefun
-
-@deftypefun int filternode_get_paramstring (filter_node_t *@var{n}, const char *@var{label}, char *@var{val}, ssize_t @var{size})
-@code{filternode_get_paramstring()} gets the value of the parameter of the specified @var{label}
-of the filter node @var{n} and converts it to a string using the @var{val} variable as storage with the specified maximum size @var{size}.
-@code{filternode_get_paramstring()} returns 0 on success or -1 if the parameter set or
-change is not possible or causes any problems in the network.
-@end deftypefun
-
 
 @node Processing Data in a Network, Using Filter Networks as Filters, Creating a Filter Network, The Filter Network API
 @subsection Processing Data in a Network
@@ -782,21 +778,27 @@ does not wait for it to finish processing any data.
 @node Using Filter Networks as Filters, , Processing Data in a Network, The Filter Network API
 @subsection Using Filter Networks as Filters
 
-To save a filter network and reuse it as regular filter the two following (not
-yet implemented and not yet fully designed) functions are provided:
+To save a filter network and reuse it as regular filter the following
+functions are provided:
 
 @tindex filter_network_t
-@deftypefun int filternetwork_save (filter_network_t *@var{net}, const char *@var{filename})
-@code{filternetwork_save()} saves the current state of the filter network to
-the file with the provided @var{filename}. -1 is returned on error, 0 on
-success.
+@deftypefun {char *} filternetwork_to_string (filter_network_t *@var{net})
+@code{filternetwork_to_string()} saves the current state of the filter
+network into a string and returns a pointer to it. NULL is returned on
+error. You have to free the returned string later.
+@end deftypefun
+
+@tindex filter_network_t
+@deftypefun {filter_network_t *} filternetwork_from_string (const char *@var{net})
+@code{filternetwork_from_string()} creates a filternetwork out of the
+description stored in @var{net}. Returns the filternetwork identifier or NULL
+on error.
 @end deftypefun
 
 @tindex filter_t
-@deftypefun {filter_t *} filternetwork_load (const char *@var{filename})
-@code{filternetwork_load()} loads a previously saved filter network and
-provides access to it by exposing it as a regular filter. The filter
-is not yet added to the filter database. @code{NULL} is returned on error,
-else the filter identifier is returned.
+@deftypefun {filter_t *} filter_from_string (const char *@var{name}, const char *@var{description}, const char *@var{f})
+@code{filter_from_string()} takes a literal description of a filternetwork
+and turns it into an instantiatable filter. You have still to add the filter
+to the database using @code{filter_add()}. Returns the filter identifier or
+NULL on error.
 @end deftypefun
-

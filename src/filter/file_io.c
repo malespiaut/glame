@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: file_io.c,v 1.2 2000/02/14 15:21:33 richi Exp $ 
+ * $Id: file_io.c,v 1.3 2000/02/15 18:41:25 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -335,6 +335,8 @@ int read_file_fixup_param(filter_node_t *n, const char *NAME)
 	}
 	return 0;
 }
+
+
 /* Registry setup of all contained filters
  */
 int file_io_register()

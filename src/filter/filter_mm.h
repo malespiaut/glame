@@ -8,8 +8,8 @@ void _paramdesc_free(filter_paramdesc_t *d);
 filter_param_t *_param_alloc(filter_paramdesc_t *d);
 void _param_free(filter_param_t *p);
 
-filter_portdesc_t *_portdesc_alloc(const char *label, int type,
-				   const char *desc);
+filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
+				   int type, const char *desc);
 void _portdesc_free(filter_portdesc_t *d);
 
 filter_pipe_t *_pipe_alloc();

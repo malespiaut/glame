@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.1 2000/02/14 13:23:40 richi Exp $
+ * $Id: filter_methods.c,v 1.2 2000/02/15 18:41:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -129,58 +129,20 @@ void filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out)
 /* Filternetwork filter methods.
  */
 
+extern filter_network_t *string2net(char *buf, filter_network_t *net);
 int filter_network_init(filter_node_t *n)
 {
-	FILE *fd;
-	char c, node1[256], name1[256], node2[256], name2[256], desc[256];
 	filter_network_t *net = (filter_network_t *)n;
+	char *buf;
 
 	/* empty network? */
-	if (!n->filter->private)
+	if (!(buf = (char *)n->filter->private))
 		return 0;
 
-	if (!(fd = fopen((char *)n->filter->private, "r")))
-		return -1;
+	if (!string2net(buf, net))
+	        return -1;
 
-	while (fscanf(fd, "%c", &c) == 1) {
-		switch (c) {
-		case 'n':
-			fscanf(fd, " %s %s ", node1, name1);
-			if (!filternetwork_add_node(net, node1, name1))
-				goto err;
-			break;
-		case 'c':
-			fscanf(fd, " %s %s %s %s ", node1, name1,
-			       node2, name2);
-			if (!filternetwork_add_connection(filternetwork_get_node(net, node1),
-							  name1, filternetwork_get_node(net, node2), name2))
-				goto err;
-			break;
-		case 'i': /* skip */
-			fgets(desc, 256, fd);
-			break;
-		case 'o': /* skip */
-			fgets(desc, 256, fd);
-			break;
-		case 'p': /* skip */
-			fgets(desc, 256, fd);
-			break;
-		case 's':
-			fscanf(fd, " %s %s ", name1, desc);
-			filternode_set_paramstring(&net->node, name1, desc);
-			break;
-		default:
-			break;
-		}
-	}
-
-	fclose(fd);
 	return 0;
-
- err:
-	fclose(fd);
-	filternetwork_delete(net);
-	return -1;
 }
 
 void filter_network_cleanup(filter_node_t *n)

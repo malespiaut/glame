@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.21 2000/02/14 15:03:58 richi Exp $
+ * $Id: filter.h,v 1.22 2000/02/15 18:41:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -106,22 +106,19 @@ struct filter {
 	void (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
 
 	/* parameter specification */
-	int nr_params;
 	struct list_head params;
 
 	/* input & output specification */
-	int nr_inputs;
 	struct list_head inputs;
-	int nr_outputs;
 	struct list_head outputs;
 
 	void *private;
 };
 #define filter_name(f) ((f)->name)
 #define filter_description(f) ((f)->description)
-#define filter_nrparams(f) ((f)->nr_params)
-#define filter_nrinputs(f) ((f)->nr_inputs)
-#define filter_nroutputs(f) ((f)->nr_outputs)
+#define filter_nrparams(f) (list_count((f)->params))
+#define filter_nrinputs(f) (list_count((f)->inputs))
+#define filter_nroutputs(f) (list_count((f)->outputs))
 
 /* inits the filter subsystem */
 int filter_init();
@@ -132,13 +129,16 @@ int filter_init();
 filter_t *filter_alloc(const char *name, const char *description,
 		       int (*f)(filter_node_t *));
 
+filter_t *filter_from_string(const char *name, const char *description,
+			     const char *f);
+
 filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
 				    const char *description, int type);
 filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
 				     const char *description, int type);
 filter_paramdesc_t *filter_add_param(filter_t *filter, const char *label,
 				     const char *description, int type);
-filter_paramdesc_t *filter_add_pipeparam(filter_t *filter, const char *port,
+filter_paramdesc_t *filterport_add_param(filter_portdesc_t *port,
 					 const char *label,
 					 const char *description, int type);
 
@@ -161,7 +161,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterportdesc_label(pd) ((pd)->label)
 #define filterportdesc_description(pd) ((pd)->description)
 #define filterportdesc_type(pd) ((pd)->type)
-#define filterportdesc_nrparams(pd) ((pd)->nr_params)
+#define filterportdesc_nrparams(pd) (list_count((pd)->params))
 #define filterportdesc_foreach_paramdesc(pd, d) \
         list_foreach(&(pd)->params, filter_paramdesc_t, list, d)
 #define filterportdesc_get_paramdesc(pd, nm) \
@@ -246,7 +246,7 @@ filter_t *filter_next(filter_t *f);
  */
 #define filternetwork_nrnodes(net) ((net)->nr_nodes)
 
-#define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, net_list, node)
+#define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, list, node)
 #define filternetwork_get_node(nt, n) __hash_entry(_hash_find((n), (nt), \
         _hash((n), (nt)), __hash_pos(filter_node_t, hash, name, net)), \
         filter_node_t, hash)
@@ -307,13 +307,9 @@ void filternetwork_delete_port(filter_network_t *net, const char *label);
 
 filter_t *filternetwork_get_filter(filter_network_t *net);
 
-/* Macro filters - save/load a network. - FIXME */
-int filternetwork_save(filter_network_t *net, const char *filename);
-
-filter_t *filternetwork_load(const char *filename);
-
-
-
+/* Macro filters - conversion between strings and networks. */
+filter_network_t *filternetwork_from_string(const char *str);
+char *filternetwork_to_string(filter_network_t *net);
 
 
 /* Filter node is an instance of a filter. A filter node
@@ -321,7 +317,6 @@ filter_t *filternetwork_load(const char *filename);
  * Public access macros for the filter_node_t
  */
 #define filternode_name(n) ((n)->name)
-#define filternode_nrparams(n) ((n)->nr_params)
 #define filternode_nrinputs(n) ((n)->nr_inputs)
 #define filternode_nroutputs(n) ((n)->nr_outputs)
 
@@ -371,15 +366,6 @@ filter_t *filternetwork_load(const char *filename);
  */
 int filternode_set_param(filter_node_t *n, const char *label, void *val);
 
-/* set a parameter from a value contained in a string, returns sscanf
- * result, i.e. 1 on success */
-int filternode_set_paramstring(filter_node_t *n, const char *label,
-			      const char *val);
-
-/* get a parameter as a string, returns snprintf result, i.e. number
- * of printed characters */
-int filternode_get_paramstring(filter_node_t *n, const char *label,
-			      char *val, ssize_t s);
 
 /* Public access macros for filter_param_t - the parameter instance which
  * is stored per filter_node_t or per filter_pipe_t.
@@ -391,6 +377,18 @@ int filternode_get_paramstring(filter_node_t *n, const char *label,
 #define filterparam_val_file(fp) ((fp)->val.file)
 #define filterparam_val_sample(fp) ((fp)->val.sample)
 #define filterparam_val_string(fp) ((fp)->val.string)
+
+/* Parameter to/from string conversion routines.
+ * Example use:
+ *   param = filternode_get_param(node, "gain");
+ *   str = filterparam_to_string(param);
+ *   val = filterparamval_from_string(filter_get_paramdesc(f, "gain2), str);
+ *   filternode_set_param(node2, "gain2", val);
+ *   free(val);
+ *   free(str);
+ */
+char *filterparam_to_string(filter_param_t *param);
+void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 
 
 
@@ -407,7 +405,6 @@ int filternode_get_paramstring(filter_node_t *n, const char *label,
 /* Public access macros for the filter_pipe_t structure.
  */
 #define filterpipe_type(fp) ((fp)->type)
-#define filterpipe_nrparams(fp) ((fp)->nr_params)
 
 #define filterpipe_settype_sample(fp, rate) do { \
 	(fp)->type = FILTER_PIPETYPE_SAMPLE; \
@@ -415,28 +412,23 @@ int filternode_get_paramstring(filter_node_t *n, const char *label,
 } while (0)
 #define filterpipe_sample_rate(fp) ((fp)->u.sample.rate)
 
-#define filterpipe_get_param(fp, n) \
-	__hash_entry(_hash_find((n), (fp), _hash((n), (fp)), \
+#define filterpipe_get_sourceparam(fp, n) \
+	__hash_entry(_hash_find((n), &(fp)->source_params, _hash((n), \
+                     &(fp)->source_params), \
+		     __hash_pos(filter_param_t, hash, label, namespace)), \
+                     filter_param_t, hash)
+#define filterpipe_get_destparam(fp, n) \
+	__hash_entry(_hash_find((n), &(fp)->dest_params, _hash((n), \
+                     &(fp)->dest_params), \
 		     __hash_pos(filter_param_t, hash, label, namespace)), \
                      filter_param_t, hash)
 
-/* Set the parameter with label label to the value pointed to by
- * val.
+/* Set the source/destination end per-pipe parameter with label label to
+ * the value pointed to by val.
  * Returns -1 if that is not possible.
  */
-int filterpipe_set_param(filter_pipe_t *p, const char *label, void *val);
-
-/* set a parameter from a value contained in a string, returns sscanf
- * result, i.e. 1 on success */
-int filterpipe_set_paramstring(filter_pipe_t *p, const char *label,
-			       const char *val);
-
-/* get a parameter as a string, returns snprintf result, i.e. number
- * of printed characters */
-int filterpipe_get_paramstring(filter_pipe_t *p, const char *label,
-			       char *val, ssize_t s);
-
-
+int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label, void *val);
+int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val);
 
 
 
@@ -499,6 +491,3 @@ do { \
 
 
 #endif
-
-
-

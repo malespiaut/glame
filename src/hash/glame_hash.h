@@ -75,7 +75,8 @@ struct hash_head {
 	struct hash_head *next_hash;
 	struct hash_head **pprev_hash;
 };
-
+#define INIT_HASH_HEAD(hp) do { (hp)->next_hash = NULL; \
+	(hp)->pprev_hash = NULL; } while (0)
 
 /* Global namespaces. You should define them to values not valid
  * for any usable c-pointer. */

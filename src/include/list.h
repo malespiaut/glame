@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.5 2000/02/09 21:40:09 nold Exp $
+ * $Id: list.h,v 1.6 2000/02/15 18:41:25 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -154,6 +154,16 @@ static inline void list_unsplice(struct list_head *list,
 
 /* this is not remove-safe!! */
 #define list_foreach(listp, type, member, entryvar) for (entryvar = list_entry((listp)->next, type, member); &entryvar->member != (listp); entryvar = list_entry(entryvar->member.next, type, member))
+
+
+static inline int list_count(struct list_head *l)
+{
+	struct list_head *lh = l;
+	int cnt = 0;
+	while ((lh = lh->next) != l)
+		cnt++;
+	return cnt;
+}
 
 
 #endif
