@@ -3,7 +3,7 @@ INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -I@sr
 noinst_PROGRAMS = test_latency test_audio test_play test_network
 noinst_LTLIBRARIES = libfilter.la
 
-EXTRA_DIST = filter.h filter_buffer.h
+EXTRA_DIST = filter.h filter_buffer.h filter_tools.h
 
 
 libfilter_la_SOURCES = filter.c filter.h filter_buffer.h \
