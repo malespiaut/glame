@@ -489,6 +489,22 @@ SCM gls_plugin_name(SCM s_p)
 	return gh_str02scm((char *)plugin_name(p));
 }
 
+SCM gls_plugin_query_string(SCM s_p, SCM s_key)
+{
+	plugin_t *p;
+	char *key;
+	int keyl;
+	void *val;
+
+	p = gh_scm2pointer(s_p);
+	key = gh_scm2newstr(s_key, &keyl);
+	val = plugin_query(p, key);
+	free(key);
+	if (!val)
+		return SCM_BOOL_F;
+	return gh_str02scm(val);
+}
+
 
 /* The scriptable track API part.
  */
@@ -583,6 +599,7 @@ int glscript_init()
 			 1, 0, 0);
 	gh_new_procedure("plugin_get", gls_plugin_get, 1, 0, 0);
 	gh_new_procedure("plugin_name", gls_plugin_name, 1, 0, 0);
+	gh_new_procedure("plugin_query", gls_plugin_query_string, 2, 0, 0);
 
 	/* track */
 	gh_new_procedure("track_get", gls_track_get, 2, 0, 0);

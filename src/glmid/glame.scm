@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.29 2000/05/16 13:03:24 richi Exp $
+; $Id: glame.scm,v 1.30 2000/08/01 12:02:06 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -22,6 +22,9 @@
 ;
 ; GLAME scheme library, std functions
 ;
+
+; GLAME 0.2.0 compatibility
+(define (plugin_description p) (plugin_query p "desc"))
 
 (define help
   (lambda ()
