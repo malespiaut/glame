@@ -29,6 +29,15 @@
   <accel state="0" spec="Right">
 (let* ((pos (waveedit-get-scroll)) (newpos (+ (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (&gt; newpos (- (caddr (cddr pos)) (car pos))) (- (caddr (cddr pos)) (car pos)) newpos)))
   </accel>
+  <accel state="0" spec="Home">
+(waveedit-set-scroll-position! 0)
+  </accel>
+  <accel state="0" spec="End">
+(let ((pos (waveedit-get-scroll))) (waveedit-set-scroll-position! (- (caddr (cddr pos)) (car pos))))
+  </accel>
+  <accel state="0" spec="space">
+(waveedit-play)
+  </accel>
 </scope>
 
 <scope scope="filteredit">
