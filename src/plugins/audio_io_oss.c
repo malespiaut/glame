@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.18 2002/04/29 18:17:39 richi Exp $
+ * $Id: audio_io_oss.c,v 1.19 2002/06/09 19:07:44 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -389,6 +389,8 @@ static int oss_audio_in_f(filter_t *n)
 	outport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
 	if (!(channels = filterport_nrpipes(outport)))
 		FILTER_ERROR_RETURN("No outputs.");
+	if (channels > 2)
+		FILTER_ERROR_RETURN("Can record stereo at maximum");
 
 	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
 	if (dev_param)
