@@ -1036,13 +1036,15 @@ static void _cluster_truncate(struct swcluster *c, s32 size)
 		return;
 	}
 
-	/* Next, truncate the on-disk data file. */
+	/* Need the data. */
 	_cluster_needdata(c);
-	if (ftruncate(c->fd, size) == -1)
-		SWPANIC("Cannot truncate cluster");
 
 	/* Now, we have to adjust mappings of the cluster. */
 	_cluster_fixmap(c, size);
+
+	/* Next, truncate the on-disk data file. */
+	if (ftruncate(c->fd, size) == -1)
+		SWPANIC("Cannot truncate cluster");
 
 	/* Update in-memory size. */
 	c->size = size;
