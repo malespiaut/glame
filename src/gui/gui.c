@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.20 2000/03/27 09:20:41 richi Exp $
+ * $Id: gui.c,v 1.21 2000/03/28 16:46:57 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -228,6 +228,7 @@ gui_filter_add(gui_filter *filter)
 	free(newpix);
 
 	newpix = g_concat_dir_and_file(GLAME_PIXMAP_PATH,filter->pixname);
+	fprintf(stderr,"%s\n",newpix);
 	if(g_file_test(newpix,G_FILE_TEST_ISFILE)){
 		mimetype = gnome_mime_type(newpix);
                 if(strncmp(mimetype,"image",5) == 0){

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.17 2000/03/27 09:20:41 richi Exp $
+ * $Id: canvas.c,v 1.18 2000/03/28 16:46:57 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -849,8 +849,10 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 	
 	GtkWidget* propBox;
 	GtkWidget* tablabel;
-
-	
+	int iVal;
+	float fVal;
+	char* cVal;
+	filter_param_t* fparam;
 	propBox = gnome_property_box_new ();
 	
 	tablabel=gtk_label_new(_(gfilter->caption));
@@ -863,9 +865,15 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 		switch(filterparamdesc_type(param)){
 		case FILTER_PARAMTYPE_INT:
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
+			fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
+
 			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
 			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
+			if(fparam){
+				iVal = filterparam_val_int(fparam);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
+			}
 			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
 			pw = malloc(sizeof(param_widget_t));
 			pw->widget = entry;
@@ -875,9 +883,14 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 			break;
 		case FILTER_PARAMTYPE_FLOAT:
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
+			fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
 			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
 			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
+			if(fparam){
+				fVal = filterparam_val_float(fparam);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
+			}
 			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
 			pw = malloc(sizeof(param_widget_t));
 			pw->widget = entry;
@@ -885,15 +898,20 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 			pw->widget_type = PFLOAT;
 			list = g_list_append(list,pw);
 			break;
-		case FILTER_PARAMTYPE_SAMPLE:
-			break;
 		case FILTER_PARAMTYPE_STRING:
 			switch(filterparamdesc_string_type(param)){
 			case FILTER_PARAM_STRINGTYPE_GENERIC:
 				entry = gnome_entry_new("blubb");
 				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+				fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
+				if(fparam){
+					cVal =  filterparam_val_string(fparam);
+					gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),cVal);
+				}
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
+				
+				free(cVal);
 				pw->param = param;
 				pw->widget_type = PSTRING;
 				list = g_list_append(list,pw);
@@ -917,6 +935,15 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 				list = g_list_append(list,pw);
 				break;
 			}
+			break;
+		default:
+			entry = gnome_entry_new("blubb");
+			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PSTRING;
+			list = g_list_append(list,pw);
 			break;
 		}
 	}
