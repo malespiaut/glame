@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.6 2000/03/23 18:46:20 nold Exp $
+ * $Id: audio_io.c,v 1.7 2000/03/25 19:09:50 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -120,9 +120,6 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
  * sample rate between all input pipes.
  */
 
-/* FIXME: F*** API changes caught me. fixup pipe changed from int to void.
- * Is break_connection correct? - no [richi]
- */
 static void aio_generic_fixup_pipe(filter_node_t *src, filter_pipe_t *pipe)
 {
 	int rate = filterpipe_sample_rate(pipe);

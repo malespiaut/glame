@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.19 2000/03/24 11:08:14 richi Exp $
+ * $Id: filter_buffer.c,v 1.20 2000/03/25 19:09:50 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -96,14 +96,11 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 }
 
 
-/* FIXME! totally br0ken! */
-#define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*1))
+#define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*2))
 #define FBPIPE_WSIZE (FBPIPE_WCNT*sizeof(void *))
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
  * As NULL is an EOF marker, it is suitable as error marker, too.
- * FIXME! Wrt. to write throttling there need to be changes at the
- *        read end, too.
  */
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
@@ -131,8 +128,6 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 /* fbuf_queue writes the address of the supplied filter buffer
  * to the output pipe. In case of errors we become a fbuf_unref
  * operation.
- * FIXME? Pipe writes of certain quantities are atomic?
- * FIXME! Write throttling in the current form is not "nice"!
  */
 void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 {

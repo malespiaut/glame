@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.12 2000/03/25 15:02:18 richi Exp $
+ * $Id: file_io.c,v 1.13 2000/03/25 19:09:50 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -350,9 +350,6 @@ int write_file_register()
 
 int file_io_register()
 {
-	filter_t *f;
-	filter_portdesc_t *p;
-
 	INIT_LIST_HEAD(&readers);
 	INIT_LIST_HEAD(&writers);
 

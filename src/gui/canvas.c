@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.15 2000/03/24 15:43:19 richi Exp $
+ * $Id: canvas.c,v 1.16 2000/03/25 19:09:50 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -27,6 +27,9 @@
 #include <values.h>
 
 
+static gint connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data);
+static void connection_break(GlameConnection* connection);
+static void delete_canvas_item(GlameCanvasItem* it);
 
 
 

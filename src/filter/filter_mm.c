@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.8 2000/03/24 11:08:14 richi Exp $
+ * $Id: filter_mm.c,v 1.9 2000/03/25 19:09:50 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -270,8 +270,6 @@ filter_launchcontext_t *_launchcontext_alloc()
 
 void _launchcontext_free(filter_launchcontext_t *c)
 {
-	filter_buffer_t *fb;
-
 	if (!c)
 		return;
 	ATOMIC_RELEASE(c->result);
