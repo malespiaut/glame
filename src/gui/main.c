@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.58 2001/06/08 08:15:29 richi Exp $
+ * $Id: main.c,v 1.59 2001/06/11 08:42:31 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -612,11 +612,7 @@ static void gui_main()
 	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
 			   resize_horiz_cb, app);
 
-	/* Register accelerators. With example. */
-	glame_accel_add("swapfile/4-l",
-			"(if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) -1.57))");
-	glame_accel_add("swapfile/4-r",
-			"(if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) 1.57))");
+	/* Register accelerators. */
 	glame_accel_install(app, "swapfile", NULL);
 
 	/* Pop up splash screen. */

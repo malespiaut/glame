@@ -1188,13 +1188,8 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_signal_connect(GTK_OBJECT(window), "leave_notify_event",
 			   handle_enterleave, window);
 
-	/* Add accelerator handler (and for testing two accelerators). */
-	if (glame_accel_install(GTK_WIDGET(window), "waveview", NULL) == -1)
-		DPRINTF("accel install failed\n");
-	glame_accel_add("waveview/0-Prior", "(waveedit-set-zoom! (* (waveedit-get-zoom) 0.75))");
-	glame_accel_add("waveview/0-Next", "(waveedit-set-zoom! (* (waveedit-get-zoom) 1.33))");
-	glame_accel_add("waveview/0-Left", "(let* ((pos (waveedit-get-scroll)) (newpos (- (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (< newpos 0) 0 newpos)))");
-	glame_accel_add("waveview/0-Right", "(let* ((pos (waveedit-get-scroll)) (newpos (+ (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (> newpos (- (caddr (cddr pos)) (car pos))) (- (caddr (cddr pos)) (car pos)) newpos)))");
+	/* Add accelerator handler. */
+	glame_accel_install(GTK_WIDGET(window), "waveview", NULL);
 
 	return window;
 }
