@@ -15,6 +15,6 @@ autoconf
 cd libltdl
 aclocal -I .
 autoheader
-automake
+automake --copy --add-missing
 autoconf
 cd ..
