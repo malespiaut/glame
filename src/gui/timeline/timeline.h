@@ -3,7 +3,7 @@
 
 /*
  * timeline.h
- * $Id: timeline.h,v 1.1 2001/05/18 09:35:51 richi Exp $
+ * $Id: timeline.h,v 1.2 2001/06/19 09:58:22 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,6 +29,10 @@
 
 #include <gtk/gtkwidget.h>
 #include "gpsm.h"
+
+
+/* Inits the timeline subsystem. */
+void glame_timeline_init();
 
 
 /* Create a new timeline widget with root as contents. Returns

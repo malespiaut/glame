@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.4 2001/06/12 14:16:25 xwolf Exp $
+ * $Id: timeline.c,v 1.5 2001/06/19 09:58:22 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -25,8 +25,95 @@
 #endif
 
 #include <gnome.h>
+#include "glscript.h"
+#include "glame_accelerator.h"
+#include "glame_gui_utils.h"
+#include "waveeditgui.h"
 #include "canvas_types.h"
 #include "timeline.h"
+
+
+/* GUI is single threaded, so we may have some global state.
+ */
+
+static TimelineCanvas *active_timeline = NULL;
+static TimelineCanvasItem *active_timeline_item = NULL;
+static TimelineCanvasGroup *active_timeline_group = NULL;
+
+
+/*
+ * Gtk signal handlers for the timeline / the canvas items.
+ */
+
+static void handle_timeline_enter(GtkWidget *canvas, GdkEventCrossing *event,
+				  TimelineCanvas *timeline)
+{
+	if (event->type == GDK_ENTER_NOTIFY) {
+		DPRINTF("Entered timeline for %s\n",
+			gpsm_item_label(timeline->root));
+		active_timeline = timeline;
+	}
+}
+
+static void handle_timeline_destroy(GtkWidget *canvas,
+				    TimelineCanvas *timeline)
+{
+	active_timeline = NULL;
+}
+
+static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
+			   gpointer data)
+{
+	switch(event->type){
+	case GDK_ENTER_NOTIFY: {
+		DPRINTF("Entered item %s\n",
+			gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item));
+		active_timeline_item = TIMELINE_CANVAS_ITEM(file);
+		break;
+	}
+	case GDK_2BUTTON_PRESS: {
+		if(event->button.button==1)
+			gtk_widget_show(glame_waveedit_gui_new(gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),TIMELINE_CANVAS_ITEM(file)->item));
+		break;
+	}
+	default:
+		break;
+	}
+	return FALSE;
+}
+
+static gboolean group_event(TimelineCanvasGroup* grp, GdkEvent* event,
+			    gpointer data)
+{
+	switch(event->type){
+	case GDK_ENTER_NOTIFY: {
+		DPRINTF("Entered group %s\n",
+			gpsm_item_label(TIMELINE_CANVAS_ITEM(grp)->item));
+		active_timeline_group = grp;
+		break;
+	}
+	default:
+		break;
+	}
+	return FALSE;
+}
+
+
+
+/*
+ * Menu / toolbar handlers.
+ */
+
+static void zoom_in_cb(GtkWidget *widget, TimelineCanvas *timeline)
+{
+	timeline_canvas_scale(timeline, 2.0);
+}
+
+static void zoom_out_cb(GtkWidget *widget, TimelineCanvas *timeline)
+{
+	timeline_canvas_scale(timeline, 0.5);
+}
+
 
 
 /*
@@ -64,6 +151,10 @@ static void handle_group(glsig_handler_t *handler, long sig, va_list va)
 		citem = timeline_canvas_find_gpsm_item(GNOME_CANVAS_GROUP(group), item);
 		if (!citem)
 			DPRINTF("FUCK2\n");
+		if ((void *)citem == (void *)active_timeline_item)
+			active_timeline_item = NULL;
+		if ((void *)citem == (void *)active_timeline_group)
+			active_timeline_group = NULL;
 		gtk_object_destroy(GTK_OBJECT(citem));
 
 		break;
@@ -121,6 +212,10 @@ static void handle_root(glsig_handler_t *handler, long sig, va_list va)
 			gnome_canvas_root(GNOME_CANVAS(canvas)), item);
 		if (!citem)
 			DPRINTF("FUCK2\n");
+		if ((void *)citem == (void *)active_timeline_item)
+			active_timeline_item = NULL;
+		if ((void *)citem == (void *)active_timeline_group)
+			active_timeline_group = NULL;
 		gtk_object_destroy(GTK_OBJECT(citem));
 
 		break;
@@ -142,40 +237,6 @@ static void handle_root(glsig_handler_t *handler, long sig, va_list va)
 		DPRINTF("Unhandled signal %li\n", sig);
 	}
 }
-
-static void scale_canvas(GnomeCanvasGroup* root, double val)
-{
-	double affine[6] = { val, 0.0, 0.0, 1.0, 0.0, 0.0};
-	gnome_canvas_item_affine_relative(root,affine);
-}
-
-static void zoom_in_cb(GtkWidget* timeline, GnomeCanvasItem *root)
-{
-	scale_canvas(root,2.0);
-}
-
-static void zoom_out_cb(GtkWidget* timeline, GnomeCanvasItem *root)
-{
-	scale_canvas(root,0.5);
-}
-
-
-static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event, gpointer ignore)
-{
-	
-
-	switch(event->type){
-	case GDK_2BUTTON_PRESS:
-		if(event->button.button==1)
-			gtk_widget_show(glame_waveedit_gui_new(gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),TIMELINE_CANVAS_ITEM(file)->item));
-		break;
-	default:
-		break;
-	}
-	return FALSE;
-}
-static gboolean group_event(TimelineCanvasGroup* grp, GdkEvent* event, gpointer ficken)
-{}
 		
 static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 {
@@ -216,6 +277,37 @@ static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
  * Public API for the timeline.
  */
 
+static SCM gls_timeline_root()
+{
+	if (!active_timeline)
+		return SCM_BOOL_F;
+	return gpsmitem2scm(active_timeline->root);
+}
+
+static SCM gls_timeline_active_group()
+{
+	if (!active_timeline_group)
+		return SCM_BOOL_F;
+	return gpsmitem2scm(TIMELINE_CANVAS_ITEM(active_timeline_group)->item);
+}
+
+static SCM gls_timeline_active_item()
+{
+	if (!active_timeline_item)
+		return SCM_BOOL_F;
+	return gpsmitem2scm(active_timeline_item->item);
+}
+
+void glame_timeline_init()
+{
+	gh_new_procedure0_0("timeline-root",
+			    gls_timeline_root);
+	gh_new_procedure0_0("timeline-active-group",
+			    gls_timeline_active_group);
+	gh_new_procedure0_0("timeline-active-item",
+			    gls_timeline_active_item);
+}
+
 GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 {
 	GtkWidget *window, *canvas;
@@ -242,10 +334,16 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 		handle_grp_add_item(gnome_canvas_root(GNOME_CANVAS(canvas)), item);
 
 	/* Add handler for item additions/removal in root group. */
-	TIMELINE_CANVAS(canvas)->gpsm_handler = glsig_add_handler(
+	TIMELINE_CANVAS(canvas)->gpsm_handler1 = glsig_add_handler(
 		gpsm_item_emitter(root), GPSM_SIG_GRP_NEWITEM
 		|GPSM_SIG_GRP_REMOVEITEM, handle_root, canvas);
-	
+
+	/* Add handler for enter events to track the active timeline. */
+	gtk_signal_connect(GTK_OBJECT(canvas), "enter_notify_event",
+			   handle_timeline_enter, canvas);
+	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
+			   handle_timeline_destroy, canvas);
+
 	return window;
 }
 
@@ -278,15 +376,18 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom in", "Zooms in","foo",
 				glame_load_icon_widget("zoom_in.png",24,24),
-				zoom_in_cb,gnome_canvas_root(GTK_BIN(timeline)->child));
+				zoom_in_cb,TIMELINE_CANVAS(GTK_BIN(timeline)->child));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom out", "Zooms out","foo",
 				glame_load_icon_widget("zoom_out.png",24,24),
-				zoom_out_cb,gnome_canvas_root(GTK_BIN(timeline)->child));
+				zoom_out_cb,TIMELINE_CANVAS(GTK_BIN(timeline)->child));
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "timeline::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_RIGHT, 0, 0, 0);
+
+	/* Add accelerator handler. */
+	glame_accel_install(GTK_WIDGET(window), "timeline", NULL);
 
 	return window;
 }

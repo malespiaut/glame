@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.4 2001/06/12 14:16:25 xwolf Exp $
+ * $Id: canvas_types.c,v 1.5 2001/06/19 09:58:22 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -48,8 +48,10 @@ static void timeline_canvas_destroy(GtkObject *canvas)
 	GnomeCanvas* parent_class;
 	parent_class = gtk_type_class(GNOME_TYPE_CANVAS);
 	GTK_OBJECT_CLASS(parent_class)->destroy(canvas);
-	if (TIMELINE_CANVAS(canvas)->gpsm_handler)
-		glsig_delete_handler(TIMELINE_CANVAS(canvas)->gpsm_handler);
+	if (TIMELINE_CANVAS(canvas)->gpsm_handler0)
+		glsig_delete_handler(TIMELINE_CANVAS(canvas)->gpsm_handler0);
+	if (TIMELINE_CANVAS(canvas)->gpsm_handler1)
+		glsig_delete_handler(TIMELINE_CANVAS(canvas)->gpsm_handler1);
 }
 
 static void timeline_canvas_class_init(TimelineCanvasClass *class)
@@ -61,7 +63,8 @@ static void timeline_canvas_class_init(TimelineCanvasClass *class)
 
 static void timeline_canvas_init(TimelineCanvas *canvas)
 {
-	canvas->gpsm_handler = NULL;
+	canvas->gpsm_handler0 = NULL;
+	canvas->gpsm_handler1 = NULL;
 	canvas->root = NULL;
 }
 
@@ -88,8 +91,16 @@ GtkType timeline_canvas_get_type(void)
 static void timeline_canvas_handle_root(glsig_handler_t *handler, long sig, va_list va)
 {
 	TimelineCanvas *canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
+	GnomeCanvasItem *root = GNOME_CANVAS_ITEM(
+		gnome_canvas_root(GNOME_CANVAS(canvas)));
+	double scale;
+
+	if (root->object.flags & GNOME_CANVAS_ITEM_AFFINE_FULL) {
+		scale = root->xform[0];
+	} else
+		scale = 1.0;
 	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas), 0.0, 0.0,
-				       _HUNIT(gpsm_item_hsize(canvas->root)/44100.0/*FIXME*/),
+				       scale*_HUNIT(gpsm_item_hsize(canvas->root)/44100.0/*FIXME*/),
 				       _VUNIT(gpsm_item_vsize(canvas->root)));
 }
 
@@ -101,10 +112,20 @@ TimelineCanvas *timeline_canvas_new(gpsm_grp_t *root)
 	canvas->root = root;
 
 	/* Register handler to adjust canvas and invoke it one time. */
-	canvas->gpsm_handler = glsig_add_handler(gpsm_item_emitter(root), GPSM_SIG_ITEM_CHANGED, timeline_canvas_handle_root, canvas);
-	glsig_handler_exec(canvas->gpsm_handler, GPSM_SIG_ITEM_CHANGED, root);
+	canvas->gpsm_handler0 = glsig_add_handler(gpsm_item_emitter(root), GPSM_SIG_ITEM_CHANGED, timeline_canvas_handle_root, canvas);
+	glsig_handler_exec(canvas->gpsm_handler0, GPSM_SIG_ITEM_CHANGED, root);
 
 	return canvas;
+}
+
+void timeline_canvas_scale(TimelineCanvas *canvas, double scale)
+{
+	double affine[6] = { scale, 0.0, 0.0, 1.0, 0.0, 0.0};
+	gnome_canvas_item_affine_relative(
+		GNOME_CANVAS_ITEM(gnome_canvas_root(GNOME_CANVAS(canvas))),
+		affine);
+	glsig_handler_exec(canvas->gpsm_handler0, GPSM_SIG_ITEM_CHANGED,
+			   canvas->root);
 }
 
 

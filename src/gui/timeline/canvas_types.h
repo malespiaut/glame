@@ -4,7 +4,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.3 2001/06/11 08:40:12 richi Exp $
+ * $Id: canvas_types.h,v 1.4 2001/06/19 09:58:22 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -108,7 +108,8 @@ struct _TimelineCanvasClass {
 struct _TimelineCanvas {
 	GnomeCanvas parent_object;
 
-	glsig_handler_t *gpsm_handler;
+	glsig_handler_t *gpsm_handler0;
+	glsig_handler_t *gpsm_handler1;
 	gpsm_grp_t *root;
 };
 
@@ -170,6 +171,8 @@ struct _TimelineCanvasFile {
 GtkType timeline_canvas_get_type(void);
 
 TimelineCanvas *timeline_canvas_new(gpsm_grp_t *root);
+
+void timeline_canvas_scale(TimelineCanvas *canvas, double scale);
 
 
 GtkType timeline_canvas_item_get_type(void);
