@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.38 2003/04/27 21:08:54 richi Exp $
+ * $Id: filter_ops.c,v 1.39 2004/01/06 15:32:51 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -192,7 +192,8 @@ static void postprocess_node(filter_t *n)
 		return;
 
 	/* join thread to cleanup thread resources */
-	pthread_join(n->thread, NULL);
+	if (n->state != STATE_INITIALIZED)
+		pthread_join(n->thread, NULL);
 	n->state = STATE_INITIALIZED;
 
 	filterportdb_foreach_port(filter_portdb(n), port) {
@@ -233,6 +234,7 @@ static int wait_node(filter_t *n)
 				   (void **)&filter_ret)) != 0
 	       && (res != ESRCH))
 		;
+	n->state = STATE_INITIALIZED;
 
 	return filter_ret;
 }
