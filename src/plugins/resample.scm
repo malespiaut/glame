@@ -6,7 +6,8 @@
 	((ifft "out" "out" "resample out"))
 	((res "frequency" "frequency" "new sample frequency"))
 	(begin (filternode_set_param net "frequency" 44100)
-		(filternode_set_param fft "blocksize" 2048); frequency accuracy = 43 Hz
+		(filternode_set_param fft "blocksize" 512); frequency accuracy = 43 Hz
+		(filternode_set_param fft "oversamp" 4)
 		(nodes-connect (list fft res ifft))))
 	"Resample")))
 	(if (filter? plugin)
