@@ -107,7 +107,8 @@ AC_MSG_RESULT([-no-cpp-precomp])
 ],
 [
 AC_MSG_RESULT([no way])
-AC_MSG_ERROR([GLAME needs a C preprocessor that can handle macros with a variable number of arguments. Go get one...])
+AC_DEFINE([NO_VARARG_MACROS],, [GCC style macro vararg support])
+dnl AC_MSG_ERROR([GLAME needs a C preprocessor that can handle macros with a variable number of arguments. Go get one...])
 ])
 ])
 
@@ -418,13 +419,13 @@ dnl LADSPA header
 ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA,, [have ladspa.h])])
 GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $LADSPA_CFLAGS"
 
-dnl LADSPA RDF
-ACG_PKG_CHECK_MODULES(LRDF, lrdf,
-[
-  AC_DEFINE(HAVE_LRDF,, [have the lrdf library])
-  GLAME_CFLAGS="$GLAME_CFLAGS $LRDF_CFLAGS"
-  GLAME_LIBS="$GLAME_LIBS $LRDF_LIBS"
-], [])
+dnl LADSPA RDF -- disabled, we don't use it ATM
+dnl ACG_PKG_CHECK_MODULES(LRDF, lrdf,
+dnl [
+dnl   AC_DEFINE(HAVE_LRDF,, [have the lrdf library])
+dnl   GLAME_CFLAGS="$GLAME_CFLAGS $LRDF_CFLAGS"
+dnl   GLAME_LIBS="$GLAME_LIBS $LRDF_LIBS"
+dnl ], [])
 
 dnl check for libmad
 ACG_PKG_CHECK_MODULES(MAD, mad,
