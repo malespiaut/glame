@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.13 2001/07/02 14:02:44 xwolf Exp $
+@comment $Id: gui.texi,v 1.14 2001/12/13 10:20:12 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -24,6 +24,7 @@ with the option you were looking for.
 * The Timeline::
 * The Wave Editor::
 * The Filternetwork Editor::
+* Dialogs::
 @end menu
 
 @node The Main Window, The Timeline, , Graphical Frontend
@@ -44,15 +45,6 @@ This will insert a new item into the tree view of the swapfile and pop up
 an editing field where you can change the project's name. Double-clicking on
 an item allows you to change the name later as well.
 
-By selecting @code{Show console} from the project menu get access to the
-powerful backend of glame via a scheme scripting language (or just view
-some error logs popping up there).
-
-You can manually load plugins into glame by using the @code{Load Plugin}
-menu item from the project menu. This is useful for instance to use
-external LADSPA plugins or custom filternetworks you didnt put into
-the default GLAME search directory.
-
 Now you're all set to start importing @dfn{files} into your new project, or to
 subdivide it further into @dfn{groups}. A context sensitive menu offering
 operations on groups or items respectively pops up when you press the
@@ -64,7 +56,8 @@ right mouse button. Those are your options:
 @item Edit 
 pops up a new window of the wave editor @pxref{The Wave Editor} containing 
 all items of the group, where you can easily modify them. This operation is
-not allowed for groups that in turn contain further sub-groups.
+not allowed for groups that in turn contain further sub-groups. Opening
+a wave editor can be done by using the @code{w} key, too.
 
 @item Timeline
 pops up a new window of the timeline @pxref{The Timeline} containing 
@@ -114,12 +107,14 @@ selected operation to the whole current item or group. Useful operations
 include things like normalize.
 
 @item Import...
-imports a file as a sub-group into the current group.
+imports a file as a sub-group into the current group. Import is done
+through a powerful import dialog which is described in the dialogs
+section.
 
 @item Export...
-exports all children of the group as an ordinary stereo sound file, for
-example a WAV file. This operation takes place on an automatically
-flattened subtree and is done via the render plugin.
+exports all children of the group as an ordinary sound file. Export
+is done through a powerful export dialog which is described in the
+dialogs section.
 @end table
 
 @subsection Operations on items
@@ -127,7 +122,8 @@ flattened subtree and is done via the render plugin.
 @table @code
 @item Edit
 pops up a new window of the wave editor @pxref{The Wave Editor},
-where you can modify the selected item.
+where you can modify the selected item. Opening
+a wave editor can be done by using the @code{w} key, too.
 
 @item Delete
 deletes the current item.
@@ -141,8 +137,9 @@ selected operation to the whole current item or group. Useful operations
 include things like normalize.
 
 @item Export...
-exports the current item as an ordinary stereo sound file, for example
-a WAV file.
+exports the current item as an ordinary sound file. Export
+is done through a powerful export dialog which is described in the
+dialogs section.
 @end table
 
 
@@ -198,8 +195,76 @@ associates the active wave with both channels (mono).
 @end table
 
 
+These are the items of the @code{Project} menu:
+
+@table @code
+@item New Project
+Creates a new project (a toplevel group).
+
+@item Edit File
+Very quick edit one file. File selection is done through the import
+dialog. A waveedit window is popped up with the selected file. Note that
+the file is not permanently stored in the GLAME swapfile, but instead
+is removed from it once you close the waveedit window. So you really want
+to re-export the file once you are finished editing.
+
+@item Import...
+Imports a file into the GLAME swapfile without creating a project first.
+This is useful for quick editing tasks which dont involve multiple files.
+
+@item Empty [deleted]
+Deletes all entries in the @code{[deleted]} folder. This operation cannot
+be undone. Deleted elements are usually just moved to the @code{[deleted]}
+folder so you can undo deletes by just moving items back. Emptying the
+@code{[deleted]} folder can also be done by deleting the @code{[deleted]}
+folder itself.
+
+@item Show console
+By selecting @code{Show console} from the project menu get access to the
+powerful backend of glame via a scheme scripting language (or just view
+some error logs popping up there).
+
+@item Sync
+Syncs the metadata of the swapfile to disk. You usually dont need to
+invoke this.
+
+@item Exit
+Exits GLAME. The current state of the swapfile is saved and the project
+tree will persist in its current state. You usually dont need to save
+or export your work.
+@end table
+
+
+These are the items of the @code{Filternetwork} menu:
+
+@table @code
+@item New Filternetwork
+Opens a new empty filternetwork editor window.
+
+@item Open...
+Opens a saved filternetwork in a new filternetwork editor window.
+
+@item Load Plugin
+You can manually load plugins into glame by using the @code{Load Plugin}
+menu item from the filternetwork menu. This is useful for instance to use
+external LADSPA plugins or custom filternetworks you didnt put into
+the default GLAME search directory.
+@end table
+
+
+From the @code{Settings} menu you can invoke the preferences window, from
+the @code{Help} menu you can invoke a gnome help browser with this
+documentation or jump directly to the quick start guide.
+
+
+
 @node The Timeline, The Wave Editor, The Main Window, Graphical Frontend
 @section The Timeline
+
+@strong{The timeline view is highly experimental and may cause other
+parts of GLAME to fail operating on modified tracks. You can usually
+recover from this situation by flattening the affected subtree, but
+this may be not the thing you want to do. Be warned.}
 
 The timeline pops up when the @code{Timeline} function is applied to a
 group in the main window. The timeline presents a time vs. track view
@@ -221,9 +286,11 @@ close the window or bring up the gnome help browser with this documentation.
 @section The Wave Editor
 
 The wave editor pops up when the @code{Edit} function is applied to either a
-group or a single item. Editing is done on all items of a particular group
+group or a single item of the swapfile tree.
+Editing is done on all items of a particular group
 at once. Functions to edit and explore the current items can be reached via
-the right mouse button or the toolbar.
+the right mouse button or the toolbar. The wave editor is also reached
+through the @code{Edit File} menu entry or the @code{w} accelerator.
 
 Simple editing can be done using the ordinary @code{Cut}, @code{Copy},
 @code{Paste}, @code{Delete}, @code{Undo} and @code{Redo} operations
@@ -241,7 +308,8 @@ toolbar entries.
 
 To specify the current selection simply use the mouse and drag it with
 the left mousebutton pressed. Alternatively you can use the @code{Select none} 
-or @code{Select all} menu items from the @code{Select} submenu to remove
+or @code{Select all} menu items from the @code{Select} submenu or the
+corresponding buttons in the toolbar to remove
 the actual selection or select the whole wave. Pressing shift and the
 left mousebutton selects everything starting from the marker position (which
 you can set using the left mousebutton) to the current position. The selection
@@ -260,9 +328,13 @@ you can sample from the default audio input device (which you can specify
 in the main windows preferences dialog) either starting at the marker
 position and until you press the @code{STOP} button, or just inside the
 selection. Using the play button from the toolbar will start playing
-from the marker position and will advance it until you either press the
+either the current selection or from the marker position if no selection
+is active and will advance it until you either press the
 stop button (which will appear at the place of the play button after
-start) or the wave has ended.
+start) or the wave has ended. Playing can be reached through the
+@code{Space} keyboard shortcut which does the same as the toolbar play
+button. Pressing @code{SHIFT-Space} will loop the current selection or
+the whole wave.
 
 The @code{Apply operation} submenu allows you to apply operations like
 normalize or fade to the current selection. Operations may pop up windows
@@ -282,9 +354,14 @@ filter or use @code{Apply custom...} which creates a filternetwork
 framework containing necessary inputs and outputs specified by the
 current selection.
 
+A shortcut to the export functionality is embedded in the toolbar
+as a @code{Save} item. This is especially useful for waveedits
+opened through the @code{Edit File} menu entry as this one does not
+show the wave in the swapfile tree.
 
 
-@node The Filternetwork Editor, , The Wave Editor, Graphical Frontend
+
+@node The Filternetwork Editor, Dialogs, The Wave Editor, Graphical Frontend
 @section The Filternetwork Editor
 
 The filternetwork editor is opened when you choose one of the custom
@@ -345,3 +422,31 @@ As for now only few keybindings are exported, more will follow soon:
 'd' will delete the current selection,
 'g' will group the current selection,
 'u' will ungroup the current selection.
+
+
+
+@node Dialogs, , The Filternetwork Editor, Graphical Frontend
+@section Dialogs
+
+@menu
+* The Preferences Dialog::
+* The Import Dialog::
+* The Export Dialog::
+* The Apply Filter Dialog::
+@end menu
+
+@node The Preferences Dialog, The Import Dialog, , Dialogs
+@subsection The Preferences Dialog
+
+@node The Import Dialog, The Export Dialog, The Preferences Dialog, Dialogs
+@subsection The Import Dialog
+
+@node The Export Dialog, The Apply Filter Dialog, The Import Dialog, Dialogs
+@subsection The Export Dialog
+
+@node The Apply Filter Dialog, , The Export Dialog, Dialogs
+@subsection The Apply Filter Dialog
+
+
+
+

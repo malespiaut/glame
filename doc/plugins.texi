@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.28 2001/11/01 23:08:59 nold Exp $
+@comment $Id: plugins.texi,v 1.29 2001/12/13 10:20:12 richi Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -130,24 +130,24 @@ depends on the desired sound format.
 
 The two plugins @file{swapfile-in} and @file{swapfile-out} are for streaming
 a swapfile into the network and storing a stream into the swapfile
-respectively. Both refer to tracks via a track group identifier and a track 
-identifier.
+respectively. Both refer to tracks via swapfile filenames which are integer
+numbers.
 
 @subsubheading Common parameters
 @table @code
-@item group (string)
-Track group identifier. This parameter is required to be set and there is
-no default value.
-@item track (string)
-Track identifier. This parameter is required to be set and there is
+@item filename (int)
+Swapfile filename. This parameter is required to be set and there is
 no default value.
 @item offset (int)
-This parameter denotes the offset inside the file to start readin/writing
-from. The default is -1 which denotes the start of the file (and truncation
-of the file, if its swapfile_out).
+This parameter denotes the offset inside the file to start reading/writing
+from. The default is 0 which denotes the start of the file. Setting offset
+to a negative value will throw away samples for swapfile_out and feed in
+zeroes for swapfile_in.
 @item size (int)
 This parameter denotes the number of samples to read/write. The default
-is -1 which means to read the whole file / write all data.
+is -1 which means to read the whole file / write all data. For sizes that
+in conjunction with offset exceed the file size, zeroes will be streamed
+in for swapfile_in, for swapfile_out the file will be extended.
 @end table
 
 @subsubheading @file{swapfile-in} ports
@@ -156,7 +156,15 @@ is -1 which means to read the whole file / write all data.
 Sample stream coming out of the swapfile.
 @end table
 
-@file{swapfile-in} has no further specific parameters.
+@subsubheading @file{swapfile-in} parameters
+@table @code
+@item rate (int)
+The samplerate the data has.
+@item position (float)
+The position of the data in the stereo field.
+@item flags (int)
+Flags are 1 to endless stream data by looping the file.
+@end table
 
 @subsubheading @file{swapfile-out} ports
 @table @code
@@ -164,7 +172,13 @@ Sample stream coming out of the swapfile.
 Sample stream to be stored in the swapfile.
 @end table
 
-@file{swapfile-out} has no further specific parameters.
+@subsubheading @file{swapfile-out} parameters
+@table @code
+@item flags (int)
+Flags are 1 to create the file, if it does not exist, 2 to truncate
+it before writing, 3 for both.
+@end table
+
 
 @node Abusing External Apps,, Swapfile I/O, In- and Output
 @subsection Abusing External Apps
