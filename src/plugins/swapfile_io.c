@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.20 2001/07/09 12:28:50 richi Exp $
+ * $Id: swapfile_io.c,v 1.21 2001/07/13 08:58:29 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -221,7 +221,7 @@ static int swapfile_out_f(filter_t *n)
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
 	filter_param_t *pos_param;
-	long fname, offset, size, cnt, pos, res;
+	long fname, offset, size, cnt, pos, res, flags, changed_start;
 	struct sw_stat st;
 	swfd_t fd;
 
@@ -231,22 +231,16 @@ static int swapfile_out_f(filter_t *n)
 		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no filename");
+	flags = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "flags"));
 	offset = filterparam_val_int(
 		filterparamdb_get_param(filter_paramdb(n), "offset"));
-	/* WARNING!!! FIXME!!!! for magic offset -1 creat, for more negative drop start...
-	 */
-	if (offset == -1) {
-		if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC)))
-			FILTER_ERROR_RETURN("cannot create file");
-		offset = 0;
-	} else {
-		if (!(fd = sw_open(fname, O_RDWR)))
-			FILTER_ERROR_RETURN("cannot open file");
-	}
+	if (!(fd = sw_open(fname, O_RDWR | (flags & 1 ? O_CREAT : 0) | (flags & 2 ? O_TRUNC : 0))))
+		FILTER_ERROR_RETURN("cannot open file");
 	if (sw_lseek(fd, MAX(0, offset*SAMPLE_SIZE), SEEK_SET) != MAX(0, offset*SAMPLE_SIZE)) {
 		DPRINTF("Cannot seek to %li\n", MAX(0, offset*SAMPLE_SIZE));
-		FILTER_ERROR_RETURN("cannot seek to offset");
 		sw_close(fd);
+		FILTER_ERROR_RETURN("cannot seek to offset");
 	}
 	size = filterparam_val_int(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
@@ -260,6 +254,7 @@ static int swapfile_out_f(filter_t *n)
 		filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
 	pos = 0;
+	changed_start = MAX(0, offset);
 
 	FILTER_AFTER_INIT;
 
@@ -311,6 +306,10 @@ static int swapfile_out_f(filter_t *n)
 
 	sw_close(fd);
 
+	/* Report changed range to "output" parameters. */
+	filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "changed_start")) = changed_start;
+	filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "changed_end")) = offset;
+
 	return 0;
 }
 
@@ -333,11 +332,23 @@ int swapfile_out_register(plugin_t *p)
 				FILTERPARAM_END);
 	filterparamdb_add_param_int(filter_paramdb(f), "offset",
 				FILTER_PARAMTYPE_INT, -1,
-				FILTERPARAM_DESCRIPTION, "offset to start writing or -1 for new file",
+				FILTERPARAM_DESCRIPTION, "offset to start writing",
 				FILTERPARAM_END);
 	filterparamdb_add_param_int(filter_paramdb(f), "size",
 				FILTER_PARAMTYPE_INT, -1,
-				FILTERPARAM_DESCRIPTION, "max size to record or -1 for the full stream",
+				FILTERPARAM_DESCRIPTION, "max size to record or -1 for the full stream (allow extend)",
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "flags",
+				FILTER_PARAMTYPE_INT, 0,
+				FILTERPARAM_DESCRIPTION, "1: create file 2: truncate file",
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "changed_start",
+				FILTER_PARAMTYPE_INT, -1,
+				FILTERPARAM_DESCRIPTION, "file change report",
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "changed_end",
+				FILTER_PARAMTYPE_INT, -1,
+				FILTERPARAM_DESCRIPTION, "file change report",
 				FILTERPARAM_END);
 	filterparamdb_add_param_pos(filter_paramdb(f));
 
