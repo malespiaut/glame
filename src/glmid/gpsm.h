@@ -178,6 +178,8 @@ struct gpsm_swfile_s {
  * swapfile corruption or already initialized gpsm). */
 int gpsm_init(const char *swapfile);
 
+/* Changes (or just queries, if max < 0) the maximum number of states
+ * saved for undo/redo. Returns the actual set value. */
 int gpsm_set_max_saved_ops(int max);
 
 /* Syncs the gpsm metadata on disk (swapfile) with the gpsm
@@ -315,14 +317,40 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
 /* Undo/redo support.
  */
 
+/* Save the current state of the provided subtree for later undo.
+ * Returns 0 on success, -1 on failure. */
 int gpsm_op_prepare(gpsm_item_t *item);
 
+/* Returns 1 if undo is pending for the subtree item and can be
+ * undone at this point, else returns 0. */
 int gpsm_op_can_undo(gpsm_item_t *item);
 
+/* Rolls back to the latest saved state of the provided subtree.
+ * Returns 0 on success, -1 on error (such as no undo pending/possible).
+ * Saves the actual state for later redo. */
 int gpsm_op_undo(gpsm_item_t *item);
 
+/* Rolls back to the latest saved state of the provided subtree.
+ * Returns 0 on success, -1 on error (such as no undo pending/possible).
+ * Does not save the actual state for later redo. */
 int gpsm_op_undo_and_forget(gpsm_item_t *item);
 
+/* Returns 1 if redo is pending for the subtree item and can be
+ * redone at this point, else returns 0. */
+int gpsm_op_can_redo(gpsm_item_t *item);
+
+/* Rolls back to the state before the previous undo to the provided
+ * subtree. Returns 0 on success, -1 on error (such as no redo pending
+ * or possible). Saves the actual state for later undo. */
+int gpsm_op_redo(gpsm_item_t *item);
+
+/* Rolls back to the state before the previous undo to the provided
+ * subtree. Returns 0 on success, -1 on error (such as no redo pending
+ * or possible). Does not save the actual state for later undo. */
+int gpsm_op_redo_and_forget(gpsm_item_t *item);
+
+/* Kills off the latest saved state of the provided subtree. Returns
+ * 0 on success, -1 on error (no pending undo/redo). */
 int gpsm_op_forget(gpsm_item_t *item);
 
 
