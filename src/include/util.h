@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.12 2000/10/17 09:02:40 richi Exp $
+ * $Id: util.h,v 1.13 2001/04/18 07:33:13 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -57,7 +57,17 @@ static void __glame_do_panic(const char *specifier, int line, const char *msg)
 #ifndef NDEBUG
 #define DERROR(msg) PANIC(msg)
 #else
-#define DERROR(msg)
+#define DERROR(msg) 
+#endif
+
+/* 
+ * Some evil macros require DERROR to eval to an rvalue. Don't use for
+ * anything sane!
+ */
+#ifndef NDEBUG
+#define DERROR_eval(msg) (PANIC(msg), 0==1)
+#else
+#define DERROR_eval(msg) (0==1)
 #endif
 
 #ifdef HAVE_GCC
