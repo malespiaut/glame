@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.22 2001/03/20 09:55:56 richi Exp $
+ * $Id: basic_sample.c,v 1.23 2001/04/02 08:07:54 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -194,6 +194,9 @@ static int mix(filter_t *n, int drop)
 			continue;
 		}
 		if (res == 0) {
+			/* Network stopped? */
+			if (filter_is_ready(n))
+				continue;
 			/* Uh, deadlock... */
 			fprintf(stderr, "FATAL ERROR: deadlock in mix detected!\n");
 			break;

@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.25 2001/03/20 09:54:57 richi Exp $
+ * $Id: filter_buffer.c,v 1.26 2001/04/02 08:07:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,7 +30,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <limits.h>
+#include "filter.h"
+#include "filter_ops.h"
 #include "filter_pipe.h"
+#include "filter_port.h"
 #include "filter_buffer.h"
 
 /* FIXME! Either we need all callers of fbuf_unref, fbuf_alloc and
@@ -199,7 +202,8 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 		timeout.tv_sec = 5;
 		timeout.tv_usec = 0;
 		res = select(p->dest_fd+1, &fds, NULL, NULL, &timeout);
-	} while (res == -1 && errno == EINTR);
+	} while ((res == -1 && errno == EINTR)
+		 || (res == 0 && filter_is_ready(filterport_filter(filterpipe_source(p)))));
 
 	/* Timeout? -> Deadlock. Break it returning NULL. */
 	if (res == 0) {

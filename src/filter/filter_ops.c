@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.19 2001/03/29 09:04:43 richi Exp $
+ * $Id: filter_ops.c,v 1.20 2001/04/02 08:07:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,15 +27,6 @@
 #include "filter_ops.h"
 
 
-struct filter_launchcontext {
-	int nr_threads;
-	pthread_t waiter;
-
-	int state;
-
-	int semid;
-	glame_atomic_t result;
-};
 
 struct filter_operations {
 	int (*init)(filter_t *n);
@@ -419,7 +410,8 @@ int filter_is_ready(filter_t *net)
 
 void filter_terminate(filter_t *net)
 {
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net))
+	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
+	    || !net->launch_context)
 		return;
 
 	atomic_set(&net->launch_context->result, 1);
