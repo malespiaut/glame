@@ -3,6 +3,6 @@
 		(export-param filename filename "file to be played")
 	)
 	(node aout audio_out)
-	(connect rf out aout left_in)
-	(connect rf out aout right_in)
+	(connect rf out aout in)
+	(connect rf out aout in)
 )

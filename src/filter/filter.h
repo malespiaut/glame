@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.28 2000/02/21 10:34:23 richi Exp $
+ * $Id: filter.h,v 1.29 2000/02/21 10:40:01 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -426,8 +426,10 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 #define FILTER_PIPEPOS_RIGHT		M_PI_2
 #define	FILTER_PIPEPOS_CENTRE		0.0	/* Umm, needed at all? [dk] */
 #define FILTER_PIPEPOS_DEFAULT		FILTER_PIPEPOS_CENTRE
-#define FILTER_PIPEPOS_IS_LEFT(pos) ((pos)<0)
-#define FILTER_PIPEPOS_IS_RIGHT(pos) ((pos)>0)
+#define FILTER_PIPEPOS_IS_LEFT(pos)	((pos)<0)
+#define FILTER_PIPEPOS_IS_RIGHT(pos)	((pos)>0)
+#define FILTER_SAMPLEPIPE_IS_LEFT(fp)	((fp)->u.sample.phi<0)
+#define FILTER_SAMPLEPIPE_IS_RIGHT(fp)	((fp)->u.sample.phi>0)
 
 /* Public access macros for the filter_pipe_t structure.
  */

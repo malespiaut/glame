@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.22 2000/02/17 17:58:36 nold Exp $
+ * $Id: audio_io.c,v 1.23 2000/02/21 10:40:01 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -126,7 +126,7 @@ static int esd_in_f(filter_node_t *n)
  * write a simple esound output filter... */
 static int esd_out_f(filter_node_t *n)
 {
-	filter_pipe_t *left, *right;
+	filter_pipe_t *left, *right,*swap;
 	filter_buffer_t *lbuf, *rbuf;
 	int lpos, rpos;
 	int wbpos;
@@ -142,8 +142,15 @@ static int esd_out_f(filter_node_t *n)
 	/* query both input channels, one channel only -> MONO
 	 * (always left), else STEREO output (but with the same
 	 * samplerate, please!). */
-	left = filternode_get_input(n, "left_in");
-	right = filternode_get_input(n, "right_in");
+	left = filternode_get_input(n, "in");
+	right = filternode_next_input(left);
+	
+	if (!FILTER_SAMPLEPIPE_IS_LEFT(left)){
+		swap=left;
+		left=right;
+		right=swap;
+	}
+
 	/* right only? */
 	if (!left) {
 		left = right;
@@ -266,10 +273,8 @@ int audio_io_register()
 
 #if defined HAVE_ESD
 	if (!(f = filter_alloc("audio_out", "play stream", esd_out_f))
-	    || !filter_add_input(f, "left_in", "left or mono channel",
-				FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_input(f, "right_in", "right channel",
-				FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_input(f, PORTNAME_IN, "left or mono channel",
+				FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC)
 	    || filter_add(f) == -1)
 		return -1;
 
