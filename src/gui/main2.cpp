@@ -1,7 +1,7 @@
 /*
  * main2.cpp
  *
- * $Id: main2.cpp,v 1.3 2004/02/08 22:05:27 richi Exp $
+ * $Id: main2.cpp,v 1.4 2004/04/20 21:26:33 ochonpaul Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -58,6 +58,8 @@ extern void swcluster_set_cache(int, int, int, size_t);
 
 /* Globals. */
 static GtkWidget *swapfile;
+static GtkTreeStore *tree_store;
+
 static GtkWidget *app;
 GtkWidget *glame_appbar;
 
@@ -174,33 +176,61 @@ static void new_network_cb(GtkWidget *menu, void * blah)
 //extern void edit_tree_label(GlameTreeItem * item); 
 static void create_new_project_cb(GtkWidget *menu, void * blah) 
 { 
- #if 0
+ 
 	gpsm_grp_t *grp, *deleted; 
- 	GlameTreeItem *grpw; 
+	gpsm_item_t *item;
+	GtkTreeIter iter, iter_deleted,iter_deleted2,iter_deleted3 ;
+	gboolean     valid;
+	gchar *comp;
+ 	
+ 	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))){ 
+	    gpsm_item_remove((gpsm_item_t *)deleted); 
+	    
+	    // Search for [deleted]  iter to remove it from store
+	    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(tree_store), &iter_deleted);
+	    while (valid)
+	      {			
+		gtk_tree_model_get(GTK_TREE_MODEL(tree_store), &iter_deleted, INFO, &comp, -1);
+		if (!g_ascii_strncasecmp (GPSM_GRP_DELETED_LABEL, comp,8)) break;
+		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(tree_store), &iter_deleted);
+	      }
+	    gtk_tree_store_remove(tree_store, &iter_deleted);
+	  }
 
- 	if ((deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) 
- 		gpsm_item_remove((gpsm_item_t *)deleted); 
-
-/* Create new gpsm group. */
- 	grp = gpsm_newgrp(_("Unnamed")); 
+	/* Create new gpsm group. */
+ 	grp = gpsm_newgrp(_("New project")); 
  	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp, 
  			    0, gpsm_item_vsize(gpsm_root())) == -1 
  	    && gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp, 
  			       0, gpsm_item_vsize(gpsm_root())+1) == -1) 
- 		DPRINTF("Cannot insert new group!?\n"); 
- 	if (deleted) 
+	  { DPRINTF("Cannot insert new group!?\n"); }
+	else {	
+	  gtk_tree_store_append(tree_store, &iter, NULL);
+	  gtk_tree_store_set(tree_store, &iter, INFO, "New project", GPSM_ITEM, grp,
+				   -1);
+	}
+ 	if (deleted) {
  		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted, 
- 				0, GPSM_GRP_DELETED_VPOS); 
-
+ 				0, GPSM_GRP_DELETED_VPOS);
+		// re-create the deleted grp 
+		gtk_tree_store_append(tree_store,&iter_deleted2,NULL);     
+		gtk_tree_store_set(tree_store, &iter_deleted2, INFO,GPSM_GRP_DELETED_LABEL , GPSM_ITEM, (gpsm_item_t *)deleted,
+				   -1);
+		gpsm_grp_foreach_item(deleted, item) {
+		  gtk_tree_store_append(tree_store, &iter_deleted3, &iter_deleted2);
+		  gtk_tree_store_set(tree_store, &iter_deleted3, INFO,strdup(item->label),GPSM_ITEM, item, -1);
+		}
+		
+	}
 /* Find out which widget it got. */ 
- 	grpw = glame_tree_find_gpsm_item( 
- 		GTK_OBJECT(SWAPFILE_GUI(swapfile)->tree), (gpsm_item_t *)grp); 
- 	if (!grpw) { 
- 		DPRINTF("Umm, cant find widget for new project.\n"); 
- 		return; 
- 	} 
- 	edit_tree_label(grpw); 
-#endif
+ 	// grpw = glame_tree_find_gpsm_item( 
+//  		GTK_OBJECT(SWAPFILE_GUI(swapfile)->tree), (gpsm_item_t *)grp); 
+//  	if (!grpw) { 
+//  		DPRINTF("Umm, cant find widget for new project.\n"); 
+//  		return; 
+//  	} 
+ 	// edit_tree_label(grpw); 
+
 } 
 
 static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file) 
@@ -946,6 +976,7 @@ _("Welcome first-time user of GLAME.\n"
 	//swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
 	glTree *gtree = new glTree(gpsm_root());
 	swapfile = gtree->tree;
+	tree_store = gtree->store;
 	if (!swapfile)
 		return;
 	scrollview = gtk_scrolled_window_new(NULL, NULL);
