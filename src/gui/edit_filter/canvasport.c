@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.28 2001/12/30 16:46:14 richi Exp $
+ * $Id: canvasport.c,v 1.29 2002/01/11 23:21:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -241,7 +241,7 @@ static GnomeCanvasPoints * points = NULL;
 static GnomeCanvasLine* line = NULL;
 static GnomeUIInfo port_menu[] = 
 {
-	GNOMEUIINFO_ITEM(N_("_Redirect port"),N_("redirect"), glame_canvas_port_redirect_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("_Redirect port"), NULL, glame_canvas_port_redirect_cb, NULL),
 	GNOMEUIINFO_END
 };
 

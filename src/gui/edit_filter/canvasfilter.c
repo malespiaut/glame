@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.51 2001/12/30 16:46:14 richi Exp $
+ * $Id: canvasfilter.c,v 1.52 2002/01/11 23:21:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -1072,19 +1072,19 @@ int inItem;
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
-	GNOMEUIINFO_ITEM(N_("_Delete"),N_("Delete node"),glame_canvas_filter_delete_cb,NULL),
-	GNOMEUIINFO_ITEM(N_("_Expand"),N_("Expand"),glame_canvas_filter_expand_node_cb,NULL),
-	GNOMEUIINFO_ITEM(N_("_Open down"),N_("Open down"),glame_canvas_filter_open_node_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Delete"), NULL, glame_canvas_filter_delete_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Expand"), NULL, glame_canvas_filter_expand_node_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Open down"), NULL, glame_canvas_filter_open_node_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("_Redirect parameter"),"redirect",glame_canvas_filter_redirect_parameters,NULL),
+	GNOMEUIINFO_ITEM(N_("_Redirect parameter"), NULL, glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("_Group selection"),N_("Group selection"),glame_canvas_group_selection_cb,NULL),
-	GNOMEUIINFO_ITEM(N_("_Ungroup"),N_("Ungroup"),glame_canvas_ungroup_cb,NULL),
-	GNOMEUIINFO_ITEM(N_("Cop_y selection"),N_("Copy selection"),glame_canvas_copy_selected_cb,NULL),
-	GNOMEUIINFO_ITEM(N_("_Collapse selection"),N_("Collapse selection"),glame_canvas_filter_collapse_selection_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Group selection"), NULL, glame_canvas_group_selection_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Ungroup"), NULL, glame_canvas_ungroup_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("Cop_y selection"), NULL, glame_canvas_copy_selected_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Collapse selection"), NULL, glame_canvas_filter_collapse_selection_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("_About node..."),"bout",glame_canvas_filter_show_about,NULL),
-	GNOMEUIINFO_ITEM(N_("_Help"),N_("Show help"),glame_canvas_filter_help,NULL),
+	GNOMEUIINFO_ITEM(N_("_About node..."), NULL, glame_canvas_filter_show_about,NULL),
+	GNOMEUIINFO_ITEM(N_("_Help"), NULL, glame_canvas_filter_help,NULL),
 	GNOMEUIINFO_END
 };
 #define NODE_MENU_EXPAND_INDEX 2

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.49 2001/12/30 16:46:14 richi Exp $
+ * $Id: filtereditgui.c,v 1.50 2002/01/11 23:21:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -280,7 +280,7 @@ static void canvas_delete_redirection_port_cb(GtkWidget*foo, filter_port_t* port
 
 static GnomeUIInfo redirection_menu_port[] = {
 	GNOMEUIINFO_ITEM_STOCK(N_("Delete Port"),
-			       N_("Deletes selected redirection"),
+			       NULL,
 			       canvas_delete_redirection_port_cb,
 			       GNOME_STOCK_MENU_TRASH),
 	GNOMEUIINFO_END
@@ -288,7 +288,7 @@ static GnomeUIInfo redirection_menu_port[] = {
 
 static GnomeUIInfo redirection_menu_param[] = {
 	GNOMEUIINFO_ITEM_STOCK(N_("Delete Parameter"),
-			       N_("Deletes selected redirection"),
+			       NULL,
 			       canvas_delete_redirection_param_cb,
 			       GNOME_STOCK_MENU_TRASH),
 	GNOMEUIINFO_END
@@ -381,7 +381,7 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 	gtk_widget_show(GTK_WIDGET(list));
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 
-	tablabel = gtk_label_new(_("Properties"));
+	tablabel = gtk_label_new(_("Parameters"));
 	gtk_widget_show(tablabel);
 	
 	list = GTK_CLIST(gtk_clist_new_with_titles(4,plabels));

@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.23 2001/12/30 16:46:14 richi Exp $
+ * $Id: canvaspipe.c,v 1.24 2002/01/11 23:21:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -289,10 +289,10 @@ static void canvas_pipe_delete_cb(GtkObject* foo, filter_pipe_t* pipe)
 
 static GnomeUIInfo pipe_menu[]=
 {
-	GNOMEUIINFO_ITEM(N_("_Source properties..."), N_("Source properties"), canvas_pipe_source_properties_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("D_estination properties..."), N_("Destination properties"), canvas_pipe_dest_properties_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("_Source properties..."), NULL, canvas_pipe_source_properties_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("D_estination properties..."), NULL, canvas_pipe_dest_properties_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("_Delete"), N_("Delete pipe"),canvas_pipe_delete_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Delete"), NULL, canvas_pipe_delete_cb,NULL),
 	GNOMEUIINFO_END
 };
 

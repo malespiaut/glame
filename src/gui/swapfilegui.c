@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.76 2002/01/08 22:19:35 richi Exp $
+ * $Id: swapfilegui.c,v 1.77 2002/01/11 23:21:30 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -79,25 +79,25 @@ static GnomeUIInfo dummy2_menu[] = {
 
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Edit"), N_("edit"), edit_cb, NULL),
-        GNOMEUIINFO_ITEM(N_("Timeline"), N_("timeline"), timeline_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Edit"), NULL, edit_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Timeline"), NULL, timeline_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Delete"), N_("delete"), delete_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Delete"), NULL, delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Add group"), N_("addgroup"), addgroup_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Add clipboard"), N_("addclipboard"), addclipboard_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Add mono wave"), N_("addfile"), addfile_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Add stereo wave"), N_("addstereo"), addstereo_cb, NULL),
-        GNOMEUIINFO_ITEM(N_("Link selected"), N_("link"), linkselected_cb, NULL),
-        GNOMEUIINFO_ITEM(N_("Copy selected"), N_("copy"), copyselected_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add group"), NULL, addgroup_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add clipboard"), NULL, addclipboard_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add mono wave"), NULL, addfile_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add stereo wave"), NULL, addstereo_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Link selected"), NULL, linkselected_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Copy selected"), NULL, copyselected_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Merge with parent"), N_("import"), mergeparent_cb, NULL),
-        GNOMEUIINFO_ITEM(N_("Flatten"), N_("flatten"), flatten_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Merge with parent"), NULL, mergeparent_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Flatten"), NULL, flatten_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE(N_("Apply operation"), dummy1_menu),
 	GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Import..."), N_("import"), import_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Export..."), N_("Export swapfile tracks"), export_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Import..."), NULL, import_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Export..."), NULL, export_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
@@ -109,19 +109,19 @@ static GnomeUIInfo group_menu_data[] = {
 #define GROUP_MENU_IMPORT_INDEX 18
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Edit"), N_("edit"), edit_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Edit"), NULL, edit_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Delete"), N_("delete"), delete_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Delete"), NULL, delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM(N_("Group"), NULL, group_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE(N_("Apply operation"), dummy2_menu),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM(N_("Group"), N_("group"), group_cb, NULL),
-        GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Export..."), N_("Export swapfile tracks"), export_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Export..."), NULL, export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
-#define FILE_MENU_APPLYOP_INDEX 5
+#define FILE_MENU_APPLYOP_INDEX 7
 
 
 static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)

@@ -64,11 +64,11 @@ static void zoomsel_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void gotomarker_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 static GnomeUIInfo view_menu[] = {
-	GNOMEUIINFO_ITEM(N_("Zoom to selection"), N_("zommsel"), zoomsel_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Zoom in"), N_("zommin"), zoomin_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Zoom out"), N_("zommout"), zoomout_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("View all"), N_("zommfull"), zoomfull_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Goto marker"), N_("gotomarker"), gotomarker_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Zoom to selection"), NULL, zoomsel_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Zoom in"), NULL, zoomin_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Zoom out"), NULL, zoomout_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("View all"), NULL, zoomfull_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Goto marker"), NULL, gotomarker_cb, NULL),
 	GNOMEUIINFO_END
 };
 
@@ -119,8 +119,8 @@ static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview);
 static void selectall_cb(GtkWidget *w, GtkWaveView *waveview);
 
 static GnomeUIInfo select_menu[] = {
-	GNOMEUIINFO_ITEM(N_("Select none"), N_("selectnone"), selectnone_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Select all"), N_("selectall"), selectall_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Select none"), NULL, selectnone_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Select all"), NULL, selectall_cb, NULL),
 	GNOMEUIINFO_END
 };
 
@@ -152,14 +152,14 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void redo_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 static GnomeUIInfo edit_menu[] = {
-	GNOMEUIINFO_ITEM(N_("Cut"), N_("cut"), cut_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Copy"), N_("copy"), copy_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Paste"), N_("paste"), paste_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Cut"), NULL, cut_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Copy"), NULL, copy_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Paste"), NULL, paste_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Delete"), N_("delete"), delete_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Delete"), NULL, delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Undo"), N_("undo"), undo_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Redo"), N_("redo"), redo_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Undo"), NULL, undo_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Redo"), NULL, redo_cb, NULL),	
 	GNOMEUIINFO_END
 };
 #define EDIT_MENU_CUT_INDEX 0
@@ -738,16 +738,16 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SUBTREE(N_("View"), view_menu),
 	GNOMEUIINFO_SUBTREE(N_("Select"), select_menu),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Play all"), N_("Plays the whole wave"), playall_cb, NULL),
-	GNOMEUIINFO_ITEM(N_("Play selection"), N_("Plays the actual selection"), playselection_cb, NULL),	
-	GNOMEUIINFO_ITEM(N_("Play from marker"), N_("Plays from marker position"), playmarker_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Play all"), NULL, playall_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Play selection"), NULL, playselection_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Play from marker"), NULL, playmarker_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("Record at marker"), N_("Records starting at marker position"), recordmarker_cb, NULL),	
-	GNOMEUIINFO_ITEM(N_("Record into selection"), N_("Records into the actual selection"), recordselection_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Record at marker"), NULL, recordmarker_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Record into selection"), NULL, recordselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE(N_("Apply operation"), dummy1_menu),
 	GNOMEUIINFO_SUBTREE(N_("Apply filter"), dummy2_menu),
-	GNOMEUIINFO_ITEM(N_("Apply custom..."), N_("Creates a filternetwork window for applying it to the selection"), apply_custom_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Apply custom..."), NULL, apply_custom_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
