@@ -64,11 +64,11 @@ static void zoomsel_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void gotomarker_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 static GnomeUIInfo view_menu[] = {
-	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
-	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
-	GNOMEUIINFO_ITEM("Zoom out", "zommout", zoomout_cb, NULL),
-	GNOMEUIINFO_ITEM("View all", "zommfull", zoomfull_cb, NULL),
-	GNOMEUIINFO_ITEM("Goto marker", "gotomarker", gotomarker_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Zoom to selection"), N_("zommsel"), zoomsel_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Zoom in"), N_("zommin"), zoomin_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Zoom out"), N_("zommout"), zoomout_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("View all"), N_("zommfull"), zoomfull_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Goto marker"), N_("gotomarker"), gotomarker_cb, NULL),
 	GNOMEUIINFO_END
 };
 
@@ -119,8 +119,8 @@ static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview);
 static void selectall_cb(GtkWidget *w, GtkWaveView *waveview);
 
 static GnomeUIInfo select_menu[] = {
-	GNOMEUIINFO_ITEM("Select none", "selectnone", selectnone_cb, NULL),
-	GNOMEUIINFO_ITEM("Select all", "selectall", selectall_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Select none"), N_("selectnone"), selectnone_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Select all"), N_("selectall"), selectall_cb, NULL),
 	GNOMEUIINFO_END
 };
 
@@ -152,14 +152,14 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview);
 static void redo_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 static GnomeUIInfo edit_menu[] = {
-	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
-	GNOMEUIINFO_ITEM("Copy", "copy", copy_cb, NULL),
-	GNOMEUIINFO_ITEM("Paste", "paste", paste_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Cut"), N_("cut"), cut_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Copy"), N_("copy"), copy_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Paste"), N_("paste"), paste_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Delete"), N_("delete"), delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Undo", "undo", undo_cb, NULL),
-	GNOMEUIINFO_ITEM("Redo", "redo", redo_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Undo"), N_("undo"), undo_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Redo"), N_("redo"), redo_cb, NULL),	
 	GNOMEUIINFO_END
 };
 #define EDIT_MENU_CUT_INDEX 0
@@ -261,7 +261,7 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	if (gpsm_op_undo(item) == -1)
 		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog("Error during undo")));
+			GNOME_DIALOG(gnome_error_dialog(_("Error during undo"))));
 }
 
 /* Menu event - Redo. */
@@ -275,7 +275,7 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	if (gpsm_op_redo(item) == -1)
 		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog("Error during redo")));
+			GNOME_DIALOG(gnome_error_dialog(_("Error during redo"))));
 }
 
 
@@ -396,7 +396,7 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 
 	if (operation((gpsm_item_t *)grp, start, length) == -1)
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Error executing")));
+			gnome_error_dialog(_("Error executing"))));
 
 	DPRINTF("%s finished.\n", plugin_name(plugin));
 }
@@ -436,7 +436,7 @@ static void play_cleanup(glsig_handler_t *handler,
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(waveedit->toolbar)), 5)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
-				"Play", "Play", "Play",
+				_("Play"), _("Play"), _("Play"),
 				glame_load_icon_widget("play.png",24,24),
 				playtoolbar_cb, waveedit->waveview, 7);
 }
@@ -484,7 +484,7 @@ static void play(GtkWaveView *waveview,
 
 	if (!plugin_get("audio_out")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("No audio output support")));
+			gnome_error_dialog(_("No audio output support"))));
 		return;
 	}
 
@@ -523,7 +523,7 @@ static void play(GtkWaveView *waveview,
 	active_waveedit->pm_start = start;
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;
-		glame_network_error_dialog(net, "Cannot play wave");
+		glame_network_error_dialog(net, _("Cannot play wave"));
 		filter_delete(net);
 		gpsm_item_destroy((gpsm_item_t *)grp);
 		return;
@@ -533,7 +533,7 @@ static void play(GtkWaveView *waveview,
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(active_waveedit->toolbar)), 5)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
-				"Stop", "Stop", "Stop",
+				_("Stop"), _("Stop"), _("Stop"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
 				playtoolbar_cb, active_waveedit->waveview, 7);
 	active_waveedit->locked = 1;
@@ -541,7 +541,7 @@ static void play(GtkWaveView *waveview,
 	return;
 
  fail:
-	glame_network_error_dialog(net, "Cannot play wave");
+	glame_network_error_dialog(net, _("Cannot play wave"));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
@@ -615,7 +615,7 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	if (!plugin_get("audio_in")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("No audio input support")));
+			gnome_error_dialog(_("No audio input support"))));
 		return;
 	}
 
@@ -634,7 +634,7 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 		else if (!right)
 			right = item;
 		else {
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("GLAME only supports recording of up to two channels"))));
 			return;
 		}
 	}
@@ -677,11 +677,11 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
 						  NULL, NULL, start, start + length - 1),
-			       "Record", "Pause", "Stop", 1);
+			       _("Record"), _("Pause"), _("Stop"), 1);
 	return;
 
  fail:
-	glame_network_error_dialog(net, "Cannot record");
+	glame_network_error_dialog(net, _("Cannot record"));
 	filter_delete(net);
 }
 
@@ -698,7 +698,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	if (!plugin_get("audio_in")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("No audio input support")));
+			gnome_error_dialog(_("No audio input support"))));
 		return;
 	}
 
@@ -715,7 +715,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 		else if (!right)
 			right = item;
 		else {
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("GLAME only supports recording of up to two channels"))));
 			return;
 		}
 	}
@@ -756,11 +756,11 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
 						  NULL, NULL, -1, -1),
-			       "Record", "Pause", "Stop", 1);
+			       _("Record"), _("Pause"), _("Stop"), 1);
 	return;
 
  fail:
-	glame_network_error_dialog(net, "Cannot record");
+	glame_network_error_dialog(net, _("Cannot record"));
 	filter_delete(net);
 }
 
@@ -833,7 +833,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 
  fail:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog("Failed to create network")));
+		gnome_error_dialog(_("Failed to create network"))));
 	filter_delete(net);
 }
 
@@ -863,20 +863,20 @@ static GnomeUIInfo dummy2_menu[] = {
 
 static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("Edit", edit_menu),
-	GNOMEUIINFO_SUBTREE("View", view_menu),
-	GNOMEUIINFO_SUBTREE("Select", select_menu),
+	GNOMEUIINFO_SUBTREE(N_("Edit"), edit_menu),
+	GNOMEUIINFO_SUBTREE(N_("View"), view_menu),
+	GNOMEUIINFO_SUBTREE(N_("Select"), select_menu),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Play all", "Plays the whole wave", playall_cb, NULL),
-	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playselection_cb, NULL),	
-	GNOMEUIINFO_ITEM("Play from marker", "Plays from marker position", playmarker_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Play all"), N_("Plays the whole wave"), playall_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Play selection"), N_("Plays the actual selection"), playselection_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Play from marker"), N_("Plays from marker position"), playmarker_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Record at marker", "Records starting at marker position", recordmarker_cb, NULL),	
-	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Record at marker"), N_("Records starting at marker position"), recordmarker_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("Record into selection"), N_("Records into the actual selection"), recordselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("Apply operation", dummy1_menu),
-	GNOMEUIINFO_SUBTREE("Apply filter", dummy2_menu),
-	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection", apply_custom_cb, NULL),
+	GNOMEUIINFO_SUBTREE(N_("Apply operation"), dummy1_menu),
+	GNOMEUIINFO_SUBTREE(N_("Apply filter"), dummy2_menu),
+	GNOMEUIINFO_ITEM(N_("Apply custom..."), N_("Creates a filternetwork window for applying it to the selection"), apply_custom_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
@@ -1299,24 +1299,24 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	window->toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL,
 					  GTK_TOOLBAR_ICONS);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Zoom in", "Zoom in", "Zoom in",
+				_("Zoom in"), _("Zoom in"), _("Zoom in"),
 				glame_load_icon_widget("zoom_in.png",24,24),
 				zoomin_cb, window->waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Zoom out", "Zoom out", "Zoom out",
+				_("Zoom out"), _("Zoom out"), _("Zoom out"),
 				glame_load_icon_widget("zoom_out.png",24,24),
 				zoomout_cb, window->waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"View all", "View all", "View all",
+				_("View all"), _("View all"), _("View all"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),
 				zoomfull_cb, window->waveview);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Select all", "Select all", "Select all",
+				_("Select all"), _("Select all"), _("Select all"),
 				glame_load_icon_widget("select_all.png",24,24),
 				selectall_cb, window->waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Select none", "Select none", "Select none",
+				_("Select none"), _("Select none"), _("Select none"),
 				glame_load_icon_widget("select_none.png",24,24),
 				selectnone_cb, window->waveview);
 	/* Play button that should change to Stop if pressed, different
@@ -1324,26 +1324,26 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * FIXME. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Play", "Play", "Play",
+				_("Play"), _("Play"), _("Play"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
 				playtoolbar_cb, window->waveview);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Menu", "Menu", "Menu",
+				_("Menu"), _("Menu"), _("Menu"),
 				glame_load_icon_widget("dots.png",24,24),
 				waveedit_rmb_cb2, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Export", "Export", "Export",
+				_("Export"), _("Export"), _("Export"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE),
 				wave_export_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Close", "Close", "Close",
+				_("Close"), _("Close"), _("Close"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
 				wave_close_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				"Help", "Help", "Help",
+				_("Help"), _("Help"), _("Help"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
 				wave_help_cb, window->waveview);
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar),
