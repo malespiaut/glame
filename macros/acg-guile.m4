@@ -82,6 +82,9 @@ dnl FIXME - version check missing
 		#include <libguile.h>
 		#include <guile/gh.h>
 	],[
+		float *d;
+		gh_floats2fvect(d, 5);
+		scm_make_smob_type("Blah", 50);
 		gh_eval_str("(newline)");
 		scm_boot_guile(0,NULL,NULL,NULL);
 	],[
