@@ -69,6 +69,9 @@
 /* define to disable default debugging code */
 #undef NDEBUG
 
+/* define to include swapfile debugging code */
+#undef SWDEBUG
+
 /* define if <byteswap.h> is present */
 #undef HAVE_BYTESWAP_H
 

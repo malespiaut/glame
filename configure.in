@@ -9,7 +9,7 @@ AM_ACLOCAL_INCLUDE(macros)
 
 
 dnl
-dnl Switch to configure debugging stuff - sane default for now.
+dnl Switches to configure debugging stuff - sane default for now.
 dnl
 
 AC_ARG_ENABLE(debug,
@@ -24,6 +24,19 @@ if test $debug -eq 2; then
 	AC_DEFINE(DEBUG)
 elif test $debug -eq 0; then
 	AC_DEFINE(NDEBUG)
+fi
+
+dnl Allow to override swapfile debugging level
+AC_ARG_ENABLE(swapfiledebug,
+[  --enable-swapfiledebug  include lots of timeconsuming checks to swapfile 
+  --disable-swapfiledebug compile for maximum optimization], swdebug=$enableval, swdebug=$debug)
+if test "$swdebug" = "no"; then
+	swdebug=0
+elif test "$swdebug" = "yes"; then
+	swdebug=2
+fi
+if test $swdebug -eq 2; then
+	AC_DEFINE(SWDEBUG)
 fi
 
 

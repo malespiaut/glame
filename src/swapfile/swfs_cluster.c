@@ -124,7 +124,7 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 	UNLOCKCLUSTERS;
 	if (!c)
 		return NULL;
-#ifdef DEBUG
+#ifdef SWDEBUG
 	if (known_size != -1 && c->size != known_size)
 		SWPANIC("User and cluster disagree about its size");
 #endif
@@ -551,7 +551,7 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 		return NULL;
 
 	/* Stat metadata and data. */
-#ifndef DEBUG
+#ifndef SWDEBUG
 	if (known_size == -1) {
 #endif
 		snprintf(sd, 255, "%s/%li", swap.clusters_data_base, name);
@@ -560,7 +560,7 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 			return NULL;
 		}
 		known_size = dstat.st_size;
-#ifndef DEBUG
+#ifndef SWDEBUG
 	}
 #endif
 

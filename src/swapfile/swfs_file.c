@@ -82,7 +82,7 @@ static void _file_cluster_delete(struct swfile *f, long pos, long cnt);
 static void _file_cluster_insert(struct swfile *df, long dpos,
 				 struct swfile *sf, long spos, long cnt);
 static int _file_grow(struct swfile *f, s64 delta);
-#ifndef DEBUG
+#ifndef SWDEBUG
 #define file_check(f) do {} while (0)
 #define _file_check(f) do {} while (0)
 #else
@@ -211,7 +211,7 @@ static struct swcluster *file_getcluster(struct swfile *f,
 	 * correct reference on the file. */
 	if (!(c = cluster_get(cid, flags, csize)))
 		PANIC("Cannot get cluster");
-#ifdef DEBUG
+#ifdef SWDEBUG
 	if (cluster_checkfileref(c, f->name) == -1)
 		PANIC("Cluster in ctree w/o correct fileref");
 #endif
@@ -245,7 +245,7 @@ static struct swcluster *file_getcluster_private(struct swfile *f,
 	 * correct reference on the file. */
 	if (!(c = cluster_get(cid, flags, csize)))
 		PANIC("Cannot get cluster");
-#ifdef DEBUG
+#ifdef SWDEBUG
 	if (cluster_checkfileref(c, f->name) == -1)
 		PANIC("Cluster in ctree w/o correct fileref");
 #endif
@@ -804,7 +804,7 @@ static int _file_grow(struct swfile *f, s64 delta)
 	return 0;
 }
 
-#ifdef DEBUG
+#ifdef SWDEBUG
 /* Checks the clusters of the file. */
 static void _file_check(struct swfile *f)
 {

@@ -57,7 +57,7 @@ struct swcluster {
 
 /* A maximum size goal we want to achieve for this inefficient
  * implementation via a native filesystem - else it would be S32_MAX. */
-#ifndef DEBUG
+#ifndef SWDEBUG
 #define SWCLUSTER_MAXSIZE (1*512*1024)
 #else
 #define SWCLUSTER_MAXSIZE (1*64*1024)
