@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.62 2001/12/05 15:42:02 richi Exp $
+ * $Id: filter.c,v 1.63 2002/07/30 08:13:57 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -525,7 +525,7 @@ filter_t *filter_collapse(const char *name, filter_t **nodes)
 
 /* I would like to have the following syntax:
  * (let* ((net (filter_creat))
- *        (nodename (filter_add_node net (plugin_get "filter") "nodename")))
+ *        (nodename (filter_add_node net (plugin-get "filter") "nodename")))
  *    (filternode_set_param ....)
  *    (filternetwork_add_input ...)
  *    (filternetwork_add_output ...)
@@ -569,7 +569,7 @@ char *filter_to_string(filter_t *net)
 				       n->name, subnet, n->name);
 			free(subnet);
 		} else
-			len += sprintf(&buf[len], "\t(%s (filter-add-node net (filter-new (plugin_get \"%s\")) \"%s\"))\n",
+			len += sprintf(&buf[len], "\t(%s (filter-add-node net (filter-new (plugin-get \"%s\")) \"%s\"))\n",
 				       n->name, plugin_name(n->plugin), n->name);
 	}
 	/* ((net .. */
