@@ -4,9 +4,10 @@
 /*
  * gtknob.h
  *
- * $Id: gtknob.h,v 1.4 2002/04/10 19:57:33 ochonpaul Exp $
+ * $Id: gtknob.h,v 1.5 2002/04/12 09:32:06 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
+ * Copyright (C) 2002 Richard Guenther, Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +38,7 @@
 #define GTK_IS_KNOB(obj)       (GTK_CHECK_TYPE (obj, GTK_TYPE_KNOB))
 typedef struct _GtkKnob GtkKnob;
 typedef struct _GtkKnobClass GtkKnobClass;
+typedef gchar *(*GtkKnobFormatter)(gfloat, gpointer);
 
 struct _GtkKnob {
     GtkWidget widget;
@@ -50,17 +52,20 @@ struct _GtkKnob {
 
     GtkAdjustment *adjustment;
 
-    gchar show_min[8];
-    gchar show_max[8];
-    gchar show_val[8];
+    GtkKnobFormatter formatter;
+    gpointer formatter_data;
+    gchar *min_cache;
+    gchar *max_cache;
+    gchar *val_cache;
+
     GdkFont *font;
     GdkGC *gc;
-   
-  };
+};
 
 struct _GtkKnobClass {
     GtkWidgetClass parent_class;
 };
+
 
 
 #ifdef __cplusplus
@@ -72,6 +77,9 @@ guint          gtk_knob_get_type(void);
 GtkWidget     *gtk_knob_new(GtkAdjustment * adj);
 void           gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adj);
 GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob);
+void           gtk_knob_set_formatter(GtkKnob *knob, GtkKnobFormatter f,
+                                      gpointer data);
+
 void           gtk_knob_glade_register();
 
 

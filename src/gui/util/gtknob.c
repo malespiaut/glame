@@ -1,9 +1,10 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.7 2002/04/12 08:47:24 ochonpaul Exp $
+ * $Id: gtknob.c,v 1.8 2002/04/12 09:32:06 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
+ * Copyright (C) 2002 Richard Guenther, Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -180,7 +181,12 @@ static void gtk_knob_get_arg(GtkObject * object, GtkArg * arg,
     }
 }
 
-
+static gchar *gtk_knob_standard_formatter(gfloat val, gpointer data)
+{
+	char buf[16];
+	snprintf(buf, 16, "%.1f", val);
+	return g_strdup(buf);
+}
 
 static void gtk_knob_init(GtkKnob * knob)
 {
@@ -193,7 +199,10 @@ static void gtk_knob_init(GtkKnob * knob)
     knob->x_click_point = -1;
     knob->y_click_point = -1;
     knob->adjustment = NULL;
-    
+    knob->formatter = gtk_knob_standard_formatter;
+    knob->min_cache = NULL;
+    knob->max_cache = NULL;
+    knob->val_cache = NULL;
 }
 
 GtkWidget *gtk_knob_new(GtkAdjustment * adj)
@@ -310,14 +319,17 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 	    rect.width = widget->allocation.width;
 	    rect.height = widget->allocation.height;
 	    /* gtk_knob_draw(widget, &rect); */
+#if 0
 	    knob->adjustment->value =
 		(knob->value / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower;
 	    gtk_signal_emit_by_name(GTK_OBJECT(knob->adjustment),
 				    "value_changed");
+#endif
+	    gtk_adjustment_set_value(knob->adjustment, (knob->value / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower);
 
 	    /* printf("adjustment: %f : %f : %f\n", knob->adjustment->upper, */
 /* 	       knob->adjustment->lower, knob->adjustment->value); */
-	    snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value);/*update displayed value*/
+	    //snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value);/*update displayed value*/
 	    oldvalue = knob->value;
 	    gtk_knob_draw(widget, &rect);
 	    
@@ -379,7 +391,7 @@ static void gtk_knob_realize(GtkWidget * widget)
         gdk_gc_set_foreground(knob->gc,&foreground);
     }
     
-    
+#if 0    
     if((knob->adjustment->lower)>999)                /*frequency>1000hz: display as xK, left justify*/
       {
 	snprintf(knob->show_min,4,"%-1.0fK",(knob->adjustment->lower)/1000);
@@ -424,7 +436,7 @@ static void gtk_knob_realize(GtkWidget * widget)
    /* puts(knob->show_min); */
 /*     puts(knob->show_max); */
 /*     puts(knob->show_val);  */
-   
+#endif   
 }
 
 static void gtk_knob_unrealize(GtkWidget * widget)
@@ -566,22 +578,28 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area)
 			widget->allocation.width - 1,
 			widget->allocation.height - 1);
     }
-    /* draw the min/max and value strings*/
+    /* draw the min/max and value strings */
+    if (!knob->min_cache)
+	    knob->min_cache = knob->formatter(knob->adjustment->lower, knob->formatter_data);
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
 		    0,30,
-		    knob->show_min);
+		    knob->min_cache);
+    if (!knob->max_cache)
+	    knob->max_cache = knob->formatter(knob->adjustment->lower, knob->formatter_data);
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
 		    15,30,
-		    knob->show_max);
+		    knob->max_cache);
+    if (!knob->val_cache)
+	    knob->val_cache = knob->formatter(knob->adjustment->value, knob->formatter_data);
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
 		    0,7,
-		    knob->show_val);
+		    knob->val_cache);
 }
 
 void gtk_knob_set_adjustment(GtkKnob * knob, GtkAdjustment * adjustment)
@@ -618,6 +636,21 @@ GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob)
     return knob->adjustment;
 }
 
+void gtk_knob_set_formatter(GtkKnob *knob, GtkKnobFormatter f, gpointer data)
+{
+	knob->formatter = f;
+	knob->formatter_data = data;
+	if (knob->min_cache)
+		g_free(knob->min_cache);
+	if (knob->max_cache)
+		g_free(knob->max_cache);
+	if (knob->val_cache)
+		g_free(knob->val_cache);
+	knob->min_cache = NULL;
+	knob->max_cache = NULL;
+	knob->val_cache = NULL;
+}
+
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data)
 {
@@ -631,8 +664,12 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
     
     knob = GTK_KNOB(data);
     widget = GTK_WIDGET(data);
-    snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value); /*update displayed value*/
-    
+
+    /* update displayed value */
+    if (knob->val_cache)
+	    g_free(knob->val_cache);
+    knob->val_cache = knob->formatter(adjustment->value, knob->formatter_data);
+
     temp = (adjustment->value - adjustment->lower) / (adjustment->upper - adjustment->lower) * 53;
     if (knob->value != temp) {
 	knob->value = temp;
@@ -643,18 +680,36 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 	rect.height = widget->allocation.height;
 	
 	gtk_knob_draw(widget, &rect);
-
     }
 }
 
 
 #ifdef HAVE_LIBGLADE
+#include "glscript.h"
+
+static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
+{
+	SCM format_s, res_s;
+	char *res;
+	long len;
+
+	format_s = glame_gh_safe_eval_str(code);
+	if (!gh_procedure_p(format_s))
+		return g_strdup("Error");
+	res_s = gh_call1(set_s, gh_double2scm(value));
+	if (!gh_string_p(res_s))
+		return g_strdup("Error");
+	res = gh_scm2newstr(res_s, &len);
+	return res;
+}
+
 static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 {
 	GtkWidget *knob;
 	GtkObject *adj;
 	GList *tmp;
 	float value = 0.0, lower = 0.0, upper = 1.0;
+	char *formatter = NULL;
 
 	for (tmp = info->attributes; tmp; tmp = tmp->next) {
 		GladeAttribute *attr = tmp->data;
@@ -664,9 +719,13 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 			sscanf(attr->value, "%f", &lower);
 		if (strcmp(attr->name, "upper") == 0)
 			sscanf(attr->value, "%f", &upper);
+		if (strcmp(attr->name, "formatter") == 0)
+			formatter = attr->value;
 	}
 	adj = gtk_adjustment_new(value, lower, upper, 0.1, 0.1, 0.0);
 	knob = gtk_knob_new(GTK_ADJUSTMENT(adj));
+	if (formatter)
+		gtk_knob_set_formatter(knob, gtk_knob_scheme_formatter, g_strdup(formatter));
 
 	return knob;
 }
@@ -683,3 +742,4 @@ void gtk_knob_glade_register()
 {
 }
 #endif
+
