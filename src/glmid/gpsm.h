@@ -166,6 +166,9 @@ struct gpsm_swfile_s {
 
 #define gpsm_grp_foreach_item(grp, item) list_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, item)
 #define gpsm_grp_safe_foreach_item(grp, dummy, item) list_safe_foreach(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list, dummy, item)
+#define gpsm_grp_nritems(grp) list_count(&((gpsm_grp_t *)(grp))->items)
+#define gpsm_grp_first(grp) list_gethead(&((gpsm_grp_t *)(grp))->items, gpsm_item_t, list)
+#define gpsm_grp_next(grp, item) list_getnext(&((gpsm_grp_t *)(grp))->items, ((gpsm_item_t *)(item)), gpsm_item_t, list)
 
 #define gpsm_swfile_filename(swfile) (((gpsm_swfile_t *)swfile)->filename)
 #define gpsm_swfile_samplerate(swfile) (((gpsm_swfile_t *)swfile)->samplerate)
