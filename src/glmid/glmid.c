@@ -29,7 +29,7 @@
 extern int glscript_init();
 
 /* builtin plugins */
-PLUGIN_SET(glamebuiltins, "basic basic_sample track_io audio_io file_io waveform rms basic_midi midi_io midi_debug arithmetic basicfft")
+PLUGIN_SET(glamebuiltins, "basic basic_sample track_io audio_io file_io waveform rms basic_midi midi_io midi_debug arithmetic basicfft swapfile_io")
 
 static void plugins_process_directory(const char *dir)
 {

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.35 2000/09/21 09:23:06 richi Exp $
+; $Id: glame.scm,v 1.36 2000/10/09 08:40:19 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -200,53 +200,170 @@
 	  "run the net in the background")
 ;-----------------------------------------------------------------
 ;
-; file/track/audio I/O stuff
+; file/swapfile/audio I/O stuff
 ;
 
 ;
-; high level swapfile/track helper
+; high level swapfile helper
 ;
 
-(define file-to-track
-  (lambda (file group track)
-    (let* ((net (net-new))
-	   (rf (net-add-node net read-file)))
-      (filternode_set_param rf "filename" file)
-      (let loop ((i 1))
-	 (let ((to (net-add-node net "track-out")))
-	   (if (eq? (filternetwork_add_connection rf "out" to "in") #f)
-	       (filternetwork_delete_node to)
-	       (begin
-		 (node-set-params to
-		   `("group" ,group)
-		   `("track" ,(string-append track "-" (number->string i))))
-		 (loop (+ i 1))))))
-      (net-run net))))
+(define swapfile
+  (lambda (fname)
+    (begin
+      (swapfile_close)
+      (swapfile_creat fname (* 32 1024 1024))
+      (swapfile_open fname))))
 
+(define sw-creat
+  (lambda (fname)
+    (sw_open fname (+ O_CREAT O_RDWR O_TRUNC) TXN_NONE)))
 
-; (play-track "group" "track")
-(define play-track
-  (lambda (group track)
-    (let* ((net (net-new))
-	   (ti (net-add-node net "track-in"))
-	   (ao (net-add-node net audio-out)))
-      (node-set-params ti `("group" ,group) `("track" ,track))
-      (nodes-connect `(,ti ,ao))
-      (net-run net))))
+(define sw-open
+  (lambda (fname)
+    (sw_open fname O_RDWR TXN_NONE)))
 
-; (play-tracks '("group" "track") '(...) ...)
-(define play-tracks
-  (lambda tracks
-    (let* ((net (net-new))
-	   (mix (net-add-node net "mix2"))
-	   (ao (net-add-node net audio-out)))
-      (nodes-connect `(,mix ,ao))
-      (map (lambda (t)
-	     (let ((ti (net-add-node net "track_in")))
-	       (node-set-params ti `("group" ,(car t)) `("track" ,(cadr t)))
-	       (nodes-connect `(,ti ,mix))))
-	   tracks)
-      (net-run net))))
+(define sw-close
+  (lambda (fd)
+    (sw_close fd)))
+
+(define sw-st-name (lambda (st) (car st)))
+(define sw-st-size (lambda (st) (cadr st)))
+(define sw-st-mode (lambda (st) (caddr st)))
+(define sw-st-offset (lambda (st) (cadddr st)))
+(define sw-st-cluster_start (lambda (st) (car (cddddr st))))
+(define sw-st-cluster_end (lambda (st) (cadr (cddddr st))))
+(define sw-st-cluster_size (lambda (st) (caddr (cddddr st))))
+
+(define sw-stat
+  (lambda (fd)
+    (let ((st (sw_fstat fd)))
+      (list "Name:" (sw-st-name st)
+	    "Size:" (sw-st-size st)
+	    "Offset:" (sw-st-offset st)
+	    "Cluster:" (sw-st-cluster_start st) (sw-st-cluster_size st)
+	    "raw:" st))))
+
+(define sw-contents
+  (lambda (fd)
+    (let ((st (sw_fstat fd))
+	  (data ""))
+      (sw_lseek fd 0 SEEK_SET)
+      (set! data (sw_read_string fd (sw-st-size st)))
+      (sw_lseek fd (sw-st-offset st) SEEK_SET)
+      data)))
+
+(define sw-display
+  (lambda (fd)
+    (begin
+      (display (sw-stat fd)) (newline)
+      (display (sw-contents fd)) (newline))))
+
+(define swtest
+  (lambda (name test result)
+    (let ((res (test)))
+      (begin
+	(display name)
+	(cond ((equal? res result) (begin (display " passed.\n") #t))
+	      (else (begin
+		      (display " failed.\n")
+		      (display res) (newline)
+		      (display "Should be\n")
+		      (display result) (newline)
+		      (display "*** Test not passed. ***\n")
+		      #f)))))))
+
+(define swtest-rw-simple
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999))
+			(res ""))
+		    (sw_write fd "Hello")
+		    (sw_write fd "World!")
+		    (sw_lseek fd 5 SEEK_SET)
+		    (sw_write fd " World!")
+		    (set! res (sw-contents fd))
+		    (sw_close fd)
+		    (sw_unlink 999)
+		    res))))
+      (swtest "Simple read-write" test "Hello World!"))))
+
+(define swtest-cut-aligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999))
+			(result ""))
+		    (sw_write fd "Hallo ")
+		    (sw_write fd "Leute, ")
+		    (sw_write fd "wie gehts?")
+		    (sw_lseek fd 6 SEEK_SET)
+		    (sw_sendfile SW_NOFILE fd 7 SWSENDFILE_CUT)
+		    (set! result (sw-contents fd))
+		    (sw_close fd)
+		    (sw_unlink 999)
+		    result))))
+      (swtest "Aligned cut" test "Hallo wie gehts?"))))
+
+(define swtest-cut-unaligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999))
+			(result ""))
+		    (sw_write fd "Hallo Leute, wie gehts?")
+		    (sw_lseek fd 6 SEEK_SET)
+		    (sw_sendfile SW_NOFILE fd 7 SWSENDFILE_CUT)
+		    (set! result (sw-contents fd))
+		    (sw_close fd)
+		    (sw_unlink 999)
+		    result))))
+      (swtest "Unaligned cut" test "Hallo wie gehts?"))))
+
+(define swtest-insert-aligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998))
+			(fd2 (sw-creat 999))
+			(result ""))
+		    (sw_write fd1 "Hallo ")
+		    (sw_write fd1 "wie gehts?")
+		    (sw_write fd2 "Leute, ")
+		    (sw_lseek fd1 6 SEEK_SET)
+		    (sw_lseek fd2 0 SEEK_SET)
+		    (sw_sendfile fd1 fd2 7 SWSENDFILE_INSERT)
+		    (set! result (sw-contents fd1))
+		    (sw_close fd1)
+		    (sw_close fd2)
+		    (sw_unlink 998)
+		    (sw_unlink 999)
+		    result))))
+      (swtest "Aligned insert" test "Hallo Leute, wie gehts?"))))
+
+(define swtest-insert-unaligned
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998))
+			(fd2 (sw-creat 999))
+			(result ""))
+		    (sw_write fd1 "Hallo wie gehts?")
+		    (sw_write fd2 "Bla Leute, Blubb")
+		    (sw_lseek fd1 6 SEEK_SET)
+		    (sw_lseek fd2 4 SEEK_SET)
+		    (sw_sendfile fd1 fd2 7 SWSENDFILE_INSERT)
+		    (set! result (sw-contents fd1))
+		    (sw_close fd1)
+		    (sw_close fd2)
+		    (sw_unlink 998)
+		    (sw_unlink 999)
+		    result))))
+      (swtest "Unaligned insert" test "Hallo Leute, wie gehts?"))))
+
+(define swtest-all
+  (lambda ()
+    (and (swtest-rw-simple)
+	 (swtest-cut-aligned)
+	 (swtest-cut-unaligned)
+	 (swtest-insert-aligned)
+	 (swtest-insert-unaligned))))
+
 
 
 ;
