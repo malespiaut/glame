@@ -35,15 +35,15 @@
  * and map-discard is also provided.
  *
  * General usage is to init the pmap subsystem by specifying
- * the amount of (continous) virtual memory space you want
- * to have available - i.e. not used by the pmap cache.
+ * the amount of virtual memory space you want the pmap cache
+ * to use.
  */
 
 
 /* Init the pmap subsystem. 0 is returned on success, -1 on failure.
- * The parameter specifies the amount of virtual memory to keep free,
- * i.e. indirectly the maximum size of the mmap cache. */
-int pmap_init(size_t minfree);
+ * The parameter specifies the amount of virtual memory to use for
+ * the mmap cache. */
+int pmap_init(size_t maxsize);
 
 /* pmap_close unmaps all remaining mappings and cleans up after the
  * pmap subsystem. */
@@ -53,7 +53,9 @@ void pmap_close();
 /* pmap_map works like mmap() - see mmap(2) for detailed parameter
  * description.
  * Note that MAP_SHARED mappings may share the virtual mapping
- * with another user of the same type (length/prot/flags/fd/offset). */
+ * with another user of the same type (length/prot/flags/fd/offset)
+ * and that flags other than MAP_SHARED and MAP_PRIVATE are not
+ * supported. */
 void *pmap_map(void *start, size_t length, int prot,
 	       int flags, int fd, off_t offset);
 
@@ -81,14 +83,12 @@ void pmap_shrink();
 
 /* pmap_uncache tries to unmap any unused cached mapping of the specified
  * type. Note that size/offset are not treated exact, but all mappings
- * overlapping that area are affected by the operation. Also protection
- * and flags do not have to match exactly, but only include one of the
- * specified bits - i.e. -1 will select all.
+ * overlapping that area are affected by the operation.
  * pmap_uncache returns -1, if there were used mappings inside the specified
  * region, else 0. Note that this result is not exactly reliable, as at
  * return time another thread may have created another mapping inside the
  * specified area. You have to lock against this case yourself. */
-int pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset);
+int pmap_uncache(int fd, off_t offset, size_t size);
 
 /* Like pmap_uncache pmap_invalidate unmaps any unused cached mapping
  * which can be specified like with pmap_uncache. But unlike pmap_uncache
@@ -96,7 +96,11 @@ int pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset);
  * (Note: not from _new_ mappings being created!). This is especially
  * useful to prevent mappings to be wrongly reused if closing the file
  * descriptor and reusing it with another file. */
-void pmap_invalidate(size_t size, int prot, int flags, int fd, off_t offset);
+void pmap_invalidate(int fd, off_t offset, size_t size);
+
+/* Checks, if there are (cached or used) mappings with the specified
+ * properties. Returns 1 if this is the case, else 0. */
+int pmap_has_mappings(int fd, off_t offset, size_t size);
 
 
 #endif
