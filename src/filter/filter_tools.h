@@ -2,7 +2,14 @@
 #define _FILTER_TOOLS_H
 
 
-/* add your favorite generic tools for filter programming here */
+/* Add your favorite generic tools for filter programming here.
+ */
+
+
+/* Support for feedback and generic fifo queues
+ * inside a filter.
+ */
+
 typedef struct list_head feedback_fifo_t;
 #define INIT_FEEDBACK_FIFO(fifo) INIT_LIST_HEAD(&(fifo))
 
@@ -39,6 +46,59 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
 }
 
 
+/* Generic structures and functions for n to one filters
+ * without write buffering. Synchron operation.
+ */
+typedef struct {
+	filter_pipe_t *in;
+	filter_buffer_t *buf;
+	SAMPLE *s;
+	int pos;
+} nto1_state_t;
+static inline int nto1_head(nto1_state_t *I, int nr)
+{
+	int cnt, i;
+
+	/* Find the maximum number of samples we can
+	 * process in one run. But not more than
+	 * GLAME_WBUFSIZE. */
+	cnt = GLAME_WBUFSIZE;
+	for (i=0; i<nr; i++) {
+		if (!I[i].buf)
+			continue;
+		cnt = MIN(cnt, sbuf_size(I[i].buf) - I[i].pos);
+	}
+	/* Fix the resulting buffer positions. */
+	for (i=0; i<nr; i++)
+		if (I[i].buf)
+			I[i].pos += cnt;
+	return cnt;
+}
+static inline int nto1_tail(nto1_state_t *I, int nr)
+{
+	int nr_deactivated = 0, i;
+
+	/* Check for missing buffers and EOFs.
+	 * This does work as entry as well because
+	 * sbuf_size(NULL) == 0 and I is prezeroed. */
+	for (i=0; i<nr; i++) {
+		if (!I[i].in)
+			continue;
+		if (sbuf_size(I[i].buf) == I[i].pos) {
+			I[i].buf = sbuf_get(I[i].in);
+			I[i].s = sbuf_buf(I[i].buf);
+			I[i].pos = 0;
+			if (!I[i].buf) {
+				I[i].in = NULL;
+				nr_deactivated++;
+			}
+		}
+	}
+	return nr_deactivated;
+}
+
+
+
 /* SAMPLE to various type conversion including clipping of the
  * samples to [-1,1].
  */
@@ -68,105 +128,53 @@ static inline unsigned char SAMPLE2UCHAR(SAMPLE s)
 /* convert time in ms to number of samples */
 #define TIME2CNT(type, time, rate) (type)(time*rate/1000.0)
 
+
 /* Here follows a set of fast computing macros for standard operations.
- * To be implemented using ISSE/3DNOW stuff if available.
+ * To be implemented using ISSE/3DNOW stuff if available. Probably only
+ * the higher cound ones (SCALARPROD_XD_4).
+ * Note that if called like SCALARPROD_1D_1(s, s, f) the compiler
+ * can optimize away the destp++ test. Asm versions will want to do
+ * seperate versions of both cases.
  */
 
-#define SCALARPROD1_1(destsourcep, fact) \
+#define SCALARPROD_1D_1(destp, source1p, fact1) \
 do { \
-	*destsourcep = (*destsourcep)*fact; \
-        if (*destsourcep<-1.0) *destsourcep = -1.0; \
-        else if (*destsourcep>1.0) *destsourcep = 1.0; \
-        destsourcep++; \
+	*destp = *(source1p++)*fact1; \
+        if (&destp != &source1p) destp++; \
 } while (0)
 
-#define SCALARPROD4_1(destsourcep, fact) \
+#define SCALARPROD_1D_4(destp, source1p, fact1) \
 do { \
-	*destsourcep = (*destsourcep)*fact; \
-        if (*destsourcep<-1.0) *destsourcep = -1.0; \
-        else if (*destsourcep>1.0) *destsourcep = 1.0; \
-        destsourcep++; \
-	*destsourcep = (*destsourcep)*fact; \
-        if (*destsourcep<-1.0) *destsourcep = -1.0; \
-        else if (*destsourcep>1.0) *destsourcep = 1.0; \
-        destsourcep++; \
-	*destsourcep = (*destsourcep)*fact; \
-        if (*destsourcep<-1.0) *destsourcep = -1.0; \
-        else if (*destsourcep>1.0) *destsourcep = 1.0; \
-        destsourcep++; \
-	*destsourcep = (*destsourcep)*fact; \
-        if (*destsourcep<-1.0) *destsourcep = -1.0; \
-        else if (*destsourcep>1.0) *destsourcep = 1.0; \
-        destsourcep++; \
+        SCALARPROD_1D_1(destp, source1p, fact1); \
+        SCALARPROD_1D_1(destp, source1p, fact1); \
+        SCALARPROD_1D_1(destp, source1p, fact1); \
+        SCALARPROD_1D_1(destp, source1p, fact1); \
 } while (0)
 
-
-#define SCALARPROD1_2(destsource1p, source2p, fact1, fact2) \
+#define SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2) \
 do { \
-	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
-	destsource1p++; source2p++; \
+	*destp = *(source1p++)*fact1 + *(source2p++)*fact2; \
+	if (&destp != &source1p) destp++; \
 } while (0)
-#define SCALARPROD4_2(destsource1p, source2p, fact1, fact2) \
+#define SCALARPROD_2D_4(destp, source1p, source2p, fact1, fact2) \
 do { \
-	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
-	destsource1p++; source2p++; \
-	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
-	destsource1p++; source2p++; \
-	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
-	destsource1p++; source2p++; \
-	*destsource1p = (*destsource1p)*fact1 + (*source2p)*fact2; \
-	destsource1p++; source2p++; \
+        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
+        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
+        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
+        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
 } while (0)
 
-#define SCALARPROD1_1_d(destp, source1p, fact1) \
+#define SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
 do { \
-	*destp = (*source1p)*fact1; \
-	destp++; source1p++; \
+	*destp = *(source1p++)*fact1 + *(source2p++)*fact2 + *(source3p++)*fact3; \
+	if (&destp != &source1p) destp++; \
 } while (0)
-#define SCALARPROD4_1_d(destp, source1p, fact1) \
+#define SCALARPROD_3D_4(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
 do { \
-	*destp = (*source1p)*fact1; \
-	destp++; source1p++; \
-	*destp = (*source1p)*fact1; \
-	destp++; source1p++; \
-	*destp = (*source1p)*fact1; \
-	destp++; source1p++; \
-	*destp = (*source1p)*fact1; \
-	destp++; source1p++; \
-} while (0)
-
-#define SCALARPROD1_2_d(destp, source1p, source2p, fact1, fact2) \
-do { \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
-	destp++; source1p++; source2p++; \
-} while (0)
-#define SCALARPROD4_2_d(destp, source1p, source2p, fact1, fact2) \
-do { \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
-	destp++; source1p++; source2p++; \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
-	destp++; source1p++; source2p++; \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
-	destp++; source1p++; source2p++; \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
-	destp++; source1p++; source2p++; \
-} while (0)
-
-#define SCALARPROD1_3_d(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
-do { \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
-	destp++; source1p++; source2p++; source3p++; \
-} while (0)
-#define SCALARPROD4_3_d(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
-do { \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
-	destp++; source1p++; source2p++; source3p++; \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
-	destp++; source1p++; source2p++; source3p++; \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
-	destp++; source1p++; source2p++; source3p++; \
-	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
-	destp++; source1p++; source2p++; source3p++; \
+        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
+        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
+        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
+        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
 } while (0)
 
 
