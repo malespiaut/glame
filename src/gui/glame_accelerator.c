@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.2 2001/06/06 12:02:36 richi Exp $
+ * $Id: glame_accelerator.c,v 1.3 2001/06/07 14:03:41 xwolf Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -95,7 +95,7 @@ static gint accel_cb(GtkWidget *widget, GdkEventKey *event,
 
 	snprintf(spec, 255, "%s/%x-%s",
 		 data->scope,
-		 event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK|GDK_MOD1_MASK|GDK_MOD2_MASK),
+		 event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK|GDK_MOD1_MASK),
 		 gdk_keyval_name(event->keyval));
 	DPRINTF("Event %s\n", spec);
 	if (!(accel = hash_find_accel(spec))) {
