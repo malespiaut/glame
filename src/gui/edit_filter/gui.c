@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.20 2001/04/19 23:22:29 xwolf Exp $
+ * $Id: gui.c,v 1.21 2001/04/22 14:24:05 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -330,6 +330,8 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	float fVal;
 	char* cVal;
 	filter_param_t* param;
+	char label[256];
+
 	propBox = gnome_property_box_new ();
 	
 	tablabel=gtk_label_new(_(caption));
@@ -361,7 +363,16 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
 			fVal = filterparam_val_float(param);
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
-			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S)
+				snprintf(label, 255, "%s [s]",
+					 filterparam_label(param));
+			else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS)
+				snprintf(label, 255, "%s [ms]",
+					 filterparam_label(param));
+			else
+				snprintf(label, 255, "%s",
+					 filterparam_label(param));
+			create_label_widget_pair(vbox, label, entry);
 			pw = malloc(sizeof(param_widget_t));
 			pw->widget = entry;
 			pw->param = param;
