@@ -61,8 +61,10 @@
 
 
 /* Some operations have two implementations, one cooked up out
- * of swapfile API functions, one out of lowlevel ones. */
+ * of swapfile API functions, one out of lowlevel ones. Other
+ * have an optimized hardcoded path for common usage patterns. */
 #undef USE_COOKED_OPS
+#undef USE_OPTIMIZED_PATH
 
 
 /* The global "state" of the swapfile and its locks. The
@@ -240,7 +242,7 @@ int swapfile_creat(const char *name, size_t size)
 
 
 /* FSCK helpers. */
-static int swapfile_fsck_scan_clusters()
+static int fsck_scan_clusters()
 {
 	int fixed_something = 0;
 	char s[256];
@@ -285,25 +287,33 @@ static int swapfile_fsck_scan_clusters()
 			}
 			continue;
 		}
+		/* Create the meta, if not exisiting. */
+		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
+		if (access(s, R_OK) == -1) {
+			if ((fd = open(s, O_RDWR|O_CREAT, 0666)) != -1) {
+				DPRINTF("Recreating missing metadata file for cluster %li\n", name);
+				/* We need to add a dummy reference to prevent
+				 * cluster from being deleted. */
+				cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+				if (cluster) {
+					cluster_addfileref(cluster, 1);
+					cluster_put(cluster, 0);
+				}
+				fixed_something = 1;
+				close(fd);
+			} else
+				DPRINTF("FAILED!\n");
+		}
 		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
 		if (cluster) {
 			cluster_put(cluster, 0);
 			continue;
 		}
-		fixed_something = 1;
-		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
-		if ((fd = open(s, O_RDWR|O_CREAT|0666)) != -1) {
-			close(fd);
-			cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
-			if (cluster) {
-				cluster_put(cluster, 0);
-				continue;
-			}
-		}
 		DPRINTF("Deleting stale cluster %li\n", name);
 		unlink(s);
 		snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
 		unlink(s);
+		fixed_something = 1;
 	}
 	closedir(dir);
 
@@ -427,7 +437,7 @@ static int fsck_cluster(struct swcluster *cluster, int fix)
 
 	return unclean;
 }
-static int swapfile_fsck_fix_cluster_file_references(int fix)
+static int fsck_fix_cluster_file_references(int fix)
 {
 	DIR *dir;
 	struct dirent *e;
@@ -457,13 +467,14 @@ static int swapfile_fsck_fix_cluster_file_references(int fix)
 					file_put(file, 0);
 				file = file_get(name, FILEGET_CREAT|FILEGET_READCLUSTERS);
 			}
-			ctree_insert1(file->clusters, file->clusters->cnt,
-				      cluster->name, cluster->size);
+			file->clusters = ctree_insert1(file->clusters, file->clusters->cnt,
+						       cluster->name, cluster->size);
 			file->flags |= SWF_DIRTY;
 			cluster_addfileref(cluster, file->name);
 			unclean = 1;
 		}
 		cluster_put(cluster, CLUSTERPUT_FREE);
+		unclean = 1;
 	}
 	if (file)
 		file_put(file, FILEPUT_SYNC);
@@ -477,7 +488,7 @@ int swapfile_fsck(const char *name, int force)
 {
 	char str[256];
 	FILE *f;
-	int pid, cnt, unclean;
+	int pid, unclean;
 	SWDIR *dir;
 	long nm;
 
@@ -530,14 +541,12 @@ int swapfile_fsck(const char *name, int force)
 
 	/* Loop over all cluster data/meta files and check if they
 	 * are valid clusters. Try to fix clusters without metadata. */
-	swapfile_fsck_scan_clusters();
+	unclean |= fsck_scan_clusters();
 
 	/* Loop over all files and try to "touch" them. */
 	dir = sw_opendir();
 	while ((nm = sw_readdir(dir)) != -1) {
 		struct swfile *file;
-		struct swcluster *cluster;
-		int i, j;
 
 		/* Get the file. */
 		file = file_get(nm, FILEGET_READCLUSTERS);
@@ -554,7 +563,7 @@ int swapfile_fsck(const char *name, int force)
 
 	/* Loop over all clusters and remove stale references to
 	 * non-existing files and wrong references. */
-	swapfile_fsck_fix_cluster_file_references(1);
+	unclean |= fsck_fix_cluster_file_references(1);
 
 	swapfile_close();
 
@@ -1114,6 +1123,40 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 		return -1;
 	}
 	UNLOCK;
+
+#ifdef USE_OPTIMIZED_PATH
+	/* Ok, I never wanted to do it - but here it is - optimized
+	 * we-are-going-to-only-extend-the-file case. Duh. Actually
+	 * very simple :) */
+	LOCKFILE(_fd->file);
+	if (_fd->offset == _fd->file->clusters->size
+	    && _fd->file->clusters->cnt > 0
+	    && CSIZE(_fd->file->clusters, _fd->file->clusters->cnt-1) + count <= SWCLUSTER_MAXSIZE) {
+		if (!(c = cluster_get(CID(_fd->file->clusters, _fd->file->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(_fd->file->clusters, _fd->file->clusters->cnt-1))))
+			goto _fuck;
+		LOCKCLUSTER(c);
+		if (c->files_cnt != 1) {
+			UNLOCKCLUSTER(c);
+			cluster_put(c, 0);
+			goto _fuck;
+		}
+		UNLOCKCLUSTER(c);
+		if (cluster_write_extend(c, buf, count) != count)
+			PANIC("Doh - we fucked up");
+		/* Ok, it seems, it worked. */
+		ctree_replace1(_fd->file->clusters, _fd->file->clusters->cnt-1,
+			       c->name, c->size);
+		_fd->file->flags |= SWF_DIRTY;
+		cluster_put(c, 0);
+		_fd->offset += count;
+		UNLOCKFILE(_fd->file);
+		file_check(_fd->file);
+		return count;
+	_fuck:
+		/* Fail back to slow operation. */ ;
+	}
+	UNLOCKFILE(_fd->file);
+#endif
 
 	/* Check, if we need to expand the file. */
 	if (_fd->offset + count > _fd->file->clusters->size) {
