@@ -47,13 +47,11 @@ static void dump_item(gpsm_item_t *item, xmlNodePtr node)
 	if (GPSM_ITEM_IS_GRP(item)) {
 		gpsm_grp_t *group = (gpsm_grp_t *)item;
 		child = xmlNewChild(node, NULL, "group", NULL);
-		xmlSetProp(child, "label", item->label);
 		if (!list_empty(&group->items))
 			dump_tree(group, child);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		gpsm_swfile_t *swfile = (gpsm_swfile_t *)item;
 		child = xmlNewChild(node, NULL, "file", NULL);
-		xmlSetProp(child, "label", item->label);
 		snprintf(s, 255, "%li", swfile->filename);
 		xmlSetProp(child, "fd", s);
 		snprintf(s, 255, "%i", swfile->samplerate);
@@ -61,6 +59,11 @@ static void dump_item(gpsm_item_t *item, xmlNodePtr node)
 		snprintf(s, 255, "%.3f", swfile->position);
 		xmlSetProp(child, "position", s);
 	}
+	xmlSetProp(child, "label", item->label);
+	snprintf(s, 255, "%li", item->hposition);
+	xmlSetProp(child, "hpos", s);
+	snprintf(s, 255, "%li", item->vposition);
+	xmlSetProp(child, "vpos", s);
 }
 static void dump_tree(gpsm_grp_t *tree, xmlNodePtr node)
 {
@@ -96,21 +99,24 @@ static void insert_node(gpsm_grp_t *tree, xmlNodePtr node)
 
 	if (strcmp(node->name, "file") == 0) {
 		gpsm_swfile_t *swfile;
-		long ifd, irate;
+		long ifd;
 		float iposition;
 		struct sw_stat st;
-		int fd;
+		int irate, fd;
 
 		/* Extract file information. */
 		if (!(c = xmlGetProp(node, "fd")))
 			c = "-1";
-		ifd = atoi(c);
+		if (sscanf(c, "%li", &ifd) != 1)
+			ifd = -1;
 		if (!(c = xmlGetProp(node, "rate")))
 			c = "44100";
-		irate = atoi(c);
+		if (sscanf(c, "%i", &irate) != 1)
+			irate = 44100;
 		if (!(c = xmlGetProp(node, "position")))
 			c = "0.0";
-		irate = atof(c);
+		if (sscanf(c, "%f", &iposition) != -1)
+			iposition = 0.0;
 
 		/* Check, if the file is really there (and update info) */
 		if ((fd = sw_open(ifd, O_RDONLY, TXN_NONE)) != -1) {
@@ -140,10 +146,12 @@ static void insert_node(gpsm_grp_t *tree, xmlNodePtr node)
 	item->label = ilabel;
 	if (!(c = xmlGetProp(node, "hpos")))
 		c = "0";
-	ihposition = atoi(c);
+	if (sscanf(c, "%li", &ihposition) != 1)
+		ihposition = 0;
 	if (!(c = xmlGetProp(node, "vpos")))
 		c = "0";
-	ivposition = atoi(c);
+	if (sscanf(c, "%li", &ivposition) != 1)
+		ivposition = -1;
 
 	gpsm_grp_insert(tree, item, ihposition, ivposition);
 	if (GPSM_ITEM_IS_GRP(item))
@@ -163,8 +171,8 @@ static void scan_swap()
 
 	/* Add unknown group and iterate through all swapfiles adding those
 	 * not already contained in the tree. */
-	if (!(grp = gpsm_find_group_label(gpsm_root(), "unknown"))) {
-		grp = gpsm_newgrp("unknown");
+	if (!(grp = gpsm_find_grp_label(gpsm_root(), "unknown"))) {
+		grp = gpsm_newgrp("[unrecognized tracks]");
 		gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, 100000);
 	}
 	dir = sw_opendir();
@@ -176,10 +184,13 @@ static void scan_swap()
 		fd = sw_open(name, O_RDONLY, TXN_NONE);
 		sw_fstat(fd, &st);
 		sw_close(fd);
-		swfile = gpsm_newswfile("unnamed");
-		swfile->filename = name;
+		swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
+		swfile->item.label = strdup("(unnamed)");
 		swfile->item.hsize = st.size/SAMPLE_SIZE;
 		swfile->item.vsize = 1;
+		swfile->filename = name;
+		swfile->samplerate = 44100;
+		swfile->position = 0.0;
 
 		gpsm_grp_insert(grp, (gpsm_item_t *)swfile, 0, -1);
 	}
@@ -251,6 +262,7 @@ int gpsm_init(const char *swapfile)
 
 	/* Create the tree root group and recurse down the xml tree. */
         root = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);
+	root->item.label = strdup("(root)");
         insert_childs(root, xmlDocGetRootElement(doc));
 
 	/* Search for not xml-ed swapfile. */
@@ -304,11 +316,9 @@ void gpsm_close()
 
 
 
-gpsm_grp_t *gpsm_root(void)
-{
-	return root;
-}
-
+/*
+ * Item constructors / destructors.
+ */
 
 static gpsm_item_t *gpsm_newitem(int type)
 {
@@ -334,15 +344,21 @@ static gpsm_item_t *gpsm_newitem(int type)
 	INIT_GLSIG_EMITTER(&item->emitter);
 	item->type = type;
 	item->label = NULL;
-	item->hposition = -1;
-	item->vposition = -1;
+	item->hposition = 0;
+	item->vposition = 0;
 	item->hsize = -1;
 	item->vsize = -1;
 	if (GPSM_ITEM_IS_GRP(item))
 		INIT_LIST_HEAD(&((gpsm_grp_t *)item)->items);
+	else if (GPSM_ITEM_IS_SWFILE(item)) {
+		item->hsize = 0;
+		item->vsize = 1;
+		((gpsm_swfile_t *)item)->filename = -1;
+	}
 
 	return item;
 }
+
 
 gpsm_swfile_t *gpsm_newswfile(const char *label)
 {
@@ -353,16 +369,85 @@ gpsm_swfile_t *gpsm_newswfile(const char *label)
 		return NULL;
 
 	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
+	swfile->item.label = strdup(label);
+	swfile->item.hposition = 0;
+	swfile->item.vposition = 0;
+	swfile->item.hsize = 0;
+	swfile->item.vsize = 1;
 	while ((fd = sw_open((swfile->filename = rand()),
 			     O_RDWR|O_CREAT|O_EXCL, TXN_NONE)) == -1)
 		;
 	sw_close(fd);
-	swfile->samplerate = -1;
+	swfile->samplerate = GLAME_DEFAULT_SAMPLERATE;
 	swfile->position = 0.0;
-	swfile->item.label = strdup(label);
 
 	return swfile;
 }
+
+gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *source)
+{
+	gpsm_swfile_t *swfile;
+	struct sw_stat st;
+	swfd_t sfd, dfd;
+	int res;
+
+	if (!source)
+		return NULL;
+
+	if ((sfd = sw_open(source->filename, O_RDONLY, TXN_NONE)) == -1)
+		return NULL;
+	if (sw_fstat(sfd, &st) == -1) {
+		sw_close(sfd);
+		return NULL;
+	}
+
+	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
+	while ((dfd = sw_open((swfile->filename = rand()),
+			      O_RDWR|O_CREAT|O_EXCL, TXN_NONE)) == -1)
+		;
+
+	if ((res = sw_ftruncate(dfd, st.size)) == -1
+	    || (res = sw_sendfile(dfd, sfd, st.size, 0)) == -1)
+		;
+	sw_close(sfd);
+	sw_close(dfd);
+	if (res == -1) {
+		sw_unlink(swfile->filename);
+		free(swfile);
+		return NULL;
+	}
+
+	swfile->item.label = strdup(source->item.label);
+	swfile->item.hposition = 0;
+	swfile->item.vposition = 0;
+	swfile->item.hsize = source->item.hsize;
+	swfile->item.vsize = source->item.vsize;
+	swfile->samplerate = source->samplerate;
+	swfile->position = source->position;
+
+	return swfile;
+}
+
+gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *source)
+{
+	gpsm_swfile_t *swfile;
+
+	if (!swfile)
+		return NULL;
+
+	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
+	swfile->item.label = strdup(source->item.label);
+	swfile->item.hposition = 0;
+	swfile->item.vposition = 0;
+	swfile->item.hsize = source->item.hsize;
+	swfile->item.vsize = source->item.vsize;
+	swfile->filename = source->filename;
+	swfile->samplerate = source->samplerate;
+	swfile->position = source->position;
+
+	return swfile;
+}
+
 
 gpsm_grp_t *gpsm_newgrp(const char *label)
 {
@@ -376,6 +461,7 @@ gpsm_grp_t *gpsm_newgrp(const char *label)
 
 	return group;
 }
+
 
 void gpsm_item_destroy(gpsm_item_t *item)
 {
@@ -411,42 +497,22 @@ void gpsm_item_destroy(gpsm_item_t *item)
 }
 
 
-gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *swfile)
-{
-	/* FIXME */
-	return NULL;
-}
 
-gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *swfile)
-{
-	/* FIXME */
-	return NULL;
-}
-
+/*
+ * Group insertion / removal API.
+ */
 
 static int _fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 {
 	int changed = 0;
 
 	/* Fixup group boundingbox wrt item. */
-	if (item->hposition < group->item.hposition
-	    || group->item.hposition == -1) {
-		group->item.hsize += group->item.hposition - item->hposition;
-		group->item.hposition = item->hposition;
+	if (item->hposition + item->hsize > group->item.hsize) {
+		group->item.hsize = item->hposition + item->hsize;
 		changed = 1;
 	}
-	if (item->vposition < group->item.vposition
-	    || group->item.vposition == -1) {
-		group->item.vsize += group->item.vposition - item->vposition;
-		group->item.vposition = item->vposition;
-		changed = 1;
-	}
-	if (item->hposition + item->hsize > group->item.hposition + group->item.hsize) {
-		group->item.hsize = item->hposition + item->hsize - group->item.hposition;
-		changed = 1;
-	}
-	if (item->vposition + item->vsize > group->item.vposition + group->item.vsize) {
-		group->item.vsize = item->vposition + item->vsize - group->item.vposition;
+	if (item->vposition + item->vsize > group->item.vsize) {
+		group->item.vsize = item->vposition + item->vsize;
 		changed = 1;
 	}
 
@@ -454,19 +520,55 @@ static int _fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 }
 static void gpsm_grp_fixup_boundingbox(gpsm_grp_t *group, gpsm_item_t *item)
 {
-	int changed;
+	int changed = _fixup_boundingbox(group, item);
 
-	if (!group || !item)
-		return;
-
-	changed = _fixup_boundingbox(group, item);
-
-	/* Send out the GPSM_SIG_ITEM_CHANGED signal, if necessary. */
+	/* Send out the GPSM_SIG_ITEM_CHANGED signal, if necessary.
+	 * This will go up the tree and fix parents boundingboxes. */
 	if (changed)
 		glsig_emit(&group->item.emitter, GPSM_SIG_ITEM_CHANGED, group);
+}
+static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
+{
+	switch (sig) {
+	case GPSM_SIG_ITEM_CHANGED: {
+		gpsm_item_t *item;
 
-	/* Go upward the tree. */
-	gpsm_grp_fixup_boundingbox(group->item.parent, (gpsm_item_t *)group);
+		GLSIGH_GETARGS1(va, item);
+
+		/* Are we no longer member of a group? Can't be... */
+		if (!item->parent)
+			PANIC("Removed item with active signal handler.");
+
+		/* Fixup boundingbox of our parent. */
+		gpsm_grp_fixup_boundingbox(item->parent, item);
+
+		break;
+	}
+	case GPSM_SIG_ITEM_REMOVE: {
+		gpsm_item_t *item;
+		gpsm_grp_t *grp;
+
+		GLSIGH_GETARGS1(va, item);
+		grp = item->parent;
+
+		/* Remove this signal handler, we will no longer need it. */
+		glsig_delete_handler(handler);
+
+		/* Rebuild groups boundingbox. */
+		grp->item.hsize = 0;
+		grp->item.vsize = 0;
+		list_foreach(&grp->items, gpsm_item_t, list, item)
+			_fixup_boundingbox(grp, item);
+
+		/* We dont need to send a signal out here, this will
+		 * be done in gpsm_item_remove() anyway.
+		 */
+
+		break;
+	}
+	default:
+		;
+	}
 }
 
 int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
@@ -478,19 +580,27 @@ int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 
 	/* FIXME - check overlap, sort items. */
 
-	/* Fixup item position. */
+	/* Fixup item position, handle magic -1 values. */
+	if (hposition == -1 && vposition == -1)
+		hposition = 0;
+	if (hposition == -1)
+		hposition = group->item.hsize;
+	if (vposition == -1)
+		vposition = group->item.vsize;
 	item->hposition = hposition;
 	item->vposition = vposition;
+
+	/* Register an item changed signal handler to the new item
+	 * to update the parents boundingbox, if necessary. */
+	glsig_add_handler(&item->emitter, GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
+			  handle_itemchange, item);
 
 	/* Do the addition, send out GPSM_SIG_ITEM_CHANGED signal. */
 	item->parent = group;
 	list_add_tail(&item->list, &group->items);
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
 
-	/* Fix the groups bounding box. */
-	gpsm_grp_fixup_boundingbox(group, item);
-
-	/* Finally send out GPSM_SIG_GRP_NEWITEM signal. */
+	/* Send out GPSM_SIG_GRP_NEWITEM signal. */
 	glsig_emit(&group->item.emitter, GPSM_SIG_GRP_NEWITEM, group, item);
 
 	return 0;
@@ -503,24 +613,28 @@ void gpsm_item_remove(gpsm_item_t *item)
 	if (!item || list_empty(&item->list) || !(grp = item->parent))
 		return;
 
-	/* First send out GPSM_SIG_GRP_REMOVEITEM signal. */
+	/* First send out GPSM_SIG_GRP_REMOVEITEM signal. This will
+	 * fix grps boundingbox, too. */
+	glsig_emit(&item->emitter, GPSM_SIG_ITEM_REMOVE, item);
 	glsig_emit(&grp->item.emitter, GPSM_SIG_GRP_REMOVEITEM, grp, item);
 
 	/* Do the removal. */
 	list_del(&item->list);
 	item->parent = NULL;
+	item->hposition = 0;
+	item->vposition = 0;
 
-	/* Fix the groups bounding box. */
-	grp->item.hposition = -1;
-	grp->item.vposition = -1;
-	grp->item.hsize = -1;
-	grp->item.vsize = -1;
-	list_foreach(&grp->items, gpsm_item_t, list, item)
-		_fixup_boundingbox(grp, item);
-
-	/* Send out the GPSM_SIG_ITEM_CHANGED signal. */
+	/* Send out the GPSM_SIG_ITEM_CHANGED signal for both group
+	 * and item. This will fix all other bounding boxes. */
 	glsig_emit(&grp->item.emitter, GPSM_SIG_ITEM_CHANGED, grp);
+	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
 }
+
+
+
+/*
+ * Item change API.
+ */
 
 void gpsm_item_set_label(gpsm_item_t *item, const char *label)
 {
@@ -531,7 +645,44 @@ void gpsm_item_set_label(gpsm_item_t *item, const char *label)
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
 }
 
-gpsm_grp_t *gpsm_find_group_label(gpsm_grp_t *root, const char *label)
+void gpsm_swfile_set(gpsm_swfile_t *swfile, int samplerate,
+		     float position)
+{
+	if (!swfile)
+		return;
+	swfile->samplerate = samplerate;
+	swfile->position = position;
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+}
+
+void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate)
+{
+	if (!swfile)
+		return;
+	swfile->samplerate = samplerate;
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+}
+
+void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position)
+{
+	if (!swfile)
+		return;
+	swfile->position = position;
+	glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_ITEM_CHANGED, swfile);
+}
+
+
+
+/*
+ * Tree access API.
+ */
+
+gpsm_grp_t *gpsm_root(void)
+{
+	return root;
+}
+
+gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, const char *label)
 {
 	gpsm_item_t *item;
 	gpsm_grp_t *group;
@@ -546,7 +697,7 @@ gpsm_grp_t *gpsm_find_group_label(gpsm_grp_t *root, const char *label)
 	list_foreach(&root->items, gpsm_item_t, list, item) {
 		if (!GPSM_ITEM_IS_GRP(item))
 			continue;
-		if ((group = gpsm_find_group_label((gpsm_grp_t *)item, label)))
+		if ((group = gpsm_find_grp_label((gpsm_grp_t *)item, label)))
 			return group;
 	}
 

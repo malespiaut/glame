@@ -54,37 +54,61 @@
 
 
 struct gpsm_item_s;
-struct gpsm_grp_s;
-struct gpsm_swfile_s;
 typedef struct gpsm_item_s gpsm_item_t;
+struct gpsm_grp_s;
 typedef struct gpsm_grp_s gpsm_grp_t;
+struct gpsm_swfile_s;
 typedef struct gpsm_swfile_s gpsm_swfile_t;
 
-/* Both GPSM_SIG_ITEM_CHANGED and GPSM_SIG_ITEM_DESTROY have
- * one parameter, the gpsm-item. GPSM_SIG_ITEM_DESTROY will
- * be sent out _before_ item destruction, GPSM_SIG_ITEM_CHANGED
- * _after_ the change. Note that GPSM_SIG_ITEM_CHANGED delivery
- * is not suppressed, if the change has a semantically more
- * specific signal like one of the GPSM_SIG_GRP or GPSM_SIG_SWFILE
- * signals. */
+
+/*
+ * Signals sent out by the gpsm-items.
+ */
+
+/* GPSM_SIG_ITEM_CHANGED has one parameter, the gpsm-item.
+ * The signal will be sent out _after_ a change to any of the
+ * items data elements.
+ * Note that GPSM_SIG_ITEM_CHANGED delivery is not suppressed, if
+ * the change has a semantically more specific signal like one of
+ * the GPSM_SIG_GRP_* or GPSM_SIG_SWFILE_* signals. Also a
+ * GPSM_SIG_ITEM_CHANGED signal is sent out on item re-position. */
 #define GPSM_SIG_ITEM_CHANGED    (1<<0)
+
+/* GPSM_SIG_ITEM_DESTROY has one parameter, the gpsm-item. The
+ * signal will be sent out _before_ item destruction.
+ * Note that items attached to a group will generally recieve
+ * a GPSM_SIG_GRP_REMOVEITEM signal before destruction, i.e.
+ * gpsm_item_destroy() will remove them first, then destruct. */
 #define GPSM_SIG_ITEM_DESTROY    (1<<1)
+
+/* GPSM_SIG_ITEM_REMOVE has one parameter, the gpsm-item. The
+ * signal will be sent out _before_ item removal from its group.
+ * The GPSM_SIG_GRP_REMOVEITEM signal will be send out to the
+ * group after this signal. */
+#define GPSM_SIG_ITEM_REMOVE    (1<<2)
+
 /* Both GPSM_SIG_GRP_NEWITEM and GPSM_SIG_GRP_REMOVEITEM have
  * two parameters, the gpsm-grp as the first and the gpsm-item
  * to be inserted/removed as second one. The GPSM_SIG_GRP_REMOVEITEM
- * signal is sent out before the actual action, the NEWITEM signal
- * after the action. */
-#define GPSM_SIG_GRP_NEWITEM     (1<<2)
-#define GPSM_SIG_GRP_REMOVEITEM  (1<<3)
-/* GPSM_SIG_SWFILE_INSERT has three parameters, the first is
+ * signal is sent out before item removal and after the item
+ * recieved the GPSM_SIG_ITEM_REMOVE signal, the NEWITEM signal
+ * after item addition.
+ * NOTE: If the actual item is a group it is certainly possible
+ *       for it to contain children!
+ * NOTE2: You may want to attach/remove signal handlers to the
+ *        item (and the possible childrens of a group) */
+#define GPSM_SIG_GRP_NEWITEM     (1<<3)
+#define GPSM_SIG_GRP_REMOVEITEM  (1<<4)
+
+/* The GPSM_SIG_SWFILE_* have three parameters, the first is
  * the gpsm-swfile itself, the second is a long position, the
  * third a long size specifying position and size of the inserted
- * data in samples. This signal is sent _after_ the actual operation
- * was carried out on the swapfile. The GPSM_SIG_SWFILE_CUT and
- * GPSM_SIG_SWFILE_CHANGED signals operate the same way. */
-#define GPSM_SIG_SWFILE_INSERT   (1<<4)
-#define GPSM_SIG_SWFILE_CUT      (1<<5)
-#define GPSM_SIG_SWFILE_CHANGED  (1<<6)
+ * / cutted / changed data in samples. This signal is sent _after_
+ * the actual operation was carried out on the swapfile. */
+#define GPSM_SIG_SWFILE_INSERT   (1<<5)
+#define GPSM_SIG_SWFILE_CUT      (1<<6)
+#define GPSM_SIG_SWFILE_CHANGED  (1<<7)
+
 
 #define GPSM_ITEM_TYPE_GRP    0
 #define GPSM_ITEM_TYPE_SWFILE 1
@@ -95,7 +119,16 @@ struct gpsm_item_s {
 	gpsm_grp_t *parent;
 	glsig_emitter_t emitter;
 	int type;
+
+	/* Items have (not necessarily distinct) labels, i.e.
+	 * the following is guaranteed to be non-NULL. */
 	char *label;
+
+	/* Item positions are _relative_ positions to the direct
+	 * parent [or to (0,0) if the parent is NULL]. The item
+	 * bounding box is guaranteed to not extend the parents
+	 * bounding box and to not overlap with any child of the
+	 * parent. */
 	long hposition;
 	long vposition;
 	long hsize;
@@ -150,64 +183,89 @@ void gpsm_sync();
 void gpsm_close();
 
 
+
 /* Returns the gpsm root group (or NULL on non initialized
  * gpsm subsystem). */
 gpsm_grp_t *gpsm_root(void);
 
-/* Creates a new spare swfile to operate with. You have to
+
+/* Creates a new spare swapfile to operate with. You have to
  * insert it into a gpsm_grp yourself. Returns a gpsm-swfile
  * or NULL on error. */
 gpsm_swfile_t *gpsm_newswfile(const char *label);
 
+/* Creates a new swapfile with contents from the swapfile
+ * specified by the gpsm-swfile. Returns a gpsm-swfile or
+ * NULL on error. */
 gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *swfile);
 
+/* Creates a new gpsm-swfile with the swapfile of the specified
+ * gpsm-swfile as backing store. Returns a gpsm-swfile or
+ * NULL on error. */
 gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *swfile);
+
 
 /* Creates a new empty gpsm-grp. You have to insert it into
  * a gpsm_grp yourself. Returns a gpsm-grp or NULL on error. */ 
 gpsm_grp_t *gpsm_newgrp(const char *label);
 
-/* Destroys a gpsm-item (gpsm-swfile including the backing store,
+
+/* Destroys a gpsm-item (gpsm-swfile including the backing store
+ * if the gpsm-swfile was the last reference to the swapfile,
  * gpsm-grp including all children). */
 void gpsm_item_destroy(gpsm_item_t *item);
 
 
-/* May fail, as overlapping items are not allowed. Returns
+/* Inserts the specified gpsm-item into the group at the specified
+ * position. Random (non-overlapping) {hv}positioning is performed if
+ * you pass -1 to {hv}position.
+ * May fail, as overlapping items are not allowed. Returns
  * 0 on success and -1 on error. */
 int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 		    long hposition, long vposition);
+
+/* Removes the specified gpsm-item from its current group. The
+ * items position will be (0,0) after this operation. If the
+ * item was not member of a group this is a NOP. */
 void gpsm_item_remove(gpsm_item_t *item);
 
 
-void gpsm_item_set_label(gpsm_item_t *item, const char *label);
+/* Find a gpsm-grp by label in the subtree specified by root. You may
+ * want to pass gpsm_root() here. Returns a gpsm-grp, if found or
+ * NULL, if not. */
+gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, const char *label);
 
-
-gpsm_grp_t *gpsm_find_group_label(gpsm_grp_t *root, const char *label);
+/* Find a gpsm-swfile by label in the subtree specified by root. You may
+ * want to pass gpsm_root() here. Returns a gpsm-swfile, if found or
+ * NULL, if not. */
 gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, const char *label);
+
+/* Find a gpsm-swfile by swapfile filename in the subtree specified by
+ * root. You may want to pass gpsm_root() here. Returns a gpsm-swfile,
+ * if found or NULL, if not. */
 gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, long filename);
 
 
-#if 0
-/* Applying filter stubs (with "in" and/or "out" port, multiple
- * or single), filter replication and automagically destination
- * creation. Returns a network for own use, delete it yourself.
- * NO SIGNALS ARE RAISED BY THIS FUNCTION! YOU HAVE TO RAISE SIGNALS
- * YOURSELF! You may use gpsm_item_invalidate for this purpose.
- * FIXME: this is br0ken? but we cant fix it... (dynamically create
- * completion function and return it!? whooo...)
- * Note, that all combinations of source/dest/cdest being NULL/not
- * NULL should be supported (but not dest & cdest being not NULL).
- */
-filter_t *gpsm_apply_filter(filter_t *stub,
-			    gpsm_item_t *source, gpsm_item_t *dest,
-			    gpsm_item_t **cdest);
-/* Invalidates (sends _CHANGED/_CUT/_INSERT signals) to all groups
- * and swfiles. */
-void gpsm_item_invalidate(gpsm_item_t *item);
+/* Updates the label of the specified gpsm-item. Note that this will
+ * cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
+void gpsm_item_set_label(gpsm_item_t *item, const char *label);
+
+/* Updates the samplerate and position of the specified gpsm-swfile. Note
+ * that this information is per gpsm-swfile, not per swapfile! Note that
+ * this will cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
+void gpsm_swfile_set(gpsm_swfile_t *swfile, int samplerate,
+		     float position);
+
+/* Updates the samplerate of the specified gpsm-swfile. Note
+ * that this information is per gpsm-swfile, not per swapfile! Note that
+ * this will cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
+void gpsm_swfile_set_samplerate(gpsm_swfile_t *swfile, int samplerate);
+
+/* Updates the position of the specified gpsm-swfile. Note
+ * that this information is per gpsm-swfile, not per swapfile! Note that
+ * this will cause a GPSM_SIG_ITEM_CHANGED signal to be send out. */
+void gpsm_swfile_set_position(gpsm_swfile_t *swfile, float position);
 
 
-gpsm_grp_t *gpsm_newgrp_import(const char *filename);
-int gpsm_item_export(gpsm_item_t *item, const char *filename);
-#endif
 
 #endif
