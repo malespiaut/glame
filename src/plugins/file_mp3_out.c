@@ -1,6 +1,6 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.7 2004/03/22 22:53:53 ochonpaul Exp $
+ * $Id: file_mp3_out.c,v 1.8 2004/07/08 21:15:46 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
  *
@@ -38,8 +38,6 @@
 #include "util.h"
 #include "glplugin.h"
 #include "glame_types.h"
-#include "glame_byteorder.h"
-#include "glame_audiofile.h"
 
 #include <lame/lame.h>
 
