@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.13 2001/07/16 09:51:19 richi Exp $
+ * $Id: tutorial.c,v 1.14 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -67,7 +67,7 @@ static int null_f(filter_t *n)
 		filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos, 0);
 	level = filterparamdb_get_param(filter_paramdb(n), "level");
-	filterparam_val_float(level) = 0.0;
+	filterparam_val_double(level) = 0.0;
 
 	FILTER_AFTER_INIT;
 
@@ -83,10 +83,10 @@ static int null_f(filter_t *n)
 		/* correct stream position for GUI poll */
 		if (filterpipe_type(in) == FILTER_PIPETYPE_SAMPLE)
 			filterparam_val_set_pos(
-				pos, filterparam_val_pos(pos) + sbuf_size(buf));
+				pos, filterparam_val_long(pos) + sbuf_size(buf));
 		else
 			filterparam_val_set_pos(
-				pos, filterparam_val_pos(pos) + fbuf_size(buf));
+				pos, filterparam_val_long(pos) + fbuf_size(buf));
 
 		/* correct current level (if SAMPLE stream) for GUI poll */
 		if (filterpipe_type(in) == FILTER_PIPETYPE_SAMPLE) {
@@ -97,7 +97,7 @@ static int null_f(filter_t *n)
 				value += *s * *s;
 				s++;
 			}
-			filterparam_val_float(level) = sqrtf(value/sbuf_size(buf));
+			filterparam_val_double(level) = sqrtf(value/sbuf_size(buf));
 		}
 
 skip:
@@ -126,9 +126,9 @@ int null_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "output stream",
 			      FILTERPORT_END);
 	filterparamdb_add_param_pos(filter_paramdb(f));
-	filterparamdb_add_param_float(filter_paramdb(f), "level",
-				      FILTER_PARAMTYPE_FLOAT, 0.0,
-				      FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "level",
+				       FILTER_PARAMTYPE_DOUBLE, 0.0,
+				       FILTERPARAM_END);
 
 	f->f = null_f;
 

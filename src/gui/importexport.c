@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.12 2002/01/23 20:11:10 richi Exp $
+ * $Id: importexport.c,v 1.13 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -46,9 +46,9 @@
 static char *ftlabel[] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
 static char *sflabel[] = { "16 bit signed", "24 bit signed", "32 bit signed", 
 			   "8 bit unsigned", "32 bit float", "64 bit float" };
-static int sf_format[] = { AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP,
+static long sf_format[] = { AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP,
 			   AF_SAMPFMT_UNSIGNED, AF_SAMPFMT_FLOAT, AF_SAMPFMT_DOUBLE };
-static int sf_width[] = { 16, 24, 32, 8, 32, 64 };
+static long sf_width[] = { 16, 24, 32, 8, 32, 64 };
 
 static char *rlabel[] = { "original", "mono", "stereo" };
 
@@ -84,7 +84,8 @@ struct imp_s {
 	filter_t *readfile;
 	gchar *filename;
 	unsigned int frames;
-	int rate, chancnt, gotfile, gotstats;
+	long rate;
+	int chancnt, gotfile, gotstats;
 	float maxrms, dcoffset;
 	plugin_t *resample;
 	GtkWidget *fi_plabel[MAX_PROPS];
@@ -137,7 +138,8 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	filter_param_t *pos_param;
 	float percentage;
 	gpsm_grp_t *group = NULL;
-	int i, newrate;
+	int i;
+	long newrate;
 	gboolean dorsmpl;
 	gpsm_item_t *it;
 	GtkWidget *ed;
@@ -177,7 +179,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 
 	if ((ie->resample) && (dorsmpl)) {
 		newrate = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(ie->rateentry));
-		DPRINTF("Resample to %d Hz\n", newrate);
+		DPRINTF("Resample to %li Hz\n", newrate);
 		if(ie->rate==newrate) {
 			DPRINTF("new samplerate equals old samplerate\n");
 			dorsmpl=FALSE;
@@ -253,7 +255,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 			gtk_main_iteration();
 		
 		usleep(40000);
-		percentage = (float)filterparam_val_pos(pos_param)/(float)ie->frames;
+		percentage = (float)filterparam_val_long(pos_param)/(float)ie->frames;
 		if(percentage>1.0)
 			percentage = 1.0;
 		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
@@ -368,7 +370,8 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 	filter_param_t *param;
 	GtkWidget *ed;
 	float rms, mrms, percentage;
-	int i, bsize=1;
+	int i;
+	long bsize=1;
 	char buffer[128];
 
 	if(ie->gotfile==0) {
@@ -432,7 +435,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 			gtk_main_iteration();
 		
 		usleep(40000);
-		percentage = (float)filterparam_val_pos(param)/(float)ie->frames;
+		percentage = (float)filterparam_val_long(param)/(float)ie->frames;
 		if(percentage>1.0)
 			percentage = 1.0;
 		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
@@ -440,7 +443,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 	}
 
 	if (ie->cancelled==0) {
-		ie->frames = filterparam_val_pos(param);
+		ie->frames = filterparam_val_long(param);
 		sprintf(buffer, "%d", ie->frames);
 		filterparam_set_property(filterparamdb_get_param(filter_paramdb(ie->readfile), "filename"),
 					 "#framecount", 
@@ -456,7 +459,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 		for(i=0; i<ie->chancnt; i++) {
 			param = filterparamdb_get_param(filter_paramdb(maxrms[i]),
 						"maxrms");
-			rms = filterparam_val_float(param);
+			rms = filterparam_val_double(param);
 			if(rms>mrms)
 				mrms = rms;
 		}
@@ -754,7 +757,7 @@ struct exp_s {
 	GtkWidget *renderbutton[MAX_RLABEL];
 	gpsm_item_t *item;
 	gchar *filename;
-	int filetype, compression;
+	long filetype, compression;
 	int running;
 	filter_t *net;
 };
@@ -763,7 +766,7 @@ struct exp_s {
 static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *exp)
 {
 	exp->compression = glame_menu_get_active_index(menu);
-	DPRINTF("Compression Type %d chosen\n", exp->compression);
+	DPRINTF("Compression Type %li chosen\n", exp->compression);
 
 	return TRUE;
 }
@@ -887,7 +890,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	filter_pipe_t *pipe;
 	gpsm_grp_t *grp;
 	gpsm_item_t *it;
-	float pos;
+	double pos;
 	GtkWidget *ed;
 	int sfi, ri;
 	int totalframes;
@@ -990,7 +993,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 			gtk_main_iteration();
 		
 		usleep(40000);
-		percentage = (float)filterparam_val_pos(param)/(float)totalframes;
+		percentage = (float)filterparam_val_long(param)/(float)totalframes;
 		if(percentage>1.0)
 			percentage = 1.0;
 		gnome_appbar_set_progress(GNOME_APPBAR(exp->appbar),

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.50 2002/01/11 23:21:30 richi Exp $
+ * $Id: filtereditgui.c,v 1.51 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -778,10 +778,10 @@ static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
 			continue;
 		DPRINTF("Found swapfile_out node, issuing invalidate\n");
 		gpsm_notify_swapfile_change(
-			filterparam_val_int(filename),
-			filterparam_val_int(changed_start),
-			filterparam_val_int(changed_end)
-			- filterparam_val_int(changed_start) + 1);
+			filterparam_val_long(filename),
+			filterparam_val_long(changed_start),
+			filterparam_val_long(changed_end)
+			- filterparam_val_long(changed_start) + 1);
 	}
 
 	gtk_widget_destroy(g_list_nth(gtk_container_children(

@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.13 2001/05/29 07:52:45 richi Exp $
+ * $Id: debug.c,v 1.14 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -50,11 +50,11 @@ static int ping(filter_t *n)
 	float dt;
 	int time;
 
-	cnt = filterparam_val_int(
+	cnt = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "cnt"));
-	dt = filterparam_val_float(
+	dt = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "dt"));
-	size = filterparam_val_int(
+	size = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
 
 	i = filterport_get_pipe(
@@ -122,14 +122,14 @@ int ping_register(plugin_t *p)
 			      FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_int(filter_paramdb(f), "cnt",
-				FILTER_PARAMTYPE_INT, 10,
+	filterparamdb_add_param_long(filter_paramdb(f), "cnt",
+				FILTER_PARAMTYPE_LONG, 10,
 				FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "dt",
+	filterparamdb_add_param_double(filter_paramdb(f), "dt",
 				  FILTER_PARAMTYPE_TIME_MS, 250,
 				  FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "size",
-				FILTER_PARAMTYPE_INT, 128,
+	filterparamdb_add_param_long(filter_paramdb(f), "size",
+				FILTER_PARAMTYPE_LONG, 128,
 				FILTERPARAM_END);
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Catching_Bugs");

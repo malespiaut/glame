@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.13 2001/09/19 11:49:52 mag Exp $
+ * $Id: ssp.c,v 1.14 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -53,7 +53,7 @@ static int ssp_streamer_f(filter_t *n)
 	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	
 	param = filterparamdb_get_param(filter_paramdb(n), "bsize");
-	bsize = filterparam_val_int(param);
+	bsize = filterparam_val_long(param);
 	if (bsize < 1)
 		FILTER_ERROR_RETURN("bsize <= 0");
 	
@@ -123,8 +123,8 @@ int ssp_streamer_register(plugin_t *p)
 				    FILTERPORT_END);
 	out->connect = ssp_streamer_connect_out;
 
-	filterparamdb_add_param_int(filter_paramdb(f), "bsize",
-				    FILTER_PARAMTYPE_INT, 64,
+	filterparamdb_add_param_long(filter_paramdb(f), "bsize",
+				    FILTER_PARAMTYPE_LONG, 64,
 				    FILTERPARAM_DESCRIPTION, "length of running average",
 				    FILTERPARAM_END);
 
@@ -150,7 +150,7 @@ static int maxrms_f(filter_t *n)
 	
 	param = filterparamdb_get_param(filter_paramdb(n), "maxrms");
 
-	filterparam_val_float(param) = maxrms;
+	filterparam_val_double(param) = maxrms;
 	
 	FILTER_AFTER_INIT;
 	
@@ -174,7 +174,7 @@ entry:
 	};
 
 	maxrms = sqrtf(maxrms);
-	filterparam_val_float(param) = maxrms;
+	filterparam_val_double(param) = maxrms;
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
@@ -195,8 +195,8 @@ int maxrms_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "ssp stream in",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "maxrms",
-				      FILTER_PARAMTYPE_FLOAT, 0.0 ,
+	filterparamdb_add_param_double(filter_paramdb(f), "maxrms",
+				      FILTER_PARAMTYPE_DOUBLE, 0.0 ,
 				      FILTERPARAM_DESCRIPTION, "maximum rms",
 				      FILTERPARAM_END);
 

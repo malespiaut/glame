@@ -368,10 +368,10 @@ static void play_cleanup(glsig_handler_t *handler,
                         continue;
                 DPRINTF("Found swapfile_out node, issuing invalidate\n");
                 gpsm_notify_swapfile_change(
-                        filterparam_val_int(filename),
-                        filterparam_val_int(changed_start),
-                        filterparam_val_int(changed_end)
-                        - filterparam_val_int(changed_start) + 1);
+                        filterparam_val_long(filename),
+                        filterparam_val_long(changed_start),
+                        filterparam_val_long(changed_end)
+                        - filterparam_val_long(changed_start) + 1);
         }
 	filter_delete(waveedit->pm_net);
 	waveedit->pm_net = NULL;
@@ -383,7 +383,7 @@ static void play_update_marker(glsig_handler_t *handler,
 	long pos;
 
 	waveedit = (WaveeditGui *)glsig_handler_private(handler);
-	pos = filterparam_val_pos(waveedit->pm_param);
+	pos = filterparam_val_long(waveedit->pm_param);
 	gtk_wave_view_set_marker_and_scroll(
 		GTK_WAVE_VIEW(waveedit->waveview), waveedit->pm_start + pos);
 }
@@ -462,7 +462,7 @@ static void play(GtkWaveView *waveview,
 	net = filter_creat(NULL);
 	if (play_cnt > 0) {
 		filter_pipe_t *pipe;
-		float pos;
+		double pos;
 		aout = filter_instantiate(plugin_get("audio_out"));
 		render = filter_instantiate(plugin_get("render"));
 		filter_add_node(net, aout, "audio-out");
@@ -477,7 +477,7 @@ static void play(GtkWaveView *waveview,
 	}
 
 	if (rec_cnt > 0) {
-		float duration;
+		double duration;
 		ain = filter_instantiate(plugin_get("audio_in"));
 		if (!extend) {
 			duration = (float)(end-start)/gpsm_swfile_samplerate(gpsm_grp_first(grp))+0.1;

@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.19 2002/01/27 15:08:27 richi Exp $
+ * $Id: arithmetic.c,v 1.20 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -86,8 +86,8 @@ static int mul_f(filter_t *n)
 	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
 	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
-	cmul = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
-	cadd = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "add"));
+	cmul = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "factor"));
+	cadd = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "add"));
 
 	if ((nr = nto1_init(&I, inp)) == -1)
 		FILTER_ERROR_RETURN("no inputs");
@@ -160,12 +160,12 @@ int mul_register(plugin_t *p)
 
 	f->f = mul_f;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "add",
-				      FILTER_PARAMTYPE_FLOAT, 0.0,
-				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "factor",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "add",
+				       FILTER_PARAMTYPE_DOUBLE, 0.0,
+				       FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "factor",
+				       FILTER_PARAMTYPE_DOUBLE, 1.0,
+				       FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
 	plugin_set(p, PLUGIN_PIXMAP, "prod.png");
@@ -197,8 +197,8 @@ static int add_f(filter_t *n)
 	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
 	if (!(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no output");
-	cmul = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
-	cadd = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "add"));
+	cmul = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "factor"));
+	cadd = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "add"));
 
 	if ((nr = nto1_init(&I, inp)) == -1)
 		FILTER_ERROR_RETURN("no inputs");
@@ -270,12 +270,12 @@ int add_register(plugin_t *p)
 
 	f->f = add_f;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "add",
-				      FILTER_PARAMTYPE_FLOAT, 0.0,
-				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "factor",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "add",
+				       FILTER_PARAMTYPE_DOUBLE, 0.0,
+				       FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "factor",
+				       FILTER_PARAMTYPE_DOUBLE, 1.0,
+				       FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
 	plugin_set(p, PLUGIN_PIXMAP, "sum.png");

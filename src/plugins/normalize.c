@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.17 2002/01/23 20:23:26 richi Exp $
+ * $Id: normalize.c,v 1.18 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -471,7 +471,7 @@ static void analyze_rms(struct normalize_s *ns) {
 	gpsm_item_t* item;
 	char label[128], string[2048];
 	long done = 0;
-	int bsize;
+	long bsize;
 
 	ote = NULL;
 
@@ -523,7 +523,7 @@ static void analyze_rms(struct normalize_s *ns) {
 				gtk_main_iteration();
 			usleep(40000);
 			
-			percentage = (float)(done+filterparam_val_pos(param))/
+			percentage = (float)(done+filterparam_val_long(param))/
 				     (float)ns->total_size;
 
 			if (ns->running==0)
@@ -534,11 +534,11 @@ static void analyze_rms(struct normalize_s *ns) {
 		}
 		ns->running = 0;
 
-		done+=filterparam_val_pos(param);
-		DPRINTF("posparam=%ld\n", filterparam_val_pos(param));
+		done+=filterparam_val_long(param);
+		DPRINTF("posparam=%ld\n", filterparam_val_long(param));
 
 		param = filterparamdb_get_param(filter_paramdb(maxrms), "maxrms");
-		te->rms = filterparam_val_float(param);
+		te->rms = filterparam_val_double(param);
 		DPRINTF("found rms = %f\n", te->rms);
 		
 		filter_delete(net);
@@ -580,7 +580,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 	filter_t *net, *vadjust, *swapi, *swapo;
 	filter_param_t	*param;
 	char label[128];
-	float gain, percentage;
+	double gain, percentage;
 	long done = 0;
 	gpsm_item_t * item;
 
@@ -626,7 +626,7 @@ static void normalize_do_task(struct normalize_s *ns) {
 				gtk_main_iteration();
 			usleep(40000);
 			
-			percentage = (float)(done+filterparam_val_pos(param))/
+			percentage = (float)(done+filterparam_val_long(param))/
 				     (float)ns->total_size;
 
 			if (ns->running==0)
@@ -637,8 +637,8 @@ static void normalize_do_task(struct normalize_s *ns) {
 		}
 		ns->running = 0;
 	
-		done+=filterparam_val_pos(param);
-		DPRINTF("posparam=%ld\n", filterparam_val_pos(param));
+		done+=filterparam_val_long(param);
+		DPRINTF("posparam=%ld\n", filterparam_val_long(param));
 
 		filter_delete(net);
 	}

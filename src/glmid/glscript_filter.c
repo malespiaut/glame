@@ -443,12 +443,10 @@ static SCM gls_param_value(SCM s_param)
 	filter_param_t *param;
 	SCM_ASSERT(param_p(s_param), s_param, SCM_ARG1, "param-value");
 	param = scm2param(s_param);
-	if (FILTER_PARAM_IS_INT(param))
-		return gh_long2scm(filterparam_val_int(param));
-	else if (FILTER_PARAM_IS_FLOAT(param))
-		return gh_double2scm(filterparam_val_float(param));
-	else if (FILTER_PARAM_IS_SAMPLE(param))
-		return gh_double2scm(filterparam_val_sample(param));
+	if (FILTER_PARAM_IS_LONG(param))
+		return gh_long2scm(filterparam_val_long(param));
+	else if (FILTER_PARAM_IS_DOUBLE(param))
+		return gh_double2scm(filterparam_val_double(param));
 	else if (FILTER_PARAM_IS_STRING(param))
 		return gh_str02scm(filterparam_val_string(param));
 	scm_wrong_type_arg("param-value", SCM_ARG1, s_param);
@@ -467,21 +465,17 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 		str = gh_scm2newstr(s_val, &strl);
 		res = filterparam_set_string(param, str);
 		free(str);
-	} else if (FILTER_PARAM_IS_INT(param)) {
-		int i;
+	} else if (FILTER_PARAM_IS_LONG(param)) {
+		long i;
 		SCM_ASSERT(gh_exact_p(s_val), s_val, SCM_ARG2, "param-set!");
 		i = gh_scm2long(s_val);
-		res = filterparam_set(param, &i);
-	} else if (FILTER_PARAM_IS_FLOAT(param)) {
-		float f;
+		if (filterparam_type(param) != FILTER_PARAMTYPE_POS)
+			res = filterparam_set(param, &i);
+	} else if (FILTER_PARAM_IS_DOUBLE(param)) {
+		double f;
 		SCM_ASSERT(gh_number_p(s_val), s_val, SCM_ARG2, "param-set!");
 		f = gh_scm2double(s_val);
 		res = filterparam_set(param, &f);
-	} else if (FILTER_PARAM_IS_SAMPLE(param)) {
-		SAMPLE s;
-		SCM_ASSERT(gh_number_p(s_val), s_val, SCM_ARG2, "param-set!");
-		s = gh_scm2double(s_val);
-		res = filterparam_set(param, &s);
 	} else if (FILTER_PARAM_IS_STRING(param)) {
 		char *str;
 		int strl;
@@ -496,10 +490,6 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 		str = gh_scm2newstr(s_val, &strl);
 		res = filterparam_set_string(param, str);
 		free(str);
-	} else if (FILTER_PARAM_IS_POS(param)) {
-		SCM_ASSERT(gh_exact_p(s_val), s_val, SCM_ARG2, "param-set!");
-		res = 0;
-		/* nothing to do. */
 	} else
 		scm_wrong_type_arg("param-set!", SCM_ARG2, s_val);
 	if (res == -1)
@@ -837,12 +827,12 @@ static SCM gls_filter_add_param(SCM s_filter, SCM s_label, SCM s_val)
 	if (gh_exact_p(s_val)) {
 		int val = gh_scm2long(s_val);
 		param = filterparamdb_add_param(filter_paramdb(filter),
-						label, FILTER_PARAMTYPE_INT,
+						label, FILTER_PARAMTYPE_LONG,
 						&val, FILTERPARAM_END);
 	} else if (gh_number_p(s_val)) {
 		float val = gh_scm2double(s_val);
 		param = filterparamdb_add_param(filter_paramdb(filter),
-						label, FILTER_PARAMTYPE_FLOAT,
+						label, FILTER_PARAMTYPE_DOUBLE,
 						&val, FILTERPARAM_END);
 	} else if (gh_string_p(s_val)) {
 		char *val = gh_scm2newstr(s_val, &len);

@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.28 2002/02/15 13:29:36 nold Exp $
+ * $Id: waveform.c,v 1.29 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -61,9 +61,9 @@ static int waveform_connect_out(filter_port_t *port, filter_pipe_t *p)
 	int rate;
 	float pos;
 
-	rate = filterparam_val_int(filterparamdb_get_param(
+	rate = filterparam_val_long(filterparamdb_get_param(
 				filter_paramdb(n), "rate"));
-	pos = filterparam_val_float(filterparamdb_get_param(
+	pos = filterparam_val_double(filterparamdb_get_param(
 				filter_paramdb(n), "position"));
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
@@ -100,11 +100,11 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 				    FILTER_PORTFLAG_OUTPUT,
 				    FILTERPORT_DESCRIPTION, "waveform output stream",
 				    FILTERPORT_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "rate", 
-	                            FILTER_PARAMTYPE_INT,
-	                            GLAME_DEFAULT_SAMPLERATE,
-	                            FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "position", 
+	filterparamdb_add_param_long(filter_paramdb(f), "rate", 
+	                             FILTER_PARAMTYPE_RATE,
+	                             GLAME_DEFAULT_SAMPLERATE,
+	                             FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "position", 
 	                              FILTER_PARAMTYPE_POSITION,
 	                              FILTER_PIPEPOS_DEFAULT,
 	                              FILTERPARAM_END);
@@ -120,7 +120,7 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 /* Helpers. */
 static int waveform_get_rate(filter_t *n)
 {
-	return filterparam_val_int(filterparamdb_get_param(
+	return filterparam_val_long(filterparamdb_get_param(
 				filter_paramdb(n), "rate"));
 }
 
@@ -144,9 +144,9 @@ static int sine_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for sine */
-	ampl = filterparam_val_sample(filterparamdb_get_param(
+	ampl = filterparam_val_double(filterparamdb_get_param(
 				filter_paramdb(n), "amplitude"));
-	freq = filterparam_val_float(filterparamdb_get_param(
+	freq = filterparam_val_double(filterparamdb_get_param(
 				filter_paramdb(n), "frequency"));
 
 	/* FIXME: we should try to eliminate sampling frequency errors
@@ -177,11 +177,11 @@ int sine_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(sine_f)))
 		return -1;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+	filterparamdb_add_param_double(filter_paramdb(f), "amplitude",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_FLOAT, 441.0,
+	filterparamdb_add_param_double(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_DOUBLE, 441.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
@@ -212,7 +212,7 @@ static int const_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for const */
-	val = filterparam_val_sample(filterparamdb_get_param(
+	val = filterparam_val_double(filterparamdb_get_param(
 				filter_paramdb(n), "value"));
 
 	/* we will generate one buffer with 0.1 sec samples. */
@@ -240,7 +240,7 @@ int const_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(const_f)))
 		return -1;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "value",
+	filterparamdb_add_param_double(filter_paramdb(f), "value",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
 
@@ -269,8 +269,8 @@ static int rect_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for rect */
-	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
-	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+	ampl = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "frequency"));
 
 	bs = (rate/freq)/2.0;
 	size = (((int)(MAX(1,GLAME_WBUFSIZE/(int)(rate/freq))))*rate)/freq;
@@ -311,12 +311,12 @@ int rect_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(rect_f)))
 		return -1;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+	filterparamdb_add_param_double(filter_paramdb(f), "amplitude",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_FLOAT, 440.0,
+	filterparamdb_add_param_double(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_FREQ, 440.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "rectangular signal");
@@ -344,8 +344,8 @@ static int ramp_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for rect */
-	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
-	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+	ampl = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "frequency"));
 
 	bs = (rate/freq);
 	size = (int) bs;
@@ -373,12 +373,12 @@ int ramp_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(ramp_f)))
 		return -1;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+	filterparamdb_add_param_double(filter_paramdb(f), "amplitude",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_FLOAT, 440.0,
+	filterparamdb_add_param_double(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_FREQ, 440.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "ramp signal");
@@ -404,8 +404,8 @@ static int saw_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for rect */
-	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
-	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+	ampl = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "frequency"));
 
 	bs = (rate/freq);
 	size = (int)bs;
@@ -453,12 +453,12 @@ int saw_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(saw_f)))
 		return -1;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+	filterparamdb_add_param_double(filter_paramdb(f), "amplitude",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
-				  FILTER_PARAMTYPE_FLOAT, 440.0,
+	filterparamdb_add_param_double(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_FREQ, 440.0,
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "saw signal");
@@ -482,7 +482,7 @@ static int noise_f(filter_t *n)
 	rate = waveform_get_rate(n);
 
 	/* parameters for rect */
-	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	ampl = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
 	
 	FILTER_AFTER_INIT;
 
@@ -513,7 +513,7 @@ int noise_register(plugin_t *p)
 	if (!(f = waveform_filter_alloc(noise_f)))
 		return -1;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+	filterparamdb_add_param_double(filter_paramdb(f), "amplitude",
 				  FILTER_PARAMTYPE_SAMPLE, 1.0,
 				  FILTERPARAM_END);
 	
@@ -558,21 +558,21 @@ static int pulse_f(filter_t *n)
 	rate = filterpipe_sample_rate(out);
 	dt = 1000.0/rate;
 
-	t_on = filterparam_val_float(
+	t_on = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "time_on"));
-	t_off = filterparam_val_float(
+	t_off = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "time_off"));
-	duration = filterparam_val_float(
+	duration = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "duration"));
 
-	attack = filterparam_val_float(
+	attack = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "attack"));
 	if (!(attack > 0.0))
 		attack = 1.0;
 	else
 		attack = dt/attack;
 
-	release = filterparam_val_float(
+	release = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "release"));
 	if (!(release > 0.0))
 		release = 1.0;
@@ -656,7 +656,7 @@ static int pulse_connect_out(filter_port_t *out, filter_pipe_t *pipe)
 	filter_t *src = filterport_filter(out);
 	int rate;
 
-	rate = filterparam_val_int(
+	rate = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(src), "rate"));
 	filterpipe_settype_sample(pipe, rate, 0.0);
 
@@ -709,33 +709,33 @@ int pulse_register(plugin_t *p)
 				    FILTERPORT_END);
 	out->connect = pulse_connect_out;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "time_on",
+	filterparamdb_add_param_double(filter_paramdb(f), "time_on",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION, "switch on time[ms]",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "time_off",
+	filterparamdb_add_param_double(filter_paramdb(f), "time_off",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION, "switch off time[ms]",
 			FILTERPARAM_END);
 		
-	filterparamdb_add_param_float(filter_paramdb(f), "duration",
+	filterparamdb_add_param_double(filter_paramdb(f), "duration",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION, "end output after[ms]",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "attack",
+	filterparamdb_add_param_double(filter_paramdb(f), "attack",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION, "Attack Time[ms]",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "release",
+	filterparamdb_add_param_double(filter_paramdb(f), "release",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION, "Release Time[ms]",
 			FILTERPARAM_END);
 	
-	rate = filterparamdb_add_param_int(filter_paramdb(f), "rate",
-			FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+	rate = filterparamdb_add_param_long(filter_paramdb(f), "rate",
+			FILTER_PARAMTYPE_LONG, GLAME_DEFAULT_SAMPLERATE,
 			FILTERPARAM_END);
 	rate->set = pulse_set_rate;
 

@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.23 2001/08/08 09:15:30 richi Exp $
+ * $Id: pipe.c,v 1.24 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -212,7 +212,7 @@ static int pipe_in_connect_out(filter_port_t *port, filter_pipe_t *p)
 	if (filterport_nrpipes(port) > 1)
 		return -1;
 
-	rate = filterparam_val_int(filterparamdb_get_param(filter_paramdb(source), "rate"));
+	rate = filterparam_val_long(filterparamdb_get_param(filter_paramdb(source), "rate"));
 
 	if (filterport_nrpipes(port) == 0) {
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_DEFAULT);
@@ -240,7 +240,7 @@ static void pipe_in_param_changed(glsig_handler_t *h, long sig, va_list va)
     out = filterportdb_get_port(filter_portdb(filter), PORTNAME_OUT);
     filterport_foreach_pipe(out, outp) {
 	filterpipe_settype_sample(outp,
-				  filterparam_val_int(param),
+				  filterparam_val_long(param),
 				  filterpipe_sample_hangle(outp));
 	glsig_emit(&outp->emitter, GLSIG_PIPE_CHANGED, outp);
     }
@@ -269,8 +269,8 @@ int pipe_in_register(plugin_t *p)
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_DESCRIPTION, "command string tail",
 				   FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "rate",
-				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+	filterparamdb_add_param_long(filter_paramdb(f), "rate",
+				FILTER_PARAMTYPE_RATE, GLAME_DEFAULT_SAMPLERATE,
 				FILTERPARAM_DESCRIPTION, "data samplerate",
 				FILTERPARAM_END);
 

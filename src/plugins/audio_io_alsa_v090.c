@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.14 2002/01/27 12:34:42 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.15 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -219,11 +219,11 @@ static int alsa_audio_in_f(filter_t *n)
 	
 	param = filterparamdb_get_param(filter_paramdb(n), "rate");
 	if (param)
-		rate = filterparam_val_int(param);
+		rate = filterparam_val_long(param);
 
 	param = filterparamdb_get_param(filter_paramdb(n), "duration");
 	if (param)
-		maxsamples = (int)(filterparam_val_float(param) * rate);
+		maxsamples = (int)(filterparam_val_double(param) * rate);
 	if (maxsamples <= 0.0)
 		endless = 1;
 	

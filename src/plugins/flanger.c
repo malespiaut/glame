@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.18 2002/02/15 13:29:36 nold Exp $
+ * $Id: flanger.c,v 1.19 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -61,7 +61,7 @@ void fbm_lfo(int *lfo, int size, int swpd)
 
 static int flanger_set_param(filter_param_t *param, const void *val)
 {
-	float x,y;
+	double x,y;
 	filter_param_t *p;
 	filter_t *n = filterparam_filter(param);
 
@@ -74,7 +74,7 @@ static int flanger_set_param(filter_param_t *param, const void *val)
 		if(x<=0.0)
 			return -1;
 		p = filterparamdb_get_param(filter_paramdb(n), "sweep depth");
-		y = filterparam_val_float(p);
+		y = filterparam_val_double(p);
 		if(y>(x*0.5)) {
 			y = x*0.5;
 			n->priv = p;
@@ -85,7 +85,7 @@ static int flanger_set_param(filter_param_t *param, const void *val)
 
 	if (strcmp("sweep depth", filterparam_label(param))==0) {
 		p = filterparamdb_get_param(filter_paramdb(n), "depth");
-		y = filterparam_val_float(p);
+		y = filterparam_val_double(p);
 		if ((x > (y*0.5))||(x<0.0))
 			return -1;
 	}
@@ -123,25 +123,25 @@ static int flanger_f(filter_t *n)
 		FILTER_ERROR_RETURN("no in/output connected");
 	
 	dparam=filterparamdb_get_param(filter_paramdb(n), "depth");
-	pdepth=filterparam_val_float(dparam);
+	pdepth=filterparam_val_double(dparam);
 
 	swdparam=filterparamdb_get_param(filter_paramdb(n), "sweep depth");
-	swdepth=filterparam_val_float(swdparam);
+	swdepth=filterparam_val_double(swdparam);
 	
 	swrparam=filterparamdb_get_param(filter_paramdb(n), "sweep rate");
-	sweep_rate=filterparam_val_float(swrparam);
+	sweep_rate=filterparam_val_double(swrparam);
 
 	drwparam=filterparamdb_get_param(filter_paramdb(n), "drywet");
-	drywet=filterparam_val_float(drwparam);
+	drywet=filterparam_val_double(drwparam);
 	
 	fbgparam=filterparamdb_get_param(filter_paramdb(n), "feedback gain");
-	fbgain=filterparam_val_float(fbgparam);
+	fbgain=filterparam_val_double(fbgparam);
 	
 	dbgparam=filterparamdb_get_param(filter_paramdb(n), "dbgain");
-	dbgain=DB2GAIN(filterparam_val_float(dbgparam));
+	dbgain=DB2GAIN(filterparam_val_double(dbgparam));
 	
 	lfoparam=filterparamdb_get_param(filter_paramdb(n), "lfo type");
-	lfotype=filterparam_val_int(lfoparam);
+	lfotype=filterparam_val_long(lfoparam);
 	
 	
 	efgain = 1.0 - drywet;
@@ -209,9 +209,9 @@ static int flanger_f(filter_t *n)
 	while (buf) {
 		FILTER_CHECK_STOP;
 	
-		drywet=filterparam_val_float(drwparam);
-		fbgain=filterparam_val_float(fbgparam);
-		dbgain=DB2GAIN(filterparam_val_float(dbgparam));
+		drywet=filterparam_val_double(drwparam);
+		fbgain=filterparam_val_double(fbgparam);
+		dbgain=DB2GAIN(filterparam_val_double(dbgparam));
 	
 		efgain = 1.0 - drywet;
 		fampl = 1.0 + fbgain;
@@ -281,43 +281,43 @@ int flanger_register(plugin_t *p)
 			      FILTERPORT_END);
 	
 	pdb = filter_paramdb(f);
-	param = filterparamdb_add_param_float(pdb, "depth", FILTER_PARAMTYPE_TIME_MS, 10,
+	param = filterparamdb_add_param_double(pdb, "depth", FILTER_PARAMTYPE_TIME_MS, 10,
 				    FILTERPARAM_DESCRIPTION, "flanger depth in ms",
 				    FILTERPARAM_LABEL,   "Effect Depth [ms]",
 				    FILTERPARAM_END);
 	param->set = flanger_set_param;
 	
-	param = filterparamdb_add_param_float(pdb, "sweep depth", FILTER_PARAMTYPE_TIME_MS, 5,
+	param = filterparamdb_add_param_double(pdb, "sweep depth", FILTER_PARAMTYPE_TIME_MS, 5,
 				    FILTERPARAM_DESCRIPTION, "sweep depth in ms",
 				    FILTERPARAM_LABEL,   "Detune Range [ms]",
 				    FILTERPARAM_END);
 	param->set = flanger_set_param;
 	
-	param = filterparamdb_add_param_float(pdb, "sweep rate", FILTER_PARAMTYPE_FLOAT, 1,
+	param = filterparamdb_add_param_double(pdb, "sweep rate", FILTER_PARAMTYPE_FREQ, 1,
 				    FILTERPARAM_DESCRIPTION, "oscillator frequency",
 				    FILTERPARAM_LABEL,   "LFO Speed [Hz]",
 				    FILTERPARAM_END);
 	param->set = flanger_set_param;
 	
-	param = filterparamdb_add_param_float(pdb, "drywet", FILTER_PARAMTYPE_FLOAT, 0.5,
+	param = filterparamdb_add_param_double(pdb, "drywet", FILTER_PARAMTYPE_DOUBLE, 0.5,
 				      FILTERPARAM_DESCRIPTION, "drywet",
 				      FILTERPARAM_LABEL, "Dry/Wet Balance",
 				      FILTERPARAM_END);
 	param->set = flanger_set_param;
 
-	param = filterparamdb_add_param_float(pdb, "feedback gain", FILTER_PARAMTYPE_FLOAT, 0.5,
+	param = filterparamdb_add_param_double(pdb, "feedback gain", FILTER_PARAMTYPE_DOUBLE, 0.5,
 				      FILTERPARAM_DESCRIPTION, "feedback gain",
 				      FILTERPARAM_LABEL, "Feedback Gain",
 				      FILTERPARAM_END);
 	param->set = flanger_set_param;
 	
-	param = filterparamdb_add_param_float(pdb, "dbgain", FILTER_PARAMTYPE_FLOAT, 6.0,
+	param = filterparamdb_add_param_double(pdb, "dbgain", FILTER_PARAMTYPE_DOUBLE, 6.0,
 				      FILTERPARAM_DESCRIPTION, "Attenuate/Amplify output signal",
 				      FILTERPARAM_LABEL, "Gain [dB]",
 				      FILTERPARAM_END);
 	param->set = flanger_set_param;
 
-	param = filterparamdb_add_param_int(pdb, "lfo type", FILTER_PARAMTYPE_INT, 0 ,
+	param = filterparamdb_add_param_long(pdb, "lfo type", FILTER_PARAMTYPE_LONG, 0 ,
 				    FILTERPARAM_DESCRIPTION, 
 				    "(0) sine\n"
 				    "(1) ramp up\n" 

@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.21 2001/11/19 10:04:50 richi Exp $
+ * $Id: echo.c,v 1.22 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -55,8 +55,8 @@ static int echo_f(filter_t *n)
 	        FILTER_ERROR_RETURN("no input or no output");
 
 	delay = (int)(filterpipe_sample_rate(in) 
-		      * filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "time"))/1000.0);
-	mix = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "mix"));
+		      * filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "time"))/1000.0);
+	mix = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "mix"));
 	fbfact = mix/(1.0 + mix);
 	infact = 1.0/(1.0 + mix);
 
@@ -187,12 +187,12 @@ int echo_register(plugin_t *p)
 
 	f->f = echo_f;
 
-	filterparamdb_add_param_float(filter_paramdb(f), "time",
+	filterparamdb_add_param_double(filter_paramdb(f), "time",
 				      FILTER_PARAMTYPE_TIME_MS, 100,
 				      FILTERPARAM_DESCRIPTION, "echo time in ms",
 				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "mix",
-				      FILTER_PARAMTYPE_FLOAT, 0.7,
+	filterparamdb_add_param_double(filter_paramdb(f), "mix",
+				      FILTER_PARAMTYPE_DOUBLE, 0.7,
 				      FILTERPARAM_DESCRIPTION, "mixer ratio",
 				      FILTERPARAM_END);
 

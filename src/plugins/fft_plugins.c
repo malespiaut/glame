@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.13 2001/11/16 12:20:31 richi Exp $
+ * $Id: fft_plugins.c,v 1.14 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -94,10 +94,10 @@ static void fft_update_pipes(filter_t *n, filter_pipe_t *opipe)
 	in = filterport_get_pipe(in_port);
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "blocksize")))
-		bsize=filterparam_val_int(param);
+		bsize=filterparam_val_long(param);
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "oversamp")))
-		osamp=filterparam_val_int(param);
+		osamp=filterparam_val_long(param);
 
 	if (in) {	
 		rate=filterpipe_sample_rate(in);
@@ -181,10 +181,10 @@ static int fft_f(filter_t *n){
 		FILTER_ERROR_RETURN("no output");
 
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "blocksize")))
-		bsize=filterparam_val_int(param);
+		bsize=filterparam_val_long(param);
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "oversamp")))
-		osamp=filterparam_val_int(param);
+		osamp=filterparam_val_long(param);
 	else osamp=1;
 
 	/* plans are not threadsafe! */
@@ -278,14 +278,14 @@ int fft_register(plugin_t *p)
 				    FILTERPORT_END);
 	out->connect = fft_connect_out;
 	
-	param = filterparamdb_add_param_int(filter_paramdb(f),"blocksize",
-			FILTER_PARAMTYPE_INT, 2048,
+	param = filterparamdb_add_param_long(filter_paramdb(f),"blocksize",
+			FILTER_PARAMTYPE_LONG, 2048,
 			FILTERPARAM_DESCRIPTION,"fft-block size",
 			FILTERPARAM_END);
 	param->set = fft_fixup_param;
 	
-	param = filterparamdb_add_param_int(filter_paramdb(f),"oversamp",
-			FILTER_PARAMTYPE_INT, 8,
+	param = filterparamdb_add_param_long(filter_paramdb(f),"oversamp",
+			FILTER_PARAMTYPE_LONG, 8,
 			FILTERPARAM_DESCRIPTION,"oversampling factor",
 			FILTERPARAM_END);
 	param->set = fft_fixup_param;
@@ -477,7 +477,7 @@ static int fft_resample_connect_out(filter_port_t *port, filter_pipe_t *p)
 
 	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
 		if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
-			rate=filterparam_val_int(param);
+			rate=filterparam_val_long(param);
 	
 		bsize=((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
 		rate = bsize*filterpipe_fft_rate(in)/filterpipe_fft_bsize(in);
@@ -533,7 +533,7 @@ static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 
 	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
 		if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
-			rate=filterparam_val_int(param);
+			rate=filterparam_val_long(param);
 	
 		bsize=((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
 		rate = bsize*filterpipe_fft_rate(in)/filterpipe_fft_bsize(in);
@@ -559,7 +559,7 @@ static int fft_resample_f(filter_t *n){
 	bsize=filterpipe_fft_bsize(in);
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
-		rate=filterparam_val_int(param);
+		rate=filterparam_val_long(param);
 
 	nbsize=((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
 	DPRINTF("Transforming blocksize %d to blocksize %d, new frequency %d\n",bsize,nbsize,rate);
@@ -619,8 +619,8 @@ int fft_resample_register(plugin_t *p)
 				    FILTERPORT_END);
 	out->connect = fft_resample_connect_out;
 	
-	param = filterparamdb_add_param_int(filter_paramdb(f),"frequency",
-			FILTER_PARAMTYPE_INT, 44100,
+	param = filterparamdb_add_param_long(filter_paramdb(f),"frequency",
+			FILTER_PARAMTYPE_LONG, 44100,
 			FILTERPARAM_DESCRIPTION,"resample frequency",
 			FILTERPARAM_END);
 	param->set = fft_resample_fixup_param;
@@ -665,19 +665,19 @@ static int fft_equalizer_f(filter_t *n)
 	step = off/5;
 
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "low")))
-		f[0] = filterparam_val_float(param);
+		f[0] = filterparam_val_double(param);
 
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "midlow")))
-		f[1] = filterparam_val_float(param);
+		f[1] = filterparam_val_double(param);
 
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "mid")))
-		f[2] = filterparam_val_float(param);
+		f[2] = filterparam_val_double(param);
 	
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "midhigh")))
-		f[3] = filterparam_val_float(param);
+		f[3] = filterparam_val_double(param);
 	
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "high")))
-		f[4] = filterparam_val_float(param);
+		f[4] = filterparam_val_double(param);
 
 	DPRINTF("f[0-4] = %f %f %f %f %f\n",f[0], f[1], f[2], f[3], f[4]);
 	
@@ -732,28 +732,28 @@ int fft_equalizer_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "equalized fft stream",
 			      FILTERPORT_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"low",
-			FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"low",
+			FILTER_PARAMTYPE_DOUBLE, 1.0,
 			FILTERPARAM_DESCRIPTION,"low frequency gain",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"midlow",
-			FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"midlow",
+			FILTER_PARAMTYPE_DOUBLE, 1.0,
 			FILTERPARAM_DESCRIPTION,"middle low frequency gain",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"mid",
-			FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"mid",
+			FILTER_PARAMTYPE_DOUBLE, 1.0,
 			FILTERPARAM_DESCRIPTION,"low frequency gain",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"midhigh",
-			FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"midhigh",
+			FILTER_PARAMTYPE_DOUBLE, 1.0,
 			FILTERPARAM_DESCRIPTION,"middle high frequency gain",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"high",
-			FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"high",
+			FILTER_PARAMTYPE_DOUBLE, 1.0,
 			FILTERPARAM_DESCRIPTION,"high frequency gain",
 			FILTERPARAM_END);
 
@@ -796,13 +796,13 @@ static int fft_bandpass_f(filter_t *n){
 	off = bsize/2;
 
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "band minimum")))
-		fmin = filterparam_val_int(param);
+		fmin = filterparam_val_long(param);
 
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "band maximum")))
-		fmax = filterparam_val_int(param);
+		fmax = filterparam_val_long(param);
 
 	if ((param = filterparamdb_get_param(filter_paramdb(n), "gain")))
-		gain = pow(10.0,filterparam_val_float(param)/20.0);
+		gain = pow(10.0,filterparam_val_double(param)/20.0);
 	
 	fmin = fmin/(freq/off);
 	fmax = MIN(fmax/(freq/off), bsize/2);
@@ -861,18 +861,18 @@ int fft_bandpass_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "fft stream band",
 			      FILTERPORT_END);
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"band minimum",
-			FILTER_PARAMTYPE_INT, 0,
+	filterparamdb_add_param_long(filter_paramdb(f),"band minimum",
+			FILTER_PARAMTYPE_LONG, 0,
 			FILTERPARAM_DESCRIPTION,"Lower band frequency limit",
 			FILTERPARAM_END);
 
-	filterparamdb_add_param_int(filter_paramdb(f),"band maximum",
-			FILTER_PARAMTYPE_INT, 44100,
+	filterparamdb_add_param_long(filter_paramdb(f),"band maximum",
+			FILTER_PARAMTYPE_LONG, 44100,
 			FILTERPARAM_DESCRIPTION,"Upper band frequency limit",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"gain",
-			FILTER_PARAMTYPE_FLOAT, 0.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"gain",
+			FILTER_PARAMTYPE_DOUBLE, 0.0,
 			FILTERPARAM_DESCRIPTION,"band gain [dB]",
 			FILTERPARAM_END);
 	

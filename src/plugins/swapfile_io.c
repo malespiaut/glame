@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.25 2001/12/09 16:09:22 richi Exp $
+ * $Id: swapfile_io.c,v 1.26 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -47,13 +47,13 @@ static int swapfile_in_f(filter_t *n)
 
 	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
-	fname = filterparam_val_int(
+	fname = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no input filename specified");
 	if (!(fd = sw_open(fname, O_RDONLY)))
 		FILTER_ERROR_RETURN("cannot open swapfile file");
-	offset = filterparam_val_int(
+	offset = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "offset"));
 	offset *= SAMPLE_SIZE;
 	if (sw_lseek(fd, MAX(0, offset), SEEK_SET) != MAX(0, offset)) {
@@ -61,7 +61,7 @@ static int swapfile_in_f(filter_t *n)
 		sw_close(fd);
 		FILTER_ERROR_RETURN("cannot seek to offset");
 	}
-	size = filterparam_val_int(
+	size = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
 	sw_fstat(fd, &st);
 	if (size == -1)
@@ -70,7 +70,7 @@ static int swapfile_in_f(filter_t *n)
 		size *= SAMPLE_SIZE;
 	o_offset = offset;
 	o_size = size;
-	loop = filterparam_val_int(
+	loop = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "flags"));
 	DPRINTF("from %li size %li%s\n", offset, size, loop ? ", looping" : "");
 
@@ -140,7 +140,7 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	n = filterparam_filter(param);
 	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		return;
-	fname = filterparam_val_int(
+	fname = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (!(fd = sw_open(fname, O_RDONLY)))
 		return;
@@ -148,8 +148,8 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 
 	/* fix the output pipe stream information */
 	filter_clear_error(n);
-	filterpipe_settype_sample(out, filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate")),
-				  filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position")));
+	filterpipe_settype_sample(out, filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "rate")),
+				  filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "position")));
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
@@ -162,7 +162,7 @@ static int swapfile_in_connect_out(filter_port_t *outp, filter_pipe_t *p)
 	if (filterport_nrpipes(outp) > 0)
 		return -1;
 	n = filterport_filter(outp);
-	fname = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "filename"));
+	fname = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname != -1) {
 		if (!(fd = sw_open(fname, O_RDONLY)))
 			return -1;
@@ -170,8 +170,8 @@ static int swapfile_in_connect_out(filter_port_t *outp, filter_pipe_t *p)
 	}
 
 	/* fix the output pipe stream information */
-	filterpipe_settype_sample(p, filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate")),
-				  filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position")));
+	filterpipe_settype_sample(p, filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "rate")),
+				  filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "position")));
 	return 0;
 }
 
@@ -190,24 +190,24 @@ int swapfile_in_register(plugin_t *p)
 				    FILTERPORT_DESCRIPTION, "output stream",
 				    FILTERPORT_END);
 
-	filterparamdb_add_param_int(filter_paramdb(f), "filename",
-				FILTER_PARAMTYPE_INT, -1,
+	filterparamdb_add_param_long(filter_paramdb(f), "filename",
+				FILTER_PARAMTYPE_LONG, -1,
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "rate",
-				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+	filterparamdb_add_param_long(filter_paramdb(f), "rate",
+				FILTER_PARAMTYPE_LONG, GLAME_DEFAULT_SAMPLERATE,
 				FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "position",
+	filterparamdb_add_param_double(filter_paramdb(f), "position",
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "offset",
-				FILTER_PARAMTYPE_INT, 0,
+	filterparamdb_add_param_long(filter_paramdb(f), "offset",
+				FILTER_PARAMTYPE_LONG, 0,
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "size",
-				FILTER_PARAMTYPE_INT, -1,
+	filterparamdb_add_param_long(filter_paramdb(f), "size",
+				FILTER_PARAMTYPE_LONG, -1,
 				FILTERPARAM_DESCRIPTION, "size to stream or -1 for the full file",
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "flags",
-				FILTER_PARAMTYPE_INT, 0,
+	filterparamdb_add_param_long(filter_paramdb(f), "flags",
+				FILTER_PARAMTYPE_LONG, 0,
 				FILTERPARAM_DESCRIPTION, "1: loop",
 				FILTERPARAM_END);
 	filterparamdb_add_param_pos(filter_paramdb(f));
@@ -239,28 +239,38 @@ static int swapfile_out_f(filter_t *n)
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
 	filter_param_t *pos_param;
-	long fname, offset, size, cnt, pos, res, flags, changed_start;
+	long fname, offset, drop, size, cnt, pos, res, flags, changed_start;
 	struct sw_stat st;
 	swfd_t fd;
 
 	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
-	fname = filterparam_val_int(
+	fname = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no filename");
-	flags = filterparam_val_int(
+	flags = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "flags"));
-	offset = filterparam_val_int(
+	offset = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "offset"));
+	drop = filterparam_val_long(
+		filterparamdb_get_param(filter_paramdb(n), "drop"));
+
 	if (!(fd = sw_open(fname, O_RDWR | (flags & 1 ? O_CREAT : 0) | (flags & 2 ? O_TRUNC : 0))))
 		FILTER_ERROR_RETURN("cannot open file");
-	if (sw_lseek(fd, MAX(0, offset*SAMPLE_SIZE), SEEK_SET) != MAX(0, offset*SAMPLE_SIZE)) {
-		DPRINTF("Cannot seek to %li\n", MAX(0, offset*SAMPLE_SIZE));
+
+	/* backward compatible offset/drop */
+	if (drop == 0 && offset < 0) {
+		drop = -offset;
+		offset = 0;
+	}
+	if (sw_lseek(fd, offset*SAMPLE_SIZE, SEEK_SET) != offset*SAMPLE_SIZE) {
+		DPRINTF("Cannot seek to %li\n", offset*SAMPLE_SIZE);
 		sw_close(fd);
 		FILTER_ERROR_RETURN("cannot seek to offset");
 	}
-	size = filterparam_val_int(
+
+	size = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
 	/* Limit size to current file size, if not -1 (which allows extension). */
 	if (size != -1) {
@@ -272,6 +282,7 @@ static int swapfile_out_f(filter_t *n)
 		filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
 	pos = 0;
+	offset = drop;
 	changed_start = MAX(0, offset);
 
 	FILTER_AFTER_INIT;
@@ -325,8 +336,8 @@ static int swapfile_out_f(filter_t *n)
 	sw_close(fd);
 
 	/* Report changed range to "output" parameters. */
-	filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "changed_start")) = changed_start;
-	filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "changed_end")) = offset;
+	filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "changed_start")) = changed_start;
+	filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "changed_end")) = changed_start + MAX(0, offset) - 1;
 
 	return 0;
 }
@@ -345,27 +356,31 @@ int swapfile_out_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "input stream",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_int(filter_paramdb(f), "filename",
-				FILTER_PARAMTYPE_INT, -1,
+	filterparamdb_add_param_long(filter_paramdb(f), "filename",
+				FILTER_PARAMTYPE_LONG, -1,
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "offset",
-				FILTER_PARAMTYPE_INT, 0,
-				FILTERPARAM_DESCRIPTION, "offset to start writing",
+	filterparamdb_add_param_long(filter_paramdb(f), "offset",
+				FILTER_PARAMTYPE_LONG, 0,
+				FILTERPARAM_DESCRIPTION, "file offset to start writing",
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "size",
-				FILTER_PARAMTYPE_INT, -1,
+	filterparamdb_add_param_long(filter_paramdb(f), "drop",
+				FILTER_PARAMTYPE_LONG, 0,
+				FILTERPARAM_DESCRIPTION, "number of samples to drop before start writing",
+				FILTERPARAM_END);
+	filterparamdb_add_param_long(filter_paramdb(f), "size",
+				FILTER_PARAMTYPE_LONG, -1,
 				FILTERPARAM_DESCRIPTION, "max size to record or -1 for the full stream (allow extend)",
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "flags",
-				FILTER_PARAMTYPE_INT, 0,
+	filterparamdb_add_param_long(filter_paramdb(f), "flags",
+				FILTER_PARAMTYPE_LONG, 0,
 				FILTERPARAM_DESCRIPTION, "1: create file 2: truncate file",
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "changed_start",
-				FILTER_PARAMTYPE_INT, -1,
+	filterparamdb_add_param_long(filter_paramdb(f), "changed_start",
+				FILTER_PARAMTYPE_LONG, -1,
 				FILTERPARAM_DESCRIPTION, "file change report",
 				FILTERPARAM_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "changed_end",
-				FILTER_PARAMTYPE_INT, -1,
+	filterparamdb_add_param_long(filter_paramdb(f), "changed_end",
+				FILTER_PARAMTYPE_LONG, -1,
 				FILTERPARAM_DESCRIPTION, "file change report",
 				FILTERPARAM_END);
 	filterparamdb_add_param_pos(filter_paramdb(f));

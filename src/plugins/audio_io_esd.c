@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.8 2001/07/27 08:41:27 richi Exp $
+ * $Id: audio_io_esd.c,v 1.9 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -50,8 +50,8 @@ static int esd_in_f(filter_t *n)
 		FILTER_ERROR_RETURN("No outputs.");
 
 	host = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "device"));
-	rate = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate"));
-	maxsamples = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "duration")) * rate;
+	rate = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "rate"));
+	maxsamples = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "duration")) * rate;
 	if (maxsamples <= 0.0)
 		endless = 1;
 

@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.39 2002/01/27 12:26:19 richi Exp $
+ * $Id: audio_io.c,v 1.40 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -83,7 +83,7 @@ static int aio_generic_connect_out(filter_port_t *outp, filter_pipe_t *pipe)
 		return -1;
 	
 	/* Check for default rate parameter */
-	rate = filterparam_val_int(
+	rate = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(src), "rate"));
 
 	/* That's a bit messy. If there are two pipes and the user
@@ -147,7 +147,7 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		if (!out)
 			return;
 
-		hangle = filterparam_val_float(param);
+		hangle = filterparam_val_double(param);
 
 		filterpipe_sample_hangle(out) = hangle;
 		glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
@@ -160,7 +160,7 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		filter_port_t *outp;
 		filter_t *n;
 
-		rate = filterparam_val_int(param);
+		rate = filterparam_val_long(param);
 
 		/* Make sure to update rate param on all pipes */
 		n = filterparam_filter(param);
@@ -223,7 +223,7 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 				  FILTERPORT_END);
 	p->connect = aio_generic_connect_out;
 
-	param = filterparamdb_add_param_float(filterport_paramdb(p),
+	param = filterparamdb_add_param_double(filterport_paramdb(p),
 					      "position",
 					      FILTER_PARAMTYPE_POSITION,
 					      FILTER_PIPEPOS_DEFAULT,
@@ -232,15 +232,15 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 	glsig_add_handler(filterparam_emitter(param), GLSIG_PARAM_CHANGED,
 			  aio_generic_fixup_param, NULL);
 
-	param = filterparamdb_add_param_int(filter_paramdb(filter), "rate",
-					    FILTER_PARAMTYPE_INT,
-					    GLAME_DEFAULT_SAMPLERATE,
-					    FILTERPARAM_END);
+	param = filterparamdb_add_param_long(filter_paramdb(filter), "rate",
+					     FILTER_PARAMTYPE_LONG,
+					     GLAME_DEFAULT_SAMPLERATE,
+					     FILTERPARAM_END);
 	param->set = aio_generic_set_param;
 	glsig_add_handler(filterparam_emitter(param), GLSIG_PARAM_CHANGED,
 			  aio_generic_fixup_param, NULL);
 
-	param = filterparamdb_add_param_float(filter_paramdb(filter),
+	param = filterparamdb_add_param_double(filter_paramdb(filter),
 					      "duration", 
 					      FILTER_PARAMTYPE_TIME_S, 0.0,
 					      FILTERPARAM_END);

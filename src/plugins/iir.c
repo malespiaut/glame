@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.21 2001/12/16 17:39:17 mag Exp $
+ * $Id: iir.c,v 1.22 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -342,11 +342,11 @@ static int iir_f(filter_t *n)
 	
 	
 	if (mode < GLAME_IIR_BANDPASS) {
-		stages = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "stages"));
-		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "cutoff"))/(float)rate;
+		stages = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "stages"));
+		fc = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "cutoff"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
-		ripple = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "ripple"));
+		ripple = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "ripple"));
 		
 		DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n", stages*2,mode,fc,ripple);
 		
@@ -354,12 +354,12 @@ static int iir_f(filter_t *n)
 			FILTER_ERROR_RETURN("chebyshev failed");
 		
 	} else if (mode == GLAME_IIR_BANDPASS) {
-		stages = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "stages"));
+		stages = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "stages"));
 		
-		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "center"))/(float)rate;
+		fc = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "center"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
-		bw = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "width"))/(float)rate;
+		bw = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "width"))/(float)rate;
 		bw = CLAMP(bw, 0.0, 0.5);
 
 		ufc = fc + bw*0.5;
@@ -367,7 +367,7 @@ static int iir_f(filter_t *n)
 		ufc = CLAMP(ufc, 0.0, 0.5);
 		lfc = CLAMP(lfc, 0.0, 0.5);
 		
-		ripple=filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "ripple"));
+		ripple=filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "ripple"));
 		
 		if (!(first=chebyshev(stages*2,GLAME_IIR_LOWPASS,ufc,ripple)))
 			FILTER_ERROR_RETURN("chebyshev failed");
@@ -383,11 +383,11 @@ static int iir_f(filter_t *n)
 
 	} else if (mode == GLAME_IIR_BANDPASS_A) {
 		float nfc;
-		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "center"));
+		fc = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "center"));
 		/* normalize center frequency */
 		nfc= CLAMP(fc/(float)rate, 0.0, 0.5);
 		
-		bw = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "width"));
+		bw = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "width"));
 		if (fc <= bw*0.5)
 			bw = fc*2.0;
 		
@@ -511,18 +511,18 @@ int highpass_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "input channel",
 			      FILTERPORT_END);
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"stages",
-				FILTER_PARAMTYPE_INT,1,
+	filterparamdb_add_param_long(filter_paramdb(f),"stages",
+				FILTER_PARAMTYPE_LONG, 1,
 			        FILTERPARAM_DESCRIPTION,"number of stages",
 				FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
-			    FILTER_PARAMTYPE_FLOAT, 1000,
+	filterparamdb_add_param_double(filter_paramdb(f),"cutoff",
+			    FILTER_PARAMTYPE_FREQ, 1000.0,
 			    FILTERPARAM_DESCRIPTION,"cutoff frequency",
 			    FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
-			    FILTER_PARAMTYPE_FLOAT,0.5,
+	filterparamdb_add_param_double(filter_paramdb(f),"ripple",
+			    FILTER_PARAMTYPE_DOUBLE, 0.5,
 			    FILTERPARAM_DESCRIPTION,"percent ripple",
 			    FILTERPARAM_END);
 	
@@ -553,18 +553,18 @@ int lowpass_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "input channel",
 			      FILTERPORT_END);
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"stages",
-				FILTER_PARAMTYPE_INT,1,
+	filterparamdb_add_param_long(filter_paramdb(f),"stages",
+				FILTER_PARAMTYPE_LONG, 1,
 			        FILTERPARAM_DESCRIPTION,"number of stages",
 				FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"cutoff",
-			    FILTER_PARAMTYPE_FLOAT, 1000,
+	filterparamdb_add_param_double(filter_paramdb(f),"cutoff",
+			    FILTER_PARAMTYPE_FREQ, 1000.0,
 			    FILTERPARAM_DESCRIPTION,"cutoff frequency",
 			    FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
-			    FILTER_PARAMTYPE_FLOAT,0.5,
+	filterparamdb_add_param_double(filter_paramdb(f),"ripple",
+			    FILTER_PARAMTYPE_DOUBLE, 0.5,
 			    FILTERPARAM_DESCRIPTION,"percent ripple",
 			    FILTERPARAM_END);
 	
@@ -596,23 +596,23 @@ int bandpass_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "input channel",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_int(filter_paramdb(f),"stages",
-				FILTER_PARAMTYPE_INT,1,
+	filterparamdb_add_param_long(filter_paramdb(f),"stages",
+				FILTER_PARAMTYPE_LONG, 1,
 			        FILTERPARAM_DESCRIPTION,"number of stages",
 				FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"center",
-			    FILTER_PARAMTYPE_FLOAT, 1000,
+	filterparamdb_add_param_double(filter_paramdb(f),"center",
+			    FILTER_PARAMTYPE_FREQ, 1000.0,
 			    FILTERPARAM_DESCRIPTION,"center frequency",
 			    FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"width",
-			    FILTER_PARAMTYPE_FLOAT,500,
+	filterparamdb_add_param_double(filter_paramdb(f),"width",
+			    FILTER_PARAMTYPE_FREQ, 500.0,
 			    FILTERPARAM_DESCRIPTION,"bandwidth around center",
 			    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"ripple",
-			    FILTER_PARAMTYPE_FLOAT,0.5,
+	filterparamdb_add_param_double(filter_paramdb(f),"ripple",
+			    FILTER_PARAMTYPE_DOUBLE,0.5,
 			    FILTERPARAM_DESCRIPTION,"percent ripple",
 			    FILTERPARAM_END);
 	
@@ -644,13 +644,13 @@ int bandpass_a_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "input channel",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"center",
-			    FILTER_PARAMTYPE_FLOAT, 1000,
+	filterparamdb_add_param_double(filter_paramdb(f),"center",
+			    FILTER_PARAMTYPE_FREQ, 1000.0,
 			    FILTERPARAM_DESCRIPTION,"center frequency",
 			    FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"width",
-			    FILTER_PARAMTYPE_FLOAT,500,
+	filterparamdb_add_param_double(filter_paramdb(f),"width",
+			    FILTER_PARAMTYPE_FREQ, 500.0,
 			    FILTERPARAM_DESCRIPTION,"bandwidth around center",
 			    FILTERPARAM_END);
 	

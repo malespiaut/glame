@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.16 2002/01/08 15:56:58 nold Exp $
+ * $Id: audio_io_oss.c,v 1.17 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -396,11 +396,11 @@ static int oss_audio_in_f(filter_t *n)
 
 	rate_param = filterparamdb_get_param(filter_paramdb(n), "rate");
 	if (rate_param)
-		rate = filterparam_val_int(rate_param);
+		rate = filterparam_val_long(rate_param);
 
 	duration = filterparamdb_get_param(filter_paramdb(n), "duration");
 	if (duration)
-		maxsamples = filterparam_val_float(duration) * rate;
+		maxsamples = filterparam_val_double(duration) * rate;
 	if (maxsamples <= 0.0)
 		endless = 1;
 

@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.3 2002/02/11 12:44:46 richi Exp $
+ * $Id: mixer.c,v 1.4 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -115,11 +115,11 @@ static gint poll_net_cb(struct apply_data_s *a)
 				    FILTERPARAM_LABEL_POS);
 	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
 				MIN(1.0,
-				    (float) filterparam_val_pos(posparam) /
+				    (float) filterparam_val_long(posparam) /
 				    (float) (a->length)));
 
 
-	pos = filterparam_val_pos(posparam);
+	pos = filterparam_val_long(posparam);
 	/* sr=filterpipe_sample_rate(filterport_get_pipe(filterportdb_get_port(filter_portdb(a->pos),PORTNAME_IN))); */
 	time = div((pos / a->sr), 60);
 	snprintf(labelcount, 24, "%i mn %i sec / %i mn %i s", time.quot,
@@ -156,7 +156,7 @@ static void preview_start(struct apply_data_s *a)
 			const char *test2;
 			test2 = filterparam_to_string(param);
 			DPRINTF("property value=%s\n", test);
-			fl = filterparam_val_float(param);
+			fl = filterparam_val_double(param);
 			DPRINTF("param val=%f\n", fl);
 		}
 	}
@@ -204,7 +204,7 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 	filter_t *swap_out_left, *swap_out_right, *render, *net_out;
 	filter_port_t *out, *in_l, *in_r;
 	filter_pipe_t *pipe;
-	float pos;
+	double pos;
 	long swname;
 	char *label;
 
@@ -463,7 +463,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		GtkWidget *chanel_vbox, *chanel_frame, *eq_low_frame,
 		    *eq_low_hbox, *eq_mid_frame, *eq_mid_hbox,
 		    *eq_hi_frame, *eq_hi_hbox;
-		float phi,gain
+		double phi,gain
 ;
 		if (gpsm_item_hposition(item) != 0)
 			goto cleanup;	/* we dont want to handle non-aligned
@@ -489,7 +489,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 			DPRINTF("error getting swap_in");
 			goto cleanup;
 		}
-		phi = filterparam_val_float(filterparamdb_get_param(filter_paramdb(swap_in), "position"));
+		phi = filterparam_val_double(filterparamdb_get_param(filter_paramdb(swap_in), "position"));
 		DPRINTF("phi=%f\n", phi);
 		if (phi != 0)
 			a->stereo = 1;	/*non centered track : stereo mix */

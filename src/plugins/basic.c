@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.31 2001/12/16 18:16:45 richi Exp $
+ * $Id: basic.c,v 1.32 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -402,7 +402,7 @@ static int buffer_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("Insufficient inputs/outputs");
 
-	size = filterparam_val_int(
+	size = filterparam_val_long(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
 	size &= ~(SAMPLE_SIZE-1);
 	size = MAX(size, GLAME_WBUFSIZE);
@@ -476,7 +476,7 @@ static int buffer_set_size(filter_param_t *param, const void *val)
 	filter_t *f;
 	filter_pipe_t *pipe;
 	filter_param_t *time;
-	float t;
+	double t;
 
 	/* check if we have a SAMPLE pipe as input. */
 	f = filterparam_filter(param);
@@ -485,7 +485,7 @@ static int buffer_set_size(filter_param_t *param, const void *val)
 	if (!pipe || filterpipe_type(pipe) != FILTER_PIPETYPE_SAMPLE)
 		return 0;
 
-	t = (float)filterparam_val_int(param)/SAMPLE_SIZE/filterpipe_sample_rate(pipe);
+	t = (double)filterparam_val_long(param)/SAMPLE_SIZE/filterpipe_sample_rate(pipe);
 	time = filterparamdb_get_param(filter_paramdb(f), "time");
 	if (!f->priv) {
 		f->priv = (void *)1;
@@ -501,7 +501,7 @@ static int buffer_set_time(filter_param_t *param, const void *val)
 	filter_t *f;
 	filter_pipe_t *pipe;
 	filter_param_t *size;
-	int s;
+	long s;
 
 	/* check if we have a SAMPLE pipe as input. */
 	f = filterparam_filter(param);
@@ -510,7 +510,7 @@ static int buffer_set_time(filter_param_t *param, const void *val)
 	if (!pipe || filterpipe_type(pipe) != FILTER_PIPETYPE_SAMPLE)
 		return 0; /* FIXME - network load! return -1; */
 
-	s = filterparam_val_float(param)*filterpipe_sample_rate(pipe)*SAMPLE_SIZE;
+	s = filterparam_val_double(param)*filterpipe_sample_rate(pipe)*SAMPLE_SIZE;
 	size = filterparamdb_get_param(filter_paramdb(f), "size");
 	if (!f->priv) {
 		f->priv = (void *)1;
@@ -540,12 +540,12 @@ int buffer_register(plugin_t *p)
 			      FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_DESCRIPTION, "output",
 			      FILTERPORT_END);
-	param = filterparamdb_add_param_int(filter_paramdb(f), "size",
-				    FILTER_PARAMTYPE_INT, 0,
+	param = filterparamdb_add_param_long(filter_paramdb(f), "size",
+				    FILTER_PARAMTYPE_LONG, 0,
 				    FILTERPARAM_DESCRIPTION, "fifo size [bytes]",
 				    FILTERPARAM_END);
 	param->set = buffer_set_size;
-	param = filterparamdb_add_param_float(filter_paramdb(f), "time",
+	param = filterparamdb_add_param_double(filter_paramdb(f), "time",
 				      FILTER_PARAMTYPE_TIME_S, 0.0,
 				      FILTERPARAM_DESCRIPTION, "fifo time",
 				      FILTERPARAM_END);

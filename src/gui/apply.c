@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.14 2001/12/30 16:46:14 richi Exp $
+ * $Id: apply.c,v 1.15 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -101,7 +101,7 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 	}
 	/* update progressbar */
 	posparam = filterparamdb_get_param(filter_paramdb(a->pos), FILTERPARAM_LABEL_POS);
-	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress), MIN(1.0, (float)filterparam_val_pos(posparam)/(float)(a->length)));
+	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress), MIN(1.0, (float)filterparam_val_long(posparam)/(float)(a->length)));
 	return TRUE;
 }
 

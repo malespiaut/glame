@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.15 2002/02/11 16:21:26 richi Exp $
+ * $Id: glame_param.c,v 1.16 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -98,18 +98,14 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 	gparam->updating = 1;
 
 	if (GTK_IS_ADJUSTMENT(gparam->u.widget)) {
-		if (FILTER_PARAM_IS_FLOAT(gparam->param))
+		if (FILTER_PARAM_IS_DOUBLE(gparam->param))
 			gtk_adjustment_set_value(
 				gparam->u.adj,
-				filterparam_val_float(gparam->param));
-		else if (FILTER_PARAM_IS_SAMPLE(gparam->param))
+				filterparam_val_double(gparam->param));
+		else if (FILTER_PARAM_IS_LONG(gparam->param))
 			gtk_adjustment_set_value(
 				gparam->u.adj,
-				filterparam_val_sample(gparam->param));
-		else if (FILTER_PARAM_IS_INT(gparam->param))
-			gtk_adjustment_set_value(
-				gparam->u.adj,
-				filterparam_val_int(gparam->param));
+				filterparam_val_long(gparam->param));
 	} else if (GTK_IS_EDITABLE(gparam->u.widget)) {
 		char *val;
 		gint pos = 1;
@@ -149,7 +145,7 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 	} else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 		gtk_option_menu_set_history(
 			GTK_OPTION_MENU(gparam->u.widget),
-			filterparam_val_int(gparam->param));
+			filterparam_val_long(gparam->param));
 	} else
 		DPRINTF("FIXME: unhandled widget type\n");
 
@@ -219,28 +215,22 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 		return TRUE;
 
 	gparam->updating = 1;
-	if (FILTER_PARAM_IS_FLOAT(gparam->param)) {
-		res = filterparam_set(gparam->param, &adj->value);
-	} else if (FILTER_PARAM_IS_SAMPLE(gparam->param)) {
-		SAMPLE val = adj->value;
+	if (FILTER_PARAM_IS_DOUBLE(gparam->param)) {
+		double val = adj->value;
 		res = filterparam_set(gparam->param, &val);
-	} else if (FILTER_PARAM_IS_INT(gparam->param)) {
-		int val = adj->value;
+	} else if (FILTER_PARAM_IS_LONG(gparam->param)) {
+		long val = adj->value;
 		res = filterparam_set(gparam->param, &val);
 	}
 	if (res == -1) {
-		if (FILTER_PARAM_IS_FLOAT(gparam->param))
+		if (FILTER_PARAM_IS_DOUBLE(gparam->param))
 			gtk_adjustment_set_value(
 				gparam->u.adj,
-				filterparam_val_float(gparam->param));
-		else if (FILTER_PARAM_IS_SAMPLE(gparam->param))
+				filterparam_val_double(gparam->param));
+		else if (FILTER_PARAM_IS_LONG(gparam->param))
 			gtk_adjustment_set_value(
 				gparam->u.adj,
-				filterparam_val_sample(gparam->param));
-		else if (FILTER_PARAM_IS_INT(gparam->param))
-			gtk_adjustment_set_value(
-				gparam->u.adj,
-				filterparam_val_int(gparam->param));
+				filterparam_val_long(gparam->param));
 	}
 	gparam->updating = 0;
 
@@ -249,7 +239,8 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 
 static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 {
-	int res = -1, val;
+	int res = -1;
+	long val;
 
 	if (gparam->updating)
 		return TRUE;
@@ -276,7 +267,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	char *xml;
 #endif
 
-	if (!param || FILTER_PARAM_IS_POS(param)
+	if (!param || filterparam_type(param) == FILTER_PARAMTYPE_POS
 	    || filterparam_get_property(param, FILTERPARAM_HIDDEN))
 		return NULL;
 
@@ -299,23 +290,21 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->widget = glade_xml_get_widget(gxml, "widget");
 		gparam->u.widget = gparam->widget;
 		if (GTK_IS_OPTION_MENU(gparam->widget)) {
-			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_int(param));
+			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_long(param));
 		} else if (GTK_IS_RANGE(gparam->widget)) {
 			gparam->u.adj = gtk_range_get_adjustment(GTK_RANGE(gparam->widget));
-			if (FILTER_PARAM_IS_FLOAT(param))
-				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_float(param));
-			else if (FILTER_PARAM_IS_SAMPLE(param))
-				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_sample(param));
-			else if (FILTER_PARAM_IS_INT(param))
-				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_int(param));
+			if (FILTER_PARAM_IS_DOUBLE(param))
+				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_double(param));
+			else if (FILTER_PARAM_IS_LONG(param))
+				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_long(param));
 		} else
 			DPRINTF("FIXME - unsupported XML widget\n");
 	} else
 #endif
-	if (FILTER_PARAM_IS_INT(param)) {
+	if (FILTER_PARAM_IS_LONG(param)) {
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_int(param),
+			filterparam_val_long(param),
 			-MAXINT, MAXINT, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
@@ -329,7 +318,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			gparam->label = gtk_label_new(mslabel);
 		}
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_float(param),
+			filterparam_val_double(param),
 			0.0, MAXFLOAT, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1.0, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
@@ -343,7 +332,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			gparam->label = gtk_label_new(slabel);
 		}
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_float(param),
+			filterparam_val_double(param),
 			0.0, MAXFLOAT, 0.1, 1.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
@@ -351,23 +340,15 @@ GtkWidget *glame_param_new(filter_param_t *param)
 	} else if (filterparam_type(param) == FILTER_PARAMTYPE_POSITION) {
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_float(param),
+			filterparam_val_double(param),
 			-M_PI, M_PI, M_PI/16, M_PI/4, 0.0));
 		gparam->widget = gtk_hscale_new(gparam->u.adj);
 		gtk_scale_set_digits(GTK_SCALE(gparam->widget), 2);
 		gtk_scale_set_draw_value(GTK_SCALE(gparam->widget), TRUE);
-	} else if (FILTER_PARAM_IS_FLOAT(param)) {
+	} else if (filterparam_type(param) == FILTER_PARAMTYPE_SAMPLE) {
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_float(param),
-			-MAXFLOAT, MAXFLOAT, 0.1, 10.0, 0.0));
-		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
-		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
-					    TRUE);
-	} else if (FILTER_PARAM_IS_SAMPLE(param)) {
-		gparam->label = gtk_label_new(label);
-		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
-			filterparam_val_sample(param),
+			filterparam_val_double(param),
 			-1.0, 1.0, 0.001, 0.05, 0.0));
 		gparam->widget = gtk_hscale_new(gparam->u.adj);
 		gtk_scale_set_digits(GTK_SCALE(gparam->widget), 3);
@@ -379,6 +360,14 @@ GtkWidget *glame_param_new(filter_param_t *param)
 			GNOME_ENTRY(GNOME_FILE_ENTRY(gparam->widget)->gentry)));
 		gtk_entry_set_text(GTK_ENTRY(gparam->u.edit),
 				   filterparam_val_string(param));
+	} else if (FILTER_PARAM_IS_DOUBLE(param)) {
+		gparam->label = gtk_label_new(label);
+		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
+			filterparam_val_double(param),
+			-MAXFLOAT, MAXFLOAT, 0.1, 10.0, 0.0));
+		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
+		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
+					    TRUE);
 	} else if (FILTER_PARAM_IS_STRING(param)) {
 		gparam->label = gtk_label_new(label);
 		gparam->u.edit = GTK_EDITABLE(gtk_entry_new());

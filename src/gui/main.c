@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.103 2002/02/12 16:02:25 richi Exp $
+ * $Id: main.c,v 1.104 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -284,7 +284,7 @@ static int update_preferences()
 	char s[256];
 	long maxundo, res = 0;
 	long wbufsize, maxlru, maxfds, maxmaps, maxvm;
-	int rate;
+	long rate;
 
 	/* Check, if we have anything configured already. */
 	if (glame_config_get_string("swapfile/defaultpath", &swappath) == -1)

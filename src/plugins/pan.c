@@ -73,7 +73,7 @@ static int pan_f(filter_t *n)
 
 	while ((p_buf = sbuf_get(in))) {
 		/* Find out what/how to scale. */
-		scale = filterparam_val_float(
+		scale = filterparam_val_double(
 			filterparamdb_get_param(filter_paramdb(n), "pan"));
 		if (scale < 0.0) {
 			pass = left;
@@ -226,7 +226,7 @@ int pan_register(plugin_t *p)
 			      FILTERPORT_END);
 	port->connect = pan_right_connect_out;
 
-	pan = filterparamdb_add_param_float(filter_paramdb(f), "pan",
+	pan = filterparamdb_add_param_double(filter_paramdb(f), "pan",
 				  FILTER_PARAMTYPE_POSITION, 0.0/* FIXME - use magic (invalid) default value to mark "unset"? */,
 				  FILTERPARAM_DESCRIPTION,
 				  "position in stereo field [-pi/2, pi/2]", 

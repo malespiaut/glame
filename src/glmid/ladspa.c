@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.14 2002/02/11 16:20:57 richi Exp $
+ * $Id: ladspa.c,v 1.15 2002/02/17 13:53:31 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -42,9 +42,9 @@ static int ladspa_connect_out(filter_port_t *port, filter_pipe_t *p)
 	int rate;
 	float pos;
 
-	rate = filterparam_val_int(filterparamdb_get_param(
+	rate = filterparam_val_long(filterparamdb_get_param(
 				filter_paramdb(n), "GLAME Sample Rate"));
-	pos = filterparam_val_float(filterparamdb_get_param(
+	pos = filterparam_val_double(filterparamdb_get_param(
 				filter_paramdb(n), "GLAME Position"));
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
@@ -127,7 +127,7 @@ static int ladspa_f(filter_t * n)
 		    filterparamdb_get_param(filter_paramdb(n),
 					    "GLAME Sample Rate");
 		if (psParam)
-			lSampleRate = filterparam_val_int(psParam);
+			lSampleRate = filterparam_val_long(psParam);
 		else
 			lSampleRate = GLAME_DEFAULT_SAMPLERATE;
 	}
@@ -138,7 +138,7 @@ static int ladspa_f(filter_t * n)
 		/* ok, we have a sound generator there
 		 * give it some time to rumble */
 		glame_timer = TIME2CNT(unsigned long, 
-				       filterparam_val_float(psParam)*1000.0,
+				       filterparam_val_double(psParam)*1000.0,
 				       lSampleRate);
 	}
 	else 
@@ -201,13 +201,13 @@ static int ladspa_f(filter_t * n)
 				/* psParam == NULL does not happen if params were registered
 				 * appropriately. [richi] */
 				pfControlValues[lPortIndex] =
-				    filterparam_val_float(psParam);
+				    filterparam_val_double(psParam);
 			}
 			
 /* 
  * We now need to wire up the control port on the LADSPA plugin
  * to the point in the control ports array. For an input port
- * the value acquired by filterparam_val_float() will be
+ * the value acquired by filterparam_val_double() will be
  * used. For an output port the value will be written into the
  * relevant spot in the array but never read again. Less than
  * ideal, perhaps a FIXME for a later date... 
@@ -290,7 +290,7 @@ static int ladspa_f(filter_t * n)
 				/* psParam == NULL does not happen if params were registered
 				 * appropriately. [richi] */
 					pfControlValues[lPortIndex] =
-					    filterparam_val_float(psParam);
+					    filterparam_val_double(psParam);
 				}
 			
 				psDescriptor->connect_port(psLADSPAPluginInstance,
@@ -581,10 +581,10 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 				fRecommendation =
 				    (LADSPA_Data) (long) (fRecommendation +
 							  0.5);
-			param = filterparamdb_add_param_float(
+			param = filterparamdb_add_param_double(
 				filter_paramdb(psFilter),
 				psDescriptor->PortNames[lPortIndex],
-				FILTER_PARAMTYPE_FLOAT, fRecommendation,
+				FILTER_PARAMTYPE_DOUBLE, fRecommendation,
 				FILTERPARAM_END);
 			if (bound_below && bound_above) {
 				/* Use GtkHScale */
@@ -672,21 +672,21 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			if (filterport_is_output(psPort))
 				psPort->connect = ladspa_connect_out;
 		
-		filterparamdb_add_param_int(filter_paramdb(psFilter),
+		filterparamdb_add_param_long(filter_paramdb(psFilter),
 					    "GLAME Sample Rate",
-					    FILTER_PARAMTYPE_INT,
+					    FILTER_PARAMTYPE_RATE,
 					    GLAME_DEFAULT_SAMPLERATE,
 					    FILTERPARAM_END);
 		
-		filterparamdb_add_param_float(filter_paramdb(psFilter),
+		filterparamdb_add_param_double(filter_paramdb(psFilter),
 					    "GLAME Position",
-					    FILTER_PARAMTYPE_FLOAT,
+					    FILTER_PARAMTYPE_POSITION,
 					    0.0,
 					    FILTERPARAM_END);
 		
-		filterparamdb_add_param_float(filter_paramdb(psFilter),
+		filterparamdb_add_param_double(filter_paramdb(psFilter),
 					    "GLAME Duration",
-					    FILTER_PARAMTYPE_FLOAT,
+					    FILTER_PARAMTYPE_TIME_S,
 					    5.0,
 					    FILTERPARAM_END);
 	}

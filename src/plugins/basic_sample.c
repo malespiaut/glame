@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.58 2002/02/06 19:31:21 richi Exp $
+ * $Id: basic_sample.c,v 1.59 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -124,7 +124,7 @@ static int mix_f(filter_t *n)
 	    || !(jf = ALLOCN(nr, float)))
 		FILTER_ERROR_RETURN("no memory");
 
-	gain = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "gain"));
+	gain = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "gain"));
 
 	rate = -1;
 	i = 0;
@@ -152,12 +152,12 @@ static int mix_f(filter_t *n)
 
 		/* FIXME! external factor */
 		param = filterparamdb_get_param(filterpipe_destparamdb(in), "gain");
-		p[i].factor *= filterparam_val_float(param);
+		p[i].factor *= filterparam_val_double(param);
 
 		/* FIXME! "offset" */
 		p[i].out_pos = 0;
 		param = filterparamdb_get_param(filterpipe_destparamdb(in), "offset");
-		p[i].out_pos = rate*filterparam_val_float(param);
+		p[i].out_pos = rate*filterparam_val_double(param);
 		p[i].fifo_pos = p[i].out_pos;
 
 		cnt = MIN(cnt, p[i].out_pos);
@@ -497,7 +497,7 @@ static int mix_fixup(filter_t *n, filter_pipe_t *out)
 	}
 
 	/* phi is overridden by parameter */
-	phi = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position"));
+	phi = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "position"));
 
 	if (rate != filterpipe_sample_rate(out)
 	    || phi != filterpipe_sample_hangle(out)) {
@@ -558,12 +558,12 @@ int mix_register(plugin_t *p)
 				   FILTER_PORTFLAG_INPUT,
 				   FILTERPORT_DESCRIPTION, "input stream",
 				   FILTERPORT_END);
-	filterparamdb_add_param_float(filterport_paramdb(in), "gain",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filterport_paramdb(in), "offset",
-				      FILTER_PARAMTYPE_TIME_MS, 0.0,
-				      FILTERPARAM_END);
+	filterparamdb_add_param_double(filterport_paramdb(in), "gain",
+				       FILTER_PARAMTYPE_DOUBLE, 1.0,
+				       FILTERPARAM_END);
+	filterparamdb_add_param_double(filterport_paramdb(in), "offset",
+				       FILTER_PARAMTYPE_TIME_MS, 0.0,
+				       FILTERPARAM_END);
 
 	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 				    FILTER_PORTTYPE_SAMPLE,
@@ -571,12 +571,12 @@ int mix_register(plugin_t *p)
 				    FILTERPORT_DESCRIPTION, "mixed stream",
 				    FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "gain",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "position",
-				      FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
-				      FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "gain",
+				       FILTER_PARAMTYPE_DOUBLE, 1.0,
+				       FILTERPARAM_END);
+	filterparamdb_add_param_double(filter_paramdb(f), "position",
+				       FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+				       FILTERPARAM_END);
 
 	f->f = mix_f;
 	in->connect = mix_connect_in;
@@ -749,7 +749,7 @@ static void render_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	pipe = filterparam_get_sourcepipe(param);
 	filterpipe_settype_sample(pipe,
 				  filterpipe_sample_rate(pipe),
-				  filterparam_val_float(param));
+				  filterparam_val_double(param));
 	glsig_emit(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED, pipe);
 }
 static int render_connect_in(filter_port_t *port, filter_pipe_t *p)
@@ -804,7 +804,7 @@ int render_register(plugin_t *p)
 				    FILTER_PORTFLAG_OUTPUT,
 				    FILTERPORT_DESCRIPTION, "mixed stream",
 				    FILTERPORT_END);
-	filterparamdb_add_param_float(filterport_paramdb(out), "position",
+	filterparamdb_add_param_double(filterport_paramdb(out), "position",
 				      FILTER_PARAMTYPE_POSITION,
 				      FILTER_PIPEPOS_DEFAULT,
 				      FILTERPARAM_END);
@@ -833,7 +833,7 @@ int render_register(plugin_t *p)
 
 static int vadjust_set_param(filter_param_t *param, const void *val)
 {
-	float ngain, gain;
+	double ngain, gain;
 	filter_param_t *anyscale;
 	filter_t *n;
 
@@ -841,7 +841,7 @@ static int vadjust_set_param(filter_param_t *param, const void *val)
 	if (n->priv)
 		return 0;
 
-	gain = *((float*)val);
+	gain = *((double *)val);
 	
 	if (strcmp("factor", filterparam_label(param))==0) {
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "dbgain");
@@ -891,7 +891,7 @@ static int volume_adjust_f(filter_t *n)
 
 		/* adjust the amplitude by scale */
 		glsimd.scalar_product_1dI(buf, cnt,
-					  filterparam_val_float(scale));
+					  filterparam_val_double(scale));
 
 		/* queue the modified buffer */
 		sbuf_queue(out, b);
@@ -926,16 +926,16 @@ int volume_adjust_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "scaled stream",
 			      FILTERPORT_END);
 
-	param = filterparamdb_add_param_float(filter_paramdb(f), "factor",
-					      FILTER_PARAMTYPE_FLOAT, 1.0,
-					      FILTERPARAM_LABEL, "Gain",
-					      FILTERPARAM_END);	
+	param = filterparamdb_add_param_double(filter_paramdb(f), "factor",
+					       FILTER_PARAMTYPE_DOUBLE, 1.0,
+					       FILTERPARAM_LABEL, "Gain",
+					       FILTERPARAM_END);	
 	param->set = vadjust_set_param;
 
-	param = filterparamdb_add_param_float(filter_paramdb(f), "dbgain",
-					      FILTER_PARAMTYPE_FLOAT, 0.0,
-					      FILTERPARAM_LABEL, "Gain [dB]",
-					      FILTERPARAM_END);
+	param = filterparamdb_add_param_double(filter_paramdb(f), "dbgain",
+					       FILTER_PARAMTYPE_DOUBLE, 0.0,
+					       FILTERPARAM_LABEL, "Gain [dB]",
+					       FILTERPARAM_END);
 	param->set = vadjust_set_param;
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
@@ -965,7 +965,7 @@ static int delay_f(filter_t *n)
 		FILTER_ERROR_RETURN("no input or no output");
 
 	delay = (int)(filterpipe_sample_rate(in)
-		      * filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "delay"))/1000.0);
+		      * filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "delay"))/1000.0);
 	if (delay < 0)
 		FILTER_ERROR_RETURN("weird delay time");
 
@@ -1021,7 +1021,7 @@ int delay_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "delayed output stream",
 			      FILTERPORT_END);
 
-	param = filterparamdb_add_param_float(filter_paramdb(f), "delay",
+	param = filterparamdb_add_param_double(filter_paramdb(f), "delay",
 					      FILTER_PARAMTYPE_TIME_MS, 0.0,
 					      FILTERPARAM_END);
 
@@ -1051,7 +1051,7 @@ static int extend_f(filter_t *n)
 		FILTER_ERROR_RETURN("no input or no output");
 
 	time = (int)(filterpipe_sample_rate(in)
-		     * filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "time"))/1000.0);
+		     * filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "time"))/1000.0);
 	if (time < 0)
 		FILTER_ERROR_RETURN("weird extend time");
 
@@ -1109,7 +1109,7 @@ int extend_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "extended output stream",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "time",
+	filterparamdb_add_param_double(filter_paramdb(f), "time",
 				      FILTER_PARAMTYPE_TIME_MS, 0.0,
 				      FILTERPARAM_DESCRIPTION, "extend time in ms",
 				      FILTERPARAM_END);
@@ -1141,7 +1141,7 @@ static int repeat_f(filter_t *n)
 		FILTER_ERROR_RETURN("no input or no output");
 
 	endless = 0;
-	duration = filterpipe_sample_rate(in)*filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "duration"));
+	duration = filterpipe_sample_rate(in)*filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "duration"));
 	if (duration < 0)
 		FILTER_ERROR_RETURN("weird time");
 	if (duration == 0)
@@ -1233,7 +1233,7 @@ int repeat_register(plugin_t *p)
 			      FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_DESCRIPTION, "repeated stream",
 			      FILTERPORT_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "duration",
+	filterparamdb_add_param_double(filter_paramdb(f), "duration",
 				  FILTER_PARAMTYPE_TIME_S, 0.0,
 				  FILTERPARAM_DESCRIPTION, "total duration in seconds",
 				  FILTERPARAM_END);
@@ -1346,7 +1346,7 @@ int pan2_register(plugin_t *p)
 		FILTER_PORTFLAG_OUTPUT,
 		FILTERPORT_DESCRIPTION, "panned stream",
 		FILTERPORT_END);
-	param = filterparamdb_add_param_float(
+	param = filterparamdb_add_param_double(
 		filter_paramdb(f), "position",
 		FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 		FILTERPARAM_DESCRIPTION, "new position in stereo field",

@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.15 2001/11/19 10:04:50 richi Exp $
+ * $Id: noisegate.c,v 1.16 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -72,19 +72,19 @@ static int noisegate_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no in-/output port(s)");
 
-	t_on = filterparam_val_float(
+	t_on = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "threshold_on"));
-	t_off = filterparam_val_float(
+	t_off = filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "threshold_off"));
-	holdtime = TIME2CNT(int, filterparam_val_float(
+	holdtime = TIME2CNT(int, filterparam_val_double(
 		filterparamdb_get_param(filter_paramdb(n), "hold")),
 			    filterpipe_sample_rate(in));
 	param = filterparamdb_get_param(filter_paramdb(n), "attack");
-	if (filterparam_val_float(param)>0.0)
-		attack=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
+	if (filterparam_val_double(param)>0.0)
+		attack=1.0/TIME2CNT(float,filterparam_val_double(param),filterpipe_sample_rate(in));
 	param = filterparamdb_get_param(filter_paramdb(n), "release");
-	if (filterparam_val_int(param)>0.0)
-		release=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
+	if (filterparam_val_long(param)>0.0)
+		release=1.0/TIME2CNT(float,filterparam_val_double(param),filterpipe_sample_rate(in));
 
 	FILTER_AFTER_INIT;
 	
@@ -146,27 +146,27 @@ int noisegate_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "output",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"threshold_on",
-				FILTER_PARAMTYPE_FLOAT,0.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"threshold_on",
+				FILTER_PARAMTYPE_SAMPLE, 0.0,
 				FILTERPARAM_DESCRIPTION,"if input < threshold_on noisegate is turned on",
 				FILTERPARAM_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f),"threshold_off",
-			FILTER_PARAMTYPE_FLOAT,0.0,
+	filterparamdb_add_param_double(filter_paramdb(f),"threshold_off",
+			FILTER_PARAMTYPE_SAMPLE, 0.0,
 			FILTERPARAM_DESCRIPTION,"if input > threshold_off noisegate is turned off",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"hold",
+	filterparamdb_add_param_double(filter_paramdb(f),"hold",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION,"Hold Time[ms]",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"attack",
+	filterparamdb_add_param_double(filter_paramdb(f),"attack",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION,"Attack Time[ms]",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(filter_paramdb(f),"release",
+	filterparamdb_add_param_double(filter_paramdb(f),"release",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
 			FILTERPARAM_DESCRIPTION,"Release Time[ms]",
 			FILTERPARAM_END);

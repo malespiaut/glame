@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.78 2002/01/01 22:03:31 richi Exp $
+ * $Id: file_io.c,v 1.79 2002/02/17 13:53:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -144,7 +144,7 @@ static void read_file_pos_changed(glsig_handler_t *h, long sig, va_list va)
 	pipe = filterparam_get_sourcepipe(param);
 
 	filterpipe_settype_sample(pipe, filterpipe_sample_rate(pipe),
-				  filterparam_val_float(param));
+				  filterparam_val_double(param));
 	glsig_emit(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED, pipe);
 }
 
@@ -313,7 +313,7 @@ int read_file_register(plugin_t *pl)
 				  FILTERPORT_DESCRIPTION, "audio stream",
 				  FILTERPORT_END);
 	p->connect = read_file_connect_out;
-	param = filterparamdb_add_param_float(filterport_paramdb(p), "position", 
+	param = filterparamdb_add_param_double(filterport_paramdb(p), "position", 
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
 	glsig_add_handler(filterparam_emitter(param), GLSIG_PARAM_CHANGED,
@@ -322,7 +322,6 @@ int read_file_register(plugin_t *pl)
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
 	param->set = read_file_set_filename;
-	filterparam_set_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER,"*.wav");
 	filterparamdb_add_param_pos(filter_paramdb(f));
 
 	f->f = read_file_f;
@@ -374,7 +373,7 @@ static int write_file_f(filter_t *n)
 		FILTER_ERROR_RETURN("no filename");
 
 
-	filetype = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "filetype"));
+	filetype = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "filetype"));
 	if (filetype==0 )
 		filetype = glame_get_filetype_by_name(filename);
 	else {
@@ -385,9 +384,9 @@ static int write_file_f(filter_t *n)
 			filetype=af_indices[filetype];
 	}
 
-	sampleFormat=filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "sampleformat"));
-	sampleWidth=filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "samplewidth"));
-	compression=filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "compression"));
+	sampleFormat=filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "sampleformat"));
+	sampleWidth=filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "samplewidth"));
+	compression=filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "compression"));
 
 	if (filetype==-1)
 		FILTER_ERROR_RETURN("Filetype not recognized" 
@@ -545,28 +544,28 @@ int write_file_register(plugin_t *pl)
 
 		strcat(xmlparam, "</items><initial_choice>0</initial_choice></widget></GTK-Interface>");
 	
-		filterparamdb_add_param_int(filter_paramdb(f),"filetype", 
-					    FILTER_PARAMTYPE_INT, 0, 
-					    FILTERPARAM_DESCRIPTION,
-					    "filetype", 
-					    FILTERPARAM_GLADEXML, xmlparam,
-					    FILTERPARAM_END);
+		filterparamdb_add_param_long(filter_paramdb(f),"filetype", 
+					     FILTER_PARAMTYPE_LONG, 0, 
+					     FILTERPARAM_DESCRIPTION,
+					     "filetype", 
+					     FILTERPARAM_GLADEXML, xmlparam,
+					     FILTERPARAM_END);
 	}
 
-	filterparamdb_add_param_int(filter_paramdb(f), "sampleformat",
-				    FILTER_PARAMTYPE_INT, AF_SAMPFMT_TWOSCOMP,
-				    FILTERPARAM_HIDDEN, "FIXME",
-				    FILTERPARAM_END);
+	filterparamdb_add_param_long(filter_paramdb(f), "sampleformat",
+				     FILTER_PARAMTYPE_LONG, AF_SAMPFMT_TWOSCOMP,
+				     FILTERPARAM_HIDDEN, "FIXME",
+				     FILTERPARAM_END);
 
-	filterparamdb_add_param_int(filter_paramdb(f), "samplewidth",
-				    FILTER_PARAMTYPE_INT, 16,
-				    FILTERPARAM_HIDDEN, "FIXME",
-				    FILTERPARAM_END);
+	filterparamdb_add_param_long(filter_paramdb(f), "samplewidth",
+				     FILTER_PARAMTYPE_LONG, 16,
+				     FILTERPARAM_HIDDEN, "FIXME",
+				     FILTERPARAM_END);
 	
-	filterparamdb_add_param_int(filter_paramdb(f), "compression",
-				    FILTER_PARAMTYPE_INT, AF_COMPRESSION_NONE,
-				    FILTERPARAM_HIDDEN, "FIXME",
-				    FILTERPARAM_END);
+	filterparamdb_add_param_long(filter_paramdb(f), "compression",
+				     FILTER_PARAMTYPE_LONG, AF_COMPRESSION_NONE,
+				     FILTERPARAM_HIDDEN, "FIXME",
+				     FILTERPARAM_END);
 
 	filterparamdb_add_param_pos(filter_paramdb(f));
 

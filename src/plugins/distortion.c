@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.9 2001/11/19 10:04:50 richi Exp $ 
+ * $Id: distortion.c,v 1.10 2002/02/17 13:53:31 richi Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -66,7 +66,7 @@ static int distortion_f(filter_t *n)
 	
 	FILTER_AFTER_INIT;
 	
-	switch (filterparam_val_int(param))
+	switch (filterparam_val_long(param))
 	{
 		case 0:
 			goto entry;
@@ -84,14 +84,14 @@ static int distortion_f(filter_t *n)
 	while (buf) {
 		FILTER_CHECK_STOP;
 		
-		asym = filterparam_val_float(asym_param);
-		clip = filterparam_val_float(clip_param);
+		asym = filterparam_val_double(asym_param);
+		clip = filterparam_val_double(clip_param);
 
-		pregain = filterparam_val_float(preg_param);
+		pregain = filterparam_val_double(preg_param);
 		
 		pos_clip = asym + clip;
 		neg_clip = asym - clip;
-		fxgain = filterparam_val_float(fxg_param);
+		fxgain = filterparam_val_double(fxg_param);
 		gain = 1.0 / (1.0 + fxgain);
 		
 		/* got an input buffer */
@@ -110,7 +110,7 @@ static int distortion_f(filter_t *n)
 
 		sbuf_queue(out, buf);
 
-		switch (filterparam_val_int(param))
+		switch (filterparam_val_long(param))
 		{
 			case 0:
 				goto entry;
@@ -134,14 +134,14 @@ entry:
 	while (buf) {
 		FILTER_CHECK_STOP;
 		
-		asym = filterparam_val_float(asym_param);
-		clip = filterparam_val_float(clip_param);
+		asym = filterparam_val_double(asym_param);
+		clip = filterparam_val_double(clip_param);
 
-		pregain = filterparam_val_float(preg_param);
+		pregain = filterparam_val_double(preg_param);
 		
 		pos_clip = asym + clip;
 		neg_clip = asym - clip;
-		fxgain = filterparam_val_float(fxg_param);
+		fxgain = filterparam_val_double(fxg_param);
 		gain = 1.0 / (1.0 + fxgain);
 		
 		/* got an input buffer */
@@ -156,7 +156,7 @@ entry:
 
 		sbuf_queue(out, buf);
 		
-		switch (filterparam_val_int(param))
+		switch (filterparam_val_long(param))
 		{
 			case 0:
 				goto entry;
@@ -182,10 +182,10 @@ entry1:
 	while (buf) {
 		FILTER_CHECK_STOP;
 
-		pregain = filterparam_val_float(preg_param);
-		fxgain  = filterparam_val_float(fxg_param);
-		clip	= filterparam_val_float(clip_param);
-		asym = filterparam_val_float(asym_param);
+		pregain = filterparam_val_double(preg_param);
+		fxgain  = filterparam_val_double(fxg_param);
+		clip	= filterparam_val_double(clip_param);
+		asym = filterparam_val_double(asym_param);
 
 		pos_clip = asym + clip;
 		neg_clip = asym - clip;
@@ -209,7 +209,7 @@ entry1:
 
 		sbuf_queue(out, buf);
 		
-		switch (filterparam_val_int(param))
+		switch (filterparam_val_long(param))
 		{
 			case 0:
 				goto entry;
@@ -257,25 +257,29 @@ int distortion_register(plugin_t *p)
 			      FILTERPORT_END);
 	
 	param = filter_paramdb(f);
-	filterparamdb_add_param_float(param, "pregain", FILTER_PARAMTYPE_FLOAT, 10.0,
+	filterparamdb_add_param_double(param, "pregain",
+				    FILTER_PARAMTYPE_DOUBLE, 10.0,
 				    FILTERPARAM_DESCRIPTION, "gain before distortion",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(param, "fxgain", FILTER_PARAMTYPE_FLOAT, 1.0,
+	filterparamdb_add_param_double(param, "fxgain",
+				    FILTER_PARAMTYPE_DOUBLE, 1.0,
 				    FILTERPARAM_DESCRIPTION, "distortion effect gain",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(param, "clip", FILTER_PARAMTYPE_FLOAT, 0.8,
+	filterparamdb_add_param_double(param, "clip",
+				    FILTER_PARAMTYPE_SAMPLE, 0.8,
 				    FILTERPARAM_DESCRIPTION, "clip range",
 				    FILTERPARAM_END);
 
-	filterparamdb_add_param_float(param, "asym", FILTER_PARAMTYPE_FLOAT, 0.0,
+	filterparamdb_add_param_double(param, "asym",
+				    FILTER_PARAMTYPE_SAMPLE, 0.0,
 				    FILTERPARAM_DESCRIPTION, 
 				    "midpoint for asymmetrical clipping",
 				    FILTERPARAM_END);
 	
-        filterparamdb_add_param_int(param,"mode", 
-				    FILTER_PARAMTYPE_INT, 0, 
+        filterparamdb_add_param_long(param,"mode", 
+				    FILTER_PARAMTYPE_LONG, 0, 
 				    FILTERPARAM_DESCRIPTION,
 				    "(0) halfwave/asymmetrical" 
 				    "(1) fullwave rectifier"
