@@ -184,7 +184,8 @@ static void load_plugins_from_path(const char *path)
 static int plugins_register()
 {
 	/* Add plugin paths. */
-	add_plugin_path("./plugins/.libs");
+	if (!access("cglame.c", F_OK))
+		add_plugin_path("./plugins/.libs");
 	add_plugin_path(PKGLIBDIR);
 #ifdef HAVE_LADSPA
 	add_plugin_path(getenv("LADSPA_PATH"));
@@ -192,18 +193,12 @@ static int plugins_register()
 	add_plugin_path("/usr/local/lib/ladspa");
 #endif
 
-	/* Print message, so people notice when they have
-	 * old, unsupported plugins installed. [until we add versioning] */
-	fprintf(stderr,
-"If GLAME stops here, you probably have old, incompatible plugins\n"
-"installed at the following places:\n"
-"  %s\n", PKGLIBDIR);
-
 	/* First initialize the builtin plugins */
 	plugin_get("builtin_plugins");
 
 	/* Plugins from default paths - and "debug path" (first) */
-	load_plugins_from_path("./plugins/.libs"); /* for .so */
+	if (!access("cglame.c", F_OK))
+		load_plugins_from_path("./plugins/.libs");
 	load_plugins_from_path(PKGLIBDIR);
 #ifdef HAVE_LADSPA
 	load_plugins_from_path(getenv("LADSPA_PATH"));
@@ -247,7 +242,8 @@ static void init_after_guile(int argc, char **argv)
 	if (glscript_init() == -1)
 		exit(1);
 	add_plugin_path(PKGSCRIPTSDIR);
-	load_plugins_from_path("./plugins");       /* for .scm */
+	if (!access("cglame.c", F_OK))
+		load_plugins_from_path("./plugins"); /* for .scm */
 	load_plugins_from_path(PKGSCRIPTSDIR);
 
 	/* Load configuration. */
