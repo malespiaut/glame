@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.31 2002/03/25 13:26:20 richi Exp $
+ * $Id: filter_ops.c,v 1.32 2002/03/25 19:30:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -106,25 +106,33 @@ static void *launcher(void *node)
 #ifdef HAVE_PTHREAD_SIGMASK
 	sigemptyset(&sset);
 	sigaddset(&sset, SIGINT);
+	sigaddset(&sset, SIGPIPE);
 	pthread_sigmask(SIG_BLOCK, &sset, NULL);
 #endif
 	atomic_inc(&n->net->launch_context->val);
 
 	n->glerrno = n->f(n);
-	if (n->glerrno == 0) {
-		/* either finish or terminate -> drain pipes, send EOFs */
-		filterportdb_foreach_port(filter_portdb(n), port) {
-			filterport_foreach_pipe(port, p) {
-			        if (filterport_is_input(port))
-					fbuf_drain(p);
-				else
-					fbuf_queue(p, NULL);
+
+	/* first close our pipe ends */
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		filterport_foreach_pipe(port, p) {
+			if (filterport_is_input(port)) {
+				close(p->dest_fd);
+				p->dest_fd = -1;
+			} else {
+				close(p->source_fd);
+				p->source_fd = -1;
 			}
 		}
+	}
+
+	/* no error? just quit */
+	if (n->glerrno == 0) {
 		DPRINTF("filter %s completed.\n", n->name);
 		pthread_exit(NULL);
 	}
 
+	/* failure is more complex */
 	DPRINTF("%s had failure (errstr=\"%s\")\n",
 		n->name, n->glerrstr);
 
@@ -141,19 +149,6 @@ static void *launcher(void *node)
 			pthread_cond_wait(&n->net->launch_context->cond,
 					  &n->net->launch_context->cond_mx);
 		pthread_mutex_unlock(&n->net->launch_context->cond_mx);
-	}
-
-	/* if it was an error during processing, drain the pipes
-	 * and send eofs */
-	if (n->net->launch_context->state >= STATE_RUNNING) {
-		filterportdb_foreach_port(filter_portdb(n), port) {
-			filterport_foreach_pipe(port, p) {
-			        if (filterport_is_input(port))
-					fbuf_drain(p);
-				else
-					fbuf_queue(p, NULL);
-			}
-		}
 	}
 
 	DPRINTF("%s exiting after error\n", n->name);

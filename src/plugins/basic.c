@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.32 2002/02/17 13:53:31 richi Exp $
+ * $Id: basic.c,v 1.33 2002/03/25 19:30:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -235,6 +235,8 @@ static int one2n_f(filter_t *n)
 			     eof || /*!oneempty ||*/ (maxfifosize >= maxallowedfifo) ? NULL : &rset,
 			     empty ? NULL : &wset, NULL,
 			     do_timeout ? &timeout : NULL);
+		if (res == -1 && errno == EPIPE)
+			break;
 		if (res == -1 && errno != EINTR)
 			perror("select");
 		if (res < 0)

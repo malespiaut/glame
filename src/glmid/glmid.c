@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <signal.h>
 #include <unistd.h>
 #include <string.h>
 #include <guile/gh.h>
@@ -253,6 +254,12 @@ static void init_after_guile(int argc, char **argv)
 
 int glame_init(void (*main)(void), int argc, char **argv)
 {
+	sigset_t sset;
+
+	sigemptyset(&sset);
+	sigaddset(&sset, SIGPIPE);
+	sigprocmask(SIG_BLOCK, &sset, NULL);
+
 	glame_main = main;
 	gh_enter(argc, argv, init_after_guile);
 	return 0;

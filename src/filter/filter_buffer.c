@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.33 2002/03/25 13:26:20 richi Exp $
+ * $Id: filter_buffer.c,v 1.34 2002/03/25 19:30:32 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -217,7 +217,7 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 	        ;
 	if (res == -1) {
 #ifdef DEBUG
-		if (errno != EAGAIN)
+		if (errno != EPIPE)
 	        	perror("fbuf_get");
 #endif
         } else if (res != FBPIPE_WSIZE)
@@ -253,7 +253,7 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 	        ;
 	if (res == -1) {
 #ifdef DEBUG
-		if (errno != EAGAIN)
+		if (errno != EPIPE)
 	        	perror("fbuf_queue");
 #endif
 		fbuf_unref(fbuf);

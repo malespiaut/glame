@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.62 2002/02/27 09:08:29 richi Exp $
+ * $Id: basic_sample.c,v 1.63 2002/03/25 19:30:32 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -247,6 +247,8 @@ static int mix_f(filter_t *n)
 			     (!out || !output_ready) && !fifo_full ? NULL : &wset,
 			     NULL, &timeout);
 		if (res == -1) {
+			if (errno == EPIPE)
+				break;
 			if (errno != EINTR)
 				perror("select");
 			continue;
