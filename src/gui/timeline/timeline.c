@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.2 2001/05/23 07:51:53 richi Exp $
+ * $Id: timeline.c,v 1.3 2001/06/11 08:40:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -47,21 +47,24 @@ static void handle_group(glsig_handler_t *handler, long sig, va_list va)
 		group = TIMELINE_CANVAS_GROUP(glsig_handler_private(handler));
 		GLSIGH_GETARGS1(va, grp);
 
-		/* FIXME: handle move/resize/etc. */
-
+		timeline_canvas_group_update(group);
 		break;
 	}
 	case GPSM_SIG_GRP_REMOVEITEM: {
 		TimelineCanvasGroup *group;
+		GnomeCanvasItem *citem;
 		gpsm_grp_t *grp;
 		gpsm_item_t *item;
 
 		group = TIMELINE_CANVAS_GROUP(glsig_handler_private(handler));
 		GLSIGH_GETARGS2(va, grp, item);
+		if (TIMELINE_CANVAS_ITEM(group)->item != grp)
+			DPRINTF("FUCK!\n");
 
-		/* FIXME - find TimelineCanvas{Group/File} from group
-		 * and item and kill it (just the view).
-		 */
+		citem = timeline_canvas_find_gpsm_item(GNOME_CANVAS_GROUP(group), item);
+		if (!citem)
+			DPRINTF("FUCK2\n");
+		gtk_object_destroy(GTK_OBJECT(citem));
 
 		break;
 	}
@@ -92,7 +95,46 @@ static void handle_file(glsig_handler_t *handler, long sig, va_list va)
 		file = TIMELINE_CANVAS_FILE(glsig_handler_private(handler));
 		GLSIGH_GETARGS1(va, swfile);
 
-		/* FIXME: handle move/resize/etc. */
+		timeline_canvas_file_update(file);
+		break;
+	}
+	default:
+		DPRINTF("Unhandled signal %li\n", sig);
+	}
+}
+
+static void handle_root(glsig_handler_t *handler, long sig, va_list va)
+{
+	switch (sig) {
+	case GPSM_SIG_GRP_REMOVEITEM: {
+		TimelineCanvas *canvas;
+		GnomeCanvasItem *citem;
+		gpsm_grp_t *root;
+		gpsm_item_t *item;
+
+		canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
+		GLSIGH_GETARGS2(va, root, item);
+		if (canvas->root != root)
+			DPRINTF("FUCK!\n");
+
+		citem = timeline_canvas_find_gpsm_item(
+			gnome_canvas_root(GNOME_CANVAS(canvas)), item);
+		if (!citem)
+			DPRINTF("FUCK2\n");
+		gtk_object_destroy(GTK_OBJECT(citem));
+
+		break;
+	}
+	case GPSM_SIG_GRP_NEWITEM: {
+		TimelineCanvas *canvas;
+		gpsm_grp_t *root;
+		gpsm_item_t *item;
+
+		canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
+		GLSIGH_GETARGS2(va, root, item);
+
+		handle_grp_add_item(GNOME_CANVAS_GROUP(
+			gnome_canvas_root(GNOME_CANVAS(canvas))), item);
 
 		break;
 	}
@@ -108,30 +150,26 @@ static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 		gpsm_item_t *it;
 
 		DPRINTF("Adding group %s\n", gpsm_item_label(item));
-		grp = timeline_canvas_group_new(group, item);
+		grp = timeline_canvas_group_new(group, (gpsm_grp_t *)item);
 		/* FIXME: add handlers (gpsm) */
-		grp->gpsm_handler = glsig_add_handler(
+		TIMELINE_CANVAS_ITEM(grp)->gpsm_handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_GRP_NEWITEM
 			|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_CHANGED,
 			handle_group, grp);
 
-		/* FIXME: add handlers (gtk) */
-
 		/* Recurse. */
 		gpsm_grp_foreach_item(item, it)
-			handle_grp_add_item(grp, it);
+			handle_grp_add_item(GNOME_CANVAS_GROUP(grp), it);
 
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		TimelineCanvasFile *file;
 
 		DPRINTF("Adding file %s\n", gpsm_item_label(item));
-		file = timeline_canvas_file_new(group, item);
+		file = timeline_canvas_file_new(group, (gpsm_swfile_t *)item);
 		/* FIXME: add handlers (gpsm) */
-		file->gpsm_handler = glsig_add_handler(
+		TIMELINE_CANVAS_ITEM(file)->gpsm_handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
 			handle_file, file);
-
-		/* FIXME: add handlers (gtk) */
 	}
 }
 
@@ -156,7 +194,7 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 				       GTK_POLICY_ALWAYS);
 	gtk_widget_push_visual(gdk_rgb_get_visual());
 	gtk_widget_push_colormap(gdk_rgb_get_cmap());
-	canvas = timeline_canvas_new(root);
+	canvas = GTK_WIDGET(timeline_canvas_new(root));
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
 	gtk_container_add(GTK_CONTAINER(window), canvas);
@@ -165,7 +203,12 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 
 	/* Add all existing childs of root. */
 	gpsm_grp_foreach_item(root, item)
-		handle_grp_add_item(gnome_canvas_root(canvas), item);
+		handle_grp_add_item(gnome_canvas_root(GNOME_CANVAS(canvas)), item);
+
+	/* Add handler for item additions/removal in root group. */
+	TIMELINE_CANVAS(canvas)->gpsm_handler = glsig_add_handler(
+		gpsm_item_emitter(root), GPSM_SIG_GRP_NEWITEM
+		|GPSM_SIG_GRP_REMOVEITEM, handle_root, canvas);
 
 	return window;
 }
