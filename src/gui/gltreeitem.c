@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.17 2002/02/18 22:55:28 richi Exp $
+ * $Id: gltreeitem.c,v 1.18 2002/02/24 18:31:05 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <gnome.h>
+#include "util/gtknob.h"
 #include "glame_types.h"
 #include "swapfile.h"
 #include "glmid.h"
@@ -95,10 +96,15 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 			gtk_adjustment_new(gpsm_swfile_position(item),
 					   -M_PI, M_PI,
 					   M_PI/8.0, M_PI/2.0, 0.0));
+#if 0
 		slider = gtk_hscale_new(itemw->pos_adj);
 		gtk_scale_set_value_pos(GTK_SCALE(slider), GTK_POS_RIGHT);
 		gtk_scale_set_digits(GTK_SCALE(slider), 2);
 		gtk_container_add(GTK_CONTAINER(itemw->hbox), slider);
+#else
+		slider = gtk_knob_new(itemw->pos_adj);
+		gtk_box_pack_start(GTK_BOX(itemw->hbox), slider, FALSE, FALSE, 5);
+#endif
 		gtk_signal_connect(GTK_OBJECT(itemw->pos_adj), "value_changed",
 				   update_pos, item);
 	}
