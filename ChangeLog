@@ -1,4 +1,159 @@
+2000-04-07  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* TODO: less TODO
+
+2000-04-06  Daniel Kobras  <kobras@linux.de>
+
+	* doc/plugins.texi: All plugins documented now. [dk]
+
+2000-04-06  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/glmid/glame.scm: fixed eq? vs eqv?
+
+	* src/glmid/glmid.c, src/glmid/glplugin.c:
+	fixed plugin name - filter name issues with names which contain '-'s
+
+	* src/plugins/iir.c: iir should not be in itself plugin set
+
+2000-04-06  Daniel Kobras  <kobras@linux.de>
+
+	* src/plugins/arithmetic.c:
+	Corrected typo in comment - wrong formula. [dk]
+
+2000-04-06  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/glmid/glame.scm: cleanup
+
+	* doc/plugins.texi: more documented filters
+
+2000-04-06  Daniel Kobras  <kobras@linux.de>
+
+	* src/plugins/pan.c: Fixed recursion in pan_fixup_param. [dk]
+
+2000-04-06  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* doc/filter.texi: updated documentation
+
+	* src/filter/filter.h, src/filter/filter_network.c, src/filter/filter_tools.h:
+	added const to parameters where appropriate
+
+	* src/filter/filter.h, src/filter/filter_network.c:
+	added filterparam_set() to avoid recursion in fixup_param in the first
+	place
+
+	* src/plugins/iir.c, src/plugins/noisegate.c: fixed mags typos
+
+	* src/gui/canvas.c: fixes wrt api correctness
+
+2000-04-05  Daniel Kobras  <kobras@linux.de>
+
+	* src/plugins/pan.c, src/plugins/basic_sample.c, doc/plugins.texi:
+	More plugins documented. [dk]
+	Changed some time parameters. [dk]
+
+	* doc/plugins.texi: Continued docu update. [dk]
+
+	* src/glmid/glame.scm, src/glmid/glmid.c: Name changes. [dk]
+	Added pan plugin. [dk]
+
+	* src/plugins/audio_io.c, src/plugins/basic_sample.c, src/plugins/file_io.c, src/plugins/pan.c, src/plugins/waveform.c:
+	Unified and sanitized some names. [dk]
+	Added proper port descriptions. [dk]
+	Fixed pan filter. [dk]
+
+2000-04-05  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/plugins/basic_sample.c, src/plugins/echo.c, src/plugins/rms.c:
+	fixed _TIME vs _TIME_MS issues
+
+2000-04-05  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/plugins/noisegate.c: Requested fixes
+
+2000-04-05  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/filter/filter.h: split FLOATTYPE_TIME into TIME_MS and TIME_S
+
+2000-04-04  Daniel Kobras  <kobras@linux.de>
+
+	* doc/plugins.texi: Doc fixup. [dk]
+
+2000-04-04  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* doc/plugins.texi: added some more plugins
+
+2000-04-04  Daniel Kobras  <kobras@linux.de>
+
+	* doc/plugins.texi: Fixed _ -> -. [dk]
+
+2000-04-04  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/plugins/file_io.c: bugfix for the day :)
+
+2000-04-03  Daniel Kobras  <kobras@linux.de>
+
+	* src/plugins/basic_sample.c, src/plugins/file_io.c:
+	Fixed mix wrt large chunks. [dk]
+	Cleaned up some richisms in mix. [dk]
+	WAV reader honours MIN/MAX_BUFSIZE. [dk]
+
+	* doc/plugins.texi: Documented audio_io and file_io plugins. [dk]
+
+	* src/plugins/file_io.c: Little init magic was missing. [dk]
+
+	* src/include/glame_byteorder.h, src/include/glame_types.h, src/include/midi.h:
+	Added 64 bit data type. [dk]
+	Moved midi_even_t to proper location. [dk]
+
+	* acconfig.h, configure.in: Added check for <byteswap.h>. [dk]
+
+2000-04-03  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* src/glmid/glame.scm, src/plugins/file_io.c: bugfixes
+
+	* src/glmid/glame.scm, src/include/Makefile.am: distribute header files
+
+	* src/include/glame_byteorder.h, src/include/glame_swab.h:
+	fixed broken byteswap stuff - FIXME: configure check missing
+
+2000-04-03  Daniel Kobras  <kobras@linux.de>
+
+	* src/include/glame_byteorder.h:
+	Added endianness conversion helpers. [dk]
+
+	* configure.in, src/filter/filter_tools.h, src/include/glame_types.h, src/plugins/audio_io.c, src/plugins/file_io.c:
+	Added sizeof() configure checks (Duh! One more to break cross
+	compiling) [dk]
+	Fixed some SAMPLE conversion macros. [dk]
+	Added types with explicit bitwidth (gl_u8, gl_s8 etc.) [dk]
+	Re-inserted native wav reader - makes most basic functionality independent
+	from libaudiofile. [dk]
+
+2000-04-03  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/glmid/glmid.c, src/plugins/Makefile.am, src/plugins/iir.c, src/plugins/maggy.c:
+	moved iircode from maggy.c to iir.c
+
+2000-04-02  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/glmid/glame.scm: fixes to file-to-track and play-track
+
+	* src/glmid/glame.scm, src/plugins/maggy.c:
+	"final" bugfixes for IIR filter
+	wierd scheme stuff...
+
+2000-03-30  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* src/glmid/glame.scm, src/plugins/maggy.c: added testiir script
+	more bugfixes for iir_f
+
+	* src/plugins/maggy.c: lots of bugfixes to iir, needs still a few more
+
+	* src/plugins/maggy.c: added iir filter, but it's not working yet
+
 2000-03-29  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* ChangeLog, configure.in: the 0.2.0-pre1 release
 
 	* README: what is glame
 

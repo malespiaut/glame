@@ -1,4 +1,4 @@
-This is GLAME 0.2.0-pre1 - GNU/Linux Audio Mechanics BETA release.
+This is GLAME 0.2.0-pre2 - GNU/Linux Audio Mechanics BETA release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
@@ -16,7 +16,7 @@ with their real names
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/ or http://www.glame.de/
 
-Tuebingen 29.03.2000
+Tuebingen 07.04.2000
 
 
 Quick Start for the impatient
@@ -58,7 +58,7 @@ Requirements
   libtool.
 
 
-Current Status (as of version 0.2.0-pre1):
+Current Status (as of version 0.2.0-pre2):
 ==========================================
 - usable filternetwork GUI - src/gui/glame
 - usable console UI - src/cglame
