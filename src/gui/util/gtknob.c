@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.6 2002/04/10 20:31:35 ochonpaul Exp $
+ * $Id: gtknob.c,v 1.7 2002/04/12 08:47:24 ochonpaul Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -309,16 +309,18 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 	    rect.y = 0;
 	    rect.width = widget->allocation.width;
 	    rect.height = widget->allocation.height;
-	    gtk_knob_draw(widget, &rect);
+	    /* gtk_knob_draw(widget, &rect); */
 	    knob->adjustment->value =
 		(knob->value / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower;
 	    gtk_signal_emit_by_name(GTK_OBJECT(knob->adjustment),
 				    "value_changed");
 
-	    /* printf("adjustment: %f : %f : %f\n", knob->adjustment->upper,
-	       knob->adjustment->lower, knob->adjustment->value); */
-
+	    /* printf("adjustment: %f : %f : %f\n", knob->adjustment->upper, */
+/* 	       knob->adjustment->lower, knob->adjustment->value); */
+	    snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value);/*update displayed value*/
 	    oldvalue = knob->value;
+	    gtk_knob_draw(widget, &rect);
+	    
 	}
     }
 
@@ -639,11 +641,10 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 	rect.y = 0;
 	rect.width = widget->allocation.width;
 	rect.height = widget->allocation.height;
-		
+	
 	gtk_knob_draw(widget, &rect);
 
     }
-	/* nb=snprintf(knob->show_val,6,"%5.1f",adjustment->value); */
 }
 
 
