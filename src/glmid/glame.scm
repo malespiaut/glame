@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.39 2000/10/11 09:46:44 richi Exp $
+; $Id: glame.scm,v 1.40 2000/10/17 09:07:28 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -312,6 +312,19 @@
 		      (display "*** Test not passed. ***\n")
 		      #f)))))))
 
+(define swtest-truncate
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd (sw-creat 999)))
+		    (sw_write fd "Hello World!")
+		    (sw_ftruncate fd 5)
+		    (sw_ftruncate fd 64)
+		    (let ((res (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      res)))))
+      (swtest "Truncate" test "Hello"))))
+
 (define swtest-rw-simple
   (lambda ()
     (let ((test (lambda ()
@@ -385,6 +398,7 @@
 (define swtest-all
   (lambda ()
     (and (swtest-rw-simple)
+	 (swtest-truncate)
 	 (swtest-cut-aligned)
 	 (swtest-cut-unaligned)
 	 (swtest-insert-aligned)
