@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.13 2002/02/17 13:53:31 richi Exp $
+ * $Id: importexport.c,v 1.14 2002/03/25 13:44:11 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -261,7 +261,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
 					  percentage);
 	}
-	
+	filter_wait(ie->net);
 	filter_delete(ie->net);
 	ie->net = NULL;
 	
