@@ -528,13 +528,18 @@ static void playmarker_cleanup(glsig_handler_t *handler,
 	waveedit->pm_net = NULL;
 	waveedit->locked = 0;
 
+	/* restore marker position, if "valid". */
+	if (waveedit->pm_marker >= -1)
+		gtk_wave_view_set_marker(GTK_WAVE_VIEW(waveedit->waveview),
+					 waveedit->pm_marker);
+
 	/* restore normal play button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(waveedit->toolbar)), 3)->data);
+		GTK_CONTAINER(waveedit->toolbar)), 5)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
 				"Play", "Play", "Play",
 				glame_load_icon_widget("play.png",24,24),
-				playmarker_cb, waveedit->waveview, 4);
+				playmarker_cb, waveedit->waveview, 7);
 }
 static void playmarker_update_marker(glsig_handler_t *handler,
 				     long sig, va_list va)
@@ -551,7 +556,7 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	gint32 start;
+	gint32 start, end;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
@@ -580,7 +585,17 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	}
 
-	start = MAX(0, gtk_wave_view_get_marker (waveview));
+	/* Choose between playing the actual selection and from
+	 * the current marker position (where the first one restores
+	 * marker position after play). */
+	gtk_wave_view_get_selection(waveview, &start, &end);
+	end = start + end;
+	active_waveedit->pm_marker = gtk_wave_view_get_marker (waveview);
+	if (end - start <= 0) {
+		start = MAX(0, gtk_wave_view_get_marker (waveview));
+		end = gtk_wave_buffer_get_length(wavebuffer);
+		active_waveedit->pm_marker = -1000;
+	}
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Playing from %li\n", (long)start);
 	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
@@ -592,7 +607,7 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_grp_foreach_item(grp, item) {
 		filter_t *swin;
 		swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
-					  start, -1);
+					  start, end - start + 1);
 		if (!swin)
 			goto fail;
 	}
@@ -623,11 +638,11 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	/* exchange play for stop button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(active_waveedit->toolbar)), 3)->data);
+		GTK_CONTAINER(active_waveedit->toolbar)), 5)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
 				"Stop", "Stop", "Stop",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
-				playmarker_cb, active_waveedit->waveview, 4);
+				playmarker_cb, active_waveedit->waveview, 7);
 	active_waveedit->locked = 1;
 
 	return;
@@ -921,7 +936,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SUBTREE("Select", select_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Play all", "Plays the whole wave", playall_cb, NULL),
-	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playselection_cb, NULL),	
+	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playmarker_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Record at marker", "Records starting at marker position", recordmarker_cb, NULL),	
 	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
@@ -1173,6 +1188,13 @@ static SCM gls_waveedit_new(SCM s_item)
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_waveedit_play()
+{
+	if (active_waveedit)
+		playmarker_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
 void glame_waveeditgui_init()
 {
 	gh_new_procedure1_0("waveedit-new",
@@ -1193,6 +1215,7 @@ void glame_waveeditgui_init()
 			    gls_waveedit_get_scroll);
 	gh_new_procedure1_0("waveedit-set-scroll-position!",
 			    gls_waveedit_set_scroll_position);
+	gh_new_procedure0_0("waveedit-play", gls_waveedit_play);
 }
 
 static void waveedit_gui_destroy(GtkObject *waveedit)
@@ -1320,6 +1343,15 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				"View all", "View all", "View all",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),
 				zoomfull_cb, window->waveview);
+	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
+				"Select all", "Select all", "Select all",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_ATTACH),
+				selectall_cb, window->waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
+				"Select none", "Select none", "Select none",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLEAR),
+				selectnone_cb, window->waveview);
 	/* Play button that should change to Stop if pressed, different
 	 * callback than "Play all"/"Play selection" - play from marker.
 	 * FIXME. */
