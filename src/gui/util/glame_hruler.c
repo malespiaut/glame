@@ -90,8 +90,8 @@ glame_hruler_init (GlameHRuler *hruler)
   GtkWidget *widget;
 
   widget = GTK_WIDGET (hruler);
-  widget->requisition.width = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->xthickness * 2 + 1;
-  widget->requisition.height = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->ythickness * 2 + RULER_HEIGHT;
+  widget->requisition.width = GTK_STYLE(widget->style)->xthickness * 2 + 1;
+  widget->requisition.height = GTK_STYLE(widget->style)->ythickness * 2 + RULER_HEIGHT;
 }
 
 
@@ -166,8 +166,8 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   bg_gc = widget->style->bg_gc[GTK_STATE_NORMAL];
   font = gtk_style_get_font(widget->style);
 
-  xthickness = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->xthickness;
-  ythickness = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->ythickness;
+  xthickness = GTK_STYLE(widget->style)->xthickness;
+  ythickness = GTK_STYLE(widget->style)->ythickness;
 
 #if 0
   layout = gtk_widget_create_pango_layout (widget, "012456789");
@@ -304,8 +304,8 @@ glame_hruler_draw_pos (GlameRuler *ruler)
       widget = GTK_WIDGET (ruler);
 
       gc = widget->style->fg_gc[GTK_STATE_NORMAL];
-      xthickness = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->xthickness;
-      ythickness = GTK_STYLE(GTK_OBJECT_GET_CLASS(widget->style))->ythickness;
+      xthickness = GTK_STYLE(widget->style)->xthickness;
+      ythickness = GTK_STYLE(widget->style)->ythickness;
       width = widget->allocation.width;
       height = widget->allocation.height - ythickness * 2;
 

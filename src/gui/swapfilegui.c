@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.89 2003/04/11 20:10:00 richi Exp $
+ * $Id: swapfilegui.c,v 1.90 2003/04/11 22:18:16 xwolf Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -1040,8 +1040,10 @@ static void swapfile_gui_destroy(GtkObject *object)
 	GtkEventBox* parent_class;
 	parent_class = gtk_type_class(GTK_TYPE_EVENT_BOX);
 	GTK_OBJECT_CLASS(parent_class)->destroy(GTK_OBJECT(swapfile));
-	if (swapfile->gpsm_handler)
+	if (swapfile->gpsm_handler){
 		glsig_delete_handler(swapfile->gpsm_handler);
+		swapfile->gpsm_handler=NULL;
+	}
 }
 
 static void swapfile_gui_class_init(SwapfileGuiClass *class)

@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.133 2003/04/11 20:10:00 richi Exp $
+ * $Id: waveeditgui.c,v 1.134 2003/04/11 22:18:17 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -1303,8 +1303,10 @@ static void waveedit_gui_destroy(GtkObject *waveedit)
 	GnomeAppClass* parent_class;
 	parent_class = gtk_type_class(gnome_app_get_type());
 	GTK_OBJECT_CLASS(parent_class)->destroy(waveedit);
-	if (WAVEEDIT_GUI(waveedit)->swfiles)
+	if (WAVEEDIT_GUI(waveedit)->swfiles){
 		gpsm_item_destroy((gpsm_item_t *)WAVEEDIT_GUI(waveedit)->swfiles);
+		WAVEEDIT_GUI(waveedit)->swfiles = NULL;
+	}
 }
 
 static void waveedit_gui_class_init(WaveeditGuiClass *class)

@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.21 2003/04/11 20:09:58 richi Exp $
+ * $Id: gltreeitem.c,v 1.22 2003/04/11 22:18:16 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -36,8 +36,10 @@ static void glame_tree_item_destroy(GtkObject *object)
 {
 	GlameTreeItem *item = GLAME_TREE_ITEM(object);
 
-	if (item->handler)
+	if (item->handler){
 		glsig_delete_handler(item->handler);
+		item->handler = NULL;
+	}
 	GTK_OBJECT_CLASS(gtk_type_class(GTK_TYPE_TREE_ITEM))->destroy(object);
 }
 
