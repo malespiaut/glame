@@ -75,8 +75,11 @@
 /* define to the type you want for SAMPLE (float or double) */
 #define SAMPLE float
 
-/* define if you dont have sqrtf */
-#undef NEED_SQRTF
+/* define if you have sqrtf */
+#undef HAVE_SQRTF
+
+/* define if you have sinf */
+#undef HAVE_SINF
 
 /* define, if the SAMPLE type is std (float) */
 #undef SAMPLE_FLOAT
