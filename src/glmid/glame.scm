@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.36 2000/10/09 08:40:19 richi Exp $
+; $Id: glame.scm,v 1.37 2000/10/10 08:54:39 mainzelm Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -245,12 +245,11 @@
 
 (define sw-contents
   (lambda (fd)
-    (let ((st (sw_fstat fd))
-	  (data ""))
+    (let ((st (sw_fstat fd)))
       (sw_lseek fd 0 SEEK_SET)
-      (set! data (sw_read_string fd (sw-st-size st)))
-      (sw_lseek fd (sw-st-offset st) SEEK_SET)
-      data)))
+      (let ((data (sw_read_string fd (sw-st-size st))))
+	(sw_lseek fd (sw-st-offset st) SEEK_SET)
+	data))))
 
 (define sw-display
   (lambda (fd)
@@ -275,85 +274,80 @@
 (define swtest-rw-simple
   (lambda ()
     (let ((test (lambda ()
-		  (let ((fd (sw-creat 999))
-			(res ""))
+		  (let ((fd (sw-creat 999)))
 		    (sw_write fd "Hello")
 		    (sw_write fd "World!")
 		    (sw_lseek fd 5 SEEK_SET)
 		    (sw_write fd " World!")
-		    (set! res (sw-contents fd))
-		    (sw_close fd)
-		    (sw_unlink 999)
-		    res))))
+		    (let ((res (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      res)))))
       (swtest "Simple read-write" test "Hello World!"))))
 
 (define swtest-cut-aligned
   (lambda ()
     (let ((test (lambda ()
-		  (let ((fd (sw-creat 999))
-			(result ""))
+		  (let ((fd (sw-creat 999)))
 		    (sw_write fd "Hallo ")
 		    (sw_write fd "Leute, ")
 		    (sw_write fd "wie gehts?")
 		    (sw_lseek fd 6 SEEK_SET)
 		    (sw_sendfile SW_NOFILE fd 7 SWSENDFILE_CUT)
-		    (set! result (sw-contents fd))
-		    (sw_close fd)
-		    (sw_unlink 999)
-		    result))))
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
       (swtest "Aligned cut" test "Hallo wie gehts?"))))
 
 (define swtest-cut-unaligned
   (lambda ()
     (let ((test (lambda ()
-		  (let ((fd (sw-creat 999))
-			(result ""))
+		  (let ((fd (sw-creat 999)))
 		    (sw_write fd "Hallo Leute, wie gehts?")
 		    (sw_lseek fd 6 SEEK_SET)
 		    (sw_sendfile SW_NOFILE fd 7 SWSENDFILE_CUT)
-		    (set! result (sw-contents fd))
-		    (sw_close fd)
-		    (sw_unlink 999)
-		    result))))
+		    (let ((result (sw-contents fd)))
+		      (sw_close fd)
+		      (sw_unlink 999)
+		      result)))))
       (swtest "Unaligned cut" test "Hallo wie gehts?"))))
 
 (define swtest-insert-aligned
   (lambda ()
     (let ((test (lambda ()
 		  (let ((fd1 (sw-creat 998))
-			(fd2 (sw-creat 999))
-			(result ""))
+			(fd2 (sw-creat 999)))
 		    (sw_write fd1 "Hallo ")
 		    (sw_write fd1 "wie gehts?")
 		    (sw_write fd2 "Leute, ")
 		    (sw_lseek fd1 6 SEEK_SET)
 		    (sw_lseek fd2 0 SEEK_SET)
 		    (sw_sendfile fd1 fd2 7 SWSENDFILE_INSERT)
-		    (set! result (sw-contents fd1))
-		    (sw_close fd1)
-		    (sw_close fd2)
-		    (sw_unlink 998)
-		    (sw_unlink 999)
-		    result))))
+		    (let ((result (sw-contents fd1)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
       (swtest "Aligned insert" test "Hallo Leute, wie gehts?"))))
 
 (define swtest-insert-unaligned
   (lambda ()
     (let ((test (lambda ()
 		  (let ((fd1 (sw-creat 998))
-			(fd2 (sw-creat 999))
-			(result ""))
+			(fd2 (sw-creat 999)))
 		    (sw_write fd1 "Hallo wie gehts?")
 		    (sw_write fd2 "Bla Leute, Blubb")
 		    (sw_lseek fd1 6 SEEK_SET)
 		    (sw_lseek fd2 4 SEEK_SET)
 		    (sw_sendfile fd1 fd2 7 SWSENDFILE_INSERT)
-		    (set! result (sw-contents fd1))
-		    (sw_close fd1)
-		    (sw_close fd2)
-		    (sw_unlink 998)
-		    (sw_unlink 999)
-		    result))))
+		    (let ((result (sw-contents fd1)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
       (swtest "Unaligned insert" test "Hallo Leute, wie gehts?"))))
 
 (define swtest-all
@@ -481,34 +475,34 @@
 ;
 ; feedback echo2 macro filter
 ;
-(filternetwork_to_filter
-	(create-net ((extend "extend")
-	     (mix2 "mix2")
-	     (one2n "one2n")
-	     (delay "delay")
-	     (va "volume-adjust")) ; nodes
-	    ((extend "in" "in" "echo source"))                     ; input
-	    ((one2n "out" "out" "source with echo"))               ; output
-	    ((delay "delay" "delay" "echo delay"); node param label desc
-	     (va "factor" "mix" "echo mix ratio")
-	     (extend "time" "extend" "time to extend")
-	     (mix2 "gain" "gain" "output gain"))
-	    (begin (filternode_set_param net "delay" 200)
-		   (filternode_set_param net "extend" 600)
-		   (filternode_set_param net "mix" 0.7)
-		   (nodes-connect (list extend mix2 one2n delay va mix2))))
-	"echo2" "echo as macro filter")
+;(filternetwork_to_filter
+;	(create-net ((extend "extend")
+;	     (mix2 "mix2")
+;	     (one2n "one2n")
+;	     (delay "delay")
+;	     (va "volume-adjust")) ; nodes
+;	    ((extend "in" "in" "echo source"))                     ; input
+;	    ((one2n "out" "out" "source with echo"))               ; output
+;	    ((delay "delay" "delay" "echo delay"); node param label desc
+;	     (va "factor" "mix" "echo mix ratio")
+;	     (extend "time" "extend" "time to extend")
+;	     (mix2 "gain" "gain" "output gain"))
+;	    (begin (filternode_set_param net "delay" 200)
+;		   (filternode_set_param net "extend" 600)
+;		   (filternode_set_param net "mix" 0.7)
+;		   (nodes-connect (list extend mix2 one2n delay va mix2))))
+;	"echo2" "echo as macro filter")
 
-;
-; mp3 reader using the pipe-in filter and mpg123
-;
-(filternetwork_to_filter
-	(create-net ((p "pipe-in"))
-	    ()
-	    ((p "out" "out" "output"))
-	    ((p "tail" "filename" "filename"))
-	    (filternode_set_param p "cmd" "mpg123 -q -s "))
-	"read-mp3" "mp3-reader")
+;;
+;; mp3 reader using the pipe-in filter and mpg123
+;;
+;(filternetwork_to_filter
+;	(create-net ((p "pipe-in"))
+;	    ()
+;	    ((p "out" "out" "output"))
+;	    ((p "tail" "filename" "filename"))
+;	    (filternode_set_param p "cmd" "mpg123 -q -s "))
+;	"read-mp3" "mp3-reader")
 
 
 
