@@ -58,10 +58,11 @@ static int __cluster_data_open(long name, int flags);
 static int __cluster_meta_open(long name, int flags);
 static struct swcluster *_cluster_creat(long name);
 static struct swcluster *_cluster_stat(long name, s32 known_size);
-static void _cluster_readfiles(struct swcluster *c);
+static int _cluster_readfiles(struct swcluster *c);
 static void _cluster_writefiles(struct swcluster *c);
 static void _cluster_truncate(struct swcluster *c, s32 size);
 static void _cluster_put(struct swcluster *c);
+#define _cluster_needfiles(c) do { if ((c)->flags & SWC_NOT_IN_CORE) if (_cluster_readfiles(c) == -1) SWPANIC("metadata vanished under us"); } while (0)
 #define _cluster_needdata(c) do { if ((c)->flags & SWC_CREAT || (c)->fd == -1) __cluster_needdata(c); } while (0)
 static void __cluster_needdata(struct swcluster *c);
 
@@ -133,7 +134,13 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 	    && (c->flags & SWC_NOT_IN_CORE)) {
 		LOCKCLUSTER(c);
 		if (c->flags & SWC_NOT_IN_CORE)
-			_cluster_readfiles(c);
+			if (_cluster_readfiles(c) == -1) {
+				if (c->usage > 1)
+					SWPANIC("metadata vanished under us");
+				UNLOCKCLUSTER(c);
+				cluster_put(c, CLUSTERPUT_FREE);
+				return NULL;
+			}
 		UNLOCKCLUSTER(c);
 	}
 
@@ -213,8 +220,7 @@ static void cluster_addfileref(struct swcluster *c, long file)
 {
 	LOCKCLUSTER(c);
 	/* Bring in the files list, if necessary. */
-	if (c->flags & SWC_NOT_IN_CORE)
-		_cluster_readfiles(c);
+	_cluster_needfiles(c);
 
 	/* Re-alloc the files array. - FIXME: inefficient */
 	if (!(c->files = (long *)realloc(c->files, (c->files_cnt+1)*sizeof(long))))
@@ -233,8 +239,7 @@ static int cluster_delfileref(struct swcluster *c, long file)
 
 	LOCKCLUSTER(c);
 	/* Bring in the files list, if necessary. */
-	if (c->flags & SWC_NOT_IN_CORE)
-		_cluster_readfiles(c);
+	_cluster_needfiles(c);
 
 	/* Search file from the back (this is most cache friendly
 	 * for the necessary array move afterwards). */
@@ -265,8 +270,7 @@ static int cluster_checkfileref(struct swcluster *c, long file)
 
 	LOCKCLUSTER(c);
 	/* Bring in the files list, if necessary. */
-	if (c->flags & SWC_NOT_IN_CORE)
-		_cluster_readfiles(c);
+	_cluster_needfiles(c);
 
 	/* Search file from the back (this is most cache friendly
 	 * for the necessary array move afterwards). */
@@ -465,6 +469,21 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
 	return res;
 }
 
+static ssize_t cluster_write_extend(struct swcluster *c, const void *buf,
+				    size_t count)
+
+{
+	ssize_t res;
+
+	LOCKCLUSTER(c);
+	_cluster_needdata(c);
+	res = pwrite(c->fd, buf, count, c->size);
+	c->size += res;
+	UNLOCKCLUSTER(c);
+
+	return res;
+}
+
 
 
 /***********************************************************************
@@ -562,7 +581,7 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
  * to call this operation on a SWC_DIRTY cluster. For clusters
  * which already have the list this is a nop. Any internal error
  * causes a SWPANIC. Clears SWC_NOT_IN_CORE flag. */
-static void _cluster_readfiles(struct swcluster *c)
+static int _cluster_readfiles(struct swcluster *c)
 {
 	int fd;
 	struct stat stat;
@@ -570,12 +589,15 @@ static void _cluster_readfiles(struct swcluster *c)
 	if (c->flags & SWC_DIRTY)
 		DERROR("read into dirty state");
 	if (!(c->flags & SWC_NOT_IN_CORE))
-		return;
+		return 0;
 
 	/* Load files list. */
 	if ((fd = __cluster_meta_open(c->name, O_RDWR)) == -1
-	    || fstat(fd, &stat) == -1)
-		SWPANIC("metadata vanished under us");
+	    || fstat(fd, &stat) == -1) {
+		if (fd != -1)
+			close(fd);
+		return -1;
+	}
 	if (!(c->files = (long *)malloc(stat.st_size)))
 		SWPANIC("no memory for files list");
 	c->files_cnt = stat.st_size/sizeof(long);
@@ -583,6 +605,8 @@ static void _cluster_readfiles(struct swcluster *c)
 		SWPANIC("cannot read cluster metadata");
 	c->flags &= ~SWC_NOT_IN_CORE;
 	close(fd);
+
+	return 0;
 }
 
 /* Writes the list of cluster users - the file list - to
