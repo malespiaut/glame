@@ -45,6 +45,7 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
+static void flatten_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -60,6 +61,7 @@ static GnomeUIInfo group_menu_data[] = {
 	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
 	GNOMEUIINFO_ITEM("Add empty wave", "addfile", addfile_cb, NULL),
         GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
+        GNOMEUIINFO_ITEM("Flatten", "flatten", flatten_cb, NULL),
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Link selected", "link", linkselected_cb, NULL),
@@ -210,6 +212,35 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 	gpsm_item_destroy((gpsm_item_t *)group);
 }
 
+/* Flatten the group using gpsm_flatten and replace it with the
+ * flattened group. */
+static void flatten_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	gpsm_grp_t *group, *parent;
+	gpsm_item_t *old;
+	long hpos, vpos;
+
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+	old = item->item;
+
+	/* Flatten the active group. */
+	if (!(group = gpsm_flatten(old))) {
+	        DPRINTF("gpsm_flatten failed!?\n");
+		return;
+	}
+
+	/* Remove the active group and insert the flattened one. */
+	parent = gpsm_item_parent(old);
+	hpos = gpsm_item_hposition(old);
+	vpos = gpsm_item_vposition(old);
+	gpsm_item_remove(old);
+	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
+
+	/* Destroy the old group. */
+	gpsm_item_destroy(old);
+}
+
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	gpsm_swfile_t *swfile;
@@ -282,10 +313,16 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_paramdb_t *db;
 	filter_param_t *param;
 	filter_port_t *source, *dest;
+	gpsm_grp_t *grp;
+	gpsm_item_t *it;
 	filename = alloca(255);
 
 	we = gnome_dialog_file_request("Export As...","Filename",&filename);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)))
+		return;
+
+	/* Build temporary group out of flattened item->item. */
+	if (!(grp = gpsm_flatten(item->item)))
 		return;
 
 	/* Build basic network. */
@@ -298,48 +335,34 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 		goto fail_cleanup;
 	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
 
-	if (GPSM_ITEM_IS_SWFILE(item->item)) {
-		p_swapfile_in = plugin_get("swapfile_in");
+	p_swapfile_in = plugin_get("swapfile_in");
+	gpsm_grp_foreach_item(grp, it) {
+		if (!GPSM_ITEM_IS_SWFILE(it))
+			goto fail_cleanup;
 		swin = filter_instantiate(p_swapfile_in);
-		filter_add_node(net, swin, "swapfile_in");
+		filter_add_node(net, swin, "swapfile");
 		db = filter_paramdb(swin);
 		param = filterparamdb_get_param(db, "filename");
-		filterparam_set(param, &gpsm_swfile_filename(item->item));
+		filterparam_set(param, &gpsm_swfile_filename(it));
 		param = filterparamdb_get_param(db, "rate");
-		filterparam_set(param, &gpsm_swfile_samplerate(item->item));
+		filterparam_set(param, &gpsm_swfile_samplerate(it));
 		param = filterparamdb_get_param(db, "position");
 		filterparam_set(param, &gpsm_swfile_position(item->item));
-		source = filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT);
-		if (!filterport_connect(source,dest))
+		source = filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT); 
+		if (!filterport_connect(source, dest))
 			goto fail_cleanup;
-	} else if (GPSM_ITEM_IS_GRP(item->item)) {
-		gpsm_item_t *it;
-		p_swapfile_in = plugin_get("swapfile_in");
-		gpsm_grp_foreach_item(item->item, it) {
-			if (!GPSM_ITEM_IS_SWFILE(it))
-				goto fail_cleanup;
-			swin = filter_instantiate(p_swapfile_in);
-			filter_add_node(net, swin, "swapfile");
-			db = filter_paramdb(swin);
-			param = filterparamdb_get_param(db, "filename");
-			filterparam_set(param, &gpsm_swfile_filename(it));
-			param = filterparamdb_get_param(db, "rate");
-			filterparam_set(param, &gpsm_swfile_samplerate(it));
-			param = filterparamdb_get_param(db, "position");
-			filterparam_set(param, &gpsm_swfile_position(item->item));
-			source = filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT); 
-			if (!filterport_connect(source, dest))
-				goto fail_cleanup;
-		}
 	}
+
 	filter_launch(net);
 	filter_start(net);
 	filter_wait(net);
 	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
 	return;
 
  fail_cleanup:
 	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)

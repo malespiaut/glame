@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.30 2001/04/14 16:12:36 richi Exp $
+ * $Id: main.c,v 1.31 2001/04/16 17:48:15 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -218,7 +218,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		}
                	gnome_config_sync();
         }
-        fprintf(stderr,"dialog: %d\n",val);
+        DPRINTF("dialog: %d\n",val);
 	g_free(defaultpath);
 	free(path);
 	free(numberbuffer);
@@ -316,7 +316,7 @@ static void gui_main()
 		gnome_config_sync();
 	}
      
-	fprintf(stderr,"path: %s\n",path);
+	DPRINTF("path: %s\n",path);
 	if(!g_file_test(path,G_FILE_TEST_ISDIR)
 	   && !swname /* for debugging */){
 		if(swapfile_creat(path,-1)){
