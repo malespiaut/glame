@@ -1001,10 +1001,12 @@ static SCM gls_waveedit_set_scroll_position(SCM s_pos)
 static SCM gls_waveedit_new(SCM s_item)
 {
 	gpsm_item_t *item;
+	WaveeditGui *w;
 	SCM_ASSERT(gpsmitem_p(s_item), s_item, SCM_ARG1, "waveedit-new");
 	item = scm2gpsmitem(s_item);
-	gtk_widget_show_all(GTK_WIDGET(
-		glame_waveedit_gui_new(gpsm_item_label(item), item)));
+	w = glame_waveedit_gui_new(gpsm_item_label(item), item);
+	if (w)
+		gtk_widget_show_all(GTK_WIDGET(w));
 
 	return SCM_UNSPECIFIED;
 }
