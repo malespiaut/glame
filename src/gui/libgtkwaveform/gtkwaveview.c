@@ -493,9 +493,9 @@ gtk_wave_view_update_label(GtkWaveView *waveview)
 		 	 waveview->select_left/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer) - mins*60,
 			 mins2,
 		 	 waveview->select_right/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer) - mins2*60);
+		gtk_label_set_text(GTK_LABEL(waveview->selection_label), label);
 	} else
-		strcpy(label, "none");
-	gtk_label_set_text(GTK_LABEL(waveview->selection_label), label);
+		gtk_label_set_text(GTK_LABEL(waveview->selection_label), "none");
 }
 
 
@@ -620,7 +620,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 		/* For each sample of a track, keep min and max values. */
 		for (j = 0; j < n_channels; j++) {
 		   for (i = 0; i < size; i++) {
-		      gfloat val = fabs(data[j*size+i]);
+		      gfloat val = fabsf(data[j*size+i]);
 		      if (val > max[j]) { 
 			 max[j] = val;
 			 min[j] = -val;
