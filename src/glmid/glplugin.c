@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.36 2001/09/17 11:47:12 nold Exp $
+ * $Id: glplugin.c,v 1.37 2001/11/11 14:50:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -216,7 +216,8 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 
 	/* Loop through all available descriptors and create
 	 * GLAME wrappers for them. */
-	for (i=0; (desc = desc_func(i)) != NULL; i++) {
+	i = 0;
+	while ((desc = desc_func(i++))) {
 		if (!(lp = _plugin_alloc(desc->Label))
 		    || !(lp->handle = lt_dlopenext(filename))
 		    || installLADSPAPlugin(desc, lp) == -1
