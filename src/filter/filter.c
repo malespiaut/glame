@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: filter.c,v 1.3 2000/01/24 11:43:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -44,7 +44,8 @@ filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *),
 
 	if (!(f = ALLOC(filter_t)))
 		return NULL;
-
+	hash_init_filter(f);
+	
 	if (!(f->name = strdup(name))
 	    || (nr_params>0
 		&& !(f->params = ALLOCN(nr_params, struct filter_param_desc)))

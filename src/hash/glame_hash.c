@@ -68,8 +68,8 @@ void hash_dump()
 
 
 /* convenience macros */
-#define NAME(entry, head, name) (char *)((char *)(entry) - (head) + (name))
-#define NAMESPACE(entry, head, namespace) (void *)((char *)(entry) - (head) + (namespace))
+#define NAME(entry, head, name) (*(char **)((char *)(entry) - (head) + (name)))
+#define NAMESPACE(entry, head, namespace) (*(void **)((char *)(entry) - (head) + (namespace)))
 
 int _hashfn(const char *name, const void *namespace)
 {

@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: test_latency.c,v 1.3 2000/01/24 11:43:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "glame_hash.h"
 #include "filter.h"
 
 
@@ -40,6 +41,11 @@ int main(int argc, char **argv)
 	if (cnt<1)
 		cnt = 1;
 
+	if (hash_alloc() == -1) {
+		fprintf(stderr, "error in initting global hash\n");
+		return -1;
+	}
+	
 	if (filter_init() == -1) {
 		fprintf(stderr, "error in filter_init()\n");
 		return -1;
