@@ -15,6 +15,6 @@ cglame_LDADD = \
 	filter/libfilter.la \
 	hash/libhash.la \
 	swapfile/libswapfile.la \
-	$(GLAME_LIBS) $(GLAME_DLIBS) ../libltdl/libltdlc.la
+	$(GLAME_LIBS) $(GLAME_DLIBS) $(LIBLTDL)
 cglame_LDFLAGS = -export-dynamic -dlopen self
 
