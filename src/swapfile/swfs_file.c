@@ -346,6 +346,10 @@ static int file_insert(struct swfile *df, s64 dpos,
 	else
 		LOCKFILE(df);
 
+	if (dpos > df->clusters->size
+            || spos+count > sf->clusters->size)
+		DERROR("Invalid arguments");
+
 	/* First we need to potentially split the first and last
 	 * affected clusters from the source file. Also remember
 	 * the first/last affected cluster for later copy. Like
@@ -406,6 +410,9 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 
 	file_check(f);
 	LOCKFILE(f);
+
+	if (pos+count > f->clusters->size)
+		DERROR("Invalid arguments");
 
 	/* Note that the following is subtle - we do the thing
 	 * step by step, trying to keep the following search
@@ -489,6 +496,10 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 static int file_replace(struct swfile *df, s64 dpos,
 			struct swfile *sf, s64 spos, s64 count)
 {
+	if (dpos > df->clusters->size
+	    || spos+count > sf->clusters->size)
+		DERROR("Invalid arguments");
+
 	/* To be optimized? - This is not really atomic - FIXME? */
 	if (file_cut(df, dpos, count) == -1
 	    || file_insert(df, dpos, sf, spos, count) == -1)
@@ -727,6 +738,10 @@ static void _file_cluster_insert(struct swfile *df, long dpos,
 {
 	struct swcluster *c;
 	long i;
+
+	if (spos+cnt > sf->clusters->cnt
+	    || dpos > df->clusters->cnt)
+		DERROR("Invalid arguments");
 
 	for (i=spos; i<spos+cnt; i++) {
 		if (!(c = cluster_get(CID(sf->clusters, i), CLUSTERGET_READFILES, CSIZE(sf->clusters, i))))
