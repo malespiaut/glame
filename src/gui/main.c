@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.40 2001/04/23 08:23:48 richi Exp $
+ * $Id: main.c,v 1.41 2001/04/24 11:05:23 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -166,6 +166,8 @@ static void update_preferences()
 	if (!plugin_get(cfg1)) {
 		g_free(cfg1);
 		cfg1 = strdup("audio_out");
+		if (!plugin_get(cfg1))
+			goto ain;
 	}
 	cfg2 = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(cfg1), PLUGIN_FILTER)), "device"));
 	snprintf(s, 255, "audio_io/output_dev=%s", cfg2 ? cfg2 : "");
@@ -179,12 +181,15 @@ static void update_preferences()
 	g_free(cfg1);
 	g_free(cfg2);
 
+ ain:
 	/* Update IO plugin setup - audio_in */
 	cfg1 = gnome_config_get_string_with_default(
 		"audio_io/input_plugin=audio_in", &def);
 	if (!plugin_get(cfg1)) {
 		g_free(cfg1);
 		cfg1 = strdup("audio_in");
+		if (!plugin_get(cfg1))
+			goto sync;
 	}
 	cfg2 = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(cfg1), PLUGIN_FILTER)), "device"));
 	snprintf(s, 255, "audio_io/input_dev=%s", cfg2 ? cfg2 : "");
@@ -198,6 +203,7 @@ static void update_preferences()
 	g_free(cfg1);
 	g_free(cfg2);
 
+ sync:
 	/* Sync changes. */
 	gnome_config_sync();
 }
