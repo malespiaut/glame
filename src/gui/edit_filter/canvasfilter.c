@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.12 2001/06/05 09:36:30 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.13 2001/06/05 13:33:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -565,7 +565,6 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 void
 glame_canvas_filter_hide_properties(GlameCanvasFilter* filter)
 {
-	GList * iter;
 	if(!filter->popupGroup){
 		return;
 	}

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.12 2001/06/02 20:53:06 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.13 2001/06/05 13:33:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -344,6 +344,19 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 	
 }
 
+void
+glame_filtereditgui_install_accels(GtkWidget* window)
+{
+	DPRINTF("window: %d\n",window);
+	if (glame_accel_install(window, "filteredit", NULL) == -1){
+                DPRINTF("accel install failed\n");
+		return;
+	}
+	DPRINTF("foo\n");
+        glame_accel_add("filteredit/10-a", "(display \"Hello world 1!\")");
+        glame_accel_add("filteredit/14-q", "(glame-delete-widget (glame-accel-get-widget))");
+}
+
 
 
 GtkWidget * 
@@ -363,6 +376,7 @@ glame_filtereditgui_new(filter_t *net)
 
 
 	window = gnome_app_new("glame0.5", _(name));
+	glame_filtereditgui_install_accels(window);
 	dock = GNOME_DOCK(GNOME_APP(window)->dock);
 	gtk_widget_ref(GTK_WIDGET(dock));
 	

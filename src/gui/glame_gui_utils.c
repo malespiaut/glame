@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.21 2001/05/28 14:26:39 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.22 2001/06/05 13:33:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -698,13 +698,6 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	return TRUE;
 }
 
-gint
-static cancel_params(GtkWidget* wig,param_callback_t* callback)
-{
-	g_list_free(callback->paramList);
-	// FIXME. does list_free kill the structs, too? mem leak
-	return FALSE;
-}
 
 GtkWidget *
 glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
@@ -731,7 +724,6 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	cb->caption = strdup(caption);
 	
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",(GtkSignalFunc)update_params,cb);
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",(GtkSignalFunc)cancel_params,cb);	
 	
 	return propBox;
 }

@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.8 2001/06/02 20:53:06 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.9 2001/06/05 13:33:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -26,7 +26,7 @@
 #include "glamecanvas.h"
 #include "canvasitem.h"
 #include "hash.h"
-
+#include "glame_accelerator.h"
 
      
 
@@ -138,7 +138,6 @@ glame_canvas_group_get_type(void)
  * now for the real work
  *****************************/
 
-
 GlameCanvas* glame_canvas_new(filter_t * net)
 {
 	GlameCanvas *g;
@@ -166,7 +165,6 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	g = gtk_type_new(glame_canvas_get_type());
 	if(!g)
 		return NULL;
-
 	g->net = network;
 	
 	if(!filter_nrnodes(g->net))
@@ -215,6 +213,8 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	}
 	
 	/*canvas_update_scroll_region(GLAME_CANVAS(canv));*/
+	glame_canvas_view_all(g);
+
 	return g;
 }
 
@@ -351,6 +351,7 @@ void glame_canvas_set_zoom(GlameCanvas * canv, double pixelperpoint)
 void glame_canvas_view_all(GlameCanvas* canv)
 {
 	filter_t *filter;
+	GlameCanvasFilter* item;
 	double minX,minY,maxX,maxY;
 	double x1,x2,y1,y2;
 	
@@ -358,24 +359,27 @@ void glame_canvas_view_all(GlameCanvas* canv)
 	maxX=maxY=-99999.0;
 
 	filter_foreach_node(canv->net,filter){
-		gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(glame_canvas_find_filter(filter)),
-					     &x1,&y1,&x2,&y2);
-		minX=(minX>x1)?x1:minX;
-		minY=(minY>y1)?y1:minY;
-		maxX=(maxX<x2)?x2:maxX;
-		maxY=(maxY<y2)?y2:maxY;
+		item = glame_canvas_find_filter(filter);
+		if(item){
+			gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(item),
+						     &x1,&y1,&x2,&y2);
+			minX=(minX>x1)?x1:minX;
+			minY=(minY>y1)?y1:minY;
+			maxX=(maxX<x2)?x2:maxX;
+			maxY=(maxY<y2)?y2:maxY;
+		}
 	}
 	minX-=30.0;
 	minY-=30.0;
 	maxX+=30.0;
 	maxY+=30.0;
 
-	gnome_canvas_get_scroll_region(GNOME_CANVAS(canv),&x1,&y1,&x2,&y2);
+/*	gnome_canvas_get_scroll_region(GNOME_CANVAS(canv),&x1,&y1,&x2,&y2);
 	x1=(x1>minX)?minX:x1;
 	y1=(y1>minY)?minY:y1;
 	x2=(x2<maxX)?maxX:x2;
 	y2=(y2<maxY)?maxY:y2;
-	
+*/
 	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),minX,minY,maxX,maxY);
 	gnome_canvas_update_now(GNOME_CANVAS(canv));
 	filter_foreach_node(canv->net,filter){
