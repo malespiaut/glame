@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.86 2001/04/26 15:13:36 richi Exp $
+ * $Id: canvas.c,v 1.87 2001/04/27 16:57:09 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -567,7 +567,10 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 }
 		       
 
-
+static void canvas_close(GtkWidget *foo, GtkWidget *win)
+{
+	gtk_object_destroy(GTK_OBJECT(win));
+}
 GtkWidget * 
 canvas_new_from_network(gui_network* net)
 {
@@ -622,6 +625,8 @@ canvas_new_from_network(gui_network* net)
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom in","Zooms in","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),canvas_zoom_in_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Zoom out","Zooms out","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),canvas_zoom_out_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),canvas_update_scroll_region_cb,canvas);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Close","Close","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),canvas_close,window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Help","Help","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),gnome_help_goto,"info:glame#The_Filternetwork_Editor");
 	gnome_app_set_toolbar(GNOME_APP(window),GTK_TOOLBAR(toolbar));
