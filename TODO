@@ -51,6 +51,9 @@ hash/
 
 filter/
 	[richi]
+	- make params & ports referenced counted objects that have
+	  references in port/paramdbs, should clean up redirects
+	  a lot, allows for shared params and the like
 
 swapfile/
         [richi]
@@ -88,8 +91,8 @@ gui/swapfilegui
 	[richi]
 	- make it a full fledged window like the other widgets
           -> reduce pollution of main.c
+	  (rather merge with timeline)
 	- seperate into subdirectory
-	- progress bar for import & export
 	- better UI
 	  * Edit wave... should delete swapfile at waveedit close
             time, a Save toolbar entry is needed, too (which exports
