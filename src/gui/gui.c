@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.5 2000/02/21 17:30:56 xwolf Exp $
+ * $Id: gui.c,v 1.6 2000/02/22 10:29:37 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -20,11 +20,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-
+#define DEBUG 1
 #include <gnome.h>
 #include "filter.h"
 #include "gui.h"
 #include "canvas.h"
+
+
 void newcanvas(void)
 {
 	//just testing
@@ -34,7 +36,7 @@ void newcanvas(void)
 	
 	gui_filter * filter = g_array_index(gui->filters,gui_filter*,gui->selectedIcon);
 
-	canvas = create_new_canvas(filter->caption);
+	canvas = create_new_canvas(filter->caption,NULL);
 	grp = create_new_node(canvas,filter,50.0,50.0);
 	gtk_widget_show(canvas);
 }
@@ -201,10 +203,15 @@ void handle_properties(GtkWidget *menuitem, gpointer bla)
 void 
 handle_new_filter_net(GtkWidget *menuitem, gpointer bla)
 {
-	gui->canvas = malloc(sizeof(gui_canvas));
-	gui->canvas->canvas= create_new_canvas("Untitled.");
-	gui->canvas->net = gui_network_new("Untitled.","pixmaps/default.png");
-	gtk_widget_show(gui->canvas->canvas);
+	GlameCanvas *canv;
+	
+	gui_network * net;
+
+	net = gui_network_new_wizard();
+
+	net = gui_network_new("Untitled.",GLAME_DEFAULT_ICON);
+	canv = create_new_canvas("Untitled.",net);
+	gtk_widget_show(canv);
 	
 }
 void handle_filter_net_open(GtkWidget *menuitem, gpointer bla){}
@@ -259,7 +266,7 @@ gui_create_about(void)
 				 _("Copyright (C) 1999,2000 Alexander Ehlert, Richard Guenther."),
 				 authors,
 				 _("GLAME comes with ABSOLUTELY NO WARRANTY. \nThis is free software."),
-				 "pixmaps/glame-logo.jpg");
+				 GLAME_LOGO);
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
 	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
@@ -630,7 +637,7 @@ int gui_browse_registered_filters(void)
 	int i=0;
 	
 	while((fil=filter_next(fil))){
-		gfilt=gui_filter_new("pixmaps/default.png",fil);
+		gfilt=gui_filter_new(GLAME_DEFAULT_ICON,fil);
 		gui_filter_add(gfilt);
 	}
 	gnome_icon_list_select_icon(gui->iconlist,gui->selectedIcon);
@@ -678,5 +685,113 @@ gui_network_filter_add(gui_network* net, gui_filter *fil)
 	return 0;
 }
 
-		
+
+GtkWidget*
+create_label_edit_pair(GtkWidget *vbox,const char *clabel)
+{
+	GtkWidget*hbox,*label,*edit;
+	hbox = gtk_hbox_new(TRUE,5);
+	gtk_container_add(GTK_CONTAINER(vbox),hbox);
+	label = gtk_label_new(clabel);
+	gtk_container_add(GTK_CONTAINER(hbox),label);
+	edit = gtk_entry_new_with_max_length(12);
+	gtk_container_add(GTK_CONTAINER(hbox),edit);
+	gtk_widget_show(hbox);
+	gtk_widget_show(label);
+	gtk_widget_show(edit);
+	return edit;
+}
+
+void
+create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
+{
+	GtkWidget*hbox,*label;
+	hbox = gtk_hbox_new(TRUE,5);
+	gtk_container_add(GTK_CONTAINER(vbox),hbox);
+	label = gtk_label_new(clabel);
+	gtk_container_add(GTK_CONTAINER(hbox),label);
+	gtk_container_add(GTK_CONTAINER(hbox),w);
+	gtk_widget_show(hbox);
+	gtk_widget_show(label);
+	gtk_widget_show(w);
+
+}
+
+void
+name_changed(GtkWidget* w,gpointer n)
+{
+	gui_network* net = (gui_network*)n;
+	net->caption = gtk_entry_get_text(GTK_ENTRY(w));
+}
+
+void
+iports_changed(GtkWidget* w,gpointer n)
+{
+	gui_network* net = (gui_network*)n;
+	net->iports = atoi(gtk_entry_get_text(GTK_ENTRY(w)));
+}
+void
+oports_changed(GtkWidget* w,gpointer n)
+{
+	gui_network* net = (gui_network*)n;
+	net->oports = atoi(gtk_entry_get_text(GTK_ENTRY(w)));
+}
+
+
+
+
+
+gui_network*
+gui_network_new_wizard(void)
+{
+	GtkWidget *window;
+	GnomeDruid * druid;
+	GdkImlibImage *img,*wat;
+
+	gui_network * net;       
+
+	GnomeDruidPage * page;
+	GnomeDruidPageStandard *page2;
+
+	GtkWidget *name, *descript, *nroports, *nriports, *icon;
+	
+	net = malloc(sizeof(gui_network));
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window),_("Create new filter network"));
+	druid = gnome_druid_new();
+	gnome_druid_set_show_finish(druid,TRUE);
+
+	gtk_container_add(GTK_CONTAINER(window),druid);
+
+
+
+	img = gdk_imlib_load_image(GLAME_LOGO);
+	wat = gdk_imlib_load_image(GLAME_DEFAULT_ICON);
+	page = gnome_druid_page_start_new_with_vals(_("Filternetwork creation"),_("This druid will assist You in the creation of Your new filter network type"),img,wat);
+	gtk_widget_show(page);
+      	gnome_druid_append_page(druid,page);
+	gnome_druid_set_page(druid,page);
+
+	page2 = gnome_druid_page_standard_new_with_vals(_("Basic Parameters"),img);
+	
+	name = create_label_edit_pair(page2->vbox,"Filter name");
+	nroports = create_label_edit_pair(page2->vbox,"Number of output ports");
+	nriports = create_label_edit_pair(page2->vbox,"Number of input ports");
+	icon = gnome_icon_entry_new("net icon browser","Network icon");
+	create_label_widget_pair(page2->vbox,"Network icon",icon);
+	gtk_signal_connect(GTK_OBJECT(name),"changed",name_changed,net);
+	gtk_signal_connect(GTK_OBJECT(nroports),"changed",oports_changed,net);
+	gtk_signal_connect(GTK_OBJECT(nriports),"changed",iports_changed,net);
+	
+	gtk_widget_show(page2);
+	gnome_druid_append_page(druid,page2);
+
+	gtk_widget_show_all(window);	
+
+
+	return 0;
+}
+
+	
+	
 	

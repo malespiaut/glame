@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.4 2000/02/21 17:30:56 xwolf Exp $
+ * $Id: gui.h,v 1.5 2000/02/22 10:29:37 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -29,6 +29,8 @@
 
 #define GUI_BUTTONS_X 2
 #define GUI_BUTTONS_Y 2
+#define GLAME_LOGO "pixmaps/glame-logo.jpg"
+#define GLAME_DEFAULT_ICON "pixmaps/default.png"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -40,14 +42,10 @@
 typedef struct _gui_network {
 	char *pixname;
 	char *caption;
+	int iports,oports;
 	filter_network_t * net;
 	GArray *filters;
 } gui_network;
-
-typedef struct _gui_canvas {
-	GnomeCanvas *canvas;
-	gui_network *net;
-} gui_canvas;
 
 typedef struct _glame_gui {
 	GtkWidget *app;
@@ -57,7 +55,6 @@ typedef struct _glame_gui {
 	GtkWidget *iconlist;
 	//  too lazy to use richis list... someone can hack this up if he feels motivated
 	GArray * filters;
-	gui_canvas * canvas;
 	GtkTargetEntry * target;
 	char **buttonlabels;
 	int selectedIcon;
@@ -85,6 +82,8 @@ int gui_filter_add(gui_filter *filter);
 gui_filter* gui_filter_new(const char *pixname, filter_t *filter);
 
 gui_network* gui_network_new(const char *caption, const char * pixname);
+gui_network* gui_network_new_wizard(void);
+
 int gui_network_filter_add(gui_network* net, gui_filter *fil);
 
 GtkWidget* gui_create_about(void);
@@ -119,7 +118,7 @@ int gui_browse_registered_filters(void);
 int gui_init_filter(void);
 
 // canvas stuff
-GnomeCanvas * create_new_canvas(const char *name);
+GnomeCanvas * create_new_canvas(const char *name, gui_network*);
 
 GnomeCanvasGroup* create_new_node(GtkWidget *canvas, gui_filter *filter,double x, double y);
 
