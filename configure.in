@@ -7,8 +7,8 @@ AM_CONFIG_HEADER(config.h)
 dnl Pick up additional macros from the macros directory
 AM_ACLOCAL_INCLUDE(macros)
 
-dnl One translation so far
-ALL_LINGUAS="de"
+dnl Translations so far
+ALL_LINGUAS="de fr"
 
 dnl Check for internationalization support
 AM_GNU_GETTEXT
