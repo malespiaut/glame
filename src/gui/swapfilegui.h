@@ -23,6 +23,7 @@
  */
 
 #include <gnome.h>
+#include "gltreeitem.h"
 #include "gpsm.h"
 
 /* The swapfile widget is one of the different view types of
@@ -52,6 +53,9 @@ struct _SwapfileGui {
 	glsig_handler_t *gpsm_handler;
 	gpsm_grp_t *root;
 	GtkWidget *tree;
+
+	/* Current "active" item (last one the mouse was over) */
+	GlameTreeItem *active_item;
 
 	/* We need to be able to block the accel handler... */
 	guint accel_handler;

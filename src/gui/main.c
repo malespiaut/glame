@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.73 2001/07/16 09:50:44 richi Exp $
+ * $Id: main.c,v 1.74 2001/07/17 09:28:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -136,7 +136,7 @@ static void emptytrash_cb(GtkWidget *menu, void * blah)
 
 	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL)))
 		return;
-	gpsm_item_destroy(deleted);
+	gpsm_item_destroy((gpsm_item_t *)deleted);
 	gpsm_sync();
 }
 
@@ -153,8 +153,9 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 
 	/* Create new gpsm group. */
 	grp = gpsm_newgrp("Unnamed");
-	gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
-			0, gpsm_item_vsize(gpsm_root()));
+	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
+			    0, gpsm_item_vsize(gpsm_root())) == -1)
+		DPRINTF("Cannot insert new group!?\n");
 
 	/* Find out which widget it got. */
 	grpw = glame_tree_find_gpsm_item(

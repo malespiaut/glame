@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.55 2001/07/16 09:50:44 richi Exp $
+ * $Id: swapfilegui.c,v 1.56 2001/07/17 09:28:56 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -47,7 +47,6 @@
  */
 
 static SwapfileGui *active_swapfilegui = NULL;
-static GlameTreeItem *active_swapfilegui_item = NULL;
 
 
 /* Forward declarations. */
@@ -158,12 +157,23 @@ void edit_tree_label(GlameTreeItem * item)
 				 active_swapfilegui->accel_handler);
 }
 
-static gpsm_item_t *actual_item = NULL;
+static void deselect_all(SwapfileGui *gui)
+{
+	GList *selected;
+
+	if (!gui)
+		return;
+
+	while ((selected = GTK_TREE_SELECTION(gui->tree))) {
+		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
+		gtk_tree_unselect_child(i->tree, GTK_WIDGET(i));
+	}
+}
 
 /* Menu event - Apply operation. */
 static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 {
-	gpsm_item_t *item = actual_item;
+	gpsm_item_t *item = active_swapfilegui->active_item->item;
 	int (*operation)(gpsm_item_t *, long, long);
 
 	if (!(operation = plugin_query(plugin, PLUGIN_GPSMOP))) {
@@ -179,6 +189,7 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 			gnome_error_dialog("Error executing")));
 
 	DPRINTF("%s finished.\n", plugin_name(plugin));
+	deselect_all(active_swapfilegui);
 }
 
 /* Somehow only select "operations" */
@@ -205,8 +216,6 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 
 	if (event->button != 3)
 		return FALSE;
-
-	actual_item = i->item;
 
 	if (GPSM_ITEM_IS_SWFILE(i->item)) {
 		menu = gnome_popup_menu_new(file_menu_data);
@@ -266,6 +275,8 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	next:
 		selected = g_list_next(selected);
 	}
+
+	deselect_all(active_swapfilegui);
 }
 
 /* Link (just new items, same swapfile name) all selected items as
@@ -298,6 +309,7 @@ static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 	next:
 		selected = g_list_next(selected);
 	}
+	deselect_all(active_swapfilegui);
 }
 
 /* Move all items in this group one level up in the tree
@@ -320,6 +332,7 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 		gpsm_item_place(gpsm_item_parent(group), i, hpos, vpos);
 	}
 	gpsm_item_destroy((gpsm_item_t *)group);
+	deselect_all(active_swapfilegui);
 }
 
 /* Flatten the group using gpsm_flatten and replace it with the
@@ -346,6 +359,7 @@ static void flatten_cb(GtkWidget *menu, GlameTreeItem *item)
 	vpos = gpsm_item_vposition(old);
 	gpsm_item_destroy(old);
 	gpsm_item_place(parent, (gpsm_item_t *)group, hpos, vpos);
+	deselect_all(active_swapfilegui);
 }
 
 /* Append an empty mono wave (without group) to the current vbox. */
@@ -371,6 +385,7 @@ static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)swfile);
 	if (grpw)
 		edit_tree_label(grpw);
+	deselect_all(active_swapfilegui);
 }
 
 /* Append an empty stereo wave (with group) to the current vbox. */
@@ -403,6 +418,7 @@ static void addstereo_cb(GtkWidget *menu, GlameTreeItem *item)
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
 	if (grpw)
 		edit_tree_label(grpw);
+	deselect_all(active_swapfilegui);
 }
 
 static void group_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -432,6 +448,7 @@ static void group_cb(GtkWidget *menu, GlameTreeItem *item)
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(tree), (gpsm_item_t *)grp);
 	if (grpw)
 		edit_tree_label(grpw);
+	deselect_all(active_swapfilegui);
 }
 
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -455,6 +472,7 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
 	if (grpw)
 		edit_tree_label(grpw);
+	deselect_all(active_swapfilegui);
 }
 
 static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -482,6 +500,7 @@ static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item)
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
 	if (grpw)
 		edit_tree_label(grpw);
+	deselect_all(active_swapfilegui);
 }
 
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -495,6 +514,7 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 	}
 	gpsm_item_place(deleted, item->item,
 			0, gpsm_item_vsize(deleted));
+	deselect_all(active_swapfilegui);
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -508,6 +528,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 	}
 	gtk_widget_show_all(GTK_WIDGET(we));
+	deselect_all(active_swapfilegui);
 }
 
 static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -522,6 +543,7 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 	}
 	gtk_widget_show_all(tl);
+	deselect_all(active_swapfilegui);
 }
 
 void changeString_cb(GtkEditable *wid, char *returnbuffer)
@@ -587,6 +609,7 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	net_restore_default();
+	deselect_all(active_swapfilegui);
 	return;
 
  fail_cleanup:
@@ -681,6 +704,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		edit_tree_label(grpw);
 
 	gpsm_sync();
+	deselect_all(active_swapfilegui);
 
 	return;
 
@@ -789,11 +813,11 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 
 	} else if (event->type == GDK_LEAVE_NOTIFY
 		   && ((GdkEventCrossing *)event)->mode == GDK_CROSSING_NORMAL) {
-		active_swapfilegui_item = NULL;
+		/* active_swapfilegui->active_item = NULL; */
 
 	} else if (event->type == GDK_ENTER_NOTIFY) {
 		int ok = 1;
-		active_swapfilegui_item = item;
+		active_swapfilegui->active_item = item;
 		if ((!drag_widget || !(cevent->state & GDK_BUTTON1_MASK))
 		     && cursor) {
 			cursor_type = -1;
@@ -998,9 +1022,9 @@ static SCM gls_swapfilegui_active_item()
 {
 	if (!active_swapfilegui)
 		return SCM_BOOL_F;
-	if (!active_swapfilegui_item)
+	if (!active_swapfilegui->active_item)
 		return gpsmitem2scm(active_swapfilegui->root);
-	return gpsmitem2scm(active_swapfilegui_item->item);
+	return gpsmitem2scm(active_swapfilegui->active_item->item);
 }
 
 static SCM gls_swapfilegui_selected_items()
@@ -1050,6 +1074,7 @@ static void swapfile_gui_init(SwapfileGui *swapfile)
 	swapfile->gpsm_handler = NULL;
 	swapfile->root = NULL;
 	swapfile->tree = NULL;
+	swapfile->active_item = NULL;
 	swapfile->accel_handler = 0;
 	swapfile->app = NULL;
 }
@@ -1091,6 +1116,11 @@ SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
         gtk_tree_set_view_lines(GTK_TREE(swapfile->tree), TRUE);
         gtk_tree_set_selection_mode(GTK_TREE(swapfile->tree),
 				    GTK_SELECTION_MULTIPLE);
+	/* SINGLE   -- single
+	   BROWSE   -- single
+	   MULTIPLE -- multiple
+	   EXTENDED -- none
+	*/
 
 	/* Add the root group and cause "newitem" signals to be sent
 	 * for each item. */
