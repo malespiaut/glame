@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.5 2000/10/10 11:56:15 richi Exp $
+ * $Id: gldb.h,v 1.6 2000/10/28 13:44:16 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -25,12 +25,8 @@
 /*
  * The purpose for this generic small database framework is to
  * be able to have many databases with a very small footprint
- * for their hook and reasonable minimum item size. Without use
- * of a hash item query is O(N) with hash it is O(1). For ~4 items
- * the O(N) query is better than the optimal O(1) one, with
- * a full hashtable there may be a higher breakeven. For more than
- * 16 items not using a hash is not recommended. Note that the
- * locking costs for the global hashtable have not been considered!
+ * for their hook and reasonable minimum item size. The item query
+ * time is O(N).
  * Note that there is no locking internal to a database - at least
  * no guaranteed one, so you may want to have per database mutexes.
  *
@@ -48,12 +44,7 @@
  * to the db API.
  */
 
-#undef USE_HASH
-
 #include "list.h"
-#ifdef USE_HASH
-#include "glame_hash.h"
-#endif
 
 
 struct gldb;
@@ -98,9 +89,6 @@ struct gldb {
  * copying of items. 28 bytes with hash, 16 without. */
 struct gldb_item {
 	struct list_head list;
-#ifdef USE_HASH
-	struct hash_head hash;
-#endif
 	const char *label;
 	gldb_t *db;
 };
@@ -132,8 +120,8 @@ int gldb_copy(gldb_t *dest, gldb_t *source);
 /* Initializes a previously allocated/embedded item. */
 void gldb_init_item(gldb_item_t *item);
 
-/* Deletes item - removes it first if necessary. Does not
- * free item itself. */
+/* Deletes item - removes it first if necessary. Frees the
+ * item memory after issuing the destructor. */
 void gldb_delete_item(gldb_item_t *item);
 
 /* Copies an item. */

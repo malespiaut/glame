@@ -1,6 +1,6 @@
 /*
  * gldb.c
- * $Id: gldb.c,v 1.5 2000/10/09 16:24:03 richi Exp $
+ * $Id: gldb.c,v 1.6 2000/10/28 13:44:16 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -23,19 +23,8 @@
 #include <string.h>
 #include "gldb.h"
 
-/* Item hash & list wrappers.
- */
-#ifdef USE_HASH
-#define hash_add_item(i, l, d) _hash_add(&(i)->hash, \
-                             _hash((l), (d)))
-#define hash_remove_item(i)  _hash_remove(&(i)->hash)
-#define hash_find_item(l, d) __hash_entry(_hash_find((l), (d), _hash((l), (d)), \
-			     __hash_pos(gldb_item_t, hash, label, db)), gldb_item_t, hash)
-#else
-#define hash_add_item(i, l, d)
-#define hash_remove_item(i)
-#endif
 
+/* Item list wrappers. */
 #define list_add_item(i, db)   list_add(&(i)->list, &(db)->items)
 #define list_del_item(i)       list_del(&(i)->list)
 #define item_in_db(i)          (!list_empty(&(i)->list))
@@ -64,11 +53,9 @@ int gldb_copy(gldb_t *dest, gldb_t *source)
 			return -1;
 		if ((existing = gldb_query_item(dest, item->label))) {
 			gldb_delete_item(existing);
-			free(existing);
 		}
 		if (gldb_add_item(dest, copy, item->label) == -1) {
 			gldb_delete_item(copy);
-			free(copy);
 			return -1;
 		}
 	}
@@ -78,9 +65,6 @@ int gldb_copy(gldb_t *dest, gldb_t *source)
 void gldb_init_item(gldb_item_t *item)
 {
 	INIT_LIST_HEAD(&item->list);
-#ifdef USE_HASH
-	INIT_HASH_HEAD(&item->hash);
-#endif
 	item->db = NULL;
 	item->label = NULL;
 }
@@ -97,7 +81,6 @@ int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
 	item->db = db;
 	if (!(item->label = strdup(label)))
 		return -1;
-	hash_add_item(item, label, db);
 	list_add_item(item, db);
 	if (db->ops->add(db, item) == -1) {
 		gldb_remove_item(item);
@@ -108,7 +91,6 @@ int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
 
 void gldb_remove_item(gldb_item_t *item)
 {
-	hash_remove_item(item);
 	list_del_item(item);
 	INIT_LIST_HEAD(&item->list);
 	free((char *)item->label);
@@ -120,13 +102,11 @@ void gldb_delete_item(gldb_item_t *item)
 	if (item_in_db(item))
 		gldb_remove_item(item);
 	item->db->ops->del(item);
+	free(item);
 }
 
 gldb_item_t *gldb_query_item(gldb_t *db, const char *label)
 {
-#ifdef USE_HASH
-	return hash_find_item(label, db);
-#else
 	gldb_item_t *item;
 
 	gldb_foreach_item(db, item) {
@@ -134,5 +114,4 @@ gldb_item_t *gldb_query_item(gldb_t *db, const char *label)
 			return item;
 	}
 	return NULL;
-#endif
 }
