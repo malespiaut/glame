@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.4 2000/02/04 03:54:44 mag Exp $ 
+ * $Id: read_file.c,v 1.5 2000/02/05 15:59:26 richi Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -89,6 +89,8 @@ static int read_file_f(filter_node_t *n)
 		goto _bailout;
 	}
 
+	FILTER_AFTER_INIT;
+
 	cbuffer=(char *)buffer;
 
 	while(pthread_testcancel(),frameCount){
@@ -96,7 +98,7 @@ static int read_file_f(filter_node_t *n)
 		frameCount-=frames;
 		printf("Read %d frames, frameCount=%d!\n",frames,frameCount);
 		if (channelCount==1){
-			lbuf=fbuf_alloc(frames*sclfak);
+			lbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
 			i=0;
 			lpos=0;
 			while(i<frames){
@@ -116,8 +118,8 @@ static int read_file_f(filter_node_t *n)
 			fbuf_queue(right,lbuf);
 			sent+=2;
 		}else{
-			lbuf=fbuf_alloc(frames*sclfak);
-			rbuf=fbuf_alloc(frames*sclfak);
+			lbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
+			rbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
 			i=0;
 			rpos=0;
 			lpos=0;
@@ -148,6 +150,8 @@ static int read_file_f(filter_node_t *n)
 	fbuf_queue(left,NULL);
 	fbuf_queue(right,NULL);
 
+	FILTER_BEFORE_CLEANUP;
+
 	free(buffer);
 	afCloseFile(file);
 	
@@ -166,9 +170,9 @@ int read_file_register()
 
 	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f)))
 		return -1;
-	if (filter_add_output(f, "left", "left channel",FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_output(f, "right", "right channel",FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING) == -1)
+	if (!filter_add_output(f, "left", "left channel",FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f, "right", "right channel",FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
 		return -1;
 	 if (filter_add(f) == -1)
 		return -1;

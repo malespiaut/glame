@@ -33,6 +33,7 @@
  * - hash_remove_XXX(var)
  * - hash_first_XXX([namespace])
  * - hash_walk_XXX(var)
+ * - hash_unique_name_XXX(prefix, [namespace])
  * - hash_init_XXX(var)
  * - is_hashed_XXX(var)
  * and the corresponding _hash_*_* with no locking.
@@ -50,18 +51,19 @@
  * } foo_t;
  * where name is the unique identifier and group the namespace.
  * You would then define the above macros like
- * #define hash_find_foo(n, g)  __hash_entry(_hash_find((n), (g), (*(_hash((n), (g)))), __hash_pos(foo_t, hash, name, group)), foo_t, hash)
- * #define _hash_find_foo(n, g) __hash_entry(__hash_find((n), (g), (*(_hash((n), (g)))), __hash_pos(foo_t, hash, name, group)), foo_t, hash)
- * #define hash_next_foo(f)     __hash_entry(_hash_find((f)->name, (f)->group, (f)->hash.next_hash, __hash_pos(foo_t, hash, name, group)), foo_t, hash)
- * #define _hash_next_foo(f)    __hash_entry(__hash_find((f)->name, (f)->group, (f)->hash.next_hash, __hash_pos(foo_t, hash, name, group)), foo_t, hash)
+ * #define hash_find_foo(n, g)  __hash_entry(_hash_find((n), (g), _hash((n), (g)), __hash_pos(foo_t, hash, name, group)), foo_t, hash)
+ * #define _hash_find_foo(n, g) __hash_entry(__hash_find((n), (g), _hash((n), (g)), __hash_pos(foo_t, hash, name, group)), foo_t, hash)
+ * #define hash_next_foo(f)     __hash_entry(_hash_find((f)->name, (f)->group, &(f)->hash.next_hash, __hash_pos(foo_t, hash, name, group)), foo_t, hash)
+ * #define _hash_next_foo(f)    __hash_entry(__hash_find((f)->name, (f)->group, &(f)->hash.next_hash, __hash_pos(foo_t, hash, name, group)), foo_t, hash)
  * #define hash_add_foo(f)      _hash_add(&(f)->hash, _hash((f)->name, (f)->group))
  * #define _hash_add_foo(f)     __hash_add(&(f)->hash, _hash((f)->name, (f)->group))
  * #define hash_remove_foo(f)   _hash_remove(&(f)->hash)
  * #define _hash_remove_foo(f)  __hash_remove(&(f)->hash)
  * #define hash_first_foo(g)    __hash_entry(_hash_walk(NULL, (g), __hash_pos(foo_t, hash, name, group)), foo_t, hash)
  * #define _hash_first_foo(g)   __hash_entry(__hash_walk(NULL, (g), __hash_pos(foo_t, hash, name, group)), foo_t, hash)
- * #define hash_walk_foo(f)     __hash_entry(_hash_walk(&(f)->hash, (f)->group, __hash_pos(foo_t, hash, name, group)), foo_t, hash)
  * #define _hash_walk_foo(f)    __hash_entry(__hash_walk(&(f)->hash, (f)->group, __hash_pos(foo_t, hash, name, group)), foo_t, hash)
+ * #define hash_unique_name_foo(prefix, ns)  _hash_unique_name((prefix), (ns), __hash_pos(foo_t, hash, name, group))
+ * #define _hash_unique_name_foo(prefix, ns) __hash_unique_name((prefix), (ns), __hash_pos(foo_t, hash, name, group))
  * #define hash_init_foo(f)     _hash_init(&(f)->hash)
  * #define _hash_init_foo(f)    hash_init_foo(f)
  * #define is_hashed_foo(f)     _is_hashed(&(f)->hash)
@@ -115,11 +117,11 @@ int _hashfn(const char *name, const void *namespace);
 #define __hash_entry(ptr, type, head) ((ptr) ? (type *)((char *)(ptr)-(unsigned long)(&((type *)0)->head)) : NULL)
 
 struct hash_head *__hash_find(const char *name, const void *namespace,
-			      struct hash_head *entry,
+			      struct hash_head **entry,
 			      unsigned long _head, unsigned long _name,
 			      unsigned long _namespace);
 struct hash_head *_hash_find(const char *name, const void *namespace,
-			     struct hash_head *entry,
+			     struct hash_head **entry,
 			     unsigned long _head, unsigned long _name,
 			     unsigned long _namespace);
 
@@ -135,6 +137,19 @@ struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
 struct hash_head *_hash_walk(struct hash_head *entry, void *namespace,
 			     unsigned long _head, unsigned long _name,
 			     unsigned long _namespace);
+
+/* generate an unique name in the namespace using a provided
+ * prefix.
+ */
+const char *__hash_unique_name(const char *prefix, void *namespace,
+			       unsigned long _head, unsigned long _name,
+			       unsigned long _namespace);
+
+const char *_hash_unique_name(const char *prefix, void *namespace,
+			      unsigned long _head, unsigned long _name,
+			      unsigned long _namespace);
+
+
 
 #define _hash_init(hhead) do { (hhead)->pprev_hash = NULL; } while (0)
 

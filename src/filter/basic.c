@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.1 2000/01/31 10:04:04 richi Exp $
+ * $Id: basic.c,v 1.2 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -60,6 +60,8 @@ static int drop_f(filter_node_t *n)
 	list_foreach_input(n, p)
 		inputs[active_channels++] = p;
 
+	FILTER_AFTER_INIT;
+
 	while (pthread_testcancel(), active_channels>0) {
 		/* wait for pipe activity */
 		FD_ZERO(&channels);
@@ -85,6 +87,8 @@ static int drop_f(filter_node_t *n)
 			}
 	}
 
+	FILTER_BEFORE_CLEANUP;
+
 	free(inputs);
 
 	return 0;
@@ -100,6 +104,8 @@ static int one2n_f(filter_node_t *n)
 
 	if (!(in = hash_find_input("in", n)))
 		return -1;
+
+	FILTER_AFTER_INIT;
 
 	/* get_buffer returns NULL, if there will be no more
 	 * data - i.e. NULL is an EOF mark.
@@ -124,6 +130,8 @@ static int one2n_f(filter_node_t *n)
 		fbuf_unref(buf);
 	}
 
+	FILTER_BEFORE_CLEANUP;
+
 	return 0;
 }
 
@@ -147,6 +155,8 @@ static int dup_f(filter_node_t *n)
 	    || !(out2 = hash_find_output("out2", n)))
 		return -1;
 
+	FILTER_AFTER_INIT;
+
 	/* get_buffer returns NULL, if there will be no more
 	 * data - i.e. NULL is an EOF mark, so we check for
 	 * buf == NULL at the end of the loop to correctly
@@ -168,6 +178,8 @@ static int dup_f(filter_node_t *n)
 		fbuf_queue(out2, buf);
 	} while (pthread_testcancel(), buf);
 
+	FILTER_BEFORE_CLEANUP;
+
 	return 0;
 }
 
@@ -187,6 +199,8 @@ static int null_f(filter_node_t *n)
 	if (!in || !out)
 		return -1;
 
+	FILTER_AFTER_INIT;
+
 	/* The loop condition is at the end to get and
 	 * forward the EOF mark. */
 	do {
@@ -196,6 +210,8 @@ static int null_f(filter_node_t *n)
 		/* just forward every buffer */
 		fbuf_queue(out, buf);
 	} while (pthread_testcancel(), buf);
+
+	FILTER_BEFORE_CLEANUP;
 
 	return 0;
 }
@@ -209,34 +225,33 @@ int basic_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("drop", "drops n streams", drop_f))
-	    || filter_add_input(f, "in", "input",
-				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY) == -1
+	    || !filter_add_input(f, "in", "input",
+				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("one2n", "replicates one input n times", one2n_f))
-	    || filter_add_input(f, "in", "input",
-				FILTER_PORTTYPE_ANY) == -1
-	    || filter_add_output(f, "out", "output",
-				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY) == -1
+	    || !filter_add_input(f, "in", "input", FILTER_PORTTYPE_ANY)
+	    || !filter_add_output(f, "out", "output",
+				  FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("dup", "duplicates one input stream", dup_f))
-	    || filter_add_input(f, "in", "input",
-				FILTER_PORTTYPE_ANY) == -1
-	    || filter_add_output(f, "out1", "output",
-				 FILTER_PORTTYPE_ANY) == -1
-	    || filter_add_output(f, "out2", "output",
-				 FILTER_PORTTYPE_ANY) == -1
+	    || !filter_add_input(f, "in", "input",
+				 FILTER_PORTTYPE_ANY)
+	    || !filter_add_output(f, "out1", "output",
+				  FILTER_PORTTYPE_ANY)
+	    || !filter_add_output(f, "out2", "output",
+				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("null", "does nothing on one input stream", null_f))
-	    || filter_add_input(f, "in", "input",
-				FILTER_PORTTYPE_ANY) == -1
-	    || filter_add_output(f, "out", "output",
-				 FILTER_PORTTYPE_ANY) == -1
+	    || !filter_add_input(f, "in", "input",
+				 FILTER_PORTTYPE_ANY)
+	    || !filter_add_output(f, "out", "output",
+				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
 

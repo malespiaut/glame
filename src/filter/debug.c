@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.3 2000/02/03 18:21:21 richi Exp $
+ * $Id: debug.c,v 1.4 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -48,11 +48,13 @@ static int ping(filter_node_t *n)
 	if (!i || !o)
 		return -1;
 
+	FILTER_AFTER_INIT;
+
 	while (pthread_testcancel(), cnt>0) {
 		usleep(dt);
 
 		/* create new buffer */
-		out = fbuf_alloc(size);
+		out = fbuf_alloc(size, SAMPLE_SIZE, n);
 
 		gettimeofday(&start, NULL);
 
@@ -80,6 +82,8 @@ static int ping(filter_node_t *n)
 	/* wait for EOF passed through */
 	in = fbuf_get(i);
 
+	FILTER_BEFORE_CLEANUP;
+
 	return 0;
 }
 
@@ -98,10 +102,10 @@ int debug_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("ping", "ping", ping))
-	    || filter_add_input(f, "in", "input",
-				FILTER_PORTTYPE_MISC) == -1
-	    || filter_add_output(f, "out", "output",
-				 FILTER_PORTTYPE_MISC) == -1)
+	    || !filter_add_input(f, "in", "input",
+				 FILTER_PORTTYPE_MISC)
+	    || !filter_add_output(f, "out", "output",
+				  FILTER_PORTTYPE_MISC))
 		return -1;
 	f->fixup_pipe = ping_fixup_pipe;
 	if (filter_add(f) == -1)
@@ -109,7 +113,3 @@ int debug_register()
 
 	return 0;
 }
-
-
-
-

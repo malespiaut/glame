@@ -3,11 +3,11 @@ INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -I@sr
 noinst_PROGRAMS = test_latency test_audio test_play
 noinst_LTLIBRARIES = libfilter.la
 
-EXTRA_DIST = filter.h
+EXTRA_DIST = filter.h filter_buffer.h
 
 
-libfilter_la_SOURCES = filter.c filter.h \
-	filter_buffer.c filter_network.c filter_node.c \
+libfilter_la_SOURCES = filter.c filter.h filter_buffer.h \
+	filter_buffer.c filter_network.c \
 	basic.c debug.c channel_io.c audio_io.c \
 	mix.c volume_adjust.c waveform.c read_file.c
 
@@ -20,3 +20,4 @@ test_audio_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ..
 
 test_play_SOURCES = test_play.c
 test_play_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(DEBUG_LIBS) $(ESD_LIBS) $(AUDIOFILE_LIBS)
+

@@ -205,10 +205,12 @@ int _hashfn(const char *name, const void *namespace)
 }
 
 inline struct hash_head *__hash_find(const char *name, const void *namespace,
-				     struct hash_head *entry,
+				     struct hash_head **e,
 				     unsigned long _head, unsigned long _name,
 				     unsigned long _namespace)
 {
+	struct hash_head *entry = *e;
+
 	while (entry) {
 		if (NAMESPACE(entry, _head, _namespace) == namespace
 		    && strcmp(NAME(entry, _head, _name), name) == 0)
@@ -218,12 +220,14 @@ inline struct hash_head *__hash_find(const char *name, const void *namespace,
 	return entry;
 }
 struct hash_head *_hash_find(const char *name, const void *namespace,
-			     struct hash_head *entry,
+			     struct hash_head **e,
 			     unsigned long _head, unsigned long _name,
 			     unsigned long _namespace)
 {
+	struct hash_head *entry;
+
 	_lock();
-	entry = __hash_find(name, namespace, entry, _head, _name, _namespace);
+	entry = __hash_find(name, namespace, e, _head, _name, _namespace);
 	_unlock();
 	return entry;
 }
@@ -287,12 +291,34 @@ inline struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
 
 	return entry;
 }
-struct hash_head *_hash_walk(struct hash_head *entry, void *namespace,
-			     unsigned long _head, unsigned long _name,
-			     unsigned long _namespace)
+
+
+inline const char *__hash_unique_name(const char *prefix, void *namespace,
+				      unsigned long _head, unsigned long _name,
+				      unsigned long _namespace)
 {
+	char buf[256];
+	int i;
+
+	for (i=1;; i++) {
+		snprintf(buf, 255, "%s-%i", prefix, i);
+		if (!__hash_find(buf, namespace, _hash(buf, namespace),
+				 _head, _name, _namespace))
+			return strdup(buf);
+	}
+
+	return NULL;
+}
+
+const char *_hash_unique_name(const char *prefix, void *namespace,
+			      unsigned long _head, unsigned long _name,
+			      unsigned long _namespace)
+{
+	const char *name;
+
 	_lock();
-	entry = __hash_walk(entry, namespace, _head, _name, _namespace);
+	name = __hash_unique_name(prefix, namespace, _head, _name, _namespace);
 	_unlock();
-	return entry;
+
+	return name;
 }

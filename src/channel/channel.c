@@ -43,14 +43,14 @@ struct cg_s {
 };
 
 /* channel-group hash */
-#define hash_find_cg(group) __hash_entry(_hash_find((group), CG_NAMESPACE, (*(_hash((group), CG_NAMESPACE))), __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
+#define hash_find_cg(group) __hash_entry(_hash_find((group), CG_NAMESPACE, _hash((group), CG_NAMESPACE), __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
 #define hash_add_cg(cg) _hash_add(&(cg)->hash, _hash((cg)->cg_name, CG_NAMESPACE))
 #define hash_remove_cg(cg) _hash_remove(&(cg)->hash)
 #define hash_init_cg(cg) do { cg->namespace = CG_NAMESPACE; _hash_init(&(cg)->hash); } while (0)
 #define is_hashed_cg(cg) _is_hashed(&(cg)->hash)
 
 /* channel hash */
-#define hash_find_channel(name, group) __hash_entry(_hash_find((name), (group), (*(_hash((name), (group)))), __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
+#define hash_find_channel(name, group) __hash_entry(_hash_find((name), (group), _hash((name), (group)), __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
 #define hash_add_channel(c) _hash_add(&(c)->hash, _hash((c)->ch_name, (c)->cg))
 #define hash_remove_channel(c) _hash_remove(&(c)->hash)
 #define hash_init_channel(c) _hash_init(&(c)->hash)

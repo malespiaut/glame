@@ -1,6 +1,6 @@
 /*
  * volume_adjust.c
- * $Id: volume_adjust.c,v 1.4 2000/02/03 18:21:22 richi Exp $
+ * $Id: volume_adjust.c,v 1.5 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -42,6 +42,8 @@ int volume_adjust(filter_node_t *n)
 	else
 		scale = 1.0;
 
+	FILTER_AFTER_INIT;
+
 	/* get_buffer returns NULL, if there will be no more
 	 * data - i.e. NULL is an EOF mark.
 	 * the pthread_testcancel is important (do it first to
@@ -73,6 +75,8 @@ int volume_adjust(filter_node_t *n)
 
 	/* forward the EOF mark */
 	fbuf_queue(out, b);
+
+	FILTER_BEFORE_CLEANUP;
 
 	return 0;
 }

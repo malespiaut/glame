@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.10 2000/02/03 18:21:21 richi Exp $
+ * $Id: filter.c,v 1.11 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -52,8 +52,8 @@ static int filter_default_connect_out(filter_node_t *n, const char *port,
 	    && hash_find_output(port, n))
 		return -1;
 
-	/* fill pipe */
-	p->type = FILTER_PIPETYPE_UNINITIALIZED;
+	/* fill in a sane pipe type */
+	p->type = FILTER_PIPETYPE_DEFAULT(out->type);
 
 	/* a source port has to provide pipe data info.
 	 * we copy from the first input port if any. */
@@ -81,6 +81,10 @@ static int filter_default_connect_in(filter_node_t *n, const char *port,
 	 * we not a multiple connection port? */
 	if (!FILTER_PORT_IS_AUTOMATIC(in->type)
 	    && hash_find_input(port, n))
+		return -1;
+
+	/* do we support the requested pipe type? */
+	if (!FILTER_PORT_IS_COMPATIBLE(in->type, p->type))
 		return -1;
 
 	return 0;
@@ -116,17 +120,17 @@ static int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 
 	return 0;
 }
-static int filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
+static void filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
 {
 	/* we dont know nothing about relationships between input
 	 * and output ports, so anything here would be senseless. */
-	return 0;
+	return;
 }
-static int filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out)
+static void filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out)
 {
 	/* we dont know nothing about relationships between input
 	 * and output ports, so anything here would be senseless. */
-	return 0;
+	return;
 }
 
 
@@ -197,17 +201,17 @@ filter_t *filter_next(filter_t *f)
 	return list_entry(lh, filter_t, list);
 }
 
-int filter_add_input(filter_t *filter, const char *label,
-		     const char *description, int type)
+filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
+				    const char *description, int type)
 {
 	filter_portdesc_t *desc;
 
 	if (!filter || is_hashed_filter(filter) || !label)
-		return -1;
+		return NULL;
 	if (hash_find_inputdesc(label, filter))
-		return -1;
+		return NULL;
 	if (!(desc = ALLOC(filter_portdesc_t)))
-		return -1;
+		return NULL;
 
 	desc->label = label;
 	desc->type = type;
@@ -216,20 +220,20 @@ int filter_add_input(filter_t *filter, const char *label,
 	list_add_inputdesc(desc, filter);
 	filter->nr_inputs++;
 
-	return 0;
+	return desc;
 }
 
-int filter_add_output(filter_t *filter, const char *label,
-		      const char *description, int type)
+filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
+				     const char *description, int type)
 {
 	filter_portdesc_t *desc;
 
 	if (!filter || is_hashed_filter(filter) || !label)
-		return -1;
+		return NULL;
 	if (hash_find_outputdesc(label, filter))
-		return -1;
+		return NULL;
 	if (!(desc = ALLOC(filter_portdesc_t)))
-		return -1;
+		return NULL;
 
 	desc->label = label;
 	desc->description = description;
@@ -238,20 +242,20 @@ int filter_add_output(filter_t *filter, const char *label,
 	list_add_outputdesc(desc, filter);
 	filter->nr_outputs++;
 
-	return 0;
+	return desc;
 }
 
-int filter_add_param(filter_t *filter, const char *label,
-		     const char *description, int type)
+filter_paramdesc_t *filter_add_param(filter_t *filter, const char *label,
+				     const char *description, int type)
 {
 	filter_paramdesc_t *desc;
 
 	if (!filter || is_hashed_filter(filter) || !label)
-		return -1;
+		return NULL;
 	if (hash_find_paramdesc(label, filter))
-		return -1;
+		return NULL;
 	if (!(desc = ALLOC(filter_paramdesc_t)))
-		return -1;
+		return NULL;
 
 	desc->label = label;
 	desc->description = description;
@@ -260,7 +264,7 @@ int filter_add_param(filter_t *filter, const char *label,
 	list_add_paramdesc(desc, filter);
 	filter->nr_params++;
 
-	return 0;
+	return desc;
 }
 
 
@@ -305,21 +309,21 @@ int filter_init()
 		return -1;
 	
 	if (!(f = filter_alloc("mix", "mix n channels", mix))
-	    || filter_add_input(f, "in", "input stream",
-				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_output(f, "mixed", "mixed stream",
-				 FILTER_PORTTYPE_SAMPLE) == -1
+	    || !filter_add_input(f, "in", "input stream",
+				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f, "mixed", "mixed stream",
+				  FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
 
 	if (!(f = filter_alloc("volume_adjust", "scale samples",
 			       volume_adjust))
-	    || filter_add_param(f, "factor", "scale factor",
-				FILTER_PARAMTYPE_FLOAT) == -1
-	    || filter_add_input(f, "in", "input stream",
-				FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_output(f, "out", "output stream",
-				 FILTER_PORTTYPE_SAMPLE) == -1
+	    || !filter_add_param(f, "factor", "scale factor",
+				 FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_input(f, "in", "input stream",
+				 FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f, "out", "output stream",
+				  FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
 

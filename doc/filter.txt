@@ -10,6 +10,9 @@ NOTE: For this subsystem you may even read the source and you will probably
 NOTE2: The filter subsystem has not quite settled yet. So don't expect the APIs
        to be cast in stone.
 
+NOTE3: This is not a filter programming tutorial! Look for this in an other
+       file.
+
 The filter subsystem has three independend APIs, one for the filter registry,
 one for filters programming and one for using the filters and connecting them
 into so called filter networks.
@@ -59,9 +62,9 @@ filter_add().
 	provided function f which is the only mandatory method for filters.
 	filter_alloc returns a handle to the filter or NULL on error.
 
-	int filter_add_input(filter_t *filter, const char *label,
+	filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
                              const char *description, int type);
-        int filter_add_output(filter_t *filter, const char *label,
+        filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
                               const char *description, int type);
 
         filter_add_input and filter_add_output add an input or an output port
@@ -72,10 +75,10 @@ filter_add().
 	supported port types are FILTER_PORTTYPE_SAMPLE, FILTER_PORTTYPE_RMS,
 	FILTER_PORTTYPE_MISC and FILTER_PORTTYPE_ANY which does allow any type
 	of input or output.
-	filter_add_input and filter_add_output will return 0 on success and -1
-	on error.
+	filter_add_input and filter_add_output will return the port description
+	structure on success and NULL on error.
 
-        int filter_add_param(filter_t *filter, const char *label,
+        filter_paramdesc_t *filter_add_param(filter_t *filter, const char *label,
                              const char *description, int type);
 
         filter_add_param adds a parameter with the specified label and
@@ -84,7 +87,8 @@ filter_add().
 	parameter as an output one. The currently supported parameter types are
 	FILTER_PARAMTYPE_INT, FILTER_PARAMTYPE_FLOAT, FILTER_PARAMTYPE_SAMPLE,
 	FILTER_PARAMTYPE_FILE and FILTER_PARAMTYPE_STRING.
-	filter_add_param will return 0 on success and -1 on error.
+	filter_add_param will return the parameter description structure on
+	success and NULL on error.
 
 	int filter_add(filter_t *filter);
 
@@ -165,12 +169,13 @@ provided for them.
 	 which will terminate the whole network, or 0 if all was ok and you
 	 are ready with processing.
 
-	 void init(filter_node_t *n);
+	 filter_node_t *init(filter_node_t *n);
 
 	 init gets called by the filternode_add() function after allocating a
 	 new instance of a filter (the so called filternode). You may do
-	 anything with the private field of the filternode, but with nothing
-	 else. init cannot fail by definition.
+	 anything with the private field of the filternode. You may also
+	 realloc the filter node and you must return the filter node to the
+	 caller.
 
 	 int connect_out(filter_node_t *source, const char *port,
                          filter_pipe_t *p);
@@ -193,16 +198,30 @@ provided for them.
 	 filter_pipe p. Just return -1 if you don't like the connection or
 	 return 0.
 
-         int fixup(filter_node_t *n, filter_pipe_t *in);
+         int fixup_param(filter_node_t *n, const char *name);
 
-	 fixup gets called by any filternode_connect() and
-	 filternode_setparam() call. In the first case the parameter in denotes
-	 the input port on which a possible change in the type and/or its
-	 parameters occured, in the second one the parameter in is NULL.
+	 fixup_param gets called by filternode_setparam. I.e. you may accept or
+	 reject a parameter change for the filter. Return -1 if you do not like
+	 anything about the setup. You have to fix the pipe parameters of
+	 affected output ports.
+
+         int fixup_pipe(filter_node_t *n, filter_pipe_t *in);
+
+	 fixup_pipe gets called by filternode_connect and possibly by a source
+	 filter to tell about changes in an input ports pipe.
 	 In both cases you are required to adjust all affected connected output
 	 pipes with respect to their types and parameters. You also have to
 	 forward the fixup request to any changed pipe by calling its
 	 destination's fixup method.
+
+	 void fixup_break_in(filter_node_t *n, filter_pipe_t *in);
+	 void fixup_break_out(filter_node_t *n, filter_pipe_t *out);
+
+	 fixup_break_in and fixup_break_out are called by all connection
+	 breaking functions. You are required to check the setup after the
+	 breaking of the connection and do anything which is necessary to
+	 return to a sane state. The provided pipes are disconnected already.
+
 
 As important as the semantics of the filters methods are the functions through
 which a filter can access its connected ports and its parameters. The
@@ -241,10 +260,13 @@ forwarding streams of data which are grouped into buffers. This leads us to the
 filter buffer API. A filter buffer is obtained using one of the following
 functions:
 
-	 filter_buffer_t *fbuf_alloc(int size);
+	 filter_buffer_t *fbuf_alloc(int size, int atom_size,
+	                             filter_node_t *n);
 
-         fbuf_alloc will allocate a new buffer of the specified size. This can
-	 return NULL, if there is not sufficient memory available.
+         fbuf_alloc will allocate a new buffer with space for size number of
+	 atoms of the specified size. The node parameter is for internal use
+	 and keeps track of allocated buffers for cleanup after failures.
+         This can return NULL, if there is not sufficient memory available.
 
 	 filter_buffer_t *fbuf_get(filter_pipe_t *p);
 
@@ -275,10 +297,16 @@ following functions which are actually very fast macros:
 
 	 fbuf_size returns the number of samples in the filter buffer. 
 
+	 int fbuf_atomsize(filter_buffer_t *fb);
+
+	 fbuf_atomsize returns the size of one atom in the buffer.
+
 	 SAMPLE *fbuf_buf(filter_buffer_t *fb);
 
 	 fbuf_buf returns a pointer to the buffer contents. You may safely
-	 assume that buffer access via fbuf_buf(fb)[pos] is fast.
+	 assume that buffer access via fbuf_buf(fb)[pos] is fast. You may
+	 want to cast the return type to the actual atom type in the buffer,
+	 SAMPLE is just a common default.
 
 If you want to modify a buffer directly rather than reading from a received one
 and storing into a freshly allocated one you have to make the buffer private.
@@ -298,6 +326,22 @@ you send the buffer to. Buffer sending is done using the following function:
 
 	 fbuf_queue queues the specified filter buffer to the specified pipe.
 	 One reference gets eaten by this operation.
+
+As there are uses which require a sort of timestamp or sequence number for any
+buffer there is a private filed inside filter_buffer_t which you may modify and
+read using the following macros:
+
+         int fbuf_bufpos(filter_buffer_t *fb);
+
+	 fbuf_bufpos returns the position (or anything else you may have
+	 stored) of the first atom in the stream. The position is initially
+	 set to zero on allocation time.
+
+	 void fbuf_setpos(filter_buffer_t *fb, int pos);
+
+	 fbuf_setpos sets the position (or anything else) of the buffer to the
+	 specified value. Remember to call fbuf_make_private(fb) before you
+	 modify the position!
 
 
 To clarify the reference counting and locking issues, in the following several
@@ -361,38 +405,67 @@ Invalid modifying and forwarding of a buffer:
 The filter network API
 ----------------------
 
-NOTE: This part of the API is not complete yet. Missing items are methods to 
-      store and load filter networks and some way (a wrapping filter) to 
-      access them as filters.
+NOTE: This part of the API is not complete yet. I suspect there will be
+      additions to it in the process of the evolving GUI. Also internal changes
+      may cause the change of existing API functions!
+
 
 The filter network API provides functions to construct and run arbitrary
-networks of filters. First constructing such a network of filters is documented
-by referencing and commenting the necessary functions to do so.
+networks of filters. This part of the filter API is intended to be used by the
+high level part of the glame project, i.e. the console and the graphical user
+interface. You can learn from the various test programs, too.
 
-         filter_network_t *filternetwork_new();
+First constructing such a network of filters is documented by referencing and
+commenting the necessary functions to do so.
+
+         filter_network_t *filternetwork_new(const char *name);
 
 	 filternetwork_new allocates and initializes a new filter network
 	 descriptor to which subsequent filters can be added and connections 
-	 between them can be established.
+	 between them can be established. You have to provide a name for
+	 it, too.
 	 filternetwork_new returns a handle to the new filter network or NULL,
 	 if an error occured.
 
-	 filter_node_t *filternode_add(filter_network_t *net,
-                                       const char *filter);
+	 void filternetwork_delete(filter_network_t *net);
 
-         filternode_add creates an instance of a filter with the provided
-	 identifier and adds it to the set of filters of the specified filter
-	 network.
-	 filternode_add returns a handle to the instance of a filter, a filter
-	 node or NULL, if an error occured.
+	 filternetwork_delete deletes the filter network and all its contained
+	 filter nodes.
 
-	 int filternode_connect(filter_node_t *source, const char *source_port,
+
+	 filter_node_t *filternetwork_add_node(filter_network_t *net,
+					       const char *filter,
+					       const char *name);
+
+         filternetwork_add_node creates an instance of a filter with the
+	 provided identifier and adds it to the set of filters of the
+	 specified filter network. The node is given the provided name or a
+	 unique one is chosen automatically if you provide NULL.
+	 filternetwork_add_node returns a handle to the instance of a filter,
+	 a filter node or NULL, if an error occured.
+
+	 void filternode_delete(filter_node_t *node);
+
+	 filternode_delete deletes the filter node and breaks all established
+	 connections and deletes all set parameters.
+
+
+	 filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *source_port,
 		                filter_node_t *dest, const char *dest_port);
 
-         filternode_connect connects two filter nodes by using the output port
+         filternetwork_add_connection connects two filter nodes by using the output port
 	 specified as source_port and the input port specified by dest_port.
-	 filternode_connect returns 0 on success or -1 if any party disliked the
-	 connection.
+	 filternode_connect returns the internal representation structure of
+	 the connection, a filter pipe on success or NULL if any party
+	 disliked the connection.
+
+	 filternetwork_break_connection(filter_pipe_t *p);
+
+	 filternetwork_break_connection breaks a previously established
+	 connection. Note that in the process of breaking a connection some
+	 filter nodes may decide to break additional connections to return
+	 to a sane state of the network.
+
 
 	 int filternode_setparam(filter_node_t *n, const char *label,
 	                         void *val);
@@ -429,4 +502,28 @@ provided:
 
 	 filternetwork_terminate kills a previously launched filter network and
 	 does not wait for it to finish processing any data.
+
+
+To save a filter network and reuse it as regular filter the two following (not
+implemented and not yet fully designed) functions are provided:
+
+	 int filternetwork_save(filter_network_t *net, const char *filename);
+
+	 filternetwork_save saves the current state of the filter network to
+	 the file with the provided name. -1 is returned on error, 0 on
+	 success.
+
+	 filter_t *filternetwork_load(const char *filename);
+
+	 filternetwork_load loads a previously saved filter network and
+	 provides access to it by exposing it as a regular filter. The filter
+	 is not yet added to the filter database. NULL is returned on error,
+	 else the filter identifier is returned.
+
+
+
+
+
+
+
 

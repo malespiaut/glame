@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.4 2000/02/02 10:52:47 mag Exp $
+ * $Id: audio_io.c,v 1.5 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -160,10 +160,10 @@ int audio_io_register()
 
 #if defined HAVE_ESD
 	if (!(f = filter_alloc("audio_out", "play stream", esd_out_f))
-	    || filter_add_input(f, "left", "left or mono channel",
-				FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_input(f, "right", "right channel",
-				FILTER_PORTTYPE_SAMPLE) == -1
+	    || !filter_add_input(f, "left", "left or mono channel",
+				 FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_input(f, "right", "right channel",
+				 FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f) == -1)
 		return -1;
 #elif defined HAVE_OSS

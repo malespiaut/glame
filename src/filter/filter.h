@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.10 2000/02/03 18:21:21 richi Exp $
+ * $Id: filter.h,v 1.11 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,6 +25,9 @@
  * For documentation on filters see doc/filter.txt
  */
 
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 #include <pthread.h>
 #include "glame_types.h"
 #include "swapfile.h"
@@ -110,11 +113,11 @@ typedef struct {
  * instances of a filter. This is per filternode port
  * and depends on both filternode ports filter_portdesc.
  */
-#define FILTER_PIPETYPE_UNINITIALIZED  0
 #define FILTER_PIPETYPE_SAMPLE  FILTER_PORTTYPE_SAMPLE
 #define FILTER_PIPETYPE_RMS     FILTER_PORTTYPE_RMS
 #define FILTER_PIPETYPE_MISC    FILTER_PORTTYPE_MISC
 #define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
+#define FILTER_PIPETYPE_DEFAULT(porttype) ((porttype) & FILTER_PORTTYPE_SAMPLE ? FILTER_PIPETYPE_SAMPLE : ((porttype) & FILTER_PORTTYPE_RMS ? FILTER_PIPETYPE_RMS : FILTER_PIPETYPE_MISC))
 typedef struct {
 	/* lists and hashes */
 	struct list_head input_list, output_list;
@@ -155,7 +158,8 @@ struct filter {
 
 	int (*f)(filter_node_t *);
 
-	void (*init)(filter_node_t *);
+	filter_node_t *(*init)(filter_node_t *);
+        void (*cleanup)(filter_node_t *);
 
 	int (*connect_out)(filter_node_t *source, const char *port,
 			   filter_pipe_t *p);
@@ -164,8 +168,8 @@ struct filter {
 
 	int (*fixup_param)(filter_node_t *n, const char *name);
 	int (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
-	int (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
-	int (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
+	void (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
+	void (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
 
 	/* parameter specification */
 	int nr_params;
@@ -181,7 +185,6 @@ struct filter {
 };
 
 /* the global filter hash and list */
-#define hash_find_filter(n) __hash_entry(_hash_find((n), FILTER_NAMESPACE, (*(_hash((n), FILTER_NAMESPACE))), __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_add_filter(filter) _hash_add(&(filter)->hash, _hash((filter)->name, FILTER_NAMESPACE))
 #define hash_remove_filter(filter) _hash_remove(&(filter)->hash)
 #define hash_init_filter(filter) do { filter->namespace = FILTER_NAMESPACE; _hash_init(&(filter)->hash); } while (0)
@@ -190,26 +193,21 @@ struct filter {
 
 /* The filter inputs/outputs description hash and list.
  * Only add and find are needed. */
-#define hash_find_inputdesc(n, f) __hash_entry(_hash_find((n), &(f)->inputs, (*(_hash((n), &(f)->inputs))), __hash_pos(filter_portdesc_t, hash, label, namespace)), filter_portdesc_t, hash)
 #define hash_add_inputdesc(d, f) do { (d)->namespace = &(f)->inputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->inputs)); } while (0)
 #define list_add_inputdesc(d, f) list_add(&(d)->list, &(f)->inputs)
-#define list_foreach_inputdesc(f, d) list_foreach(&(f)->inputs, filter_portdesc_t, list, d)
 
-#define hash_find_outputdesc(n, f) __hash_entry(_hash_find((n), &(f)->outputs, (*(_hash((n), &(f)->outputs))), __hash_pos(filter_portdesc_t, hash, label, namespace)), filter_portdesc_t, hash)
 #define hash_add_outputdesc(d, f) do { (d)->namespace = &(f)->outputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->outputs)); } while (0)
 #define list_add_outputdesc(d, f) list_add(&(d)->list, &(f)->outputs)
-#define list_foreach_outputdesc(f, d) list_foreach(&(f)->outputs, filter_portdesc_t, list, d)
 
 /* The filters parameter description hash and list */
-#define hash_find_paramdesc(n, f) __hash_entry(_hash_find((n), (f), (*(_hash((n), (f)))), __hash_pos(filter_paramdesc_t, hash, label, namespace)), filter_paramdesc_t, hash)
 #define hash_add_paramdesc(d, f) do { (d)->namespace = (f); _hash_add(&(d)->hash, _hash((d)->label, (f))); } while (0)
 #define list_add_paramdesc(d, f) list_add(&(d)->list, &(f)->params)
-#define list_foreach_paramdesc(f, d) list_foreach(&(f)->params, filter_paramdesc_t, list, d)
 
 
 /* Filter node is an instance of a filter. A filter node
  * is associated with a filter network.
  */
+#define FILTER_NODEFLAG_NETWORK 1
 struct filter_node {
         struct hash_head hash;
         const char *name;
@@ -225,7 +223,9 @@ struct filter_node {
 	filter_t *filter;
 	void *private;
 
-	/* parameters - FIXME, hash them like the inputs/outputs */
+	int flags;
+
+	/* parameters */
 	int nr_params;
 	struct list_head params;
 
@@ -242,27 +242,27 @@ struct filter_node {
 	pthread_t thread;
 };
 
+/* filternode hash */
+#define hash_find_node(n, nt) __hash_entry(_hash_find((n), (nt), _hash((n), (nt)), __hash_pos(filter_node_t, hash, name, net)), filter_node_t, hash)
+#define hash_add_node(node) _hash_add(&(node)->hash, _hash((node)->name, (node)->net))
+#define hash_remove_node(node) _hash_remove(&(node)->hash)
+#define hash_unique_name_node(prefix, nt) _hash_unique_name((prefix), (nt), __hash_pos(filter_node_t, hash, name, net))
+
 /* inputs & outputs hashes and lists */
-#define hash_find_input(n, node) __hash_entry(_hash_find((n), &(node)->inputs, (*(_hash((n), &(node)->inputs))), __hash_pos(filter_pipe_t, input_hash, in_name, in_namespace)), filter_pipe_t, input_hash)
-#define hash_next_input(p) __hash_entry(_hash_find((p)->in_name, (p)->in_namespace, (p)->input_hash.next_hash, __hash_pos(filter_pipe_t, input_hash, in_name, in_namespace)), filter_pipe_t, input_hash)
 #define hash_add_input(p, node) do { (p)->in_namespace = &(node)->inputs; _hash_add(&(p)->input_hash, _hash((p)->in_name, &(node)->inputs)); } while (0)
 #define hash_remove_input(p) _hash_remove(&(p)->input_hash)
 #define list_add_input(p, node) list_add(&(p)->input_list, &(node)->inputs)
 #define list_del_input(p) list_del(&(p)->input_list)
 #define list_gethead_input(n) list_gethead(&(n)->inputs, filter_pipe_t, input_list)
-#define list_foreach_input(n, p) list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)
 
-#define hash_find_output(n, node) __hash_entry(_hash_find((n), &(node)->outputs, (*(_hash((n), &(node)->outputs))), __hash_pos(filter_pipe_t, output_hash, out_name, out_namespace)), filter_pipe_t, output_hash)
-#define hash_next_output(p) __hash_entry(_hash_find((p)->out_name, (p)->out_namespace, (p)->output_hash.next_hash, __hash_pos(filter_pipe_t, output_hash, out_name, out_namespace)), filter_pipe_t, output_hash)
 #define hash_add_output(p, node) do { (p)->out_namespace = &(node)->outputs; _hash_add(&(p)->output_hash, _hash((p)->out_name, &(node)->outputs)); } while (0)
 #define hash_remove_output(p) _hash_remove(&(p)->output_hash)
 #define list_add_output(p, node) list_add(&(p)->output_list, &(node)->outputs)
 #define list_del_output(p) list_del(&(p)->output_list)
-#define list_foreach_output(n, p) list_foreach(&(n)->outputs, filter_pipe_t, output_list, p)
+#define list_gethead_output(n) list_gethead(&(n)->outputs, filter_pipe_t, output_list)
 
-#define hash_find_param(n, node) __hash_entry(_hash_find((n), node, (*(_hash((n), node))), __hash_pos(filter_param_t, hash, label, namespace)), filter_param_t, hash)
 #define hash_add_param(p, node) do { (p)->namespace = node; _hash_add(&(p)->hash, _hash((p)->label, node)); } while (0)
-
+#define hash_remove_param(p) _hash_remove(&(p)->hash)
 
 
 
@@ -271,19 +271,38 @@ struct filter_node {
  */
 struct filter_network {
         filter_node_t node;
+	int nr_nodes;
 	struct list_head nodes;
 	struct list_head inputs;
 
 	int state;
-	int result;
-	pthread_mutex_t mx;
+
+	int semid;
+	glame_atomic_t result;
+
+	struct list_head buffers;
 };
 
+#define filternetwork_first_node(net) list_gethead(&(net)->nodes, filter_node_t, net_list)
 #define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
 #define filternetwork_foreach_node(net, node) list_foreach(&(net)->nodes, filter_node_t, net_list, node)
 
+#define filternetwork_first_buffer(net) list_gethead(&(net)->buffers, filter_buffer_t, list)
 
+#define FILTER_AFTER_INIT \
+do { \
+	struct sembuf sop; \
+	sop.sem_num = 0; \
+	sop.sem_op = 1; \
+	sop.sem_flg = 0; \
+	semop(n->net->semid, &sop, 1); \
+	sop.sem_op = 0; \
+	semop(n->net->semid, &sop, 1); \
+	if (ATOMIC_VAL(n->net->result) != 0) \
+		goto _glame_filter_cleanup; \
+} while (0);
 
+#define FILTER_BEFORE_CLEANUP _glame_filter_cleanup:
 
 
 #ifdef __cplusplus
@@ -304,19 +323,54 @@ int filter_init();
 filter_t *filter_alloc(const char *name, const char *description,
 		       int (*f)(filter_node_t *));
 
-int filter_add_input(filter_t *filter, const char *label,
-		     const char *description, int type);
-int filter_add_output(filter_t *filter, const char *label,
-		      const char *description, int type);
-int filter_add_param(filter_t *filter, const char *label,
-		     const char *description, int type);
+filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
+				    const char *description, int type);
+filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
+				     const char *description, int type);
+filter_paramdesc_t *filter_add_param(filter_t *filter, const char *label,
+				     const char *description, int type);
 
 /* Adds the filter to the filter database. */
 int filter_add(filter_t *filter);
 
-/* "browse" the list of registered filters. if f is NULL gives first
+/* Browse the list of registered filters. if f is NULL gives first
  * filter. */
 filter_t *filter_next(filter_t *f);
+
+/* Find a named filter.
+ * filter_t *hash_find_filter(const char *name); */
+#define hash_find_filter(n) \
+	__hash_entry(_hash_find((n), FILTER_NAMESPACE, _hash((n), \
+		     FILTER_NAMESPACE), __hash_pos(filter_t, hash, name, \
+                     namespace)), filter_t, hash)
+
+/* Browse/find a input/output port description.
+ * filter_portdesc_t *hash_find_inputdesc(const char *label, filter_t *f);
+ * list_foreach_inputdesc(filter_t *f, filter_portdesc_t *d) { }
+ * filter_portdesc_t *hash_find_outputdesc(const char *label, filter_t *f);
+ * list_foreach_outputdesc(filter_t *f, filter_portdesc_t *d) { } */
+#define hash_find_inputdesc(n, f) \
+	__hash_entry(_hash_find((n), &(f)->inputs, _hash((n), &(f)->inputs), \
+		     __hash_pos(filter_portdesc_t, hash, label, namespace)), \
+		     filter_portdesc_t, hash)
+#define list_foreach_inputdesc(f, d) \
+	list_foreach(&(f)->inputs, filter_portdesc_t, list, d)
+#define hash_find_outputdesc(n, f) \
+	__hash_entry(_hash_find((n), &(f)->outputs, _hash((n), \
+		     &(f)->outputs), __hash_pos(filter_portdesc_t, hash, \
+		     label, namespace)), filter_portdesc_t, hash)
+#define list_foreach_outputdesc(f, d) \
+	list_foreach(&(f)->outputs, filter_portdesc_t, list, d)
+
+/* Browse/find a parameter description.
+ * filter_paramdesc_t *hash_find_paramdesc(const char *label, filter_t *f);
+ * list_foreach_paramdesc(filter_t *f, filter_paramdesc_t *d) { } */
+#define hash_find_paramdesc(n, f) \
+	__hash_entry(_hash_find((n), (f), _hash((n), (f)), \
+                     __hash_pos(filter_paramdesc_t, hash, label, namespace)), \
+                     filter_paramdesc_t, hash)
+#define list_foreach_paramdesc(f, d) \
+	list_foreach(&(f)->params, filter_paramdesc_t, list, d)
 
 
 
@@ -348,7 +402,46 @@ void filternode_delete(filter_node_t *node);
 filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *source_port,
 					    filter_node_t *dest, const char *dest_port);
 
-int filternetwork_break_connection(filter_pipe_t *p);
+void filternetwork_break_connection(filter_pipe_t *p);
+
+/* Filternodes connection query/walk.
+ * filter_pipe_t *hash_find_input(const char *label, filter_node_t *n);
+ * filter_pipe_t *hash_next_input(filter_pipe_t *p);
+ * filter_pipe_t *hash_find_output(const char *label, filter_node_t *n);
+ * filter_pipe_t *hash_next_output(filter_pipe_t *p);
+ * list_foreach_input(filter_node_t *n, filter_pipe_t *p) { }
+ * list_foreach_output(filter_node_t *n, filter_pipe_t *p) { } */
+#define hash_find_input(n, node) \
+	__hash_entry(_hash_find((n), &(node)->inputs, _hash((n), \
+                     &(node)->inputs), __hash_pos(filter_pipe_t, \
+                     input_hash, in_name, in_namespace)), filter_pipe_t, \
+                     input_hash)
+#define hash_next_input(p) \
+	__hash_entry(_hash_find((p)->in_name, (p)->in_namespace, \
+                     &(p)->input_hash.next_hash, __hash_pos(filter_pipe_t, \
+                     input_hash, in_name, in_namespace)), filter_pipe_t, \
+                     input_hash)
+#define hash_find_output(n, node) \
+	__hash_entry(_hash_find((n), &(node)->outputs, _hash((n), \
+                     &(node)->outputs), __hash_pos(filter_pipe_t, \
+                     output_hash, out_name, out_namespace)), filter_pipe_t, \
+                     output_hash)
+#define hash_next_output(p) \
+        __hash_entry(_hash_find((p)->out_name, (p)->out_namespace, \
+                     &(p)->output_hash.next_hash, __hash_pos(filter_pipe_t, \
+                     output_hash, out_name, out_namespace)), filter_pipe_t, \
+                     output_hash)
+#define list_foreach_input(n, p) \
+	list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)
+#define list_foreach_output(n, p) \
+	list_foreach(&(n)->outputs, filter_pipe_t, output_list, p)
+
+/* Filternodes parameter query.
+ * filter_param_t *hash_find_param(const char *label, filter_node_t *n); */
+#define hash_find_param(n, node) \
+	__hash_entry(_hash_find((n), node, _hash((n), node), \
+		     __hash_pos(filter_param_t, hash, label, namespace)), \
+                     filter_param_t, hash)
 
 
 /* Set the parameter with label label to the value pointed to by
@@ -373,57 +466,13 @@ int filternetwork_wait(filter_network_t *net);
 void filternetwork_terminate(filter_network_t *net);
 
 
+/* Macro filters - save/load a network. - FIXME */
+int filternetwork_save(filter_network_t *net, const char *filename);
 
-/*******************************
- * API for use inside of filters ->f() function.
- */
-
-/* A filter buffer is the internal representation of a data
- * stream piped through the filter network. It is used by
- * the filters ->f() method.
- * Access is only through the fbuf_* functions and macros.
- */
-typedef struct {
-        glame_atomic_t refcnt;
-	int size;
-	SAMPLE *buf;
-} filter_buffer_t;
-
-#define fbuf_size(fb) ((fb)->size)
-#define fbuf_buf(fb) ((fb)->buf)
+filter_t *filternetwork_load(const char *filename);
 
 
-/* get (blocking) the next buffer from the input stream
- */
-filter_buffer_t *fbuf_get(filter_pipe_t *p);
-
-/* queue (blocking!) the buffer to the output stream
- */
-void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
-
-/* create a filter buffer with backing storage for size
- * samples (uninitialized!).
- * the buffer is initially one time referenced.
- */
-filter_buffer_t *fbuf_alloc(int size);
-
-
-/* get one extra reference (read-only!) of the buffer.
- * if the number of references drops to zero at any point,
- * the buffer may be freed without notice!
- */
-void fbuf_ref(filter_buffer_t *fb);
-
-/* release one reference of the buffer.
- */
-void fbuf_unref(filter_buffer_t *fb);
-
-
-/* make the buffer private so you can read _and_ write.
- * this tries to get exclusive access to the buffer either by
- * copying it or by just doing nothing.
- */
-filter_buffer_t *fbuf_make_private(filter_buffer_t *fb);
+#include "filter_buffer.h"
 
 
 #ifdef __cplusplus

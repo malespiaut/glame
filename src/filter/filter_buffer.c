@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.7 2000/02/03 18:21:21 richi Exp $
+ * $Id: filter_buffer.c,v 1.8 2000/02/05 15:59:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,7 +30,7 @@
 #include "filter.h"
 #include "util.h"
 #include "atomic.h"
-
+#include "list.h"
 
 
 void fbuf_ref(filter_buffer_t *fb)
@@ -48,32 +48,36 @@ void fbuf_unref(filter_buffer_t *fb)
 	atomic_dec(&fb->refcnt);
 
 	if (ATOMIC_VAL(fb->refcnt) == 0) {
+		list_del(&fb->list);
 	        free(fb->buf);
 		ATOMIC_RELEASE(fb->refcnt);
 		free(fb);
 	}
 }
 
-static filter_buffer_t *fbuf_create(SAMPLE *buf, int size)
+filter_buffer_t *_fbuf_alloc(int size, int atom_size, struct list_head *list)
 {
 	filter_buffer_t *fb;
 
 	if (!(fb = ALLOC(filter_buffer_t)))
 		return NULL;
+
+	fb->buf = NULL;
+	if (size > 0
+	    && !(fb->buf = malloc(atom_size*size))) {
+		free(fb);
+		return NULL;
+	}
+	fb->atom_size = atom_size;
 	fb->size = size;
-	fb->buf = buf;
+	fb->buf_pos = 0;
 	ATOMIC_INIT(fb->refcnt, 1);
+	INIT_LIST_HEAD(&fb->list);
+
+	if (list)
+		list_add(&fb->list, list);
 
 	return fb;
-}
-
-filter_buffer_t *fbuf_alloc(int size)
-{
-	SAMPLE *buf;
-
-	if (!(buf = (SAMPLE *)malloc(sizeof(SAMPLE)*size)))
-		return NULL;
-	return fbuf_create(buf, size);
 }
 
 filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
@@ -86,9 +90,10 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 	if (ATOMIC_VAL(fb->refcnt) == 1)
 	        return fb;
 
-	if (!(fbcopy = fbuf_alloc(fb->size)))
+	if (!(fbcopy = _fbuf_alloc(fb->size, fb->atom_size, &fb->list)))
 		return NULL;
 	memcpy(fbcopy->buf, fb->buf, sizeof(SAMPLE)*fb->size);
+	fbcopy->buf_pos = fb->buf_pos;
 
 	/* release reference to old buffer */
 	fbuf_unref(fb);

@@ -60,7 +60,7 @@ static int sinus_f(filter_node_t *n)
 		duration = 10000;
 	
 	size=(int)(44100.0/freq);
-	if ((buf = fbuf_alloc(size))==NULL) return -1;
+	if ((buf = fbuf_alloc(size, SAMPLE_SIZE, n))==NULL) return -1;
 
 	cnt=(int)(44100.0/size*duration/1000.0);
 
@@ -68,12 +68,18 @@ static int sinus_f(filter_node_t *n)
 	DPRINTF("Allocated Buffer with size %d! Generating Sinus!\n",size);
         for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
 
+	FILTER_AFTER_INIT;
+
 	while(pthread_testcancel(),cnt--){
 		fbuf_ref(buf);
 		fbuf_queue(out,buf);
 	}
-	fbuf_unref(buf);
 	fbuf_queue(out,NULL);			
+
+	FILTER_BEFORE_CLEANUP;
+
+	fbuf_unref(buf);
+
 	return 0;
 }
 
@@ -86,16 +92,23 @@ int waveform_register()
 	filter_t *f;
 
 	if (!(f = filter_alloc("sinus", "generate sinus test signal", sinus_f))
-	    || filter_add_output(f, "output", "sinus output stream",
-				FILTER_PORTTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"amplitude","sinus peak amplitude(0.0-1.0)",
-		    		FILTER_PARAMTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"frequency","sinus frequency in Hz",
-		    		FILTER_PARAMTYPE_SAMPLE) == -1
-	    || filter_add_param(f,"duration","length of signal in ms",
-		    		FILTER_PARAMTYPE_INT) == -1
+	    || !filter_add_output(f, "output", "sinus output stream",
+				  FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_param(f,"amplitude","sinus peak amplitude(0.0-1.0)",
+				 FILTER_PARAMTYPE_SAMPLE)
+	    || !filter_add_param(f,"frequency","sinus frequency in Hz",
+				 FILTER_PARAMTYPE_SAMPLE)
+	    || !filter_add_param(f,"duration","length of signal in ms",
+				 FILTER_PARAMTYPE_INT)
 	    || filter_add(f) == -1)
 		return -1;
 
 	return 0;
 }
+
+
+
+
+
+
+
