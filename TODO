@@ -6,11 +6,15 @@ Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
 - import and export dialogs need to be finished
 - fix glame_audiofile to support wav writing
-- intl for other than main widget needs to be done
-- better documentation for cglame, tutorial like
-- update editfilter documentation - have a tutorial
-  like introduction
-
+- audit/fix available gettext entries, merge external
+  patches
+- documentation
+  * review filteredit documentation
+  * write dialogs section (stubs already added)
+  * document normalize, fix fade (-> fadein, fadeout),
+    fix read_file/write_file, document highpass, lowpass,
+    bandpass, bandpass_a, fix statistic/debugrms (-> ssp_streamer,
+    maxrms), document ramp, saw, noise, wave
 
 Other items pending:
 --------------------
@@ -19,6 +23,9 @@ include/
 	- Consider moving includes beyond a glame/ directory
 
 doc/
+	- add filteredit section to the quick start guide
+	- add cglame section to the quick start guide
+	- intl for other than main widget needs to be done
   	- filter writing tutorial
 
 data/pixmaps/
