@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.3 2001/06/11 08:40:12 richi Exp $
+ * $Id: timeline.c,v 1.4 2001/06/12 14:16:25 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -143,6 +143,40 @@ static void handle_root(glsig_handler_t *handler, long sig, va_list va)
 	}
 }
 
+static void scale_canvas(GnomeCanvasGroup* root, double val)
+{
+	double affine[6] = { val, 0.0, 0.0, 1.0, 0.0, 0.0};
+	gnome_canvas_item_affine_relative(root,affine);
+}
+
+static void zoom_in_cb(GtkWidget* timeline, GnomeCanvasItem *root)
+{
+	scale_canvas(root,2.0);
+}
+
+static void zoom_out_cb(GtkWidget* timeline, GnomeCanvasItem *root)
+{
+	scale_canvas(root,0.5);
+}
+
+
+static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event, gpointer ignore)
+{
+	
+
+	switch(event->type){
+	case GDK_2BUTTON_PRESS:
+		if(event->button.button==1)
+			gtk_widget_show(glame_waveedit_gui_new(gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),TIMELINE_CANVAS_ITEM(file)->item));
+		break;
+	default:
+		break;
+	}
+	return FALSE;
+}
+static gboolean group_event(TimelineCanvasGroup* grp, GdkEvent* event, gpointer ficken)
+{}
+		
 static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 {
 	if (GPSM_ITEM_IS_GRP(item)) {
@@ -160,6 +194,7 @@ static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 		/* Recurse. */
 		gpsm_grp_foreach_item(item, it)
 			handle_grp_add_item(GNOME_CANVAS_GROUP(grp), it);
+		gtk_signal_connect(GTK_OBJECT(grp),"event",group_event,NULL);
 
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		TimelineCanvasFile *file;
@@ -170,6 +205,7 @@ static void handle_grp_add_item(GnomeCanvasGroup *group, gpsm_item_t *item)
 		TIMELINE_CANVAS_ITEM(file)->gpsm_handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
 			handle_file, file);
+		gtk_signal_connect(GTK_OBJECT(file),"event",file_event,NULL);
 	}
 }
 
@@ -209,7 +245,7 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 	TIMELINE_CANVAS(canvas)->gpsm_handler = glsig_add_handler(
 		gpsm_item_emitter(root), GPSM_SIG_GRP_NEWITEM
 		|GPSM_SIG_GRP_REMOVEITEM, handle_root, canvas);
-
+	
 	return window;
 }
 
@@ -239,6 +275,14 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 				"Help", "Help", "Help",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
 				NULL, NULL);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Zoom in", "Zooms in","foo",
+				glame_load_icon_widget("zoom_in.png",24,24),
+				zoom_in_cb,gnome_canvas_root(GTK_BIN(timeline)->child));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Zoom out", "Zooms out","foo",
+				glame_load_icon_widget("zoom_out.png",24,24),
+				zoom_out_cb,gnome_canvas_root(GTK_BIN(timeline)->child));
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "timeline::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,

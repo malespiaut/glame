@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.3 2001/06/11 08:40:12 richi Exp $
+ * $Id: canvas_types.c,v 1.4 2001/06/12 14:16:25 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -35,7 +35,7 @@
 /* Compute canvas coords from time[s] / track[nr] */
 #define _HUNIT(x) (50.0*(x))
 #define _VUNIT(y) (100.0*(y))
-#define _VBORDER 10.0
+#define _VBORDER 20.0
 
 
 
