@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.50 2001/04/25 19:05:52 mag Exp $
+ * $Id: file_io.c,v 1.51 2001/05/21 08:35:46 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -482,8 +482,8 @@ int file_io_register(plugin_t *p)
 /* The actual readers and writers.
  */
 
-typedef int (*wav_chunk_handler_t)(filter_t *n, char *tag, char *pos, 
-                                   int size);
+typedef gl_s32 (*wav_chunk_handler_t)(filter_t *n, char *tag, char *pos, 
+                                      gl_s32 size);
 
 typedef struct {
 	char			*tag;
@@ -492,14 +492,14 @@ typedef struct {
 
 #define WAV_FMT_PCM	1
 
-int wav_chunk_ignore(filter_t *n, char *tag, char *pos, int size)
+gl_s32 wav_chunk_ignore(filter_t *n, char *tag, char *pos, gl_s32 size)
 {
 	
 	DPRINTF("WAV chunk %s ignored. Skipping %i bytes.\n", tag, size);
 	return size;
 }
 
-int wav_read_chunk_head(filter_t *n, char *tag, char *pos, int size)
+gl_s32 wav_read_chunk_head(filter_t *n, char *tag, char *pos, gl_s32 size)
 {
 	if (strncasecmp(pos, "WAVE", 4)) {
 		return -1;	/* RIFF but no WAVE */
@@ -508,7 +508,7 @@ int wav_read_chunk_head(filter_t *n, char *tag, char *pos, int size)
 	return 4;
 }
 
-int wav_read_chunk_format(filter_t *n, char *tag, char *pos, int size)
+gl_s32 wav_read_chunk_format(filter_t *n, char *tag, char *pos, gl_s32 size)
 {
 	if (size < 16) {
 		DPRINTF("Illegal chunk size.\n");
@@ -550,7 +550,7 @@ int wav_read_chunk_format(filter_t *n, char *tag, char *pos, int size)
 	return size;
 }	
 
-int wav_read_chunk_data(filter_t *n, char *tag, char *pos, int size)
+gl_s32 wav_read_chunk_data(filter_t *n, char *tag, char *pos, gl_s32 size)
 {
 	if (!RWW(n).ch) {
 		DPRINTF("No fmt chunk?\n");
@@ -586,8 +586,9 @@ wav_handlers_t wav_read_handlers[] = {
  */
 int wav_read_parse(filter_t *n, char *from, char* to)
 {
-	int i, size;
+	int i;
 	char *tag;
+	gl_s32 size;
 	wav_chunk_handler_t handler;
 	
 	RWW(n).ch = 0;
