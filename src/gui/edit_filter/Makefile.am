@@ -13,7 +13,9 @@ endif
 #libeditfilter_la_SOURCES = gui.c canvas.h canvas.c \
 #canvas_types.h canvas_types.c filtergui.h
 
-libeditfilter_la_SOURCES = canvasfilter.c canvaspipe.c canvasport.c glamecanvas.c canvasitem.h glamecanvas.h filtereditgui.c
+libeditfilter_la_SOURCES = canvasfilter.c canvaspipe.c canvasport.c \
+	glamecanvas.c canvasitem.h glamecanvas.h \
+	filtereditgui.c filtereditgui.h
 
 #edit_filter_SOURCES = main.c 
 #edit_filter_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
