@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.14 2001/12/13 10:20:12 richi Exp $
+@comment $Id: gui.texi,v 1.15 2001/12/16 15:04:35 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -438,6 +438,89 @@ As for now only few keybindings are exported, more will follow soon:
 @node The Preferences Dialog, The Import Dialog, , Dialogs
 @subsection The Preferences Dialog
 
+From within the preferences dialog (which you can reach from the
+main windows @code{Settings} menu) you can change GLAME configuration
+including the swapfile setup and your audio setup. Note that some
+changes take effect only after restarting GLAME.
+
+The preferences dialog presents you with three tabs, namely the
+@code{Swapfile}, @code{Filternetwork} and @code{Audio I/O} tabs.
+We're going through them seperately.
+
+The first tab is the @code{Swapfile} tab which has the following
+entries:
+@table @code
+@item Swapfile Path
+Here you can configure where GLAME should place its internal representation
+of the audio data. Note that GLAME uses this as a permanent (surviving
+program quit) storage to store the complete application state. Changes
+of the swapfile path take place after a GLAME restart only.
+
+@item Depth of undo stack
+Here you can configure the amount of edit steps you want to be able to
+undo. This is a global number. Remember that each step of undo needs
+space in the swapfile.
+
+@item Caching
+You are not supposed to change the caching parameters if you dont
+known whats going on internally (we need to design a more friendly
+interface for that). The only parameter you may want to tune is the
+maximum virtual memory used for caching parameter if you have lots
+of ram. This parameter is in bytes and if you change it, you need to
+change the number of cached memory mappings by the same factor (its
+a good idea to scale the other ones, too, but thats not necessary and
+may break for Linux kernels oldet than 2.4).
+@end table
+
+
+The @code{Filternetwork} tab lets you configure some UI parameters
+which are
+
+@table @code
+@item Property popup timeout
+The time until the description properties do popup.
+
+@item Mac mode
+Changes other-than-left mouse-button operations to multi-clicks on
+the left button. This is only useful if you are using mice with less
+than two buttons.
+@end table
+
+
+The @code{Audio I/O} tab lets you configure the default audio input
+and output device.
+
+@table @code
+@item Default input plugin
+Here you can select (or edit) the plugin which should be used for
+audio input. This should be @code{oss_audio_in} or @code{alsa_audio_in}
+for most Linux boxen.
+
+@item Default input device
+Specify the input device corresponding to the soundcard you want to
+record from. For oss this will be one of the @code{/dev/dsp} devices,
+for alsa @code{plughw:0,0} or something like that.
+
+@item Default output plugin
+Like for the input case this is the plugin you want to use for audio
+output.
+
+@item Default output device
+Device settings for audio output.
+
+@item Size hint for audio buffers
+This number specifies the default size of audio fragments that
+get passed through the audio processing networks of GLAME. Choose
+large values (1024) for slow machines, low values (128) for low
+latency networks. The minimum internal latency can be calculated
+like size hint divided by the samplerate (128 / 44100 Hz = 2.9 ms).
+Note that the audio fragment size is usually limited by your audio
+hardware, so this is only a hint and specifying values less than
+32 will probably only hurt performance.
+@end table
+
+
+
 @node The Import Dialog, The Export Dialog, The Preferences Dialog, Dialogs
 @subsection The Import Dialog
 
@@ -447,6 +530,32 @@ As for now only few keybindings are exported, more will follow soon:
 @node The Apply Filter Dialog, , The Export Dialog, Dialogs
 @subsection The Apply Filter Dialog
 
+The apply filter dialog is reached from the waveedit window through the
+right mousebutton menu by choosing the @code{Apply filter...} entry and
+operates on the current selection. In the upper part of the dialog the
+parameters of the selected filter are displayed and can be edited.
 
+The lower part of the dialog contains a progress bar for both
+preview and apply operation. The functions of the buttons are the
+following:
+
+@table @code
+@item Preview
+This button starts previewing of the selected region with the filter
+with the specified parameters applied. To stop previewing press the
+preview button again. For most filters you can change parameters while
+the preview is active, so you can tune them with realtime feedback.
+
+@item Apply
+This button starts applying the filter to the selected region and
+closes the dialog after it is finished.
+
+@item Cancel
+Cancels the apply filter operation. No changes are made to the
+current selection.
+
+@item Help
+Pops up the gnome help browser with help on the selected filter.
+@end table
 
 
