@@ -54,6 +54,8 @@ AC_DEFUN([GNOME_INIT_HOOK],[
 	      AC_MSG_CHECKING(if $GNOME_CONFIG works)
 	      if $GNOME_CONFIG --libs-only-l gnome >/dev/null 2>&1; then
 	        AC_MSG_RESULT(yes)
+		ACG_PATH_ESD(0.2.0, , [
+		   AC_MSG_ERROR([GNOME needs esd library and development]) ])
 	        GNOME_GNORBA_HOOK([],$2)
 	        GNOME_LIBS="`$GNOME_CONFIG --libs-only-l gnome`"
 	        GNOMEUI_LIBS="`$GNOME_CONFIG --libs-only-l gnomeui`"
