@@ -179,7 +179,7 @@ static void file_put(struct swfile *f, int flags)
 						     CSIZE(f->clusters, i)))) {
 					if (cluster_delfileref(c, f->name) == -1)
 						SWAPFILE_MARK_UNCLEAN("Cannot del fileref");
-					cluster_put(c, 0);
+					cluster_put(c, CLUSTERPUT_FREE);
 				} else
 					SWAPFILE_MARK_UNCLEAN("Cannot get cluster");
 			}
