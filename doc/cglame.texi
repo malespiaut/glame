@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.7 2000/04/12 09:15:32 richi Exp $
+@comment $Id: cglame.texi,v 1.8 2000/08/16 09:05:03 nold Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -47,7 +47,7 @@ Quick help:
 (help) gets you some additional help.
 
 guile> (play "/var/tmp/short.wav")
-guile> (play-eff "/var/tmp/test.wav" "echo")
+guile> (play-eff "/var/tmp/test.wav" '("echo"))
 guile> (let* ((net (net-new))
 ... (nodes (net-add-nodes net '("read_file" "echo" "audio_out")))
 ... (echo2 (net-add-node net "echo")))
