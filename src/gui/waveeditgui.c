@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.144 2003/05/26 21:31:18 richi Exp $
+ * $Id: waveeditgui.c,v 1.145 2003/11/18 20:03:19 ochonpaul Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -480,14 +480,18 @@ static void play_cleanup(glsig_handler_t *handler,
 					 waveedit->pm_marker);
 
 	/* restore normal play button -- wheee, gtk suxx.
-	 * FIXME - doesnt work anymore with gnome2 */
+	 * FIXME - doesnt work anymore with gnome2 (seems it works now (Laurent)*/ 
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar),
-				 _("Play/Record"), _("Play/Record"),
-				 GNOME_STOCK_PIXMAP_FORWARD,
-				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview,
-				 TOOLBAR_PLAY_INS);
+	/* gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar), */
+/* 				 _("Play/Record"), _("Play/Record"), */
+/* 				 GNOME_STOCK_PIXMAP_FORWARD, */
+/* 				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview, */
+/* 				 TOOLBAR_PLAY_INS); */
+	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
+				_("Play/Record"), _("Play/Record"), _("Play/Record"),
+				glame_load_icon_widget("play-button.png",32,16),
+				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview,TOOLBAR_PLAY_INS);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -708,11 +712,15 @@ static void play(GtkWaveView *waveview,
 	 * FIXME - doesnt work with anymore with gnome2 */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(active_waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar),
-				 _("Stop"), _("Stop"), 
-				 GNOME_STOCK_PIXMAP_STOP,
-				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), active_waveedit->waveview,
-				TOOLBAR_PLAY_INS);
+	/* gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar), */
+/* 				 _("Stop"), _("Stop"),  */
+/* 				 GNOME_STOCK_PIXMAP_STOP, */
+/* 				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), active_waveedit->waveview, */
+/* 				TOOLBAR_PLAY_INS); */
+	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
+				_("Stop"), _("Stop"), _("Stop"),
+				glame_load_icon_widget("stop-button.png",32,16),
+				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), active_waveedit->waveview,TOOLBAR_PLAY_INS);
 	active_waveedit->locked = 1;
 
 	return;
@@ -1523,10 +1531,15 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * callback than "Play all"/"Play selection" - play from marker.
 	 * FIXME. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_GO_FORWARD,
-				 _("Play/Record"), _("Play/Record"),
-				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), window->waveview, -1);
+	/* gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar), */
+/* 				 GTK_STOCK_GO_FORWARD, */
+/* 				 _("Play/Record"), _("Play/Record"), */
+/* 				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), window->waveview, -1); */
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
+				_("Play/Record"), _("Play/Record"), _("Play/Record"),
+				glame_load_icon_widget("play-button.png",32,16),
+				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), window->waveview);
+
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
