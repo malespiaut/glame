@@ -1,7 +1,7 @@
 /*
  * audio_io_alsa_v090.c
  *
- * $Id: audio_io_alsa.c,v 1.19 2004/10/23 13:09:28 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.20 2005/03/11 18:13:19 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther, Alexander Ehlert,
  * 	Daniel Kobras
@@ -307,7 +307,6 @@ static int alsa_audio_in_f(filter_t * n)
 	 */
 
 	pthread_mutex_lock(&audio_io_mutex);
-	err = snd_output_stdio_attach(&log, stderr, 0);
 
 	snd_pcm_hw_params_alloca(&params);
 	snd_pcm_sw_params_alloca(&swparams);
@@ -320,8 +319,11 @@ static int alsa_audio_in_f(filter_t * n)
 		FILTER_ERROR_CLEANUP
 		    ("configuration of audio device failed");
 
+#ifdef DEBUG
+	snd_output_stdio_attach(&log, stderr, 0);
 	snd_pcm_sw_params_dump(swparams, log);
 	snd_pcm_dump(handle, log);
+#endif
 
 	snd_pcm_hw_params_get_period_size(params, &blksz, &dir);
 
@@ -500,7 +502,6 @@ static int alsa_audio_out_f(filter_t * n)
 #endif
 
 	pthread_mutex_lock(&audio_io_mutex);
-	err = snd_output_stdio_attach(&log, stderr, 0);
 
 	snd_pcm_hw_params_alloca(&params);
 	snd_pcm_sw_params_alloca(&swparams);
@@ -514,8 +515,11 @@ static int alsa_audio_out_f(filter_t * n)
 		FILTER_ERROR_CLEANUP
 		    ("configuration of audio device failed");
 
+#ifdef DEBUG
+	snd_output_stdio_attach(&log, stderr, 0);
 	snd_pcm_sw_params_dump(swparams, log);
 	snd_pcm_dump(handle, log);
+#endif
 
 	snd_pcm_hw_params_get_period_size(params, &blksz, &dir);
 
