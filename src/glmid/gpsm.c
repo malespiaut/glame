@@ -1464,8 +1464,13 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 		if (GPSM_ITEM_IS_GRP(it)) {
 			next = list_gethead(&((gpsm_grp_t *)it)->items,
 					    gpsm_item_t, list);
-			hpos += gpsm_item_hposition(it);
-			vpos += gpsm_item_vposition(it);
+			if (!next)
+				next = list_getnext(&it->parent->items, it,
+						    gpsm_item_t, list);
+			else {
+				hpos += gpsm_item_hposition(it);
+				vpos += gpsm_item_vposition(it);
+			}
 		} else
 			next = list_getnext(&it->parent->items, it,
 					    gpsm_item_t, list);
@@ -1481,26 +1486,14 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 		it = next;
 	}
 
-	/* Fix the length of all swfiles - set it to the maximum.
-	 * And notify gpsm of the change (invalidate). */
-	hpos = 0;
-	gpsm_grp_foreach_item(grp, it) {
-		swfd_t fd;
-		struct sw_stat st;
-		if (!GPSM_ITEM_IS_SWFILE(it))
-			continue;
-		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY);
-		sw_fstat(fd, &st);
-		if (st.size > hpos)
-			hpos = st.size;
-		sw_close(fd);
-	}
+	/* Fix the length of all swfiles - set it to the maximum
+	 * (which is the size of the original group). */
 	gpsm_grp_foreach_item(grp, it) {
 		swfd_t fd;
 		if (!GPSM_ITEM_IS_SWFILE(it))
 			continue;
 		fd = sw_open(gpsm_swfile_filename(it), O_RDWR);
-		sw_ftruncate(fd, hpos);
+		sw_ftruncate(fd, gpsm_item_hsize(item)*SAMPLE_SIZE);
 		sw_close(fd);
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 	}
@@ -1577,10 +1570,13 @@ static int _gpsm_get_swfiles(gpsm_item_t *root, gpsm_swfile_t ***files)
 			if (cnt > 255)
 				PANIC("Max nr of swfiles reached");
 		}
-		if (GPSM_ITEM_IS_GRP(item))
+		if (GPSM_ITEM_IS_GRP(item)) {
 			next = list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
-		else
+			if (!next)
+				next = list_getnext(&item->parent->items, item,
+						    gpsm_item_t, list);
+		} else
 			next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
