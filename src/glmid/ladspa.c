@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.25 2003/05/25 11:03:07 richi Exp $
+ * $Id: ladspa.c,v 1.26 2003/05/25 13:00:42 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -31,6 +31,10 @@
 #include <ctype.h>
 #include <limits.h>
 #include <ladspa.h>
+#ifdef HAVE_LRDF
+#include <stdio.h>
+#include <lrdf.h>
+#endif
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
@@ -845,7 +849,14 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		tolower(psDescriptor->Name ? psDescriptor->Name[0]
                                            : psPlugin->name[0]));
 	plugin_set(psPlugin, PLUGIN_CATEGORY, strdup(category));
-
+#if 0 && defined HAVE_LRDF
+	{
+		uri = lrdf_get_default_uri(psDescriptor->UniqueID);
+		if (uri) {
+			lrdf_get_setting_metadata(uri, "");
+		}
+	}
+#endif
 
 	filter_register(psFilter, psPlugin);
 

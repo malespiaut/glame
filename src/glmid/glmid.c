@@ -41,6 +41,9 @@
 #include "glsimd.h"
 #include "glscript.h"
 #include "glconfig.h"
+#ifdef HAVE_LRDF
+#include <lrdf.h>
+#endif
 
 /* auto-generated builtin register function */
 #include "../plugins/builtins.c"
@@ -230,6 +233,12 @@ static void init_after_guile(int argc, char **argv)
 	if (hash_alloc() == -1)
 		exit(1);
 	atexit(glame_cleanup);
+
+	/* Init LADSPA rdf library, if available. */
+#ifdef HAVE_LRDF
+	lrdf_init();
+	lrdf_read_file("file:/usr/share/ladspa/rdf/swh-plugins.rdf"); /* FIXME */
+#endif
 
 	/* Load non-scheme plugins. */
 	if (plugins_register() == -1)

@@ -414,8 +414,18 @@ AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
 dnl
 dnl Check for LADSPA support
 dnl
+
+dnl LADSPA header
 ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA,, [have ladspa.h])])
 GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $LADSPA_CFLAGS"
+
+dnl LADSPA RDF
+PKG_CHECK_MODULES(LRDF, lrdf,
+[
+  AC_DEFINE(HAVE_LRDF,, [have the lrdf library])
+  GLAME_CFLAGS="$GLAME_CFLAGS $LRDF_CFLAGS"
+  GLAME_LIBS="$GLAME_LIBS $LRDF_LIBS"
+])
 
 dnl check for libmad
 PKG_CHECK_MODULES(MAD, mad,
