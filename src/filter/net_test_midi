@@ -1,5 +1,0 @@
-(filternetwork midi "test midi output"
-	(node inp input_to_mbuf)
-	(node midi_out midi_out)
-	(connect inp out midi_out in)
-)

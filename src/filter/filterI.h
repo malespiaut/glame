@@ -58,7 +58,6 @@ struct filter_param {
 		int i;
 		float f;
 		SAMPLE sample;
-		fileid_t file;
 		char *string;
 		int list;
 	} val;

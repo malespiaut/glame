@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.30 2000/03/14 14:29:26 richi Exp $
+ * $Id: filter_network.c,v 1.31 2000/03/15 13:05:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -55,9 +55,6 @@ static void set_param(filter_param_t *param, void *val)
 	case FILTER_PARAMTYPE_SAMPLE:
 		param->val.sample = *(SAMPLE *)val;
 		break;
-	case FILTER_PARAMTYPE_FILE:
-		param->val.file = *(fileid_t *)val;
-		break;
 	case FILTER_PARAMTYPE_STRING:
 		free(param->val.string);
 		param->val.string = strdup((char *)val);
@@ -85,9 +82,6 @@ char *filterparam_to_string(filter_param_t *param)
 	case FILTER_PARAMTYPE_SAMPLE:
 		/* FIXME: this is SAMPLE type specific */
 		snprintf(buf, 511, "%f", param->val.sample);
-		break;
-	case FILTER_PARAMTYPE_FILE:
-		snprintf(buf, 511, "%i", param->val.file);
 		break;
 	case FILTER_PARAMTYPE_STRING:
 		snprintf(buf, 511, "\"%s\"", param->val.string);
@@ -121,9 +115,6 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
 		break;
 	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
 		res = sscanf(val, " %f ", &param.val.sample);
-		break;
-	case FILTER_PARAMTYPE_FILE:
-		res = sscanf(val, " %i ", &param.val.file);
 		break;
 	case FILTER_PARAMTYPE_STRING:
 		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) == 1) {

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.28 2000/02/28 00:35:16 garrison Exp $
+ * $Id: filter.c,v 1.29 2000/03/15 13:05:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,7 +39,7 @@ static struct list_head filter_list;
 extern int basic_register();
 extern int basic_sample_register();
 extern int tutorial_register();
-extern int channel_io_register();
+extern int track_io_register();
 extern int audio_io_register();
 extern int file_io_register();
 extern int debug_register();
@@ -68,8 +68,8 @@ int filter_init()
 	if (tutorial_register() == -1)
 		return -1;
 
-	/* initialize channel/file input & output filters */
-	if (channel_io_register() == -1)
+	/* initialize track input & output filters */
+	if (track_io_register() == -1)
 		return -1;
 
 	/* initialize audio input & output filters */

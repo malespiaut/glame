@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.38 2000/02/29 13:06:49 richi Exp $
+ * $Id: filter.h,v 1.39 2000/03/15 13:05:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -40,7 +40,6 @@
 #include <math.h>
 #include <errno.h>
 #include "glame_types.h"
-#include "swapfile.h"
 #include "glame_hash.h"
 #include "list.h"
 #include "atomic.h"
@@ -181,7 +180,6 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PARAMTYPE_INT     (1<<2)
 #define FILTER_PARAMTYPE_FLOAT   (2<<2)
 #define FILTER_PARAMTYPE_SAMPLE  (3<<2)
-#define FILTER_PARAMTYPE_FILE    (4<<2)
 #define FILTER_PARAMTYPE_STRING  (5<<2)
 #define FILTER_PARAMTYPE_LIST    (6<<2)
 #define FILTER_PARAM_IS_OUTPUT(type) ((type) & FILTER_PARAMTYPE_OUTPUT)
