@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.7 2000/02/06 02:10:45 nold Exp $
+ * $Id: test_latency.c,v 1.8 2000/02/09 12:33:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -93,6 +93,8 @@ int main(int argc, char **argv)
 	}
 
 	fprintf(stderr, "all done.\n");
+
+	filternetwork_delete(net);
 
 	return 0;
 }

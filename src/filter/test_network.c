@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_network.c,v 1.2 2000/02/08 12:53:11 richi Exp $
+ * $Id: test_network.c,v 1.3 2000/02/09 12:33:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -89,6 +89,8 @@ int main(int argc, char **argv)
 	}
 
 	fprintf(stderr, "all done.\n");
+
+	filternetwork_delete(net);
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * test_sound.c
- * $Id: test_audio.c,v 1.5 2000/02/07 04:33:54 mag Exp $
+ * $Id: test_audio.c,v 1.6 2000/02/09 12:33:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -86,6 +86,8 @@ int main(int argc, char **argv)
 	}
 
 	fprintf(stderr, "all done.\n");
+
+	filternetwork_delete(net);
 
 	return 0;
 }

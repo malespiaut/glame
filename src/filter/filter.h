@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.15 2000/02/09 11:02:38 richi Exp $
+ * $Id: filter.h,v 1.16 2000/02/09 12:33:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,6 +29,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <pthread.h>
+#include <stdlib.h>
 #include <errno.h>
 #include "glame_types.h"
 #include "swapfile.h"

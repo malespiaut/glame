@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.14 2000/02/08 14:50:33 richi Exp $
+ * $Id: filter_network.c,v 1.15 2000/02/09 12:33:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -257,9 +257,6 @@ static int wait_node(filter_node_t *n)
 	       && (res != ESRCH))
 		;
 
-
-	n->ops->postprocess(n);
-
 	return filter_ret;
 }
 static int wait_network(filter_node_t *n)
@@ -270,8 +267,6 @@ static int wait_network(filter_node_t *n)
 	filternetwork_foreach_node(net, n)
 		if (n->ops->wait(n) == -1)
 			res = -1;
-
-	net->node.ops->postprocess(&net->node);
 
 	return res;
 }
@@ -338,6 +333,7 @@ int filternetwork_wait(filter_network_t *net)
 	res = net->node.ops->wait(&net->node);
 	DPRINTF("net result is %i\n", res);
 
+	net->node.ops->postprocess(&net->node);
 	net->node.launch_context->state = STATE_UNDEFINED;
 	return res;
 }

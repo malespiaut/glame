@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.15 2000/02/09 02:08:16 mag Exp $
+ * $Id: audio_io.c,v 1.16 2000/02/09 12:33:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -180,9 +180,9 @@ static int esd_out_f(filter_node_t *n)
 	/* get the first buffers to start with something */
 	DPRINTF("Waiting for buffers to come...\n");
 	lbuf = sbuf_get(left);
-	DPRINTF("Got left sbuf with size %d\n", sbuf_size(lbuf));
+	DPRINTF("Got left sbuf with size %i\n", sbuf_size(lbuf));
 	rbuf = sbuf_get(right);
-	DPRINTF("Got right sbuf with size %d\n", sbuf_size(rbuf));
+	DPRINTF("Got right sbuf with size %i\n", sbuf_size(rbuf));
 	lpos = rpos = 0;
 
 	do {
