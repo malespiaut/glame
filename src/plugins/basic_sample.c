@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.29 2001/04/20 13:44:45 richi Exp $
+ * $Id: basic_sample.c,v 1.30 2001/04/22 14:26:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -59,6 +59,16 @@ PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat")
  * Failure is at launch time if samplerates of inputs dont match.
  * Mix is completely asynchron wrt input and output. This is to allow
  * buffer merging and to avoid deadlocks with feedback.
+ * The mix "state machine" has the following states with associated
+ * actions:
+ * - at least one fifo is not full, there is enough data for an output
+ *   try to read from not full fifos, try to output
+ * - at least one fifo is not full, there is not enough data for an output
+ *   try to read from not full fifo
+ * - all fifos are full, there is enough data for an output
+ *   try to output
+ * - (all fifos are full, there is not enough data for an output)
+ *   not possible
  */
 static int mix(filter_t *n, int drop)
 {
@@ -81,12 +91,14 @@ static int mix(filter_t *n, int drop)
 	filter_param_t *param;
 	struct timeval timeout;
 	int i, res, cnt, icnt;
-	int rate, maxfd, out_pos, eof_pos, fifo_full, output_ready;
+	int rate, maxfd, out_pos, eof_pos;
+	int fifo_full, output_ready, nr_ready_to_send;
 	int *j, jcnt;
 	fd_set rset, wset;
-	SAMPLE *s;
-	float factor, gain;
-	int nr, nr_done;
+	SAMPLE *s, **js;
+	float factor, gain, *jf;
+	int nr, nr_done, nr_eof;
+	int max_fifo_size;
 
 	/* We require at least one connected input and
 	 * a connected output.
@@ -102,7 +114,9 @@ static int mix(filter_t *n, int drop)
 	/* init the structure, compute the needed factors */
 	factor = 0.0;
 	if (!(p = ALLOCN(nr, mix_param_t))
-	    || !(j = ALLOCN(nr, int)))
+	    || !(j = ALLOCN(nr, int))
+	    || !(js = ALLOCN(nr, SAMPLE *))
+	    || !(jf = ALLOCN(nr, float)))
 		FILTER_ERROR_RETURN("no memory");
 
 	gain = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "gain"));
@@ -110,7 +124,7 @@ static int mix(filter_t *n, int drop)
 	rate = -1;
 	i = 0;
 	cnt = 1<<30;
-	nr_done = 0;
+	nr_done = nr_eof = 0;
 	filterport_foreach_pipe(inp, in) {
 		p[i].in = in;
 		INIT_FEEDBACK_FIFO(p[i].fifo);
@@ -155,51 +169,76 @@ static int mix(filter_t *n, int drop)
 	/* p[].in and out is used as done/EOF flag if it is NULL
 	 */
 
-	/* mix only until one input has eof */
+	/* mix only until one input has eof (if drop parameter is true) */
+	max_fifo_size = GLAME_MAX_BUFSIZE;
 	eof_pos = 1<<30;
 	out_pos = 0;
 	output_ready = 0;
 	while (nr_done < nr) {
 		FILTER_CHECK_STOP;
 
-		/* set up fd sets for select */
+		/* Set up fd sets for select. */
 		maxfd = 0;
+		/* The read part - only select those fds who do
+		 * not have full fifos / have EOF. */
 		fifo_full = 1;
 		FD_ZERO(&rset);
 		for (i=0; i<nr; i++) {
 			/* EOF or fifo full? */
 			if (!p[i].in
-			    || p[i].fifo_size >= GLAME_MAX_BUFSIZE)
+			    || p[i].fifo_size >= max_fifo_size)
 				continue;
 			fifo_full = 0;
 			FD_SET(p[i].in->dest_fd, &rset);
 			if (p[i].in->dest_fd > maxfd)
 				maxfd = p[i].in->dest_fd;
 		}
+		/* Queued a chunk but FIFO still full? -> Must keep going!
+		   output_ready |= fifo_full; */
+		/* Write part - only select, if we're not in dropping
+		 * mode and have data ready to send. */
 		FD_ZERO(&wset);
-		/* Queued a chunk but FIFO still full? -> Must keep going! */
-		output_ready |= fifo_full;
 		if (out && output_ready) {
 			FD_SET(out->source_fd, &wset);
 			if (out->source_fd > maxfd)
 				maxfd = out->source_fd;
 		}
-		timeout.tv_sec = 5;
-		timeout.tv_usec = 0;
-		res = select(maxfd+1, fifo_full ? NULL : &rset,
-			     !out || !output_ready ? NULL : &wset, NULL, &timeout);
+		/* Do the actual select - the timeout is to detect
+		 * deadlocks in the network or a huge amount of
+		 * feedback for which we should adjust our maximum
+		 * fifo size (this timeout - at full fifo - is adjusted
+		 * to meet the RT criteria). */
+		if (fifo_full && out) {
+			timeout.tv_sec = GLAME_WBUFSIZE/rate;
+			timeout.tv_usec = (long)((1000000.0*(float)(GLAME_WBUFSIZE%rate))/rate);
+		} else {
+			timeout.tv_sec = 5;
+			timeout.tv_usec = 0;
+		}
+		res = select(maxfd+1,
+			     fifo_full ? NULL : &rset,
+			     !out || !output_ready ? NULL : &wset,
+			     NULL, &timeout);
 		if (res == -1) {
 			if (errno != EINTR)
 				perror("select");
 			continue;
 		}
 		if (res == 0) {
-			/* Network stopped? */
+			/* Network paused? */
 			if (filter_is_ready(n))
 				continue;
+			if (fifo_full && out) {
+				max_fifo_size *= 2;
+				DPRINTF("Adjusting fifo size, fifo now %i (%.3fs)\n",
+					max_fifo_size, ((float)max_fifo_size)/rate);
+				/* But limit it anyway... 32s (?) */
+				if (max_fifo_size >= 32*rate)
+					FILTER_ERROR_STOP("Too much feedback in the net - perhaps another deadlock?");
+				continue;
+			}
 			/* Uh, deadlock... */
-			fprintf(stderr, "FATAL ERROR: deadlock in mix detected!\n");
-			break;
+			FILTER_ERROR_STOP("Deadlock");
 		}
 
 		/* Check the inputs for buffers. */
@@ -212,6 +251,7 @@ static int mix(filter_t *n, int drop)
 			if (!buf) {
 				/* mark EOF */
 				p[i].in = NULL;
+				nr_eof++;
 				/* correct "drop after" pos */
 				if (drop && p[i].fifo_pos < eof_pos)
 					eof_pos = p[i].fifo_pos;
@@ -265,34 +305,39 @@ static int mix(filter_t *n, int drop)
 		 * (at least one input is missing) continue with receive.
 		 * The following rules are used:
 		 * - all buffers to be used have to be in fifos already
-		 * - maximum # is GLAME_WBUFSIZE
 		 * - do not write beyond eof_pos */
-		cnt = MIN(GLAME_WBUFSIZE, eof_pos - out_pos);
+		cnt = eof_pos - out_pos;
 		for (i=0; i<nr; i++) {
 			/* fix cnt wrt available buffers */
 			if (!p[i].done && p[i].fifo_pos - out_pos < cnt)
 				cnt = p[i].fifo_pos - out_pos;
 		}
+		/* Dont send more than GLAME_WBUFSIZE in one buffer,
+		 * remember the # of buffers we could send. */
+		nr_ready_to_send = cnt / GLAME_WBUFSIZE;
+		cnt = MIN(GLAME_WBUFSIZE, cnt);
 
 		/* If there is nothing to write, give a hint to avoid
-		 * select()ing on the output fd the next iteration. */
-		if (cnt == 0) {
+		 * select()ing on the output fd the next iteration.
+		 * Try to coalesce at least GLAME_WBUFSIZE size buffers,
+		 * only allow smaller buffers, if all inputs are EOF. */
+		if (cnt == 0
+		    || (cnt < GLAME_WBUFSIZE && nr_eof != nr)) {
 			output_ready = 0;
 			continue;
 		}
 		output_ready = 1;
-
 
 		/* If we are not ready to send anything just skip the
 		 * send code. */
 		if (!out || !FD_ISSET(out->source_fd, &wset))
 			continue;
 
-		/* alloc output buffer */
+		/* Alloc output buffer. */
 		buf = sbuf_make_private(sbuf_alloc(cnt, n));
 		s = sbuf_buf(buf);
 
-		/* loop through the input buffers, chunk by chunk
+		/* Loop through the input buffers, chunk by chunk
 		 * - "inner loop" */
 		do {
 			/* get a buffer from the fifo for each input, by
@@ -333,47 +378,18 @@ static int mix(filter_t *n, int drop)
 			cnt -= icnt;
 			out_pos += icnt;
 
-			/* to do really fast processing special-code
-			 * a number of input channel counts */
-			switch (jcnt) {
-			case 0:
-				/* Aieee, mummy told us but did we listen? */
-				memset(s, 0, SAMPLE_SIZE*icnt);
-				s += icnt;
-				break;
-			case 1:
-				glsimd.scalar_product_1d(s, icnt,
-							 p[j[0]].s, p[j[0]].factor);
-				p[j[0]].s += icnt;
-				s += icnt;
-				break;
-     			case 2:
-				glsimd.scalar_product_2d(s, icnt,
-							 p[j[0]].s, p[j[0]].factor,
-							 p[j[1]].s, p[j[1]].factor);
-				p[j[0]].s += icnt;
-				p[j[1]].s += icnt;
-				s += icnt;
-				break;
-			case 3:
-				glsimd.scalar_product_3d(s, icnt,
-							 p[j[0]].s, p[j[0]].factor,
-							 p[j[1]].s, p[j[1]].factor,
-							 p[j[2]].s, p[j[2]].factor);
-				p[j[0]].s += icnt;
-				p[j[1]].s += icnt;
-				p[j[2]].s += icnt;
-				s += icnt;
-				break;
-			default:
-				for (; icnt>0; icnt--) {
-					*s = 0.0;
-					for (i=0; i<jcnt; i++) {
-						*s += *(p[j[i]].s++)*p[j[i]].factor;
-					}
-					s++;
-				}
+			/* Do SIMD optimized mixing. We need to setup
+			 * a sample pointer array and a factor array
+			 * and cleanup afterwards (correcting the position
+			 * pointers). */
+			for (i=0; i<jcnt; i++) {
+				js[i] = p[j[i]].s;
+				jf[i] = p[j[i]].factor;
 			}
+			glsimd.scalar_product_Nd(s, icnt, js, jf, jcnt);
+			s += icnt;
+			for (i=0; i<jcnt; i++)
+				p[j[i]].s += icnt;
 
 			/* check for completed buffers and for
 			 * inputs which become active. */
@@ -395,9 +411,10 @@ static int mix(filter_t *n, int drop)
 
 		/* queue buffer */
 		sbuf_queue(out, buf);
-		/* Careful! There may still be plenty of samples in the FIFO
-		 * we'll fixup later. */
-		output_ready = 0;
+
+		/* We remembered the number of buffers we could have send,
+		 * so just update output_read with this information. */
+		output_ready = nr_ready_to_send - 1 > 0 ? 1 : 0;
 	};
 
 	FILTER_BEFORE_STOPCLEANUP;
@@ -405,6 +422,8 @@ static int mix(filter_t *n, int drop)
 
 	free(p);
 	free(j);
+	free(js);
+	free(jf);
 
 	FILTER_RETURN;
 }
@@ -691,7 +710,7 @@ static int delay_f(filter_t *n)
 	FILTER_AFTER_INIT;
 
 	/* send "delay" zero samples, GLAME_WBUFSIZE samples per buffer */
-	chunksize = GLAME_WBUFSIZE; // filterpipe_sample_rate(in)/10;
+	chunksize = GLAME_WBUFSIZE;
 	buf = sbuf_alloc(chunksize, n);
 	memset(sbuf_buf(buf), 0, SAMPLE_SIZE*chunksize);
 	for (; delay/chunksize > 0; delay -= chunksize) {
