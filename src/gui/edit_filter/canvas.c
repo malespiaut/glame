@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.54 2001/04/17 23:18:56 xwolf Exp $
+ * $Id: canvas.c,v 1.55 2001/04/17 23:59:47 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1553,6 +1553,7 @@ static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 	char *labels[] = {"Name","Type","Description"};
 	char *plabels[] = {"Name","Value","Description"};
 	char ** line;
+	char * buffer;
 	filter = it->filter;
 
 	ports = filter_portdb(filter);
@@ -1576,12 +1577,23 @@ static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 
 	tablabel = gtk_label_new("Ports");
 	list = GTK_CLIST(gtk_clist_new_with_titles(3,labels));
+	gtk_clist_set_column_auto_resize(list,0,TRUE);
+	gtk_clist_set_column_auto_resize(list,1,TRUE);
 	gtk_clist_set_column_auto_resize(list,2,TRUE);
+
 	filterportdb_foreach_port(ports,port){
 		line = calloc(3,sizeof(char*));
-		line[0] = strdup(filterport_label(port));
-		line[1]=(filterport_is_input(port)?"In":"Out");
-		line[2]=strdup(filterport_get_property(port,FILTERPORT_DESCRIPTION));
+		if(filterport_label(port))
+			buffer = strdup(filterport_label(port));
+		else
+			buffer = strdup("Empty");
+		line[0] = buffer;
+		line[1] = (filterport_is_input(port)?"In":"Out");
+		if( filterport_get_property(port,FILTERPORT_DESCRIPTION))
+			buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
+		else
+			buffer = strdup("Empty");
+		line[2] = buffer;
 		gtk_clist_append(list,line);
 	}
 	gtk_widget_show(GTK_WIDGET(list));
@@ -1591,15 +1603,28 @@ static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 	gtk_widget_show(tablabel);
 	
 	list = GTK_CLIST(gtk_clist_new_with_titles(3,plabels));
+	gtk_clist_set_column_auto_resize(list,0,TRUE);
 	gtk_clist_set_column_auto_resize(list,1,TRUE);
 	gtk_clist_set_column_auto_resize(list,2,TRUE);
 	
 	params = filter_paramdb(filter);
 	filterparamdb_foreach_param(params,param){
 		line = calloc(3,sizeof(char*));
-		line[0] = strdup(filterparam_label(param));
-		line[1] = strdup(filterparam_to_string(param));
-		line[2] = strdup(filterparam_get_property(param,FILTERPARAM_DESCRIPTION));
+		if(filterparam_label(param))
+			buffer = filterparam_label(param);
+		else
+			buffer = strdup("Empty");
+		line[0] = buffer;
+		if(filterparam_to_string(param))
+			buffer = strdup(filterparam_to_string(param));
+		else
+			buffer = strdup("Empty");
+		line[1] = buffer;
+		if(filterparam_get_property(param,FILTERPARAM_DESCRIPTION))
+			buffer = strdup(filterparam_get_property(param,FILTERPARAM_DESCRIPTION));
+		else
+			buffer = strdup("Empty");
+		line[2] = buffer;
 		gtk_clist_append(list,line);
 	}
 	gtk_widget_show(GTK_WIDGET(list));
