@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <string.h>
+#include <locale.h>
 #include <guile/gh.h>
 #if 1
 #include <ltdl.h>
@@ -261,6 +262,7 @@ int glame_init(void (*main)(void), int argc, char **argv)
 	sigprocmask(SIG_BLOCK, &sset, NULL);
 
 	glame_main = main;
+	setlocale(LC_NUMERIC, "C");
 	gh_enter(argc, argv, init_after_guile);
 	return 0;
 }
