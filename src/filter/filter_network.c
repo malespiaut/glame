@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.7 2000/02/02 11:26:45 richi Exp $
+ * $Id: filter_network.c,v 1.8 2000/02/03 12:26:56 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -137,19 +137,42 @@ int filternetwork_wait(filter_network_t *net)
 		DERROR("error in pthread_mutex_unlock");
 
 	do {
+		int filter_ret = 0;
 		wait_again = 0;
-		filternetwork_foreach_output(net, n)
-			if ((res = pthread_join(n->thread, NULL)) != 0
-			    && (res != ESRCH))
+		
+		filternetwork_foreach_output(net, n) {
+			DPRINTF("Waiting for %s.\n", n->filter->name);
+			if ((res = pthread_join(n->thread, 
+			                        (void **)&filter_ret)) != 0
+			    && (res != ESRCH)) {
 				wait_again = 1;
+			}
+			if (filter_ret  == -1) {
+				DPRINTF("Output error caught. "
+					"Terminating network.\n");
+				wait_again = 0;
+				filternetwork_terminate(net);
+			}
+		}
 	} while (wait_again);
 
 	do {
+		int filter_ret = 0;
 		wait_again = 0;
-		filternetwork_foreach_input(net, n)
-			if ((res = pthread_join(n->thread, NULL)) != 0
-			    && (res != ESRCH))
+		
+		filternetwork_foreach_input(net, n) {
+			if ((res = pthread_join(n->thread, 
+			                        (void **)&filter_ret)) != 0
+			    && (res != ESRCH)) {
 				wait_again = 1;
+			}
+			if (filter_ret  == -1) {
+				DPRINTF("Input error caught. "
+					"Terminating network.\n");
+				wait_again = 0;
+				filternetwork_terminate(net);
+			}
+		}
 	} while (wait_again);
 
 	filternetwork_foreach_input(net, n)
@@ -234,7 +257,7 @@ static void *launcher(void *node)
 	DPRINTF("%s launched\n", n->filter->name);
 
 	if (n->filter->f(n) == 0)
-		return NULL;
+		pthread_exit(NULL);
 
 	DPRINTF("%s had failure\n", n->filter->name);
 
@@ -249,7 +272,9 @@ static void *launcher(void *node)
 	list_foreach_output(n, p)
 		fbuf_queue(p, NULL);
 
-	return NULL;
+	DPRINTF("%s: Exiting with failure.\n", n->filter->name);
+
+	pthread_exit((void *)-1);
 }
 
 /* we launch the network recursively, but we have to do

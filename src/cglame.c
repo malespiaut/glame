@@ -55,5 +55,8 @@ int main(int argc, char **argv)
 		PANIC("Error in init!");
 
 	fprintf(stderr, "FIXME!\n");
+	fprintf(stderr, "[You probably want to have a look at src/filter/ for "
+			"some sample code\nthat actually works. Watch out for "
+			"executables named test_*.]\n");
 	exit(1);
 }

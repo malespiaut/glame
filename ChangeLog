@@ -1,3 +1,177 @@
+2000-02-03  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/doc/masterplan.txt:
+	added questions about channels
+
+2000-02-02  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/filter/test_play.c:
+	Fixed segfaulting test_play when called without args. [dk]
+
+2000-02-02  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in: bumped version number
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/Makefile.am:
+	checks for libaudiofile and link against it
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c:
+	(HACK) write throttle pending buffers
+
+2000-02-02  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/read_file.c: minor changes
+
+2000-02-02  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c:
+	free the buffer, not only the buffer struct
+
+	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c:
+	fixed bug wrt to waiting for the network
+
+2000-02-02  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/filter/test_audio.c, /cvsroot/glame/glame/src/filter/test_play.c, /cvsroot/glame/glame/src/filter/waveform.c, /cvsroot/glame/glame/src/include/glame_types.h:
+	initial version of audiofile based file_reader
+
+2000-02-02  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/swapfile/swapfile.c:
+	kill all semaphores we alloc
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter.h:
+	simplified filter_buffer alot
+
+2000-02-01  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/filter/waveform.c, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/include/util.h, /cvsroot/glame/glame/src/swapfile/swapfile.c:
+	added DPRINTF and DERROR to util.h and in turn converted various
+	printfs and fprintfs to DPRINTFs and a lot of PANICs that really
+	werent PANICs to DERRORs.
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/Makefile.am:
+	fixed IRIX build problems wrt to missing -lm
+	fixed IRIX&gcc bugs which prevented test_latency to work
+
+	* /cvsroot/glame/glame/configure.in:
+	bumped version number for first file release
+
+2000-02-01  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/waveform.c:
+	fixed missing EOF queueing
+	sound output works now
+	FIXME: audio_io/write(esd) should check for number of bytes actually written
+	[mag]
+
+	* /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/test_audio.c, /cvsroot/glame/glame/src/filter/waveform.c:
+	added simple waveform generator
+	added audio output test program
+	and YEAH it compiles and RUNS, but you can hear nothing...
+	[mag]
+
+2000-01-31  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/cglame.c, /cvsroot/glame/glame/src/Makefile.am:
+	added console glame
+
+	* /cvsroot/glame/glame/src/channel/Makefile.am, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/swapfile/swapfile.c:
+	installed work-around for IRIX & gcc related semctl bug
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/doc/swapfile.txt:
+	done documentation of the swapfile API.
+	bumped version number of glame.
+
+	* /cvsroot/glame/glame/doc/filter.txt, /cvsroot/glame/glame/src/filter/filter.h:
+	documented the whole mess of the filter APIs, fixed minor bugs in
+	the interface, too.
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/include/glame_types.h, /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/rw/wav_file.c:
+	again fixes to the build process wrt to esd and debugging
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/channel_io.c, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/drop.c, /cvsroot/glame/glame/src/filter/dup.c, /cvsroot/glame/glame/src/filter/esd.c, /cvsroot/glame/glame/src/filter/file_in.c, /cvsroot/glame/glame/src/filter/file_out.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/null.c, /cvsroot/glame/glame/src/filter/one2n.c, /cvsroot/glame/glame/src/filter/ping.c:
+	shuffeled things around in the filter registry API, especially the
+	parameter handling.
+	merged the wast of basic filters into groups, i.e. deleted old files,
+	created new ones. this is because filters in the same group may want
+	to share some code - see channel_io.c
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/INSTALL, /cvsroot/glame/glame/README, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/include/util.h, /cvsroot/glame/glame/src/Makefile.am:
+	documentation and build process updates
+
+	* /cvsroot/glame/glame/src/swapfile/gmkswap.c, /cvsroot/glame/glame/src/swapfile/Makefile.am, /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfileI.h, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	extensive bug fixes and regession test suite improvements
+
+2000-01-28  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/swapfile/gmkswap.c, /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	more cleanup for the sake of bug-hunting inside swapfile
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfileI.h, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	bugfixes and more work on swapfile regression suite
+
+2000-01-27  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/TODO, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/include/list.h:
+	some cleanup, added tasks to do with filter API
+
+	* /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/filter/null.c, /cvsroot/glame/glame/src/filter/ping.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/include/util.h:
+	fixed all bugs! test_latency does work again!
+
+	* /cvsroot/glame/glame/src/filter/esd.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/hash/glame_hash.c:
+	bugfixes
+
+	* /cvsroot/glame/glame/acinclude.m4: added local m4 macros
+
+	* /cvsroot/glame/glame/aclocal.m4, /cvsroot/glame/glame/src/filter/filter_node.c:
+	removed aclocal again, bugfix
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/aclocal.m4, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/filter/esd.c:
+	added check for esd
+
+	* /cvsroot/glame/glame/src/hash/glame_hash.h, /cvsroot/glame/glame/src/include/list.h, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/src/filter/drop.c, /cvsroot/glame/glame/src/filter/dup.c, /cvsroot/glame/glame/src/filter/file_in.c, /cvsroot/glame/glame/src/filter/file_out.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/filter/mix.c, /cvsroot/glame/glame/src/filter/null.c, /cvsroot/glame/glame/src/filter/one2n.c, /cvsroot/glame/glame/src/filter/ping.c, /cvsroot/glame/glame/src/filter/volume_adjust.c:
+	Major filter API rewrite (part 1)
+
+2000-01-27  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/esd.c:
+	- initial version of esound output filter
+	[mag]
+
+	* /cvsroot/glame/glame/src/filter/Makefile.am: - added esd.c
+	[mag]
+
+2000-01-26  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/include/util.h, /cvsroot/glame/glame/src/swapfile/swapfileI.h:
+	Fixed redefinition of MIN/MAX macros. [dk]
+
+2000-01-26  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in:
+	bumped version number - as usual :)
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfile.h, /cvsroot/glame/glame/src/swapfile/swapfileI.h, /cvsroot/glame/glame/src/swapfile/swapfile_info.c, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	stripped the swapfile API (KISS...)
+	modified swapfile_test to do fancier console output - please
+	use print_state & friends in future.
+
+2000-01-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/hash/glame_hash.h, /cvsroot/glame/glame/src/hash/Makefile.am, /cvsroot/glame/glame/src/channel/channel.c:
+	cleaned up glame_hash:
+	- added locking for those who want to do bigger atomic ops on it
+	- renamed previous hash_next to hash_walk to support duplicate
+	  entries (need it for filter inputs/outputs hash)
+	- documentation improvement!
+
+2000-01-25  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/ChangeLog, /cvsroot/glame/glame/Makefile.am:
+	update-changelog target has to use sourceforge user names. [dk]
+	Corrected and updated ChangeLog entries. [dk]
+
 2000-01-25  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
 
 	* /cvsroot/glame/glame/Makefile.am:
