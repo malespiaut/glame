@@ -780,16 +780,20 @@ static int _file_grow(struct swfile *f, s64 delta)
 		if (!(c = cluster_get(CID(f->clusters, f->clusters->cnt-1),
 				      CLUSTERGET_READFILES,
 				      CSIZE(f->clusters, f->clusters->cnt-1)))) {
-			SWAPFILE_MARK_UNCLEAN("Cannot get cluster");			
+			SWAPFILE_MARK_UNCLEAN("Cannot get cluster");
 			return -1;
 		}
-		size_goal = MIN(SWCLUSTER_MAXSIZE, c->size + delta);
-		dc = size_goal - c->size;
-		if (cluster_truncate(c, size_goal) == 0) {
-			ctree_replace1(f->clusters, f->clusters->cnt-1,
-				       c->name, c->size);
-			f->flags |= SWF_DIRTY;
-			delta -= dc;
+		/* If the cluster is shared we may not resize it (w/o copying
+		 * but thats too costly) */
+		if (c->files_cnt == 1) {
+			size_goal = MIN(SWCLUSTER_MAXSIZE, c->size + delta);
+			dc = size_goal - c->size;
+			if (cluster_truncate(c, size_goal) == 0) {
+				ctree_replace1(f->clusters, f->clusters->cnt-1,
+					       c->name, c->size);
+				f->flags |= SWF_DIRTY;
+				delta -= dc;
+			}
 		}
 		cluster_put(c, 0);
 	}
