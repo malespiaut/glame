@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.28 2001/04/18 16:34:25 richi Exp $
+@comment $Id: filter.texi,v 1.29 2001/08/03 12:54:16 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -526,7 +526,7 @@ Returns @code{NULL}, if no further pipe is available.
 @end deftypefun
 
 @tindex filter_port_t
-@deftypefn Iterator filterport_foreach_pipe (filter_port_t *@var{port}, filter_pipe_t *@var{pipe}) @{ @}
+@deftypefn Iterator filterport_foreach_pipe ( filter_port_t *@var{port}, filter_pipe_t *@var{pipe}) @{ @}
 A different way to iterate through all available pipes is using this
 iterator. But you may not delete pipes while iterating.
 @end deftypefn
@@ -574,7 +574,7 @@ exist, nothing is done.
 
 @tindex filter_portdb_t
 @tindex filter_port_t
-@deftypefn Iterator filterportdb_foreach_port (filter_portdb_t *@var{db}, filter_port_t *@var{port}) @{ @}
+@deftypefn Iterator filterportdb_foreach_port ( filter_portdb_t *@var{db}, filter_port_t *@var{port}) @{ @}
 You can iterate through all ports of a database using the following
 iterator (which acts like a for statement with the second parameter as
 running variable). Note that you may not delete ports in this loop!
@@ -595,28 +595,28 @@ The filter pipe object represents a connection between two filter port
 objects.
 
 @tindex filter_pipe_t
-@deftypefun int filterpipe_type(filter_pipe_t *@var{pipe})
+@deftypefun int filterpipe_type (filter_pipe_t *@var{pipe})
 Query the pipes type.
 @end deftypefun
 
 @tindex filter_pipe_t
-@deftypefun {glsig_emitter_t *} filterpipe_emitter(filter_pipe_t *@var{pipe})
+@deftypefun {glsig_emitter_t *} filterpipe_emitter (filter_pipe_t *@var{pipe})
 Using this function you get access to the pipes signal emitter. See the
 glsignal manual for instructions on what to do with this.
 @end deftypefun
 
 @tindex filter_pipe_t
-@deftypefun {filter_port_t *} filterpipe_source(filter_pipe_t *@var{pipe})
+@deftypefun {filter_port_t *} filterpipe_source (filter_pipe_t *@var{pipe})
 Query the pipes source port.
 @end deftypefun
 
 @tindex filter_pipe_t
-@deftypefun {filter_port_t *} filterpipe_dest(filter_pipe_t *@var{pipe})
+@deftypefun {filter_port_t *} filterpipe_dest (filter_pipe_t *@var{pipe})
 Query the pipes destination port.
 @end deftypefun
 
 @tindex filter_pipe_t
-@deftypefun {filter_paramdb_t *} filterpipe_sourceparamdb(filter_pipe_t *@var{pipe})
+@deftypefun {filter_paramdb_t *} filterpipe_sourceparamdb (filter_pipe_t *@var{pipe})
 Query the parameter database attached to the source end of the pipe.
 @end deftypefun
 
@@ -634,7 +634,7 @@ specified values.
 
 @tindex filter_pipe_t
 @deftypefun int filterpipe_sample_rate (filter_pipe_t *@var{pipe})
-@deftypefunx float filterpipe_sample_hangle(filter_pipe_t *@var{pipe})
+@deftypefunx float filterpipe_sample_hangle (filter_pipe_t *@var{pipe})
 For a sample typed pipe you have to query the pipes properties using
 these functions. The properties are the sample rate and the horizontal
 angle of the stream.

@@ -1,4 +1,4 @@
-@comment $Id: glsignal.texi,v 1.4 2001/04/18 16:34:25 richi Exp $
+@comment $Id: glsignal.texi,v 1.5 2001/08/03 12:54:16 richi Exp $
 
 @node GLAME Signal Interface, Function and Type Index, GLAME Database Interface, Top
 @chapter GLAME Signal Interface
@@ -18,7 +18,7 @@ protected against.
 
 Brief description of the available API follows: 
 
-@deftp void (glsig_callb_t) (glsig_handler_t *, long, va_list)
+@deftp void {(glsig_callb_t)} (glsig_handler_t *, long, va_list)
   The type of the used callback functions through which signals
   are supposed to be handled.
 @end deftp
