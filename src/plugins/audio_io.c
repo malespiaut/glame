@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.11 2000/03/28 14:49:21 nold Exp $
+ * $Id: audio_io.c,v 1.12 2000/04/03 02:36:32 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -214,7 +214,6 @@ static int aio_generic_register_output(char *name, int (*f)(filter_node_t *))
 
 #ifdef HAVE_ALSA
 #include <sys/asoundlib.h>
-#include <linux/types.h>
 #include <string.h>
 
 static int alsa_audio_out_f(filter_node_t *n)
@@ -227,7 +226,7 @@ static int alsa_audio_out_f(filter_node_t *n)
 	} alsa_audioparam_t;
 	
 	alsa_audioparam_t	*in = NULL;
-	__s16			neutral, *wbuf, *out = NULL;
+	gl_s16			neutral, *wbuf, *out = NULL;
 	filter_pipe_t		*p_in;
 	
 	int card=0, dev=0;
@@ -309,12 +308,10 @@ static int alsa_audio_out_f(filter_node_t *n)
 	ch_param.format.rate = rate;
 #ifdef SND_LITTLE_ENDIAN
 	ch_param.format.format = SND_PCM_SFMT_S16_LE;
-#else
-# if SND_BIG_ENDIAN
+#elif SND_BIG_ENDIAN
 	ch_param.format.format = SND_PCM_SFMT_S16_BE;
-# else
-#  error Unsupported endianness.
-# endif
+#else
+#error Unsupported endianness.
 #endif
 	ch_param.format.interleave = 1;
 	ch_param.channel = SND_PCM_CHANNEL_PLAYBACK;
@@ -340,7 +337,7 @@ static int alsa_audio_out_f(filter_node_t *n)
 		FILTER_ERROR_CLEANUP("Illegal size of audio buffer");
 	DPRINTF("Using %d byte buffers.\n", blksz);
 	
-	out = (__s16 *)malloc(blksz);
+	out = (gl_s16 *)malloc(blksz);
 	if (!out)
 		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
 
@@ -431,7 +428,6 @@ _entry:
 
 #ifdef HAVE_OSS
 #include <linux/soundcard.h>
-#include <linux/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
@@ -452,7 +448,7 @@ typedef struct {
 /* Conversion from our internal float to the output format (8 or 16 bit)
  * in done in this helper routine.
  */
-void oss_convert_bufs(oss_audioparam_t *in, __u8 *out, int max_ch,
+void oss_convert_bufs(oss_audioparam_t *in, gl_u8 *out, int max_ch,
                       int ssize, int chunk_size, int interleave)
 {
 	int i, done;
@@ -461,14 +457,14 @@ void oss_convert_bufs(oss_audioparam_t *in, __u8 *out, int max_ch,
 		if (!in[i].buf) {
 			/* No more input - add silence. */
 			if (ssize == 1) {
-				__u8 neutral = SAMPLE2UCHAR(0.0);
+				gl_u8 neutral = SAMPLE2UCHAR(0.0);
 				for (done = 0; done < chunk_size; done++)
 					*(out + done*interleave + i) = neutral;
 			} else {
 				/* ssize == 2 */
-				__u16 neutral = SAMPLE2USHORT(0.0);
+				gl_u16 neutral = SAMPLE2USHORT(0.0);
 				for (done = 0; done < chunk_size; done++)
-					*(__u16 *)(out + done*interleave 
+					*(gl_u16 *)(out + done*interleave 
 							+ 2*i) = neutral;
 			}
 			continue;
@@ -479,7 +475,7 @@ void oss_convert_bufs(oss_audioparam_t *in, __u8 *out, int max_ch,
 					SAMPLE2UCHAR(sbuf_buf(in[i].buf)[in[i].pos++]); 
 		else /* ssize == 2 */
 			for (done = 0; done < chunk_size; done++)
-				*(__u16 *)(out + done*interleave +  2*i) =
+				*(gl_u16 *)(out + done*interleave +  2*i) =
 					SAMPLE2USHORT(sbuf_buf(in[i].buf)[in[i].pos++]);
 
 		in[i].to_go -= done;
@@ -494,7 +490,7 @@ static int oss_audio_out_f(filter_node_t *n)
 {
 
 	oss_audioparam_t	*in = NULL;
-	__u8			*out = NULL;
+	gl_u8			*out = NULL;
 	filter_pipe_t		*p_in;
 	int			rate;
 	int			formats;
@@ -577,7 +573,7 @@ static int oss_audio_out_f(filter_node_t *n)
 		PANIC("Illegal size of audio buffer!");
 
 	/* Allocate conversion buffer */
-	out = (__u8 *)malloc(blksz);
+	out = (gl_u8 *)malloc(blksz);
 	if (!out)
 		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
 	
@@ -854,7 +850,7 @@ static int esd_in_f(filter_node_t *n)
 	filter_buffer_t	*fbuf;
 	filter_param_t	*dev_param, *duration, *rate_param;
 	char	*in;
-	short	*buf;
+	gl_s16	*buf;
 	ssize_t	buf_size = ESD_BUF_SIZE, fbuf_size;
 	
 	esd_format_t	format;
@@ -900,7 +896,7 @@ static int esd_in_f(filter_node_t *n)
 	if (sock <= 0)
 		FILTER_ERROR_RETURN("Couldn't open esd socket!");
 
-	if ((buf = (short *)malloc(buf_size)) == NULL)
+	if ((buf = (gl_s16 *)malloc(buf_size)) == NULL)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
 	fbuf_size = buf_size/channels;
 	
@@ -963,7 +959,7 @@ static int esd_out_f(filter_node_t *n)
 	} esdout_param_t;
 
 	esdout_param_t		*in = NULL;
-	short			neutral, *wbuf, *out = NULL;
+	gl_s16			neutral, *wbuf, *out = NULL;
 	filter_pipe_t		*p_in;
 
 	
@@ -1020,10 +1016,10 @@ static int esd_out_f(filter_node_t *n)
 	if (esound_socket <= 0)
 	        FILTER_ERROR_RETURN("couldn't open esd-socket connection!");
 
-	ssize = sizeof(short);
+	ssize = sizeof(gl_s16);	/* Yes, I know... */
 	neutral = SAMPLE2SHORT(0.0);
 	blksz = ESD_BUF_SIZE;
-	out = (short *)malloc(blksz * max_ch * ssize);
+	out = (gl_s16 *)malloc(blksz * max_ch * ssize);
 	if (!out)
 		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
 	wbuf = out;

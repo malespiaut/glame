@@ -1,8 +1,8 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.15 2000/03/27 09:20:10 richi Exp $
+ * $Id: file_io.c,v 1.16 2000/04/03 02:36:32 nold Exp $
  *
- * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
+ * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  *
  * Generic audiofile reader filter. Every generic reader should honour
  * the per-pipe parameter "position" by just selecting the "best matching"
- * channel of the file for the pipe. Remixing is not required, as is
+ * channel of the file for the pipe. Remixing is not required, neither is
  * duplicate channel output. The real position of the stream should be set
  * exact though.
  * Every generic reader should have a
@@ -33,7 +33,7 @@
  * Every generic writer should just have a
  * - f method which does all setup and the actual writing, just terminate
  *   with an error if something is wrong
- * a writer should register itself with a regular expression of filenames
+ * A writer should register itself with a regular expression of filenames
  * it wants to handle.
  */
 
@@ -41,16 +41,26 @@
 #include <config.h>
 #endif
 
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h> 
 #include <string.h>
 #include <math.h>
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
+#include "glame_types.h"
+#include "glame_byteorder.h"
+
+int wav_read_prepare(filter_node_t *n, const char *filename);
+int wav_read_connect(filter_node_t *n, filter_pipe_t *p);
+int wav_read_f(filter_node_t *n);
+void wav_read_cleanup(filter_node_t *n);
 
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
@@ -87,8 +97,17 @@ typedef struct {
 	union {
 	        /* put your shared state stuff here */
 		struct {
-			int dummy;
-		} dummy;
+			caddr_t		map;
+			size_t		size;
+			filter_pipe_t 	**p;
+			gl_u32		freq;
+			gl_u32		bps;
+			gl_s32		frames;
+			gl_u16		ch;
+			gl_u16		block_align;
+			gl_u16		bit_width;
+			char		*data;
+		} wav;
 #ifdef HAVE_AUDIOFILE
 		struct {
 			AFfilehandle    file;
@@ -106,6 +125,7 @@ typedef struct {
 	} u;
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->private))
+#define RWW(node) (RWPRIV(node)->u.wav)
 #define RWA(node) (RWPRIV(node)->u.audiofile)
 
 /* the readers & the writers list */
@@ -171,7 +191,8 @@ static int rw_file_init(filter_node_t *n)
 static void rw_file_cleanup(filter_node_t *n)
 {
 	if (RWPRIV(n)->rw
-	    && RWPRIV(n)->rw->cleanup)
+	    && RWPRIV(n)->rw->cleanup 
+	    && RWPRIV(n)->initted)
 		RWPRIV(n)->rw->cleanup(n);
 	free(RWPRIV(n));
 }
@@ -359,6 +380,8 @@ int file_io_register()
 	/* FIXME How should the writer now wether to write wav or au ??? */
 	add_writer(af_write_f,"*.wav"); 
 #endif
+	add_reader(wav_read_prepare, wav_read_connect, 
+	           wav_read_f, wav_read_cleanup);
 
 	return 0;
 }
@@ -367,6 +390,298 @@ int file_io_register()
 
 /* The actual readers and writers.
  */
+
+typedef int (*wav_chunk_handler_t)(filter_node_t *n, char *tag, char *pos, 
+                                   int size);
+
+typedef struct {
+	char			*tag;
+	wav_chunk_handler_t	handler;
+} wav_handlers_t;
+
+#define WAV_FMT_PCM	1
+
+int wav_chunk_ignore(filter_node_t *n, char *tag, char *pos, int size)
+{
+	
+	DPRINTF("WAV chunk %s ignored. Skipping %i bytes.\n", tag, size);
+	return size;
+}
+
+int wav_read_chunk_head(filter_node_t *n, char *tag, char *pos, int size)
+{
+	if (strncasecmp(pos, "WAVE", 4)) {
+		return -1;	/* RIFF but no WAVE */
+	}
+	
+	return 4;
+}
+
+int wav_read_chunk_format(filter_node_t *n, char *tag, char *pos, int size)
+{
+	if (size < 16) {
+		DPRINTF("Illegal chunk size.\n");
+		return -1;
+	}
+	
+	/* Only uncompressed PCM handled. Leave all the tricky
+	 * stuff to dedicated libs.
+	 */
+	if (__gl_le16_to_cpup(pos) != WAV_FMT_PCM)
+		return -1;
+	
+	pos += 2;
+	RWW(n).ch = __gl_le16_to_cpup(pos);
+	pos += 2;
+	RWW(n).freq = __gl_le32_to_cpup(pos);
+	pos += 4;
+	RWW(n).bps = __gl_le32_to_cpup(pos);
+	pos += 4;
+	RWW(n).block_align = __gl_le16_to_cpup(pos);
+	pos += 2;
+	RWW(n).bit_width = __gl_le16_to_cpup(pos);
+	
+	/* Internal limitations */
+	if (RWW(n).freq < 2 || !RWW(n).ch) {
+		DPRINTF("No channels or frequency unreasonably low.\n");
+		return -1;
+	}
+	switch (RWW(n).block_align/RWW(n).ch) {
+		case 1:
+		case 2:
+			break;	/* supported */
+		default:
+			DPRINTF("Unsupported width %d.\n", 
+					RWW(n).block_align/RWW(n).ch);
+			return -1;
+	}
+	
+	return size;
+}	
+
+int wav_read_chunk_data(filter_node_t *n, char *tag, char *pos, int size)
+{
+	if (!RWW(n).ch) {
+		DPRINTF("No fmt chunk?\n");
+		return -1;
+	}
+
+	RWW(n).data = pos;
+	RWW(n).frames = size / RWW(n).block_align;
+	if (size % RWW(n).block_align) {
+		DPRINTF("WAV data not aligned.\n");
+		return -1;
+	}
+	return size;
+}
+
+wav_handlers_t wav_read_handlers[] = {
+	{ "RIFF", wav_read_chunk_head },
+	{ "fmt ", wav_read_chunk_format },
+	{ "data", wav_read_chunk_data },
+	{ "cue ", wav_chunk_ignore },
+	{ "plst", wav_chunk_ignore },
+	{ "list", wav_chunk_ignore },
+	{ "smpl", wav_chunk_ignore },
+	{ "inst", wav_chunk_ignore },
+	{ "wavl", wav_chunk_ignore },
+	{ NULL, NULL }
+};
+	
+
+/* Currently we check with zero tolerance. Some of the checks should 
+ * perhaps be more lenient and just return 0 instead of -1. Change as
+ * necessary. Applies to chunk handlers above as well.
+ */
+int wav_read_parse(filter_node_t *n, char *from, char* to)
+{
+	int i, size;
+	char *tag;
+	wav_chunk_handler_t handler;
+	
+	RWW(n).ch = 0;
+
+	while (from < to) {
+		if (to - from < 8) {
+			/* Fail gracefully if all required chunks are present */
+			DPRINTF("Premature EOF.\n");
+			return RWW(n).data ? 0 : -1;
+		}
+		for (i=0; (handler=wav_read_handlers[i].handler); i++)
+			if (!strncasecmp(from, (tag=wav_read_handlers[i].tag), 
+			                 4)) 
+				break;
+
+		if (!handler) 
+			return -1;
+		
+		from += 4;
+		size = __gl_le32_to_cpup(from);
+		from += 4;
+		if (from + size > to) {
+			DPRINTF("Illegal size in %s chunk.\n", tag);
+			return -1;
+		}
+		if ((size = handler(n, tag, from, size)) == -1) {
+			DPRINTF("%s handler failed.\n", tag);
+			return -1;
+		}
+		from += size + (size&1);
+			
+	}
+	return 0;
+}				
+
+int wav_read_prepare(filter_node_t *n, const char *filename)
+{
+	int fd;
+	struct stat statbuf;
+
+	fd = open(filename, O_RDONLY);
+	if (fd == -1) {
+		DPRINTF("%s", strerror(errno));
+		return -1;
+	}
+	if (fstat(fd, &statbuf) == -1) {
+		DPRINTF("%s", strerror(errno));
+		close(fd);
+		return -1;
+	}
+	RWW(n).size = statbuf.st_size;
+	RWW(n).map = mmap(NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE,
+	                  fd, 0);
+	close(fd);
+	if (RWW(n).map == (caddr_t)-1) {
+		DPRINTF("%s", strerror(errno));
+		return -1;
+	}
+	if (wav_read_parse(n, RWW(n).map, RWW(n).map + statbuf.st_size)) {
+		munmap(RWW(n).map, statbuf.st_size);
+		return -1;
+	}
+	/* All pipes get reconnected via the connect method anyway. */
+	if (RWW(n).p)
+		free(RWW(n).p);
+	RWW(n).p = (filter_pipe_t **)ALLOCN(RWW(n).ch, filter_pipe_t *);
+	return 0;
+		
+}
+	
+int wav_read_connect(filter_node_t *n, filter_pipe_t *p)
+{
+	int i;
+
+	for (i=0; i < RWW(n).ch; i++) {
+		if (!RWW(n).p[i]) 
+			break;
+		if (RWW(n).p[i] == p)
+			return 0;
+	}
+	if (i == RWW(n).ch)
+		return -1;
+
+	RWW(n).p[i] = p;
+	/* FIXME: While the WAV standard specifies entries for just about 
+	 *        everything, there's no information about position. For
+	 *        stereo files, left before right is merely convention,
+	 *        for quad files even conventions aren't unique anymore.
+	 *        For now, mag's algorithm will do. We're fucked anyway.
+	 */
+	switch (RWW(n).ch) {
+		case 1:
+			filterpipe_settype_sample(p, RWW(n).freq, 
+					          FILTER_PIPEPOS_CENTRE);
+			break;
+		/* TODO: sth clever... */
+		default:
+			filterpipe_settype_sample(p, RWW(n).freq, 
+					          M_PI/(RWA(n).channelCount-1)
+						  * i + FILTER_PIPEPOS_LEFT);
+	}
+	return 0;
+}
+					
+void wav_read_cleanup(filter_node_t *n)
+{
+	free(RWW(n).p);
+	if (RWW(n).map)
+		munmap(RWW(n).map, RWW(n).size);
+}
+	
+/* TODO: Speed optimization, handle more formats. */
+void inline wav_read_convert(filter_buffer_t *buf, int frames, int width, 
+		             unsigned int pad, int framesize, char *pos)
+{
+	SAMPLE *out = sbuf_buf(buf);
+/* Sample stub */
+#if 0	
+	while (frames--) {
+		*(out++) = XX2SAMPLE(__gl_leXX_to_cpup(pos) >> pad);
+		pos += framesize;
+	}
+#endif
+	switch (width) {
+		case 1:
+			/* No endianness conversion necessary */
+			while (frames--) {
+				*(out++) = UCHAR2SAMPLE((*pos) >> pad);
+				pos += framesize;
+			}
+			return;
+		case 2:
+			while (frames--) {
+				*(out++) = SHORT2SAMPLE((__gl_le16_to_cpup(pos))
+				                      >> pad);
+				pos += framesize;
+			}
+			return;
+		default:
+			PANIC("Unsupported width. Should have checked earlier!");
+	}
+}
+
+int wav_read_f(filter_node_t *n)
+{
+	filter_buffer_t *buf;
+	int bufsize, blksize = RWW(n).freq >> 1;	/* .5 sec per buffer */
+	int align = RWW(n).frames % blksize;
+	int to_go = RWW(n).frames / blksize;
+	int pad = (RWW(n).block_align << 3)/RWW(n).ch - RWW(n).bit_width;
+	int ssize = RWW(n).block_align/RWW(n).ch;
+	int ch;
+	char *pos = RWW(n).data;
+	
+	bufsize = align;
+	if (!bufsize) {
+		bufsize = blksize;
+		to_go--;
+	}
+
+	FILTER_AFTER_INIT;
+	
+	do {
+		FILTER_CHECK_STOP;
+		
+		for (ch = 0; ch < RWW(n).ch; ch++) {
+			buf = sbuf_make_private(sbuf_alloc(bufsize, n));
+			wav_read_convert(buf, bufsize, ssize, pad, 
+			                 RWW(n).block_align, pos);
+			sbuf_queue(RWW(n).p[ch], buf);
+			pos += ssize;
+		}
+		pos += (bufsize-1)*RWW(n).block_align;
+		bufsize = blksize;
+	} while(to_go--);
+		
+	for (ch = 0; ch < RWW(n).ch; ch++)
+		sbuf_queue(RWW(n).p[ch], NULL);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+	
+	FILTER_RETURN;
+}
+
 #ifdef HAVE_AUDIOFILE
 int af_read_prepare(filter_node_t *n, const char *filename)
 {
@@ -554,8 +869,6 @@ int af_read_f(filter_node_t *n)
 
 void af_read_cleanup(filter_node_t *n)
 {
-	if (!RWPRIV(n)->initted)
-		return;
 	free(RWA(n).buffer);
 	free(RWA(n).track);
 	afCloseFile(RWA(n).file);	

@@ -102,28 +102,28 @@ static inline int nto1_tail(nto1_state_t *I, int nr)
 /* SAMPLE to various type conversion including clipping of the
  * samples to [-1,1].
  */
-static inline short SAMPLE2SHORT(SAMPLE s)
+static inline gl_s16 SAMPLE2SHORT(SAMPLE s)
 {
-        return (short)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<15));
+        return (gl_s16)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<15));
 }
-static inline unsigned short SAMPLE2USHORT(SAMPLE s)
+static inline gl_u16 SAMPLE2USHORT(SAMPLE s)
 {	
 	s += 1.0;
-	return (unsigned short)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<15));
+	return (gl_u16)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<15));
 }
-#define SHORT2SAMPLE(s)  ((SAMPLE)(signed short)s/(SAMPLE)(1<<15))
-#define USHORT2SAMPLE(s) ((SAMPLE)(unsigned short)s/(SAMPLE)(1<<15) - 1.0)
-static inline signed char SAMPLE2CHAR(SAMPLE s)
+#define SHORT2SAMPLE(s)  ((SAMPLE)(gl_s16)(s)/(SAMPLE)(1<<15))
+#define USHORT2SAMPLE(s) ((SAMPLE)(gl_u16)(s)/(SAMPLE)(1<<15) - 1.0)
+static inline gl_s8 SAMPLE2CHAR(SAMPLE s)
 {
-        return (char)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<7));
+        return (gl_s8)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<7));
 }
-static inline unsigned char SAMPLE2UCHAR(SAMPLE s)
+static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 {
 	s += 1.0;
-	return (unsigned char)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<7));
+	return (gl_u8)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<7));
 }
-#define CHAR2SAMPLE(s)  ((SAMPLE)(signed char)s/(SAMPLE)(1<<7))
-#define UCHAR2SAMPLE(s) ((SAMPLE)(unsigned char)s/(SAMPLE)(1<<7) - 1.0)
+#define CHAR2SAMPLE(s)  ((SAMPLE)(gl_s8)(s)/(SAMPLE)(1<<7))
+#define UCHAR2SAMPLE(s) ((SAMPLE)(gl_u8)(s)/(SAMPLE)(1<<7) - 1.0)
 
 /* convert time in ms to number of samples */
 #define TIME2CNT(type, time, rate) (type)(time*rate/1000.0)
@@ -131,7 +131,7 @@ static inline unsigned char SAMPLE2UCHAR(SAMPLE s)
 
 /* Here follows a set of fast computing macros for standard operations.
  * To be implemented using ISSE/3DNOW stuff if available. Probably only
- * the higher cound ones (SCALARPROD_XD_4).
+ * the higher count ones (SCALARPROD_XD_4).
  * Note that if called like SCALARPROD_1D_1(s, s, f) the compiler
  * can optimize away the destp++ test. Asm versions will want to do
  * seperate versions of both cases.

@@ -46,9 +46,18 @@ else
 fi
 
 
+dnl FIXME: The next two checks break cross-compiling.
+dnl        Unfortunately run-time checks would mean performance impacts or are
+dnl        simply not an option. [dk]
+
 dnl Check endianness
 AC_C_BIGENDIAN
 
+dnl Check width of basic types
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+dnl FIXME: Check long long to define u64?
 
 dnl
 dnl Checks for libraries.

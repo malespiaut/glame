@@ -3,8 +3,8 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.12 2000/03/22 10:15:45 richi Exp $
- * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
+ * $Id: glame_types.h,v 1.13 2000/04/03 02:36:32 nold Exp $
+ * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,41 @@
 typedef float SAMPLE;
 #define SAMPLE_SIZE sizeof(SAMPLE)
 
+/* Sigh! Why is there no portable standard for those types? */
+typedef   signed char	gl_s8;	/* Hope this covers 'char is unsigned' case. */
+typedef unsigned char	gl_u8;
+#if SIZEOF_SHORT == 2
+typedef   signed short	gl_s16;
+typedef unsigned short	gl_u16;
+#elif SIZEOF_INT == 2
+typedef   signed int	gl_s16;
+typedef unsigned int	gl_u16;
+#else
+#error No 16 bit data type available.
+#endif
+#if SIZEOF_INT == 4
+typedef   signed int	gl_s32;
+typedef unsigned int	gl_u32;
+#elif SIZEOF_LONG == 4
+typedef   signed long	gl_s32;
+typedef unsigned long	gl_u32;
+#else
+#error No 32 bit data type available.
+#endif
+/* Add when needed. Beware: long long is a GNU extension! */
+#if 0
+#if SIZEOF_LONG == 8
+typedef   signed long	gl_s64;
+typedef unsigned long	gl_u64;
+#elif SIZEOF_LONG_LONG == 8
+typedef   signed long long	gl_s64;
+typedef unsigned long long	gl_u64;
+#else
+#error No 64 bit data type available.
+#endif
+#endif 
+
+/* FIXME: I don't think this belongs here!? (-> midi.h?) [dk] */
 typedef struct midi_event {
 	char flags;
 	unsigned int ts;	/* timestamp */
