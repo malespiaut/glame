@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.89 2001/11/14 10:09:56 richi Exp $
+ * $Id: main.c,v 1.90 2001/11/22 09:25:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -48,6 +48,7 @@
 
 /* HACK */
 extern void blafoobar(int);
+extern void swcluster_set_cache(int, int, int, size_t);
 
 
 /* Globals. */
