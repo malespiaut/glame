@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.46 2002/07/14 12:41:19 richi Exp $
+ * $Id: glamecanvas.c,v 1.47 2002/07/30 08:51:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -232,14 +232,13 @@ void glame_canvas_marshal_NONE__DOUBLE_DOUBLE(GtkObject* obj,
 }
 	
 
-/* returns a newly allocated string identifier. */
-char* 
-glame_gui_get_font(GlameCanvas* canv)
+/* Returns a font identifier in a static buffer which is ok, as
+ * the GUI is single threaded. */
+static char fontbuffer[256];
+char* glame_gui_get_font(GlameCanvas* canv)
 {
-	
-	char * fontbuffer = malloc(256);
-	sprintf(fontbuffer,"-adobe-helvetica-medium-r-normal-*-%d-120-*-*-p-*-iso8859-1",
-		(int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
+	snprintf(fontbuffer, 256, "-adobe-helvetica-medium-r-normal-*-%d-120-*-*-p-*-iso8859-1",
+		 (int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
 	return fontbuffer;
 }
 
