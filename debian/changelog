@@ -1,3 +1,9 @@
+glame (2.0.1-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Richard Guenther <rguenth@gcc.gnu.org>  Mon, 28 Mar 2005 18:47:45 +0100
+
 glame (2.0.0-1) unstable; urgency=low
 
   * New upstream version.
