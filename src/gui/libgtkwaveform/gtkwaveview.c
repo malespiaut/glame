@@ -646,6 +646,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 	     }
 	  }
 
+#if 0
 	  /* Be nice to the user. */
 	  if (gtk_events_pending()) {
 		  /* Handle all pending events => stall redrawing. */
@@ -667,6 +668,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 			  goto out;
 		  }
 	  }
+#endif
 
           /* Increment position in data source. */
           pos += size;
