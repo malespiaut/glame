@@ -257,6 +257,60 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	}
 }
 
+/* Helpers for creation of swapfile_in/out nodes with appropriate
+ * parameters out of a gpsm swfile. Start and length are positions
+ * in the scope of parent (or if NULL swfile). -1 length is whole file. */
+static filter_t *create_swapfile_out(gpsm_swfile_t *swfile, int nonlocal,
+				     long start, long length)
+{
+	filter_t *f;
+	long swname;
+
+	if (!swfile)
+		return NULL;
+	if (nonlocal)
+		start = start + gpsm_item_hposition(swfile);
+	if (start < 0
+	    || (length != -1 && (start + length > gpsm_item_hsize(swfile))))
+		return NULL;
+	swname = gpsm_swfile_filename(swfile);
+
+	if (!(f = filter_instantiate(plugin_get("swapfile_out"))))
+		return NULL;
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "filename"), &swname);
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "offset"), &start);
+	if (length != -1)
+		filterparam_set(filterparamdb_get_param(filter_paramdb(f), "size"), &length);
+
+	return f;
+}
+static filter_t *create_swapfile_in(gpsm_swfile_t *swfile, int nonlocal,
+				    long start, long length)
+{
+	filter_t *f;
+	long swname, swrate;
+
+	if (!swfile)
+		return NULL;
+	if (nonlocal)
+		start = start + gpsm_item_hposition(swfile);
+	if (start < 0
+	    || (length != -1 && (start + length > gpsm_item_hsize(swfile))))
+		return NULL;
+	swname = gpsm_swfile_filename(swfile);
+	swrate = gpsm_swfile_samplerate(swfile);
+
+	if (!(f = filter_instantiate(plugin_get("swapfile_in"))))
+		return NULL;
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "filename"), &swname);
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "rate"), &swrate);
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "offset"), &start);
+	if (length != -1)
+		filterparam_set(filterparamdb_get_param(filter_paramdb(f), "size"), &length);
+
+	return f;
+}
+
 /* shitty workaround for failing gnome_dialog_run_and_close */
 static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 {
@@ -330,52 +384,58 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
+	item = gtk_swapfile_buffer_get_item(swapfile);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
-	item = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
-	prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
-	ok_pressed = FALSE;
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop)->ok_button),"clicked",setBoolean_cb,&ok_pressed);
-	gnome_dialog_run_and_close(GNOME_DIALOG(prop));
-	
-	if(!ok_pressed)
-		return;
+	if (filterparamdb_nrparams(filter_paramdb(effect)) > 0) {
+		prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
+		ok_pressed = FALSE;
+		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop)->ok_button),"clicked",setBoolean_cb,&ok_pressed);
+		gnome_dialog_run_and_close(GNOME_DIALOG(prop));
+		if(!ok_pressed)
+			return;
+	}
 
 	/* Create the network, add nrtracks instances of swapfile_in -
 	 * effect - swapfile_out. */
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff, *swout;
-		int swname = gpsm_swfile_filename(files[i]);
-		long sstart = start+gpsm_item_hposition(files[i]);
-		swin = filter_instantiate(plugin_get("swapfile_in"));
-		eff = filter_creat(effect);
-		swout = filter_instantiate(plugin_get("swapfile_out"));
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "size"), &length);
+		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
+					  start, length);
+		if (!swin)
+			goto fail;
 		filter_add_node(net, swin, "swin");
-		filter_add_node(net, eff, "eff");
+		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
+					    start, length);
+		if (!swout)
+			goto fail;
 		filter_add_node(net, swout, "swout");
-		filterport_connect(filterportdb_get_port(filter_portdb(eff), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
-		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
+		eff = filter_creat(effect);
+		if (!eff)
+			goto fail;
+		filter_add_node(net, eff, "eff");
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(eff), PORTNAME_OUT),
+					filterportdb_get_port(filter_portdb(swout), PORTNAME_IN))
+		    || !filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
+					   filterportdb_get_port(filter_portdb(eff), PORTNAME_IN)))
+			goto fail;
 	}
+	filter_delete(effect);
 	
 	/* Run the network through play window */
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
 			       network_cleanup_create(net, item, TRUE));
+	return;
+
+ fail:
+	filter_delete(effect);
+	filter_delete(net);
 }
 
 /* Menu event - feed into filter. */
@@ -412,15 +472,12 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	gpsm_grp_foreach_item(grp, item) {
 		filter_t *swin;
-		long swname;
 		if (!GPSM_ITEM_IS_SWFILE(item))
 			continue;
-		swname = gpsm_swfile_filename(item);
-		swin = filter_instantiate(plugin_get("swapfile_in"));
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		swin = create_swapfile_in((gpsm_swfile_t *)item, 0,
+					  start, length);
+		if (!swin)
+			goto fail;
 		filter_add_node(net, swin, "swin");
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN)))
 			goto fail;
@@ -464,13 +521,11 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 
 	gpsm_grp_foreach_item(grp, item) {
 		filter_t *swin;
-		long swname;
 		if (!GPSM_ITEM_IS_SWFILE(item))
 			continue;
-		swname = gpsm_swfile_filename(item);
-		swin = filter_instantiate(plugin_get("swapfile_in"));
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
+		swin = create_swapfile_in((gpsm_swfile_t *)item, 0, 0, -1);
+		if (!swin)
+			goto fail;
 		filter_add_node(net, swin, "swin");
 		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN)))
 			goto fail;
@@ -485,6 +540,86 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot play")));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
+}
+
+/* Menu event - record into selection. */
+static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	gint32 start, length;
+	gpsm_item_t *grp, *item, *left, *right;
+	filter_t *net, *ain;
+	int rate;
+	filter_t *swout;
+
+	if (!plugin_get("audio_in"))
+		return;
+
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	if (length <= 0)
+		return;
+	DPRINTF("Recording into [%li, +%li]\n", (long)start, (long)length);
+
+	left = right = NULL;
+	grp = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(grp)) {
+		left = grp;
+	} else {
+		gpsm_grp_foreach_item(grp, item) {
+			if (!GPSM_ITEM_IS_SWFILE(item))
+				return;
+			if (!left)
+				left = item;
+			else if (!right)
+				right = item;
+			else {
+				gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
+				return;
+			}
+		}
+	}
+	if (!left && !right)
+		return;
+
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+
+	/* Create the basic network - audio_out. */
+	net = filter_creat(NULL);
+	ain = filter_instantiate(plugin_get("audio_in"));
+	filter_add_node(net, ain, "ain");
+
+	/* Left - or mono. */
+	swout = create_swapfile_out((gpsm_swfile_t *)left, GPSM_ITEM_IS_GRP(grp),
+				    start, length);
+	if (!swout)
+		goto fail;
+	filter_add_node(net, swout, "swout");
+	if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
+				filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
+		goto fail;
+
+	/* Right. */
+	if (right) {
+		swout = create_swapfile_out((gpsm_swfile_t *)right, TRUE, start, length);
+		if (!swout)
+			goto fail;
+		filter_add_node(net, swout, "swout");
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
+					filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
+			goto fail;
+	}
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_cleanup_cb,
+			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE));
+	return;
+
+ fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot record")));
+	filter_delete(net);
 }
 
 /* Menu event - feed into filter. */
@@ -507,45 +642,48 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	if (length <= 0)
 		return;
 
+	item = gtk_swapfile_buffer_get_item(swapfile);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
-	item = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
 	/* Create one instance of the effect and query the parameters. */
 	effect = filter_instantiate(plugin);
-	prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
-	ok_pressed = FALSE;
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop)->ok_button),"clicked",setBoolean_cb,&ok_pressed);
-	gnome_dialog_run_and_close(GNOME_DIALOG(prop));
-	
-	if(!ok_pressed)
-		return;
+	if (filterparamdb_nrparams(filter_paramdb(effect)) > 0) {
+		prop = glame_gui_filter_properties(filter_paramdb(effect), plugin_name(plugin));
+		ok_pressed = FALSE;
+		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop)->ok_button),"clicked",setBoolean_cb,&ok_pressed);
+		gnome_dialog_run_and_close(GNOME_DIALOG(prop));
+		if(!ok_pressed)
+			return;
+	}
+
 	/* Create the network, add nrtracks instances of swapfile_in -
 	 * effect - swapfile_out. */
 	net = filter_creat(NULL);
 
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff;
-		int swname = gpsm_swfile_filename(files[i]);
-		long sstart = start+gpsm_item_hposition(files[i]);
-		swin = filter_instantiate(plugin_get("swapfile_in"));
-		eff = filter_creat(effect);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
+					  start, length);
+		if (!swin)
+			goto fail;
 		filter_add_node(net, swin, "swin");
+		eff = filter_creat(effect);
+		if (!eff)
+			goto fail;
 		filter_add_node(net, eff, "eff");
-		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN)))
+			goto fail;
 	}
 
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_cleanup_cb,
 			       network_cleanup_create(net, NULL, FALSE));
+	return;
+
+ fail:
+	filter_delete(net);
 }
 
 static void feed_custom_cb(GtkWidget * foo, gpointer bar)
@@ -566,30 +704,27 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 	if (length <= 0)
 		return;
 
-	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
-
 	item = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
+	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 
 	net = filter_creat(NULL);
 	for(i=0;i<nrtracks;i++){
 		filter_t *swin;
-		int swname = gpsm_swfile_filename(files[i]);
-		long sstart = start+gpsm_item_hposition(files[i]);
-		swin = filter_instantiate(plugin_get("swapfile_in"));
-		fprintf(stderr,"rate: %d\n",rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
+					  start, length);
+		if (!swin)
+			goto fail;
 		filter_add_node(net, swin, "swin");
 		filter_set_property(swin,"immutable","1");
 				
 	}
 
 	draw_network(net);
+	return;
+
+ fail:
+	filter_delete(net);
 }
 
 static void apply_custom_cb(GtkWidget * foo, gpointer bar)
@@ -612,30 +747,23 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		return;
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
 
-	/* Create the network, add nrtracks instances of swapfile_in */
-	
+	/* Create the network, add nrtracks instances of swapfile_in/out */
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *swout;
-		int swname = gpsm_swfile_filename(files[i]);
-		long sstart = start+gpsm_item_hposition(files[i]);
-		swin = filter_instantiate(plugin_get("swapfile_in"));
-		swout = filter_instantiate(plugin_get("swapfile_out"));
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &sstart);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "size"), &length);
+		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
+					  start, length);
+		if (!swin)
+			goto fail;
 		filter_add_node(net, swin, "swin");
+		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
+					    start, length);
+		if (!swout)
+			goto fail;
 		filter_add_node(net, swout, "swout");
 		filter_set_property(swin,"immutable","1");
 		sprintf(position_buffer,"%8f",20.0);
@@ -655,6 +783,10 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		glsig_emit(gpsm_item_emitter(files[i]), GPSM_SIG_ITEM_CHANGED, fles[i]);
 	}
 	*/
+	return;
+
+ fail:
+	filter_delete(net);
 }
 
 static GnomeUIInfo view_menu[] = {
@@ -678,6 +810,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_ITEM("Play", "Plays the whole wave", playall_cb, NULL),
 	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_SUBTREE("Feed into filter", NULL),
 	GNOMEUIINFO_ITEM("Apply Custom", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
@@ -685,8 +819,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
-#define RMB_MENU_APPLY_FILTER_INDEX 12
-#define RMB_MENU_FEED_FILTER_INDEX 13
+#define RMB_MENU_APPLY_FILTER_INDEX 14
+#define RMB_MENU_FEED_FILTER_INDEX 15
 
 
 /* Somehow only select "effects" (one input, one output) type of
