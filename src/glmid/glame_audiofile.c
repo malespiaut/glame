@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.18 2001/12/16 23:04:14 nold Exp $
+ * $Id: glame_audiofile.c,v 1.19 2001/12/16 23:13:36 nold Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -386,9 +386,9 @@ AFfilehandle afOpenFile (const char *filename, const char *mode,
 
 	h->err = AF_ERR_NOT_IMPLEMENTED;
 	
-	if (strcmp(mode, "r"))
+	if (!strcmp(mode, "r"))
 		h->mode = _AF_READ;
-	else if (strcmp(mode, "w"))
+	else if (!strcmp(mode, "w"))
 		h->mode = _AF_WRITE;
 	else
 		goto err;
