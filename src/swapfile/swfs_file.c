@@ -163,7 +163,7 @@ static void file_put(struct swfile *f, int flags)
 					PANIC("Cannot get filecluster");
 				if (cluster_delfileref(c, f->name) == -1)
 					PANIC("Cannot del fileref");
-				cluster_put(c, CLUSTERPUT_FREE);
+				cluster_put(c, 0);
 			}
 		} else {
 			if (f->flags & SWF_DIRTY)

@@ -57,16 +57,12 @@ struct swcluster {
 
 /* A maximum size goal we want to achieve for this inefficient
  * implementation via a native filesystem - else it would be S32_MAX. */
-#ifndef SWDEBUG
-#define SWCLUSTER_MAXSIZE (1*512*1024)
-#else
-#define SWCLUSTER_MAXSIZE (1*64*1024)
-#endif
+#define SWCLUSTER_MAXSIZE (256*1024)
 
 
 /* Initialize the cluster subsystem. Maxlru is the maximum number of
  * cluster descriptors cached in memory. */
-static int cluster_init(int maxlru, size_t pmapminfree);
+static int cluster_init(int maxlru, size_t pmap_maxsize);
 
 /* Cleanup from the cluster subsystem. */
 static void cluster_cleanup();
