@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.14 2001/04/25 19:42:27 mag Exp $
+@comment $Id: glame.texi,v 1.15 2001/04/25 20:02:48 mag Exp $
 
 
 @c %**start of header
@@ -77,7 +77,7 @@ This document is also available as a gzipped PostScript file:
 @end ifhtml
 
 @ifnottex
-Copyright @copyright{} 2000, 2001 Richard G@"unther, Daniel Kobras. 
+Copyright @copyright{} 2000, 2001 Richard G@"unther, Daniel Kobras, Alexander Ehlert. 
 @xref{Copying}, for details.
 @end ifnottex
 

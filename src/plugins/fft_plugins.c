@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.4 2001/04/25 19:42:27 mag Exp $
+ * $Id: fft_plugins.c,v 1.5 2001/04/25 20:02:48 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -310,7 +310,6 @@ static int ifft_f(filter_t *n){
 	if (!(win=hanning(bsize)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 	
-	FILTER_AFTER_INIT;
 
 	gain = 1.0/(float)bsize;	/* fft is not normalized */
 	ooff = bsize / osamp;
@@ -321,7 +320,12 @@ static int ifft_f(filter_t *n){
 		gain /= fak;
 	}
 
+	for (j=0; j < bsize; j++)
+		win[j] *= gain;
+	
 	init_queue(&queue, out, n);
+
+	FILTER_AFTER_INIT;
 
 	goto entry;
 	
@@ -338,7 +342,9 @@ static int ifft_f(filter_t *n){
 		if (osamp>1)
 			for (i=0; i<ibufcnt; i++)
 				for(j=0;j<bsize;j++)
-					*s++ *= win[j]*gain;
+					*s++ *= win[j];
+		else
+			glsimd.scalar_product_1dI(s, sbuf_size(inb), gain);
 
 		s = sbuf_buf(inb);
 		
