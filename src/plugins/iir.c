@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.15 2001/05/26 23:34:37 mag Exp $
+ * $Id: iir.c,v 1.16 2001/05/27 22:29:25 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -43,7 +43,10 @@ PLUGIN_SET(iir, "highpass lowpass bandpass")
 int identify_plugin(filter_t *n){
 	const char *name = plugin_name(n->plugin);
 
-	DPRINTF("plugin name = %s\n", name);
+	DPRINTF("plugin name = %s filter name = %s\n", name, n->name);
+	if (name == NULL)
+		return -1;
+
 	
 	if (strcmp(name,"lowpass")==0)
 		return GLAME_IIR_LOWPASS;
@@ -66,6 +69,7 @@ int identify_plugin(filter_t *n){
  */
 
 #define gliirt double
+#define CLAMP(x,mi,ma) ( (x < mi) ? mi : ( (x>ma) ? ma : x))
 
 /* (hopefully) generic description of an iir filter */
 
@@ -106,24 +110,29 @@ void free_glame_iir(glame_iir_t *gt){
 	free(gt);
 }
 
-/* freq: frequency already normalized between 0 and 0.5 of sampling
- * R: the magic R coefficent :)
+/* center: frequency already normalized between 0 and 0.5 of sampling
+ * bandwidth around center frequency, also normalized
  */
 
-glame_iir_t *calc_2polebandpass(float center, float R)
+glame_iir_t *calc_2polebandpass(float center, float bandwidth)
 {
 	glame_iir_t	*gt;
-	double theta;
+	double omega, alpha, gain;
+	int i;
 	
 	if ((gt=init_glame_iir(GLAME_IIR_BANDPASS, 1, 3, 2))==NULL)
 		return NULL;
 	
-	theta = 2.0*M_PI*center;
-	gt->coeff[0][0] = 1.0-R;
+	omega = 2.0*M_PI*center;
+	alpha = sin(omega)*sinh(log(2.0)/2.0*bandwidth*omega/sin(omega));
+	gt->coeff[0][0] = alpha;
 	gt->coeff[0][1] = 0.0;
-	gt->coeff[0][2] = -(1.0-R)*R;
-	gt->coeff[0][3] = 2.0*R*cos(theta);
-	gt->coeff[0][4] = -R*R;
+	gt->coeff[0][2] = -alpha;
+	gt->coeff[0][3] = 2.0 * cos(omega);
+	gt->coeff[0][4] = alpha - 1.0;
+	gain = 1.0 + alpha;
+	for(i=0;i<5;i++)
+		gt->coeff[0][i]/=gain;
 	return gt;
 }
 
@@ -299,10 +308,7 @@ static int iir_f(filter_t *n)
 	if (mode < GLAME_IIR_BANDPASS) {
 		poles=filterparam_val_int(filternode_get_param(n,"poles"));
 		fc=filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
-		if (fc < 0.0)
-			fc = 0.0;
-		else if (fc > 0.5)
-			fc = 0.5;
+		fc = CLAMP(fc, 0.0, 0.5);
 		
 		ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
 		
@@ -313,13 +319,11 @@ static int iir_f(filter_t *n)
 		
 	} else if (mode == GLAME_IIR_BANDPASS) {
 		fc = filterparam_val_float(filternode_get_param(n,"center"))/(float)rate;
-		if (fc < 0.0)
-			fc = 0.0;
-		else if (fc > 0.5)
-			fc = 0.5;
+		fc = CLAMP(fc, 0.0, 0.5);
 		
-		bw = filterparam_val_float(filternode_get_param(n,"width"));
-		
+		bw = filterparam_val_float(filternode_get_param(n,"width"))/(float)rate;
+		bw = CLAMP(bw, 0.0, 0.5);
+
 		DPRINTF("center = %f width = %f\n", fc, bw);
 
 		if (!(gt=calc_2polebandpass(fc, bw)))
@@ -514,7 +518,7 @@ int bandpass_register(plugin_t *p)
 			    FILTERPARAM_END);
 
 	filterparamdb_add_param_float(filter_paramdb(f),"width",
-			    FILTER_PARAMTYPE_FLOAT,0.5,
+			    FILTER_PARAMTYPE_FLOAT,500,
 			    FILTERPARAM_DESCRIPTION,"bandwidth around center",
 			    FILTERPARAM_END);
 	
