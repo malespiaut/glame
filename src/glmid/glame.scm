@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.18 2000/04/03 09:21:56 richi Exp $
+; $Id: glame.scm,v 1.19 2000/04/03 09:55:37 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -62,7 +62,7 @@
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node)
-    (if (boolean? (filter_get node)) (plugin_get node))
+    (if (eqv? (filter_get node) #f) (plugin_get node))
     (filternetwork_add_node net node "")))
 
 ; (net-add-nodes net '("node" "node" ...))
@@ -131,7 +131,7 @@
       (while-not-false
        (lambda ()
 	 (let ((to (net-add-node net "track-out")))
-	   (if (boolean? (filternetwork_add_connection rf "out" to "in"))
+	   (if (eqv? (filternetwork_add_connection rf "out" to "in") #f)
 	       (begin (filternetwork_delete_node to) #f)
 	       (begin
 		 (node-set-params to
@@ -268,7 +268,7 @@
        (lambda ()
 	 (let* ((eff (net-add-node net effect))
 		(conn (filternetwork_add_connection rf "out" eff "in")))
-	   (if (boolean? conn)
+	   (if (eqv? conn #f)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
 		 (apply node-set-params eff params)
@@ -292,7 +292,7 @@
        (lambda ()
 	 (let* ((eff (net-add-node net effect))
 		(conn (filternetwork_add_connection rf "out" eff "in")))
-	   (if (boolean? conn)
+	   (if (eqv? conn #f)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
 		 (apply node-set-params eff params)

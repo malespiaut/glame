@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.16 2000/04/03 02:36:32 nold Exp $
+ * $Id: file_io.c,v 1.17 2000/04/03 09:55:37 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -211,8 +211,11 @@ static int read_file_f(filter_node_t *n)
 static int read_file_connect_out(filter_node_t *n, const char *port,
 				 filter_pipe_t *p)
 {
-	/* no reader -> no filename -> some "defaults" */
+	/* no reader -> no filename -> some "defaults".
+	 * only allow 2 connections. */
 	if (!RWPRIV(n)->rw) {
+		if (filternode_nroutputs(n) > 1)
+			return -1;
 		filterpipe_settype_sample(p, GLAME_DEFAULT_SAMPLERATE,
 					  FILTER_PIPEPOS_DEFAULT);
 		return 0;
@@ -551,7 +554,7 @@ int wav_read_prepare(filter_node_t *n, const char *filename)
 	RWW(n).map = mmap(NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE,
 	                  fd, 0);
 	close(fd);
-	if (RWW(n).map == (caddr_t)-1) {
+	if (RWW(n).map == MAP_FAILED) {
 		DPRINTF("%s", strerror(errno));
 		return -1;
 	}
@@ -564,7 +567,6 @@ int wav_read_prepare(filter_node_t *n, const char *filename)
 		free(RWW(n).p);
 	RWW(n).p = (filter_pipe_t **)ALLOCN(RWW(n).ch, filter_pipe_t *);
 	return 0;
-		
 }
 	
 int wav_read_connect(filter_node_t *n, filter_pipe_t *p)
