@@ -435,7 +435,7 @@ glame_gpsm_store_get_value(GtkTreeModel * tree_model,
 	   g_value_set_string(value, nrtrackstext);
 	 }
 	 else {
-	   snprintf(nrtrackstext, 32, "-"); 
+	   snprintf(nrtrackstext, 32, "1"); 
 	   g_value_init(value, G_TYPE_STRING);
 	   g_value_set_string(value, nrtrackstext);
 	 }
@@ -443,7 +443,7 @@ glame_gpsm_store_get_value(GtkTreeModel * tree_model,
 	  
        case GPSM_STORE_TRACK_DURATION:
 	 if (GPSM_ITEM_IS_SWFILE(iter->user_data)){
-	   snprintf(durationtext, 32, "%.0f", (float)gpsm_item_hsize(iter->user_data)/(float)gpsm_swfile_samplerate(iter->user_data)); 
+	   snprintf(durationtext, 32, "%.1fs", (float)gpsm_item_hsize(iter->user_data)/(float)gpsm_swfile_samplerate(iter->user_data)); 
 	   g_value_init(value, G_TYPE_STRING);
 	   g_value_set_string(value,durationtext);
 	 }
@@ -455,12 +455,12 @@ glame_gpsm_store_get_value(GtkTreeModel * tree_model,
 	 break;
 
        case GPSM_STORE_TRACK_SR:
-	 if (GPSM_ITEM_IS_SWFILE(iter->user_data)){
-	   snprintf(srtext, 32, "%i", gpsm_swfile_samplerate(iter->user_data)); 
+	 if (GPSM_ITEM_IS_SWFILE(iter->user_data)) {
+	   snprintf(srtext, 32, "%iHz", gpsm_swfile_samplerate(iter->user_data)); 
 	   g_value_init(value, G_TYPE_STRING);
 	   g_value_set_string(value,srtext);
 	 }
-	 else {    
+	 else {
 	   snprintf(srtext, 32, "-"); 
 	   g_value_init(value, G_TYPE_STRING);
 	   g_value_set_string(value, srtext);
