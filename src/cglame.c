@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <guile/gh.h>
 #include "glmid.h"
+#include "swapfile.h"
 #include "filter.h"
 #include "util.h"
 
