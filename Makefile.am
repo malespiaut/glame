@@ -9,6 +9,3 @@ dist-hook:
 	mkdir $(distdir)/debian
 	cp -p `find $(srcdir)/debian/ -type f -maxdepth 1` $(distdir)/debian/
 
-
-#	cp -p $(srcdir)/debian/[^CS]* $(distdir)/debian/
-
