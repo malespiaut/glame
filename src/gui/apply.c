@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.4 2001/06/28 12:44:51 richi Exp $
+ * $Id: apply.c,v 1.5 2001/07/09 12:27:42 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -182,6 +182,15 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		swout = net_add_gpsm_output(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
 		e = filter_creat(a->effect);
 		filter_add_node(a->net, e, "effect");
+		if (!swin || !swout || !e) {
+			filter_delete(a->net);
+			a->net = NULL;
+			gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
+			gtk_main_iteration_do(FALSE);
+			gnome_error_dialog("Cannot construct network");
+			gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
+			return;
+		}
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
 				   filterportdb_get_port(filter_portdb(e), PORTNAME_IN));
 		filterport_connect(filterportdb_get_port(filter_portdb(e), PORTNAME_OUT),
