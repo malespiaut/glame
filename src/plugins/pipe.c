@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.12 2000/12/11 10:44:42 richi Exp $
+ * $Id: pipe.c,v 1.13 2000/12/22 10:46:53 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,6 +39,64 @@
 PLUGIN_SET(pipe, "pipe_in pipe_out")
 
 
+/* Helper for experimenting with hand-crafted pipes,
+ * to fix brokeness of this f****** pthreads library
+ */
+static int popen2(const char *command, FILE **in, FILE **out)
+{
+	char cmd[4096], *p, *argv[32];
+	int infd[2], outfd[2], argc;
+
+	/* "serialize" this a bit... - uh oh :/ */
+	sleep(5);
+
+	if (in && pipe(infd) == -1)
+		return -1;
+	if (out && pipe(outfd) == -1)
+		goto err;
+
+	/* very simple and broken command parsing. */
+	strncpy(cmd, command, 4095);
+	p = cmd, argc = 0;
+	do {
+		argv[argc++] = p;
+		if ((p = strchr(p, ' '))) {
+			*p++ = '\0';
+			while (*p == ' ')
+				p++;
+		}
+	} while (p);
+	argv[argc] = NULL;
+
+	DPRINTF("Issuing fork()\n");
+	if (/*__libc_*/fork() == 0) {
+		DPRINTF("(CHILD)\n");
+		/* Child. */
+		if (in)
+			dup2(infd[0], 0);
+		if (out)
+			dup2(outfd[1], 1);
+		DPRINTF("(CHILD) issuing execvp(%s)\n", argv[0]);
+		execvp(argv[0], argv);
+		exit(1);
+	}
+	/* Parent. */
+	DPRINTF("(PARENT)\n");
+	if (in)
+		*in = fdopen(infd[1], "w");
+	if (out)
+		*out = fdopen(outfd[0], "r");
+
+	return 0;
+
+ err:
+	if (in)
+		close(infd[0]), close(infd[1]);
+	if (out)
+		close(outfd[0]), close(outfd[1]);
+	return -1;
+}
+
 static int pipe_in_f(filter_t *n)
 {
 	filter_buffer_t *lbuf, *rbuf;
@@ -62,8 +120,9 @@ static int pipe_in_f(filter_t *n)
 	if ((s = filterparam_val_string(filternode_get_param(n, "tail"))))
 		strncat(cmd, s, 255);
 
-	if (!(p = popen(cmd, "r")))
-		FILTER_ERROR_RETURN("popen failed");
+	popen2(cmd, NULL, &p);
+	/* if (!(p = popen(cmd, "r")))
+	   FILTER_ERROR_RETURN("popen failed"); */
 	b = (short *)malloc(q*4096);
 
 	FILTER_AFTER_INIT;
@@ -96,7 +155,7 @@ static int pipe_in_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	pclose(p);
+	fclose(p); /* pclose(p); */
 	free(b);
 
 	FILTER_RETURN;
@@ -215,8 +274,9 @@ static int pipe_out_f(filter_t *n)
 		} else
 			strcat(cmd, tail);
 	}
-	if (!(p = popen(cmd, "w")))
-		FILTER_ERROR_RETURN("popen failed");
+	popen2(cmd, &p, NULL);
+	/* if (!(p = popen(cmd, "w")))
+	   FILTER_ERROR_RETURN("popen failed"); */
 
 	b = malloc(q*GLAME_WBUFSIZE);
 
@@ -257,7 +317,7 @@ static int pipe_out_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	pclose(p);
+	fclose(p); /* pclose(p); */
 	free(b);
 	nto1_cleanup(I);
 
