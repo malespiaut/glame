@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.9 2001/04/06 22:38:07 xwolf Exp $
+ * $Id: gltreeitem.c,v 1.10 2001/04/09 09:18:48 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -21,12 +21,13 @@
  *
  */
 
-#include "glmid.h"
+#include <sys/param.h>
 #include <stdio.h>
 #include <string.h>
 #include <gnome.h>
 #include "glame_types.h"
 #include "swapfile.h"
+#include "glmid.h"
 #include "gltreeitem.h"
 
 static void glame_tree_item_destroy(GtkObject *object)

@@ -1,5 +1,7 @@
-/* gwavefile.h: read wave data directly from a .WAV file
- * Copyright (c) 2000 David A. Bartold
+/*
+ * gwavefile.h: wave utilities
+ *
+ * Copyright (c) 2000, 2001 David A. Bartold, Richard Guenther
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -20,13 +22,8 @@
 #ifndef __G_WAVEFILE_H__
 #define __G_WAVEFILE_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <glib.h>
-#include <stdio.h>
-#include "gtkwavebuffer.h"
+
 
 typedef struct _GWavefile GWavefile;
 typedef enum   _GWavefileType         GWavefileType;
@@ -41,29 +38,6 @@ enum _GWavefileType
   G_WAVEFILE_TYPE_F4NI, G_WAVEFILE_TYPE_F8NI
 };
 
-struct _GWavefile
-{
-  FILE          *file;
-
-  guint32        rate;
-  guint32        n_channels;
-  guint32        length;
-  guint32        width;
-  GWavefileType  datatype;
-  guint32        data_offset;
-};
-
-
-GWavefile      *g_wavefile_open             (gchar     *file);
-void            g_wavefile_close            (GWavefile *wave);
-GWavefileType   g_wavefile_get_datatype     (GWavefile *wave);
-guint32         g_wavefile_get_length       (GWavefile *wave);
-guint32         g_wavefile_get_num_channels (GWavefile *wave);
-guint32         g_wavefile_get_rate         (GWavefile *wave);
-void            g_wavefile_read             (GWavefile *wave,
-                                             guint32    offset,
-                                             guint32    length,
-                                             gpointer   buf);
 
 /* Utility functions. */
 static inline gint16
@@ -101,6 +75,11 @@ s16_to_double (gint16 i)
 }
 
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 guint32 g_wavefile_type_width   (GWavefileType dtype);
 void    g_wavefile_type_convert (guint32       n_channels,
                                  guint32       length,
@@ -113,9 +92,9 @@ void    g_wavefile_type_clear   (guint32       n_channels,
                                  GWavefileType type,
                                  gpointer      out);
 
-
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif /* __G_WAVEFILE_H__ */

@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.5 2001/04/06 09:23:15 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.6 2001/04/09 09:18:48 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -19,6 +19,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include <sys/param.h>
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "gtkswapfilebuffer.h"
@@ -88,6 +89,7 @@ gtk_swapfile_buffer_finalize (GtkObject *obj)
 		sw_close(swapfile->fd[i]);
 		glsig_delete_handler(swapfile->handler[i]);
 	}
+	glsig_delete_handler(swapfile->handler[swapfile->nrtracks]);
 	free(swapfile->swfile);
 	free(swapfile->fd);
 	free(swapfile->handler);
@@ -144,7 +146,7 @@ gtk_swapfile_buffer_get_length (GtkWaveBuffer *wavebuffer)
 {
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
 
-	return gpsm_item_hsize(swapfile->swfile[0]);
+	return gpsm_item_hsize(swapfile->item);
 }
 
 static guint32
@@ -164,17 +166,44 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 {
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
 	off_t pos;
-	ssize_t cnt;
+	ssize_t cnt, lcnt;
 	int i;
 
 	for (i=0; i<swapfile->nrtracks; i++) {
-		if (!(channel_mask & (1<<i))) {
-			data += length*SAMPLE_SIZE;
-			continue;
+		if (!(channel_mask & (1<<i)))
+			goto next;
+
+		/* Running position inside the actual swapfile. */
+		if (GPSM_ITEM_IS_GRP(swapfile->item))
+			pos = start - gpsm_item_hposition(swapfile->swfile[i]);
+		else
+			pos = start;
+		cnt = length;
+
+		/* Pre-zeroing */
+		if (pos < 0) {
+			lcnt = MIN(-pos, cnt);
+			memset(data, 0, lcnt*SAMPLE_SIZE);
+			pos += lcnt;
+			if ((cnt -= lcnt) == 0)
+				goto next;
 		}
-		/* FIXME - error checks. */
-		pos = sw_lseek(swapfile->fd[i], start*SAMPLE_SIZE, SEEK_SET);
-		cnt = sw_read(swapfile->fd[i], data, length*SAMPLE_SIZE);
+
+		/* The data - FIXME - error checks(?) */
+		if (pos < gpsm_item_hsize(swapfile->swfile[i])) {
+			lcnt = MIN(gpsm_item_hsize(swapfile->swfile[i])-pos, cnt);
+			sw_lseek(swapfile->fd[i], pos*SAMPLE_SIZE, SEEK_SET);
+			sw_read(swapfile->fd[i], data+(length-cnt)*SAMPLE_SIZE, lcnt*SAMPLE_SIZE);
+			pos += lcnt;
+			if ((cnt -= lcnt) == 0)
+				goto next;
+		}
+
+		/* Post-zeroing */
+		if (cnt > 0)
+			memset(data+(length-cnt)*SAMPLE_SIZE, 0, cnt*SAMPLE_SIZE);
+
+	next:
 		data += length*SAMPLE_SIZE;
 	}
 }
@@ -219,14 +248,12 @@ static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 	case GPSM_SIG_SWFILE_INSERT: {
 		gpsm_swfile_t *item;
 		long position, size;
-		GRange range;
 
 		GLSIGH_GETARGS3(va, item, position, size);
+		if (GPSM_ITEM_IS_GRP(swapfile->item))
+			position += gpsm_item_hposition(item);
 
-		/* Notify the wave buffer, raise gtk insert signal. */
-		g_range_set(&range, position, size);
-		gtk_signal_emit(GTK_OBJECT(editable), insert_data_signal,
-				&range);
+		/* Notify the wave buffer. */
 		gtk_editable_wave_buffer_queue_modified(editable, position, gpsm_item_hsize(item) - position);
 
 		break;
@@ -234,26 +261,54 @@ static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 	case GPSM_SIG_SWFILE_CUT: {
 		gpsm_swfile_t *item;
 		long position, size;
-		GRange range;
 
 		GLSIGH_GETARGS3(va, item, position, size);
+		if (GPSM_ITEM_IS_GRP(swapfile->item))
+			position += gpsm_item_hposition(item);
 
-		/* Notify the wave buffer, raise gtk insert signal. */
-		g_range_set(&range, position, size);
-		gtk_signal_emit(GTK_OBJECT(editable), delete_data_signal,
-				&range);
+		/* Notify the wave buffer. */
 		gtk_editable_wave_buffer_queue_modified(editable, position, gpsm_item_hsize(item) - position);
 
 		break;
 	}
 	case GPSM_SIG_SWFILE_CHANGED: {
+		/* We get this signal raised from the childs. */
 		gpsm_swfile_t *item;
 		long position, size;
 
 		GLSIGH_GETARGS3(va, item, position, size);
+		if (GPSM_ITEM_IS_GRP(swapfile->item))
+			position += gpsm_item_hposition(item);
 
 		/* Notify the wave buffer. */
 		gtk_editable_wave_buffer_queue_modified(editable, position, size);
+
+		break;
+	}
+	case GPSM_SIG_ITEM_CHANGED: {
+		/* We get this signal raised from the "root" item only. */
+		gpsm_item_t *item;
+		GRange range;
+
+		GLSIGH_GETARGS1(va, item);
+
+		/* Did we have a size change? Simulate delete/insert
+		 * events (we dont know what happened exactly). */
+		if (swapfile->size < gpsm_item_hsize(item)) {
+			g_range_set(&range, swapfile->size,
+				    gpsm_item_hsize(item) - swapfile->size);
+			gtk_signal_emit(GTK_OBJECT(editable), insert_data_signal,
+					&range);
+		} else if (swapfile->size > gpsm_item_hsize(item)) {
+			g_range_set(&range, gpsm_item_hsize(item),
+				    swapfile->size - gpsm_item_hsize(item));
+			gtk_signal_emit(GTK_OBJECT(editable), delete_data_signal,
+					&range);
+		}
+		swapfile->size = gpsm_item_hsize(item);
+
+		/* Invalidate the whole cache. */
+		gtk_editable_wave_buffer_queue_modified(editable, 0, swapfile->size);
 
 		break;
 	}
@@ -274,7 +329,6 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 	glsig_handler_t **handler;
 	int nrtracks = 0;
 	int rate = -1;
-	long size = -1;
 	int i;
 
 	/* First obtain information about the to be displayed channels.
@@ -286,10 +340,7 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 				return NULL;
 			if (rate == -1)
 				rate = gpsm_swfile_samplerate(it);
-			if (size == -1)
-				size = gpsm_item_hsize(it);
-			if (gpsm_swfile_samplerate(it) != rate
-			    || gpsm_item_hsize(it) != size)
+			if (gpsm_swfile_samplerate(it) != rate)
 				return NULL;
 			gpsm_grp_foreach_item(item, it2)
 				if (GPSM_ITEM_IS_SWFILE(it2)
@@ -301,12 +352,11 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 	} else {
 		nrtracks = 1;
 		rate = gpsm_swfile_samplerate(item);
-		size = gpsm_item_hsize(item);
 	}
 
 	fd = calloc(nrtracks, sizeof(swfd_t));
 	swfile = calloc(nrtracks, sizeof(gpsm_swfile_t *));
-	handler = calloc(nrtracks, sizeof(glsig_handler_t *));
+	handler = calloc(nrtracks+1, sizeof(glsig_handler_t *));
 
 	
 	if (GPSM_ITEM_IS_GRP(item)) {
@@ -326,6 +376,8 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 	}
 
 	swapfile = gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
+	swapfile->item = item;
+	swapfile->size = gpsm_item_hsize(item);
 	swapfile->nrtracks = nrtracks;
 	swapfile->swfile = swfile;
 	swapfile->handler = handler;
@@ -335,6 +387,9 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 					       GPSM_SIG_SWFILE_INSERT|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_ITEM_DESTROY,
 					       handle_swfile, swapfile);
 	}
+	handler[nrtracks] = glsig_add_handler(gpsm_item_emitter(item),
+					      GPSM_SIG_ITEM_CHANGED,
+					      handle_swfile, swapfile);
 
 	return GTK_OBJECT(swapfile);
  err:

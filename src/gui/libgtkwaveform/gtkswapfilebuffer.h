@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.h,v 1.4 2001/04/06 09:23:15 richi Exp $
+ * $Id: gtkswapfilebuffer.h,v 1.5 2001/04/09 09:18:48 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -55,6 +55,7 @@ struct _GtkSwapfileBuffer
 	GtkEditableWaveBuffer   object;
 
 	gpsm_item_t *item;
+	long size;
 
 	int nrtracks;
 	gpsm_swfile_t **swfile;

@@ -425,11 +425,12 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   /* First, paint all cached x coords. */
   /* Keep a range min_val -> max_val that contains all uncached x coords. */
   for (i = start_x; i < start_x + width; i++)
-    if (gtk_wave_view_cache_paint (waveview, offset, i) == 0)
+    if (gtk_wave_view_cache_paint (waveview, offset, i) == 0) {
       if (min_val == -1)
         min_val = max_val = i;
       else
         max_val = i;
+    }
 
   if (min_val != -1)
     {
@@ -845,7 +846,6 @@ static void
 gtk_wave_view_update_selection (GtkWaveView *waveview, gint32 x1, gint32 x2)
 {
   gint32 len, t, t2;
-  gint16 invalid;
 
   len = gtk_wave_buffer_get_length (waveview->wavebuffer);
   /* Cannot do a selection if empty. */
@@ -980,7 +980,6 @@ gtk_wave_view_button_press_event (GtkWidget *widget,
                                   GdkEventButton *event,
                                   gpointer userdata)
 {
-  GtkDrawingArea *area = GTK_DRAWING_AREA (widget);
   GtkWaveView *waveview = GTK_WAVE_VIEW (userdata);
   gint32 frame;
 
@@ -1119,6 +1118,8 @@ motion_update (GtkWaveView *waveview, guint32 x)
       else
         area_restore_normal_cursor (waveview);
     }
+
+  return TRUE;
 }
 
 
@@ -1180,7 +1181,7 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
   gint32 x;
 
   if (waveview->wavebuffer == NULL)
-    return;
+    return FALSE;
 
   GTK_WIDGET_CLASS (GTK_OBJECT (waveview->hruler)->klass)->motion_notify_event (GTK_WIDGET (waveview->hruler), event);
 
@@ -1557,7 +1558,7 @@ check_marker (GtkWaveView *waveview,
 void
 gtk_wave_view_set_marker (GtkWaveView *waveview, gint32 frame)
 {
-  gint32 length, win_pos_old, win_pos_new;
+  gint32 length, win_pos_new;
 
   if (check_marker (waveview, &frame, &length, &win_pos_new) > 0)
     {
@@ -1629,7 +1630,7 @@ void
 gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
                                      gint32      frame)
 {
-  gint32 win_pos_new, width, frame_offset, length;
+  gint32 win_pos_new, width, length;
   //static int count;
 
   if (check_marker (waveview, &frame, &length, &win_pos_new) < 0)

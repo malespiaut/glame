@@ -9,13 +9,12 @@ endif
 
 
 libgtkwaveform_la_SOURCES = \
-  gtkswapfilebuffer.c      gtkswapfilebuffer.h  \
-  gwavefile.c              gwavefile.h          \
-  gtkeditablewavebuffer.c  gtkeditablewavebuffer.h \
-  gtkwavebuffer.c          gtkwavebuffer.h      \
-  gtkwaveview.c            gtkwaveview.h        \
   grange.c                 grange.h             \
-  gtkwave.c                gtkwave.h
+  gwavefile.c              gwavefile.h          \
+  gtkwavebuffer.c          gtkwavebuffer.h      \
+  gtkeditablewavebuffer.c  gtkeditablewavebuffer.h \
+  gtkwaveview.c            gtkwaveview.h        \
+  gtkswapfilebuffer.c      gtkswapfilebuffer.h
 
 
 #test_SOURCES = test.c

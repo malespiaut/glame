@@ -23,7 +23,7 @@
 #include <config.h>
 #endif
 
-#include "glmid.h"
+#include <sys/param.h>
 #include <stdio.h>
 #include <math.h>
 #include <errno.h>
@@ -34,6 +34,7 @@
 #include "glame_types.h"
 #include "glplugin.h"
 #include "swapfile.h"
+#include "glmid.h"
 #include "glame_gui_utils.h"
 #include "waveeditgui.h"
 #include "edit_filter/canvas.h"
