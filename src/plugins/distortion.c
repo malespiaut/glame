@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.4 2001/05/29 07:52:45 richi Exp $ 
+ * $Id: distortion.c,v 1.5 2001/06/05 15:09:55 richi Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -44,24 +44,24 @@ static int distortion_f(filter_t *n)
 	int	i, mode;
 	float	pregain, pos_clip, neg_clip, asym, clip, sign, gain, fxgain;
 	
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no in/output connected");
 	
-	if ((param=filternode_get_param(n,"pregain")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "pregain")))
 			pregain=filterparam_val_float(param);
 	
-	if ((param=filternode_get_param(n,"fxgain")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "fxgain")))
 			fxgain=filterparam_val_float(param);
 	
-	if ((param=filternode_get_param(n,"clip")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "clip")))
 			clip=filterparam_val_float(param);
 	
-	if ((param=filternode_get_param(n,"asym")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "asym")))
 			asym=filterparam_val_float(param);
 
-	if ((param=filternode_get_param(n,"mode")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "mode")))
 			mode = filterparam_val_int(param);
 	
 	pos_clip = asym + clip;
@@ -173,14 +173,20 @@ int distortion_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "audio stream in", FILTER_PORTTYPE_SAMPLE);
-	filter_add_output(f, PORTNAME_OUT, "audio stream out", FILTER_PORTTYPE_SAMPLE);
-	
 	f->f = distortion_f;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream in",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream out",
+			      FILTERPORT_END);
 	
 	param = filter_paramdb(f);
-
 	filterparamdb_add_param_float(param, "pregain", FILTER_PARAMTYPE_FLOAT, 10.0,
 				    FILTERPARAM_DESCRIPTION, "gain before distortion",
 				    FILTERPARAM_END);

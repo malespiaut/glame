@@ -1,6 +1,6 @@
 /*
  * audio_io_irix.c
- * $Id: audio_io_irix.c,v 1.3 2001/04/11 13:25:51 richi Exp $
+ * $Id: audio_io_irix.c,v 1.4 2001/06/05 15:09:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -40,6 +40,7 @@ static int sgi_audio_out_f(filter_t *n)
 	} sgi_audioparam_t;
 
 	sgi_audioparam_t *in = NULL;
+	filter_port_t   *inport;
 	filter_pipe_t	*p_in;
 	filter_param_t  *dev_param;
 	SAMPLE		**bufs = NULL;
@@ -59,13 +60,14 @@ static int sgi_audio_out_f(filter_t *n)
 
 	int		ret = -1;
 
-	max_ch = filternode_nrinputs(n);
+	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	max_ch = filterport_nrpipes(inport);
 	if (!max_ch)
 	        FILTER_ERROR_CLEANUP("No input channels given.");
 
 	/* The connect and fixup methods already make sure we have a 
 	 * common sample rate among all pipes. */
-	p_in = filternode_get_input(n, PORTNAME_IN);
+	p_in = filterport_get_pipe(inport);
 	rate = filterpipe_sample_rate(p_in);
 	if (rate <= 0)
 		FILTER_ERROR_CLEANUP("No valid sample rate given.");
@@ -88,7 +90,7 @@ static int sgi_audio_out_f(filter_t *n)
 		ap->buf = NULL;
 		ap->pos = 0;
 		ap->to_go = 0;
-	} while((p_in = filternode_next_input(p_in)));
+	} while((p_in = filterport_next_pipe(inport, p_in)));
 	
 	/* Fix left/right mapping. Audiolib shoves first buffer to the
 	 * right.
@@ -116,7 +118,7 @@ static int sgi_audio_out_f(filter_t *n)
 	alSetChannels(c, max_ch);
 	/* Using the default queuesize... */
 
-	dev_param = filternode_get_param(n, "device");
+	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
 	if (filterparam_val_string(dev_param))
 		resource = alGetResourceByName(AL_SYSTEM, 
 		             filterparam_val_string(dev_param),

@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa.c
- * $Id: audio_io_alsa.c,v 1.4 2001/05/16 14:45:50 nold Exp $
+ * $Id: audio_io_alsa.c,v 1.5 2001/06/05 15:09:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -42,6 +42,7 @@ static int alsa_audio_out_f(filter_t *n)
 	
 	alsa_audioparam_t	*in = NULL;
 	gl_s16			neutral, *wbuf, *out = NULL;
+	filter_port_t           *inport;
 	filter_pipe_t		*p_in;
 	
 	int card=0, dev=0;
@@ -64,11 +65,12 @@ static int alsa_audio_out_f(filter_t *n)
 	/* Boilerplate init section - will go into a generic function one day.
 	 */
 	
-	max_ch = filternode_nrinputs(n);
+	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	max_ch = filterport_nrpipes(inport);
 	if (!max_ch)
 		FILTER_ERROR_RETURN("No input channels given.");
 	
-	p_in = filternode_get_input(n, PORTNAME_IN);
+	p_in = filterport_get_pipe(inport);
 	rate = filterpipe_sample_rate(p_in);
 	if (rate <= 0)
 		FILTER_ERROR_RETURN("No valid sample rate given.");
@@ -83,7 +85,7 @@ static int alsa_audio_out_f(filter_t *n)
 		ap->pipe = p_in;
 		ap->buf = NULL;
 		ap->pos = ap->to_go = 0;
-	} while ((p_in = filternode_next_input(p_in)));
+	} while ((p_in = filterport_next_pipe(inport, p_in)));
 
 	/* Fixup hangle mapping. */
 	if (ch > 1)
@@ -97,7 +99,7 @@ static int alsa_audio_out_f(filter_t *n)
 	/* ALSA specific initialisation.
 	 */
 	
-	dev_param = filternode_get_param(n, "device");
+	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
 	if (dev_param) {
 		char *cpos;
 		dev_paramstr = filterparam_val_string(dev_param);

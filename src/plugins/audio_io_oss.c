@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.14 2001/05/23 12:33:58 richi Exp $
+ * $Id: audio_io_oss.c,v 1.15 2001/06/05 15:09:55 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -163,6 +163,7 @@ static int oss_audio_out_f(filter_t *n)
 
 	oss_audioparam_t	*in = NULL;
 	gl_s8			*out = NULL;
+	filter_port_t           *inport;
 	filter_pipe_t		*p_in;
 	int			rate, rrate;
 	int			formats, softformats;
@@ -175,13 +176,14 @@ static int oss_audio_out_f(filter_t *n)
 	int	dev = -1;
 	int     pos = 0;
 
-	max_ch = filternode_nrinputs(n);
+	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	max_ch = filterport_nrpipes(inport);
 	if (!max_ch)
 		FILTER_ERROR_CLEANUP("No input channels given!");
 
 	/* The connect and fixup methods already make sure we have a 
 	 * common sample rate among all pipes. */
-	p_in = filternode_get_input(n, PORTNAME_IN);
+	p_in = filterport_get_pipe(inport);
 	rate = filterpipe_sample_rate(p_in);
 	if (rate <= 0)
 		FILTER_ERROR_CLEANUP("No valid sample rate given.");
@@ -196,7 +198,7 @@ static int oss_audio_out_f(filter_t *n)
 		ap->pipe = p_in;
 		ap->buf = NULL;
 		ap->pos = ap->to_go = 0;
-	} while ((p_in = filternode_next_input(p_in)));
+	} while ((p_in = filterport_next_pipe(inport, p_in)));
 
 	/* Fix left/right mapping. Channel 0 goes left. */
 	if (ch > 1)
@@ -209,7 +211,7 @@ static int oss_audio_out_f(filter_t *n)
 	
 	/* Ugly OSS ioctl() mess. Keep your eyes closed and proceed. */
 
-	dev_param = filternode_get_param(n, "device");
+	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
 	dev = open(filterparam_val_string(dev_param), O_WRONLY);
 	if (dev == -1)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
@@ -360,6 +362,7 @@ _fmt_retry:
 
 static int oss_audio_in_f(filter_t *n)
 {
+	filter_port_t   *outport;
 	filter_pipe_t	*pipe[2];	/* Stereo at max. */
 	filter_buffer_t	*fbuf;
 	filter_param_t	*dev_param, *duration, *rate_param;
@@ -373,25 +376,26 @@ static int oss_audio_in_f(filter_t *n)
 	int	width, length, endless = 0;
 	float	nsamples = 0.0, maxsamples = 0.0;
 
-	if (!(channels = filternode_nroutputs(n)))
+	outport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(channels = filterport_nrpipes(outport)))
 		FILTER_ERROR_RETURN("No outputs.");
 
-	dev_param = filternode_get_param(n, "device");
+	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
 	if (dev_param)
 		dev = filterparam_val_string(dev_param);
 
-	rate_param = filternode_get_param(n, "rate");
+	rate_param = filterparamdb_get_param(filter_paramdb(n), "rate");
 	if (rate_param)
 		rate = filterparam_val_int(rate_param);
 
-	duration = filternode_get_param(n, "duration");
+	duration = filterparamdb_get_param(filter_paramdb(n), "duration");
 	if (duration)
 		maxsamples = filterparam_val_float(duration) * rate;
 	if (maxsamples <= 0.0)
 		endless = 1;
 
-	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
-	pipe[1] = filternode_next_output(pipe[0]); /* Okay if NULL */
+	pipe[0] = filterport_get_pipe(outport);
+	pipe[1] = filterport_next_pipe(outport, pipe[0]);
 
 	if (pipe[1] && filterpipe_sample_hangle(pipe[0]) >
 	               filterpipe_sample_hangle(pipe[1])) {

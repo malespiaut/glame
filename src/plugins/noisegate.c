@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.13 2001/06/05 09:25:13 xwolf Exp $
+ * $Id: noisegate.c,v 1.14 2001/06/05 15:09:55 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -65,23 +65,24 @@ static int noisegate_f(filter_t *n)
 	int is_releasing=0;
 	float gain=1.0,attack=1.0,release=1.0;
 	
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no in-/output port(s)");
 
-	if ((param=filternode_get_param(n,"threshold_on")))
-			t_on=filterparam_val_float(param);
-	if ((param=filternode_get_param(n,"threshold_off")))
-			t_off=filterparam_val_float(param);
-	if ((param=filternode_get_param(n,"hold")))
-			holdtime=TIME2CNT(int,filterparam_val_float(param),filterpipe_sample_rate(in));
-	if ((param=filternode_get_param(n,"attack")))
-		if (filterparam_val_float(param)>0.0)
-			attack=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
-	if ((param=filternode_get_param(n,"release")))
-		if (filterparam_val_int(param)>0.0)
-			release=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
+	t_on = filterparam_val_float(
+		filterparamdb_get_param(filter_paramdb(n), "threshold_on"));
+	t_off = filterparam_val_float(
+		filterparamdb_get_param(filter_paramdb(n), "threshold_off"));
+	holdtime = TIME2CNT(int, filterparam_val_float(
+		filterparamdb_get_param(filter_paramdb(n), "hold")),
+			    filterpipe_sample_rate(in));
+	param = filterparamdb_get_param(filter_paramdb(n), "attack");
+	if (filterparam_val_float(param)>0.0)
+		attack=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
+	param = filterparamdb_get_param(filter_paramdb(n), "release");
+	if (filterparam_val_int(param)>0.0)
+		release=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
 
 	FILTER_AFTER_INIT;
 	
@@ -132,8 +133,16 @@ int noisegate_register(plugin_t *p)
 		return -1;
 	f->f = noisegate_f;
 
-	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_SAMPLE);
-	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output",
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_float(filter_paramdb(f),"threshold_on",
 				FILTER_PARAMTYPE_FLOAT,0.0,

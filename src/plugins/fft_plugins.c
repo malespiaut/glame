@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.7 2001/06/05 09:25:13 xwolf Exp $
+ * $Id: fft_plugins.c,v 1.8 2001/06/05 15:09:55 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -92,10 +92,10 @@ static int fft_connect_out(filter_t *n, filter_port_t *port,
 	
 	if ((in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN))) {
 		in = filterport_get_pipe(in_port);
-		if ((param=filternode_get_param(n,"blocksize")))
+		if ((param=filterparamdb_get_param(filter_paramdb(n), "blocksize")))
 			bsize=filterparam_val_int(param);
 		
-		if ((param=filternode_get_param(n,"oversamp")))
+		if ((param=filterparamdb_get_param(filter_paramdb(n), "oversamp")))
 			osamp=filterparam_val_int(param);
 		if (in != NULL) {
 			DPRINTF("in != NULL\n");
@@ -156,15 +156,15 @@ static int fft_f(filter_t *n){
 	int osamp, bsize = 2048;
 	int ooff, obufsize, obufcnt, cnt, i, j;
 	
-	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
-	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
-	if ((param=filternode_get_param(n,"blocksize")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "blocksize")))
 		bsize=filterparam_val_int(param);
 	
-	if ((param=filternode_get_param(n,"oversamp")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "oversamp")))
 		osamp=filterparam_val_int(param);
 	else osamp=1;
 
@@ -244,9 +244,18 @@ int fft_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "audio input", FILTER_PORTTYPE_SAMPLE);
-	filter_add_output(f, PORTNAME_OUT, "fft output", FILTER_PORTTYPE_FFT);
+	f->f = fft_f;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "fft stream",
+			      FILTERPORT_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"blocksize",
 			FILTER_PARAMTYPE_INT, 2048,
@@ -258,7 +267,6 @@ int fft_register(plugin_t *p)
 			FILTERPARAM_DESCRIPTION,"oversampling factor",
 			FILTERPARAM_END);
 	
-	f->f = fft_f;
 	f->connect_out = fft_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, fft_fixup_param, NULL);
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, fft_fixup_param, NULL);
@@ -278,7 +286,7 @@ static int ifft_connect_out(filter_t *n, filter_port_t *port,
 {
 	filter_pipe_t *in;
 
-	if ((in = filternode_get_input(n, PORTNAME_IN))) {
+	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
 		DPRINTF("Setting rate %d hangle %f\n", 
 				filterpipe_fft_rate(in), filterpipe_fft_hangle(in));
 		filterpipe_settype_sample(p,filterpipe_fft_rate(in),filterpipe_fft_hangle(in));
@@ -296,9 +304,9 @@ static int ifft_f(filter_t *n){
 	int osamp, bsize, i, j, ibufcnt, ooff;
 	float gain;
 	
-	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
-	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	bsize=filterpipe_fft_bsize(in);
@@ -406,9 +414,17 @@ int ifft_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "fft input", FILTER_PORTTYPE_FFT);
-	filter_add_output(f, PORTNAME_OUT, "audio output", FILTER_PORTTYPE_SAMPLE);
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "fft stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream",
+			      FILTERPORT_END);
 	
 	f->f = ifft_f;
 	f->connect_out = ifft_connect_out;
@@ -432,8 +448,8 @@ static int fft_resample_connect_out(filter_t *n, filter_port_t *port,
 	filter_pipe_t *in;
 	filter_param_t *param;
 
-	if ((in = filternode_get_input(n, PORTNAME_IN))) {
-		if ((param=filternode_get_param(n,"frequency")))
+	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
+		if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
 			rate=filterparam_val_int(param);
 	
 		bsize=((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
@@ -454,7 +470,7 @@ static void fft_resample_fixup_param(glsig_handler_t *h, long sig, va_list va) {
 	GLSIGH_GETARGS1(va, param);
 	n=filterparam_filter(param);
 	
-	if ((out = filternode_get_output(n, PORTNAME_OUT))) {
+	if ((out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT)))) {
 		fft_resample_connect_out(n,NULL,out);
 		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	}
@@ -468,14 +484,14 @@ static int fft_resample_f(filter_t *n){
 	int i,len,rate = 0;
 	float gain;
 	
-	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
-	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	bsize=filterpipe_fft_bsize(in);
 	
-	if ((param=filternode_get_param(n,"frequency")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
 		rate=filterparam_val_int(param);
 
 	nbsize=((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
@@ -518,9 +534,17 @@ int fft_resample_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_FFT);
-	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_FFT);
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "fft stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "resamppled fft stream",
+			      FILTERPORT_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"frequency",
 			FILTER_PARAMTYPE_INT, 44100,
@@ -552,10 +576,10 @@ static int fft_equalizer_f(filter_t *n){
 	SAMPLE *s, *c;
 
 
-	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
 	
-	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	bsize = filterpipe_fft_bsize(in);
@@ -567,19 +591,19 @@ static int fft_equalizer_f(filter_t *n){
 	off = bsize/2;
 	step = off/5;
 
-	if ((param = filternode_get_param(n,"low")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "low")))
 		f[0] = filterparam_val_float(param);
 
-	if ((param = filternode_get_param(n,"midlow")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "midlow")))
 		f[1] = filterparam_val_float(param);
 
-	if ((param = filternode_get_param(n,"mid")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "mid")))
 		f[2] = filterparam_val_float(param);
 	
-	if ((param = filternode_get_param(n,"midhigh")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "midhigh")))
 		f[3] = filterparam_val_float(param);
 	
-	if ((param = filternode_get_param(n,"high")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "high")))
 		f[4] = filterparam_val_float(param);
 
 	DPRINTF("f[0-4] = %f %f %f %f %f\n",f[0], f[1], f[2], f[3], f[4]);
@@ -623,9 +647,17 @@ int fft_equalizer_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_FFT);
-	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_FFT);
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "fft stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "equalized fft stream",
+			      FILTERPORT_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f),"low",
 			FILTER_PARAMTYPE_FLOAT, 1.0,
@@ -675,10 +707,10 @@ static int fft_bandpass_f(filter_t *n){
 	SAMPLE *s, *c;
 
 
-	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
 	
-	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
 
 	bsize = filterpipe_fft_bsize(in);
@@ -690,13 +722,13 @@ static int fft_bandpass_f(filter_t *n){
 	
 	off = bsize/2;
 
-	if ((param = filternode_get_param(n,"band minimum")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "band minimum")))
 		fmin = filterparam_val_int(param);
 
-	if ((param = filternode_get_param(n,"band maximum")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "band maximum")))
 		fmax = filterparam_val_int(param);
 
-	if ((param = filternode_get_param(n,"gain")))
+	if ((param = filterparamdb_get_param(filter_paramdb(n), "gain")))
 		gain = pow(10.0,filterparam_val_float(param)/20.0);
 	
 	fmin = fmin/(freq/off);
@@ -744,9 +776,17 @@ int fft_bandpass_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_FFT);
-	filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_FFT);
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "fft stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_FFT,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "fft stream band",
+			      FILTERPORT_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"band minimum",
 			FILTER_PARAMTYPE_INT, 0,

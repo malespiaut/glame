@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.7 2001/05/29 07:52:45 richi Exp $
+ * $Id: flanger.c,v 1.8 2001/06/05 15:09:55 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -47,39 +47,39 @@ static int flanger_f(filter_t *n)
 	SAMPLE  *ringbuf, *s;
 	int	*lfo, lfosize, i, lfopos, lfotype = 0;
 
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no in/output connected");
 	
-	if ((param=filternode_get_param(n,"depth")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "depth")))
 			pdepth=filterparam_val_float(param);
 
 	if (pdepth <= 0.0)
 		FILTER_ERROR_RETURN("negative depth is not allowed.");
 	
-	if ((param=filternode_get_param(n,"sweep depth")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "sweep depth")))
 	                swdepth=filterparam_val_float(param);
 	
 	if (swdepth <= 0.0)
 		FILTER_ERROR_RETURN("negative sweep depth is not allowed.");
 	
-	if ((param=filternode_get_param(n,"sweep rate")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "sweep rate")))
 	                sweep_rate=filterparam_val_float(param);
 
 	if (sweep_rate <= 0.0)
 		FILTER_ERROR_RETURN("negative sweep rate is not allowed.");
 	
-	if ((param=filternode_get_param(n,"dry gain")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "dry gain")))
 	                dry_gain=filterparam_val_float(param);
 	
-	if ((param=filternode_get_param(n,"effect gain")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "effect gain")))
 	                ef_gain=filterparam_val_float(param);
 	
-	if ((param=filternode_get_param(n,"feedback gain")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "feedback gain")))
 	                ct_gain=filterparam_val_float(param);
 	
-	if ((param=filternode_get_param(n,"lfo type")))
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "lfo type")))
 			lfotype=filterparam_val_int(param);
 	
 	rampl = 1.0/(dry_gain + ef_gain);
@@ -174,14 +174,20 @@ int flanger_register(plugin_t *p)
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "audio stream in", FILTER_PORTTYPE_SAMPLE);
-	filter_add_output(f, PORTNAME_OUT, "audio stream out", FILTER_PORTTYPE_SAMPLE);
-	
 	f->f = flanger_f;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream in",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream out",
+			      FILTERPORT_END);
 	
 	param = filter_paramdb(f);
-
 	filterparamdb_add_param_float(param, "depth", FILTER_PARAMTYPE_FLOAT, 5,
 				    FILTERPARAM_DESCRIPTION, "flanger depth in ms",
 				    FILTERPARAM_END);
