@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.28 2001/08/08 09:15:30 richi Exp $
+ * $Id: basic.c,v 1.29 2001/11/05 10:18:18 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -56,7 +56,7 @@ static int drop_f(filter_t *n)
 	fd_set channels;
 
 	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
-	if (!(inputs = ALLOCN(filterport_nrpipes(inp), filter_pipe_t *)))
+	if (!(inputs = ALLOCN(filterport_nrpipes(inp)+1, filter_pipe_t *)))
 		FILTER_ERROR_RETURN("no memory");
 
 	/* put all input connections into an easy accessable
