@@ -88,6 +88,13 @@ if test $la = yes; then
 	AC_DEFINE(HAVE_SGIAUDIO)
 fi
 
+dnl check for ALSA
+AM_PATH_ALSA(0.5.0)
+if test $ALSA_LIBS; then
+	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
+	GLAME_CFLAGS="$GLAME_CFLAGS $ALSA_CFLAGS"
+	AC_DEFINE(HAVE_ALSA)
+fi
 
 dnl check for electric fence - temp. disabled due to efence bugs(!?)
 efence=""

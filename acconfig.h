@@ -4,6 +4,9 @@
 /* define if SGI/IRIX audio support is available */
 #undef HAVE_SGIAUDIO
 
+/* define if ALSA audio is available */
+#undef HAVE_ALSA
+
 /* define if you have libaudiofile */
 #undef HAVE_AUDIOFILE
 
