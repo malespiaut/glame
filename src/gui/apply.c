@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.5 2001/07/09 12:27:42 richi Exp $
+ * $Id: apply.c,v 1.6 2001/07/12 08:45:40 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -108,25 +108,30 @@ static gint poll_net_cb(struct apply_plugin_s *a)
 static void preview_start(struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
+	const char *errmsg;
 
 	if (glame_gui_update_paramdb(filter_paramdb(a->effect), a->properties_list) == -1) {
-		/* FIXME!?? */
-		gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
-		gtk_main_iteration_do(FALSE);
-		gnome_error_dialog("Illegal effect parameters");
-		gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
-		return;
+		errmsg = "Illegal effect parameters";
+		goto err;
 	}
 
 	/* Create the preview network. */
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile)
-		net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length);
-	if (net_apply_effect(a->net, a->effect) == -1)
-		DPRINTF("Error applying effect\n");
+		if (net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length) == -1) {
+			errmsg = "Unable to create input node";
+			goto err;
+		}
+	if (net_apply_effect(a->net, a->effect) == -1) {
+		errmsg = "Unable to apply effect node(s)";
+		goto err;
+	}
 	a->pos = net_apply_audio_out(a->net);
 
-	filter_launch(a->net);
+	if (filter_launch(a->net) == -1) {
+		errmsg = "Unable to launch network";
+		goto err;
+	}
 	filter_start(a->net);
 	a->timeout_id = gtk_timeout_add(100, (GtkFunction)poll_net_cb, a);
 
@@ -134,6 +139,18 @@ static void preview_start(struct apply_plugin_s *a)
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), APPLY, FALSE);
 	/* FIXME - change "Preview" to "Stop" */
 	a->previewing = 1;
+
+	return;
+
+ err:
+	gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
+	gtk_main_iteration_do(FALSE);
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(errmsg)));
+	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
+	if (a->net) {
+		filter_delete(a->net);
+		a->net = NULL;
+	}
 }
 
 static void preview_stop(struct apply_plugin_s *a)
@@ -165,14 +182,11 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
 	filter_t *swin, *swout, *e;
+	const char *errmsg;
 
 	if (glame_gui_update_paramdb(filter_paramdb(a->effect), a->properties_list) == -1) {
-		/* FIXME!?? */
-		gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
-		gtk_main_iteration_do(FALSE);
-		gnome_error_dialog("Illegal effect parameters");
-		gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
-		return;
+		errmsg = "Illegal effect parameters";
+		goto err;
 	}
 
 	/* Create the apply network. */
@@ -183,13 +197,8 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		e = filter_creat(a->effect);
 		filter_add_node(a->net, e, "effect");
 		if (!swin || !swout || !e) {
-			filter_delete(a->net);
-			a->net = NULL;
-			gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
-			gtk_main_iteration_do(FALSE);
-			gnome_error_dialog("Cannot construct network");
-			gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
-			return;
+			errmsg = "Cannot construct network";
+			goto err;
 		}
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
 				   filterportdb_get_port(filter_portdb(e), PORTNAME_IN));
@@ -202,7 +211,10 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	a->have_undo = 1;
 
 	net_prepare_bulk();
-	filter_launch(a->net);
+	if (filter_launch(a->net) == -1) {
+		errmsg = "Unable to launch network";
+		goto err;
+	}
 	filter_start(a->net);
 	a->timeout_id = gtk_timeout_add(100, (GtkFunction)poll_net_cb, a);
 
@@ -210,6 +222,19 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), PREVIEW, FALSE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), APPLY, FALSE);
 	a->applying = 1;
+
+	return;
+
+ err:
+	gtk_window_set_modal(GTK_WINDOW(a->dialog), FALSE);
+	gtk_main_iteration_do(FALSE);
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(errmsg)));
+	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
+	if (a->net) {
+		filter_delete(a->net);
+		a->net = NULL;
+	}
+	net_restore_default();
 }
 
 static void cancel_cb(GtkWidget *widget, struct apply_plugin_s *a)
