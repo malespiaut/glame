@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.29 2001/12/13 10:20:12 richi Exp $
+@comment $Id: plugins.texi,v 1.30 2001/12/16 17:41:16 mag Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -647,7 +647,7 @@ these plugins.
 @menu
 * Echo::
 * Noisegate::
-* IIR::
+* Spectrum::
 * Flanger::
 * Distortion::
 @end menu
@@ -673,7 +673,7 @@ Delay time for echo in milliseconds. Defaults to 100 milliseconds.
 Mix ratio of echoed to original stream. Defaults to 0.7.
 @end table
 
-@node Noisegate, IIR, Echo, Effects
+@node Noisegate, Spectrum, Echo, Effects
 @subsection Noisegate
 
 A noisegate is used to suppress signals below a certain threshold from an
@@ -706,19 +706,24 @@ Attack time in milliseconds, see above. Defaults to 0.
 Release time in milliseconds, see above. Defaults to 0.
 @end table
 
-@node IIR, Flanger, Noisegate, Effects
-@subsection IIR
+@node Spectrum, Flanger, Noisegate, Effects
+@section Spectrum
 
-IIR stands for Infinite Impulse Response. This effect makes it possible to
-perform low/highpass filtering on a signal according to the simple recursive 
-formula y[n]=a0*x[n] + a1*x[n-1] + ... + b0*y[n-1] + b1*y[n-2] + ...
-The filter coefficients a0, a1, ..., b0, b1, ... are calculated via the 
-Chebyshev scheme in the moment, but IIR will soon be replaced by different 
-filters, all using the IIR method to provide band/notch/etc. filters.
-For more detailed information about IIR and Chebyshev filters 
-consult @url{http://www.dspguide.com}.
+In the Spectrum category you'll find a collection of filters that
+alter the spectral composition of a sound. Currently included are
+a bandpass filter composed of chained Chebyshev lowpass/highpass stages,
+a one stage bandpass filter and a Chebyshev lowpass/highpass filter.
 
-@subsubheading @file{iir} ports
+@menu
+* bandpass::
+* bandpass_a::
+* lowpass::
+* highpass::
+@end menu
+
+@node bandpass, bandpass_a,, Spectrum
+@subsection bandpass
+@subsubheading @file{bandpass} ports
 @table @code
 @item in (input)
 Input stream of sample data. Only one connection is allowed.
@@ -726,27 +731,83 @@ Input stream of sample data. Only one connection is allowed.
 Output stream of filtered sample data. Only one connection is allowed.
 @end table
 
-@subsubheading @file{iir} parameters
+@subsubheading @file{bandpass} parameters
 @table @code
-@item mode (integer)
-Mode of operation. 0 specifies a low pass, 1 a high pass filter. Defaults 
-to low pass.
-@item poles (integer)
-For Chebyshev filters, @code{poles} has to be a multiple of 2. 
-Having more poles leads to better impulse response of the filter, i.e. 
-the signal will drop faster around the cutoff frequency, but the filter will 
-need longer to execute. Defaults to 2.
-@item cutoff (float)
-Specifies cutoff frequency for filter operation.
-The maximum is half the sample frequency (Nyquist frequency!), 
-defaults to 1000 Hz.
+@item stages (integer)
+defines the number of stages used for the low/highpass filter. The more
+stages you add, the more accurate is the impulse of the filter. Defaults to 1.
+@item center (float)
+Defines the center frequency of the passband. Defaults to 1000 Hz.
+@item width (float)
+Defines the width of the passband. Defaults to 500 Hz.
 @item ripple (float)
 @code{ripple} defines the percentage of ripple in the pass band. It defaults 
 to 0.5, and it is best to leave it alone unless you know what you're doing.
 @end table
 
+@node bandpass_a, lowpass, bandpass, Spectrum
+@subsection bandpass_a
+@subsubheading @file{bandpass_a} ports
+@table @code
+@item in (input)
+Input stream of sample data. Only one connection is allowed.
+@item out (output)
+Output stream of filtered sample data. Only one connection is allowed.
+@end table
 
-@node Flanger, Distortion, IIR, Effects
+@subsubheading @file{bandpass_a} parameters
+@table @code
+@item center (float)
+Defines the center frequency of the passband. Defaults to 1000 Hz.
+@item width (float)
+Defines the width of the passband. Defaults to 500 Hz.
+@end table
+
+@node lowpass, highpass, bandpass_a, Spectrum
+@subsection lowpass
+@subsubheading @file{lowpass} ports
+@table @code
+@item in (input)
+Input stream of sample data. Only one connection is allowed.
+@item out (output)
+Output stream of filtered sample data. Only one connection is allowed.
+@end table
+
+@subsubheading @file{lowpass} parameters
+@table @code
+@item stages (integer)
+defines the number of stages used for the filter. The more
+stages you add, the more accurate is the impulse of the filter. Defaults to 1.
+@item cutoff (float)
+defines the cutoff frequency. Defaults to 1000 Hz.
+@item ripple (float)
+@code{ripple} defines the percentage of ripple in the pass band. It defaults 
+to 0.5, and it is best to leave it alone unless you know what you're doing.
+@end table
+
+@node highpass,, lowpass, Spectrum
+@subsection highpass
+@subsubheading @file{highpass} ports
+@table @code
+@item in (input)
+Input stream of sample data. Only one connection is allowed.
+@item out (output)
+Output stream of filtered sample data. Only one connection is allowed.
+@end table
+
+@subsubheading @file{highpass} parameters
+@table @code
+@item stages (integer)
+defines the number of stages used for the filter. The more
+stages you add, the more accurate is the impulse of the filter. Defaults to 1.
+@item cutoff (float)
+defines the cutoff frequency. Defaults to 1000 Hz.
+@item ripple (float)
+@code{ripple} defines the percentage of ripple in the pass band. It defaults 
+to 0.5, and it is best to leave it alone unless you know what you're doing.
+@end table
+
+@node Flanger, Distortion, Spectrum, Effects
 @subsection Flanger
 The flanger effect is essentially a variable delay, that operates on a comb
 filtered signal. The variation of the delay is given by a low frequency
@@ -765,35 +826,39 @@ Output stream of processed sample data. Only one connection is allowed.
 
 @subsubheading @file{flanger} parameters
 @table @code
-@item depth (float)
-Size of the comb filter delay buffer in ms. A larger depth allows for a larger
+@item effect depth (float)
+Size of delay buffer in ms. A larger depth allows for a larger
 sweep depth and more dramatic effects.
-@item sweep depth (float)
-Sweep depth gives the maximum oscillation amplitude of the LFO in ms and
+@item detune range (float)
+The detune range defines the maximum oscillation amplitude of the LFO in ms and
 thereby modifies the intensity of the effect. The maximum value it can take is
-depth/2.
-@item sweep rate (float)
+effect depth/2.
+@item LFO Speed (float)
 Specifies the oscillation frequency for the LFO. Good values are between 0.5
 and 10 Hz. Higher frequencies generate rather weird sounds.
-@item dry gain (float)
-This parameter modifies the amount of the original signal added to the output.
-Setting this parameter to 0.0, you get the effect sound only.
-@item effect gain (float)
-This parameter modifies the amount of the effect signal added to the output.
+@item Dry/Wet Balance (float)
+This parameter defines the ration of the dry signal to the effect(wet) signal, e.g.
+setting it to 0.0 you you only hear the wet signal, setting it to 1.0 you don't
+hear any effect.
 @item feedback gain (float)
-This parameter modifies the amount of dry signal taken from the middle tap of
-the ringbuffer and added to the original sound, i.e. it controls the comb
-filter.
+The feedback gain speficies the amount of the mixed dry/wet signal that is mixed
+to the input signal. 
+Mixing is done according to: (inputsignal + feedbackgain * drywetsignal)
+@item Gain (float)
+Defines the amount of preamplification in the input stage of the flanger.
 @item LFO type (int)
 At the present time you can choose between three different LFO types:
 @table @code
 @item 0
-ramp up, generate a signal with higher frequency
+A sine shaped LFO, which generates a sound sweeping up and down. 
+Use for genuine flanger sound.
 @item 1
-ramp down, generate a signal with lower frequency
-@item 2 
-sine wave, generates a sound sweeping up and down. Use for genuine flanger
-sound.
+ramp up, generate a signal with higher frequency.
+@item 2
+ramp down, generate a signal with lower frequency.
+@item 3 
+A fractal shaped LFO (more or less a random curve) creating a multichorus
+effect.
 @end table
 @end table
 
