@@ -173,6 +173,19 @@ else
 fi
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
+dnl libglade check -- HACK - the gnome check above suxx
+if test x$gui = xyes -a x$have_gnome = xyes; then
+  glade=yes
+dnl HACK - autoconf suxx
+  ac_saved_cpp=$ac_cpp
+  ac_cpp="$ac_cpp `glib-config --cflags`"
+  AC_CHECK_HEADER([glade/glade.h], , glade=no)
+  AC_CHECK_LIB(glade, glade_init, , glade=no, [$GNOME_LIBS])
+  if test x$glade = xyes; then
+    AC_DEFINE(HAVE_LIBGLADE)
+  fi
+  ac_cpp=$ac_saved_cpp
+fi
 
 
 
