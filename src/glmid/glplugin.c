@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.33 2001/08/03 08:34:06 richi Exp $
+ * $Id: glplugin.c,v 1.34 2001/08/07 09:08:39 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -244,10 +244,11 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 	}
 
 	/* Then in the order stated below try to init it as plugin
-	 * of the specified type (GLAME & LADSPA supported for now. */
+	 * of the specified type (GLAME & LADSPA supported for now). */
 	if (try_init_glame_plugin(p, name, filename) == 0)
 		return 0;
-	if (try_init_ladspa_plugin(p, name, filename) == 0)
+	if (filename
+	    && try_init_ladspa_plugin(p, name, filename) == 0)
 		return 0;
 
 	/* Too bad, thats obviously not a valid plugin. */
