@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.6 2001/06/19 16:39:41 richi Exp $
+ * $Id: canvas_types.c,v 1.7 2001/06/27 07:45:03 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -34,7 +34,9 @@
 
 /* Compute canvas coords from time[s] / track[nr] */
 #define _HUNIT(x) (50.0*(x))
+#define _HUNIT1(x) ((x)/50.0)
 #define _VUNIT(y) (100.0*(y))
+#define _VUNIT1(y) ((y)/100.0)
 #define _VBORDER 20.0
 
 
@@ -176,6 +178,29 @@ GtkType timeline_canvas_item_get_type(void)
 	return timeline_canvas_item_type;
 }
 
+void timeline_canvas_item_gpsm2w(long hposition, long vposition,
+				 long hsize, long vsize,
+				 int rate,
+				 double *x1, double *y1,
+				 double *x2, double *y2)
+{
+	*x1 = _HUNIT(hposition/(double)rate);
+	*y1 = _VUNIT(vposition);
+	*x2 = *x1 + _HUNIT(hsize/(double)rate);
+	*y2 = *y1 + _VUNIT(vsize);
+}
+
+void timeline_canvas_item_w2gpsm(long *hposition, long *vposition,
+				 long *hsize, long *vsize,
+				 int rate,
+				 double x1, double y1,
+				 double x2, double y2)
+{
+	*hposition = _HUNIT1(x1*(double)rate);
+	*vposition = _VUNIT1(y1);
+	*hsize = _HUNIT1((x2-x1)*(double)rate);
+	*vsize = _VUNIT1((y2-y1));
+}
 
 
 
@@ -249,6 +274,7 @@ void timeline_canvas_group_update(TimelineCanvasGroup *group)
 			      NULL);
 
 	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));
+	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(group->text)); /* doenst seem to handle position change only -- GNOME bug */
 }
 
 TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
@@ -369,6 +395,7 @@ void timeline_canvas_file_update(TimelineCanvasFile *file)
 			      NULL);
 
 	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));
+	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(file->text)); /* doenst seem to handle position change only -- GNOME bug */
 }
 
 TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,

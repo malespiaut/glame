@@ -4,7 +4,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.5 2001/06/19 16:39:41 richi Exp $
+ * $Id: canvas_types.h,v 1.6 2001/06/27 07:45:03 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -92,6 +92,11 @@ typedef struct _TimelineCanvasFile TimelineCanvasFile;
 #define TIMELINE_CANVAS_FILE_GET_CLASS(object) ((TimelineCanvasFileClass*) (((GtkObject*) (obj))->klass))
 
 
+/* Cool helpers - less to type */
+#define TIMELINE_CI_GPSM(object) (TIMELINE_CANVAS_ITEM(object)->item)
+#define TIMELINE_CI_GROUP(object) (GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(object)->parent))
+#define TIMELINE_CI_ROOT(object) (gnome_canvas_root(GNOME_CANVAS_ITEM(object)->canvas))
+#define TIMELINE_CI_ROOTI(object) GNOME_CANVAS_ITEM(gnome_canvas_root(GNOME_CANVAS_ITEM(object)->canvas))
 
 /* The actual data structures/functions
  */
@@ -111,6 +116,9 @@ struct _TimelineCanvas {
 	glsig_handler_t *gpsm_handler0;
 	glsig_handler_t *gpsm_handler1;
 	gpsm_grp_t *root;
+
+	/* HACK(s) */
+	GtkRuler *ruler;
 };
 
 
@@ -175,6 +183,18 @@ void timeline_canvas_scale(TimelineCanvas *canvas, double scale);
 
 
 GtkType timeline_canvas_item_get_type(void);
+
+void timeline_canvas_item_gpsm2w(long hposition, long vposition,
+				 long hsize, long vsize,
+				 int rate,
+				 double *x1, double *y1,
+				 double *x2, double *y2);
+
+void timeline_canvas_item_w2gpsm(long *hposition, long *vposition,
+				 long *hsize, long *vsize,
+				 int rate,
+				 double x1, double y1,
+				 double x2, double y2);
 
 
 GtkType timeline_canvas_group_get_type(void);

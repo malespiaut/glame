@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.7 2001/06/19 16:39:41 richi Exp $
+ * $Id: timeline.c,v 1.8 2001/06/27 07:45:03 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -61,24 +61,160 @@ static void handle_timeline_destroy(GtkWidget *canvas,
 	active_timeline = NULL;
 }
 
+static void update_ruler_position(TimelineCanvas *canvas, long hposition)
+{
+	gtk_ruler_set_range(canvas->ruler,
+			    canvas->ruler->lower,
+			    canvas->ruler->upper,
+			    hposition/44100.0,
+			    canvas->ruler->max_size);
+}
+
 static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			   gpointer data)
 {
+	/* Move, Drag'n'Drop state machine globals. */
+	static GnomeCanvasItem *dnd_rect = NULL;
+	static TimelineCanvasFile *dnd_file = NULL;
+	static double dnd_start_x, dnd_start_y;
+
 	switch(event->type){
 	case GDK_ENTER_NOTIFY: {
-		DPRINTF("Entered item %s\n",
-			gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item));
+		DPRINTF("Entered item %s / group %s\n",
+			gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),
+			gpsm_item_label(gpsm_item_parent(TIMELINE_CI_GPSM(file))));
 		if (active_timeline_item)
-			timeline_canvas_file_highlight(active_timeline_item,
+			timeline_canvas_file_highlight(TIMELINE_CANVAS_FILE(active_timeline_item),
 						       FALSE);
+		if (active_timeline_group != TIMELINE_CANVAS_GROUP(TIMELINE_CI_GROUP(file))) {
+			if (active_timeline_group)
+				timeline_canvas_group_highlight(active_timeline_group,
+								FALSE);
+			active_timeline_group = TIMELINE_CANVAS_GROUP(TIMELINE_CI_GROUP(file));
+			timeline_canvas_group_highlight(active_timeline_group,
+							TRUE);
+		}
 		active_timeline_item = TIMELINE_CANVAS_ITEM(file);
 		timeline_canvas_file_highlight(file, TRUE);
 		break;
 	}
 	case GDK_2BUTTON_PRESS: {
+		DPRINTF("Waveedit for %s (%p)\n",
+			gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),
+			TIMELINE_CANVAS_ITEM(file)->item);
 		if(event->button.button==1)
-			gtk_widget_show(glame_waveedit_gui_new(gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),TIMELINE_CANVAS_ITEM(file)->item));
+			gtk_widget_show(GTK_WIDGET(glame_waveedit_gui_new(gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),TIMELINE_CANVAS_ITEM(file)->item)));
 		break;
+	}
+	case GDK_MOTION_NOTIFY: {
+		/* Move, Drag'n'Drop state machine.
+		 */
+
+		GdkEventMotion *mevent = (GdkEventMotion *)event;
+		double x1, x2, y1, y2, scale;
+
+		/* Not an interesting event. */
+		if (!(mevent->state & GDK_BUTTON1_MASK))
+			break;
+
+		/* CAVEAT: the event coordinates dont seem to honour
+		 *         the canvas root groups affine (zoom) - we
+		 *         have to explicitly handle it. Ugh. */
+		{
+			GnomeCanvasItem *root = TIMELINE_CI_ROOTI(file);
+			if (root->object.flags & GNOME_CANVAS_ITEM_AFFINE_FULL)
+				scale = root->xform[0];
+			else
+				scale = 1.0;
+			mevent->x /= scale;
+		}
+
+		/* We need file and the files rect params anyway. */
+		if (!dnd_file)
+			dnd_file = file;
+		timeline_canvas_item_gpsm2w(
+			gpsm_item_hposition(TIMELINE_CI_GPSM(dnd_file)),
+			gpsm_item_vposition(TIMELINE_CI_GPSM(dnd_file)),
+			gpsm_item_hsize(TIMELINE_CI_GPSM(dnd_file)),
+			gpsm_item_vsize(TIMELINE_CI_GPSM(dnd_file)),
+			gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+			&x1, &y1, &x2, &y2);
+
+		/* We may need to startup the machine (i.e
+		 * create the temporary canvas object(s)). */
+		if (!dnd_rect) {
+			dnd_start_x = mevent->x;
+			dnd_start_y = mevent->y;
+			DPRINTF("D&D start pos %.3f %.3f\n",
+				dnd_start_x, dnd_start_y);
+			dnd_rect = gnome_canvas_item_new(
+				TIMELINE_CI_GROUP(file),
+				gnome_canvas_rect_get_type(),
+				"x1", x1,
+				"y1", y1,
+				"x2", x2,
+				"y2", y2,
+				"outline_color", "red",
+				"width_units", 3.0,
+				"fill_color", NULL,
+				NULL);
+			gnome_canvas_item_raise_to_top(dnd_rect);
+			gnome_canvas_item_show(dnd_rect);
+
+		} else {
+			double dx, dy;
+			long hposition, dummy;
+			/* Just move the rect (horizontally). */
+			dx = mevent->x - dnd_start_x;
+			dy = mevent->y - dnd_start_y;
+			if (x1+dx < 0.0)
+				dx = -x1;
+			gnome_canvas_item_set(dnd_rect,
+					      "x1", x1+dx,
+					      "x2", x2+dx, NULL);
+			gnome_canvas_item_request_update(dnd_rect);
+			DPRINTF("D&D moved by %.1f, %.1f\n", dx, dy);
+			timeline_canvas_item_w2gpsm(
+				&hposition, &dummy,
+				&dummy, &dummy,
+				gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+				x1+dx, 0.0, 0.0, 0.0);
+			update_ruler_position(active_timeline, hposition);
+		}
+	}
+	case GDK_BUTTON_RELEASE: {
+		/* Move, Drag'n'Drop state machine. Possible finish.
+		 */
+
+		GdkEventButton *bevent = (GdkEventButton *)event;
+
+		/* Not an interesting event. */
+		if (bevent->button != 1)
+			break;
+
+		if (dnd_rect) {
+			double x1, x2, y1, y2;
+			long hposition, dummy;
+
+			gtk_object_get(GTK_OBJECT(dnd_rect),
+				       "x1", &x1, "x2", &x2,
+				       "y1", &y1, "y2", &y2,
+				       NULL);
+			timeline_canvas_item_w2gpsm(
+				&hposition, &dummy,
+				&dummy, &dummy,
+				gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+				x1, y1, x2, y2);
+			DPRINTF("D&D cleanup (drop rect %.3f %.3f - %.3f %.3f) to %li (original %li)\n",
+				x1, y1, x2, y2,
+				hposition, gpsm_item_hposition(TIMELINE_CI_GPSM(dnd_file)));
+			TIMELINE_CI_GPSM(dnd_file)->hposition = hposition;
+			glsig_emit(gpsm_item_emitter(TIMELINE_CI_GPSM(dnd_file)), GPSM_SIG_ITEM_CHANGED, TIMELINE_CI_GPSM(dnd_file));
+
+			gtk_object_destroy(GTK_OBJECT(dnd_rect));
+			dnd_file = NULL;
+			dnd_rect = NULL;
+		}
 	}
 	default:
 		break;
@@ -90,16 +226,36 @@ static gboolean group_event(TimelineCanvasGroup* grp, GdkEvent* event,
 			    gpointer data)
 {
 	switch(event->type){
-	case GDK_ENTER_NOTIFY: {
-		DPRINTF("Entered group %s\n",
-			gpsm_item_label(TIMELINE_CANVAS_ITEM(grp)->item));
-		if (active_timeline_group)
-			timeline_canvas_group_highlight(active_timeline_group,
-							FALSE);
-		active_timeline_group = grp;
-		timeline_canvas_group_highlight(grp, TRUE);
+	default:
 		break;
 	}
+	return FALSE;
+}
+
+static gboolean root_event(TimelineCanvas* canvas, GdkEvent* event,
+			   gpointer data)
+{
+	switch(event->type){
+#if 0
+	case GDK_MOTION_NOTIFY: {
+	long hpos, dummy;
+	double scale;
+	GnomeCanvasItem *root = gnome_canvas_root(GNOME_CANVAS(canvas));
+	if (root->object.flags & GNOME_CANVAS_ITEM_AFFINE_FULL)
+		scale = root->xform[0];
+	else
+		scale = 1.0;
+	timeline_canvas_item_w2gpsm(&hpos, &dummy, &dummy, &dummy,
+				    44100,
+				    ((GdkEventMotion *)event)->x,
+				    0.0, 0.0, 0.0);
+	gtk_ruler_set_range(canvas->ruler,
+			    canvas->ruler->lower,
+			    canvas->ruler->upper,
+			    canvas->ruler->lower + hpos/44100.0/scale,
+			    canvas->ruler->max_size);
+	}
+#endif
 	default:
 		break;
 	}
@@ -122,6 +278,39 @@ static void zoom_out_cb(GtkWidget *widget, TimelineCanvas *timeline)
 	timeline_canvas_scale(timeline, 0.5);
 }
 
+static void close_cb(GtkWidget *widget, GtkWidget *timeline)
+{
+	gtk_widget_destroy(timeline);
+	active_timeline = NULL;
+	active_timeline_item = NULL;
+	active_timeline_group = NULL;
+}
+
+static void help_cb(GtkWidget *widget, void *foo)
+{
+	gnome_help_goto(NULL, "info:glame#The_Timeline");
+}
+
+static void ruler_update_cb(GtkAdjustment *adjustment, TimelineCanvas *canvas)
+{
+	long hpos, hsize, dummy;
+	double scale;
+	GnomeCanvasItem *root = GNOME_CANVAS_ITEM(gnome_canvas_root(GNOME_CANVAS(canvas)));
+	if (root->object.flags & GNOME_CANVAS_ITEM_AFFINE_FULL)
+		scale = root->xform[0];
+	else
+		scale = 1.0;
+	timeline_canvas_item_w2gpsm(&hpos, &dummy, &hsize, &dummy,
+				    44100,
+				    adjustment->value, 0.0,
+				    adjustment->value + adjustment->page_size,
+				    0.0);
+	gtk_ruler_set_range(canvas->ruler,
+			    hpos/44100.0/scale,
+			    (hpos + hsize)/44100.0/scale,
+			    hpos/44100.0/scale /* FIXME - track mouse */,
+			    (hpos + hsize)/44100.0/scale);
+}
 
 
 /*
@@ -153,7 +342,7 @@ static void handle_group(glsig_handler_t *handler, long sig, va_list va)
 
 		group = TIMELINE_CANVAS_GROUP(glsig_handler_private(handler));
 		GLSIGH_GETARGS2(va, grp, item);
-		if (TIMELINE_CANVAS_ITEM(group)->item != grp)
+		if (TIMELINE_CANVAS_ITEM(group)->item != (gpsm_item_t *)grp)
 			DPRINTF("FUCK!\n");
 
 		citem = timeline_canvas_find_gpsm_item(GNOME_CANVAS_GROUP(group), item);
@@ -347,6 +536,7 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 		|GPSM_SIG_GRP_REMOVEITEM, handle_root, canvas);
 
 	/* Add handler for enter events to track the active timeline. */
+	gtk_signal_connect(GTK_OBJECT(canvas),"event", root_event, NULL);
 	gtk_signal_connect(GTK_OBJECT(canvas), "enter_notify_event",
 			   handle_timeline_enter, canvas);
 	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
@@ -358,7 +548,8 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 GtkWidget *glame_timeline_new_with_window(const char *caption,
 					  gpsm_grp_t *root)
 {
-	GtkWidget *timeline, *window, *toolbar;
+	GtkWidget *timeline, *window, *toolbar, *vbox, *ruler;
+	TimelineCanvas *canvas;
 
 	if (!root || !GPSM_ITEM_IS_GRP(root))
 		return NULL;
@@ -367,20 +558,27 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	timeline = glame_timeline_new(root);
 	if (!timeline)
 		return NULL;
+	canvas = TIMELINE_CANVAS(GTK_BIN(timeline)->child);
 
 	/* Create the window, with canvas, toolbar, etc. */
 	window = gnome_app_new(caption, _(caption));
-	gnome_app_set_contents(GNOME_APP(window), timeline);
+	gtk_window_set_default_size(GTK_WINDOW(window), 500, 300);
+	vbox = gtk_vbox_new(FALSE, 5);
+	ruler = gtk_hruler_new();
+	canvas->ruler = GTK_RULER(ruler);
+	gtk_ruler_set_metric(GTK_RULER(ruler), GTK_PIXELS);
+	gtk_ruler_set_range(GTK_RULER(ruler), 0.0, 100.0, 0.0, 1000.0);
+	gtk_box_pack_start(GTK_BOX(vbox), ruler, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(vbox), timeline);
+	gtk_widget_show(ruler);
+	gtk_widget_show(timeline);
+	gtk_widget_show(vbox);
+	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(timeline))), "changed",
+			   ruler_update_cb, canvas);
+	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(timeline))), "value_changed",
+			   ruler_update_cb, canvas);
+	gnome_app_set_contents(GNOME_APP(window), vbox);
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
-	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
-				"Close", "Close", "Close",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
-				NULL, NULL);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
-				"Help", "Help", "Help",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
-				NULL, NULL);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom in", "Zooms in","foo",
 				glame_load_icon_widget("zoom_in.png",24,24),
@@ -389,6 +587,15 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 				"Zoom out", "Zooms out","foo",
 				glame_load_icon_widget("zoom_out.png",24,24),
 				zoom_out_cb,TIMELINE_CANVAS(GTK_BIN(timeline)->child));
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Close", "Close", "Close",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
+				close_cb, window);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Help", "Help", "Help",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
+				help_cb, NULL);
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "timeline::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
