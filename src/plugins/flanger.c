@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.9 2001/07/03 10:41:56 mag Exp $
+ * $Id: flanger.c,v 1.10 2001/07/07 08:30:31 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -33,6 +33,31 @@
 #include "math.h"
 
 PLUGIN_SET(reverbs,"flanger")
+
+
+void rek_fbm(int *lfo, int l, int r, int swpd, int iter)
+{
+	int d, p, ra;
+	d = (lfo[r] + lfo[l])/2;
+	p = (r + l)/2;
+	if ((p==r)||(p==l))
+		return;
+	ra = swpd / iter * ( 2.0 * (float)(rand()-(RAND_MAX>>1)) / (float)RAND_MAX);
+	d += ra;
+	lfo[p] = d;
+	rek_fbm(lfo, l, p, swpd, iter*2);
+	rek_fbm(lfo, p, r, swpd, iter*2);
+}	
+
+void fbm_lfo(int *lfo, int size, int swpd) 
+{
+	int i;
+	
+	for(i=0;i<size;i++)
+		lfo[i] = 0;
+	
+	rek_fbm(lfo, 0, size-1, swpd, 1);
+}
 
 static int flanger_f(filter_t *n)
 {
@@ -116,6 +141,10 @@ static int flanger_f(filter_t *n)
 			DPRINTF("LFO: ramp down");
 			for (i=0; i < lfosize;i++) 
 				lfo[i] = swpdepth-swpdepth*i/lfosize;
+			break;
+		case 3: 
+			DPRINTF("LFO: fractal");
+			fbm_lfo(lfo, lfosize, swpdepth);
 			break;
 		default:
 			FILTER_ERROR_RETURN("unknown lfo type");
@@ -219,7 +248,8 @@ int flanger_register(plugin_t *p)
 				    FILTERPARAM_DESCRIPTION, 
 				    "(0) sinus"
 				    "(1) ramp up" 
-				    "(2) ramp down",
+				    "(2) ramp down"
+				    "(3) fractal",
 				    FILTERPARAM_GLADEXML,
 "<?xml version=\"1.0\"?><GTK-Interface><widget> 
 	<class>GtkOptionMenu</class> 
@@ -227,7 +257,8 @@ int flanger_register(plugin_t *p)
 	<can_focus>True</can_focus> 
 	<items>Sinus
 Ramp up
-Ramp down</items> 
+Ramp down
+Fractal</items> 
 	<initial_choice>0</initial_choice> 
 </widget></GTK-Interface>", 
 				    FILTERPARAM_END);
