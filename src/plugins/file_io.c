@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.49 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: file_io.c,v 1.50 2001/04/25 19:05:52 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -794,8 +794,10 @@ int wav_read_f(filter_t *n)
 		
 		for (ch = 0; ch < RWW(n).ch; ch++) {
 			/* Avoid unnecessary conversion */
-			if (!RWW(n).p[ch])
+			if (!RWW(n).p[ch]) {
+				pos += ssize;
 				continue;
+			}
 			buf = sbuf_make_private(sbuf_alloc(bufsize, n));
 			wav_read_convert(buf, bufsize, ssize, pad, 
 			                 RWW(n).block_align, pos);

@@ -36,11 +36,12 @@ static int flanger_f(filter_t *n)
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	
-	float	ef_gain, ct_gain, dry_gain, rampl, sweep_rate, pdepth, swdepth, fampl,
+	float	ef_gain = 1.0, ct_gain = 0.0, dry_gain = 1.0, rampl, 
+		sweep_rate = 0.5, pdepth = 10.0, swdepth = 5.0, fampl,
 		rfampl1, rfampl2;
 	int	rate, rbsize, pos, cpos, fpos, swpdepth;
 	SAMPLE  *ringbuf, *s;
-	int	*lfo, lfosize, i, lfopos, lfotype;
+	int	*lfo, lfosize, i, lfopos, lfotype = 0;
 
 	in = filternode_get_input(n, PORTNAME_IN);
 	out = filternode_get_output(n, PORTNAME_OUT);
