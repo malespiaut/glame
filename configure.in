@@ -312,7 +312,7 @@ fi
 AM_CONDITIONAL(HAVE_OSS, test x$oss = xyes)
 
 dnl check for esd
-AM_PATH_ESD(0.2.0, esd=yes, esd=no)
+ACG_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
 	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ESD_CFLAGS"
 	AC_DEFINE(HAVE_ESD)
