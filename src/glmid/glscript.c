@@ -169,7 +169,7 @@ int glscript_init()
 
 	/* Switch to a more useful module and use the glame module. */
 	gh_eval_str(
-"(define-module (glame-user)"
+"(define-module (guile-user)"
 "  :use-module (glame)"
 "  :use-module (guile)"
 "  :use-module (ice-9 session))");
