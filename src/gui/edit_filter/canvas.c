@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.16 2000/12/12 18:24:10 richi Exp $
+ * $Id: canvas.c,v 1.17 2000/12/13 14:29:51 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -36,6 +36,7 @@ edit_canvas_pipe_source_properties_cb(GtkWidget* bla, GlameConnection* conn);
 static void
 edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn);
 static void delete_canvas_item(GlameCanvasItem* it);
+static void describe_item(GtkWidget * win,GlameCanvasItem* it);
 static void connection_break_cb(GtkWidget *bla, GlameConnection* conn);
 static gint root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data);
 
@@ -59,25 +60,27 @@ int inItem;
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_item_properties_cb,NULL),
-	GNOMEUIINFO_ITEM("Redirect parameter","redirect",redirect_params,NULL),
+	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",redirect_params,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Delete","Delete node",delete_canvas_item_cb,NULL),
+	GNOMEUIINFO_ITEM("_Delete","Delete node",delete_canvas_item_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_About node...","bout",describe_item,NULL),
 //	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo pipe_menu[]=
 {
-	GNOMEUIINFO_ITEM("Source properties...", "Source properties", edit_canvas_pipe_source_properties_cb, NULL),
-	GNOMEUIINFO_ITEM("Destination properties...", "Destination properties", edit_canvas_pipe_dest_properties_cb, NULL),
+	GNOMEUIINFO_ITEM("_Source properties...", "Source properties", edit_canvas_pipe_source_properties_cb, NULL),
+	GNOMEUIINFO_ITEM("D_estination properties...", "Destination properties", edit_canvas_pipe_dest_properties_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Delete","Delete pipe",connection_break_cb,NULL),
+	GNOMEUIINFO_ITEM("_Delete","Delete pipe",connection_break_cb,NULL),
 	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo file_menu[]=
 {
-	GNOMEUIINFO_ITEM("New Filter...","New Filter",canvas_create_new_cb,NULL),
+	GNOMEUIINFO_ITEM("_New Filter...","New Filter",canvas_create_new_cb,NULL),
 	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_open_filter,NULL),
 	GNOMEUIINFO_MENU_SAVE_ITEM(canvas_save_filter,NULL),
 	GNOMEUIINFO_MENU_SAVE_AS_ITEM(canvas_save_as,NULL),
@@ -88,24 +91,26 @@ GnomeUIInfo *node_select_menu;
 
 static GnomeUIInfo help_menu[]=
 {
-	GNOMEUIINFO_ITEM("About...","About",gui_create_about,NULL),
+//	GNOMEUIINFO_ITEM("About...","About",gui_create_about,NULL),
+	GNOMEUIINFO_MENU_ABOUT_ITEM(gui_create_about,NULL),
 	GNOMEUIINFO_END
 };
 static GnomeUIInfo root_menu[]=
 {
-	GNOMEUIINFO_SUBTREE("Add Node...",&node_select_menu),
+	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
-	GNOMEUIINFO_ITEM("Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
+	GNOMEUIINFO_ITEM("_Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
-	GNOMEUIINFO_SUBTREE("Help...",&help_menu),
+	GNOMEUIINFO_MENU_HELP_TREE(&help_menu),
 	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo port_menu[] = 
 {
-	GNOMEUIINFO_ITEM("Connect to external port","Connect",connect_port_outside,NULL),
+	GNOMEUIINFO_ITEM("_Connect to external port","Connect",connect_port_outside,NULL),
 	GNOMEUIINFO_END
 };
 
@@ -1363,6 +1368,7 @@ static void canvas_load_scheme(GtkWidget*bla,void*blu)
 	create_label_widget_pair(vbox,"Filename",fileEntry);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
 		if(glame_load_plugin(filenamebuffer)){
+			// load_plugin doesn't really give anything sensible back
 			//errorbox = gnome_warning_dialog("Loading failed...");
 			//gnome_dialog_run_and_close(errorbox);
 		}
@@ -1408,31 +1414,112 @@ static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
 	free(filenamebuffer);
 }
 
+static void update_string(GtkListItem* item,char ** returnbuffer)
+{
+	// this is a little kludgy.. FIXME
+	char *label;
+	
+	label = strdup(GTK_LABEL(GTK_BIN(item)->child)->label);
+	strncpy(*returnbuffer,label,100);
+	free(label);  
+}
+
+static void update_entry_text(GtkListItem* item,GtkEntry* entry)
+{
+	// this is a little kludgy.. FIXME
+	char *label;
+	label = strdup(GTK_LABEL(GTK_BIN(item)->child)->label);
+	gtk_entry_set_text(entry,label);
+	free(label);  
+}
 
 static void redirect_params(GtkWidget *bla, GlameCanvasItem *item)
 {
-	GtkWidget * dialog;
-	GtkWidget * vbox;
+	GtkWidget * dialog,*dialog2;
+	GtkWidget * vbox,*vbox2;
+	GtkWidget * entry;
 	GtkWidget * list;
 	GtkWidget * listItems;
-	filter_paramdb_t * db;
-	filter_param_t *iter;
+	filter_paramdb_t * db, *topleveldb; 
+	filter_param_t *iter,*newparam;
 	GList * items=NULL;
+	char * paramnamebuffer;
+	char * externnamebuffer;
+	int ok=0;
 
-	dialog = gnome_dialog_new("Select parameter",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	paramnamebuffer = calloc(100,sizeof(char));
+	externnamebuffer = calloc(100,sizeof(char));
+
+	dialog = gnome_dialog_new("Select parameter",GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
+		
 	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
 	
 	list = gtk_list_new();
+	entry = gtk_entry_new();
 	
 	db = filter_paramdb(item->filter);
+	topleveldb = filter_paramdb(GLAME_CANVAS(globalcanvas)->net->net);
 
 	filterparamdb_foreach_param(db,iter){
 		listItems = gtk_list_item_new_with_label(filterparam_label(iter));
+		gtk_signal_connect(listItems,"select",update_entry_text,entry);
+		gtk_signal_connect(listItems,"select",update_string,&paramnamebuffer);
 		gtk_widget_show(listItems);
 		items = g_list_append(items,listItems);
 	}
 	gtk_list_append_items(list,items);
 	gtk_widget_show(list);
-	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), list, TRUE, TRUE, 0);
+	create_label_widget_pair(vbox,"Select parameter:",list);
+	create_label_widget_pair(vbox,"External name:",entry);
+	switch(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	{
+	case 2:
+		fprintf(stderr,"%s\n",paramnamebuffer);
+		if(paramnamebuffer){
+			iter = filterparamdb_get_param(db,paramnamebuffer);
+			if(iter){
+				newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+				if(newparam)
+					if(filterparam_redirect(newparam,iter))
+						fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
+			}
+		}
+			
+		break;
+	case 1:
+		
+		filterparamdb_foreach_param(db,iter){
+			newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+			if(newparam)
+				if(filterparam_redirect(newparam,iter))
+					fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
+		}
+		break;
+	default:
+		break;
+	}
+	
+	free(paramnamebuffer);
+
+								    
+}
+
+
+static void describe_item(GtkWidget* wid,GlameCanvasItem* it)
+{
+	GtkWidget *dialog;
+	GtkWidget * text;
+	GtkWidget * vbox;
+	char * desc;
+	int pos=0;
+	
+	dialog = gnome_dialog_new(plugin_name(it->filter->plugin),GNOME_STOCK_BUTTON_OK,NULL);
+	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+	desc = (char*)plugin_query(it->filter->plugin,PLUGIN_DESCRIPTION);
+	text = gtk_text_new(NULL,NULL);
+	
+	gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
+	gtk_widget_show(text);
+	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG (dialog)->vbox), text, TRUE, TRUE, 0);
 	gnome_dialog_run_and_close(dialog);
 }
