@@ -53,6 +53,12 @@ dnl changequote([,])dnl
 dnl check for esd
 AM_PATH_ESD(0.2.0, AC_DEFINE(HAVE_ESD),)
 
+dnl check for libaudiofile
+AUDIOFILE_LIBS=""
+AC_CHECK_LIB(audiofile, afCloseFile, AUDIOFILE_LIBS="-laudiofile")
+if ! test -z $AUDIOFILE_LIBS; then
+	AC_DEFINE(HAVE_AUDIOFILE)
+fi
 
 dnl check for electric fence
 efence=""
@@ -86,6 +92,7 @@ AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 AC_SUBST(DEBUG_LIBS)
+AC_SUBST(AUDIOFILE_LIBS)
 
 
 AC_OUTPUT(Makefile src/Makefile src/filter/Makefile src/libfixp/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile doc/Makefile)

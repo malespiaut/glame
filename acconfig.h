@@ -6,3 +6,6 @@
 
 /* define to disable default debugging code */
 #undef NDEBUG
+
+/* define if you have libaudiofile */
+#undef HAVE_AUDIOFILE
