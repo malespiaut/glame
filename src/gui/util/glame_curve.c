@@ -1,7 +1,7 @@
 /*
  * glame_curve.c
  *
- * $Id: glame_curve.c,v 1.3 2001/06/22 08:49:33 richi Exp $
+ * $Id: glame_curve.c,v 1.4 2001/07/05 13:57:25 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -125,7 +125,8 @@ void glame_curve_get_control_vector(GlameCurve* curve,
 	*ctl_points = malloc(gCurve->num_ctlpoints*2*sizeof(gfloat));
 	memcpy(*ctl_points,gCurve->ctlpoint,gCurve->num_ctlpoints*2*sizeof(gfloat));
 	for(width=0;width<*num_points;width++){
-		fprintf(stderr,"get: %f %f\n",*ctl_points[width][0],*ctl_points[width][1]);
+		DPRINTF("get: %f %f\n",
+			(*ctl_points)[width][0],(*ctl_points)[width][1]);
 	}
 }
 
