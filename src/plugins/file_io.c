@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.59 2001/08/09 15:07:28 mag Exp $
+ * $Id: file_io.c,v 1.60 2001/08/11 15:15:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -371,15 +371,14 @@ static int write_file_setup_param(filter_param_t *param, const void *val)
 	RWPRIV(n)->rw = NULL;
 
 	/* no filename - no writer. */
-	if(*((char**)val)==NULL)
+	if(*(const char**)val==NULL)
 		return -1;
 
 	/* find applicable writer */
 	list_foreach(&writers, rw_t, list, w) {
 	        if (regcomp(&rx, w->regexp, REG_EXTENDED|REG_NOSUB) == -1)
 			continue;
-		if (regexec(&rx, filterparam_val_string(param), 0,
-			    NULL, 0) == 0) {
+		if (regexec(&rx, *(const char **)val, 0, NULL, 0) == 0) {
 			regfree(&rx);
 			RWPRIV(n)->rw = w;
 			RWPRIV(n)->initted = 1;
