@@ -4,22 +4,9 @@ dnl
 
 AC_DEFUN([ACG_CHECK_STUFF],
 [
-
-	AC_MSG_CHECKING([for sqrtf])
 	ac_saved_libs="$LIBS"
 	LIBS="$LIBS -lm"
-	AC_TRY_LINK(
-[
-#include <math.h>
-],[
-	float f, g = 1.26;
-	f = sqrtf(g);
-],[
-	AC_MSG_RESULT([yes])
-],[
-	AC_MSG_RESULT([no])
-	AC_DEFINE(NEED_SQRTF)
-])
+	AC_CHECK_FUNCS(sqrtf sinf)
 	LIBS="$ac_saved_libs"
 
 ])
