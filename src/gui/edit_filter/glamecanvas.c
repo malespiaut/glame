@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.36 2001/12/02 17:52:56 richi Exp $
+ * $Id: glamecanvas.c,v 1.37 2001/12/03 10:35:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -699,11 +699,10 @@ void glame_canvas_copy_selected(GlameCanvas* canv)
 void glame_canvas_paste_selection(GlameCanvas* canv)
 {
 	filter_t *newnode;
-	if(!canv->clipBoard)return;
-	filter_add_node(canv->net, canv->clipBoard, "foo");
-	newnode = filter_get_node(canv->net,"foo");
-	if(newnode){
-		filter_expand(newnode);
-		filter_delete(newnode);
-	}
+	if (!canv->clipBoard)
+		return;
+	newnode = filter_creat(canv->clipBoard);
+	filter_add_node(canv->net, newnode, "foo");
+	filter_expand(newnode);
+	filter_delete(newnode);
 }
