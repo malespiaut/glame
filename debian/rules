@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# $Id: rules,v 1.8 2001/12/10 12:27:20 nold Exp $
+# $Id: rules,v 1.9 2001/12/10 12:43:59 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -26,8 +26,6 @@ configure-stamp:
 	fi
 	ln -sf /usr/share/misc/config.sub .
 	ln -sf /usr/share/misc/config.guess .
-
-	./autogen.sh
 
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
 	./configure --build=$(DEB_BUILD_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE) \
