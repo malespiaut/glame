@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.1 2000/12/07 14:28:31 xwolf Exp $
+ * $Id: canvas.c,v 1.2 2000/12/07 16:03:47 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -57,7 +57,7 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_item_properties_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Delete","Delete node",delete_canvas_item_cb,NULL),
-	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
+//	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
 };
 
