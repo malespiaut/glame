@@ -22,7 +22,8 @@ static int plugins_register()
         plugin_get("basic_midi");
         plugin_get("midi_io");
         plugin_get("midi_debug");
-
+	plugin_get("rms");
+	
 	/* then all the plugins in the (default) plugin path */
 	/* FIXME - by hand for now. */
 	plugin_get("echo");
@@ -31,6 +32,7 @@ static int plugins_register()
         plugin_get("garrison");
         plugin_get("nold");
         plugin_get("maggy");
+        plugin_get("noisegate");
 
 	return 0;
 }

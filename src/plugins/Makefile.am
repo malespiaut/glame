@@ -6,13 +6,13 @@ lib_LTLIBRARIES = libglamebuiltins.la
 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
 	track_io.c audio_io.c file_io.c waveform.c \
-	basic_midi.c midi_io.c midi_debug.c
+	basic_midi.c midi_io.c midi_debug.c rms.c
 libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 
 # "real" plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	garrison.la nold.la maggy.la
+	garrison.la nold.la maggy.la noisegate.la
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module
@@ -31,3 +31,6 @@ nold_la_LDFLAGS = -module
 
 maggy_la_SOURCES = maggy.c
 maggy_la_LDFLAGS = -module
+
+noisegate_la_SOURCES = noisegate.c
+noisegate_la_LDFLAGS = -module
