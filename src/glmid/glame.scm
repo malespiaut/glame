@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.38 2000/10/11 09:19:29 richi Exp $
+; $Id: glame.scm,v 1.39 2000/10/11 09:46:44 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -214,19 +214,19 @@
       (swapfile_creat fname (* 32 1024 1024))
       (swapfile_open fname))))
 
-(define sw-list-directory
-  (lambda (dir)
-    (let ((entry (sw_readdir dir)))
-      (cond ((= entry -1) #f)
-	    (else (let* ((fd (sw_open entry O_RDONLY TXN_NONE))
-			 (st (sw_fstat fd))
-			 (size (sw-st-size st)))
-		    (display (cons entry (cons size (sw_read_string fd (min 8 size))))) (newline)
-		    (sw_close fd)
-		    (sw-list-directory dir)))))))
 (define sw-ls
   (lambda ()
-    (let ((dir (sw_opendir)))
+    (letrec ((dir (sw_opendir))
+	     (sw-list-directory
+	      (lambda (dir)
+		(let ((entry (sw_readdir dir)))
+		  (cond ((= entry -1) #f)
+			(else (let* ((fd (sw_open entry O_RDONLY TXN_NONE))
+				     (st (sw_fstat fd))
+				     (size (sw-st-size st)))
+				(display (cons entry (cons size (sw_read_string fd (min 8 size))))) (newline)
+				(sw_close fd)
+				(sw-list-directory dir))))))))
       (sw-list-directory dir)
       (sw_closedir dir))))
 
@@ -269,16 +269,16 @@
 	    "Cluster:" (sw-st-cluster_start st) (sw-st-cluster_size st)
 	    "raw:" st))))
 
-(define sw-display-clusters
-  (lambda (fd)
-    (let ((size (sw-st-cluster_size (sw_fstat fd))))
-      (cond ((<= size 0) #f)
-	    (else (let ((data (sw_read_string fd size)))
-		    (display (cons size data))
-		    (sw-display-clusters fd)))))))
 (define sw-clusters
   (lambda (fd)
-    (let ((off (sw-st-offset (sw_fstat fd))))
+    (letrec ((off (sw-st-offset (sw_fstat fd)))
+	     (sw-display-clusters
+	      (lambda (fd)
+		(let ((size (sw-st-cluster_size (sw_fstat fd))))
+		  (cond ((<= size 0) #f)
+			(else (let ((data (sw_read_string fd size)))
+				(display (cons size data))
+				(sw-display-clusters fd))))))))
       (sw_lseek fd 0 SEEK_SET)
       (sw-display-clusters fd) (newline)
       (sw_lseek fd off SEEK_SET)
