@@ -491,6 +491,7 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 		free(str);
 	} else if (FILTER_PARAM_IS_POS(param)) {
 		SCM_ASSERT(gh_exact_p(s_val), s_val, SCM_ARG2, "param-set!");
+		res = 0;
 		/* nothing to do. */
 	} else
 		scm_wrong_type_arg("param-set!", SCM_ARG2, s_val);
