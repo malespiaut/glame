@@ -687,6 +687,8 @@ int swapfile_fsck(const char *name, int force)
 	 * non-existing files and wrong references. */
 	unclean |= fsck_check_clusters(1);
 
+	/* Force deletion of .lock and close the swap. */
+	swap.clean = 1;
 	swapfile_close();
 
 	return unclean;
