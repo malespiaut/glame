@@ -4,7 +4,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.4 2001/06/19 09:58:22 richi Exp $
+ * $Id: canvas_types.h,v 1.5 2001/06/19 16:39:41 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -141,7 +141,6 @@ struct _TimelineCanvasGroupClass {
 struct _TimelineCanvasGroup {
 	TimelineCanvasItem parent_object;
 
-	int level;
 	GnomeCanvasItem *rect;
 	GnomeCanvasItem *text;
 };
@@ -185,6 +184,8 @@ TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
 
 void timeline_canvas_group_update(TimelineCanvasGroup *group);
 
+void timeline_canvas_group_highlight(TimelineCanvasGroup *item, gboolean lite);
+
 
 GtkType timeline_canvas_file_get_type(void);
 
@@ -192,6 +193,8 @@ TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,
 					     gpsm_swfile_t *file);
 
 void timeline_canvas_file_update(TimelineCanvasFile *file);
+
+void timeline_canvas_file_highlight(TimelineCanvasFile *item, gboolean lite);
 
 
 /* Find the Timeline Canvas Item associated with item beyond grp. Only

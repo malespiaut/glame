@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.6 2001/06/19 12:09:01 richi Exp $
+ * $Id: timeline.c,v 1.7 2001/06/19 16:39:41 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -68,7 +68,11 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 	case GDK_ENTER_NOTIFY: {
 		DPRINTF("Entered item %s\n",
 			gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item));
+		if (active_timeline_item)
+			timeline_canvas_file_highlight(active_timeline_item,
+						       FALSE);
 		active_timeline_item = TIMELINE_CANVAS_ITEM(file);
+		timeline_canvas_file_highlight(file, TRUE);
 		break;
 	}
 	case GDK_2BUTTON_PRESS: {
@@ -89,7 +93,11 @@ static gboolean group_event(TimelineCanvasGroup* grp, GdkEvent* event,
 	case GDK_ENTER_NOTIFY: {
 		DPRINTF("Entered group %s\n",
 			gpsm_item_label(TIMELINE_CANVAS_ITEM(grp)->item));
+		if (active_timeline_group)
+			timeline_canvas_group_highlight(active_timeline_group,
+							FALSE);
 		active_timeline_group = grp;
+		timeline_canvas_group_highlight(grp, TRUE);
 		break;
 	}
 	default:

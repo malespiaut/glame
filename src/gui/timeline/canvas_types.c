@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.5 2001/06/19 09:58:22 richi Exp $
+ * $Id: canvas_types.c,v 1.6 2001/06/19 16:39:41 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -178,6 +178,8 @@ GtkType timeline_canvas_item_get_type(void)
 
 
 
+
+
 /*
  * TimelineCanvasGroup
  */
@@ -198,7 +200,6 @@ static void timeline_canvas_group_class_init(TimelineCanvasGroupClass *class)
 
 static void timeline_canvas_group_init(TimelineCanvasGroup *grp)
 {
-	grp->level = 0;
 	grp->rect = NULL;
 	grp->text = NULL;
 }
@@ -231,7 +232,7 @@ void timeline_canvas_group_update(TimelineCanvasGroup *group)
 
 	/* Update the rect hsize. */
 	x2 = _HUNIT(gpsm_item_hsize(item->item)/44100.0/*FIXME*/);
-	y2 = _VUNIT(gpsm_item_vsize(item->item)) - _VBORDER*group->level*2.0;
+	y2 = _VUNIT(gpsm_item_vsize(item->item));
 	gnome_canvas_item_set(group->rect,
 			      "x2", x2, "y2", y2, NULL);
 
@@ -241,7 +242,7 @@ void timeline_canvas_group_update(TimelineCanvasGroup *group)
 
 	/* Move the file. */
 	x1 = _HUNIT(gpsm_item_hposition(item->item)/44100.0/*FIXME*/);
-	y1 = _VUNIT(gpsm_item_vposition(item->item)) + _VBORDER*group->level;
+	y1 = _VUNIT(gpsm_item_vposition(item->item));
 	gnome_canvas_item_set(GNOME_CANVAS_ITEM(group),
 			      "x", x1,
 			      "y", y1,
@@ -255,34 +256,20 @@ TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
 {
 	TimelineCanvasGroup *item;
 	double x1, x2, y1, y2;
-	int level;
-
-	if (TIMELINE_IS_CANVAS_GROUP(group))
-		level = TIMELINE_CANVAS_GROUP(group)->level + 1;
-	else
-		level = 0;
 
 	x1 = _HUNIT(gpsm_item_hposition(grp)/44100.0/*FIXME*/);
-	y1 = _VUNIT(gpsm_item_vposition(grp)) + _VBORDER*level;
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(group), &x1, &y1);
-	DPRINTF("grp item at %.3f %.3f (level %i)\n",
-		(float)x1, (float)y1, level);
+	y1 = _VUNIT(gpsm_item_vposition(grp));
 	item = TIMELINE_CANVAS_GROUP(
 		gnome_canvas_item_new(group, TIMELINE_CANVAS_GROUP_TYPE,
 				      "x", x1, "y", y1,
 				      NULL));
 	TIMELINE_CANVAS_ITEM(item)->item = (gpsm_item_t *)grp;
-	item->level = level;
 
 
 	x1 = 0.0;
 	y1 = 0.0;
 	x2 = _HUNIT(gpsm_item_hsize(grp)/44100.0/*FIXME*/);
-	y2 = _VUNIT(gpsm_item_vsize(grp)) - _VBORDER*level*2.0;
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(item), &x1, &y1);
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(item), &x2, &y2);
-	DPRINTF("grp rect is %.3f %.3f - %.3f %.3f\n",
-		(float)x1, (float)y1, (float)x2, (float)y2);
+	y2 = _VUNIT(gpsm_item_vsize(grp));
 	item->rect = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_rect_get_type(),
 			      "x1", x1,
@@ -290,7 +277,7 @@ TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
 			      "x2", x2,
 			      "y2", y2,
 			      "outline_color", "black",
-			      "width_units", MAX(1.0, 4.0-level),
+			      "width_units", 4.0,
 			      "fill_color", NULL,
 			      NULL);
 
@@ -304,6 +291,14 @@ TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
 			      NULL);
 
 	return item;
+}
+
+void timeline_canvas_group_highlight(TimelineCanvasGroup *item, gboolean lite)
+{
+	gnome_canvas_item_set(item->rect,
+			      "outline_color", lite ? "blue" : "black",
+			      NULL);
+	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));
 }
 
 
@@ -355,13 +350,7 @@ GtkType timeline_canvas_file_get_type(void)
 void timeline_canvas_file_update(TimelineCanvasFile *file)
 {
 	TimelineCanvasItem *item = TIMELINE_CANVAS_ITEM(file);
-	int level;
 	double x1, y1, x2;
-
-	/* Get the level. */
-	level = 1;
-	if (TIMELINE_IS_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent))
-		level = TIMELINE_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent)->level+1;
 
 	/* Update the rect hsize. */
 	x2 = _HUNIT(gpsm_item_hsize(item->item)/(double)gpsm_swfile_samplerate(item->item));
@@ -373,7 +362,7 @@ void timeline_canvas_file_update(TimelineCanvasFile *file)
 
 	/* Move the file. */
 	x1 = _HUNIT(gpsm_item_hposition(item->item)/(double)gpsm_swfile_samplerate(item->item));
-	y1 = _VUNIT(gpsm_item_vposition(item->item)) + _VBORDER*level;
+	y1 = _VUNIT(gpsm_item_vposition(item->item)) + _VBORDER;
 	gnome_canvas_item_set(GNOME_CANVAS_ITEM(file),
 			      "x", x1,
 			      "y", y1,
@@ -387,18 +376,9 @@ TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,
 {
 	TimelineCanvasFile *item;
 	double x1, x2, y1, y2;
-	int level;
-
-	if (TIMELINE_IS_CANVAS_GROUP(group))
-		level = TIMELINE_CANVAS_GROUP(group)->level + 1;
-	else
-		level = 1;
 
 	x1 = _HUNIT(gpsm_item_hposition(swfile)/(double)gpsm_swfile_samplerate(swfile));
-	y1 = _VUNIT(gpsm_item_vposition(swfile)) + _VBORDER*level;
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(group), &x1, &y1);
-	DPRINTF("swfile item at %.3f %.3f (level %i)\n",
-		(float)x1, (float)y1, level);
+	y1 = _VUNIT(gpsm_item_vposition(swfile)) + _VBORDER;
 	item = TIMELINE_CANVAS_FILE(
 		gnome_canvas_item_new(group, TIMELINE_CANVAS_FILE_TYPE,
 				      "x", x1, "y", y1, NULL));
@@ -407,11 +387,7 @@ TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,
 	x1 = 0.0;
 	y1 = 0.0;
 	x2 = _HUNIT(gpsm_item_hsize(swfile)/(double)gpsm_swfile_samplerate(swfile));
-	y2 = _VUNIT(1) - 2.0*_VBORDER*level;
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(item), &x1, &y1);
-	//gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(item), &x2, &y2);
-	DPRINTF("swfile rect is %.3f %.3f - %.3f %.3f\n",
-		(float)x1, (float)y1, (float)x2, (float)y2);
+	y2 = _VUNIT(1) - 2.0*_VBORDER;
 	item->rect = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 			      gnome_canvas_rect_get_type(),
 			      "x1", x1,
@@ -433,6 +409,14 @@ TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,
 			      NULL);
 
 	return item;
+}
+
+void timeline_canvas_file_highlight(TimelineCanvasFile *item, gboolean lite)
+{
+	gnome_canvas_item_set(item->rect,
+			      "outline_color", lite ? "yellow" : "black",
+			      NULL);
+	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));
 }
 
 
