@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.14 2001/05/30 07:39:07 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.15 2002/05/29 22:23:48 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -210,6 +210,8 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 			else
 				cnt = MIN(trackst[i].cluster_end/SAMPLE_SIZE - trackpos[i] + 1, cnt);
 		}
+		if (cnt == 0)
+			PANIC("No progress in get_samples");
 
 		/* Init copy */
 		for (i=0; i<swapfile->nrtracks; i++) {
