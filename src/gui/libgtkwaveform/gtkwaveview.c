@@ -1639,8 +1639,10 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 	  while (cnt--) {
 		  vbox = gtk_vbox_new(FALSE, 0);
 		  tb = gtk_toggle_button_new_with_label("rec");
+		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  tb = gtk_toggle_button_new_with_label("mute");
+		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
 		  gtk_widget_show_all(vbox);

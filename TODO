@@ -80,6 +80,9 @@ gui/
 
 gui/swapfilegui
 	[richi]
+	- exchange item labels for pan/mix sliders in vbox with
+          two lines label on the right, group labels for mix sliders
+          with group label on the right
 	- make it a full fledged window like the other widgets
           -> reduce pollution of main.c
 	  (rather merge with timeline)
@@ -97,7 +100,7 @@ gui/waveeditgui
 	- toolbar needs work - ICONS!
 	- do glame_ruler with time, samples, beats mode
 	- show actual sample value/rms/position for marker
-	- fix active button (rec/mute) issues wrt key-bindings
+	- add pan/mix sliders
 	- poll for selection change at play time, updating
 	  swin params
 
