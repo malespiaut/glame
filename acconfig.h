@@ -31,9 +31,6 @@
 /* define if you have fftw of SAMPLE precision */
 #undef HAVE_FFTW
 
-/* define if you have lame installed */
-#undef HAVE_LAME
-
 /* define if you have guile */
 #undef HAVE_GUILE
 
