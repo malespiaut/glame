@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.21 2001/09/17 11:47:12 nold Exp $
+ * $Id: glplugin.h,v 1.22 2001/11/19 10:04:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -93,8 +93,11 @@ void *plugin_query(plugin_t *p, const char *key);
 plugin_t *plugin_next(plugin_t *plugin);
 
 
-/* Macro to create the plugin set symbol & value. */
-#define PLUGIN_SET(name, pset) char *name ## _set = pset;
+/* Macro to create the plugin set and version symbol & value. */
+#define PLUGIN_SET(name, pset) char *name ## _set = pset; long name ## _version = GLAME_PLUGIN_VERSION;
+
+/* Macro to create the plugin glame version symbol. */
+#define PLUGIN(name) long name ## _version = GLAME_PLUGIN_VERSION;
 
 /* Standard db entry keys. */
 #define PLUGIN_DESCRIPTION "!desc"

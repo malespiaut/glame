@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.38 2001/11/11 15:32:28 richi Exp $
+ * $Id: glplugin.c,v 1.39 2001/11/19 10:04:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -30,6 +30,7 @@
 #include <ctype.h>
 #include "util.h"
 #include "list.h"
+#include "filter.h"
 #include "glplugin.h"
 #ifdef HAVE_LADSPA
 #include <ladspa.h>
@@ -143,6 +144,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 {
 	int (*reg_func)(plugin_t *);
 	char **set;
+	long *version;
         char s[256], *sp, *psname;
 	plugin_t *pn;
 
@@ -154,6 +156,19 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	set = (char **)lt_dlsym(p->handle, s);
 	if (!reg_func && !set)
 		return -1;
+
+	/* Version symbol is available for the set parent or a
+	 * single plugin. */
+	snprintf(s, 255, "%s_version", name);
+	version = (long *)lt_dlsym(p->handle, s);
+	if (!version && !plugin_query(p, PLUGIN_PARENT))
+		DPRINTF("No plugin version for %s\n", name);
+
+	/* Check version, if it doesnt match exactly, bail out. */
+	if (version && *version != GLAME_PLUGIN_VERSION) {
+		DPRINTF("Wrong plugin version %x\n", *version);
+		return -1;
+	}
 
 	/* First call the name_register() function if
 	 * provided. */
@@ -174,14 +189,15 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 		if ((sp = strchr(psname, ' ')))
 			*(sp++) = '\0';
 		mangle_name(name, psname);
-		if (!(pn = _plugin_alloc(name))
-		    || !(pn->handle = lt_dlopenext(filename))
+		if (!(pn = _plugin_alloc(name)))
+			return -1;
+		plugin_set(pn, PLUGIN_PARENT, p);
+		if (!(pn->handle = lt_dlopenext(filename))
 		    || try_init_glame_plugin(pn, name, filename) == -1
 		    || _plugin_add(pn) == -1) {
 			_plugin_free(pn);
 			continue;
 		}
-		plugin_set(pn, PLUGIN_PARENT, p);
 	} while (sp);
 
 	return 0;

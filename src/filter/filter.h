@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.77 2001/11/18 19:11:25 richi Exp $
+ * $Id: filter.h,v 1.78 2001/11/19 10:04:27 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -52,6 +52,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+#define GLAME_PLUGIN_VERSION 0x00050301
+
 
 /********************************
  * Filter creating/using User API
