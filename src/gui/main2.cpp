@@ -1,7 +1,7 @@
 /*
  * main2.cpp
  *
- * $Id: main2.cpp,v 1.9 2004/06/13 14:07:18 richi Exp $
+ * $Id: main2.cpp,v 1.10 2004/06/13 22:27:55 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -933,8 +933,7 @@ _("Welcome first-time user of GLAME.\n"
 
 	/* create swapfile gui - in a scrolled window */
 	//swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
-	glTree *gtree = new glTree(gpsm_root());
-	swapfile = GTK_WIDGET(gtree->tree);
+	swapfile = glame_gltree_init(gpsm_root());
 	if (!swapfile)
 		return;
 	scrollview = gtk_scrolled_window_new(NULL, NULL);

@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.7 2004/06/13 14:07:18 richi Exp $
+ * $Id: gltree.h,v 1.8 2004/06/13 22:27:55 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -29,24 +29,11 @@
 #include "gpsmstore.h"
 
 
-/* glTree has (not enforced) singleton semantics through
- * the use of static members.  Sort of a hack, but there is
- * no point in instantiating more than one of this beasts.
- * Also we don't have a destructor either.
+/* Initialize the one and only tree-view of the gpsm
+ * storage.
  */
 
-struct glTree
-{
-	glTree(); // don't define this
-	glTree(gpsm_grp_t *newroot);
-
-
-	gpsm_grp_t *root;
-
-	static GtkTreeView *tree;
-	static GlameGpsmStore *store;
-	static GtkTreeIter iter;
-};
+GtkWidget *glame_gltree_init(gpsm_grp_t *newroot);
 
 
 #endif
