@@ -592,6 +592,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	ain = filter_instantiate(plugin_get("audio_in"));
 	duration = length/(float)rate;
 	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
+	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
 	filter_add_node(net, ain, "ain");
 
 	/* Left - or mono. */
