@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.68 2001/12/07 10:42:36 richi Exp $
+ * $Id: swapfilegui.c,v 1.69 2001/12/11 16:27:46 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -535,6 +535,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 {
+	static int warning_shown = 0;
 	GtkWidget *tl;
 		
 	tl = glame_timeline_new_with_window(gpsm_item_label(item->item),
@@ -546,6 +547,11 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 	}
 	gtk_widget_show_all(tl);
 	deselect_all(active_swapfilegui);
+	if (!warning_shown) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_warning_dialog_parented("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned.", tl)));
+		warning_shown = 1;
+	}
 }
 
 void changeString_cb(GtkEditable *wid, char *returnbuffer)
