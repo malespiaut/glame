@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.5 2001/12/09 16:11:53 richi Exp $
+ * $Id: importexport.c,v 1.6 2001/12/09 22:58:43 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -78,7 +78,6 @@ struct imp_s {
 	int importing;
 	int destroyed;
 	gpsm_item_t *item;
-	GtkWidget *fi_plabel[MAX_PROPS];
 	GtkWidget *dialog;
 	GtkWidget *edit, *appbar, *checkresample, *rateentry;
 	filter_t *readfile;
@@ -87,6 +86,8 @@ struct imp_s {
 	int rate, chancnt, gotfile, gotstats;
 	float maxrms, dcoffset;
 	plugin_t *resample;
+	GtkWidget *fi_plabel[MAX_PROPS];
+	int reallydone;
 };
 
 
@@ -98,6 +99,7 @@ static void ie_import_cleanup(struct imp_s *ie)
 	if (ie->readfile!=NULL)
 		filter_delete(ie->readfile);
 
+	ie->reallydone = 1;
 	/* free(ie);  -- done in glame_import_dialog() */
 }
 
@@ -139,16 +141,21 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	gpsm_item_t *it;
 	GtkWidget *ed;
 
+	if (ie->importing)
+		return;
+
 	/* nullify net and set cancel status to zero */
-	ie->net = NULL;
-	ie->importing = 0;
+	//ie->net = NULL;
+	//ie->importing = 0;
 
 	if(ie->gotfile==0) {
-		ed=gnome_error_dialog("Select a file first!");
+		/*ed=gnome_error_dialog("Select a file first!");
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));*/
+		DPRINTF("no file given (%p)\n", ie->filename);
 		return;
 	}
+	DPRINTF("%i file %p\n", ie->gotfile, ie->filename);
 
 	ie->net = filter_creat(NULL);
 	ie->importing = 1;
@@ -253,6 +260,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	}
 	
 	filter_delete(ie->net);
+	ie->net = NULL;
 	
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
 	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
@@ -269,12 +277,15 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 		gpsm_item_destroy((gpsm_item_t *)group);
 
 	ie_import_cleanup(ie);
+	ie->importing = 0;
 	return;
 
 ie_fail_cleanup:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
 		gnome_error_dialog("Failed to create importing network")));
 	filter_delete(ie->net);
+	ie->net = NULL;
+	ie->importing = 0;
 	gpsm_item_destroy((gpsm_item_t *)group);
 	gtk_widget_set_sensitive(bla, TRUE);	
 }
@@ -292,6 +303,7 @@ static void ie_update_plabels(struct imp_s *ie)
 	int rate, ftype, version;
 	gchar buffer[255];
 
+	DPRINTF("Here\n");
 	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
 	
 	property = filterparam_get_property(fparam, "#format");
@@ -477,12 +489,17 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 	filter_param_t *fparam;
 	int i;
 
-	if (ie->filename)
+	if (ie->filename) {
 		g_free(ie->filename);
+		ie->filename = NULL;
+	}
 	ie->filename = gtk_editable_get_chars(edit, 0, -1);
 	DPRINTF("Got filename %s\n", ie->filename);
-	if (access(ie->filename, R_OK) == -1)
+	if (access(ie->filename, R_OK) == -1) {
+		ie->gotfile = 0;
+		ie->filename = NULL;
 		return;
+	}
 
 	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
 	if (filterparam_set(fparam, &(ie->filename))==-1) {
@@ -539,6 +556,9 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	ie->dialog = gnome_dialog_new (NULL, NULL);
 	ie->importing = 0;
 	ie->destroyed = 0;
+	ie->filename = NULL;
+	ie->net = NULL;
+	ie->reallydone = 0;
 
 	gtk_container_set_border_width (GTK_CONTAINER (ie->dialog), 1);
 	gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
@@ -702,7 +722,10 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 			   GTK_SIGNAL_FUNC(ie_windowkilled), ie);
 
 	/* run the dialog, return the resulting gpsm item/group */
-	gnome_dialog_run(GNOME_DIALOG(ie->dialog));
+	do {
+		gnome_dialog_run(GNOME_DIALOG(ie->dialog));
+	} while (ie->reallydone==0);
+
 	item = ie->item;
 	free(ie);
 
