@@ -300,19 +300,6 @@ void gpsm_notify_swapfile_insert(long filename, long pos, long size);
 void gpsm_invalidate_swapfile(long filename);
 
 
-/* Flattens a gpsm item, that is, out of a possible deep tree of
- * horizontally and vertically spreaded swfiles make a set of
- * vertically aligned (read: starting at position zero and ending
- * at the maximum position) swfiles.
- * Returns a new group with new swfiles, one for each vertical track.
- * The data is COWed from the original tree. In the special case of
- * providing a swfile as item a new group with a COW copy of this
- * item is returned (without paying attention to hposition of the item).
- * On failure NULL is returned.
- * Note that this feature greatly simplifies operations such as play
- * and export (i.e. where you only want to _read_ from the files). */
-gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
-
 
 /* Undo/redo support.
  */
@@ -352,6 +339,30 @@ int gpsm_op_redo_and_forget(gpsm_item_t *item);
 /* Kills off the latest saved state of the provided subtree. Returns
  * 0 on success, -1 on error (no pending undo/redo). */
 int gpsm_op_forget(gpsm_item_t *item);
+
+
+/* Useful complex operations.
+ */
+
+/* Collects all swfiles in the subtree item and creates a new
+ * group with links to them in traversal order. Positions relative
+ * to item are retained.
+ * Returns NULL on failure (no swfiles), a new group on success. */
+gpsm_grp_t *gpsm_collect_swfiles(gpsm_item_t *item);
+
+/* Flattens a gpsm item, that is, out of a possible deep tree of
+ * horizontally and vertically spreaded swfiles make a set of
+ * vertically aligned (read: starting at position zero and ending
+ * at the maximum position) swfiles.
+ * Returns a new group with new swfiles, one for each vertical track.
+ * The data is COWed from the original tree. In the special case of
+ * providing a swfile as item a new group with a COW copy of this
+ * item is returned (without paying attention to hposition of the item).
+ * On failure NULL is returned.
+ * Note that this feature greatly simplifies operations such as play
+ * and export (i.e. where you only want to _read_ from the files). */
+gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
+
 
 
 #endif

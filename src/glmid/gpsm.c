@@ -60,6 +60,7 @@ static int op_listsize;
 
 /* Forwards. */
 static gpsm_item_t *gpsm_newitem(int type);
+static int _gpsm_get_swfiles(gpsm_item_t *root, gpsm_swfile_t ***files);
 static struct op *_op_new(int nrpairs);
 static void _op_delete(struct op *op);
 static struct op *_op_prepare(gpsm_item_t *item);
@@ -1350,6 +1351,44 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 	DPRINTF("failed!\n");
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	return NULL;
+}
+
+gpsm_grp_t *gpsm_collect_swfiles(gpsm_item_t *item)
+{
+	gpsm_swfile_t **files;
+	gpsm_item_t *it;
+	gpsm_grp_t *grp;
+	int i, cnt;
+	char s[256];
+	long hpos, vpos;
+
+	/* Get the files. */
+	cnt = _gpsm_get_swfiles(item, &files);
+	if (cnt == 0)
+		return NULL;
+
+	/* Create a new group and insert them. */
+	snprintf(s, 255, "Collected files of %s", item->label);
+	grp = gpsm_newgrp(s);
+	for (i=0; i<cnt; i++) {
+		/* Start with 0, 0 as the swfiles position
+		 * go up the tree until we reach item. */
+		hpos = 0;
+		vpos = 0;
+		it = (gpsm_item_t *)files[i];
+		while (it != item) {
+			hpos += gpsm_item_hposition(it);
+			vpos += gpsm_item_vposition(it);
+			it = (gpsm_item_t *)gpsm_item_parent(it);
+		}
+
+		/* Create a link to the swfile and insert it into
+		 * grp at the flattened position. */
+		it = (gpsm_item_t *)gpsm_swfile_link(files[i]);
+		gpsm_grp_insert(grp, it, hpos, vpos);
+	}
+
+	return grp;
 }
 
 
