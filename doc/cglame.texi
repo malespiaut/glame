@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.13 2001/06/30 10:48:51 richi Exp $
+@comment $Id: cglame.texi,v 1.14 2001/07/11 08:15:10 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -47,7 +47,7 @@ session is shown below.
 @example
 $ cglame
 
-    CGLAME for GLAME version 0.4.0beta, Copyright (C) 1999-2001
+    CGLAME for GLAME version 0.5.1, Copyright (C) 1999-2001
     Alexander Ehlert, Richard Guenther, Johannes Hirche, Daniel Kobras.
     CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free
     software, and you are welcome to redistribute it under certain
@@ -82,7 +82,8 @@ sections reside in the @code{glame.scm} file shipped with glame.
 
 For description of the semantics of the available parts of the APIs
 please refer to the native documentation. Note that all scheme procedures
-evaluate to @code{#f} if there is any error. C functions which return
+either throw exceptions or evaluate to @code{#f} if there is any error.
+C functions which return
 0 on success are transformed to procedures evaluating to @code{#t}
 on success or @code{#f} on error. Void functions generally evaluate to
 @code{#unspecified}.
@@ -98,17 +99,139 @@ on success or @code{#f} on error. Void functions generally evaluate to
 @node Scheme Filter API, Scheme Swapfile API,, Wrapped API
 @subsection Scheme Filter API
 
-FIXME: see @code{src/glmid/glscript_filter.c} for more
+The basic filter subsystem types, @code{filter_t}, @code{filter_port_t},
+@code{filter_pipe_t} and @code{filter_param_t} exist as native scheme
+types and such can be type checked.
 
-@deftypefun ( filter-new [filter|plugin] )
-@deftypefunx ( filter-add-node filter filter node-name )
-@deftypefunx ( filter-connect filter port-name filter port-name )
-@deftypefunx ( filter->string filter )
+@deftypefun ( filter? obj )
+@deftypefunx ( port? obj )
+@deftypefunx ( pipe? obj )
+@deftypefunx ( param? obj )
+These procedures check @code{obj} for being of the specified type and
+evaluate to @code{#t} if this is the case and @code{#f} otherwise.
 @end deftypefun
 
-@deftypefun ( set-property! object label value )
-@deftypefunx ( get-property object label )
-These procedures operate on filters, ports, pipes and params.
+Out of a filter object you can get information and subobjects using
+the following procedures:
+
+@deftypefun ( filter-name filter )
+@deftypefunx ( filter-nodes filter )
+@deftypefunx ( filter-ports filter )
+@deftypefunx ( filter-params filter )
+These procedures evaluate to a string containing the filters name or
+to lists of the specified object type representing the actual subobjects
+associated with the filter.
+@end deftypefun
+
+Out of a port object you can get information and subobjects using
+the following procedures:
+
+@deftypefun ( port-label port )
+@deftypefunx ( port-pipes port )
+@deftypefunx ( port-params port )
+These procedures evaluate to a string containing the ports label or
+to lists of the specified object type representing the actual subobjects
+associated with the port.
+@end deftypefun
+
+Out of a param object you can get and modify information using the following
+procedures:
+
+@deftypefun ( param-label param )
+@deftypefunx ( param-value param )
+@deftypefunx ( param-set! param value )
+These procedures evaluate to a string containing the label of the
+param object, the actual value of the param whose type depends on
+the param objects type or a boolean denoting the success of a param
+set command.
+@end deftypefun
+
+Out of a pipe object you can get information and subobjects using
+the following procedures:
+
+@deftypefun ( pipe-samplerate pipe )
+@deftypefunx ( pipe-position pipe )
+@deftypefunx ( pipe-source-params pipe )
+@deftypefunx ( pipe-dest-params pipe )
+These procedures evaluate to an exact number containing the samplerate
+of the data flowing through the pipe, a number containing the position
+of the audio stream or
+to lists of the specified object type representing the actual subobjects
+associated with the pipe.
+@end deftypefun
+
+Pipe objects can be queried for the actual protocol type using the
+following procedures:
+
+@deftypefun ( pipe-sample? pipe )
+@deftypefunx ( pipe-fft? pipe )
+@deftypefunx ( pipe-ssp? pipe )
+These procedures check @code{pipe} for being of the specified protocol type and
+evaluate to @code{#t} if this is the case and @code{#f} otherwise.
+@end deftypefun
+
+Usually you can attach key/value pairs to a per object database. Those
+object properties can be queried and modified using the following generic
+interface:
+
+@deftypefun ( set-property! obj key value )
+@deftypefunx ( get-property obj key )
+These procedures evaluate to @code{#unspecified} or a string object
+containing the value associated with the specified key or @code{#f} if
+this key has no associated value. Note that for both @code{key} and
+@code{value} only string objects are allowed.
+Predefined key values are @code{FILTERPARAM_DESCRIPTION},
+@code{FILTERPARAM_GLADEXML} and @code{FILTERPORT_DESCRIPTION}.
+@end deftypefun
+
+
+The following procedures handle object serialization and creation
+and destruction of objects.
+
+@deftypefun ( filter-new [filter|plugin] )
+@deftypefunx ( filter-delete filter )
+@deftypefunx ( port-delete port )
+@deftypefunx ( param-delete param )
+@deftypefunx ( pipe-delete pipe )
+@code{filter-new} constructs a new filter object by either cloning
+from a filter or a plugin object or creating an empty network from
+scratch. The delete procedures destruct the specified objects.
+@end deftypefun
+
+@deftypefun ( filter->string filter )
+@deftypefunx ( param->string param )
+While the first procedure returns a string containing a scheme
+expression being able to recreate the filter object, the second
+procedure just evaluates to a string containing the value of the
+specified param.
+@end deftypefun
+
+@deftypefun ( filter-add-node filter filter node-name )
+@deftypefunx ( filter-connect filter port-name filter port-name )
+@code{filter-add-node} adds the specified filter (second parameter) to
+the specified network (first parameter) using the identifier specified
+as third parameter.
+@code{filter-connect} connects the two specified parameters via the
+specified ports identified by their port names. @code{filter-connect}
+evaluates to a pipe object.
+@end deftypefun
+
+@deftypefun ( filternetwork-add-input filter filter port-name name description )
+@deftypefunx ( filternetwork-add-output filter filter port-name name description )
+@deftypefunx ( filternetwork-add-param filter filter param-name name description )
+Procedures to be used for exporting ports and params to the outside world
+in a macro filter. The first parameter is the actual network, the second
+parameter is the node that gets exported from. These procedures evaluate
+to a port or a param object.
+@end deftypefun
+
+@deftypefun ( glame_create_plugin filter name )
+@deftypefunx ( glame_plugin_define filter name )
+@code{glame_create_plugin} creates and registers a new plugin using the
+specified name and associate it with the provided filter. Evaluates to a
+plugin or to @code{#f} on error.
+@code{glame_plugin_define} is used internally for transparently registering
+or filter loading.
 @end deftypefun
 
 @deftypefun ( filter-launch filter )
@@ -116,26 +239,17 @@ These procedures operate on filters, ports, pipes and params.
 @deftypefunx ( filter-pause filter )
 @deftypefunx ( filter-wait filter )
 @deftypefunx ( filter-terminate filter )
+These procedures handle filter network execution.
 @end deftypefun
 
-@deftypefun ( filternetwork-add-input net-id node-id port-name name description )
-@deftypefunx ( filternetwork-add-output net-id node-id port-name name description )
-@deftypefunx ( filternetwork-add-param net-id node-id param-name name description )
-Procedures to be used for exporting ports and params to the outside world
-in a macro filter.
-@end deftypefun
-
-@deftypefun ( glame_create_plugin filter name )
-Create and register a new plugin using the specified name and associate
-it with the provided filter. Evaluates to a plugin or to @code{#f} on
-error.
-@end deftypefun
 
 
 @node Scheme Swapfile API, Scheme Plugin API, Scheme Filter API, Wrapped API
 @subsection Scheme Swapfile API
 
 FIXME: see @code{src/glmid/glscript_swapfile.c}
+
+
 
 @node Scheme Plugin API, Scheme GPSM API, Scheme Swapfile API, Wrapped API
 @subsection Scheme Plugin API
@@ -149,11 +263,13 @@ procedures:
 @deftypefunx ( plugin_name plugin )
 @deftypefunx ( plugin_query plugin key )
 @deftypefunx ( plugin_set plugin key value )
+See the C API documentation for a description of the procedures.
 @end deftypefun
 
 Additionally defined symbols are @code{PLUGIN_DESCRIPTION},
 @code{PLUGIN_PIXMAP}, @code{PLUGIN_CATEGORY}, @code{PLUGIN_GUI_HELP_PATH}
 and @code{PLUGIN_LABEL}.
+
 
 
 @node Scheme GPSM API, Scheme GUI interaction, Scheme Plugin API, Wrapped API
@@ -186,32 +302,32 @@ via @code{(help command)} or @code{(help)}.
 
 @deftypefun ( net-new )
 Creates a new filternetwork. @code{net-new} evaluates to a
-net-id.
+filter.
 @end deftypefun
 
-@deftypefun ( net-add-node net-id node '("label" value) ... )
-@deftypefunx ( net-add-nodes net-id node '(node '("label" value) ...) ... )
-@deftypefunx ( nodes-delete node-id ... )
+@deftypefun ( net-add-node filter node '("label" value) ... )
+@deftypefunx ( net-add-nodes filter node '(node '("label" value) ...) ... )
+@deftypefunx ( nodes-delete filter ... )
 @code{net-add-node} adds a single node with optional parameters
-to the network specified by @var{net-id}. @code{net-add-nodes}
+to the network specified by @var{filter}. @code{net-add-nodes}
 adds a set of nodes with optional parameters to the network.
-@code{net-add-node} evaluates to a @code{node-id}, @code{net-add-nodes}
-to a list of @code{node-id}s. Using @code{nodes-delete} you can delete
+@code{net-add-node} evaluates to a @code{filter}, @code{net-add-nodes}
+to a list of @code{filter}s. Using @code{nodes-delete} you can delete
 nodes from a network.
 @end deftypefun
 
 @deftypefun ( nodes-connect nodes ... )
 @code{nodes-connect} linearily connects the specified lists of
-@code{node-id}s.
+@code{filter}s.
 @end deftypefun
 
-@deftypefun ( node-set-params node-id '("label" value) ... )
+@deftypefun ( node-set-params filter '("label" value) ... )
 Using @code{node-set-params} you can set the parameters of the
-specified @var{node-id}.
+specified @var{filter}.
 @end deftypefun
 
-@deftypefun ( net-run net-id )
-@deftypefunx ( net-run-bg net-id )
+@deftypefun ( net-run filter )
+@deftypefunx ( net-run-bg filter )
 @code{net-run} starts processing of the network and waits until completion.
 @code{net-run-bg} starts processing of the network and returns immediately.
 @end deftypefun
