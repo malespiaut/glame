@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.13 2001/04/25 08:34:46 nold Exp $
+@comment $Id: glame.texi,v 1.14 2001/04/25 19:42:27 mag Exp $
 
 
 @c %**start of header
@@ -28,7 +28,7 @@
 @author by Richard G@"unther and Daniel Kobras
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 2000, 2001 Richard G@"unther, Daniel Kobras
+Copyright @copyright{} 2000, 2001 Richard G@"unther, Daniel Kobras, Alexander Ehlert
 
 Permission is granted to make and distribute verbatim
 copies of this manual provided the copyright notice and

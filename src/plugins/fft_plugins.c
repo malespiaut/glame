@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.3 2001/04/25 14:32:14 richi Exp $
+ * $Id: fft_plugins.c,v 1.4 2001/04/25 19:42:27 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -78,8 +78,8 @@ SAMPLE window_gain(SAMPLE *win, int n, int osamp) {
 static int fft_connect_out(filter_t *n, filter_port_t *port,
 			   filter_pipe_t *p)
 {
-	int rate, bsize, osamp;
-	float hangle;
+	int rate = 44100, bsize = 2048, osamp = 8;
+	float hangle = 0.0;
 	filter_pipe_t *in;
 	filter_param_t *param;
 	filter_port_t *in_port;
@@ -109,7 +109,7 @@ static int fft_connect_out(filter_t *n, filter_port_t *port,
 
 static void fft_fixup_param(glsig_handler_t *h, long sig, va_list va) {
 	filter_param_t *param;
-	filter_t *n;
+	filter_t *n = NULL;
 	filter_pipe_t *pipe;
 	filter_port_t *port;	
 
@@ -149,7 +149,7 @@ static int fft_f(filter_t *n){
 	filter_param_t *param;
 	rfftw_plan p;
 	SAMPLE *overlap, *s, *win;
-	int osamp, bsize;
+	int osamp, bsize = 2048;
 	int ooff, obufsize, obufcnt, cnt, i, j;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
@@ -200,17 +200,16 @@ static int fft_f(filter_t *n){
 		}
 		
 		s = sbuf_buf(outb);
-		for(i=0; i<cnt; i++)
-			for(j=0;j<bsize;j++)
-				*s++ *= win[j];
+		if (osamp>1) 
+			for(i=0; i<cnt; i++)
+				for(j=0;j<bsize;j++)
+					*s++ *= win[j];
 		
 		rfftw(p, cnt, (fftw_real *)sbuf_buf(outb), 1, bsize, NULL, 1, 1);
 	
 		if (cnt == obufcnt)
 			sbuf_queue(out, outb);
 	} while ( (cnt == obufcnt) && (!queue.done));
-
-	DPRINTF("cnt =%d\n", cnt);
 
 	if (cnt == 0) {
 		sbuf_unref(outb);
@@ -246,7 +245,7 @@ int fft_register(plugin_t *p)
 	filter_add_output(f, PORTNAME_OUT, "fft output", FILTER_PORTTYPE_FFT);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"blocksize",
-			FILTER_PARAMTYPE_INT, 64,
+			FILTER_PARAMTYPE_INT, 2048,
 			FILTERPARAM_DESCRIPTION,"fft-block size",
 			FILTERPARAM_END);
 	
@@ -336,9 +335,10 @@ static int ifft_f(filter_t *n){
 		rfftw(p, ibufcnt, (fftw_real *)s, 1, bsize, NULL, 1, 1);
 		
 		s = sbuf_buf(inb);
-		for (i=0; i<ibufcnt; i++)
-			for(j=0;j<bsize;j++)
-				*s++ *= win[j]*gain;
+		if (osamp>1)
+			for (i=0; i<ibufcnt; i++)
+				for(j=0;j<bsize;j++)
+					*s++ *= win[j]*gain;
 
 		s = sbuf_buf(inb);
 		
@@ -365,7 +365,7 @@ entry:
 }
 
 static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
-	filter_t *n;
+	filter_t *n = NULL;
 	filter_pipe_t *pipe;
 	filter_port_t *port;	
 
@@ -418,7 +418,7 @@ int ifft_register(plugin_t *p)
 static int fft_resample_connect_out(filter_t *n, filter_port_t *port,
 				    filter_pipe_t *p)
 {
-	int rate, bsize;
+	int rate = 44100, bsize = 2048;
 	filter_pipe_t *in;
 	filter_param_t *param;
 
@@ -455,7 +455,7 @@ static int fft_resample_f(filter_t *n){
 	filter_buffer_t *inb,*outb;
 	filter_param_t *param;
 	int bsize,blocks,nbsize;
-	int i,len,rate;
+	int i,len,rate = 0;
 	float gain;
 	
 	if (!(in=filternode_get_input(n, PORTNAME_IN)))
@@ -660,8 +660,8 @@ static int fft_bandpass_f(filter_t *n){
 	filter_buffer_t *inb;
 	filter_param_t *param;
 	int bsize, blocks;
-	int i, j, off, fmin, fmax, freq;
-	float gain;
+	int i, j, off, fmin = 0, fmax = 0, freq;
+	float gain = 1.0;
 	SAMPLE *s, *c;
 
 

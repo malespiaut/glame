@@ -45,10 +45,13 @@ features you may run into and some help how to survive in these cases.
   compiled with --enable-debug). In case the panicing location is inside
   the swapfile code there may be an external source corrupting the swapfile
   - just restart glame in this case and it will try to recover (can you
-  say fsck?).
-
+  say fsck?). Beware: If you enable debug swapfile operations are VERY slow.
+  
 - libgtkwaveform has a few bugs - namely the most annoying one is that
   if you change a wave in size the scrollbar doesnt get updated - to
   workaround this just choose view all (or similar) from the view menu
   or re-open the wave window.
 
+BTW: glame doesn't have a progress bar. So, before you think it is crashed
+     just have a look with top or some tool like it, if it is still doing
+     something.
