@@ -281,7 +281,7 @@ g_wavefile_type_convert (guint32       n_channels,
         case G_WAVEFILE_TYPE_F4:
           f4 = (gfloat*) in;
           for (i = 0; i < frames; i++)
-            *s16++ = double_to_s16 (*f4++);
+            *s16++ = float_to_s16 (*f4++);
           break;
 
 	case G_WAVEFILE_TYPE_F4NI: {

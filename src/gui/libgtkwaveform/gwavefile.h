@@ -51,6 +51,17 @@ double_to_s16 (gdouble d)
   return (gint16) ((d + 1.0) * 32767.5 - 32768.0);
 }
 
+static inline gint16
+float_to_s16 (gfloat d)
+{
+  if (d >= 1.0f)
+    return 32767;
+  else if (d <= -1.0f)
+    return -32768;
+
+  return (gint16) ((d + 1.0f) * 32767.5f - 32768.0f);
+}
+
 static inline gint32
 double_to_s32 (gdouble d)
 {
