@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.18 2001/03/01 15:18:29 richi Exp $
+ * $Id: filter_ops.c,v 1.19 2001/03/29 09:04:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,6 +43,9 @@ struct filter_operations {
 	void (*postprocess)(filter_t *n);
 	int (*wait)(filter_t *n);
 };
+
+#define STATE_RUNNING 3
+#define FILTER_IS_RUNNING(f) ((f)->launch_context && (f)->launch_context->state >= STATE_RUNNING)
 
 
 /* filter_buffer.c: drain pipe to unblock source. */
@@ -405,6 +408,13 @@ int filter_wait(filter_t *net)
 	pthread_join(net->launch_context->waiter, &res);
 
 	return (int)res;
+}
+
+int filter_is_ready(filter_t *net)
+{
+	if (!net)
+		return -1;
+	return !FILTER_IS_RUNNING(net) ? 1 : 0;
 }
 
 void filter_terminate(filter_t *net)

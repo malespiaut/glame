@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.67 2001/03/01 13:59:14 xwolf Exp $
+ * $Id: filter.h,v 1.68 2001/03/29 09:04:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -75,7 +75,6 @@ extern "C" {
 #define STATE_UNDEFINED 0
 #define STATE_INITIALIZED 1
 #define STATE_LAUNCHED 2
-#define STATE_RUNNING 3
 
 #define FILTERTYPE_NODE 0
 #define FILTERTYPE_NETWORK 1
@@ -183,7 +182,6 @@ do { \
 #define FILTER_IS_NODE(f) (!((f)->type & FILTERTYPE_NETWORK))
 
 #define FILTER_IS_LAUNCHED(f) ((f)->state >= STATE_LAUNCHED)
-#define FILTER_IS_RUNNING(f) ((f)->launch_context->state >= STATE_RUNNING)
 
 /* Convenience for setting/querying filter properties.
  * int filter_set_property(filter_t *f, const char *label, const char *value);
@@ -243,6 +241,11 @@ int filter_pause(filter_t *net);
  * Returns 0 on successful completion or -1 on error
  * (in waiting or processing). */
 int filter_wait(filter_t *net);
+
+/* Queries the network if it is ready processing. This function
+ * does not block. Returns 1, if the network is ready, 0 if it
+ * is still operating or -1 on error (NULL net). */
+int filter_is_ready(filter_t *net);
 
 /* Kills a launched network aborting all processing. */
 void filter_terminate(filter_t *net);
