@@ -10,7 +10,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
 	audio_io_alsa_v090.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
-	fader.c symbols.c
+	fader.c builtins.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
@@ -101,5 +101,6 @@ builtins.c: $(libglamebuiltins_la_SOURCES) Makefile.am
 	echo '#include "glplugin.h"' > builtins.c
 	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/int \1_register(plugin_t *p);/' >> builtins.c; done
 	echo 'void register_builtins() {' >> builtins.c
-	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/	\1_register(plugin_add("\1"));/' >> builtins.c; done
+	echo '	plugin_t *p;' >> builtins.c
+	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*\)_register(.*)/	if ((p = plugin_add("\1"))) \1_register(p);/' >> builtins.c; done
 	echo '}' >> builtins.c
