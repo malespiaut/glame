@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.82 2003/04/15 18:58:51 richi Exp $
+ * $Id: filter.h,v 1.83 2003/04/20 21:54:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -195,7 +195,7 @@ do { \
 /* Allocates a new filter structure. You can provide a
  * template to clone from. Returns a new filter_t on
  * success, NULL on error. */
-filter_t *filter_creat(filter_t *template);
+filter_t *filter_creat(filter_t *t);
 
 /* Creates a new filter for use by cloning an existing one
  * specified by a plugin. */
