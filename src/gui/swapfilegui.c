@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id:
+ * $Id: swapfilegui.c,v 1.32 2001/04/22 14:23:17 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -230,15 +230,12 @@ static void flatten_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 	}
 
-	/* Remove the active group and insert the flattened one. */
+	/* Destroy the active group and insert the flattened one. */
 	parent = gpsm_item_parent(old);
 	hpos = gpsm_item_hposition(old);
 	vpos = gpsm_item_vposition(old);
-	gpsm_item_remove(old);
-	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
-
-	/* Destroy the old group. */
 	gpsm_item_destroy(old);
+	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
 }
 
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -294,7 +291,8 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 		
 	we = glame_waveedit_gui_new(gpsm_item_label(item->item), item->item);
 	if (!we) {
-		DPRINTF("Cannot create waveedit gui\n");
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Cannot open wave editor")));
 		return;
 	}
 	gtk_widget_show_all(we);
@@ -361,6 +359,8 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	return;
 
  fail_cleanup:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create exporting network")));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
@@ -446,7 +446,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	channels = i;
 	filter_launch(net);
 	filter_start(net);
-	filter_wait(net); /* ok we could do that more nicely, but not now.. */
+	if (filter_wait(net) != 0)
+		goto fail_cleanup;
 	filter_delete(net);
 
 	/* Notify gpsm of the change. */
@@ -468,6 +469,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	return;
 
  fail_cleanup:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create importing network")));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 }
@@ -553,11 +556,10 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 		gpsm_item_t *item;
 
 		GLSIGH_GETARGS2(va, group, item);
-		if (!(itemw = glame_tree_find_gpsm_item(tree, item)))
-			DERROR("Cannot find item widget");
 
-		/* Remove the item widget. */
-		glame_tree_remove(GLAME_TREE_ITEM(itemw));
+		/* Remove the item widget, if it is still there. */
+		if ((itemw = glame_tree_find_gpsm_item(tree, item)))
+			glame_tree_remove(GLAME_TREE_ITEM(itemw));
 
 		/* Note, that our signal handler will be deleted by
 		 * the widgets destroy method. (hopefully gtk is sane here) */
@@ -611,8 +613,7 @@ GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
         gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_BROWSE);
 
 	/* Add the root group and cause "newitem" signals to be sent
-	 * for each item. -- FIXME we need to delete this handler on
-	 * widget destruction... (gtk signal!?) */
+	 * for each item. */
 	handler = glsig_add_handler(gpsm_item_emitter(root),
 			  GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM,
 			  handle_grp, tree);
