@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.40 2004/10/28 20:24:58 richi Exp $
+ * $Id: importexport.c,v 1.41 2004/11/03 21:35:16 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1143,6 +1143,11 @@ struct exp_s {
         GtkWidget *title, *artist, *album, *year, *comment, *track, *genre;
 	int mp3_menu_index;
 #endif
+#ifdef HAVE_LIBVORBISFILE
+        GtkWidget *quality_select_ogg, *mode_select_ogg, *bitrate_select_ogg;
+        GtkWidget *title_ogg, *artist_ogg, *album_ogg, *year_ogg, *comment_ogg, *track_ogg, *genre_ogg;
+	int ogg_menu_index;
+#endif
 };
 
 static long export_default_filetype = -1; /* auto */
@@ -1223,6 +1228,12 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
 	if (val == ie->mp3_menu_index) {
 		make_comp_menu(ie, -1);
 		ie->filetype = 99;
+	} else 
+#endif
+#ifdef HAVE_LIBVORBISFILE
+	if (val == ie->ogg_menu_index) {
+		make_comp_menu(ie, -1);
+		ie->filetype = 100;
 	} else
 #endif
 	if (val>0) {
@@ -1296,7 +1307,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	int sfi, ri;
 	int totalframes;
 	float percentage;
-	gchar *output_plugin;
+	gchar *output_plugin = "write_file";
 	const gchar *string;
 	int temp1 = 0;
 
@@ -1327,22 +1338,39 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 		ri = 0;
 	
 	/* Check if mp3 file type is selected, or if there is .mp3 in filename
-	 * (can't use mimetype because file does not exist yet) */
-	output_plugin = "write_file";
+	  (can't use mimetype because file does not exist yet) */
 	if (exp->filetype == 99
 	    || (exp->filetype == -1
 		&& strrchr(exp->filename, '.')
 		&& strcasecmp(strrchr(exp->filename, '.'), ".mp3") == 0)) {
 		output_plugin = "write_mp3_file";
 #ifndef HAVE_LIBMP3LAME
-		ed = gnome_error_dialog("Sorry, no mp3 encoding support.\n"
-					"Install Lame encoder and rebuild Glame.");
+		ed = gnome_error_dialog(_("Sorry, no mp3 encoding support.\n"
+					  "Install Lame encoder and rebuild Glame."));
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
 		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
 		gpsm_item_destroy((gpsm_item_t *)grp);
 		return;
 #endif
 	}
+
+	/* Check if oggvorbis file type is selected, or if there is .ogg in filename
+	 * (can't use mimetype because file does not exist yet) */
+	if (exp->filetype == 100
+	    || (exp->filetype == -1
+		&& strrchr(exp->filename, '.')
+		&& strcasecmp(strrchr(exp->filename, '.'), ".ogg") == 0)) {
+		output_plugin = "write_oggvorbis_file";
+#ifndef HAVE_LIBVORBISFILE
+		ed = gnome_error_dialog(_("Sorry, no OggVorbis encoding support.\n"
+					  "Install Ogg and Vorbis libraries rebuild Glame."));
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		gpsm_item_destroy((gpsm_item_t *)grp);
+		return;
+#endif
+	}
+
 	DPRINTF("output plugin is %s \n",output_plugin);
 
 	/* Build basic network. */
@@ -1429,8 +1457,51 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	}
 #endif
 
-	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
+#ifdef HAVE_LIBVORBISFILE
+	else if (!strcmp(output_plugin , "write_oggvorbis_file")) {
+	  	  
+	  /* vorbis quality */
+	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->quality_select_ogg)->entry));
+	  param = filterparamdb_get_param(db, "vorbis encoding quality");
+	  filterparam_from_string(param, string);
+	  DPRINTF("Vorbis qual = %s",string);
 
+	  /* render mode (mono or stereo) */
+	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->mode_select_ogg)->entry));
+	  ri = (strcmp(string,"stereo")) ? 1 : 2 ;
+
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->title_ogg));
+	  param = filterparamdb_get_param(db, "Title");
+	  filterparam_from_string(param, string);
+
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->artist_ogg));
+	  param = filterparamdb_get_param(db, "Artist");
+	  filterparam_from_string(param, string);
+	  
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->album_ogg));
+	  param = filterparamdb_get_param(db, "Album");
+	  filterparam_from_string(param, string);
+
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->year_ogg));
+	  param = filterparamdb_get_param(db, "Year");
+	  filterparam_from_string(param, string);
+	  
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->comment_ogg));
+	  param = filterparamdb_get_param(db, "Comment");
+	  filterparam_from_string(param, string);
+	  
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->track_ogg));
+	  param = filterparamdb_get_param(db, "Track");
+	  filterparam_from_string(param, string);
+	  
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->genre_ogg));
+	  param = filterparamdb_get_param(db, "Genre");
+	  filterparam_from_string(param, string);
+	}
+#endif
+
+	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
+	DPRINTF ("ri = %i \n",ri);
 	if (ri == 1 || ri == 2) {
 		render = net_add_plugin_by_name(net, "render");
 		source = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
@@ -1519,6 +1590,11 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 #ifdef HAVE_LIBMP3LAME
 	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box;
 #endif
+#ifdef HAVE_LIBVORBISFILE
+	GtkWidget *boxtags3,*boxtags4, *frame16, *frame16box,*frame17, *frame17box ,*frame18, *frame18box  ,*frame19, *frame19box,*frame20, *frame20box,*frame21, *frame21box, *frame22, *frame22box, *frame23, *frame23box, *frame24, *frame24box, *frame25, *frame25box;
+#endif
+
+
 
 	/* alloc exp structure. */
 	ie = (struct exp_s*)calloc(1,sizeof(struct exp_s));
@@ -1585,6 +1661,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show(framebox);
 	gtk_container_add(GTK_CONTAINER(frame), framebox);
 
+
+
 	notebook = gtk_notebook_new();
 	gtk_widget_show (notebook);
 	gtk_box_pack_start (GTK_BOX (vbox), GTK_WIDGET(notebook), FALSE, FALSE, 0);
@@ -1608,7 +1686,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie->ocompmenu = gtk_option_menu_new ();
 	gtk_widget_show(ie->ocompmenu);
 	gtk_container_add(GTK_CONTAINER(frame2), ie->ocompmenu);
-
+	
 	frame4 = gtk_frame_new(_("Render Options"));
 	gtk_widget_show(frame4);
 	gtk_box_pack_start (GTK_BOX (typecompbox), frame4, FALSE, FALSE,0);
@@ -1646,6 +1724,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_widget_show(ie->rbutton[i]);
 		gtk_box_pack_start (GTK_BOX (valbox), ie->rbutton[i], FALSE, FALSE,0);
 	}
+	
 	/* now construct option menu with available filetypes */
 	ie->typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
 
@@ -1668,29 +1747,33 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_widget_show(mitem);
 		gtk_menu_append (GTK_MENU (menu), mitem);
 	}
+
 #ifdef HAVE_LIBMP3LAME
 	mitem =  gtk_menu_item_new_with_label("mp3");
 	gtk_widget_show(mitem);
 	gtk_menu_append (GTK_MENU (menu), mitem);
 	ie->mp3_menu_index = i+1;
 #endif
+#ifdef HAVE_LIBVORBISFILE
+	mitem =  gtk_menu_item_new_with_label("ogg vorbis");
+	gtk_widget_show(mitem);
+	gtk_menu_append (GTK_MENU (menu), mitem);
+	ie->ogg_menu_index = i+2;
+#endif
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (ie->otypemenu), menu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
 				     ie->filetype == -1 ? 0 : ie->filetype);
-
 	ie_type_menu_cb(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->otypemenu))), ie);
+	
 
+#ifdef HAVE_LIBMP3LAME	
 	/*** Mp3 lame tab ***/
 	label_tab2 = gtk_label_new(_("Mp3 (Lame)"));
 	gtk_widget_show (label_tab2);
 	bigbox2 = gtk_hbox_new (FALSE, 0); 
 	gtk_widget_show(bigbox2);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), bigbox2 ,label_tab2);
-		
 
-	
-#ifdef HAVE_LIBMP3LAME
-	/* MP3 Lame export */
 	frame5 = gtk_frame_new("MP3 Lame settings");
 	gtk_widget_show(frame5);
 	gtk_box_pack_start (GTK_BOX (bigbox2), frame5, TRUE, TRUE, 0);
@@ -1835,6 +1918,148 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie->genre = gtk_entry_new_with_max_length (128);
 	gtk_box_pack_start (GTK_BOX (frame15box), ie->genre, TRUE, TRUE, 0);
 	gtk_widget_show(ie->genre);
+#endif
+
+
+#ifdef HAVE_LIBVORBISFILE	
+	/*** Ogg Vorbis tab ***/
+	label_tab3 = gtk_label_new(_("Ogg Vorbis"));
+	gtk_widget_show (label_tab3);
+	bigbox3 = gtk_hbox_new (FALSE, 0); 
+	gtk_widget_show(bigbox3);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), bigbox3 ,label_tab3);
+
+	frame25 = gtk_frame_new("Ogg Vorbis settings (vbr)");
+	gtk_widget_show(frame25);
+	gtk_box_pack_start (GTK_BOX (bigbox3), frame25, TRUE, TRUE, 0);
+	frame25box = gtk_vbox_new (TRUE, 7);
+	gtk_widget_show (frame25box);
+	gtk_container_add(GTK_CONTAINER(frame25), frame25box);
+	
+	/* Oggvorbis encoding qual.  */
+	frame24 = gtk_frame_new("Quality");
+	gtk_widget_show(frame24);
+	gtk_box_pack_start (GTK_BOX (frame25box), frame24, TRUE, TRUE, 0);
+	frame24box = gtk_vbox_new (TRUE, 7);
+	gtk_widget_show (frame24box);
+	gtk_container_add(GTK_CONTAINER(frame24), frame24box);
+	GList *glist_ogg_qual = NULL;
+	char *string5[11]={"4 (roughly 128kb/s)","0 (roughly 64kb/s)","1 (roughly 80kb/s)","2 (roughly 96kb/s)","3 (roughly 112kb/s)","5 (roughly 160kb/s)","6 (roughly 192kb/s)","7 (roughly 224kb/s)","8 (roughly 256kb/s)","9 (roughly 320kb/s)","10 (roughly 500kb/s)"};
+	for (i=0 ;i<11; i++) {
+	  glist_ogg_qual = g_list_append (glist_ogg_qual, string5[i]);
+	}
+	ie->quality_select_ogg = gtk_combo_new();
+	gtk_combo_set_popdown_strings (GTK_COMBO (ie->quality_select_ogg), glist_ogg_qual);
+	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->quality_select_ogg)->entry), FALSE);
+	gtk_box_pack_start (GTK_BOX (frame24box), ie->quality_select_ogg, TRUE, TRUE, 0);
+	gtk_widget_show (ie->quality_select_ogg);
+
+	/* Oggvorbis mode */
+	frame17 = gtk_frame_new("Mode");
+	gtk_widget_show(frame17);
+	gtk_box_pack_start (GTK_BOX (frame25box), frame17, TRUE, TRUE, 0);
+	frame17box = gtk_vbox_new (TRUE, 7);
+	gtk_widget_show (frame17box);
+	gtk_container_add(GTK_CONTAINER(frame17), frame17box);
+	GList *glist_ogg = NULL;
+	char *string4[2]={"stereo","mono"};
+	for (i=0 ;i<2; i++) {
+	  glist_ogg = g_list_append (glist_ogg, string4[i]);
+	}
+	ie->mode_select_ogg = gtk_combo_new();
+	gtk_combo_set_popdown_strings (GTK_COMBO (ie->mode_select_ogg), glist_ogg);
+	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->mode_select_ogg)->entry), FALSE);
+	/* gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->mode_select_ogg)->entry), "1 joint stereo"); */
+	gtk_box_pack_start (GTK_BOX (frame17box), ie->mode_select_ogg, TRUE, TRUE, 0);
+	gtk_widget_show (ie->mode_select_ogg);
+
+	boxtags3 = gtk_vbox_new (TRUE, 9);
+	gtk_box_pack_start (GTK_BOX (bigbox3), boxtags3, TRUE, TRUE, 0);
+	gtk_widget_show (boxtags3);
+
+	boxtags4 = gtk_vbox_new (TRUE, 9);
+	gtk_box_pack_start (GTK_BOX (bigbox3), boxtags4, TRUE, TRUE, 0);
+	gtk_widget_show (boxtags4);
+
+
+	/* Oggvorbis title */
+	frame16 = gtk_frame_new("Title");
+	gtk_widget_show(frame16);
+	gtk_box_pack_start (GTK_BOX( boxtags3), frame16, TRUE, TRUE, 0);
+	frame16box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame16box);
+	gtk_container_add(GTK_CONTAINER(frame16), frame16box);
+	ie->title_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame16box), ie->title_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->title_ogg);
+
+	/* Oggvorbis artist */
+	frame18 = gtk_frame_new("Artist");
+	gtk_widget_show(frame18);
+	gtk_box_pack_start (GTK_BOX( boxtags3), frame18, TRUE, TRUE, 0);
+	frame18box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame18box);
+	gtk_container_add(GTK_CONTAINER(frame18), frame18box);
+	ie->artist_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame18box), ie->artist_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->artist_ogg);
+
+	/* Oggvorbis album */
+	frame19 = gtk_frame_new("Album");
+	gtk_widget_show(frame19);
+	gtk_box_pack_start (GTK_BOX( boxtags3), frame19, TRUE, TRUE, 0);
+	frame19box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame19box);
+	gtk_container_add(GTK_CONTAINER(frame19), frame19box);
+	ie->album_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame19box), ie->album_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->album_ogg);
+
+	/* Oggvorbis year */
+	frame20 = gtk_frame_new("Year");
+	gtk_widget_show(frame20);
+	gtk_box_pack_start (GTK_BOX( boxtags4), frame20, TRUE, TRUE, 0);
+	frame20box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame20box);
+	gtk_container_add(GTK_CONTAINER(frame20), frame20box);
+	ie->year_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame20box), ie->year_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->year_ogg);
+
+	/* Oggvorbis comment */
+	frame21 = gtk_frame_new("Comment");
+	gtk_widget_show(frame21);
+	gtk_box_pack_start (GTK_BOX(boxtags4), frame21, TRUE, TRUE, 0);
+	frame21box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame21box);
+	gtk_container_add(GTK_CONTAINER(frame21), frame21box);
+	ie->comment_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame21box), ie->comment_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->comment_ogg);
+	
+	/* Oggvorbis track */
+	frame22 = gtk_frame_new("Track");
+	gtk_widget_show(frame22);
+	gtk_box_pack_start (GTK_BOX(boxtags4), frame22, TRUE, TRUE, 0);
+	frame22box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame22box);
+	gtk_container_add(GTK_CONTAINER(frame22), frame22box);
+	ie->track_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame22box), ie->track_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->track_ogg);
+
+	/* Oggvorbis genre */
+	frame23 = gtk_frame_new("Genre");
+	gtk_widget_show(frame23);
+	gtk_box_pack_start (GTK_BOX(boxtags4), frame23, TRUE, TRUE, 0);
+	frame23box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame23box);
+	gtk_container_add(GTK_CONTAINER(frame23), frame23box);
+	ie->genre_ogg = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame23box), ie->genre_ogg, TRUE, TRUE, 0);
+	gtk_widget_show(ie->genre_ogg);
+
+
 #endif
 
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
