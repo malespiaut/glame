@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: glame CVS\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-12-31 16:45+0100\n"
+"POT-Creation-Date: 2005-01-09 15:56+0100\n"
 "PO-Revision-Date: 2002-10-05 22:00+10\n"
 "Last-Translator: Laurent Georget <lgeorget@club-internet.fr>\n"
 "Language-Team: glame-devel <glame-devel@lists.sf.net>\n"
@@ -161,13 +161,13 @@ msgid "Swapfile Path"
 msgstr "Emplacement (chemin) du fichier d'échange "
 
 #: src/gui/main.c:444
-
 msgid "Maximum virtual memory used for caching [MB]"
 msgstr "Maximum de mémoire virtuelle utilisée pour le cache [MB]"
 
 #: src/gui/main.c:447
 msgid "NOTE: Swapfile settings take effect after restart only"
-msgstr "Les modifications du fichier d'échange  sont effectives  seulement après "
+msgstr ""
+"Les modifications du fichier d'échange  sont effectives  seulement après "
 "redémarrage . "
 
 #: src/gui/main.c:452
@@ -238,8 +238,9 @@ msgstr "et d'autres"
 msgid ""
 "Copyright (C) 1999-2004 R. Guenther, A. Ehlert, J. Hirche, D. Kobras and "
 "others"
-msgstr "Copyright (C) 1999-2004 R. Guenther, A. Ehlert, J. Hirche, D. Kobras et"
-"d'autres"
+msgstr ""
+"Copyright (C) 1999-2004 R. Guenther, A. Ehlert, J. Hirche, D. Kobras "
+"etd'autres"
 
 #: src/gui/main.c:690
 msgid ""
@@ -273,7 +274,7 @@ msgid ""
 "Allan Lyckegaard"
 msgstr ""
 
-#: src/gui/main.c:744
+#: src/gui/main.c:750
 #, c-format
 msgid ""
 "The GLAME swapfile subsystem is about to commit suicide.\n"
@@ -296,7 +297,7 @@ msgstr ""
 "\n"
 "-- Au revoir \n"
 
-#: src/gui/main.c:795
+#: src/gui/main.c:801
 msgid ""
 "Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
@@ -309,7 +310,7 @@ msgstr ""
 "le \"chemin du fichier d'échange audio\" et les réglages des \"entrées/"
 "sorties audio\".\n"
 
-#: src/gui/main.c:802
+#: src/gui/main.c:808
 msgid ""
 "You didnt change/check the configuration.\n"
 "GLAME is exiting now.\n"
@@ -317,7 +318,7 @@ msgstr ""
 "Vous n'avez pas changé/vérifié la configuration.\n"
 "Glame va se terminer.\n"
 
-#: src/gui/main.c:813
+#: src/gui/main.c:819
 #, c-format
 msgid ""
 "GLAME was unable to create its swapfile\n"
@@ -328,11 +329,11 @@ msgstr ""
 "à cause de \"%s\". \n"
 "Vérifiez la configuration svp.\n"
 
-#: src/gui/main.c:889
+#: src/gui/main.c:895
 msgid "    GLAME version "
 msgstr "    GLAME Version "
 
-#: src/gui/main.c:889
+#: src/gui/main.c:895
 msgid ""
 ", Copyright (C) 1999-2004 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
@@ -427,81 +428,83 @@ msgstr "Analyse en cours"
 msgid "Cancelled."
 msgstr "Annulé"
 
-#: src/gui/importexport.c:980
+#: src/gui/importexport.c:981
 msgid "File Information"
 msgstr "Informations fichier"
 
-#: src/gui/importexport.c:1013
+#: src/gui/importexport.c:1014
 msgid "Get RMS & DC-Offset"
 msgstr "Calculer RMS & DC-Offset"
 
-#: src/gui/importexport.c:1037
+#: src/gui/importexport.c:1038
 msgid "Resample"
 msgstr "Rééchantill."
 
-#: src/gui/importexport.c:1045 src/gui/tree/gltree.c:96
+#: src/gui/importexport.c:1046 src/gui/tree/gltree.c:96
 msgid "Rate"
 msgstr "Freq."
 
-#: src/gui/importexport.c:1072
+#: src/gui/importexport.c:1073
 msgid "Import"
 msgstr "Importer"
 
-#: src/gui/importexport.c:1371
-msgid "Sorry, no mp3 encoding support.\n"
+#: src/gui/importexport.c:1377
+msgid ""
+"Sorry, no mp3 encoding support.\n"
 "Install Lame encoder and rebuild Glame."
-msgstr "Désolé, pas de support pour l'encodage mp3."
-"Installer Lame et recompiler Glame."
+msgstr ""
+"Désolé, pas de support pour l'encodage mp3.Installer Lame et recompiler "
+"Glame."
 
-#: src/gui/importexport.c:1388
+#: src/gui/importexport.c:1394
 msgid ""
 "Sorry, no OggVorbis encoding support.\n"
 "Install Ogg and Vorbis libraries rebuild Glame."
 msgstr ""
-"Désolé, pas de support pour l'encodage OggVorbis."
-"Installer les libs Ogg et Vorbis et recompiler Glame."
+"Désolé, pas de support pour l'encodage OggVorbis.Installer les libs Ogg et "
+"Vorbis et recompiler Glame."
 
-#: src/gui/importexport.c:1555
+#: src/gui/importexport.c:1561
 msgid "Exporting..."
 msgstr "Exportation..."
 
-#: src/gui/importexport.c:1594
+#: src/gui/importexport.c:1600
 msgid "Error!"
 msgstr "erreur!"
 
-#: src/gui/importexport.c:1663
+#: src/gui/importexport.c:1670
 msgid "Export as:"
 msgstr "Exporter sous:"
 
-#: src/gui/importexport.c:1690
+#: src/gui/importexport.c:1697
 msgid "File Format"
 msgstr "Format du fichier"
 
-#: src/gui/importexport.c:1702
+#: src/gui/importexport.c:1709
 msgid "Main"
 msgstr "Princ."
 
-#: src/gui/importexport.c:1712
+#: src/gui/importexport.c:1719
 msgid "Compression Type"
 msgstr "Type de compression"
 
-#: src/gui/importexport.c:1721
+#: src/gui/importexport.c:1728
 msgid "Render Options"
 msgstr "Options de sortie"
 
-#: src/gui/importexport.c:1742
+#: src/gui/importexport.c:1749
 msgid "Sample Format"
 msgstr "Format"
 
-#: src/gui/importexport.c:1787
+#: src/gui/importexport.c:1794
 msgid "Mp3 (Lame)"
 msgstr ""
 
-#: src/gui/importexport.c:1930
+#: src/gui/importexport.c:1938
 msgid "Ogg Vorbis"
 msgstr ""
 
-#: src/gui/importexport.c:2072 src/gui/waveeditgui.c:1557
+#: src/gui/importexport.c:2081 src/gui/waveeditgui.c:1557
 msgid "Export"
 msgstr "Export"
 
