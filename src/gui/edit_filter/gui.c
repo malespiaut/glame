@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.1 2000/12/07 14:28:31 xwolf Exp $
+ * $Id: gui.c,v 1.2 2000/12/07 17:37:38 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -226,8 +226,7 @@ GSList* gui_browse_registered_filters(void)
 	/* browse registered plugins */
       while((plugin = plugin_next(plugin))){
 	      if(plugin_query(plugin,PLUGIN_FILTER)){
-		      name = strdup(plugin_name(plugin));
-		      ret=g_slist_append(ret,(gpointer)name);
+		      ret=g_slist_append(ret,(gpointer)plugin);
 	      }
 	      fprintf(stderr,"%s\n",plugin_name(plugin));
       }

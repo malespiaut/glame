@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.2 2000/12/07 16:03:47 richi Exp $
+ * $Id: canvas.c,v 1.3 2000/12/07 17:37:38 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -281,6 +281,45 @@ node_select(GtkWidget*wid, char* name)
 	add_filter_by_name(name);
 }
 
+typedef struct {
+	char* categorie;
+	GtkWidget * submenu;
+} catmenu;	
+
+	
+GSList* append_to_categorie(GSList* cats,plugin_t *plug)
+{
+	char* catpath;
+
+	GSList * item;
+	GtkWidget *newmen,*newitem;
+	catmenu* newcat;
+	char* cdefault="Default";
+	catpath = plugin_query(plug,PLUGIN_CATEGORY);
+	if(!catpath)
+		catpath = cdefault;
+	item = cats;
+	while(item){
+		if(!(strcmp(catpath,(char*)(((catmenu*)(item->data))->categorie)))){
+			newcat = (catmenu*)(item->data);
+			goto found;
+		}
+		item = g_slist_next(item);
+	}
+	//not found
+	newcat = malloc(sizeof(catmenu));
+	newcat->submenu = gtk_menu_new();
+	gtk_widget_show(newcat->submenu);
+	newcat->categorie = strdup(catpath);
+	cats=g_slist_append(cats,newcat);
+ found:
+	newitem = gtk_menu_item_new_with_label((gchar*)strdup(plugin_name(plug)));
+	gtk_widget_show(newitem);
+	gtk_menu_append(newcat->submenu,newitem);
+	gtk_signal_connect(newitem,"activate",node_select,(gchar*)plugin_name(plug));	
+	return cats;
+}
+
 static gint
 root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 {
@@ -290,27 +329,46 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 	GdkEventButton *event_button;
 	GSList * nodes,*it;
 	int i;
+	char * catpath;
+	catmenu  *cat;
+	GSList * categories=NULL;
+	
 	GnomeUIInfo *node_select_menu;
+	plugin_t * plugin;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		if(!inItem){
+			
 			event_button = (GdkEventButton *) event;
 //			gnome_canvas_c2w(canv,event->button.x,event->button.y,&event_x,&event_y);
 			event_x = event->button.x;
 			event_y = event->button.y;
 			win=canv;
 			if(event->button.button==3){
+				cat = malloc(sizeof(catmenu));
+				cat->categorie = strdup("Default");
+				cat->submenu = gtk_menu_new();
+				gtk_widget_show(cat->submenu);
+				categories = g_slist_append(categories,cat);
+				
 				nodes=gui_browse_registered_filters(); 
 				menu = gnome_popup_menu_new(root_menu);
 				submenu = gtk_menu_new();
 				par = root_menu[0].widget; // eeevil hack to change menu
+				
 				for(i=0;i<g_slist_length(nodes);i++){ 
 					it = g_slist_nth(nodes,i); 
-					item = gtk_menu_item_new_with_label((gchar*)(it->data));
+					plugin = (plugin_t*)(it->data);
+//					item = gtk_menu_item_new_with_label((gchar*)plugin_name(plugin));
+//				        gtk_widget_show(item);
+					categories = append_to_categorie(categories,plugin);
+				}
+				for(i=0;i<g_slist_length(categories);i++){
+					cat = (catmenu*)((GSList*)g_slist_nth(categories,i)->data);
+					item = gtk_menu_item_new_with_label(cat->categorie);
+					gtk_menu_item_set_submenu(item,cat->submenu);
 					gtk_widget_show(item);
 					gtk_menu_append(submenu,item);
-					gtk_signal_connect(item,"activate",node_select,(gchar*)(it->data));
-					
 				}
 				gtk_widget_show(submenu);
 				gtk_menu_item_set_submenu(par,submenu);
