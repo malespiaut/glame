@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.59 2001/06/11 08:42:31 richi Exp $
+ * $Id: main.c,v 1.60 2001/06/11 08:44:51 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -40,6 +40,7 @@
 #include "gpsm.h"
 #include "clipboard.h"
 #include "glame_accelerator.h"
+#include "glame_console.h"
 
 
 /* Globals. */
@@ -52,6 +53,7 @@ extern gboolean bMac;
 
 /* Forward declarations. */
 static void create_new_project_cb(GtkWidget *menu, void * blah);
+static void show_console_cb(GtkWidget *menu, void *blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
@@ -62,6 +64,8 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM (_("Show _console"), "Shows the GLAME console", show_console_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -109,6 +113,11 @@ static GnomeUIInfo menubar_uiinfo[] =
   GNOMEUIINFO_END
 };
 
+
+static void show_console_cb(GtkWidget *menu, void * blah)
+{
+	glame_console_show();
+}
 
 extern void edit_tree_label(GlameTreeItem * item);
 static void create_new_project_cb(GtkWidget *menu, void * blah)
@@ -617,6 +626,15 @@ static void gui_main()
 
 	/* Pop up splash screen. */
 	glame_splash();
+
+	/* Pop up console. */
+	glame_console_init();
+	glame_console_printf(
+"    GLAME version "VERSION", Copyright (C) 1999-2001 by\n"
+"    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
+"    Daniel Kobras. GLAME comes with ABSOLUTELY NO\n"
+"    WARRANTY. This is free software, and you are welcome to\n"
+"    redistribute it under certain conditions.\n\n");
 
 	/* main loop */
        	gtk_main();
