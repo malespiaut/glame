@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.83 2001/04/26 13:00:29 xwolf Exp $
+ * $Id: canvas.c,v 1.84 2001/04/26 13:10:09 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1914,30 +1914,29 @@ draw_network(filter_t *filter)
 	filterportdb_foreach_port(filter_portdb(filter),port){
 		node = filter_get_node(filter,filterport_get_property(port,FILTERPORT_MAP_NODE));
 		buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
-		if(node->gui_priv){
-			item = GLAME_CANVAS_ITEM(node->gui_priv);
-			portlist = g_list_first(item->input_ports);
-			while(portlist){
-				if(!strcmp(buffer,filterport_label(GLAME_CANVAS_PORT(portlist->data)->port))){
-					GLAME_CANVAS_PORT(portlist->data)->port_type |= GUI_PORT_TYPE_EXTERNAL;
-					canvas_item_redraw(item);
-					goto end;
-				}
-				portlist = g_list_next(portlist);
+		if (!node || !buffer || !node->gui_priv)
+			continue;
+		item = GLAME_CANVAS_ITEM(node->gui_priv);
+		portlist = g_list_first(item->input_ports);
+		while(portlist){
+			if(strcmp(buffer,filterport_label(GLAME_CANVAS_PORT(portlist->data)->port)) == 0){
+				GLAME_CANVAS_PORT(portlist->data)->port_type |= GUI_PORT_TYPE_EXTERNAL;
+				canvas_item_redraw(item);
+				goto end;
 			}
-			portlist = g_list_first(item->output_ports);
-			while(portlist){
-				if(!strcmp(buffer,filterport_label(GLAME_CANVAS_PORT(portlist->data)->port))){
-					GLAME_CANVAS_PORT(portlist->data)->port_type |= GUI_PORT_TYPE_EXTERNAL;
-					canvas_item_redraw(item);
-					goto end;
-				}
-				portlist = g_list_next(portlist);
+			portlist = g_list_next(portlist);
+		}
+		portlist = g_list_first(item->output_ports);
+		while(portlist){
+			if(strcmp(buffer,filterport_label(GLAME_CANVAS_PORT(portlist->data)->port)) == 0){
+				GLAME_CANVAS_PORT(portlist->data)->port_type |= GUI_PORT_TYPE_EXTERNAL;
+				canvas_item_redraw(item);
+				goto end;
 			}
-		}else{
-			DPRINTF("This can't happen!\n");
+			portlist = g_list_next(portlist);
 		}
 	end:
+		;
 	}
 	
 	canvas_update_scroll_region(GLAME_CANVAS(canv));
