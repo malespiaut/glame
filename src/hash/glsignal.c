@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.10 2001/04/09 09:17:58 richi Exp $
+ * $Id: glsignal.c,v 1.11 2001/04/09 13:34:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -132,9 +132,11 @@ void glsig_delete_handler(glsig_handler_t *h)
 
 void glsig_delete_all(glsig_emitter_t *e)
 {
-	while (!list_empty(&e->handlers))
-		glsig_delete_handler(list_entry(e->handlers.next,
-						glsig_handler_t, list));
+	glsig_handler_t *h;
+	struct list_head *dummy;
+
+	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
+		glsig_delete_handler(h);
 }
 
 
