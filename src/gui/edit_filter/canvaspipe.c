@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.11 2001/06/19 12:09:01 richi Exp $
+ * $Id: canvaspipe.c,v 1.12 2001/06/20 19:56:26 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -34,6 +34,7 @@
 
 
 extern gboolean bMac;
+extern guint nPopupTimeout;
 
 HASH(gcpipe, GlameCanvasPipe, 8,
 	(gcpipe->pipe == key ),
@@ -317,6 +318,201 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 	}
 }
 
+
+gboolean 
+glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
+{
+
+	filter_param_t* param;
+	GnomeCanvasText * text;
+	GnomeCanvasGroup *group;
+	GnomeCanvasRect* rect;
+	char buffer[256];
+	const char* font = glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(pipe)->canvas));
+	float y;
+	double xOffset,yOffset;
+	double bmaxx,bminx,bminy,bmaxy, recx1,recx2,recy1,recy2;
+	gboolean params = FALSE;
+	if(pipe->timeout_id){
+		gtk_timeout_remove(pipe->timeout_id);
+		pipe->timeout_id = 0;
+	}
+	
+	bmaxx=-999999999.0;
+	bminx=9999999999.0;
+	bmaxy=-999999999.0;
+	bminy=999999999.0;
+
+
+	xOffset = (GNOME_CANVAS_RE(pipe->circle)->x1+GNOME_CANVAS_RE(pipe->circle)->x2)/2.0;
+	yOffset = GNOME_CANVAS_RE(pipe->circle)->y2;
+
+	y = 10.0 + yOffset;
+	
+	DPRINTF("foo\n");
+	group = GNOME_CANVAS_GROUP(CANVAS_ITEM_ROOT(pipe));
+	group = GNOME_CANVAS_GROUP(gnome_canvas_item_new(group,
+				      gnome_canvas_group_get_type(),
+				      NULL));
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
+	if(filterparamdb_nrparams(filterpipe_sourceparamdb(pipe->pipe))){
+		params = TRUE;
+		snprintf(buffer,255, "Source params:");
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+							       gnome_canvas_text_get_type(),
+							       "x",xOffset,
+							       "y",y,
+							       "text",buffer,
+							       "font",font,
+							       "clip_width",94.0,
+							       "clip_height",16.0,
+							       "fill_color","blue",
+							       "anchor",GTK_ANCHOR_WEST,
+							       "justification",GTK_JUSTIFY_LEFT, 
+							       "clip",0,
+							       NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		
+		gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		
+		y +=16.0;
+		
+		filterparamdb_foreach_param(filterpipe_sourceparamdb(pipe->pipe),param){
+			char *str;
+			str = filterparam_to_string(param);
+			snprintf(buffer, 255, "%s: %s", filterparam_label(param), str);
+			free(str);
+			text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+								       gnome_canvas_text_get_type(),
+								       "x",xOffset,
+					     "y",y,
+								       "text",buffer,
+								       "font",font,
+								       "clip_width",94.0,
+								       "clip_height",16.0,
+								       "fill_color","black",
+								       "anchor",GTK_ANCHOR_WEST,
+								       "justification",GTK_JUSTIFY_LEFT, 
+								       "clip",0,
+								       NULL));
+			gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+			
+			gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+			bmaxx = bmaxx<recx2?recx2:bmaxx;
+			bmaxy = bmaxy<recy2?recy2:bmaxy;
+			bminx = bminx>recx1?recx1:bminx;
+			bminy = bminy>recy1?recy1:bminy;
+			
+			y+=16.0;
+		}
+	}
+	if(filterparamdb_nrparams(filterpipe_destparamdb(pipe->pipe))){
+		params = TRUE;
+		snprintf(buffer,255, "Dest params:");
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+							       gnome_canvas_text_get_type(),
+							       "x",xOffset,
+							       "y",y,
+							       "text",buffer,
+							       "font",font,		       
+							       "clip_width",94.0,
+							       "clip_height",16.0,
+							       "fill_color","red",
+							       "anchor",GTK_ANCHOR_WEST,
+							       "justification",GTK_JUSTIFY_LEFT, 
+							       "clip",0,
+							       NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+	
+		gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		
+		y +=16.0;
+		
+		filterparamdb_foreach_param(filterpipe_destparamdb(pipe->pipe),param){
+			char *str;
+			str = filterparam_to_string(param);
+			snprintf(buffer, 255, "%s: %s", filterparam_label(param), str);
+			free(str);
+			text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+								       gnome_canvas_text_get_type(),
+								       "x",xOffset,
+								       "y",y,
+								       "text",buffer,
+								       "font",font,
+								       "clip_width",94.0,
+								       "clip_height",16.0,
+								       "fill_color","black",
+								       "anchor",GTK_ANCHOR_WEST,
+								       "justification",GTK_JUSTIFY_LEFT, 
+								       "clip",0,
+								       NULL));
+			gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+			
+			gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+			bmaxx = bmaxx<recx2?recx2:bmaxx;
+			bmaxy = bmaxy<recy2?recy2:bmaxy;
+			bminx = bminx>recx1?recx1:bminx;
+			bminy = bminy>recy1?recy1:bminy;
+			
+			y+=16.0;
+		}
+	}
+	if(params){
+	rect = GNOME_CANVAS_RECT(gnome_canvas_item_new(group,
+				     gnome_canvas_rect_get_type(),
+				     "x1",bminx -5.0,
+				     "y1",bminy -5.0,
+				     "x2",bmaxx+5.0,
+				     "y2",bmaxy+5.0,
+				     "outline_color","black",
+				     "width_units",1.0,
+				     "fill_color_rgba",0xd0d0ff00,
+				     NULL));
+	gnome_canvas_item_lower_to_bottom(GNOME_CANVAS_ITEM(rect));
+	}
+	pipe->popupGroup = group;
+	return FALSE;
+}
+
+static void
+glame_canvas_pipe_hide_properties(GlameCanvasPipe *pipe)
+{
+	if(!pipe->popupGroup){
+		return;
+	}
+	gtk_object_destroy(GTO(pipe->popupGroup));
+	pipe->popupGroup = NULL;
+
+}
+
+
+static void
+glame_canvas_pipe_register_popup(GlameCanvasPipe* pipe)
+{
+	if(pipe->timeout_id){
+		gtk_timeout_remove(pipe->timeout_id);
+	}
+	pipe->timeout_id = gtk_timeout_add(nPopupTimeout,(GtkFunction)glame_canvas_pipe_show_properties,pipe);
+}
+static void
+glame_canvas_pipe_deregister_popup(GlameCanvasPipe* pipe)
+{
+	if(pipe->timeout_id){
+		gtk_timeout_remove(pipe->timeout_id);
+		pipe->timeout_id = 0;
+	}else{
+		glame_canvas_pipe_hide_properties(pipe);
+	}
+}
+
 static gboolean
 glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
 {
@@ -355,6 +551,12 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 			}
 			break;
 		}
+		break;
+	case GDK_ENTER_NOTIFY:
+		glame_canvas_pipe_register_popup(p);
+		break;
+	case GDK_LEAVE_NOTIFY:
+		glame_canvas_pipe_deregister_popup(p);
 		break;
 	default:
 		return FALSE;

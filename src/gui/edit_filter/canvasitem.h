@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.10 2001/06/06 22:50:35 xwolf Exp $
+ * $Id: canvasitem.h,v 1.11 2001/06/20 19:56:26 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -160,7 +160,9 @@ struct _GlameCanvasPort {
 	GnomeCanvasText* name;
 	
 	gboolean external;
-	
+	guint timeout_id;
+	GnomeCanvasGroup *popupGroup;
+
 	GlameCanvasPort **pprev_gcport_hash;
 	GlameCanvasPort *next_gcport_hash;
 };
@@ -176,7 +178,7 @@ struct _GlameCanvasPortClass {
 
 GtkType glame_canvas_port_get_type(void);
 gboolean glame_canvas_port_is_external(GlameCanvasPort* port);
-void glame_canvas_port_show_properties(GlameCanvasPort* port);
+gboolean glame_canvas_port_show_properties(GlameCanvasPort* port);
 void glame_canvas_port_hide_properties(GlameCanvasPort* port);
 void glame_canvas_port_redraw(GlameCanvasPort* port);
 void glame_canvas_port_set_external(GlameCanvasPort* port, gboolean external);
@@ -212,6 +214,8 @@ struct _GlameCanvasPipe {
 	GnomeCanvasPoints *points;
 	GnomeCanvasLine *line;
 	GnomeCanvasEllipse *circle;
+	guint timeout_id;
+	GnomeCanvasGroup* popupGroup;
 
 	GlameCanvasPipe **pprev_gcpipe_hash;
 	GlameCanvasPipe *next_gcpipe_hash;
@@ -228,11 +232,8 @@ struct _GlameCanvasPipeClass {
 /* public */
 GtkType glame_canvas_pipe_get_type(void);
 
-void glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe);
+gboolean glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe);
 void glame_canvas_pipe_hide_properties(GlameCanvasPipe* pipe);
-
-
-filter_paramdb_t* glame_canvas_pipe_get_paramdb(GlameCanvasPipe* pipe);
 
 
 

@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.19 2001/06/19 12:09:01 richi Exp $
+ * $Id: canvasfilter.c,v 1.20 2001/06/20 19:56:26 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -509,6 +509,11 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	float y;
 	double xOffset,yOffset,dummy1,dummy2;
 	double bmaxx,bminx,bminy,bmaxy, recx1,recx2,recy1,recy2;
+
+	if(filter->timeout_id){
+		gtk_timeout_remove(filter->timeout_id);
+		filter->timeout_id = 0;
+	}
 	
 	bmaxx=-999999999.0;
 	bminx=9999999999.0;
@@ -594,8 +599,6 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	gnome_canvas_item_lower_to_bottom(GNOME_CANVAS_ITEM(rect));
 	filter->popupGroup = group;
 
-	gtk_timeout_remove(filter->timeout_id);
-	filter->timeout_id = 0;
 	return FALSE;
 }
 

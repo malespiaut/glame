@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.12 2001/06/19 12:09:01 richi Exp $
+ * $Id: canvasport.c,v 1.13 2001/06/20 19:56:26 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -32,6 +32,7 @@
 #include "hash.h"
 #include <X11/bitmaps/hlines3>
 extern gboolean bMac;
+extern guint nPopupTimeout;
 
 HASH(gcport, GlameCanvasPort, 8,
 	(gcport->port == key ),
@@ -338,6 +339,25 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 	free(filenamebuffer);
 }	
 
+static void
+glame_canvas_port_register_popup(GlameCanvasPort* port)
+{
+	if(port->timeout_id){
+		gtk_timeout_remove(port->timeout_id);
+	}
+	port->timeout_id = gtk_timeout_add(nPopupTimeout,(GtkFunction)glame_canvas_port_show_properties,port);
+}
+static void
+glame_canvas_port_deregister_popup(GlameCanvasPort* port)
+{
+	if(port->timeout_id){
+		gtk_timeout_remove(port->timeout_id);
+		port->timeout_id = 0;
+	}else{
+		glame_canvas_port_hide_properties(port);
+	}
+}
+
 static gboolean
 glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPort* port)
 {
@@ -401,6 +421,12 @@ glame_canvas_port_event_cb(GnomeCanvasItem* item, GdkEvent* event, GlameCanvasPo
 			return FALSE;
 			break;
 		}
+	case GDK_ENTER_NOTIFY:
+		glame_canvas_port_register_popup(port);
+		break;
+	case GDK_LEAVE_NOTIFY:
+		glame_canvas_port_deregister_popup(port);
+		break;
 	default:
 		return FALSE;
 		break;
@@ -476,38 +502,71 @@ glame_canvas_port_set_external(GlameCanvasPort* port,
 	glame_canvas_port_redraw(port);
 }
 
-void
+gboolean
 glame_canvas_port_show_properties(GlameCanvasPort* port)
 {
-	GnomeCanvasGroup * group = GNOME_CANVAS_GROUP(port);
-	
+	GnomeCanvasGroup * group;
+	GnomeCanvasText *text;
+	double xs,ys,xe,ye;
+	double recx1,recx2,recy1,recy2;
+
 	char * font = glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(port)->canvas));
 	char buffer[256];
-
-	sprintf(buffer,"%s",filterport_label(port->port));
 	
-	port->name = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+	if(port->timeout_id){
+		gtk_timeout_remove(port->timeout_id);
+		port->timeout_id=0;
+	}
+
+
+	gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(port),&xs,&ys,&xe,&ye);
+
+	group = GNOME_CANVAS_GROUP(gnome_canvas_item_new(CANVAS_ITEM_ROOT(port),
+							 gnome_canvas_group_get_type(),
+							 NULL));
+	
+	sprintf(buffer,"Label: %s",filterport_label(port->port));
+	fprintf(stderr,"%f %f %f %f\n",xs,ys,xe,ye);
+	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 							     gnome_canvas_text_get_type(),
-							     "x",filterport_is_input(port->port)?-4.0:20.0,
-							     "y",GNOME_CANVAS_ITEM(port)->y1,
+							     "x",0.0, //xs + filterport_is_input(port->port)?-4.0:20.0,
+							     "y",0.0,//ys,
 							     "text",buffer,
 							     "clip_width",94.0,
 							     "clip_height",16.0,
-							     "fill_color","blue",
+							     "fill_color","black",
 							     "anchor",(filterport_is_input(port->port)?GTK_ANCHOR_EAST:GTK_ANCHOR_WEST),
 							     "justification",(filterport_is_input(port->port)?GTK_JUSTIFY_RIGHT:GTK_JUSTIFY_LEFT), 
 							     "font", font,
 							     "clip",0,
 							     NULL));
+
+	gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+	gnome_canvas_item_lower_to_bottom(gnome_canvas_item_new(group,
+								gnome_canvas_rect_get_type(),
+								"x1",recx1-5.0,
+								"x2",recx2+5.0,
+								"y1",recy1-5.0,
+								"y2",recy2+5.0,
+								"outline_color","black",
+								"width_units",1.0,
+								"fill_color_rgba",0xd0d0ff00,
+								NULL));
+	gnome_canvas_item_raise_to_top(text);
+
+	gnome_canvas_item_move(group,(filterport_is_input(port->port)?(xs-4.0):(xe+4.0)),ys);
+
+	port->popupGroup = group;
+	return FALSE;
 }
 
 void
 glame_canvas_port_hide_properties(GlameCanvasPort* port)
 {
-	if(!port->name)
+	if(!port->popupGroup)
 		return;
-	
-	gtk_object_destroy(GTK_OBJECT(port->name));
+	gtk_object_destroy(GTO(port->popupGroup));
+	port->popupGroup = NULL;
 }
 
 void
