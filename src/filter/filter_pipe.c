@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.3 2000/12/18 09:51:55 richi Exp $
+ * $Id: filter_pipe.c,v 1.4 2001/03/01 17:08:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -97,6 +97,7 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 
 	if (!source || !dest
 	    || !filterport_filter(source) || !filterport_filter(dest)
+	    || filterport_filter(source) == filterport_filter(dest)
 	    || !filterport_is_output(source)
 	    || !filterport_is_input(dest))
 		return NULL;
