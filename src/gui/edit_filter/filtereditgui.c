@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.26 2001/07/10 17:21:38 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.27 2001/07/11 08:36:53 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -392,7 +392,7 @@ static SCM gls_editfilter_delete_selection(SCM list)
 	GList *iter;
 	iter = g_list_first(glcanvas->selectedItems);
 	while(iter){
-		filter_delete(GLAME_CANVAS_FILTER(iter->data)->filter);
+		glame_canvas_group_delete(GLAME_CANVAS_GROUP(iter->data));
 		iter = g_list_next(iter);
 	}
 	g_list_free(glcanvas->selectedItems);

@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.21 2001/07/11 08:16:58 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.22 2001/07/11 08:36:53 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -408,6 +408,8 @@ void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 
 int glame_canvas_group_remove_item(GlameCanvasGroup* group, GlameCanvasFilter* item)
 {
+	if(!group)
+		return;
 	group->children = g_list_remove(group->children,item);
 	if(!group->children)
 		if(!group->groups){
@@ -423,6 +425,28 @@ void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup
 	glame_canvas_group_remove_item(group,item);
 } 
 
+void glame_canvas_group_delete(GlameCanvasGroup* group)
+{
+	GList * list;
+
+	list = g_list_first(group->children);
+	while(list){
+		if(GLAME_IS_CANVAS_FILTER(list->data)){
+			filter_delete(GLAME_CANVAS_FILTER(list->data)->filter);
+			
+		}
+		list = g_list_next(list);
+	}
+	list = g_list_first(group->groups);
+	while(list){
+		if(GLAME_IS_CANVAS_GROUP(list->data)){
+			glame_canvas_group_delete(list->data);
+		}
+		list = g_list_next(list);
+	}
+}
+			
+	
 void glame_canvas_group_deleted_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
 {
 	static int rec_level = 0;
