@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.39 2001/11/28 00:19:06 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.40 2001/11/28 14:10:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -289,21 +289,21 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 		line = calloc(4,sizeof(char*));
 		buffer = filterport_label(port);
 		if(buffer)
-			line[0] = strdup(filterport_label(port));
+			line[0] = filterport_label(port);
 		else
-			line[0] = strdup("Empty");
+			line[0] = "Empty";
 		line[1] = (filterport_is_input(port)?"In":"Out");
 		buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
 		if(buffer)
-			line[2] = strdup(buffer);
+			line[2] = buffer;
 		else
-			line[2] = strdup("Empty");
+			line[2] = "Empty";
 		
 		buffer = filterport_get_property(port,FILTERPORT_MAP_NODE);
 		if(buffer)
-			line[3] = strdup(buffer);
+			line[3] = buffer;
 		else
-			line[3]= strdup("Unkown");
+			line[3]= "Unkown";
 		redPorts = g_list_append(redPorts,port);
 		gtk_clist_append(list,line);
 	}
@@ -326,24 +326,24 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
 		line = calloc(4,sizeof(char*));
 		buffer = filterparam_label(param);
 		if(buffer)
-			line[0] = strdup(buffer);
+			line[0] = buffer;
 		else
-			line[0] = strdup("Empty");
+			line[0] = "Empty";
 		buffer = filterparam_to_string(param);
 		if(buffer)
-			line[1] = strdup(buffer);
+			line[1] = buffer;
 		else
-			line[1] = strdup("Empty");
+			line[1] = "Empty";
 		buffer = filterparam_get_property(param,FILTERPARAM_DESCRIPTION);
 		if(buffer)
-			line[2] = strdup(buffer);
+			line[2] = buffer;
 		else
-			line[2] = strdup("Empty");
+			line[2] = "Empty";
 		buffer = filterparam_get_property(param,FILTERPARAM_MAP_NODE);
 		if(buffer)
-			line[3] = strdup(buffer);
+			line[3] = buffer;
 		else
-			line[3] = strdup("Unkown");
+			line[3] = "Unkown";
 		redParms = g_list_append(redParms,param);
 		gtk_clist_append(list,line);
 	}
@@ -524,9 +524,9 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 	const char *name;
 	
 	if(net && filter_name(net))
-		name = strdup(filter_name(net));
+		name = filter_name(net);
 	else
-		name = strdup("Untitled");
+		name = "Untitled";
 
 	window = FILTEREDIT_GUI(gtk_type_new(filteredit_gui_get_type()));
 	gnome_app_construct(GNOME_APP(window), "glame0.5", _(name));

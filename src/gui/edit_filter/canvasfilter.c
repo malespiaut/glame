@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.42 2001/11/28 14:01:33 richi Exp $
+ * $Id: canvasfilter.c,v 1.43 2001/11/28 14:10:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -886,15 +886,15 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	filterportdb_foreach_port(ports,port){
 		line = calloc(3,sizeof(char*));
 		if(filterport_label(port))
-			buffer = strdup(filterport_label(port));
+			buffer = filterport_label(port);
 		else
-			buffer = strdup("Empty");
+			buffer = "Empty";
 		line[0] = buffer;
 		line[1] = (filterport_is_input(port)?"In":"Out");
 		if( filterport_get_property(port,FILTERPORT_DESCRIPTION))
-			buffer = strdup(filterport_get_property(port,FILTERPORT_DESCRIPTION));
+			buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
 		else
-			buffer = strdup("Empty");
+			buffer = "Empty";
 		line[2] = buffer;
 		gtk_clist_append(list,line);
 	}
@@ -913,19 +913,19 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	filterparamdb_foreach_param(params,param){
 		line = calloc(3,sizeof(char*));
 		if(filterparam_label(param))
-			buffer = strdup(filterparam_label(param));
+			buffer = filterparam_label(param);
 		else
-			buffer = strdup("Empty");
+			buffer = "Empty";
 		line[0] = buffer;
 		if(filterparam_to_string(param))
-			buffer = strdup(filterparam_to_string(param));
+			buffer = filterparam_to_string(param);
 		else
-			buffer = strdup("Empty");
+			buffer = "Empty";
 		line[1] = buffer;
 		if(filterparam_get_property(param,FILTERPARAM_DESCRIPTION))
-			buffer = strdup(filterparam_get_property(param,FILTERPARAM_DESCRIPTION));
+			buffer = filterparam_get_property(param,FILTERPARAM_DESCRIPTION);
 		else
-			buffer = strdup("Empty");
+			buffer = "Empty";
 		line[2] = buffer;
 		gtk_clist_append(list,line);
 	}
@@ -946,7 +946,7 @@ static void glame_canvas_filter_help(GtkWidget *foo, GlameCanvasFilter* filter)
 	char buffer[100];
 	helppath = plugin_query(filter->filter->plugin,PLUGIN_GUI_HELP_PATH);
 	if(!helppath)
-		helppath = strdup("Plugin_Collection");
+		helppath = "Plugin_Collection";
 	sprintf(buffer,"info:glame#%s",helppath);
 	gnome_help_goto(NULL,buffer);
 }
@@ -954,25 +954,18 @@ static void glame_canvas_filter_help(GtkWidget *foo, GlameCanvasFilter* filter)
 static void update_entry_text(GtkListItem* item,GtkEntry* entry)
 {
 	// this is a little kludgy.. FIXME
-	char *label;
-	label = strdup(GTK_LABEL(GTK_BIN(item)->child)->label);
-	gtk_entry_set_text(entry,label);
-	free(label);  
+	gtk_entry_set_text(entry, GTK_LABEL(GTK_BIN(item)->child)->label);
 }
 
 static void update_string(GtkListItem* item,char ** returnbuffer)
 {
 	// this is a little kludgy.. FIXME
-	char *label;
-	
-	label = strdup(GTK_LABEL(GTK_BIN(item)->child)->label);
-	strncpy(*returnbuffer,label,100);
-	free(label);  
+	strncpy(*returnbuffer, GTK_LABEL(GTK_BIN(item)->child)->label, 100);
 }
 
 static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
 {
-	strncpy(*retbuffer,gtk_editable_get_chars(GTK_EDITABLE(entry),0,-1),100);
+	strncpy(*retbuffer, gtk_editable_get_chars(GTK_EDITABLE(entry),0,-1), 100);
 }
 
 static void glame_canvas_filter_redirect_parameters(GtkWidget *bla, GlameCanvasFilter *item)
