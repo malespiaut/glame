@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.6 2000/12/12 17:11:24 richi Exp $
+ * $Id: gui.c,v 1.7 2001/02/08 01:10:08 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -232,6 +232,6 @@ gui_network_new_wizard(void)
 	canv=create_new_canvas(net);
 	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
 	
-	return 0;
+	return net;
 }
 

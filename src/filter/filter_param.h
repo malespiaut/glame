@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.9 2000/12/12 18:24:03 richi Exp $
+ * $Id: filter_param.h,v 1.10 2001/02/08 01:10:08 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -54,6 +54,7 @@
 #define FILTER_PARAMTYPE_STRING_M 39
 #define FILTER_PARAM_IS_STRING(p) ((p)->type >= FILTER_PARAMTYPE_STRING && (p)->type <= FILTER_PARAMTYPE_STRING_M)
 
+#define FILTER_PARAM_PROPERTY_FILE_FILTER "!filefilter"
 
 /* The filter parameter database type. You should not care
  * about its contents. */

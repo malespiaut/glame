@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.21 2001/01/31 11:37:08 xwolf Exp $
+ * $Id: canvas.c,v 1.22 2001/02/08 01:10:08 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -49,6 +49,7 @@ static void canvas_save_as(GtkWidget*bla,void*blu);
 static void register_filternetwork_cb(GtkWidget*bla,void*blu);
 static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu);
 static void redirect_params(GtkWidget *bla, GlameCanvasItem *item);
+static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter);
 void edit_canvas_item_properties(filter_paramdb_t *pdb, const char *label);
 //static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
 int event_x,event_y;
@@ -175,12 +176,12 @@ glame_canvas_item_show_props(GnomeCanvasItem * item)
 void
 empty_props_list(GnomeCanvasItem* item,void* bla)
 {
-	gtk_object_destroy(GTK_OBJECT(item));
+        gtk_object_destroy(GTK_OBJECT(item));
 }
 void 
 glame_canvas_item_hide_props(GnomeCanvasItem * item)
 {
-	if(!GLAME_CANVAS_ITEM(item->parent)->property_texts){
+        if(!GLAME_CANVAS_ITEM(item->parent)->property_texts){
 		DPRINTF("props == zero!\n");
 		return;
 	}
@@ -201,20 +202,20 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	char numberbuffer[10];
 	x = event->button.x;
 	y = event->button.y;
-	// fprintf(stderr,"Ev: %d\n",event->type);
+	//	fprintf(stderr,"Ev: %d\n",event->type);
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
-		inItem=1;
-		glame_canvas_item_show_props(item);
-		break;
+	      inItem=1;
+	      glame_canvas_item_show_props(item);
+	      break;
 	case GDK_LEAVE_NOTIFY:
-		inItem=0;
-		glame_canvas_item_hide_props(item);
-		break;
+	      inItem=0;
+	      glame_canvas_item_hide_props(item);
+	      break;
 	case GDK_BUTTON_PRESS:
-		switch(event->button.button){
-		case 1:
-			it->last_x = x;
+	      switch(event->button.button){
+	      case 1:
+		        it->last_x = x;
 			it->last_y = y;
 			fleur = gdk_cursor_new(GDK_FLEUR);
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(data),
@@ -232,6 +233,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		default:
 			break;
 		}
+		break;
 	case GDK_MOTION_NOTIFY:
 		if(it->dragging && (event->motion.state & GDK_BUTTON1_MASK)){
 			dx = x-(it->last_x);
@@ -661,6 +663,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 							gtk_signal_connect(GTK_OBJECT(item->connection->circle),
 									   "event",GTK_SIGNAL_FUNC(connection_select),
 									   item->connection);
+							item->connection->property_texts=NULL;
 							
 						}
 						// connected!!
@@ -768,9 +771,11 @@ connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
+		//		glame_connection_show_props(connection);  //todo
 		break;
 	case GDK_LEAVE_NOTIFY:
 		inItem=0;
+		//		glame_connection_hide_props(connection);  //todo
 		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -1154,7 +1159,7 @@ edit_canvas_item_properties(filter_paramdb_t *pdb, const char *caption)
 	GtkAdjustment *adjust;
 	param_widget_t *pw;
 	param_callback_t* cb;
-	
+	char * prop;
 	GList * list=NULL;
 	
 	GtkWidget* propBox;
@@ -1204,6 +1209,9 @@ edit_canvas_item_properties(filter_paramdb_t *pdb, const char *caption)
 			switch(filterparam_type(param)){
 			case FILTER_PARAMTYPE_FILENAME:
 				entry = gnome_file_entry_new("blahh",filterparam_label(param));
+				if((prop = filterparam_get_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER)))
+				      gtk_signal_connect_after(GTK_OBJECT(entry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),prop);
+				
 				create_label_widget_pair(vbox,filterparam_label(param),entry);
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
@@ -1212,7 +1220,7 @@ edit_canvas_item_properties(filter_paramdb_t *pdb, const char *caption)
 				list = g_list_append(list,pw);
 				break;
 			default:
-				entry = gnome_entry_new("blubb");
+			        entry = gnome_entry_new("blubb");
 				create_label_widget_pair(vbox,filterparam_label(param),entry);
 				cVal =  filterparam_val_string(param);
 				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
@@ -1312,6 +1320,11 @@ static void changeString(GtkEditable *wid, char ** returnbuffer)
 }
 
 
+static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
+{
+      gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
+}
+
 static void canvas_save_as(GtkWidget*w,void*blu)
 {
 	GtkWidget * dialog;
@@ -1337,6 +1350,7 @@ static void canvas_save_as(GtkWidget*w,void*blu)
 	fileEntry = gnome_file_entry_new(NULL,"Filename");
 	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
 			   "changed",changeString,&filenamebuffer);
+	gtk_signal_connect_after(GTK_OBJECT(fileEntry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),"*.scm");
 	create_label_widget_pair(dialogVbox,"Filename",fileEntry);
 	
 	filternameentry = gtk_entry_new();

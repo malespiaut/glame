@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.36 2000/12/12 18:24:10 richi Exp $
+ * $Id: file_io.c,v 1.37 2001/02/08 01:10:08 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -361,6 +361,7 @@ int read_file_register(plugin_t *pl)
 {
 	filter_t *f;
 	filter_port_t *p;
+	filter_param_t *param;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -370,9 +371,10 @@ int read_file_register(plugin_t *pl)
 	filterparamdb_add_param_float(filterport_paramdb(p), "position", 
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
-	filterparamdb_add_param_string(filter_paramdb(f), "filename",
+	param = filterparamdb_add_param_string(filter_paramdb(f), "filename",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
+	filterparam_set_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER,"*.wav");
 
 	f->f = read_file_f;
 	f->init = rw_file_init;
