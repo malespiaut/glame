@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.17 2001/05/23 12:33:07 richi Exp $
+ * $Id: glame_types.h,v 1.18 2001/07/09 12:27:25 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -41,7 +41,7 @@ extern int GLAME_WBUFSIZE;
 
 /* SAMPLE is defined by config.h now.
  * typedef float SAMPLE; */
-#define SAMPLE_SIZE sizeof(SAMPLE)
+#define SAMPLE_SIZE ((long)sizeof(SAMPLE))
 
 /* Sigh! Why is there no portable standard for those types? */
 typedef   signed char	gl_s8;	/* Hope this covers 'char is unsigned' case. */
