@@ -791,13 +791,9 @@ static int choose_effects(plugin_t *plugin)
 		if (filterport_is_output(port))
 			out++;
 	}
-	if (in != 1 || out != 1)
-		return 0;
-#if 0 /* we dont handle complex stuff in apply yet. */
 	if (in == 0 || out == 0 || in != out
 	    || (in > 1 && in != gtk_wave_buffer_get_num_channels(gtk_wave_view_get_buffer(GTK_WAVE_VIEW(active_waveedit->waveview)))))
 		return 0;
-#endif
 
 	/* We dont like plugin categories "Routing". */
 	if (!(cat = plugin_query(plugin, PLUGIN_CATEGORY))

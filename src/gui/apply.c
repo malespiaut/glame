@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.17 2002/02/19 10:16:46 richi Exp $
+ * $Id: apply.c,v 1.18 2002/03/22 15:33:18 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -141,25 +141,43 @@ static void preview_start(struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
 	const char *errmsg;
-	filter_t *n;
+	filter_t *n, *swin, *e;
+	filter_port_t *port;
+	int nrin, currin, i;
+
+	/* Find out plugin input count. */
+	nrin = 0;
+	filterportdb_foreach_port(filter_portdb(a->effect), port)
+		if (filterport_is_input(port))
+			nrin++;
 
 	/* Create the preview network. */
 	a->net = filter_creat(NULL);
-	gpsm_grp_foreach_item(a->item, swfile)
-		if (!net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0)) {
+	currin = nrin;
+	gpsm_grp_foreach_item(a->item, swfile) {
+		swin = net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0);
+		if (!swin) {
 			errmsg = _("Unable to create input node");
 			goto err;
 		}
-	if (net_apply_effect(a->net, a->effect) == -1) {
-		errmsg = _("Unable to apply effect node(s)");
-		goto err;
+		if (currin >= nrin) {
+			e = filter_creat(a->effect);
+			filter_add_node(a->net, e, "effect");
+			net_link_params(e, a->effect);
+			currin = 0;
+		}
+		i = 0;
+		filterportdb_foreach_port(filter_portdb(e), port) {
+			if (!filterport_is_input(port))
+				continue;
+			if (i == currin)
+				break;
+			i++;
+		}
+		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), port);
+		currin++;
 	}
 	a->pos = net_apply_audio_out(a->net);
-
-	/* Allow updating params of preview network. */
-	filter_foreach_node(a->net, n)
-		if (n->plugin == a->effect->plugin)
-			net_link_params(n, a->effect);
 
 	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
 		errmsg = _("Unable to launch network");
@@ -215,12 +233,20 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
 	filter_t *swin, *swout, *e;
+	filter_port_t *port;
 	const char *errmsg;
-	int i = 0;
+	int i = 0, nrin, currin, j;
+
+	/* Find out plugin input count. */
+	nrin = 0;
+	filterportdb_foreach_port(filter_portdb(a->effect), port)
+		if (filterport_is_input(port))
+			nrin++;
 
 	/* Create the apply network and the destination swfile. */
 	a->net = filter_creat(NULL);
 	a->dest = gpsm_newgrp("Apply");
+	currin = nrin;
 	gpsm_grp_foreach_item(a->item, swfile) {
 		filter_port_t *ein, *eout;
 		gpsm_swfile_t *dst;
@@ -228,22 +254,34 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		dst = gpsm_newswfile("Apply");
 		gpsm_vbox_insert(a->dest, (gpsm_item_t *)dst, 0, i++);
 		swout = net_add_gpsm_output(a->net, dst, 0, -1, 0);
-		e = filter_creat(a->effect);
-		filter_add_node(a->net, e, "effect");
+		if (currin >= nrin) {
+			e = filter_creat(a->effect);
+			filter_add_node(a->net, e, "effect");
+			currin = 0;
+		}
 		if (!swin || !swout || !e) {
 			errmsg = _("Cannot construct network");
 			goto err;
 		}
-		filterportdb_foreach_port(filter_portdb(e), ein)
-			if (filterport_is_input(ein))
+		j = 0;
+		filterportdb_foreach_port(filter_portdb(e), ein) {
+			if (!filterport_is_input(ein))
+				continue;
+			if (j++ == currin)
 				break;
-		filterportdb_foreach_port(filter_portdb(e), eout)
-			if (filterport_is_output(eout))
+		}
+		j = 0;
+		filterportdb_foreach_port(filter_portdb(e), eout) {
+			if (!filterport_is_output(eout))
+				continue;
+			if (j++ == currin)
 				break;
+		}
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
 				   ein);
 		filterport_connect(eout,
 				   filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+		currin++;
 	}
 	a->pos = swout;
 
