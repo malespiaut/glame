@@ -1,0 +1,41 @@
+TODOs of the various subsystems/programs, [] tells about the
+"maintainer" or the one who is supposed to fix it.
+
+
+global ideas / new subsystems/programs, everything that
+is not covered in MASTERPLAN
+	nothing.
+
+
+libfixp/
+	nothing? do we need it? [belbo]
+
+
+filter/
+	design a abstract storage for the network topology []
+	turn file_in/file_out into channel_in/channel_out []
+	headerfile cleanup [richi]
+	do the "macro" filter stuff [richi]
+
+
+swapfile/
+	redo transactions and high level operations, i.e.
+	clean them up [richi]
+
+	redo the lowlevel part (fuse runtime and on-disk structures,
+	use meta part of the swapfile directly) [richi]
+
+	test the damn thing [richi]
+
+
+channel
+	seems ok
+
+
+
+
+gmkswap
+	is ready [richi]
+
+glame
+	nothing there [all]

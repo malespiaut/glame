@@ -1,0 +1,30 @@
+This is GLAME - GNU Linux Audio Mechanics
+
+This will be the first usable wav editor for linux.
+It will be actually a lot more than a wav editor! [richi]
+
+Authors XWolf, Maggy and richi...
+
+Tuebingen 25.10.99
+
+
+Current Status (brief ChangeLog):
+=================================
+Version ??? to 0.0001:
+- a lot of brainwork done
+- first class definitions soon to approach [xwolf]
+- swapfile is there [richi]
+- majordomo is there [belbo/xwolf]
+
+Version 0.002 (*applause!*):
+- filter-network code and basic filters are there [richi]
+
+Version 0.004:
+- more filters
+- more directories :)
+- rw handler framework
+
+
+Features:
+=========
+

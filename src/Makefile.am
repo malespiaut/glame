@@ -1,0 +1,14 @@
+SUBDIRS = include libfixp hash swapfile filter channel rw
+
+INCLUDES = -I@srcdir@/include -I@srcdir@/filter -I@srcdir@/swapfile -I@srcdir@/rw -I@srcdir@/channel -I@srcdir@/hash
+
+bin_PROGRAMS = glame
+
+
+glame_SOURCES = glame.c
+glame_LDADD = channel/libchannel.la swapfile/libswapfile.la filter/libfilter.la rw/librw.la hash/libhash.la \
+	-lpthread
+
+
+
+

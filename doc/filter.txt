@@ -1,0 +1,33 @@
+This is to describe the filter subsystem.
+
+Still TODO. For now see the headerfile
+filter.h and the existing filters.
+
+
+How to make filters out of filter networks. This
+is about "MACRO" filters which consist of a filter
+network which can be used like a filter.
+==================================================
+
+Use filter->private to store the filter network
+structure as well as a 1-to-1 mapping of external
+visible parameters, input and output slots to the
+internal ones.
+
+Have filter->init() create a new instance of the
+filter network and update the above mapping
+accordingly. perhaps use node->private.
+
+Have filter->connect() wrap from the external
+visible input and output slots to the internal
+ones and fill the internal nodes into the 
+filter pipe structure.
+
+Viola. Thats it.
+
+Oh - add one API entry to filter.[ch] which does
+create a new macro filter out of a description
+in a file.
+
+Perhaps one to create the description out of a
+existing filter network, too.

@@ -1,0 +1,3 @@
+the only source for development documentation/hints
+is the source. RTFS! (especially the header files)
+[richi]
