@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.35 2000/02/24 12:29:49 richi Exp $
+ * $Id: filter.h,v 1.36 2000/02/25 13:09:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -182,6 +182,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PARAMTYPE_SAMPLE  (3<<2)
 #define FILTER_PARAMTYPE_FILE    (4<<2)
 #define FILTER_PARAMTYPE_STRING  (5<<2)
+#define FILTER_PARAMTYPE_LIST    (6<<3)
 #define FILTER_PARAM_IS_OUTPUT(type) ((type) & FILTER_PARAMTYPE_OUTPUT)
 #define FILTER_PARAMTYPE(type) ((type) & ~(FILTER_PARAMTYPE_OUTPUT))
 
@@ -192,6 +193,15 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterparamdesc_description(pd) ((pd)->description)
 #define filterparamdesc_type(pd) ((pd)->type)
 
+/* Public access macros for the parameter type specific union
+ */
+#define FILTER_PARAM_STRINGTYPE_GENERIC 0
+#define FILTER_PARAM_STRINGTYPE_FILENAME 1
+#define filterparamdesc_string_type(pd) ((pd)->u.string.type)
+#define filterparamdesc_string_settype(pd, t) ((pd)->u.string.type = (t))
+
+#define filterparamdesc_list_labels(pd) ((pd)->u.list.labels)
+#define filterparamdesc_list_setlabels(pd, l) ((pd)->u.list.labels = (l))
 
 /* Adds the filter to the filter database. */
 int filter_add(filter_t *filter);
@@ -413,6 +423,7 @@ int filternode_set_param(filter_node_t *n, const char *label, void *val);
 #define filterparam_val_file(fp) ((fp)->val.file)
 #define filterparam_val_sample(fp) ((fp)->val.sample)
 #define filterparam_val_string(fp) ((fp)->val.string)
+#define filterparam_val_list(fd) ((fp)->val.list)
 
 /* Parameter to/from string conversion routines.
  * Example use:

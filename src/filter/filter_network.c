@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.27 2000/02/25 12:14:49 richi Exp $
+ * $Id: filter_network.c,v 1.28 2000/02/25 13:09:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -62,6 +62,9 @@ static void set_param(filter_param_t *param, void *val)
 		free(param->val.string);
 		param->val.string = strdup((char *)val);
 		break;
+	case FILTER_PARAMTYPE_LIST:
+	        param->val.list = *(int *)val;
+		break;
 	}
 }
 
@@ -88,6 +91,9 @@ char *filterparam_to_string(filter_param_t *param)
 		break;
 	case FILTER_PARAMTYPE_STRING:
 		snprintf(buf, 511, "\"%s\"", param->val.string);
+		break;
+	case FILTER_PARAMTYPE_LIST:
+	        snprintf(buf, 511, "%i", param->val.list);
 		break;
 	default:
 		return NULL;
@@ -125,6 +131,9 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val)
 		} else if ((res = sscanf(val, " %511[^\"] ", s)) == 1) {
 		        return strdup(s);
 		}
+		break;
+	case FILTER_PARAMTYPE_LIST:
+		res = sscanf(val, " %i ", &param.val.list);
 		break;
 	default:
 		return NULL;
@@ -693,8 +702,6 @@ char *filternetwork_to_string(filter_network_t *net)
 
 	/* (filternetwork */
 	len += sprintf(&buf[len-1], ")\n") - 1;
-
-	DPRINTF("Created \"%s\" as network string\n", buf);
 
 	return buf;
 }

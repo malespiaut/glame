@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.4 2000/02/24 14:27:36 nold Exp $
+ * $Id: filter_mm.c,v 1.5 2000/02/25 13:09:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -89,6 +89,9 @@ filter_param_t *_param_alloc(filter_paramdesc_t *d)
 	case FILTER_PARAMTYPE_STRING:
 	        p->val.string = NULL;
 		break;
+	case FILTER_PARAMTYPE_LIST:
+	        p->val.list = -1;
+                break;
 	default:
 		return NULL;
 	}

@@ -19,9 +19,17 @@ struct filter_paramdesc {
 	void *namespace; /* NOTE: this is filter_t/portdesc_t */
 
 	const char *label;
-	int type;
-
 	const char *description;
+
+	int type;
+        union {
+		struct {
+			int type;
+		} string;
+		struct {
+			const char **labels;
+		} list;
+        } u;
 
 	void *private;
 };
@@ -49,6 +57,7 @@ struct filter_param {
 		SAMPLE sample;
 		fileid_t file;
 		char *string;
+		int list;
 	} val;
 };
 /* parameter hash/list addition/removal to filter nodes or
