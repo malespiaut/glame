@@ -38,6 +38,7 @@
 #include "glame_gui_utils.h"
 #include "waveeditgui.h"
 #include "edit_filter/canvas.h"
+#include "clipboard.h"
 
 
 
@@ -135,41 +136,6 @@ static void selectall_cb(GtkWidget *w, GtkWaveView *waveview)
 
 
 /*
- * Temporary storage for editing functions and the edit functions
- * itself.
- */
-
-static int temp_nrtracks = 0;
-static long temp_fname[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
-static swfd_t temp_fd[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
-
-static void reset_temp(int nrtracks)
-{
-	int i;
-
-	/* Kill unnecessary temporary tracks. */
-	for (i=nrtracks; i<temp_nrtracks; i++) {
-		sw_close(temp_fd[i]);
-		sw_unlink(temp_fname[i]);
-	}
-
-	/* Generate additionally needed tracks. */
-	for (i=temp_nrtracks; i<nrtracks; i++) {
-		while ((temp_fd[i] = sw_open((temp_fname[i] = rand()), O_CREAT|O_EXCL|O_RDWR)) == -1)
-			;
-	}
-	temp_nrtracks = nrtracks;
-
-	/* Reset temporary tracks. */
-	for (i=0; i<temp_nrtracks; i++) {
-		sw_ftruncate(temp_fd[i], 0);
-		sw_lseek(temp_fd[i], 0, SEEK_SET);
-	}
-}
-
-
-
-/*
  * The EDIT submenu and its callbacks.
  */
 
@@ -204,30 +170,15 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
-	swfd_t fd;
-	long nrtracks;
-	gpsm_swfile_t **files;
 	gpsm_item_t *item;
-	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		DERROR("Ensured by rmb callback");
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
-	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
-	reset_temp(nrtracks);
-	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDONLY);
-		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
-		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_INSERT) == -1)
-			DPRINTF("*** sw_sendfile failed\n");
-		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
-		sw_close(fd);
-	}
+	if (clipboard_copy(item, start, length) == -1)
+		DPRINTF("Failed copying\n");
 }
 
 /* Menu event - Paste. */
@@ -235,40 +186,19 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	gint32 start;
-	struct sw_stat st;
-	swfd_t fd;
-	long nrtracks;
-	gpsm_swfile_t **files;
+	gint32 pos;
 	gpsm_item_t *item;
-	int i;
 
-	start = gtk_wave_view_get_marker (waveview);
-	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
-	if (start < 0 || nrtracks != temp_nrtracks)
-		DERROR("Ensured by rmb callback");
-
-	if (sw_fstat(temp_fd[0], &st) == -1)
+	pos = gtk_wave_view_get_marker (waveview);
+	if (pos < 0)
 		return;
-
 	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (!clipboard_can_paste(item))
+		return;
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
-	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR);
-		if (sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET) == -1)
-			DPRINTF("*** sw_lseek(swapfile->fd) failed\n");
-		if (sw_lseek(temp_fd[i], 0, SEEK_SET) != 0)
-			DPRINTF("*** sw_lseek(temp_fd, 0) failed\n");
-		if (sw_sendfile(fd, temp_fd[i], st.size, SWSENDFILE_INSERT) == -1)
-			DPRINTF("*** sw_sendfile failed\n");
-		sw_close(fd);
-		gpsm_notify_swapfile_insert(gpsm_swfile_filename(files[i]),
-					    start+gpsm_item_hposition(files[i]), st.size/SAMPLE_SIZE);
-	}
+	if (clipboard_paste(item, pos) == -1)
+		DPRINTF("Error pasting\n");
 }
 
 /* Menu event - Cut. */
@@ -277,11 +207,7 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
-	swfd_t fd;
-	long nrtracks;
-	gpsm_swfile_t **files;
 	gpsm_item_t *item;
-	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -290,25 +216,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
-	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
-	reset_temp(nrtracks);
-	for (i=0; i<nrtracks; i++) {
-		long sstart = start+gpsm_item_hposition(files[i]);
-		long ssize = MIN(length, MAX(0, gpsm_item_hsize(files[i])-sstart));
-		if (ssize > 0) {
-			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR);
-			sw_lseek(fd, sstart*SAMPLE_SIZE, SEEK_SET);
-			if (sw_sendfile(temp_fd[i], fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
-				DPRINTF("*** sw_sendfile failed\n");
-			sw_close(fd);
-			gpsm_notify_swapfile_cut(gpsm_swfile_filename(files[i]),
-						 sstart, ssize);
-		}
-		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
-	}
+	if (clipboard_cut(item, start, length) == -1)
+		DPRINTF("Error cutting\n");
 
 	/* Remove the selection. */
 	selectnone_cb(bla, waveview);
@@ -320,11 +229,7 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
-	swfd_t fd;
-	long nrtracks;
-	gpsm_swfile_t **files;
 	gpsm_item_t *item;
-	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -333,23 +238,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
-	if (GPSM_ITEM_IS_SWFILE(item))
-		start -= gpsm_item_hposition(item);
-
-	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
-	for (i=0; i<nrtracks; i++) {
-		long sstart = start+gpsm_item_hposition(files[i]);
-		long ssize = MIN(length, MAX(0, gpsm_item_hsize(files[i])-sstart));
-		if (ssize > 0) {
-			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR);
-			sw_lseek(fd, sstart*SAMPLE_SIZE, SEEK_SET);
-			if (sw_sendfile(SW_NOFILE, fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
-				DPRINTF("*** sw_sendfile failed\n");
-			sw_close(fd);
-			gpsm_notify_swapfile_cut(gpsm_swfile_filename(files[i]),
-						 sstart, ssize);
-		}
-	}
+	if (clipboard_delete(item, start, length) == -1)
+		DPRINTF("Error deleting\n");
 
 	/* Remove the selection. */
 	selectnone_cb(bla, waveview);
@@ -1247,8 +1137,8 @@ static int choose_effects(plugin_t *plugin)
 }
 
 /* Button press event. */
-static void press (GtkWidget *widget, GdkEventButton *event,
-		   gpointer user_data) 
+static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
+			    gpointer user_data) 
 {
 	GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
 	GtkWaveBuffer *wavebuffer;
@@ -1288,7 +1178,7 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_COPY_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_PASTE_INDEX].widget,
-				 (nrtracks == temp_nrtracks)
+				 clipboard_can_paste(item)
 				 && (marker_pos >= 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_DELETE_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
@@ -1302,46 +1192,34 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 }
 
 
-/* Delete callback. */
-static void delete (GtkWidget *widget, gpointer user_data)
+/* Delete callback - promote to destroy. */
+static void waveedit_window_delete_cb(GtkWidget *widget, gpointer data)
 {
-	gtk_widget_hide(widget);
 	gtk_object_destroy(GTK_OBJECT(widget));
 }
 
-/* Try to handle group/item deletion/addition events. */
-struct weg_compound {
-	GtkWidget *widget;
-	gpsm_item_t *item;
-	glsig_handler_t *handler;
-};
-static void destroy(GtkWidget *widget, struct weg_compound *weg)
+/* Waveedit GUI cleanup stuff, we need to destroy the created
+ * gpsm group of links to the actual swfiles on window destroy. */
+static void waveedit_wavebuffer_destroy_cb(GtkWidget *widget,
+					   gpsm_item_t *item)
 {
-	if (weg->handler)
-		glsig_delete_handler(weg->handler);
-	weg->handler = NULL;
-	weg->widget = NULL;
-}
-static void handle_item(glsig_handler_t *handler, long sig, va_list va)
-{
-	struct weg_compound *weg = glsig_handler_private(handler);
-	if (weg->handler)
-		glsig_delete_handler(weg->handler);
-	weg->handler = NULL;
-	if (weg->widget)
-		gtk_object_destroy(GTK_OBJECT(weg->widget));
-	weg->widget = NULL;
-}
-static void destroy_win(GtkWidget *w, GtkObject *win)
-{
-	gtk_object_destroy(win);
+	gpsm_item_destroy(item);
 }
 
 GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
 	GtkWidget *window, *waveview, *toolbar;
 	GtkObject *wavebuffer;
-	struct weg_compound *weg;
+	gpsm_grp_t *swfiles;
+
+	/* Create a data source object. We need a gpsm_grp_t for
+	 * gtk_swapfile_buffer_new which is "flat", i.e. entirely
+	 * consists of gpsm_swfile_t only. The easies way to get
+	 * this is to use gpsm_collect_swfiles() - but cleanup is
+	 * necessary for this solution. */
+	swfiles = gpsm_collect_swfiles(item);
+	if (!swfiles)
+		return NULL;
 
 	/* Create a Gtk+ window. */
 	window = gnome_app_new(title, _(title));
@@ -1362,8 +1240,8 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * displayed 8192 columns of data. */
 	gtk_wave_view_set_cache_size (GTK_WAVE_VIEW (waveview), 8192);
 
-	/* Create a data source object. */
-	wavebuffer = gtk_swapfile_buffer_new(item);
+	/* Create the swapfile buffer. */
+	wavebuffer = gtk_swapfile_buffer_new(swfiles);
 	if (!wavebuffer) {
 		DPRINTF("Unable to create wavebuffer\n");
 		gtk_object_destroy(GTK_OBJECT(waveview));
@@ -1378,24 +1256,19 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_wave_view_set_buffer (GTK_WAVE_VIEW (waveview),
 				  GTK_WAVE_BUFFER (wavebuffer));
 
-	/* Call the usual Gtk+ cruft. */
-	gtk_signal_connect (GTK_OBJECT (window), "delete_event",
-			    (GtkSignalFunc) delete, NULL);
-	gtk_signal_connect (GTK_OBJECT (waveview), "button_press_event",
-			    (GtkSignalFunc) press, NULL);
+	/* Install the rmb menu callback. */
+	gtk_signal_connect(GTK_OBJECT(waveview), "button_press_event",
+			   (GtkSignalFunc)waveedit_rmb_cb, NULL);
 
-	/* Handle GPSM_SIG_ITEM_DESTROY and GPSM_GRP_ADD/REMOVE_ITEM
-	 * and close the window in these cases. Also handle window
-	 * deletion and remove the signal handler in this case.
-	 * FIXME: memleak (weg) */
-	weg = malloc(sizeof(struct weg_compound));
-	weg->widget = window;
-	weg->item = item;
-	weg->handler = glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_ITEM_DESTROY|GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM, handle_item, weg);
-	gtk_signal_connect(GTK_OBJECT(window), "destroy",
-			   (GtkSignalFunc)destroy, weg);
-	gtk_signal_connect(GTK_OBJECT(waveview), "destroy",
-			   (GtkSignalFunc)destroy_win, window);
+	/* As we have set up links to the actual swfiles, we dont get
+	 * those (links/group) removed under us. But we have to destroy
+	 * the linked group afterwards. The only events we expect are
+	 * delete and destroy events from the window. */
+	gtk_signal_connect(GTK_OBJECT(window), "delete_event",
+			   (GtkSignalFunc)waveedit_window_delete_cb, NULL);
+	gtk_signal_connect_after(GTK_OBJECT(wavebuffer), "destroy",
+				 (GtkSignalFunc)waveedit_wavebuffer_destroy_cb,
+				 swfiles);
 
 	/* Add the toolbar. */
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
@@ -1418,9 +1291,4 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 			      GNOME_DOCK_RIGHT, 0, 0, 0);
 
 	return window;
-}
-
-void glame_waveedit_cleanup()
-{
-	reset_temp(0);
 }

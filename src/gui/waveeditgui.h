@@ -33,8 +33,5 @@
  * to be gpsm-swfiles of the same hposition and hsize. */
 GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item);
 
-/* Delete temporary (clipboard) files. */
-void glame_waveedit_cleanup();
-
 
 #endif
