@@ -26,11 +26,8 @@ plugins/
           iir, rms, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
-	- add position hint parameters to null and drop
 	[richi]
-	- redo swapfile_out (remove magic in offset / size, add
-          explicit CREAT|TRUNC param)
-	- do gpsm invalidating inside swapfile_out filter
+	- do gpsm invalidating using swapfile_out filter output params
 
 hash/
 	[all]
@@ -61,6 +58,10 @@ hash/
 
 glmid/
 	[richi]
+	- make clipboard.[ch] gpsm_edit.[ch] which handles delete/cut/
+	  copy/paste/overwrite operations on groups returning the
+	  result as new groups, i.e. not maintaining the clipboard
+	  itself, just editing operations.
 
 gui/
 	[all]

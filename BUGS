@@ -29,16 +29,16 @@ Summary of known bugs and misfeatures in GLAME
 
 - Even with low buffer size GLAME is not really a real-time capable
   synthesizer (though you're able to use GLAME as an effect generator
-  while playing guitar).
+  while playing guitar). Try using decent sound hardware and ALSA.
 
 - There exist some broken audio hardware or broken drivers - to name a few
   we stomped over: the ISA soundblaster cards dont seem to be good enough
   to allow recording in GLAME, the via8cxxx_driver in the linux kernel has
-  problems recording mono
+  problems recording mono.
 
 - If the online-help does not work you either need to install gnome-help
   or put the path to the glame .info documentation into your gnome-helps
-  documentation path
+  documentation path.
 
 - There seems to be a rather large memleak either in the fft plugin or in
   the libfftw used - but its only temporary during the plugin running.
@@ -50,10 +50,11 @@ Summary of known bugs and misfeatures in GLAME
   if it hangs forever thread support is broken.
 
 - The pipe_in/pipe_out plugins (and the derived read-mp3.scm filter)
-  crash on most systems due to either pthread limitations or pthread
+  crash on some systems due to either pthread limitations or pthread
   or libc or kernel bugs (we need to trace this) - if you're lucky, it
   might work for you (it does for me on a debian potato system with
-  kernel 2.4.[34]).
+  kernel 2.4.[34]). If it doesnt work, it will take GLAME with it and
+  you might not notice that.
 
 - If glame panics this could be a glame bug (as usually panics are "this
   should not happen" things) - we're interested in reports of such
@@ -64,3 +65,20 @@ Summary of known bugs and misfeatures in GLAME
   - just restart glame in this case and it will try to recover (can you
   say fsck?). Beware: If you enable debug swapfile operations are VERY slow.
  
+07-15-01 Modifications made in the timeline GUI and the swapfile GUI are
+  not reflected by existing waveedit views. To work around this re-open
+  affected waveedit views.
+
+07-15-01 Waveedit views dont support horizontally sequenced waves. The
+  waveview will refuse to open. Copy the affected group (or do not) and
+  use "flatten" from inside the swapfile GUI to merge those waves.
+
+07-15-01 You cant play horizontally sequenced waves because there is no
+  place from the GUI where you can issue the play command.
+
+07-15-01 Closing windows while there is action going on may lead to
+  segfaults. Dont do that.
+
+07-15-01 Not all (nearly none) parameters of filternetworks show realtime
+  response on modification while a network is running.
+
