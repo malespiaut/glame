@@ -67,7 +67,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 	int sampleRate = 0;
 
 	char *filename;
-	FILE *oggvorbis_file;
+	FILE *oggvorbis_file = NULL;
 	track_t *track = NULL;
 	int vorbis_analysis_buffer_size, written, frames;
 	int ret, eos = 0;
@@ -88,8 +88,8 @@ static int write_oggvorbis_file_f(filter_t * n)
 			     (filter_portdb(n), PORTNAME_IN));
 
 	/* Limit to 1 or 2 input ports . Ogg can encode more channels, but player i know can't read . */
-	if (channelCount > 2){
-	  FILTER_ERROR_RETURN(" This filter can only connect to one or two input port. Insert a render filter if more or less 		than 2 ports.");}
+	if (channelCount > 2)
+	  FILTER_ERROR_RETURN("This filter can only connect to one or two input port. Insert a render filter if more or less than 2 ports.");
 
 	filename =
 	  filterparam_val_string(filterparamdb_get_param
@@ -99,7 +99,7 @@ static int write_oggvorbis_file_f(filter_t * n)
 
 	oggvorbis_file = fopen(filename, "w+");
 	if (!oggvorbis_file)
-	  FILTER_ERROR_CLEANUP("can't open/create file ");
+	  FILTER_ERROR_RETURN("can't open/create file ");
 
 	if (!(track = ALLOCN(channelCount, track_t)))
 	  FILTER_ERROR_CLEANUP("no memory");
@@ -275,10 +275,8 @@ static int write_oggvorbis_file_f(filter_t * n)
 	vorbis_dsp_clear(&vd);
 	vorbis_comment_clear(&vc);
 	vorbis_info_clear(&vi);
-	fclose(oggvorbis_file);
-	/*FIXME: segfault when cancelling export */
-	/*if (analysis_buffer)
-	  free (analysis_buffer);*/
+	if (oggvorbis_file)
+		fclose(oggvorbis_file);
         if (track)
 	  free(track);
 	FILTER_RETURN;
