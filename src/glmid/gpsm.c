@@ -511,11 +511,12 @@ int gpsm_set_max_saved_ops(int max)
 
 	if (max >= 0)
 		op_max_listsize = max;
-	while (op_listsize > op_max_listsize) {
-		DPRINTF("deleting too big list\n");
-		op = glame_list_gettail(&oplist, struct op, list);
-		_op_delete(op);
-	}
+	if (root)
+		while (op_listsize > op_max_listsize) {
+			DPRINTF("deleting too big list\n");
+			op = glame_list_gettail(&oplist, struct op, list);
+			_op_delete(op);
+		}
 	return op_max_listsize;
 }
 

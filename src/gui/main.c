@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.83 2001/10/29 22:36:35 richi Exp $
+ * $Id: main.c,v 1.84 2001/11/04 13:49:54 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -324,6 +324,12 @@ static int update_preferences()
 	gboolean def;
 	long maxundo, res = 0;
 
+	/* Check, if we have anything configured already. */
+	if (glame_config_get_string("swapfile/defaultpath", &swappath) == -1)
+		res = -1;
+	else
+		free(swappath);
+
 	/* Update globals. */
 	nPopupTimeout = glame_config_get_long_with_default("edit_filter/popupTimeout", 200);
 	bMac = glame_config_get_long_with_default("edit_filter/macMode", FALSE);
@@ -332,8 +338,8 @@ static int update_preferences()
 	snprintf(s, 255, "%s/.glameswap", g_get_home_dir());
 	swappath = glame_config_get_string_with_default("swapfile/defaultpath", s);
 
-	if (!glame_config_get_long("swapfile/maxundo", &maxundo))
-		gpsm_set_max_saved_ops(maxundo);
+	maxundo = glame_config_get_long_with_default("swapfile/maxundo", 5);
+	gpsm_set_max_saved_ops(maxundo);
 
 	/* GLAME_WBUFSIZE */
 	_GLAME_WBUFSIZE = glame_config_get_long_with_default("filter/wbufsize", 1024);
