@@ -141,8 +141,6 @@ long scm2long(SCM long_smob, long smob_tag)
 
 static void _glscript_init()
 {
-	gh_display(scm_selected_module());
-
 	/* Tell scheme about installation directory of GLAME
 	 * and the revision of the scripting language.
 	 */
@@ -169,17 +167,12 @@ int glscript_init()
 	 * module. Do this with lazy guile 1.3.4 stuff - oh well. */
 	scm_register_module_xxx("glame", _glscript_init);
 
-	/* Switch to the guile-user module */
-/*	gh_display(scm_selected_module());
-	gh_display(scm_resolve_module(gh_str02scm("guile-user")));
-	gh_display(scm_select_module(scm_resolve_module(gh_str02scm("guile-user"))));
-	gh_display(scm_selected_module()); */
-
 	/* Switch to a more useful module and use the glame module. */
 	gh_eval_str(
-"(set-current-module the-scm-module)"
-"(use-modules (glame))");
-	gh_display(scm_selected_module());
+"(define-module (glame-user)"
+"  :use-module (glame)"
+"  :use-module (guile)"
+"  :use-module (ice-9 session))");
 
 	/* Load glame scheme libraries (if existent):
 	 * 1. installed glame.scm
