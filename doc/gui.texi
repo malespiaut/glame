@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.22 2002/02/17 18:00:22 richi Exp $
+@comment $Id: gui.texi,v 1.23 2002/04/27 12:44:13 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -290,13 +290,22 @@ at once. Functions to edit and explore the current items can be reached via
 the right mouse button or the toolbar. The wave editor is also reached
 through the @code{Edit File} menu entry or the @code{w} accelerator.
 
+You can find keybindings listed by pressing the @code{F1} key in any
+wave edit window.
+
 Simple editing can be done using the ordinary @code{Cut}, @code{Copy},
 @code{Paste}, @code{Delete}, @code{Undo} and @code{Redo} operations
 inside the @code{Edit} submenu, that work on the current selection in
 the active wave widget. You can cut and paste between different wave
 widgets, if the numbers of channels match. When you operate on multiple
 views of the same wave item at once, they will be kept in sync
-automatically.
+automatically. Keybindings for @code{Cut}, @code{Copy}, @code{Paste},
+@code{Delete}, @code{Undo} and @code{Redo} are @code{Ctrl-x}, @code{Ctrl-c},
+@code{Ctrl-v}, @code{Ctrl-k}, @code{Ctrl-z} and @code{Ctrl-r}.
+
+You can export the current selection by choosing the @code{Export selection}
+menu entry from the @code{Edit} submenu or by pressing the @code{Ctrl-s}
+keyboard shortcut.
 
 To control the view use the @code{View} submenu which contains the
 items @code{Zoom to selection}, @code{Zoom in}, @code{Zoom out},
@@ -327,9 +336,10 @@ selection. Using the play button from the toolbar will start playing either the
 current selection or from the marker position if no selection is active and
 will advance it until you either press the stop button (which will appear at
 the place of the play button after start) or the wave has ended. Playing can be
-reached through the @code{Space} keyboard shortcut which does the same as the
-toolbar play button.  Pressing @code{SHIFT-Space} will loop the current
-selection or the whole wave.
+reached through the @code{Space} keyboard shortcut which starts playing
+from the current marker position. Using @code{Ctrl-Space} you can play the
+current selection or the whole file, if nothing is selected.  Pressing
+@code{Shift-Space} will loop the current selection or the whole wave.
 
 The @code{Apply operation} submenu allows you to apply operations like
 normalize or fade to the current selection. Some operations pop up windows
@@ -708,6 +718,23 @@ The apply filter dialog is reached from the waveedit window through the right
 mouse button menu by choosing the @code{Apply filter...} entry and operates on
 the current selection. In the upper part of the dialog, the parameters of the
 selected filter are displayed and can be edited.
+
+Two switches are available to control behavior of the @code{Apply} and
+the @code{Preview} operation:
+
+@table @code
+@item Lock size
+This controls whether applying to the current selection may change
+its size. Default is on in which case the length of the track doesnt
+change. If off the operation is like cutting out the selection,
+applying the filter to create a new track and inserting the result
+back into the original track at the selections starting position.
+
+@item Loop previewing
+This controls whether the selection should be looped during preview
+of the apply filter operation. This is useful for tuning filter parameters
+for short selections. The default is off.
+@end table
 
 The lower part of the dialog contains a progress bar for both
 preview and apply operation. The following functions are available:
