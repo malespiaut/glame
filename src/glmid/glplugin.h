@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.9 2000/05/20 12:32:22 richi Exp $
+ * $Id: glplugin.h,v 1.10 2000/05/22 11:06:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -91,6 +91,7 @@ plugin_t *plugin_next(plugin_t *plugin);
 #define PLUGIN_DESCRIPTION "desc"
 #define PLUGIN_PIXMAP "pixmap"
 #define PLUGIN_FILTER "filter"
+#define PLUGIN_PARENT "parent"
 
 
 #ifdef __cplusplus

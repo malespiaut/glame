@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.16 2000/05/22 10:55:05 richi Exp $
+ * $Id: glplugin.c,v 1.17 2000/05/22 11:06:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -131,9 +131,6 @@ static int _plugin_add(plugin_t *p)
 }
 
 
-static int try_load_plugin(plugin_t *p, const char *name,
-			   const char *filename);
-
 static int try_init_glame_plugin(plugin_t *p, const char *name,
 				 const char *filename)
 {
@@ -175,6 +172,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 			_plugin_free(pn);
 			continue;
 		}
+		plugin_set(pn, PLUGIN_PARENT, p);
 	} while (sp);
 
 	return 0;
@@ -207,6 +205,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 			_plugin_free(lp);
 			continue;
 		}
+		plugin_set(lp, PLUGIN_PARENT, p);
 	}
 
 	return 0;
