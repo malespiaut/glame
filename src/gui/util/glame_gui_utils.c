@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.25 2002/04/23 12:18:43 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.26 2002/06/02 18:00:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -164,6 +164,7 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
         dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
 
         fileEntry = gnome_file_entry_new(history_id, label);
+	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fileEntry), TRUE);
         gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
                            "changed", update_string_from_editable_cb,
 			   returnbuffer);

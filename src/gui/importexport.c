@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.16 2002/04/12 18:35:38 richi Exp $
+ * $Id: importexport.c,v 1.17 2002/06/02 18:00:17 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -584,6 +584,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	gtk_box_pack_start (GTK_BOX (vbox2), frame3, TRUE, TRUE, 0);
 	
 	fileentry2 = gnome_file_entry_new ("gpsmop::import::filename", "Import File");
+	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fileentry2), TRUE);
 	gtk_widget_show (fileentry2);
 	gtk_container_add (GTK_CONTAINER (frame3), fileentry2);
 	
@@ -1060,6 +1061,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_box_pack_start (GTK_BOX (bigbox), typecompbox, TRUE, TRUE, 0);
 
 	fentry = gnome_file_entry_new ("gpsmop::export::filename", "Export File");
+	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fentry), TRUE);
 	gtk_widget_show(fentry);
 	gtk_box_pack_start (GTK_BOX (vbox), fentry, TRUE, TRUE, 0);
 

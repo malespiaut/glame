@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.112 2002/04/12 18:35:38 richi Exp $
+ * $Id: main.c,v 1.113 2002/06/02 18:00:18 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -522,6 +522,7 @@ static GtkWidget *preferences_tab_swapfile(char *sw_path,
             _("GLAME doesnt handle running out of disk space very well.")));
 
         entry = gnome_file_entry_new("swapfilepath", _("Swapfile Path"));
+	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(entry), TRUE);
         create_label_widget_pair(vbox, _("Swapfile Path"), entry);
 	glame_config_get_string("swapfile/defaultpath", &cfg);
 	strncpy(sw_path, cfg, 255);
