@@ -43,8 +43,11 @@
 /* define if union semun is defined in <sys/sem.h> */
 #undef HAVE_SEMUN
 
-/* define if your libc supports POSIX realtime signals */
-#undef HAVE_POSIX_RTSIG
+/* define if semctl works ok in all cases */
+#undef SEMCTL_OK
+
+/* define if you use pthreads (always defined for GLAME) */
+#undef USE_PTHREADS
 
 /* define if your libc supports the madvise system call */
 #undef HAVE_MADVISE

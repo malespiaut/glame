@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.13 2000/05/26 09:08:38 richi Exp $
+ * $Id: filter_ops.c,v 1.14 2000/06/25 14:53:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -69,6 +69,7 @@ static void *launcher(void *node)
 {
 	filter_node_t *n = (filter_node_t *)node;
 	filter_pipe_t *p;
+	struct sembuf sop;
 
 	DPRINTF("%s launched (pid %i)\n", n->name, (int)getpid());
 
@@ -96,7 +97,10 @@ static void *launcher(void *node)
 	}
 
 	/* increment filter ready semaphore */
-	sem_op(n->net->launch_context->semid, 0, 1);
+	sop.sem_num = 0;
+	sop.sem_op = 1;
+	sop.sem_flg = IPC_NOWAIT;
+	glame_semop(n->net->launch_context->semid, &sop, 1);
 
 	pthread_exit((void *)-1);
 

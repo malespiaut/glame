@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.14 2000/05/02 07:46:36 richi Exp $
+ * $Id: filter_mm.c,v 1.15 2000/06/25 14:53:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -24,7 +24,7 @@
 
 #include <string.h>
 #include "util.h"
-#include "sem.h"
+#include "glame_sem.h"
 #include "filter.h"
 #include "filter_methods.h"
 #include "filter_ops.h"
@@ -166,8 +166,15 @@ filter_launchcontext_t *_launchcontext_alloc()
 
 	if (!(c = ALLOC(filter_launchcontext_t)))
 		return NULL;
-	if ((c->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) != -1)
-		sem_zero(c->semid, 0);
+	if ((c->semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1) {
+		free(c);
+		return NULL;
+	}
+	{
+		union semun sun;
+		sun.val = 0;
+		glame_semctl(c->semid, 0, SETVAL, sun);
+	}
 	ATOMIC_INIT(c->result, 0);
 	c->nr_threads = 0;
 	if (c->semid != -1)
@@ -182,7 +189,10 @@ void _launchcontext_free(filter_launchcontext_t *c)
 	if (!c)
 		return;
 	ATOMIC_RELEASE(c->result);
-	sem_remove(c->semid);
+	{
+		union semun sun;
+		glame_semctl(c->semid, 0, IPC_RMID, sun);
+	}
 	free(c);
 }
 

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.51 2000/05/26 08:53:22 richi Exp $
+ * $Id: filter_network.c,v 1.52 2000/06/25 14:53:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -32,7 +32,7 @@
 #include <regex.h>
 #include <errno.h>
 #include "util.h"
-#include "sem.h"
+#include "glame_sem.h"
 #include "filter.h"
 #include "filter_methods.h"
 #include "filter_mm.h"
@@ -101,13 +101,17 @@ int filternetwork_launch(filter_network_t *net)
 
 int filternetwork_start(filter_network_t *net)
 {
+	struct sembuf sop;
+
 	if (!net || !FILTERNETWORK_IS_LAUNCHED(net)
 	    || FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
 	DPRINTF("waiting for nodes to complete initialization.\n");
-	sem_op(net->launch_context->semid, 0,
-	       -net->launch_context->nr_threads);
+        sop.sem_num = 0;
+        sop.sem_op = -net->launch_context->nr_threads;
+        sop.sem_flg = 0;
+        glame_semop(net->launch_context->semid, &sop, 1);
 	if (ATOMIC_VAL(net->launch_context->result) != 0)
 		goto out;
 	net->launch_context->state = STATE_RUNNING;
@@ -122,12 +126,16 @@ out:
 
 int filternetwork_pause(filter_network_t *net)
 {
+	struct sembuf sop;
+
 	if (!net || !FILTERNETWORK_IS_LAUNCHED(net)
 	    || !FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
-	sem_op(net->launch_context->semid, 0,
-	       +net->launch_context->nr_threads);
+        sop.sem_num = 0;
+        sop.sem_op = net->launch_context->nr_threads;
+        sop.sem_flg = IPC_NOWAIT;
+        glame_semop(net->launch_context->semid, &sop, 1);
 	net->launch_context->state = STATE_LAUNCHED;
 
 	return 0;
@@ -153,7 +161,11 @@ void filternetwork_terminate(filter_network_t *net)
 		return;
 
 	atomic_set(&net->launch_context->result, 1);
-	sem_zero(net->launch_context->semid, 0);
+	{
+		union semun sun;
+		sun.val = 0;
+		glame_semctl(net->launch_context->semid, 0, SETVAL, sun);
+	}
 	net->launch_context->state = STATE_RUNNING;
 
 	/* "safe" cleanup */

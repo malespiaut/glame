@@ -1,7 +1,7 @@
 #!/bin/sh
 
 rm -f config.cache
-aclocal -I .
+aclocal -I . -I macros
 libtoolize --copy --automake
 #--ltdl
 autoheader

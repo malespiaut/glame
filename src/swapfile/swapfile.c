@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.16 2000/05/01 11:09:04 richi Exp $
+ * $Id: swapfile.c,v 1.17 2000/06/25 14:53:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -36,7 +36,7 @@
 #include <errno.h>
 #include "swapfile.h"
 #include "util.h"
-#include "sem.h"
+#include "glame_sem.h"
 
 /* TODO:
  *
@@ -114,12 +114,20 @@ static void __fcpopulate(filecluster_t *fc, cluster_t *c, int coff);
  */
 static inline void _swap_lock()
 {
-	sem_op(swap->semid, swap->semnum, -1);
+	struct sembuf sop;
+	sop.sem_num = swap->semnum;
+	sop.sem_op = -1;
+	sop.sem_flg = 0;
+	glame_semop(swap->semid, &sop, 1);
 }
 
 static inline void _swap_unlock()
 {
-	sem_op(swap->semid, swap->semnum, 1);
+	struct sembuf sop;
+	sop.sem_num = swap->semnum;
+	sop.sem_op = 1;
+	sop.sem_flg = IPC_NOWAIT;
+	glame_semop(swap->semid, &sop, 1);
 }
 
 
@@ -1401,12 +1409,15 @@ int swap_open(char *name, int flags)
 	swap->mapped_max = CLUSTER_MAXSIZE<<4;
 	INIT_LIST_HEAD(&swap->mapped);
 
-	if ((swap->semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
+	if ((swap->semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		goto _nosem;
 	swap->semnum = 0;
-	sem_zero(swap->semid, swap->semnum);
-	if (sem_get(swap->semid, swap->semnum) == -1)
-	        return -1;
+	{
+		union semun sun;
+		sun.val = 0;
+		if (glame_semctl(swap->semid, swap->semnum, SETVAL, sun) == -1)
+			return -1;
+	}
 
 	if ((swap->fd = open(name, O_RDWR)) == -1)
 		goto _nofd;
@@ -1443,7 +1454,10 @@ _err:
 _nostat:
 	close(swap->fd);
 _nofd:
-	sem_remove(swap->semid);
+	{
+		union semun sun;
+		glame_semctl(swap->semid, 0, IPC_RMID, sun);
+	}
 _nosem:
 	free(swap);
 	swap = NULL;
@@ -1474,7 +1488,10 @@ void swap_close()
 #endif
 	close(swap->fd);
 
-	sem_remove(swap->semid);
+	{
+		union semun sun;
+		glame_semctl(swap->semid, 0, IPC_RMID, sun);
+	}
 
 	/* aieee! FIXME! we should free the lists in mem?? (sure!) */
 	/* and we should unmap all mappings... FIXME! */

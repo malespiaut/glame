@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.55 2000/05/26 08:50:32 richi Exp $
+ * $Id: filter.h,v 1.56 2000/06/25 14:53:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,7 +43,7 @@
 #include "glame_hash.h"
 #include "list.h"
 #include "atomic.h"
-#include "sem.h"
+#include "glame_sem.h"
 #include "glplugin.h"
 #include "glsignal.h"
 
@@ -455,10 +455,17 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf);
  */
 #define FILTER_AFTER_INIT \
 do { \
+        struct sembuf sop; \
 	DPRINTF("%s seems ready for signalling\n", n->name); \
         filternode_clear_error(n); \
-	sem_op(n->net->launch_context->semid, 0, 1); \
-	sem_op(n->net->launch_context->semid, 0, 0); \
+        sop.sem_num = 0; \
+        sop.sem_op = 1; \
+        sop.sem_flg = IPC_NOWAIT; \
+        glame_semop(n->net->launch_context->semid, &sop, 1); \
+        sop.sem_num = 0; \
+        sop.sem_op = 0; \
+        sop.sem_flg = 0; \
+        glame_semop(n->net->launch_context->semid, &sop, 1); \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
 	DPRINTF("%s is ready now.\n", n->name); \
@@ -480,7 +487,11 @@ do { \
 
 #define FILTER_CHECK_STOP \
 do { \
-        sem_op(n->net->launch_context->semid, 0, 0); \
+        struct sembuf sop; \
+        sop.sem_num = 0; \
+        sop.sem_op = 0; \
+        sop.sem_flg = 0; \
+        glame_semop(n->net->launch_context->semid, &sop, 1); \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_stopcleanup; \
         pthread_testcancel(); \

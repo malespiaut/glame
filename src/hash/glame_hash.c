@@ -31,8 +31,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include "util.h"
+#include "glame_sem.h"
 #include "glame_hash.h"
-#include "sem.h"
 
 /* One page sized hashtable. */
 #define HASH_BITS (10)
@@ -45,7 +45,7 @@ struct hash_head **hash_table = NULL;
  * Add sigprocmask(all, SIGBLOCK,..) if you want to access
  * or modify the hash from signal handlers.
  */
-#ifndef _REENTRANT
+#ifndef USE_PTHREADS
 #define _lock()
 #define _unlock()
 #define _lock_w()
@@ -55,26 +55,43 @@ static int semid = -1;
 static int semnum = -1;
 static inline void _lock()
 {
-	sem_op(semid, semnum, -1);
+	struct sembuf sop;
+	sop.sem_num = semnum;
+	sop.sem_op = -1;
+	sop.sem_flg = 0;
+	glame_semop(semid, &sop, 1);
 }
 static inline void _unlock()
 {
-	sem_op(semid, semnum, 1);
+	struct sembuf sop;
+	sop.sem_num = semnum;
+	sop.sem_op = 1;
+	sop.sem_flg = IPC_NOWAIT;
+	glame_semop(semid, &sop, 1);
 }
 static inline void _lock_w()
 {
-	sem_op(semid, semnum, -10000);
+	struct sembuf sop;
+	sop.sem_num = semnum;
+	sop.sem_op = -10000;
+	sop.sem_flg = 0;
+	glame_semop(semid, &sop, 1);
 }
 static inline void _unlock_w()
 {
-	sem_op(semid, semnum, 10000);
+	struct sembuf sop;
+	sop.sem_num = semnum;
+	sop.sem_op = 10000;
+	sop.sem_flg = IPC_NOWAIT;
+	glame_semop(semid, &sop, 1);
 }
 #endif
 
 
 static void cleanup()
 {
-        sem_remove(semid);
+	union semun sun;
+	glame_semctl(semid, 0, IPC_RMID, sun);
 }
 
 int hash_alloc()
@@ -83,13 +100,16 @@ int hash_alloc()
 		return -1;
 	hash_table[HASH_SIZE] = NULL;
 
-#ifdef _REENTRANT
-	if ((semid = semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
+#ifdef USE_PTHREADS
+	if ((semid = glame_semget(IPC_PRIVATE, 1, IPC_CREAT|0660)) == -1)
 		return -1;
 	semnum = 0;
-	sem_op(semid, 0, 10000);
-	if (sem_get(semid, semnum) != 10000)
-		return -1;
+	{
+		union semun sun;
+		sun.val = 10000;
+		if (glame_semctl(semid, semnum, SETVAL, sun) == -1)
+			return -1;
+	}
 
 	/* register cleanup handler */
 	atexit(cleanup);

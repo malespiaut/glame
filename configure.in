@@ -4,6 +4,9 @@ AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(glame, 0.3.5)
 AM_CONFIG_HEADER(config.h)
 
+dnl Pick up additional macros from the macros directory
+AM_ACLOCAL_INCLUDE(macros)
+
 
 dnl
 dnl Switch to configure debugging stuff - sane default for now.
@@ -72,6 +75,7 @@ ACX_PTHREAD([
 LIBS="$PTHREAD_LIBS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
 CC="$PTHREAD_CC"
+AC_DEFINE(USE_PTHREADS)
 ], [
 AC_ERROR(You need pthreads to run glame!)
 ])
@@ -196,9 +200,12 @@ AC_STRUCT_ST_BLOCKS
 AC_TYPE_SIGNAL
 AC_TYPE_PID_T
 
+
+dnl Check for broken SYSV semaphores
+ACG_CHECK_SEMUN
+ACG_CHECK_SEMCTL
+
 dnl Checks for library functions.
-AC_CHECK_SEMUN
-AC_CHECK_POSIX_RTSIG
 AC_FUNC_MMAP
 AC_FUNC_MADVISE
 
@@ -244,4 +251,4 @@ AC_SUBST(GLAME_DCFLAGS)
 AC_SUBST(GLAME_AUDIO_LIBS)
 AC_SUBST(GLAME_AUDIO_CFLAGS)
 
-AC_OUTPUT(Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile)
+AC_OUTPUT(Makefile macros/Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile)
