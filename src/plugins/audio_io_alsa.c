@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa.c
- * $Id: audio_io_alsa.c,v 1.3 2001/04/11 13:25:51 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.4 2001/05/16 14:45:50 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -123,10 +123,12 @@ static int alsa_audio_out_f(filter_t *n)
 	ch_param.format.rate = rate;
 #ifdef SND_LITTLE_ENDIAN
 	ch_param.format.format = SND_PCM_SFMT_S16_LE;
-#elif SND_BIG_ENDIAN
-	ch_param.format.format = SND_PCM_SFMT_S16_BE;
 #else
+# ifdef SND_BIG_ENDIAN
+	ch_param.format.format = SND_PCM_SFMT_S16_BE;
+# else
 #error Unsupported endianness.
+# endif
 #endif
 	ch_param.format.interleave = 1;
 	ch_param.channel = SND_PCM_CHANNEL_PLAYBACK;
