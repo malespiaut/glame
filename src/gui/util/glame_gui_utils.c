@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.34 2004/10/23 13:09:26 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.35 2004/10/28 20:24:59 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -696,6 +696,9 @@ gint glame_menu_get_active_index(GtkMenu *menu)
 	GtkWidget *act;
 	GList *list;
 	int val;
+
+	if (!menu)
+		return -1;
 
 	act = gtk_menu_get_active(menu);
 	list = gtk_container_children(GTK_CONTAINER(menu));

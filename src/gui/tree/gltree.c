@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.4 2004/07/08 20:47:27 richi Exp $
+ * $Id: gltree.c,v 1.5 2004/10/28 20:24:59 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -823,7 +823,7 @@ static void import_cb(GtkWidget *menu, gpointer which)
 	GtkTreeIter *iter = (GtkTreeIter *)which;
 	const gchar *label;
 
-	imported = glame_import_dialog(GTK_WINDOW(gltree_tree));
+	imported = glame_import_dialog(NULL);
 	if (!imported)
 		return;
 	
@@ -857,5 +857,5 @@ static void export_cb(GtkWidget *menu, gpointer which)
         gpsm_item_t *item;
 
 	item = glame_gpsm_store_get_item(iter);
-	gnome_dialog_run_and_close(glame_export_dialog(item, GTK_WINDOW(gltree_tree)));
+	gnome_dialog_run_and_close(glame_export_dialog(item, NULL));
 }

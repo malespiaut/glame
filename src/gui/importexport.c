@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.39 2004/10/26 21:17:05 ochonpaul Exp $
+ * $Id: importexport.c,v 1.40 2004/10/28 20:24:58 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1608,11 +1608,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie->ocompmenu = gtk_option_menu_new ();
 	gtk_widget_show(ie->ocompmenu);
 	gtk_container_add(GTK_CONTAINER(frame2), ie->ocompmenu);
-	ie_type_menu_cb(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->otypemenu))), ie);
 
-	/* filetype is auto, so compression can't be set */
-	gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
-	
 	frame4 = gtk_frame_new(_("Render Options"));
 	gtk_widget_show(frame4);
 	gtk_box_pack_start (GTK_BOX (typecompbox), frame4, FALSE, FALSE,0);
@@ -1682,7 +1678,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
 				     ie->filetype == -1 ? 0 : ie->filetype);
 
-	
+	ie_type_menu_cb(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(ie->otypemenu))), ie);
 
 	/*** Mp3 lame tab ***/
 	label_tab2 = gtk_label_new(_("Mp3 (Lame)"));
