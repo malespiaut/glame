@@ -153,10 +153,10 @@ int _hashfn(const char *name, const void *namespace)
 	return (val & (HASH_SIZE-1));
 }
 
-inline struct hash_head *__hash_find(const char *name, const void *namespace,
-				     struct hash_head **e,
-				     unsigned long _head, unsigned long _name,
-				     unsigned long _namespace)
+struct hash_head *__hash_find(const char *name, const void *namespace,
+			      struct hash_head **e,
+			      unsigned long _head, unsigned long _name,
+			      unsigned long _namespace)
 {
 	struct hash_head *entry = *e;
 
@@ -181,7 +181,7 @@ struct hash_head *_hash_find(const char *name, const void *namespace,
 	return entry;
 }
 
-inline void __hash_add(struct hash_head *entry, struct hash_head **loc)
+void __hash_add(struct hash_head *entry, struct hash_head **loc)
 {
         if (_is_hashed(entry))
 	        DERROR("Adding already added hash entry");
@@ -197,7 +197,7 @@ void _hash_add(struct hash_head *entry, struct hash_head **loc)
 	_unlock_w();
 }
 
-inline void __hash_remove(struct hash_head *entry)
+void __hash_remove(struct hash_head *entry)
 {
         if (!_is_hashed(entry))
                 DERROR("Removing already removed hash entry");
@@ -215,9 +215,9 @@ void _hash_remove(struct hash_head *entry)
 	_unlock_w();
 }
 
-inline struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
-				     unsigned long _head, unsigned long _name,
-				     unsigned long _namespace)
+struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
+			      unsigned long _head, unsigned long _name,
+			      unsigned long _namespace)
 {
 	struct hash_head **slot;
 
@@ -246,9 +246,9 @@ inline struct hash_head *__hash_walk(struct hash_head *entry, void *namespace,
 }
 
 
-inline const char *__hash_unique_name(const char *prefix, void *namespace,
-				      unsigned long _head, unsigned long _name,
-				      unsigned long _namespace)
+const char *__hash_unique_name(const char *prefix, void *namespace,
+			       unsigned long _head, unsigned long _name,
+			       unsigned long _namespace)
 {
 	char buf[256];
 	int i;
