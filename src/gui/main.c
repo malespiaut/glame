@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.52 2001/05/22 09:37:44 richi Exp $
+ * $Id: main.c,v 1.53 2001/05/23 12:34:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -178,6 +178,12 @@ static void update_preferences()
 		gnome_config_set_int("swapfile/maxundo", maxundo);
 	gpsm_set_max_saved_ops(maxundo);
 
+	/* GLAME_WBUFSIZE */
+	GLAME_WBUFSIZE = gnome_config_get_int_with_default(
+		"filter/wbufsize=1024", &def);
+	if (def)
+		gnome_config_set_int("filter/wbufsize", GLAME_WBUFSIZE);
+
 	/* Update IO plugin setup - audio_out */
 	aoutplugin = gnome_config_get_string_with_default(
 		"audio_io/output_plugin=audio_out", &def);
@@ -238,9 +244,10 @@ static void update_preferences()
 "\tUndo stack depth is %d\n"
 "\tAudio input plugin %s, device \"%s\"\n"
 "\tAudio output plugin %s, device \"%s\"\n"
+"\tGLAME_WBUFSIZE %d\n"
 "\tPopup timeout is %ims\n"
 "\tMac mode is %s\n",
-                swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev,
+                swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev, GLAME_WBUFSIZE,
                 nPopupTimeout, bMac ? "on" : "off");
 
 	/* Free temp. storage. */
@@ -277,10 +284,10 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget *combo;
 	GList *combo_items;
 	char *cfg, *path, *numberbuffer, *aindev, *aoutdev;
-	char *ainplugin, *aoutplugin, *maxundobuf;
+	char *ainplugin, *aoutplugin, *maxundobuf, *wbufsizebuf;
 	gboolean ok=FALSE;
 	gboolean mac;
-	int maxundo;
+	int maxundo, wbufsize;
 
 	/* New box. */
         prop_box = gnome_property_box_new();
@@ -405,6 +412,13 @@ preferences_cb(GtkWidget * wid, void * bla)
 	create_label_edit_pair(vbox, "Default output device",
 			       "aoutdev", aoutdev);
 
+	/* GLAME_WBUFSIZE */
+	wbufsize = gnome_config_get_int("filter/wbufsize");
+	wbufsizebuf = alloca(256);
+	snprintf(wbufsizebuf, 255, "%d", wbufsize);
+	create_label_edit_pair(vbox, "Size hint for audio buffers [samples]", "prefs::wbufsize",
+			       wbufsizebuf);
+
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box), vbox,
 				       tablabel);
 
@@ -433,6 +447,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gnome_config_set_string("audio_io/input_plugin", ainplugin);
 	gnome_config_set_string("audio_io/output_dev", aoutdev);
 	gnome_config_set_string("audio_io/output_plugin", aoutplugin);
+	if (sscanf(wbufsizebuf, "%d", &wbufsize) == 1)
+		gnome_config_set_int("filter/wbufsize", wbufsize);
 	/* Absolutely need this gnome_config_sync() - else everything
 	 * is lost (gnome suxx)! */
 	gnome_config_sync();
