@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.117 2003/04/22 21:46:51 richi Exp $
+ * $Id: main.c,v 1.118 2003/06/12 19:31:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -910,7 +910,7 @@ _("Welcome first-time user of GLAME.\n"
 	glame_config_get_string("swapfile/defaultpath", &path);
 	DPRINTF("path: %s\n",path);
 	if (!g_file_test(path,G_FILE_TEST_IS_DIR)) {
-		if (swapfile_creat(path, -1)) {
+		if (swapfile_creat(path, 0)) {
 			char msg[256];
 			char *errmsg = strerror(errno);
 			snprintf(msg, 255, _("GLAME was unable to create its swapfile\nbecause of \"%s\".\nPlease check the configuration.\n"), errmsg);
@@ -1009,6 +1009,7 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 
 int main(int argc, char **argv)
 {
+	bind_textdomain_codeset("glame", "UTF-8");
 	textdomain("glame");
 
 	/* setup gnome/gtk  */
