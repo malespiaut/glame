@@ -137,4 +137,15 @@ void afInitRate (AFfilesetup setup, int track, double rate)
 }
 
 
+long afQueryLong (int querytype, int arg1, int arg2, int arg3, int arg4)
+{
+	return -1;
+}
+
+void *afQueryPointer (int querytype, int arg1, int arg2, int arg3, int arg4)
+{
+	return NULL;
+}
+
+
 #endif
