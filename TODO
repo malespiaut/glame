@@ -1,13 +1,10 @@
 TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
-
 doc/
-	document available filters [the filter autors]
-
+	document available filters [nold/the filter authors]
 
 filter/
-
 
 swapfile/
 	redo transactions and high level operations, i.e.
@@ -15,10 +12,8 @@ swapfile/
 	redo the lowlevel part (fuse runtime and on-disk structures,
 	use meta part of the swapfile directly) [richi]
 
-
 channel/
-	status unknown [maggy/richi/XWolf/others?]
-
+	status unknown [mag/richi/XWolf/others?]
 
 glame/cglame
 	nothing there [all]

@@ -4,7 +4,7 @@ This will be the first usable wav editor for linux.
 It will be actually a lot more than a wav editor! [richi]
 
 Authors in alphabetical order
-	Belbo, Maggy, richi and XWolf
+	nold, mag, richi and XWolf
 with their real names
 	Daniel Kobras,
 	Alexander Ehlert,
@@ -16,12 +16,19 @@ http://glame.sourceforge.net/
 
 Tuebingen 29.01.2000
 
+Quick Start for the impatient
+=============================
+Don't look for an executable named 'glame'. There is none, at least 
+nothing useful. Which doesn't mean there's nothing to use. To test and
+setup filter networks, go to src/filter and try the executable 
+test_network on various of the net_test_* files supplied there. A brief
+summary on how to setup your own net_test_ files is in the texinfo 
+documentation in doc/. A preliminary GUI is there as well, just try
+src/gui/main. You can query filter properties at the moment and have fun
+testing a little drag'n'drop but that's about all at the moment.
 
-For the impatient ones:
-- there is no usable main program yet
-- you can find test programs in the filter and the swapfile
-  subdirectories
-
+Want more? Then join our devel team at SourceForge! An e-mail to
+glame-devel@lists.sourceforge.net will get you going.
 
 Current Status (brief ChangeLog):
 =================================
@@ -29,7 +36,7 @@ Version ??? to 0.0001:
 - a lot of brainwork done
 - first class definitions soon to approach [XWolf]
 - swapfile is there [richi]
-- majordomo is there [Belbo/XWolf]
+- majordomo is there [nold/XWolf]
 
 Version 0.002 (*applause!*):
 - filter-network code and basic filters are there [richi]
@@ -46,18 +53,16 @@ Version 0.011:
 - documentation for the swapfile API is there  [richi]
 - the filter API has changed a lot and probably will even
   more...  [richi]
-- we have more filters  [richi, Maggy]
+- we have more filters  [richi, mag]
 - rw handler framework is obsolete and not yet replaced
 
 Version 0.020:
 - first release, main APIs nearly complete [richi]
-- does make tuut [Maggy]
+- does make tuut [mag]
 
 Version 0.025:
 - second public release, main APIs complete and documented
 - can play wavs including echo effect
-
-
 
 Features:
 =========
@@ -74,3 +79,4 @@ There is no frontend yet, but the backends support
 Thats all folks!
 
 	Yours, GLAME-Team.
+

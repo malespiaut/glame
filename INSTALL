@@ -7,14 +7,14 @@ But if you want to build what is there just go the standard configure-way:
 ./configure
 make
 
-Or if you just checked out the CVS tree which is highly probable as there are
-no other ways of distribution at the moment you first need to do
+Or if you just checked out the CVS tree (which is highly recommended as 
+development is going really fast at the moment) you first need to do
 aclocal && autoheader && automake -a && autoconf
-(try it again until no error messages are left)
-
+(try again until no error messages are left)
 
 For more about GLAME have a look into the README file and the current
 documentation in the doc/ directory. You also may want to read the source which
 is entirely contained in the src/ directory.
 
 	Yours, GLAME Team.
+

@@ -1,3 +1,516 @@
+2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/data/Makefile.am, /cvsroot/glame/glame/src/data/pixmaps/Makefile.am, /cvsroot/glame/glame/src/Makefile.am:
+	distribute & install the data stuff
+
+	* /cvsroot/glame/glame/src/include/list.h:
+	fixed NDEBUG vs DEBUG issue wrt to sanity checks
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c:
+	Making ready for release: fix a warning, update copyright. Hopefully
+	that's it for the day. [dk]
+
+2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/README, /cvsroot/glame/glame/src/filter/Makefile.am:
+	pre release things to fix.
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/libfixp/fixp.h:
+	Removed offensive and obsolete comment. :-) [dk]
+
+2000-02-22  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/Makefile.am: added canvas.h
+
+	* /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h:
+	bugfixes
+	broken druid
+	fuck
+	watchpoints suck
+	i need a faster machine
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/filter-tutorial.texi, /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/doc/plugin.texi:
+	Documentation should be cleaned up and in sync again. [dk]
+
+2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/net_test_audio, /cvsroot/glame/glame/src/filter/net_test_echo, /cvsroot/glame/glame/src/filter/net_test_latency, /cvsroot/glame/glame/src/filter/net_test_play, /cvsroot/glame/glame/src/filter/test_latency.c:
+	cleanup wrt to api-change
+
+	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c:
+	added description parameter to filternetwork_new - its really
+	a filter-new like function
+
+	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_methods.c, /cvsroot/glame/glame/src/filter/filter_mm.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_ops.c:
+	fixed bugs & removed bogous DEFAULT_PIPETYPE
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_ops.c:
+	added FILTER_DO_CLEANUP to hide goto's :)
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c:
+	Using brandnew richi macros. [dk]
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c: Cleanups. [dk]
+
+2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/file_io.c: fixed register bug... umm
+
+	* /cvsroot/glame/glame/src/filter/file_io.c:
+	fixed file_io.c to do read/write abstraction in the way I thought it
+	has to be done.
+
+2000-02-22  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/canvas.h, /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h, /cvsroot/glame/glame/src/gui/main.c:
+	major code cleanup
+	fixed 99% of all warnings
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c:
+	Oops. This my incremental patch fixes a major race condition introduced by
+	my previous patch. Linus, please apply. ;-) [dk]
+
+2000-02-22  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h:
+	compiles again.
+	beginnings of a wizard
+	still got cleanup to do...
+
+2000-02-22  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/glmath/lina.c:
+	Dug out a fixed version. This should work... [dk]
+
+2000-02-22  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/canvas.h:
+	Added copyright :*)
+	The canvas is now a subclass of GnomeCanvas to make the dnd eazier to handle
+	just a maintenance checkin, will probably not even compile
+
+2000-02-22  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/file_io.c:
+	"I'm going home" check in :)
+	migrating generic reader to generic io
+	no write support yet [mag]
+
+2000-02-22  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/include/glame_types.h:
+	midi framework
+
+2000-02-21  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/basic_midi.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/filter_protocols.h:
+	more midi work
+
+2000-02-21  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/net_test_sample, /cvsroot/glame/glame/src/filter/nold.c:
+	Audio I/O merge. audio_in/out set up as default I/O filters, available on
+	any (working) hardware. [dk]
+	Removed remaining few left_/right_ issues. [dk]
+
+2000-02-21  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/canvas.c, /cvsroot/glame/glame/src/gui/canvas.h, /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h, /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/Makefile.am:
+	added fundamental canvas window...
+	you can actually open a new filternetwork and drag items from the filter list onto it
+	no connections yet, uuuuugggly code (don't mind the warnings ;))
+	but...
+
+2000-02-21  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/net_test_pan:
+	net_test_pan works again too
+
+2000-02-21  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_methods.c, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/net_test_audio, /cvsroot/glame/glame/src/filter/net_test_echo, /cvsroot/glame/glame/src/filter/net_test_play:
+	assorted fixes/cleanups
+
+	* /cvsroot/glame/glame/src/filter/file_io2.c, /cvsroot/glame/glame/src/filter/file_io.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/Makefile.am:
+	re-merged file_io2.c into file_io.c
+
+	* /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/filter_tools.h:
+	macros -> inline functions to prevent side-effects
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/filter-tutorial.texi, /cvsroot/glame/glame/doc/plugin.texi:
+	updated documentation
+
+	* /cvsroot/glame/glame/src/filter/basic_sample.c, /cvsroot/glame/glame/src/filter/filter_tools.h, /cvsroot/glame/glame/src/include/glame_types.h:
+	moved the SAMPLE2x and x2SAMPLE conversion macros to filter_tools.h
+	no clipping in volume_change filter anymore
+
+	* /cvsroot/glame/glame/src/filter/echo2.c:
+	fixed bug in echo2.c wrt to reference counting... ugh!
+
+2000-02-21  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/net_test_echo: another network.[mag]
+
+2000-02-21  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/distance.c:
+	Distance code moved to glmath/. [dk]
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/MAINTAINERS, /cvsroot/glame/glame/src/Makefile.am:
+	Added glmath framework. [dk]
+
+	* /cvsroot/glame/glame/src/glmath/glmath.h, /cvsroot/glame/glame/src/glmath/lina.c, /cvsroot/glame/glame/src/glmath/Makefile.am, /cvsroot/glame/glame/src/glmath/vec.c:
+	Glame math convenience lib. First version, just to show there is some
+	code. Beware, most of it is buggy though - will fix as soon as I dig out
+	the laptop with the fixed files. [dk]
+
+2000-02-21  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/net_test_play:
+	esd_out_f now with porttype automatic and automatic port mapping![mag]
+
+2000-02-21  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter.h: fixed typo wrt list_count
+
+2000-02-21  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/file_io2.c, /cvsroot/glame/glame/src/filter/net_test_play:
+	the "it works again"-release [mag]
+
+	* /cvsroot/glame/glame/src/filter/file_io2.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/Makefile.am:
+	another reimplementation of the famous read_file_f
+	minor fixes in garrison.c to help it compiling..
+	[mag]
+
+2000-02-20  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/net_test_pan:
+	fixed pan filter for now
+
+	* /cvsroot/glame/glame/configure.in:
+	fixed configure.in for the new "plugin" dir and the removed "rw" dir
+
+	* /cvsroot/glame/glame/src/filter/basic_midi.c, /cvsroot/glame/glame/src/filter/.cvsignore, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/midi_basic.c:
+	minor cleanups
+
+2000-02-20  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/MAINTAINERS, /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/TODO:
+	updated MAINTAINERS/TODO wrt to plugin and rw change
+	no longer build glame/cglame binaries
+
+	* /cvsroot/glame/glame/src/filter/filter.h:
+	convenience macros for testing the phi positional parameter
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h:
+	removed bogous standard port names "left_*" and "right_*"
+	removed the protocol header entry pos & its friends
+
+	* /cvsroot/glame/glame/src/filter/channel_io.c, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/nold.c:
+	compile again fixes
+
+	* /cvsroot/glame/glame/src/filter/file_io2.c, /cvsroot/glame/glame/src/filter/file_io.c:
+	new "framework" for readers/writers
+
+	* /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/basic_sample.c, /cvsroot/glame/glame/src/filter/garrison.c:
+	splitted basic into basic & basic_sample.
+	moved invert filter from garrison.c to basic_sample.c
+
+	* /cvsroot/glame/glame/src/cglame.c, /cvsroot/glame/glame/src/glame.c, /cvsroot/glame/glame/src/hash/glame_hash.h:
+	fixes wrt to previous changes
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/doc/plugin.texi:
+	documentation update
+
+	* /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_methods.c, /cvsroot/glame/glame/src/filter/filter_methods.h, /cvsroot/glame/glame/src/filter/filter_tools.h:
+	changed fixup_param method
+
+	* /cvsroot/glame/glame/src/plugin/Makefile.am, /cvsroot/glame/glame/src/plugin/plugin.c, /cvsroot/glame/glame/src/plugin/plugin.h:
+	added plugin framework
+
+	* /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/rw/Makefile.am, /cvsroot/glame/glame/src/rw/rw.c, /cvsroot/glame/glame/src/rw/rw.h, /cvsroot/glame/glame/src/rw/wav_file.c, /cvsroot/glame/glame/src/rw/wav_file.h:
+	removed the obsolete rw stuff
+
+2000-02-20  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/.cvsignore, /cvsroot/glame/glame/src/filter/distance.c, /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/Makefile.am:
+	Made distance function
+	Added .cvsignore (in filter dir)
+
+	* /cvsroot/glame/glame/src/filter/net_test_pan: minor change
+
+2000-02-19  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/net_test_pan:
+	Finished pan filter, added net_test_pan
+
+	* /cvsroot/glame/glame/MAINTAINERS, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/midi_basic.c, /cvsroot/glame/glame/src/filter/midi_io.c, /cvsroot/glame/glame/src/filter/net_test_latency:
+	more midi work (still nothing usable)
+	ping filter improvements (uses parameters)
+
+2000-02-18  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/include/glame_types.h:
+	Began to implement MIDI (unfinished)
+	Decided to commit before leaving for the night.
+
+2000-02-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/filter.fig, /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/filter-tutorial.texi:
+	changed tutorial section on parameters
+	added brief summary about filter network textual representation
+	did some figures!!
+
+	* /cvsroot/glame/glame/src/filter/filter_node.c:
+	filter_node.c was no longer used - empty file removed.
+
+2000-02-18  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/garrison.c:
+	ring mod (untested) [garrison]
+
+2000-02-17  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/net_play, /cvsroot/glame/glame/src/filter/net_test_sample:
+	net_play obsolete, already replaced by net_test_play
+
+	* /cvsroot/glame/glame/src/filter/file_io.c, /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/filter/net_test_play:
+	major cleanup of read_file_f
+	added positional info tag in sbuf!
+	[mag]
+
+2000-02-17  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/TODO:
+	fixed things
+
+	* /cvsroot/glame/glame/src/filter/filter.c: fixed another typo
+
+2000-02-17  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/channel_io.c, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/echo.c, /cvsroot/glame/glame/src/filter/file_io.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/volume_adjust.c, /cvsroot/glame/glame/src/filter/waveform.c:
+	Updated code to use proper API wrappers (filterpipe_*, filterparam_*).
+	[Yes, I touched private code - tought you prefer it that way than fixing
+	yourself.] [dk]
+
+2000-02-17  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_tools.h:
+	fixed thing that triggered debugging PANIC :)
+
+	* /cvsroot/glame/glame/configure.in: re-enabled efence
+
+	* /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_ops.c:
+	fixed three major bugs curtesy to re-enabled efence
+
+	* /cvsroot/glame/glame/src/filter/Makefile.am: oops makefile forgotten
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/filter/filter_tools.h, /cvsroot/glame/glame/src/filter/net_play:
+	the headerfiles dont need config.h - its in filter.h anyway
+	converted net_play
+
+	* /cvsroot/glame/glame/src/filter/filter_mm.c:
+	fixed additional list removal of buffer
+
+	* /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/tutorial.c:
+	move tutorial filters to extra file
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/filter-tutorial.texi, /cvsroot/glame/glame/doc/swapfile.texi:
+	documentation update
+
+2000-02-17  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h:
+	Just some minor updates
+
+2000-02-17  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/garrison.c:
+	changes to my filters -- nothing new [garrison]
+
+2000-02-16  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/filter-tutorial.texi, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_tools.h, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/filter/test_network.c, /cvsroot/glame/glame/TODO:
+	no longer need quotation of string parameters
+	fixed bug nold introduced in FILTER_AFTER_INIT
+	added support for pausing/starting networks
+	converted echo2.c to use the new ISSE macros
+
+	* /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/include/list.h:
+	added debugging checks to hashes/lists
+
+	* /cvsroot/glame/glame/src/filter/filter_methods.c:
+	fixed bug in wrapped parameter setting of strings
+
+2000-02-16  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/net_test_sample:
+	net_test_sample samples 10secs into bla.wav[dirty hack version *hehe*]
+
+2000-02-15  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/file_io.c, /cvsroot/glame/glame/src/filter/net_test_sample:
+	added net_test_sample
+	fixed minor bug in file_io.c
+
+2000-02-15  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/src/filter/file_io.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/filter_methods.c, /cvsroot/glame/glame/src/filter/filter_mm.c, /cvsroot/glame/glame/src/filter/filter_mm.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/net_test_audio, /cvsroot/glame/glame/src/filter/net_test_play, /cvsroot/glame/glame/src/filter/test_network.c, /cvsroot/glame/glame/src/hash/glame_hash.h, /cvsroot/glame/glame/src/include/list.h:
+	again filter API update (to and from string should work again)
+
+2000-02-14  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/gui.c: fixed wrt to filter API change
+
+	* /cvsroot/glame/glame/src/gui/Makefile.am: distribute gui.h
+
+	* /cvsroot/glame/glame/src/filter/file_io.c: whoops - forgot file_io.c
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/src/filter/filter.h:
+	fixed filter API documentation/headerfile
+	bumped version number
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/channel_io.c, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/echo.c, /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/nold.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/filter/test_network.c, /cvsroot/glame/glame/src/filter/volume_adjust.c, /cvsroot/glame/glame/src/filter/waveform.c:
+	fixed all filters/programs wrt to the API changes
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter_buffer.h, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filterI.h, /cvsroot/glame/glame/src/filter/filter_methods.c, /cvsroot/glame/glame/src/filter/filter_methods.h, /cvsroot/glame/glame/src/filter/filter_mm.c, /cvsroot/glame/glame/src/filter/filter_mm.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_ops.c, /cvsroot/glame/glame/src/filter/filter_ops.h, /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/filter/Makefile.am:
+	split up the source a lot -> major cleanup
+	API extension, everything can be removed now
+	headerfile splitted like swapfile
+	great renaming of the hash_* and list_* API functions,
+	including parameter shuffling
+
+	* /cvsroot/glame/glame/acinclude.m4, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/gui/Makefile.am, /cvsroot/glame/glame/src/Makefile.am:
+	include AM_PATH_GTK in acinclude.m4
+	reorder/depend GNOME check on GTK check
+	no longer build libfixp (nobody needs it)
+	distribute gui.c/main.c even if no GNOME/GTK is available
+
+2000-02-14  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/echo.c, /cvsroot/glame/glame/src/filter/file_io.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/net_play, /cvsroot/glame/glame/src/filter/read_file.c:
+	moved read_file into file_io.c
+	added write_file_f(supports only wav 16bit,44.1kHz at this stage)
+	added fixup methods to echo(|2).c
+
+2000-02-13  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/nold.c: Cleanups... [dk]
+
+2000-02-12  garrison  <garrison@fs1>
+
+	* /cvsroot/glame/glame/src/filter/garrison.c:
+	Initial pan filter (untested until I get a sound card working in linux)
+
+2000-02-11  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/data/pixmaps/default.png, /cvsroot/glame/glame/src/data/pixmaps/glame-logo.jpg:
+	added logo for about screen
+	added default icon-pixmap
+
+2000-02-11  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/include/sem.h:
+	Oops. Forgot most important file... [dk]
+
+	* /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/include/Makefile.am, /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/filter/filter.h:
+	Yet another attempt to get semctl working portably. Also cleaned up things
+	a bit. [dk]
+
+2000-02-11  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h, /cvsroot/glame/glame/src/gui/main.c:
+	added main menu/stubs fixed borken copyrights
+
+2000-02-11  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/configure.in: Cleaned up mess nold left. [dk]
+
+	* /cvsroot/glame/glame/acinclude.m4, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/gui/Makefile.am:
+	Cleaned up a bit of the mess XWolf left. [dk]
+
+2000-02-11  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/acinclude.m4, /cvsroot/glame/glame/src/filter/net_play, /cvsroot/glame/glame/src/Makefile.am:
+	added path_prog_test
+	added subdir to src/makefile.am
+	echo in filter/net_play
+
+	* /cvsroot/glame/glame/acinclude.m4: checks for gtk/gnome
+
+	* /cvsroot/glame/glame/configure.in:
+	added check for gtk/gnome and gui subdirectory
+
+	* /cvsroot/glame/glame/src/gui/gui.c, /cvsroot/glame/glame/src/gui/gui.h, /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/Makefile.am:
+	First gui filez. just a property browser, nothing more
+
+2000-02-10  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/nold.c: Yet another cleanup. [dk]
+
+2000-02-10  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h:
+	nobody uses pos -> deleted
+
+	* /cvsroot/glame/glame/src/filter/filter.h: added convenience macros
+
+2000-02-10  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/nold.c:
+	Native audio support on IRIX. Working version. This should go into
+	audio_io.c once richi gets the port aliasing issues straight. [dk]
+
+	* /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/Makefile.am, /cvsroot/glame/glame/doc/swapfile.texi:
+	Documentation update. [dk/richi]
+
+2000-02-10  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_network.c:
+	fixed connect not honouring !AUTOMATIC ports
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/filter/test_network.c, /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/swapfile/Makefile.am:
+	config/build cleanup
+	at least bugg fix for read_file
+
+2000-02-10  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/nold.c:
+	Native SGI audio update. Mono works. Still checking what's wrong with
+	stereo. [dk]
+
+2000-02-09  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/filter.c: Stupid bug... [dk]
+
+	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/filter/filter_tools.h, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/nold.c:
+	Preliminary native SGI audio support (untested, always hacking on the
+	wrong machine #-) [dk]
+	Included config.h in common header files. That's not the suggested way to
+	go but then errors resulting from config.h not being included are as
+	frequent as hard to find. [dk/richi]
+
+	* /cvsroot/glame/glame/src/include/glame_types.h, /cvsroot/glame/glame/src/include/hash.h, /cvsroot/glame/glame/src/include/list.h, /cvsroot/glame/glame/src/include/util.h:
+	Included config.h in common header files. That's not the suggested way to
+	go but then errors resulting from config.h not being included are as
+	frequent as hard to find. [dk/richi]
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/ChangeLog:
+	Preliminary native SGI audio support (untested, always hacking on the
+	wrong machine #-) [dk]
+	Updated ChangeLog. [dk]
+
 2000-02-09  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/filter/audio_io.c, /cvsroot/glame/glame/src/filter/basic.c, /cvsroot/glame/glame/src/filter/debug.c, /cvsroot/glame/glame/src/filter/echo2.c, /cvsroot/glame/glame/src/filter/filter_protocols.h, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/net_test_audio, /cvsroot/glame/glame/src/filter/read_file.c, /cvsroot/glame/glame/src/filter/test_audio.c, /cvsroot/glame/glame/src/filter/test_play.c, /cvsroot/glame/glame/src/filter/volume_adjust.c, /cvsroot/glame/glame/src/filter/waveform.c, /cvsroot/glame/glame/src/include/atomic.h, /cvsroot/glame/glame/src/include/atomic_mips.h, /cvsroot/glame/glame/src/include/atomic_x86.h:
@@ -63,7 +576,7 @@
 	* /cvsroot/glame/glame/src/filter/filter_tools.h, /cvsroot/glame/glame/src/filter/Makefile.am:
 	added filter_tools.h
 
-2000-02-08  Jim Garrison  <garrison@users.sourceforge.net>
+2000-02-08  garrison  <garrison@fs1>
 
 	* /cvsroot/glame/glame/src/filter/garrison.c, /cvsroot/glame/glame/src/filter/Makefile.am:
 	Phase inverter filter (hasn't been tested) [garrison]
@@ -205,7 +718,7 @@
 	Added pointer to test files in src/filter/ to {,c}glame. [dk]
 	Updated ChangeLog. [dk]
 
-2000-02-03  Jim Garrison  <garrison@users.sourceforge.net>
+2000-02-03  garrison  <garrison@fs1>
 
 	* /cvsroot/glame/glame/doc/masterplan.txt:
 	added questions about channels
