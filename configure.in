@@ -140,6 +140,12 @@ fi
 AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
 
 dnl
+dnl libxml check
+dnl
+
+AMG_PATH_XML()
+
+dnl
 dnl Checks for various audio stuff.
 dnl
 

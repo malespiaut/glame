@@ -182,8 +182,8 @@ int main (int argc, char *argv[])
 	int i;
 
 	/* Init swapfile. */
-	if (argc < 3) {
-		fprintf(stderr, "Usage: %s swap file\n", argv[0]);
+	if (argc < 4) {
+		fprintf(stderr, "Usage: %s swap zoom file...\n", argv[0]);
 		exit(1);
 	}
   
@@ -195,7 +195,7 @@ int main (int argc, char *argv[])
 	/* Initialize Gtk+. */
 	gtk_init (&argc, &argv);
 
-	for(i=2;i<argc;i++) {
+	for(i=3;i<argc;i++) {
 		/* Create a Gtk+ window. */
 		window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   
@@ -209,7 +209,7 @@ int main (int argc, char *argv[])
 		/* Set the zoom factor such that 1 pixel = 5 frames.
 		 * A frame is equal to n samples at one point in time
 		 * where n = number of channels. */
-		gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), 1.0);
+		gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), atoi(argv[2]));
 
 		/* Set the cache size to hold 8192 pixel columns of data.
 		 * This means the user can scroll the widget's contents

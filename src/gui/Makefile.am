@@ -1,6 +1,6 @@
 SUBDIRS = libgtkwaveform edit_filter
 
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGDATADIR=\"$(pkgdatadir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGDATADIR=\"$(pkgdatadir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 
 
 EXTRA_DIST = gui.h canvas.h glame.desktop
@@ -24,7 +24,7 @@ timeline_LDADD = $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
 treetest_SOURCES = tree.h tree.c treetest.c
 treetest_LDADD = ../swapfile/libswapfile.la \
-	$(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS) -lxml
+	$(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(XML_LIBS)
 
 wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
 wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \

@@ -60,10 +60,8 @@ int main(int argc, char **argv)
 		goto _usage;
 	}
 
-	fprintf(stderr, "Will create %li bytes swap in %s in 5 seconds!\n",
+	fprintf(stderr, "Will create %li bytes swap in %s at once!\n",
 		(long)size, swapname);
-	fprintf(stderr, "Last chance to quit (Ctrl-c is your friend)!\n");
-	sleep(5);
 	fprintf(stderr, "\nSetting up swap...\n");
 
 	/* Create swap. */

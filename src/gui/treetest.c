@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <gnome-xml/xmlmemory.h>
-#include <gnome-xml/parser.h>
+#include <xmlmemory.h>
+#include <parser.h>
 
 #include <gnome.h>
 #include <gtk/gtk.h>
