@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.37 2004/10/23 13:09:25 richi Exp $
+ * $Id: canvasport.c,v 1.38 2005/03/19 22:14:51 richi Exp $
  *
  * Copyright (C) 2001, 2002 Johannes Hirche
  *
@@ -170,8 +170,10 @@ glame_canvas_port_get_type(void)
 
 void glame_canvas_port_pipe_deleted_cb(GlameCanvasPipe* pipe, GlameCanvasPort* port)
 {
-	/* remove pipe from sighandlers */
-	if(is_hashed_gcport(port)){
+	/* Check if port is a life object (if it is hashed).
+	   Using is_hashed_gcport(port) is not safe! */
+	if (hash_find_gcport(filterpipe_source(pipe->pipe)) == port
+	    || hash_find_gcport(filterpipe_dest(pipe->pipe)) == port){
 		gtk_signal_disconnect_by_data(GTK_OBJECT(port),pipe);
 		glame_canvas_port_connections_changed_cb(port,NULL);
 	}
