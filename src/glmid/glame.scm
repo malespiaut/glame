@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id:
+; $Id: glame.scm,v 1.5 2000/03/17 16:28:32 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -16,6 +16,8 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program; if not, write to the Free Software
 ; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+;
+
 
 (define help
   (lambda ()
@@ -102,5 +104,51 @@
       (filternetwork_delete net))))
 
 ;
-; The "real" scheme glame midlayer
+; The "real" scheme glame midlayer - first try
 ;
+
+(define net-new
+  (lambda (name desc)
+    (filternetwork_new name desc)))
+
+(define net-add-nodes
+  (lambda (net nodes)
+    (if (string? nodes) (net-add net (list nodes))
+	(if (null? nodes) '()
+	    (cons (filternetwork_add_node net (car nodes) "")
+		  (net-add net (cdr nodes)))))))
+
+(define nodes-connect
+  (lambda (nodes)
+    (map-pairs
+      (lambda (s d) (filternetwork_add_connection s "out" d "in"))
+      nodes)))
+
+
+;
+; support the filternetwork2string syntax
+;
+
+(define FIXME (lambda () #f))
+
+(define filternetwork
+  (lambda (name description . cmds)
+    (let* ((net (filternetwork_new name description))
+	   (node (lambda (name filter . cmds)
+		   (let* ((node (filternetwork_add_node net filter name))
+			  (export-input (lambda (extlabel label desc) (FIXME)))
+			  (export-output (lambda (extlabel label desc) (FIXME)))
+			  (export-param (lambda (extlabel label desc) (FIXME)))
+			  (set-param (lambda (label value) (FIXME))))
+		     (map eval cmds)
+		     node)))
+	   (connect (lambda (node1 port1 node2 port2)
+		      (let* ((pipe (filternetwork_add_connection node1 port1 node2 port2))
+			     (set-sourceparam (lambda (label value) (FIXME)))
+			     (set-destparam (lambda (label value) (FIXME))))
+			(map eval cmds)
+			pipe)))
+	   (set-param (lambda (label value) (FIXME))))
+      (map eval cmds)
+      net)))
+
