@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.15 2001/10/18 15:13:35 richi Exp $
+ * $Id: importexport.c,v 1.16 2001/11/05 14:56:11 xwolf Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -623,7 +623,7 @@ void glame_import_dialog(struct impexp_s *ie)
 
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), IMPORT);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), IMPORT, TRUE);
-	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), PREVIEW, TRUE);
+	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), PREVIEW, FALSE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), CANCEL, TRUE);
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), IMPORT,
 				    ie_import_cb, ie);
