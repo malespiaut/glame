@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.11 2002/03/25 11:19:24 richi Exp $
+ * $Id: filter_port.c,v 1.12 2002/05/18 13:50:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -36,10 +36,17 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 	filter_pipe_t *in;
 	filter_pipe_t *out;
 	filter_port_t *port;
-	int index;
+	int index, nrin;
 
 	GLSIGH_GETARGS1(va, in);
 	n = filterport_filter(filterpipe_dest(in));
+
+	/* Count number of input ports. */
+	nrin = 0;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
+			nrin++;
+	}
 
 	/* Find out "index" of port of pipe that just changed. */
 	index = 0;
@@ -59,20 +66,37 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 			break;
 		index--;
 	}
-	if (!port) {
-		DPRINTF("You probably want to fixup yourself\n");
-		return;
+
+	/* Now there are two possibilities
+	 * - nrin is > 1, so we have a 1:1 matching input/output port situation
+	 * - nrin is 1 and we have just one input port (the one that
+	 *   was changed)
+	 * This is ensured by the default_connect_out method.
+	 */
+	if (nrin > 1) {
+		/* Update output pipe properties. */
+		filterport_foreach_pipe(port, out) {
+			if (out->type == FILTER_PIPETYPE_UNDEFINED)
+				out->type = in->type;
+			if (memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+				continue;
+			out->u = in->u;
+			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+		}
+	} else {
+		/* Update output pipe properties for all output ports. */
+		filterportdb_foreach_port(filter_portdb(n), port) {
+			filterport_foreach_pipe(port, out) {
+				if (out->type == FILTER_PIPETYPE_UNDEFINED)
+					out->type = in->type;
+				if (memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+					continue;
+				out->u = in->u;
+				glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+			}
+		}
 	}
 
-	/* Update output pipe properties. */
-	filterport_foreach_pipe(port, out) {
-		if (out->type == FILTER_PIPETYPE_UNDEFINED)
-			out->type = in->type;
-		if (memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
-			continue;
-		out->u = in->u;
-		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
-	}
 }
 
 static int default_connect_input(filter_port_t *port, filter_pipe_t *pipe)
@@ -132,8 +156,22 @@ static int default_connect_output(filter_port_t *port, filter_pipe_t *pipe)
 		index--;
 	}
 	if (!inp) {
-		DPRINTF("You want to connect outputs yourself for %s\n", filter_name(n));
-		return -1;
+		/* Ok, count inputs. */
+		index = 0;
+		filterportdb_foreach_port(filter_portdb(n), inp) {
+			if (filterport_is_input(inp))
+				index++;
+		}
+		/* For zero or > 1 inputs the plugin is screwed up. */
+		if (index == 0 || index > 1) {
+			DPRINTF("You want to connect outputs yourself for %s\n", filter_name(n));
+			return -1;
+		}
+		/* Else just use the one found input. */
+		filterportdb_foreach_port(filter_portdb(n), inp) {
+			if (filterport_is_input(inp))
+				break;
+		}
 	}
 
 	/* No connection? Postpone initialization. */
