@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.37 2001/08/08 09:15:30 richi Exp $
+ * $Id: audio_io.c,v 1.38 2002/01/23 14:43:18 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -332,12 +332,14 @@ int audio_out_register(plugin_t *p)
 	if (!audio_out)
 		return -1;
 
+	if (!(audio_out_f = filter_instantiate(audio_out)))
+		return -1;
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "playback stream");
 	plugin_set(p, PLUGIN_PIXMAP, "output.png");
         plugin_set(p, PLUGIN_CATEGORY, "Output");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
 
-	audio_out_f = filter_instantiate(audio_out);
 	return filter_register(audio_out_f, p);
 }
 
@@ -361,11 +363,13 @@ int audio_in_register(plugin_t *p)
 	if (!audio_in)
 		return -1;
 
+	if (!(audio_in_f = filter_instantiate(audio_in)))
+		return -1;
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(p, PLUGIN_PIXMAP, "input.png");
         plugin_set(p, PLUGIN_CATEGORY, "Input");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
 
-	audio_in_f = filter_instantiate(audio_in);
 	return filter_register(audio_in_f, p);
 }
