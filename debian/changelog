@@ -1,3 +1,24 @@
+glame (0.6.2-3) unstable; urgency=medium
+
+  * Applied patches from upstream CVS:
+    + Fix memleak in wave window and import/export dialog. Closes: #144477
+    + Do not crash with certain broken LADSPA plugins.
+    + Prevent setting the marker to illegal positions.
+    + Get marker position (a bit more) in sync with audio output.
+    + Allow to 'play from marker' in the second half of a file, too.
+
+ -- Daniel Kobras <kobras@debian.org>  Thu, 25 Apr 2002 16:58:18 +0200
+
+glame (0.6.2-2) unstable; urgency=low
+
+  * Apply fixes for various segfaults from upstream CVS. Closes: #141673
+    - Splash screen is no longer modal.
+    - Filters can be applied to more than two tracks at once.
+    - Default PIPE_CHANGED handler is only installed if filter contains
+      output ports.
+
+ -- Daniel Kobras <kobras@debian.org>  Tue,  9 Apr 2002 17:14:12 +0200
+
 glame (0.6.2-1) unstable; urgency=low
 
   * New upstream version.
