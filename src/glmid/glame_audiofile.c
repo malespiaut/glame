@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.16 2001/12/16 20:54:09 nold Exp $
+ * $Id: glame_audiofile.c,v 1.17 2001/12/16 21:26:10 nold Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -97,6 +97,16 @@ struct _AFfilehandle {
 			
 };
 
+
+struct _AFfilesetup {
+	int	ffmt;	/* File format */
+	int	ch;	/* Number of channels */
+	int	sfmt;	/* Sample format */
+	int	width;	/* Sample width */
+	int	rate;	/* Sample rate */
+	int	cmpr;	/* Compression type */
+};
+	
 #define RWW(fh) ((fh)->u.wav)
 
 /* The actual readers and writers.
@@ -469,7 +479,7 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 	}
 	
 	total = frameCount;
-	in = malloc(in, 128*RWW(file).block_align);
+	in = malloc(128*RWW(file).block_align);
 	if (!in) {
 		DPRINTF("Out of memory.\n");
 		goto out;
@@ -587,28 +597,98 @@ double afGetRate (AFfilehandle file, int track)
 
 AFfilesetup afNewFileSetup (void)
 {
-	return NULL;
+	AFfilesetup setup;
+
+	setup = malloc(sizeof(*setup));
+	return setup;
 }
 
 void afFreeFileSetup (AFfilesetup setup)
 {
+	if (setup)
+		free(setup);
 }
 
 void afInitFileFormat (AFfilesetup setup, int format)
 {
+	if (!setup)
+		return;
+
+	if (format != AF_FILE_WAVE) {
+		DPRINTF("File format %d not supported by wrapper.\n", format);
+		return;
+	}	
+		
+	setup->ffmt = format;
 }
 
 void afInitChannels (AFfilesetup setup, int track, int nchannels)
 {
+	if (!setup)
+		return;
+
+	if (track != AF_DEFAULT_TRACK)
+		return;
+
+	if (nchannels <= 0)
+		return;
+	
+	setup->ch = nchannels;
 }
 
 void afInitSampleFormat (AFfilesetup setup, int track, int sampleFormat,
 		        int sampleWidth)
 {
+	if (!setup)
+		return;
+
+	if (track != AF_DEFAULT_TRACK)
+		return;
+
+	if (sampleWidth <= 0 || sampleWidth & 0x7)
+		return;
+	
+	switch (sampleFormat) {
+	case AF_SAMPFMT_TWOSCOMP:
+		if (sampleWidth < 16)
+			DPRINTF("Warning. Selected format violates standard. "
+			        "Try using unsigned.\n");
+		break;
+	case AF_SAMPFMT_UNSIGNED:
+		if (sampleWidth > 8)
+			DPRINTF("Warning. Selected format violates standard. "
+			        "Try using twoscomp.\n");
+		break;
+	case AF_SAMPFMT_FLOAT:
+		if (sampleWidth != 32)
+			DPRINTF("Only 32bit width supported. Adjusting.\n");
+		sampleWidth = 32;
+		break;
+	case AF_SAMPFMT_DOUBLE:
+		if (sampleWidth != 64)
+			DPRINTF("Only 64bit width supported. Adjusting.\n");
+		sampleWidth = 64;
+		break;
+	default:
+		DPRINTF("Unsupported sample format %d.\n", sampleFormat);
+	}
+
+	setup->sfmt = sampleFormat;
+	setup->width = sampleWidth;
 }
 
 void afInitRate (AFfilesetup setup, int track, double rate)
 {
+	if (!setup)
+		return;
+
+	if (track != AF_DEFAULT_TRACK)
+		return;
+
+	if (rate <= 0.0)
+		return;
+
+	setup->rate = rate;
 }
 
 
@@ -702,6 +782,10 @@ int afSetVirtualPCMMapping(AFfilehandle file, int track,
 void afInitCompression(AFfilesetup setup, int track, int compression)
 {
 	/* FIXME: error handling!? */
+	/* Tough one: audiofile uses a callback scheme for error handling.
+	 * Glame currently doesn't make use of it, so no point in implementing
+	 * it in the wrapper. [dk]
+	 */
 	if (track != AF_DEFAULT_TRACK
 	    || compression != AF_COMPRESSION_NONE)
 		return;
