@@ -115,10 +115,10 @@ if test $la = yes; then
 fi
 
 dnl check for ALSA
-AM_PATH_ALSA(0.5.0, esd=yes, esd=no)
-if test $esd = yes; then
-	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
-	GLAME_CFLAGS="$GLAME_CFLAGS $ALSA_CFLAGS"
+AM_PATH_ALSA(0.5.0, alsa="yes", alsa="no")
+if test "x$alsa" = xyes; then
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS $ALSA_LIBS"
+	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ALSA_CFLAGS"
 	AC_DEFINE(HAVE_ALSA)
 fi
 

@@ -2487,7 +2487,6 @@ dnl Add any special include directories
 AC_MSG_CHECKING(for ALSA CFLAGS)
 if test "$alsa_inc_prefix" != "" ; then
 	ALSA_CFLAGS="$ALSA_CFLAGS -I$alsa_inc_prefix"
-	CFLAGS="-I$alsa_inc_prefix"
 fi
 AC_MSG_RESULT($ALSA_CFLAGS)
 
@@ -2495,12 +2494,10 @@ dnl add any special lib dirs
 AC_MSG_CHECKING(for ALSA LDFLAGS)
 if test "$alsa_prefix" != "" ; then
 	ALSA_LIBS="$ALSA_LIBS -L$alsa_prefix"
-	LIBS="-L$alsa_prefix"
 fi
 
 dnl add the alsa library
 ALSA_LIBS="$ALSA_LIBS -lasound"
-LDFLAGS="$ALSA_LIBS -lasound"
 AC_MSG_RESULT($ALSA_LIBS)
 
 dnl Check for the presence of the library
