@@ -1124,18 +1124,17 @@ static void destroy_win(GtkWidget *w, GtkObject *win)
 
 GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
-	GtkWidget *window, *waveview;
+	GtkWidget *window, *waveview, *toolbar;
 	GtkObject *wavebuffer;
 	struct weg_compound *weg;
 
 	/* Create a Gtk+ window. */
-	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), title);
+	window = gnome_app_new(title, _(title));
   
 	/* Create a GtkWaveView widget. */
 	waveview = gtk_wave_view_new ();
 	gtk_wave_view_set_select_channels (GTK_WAVE_VIEW (waveview), ~0);
-	gtk_widget_set_usize (waveview, 300, 200);
+	gtk_widget_set_usize (waveview, 400, 250);
 
 	/* Set the zoom factor such that 1 pixel = 5 frames.
 	 * A frame is equal to n samples at one point in time
@@ -1158,7 +1157,7 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	}
 
 	/* Add GtkWaveView to the window. */
-	gtk_container_add (GTK_CONTAINER (window), waveview);
+	gnome_app_set_contents(GNOME_APP(window), waveview);
 
 	/* Set the Waveform widget's data stream to point to our wavebuffer. */
 	gtk_wave_view_set_buffer (GTK_WAVE_VIEW (waveview),
@@ -1182,6 +1181,26 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 			   (GtkSignalFunc)destroy, weg);
 	gtk_signal_connect(GTK_OBJECT(waveview), "destroy",
 			   (GtkSignalFunc)destroy_win, window);
+
+	/* Add the toolbar. */
+	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Zoom in", "Zooms in", "Zooms in",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),
+				zoomin_cb, waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"Zoom out", "Zooms out", "Zooms out",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_UP),
+				zoomout_cb, waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				"View all", "View all", "View all",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),
+				zoomfull_cb, waveview);
+	/* gtk_toolbar_append_space(GTK_TOOLBAR(toolbar)); */
+	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
+			      "waveedit::toolbar",
+			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
+			      GNOME_DOCK_RIGHT, 0, 0, 0);
 
 	return window;
 }
