@@ -3,9 +3,12 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/s
 
 EXTRA_DIST = gui.h canvas.h
 
+Multimediadir = $(datadir)/gnome/apps/Multimedia
+
 if HAVE_GNOME
 bin_PROGRAMS = glame wavetest
 noinst_LTLIBRARIES = 
+Multimedia_DATA = glame.desktop
 endif
 
 glame_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
@@ -19,3 +22,4 @@ wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
 wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 glame_LDFLAGS = -export-dynamic
+

@@ -1,0 +1,9 @@
+
+[Desktop Entry]
+Name=GLAME
+Comment=GNU/Linux Audio Mechanics
+Exec=glame
+Icon=glame.png
+Terminal=false
+MultipleArgs=false
+Type=Application
