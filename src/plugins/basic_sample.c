@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.43 2001/06/13 11:19:16 richi Exp $
+ * $Id: basic_sample.c,v 1.44 2001/06/13 12:55:12 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -877,7 +877,7 @@ int volume_adjust_register(plugin_t *p)
 	plugin_set(p, PLUGIN_PIXMAP, "volume_adjust.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Volume");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
-	plugin_set(p, PLUGIN_LABEL, "Volume adjust");
+	plugin_set(p, PLUGIN_LABEL, "Volume Adjust");
   
 	return filter_register(f, p);
 }
