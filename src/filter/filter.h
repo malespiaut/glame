@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.26 2000/02/20 15:22:46 richi Exp $
+ * $Id: filter.h,v 1.27 2000/02/20 15:38:48 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -422,11 +422,12 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 
 /* Common values for hangle value of a filter pipe
  */
-
 #define FILTER_PIPEPOS_LEFT		-M_PI_2
 #define FILTER_PIPEPOS_RIGHT		M_PI_2
 #define	FILTER_PIPEPOS_CENTRE		0.0	/* Umm, needed at all? [dk] */
 #define FILTER_PIPEPOS_DEFAULT		FILTER_PIPEPOS_CENTRE
+#define FILTER_PIPEPOS_IS_LEFT(pos) ((pos)<0)
+#define FILTER_PIPEPOS_IS_RIGHT(pos) ((pos)>0)
 
 /* Public access macros for the filter_pipe_t structure.
  */
