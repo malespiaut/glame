@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.11 2000/03/24 11:08:14 richi Exp $
+ * $Id: filter_ops.c,v 1.12 2000/03/25 15:56:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -34,8 +34,11 @@ static int init_node(filter_node_t *n)
 		return 0;
 	if (n->state != STATE_UNDEFINED)
 		return -1;
-	if (filternode_has_error(n))
+	if (filternode_has_error(n)) {
+		DPRINTF("node %s has error (%s)\n", n->name,
+			filternode_errstr(n));
 	        return -1;
+	}
 
 	filternode_foreach_output(n, p) {
 		if (pipe(fds) == -1)

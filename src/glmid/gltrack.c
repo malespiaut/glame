@@ -122,6 +122,7 @@ int track_add(const char *group, const char *chan,
 	if (!(c->ch_name = strdup(chan)))
 		goto _notrackname;
 	hash_init_track(c);
+	INIT_LIST_HEAD(&c->ch_list);
 
 	c->fid = fid;
 	c->hangle = hangle;

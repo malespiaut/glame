@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.3 2000/03/25 15:03:21 richi Exp $
+ * $Id: track_io.c,v 1.4 2000/03/25 15:56:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -46,8 +46,8 @@ static int track_in_f(filter_node_t *n)
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		FILTER_ERROR_RETURN("no input track specified");
-	if (!(c = track_get(filterparam_val_string(chan), 
-			    filterparam_val_string(group))))
+	if (!(c = track_get(filterparam_val_string(group), 
+			    filterparam_val_string(chan))))
 		FILTER_ERROR_RETURN("input track not found");
 
 	FILTER_AFTER_INIT;
@@ -104,13 +104,14 @@ static int track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		return 0;
-	if (!(c = track_get(filterparam_val_string(chan),
-			    filterparam_val_string(group)))) {
+	if (!(c = track_get(filterparam_val_string(group),
+			    filterparam_val_string(chan)))) {
 		filternode_set_error(n, "track not found");
 		return -1;
 	}
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		return 0;
+	filternode_clear_error(n);
 
 	/* fix the output pipe stream information */
 	filterpipe_settype_sample(out, track_rate(c), 
@@ -127,8 +128,8 @@ static int track_in_connect_out(filter_node_t *n, const char *port,
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		return 0;
-	if (!(c = track_get(filterparam_val_string(chan),
-			    filterparam_val_string(group))))
+	if (!(c = track_get(filterparam_val_string(group),
+			    filterparam_val_string(chan))))
 		return 0;
 
 	/* fix the output pipe stream information */
@@ -196,9 +197,11 @@ static int track_out_f(filter_node_t *n)
 		while (p < sbuf_size(buf)*SAMPLE_SIZE) {
 			fc = filecluster_get(file, pos);
 			mem = filecluster_mmap(fc);
-			memcpy(mem, sbuf_buf(buf)+p/SAMPLE_SIZE, filecluster_size(fc));
-			p += filecluster_size(fc);
-			pos += filecluster_size(fc);
+			mem += pos - filecluster_start(fc);
+			memcpy(mem, sbuf_buf(buf)+p/SAMPLE_SIZE,
+			       filecluster_end(fc) - pos + 1);
+			p += filecluster_end(fc) - pos + 1;
+			pos = filecluster_end(fc) + 1;
 			filecluster_munmap(fc);
 		}
 
@@ -208,10 +211,17 @@ static int track_out_f(filter_node_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 
 	/* store the file into the submitted track */
-	res = track_add(filterparam_val_string(chan),
-			filterparam_val_string(group),
+	res = track_add(filterparam_val_string(group),
+			filterparam_val_string(chan),
 			file, filterpipe_sample_rate(in),
 			filterpipe_sample_hangle(in), 0);
+	if (res == 0)
+		DPRINTF("added track %s::%s\n", filterparam_val_string(group),
+			filterparam_val_string(chan));
+	else
+		DPRINTF("error adding track %s::%s\n",
+			filterparam_val_string(group),
+			filterparam_val_string(chan));
 
 	FILTER_BEFORE_CLEANUP;
 

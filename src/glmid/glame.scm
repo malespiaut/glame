@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.11 2000/03/25 15:03:56 richi Exp $
+; $Id: glame.scm,v 1.12 2000/03/25 15:56:25 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -84,7 +84,7 @@
   (lambda (node label value)
     (filternode_set_param node label value)))
 
-; (node-set-params node '("label" value) '("label" ...) ...)
+; (node-set-params node `("label" ,value) `("label" ...) ...)
 (define node-set-params
   (lambda (node . params)
     (map (lambda (p)
@@ -92,7 +92,7 @@
 	       (node-set-param node (car p) (cadr p))))
 	 params)))
 
-; (nodes-set-params `(,node ,node ..) '("label" value) ...)
+; (nodes-set-params `(,node ,node ..) `("label" ,value) ...)
 (define nodes-set-params
   (lambda (nodes . params)
     (map (lambda (n) (node-set-params n params)) nodes)))
@@ -132,33 +132,33 @@
 	       (begin (filternetwork_delete_node to) #f)
 	       (begin
 		 (node-set-params to
-		   '("group" group)
-		   '("track" (string-append track "-" (number->string i))))
+		   `("group" ,group)
+		   `("track" ,(string-append track "-" (number->string i))))
 		 (set! i (+ i 1))
 		 #t)))))
       (net-run net))))
 
 
 ; (play-track "group" "track")
-(define play-tracks
+(define play-track
   (lambda (group track)
-    (let ((net (net-new))
-	  (ti (net-add-node "track_in"))
-	  (ao (net-add-node audio-out)))
-      (node-set-params ti '("group" group) '("track" track))
-      (nodes-connect `(ti, ,ao))
+    (let* ((net (net-new))
+	   (ti (net-add-node net "track_in"))
+	   (ao (net-add-node net audio-out)))
+      (node-set-params ti `("group" ,group) `("track" ,track))
+      (nodes-connect `(,ti ,ao))
       (net-run net))))
 
 ; (play-tracks '("group" "track") '(...) ...)
 (define play-tracks
   (lambda tracks
     (let* ((net (net-new))
-	   (mix (net-add-node "mix2"))
-	   (ao (net-add-node audio-out)))
+	   (mix (net-add-node net "mix2"))
+	   (ao (net-add-node net audio-out)))
       (nodes-connect `(,mix ,ao))
       (map (lambda (t)
 	     (let ((ti (net-add-node net "track_in")))
-	       (node-set-params ti '("group" (car t)) '("track" (cadr t)))
+	       (node-set-params ti `("group" ,(car t)) `("track" ,(cadr t)))
 	       (nodes-connect `(,ti ,mix))))
 	   tracks)
       (net-run net))))
