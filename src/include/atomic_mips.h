@@ -1,19 +1,27 @@
 /*
- * Atomic operations that C can't guarantee us.  Useful for
- * resource counting etc..
+ * $Id: atomic_mips.h,v 1.5 2000/04/11 12:22:50 nold Exp $
  *
- * But use these as seldom as possible since they are much more slower
- * than regular operations.
+ * 
+ * Most of the code was taken from include/asm-mips/atomic.h from the
+ * Linux kernel source code and adapted to the need of GLAME.
+ * The kernel's MIPS atomic.h is
+ * 
+ * Copyright (C) 1996, 1997 by Ralf Baechle
  *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
- *
- * Copyright (C) 1996, 1997 by Ralf Baechle
- *
  */
-#ifndef __ASM_MIPS_ATOMIC_H
-#define __ASM_MIPS_ATOMIC_H
+
+/* Atomic operations that C can't guarantee us.  Useful for
+ * resource counting etc..
+ *
+ * But use these as seldom as possible since they are much more slower
+ * than regular operations.
+ */
+
+#ifndef _ATOMIC_MIPS_H
+#define _ATOMIC_MIPS_H
 
 typedef struct { volatile int counter; } glame_atomic_t;
 

@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.7 2000/04/11 10:58:16 richi Exp $
+ * $Id: atomic.h,v 1.8 2000/04/11 12:22:50 nold Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,16 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *
- * Assembler code taken from the Linux Kernel which is Copyright
- * by Linus Torvalds and others.
- */
-
-/*
- * Generic version of atomic operations. We might want to make them more
- * efficient some day using platform and/or compiler dependent assembly
- * versions. [dk]
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,10 +29,16 @@
 
 #include <pthread.h>
 
-#define USE_ASM
-#if defined USE_ASM && defined HAVE_GCC && defined CPU_X86
+/*
+ * The generic C versions of atomic operations in this file are safe but slow. 
+ * If possible, we use the much more efficient assembler versions in 
+ * architecture dependent headers. It is highly recommended to drop in
+ * an asm version if you port to a new platform. [dk]
+ */
+
+#if defined CPU_X86
 #include "atomic_x86.h"
-#elif defined USE_ASM && defined HAVE_GCC && defined CPU_MIPS
+#elif defined CPU_MIPS
 #include "atomic_mips.h"
 #else
 
@@ -95,9 +91,11 @@ static inline void atomic_dec(glame_atomic_t *a)
 static inline int atomic_dec_and_test(glame_atomic_t *a)
 {
 	int val;
+	
 	pthread_mutex_lock(&a->mx);
 	val = --(a->cnt);
 	pthread_mutex_unlock(&a->mx);
+	
 	return val == 0;
 }
 

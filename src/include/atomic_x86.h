@@ -1,5 +1,12 @@
-#ifndef __ARCH_I386_ATOMIC__
-#define __ARCH_I386_ATOMIC__
+/*
+ * $Id: atomic_x86.h,v 1.6 2000/04/11 12:22:50 nold Exp $
+ *
+ * Most of the code was taken from include/asm-i386/atomic.h from the
+ * Linux kernel source code and adapted to the need of GLAME.
+ */
+
+#ifndef _ATOMIC_X86_H
+#define _ATOMIC_X86_H
 
 /*
  * Atomic operations that C can't guarantee us.  Useful for
