@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.3 2000/12/11 17:35:32 xwolf Exp $
+ * $Id: canvas.h,v 1.4 2000/12/12 16:11:05 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -143,7 +143,7 @@ GlameCanvasItem* glame_canvas_item_new(GnomeCanvasGroup * group,
 
 #define GUI_PORT_TYPE_IN 1
 #define GUI_PORT_TYPE_OUT 2
-
+#define GUI_PORT_TYPE_EXTERNAL 4
 
 gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
 gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);

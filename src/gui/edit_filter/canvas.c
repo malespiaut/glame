@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.12 2000/12/12 12:39:56 xwolf Exp $
+ * $Id: canvas.c,v 1.13 2000/12/12 16:11:04 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -48,6 +48,7 @@ static void register_filternetwork_cb(GtkWidget*bla,void*blu);
 static void add_canvas_node_cb(GtkWidget*bla,void*blu);
 static void add_canvas_input_port_cb(GtkWidget*bla,void*blu){}
 static void add_canvas_output_port_cb(GtkWidget*bla,void*blu){}
+static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu);
 void edit_canvas_item_properties(filter_paramdb_t *pdb, const char *label);
 static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
 int event_x,event_y;
@@ -92,14 +93,17 @@ static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Add input port...","Add input port",add_canvas_input_port_cb,NULL),
-	GNOMEUIINFO_ITEM("Add output port...","Add output port",add_canvas_output_port_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
 	GNOMEUIINFO_ITEM("Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
 	GNOMEUIINFO_SUBTREE("Help...",&help_menu),
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo port_menu[] = 
+{
+	GNOMEUIINFO_ITEM("Connect to external port","Connect",connect_port_outside,NULL),
 	GNOMEUIINFO_END
 };
 
@@ -482,7 +486,34 @@ create_new_canvas(gui_network* net)
 static gint
 input_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 {
-	return FALSE;
+
+	GtkWidget * menu;
+
+		
+	switch(event->type){
+	case GDK_ENTER_NOTIFY:
+		inItem=1;
+		break;
+	case GDK_LEAVE_NOTIFY:
+		inItem=0;
+		break;
+	case GDK_BUTTON_PRESS:
+		switch(event->button.button){
+		case 3:
+			menu = gnome_popup_menu_new(port_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,item);
+		default:
+			break;
+		}
+	default:
+		break;		
+		
+		
+	}
+		
+	
+	
+	return TRUE;
 }
 
 static int
@@ -746,6 +777,7 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 {
 	double x,y,x1,y1,x2,y2;
 	GnomeCanvasItem *newitem;
+	GtkWidget * menu;
 	GlameCanvasItem *parent = GLAME_CANVAS_ITEM(item->parent);
 	GdkCursor *fleur;
 	GlameConnection *newconn;
@@ -760,6 +792,12 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(parent),&x,&y);
 		
 	switch(event->type){
+	case GDK_LEAVE_NOTIFY:
+		inItem = 0;
+		break;
+	case GDK_ENTER_NOTIFY:
+		inItem = 1;
+		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
@@ -792,6 +830,9 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 			parent->connecting=TRUE;
 			return TRUE;
 			break;
+		case 3:
+			menu = gnome_popup_menu_new(port_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,item);
 		default:
 			break;
 		}
@@ -850,10 +891,10 @@ create_ports(GnomeCanvasGroup* grp,filter_t *f)
 		item->port_type = GUI_PORT_TYPE_IN;
 		(GLAME_CANVAS_ITEM(grp))->input_ports=g_list_append((GLAME_CANVAS_ITEM(grp))->input_ports,item);
 		border+=step;
-		/*		gtk_signal_connect(GTK_OBJECT(item),
-				"event",GTK_SIGNAL_FUNC(input_port_select),
-				port);*/
-				   
+		gtk_signal_connect(GTK_OBJECT(item),
+				   "event",GTK_SIGNAL_FUNC(input_port_select),
+				   port);
+		
 	}
 
 	portcount = 0;
@@ -1328,3 +1369,39 @@ static void canvas_load_scheme(GtkWidget*bla,void*blu)
 }
 
 static void add_canvas_node_cb(GtkWidget*bla,void*blu){}
+
+
+
+static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
+{
+	GtkWidget * nameEntry;
+	GtkWidget * dialog;
+	GtkWidget * vbox;
+	GtkWidget * errorbox;
+	char * filenamebuffer;
+
+	filter_portdb_t *ports;
+	filter_port_t * newport;
+
+	filenamebuffer = calloc(100,sizeof(char));
+
+	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	vbox = GTK_VBOX(GNOME_DIALOG(dialog)->vbox);
+
+	nameEntry = gtk_entry_new();
+	gtk_signal_connect(nameEntry,"changed",changeString,&filenamebuffer);
+	create_label_widget_pair(vbox,"New port name",nameEntry);
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+		ports = filter_portdb(GLAME_CANVAS(globalcanvas)->net->net);  // ugh FIXME globals suck
+		if((blu->port_type)&GUI_PORT_TYPE_OUT){
+			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_OUTPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
+			filterport_redirect(blu->port,newport);
+			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
+		}else if((blu->port_type)&GUI_PORT_TYPE_IN){
+			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_INPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
+			filterport_redirect(newport,blu->port);
+			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
+		}
+	}
+	free(filenamebuffer);
+}
