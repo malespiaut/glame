@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.31 2001/11/01 23:08:59 nold Exp $
+@comment $Id: filter.texi,v 1.32 2001/11/25 21:45:47 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -238,6 +238,29 @@ a network) filter instance @var{net} using the name @var{name} which you can
 use later to query the inserted filter out of the network. If @var{name} is
 not unique inside the network it gets adjusted. Returns 0 on success and -1
 on error.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun int filter_remove (filter_t *@var{f})
+This function removes the filter instance @var{f} from its network
+thereby breaking all connections to/from it.
+Returns 0 on success and -1 on error.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun int filter_expand (filter_t *@var{f})
+This function expands the network @var{f} which has to be a member
+of a network itself thereby emptying the network and moving all nodes
+up one level.
+Returns 0 on success and -1 on error.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun {filter_t *} filter_collapse (const char *@var{name}, filter_t **@var{nodes})
+Collapses all nodes in the @code{NULL} terminated array of filters into
+a newly created network which is added using @var{name} to the parent of
+the nodes.
+Returns the created network on success and NULL on error.
 @end deftypefun
 
 @tindex filter_t
