@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.3 2000/04/03 23:04:21 nold Exp $
+@comment $Id: plugins.texi,v 1.4 2000/04/04 09:07:49 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -25,32 +25,32 @@ float, or string--in parentheses.
 @node Audio I/O, File I/O,, Plugin Collection
 @section Audio I/O
 
-The @file{audio_in} and @file{audio_out} plugins handle communication between 
-GLAME and the sound hardware. @file{audio_in} is for recording, 
-@file{audio_out} does the playback. 
+The @file{audio-in} and @file{audio-out} plugins handle communication between 
+GLAME and the sound hardware. @file{audio-in} is for recording, 
+@file{audio-out} does the playback. 
 Actually, there are several instances of those plugins for different sound
 systems like ESD, ALSA, OSS, and native SGI. If available on the system, 
-they can be accessed directly via @file{oss_audio_out}, @file{esd_audio_in} 
-and the like, using the same sets of parameters. Think of @file{audio_in} and 
-@file{audio_out} as sane default methods dependent on the system's capabilities.
+they can be accessed directly via @file{oss-audio-out}, @file{esd-audio-in} 
+and the like, using the same sets of parameters. Think of @file{audio-in} and 
+@file{audio-out} as sane default methods dependent on the system's capabilities.
 
 @subheading Common parameters
 @table @code
 @item device (string)
-Sound device to be used. Note: While audio_in and audio_out are generic plugins,
+Sound device to be used. Note: While audio-in and audio-out are generic plugins,
 interpretation of the device parameter is dependent on the underlying sound
 system which the value is passed to unmodified. For example, OSS takes devices
 parameters like @file{/dev/dsp} where ALSA would like @code{0:0}.
 @end table
 
-@subheading @file{audio_in} ports
+@subheading @file{audio-in} ports
 @table @code
 @item out (output)
 Recorded stream of sample data. Maximum number of allowed out-connections 
 depends on hardware capabilities.
 @end table
 
-@subheading @file{audio_in} parameters
+@subheading @file{audio-in} parameters
 @table @code
 @item rate (integer)
 The sample rate in Hertz.
@@ -60,22 +60,22 @@ Recording time in seconds.
 Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
-@subheading @file{audio_out} ports
+@subheading @file{audio-out} ports
 @table @code
 @item in (input)
 Sample stream to play back. Maximum number of allowed in-connections
 depends on hardware capabilities.
 @end table
 
-@file{audio_out} has no further specific parameters.
+@file{audio-out} has no further specific parameters.
 
 
 @node File I/O, Elementary Plugins, Audio I/O, Plugin Collection
 @section File I/O
-Transactions from and to files are handled by the plugins @file{read_file}
-and @file{write_file}. @file{read_file} is guaranteed to be able to read
+Transactions from and to files are handled by the plugins @file{read-file}
+and @file{write-file}. @file{read-file} is guaranteed to be able to read
 WAV files. Anything else is up to helper libraries that may or may not be
-installed on a system. @file{write_file} so far only second guesses the
+installed on a system. @file{write-file} so far only second guesses the
 desired output format from the suffix of the given filename.
 
 @subheading Common parameters
@@ -85,33 +85,33 @@ Name of the file to be read from or written to. The writer takes the
 filename suffix as a hint to the desired type of output.
 @end table
 
-@subheading @file{read_file} ports
+@subheading @file{read-file} ports
 @table @code
 @item out (output)
 Sample data read in from a sound file. The number of allowed out-connections
 varies from file to file.
 @end table
 
-@subheading @file{read_file} parameters
+@subheading @file{read-file} parameters
 @table @code
 @item out::position (float)
 Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
-@subheading @file{write_file} ports
+@subheading @file{write-file} ports
 @table @code
 @item in (input)
 Sample stream to store to a sound file. Maximum number of allowed in-connections
 depends on the desired sound format.
 @end table
 
-@file{write_file} has no further specific parameters.
+@file{write-file} has no further specific parameters.
 
 @node Elementary Plugins, Effects, File I/O, Plugin Collection
 @section Elementary Plugins
 
 TODO: mul, add, phase-invert (arithmetic.c), drop, one2n (basic.c), 
-mix1/2, volume_adjust, delay, extend, repeat (basic_sample.c),
+mix1/2, volume-adjust, delay, extend, repeat (basic_sample.c),
 ping (debug.c), echo (echo.c), pan (pan.c), pipe-in (pipe.c),
 statistic, debugrms (rms.c), track-in, track-out (track_io.c), 
 null, dup (tutorial.c), sinus [*** Doh! Rename to sine! ***], const (waveform.c)
