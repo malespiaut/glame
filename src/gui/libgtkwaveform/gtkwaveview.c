@@ -680,12 +680,15 @@ static void
 on_area_realize (GtkWidget *widget, gpointer userdata)
 {
   GtkWaveView *waveview = GTK_WAVE_VIEW (userdata);
+  
   if (waveview->marker_gc == NULL)
     {
       waveview->marker_gc = gdk_gc_new (waveview->area->window);
       gdk_gc_copy (waveview->marker_gc, waveview->area->style->white_gc);
       gdk_gc_set_function (waveview->marker_gc, GDK_XOR);
     }
+  gtk_widget_set_rc_style(GTK_WIDGET(waveview));
+  gdk_gc_set_exposures(waveview->area->style->bg_gc [GTK_STATE_NORMAL],TRUE);
 }
 
 
@@ -719,8 +722,8 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   waveview->expose_count = 0;
 
   sel_bg_gc = widget->style->bg_gc [GTK_STATE_SELECTED];
-  unsel_bg_gc = widget->style->white_gc;
-
+  //  unsel_bg_gc = widget->style->white_gc;
+  unsel_bg_gc = widget->style->bg_gc [GTK_STATE_NORMAL];
   if (waveview->wavebuffer != NULL)
     {
       gint32 i, j, k;
@@ -731,7 +734,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       /* Set clipping to expose region. */
       gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_NORMAL], &waveview->expose_area);
       gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_SELECTED], &waveview->expose_area);
-      gdk_gc_set_clip_rectangle (widget->style->white_gc, &waveview->expose_area);
+      gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_NORMAL], &waveview->expose_area);
       gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_SELECTED], &waveview->expose_area);
       gdk_gc_set_clip_rectangle (widget->style->dark_gc [GTK_STATE_NORMAL], &waveview->expose_area);
       gdk_gc_set_clip_rectangle (waveview->marker_gc, &waveview->expose_area);
@@ -867,17 +870,6 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
   if (!GTK_WIDGET_REALIZED (waveview->area))
     return;
 
-  /*
-   * FIXME: The following is wrong, i.e. without a backingstore
-   *        like a pixmap just garbage gets copied, if part of
-   *        the source region is occluded by another window.
-   *        Change #if 0 to #if 1 if you prefer slow and flickering
-   *        but correct operation.
-   */
-
-#if 0
-  gtk_widget_queue_draw (GTK_WIDGET (waveview->area));
-#else
   if (offset > waveview->drawn_offset)
     {
       /* Find out how many pixels we moved. */
@@ -906,7 +898,6 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
           gtk_wave_view_redraw_area (waveview, 0, shift);
         }
     }
-#endif
 }
 
 /* The meaning of the different flags. */
