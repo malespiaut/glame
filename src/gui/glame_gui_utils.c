@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.13 2001/05/09 10:57:06 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.14 2001/05/10 00:00:54 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -65,13 +65,13 @@ static gint network_finish_check_cb(play_struct_t *play)
 
 static void play_cb(GnomeDialog * dia, play_struct_t* play)
 {
-//	if (play->gui)
-//		network_error_reset(play->gui);
+	if (play->gui)
+		glame_filtereditgui_reset_error(play->gui);
 	if (filter_launch(play->net) == -1
 	    || filter_start(play->net) == -1) {
-//		if (play->gui)
-//			network_draw_error(play->gui);
-//		else
+		if (play->gui)
+			glame_filtereditgui_draw_error(play->gui);
+		else
 			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error processing network")));
 		gnome_dialog_close(play->dia);
 		return;
@@ -142,12 +142,12 @@ int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
 {
 	play_struct_t *play;
 	int i;
-
 	if (!network || !FILTER_IS_NETWORK(network))
 		return -1;
 
 	if (!(play = malloc(sizeof(play_struct_t))))
 		return -1;
+
 	play->net = network;
 	play->gui = gui;
 	play->atExitFunc = atExit;
@@ -816,3 +816,56 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	
 	return propBox;
 }
+
+
+
+GdkImlibImage* glame_load_icon(const char* filename)
+{
+	GdkImlibImage* image = NULL;
+	char * file;
+	char * gnomeFile;
+	char * filepath;
+	fprintf(stderr,"load: %s\n",filename);
+	/* no filename given, ->default */
+	if(!filename)
+		file = GLAME_DEFAULT_ICON;
+	else
+		file = filename;
+	/* check if stock gnome */
+	if(!(gnomeFile = gnome_pixmap_file(file))){
+		/* maybe in Glamepixmappath? */
+		filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,file);
+		if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+			g_free(filepath);
+			/* maybe cvs? */
+			filepath = g_concat_dir_and_file("../data/pixmaps", file);
+		}
+		if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+			g_free(filepath);
+			/* default! */
+			filepath = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+		}
+		if(!filepath)
+			filepath = g_concat_dir_and_file("../data/pixmaps", GLAME_DEFAULT_ICON);
+		
+		if(filepath){
+			const char * mime;
+			/* check for mime-type */
+			mime = gnome_mime_type(filepath);
+			if(strstr("image",mime))
+				image = gdk_imlib_load_image(filepath);
+			else{
+				DPRINTF("Mime-type unknown. trying anyway!\n");
+				image = gdk_imlib_load_image(filepath);
+			}
+		}
+	}else
+		image = gdk_imlib_load_image(gnomeFile);
+	return image;
+}
+		
+		
+		
+
+	
+						    

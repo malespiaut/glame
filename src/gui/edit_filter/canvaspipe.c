@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.3 2001/05/08 21:54:01 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.4 2001/05/10 00:00:54 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -182,7 +182,11 @@ glame_canvas_pipe_redraw(GlameCanvasPipe *p)
 	
 	port = glame_canvas_find_port(filterpipe_source(p->pipe));
 	pipes = filterport_nrpipes(filterpipe_source(p->pipe));
-
+	
+	if(!port){
+		DPRINTF("canvasport not found\n");
+		return;
+	}
 	sourcex = GNOME_CANVAS_RE(port)->x1 + 16.0;
 	sourcey = GNOME_CANVAS_RE(port)->y1 + ((GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(float)(pipes+1))*p->sourceId;
 	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(port),&sourcex,&sourcey);

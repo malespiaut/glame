@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.13 2001/05/09 10:57:06 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.14 2001/05/10 00:00:54 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -105,5 +105,9 @@ GtkWidget *glame_progress_indicator(filter_param_t *pos, long size);
  * Runs the provided callback after completion (or not, if NULL). */
 int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data);
 
+/* Load a GdkImage which is suitable for canvas operation/taskbars(?)
+ * if nothing is found it will try to return the glame default icon. */
+GdkImlibImage* glame_load_icon(const char* filename);
+ 
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.3 2001/05/09 10:57:06 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.4 2001/05/10 00:00:54 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -40,13 +40,13 @@ static GlameCanvas *glcanvas;
 /* callbacks */
 
 
-void glame_canvas_execute_cb(GlameCanvas* canv){}
-void glame_canvas_register_cb(GlameCanvas* canv){}
-void glame_canvas_save_as_cb(GlameCanvas* canv){}
-void glame_canvas_property_dialog_cb(GlameCanvas* canv){}
-void glame_canvas_zoom_in_cb(GlameCanvas* canv){}
-void glame_canvas_zoom_out_cb(GlameCanvas* canv){}
-void glame_canvas_view_all_cb(GlameCanvas* canv){}
+void glame_canvas_execute_cb(GtkObject*foo, GlameCanvas* canv);
+void glame_canvas_register_cb(GtkObject* foo, GlameCanvas* canv){}
+void glame_canvas_save_as_cb(GtkObject* foo, GlameCanvas* canv){}
+void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv){}
+void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv){}
+void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv){}
+void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv){}
 
 void window_close(GtkWidget *dummy, GtkWidget* window)
 {
@@ -119,7 +119,6 @@ glame_filtereditgui_new(filter_t *net)
 	GnomeDock *dock;
 	
 	const char *name;
-
 	
 	if(net && filter_name(net))
 		name = strdup(filter_name(net));
@@ -187,7 +186,7 @@ glame_filtereditgui_new(filter_t *net)
 GtkWidget *
 glame_filtereditgui_new_cb(GtkObject* foo, filter_t* net)
 {
-	return glame_filtereditgui_new(net);
+	return glame_filtereditgui_new(NULL);
 }
 
 
@@ -214,3 +213,20 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 }
 
 
+void glame_canvas_execute_cb(GtkObject* foo,GlameCanvas* canv)
+{
+	DPRINTF("foo\n");
+	glame_gui_play_network(canv->net,canv,TRUE, NULL,NULL,  "Start", "Pause", "Stop", 0);
+}
+
+void
+glame_filtereditgui_draw_error(GlameCanvas* canv)
+{
+	glame_canvas_draw_errors(canv);
+}
+
+void
+glame_filtereditgui_reset_error(GlameCanvas* canv)
+{
+	glame_canvas_reset_errors(canv);
+}

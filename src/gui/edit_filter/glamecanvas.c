@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.4 2001/05/09 10:57:06 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.5 2001/05/10 00:00:54 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -93,7 +93,7 @@ glame_canvas_get_type(void)
  *****************************/
 
 
-GlameCanvas* glame_canvas_new(filter_t * network)
+GlameCanvas* glame_canvas_new(filter_t * net)
 {
 	GlameCanvas *g;
 	GnomeCanvasGroup *group;
@@ -102,15 +102,20 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 	filter_port_t * port;
 	filter_pipe_t *pipe;
 	char * buffer;
-
-	if(!network){
+	filter_t * network;
+	if(!net){
 		network = filter_creat(NULL);
 	} else {
-		if(!FILTER_IS_NETWORK(network)){
+		if(!FILTER_IS_NETWORK(net)){
 			DPRINTF("Not network\n");
-			return NULL;
+			/* HACK maybe empty? */
+			if(filter_nrnodes(net))
+				return NULL; /* something seriously wrong here! */
+			
 		}
+		network = net;
 	}
+		
 
 	g = gtk_type_new(glame_canvas_get_type());
 	if(!g)
@@ -118,6 +123,8 @@ GlameCanvas* glame_canvas_new(filter_t * network)
 
 	g->net = network;
 	
+	if(!filter_nrnodes(g->net))
+		return g;
 	group = gnome_canvas_root(GNOME_CANVAS(g));
 	
 	/* create nodes */
@@ -200,8 +207,8 @@ GdkImlibImage*
 glame_gui_get_icon_from_filter(filter_t *filter)
 {
 	/* HACK */
+	return glame_load_icon(plugin_query(filter->plugin, PLUGIN_PIXMAP));
 
-	return gdk_imlib_load_image("test.png");
 }
 
 GlameCanvasFilter*
@@ -227,4 +234,20 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 		return NULL;
 	}
 	return glame_canvas_add_filter(canv, filter);
+}
+
+
+void glame_canvas_draw_errors(GlameCanvas *canv)
+{
+	filter_t *node;
+	filter_foreach_node(canv->net,node){
+		glame_canvas_filter_redraw(glame_canvas_find_filter(node));
+	}
+}
+void glame_canvas_reset_errors(GlameCanvas *canv)
+{
+	filter_t *node;
+	filter_foreach_node(canv->net,node){
+		glame_canvas_filter_redraw(glame_canvas_find_filter(node));
+	}
 }
