@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.66 2003/04/15 19:00:47 richi Exp $
+ * $Id: basic_sample.c,v 1.67 2004/07/13 17:29:17 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -846,6 +846,8 @@ static int vadjust_set_param(filter_param_t *param, const void *val)
 	gain = *((double *)val);
 	
 	if (strcmp("factor", filterparam_label(param))==0) {
+		if (gain <= 0.0)
+			return -1;
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "dbgain");
 		ngain = GAIN2DB(gain);
 		n->priv = param;
@@ -854,6 +856,8 @@ static int vadjust_set_param(filter_param_t *param, const void *val)
 	}
 	
 	if (strcmp("dbgain", filterparam_label(param))==0) {
+		if (gain < -200.0 || gain > 200.0)
+			return -1;
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "factor");
 		ngain = DB2GAIN(gain);
 		n->priv = param;
