@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.14 2003/04/11 20:10:24 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.15 2003/04/21 12:16:07 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -152,5 +152,8 @@ GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
  * and corresponding error strings. */
 void glame_network_error_dialog(filter_t *net, const char *header);
 
-void gnome_help_goto(void * ignore, char * uri);
+/* In the style of the gnome1 gnome_help_goto, display the given url.
+ * Can be used directly as callback function. */
+void glame_help_goto(void *ignore, const char *url);
+
 #endif

@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.29 2003/04/20 21:56:02 richi Exp $
+ * $Id: canvaspipe.c,v 1.30 2003/04/21 12:16:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -143,7 +143,6 @@ static void
 glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 {
 	/* draw connection depending on start and end coords  */
-	int i;
 	double xs, ys, xd,yd;
 	double xOffset, dist;
 	double dy = p->dy;

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.33 2003/04/20 21:56:02 richi Exp $
+ * $Id: canvasport.c,v 1.34 2003/04/21 12:16:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -391,8 +391,8 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 	vbox = GNOME_DIALOG(dialog)->vbox;
 
 	nameEntry = gtk_entry_new();
-	gtk_signal_connect(GTK_OBJECT(nameEntry),"changed",
-			   update_string_from_editable,&filenamebuffer);
+	gtk_signal_connect(GTK_OBJECT(nameEntry), "changed",
+			   GTK_SIGNAL_FUNC(update_string_from_editable), &filenamebuffer);
 	sprintf(nameBuffer,"%s_%s",filter_name(filterport_filter(port->port)),filterport_label(port->port));
 	gtk_entry_set_text(GTK_ENTRY(nameEntry),nameBuffer);
 	create_label_widget_pair(vbox,_("New port name"),nameEntry);

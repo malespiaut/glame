@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.62 2003/04/20 21:56:02 richi Exp $
+ * $Id: filtereditgui.c,v 1.63 2003/04/21 12:16:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -260,7 +260,7 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 				if (glCanv->clipBoard) {
 					edit = gtk_menu_item_new_with_label(_("_Paste"));
 					gtk_widget_show(edit);
-					gtk_signal_connect(GTK_OBJECT(edit),"activate",filtereditgui_paste_cb,glCanv);
+					gtk_signal_connect(GTK_OBJECT(edit),"activate",GTK_SIGNAL_FUNC(filtereditgui_paste_cb),glCanv);
 					gtk_menu_append(GTK_MENU(menu), edit);
 				}
 				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL,GTK_WIDGET(glCanv));
@@ -390,7 +390,7 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, FiltereditGui *window)
 		gtk_clist_append(list,line);
 	}
 	//if(!canvas->net->openedUp)
-		gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_port_cb,redPorts);
+		gtk_signal_connect(GTK_OBJECT(list),"select-row",GTK_SIGNAL_FUNC(redirection_list_port_cb),redPorts);
 	gtk_widget_show(GTK_WIDGET(list));
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 
@@ -426,7 +426,7 @@ void glame_canvas_property_dialog_cb(GtkObject* foo, FiltereditGui *window)
 		gtk_clist_append(list,line);
 	}
 	gtk_widget_show(GTK_WIDGET(list));
-	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_param_cb,redParms);
+	gtk_signal_connect(GTK_OBJECT(list),"select-row",GTK_SIGNAL_FUNC(redirection_list_param_cb),redParms);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 	
 	gtk_widget_show(notebook);
@@ -673,7 +673,7 @@ static void glame_canvas_collapse_selected_w_cb(GtkWidget *w, FiltereditGui *gui
 }
 static void help_cb(GtkWidget *menu, void *blah)
 {
-	gnome_help_goto(NULL, "info:glame#The_Filternetwork_Editor");
+	glame_help_goto(NULL, "info:glame#The_Filternetwork_Editor");
 }
 static void list_keybindings_cb(GtkWidget *menu, void *blah)
 {
@@ -810,7 +810,7 @@ glame_filtereditgui_new(filter_t *net, gboolean prot)
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_CLOSE,_("Close"),_("Close"),GTK_SIGNAL_FUNC(window_close),window,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_HELP,_("Help"),_("Help"),GTK_SIGNAL_FUNC(gnome_help_goto),"info:glame#The_Filternetwork_Editor",-1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),GTK_STOCK_HELP,_("Help"),_("Help"),GTK_SIGNAL_FUNC(glame_help_goto),"info:glame#The_Filternetwork_Editor",-1);
 
         /* Create menubar - FIXME copy all uiinfos, restructure to
 	 * match nice menu layout, etc.
@@ -945,7 +945,7 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(gui->toolbar),
 				 _("Stop"), _("Stop"), 
 				 GNOME_STOCK_PIXMAP_STOP,
-				 glame_canvas_execute_cb, gui, 0);
+				 GTK_SIGNAL_FUNC(glame_canvas_execute_cb), gui, 0);
 }
 
 static void glame_canvas_save_as_cb(GtkWidget*ignore, FiltereditGui *window)

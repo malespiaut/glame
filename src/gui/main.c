@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.115 2003/04/11 20:09:59 richi Exp $
+ * $Id: main.c,v 1.116 2003/04/21 12:16:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -98,8 +98,8 @@ static GnomeUIInfo filter_menu_uiinfo[] = {
 
 static GnomeUIInfo help_menu_uiinfo[] =
 {
-	GNOMEUIINFO_ITEM_DATA(N_("_Help"),N_("Opens a gnome help browser"),gnome_help_goto,"info:glame",NULL),
-	GNOMEUIINFO_ITEM_DATA(N_("Quick Start Guide"), N_("Opens a gnome help browser with the quick start guide"), gnome_help_goto, "info:glame#Quick_Start_Guide", NULL),
+	GNOMEUIINFO_ITEM_DATA(N_("_Help"),N_("Opens a gnome help browser"),glame_help_goto,"info:glame",NULL),
+	GNOMEUIINFO_ITEM_DATA(N_("Quick Start Guide"), N_("Opens a gnome help browser with the quick start guide"), glame_help_goto, "info:glame#Quick_Start_Guide", NULL),
 	GNOMEUIINFO_ITEM_DATA(N_("List key-bindings"), N_("Lists the current key-bindings"), glame_accel_widget_data_cb, "list_keybindings", NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),

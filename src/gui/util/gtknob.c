@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.15 2003/04/20 21:56:06 richi Exp $
+ * $Id: gtknob.c,v 1.16 2003/04/21 12:16:07 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -113,7 +113,7 @@ static void gtk_knob_class_init(GtkKnobClass * klass)
     object_class = (GtkObjectClass *) klass;
     widget_class = (GtkWidgetClass *) klass;
 
-    parent_class = GTK_OBJECT(gtk_type_class(gtk_widget_get_type()));
+    parent_class = GTK_OBJECT_CLASS(gtk_type_class(gtk_widget_get_type()));
 
     gtk_object_add_arg_type("GtkKnob::adjustment",
 			    GTK_TYPE_ADJUSTMENT,
@@ -617,8 +617,6 @@ static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
 
 static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 {
-  //FIXME
-#if 0
 	GtkWidget *knob;
 	GtkObject *adj;
 	GList *tmp;
@@ -649,7 +647,6 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 	}
 
 	return knob;
-#endif
 }
 #endif
 
@@ -754,9 +751,7 @@ void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
 }
 
 
-//FIXME
-//#ifdef HAVE_LIBGLADE
-#if 0
+#ifdef HAVE_LIBGLADE
 void gtk_knob_glade_register()
 {
 	static GladeWidgetBuildData widgets[] = {

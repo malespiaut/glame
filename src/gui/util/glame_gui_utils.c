@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.30 2003/04/20 21:56:05 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.31 2003/04/21 12:16:07 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -438,7 +438,7 @@ void glame_help_cb(GtkWidget *bla, const char *helppath)
 {
 	char path[256];
 	snprintf(path, 255, "info:glame#%s", helppath);
-	gnome_help_goto(NULL, path);
+	glame_help_goto(NULL, path);
 }
 
 GtkWidget *
@@ -711,10 +711,10 @@ gint glame_menu_get_active_index(GtkMenu *menu)
 	return list ? val : -1;
 }
 
-void gnome_help_goto(void *ignore, gchar *file)
+void glame_help_goto(void *ignore, const char *url)
 {
-        char **ret;
-        gnome_help_display_uri(file,ret);
+        GError *ret;
+        gnome_url_show(url, &ret);
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.59 2003/04/20 21:56:01 richi Exp $
+ * $Id: canvasfilter.c,v 1.60 2003/04/21 12:16:06 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -758,7 +758,7 @@ static void glame_canvas_filter_edit_properties_cb(GtkWidget* m,GlameCanvasFilte
 							source->plugin ? plugin_query(source->plugin, PLUGIN_GUI_HELP_PATH) : NULL);
 			gtk_widget_show(p);
 			gtk_signal_connect(GTK_OBJECT(p),"unmap",
-					   remove_handlers,handles);
+					   GTK_SIGNAL_FUNC(remove_handlers), handles);
 			DPRINTF("FIXME\n");
 		}
 	}else{
@@ -966,7 +966,8 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	gtk_container_add(GTK_CONTAINER(vbox),notebook);
 	
-	gnome_dialog_button_connect_object(GNOME_DIALOG(dialog), 0, gtk_object_destroy, GTK_OBJECT(dialog));
+	gnome_dialog_button_connect_object(GNOME_DIALOG(dialog), 0,
+		GTK_SIGNAL_FUNC(gtk_object_destroy), GTK_OBJECT(dialog));
 	gtk_widget_show(GTK_WIDGET(dialog));
 }
 
@@ -978,7 +979,7 @@ static void glame_canvas_filter_help(GtkWidget *foo, GlameCanvasFilter* filter)
 	if(!helppath)
 		helppath = "Plugin_Collection";
 	sprintf(buffer,"info:glame#%s",helppath);
-	gnome_help_goto(NULL,buffer);
+	glame_help_goto(NULL, buffer);
 }
 
 static void update_entry_text(GtkListItem* item,GtkEntry* entry)
@@ -1026,9 +1027,12 @@ static void glame_canvas_filter_redirect_parameters(GtkWidget *bla, GlameCanvasF
 
 	filterparamdb_foreach_param(db,iter){
 		listItems = gtk_list_item_new_with_label(filterparam_label(iter));
-		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_entry_text,entry);
-		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_string,&paramnamebuffer);
-		gtk_signal_connect(GTK_OBJECT(entry),"changed",update_string_from_editable,&externnamebuffer);
+		gtk_signal_connect(GTK_OBJECT(listItems), "select",
+				   GTK_SIGNAL_FUNC(update_entry_text), entry);
+		gtk_signal_connect(GTK_OBJECT(listItems), "select",
+				   GTK_SIGNAL_FUNC(update_string), &paramnamebuffer);
+		gtk_signal_connect(GTK_OBJECT(entry), "changed",
+				   GTK_SIGNAL_FUNC(update_string_from_editable), &externnamebuffer);
 		gtk_widget_show(listItems);
 		items = g_list_append(items,listItems);
 	}

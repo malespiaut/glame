@@ -1,7 +1,7 @@
 /*
  * timeline.c
  *
- * $Id: timeline.c,v 1.22 2003/04/20 21:56:03 richi Exp $
+ * $Id: timeline.c,v 1.23 2003/04/21 12:16:07 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -352,7 +352,7 @@ static void close_cb(GtkWidget *widget, TimelineGui *timeline)
 
 static void help_cb(GtkWidget *widget, void *foo)
 {
-	gnome_help_goto(NULL, "info:glame#The_Timeline");
+	glame_help_goto(NULL, "info:glame#The_Timeline");
 }
 
 static void ruler_update_cb(GtkAdjustment *adjustment, TimelineGui *timeline)
@@ -693,20 +693,20 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom in", "Zooms in","foo",
 				glame_load_icon_widget("zoom_in.png",24,24),
-				zoom_in_cb, window);
+				GTK_SIGNAL_FUNC(zoom_in_cb), window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom out", "Zooms out","foo",
 				glame_load_icon_widget("zoom_out.png",24,24),
-				zoom_out_cb, window);
+				GTK_SIGNAL_FUNC(zoom_out_cb), window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),
 				 "Close", "Close", 
 				 GNOME_STOCK_PIXMAP_CLOSE,
-				 close_cb, window,-1);
+				 GTK_SIGNAL_FUNC(close_cb), window,-1);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar),
 				 "Help", "Help", 
 				 GNOME_STOCK_PIXMAP_HELP,
-				 help_cb, NULL,-1);
+				 GTK_SIGNAL_FUNC(help_cb), NULL,-1);
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "timeline::toolbar",
 			      BONOBO_DOCK_ITEM_BEH_EXCLUSIVE|BONOBO_DOCK_ITEM_BEH_NEVER_FLOATING,

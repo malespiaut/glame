@@ -1,7 +1,7 @@
 /*
  * timeline_canvas.c
  *
- * $Id: timeline_canvas.c,v 1.7 2003/04/20 21:56:05 richi Exp $
+ * $Id: timeline_canvas.c,v 1.8 2003/04/21 12:16:07 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -127,8 +127,10 @@ TimelineCanvas *timeline_canvas_new(gpsm_grp_t *root)
 
 	/* Register handlers to adjust visible canvas region on realization
 	 * and window resize. */
-	gtk_signal_connect(GTK_OBJECT(canvas), "realize", on_canvas_realize, NULL);
-	gtk_signal_connect(GTK_OBJECT(canvas), "size_allocate", on_canvas_realize, NULL);
+	gtk_signal_connect(GTK_OBJECT(canvas), "realize",
+			   GTK_SIGNAL_FUNC(on_canvas_realize), NULL);
+	gtk_signal_connect(GTK_OBJECT(canvas), "size_allocate",
+			   GTK_SIGNAL_FUNC(on_canvas_realize), NULL);
 
 	/* Register handler to adjust canvas and invoke it one time. */
 	canvas->gpsm_handler0 = glsig_add_handler(gpsm_item_emitter(root), GPSM_SIG_ITEM_CHANGED, timeline_canvas_handle_root, canvas);

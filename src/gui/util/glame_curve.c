@@ -1,7 +1,7 @@
 /*
  * glame_curve.c
  *
- * $Id: glame_curve.c,v 1.8 2003/04/11 20:10:19 richi Exp $
+ * $Id: glame_curve.c,v 1.9 2003/04/21 12:16:07 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -83,9 +83,9 @@ static void glame_curve_class_init(GlameCurveClass* klass)
 				GTK_SIGNAL_OFFSET (GlameCurveClass, curve_changed),
 				gtk_marshal_NONE__NONE, GTK_TYPE_NONE, 0);
 	//	gtk_object_class_add_signals (object_class, &curve_changed_signal, 1);
-	widget_class->button_release_event = glame_curve_event;
-	widget_class->button_press_event = glame_curve_event;
-	widget_class->motion_notify_event = glame_curve_event;
+	widget_class->button_release_event = (gboolean(*)(GtkWidget*,GdkEventButton*))glame_curve_event;
+	widget_class->button_press_event = (gboolean(*)(GtkWidget*,GdkEventButton*))glame_curve_event;
+	widget_class->motion_notify_event = (gboolean(*)(GtkWidget*,GdkEventMotion*))glame_curve_event;
 
 }
 

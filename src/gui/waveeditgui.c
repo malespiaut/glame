@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.139 2003/04/20 21:56:01 richi Exp $
+ * $Id: waveeditgui.c,v 1.140 2003/04/21 12:16:06 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -875,7 +875,7 @@ static void wave_export_cb(GtkWidget *foo, void *bar)
 
 static void wave_help_cb(GtkWidget *foo, void*bar)
 {
-	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
+	glame_help_goto(NULL,"info:glame#The_Wave_Editor");
 }
 
 static void wave_close_cb(GtkWidget *foo, GtkObject *window)
@@ -1347,7 +1347,7 @@ GtkType waveedit_gui_get_type(void)
 
 static void help_cb(GtkWidget *menu, void *blah)
 {
-	gnome_help_goto(NULL, "info:glame#The_Wave_Editor");
+	glame_help_goto(NULL, "info:glame#The_Wave_Editor");
 }
 static void list_keybindings_cb(GtkWidget *menu, void *blah)
 {
