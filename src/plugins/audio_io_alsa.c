@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.14 2002/12/01 23:32:23 mag Exp $
+ * $Id: audio_io_alsa.c,v 1.15 2003/01/03 00:03:35 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -605,7 +605,7 @@ static int alsa_audio_out_f(filter_t * n)
 		} else {
 			out = &out[chunk_size * max_ch];
 		}
-
+		
 	      _entry:
 		chunk_size = to_go;
 		ch = 0;
@@ -633,13 +633,15 @@ static int alsa_audio_out_f(filter_t * n)
 			chunk_size = MIN(chunk_size, ap->to_go);
 		} while (++ch < max_ch);
 	} while (ch_active || (to_go != blksz));
-
+	
 	FILTER_BEFORE_STOPCLEANUP;
+	
+	snd_pcm_drain(handle);
 
 	DPRINTF("had playback %d dropouts\n", dropouts);
 
 	FILTER_BEFORE_CLEANUP;
-
+	
 	if (handleisok == 1)
 		snd_pcm_close(handle);
 
