@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.20 2000/04/04 04:53:24 mag Exp $
+ * $Id: file_io.c,v 1.21 2000/04/05 16:10:32 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -330,15 +330,17 @@ int read_file_register()
 {
 	filter_t *f;
 	filter_portdesc_t *p;
-	filter_paramdesc_t *d;
+	filter_paramdesc_t *d, *pos;
 	if (!(f = filter_alloc(read_file_f))
 	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
-	    || !filterport_add_param(p, "position", "position of the stream",
-				     FILTER_PARAMTYPE_FLOAT)
+	    || !(pos = filterport_add_param(p, "position", 
+	                                    "position of the stream",
+	                                    FILTER_PARAMTYPE_FLOAT))
 	    || !(d = filter_add_param(f, "filename", "filename",
 				    FILTER_PARAMTYPE_STRING)))
 		return -1;
+	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
 	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;

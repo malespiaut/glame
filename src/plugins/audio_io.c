@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.12 2000/04/03 02:36:32 nold Exp $
+ * $Id: audio_io.c,v 1.13 2000/04/05 16:10:32 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -162,6 +162,7 @@ static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 {
 	filter_t *filter;
 	filter_portdesc_t *p;
+	filter_paramdesc_t *dur, *pos;
 
 	if (!f)
 		return -1;
@@ -172,13 +173,18 @@ static int aio_generic_register_input(char *name, int (*f)(filter_node_t *))
 				FILTER_PORTTYPE_AUTOMATIC)) ||
 		!filter_add_param(filter, "rate", "sample rate", 
 				FILTER_PARAMTYPE_INT) ||
-		!filter_add_param(filter, "duration", "seconds to record",
-				FILTER_PARAMTYPE_FLOAT) ||
+		!(dur = filter_add_param(filter, "duration", 
+				"seconds to record", 
+				FILTER_PARAMTYPE_FLOAT)) ||
 		!filter_add_param(filter, "device", "input device",
 				FILTER_PARAMTYPE_STRING) ||
-		!filterport_add_param(p, "position", "position of the stream",
-				FILTER_PARAMTYPE_FLOAT))
+		!(pos = filterport_add_param(p, "position", 
+		                             "position of the stream",
+		                             FILTER_PARAMTYPE_FLOAT)))
 		return -1;
+
+	filterparamdesc_float_settype(dur, FILTER_PARAM_FLOATTYPE_TIME_S);
+	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
 	filter->connect_out = aio_generic_connect_out;
 	filter->fixup_param = aio_generic_fixup_param;
 

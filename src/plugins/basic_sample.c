@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.9 2000/04/05 09:00:32 richi Exp $
+ * $Id: basic_sample.c,v 1.10 2000/04/05 16:10:32 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -432,7 +432,7 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	}
 
 	/* phi can be overridden by parameter */
-	if ((param = filternode_get_param(n, "phi")))
+	if ((param = filternode_get_param(n, "position")))
 		phi = filterparam_val_float(param);
 
 	if (rate != filterpipe_sample_rate(out)
@@ -490,7 +490,8 @@ int mix_register()
 			       FILTER_PORTTYPE_SAMPLE)
 	    || !(filter_add_param(f, "gain", "output gain",
 				  FILTER_PARAMTYPE_FLOAT))
-	    || !(param = filter_add_param(f, "phi", "position of mixed stream",
+	    || !(param = filter_add_param(f, "position", 
+	                                  "position of mixed stream",
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_POSITION);
@@ -523,7 +524,8 @@ int mix2_register()
 			       FILTER_PORTTYPE_SAMPLE)
 	    || !(filter_add_param(f, "gain", "output gain",
 				  FILTER_PARAMTYPE_FLOAT))
-	    || !(param = filter_add_param(f, "phi", "position of mixed stream",
+	    || !(param = filter_add_param(f, "position", 
+	                                  "position of mixed stream",
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_POSITION);

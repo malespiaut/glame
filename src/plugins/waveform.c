@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.4 2000/03/25 15:01:39 richi Exp $
+ * $Id: waveform.c,v 1.5 2000/04/05 16:10:32 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -21,7 +21,7 @@
  *
  * This file contains a set of filters that generate various waveforms
  * Contained filters are
- * - sinus
+ * - sine
  * - const
  *
  * The waveform filters should only generate "one" buffer which can then
@@ -38,7 +38,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(waveform, "sinus const")
+PLUGIN_SET(waveform, "sine const")
 
 
 /* Standard waveform connect_out and fixup_param methods. These honour
@@ -55,7 +55,7 @@ static int waveform_connect_out(filter_node_t *n, const char *port,
 	if ((param = filternode_get_param(n, "rate")))
 		rate = filterparam_val_int(param);
 	pos = FILTER_PIPEPOS_DEFAULT;
-	if ((param = filternode_get_param(n, "pos")))
+	if ((param = filternode_get_param(n, "position")))
 		pos = filterparam_val_float(param);
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
@@ -78,15 +78,19 @@ static int waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
 static filter_t *waveform_filter_alloc(int (*fm)(filter_node_t *))
 {
 	filter_t *f;
+	filter_paramdesc_t *pos;
 
 	if (!(f = filter_alloc(fm))
 	    || !filter_add_output(f, PORTNAME_OUT, "waveform output stream",
 				  FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f, "rate", "samplerate of the generated output",
+	    || !filter_add_param(f, "rate", 
+	                         "samplerate of the generated output",
 				 FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f, "pos", "position of the output stream",
-				 FILTER_PARAMTYPE_FLOAT))
+	    || !(pos = filter_add_param(f, "position", 
+	                                "position of the output stream",
+	                                FILTER_PARAMTYPE_FLOAT)))
 		return NULL;
+	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
 	f->connect_out = waveform_connect_out;
 	f->fixup_param = waveform_fixup_param;
 
@@ -105,10 +109,10 @@ static int waveform_get_rate(filter_node_t *n)
 }
 
 
-/* This filter generates a sinus test signal
+/* This filter generates a sine test signal
  * defaults to 441 Hz and 0.5 max amplitude. 
  */
-static int sinus_f(filter_node_t *n)
+static int sine_f(filter_node_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
@@ -156,19 +160,19 @@ static int sinus_f(filter_node_t *n)
 	FILTER_RETURN;
 }
 
-PLUGIN_DESCRIPTION(sinus, "sinus signal")
-PLUGIN_PIXMAP(sinus, "default.xpm")
-int sinus_register()
+PLUGIN_DESCRIPTION(sine, "sine signal")
+PLUGIN_PIXMAP(sine, "default.xpm")
+int sine_register()
 {
 	filter_t *f;
 
-	if (!(f = waveform_filter_alloc(sinus_f))
-	    || !filter_add_param(f, "amplitude", "sinus peak amplitude(0.0-1.0)",
+	if (!(f = waveform_filter_alloc(sine_f))
+	    || !filter_add_param(f, "amplitude", "sine peak amplitude(0.0-1.0)",
 				 FILTER_PARAMTYPE_SAMPLE)
-	    || !filter_add_param(f, "frequency", "sinus frequency in Hz",
+	    || !filter_add_param(f, "frequency", "sine frequency in Hz",
 				 FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	if (filter_add(f, "sinus", "generate sinus test signal") == -1)
+	if (filter_add(f, "sine", "generate sine test signal") == -1)
 		return -1;
 	return 0;
 }
