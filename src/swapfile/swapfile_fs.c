@@ -186,6 +186,8 @@ static int _swapfile_init(const char *name, int force)
 			errno = ENOENT;
 			return -1;
 		}
+	}
+	for (hash = 0; hash < 256; hash++) {
 		snprintf(str, 255, "%s/clusters.meta/%lX", name, hash);
 		if (stat(str, &st) == -1
 		    || !S_ISDIR(st.st_mode)
@@ -264,8 +266,9 @@ int swapfile_open(const char *name, int flags)
 		return -1;
 
 	/* Do basic fsck to check if we're really clean. */
-	if (fsck_scan_clusters(0) == 1
-	    || fsck_check_files(0) == 1) {
+	if (/* fsck_scan_clusters(0) == 1
+	       || */ fsck_check_files(0) == 1
+	    /* || fsck_check_clusters(0) == 1 */) {
 		/* Doh - unclean - close swap, but leave .lock */
 		swap.clean = 0;
 		swapfile_close();
