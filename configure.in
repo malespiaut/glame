@@ -78,6 +78,15 @@ if test $laf = yes; then
 	AC_DEFINE(HAVE_AUDIOFILE)
 fi
 
+dnl check for OSS
+dnl FIXME: Currently this check is Linux specific.
+dnl OSS however is not. BSD keeps the header file
+dnl in sys/, other Unices in machine/
+AC_CHECK_HEADER(linux/soundcard.h, oss=yes, oss=no)
+if test $oss = yes; then
+	AC_DEFINE(HAVE_OSS)
+fi
+
 dnl check for libsndfile - FIXME
 lsf=no
 if test $lsf = yes; then
@@ -101,14 +110,13 @@ if test $la = yes; then
 	AC_DEFINE(HAVE_SGIAUDIO)
 fi
 
-dnl check for ALSA --- FIXME, this check is fatal if no alsa found
-dnl DISABLED!
-dnl AM_PATH_ALSA(0.5.0)
-dnl if test $ALSA_LIBS; then
-dnl	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
-dnl	GLAME_CFLAGS="$GLAME_CFLAGS $ALSA_CFLAGS"
-dnl	AC_DEFINE(HAVE_ALSA)
-dnl fi
+dnl check for ALSA
+AM_PATH_ALSA(0.5.0)
+if test $ALSA_LIBS; then
+	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
+	GLAME_CFLAGS="$GLAME_CFLAGS $ALSA_CFLAGS"
+	AC_DEFINE(HAVE_ALSA)
+fi
 
 
 dnl

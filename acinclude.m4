@@ -2439,7 +2439,7 @@ main ()
 dnl Configure Paths for Alsa
 dnl Christopher Lansdown (lansdoct@cs.alfred.edu)
 dnl 29/10/1998
-dnl AM_PATH_ALSA(MINIMUM-VERSION)
+AM_PATH_ALSA(MINIMUM-VERSION)
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix= --with-alsa-enc-prefix= --disable-alsatest
 dnl
@@ -2468,29 +2468,28 @@ if test "$alsa_prefix" != "" ; then
 	LIBS="-L$alsa_prefix"
 fi
 
-dnl add the alsa library
-ALSA_LIBS="$ALSA_LIBS -lasound"
-LDFLAGS="$ALSA_LIBS -lasound"
-AC_MSG_RESULT($ALSA_LIBS)
 
 dnl Check for the presence of the library
-dnl if test $enable_alsatest = yes; then
-dnl   AC_MSG_CHECKING(for working libasound)
-dnl   AC_TRY_RUN([
-dnl #include <sys/asoundlib.h>
-dnl void main(void)
-dnl {
-dnl   snd_cards();
-dnl   exit(0);
-dnl }
-dnl ],
-dnl    [AC_MSG_RESULT("present")],
-dnl    [AC_MSG_RESULT("not found. ")
-dnl    AC_MSG_ERROR(Fatal error: Install alsa-lib package or use --with-alsa-prefix option...)],
-dnl    [AC_MSG_RESULT(unsopported)
-dnl     AC_MSG_ERROR(Cross-compiling isn't supported...)]
-dnl  )
-dnl fi
+if test $enable_alsatest = yes; then
+	AC_MSG_CHECKING(for working libasound)
+	AC_TRY_RUN([
+#include <sys/asoundlib.h>
+void main(void)
+{
+	snd_cards();
+	exit(0);
+}
+],
+	[
+	dnl add the alsa library
+	ALSA_LIBS="$ALSA_LIBS -lasound"
+	LDFLAGS="$ALSA_LIBS -lasound"
+	AC_MSG_RESULT($ALSA_LIBS)
+	],
+	[AC_MSG_RESULT("not found. ")],
+	[AC_MSG_RESULT(unsopported)]
+	)
+fi
 
 dnl Check for a working version of libasound that is of the right version.
 min_alsa_version=ifelse([$1], ,0.1.1,$1)
@@ -2544,15 +2543,12 @@ exit(0);
 }
 ],
   [AC_MSG_RESULT(found.)],
-  [AC_MSG_RESULT(not present.)
-   AC_MSG_ERROR(Sufficiently new version of libasound not found.)]
+  [AC_MSG_RESULT(not present.)]
 )
 AC_LANG_RESTORE
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-AC_CHECK_LIB([asound], [snd_cards],,
-	[AC_MSG_ERROR(No linkable libasound was found.)]
-)
+AC_CHECK_LIB([asound], [snd_cards],,)
 
 dnl That should be it.  Now just export out symbols:
 AC_SUBST(ALSA_CFLAGS)

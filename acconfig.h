@@ -1,3 +1,6 @@
+/* define if you have OSS audio support */
+#undef HAVE_OSS
+
 /* define, if you have esd.h and libesd */
 #undef HAVE_ESD
 
