@@ -228,6 +228,17 @@ gpsm_grp_t *gpsm_newgrp(const char *label);
 void gpsm_item_destroy(gpsm_item_t *item);
 
 
+/* Checks, if the provided group is a hbox which is specified as
+ * a horizontally sorted, non-overlapping set of items.
+ * Returns 1 if group is a hbox, else 0. */
+int gpsm_grp_is_hbox(gpsm_grp_t *group);
+
+/* Checks, if the provided group is a vbox which is specified as
+ * a vertically sorted, non-overlapping set of items.
+ * Returns 1 if group is a vbox, else 0. */
+int gpsm_grp_is_vbox(gpsm_grp_t *group);
+
+
 /* Inserts the specified gpsm-item into the group at the specified
  * position. Random (non-overlapping) {hv}positioning is performed if
  * you pass -1 to {hv}position.
@@ -235,6 +246,18 @@ void gpsm_item_destroy(gpsm_item_t *item);
  * 0 on success and -1 on error. */
 int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 		    long hposition, long vposition);
+
+/* Insert (and possibly move following items) item into hbox at
+ * the specified hposition (and vposition). Returns 0 on success,
+ * -1 on failure which could be indicating illegal overlap. */
+int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
+		     long hposition, long vposition);
+
+/* Insert (and possibly move following items) item into vbox at
+ * the specified vposition (and hposition). Returns 0 on success,
+ * -1 on failure which could be indicating illegal overlap. */
+int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
+		     long hposition, long vposition);
 
 /* Removes the specified gpsm-item from its current group. The
  * items position will be (0,0) after this operation. If the

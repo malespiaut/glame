@@ -733,6 +733,40 @@ void gpsm_item_destroy(gpsm_item_t *item)
 	free(item);
 }
 
+int gpsm_grp_is_hbox(gpsm_grp_t *group)
+{
+	gpsm_item_t *item;
+	long end = -1;
+
+	/* hbox means, we ignore vposition/vsize completely and just
+	 * have all group items sorted by their hposition. It also
+	 * means we do not allow overlapping of the "horizontal intervals"
+	 * of the items (regardless, of real overlap). */
+	gpsm_grp_foreach_item(group, item) {
+		if (gpsm_item_hposition(item) <= end)
+			return 0;
+		end = gpsm_item_hposition(item) + gpsm_item_hsize(item) - 1;
+	}
+	return 1;
+}
+
+int gpsm_grp_is_vbox(gpsm_grp_t *group)
+{
+	gpsm_item_t *item;
+	long end = -1;
+
+	/* vbox means, we ignore hposition/hsize completely and just
+	 * have all group items sorted by their vposition. It also
+	 * means we do not allow overlapping of the "vertical intervals"
+	 * of the items (regardless, of real overlap). */
+	gpsm_grp_foreach_item(group, item) {
+		if (gpsm_item_vposition(item) <= end)
+			return 0;
+		end = gpsm_item_vposition(item) + gpsm_item_vsize(item) - 1;
+	}
+	return 1;
+}
+
 
 
 /*
@@ -833,48 +867,25 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 	}
 }
 
-int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
-		    long hposition, long vposition)
+/* _insert_tail handles the actual insertion of an item - at the
+ * specified position inside the list. */
+static void _insert_tail(gpsm_grp_t *group, gpsm_item_t *item,
+			 gpsm_item_t *succ,
+			 long hposition, long vposition)
 {
-	gpsm_item_t *succ;
-
-	if (!group || !item
-	    || !list_empty(&item->list) || item->parent)
-		return -1;
-
-	/* FIXME - check overlap, sort items. */
-
-	/* Fixup item position, handle magic -1 values. */
-	if (hposition == -1 && vposition == -1)
-		hposition = 0;
-	if (hposition == -1)
-		hposition = group->item.hsize;
-	if (vposition == -1)
-		vposition = group->item.vsize;
-	item->hposition = hposition;
-	item->vposition = vposition;
+	if (hposition < 0 || vposition < 0)
+		DERROR("Uninitialized insertion position");
 
 	/* Register an item changed signal handler to the new item
 	 * to update the parents boundingbox, if necessary. */
-	glsig_add_handler(&item->emitter, GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
+	glsig_add_handler(&item->emitter,
+			  GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
 			  handle_itemchange, item);
-
-	/* Find insertion point. */
-	gpsm_grp_foreach_item(group, succ) {
-		if ((gpsm_item_vposition(succ) > gpsm_item_vposition(item))
-		    || (gpsm_item_vposition(succ) == gpsm_item_vposition(item)
-			&& gpsm_item_hposition(succ) > gpsm_item_hposition(item)))
-			break;
-	}
-	DPRINTF("%s scheduled for insertion at %li, %li (before %s, %li, %li)\n", gpsm_item_label(item), gpsm_item_hposition(item), gpsm_item_vposition(item), succ ? gpsm_item_label(succ) : "none", succ ? gpsm_item_hposition(succ) : -1, succ ? gpsm_item_vposition(succ) : -1);
-
-	/* FIXME - check, if we do "overlap" and fail in this case.
-	 * FIXME: do we want items to "move away"??
-	 * - perhaps we really want to have strict hbox/vbox separation
-	 */
 
 	/* Do the addition, send out GPSM_SIG_ITEM_CHANGED signal. */
 	item->parent = group;
+	item->hposition = hposition;
+	item->vposition = vposition;
 	if (!succ)
 		list_add_tail(&item->list, &group->items);
 	else
@@ -883,6 +894,122 @@ int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 
 	/* Send out GPSM_SIG_GRP_NEWITEM signal. */
 	glsig_emit(&group->item.emitter, GPSM_SIG_GRP_NEWITEM, group, item);
+}
+
+int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
+		    long hposition, long vposition)
+{
+	gpsm_item_t *succ, *i;
+
+	if (!group || !item
+	    || !list_empty(&item->list) || item->parent)
+		return -1;
+
+	/* Fixup item position, handle magic -1 values. */
+	if (hposition == -1 && vposition == -1)
+		hposition = 0;
+	if (hposition == -1)
+		hposition = group->item.hsize;
+	if (vposition == -1)
+		vposition = group->item.vsize;
+
+	/* Check, if an illegal overlap would be caused by the
+	 * insertion. */
+	gpsm_grp_foreach_item(group, i) {
+		long hstart = gpsm_item_hposition(i);
+		long hend = hstart + gpsm_item_hsize(i) - 1;
+		long vstart = gpsm_item_vposition(i);
+		long vend = vstart + gpsm_item_vsize(i) - 1;
+		long ihend = hposition + MAX(0, gpsm_item_hsize(item) - 1);
+		long ivend = vposition + MAX(0, gpsm_item_vsize(item) - 1);
+		if (((hstart <= hposition && hend >= hposition)
+		     || (hstart <= ihend && hend >= ihend))
+		    && ((vstart <= vposition && vend >= vposition)
+			|| (vstart <= ivend && vend >= ivend))) {
+			DPRINTF("Overlap. Insertion rejected.\n");
+			return -1;
+		}
+	}
+
+	/* Find insertion point - first sort tracks, then time - i.e. this
+	 * is vbox-like. */
+	gpsm_grp_foreach_item(group, succ) {
+		if ((gpsm_item_vposition(succ) > vposition)
+		    || (gpsm_item_vposition(succ) == vposition
+			&& gpsm_item_hposition(succ) > hposition))
+			break;
+	}
+
+	/* Do the insertion. */
+	_insert_tail(group, item, succ, hposition, vposition);
+
+	return 0;
+}
+
+int gpsm_hbox_insert(gpsm_grp_t *hbox, gpsm_item_t *item,
+		     long hposition, long vposition)
+{
+	gpsm_item_t *succ, *i;
+
+	if (!hbox || !item || !list_empty(&item->list) || item->parent
+	    || !gpsm_grp_is_hbox(hbox))
+		return -1;
+
+	/* Find insertion point - succ will point to the successor. */
+	gpsm_grp_foreach_item(hbox, succ) {
+		if (gpsm_item_hposition(succ) >= hposition)
+			break;
+		if (hposition < gpsm_item_hposition(succ) + gpsm_item_hsize(succ))
+			return -1;
+	}
+
+	/* Move all nodes beginning at succ by item hsize
+	 * - from back to front, if succ is not NULL. */
+	if (succ) {
+		i = list_gettail(&hbox->items, gpsm_item_t, list);
+		do {
+			i->hposition += gpsm_item_hsize(item);
+			glsig_emit(gpsm_item_emitter(i),
+				   GPSM_SIG_ITEM_CHANGED, i);
+		} while (i && i != succ);
+	}
+
+	/* Do the insertion. */
+	_insert_tail(hbox, item, succ, hposition, vposition);
+
+	return 0;
+}
+
+int gpsm_vbox_insert(gpsm_grp_t *vbox, gpsm_item_t *item,
+		     long hposition, long vposition)
+{
+	gpsm_item_t *succ, *i;
+
+	if (!vbox || !item || !list_empty(&item->list) || item->parent
+	    || !gpsm_grp_is_vbox(vbox))
+		return -1;
+
+	/* Find insertion point - succ will point to the successor. */
+	gpsm_grp_foreach_item(vbox, succ) {
+		if (gpsm_item_vposition(succ) >= vposition)
+			break;
+		if (vposition < gpsm_item_vposition(succ) + gpsm_item_vsize(succ))
+			return -1;
+	}
+
+	/* Move all nodes beginning at succ by item hsize
+	 * - from back to front, if succ is not NULL. */
+	if (succ) {
+		i = list_gettail(&vbox->items, gpsm_item_t, list);
+		do {
+			i->vposition += gpsm_item_vsize(item);
+			glsig_emit(gpsm_item_emitter(i),
+				   GPSM_SIG_ITEM_CHANGED, i);
+		} while (i && i != succ);
+	}
+
+	/* Do the insertion. */
+	_insert_tail(vbox, item, succ, hposition, vposition);
 
 	return 0;
 }
@@ -910,6 +1037,7 @@ void gpsm_item_remove(gpsm_item_t *item)
 	glsig_emit(&grp->item.emitter, GPSM_SIG_ITEM_CHANGED, grp);
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
 }
+
 
 
 
