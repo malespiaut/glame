@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.6 2000/02/22 11:44:14 xwolf Exp $
+ * $Id: gui.h,v 1.7 2000/02/22 17:01:54 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -44,6 +44,7 @@
 typedef struct _gui_network {
 	char *pixname;
 	char *caption;
+	char *descr;
 	int iports,oports;
 	filter_network_t * net;
 	GArray *filters;
