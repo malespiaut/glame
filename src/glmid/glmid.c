@@ -28,6 +28,7 @@ static int plugins_register()
 	/* then all the plugins in the (default) plugin path */
 	/* FIXME - by hand for now. */
 	plugin_get("echo");
+	plugin_get("pan");
         plugin_get("debug");
         plugin_get("tutorial");
         plugin_get("garrison");

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.19 2000/04/03 09:55:37 richi Exp $
+; $Id: glame.scm,v 1.20 2000/04/05 16:11:22 nold Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -389,7 +389,7 @@
 (define test-bounce
   (lambda (delay)
     (let* ((net (net-new))
-	   (sinus (net-add-node net "sinus"))
+	   (sine (net-add-node net "sine"))
 	   (const (net-add-node net "const"))
 	   (repeat (net-add-node net "repeat"))
 	   (extend1 (net-add-node net "extend"))
@@ -399,7 +399,7 @@
       (filternode_set_param repeat "time" 1000)
       (filternode_set_param extend1 "time" 10000)
       (filternode_set_param extend2 "time" 11000)
-      (nodes-connect `(,sinus ,repeat ,extend1) `(,const ,extend2)) 
+      (nodes-connect `(,sine ,repeat ,extend1) `(,const ,extend2)) 
       (filternetwork_add_connection extend1 "out" boun "left-in")
       (filternetwork_add_connection extend2 "out" boun "right-in")
       (filternetwork_add_connection boun "left-out" ao "in")
