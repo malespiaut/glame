@@ -65,10 +65,12 @@ dnl Checks for libraries.
 dnl use GLAME_LIBS & GLAME_CFLAGS
 dnl and GLAME_DLIBS & GLAME_DCFLAGS
 dnl
+
+dnl pthread lib - GLAME is threaded everywhere, so global
+dnl LIBS and CFLAGS use is ok.
 ACX_PTHREAD([
-PTHREAD_LIB="$PTHREAD_LIBS"
-AC_SUBST(PTHREAD_LIB)
-GLAME_CFLAGS="$GLAME_CFLAGS $PTHREAD_CFLAGS"
+LIBS="$PTHREAD_LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
 CC="$PTHREAD_CC"
 ], [
 AC_ERROR(You need pthreads to run glame!)
