@@ -39,37 +39,32 @@
 #include "waveeditgui.h"
 #include "edit_filter/canvas.h"
 
-/* Temporary storage for editing functions and the edit functions
- * itself.
+
+
+/* The GUI is single-threaded, so this should actually work for
+ * callbacks that cant take the waveview. */
+static GtkWaveView *actual_waveview;
+
+
+
+/*
+ * The VIEW submenu and its callbacks.
  */
 
-static int temp_nrtracks = 0;
-static long temp_fname[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
-static swfd_t temp_fd[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
+static void zoomin_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void zoomfull_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void zoomout_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void zoomsel_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void gotomarker_cb(GtkWidget *bla, GtkWaveView *waveview);
 
-static void reset_temp(int nrtracks)
-{
-	int i;
-
-	/* Kill unnecessary temporary tracks. */
-	for (i=nrtracks; i<temp_nrtracks; i++) {
-		sw_close(temp_fd[i]);
-		sw_unlink(temp_fname[i]);
-	}
-
-	/* Generate additionally needed tracks. */
-	for (i=temp_nrtracks; i<nrtracks; i++) {
-		while ((temp_fd[i] = sw_open((temp_fname[i] = rand()), O_CREAT|O_EXCL|O_RDWR)) == -1)
-			;
-	}
-	temp_nrtracks = nrtracks;
-
-	/* Reset temporary tracks. */
-	for (i=0; i<temp_nrtracks; i++) {
-		sw_ftruncate(temp_fd[i], 0);
-		sw_lseek(temp_fd[i], 0, SEEK_SET);
-	}
-}
+static GnomeUIInfo view_menu[] = {
+	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
+	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
+	GNOMEUIINFO_ITEM("Zoom out", "zommout", zoomout_cb, NULL),
+	GNOMEUIINFO_ITEM("View all", "zommfull", zoomfull_cb, NULL),
+	GNOMEUIINFO_ITEM("Goto marker", "gotomarker", gotomarker_cb, NULL),
+	GNOMEUIINFO_END
+};
 
 /* Menu event - Zoom in. */
 static void zoomin_cb(GtkWidget *bla, GtkWaveView *waveview)
@@ -102,9 +97,26 @@ static void zoomsel_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Goto marker. */
 static void gotomarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	gtk_wave_view_set_marker_and_scroll(waveview,
-					    gtk_wave_view_get_marker(waveview));
+	gtk_wave_view_set_marker_and_scroll(
+		waveview, gtk_wave_view_get_marker(waveview));
 }
+
+
+
+
+
+/*
+ * The SELECT submenu and its callbacks.
+ */
+
+static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview);
+static void selectall_cb(GtkWidget *w, GtkWaveView *waveview);
+
+static GnomeUIInfo select_menu[] = {
+	GNOMEUIINFO_ITEM("Select none", "selectnone", selectnone_cb, NULL),
+	GNOMEUIINFO_ITEM("Select all", "selectall", selectall_cb, NULL),
+	GNOMEUIINFO_END
+};
 
 /* Menu event - select nothing. */
 static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview)
@@ -121,12 +133,79 @@ static void selectall_cb(GtkWidget *w, GtkWaveView *waveview)
 				    gtk_wave_buffer_get_length(wavebuffer));
 }
 
+
+
+
+
+/*
+ * Temporary storage for editing functions and the edit functions
+ * itself.
+ */
+
+static int temp_nrtracks = 0;
+static long temp_fname[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
+static swfd_t temp_fd[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
+
+static void reset_temp(int nrtracks)
+{
+	int i;
+
+	/* Kill unnecessary temporary tracks. */
+	for (i=nrtracks; i<temp_nrtracks; i++) {
+		sw_close(temp_fd[i]);
+		sw_unlink(temp_fname[i]);
+	}
+
+	/* Generate additionally needed tracks. */
+	for (i=temp_nrtracks; i<nrtracks; i++) {
+		while ((temp_fd[i] = sw_open((temp_fname[i] = rand()), O_CREAT|O_EXCL|O_RDWR)) == -1)
+			;
+	}
+	temp_nrtracks = nrtracks;
+
+	/* Reset temporary tracks. */
+	for (i=0; i<temp_nrtracks; i++) {
+		sw_ftruncate(temp_fd[i], 0);
+		sw_lseek(temp_fd[i], 0, SEEK_SET);
+	}
+}
+
+
+
+/*
+ * The EDIT submenu and its callbacks.
+ */
+
+static void copy_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void paste_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void cut_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void delete_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void undo_cb(GtkWidget *bla, GtkWaveView *waveview);
+static void redo_cb(GtkWidget *bla, GtkWaveView *waveview);
+
+static GnomeUIInfo edit_menu[] = {
+	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
+	GNOMEUIINFO_ITEM("Copy", "copy", copy_cb, NULL),
+	GNOMEUIINFO_ITEM("Paste", "paste", paste_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Undo", "undo", undo_cb, NULL),
+	GNOMEUIINFO_ITEM("Redo", "redo", redo_cb, NULL),	
+	GNOMEUIINFO_END
+};
+#define EDIT_MENU_CUT_INDEX 0
+#define EDIT_MENU_COPY_INDEX 1
+#define EDIT_MENU_PASTE_INDEX 2
+#define EDIT_MENU_DELETE_INDEX 4
+#define EDIT_MENU_UNDO_INDEX 6
+#define EDIT_MENU_REDO_INDEX 7
+
 /* Menu event - Copy. */
 static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
 	swfd_t fd;
 	long nrtracks;
@@ -135,17 +214,13 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Nothing selected")));
-		return;
-	}
+	if (length <= 0)
+		DERROR("Ensured by rmb callback");
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
 
-	DPRINTF("Copying selection from %i of length %i\n", start, length);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
@@ -161,9 +236,8 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Paste. */
 static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start;
 	struct sw_stat st;
 	swfd_t fd;
@@ -173,19 +247,12 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	start = gtk_wave_view_get_marker (waveview);
-	if (start < 0)
-		return;
-
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
-	if (nrtracks != temp_nrtracks) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Clipboard has different number of tracks")));
-		return;
-	}
+	if (start < 0 || nrtracks != temp_nrtracks)
+		DERROR("Ensured by rmb callback");
 
 	if (sw_fstat(temp_fd[0], &st) == -1)
 		return;
-	DPRINTF("Pasting to %i size %i\n", start, st.size/SAMPLE_SIZE);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
@@ -210,9 +277,8 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Cut. */
 static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
 	swfd_t fd;
 	long nrtracks;
@@ -221,12 +287,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Nothing selected")));
-		return;
-	}
-	DPRINTF("Cutting selection from %i of length %i\n", start, length);
+	if (length <= 0)
+		DERROR("Ensured by rmb callback");
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
@@ -258,9 +320,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Delete. */
 static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
 	swfd_t fd;
 	long nrtracks;
@@ -269,12 +330,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Nothing selected")));
-		return;
-	}
-	DPRINTF("Deleting selection from %i of length %i\n", start, length);
+	if (length <= 0)
+		DERROR("Ensured by rmb callback");
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
@@ -310,15 +367,9 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
 	item = gtk_swapfile_buffer_get_item(swapfile);
 
-	if (!gpsm_op_can_undo(item)) {
-		DPRINTF("No undo for %p possible\n", item);
-		return;
-	}
-
-	if (gpsm_op_undo(item) == -1) {
-		DPRINTF("Error during undo for %p\n", item);
-		return;
-	}
+	if (gpsm_op_undo(item) == -1)
+		gnome_dialog_run_and_close(
+			GNOME_DIALOG(gnome_error_dialog("Error during undo")));
 }
 
 /* Menu event - Redo. */
@@ -330,16 +381,19 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
 	item = gtk_swapfile_buffer_get_item(swapfile);
 
-	if (!gpsm_op_can_redo(item)) {
-		DPRINTF("No redo for %p possible\n", item);
-		return;
-	}
-
-	if (gpsm_op_redo(item) == -1) {
-		DPRINTF("Error during redo for %p\n", item);
-		return;
-	}
+	if (gpsm_op_redo(item) == -1)
+		gnome_dialog_run_and_close(
+			GNOME_DIALOG(gnome_error_dialog("Error during redo")));
 }
+
+
+
+
+
+/*
+ * Complex stuff like apply, play, record, etc.
+ */
+
 
 
 /* Helpers for creation of swapfile_in/out nodes with appropriate
@@ -401,9 +455,6 @@ static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 {
 	*bar = TRUE;
 }
-
-/* GUI is single-threaded, so this should actually work... */
-static GtkWaveView *actual_waveview;
 
 /* Cleanup helpers for waveedit operations.
  */
@@ -490,9 +541,8 @@ static struct network_run_s *network_run_create(filter_t *net,
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	GtkWaveView *waveview = actual_waveview;
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	GtkWidget *prop;
 	gboolean ok_pressed;
 	gint32 start, length;
@@ -582,9 +632,8 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	GtkWaveView *waveview = actual_waveview;
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
@@ -644,9 +693,8 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	GtkWaveView *waveview = actual_waveview;
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
@@ -701,9 +749,8 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	GtkWaveView *waveview = actual_waveview;
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
 	gpsm_item_t *grp, *item, *left, *right;
 	filter_t *net, *ain;
@@ -794,9 +841,8 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	GtkWaveView *waveview = actual_waveview;
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start;
 	gpsm_item_t *grp, *item, *left, *right;
 	filter_t *net, *ain;
@@ -897,9 +943,8 @@ static void apply_custom_cb_cleanup(GtkWidget *foo, gpsm_item_t *item)
 static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 {
 	GtkWaveView *waveview = actual_waveview;
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
-	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	GlameCanvas *canvas;
 	gint32 start, length, marker, wavesize;
 	long nrtracks;
@@ -987,39 +1032,6 @@ static void wave_close_cb(GtkWidget *foo, void *bar)
 static GnomeUIInfo dummy_menu[] = {
 	GNOMEUIINFO_END
 };
-
-static GnomeUIInfo view_menu[] = {
-	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
-	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
-	GNOMEUIINFO_ITEM("Zoom out", "zommout", zoomout_cb, NULL),
-	GNOMEUIINFO_ITEM("View all", "zommfull", zoomfull_cb, NULL),
-	GNOMEUIINFO_ITEM("Goto marker", "gotomarker", gotomarker_cb, NULL),
-	GNOMEUIINFO_END
-};
-
-static GnomeUIInfo select_menu[] = {
-	GNOMEUIINFO_ITEM("Select none", "selectnone", selectnone_cb, NULL),
-	GNOMEUIINFO_ITEM("Select all", "selectall", selectall_cb, NULL),
-	GNOMEUIINFO_END
-};
-
-static GnomeUIInfo edit_menu[] = {
-	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
-	GNOMEUIINFO_ITEM("Copy", "copy", copy_cb, NULL),
-	GNOMEUIINFO_ITEM("Paste", "paste", paste_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Undo", "undo", undo_cb, NULL),
-	GNOMEUIINFO_ITEM("Redo", "redo", redo_cb, NULL),	
-	GNOMEUIINFO_END
-};
-#define EDIT_MENU_CUT_INDEX 0
-#define EDIT_MENU_COPY_INDEX 1
-#define EDIT_MENU_PASTE_INDEX 2
-#define EDIT_MENU_DELETE_INDEX 4
-#define EDIT_MENU_UNDO_INDEX 6
-#define EDIT_MENU_REDO_INDEX 7
 
 static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
@@ -1113,7 +1125,8 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_COPY_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_PASTE_INDEX].widget,
-				 (nrtracks == temp_nrtracks) ? TRUE : FALSE);
+				 (nrtracks == temp_nrtracks)
+				 && (marker_pos >= 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_DELETE_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_UNDO_INDEX].widget,
