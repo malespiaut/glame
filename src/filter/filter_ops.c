@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.30 2001/11/11 12:59:33 richi Exp $
+ * $Id: filter_ops.c,v 1.31 2002/03/25 13:26:20 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -46,7 +46,7 @@ struct filter_operations {
 /* filter_buffer.c: drain pipe to unblock source. */
 void fbuf_drain(filter_pipe_t *p);
 /* filter_buffer.c: free pending buffers. */
-void fbuf_free_buffers(struct glame_list_head *list);
+int fbuf_free_buffers(struct glame_list_head *list);
 
 
 /* The standard filter operations, for "nodes" and for "networks".
@@ -194,6 +194,7 @@ static void postprocess_node(filter_t *n)
 {
 	filter_pipe_t *p;
 	filter_port_t *port;
+	int freed;
 
 	if (!n || n->state == STATE_UNDEFINED)
 		return;
@@ -216,7 +217,10 @@ static void postprocess_node(filter_t *n)
 			}
 		}
 	}
-	fbuf_free_buffers(&n->buffers);
+	freed = fbuf_free_buffers(&n->buffers);
+	if (freed > 0)
+		DPRINTF("freed %i buffers created by %s\n",
+			freed, filter_name(n));
 
 	n->launch_context = NULL;
 	n->state = STATE_UNDEFINED;

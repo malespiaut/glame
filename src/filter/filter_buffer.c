@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.32 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_buffer.c,v 1.33 2002/03/25 13:26:20 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -277,7 +277,7 @@ void fbuf_drain(filter_pipe_t *p)
 }
 
 /* Externally locked against concurrent access of list. */
-void fbuf_free_buffers(struct glame_list_head *list)
+int fbuf_free_buffers(struct glame_list_head *list)
 {
 	filter_buffer_t *fb;
 	int nr_freed = 0;
@@ -290,6 +290,5 @@ void fbuf_free_buffers(struct glame_list_head *list)
 		fbuf_unref(fb);
 		nr_freed++;
 	}
-	if (nr_freed > 0)
-		DPRINTF("freed %i buffers\n", nr_freed);
+	return nr_freed;
 }
