@@ -1374,6 +1374,10 @@ void gpsm_notify_swapfile_change(long filename, long pos, long size)
 
 	/* Loop over all references sending out the changed signal. */
 	while ((swfile = hash_find_next_swfile(filename, swfile))) {
+		/* Handle extension transparently. */
+		if (pos + size > gpsm_item_hsize(swfile))
+			gpsm_notify_swapfile_insert(filename, gpsm_item_hsize(swfile), pos + size - 1 - gpsm_item_hsize(swfile));
+
 		glsig_emit(gpsm_item_emitter(swfile), GPSM_SIG_SWFILE_CHANGED,
 			   swfile, pos, size);
 #ifdef DEBUG
