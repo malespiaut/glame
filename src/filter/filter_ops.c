@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.36 2003/04/15 18:58:53 richi Exp $
+ * $Id: filter_ops.c,v 1.37 2003/04/21 17:10:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -302,6 +302,11 @@ static filter_launchcontext_t *_launchcontext_ref(filter_launchcontext_t *c)
 	return c;
 }
 
+void filter_launchcontext_ref(filter_launchcontext_t *c)
+{
+	_launchcontext_ref(c);
+}
+
 void filter_launchcontext_unref(filter_launchcontext_t **c_)
 {
 	filter_launchcontext_t *c = *c_;
@@ -421,7 +426,7 @@ int filter_start(filter_launchcontext_t *context)
 	return 0;
 
 out:
-	DPRINTF("Network error. Terminating.\n");
+	DPRINTF("Network error. Terminating with result %i.\n", ATOMIC_VAL(context->result));
 	filter_terminate(context);
 	return -1;
 }

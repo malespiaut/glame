@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.83 2003/04/20 21:54:43 richi Exp $
+ * $Id: filter.h,v 1.84 2003/04/21 17:10:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -244,6 +244,9 @@ filter_t *filter_collapse(const char *name, filter_t **nodes);
  * processing of the data. Processing will be done with the
  * provided preferred buffersize. */
 filter_launchcontext_t *filter_launch(filter_t *net, int bufsize);
+
+/* Get an additional reference to the context returned by filter_launch. */
+void filter_launchcontext_ref(filter_launchcontext_t *context);
 
 /* Releases the context returned by filter_launch. */
 void filter_launchcontext_unref(filter_launchcontext_t **context);
