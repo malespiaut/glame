@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.34 2001/04/23 08:21:52 richi Exp $
+ * $Id: swapfilegui.c,v 1.35 2001/05/05 14:40:46 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -46,6 +46,7 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
 static void flatten_cb(GtkWidget *menu, GlameTreeItem *item);
+static void collect_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -58,14 +59,16 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
-	GNOMEUIINFO_ITEM("Add empty wave", "addfile", addfile_cb, NULL),
-        GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
-        GNOMEUIINFO_ITEM("Flatten", "flatten", flatten_cb, NULL),
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
+	GNOMEUIINFO_ITEM("Add empty wave", "addfile", addfile_cb, NULL),
         GNOMEUIINFO_ITEM("Link selected", "link", linkselected_cb, NULL),
         GNOMEUIINFO_ITEM("Copy selected", "copy", copyselected_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
+        GNOMEUIINFO_ITEM("Flatten", "flatten", flatten_cb, NULL),
+        GNOMEUIINFO_ITEM("Collect", "collect", collect_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
 	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
@@ -75,10 +78,10 @@ static GnomeUIInfo group_menu_data[] = {
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
-        GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
@@ -231,6 +234,32 @@ static void flatten_cb(GtkWidget *menu, GlameTreeItem *item)
 	}
 
 	/* Destroy the active group and insert the flattened one. */
+	parent = gpsm_item_parent(old);
+	hpos = gpsm_item_hposition(old);
+	vpos = gpsm_item_vposition(old);
+	gpsm_item_destroy(old);
+	gpsm_grp_insert(parent, (gpsm_item_t *)group, hpos, vpos);
+}
+
+/* Collect the group using gpsm_collect and replace it with the
+ * collected group. */
+static void collect_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	gpsm_grp_t *group, *parent;
+	gpsm_item_t *old;
+	long hpos, vpos;
+
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+	old = item->item;
+
+	/* Collect the active group. */
+	if (!(group = gpsm_collect_swfiles(old))) {
+	        DPRINTF("gpsm_collect failed!?\n");
+		return;
+	}
+
+	/* Destroy the active group and insert the collected one. */
 	parent = gpsm_item_parent(old);
 	hpos = gpsm_item_hposition(old);
 	vpos = gpsm_item_vposition(old);
@@ -602,7 +631,7 @@ GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
         tree = gtk_tree_new();
         gtk_tree_set_view_mode(GTK_TREE(tree), GTK_TREE_VIEW_LINE);
         gtk_tree_set_view_lines(GTK_TREE(tree), TRUE);
-        gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_BROWSE);
+        gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_MULTIPLE);
 
 	/* Add the root group and cause "newitem" signals to be sent
 	 * for each item. */
