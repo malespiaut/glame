@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.27 2000/02/22 13:40:40 nold Exp $
+ * $Id: audio_io.c,v 1.28 2000/02/22 13:58:44 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -184,7 +184,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	max_ch = filternode_nrinputs(n);
 	if(!max_ch) {
 		DPRINTF("No input channels given.\n");
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 
 	/* The connect and fixup methods already make sure we have a 
@@ -193,7 +193,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	rate = filterpipe_sample_rate(p_in);
 	if(rate <= 0) {
 		DPRINTF("No valid sample rate given.\n");
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 
 	/* 'in' is our internal array of pipe goodies. 'bufs' was added
@@ -204,7 +204,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	bufs = (SAMPLE **)malloc(max_ch * sizeof(SAMPLE *));
 	if(!in || !bufs) {
 		DPRINTF("Failed to alloc input structs.\n");
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 
 	/* Cycle through the input pipes to set up our internal
@@ -237,7 +237,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 	if(!c) {
 		DPRINTF("Failed to create audio configuration: %s\n",
 			alGetErrorString(oserror()));
-			goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 
 	/* SGI AL has this nice feature of directly supporting our
@@ -252,18 +252,18 @@ static int sgi_audio_out_f(filter_node_t *n)
 	if(alSetDevice(c, resource) < 0) {
 		DPRINTF("Resource invalid: %s\n",
 			alGetErrorString(oserror()));
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 	v[0].param = AL_RATE;
 	v[0].value.ll = alDoubleToFixed(rate);
 	if(alSetParams(resource, v, 1) < 0) {
 		DPRINTF("Failed to set audio output parameters: %s\n",
 			alGetErrorString(oserror()));
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 	if(v[0].sizeOut < 0) {
 		DPRINTF("Invalid sample rate.\n");
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 	/* The QueueSized is used as an initializer to our output chunk
 	 * size later on.
@@ -271,20 +271,20 @@ static int sgi_audio_out_f(filter_node_t *n)
 	qsize = alGetQueueSize(c);
 	if(qsize <= 0) {
 		DPRINTF("Invalid QueueSize.\n");
-		goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 	p = alOpenPort("GLAME audio output", "w", c);
 	if(!p) {
 		DPRINTF("Failed to open audio output port: %s\n",
 			alGetErrorString(oserror()));
-			goto _cleanup;
+		FILTER_DO_CLEANUP;
 	}
 	alFreeConfig(c);
 	c = NULL;
 
-	FILTER_AFTER_INIT;
 	/* May not fail from now on... */
 	ret = 0;
+	FILTER_AFTER_INIT;
 	
 	ch = 0;
 	ch_active = max_ch;
