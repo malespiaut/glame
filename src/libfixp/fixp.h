@@ -4,17 +4,8 @@
  * Helper lib for generic fixed point
  * arithmetics.
  *
- * $Id: fixp.h,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: fixp.h,v 1.3 2000/02/22 17:13:38 nold Exp $
  *********************************************/
-
-/*
- * This library is totally broken and does probably not
- * what you want it to do. Ugh. Didn't try to fix it
- * becaus I dont want to rewrite it from scratch which
- * would be necessary to do so. Ficken.
- * [richi]
- * Fixed. [dk]
- */
 
 #ifndef _FIXP_H
 #define _FIXP_H
