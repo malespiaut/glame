@@ -49,6 +49,8 @@
 #include <config.h>
 #endif
 
+#include <sys/time.h>
+#include <unistd.h>
 #include "list.h"
 #include "glsignal.h"
 
@@ -148,6 +150,7 @@ struct gpsm_swfile_s {
 	gpsm_item_t item;
 	gpsm_swfile_t *next_swfile_hash;
 	gpsm_swfile_t **pprev_swfile_hash;
+	struct timeval last_op_time;
 	long filename;
 	int samplerate;
 	float position;
@@ -174,6 +177,8 @@ struct gpsm_swfile_s {
  * Returns 0 on success and -1 on error (which is the sign for
  * swapfile corruption or already initialized gpsm). */
 int gpsm_init(const char *swapfile);
+
+int gpsm_set_max_saved_ops(int max);
 
 /* Syncs the gpsm metadata on disk (swapfile) with the gpsm
  * metadata in memory. Also syncs all swapfile data cached. */
@@ -305,6 +310,20 @@ void gpsm_invalidate_swapfile(long filename);
  * Note that this feature greatly simplifies operations such as play
  * and export (i.e. where you only want to _read_ from the files). */
 gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
+
+
+/* Undo/redo support.
+ */
+
+int gpsm_op_prepare(gpsm_item_t *item);
+
+int gpsm_op_can_undo(gpsm_item_t *item);
+
+int gpsm_op_undo(gpsm_item_t *item);
+
+int gpsm_op_undo_and_forget(gpsm_item_t *item);
+
+int gpsm_op_forget(gpsm_item_t *item);
 
 
 #endif

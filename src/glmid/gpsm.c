@@ -30,6 +30,18 @@
 #include "hash.h"
 
 
+/* Undo/Redo: FIXME
+ * 1. handle item/grp deletion -> remove all related ops
+ * 2. somehow hash the saved files (? no!?)
+ * 3. test gpsm_op_undo()
+ * 4. fix redo - not really "intuitive" or "easy to use" (not saveable!)
+ * 5. fix max list size change - kill off ops, if necessary
+ * 6. finer grained undo? -> start, length!? ????
+ * 7. documentation
+ */
+
+
+/* The gpsm root and the swapfile filename hash. */
 static gpsm_grp_t *root = NULL;
 HASH(swfile, gpsm_swfile_t, 8,
      (swfile->filename == filename),
@@ -37,8 +49,35 @@ HASH(swfile, gpsm_swfile_t, 8,
      (swfile->filename),
      long filename)
 
+/* The operations structs. */
+struct pair {
+	long file;
+	long saved;
+};
+struct op {
+	struct list_head list;
+	struct timeval time;
+	int nrpairs;
+	struct pair pair[0];
+};
 
+/* List of ops, sorted by time, head is latest, configurables */
+struct list_head oplist;
+static int op_max_listsize = 5;
+static int op_listsize;
+
+
+/* Forwards. */
 static gpsm_item_t *gpsm_newitem(int type);
+static int _op_undo(struct op *op);
+struct op *_op_get(gpsm_item_t *item);
+static void _op_fixswfiles(struct op *op);
+static struct op *_op_prepare(gpsm_item_t *item);
+static void _op_delete(struct op *op);
+static struct op *_op_new(int nrpairs);
+static struct op *_op_find_filename(long filename);
+static struct op *_op_find_filename_before(long filename, struct op *op);
+static struct op *_op_find_saved(long filename);
 
 
 /*
@@ -82,6 +121,26 @@ static void dump_tree(gpsm_grp_t *tree, xmlNodePtr node)
 		return;
 	list_foreach(&tree->items, gpsm_item_t, list, item)
 		dump_item(item, node);
+}
+static void dump_ops(xmlNodePtr node)
+{
+	struct op *op;
+	xmlNodePtr opnode, pairnode;
+	char s[256];
+	int i;
+
+	list_foreach(&oplist, struct op, list, op) {
+		opnode = xmlNewChild(node, NULL, "op", NULL);
+		snprintf(s, 255, "%i", op->nrpairs);
+		xmlSetProp(opnode, "nrpairs", s);
+		for (i=0; i<op->nrpairs; i++) {
+			pairnode = xmlNewChild(opnode, NULL, "pair", NULL);
+			snprintf(s, 255, "%li", op->pair[i].file);
+			xmlSetProp(pairnode, "file", s);
+			snprintf(s, 255, "%li", op->pair[i].saved);
+			xmlSetProp(pairnode, "saved", s);
+		}
+	}
 }
 
 static void insert_node(gpsm_grp_t *tree, xmlNodePtr node);
@@ -151,6 +210,57 @@ static void insert_node(gpsm_grp_t *tree, xmlNodePtr node)
 	} else if (strcmp(node->name, "group") == 0) {
 		item = gpsm_newitem(GPSM_ITEM_TYPE_GRP);
 
+	} else if (strcmp(node->name, "op") == 0) {
+		int icnt, i;
+		struct op *op;
+		free(ilabel);
+		if (!(c = xmlGetProp(node, "nrpairs"))) {
+			DPRINTF("Invalid <op>\n");
+			return;
+		}
+		if (sscanf(c, "%i", &icnt) != 1) {
+			DPRINTF("Invalid nrpairs %s\n", c);
+			return;
+		}
+		op = _op_new(icnt);
+#ifndef xmlChildrenNode
+		node = node->childs;
+#else
+		node = node->xmlChildrenNode;
+#endif
+		if (!node) {
+			DPRINTF("Invalid <op> childs\n");
+			return;
+		}
+		i=0;
+		while (node) {
+			if (strcmp(node->name, "pair") != 0) {
+				DPRINTF("Invalid <op> child entry\n");
+				return;
+			}
+			if (!(c = xmlGetProp(node, "file"))) {
+				DPRINTF("Invalid <pair>\n");
+				return;
+			}
+			if (sscanf(c, "%li", &op->pair[i].file) != 1) {
+				DPRINTF("Invalid <pair> file %s\n", c);
+				return;
+			}
+			if (!(c = xmlGetProp(node, "saved"))) {
+				DPRINTF("Invalid <pair>\n");
+				return;
+			}
+			if (sscanf(c, "%li", &op->pair[i].saved) != 1) {
+				DPRINTF("Invalid <pair> saved %s\n", c);
+				return;
+			}
+			node = node->next;
+			i++;
+		}
+		list_add(&op->list, &oplist);
+		_op_fixswfiles(op);
+		return;
+
 	} else if (strcmp(node->name, "swapfile") == 0) {
 		DERROR("Illegal <swapfile> tag position");
 	} else {
@@ -193,7 +303,11 @@ static void scan_swap()
 	while ((name = sw_readdir(dir)) != -1) {
 		if (name == 0)
 			continue;
+		/* File in tree? */
 		if (gpsm_find_swfile_filename(gpsm_root(), NULL, name))
+			continue;
+		/* File in op list as saved? */
+		if (_op_find_saved(name))
 			continue;
 		fd = sw_open(name, O_RDONLY, TXN_NONE);
 		sw_fstat(fd, &st);
@@ -281,6 +395,10 @@ int gpsm_init(const char *swapfile)
 		return -1;
 	}
 
+	/* Init the op list. */
+	INIT_LIST_HEAD(&oplist);
+	op_listsize = 0;
+
 	/* Create the tree root group and recurse down the xml tree. */
         root = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);
 	root->item.label = strdup("(root)");
@@ -299,6 +417,13 @@ int gpsm_init(const char *swapfile)
 	return 0;
 }
 
+int gpsm_set_max_saved_ops(int max)
+{
+	if (max >= 0)
+		op_max_listsize = max;
+	return op_max_listsize;
+}
+
 void gpsm_sync()
 {
 	xmlDocPtr doc;
@@ -313,6 +438,7 @@ void gpsm_sync()
 	doc = xmlNewDoc("1.0");
 	docroot = xmlNewNode(NULL, "swapfile");
 	dump_tree(root, docroot);
+	dump_ops(docroot);
 	xmlDocSetRootElement(doc, docroot);
 	xmlDocDumpMemory(doc, &xml, &size);
 	DPRINTF("%i bytes xml\n %s\n", size, xml);
@@ -380,6 +506,8 @@ static gpsm_item_t *gpsm_newitem(int type)
 		item->hsize = 0;
 		item->vsize = 1;
 		((gpsm_swfile_t *)item)->filename = -1;
+		((gpsm_swfile_t *)item)->last_op_time.tv_sec = 0;
+		((gpsm_swfile_t *)item)->last_op_time.tv_usec = 0;
 	}
 
 	return item;
@@ -1144,4 +1272,348 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 	DPRINTF("failed!\n");
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	return NULL;
+}
+
+
+
+
+/* Creates an array of all swfiles in the subtree item and stores it in
+ * *files, returns the number of swfiles found. Free *files yourself. */
+static int _gpsm_get_swfiles(gpsm_item_t *root, gpsm_swfile_t ***files)
+{
+	gpsm_swfile_t *_files[256];
+	gpsm_item_t *item, *next;
+	int cnt, c;
+
+	/* Easy case first. */
+	if (GPSM_ITEM_IS_SWFILE(root)) {
+		*files = (gpsm_swfile_t **)malloc(sizeof(void *));
+		(*files)[0] = (gpsm_swfile_t *)root;
+		return 1;
+	}
+
+	cnt = 0;
+	item = list_gethead(&((gpsm_grp_t *)root)->items, gpsm_item_t, list);
+	while (item) {
+		if (GPSM_ITEM_IS_SWFILE(item)) {
+			_files[cnt++] = (gpsm_swfile_t *)item;
+			if (cnt > 255)
+				PANIC("Max nr of swfiles reached");
+		}
+		if (GPSM_ITEM_IS_GRP(item))
+			next = list_gethead(&((gpsm_grp_t *)item)->items,
+					    gpsm_item_t, list);
+		else
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		while (!next) {
+			item = (gpsm_item_t *)item->parent;
+			if (item == (gpsm_item_t *)root)
+				goto done;
+			next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		}
+		item = next;
+	}
+ done:
+
+	if (cnt == 0) {
+		*files = NULL;
+		return 0;
+	}
+	*files = (gpsm_swfile_t **)malloc(cnt*sizeof(void *));
+	c = cnt;
+	while (c--)
+		(*files)[c] = _files[c];
+	return cnt;
+}
+
+
+
+/*
+ * Undo/Redo aka operations support.
+ */
+
+static struct op *_op_find_saved(long filename)
+{
+	struct op *op;
+	int i;
+
+	op = (struct op *)&oplist;
+	while ((op = list_getnext(&oplist, op, struct op, list))) {
+		for (i=0; i<op->nrpairs; i++)
+			if (op->pair[i].saved == filename)
+				return op;
+	}
+
+	return NULL;
+}
+
+static struct op *_op_find_filename_before(long filename, struct op *op)
+{
+	int i;
+
+	while ((op = list_getnext(&oplist, op, struct op, list))) {
+		for (i=0; i<op->nrpairs; i++)
+			if (op->pair[i].file == filename)
+				return op;
+	}
+
+	return NULL;
+}
+static struct op *_op_find_filename(long filename)
+{
+	/* HACK - but does work with above implementation. */
+	return _op_find_filename_before(filename, (struct op *)&oplist);
+}
+
+static struct op *_op_new(int nrpairs)
+{
+	struct op *op;
+
+	op = (struct op *)malloc(sizeof(struct op)
+				 + nrpairs*sizeof(struct pair));
+	INIT_LIST_HEAD(&op->list);
+	gettimeofday(&op->time, NULL);
+	op->nrpairs = nrpairs;
+
+	return op;
+}
+static void _op_delete(struct op *op)
+{
+	gpsm_swfile_t *swfile;
+	struct op *prev_op;
+	int i;
+
+	if (!list_empty(&op->list)) {
+		list_del(&op->list);
+		op_listsize--;
+	}
+
+	/* Loop through all files, find the latest op for it and correct
+	 * all swfiles. Also kill saved file. */
+	for (i=0; i<op->nrpairs; i++) {
+		if (op->pair[i].saved == -1)
+			continue;
+		sw_unlink(op->pair[i].saved);
+		prev_op = _op_find_filename(op->pair[i].file);
+		swfile = NULL;
+		while ((swfile = hash_find_next_swfile(op->pair[i].file, swfile))) {
+			if (!prev_op)
+				swfile->last_op_time = (struct timeval){0,0};
+			else
+				swfile->last_op_time = prev_op->time;
+		}
+	}
+
+	free(op);
+}
+
+/* Alloc, init, but do _not_ add to oplist, fix all swfiles nor cow. */
+static struct op *_op_prepare(gpsm_item_t *item)
+{
+	struct op *op;
+	gpsm_swfile_t **files;
+	int cnt, i;
+
+	cnt = _gpsm_get_swfiles(item, &files);
+	if (cnt == 0)
+		return NULL;
+	op = _op_new(cnt);
+	for (i=0; i<cnt; i++) {
+		op->pair[i].file = gpsm_swfile_filename(files[i]);
+		op->pair[i].saved = -1;
+	}
+	free(files);
+
+	return op;
+}
+
+/* Fix all swfiles. */
+static void _op_fixswfiles(struct op *op)
+{
+	int i;
+
+	for (i=0; i<op->nrpairs; i++) {
+		gpsm_swfile_t *swfile = NULL;
+		while ((swfile = hash_find_next_swfile(op->pair[i].file, swfile)))
+			swfile->last_op_time = op->time;
+	}
+}
+
+
+struct op *_op_get(gpsm_item_t *item)
+{
+	gpsm_swfile_t **files;
+	struct op *op;
+	int cnt, i,j ;
+
+	/* Get the files of the subtree, reject empty. */
+	cnt = _gpsm_get_swfiles(item, &files);
+	if (cnt == 0)
+		return NULL;
+
+	/* Check if there is undo pending for the whole set. */
+	for (i=0; i<cnt; i++)
+		if ((files[i]->last_op_time.tv_sec == 0
+		     && files[i]->last_op_time.tv_usec == 0)
+		    || !timercmp(&files[i]->last_op_time,
+				 &files[0]->last_op_time, ==)) {
+			free(files);
+			return NULL;
+		}
+
+	/* Get the operation struct. */
+	op = _op_find_filename(gpsm_swfile_filename(files[0]));
+	if (!op)
+		PANIC("Undo pending, but no op!?");
+
+	/* Check, if the set is really the whole set. */
+	for (i=0; i<op->nrpairs; i++) {
+		for (j=0; j<cnt; j++)
+			if (gpsm_swfile_filename(files[j]) == op->pair[i].file)
+				break;
+		if (j==cnt) {
+			free(files);
+			return NULL;
+		}
+	}
+
+	free(files);
+	return op;
+}
+
+static int _op_undo(struct op *op)
+{
+	swfd_t file = -1, saved = -1;
+	struct sw_stat st;
+	int i;
+
+	for (i=0; i<op->nrpairs; i++) {
+		file = sw_open(op->pair[i].file, O_RDWR, TXN_NONE);
+		saved = sw_open(op->pair[i].saved, O_RDONLY, TXN_NONE);
+		if (file == -1 || saved == -1)
+			goto err;
+		if (sw_fstat(saved, &st) == -1
+		    || sw_ftruncate(file, 0) == -1)
+			goto err;
+		if (sw_sendfile(file, saved, st.size, SWSENDFILE_INSERT) == -1) {
+			perror("sendfile failed");
+			goto err;
+		}
+		sw_close(saved);
+		sw_close(file);
+		gpsm_invalidate_swapfile(op->pair[i].file);
+	}
+
+	return 0;
+
+ err:
+	sw_close(file);
+	sw_close(saved);
+	return -1;
+}
+
+int gpsm_op_prepare(gpsm_item_t *item)
+{
+	struct op *op;
+	int i;
+
+	if (!item)
+		return -1;
+
+	if (!(op = _op_prepare(item)))
+		return -1;
+
+	/* COW. */
+	for (i=0; i<op->nrpairs; i++) {
+		swfd_t source, dest;
+		struct sw_stat st;
+
+		source = sw_open(op->pair[i].file, O_RDONLY, TXN_NONE);
+		if (source == -1)
+			goto err;
+		while ((dest = sw_open(op->pair[i].saved = rand(), O_WRONLY|O_CREAT|O_EXCL, TXN_NONE)) == -1)
+			;
+		sw_fstat(source, &st);
+		if (sw_sendfile(dest, source, st.size, SWSENDFILE_INSERT) == -1) {
+			sw_close(dest);
+			sw_close(source);
+			goto err;
+		}
+		sw_close(dest);
+		sw_close(source);
+	}
+
+	/* Add the op and fix all swfiles. */
+	list_add(&op->list, &oplist);
+	_op_fixswfiles(op);
+	if (++op_listsize > op_max_listsize) {
+		DPRINTF("deleting too big list\n");
+		op = list_gettail(&oplist, struct op, list);
+		_op_delete(op);
+	}
+
+	return 0;
+
+ err:
+	DPRINTF("Error.");
+	for (i=0; i<op->nrpairs; i++) {
+		if (op->pair[i].saved != -1)
+			sw_unlink(op->pair[i].saved);
+	}
+	free(op);
+	return -1;
+}
+
+int gpsm_op_can_undo(gpsm_item_t *item)
+{
+	if (!item)
+		return 0;
+
+	return _op_get(item) ? 1 : 0;
+}
+
+int gpsm_op_undo(gpsm_item_t *item)
+{
+	struct op *op;
+
+	if (!item || !(op = _op_get(item)))
+		return -1;
+
+	if (gpsm_op_prepare(item) == -1)
+		return -1;
+	if (_op_undo(op) == -1) {
+		gpsm_op_forget(item);
+		return -1;
+	}
+	_op_delete(op);
+
+	return 0;
+}
+
+int gpsm_op_undo_and_forget(gpsm_item_t *item)
+{
+	struct op *op;
+
+	if (!item || !(op = _op_get(item)))
+		return -1;
+
+	if (_op_undo(op) == -1)
+		return -1;
+	_op_delete(op);
+
+	return 0;
+}
+
+int gpsm_op_forget(gpsm_item_t *item)
+{
+	struct op *op;
+
+	if (!item || !(op = _op_get(item)))
+		return -1;
+
+	_op_delete(op);
+
+	return 0;
 }
