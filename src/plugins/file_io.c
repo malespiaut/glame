@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.62 2001/09/19 08:33:15 nold Exp $
+ * $Id: file_io.c,v 1.63 2001/09/19 11:48:52 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -1432,6 +1432,10 @@ int lame_read_prepare(filter_t *n, const char *filename)
 	DPRINTF("Found mp3 file: channels=%d, freq=%d, offset=%d\n", 
 		RWM(n).mp3data.stereo, RWM(n).mp3data.samplerate, 
 		RWM(n).start);
+
+	if (RWM(n).mp3data.stereo==0)
+		return -1;
+
 	RWM(n).track = ALLOCN(RWM(n).mp3data.stereo, track_t);
 	
 	fparam = filterparamdb_get_param(filter_paramdb(n), "filename");
@@ -1532,10 +1536,13 @@ int lame_read_f(filter_t *n) {
 		filterparam_val_set_pos(pos_param, pos);
 		if (done > 0) {
 			for(i=0; i<RWM(n).mp3data.stereo; i++) {
-				RWM(n).track[i].buf = sbuf_make_private(sbuf_alloc(done, n));
-				for (j=off; j<done+off; j++)
-					sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
-				sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
+				if(RWM(n).track[i].mapped==1) {
+					RWM(n).track[i].buf = sbuf_make_private(sbuf_alloc(done, n));
+					for (j=off; j<done+off; j++)
+						sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
+					DPRINTF("Queue Buffer for channel %d\n", i);
+					sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
+				}
 			}
 		}
 		if(skip==1) {
