@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.8 2001/07/04 09:37:16 uid21825 Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.9 2001/07/09 08:02:38 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -44,8 +44,9 @@ int configure_pcm(snd_pcm_t *handle,
    * FIXME? should we make fragments user configurable
    */
 
-	int err, format, fragments = 4, psize = 0, dir = 0;
-
+	int err, format, fragments = 2 , psize = 0, dir = 0;
+	int minp, maxp;
+	
 	if ((err = snd_pcm_hw_params_any (handle, hw_params)) < 0)  {
 		DPRINTF("ALSA: no playback configurations available\n");
 		return -1;
@@ -55,6 +56,7 @@ int configure_pcm(snd_pcm_t *handle,
 		DPRINTF( "ALSA: cannot restrict period size to integral value.\n");
 		return -1;
 	}
+	
 	/*
 	if ((err = snd_pcm_hw_params_set_access (handle, hw_params, 
 						 SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) < 0) {
@@ -101,18 +103,39 @@ int configure_pcm(snd_pcm_t *handle,
 		return -1;
 	}
 
-	if ((err = snd_pcm_hw_params_set_periods (handle, hw_params, fragments, 0)) < 0) {
+	/* ALSA suxx */
+	
+	minp = 2;
+	maxp = snd_pcm_hw_params_get_periods_max(hw_params, 0);
+
+	DPRINTF("minp = %d, maxp =%d\n", minp, maxp);
+
+	fragments = minp;
+	
+	while ((snd_pcm_hw_params_test_periods(handle, hw_params, fragments++, 0)<0) && (fragments<maxp));
+
+	if ((err = snd_pcm_hw_params_set_periods(handle, hw_params, fragments-1, 0)) < 0) {
 		DPRINTF("ALSA: cannot set fragment count minimum to %d\n", fragments);
+		DPRINTF("%s\n", snd_strerror(err));
 		return -1;
 	}
+   
+	fragments = snd_pcm_hw_params_get_periods(hw_params, 0);
+
+	DPRINTF("Now we've got %d periods. Amazing.\n", fragments);
 
 	psize = periodsize;
-	if ((err = snd_pcm_hw_params_set_period_size (handle, hw_params, psize, 0)) < 0) {
+	
+	while ((snd_pcm_hw_params_test_period_size(handle, hw_params, psize++, 0)<0) && (psize<65535));
+	
+	if ((err = snd_pcm_hw_params_set_period_size (handle, hw_params, psize-1, 0)) < 0) {
 		DPRINTF( "ALSA: cannot set fragment length to %d\n", psize);
 		psize = snd_pcm_hw_params_get_period_size(hw_params, &dir);
 		DPRINTF("ALSA: set to %d\n", psize);
 		return -1;
 	}
+
+	psize = snd_pcm_hw_params_get_period_size(hw_params, &dir);
 
 	if ((err = snd_pcm_hw_params_set_buffer_size (handle, hw_params, fragments * psize)) < 0) {
 		DPRINTF( "ALSA: cannot set buffer length to %d\n", fragments * psize);
@@ -250,6 +273,11 @@ static int alsa_audio_in_f(filter_t *n)
 	snd_pcm_dump(handle, log);
 
 	blksz = snd_pcm_hw_params_get_period_size(params, &dir);
+	
+	if (blksz<0)
+		DPRINTF("%s\n", snd_strerror(blksz));
+		
+	DPRINTF("blksz=%d, chancnt=%d\n", blksz, chancnt);
 
 	buf = ALLOCN(blksz*chancnt, gl_s16);
 
@@ -324,7 +352,8 @@ static int alsa_audio_out_f(filter_t *n)
 	int to_go, pos;
 	
 	int dir, i, err, dropouts;
-	
+	int fragments;
+
 	snd_pcm_t		*handle;
 	snd_pcm_format_t	format;
 	snd_pcm_hw_params_t	*params;
@@ -410,6 +439,8 @@ static int alsa_audio_out_f(filter_t *n)
 	blksz = snd_pcm_hw_params_get_period_size(params, &dir);
 
 	DPRINTF("Got period size%d\n", blksz);
+	
+	fragments = snd_pcm_hw_params_get_periods(params, 0);
 
 	out = (gl_s16 *)malloc(blksz*ssize*max_ch);
 	if (!out)
@@ -417,6 +448,11 @@ static int alsa_audio_out_f(filter_t *n)
 
 	wbuf = out;
 
+	memset(out, 0, blksz*ssize*max_ch);
+	
+	for(i=0;i<fragments;i++)
+		snd_pcm_writei(handle, out, blksz);
+		
 	pos=0;
 	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
