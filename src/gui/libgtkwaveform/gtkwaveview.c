@@ -509,6 +509,12 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   guint32   i, j, width, start_x, offset;
   gint16    max_val, min_val;
   gboolean  exact;
+  gint16    max [waveview->n_channels], min [waveview->n_channels];
+  guint32   sample_offset, last_sample_offset, pos, size;
+  guint32   accum, count, oldcount, delta;
+  guint32   pos16;
+  gpointer  data;
+  gint16   *data16;
 
   if (waveview->wavebuffer == NULL)
     return;
@@ -540,51 +546,42 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
       else
         max_val = i;
     }
+  if (min_val == -1)
+    goto out;
 
-  if (min_val != -1)
-    {
-      gint16    max [waveview->n_channels], min [waveview->n_channels];
-      guint32   sample_offset, last_sample_offset, pos, size;
-      guint32   accum, count, delta;
-      guint32   pos16;
-      gpointer  data;
-      gint16   *data16;
+  /* Now here comes the fun part, if some x coordinates weren't cached,
+   * we gotta do a lot of calculations to figure out their values. */
+  n_channels = waveview->n_channels;
 
-      /* Now here comes the fun part, if some x coordinates weren't cached, */
-      /* we gotta do a lot of calculations to figure out their values.      */
-      n_channels = waveview->n_channels;
-
-      /* In principle this is always G_WAVEFILE_TYPE_S16 for Glame. */
-      datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
+  datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
 
 #define REDRAW_BUFFER 1024
-      /* Temporary space is in waveview. */
-      data = waveview->data;
-      data16 = waveview->data16;
+  /* Temporary space is in waveview. */
+  data = waveview->data;
+  data16 = waveview->data16;
 
-      /* Approximate sample # range we need to recalc for the cache. */
-      sample_offset = calc_frame_pos_win (waveview, min_val);
-      last_sample_offset = calc_frame_pos_win (waveview, max_val + 1);
+  /* Approximate sample # range we need to recalc for the cache. */
+  sample_offset = calc_frame_pos_win (waveview, min_val);
+  last_sample_offset = calc_frame_pos_win (waveview, max_val + 1);
 
-      n_samples = gtk_wave_buffer_get_length (waveview->wavebuffer);
+  n_samples = gtk_wave_buffer_get_length (waveview->wavebuffer);
 
-      /* Perform clipping. */
-      if (sample_offset >= n_samples)
-        goto out;
-      if (last_sample_offset >= n_samples)
-        last_sample_offset = n_samples - 1;
+  /* Perform clipping. */
+  if (sample_offset >= n_samples)
+	  goto out;
+  if (last_sample_offset >= n_samples)
+	  last_sample_offset = n_samples - 1;
 
-      for (j = 0; j < waveview->n_channels; j++)
-        min[j] = max[j] = 0;
+  for (j = 0; j < waveview->n_channels; j++)
+	  min[j] = max[j] = 0;
 
-      pos = sample_offset;
-      accum = 1073741824U; /* 2147483648 / 2, round to nearest unit */
-      count = 0;
-      delta = (guint32) (2147483648.0 / waveview->zoom);
-      exact = (waveview->zoom < REDRAW_BUFFER);
+  pos = sample_offset;
+  accum = 1073741824U; /* 2147483648 / 2, round to nearest unit */
+  oldcount = count = 0;
+  delta = (guint32) (2147483648.0 / waveview->zoom);
+  exact = (waveview->zoom < REDRAW_BUFFER);
 
-      while (pos <= last_sample_offset)
-        {
+  while (pos <= last_sample_offset) {
           size = MIN (REDRAW_BUFFER, last_sample_offset - pos + 1);
 
 	  /* If by any chance we got destroyed, bail out. */
@@ -654,7 +651,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 	  }
 
 	  /* Be nice to the user. */
-	  if (gtk_events_pending()) {
+	  if (count > oldcount && gtk_events_pending()) {
 		  /* Handle all pending events => stall redrawing. */
 		  while (gtk_events_pending())
 			  gtk_main_iteration();
@@ -673,15 +670,16 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 				  waveview->expose_width = notdone_x + notdone_width - waveview->expose_x;
 			  goto out;
 		  }
+
+		  oldcount = count;
 	  }
 
           /* Increment position in data source. */
           pos += size;
-        }
+  }
 
-    out:
-      ;
-    }
+
+ out:
 
   /* Show marker. */
   gtk_wave_view_draw_marker (waveview);
@@ -1548,7 +1546,7 @@ gtk_wave_view_set_amplitude_zoom (GtkWaveView *waveview, gdouble amplzoom)
   if (waveview->ampl_zoom != amplzoom)
     {
       waveview->ampl_zoom = amplzoom;
-      gtk_widget_queue_draw (GTK_WIDGET (waveview));
+      gtk_widget_queue_draw (GTK_WIDGET (waveview->area));
     }
 }
 
@@ -1790,9 +1788,9 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       waveview->data16 = NULL;
     }
 
-  gtk_widget_queue_draw (GTK_WAVE_VIEW (waveview)->area);
   gtk_wave_view_update_units (waveview);
   gtk_wave_view_calc_channel_locs (waveview);
+  gtk_widget_queue_draw (GTK_WAVE_VIEW (waveview)->area);
 
   if (wavebuffer) {
 	  GtkWidget *tb, *hbox;
@@ -2011,7 +2009,6 @@ gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
                                      gint32      frame)
 {
   gint32 win_pos_new, width, length;
-  //static int count;
 
   if (check_marker (waveview, &frame, &length, &win_pos_new) < 0)
     {
