@@ -1,0 +1,21 @@
+This file is to declare maintainers for the different subsystems.
+Maintainers take final decisions about design and applying patches.
+It is strongly discouraged to hack and cvs commit in a maintainers
+area without first communicating with him.
+
+Please add the filenames which are considered to belong to the
+subsystem, too.
+
+swapfile: richi
+	doc/swapfile.txt
+	swapfile/*
+
+filter: richi
+	doc/filter.txt
+	filter/filter*
+
+hash: richi
+	hash/*
+
+
+please add your stuff [richi]
