@@ -2,36 +2,44 @@ TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
 
-Known BUGS that should be fixed:
---------------------------------
-
+Known BUGS that should be fixed before 0.5.3:
+---------------------------------------------
 - the waveform widget broke by adding the signal handler
+- new import dialog needs to be finished and replace the
+  existing one
+
+Known BUGS that should be fixed before 0.6.0:
+---------------------------------------------
 - with apply, rt adjustments of params is not supported
 - toolbar icons of the waveedit window are not really intuitive...
 - main/[Edit wave...] wavewidget needs a [Save] toolbar item
   that exports the wave back (and [Close] should delete the wave
   from the swapfile)
+- new export dialog needs to be done and replace the existing one
+- intl for other than main widget needs to be done
+- looping support for swapfile_in filter and GUI
 
 
-Items pending for 0.5.x:
-------------------------
+Other items pending:
+--------------------
 
 include/
 	- prefix LIST_ stuff with GLAME_ (BSD namespace)
+          or move includes beyond a glame/ directory
 
 doc/
-	- better documentation for scheme API
-  	- filter writing tutorial?
+	- better documentation for cglame, tutorial like
+  	- filter writing tutorial
+
+data/pixmaps/
+	- provide pixmaps for plugins lacking one
+	- provide toolbar icons replacing sucking ones
 
 plugins/
 	[all]
-	- provide pixmaps for all plugins (missing: fft friends,
-          iir, rms, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
 	- fix filters for RT param update
-	[richi]
-	- do gpsm invalidating using swapfile_out filter output params
 
 hash/
 	[all]
@@ -49,8 +57,6 @@ swapfile/
 	- fix unhandled (MAP_PRIVATE, cluster_split) cases that PANIC
 	  (i.e. introduce anonymous clusters)
 	- resolve issues with ENOSPC and swapfile
-
-hash/
 
 glmid/
 	[richi]
@@ -101,8 +107,6 @@ gui/waveeditgui
 
 gui/libgtkwaveform
 	[richi]
-	- provide backing store for window to prevent redrawing errors
-	  if window is partly occluded
 	- change color of background / foreground (make that configurable)
 
 gui/libgtkwaveform2
