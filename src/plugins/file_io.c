@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.82 2003/06/09 21:07:51 richi Exp $
+ * $Id: file_io.c,v 1.83 2003/06/09 21:54:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -550,7 +550,7 @@ int write_file_register(plugin_t *pl)
 	af_indices = NULL;
 
 	if (af_typecnt>0) {
-		xmlparam = ALLOCN(256, char);
+		xmlparam = ALLOCN(4096, char);
 		strcat(xmlparam, 
 "<?xml version=\"1.0\" standalone=\"no\"?>"
 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
@@ -562,7 +562,7 @@ int write_file_register(plugin_t *pl)
 "      <child>"
 "        <widget class=\"GtkMenu\" id=\"menu1\">"
 "	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item1\">"
+"            <widget class=\"GtkMenuItem\" id=\"item0\">"
 "              <property name=\"visible\">True</property>"
 "              <property name=\"label\" translatable=\"yes\">Auto</property>"
 "              <property name=\"use_underline\">True</property>"
@@ -571,12 +571,14 @@ int write_file_register(plugin_t *pl)
 		
 		af_indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);	
 		for(i=0; i<af_typecnt; i++) {
-			strcat(xmlparam,
+			char blah[256];
+			sprintf(blah,
 "	  <child>"
-"            <widget class=\"GtkMenuItem\">"
+"            <widget class=\"GtkMenuItem\" id=\"item%i\">"
 "              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">"
+"              <property name=\"label\" translatable=\"yes\">", i+1
 				);
+			strcat(xmlparam, blah);
 			strcat(xmlparam, (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, af_indices[i] ,0 ,0));
 			strcat(xmlparam, "</property>"
 "              <property name=\"use_underline\">True</property>"
