@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\n"
 "    CGLAME for GLAME version "VERSION", Copyright (C) 1999, 2000\n"
 "    Alexander Ehlert, Jim Garrison, Richard Guenther, Johannes Hirche,\n"
-"    Daniel Kobras.\n"
+"    Daniel Kobras, Joe Navratil.\n"
 "    CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free\n"
 "    software, and you are welcome to redistribute it under certain\n"
 "    conditions.\n\n");

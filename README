@@ -5,13 +5,14 @@ a powerful, fast, stable, and easily extensible sound editor for Linux
 and compatible systems. Supported platforms are Linux and IRIX.
 
 Authors in chronological order
-	mag, XWolf, richi, nold, garrison
+	mag, XWolf, richi, nold, garrison, navratil
 with their real names
 	Alexander Ehlert,
 	Johannes Hirche,
 	Richard Guenther,
 	Daniel Kobras,
-	Jim Garrison.
+	Jim Garrison,
+	Joe Navratil
 
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/ or http://www.glame.de/
