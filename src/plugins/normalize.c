@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.1 2001/05/16 00:23:51 mag Exp $
+ * $Id: normalize.c,v 1.2 2001/05/16 09:35:17 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -34,7 +34,7 @@
 
 PLUGIN_SET(norm, "normalize")
 
-static int normalize_gpsm(gpsm_grp_t *grp, long start, long length)
+static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 {
 	filter_t *net, *swap_in, *swap_out, *swap, *ssp, 
 		 *maxrms, *vadjust, *mix, *adjust;
@@ -48,7 +48,11 @@ static int normalize_gpsm(gpsm_grp_t *grp, long start, long length)
 	GtkWidget	*procbar, *vbox;
 	GtkWidget	*label;
 	GtkWidget	*window;
-	
+
+	/* We dont want to handle single swfile special. */
+	if (!(grp = gpsm_collect_swfiles(grp)))
+		return -1;
+
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_modal(GTK_WINDOW (window), TRUE);
 	
@@ -223,6 +227,7 @@ cleanup:
 	filter_delete(swap_out);
 	filter_delete(vadjust);
 	filter_delete(net);
+	gpsm_item_destroy(grp);
 	
 	gtk_widget_destroy(window);
 	return err;
