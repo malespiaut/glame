@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.2 2001/07/31 08:43:28 richi Exp $
+ * $Id: glame_param.c,v 1.3 2001/07/31 09:09:28 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -159,10 +159,27 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 					 ctlbuffer);
 		g_free(ctlpoints);
 		free(ctlbuffer);
+	} else if (GTK_IS_MENU_SHELL(gparam->u.widget)) {
+		GList *list;
+		int val;
+		val = filterparam_val_int(gparam->param);
+		list = gtk_container_children(
+			GTK_CONTAINER(gparam->u.menushell));
+		while (list && val) {
+			list = g_list_next(list);
+			val--;
+		}
+		if (!list)
+			DPRINTF("Illegal value for menu\n");
+		else
+			gtk_menu_shell_select_item(gparam->u.menushell,
+						   GTK_WIDGET(list->data));
+#if 0
 	} else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 		gtk_option_menu_set_history(
 			GTK_OPTION_MENU(gparam->u.widget),
 			filterparam_val_int(gparam->param));
+#endif
 	} else
 		DPRINTF("FIXME: unhandled widget type\n");
 
@@ -208,7 +225,7 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 	return res == 0 ? TRUE : FALSE;
 }
 
-static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
+static gint menushell_cb(GtkMenuShell *menu, GlameParam *gparam)
 {
 	GtkWidget *act;
 	GList *list;
@@ -219,6 +236,7 @@ static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 
 	gparam->updating = 1;
 
+#if 0
 	/* Doh - GTK suxx again. */
 	act = gtk_menu_get_active(menu);
 	DPRINTF("Menu %p - Active %p\n", menu, act);
@@ -231,9 +249,21 @@ static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 		list = g_list_next(list);
 		val++;
 	}
-	DPRINTF("Setting %s to %i", filterparam_label(gparam->param), val);
-	if(list)
+#endif
+	/* Doh - GTK suxx again. */
+	val = 0;
+	list = gtk_container_children(GTK_CONTAINER(menu));
+	while (list) {
+		if ((GtkWidget *)(list->data) == menu->active_menu_item)
+			break;
+		list = g_list_next(list);
+		val++;
+	}
+	if (list) {
+		DPRINTF("Setting %s to %i\n", filterparam_label(gparam->param), val);
 		res = filterparam_set(gparam->param, &val);
+	} else
+		DPRINTF("Illegal value for menu\n");
 	gparam->updating = 0;
 
 	return res == 0 ? TRUE : FALSE;
@@ -396,11 +426,17 @@ GtkWidget *glame_param_new(filter_param_t *param)
 				   (GtkSignalFunc)editable_cb, gparam);
 	else if (GLAME_IS_CURVE(gparam->u.widget))
 		DPRINTF("FIXME\n");
-	else if (GTK_IS_OPTION_MENU(gparam->u.widget))
-		/* FIXME - option menu seems unsupportable */
-		gtk_signal_connect(GTK_OBJECT(gtk_option_menu_get_menu(GTK_OPTION_MENU(gparam->u.widget))), "selection_done",
-				   (GtkSignalFunc)optionmenu_cb, gparam);
-	else
+	else if (GTK_IS_MENU_SHELL(gparam->u.widget))
+		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
+				   "selection_done",
+				   (GtkSignalFunc)menushell_cb, gparam);
+	else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
+		gparam->u.menushell = GTK_MENU_SHELL(gtk_option_menu_get_menu(
+			GTK_OPTION_MENU(gparam->u.widget)));
+		gtk_signal_connect(GTK_OBJECT(gparam->u.widget),
+				   "selection_done",
+				   (GtkSignalFunc)menushell_cb, gparam);
+	} else
 		DPRINTF("FIXME - unsupported widget type\n");
 
 	/* Register handlers for backend param change and deletion. */

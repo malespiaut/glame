@@ -4,7 +4,7 @@
 /*
  * glame_param.h
  *
- * $Id: glame_param.h,v 1.1 2001/07/30 08:22:37 richi Exp $
+ * $Id: glame_param.h,v 1.2 2001/07/31 09:09:28 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -63,6 +63,7 @@ struct _GlameParam
 		GtkWidget *widget;
 		GtkAdjustment *adj;
 		GtkEditable *edit;
+		GtkMenuShell *menushell;
 		GlameCurve *curve;
 	} u;
 
