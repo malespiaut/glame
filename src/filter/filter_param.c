@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.15 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_param.c,v 1.16 2001/11/18 14:48:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -306,6 +306,64 @@ void filterparamdb_delete_param(filter_paramdb_t *db, const char *label)
 		return;
 	gldb_delete_item(i);
 }
+
+char *filterparamdb_to_string(filter_paramdb_t *pdb, int props)
+{
+	filter_param_t *param;
+	char *val;
+	char *buf, *b;
+
+	buf = b = alloca(64*1024); /* Wheee... */
+
+	b += sprintf(b,
+"(lambda (pdb)\n"
+"  (let* ((params (map (lambda (param)\n"
+"		         (cons (param-label param) param))\n"
+"		       pdb))\n"
+"	  (pairs (map (lambda (spec)\n"
+"		        (let ((p (assoc (car spec) params)))\n"
+"			     (if p\n"
+"			       (cons (cdr p) (cdr spec))\n"
+"			       (throw 'glame-error))))\n"
+"                     (list ");
+
+	/* Write list of params with properties like
+	 * ( param val ("key" . "value") ("key" . "value))
+	 */
+	filterparamdb_foreach_param(pdb, param) {
+		char *tmp;
+
+		val = filterparam_to_string(param);
+		if (!val)
+			continue;
+		if (props) {
+			tmp = glsdb_to_list_of_pairs(
+				filterparam_propertydb(param));
+			b += sprintf(b,
+				     "(append (list \"%s\" %s) %s)\n",
+				     filterparam_label(param), val, tmp);
+		} else
+			b += sprintf(b,
+				     "(list \"%s\" %s)\n",
+				     filterparam_label(param), val);
+
+		free(tmp);
+	}
+
+        b += sprintf(b,
+"        ))))\n"
+"        (for-each\n"
+"          (lambda (p)\n"
+"            (param-set! (car p) (cadr p))\n"
+"            (for-each\n"
+"              (lambda (prop)\n"
+"                (set-property! (car p) (car prop) (cdr prop)))\n"
+"              (cddr p)))\n"
+"          pairs)))\n");
+
+	return strdup(buf);
+}
+
 
 
 /* "Filter" part. */

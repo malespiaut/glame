@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.19 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_param.h,v 1.20 2001/11/18 14:48:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -273,6 +273,12 @@ void filterparamdb_init(filter_paramdb_t *db, filter_t *node);
  * on success and -1 on error.
  * int filterparamdb_copy(filter_paramdb_t *, filter_paramdb_t *); */
 #define filterparamdb_copy(d, s) gldb_copy(&(d)->db, &(s)->db)
+
+/* Creates a string containing a scheme procedure that can be called
+ * with a list of parameters which are then set to the state of the
+ * supplied pdb (including param properties, if props). Returns
+ * a newly allocated string. */
+char *filterparamdb_to_string(filter_paramdb_t *pdb, int props);
 
 
 #ifdef __cplusplus

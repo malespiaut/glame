@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.57 2001/10/06 23:08:55 richi Exp $
+ * $Id: filter.c,v 1.58 2001/11/18 14:48:09 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -319,12 +319,11 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name)
  */
 char *filter_to_string(filter_t *net)
 {
-	char *buf, *val;
+	char *buf, *tmp;
 	int len;
 	filter_t *n;
 	filter_port_t *portd;
 	filter_param_t *param;
-	sitem_t *pitem;
 	filter_pipe_t *c;
 
 	if (!net || !FILTER_IS_NETWORK(net))
@@ -360,55 +359,22 @@ char *filter_to_string(filter_t *net)
 	/* first create the parameter and property set commands for the
 	 * nodes. */
 	filter_foreach_node(net, n) {
-		filterparamdb_foreach_param(filter_paramdb(n), param) {
-			val = filterparam_to_string(param);
-			if (!val)
-				continue;
-			len += sprintf(&buf[len],
-"   (let ((param (call-with-current-continuation\n"
-"                  (lambda (return)\n"
-"                    (map (lambda (param)\n"
-"                           (if (string=? (param-label param) \"%s\")\n"
-"	                        (return param)))\n"
-"	                  (filter-params %s))))))\n"
-"     (param-set! param %s)",
-				       filterparam_label(param),
-				       n->name, val);
-			free(val);
-			glsdb_foreach_item(filterparam_propertydb(param), pitem) {
-				char *propval, *s, *d;
-				propval = malloc(strlen(sitem_str(pitem))+256);
-				s = sitem_str(pitem);
-				d = propval;
-				while (*s) {
-					if (*s == '"')
-						*d++ = '\\';
-					*d++ = *s++;
-				}
-				*d = '\0';
-				len += sprintf(&buf[len],
-"\n     (set-property! param \"%s\" \"%s\")",
-					       sitem_label(pitem),
-					       propval);
-				free(propval);
-			}
-			len += sprintf(&buf[len], ")\n");
-		}
-		glsdb_foreach_item(filter_propertydb(n), pitem) {
-			char *propval, *s, *d;
-			propval = malloc(strlen(sitem_str(pitem))+256);
-			s = sitem_str(pitem);
-			d = propval;
-			while (*s) {
-				if (*s == '"')
-					*d++ = '\\';
-				*d++ = *s++;
-			}
-			*d = '\0';
-			len += sprintf(&buf[len], "   (set-property! %s \"%s\" \"%s\")\n",
-				       n->name, sitem_label(pitem), propval);
-			free(propval);
-		}
+		/* Node params with param properties. */
+		tmp = filterparamdb_to_string(filter_paramdb(n), 1);
+		len += sprintf(&buf[len],
+"   (%s (filter-params %s))\n",
+			       tmp, n->name);
+		free(tmp);
+
+		/* Node properties. */
+		tmp = glsdb_to_list_of_pairs(filter_propertydb(n));
+		len += sprintf(&buf[len],
+"   (for-each\n"
+"     (lambda (p)\n"
+"       (set-property! %s (car p) (cdr p)))\n"
+"     %s)\n",
+			       n->name, tmp);
+		free(tmp);
 	}
 
 	/* create the port/parameter export commands */
@@ -451,27 +417,19 @@ char *filter_to_string(filter_t *net)
 				       c->source_filter, c->source_port,
 				       c->dest_filter, c->dest_port);
 
-			/* iterate over all pipe dest parameters creating
-			 * parameter set commands. */
-			filterparamdb_foreach_param(filterpipe_destparamdb(c), param) {
-				val = filterparam_to_string(param);
-				if (!val)
-					continue;
-				len += sprintf(&buf[len], "\t(filterpipe_set_destparam pipe \"%s\" %s)\n",
-					       filterparam_label(param), val);
-				free(val);
-			}
+			/* Pipe destination parameters and param properties. */
+			tmp = filterparamdb_to_string(filterpipe_destparamdb(c), 1);
+			len += sprintf(&buf[len],
+				       "       (%s (pipe-dest-params pipe))\n",
+				       tmp);
+			free(tmp);
 
-			/* iterate over all pipe source parameters creating
-			 * parameter set commands. */
-			filterparamdb_foreach_param(filterpipe_sourceparamdb(c), param) {
-				val = filterparam_to_string(param);
-				if (!val)
-					continue;
-				len += sprintf(&buf[len], "\t(filterpipe_set_sourceparam pipe \"%s\" %s)\n",
-					       filterparam_label(param), val);
-				free(val);
-			}
+			/* Pipe source parameters and param properties. */
+			tmp = filterparamdb_to_string(filterpipe_sourceparamdb(c), 1);
+			len += sprintf(&buf[len],
+				       "       (%s (pipe-source-params pipe))\n",
+				       tmp);
+			free(tmp);
 			
 			/* (let ((pipe... */
 			len += sprintf(&buf[len], "\t#t)\n");
@@ -479,21 +437,14 @@ char *filter_to_string(filter_t *net)
 	}
 
 	/* Last, create property set commands for the network. */
-	glsdb_foreach_item(filter_propertydb(net), pitem) {
-		char *propval, *s, *d;
-		propval = malloc(strlen(sitem_str(pitem))+256);
-		s = sitem_str(pitem);
-		d = propval;
-		while (*s) {
-			if (*s == '"')
-				*d++ = '\\';
-			*d++ = *s++;
-		}
-		*d = '\0';
-		len += sprintf(&buf[len], "   (set-property! net \"%s\" \"%s\")\n",
-			       sitem_label(pitem), propval);
-		free(propval);
-	}
+	tmp = glsdb_to_list_of_pairs(filter_propertydb(net));
+	len += sprintf(&buf[len],
+"   (for-each\n"
+"     (lambda (p)\n"
+"       (set-property! net (car p) (cdr p)))\n"
+"     %s)\n",
+		       tmp);
+	free(tmp);
 
 	/* (let* ... */
 	len += sprintf(&buf[len], "   net)\n");
