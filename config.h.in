@@ -27,31 +27,6 @@
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #undef TIME_WITH_SYS_TIME
 
-#undef ENABLE_MP
-#undef ENABLE_NLS
-#undef HAVE_CATGETS
-#undef HAVE_DIRENT_H
-#undef HAVE_DOPRNT
-#undef HAVE_GETTEXT
-#undef HAVE_IPC_H
-#undef HAVE_LC_MESSAGES
-#undef HAVE_MMAP
-#undef HAVE_NDIR_H
-#undef HAVE_PROGRESSIVE_JPEG
-#undef HAVE_PUTENV
-#undef HAVE_RINT
-#undef HAVE_SHM_H
-#undef HAVE_STPCPY
-#undef HAVE_SYS_DIR_H
-#undef HAVE_SYS_NDIR_H
-#undef HAVE_SYS_PARAM_H
-#undef HAVE_SYS_SELECT_H
-#undef HAVE_SYS_TIME_H
-#undef HAVE_SYS_TIMES_H
-#undef HAVE_UNISTD_H
-#undef HAVE_VPRINTF
-#undef HAVE_VSNPRINTF
-
 /* Define if you have the getpagesize function.  */
 #undef HAVE_GETPAGESIZE
 
