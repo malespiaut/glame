@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.11 2001/07/31 15:27:19 mag Exp $
+ * $Id: flanger.c,v 1.12 2001/07/31 16:18:46 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -252,12 +252,12 @@ int flanger_register(plugin_t *p)
 			      FILTERPORT_END);
 	
 	param = filter_paramdb(f);
-	filterparamdb_add_param_float(param, "depth", FILTER_PARAMTYPE_FLOAT, 10,
+	filterparamdb_add_param_float(param, "depth", FILTER_PARAMTYPE_TIME_MS, 10,
 				    FILTERPARAM_DESCRIPTION, "flanger depth in ms",
 				    FILTERPARAM_LABEL,   "Effect Depth [ms]",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(param, "sweep depth", FILTER_PARAMTYPE_FLOAT, 5,
+	filterparamdb_add_param_float(param, "sweep depth", FILTER_PARAMTYPE_TIME_MS, 5,
 				    FILTERPARAM_DESCRIPTION, "sweep depth in ms",
 				    FILTERPARAM_LABEL,   "Detune Range [ms]",
 				    FILTERPARAM_END);

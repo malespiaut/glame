@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.49 2001/07/31 09:22:30 richi Exp $
+ * $Id: basic_sample.c,v 1.50 2001/07/31 16:18:46 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,7 +42,6 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
-#include "filter_methods.h"
 
 PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat")
 
@@ -902,10 +901,12 @@ int volume_adjust_register(plugin_t *p)
 
 	filterparamdb_add_param_float(filter_paramdb(f), "factor",
 				      FILTER_PARAMTYPE_FLOAT, 1.0,
+				      FILTERPARAM_LABEL, "Gain",
 				      FILTERPARAM_END);
 	
 	filterparamdb_add_param_float(filter_paramdb(f), "dbgain",
 				      FILTER_PARAMTYPE_FLOAT, 0.0,
+				      FILTERPARAM_LABEL, "Gain [dB]",
 				      FILTERPARAM_END);
 	
 	f->set_param = vadjust_set_param;
