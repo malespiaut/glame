@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.15 2001/12/16 17:35:04 richi Exp $
+ * $Id: glame_audiofile.c,v 1.16 2001/12/16 20:54:09 nold Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -242,10 +242,9 @@ int wav_read_parse(AFfilehandle h)
 	h->ch = 0;
 
 	while (!feof(h->fp)) {
-		if (fread(tag, 4, 1, h->fp) != 1
-		    || fread(len, 4, 1, h->fp) != 1) {
+		if (fread(tag, 4, 1, h->fp) != 1 ||
+		    fread(len, 4, 1, h->fp) != 1) {
 			/* Fail gracefully if all required chunks are present */
-			DPRINTF("Premature EOF.\n");
 			return RWW(h).data ? 0 : -1;
 		}
 		for (i=0; (handler=wav_read_handlers[i].handler); i++)
@@ -260,6 +259,7 @@ int wav_read_parse(AFfilehandle h)
 			DPRINTF("Illegal size %d in %s chunk.\n", size, tag);
 			return -1;
 		}
+		DPRINTF("Trying %s handler, size %d.\n", tag, size);
 		if ((size = handler(h, tag, size)) == -1) {
 			DPRINTF("%s handler failed.\n", tag);
 			return -1;
@@ -469,17 +469,16 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 	}
 	
 	total = frameCount;
+	in = malloc(in, 128*RWW(file).block_align);
+	if (!in) {
+		DPRINTF("Out of memory.\n");
+		goto out;
+	}
 	
 	while (frameCount) {
 		frames = 128;
 		if (frameCount < frames)
 			frames = frameCount;
-		
-		in = realloc(in, frames*RWW(file).block_align);
-		if (!in) {
-			DPRINTF("Out of memory.\n");
-			goto out;
-		}
 		
 		frames = fread(in, RWW(file).block_align, frames, file->fp);
 		frameCount -= frames;
