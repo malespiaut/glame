@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.24 2003/05/22 22:38:16 richi Exp $
+ * $Id: importexport.c,v 1.25 2003/05/25 10:33:56 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -43,6 +43,10 @@
 #include "glame_audiofile.h"
 #ifdef HAVE_LIBMAD
 #include <mad.h>
+#endif
+#ifdef HAVE_LIBVORBISFILE
+#include <vorbis/codec.h>
+#include <vorbis/vorbisfile.h>
 #endif
 
 
@@ -140,6 +144,84 @@ static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
 	return TRUE;
 }
 
+#ifdef HAVE_LIBVORBISFILE
+static void ie_import_ogg(struct imp_s *ie)
+{
+	OggVorbis_File vf;
+	vorbis_info *vi;
+        FILE *fd;
+	gpsm_swfile_t *swfile[2];
+	swfd_t swfd[2];
+	long ret;
+	int i;
+
+	fd = fopen(ie->filename, "r");
+	if (fd == NULL)
+		return;
+	if (ov_open(fd, &vf, NULL, 0) < 0) {
+		fclose(fd);
+		return;
+	}
+	vi = ov_info(&vf, -1);
+	if (vi->channels > 2) {
+		ov_clear(&vf);
+		fclose(fd);
+		return;
+	}
+	/* vi->channels, vi->rate */
+	/* ov_pcm_total(&vf, -1);  decoded size in samples */
+
+	/* alloc gpsm group, etc. */
+	ie->item = (gpsm_item_t *)gpsm_newgrp(g_basename(ie->filename));
+	for (i=0; i<vi->channels; ++i) {
+		char label[16];
+		snprintf(label, 16, "channel-%i", i);
+		swfile[i] = gpsm_newswfile(label);
+		gpsm_swfile_set(swfile[i], vi->rate,
+				vi->channels == 2
+				? (i == 0
+				   ? FILTER_PIPEPOS_LEFT
+				   : FILTER_PIPEPOS_RIGHT)
+				: FILTER_PIPEPOS_CENTRE);
+		gpsm_item_place((gpsm_grp_t *)ie->item, (gpsm_item_t *)swfile[i], 0, i);
+		swfd[i] = sw_open(gpsm_swfile_filename(swfile[i]), O_RDWR);
+	}
+
+	/* process file */
+	ie->importing = 1;
+	while (1) {
+		SAMPLE **ssbuf;
+		int current_section;
+		ret = ov_read_float(&vf, &ssbuf, GLAME_BULK_BUFSIZE, &current_section);
+		if (ret <= 0) /* error or EOF */
+			break;
+
+		/* append to swapfile */
+		for (i=0; i<vi->channels; ++i)
+			sw_write(swfd[i], ssbuf[i], SAMPLE_SIZE*ret);
+	}
+
+	/* finish gpsm, if no error */
+	if (ret == 0) {
+		gpsm_item_t *item;
+		gpsm_grp_foreach_item(ie->item, item)
+			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
+	} else /* if (ret < 0) */ {
+		gpsm_item_destroy(ie->item);
+		ie->item = NULL;
+	}
+
+	/* clean up */
+	for (i=0; i<vi->channels; ++i)
+		sw_close(swfd[i]);
+	ov_clear(&vf);
+	fclose(fd);
+
+	ie->importing = 0;
+	ie_import_cleanup(ie);
+}
+#endif
+
 #ifdef HAVE_LIBMAD
 static enum mad_flow
 ie_import_mp3_error(void *data, struct mad_stream *stream,
@@ -167,7 +249,7 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 
 	if (ie->mad_pos == 0) {
 		/* alloc gpsm group, etc. */
-		ie->item = gpsm_newgrp(g_basename(ie->filename));
+		ie->item = (gpsm_item_t *)gpsm_newgrp(g_basename(ie->filename));
 		for (i=0; i<pcm->channels; ++i) {
 			char label[16];
 			gpsm_swfile_t *swfile;
@@ -178,10 +260,8 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 					? (i == 0
 					   ? FILTER_PIPEPOS_LEFT
 					   : FILTER_PIPEPOS_RIGHT)
-					: (pcm->channels == 1
-					   ? FILTER_PIPEPOS_CENTRE
-					   : 0.0));
-			gpsm_item_place(ie->item, swfile, 0, i);
+					: FILTER_PIPEPOS_CENTRE);
+			gpsm_item_place((gpsm_grp_t *)ie->item, (gpsm_item_t *)swfile, 0, i);
 		}
 	}
 
@@ -207,10 +287,8 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 
 	return MAD_FLOW_CONTINUE;
 }
-#endif
 static void ie_import_mp3(struct imp_s *ie)
 {
-#ifdef HAVE_LIBMAD
 	int fd;
 	struct stat s;
 	char *buf;
@@ -254,8 +332,8 @@ static void ie_import_mp3(struct imp_s *ie)
 
 	ie->importing = 0;
 	ie_import_cleanup(ie);
-#endif
 }
+#endif
 
 static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 {
@@ -279,20 +357,31 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	//ie->importing = 0;
 
 	if(ie->gotfile==0) {
-		ed=gnome_error_dialog("Select a file first!");
+		ed = gnome_error_dialog("Select a file first!");
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
 		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
-		DPRINTF("no file given (%p)\n", ie->filename);
 		return;
-	}
-
-	if (ie->gotfile==2) {
+	} else if (ie->gotfile==2) {
+#ifdef HAVE_LIBMAD
 		ie_import_mp3(ie);
+#else
+		ed = gnome_error_dialog("Sorry, no mp3 support.\nInstall libmad and rebuild.");
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+#endif
+		return;
+	} else if (ie->gotfile==3) {
+#ifdef HAVE_LIBVORBISFILE
+		ie_import_ogg(ie);
+#else
+		ed = gnome_error_dialog("Sorry, no ogg support.\nInstall libvorbisfile and rebuild.");
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+#endif
 		return;
 	}
 
-
-	DPRINTF("%i file %p\n", ie->gotfile, ie->filename);
+	DPRINTF("Importing via read-file plugin\n");
 
 	ie->net = filter_creat(NULL);
 	ie->importing = 1;
@@ -646,7 +735,6 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), mimetype);
 	DPRINTF("Got file %s with mimetype %s\n", ie->filename, mimetype);
 
-#ifdef HAVE_LIBMAD
 	/* check if its an mp3 */
 	if (strcmp(mimetype, "audio/x-mp3") == 0) {
 		ie->gotfile = 2;
@@ -659,7 +747,19 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 		g_free(mimetype);
 		return;
 	}
-#endif
+	/* check if its an mp3 */
+	if (strcmp(mimetype, "audio/x-ogg") == 0
+	    || strcmp(mimetype, "application/x-ogg") == 0) {
+		ie->gotfile = 3;
+		ie->gotstats = 0;
+		for(i=1; i<MAX_PROPS; i++)
+			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "-");
+		gtk_widget_set_sensitive(ie->checkresample, FALSE);
+		gtk_widget_set_sensitive(ie->rateentry, FALSE);
+		gtk_widget_set_sensitive(ie->getstats, FALSE);
+		g_free(mimetype);
+		return;
+	}
 
 	if (strncmp(mimetype, "audio/", 6) != 0) {
 		for(i=1; i<MAX_PROPS; i++)

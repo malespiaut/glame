@@ -417,6 +417,7 @@ dnl
 ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA,, [have ladspa.h])])
 GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $LADSPA_CFLAGS"
 
+dnl check for libmad
 PKG_CHECK_MODULES(MAD, mad,
 [
   AC_DEFINE(HAVE_LIBMAD,, [have mad library])
@@ -424,6 +425,17 @@ PKG_CHECK_MODULES(MAD, mad,
   GLAME_LIBS="$GLAME_LIBS $MAD_LIBS"
 ])
 
+dnl check for libvorbisfile
+AC_CHECK_HEADERS([vorbis/codec.h])
+AC_CHECK_HEADERS([vorbis/vorbisfile.h],
+[
+  AC_DEFINE(HAVE_LIBVORBISFILE,, [have libvorbisfile library])
+  GLAME_LIBS="$GLAME_LIBS -lvorbisfile -lvorbis"
+], [], [
+#if HAVE_VORBIS_CODEC_H
+#include <vorbis/codec.h>
+#endif
+])
 
 
 dnl
