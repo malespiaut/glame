@@ -80,7 +80,11 @@ static void dump_tree(gpsm_grp_t *tree, xmlNodePtr node)
 static void insert_node(gpsm_grp_t *tree, xmlNodePtr node);
 static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
 {
+#ifndef xmlChildrenNode
         node = node->childs;
+#else
+        node = node->xmlChildrenNode;
+#endif
         if (!node)
 		return;
 
