@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.33 2000/02/22 15:22:55 richi Exp $
+ * $Id: filter.h,v 1.34 2000/02/22 15:27:16 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -261,7 +261,7 @@ filter_t *filter_next(filter_t *f);
 
 /* Allocate a new filter network and initialize it.
  * Returns a filter network identifier or NULL on OOM. */
-filter_network_t *filternetwork_new(const char *name);
+filter_network_t *filternetwork_new(const char *name, const char *desc);
 
 /* Destroy a filter network. */
 void filternetwork_delete(filter_network_t *net);

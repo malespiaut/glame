@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.24 2000/02/22 15:22:55 richi Exp $
+ * $Id: filter_network.c,v 1.25 2000/02/22 15:27:16 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -304,14 +304,14 @@ void filternetwork_terminate(filter_network_t *net)
 }
 
 
-filter_network_t *filternetwork_new(const char *name)
+filter_network_t *filternetwork_new(const char *name, const char *desc)
 {
 	filter_network_t *net = NULL;
 	filter_t *f = NULL;
 
 	if (!name)
 		return NULL;
-	if (!(f = _filter_alloc(name, name, FILTER_FLAG_NETWORK)))
+	if (!(f = _filter_alloc(name, desc, FILTER_FLAG_NETWORK)))
 	        return NULL;
 	if (!(net = FILTER_NETWORK(_filter_instantiate(f, name))))
 		goto err;
