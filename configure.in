@@ -320,6 +320,8 @@ if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 		AC_DEFINE(CPU_MIPS);;
 	powerpc)
 		AC_DEFINE(CPU_PPC);;
+	alpha*)
+		AC_DEFINE(CPU_ALPHA);;
 	esac
 fi
 

@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.10 2001/04/11 08:39:53 richi Exp $
+ * $Id: atomic.h,v 1.11 2001/04/12 09:44:29 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,8 @@
 #include "atomic_mips.h"
 #elif defined CPU_PPC
 #include "atomic_ppc.h"
+#elif defined CPU_ALPHA
+#include "atomic_alpha.h"
 #else
 /*
  * The generic C versions of atomic operations in this file are safe but slow. 

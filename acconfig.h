@@ -41,6 +41,7 @@
 #undef CPU_X86
 #undef CPU_MIPS
 #undef CPU_PPC
+#undef CPU_ALPHA
 
 /* define which os you use */
 #undef OS_LINUX
