@@ -127,6 +127,9 @@ struct filter_pipe {
 		struct {
 			int blocksize;
 		} rms;
+		struct {
+			int ch;		/* midi channel */
+		} midi;
 	} u;	
 };
 /* filter pipe hash/list addition/removal to filter nodes qualified by

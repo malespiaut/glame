@@ -1,5 +1,5 @@
 /*
- * midi_basic.c
+ * basic_midi.c
  *
  * Copyright (C) 2000 Jim Garrison
  *
@@ -23,15 +23,6 @@
 
 static int midi_mix_f (filter_node_t *n)
 {
-	filter_pipe_t *out;
-	filter_buffer_t *buf;
-
-	FILTER_AFTER_INIT;
-
-	/* FIXME */
-
-	FILTER_BEFORE_CLEANUP;
-
 	return 0;
 }
 

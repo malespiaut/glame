@@ -1,6 +1,7 @@
 Makefile.in
 Makefile
 test_network
+test_latency
 .deps
 .libs
 *.lo
