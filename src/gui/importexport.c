@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.49 2005/01/02 21:23:27 ochonpaul Exp $
+ * $Id: importexport.c,v 1.50 2005/01/02 22:17:34 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1868,6 +1868,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_container_add(GTK_CONTAINER(frame9), frame9box);
 	ie->title = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame9box), ie->title, TRUE, TRUE, 0);
+	gtk_entry_set_text (GTK_ENTRY(ie->title) ,gpsm_item_label(item));
 	gtk_widget_show(ie->title);
 
 	frame10 = gtk_frame_new("MP3 artist");
@@ -2005,8 +2006,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_container_add(GTK_CONTAINER(frame16), frame16box);
 	ie->title_ogg = gtk_entry_new_with_max_length (30);
 	gtk_box_pack_start (GTK_BOX (frame16box), ie->title_ogg, TRUE, TRUE, 0);
+	gtk_entry_set_text (GTK_ENTRY(ie->title_ogg) ,gpsm_item_label(item));
 	gtk_widget_show(ie->title_ogg);
-
+	
 	/* Oggvorbis artist */
 	frame18 = gtk_frame_new("Artist");
 	gtk_widget_show(frame18);
@@ -2093,8 +2095,14 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	g_signal_connect(GTK_OBJECT(ie->otype_combo_box),"changed",GTK_SIGNAL_FUNC(ie_type_menu_cb), ie);
 
 	g_signal_connect(GTK_OBJECT(ie->ocomp_combo_box),  "changed", (GtkSignalFunc)ie_comp_menu_cb, ie); 
-
-
+	
+	// Retrieve tab related to  (eventually) previously chosen file type  
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX (ie->otype_combo_box)) == ie->mp3_menu_index ) 
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),ie->mp3tab_num );
+	else if (gtk_combo_box_get_active(GTK_COMBO_BOX (ie->otype_combo_box)) == ie->ogg_menu_index )
+	       	gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook),ie->oggvorbistab_num );
+	else    gtk_notebook_set_current_page(GTK_NOTEBOOK(ie->notebook), 0);
+    	
 	/* in case we have a non gnome compliant wm */
 	g_signal_connect(GTK_OBJECT(ie->dialog),
 			   "delete-event",
