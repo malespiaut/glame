@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.68 2001/03/29 09:04:43 richi Exp $
+ * $Id: filter.h,v 1.69 2001/04/22 14:21:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -304,6 +304,12 @@ do { \
 do { \
         filter_set_error(n, msg); \
         goto _glame_filter_cleanup; \
+} while (0) 
+
+#define FILTER_ERROR_STOP(msg) \
+do { \
+        filter_set_error(n, msg); \
+        goto _glame_filter_stopcleanup; \
 } while (0) 
 
 #define FILTER_DO_CLEANUP goto _glame_filter_cleanup
