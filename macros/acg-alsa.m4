@@ -39,6 +39,30 @@ if test x$ac_have_alsa = xyes; then
 fi
 dnl FIXME - should check the required version
 
+AC_MSG_CHECKING([for alsa version $1 or greater])
+alsa_min_major_version=`echo $1 | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
+alsa_min_minor_version=`echo $1 | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\2/'`
+alsa_min_subminor_version=`echo $1 | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
+AC_TRY_COMPILE(
+[
+#include <sys/asoundlib.h>
+],[
+#if SND_LIB_MAJOR != $alsa_min_major_version
+#error wrong major version
+#endif
+#if SND_LIB_MINOR < $alsa_min_minor_version
+#error wrong minor version
+#endif
+#if (SND_LIB_MINOR == $alsa_min_minor_version) && (SND_LIB_SUBMINOR < $alsa_min_subminor_version)
+#error wrong subminor version
+#endif
+],[
+AC_MSG_RESULT(yes)
+],[
+AC_MSG_RESULT(no)
+ac_have_alsa=no
+])
+
 CFLAGS=$ac_save_CFLAGS
 LDFLAGS=$ac_save_LDFLAGS
 
