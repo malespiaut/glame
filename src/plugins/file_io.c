@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.58 2001/08/08 09:15:30 richi Exp $
+ * $Id: file_io.c,v 1.59 2001/08/09 15:07:28 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -1424,7 +1424,10 @@ int lame_read_prepare(filter_t *n, const char *filename)
 		}
 	}
 
-	RWM(n).start = fseek(RWM(n).infile, 0, SEEK_CUR);
+	
+	RWM(n).start = fseek(RWM(n).infile,
+			     0, 
+			     SEEK_CUR);
 
 	DPRINTF("Found mp3 file: channels=%d, freq=%d, offset=%d\n", 
 		RWM(n).mp3data.stereo, RWM(n).mp3data.samplerate, 
@@ -1504,7 +1507,7 @@ int lame_read_f(filter_t *n) {
 	filter_param_t *pos_param;
 	filter_pipe_t *p_out;
 	filter_port_t *port;
-	int done, i, j;
+	int done, i, j, skip=1, off=0;
 	short s[2][1152];
 	long pos;
 
@@ -1519,15 +1522,25 @@ int lame_read_f(filter_t *n) {
 	do {
 		FILTER_CHECK_STOP;
 		done = lame_decode_fromfile(RWM(n).infile, s[0], s[1], &(RWM(n).mp3data));
+		if(skip==1) {
+			done-=528;
+			off=528;
+		}
+
 		pos += done;
+
 		filterparam_val_set_pos(pos_param, pos);
 		if (done > 0) {
 			for(i=0; i<RWM(n).mp3data.stereo; i++) {
 				RWM(n).track[i].buf = sbuf_make_private(sbuf_alloc(done, n));
-				for (j=0; j<done; j++)
+				for (j=off; j<done+off; j++)
 					sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
 				sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
 			}
+		}
+		if(skip==1) {
+			off = 0;
+			skip = 0;
 		}
 	} while (done>0);
 
