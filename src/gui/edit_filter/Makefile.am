@@ -7,12 +7,15 @@ Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
 bin_PROGRAMS = edit_filter
-noinst_LTLIBRARIES = 
+noinst_LTLIBRARIES = libeditfilter.la
 endif
 
-edit_filter_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
+libeditfilter_la_SOURCES =  gui.h gui.c canvas.h canvas.c canvas_types.c
+
+edit_filter_SOURCES = main.c
 
 edit_filter_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
+	libeditfilter.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
 edit_filter_LDFLAGS = -export-dynamic
 

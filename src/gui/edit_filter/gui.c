@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.8 2001/03/02 00:05:34 xwolf Exp $
+ * $Id: gui.c,v 1.9 2001/03/15 00:27:25 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -35,7 +35,7 @@ void handle_properties(GtkWidget *menuitem, gpointer bla)
 void 
 handle_new_filter_net(GtkWidget *menuitem, gpointer bla)
 {
-	gui_network_new_wizard();
+	gui_network_new();
 
 }
 
@@ -171,18 +171,6 @@ GSList* gui_browse_registered_filters(void)
 }
 
 
-gui_network* 
-gui_network_new(const char * caption, const char * pixname)
-{
-	gui_network *net = malloc(sizeof(gui_network));
-	net->net = filter_creat(NULL);
-	if(!(net->net))
-		fprintf(stderr,"Error creating network!\n");
-	return net;
-}
-	
-
-
 GtkWidget*
 create_label_edit_pair(GtkWidget *vbox,const char *clabel)
 {
@@ -215,8 +203,15 @@ create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
 }
 
 
+void changeString(GtkEditable *wid, char ** returnbuffer)
+{
+        strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
+}
+
+
+
 gui_network*
-gui_network_new_wizard(void)
+gui_network_new(void)
 {
 	
 	gui_network * net;       
@@ -230,8 +225,6 @@ gui_network_new_wizard(void)
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	canv=canvas_new_from_network(net);
-	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
-	
 	return net;
 }
 

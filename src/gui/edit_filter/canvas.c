@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.33 2001/03/02 10:28:13 xwolf Exp $
+ * $Id: canvas.c,v 1.34 2001/03/15 00:27:25 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1410,11 +1410,6 @@ void canvas_register_as_cb(gchar* name, gpointer data)
 	copy = filter_creat(bla);
 	filter_register(copy,newplug);
 	
-}
-
-void changeString(GtkEditable *wid, char ** returnbuffer)
-{
-	strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
 }
 
 

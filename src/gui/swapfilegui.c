@@ -175,21 +175,6 @@ void changeString_cb(GtkEditable *wid, char ** returnbuffer)
 	strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
 }
 
-void
-create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
-{
-	GtkWidget*hbox,*label;
-	hbox = gtk_hbox_new(TRUE,5);
-	gtk_container_add(GTK_CONTAINER(vbox),hbox);
-	label = gtk_label_new(clabel);
-	gtk_container_add(GTK_CONTAINER(hbox),label);
-	gtk_container_add(GTK_CONTAINER(hbox),w);
-	gtk_widget_show(hbox);
-	gtk_widget_show(label);
-	gtk_widget_show(w);
-
-}
-
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 
@@ -300,15 +285,16 @@ launch:
 		filter_wait(net);	/* ok we could do that more nicely, but not now.. */
 		
 		filter_delete(net);
-	}
+		
 
-	/* update items */
-	i = 0;
-	do {
-		newTrak = glame_tree_find_filename(swapfile_tree,names[i]);
-		glame_tree_item_update(newTrak);
-		i++;
-	} while (i < channels);
+		/* update items */
+		i = 0;
+		do {
+		  newTrak = glame_tree_find_filename(swapfile_tree,names[i]);
+		  glame_tree_item_update(newTrak);
+		  i++;
+		} while (i < channels);
+	}
 }
 
 
@@ -508,8 +494,8 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 	}
 
 	/* Create the swapfile window. */
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "Swapfile browser");
+	//	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	//	gtk_window_set_title(GTK_WINDOW(window), "Swapfile browser");
 
 	/* Create the toplevel tree. */
         tree = gtk_tree_new();
@@ -519,8 +505,8 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 	/* neither of these work!? */
 	gtk_signal_connect(GTK_OBJECT(tree), "button_press_event",
 			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
-	gtk_signal_connect(GTK_OBJECT(window), "button_press_event",
-			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
+	//	gtk_signal_connect(GTK_OBJECT(window), "button_press_event",
+	//			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
 
 	/* Recurse down the xml tree. */
         insert_childs(GTK_OBJECT(tree), xmlDocGetRootElement(doc));
@@ -529,14 +515,14 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
 	scan_swap(GTK_TREE(tree));
 
 	swapfile_tree = GTK_TREE(tree);
-	gtk_container_add(GTK_CONTAINER(window), tree);
+	//	gtk_container_add(GTK_CONTAINER(window), tree);
 	gtk_widget_show(tree);
 
-	swapfile_gui = window;
+	//	swapfile_gui = window;
 	free(xml);
 	xmlFreeDoc(doc);
 
-	return swapfile_gui;
+	return swapfile_tree;
 }
 
 

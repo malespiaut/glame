@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.8 2001/03/12 09:41:51 richi Exp $
+ * $Id: main.c,v 1.9 2001/03/15 00:27:25 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -43,13 +43,17 @@ static void gui_quit(GtkWidget *widget, gpointer data)
 
 static void gui_main()
 {
+	GtkWidget * mainwin;
 	/* create swapfile gui */
 	swapfile = glame_swapfile_gui_new(swname);
 	if (!swapfile)
 		return;
-	gtk_signal_connect(GTK_OBJECT(swapfile), "delete-event",
+	mainwin = gui_main_new();
+	gtk_signal_connect(GTK_OBJECT(mainwin), "delete-event",
 			   GTK_SIGNAL_FUNC(gui_quit), NULL);
 	gtk_widget_show(swapfile);
+	gnome_app_set_contents(GNOME_APP(mainwin),swapfile);
+	gtk_widget_show(mainwin);
 
 	/* main loop */
        	gtk_main();
@@ -58,7 +62,7 @@ static void gui_main()
 
 int main(int argc, char **argv)
 {
-	if (argc < 2)
+        if (argc < 2)
 		goto err;
 
 	/* setup gnome/gtk  */

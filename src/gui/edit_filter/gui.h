@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.5 2001/03/02 00:05:34 xwolf Exp $
+ * $Id: gui.h,v 1.6 2001/03/15 00:27:25 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -54,10 +54,7 @@ typedef struct _gui_network {
 } gui_network;
 
 
-gui_network* gui_network_new(const char *caption, const char * pixname);
-gui_network* gui_network_new_wizard(void);
-
-int gui_network_filter_add(gui_network* net, filter_t *fil);
+gui_network* gui_network_new();
 
 GtkWidget* gui_create_about(void);
 
@@ -95,6 +92,8 @@ void edit_paramdesc(filter_t *f);
 void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
 				    
 
+
+void changeString(GtkEditable *wid, char ** returnbuffer);
 
 
 #endif
