@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.70 2001/07/10 09:04:46 richi Exp $
+ * $Id: main.c,v 1.71 2001/07/10 13:29:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -56,6 +56,7 @@ extern gboolean bMac;
 static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void show_console_cb(GtkWidget *menu, void *blah);
 static void sync_cb(GtkWidget *menu, void *blah);
+static void new_network_cb(GtkWidget *menu, void *blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
@@ -75,7 +76,7 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 };
 
 static GnomeUIInfo filter_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork",glame_filtereditgui_new_cb,NULL),
+	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork", new_network_cb,NULL),
 	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network,NULL),
 	GNOMEUIINFO_END
 };
@@ -125,6 +126,11 @@ static void show_console_cb(GtkWidget *menu, void * blah)
 static void sync_cb(GtkWidget *menu, void * blah)
 {
 	gpsm_sync();
+}
+
+static void new_network_cb(GtkWidget *menu, void * blah)
+{
+	gtk_widget_show(glame_filtereditgui_new(NULL, FALSE));
 }
 
 extern void edit_tree_label(GlameTreeItem * item);

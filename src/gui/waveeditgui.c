@@ -876,7 +876,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	/* Pop up the custom generated canvas - the wave widget is
 	 * updated after destruction. FIXME - if gpsm is modified, the
 	 * signal handler data is invalid. */
-	canvas = glame_filtereditgui_new(net);
+	canvas = glame_filtereditgui_new(net, FALSE);
 	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
 			   (GtkSignalFunc)apply_custom_cb_cleanup, item);
 	return;
