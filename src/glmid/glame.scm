@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.60 2001/07/20 09:19:52 richi Exp $
+; $Id: glame.scm,v 1.61 2001/07/23 10:57:49 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -153,13 +153,9 @@
 (define net-add-node
   (lambda (net node . params)
     (let ((n (filter-new (plugin_get node))))
-      (if (eq? (filter-add-node net n node) #f) (begin (display "no node ") 
-			    (display node) 
-			    (newline) 
-			    #f)
-	  (begin
-	    (apply node-set-params n params)
-	    n)))))
+      (filter-add-node net n node)
+      (apply node-set-params n params)
+      n)))
 
 (add-help 'net-add-node '(net "node" '("param" val) ...) 
 	  "create filter and add it to the network")
@@ -176,7 +172,7 @@
 	  (if (eq? n #f) #f
 	      (if (eq? nn #f)
 		  (begin
-		    (delete n)
+		    (filter-delete n)
 		    #f)
 		  (cons n nn)))))))
 
@@ -188,7 +184,7 @@
   (lambda nodes
     (if (null? nodes) '()
 	(begin
-	  (delete (car nodes))
+	  (filter-delete (car nodes))
 	  (apply nodes-delete (cdr nodes))))))
 
 (add-help 'nodes-delete '(node ...) "delete nodes")
@@ -663,9 +659,9 @@
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
 		(conn (filter-connect rf "out" (car eff) "in")))
-	   (if (eq? conn #f)
-	       (begin (apply nodes-delete eff) #f)
-	       (begin (nodes-connect (append eff (list ao))) #t)))))
+	   (if (pipe? conn)
+	       (begin (nodes-connect (append eff (list ao))) #t)
+	       (begin (apply nodes-delete eff) #f)))))
       (net-run net))))
 
 (add-help 'play-eff '(filename effect ...)
@@ -695,20 +691,25 @@
 
 
 ;
-; read a file into one or two swapfiles
+; read a file into n swapfiles / export n swapfiles to a file
 ;
 
 (define file-to-swap
-  (lambda (fname sf1 sf2)
+  (lambda (fname sf1 . sfiles)
     (let* ((net (net-new))
-	   (rf (net-add-node net read-file))
-	   (so1 (net-add-node net "swapfile-out"))
-	   (so2 (net-add-node net "swapfile-out")))
-      (node-set-params rf `("filename" ,fname))
-      (node-set-params so1 `("filename" ,sf1))
-      (node-set-params so2 `("filename" ,sf2))
-      (nodes-connect `(,rf ,so1))
-      (nodes-connect `(,rf ,so2))
+	   (rf (net-add-node net read-file `("filename" ,fname))))
+      (map (lambda (sf)
+	     (nodes-connect `(,rf ,(net-add-node net "swapfile-out" `("filename" ,sf) `("flags" 3)))))
+	   (cons sf1 sfiles))
+      (net-run net))))
+
+(define swap-to-file
+  (lambda (fname sf1 . sfiles)
+    (let* ((net (net-new))
+	   (rf (net-add-node net "write-file" `("filename" ,fname))))
+      (map (lambda (sf)
+	     (nodes-connect `(,(net-add-node net "swapfile-in" `("filename" ,sf)) ,rf)))
+	   (cons sf1 sfiles))
       (net-run net))))
 
 
