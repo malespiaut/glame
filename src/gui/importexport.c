@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.32 2004/01/06 23:16:51 richi Exp $
+ * $Id: importexport.c,v 1.33 2004/01/10 15:26:36 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -206,7 +206,7 @@ static void ie_import_ogg(struct imp_s *ie)
 		 */
 		ret = ov_read_float(&vf, &ssbuf, 
 #if (GL_OV_READ_FLOAT_ARGS == 4)
-		                    GLAME_IO_BUFSIZE, 
+		                    GLAME_BULK_BUFSIZE, 
 #endif
 				    &current_section);
 		if (ret <= 0) /* error or EOF */
@@ -283,7 +283,7 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		     struct mad_pcm *pcm)
 {
 	struct imp_s *ie = data;
-	int i, now = 0;
+	int i;
 
 	/* Need to ignore frames with (recovered) error. */
 	if (ie->mad_err) {
@@ -310,7 +310,6 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 					: FILTER_PIPEPOS_CENTRE);
 			gpsm_item_place((gpsm_grp_t *)ie->item, (gpsm_item_t *)swfile, 0, i);
 			ie->mad_swfds[i] = sw_open(gpsm_swfile_filename(swfile), O_RDWR);
-			sw_ftruncate(ie->mad_swfds[i], GLAME_IO_BUFSIZE);
 		}
 	}
 
@@ -327,14 +326,6 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		mad_fixed_t const *data = pcm->samples[i];
 		SAMPLE *b = (SAMPLE *)ie->mad_buf;
 
-		/* Expand file, if we're going into the next IO sized chunk. */
-		if (ie->mad_pos/GLAME_IO_BUFSIZE
-		    < (ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE) {
-			sw_ftruncate(ie->mad_swfds[i],
-				     GLAME_IO_BUFSIZE*(1+(ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE));
-			now = 1;
-		}
-
 		while (nsamples--)
 		    *b++ = mad_f_todouble(*data++);
 
@@ -344,8 +335,7 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 	ie->mad_pos += pcm->length;
 
 	/* show progress, be friendly to gtk */
-	if (now)
-		gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
+	gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
 	while (gtk_events_pending())
 		gtk_main_iteration();
 	if (ie->cancelled)
@@ -388,10 +378,8 @@ static void ie_import_mp3(struct imp_s *ie)
 	result = mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);
 	mad_decoder_finish(&decoder);
 
-	for (i=0; i<ie->mad_channels; ++i) {
-		sw_ftruncate(ie->mad_swfds[i], sw_lseek(ie->mad_swfds[i], 0, SEEK_CUR));
+	for (i=0; i<ie->mad_channels; ++i)
 		sw_close(ie->mad_swfds[i]);
-	}
 	if (ie->mad_buf)
 		free(ie->mad_buf);
 

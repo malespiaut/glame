@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.20 2004/01/06 22:59:02 richi Exp $
+ * $Id: glame_types.h,v 1.21 2004/01/10 15:26:36 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,6 @@ extern int _GLAME_WBUFSIZE;
 #define GLAME_MIN_BUFSIZE (GLAME_WBUFSIZE/4)
 #define GLAME_MAX_BUFSIZE (GLAME_WBUFSIZE*4)
 #define GLAME_BULK_BUFSIZE (64*1024)
-#define GLAME_IO_BUFSIZE (1024*1024)
 
 #define GLAME_DEFAULT_SAMPLERATE 44100
 
