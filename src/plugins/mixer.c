@@ -1,7 +1,7 @@
 /*
  * mixer.c
  *
- * $Id: mixer.c,v 1.18 2003/04/15 19:00:51 richi Exp $
+ * $Id: mixer.c,v 1.19 2003/06/16 20:42:57 ochonpaul Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -20,6 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -1231,18 +1232,26 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 	snprintf(formatted, 1023,
 		 mixer_knob_formatter(lower, value, NULL));
 	snprintf(xml, 1511,
-		 "<?xml version=\"1.0\"?><GTK-Interface>" "  <widget>"
-		 "    <class>GtkKnob</class>" "    <name>widget</name>"
-		 "    <can_focus>True</can_focus>"
-		 "    <draw_value>True</draw_value>"
-		 "    <value_pos>GTK_POS_TOP</value_pos>"
-		 "    <digits>1</digits>"
-		 "    <policy>GTK_UPDATE_CONTINUOUS</policy>"
-		 "    <value>%.3f</value>" "    <lower>%.3f</lower>"
-		 "    <upper>%.3f</upper>" "    <step>%.3f</step>"
-		 "    <page>%.3f</page>" "    <page_size>%.3f</page_size>"
-		 "    <formatter>%s</formatter>" "    <tick>%.3f</tick>"
-		 "  </widget>" "</GTK-Interface>", value, lower, upper,
+"<?xml version=\"1.0\" standalone=\"no\"?>"
+"<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
+"<glade-interface>" 
+		 "<widget class=\"GtkKnob\" id=\"gtknob1\">" 
+		 "<property name=\"can_focus\">True</property>"
+		 "<property name=\"draw_value\">True</property>"
+		 "<property name=\"value_pos\">GTK_POS_TOP</property>"
+		 "<property name=\"digits\">1</property>"
+		 "<property name=\"policy\">GTK_UPDATE_CONTINUOUS</property>"
+		 "<property name=\"value\">%.3f</property>" 
+		 "<property name=\"lower\">%.3f</property>"
+		 "<property name=\"upper\">%.3f</property>" 
+		 "<property name=\"step\">%.3f</property>"
+		 "<property name=\"page\">%.3f</property>" 
+		 "<property name=\"page_size\">%.3f</property>"
+		 "<property name=\"formatter\">%s</property>" 
+		 "<property name=\"tick\">%.3f</property>"
+		 "</widget>" 
+"</glade-interface>", 
+		 value, lower, upper,
 		 step_increment, page_increment, page_size, formatted,
 		 value);
 	filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
