@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.131 2005/03/06 21:35:58 richi Exp $
+ * $Id: main.c,v 1.132 2005/03/10 20:22:56 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -726,9 +726,14 @@ static GtkWidget *glame_splash(void)
 
 static long maxundo;
 static pthread_mutex_t giw_mx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t giw_condmx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t giw_cond = PTHREAD_COND_INITIALIZER;
 static void *gpsm_init_wrapper(void *path_)
 {
-	int res = gpsm_init(path_, maxundo);
+	int res;
+	pthread_mutex_lock(&giw_mx);
+	pthread_cond_broadcast(&giw_cond);
+	res = gpsm_init(path_, maxundo);
 	pthread_mutex_unlock(&giw_mx);
 	if (res == -1)
 		return NULL;
@@ -823,8 +828,9 @@ _("Welcome first-time user of GLAME.\n"
 
 	/* Asynchronly try to initialize the gpsm. */
 	glame_config_get_long("swapfile/maxundo", &maxundo);
-	pthread_mutex_lock(&giw_mx);
 	pthread_create(&gpsm_init_thread, NULL, gpsm_init_wrapper, path);
+	pthread_mutex_lock(&giw_condmx);
+	pthread_cond_wait(&giw_cond, &giw_condmx);
 
 	/* Poll for thread completion. */
 	while (pthread_mutex_trylock(&giw_mx)) {
