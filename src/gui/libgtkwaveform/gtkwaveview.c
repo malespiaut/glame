@@ -2078,7 +2078,7 @@ gtk_wave_view_set_zoom (GtkWaveView *waveview,
 
       gtk_wave_view_cache_invalidate (waveview);
       gtk_wave_view_update_units (waveview);
-      gtk_widget_queue_draw (GTK_WIDGET (waveview));
+      gtk_widget_queue_draw (GTK_WIDGET (waveview->area));
     }
 }
 
