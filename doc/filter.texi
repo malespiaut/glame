@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.32 2001/11/25 21:45:47 richi Exp $
+@comment $Id: filter.texi,v 1.33 2002/02/17 13:51:46 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -351,8 +351,8 @@ helpers are provided. First check the actual type of the parameter,
 then use this non-typechecking functions.
 
 @tindex filter_param_t
-@deftypefun int filterparam_val_int (filter_param_t *@var{param})
-Get the integer value of an integer typed parameter.
+@deftypefun long filterparam_val_long (filter_param_t *@var{param})
+Get the integer value of a long typed parameter.
 @end deftypefun
 
 @tindex filter_param_t
@@ -361,13 +361,8 @@ Get the string value of a string typed parameter.
 @end deftypefun
 
 @tindex filter_param_t
-@deftypefun float filterparam_val_float (filter_param_t *@var{param})
-Get the float value of a float typed parameter.
-@end deftypefun
-
-@tindex filter_param_t
-@deftypefun SAMPLE filterparam_val_sample (filter_param_t *@var{param})
-Get the SAMPLE value of a SAMPLE typed parameter.
+@deftypefun double filterparam_val_double (filter_param_t *@var{param})
+Get the float value of a double typed parameter.
 @end deftypefun
 
 
@@ -438,8 +433,8 @@ a @code{FILTERPARAM_END} argument even if you did not specify any property.
 
 @tindex filter_param_t
 @tindex filter_paramdb_t
-@deftypefun {filter_param_t *} filterparamdb_add_param_int (filter_paramdb_t *@var{db}, const char *@var{label}, int @var{type}, int @var{val}, ...)
-@deftypefunx {filter_param_t *} filterparamdb_add_param_float (filter_paramdb_t *@var{db}, const char *@var{label}, int @var{type}, float @var{val}, ...)
+@deftypefun {filter_param_t *} filterparamdb_add_param_long (filter_paramdb_t *@var{db}, const char *@var{label}, int @var{type}, long @var{val}, ...)
+@deftypefunx {filter_param_t *} filterparamdb_add_param_double (filter_paramdb_t *@var{db}, const char *@var{label}, int @var{type}, double @var{val}, ...)
 @deftypefunx {filter_param_t *} filterparamdb_add_param_string (filter_paramdb_t *@var{db}, const char *@var{label}, int @var{type}, const char *@var{val}, ...)
 To ease the use of the @code{filterparamdb_add_param()} function with respect
 to specifying the default parameter value, the following wrappers are

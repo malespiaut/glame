@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.22 2002/02/09 16:53:10 richi Exp $
+ * $Id: filter_param.h,v 1.23 2002/02/17 13:51:46 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -35,29 +35,25 @@
  * by assigning them a type-id in the basic type ids range. So
  * you need to use the type test macros to test for the basic types.
  */
-#define FILTER_PARAMTYPE_INT       0
-#define FILTER_PARAMTYPE_INT_M     9
-#define FILTER_PARAM_IS_INT(p) ((p)->type >= FILTER_PARAMTYPE_INT && (p)->type <= FILTER_PARAMTYPE_INT_M)
+#define FILTER_PARAMTYPE_LONG       0
+#define FILTER_PARAMTYPE_RATE       1
+#define FILTER_PARAMTYPE_POS        2
+#define FILTER_PARAMTYPE_LONG_M     9
+#define FILTER_PARAM_IS_LONG(p) ((p)->type >= FILTER_PARAMTYPE_LONG && (p)->type <= FILTER_PARAMTYPE_LONG_M)
 
-#define FILTER_PARAMTYPE_FLOAT    10
-#define FILTER_PARAMTYPE_TIME_MS  11
-#define FILTER_PARAMTYPE_TIME_S   12
-#define FILTER_PARAMTYPE_POSITION 13
-#define FILTER_PARAMTYPE_FLOAT_M  19
-#define FILTER_PARAM_IS_FLOAT(p) ((p)->type >= FILTER_PARAMTYPE_FLOAT && (p)->type <= FILTER_PARAMTYPE_FLOAT_M)
-
-#define FILTER_PARAMTYPE_SAMPLE   20
-#define FILTER_PARAMTYPE_SAMPLE_M 29
-#define FILTER_PARAM_IS_SAMPLE(p) ((p)->type >= FILTER_PARAMTYPE_SAMPLE && (p)->type <= FILTER_PARAMTYPE_SAMPLE_M)
+#define FILTER_PARAMTYPE_DOUBLE    10
+#define FILTER_PARAMTYPE_TIME_MS   11
+#define FILTER_PARAMTYPE_TIME_S    12
+#define FILTER_PARAMTYPE_POSITION  13
+#define FILTER_PARAMTYPE_FREQ      14
+#define FILTER_PARAMTYPE_SAMPLE    15
+#define FILTER_PARAMTYPE_DOUBLE_M  19
+#define FILTER_PARAM_IS_DOUBLE(p) ((p)->type >= FILTER_PARAMTYPE_DOUBLE && (p)->type <= FILTER_PARAMTYPE_DOUBLE_M)
 
 #define FILTER_PARAMTYPE_STRING   30
 #define FILTER_PARAMTYPE_FILENAME 31
 #define FILTER_PARAMTYPE_STRING_M 39
 #define FILTER_PARAM_IS_STRING(p) ((p)->type >= FILTER_PARAMTYPE_STRING && (p)->type <= FILTER_PARAMTYPE_STRING_M)
-
-#define FILTER_PARAMTYPE_POS      40
-#define FILTER_PARAMTYPE_POS_M    49
-#define FILTER_PARAM_IS_POS(p) ((p)->type >= FILTER_PARAMTYPE_POS && (p)->type <= FILTER_PARAMTYPE_POS_M)
 
 #define FILTER_PARAMTYPE_BUF      50
 #define FILTER_PARAMTYPE_SBUF     51
@@ -91,11 +87,9 @@ struct filter_param {
 	/* just the old filterparam_t/paramdesc_t fields */
 	int type;
 	union {
-		int i;
-		float f;
-		SAMPLE sample;
+		long i;
+		double f;
 		char *string;
-		long pos;
 		filter_buffer_t *buf;
 	} u;
 };
@@ -111,18 +105,15 @@ struct filter_param {
 /* Public access macros for the parameter type and the union
  * int filterparam_type(filter_param_t *);
  * void *filterparam_val(filter_param_t *);
- * int filterparam_val_int(filter_param_t *);
+ * long filterparam_val_long(filter_param_t *);
  * const char *filterparam_val_string(filter_param_t *);
- * float filterparam_val_float(filter_param_t *);
- * SAMPLE filterparam_val_sample(filter_param_t *); */
+ * double filterparam_val_double(filter_param_t *); */
 #define filterparam_type(p) ((p)->type)
 #define filterparam_val(p) (&(p)->u)
-#define filterparam_val_int(p) ((p)->u.i)
+#define filterparam_val_long(p) ((p)->u.i)
 #define filterparam_val_string(p) ((p)->u.string)
-#define filterparam_val_float(p) ((p)->u.f)
-#define filterparam_val_sample(p) ((p)->u.sample)
-#define filterparam_val_pos(p) ((p)->u.pos)
-#define filterparam_val_set_pos(p, v) do { (p)->u.pos = (v); } while (0)
+#define filterparam_val_double(p) ((p)->u.f)
+#define filterparam_val_set_pos(p, v) do { (p)->u.i = (v); } while (0)
 #define filterparam_val_get_buf(p) (fbuf_ref((p)->u.buf), (p)->u.buf)
 
 /* Standard parameter label used for signalling actual position. */
@@ -158,11 +149,10 @@ struct filter_param {
 #define FILTERPARAM_LABEL "_showlabel"
 #define FILTERPARAM_GLADEXML "_xml"
 #define FILTERPARAM_HIDDEN "_hidden"
-#define FILTERPARAM_END NULL
 #define FILTERPARAM_MAP_NODE "_node"
 #define FILTERPARAM_MAP_LABEL "_label"
-#define FILTER_PARAM_PROPERTY_FILE_FILTER "!filefilter"
 #define FILTERPARAM_SET_SCM "_scm"
+#define FILTERPARAM_END NULL
 
 
 
@@ -221,12 +211,12 @@ filter_param_t *filterparamdb_add_param(filter_paramdb_t *db,
 /* To ease the use of the filterparamdb_add_param() function with respect to
  * specifying the default parameter value, the following wrappers are
  * provided which take a typed fourth parameter. Nothing else changes. */
-filter_param_t *filterparamdb_add_param_int(filter_paramdb_t *db,
-					    const char *label,
-					    int type, int val, ...);
-filter_param_t *filterparamdb_add_param_float(filter_paramdb_t *db,
-					      const char *label,
-					      int type, float val, ...);
+filter_param_t *filterparamdb_add_param_long(filter_paramdb_t *db,
+					     const char *label,
+					     int type, long val, ...);
+filter_param_t *filterparamdb_add_param_double(filter_paramdb_t *db,
+					       const char *label,
+					       int type, double val, ...);
 filter_param_t *filterparamdb_add_param_string(filter_paramdb_t *db,
 					       const char *label,
 					       int type, const char *val, ...);

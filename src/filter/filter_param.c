@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.17 2002/02/09 16:53:10 richi Exp $
+ * $Id: filter_param.c,v 1.18 2002/02/17 13:51:46 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -48,12 +48,10 @@ static int default_set(filter_param_t *p, const void *val)
 	set_s = glame_gh_safe_eval_str(scm);
 	if (!gh_procedure_p(set_s))
 		return -1;
-	if (FILTER_PARAM_IS_INT(p))
-		val_s = gh_long2scm(*(int *)val);
-	else if (FILTER_PARAM_IS_FLOAT(p))
-		val_s = gh_double2scm(*(float *)val);
-	else if (FILTER_PARAM_IS_SAMPLE(p))
-		val_s = gh_double2scm(*(SAMPLE *)val);
+	if (FILTER_PARAM_IS_LONG(p))
+		val_s = gh_long2scm(*(long *)val);
+	else if (FILTER_PARAM_IS_DOUBLE(p))
+		val_s = gh_double2scm(*(double *)val);
 	else if (FILTER_PARAM_IS_STRING(p))
 		val_s = gh_str02scm(*(char **)val);
 	else
@@ -196,16 +194,12 @@ static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
 		return NULL;
 
 	p->type = type;
-	if (FILTER_PARAM_IS_INT(p)) {
-		p->u.i = *(int *)val;
-	} else if (FILTER_PARAM_IS_FLOAT(p)) {
-		p->u.f = *(float *)val;
-	} else if (FILTER_PARAM_IS_SAMPLE(p)) {
-		p->u.sample = *(SAMPLE *)val;
+	if (FILTER_PARAM_IS_LONG(p)) {
+		p->u.i = *(long *)val;
+	} else if (FILTER_PARAM_IS_DOUBLE(p)) {
+		p->u.f = *(double *)val;
 	} else if (FILTER_PARAM_IS_STRING(p)) {
 		p->u.string = *(const char **)val ? strdup(*(const char **)val) : NULL;
-	} else if (FILTER_PARAM_IS_POS(p)) {
-		p->u.pos = *(long *)val;
 	} else if (FILTER_PARAM_IS_BUF(p)) {
 		p->u.buf = *(filter_buffer_t **)val;
 	}
@@ -256,9 +250,9 @@ filter_param_t *filterparamdb_add_param(filter_paramdb_t *db,
 
 	return p;
 }
-filter_param_t *filterparamdb_add_param_int(filter_paramdb_t *db,
-					    const char *label,
-					    int type, int val, ...)
+filter_param_t *filterparamdb_add_param_long(filter_paramdb_t *db,
+					     const char *label,
+					     int type, long val, ...)
 {
 	filter_param_t *p;
 	va_list va;
@@ -269,9 +263,9 @@ filter_param_t *filterparamdb_add_param_int(filter_paramdb_t *db,
 
 	return p;
 }
-filter_param_t *filterparamdb_add_param_float(filter_paramdb_t *db,
-					      const char *label,
-					      int type, float val, ...)
+filter_param_t *filterparamdb_add_param_double(filter_paramdb_t *db,
+					       const char *label,
+					       int type, double val, ...)
 {
 	filter_param_t *p;
 	va_list va;
@@ -408,22 +402,16 @@ int filterparam_set(filter_param_t *param, const void *val)
 	 * -- not a good idea, as parameters are re-set after copydb (121200)
 	 */
 #if 0
-	if (FILTER_PARAM_IS_INT(param)) {
-		if (param->u.i == *(int *)val)
+	if (FILTER_PARAM_IS_LONG(param)) {
+		if (param->u.i == *(long *)val)
 			return 0;
-	} else if (FILTER_PARAM_IS_FLOAT(param)) {
-		if (param->u.f == *(float *)val)
-			return 0;
-	} else if (FILTER_PARAM_IS_SAMPLE(param)) {
-		if (param->u.sample == *(SAMPLE *)val)
+	} else if (FILTER_PARAM_IS_DOUBLE(param)) {
+		if (param->u.f == *(double *)val)
 			return 0;
 	} else if (FILTER_PARAM_IS_STRING(param)) {
 		if ((!param->u.string && !*val)
 		    || (param->u.string && *val
 		        && strcmp(param->u.string, *(const char **)val) == 0))
-			return 0;
-	} else if (FILTER_PARAM_IS_POS(param)) {
-		if (param->u.pos == *(long *)val)
 			return 0;
 	}
 #endif
@@ -435,19 +423,15 @@ int filterparam_set(filter_param_t *param, const void *val)
 
 	/* Finally do the change
 	 */
-	if (FILTER_PARAM_IS_INT(param))
-		param->u.i = *(int *)val;
-	else if (FILTER_PARAM_IS_FLOAT(param))
-		param->u.f = *(float *)val;
-	else if (FILTER_PARAM_IS_SAMPLE(param))
-		param->u.sample = *(SAMPLE *)val;
+	if (FILTER_PARAM_IS_LONG(param))
+		param->u.i = *(long *)val;
+	else if (FILTER_PARAM_IS_DOUBLE(param))
+		param->u.f = *(double *)val;
 	else if (FILTER_PARAM_IS_STRING(param)) {
 		/* _first_ copy, then free, in case theyre actually the same... */
 		char *vval = *(const char **)val ? strdup(*(const char **)val) : NULL;
 		free(param->u.string);
 		param->u.string = vval;
-	} else if (FILTER_PARAM_IS_POS(param)) {
-		param->u.pos = *(long *)val;
 	} else if (FILTER_PARAM_IS_BUF(param)) {
 		fbuf_ref(*(filter_buffer_t **)val);
 		fbuf_unref(param->u.buf);
@@ -470,21 +454,15 @@ int filterparam_set_string(filter_param_t *param, const char *val)
 	if (!param || !val)
 		return -1;
 
-	if (FILTER_PARAM_IS_INT(param))
-		res = sscanf(val, " %i ", &p.u.i);
-	else if (FILTER_PARAM_IS_FLOAT(param))
-		res = sscanf(val, " %f ", &p.u.f);
-	else if (FILTER_PARAM_IS_SAMPLE(param)) {
-		float f;
-		res = sscanf(val, " %f ", &f);
-		p.u.sample = f;
+	if (FILTER_PARAM_IS_LONG(param)) {
+		res = sscanf(val, " %li ", &p.u.i);
+	} else if (FILTER_PARAM_IS_DOUBLE(param)) {
+		res = sscanf(val, " %lf ", &p.u.f);
 	} else if (FILTER_PARAM_IS_STRING(param)) {
 		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) != 1)
 			res = sscanf(val, " %511[^\"] ", s);
 		p.u.string = s;
-	} else if (FILTER_PARAM_IS_POS(param))
-		res = sscanf(val, " %li ", &p.u.pos);
-	else if (FILTER_PARAM_IS_BUF(param)) {
+	} else if (FILTER_PARAM_IS_BUF(param)) {
 		filter_buffer_t *buf;
 		unsigned char byte, *b;
 		const unsigned char *c;
@@ -523,16 +501,12 @@ char *filterparam_to_string(const filter_param_t *param)
 	if (!param)
 		return NULL;
 
-	if (FILTER_PARAM_IS_INT(param))
-		snprintf(buf, 511, "%i", param->u.i);
-	else if (FILTER_PARAM_IS_FLOAT(param))
+	if (FILTER_PARAM_IS_LONG(param))
+		snprintf(buf, 511, "%li", param->u.i);
+	else if (FILTER_PARAM_IS_DOUBLE(param))
 		snprintf(buf, 511, "%f", param->u.f);
-	else if (FILTER_PARAM_IS_SAMPLE(param))
-		snprintf(buf, 511, "%f", (float)param->u.sample);
 	else if (FILTER_PARAM_IS_STRING(param) && param->u.string)
 		snprintf(buf, 511, "\"%s\"", param->u.string);
-	else if (FILTER_PARAM_IS_POS(param))
-		snprintf(buf, 511, "%li", param->u.pos);
 	else if (FILTER_PARAM_IS_BUF(param) && param->u.buf) {
 		const char CHARS[16] = "0123456789ABCDEF";
 		char *str, *chr;
