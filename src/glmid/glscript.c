@@ -255,6 +255,7 @@ SCM gls_filterparam_set(filter_pdb_t *db, SCM s_label, SCM s_val)
 	label = gh_scm2newstr(s_label, &labell);
 	param = filterpdb_get_param(db, label);
 	if (!param) {
+		DPRINTF("No such parameter %s\n", label);
 		res = -1;
 	} else if (FILTER_PARAM_IS_INT(param)) {
 		i = gh_scm2long(s_val);
@@ -434,6 +435,7 @@ SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
 		free(name);
 		return SCM_BOOL_F;
 	}
+	filter_attach(f, p);
 	desc = gh_scm2newstr(s_desc, &descl);
 	plugin_set(p, PLUGIN_DESCRIPTION, desc);
 	free(name);

@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.28 2000/05/01 11:09:03 richi Exp $
+; $Id: glame.scm,v 1.29 2000/05/16 13:03:24 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -248,34 +248,34 @@
 ; mp3 reader using the pipe-in filter and mpg123
 ;
 
-;(let* ((net (net-new))
-;       (p (net-add-node net "pipe-in")))
-;  (filternode_set_param p "cmd" "mpg123 -q -s ")
-;  (filternetwork_add_output net p "out" "out" "output")
-;  (filternetwork_add_param net p "tail" "filename" "filename")
-;  (filternetwork_to_filter net "read-mp3" "mp3 reader"))
+(let* ((net (net-new))
+       (p (net-add-node net "pipe-in")))
+  (filternode_set_param p "cmd" "mpg123 -q -s ")
+  (filternetwork_add_output net p "out" "out" "output")
+  (filternetwork_add_param net p "tail" "filename" "filename")
+  (filternetwork_to_filter net "read-mp3" "mp3 reader"))
 
 ;
 ; feedback echo2 macro filter
 ;
 
-;(let* ((net (net-new))
-;       (extend (net-add-node net "extend"))
-;       (mix2 (net-add-node net "mix"))
-;       (one2n (net-add-node net "one2n"))
-;       (delay (net-add-node net "delay"))
-;       (va (net-add-node net "volume-adjust")))
-;  (filternetwork_add_input net extend "in" "in" "echo source")
-;  (filternetwork_add_output net one2n "out" "out" "source with echo")
-;  (filternetwork_add_param net delay "delay" "delay" "echo delay")
-;  (filternetwork_add_param net va "factor" "mix" "echo mix ratio")
-;  (filternetwork_add_param net extend "time" "extend" "time to extend")
-;  (filternetwork_add_param net mix2 "gain" "gain" "output gain")
-;  (filternode_set_param net "delay" 200)
-;  (filternode_set_param net "extend" 600)
-;  (filternode_set_param net "mix" 0.7)
-;  (nodes-connect `(,extend ,mix2 ,one2n ,delay ,va ,mix2))
-;  (filternetwork_to_filter net "echo2" "echo as macro filter"))
+(let* ((net (net-new))
+       (extend (net-add-node net "extend"))
+       (mix2 (net-add-node net "mix"))
+       (one2n (net-add-node net "one2n"))
+       (delay (net-add-node net "delay"))
+       (va (net-add-node net "volume-adjust")))
+  (filternetwork_add_input net extend "in" "in" "echo source")
+  (filternetwork_add_output net one2n "out" "out" "source with echo")
+  (filternetwork_add_param net delay "delay" "delay" "echo delay")
+  (filternetwork_add_param net va "factor" "mix" "echo mix ratio")
+  (filternetwork_add_param net extend "time" "extend" "time to extend")
+  (filternetwork_add_param net mix2 "gain" "gain" "output gain")
+  (filternode_set_param net "delay" 200)
+  (filternode_set_param net "extend" 600)
+  (filternode_set_param net "mix" 0.7)
+  (nodes-connect `(,extend ,mix2 ,one2n ,delay ,va ,mix2))
+  (filternetwork_to_filter net "echo2" "echo as macro filter"))
 
 
 

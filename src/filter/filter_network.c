@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.47 2000/05/04 07:42:02 richi Exp $
+ * $Id: filter_network.c,v 1.48 2000/05/16 13:03:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -510,7 +510,7 @@ char *filternetwork_to_string(filter_network_t *net)
 			    || !filterpdb_get_param(filternode_pdb(n), filterparam_get_property(param, FILTERPARAM_MAP_LABEL)))
 				continue;
 			len += sprintf(&buf[len], "   (filternetwork_add_param net %s \"%s\" \"%s\" \"%s\")\n",
-				       n->name, filterparam_get_property(param, "label"),
+				       n->name, filterparam_get_property(param, FILTERPARAM_MAP_LABEL),
 				       filterparam_label(param), filterparam_get_property(param, FILTERPARAM_DESCRIPTION));
 		}
 	}
