@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.11 2002/01/01 17:56:19 mag Exp $
+ * $Id: importexport.c,v 1.12 2002/01/23 20:11:10 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -66,6 +66,7 @@ static char *fproplabel[] = { "Format", "Samplerate", "Quality", "Channels",
 #define OK      0
 /*#define PREVIEW 1*/
 #define CANCEL  1
+#define HELP    2
 
 
 /*
@@ -707,6 +708,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 	gtk_widget_show (cancelbutton);
 	GTK_WIDGET_SET_FLAGS (cancelbutton, GTK_CAN_DEFAULT);
 
+	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GNOME_STOCK_BUTTON_HELP);
+
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), IMPORT);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), IMPORT, TRUE);
 /*	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), PREVIEW, TRUE);*/
@@ -716,6 +719,8 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 /*	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), PREVIEW, ie_preview_cb, ie); */
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
 				    ie_cancel_cb, ie);
+	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), HELP,
+				    glame_help_cb, "The_Import_Dialog");
 
 	/* in case we have a non gnome compliant wm */
 	gtk_signal_connect(GTK_OBJECT(ie->dialog),
@@ -1147,6 +1152,7 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_append_button(GNOME_DIALOG(ie->dialog), GNOME_STOCK_BUTTON_HELP);
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 	
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), OK,
@@ -1154,7 +1160,9 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
 				    exp_cancel_cb, ie);
-	
+	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), HELP,
+				    glame_help_cb, "The_Export_Dialog");
+
 	gtk_signal_connect(GTK_OBJECT(menu),
 			   "selection_done",
 			   (GtkSignalFunc)ie_type_menu_cb, ie);

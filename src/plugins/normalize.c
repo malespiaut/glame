@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.15 2002/01/20 18:59:06 mag Exp $
+ * $Id: normalize.c,v 1.16 2002/01/23 20:11:10 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -428,6 +428,11 @@ void normalize_dialog(struct normalize_s* norms)
   GTK_WIDGET_SET_FLAGS (button3, GTK_CAN_DEFAULT);
   gtk_signal_connect(GTK_OBJECT(button3), "clicked",
 		     (GtkSignalFunc)cancel_cb, norms);
+
+  gnome_dialog_append_button(GNOME_DIALOG(dialog1), GNOME_STOCK_BUTTON_HELP);
+  gnome_dialog_button_connect(GNOME_DIALOG(dialog1), 2,
+			      glame_help_cb, "Normalize");
+
 
   /* paranoia */
   gtk_signal_connect(GTK_OBJECT(norms->dialog),
