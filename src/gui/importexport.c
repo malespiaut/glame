@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.3 2001/12/07 15:34:37 richi Exp $
+ * $Id: importexport.c,v 1.4 2001/12/07 22:28:00 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -719,25 +719,43 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 struct exp_s {
 	GtkWidget *dialog, *otypemenu, *compmenu, *ocompmenu;
 	GtkWidget *cancelbutton, *appbar;
-	int typecnt;
-	int *indices;
+	int typecnt, comptypes;
+	int *indices, *comparray;
 	GtkWidget *rbutton[MAX_SFLABEL];
 	GtkWidget *renderbutton[MAX_RLABEL];
 	gpsm_item_t *item;
 	gchar *filename;
+	int filetype, compression;
+	int running;
+	filter_t *net;
 };
 
 
-static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *ie)
+static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *exp)
 {
+	GtkWidget *act;
+	GList *list;
+	int val;
+
 	DPRINTF("Compression Type chosen\n");
+	act = gtk_menu_get_active(menu);
+	DPRINTF("Menu %p - Active %p\n", menu, act);
+	list = gtk_container_children(GTK_CONTAINER(menu));
+	val = 0;
+	while (list) {
+		DPRINTF("%i - %p\n", val, list->data);
+		if ((GtkWidget *)(list->data) == act)
+			break;
+		list = g_list_next(list);
+		val++;
+	}
+	exp->compression=val;
 	return TRUE;
 }
 
 static void make_comp_menu(struct exp_s *ie, int ftype)
 {
-	int comptypes, i, sformtypes;
-	int *comparray;
+	int i, sformtypes;
 	int *sformarray;
 
 	gchar *complabel;
@@ -757,14 +775,14 @@ static void make_comp_menu(struct exp_s *ie, int ftype)
 	for(i=0; i<sformtypes;i ++) 
 		DPRINTF("%d\n", sformarray[i]);
 	
-	comptypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUE_COUNT, ftype, 0);
-	DPRINTF("%d compression codecs\n", comptypes);
-	if (comptypes>0) {
-		comparray = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUES, ftype, 0);
-		for(i=0; i<comptypes;i++) {
+	ie->comptypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUE_COUNT, ftype, 0);
+	DPRINTF("%d compression codecs\n", ie->comptypes);
+	if (ie->comptypes>0) {
+		ie->comparray = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUES, ftype, 0);
+		for(i=0; i<ie->comptypes;i++) {
 			char numbuf[16];
-			if (!(complabel = (char*)afQueryPointer(AF_QUERYTYPE_COMPRESSION, AF_QUERY_LABEL, comparray[i], 0 ,0))) {
-				snprintf(numbuf, 15, "%i", comparray[i]);
+			if (!(complabel = (char*)afQueryPointer(AF_QUERYTYPE_COMPRESSION, AF_QUERY_LABEL, ie->comparray[i], 0 ,0))) {
+				snprintf(numbuf, 15, "%i", ie->comparray[i]);
 				complabel = numbuf;
 			}
 			menuitem = gtk_menu_item_new_with_label(complabel);
@@ -800,17 +818,25 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
 		list = g_list_next(list);
 		val++;
 	}
-	if(list) {
-		gchar *suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, ie->indices[val] ,0 ,0);	
-		DPRINTF("val=%d choose type %s\n", val, suffix);
-		make_comp_menu(ie, ie->indices[val]);
+	if ((list) && (val>0)) {
+		make_comp_menu(ie, ie->indices[val-1]);
+		ie->filetype=val;
+	} else {
+		ie->filetype=-1;
+		ie->compression = AF_COMPRESSION_NONE;
+		gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
 	}
+
 	return TRUE;
 }
 
 static void export_cleanup(struct exp_s *e)
 {
 	//gtk_signal_disconnect_by_data(e->cancelbutton, e);
+	if (e->running==1) {
+		filter_terminate(e->net);
+		return;
+	}
 	if (e->dialog)
 		//gnome_dialog_close(GNOME_DIALOG(e->dialog));
 		gtk_widget_destroy(e->dialog);
@@ -821,7 +847,7 @@ static void export_cleanup(struct exp_s *e)
 static gint exp_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data)
 {
 	struct exp_s *exp = (struct exp_s*)data;
-	DPRINTF("window was killed");
+	DPRINTF("window was killed\n");
 	export_cleanup(exp);
 	return TRUE;
 }
@@ -861,16 +887,24 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	float pos;
 	GtkWidget *ed;
 	int sfi, ri;
+	int totalframes;
+	float percentage;
+
+	gtk_widget_set_sensitive(bla, FALSE);
 
 	if(exp->filename==NULL) {
 		ed=gnome_error_dialog("Select a filename first!");
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
 		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		gtk_widget_set_sensitive(bla, TRUE);
 		return;
 	}
+
 	/* Build temporary group out of flattened item->item. */
-	if (!(grp = gpsm_flatten(exp->item)))
+	if (!(grp = gpsm_flatten(exp->item))) {
+		gtk_widget_set_sensitive(bla, TRUE);
 		return;
+	}
 	
 	for(sfi=0; sfi<MAX_SFLABEL; sfi++)
 		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(exp->rbutton[sfi])))
@@ -894,6 +928,16 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 
 	param = filterparamdb_get_param(db, "samplewidth");
 	if (filterparam_set(param, &(sf_width[sfi])) == -1)
+		goto fail_cleanup;
+
+	if (exp->filetype!=-1) {
+		param = filterparamdb_get_param(db, "filetype");
+		if (filterparam_set(param, &(exp->filetype)) == -1)
+			goto fail_cleanup;
+	}
+
+	param = filterparamdb_get_param(db, "compression");
+	if (filterparam_set(param, &(exp->compression)) == -1)
 		goto fail_cleanup;
 
 	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
@@ -923,20 +967,45 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 
 	if (net_apply_node(net, ri == 0 ? writefile : render) == -1)
 		goto fail_cleanup;
+	
+	param = filterparamdb_get_param(filter_paramdb(writefile),
+					FILTERPARAM_LABEL_POS);
+
+	gnome_appbar_set_status(GNOME_APPBAR(exp->appbar), "Exporting");
+
+	exp->net = net;
 
 	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
 	    || filter_start(net) == -1)
 		goto fail_cleanup;
-	filter_wait(net);
+
+	exp->running=1;
+	totalframes = gpsm_item_hsize(grp);
+
+	while(!filter_is_ready(exp->net)) {
+		while (gtk_events_pending())
+			gtk_main_iteration();
+		
+		usleep(40000);
+		percentage = (float)filterparam_val_pos(param)/(float)totalframes;
+		if(percentage>1.0)
+			percentage = 1.0;
+		gnome_appbar_set_progress(GNOME_APPBAR(exp->appbar),
+					  percentage);
+	}
+	exp->running = 0;
+
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 	export_cleanup(exp);
 	return;
 
  fail_cleanup:
+	gnome_appbar_set_status(GNOME_APPBAR(exp->appbar), "Error!");
 	glame_network_error_dialog(net, "Failed to create exporting network");
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
+	gtk_widget_set_sensitive(bla, TRUE);
 }
 
 
@@ -954,7 +1023,9 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie = (struct exp_s*)calloc(1,sizeof(struct exp_s));
 	ie->item = item;
 	ie->filename = NULL;
-
+	ie->filetype = -1; /* filetype auto */
+	ie->compression = AF_COMPRESSION_NONE;
+	ie->running = 0;
 	/* open new dialog window */
 	dialog = ie->dialog = gnome_dialog_new(NULL, NULL);
 	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
@@ -1050,6 +1121,10 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	
 	DPRINTF("typecnt=%d\n", ie->typecnt);
 
+	mitem =  gtk_menu_item_new_with_label("auto");
+	gtk_widget_show(mitem);
+	gtk_menu_append (GTK_MENU (menu), mitem);
+
 	for(i=0; i<ie->typecnt; i++)  {
 		suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, ie->indices[i] ,0 ,0);
 		mitem = gtk_menu_item_new_with_label(suffix);
@@ -1069,6 +1144,9 @@ int glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		make_comp_menu(ie, ie->indices[0]);
 	}
 	
+	/* filetype is auto, so compression can't be set */
+	gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
+
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_OK);
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);

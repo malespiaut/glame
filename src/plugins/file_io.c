@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.74 2001/12/05 15:41:30 richi Exp $
+ * $Id: file_io.c,v 1.75 2001/12/07 22:28:01 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -546,6 +546,8 @@ int write_file_f(filter_t *n)
 	int i,iat,iass;
 	int filetype;
 	char *errstring = "write file failed";
+	long pos;
+	filter_param_t *pos_param;
 
 	/* audiofile stuff */
 	AFfilehandle    file;
@@ -556,6 +558,7 @@ int write_file_f(filter_t *n)
 	track_t         *track;
 	SAMPLE          *buffer;
 	int             buffer_size, written, frames;
+	
 
 	channelCount = filterport_nrpipes(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
 
@@ -566,7 +569,7 @@ int write_file_f(filter_t *n)
 
 
 	filetype = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "filetype"));
-	if (filetype==0)
+	if (filetype==0 )
 		filetype = glame_get_filetype_by_name(filename);
 	else {
 		filetype--;
@@ -640,6 +643,10 @@ int write_file_f(filter_t *n)
 		goto _bailout;
 
 	FILTER_AFTER_INIT;
+	/* guihack */
+	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+        filterparam_val_set_pos(pos_param, 0);
+	pos = 0;
 
 	eofs=channelCount;
 	
@@ -677,7 +684,9 @@ int write_file_f(filter_t *n)
 				errstring="couldn't write all frames(disk full?)";
 				break;
 			}
-		}
+			pos += frames;
+			filterparam_val_set_pos(pos_param, pos);
+		} 		
 	}
 
 	FILTER_BEFORE_STOPCLEANUP;
@@ -744,18 +753,21 @@ int write_file_register(plugin_t *pl)
 
 	filterparamdb_add_param_int(filter_paramdb(f), "sampleformat",
 				    FILTER_PARAMTYPE_INT, AF_SAMPFMT_TWOSCOMP,
-				    //	    FILTERPARAM_HIDDEN, "FIXME",
+				    FILTERPARAM_HIDDEN, "FIXME",
 				    FILTERPARAM_END);
 
 	filterparamdb_add_param_int(filter_paramdb(f), "samplewidth",
 				    FILTER_PARAMTYPE_INT, 16,
-				    // FILTERPARAM_HIDDEN, "FIXME",
+				    FILTERPARAM_HIDDEN, "FIXME",
 				    FILTERPARAM_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f), "compression",
 				    FILTER_PARAMTYPE_INT, AF_COMPRESSION_NONE,
-				    //FILTERPARAM_HIDDEN, "FIXME",
+				    FILTERPARAM_HIDDEN, "FIXME",
 				    FILTERPARAM_END);
+
+	filterparamdb_add_param_pos(filter_paramdb(f));
+
 	f->f = write_file_f;
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
