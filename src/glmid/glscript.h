@@ -100,6 +100,46 @@ extern long gpsmitem_smob_tag;
 #define scminvalidategpsmitem(s) scminvalidatepointer(s, gpsmitem_smob_tag)
 #define gpsmitem_p(s) (SCM_NIMP(s) && SCM_CAR(s) == gpsmitem_smob_tag)
 
+extern long pipe_smob_tag;
+#define scm2pipe(s) scm2pointer(s, pipe_smob_tag)
+#define pipe2scm(p) pointer2scm(p, pipe_smob_tag)
+#define scminvalidatepipe(s) scminvalidatepointer(s, pipe_smob_tag)
+#define pipe_p(s) (SCM_NIMP(s) && SCM_CAR(s) == pipe_smob_tag)
+
+extern long port_smob_tag;
+#define scm2port(s) scm2pointer(s, port_smob_tag)
+#define port2scm(p) pointer2scm(p, port_smob_tag)
+#define scminvalidateport(s) scminvalidatepointer(s, port_smob_tag)
+#define port_p(s) (SCM_NIMP(s) && SCM_CAR(s) == port_smob_tag)
+
+extern long param_smob_tag;
+#define scm2param(s) scm2pointer(s, param_smob_tag)
+#define param2scm(p) pointer2scm(p, param_smob_tag)
+#define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
+#define param_p(s) (SCM_NIMP(s) && SCM_CAR(s) == param_smob_tag)
+
+extern long plugin_smob_tag;
+#define scm2plugin(s) scm2pointer(s, plugin_smob_tag)
+#define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
+#define scminvalidateplugin(s) scminvalidatepointer(s, plugin_smob_tag)
+#define plugin_p(s) (SCM_NIMP(s) && SCM_CAR(s) == plugin_smob_tag)
+
+extern long filter_smob_tag;
+filter_t *scm2filter(SCM filter_smob);
+SCM filter2scm(filter_t *filter);
+void scminvalidatefilter(SCM filter_smob);
+#define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
+
+extern long swdir_smob_tag;
+#define scm2swdir(s) (SWDIR *)scm2pointer(s, swdir_smob_tag)
+#define swdir2scm(p) pointer2scm((void *)p, swdir_smob_tag)
+#define scminvalidateswdir(s) scminvalidatepointer(s, swdir_smob_tag)
+#define swdir_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swdir_smob_tag)
+
+extern long swfd_smob_tag;
+#define scm2swfd(s) (swfd_t)scm2long(s, swfd_smob_tag)
+#define swfd2scm(p) long2scm(p, swfd_smob_tag)
+#define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
 
 
 #endif

@@ -39,19 +39,19 @@ filter_t *last_loaded_filter_instance;
 /* SMOBs for filter_pipe_t, filter_param_t, filter_port_t and plugint_t.
  */
 
-static long pipe_smob_tag;
+long pipe_smob_tag;
 #define scm2pipe(s) scm2pointer(s, pipe_smob_tag)
 #define pipe2scm(p) pointer2scm(p, pipe_smob_tag)
 #define scminvalidatepipe(s) scminvalidatepointer(s, pipe_smob_tag)
 #define pipe_p(s) (SCM_NIMP(s) && SCM_CAR(s) == pipe_smob_tag)
 
-static long port_smob_tag;
+long port_smob_tag;
 #define scm2port(s) scm2pointer(s, port_smob_tag)
 #define port2scm(p) pointer2scm(p, port_smob_tag)
 #define scminvalidateport(s) scminvalidatepointer(s, port_smob_tag)
 #define port_p(s) (SCM_NIMP(s) && SCM_CAR(s) == port_smob_tag)
 
-static long param_smob_tag;
+long param_smob_tag;
 #define scm2param(s) scm2pointer(s, param_smob_tag)
 #define param2scm(p) pointer2scm(p, param_smob_tag)
 #define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
@@ -73,7 +73,7 @@ static int print_param(SCM param_smob, SCM port, scm_print_state *pstate)
 	return 1;
 }
 
-static long plugin_smob_tag;
+long plugin_smob_tag;
 #define scm2plugin(s) scm2pointer(s, plugin_smob_tag)
 #define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
 #define scminvalidateplugin(s) scminvalidatepointer(s, plugin_smob_tag)
@@ -89,7 +89,7 @@ struct filter_smob {
 };
 #define SCM2FILTERSMOB(s) ((struct filter_smob *)SCM_SMOB_DATA(s))
 #define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
-static SCM filter2scm(filter_t *filter);
+SCM filter2scm(filter_t *filter);
 filter_t *scm2filter(SCM filter_smob);
 
 static scm_sizet free_filter(SCM filter_smob)

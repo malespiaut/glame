@@ -28,18 +28,16 @@
 #include "glscript.h"
 
 
-#define gh_scm2swfd(s) (swfd_t)gh_scm2long(s)
-
 /* SMOBs for SWDIR, and swfd.
  */
 
-static long swdir_smob_tag;
+long swdir_smob_tag;
 #define scm2swdir(s) (SWDIR *)scm2pointer(s, swdir_smob_tag)
 #define swdir2scm(p) pointer2scm((void *)p, swdir_smob_tag)
 #define scminvalidateswdir(s) scminvalidatepointer(s, swdir_smob_tag)
 #define swdir_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swdir_smob_tag)
 
-static long swfd_smob_tag;
+long swfd_smob_tag;
 #define scm2swfd(s) (swfd_t)scm2long(s, swfd_smob_tag)
 #define swfd2scm(p) long2scm(p, swfd_smob_tag)
 #define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
