@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.21 2001/11/28 22:19:36 richi Exp $
+ * $Id: filter_param.h,v 1.22 2002/02/09 16:53:10 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -162,6 +162,7 @@ struct filter_param {
 #define FILTERPARAM_MAP_NODE "_node"
 #define FILTERPARAM_MAP_LABEL "_label"
 #define FILTER_PARAM_PROPERTY_FILE_FILTER "!filefilter"
+#define FILTERPARAM_SET_SCM "_scm"
 
 
 

@@ -822,6 +822,41 @@ static SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 	return param2scm(p);
 }
 
+static SCM gls_filter_add_param(SCM s_filter, SCM s_label, SCM s_val)
+{
+	filter_t *filter;
+	filter_param_t *param;
+	char *label;
+	int len;
+	SCM_ASSERT(filter_p(s_filter), s_filter,
+		   SCM_ARG1, "filter-add-param");
+	SCM_ASSERT(gh_string_p(s_label), s_label,
+		   SCM_ARG2, "filter-add-param");
+	filter = scm2filter(s_filter);
+	label = gh_scm2newstr(s_label, &len);
+	if (gh_exact_p(s_val)) {
+		int val = gh_scm2long(s_val);
+		param = filterparamdb_add_param(filter_paramdb(filter),
+						label, FILTER_PARAMTYPE_INT,
+						&val, FILTERPARAM_END);
+	} else if (gh_number_p(s_val)) {
+		float val = gh_scm2double(s_val);
+		param = filterparamdb_add_param(filter_paramdb(filter),
+						label, FILTER_PARAMTYPE_FLOAT,
+						&val, FILTERPARAM_END);
+	} else if (gh_string_p(s_val)) {
+		char *val = gh_scm2newstr(s_val, &len);
+		param = filterparamdb_add_param(filter_paramdb(filter),
+						label, FILTER_PARAMTYPE_STRING,
+						&val, FILTERPARAM_END);
+		free(val);
+	} else
+		scm_wrong_type_arg("filter-add-param", SCM_ARG3, s_val);
+	free(label);
+	if (!param)
+		GLAME_THROW();
+	return param2scm(param);
+}
 
 static SCM gls_create_plugin(SCM s_filter, SCM s_name)
 {
@@ -1031,6 +1066,7 @@ int glscript_init_filter()
 	gh_define("FILTERPARAM_DESCRIPTION",
 		  gh_str02scm(FILTERPARAM_DESCRIPTION));
 	gh_define("FILTERPARAM_GLADEXML", gh_str02scm(FILTERPARAM_GLADEXML));
+	gh_define("FILTERPARAM_SET_SCM", gh_str02scm(FILTERPARAM_SET_SCM));
 	gh_define("FILTERPORT_DESCRIPTION",
 		  gh_str02scm(FILTERPORT_DESCRIPTION));
 
@@ -1039,6 +1075,7 @@ int glscript_init_filter()
 	gh_new_procedure1_0("filter-expand", gls_filter_expand);
 	gh_new_procedure2_0("filter-collapse", gls_filter_collapse);
 	gh_new_procedure4_0("filter-connect", gls_filter_connect);
+	gh_new_procedure3_0("filter-add-param", gls_filter_add_param);
 
 	gh_new_procedure5_0("filternetwork-add-input",
 			    gls_filternetwork_add_input);

@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.16 2001/11/18 14:48:09 richi Exp $
+ * $Id: filter_param.c,v 1.17 2002/02/09 16:53:10 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -23,6 +23,7 @@
 #include <string.h>
 #include "gldb_string.h"
 #include "filter.h"
+#include "glscript.h"
 #include "filter_param.h"
 
 
@@ -31,7 +32,37 @@
 
 static int default_set(filter_param_t *p, const void *val)
 {
-	return 0;
+	/* The default set method looks for a param property
+	 * FILTERPARAM_SET_SCM and executes it as set method,
+	 * otherwise just defaults to accept.
+	 */
+
+	const char *scm;
+	SCM set_s, val_s, res_s;
+	scm = filterparam_get_property(p, FILTERPARAM_SET_SCM);
+	if (!scm)
+		return 0;
+
+	/* The scm should evaluate to a (lambda (network param value))
+	 * procedure. */
+	set_s = glame_gh_safe_eval_str(scm);
+	if (!gh_procedure_p(set_s))
+		return -1;
+	if (FILTER_PARAM_IS_INT(p))
+		val_s = gh_long2scm(*(int *)val);
+	else if (FILTER_PARAM_IS_FLOAT(p))
+		val_s = gh_double2scm(*(float *)val);
+	else if (FILTER_PARAM_IS_SAMPLE(p))
+		val_s = gh_double2scm(*(SAMPLE *)val);
+	else if (FILTER_PARAM_IS_STRING(p))
+		val_s = gh_str02scm(*(char **)val);
+	else
+		return -1;
+	res_s = gh_call3(set_s, filter2scm(filterparam_filter(p)),
+			 param2scm(p), val_s);
+	if (gh_boolean_p(res_s) && gh_scm2bool(res_s))
+		return 0;
+	return -1;
 }
 
 static int redirect_set(filter_param_t *param, const void *val)
