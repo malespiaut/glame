@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.16 2002/02/24 22:39:25 richi Exp $
+ * $Id: ladspa.c,v 1.17 2002/04/16 18:24:16 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -586,6 +586,12 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 				psDescriptor->PortNames[lPortIndex],
 				FILTER_PARAMTYPE_DOUBLE, fRecommendation,
 				FILTERPARAM_END);
+			if (!param) {
+				DPRINTF("Cannot add param for port %i (%s)\n",
+					(int)lPortIndex, psDescriptor->PortNames[lPortIndex]);
+				continue;
+			}
+
 			if (bound_below && bound_above) {
 				/* Use GtkHScale */
 				char xml[1024];
