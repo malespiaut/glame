@@ -190,7 +190,7 @@ GtkWidget* gui_glame_editor_setup()
 			fd = sw_open(name, O_RDONLY, TXN_NONE);
 			sw_fstat(fd, &fstat);
 			sw_close(fd);
-			node = new_buffer_gnode(g_strdup_printf("Track-%d", i), name, 0.0, 
+			node = new_buffer_gnode(g_strdup_printf("Track-%d", name), name, 0.0, 
 						44100, fstat.size, FALSE);
 			g_node_append(node1, node);
 			i++;
