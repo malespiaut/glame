@@ -63,6 +63,7 @@ struct _WaveeditGui {
 	long pm_start;
 	long pm_size;
 	long pm_marker;
+	gboolean pm_loop;
 
 	/* flag, if we are modified */
 	int modified;

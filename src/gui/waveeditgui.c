@@ -443,10 +443,15 @@ static void play_update_marker(glsig_handler_t *handler,
 
 	waveedit = (WaveeditGui *)glsig_handler_private(handler);
 	pos = filterparam_val_long(waveedit->pm_param);
-	if (waveedit->pm_size > 0)
+	if (waveedit->pm_loop && waveedit->pm_size > 0)
 		pos = pos % waveedit->pm_size;
-	gtk_wave_view_set_marker_and_scroll(
-		GTK_WAVE_VIEW(waveedit->waveview), waveedit->pm_start + pos);
+	if (waveedit->pm_loop
+	    && gtk_wave_view_selection_completely_visible(GTK_WAVE_VIEW(waveedit->waveview)))
+		gtk_wave_view_set_marker(GTK_WAVE_VIEW(waveedit->waveview),
+					 waveedit->pm_start + pos);
+	else
+		gtk_wave_view_set_marker_and_scroll(GTK_WAVE_VIEW(waveedit->waveview),
+						    waveedit->pm_start + pos);
 }
 static void play(GtkWaveView *waveview,
 		 gint32 start, gint32 end,
@@ -589,6 +594,7 @@ static void play(GtkWaveView *waveview,
 		filter_paramdb(aout ? aout : swout), FILTERPARAM_LABEL_POS);
 	active_waveedit->pm_start = start;
 	active_waveedit->pm_size = end - start + 1;
+	active_waveedit->pm_loop = loop;
 	if (play_cnt == 0)
 		glame_network_notificator_set_wbufsize(emitter, GLAME_BULK_BUFSIZE);
 	if (glame_network_notificator_run(emitter, 10) == -1) {
@@ -1257,6 +1263,31 @@ GtkType waveedit_gui_get_type(void)
 	return waveedit_gui_type;
 }
 
+static GnomeUIInfo window_menu[] = {
+	{
+	    GNOME_APP_UI_SUBTREE, N_("_Edit"),
+	    NULL,
+	    edit_menu, NULL, NULL,
+	    GNOME_APP_PIXMAP_NONE, NULL,
+	    0, 0, NULL
+	},
+	{
+	    GNOME_APP_UI_SUBTREE, N_("_View"),
+	    NULL,
+	    view_menu, NULL, NULL,
+	    GNOME_APP_PIXMAP_NONE, NULL,
+	    0, 0, NULL
+	},
+	{
+	    GNOME_APP_UI_SUBTREE, N_("_Select"),
+	    NULL,
+	    select_menu, NULL, NULL,
+	    GNOME_APP_PIXMAP_NONE, NULL,
+	    0, 0, NULL
+	},
+	GNOMEUIINFO_END
+};
+
 WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
 	WaveeditGui *window;
@@ -1277,6 +1308,13 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	window->root = item;
 	window->swfiles = swfiles;
 	window->modified = 0;
+
+	/* Create menubar - FIXME copy all uiinfos, restructure to
+	 * match nice menu layout, etc. */
+#if 0
+	gnome_app_create_menus(GNOME_APP(window), window_menu);
+	gnome_app_install_menu_hints(GNOME_APP(window), window_menu);
+#endif
 
 	/* Create a GtkWaveView widget. */
 	window->waveview = gtk_wave_view_new ();
@@ -1375,7 +1413,6 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 			      "waveedit::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_TOP, 0, 0, 0);
-
 
 	/* Install the rmb menu and enter/leave callbacks. */
 	gtk_signal_connect(GTK_OBJECT(window->waveview), "button_press_event",
