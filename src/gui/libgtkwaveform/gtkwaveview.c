@@ -479,6 +479,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   guint32   n_samples, n_channels;
   guint32   i, j, width, start_x, offset;
   gint16    max_val, min_val;
+  gboolean  exact;
 
   if (waveview->wavebuffer == NULL)
     return;
@@ -553,6 +554,8 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
       accum = 1073741824U; /* 2147483648 / 2, round to nearest unit */
       count = 0;
       delta = (guint32) (2147483648.0 / waveview->zoom);
+      exact = (waveview->zoom < REDRAW_BUFFER);
+
       while (pos <= last_sample_offset)
         {
           size = MIN (REDRAW_BUFFER, last_sample_offset - pos + 1);
@@ -563,38 +566,65 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 		  goto out;
 	  }
 
-          /* Read data chunk. */
-          gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
+	  if (exact) {
+             /* Read data chunk. */
+	     gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
 
-          /* Convert data to s16 if it's not already in that format. */
-          if (datatype != G_WAVEFILE_TYPE_S16)
-            g_wavefile_type_convert (waveview->n_channels, size, G_WAVEFILE_TYPE_S16, data16, datatype, data);
+	     /* Convert data to s16 if it's not already in that format. */
+	     if (datatype != G_WAVEFILE_TYPE_S16)
+		g_wavefile_type_convert (waveview->n_channels, size, G_WAVEFILE_TYPE_S16, data16, datatype, data);
 
-          pos16 = 0;
-          for (i = 0; i < size; i++)
-            {
-              /* For each sample of a track, keep min and max values. */
-              for (j = 0; j < n_channels; j++)
-                {
-                  gint16 val = data16[pos16++];
-
-                  if (val < min[j]) min[j] = val;
-                  if (val > max[j]) max[j] = val;
+	     pos16 = 0;
+	     for (i = 0; i < size; i++) {
+		/* For each sample of a track, keep min and max values. */
+		for (j = 0; j < n_channels; j++) {
+		   gint16 val = data16[pos16++];
+		   if (val < min[j]) min[j] = val;
+		   if (val > max[j]) max[j] = val;
                 }
 
-              /* Do Bresenham's algorithm */
-              accum += delta;
+		/* Do Bresenham's algorithm */
+		accum += delta;
 
-              if (accum >= 2147483648U)
-                {
-                  accum -= 2147483648U;
-
-                  gtk_wave_view_cache_add (waveview, offset + min_val + count, min, max);
-                  gtk_wave_view_cache_paint (waveview, offset, min_val + count);
-
-                  count++;
+		if (accum >= 2147483648U) {
+		   accum -= 2147483648U;
+		   gtk_wave_view_cache_add (waveview, offset + min_val + count, min, max);
+		   gtk_wave_view_cache_paint (waveview, offset, min_val + count);
+		   count++;
                 }
-            }
+	     }
+
+	  } else {
+             /* Do Bresenham's algorithm */
+             accum += delta*size;
+
+             if (accum >= 2147483648U) {
+		accum -= 2147483648U;
+
+		/* Read data chunk. */
+		gtk_wave_buffer_get_samples (waveview->wavebuffer, pos, size, 0xffffffff, data);
+
+		/* Convert data to s16 if it's not already in that format.  */
+		if (datatype != G_WAVEFILE_TYPE_S16)
+		   g_wavefile_type_convert (waveview->n_channels, size, G_WAVEFILE_TYPE_S16, data16, datatype, data);
+
+		pos16 = 0;
+		for (i = 0; i < size; i++) {
+		   /* For each sample of a track, keep min and max values. */
+		   for (j = 0; j < n_channels; j++) {
+		      gint16 val = abs(data16[pos16++]);
+		      if (val > max[j]) { 
+			 max[j] = val;
+			 min[j] = -val;
+		      }
+		   }
+		}
+
+		gtk_wave_view_cache_add (waveview, offset + min_val + count, min, max);
+		gtk_wave_view_cache_paint (waveview, offset, min_val + count);
+		count++;
+	     }
+	  }
 
 	  /* Be nice to the user. */
 	  if (gtk_events_pending()) {
