@@ -142,7 +142,7 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 	else if (GPSM_ITEM_IS_GRP(i->item))
 		menu = gnome_popup_menu_new(group_menu_data);
         else
-		return FALSE;
+		return TRUE;
 
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i);
 	return TRUE;
@@ -267,14 +267,18 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 	} else if (GPSM_ITEM_IS_GRP(item->item)) {
 		gpsm_grp_t *group = (gpsm_grp_t *)item->item;
 		gpsm_item_t *it;
+		int rate;
 		i=0;
 		gpsm_grp_foreach_item(group, it) {
 			if (!GPSM_ITEM_IS_SWFILE(it))
 				return;
+			rate = gpsm_swfile_samplerate(it);
 			names[i++] = gpsm_swfile_filename(it);
 		}
+		if (i == 0)
+			return;
 		we = glame_waveedit_gui_new_a(gpsm_item_label(item->item), i,
-					      gpsm_swfile_samplerate(it),
+					      rate,
 					      names);
 	}
 	if (!we) {
@@ -503,9 +507,9 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 
 	/* Register gtk handlers and append the item widget. */
 	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
-				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
 				 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
+	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
+				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
 	glame_tree_append(tree, itemw);
 	glame_tree_item_update(itemw);
 

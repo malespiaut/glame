@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.11 2001/04/02 19:47:22 xwolf Exp $
+ * $Id: canvas_types.c,v 1.12 2001/04/03 16:32:29 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -250,7 +250,6 @@ glame_canvas_port_new(GnomeCanvasGroup *group,
 				     "width_units",1.0,
 				     "fill_color_rgba",color,
 				     NULL));
-				   
 	item->port = port;
 	return item;
 }

@@ -382,6 +382,7 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 		filter_t *swin;
 		int swname = names[i];
 		swin = filter_instantiate(plugin_get("swapfile_in"));
+		fprintf(stderr,"rate: %d\n",rate);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
 		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
