@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.4 2001/04/14 17:37:55 nold Exp $
+ * $Id: audio_io_esd.c,v 1.5 2001/04/16 16:13:11 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -37,13 +37,14 @@ static int esd_in_f(filter_t *n)
 	filter_param_t	*dev_param, *duration, *rate_param;
 	char	*in;
 	gl_s16	*buf;
-	ssize_t	buf_size = ESD_BUF_SIZE, fbuf_size;
+	ssize_t	buf_size = ESD_BUF_SIZE, inbuf_spc;
 	
 	esd_format_t	format;
         char	*host = NULL;
 	int	channels, ch, rate = GLAME_DEFAULT_SAMPLERATE;
 	int	sock, length, endless = 0;
-	float	time = 0.0, maxtime = 0.0;
+	int	width;
+	float	nsamples = 0.0, maxsamples = 0.0;
 
 	if (!(channels = filternode_nroutputs(n)))
 		FILTER_ERROR_RETURN("No outputs.");
@@ -62,8 +63,8 @@ static int esd_in_f(filter_t *n)
 	 */ 
 	duration = filternode_get_param(n, "duration");
 	if (duration)
-		maxtime = filterparam_val_float(duration) * rate;
-	if (maxtime <= 0.0)
+		maxsamples = filterparam_val_float(duration) * rate;
+	if (maxsamples <= 0.0)
 		endless = 1;
 	
 	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
@@ -76,19 +77,32 @@ static int esd_in_f(filter_t *n)
 		pipe[1] = t;
 	}
 	
-	format = ESD_BITS16 | ESD_STREAM | ESD_RECORD | 
-	         (channels == 1) ? ESD_MONO : ESD_STEREO;
+	width = 16;	/* FIXME */
+	switch (width) {
+	case 16:
+		format = ESD_BITS16;
+		break;
+	case 8:
+		format = ESD_BITS8;
+		break;
+	default:
+		FILTER_ERROR_RETURN("Illegal sample width!");
+	}
+	format |= ESD_STREAM | ESD_RECORD | 
+	          (channels == 1) ? ESD_MONO : ESD_STEREO;
 	sock = esd_record_stream_fallback(format, rate, host, NULL);
 	if (sock <= 0)
 		FILTER_ERROR_RETURN("Couldn't open esd socket!");
 
 	if ((buf = (gl_s16 *)malloc(buf_size)) == NULL)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
-	fbuf_size = buf_size/channels;
+
+	/* Calculate number of samples per channel. */
+	inbuf_spc = buf_size/channels/(width>>3);
 	
 	FILTER_AFTER_INIT;
 	
-	while (endless || time < maxtime) {
+	while (endless || nsamples < maxsamples) {
 		int i, pos;
 		
 		FILTER_CHECK_STOP;
@@ -106,20 +120,20 @@ static int esd_in_f(filter_t *n)
 			length -= ret;
 		}
 		for (ch = 0; ch < channels; ch++) {
-			fbuf = sbuf_make_private(sbuf_alloc(fbuf_size, n));
+			fbuf = sbuf_make_private(sbuf_alloc(inbuf_spc, n));
 			if (!fbuf) {
 				DPRINTF("alloc error!\n");
 				goto _out;
 			}
 			pos = 0;
 			i = ch;
-			while (pos < fbuf_size) {
+			while (pos < inbuf_spc) {
 				sbuf_buf(fbuf)[pos++] = SHORT2SAMPLE(buf[i]);
 				i += channels;
 			}
 			sbuf_queue(pipe[ch], fbuf);
 		}
-		time += fbuf_size;
+		nsamples += inbuf_spc;
 	}
 _out:
 	for (ch = 0; ch < channels; ch++)
