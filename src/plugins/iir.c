@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.9 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: iir.c,v 1.10 2001/04/06 18:22:44 nold Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -100,7 +100,7 @@ void free_glame_iir(glame_iir_t *gt){
 
 int chebyshev_stage(glame_iir_t *gt, int n){
 	chebtype h,rp,ip,es,kx,vx,t,w,m,d,k,gain;
-	chebtype *x,*y,*a,*b;
+	chebtype *x=NULL, *y=NULL, *a=NULL, *b=NULL;
 	int res=-1,i;
 	
 	if (n>gt->nstages)

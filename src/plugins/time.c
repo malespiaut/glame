@@ -58,8 +58,8 @@ static int time_f(filter_t *n)
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
 	filter_param_t *param;
-
-	long long t_on,t_off;  	// Hmm, not a very portable code - really
+  	// Hmm, not a very portable code - really
+	long long t_on = 0, t_off = 0;
 	long long sno = 0;	/* need infinite precision here.  Needs to
 				 * be an integer (mathematical style), so
 				 * float is out.
