@@ -1,0 +1,8 @@
+@comment $Id: filter.texi,v 1.1 2000/02/05 00:01:53 nold Exp $
+
+@node Filter API, Swapfile API, Copying, Top
+@chapter Filter API
+
+FIXME: Richi's yet again changing the API. Updated docs will be available
+within a few days. Hold on.
+
