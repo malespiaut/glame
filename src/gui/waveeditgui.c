@@ -298,6 +298,7 @@ struct network_run_s {
 	filter_param_t *pos_param;
 	long start, end, oldmarker;
 	guint tid;
+	WaveeditGui *waveedit;
 };
 static gint network_run_timeout_cb(struct network_run_s *cs)
 {
@@ -340,6 +341,7 @@ static void network_run_cleanup_cb(struct network_run_s *cs)
 		gpsm_item_destroy(cs->item);
 		DPRINTF("destroyed item\n");
 	}
+	cs->waveedit->locked = 0;
 	free(cs);
 }
 static struct network_run_s *network_run_create(filter_t *net,
@@ -363,6 +365,8 @@ static struct network_run_s *network_run_create(filter_t *net,
 		cs->oldmarker = gtk_wave_view_get_marker(waveview);
 		cs->tid = gtk_timeout_add(10, (GtkFunction)network_run_timeout_cb, cs);
 	}
+	cs->waveedit = active_waveedit;
+	cs->waveedit->locked = 1;
 	return cs;
 }
 
@@ -869,9 +873,9 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 		y_position += 100;
 	}
 
-	/* Prepare for undo -- NO(!?). FIXME
+	/* Prepare for undo -- NO(!?). FIXME -- Yes, still FIXME. */
 	if (gpsm_op_prepare(item) == -1)
-	DPRINTF("Error preparing for undo\n"); */
+		DPRINTF("Error preparing for undo\n");
 
 	/* Pop up the custom generated canvas - the wave widget is
 	 * updated after destruction. FIXME - if gpsm is modified, the
