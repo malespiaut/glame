@@ -4,7 +4,6 @@ supposed to fix it.
 
 Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
-- fix glame_audiofile wav writing
 - audit/fix available gettext entries, merge external
   patches
 - documentation
