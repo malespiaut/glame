@@ -3,7 +3,7 @@
 
 /*
  * glfileio.h
- * $Id: glfileio.h,v 1.3 2001/10/17 09:27:55 richi Exp $
+ * $Id: glfileio.h,v 1.4 2001/10/17 09:53:45 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -45,10 +45,6 @@ static char glfile_label[8][10] = { "raw", "aiffc", "aiff", "snd", "wave", "bics
 
 /* this data type defines a reader or writer plugin */
 
-typedef struct {
-	struct glame_list_head list;
-
-} glfileio_plugin_t;
 
 
 /* used to return queried information */
@@ -72,11 +68,43 @@ typedef struct {
 	} u;
 } glfileio_query_t;
 
+typedef struct {
+	SAMPLE *buffer;
+	long length;
+	long pos;
+	int num;
+	/* extend here */
+} glfile_channel_t;
+
+typedef struct {
+	int glame_specific_metainfo;
+} glfile_metainfo_t;
+
+typedef struct {
+	struct glame_list_head list;
+	/* query plugin features */
+	glfileio_query_t* (*query) (int, void*);
+	int (*open) (const char*, void*);
+	int (*close) (void*);
+
+	/* minimum is to implement read function */
+	int (*read) (glfile_channel_t*, void*);
+	int (*write) (glfile_channel_t*, void*);
+	
+	/* add metainformation to file, does not need to exist
+	 * metainfo is written or not depending on underlying
+	 * writer
+	 */
+	glfile_metainfo_t (*readmeta) ();
+	void (*writemeta) (glfile_metainfo_t*);
+} glfileio_plugin_t;
+
 /* file context for openend file */
 
-typdef struct {
+typedef struct {
 	glfileio_plugin_t* rwplugin;
-	int format;
+	/* plugin private data for specific file */
+	void *priv;
 } glfileio_file_t;
 
 /* register glame readers and writers */
@@ -91,12 +119,24 @@ void glfile_close(glfileio_file_t*);
 /* query file */
 glfileio_query_t *glfile_query(glfileio_file_t*);
 
+/* read data from file, SAMPLE* buffer, buffer length, file position, channel number */
+int glfile_read(glfileio_file_t*, glfile_channel_t*);
+
+/* write data to file */
+int glfile_write(glfileio_file_t*, glfile_channel_t*);
+
+/* read and write metainfo */
+
+void glfile_writemeta(glfileio_file_t*, glfile_metainfo_t*);
+glfile_metainfo_t* glfile_readmeta(glfileio_file_t*);
+
 
 /* plugin queries */
 
 enum {
 	/* return index array of supported formats */
 	GLFILE_QUERY_SUPPORTED
+	/* more to come...*/
 };
 
 /* query reader/writer plugin */
