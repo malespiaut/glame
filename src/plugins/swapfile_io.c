@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.10 2001/04/10 13:58:31 richi Exp $
+ * $Id: swapfile_io.c,v 1.11 2001/04/17 17:54:52 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -191,7 +191,7 @@ static int swapfile_out_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
-	long fname, offset;
+	long fname, offset, size, cnt;
 	swfd_t fd;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
@@ -212,19 +212,38 @@ static int swapfile_out_f(filter_t *n)
 			sw_close(fd);
 		}
 	}
+	size = filterparam_val_int(filternode_get_param(n, "size"));
 
 	FILTER_AFTER_INIT;
 
-	while ((buf = sbuf_get(in))) {
+	while ((size != 0) && (buf = sbuf_get(in))) {
 		FILTER_CHECK_STOP;
 
+		/* Check, if we are allowed to write the full buffer. */
+		cnt = sbuf_size(buf);
+		if (size != -1)
+			cnt = MIN(cnt, size);
+
 		/* Write the buffers data to the file. */
-		if (sw_write(fd, sbuf_buf(buf), sbuf_size(buf)*SAMPLE_SIZE)
-		    != sbuf_size(buf)*SAMPLE_SIZE)
+		if (sw_write(fd, sbuf_buf(buf), cnt*SAMPLE_SIZE)
+		    != cnt*SAMPLE_SIZE)
 			DPRINTF("Did not write the whole buffer!?");
+
+		/* Update size, if necessary. */
+		if (size != -1)
+			size -= cnt;
 
 		/* free the buffer */
 		sbuf_unref(buf);
+	}
+
+	/* Rest goes to the bitbucket. */
+	while (buf) {
+		FILTER_CHECK_STOP;
+
+		buf = sbuf_get(in);
+		if (buf)
+			sbuf_unref(buf);
 	}
 
 	FILTER_BEFORE_STOPCLEANUP;
@@ -252,6 +271,10 @@ int swapfile_out_register(plugin_t *p)
 	filterparamdb_add_param_int(filter_paramdb(f), "offset",
 				FILTER_PARAMTYPE_INT, -1,
 				FILTERPARAM_DESCRIPTION, "offset to start writing or -1 for new file",
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "size",
+				FILTER_PARAMTYPE_INT, -1,
+				FILTERPARAM_DESCRIPTION, "max size to record or -1 for the full stream",
 				FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to swapfile file");
