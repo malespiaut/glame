@@ -414,7 +414,10 @@ if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 	i?86)
 		AC_DEFINE(CPU_X86);;
 	mips*)
-		AC_DEFINE(CPU_MIPS);;
+		AC_DEFINE(CPU_MIPS)
+		ACG_CHECK_MIPS_LL_SC([
+			AC_DEFINE(HAVE_MIPS_LL_SC)
+		]);;
 	powerpc)
 		AC_DEFINE(CPU_PPC);;
 	alpha*)

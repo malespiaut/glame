@@ -46,6 +46,9 @@
 #undef CPU_PPC
 #undef CPU_ALPHA
 
+/* define if your mips cpu understands ll and sc opcodes */
+#undef HAVE_MIPS_LL_SC
+
 /* define which os you use */
 #undef OS_LINUX
 #undef OS_BSD
