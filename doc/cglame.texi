@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.9 2000/10/10 11:52:57 richi Exp $
+@comment $Id: cglame.texi,v 1.10 2000/12/11 10:41:58 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -83,34 +83,43 @@ on success or @code{#f} on error. Void functions generally evaluate to
 @node Scheme Filter API, Scheme Swapfile API,, Wrapped API
 @subsection Scheme Filter API
 
-@deftypefun ( filternetwork_new )
-@deftypefunx ( filternetwork_delete net-id )
-@deftypefunx ( filternetwork_add_node net-id filter-name node-name )
-@deftypefunx ( filternetwork_delete_node node-id )
-@deftypefunx ( filternetwork_add_connection node-id port-name node-id port-name )
-@deftypefunx ( filternetwork_break_connection pipe-id )
-@deftypefunx ( filternetwork_launch net-id )
-@deftypefunx ( filternetwork_start net-id )
-@deftypefunx ( filternetwork_pause net-id )
-@deftypefunx ( filternetwork_wait net-id )
-@deftypefunx ( filternetwork_terminate net-id )
-@deftypefunx ( filternetwork_add_input net-id node-id port-name name description )
+@deftypefun ( filter_creat [filter] )
+@deftypefunx ( filter_instantiate plugin )
+@deftypefunx ( filter_add_node filter filter node-name )
+@deftypefunx ( filter_connect filter port-name filter port-name )
+@deftypefunx ( filter_to_string filter )
+@end deftypefun
+
+@deftypefun ( delete object )
+@deftypefunx ( get-name object )
+@deftypefunx ( set-property object label value )
+@deftypefunx ( get-property object label )
+@deftypefunx ( get-nodes object )
+@deftypefunx ( get-params object )
+@deftypefunx ( get-ports object )
+@deftypefunx ( get-pipes object )
+These procedures operate on filters, ports, pipes and params.
+@end deftypefun
+
+@deftypefun ( filter_launch filter )
+@deftypefunx ( filter_start filter )
+@deftypefunx ( filter_pause filter )
+@deftypefunx ( filter_wait filter )
+@deftypefunx ( filter_terminate filter )
+@end deftypefun
+
+@deftypefun ( filternetwork_add_input net-id node-id port-name name description )
 @deftypefunx ( filternetwork_add_output net-id node-id port-name name description )
 @deftypefunx ( filternetwork_add_param net-id node-id param-name name description )
-@deftypefunx ( filternetwork_to_string net-id )
 @deftypefunx ( filternode_set_param node-id param-name value )
 @deftypefunx ( filterpipe_set_sourceparam pipe-id param-name value )
 @deftypefunx ( filterpipe_set_destparam pipe-id param-name value )
-@code{filternetwork_new} evaluates to a @code{net-id},
-@code{filternetwork_add_node} to a @code{node-id},
-@code{filternetwork_add_connection} to a @code{pipe-id}.
 @end deftypefun
 
-@deftypefun ( filternetwork_to_filter net-id name description )
-This procedure is not part of the native C interface, but is a combination
-of the @code{filter_from_network()} and @code{filter_add()} functions. I.e.
-the provided filternetwork is added to the filter database using the
-specified name and description.
+@deftypefun ( glame-create-plugin filter name )
+Create and register a new plugin using the specified name and associate
+it with the provided filter. Evaluates to a plugin or to @code{#f} on
+error.
 @end deftypefun
 
 

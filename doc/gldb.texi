@@ -1,4 +1,4 @@
-@comment $Id: gldb.texi,v 1.1 2000/11/15 09:38:24 richi Exp $
+@comment $Id: gldb.texi,v 1.2 2000/12/11 10:41:58 richi Exp $
 
 @node GLAME Database Interface, GLAME Signal Interface, Plugin Interface, Top
 @chapter GLAME Database Interface
@@ -40,6 +40,43 @@ API.
 
 @node The GLAME Database API, Existing GLAME Database Specializations, The Internal gldb Operations, GLAME Database Interface
 @subsection The GLAME Database API
+
+The external visible API of a generic database is the following (see
+the @file{src/hash/gldb.h} file):
+
+@tindex gldb_t
+@deftypefun void gldb_init (gldb_t *@var{db})
+@deftypefunx void gldb_delete (gldb_t *@var{db})
+@deftypefunx int gldb_copy (gldb_t *@var{dest}, gldb_t *@var{source})
+@deftypefunx int gldb_nritems (gldb_t *@var{db})
+These function operate on a whole database, respectively initialize
+an empty database, deletes all items of a database, copies all items
+from one database to another and tells about the number of items
+in the database.
+@end deftypefun
+
+@tindex gldb_item_t
+@deftypefun void gldb_init_item (gldb_item_t *@var{item})
+@deftypefunx void gldb_delete_item (gldb_item_t *@var{item})
+@deftypefunx {gldb_item_t *} gldb_copy_item (gldb_item_t *@var{item})
+These functions operate on a database item, respectively initializing
+it, deleting it or creating a copy of it.
+@end deftypefun
+
+@tindex gldb_t
+@tindex gldb_item_t
+@deftypefun int gldb_add_item (gldb_t *@var{db}, gldb_item_t *@var{item}, const char *@var{label})
+@deftypefunx void gldb_remove_item (gldb_item_t *@var{item})
+@deftypefunx {gldb_item_t *} gldb_query_item (gldb_t *@var{db}, const char *@var{label})
+These functions can be used to add an item with the specified label to the
+database, remove it out of the database, or to query a database item by
+specifying the label that was given at addition time.
+@end deftypefun
+
+@deftypefn Iterator {} gldb_foreach_item (gldb_t *@var{db}, gldb_item_t *@var{item}) @{ @}
+Using this iterator you can iterate through all items stored in the
+specified database. You may not remove items while iterating, though.
+@end deftypefn
 
 
 @node Existing GLAME Database Specializations, , The GLAME Database API, GLAME Database Interface

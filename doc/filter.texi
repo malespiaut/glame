@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.24 2000/12/07 14:24:39 richi Exp $
+@comment $Id: filter.texi,v 1.25 2000/12/11 10:41:58 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -20,8 +20,8 @@ relevant lines and send your comments per e-mail to
 @menu
 * Introducing the Filter Subsystem::
 * The Filter Objects::
+* Filter Networks::
 * The Filter Programming API::
-* The Filter Network API::
 @end menu
 
 @node Introducing the Filter Subsystem, The Filter Objects, , Filter API
@@ -50,7 +50,7 @@ filter network into an abstract filter which you can use in another filter
 network by instantiating it.
 
 
-@node The Filter Objects, The Filter Programming API, Introducing the Filter Subsystem, Filter API
+@node The Filter Objects, Filter Networks, Introducing the Filter Subsystem, Filter API
 @section The Filter Objects
 
 @menu
@@ -74,6 +74,12 @@ are cloned.
 
 The following functions, often implemented using macros, are available
 to obtain parts of the @code{filter_t} object.
+
+@tindex filter_t
+@deftypefun {const char *} filter_name (filter_t *@var{f})
+Using this function you get access to the filters name which is used
+to uniquely identify it among the childs of its parent filter.
+@end deftypefun
 
 @tindex filter_paramdb_t
 @deftypefun {filter_paramdb_t *} filter_paramdb (filter_t *@var{f})
@@ -178,6 +184,19 @@ as ports, parameters, pipes and child filters.
 @end deftypefun
 
 @tindex filter_t
+@deftypefun void filter_set_property (filter_t *@var{f}, const char *@var{label}, const char *@var{value})
+Sets the property named @var{label} to the value @var{value}. Properties
+of filters are for free use by the user and contents are saved/restored
+by @code{filter_to_string()}.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun {const char *} filter_get_property (filter_t *@var{f}, const char *@var{label})
+Returns the value of the property named @var{label} or @code{NULL}, if no
+such property does exist.
+@end deftypefun
+
+@tindex filter_t
 @tindex plugin_t
 @deftypefun int filter_register (filter_t *@var{f}, plugint_t *@var{p})
 This function tries to associate the given filter instance with the
@@ -214,47 +233,8 @@ In addition to these first class object databases there are databases
 which store strings -- the property databases which exist in each of
 @code{plugin_t}, @code{filter_param_t} and @code{filter_port_t}.
 
-The external visible API of a generic database is the following (see
-the @file{src/hash/gldb.h} file):
-
-@tindex gldb_t
-@deftypefun void gldb_init (gldb_t *@var{db})
-@deftypefunx void gldb_delete (gldb_t *@var{db})
-@deftypefunx int gldb_copy (gldb_t *@var{dest}, gldb_t *@var{source})
-@deftypefunx int gldb_nritems (gldb_t *@var{db})
-These function operate on a whole database, respectively initialize
-an empty database, deletes all items of a database, copies all items
-from one database to another and tells about the number of items
-in the database.
-@end deftypefun
-
-@tindex gldb_item_t
-@deftypefun void gldb_init_item (gldb_item_t *@var{item})
-@deftypefunx void gldb_delete_item (gldb_item_t *@var{item})
-@deftypefunx {gldb_item_t *} gldb_copy_item (gldb_item_t *@var{item})
-These functions operate on a database item, respectively initializing
-it, deleting it or creating a copy of it.
-@end deftypefun
-
-@tindex gldb_t
-@tindex gldb_item_t
-@deftypefun int gldb_add_item (gldb_t *@var{db}, gldb_item_t *@var{item}, const char *@var{label})
-@deftypefunx void gldb_remove_item (gldb_item_t *@var{item})
-@deftypefunx {gldb_item_t *} gldb_query_item (gldb_t *@var{db}, const char *@var{label})
-These functions can be used to add an item with the specified label to the
-database, remove it out of the database, or to query a database item by
-specifying the label that was given at addition time.
-@end deftypefun
-
-@deftypefn Iterator {} gldb_foreach_item (gldb_t *@var{db}, gldb_item_t *@var{item}) @{ @}
-Using this iterator you can iterate through all items stored in the
-specified database. You may not remove items while iterating, though.
-@end deftypefn
-
-For information about the internal operation of the glame database
-framework and how to create new databases for a special object you are
-referred to the actual headerfiles and the documentation contained
-therein.
+For general notes on how to access the databases see
+@ref{GLAME Database Interface}.
 
 
 
@@ -272,7 +252,7 @@ Access the parameters label as used in the database.
 
 @tindex filter_param_t
 @tindex filter_t
-@deftypefun filter_t filterparam_filter (filter_param_t *@var{param})
+@deftypefun {filter_t *} filterparam_filter (filter_param_t *@var{param})
 Access the filter the parameter or its pipe is attached to.
 @end deftypefun
 
@@ -368,7 +348,9 @@ Delete a parameter out of its database.
 @tindex filter_param_t
 @deftypefun int filterparam_redirect (filter_param_t *@var{source}, filter_param_t *@var{dest})
 Redirects parameter set/query operations (by copy!) to the specified
-parameter. Returns 0 on success, -1 on error.
+parameter. Note that this is only useful for redirections of externally
+visible parameters from a macro filter to one of its direct cilds.
+Returns 0 on success, -1 on error.
 @end deftypefun
 
 @tindex filter_param_t
@@ -428,64 +410,90 @@ use the following function.
 
 @tindex filter_port_t
 @deftypefun {const char *} filterport_label (filter_port_t *@var{port})
+Returns the label of the specified port.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun int filterport_type (filter_port_t *@var{port})
+Returns the type of the specified port. Supported port types are
+@code{FILTER_PORTTYPE_ANY}, @code{FILTER_PORTTYPE_SAMPLE} and
+@code{FILTER_PORTTYPE_FFT}.
 @end deftypefun
 
 @tindex filter_port_t
 @tindex filter_paramdb_t
 @deftypefun {filter_paramdb_t *} filterport_paramdb (filter_port_t *@var{port})
+Using this function you get access to the ports parameter database
+which is used to initialize the pipe parameter database on the ports
+end.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun int filterport_is_input (filter_port_t *@var{port})
+Returns 1, if the specified port is an input port, or 0, if this
+is not the case.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun int filterport_is_output (filter_port_t *@var{port})
+Returns 1, if the specified port is an output port, or 0, if this
+is not the case.
 @end deftypefun
 
 @tindex filter_port_t
 @tindex glsig_emitter_t
 @deftypefun {glsig_emitter_t *} filterport_emitter (filter_port_t *@var{port})
+Gets you access to the ports signal emitter through which all signals
+originating from any connected pipe are propagated upwards.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun {filter_t *} filterport_filter (filter_port_t *@var{port})
+Returns the filter to which the specified port is attached to.
 @end deftypefun
 
 
 @tindex filter_port_t
 @deftypefun {const char *} filterport_get_property (filter_port_t *@var{port}, const char *@var{label})
+Gets the value of the property specified by @var{label} out of the
+ports property database or @code{NULL}, if there is no such property.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun void filterport_set_property (filter_port_t *@var{port}, const char *@var{label}, const char *@var{value})
+Sets the property @var{label} to the specified @var{value}.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun int filterport_nrpipes (filter_port_t *@var{port})
+Returns the number of connected pipes.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun {filter_pipe_t *} filterport_get_pipe (filter_port_t *@var{port})
+Returns a connected pipe or @code{NULL} if no pipes are available. Use this
+in conjunction with @code{filterport_next_pipe()} to iterate through all
+connected pipes.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefun {filter_pipe_t *} filterport_next_pipe (filter_port_t *@var{port}, filter_pipe_t *@var{pipe})
+Returns the next connected pipe after @var{pipe} of the specified port.
+Returns @code{NULL}, if no further pipe is available.
 @end deftypefun
 
 @tindex filter_port_t
 @deftypefn Iterator filterport_foreach_pipe (filter_port_t *@var{port}, filter_pipe_t *@var{pipe}) @{ @}
+A different way to iterate through all available pipes is using this
+iterator. But you may not delete pipes while iterating.
 @end deftypefn
 
 
 @tindex filter_port_t
 @deftypefun int filterport_redirect (filter_port_t *@var{source}, filter_port_t *@var{dest})
-Redirects connections to this port to another port. Works automagically
-for network filter ports. Returns -1 on error, 0 on success.
+Redirects connections to this port to another port. Useful only for redirecting
+externally visible ports of a macro filter to one of its direct childs.
+Returns -1 on error, 0 on success.
 @end deftypefun
 
 @tindex filter_port_t
@@ -622,15 +630,65 @@ pipe.
 
 
 
+@node Filter Networks, The Filter Programming API, The Filter Objects, Filter API
+@section Filter Networks
 
-@node The Filter Programming API, The Filter Network API, The Filter Objects, Filter API
+Constructing filter networks and reusing them as filters is one of the
+powerful tools of GLAME. In this section you learn how to use networks
+of filters you have constructed (see the previous section on how to
+do this, look for @code{filter_add_node()} and @code{filterport_connect}).
+
+First there are operations to actually do work using a filter network.
+They usually will launch lots of threads and while a filter network is
+operating you may not modify its structure.
+
+@tindex filter_t
+@deftypefun int filter_launch (filter_t *@var{net})
+@code{filter_launch()} asynchronously starts the init phase of a
+previously constructed filter using a set of filter threads.
+@code{filter_launch()} returns -1 if there were any problems launching
+the filter or 0 on success.  Errors in the initialisation
+process of the filters' @code{f()} methods are not reported by
+@code{filter_launch()} but can instead be obtained by using
+@code{filter_wait()} or @code{filter_start()}. Processing of the data is
+not started until @code{filter_start()} is called.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun int filter_start (filter_t *@var{net})
+@deftypefunx int filter_pause (filter_t *@var{net})
+With @code{filter_start()} you can start processing data on a previously
+launched or paused filter. With @code{filter_pause()} you can
+temporarily stop processing of any data in a previously started
+filter. Both functions return -1 if any error occured in the process of
+starting, pausing or in the filter threads.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun int filter_wait (filter_t *@var{net})
+@code{filter_wait()} waits for a previously launched filter to
+finish processing.  @code{filter_wait()} returns 0 if the filter
+terminated regularly, and -1 if there were any errors, either in waiting
+for the filter or in processing the filter.
+@end deftypefun
+
+@tindex filter_t
+@deftypefun void filter_terminate (filter_t *@var{net})
+@code{filter_terminate} kills a previously launched filter. It
+doesn't wait for it to finish processing all data.
+@end deftypefun
+
+
+
+
+@node The Filter Programming API, , Filter Networks, Filter API
 @section The Filter Programming API
 
 The filter programming API consists of functions to receive, create and forward
 buffers, of functions to access the connections made to the filters ports, and
 of functions to get and set the filters parameters. The filter programming API
 also defines the semantics of the methods provided by the filters itself as
-they are used by the filter network API. The filter programming API is
+they are used by the filter network. The filter programming API is
 designed to be thread safe.
 
 @menu
@@ -650,11 +708,11 @@ mandatory. You have to set all other methods explicitly---sane defaults are
 provided for them. To learn about semantic details you may want to look into
 the file @file{src/filter/filter_network.c}, too.
 
-@tindex filter_node_t
-@deftypefn Method int f (filter_node_t *@var{n})
+@tindex filter_t
+@deftypefn Method int f (filter_t *@var{n})
 @code{f()} is the main method of every filter, it's the only mandatory method. 
 @code{f()} does the filter work, i.e. it gets launched as thread once the
-filter network starts operating. See below for what to do in this
+filter starts operating. See below for what to do in this
 method. You have to return -1 if you don't like anything of the setup,
 which will terminate the whole network, or 0 if everything was ok and you
 are finished with processing.
@@ -690,19 +748,20 @@ just @code{return 0;} to ensure proper return value in case of an error.
 For further advise see the @ref{Filter Tutorial}.
 @end deftypefn
 
-@tindex filter_node_t
-@deftypefn Method int init (filter_node_t *@var{n})
-@code{init()} gets called by the @code{filternetwork_add_node()} function after allocating a
-new instance of a filter (the so called filternode). You may do
-anything with the private field of the filternode and attach signal
+@tindex filter_t
+@deftypefn Method int init (filter_t *@var{n})
+@code{init()} gets called by the @code{filter_add_node()} function after allocating a
+new instance of a filter (the so called node). You may do
+anything with the private field of the node and attach signal
 handlers to the nodes emitter, everything else is strictly
-private. If you return -1 the node is deleted and @code{filternetwork_add_node()} will return an error. If everything is ok you should return 0.
+private. If you return -1 the node is deleted and @code{filter_add_node()} will return an error. If everything is ok you should return 0.
 @end deftypefn
 
-@tindex filter_node_t
+@tindex filter_t
 @tindex filter_pipe_t
-@deftypefn Method int connect_out (filter_node_t *@var{source}, const char *@var{port}, filter_pipe_t *@var{p})
-@code{connect_out()} is invoked by the @code{filternetwork_add_connection()} 
+@tindex filter_port_t
+@deftypefn Method int connect_out (filter_t *@var{source}, filter_port_t *@var{port}, filter_pipe_t *@var{p})
+@code{connect_out()} is invoked by the @code{filterport_connect()} 
 function.
 @code{connect_out()} gets called at each connection request to an output port
 but before the call to the @code{connect_in()} method of the corresponding
@@ -714,9 +773,10 @@ After the connection has been created a @code{GLSIG_PIPE_CHANGED} signal is
 raised on the new pipe.
 @end deftypefn
 
-@tindex filter_node_t
+@tindex filter_t
 @tindex filter_pipe_t
-@deftypefn Method int connect_in (filter_node_t *@var{dest}, const char *@var{port}, filter_pipe_t *@var{p})
+@tindex filter_port_t
+@deftypefn Method int connect_in (filter_t *@var{dest}, filter_port_t *@var{port}, filter_pipe_t *@var{p})
 @code{connect_in()} is like @code{connect_out()} but gets called after the 
 @code{connect_out()}
 call, and you don't have to set up any type specific information in the
@@ -726,9 +786,9 @@ same conditions as in @code{connect_out()}. After the connection has been
 created a @code{GLSIG_PIPE_CHANGED} signal is raised on the new pipe.
 @end deftypefn
 
-@tindex filter_node_t
+@tindex filter_t
 @tindex filter_param_t
-@deftypefn Method int set_param (filter_node_t *@var{dest}, filter_param_t *@var{p}, const void *@var{val})
+@deftypefn Method int set_param (filter_t *@var{dest}, filter_param_t *@var{p}, const void *@var{val})
 The @code{set_param()} method can be used to check a value which is to be
 setted against some conditions. The method is invocated before the change
 takes place and you may reject the change by returning -1. Returning 0
@@ -737,11 +797,14 @@ on the parameter.
 @end deftypefn
 
 
-Each filternode has a signal emitter associated to it through which all
-of the signals from its sub-objects are re-emitted. So may want to add
-signal handlers to the filters emitter. Currently there are two signals
+Each filter has a signal emitter associated to it through which all
+of the signals from its sub-objects are re-emitted. So you may want to add
+signal handlers to the filters emitter. Currently there are four signals
 that are passed along to the filter signal emitter. These are the
-@code{GLSIG_PARAM_CHANGED} signal and the @code{GLSIG_PIPE_CHANGED} signal.
+@code{GLSIG_PARAM_CHANGED}, @code{GLSIG_PARAM_DELETED},
+@code{GLSIG_PIPE_CHANGED} and the @code{GLSIG_PIPE_DELETED} signal.
+Native signals sent out by the filters are the @code{GLSIG_FILTER_CHANGED}
+and the @code{GLSIG_FILTER_DELETED} signal.
 
 %% FIXME - describe what to do and not to do in those signal handlers
 
@@ -863,93 +926,6 @@ of @code{SAMPLE}s and assigns the buffer to the filter node @var{n}.
 @code{sbuf_buf()} returns a pointer to the buffer containing the @code{SAMPLE}s.
 @end deftypefun
 
-
-
-
-@node The Filter Network API, , The Filter Programming API, Filter API
-@section The Filter Network API
-
-The filter network API provides functions to construct and run arbitrary
-networks of filters. This part of the filter API is intended to be used by the
-high level part of the glame project, i.e. the console and the graphical user
-interface. You can learn from the various test programs, too.
-
-@menu
-* Creating a Filter Network::
-* Processing Data in a Network::
-@end menu
-
-@node Creating a Filter Network, Processing Data in a Network, , The Filter Network API
-@subsection Creating a Filter Network
-
-Constructing a network of filters is documented by referencing and
-commenting the necessary functions to do so.
-
-@tindex filter_node_t
-@tindex filter_network_t
-@deftypefun {filter_node_t *} filternetwork_add_node (filter_network_t *@var{net}, const char *@var{f}, const char *@var{name})
-@code{filternetwork_add_node()} creates an instance of a filter with the
-provided identifier @var{f} and adds it to the set of filters of the
-specified filter network. The node is given the provided @var{name}, or a
-unique one is chosen automatically if you pass @code{NULL}.
-@code{filternetwork_add_node()} returns a handle to the instance of a filter,
-a filter node, or @code{NULL}, if an error occured.
-@end deftypefun
-
-@tindex filter_network_t
-@tindex filter_portdesc_t
-@tindex filter_param_t
-@deftypefun filter_portdesc_t* filternetwork_add_input (filter_network_t *@var{net}, const char *@var{node}, const char *@var{port}, const char *@var{label}, const char *@var{desc})
-@deftypefunx filter_portdesc_t* filternetwork_add_output (filter_network_t *@var{net}, const char *@var{node}, const char *@var{port}, const char *@var{label}, const char *@var{desc})
-@deftypefunx filter_param_t* filternetwork_add_param (filter_network_t *@var{net}, const char *@var{node}, const char *@var{param}, const char *@var{label}, const char *@var{desc})
-These functions make internal ports and parameters identified by the
-@var{node} and @var{port} or @var{param} labels visible to the outside
-world of the filternetwork using the name @var{label} and the
-description @var{desc}.
-@end deftypefun
-
-
-@node Processing Data in a Network, , Creating a Filter Network, The Filter Network API
-@subsection Processing Data in a Network
-
-To start processing data with a constructed filter the following
-functions are provided:
-
-@tindex filter_t
-@deftypefun int filter_launch (filter_t *@var{net})
-@code{filter_launch()} asynchronously starts the init phase of a
-previously constructed filter using a set of filter threads.
-@code{filter_launch()} returns -1 if there were any problems launching
-the filter or 0 on success.  Errors in the initialisation
-process of the filters' @code{f()} methods are not reported by
-@code{filter_launch()} but can instead be obtained by using
-@code{filter_wait()} or @code{filter_start()}. Processing of the data is
-not started until @code{filter_start()} is called.
-@end deftypefun
-
-@tindex filter_t
-@deftypefun int filter_start (filter_t *@var{net})
-@deftypefunx int filter_pause (filter_t *@var{net})
-With @code{filter_start()} you can start processing data on a previously
-launched or paused filter. With @code{filter_pause()} you can
-temporarily stop processing of any data in a previously started
-filter. Both functions return -1 if any error occured in the process of
-starting, pausing or in the filter threads.
-@end deftypefun
-
-@tindex filter_t
-@deftypefun int filter_wait (filter_t *@var{net})
-@code{filter_wait()} waits for a previously launched filter to
-finish processing.  @code{filter_wait()} returns 0 if the filter
-terminated regularly, and -1 if there were any errors, either in waiting
-for the filter or in processing the filter.
-@end deftypefun
-
-@tindex filter_t
-@deftypefun void filter_terminate (filter_t *@var{net})
-@code{filter_terminate} kills a previously launched filter. It
-doesn't wait for it to finish processing all data.
-@end deftypefun
 
 
 

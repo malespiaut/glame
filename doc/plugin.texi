@@ -1,4 +1,4 @@
-@comment $Id: plugin.texi,v 1.8 2000/11/15 09:38:24 richi Exp $
+@comment $Id: plugin.texi,v 1.9 2000/12/11 10:41:58 richi Exp $
 
 @node Plugin Interface, GLAME Database Interface, Swapfile API, Top
 @chapter Plugin Interface 
@@ -10,6 +10,15 @@ handle of a plugin.
 @deftypefun int plugin_add_path (const char *@var{path})
 This function will add @var{path} to the list of paths used to search
 plugins.
+@end deftypefun
+
+@tindex plugin_t
+@deftypefun int plugin_load (const char *@var{filename})
+@code{plugin_load()} will try to register all available plugins
+out of the specified file @var{filename}. If the specified file
+could not be opened or is not a valid plugin file, -1 is returned.
+On success, that is after registering zero or more plugins, 0 is
+returned.
 @end deftypefun
 
 @tindex plugin_t
@@ -66,4 +75,9 @@ the @code{plugin} prefix of the symbols to prevent symbol name clashes.
 @item plugin_register
 A function of type @code{(int (*)(plugin_t *p))} which does everything
 necessary to register anything in the plugin to any subsystem.
+@item plugin_set
+This optional symbol of the type @code{char *} should contain a list
+of additional @code{plugin} names inside the object file seperated
+by spaces. You will need a seperate @code{_register} symbol for each
+of the specified additional plugin names.
 @end table

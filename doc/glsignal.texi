@@ -1,4 +1,4 @@
-@comment $Id: glsignal.texi,v 1.1 2000/11/15 09:38:24 richi Exp $
+@comment $Id: glsignal.texi,v 1.2 2000/12/11 10:41:58 richi Exp $
 
 @node GLAME Signal Interface, Function and Type Index, GLAME Database Interface, Top
 @chapter GLAME Signal Interface
@@ -18,4 +18,61 @@ protected against.
 
 Brief description of the available API follows: 
 
-FIXME - create out of glsignal.h
+@deftp void (glsig_callb_t) (glsig_handler_t *, long, va_list)
+  The type of the used callback functions through which signals
+  are supposed to be handled.
+@end deftp
+
+@tindex glsig_emitter_t
+@deftypefun {} INIT_GLSIG_EMITTER ( glsig_emitter_t *@var{emitter})
+  Inits an emitter. No signal handlers are attached initially.
+@end deftypefun
+
+@tindex glsig_emitter_t
+@tindex glsig_handler_t
+@tindex glsig_callb_t
+@deftypefun {glsig_handler_t *} glsig_add_handler ( glsig_emitter_t *@var{emitter}, long @var{sigmask}, glsig_callb_t *@var{cb}, void *@var{priv})
+  Adds a signal handler to the emitter using the specified sigmask
+  and the callback handler. The priv data is stored in the handlers
+  ->priv field which you should access using @code{glsig_handler_private()}.
+@end deftypefun
+
+@tindex glsig_emitter_t
+@tindex glsig_handler_t
+@deftypefun {glsig_handler_t *} glsig_add_redirector ( glsig_emitter_t *@var{emitter}, long @var{sigmask}, glsig_emitter_t *@var{dest})
+  Adds a redirector to the emitter. All signals raised from the emitter
+  matching the specified signal mask will be raised again from the dest emitt
+@end deftypefun
+
+@tindex glsig_emitter_t
+@deftypefun void glsig_emit ( glsig_emitter_t *@var{emitter}, int @var{sig}, ...)
+  Emits the signal sig from the emitter and provides the varargs
+  to the callbacks. signals are emitted bottom to top in the hierarchy.
+@end deftypefun
+
+@tindex glsig_emitter_t
+@deftypefun int glsig_copy_handlers ( glsig_emitter_t *@var{dest}, glsig_emitter_t *@var{source})
+  Copies all handlers from one emitter to another - same "private"
+  data, of course. Can return -1 on memory shortage. Redirectors are
+  not copied.
+@end deftypefun
+
+@tindex glsig_emitter_t
+@deftypefun int glsig_copy_handlers ( glsig_emitter_t *@var{dest}, glsig_emitter_t *@var{source})
+  Copies all redirectors from one emitter to another - same "private"
+  data, of course. Can return -1 on memory shortage. Normal handlers
+  are not copied.
+@end deftypefun
+
+@tindex glsig_handler_t
+@deftypefun void glsig_delete_handler ( glsig_handler_t *@var{handler})
+  Removes and destroyes the specified handler from its emitter.
+@end deftypefun
+
+@tindex glsig_emitter_t
+@deftypefun void glsig_delete_all ( glsig_emitter_t *@var{emitter})
+  Removes and destroyes all signal handlers from the specified emitter.
+  Use with care.
+@end deftypefun
+
+
