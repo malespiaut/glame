@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.7 2000/03/21 09:00:01 xwolf Exp $
+ * $Id: file_io.c,v 1.8 2000/03/21 10:48:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -461,6 +461,9 @@ int af_read_f(filter_node_t *n)
 {
 	int frames,i,j;
 	filter_pipe_t *p_out;
+	SAMPLE *s0, *s1;
+	short *b;
+	int cnt;
 
 	FILTER_AFTER_INIT;
 
@@ -479,32 +482,59 @@ int af_read_f(filter_node_t *n)
 		i=0;
 		/* XXX: Dangerous but for now happens to work! */
 		switch (RWA(n).sampleWidth | RWA(n).sampleFormat) {
-			case 16 | AF_SAMPFMT_TWOSCOMP:
+		case 16 | AF_SAMPFMT_TWOSCOMP:
+			switch (RWA(n).channelCount) {
+			case 2:
+				/* highly optimized default (wav) case [richi] */
+				cnt = frames;
+				s0 = &sbuf_buf(RWA(n).track[0].buf)[RWA(n).track[0].pos];
+				s1 = &sbuf_buf(RWA(n).track[1].buf)[RWA(n).track[1].pos];
+				b = RWA(n).buffer;
+				for (; (cnt & 3)>0; cnt--) {
+					*(s0++) = SHORT2SAMPLE(*(b++));
+					*(s1++) = SHORT2SAMPLE(*(b++));
+				}
+				for (; cnt>0; cnt-=4) {
+					*(s0++) = SHORT2SAMPLE(*(b++));
+					*(s1++) = SHORT2SAMPLE(*(b++));
+					*(s0++) = SHORT2SAMPLE(*(b++));
+					*(s1++) = SHORT2SAMPLE(*(b++));
+					*(s0++) = SHORT2SAMPLE(*(b++));
+					*(s1++) = SHORT2SAMPLE(*(b++));
+					*(s0++) = SHORT2SAMPLE(*(b++));
+					*(s1++) = SHORT2SAMPLE(*(b++));
+				}
+				RWA(n).track[0].pos += frames;
+				RWA(n).track[1].pos += frames;
+				break;
+			default:
 				while (i < frames*RWA(n).channelCount)
 					for (j=0; j < RWA(n).channelCount; j++)
 						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
 							SHORT2SAMPLE(RWA(n).buffer[i++]);
 				break;
-			case 8 | AF_SAMPFMT_TWOSCOMP:
-				while (i < frames*RWA(n).channelCount)
-					for (j=0; j < RWA(n).channelCount; j++)
-						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] = 
-							CHAR2SAMPLE(RWA(n).cbuffer[i++]);
-				break;
-			case 16 | AF_SAMPFMT_UNSIGNED:
-				while (i < frames*RWA(n).channelCount)
-					for (j=0; j < RWA(n).channelCount; j++)
-						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-							USHORT2SAMPLE(RWA(n).buffer[i++]);
-				break;
-			case 8 | AF_SAMPFMT_UNSIGNED:
-				while (i < frames*RWA(n).channelCount)
-					for (j=0; j < RWA(n).channelCount; j++)
-						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-							UCHAR2SAMPLE(RWA(n).cbuffer[i++]);
-				break;
-			default:
-				PANIC("Unsupported sample format.");
+			}
+			break;
+		case 8 | AF_SAMPFMT_TWOSCOMP:
+			while (i < frames*RWA(n).channelCount)
+				for (j=0; j < RWA(n).channelCount; j++)
+					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] = 
+						CHAR2SAMPLE(RWA(n).cbuffer[i++]);
+			break;
+		case 16 | AF_SAMPFMT_UNSIGNED:
+			while (i < frames*RWA(n).channelCount)
+				for (j=0; j < RWA(n).channelCount; j++)
+					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
+						USHORT2SAMPLE(RWA(n).buffer[i++]);
+			break;
+		case 8 | AF_SAMPFMT_UNSIGNED:
+			while (i < frames*RWA(n).channelCount)
+				for (j=0; j < RWA(n).channelCount; j++)
+					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
+						UCHAR2SAMPLE(RWA(n).cbuffer[i++]);
+			break;
+		default:
+			PANIC("Unsupported sample format.");
 		}
 		for (i=0; i < RWA(n).channelCount; i++)
 			sbuf_queue(RWA(n).track[i].p, RWA(n).track[i].buf);
