@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.57 2003/04/11 20:10:00 richi Exp $
+ * $Id: canvasfilter.c,v 1.58 2003/04/15 20:32:55 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -883,7 +883,6 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	GtkWidget * tablabel;
 	GtkCList * list;
 	char * desc;
-	int pos=0;
 
 	filter_portdb_t * ports;
 	filter_paramdb_t * params;

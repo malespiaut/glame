@@ -1162,7 +1162,7 @@ static void __gpsm_item_insert_space_after(gpsm_grp_t *grp, struct glame_list_he
 	do {
 		struct glame_list_head *nodei;
 		int is_hbox, is_vbox;
-		DPRINTF("Iterating through %s [%i,%i]\n", gpsm_item_label(parent), gpsm_item_hsize(parent), gpsm_item_vsize(parent));
+		DPRINTF("Iterating through %s [%li,%li]\n", gpsm_item_label(parent), gpsm_item_hsize(parent), gpsm_item_vsize(parent));
 		is_hbox = gpsm_grp_is_hbox(parent);
 		is_vbox = gpsm_grp_is_vbox(parent);
 		nodei = parent->items.prev;
@@ -1170,20 +1170,20 @@ static void __gpsm_item_insert_space_after(gpsm_grp_t *grp, struct glame_list_he
 			gpsm_item_t *item = glame_list_entry(nodei, gpsm_item_t, list);
 			DPRINTF("Considering %s\n", gpsm_item_label(item));
 			if (is_hbox) {
-				DPRINTF("X shift by %i\n", dx);
+				DPRINTF("X shift by %li\n", dx);
 				item->hposition += dx;
 			}
 			if (is_vbox) {
-				DPRINTF("Y shift by %i\n", dy);
+				DPRINTF("Y shift by %li\n", dy);
 				item->vposition += dy;
 			}
 			glsig_emit(gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED, item);
 			nodei = nodei->prev;
 		}
-		DPRINTF("%s is now [%i,%i]\n", gpsm_item_label(parent), gpsm_item_hsize(parent), gpsm_item_vsize(parent));
+		DPRINTF("%s is now [%li,%li]\n", gpsm_item_label(parent), gpsm_item_hsize(parent), gpsm_item_vsize(parent));
 		dx = gpsm_item_hsize(parent) - old_hsize[i];
 		dy = gpsm_item_vsize(parent) - old_vsize[i];
-		DPRINTF("dx/dy now %i/%i\n", dx, dy);
+		DPRINTF("dx/dy now %li/%li\n", dx, dy);
 		/* if (dx == 0 && dy == 0)
 		   return; */
 
@@ -1194,13 +1194,13 @@ static void __gpsm_item_insert_space_after(gpsm_grp_t *grp, struct glame_list_he
 }
 static void _gpsm_item_insert_space_after(gpsm_item_t *item, long dx, long dy)
 {
-	DPRINTF("Inserting space %i/%i after %s\n", dx, dy, gpsm_item_label(item));
+	DPRINTF("Inserting space %li/%li after %s\n", dx, dy, gpsm_item_label(item));
 	__gpsm_item_insert_space_after(gpsm_item_parent(item),
 				       &item->list, dx, dy);
 }
 static void _gpsm_item_insert_space_before(gpsm_item_t *item, long dx, long dy)
 {
-	DPRINTF("Inserting space %i/%i before %s\n", dx, dy, gpsm_item_label(item));
+	DPRINTF("Inserting space %li/%li before %s\n", dx, dy, gpsm_item_label(item));
 	__gpsm_item_insert_space_after(gpsm_item_parent(item),
 				       item->list.prev, dx, dy);
 }

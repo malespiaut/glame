@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.20 2002/04/24 09:41:03 richi Exp $
+ * $Id: filter_param.c,v 1.21 2003/04/15 20:32:54 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -356,23 +356,20 @@ char *filterparamdb_to_string(filter_paramdb_t *pdb, int props)
 	 * ( param val ("key" . "value") ("key" . "value))
 	 */
 	filterparamdb_foreach_param(pdb, param) {
-		char *tmp;
-
 		val = filterparam_to_string(param);
 		if (!val)
 			continue;
 		if (props) {
-			tmp = glsdb_to_list_of_pairs(
+			char *tmp = glsdb_to_list_of_pairs(
 				filterparam_propertydb(param));
 			b += sprintf(b,
 				     "(append (list \"%s\" %s) %s)\n",
 				     filterparam_label(param), val, tmp);
+			free(tmp);
 		} else
 			b += sprintf(b,
 				     "(list \"%s\" %s)\n",
 				     filterparam_label(param), val);
-
-		free(tmp);
 	}
 
         b += sprintf(b,

@@ -463,7 +463,7 @@ static SCM gls_param_value(SCM s_param)
 static SCM gls_param_set(SCM s_param, SCM s_val)
 {
 	filter_param_t *param;
-	int res;
+	int res = 0;
 	SCM_ASSERT(param_p(s_param), s_param, SCM_ARG1, "param-set!");
 	param = scm2param(s_param);
 	if (!FILTER_PARAM_IS_STRING(param)

@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.23 2003/04/11 20:10:26 richi Exp $
+ * $Id: glame_param.c,v 1.24 2003/04/15 20:32:56 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -209,7 +209,7 @@ static gint curve_cb(GlameCurve* curve, GlameParam *gparam)
 
 static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 {
-	int res;
+	int res = -1;
 
 	if (gparam->updating)
 		return TRUE;

@@ -314,7 +314,7 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 		free(fvec);
 		if (res != -1)
 			res /= sizeof(float);
-	} else if (gh_string_p(s_buf)) {
+	} else /* if (gh_string_p(s_buf)) */ {
 		char *str;
 		int strlen;
 		str = gh_scm2newstr(s_buf, &strlen);

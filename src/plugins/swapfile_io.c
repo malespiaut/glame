@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.27 2002/05/29 22:22:47 richi Exp $
+ * $Id: swapfile_io.c,v 1.28 2003/04/15 20:32:56 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -237,7 +237,7 @@ int swapfile_in_register(plugin_t *p)
 static int swapfile_out_f(filter_t *n)
 {
 	filter_pipe_t *in;
-	filter_buffer_t *buf;
+	filter_buffer_t *buf = NULL;
 	filter_param_t *pos_param;
 	long fname, offset, drop, size, cnt, pos, res, flags, changed_start;
 	struct sw_stat st;

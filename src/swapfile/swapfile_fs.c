@@ -88,7 +88,11 @@ static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 #define UNLOCK do { pthread_mutex_unlock(&swmx); } while (0)
 
 static void (* panic_handler)(const char *msg) = NULL;
-static void do_panic(const char *msg);
+#ifdef HAVE_HCC
+static void do_panic(const char *msg) __attribute__((noreturn));
+#else
+static void do_panic(const char *msg) __attribute__((noreturn));
+#endif
 #define SWPANIC(msg) do { if (swap.panic) PANIC(msg); else do_panic(msg); } while (0)
 
 
@@ -1278,7 +1282,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	size_t dcnt, cnt = count;
 	struct swfd *_fd;
 	struct swcluster *c;
-	s64 coff, old_size = -1, old_offset;
+	s64 coff, old_size = -1, old_offset = -1;
 	ssize_t res;
 	int err = 0;
 
