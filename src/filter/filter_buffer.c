@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.20 2000/03/25 19:09:50 richi Exp $
+ * $Id: filter_buffer.c,v 1.21 2000/04/11 14:37:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -40,6 +40,9 @@ void fbuf_ref(filter_buffer_t *fb)
 	if (!fb)
 		return;
 
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+		DERROR("refing buffer without a reference");
+
 	atomic_inc(&fb->refcnt);
 }
 void fbuf_unref(filter_buffer_t *fb)
@@ -47,9 +50,12 @@ void fbuf_unref(filter_buffer_t *fb)
 	if (!fb)
 		return;
 
-	atomic_dec(&fb->refcnt);
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+		DERROR("unrefing buffer without a reference");
 
-	if (ATOMIC_VAL(fb->refcnt) == 0) {
+	if (atomic_dec_and_test(&fb->refcnt)) {
+		if (ATOMIC_VAL(fb->refcnt) != 0)
+			DERROR("WTF???");
 		list_del(&fb->list);
 		ATOMIC_RELEASE(fb->refcnt);
 		free(fb);
@@ -78,6 +84,9 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 
 	if (!fb)
 		return NULL;
+
+	if (ATOMIC_VAL(fb->refcnt) == 0)
+		DERROR("making buffer private without a reference");
 
 	/* this is _not_ a race condition! (I believe)
 	 * if there are other possible lockers, there must
@@ -122,6 +131,10 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
         } else if (res != FBPIPE_WSIZE)
                 PANIC("pipe reads are not atomic!");
 
+	if (res != -1 && buf[0]
+	    && ATOMIC_VAL(((filter_buffer_t *)buf[0])->refcnt) == 0)
+		DERROR("got buffer without a reference\n");
+
 	return res == -1 ? NULL : (filter_buffer_t *)(buf[0]);
 }
 
@@ -138,6 +151,9 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 		fbuf_unref(fbuf);
 		return;
 	}
+
+	if (fbuf && ATOMIC_VAL(fbuf->refcnt) == 0)
+		DERROR("queued buffer without holding a reference\n");
 
 	if (fbuf
 	    && p->type == FILTER_PIPETYPE_SAMPLE
@@ -178,6 +194,9 @@ void fbuf_free_buffers(struct list_head *list)
 
 	while (!list_empty(list)) {
 		fb = list_gethead(list, filter_buffer_t, list);
+		if (ATOMIC_VAL(fb->refcnt) == 0)
+			DERROR("buffer without reference still in buffer list");
+		DPRINTF("freeing buffer\n");
 		atomic_set(&fb->refcnt, 1);
 		fbuf_unref(fb);
 	}

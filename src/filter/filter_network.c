@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.40 2000/04/06 11:54:11 richi Exp $
+ * $Id: filter_network.c,v 1.41 2000/04/11 14:37:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -221,6 +221,7 @@ static void *waiter(void *network)
 
 	res = net->node.ops->wait(FILTER_NODE(net));
 
+	DPRINTF("starting cleanup\n");
 	net->node.ops->postprocess(&net->node);
 	_launchcontext_free(net->launch_context);
 	net->launch_context = NULL;
