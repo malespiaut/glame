@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.24 2001/03/01 10:26:32 xwolf Exp $
+ * $Id: canvas.c,v 1.25 2001/03/01 10:54:02 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -623,10 +623,10 @@ update_connection_points(GlameConnection *connection)
       connection->points->coords[3]=ys;
 
       connection->points->coords[4]=xs+25+(connection->begin_id*4);
-      connection->points->coords[5]=(ys+yd)/2.0;
+      connection->points->coords[5]=(ys+yd)/2.0-connection->dy;
 
       connection->points->coords[6]=xd-25-(connection->end_id*4);
-      connection->points->coords[7]=(ys+yd)/2.0;
+      connection->points->coords[7]=(ys+yd)/2.0-connection->dy;
 
       connection->points->coords[8]=xd-25-(connection->end_id*4);
       connection->points->coords[9]=yd;
@@ -641,8 +641,8 @@ update_connection_points(GlameConnection *connection)
       gnome_canvas_item_set(connection->circle,
 			    "x1",((xs+xd)/2.0)-6.0,
 			    "x2",((xs+xd)/2.0)+6.0,
-			    "y1",((ys+yd)/2.0)-6.0,
-			    "y2",((ys+yd)/2.0)+6.0,
+			    "y1",((ys+yd)/2.0-connection->dy)-6.0,
+			    "y2",((ys+yd)/2.0-connection->dy)+6.0,
 			    NULL);
 
 }
@@ -662,7 +662,7 @@ connect_canvas_ports(GlameConnection* connection)
       port_docking_coords(dest_port, &xd, &yd,connection->end_id);
       
       xs += GNOME_CANVAS_RE(source_port)->x2-GNOME_CANVAS_RE(source_port)->x1;
-
+      connection->dy = 0.0;
       connection->points = gnome_canvas_points_new(6);
 
       
@@ -826,9 +826,13 @@ connection_break_cb(GtkWidget*bla,GlameConnection* conn)
 static gint
 connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 {
-
+	GdkCursor *fleur;
 	GlameConnection* connection = (GlameConnection*)data;
 	GtkWidget* menu;
+	double x,y;
+
+	y = event->button.y;
+	
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
@@ -841,6 +845,12 @@ connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
+			connection->last_y=y+connection->dy;
+			fleur = gdk_cursor_new(GDK_FLEUR);
+			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(connection->circle),
+					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK,fleur,
+					       event->button.time);
+			gdk_cursor_destroy(fleur);
 			break;
 		case 2:
 			//			DPRINTF("Breaking connection\n");
@@ -852,11 +862,19 @@ connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,connection);
 			break;
 		default:
-
-
-			
+					
 			break;
 		}
+	case GDK_MOTION_NOTIFY:
+		if (event->motion.state & GDK_BUTTON1_MASK){
+			connection->dy = connection->last_y - y;
+			update_connection_points(connection);
+		}
+		break;
+	case GDK_BUTTON_RELEASE:
+		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(connection->circle),event->button.time);
+		connection->dy = connection->last_y - y;
+		update_connection_points(connection);
 	default: 
 		break;
 	}
