@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.63 2001/07/31 17:24:16 richi Exp $
+; $Id: glame.scm,v 1.64 2001/08/01 15:05:46 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -701,6 +701,7 @@
 	  (nodes-connect (list rf (net-add-node net
 						"swapfile-out"
 						(list "filename" sf)
+						(list "offset" 0)
 						(list "flags" 3)))))
 	(cons sf1 sfiles))
       (net-run net))))
@@ -713,6 +714,7 @@
         (lambda (sf)
 	  (nodes-connect (list (net-add-node net
 					     "swapfile-in" 
+					     (list "offset" 0)
 					     (list "filename" sf))
 			       rf)))
 	(cons sf1 sfiles))
