@@ -12,7 +12,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 # "real" plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	garrison.la nold.la maggy.la noisegate.la
+	garrison.la nold.la maggy.la noisegate.la pan.la
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module
@@ -34,3 +34,6 @@ maggy_la_LDFLAGS = -module
 
 noisegate_la_SOURCES = noisegate.c
 noisegate_la_LDFLAGS = -module
+
+pan_la_SOURCES = pan.c
+pan_la_LDFLAGS = -module
