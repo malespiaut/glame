@@ -358,14 +358,30 @@ static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 /* GUI is single-threaded, so this should actually work... */
 static GtkWaveView *actual_waveview;
 
-struct network_cleanup_s {
+struct network_run_s {
+	/* Cleanup part. */
 	filter_t *net;
 	gpsm_item_t *item;
 	int invalidate;
+	/* Timeout (marker/progress bar) part. */
+	GtkWaveView *waveview;
+	filter_param_t *pos_param;
+	long start, end, oldmarker;
+	guint tid;
 };
-static void network_cleanup_cb(struct network_cleanup_s *cs)
+static gint network_run_timeout_cb(struct network_run_s *cs)
+{
+	long pos = filterparam_val_pos(cs->pos_param);
+	gtk_wave_view_set_marker_and_scroll(cs->waveview, cs->start + pos);
+	return TRUE;
+}
+static void network_run_cleanup_cb(struct network_run_s *cs)
 {
 	DPRINTF("starting cleanup\n");
+	if (cs->tid) {
+		gtk_timeout_remove(cs->tid);
+		gtk_wave_view_set_marker(cs->waveview, cs->oldmarker);
+	}
 	if (cs->net) {
 		filter_terminate(cs->net);
 		filter_wait(cs->net);
@@ -390,15 +406,27 @@ static void network_cleanup_cb(struct network_cleanup_s *cs)
 	}
 	free(cs);
 }
-static struct network_cleanup_s *network_cleanup_create(filter_t *net,
-							gpsm_item_t *item,
-							int invalidate)
+static struct network_run_s *network_run_create(filter_t *net,
+						gpsm_item_t *item,
+						int invalidate,
+						GtkWaveView *waveview,
+						filter_param_t *pos,
+						long start, long end)
 {
-	struct network_cleanup_s *cs;
-	cs = malloc(sizeof(struct network_cleanup_s));
+	struct network_run_s *cs;
+	cs = ALLOC(struct network_run_s);
 	cs->net = net;
 	cs->item = item;
 	cs->invalidate = invalidate;
+	cs->waveview = waveview;
+	cs->pos_param = pos;
+	cs->start = start;
+	cs->end = end;
+	cs->tid = -1;
+	if (waveview && pos) {
+		cs->oldmarker = gtk_wave_view_get_marker(waveview);
+		cs->tid = gtk_timeout_add(10, (GtkFunction)network_run_timeout_cb, cs);
+	}
 	return cs;
 }
 
@@ -416,7 +444,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	long nrtracks;
 	gpsm_swfile_t **files;
 	gpsm_item_t *item;
-	filter_t *net, *effect;
+	filter_t *net, *effect, *swout;
 	int rate, i;
 	
 	gtk_wave_view_get_selection (waveview, &start, &length);
@@ -445,7 +473,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	 * effect - swapfile_out. */
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
-		filter_t *swin, *eff, *swout;
+		filter_t *swin, *eff;
 		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
 					  start, length);
 		if (!swin)
@@ -470,8 +498,11 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	
 	/* Run the network through play window */
 	glame_gui_play_network(net, NULL, TRUE,
-			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, item, TRUE),
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, item, TRUE,
+						  waveview,
+						  filterparamdb_get_param(filter_paramdb(swout), FILTERPARAM_LABEL_POS),
+						  start, start + length -1),
 			       "Apply", NULL, NULL, 0);
 	return;
 
@@ -531,8 +562,11 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 	}
 
 	glame_gui_play_network(net, NULL, TRUE,
-			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE),
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
+						  waveview,
+						  filterparamdb_get_param(filter_paramdb(aout), FILTERPARAM_LABEL_POS),
+						  start, start + length - 1),
 			       "Play", "Pause", "Stop", 0);
 	return;
 
@@ -583,9 +617,13 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 	}
 
 	glame_gui_play_network(net, NULL, TRUE,
-			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, FALSE),
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
+						  waveview,
+						  filterparamdb_get_param(filter_paramdb(aout), FILTERPARAM_LABEL_POS),
+						  0, gpsm_item_hsize(grp)-1),
 			       "Play", "Pause", "Stop", 0);
+
 	return;
 
  fail:
@@ -672,8 +710,9 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	}
 
 	glame_gui_play_network(net, NULL, TRUE,
-			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE),
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
+						  NULL, NULL, 0, 0),
 			       "Record", "Pause", "Stop", 1);
 	return;
 
@@ -758,8 +797,9 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	}
 
 	glame_gui_play_network(net, NULL, TRUE,
-			       (GtkFunction)network_cleanup_cb,
-			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE),
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
+						  NULL, NULL, 0, 0),
 			       "Record", "Pause", "Stop", 1);
 	return;
 
