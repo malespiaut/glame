@@ -837,6 +837,11 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 	filter_delete(net);
 }
 
+static void wave_export_cb(GtkWidget *foo, void *bar)
+{
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("FIXME.")));
+}
+
 static void wave_help_cb(GtkWidget *foo, void*bar)
 {
 	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
@@ -1329,6 +1334,10 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				waveedit_rmb_cb2, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
+				"Export", "Export", "Export",
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE),
+				wave_export_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Close", "Close", "Close",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
