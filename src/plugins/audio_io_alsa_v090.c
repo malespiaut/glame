@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.12 2001/12/03 22:04:30 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.13 2001/12/16 19:48:11 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -159,7 +159,8 @@ static int alsa_audio_in_f(filter_t *n)
 
 	int rate = GLAME_DEFAULT_SAMPLERATE;
 	int blksz;
-	long maxsamples = 0, nsamples, dropouts;
+	long maxsamples = 0, nsamples;
+	int dropouts;
 	int endless = 0;
 	int chancnt;	
 	int dir, i, err, j, ret;
@@ -212,9 +213,9 @@ static int alsa_audio_in_f(filter_t *n)
 
 	/* I'm not sure whether snd_pcm_open is threadsafe */
 
-	//pthread_mutex_lock(&audio_io_mutex);
+	pthread_mutex_lock(&audio_io_mutex);
 	err=snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
-	//pthread_mutex_unlock(&audio_io_mutex);
+	pthread_mutex_unlock(&audio_io_mutex);
 
 	if (err<0)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
@@ -226,13 +227,14 @@ static int alsa_audio_in_f(filter_t *n)
 	 *        (The plugin stuff performs a limited set of conversions.)
 	 */
 
+	pthread_mutex_lock(&audio_io_mutex);
 	err = snd_output_stdio_attach(&log, stderr, 0);
 
 	snd_pcm_hw_params_alloca(&params);
 	snd_pcm_sw_params_alloca(&swparams);
 
 	err = configure_pcm(handle, params, swparams, chancnt, rate, GLAME_WBUFSIZE, 4);
-
+	pthread_mutex_unlock(&audio_io_mutex);
 	if (err == -1)
 		FILTER_ERROR_CLEANUP("configuration of audio device failed");
 
@@ -268,10 +270,12 @@ static int alsa_audio_in_f(filter_t *n)
 		    if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN)
 		      {
 			dropouts ++;
+			DPRINTF("XRUN(%i)!\n",dropouts);
 			if ((snd_pcm_prepare(handle))<0) {
 			  FILTER_ERROR_STOP("read error on alsa device");
 			}
 		      }
+		    continue;
 		  }
 
 		for(i=0;i<chancnt;i++){
@@ -291,7 +295,7 @@ static int alsa_audio_in_f(filter_t *n)
 	for(i=0;i<chancnt;i++)
 		sbuf_queue(pipe[i], NULL);
 
-	DPRINTF("had %ld dropouts while capturing\n", dropouts);
+	DPRINTF("had %i dropouts while capturing\n", dropouts);
 
 	if(handleisok==1)
 		snd_pcm_close(handle);
@@ -379,9 +383,9 @@ static int alsa_audio_out_f(filter_t *n)
 
 	/* I'm not sure whether snd_pcm_open is threadsafe */
 
-	//	pthread_mutex_lock(&audio_io_mutex);
+	pthread_mutex_lock(&audio_io_mutex);
 	err = snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
-	//pthread_mutex_unlock(&audio_io_mutex);
+	pthread_mutex_unlock(&audio_io_mutex);
 
 	if (err<0)
 	  {
@@ -407,12 +411,14 @@ static int alsa_audio_out_f(filter_t *n)
 #error Unsupported endianness.
 #endif
 
+	pthread_mutex_lock(&audio_io_mutex);
 	err = snd_output_stdio_attach(&log, stderr, 0);
 
 	snd_pcm_hw_params_alloca(&params);
 	snd_pcm_sw_params_alloca(&swparams);
 	
 	err = configure_pcm(handle, params, swparams, max_ch, rate, GLAME_WBUFSIZE, 4);
+	pthread_mutex_unlock(&audio_io_mutex);
 
 	if (err == -1)
 		FILTER_ERROR_CLEANUP("configuration of audio device failed");
@@ -481,6 +487,7 @@ static int alsa_audio_out_f(filter_t *n)
 				}
 				if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
 					dropouts ++;
+					DPRINTF("XRUN(%d)!\n",dropouts);
 					if ((snd_pcm_prepare(handle))<0) {
 						FILTER_ERROR_STOP("write error on alsa device");
 					}
