@@ -1,6 +1,6 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.2 2003/05/20 21:54:53 richi Exp $
+ * $Id: resample.c,v 1.3 2004/04/18 13:15:24 richi Exp $
  *
  * Copyright (C) 2003 Richard Guenther
  *
@@ -175,6 +175,9 @@ static int resample_gpsm(gpsm_item_t *grp, long start, long length)
 
 int resample_register(plugin_t *p)
 {
+	/* We need the Resample scm plugin. */
+	if (!plugin_get("Resample"))
+		return -1;
 	plugin_set(p, PLUGIN_GPSMOP, resample_gpsm);
 	plugin_set(p, PLUGIN_DESCRIPTION, "resample a gpsm subtree");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
