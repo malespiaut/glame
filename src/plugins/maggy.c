@@ -1,7 +1,7 @@
 
 /*
  * maggy.c
- * $Id: maggy.c,v 1.1 2000/03/15 13:07:10 richi Exp $
+ * $Id: maggy.c,v 1.2 2000/03/19 23:53:16 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -61,13 +61,13 @@ static int noisegate_f(filter_node_t *n)
 	int i;
 	int hold=0;
 	int holdtime=0;
-	int is_releasing;
+	int is_releasing=0;
 	float gain=1.0,attack=1.0,release=1.0;
 	
 	in = filternode_get_input(n, PORTNAME_IN);
 	out = filternode_get_output(n, PORTNAME_OUT);
 	if (!in || !out)
-		return -1;
+		FILTER_ERROR_RETURN("no in-/output port(s)");
 
 	if ((param=filternode_get_param(n,"threshold_on")))
 			t_on=filterparam_val_float(param);
@@ -85,6 +85,7 @@ static int noisegate_f(filter_node_t *n)
 	FILTER_AFTER_INIT;
 	
 	do {
+		FILTER_CHECK_STOP;
 		buf = sbuf_get(in);
 		if (buf){
 			buf=sbuf_make_private(buf);
@@ -115,15 +116,157 @@ static int noisegate_f(filter_node_t *n)
 		sbuf_queue(out, buf);
 	} while (pthread_testcancel(), buf);
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
+/* Statistic filter detects
+ *   - dc offset
+ *   - overall rms
+ *   - peak rms in a fixed size window
+ *     NOTE: I don't use sliding windows, but joined ones
+ *
+ *   The filter sends a stream of peak rms buffers and sents
+ *   an overall statistics buffer last before sending eof
+ *   FIXME we have to find a way that the gui can actually access these
+ *   values, we should probably write the rms buffer into a swapfile meta data file
+ *   FIXME any speed optimizations welcome :)
+ */
+
+static int statistic_f(filter_node_t *n){
+	filter_pipe_t *in,*out;
+	filter_buffer_t *sbuf,*rbuf;
+	filter_param_t *param;
+	ulong pos=0,peak_pos;
+	ulong wsize;
+	float rms,peak_rms;
+	double total_rms,offset;
+	SAMPLE min,max;
+	int cnt=0,i;
+	SAMPLE s;
+	
+	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+		FILTER_ERROR_RETURN("no input");
+	if (!(out=filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no output");
+
+	if ((param=filternode_get_param(n,"windowsize")))
+		wsize=TIME2CNT(ulong, filterparam_val_float(param), filterpipe_sample_rate(in));
+	else
+		wsize=TIME2CNT(ulong, 500.0, filterpipe_sample_rate(in));
+
+	FILTER_AFTER_INIT;
+	sbuf=sbuf_get(in);
+
+	peak_rms=rms=total_rms=0.0;
+	min=max=0.0;
+	
+	while(sbuf){
+		FILTER_CHECK_STOP;
+		sbuf=sbuf_make_private(sbuf);
+		i=0;
+		while(i<sbuf_size(sbuf)){
+			s=sbuf_buf(sbuf)[i++];
+			min=MIN(s,min);
+			max=MAX(s,max);
+			rms+=s*s;
+			offset+=s;
+			cnt++;
+			if (cnt==wsize){
+				rms/=wsize;
+				total_rms+=(double)wsize/(double)(pos+wsize)*(rms-total_rms);
+				rms=sqrt(rms);
+				rbuf=rms_alloc(n);
+				rbuf=rms_make_private(rbuf);
+				rms_set_mode_window(rbuf);
+				rms_set_window(rbuf,rms,pos);
+				rms_queue(out,rbuf);
+				if(rms>peak_rms){
+					peak_rms=rms;
+					peak_pos=pos;
+				}
+				pos+=wsize;
+				cnt=0;
+				rms=0.0;
+			}
+		}
+		sbuf_unref(sbuf);
+		sbuf=sbuf_get(in);
+	}
+
+	if(cnt!=0){
+		rms/=cnt;
+		total_rms+=(double)cnt/(double)(pos+cnt)*(rms-total_rms);
+		rms=sqrt(rms);
+		rbuf=rms_alloc(n);
+		rbuf=rms_make_private(rbuf);
+		rms_set_mode_window(rbuf);
+		rms_set_window(rbuf,rms,pos);
+		rms_queue(out,rbuf);
+		pos+=cnt;
+	}
+	
+	offset/=pos;	
+	total_rms=sqrt(total_rms);
+	rbuf=rms_alloc(n);
+	rbuf=rms_make_private(rbuf);
+	rms_set_mode_total(rbuf);
+	rms_set_total_rms(rbuf,(float)total_rms);
+	rms_set_total_offset(rbuf,(float)offset);
+	rms_set_peak(rbuf,peak_rms,peak_pos);
+	rms_min(rbuf)=min;
+	rms_max(rbuf)=max;
+	rms_queue(out,rbuf);
+	rms_queue(out,NULL);
+	
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+static int debugrms_f(filter_node_t *n){
+	filter_pipe_t *in;
+	filter_buffer_t *r;
+	float peakrms;
+	ulong pos;
+	
+	if (!(in=filternode_get_input(n, PORTNAME_IN)))
+		FILTER_ERROR_RETURN("no input");
+	
+	FILTER_AFTER_INIT;
+	
+	r=rms_get(in);
+	while(r){
+		FILTER_CHECK_STOP;
+		r=rms_make_private(r);
+		if (rms_get_mode(r)==RMS_WINDOW) 
+			rms_unref(r);
+		else if (rms_get_mode(r)==RMS_TOTAL){
+			DPRINTF("RMS       = %f\n",rms_get_total_rms(r));
+			DPRINTF("DC Offset = %f\n",rms_get_total_offset(r));
+			rms_get_peak(r,peakrms,pos);
+			DPRINTF("Peak RMS  = %f\n",peakrms);
+			DPRINTF("Peak pos  = %ld\n",pos);
+			DPRINTF("Peak max  = %f\n",rms_max(r));
+			DPRINTF("Peak min  = %f\n",rms_min(r));
+		} else DPRINTF("oops!\n");
+		r=rms_get(in);
+	}
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+			
 int maggy_register()
 {
 	filter_t *f;
-
+	filter_paramdesc_t *p;
+	
 	if (!(f = filter_alloc("noisegate", "The noisegate filters all signals that are below the threshold", noisegate_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_SAMPLE)
@@ -136,6 +279,22 @@ int maggy_register()
 	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_INT)
 	    || filter_add(f) == -1)
 		return -1;
+	
+	if (!(f = filter_alloc("statistic","Calculates RMS, RMS in window & DC-Offset",statistic_f))
+	    || !filter_add_input(f, PORTNAME_IN, "input",
+		    		 FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_output(f, PORTNAME_OUT, "output",
+		    		 FILTER_PORTTYPE_RMS)
+	    || !(p=filter_add_param(f,"windowsize","timeslice in ms for which peak rms is calculated",FILTER_PARAMTYPE_FLOAT))
+	    || filter_add(f)==-1)
+		return -1;
+	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
 
+	if (!(f = filter_alloc("debugrms","eats rms buffers and shows debug output",debugrms_f))
+	    || !filter_add_input(f,PORTNAME_IN, "input",
+		    		 FILTER_PORTTYPE_RMS)
+	    || filter_add(f)==-1)
+		return -1;
+	
 	return 0;
 }

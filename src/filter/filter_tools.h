@@ -61,6 +61,8 @@ static inline unsigned char SAMPLE2UCHAR(SAMPLE s)
 }
 #define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
 
+/* convert time in ms to number of samples */
+#define TIME2CNT(type, time, rate) (type)(time*rate/1000.0)
 
 /* Here follows a set of fast computing macros for standard operations.
  * To be implemented using ISSE/3DNOW stuff if available.

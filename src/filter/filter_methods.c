@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.7 2000/03/14 14:29:26 richi Exp $
+ * $Id: filter_methods.c,v 1.8 2000/03/19 23:53:15 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,10 +47,13 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 	if (!t)
 	        return -1;
 	p->type = 1<<(ffs(t)-1);
-
 	/* a source port has to provide pipe data info.
-	 * we copy from the first input port if any. */
-	if ((in = filternode_first_input(n))) {
+	 * we copy from the first input port if any. 
+	 * But only if the first input port got the same type as the output port!!
+	 * Why pipetypes at all, you can only connect two ports of the same
+	 * type anyway ? [mag]
+	 */
+	if ((in = filternode_first_input(n)) && (p->source_port->type==in->type)) {
 		p->type = in->type;
 		p->u = in->u;
 	}
