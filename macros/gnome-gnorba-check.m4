@@ -9,8 +9,8 @@ AC_DEFUN([GNOME_GNORBA_HOOK],[
 	AC_CACHE_CHECK([for gnorba libraries],gnome_cv_gnorba_found,[
 		gnome_cv_gnorba_found=no
 		if test x$gnome_cv_orbit_found = xyes; then
-			GNORBA_CFLAGS="`gnome-config --cflags gnorba gnomeui`"
-			GNORBA_LIBS="`gnome-config --libs gnorba gnomeui`"
+			GNORBA_CFLAGS="`$GNOME_CONFIG --cflags gnorba gnomeui`"
+			GNORBA_LIBS="`$GNOME_CONFIG --libs gnorba gnomeui`"
 			if test -n "$GNORBA_LIBS"; then
 				gnome_cv_gnorba_found=yes
 			fi
@@ -19,8 +19,8 @@ AC_DEFUN([GNOME_GNORBA_HOOK],[
 	AM_CONDITIONAL(HAVE_GNORBA, test x$gnome_cv_gnorba_found = xyes)
 	if test x$gnome_cv_orbit_found = xyes; then
 		$1
-		GNORBA_CFLAGS="`gnome-config --cflags gnorba gnomeui`"
-		GNORBA_LIBS="`gnome-config --libs gnorba gnomeui`"
+		GNORBA_CFLAGS="`$GNOME_CONFIG --cflags gnorba gnomeui`"
+		GNORBA_LIBS="`$GNOME_CONFIG --libs gnorba gnomeui`"
 		AC_SUBST(GNORBA_CFLAGS)
 		AC_SUBST(GNORBA_LIBS)
 	else

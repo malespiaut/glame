@@ -40,13 +40,14 @@ AC_DEFUN([GNOME_INIT_HOOK],[
 	    			LDFLAGS="$LDFLAGS -L$withval/lib"
 	    			CFLAGS="$CFLAGS -I$withval/include"
 	    			gnome_prefix=$withval/lib
+				gnome_config_prefix=$withval
 	    		fi
   		fi,
 		want_gnome=yes)
 
 	if test "x$want_gnome" = xyes; then
 
-	    AC_PATH_PROG(GNOME_CONFIG,gnome-config,no)
+	    AC_PATH_PROG(GNOME_CONFIG,gnome-config,no,$gnome_config_prefix/bin,/opt/gnome/bin)
 	    if test "$GNOME_CONFIG" = "no"; then
 	      no_gnome_config="yes"
 	    else
