@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.35 2001/11/05 10:19:08 richi Exp $
+ * $Id: filtereditgui.c,v 1.36 2001/11/05 14:44:15 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -658,8 +658,6 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 	/* Not playing - setup and play.
 	 */
 
-	glame_canvas_reset_errors(gui->canvas);
-
 	emitter = glame_network_notificator_creat(gui->canvas->net);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
 			  execute_cleanup, gui);
@@ -669,6 +667,8 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 		glame_canvas_draw_errors(gui->canvas);
 		return;
 	}
+
+	glame_canvas_reset_errors(gui->canvas);
 
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(gui->toolbar)), 0)->data);
