@@ -272,4 +272,4 @@ AC_SUBST(GLAME_AUDIO_LIBS)
 AC_SUBST(GLAME_AUDIO_CFLAGS)
 AC_SUBST(GLAME_FFT_LIBS)
 
-AC_OUTPUT(Makefile macros/Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile)
+AC_OUTPUT(Makefile macros/Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/gui/edit_filter/Makefile src/glmid/Makefile)

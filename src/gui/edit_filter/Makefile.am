@@ -12,15 +12,15 @@ noinst_LTLIBRARIES =
 Multimedia_DATA = glame.desktop
 endif
 
-glame_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
+eglame_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
 
-glame_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
+eglame_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
-glame_LDFLAGS = -export-dynamic
+eglame_LDFLAGS = -export-dynamic
 
 
 #wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
-#wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
+#wavetest_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
 #	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
 #wavetest_LDFLAGS = -export-dynamic
 
