@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id:
+ * $Id: ladspa.c,v 1.8 2001/05/06 19:11:56 nold Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -23,7 +23,6 @@
 
 #include <dirent.h>
 #include <dlfcn.h>
-#include <ladspa.h>
 #include <string.h>
 #include <ladspa.h>
 #include "filter.h"
