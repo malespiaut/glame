@@ -25,11 +25,11 @@ AC_ARG_ENABLE(xmltest,
     XML_CFLAGS=`$XML_CONFIG $xml_config_args --cflags`
     XML_LIBS=`$XML_CONFIG $xml_config_args --libs`
     xml_config_major_version=`$XML_CONFIG $xml_config_args --version | \
-      sed 's/[[^0-9]]*\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
+      sed 's/[[^0-9]]*\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     xml_config_minor_version=`$XML_CONFIG $xml_config_args --version | \
-      sed 's/[[^0-9]]*\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\2/'`
+      sed 's/[[^0-9]]*\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\2/'`
     xml_config_micro_version=`$XML_CONFIG $xml_config_args --version | \
-      sed 's/[[^0-9]]*\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
+      sed 's/[[^0-9]]*\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\3/'`
     if test "x$enable_xmltest" = "xyes" ; then
       ac_save_CFLAGS="$CFLAGS"
       ac_save_LIBS="$LIBS"
@@ -169,11 +169,11 @@ AC_ARG_ENABLE(xmltest,
     XML_CFLAGS=`$XML2_CONFIG $xml_config_args --cflags`
     XML_LIBS=`$XML2_CONFIG $xml_config_args --libs`
     xml_config_major_version=`$XML2_CONFIG $xml_config_args --version | \
-           sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
+           sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     xml_config_minor_version=`$XML2_CONFIG $xml_config_args --version | \
-           sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\2/'`
+           sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\2/'`
     xml_config_micro_version=`$XML2_CONFIG $xml_config_args --version | \
-           sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
+           sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\3/'`
     if test "x$enable_xmltest" = "xyes" ; then
       ac_save_CFLAGS="$CFLAGS"
       ac_save_LIBS="$LIBS"
