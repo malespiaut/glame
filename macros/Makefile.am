@@ -1,4 +1,4 @@
-EXTRA_DIST = aclocal-include.m4 \
+EXTRA_DIST = \
 	gnome.m4 \
 	libxml.m4 acg-ladspa.m4 \
 	acg-func-madvise.m4 \

@@ -1,7 +1,7 @@
 INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/gui $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" -DPKGDATADIR=\"$(pkgdatadir)\" $(GNOME_INCLUDEDIR) $(XML_CFLAGS)
 
 
-EXTRA_DIST = glame.desktop default-accels
+EXTRA_DIST = glame.desktop default-accels util/gtknob.xpm
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
