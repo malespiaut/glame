@@ -471,8 +471,8 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 
   offset = -calc_win_pel_pos (waveview, 0);
   waveview->drawn_offset = offset;
-  width = waveview->expose_area.width;
-  start_x = calc_win_pel_ext(waveview, waveview->expose_area.x);
+  width = waveview->expose_width;
+  start_x = MAX(0, calc_win_pel_ext(waveview, waveview->expose_x));
 
   /* First, paint all cached x coords. */
   /* Keep a range min_val -> max_val that contains all uncached x coords. */
@@ -499,13 +499,14 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 
       datatype = gtk_wave_buffer_get_datatype (waveview->wavebuffer);
 
+#define REDRAW_BUFFER 8192
       /* Allocate some temp space. */
-      data = g_malloc (g_wavefile_type_width (datatype) * n_channels * 8192);
+      data = g_malloc (g_wavefile_type_width (datatype) * n_channels * REDRAW_BUFFER);
 
       /* Allocate more temp space if the data source datatype is not s16.
          We then have to convert it to s16 data for cache use. */
       if (datatype != G_WAVEFILE_TYPE_S16)
-        data16 = g_new (gint16, n_channels * 8192);
+        data16 = g_new (gint16, n_channels * REDRAW_BUFFER);
       else
         data16 = (gint16*) data;
 
@@ -530,7 +531,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
       delta = (guint32) (2147483648.0 / waveview->zoom);
       while (pos <= last_sample_offset)
         {
-          size = MIN (8192, last_sample_offset - pos + 1);
+          size = MIN (REDRAW_BUFFER, last_sample_offset - pos + 1);
 
 	  /* If by any chance we got destroyed, bail out. */
 	  if (waveview->destroyed) {
@@ -576,16 +577,19 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 		  /* Handle all pending events => stall redrawing. */
 		  while (gtk_events_pending())
 			  gtk_main_iteration();
-		  /* If any of them were expose events, bail out,
-		   * correcting the exposed region. */
+
+		  /* Correcting the exposed region, bail out
+		   * - only if expose event arrived (else redraw error) */
 		  if (waveview->expose_count > 0) {
-			  GdkRectangle notdone, temp;
-			  notdone.x = calc_ext_pel_pos(waveview, pos + size);
-			  notdone.width = calc_ext_pel_pos(waveview, last_sample_offset - (pos + size) + 1);
-			  notdone.y = waveview->expose_area.y;
-			  notdone.height = waveview->expose_area.height;
-			  gdk_rectangle_union(&waveview->expose_area, &notdone, &temp);
-			  waveview->expose_area = temp;
+			  long notdone_x, notdone_width;
+			  notdone_x = calc_ext_pel_pos(waveview, pos + size) - 1;
+			  notdone_width = calc_ext_pel_pos(waveview, last_sample_offset - (pos + size) + 1) + 1;
+			  if (notdone_x < waveview->expose_x) {
+				  waveview->expose_width += waveview->expose_x - notdone_x;
+				  waveview->expose_x = notdone_x;
+			  }
+			  if (notdone_x + notdone_width > waveview->expose_x + waveview->expose_width)
+				  waveview->expose_width = notdone_x + notdone_width - waveview->expose_x;
 			  return;
 		  }
 	  }
@@ -711,19 +715,22 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   static gint16 horiz_lines [] = { -24576, -16384, -8192, 0, 8191, 16383, 24575, -999 };
   GdkGC *sel_bg_gc, *unsel_bg_gc;
   GdkRectangle frame_area;
+  gint expose_x, expose_width;
 
   /* Accumulate expose events. */
-  frame_area.x = calc_ext_pel_win(waveview, event->area.x);
-  frame_area.width = event->area.width;
-  frame_area.y = event->area.y;
-  frame_area.height = event->area.height;
+  expose_x = calc_ext_pel_win(waveview, event->area.x);
+  expose_width = event->area.width;
 
   if (waveview->expose_count == 0) {
-	  waveview->expose_area = frame_area;
+	  waveview->expose_x = expose_x;
+	  waveview->expose_width = expose_width;
   } else {
-	  GdkRectangle temp;
-	  gdk_rectangle_union (&waveview->expose_area, &frame_area, &temp);
-	  waveview->expose_area = temp;
+	  if (expose_x < waveview->expose_x) {
+		  waveview->expose_width += waveview->expose_x - expose_x;
+		  waveview->expose_x = expose_x;
+	  }
+	  if (expose_x + expose_width > waveview->expose_x + waveview->expose_width)
+		  waveview->expose_width = expose_x + expose_width - waveview->expose_x;
   }
 
   waveview->expose_count++;
@@ -731,9 +738,9 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   if (event->count > 0 || waveview->drawing)
     return;
 
+  waveview->drawing = 1;
  again:
   /* Done accumulating sequential expose events, now process them. */
-  waveview->drawing = 1;
   waveview->expose_count = 0;
 
   sel_bg_gc = widget->style->bg_gc [GTK_STATE_SELECTED];
@@ -745,11 +752,16 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       guint32 n_channels;
       guint32 top, height, width;
       GdkWindow *window;
+      long exp_win_x;
 
-      frame_area.x = calc_win_pel_ext(waveview, waveview->expose_area.x);
-      frame_area.width = waveview->expose_area.width;
-      frame_area.y = waveview->expose_area.y;
-      frame_area.height = waveview->expose_area.height;
+      exp_win_x = calc_win_pel_ext(waveview, waveview->expose_x);
+      frame_area.x = MAX(0, exp_win_x);
+      frame_area.width = MIN(waveview->expose_width + MIN(0, exp_win_x), widget->allocation.width);
+      frame_area.y = 0;
+      frame_area.height = widget->allocation.height;
+
+      /* hide marker */
+      gtk_wave_view_draw_marker (waveview);
 
       /* Set clipping to expose region. */
       gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_NORMAL], &frame_area);
@@ -757,6 +769,8 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_NORMAL], &frame_area);
       gdk_gc_set_clip_rectangle (widget->style->bg_gc [GTK_STATE_SELECTED], &frame_area);
       gdk_gc_set_clip_rectangle (widget->style->dark_gc [GTK_STATE_NORMAL], &frame_area);
+      gdk_gc_set_clip_rectangle (widget->style->mid_gc [GTK_STATE_NORMAL], &frame_area);
+      gdk_gc_set_clip_rectangle (widget->style->black_gc, &frame_area);
       gdk_gc_set_clip_rectangle (waveview->marker_gc, &frame_area);
 
       n_channels = gtk_wave_buffer_get_num_channels (waveview->wavebuffer);
@@ -815,6 +829,16 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
             gdk_draw_line (window, waveview->area->style->dark_gc [GTK_STATE_NORMAL], j, top, j, top + height - 1);
         }
 
+      /* Reset clipping. */
+      gdk_gc_set_clip_mask (widget->style->fg_gc [GTK_STATE_NORMAL], NULL);
+      gdk_gc_set_clip_mask (widget->style->fg_gc [GTK_STATE_SELECTED], NULL);
+      gdk_gc_set_clip_mask (widget->style->bg_gc [GTK_STATE_NORMAL], NULL);
+      gdk_gc_set_clip_mask (widget->style->bg_gc [GTK_STATE_SELECTED], NULL);
+      gdk_gc_set_clip_mask (widget->style->dark_gc [GTK_STATE_NORMAL], NULL);
+      gdk_gc_set_clip_mask (widget->style->mid_gc [GTK_STATE_NORMAL], NULL);
+      gdk_gc_set_clip_mask (widget->style->black_gc, NULL);
+      gdk_gc_set_clip_mask (waveview->marker_gc, NULL);
+
       /* Paint all channels of the waveview. */
       gtk_wave_view_redraw_wave (waveview);
       if (waveview->destroyed) {
@@ -823,20 +847,15 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
 	      gtk_object_destroy(GTK_OBJECT(waveview));
 	      return;
       }
+
+      /* show marker */
       gtk_wave_view_draw_marker (waveview);
 
-      /* Reset clipping. */
-      gdk_gc_set_clip_mask (widget->style->fg_gc [GTK_STATE_NORMAL], NULL);
-      gdk_gc_set_clip_mask (widget->style->fg_gc [GTK_STATE_SELECTED], NULL);
-      gdk_gc_set_clip_mask (widget->style->bg_gc [GTK_STATE_NORMAL], NULL);
-      gdk_gc_set_clip_mask (widget->style->bg_gc [GTK_STATE_SELECTED], NULL);
-      gdk_gc_set_clip_mask (widget->style->dark_gc [GTK_STATE_NORMAL], NULL);
-      gdk_gc_set_clip_mask (waveview->marker_gc, NULL);
     }
 
-  waveview->drawing = 0;
   if (waveview->expose_count != 0)
 	  goto again;
+  waveview->drawing = 0;
 }
 
 

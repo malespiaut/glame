@@ -75,7 +75,7 @@ struct _GtkWaveView
 
   /* Exposure accumulation stuff. */
   gint            expose_count;
-  GdkRectangle    expose_area;
+  gint            expose_x, expose_width;
   gint            drawing, destroyed;
 
   /* Keep pointers to some useful sub-widgets. */
