@@ -6,7 +6,6 @@ EXTRA_DIST = filter_tools.h filter_protocols.h filter_types.h
 
 libfilter_la_SOURCES = \
 	filter.h filter.c \
-	filter_methods.h filter_methods.c \
 	filter_buffer.h filter_buffer.c \
 	filter_ops.h filter_ops.c \
 	filter_param.h filter_param.c \

@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.13 2001/06/18 08:23:44 richi Exp $
+ * $Id: filter_param.c,v 1.14 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -29,6 +29,36 @@
 #define ITEM(p) (&(p)->entry)
 #define PARAM(i) ((filter_param_t *)(i))
 
+static int default_set(filter_param_t *p, const void *val)
+{
+	return 0;
+}
+
+static int redirect_set(filter_param_t *param, const void *val)
+{
+	filter_t *node, *n;
+	const char *map_node, *map_label;
+	filter_param_t *p;
+
+	/* pipe parameter setting does not go through the wrapped funcs */
+	node = filterparam_filter(param);
+	map_node = filterparam_get_property(param, FILTERPARAM_MAP_NODE);
+	map_label = filterparam_get_property(param, FILTERPARAM_MAP_LABEL);
+	if (!node || !map_node || !map_label)
+		return -1;
+
+	if (!(n = filter_get_node(node, map_node))) {
+		DPRINTF("No such node %s\n", map_node);
+		return -1;
+	}
+	if (!(p = filterparamdb_get_param(filter_paramdb(n), map_label))) {
+		DPRINTF("No such param %s\n", map_label);
+		return -1;
+	}
+	return filterparam_set(p, val);
+}
+
+
 static filter_param_t *paramdb_alloc_item()
 {
 	filter_param_t *p;
@@ -38,6 +68,8 @@ static filter_param_t *paramdb_alloc_item()
 	gldb_init_item(&p->entry);
 	glsdb_init(&p->properties);
 	INIT_GLSIG_EMITTER(&p->emitter);
+	p->set = default_set;
+	p->type = -1;
 
 	return p;
 }
@@ -68,6 +100,7 @@ static gldb_item_t *paramdb_op_copy(gldb_item_t *source)
 
 	if (!(d = paramdb_alloc_item()))
 		return NULL;
+	d->set = s->set;
 	d->type = s->type;
 
 	if (FILTER_PARAM_IS_STRING(s)) {
@@ -306,10 +339,9 @@ int filterparam_set(filter_param_t *param, const void *val)
 	}
 #endif
 
-	/* Then ask the filter about the change.
+	/* Then ask the param about the change.
 	 */
-	if (filterparam_filter(param)->set_param(filterparam_filter(param),
-						 param, val) == -1)
+	if (param->set(param, val) == -1)
 		return -1;
 
 	/* Finally do the change
@@ -444,5 +476,7 @@ int filterparam_redirect(filter_param_t *source, filter_param_t *dest)
 				 filter_name(filterparam_filter(dest)));
 	filterparam_set_property(source, FILTERPARAM_MAP_LABEL,
 				 filterparam_label(dest));
+	source->set = redirect_set;
+
 	return 0;
 }

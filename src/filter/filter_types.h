@@ -3,7 +3,7 @@
 
 /*
  * filter_types.h
- * $Id: filter_types.h,v 1.2 2001/04/11 08:39:02 richi Exp $
+ * $Id: filter_types.h,v 1.3 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -38,6 +38,11 @@ struct filter_portdb;
 typedef struct filter_portdb filter_portdb_t;
 struct filter_port;
 typedef struct filter_port filter_port_t;
+
+struct filter_paramdb;
+typedef struct filter_paramdb filter_paramdb_t;
+struct filter_param;
+typedef struct filter_param filter_param_t;
 
 struct filter_buffer;
 typedef struct filter_buffer filter_buffer_t;

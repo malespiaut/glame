@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.73 2001/08/02 11:08:36 richi Exp $
+ * $Id: filter.h,v 1.74 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -97,12 +97,7 @@ struct filter {
 	/* methods for filter setup/operation */
 	int (*f)(filter_t *);
 	int (*init)(filter_t *);
-	int (*connect_out)(filter_t *source, filter_port_t *port,
-			   filter_pipe_t *p);
-	int (*connect_in)(filter_t *dest, filter_port_t *port,
-			  filter_pipe_t *p);
-	int (*set_param)(filter_t *n, filter_param_t *param,
-			 const void *val);
+
 	void *priv;
 
 	/* Port database. */

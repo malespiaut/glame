@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.5 2001/07/10 16:28:21 richi Exp $
+ * $Id: filter_port.c,v 1.6 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,6 +26,149 @@
 #include "filter_port.h"
 
 
+/* Clever GLSIG_PIPE_CHANGED handler for the input side of
+ * an unmanaged (not gone trough custom connect()) pipe.
+ * Allows for simple method-/handler-less filters.
+ */
+static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_t *n;
+	filter_pipe_t *in;
+	filter_pipe_t *out;
+	filter_port_t *port;
+
+	GLSIGH_GETARGS1(va, in);
+	n = filterport_filter(filterpipe_dest(in));
+
+	/* Input pipe format change is easy for us as we know
+	 * nothing about internal connections between
+	 * inputs and outputs.
+	 * So the rule of dumb is to update all output
+	 * pipe formats to the format of the input
+	 * pipe we just got. We also have to forward
+	 * the change to every output slot, of course.
+	 * We need to stop the fixup as soon as a failure
+	 * occours - the pipe may be broken.
+	 * FIXME: this does "simple" check if anything would
+	 * change using memcmp to prevent endless loops with
+	 * cyclic networks.
+	 */
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (filterport_is_input(port))
+			continue;
+		filterport_foreach_pipe(port, out) {
+			/* Dont overwrite "foreign" pipes. */
+			if (out->type != FILTER_PIPETYPE_UNDEFINED
+			    && out->type != in->type)
+				continue;
+			/* Prevent endless pipe change loops. */
+			if (out->type == in->type
+			    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0) {
+				continue;
+			}
+			out->type = in->type;
+			out->u = in->u;
+			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+		}
+	}
+}
+
+static int default_connect_input(filter_port_t *port, filter_pipe_t *pipe)
+{
+        /* We accept everything. Default checks are done by the
+	 * filterport_connect function. But as all ports are now
+	 * "automatic" we as default do accept one connection only. */
+	if (filterport_get_pipe(port))
+		return -1;
+
+	/* As this is an unmanaged connection, we have to provide
+	 * a default handler for the GLSIG_PIPE_CHANGED signal,
+	 * so install one. */
+	glsig_add_handler(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED,
+			  filter_handle_pipe_change, NULL);
+
+	return 0;	
+}
+
+static int default_connect_output(filter_port_t *port, filter_pipe_t *pipe)
+{
+	filter_pipe_t *in = NULL;
+	filter_port_t *inp;
+	filter_t *n;
+
+	/* As with default connect in method, we accept one
+	 * connection only in this "default" mode. */
+	if (filterport_get_pipe(port))
+		return -1;
+
+	/* For the following stuff we need an existing input pipe
+	 * with a valid type. */
+	n = filterport_filter(port);
+	filterportdb_foreach_port(filter_portdb(n), inp) {
+		if (filterport_is_output(inp))
+			continue;
+		filterport_foreach_pipe(inp, in) {
+			/* We may use in to copy pipe properties if
+			 * in has a defined type and the pipe we are
+                         * copying to has the same type or undefined
+                         * type. */
+			if (in->type != FILTER_PIPETYPE_UNDEFINED
+			    && (in->type == pipe->type
+				|| pipe->type == FILTER_PIPETYPE_UNDEFINED)) {
+				pipe->type = in->type;
+				pipe->u = in->u;
+			}
+		}
+	}
+
+	/* Nothing suitable? Oh well... */
+	return 0;
+
+}
+
+static int redirect_connect_output(filter_port_t *outp, filter_pipe_t *p)
+{
+	const char *map_node, *map_label;
+	filter_port_t *port;
+	filter_t *source, *node;
+
+	source = filterport_filter(outp);
+	map_node = filterport_get_property(outp, FILTERPORT_MAP_NODE);
+	map_label = filterport_get_property(outp, FILTERPORT_MAP_LABEL);
+	if (!map_node || !map_label)
+		return -1;
+
+	if (!(node = filter_get_node(source, map_node))
+	    || !(port = filterportdb_get_port(filter_portdb(node), map_label))
+	    || !filterport_is_output(port))
+		return -1;
+	p->source = port;
+
+	return port->connect(port, p);
+}
+
+static int redirect_connect_input(filter_port_t *inp, filter_pipe_t *p)
+{
+	const char *map_node, *map_label;
+	filter_port_t *port;
+	filter_t *dest, *node;
+
+	dest = filterport_filter(inp);
+	map_node = filterport_get_property(inp, FILTERPORT_MAP_NODE);
+	map_label = filterport_get_property(inp, FILTERPORT_MAP_LABEL);
+	if (!map_node || !map_label)
+		return -1;
+
+	if (!(node = filter_get_node(dest, map_node))
+	    || !(port = filterportdb_get_port(filter_portdb(node), map_label))
+	    || !filterport_is_input(port))
+		return -1;
+	p->dest = port;
+
+	return port->connect(port, p);
+}
+
+
 static filter_port_t *portdb_alloc_item()
 {
 	filter_port_t *p;
@@ -38,6 +181,7 @@ static filter_port_t *portdb_alloc_item()
 
 	p->type = FILTER_PORTTYPE_ANY;
 	p->flags = FILTER_PORTFLAG_INPUT;
+	p->connect = NULL;
 
 	/* Init the parameter database is deferred until add. */
 
@@ -85,6 +229,7 @@ static gldb_item_t *portdb_op_copy(gldb_item_t *source)
 	/* Copy type/flags. Parameter db copying is deferred until add. */
 	d->type = s->type;
 	d->flags = s->flags;
+	d->connect = s->connect;
 
 	/* We do NOT copy the pipes! This needs to be done
 	 * manually, as both ends (ports) have to exist and
@@ -150,6 +295,10 @@ filter_port_t *filterportdb_add_port(filter_portdb_t *db, const char *label,
 		return NULL;
 	p->type = type;
 	p->flags = flags;
+	if (flags == FILTER_PORTFLAG_INPUT)
+		p->connect = default_connect_input;
+	else if (flags == FILTER_PORTFLAG_OUTPUT)
+		p->connect = default_connect_output;
 
 	if (gldb_add_item(&db->db, &p->entry, label) == -1) {
 		portdb_op_delete(&p->entry);
@@ -184,6 +333,11 @@ int filterport_redirect(filter_port_t *source, filter_port_t *dest)
 				filter_name(filterport_filter(dest)));
 	filterport_set_property(source, FILTERPORT_MAP_LABEL,
 				filterport_label(dest));
+	if (filterport_is_input(source))
+		source->connect = redirect_connect_input;
+	else if (filterport_is_output(source))
+		source->connect = redirect_connect_output;
+
 	return 0;
 }
 

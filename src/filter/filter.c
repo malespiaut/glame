@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.54 2001/08/02 11:08:36 richi Exp $
+ * $Id: filter.c,v 1.55 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -33,7 +33,6 @@
 #include <errno.h>
 #include "util.h"
 #include "filter.h"
-#include "filter_methods.h"
 #include "filter_ops.h"
 
 
@@ -79,9 +78,6 @@ filter_t *_filter_alloc()
 	f->plugin = NULL;
 	f->f = NULL;
 	f->init = NULL;
-	f->connect_out = NULL;
-	f->connect_in = NULL;
-	f->set_param = NULL;
 	filterportdb_init(&f->ports, f);
 
 	f->priv = NULL;
@@ -151,9 +147,6 @@ filter_t *_filter_instantiate(filter_t *f)
 	n->name = NULL;
 	n->f = f->f;
 	n->init = f->init;
-	n->connect_out = f->connect_out;
-	n->connect_in = f->connect_in;
-	n->set_param = f->set_param;
 	
 	n->plugin = f->plugin;
 	n->priv = f->priv;
@@ -214,19 +207,10 @@ int _filter_fixup(filter_t *f)
 		/* We are a partially initialized node! */
 		f->type |= FILTERTYPE_NODE;
 		f->ops = &filter_node_ops;
-		if (!f->connect_out)
-			f->connect_out = filter_default_connect_out;
-		if (!f->connect_in)
-			f->connect_in = filter_default_connect_in;
-		if (!f->set_param)
-			f->set_param = filter_default_set_param;
 	} else if (filter_nrnodes(f) > 0 && !f->f && !f->ops) {
 		/* We are a partially initialized network! */
 		f->type |= FILTERTYPE_NETWORK;
 		f->ops = &filter_network_ops;
-		f->connect_out = filter_network_connect_out;
-		f->connect_in = filter_network_connect_in;
-		f->set_param = filter_network_set_param;
 	} else if (!f->ops)
 		return -1;
 

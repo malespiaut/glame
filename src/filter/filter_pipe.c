@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.9 2001/05/13 12:05:54 richi Exp $
+ * $Id: filter_pipe.c,v 1.10 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -99,7 +99,9 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	    || !filterport_filter(source) || !filterport_filter(dest)
 	    || filterport_filter(source) == filterport_filter(dest)
 	    || !filterport_is_output(source)
-	    || !filterport_is_input(dest))
+	    || !filterport_is_input(dest)
+	    || !filterport_filter(source)->net
+	    || filterport_filter(source)->net != filterport_filter(dest)->net)
 		return NULL;
 	if (FILTER_IS_LAUNCHED(filterport_filter(source))
 	    || FILTER_IS_LAUNCHED(filterport_filter(dest)))
@@ -116,9 +118,9 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	p->type = filterport_type(dest)|filterport_type(source);
 
 	/* Try to establish the connections. */
-	if (filterport_filter(source)->connect_out(filterport_filter(source), source, p) == -1)
+	if (source->connect(source, p) == -1)
 		goto _err;
-	if (filterport_filter(dest)->connect_in(filterport_filter(dest), dest, p) == -1)
+	if (dest->connect(dest, p) == -1)
 		goto _err;
 
 	/* Now we have source & dest fixed - so we can finally

@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.17 2001/07/26 14:43:09 richi Exp $
+ * $Id: filter_param.h,v 1.18 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,6 +27,7 @@
 #include "glsignal.h"
 #include "gldb.h"
 #include "gldb_string.h"
+#include "filter_types.h"
 
 
 /* Parameters are categorized into basic types which are
@@ -65,14 +66,14 @@
 
 /* The filter parameter database type. You should not care
  * about its contents. */
-typedef struct {
+struct filter_paramdb {
 	gldb_t db;
 	filter_t *node;
-} filter_paramdb_t;
+};
 
 /* The filter parameter type. You may want to access the
  * signal emitter directly. */
-typedef struct {
+struct filter_param {
 	gldb_item_t entry;
 
 	/* string db for properties like description.
@@ -84,6 +85,9 @@ typedef struct {
 	 * GLSIG_PARAM_DELETED */
 	glsig_emitter_t emitter;
 
+	/* methods - set. */
+	int (*set)(filter_param_t *param, const void *val);
+
 	/* just the old filterparam_t/paramdesc_t fields */
 	int type;
 	union {
@@ -94,7 +98,7 @@ typedef struct {
 		long pos;
 		filter_buffer_t *buf;
 	} u;
-} filter_param_t;
+};
 
 /* Access macros to the various fields of the filter parameter
  * structure.

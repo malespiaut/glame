@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.6 2001/05/03 17:46:56 mag Exp $
+ * $Id: filter_port.h,v 1.7 2001/08/08 09:15:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -68,6 +68,9 @@ struct filter_port {
 	/* port type and flags. */
 	int type;
 	int flags;
+
+	/* methods - connect. */
+	int (*connect)(filter_port_t *port, filter_pipe_t *pipe);
 
 	/* default parameters for the pipes. */
 	filter_paramdb_t params;
