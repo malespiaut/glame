@@ -68,6 +68,7 @@
   <accel state="4" spec="k"> (waveedit-delete) </accel>
   <accel state="4" spec="z"> (waveedit-undo) </accel>
   <accel state="4" spec="r"> (waveedit-redo) </accel>
+  <accel state="4" spec="s"> (waveedit-export-selection) </accel>
 </scope>
 
 <scope scope="filteredit">

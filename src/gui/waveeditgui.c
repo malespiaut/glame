@@ -1137,6 +1137,14 @@ static SCM gls_waveedit_redo()
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_waveedit_exportselection()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	exportselection_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
 void glame_waveeditgui_init()
 {
 	gh_new_procedure1_0("waveedit-new",
@@ -1167,6 +1175,7 @@ void glame_waveeditgui_init()
 	gh_new_procedure0_0("waveedit-delete", gls_waveedit_delete);
 	gh_new_procedure0_0("waveedit-undo", gls_waveedit_undo);
 	gh_new_procedure0_0("waveedit-redo", gls_waveedit_redo);
+	gh_new_procedure0_0("waveedit-export-selection", gls_waveedit_exportselection);
 }
 
 static void waveedit_gui_destroy(GtkObject *waveedit)
