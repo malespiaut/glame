@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.7 2001/06/27 07:45:03 richi Exp $
+ * $Id: canvas_types.c,v 1.8 2001/06/27 09:19:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -68,6 +68,9 @@ static void timeline_canvas_init(TimelineCanvas *canvas)
 	canvas->gpsm_handler0 = NULL;
 	canvas->gpsm_handler1 = NULL;
 	canvas->root = NULL;
+	canvas->active_item = NULL;
+	canvas->active_group = NULL;
+	canvas->ruler = NULL;
 }
 
 GtkType timeline_canvas_get_type(void)
@@ -150,6 +153,8 @@ static void timeline_canvas_item_class_init(TimelineCanvasItemClass *class)
 	GtkObjectClass *object_class;
 	object_class = GTK_OBJECT_CLASS(class);
 	object_class->destroy = timeline_canvas_item_destroy;
+	class->update = NULL;
+	class->highlight = NULL;
 }
 
 static void timeline_canvas_item_init(TimelineCanvasItem *item)
@@ -176,6 +181,16 @@ GtkType timeline_canvas_item_get_type(void)
 	}
 
 	return timeline_canvas_item_type;
+}
+
+void timeline_canvas_item_update(TimelineCanvasItem *item)
+{
+	TIMELINE_CANVAS_ITEM_CLASS(G_OBJECT_GET_CLASS(item))->update(item);
+}
+
+void timeline_canvas_item_highlight(TimelineCanvasItem *item, gboolean lite)
+{
+	TIMELINE_CANVAS_ITEM_CLASS(G_OBJECT_GET_CLASS(item))->highlight(item, lite);
 }
 
 void timeline_canvas_item_gpsm2w(long hposition, long vposition,
@@ -209,6 +224,10 @@ void timeline_canvas_item_w2gpsm(long *hposition, long *vposition,
  * TimelineCanvasGroup
  */
 
+static void timeline_canvas_group_update(TimelineCanvasItem *item);
+static void timeline_canvas_group_highlight(TimelineCanvasItem *item,
+					    gboolean lite);
+
 static void timeline_canvas_group_destroy(GtkObject *group)
 {
 	TimelineCanvasItemClass* parent_class;
@@ -219,8 +238,12 @@ static void timeline_canvas_group_destroy(GtkObject *group)
 static void timeline_canvas_group_class_init(TimelineCanvasGroupClass *class)
 {
 	GtkObjectClass *object_class;
+	TimelineCanvasItemClass *item_class;
 	object_class = GTK_OBJECT_CLASS(class);
 	object_class->destroy = timeline_canvas_group_destroy;
+	item_class = TIMELINE_CANVAS_ITEM_CLASS(class);
+	item_class->update = timeline_canvas_group_update;
+	item_class->highlight = timeline_canvas_group_highlight;
 }
 
 static void timeline_canvas_group_init(TimelineCanvasGroup *grp)
@@ -250,9 +273,9 @@ GtkType timeline_canvas_group_get_type(void)
 	return timeline_canvas_group_type;
 }
 
-void timeline_canvas_group_update(TimelineCanvasGroup *group)
+static void timeline_canvas_group_update(TimelineCanvasItem *item)
 {
-	TimelineCanvasItem *item = TIMELINE_CANVAS_ITEM(group);
+	TimelineCanvasGroup *group = TIMELINE_CANVAS_GROUP(item);
 	double x1, y1, x2, y2;
 
 	/* Update the rect hsize. */
@@ -319,11 +342,13 @@ TimelineCanvasGroup *timeline_canvas_group_new(GnomeCanvasGroup *group,
 	return item;
 }
 
-void timeline_canvas_group_highlight(TimelineCanvasGroup *item, gboolean lite)
+static void timeline_canvas_group_highlight(TimelineCanvasItem *item, gboolean lite)
 {
-	gnome_canvas_item_set(item->rect,
+	TimelineCanvasGroup *group = TIMELINE_CANVAS_GROUP(item);
+	gnome_canvas_item_set(group->rect,
 			      "outline_color", lite ? "blue" : "black",
 			      NULL);
+	gnome_canvas_item_raise_to_top(group->rect);
 	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));
 }
 
@@ -332,6 +357,10 @@ void timeline_canvas_group_highlight(TimelineCanvasGroup *item, gboolean lite)
 /*
  * TimelineCanvasFile
  */
+
+static void timeline_canvas_file_update(TimelineCanvasItem *item);
+static void timeline_canvas_file_highlight(TimelineCanvasItem *item,
+					   gboolean lite);
 
 static void timeline_canvas_file_destroy(GtkObject *file)
 {
@@ -343,8 +372,12 @@ static void timeline_canvas_file_destroy(GtkObject *file)
 static void timeline_canvas_file_class_init(TimelineCanvasFileClass *class)
 {
 	GtkObjectClass *object_class;
+	TimelineCanvasItemClass *item_class;
 	object_class = GTK_OBJECT_CLASS(class);
 	object_class->destroy = timeline_canvas_file_destroy;
+	item_class = TIMELINE_CANVAS_ITEM_CLASS(class);
+	item_class->update = timeline_canvas_file_update;
+	item_class->highlight = timeline_canvas_file_highlight;
 }
 
 static void timeline_canvas_file_init(TimelineCanvasFile *file)
@@ -373,9 +406,9 @@ GtkType timeline_canvas_file_get_type(void)
 	return timeline_canvas_file_type;
 }
 
-void timeline_canvas_file_update(TimelineCanvasFile *file)
+static void timeline_canvas_file_update(TimelineCanvasItem *item)
 {
-	TimelineCanvasItem *item = TIMELINE_CANVAS_ITEM(file);
+	TimelineCanvasFile *file = TIMELINE_CANVAS_FILE(item);
 	double x1, y1, x2;
 
 	/* Update the rect hsize. */
@@ -438,9 +471,10 @@ TimelineCanvasFile *timeline_canvas_file_new(GnomeCanvasGroup *group,
 	return item;
 }
 
-void timeline_canvas_file_highlight(TimelineCanvasFile *item, gboolean lite)
+static void timeline_canvas_file_highlight(TimelineCanvasItem *item, gboolean lite)
 {
-	gnome_canvas_item_set(item->rect,
+	TimelineCanvasFile *file = TIMELINE_CANVAS_FILE(item);
+	gnome_canvas_item_set(file->rect,
 			      "outline_color", lite ? "yellow" : "black",
 			      NULL);
 	gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(item));

@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.8 2001/06/27 07:45:03 richi Exp $
+ * $Id: timeline.c,v 1.9 2001/06/27 09:19:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -37,8 +37,6 @@
  */
 
 static TimelineCanvas *active_timeline = NULL;
-static TimelineCanvasItem *active_timeline_item = NULL;
-static TimelineCanvasGroup *active_timeline_group = NULL;
 
 
 /*
@@ -73,6 +71,7 @@ static void update_ruler_position(TimelineCanvas *canvas, long hposition)
 static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			   gpointer data)
 {
+	TimelineCanvas *canvas = TIMELINE_CI_CANVAS(file);
 	/* Move, Drag'n'Drop state machine globals. */
 	static GnomeCanvasItem *dnd_rect = NULL;
 	static TimelineCanvasFile *dnd_file = NULL;
@@ -83,19 +82,21 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 		DPRINTF("Entered item %s / group %s\n",
 			gpsm_item_label(TIMELINE_CANVAS_ITEM(file)->item),
 			gpsm_item_label(gpsm_item_parent(TIMELINE_CI_GPSM(file))));
-		if (active_timeline_item)
-			timeline_canvas_file_highlight(TIMELINE_CANVAS_FILE(active_timeline_item),
+		if (canvas->active_item)
+			timeline_canvas_item_highlight(canvas->active_item,
 						       FALSE);
-		if (active_timeline_group != TIMELINE_CANVAS_GROUP(TIMELINE_CI_GROUP(file))) {
-			if (active_timeline_group)
-				timeline_canvas_group_highlight(active_timeline_group,
-								FALSE);
-			active_timeline_group = TIMELINE_CANVAS_GROUP(TIMELINE_CI_GROUP(file));
-			timeline_canvas_group_highlight(active_timeline_group,
-							TRUE);
+		if (canvas->active_group) {
+			timeline_canvas_item_highlight(TIMELINE_CANVAS_ITEM(canvas->active_group),
+						       FALSE);
+			canvas->active_group = NULL;
 		}
-		active_timeline_item = TIMELINE_CANVAS_ITEM(file);
-		timeline_canvas_file_highlight(file, TRUE);
+		if (TIMELINE_IS_CANVAS_GROUP(TIMELINE_CI_GROUP(file))) {
+			canvas->active_group = TIMELINE_CANVAS_GROUP(TIMELINE_CI_GROUP(file));
+			timeline_canvas_item_highlight(TIMELINE_CANVAS_ITEM(canvas->active_group),
+						       TRUE);
+		}
+		canvas->active_item = TIMELINE_CANVAS_ITEM(file);
+		timeline_canvas_item_highlight(TIMELINE_CANVAS_ITEM(file), TRUE);
 		break;
 	}
 	case GDK_2BUTTON_PRESS: {
@@ -282,8 +283,6 @@ static void close_cb(GtkWidget *widget, GtkWidget *timeline)
 {
 	gtk_widget_destroy(timeline);
 	active_timeline = NULL;
-	active_timeline_item = NULL;
-	active_timeline_group = NULL;
 }
 
 static void help_cb(GtkWidget *widget, void *foo)
@@ -331,11 +330,12 @@ static void handle_group(glsig_handler_t *handler, long sig, va_list va)
 		group = TIMELINE_CANVAS_GROUP(glsig_handler_private(handler));
 		GLSIGH_GETARGS1(va, grp);
 
-		timeline_canvas_group_update(group);
+		timeline_canvas_item_update(TIMELINE_CANVAS_ITEM(group));
 		break;
 	}
 	case GPSM_SIG_GRP_REMOVEITEM: {
 		TimelineCanvasGroup *group;
+		TimelineCanvas *canvas;
 		GnomeCanvasItem *citem;
 		gpsm_grp_t *grp;
 		gpsm_item_t *item;
@@ -344,14 +344,15 @@ static void handle_group(glsig_handler_t *handler, long sig, va_list va)
 		GLSIGH_GETARGS2(va, grp, item);
 		if (TIMELINE_CANVAS_ITEM(group)->item != (gpsm_item_t *)grp)
 			DPRINTF("FUCK!\n");
+		canvas = TIMELINE_CI_CANVAS(group);
 
 		citem = timeline_canvas_find_gpsm_item(GNOME_CANVAS_GROUP(group), item);
 		if (!citem)
 			DPRINTF("FUCK2\n");
-		if ((void *)citem == (void *)active_timeline_item)
-			active_timeline_item = NULL;
-		if ((void *)citem == (void *)active_timeline_group)
-			active_timeline_group = NULL;
+		if ((void *)citem == (void *)canvas->active_item)
+			canvas->active_item = NULL;
+		if ((void *)citem == (void *)canvas->active_group)
+			canvas->active_group = NULL;
 		gtk_object_destroy(GTK_OBJECT(citem));
 
 		break;
@@ -383,7 +384,7 @@ static void handle_file(glsig_handler_t *handler, long sig, va_list va)
 		file = TIMELINE_CANVAS_FILE(glsig_handler_private(handler));
 		GLSIGH_GETARGS1(va, swfile);
 
-		timeline_canvas_file_update(file);
+		timeline_canvas_item_update(TIMELINE_CANVAS_ITEM(file));
 		break;
 	}
 	default:
@@ -409,10 +410,10 @@ static void handle_root(glsig_handler_t *handler, long sig, va_list va)
 			gnome_canvas_root(GNOME_CANVAS(canvas)), item);
 		if (!citem)
 			DPRINTF("FUCK2\n");
-		if ((void *)citem == (void *)active_timeline_item)
-			active_timeline_item = NULL;
-		if ((void *)citem == (void *)active_timeline_group)
-			active_timeline_group = NULL;
+		if ((void *)citem == (void *)canvas->active_item)
+			canvas->active_item = NULL;
+		if ((void *)citem == (void *)canvas->active_group)
+			canvas->active_group = NULL;
 		gtk_object_destroy(GTK_OBJECT(citem));
 
 		break;
@@ -483,16 +484,16 @@ static SCM gls_timeline_root()
 
 static SCM gls_timeline_active_group()
 {
-	if (!active_timeline_group)
+	if (!active_timeline || !active_timeline->active_group)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(TIMELINE_CANVAS_ITEM(active_timeline_group)->item);
+	return gpsmitem2scm(TIMELINE_CANVAS_ITEM(active_timeline->active_group)->item);
 }
 
 static SCM gls_timeline_active_item()
 {
-	if (!active_timeline_item)
+	if (!active_timeline || !active_timeline->active_item)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(active_timeline_item->item);
+	return gpsmitem2scm(active_timeline->active_item->item);
 }
 
 void glame_timeline_init()
@@ -516,7 +517,7 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 	window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(window),
 				       GTK_POLICY_ALWAYS,
-				       GTK_POLICY_ALWAYS);
+				       GTK_POLICY_AUTOMATIC);
 	gtk_widget_push_visual(gdk_rgb_get_visual());
 	gtk_widget_push_colormap(gdk_rgb_get_cmap());
 	canvas = GTK_WIDGET(timeline_canvas_new(root));
