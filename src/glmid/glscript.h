@@ -46,7 +46,7 @@ extern filter_t *last_loaded_filter_instance;
 
 
 /* Safe wrappers for gh_eval_file/gh_eval_string. Result is #f if
- * anything went wrong, #t otherwise. */
+ * anything went wrong, #unspecified otherwise. */
 static inline SCM glame_gh_safe_handler(void *a, SCM b, SCM c)
 {
 	return SCM_BOOL_F;

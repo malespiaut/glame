@@ -60,8 +60,11 @@ int glame_load_plugin(const char *fname)
 		SCM s_res;
 	        glscript_load_mode = 0;
 		s_res = glame_gh_safe_eval_file(fname);
-		if (gh_boolean_p(s_res) && gh_scm2bool(s_res))
-		    	return 0;
+		if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
+			DPRINTF("Exception from .scm\n");
+			return -1;
+		}
+		return 0;
 	}
 #endif
 
@@ -78,9 +81,11 @@ filter_t *glame_load_instance(const char *fname)
 #ifdef HAVE_GUILE
 	glscript_load_mode = 1;
 	s_res = glame_gh_safe_eval_file(fname);
-	if (!gh_boolean_p(s_res) || !gh_scm2bool(s_res))
+	if (gh_boolean_p(s_res) && !gh_scm2bool(s_res)) {
+		DPRINTF("Exception from .scm\n");
 		return NULL;
-	return last_loaded_filter_instance; // HACK...
+	}
+	return last_loaded_filter_instance; /* HACK... */
 #else
 	return NULL;
 #endif
