@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.8 2000/03/25 15:04:46 richi Exp $
+ * $Id: swapfile_test.c,v 1.9 2000/04/17 09:17:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -71,7 +71,7 @@ inline void print_state(const char *templ, ...)
 	printf("\r                                                                            ");
 	printf("\r%s: %3i. ", prefix, sequence);
 	va_start(args, templ);
-	printf(templ, args);
+	vprintf(templ, args);
 	va_end(args);
 	fflush(stdout);
 	SLOW;
@@ -83,7 +83,7 @@ inline void print_state(const char *templ, ...)
 	sequence++;
 	printf("%s: %3i. ", prefix, sequence);
 	va_start(args, templ);
-	printf(templ, args);
+	vprintf(templ, args);
 	va_end(args);
 	printf("\n");
 	SLOW;

@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.13 2000/04/10 11:54:15 richi Exp $
+ * $Id: swapfile.c,v 1.14 2000/04/17 09:17:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -105,7 +105,7 @@ static void cluster_unref(cluster_t *c);
 static void _log_clear(filehead_t *f, logentry_t *start, int direction);
 static logentry_t *_logentry_findbyid(filehead_t *f, int id);
 static void _ffree(filehead_t *f);
-static void _fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff);
+static void __fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff);
 
 
 
@@ -125,6 +125,46 @@ static inline void _swap_unlock()
 
 
 /************************************************************
+ * debug helpers
+ */
+
+#ifdef NDEBUG
+#define _filecluster_check(c)
+#else
+static void _filecluster_check(filecluster_t *fc)
+{
+	filecluster_t *fc2;
+
+	if (!fc)
+		return;
+
+	/* check weird data */
+	if (fc->off < 0 || fc->size < 0 || fc->coff < 0)
+		DERROR("weird fc contents");
+
+	/* check position/size consistency wrt next/previous
+	 * cluster */
+	if (!list_empty(&fc->fc_list) && (fc2 = fc_prev(fc)))
+		if (fc2->off + fc2->size != fc->off)
+			DERROR("weird linkage prev <-> fc");
+	if (!list_empty(&fc->fc_list) && (fc2 = fc_next(fc)))
+		if (fc->off + fc->size != fc2->off)
+			DERROR("weird linkage fc <-> next");
+
+	if (!fc->cluster)
+		return;
+
+	/* check consistency with underlying cluster */
+	if (fc->coff >= fc->cluster->size)
+		DERROR("weird cluster offset");
+	if (fc->size > fc->cluster->size - fc->coff)
+		DERROR("oversized filecluster");
+}
+#endif
+
+
+
+/************************************************************
  * allocation helpers with id tracking
  */
 
@@ -136,9 +176,10 @@ static cluster_t *__cluster_alloc(int id)
 		return NULL;
 
 	if (id == -1)
-	  id = ++swap->cid;
+		id = ++swap->cid;
 	else if (id > swap->cid)
 		swap->cid = id;
+	c->id = id;
 
 	INIT_LIST_HEAD(&c->c_list);
 	INIT_LIST_HEAD(&c->rfc_list);
@@ -237,9 +278,12 @@ static void _filehead_add(filehead_t *fh, struct list_head *hint)
 	list_add_tail(&fh->fh_list, hint);
 }
 
-static void _filecluster_add(filecluster_t *fc, struct list_head *hint)
+static void __filecluster_add(filehead_t *file,
+			      filecluster_t *fc, struct list_head *hint)
 {
 	filecluster_t *fc2;
+
+	fc->f = file;
 
 	if (!hint) {
 		hint = &fc->f->fc_list;
@@ -252,6 +296,13 @@ static void _filecluster_add(filecluster_t *fc, struct list_head *hint)
 
 	list_add_tail(&fc->fc_list, hint);
 }
+static inline void _filecluster_add(filehead_t *file,
+				    filecluster_t *fc, struct list_head *hint)
+{
+	__filecluster_add(file, fc, hint);
+	_filecluster_check(fc);
+}
+
 
 static void _filecluster_remove(filecluster_t *fc)
 {
@@ -510,7 +561,7 @@ static int _filecluster_read(swapd_record_t *r)
 
 	if (!(fc = __filecluster_alloc()))
 		return -1;
-	if (!(fh = fc->f = _filehead_findbyid(r->u.filecluster.fid))) {
+	if (!(fh = _filehead_findbyid(r->u.filecluster.fid))) {
 		fprintf(stderr, "stale filecluster for non-existing file %i!\n",
 			r->u.filecluster.fid);
 		goto _err;
@@ -525,8 +576,8 @@ static int _filecluster_read(swapd_record_t *r)
 			goto _err;
 		}
 
-	_fcpopulate(fc, c, r->u.filecluster.coff);
-	_filecluster_add(fc, NULL);
+	__fcpopulate(fc, c, r->u.filecluster.coff);
+	__filecluster_add(fh, fc, NULL);
 
 	return 0;
 
@@ -878,27 +929,21 @@ void _cluster_munmap(cluster_t *cluster)
  * the fc helpers do reference counting for the clusters
  */
 
-static void _fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
+static void __fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
 {
 	fc->cluster = c;
 	fc->coff = coff;
 	if (c) {
+		if (fc->size > c->size - coff)
+			DERROR("fc populated with too small cluster");
 		cluster_ref(c);
 		list_add(&fc->rfc_list, &fc->cluster->rfc_list);
 	}
 }
-
-static filecluster_t *_fcnew(filehead_t *f, cluster_t *c, off_t coff)
+static inline void _fcpopulate(filecluster_t *fc, cluster_t *c, off_t coff)
 {
-	filecluster_t *fc;
-
-	if (!(fc = __filecluster_alloc()))
-		return NULL;
-
-	fc->f = f;
-	_fcpopulate(fc, c, coff);
-
-	return fc;
+	__fcpopulate(fc, c, coff);
+	_filecluster_check(fc);
 }
 
 /* splits filecluster at position pos relative to filecluster start!
@@ -919,13 +964,16 @@ static filecluster_t *__filecluster_split(filecluster_t *fc, off_t pos, cluster_
 	if (fc->cluster && fc->cluster == tail)
 		coff = fc->coff + pos;
 
-	if (!(fctail = _fcnew(fc->f, tail, coff)))
+	if (!(fctail = __filecluster_alloc()))
 		PANIC("no memory for fc");
 	fctail->off = fc->off + pos;
 	fctail->size = fc->size - pos;
+	_fcpopulate(fctail, tail, coff);
+
 	fc->size = pos;
 
-	list_add(&fctail->fc_list, &fc->fc_list);
+	_filecluster_add(fc->f, fctail, fc->fc_list.next);
+	_filecluster_check(fc);
 
 	return fctail;
 }
@@ -1080,11 +1128,12 @@ filehead_t *_file_copy(filehead_t *f, filecluster_t *from, filecluster_t *to)
 	lh = &from->fc_list;
 	do {
 		fc = list_entry(lh, filecluster_t, fc_list);
-		if (!(fcc = _fcnew(c, fc->cluster, fc->coff)))
+		if (!(fcc = __filecluster_alloc()))
 			goto _killit;
 		fcc->off = fc->off;
 		fcc->size = fc->size;
-		list_add_tail(&fcc->fc_list, &c->fc_list);
+		_fcpopulate(fcc, fc->cluster, fc->coff);
+		_filecluster_add(c, fcc, &c->fc_list);
 
 		lh = lh->next;
 	} while (fc != to);
@@ -1298,6 +1347,7 @@ static int _build_swap_disk(swap_t *s, swapd_record_t *r)
 		lh2 = &fh->fc_list;
 		while (lh2 = lh2->next, lh2 != &fh->fc_list) {
 			fc = list_entry(lh2, filecluster_t, fc_list);
+			_filecluster_check(fc);
 			_filecluster_write(r++, fc);
 		}
 	}
@@ -1443,12 +1493,12 @@ fileid_t file_alloc(off_t size)
 	if (size == 0)
 		goto _out;
 
-	if (!(fc = _fcnew(f, NULL, 0)))
+	if (!(fc = __filecluster_alloc()))
 		goto _freef;
 	fc->off = 0;
 	fc->size = size;
 
-	_filecluster_add(fc, &f->fc_list);
+	_filecluster_add(f, fc, &f->fc_list);
 
  _out:
 	/* finally hash the file */
@@ -1599,11 +1649,10 @@ int file_truncate(fileid_t fid, off_t size)
 		 * it, else we need to alloc one. */
 		if (!fc || fc->cluster) {
 			nfc = __filecluster_alloc();
-			nfc->f = f;
 			nfc->off = fc ? filecluster_end(fc)+1 : 0;
 			nfc->size = 0;
 			nfc->coff = 0;
-			_filecluster_add(nfc, NULL);
+			_filecluster_add(f, nfc, NULL);
 			fc = nfc;
 		}
 		/* now, fc is guaranteed to be a virtual filecluster,
@@ -1647,6 +1696,12 @@ int file_truncate(fileid_t fid, off_t size)
 		}
 	}
 
+	/* DEBUG */
+	if ((fc = list_gethead(&f->fc_list, filecluster_t, fc_list)))
+		do {
+			_filecluster_check(fc);
+		} while ((fc = fc_next(fc)));
+
  _out:
 	_swap_unlock();
 	return 0;
@@ -1666,16 +1721,20 @@ fileid_t file_next(fileid_t fid)
 	if (fid == -1) {
 		if (!(fh = list_gethead(&swap->files, filehead_t, fh_list)))
 			goto _err;
+		while (!is_hashed_file(fh)) {
+			if (fh->fh_list.next == &swap->files)
+				goto _err;
+			fh = list_entry(fh->fh_list.next, filehead_t, fh_list);
+		}
 	} else {
 		if (!(fh = hash_find_file(fid)))
 			goto _err;
+		do {
+			if (fh->fh_list.next == &swap->files)
+				goto _err;
+			fh = list_entry(fh->fh_list.next, filehead_t, fh_list);
+		} while (!is_hashed_file(fh));
 	}
-
-	do {
-		if (fh->fh_list.next == &swap->files)
-			goto _err;
-		fh = list_entry(fh->fh_list.next, filehead_t, fh_list);
-	} while (!is_hashed_file(fh));
 
 	_swap_unlock();
 	return fh->fid;
