@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.3 2001/05/11 20:48:49 mag Exp $ 
+ * $Id: distortion.c,v 1.4 2001/05/29 07:52:45 richi Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/types.h>
 #include <unistd.h>

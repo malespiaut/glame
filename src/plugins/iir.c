@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.16 2001/05/27 22:29:25 mag Exp $
+ * $Id: iir.c,v 1.17 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/types.h>

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.39 2001/05/28 08:12:59 richi Exp $
+ * $Id: basic_sample.c,v 1.40 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -29,6 +29,10 @@
  * - repeat
  * - fade
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>

@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.14 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: arithmetic.c,v 1.15 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -25,6 +25,10 @@
  * - mul
  * - add
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>

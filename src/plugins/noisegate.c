@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.11 2001/04/24 15:53:40 xwolf Exp $
+ * $Id: noisegate.c,v 1.12 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/types.h>

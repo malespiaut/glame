@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.5 2001/04/25 20:02:48 mag Exp $
+ * $Id: fft_plugins.c,v 1.6 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/types.h>

@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.19 2001/05/28 11:58:01 richi Exp $
+ * $Id: pipe.c,v 1.20 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -25,6 +25,10 @@
  * - pipe-out [not implemented]
  * - pipe-inout [not implemented]
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define _USE_BSD
 #include <sys/time.h>

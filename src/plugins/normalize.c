@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.2 2001/05/16 09:35:17 richi Exp $
+ * $Id: normalize.c,v 1.3 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -20,7 +20,10 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>

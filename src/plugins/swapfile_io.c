@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.17 2001/05/28 11:58:01 richi Exp $
+ * $Id: swapfile_io.c,v 1.18 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include "filter.h"
 #include "swapfile.h"

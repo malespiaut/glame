@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.5 2001/05/25 09:55:34 xwolf Exp $
+ * $Id: ssp.c,v 1.6 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -20,7 +20,10 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>

@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.23 2001/05/22 12:02:47 richi Exp $
+ * $Id: waveform.c,v 1.24 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -34,6 +34,10 @@
  * The waveform filters should only generate "one" buffer which can then
  * be repeated using the repeat filter. [richi]
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>

@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.17 2001/05/28 14:27:08 richi Exp $
+ * $Id: echo.c,v 1.18 2001/05/29 07:52:45 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -22,6 +22,10 @@
  * This is a sample implementation of an echo filter to show the right
  * use of feedback buffering.
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
