@@ -33,7 +33,7 @@
 #include <math.h>
 
 /* This filter generates a sinus test signal
- * defaults to 1Khz signal of 1000ms duration
+ * defaults to 400z signal of 10000ms duration
  */
 static int sinus_f(filter_node_t *n)
 {
@@ -41,7 +41,7 @@ static int sinus_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	SAMPLE ampl,freq;
-	int duration,i,size;
+	int duration,i,size,cnt;
 	
 	out = hash_find_output("output", n);
 	if (!out) return -1;
@@ -53,19 +53,26 @@ static int sinus_f(filter_node_t *n)
 	if ((param = hash_find_param("frequency",n)))
 		freq = param->val.sample;
 	else
-		freq = 1000.0;
+		freq = 400.0;
 	if ((param = hash_find_param("duration",n)))
 		duration = param->val.i;
 	else
-		duration = 1000;
+		duration = 10000;
 	
-	size=duration*44100/1000;
+	size=(int)(44100.0/freq);
 	if ((buf = fbuf_alloc(size))==NULL) return -1;
 
-        for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/44100.0*freq);
+	cnt=(int)(44100.0/size*duration/1000.0);
+	fprintf(stderr,"cnt=%d\n",cnt);
+	fprintf(stderr,"Allocated Buffer with size %d! Generating Sinus!\n",size);
+        for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
 
-	fbuf_queue(out,buf);
-		
+	for(i=0;i<cnt;i++){
+		fbuf_ref(buf);
+		fbuf_queue(out,buf);
+	}
+	fbuf_unref(buf);
+	fbuf_queue(out,NULL);			
 	return 0;
 }
 

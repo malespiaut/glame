@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.1 2000/01/31 10:04:04 richi Exp $
+ * $Id: audio_io.c,v 1.2 2000/02/01 10:23:13 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -52,6 +52,7 @@ static int esd_out_f(filter_node_t *n)
 	char *name = NULL;
         short int *wbuf;
 
+	fprintf(stderr,"esd_out_f started!\n");
 
 	format = ESD_BITS16 | ESD_STREAM | ESD_PLAY;
 
@@ -64,7 +65,8 @@ static int esd_out_f(filter_node_t *n)
 	if (!(left = hash_find_input("left", n)))
 		return -1;
 
-
+	fprintf(stderr,"Trying to open esd-socket!\n");
+	
 	esound_socket = esd_play_stream_fallback(format, rate, host, name);
 	if (esound_socket<0){
 	        printf("couldn't open esd-socket connection!\n");
@@ -81,6 +83,7 @@ static int esd_out_f(filter_node_t *n)
 
 	/* get the first buffers to start with something */
 	lbuf = fbuf_get(left);
+	fprintf(stderr,"Got fbuf with size %d\n",fbuf_size(lbuf));
 	if (right)
 		rbuf = fbuf_get(right);
 	else
