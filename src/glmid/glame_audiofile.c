@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.21 2001/12/17 15:21:19 richi Exp $
+ * $Id: glame_audiofile.c,v 1.22 2001/12/17 15:23:26 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -267,10 +267,8 @@ int wav_read_parse(AFfilehandle h)
 			if (!strncasecmp(tag, wav_read_handlers[i].tag, 4)) 
 				break;
 
-		if (!handler) {
-			DPRINTF("No handler for chunk '%c%c%c%c' size %i\n", tag[0], tag[1], tag[2], tag[3]);
+		if (!handler)
 			return -1;
-		}
 
 		size = __gl_le32_to_cpup(len);
 		if (size < 0) {
