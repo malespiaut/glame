@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.12 2001/12/09 16:09:56 richi Exp $
+ * $Id: network_utils.c,v 1.13 2002/02/19 09:49:46 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -52,7 +52,7 @@ filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
 {
 	filter_t *f;
 	long swname, swrate;
-	float swpos;
+	double swpos;
 
 	if (!net || !swfile)
 		return NULL;
@@ -184,7 +184,7 @@ filter_t *net_apply_audio_out(filter_t *net)
 {
 	filter_port_t *out, *in;
 	filter_pipe_t *pipe;
-	float pos;
+	double pos;
 	filter_t *aout = NULL, *render = NULL;
 
 	if (!net)
