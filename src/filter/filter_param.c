@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.3 2000/05/02 07:46:36 richi Exp $
+ * $Id: filter_param.c,v 1.4 2000/10/03 13:38:35 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -55,15 +55,13 @@ static void pdb_op_delete(gldb_item_t *item)
 		free(p->u.string);
 }
 
-static gldb_item_t *pdb_op_copy(gldb_item_t *dest, gldb_item_t *source)
+static gldb_item_t *pdb_op_copy(gldb_item_t *source)
 {
-	filter_param_t *d = PARAM(dest);
+	filter_param_t *d;
 	filter_param_t *s = PARAM(source);
 	glsig_handler_t *h;
 
-	if (d)
-		pdb_op_delete(&d->entry);
-	if (!d && !(d = pdb_alloc_item()))
+	if (!(d = pdb_alloc_item()))
 		return NULL;
 	d->type = s->type;
 

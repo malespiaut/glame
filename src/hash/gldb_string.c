@@ -1,6 +1,6 @@
 /*
  * gldb_string.c
- * $Id: gldb_string.c,v 1.3 2000/05/01 12:22:16 richi Exp $
+ * $Id: gldb_string.c,v 1.4 2000/10/03 13:38:35 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -45,17 +45,13 @@ void sop_delete(gldb_item_t *item)
 	free(s->str);
 }
 
-gldb_item_t *sop_copy(gldb_item_t *dest, gldb_item_t *source)
+gldb_item_t *sop_copy(gldb_item_t *source)
 {
 	sitem_t *s = (sitem_t *)source;
-	sitem_t *d = (sitem_t *)dest;
+	sitem_t *d;
 
-	if (!d) {
-		d = sitem_alloc(s->str);
-	} else {
-		free(d->str);
-		d->str = strdup(s->str);
-	}
+	if (!(d = sitem_alloc(s->str)))
+		return NULL;
 
 	return &d->entry;
 }

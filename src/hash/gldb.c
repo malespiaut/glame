@@ -1,6 +1,6 @@
 /*
  * gldb.c
- * $Id: gldb.c,v 1.3 2000/05/19 09:27:34 richi Exp $
+ * $Id: gldb.c,v 1.4 2000/10/03 13:38:35 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -57,18 +57,19 @@ void gldb_delete(gldb_t *db)
 
 int gldb_copy(gldb_t *dest, gldb_t *source)
 {
-	gldb_item_t *item, *copy;
+	gldb_item_t *item, *copy, *existing;
 
 	gldb_foreach_item(source, item) {
-		if ((copy = gldb_query_item(dest, item->label)))
-			gldb_copy_item_data(copy, item);
-		else {
-			if (!(copy = gldb_copy_item(item)))
-				return -1;
-			if (gldb_add_item(dest, copy, item->label) == -1) {
-				gldb_delete_item(copy);
-				return -1;
-			}
+		if (!(copy = gldb_copy_item(item)))
+			return -1;
+		if ((existing = gldb_query_item(dest, item->label))) {
+			gldb_delete_item(existing);
+			free(existing);
+		}
+		if (gldb_add_item(dest, copy, item->label) == -1) {
+			gldb_delete_item(copy);
+			free(copy);
+			return -1;
 		}
 	}
 	return 0;
@@ -84,14 +85,9 @@ void gldb_init_item(gldb_item_t *item)
 	item->label = NULL;
 }
 
-void gldb_copy_item_data(gldb_item_t *dest, gldb_item_t *source)
-{
-	source->db->ops->copy(dest, source);
-}
-
 gldb_item_t *gldb_copy_item(gldb_item_t *item)
 {
-	return item->db->ops->copy(NULL, item);
+	return item->db->ops->copy(item);
 }
 
 int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
@@ -105,8 +101,6 @@ int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
 	list_add_item(item, db);
 	if (db->ops->add(db, item) == -1) {
 		gldb_remove_item(item);
-		free((char *)item->label);
-		item->label = NULL;
 		return -1;
 	}
 	return 0;
@@ -117,6 +111,8 @@ void gldb_remove_item(gldb_item_t *item)
 	hash_remove_item(item);
 	list_del_item(item);
 	INIT_LIST_HEAD(&item->list);
+	free((char *)item->label);
+	item->label = NULL;
 }
 
 void gldb_delete_item(gldb_item_t *item)
@@ -124,8 +120,6 @@ void gldb_delete_item(gldb_item_t *item)
 	if (item_in_db(item))
 		gldb_remove_item(item);
 	item->db->ops->delete(item);
-	free((char *)item->label);
-	item->label = NULL;
 }
 
 gldb_item_t *gldb_query_item(gldb_t *db, const char *label)

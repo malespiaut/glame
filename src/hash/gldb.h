@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.2 2000/05/01 11:09:04 richi Exp $
+ * $Id: gldb.h,v 1.3 2000/10/03 13:38:35 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -74,10 +74,9 @@ struct gldb_ops {
 
 	/* The copy operation should copy all local
 	 * storage associated with the source item to
-	 * the destination item and create that, if NULL
-	 * is supplied. The destination item should be
-	 * returned. */
-	gldb_item_t *(*copy)(gldb_item_t *dest, gldb_item_t *source);
+	 * a fresh allocated destination item which
+	 * should be returned. */
+	gldb_item_t *(*copy)(gldb_item_t *source);
 
 	/* After add operations. May reject the item by
 	 * returning -1. */
@@ -115,7 +114,9 @@ void gldb_init(gldb_t *db, struct gldb_ops *ops);
  * db itself. */
 void gldb_delete(gldb_t *db);
 
-/* Copies all database entries from source to dest database. */
+/* Copies all database entries from source to dest database,
+ * entries with same name already existing in dest are deleted
+ * first, then recreated. */
 int gldb_copy(gldb_t *dest, gldb_t *source);
 
 /* Iterator over all database items. */
@@ -134,9 +135,6 @@ void gldb_delete_item(gldb_item_t *item);
 
 /* Copies an item. */
 gldb_item_t *gldb_copy_item(gldb_item_t *item);
-
-/* Copies item data from source to dest. */
-void gldb_copy_item_data(gldb_item_t *dest, gldb_item_t *source);
 
 
 /* Adds previously allocated item to the database using

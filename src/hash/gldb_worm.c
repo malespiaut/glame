@@ -1,6 +1,6 @@
 /*
  * gldb_worm.c
- * $Id: gldb_worm.c,v 1.3 2000/05/01 12:22:16 richi Exp $
+ * $Id: gldb_worm.c,v 1.4 2000/10/03 13:38:35 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -30,12 +30,12 @@ static void worm_delete(gldb_item_t *i)
 }
 
 /* copy may safely copy the data by reference. */
-static gldb_item_t *worm_copy(gldb_item_t *dest, gldb_item_t *source)
+static gldb_item_t *worm_copy(gldb_item_t *source)
 {
-	glworm_t *d = (glworm_t *)dest;
+	glworm_t *d;
 	glworm_t *s = (glworm_t *)source;
 
-	if (!d && !(d = glworm_alloc()))
+	if (!(d = glworm_alloc()))
 		return NULL;
 	d->u.ptr = s->u.ptr;
 	return &d->item;
