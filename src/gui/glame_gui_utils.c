@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.23 2001/06/06 15:12:36 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.24 2001/06/07 10:04:26 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -593,7 +593,7 @@ void changeString(GtkEditable *wid, char ** returnbuffer)
         strncpy(*returnbuffer,chars,strlen(chars)+1);
 }
 
-enum {PINT,PFLOAT,PSTRING,PFILE,PGLADE,PSBUF};
+enum {PINT,PFLOAT,PSAMPLE,PSTRING,PFILE,PGLADE,PSBUF};
 
 typedef struct {
 	GtkWidget *widget;
@@ -619,6 +619,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	char *strVal; 
 	int iVal;
 	float fVal;
+	SAMPLE sVal;
 	char *caption = callback->caption;
 	param_widget_t* item;
 	filter_buffer_t *sbuf;
@@ -631,6 +632,14 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
 			DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
 			if(filterparam_set(item->param, &iVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			break;
+		case PSAMPLE:
+			sVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
+			DPRINTF("Setting %s::%s to %f", caption, filterparam_label(item->param), (float)sVal);
+			if(filterparam_set(item->param, &sVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");
@@ -785,6 +794,17 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 			create_label_widget_pair(vbox,filterparam_label(param),entry);
 			pw->widget = entry;
 			pw->widget_type = PINT;
+		} else if (FILTER_PARAM_IS_SAMPLE(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-1.0,1.0,0.05,1.0,1.0));
+			entry = gtk_spin_button_new(adjust, 0.05, 3);
+			snprintf(label, 255, "%s",
+				 filterparam_label(param));
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			fVal = filterparam_val_sample(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
+			create_label_widget_pair(vbox, label, entry);
+			pw->widget = entry;
+			pw->widget_type = PSAMPLE;
 		} else if (FILTER_PARAM_IS_FLOAT(param)
 			   || FILTER_PARAM_IS_SAMPLE(param)) {
 			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S) {
@@ -796,11 +816,6 @@ GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
 				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,1.0,10.0,10.0));
 				entry = gtk_spin_button_new(adjust, 1, 1);
 				snprintf(label, 255, "%s [ms]",
-					 filterparam_label(param));
-			} else if (filterparam_type(param) == FILTER_PARAMTYPE_SAMPLE) {
-				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-1.0,1.0,0.05,1.0,1.0));
-				entry = gtk_spin_button_new(adjust, 0.05, 3);
-				snprintf(label, 255, "%s",
 					 filterparam_label(param));
 			} else {
 				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,0.1,10.0,10.0));
