@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.37 2000/03/27 13:55:10 richi Exp $
+ * $Id: filter_network.c,v 1.38 2000/03/29 09:47:17 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -219,7 +219,7 @@ static void *waiter(void *network)
 	_launchcontext_free(net->launch_context);
 	net->launch_context = NULL;
 
-	pthread_exit((void *)res);
+	return (void *)res;
 }
 
 int filternetwork_launch(filter_network_t *net)
