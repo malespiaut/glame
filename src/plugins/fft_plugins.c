@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.10 2001/08/08 09:36:56 richi Exp $
+ * $Id: fft_plugins.c,v 1.11 2001/08/08 16:56:30 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -81,16 +81,14 @@ SAMPLE window_gain(SAMPLE *win, int n, int osamp)
 	return (SAMPLE)max;
 }
 
-static int fft_connect_out(filter_port_t *port, filter_pipe_t *p)
+static void fft_update_pipes(filter_t *n, filter_pipe_t *opipe)
 {
-	filter_t *n = filterport_filter(port);
 	int rate = 44100, bsize = 2048, osamp = 8;
 	float hangle = 0.0;
 	filter_pipe_t *in;
 	filter_param_t *param;
 	filter_port_t *in_port;
 	
-	DPRINTF("connect out\n");
 	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 
 	in = filterport_get_pipe(in_port);
@@ -106,9 +104,18 @@ static int fft_connect_out(filter_port_t *port, filter_pipe_t *p)
 		hangle=filterpipe_sample_hangle(in);
 	}
 	
-	filterpipe_settype_fft(p,rate,hangle,bsize,osamp);
+	filterpipe_settype_fft(opipe,rate,hangle,bsize,osamp);
+}
+
+static int fft_connect_out(filter_port_t *port, filter_pipe_t *p)
+{
+	filter_t *n = filterport_filter(port);
 	
-	
+	if(filterport_get_pipe(port))
+		return -1;
+
+	fft_update_pipes(n, p);
+
 	return 0;
 }
 
@@ -125,8 +132,9 @@ static void fft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	opipe = filterport_get_pipe(oport);
 	if(!opipe)
 		return;
+	
+	fft_update_pipes(n, opipe);
 
-	fft_connect_out(oport, opipe);
 	glsig_emit(filterpipe_emitter(opipe), GLSIG_PIPE_CHANGED, opipe);
 }
 
@@ -302,14 +310,14 @@ static int ifft_connect_out(filter_port_t *port, filter_pipe_t *p)
 	filter_t *n = filterport_filter(port);
 	filter_pipe_t *in, *out;
 	DPRINTF("Checking for inpipe for node %s\n", n->name);
+	if(filterport_get_pipe(port))
+		return -1;
+
 	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
 		DPRINTF("Setting rate %d hangle %f\n", 
 				filterpipe_fft_rate(in), filterpipe_fft_hangle(in));
 		filterpipe_settype_sample(p,filterpipe_fft_rate(in),filterpipe_fft_hangle(in));
 	}
-	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
-	if(out!=p)
-		DPRINTF("connect_out called with strange pipe\n");
 	return 0;
 }
 
@@ -327,7 +335,11 @@ static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	if(!opipe)
 		return;
 
-	ifft_connect_out(oport, opipe);
+	DPRINTF("calling connect out with oport=%08x opipe=%08x\n", oport, opipe);
+	filterpipe_settype_sample(opipe,
+				  filterpipe_fft_rate(pipe),
+				  filterpipe_fft_hangle(pipe));
+
 	glsig_emit(filterpipe_emitter(opipe), GLSIG_PIPE_CHANGED, opipe);
 }
 
@@ -453,12 +465,21 @@ int ifft_register(plugin_t *p)
 }
 
 
+static int fft_resample_connect_in(filter_port_t *port, filter_pipe_t *p) {
+	if (filterport_get_pipe(port))
+                return -1;
+	return 0;
+}
+
 static int fft_resample_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_t *n = filterport_filter(port);
 	int rate = 44100, bsize = 2048;
 	filter_pipe_t *in, *out;
 	filter_param_t *param;
+
+	if(filterport_get_pipe(port))
+		return -1;
 
 	DPRINTF("connect out\n");
 	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
@@ -578,17 +599,20 @@ entry:
 int fft_resample_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_port_t *out;
+	filter_port_t *out, *in;
 	filter_param_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_FFT,
 			      FILTER_PORTFLAG_INPUT,
 			      FILTERPORT_DESCRIPTION, "fft stream",
 			      FILTERPORT_END);
+	
+	in->connect = fft_resample_connect_in;
+
 	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 				    FILTER_PORTTYPE_FFT,
 				    FILTER_PORTFLAG_OUTPUT,
