@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.16 2002/01/23 20:11:10 richi Exp $
+ * $Id: normalize.c,v 1.17 2002/01/23 20:23:26 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -49,7 +49,7 @@ struct task_entry {
 
 struct normalize_s {
 	GtkWidget *dialog, *appbar, *text, *spin_db, *spin_abs, *spin_freq;
-	GtkWidget *analyze_button, *simulate_button, *ok_button;
+	GtkWidget *analyze_button, /* *simulate_button,*/ *ok_button;
 	task_entry_t *head;
 	gpsm_item_t *grp;
 	long total_size, start, length;
@@ -142,7 +142,7 @@ static gint paranoia_cb(GtkWidget *bla, struct normalize_s* ns) {
 	return TRUE;
 }
 
-static void simulate_cb(GtkWidget *, struct normalize_s*);
+/* static void simulate_cb(GtkWidget *, struct normalize_s*); */
 static void analyze_cb(GtkWidget *, struct normalize_s*);
 static void normalize_cb(GtkWidget *, struct normalize_s*);
 
@@ -171,7 +171,7 @@ void normalize_dialog(struct normalize_s* norms)
   GtkWidget *frame2;
   GtkWidget *scrolledwindow1;
   GtkWidget *text1;
-  GtkWidget *button4, *button5;
+  GtkWidget /* *button4,*/ *button5;
   GtkWidget *appbar1;
   GtkWidget *dialog_action_area1;
   GtkWidget *button1;
@@ -687,26 +687,28 @@ static long get_total_size(struct normalize_s *ns) {
 	return (size == 0 ? 1 : size);
 }
 
+/*
 static void simulate_cb(GtkWidget *button, struct normalize_s* ns) {
 	DPRINTF("working hard ;)\n");
 }
+*/
 
 static void normalize_cb(GtkWidget *button, struct normalize_s* ns) {
 	DPRINTF("working like a dog every night and day ;)\n");
 	gtk_widget_set_sensitive(ns->ok_button, FALSE);
 	gtk_widget_set_sensitive(ns->analyze_button, FALSE);
-	gtk_widget_set_sensitive(ns->simulate_button, FALSE);
+	/* gtk_widget_set_sensitive(ns->simulate_button, FALSE); */
 	normalize_do_task(ns);
 }
 
 static void analyze_cb(GtkWidget *button, struct normalize_s* ns) {
 	gtk_widget_set_sensitive(ns->analyze_button, FALSE);
 	gtk_widget_set_sensitive(ns->ok_button, FALSE);
-	gtk_widget_set_sensitive(ns->simulate_button, FALSE);
+	/* gtk_widget_set_sensitive(ns->simulate_button, FALSE); */
 	analyze_rms(ns);
 	gtk_widget_set_sensitive(ns->analyze_button, TRUE);
 	gtk_widget_set_sensitive(ns->ok_button, TRUE);
-	gtk_widget_set_sensitive(ns->simulate_button, TRUE);
+	/* gtk_widget_set_sensitive(ns->simulate_button, TRUE); */
 }
 
 
