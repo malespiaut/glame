@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.7 2001/04/17 12:43:21 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.8 2001/04/19 16:51:41 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -44,7 +44,17 @@
 
 /* creates a hbox with the label and the widget and adds it 
  * to the specified vbox */
-void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
+void create_label_widget_pair(GtkWidget* vbox, const char* label,
+			      GtkWidget* widget);
+
+/* creates a hbox with a label and an gnome edit widget with the provided
+ * default text, a signal handler is installed that updates the provided
+ * destination string. You should provide a result string with space for
+ * at least 256 characters. */
+void create_label_edit_pair(GtkWidget *vbox,
+			    const char *label, const char *history,
+			    char *result);
+
 
 /* useful callback for dialog boxes which query for string types. */
 void changeString(GtkEditable *wid, char ** returnbuffer);

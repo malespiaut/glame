@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.18 2001/04/15 17:07:32 mag Exp $
+ * $Id: gui.c,v 1.19 2001/04/19 16:51:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -107,22 +107,6 @@ void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, 
 }
 
 
-
-GtkWidget*
-create_label_edit_pair(GtkWidget *vbox,const char *clabel)
-{
-	GtkWidget*hbox,*label,*edit;
-	hbox = gtk_hbox_new(TRUE,5);
-	gtk_container_add(GTK_CONTAINER(vbox),hbox);
-	label = gtk_label_new(clabel);
-	gtk_container_add(GTK_CONTAINER(hbox),label);
-	edit = gtk_entry_new_with_max_length(12);
-	gtk_container_add(GTK_CONTAINER(hbox),edit);
-	gtk_widget_show(hbox);
-	gtk_widget_show(label);
-	gtk_widget_show(edit);
-	return edit;
-}
 
 void
 create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)

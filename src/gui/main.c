@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.36 2001/04/19 16:10:46 xwolf Exp $
+ * $Id: main.c,v 1.37 2001/04/19 16:51:41 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -189,11 +189,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget * entry;
 	GtkWidget * notelabel;
 	GtkWidget * macMode;
-	gboolean dummy;
-	char *path,*defaultpath,*cfg,*aindev,*aoutdev;
-	int val = 0;
+	char *cfg, *path, *numberbuffer, *aindev, *aoutdev;
 	gboolean ok=FALSE;
-	char * numberbuffer;
 	gboolean mac, foo;
 
 	/* New box. */
@@ -204,15 +201,18 @@ preferences_cb(GtkWidget * wid, void * bla)
         tablabel = gtk_label_new(_("Swapfile"));
         vbox = gtk_vbox_new(FALSE,1);
         gtk_widget_show(vbox);
-        entry = gnome_file_entry_new("swapfilepath","Swapfilepath");
-        create_label_widget_pair(vbox,"Swapfile Path",entry);
-	defaultpath = gnome_config_get_string_with_default("swapfile/defaultpath=swap", &foo);
-        gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))),defaultpath);
+
+        entry = gnome_file_entry_new("swapfilepath", "Swapfilepath");
+        create_label_widget_pair(vbox, "Swapfile Path", entry);
+	cfg = gnome_config_get_string_with_default("swapfile/defaultpath=~/.glameswap", &foo);
+        path = alloca(256);
+	strncpy(path, cfg, 255);
+	g_free(cfg);
+        gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), path);
+        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))), "changed", changeString, &path);
         notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
         gtk_widget_show(notelabel);
-        gtk_container_add(GTK_CONTAINER(vbox),notelabel);
-        path = calloc(sizeof(char),255);
-        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))),"changed",changeString,&path);
+        gtk_container_add(GTK_CONTAINER(vbox), notelabel);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
 
 	/* Edit Filter with
@@ -221,9 +221,14 @@ preferences_cb(GtkWidget * wid, void * bla)
 	tablabel = gtk_label_new(_("Edit Filter"));
 	vbox = gtk_vbox_new(FALSE,1);
 	gtk_widget_show(vbox);
-	entry = gnome_entry_new("popupTimeout");
-	create_label_widget_pair(vbox,"Popup Timeout [ms]",entry);
-	mac = gnome_config_get_bool_with_default("edit_filter/macMode=false",&dummy);
+
+	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
+	numberbuffer = alloca(256);
+	snprintf(numberbuffer, 255, "%d", nPopupTimeout);
+	create_label_edit_pair(vbox, "Popup timeout [ms]", "popupTimeout",
+			       numberbuffer);
+
+	mac = gnome_config_get_bool_with_default("edit_filter/macMode=false", &foo);
 	bMac = mac;
 	macMode = gtk_check_button_new();
 	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
@@ -231,12 +236,6 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_widget_show(macMode);
 	create_label_widget_pair(vbox,"Mac Mode",macMode);
 
-	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
-	numberbuffer = calloc(sizeof(char),20);
-	sprintf(numberbuffer,"%d",nPopupTimeout);
-	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),numberbuffer);
-	gtk_widget_show(entry);
- 	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),"changed",changeString,&numberbuffer);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
 
 
@@ -248,26 +247,25 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_widget_show(vbox);
 
 	/* input device */
-	cfg = gnome_config_get_string_with_default("audio_io/input_dev=/dev/dsp", &foo);
-	entry = gnome_entry_new("aindev");
-	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))), cfg);
-	create_label_widget_pair(vbox, "Default input device", entry);
-	gtk_widget_show(entry);
+	cfg = gnome_config_get_string_with_default(
+		"audio_io/input_dev=/dev/dsp", &foo);
 	aindev = alloca(256);
 	strncpy(aindev, cfg, 255);
-	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(entry))), "changed", changeString, &aindev);
+	g_free(cfg);
+	create_label_edit_pair(vbox, "Default input device", "aindev", aindev);
 
 	/* output device */
-	cfg = gnome_config_get_string_with_default("audio_io/output_dev=/dev/dsp", &foo);
-	entry = gnome_entry_new("aoutdev");
-	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))), cfg);
-	create_label_widget_pair(vbox, "Default output device", entry);
-	gtk_widget_show(entry);
+	cfg = gnome_config_get_string_with_default(
+		"audio_io/output_dev=/dev/dsp", &foo);
 	aoutdev = alloca(256);
 	strncpy(aoutdev, cfg, 255);
-	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(entry))), "changed", changeString, &aoutdev);
+	g_free(cfg);
+	create_label_edit_pair(vbox, "Default output device",
+			       "aoutdev", aoutdev);
 
-        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
+        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box), vbox,
+				       tablabel);
+
 
 	/* Finish. */
         gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",setBoolean,&ok);
@@ -275,27 +273,22 @@ preferences_cb(GtkWidget * wid, void * bla)
         gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->help_button));
         gtk_widget_show(prop_box);
 
+
+	/* Run the dialog. */
         gnome_dialog_run_and_close(GNOME_DIALOG(prop_box));
-        if(ok){
-		if(strlen(path))
-			gnome_config_set_string("swapfile/defaultpath",path);
-		else
-			gnome_config_set_string("swapfile/defaultpath",defaultpath);
-		if(numberbuffer){
- 			gnome_config_set_int("edit_filter/popupTimeout",atoi(numberbuffer));
-			nPopupTimeout = atoi(numberbuffer);
-		}
-		gnome_config_set_bool("edit_filter/macMode",mac);
-		bMac = mac;
-		DPRINTF("aio is %s and %s\n", aindev, aoutdev);
-		gnome_config_set_string("audio_io/input_dev", aindev);
-		gnome_config_set_string("audio_io/output_dev", aoutdev);
-               	gnome_config_sync();
-        }
-	DPRINTF("dialog: %d\n",val);
-	g_free(defaultpath);
-	free(path);
-	free(numberbuffer);
+        if(!ok)
+		return;
+
+	/* Update gnome config. */
+	gnome_config_set_string("swapfile/defaultpath", path);
+	nPopupTimeout = atoi(numberbuffer);
+	gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
+	bMac = mac;
+	gnome_config_set_bool("edit_filter/macMode",bMac);
+	gnome_config_set_string("audio_io/input_dev", aindev);
+	gnome_config_set_string("audio_io/output_dev", aoutdev);
+	gnome_config_sync();
+	DPRINTF("Preferences:\n\tswapfile %s\n\tpopup time %d\n\tmac mode %d\n\tinput dev %s\n\toutput dev %s\n", path, nPopupTimeout, bMac, aindev, aoutdev);
 }
 
 

@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.7 2001/04/17 12:43:21 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.8 2001/04/19 16:51:41 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -169,4 +169,39 @@ int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
 	gtk_widget_show(GTK_WIDGET(play->dia));
 
 	return 0;
+}
+
+
+
+
+/*
+ * Widget creation helpers. GNOME/gtk+ suck...
+ */
+
+static void create_label_edit_pair_string_cb(GtkEditable *w, char *buf)
+{
+	char *chars = gtk_editable_get_chars(w, 0, -1);
+        strncpy(buf, chars, 255);
+	g_free(chars);
+}
+void create_label_edit_pair(GtkWidget *vbox,
+			    const char *label, const char *history,
+			    char *result)
+{
+	GtkWidget *whbox, *wlabel, *wentry;
+
+	whbox = gtk_hbox_new(TRUE, 5);
+
+	wlabel = gtk_label_new(label);
+
+	wentry = gnome_entry_new(history);
+	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), result);
+	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), "changed", create_label_edit_pair_string_cb, result);
+
+	gtk_container_add(GTK_CONTAINER(whbox), wlabel);
+	gtk_container_add(GTK_CONTAINER(whbox), wentry);
+	gtk_container_add(GTK_CONTAINER(vbox), whbox);
+	gtk_widget_show(wlabel);
+	gtk_widget_show(wentry);
+	gtk_widget_show(whbox);
 }
