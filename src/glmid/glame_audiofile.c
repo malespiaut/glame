@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.13 2001/12/16 16:47:48 nold Exp $
+ * $Id: glame_audiofile.c,v 1.14 2001/12/16 17:11:18 nold Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -240,7 +240,7 @@ int wav_read_parse(AFfilehandle h)
 	h->ch = 0;
 
 	while (!feof(h->fp)) {
-		if (fread(tag, 4, 1, h->fp) != 1 &&
+		if (fread(tag, 4, 1, h->fp) != 1 ||
 		    fread(len, 4, 1, h->fp) != 1) {
 			/* Fail gracefully if all required chunks are present */
 			DPRINTF("Premature EOF.\n");
