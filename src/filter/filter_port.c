@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.8 2001/11/18 19:11:25 richi Exp $
+ * $Id: filter_port.c,v 1.9 2002/03/22 15:31:00 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -36,41 +36,43 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 	filter_pipe_t *in;
 	filter_pipe_t *out;
 	filter_port_t *port;
+	int index;
 
 	GLSIGH_GETARGS1(va, in);
 	n = filterport_filter(filterpipe_dest(in));
 
-	/* Input pipe format change is easy for us as we know
-	 * nothing about internal connections between
-	 * inputs and outputs.
-	 * So the rule of dumb is to update all output
-	 * pipe formats to the format of the input
-	 * pipe we just got. We also have to forward
-	 * the change to every output slot, of course.
-	 * We need to stop the fixup as soon as a failure
-	 * occours - the pipe may be broken.
-	 * FIXME: this does "simple" check if anything would
-	 * change using memcmp to prevent endless loops with
-	 * cyclic networks.
-	 */
+	/* Find out "index" of port of pipe that just changed. */
+	index = 0;
 	filterportdb_foreach_port(filter_portdb(n), port) {
-		if (filterport_is_input(port))
+		if (!filterport_is_input(port))
 			continue;
-		filterport_foreach_pipe(port, out) {
-			/* Dont overwrite "foreign" pipes. */
-			if (out->type != FILTER_PIPETYPE_UNDEFINED
-			    && out->type != in->type)
-				continue;
-			/* Prevent endless pipe change loops. */
-			if (out->type == in->type
-			    && memcmp(&out->u, &in->u, sizeof(out->u)) == 0) {
-				continue;
-			}
-			out->type = in->type;
-			out->u = in->u;
-			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
-		}
+		if (port == filterpipe_dest(in))
+			break;
+		index++;
 	}
+
+	/* Find corresponding output port. */
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (!filterport_is_output(port))
+			continue;
+		if (index == 0)
+			break;
+		index--;
+	}
+	if (!port) {
+		DPRINTF("You probably want to fixup yourself\n");
+		return;
+	}
+
+	/* Update output pipe properties. */
+	if (!(out = filterport_get_pipe(port)))
+		return;
+	if (out->type == FILTER_PIPETYPE_UNDEFINED)
+		out->type = in->type;
+	if (memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+		return;
+	out->u = in->u;
+	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 }
 
 static int default_connect_input(filter_port_t *port, filter_pipe_t *pipe)
@@ -95,35 +97,46 @@ static int default_connect_output(filter_port_t *port, filter_pipe_t *pipe)
 	filter_pipe_t *in = NULL;
 	filter_port_t *inp;
 	filter_t *n;
+	int index;
 
 	/* As with default connect in method, we accept one
 	 * connection only in this "default" mode. */
 	if (filterport_get_pipe(port))
 		return -1;
 
-	/* For the following stuff we need an existing input pipe
-	 * with a valid type. */
 	n = filterport_filter(port);
+
+	/* Find index of output port. */
+	index = 0;
 	filterportdb_foreach_port(filter_portdb(n), inp) {
-		if (filterport_is_output(inp))
+		if (!filterport_is_output(inp))
 			continue;
-		filterport_foreach_pipe(inp, in) {
-			/* We may use in to copy pipe properties if
-			 * in has a defined type and the pipe we are
-                         * copying to has the same type or undefined
-                         * type. */
-			if (in->type != FILTER_PIPETYPE_UNDEFINED
-			    && (in->type == pipe->type
-				|| pipe->type == FILTER_PIPETYPE_UNDEFINED)) {
-				pipe->type = in->type;
-				pipe->u = in->u;
-			}
-		}
+		if (inp == port)
+			break;
+		index++;
 	}
 
-	/* Nothing suitable? Oh well... */
-	return 0;
+	/* Find corresponding input port to get pipe information from. */
+	filterportdb_foreach_port(filter_portdb(n), inp) {
+		if (!filterport_is_input(inp))
+			continue;
+		if (index == 0)
+			break;
+		index--;
+	}
+	if (!inp) {
+		DPRINTF("You want to connect outputs yourself for %s\n", filter_name(n));
+		return -1;
+	}
 
+	/* No connection? Postpone initialization. */
+	if (!(in = filterport_get_pipe(inp)))
+		return 0;
+
+	pipe->type = in->type;
+	pipe->u = in->u;
+
+	return 0;
 }
 
 static int redirect_connect_output(filter_port_t *outp, filter_pipe_t *p)
