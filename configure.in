@@ -96,15 +96,6 @@ if test "$sample" = "float"; then
 fi
 AC_DEFINE_UNQUOTED(SAMPLE, $sample)
 
-dnl
-dnl Switch to use low latency buffer sizes.
-dnl
-
-AC_ARG_ENABLE(low-latency, [  --enable-low-latency     use small buffers to reduce latency], lowlatency=$enableval, lowlatency=no)
-if test x$lowlatency = xyes; then
-	AC_MSG_WARN([Using small buffers to ensure low latency])
-	AC_DEFINE(LOW_LATENCY)
-fi
 
 
 dnl

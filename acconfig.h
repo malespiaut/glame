@@ -84,9 +84,6 @@
 /* define, if the SAMPLE type is std (float) */
 #undef SAMPLE_FLOAT
 
-/* define, if you want to use low latency buffer sizes */
-#undef LOW_LATENCY
-
 /* define, if you have libglade */
 #undef HAVE_LIBGLADE
 
