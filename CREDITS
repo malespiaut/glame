@@ -1,0 +1,11 @@
+All low-level assembler locking and atomic ops code and the list.h code
+        was copied from the linux kernel source which was written by
+        Linus Torvalds and many many others. hash.h also was largely
+        inspired by the hashing code used in the mm of the linux kernel.
+
+src/gui/libgtkwaveform was "stolen" from the libgtkwaveformi-0.2.2
+	package which is maintained by David A. Bartold <foxx@mail.utexas.edu>
+        and has contributions from Ben De Rydt <ben.de.rydt@pandora.be>
+
+The glame.de domain is sponsored by Dirk Stanecker <dirk.stanecker@student.uni-tuebingen.de>
+
