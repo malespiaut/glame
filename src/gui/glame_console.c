@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.7 2002/04/24 09:41:07 richi Exp $
+ * $Id: glame_console.c,v 1.8 2003/05/26 18:21:51 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -25,7 +25,8 @@
 #include <config.h>
 #endif
 
-#include <gnome.h>
+#include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 #include <guile/gh.h>
 #include <libguile/ports.h>
 #include "util.h"
@@ -34,8 +35,8 @@
 
 
 static GtkWidget *console = NULL;
-static GtkWidget *text = NULL;
-static GdkColor fore, back;
+static GtkTextBuffer *text = NULL;
+static GtkWidget *textview = NULL;
 struct history_entry {
 	struct glame_list_head list;
 	char *cmd;
@@ -157,14 +158,9 @@ static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
 			gtk_entry_set_text(GTK_ENTRY(entry), history->cmd);
 		else if (event->keyval == GDK_Down)
 			gtk_entry_set_text(GTK_ENTRY(entry), history_edited);
-		gtk_signal_emit_stop_by_name(GTK_OBJECT(entry),
-                                             "key_press_event");
 		return TRUE;
 	} else if (event->keyval == GDK_Tab) {
-		/* Autocompletion */
-		/* FIXME */
-		gtk_signal_emit_stop_by_name(GTK_OBJECT(entry),
-                                             "key_press_event");
+		/* Autocompletion - FIXME. */
 		return TRUE;
 	}
 
@@ -174,21 +170,21 @@ static gboolean entry_cb(GtkWidget *entry, GdkEventKey *event)
 int glame_console_init()
 {
 	GtkWidget *scroll, *label, *entry, *vbox, *hbox;
-	GdkColormap *colormap;
 
 	if (console)
 		return 0;
 
 	console = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(console), "GLAME "VERSION" console");
-	gtk_window_set_default_size(GTK_WINDOW(console), 400, 200);
+	gtk_window_set_default_size(GTK_WINDOW(console), 600, 400);
 	vbox = gtk_vbox_new(FALSE, 10);
 	scroll = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
 				       GTK_POLICY_AUTOMATIC,
 				       GTK_POLICY_ALWAYS);
-	text = gtk_text_new(NULL, NULL);
-	gtk_text_set_editable(GTK_TEXT(text), FALSE);
+	textview = gtk_text_view_new();
+	text = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(textview), FALSE);
 	hbox = gtk_hbox_new(FALSE, 10);
 	label = gtk_label_new("GLAME>");
 	entry = gtk_entry_new();
@@ -200,7 +196,7 @@ int glame_console_init()
 	gtk_signal_connect(GTK_OBJECT(console), "destroy_event",
 			   (GtkSignalFunc)hide_cb, NULL);
 
-	gtk_container_add(GTK_CONTAINER(scroll), text);
+	gtk_container_add(GTK_CONTAINER(scroll), textview);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
 	gtk_box_pack_start(GTK_BOX(hbox), entry, TRUE, TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 5);
@@ -210,12 +206,8 @@ int glame_console_init()
 	gtk_widget_show(entry);
 	gtk_widget_show(hbox);
 	gtk_widget_show(vbox);
-	gtk_widget_show(text);
+	gtk_widget_show(textview);
 	gtk_widget_show(scroll);
-
-	colormap = gdk_colormap_get_system();
-	gdk_color_white(colormap, &back);
-	gdk_color_black(colormap, &fore);
 
 	port_register();
 
@@ -248,8 +240,10 @@ int glame_console_printf(const char *format, ...)
 	buf[1023] = '\0';
 	va_end(va);
 
-	gtk_text_insert(GTK_TEXT(text), NULL, &fore, &back,
-			buf, strlen(buf));
+	gtk_text_buffer_insert_at_cursor(text, buf, strlen(buf));
+	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(textview),
+				     gtk_text_buffer_get_insert(text),
+				     0.0, TRUE, 0.0, 1.0);
 
 	return res;
 }

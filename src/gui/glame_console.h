@@ -4,9 +4,9 @@
 /*
  * glame_console.h
  *
- * $Id: glame_console.h,v 1.2 2003/05/18 19:09:23 xwolf Exp $
+ * $Id: glame_console.h,v 1.3 2003/05/26 18:21:51 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001-2003 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,4 +50,5 @@ int glame_console_printf(const char *format, ...);
 #ifdef __cplusplus
 }
 #endif
+
 #endif
