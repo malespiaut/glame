@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.9 2001/04/20 10:20:31 nold Exp $
+ * $Id: audio_io_oss.c,v 1.10 2001/04/22 14:29:00 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -291,7 +291,7 @@ _fmt_retry:
 			todo -= done;
 			wpos += ssize * done;
 		} while (todo);
-#ifdef LOW_LATENCY
+#ifdef XXXLOW_LATENCY
 		/* Force starting audio output--errors deliberately ignored. */
 		ioctl(dev, SNDCTL_DSP_POST, NULL);
 #endif
