@@ -50,6 +50,27 @@ gui/
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
 
+gui/swapfilegui
+	[richi]
+	- seperate into subdirectory
+	- progress bar for import & export
+	- fix tree, allow item move, multiple item selection, d&d, etc.
+
+gui/waveeditgui
+	[richi]
+	- seperate into subdirectory
+	- toolbar for zoom/select/play/record/close
+
+gui/libgtkwaveform
+	[richi]
+	- break up gtkwaveview into simple waveview without
+          scrollbar, make a container that can contain multiple
+          gtkwavebuffers
+	- implement stack for selection and marker
+	- support different wave display types (solid, dotted, outline...)
+	- support hooks for changing pointer and getting interactive
+          editing gtk signals / updating the wave
+
 gui/edit_filter
 	[xwolf]
 	- completely rewrite the ugly event handling in filter_network
