@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.16 2001/12/30 16:46:14 richi Exp $
+ * $Id: glame_accelerator.c,v 1.17 2002/01/09 19:40:45 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -469,7 +469,7 @@ GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 	}
 
 	sw = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(sw), clist);
+	gtk_container_add(GTK_CONTAINER(sw), clist);
 	gtk_widget_set_usize(sw, 500, 300);
 
 	return sw;
