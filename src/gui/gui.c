@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.24 2000/10/28 13:45:48 richi Exp $
+ * $Id: gui.c,v 1.25 2000/11/06 09:46:57 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -669,7 +669,7 @@ gui_network*
 gui_network_new(const char * caption, const char * pixname)
 {
 	gui_network *net = malloc(sizeof(gui_network));
-	net->net = filter_alloc_network();
+	net->net = filter_creat(NULL);
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	return net;
@@ -760,7 +760,7 @@ void
 druid_done(GtkWidget *page,GnomeDruid* druid,druid_struct* p)
 {
 
-	p->net->net = filter_alloc_network();
+	p->net->net = filter_creat(NULL);
 	if(!(p->net->net))
 		fprintf(stderr,"Error creating network!\n");
 	gtk_widget_show(create_new_canvas(p->net->caption,p->net));
@@ -844,7 +844,7 @@ gui_network_new_wizard(void)
 	net->caption = NULL;
 	net->pixname = NULL;
 	net->descr = NULL;
-	net->net = filter_alloc_network();
+	net->net = filter_creat(NULL);
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	create_new_canvas(net);
