@@ -443,9 +443,10 @@ static void play_update_marker(glsig_handler_t *handler,
 
 	waveedit = (WaveeditGui *)glsig_handler_private(handler);
 	pos = filterparam_val_long(waveedit->pm_param);
-	gtk_wave_view_set_marker_and_scroll(
-		GTK_WAVE_VIEW(waveedit->waveview),
-		waveedit->pm_start + (pos % waveedit->pm_size));
+	if (waveedit->pm_size>0)
+		gtk_wave_view_set_marker_and_scroll(
+			GTK_WAVE_VIEW(waveedit->waveview),
+			waveedit->pm_start + (pos % waveedit->pm_size));
 }
 static void play(GtkWaveView *waveview,
 		 gint32 start, gint32 end,
