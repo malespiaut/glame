@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.5 2001/07/12 08:45:02 richi Exp $
+ * $Id: network_utils.c,v 1.6 2001/07/13 08:57:38 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -82,7 +82,7 @@ filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
 }
 
 filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
-			      long start, long length)
+			      long start, long length, long flags)
 {
 	filter_t *f;
 	long swname;
@@ -90,17 +90,7 @@ filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
 	if (!net || !swfile)
 		return NULL;
 
-	if (start == -1 && gpsm_item_hposition(swfile) != 0) {
-		fprintf(stderr, "ERROR: broken code. FIXME.\n");
-		return NULL;
-	}
-	if (start != -1) {
-		start = start - gpsm_item_hposition(swfile);
-		if (start == -1) {
-			fprintf(stderr, "ERROR: broken code. FIXME.\n");
-			return NULL;
-		}
-	}
+	start = start - gpsm_item_hposition(swfile);
 	if (length < -1)
 		return NULL;
 	swname = gpsm_swfile_filename(swfile);
@@ -111,6 +101,7 @@ filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
 	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "offset"), &start);
 	if (length != -1)
 		filterparam_set(filterparamdb_get_param(filter_paramdb(f), "size"), &length);
+	filterparam_set(filterparamdb_get_param(filter_paramdb(f), "flags"), &flags);
 
 	if (filter_add_node(net, f, gpsm_item_label(swfile)) == -1) {
 		filter_delete(f);

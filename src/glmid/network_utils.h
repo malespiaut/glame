@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.4 2001/07/12 08:45:02 richi Exp $
+ * $Id: network_utils.h,v 1.5 2001/07/13 08:57:38 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -46,7 +46,7 @@ filter_t *net_add_gpsm_input(filter_t *net, gpsm_swfile_t *swfile,
  * swfile from start (truncated, if -1) with size length (or unlimited,
  * if length -1). Returns the added node or NULL on error. */
 filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
-			      long start, long length);
+			      long start, long length, long flags);
 
 /* Applys the provided effect (by cloning it) to all unconnected
  * matching output ports in the network. The first available input port
