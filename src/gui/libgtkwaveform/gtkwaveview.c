@@ -36,7 +36,7 @@
 
 static gchar *time_metric_translate(gdouble value)
 {
-  gint hours, minutes;
+  gint minutes;
   gdouble seconds;
 
   minutes = ((gint) (value / 60.0));
@@ -47,9 +47,11 @@ static gchar *time_metric_translate(gdouble value)
 
 static const GlameRulerMetric time_metric = {
   "Time Metric", "time", 1.0,
-  { 0.01, 0.125, 0.25, 0.5, 1.0, 15.0, 30.0, 45.0, 60.0, 90.0, 120.0,
-    180.0, 240.0, 360.0, 480.0, 720.0, 960.0, 1440.0, 1920.0, 2880.0 /* , 3840.0 */ },
-  { 1, 5, 10, 30, 60 },
+  24, (gdouble[24]){ 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0,
+		     5.0, 15.0, 30.0, 45.0, 60.0, 90.0, 120.0,
+		     180.0, 240.0, 360.0, 480.0, 720.0, 960.0,
+		     1440.0, 1920.0, 2880.0, 3840.0 },
+  5, (gint[5]){ 1, 5, 10, 30, 60 },
   time_metric_translate
 };
 
@@ -60,10 +62,10 @@ static gchar *frame_metric_translate (gdouble value)
 
 static const GlameRulerMetric frame_metric = {
   "Frame Metric", "frames", 1.0,
-  { 1, 5, 10, 50, 100, 500, 1000, 2500, 5000, 10000,
+  20, (gdouble[20]){ 1, 5, 10, 50, 100, 500, 1000, 2500, 5000, 10000,
     50000, 100000, 500000, 1000000, 5000000,
     10000000, 50000000, 100000000, 5000000, 1000000000 },
-  { 1, 5, 10, 50, 100 },
+  5, (gint[5]){ 1, 5, 10, 50, 100 },
   frame_metric_translate
 };
 
@@ -396,11 +398,7 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
       adj->upper = 0.0;
       adj->value = 0.0;
       gtk_adjustment_changed (adj);
-#if 0
-      gtk_ruler_set_range (GTK_RULER(waveview->hruler), 0.0, 0.0, 0.0, 20.0);
-#else
       glame_ruler_set_range (GLAME_RULER(waveview->hruler), 0.0, 0.0, 0.0, 20.0);
-#endif
       return;
     }
 
@@ -429,12 +427,6 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
      convert it back into a sample position. */
 
   j = -calc_win_pel_pos (waveview, 0);
-#if 0
-  gtk_ruler_set_range (GTK_RULER(waveview->hruler),
-                       calc_frame_pos_ext (waveview, j) / rate,
-                       calc_frame_pos_ext (waveview, j + width) / rate,
-                       0.0, 1000.0);
-#else
   glame_ruler_set_range (GLAME_RULER(waveview->hruler),
 			 calc_frame_pos_ext (waveview, j) / rate,
 			 calc_frame_pos_ext (waveview, j + width) / rate,
@@ -444,7 +436,6 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
 			 calc_frame_pos_ext (waveview, j),
 			 calc_frame_pos_ext (waveview, j + width),
 			 0.0, 1000.0); */
-#endif
 }
 
 
@@ -1314,15 +1305,9 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
 static void
 gtk_wave_view_init (GtkWaveView *waveview)
 {
-#if 0
-  waveview->hruler = gtk_hruler_new ();
-  gtk_ruler_set_metric (GTK_RULER (waveview->hruler), GTK_PIXELS);
-  gtk_ruler_set_range (GTK_RULER (waveview->hruler), 7, 13, 0, 20);
-#else
   waveview->hruler = glame_hruler_new();
   glame_ruler_set_metric(GLAME_RULER(waveview->hruler),
 			 &time_metric);
-#endif
   gtk_box_pack_start (GTK_BOX (waveview), waveview->hruler, FALSE, FALSE, 0);
   gtk_widget_show (waveview->hruler);
 
