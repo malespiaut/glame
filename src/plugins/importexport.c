@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.11 2001/09/26 09:07:15 richi Exp $
+ * $Id: importexport.c,v 1.12 2001/09/26 09:28:49 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -129,11 +129,14 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	gboolean dorsmpl;
 	gpsm_item_t *it, *file;
 	long vpos;
+	GtkWidget *ed;
 
 	if(ie->gotfile==0) {
+		ed=gnome_error_dialog("Select a file first!");
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
 		return;
 	}
-
 
 	vpos = gpsm_item_vsize(gpsm_root());
 
@@ -263,10 +266,10 @@ ie_fail_cleanup:
 
 	out:
 	
-	if (!(file = gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
+	if (!(file = (gpsm_item_t*)gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
 		DPRINTF("No file at %li\n", vpos);
 		return;
-	} else if (!(file = gpsm_item_parent(file))) {
+	} else if (!(file = (gpsm_item_t*)gpsm_item_parent(file))) {
 		DPRINTF("Cannot find imported file at %li\n", vpos);
 		return;
 	}
@@ -347,8 +350,8 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 
 	if(ie->gotfile==0) {
 		ed=gnome_error_dialog("Select a file first!");
-		gnome_dialog_set_parent(ed, GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(ed);
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
 		return;
 	}
 
@@ -517,15 +520,15 @@ void glame_import_dialog(struct impexp_s *ie)
 	gtk_widget_show (frame3);
 	gtk_box_pack_start (GTK_BOX (vbox2), frame3, TRUE, TRUE, 0);
 	
-	fileentry2 = gnome_file_entry_new (NULL, NULL);
+	fileentry2 = gnome_file_entry_new ("gpsmop::import::filename", "Import File");
 	gtk_widget_show (fileentry2);
 	gtk_container_add (GTK_CONTAINER (frame3), fileentry2);
 	
 	combo_entry2 = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fileentry2));
 	gtk_widget_show (combo_entry2);
 	
-	ie->edit = GTK_EDITABLE(gnome_entry_gtk_entry(
-			GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry)));
+	ie->edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(
+						   GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry))));
 
 	gtk_signal_connect(GTK_OBJECT(ie->edit), "changed",
 				   (GtkSignalFunc)ie_filename_cb, ie);
@@ -709,7 +712,7 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 		return -1;
 
 	ie = (struct impexp_s*)calloc(1,sizeof(struct impexp_s));
-	ie->grp = item;
+	ie->grp = (gpsm_grp_t*)item;
 	rf = plugin_get("read-file");
 	if (rf==NULL)
 		return -1;
