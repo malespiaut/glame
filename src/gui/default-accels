@@ -35,6 +35,12 @@
   <accel state="0" spec="F1" desc="List keybindings">
 (glame-accel-edit-dialog "waveview" #f)
   </accel>
+  <accel state="0" spec="Page_Up" desc="Zoom out">
+(waveedit-set-zoom! (* (waveedit-get-zoom) 0.75))
+  </accel>
+  <accel state="0" spec="Page_Down" desc="Zoom in">
+(waveedit-set-zoom! (* (waveedit-get-zoom) 1.33))
+  </accel>
   <accel state="0" spec="Prior" desc="Zoom out">
 (waveedit-set-zoom! (* (waveedit-get-zoom) 0.75))
   </accel>
@@ -109,6 +115,9 @@
   <accel state="0" spec="bracketright" desc="Zoom in">
 (editfilter-zoom-in 4.0)
   </accel>
+  <accel state="0" spec="Page_Down" desc="Zoom in">
+(editfilter-zoom-in)
+  </accel>
   <accel state="0" spec="Next" desc="Zoom in">
 (editfilter-zoom-in)
   </accel>
@@ -117,6 +126,9 @@
   </accel>
   <accel state="0" spec="bracketleft" desc="Zoom out">
 (editfilter-zoom-out 4.0)
+  </accel>
+  <accel state="0" spec="Page_Up" desc="Zoom out">
+(editfilter-zoom-out)
   </accel>
   <accel state="0" spec="Prior" desc="Zoom out">
 (editfilter-zoom-out)
