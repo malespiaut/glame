@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.3 2000/02/07 12:55:39 nold Exp $
+@comment $Id: filter.texi,v 1.4 2000/02/08 15:00:10 nold Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -338,10 +338,11 @@ functions:
 
 @tindex filter_buffer_t
 @tindex filter_node_t
-@deftypefun {filter_buffer_t *} fbuf_alloc (int @var{size}, int @var{atom_size}, filter_node_t *@var{n})
+@deftypefun {filter_buffer_t *} fbuf_alloc (int @var{size}, struct list_head *@var{list})
 @code{fbuf_alloc()} will allocate a new buffer with space for @var{size}
-numbers of atoms of the specified size. The node parameter is for internal use
-and keeps track of allocated buffers for cleanup after failures.
+bytes. The list parameter is to 
+keep track of allocated buffers for cleanup after failures. You may want to
+supply @code{&n->launch_context->buffers} for @var{list}.
 This function can return @code{NULL}, if there is not sufficient memory available.
 @end deftypefun
 
@@ -350,7 +351,8 @@ This function can return @code{NULL}, if there is not sufficient memory availabl
 @deftypefun {filter_buffer_t *} fbuf_get (filter_pipe_t *@var{p})
 @code{fbuf_get()} will receive the next filter buffer from the specified input
 pipe. This will return @code{NULL} at @code{EOF}. You have to forward this 
-@code{EOF} mark.
+@code{EOF} mark. @code{fbuf_get()} copes with a @code{NULL} @var{p} with just
+returning @code{NULL}.
 @end deftypefun
 
 All filter buffers are reference counted to allow zero-copy and copy-on-demand
@@ -363,13 +365,14 @@ following functions:
 @code{fbuf_ref()} will get you one additional reference. A reference will
 protect the buffer from being modified and from being destroyed. Once
 the reference count drops to zero, you may no longer access it or any
-of its contents. @code{fbuf_ref()} does not copy the buffer.
+of its contents. @code{fbuf_ref()} does not copy the buffer. @code{fbuf_ref()}
+ignores @code{NULL} @var{fb}s.
 @end deftypefun
 
 @tindex filter_buffer_t
 @deftypefun void fbuf_unref (filter_buffer_t *@var{fb})
 @code{fbuf_unref()} will drop one reference. See above for more about
-references.
+references. @code{fbuf_unref} ignores @code{NULL} @var{fb}s.
 @end deftypefun
 
 To get information on a filter buffer and to access its contents, use the
@@ -377,12 +380,8 @@ following functions which are actually very fast macros:
 
 @tindex filter_buffer_t
 @deftypefun int fbuf_size (filter_buffer_t *@var{fb})
-@code{fbuf_size()} returns the number of samples in the filter buffer. 
-@end deftypefun
-
-@tindex filter_buffer_t
-@deftypefun int fbuf_atomsize (filter_buffer_t *@var{fb})
-@code{fbuf_atomsize()} returns the size of one atom in the buffer.
+@code{fbuf_size()} returns the number of bytes in the filter buffer.
+@code{fbuf_size()} returns 0 if @var{fb} is @code{NULL}.
 @end deftypefun
 
 @tindex SAMPLE
@@ -403,7 +402,8 @@ This additional requirement makes copy-on-demand and zero-copy possible. Use
 @deftypefun {filter_buffer_t *} fbuf_make_private (filter_buffer_t *@var{fb})
 @code{fbuf_make_private()} will return a private copy of the provided buffer
 which you may modify. @code{fbuf_lock()} will not copy the buffer if you are the
-sole user of the buffer, i.e. the reference count is one.
+sole user of the buffer, i.e. the reference count is one. For a @code{NULL}
+@var{fb} @code{fbuf_mark_private()} returns @code{NULL}.
 @end deftypefun
 
 To forward a filter buffer you have to hold one reference for each output pipe
@@ -411,28 +411,12 @@ you send the buffer to. Buffer sending is done using the following function:
 
 @tindex filter_pipe_t
 @tindex filter_buffer_t
-@deftypefun void fbuf_queue (filter_pipe_t *@var{p}, filter_buffer_t *@var{fbuf})
+@deftypefun void fbuf_queue (filter_pipe_t *@var{p}, filter_buffer_t *@var{fb})
 @code{fbuf_queue()} queues the specified filter buffer to the specified pipe.
-One reference gets eaten by this operation.
+One reference gets eaten by this operation. @code{fbuf_queue()} copes with
+a @code{NULL} @var{p} by unref'ing @var{fb}.
 @end deftypefun
 
-As there are uses which require a sort of timestamp or sequence number for any
-buffer, there is a private field inside @code{filter_buffer_t} which you may modify and
-read using the following macros:
-
-@tindex filter_buffer_t
-@deftypefun int fbuf_bufpos (filter_buffer_t *@var{fb})
-@code{fbuf_bufpos()} returns the position (or anything else you may have
-stored) of the first atom in the stream. The position is initially
-set to zero on allocation time.
-@end deftypefun
-
-@tindex filter_buffer_t
-@deftypefun void fbuf_setpos (filter_buffer_t *@var{fb}, int @var{pos})
-@code{fbuf_setpos()} sets the position (or anything else) of the buffer to the
-specified value @var{pos}. Remember to call @code{fbuf_make_private(@var{fb})} 
-before you modify the position!
-@end deftypefun
 
 @node Examples, , Doing Real Work, The Filter Programming API
 @subsection Examples
@@ -517,7 +501,7 @@ The correct solution is to do:
 @findex fbuf_buf
 @findex fbuf_queue
 @var{buf} = fbuf_get(@var{in});
-fbuf_make_private(@var{buf});
+@var{buf} = fbuf_make_private(@var{buf});
 fbuf_buf(@var{buf})[0] = 1;
 fbuf_queue(@var{out}, @var{buf});
 @end group
@@ -610,6 +594,23 @@ operating on the filter of the filter node.
 @code{filternode_setparam()} returns 0 on success or -1 if the parameter set or
 change is not possible or causes any problems in the network.
 @end deftypefun
+
+@deftypefun int filternode_setparamstring (filter_node_t *@var{n}, const char *@var{label}, const char *@var{val})
+@code{filternode_setparamstring()} sets the parameter with the specified @var{label}
+of the filter node @var{n} to the value described by the string @var{val}. The type of the value
+should be obtained by using the @code{hash_find_paramdesc()} function
+operating on the filter of the filter node before constructing the string.
+@code{filternode_setparam()} returns 0 on success or -1 if the parameter set or
+change is not possible or causes any problems in the network.
+@end deftypefun
+
+@deftypefun int filternode_getparamstring (filter_node_t *@var{n}, const char *@var{label}, char *@var{val}, ssize_t @var{size})
+@code{filternode_getparamstring()} gets the value of the parameter of the specified @var{label}
+of the filter node @var{n} and converts it to a string using the @var{val} variable as storage with the specified maximum size @var{size}.
+@code{filternode_getparamstring()} returns 0 on success or -1 if the parameter set or
+change is not possible or causes any problems in the network.
+@end deftypefun
+
 
 @node Processing Data in a Network, Using Filter Networks as Filters, Creating a Filter Network, The Filter Network API
 @subsection Processing Data in a Network

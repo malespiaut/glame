@@ -1,12 +1,83 @@
-@comment $Id: filter-tutorial.texi,v 1.2 2000/02/07 13:54:31 richi Exp $
+@comment $Id: filter-tutorial.texi,v 1.3 2000/02/08 15:00:10 nold Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
 
 This document is about how to write filters for glame. It only covers
-audio in/audio out type of filters. 
+audio in/audio out types of filters. 
 
-First of all, what do I need to have in a glame filter?
+@menu
+* Parameter Definition::	Talking about parameters...
+* Filter Categories::		Now what is this whole filter stuff anyway?
+* Filter Skeleton::		What do I need to have in a glame filter?
+* Main Filter Method::		How does the @code{f()} function have to look like?
+@end menu
+
+@node Parameter Definition, Filter Categories, , Filter Tutorial
+@heading Talking about parameters...
+When talking about filters in the following sections, we'll make use of
+various flavours of @dfn{parameters}.
+
+First there are @dfn{input 
+parameters} and @dfn{output parameters}, attached to the properties of the
+filter's input and output pipes respectively. To summarize both groups of
+parameters, we'll use the notion of @dfn{pipe parameters}. Sampling rate is
+probably the most common example of a pipe parameter.
+
+Some filters export hooks to dynamically tune their internal behaviour. We'll
+refer to the associated values as @dfn{filter parameters}. Examples of typical
+filter parameters are the delay time of an echo filter, or the gain values
+of a mixing filter.
+
+@node Filter Categories, Filter Skeleton, Parameter Definition, Filter Tutorial
+@heading Now what is this whole filter stuff anyway?
+In GLAME there are four different kinds of filters. For each you have to care
+about different methods to ensure correct operation. The first three
+share (by definition) the following property: they all use nothing
+but SAMPLEs as their inputs/outputs.
+
+So to begin with the fourth kind of filter, the one operating on types
+different from SAMPLE as well. For this kind
+you may need to implement every method in the filter struct. If you
+want to implement such a complex filter, contact 
+@email{glame-devel@@lists.sourceforge.net}
+for advise.
+
+@findex connect_out
+@findex fixup_param
+The first kind of filters summarizes those which have no input at all. 
+I.e. this is
+the class of @dfn{generators}. Generators have to ensure that the pipes
+connected to them are assigned the correct type and type parameters.
+Therefore they all need to provide the @code{connect_out()} method. If they
+do have filter parameters which affect the output type/parameters, they also
+have to provide the @code{fixup_param()} method. An example for this class
+of filters is the sine filter in @file{waveform.c} as is the 
+@code{read_file()} filter in @file{read_file.c}.
+
+The second kind of filters comprises of those which have no output. 
+I.e. this is the class of @dfn{sinks}. Sinks don't have to care about 
+all that much. Everything they
+need to setup can be done in the main filter method. So usually those
+filters do not provide another method apart from @code{f()}. An example for
+this class of filters is the @code{audio_out()} filter in 
+@file{audio_io.c}.
+
+@findex connect_out
+@findex fixup_param
+@findex fixup_pipe
+The third kind of filters are the inbetween filters which require connected
+input and output channels. I.e. these are the @dfn{true filters}. True 
+filters have to provide a @code{connect_out()} method, if they may change 
+any of the pipe parameters (i.e. what comes out is different from 
+what comes in, like in a resample case). They also have to provide the 
+@code{fixup_param()}
+and the @code{fixup_pipe()} methods if there are dependencies between the
+filter parameters and the output parameters or between the input 
+parameters and the output parameters (different from a one-to-one mapping).
+
+@node Filter Skeleton, Main Filter Method, Filter Categories, Filter Tutorial
+@heading What do I need to have in a glame filter?
 You usually will need four functions:
 @table @code
 @findex filtername_register
@@ -27,6 +98,7 @@ port, make use of the @code{fixup_param()} method.
 @end table
 
 @findex f
+@node Main Filter Method, , Filter Skeleton, Filter Tutorial
 @heading How does the @code{f()} function have to look like? Are there any restrictions?
 Yes of course! There are!
 
@@ -63,15 +135,19 @@ fact it is completely broken. You should instead just keep all the
 fbuf's around that you need later (of course ref'ing and unref'ing them
 at the appropriate time)
 
+@findex fbuf_alloc
+@findex sbuf_make_private
 If your filter in priciple would support in-place read-modify-write of
 the data you should not allocate new buffers for the output using
 @code{fbuf_alloc()}. Instead you should grab the source buffer and do a
 @code{sbuf_make_private()} on it taking the pointer returned from this as the
-"new" input buffer which you may modifiy now and later queue as
+``new'' input buffer which you may modifiy now and later queue as
 output.
 
+@findex fbuf_alloc
+@findex fbuf_make_private
 If you do any modification of any buffer (including those which you just
 allocated privately using @code{fbuf_alloc()} or friends) 
 you must get the write-enabled buffer by calling @code{fbuf_make_private()}
-and using the return value as the buffer to be written to!
+and use the return value as the buffer to be written to!
 

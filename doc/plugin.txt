@@ -1,7 +1,0 @@
-The plugin interface is not yet designed. This will probably the next task
-I will start as the filter and swapfile stuff has settled.
-
-Please contact me first for basic design ideas I have before you start
-working on this or dependent tasks!
-
-richi.

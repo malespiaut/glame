@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.4 2000/02/07 12:55:40 nold Exp $
+@comment $Id: glame.texi,v 1.5 2000/02/08 15:00:10 nold Exp $
 
 
 @c %**start of header
@@ -48,6 +48,11 @@ translation approved by the Free Software Foundation.
 @node Top, Copying, , (dir)
 @top The GLAME Manual
 
+@dircategory Sound
+@direntry
+* GNU/Linux Audio Mechanics (GLAME): (glame).	A capable audio editor.
+@end direntry
+
 This text documents GNU/Linux Audio Mechanics 
 @comment Assuming that UPDATED will always be set if VERSION is set.
 @ifclear VERSION
@@ -84,6 +89,7 @@ FIXME: Not yet written due to lack of working frontends.
 * Filter API::		Describes GLAME's generic filter framework.
 * Filter Tutorial::	Writing plugins for GLAME.
 * Swapfile API::	Using GLAME's flexible backing store.
+* Plugin Interface::	GLAME's dynamically loadable modules.
 
 ==References==
 
@@ -125,8 +131,9 @@ translation approved by the Free Software Foundation.
 @include filter.texi
 @include filter-tutorial.texi
 @include swapfile.texi
+@include plugin.texi
 
-@node Function and Type Index, , Swapfile API, Top
+@node Function and Type Index, , Plugin Interface, Top
 @unnumbered Function and Type Index
 @printindex fn
 

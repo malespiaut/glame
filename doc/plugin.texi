@@ -1,0 +1,11 @@
+@comment $Id: plugin.texi,v 1.1 2000/02/08 15:00:10 nold Exp $
+
+@node Plugin Interface, Function and Type Index, Swapfile API, Top
+@chapter Plugin Interface 
+The plugin interface is not yet designed. This will probably the next task
+I will start when the filter and swapfile stuff has settled.
+
+Please contact me first at @email{glame-devel@@lists.sourceforge.net}
+c/o richi
+for basic design ideas I have before you start
+working on this or dependent tasks!
