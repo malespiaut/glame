@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.12 2001/11/18 19:11:25 richi Exp $
+ * $Id: filter_pipe.c,v 1.13 2002/01/27 12:26:46 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -137,8 +137,8 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 	 * that GLSIG_PIPE_CHANGED is redirected to the destination node
 	 * only! This simplifies signal handling a lot as it matches
 	 * the semantics of the old fixup_pipe() method. */
-	glsig_add_redirector(filterpipe_emitter(p), ~0, filter_emitter(filterport_filter(filterpipe_dest(p))));
-	glsig_add_redirector(filterpipe_emitter(p), ~GLSIG_PIPE_CHANGED, filter_emitter(filterport_filter(filterpipe_source(p))));
+	glsig_add_redirector(filterpipe_emitter(p), ~0, filterport_emitter(filterpipe_dest(p)));
+	glsig_add_redirector(filterpipe_emitter(p), ~GLSIG_PIPE_CHANGED, filterport_emitter(filterpipe_source(p)));
 
 	/* add the pipe to all port lists/hashes.
 	 * connect_out/in may have mucked with p->dest/source, so
