@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.30 2004/10/23 13:09:29 richi Exp $
+ * $Id: swapfile_io.c,v 1.31 2004/12/26 20:58:12 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Richard Guenther
  *
@@ -240,7 +240,6 @@ static int swapfile_out_f(filter_t *n)
 	filter_buffer_t *buf = NULL;
 	filter_param_t *pos_param;
 	long fname, offset, drop, size, cnt, pos, res, flags, changed_start;
-	struct sw_stat st;
 	swfd_t fd;
 
 	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))

@@ -1,6 +1,6 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.5 2004/10/31 22:21:47 richi Exp $
+ * $Id: resample.c,v 1.6 2004/12/26 20:58:12 richi Exp $
  *
  * Copyright (C) 2003, 2004 Richard Guenther
  *
@@ -93,7 +93,7 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 		filter_start(context);
 		filter_wait(context);
 		filter_launchcontext_unref(&context);
-		gpsm_item_destroy(file);
+		gpsm_item_destroy((gpsm_item_t *)file);
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
 
 		/* Adapt all gpsm references to the swapfile. */

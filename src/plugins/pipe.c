@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.25 2004/10/23 13:09:29 richi Exp $
+ * $Id: pipe.c,v 1.26 2004/12/26 20:58:12 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002 Richard Guenther
  *
@@ -131,7 +131,7 @@ static int pipe_in_f(filter_t *n)
 	FILE *p;
 	char cmd[256], *s;
 	int res, q;
-	pid_t pid;
+	/* pid_t pid; */
 
 	out = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
 	if (!(lout = filterport_get_pipe(out))
@@ -298,7 +298,7 @@ static int pipe_out_f(filter_t *n)
 	FILE *p;
 	char cmd[256], *s;
 	int res = 1, q, nr, nr_active, cnt, ccnt, i;
-	pid_t pid;
+	/* pid_t pid; */
 
 	/* Get the pipes. */
 	port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
