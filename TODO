@@ -20,6 +20,9 @@ plugins/
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
 	- add position hint parameters to null and drop
+	[richi]
+	- redo swapfile_out (remove magic in offset / size, add
+          explicit CREAT|TRUNC param)
 
 hash/
 	[all]
