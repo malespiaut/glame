@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.37 2001/04/19 16:51:41 richi Exp $
+ * $Id: main.c,v 1.38 2001/04/20 08:09:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -63,7 +63,6 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 };
 
 static GnomeUIInfo filter_menu_uiinfo[] = {
-	//GNOMEUIINFO_ITEM(N_("_Open Filternetwork editor"),"Opens a new filternetwork window",gui_network_new,NULL),
 	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork",gui_network_new,NULL),
 	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_load_network,NULL),
 	GNOMEUIINFO_END
@@ -71,14 +70,14 @@ static GnomeUIInfo filter_menu_uiinfo[] = {
 
 static GnomeUIInfo help_menu_uiinfo[] =
 {
-  GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
-  GNOMEUIINFO_END
+	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
+	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo glame_setting_uiinfo[] =
 {
-	        GNOMEUIINFO_MENU_PREFERENCES_ITEM (preferences_cb, NULL),
-		        GNOMEUIINFO_END
+        GNOMEUIINFO_MENU_PREFERENCES_ITEM (preferences_cb, NULL),
+        GNOMEUIINFO_END
 };
 
 
@@ -98,7 +97,6 @@ static GnomeUIInfo menubar_uiinfo[] =
     GNOME_APP_PIXMAP_NONE, NULL,
     0, 0, NULL
   },
-  
   GNOMEUIINFO_MENU_SETTINGS_TREE (glame_setting_uiinfo),
   GNOMEUIINFO_MENU_HELP_TREE (help_menu_uiinfo),
   GNOMEUIINFO_END
@@ -189,7 +187,10 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget * entry;
 	GtkWidget * notelabel;
 	GtkWidget * macMode;
+	GtkWidget *combo;
+	GList *combo_items;
 	char *cfg, *path, *numberbuffer, *aindev, *aoutdev;
+	char *ainplugin, *aoutplugin;
 	gboolean ok=FALSE;
 	gboolean mac, foo;
 
@@ -246,18 +247,72 @@ preferences_cb(GtkWidget * wid, void * bla)
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
 
-	/* input device */
+	/* input filter */
+	combo = gtk_combo_new();
+	combo_items = NULL;
+	if (plugin_get("audio_in"))
+		combo_items = g_list_append(combo_items, _("audio_in"));
+	if (plugin_get("oss_audio_in"))
+		combo_items = g_list_append(combo_items, _("oss_audio_in"));
+	if (plugin_get("esd_audio_in"))
+		combo_items = g_list_append(combo_items, _("esd_audio_in"));
+	if (plugin_get("alsa_audio_in"))
+		combo_items = g_list_append(combo_items, _("alsa_audio_in"));
+	if (plugin_get("sgi_audio_in"))
+		combo_items = g_list_append(combo_items, _("sgi_audio_in"));
+	gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
+	g_list_free(combo_items);
+	gtk_widget_show(combo);
 	cfg = gnome_config_get_string_with_default(
-		"audio_io/input_dev=/dev/dsp", &foo);
+		"audio_io/input_plugin=audio_in", &foo);
+	ainplugin = alloca(256);
+	strncpy(ainplugin, cfg, 255);
+	g_free(cfg);
+	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), ainplugin);
+	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &ainplugin);
+	gtk_widget_show(GTK_COMBO(combo)->entry);
+	create_label_widget_pair(vbox, "Default input plugin", combo);
+
+	/* input device */
 	aindev = alloca(256);
+	cfg = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get("audio_in"), PLUGIN_FILTER)), "device"));
+	snprintf(aindev, 255, "audio_io/input_dev=%s", cfg ? cfg : "");
+	cfg = gnome_config_get_string_with_default(aindev, &foo);
 	strncpy(aindev, cfg, 255);
 	g_free(cfg);
 	create_label_edit_pair(vbox, "Default input device", "aindev", aindev);
 
-	/* output device */
+	/* output filter */
+	combo = gtk_combo_new();
+	combo_items = NULL;
+	if (plugin_get("audio_out"))
+		combo_items = g_list_append(combo_items, _("audio_out"));
+	if (plugin_get("oss_audio_out"))
+		combo_items = g_list_append(combo_items, _("oss_audio_out"));
+	if (plugin_get("esd_audio_out"))
+		combo_items = g_list_append(combo_items, _("esd_audio_out"));
+	if (plugin_get("alsa_audio_out"))
+		combo_items = g_list_append(combo_items, _("alsa_audio_out"));
+	if (plugin_get("sgi_audio_out"))
+		combo_items = g_list_append(combo_items, _("sgi_audio_out"));
+	gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
+	g_list_free(combo_items);
+	gtk_widget_show(combo);
 	cfg = gnome_config_get_string_with_default(
-		"audio_io/output_dev=/dev/dsp", &foo);
+		"audio_io/output_plugin=audio_out", &foo);
+	aoutplugin = alloca(256);
+	strncpy(aoutplugin, cfg, 255);
+	g_free(cfg);
+	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(combo)->entry), aoutplugin);
+	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry), "changed", changeString, &aoutplugin);
+	gtk_widget_show(GTK_COMBO(combo)->entry);
+	create_label_widget_pair(vbox, "Default output plugin", combo);
+
+	/* output device */
 	aoutdev = alloca(256);
+	cfg = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get("audio_out"), PLUGIN_FILTER)), "device"));
+	snprintf(aoutdev, 255, "audio_io/output_dev=%s", cfg ? cfg : "");
+	cfg = gnome_config_get_string_with_default(aoutdev, &foo);
 	strncpy(aoutdev, cfg, 255);
 	g_free(cfg);
 	create_label_edit_pair(vbox, "Default output device",
@@ -286,9 +341,11 @@ preferences_cb(GtkWidget * wid, void * bla)
 	bMac = mac;
 	gnome_config_set_bool("edit_filter/macMode",bMac);
 	gnome_config_set_string("audio_io/input_dev", aindev);
+	gnome_config_set_string("audio_io/input_plugin", ainplugin);
 	gnome_config_set_string("audio_io/output_dev", aoutdev);
+	gnome_config_set_string("audio_io/output_plugin", aoutplugin);
 	gnome_config_sync();
-	DPRINTF("Preferences:\n\tswapfile %s\n\tpopup time %d\n\tmac mode %d\n\tinput dev %s\n\toutput dev %s\n", path, nPopupTimeout, bMac, aindev, aoutdev);
+	DPRINTF("Preferences:\n\tswapfile %s\n\tpopup time %d\n\tmac mode %d\n\tinput plugin %s\n\tinput dev %s\n\toutput plugin %s\n\toutput dev %s\n", path, nPopupTimeout, bMac, ainplugin, aindev, aoutplugin, aoutdev);
 }
 
 

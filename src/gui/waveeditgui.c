@@ -239,6 +239,9 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 		}
 		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
 	}
+
+	/* Remove the selection. */
+	selectnone_cb(bla, waveview);
 }
 
 /* Menu event - Delete. */
@@ -277,6 +280,9 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 						 sstart, ssize);
 		}
 	}
+
+	/* Remove the selection. */
+	selectnone_cb(bla, waveview);
 }
 
 /* Helpers for creation of swapfile_in/out nodes with appropriate
@@ -468,6 +474,7 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
+	gboolean b;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
@@ -490,7 +497,8 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_out. */
 	net = filter_creat(NULL);
-	aout = filter_instantiate(plugin_get("audio_out"));
+	dev = gnome_config_get_string_with_default("audio_io/output_plugin=audio_out", &b);
+	aout = filter_instantiate(plugin_get(dev));
 	if ((dev = gnome_config_get_string("audio_io/output_dev")))
 		filterparam_set(filterparamdb_get_param(filter_paramdb(aout), "device"), &dev);
 	filter_add_node(net, aout, "aout");
@@ -525,6 +533,7 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	gboolean b;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
@@ -542,7 +551,8 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_out. */
 	net = filter_creat(NULL);
-	aout = filter_instantiate(plugin_get("audio_out"));
+	dev = gnome_config_get_string_with_default("audio_io/output_plugin=audio_out", &b);
+	aout = filter_instantiate(plugin_get(dev));
 	if ((dev = gnome_config_get_string("audio_io/output_dev")))
 		filterparam_set(filterparamdb_get_param(filter_paramdb(aout), "device"), &dev);
 	filter_add_node(net, aout, "aout");
@@ -578,6 +588,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
+	gboolean b;
 	gpsm_item_t *grp, *item, *left, *right;
 	filter_t *net, *ain;
 	int rate;
@@ -618,7 +629,8 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_in. */
 	net = filter_creat(NULL);
-	ain = filter_instantiate(plugin_get("audio_in"));
+	dev = gnome_config_get_string_with_default("audio_io/input_plugin=audio_in", &b);
+	ain = filter_instantiate(plugin_get(dev));
 	if ((dev = gnome_config_get_string("audio_io/input_dev")))
 		filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "device"), &dev);
 	duration = length/(float)rate;
@@ -665,6 +677,7 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start;
+	gboolean b;
 	gpsm_item_t *grp, *item, *left, *right;
 	filter_t *net, *ain;
 	int rate;
@@ -704,7 +717,8 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_in. */
 	net = filter_creat(NULL);
-	ain = filter_instantiate(plugin_get("audio_in"));
+	dev = gnome_config_get_string_with_default("audio_io/input_plugin=audio_in", &b);
+	ain = filter_instantiate(plugin_get(dev));
 	if ((dev = gnome_config_get_string("audio_io/input_dev")))
 		filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "device"), &dev);
 	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
