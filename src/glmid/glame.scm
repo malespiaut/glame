@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.71 2001/10/29 22:36:35 richi Exp $
+; $Id: glame.scm,v 1.72 2001/10/31 10:59:30 mainzelm Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -109,34 +109,28 @@
 ; GLAME config
 
 ;(define glame-config '((blah . (define x 'x)) (test . (display 'done))))
-(if (not (defined? 'glame-config)) (define glame-config '()))
+(if (not (defined? 'glame-config)) 
+    (define glame-config '()))
 
 ; set the cdr of the key . value pair to the provided key or create
 ; a new pair of the both
 (define (glame-config-set! key value)
   (let ((cfg (assq key glame-config)))
-    (if cfg (set-cdr! cfg value)
-            (set! glame-config (cons (cons key value) glame-config)))))
+    (if cfg 
+	(set-cdr! cfg value)
+	(set! glame-config (cons (cons key value) glame-config)))))
 
 ; return the cdr of the key . value pair, or create a pair with
 ; the provided default value and return that
 (define (glame-config-get key . default)
   (let ((cfg (assq key glame-config)))
-    (if cfg (cdr cfg)
-            (begin
-	      (if (null? default) (throw 'glame-error)
-	                          (glame-config-set! key (car default)))
-	      (car default)))))
-
-; create a key . #f if key does not exist, return the pair
-(define (glame-config-creat key)
-  (let ((cfg (assq key glame-config)))
-    (if cfg cfg
-            (begin
-	      (glame-config-set! key #f)
-	      (assq key glame-config)))))
-
-
+    (if cfg 
+	(cdr cfg)
+	(begin
+	  (if (null? default) 
+	      (throw 'glame-error)
+	      (glame-config-set! key (car default)))
+	  (car default)))))
 
 ; GLAME 0.2.0 compatibility
 (define (plugin_description p) (plugin_query p "desc"))
