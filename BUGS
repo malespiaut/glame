@@ -1,5 +1,25 @@
+			GLAME - KNOWN BUGS
+			==================
+
 The following list contains a summary of all known bugs/caveats/missing
 features you may run into and some help how to survive in these cases.
+
+If you experience GLAME behaving in strange ways other than those listed
+below, please don't hesitate to submit a bug report, either via
+
+* The Bugs web page at SourceForge, 
+  http://sourceforge.net/tracker/?atid=101627&group_id=1627&func=browse
+
+* Your distribution's bug tracking system (like the Debian BTS, for example),
+
+* The GLAME user support mailing list <glame-users@lists.sourceforge.net>.
+
+When reporting a bug, in addition to a detailed description please include 
+the exact version of GLAME you are using, and the operation system, version,
+and distribution you are running.
+
+Summary of known bugs and misfeatures in GLAME
+----------------------------------------------
 
 - Its not a good idea to have the glame swapfile reside on a non-local
   disk (like in your NFS mounted home) because of performace limitations.
