@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.11 2000/02/24 17:41:37 xwolf Exp $
+ * $Id: gui.c,v 1.12 2000/02/25 18:14:18 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -806,6 +806,14 @@ gui_network_new_wizard(void)
 	return 0;
 }
 
+
+void
+edit_paramdesc(gui_filter *f)
+{
+	filter_paramdesc_t *param;
 	
+//	filter_foreach_paramdesc(f->filter,param){
+		
 	
+}
 	

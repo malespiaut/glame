@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.8 2000/02/24 17:41:37 xwolf Exp $
+ * $Id: gui.h,v 1.9 2000/02/25 18:14:18 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -48,6 +48,7 @@ typedef struct _gui_network {
 	int iports,oports;
 	filter_network_t * net;
 	GSList *filters;
+	gboolean paused;
 } gui_network;
 
 typedef struct _glame_gui {
@@ -120,6 +121,9 @@ GtkWidget* gui_create_commandwin(void);
 int gui_browse_registered_filters(void);
 int gui_filter_init(void);
 
+void edit_paramdesc(gui_filter *f);
+
+
 // canvas stuff
 GtkWidget * create_new_canvas(const char *name, gui_network*);
 
@@ -128,5 +132,7 @@ GtkWidget* create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, dou
 
 void
 create_ports(GnomeCanvasGroup* grp,gui_filter*f);
+
+
 
 #endif

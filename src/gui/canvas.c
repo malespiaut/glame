@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.7 2000/02/24 17:41:37 xwolf Exp $
+ * $Id: canvas.c,v 1.8 2000/02/25 18:14:18 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -41,9 +41,11 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	double dx,dy;
 	GlameCanvasItem *it = GLAME_CANVAS_ITEM(data);
 	GList *list;
+	char *bla="hurgl";
+
 	x = event->button.x;
 	y = event->button.y;
-	
+
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -58,6 +60,8 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 			gdk_cursor_destroy(fleur);
 			it->dragging=TRUE;
 			break;
+		case 2:
+					    
 		default:
 			break;
 		}
@@ -117,8 +121,6 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	inst = malloc(sizeof(gui_filter));
 	selected = atoi(data->data);
 	gf = g_array_index(gui->filters,gui_filter*,selected);
-	fprintf(stderr,"received");
-	fprintf(stderr,"%s\n",data->data);
 
 	memcpy(inst,gf,sizeof(gui_filter));
 	
@@ -133,20 +135,70 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	
 }
 
+void 
+launch_network(GtkWidget *button,gui_network*net)
+{
+	filternetwork_launch(net->net);
+	net->paused=FALSE;
+}
+
+void 
+play_network(GtkWidget *button,gui_network*net)
+{
+	filternetwork_start(net->net);
+}
+
+void 
+pause_network(GtkWidget *button,gui_network*net)
+{
+	if(net->paused){
+			filternetwork_start(net->net);
+			net->paused=FALSE;
+	} else { 
+		filternetwork_pause(net->net);
+		net->paused=TRUE;
+	}
+}
+
+void 
+stop_network(GtkWidget *button,gui_network*net)
+{
+	
+	filternetwork_terminate(net->net);
+}
+
+
+
+
 GtkWidget * 
 create_new_canvas(const char *name, gui_network* net)
 {
 	GtkWidget *window, *canvas, *sw;
+	GtkWidget *vbox,*buttonbox,*button;
+
+	GnomeDock *dock;
+
+	GnomeDockItem *item;
+
+	window = gnome_app_new(name,_(name));
+	dock = GNOME_APP(window)->dock;
+	gtk_widget_ref(dock);
+	
+	gtk_widget_show(dock);
+	
 
 
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window),name);
+//	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+//	gtk_window_set_title(GTK_WINDOW(window),name);
+	
+	
 	//gtk_signal_connect(GTK_OBJECT(window),
 	//		   "delete_event",
 	//		   GTK_SIGNAL_FUNC(delete_canvas),
 	//		   NULL);
-
+	
 	sw = gtk_scrolled_window_new(NULL,NULL);
+	gtk_widget_show(sw);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
 				       GTK_POLICY_AUTOMATIC,
 				       GTK_POLICY_AUTOMATIC);
@@ -156,12 +208,46 @@ create_new_canvas(const char *name, gui_network* net)
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
 	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
-	gtk_container_add(GTK_CONTAINER(sw),canvas);
-	gtk_container_add(GTK_CONTAINER(window),sw);
-	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
-	gtk_widget_show_all(window);
+
 	gtk_drag_dest_set(GTK_WIDGET(canvas),GTK_DEST_DEFAULT_ALL,gui->target,1,GDK_ACTION_COPY);
 	gtk_signal_connect(GTK_OBJECT(canvas),"drag-data-received",GTK_SIGNAL_FUNC(dropped),NULL);
+
+	//gtk_container_add(GTK_CONTAINER(item),sw);
+	gtk_container_add(GTK_CONTAINER(sw),canvas);
+
+	gnome_app_set_contents(GNOME_APP(window),sw);
+
+	
+
+	buttonbox = gtk_hbutton_box_new();
+	item =  gnome_dock_item_new("buttons",GNOME_DOCK_ITEM_BEH_NORMAL);
+	
+	gtk_container_add(GTK_CONTAINER(item),buttonbox);
+	gnome_dock_add_item(dock,item,GNOME_DOCK_BOTTOM,1,0,0,TRUE);
+
+	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_EXEC),"Launch");
+	gtk_container_add(GTK_CONTAINER(buttonbox),button);
+	gtk_signal_connect(button,"clicked",launch_network,net);
+
+	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_FORWARD),"Play");
+	gtk_container_add(GTK_CONTAINER(buttonbox),button);
+	gtk_signal_connect(button,"clicked",play_network,net);
+
+	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_TIMER_STOP),"Pause");
+	gtk_container_add(GTK_CONTAINER(buttonbox),button);
+	gtk_signal_connect(button,"clicked",pause_network,net);
+
+	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_STOP),"STOP");
+	gtk_container_add(GTK_CONTAINER(buttonbox),button);
+	gtk_signal_connect(button,"clicked",stop_network,net);
+	
+	gnome_app_add_docked(GNOME_APP(window),buttonbox,"butts",GNOME_DOCK_ITEM_BEH_NORMAL,GNOME_DOCK_TOP,1,0,0);
+
+	gtk_widget_show(dock);
+	
+	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
+	gtk_widget_show_all(window);
+
 	return canvas;
 }
 
@@ -388,10 +474,10 @@ add_connection(GlameConnection *c)
 	
 	// ooooohhh f**k this does not look nice!
 
-	if(filternetwork_add_connection((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node,
+	if(!filternetwork_add_connection((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node,
 				     filterportdesc_label(c->begin->port),
 					(GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter->node,
-					filterportdesc_label(c->end->port))<0){
+					filterportdesc_label(c->end->port))){
 		fprintf(stderr,"Connection failed!!\n");
 		return -1;
 	}else {

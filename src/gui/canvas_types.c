@@ -273,6 +273,9 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
+
+	
+
 	item->last_x = item->last_y = 0.0;
 
 	gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
