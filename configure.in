@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(configure.in)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(glame, 0.022)
+AM_INIT_AUTOMAKE(glame, 0.023)
 
 
 dnl one switch to configure debugging stuff - sane default for now
@@ -50,14 +50,18 @@ dnl GLIB_LIBS="$GLIB_LDFLAGS `echo $GTK_LIBS | sed 's/^.*\(-lglib[^ ]*\).*$/\1/'
 dnl 
 dnl changequote([,])dnl
 
-dnl check for esd
-AM_PATH_ESD(0.2.0, AC_DEFINE(HAVE_ESD),)
-
 dnl check for libaudiofile
 AUDIOFILE_LIBS=""
 AC_CHECK_LIB(audiofile, afCloseFile, AUDIOFILE_LIBS="-laudiofile")
 if ! test -z $AUDIOFILE_LIBS; then
 	AC_DEFINE(HAVE_AUDIOFILE)
+fi
+
+dnl check for esd
+AM_PATH_ESD(0.2.0, esd=yes, esd=no)
+if test $esd = yes; then
+	AC_DEFINE(HAVE_ESD)
+	AUDIOFILE_LIBS=
 fi
 
 dnl check for electric fence
