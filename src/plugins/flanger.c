@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.10 2001/07/07 08:30:31 mag Exp $
+ * $Id: flanger.c,v 1.11 2001/07/31 15:27:19 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -59,17 +59,60 @@ void fbm_lfo(int *lfo, int size, int swpd)
 	rek_fbm(lfo, 0, size-1, swpd, 1);
 }
 
+static int flanger_set_param(filter_t *n, filter_param_t *param, const void *val) {
+	float x,y;
+	filter_param_t *p;
+
+	if (n->priv!=NULL)
+		return 0;
+
+	x = *((float*)val);
+
+	if (strcmp("depth", filterparam_label(param))==0) {
+		if(x<=0.0)
+			return -1;
+		p = filterparamdb_get_param(filter_paramdb(n), "sweep depth");
+		y = filterparam_val_float(p);
+		if(y>(x*0.5)) {
+			y = x*0.5;
+			n->priv = p;
+			filterparam_set(p, &y);
+			n->priv = NULL;
+		}
+	}
+
+	if (strcmp("sweep depth", filterparam_label(param))==0) {
+		p = filterparamdb_get_param(filter_paramdb(n), "depth");
+		y = filterparam_val_float(p);
+		if ((x > (y*0.5))||(x<0.0))
+			return -1;
+	}
+	if (strcmp("sweep rate", filterparam_label(param))==0) {
+		if (x<0.0)
+			return -1;
+	}
+	if (strcmp("drywet", filterparam_label(param))==0) {
+		if ((x<0.0) || (x>1.0))
+			return -1;
+	}
+	if (strcmp("feedback gain", filterparam_label(param))==0) {
+		if (x<0.0)
+			return -1;
+	}
+
+	return 0;
+}
+
 static int flanger_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	
-	float	ef_gain = 1.0, ct_gain = 0.0, dry_gain = 1.0, rampl, 
-		sweep_rate = 0.5, pdepth = 10.0, swdepth = 5.0, fampl,
-		rfampl1, rfampl2;
+	float	efgain = 1.0, fbgain = 0.0, drywet = 1.0, 
+		sweep_rate = 0.5, pdepth = 10.0, swdepth = 5.0, fampl;
 	int	rate, rbsize, pos, cpos, fpos, swpdepth;
-	SAMPLE  *ringbuf, *s;
+	SAMPLE  *ringbuf, *efringbuf, *s;
 	int	*lfo, lfosize, i, lfopos, lfotype = 0;
 
 	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
@@ -80,41 +123,32 @@ static int flanger_f(filter_t *n)
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "depth")))
 			pdepth=filterparam_val_float(param);
 
-	if (pdepth <= 0.0)
-		FILTER_ERROR_RETURN("negative depth is not allowed.");
-	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "sweep depth")))
 	                swdepth=filterparam_val_float(param);
-	
-	if (swdepth <= 0.0)
-		FILTER_ERROR_RETURN("negative sweep depth is not allowed.");
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "sweep rate")))
 	                sweep_rate=filterparam_val_float(param);
 
-	if (sweep_rate <= 0.0)
-		FILTER_ERROR_RETURN("negative sweep rate is not allowed.");
-	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "dry gain")))
-	                dry_gain=filterparam_val_float(param);
-	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "effect gain")))
-	                ef_gain=filterparam_val_float(param);
+	if ((param=filterparamdb_get_param(filter_paramdb(n), "drywet")))
+	                drywet=filterparam_val_float(param);
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "feedback gain")))
-	                ct_gain=filterparam_val_float(param);
+	                fbgain=filterparam_val_float(param);
 	
 	if ((param=filterparamdb_get_param(filter_paramdb(n), "lfo type")))
 			lfotype=filterparam_val_int(param);
 	
-	rampl = 1.0/(dry_gain + ef_gain);
-	fampl = 1.0 + ct_gain;
-	rfampl1 = 1.0/fampl;
-	rfampl2 = ct_gain/fampl;
+	efgain = 1.0 - drywet;
+	fampl = 1.0 + fbgain;
+	drywet /= fampl;
+	efgain /= fampl;
+	fbgain /= fampl;
+	
 	rate = filterpipe_sample_rate(in);
 	rbsize = TIME2CNT(int, pdepth, rate);
 	DPRINTF("ringbuffer size = %d\n", rbsize);
 	ringbuf = ALLOCN(rbsize, SAMPLE);
+	efringbuf = ALLOCN(rbsize, SAMPLE);
 	pos = 0;
 	cpos = rbsize >> 1;
 	swpdepth = TIME2CNT(int, swdepth, rate);
@@ -164,12 +198,11 @@ static int flanger_f(filter_t *n)
 			fpos = cpos + lfo[lfopos];
 			if (fpos >= rbsize)
 				fpos -= rbsize;
-			 else if (fpos < 0)
+			else if (fpos < 0)
 				fpos += rbsize;
-			ringbuf[pos] = *s * rfampl1 + ringbuf[cpos] * rfampl2;
-			*s *= dry_gain;
-			*s += ringbuf[fpos]*ef_gain;
-			*s *= rampl;
+
+			efringbuf[pos] = *s;
+			ringbuf[pos] = *s = *s * drywet + efringbuf[fpos] * efgain + ringbuf[cpos] * fbgain;
 			s++;
 			lfopos++;
 			if (lfopos == lfosize)
@@ -192,6 +225,7 @@ entry:
 	FILTER_BEFORE_CLEANUP;
 	free(lfo);
 	free(ringbuf);
+	free(efringbuf);
 
 	FILTER_RETURN;
 }
@@ -204,6 +238,7 @@ int flanger_register(plugin_t *p)
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = flanger_f;
+	f->set_param = flanger_set_param;
 
 	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_SAMPLE,
@@ -217,28 +252,29 @@ int flanger_register(plugin_t *p)
 			      FILTERPORT_END);
 	
 	param = filter_paramdb(f);
-	filterparamdb_add_param_float(param, "depth", FILTER_PARAMTYPE_FLOAT, 5,
+	filterparamdb_add_param_float(param, "depth", FILTER_PARAMTYPE_FLOAT, 10,
 				    FILTERPARAM_DESCRIPTION, "flanger depth in ms",
+				    FILTERPARAM_LABEL,   "Effect Depth [ms]",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(param, "sweep depth", FILTER_PARAMTYPE_FLOAT, 2.5,
+	filterparamdb_add_param_float(param, "sweep depth", FILTER_PARAMTYPE_FLOAT, 5,
 				    FILTERPARAM_DESCRIPTION, "sweep depth in ms",
+				    FILTERPARAM_LABEL,   "Detune Range [ms]",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(param, "sweep rate", FILTER_PARAMTYPE_FLOAT, 0.5,
+	filterparamdb_add_param_float(param, "sweep rate", FILTER_PARAMTYPE_FLOAT, 1,
 				    FILTERPARAM_DESCRIPTION, "oscillator frequency",
+				    FILTERPARAM_LABEL,   "LFO Speed [Hz]",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_float(param, "dry gain", FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_DESCRIPTION, "dry gain",
+	filterparamdb_add_param_float(param, "drywet", FILTER_PARAMTYPE_FLOAT, 0.5,
+				      FILTERPARAM_DESCRIPTION, "drywet",
+				      FILTERPARAM_LABEL, "Dry/Wet Balance",
 				      FILTERPARAM_END);
 
-	filterparamdb_add_param_float(param, "effect gain", FILTER_PARAMTYPE_FLOAT, 0.9,
-				      FILTERPARAM_DESCRIPTION, "flanger effect feedback gain",
-				      FILTERPARAM_END);
-
-	filterparamdb_add_param_float(param, "feedback gain", FILTER_PARAMTYPE_FLOAT, 0.4,
-				      FILTERPARAM_DESCRIPTION, "center tap feedback gain",
+	filterparamdb_add_param_float(param, "feedback gain", FILTER_PARAMTYPE_FLOAT, 0.5,
+				      FILTERPARAM_DESCRIPTION, "feedback gain",
+				      FILTERPARAM_LABEL, "Feedback Gain",
 				      FILTERPARAM_END);
 
 	/* FIXME 
@@ -260,7 +296,8 @@ Ramp up
 Ramp down
 Fractal</items> 
 	<initial_choice>0</initial_choice> 
-</widget></GTK-Interface>", 
+</widget></GTK-Interface>",
+				    FILTERPARAM_LABEL, "LFO Type",
 				    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "flanger effect");
