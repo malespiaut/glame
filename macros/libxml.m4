@@ -137,14 +137,14 @@ dnl AMG_PATH_XML2([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for XML, and define XML_CFLAGS and XML_LIBS
 dnl
 AC_DEFUN(AMG_PATH_XML2,[ 
-AC_ARG_WITH(xml-prefix,
-            [  --with-xml-prefix=PFX   Prefix where libxml is installed (optional)],
+AC_ARG_WITH(xml2-prefix,
+            [  --with-xml2-prefix=PFX   Prefix where libxml is installed (optional)],
             xml_config_prefix="$withval", xml_config_prefix="")
-AC_ARG_WITH(xml-exec-prefix,
-            [  --with-xml-exec-prefix=PFX Exec prefix where libxml is installed (optional)],
+AC_ARG_WITH(xml2-exec-prefix,
+            [  --with-xml2-exec-prefix=PFX Exec prefix where libxml is installed (optional)],
             xml_config_exec_prefix="$withval", xml_config_exec_prefix="")
-AC_ARG_ENABLE(xmltest,
-              [  --disable-xmltest       Do not try to compile and run a test LIBXML program],,
+AC_ARG_ENABLE(xml2test,
+              [  --disable-xml2test       Do not try to compile and run a test LIBXML program],,
               enable_xmltest=yes)
 
   if test x$xml_config_exec_prefix != x ; then
@@ -317,7 +317,11 @@ main()
 dnl AMG_XML_HEADERS()
 dnl Test for XML header dir prefix, and define HAVE_LIBXML, HAVE_GNOMEXML
 dnl
+dnl -- this check is broken and needs to be merged with the individual
+dnl    xml tests - if it turns out to be necessary
+dnl
 AC_DEFUN(AMG_XML_HEADERS,[ 
+  AC_MSG_ERROR([dont use this check])
   ac_save_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $XML_CFLAGS"
 
@@ -348,6 +352,4 @@ AC_DEFUN(AMG_XML_HEADERS,[
 ],[
   AC_MSG_RESULT([no])
 ])
-
-
 ])

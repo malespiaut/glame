@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.8 2001/09/17 11:47:12 nold Exp $
+ * $Id: glame_accelerator.h,v 1.9 2001/11/22 09:12:04 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -25,16 +25,8 @@
  */
 
 #include <gtk/gtk.h>
-#if defined HAVE_LIBXML
-#include <libxml/xmlmemory.h>
-#include <libxml/tree.h>
-#elif defined HAVE_GNOMEXML
-#include <gnome-xml/xmlmemory.h>
-#include <gnome-xml/tree.h>
-#else
 #include <xmlmemory.h>
 #include <tree.h>
-#endif
 #include "list.h"
 
 

@@ -26,16 +26,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#if defined HAVE_LIBXML
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
-#elif defined HAVE_GNOMEXML
-#include <gnome-xml/xmlmemory.h>
-#include <gnome-xml/parser.h>
-#else
 #include <xmlmemory.h>
 #include <parser.h>
-#endif
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gpsm.h"
@@ -181,6 +173,7 @@ static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node);
 static void insert_node_grp(gpsm_grp_t *tree, xmlNodePtr node);
 static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
 {
+	DPRINTF("from node %p [%i] (%s)\n", node, node->type, node->name);
 #ifndef xmlChildrenNode
         node = node->childs;
 #else
@@ -190,6 +183,7 @@ static void insert_childs(gpsm_grp_t *tree, xmlNodePtr node)
 		return;
 
 	while (node) {
+		DPRINTF("processing node %p [%i] (%s)\n", node, node->type, node->name);
 		if (strcmp(node->name, "group") == 0)
 			insert_node_grp(tree, node);
 		else if (strcmp(node->name, "file") == 0)
