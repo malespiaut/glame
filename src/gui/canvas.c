@@ -1,6 +1,30 @@
 
 
 
+/*
+ * canvas.c
+ *
+ * $Id: canvas.c,v 1.2 2000/02/22 08:50:30 xwolf Exp $
+ *
+ * Copyright (C) 2000 Johannes Hirche
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *
+ */
+
 
 #include "canvas.h"
 #include <gnome.h>
@@ -9,12 +33,16 @@
 
 
 static gpointer parent_class = NULL;
+static gpointer canvas_parent_class = NULL;
 static GlameCanvasItemClass* glame_canvas_item_class = NULL;
+static GlameCanvasClass* glame_canvas_class = NULL;
 
 static void glame_canvas_item_destroy (GtkObject *object);
 static void glame_canvas_item_class_init(GlameCanvasItemClass *class);
 static void glame_canvas_item_init (GlameCanvasItem *item);
-
+static void glame_canvas_destroy(GtkObject *object);
+static void glame_canvas_class_init(GlameCanvasClass *class);
+static void glame_canvas_init(GlameCanvas *canv);
 
 
 GtkType
@@ -38,6 +66,27 @@ glame_canvas_item_get_type(void)
 	return canvas_item_type;
 }
 
+GtkType
+glame_canvas_get_type(void)
+{
+	static GtkType canvas_type = 0;
+	
+	if(!canvas_type){
+		GtkTypeInfo canvas_info={
+			"GlameCanvas",
+			sizeof(GlameCanvas),
+			sizeof(GlameCanvasClass),
+			(GtkClassInitFunc) glame_canvas_class_init,
+			(GtkObjectInitFunc) glame_canvas_init,
+			NULL,NULL,(GtkClassInitFunc)NULL,};
+		canvas_type = gtk_type_unique(GNOME_TYPE_CANVAS,
+						   &canvas_info);
+		gtk_type_set_chunk_alloc(canvas_type,8);
+	}
+	
+	return canvas_type;
+}
+
 static void
 glame_canvas_item_class_init(GlameCanvasItemClass *class)
 {
@@ -58,12 +107,41 @@ glame_canvas_item_class_init(GlameCanvasItemClass *class)
 	
 }
 
+static void
+glame_canvas_class_init(GlameCanvasClass *class)
+{
+	// FIXME
+	// hmmm... i don't really know what i'm doing here...
+	
+	GtkObjectClass *object_class;
+	GnomeCanvasClass *canvas_item_class;
+	//GnomeCanvasGroupClass *canvas_group_class;
+	
+	object_class = GTK_OBJECT_CLASS (class);
+	canvas_item_class = GNOME_CANVAS_CLASS (class);
+	//canvas_group_class = GNOME_CANVAS_GROUP_CLASS (class);
+	
+	glame_canvas_item_class = class;
+	canvas_parent_class = gtk_type_class (GNOME_TYPE_CANVAS);
+	
+	object_class->destroy = glame_canvas_destroy;
+	
+	//canvas_item_class->event = glame_canvas_item_event;
+	
+}
+
 
 
 static void
 glame_canvas_item_init (GlameCanvasItem *item)
 {
 	item->filter=NULL;
+}
+
+static void
+glame_canvas_init (GlameCanvas *item)
+{
+	item->net=NULL;
 }
 
 
@@ -74,6 +152,21 @@ glame_canvas_item_destroy (GtkObject *object)
 	GnomeCanvasGroup *group = GNOME_CANVAS_GROUP (object);
 
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
+}
+
+static void
+glame_canvas_destroy (GtkObject *object)
+{
+	GTK_OBJECT_CLASS (parent_class)->destroy (object);
+}
+
+GtkWidget * glame_canvas_new(gui_network *n)
+{
+
+	GlameCanvas *g;
+	g = gtk_type_new(glame_canvas_get_type());
+	g->net = n;
+	return g;
 }
 
 GnomeCanvasItem*
@@ -192,8 +285,11 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	gui_filter *gf;
 	gui_filter *inst;
 	double dx,dy;
-	
+	GlameCanvas* canv;
 	char *buff;
+
+
+	canv = GLAME_CANVAS(win);
 	buff= malloc(40);
 	inst = malloc(sizeof(gui_filter));
 	selected = atoi(data->data);
@@ -207,17 +303,20 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 
 	inst->instance=buff;
 	
-	gui_network_filter_add(gui->canvas->net,inst);
-	
-	gnome_canvas_window_to_world(gui->canvas->canvas,x,y,&dx,&dy);
-	grp = create_new_node(gui->canvas->canvas,inst,dx,dy);
+
+	gui_network_filter_add(canv->net,inst);
+	gnome_canvas_window_to_world(canv,x,y,&dx,&dy);
+	grp = create_new_node(canv,inst,dx,dy);
+	  //gui_network_filter_add(gui->canvas->net,inst);
+	  //	gnome_canvas_window_to_world(gui->canvas->canvas,x,y,&dx,&dy);
+	  //grp = create_new_node(gui->canvas->canvas,inst,dx,dy);
 	       
 	
 	
 }
 
 GnomeCanvas * 
-create_new_canvas(const char *name)
+create_new_canvas(const char *name, gui_network* net)
 {
 	GtkWidget *window, *canvas, *sw;
 
@@ -235,7 +334,7 @@ create_new_canvas(const char *name)
 				       GTK_POLICY_AUTOMATIC);
 	gtk_widget_push_visual(gdk_rgb_get_visual());
 	gtk_widget_push_colormap(gdk_rgb_get_cmap());
-	canvas = gnome_canvas_new();
+	canvas = glame_canvas_new(net);
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
 	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
