@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.15 2000/03/30 13:48:34 mag Exp $
+; $Id: glame.scm,v 1.16 2000/04/02 12:04:09 mag Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -31,6 +31,8 @@
 (define audio-out "audio-out")
 ; what file reader should we use?
 (define read-file "read-file")
+; what file write should we use?
+(define write-file "write-file")
 
 ;
 ; clever scheme helpers
@@ -97,6 +99,13 @@
 (define nodes-set-params
   (lambda (nodes . params)
     (map (lambda (n) (node-set-params n params)) nodes)))
+
+(define node-set-params2
+  (lambda (node params)
+    (map (lambda (p)
+	   (if (not (null? p))
+	       (node-set-param node (car p) (cadr p))))
+	 params)))
 
 ; run the net, wait for completion and delete it
 (define net-run
@@ -225,7 +234,7 @@
 ;
 
 (define testiir
-  (lambda (fname)
+  (lambda (fname . params)
     (let* ((net (net-new))
            (rf (net-add-node net read-file))
 	   (mix (net-add-node net "mix2"))
@@ -233,6 +242,7 @@
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
     (node-set-param rf "filename" fname)
+    (node-set-params2 iir params)
     (while-not-false 
       (lambda () (filternetwork_add_connection rf "out" mix "in")))
     (nodes-connect  `(,mix ,iir ,stat ,drms))
@@ -251,6 +261,27 @@
          (lambda () (filternetwork_add_connection rf "out" ao "in")))
       (net-run net))))
 
+;
+; load, process and save file
+;
+(define save-eff
+  (lambda (fname oname effect . params)
+    (let* ((net (net-new))
+	   (rf (net-add-node net read-file))
+	   (wf (net-add-node net write-file)))
+      (node-set-param rf "filename" fname)
+      (node-set-param wf "filename" oname)
+      (while-not-false
+       (lambda ()
+	 (let* ((eff (net-add-node net effect))
+		(conn (filternetwork_add_connection rf "out" eff "in")))
+	   (if (boolean? conn)
+	       (begin (filternetwork_delete_node eff) #f)
+	       (begin
+		 (node-set-params2 eff params)
+		 (nodes-connect `(,eff ,wf))
+		 conn)))))
+      (net-run net))))
 
 ;
 ; play a file with automagically determining #channels _and_
@@ -271,7 +302,7 @@
 	   (if (boolean? conn)
 	       (begin (filternetwork_delete_node eff) #f)
 	       (begin
-		 (node-set-params eff params)
+		 (node-set-params2 eff params)
 		 (nodes-connect `(,eff ,ao))
 		 conn)))))
       (net-run net))))

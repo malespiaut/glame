@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.11 2000/03/30 13:48:34 mag Exp $
+ * $Id: maggy.c,v 1.12 2000/04/02 12:04:09 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -68,6 +68,7 @@ glame_iir_t *init_glame_iir(int mode, int nstages, int na, int nb){
 	glame_iir_t *dum=NULL;
 	int i;
 	DPRINTF("Trying to allocate glame_iir_t\n");
+	DPRINTF("mode=%d nstages=%d na=%d nb=%d\n",mode,nstages,na,nb);
 	if ((dum=ALLOCN(1,glame_iir_t))){
 		DPRINTF("glame_iir_t success\n");
 		dum->mode=mode;
@@ -173,13 +174,13 @@ int chebyshev_stage(glame_iir_t *gt, int n){
 	}
 	
 	DPRINTF("n=%d a0=%e a1=%e a2=%e b1=%e b2=%e\n",n,a[0],a[1],a[2],b[0],b[1]);
-/*
+
 	if(gt->mode==GLAME_IIR_HIGHPASS)
-		gain=(a[0]-a[1]+a[2])/(b[0]-b[1]);
+		gain=(a[0]-a[1]+a[2])/(1.0+b[0]-b[1]);
 	else
-		gain=(a[0]+a[1]+a[2])/(-b[0]-b[1]);
+		gain=(a[0]+a[1]+a[2])/(1.0-b[0]-b[1]);
 	for(i=0;i<3;i++) a[i]/=gain;
-*/
+
 
 	DPRINTF("n=%d a0=%e a1=%e a2=%e b1=%e b2=%e gain=%e\n",n,a[0],a[1],a[2],b[0],b[1],gain);
 	
@@ -240,24 +241,49 @@ static int iir_f(filter_node_t *n)
 	
 	filter_param_t *param;
 	filter_pipe_t *in, *out;
-	filter_buffer_t *inb;
+	filter_buffer_t *inb,*outb;
 	glame_iir_t *gt;
 	iirf_t *iirf;
 	SAMPLE *s;
 	int i,pos,j,nb,nt,z;
+	int poles,mode;
+	float ripple,fc;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 	        FILTER_ERROR_RETURN("no in- or output");
 
 
-	/* Just setup a 4 pole lowpass filter with 0.1*samplefrequency cutoff and 0.5 ripple in passband 
+	/* Just setup a chebyshev filter
 	 * later on I want to call iir_f from different filters providing gt
 	 * having something like static int iir_f(filter_node_t *n, glame_iir_t *gt)
 	 * Then you can register all kind of filters that are using iir_f as kernel
 	 */
 	
-	if (!(gt=chebyshev(2,GLAME_IIR_LOWPASS,0.1,0.5)))
+
+	if ((param=filternode_get_param(n,"mode")))
+		mode=filterparam_val_int(param);
+	else
+		mode=GLAME_IIR_LOWPASS;
+	
+	if ((param=filternode_get_param(n,"poles")))
+		poles=filterparam_val_int(param);
+	else
+		poles=2;
+
+	if ((param=filternode_get_param(n,"cutoff")))
+		fc=filterparam_val_float(param);
+	else
+		fc=0.1;
+	
+	if ((param=filternode_get_param(n,"ripple")))
+		poles=filterparam_val_float(param);
+	else
+		ripple=0.5;
+
+	DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n",poles,mode,fc,ripple);
+
+	if (!(gt=chebyshev(poles,mode,fc,ripple)))
 		FILTER_ERROR_RETURN("chebyshev failed");
 	
 	/* here follow generic code */
@@ -276,9 +302,9 @@ static int iir_f(filter_node_t *n)
 		for(;j<gt->na+gt->nb;j++)
 			DPRINTF("b[%d]=%f ",j-gt->nb,gt->coeff[i][j]);
 		DPRINTF("\n");
-		if (!(iirf[i].iring=(gliirt*)malloc(gt->na*sizeof(gliirt))))
+		if (!(iirf[i].iring=ALLOCN(gt->na,gliirt)))
 			FILTER_ERROR_RETURN("memory allocation error");
-		if (!(iirf[i].oring=(gliirt*)malloc((gt->nb+1)*sizeof(gliirt))))
+		if (!(iirf[i].oring=ALLOCN(gt->nb+1,gliirt)))
 			FILTER_ERROR_RETURN("memory allocation error");
 		iirf[i].ipos=0;
 		iirf[i].opos=0;
@@ -289,46 +315,42 @@ static int iir_f(filter_node_t *n)
 	
 	FILTER_AFTER_INIT;
 	
-	/* Yes I know that this code is very ugly and possibly quiet slow, but it's my first try :) */
+	/* Yes I know that this code is very ugly and possibly quite slow, but it's my first try :) */
 	goto entry;
         do{
 		FILTER_CHECK_STOP;
+
 		while(pos<sbuf_size(inb)){
-			/* Feed sample into ringbuffer of the first stage */
-			iirf[0].iring[iirf[0].ipos]=sbuf_buf(inb)[pos];
 			for(i=0;i<gt->nstages;i++){
+				if (i==0)
+					iirf[0].iring[iirf[0].ipos]=sbuf_buf(inb)[pos];
+				else
+					iirf[i].iring[iirf[i].ipos]=iirf[i-1].oring[iirf[i-1].opos];
 				iirf[i].oring[iirf[i].opos]=0.0;
 				/* y[n]=a0*x[n]+a1*x[n-1]+... */
+				z=iirf[i].ipos;
 				for(j=0;j<gt->na;j++){
-					z=iirf[i].ipos-j;
-					if (z<0)
-						z=gt->na+z;
-					else if (z>gt->na)
-						z=z-gt->na-1;
-					iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].iring[z];
+					if(z==-1)
+						z=gt->na-1;
+					iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].iring[z--];
 				}
 				/* y[n]=y[n]+b1*y[n-1]+b2*y[n-2]+... */
+				z=iirf[i].opos-1;
 				for(j=gt->na;j<nt;j++){
-					z=iirf[i].opos-j-1;
-					if (z<0)
-						z=nb+z;
-					else if (z>nb)
-						z=z-nb-1;
-				  	iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].oring[z];
+					if (z==-1)
+						z=gt->nb;
+				  	iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].oring[z--];
 				}
-				/* Feed output of last stage to next stage */
-				if (i+1<gt->nstages)
-					iirf[i+1].iring[iirf[i+1].ipos]=iirf[i].oring[iirf[i].opos];
 			}
 			/* At least I process it in place :) */
 			sbuf_buf(inb)[pos++]=(SAMPLE)iirf[gt->nstages-1].oring[iirf[gt->nstages-1].opos];
 			/* Adjust ringbuffers */
 			for(i=0;i<gt->nstages;i++){
 				iirf[i].ipos++;
-				if (iirf[i].ipos>gt->na)
+				if (iirf[i].ipos==gt->na)
 					iirf[i].ipos=0;
 				iirf[i].opos++;
-				if (iirf[i].opos>nb)
+				if (iirf[i].opos==nb)
 					iirf[i].opos=0;
 			}
 		}
@@ -371,7 +393,11 @@ int iir_register()
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-		    		FILTER_PORTTYPE_SAMPLE))
+		    		FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_param(f,"mode","lowpass(0)/highpass(1)",FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f,"poles","number of poles(2,4,6,...)",FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f,"cutoff","cutoff frequency",FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_param(f,"ripple","percent ripple",FILTER_PARAMTYPE_FLOAT))
 		return -1;
 	if (filter_add(f, "iir", "iir effect") == -1)
 		return -1;
