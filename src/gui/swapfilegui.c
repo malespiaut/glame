@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.45 2001/06/12 09:08:36 richi Exp $
+ * $Id: swapfilegui.c,v 1.46 2001/06/13 13:34:26 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -993,7 +993,7 @@ static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
 				active_swapfilegui ?
 				gpsm_item_label(active_swapfilegui->root)
 				: "none");
-		active_swapfilegui = NULL;
+		/* active_swapfilegui = NULL; */
 	}
 }
 
