@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.36 2004/03/20 21:32:50 ochonpaul Exp $
+ * $Id: importexport.c,v 1.37 2004/03/21 11:58:45 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -51,7 +51,6 @@
 
 
      
-static char *ftlabel[] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
 static char *sflabel[] = { "16 bit signed", "24 bit signed", "32 bit signed", 
 			   "8 bit unsigned", "32 bit float", "64 bit float" };
 static long sf_format[] = { AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP,
@@ -627,22 +626,19 @@ static int ie_update_plabels(struct imp_s *ie)
 	int rate, ftype, version;
 	gchar buffer[255];
 
-	DPRINTF("Here\n");
 	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
-	
 	property = filterparam_get_property(fparam, "#format");
-	if(property) {
+	if (property) {
 		sscanf(property, "%d %d", &ftype, &version);
-		DPRINTF("format property: %s, ftype=%d, version=%d\n", property,ftype,version);
-		if ((ftype>=0) && (ftype<8))
-			sprintf(buffer, "%s format", ftlabel[ftype]);
-		else
-			sprintf(buffer, "You shouldn't see this :)");
+		DPRINTF("format property: %s, ftype=%d, version=%d\n",
+			property, ftype, version);
+		const char *label = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL,
+						   ftype,0 ,0);
+		sprintf(buffer, "%s format", label ? label : "unknown");
 	} else
 		return -1;
-
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), buffer);
-	
+
 	property = filterparam_get_property(fparam, "#samplerate");
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[1]), property);
 	if (property) {
@@ -1142,8 +1138,11 @@ struct exp_s {
 	int running;
 	filter_t *net;
         filter_launchcontext_t *context;
+#ifdef HAVE_LIBMP3LAME
         GtkWidget *quality_select, *mode_select, *bitrate_select;
         GtkWidget *title, *artist, *album, *year, *comment, *track, *genre;
+	int mp3_menu_index;
+#endif
 };
 
 static long export_default_filetype = -1; /* auto */
@@ -1220,6 +1219,12 @@ static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie)
 	int val;
 
 	val = glame_menu_get_active_index(menu);
+#ifdef HAVE_LIBMP3LAME
+	if (val == ie->mp3_menu_index) {
+		make_comp_menu(ie, -1);
+		ie->filetype = 99;
+	} else
+#endif
 	if (val>0) {
 		make_comp_menu(ie, ie->indices[val-1]);
 		ie->filetype=val;
@@ -1321,22 +1326,24 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	if (ri == gpsm_grp_nritems(grp))
 		ri = 0;
 	
-	/* check if mp3 file type is selected, or if there is .mp3 in filename (can't use mimetype because file does not exist yet)*/
-	if (exp->filetype == 7) output_plugin = "write_mp3_file";
-	else if (strstr(exp->filename,".mp3") || strstr(exp->filename,".MP3")) output_plugin = "write_mp3_file";
-	else output_plugin = "write_file";
-	DPRINTF("output plugin is %s \n",output_plugin);
-	if (!strcmp( output_plugin , "write_mp3_file")){
-          #ifndef HAVE_LIBMP3LAME
-	  ed = gnome_error_dialog("Sorry, no mp3 encoding support.\nInstall Lame encoder and rebuild.");
-	  gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
-	  gnome_dialog_run_and_close(GNOME_DIALOG(ed));
-	  /* filter_delete(net); */
-	  gpsm_item_destroy((gpsm_item_t *)grp);
-	  gtk_widget_set_sensitive(bla, TRUE);
-	  return;
-          #endif
+	/* Check if mp3 file type is selected, or if there is .mp3 in filename
+	 * (can't use mimetype because file does not exist yet) */
+	output_plugin = "write_file";
+	if (exp->filetype == 99
+	    || (exp->filetype == -1
+		&& strrchr(exp->filename, '.')
+		&& strcasecmp(strrchr(exp->filename, '.'), ".mp3") == 0)) {
+		output_plugin = "write_mp3_file";
+#ifndef HAVE_LIBMP3LAME
+		ed = gnome_error_dialog("Sorry, no mp3 encoding support.\n"
+					"Install Lame encoder and rebuild Glame.");
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		gpsm_item_destroy((gpsm_item_t *)grp);
+		return;
+#endif
 	}
+	DPRINTF("output plugin is %s \n",output_plugin);
 
 	/* Build basic network. */
 	net = filter_creat(NULL);
@@ -1368,6 +1375,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	    goto fail_cleanup;
 	}
 	
+#ifdef HAVE_LIBMP3LAME
 	/* mp3 */
 	else if (!strcmp(output_plugin , "write_mp3_file")) {
 	  ri = 2; /* set as stereo to connect a render filter, Lame has its own mono/stereo conversion (mode)*/
@@ -1419,6 +1427,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	  param = filterparamdb_get_param(db, "Id3tag_Genre");
 	  filterparam_from_string(param, string);
 	}
+#endif
 
 	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
 
@@ -1505,6 +1514,10 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	GSList *rbuttons, *renderbuttons;
 	int i;
 	gchar *suffix;
+
+#ifdef HAVE_LIBMP3LAME
+	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box;
+#endif
 
 	/* alloc exp structure. */
 	ie = (struct exp_s*)calloc(1,sizeof(struct exp_s));
@@ -1623,9 +1636,12 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_widget_show(mitem);
 		gtk_menu_append (GTK_MENU (menu), mitem);
 	}
+#ifdef HAVE_LIBMP3LAME
 	mitem =  gtk_menu_item_new_with_label("mp3");
 	gtk_widget_show(mitem);
 	gtk_menu_append (GTK_MENU (menu), mitem);
+	ie->mp3_menu_index = i+1;
+#endif
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (ie->otypemenu), menu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
 				     ie->filetype == -1 ? 0 : ie->filetype);
@@ -1639,8 +1655,8 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	/* filetype is auto, so compression can't be set */
 	gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
 	
+#ifdef HAVE_LIBMP3LAME
 	/* MP3 Lame export */
-	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box;
 	frame5 = gtk_frame_new("MP3 Lame settings");
 	gtk_widget_show(frame5);
 	gtk_box_pack_start (GTK_BOX (bigbox), frame5, TRUE, TRUE, 0);
@@ -1785,7 +1801,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie->genre = gtk_entry_new_with_max_length (128);
 	gtk_box_pack_start (GTK_BOX (frame15box), ie->genre, TRUE, TRUE, 0);
 	gtk_widget_show(ie->genre);
-
+#endif
 
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), OK);
