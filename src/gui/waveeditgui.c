@@ -140,8 +140,8 @@ static void selectnone_cb(GtkWidget *w, GtkWaveView *waveview)
 /* Menu event - select all. */
 static void selectall_cb(GtkWidget *w, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-
+	GtkWaveBuffer *wavebuffer;
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gtk_wave_view_set_selection(waveview, 0,
 				    gtk_wave_buffer_get_length(wavebuffer));
 }
@@ -217,11 +217,13 @@ static GnomeUIInfo edit_menu[] = {
 /* Menu event - Copy. */
 static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	gint32 start, length;
 	gpsm_item_t *item;
 
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
@@ -234,11 +236,13 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Paste. */
 static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	gint32 pos, oldsize;
 	gpsm_item_t *item;
 
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
@@ -256,11 +260,13 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Replace. */
 static void replace_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	gint32 pos, size;
 	gpsm_item_t *item;
 
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
@@ -278,11 +284,13 @@ static void replace_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Mix. */
 static void mix_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	gint32 pos, size;
 	gpsm_item_t *item;
 
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
@@ -299,11 +307,13 @@ static void mix_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Cut. */
 static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	gint32 start, length;
 	gpsm_item_t *item;
 
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
@@ -321,11 +331,13 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Menu event - Delete. */
 static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
-	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	GtkWaveBuffer *wavebuffer;
+	GtkSwapfileBuffer *swapfile;
 	gint32 start, length;
 	gpsm_item_t *item;
 
+	wavebuffer = gtk_wave_view_get_buffer(waveview);
+	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
@@ -1318,7 +1330,21 @@ GtkType waveedit_gui_get_type(void)
 	return waveedit_gui_type;
 }
 
+static GnomeUIInfo window_file_menu[] = {
+	GNOMEUIINFO_ITEM(N_("Export..."), NULL, wave_export_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Export selection..."), NULL, exportselection_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_MENU_CLOSE_ITEM(wave_close_cb, NULL),
+	GNOMEUIINFO_END
+};
 static GnomeUIInfo window_menu[] = {
+	{
+	    GNOME_APP_UI_SUBTREE, N_("_File"),
+	    NULL,
+	    window_file_menu, NULL, NULL,
+	    GNOME_APP_PIXMAP_NONE, NULL,
+	    0, 0, NULL
+	},
 	{
 	    GNOME_APP_UI_SUBTREE, N_("_Edit"),
 	    NULL,
@@ -1363,13 +1389,6 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	window->root = item;
 	window->swfiles = swfiles;
 	window->modified = 0;
-
-	/* Create menubar - FIXME copy all uiinfos, restructure to
-	 * match nice menu layout, etc. */
-#if 0
-	gnome_app_create_menus(GNOME_APP(window), window_menu);
-	gnome_app_install_menu_hints(GNOME_APP(window), window_menu);
-#endif
 
 	/* Create a GtkWaveView widget. */
 	window->waveview = gtk_wave_view_new ();
@@ -1449,11 +1468,13 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				_("Play"), _("Play"), _("Play"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
 				playrecordtoolbar_cb, window->waveview);
+#if 0
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Menu"), _("Menu"), _("Menu"),
 				glame_load_icon_widget("dots.png",24,24),
 				waveedit_rmb_cb2, window->waveview);
+#endif
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
@@ -1464,10 +1485,20 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				_("Help"), _("Help"), _("Help"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
 				wave_help_cb, window->waveview);
+
+	/* Create menubar - FIXME copy all uiinfos, restructure to
+	 * match nice menu layout, etc.
+	 * menu hints not w/o status bar */
+	gnome_app_create_menus_with_data(GNOME_APP(window), window_menu, window->waveview);
+	//gnome_app_install_menu_hints(GNOME_APP(window), window_menu);
+
+	gnome_app_set_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar));
+#if 0
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar),
 			      "waveedit::toolbar",
-			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
+			      /*GNOME_DOCK_ITEM_BEH_EXCLUSIVE|*/GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_TOP, 0, 0, 0);
+#endif
 
 	/* Install the rmb menu and enter/leave callbacks. */
 	gtk_signal_connect(GTK_OBJECT(window->waveview), "button_press_event",
