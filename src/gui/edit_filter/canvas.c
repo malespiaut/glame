@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.52 2001/04/17 12:44:31 richi Exp $
+ * $Id: canvas.c,v 1.53 2001/04/17 17:23:38 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -170,11 +170,14 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 {
 	GnomeCanvasItem * text;
 	filter_param_t * iter;
-	
+	GlameCanvasItem* gitem = GLAME_CANVAS_ITEM(item->parent);
 	float y_coord=100.0;
 	char buffer[100];
 	
-	gtk_timeout_remove(nPopupTimeoutId);
+	if(gitem->timeout_id){
+		gtk_timeout_remove(gitem->timeout_id);
+		gitem->timeout_id = 0;
+	}
 	if(GLAME_CANVAS_ITEM(item->parent)->property_texts){
 		DPRINTF("props != zero!\n");
 		return;
@@ -326,12 +329,16 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 	      inItem=1;
-	      nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,(GtkFunction)canvas_item_show_properties,item);
+	      if(it->timeout_id)
+		      DPRINTF("BUGBUG!\ntimeout_id not 0!\n");		      
+	      it->timeout_id = gtk_timeout_add(nPopupTimeout,(GtkFunction)canvas_item_show_properties,item);
 	      //canvas_item_show_properties(item);
 	      break;
 	case GDK_LEAVE_NOTIFY:
 	      inItem=0;
-	      gtk_timeout_remove(nPopupTimeoutId);
+	      if(it->timeout_id)
+		      gtk_timeout_remove(it->timeout_id);
+	      it->timeout_id = 0;
 	      canvas_item_hide_properties(item);
 	      break;
 	case GDK_BUTTON_PRESS:
@@ -1481,6 +1488,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 		listItems = gtk_list_item_new_with_label(filterparam_label(iter));
 		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_entry_text,entry);
 		gtk_signal_connect(GTK_OBJECT(listItems),"select",update_string,&paramnamebuffer);
+		gtk_signal_connect(GTK_OBJECT(entry),"changed",changeString,&externnamebuffer);
 		gtk_widget_show(listItems);
 		items = g_list_append(items,listItems);
 	}
@@ -1495,7 +1503,10 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 		if(paramnamebuffer){
 			iter = filterparamdb_get_param(db,paramnamebuffer);
 			if(iter){
-				newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+				if(*externnamebuffer)
+					newparam = filterparamdb_add_param(topleveldb,externnamebuffer,filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
+				else
+					newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
 				if(newparam)
 					if(filterparam_redirect(newparam,iter))
 						fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
@@ -1517,7 +1528,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 	}
 	
 	free(paramnamebuffer);
-
+	free(externnamebuffer);
 								    
 }
 
