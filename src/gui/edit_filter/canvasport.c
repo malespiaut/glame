@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.14 2001/06/22 10:34:43 xwolf Exp $
+ * $Id: canvasport.c,v 1.15 2001/07/10 12:00:36 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,10 +63,10 @@ static guint port_signals[LAST_SIGNAL] = { 0 };
 static void
 glame_canvas_port_destroy (GtkObject *object)
 {
-
+	GnomeCanvasRectClass *parent_class;
 	hash_remove_gcport(GLAME_CANVAS_PORT(object));
-	gtk_object_destroy(object);
-	//GTK_OBJECT_CLASS(gtk_type_class(GLAME_CANVAS_PORT_TYPE))->destroy(object);
+	parent_class = gtk_type_class(GNOME_TYPE_CANVAS_RECT);
+	GTK_OBJECT_CLASS(parent_class)->destroy(object);
 }
 
 
@@ -133,6 +133,7 @@ glame_canvas_port_init(GlameCanvasPort* p)
 	p->y_size = 0.0;
 	p->name = NULL;
 	p->external = FALSE;
+	hash_init_gcport(p);
 
 }		
 
@@ -190,6 +191,8 @@ glame_canvas_port_moved_cb(GlameCanvasFilter* f, double dx, double dy, GlameCanv
 void
 glame_canvas_port_deleted_cb(GlameCanvasFilter* f, GlameCanvasPort *p)
 {
+	if (!GLAME_IS_CANVAS_FILTER(f) || !GLAME_IS_CANVAS_PORT(p))
+		return;
 	glame_canvas_port_destroy(GTK_OBJECT(p));
 }
 

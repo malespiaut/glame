@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.23 2001/07/10 09:33:32 richi Exp $
+ * $Id: canvasfilter.c,v 1.24 2001/07/10 12:00:36 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -130,6 +130,7 @@ glame_canvas_filter_init(GlameCanvasFilter* node)
 	node->popupGroup = NULL;
 	node->timeout_id = 0;
 	node->selected = FALSE;
+	hash_init_gcfilter(node);
 }
 		
 	
@@ -653,7 +654,7 @@ static void glame_canvas_filter_delete_cb(GtkWidget* foo, GlameCanvasFilter* fil
 static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
 {
 	if(FILTER_IS_NETWORK(filter->filter))
-		gtk_widget_show(glame_filtereditgui_new(filter->filter));
+		gtk_widget_show(glame_filtereditgui_new(filter->filter, TRUE));
 }
 
 static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* filterItem)

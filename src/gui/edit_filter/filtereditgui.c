@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.24 2001/07/07 08:29:49 mag Exp $
+ * $Id: filtereditgui.c,v 1.25 2001/07/10 12:00:36 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -446,7 +446,7 @@ glame_filtereditgui_init(void)
 	
 
 GtkWidget * 
-glame_filtereditgui_new(filter_t *net)
+glame_filtereditgui_new(filter_t *net, gboolean protected)
 {
 	GtkWidget *window, *canvas, *sw, *toolbar;
 
@@ -478,6 +478,7 @@ glame_filtereditgui_new(filter_t *net)
 	gtk_widget_push_visual(gdk_rgb_get_visual());
 	gtk_widget_push_colormap((GdkColormap*)(gdk_rgb_get_cmap()));
 	canvas = GTK_WIDGET(glame_canvas_new(net));
+	GLAME_CANVAS(canvas)->openedUp = protected;
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
 	//gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
@@ -525,13 +526,6 @@ glame_filtereditgui_new(filter_t *net)
 
 
 
-GtkWidget *
-glame_filtereditgui_new_cb(GtkObject* foo, filter_t* net)
-{
-	return glame_filtereditgui_new(NULL);
-}
-
-
 void
 glame_load_network(GtkWidget *foo, gpointer bla)
 {
@@ -547,7 +541,7 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 	
 	filter = glame_load_instance(filenamebuffer);
 	if (filter) {
-		glame_filtereditgui_new(filter);
+		glame_filtereditgui_new(filter, FALSE);
 	} else {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog("Error in loading network")));

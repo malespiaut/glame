@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.14 2001/07/10 09:33:32 richi Exp $
+ * $Id: canvaspipe.c,v 1.15 2001/07/10 12:00:36 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -104,6 +104,7 @@ glame_canvas_pipe_init(GlameCanvasPipe *p)
 	p->circle = NULL;
 	p->sourceId = 0;
 	p->destId = 0;
+	hash_init_gcpipe(p);
 }
 
 GtkType
@@ -485,7 +486,7 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 	return FALSE;
 }
 
-static void
+void
 glame_canvas_pipe_hide_properties(GlameCanvasPipe *pipe)
 {
 	if(!pipe->popupGroup){
@@ -660,4 +661,3 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 	
 	return gPipe;
 }
-	

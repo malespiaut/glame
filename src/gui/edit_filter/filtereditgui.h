@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.5 2001/06/19 12:09:01 richi Exp $
+ * $Id: filtereditgui.h,v 1.6 2001/07/10 12:00:36 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -30,9 +30,7 @@
 #include "edit_filter/canvasitem.h"
 
 
-GtkWidget *glame_filtereditgui_new(filter_t *net);
-
-GtkWidget *glame_filtereditgui_new_cb(GtkObject* ignore, filter_t *net);
+GtkWidget *glame_filtereditgui_new(filter_t *net, gboolean protected);
 
 void glame_load_network(GtkWidget *foo, gpointer bla);
 
