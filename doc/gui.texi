@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.15 2001/12/16 15:04:35 richi Exp $
+@comment $Id: gui.texi,v 1.16 2001/12/16 19:50:17 xwolf Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -374,7 +374,8 @@ it from the @code{Open...} item in the @code{Filternetwork} menu of the
 main window.
 
 All functionality in the editing window is controlled via context sensitive
-menus bound to the right mouse button. When clicking in a background region,
+menus bound to the right mouse button or configurable shortcuts. When clicking 
+in a background region,
 the add menu opens up, providing entries to add nodes, 
 Plugins are bundled into categories to speed up finding the desired item.
 
@@ -393,9 +394,19 @@ connected nodes, a context menu is attached to the small black ball placed in
 the middle of the pipe.
 
 Clicking with the left mouse button on a item will highlight it with a light blue frame,
-thus marking it as selected. You can alter selections by holding down the shift or control
-modifier keys. Pressing on of the modifier keys while selecting will add the selected icon to
-the current selection. 
+thus marking it as selected. Alternatively nodes can be selected by clicking with the 
+left mouse button into empty space in the editor, holding it down and dragging the appearing
+box over the desired nodes in well known file-manager fashion. You can alter selections by 
+holding down the shift or control modifier keys. Pressing on of the modifier keys 
+while selecting will add the selected icon to the current selection. 
+
+Selections may be manipulated in a number of fashions. A selection can be collapsed by
+either choosing the corresponding context menu in the node menu or the 'c' shortcut.
+Once a selection is collapsed, a new node appears in place of it. connections to nodes 
+in the selection to outside nodes are saved and ports appear on the collapsed node.
+Collapsed selections are real new subnets and may be saved and opened down, and just
+as any node representing a network expanded in-place using the corresponding 
+menu entry or the 'e' shortcut.
 
 Finally, if you hover over an icon or port or the circle contained in a pipe for a little while, 
 the current parameter settings are shown, and the node is raised to the top.
@@ -421,8 +432,9 @@ buttons. The @code{View all} button recenters your view and adjusts the scrollab
 As for now only few keybindings are exported, more will follow soon:
 'd' will delete the current selection,
 'g' will group the current selection,
-'u' will ungroup the current selection.
-
+'u' will ungroup the current selection,
+'c' will collapse the current selection,
+'e' will expand the current selection.
 
 
 @node Dialogs, , The Filternetwork Editor, Graphical Frontend

@@ -9,7 +9,6 @@ Known BUGS that should be fixed before 0.6.0:
 - audit/fix available gettext entries, merge external
   patches
 - documentation
-  * review filteredit documentation
   * write dialogs section (stubs already added)
   * document normalize, fix fade (-> fadein, fadeout),
     fix read_file/write_file, 
@@ -133,7 +132,6 @@ gui/edit_filter
 	- remove port export marking, if removing exported port from
 	  net properties dialog (fix that! - integrate in canvas directly?)
 	- add drag&drop from swapfilegui (create swapfile_in/out nodes)
-	- duplication of groups
 	- add realtime controls
 	- add support for custom property dialogs (glade & guile-gtk?
           & friends)
