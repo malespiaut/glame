@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.7 2000/03/27 09:20:10 richi Exp $
+ * $Id: basic_sample.c,v 1.8 2000/04/03 23:06:26 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
@@ -69,7 +70,7 @@ static int mix(filter_node_t *n, int drop)
 		SAMPLE *s;
 		int pos;
 
-		int ready;
+		int done;
 		float factor;
 	} mix_param_t;
 	mix_param_t *p = NULL;
@@ -77,12 +78,12 @@ static int mix(filter_node_t *n, int drop)
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	int i, res, cnt, icnt;
-	int rate, maxfd, out_pos, eof_pos, empty, output_ready;
+	int rate, maxfd, out_pos, eof_pos, fifo_full, output_ready;
 	int *j, jcnt;
 	fd_set rset, wset;
 	SAMPLE *s;
 	float factor, gain;
-	int nr, nr_ready;
+	int nr, nr_done;
 
 	/* We require at least one connected input and
 	 * a connected output.
@@ -106,7 +107,7 @@ static int mix(filter_node_t *n, int drop)
 	rate = -1;
 	i = 0;
 	cnt = 1<<30;
-	nr_ready = 0;
+	nr_done = 0;
 	filternode_foreach_input(n, in) {
 		p[i].in = in;
 		INIT_FEEDBACK_FIFO(p[i].fifo);
@@ -136,7 +137,7 @@ static int mix(filter_node_t *n, int drop)
 			p[i].fifo_pos = p[i].out_pos;
 		}
 		cnt = MIN(cnt, p[i].out_pos);
-		p[i].ready = 0;
+		p[i].done = 0;
 		i++;
 	}
 	/* normalize (position) factors, "move" delays */
@@ -147,43 +148,45 @@ static int mix(filter_node_t *n, int drop)
 
 	FILTER_AFTER_INIT;
 
-	/* p[].in and out is used as "ready"/EOF flag if it is NULL
+	/* p[].in and out is used as done/EOF flag if it is NULL
 	 */
 
 	/* mix only until one input has eof */
 	eof_pos = 1<<30;
 	out_pos = 0;
 	output_ready = 0;
-	while (nr_ready < nr) {
+	while (nr_done < nr) {
 		FILTER_CHECK_STOP;
 
 		/* set up fd sets for select */
 		maxfd = 0;
-		empty = 1;
+		fifo_full = 1;
 		FD_ZERO(&rset);
 		for (i=0; i<nr; i++) {
 			/* EOF or fifo full? */
 			if (!p[i].in
 			    || p[i].fifo_size >= GLAME_WBUFSIZE)
 				continue;
-			empty = 0;
+			fifo_full = 0;
 			FD_SET(p[i].in->dest_fd, &rset);
 			if (p[i].in->dest_fd > maxfd)
 				maxfd = p[i].in->dest_fd;
 		}
 		FD_ZERO(&wset);
+		/* Queued a chunk but FIFO still full? -> Must keep going! */
+		output_ready |= fifo_full;
 		if (out && output_ready) {
 			FD_SET(out->source_fd, &wset);
 			if (out->source_fd > maxfd)
 				maxfd = out->source_fd;
 		}
-		res = select(maxfd+1, empty ? NULL : &rset,
+		res = select(maxfd+1, fifo_full ? NULL : &rset,
 			     !out || !output_ready ? NULL : &wset, NULL, NULL);
-		if (res == -1)
-			perror("select");
-		if (res <= 0)
+		if (res == -1) {
+			if (errno != EINTR)
+				perror("select");
 			continue;
-
+		}
 
 		/* Check the inputs for buffers. */
 		for (i=0; i<nr; i++) {
@@ -200,8 +203,8 @@ static int mix(filter_node_t *n, int drop)
 					eof_pos = p[i].fifo_pos;
 				/* input inactive now? */
 				if (p[i].fifo_size == 0) {
-					p[i].ready = 1;
-					nr_ready++;
+					p[i].done = 1;
+					nr_done++;
 				}
 				continue;
 			}
@@ -234,8 +237,8 @@ static int mix(filter_node_t *n, int drop)
 				p[i].buf = NULL;
 				p[i].fifo_size = 0;
 				if (!p[i].in) {
-					p[i].ready = 1;
-					nr_ready++;
+					p[i].done = 1;
+					nr_done++;
 				}
 			}
 		}
@@ -253,7 +256,7 @@ static int mix(filter_node_t *n, int drop)
 		cnt = MIN(GLAME_WBUFSIZE, eof_pos - out_pos);
 		for (i=0; i<nr; i++) {
 			/* fix cnt wrt available buffers */
-			if (!p[i].ready && p[i].fifo_pos - out_pos < cnt)
+			if (!p[i].done && p[i].fifo_pos - out_pos < cnt)
 				cnt = p[i].fifo_pos - out_pos;
 		}
 
@@ -284,8 +287,8 @@ static int mix(filter_node_t *n, int drop)
 			jcnt = 0;
 			icnt = cnt;
 			for (i=0; i<nr; i++) {
-				/* ignore ready(EOF) inputs. */
-				if (p[i].ready)
+				/* ignore finished (EOF) inputs. */
+				if (p[i].done)
 					continue;
 				/* if input is inactive check we dont get
 				 * active during this chunk. */
@@ -320,6 +323,7 @@ static int mix(filter_node_t *n, int drop)
 			 * a number of input channel counts */
 			switch (jcnt) {
 			case 0:
+				/* Aieee, mummy told us but did we listen? */
 				memset(s, 0, SAMPLE_SIZE*icnt);
 				s += icnt;
 				break;
@@ -360,7 +364,7 @@ static int mix(filter_node_t *n, int drop)
 			/* check for completed buffers and for
 			 * inputs which become active. */
 			for (i=0; i<nr; i++) {
-				if (p[i].ready)
+				if (p[i].done)
 					continue;
 				if (p[i].buf
 				    && sbuf_size(p[i].buf) == p[i].pos) {
@@ -368,8 +372,8 @@ static int mix(filter_node_t *n, int drop)
 					p[i].buf = NULL;
 					p[i].pos = 0;
 					if (!p[i].in && p[i].fifo_size == 0) {
-						p[i].ready = 1;
-						nr_ready++;
+						p[i].done = 1;
+						nr_done++;
 					}
 				}
 			}
@@ -377,6 +381,8 @@ static int mix(filter_node_t *n, int drop)
 
 		/* queue buffer */
 		sbuf_queue(out, buf);
+		/* Careful! There may still be plenty of samples in the FIFO
+		 * we'll fixup later. */
 		output_ready = 0;
 	};
 

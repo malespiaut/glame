@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.18 2000/04/03 17:22:10 nold Exp $
+ * $Id: file_io.c,v 1.19 2000/04/03 23:06:26 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -652,19 +652,29 @@ void inline wav_read_convert(filter_buffer_t *buf, int frames, int width,
 int wav_read_f(filter_node_t *n)
 {
 	filter_buffer_t *buf;
-	int bufsize, blksize = RWW(n).freq >> 1;	/* .5 sec per buffer */
-	int align = RWW(n).frames % blksize;
-	int to_go = RWW(n).frames / blksize;
-	int pad = (RWW(n).block_align << 3)/RWW(n).ch - RWW(n).bit_width;
-	int ssize = RWW(n).block_align/RWW(n).ch;
-	int ch;
+	int bufsize, blksize;
+	int align, ch, to_go;
 	char *pos = RWW(n).data;
+	const int pad = (RWW(n).block_align << 3)/RWW(n).ch - RWW(n).bit_width;
+	const int ssize = RWW(n).block_align/RWW(n).ch;
 	
-	bufsize = align;
-	if (!bufsize) {
-		bufsize = blksize;
+	/* Try to buffer approx .5 sec but honour limits. */
+	blksize = RWW(n).freq >> 1;
+
+	if (blksize < GLAME_MIN_BUFSIZE)
+		blksize = GLAME_MIN_BUFSIZE;
+	else if (blksize > GLAME_MAX_BUFSIZE/2)
+		blksize = GLAME_MAX_BUFSIZE/2;
+	
+	align = RWW(n).frames % blksize;
+	to_go = RWW(n).frames / blksize;
+	
+	if (align < GLAME_MIN_BUFSIZE) {
+		align += blksize;
 		to_go--;
 	}
+	
+	bufsize = align;
 
 	FILTER_AFTER_INIT;
 	
@@ -672,6 +682,9 @@ int wav_read_f(filter_node_t *n)
 		FILTER_CHECK_STOP;
 		
 		for (ch = 0; ch < RWW(n).ch; ch++) {
+			/* Avoid unnecessary conversion */
+			if (!RWW(n).p[ch])
+				continue;
 			buf = sbuf_make_private(sbuf_alloc(bufsize, n));
 			wav_read_convert(buf, bufsize, ssize, pad, 
 			                 RWW(n).block_align, pos);
