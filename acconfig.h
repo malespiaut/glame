@@ -38,6 +38,10 @@
 #undef CPU_X86
 #undef CPU_MIPS
 
+/* specify subarchitecture */
+#undef X86_3DNOW
+#undef X86_ISSE1
+
 /* define which os you use */
 #undef OS_LINUX
 #undef OS_BSD
