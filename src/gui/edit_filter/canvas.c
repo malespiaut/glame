@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.61 2001/04/18 17:49:42 xwolf Exp $
+ * $Id: canvas.c,v 1.62 2001/04/19 12:41:57 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -26,7 +26,12 @@
 #include "glmid.h"
 #include "canvas.h"
 #include <values.h>
-
+/*******************************************************
+ * Turn on super annoying event debugging. 
+ * nobody wants this apart from me :-) 
+ * xwolf
+ *******************************************************/
+//#define EVENT_DEBUGGING 1
 
 static void canvas_item_show_properties(GnomeCanvasItem * item);
 static void canvas_item_delete_property_list(gpointer item, gpointer bla);
@@ -333,23 +338,48 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	char numberbuffer[10];
 	x = event->button.x;
 	y = event->button.y;
-//	fprintf(stderr,"Ev: %d\n",event->type);
+#ifdef EVENT_DEBUGGING
+	DPRINTF("Ev: %d\n",event->type);
+#endif
+	if(!GLAME_IS_CANVAS_ITEM(data)){
+		DPRINTF("Not a GlameCanvasItem!\n");
+		return FALSE;
+	}
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
+#ifdef EVENT_DEBUGGING
+	      DPRINTF("enter\n");
+#endif
 	      inItem=1;
-	      if(it->timeout_id)
-		      DPRINTF("BUGBUG!\ntimeout_id not 0!\n");		      
+	      if(it->timeout_id){
+		      DPRINTF("BUGBUG!\ntimeout_id not 0!\nRemoving anyway\n");
+		      gtk_timeout_remove(it->timeout_id);
+	      }
 	      it->timeout_id = gtk_timeout_add(nPopupTimeout,(GtkFunction)canvas_item_show_properties,item);
 	      //canvas_item_show_properties(item);
 	      break;
 	case GDK_LEAVE_NOTIFY:
+#ifdef EVENT_DEBUGGING
+		DPRINTF("leave\n");
+#endif
+		if(it->dragging){
+			DPRINTF("Leave while dragging!\n");
+			
+			gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
+			it->dragging=FALSE;
+			goto foo;
+		}
 	      inItem=0;
 	      if(it->timeout_id)
 		      gtk_timeout_remove(it->timeout_id);
 	      it->timeout_id = 0;
 	      canvas_item_hide_properties(item);
-	      
+	foo:
+	      break;
 	case GDK_BUTTON_RELEASE:
+#ifdef EVENT_DEBUGGING
+		DPRINTF("Release\n");
+#endif
 		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
 		it->dragging = FALSE;
 		//update coord.strings
@@ -363,6 +393,9 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		break;
 
 	case GDK_2BUTTON_PRESS:
+#ifdef EVENT_DEBUGGING
+		DPRINTF("2butt\n");
+#endif
 		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
 		if(bMac){
 			                     // handle borken single button mouse
@@ -382,13 +415,16 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		break;
 
 	case GDK_BUTTON_PRESS:
+#ifdef EVENT_DEBUGGING
+		DPRINTF("press\n");
+#endif
 	      switch(event->button.button){
 	      case 1:
 		        it->last_x = x;
 			it->last_y = y;
 			fleur = gdk_cursor_new(GDK_FLEUR);
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(data),
-					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,
+					       GDK_POINTER_MOTION_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_PRESS_MASK,//|GDK_LEAVE_NOTIFY_MASK,//|GDK_ENTER_NOTIFY_MASK,
 					       fleur,
 					       event->button.time);
 			gdk_cursor_destroy(fleur);
@@ -404,6 +440,9 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		}
 		break;
 	case GDK_MOTION_NOTIFY:
+#ifdef EVENT_DEBUGGING
+		DPRINTF("motion\n");
+#endif
 		if(it->dragging && (event->motion.state & GDK_BUTTON1_MASK)){
 			dx = x-(it->last_x);
 			dy = y-(it->last_y);
@@ -1076,8 +1115,9 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 gint
 handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 {
-	//DPRINTF("%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
-
+#ifdef EVENT_DEBUGGING
+	DPRINTF("%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
+#endif
 	if((GLAME_CANVAS_ITEM(item))->dragging)
 		canvas_item_node_selected(item,event,data);
 	if((GLAME_CANVAS_ITEM(item))->connecting)
