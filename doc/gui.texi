@@ -1,36 +1,32 @@
-@comment $Id: gui.texi,v 1.2 2000/04/07 13:34:50 nold Exp $
+@comment $Id: gui.texi,v 1.3 2001/04/09 15:52:00 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Copying, Top
 @chapter Graphical Frontend (glame)
 
-CAVEATS: Don't expect too much from the current GUI. It's just a first
-approach to have something to play and test with. It will be rewritten
-from scratch in the near future. The current implementation isn't too
-clever and doesn't handle pipe parameters at all. Use the GUI if you
-want to play around a little with GLAME. Use cglame, the command line
-interface, for the real stuff.
+The graphical frontend is called @code{glame} and either reachable
+from your path (where you installed glame to) or from @code{src/gui/glame}
+which you should call if you didnt install glame but are executing it
+out of the compiled source tree. Be sure to reside in the @code{src}
+directory in this case, so GLAME can find its plugins.
 
-The graphical frontend is invoked with the command @file{glame}. If you
-are lucky, your GNOME libs are recent enough and a window will pop up,
-displaying icons for all available plugins. Right clicking on an icon
-shows some information on filter properties.
+The graphical frontend consists of three parts, the main window that is
+active at the beginning and the wave editor and the filternetwork editor
+that can be activated later. GLAME is very intuitive at the moment, so
+just try pressing the right mouse button and context sensitive menus
+will pop up with items with very descriptive names.
 
-Now choose 
-'New Filter Network' from the 'File' menu, and the next window will
-show up. You can drag'n'drop icons from the plugin window to the 
-network window. Connections between two nodes in the network are added
-by left clicking on the blue are in the source icon and drawing a line to
-the red region of the target icon. A right click on a node icon pops up
-a window where you can alter parameter settings. Use the middle mouse 
-button to remove nodes and connections from the network.
+@menu
+* The Main Window::
+* The Wave Editor::
+* The Filternetwork Editor::
+@end menu
 
-Click on the buttons on the bottom of the network window to start, pause, and
-stop a network.
+@node The Main Window, The Wave Editor, , Graphical Frontend
+@section The Main Window
 
-@subheading Example
-To play back the stereo file @file{foo.wav} with a little echo, create a new
-filter network from the menu, then drop one read-file, one audio-out, and 
-two echo icons in the network window. Right click on the read-file icon and
-set the filename to @file{foo.wav}. Draw a connection from read-file to
-each of the echo nodes. Connect both echo nodes to audio-out, hit the Play 
-button and that should be it.
+@node The Wave Editor, The Filternetwork Editor, The Main Window , Graphical Frontend
+@section The Wave Editor
+
+@node The Filternetwork Editor, , The Wave Editor, Graphical Frontend
+@section The Filternetwork Editor
+
