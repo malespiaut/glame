@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.26 2001/04/02 08:07:54 richi Exp $
+ * $Id: filter_buffer.c,v 1.27 2001/04/19 08:18:28 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -179,7 +179,11 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 }
 
 
+#ifdef LOW_LATENCY
+#define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*2*(GLAME_HL_MAX_BUFSIZE/GLAME_LL_MAX_BUFSIZE)))
+#else
 #define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*2))
+#endif
 #define FBPIPE_WSIZE (FBPIPE_WCNT*sizeof(void *))
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
@@ -259,6 +263,10 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 		fbuf_unref(fbuf);
 	} else if (res != FBPIPE_WSIZE)
                 PANIC("pipe writes are not atomic!");
+
+#ifdef LOW_LATENCY
+	sched_yield();
+#endif
 }
 
 
