@@ -3,7 +3,7 @@
 
 /*
  * glsimd.h
- * $Id: glsimd.h,v 1.2 2001/04/01 16:35:47 mainzelm Exp $
+ * $Id: glsimd.h,v 1.3 2001/04/06 18:21:19 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -109,7 +109,8 @@ static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 
 #define SCALARPROD_1D_1(destp, source1p, fact1) \
 do { \
-        *destp = *(source1p++)*fact1; \
+        *destp = *source1p*fact1; \
+	source1p++; \
         if (&destp != &source1p) destp++; \
 } while (0)
 #define SCALARPROD_1D_4(destp, source1p, fact1) \
@@ -122,7 +123,8 @@ do { \
 
 #define SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2) \
 do { \
-        *destp = *(source1p++)*fact1 + *(source2p++)*fact2; \
+        *destp = *source1p*fact1 + *source2p*fact2; \
+	source1p++; source2p++; \
         if (&destp != &source1p) destp++; \
 } while (0)
 #define SCALARPROD_2D_4(destp, source1p, source2p, fact1, fact2) \
@@ -135,7 +137,8 @@ do { \
 
 #define SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
 do { \
-        *destp = *(source1p++)*fact1 + *(source2p++)*fact2 + *(source3p++)*fact3; \
+        *destp = *source1p*fact1 + *source2p*fact2 + *source3p*fact3; \
+	source1p++; source2p++; source3p++; \
         if (&destp != &source1p) destp++; \
 } while (0)
 #define SCALARPROD_3D_4(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
