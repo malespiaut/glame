@@ -1391,7 +1391,7 @@ void gpsm_notify_swapfile_change(long filename, long pos, long size)
 			   swfile, pos, size);
 #ifdef DEBUG
 		if (gpsm_item_hsize(swfile) != file_size)
-			DPRINTF("WARNING! Unnoticed swapfile change!\n");
+			DPRINTF("WARNING! Unnoticed swapfile change! (size differs by %li)\n", (long)(file_size - gpsm_item_hsize(swfile)));
 #endif
 	}
 }
@@ -1423,7 +1423,7 @@ void gpsm_notify_swapfile_cut(long filename, long pos, long size)
 			   GPSM_SIG_ITEM_CHANGED, swfile);
 #ifdef DEBUG
 		if (gpsm_item_hsize(swfile) != file_size)
-			DPRINTF("WARNING! Unnoticed swapfile change!\n");
+			DPRINTF("WARNING! Unnoticed swapfile change! (size differs by %li)\n", (long)(file_size - gpsm_item_hsize(swfile)));
 #endif
 	}
 }
@@ -1455,7 +1455,7 @@ void gpsm_notify_swapfile_insert(long filename, long pos, long size)
 			   GPSM_SIG_ITEM_CHANGED, swfile);
 #ifdef DEBUG
 		if (gpsm_item_hsize(swfile) != file_size)
-			DPRINTF("WARNING! Unnoticed swapfile change!\n");
+			DPRINTF("WARNING! Unnoticed swapfile change! (size differs by %li)\n", (long)(file_size - gpsm_item_hsize(swfile)));
 #endif
 	}
 }
