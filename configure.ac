@@ -54,15 +54,12 @@ AC_ARG_ENABLE(debug,
   --disable-debug         compile for maximum optimization], glame_debug=$enableval, glame_debug="")
 if test "$swdebug" = "yes" -o "$glame_debug" = "yes"; then
 	AC_DEFINE(DEBUG,, [general debugging])
-	glame_debug_gcc_cflags="-g -O"
+	glame_debug_gcc_cflags="-O -g"
 elif test "$glame_debug" = "no"; then
 	AC_DEFINE(NDEBUG,, [disable debugging code])
 	glame_debug_gcc_cflags="-O3 -funroll-loops -ffast-math -fomit-frame-pointer"
 else
-	if test -z "$CFLAGS"; then
-		CFLAGS="-O2 -g -funroll-loops -ffast-math"
-	fi
-	glame_debug_gcc_cflags="$CFLAGS"
+	glame_debug_gcc_cflags="-O2 -g -ffast-math"
 fi
 
 
@@ -74,10 +71,13 @@ dnl Compiling without gcc is not supported but may succeed.
 AC_PROG_CC
 if test "$GCC" = "yes"; then
 	AC_DEFINE(HAVE_GCC,, [using gcc for build])
-	CFLAGS="-Wall -Wno-sign-compare $glame_debug_gcc_cflags"
+	if test "$ac_env_CFLAGS_set" = "set"; then
+	  CFLAGS="$CFLAGS -Wall -Wno-sign-compare"
+	else
+	  CFLAGS="-Wall -Wno-sign-compare $glame_debug_gcc_cflags"
+	fi
 else
 	AC_MSG_WARN([Compilers other than GCC may not be supported])
-	CFLAGS="-O2 -g"
 fi
 AM_PROG_CC_C_O
 
