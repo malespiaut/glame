@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.11 2001/03/15 14:30:24 xwolf Exp $
+ * $Id: main.c,v 1.12 2001/03/15 16:00:00 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -45,8 +45,29 @@ void gui_quit(GtkWidget *widget, gpointer data)
 static void gui_main()
 {
 	GtkWidget * mainwin;
+	gboolean defaultval;
+	char configpath[255];
+	char homedir[255];
+	char * path;
+	/* check for prefs */
+
+	sprintf(configpath,"/%s/swapfile/defaultpath=%s/.glameswap",g_get_prgname(),g_get_home_dir());
+	path = gnome_config_get_string_with_default(configpath,&defaultval);
+	if(defaultval){
+		sprintf(configpath,"/%s/swapfile/defaultpath",g_get_prgname());
+		sprintf(homedir,"%s/.glameswap",g_get_home_dir());
+		gnome_config_set_string(configpath,homedir);
+		gnome_config_sync();
+	}
+	fprintf(stderr,"path: %s\n",path);
+	if(!g_file_test(path,G_FILE_TEST_ISDIR)){
+		if(swapfile_creat(path,-1)){
+			DERROR("error creating swapfile\n");
+		}
+	}
 	/* create swapfile gui */
-	swapfile = glame_swapfile_gui_new(swname);
+	swapfile = glame_swapfile_gui_new(path);
+	g_free(path);
 	if (!swapfile)
 		return;
 	mainwin = gui_main_new();
@@ -66,18 +87,11 @@ static void gui_main()
 
 int main(int argc, char **argv)
 {
-        if (argc < 2)
-		goto err;
-
 	/* setup gnome/gtk  */
 	gnome_init("glame", VERSION, argc, argv);
 
 	/* init glame */
-	swname = argv[1];
 	glame_init_with_guile(gui_main);
-
- err:	/* reached on error only */
-	fprintf(stderr, "Usage: %s swapfile\n", argv[0]);
 
 	return 1;
 }
