@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.2 2000/02/17 17:02:16 richi Exp $
+ * $Id: filter_ops.c,v 1.3 2000/02/22 13:59:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -66,8 +66,12 @@ static void *launcher(void *node)
 
 	DPRINTF("%s launched\n", n->filter->name);
 
-	if (n->filter->f(n) == 0)
+	if (n->filter->f(n) == 0) {
+	        /* increment filter ready semaphore - if broken
+		 * return code... to prevent deadlocks */
+	        sem_op(n->net->launch_context->semid, 0, 1);
 		pthread_exit(NULL);
+	}
 
 	DPRINTF("%s had failure\n", n->filter->name);
 

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.31 2000/02/21 17:48:05 nold Exp $
+ * $Id: filter.h,v 1.32 2000/02/22 13:59:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -510,6 +510,8 @@ do { \
 	if (ATOMIC_VAL(n->net->launch_context->result) != 0) \
 		goto _glame_filter_cleanup; \
 } while (0);
+
+#define FILTER_DO_CLEANUP goto _glame_filter_cleanup
 
 #define FILTER_CHECK_STOP \
 do { \

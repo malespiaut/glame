@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.28 2000/02/22 13:58:44 nold Exp $
+ * $Id: audio_io.c,v 1.29 2000/02/22 13:59:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -217,10 +217,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 		ap->pos = 0;
 		ap->to_go = 0;
 	} while((p_in = filternode_next_input(p_in)));
-	
-	/* Paranoia. */
-	if(ch != max_ch) 
-		PANIC("Huh!? Input pipes changed under us!?\n");
 	
 	/* Fix left/right mapping. Audiolib shoves first buffer to the
 	 * right.
