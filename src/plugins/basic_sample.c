@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.34 2001/04/26 11:56:07 richi Exp $
+ * $Id: basic_sample.c,v 1.35 2001/04/26 13:27:24 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -40,7 +40,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat")
+PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat fade")
 
 
 
@@ -1088,6 +1088,7 @@ int fade_register(plugin_t *p)
 		   "fade in/out a selected region");
 	plugin_set(p, PLUGIN_PIXMAP, "fade.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Volume");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Mangling_Data_Streams");
   
 	return filter_register(f, p);
 }

@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.21 2001/04/26 12:14:01 nold Exp $
+@comment $Id: plugins.texi,v 1.22 2001/04/26 13:27:24 mag Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -128,7 +128,7 @@ depends on the desired sound format.
 @node Swapfile I/O, Abusing External Apps, File I/O, In- and Output
 @subsection Swapfile I/O
 
-The two plugins @file{track-in} and @file{track-out} are for streaming
+The two plugins @file{swapfile-in} and @file{swapfile-out} are for streaming
 a swapfile into the network and storing a stream into the swapfile
 respectively. Both refer to tracks via a track group identifier and a track 
 identifier.
@@ -150,21 +150,21 @@ This parameter denotes the number of samples to read/write. The default
 is -1 which means to read the whole file / write all data.
 @end table
 
-@subsubheading @file{track-in} ports
+@subsubheading @file{swapfile-in} ports
 @table @code
 @item out (output)
 Sample stream coming out of the swapfile.
 @end table
 
-@file{track-in} has no further specific parameters.
+@file{swapfile-in} has no further specific parameters.
 
-@subsubheading @file{track-out} ports
+@subsubheading @file{swapfile-out} ports
 @table @code
 @item in (input)
 Sample stream to be stored in the swapfile.
 @end table
 
-@file{track-out} has no further specific parameters.
+@file{swapfile-out} has no further specific parameters.
 
 @node Abusing External Apps,, Swapfile I/O, In- and Output
 @subsection Abusing External Apps
@@ -369,7 +369,6 @@ Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
 
-
 @node Mangling Data Streams, Orientation, Junctions and Dead Ends, Elementary Plugins
 @subsection Mangling Data Streams
 
@@ -380,6 +379,14 @@ and transform it into a slightly mangled single output stream.
 stream respectively. @file{repeat} resends an input sequence over and over
 for a fixed time. @file{invert} inverts all data of the input stream, i.e. 
 each sample A is replaced by -A.
+
+The @file{fade} plugin is designed to fade in or fade out a specific region
+in the swapfile. A generic support of this plugin by the gui is not existent
+at the present time. A timeline view will be introduced later featuring
+a volume envelope that will be applied to a track. To use the fade plugin
+now just choose "Apply Custom" in the waveeditor gui. The filternetwork editor 
+will pop up including a swapfile in and a swapfile out filter. Just enter the size
+given by swapfile in into the size parameter of the fade filter.
 
 @subsubheading Common ports
 @table @code
@@ -396,6 +403,15 @@ Stream of transformed output sample data.
 @table @code
 @item factor (float)
 Value to scale input stream's amplitude with.
+@end table
+
+@subsubheading @file{fade} parameters
+@table @code
+@item mode (int)
+Choose mode 0 to fade in, 1 to toggle fade out modus.
+@item size (int)
+The length in samples of the faded region. When using "Apply Custom" just take
+the size given by the @file{swapfile-in} filter.
 @end table
 
 @subsubheading @file{delay} parameters
