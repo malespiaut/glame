@@ -1,6 +1,6 @@
 /*
  * volume_adjust.c
- * $Id: volume_adjust.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: volume_adjust.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,16 +27,27 @@
  * only. */
 int volume_adjust(filter_node_t *n)
 {
-	filter_buffer_t *in, *work;
+	filter_pipe_t *in, *out;
+	filter_buffer_t *b, *work;
+	filter_param_t *scaleparam;
+	float scale;
 	SAMPLE *buf;
 	int i;
+
+	if (!(in = hash_find_input("in", n))
+	    || !(out = hash_find_output("out", n)))
+		return -1;
+	if ((scaleparam = hash_find_param("factor", n)))
+		scale = scaleparam->val.f;
+	else
+		scale = 1.0;
 
 	/* get_buffer returns NULL, if there will be no more
 	 * data - i.e. NULL is an EOF mark.
 	 * the pthread_testcancel is important (do it first to
 	 * avoid deadlocks)! */
 	while (pthread_testcancel(),
-	       (in = fbuf_get(n->inputs[0]))) {
+	       (b = fbuf_get(in))) {
 		/* we get the input buffer referenced for us by
 		 * our source. */
 
@@ -45,12 +56,12 @@ int volume_adjust(filter_node_t *n)
 		 * same. so we need to lock the buffer (if there
 		 * are more references than our the buffer will
 		 * be copied and we dont notice, neither care) */
-		work = fbuf_lock(in);
+		work = fbuf_lock(b);
 
 		/* ok, this is not clever - FIXME for clamping! */
 		buf = fbuf_buf(work);
 		for (i=0; i<fbuf_size(work); i++) {
-			*buf = *buf*n->params[0].f;
+			*buf = *buf*scale;
 			buf++;
 		}
 
@@ -62,7 +73,7 @@ int volume_adjust(filter_node_t *n)
 		 * destination and then queue the buffer
 		 * in the destinations pipe. */
 		fbuf_ref(work);
-		fbuf_queue(n->outputs[0], work);
+		fbuf_queue(out, work);
 
 		/* now we drop our own reference of the
 		 * buffer as we are ready with it now. */
@@ -70,7 +81,7 @@ int volume_adjust(filter_node_t *n)
 	}
 
 	/* forward the EOF mark */
-	fbuf_queue(n->outputs[0], in);
+	fbuf_queue(out, b);
 
 	return 0;
 }

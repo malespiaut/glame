@@ -1,1 +1,2 @@
-EXTRA_DIST = TODO coding-style.txt development.txt masterplan.txt filter.txt
+EXTRA_DIST = TODO coding-style.txt development.txt masterplan.txt \
+	meisterplan_de.txt filter.txt

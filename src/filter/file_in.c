@@ -1,6 +1,6 @@
 /*
  * file_in.c
- * $Id: file_in.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: file_in.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,23 +27,29 @@
 /* transform a swapfile file into a stream */
 int file_in(filter_node_t *n)
 {
-	filter_buffer_t *out;
+	filter_buffer_t *buf;
+	filter_pipe_t *out;
+	filter_param_t *fname;
 	filecluster_t *fc;
 	char *mem;
 
+	if (!(out = hash_find_output("out", n))
+	    || !(fname = hash_find_param("file", n)))
+		return -1;
+
 	/* get the first filecluster */
-	fc = filecluster_get(n->params[0].file, 0);
+	fc = filecluster_get(fname->val.file, 0);
 
 	while (pthread_testcancel(), fc != NULL) {
 		/* map the filecluster data */
 		mem = filecluster_mmap(fc);
 
 		/* alloc a new stream buffer and copy the data */
-		out = fbuf_alloc(filecluster_size(fc)/sizeof(SAMPLE));
-		memcpy(fbuf_buf(out), mem, filecluster_size(fc));
+		buf = fbuf_alloc(filecluster_size(fc)/sizeof(SAMPLE));
+		memcpy(fbuf_buf(buf), mem, filecluster_size(fc));
 
 		/* queue the buffer */
-		fbuf_queue(n->outputs[0], out);
+		fbuf_queue(out, buf);
 
 		/* unmap the filecluster and get the next cluster */
 		filecluster_munmap(fc);
@@ -51,7 +57,7 @@ int file_in(filter_node_t *n)
 	}
 
 	/* send an EOF */
-	fbuf_queue(n->outputs[0], NULL);
+	fbuf_queue(out, NULL);
 
 	return 0;
 }

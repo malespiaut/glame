@@ -1,6 +1,6 @@
 /*
  * drop.c
- * $Id: drop.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: drop.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -36,43 +36,46 @@
 int drop(filter_node_t *n)
 {
 	filter_buffer_t *in;
-	int active_channels, *active, i, maxfd;
+	filter_pipe_t **inputs, *p;
+	int active_channels, i, maxfd;
 	fd_set channels;
 
-	active_channels = n->nr_inputs;
-	if (!(active = ALLOCN(n->nr_inputs, int)))
+	if (!(inputs = ALLOCN(n->nr_inputs, filter_pipe_t *)))
 		return -1;
-	for (i=0; i<n->nr_inputs; i++)
-		active[i] = 1;
+
+	/* put all input connections into an easy accessable
+	 * array - we can use it for active connection
+	 * tracking, too. */
+	active_channels = 0;
+	list_foreach_input(n, p)
+		inputs[active_channels++] = p;
 
 	while (pthread_testcancel(), active_channels>0) {
 		/* wait for pipe activity */
 		FD_ZERO(&channels);
 		maxfd = 0;
 		for (i=0; i<n->nr_inputs; i++)
-			if (active[i]) {
-				FD_SET(n->inputs[i]->dest_fd, &channels);
-				if (n->inputs[i]->dest_fd > maxfd)
-					maxfd = n->inputs[i]->dest_fd;
+			if (inputs[i]) {
+				FD_SET(inputs[i]->dest_fd, &channels);
+				if (inputs[i]->dest_fd > maxfd)
+					maxfd = inputs[i]->dest_fd;
 			}
 		if (select(maxfd+1, &channels, NULL, NULL, NULL) <= 0)
 			continue;
 
 		/* just unref all pending buffers */
 		for (i=0; i<n->nr_inputs; i++)
-			if (active[i]
-			    && FD_ISSET(n->inputs[i]->dest_fd, &channels)) {
-				in = fbuf_get(n->inputs[i]);
-				if (in)
-					fbuf_unref(in);
-				else {
-					active[i] = 0;
+			if (inputs[i]
+			    && FD_ISSET(inputs[i]->dest_fd, &channels)) {
+				if (!(in = fbuf_get(inputs[i]))) {
+					inputs[i] = NULL;
 					active_channels--;
 				}
+				fbuf_unref(in);
 			}
 	}
 
-	free(active);
+	free(inputs);
 
 	return 0;
 }

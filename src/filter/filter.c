@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.3 2000/01/24 11:43:22 richi Exp $
+ * $Id: filter.c,v 1.4 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,33 +30,31 @@ extern int filter_default_connect_out(filter_node_t *n, const char *port,
 				      filter_pipe_t *p);
 extern int filter_default_connect_in(filter_node_t *n, const char *port,
 				     filter_pipe_t *p);
-extern int filter_default_fixup(filter_node_t *n, int input_slot);
+extern int filter_default_fixup(filter_node_t *n, filter_pipe_t *in);
 
 
 
-filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *),
-		       int nr_params, int nr_inputs, int nr_outputs)
+filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *))
 {
 	filter_t *f;
 
+	if (!name || !func)
+		return NULL;
 	if (hash_find_filter(name))
 		return NULL;
-
 	if (!(f = ALLOC(filter_t)))
 		return NULL;
 	hash_init_filter(f);
-	
-	if (!(f->name = strdup(name))
-	    || (nr_params>0
-		&& !(f->params = ALLOCN(nr_params, struct filter_param_desc)))
-	    || (nr_inputs>0
-		&& !(f->inputs = ALLOCN(nr_inputs, struct filter_port_desc)))
-	    || (nr_outputs>0
-		&& !(f->outputs = ALLOCN(nr_outputs, struct filter_port_desc))))
+
+	if (!(f->name = strdup(name)))
 		goto _nomem;
-	f->nr_params = nr_params;
-	f->nr_inputs = nr_inputs;
-	f->nr_outputs = nr_outputs;
+
+	INIT_LIST_HEAD(&f->params);
+	INIT_LIST_HEAD(&f->inputs);
+	INIT_LIST_HEAD(&f->outputs);
+	f->nr_params = 0;
+	f->nr_inputs = 0;
+	f->nr_outputs = 0;
 
 	f->f = func;
 
@@ -69,9 +67,6 @@ filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *),
 
  _nomem:
 	free(f->name);
-	free(f->params);
-	free(f->inputs);
-	free(f->outputs);
 	free(f);
 	return NULL;
 }
@@ -86,6 +81,67 @@ int filter_add(filter_t *filter)
 	return 0;
 }
 
+int filter_add_input(filter_t *filter, char *label, int flags)
+{
+	filter_port_desc_t *desc;
+
+	if (!filter || is_hashed_filter(filter) || !label)
+		return -1;
+	if (hash_find_inputdesc(label, filter))
+		return -1;
+	if (!(desc = ALLOC(filter_port_desc_t)))
+		return -1;
+
+	desc->label = strdup(label);
+	desc->flags = flags;
+	hash_add_inputdesc(desc, filter);
+	list_add_inputdesc(desc, filter);
+	filter->nr_inputs++;
+
+	return 0;
+}
+
+int filter_add_output(filter_t *filter, char *label, int flags)
+{
+	filter_port_desc_t *desc;
+
+	if (!filter || is_hashed_filter(filter) || !label)
+		return -1;
+	if (hash_find_outputdesc(label, filter))
+		return -1;
+	if (!(desc = ALLOC(filter_port_desc_t)))
+		return -1;
+
+	desc->label = strdup(label);
+	desc->flags = flags;
+	hash_add_outputdesc(desc, filter);
+	list_add_outputdesc(desc, filter);
+	filter->nr_outputs++;
+
+	return 0;
+}
+
+int filter_add_param(filter_t *filter, char *label, char *type, int flags)
+{
+	filter_param_desc_t *desc;
+
+	if (!filter || is_hashed_filter(filter) || !label)
+		return -1;
+	if (hash_find_paramdesc(label, filter))
+		return -1;
+	if (!(desc = ALLOC(filter_param_desc_t)))
+		return -1;
+
+	desc->label = strdup(label);
+	desc->type = strdup(type);
+	desc->flags = flags;
+	hash_add_paramdesc(desc, filter);
+	list_add_paramdesc(desc, filter);
+	filter->nr_params++;
+
+	return 0;
+}
+
 
 /* include all static filter headers here */
 extern int drop(filter_node_t *n);
@@ -94,9 +150,7 @@ extern int dup(filter_node_t *n);
 extern int mix(filter_node_t *n);
 extern int null(filter_node_t *n);
 extern int ping(filter_node_t *n);
-extern int ping_connect_out(filter_node_t *n, const char *port,
-			    filter_pipe_t *p);
-extern int ping_fixup(filter_node_t *n, int slot);
+extern int ping_fixup(filter_node_t *n, filter_pipe_t *in);
 extern int file_in(filter_node_t *n);
 extern int file_out(filter_node_t *n);
 extern int volume_adjust(filter_node_t *n);
@@ -105,79 +159,61 @@ int filter_init()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("drop", drop, 0, 1, 0)))
-		return -1;
-	f->inputs[0].label = "in";
-	f->inputs[0].flags = FILTER_PORTFLAG_AUTOMATIC;
-        if (filter_add(f) == -1)
+	if (!(f = filter_alloc("drop", drop))
+	    || filter_add_input(f, "in", FILTER_PORTFLAG_AUTOMATIC) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("one2n", one2n, 0, 1, 1)))
-		return -1;
-	f->inputs[0].label = "in";
-	f->outputs[0].label = "out";
-	f->outputs[0].flags = FILTER_PORTFLAG_AUTOMATIC;
-	if (filter_add(f) == -1)
+	if (!(f = filter_alloc("one2n", one2n))
+	    || filter_add_input(f, "in", 0) == -1
+	    || filter_add_output(f, "out", FILTER_PORTFLAG_AUTOMATIC) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("dup", dup, 0, 1, 2)))
-		return -1;
-	f->inputs[0].label = "in";
-	f->outputs[0].label = "out1";
-	f->outputs[1].label = "out2";
-	if (filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("mix", mix, 0, 1, 1)))
-		return -1;
-	f->inputs[0].label = "in";
-	f->inputs[0].flags = FILTER_PORTFLAG_AUTOMATIC;
-	f->outputs[0].label = "mixed";
-	if (filter_add(f) == -1)
+	if (!(f = filter_alloc("dup", dup))
+	    || filter_add_input(f, "in", 0) == -1
+	    || filter_add_output(f, "out", 0) == -1
+	    || filter_add_output(f, "out", 0) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("null", null, 0, 1, 1)))
-		return -1;
-	f->inputs[0].label = "in";
-	f->inputs[0].flags = FILTER_PORTFLAG_AUTOMATIC;
-	f->outputs[0].label = "out";
-	f->outputs[0].flags = FILTER_PORTFLAG_AUTOMATIC;
-	if (filter_add(f) == -1)
+	if (!(f = filter_alloc("mix", mix))
+	    || filter_add_input(f, "in", FILTER_PORTFLAG_AUTOMATIC) == -1
+	    || filter_add_output(f, "mixed", 0) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("ping", ping, 0, 1, 1)))
+	if (!(f = filter_alloc("null", null))
+	    || filter_add_input(f, "in", FILTER_PORTFLAG_AUTOMATIC) == -1
+	    || filter_add_output(f, "out", FILTER_PORTFLAG_AUTOMATIC) == -1
+	    || filter_add(f) == -1)
 		return -1;
-	f->connect_out = ping_connect_out;
+
+	if (!(f = filter_alloc("ping", ping))
+	    || filter_add_input(f, "in", 0) == -1
+	    || filter_add_output(f, "out", 0) == -1)
+		return -1;
 	f->fixup = ping_fixup;
-	f->inputs[0].label = "in";
-	f->outputs[0].label = "out";
 	if (filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("file_in", file_in, 1, 0, 1)))
-		return -1;
-	f->params[0].label = "file";
-	f->params[0].type = "%i";
-	f->outputs[0].label = "out";
-	if (filter_add(f) == -1)
+	if (!(f = filter_alloc("file_in", file_in))
+	    || filter_add_param(f, "file", "%i", 0) == -1
+	    || filter_add_output(f, "out", 0) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("file_out", file_out, 1, 1, 0)))
-		return -1;
-	f->params[0].label = "file";
-	f->params[0].type = "%i";
-	f->params[0].flags = FILTER_PARAMFLAG_OUTPUT;
-	f->inputs[0].label = "in";
-	if (filter_add(f) == -1)
+	if (!(f = filter_alloc("file_out", file_out))
+	    || filter_add_param(f, "file", "%i", FILTER_PARAMFLAG_OUTPUT) == -1
+	    || filter_add_input(f, "in", 0) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("volume_adjust", volume_adjust, 1, 1, 1)))
-		return -1;
-	f->params[0].label = "factor";
-	f->params[0].type = "%f";
-	f->inputs[0].label = "in";
-	f->outputs[0].label = "out";
-	if (filter_add(f) == -1)
+	if (!(f = filter_alloc("volume_adjust", volume_adjust))
+	    || filter_add_param(f, "factor", "%f", 0) == -1
+	    || filter_add_input(f, "in", 0) == -1
+	    || filter_add_output(f, "out", 0) == -1
+	    || filter_add(f) == -1)
 		return -1;
 
 	return 0;

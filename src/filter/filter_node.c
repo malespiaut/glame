@@ -1,6 +1,6 @@
 /*
  * filter_node.c
- * $Id: filter_node.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: filter_node.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -46,17 +46,14 @@ filter_node_t *filternode_add(filter_network_t *net, const char *name)
 	INIT_LIST_HEAD(&n->neti_list);
 	INIT_LIST_HEAD(&n->neto_list);
 	n->filter = filter;
-	if (filter->nr_params > 0
-	    && !(n->params = ALLOCN(filter->nr_params, union filter_param)))
-		goto _nomem;
-	n->nr_inputs = filter->nr_inputs;
-	if (filter->nr_inputs > 0
-	    && !(n->inputs = ALLOCN(filter->nr_inputs, filter_pipe_t *)))
-		goto _nomem;
-	n->nr_outputs = filter->nr_outputs;
-	if (filter->nr_outputs > 0
-	    && !(n->outputs = ALLOCN(filter->nr_outputs, filter_pipe_t *)))
-		goto _nomem;
+
+	n->nr_params = 0;
+	INIT_LIST_HEAD(&n->params);
+
+	n->nr_inputs = 0;
+	n->nr_outputs = 0;
+	INIT_LIST_HEAD(&n->inputs);
+	INIT_LIST_HEAD(&n->outputs);
 
 	if (filter->init)
 		filter->init(n);
@@ -68,28 +65,28 @@ filter_node_t *filternode_add(filter_network_t *net, const char *name)
 	list_add(&n->neto_list, &net->outputs);
 
 	return n;
-
- _nomem:
-	free(n->params);
-	free(n->inputs);
-	free(n->outputs);
-	free(n);
-
-	return NULL;
 }
 
 int filternode_connect(filter_node_t *source, char *source_port,
 		       filter_node_t *dest, char *dest_port)
 {
+	filter_port_desc_t *in, *out;
 	filter_pipe_t *p;
 
 	if (!source || !source_port || !dest || !dest_port
 	    || source->net != dest->net)
 		return -1;
 
-	if (!(p = ALLOC(filter_pipe_t)))
+	if (!(in = hash_find_outputdesc(source_port, source->filter))
+	    || !(out = hash_find_inputdesc(dest_port, dest->filter)))
 		return -1;
 
+	/* BIG FIXME for all the CONNECTION METHOD STUFF!!! */
+
+	if (!(p = ALLOC(filter_pipe_t)))
+		return -1;
+	p->in_name = in->label;
+	p->out_name = out->label;
 	p->source = source;
 	p->dest = dest;
 	if (source->filter->connect_out(source, source_port, p) == -1)
@@ -97,12 +94,14 @@ int filternode_connect(filter_node_t *source, char *source_port,
 	if (dest->filter->connect_in(dest, dest_port, p) == -1)
 		goto _err;
 
-	/* fill the slots */
-	source->outputs[p->source_port] = p;
-	dest->inputs[p->dest_port] = p;
+	/* add the pipe to all port lists/hashes */
+	list_add_input(p, dest);
+	hash_add_input(p, dest);
+	list_add_output(p, source);
+	hash_add_output(p, source);
 
 	/* signal input changes to destination node */
-	if (dest->filter->fixup(dest, p->dest_port) == -1)
+	if (dest->filter->fixup(dest, p) == -1)
 	        goto _err_fixup;
 
 	/* remove the source filter from the net output filter list
@@ -116,51 +115,13 @@ int filternode_connect(filter_node_t *source, char *source_port,
 	return 0;
 
  _err_fixup:
-	source->outputs[p->source_port] = NULL;
-	dest->inputs[p->dest_port] = NULL;
+	list_del_input(p);
+	hash_remove_input(p);
+	list_del_output(p);
+	hash_remove_output(p);
  _err:
 	free(p);
 	return -1;
-}
-
-
-/* helper to find a slot */
-int _filterconnect_find_port(struct filter_port_desc *ports, int cnt,
-			     const char *port)
-{
-	int i;
-
-	for (i=0; i<cnt; i++)
-		if (strcmp(ports[i].label, port) == 0)
-			return i;
-
-	return -1;
-}
-/* helper to find a slot & assign it */
-int _filterconnect_assign_port(struct filter_port_desc *pdesc, int cnt,
-			       const char *port,
-			       filter_pipe_t ***slots, int *nr_slots)
-{
-	int slot;
-
-	/* find slot */
-	if ((slot = _filterconnect_find_port(pdesc, cnt, port)) == -1)
-		return -1;
-
-	/* automatic ports are special */
-	if (pdesc->flags & FILTER_PORTFLAG_AUTOMATIC) {
-		while ((*slots)[slot] != NULL) {
-			slot++;
-			if (slot >= *nr_slots) {
-				*slots = (filter_pipe_t **)realloc(*slots, slot*sizeof(void *));
-				(*slots)[slot] = NULL;
-				(*nr_slots)++;
-			}
-		}
-	} else if ((*slots)[slot] != NULL)
-		return -1;
-
-	return slot;
 }
 
 
@@ -171,22 +132,27 @@ int _filterconnect_assign_port(struct filter_port_desc *pdesc, int cnt,
 int filter_default_connect_out(filter_node_t *n, const char *port,
 			       filter_pipe_t *p)
 {
-	int i;
+	filter_port_desc_t *out;
+	filter_pipe_t *in;
 
-	/* try to find port and assign a slot */
-	i = filterconnect_assignslot_output(n, port);
-	if (i == -1)
+	/* is there a port with the right name? */
+	if (!(out = hash_find_outputdesc(port, n->filter)))
+		return -1;
+
+	/* do we have a connection to this port already and are
+	 * we not a multiple connection port? */
+	if (!(out->flags & FILTER_PORTFLAG_AUTOMATIC)
+	    && hash_find_output(port, n))
 		return -1;
 
 	/* fill pipe */
-	p->source_port = i;
 	p->type = FILTER_PIPETYPE_UNINITIALIZED;
 
-	/* source port has to provide pipe data info.
-	 * we copy from the corresponding input port. */
-	if (n->nr_inputs > i && n->inputs[i]) {
-		p->type = n->inputs[i]->type;
-		p->u = n->inputs[i]->u;
+	/* a source port has to provide pipe data info.
+	 * we copy from the first input port if any. */
+	if ((in = list_gethead_input(n))) {
+		p->type = in->type;
+		p->u = in->u;
 	}
 
 	return 0;
@@ -198,83 +164,66 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 int filter_default_connect_in(filter_node_t *n, const char *port,
 			      filter_pipe_t *p)
 {
-	int i;
+	filter_port_desc_t *in;
 
-	/* try to find port and assign a slot */
-	i = filterconnect_assignslot_input(n, port);
-	if (i == -1)
+	/* is there a port with the right name? */
+	if (!(in = hash_find_inputdesc(port, n->filter)))
 		return -1;
 
-	/* fill pipe */
-	p->dest_port = i;
+	/* do we have a connection to this port already and are
+	 * we not a multiple connection port? */
+	if (!(in->flags & FILTER_PORTFLAG_AUTOMATIC)
+	    && hash_find_input(port, n))
+		return -1;
 
 	return 0;
 }
 
-/* Default fixup method.
- * Does update (copy) one-to-one and automatic connections
- * and forwards the fixup. Obviously does not know anything
- * about parameters.
- */
-int filter_default_fixup(filter_node_t *n, int input_slot)
+int filter_default_fixup(filter_node_t *n, filter_pipe_t *in)
 {
-	int i;
+	filter_pipe_t *out;
 
-	/* parameter change? - in the default method
+	/* Parameter change? In the default method
 	 * we know nothing about parameters, so we
 	 * cant do anything about it.
-	 * forwarding is useless, too.
+	 * Forwarding is useless, too.
 	 */
-	if (input_slot == -1)
+	if (in == NULL)
 		return 0;
 
-	/* if its an automatic one, check all inputs for
-	 * being of the same type and parameters.
-	 * for further processing set the input_slot to
-	 * the first of the automatic ones, too.
+	/* Pipe format change is easy for us as we know
+	 * nothing about internal connections between
+	 * inputs and outputs.
+	 * So the rule of dumb is to update all output
+	 * pipe formats to the format of the input
+	 * pipe we just got. We also have to forward
+	 * the change to every output slot, of course.
 	 */
-	if (input_slot >= n->filter->nr_inputs
-	    || n->filter->inputs[input_slot].flags & FILTER_PORTFLAG_AUTOMATIC) {
-		input_slot = n->filter->nr_inputs-1;
-		for (i=input_slot+1; i<n->nr_inputs; i++) {
-			if (!n->inputs[i])
-				continue;
-			if (n->inputs[i]->type != n->inputs[input_slot]->type
-			    || memcmp(&n->inputs[i]->u, &n->inputs[input_slot]->u, sizeof(n->inputs[i]->u)))
-				return -1;
-		}
-	}
-
-	/* if the corresponding output slot is not connected
-	 * all is done.
-	 */
-	if (input_slot >= n->nr_outputs
-	    || !n->outputs[input_slot])
-		return 0;
-
-	/* check if the output slot is an automatic one.
-	 * if so, update all (connected) automatic output
-	 * slots wrt to the changed input and forward the
-	 * fixup.
-	 * else just copy & forward to one output.
-	 */
-	if (input_slot >= n->filter->nr_outputs
-	    || n->filter->outputs[input_slot].flags & FILTER_PORTFLAG_AUTOMATIC) {
-		for (i=input_slot; i<n->nr_outputs; i++) {
-			if (!n->outputs[i])
-				continue;
-			n->outputs[i]->type = n->inputs[input_slot]->type;
-			n->outputs[i]->u = n->inputs[input_slot]->u;
-
-			if (n->outputs[i]->dest->filter->fixup(n->outputs[i]->dest, n->outputs[i]->dest_port) == -1)
-				return -1;
-		}
-	} else {
-		n->outputs[input_slot]->type = n->inputs[input_slot]->type;
-		n->outputs[input_slot]->u = n->inputs[input_slot]->u;
-		if (n->outputs[input_slot]->dest->filter->fixup(n->outputs[input_slot]->dest, n->outputs[input_slot]->dest_port) == -1)
+	list_foreach_output(n, out) {
+		out->type = in->type;
+		out->u = in->u;
+		if (out->dest->filter->fixup(out->dest, out) == -1)
 			return -1;
 	}
+
+	return 0;
+}
+
+
+int filternode_setparam_f(filter_node_t *n, const char *label, fileid_t file)
+{
+	filter_param_t *param;
+	filter_param_desc_t *pdesc;
+
+	if (!(param = hash_find_param(label, n))) {
+		if (!(pdesc = hash_find_paramdesc(label, n->filter)))
+			return -1;
+		if (!(param = ALLOC(filter_param_t)))
+			return -1;
+		param->label = pdesc->label;
+		hash_add_param(param, n);
+	}
+	param->val.file = file;
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * file_out.c
- * $Id: file_out.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: file_out.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,38 +29,42 @@
  * get it by looking into params[0].file after completion. */
 int file_out(filter_node_t *n)
 {
-	filter_buffer_t *in;
+	filter_buffer_t *buf;
+	filter_pipe_t *in;
 	filecluster_t *fc;
 	fileid_t file;
 	char *mem;
 	int pos, p;
 
+	if (!(in = hash_find_input("in", n)))
+		return -1;
+
 	file = file_alloc(0);
 	pos = 0;
 
 	while (pthread_testcancel(),
-	       (in = fbuf_get(n->inputs[0]))) {
+	       (buf = fbuf_get(in))) {
 		/* fix size of swapfile file wrt to input buffer */
 		file_truncate(file, file_size(file)
-			      + fbuf_size(in)*sizeof(SAMPLE));
+			      + fbuf_size(buf)*sizeof(SAMPLE));
 
 		/* copy the buffer */
 		p = 0;
-		while (p < fbuf_size(in)) {
+		while (p < fbuf_size(buf)) {
 			fc = filecluster_get(file, pos);
 			mem = filecluster_mmap(fc);
-			memcpy(mem, fbuf_buf(in)+p, filecluster_size(fc));
+			memcpy(mem, fbuf_buf(buf)+p, filecluster_size(fc));
 			p += filecluster_size(fc)/sizeof(SAMPLE);
 			pos += filecluster_size(fc);
 			filecluster_munmap(fc);
 		}
 
 		/* free the buffer */
-		fbuf_unref(in);
+		fbuf_unref(buf);
 	}
 
 	/* save the allocated file as "parameter" */
-	n->params[0].file = file;
+	filternode_setparam_f(n, "file", file);
 
 	return 0;
 }

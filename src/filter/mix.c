@@ -1,6 +1,6 @@
 /*
  * mix.c
- * $Id: mix.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: mix.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -32,6 +32,8 @@
  * any number of input channels and one output channel. */
 int mix(filter_node_t *n)
 {
+#if 0
+/* FIXME! */
 	filter_buffer_t **in, *out, *lastout;
 	int i, eofs, *pos, opos;
 	SAMPLE s;
@@ -101,6 +103,7 @@ int mix(filter_node_t *n)
 	free(in);
 	free(pos);
 
+#endif
 	return 0;
 }
 

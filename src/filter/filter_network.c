@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: filter_network.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -165,7 +165,7 @@ void filternetwork_terminate(filter_network_t *net)
  * preprocessing does memory allocation for the file-descriptors */
 static int preprocess_node(filter_node_t *n)
 {
-	int i;
+	filter_pipe_t *p;
 
 	if (!n || n->state == STATE_PREPROCESSED)
 		return 0;
@@ -173,15 +173,15 @@ static int preprocess_node(filter_node_t *n)
 		return -1;
 	n->state = STATE_PREPROCESSED;
 
-	for (i=0; i<n->nr_inputs; i++)
-		n->inputs[i]->dest_fd = -1;
-
-	for (i=0; i<n->nr_outputs; i++)
-		n->outputs[i]->source_fd = -1;
+	/* init the pipe fds to "error" */
+	list_foreach_input(n, p)
+		p->dest_fd = -1;
+        list_foreach_output(n, p)
+		p->source_fd = -1;
 
 	/* recurse on output filters */
-	for (i=0; i<n->nr_outputs; i++)
-		if (preprocess_node(n->outputs[i]->dest) == -1)
+	list_foreach_output(n, p)
+		if (preprocess_node(p->dest) == -1)
 			return -1;
 
 	return 0;
@@ -191,7 +191,8 @@ static int preprocess_node(filter_node_t *n)
  * initialization does alloc the pipes */
 static int init_node(filter_node_t *n)
 {
-	int i, fds[2];
+	filter_pipe_t *p;
+	int fds[2];
 
 	if (!n || n->state == STATE_INITIALIZED)
 		return 0;
@@ -199,16 +200,16 @@ static int init_node(filter_node_t *n)
 		return -1;
 	n->state = STATE_INITIALIZED;
 
-	for (i=0; i<n->nr_outputs; i++) {
+	list_foreach_output(n, p) {
 		if (pipe(fds) == -1)
 			return -1;
-		n->outputs[i]->source_fd = fds[1];
-		n->outputs[i]->dest_fd = fds[0];
+		p->source_fd = fds[1];
+		p->dest_fd = fds[0];
 	}
 	
 	/* recurse on output filters */
-	for (i=0; i<n->nr_outputs; i++)
-		if (init_node(n->outputs[i]->dest) == -1)
+	list_foreach_output(n, p)
+		if (init_node(p->dest) == -1)
 			return -1;
 
 	return 0;
@@ -217,8 +218,8 @@ static int init_node(filter_node_t *n)
 
 static void *launcher(void *node)
 {
+	filter_pipe_t *p;
 	filter_node_t *n = (filter_node_t *)node;
-	int i;
 
 	if (n->filter->f(n) == 0)
 		return NULL;
@@ -229,8 +230,8 @@ static void *launcher(void *node)
 	pthread_mutex_unlock(&n->net->mx);
 
 	/* send EOFs */
-	for (i=0; i<n->nr_outputs; i++)
-		fbuf_queue(n->outputs[i], NULL);
+	list_foreach_output(n, p)
+		fbuf_queue(p, NULL);
 
 	return NULL;
 }
@@ -239,7 +240,7 @@ static void *launcher(void *node)
  * this back to front (really??) */
 static int launch_node(filter_node_t *n)
 {
-	int i;
+	filter_pipe_t *p;
 
 	if (!n || n->state >= STATE_PRELAUNCHED)
 		return 0;
@@ -247,8 +248,8 @@ static int launch_node(filter_node_t *n)
 	n->state = STATE_PRELAUNCHED;
 
 	/* recurse on output filters */
-	for (i=0; i<n->nr_outputs; i++)
-		if (launch_node(n->outputs[i]->dest) == -1)
+	list_foreach_output(n, p)
+		if (launch_node(p->dest) == -1)
 			return -1;
 
 	/* launch filter thread */
@@ -265,7 +266,7 @@ static int launch_node(filter_node_t *n)
  * postprocessing does memory deallocation and fd-closing */
 static void postprocess_node(filter_node_t *n)
 {
-	int i;
+	filter_pipe_t *p;
 
 	if (!n || n->state == STATE_UNDEFINED)
 		return;
@@ -276,18 +277,18 @@ static void postprocess_node(filter_node_t *n)
 		n->state = STATE_INITIALIZED;
 	}
 
-	for (i=0; i<n->nr_inputs; i++)
-		if (n->inputs[i]->source_fd != -1)
-			close(n->inputs[i]->source_fd);
+	list_foreach_input(n, p)
+		if (p->source_fd != -1)
+			close(p->source_fd);
 
-	for (i=0; i<n->nr_outputs; i++)
-		if (n->outputs[i]->dest_fd != -1)
-			close(n->outputs[i]->dest_fd);
+	list_foreach_output(n, p)
+		if (p->dest_fd != -1)
+			close(p->dest_fd);
 
 	n->state = STATE_UNDEFINED;
 
 	/* recurse on output filters */
-	for (i=0; i<n->nr_outputs; i++)
-		postprocess_node(n->outputs[i]->dest);
+	list_foreach_output(n, p)
+		postprocess_node(p->dest);
 }
 

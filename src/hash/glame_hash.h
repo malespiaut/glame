@@ -112,7 +112,7 @@ int _hashfn(const char *name, const void *namespace);
 #define _hash(name, namespace) (hash_table + _hashfn(name, namespace))
 
 #define __hash_pos(type, head, name, namespace) (unsigned long)(&((type *)0)->head), (unsigned long)(&((type *)0)->name), (unsigned long)(&((type *)0)->namespace)
-#define __hash_entry(ptr, type, head) ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->head)))
+#define __hash_entry(ptr, type, head) ((ptr) ? (type *)((char *)(ptr)-(unsigned long)(&((type *)0)->head)) : NULL)
 
 struct hash_head *__hash_find(const char *name, const void *namespace,
 			      struct hash_head *entry,

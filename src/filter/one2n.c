@@ -1,6 +1,6 @@
 /*
  * one2n.c
- * $Id: one2n.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: one2n.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -27,31 +27,37 @@
  * n - times duplication of one input channel */
 int one2n(filter_node_t *n)
 {
-	filter_buffer_t *in;
-	int i;
+	filter_buffer_t *buf;
+	filter_pipe_t *in, *out;
+
+	if (!(in = hash_find_input("in", n)))
+		return -1;
 
 	/* get_buffer returns NULL, if there will be no more
 	 * data - i.e. NULL is an EOF mark.
 	 * the pthread_testcancel is important (do it first to
 	 * avoid deadlocks)! */
 	while (pthread_testcancel(),
-	       (in = fbuf_get(n->inputs[0]))) {
+	       (buf = fbuf_get(in))) {
 		/* we get the input buffer referenced for us by
 		 * our source. */
 
 		/* forward the input buffer n times */
-		for (i=0; i<n->nr_outputs; i++) {
+		list_foreach_output(n, out) {
 			/* we need to get a reference for our
 			 * destination and then queue the buffer
 			 * in the destinations pipe. */
-			fbuf_ref(in);
-			fbuf_queue(n->outputs[i], in);
+			fbuf_ref(buf);
+			fbuf_queue(out, buf);
 		}
 
 		/* now we drop our own reference of the
 		 * buffer as we are ready with it now. */
-		fbuf_unref(in);
+		fbuf_unref(buf);
 	}
 
 	return 0;
 }
+
+
+

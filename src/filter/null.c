@@ -1,6 +1,6 @@
 /*
  * null.c
- * $Id: null.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: null.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,58 +29,29 @@
 #include "util.h"
 
 
-/* this does a "null operation" on any number of input channels
- * routing them to the appropriate output channel. it does
- * this asynchronly, though (so its a nice example of multiple
- * asynchronous inputs and outputs).
+/* This does a "null operation" on one input channel.
+ * This feature is also done by the one2n filter if
+ * only one output is connected.
+ * So this is a filter for educational purpose.
  */
 int null(filter_node_t *n)
 {
-	filter_buffer_t *in;
-	int active_channels, *active, i, maxfd;
-	fd_set channels;
+	filter_pipe_t *in, *out;
+	filter_buffer_t *buf;
 
-	if (n->nr_inputs != n->nr_outputs)
+	if (!(in = hash_find_input("in", n))
+	    || !(out = hash_find_output("out", n)))
 		return -1;
 
-	active_channels = n->nr_inputs;
-	if (!(active = ALLOCN(n->nr_inputs, int)))
-		return -1;
-	for (i=0; i<n->nr_inputs; i++)
-		if (n->inputs[i] && n->outputs[i])
-			active[i] = 1;
-		else
-			active[i] = 0;
+	/* The loop condition is at the end to get and
+	 * forward the EOF mark. */
+	do {
+		/* get an input buffer */
+		buf = fbuf_get(in);
 
-	while (pthread_testcancel(), active_channels>0) {
-		/* wait for pipe activity */
-		FD_ZERO(&channels);
-		maxfd = 0;
-		for (i=0; i<n->nr_inputs; i++)
-			if (active[i]) {
-				FD_SET(n->inputs[i]->dest_fd, &channels);
-				if (n->inputs[i]->dest_fd > maxfd)
-					maxfd = n->inputs[i]->dest_fd;
-			}
-		if (select(maxfd+1, &channels, NULL, NULL, NULL) <= 0)
-			continue;
-
-		/* just forward all pending buffers */
-		for (i=0; i<n->nr_inputs; i++) {
-			if (!active[i]
-			    || !FD_ISSET(n->inputs[i]->dest_fd, &channels))
-				continue;
-			/* get buffer and forward it also EOFs!*/
-			in = fbuf_get(n->inputs[i]);
-			fbuf_queue(n->outputs[i], in);
-			if (!in) {
-				active[i] = 0;
-				active_channels--;
-			}
-		}
-	}
-
-	free(active);
+		/* just forward every buffer */
+		fbuf_queue(out, buf);
+	} while (pthread_testcancel(), buf);
 
 	return 0;
 }

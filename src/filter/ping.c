@@ -1,6 +1,6 @@
 /*
  * ping.c
- * $Id: ping.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: ping.c,v 1.3 2000/01/27 10:30:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -36,13 +36,15 @@
 int ping(filter_node_t *n)
 {
 	filter_buffer_t *in, *out;
+	filter_pipe_t *i, *o;
 	struct timeval start, end;
 	int cnt = 10;
 	int dt = 250000;
 	int size = 128;
 	int time;
 
-	if (!n->inputs[0] || !n->outputs[0])
+	if (!(i = hash_find_input("in", n))
+	    || !(o = hash_find_output("out", n)))
 		return -1;
 
 	while (pthread_testcancel(), cnt>0) {
@@ -54,10 +56,10 @@ int ping(filter_node_t *n)
 		gettimeofday(&start, NULL);
 
 		/* queue buffer */
-		fbuf_queue(n->outputs[0], out);
+		fbuf_queue(o, out);
 
 		/* get input buffer (blocks) */
-		in = fbuf_get(n->inputs[0]);
+		in = fbuf_get(i);
 
 		gettimeofday(&end, NULL);
 
@@ -72,24 +74,10 @@ int ping(filter_node_t *n)
 	}
 
 	/* send an EOF */
-	fbuf_queue(n->outputs[0], NULL);
+	fbuf_queue(o, NULL);
 
 	/* wait for EOF passed through */
-	in = fbuf_get(n->inputs[0]);
-
-	return 0;
-}
-
-int ping_connect_out(filter_node_t *n, const char *port,
-		     filter_pipe_t *p)
-{
-	int i;
-
-	i = filterconnect_assignslot_output(n, port);
-	if (i == -1)
-		return -1;
-
-	p->source_port = i;
+	in = fbuf_get(i);
 
 	return 0;
 }
@@ -97,7 +85,7 @@ int ping_connect_out(filter_node_t *n, const char *port,
 /* Ping is special. It creates a loop! So to prevent endless
  * fixups, we just return success for ping.
  */
-int ping_fixup(filter_node_t *n, int slot)
+int ping_fixup(filter_node_t *n, filter_pipe_t *p)
 {
 	return 0;
 }
