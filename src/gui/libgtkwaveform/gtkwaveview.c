@@ -2104,10 +2104,10 @@ gtk_wave_view_set_selection (GtkWaveView *waveview,
 }
 
 gboolean
-gtk_wave_view_selection_completely_visible (GtkWaveView *waveview)
+gtk_wave_view_range_visible (GtkWaveView *waveview, gint32 start, gint32 length)
 {
-  return calc_win_pel_pos(waveview, waveview->select_left) > 0
-	 && calc_win_pel_pos(waveview, waveview->select_right) < GTK_WIDGET(waveview->area)->allocation.width;
+  return calc_win_pel_pos(waveview, start) > 0
+	 && calc_win_pel_pos(waveview, start+length) < GTK_WIDGET(waveview->area)->allocation.width;
 }
 
 guint32

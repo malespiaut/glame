@@ -150,7 +150,9 @@ void       gtk_wave_view_get_selection          (GtkWaveView *waveview,
 void       gtk_wave_view_set_selection          (GtkWaveView *waveview,
                                                  gint32       start,
                                                  gint32       length);
-gboolean   gtk_wave_view_selection_completely_visible (GtkWaveView *waveview);
+gboolean   gtk_wave_view_range_visible          (GtkWaveView *waveview,
+						 gint32       start,
+						 gint32       length);
 guint32    gtk_wave_view_get_select_channels    (GtkWaveView *waveview);
 void       gtk_wave_view_set_select_channels    (GtkWaveView *waveview,
                                                  guint32      sel_mask);

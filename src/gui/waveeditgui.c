@@ -445,8 +445,8 @@ static void play_update_marker(glsig_handler_t *handler,
 	pos = filterparam_val_long(waveedit->pm_param);
 	if (waveedit->pm_loop && waveedit->pm_size > 0)
 		pos = pos % waveedit->pm_size;
-	if (waveedit->pm_loop
-	    && gtk_wave_view_selection_completely_visible(GTK_WAVE_VIEW(waveedit->waveview)))
+	if (gtk_wave_view_range_visible(GTK_WAVE_VIEW(waveedit->waveview),
+		    			waveedit->pm_start, waveedit->pm_size))
 		gtk_wave_view_set_marker(GTK_WAVE_VIEW(waveedit->waveview),
 					 waveedit->pm_start + pos);
 	else
