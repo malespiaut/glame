@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.43 2001/11/28 14:10:56 richi Exp $
+ * $Id: canvasfilter.c,v 1.44 2001/11/28 23:01:27 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -570,9 +570,19 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 	
 	filterparamdb_foreach_param(glame_canvas_filter_get_paramdb(filter),param){
 		char *str;
-		str = filterparam_to_string(param);
-		snprintf(buffer, 255, "%s: %s", filterparam_label(param), str);
-		free(str);
+#ifndef DEBUG
+		if (filterparam_get_property(param, FILTERPARAM_HIDDEN))
+			continue;
+#endif
+		if (FILTER_PARAM_IS_BUF(param)) {
+			snprintf(buffer, 255, "%s (%s)", filterparam_label(param),
+			 	 param->u.buf ? "set" : "unset");
+		} else {
+			str = filterparam_to_string(param);
+			snprintf(buffer, 255, "%s: %s", filterparam_label(param),
+			 	str ? str : "unset");
+			free(str);
+		}
 		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 					     gnome_canvas_text_get_type(),
 					     "x",xOffset,
