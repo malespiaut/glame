@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.137 2003/04/15 20:29:19 richi Exp $
+ * $Id: waveeditgui.c,v 1.138 2003/04/15 21:54:23 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -391,6 +391,9 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
  * Complex stuff like apply, play, record, etc.
  */
 
+#define TOOLBAR_PLAY_DEL 6
+#define TOOLBAR_PLAY_INS 9
+
 static void playrecordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview);
 
 /* Menu event - Apply operation. */
@@ -452,13 +455,15 @@ static void play_cleanup(glsig_handler_t *handler,
 		gtk_wave_view_set_marker(GTK_WAVE_VIEW(waveedit->waveview),
 					 waveedit->pm_marker);
 
-	/* restore normal play button -- wheee, gtk suxx. */
+	/* restore normal play button -- wheee, gtk suxx.
+	 * FIXME - doesnt work anymore with gnome2 */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(waveedit->toolbar)), 6)->data);
+		GTK_CONTAINER(waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(waveedit->toolbar),
 				 _("Play/Record"), _("Play/Record"),
 				 GNOME_STOCK_PIXMAP_FORWARD,
-				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview, 9);
+				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), waveedit->waveview,
+				 TOOLBAR_PLAY_INS);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -675,13 +680,15 @@ static void play(GtkWaveView *waveview,
 		return;
 	}
 
-	/* exchange play for stop button -- wheee, gtk suxx. */
+	/* exchange play for stop button -- wheee, gtk suxx.
+	 * FIXME - doesnt work with anymore with gnome2 */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(active_waveedit->toolbar)), 6)->data);
+		GTK_CONTAINER(active_waveedit->toolbar)), TOOLBAR_PLAY_DEL)->data);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar),
 				 _("Stop"), _("Stop"), 
 				 GNOME_STOCK_PIXMAP_STOP,
-				playrecordtoolbar_cb, active_waveedit->waveview, 9);
+				playrecordtoolbar_cb, active_waveedit->waveview,
+				TOOLBAR_PLAY_INS);
 	active_waveedit->locked = 1;
 
 	return;
