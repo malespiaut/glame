@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.119 2004/02/08 21:50:19 richi Exp $
+ * $Id: main.c,v 1.120 2004/03/28 21:44:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -27,10 +27,10 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <gnome.h>
 #ifdef HAVE_LIBGLADE
 #include <glade/glade.h>
 #endif
-#include <libintl.h>
 #include "swapfile.h"
 #include "glmid.h"
 #include "swapfilegui.h"
