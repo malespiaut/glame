@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.59 2001/09/17 11:47:12 nold Exp $
+ * $Id: swapfilegui.c,v 1.60 2001/09/26 09:47:55 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -631,6 +631,15 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	gpsm_grp_t *group = NULL;
 	GlameTreeItem *grpw;
 	gpsm_item_t *it;
+	plugin_t *import;
+	int (*operation)(gpsm_item_t *, long, long);
+
+	if ((import = plugin_get("import"))
+	    && (operation = plugin_query(import, PLUGIN_GPSMOP))) {
+		if (operation(item->item, 0, 0) == -1)
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
+		
+	} else {
 
 	filenamebuffer = alloca(256);
 
@@ -714,6 +723,8 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 	net_restore_default();
+
+	}
 }
 
 
