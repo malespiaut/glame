@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft.c,v 1.11 2001/01/18 16:53:13 mag Exp $
+ * $Id: fft.c,v 1.12 2001/01/24 00:14:12 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -214,7 +214,8 @@ static int fft_f(filter_t *n){
 
 	if (cnt == 0) {
 		sbuf_unref(outb);
-	} else {
+	} else if (cnt!=obufcnt) {
+		DPRINTF("realloc\n");
 		outb2 = sbuf_make_private(sbuf_alloc(cnt*bsize, n));
 		memcpy(sbuf_buf(outb2), sbuf_buf(outb), cnt*bsize*SAMPLE_SIZE);
 		sbuf_unref(outb);
