@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.21 2001/04/11 16:25:21 richi Exp $
+ * $Id: glplugin.c,v 1.22 2001/04/12 09:44:58 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -20,6 +20,7 @@
  *
  */
 
+#include <unistd.h>
 #include <string.h>
 #include <dlfcn.h>
 #include "util.h"
@@ -215,6 +216,8 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 {
 	/* First try to open the specified shared object. */
+	if (access(filename, R_OK) == -1)
+		return -1;
 	if (!(p->handle = dlopen(filename, RTLD_NOW))) {
 		DPRINTF("dlopen(%s): %s\n", filename, dlerror());
 		return -1;
