@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.31 2000/08/01 12:45:51 mainzelm Exp $
+; $Id: glame.scm,v 1.32 2000/08/07 06:25:47 mag Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -294,7 +294,7 @@
 		(conn (filternetwork_add_connection rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
-	       (begin (nodes-connect (append eff (list ao))) #t)))))
+	       (begin (nodes-connect (append eff (list wf))) #t)))))
       (net-run net))))
 
 (add-help 'save-eff '(input-filename output-filename effect ...)

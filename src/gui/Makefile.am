@@ -14,12 +14,12 @@ endif
 glame_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
 
 glame_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS)
+	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
 glame_LDFLAGS = -export-dynamic
 
 
 wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
 wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS)
+	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
 glame_LDFLAGS = -export-dynamic
 

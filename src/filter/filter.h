@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.57 2000/08/03 11:21:52 mag Exp $
+ * $Id: filter.h,v 1.58 2000/08/07 06:25:47 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -360,6 +360,7 @@ do { \
 #define FILTER_PIPETYPE_MIDI    FILTER_PORTTYPE_MIDI
 #define FILTER_PIPETYPE_CONTROL FILTER_PORTTYPE_CONTROL
 #define FILTER_PIPETYPE_MISC    FILTER_PORTTYPE_MISC
+#define FILTER_PIPETYPE_FFT	FILTER_PORTTYPE_FFT
 #define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
 
 /* Common values for hangle value of a filter pipe
@@ -392,6 +393,17 @@ do { \
 #define filterpipe_sourcepdb(fp) (&(fp)->source_params)
 #define filterpipe_destpdb(fp) (&(fp)->dest_params)
 
+#define filterpipe_settype_fft(fp, freq, hangle, bs, os) do { \
+	(fp)->type = FILTER_PIPETYPE_FFT; \
+	(fp)->u.fft.rate = (freq); \
+	(fp)->u.fft.phi = (hangle); \
+	(fp)->u.fft.bsize = (bs); \
+	(fp)->u.fft.osamp = (os); \
+} while (0)
+#define filterpipe_fft_rate(fp) ((fp)->u.fft.rate)
+#define filterpipe_fft_hangle(fp) ((fp)->u.fft.phi)
+#define filterpipe_fft_bsize(fp) ((fp)->u.fft.bsize)
+#define filterpipe_fft_osamp(fp) ((fp)->u.fft.osamp)
 
 /* filter buffer stuff
  */

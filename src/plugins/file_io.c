@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.28 2000/05/20 12:44:29 richi Exp $
+ * $Id: file_io.c,v 1.29 2000/08/07 06:25:48 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -800,7 +800,6 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 		RWA(n).track[i].p=p;
 		RWA(n).track[i].mapped=1;
 	}	
-	
 	return 0;	
 }
 

@@ -9,6 +9,6 @@ endif
 
 cglame_SOURCES = cglame.c
 cglame_LDADD = plugins/libglamebuiltins.la glmid/libglame.la \
-	$(GLAME_LIBS) $(GLAME_DLIBS)
+	$(GLAME_LIBS) $(GLAME_DLIBS) $(GLAME_FFT_LIBS)
 cglame_LDFLAGS = -export-dynamic
 

@@ -67,6 +67,12 @@ struct filter_pipe {
 			int rate; 	/* sample rate, [Hz] */
 			float phi; 	/* polar coordinate, [rad] */
 		} sample;
+		struct{
+			int rate;	/* sample rate, [Hz] */
+			float phi;	/* polar coordinate, [rad] */
+			int bsize;	/* size of single fft-block in half-complex format (see fftw) */
+			int osamp;	/* oversampling factor */
+		} fft;
 		struct {
 			int blocksize;
 		} rms;

@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.22 2000/08/04 09:28:19 richi Exp $
+ * $Id: filter_protocols.h,v 1.23 2000/08/07 06:25:47 mag Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -38,33 +38,8 @@
 #define PORTNAME_IN "in"
 #define PORTNAME_OUT "out"
 
-/* FFT protocol 
- * The FFT Buffer is initialized with fft_alloc(wsize,filternode) 
- * - wsize is the 
- */
-
-typedef struct fft_header fft_header_t;
-struct fft_header {
-	int osamp;	/* oversampling factor */
-	char buf[1];	/* */
-};
-
-#define fft_alloc(wsize, filternode) \
-        fbuf_alloc(SAMPLE_SIZE*(wsize) + sizeof(fft_header_t), \
-		   &(filternode)->buffers)
-#define fft_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(fft_header_t))/SAMPLE_SIZE)
-#define fft_buf(fb) ((SAMPLE *)(&((fft_header_t *)fbuf_buf(fb))->buf[0]))
-#define fft_ref(fb) fbuf_ref(fb)
-#define fft_unref(fb) fbuf_unref(fb)
-#define fft_make_private(fb) fbuf_make_private(fb)
-#define fft_get(p) fbuf_get(p)
-#define fft_queue(p, fb) fbuf_queue(p,fb)
-
-#define fft_set_osamp(fb,os) do { ((fft_header_t *)fbuf_buf(fb))->osamp=os; } while (0)
-#define fft_get_osamp(fb) ((fft_header_t *)fbuf_buf(fb))->osamp
-
-/* A try for an RMS protocol
- * We don't need an actual buffer, "a header should be enough for everyone"
+/* RMS protocol
+ * We don't need an actual buffer, "one header should be enough for everyone"
  */
 
 #define RMS_TOTAL  1
@@ -133,7 +108,8 @@ do { \
 	wpos=rms_buf(fb)->u.w.pos; \
 } while(0)
 
-/* Simply the SAMPLE protocol. What do you expect?
+/* Sample protocol
+ * is either used for sample- AND fft-protocol
  */
 
 typedef struct sbuf_header sbuf_header_t;

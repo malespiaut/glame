@@ -142,6 +142,7 @@ static int time_f(filter_node_t *n)
 							}
 
 						if(flag == TIME_FLAG_DECAY) {
+							gain-=release;
 							if(gain <= 0.0) {
 								gain = 0.0;
 								if(t_on < t_off)
