@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.49 2001/05/09 10:57:06 xwolf Exp $
+ * $Id: main.c,v 1.50 2001/05/13 11:58:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -38,6 +38,8 @@
 #include "glame_gui_utils.h"
 #include "gltreeitem.h"
 #include "gpsm.h"
+#include "clipboard.h"
+
 
 /* Globals. */
 static char *swname = NULL;
@@ -507,7 +509,7 @@ static void glame_splash(void)
 
 static void gui_quit(GtkWidget *widget, gpointer data)
 {
-	glame_waveedit_cleanup();
+	clipboard_empty();
 	gpsm_close();
 	gtk_main_quit();
 }
