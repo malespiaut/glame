@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.57 2002/02/06 19:15:11 richi Exp $
+ * $Id: basic_sample.c,v 1.58 2002/02/06 19:31:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -1132,7 +1132,7 @@ static int repeat_f(filter_t *n)
 	filter_port_t *inp, *outp;
 	filter_buffer_t *buf, *buf2;
 	feedback_fifo_t fifo;
-	int duration;
+	int duration, endless;
 
 	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
@@ -1140,9 +1140,12 @@ static int repeat_f(filter_t *n)
 	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
 
+	endless = 0;
 	duration = filterpipe_sample_rate(in)*filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "duration"));
 	if (duration < 0)
 		FILTER_ERROR_RETURN("weird time");
+	if (duration == 0)
+		endless = 1;
 	INIT_FEEDBACK_FIFO(fifo);
 
 	FILTER_AFTER_INIT;
@@ -1154,11 +1157,12 @@ static int repeat_f(filter_t *n)
 		FILTER_CHECK_STOP;
 		sbuf_ref(buf);
 		add_feedback(&fifo, buf);
-		duration -= sbuf_size(buf);
+		if (!endless)
+			duration -= sbuf_size(buf);
 		sbuf_queue(out, buf);
 	entry1:
 		buf = sbuf_get(in);
-	} while (buf && duration >= sbuf_size(buf));
+	} while (buf && (endless || duration >= sbuf_size(buf)));
 
 	/* too many buffers from input? */
 	if (buf) {
@@ -1183,11 +1187,12 @@ static int repeat_f(filter_t *n)
 		FILTER_CHECK_STOP;
 		sbuf_ref(buf);
 		add_feedback(&fifo, buf);
-		duration -= sbuf_size(buf);
+		if (!endless)
+			duration -= sbuf_size(buf);
 		sbuf_queue(out, buf);
 	entry2:
 		buf = get_feedback(&fifo);
-	} while (buf && duration > sbuf_size(buf));
+	} while (buf && (endless || duration > sbuf_size(buf)));
 
 	/* part left to be sent? */
 	if (buf && duration > 0) {
@@ -1229,7 +1234,7 @@ int repeat_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "repeated stream",
 			      FILTERPORT_END);
 	filterparamdb_add_param_float(filter_paramdb(f), "duration",
-				  FILTER_PARAMTYPE_TIME_S, 1.0,
+				  FILTER_PARAMTYPE_TIME_S, 0.0,
 				  FILTERPARAM_DESCRIPTION, "total duration in seconds",
 				  FILTERPARAM_END);
 

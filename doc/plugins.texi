@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.34 2002/01/23 20:48:52 richi Exp $
+@comment $Id: plugins.texi,v 1.35 2002/02/06 19:31:21 richi Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -472,7 +472,7 @@ and transform it into a slightly mangled single output stream.
 @file{volume-adjust} scales the amplitude of a data stream. 
 @file{delay} and @file{extend} prepend and append zero samples to a data
 stream respectively. @file{repeat} resends an input sequence over and over
-for a fixed time. @file{invert} inverts all data of the input stream, i.e. 
+for a fixed time or for ever. @file{invert} inverts all data of the input stream, i.e. 
 each sample A is replaced by -A.
 
 @subsubheading Common ports
@@ -510,7 +510,7 @@ Defaults to 0ms.
 @table @code
 @item duration (time)
 The input pattern is repeated until a total time of duration seconds is
-reached. Defaults to 0s.
+reached. Defaults to 0s which is endless repetition.
 @end table
 
 
