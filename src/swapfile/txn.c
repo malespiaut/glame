@@ -24,6 +24,7 @@
 #endif
 
 #include <pthread.h>
+#include <string.h>
 #include "hash.h"
 #include "txn.h"
 
