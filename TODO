@@ -33,6 +33,8 @@ plugins/
 	- remove position pipe param from read_file
 	- redo render with right semantics
 	- write set param method for ladspa plugins
+	- fix ladspa plugin wrapper to adhere filter API (connect methods,
+	  pipe fixup handlers)
 	- better ladspa gui
 
 hash/
@@ -122,7 +124,6 @@ gui/libgtkwaveform
 	[xwolf]
 	- change color of background / foreground (make that configurable)
 	- fix marker redrawing
-	- allow shrinking selection by CTRL-clicking inside it
 
 gui/libgtkwaveform2
 	[richi]
