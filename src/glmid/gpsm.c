@@ -122,7 +122,9 @@ static void dump_ops(xmlNodePtr node)
 	char s[256];
 	int i;
 
-	list_foreach(&oplist, struct op, list, op) {
+	/* Dump from back to front to get implicit ordering right. */
+	op = list_gettail(&oplist, struct op, list);
+	while (op) {
 		opnode = xmlNewChild(node, NULL, "op", NULL);
 		snprintf(s, 255, "%i", op->nrpairs);
 		xmlSetProp(opnode, "nrpairs", s);
@@ -135,6 +137,7 @@ static void dump_ops(xmlNodePtr node)
 			snprintf(s, 255, "%li", op->pair[i].saved);
 			xmlSetProp(pairnode, "saved", s);
 		}
+		op = list_getprev(&oplist, op, struct op, list);
 	}
 }
 
