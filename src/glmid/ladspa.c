@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.11 2001/07/07 08:28:43 mag Exp $
+ * $Id: ladspa.c,v 1.12 2001/08/08 09:16:42 richi Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -36,9 +36,9 @@
 
 /* Generic LADSPA filter wrapping function. */
 
-static int ladspa_connect_out(filter_t *n, filter_port_t *port,
-		                                filter_pipe_t *p)
+static int ladspa_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *n = filterport_filter(port);
 	int rate;
 	float pos;
 
@@ -589,7 +589,9 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		   channels as it has none. GLAME therefore requires us to choose
 		   one ourselves. This requires us to provide a sample-rate
 		   parameter on the plugin itself. */
-		psFilter->connect_out = ladspa_connect_out;
+		filterportdb_foreach_port(filter_portdb(psFilter), psPort)
+			if (filterport_is_output(psPort))
+				psPort->connect = ladspa_connect_out;
 		
 		filterparamdb_add_param_int(filter_paramdb(psFilter),
 					    "GLAME Sample Rate",
