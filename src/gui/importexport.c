@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.50 2005/01/02 22:17:34 ochonpaul Exp $
+ * $Id: importexport.c,v 1.51 2005/01/10 23:09:53 nold Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1141,16 +1141,12 @@ struct exp_s {
 	int running;
 	filter_t *net;
         filter_launchcontext_t *context;
-#ifdef HAVE_LIBMP3LAME
         GtkWidget *quality_select, *mode_select, *bitrate_select;
         GtkWidget *title, *artist, *album, *year, *comment, *track, *genre;
 	int mp3_menu_index, mp3tab_num ;
-#endif
-#ifdef HAVE_LIBVORBISFILE
         GtkWidget *quality_select_ogg, *mode_select_ogg, *bitrate_select_ogg;
         GtkWidget *title_ogg, *artist_ogg, *album_ogg, *year_ogg, *comment_ogg, *track_ogg, *genre_ogg;
 	int ogg_menu_index, oggvorbistab_num;
-#endif
 };
 
 static long export_default_filetype = -1; /* auto */
