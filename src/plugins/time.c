@@ -1,5 +1,5 @@
 /*
- * $Id: time.c,v 1.7 2001/04/24 15:42:59 nold Exp $
+ * $Id: time.c,v 1.8 2001/04/26 12:17:03 richi Exp $
  * time.c
  *
  * A simple time gate.  It will switch on at a specified time, or switch
@@ -244,9 +244,9 @@ int time_register(plugin_t *p)
 	                  NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generates a single ramp or pulse signal");
-	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
-	plugin_set(p, PLUGIN_CATEGORY, "Time");
-	filter_register(f, p);
-	
-	return 0;
+	plugin_set(p, PLUGIN_PIXMAP, "time.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
+
+	return filter_register(f, p);
 }
