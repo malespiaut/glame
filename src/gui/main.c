@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.97 2001/12/16 22:27:20 richi Exp $
+ * $Id: main.c,v 1.98 2001/12/23 15:02:46 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -826,7 +826,7 @@ _("Welcome first-time user of GLAME.\n"
 	run_prefs:
 		if (!preferences_cb(NULL, NULL)) {
 			gnome_dialog_run_and_close(
-				GNOME_DIALOG(gnome_error_dialog("You didnt change/check the configuration.\nGLAME is exiting now.\n")));
+				GNOME_DIALOG(gnome_error_dialog(_("You didnt change/check the configuration.\nGLAME is exiting now.\n"))));
 			exit(1);
 		}
 	}
@@ -837,7 +837,7 @@ _("Welcome first-time user of GLAME.\n"
 		if (swapfile_creat(path, -1)) {
 			char msg[256];
 			char *errmsg = strerror(errno);
-			snprintf(msg, 255, "GLAME was unable to create its swapfile\nbecause of \"%s\".\nPlease check the configuration.\n", errmsg);
+			snprintf(msg, 255, _("GLAME was unable to create its swapfile\nbecause of \"%s\".\nPlease check the configuration.\n"), errmsg);
 			gnome_dialog_run_and_close(
 				GNOME_DIALOG(gnome_error_dialog(msg)));
 			goto run_prefs;

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.70 2001/12/11 21:12:27 richi Exp $
+ * $Id: swapfilegui.c,v 1.71 2001/12/23 15:02:46 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -30,6 +30,7 @@
 #include <gnome.h>
 #include <xmlmemory.h>
 #include <parser.h>
+#include <libintl.h>
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gltreeitem.h"
@@ -78,25 +79,25 @@ static GnomeUIInfo dummy2_menu[] = {
 
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
-        GNOMEUIINFO_ITEM("Timeline", "timeline", timeline_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Edit"), N_("edit"), edit_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Timeline"), N_("timeline"), timeline_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Delete"), N_("delete"), delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
-	GNOMEUIINFO_ITEM("Add clipboard", "addclipboard", addclipboard_cb, NULL),
-	GNOMEUIINFO_ITEM("Add mono wave", "addfile", addfile_cb, NULL),
-	GNOMEUIINFO_ITEM("Add stereo wave", "addstereo", addstereo_cb, NULL),
-        GNOMEUIINFO_ITEM("Link selected", "link", linkselected_cb, NULL),
-        GNOMEUIINFO_ITEM("Copy selected", "copy", copyselected_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add group"), N_("addgroup"), addgroup_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add clipboard"), N_("addclipboard"), addclipboard_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add mono wave"), N_("addfile"), addfile_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Add stereo wave"), N_("addstereo"), addstereo_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Link selected"), N_("link"), linkselected_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Copy selected"), N_("copy"), copyselected_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
-        GNOMEUIINFO_ITEM("Flatten", "flatten", flatten_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Merge with parent"), N_("import"), mergeparent_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Flatten"), N_("flatten"), flatten_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("Apply operation", dummy1_menu),
+	GNOMEUIINFO_SUBTREE(N_("Apply operation"), dummy1_menu),
 	GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
-	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Import..."), N_("import"), import_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Export..."), N_("Export swapfile tracks"), export_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
@@ -108,15 +109,15 @@ static GnomeUIInfo group_menu_data[] = {
 #define GROUP_MENU_IMPORT_INDEX 18
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Edit"), N_("edit"), edit_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Delete"), N_("delete"), delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_SUBTREE("Apply operation", dummy2_menu),
+	GNOMEUIINFO_SUBTREE(N_("Apply operation"), dummy2_menu),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Group", "group", group_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Group"), N_("group"), group_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("Export..."), N_("Export swapfile tracks"), export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
@@ -187,7 +188,7 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 
 	if (operation(item, 0, gpsm_item_hsize(item)) == -1)
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Error executing")));
+			gnome_error_dialog(_("Error executing"))));
 
 	DPRINTF("%s finished.\n", plugin_name(plugin));
 	deselect_all(active_swapfilegui);
@@ -375,7 +376,7 @@ static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Create new gpsm swfile and insert it. */
-	swfile = gpsm_newswfile("Unnamed");
+	swfile = gpsm_newswfile(_("Unnamed"));
 	gpsm_vbox_insert((gpsm_grp_t *)item->item,
 			 (gpsm_item_t *)swfile,
 			 0, gpsm_item_vsize(item->item));
@@ -402,10 +403,10 @@ static void addstereo_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Create new group and two gpsm swfiles and insert it. */
-	grp = gpsm_newgrp("Unnamed");
-	left = gpsm_newswfile("left");
+	grp = gpsm_newgrp(_("Unnamed"));
+	left = gpsm_newswfile(_("left"));
 	gpsm_swfile_set_position(left, FILTER_PIPEPOS_LEFT);
-	right = gpsm_newswfile("right");
+	right = gpsm_newswfile(_("right"));
 	gpsm_swfile_set_position(right, FILTER_PIPEPOS_RIGHT);
 	gpsm_vbox_insert(grp, (gpsm_item_t *)left, 0, 0);
 	gpsm_vbox_insert(grp, (gpsm_item_t *)right, 0, 1);
@@ -463,7 +464,7 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 
 	/* Create new gpsm group. */
-	grp = gpsm_newgrp("Unnamed");
+	grp = gpsm_newgrp(_("Unnamed"));
 	gpsm_vbox_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp,
 			 0, gpsm_item_vsize(item->item));
 
@@ -489,7 +490,7 @@ static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item)
 	/* Create new gpsm group. */
 	if (!(grp = clipboard_get())) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Clipboard is empty")));
+			gnome_error_dialog(_("Clipboard is empty"))));
 		return;
 	}
 	gpsm_vbox_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp,
@@ -529,7 +530,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 	we = glame_waveedit_gui_new(gpsm_item_label(item->item), item->item);
 	if (!we) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Cannot open wave editor")));
+			gnome_error_dialog(_("Cannot open wave editor"))));
 		return;
 	}
 	gtk_quit_add_destroy(1, GTK_OBJECT(we));
@@ -546,7 +547,7 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 					    (gpsm_grp_t *)item->item);
 	if (!tl) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Cannot open timeline")));
+			gnome_error_dialog(_("Cannot open timeline"))));
 		return;
 	}
 	gtk_quit_add_destroy(1, GTK_OBJECT(tl));
@@ -554,7 +555,7 @@ static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
 	deselect_all(active_swapfilegui);
 	if (!warning_shown) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_warning_dialog_parented("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned.", GTK_WINDOW(tl))));
+			gnome_warning_dialog_parented(_("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned."), GTK_WINDOW(tl))));
 		warning_shown = 1;
 	}
 }
@@ -612,12 +613,12 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			DPRINTF("SHIFT modifier\n");
 			mode = 1;
 			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
-					  "Drop into hbox");
+					  _("Drop into hbox"));
 		} else if (bevent->state & GDK_CONTROL_MASK) {
 			DPRINTF("CTRL modifier\n");
 			mode = 2;
 			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
-					  "Drop into vbox");
+					  _("Drop into vbox"));
 		} else {
 			DPRINTF("illegal modifier\n");
 			return; /* modifier not valid */

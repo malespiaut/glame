@@ -1,238 +1,554 @@
-# Localized messages for the Glame sound editor
-# Copyright (C) 2001 Daniel Kobras
-# Daniel Kobras <kobras@linux.de>, 2001.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#: main.c:367 main.c:392
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Glame 0.5.2\n"
-"POT-Creation-Date: 2001-08-03 17:42+0200\n"
-"PO-Revision-Date: 2001-08-04 17:28+0200\n"
-"Last-Translator: Daniel Kobras <kobras@linux.de>\n"
-"Language-Team: de <de@li.org>\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2001-12-23 15:52+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ISO-8859-1\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: ENCODING\n"
 
-#: main.c:69
-msgid "_New Project"
-msgstr "_Neues Projekt"
-
-#: main.c:69
+#: src/gui/main.c:70 src/gui/main.c:75
 msgid "Creates a new Project group"
 msgstr "Legt eine neue Projektgruppe an"
 
-#: main.c:70
+#: src/gui/main.c:70 src/gui/main.c:75
+msgid "_New Project"
+msgstr "_Neues Projekt"
+
+#: src/gui/main.c:71 src/gui/main.c:76
 msgid "Edit File..."
 msgstr "Bearbeite Datei..."
 
-#: main.c:70
+#: src/gui/main.c:71 src/gui/main.c:76
 msgid "Imports a file and opens the waveedit window"
 msgstr "Importiert eine Datei und öffnet das Waveedit-Fenster"
 
-#: main.c:72
+#: src/gui/main.c:73 src/gui/main.c:79
 msgid "Empty [deleted]"
 msgstr "Lösche [deleted]"
 
-#: main.c:72
+#: src/gui/main.c:73 src/gui/main.c:79
 msgid "Kills [deleted] folder"
 msgstr "Leert den Ordner [deleted]"
 
-#: main.c:74
+#: src/gui/main.c:75 src/gui/main.c:81
 msgid "Show _console"
 msgstr "Zeige _Konsole"
 
-#: main.c:74
+#: src/gui/main.c:75 src/gui/main.c:81
 msgid "Shows the GLAME console"
 msgstr "Zeigt die GLAME-Console an"
 
-#: main.c:75
+#: src/gui/main.c:76 src/gui/main.c:82
 msgid "Sync"
 msgstr "Sync"
 
-#: main.c:75
+#: src/gui/main.c:76 src/gui/main.c:82
 msgid "Syncs meta to disk"
 msgstr "Speichert Metadaten auf Platte"
 
-#: main.c:85
-msgid "New Filternetwork"
-msgstr "Neues Filternetzwerk"
+#: src/gui/main.c:77 src/gui/swapfilegui.c:99
+msgid "Import..."
+msgstr "Import..."
 
-#: main.c:85
+#: src/gui/main.c:77
+msgid "Imports a file"
+msgstr "Importiert eine Datei"
+
+#: src/gui/main.c:86 src/gui/main.c:92
 msgid "Creates a new filternetwork"
 msgstr "Erstellt ein neues Filternetzwerk"
 
-#: main.c:88 main.c:300
+#: src/gui/main.c:86 src/gui/main.c:92
+msgid "New Filternetwork"
+msgstr "Neues Filternetzwerk"
+
+#: src/gui/main.c:89 src/gui/main.c:95 src/gui/main.c:240 src/gui/main.c:300
 msgid "Load Plugin"
 msgstr "Lade Plugin"
 
-#: main.c:88
+#: src/gui/main.c:89 src/gui/main.c:95
 msgid "Loads and registers a plugin"
 msgstr "Lädt und registriert ein Plugin"
 
-#: main.c:94
-msgid "_Help"
-msgstr "_Hilfe"
-
-#: main.c:94
+#: src/gui/main.c:95 src/gui/main.c:101
 msgid "Opens a gnome help browser"
 msgstr "Öffnet die Glame-Hilfe"
 
-#: main.c:95
-msgid "Quick Start Guide"
-msgstr "Kurzeinführung"
+#: src/gui/main.c:95 src/gui/main.c:101
+msgid "_Help"
+msgstr "_Hilfe"
 
-#: main.c:95
+#: src/gui/main.c:96 src/gui/main.c:102
 msgid "Opens a gnome help browser with the quick start guide"
 msgstr "Öffnet die Glame-Kurzeinführung"
 
-#: main.c:110
+#: src/gui/main.c:96 src/gui/main.c:102
+msgid "Quick Start Guide"
+msgstr "Kurzeinführung"
+
+#: src/gui/main.c:101
+msgid "info:glame"
+msgstr ""
+
+#: src/gui/main.c:102
+msgid "info:glame#Quick_Start_Guide"
+msgstr ""
+
+#: src/gui/main.c:103
+msgid "List key-bindings"
+msgstr "Zeige Tastaturbelegung"
+
+#: src/gui/main.c:103
+msgid "Lists the current key-bindings"
+msgstr "Zeigt die aktuelle Tastaturbelegung"
+
+#: src/gui/main.c:103
+msgid "list_keybindings"
+msgstr ""
+
+#: src/gui/main.c:111 src/gui/main.c:119
 msgid "_Project"
 msgstr "_Projekt"
 
-#: main.c:117
+#: src/gui/main.c:118 src/gui/main.c:126
 msgid "_Filternetwork"
 msgstr "_Filternetzwerk"
 
-#: main.c:161
+#. Create new gpsm group.
+#: src/gui/main.c:162 src/gui/main.c:173 src/gui/swapfilegui.c:379
+#: src/gui/swapfilegui.c:406 src/gui/swapfilegui.c:467
 msgid "Unnamed"
 msgstr "Unbenannt"
 
-#: main.c:190
+#: src/gui/main.c:176
+msgid "Cannot insert new group!?\n"
+msgstr ""
+
+#: src/gui/main.c:182
+msgid "Umm, cant find widget for new project.\n"
+msgstr ""
+
+#: src/gui/main.c:190
+#, possible-c-format
+msgid "Destroying subtree %s\n"
+msgstr ""
+
+#: src/gui/main.c:191
 msgid "Error importing"
 msgstr "Fehler beim Importieren"
 
-#: main.c:206
+#: src/gui/main.c:207
 msgid "Edit audio file"
 msgstr "Bearbeite Audiodatei"
 
-#: main.c:208 main.c:301
-msgid "Filename"
-msgstr "Dateiname"
-
-#: main.c:269
-msgid "Failed to create importing network"
-msgstr "Das Import-Netzwerk konnte nicht erstellt werden"
-
-#: main.c:288
+#: src/gui/main.c:209 src/gui/main.c:287 src/gui/swapfilegui.c:533
 msgid "Cannot open wave editor"
 msgstr "Kann Wavebearbeitungsfenster nicht öffnen"
 
-#: main.c:308
+#: src/gui/main.c:209 src/gui/main.c:241 src/gui/main.c:301
+msgid "Filename"
+msgstr "Dateiname"
+
+#: src/gui/main.c:213 src/gui/main.c:757
+msgid "destroy"
+msgstr ""
+
+#: src/gui/main.c:229 src/gui/swapfilegui.c:582
+msgid "Cannot place imported wave"
+msgstr "Kann Wellenform nicht einfuegen"
+
+#: src/gui/main.c:241
+msgid "main:load_plugin"
+msgstr ""
+
+#: src/gui/main.c:249 src/gui/main.c:309
 msgid "Error loading plugin"
 msgstr "Schwerer Ausnahmefehler beim Laden des Plugins"
 
-#: main.c:466
+#: src/gui/main.c:268 src/gui/main.c:275 src/gui/main.c:482 src/gui/main.c:649
+#: src/gui/main.c:834
+msgid "swapfile/defaultpath"
+msgstr ""
+
+#: src/gui/main.c:269
+msgid "Failed to create importing network"
+msgstr "Das Import-Netzwerk konnte nicht erstellt werden"
+
+#: src/gui/main.c:274
+#, possible-c-format
+msgid "%s/.glameswap"
+msgstr ""
+
+#: src/gui/main.c:277 src/gui/main.c:514 src/gui/main.c:651
+msgid "swapfile/maxundo"
+msgstr ""
+
+#: src/gui/main.c:280 src/gui/main.c:491 src/gui/main.c:653
+msgid "swapfile/maxlru"
+msgstr ""
+
+#: src/gui/main.c:281 src/gui/main.c:496 src/gui/main.c:655
+msgid "swapfile/maxfds"
+msgstr ""
+
+#: src/gui/main.c:282 src/gui/main.c:501 src/gui/main.c:657
+msgid "swapfile/maxmaps"
+msgstr ""
+
+#: src/gui/main.c:283 src/gui/main.c:506 src/gui/main.c:659
+msgid "swapfile/maxvm"
+msgstr ""
+
+#: src/gui/main.c:287 src/gui/main.c:626 src/gui/main.c:673
+msgid "filter/wbufsize"
+msgstr ""
+
+#: src/gui/main.c:291 src/gui/main.c:603 src/gui/main.c:671
+msgid "audio_io/output_plugin"
+msgstr ""
+
+#: src/gui/main.c:292 src/gui/main.c:296 src/gui/main.c:307
+msgid "audio_out"
+msgstr ""
+
+#: src/gui/main.c:294
+#, possible-c-format
+msgid "No plugin %s - using audio_out\n"
+msgstr ""
+
+#: src/gui/main.c:300 src/gui/main.c:306 src/gui/main.c:321 src/gui/main.c:327
+msgid "device"
+msgstr ""
+
+#: src/gui/main.c:301 src/gui/main.c:322
+#, possible-c-format
+msgid "%s"
+msgstr ""
+
+#: src/gui/main.c:302 src/gui/main.c:614 src/gui/main.c:669
+msgid "audio_io/output_dev"
+msgstr ""
+
+#: src/gui/main.c:312 src/gui/main.c:567 src/gui/main.c:667
+msgid "audio_io/input_plugin"
+msgstr ""
+
+#: src/gui/main.c:313 src/gui/main.c:317 src/gui/main.c:328
+msgid "audio_in"
+msgstr ""
+
+#: src/gui/main.c:315
+#, possible-c-format
+msgid "No plugin %s - using audio_in\n"
+msgstr ""
+
+#: src/gui/main.c:323 src/gui/main.c:578 src/gui/main.c:665
+msgid "audio_io/input_dev"
+msgstr ""
+
+#: src/gui/main.c:337
+#, possible-c-format
+msgid ""
+"Preferences:\n"
+"\tSwapfile directory %s\n"
+"\tUndo stack depth is %li\n"
+"\tAudio input plugin %s, device \"%s\"\n"
+"\tAudio output plugin %s, device \"%s\"\n"
+"\tGLAME_WBUFSIZE %i\n"
+"\tPopup timeout is %lims\n"
+"\tMac mode is %s\n"
+msgstr ""
+
+#: src/gui/main.c:346
+msgid "off"
+msgstr ""
+
+#: src/gui/main.c:346
+msgid "on"
+msgstr ""
+
+#: src/gui/main.c:402
+msgid "Audio plugins"
+msgstr "Audio plugins"
+
+#: src/gui/main.c:436
+msgid "Add"
+msgstr ""
+
+#: src/gui/main.c:440
+msgid "Apply"
+msgstr ""
+
+#. Swapfile with
+#. * - swapfile location
+#: src/gui/main.c:470 src/gui/main.c:471
 msgid "Swapfile"
 msgstr "Auslagerungsdatei"
 
-#: main.c:470
+#: src/gui/main.c:474 src/gui/main.c:475
 msgid "You need lots of diskspace available at the swapfile location."
 msgstr ""
 "Die Auslagerungsdatei benötigt eine Partition mit viel freiem Speicherplatz"
 
-#: main.c:473
+#: src/gui/main.c:477 src/gui/main.c:478
 msgid "GLAME doesnt handle running out of disk space very well."
 msgstr ""
 "Glame versteht es nicht besonders gut, mit dem Fehlerfall einer komplett "
 "beschriebenen Platte umzugehen"
 
-#: main.c:466 main.c:477
+#: src/gui/main.c:480 src/gui/main.c:481 src/gui/main.c:482
 msgid "Swapfile Path"
 msgstr "Pfad zur Auslagerungsdatei"
 
-#: main.c:484
+#: src/gui/main.c:480
+msgid "swapfilepath"
+msgstr ""
+
+#: src/gui/main.c:487 src/gui/main.c:572 src/gui/main.c:608
+msgid "changed"
+msgstr ""
+
+#: src/gui/main.c:488
+msgid "Dont change values below, if you dont know what you are doing."
+msgstr ""
+"Folgende Werte sollten nur geaendert werden, wenn Sie wissen, was Sie tun."
+
+#: src/gui/main.c:489 src/gui/main.c:511
 msgid "NOTE: Swapfile settings take effect after restart only"
 msgstr ""
 "Die geänderten Einstellungen für die Auslagerungsdatei werden erst nach "
 "einem Neustart aktiv"
 
-#: main.c:490
+#: src/gui/main.c:493 src/gui/main.c:498 src/gui/main.c:503 src/gui/main.c:508
+#: src/gui/main.c:516 src/gui/main.c:530 src/gui/main.c:628 src/gui/main.c:650
+#: src/gui/main.c:652 src/gui/main.c:654 src/gui/main.c:656 src/gui/main.c:658
+#: src/gui/main.c:660 src/gui/main.c:672
+#, possible-c-format
+msgid "%li"
+msgstr ""
+
+#: src/gui/main.c:494
+msgid "Maximum number of cached fragment headers"
+msgstr "Maximale Zahl gecachter Fragmentkoepfe"
+
+#: src/gui/main.c:494
+msgid "prefs::maxlru"
+msgstr ""
+
+#: src/gui/main.c:495 src/gui/main.c:517
 msgid "Depth of undo stack"
 msgstr "Anzahl der Schritte, die rückgängig gemacht werden können"
 
-#: main.c:497
+#: src/gui/main.c:499
+msgid "Maximum number of cached file descriptors"
+msgstr "Maximale Zahl gecachter Dateideskriptoren"
+
+#: src/gui/main.c:499
+msgid "prefs::maxfds"
+msgstr ""
+
+#. Edit Filter with
+#. * - popup timeout
+#. * - mac mode
+#: src/gui/main.c:502 src/gui/main.c:524
 msgid "Filternetwork"
 msgstr "Filternetzwerk"
 
-#: main.c:504
+#: src/gui/main.c:504
+msgid "Maximum number of cached memory mappings"
+msgstr "Maximale Zahl gecachter Speicherbereiche"
+
+#: src/gui/main.c:504
+msgid "prefs::maxmaps"
+msgstr ""
+
+#: src/gui/main.c:509
+msgid "Maximum virtual memory used for caching"
+msgstr "Maximal genutzter Speicher fuer Caching"
+
+#: src/gui/main.c:509 src/gui/main.c:531
 msgid "Property popup timeout [ms]"
 msgstr "Verzögerung Einstellungshinweise [ms]"
 
-#: main.c:511
-msgid "toggled"
+#: src/gui/main.c:509
+msgid "prefs::maxvm"
 msgstr ""
 
-#: main.c:513
+#: src/gui/main.c:517
+msgid "prefs::maxundo"
+msgstr ""
+
+#: src/gui/main.c:518 src/gui/main.c:540
 msgid "Mac mode (one mouse button mode)"
 msgstr "Mac-Modus (eine Maustaste)"
 
-#: main.c:521
+#. Audio I/O with
+#. * - input device
+#. * - output device
+#: src/gui/main.c:526 src/gui/main.c:548
 msgid "Audio I/O"
 msgstr "Audio-Ein/Ausgabe"
 
-#: main.c:549
+#: src/gui/main.c:528 src/gui/main.c:661
+msgid "edit_filter/popupTimeout"
+msgstr ""
+
+#: src/gui/main.c:531
+msgid "popupTimeout"
+msgstr ""
+
+#: src/gui/main.c:534 src/gui/main.c:663
+msgid "edit_filter/macMode"
+msgstr ""
+
+#: src/gui/main.c:538
+msgid "toggled"
+msgstr ""
+
+#: src/gui/main.c:552 src/gui/main.c:574
 msgid "Default input plugin (audio_in)"
 msgstr "Standard-Audioeingabeplugin (audio_in)"
 
-#: main.c:556
+#: src/gui/main.c:554 src/gui/main.c:555
+msgid "oss_audio_in"
+msgstr ""
+
+#: src/gui/main.c:556 src/gui/main.c:557
+msgid "esd_audio_in"
+msgstr ""
+
+#: src/gui/main.c:558 src/gui/main.c:559
+msgid "alsa_audio_in"
+msgstr ""
+
+#: src/gui/main.c:559 src/gui/main.c:581
 msgid "Default input device"
 msgstr "Standard-Eingabegerät"
 
-#: main.c:558
+#: src/gui/main.c:560 src/gui/main.c:561
+msgid "sgi_audio_in"
+msgstr ""
+
+#: src/gui/main.c:561 src/gui/main.c:583
 msgid "No audio input plugin"
 msgstr "Kein Audioeingabeplugin"
 
-#: main.c:587
+#: src/gui/main.c:581
+msgid "aindev"
+msgstr ""
+
+#: src/gui/main.c:588 src/gui/main.c:610
 msgid "Default output plugin (audio_out)"
 msgstr "Standard-Audioausgabeplugin (audio_out)"
 
-#: main.c:594
+#: src/gui/main.c:590 src/gui/main.c:591
+msgid "oss_audio_out"
+msgstr ""
+
+#: src/gui/main.c:592 src/gui/main.c:593
+msgid "esd_audio_out"
+msgstr ""
+
+#: src/gui/main.c:594 src/gui/main.c:595
+msgid "alsa_audio_out"
+msgstr ""
+
+#: src/gui/main.c:595 src/gui/main.c:617
 msgid "Default output device"
 msgstr "Standard-Ausgabegerät"
 
-#: main.c:597
+#: src/gui/main.c:596 src/gui/main.c:597
+msgid "sgi_audio_out"
+msgstr ""
+
+#: src/gui/main.c:598 src/gui/main.c:620
 msgid "No audio output plugin"
 msgstr "Kein Audioausgabeplugin"
 
-#: main.c:606
+#: src/gui/main.c:607 src/gui/main.c:629
 msgid "Size hint for audio buffers [samples]"
 msgstr "Bevorzugte Größe der Audiopuffer [Abtastpunkte]"
 
-#: main.c:660
+#: src/gui/main.c:618
+msgid "aoutdev"
+msgstr ""
+
+#: src/gui/main.c:629
+msgid "prefs::wbufsize"
+msgstr ""
+
+#: src/gui/main.c:637
+msgid "clicked"
+msgstr ""
+
+#: src/gui/main.c:669 src/gui/main.c:697
 msgid "Richard Guenther [Richi]"
 msgstr "Richard Günther [Richi]"
 
-#: main.c:661
+#: src/gui/main.c:670 src/gui/main.c:698
 msgid "Alexander Ehlert [Mag]"
 msgstr ""
 
-#: main.c:662
+#: src/gui/main.c:671 src/gui/main.c:699
 msgid "Daniel Kobras [*nold]"
 msgstr ""
 
-#: main.c:663
+#: src/gui/main.c:672 src/gui/main.c:700
 msgid "Johannes Hirche [XWolf]"
 msgstr ""
 
-#: main.c:664
+#: src/gui/main.c:673 src/gui/main.c:701
 msgid "and others"
 msgstr "und andere"
 
-#: main.c:674
+#: src/gui/main.c:683 src/gui/main.c:711
 msgid "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
 msgstr "Copyright (C) 1999-2001 R. Günther, A. Ehlert, J. Hirche, D. Kobras"
 
-#: main.c:676
-msgid ""
-"GLAME comes with ABSOLUTELY NO WARRANTY. \n"
-"This is free software."
+#: src/gui/main.c:709
+msgid "../data/pixmaps/glame-logo.jpg"
 msgstr ""
-"GLAME wird OHNE JEGLICHE GARANTIEN vertrieben. \n"
-"Dies ist Freie Software."
 
-#: main.c:723
+#: src/gui/main.c:710
+msgid "GLAME"
+msgstr ""
+
+#: src/gui/main.c:715
+msgid ""
+"This program is free software; you can redistribute it and/or modifyit under "
+"the terms of the GNU General Public License as published bythe Free Software "
+"Foundation; either version 2 of the License, or(at your option) any later "
+"version.\n"
+"This program is distributed in the hope that it will be useful,but WITHOUT "
+"ANY WARRANTY; without even the implied warranty ofMERCHANTABILITY or FITNESS "
+"FOR A PARTICULAR PURPOSE.  See theGNU General Public License for more "
+"details.\n"
+"You should have received a copy of the GNU General Public Licensealong with "
+"this program; if not, write to the Free SoftwareFoundation, Inc., 59 Temple "
+"Place, Suite 330, Boston, MA  02111-1307  USA"
+msgstr ""
+
+#: src/gui/main.c:727
+msgid "about"
+msgstr ""
+
+#: src/gui/main.c:729
+msgid "Glame"
+msgstr ""
+
+#: src/gui/main.c:729
+msgid "Glameabout"
+msgstr ""
+
+#: src/gui/main.c:744 src/gui/main.c:772
 #, c-format
 msgid ""
 "The GLAME swapfile subsystem is about to commit suicide.\n"
@@ -246,7 +562,8 @@ msgid ""
 "-- BYE BYE.\n"
 msgstr ""
 "Im Auslagerungs-Subsystem von GLAME ist ein schwerer Ausnahmefehler "
-"aufgetreten.\nDer Grund dafür ist:\n"
+"aufgetreten.\n"
+"Der Grund dafür ist:\n"
 "    %s\n"
 "Zuletzt wurde von libc folgender Fehler registriert:\n"
 "    %s\n"
@@ -255,7 +572,7 @@ msgstr ""
 "\n"
 "-- BIS ZUM NÄCHSTEN MAL.\n"
 
-#: main.c:770
+#: src/gui/main.c:791 src/gui/main.c:822
 msgid ""
 "Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
@@ -267,29 +584,60 @@ msgstr ""
 "grundlegende Einstellungen vornehmen. Bitte überprüfen Sie den\n"
 "Pfad der Auslagerungsdatei und die Audio-Ein/Ausgabeeinstellungen.\n"
 
-#: main.c:784
+#: src/gui/main.c:829
+#, fuzzy
 msgid ""
-"GLAME was somehow unable to create its swapfile\n"
+"You didnt change/check the configuration.\n"
+"GLAME is exiting now.\n"
+msgstr ""
+"Sie haben die Konfiguration nicht angepasst.\n"
+"GLAME beendet sich nun.\n"
+
+#: src/gui/main.c:835
+#, possible-c-format
+msgid "path: %s\n"
+msgstr ""
+
+#: src/gui/main.c:840
+#, possible-c-format
+msgid ""
+"GLAME was unable to create its swapfile\n"
+"because of \"%s\".\n"
 "Please check the configuration.\n"
 msgstr ""
-"GLAME war nicht in der Lage, eine Auslagerungsdatei zu erstellen.\n"
-"Bitte überprüfen Sie die Programmeinstellungen.\n"
+"GLAME hat seine Auslagerungsdatei nicht gefunden\n"
+"da %s.\n"
+"Bitte ueberpruefen Sie die Konfiguration.\n"
 
-#: main.c:791
+#: src/gui/main.c:849
+#, possible-c-format
 msgid ""
 "GLAME was unable to open/init its swapfile\n"
+"because of \"%s\".\n"
 "Please check the configuration and/or check for\n"
 "GLAME messages on the console.\n"
 msgstr ""
-"GLAME war nicht in der Lage, die Auslagerungsdatei zu öffen/initialisieren.\n"
-"Bitte überprüfen Sie die Programmeinstellungen und berücksichtigen Sie\n"
-"eventuelle Ausgaben auf der Konsole.\n" 
+"GLAME konnte seine Auslagerungsdatei nicht oeffnen\n"
+"oder initialisieren weil %s.\n"
+"Bitte ueberpruefen Sie die Konfiguration.\n"
 
-#: main.c:859
+#: src/gui/main.c:875
+msgid "glame0.5"
+msgstr ""
+
+#: src/gui/main.c:876
+msgid "app"
+msgstr ""
+
+#: src/gui/main.c:879
+msgid "dock"
+msgstr ""
+
+#: src/gui/main.c:886 src/gui/main.c:910
 msgid "    GLAME version "
 msgstr "    GLAME Version "
 
-#: main.c:859
+#: src/gui/main.c:886 src/gui/main.c:910
 msgid ""
 ", Copyright (C) 1999-2001 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
@@ -305,3 +653,269 @@ msgstr ""
 "    bestimmten Bedingungen beliebig weiter vertrieben\n"
 "    werden.\n"
 "\n"
+
+#: src/gui/main.c:889
+msgid "delete-event"
+msgstr ""
+
+#: src/gui/main.c:896
+msgid "size_request"
+msgstr ""
+
+#: src/gui/main.c:901
+msgid "swapfile"
+msgstr ""
+
+#: src/gui/main.c:909
+#, possible-c-format
+msgid "%s%s%s"
+msgstr ""
+
+#: src/gui/main.c:933 src/gui/main.c:936
+msgid "glame"
+msgstr ""
+
+#: src/gui/main.c:945
+msgid "Returned to main\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:82 src/gui/swapfilegui.c:112
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: src/gui/swapfilegui.c:82 src/gui/swapfilegui.c:112
+msgid "edit"
+msgstr ""
+
+#: src/gui/swapfilegui.c:83
+msgid "Timeline"
+msgstr "Zeitlinie"
+
+#: src/gui/swapfilegui.c:83
+msgid "timeline"
+msgstr ""
+
+#: src/gui/swapfilegui.c:85 src/gui/swapfilegui.c:114
+msgid "Delete"
+msgstr "Loeschen"
+
+#: src/gui/swapfilegui.c:85 src/gui/swapfilegui.c:114
+msgid "delete"
+msgstr ""
+
+#: src/gui/swapfilegui.c:87
+msgid "Add group"
+msgstr "Gruppe einfuegen"
+
+#: src/gui/swapfilegui.c:87
+msgid "addgroup"
+msgstr ""
+
+#: src/gui/swapfilegui.c:88
+msgid "Add clipboard"
+msgstr "Zwischenablage einfuegen"
+
+#: src/gui/swapfilegui.c:88
+msgid "addclipboard"
+msgstr ""
+
+#: src/gui/swapfilegui.c:89
+msgid "Add mono wave"
+msgstr "Mono Spur einfuegen"
+
+#: src/gui/swapfilegui.c:89
+msgid "addfile"
+msgstr ""
+
+#: src/gui/swapfilegui.c:90
+msgid "Add stereo wave"
+msgstr "Stereo Spur einfuegen"
+
+#: src/gui/swapfilegui.c:90
+msgid "addstereo"
+msgstr ""
+
+#: src/gui/swapfilegui.c:91
+msgid "Link selected"
+msgstr "Selektierung verlinken"
+
+#: src/gui/swapfilegui.c:91
+msgid "link"
+msgstr ""
+
+#: src/gui/swapfilegui.c:92
+msgid "Copy selected"
+msgstr "Selektierung kopieren"
+
+#: src/gui/swapfilegui.c:92
+msgid "copy"
+msgstr ""
+
+#: src/gui/swapfilegui.c:94
+msgid "Merge with parent"
+msgstr "Mit Vater verschmelzen"
+
+#: src/gui/swapfilegui.c:94 src/gui/swapfilegui.c:99 src/gui/swapfilegui.c:202
+msgid "import"
+msgstr ""
+
+#: src/gui/swapfilegui.c:95
+msgid "Flatten"
+msgstr "Hierarchie flachen"
+
+#: src/gui/swapfilegui.c:95
+msgid "flatten"
+msgstr ""
+
+#: src/gui/swapfilegui.c:97 src/gui/swapfilegui.c:116
+msgid "Apply operation"
+msgstr "Operation durchfuehren"
+
+#: src/gui/swapfilegui.c:100 src/gui/swapfilegui.c:120
+msgid "Export swapfile tracks"
+msgstr ""
+
+#: src/gui/swapfilegui.c:100 src/gui/swapfilegui.c:120
+msgid "Export..."
+msgstr "Exportieren..."
+
+#: src/gui/swapfilegui.c:118
+msgid "Group"
+msgstr "Gruppieren"
+
+#: src/gui/swapfilegui.c:118
+msgid "group"
+msgstr ""
+
+#: src/gui/swapfilegui.c:151
+msgid "activate"
+msgstr ""
+
+#: src/gui/swapfilegui.c:182
+#, possible-c-format
+msgid "No such operation %s\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:185
+#, possible-c-format
+msgid "Executing operation %s on %s [%li, %li[\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:191
+msgid "Error executing"
+msgstr "Fehler bei der Ausfuehrung"
+
+#: src/gui/swapfilegui.c:193
+#, possible-c-format
+msgid "%s finished.\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:355
+msgid "gpsm_flatten failed!?\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:407
+msgid "left"
+msgstr "Links"
+
+#: src/gui/swapfilegui.c:409
+msgid "right"
+msgstr "Rechts"
+
+#: src/gui/swapfilegui.c:493
+msgid "Clipboard is empty"
+msgstr "Die Zwischenablage ist leer"
+
+#: src/gui/swapfilegui.c:550
+msgid "Cannot open timeline"
+msgstr "Kann die Zeitlinie nicht oeffnen"
+
+#: src/gui/swapfilegui.c:558
+msgid ""
+"The timeline is highly experimental\n"
+"and may cause unexpected effects\n"
+"within other parts of GLAME.\n"
+"Be warned."
+msgstr "Die Zeitlinie ist in experimentellem Status und kann unerwartete Seiteneffekte hervorrufen. Seien Sie gewarnt."
+
+#: src/gui/swapfilegui.c:613
+msgid "SHIFT modifier\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:616
+msgid "Drop into hbox"
+msgstr "In eine hbox droppen"
+
+#: src/gui/swapfilegui.c:618
+msgid "CTRL modifier\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:621
+msgid "Drop into vbox"
+msgstr "In eine vbox droppen"
+
+#: src/gui/swapfilegui.c:623
+msgid "illegal modifier\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:647
+#, possible-c-format
+msgid "drag&drop: %s on %s\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:658 src/gui/swapfilegui.c:662
+#: src/gui/swapfilegui.c:671 src/gui/swapfilegui.c:675
+msgid "insertion failed\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:741 src/gui/swapfilegui.c:827
+msgid "Wrong itemw->item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:748
+#, possible-c-format
+msgid "Unhandled signal in swfile handler (%li)\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:770 src/gui/swapfilegui.c:783
+#: src/gui/swapfilegui.c:794
+msgid "button_press_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:772 src/gui/swapfilegui.c:785
+msgid "button_release_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:774 src/gui/swapfilegui.c:787
+#: src/gui/swapfilegui.c:1000
+msgid "enter_notify_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:776 src/gui/swapfilegui.c:789
+msgid "leave_notify_event"
+msgstr ""
+
+#: src/gui/swapfilegui.c:858
+msgid "Wrong tree->item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:866
+#, possible-c-format
+msgid "Unhandled signal in grp handler (%li)\n"
+msgstr ""
+
+#: src/gui/swapfilegui.c:915
+msgid "swapfilegui-root-item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:917
+msgid "swapfilegui-active-item"
+msgstr ""
+
+#: src/gui/swapfilegui.c:919
+msgid "swapfilegui-selected-items"
+msgstr ""
+
+#: src/gui/swapfilegui.c:956
+msgid "SwapfileGui"
+msgstr ""
