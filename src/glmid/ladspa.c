@@ -30,7 +30,7 @@
 
 
 /* Generic LADSPA filter wrapping function. */
-static int ladspa_f(filter_node_t * n)
+static int ladspa_f(filter_t * n)
 {
   nto1_state_t * psNTo1_State = NULL;
   int iNTo1_NR, iNTo1_Index;
@@ -58,8 +58,8 @@ static int ladspa_f(filter_node_t * n)
     if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)) {
       if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
 	iNTo1_NR++;
-	psPipe = filternode_get_input(n,
-				      psDescriptor->PortNames[lPortIndex]);
+	psPipe = filterport_get_pipe(filterportdb_get_port(filter_portdb(n),
+				      psDescriptor->PortNames[lPortIndex]));
 	if (!psPipe)
 	  FILTER_ERROR_RETURN("LADSPA plugins require all "
 			      "inputs be connected");
@@ -72,8 +72,8 @@ static int ladspa_f(filter_node_t * n)
 	  lSampleRate = lNewSampleRate;
       }
       else /* LADSPA_IS_PORT_OUTPUT */ {
-	psPipe = filternode_get_output(n,
-				       psDescriptor->PortNames[lPortIndex]);
+	psPipe = filterport_get_pipe(filterportdb_get_port(filter_portdb(n),
+				       psDescriptor->PortNames[lPortIndex]));
 	if (!psPipe)
 	  FILTER_ERROR_RETURN("LADSPA plugins require all "
 			      "outputs be connected");
@@ -84,7 +84,7 @@ static int ladspa_f(filter_node_t * n)
   if (lSampleRate == 0) {
     /* No audio channels incoming. The register method below will have
        added a "GLAME Sample Rate" parameter. */
-    psParam = filternode_get_param(n, "GLAME Sample Rate");
+    psParam = filterparamdb_get_param(filter_paramdb(n), "GLAME Sample Rate");
     if (psParam)
       lSampleRate = filterparam_val_int(psParam);
     else
@@ -130,7 +130,7 @@ static int ladspa_f(filter_node_t * n)
     if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)) {
       if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
 	/* Lookup the control value. */
-	psParam = filternode_get_param(n,
+	psParam = filterparamdb_get_param(filter_paramdb(n),
 				       psDescriptor->PortNames[lPortIndex]);
 	/* psParam == NULL does not happen if params were registered
 	 * appropriately. [richi] */
@@ -152,13 +152,13 @@ static int ladspa_f(filter_node_t * n)
       if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
 	psNTo1_State[iNTo1_Index++].in
 	  = ppsAudioPorts[lPortIndex]
-	  = filternode_get_input(n,
-				 psDescriptor->PortNames[lPortIndex]);
+	  = filterport_get_pipe(filterportdb_get_port(filter_portdb(n),
+				 psDescriptor->PortNames[lPortIndex]));
       }
       else /* i.e. LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */
 	ppsAudioPorts[lPortIndex]
-	  = filternode_get_output(n,
-				  psDescriptor->PortNames[lPortIndex]);
+	  = filterport_get_pipe(filterportdb_get_port(filter_portdb(n),
+				  psDescriptor->PortNames[lPortIndex]));
     }
     if (!ppsAudioPorts[lPortIndex])
       FILTER_ERROR_CLEANUP("port not connected");
@@ -324,12 +324,13 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
   unsigned long lSampleRate = 48000;
   int bHasAudioInput;
   LADSPA_PortDescriptor iPortDescriptor;
-  filter_portdesc_t * psPort;
+  filter_port_t * psPort;
   filter_t * psFilter;
 
-  psFilter = filter_alloc(ladspa_f);
+  psFilter = filter_creat(NULL);
   if (!psFilter)
     return -1;
+  psFilter->f = ladspa_f;
 
   /* Link the LADSPA_Descriptor to the filter itself as private
      data. This allows the ladspa_f call to work out what is going
@@ -345,17 +346,23 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
        ports. */
     if (LADSPA_IS_PORT_AUDIO(iPortDescriptor)) {
       if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
-	psPort = filter_add_input(psFilter,
-				  psDescriptor->PortNames[lPortIndex],
-				  psDescriptor->PortNames[lPortIndex],
-				  FILTER_PORTTYPE_SAMPLE);
+	psPort = filterportdb_add_port(filter_portdb(psFilter),
+				       psDescriptor->PortNames[lPortIndex],
+				       FILTER_PORTTYPE_SAMPLE,
+				       FILTER_PORTFLAG_INPUT,
+				       FILTERPORT_DESCRIPTION,
+				       psDescriptor->PortNames[lPortIndex],
+				       FILTERPORT_END);
 	bHasAudioInput = 1;
       }
       else /* LADSPA_IS_PORT_OUTPUT(iPortDescriptor) */ {
-	psPort = filter_add_output(psFilter,
-				   psDescriptor->PortNames[lPortIndex],
-				   psDescriptor->PortNames[lPortIndex],
-				   FILTER_PORTTYPE_SAMPLE);
+	psPort = filterportdb_add_port(filter_portdb(psFilter),
+				       psDescriptor->PortNames[lPortIndex],
+				       FILTER_PORTTYPE_SAMPLE,
+				       FILTER_PORTFLAG_OUTPUT,
+				       FILTERPORT_DESCRIPTION,
+				       psDescriptor->PortNames[lPortIndex],
+				       FILTERPORT_END);
       }
       if (!psPort)
 	return -1;
@@ -390,7 +397,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
       if (LADSPA_IS_HINT_INTEGER
 	  (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor))
 	fRecommendation = (LADSPA_Data)(long)(fRecommendation + 0.5);
-      filterpdb_add_param_float(filter_pdb(psFilter),
+      filterparamdb_add_param_float(filter_paramdb(psFilter),
 				psDescriptor->PortNames[lPortIndex],
 				FILTER_PARAMTYPE_FLOAT,
 				fRecommendation,
@@ -403,7 +410,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
        channels as it has none. GLAME therefore requires us to choose
        one ourselves. This requires us to provide a sample-rate
        parameter on the plugin itself. */
-    filterpdb_add_param_int(filter_pdb(psFilter),
+    filterparamdb_add_param_int(filter_paramdb(psFilter),
 			    "GLAME Sample Rate",
 			    FILTER_PARAMTYPE_INT,
 			    GLAME_DEFAULT_SAMPLERATE,
@@ -428,8 +435,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
     /* We deliberately do not call free() here. */
   }
 
-  filter_attach(psFilter, psPlugin);
+  filter_register(psFilter, psPlugin);
 
   return 0;
 }
-

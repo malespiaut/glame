@@ -306,9 +306,9 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 
 SCM gls_filternetwork_new()
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = filternetwork_new();
+	net = filter_creat(NULL);
 	if (!net)
 		return SCM_BOOL_F;
 	return gh_pointer2scm(net);
@@ -316,41 +316,43 @@ SCM gls_filternetwork_new()
 
 SCM gls_filternetwork_delete(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	filternetwork_delete(net);
+	net = (filter_t *)gh_scm2pointer(s_net);
+	filter_delete(net);
 	return SCM_UNSPECIFIED;
 }
 
 SCM gls_filternetwork_add_node(SCM s_net, SCM s_filter, SCM s_name)
 {
-	filter_network_t *net;
-	filter_node_t *node;
+	filter_t *net;
+	filter_t *node;
 	char *filter, *name;
 	int filterl, namel;
+	int res;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
+	net = (filter_t *)gh_scm2pointer(s_net);
 	name = gh_scm2newstr(s_name, &namel);
 	if (namel == 0) {
 		free(name);
 		return SCM_BOOL_F;
 	}
 	filter = gh_scm2newstr(s_filter, &filterl);
-	node = filternetwork_add_node(net, filter, name);
-	free(name);
+	node = filter_instantiate(plugin_get(filter));
 	free(filter);
-	if (!node)
+	res = filter_add_node(net, node, name);
+	free(name);
+	if (res == -1)
 		return SCM_BOOL_F;
-	return gh_pointer2scm(node);	
+	return gh_pointer2scm(node);
 }
 
 SCM gls_filternetwork_delete_node(SCM s_node)
 {
-	filter_node_t *node;
+	filter_t *node;
 
-	node = (filter_node_t *)gh_scm2pointer(s_node);
-	filternetwork_delete_node(node);
+	node = (filter_t *)gh_scm2pointer(s_node);
+	filter_delete(node);
 	return SCM_UNSPECIFIED;
 }
 
@@ -358,15 +360,18 @@ SCM gls_filternetwork_add_connection(SCM s_source, SCM s_source_port,
 				     SCM s_dest, SCM s_dest_port)
 {
 	filter_pipe_t *p;
-	filter_node_t *source, *dest;
+	filter_t *source, *dest;
 	char *source_port, *dest_port;
 	int source_portl, dest_portl;
 
-	source = (filter_node_t *)gh_scm2pointer(s_source);
+	source = (filter_t *)gh_scm2pointer(s_source);
 	source_port = gh_scm2newstr(s_source_port, &source_portl);
-	dest = (filter_node_t *)gh_scm2pointer(s_dest);
+	dest = (filter_t *)gh_scm2pointer(s_dest);
 	dest_port = gh_scm2newstr(s_dest_port, &dest_portl);
-        p = filternetwork_add_connection(source, source_port, dest, dest_port);
+        p = filterport_connect(filterportdb_get_port(filter_portdb(source),
+						     source_port),
+			       filterportdb_get_port(filter_portdb(dest),
+						     dest_port));
 	free(source_port);
 	free(dest_port);
 	if (!p)
@@ -379,7 +384,7 @@ SCM gls_filternetwork_break_connection(SCM s_p)
 	filter_pipe_t *p;
 
 	p = (filter_pipe_t *)gh_scm2pointer(s_p);
-	filternetwork_break_connection(p);
+	filterpipe_delete(p);
 	return SCM_UNSPECIFIED;
 }
 
@@ -416,9 +421,9 @@ SCM gls_filterparam_set(filter_paramdb_t *db, SCM s_label, SCM s_val)
 
 SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 {
-	filter_node_t *n;
+	filter_t *n;
 
-	n = (filter_node_t *)gh_scm2pointer(s_n);
+	n = (filter_t *)gh_scm2pointer(s_n);
 	return gls_filterparam_set(filter_paramdb(n), s_label, s_val);
 }
 
@@ -440,68 +445,75 @@ SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
 
 SCM gls_filternetwork_launch(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	if (filternetwork_launch(net) == -1)
+	net = (filter_t *)gh_scm2pointer(s_net);
+	if (filter_launch(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
 SCM gls_filternetwork_start(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	if (filternetwork_start(net) == -1)
+	net = (filter_t *)gh_scm2pointer(s_net);
+	if (filter_start(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
 SCM gls_filternetwork_pause(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	if (filternetwork_pause(net) == -1)
+	net = (filter_t *)gh_scm2pointer(s_net);
+	if (filter_pause(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
 SCM gls_filternetwork_wait(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	if (filternetwork_wait(net) == -1)
+	net = (filter_t *)gh_scm2pointer(s_net);
+	if (filter_wait(net) == -1)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
 SCM gls_filternetwork_terminate(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	filternetwork_terminate(net);
+	net = (filter_t *)gh_scm2pointer(s_net);
+	filter_terminate(net);
 	return SCM_UNSPECIFIED;
 }
 
 SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 				SCM s_label, SCM s_desc)
 {
-	filter_network_t *net;
-	filter_node_t *n;
-	filter_portdesc_t *d;
+	filter_t *net;
+	filter_t *n;
+	filter_port_t *d, *destp;
 	char *port, *label, *desc;
 	int portl, labell, descl;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	n = (filter_node_t *)gh_scm2pointer(s_node);
+	net = (filter_t *)gh_scm2pointer(s_net);
+	n = (filter_t *)gh_scm2pointer(s_node);
 	port = gh_scm2newstr(s_port, &portl);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
-	d = filternetwork_add_input(net, n->name, port, label, desc);
+	destp = filterportdb_get_port(filter_portdb(n), port);
+	d = filterportdb_add_port(filter_portdb(net), label,
+				  filterport_type(destp),
+				  FILTER_PORTFLAG_INPUT,
+				  FILTERPORT_DESCRIPTION, desc,
+				  FILTERPORT_MAP_NODE, filter_name(n),
+				  FILTERPORT_MAP_LABEL, port,
+				  FILTERPORT_END);
 	free(port);
 	free(label);
 	free(desc);
@@ -513,18 +525,25 @@ SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
 				 SCM s_label, SCM s_desc)
 {
-	filter_network_t *net;
-	filter_node_t *n;
-	filter_portdesc_t *d;
+	filter_t *net;
+	filter_t *n;
+	filter_port_t *d, *destp;
 	char *port, *label, *desc;
 	int portl, labell, descl;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	n = (filter_node_t *)gh_scm2pointer(s_node);
+	net = (filter_t *)gh_scm2pointer(s_net);
+	n = (filter_t *)gh_scm2pointer(s_node);
 	port = gh_scm2newstr(s_port, &portl);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
-	d = filternetwork_add_output(net, n->name, port, label, desc);
+	destp = filterportdb_get_port(filter_portdb(n), port);
+	d = filterportdb_add_port(filter_portdb(net), label,
+				  filterport_type(destp),
+				  FILTER_PORTFLAG_OUTPUT,
+				  FILTERPORT_DESCRIPTION, desc,
+				  FILTERPORT_MAP_NODE, filter_name(n),
+				  FILTERPORT_MAP_LABEL, port,
+				  FILTERPORT_END);
 	free(port);
 	free(label);
 	free(desc);
@@ -536,18 +555,25 @@ SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
 SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 				SCM s_label, SCM s_desc)
 {
-	filter_network_t *net;
-	filter_node_t *n;
-	filter_param_t *p;
+	filter_t *net;
+	filter_t *n;
+	filter_param_t *p, *destp;
 	char *param, *label, *desc;
 	int paraml, labell, descl;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	n = (filter_node_t *)gh_scm2pointer(s_node);
+	net = (filter_t *)gh_scm2pointer(s_net);
+	n = (filter_t *)gh_scm2pointer(s_node);
 	param = gh_scm2newstr(s_param, &paraml);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
-	p = filternetwork_add_param(net, n->name, param, label, desc);
+	destp = filterparamdb_get_param(filter_paramdb(n), param);
+	p = filterparamdb_add_param(filter_paramdb(net),
+				    label, filterparam_type(destp),
+				    filterparam_val(destp),
+				    FILTERPARAM_DESCRIPTION, desc,
+				    FILTERPARAM_MAP_NODE, n->name,
+				    FILTERPARAM_MAP_LABEL, param,
+				    FILTERPARAM_END);
 	free(param);
 	free(label);
 	free(desc);
@@ -558,21 +584,18 @@ SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 
 SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
 {
-	filter_network_t *net;
-	filter_t *f;
+	filter_t *net;
 	plugin_t *p;
 	char *name, *desc;
 	int namel, descl;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	if (!(f = filter_from_network(net)))
-		return SCM_BOOL_F;
+	net = (filter_t *)gh_scm2pointer(s_net);
 	name = gh_scm2newstr(s_name, &namel);
 	if (!(p = plugin_add(name))) {
 		free(name);
 		return SCM_BOOL_F;
 	}
-	filter_attach(f, p);
+	filter_register(net, p);
 	desc = gh_scm2newstr(s_desc, &descl);
 	plugin_set(p, PLUGIN_DESCRIPTION, desc);
 	free(name);
@@ -582,10 +605,10 @@ SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
 
 SCM gls_filternetwork_to_string(SCM s_net)
 {
-	filter_network_t *net;
+	filter_t *net;
 
-	net = (filter_network_t *)gh_scm2pointer(s_net);
-	return gh_str02scm((char *)filternetwork_to_string(net));	
+	net = (filter_t *)gh_scm2pointer(s_net);
+	return gh_str02scm((char *)filter_to_string(net));
 }
 
 
