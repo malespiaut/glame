@@ -262,11 +262,9 @@ dnl
 
 if test x$gui = xno; then
 AMG_PATH_XML2(2.0.0, , [
-	AMG_PATH_XML(1.8.0, , [
-	AC_MSG_ERROR([You need at least libxml 1.8.0 to run glame!
+	AC_MSG_ERROR([You need at least libxml 2.0.0 to run glame!
 Hint: You also need to have the appropriate xml development package
 installed, usually called libxml-dev, libxmld, or similar.])
-])
 ])
 	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $XML_CFLAGS"
 	GLAME_LIBS="$GLAME_LIBS $XML_LIBS"
