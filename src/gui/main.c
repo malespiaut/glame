@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.31 2001/04/16 17:48:15 richi Exp $
+ * $Id: main.c,v 1.32 2001/04/17 09:43:42 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -49,6 +49,7 @@ static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
+extern void canvas_load_network(GtkWidget *bla, void *blu);
 
 
 /* Menus. */
@@ -60,7 +61,9 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 };
 
 static GnomeUIInfo filter_menu_uiinfo[] = {
-	GNOMEUIINFO_ITEM(N_("_Open Filternetwork editor"),"Opens a new filternetwork window",gui_network_new,NULL),
+	//GNOMEUIINFO_ITEM(N_("_Open Filternetwork editor"),"Opens a new filternetwork window",gui_network_new,NULL),
+	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork",gui_network_new,NULL),
+	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_load_network,NULL),
 	GNOMEUIINFO_END
 };
 
