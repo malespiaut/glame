@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.20 2001/06/05 14:40:07 richi Exp $
+ * $Id: iir.c,v 1.21 2001/12/16 17:39:17 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -144,7 +144,7 @@ void free_glame_iir(glame_iir_t *gt){
 }
 
 /* center: frequency already normalized between 0 and 0.5 of sampling
- * bandwidth around center frequency, also normalized
+ * bandwidth given in octaves between lower and upper -3dB point
  */
 
 glame_iir_t *calc_2polebandpass(float center, float bandwidth)
@@ -157,7 +157,10 @@ glame_iir_t *calc_2polebandpass(float center, float bandwidth)
 		return NULL;
 	
 	omega = 2.0*M_PI*center;
+	DPRINTF("omega=%f\n", omega);
 	alpha = sin(omega)*sinh(log(2.0)/2.0*bandwidth*omega/sin(omega));
+	/*alpha=sin(omega)/2.0;*/
+	DPRINTF("alpha=%f\n", alpha);
 	gt->coeff[0][0] = alpha;
 	gt->coeff[0][1] = 0.0;
 	gt->coeff[0][2] = -alpha;
@@ -379,15 +382,22 @@ static int iir_f(filter_t *n)
 		free_glame_iir(second);
 
 	} else if (mode == GLAME_IIR_BANDPASS_A) {
-		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "center"))/(float)rate;
-		fc = CLAMP(fc, 0.0, 0.5);
+		float nfc;
+		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "center"));
+		/* normalize center frequency */
+		nfc= CLAMP(fc/(float)rate, 0.0, 0.5);
 		
-		bw = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "width"))/(float)rate;
-		bw = CLAMP(bw, 0.0, 0.5);
+		bw = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "width"));
+		if (fc <= bw*0.5)
+			bw = fc*2.0;
+		
+		DPRINTF("bandwidth(HZ)=%f\n", bw);
+		/* calculate width in octaves log_2(x) = log(x)/log(2) */
+		bw = log((fc+bw*0.5)/(fc-bw*0.5+1.0))/log(2.0);
 
-		DPRINTF("center = %f width = %f\n", fc, bw);
+		DPRINTF("center = %f, width in octaves = %f\n", nfc, bw);
 
-		if (!(gt=calc_2polebandpass(fc, bw)))
+		if (!(gt=calc_2polebandpass(nfc, bw)))
 			FILTER_ERROR_RETURN("bandpass failed");
 
 	}
@@ -403,11 +413,9 @@ static int iir_f(filter_t *n)
 	for(i=0;i<gt->nstages;i++){
 		DPRINTF("Stage %d\n",i);
 		for(j=0;j<gt->na;j++)
-			DPRINTF("a[%d]=%f ",j,gt->coeff[i][j]);
-		DPRINTF("\n");
+			DPRINTF("a[%d]=%f\n",j,gt->coeff[i][j]);
 		for(;j<gt->na+gt->nb;j++)
-			DPRINTF("b[%d]=%f ",j-gt->nb,gt->coeff[i][j]);
-		DPRINTF("\n");
+			DPRINTF("b[%d]=%f\n",j-gt->nb,gt->coeff[i][j]);
 		if (!(iirf[i].iring=ALLOCN(gt->na,gliirt)))
 			FILTER_ERROR_CLEANUP("memory allocation error");
 		if (!(iirf[i].oring=ALLOCN(gt->nb+1,gliirt)))
@@ -520,8 +528,8 @@ int highpass_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev Lowpass");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
-	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	plugin_set(p, PLUGIN_CATEGORY, "Spectrum");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "highpass");
 	
 	filter_register(f, p);
 
@@ -562,8 +570,8 @@ int lowpass_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev Highpass");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
-	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	plugin_set(p, PLUGIN_CATEGORY, "Spectrum");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "lowpass");
 	
 	filter_register(f, p);
 
@@ -610,8 +618,8 @@ int bandpass_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev 2-stage Bandpass");
 	plugin_set(p, PLUGIN_PIXMAP, "bandpass.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
-	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	plugin_set(p, PLUGIN_CATEGORY, "Spectrum");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "bandpass");
 	
 	filter_register(f, p);
 
@@ -648,8 +656,8 @@ int bandpass_a_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Biquad Bandpass (analog modelled bandpass)");
 	plugin_set(p, PLUGIN_PIXMAP, "bandpass.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
-	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
+	plugin_set(p, PLUGIN_CATEGORY, "Spectrum");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "bandpass_a");
 	
 	filter_register(f, p);
 
