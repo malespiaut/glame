@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.8 2001/07/26 14:43:09 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.9 2001/07/30 08:22:37 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -33,6 +33,7 @@
 #include "gpsm.h"
 #include "glame_curve.h"
 #include "edit_filter/filtereditgui.h"
+#include "glame_param.h"
 #include "glame_gui_utils.h"
 
 
@@ -531,187 +532,39 @@ void changeString(GtkEditable *wid, char ** returnbuffer)
         strncpy(*returnbuffer,chars,strlen(chars)+1);
 }
 
-enum {PINT,PFLOAT,PSAMPLE,PSTRING,PFILE,PGLADE,PSBUF};
-
-typedef struct {
-	GtkWidget *widget;
-	filter_param_t* param;
-	int widget_type;
-} param_widget_t;
-
-typedef struct {
-	GList* paramList;
-	char *caption;
-} param_callback_t;
-
-
-static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
-{
-      gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
-}
-
-static gint
-update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
-{
-	GList* list = g_list_first(callback->paramList);
-	char *strVal; 
-	int iVal;
-	float fVal;
-	SAMPLE sVal;
-	char *caption = callback->caption;
-	param_widget_t* item;
-	filter_buffer_t *sbuf;
-	
-	while(list){
-		item = (param_widget_t*)(list->data);
-		DPRINTF("param: %s\n", filterparam_label(item->param));
-		switch(item->widget_type){
-		case PINT:
-			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
-			DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
-			if(filterparam_set(item->param, &iVal) == -1)
-				DPRINTF(" - failed!\n");
-			else
-				DPRINTF(" - success!\n");
-			break;
-		case PSAMPLE:
-			sVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
-			DPRINTF("Setting %s::%s to %f", caption, filterparam_label(item->param), (float)sVal);
-			if(filterparam_set(item->param, &sVal) == -1)
-				DPRINTF(" - failed!\n");
-			else
-				DPRINTF(" - success!\n");
-			break;
-		case PFLOAT:
-			fVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
-			DPRINTF("Setting %s::%s to %f", caption, filterparam_label(item->param), fVal);
-			if(filterparam_set(item->param, &fVal) == -1)
-				DPRINTF(" - failed!\n");
-			else
-				DPRINTF(" - success!\n");
-			break;
-		case PSTRING:
-			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
-			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
-			if(filterparam_set(item->param, &strVal) == -1)
-				DPRINTF(" - failed!\n");
-			else
-				DPRINTF(" - success!\n");
-			g_free(strVal);
-			break;
-		case PFILE:
-			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
-			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
-			if(filterparam_set(item->param, &strVal) == -1)
-				DPRINTF(" - failed!\n");
-			else
-				DPRINTF(" - success!\n");
-			g_free(strVal);
-			break;
-		case PSBUF: {
-			int numpoints,i;
-			gfloat (*ctlpoints)[2];
-			char* ctlbuffer;
-			GtkCurve* gCurve;
-			GlameCurve *curve;
-			sbuf = sbuf_alloc(1000, NULL);
-			sbuf_make_private(sbuf);
-			gtk_curve_get_vector(GTK_CURVE(item->widget), sbuf_size(sbuf), sbuf_buf(sbuf));
-			filterparam_set(item->param, &sbuf);
-			sbuf_unref(sbuf);
-			curve = GLAME_CURVE(item->widget);
-			gCurve = GTK_CURVE(item->widget);
-			glame_curve_get_control_vector(curve,&numpoints,&ctlpoints);
-			ctlbuffer = calloc(numpoints*2*12,sizeof(gfloat));
-			sprintf(ctlbuffer,"%d",numpoints);
-			filterparam_set_property(item->param,"curve-control-points",ctlbuffer);
-			i=0;
-			while(i<numpoints){
-				sprintf(&ctlbuffer[i*28],"%13.8f %13.8f ",(ctlpoints)[i][0],(ctlpoints)[i][1]);
-				i++;
-			}
-			fprintf(stderr,"ctl_strin in: %s\n",ctlbuffer);
-			filterparam_set_property(item->param,"curve-control-points-data",ctlbuffer);
-			g_free(ctlpoints);
-			break;
-		}
-		case PGLADE:
-			if (GTK_IS_OPTION_MENU(item->widget)) {
-				GtkMenu *menu = GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(item->widget)));
-				GtkWidget *act = gtk_menu_get_active(menu);
-				/* Doh - gtk suxx again. */
-				GList *list;
-				DPRINTF("Menu %p - Active %p\n", menu, act);
-				list = gtk_container_children(GTK_CONTAINER(menu));
-				iVal = 0;
-				while (list) {
-					DPRINTF("%i - %p\n", iVal, list->data);
-					if ((GtkWidget *)(list->data) == act)
-						break;
-					list = g_list_next(list);
-					iVal++;
-				}
-				DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
-				if(!list || filterparam_set(item->param, &iVal) == -1)
-					DPRINTF(" - failed!\n");
-				else
-					DPRINTF(" - success!\n");
-			} else
-				/* FIXME */;
-			break;
-		}
-		list = g_list_next(list);
-	}
-	DPRINTF("Finished with update_params\n");
-	return TRUE;
-}
 
 static void fprop_kill_prop(glsig_handler_t *handler, long sig, va_list va)
 {
 	GtkWidget *widget = GTK_WIDGET(glsig_handler_private(handler));
 	gtk_widget_destroy(widget);
 }
-
 static void fprop_kill_handler(GtkObject *object, glsig_handler_t *handler)
 {
 	glsig_delete_handler(handler);
-}
-
-static void reactivate_apply(GtkWidget *widget, GnomeDialog *dialog)
-{
-	gnome_dialog_set_sensitive(GNOME_DIALOG(dialog), 1, TRUE);
 }
 
 GtkWidget *
 glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 {
 	GtkWidget *vbox;
-	param_callback_t* cb;
-	GList * list=NULL;
 	GtkWidget* propBox;
 	GtkWidget* tablabel;
 	glsig_handler_t *handler;
 	filter_param_t *param;
 
-	propBox = gnome_property_box_new ();
-	
-	tablabel=gtk_label_new(_(caption));
+	propBox = gnome_property_box_new();
 
-	vbox = glame_gui_from_paramdb(pdb, &list);
-	gtk_widget_show(vbox);
-	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),vbox,tablabel);
+	tablabel = gtk_label_new(caption);
+	vbox = glame_gui_from_paramdb(pdb);
+	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),
+				       vbox, tablabel);
+	//gtk_widget_show(vbox);
 
-	/* FIXME gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button)); */
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
 	gnome_dialog_set_sensitive(GNOME_DIALOG(propBox), 1, TRUE);
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
-	gtk_window_set_modal(GTK_WINDOW(propBox),FALSE /* FIXME TRUE */);
-	cb = malloc(sizeof(param_callback_t));
-	cb->paramList=list;
-	cb->caption = strdup(caption);
-	
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",(GtkSignalFunc)update_params,cb);
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button), "clicked",(GtkSignalFunc)update_params,cb);
-	gtk_signal_connect_after(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button), "clicked",(GtkSignalFunc)reactivate_apply,propBox);
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button));
+	gtk_window_set_modal(GTK_WINDOW(propBox), FALSE);
 
 	/* Hook to the GLSIG_PARAM_DELETED signal of a random param in
 	 * the paramdb and kill the property box (dont forget to kill
@@ -729,172 +582,21 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	return propBox;
 }
 
-
-
-
-
-static gint cleanup_params(GtkWidget *widget, GList *list)
+GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb)
 {
-	g_list_free(list);
-	// FIXME. does list_free kill the structs, too? mem leak
-	return FALSE;
-}
+	GtkWidget *vbox, *gparam;
+	filter_param_t *param;
 
-GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list)
-{
-	GtkWidget *vbox,*entry;
-	GtkAdjustment *adjust;
-	param_widget_t *pw;
-	char * prop;
-	
-	int iVal;
-	float fVal;
-	char* cVal;
-	filter_param_t* param;
-	char label[256], *plabel;
-	char *xml;
-
-	/* the vbox holds the param widgets */
-	vbox = gtk_vbox_new(FALSE,3);
-	*list = NULL;
-
+	vbox = gtk_vbox_new(FALSE, 3);
 	filterparamdb_foreach_param(pdb, param) {
-		pw = malloc(sizeof(param_widget_t));
-		pw->param = param;
-
-		if (!(plabel = filterparam_get_property(param, FILTERPARAM_LABEL)))
-			plabel = filterparam_label(param);
-
-#ifdef HAVE_LIBGLADE
-		if ((xml = filterparam_get_property(param, FILTERPARAM_GLADEXML))) {
-			GladeXML *gxml;
-			gxml = glade_xml_new_from_memory(xml, strlen(xml), NULL, NULL);
-			entry = glade_xml_get_widget(gxml, "widget");
-			if (GTK_IS_OPTION_MENU(entry)) {
-				gtk_option_menu_set_history(GTK_OPTION_MENU(entry), filterparam_val_int(param));
-			} else
-                                /* FIXME */;
-			create_label_widget_pair(vbox,plabel,entry);
-			pw->widget = entry;
-			pw->widget_type = PGLADE;
-		} else
-#endif
-		if (FILTER_PARAM_IS_INT(param)) {
-			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
-
-			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
-			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
-			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
-			iVal = filterparam_val_int(param);
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
-			create_label_widget_pair(vbox,plabel,entry);
-			pw->widget = entry;
-			pw->widget_type = PINT;
-		} else if (FILTER_PARAM_IS_SAMPLE(param)) {
-			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-1.0,1.0,0.05,1.0,1.0));
-			entry = gtk_spin_button_new(adjust, 0.05, 3);
-			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
-			fVal = filterparam_val_sample(param);
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
-			create_label_widget_pair(vbox, plabel, entry);
-			pw->widget = entry;
-			pw->widget_type = PSAMPLE;
-		} else if (FILTER_PARAM_IS_FLOAT(param)
-			   || FILTER_PARAM_IS_SAMPLE(param)) {
-			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S) {
-				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,0.1,1.0,1.0));
-				entry = gtk_spin_button_new(adjust, 0.1, 3);
-				snprintf(label, 255, "%s [s]",
-					 plabel);
-			} else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS) {
-				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,0.0,MAXFLOAT,1.0,10.0,10.0));
-				entry = gtk_spin_button_new(adjust, 1, 1);
-				snprintf(label, 255, "%s [ms]",
-					 plabel);
-			} else {
-				adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,0.1,10.0,10.0));
-				entry = gtk_spin_button_new(adjust, 0.1, 3);
-				snprintf(label, 255, "%s",
-					 plabel);
-			}
-			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
-			fVal = filterparam_val_float(param);
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
-			create_label_widget_pair(vbox, label, entry);
-			pw->widget = entry;
-			pw->widget_type = PFLOAT;
-		} else if (FILTER_PARAM_IS_STRING(param)) {
-			switch(filterparam_type(param)){
-			case FILTER_PARAMTYPE_FILENAME:
-				entry = gnome_file_entry_new("editfilter::param::filename",filterparam_label(param));
-				if((prop = filterparam_get_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER)))
-				      gtk_signal_connect_after(GTK_OBJECT(entry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),prop);
-				
-				create_label_widget_pair(vbox,plabel,entry);
-				pw->widget = entry;
-				pw->widget_type = PFILE;
-				break;
-			default:
-			        entry = gnome_entry_new("editfilter::param::string");
-				create_label_widget_pair(vbox,plabel,entry);
-				cVal =  filterparam_val_string(param);
-				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
-				pw->widget = entry;
-				pw->widget_type = PSTRING;
-				break;
-			}
-		} else if (FILTER_PARAM_IS_BUF(param)) {
-			char *ctl_vec_string, *num_string;
-			char * string_begin,*string_next;
-			gfloat (*ctl_points)[2];
-			int num_points,i;
-			entry = glame_curve_new();
-			gtk_curve_set_range(GTK_CURVE(entry),0.0,1.0,-1.0,1.0);
-			gtk_widget_set_usize(GTK_WIDGET(entry),200,200);
-			create_label_widget_pair(vbox,plabel,entry);
-			if((num_string = filterparam_get_property(param,"curve-control-points")))
-				if((ctl_vec_string=filterparam_get_property(param,"curve-control-points-data"))){
-
-					num_points = atoi(num_string);
-					fprintf(stderr,"num: %s %d\n%s\n",num_string,num_points,ctl_vec_string);
-					ctl_points = malloc(num_points*sizeof(gfloat[2]));
-					string_begin = ctl_vec_string;
-					for(i=0;i<num_points;i++){
-						ctl_points[i][0] = strtod(string_begin,&string_next);
-						string_begin=string_next;
-						ctl_points[i][1] = strtod(string_begin,&string_next);
-						string_begin=string_next;
-						//sscanf(ctl_vec_string,"%f %f",&(ctl_points[i][0]),&(ctl_points[i][1]));
-						fprintf(stderr,"set_param: %f %f\n",ctl_points[i][0],ctl_points[i][1]);
-					}
-					glame_curve_set_control_vector(GLAME_CURVE(entry),num_points,ctl_points);
-				}
-			pw->widget=entry;
-			pw->widget_type = PSBUF;
-		} else {
-			/* default - ignore */
-			free(pw);
-			continue;
-		}
-
-		*list = g_list_append(*list,pw);
+		gparam = glame_param_new(param);
+		gtk_container_add(vbox, gparam);
+		gtk_widget_show_all(gparam);
 	}
-
-	gtk_signal_connect(GTK_OBJECT(vbox), "destroy",
-			   (GtkSignalFunc)cleanup_params, *list);
 
 	return vbox;
 }
 
-int glame_gui_update_paramdb(filter_paramdb_t *pdb, GList *list)
-{
-	param_callback_t cb;
-
-	cb.caption = "blah";
-	cb.paramList = list;
-	update_params(NULL, &cb);
-	return 0;
-}
 
 
 

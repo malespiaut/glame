@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.3 2001/06/22 08:49:21 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.4 2001/07/30 08:22:37 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -73,14 +73,9 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 				       const char *caption);
 
-
 /* Construct a widget (without window) to allow changing parameters
- * of a parameter database. Returns a widget or NULL on error.
- * The paramdb has to stay around until after widget destruction. */
-GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb, GList **list);
-
-/* Updates the paramdb from the widget created by glame_gui_from_paramdb. */
-int glame_gui_update_paramdb(filter_paramdb_t *pdb, GList *list);
+ * of a parameter database. Returns a widget or NULL on error. */
+GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb);
 
 
 /* Opens a play/pause/stop/cancel window that plays a given network.
