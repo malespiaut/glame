@@ -3,7 +3,7 @@
 
 /*
  * glame_byteorder.h
- * $Id: glame_byteorder.h,v 1.2 2000/04/03 09:17:35 richi Exp $
+ * $Id: glame_byteorder.h,v 1.3 2000/04/03 12:27:15 nold Exp $
  * Copyright (C) 2000 Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
 #else
-#include <glame_swab.h>
+#include "glame_swab.h"
 #endif
 #include "glame_types.h"
 
@@ -65,14 +65,10 @@
 #define __gl_cpu_to_be32(x) __gl_be32_to_cpu((x))
 #define __gl_cpu_to_be16(x) __gl_be16_to_cpu((x))
 
-/* No 64 bit types so far */
-#if 0
 #define __gl_le64_to_cpup(x) __gl_le64_to_cpu(*(gl_u64 *)((x)))
 #define __gl_be64_to_cpup(x) __gl_be64_to_cpu(*(gl_u64 *)((x))) 
 #define __gl_cpu_to_le64p(x) __gl_cpu_to_le64(*(gl_u64 *)((x)))
 #define __gl_cpu_to_be64p(x) __gl_cpu_to_be64(*(gl_u64 *)((x)))
-#endif
-
 #define __gl_le32_to_cpup(x) __gl_le32_to_cpu(*(gl_u32 *)((x)))
 #define __gl_le16_to_cpup(x) __gl_le16_to_cpu(*(gl_u16 *)((x)))
 #define __gl_be32_to_cpup(x) __gl_be32_to_cpu(*(gl_u32 *)((x)))
@@ -82,8 +78,6 @@
 #define __gl_cpu_to_be32p(x) __gl_cpu_to_be32(*(gl_u32 *)((x)))
 #define __gl_cpu_to_be16p(x) __gl_cpu_to_be16(*(gl_u16 *)((x)))
 
-/* No 64 bit types so far */
-#if 0
 static inline gl_u64 gl_le64_to_cpu(gl_u64 x)
 {
 	return __gl_le64_to_cpu(x);
@@ -116,7 +110,6 @@ static inline gl_u64 gl_cpu_to_be64p(gl_u64 *x)
 {
 	return __gl_cpu_to_be64p(x);
 }
-#endif
 static inline gl_u32 gl_le32_to_cpu(gl_u32 x)
 {
 	return __gl_le32_to_cpu(x);

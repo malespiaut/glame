@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.13 2000/04/03 02:36:32 nold Exp $
+ * $Id: glame_types.h,v 1.14 2000/04/03 12:27:15 nold Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -60,7 +60,6 @@ typedef unsigned long	gl_u32;
 #error No 32 bit data type available.
 #endif
 /* Add when needed. Beware: long long is a GNU extension! */
-#if 0
 #if SIZEOF_LONG == 8
 typedef   signed long	gl_s64;
 typedef unsigned long	gl_u64;
@@ -69,16 +68,7 @@ typedef   signed long long	gl_s64;
 typedef unsigned long long	gl_u64;
 #else
 #error No 64 bit data type available.
-#endif
 #endif 
-
-/* FIXME: I don't think this belongs here!? (-> midi.h?) [dk] */
-typedef struct midi_event {
-	char flags;
-	unsigned int ts;	/* timestamp */
-	unsigned char b[3];	/* 1 status and 2 data bytes */
-} midi_event_t;
-
 
 #endif
 

@@ -21,6 +21,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+typedef struct midi_event {
+	char flags;
+	unsigned int ts;	/* timestamp */
+	unsigned char b[3];	/* 1 status and 2 data bytes */
+} midi_event_t;
+
 #define	MIDI_BYTE_STATUS(ev)		(ev.b[0])
 #define	MIDI_BYTE_DATA1(ev)		(ev.b[1])
 #define	MIDI_BYTE_DATA2(ev)		(ev.b[2])
