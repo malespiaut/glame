@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.56 2001/06/01 07:45:00 richi Exp $
+; $Id: glame.scm,v 1.57 2001/06/15 08:41:34 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -17,6 +17,34 @@
 ; along with this program; if not, write to the Free Software
 ; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ;
+
+; Compatibility
+(define filter_creat filter-new)
+(define filter_instantiate filter-new)
+(define filter_to_string filter->string)
+(define filter_add_node filter-add-node)
+(define filter_connect filter-connect)
+(define filternetwork_add_input filternetwork-add-input)
+(define filternetwork_add_output filternetwork-add-output)
+(define filternetwork_add_param filternetwork-add-param)
+
+(define (filternode_set_param node label value)
+  (map (lambda (param)
+	 (if (string=? (param-label param) label)
+	     (param-set! param value)))
+       (filter-params node)))
+
+(define (filterpipe_set_sourceparam pipe label value)
+  (map (lambda (param)
+	 (if (string=? (param-label param) label)
+	     (param-set! param value)))
+       (pipe-source-params pipe)))
+
+(define (filterpipe_set_destparam pipe label value)
+  (map (lambda (param)
+	 (if (string=? (param-label param) label)
+	     (param-set! param value)))
+       (pipe-dest-params pipe)))
 
 
 ;
@@ -102,7 +130,7 @@
 ; some high level filternetwork helpers
 ;
 
-(define net-new filter_creat)
+(define net-new filter-new)
 
 (add-help 'net-new '() "generate a new filter network")
 
@@ -110,8 +138,8 @@
 ; (net-add-node net "node")
 (define net-add-node
   (lambda (net node . params)
-    (let ((n (filter_instantiate (plugin_get node))))
-      (if (eq? (filter_add_node net n node) #f) (begin (display "no node ") 
+    (let ((n (filter-new (plugin_get node))))
+      (if (eq? (filter-add-node net n node) #f) (begin (display "no node ") 
 			    (display node) 
 			    (newline) 
 			    #f)
@@ -157,7 +185,7 @@
   (lambda nodes
     (map (lambda (nodes)
 	   (map-pairs
-	    (lambda (s d) (filter_connect s "out" d "in"))
+	    (lambda (s d) (filter-connect s "out" d "in"))
 	    nodes))
 	 nodes)))
 
@@ -179,20 +207,20 @@
 ; run the net, wait for completion and delete it
 (define net-run
   (lambda (net)
-    (if (eq? #t (filter_launch net))
+    (if (eq? #t (filter-launch net))
 	(begin
-	  (filter_start net)
-	  (filter_wait net)))))
+	  (filter-start net)
+	  (filter-wait net)))))
 
 (add-help 'net-run '(net)
 	  "run the net, wait for completion and delete it.")
 
 ; start the net (in the background, not deleting it afterwards),
-; i.e. you can use filter_(pause|start|terminate) on it.
+; i.e. you can use filter-(pause|start|terminate) on it.
 (define net-run-bg
   (lambda (net)
-    (if (eq? #t (filter_launch net))
-	(filter_start net))
+    (if (eq? #t (filter-launch net))
+	(filter-start net))
     net))
 
 (add-help 'net-run-bg '(net)
@@ -600,7 +628,7 @@
 	   (ao (net-add-node net audio-out)))
       (node-set-params rf `("filename" ,fname))
       (while-not-false
-         (lambda () (filter_connect rf "out" ao "in")))
+         (lambda () (filter-connect rf "out" ao "in")))
       (net-run net))))
 
 (add-help 'play '(filename) "play a soundfile")
@@ -620,7 +648,7 @@
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
-		(conn (filter_connect rf "out" (car eff) "in")))
+		(conn (filter-connect rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
 	       (begin (nodes-connect (append eff (list ao))) #t)))))
@@ -642,7 +670,7 @@
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
-		(conn (filter_connect rf "out" (car eff) "in")))
+		(conn (filter-connect rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
 	       (begin (nodes-connect (append eff (list wf))) #t)))))
@@ -757,7 +785,7 @@
     (node-set-params rf `("filename" ,iname))
     (node-set-params wf `("filename" ,oname))
     (while-not-false
-      (lambda () (filter_connect rf "out" wf "in")))
+      (lambda () (filter-connect rf "out" wf "in")))
     (net-run net))))
 
 ;
@@ -773,7 +801,7 @@
 	   (drms (net-add-node net "debugrms")))
     (node-set-params rf `("filename" ,fname))
     (while-not-false 
-      (lambda () (filter_connect rf "out" mix "in")))
+      (lambda () (filter-connect rf "out" mix "in")))
     (nodes-connect  `(,mix ,stat ,drms))
     (net-run net))))
 
@@ -792,6 +820,6 @@
     (node-set-params rf `("filename" ,fname))
     (apply node-set-params iir params)
     (while-not-false 
-      (lambda () (filter_connect rf "out" mix "in")))
+      (lambda () (filter-connect rf "out" mix "in")))
     (nodes-connect  `(,mix ,iir ,stat ,drms))
     (net-run net))))

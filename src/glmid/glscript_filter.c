@@ -40,19 +40,19 @@ filter_t *last_loaded_filter_instance;
  */
 
 long pipe_smob_tag;
-#define scm2pipe(s) scm2pointer(s, pipe_smob_tag)
+#define scm2pipe(s) ((filter_pipe_t *)scm2pointer(s, pipe_smob_tag))
 #define pipe2scm(p) pointer2scm(p, pipe_smob_tag)
 #define scminvalidatepipe(s) scminvalidatepointer(s, pipe_smob_tag)
 #define pipe_p(s) (SCM_NIMP(s) && SCM_CAR(s) == pipe_smob_tag)
 
 long port_smob_tag;
-#define scm2port(s) scm2pointer(s, port_smob_tag)
+#define scm2port(s) ((filter_port_t *)scm2pointer(s, port_smob_tag))
 #define port2scm(p) pointer2scm(p, port_smob_tag)
 #define scminvalidateport(s) scminvalidatepointer(s, port_smob_tag)
 #define port_p(s) (SCM_NIMP(s) && SCM_CAR(s) == port_smob_tag)
 
 long param_smob_tag;
-#define scm2param(s) scm2pointer(s, param_smob_tag)
+#define scm2param(s) ((filter_param_t *)scm2pointer(s, param_smob_tag))
 #define param2scm(p) pointer2scm(p, param_smob_tag)
 #define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
 #define param_p(s) (SCM_NIMP(s) && SCM_CAR(s) == param_smob_tag)
@@ -74,7 +74,7 @@ static int print_param(SCM param_smob, SCM port, scm_print_state *pstate)
 }
 
 long plugin_smob_tag;
-#define scm2plugin(s) scm2pointer(s, plugin_smob_tag)
+#define scm2plugin(s) ((plugin_t *)scm2pointer(s, plugin_smob_tag))
 #define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
 #define scminvalidateplugin(s) scminvalidatepointer(s, plugin_smob_tag)
 #define plugin_p(s) (SCM_NIMP(s) && SCM_CAR(s) == plugin_smob_tag)
@@ -142,7 +142,7 @@ static SCM equalp_filter(SCM filter_smob1, SCM filter_smob2)
 }
 
 
-static SCM filter2scm(filter_t *filter)
+SCM filter2scm(filter_t *filter)
 {
 	struct filter_smob *smob;
 	SCM filter_smob;
@@ -189,59 +189,23 @@ static SCM gls_is_filter(SCM s_filter)
 	return SCM_BOOL_F;
 }
 
-static SCM gls_is_port(SCM s_port)
+static SCM gls_filter_new(SCM s_object)
 {
-	if (port_p(s_port))
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (filter_p(s_object))
+		return filter2scm(filter_creat(scm2filter(s_object)));
+	else if (plugin_p(s_object))
+		return filter2scm(filter_instantiate(scm2plugin(s_object)));
+	else if (SCM_UNBNDP(s_object))
+		return filter2scm(filter_creat(NULL));
+	scm_wrong_type_arg("filter-new", SCM_ARG1, s_object);
 }
 
-static SCM gls_is_pipe(SCM s_pipe)
+static SCM gls_filter_delete(SCM s_obj)
 {
-	if (pipe_p(s_pipe))
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
-}
-
-static SCM gls_is_param(SCM s_param)
-{
-	if (param_p(s_param))
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
-}
-
-static SCM gls_filter_creat(SCM s_filter)
-{
-	filter_t *f = NULL;
-	/* s_filter is optional. */
-	if (filter_p(s_filter))
-		f = scm2filter(s_filter);
-	return filter2scm(filter_creat(f));
-}
-
-static SCM gls_filter_instantiate(SCM s_plugin)
-{
-	SCM_ASSERT(plugin_p(s_plugin), s_plugin,
-		   SCM_ARG1, "filter_instantiate");
-	return filter2scm(filter_instantiate(scm2plugin(s_plugin)));
-}
-
-static SCM gls_create_plugin(SCM s_filter, SCM s_name)
-{
-	filter_t *filter;
-	plugin_t *p;
-	char *name;
-	int namel;
-
-	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "create_plugin");
-	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG2, "create_plugin");
-	filter = scm2filter(s_filter);
-	name = gh_scm2newstr(s_name, &namel);
-	p = glame_create_plugin(filter, name);
-	free(name);
-	if (!p)
-		return SCM_BOOL_F;
-	return plugin2scm(p);
+	SCM_ASSERT(filter_p(s_obj), s_obj, SCM_ARG1, "filter-delete");
+	filter_delete(scm2filter(s_obj));
+	scminvalidatefilter(s_obj);
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_filter_to_string(SCM s_net)
@@ -250,114 +214,312 @@ static SCM gls_filter_to_string(SCM s_net)
 	return gh_str02scm((char *)filter_to_string(scm2filter(s_net)));
 }
 
-
-static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
+static SCM gls_filter_name(SCM s_obj)
 {
-	filter_t *net;
+	SCM_ASSERT(filter_p(s_obj), s_obj, SCM_ARG1, "filter-name");
+	return gh_str02scm(filter_name(scm2filter(s_obj)));
+}
+
+static SCM gls_filter_nodes(SCM s_obj)
+{
 	filter_t *filter;
-	char *name;
-	int namel;
-	int res;
-
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_add_node");
-	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG2, "filter_add_node");
-	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG3, "filter_add_node");
-	net = scm2filter(s_net);
-	filter = scm2filter(s_filter);
-	name = gh_scm2newstr(s_name, &namel);
-	res = filter_add_node(net, filter, name);
-	free(name);
-	if (res == -1)
-		return SCM_BOOL_F;
-	return s_filter;
+	filter_t *node;
+	SCM s_nodelist = SCM_LIST0;
+	SCM_ASSERT(filter_p(s_obj),
+		   s_obj, SCM_ARG1, "filter-nodes");
+	filter = scm2filter(s_obj);
+	filter_foreach_node(filter, node)
+		s_nodelist = gh_cons(filter2scm(node), s_nodelist);
+	return s_nodelist;
 }
 
-static SCM gls_filter_connect(SCM s_source, SCM s_source_port,
-			      SCM s_dest, SCM s_dest_port)
+static SCM gls_filter_ports(SCM s_obj)
 {
-	filter_pipe_t *p;
-	filter_t *source, *dest;
-	char *source_port, *dest_port;
-	int source_portl, dest_portl;
-
-	SCM_ASSERT(filter_p(s_source), s_source, SCM_ARG1, "filter_connect");
-	SCM_ASSERT(gh_string_p(s_source_port), s_source_port,
-		   SCM_ARG2, "filter_connect");
-	SCM_ASSERT(filter_p(s_dest), s_dest, SCM_ARG3, "filter_connect");
-	SCM_ASSERT(gh_string_p(s_dest_port), s_dest_port,
-		   SCM_ARG4, "filter_connect");
-	source = scm2filter(s_source);
-	dest = scm2filter(s_dest);
-	source_port = gh_scm2newstr(s_source_port, &source_portl);
-	dest_port = gh_scm2newstr(s_dest_port, &dest_portl);
-        p = filterport_connect(filterportdb_get_port(filter_portdb(source),
-						     source_port),
-			       filterportdb_get_port(filter_portdb(dest),
-						     dest_port));
-	free(source_port);
-	free(dest_port);
-	if (!p)
-		return SCM_BOOL_F;
-	return pipe2scm(p);
+	filter_t *filter;
+	filter_port_t *port;
+	SCM s_portlist = SCM_LIST0;
+	SCM_ASSERT(filter_p(s_obj), s_obj, SCM_ARG1, "filter-ports");
+	filter = scm2filter(s_obj);
+	filterportdb_foreach_port(filter_portdb(filter), port)
+		s_portlist = gh_cons(port2scm(port), s_portlist);
+	return s_portlist;
 }
 
-static SCM gls_filterparam_set(filter_paramdb_t *db, SCM s_label, SCM s_val)
+static SCM gls_filter_params(SCM s_obj)
+{
+	filter_t *filter;
+	filter_param_t *param;
+	SCM s_paramlist = SCM_LIST0;
+	SCM_ASSERT(filter_p(s_obj), s_obj, SCM_ARG1, "filter-params");
+	filter = scm2filter(s_obj);
+	filterparamdb_foreach_param(filter_paramdb(filter), param)
+		s_paramlist = gh_cons(param2scm(param), s_paramlist);
+	return s_paramlist;
+}
+
+
+static SCM gls_is_port(SCM s_port)
+{
+	if (port_p(s_port))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_port_delete(SCM s_obj)
+{
+	SCM_ASSERT(port_p(s_obj), s_obj, SCM_ARG1, "port-delete");
+	filterport_delete(scm2port(s_obj));
+	scminvalidateport(s_obj);
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_port_label(SCM s_obj)
+{
+	SCM_ASSERT(port_p(s_obj), s_obj, SCM_ARG1, "port-label");
+	return gh_str02scm(filterport_label(scm2port(s_obj)));
+}
+
+static SCM gls_port_params(SCM s_obj)
+{
+	filter_port_t *port;
+	filter_param_t *param;
+	SCM s_paramlist = SCM_LIST0;
+	SCM_ASSERT(port_p(s_obj), s_obj, SCM_ARG1, "port-params");
+	port = scm2port(s_obj);
+	filterparamdb_foreach_param(filterport_paramdb(port), param)
+		s_paramlist = gh_cons(param2scm(param), s_paramlist);
+	return s_paramlist;
+}
+
+static SCM gls_port_pipes(SCM s_obj)
+{
+	filter_port_t *port;
+	filter_pipe_t *pipe;
+	SCM s_pipelist = SCM_LIST0;
+	SCM_ASSERT(port_p(s_obj), s_obj, SCM_ARG1, "port-pipes");
+	port = scm2port(s_obj);
+	filterport_foreach_pipe(port, pipe)
+		s_pipelist = gh_cons(pipe2scm(pipe), s_pipelist);
+	return s_pipelist;
+}
+
+
+static SCM gls_is_pipe(SCM s_pipe)
+{
+	if (pipe_p(s_pipe))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_pipe_sample(SCM s_pipe)
+{
+	SCM_ASSERT(pipe_p(s_pipe), s_pipe, SCM_ARG1, "pipe-sample?");
+	if (filterpipe_type(scm2pipe(s_pipe)) == FILTER_PIPETYPE_SAMPLE)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_pipe_fft(SCM s_pipe)
+{
+	SCM_ASSERT(pipe_p(s_pipe), s_pipe, SCM_ARG1, "pipe-fft?");
+	if (filterpipe_type(scm2pipe(s_pipe)) == FILTER_PIPETYPE_FFT)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_is_pipe_ssp(SCM s_pipe)
+{
+	SCM_ASSERT(pipe_p(s_pipe), s_pipe, SCM_ARG1, "pipe-ssp?");
+	if (filterpipe_type(scm2pipe(s_pipe)) == FILTER_PIPETYPE_SSP)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_pipe_delete(SCM s_obj)
+{
+	SCM_ASSERT(pipe_p(s_obj), s_obj, SCM_ARG1, "pipe-delete");
+	filterpipe_delete(scm2pipe(s_obj));
+	scminvalidatepipe(s_obj);
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_pipe_samplerate(SCM s_obj)
+{
+	filter_pipe_t *pipe;
+	SCM_ASSERT(pipe_p(s_obj), s_obj, SCM_ARG1, "pipe-samplerate");
+	pipe = scm2pipe(s_obj);
+	if (filterpipe_type(pipe) == FILTER_PIPETYPE_SAMPLE)
+		return gh_long2scm(filterpipe_sample_rate(pipe));
+	else if (filterpipe_type(pipe) == FILTER_PIPETYPE_FFT)
+		return gh_long2scm(filterpipe_fft_rate(pipe));
+	else if (filterpipe_type(pipe) == FILTER_PIPETYPE_SSP)
+		return gh_long2scm(filterpipe_ssp_rate(pipe));
+	else
+		scm_wrong_type_arg("pipe-samplerate", SCM_ARG1, s_obj);
+
+}
+
+static SCM gls_pipe_position(SCM s_obj)
+{
+	filter_pipe_t *pipe;
+	SCM_ASSERT(pipe_p(s_obj), s_obj, SCM_ARG1, "pipe-position");
+	pipe = scm2pipe(s_obj);
+	if (filterpipe_type(pipe) == FILTER_PIPETYPE_SAMPLE)
+		return gh_long2scm(filterpipe_sample_hangle(pipe));
+	else if (filterpipe_type(pipe) == FILTER_PIPETYPE_FFT)
+		return gh_long2scm(filterpipe_fft_hangle(pipe));
+	else
+		scm_wrong_type_arg("pipe-position", SCM_ARG1, s_obj);
+
+}
+
+static SCM gls_pipe_source_params(SCM s_obj)
+{
+	filter_pipe_t *pipe;
+	filter_param_t *param;
+	SCM s_paramlist = SCM_LIST0;
+	SCM_ASSERT(pipe_p(s_obj), s_obj, SCM_ARG1, "pipe-source-params");
+	pipe = scm2pipe(s_obj);
+	filterparamdb_foreach_param(filterpipe_sourceparamdb(pipe), param)
+		s_paramlist = gh_cons(param2scm(param), s_paramlist);
+	return s_paramlist;
+}
+
+static SCM gls_pipe_dest_params(SCM s_obj)
+{
+	filter_pipe_t *pipe;
+	filter_param_t *param;
+	SCM s_paramlist = SCM_LIST0;
+	SCM_ASSERT(pipe_p(s_obj), s_obj, SCM_ARG1, "pipe-dest-params");
+	pipe = scm2pipe(s_obj);
+	filterparamdb_foreach_param(filterpipe_destparamdb(pipe), param)
+		s_paramlist = gh_cons(param2scm(param), s_paramlist);
+	return s_paramlist;
+}
+
+
+static SCM gls_is_param(SCM s_param)
+{
+	if (param_p(s_param))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_param_delete(SCM s_obj)
+{
+	SCM_ASSERT(param_p(s_obj), s_obj, SCM_ARG1, "param-delete");
+	filterparam_delete(scm2param(s_obj));
+	scminvalidateparam(s_obj);
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_param_label(SCM s_obj)
+{
+	SCM_ASSERT(param_p(s_obj), s_obj, SCM_ARG1, "param-label");
+	return gh_str02scm(filterparam_label(
+		(filter_param_t *)scm2param(s_obj)));
+}
+
+static SCM gls_param_to_string(SCM s_param)
+{
+	SCM_ASSERT(param_p(s_param), s_param, SCM_ARG1, "param->string");
+	return gh_str02scm(filterparam_to_string(scm2param(s_param)));
+}
+
+static SCM gls_param_value(SCM s_param)
 {
 	filter_param_t *param;
-	char *label, *str;
-	int labell, strl, i, res;
-	float f;
+	SCM_ASSERT(param_p(s_param), s_param, SCM_ARG1, "param-value");
+	param = scm2param(s_param);
+	if (FILTER_PARAM_IS_INT(param))
+		return gh_long2scm(filterparam_val_int(param));
+	else if (FILTER_PARAM_IS_FLOAT(param))
+		return gh_double2scm(filterparam_val_float(param));
+	else if (FILTER_PARAM_IS_SAMPLE(param))
+		return gh_double2scm(filterparam_val_sample(param));
+	else if (FILTER_PARAM_IS_STRING(param))
+		return gh_str02scm(filterparam_val_string(param));
+	scm_wrong_type_arg("param-value", SCM_ARG1, s_param);
+}
 
-	label = gh_scm2newstr(s_label, &labell);
-	param = filterparamdb_get_param(db, label);
-	if (!param) {
-		res = -1;
-	} else if (FILTER_PARAM_IS_INT(param)) {
+static SCM gls_param_set(SCM s_param, SCM s_val)
+{
+	filter_param_t *param;
+	int res;
+	SCM_ASSERT(param_p(s_param), s_param, SCM_ARG1, "param-set!");
+	param = scm2param(s_param);
+	if (FILTER_PARAM_IS_INT(param)) {
+		int i;
+		SCM_ASSERT(gh_exact_p(s_val), s_val, SCM_ARG2, "param-set!");
 		i = gh_scm2long(s_val);
 		res = filterparam_set(param, &i);
-	} else if (FILTER_PARAM_IS_FLOAT(param)
-		   || FILTER_PARAM_IS_SAMPLE(param)) {
+	} else if (FILTER_PARAM_IS_FLOAT(param)) {
+		float f;
+		SCM_ASSERT(gh_number_p(s_val), s_val, SCM_ARG2, "param-set!");
 		f = gh_scm2double(s_val);
 		res = filterparam_set(param, &f);
+	} else if (FILTER_PARAM_IS_SAMPLE(param)) {
+		SAMPLE s;
+		SCM_ASSERT(gh_number_p(s_val), s_val, SCM_ARG2, "param-set!");
+		s = gh_scm2double(s_val);
+		res = filterparam_set(param, &s);
 	} else if (FILTER_PARAM_IS_STRING(param)) {
+		char *str;
+		int strl;
+		SCM_ASSERT(gh_string_p(s_val), s_val, SCM_ARG2, "param-set!");
 		str = gh_scm2newstr(s_val, &strl);
 		res = filterparam_set(param, &str);
 		free(str);
-	} else {
-		res = -1;
+	} else
+		scm_wrong_type_arg("param-set!", SCM_ARG2, s_val);
+	return res == 0 ? SCM_BOOL_T : SCM_BOOL_F;
+}
+
+
+
+static SCM gls_set_property(SCM s_obj, SCM s_label, SCM s_value)
+{
+	char *label, *value;
+	int llabel, lvalue;
+	SCM_ASSERT(filter_p(s_obj) || param_p(s_obj) || port_p(s_obj),
+		   s_obj, SCM_ARG1, "set-property!");
+	label = gh_scm2newstr(s_label, &llabel);
+	value = gh_scm2newstr(s_value, &lvalue);	
+	if (filter_p(s_obj)) {
+		filter_t *filter = scm2filter(s_obj);
+		filter_set_property(filter, label, value);
+	} else if (param_p(s_obj)) {
+		filter_param_t *param = scm2param(s_obj);
+		filterparam_set_property(param, label, value);
+	} else if (port_p(s_obj)) {
+		filter_port_t *port = scm2port(s_obj);
+		filterport_set_property(port, label, value);
 	}
-	free(label);
-	if (res == -1)
-		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
 
-static SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
+static SCM gls_get_property(SCM s_obj, SCM s_label)
 {
-	filter_t *n;
-
-	SCM_ASSERT(filter_p(s_n), s_n, SCM_ARG1, "filternode_set_param");
-	SCM_ASSERT(gh_string_p(s_label), s_label,
-		   SCM_ARG2, "filternode_set_param");
-	n = scm2filter(s_n);
-	return gls_filterparam_set(filter_paramdb(n), s_label, s_val);
+	char *label, *value = NULL;
+	int llabel;
+	SCM_ASSERT(filter_p(s_obj) || param_p(s_obj) || port_p(s_obj),
+		   s_obj, SCM_ARG1, "get-property");
+	label = gh_scm2newstr(s_label, &llabel);
+	if (filter_p(s_obj)) {
+		filter_t *filter = scm2filter(s_obj);
+		value = filter_get_property(filter, label);
+	} else if (param_p(s_obj)) {
+		filter_param_t *param = scm2param(s_obj);
+		value = filterparam_get_property(param, label);
+	} else if (port_p(s_obj)) {
+		filter_port_t *port = scm2port(s_obj);
+		value = filterport_get_property(port, label);
+	}
+	if (!value)
+		return SCM_BOOL_F;
+	return gh_str02scm(value);
 }
 
-static SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
-{
-	filter_pipe_t *p;
-
-	p = scm2pipe(s_p);
-	return gls_filterparam_set(filterpipe_sourceparamdb(p), s_label, s_val);
-}
-
-static SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
-{
-	filter_pipe_t *p;
-
-	p = scm2pipe(s_p);
-	return gls_filterparam_set(filterpipe_destparamdb(p), s_label, s_val);
-}
 
 
 static SCM gls_filter_launch(SCM s_net)
@@ -426,6 +588,57 @@ static SCM gls_filter_terminate(SCM s_net)
 }
 
 
+
+static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
+{
+	filter_t *net;
+	filter_t *filter;
+	char *name;
+	int namel;
+	int res;
+
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_add_node");
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG2, "filter_add_node");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG3, "filter_add_node");
+	net = scm2filter(s_net);
+	filter = scm2filter(s_filter);
+	name = gh_scm2newstr(s_name, &namel);
+	res = filter_add_node(net, filter, name);
+	free(name);
+	if (res == -1)
+		return SCM_BOOL_F;
+	return s_filter;
+}
+
+static SCM gls_filter_connect(SCM s_source, SCM s_source_port,
+			      SCM s_dest, SCM s_dest_port)
+{
+	filter_pipe_t *p;
+	filter_t *source, *dest;
+	char *source_port, *dest_port;
+	int source_portl, dest_portl;
+
+	SCM_ASSERT(filter_p(s_source), s_source, SCM_ARG1, "filter_connect");
+	SCM_ASSERT(gh_string_p(s_source_port), s_source_port,
+		   SCM_ARG2, "filter_connect");
+	SCM_ASSERT(filter_p(s_dest), s_dest, SCM_ARG3, "filter_connect");
+	SCM_ASSERT(gh_string_p(s_dest_port), s_dest_port,
+		   SCM_ARG4, "filter_connect");
+	source = scm2filter(s_source);
+	dest = scm2filter(s_dest);
+	source_port = gh_scm2newstr(s_source_port, &source_portl);
+	dest_port = gh_scm2newstr(s_dest_port, &dest_portl);
+        p = filterport_connect(filterportdb_get_port(filter_portdb(source),
+						     source_port),
+			       filterportdb_get_port(filter_portdb(dest),
+						     dest_port));
+	free(source_port);
+	free(dest_port);
+	if (!p)
+		return SCM_BOOL_F;
+	return pipe2scm(p);
+}
+
 static SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 				       SCM s_label, SCM s_desc)
 {
@@ -435,6 +648,14 @@ static SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 	char *port, *label, *desc;
 	int portl, labell, descl;
 
+	SCM_ASSERT(filter_p(s_net), s_net,
+		   SCM_ARG1, "filternetwork-add-input");
+	SCM_ASSERT(filter_p(s_node), s_node,
+		   SCM_ARG2, "filternetwork-add-input");
+	SCM_ASSERT(gh_string_p(s_port), s_port,
+		   SCM_ARG3, "filternetwork-add-input");
+	SCM_ASSERT(gh_string_p(s_label), s_label,
+		   SCM_ARG4, "filternetwork-add-input");
 	net = scm2filter(s_net);
 	n = scm2filter(s_node);
 	port = gh_scm2newstr(s_port, &portl);
@@ -465,6 +686,14 @@ static SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
 	char *port, *label, *desc;
 	int portl, labell, descl;
 
+	SCM_ASSERT(filter_p(s_net), s_net,
+		   SCM_ARG1, "filternetwork-add-output");
+	SCM_ASSERT(filter_p(s_node), s_node,
+		   SCM_ARG2, "filternetwork-add-output");
+	SCM_ASSERT(gh_string_p(s_port), s_port,
+		   SCM_ARG3, "filternetwork-add-output");
+	SCM_ASSERT(gh_string_p(s_label), s_label,
+		   SCM_ARG4, "filternetwork-add-output");
 	net = scm2filter(s_net);
 	n = scm2filter(s_node);
 	port = gh_scm2newstr(s_port, &portl);
@@ -495,6 +724,14 @@ static SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 	char *param, *label, *desc;
 	int paraml, labell, descl;
 
+	SCM_ASSERT(filter_p(s_net), s_net,
+		   SCM_ARG1, "filternetwork-add-param");
+	SCM_ASSERT(filter_p(s_node), s_node,
+		   SCM_ARG2, "filternetwork-add-param");
+	SCM_ASSERT(gh_string_p(s_param), s_param,
+		   SCM_ARG3, "filternetwork-add-param");
+	SCM_ASSERT(gh_string_p(s_label), s_label,
+		   SCM_ARG4, "filternetwork-add-param");
 	net = scm2filter(s_net);
 	n = scm2filter(s_node);
 	param = gh_scm2newstr(s_param, &paraml);
@@ -516,173 +753,27 @@ static SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 	return SCM_BOOL_T;
 }
 
-/* Generic filter*_t methods:
- * - property setting/querying
- * - object deletion
- * - sub-object get (filters, ports, params, pipes)
- */
 
-static SCM gls_get_name(SCM s_obj)
+static SCM gls_create_plugin(SCM s_filter, SCM s_name)
 {
-	SCM_ASSERT(filter_p(s_obj) || param_p(s_obj) || port_p(s_obj),
-		   s_obj, SCM_ARG1, "get_name");
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		return gh_str02scm(filter_name(filter));
-	} else if (param_p(s_obj)) {
-		filter_param_t *param = scm2param(s_obj);
-		return gh_str02scm(filterparam_label(param));
-	} else if (port_p(s_obj)) {
-		filter_port_t *port = scm2port(s_obj);
-		return gh_str02scm(filterport_label(port));
-	}
-	return SCM_BOOL_F;
-}
+	filter_t *filter;
+	plugin_t *p;
+	char *name;
+	int namel;
 
-static SCM gls_set_property(SCM s_obj, SCM s_label, SCM s_value)
-{
-	char *label, *value;
-	int llabel, lvalue;
-	SCM_ASSERT(filter_p(s_obj) || param_p(s_obj) || port_p(s_obj),
-		   s_obj, SCM_ARG1, "set_property");
-	label = gh_scm2newstr(s_label, &llabel);
-	value = gh_scm2newstr(s_value, &lvalue);	
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		filter_set_property(filter, label, value);
-	} else if (param_p(s_obj)) {
-		filter_param_t *param = scm2param(s_obj);
-		filterparam_set_property(param, label, value);
-	} else if (port_p(s_obj)) {
-		filter_port_t *port = scm2port(s_obj);
-		filterport_set_property(port, label, value);
-	}
-	return SCM_BOOL_T;
-}
-
-static SCM gls_get_property(SCM s_obj, SCM s_label)
-{
-	char *label, *value = NULL;
-	int llabel;
-	SCM_ASSERT(filter_p(s_obj) || param_p(s_obj) || port_p(s_obj),
-		   s_obj, SCM_ARG1, "get_property");
-	label = gh_scm2newstr(s_label, &llabel);
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		value = filter_get_property(filter, label);
-	} else if (param_p(s_obj)) {
-		filter_param_t *param = scm2param(s_obj);
-		value = filterparam_get_property(param, label);
-	} else if (port_p(s_obj)) {
-		filter_port_t *port = scm2port(s_obj);
-		value = filterport_get_property(port, label);
-	}
-	if (!value)
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "create_plugin");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG2, "create_plugin");
+	filter = scm2filter(s_filter);
+	name = gh_scm2newstr(s_name, &namel);
+	p = glame_create_plugin(filter, name);
+	free(name);
+	if (!p)
 		return SCM_BOOL_F;
-	return gh_str02scm(value);
+	return plugin2scm(p);
 }
 
-static SCM gls_delete(SCM s_obj)
-{
-	SCM_ASSERT(filter_p(s_obj) || param_p(s_obj) || port_p(s_obj)
-		   || pipe_p(s_obj),
-		   s_obj, SCM_ARG1, "delete");
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		filter_delete(filter);
-		scminvalidatefilter(s_obj);
-	} else if (param_p(s_obj)) {
-		filter_param_t *param = scm2param(s_obj);
-		filterparam_delete(param);
-		scminvalidateparam(s_obj);
-	} else if (port_p(s_obj)) {
-		filter_port_t *port = scm2port(s_obj);
-		filterport_delete(port);
-		scminvalidateport(s_obj);
-	} else if (pipe_p(s_obj)) {
-		filter_pipe_t *pipe = scm2pipe(s_obj);
-		filterpipe_delete(pipe);
-		scminvalidatepipe(s_obj);
-	}
-	return SCM_UNSPECIFIED;
-}
 
-static SCM gls_get_nodes(SCM s_obj)
-{
-	SCM_ASSERT(filter_p(s_obj),
-		   s_obj, SCM_ARG1, "get_nodes");
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		filter_t *node;
-		SCM s_nodelist = SCM_LIST0;
-		filter_foreach_node(filter, node)
-			s_nodelist = gh_cons(filter2scm(node), s_nodelist);
-		return s_nodelist;
-	}
-	return SCM_BOOL_F;
-}
 
-static SCM gls_get_ports(SCM s_obj)
-{
-	SCM_ASSERT(filter_p(s_obj),
-		   s_obj, SCM_ARG1, "get_ports");
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		filter_port_t *port;
-		SCM s_portlist = SCM_LIST0;
-		filterportdb_foreach_port(filter_portdb(filter), port)
-			s_portlist = gh_cons(port2scm(port), s_portlist);
-		return s_portlist;
-	}
-	return SCM_BOOL_F;
-}
-
-static SCM gls_get_params(SCM s_obj)
-{
-	SCM_ASSERT(filter_p(s_obj) || port_p(s_obj) || pipe_p(s_obj),
-		   s_obj, SCM_ARG1, "get_params");
-	if (filter_p(s_obj)) {
-		filter_t *filter = scm2filter(s_obj);
-		filter_param_t *param;
-		SCM s_paramlist = SCM_LIST0;
-		filterparamdb_foreach_param(filter_paramdb(filter), param)
-			s_paramlist = gh_cons(param2scm(param), s_paramlist);
-		return s_paramlist;
-	} else if (port_p(s_obj)) {
-		filter_port_t *port = scm2port(s_obj);
-		filter_param_t *param;
-		SCM s_paramlist = SCM_LIST0;
-		filterparamdb_foreach_param(filterport_paramdb(port), param)
-			s_paramlist = gh_cons(param2scm(param), s_paramlist);
-		return s_paramlist;
-	} else if (pipe_p(s_obj)) {
-		filter_pipe_t *pipe = scm2pipe(s_obj);
-		filter_param_t *param;
-		SCM s_sparamlist = SCM_LIST0;
-		SCM s_dparamlist = SCM_LIST0;
-		filterparamdb_foreach_param(filterpipe_sourceparamdb(pipe), param)
-			s_sparamlist = gh_cons(param2scm(param), s_sparamlist);
-		filterparamdb_foreach_param(filterpipe_destparamdb(pipe), param)
-			s_dparamlist = gh_cons(param2scm(param), s_dparamlist);
-		return gh_cons(s_sparamlist, s_dparamlist);
-	}
-	return SCM_BOOL_F;
-}
-
-static SCM gls_get_pipes(SCM s_obj)
-{
-	SCM_ASSERT(port_p(s_obj),
-		   s_obj, SCM_ARG1, "get_pipes");
-	if (port_p(s_obj)) {
-		filter_port_t *port = scm2port(s_obj);
-		filter_pipe_t *pipe;
-		SCM s_pipelist = SCM_LIST0;
-		filterport_foreach_pipe(port, pipe)
-			s_pipelist = gh_cons(pipe2scm(pipe), s_pipelist);
-		return s_pipelist;
-	}
-	return SCM_BOOL_F;
-}
 
 
 /* The scriptable plugin API part.
@@ -824,40 +915,65 @@ int glscript_init_filter()
 
 	/* filter */
 	gh_new_procedure1_0("filter?", gls_is_filter);
+	gh_new_procedure0_1("filter-new", gls_filter_new);
+	gh_new_procedure1_0("filter-delete", gls_filter_delete);
+	gh_new_procedure1_0("filter-name", gls_filter_name);
+	gh_new_procedure1_0("filter-nodes", gls_filter_nodes);
+	gh_new_procedure1_0("filter-ports", gls_filter_ports);
+	gh_new_procedure1_0("filter-params", gls_filter_params);
+	gh_new_procedure1_0("filter->string", gls_filter_to_string);
+
+	gh_new_procedure1_0("filter-launch", gls_filter_launch);
+	gh_new_procedure1_0("filter-start", gls_filter_start);
+	gh_new_procedure1_0("filter-pause", gls_filter_pause);
+	gh_new_procedure1_0("filter-wait", gls_filter_wait);
+	gh_new_procedure1_0("filter-terminate", gls_filter_terminate);
+
 	gh_new_procedure1_0("port?", gls_is_port);
-	gh_new_procedure1_0("pipe?", gls_is_pipe);
+	gh_new_procedure1_0("port-label", gls_port_label);
+	gh_new_procedure1_0("port-delete", gls_port_delete);
+	gh_new_procedure1_0("port-pipes", gls_port_pipes);
+	gh_new_procedure1_0("port-params", gls_port_params);
+
 	gh_new_procedure1_0("param?", gls_is_param);
+	gh_new_procedure1_0("param-label", gls_param_label);
+	gh_new_procedure1_0("param-delete", gls_param_delete);
+	gh_new_procedure1_0("param->string", gls_param_to_string);
+	gh_new_procedure1_0("param-value", gls_param_value);
+	gh_new_procedure2_0("param-set!", gls_param_set);
 
-	gh_new_procedure1_0("get_name", gls_get_name);
-	gh_new_procedure3_0("set_property", gls_set_property);
-	gh_new_procedure2_0("get_property", gls_get_property);
-	gh_new_procedure1_0("delete", gls_delete);
-	gh_new_procedure1_0("get_nodes", gls_get_nodes);
-	gh_new_procedure1_0("get_ports", gls_get_ports);
-	gh_new_procedure1_0("get_params", gls_get_params);
-	gh_new_procedure1_0("get_pipes", gls_get_pipes);
+	gh_new_procedure1_0("pipe?", gls_is_pipe);
+	gh_new_procedure1_0("pipe-delete", gls_pipe_delete);
+	gh_new_procedure1_0("pipe-source-params", gls_pipe_source_params);
+	gh_new_procedure1_0("pipe-dest-params", gls_pipe_dest_params);
+	gh_new_procedure1_0("pipe-sample?", gls_is_pipe_sample);
+	gh_new_procedure1_0("pipe-fft?", gls_is_pipe_fft);
+	gh_new_procedure1_0("pipe-ssp?", gls_is_pipe_ssp);
+	gh_new_procedure1_0("pipe-samplerate", gls_pipe_samplerate);
+	gh_new_procedure1_0("pipe-position", gls_pipe_position);
 
-	gh_new_procedure0_1("filter_creat", gls_filter_creat);
-	gh_new_procedure1_0("filter_instantiate", gls_filter_instantiate);
+	gh_new_procedure3_0("set-property!", gls_set_property);
+	gh_new_procedure2_0("get-property", gls_get_property);
+
+	gh_define("FILTERPARAM_DESCRIPTION",
+		  gh_str02scm(FILTERPARAM_DESCRIPTION));
+	gh_define("FILTERPARAM_GLADEXML", gh_str02scm(FILTERPARAM_GLADEXML));
+	gh_define("FILTERPORT_DESCRIPTION",
+		  gh_str02scm(FILTERPORT_DESCRIPTION));
+
+
+	gh_new_procedure3_0("filter-add-node", gls_filter_add_node);
+	gh_new_procedure4_0("filter-connect", gls_filter_connect);
+
+	gh_new_procedure5_0("filternetwork-add-input",
+			    gls_filternetwork_add_input);
+	gh_new_procedure5_0("filternetwork-add-output",
+			    gls_filternetwork_add_output);
+	gh_new_procedure5_0("filternetwork-add-param",
+			    gls_filternetwork_add_param);
+
 	gh_new_procedure2_0("glame_create_plugin", gls_create_plugin);
-	gh_new_procedure1_0("filter_to_string", gls_filter_to_string);
 
-	gh_new_procedure3_0("filter_add_node", gls_filter_add_node);
-	gh_new_procedure4_0("filter_connect", gls_filter_connect);
-
-	gh_new_procedure3_0("filternode_set_param", gls_filternode_set_param);
-	gh_new_procedure3_0("filterpipe_set_sourceparam", gls_filterpipe_set_sourceparam);
-	gh_new_procedure3_0("filterpipe_set_destparam", gls_filterpipe_set_destparam);
-
-	gh_new_procedure1_0("filter_launch", gls_filter_launch);
-	gh_new_procedure1_0("filter_start", gls_filter_start);
-	gh_new_procedure1_0("filter_pause", gls_filter_pause);
-	gh_new_procedure1_0("filter_wait", gls_filter_wait);
-	gh_new_procedure1_0("filter_terminate", gls_filter_terminate);
-
-	gh_new_procedure5_0("filternetwork_add_input", gls_filternetwork_add_input);
-	gh_new_procedure5_0("filternetwork_add_output", gls_filternetwork_add_output);
-	gh_new_procedure5_0("filternetwork_add_param", gls_filternetwork_add_param);
 
 
 	/* plugin */
