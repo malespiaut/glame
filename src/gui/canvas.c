@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.11 2000/03/16 17:13:26 xwolf Exp $
+ * $Id: canvas.c,v 1.12 2000/03/20 17:49:43 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -41,7 +41,6 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	double dx,dy;
 	GlameCanvasItem *it = GLAME_CANVAS_ITEM(data);
 	GList *list;
-	char *bla="hurgl";
 
 	x = event->button.x;
 	y = event->button.y;
@@ -102,7 +101,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		
 static gint delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
 {
-	gtk_object_destroy(win);
+	gtk_object_destroy(GTK_OBJECT(win));
 	return TRUE;
 }
 
@@ -118,8 +117,8 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	double dx,dy;
 	GlameCanvas* canv;
 	char *buff;
-
-
+	
+	
 	canv = GLAME_CANVAS(win);
 	buff= malloc(40);
 	inst = malloc(sizeof(gui_filter));
@@ -175,20 +174,20 @@ stop_network(GtkWidget *button,gui_network*net)
 
 
 GtkWidget * 
-create_new_canvas(const char *name, gui_network* net)
+create_new_canvas(gui_network* net)
 {
 	GtkWidget *window, *canvas, *sw;
-	GtkWidget *vbox,*buttonbox,*button;
+	GtkWidget *buttonbox,*button;
 
 	GnomeDock *dock;
 
 	GnomeDockItem *item;
-
+	const char *name = strdup("Untitled");
 	window = gnome_app_new(name,_(name));
-	dock = GNOME_APP(window)->dock;
-	gtk_widget_ref(dock);
+	dock = GNOME_DOCK(GNOME_APP(window)->dock);
+	gtk_widget_ref(GTK_WIDGET(dock));
 	
-	gtk_widget_show(dock);
+	gtk_widget_show(GTK_WIDGET(dock));
 	
 
 
@@ -224,30 +223,28 @@ create_new_canvas(const char *name, gui_network* net)
 	
 
 	buttonbox = gtk_hbutton_box_new();
-	item =  gnome_dock_item_new("buttons",GNOME_DOCK_ITEM_BEH_NORMAL);
+	item =  GNOME_DOCK_ITEM(gnome_dock_item_new("buttons",GNOME_DOCK_ITEM_BEH_NORMAL));
 	
 	gtk_container_add(GTK_CONTAINER(item),buttonbox);
 	gnome_dock_add_item(dock,item,GNOME_DOCK_BOTTOM,1,0,0,TRUE);
 
 	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_EXEC),"Launch");
 	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(button,"clicked",launch_network,net);
+	gtk_signal_connect(GTK_OBJECT(button),"clicked",launch_network,net);
 
 	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_FORWARD),"Play");
 	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(button,"clicked",play_network,net);
+	gtk_signal_connect(GTK_OBJECT(button),"clicked",play_network,net);
 
 	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_TIMER_STOP),"Pause");
 	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(button,"clicked",pause_network,net);
+	gtk_signal_connect(GTK_OBJECT(button),"clicked",pause_network,net);
 
 	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_STOP),"STOP");
 	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(button,"clicked",stop_network,net);
+	gtk_signal_connect(GTK_OBJECT(button),"clicked",stop_network,net);
 	
-	gnome_app_add_docked(GNOME_APP(window),buttonbox,"butts",GNOME_DOCK_ITEM_BEH_NORMAL,GNOME_DOCK_TOP,1,0,0);
-
-	gtk_widget_show(dock);
+	gtk_widget_show(GTK_WIDGET(dock));
 	
 	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
 	gtk_widget_show_all(window);
@@ -267,7 +264,7 @@ is_inside(GlameCanvasPort* gport, double x, double y)
 {
 
 	GnomeCanvasRE* port = GNOME_CANVAS_RE(gport);
-	gnome_canvas_item_w2i(port,&x,&y);
+	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(port),&x,&y);
 	if((port->x1<=x)&&(port->x2>=x)&&(port->y1<=y)&&(port->y2>=y))
 		return 1;
 	return 0;
@@ -277,7 +274,6 @@ find_output_port(GlameCanvas* canvas, double x, double y)
 {
 	GList* litem,*pitem;
 	
-	GlameCanvasPort* ret;
 	litem = g_list_first(GNOME_CANVAS_GROUP(GNOME_CANVAS(canvas)->root)->item_list);
 	while(litem){
 		pitem = g_list_first(((GlameCanvasItem*)litem->data)->input_ports);
@@ -295,9 +291,22 @@ static void
 port_docking_coords(GlameCanvasPort* port,double *x, double *y)
 {
 	GnomeCanvasRE* rect = GNOME_CANVAS_RE(port);
+	int i,items = g_list_length(port->connected_ports);
+	GList* list = g_list_first(port->connected_ports);
+	double difference,step;
+	if(items>1){
+		step=difference = (1.0/(double)(items*(items+1)))*(rect->y2-rect->y1);
+		for(i=1;i<items;i++){
+			move_single_connection(((GlameConnection*)(list->data)),0.0,-i*step);
+			list=g_list_next(list);
+		}
+		*y=(double)(items)/(double)(items+1)*(rect->y2-rect->y1);
+	}else{
+		*y=(rect->y1+rect->y2)*0.5;
+		
+	}
 	*x=rect->x1;
-	*y=(rect->y1+rect->y2)*0.5;
-	gnome_canvas_item_i2w(rect,x,y);
+	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(rect),x,y);
 }
 		
 
@@ -315,7 +324,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		if(event->motion.state & GDK_BUTTON1_MASK){
-			gnome_canvas_item_w2i(item,&x,&y);
+			gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(item),&x,&y);
 			item->connection->points->coords[2]=x;
 			item->connection->points->coords[3]=y;
 			gnome_canvas_item_set(GNOME_CANVAS_ITEM(item->connection->line),
@@ -327,10 +336,10 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	case GDK_BUTTON_RELEASE:
 		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(item),event->button.time);
 		if(item->connecting){
-
+			
 			// Why does this not work correctly??   libgnomeui bug??
-		        //released = gnome_canvas_get_item_at(pitem->canvas,x,y);
-			released = find_output_port(pitem->canvas,x,y);
+			//released = gnome_canvas_get_item_at(pitem->canvas,x,y);
+			released = GNOME_CANVAS_ITEM(find_output_port(GLAME_CANVAS(pitem->canvas),x,y));
 			if(released){
 				if(GLAME_IS_CANVAS_PORT(released)){
 					DPRINTF("port hit!\n");
@@ -345,7 +354,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 						}else{
 							DPRINTF("inner connection succeded!\n");
 							port_docking_coords(port,&x,&y);
-							gnome_canvas_item_w2i(item->connection->line,&x,&y);
+							gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(item->connection->line),&x,&y);
 							item->connection->points->coords[2]=x;
 							item->connection->points->coords[3]=y;
 							gnome_canvas_item_set(GNOME_CANVAS_ITEM(item->connection->line),
@@ -356,15 +365,17 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 							wy = item->connection->points->coords[1] + item->connection->points->coords[3];
 							wy *= 0.5;
 							wy -= 6.0;
-							item->connection->circle = gnome_canvas_item_new(item,
-													 gnome_canvas_ellipse_get_type(),
-													 "x1",wx,
-													 "x2",wx+12.0,
-													 "y1",wy,
-													 "y2",wy+12.0,
-													 "fill_color","black",
-													 "width_pixels",5,
-													 NULL);
+							item->connection->circle = 
+								GNOME_CANVAS_ELLIPSE(
+									gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
+											      gnome_canvas_ellipse_get_type(),
+											      "x1",wx,
+											      "x2",wx+12.0,
+											      "y1",wy,
+											      "y2",wy+12.0,
+											      "fill_color","black",
+											      "width_pixels",5,
+											      NULL));
 							gtk_signal_connect(GTK_OBJECT(item->connection->circle),
 									   "event",GTK_SIGNAL_FUNC(connection_select),
 									   item->connection);
@@ -393,14 +404,82 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	}
 	return FALSE;
 }
+
+
+// this funktion expects world coordinates!
+void 
+set_single_connection(GlameConnection* c, gdouble x, gdouble y)
+{
+
+
+	gdouble mx,my;
+	
+	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(c->line)->parent,&x,&y);
+	
+	c->points->coords[2]=x;
+	c->points->coords[3]=y;
+
+	gnome_canvas_item_set(GNOME_CANVAS_ITEM(c->line),
+			      "points",c->points,NULL);
+
+	mx = c->points->coords[2]+c->points->coords[0];
+	my = c->points->coords[3]+c->points->coords[1];
+	
+	mx*=0.5;
+	my*=0.5;
+
+
+	/* FIXME this is stupid, but I'm not in the mood for debugging coordinate systems just now....    [xwolf] */
+	gtk_object_destroy(GTK_OBJECT(c->circle));
+	c->circle = GNOME_CANVAS_ELLIPSE(gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(c->line)->parent),
+					  gnome_canvas_ellipse_get_type(),
+					  "x1",mx-6.0,
+					  "x2",mx+6.0,
+					  "y1",my-6.0,
+					  "y2",my+6.0,
+					  "fill_color","black",
+					  "width_pixels",5,
+					  NULL));
+	gtk_signal_connect(GTK_OBJECT(c->circle),
+			   "event",GTK_SIGNAL_FUNC(connection_select),
+			   c);
+/*	gnome_canvas_item_set(GNOME_CANVAS_ITEM(c->circle),
+			      "x1",mx-6.0,
+			      "y1",my-6.0,
+			      "x2",mx+6.0,
+			      "y2",my+6.0,
+			      NULL);*/
+}
+
+
+
+static void
+reorder_port_connections(GlameCanvasPort* port)
+{
+	GList *list = g_list_first(port->connected_ports);
+	int length  = g_list_length(list);
+	double y,ystep,x;
+	x = GNOME_CANVAS_RE(port)->x1;
+	ystep = (GNOME_CANVAS_RE(port)->y2 - GNOME_CANVAS_RE(port)->y1)/(double)(length+1);
+	y =  GNOME_CANVAS_RE(port)->y1+ystep;
+	gnome_canvas_item_i2w(GNOME_CANVAS_ITEM(port)->parent,&x,&y);
+	while(list){
+		set_single_connection(list->data,x,y);
+		list = g_list_next(list);
+		y+=ystep;
+	}
+}
+		
+
 static void
 connection_break(GlameConnection* connection)
 {
 	filternetwork_break_connection(connection->pipe);
-	g_list_remove(connection->begin->connected_ports,connection);
-	g_list_remove(connection->end->connected_ports,connection);
+	connection->begin->connected_ports=g_list_remove(connection->begin->connected_ports,connection);
+	connection->end->connected_ports=g_list_remove(connection->end->connected_ports,connection);
 	gtk_object_destroy(GTK_OBJECT(connection->line));
 	gtk_object_destroy(GTK_OBJECT(connection->circle));
+	reorder_port_connections(connection->end);
 	free (connection);
 }
 	
@@ -432,10 +511,9 @@ connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 static gint
 output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 {
-	filter_portdesc_t *port = (filter_portdesc_t*)data;
 	double x,y,x1,y1,x2,y2;
 	GnomeCanvasItem *newitem;
-	GlameCanvasItem *parent = item->parent;
+	GlameCanvasItem *parent = GLAME_CANVAS_ITEM(item->parent);
 	GdkCursor *fleur;
 	GlameConnection *newconn;
 	gnome_canvas_c2w(item->canvas,event->button.x,event->button.y,&x,&y);
@@ -443,15 +521,11 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 	x2=item->x2;
 	y1=item->y1;
 	y2=item->y2;
-
-	gnome_canvas_item_w2i(parent,&x1,&y1);
-	gnome_canvas_item_w2i(parent,&x2,&y2);	
-
-
-	gnome_canvas_item_w2i(parent,&x,&y);
 	
-	
-	
+	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(parent),&x1,&y1);
+	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(parent),&x2,&y2);	
+	gnome_canvas_item_w2i(GNOME_CANVAS_ITEM(parent),&x,&y);
+		
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -463,7 +537,7 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 			newconn->points->coords[2]=x;
 			newconn->points->coords[3]=y;
 			fleur = gdk_cursor_new(GDK_FLEUR);
-			newitem = gnome_canvas_item_new(parent,
+			newitem = GNOME_CANVAS_ITEM(gnome_canvas_item_new(GNOME_CANVAS_GROUP(parent),
 							gnome_canvas_line_get_type(),
 							"points",newconn->points,
 							"fill_color","black",
@@ -472,9 +546,9 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 							"arrow_shape_a",18.0,
 							"arrow_shape_b",20.0,
 							"arrow_shape_c",5.0,
-							NULL);
+							NULL));
 			gnome_canvas_item_raise_to_top(newitem);
-			newconn->line = newitem;
+			newconn->line = GNOME_CANVAS_LINE(newitem);
 			newconn->begin = GLAME_CANVAS_PORT(item);
 			parent->connection = newconn;
 			gnome_canvas_item_grab(GNOME_CANVAS_ITEM(parent),
@@ -564,7 +638,7 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 
 
 
-GtkWidget*
+GtkObject*
 create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y)
 {
 
@@ -577,7 +651,7 @@ create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y)
 				     filter,
 				     0.0,0.0);
 	gnome_canvas_item_move(GNOME_CANVAS_ITEM(item),x,y);
-	return GTK_WIDGET(item);
+	return GTK_OBJECT(item);
 }
 
 
@@ -606,6 +680,16 @@ add_connection(GlameConnection *c)
 	
 }
 
+void 
+move_single_connection(GlameConnection* c, gdouble x, gdouble y)
+{
+	c->points->coords[2]+=x;
+	c->points->coords[3]+=y;
+	gnome_canvas_item_set(GNOME_CANVAS_ITEM(c->line),"points",c->points,NULL);
+	gnome_canvas_item_move(GNOME_CANVAS_ITEM(c->circle),x*0.5,y*0.5);
+}
+
+	    
 
 void
 update_input_connection(GlameCanvasPort*p, gdouble x, gdouble y)

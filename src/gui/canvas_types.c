@@ -136,10 +136,10 @@ glame_canvas_port_class_init(GlameCanvasPortClass *class)
 
 	GtkObjectClass *object_class;
 
-	GnomeCanvasRectClass *canvas_rect_class;
+	GlameCanvasPortClass *canvas_rect_class;
 	
 	object_class = GTK_OBJECT_CLASS (class);
-	canvas_rect_class = GLAME_CANVAS_PORT_CLASS (class);
+	canvas_rect_class = GLAME_CANVAS_PORT_CLASS(class);
 	
 	glame_canvas_port_class = class;
 	canvas_port_parent_class = gtk_type_class (GNOME_TYPE_CANVAS_RECT);
@@ -240,7 +240,7 @@ glame_canvas_port_new(GnomeCanvasGroup *group,
 {
 	GlameCanvasPort * item;
 	
-	item = gnome_canvas_item_new(group, GLAME_TYPE_CANVAS_PORT,
+	item = GLAME_CANVAS_PORT(gnome_canvas_item_new(group, GLAME_TYPE_CANVAS_PORT,
 				     "x1",x,
 				     "y1",y,
 				     "x2",x+width,
@@ -248,7 +248,7 @@ glame_canvas_port_new(GnomeCanvasGroup *group,
 				     "outline_color","black",
 				     "width_units",1.0,
 				     "fill_color_rgba",color,
-				     NULL);
+				     NULL));
 				   
 	item->port = port;
 	return item;
@@ -268,7 +268,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	
 	GnomeCanvasItem *iitem;
 	GlameCanvasItem *item;
-	GtkWidget *widget;
+	GnomeCanvasItem *gitem;
 	
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
@@ -335,11 +335,9 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "clip",0,
 			      "text",gfilter->caption,
 			      NULL);
-	fprintf(stderr,"%s\n",gfilter->caption);
-	
 
 	image = gdk_imlib_load_image(gfilter->pixname);
-	widget = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
+	gitem = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 				       gnome_canvas_image_get_type(),
 				       "x",48.0,
 				       "y",32.0,
@@ -347,7 +345,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 				       "height",64.0,
 				       "image",image,
 				       NULL);
-	gtk_signal_connect(GTK_OBJECT(widget),"event",GTK_SIGNAL_FUNC(image_select),item);
+	gtk_signal_connect(GTK_OBJECT(gitem),"event",GTK_SIGNAL_FUNC(image_select),item);
 	create_ports(GNOME_CANVAS_GROUP(item),gfilter);
 	gtk_signal_connect(GTK_OBJECT(item),"event",GTK_SIGNAL_FUNC(handle_events),item);
 	return GLAME_CANVAS_ITEM(item);

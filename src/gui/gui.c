@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.16 2000/03/20 09:52:56 richi Exp $
+ * $Id: gui.c,v 1.17 2000/03/20 17:49:43 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -184,17 +184,10 @@ void handle_properties(GtkWidget *menuitem, gpointer bla)
 void 
 handle_new_filter_net(GtkWidget *menuitem, gpointer bla)
 {
-//	GtkWidget *canv;
-	
-//	gui_network * net;
-
 	gui_network_new_wizard();
 
-//	net = gui_network_new("Untitled.",GLAME_DEFAULT_ICON);
-//	canv = create_new_canvas("Untitled.",net);
-//	gtk_widget_show(canv);
-	
 }
+
 void handle_filter_net_open(GtkWidget *menuitem, gpointer bla){}
 void handle_load_filter_plugin(GtkWidget *menuitem,gpointer bla){}
 
@@ -221,7 +214,33 @@ gui_filter_new(const char *pixname,filter_t* filter)
 int
 gui_filter_add(gui_filter *filter)
 {
+	char* newpix;
+	const char* mimetype;
 	g_array_append_val(gui->filters,filter);
+	newpix=gnome_pixmap_file(filter->pixname);
+	if(newpix)
+		strcpy(filter->pixname,newpix);
+	else{
+		newpix = g_concat_dir_and_file(GLAME_PIXMAP_PATH,filter->pixname);
+		if(g_file_test(newpix,G_FILE_TEST_ISFILE)){
+			mimetype = gnome_mime_type(newpix);
+			if(!strncmp(mimetype,"image",5)){
+				strcpy(filter->pixname,newpix);
+			}else{
+				free(filter->pixname);
+				filter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+			}
+			free(newpix);
+		}else{
+			free(filter->pixname); 
+			filter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+		}
+	}
+	if(!filter->pixname){
+		fprintf(stderr,"Warning! No adequate pixmaps were found!\ntrying fallback X resources!\n");
+		free(filter->pixname);
+		filter->pixname = strdup(GLAME_EMERGENCY_PIXMAP);
+	}
 	return gnome_icon_list_append(GNOME_ICON_LIST(gui->iconlist),filter->pixname,filter->caption);
 }
 
@@ -269,7 +288,7 @@ drag_data_get(GtkWidget *w,
 	char msg[10];
 	sprintf(msg,"%d",(gui->selectedIcon));
 	gtk_selection_data_set(data,data->target,8,msg,sizeof(msg));
-	fprintf(stderr,"send\n");
+	DPRINTF("sent msg %s\n",msg);
 }
 
 /* creates main window */
@@ -417,6 +436,22 @@ void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, 
 	gtk_container_add (GTK_CONTAINER (frame), propval);
 	
 }
+
+GtkWidget create_label_widget_pair(GtkWidget *vbox,const char *label, GtkWidget *widget)
+{
+	GtkWidget *label, *hbox;
+
+	label = gtk_label_new(_(label));
+	hbox = gtk_hbox_new (TRUE, 3);
+	gtk_container_add(GTK_CONTAINER(vbox),hbox);
+	gtk_container_add(GTK_CONTAINER(hbox),label);
+	gtk_container_add(GTK_CONTAINER(hbox),widget);
+	gtk_widget_show(hbox);
+	return hbox;
+}
+	
+
+
 
 /* handels the filter-properties popup  */
 
@@ -600,7 +635,7 @@ void gui_handle_icon_sel (GnomeIconList *iconlist,
 				gui->selectedIcon=index;
 			}
 		}else if(((GdkEventButton*)event)->button==2){
-			fprintf(stderr,"button 2\n");
+			//fprintf(stderr,"button 2\n");
 			//fleur = gdk_cursor_new(GDK_FLEUR);
 		}else
 			fprintf(stderr,"unhandled event in gui_handle_icon_sel\n");
@@ -613,7 +648,7 @@ int gui_browse_registered_filters(void)
 	filter_t * fil=NULL;
 	gui_filter* gfilt;
 	plugin_t *plugin;
-	char *pixmap;
+	const char *pixmap;
 
 	/* show only filters with "plugin" */
 	while((fil=filter_next(fil))){
@@ -643,10 +678,7 @@ int gui_filter_init(void)
 gui_network* 
 gui_network_new(const char * caption, const char * pixname)
 {
-	/* FIXME!! [richi]  */
 	gui_network *net = malloc(sizeof(gui_network));
-	net->caption = strdup(caption);
-	net->pixname = strdup(pixname);
 	net->net = filternetwork_new();
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
@@ -657,7 +689,6 @@ int
 gui_network_filter_add(gui_network* net, gui_filter *fil)
 {
 
-	//fil->filter = filter_get(fil->caption);
 	fil->node = filternetwork_add_node(net->net,fil->caption,fil->instance);
 	if(!fil->node)
 		fprintf(stderr,"Error adding node!\n");
@@ -665,7 +696,6 @@ gui_network_filter_add(gui_network* net, gui_filter *fil)
 		net->filters=g_slist_append(net->filters,fil);
 	}
 		
-//	g_array_append_val(net->filters,fil);
 	return 0;
 }
 
@@ -739,7 +769,7 @@ add_ports_wizard(GnomeDruidPage* page)
 void 
 druid_done(GtkWidget *page,GnomeDruid* druid,druid_struct* p)
 {
-	/* FIXME!! [richi] */
+
 	p->net->net = filternetwork_new();
 	if(!(p->net->net))
 		fprintf(stderr,"Error creating network!\n");
@@ -752,6 +782,9 @@ gui_network*
 gui_network_new_wizard(void)
 {
 #ifdef __USE_DRUID
+
+//////// the druid is obsolete!
+
 	GtkWidget *window;
 	GnomeDruid * druid;
 	GdkImlibImage *img,*wat;
@@ -813,27 +846,18 @@ gui_network_new_wizard(void)
 #else
 	
 	gui_network * net;       
-	char *name,*descr;
-	name = malloc(50);
-	descr = malloc(50);
-	strncpy(name,"something",10);
-	strncpy(descr,"dummy net",10);
 
-	gtk_dialog_cauldron("New Filter",0,
-			    " ( (Network Name:) | ( %Eod ) ) / ( (Network Description:) | (%Ed) ) / ( %Bgqrxfp) ",&name,&descr,GNOME_STOCK_BUTTON_OK);
-	
 	net = malloc(sizeof(gui_network));
 	net->filters = NULL;
 	
 
-	net->caption = name;
-	net->pixname = strdup(GLAME_DEFAULT_ICON);
-	net->descr = descr;
-	/* FIXME!! [richi] */
+	net->caption = NULL;
+	net->pixname = NULL;
+	net->descr = NULL;
 	net->net = filternetwork_new();
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
-	gtk_widget_show(create_new_canvas(net->caption,net));
+	create_new_canvas(net);
 	return 0;
 #endif	
 }

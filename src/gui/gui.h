@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.10 2000/03/15 15:46:59 xwolf Exp $
+ * $Id: gui.h,v 1.11 2000/03/20 17:49:43 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -30,8 +30,9 @@
 #define GUI_BUTTONS_X 4
 #define GUI_BUTTONS_Y 2
 #define GLAME_LOGO "pixmaps/glame-logo.jpg"
-#define GLAME_DEFAULT_ICON "pixmaps/default.png"
-
+#define GLAME_DEFAULT_ICON "gnome-tigert.png"
+#define GLAME_PIXMAP_PATH "data/pixmaps/"
+#define GLAME_EMERGENCY_PIXMAP "/usr/X11R6/include/X11/bitmaps/xlogo32"
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -124,17 +125,18 @@ int gui_filter_init(void);
 
 void edit_paramdesc(gui_filter *f);
 
+GtkWidget* create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
+				    
 
 
 
 // canvas stuff
-GtkWidget * create_new_canvas(const char *name, gui_network*);
+GtkWidget * create_new_canvas(gui_network*);
 
 
-GtkWidget* create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y);
+GtkObject* create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y);
 
-void
-create_ports(GnomeCanvasGroup* grp,gui_filter*f);
+void create_ports(GnomeCanvasGroup* grp,gui_filter*f);
 
 
 
