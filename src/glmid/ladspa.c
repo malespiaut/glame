@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.31 2003/08/08 20:14:03 richi Exp $
+ * $Id: ladspa.c,v 1.32 2004/05/06 18:51:10 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -531,10 +531,10 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 						       psDescriptor->PortNames[lPortIndex],
 						       FILTERPORT_END);
 		}
-		if (LADSPA_IS_PORT_CONTROL(iPortDescriptor))
-			filterport_set_property(psPort, "!CONTROL", "true");
 		if (!psPort)
 			return -1;
+		if (LADSPA_IS_PORT_CONTROL(iPortDescriptor))
+			filterport_set_property(psPort, "!CONTROL", "true");
 
 		/* Interpret input controls as parameters. In fact they could be
 		   varied, but we're using a simple model for now. Perhaps this is
