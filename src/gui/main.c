@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.106 2002/02/18 22:41:18 richi Exp $
+ * $Id: main.c,v 1.107 2002/02/19 10:24:12 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -310,11 +310,11 @@ static int update_preferences()
 	_GLAME_WBUFSIZE = wbufsize;
 
 	/* Update IO plugin setup - audio_out */
-	aoutplugin = glame_config_get_string_with_default("audio_io/output_plugin",
-					     "audio_out");
+	aoutplugin = glame_config_get_string_with_default(
+		"audio_io/output_plugin", "audio_out");
 	if (!plugin_get(aoutplugin)) {
 		DPRINTF("No plugin %s - using audio_out\n", aoutplugin);
-		g_free(aoutplugin);
+		free(aoutplugin);
 		aoutplugin = strdup("audio_out");
 		if (!plugin_get(aoutplugin))
 			goto ain;
@@ -331,11 +331,13 @@ static int update_preferences()
 
  ain:
 	/* Update IO plugin setup - audio_in */
-	ainplugin = glame_config_get_string_with_default("audio_io/input_plugin",
-					    "audio_in");
+	rate = glame_config_get_long_with_default(
+		"audio_io/input_rate", GLAME_DEFAULT_SAMPLERATE);
+	ainplugin = glame_config_get_string_with_default(
+		"audio_io/input_plugin", "audio_in");
 	if (!plugin_get(ainplugin)) {
 		DPRINTF("No plugin %s - using audio_in\n", ainplugin);
-		g_free(ainplugin);
+		free(ainplugin);
 		ainplugin = strdup("audio_in");
 		if (!plugin_get(ainplugin))
 			goto sync;
@@ -343,7 +345,6 @@ static int update_preferences()
 	aindev = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(ainplugin), PLUGIN_FILTER)), "device"));
 	snprintf(s, 255, "%s", aindev ? aindev : "");
 	aindev = glame_config_get_string_with_default("audio_io/input_dev", s);
-	rate = glame_config_get_long_with_default("audio_io/input_rate", GLAME_DEFAULT_SAMPLERATE);
 	filter = filter_instantiate(plugin_get(ainplugin));
 	if (filter) {
 		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
@@ -362,7 +363,7 @@ static int update_preferences()
 "Preferences:\n"
 "\tSwapfile directory %s\n"
 "\tUndo stack depth is %li\n"
-"\tAudio input plugin %s, device \"%s\", rate %i\n"
+"\tAudio input plugin %s, device \"%s\", rate %li\n"
 "\tAudio output plugin %s, device \"%s\"\n"
 "\tGLAME_WBUFSIZE %i\n"
 "\tPopup timeout is %lims\n"
@@ -581,13 +582,13 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 		strncpy(aindev, cfg, 255);
 		g_free(cfg);
 		create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
-		/* sample rate */
-		glame_config_get_long("audio_io/input_rate", rate);
-		create_label_long_pair(vbox, _("Default input sample rate"), rate, 11025, 48000);
 	} else {
 		gtk_container_add(GTK_CONTAINER(vbox),
 				  gtk_label_new(_("No audio input plugin")));
 	}
+	/* sample rate */
+	glame_config_get_long("audio_io/input_rate", rate);
+	create_label_long_pair(vbox, _("Default input sample rate"), rate, 11025, 48000);
 
 	gtk_container_add(GTK_CONTAINER(vbox), gtk_hseparator_new());
 
