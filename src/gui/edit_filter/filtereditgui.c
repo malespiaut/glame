@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.11 2001/05/30 14:43:10 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.12 2001/06/02 20:53:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -538,4 +538,7 @@ void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv)
 {
 	glame_canvas_set_zoom(canv,GNOME_CANVAS(canv)->pixels_per_unit/1.5);
 }
-void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv){}
+void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv)
+{
+  glame_canvas_view_all(canv);
+}

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.9 2001/05/30 14:43:10 xwolf Exp $
+ * $Id: canvasport.c,v 1.10 2001/06/02 20:53:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -26,7 +26,7 @@
 #include "glamecanvas.h"
 #include "canvasitem.h"
 #include "hash.h"
-
+#include <X11/bitmaps/hlines3>
 extern gboolean bMac;
 
 HASH(gcport, GlameCanvasPort, 8,
@@ -285,6 +285,11 @@ static void update_string_from_editable(GtkEntry* entry, char** retbuffer)
 }
 
 static void 
+glame_canvas_port_redirected_port_deleted_cb(glsig_handler_t* handler, long sig, va_list va)
+{
+	glame_canvas_port_set_external(glsig_handler_private(handler),FALSE);
+}
+static void 
 glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 {
 	GtkWidget * nameEntry;
@@ -317,11 +322,13 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 		if(filterport_is_output(port->port)){
 			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_OUTPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
 			filterport_redirect(newport,port->port);
-			port->external = TRUE;
+			glame_canvas_port_set_external(port,TRUE);
+			glsig_add_handler(filterport_emitter(newport),GLSIG_PORT_DELETED,glame_canvas_port_redirected_port_deleted_cb,port);
 		}else if(filterport_is_input(port->port)){
 			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_INPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
 			filterport_redirect(newport,port->port);
-			port->external = TRUE;
+			glame_canvas_port_set_external(port, TRUE);
+			glsig_add_handler(filterport_emitter(newport),GLSIG_PORT_DELETED,glame_canvas_port_redirected_port_deleted_cb,port);
 		}
 	}
 	glame_canvas_port_redraw(port);
@@ -463,6 +470,7 @@ glame_canvas_port_set_external(GlameCanvasPort* port,
 			       gboolean ext)
 {
 	port->external = ext;
+	glame_canvas_port_redraw(port);
 }
 
 void
@@ -505,10 +513,18 @@ void
 glame_canvas_port_redraw(GlameCanvasPort * port)
 {
 	/* check for external */
-
-	/*	if(glame_canvas_port_is_external(port){
-		
+	static GdkBitmap *bitmap=NULL;
+	DPRINTF("FOO\N");
+	if(!bitmap)
+		bitmap = gdk_bitmap_create_from_data(GTK_WIDGET(CANVAS_ITEM_CANVAS(port))->window,hlines3_bits,1,3);
+	
+	if(glame_canvas_port_is_external(port)){
+		gtk_object_set(GTK_OBJECT(port),"fill_stipple",bitmap,NULL);
+		gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(port));
+	}else{
+		gtk_object_set(GTK_OBJECT(port), "fill_stipple", NULL, NULL);
+		gnome_canvas_item_request_update(GNOME_CANVAS_ITEM(port));
 	}
-	*/
+		
 } 
 

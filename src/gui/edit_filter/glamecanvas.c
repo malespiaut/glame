@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.7 2001/05/28 13:07:55 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.8 2001/06/02 20:53:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -346,4 +346,43 @@ void glame_canvas_set_zoom(GlameCanvas * canv, double pixelperpoint)
 {
 	gnome_canvas_set_pixels_per_unit(GNOME_CANVAS(canv),pixelperpoint);
 	glame_canvas_redraw(canv);	
+}
+
+void glame_canvas_view_all(GlameCanvas* canv)
+{
+	filter_t *filter;
+	double minX,minY,maxX,maxY;
+	double x1,x2,y1,y2;
+	
+	minX=minY=99999.0;
+	maxX=maxY=-99999.0;
+
+	filter_foreach_node(canv->net,filter){
+		gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(glame_canvas_find_filter(filter)),
+					     &x1,&y1,&x2,&y2);
+		minX=(minX>x1)?x1:minX;
+		minY=(minY>y1)?y1:minY;
+		maxX=(maxX<x2)?x2:maxX;
+		maxY=(maxY<y2)?y2:maxY;
+	}
+	minX-=30.0;
+	minY-=30.0;
+	maxX+=30.0;
+	maxY+=30.0;
+
+	gnome_canvas_get_scroll_region(GNOME_CANVAS(canv),&x1,&y1,&x2,&y2);
+	x1=(x1>minX)?minX:x1;
+	y1=(y1>minY)?minY:y1;
+	x2=(x2<maxX)?maxX:x2;
+	y2=(y2<maxY)?maxY:y2;
+	
+	gnome_canvas_set_scroll_region(GNOME_CANVAS(canv),minX,minY,maxX,maxY);
+	gnome_canvas_update_now(GNOME_CANVAS(canv));
+	filter_foreach_node(canv->net,filter){
+		// FIXME gnomebug?
+		glame_canvas_filter_move(glame_canvas_find_filter(filter),0.0,0.0);
+		glame_canvas_filter_redraw(glame_canvas_find_filter(filter));
+		
+	}
+
 }

@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.6 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: canvasitem.h,v 1.7 2001/06/02 20:53:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -101,7 +101,7 @@ struct _GlameCanvasFilter {
 	
 	double last_x, last_y;
 	gint timeout_id;
-	GList *property_texts;
+	GnomeCanvasGroup* popupGroup;
 
 	GlameCanvasFilter **pprev_gcfilter_hash;
 	GlameCanvasFilter *next_gcfilter_hash;
@@ -135,7 +135,7 @@ void glame_canvas_filter_show_properties(GlameCanvasFilter * filter);
 void glame_canvas_filter_hide_properties(GlameCanvasFilter * filter);
 
 filter_paramdb_t * glame_canvas_filter_get_paramdb(GlameCanvasFilter *filter);
-
+filter_portdb_t* glame_canvas_filter_get_portdb(GlameCanvasFilter* filter);
 
 /********************************************
  *

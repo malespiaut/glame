@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.10 2001/05/30 14:43:10 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.11 2001/06/02 20:53:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -29,6 +29,7 @@
 #include "hash.h"
 
 extern gboolean bMac;
+extern guint nPopupTimeout;
 
 HASH(gcfilter, GlameCanvasFilter, 8,
 	(gcfilter->filter == key ),
@@ -122,7 +123,7 @@ glame_canvas_filter_init(GlameCanvasFilter* node)
 	node->dragging = FALSE;
 	node->last_x = 0.0;
 	node->last_y = 0.0;
-	node->property_texts = NULL;
+	node->popupGroup = NULL;
 	node->timeout_id = 0;
 }
 		
@@ -460,24 +461,42 @@ glame_canvas_filter_redraw(GlameCanvasFilter *filter)
 				      "fill_color","white",
 				      NULL);
 }
-
+	
 void
 glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 {
 	filter_param_t* param;
 	GnomeCanvasText * text;
 	GnomeCanvasGroup *group;
+	GnomeCanvasRect* rect;
+	
 	char buffer[256];
 	const char* font = glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(filter)->canvas));
-	float y = 100.0;
+	float y;
+	double xOffset,yOffset,dummy1,dummy2;
+	double bmaxx,bminx,bminy,bmaxy, recx1,recx2,recy1,recy2;
 	
-	group = GNOME_CANVAS_GROUP(filter);
+	bmaxx=0.0;
+	bminx=200.0;
+	bmaxy=0.0;
+	bminy=1000.0;
+
+	gnome_canvas_item_get_bounds(GNOME_CANVAS_ITEM(filter),&xOffset,&yOffset,&dummy1,&dummy2);
+	
+	y = 110.0 + yOffset;
+	
+	DPRINTF("foo\n");
+	group = GNOME_CANVAS_GROUP(CANVAS_ITEM_ROOT(filter));
+	group = gnome_canvas_item_new(group,
+				      gnome_canvas_group_get_type(),
+				      NULL);
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
 	
 	filterparamdb_foreach_param(glame_canvas_filter_get_paramdb(filter),param){
 		sprintf(buffer,"%s: %s",filterparam_label(param),filterparam_to_string(param));
 		text = gnome_canvas_item_new(group,
 					     gnome_canvas_text_get_type(),
-					     "x",0.0,
+					     "x",xOffset,
 					     "y",y,
 					     "text",buffer,
 					     "font",font,
@@ -488,8 +507,15 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 					     "justification",GTK_JUSTIFY_LEFT, 
 					     "clip",0,
 					     NULL);
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		
+		gnome_canvas_item_get_bounds(text,&recx1,&recy1,&recx2,&recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		
 		y+=16.0;
-		filter->property_texts = g_list_append(filter->property_texts,text);
 	}
 
 	y+=10.0;
@@ -497,7 +523,7 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 		sprintf(buffer,"ERROR: %s",filter_errstr(filter->filter));
 		text = gnome_canvas_item_new(group,
 					     gnome_canvas_text_get_type(),
-					     "x",0.0,
+					     "x",xOffset,
 					     "y",y,
 					     "text",buffer,
 					     "clip_width",94.0,
@@ -508,33 +534,56 @@ glame_canvas_filter_show_properties(GlameCanvasFilter* filter)
 					     "font", font,
 					     "clip",0,
 					     NULL);
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
 
-		filter->property_texts = g_list_append(filter->property_texts,text);
+		gnome_canvas_item_get_bounds(text,&recx1,&recy1,&recx2,&recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+
 		
 	}
+	rect = gnome_canvas_item_new(group,
+				     gnome_canvas_rect_get_type(),
+				     "x1",bminx -5.0,
+				     "y1",bminy -5.0,
+				     "x2",bmaxx+5.0,
+				     "y2",bmaxy+5.0,
+				     "outline_color","black",
+				     "width_units",1.0,
+				     "fill_color_rgba",0xd0d0ff00,
+				     NULL);
+	gnome_canvas_item_lower_to_bottom(GNOME_CANVAS_ITEM(rect));
+	filter->popupGroup = group;
+
+	gtk_timeout_remove(filter->timeout_id);
+	filter->timeout_id = 0;
+	return FALSE;
 }
 
 void
 glame_canvas_filter_hide_properties(GlameCanvasFilter* filter)
 {
 	GList * iter;
-	if(!filter->property_texts){
-		DPRINTF("property_texts == NULL!\n");
+	if(!filter->popupGroup){
 		return;
 	}
-	iter = g_list_first(filter->property_texts);
-	while(iter){
-		gtk_object_destroy(GTK_OBJECT(iter->data));
-		iter = g_list_next(iter);
-	}
-	g_list_free(filter->property_texts);
-	filter->property_texts = NULL;
+	gtk_object_destroy(filter->popupGroup);
+	filter->popupGroup = NULL;
+
 }
 
 filter_paramdb_t*
 glame_canvas_filter_get_paramdb(GlameCanvasFilter* filter)
 {
 	return filter_paramdb(filter->filter);
+}
+
+filter_portdb_t*
+glame_canvas_filter_get_portdb(GlameCanvasFilter* filter)
+{
+	return filter_portdb(filter->filter);
 }
 
 
@@ -822,7 +871,8 @@ glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvas
 	GtkWidget * menu;
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
-		
+		/* first deregister timeouts */
+		glame_canvas_filter_deregister_popup(filter);
 		glame_canvas_filter_move(filter, (double)event->button.x-filter->last_x,(double)event->button.y-filter->last_y);
 		filter->last_x = event->button.x;
 		filter->last_y = event->button.y;
@@ -858,6 +908,34 @@ glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvas
 	}
 }
 
+static void glame_canvas_filter_register_popup(GlameCanvasFilter* filter)
+{
+	if(filter->timeout_id){
+		/* already a timeout present! kill it and register new one */
+		gtk_timeout_remove(filter->timeout_id);
+	}
+	filter->timeout_id=gtk_timeout_add(nPopupTimeout,(GtkFunction)glame_canvas_filter_show_properties,filter);
+}
+
+static void glame_canvas_filter_deregister_popup(GlameCanvasFilter* filter)
+{
+	if(filter->timeout_id){
+		gtk_timeout_remove(filter->timeout_id);
+		filter->timeout_id = 0;
+	}else{
+		glame_canvas_filter_hide_properties(filter);
+	}
+}
+		
+static void glame_canvas_filter_raise_to_top(GlameCanvasFilter* filter)
+{
+	filter_port_t *port;
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(filter)->parent);
+	filterportdb_foreach_port(glame_canvas_filter_get_portdb(filter),port){
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(glame_canvas_find_port(port)));
+	}
+}
+	
 static gboolean
 glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {
@@ -867,6 +945,9 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
+
+			/* raise to top */
+			glame_canvas_filter_raise_to_top(filter);
 			/* grab the thing */
 
 			/* save coords */
@@ -910,7 +991,12 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 			break;
 		}
 		break;
-		
+	case GDK_ENTER_NOTIFY:
+		glame_canvas_filter_register_popup(filter);
+		break;
+	case GDK_LEAVE_NOTIFY:
+		glame_canvas_filter_deregister_popup(filter);
+		break;
 	default:
 		return FALSE;
 		break;
