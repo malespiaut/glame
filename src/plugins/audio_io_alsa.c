@@ -1,7 +1,6 @@
-#ifdef HAVE_ALSA
 /*
  * audio_io_alsa.c
- * $Id: audio_io_alsa.c,v 1.1 2001/04/11 12:36:07 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.2 2001/04/11 13:12:46 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -248,6 +247,3 @@ int alsa_audio_out_register(plugin_t *p)
 					   alsa_audio_out_f, "0:0");
 }
 
-
-
-#endif

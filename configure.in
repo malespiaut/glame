@@ -191,6 +191,22 @@ else
 	AC_DEFINE(HAVE_AUDIOFILE)
 fi
 
+dnl check for libsndfile - FIXME
+lsf=no
+if test $lsf = yes; then
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lsndfile"
+	AC_DEFINE(HAVE_SNDFILE)
+fi
+
+dnl check for lame - richi FIX it, if you don't like it :)
+AC_CHECK_LIB(mp3lame, lame_decode, lame=yes, lame=no)
+AC_CHECK_HEADER(lame.h,,lame=no)
+if test $lame = yes; then
+	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lmp3lame"
+	AC_DEFINE(HAVE_LAME)
+fi
+
+
 dnl check for OSS
 dnl BSD keeps the header file
 dnl in sys/, Linux in linux/, 
@@ -212,45 +228,34 @@ else
 		fi
 	fi
 fi
-
-dnl check for libsndfile - FIXME
-lsf=no
-if test $lsf = yes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lsndfile"
-	AC_DEFINE(HAVE_SNDFILE)
-fi
-
-dnl check for lame - richi FIX it, if you don't like it :)
-AC_CHECK_LIB(mp3lame, lame_decode, lame=yes, lame=no)
-AC_CHECK_HEADER(lame.h,,lame=no)
-if test $lame = yes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lmp3lame"
-	AC_DEFINE(HAVE_LAME)
-fi
+AM_CONDITIONAL(HAVE_OSS, test x$oss = xyes)
 
 dnl check for esd
 AM_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS $ESD_LIBS"
 	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ESD_CFLAGS"
 	AC_DEFINE(HAVE_ESD)
 fi
+AM_CONDITIONAL(HAVE_ESD, test x$esd = xyes)
 
 dnl check for native IRIX audio
-AC_CHECK_LIB(audio, alWriteBuffers, la=yes, la=no)
-AC_CHECK_HEADER(dmedia/audio.h,, la=no)
-if test $la = yes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -laudio"
+AC_CHECK_LIB(audio, alWriteBuffers, sgi=yes, sgi=no)
+AC_CHECK_HEADER(dmedia/audio.h,, sgi=no)
+if test $sgi = yes; then
+	SGIAUDIO_LIBS="-laudio"
 	AC_DEFINE(HAVE_SGIAUDIO)
+	AC_SUBST(SGIAUDIO_LIBS)
 fi
+AM_CONDITIONAL(HAVE_SGI, test x$sgi = xyes)
 
 dnl check for ALSA
-AM_PATH_ALSA(0.5.0, alsa="yes", alsa="no")
+ACG_PATH_ALSA(0.5.0, alsa="yes", alsa="no")
 if test "x$alsa" = xyes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS $ALSA_LIBS"
 	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ALSA_CFLAGS"
 	AC_DEFINE(HAVE_ALSA)
 fi
+AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
+
 
 
 dnl

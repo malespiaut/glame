@@ -1,7 +1,6 @@
-#ifdef HAVE_OSS
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.1 2001/04/11 12:36:07 richi Exp $
+ * $Id: audio_io_oss.c,v 1.2 2001/04/11 13:12:46 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -258,5 +257,3 @@ int oss_audio_out_register(plugin_t *p)
 					   oss_audio_out_f, "/dev/dsp");
 }
 
-
-#endif
