@@ -3,7 +3,7 @@
 
 /*
  * glsimd.h
- * $Id: glsimd.h,v 1.3 2001/04/06 18:21:19 nold Exp $
+ * $Id: glsimd.h,v 1.4 2001/04/11 08:37:59 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -37,20 +37,50 @@
  * medium to large size data.
  */
 struct glsimd_ops_table {
-        /* From the SAMPLE buffers (struct iovec * in ..., NULL
-         * terminated) produce an interleaved buffer in dest
-         * with room for cnt samples (each channel) using
-         * unsigned shorts as sample type. */
-	void (*interleaveUSHORT)(struct iovec *dest, long cnt, ...);
-        /* Symmetric to interleaveUSHORT */
-	void (*deinterleaveUSHORT)(struct iovec *source, long cnt, ...); 
-	/* Add other types as needed. */
+	/* Various variants of scalar products, i.e.
+	 *   result[i] = f1*c1[i] + f2*c2[i] + ...
+	 * cnt vector pairs fi/ci are multiplied and the result is
+	 * stored in cnt scalars in result. For the non determined
+	 * dimension variant scalar_product_Nd dim specifies the
+	 * dimension. */
+	void (*scalar_product_1d)(SAMPLE *result, long cnt,
+				  SAMPLE *c1, SAMPLE f1);
+	void (*scalar_product_1dI)(SAMPLE *result_c1,  long cnt, SAMPLE f1);
+	void (*scalar_product_2d)(SAMPLE *result, long cnt,
+				  SAMPLE *c1, SAMPLE f1,
+				  SAMPLE *c2, SAMPLE f2);
+	void (*scalar_product_2dI)(SAMPLE *result_c1,  long cnt, SAMPLE f1,
+				   SAMPLE *c2, SAMPLE f2);
+	void (*scalar_product_3d)(SAMPLE *result, long cnt,
+				  SAMPLE *c1, SAMPLE f1,
+				  SAMPLE *c2, SAMPLE f2,
+				  SAMPLE *c3, SAMPLE f3);
+	void (*scalar_product_3dI)(SAMPLE *result_c1,  long cnt, SAMPLE f1,
+				   SAMPLE *c2, SAMPLE f2,
+				   SAMPLE *c3, SAMPLE f3);
+	void (*scalar_product_Nd)(SAMPLE *result, long cnt,
+				  SAMPLE **c1, SAMPLE *f1, long dim);
 
-        /* Convert size SAMPLEs starting at position from in the
-         * iovec source to unsigned shorts, storing them into dest. */
-	void (*SAMPLE2USHORT)(gl_u16 *dest, struct iovec *source,
-                              long from, long size);
-        /* Add other types as needed. */
+#if 0 /* Not yet implemented. */
+	/* Routines we commonly need for things like audio and file io.
+	 * These routines do endian conversion, if necessary. As s16
+	 * formats are generally either mono or interleaved stereo, two
+	 * versions of the routines exist. */
+	void (*sample_to_s16_le_M)(SAMPLE *source, void *dest, long cnt);
+	void (*sample_to_s16_be_M)(SAMPLE *source, void *dest, long cnt);
+	void (*s16_le_to_sample_M)(void *source, SAMPLE *dest, long cnt);
+	void (*s16_be_to_sample_M)(void *source, SAMPLE *dest, long cnt);
+	void (*sample_to_s16_le_S)(SAMPLE *left, SAMPLE *right,
+				   void *dest, long cnt);
+	void (*sample_to_s16_be_S)(SAMPLE *left, SAMPLE *right,
+				   void *dest, long cnt);
+	void (*s16_le_to_sample_S)(void *source,
+				   SAMPLE *left, SAMPLE *right, long cnt);
+	void (*s16_be_to_sample_S)(void *source,
+				   SAMPLE *left, SAMPLE *right, long cnt);
+#endif
+
+        /* Add other stuff as needed. */
 };
 
 /* SIMD operations table filled by glsimd_init(), for use by arbitrary
@@ -101,80 +131,6 @@ static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
         return (gl_u8)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<7)-1));
 }
 
-
-
-/* Stuff that got "merged" from old simd_*.h / filter_tools.h but is to
- * be phased out. Dont use in new code. You have been warned.
- */
-
-#define SCALARPROD_1D_1(destp, source1p, fact1) \
-do { \
-        *destp = *source1p*fact1; \
-	source1p++; \
-        if (&destp != &source1p) destp++; \
-} while (0)
-#define SCALARPROD_1D_4(destp, source1p, fact1) \
-do { \
-        SCALARPROD_1D_1(destp, source1p, fact1); \
-        SCALARPROD_1D_1(destp, source1p, fact1); \
-        SCALARPROD_1D_1(destp, source1p, fact1); \
-        SCALARPROD_1D_1(destp, source1p, fact1); \
-} while (0)
-
-#define SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2) \
-do { \
-        *destp = *source1p*fact1 + *source2p*fact2; \
-	source1p++; source2p++; \
-        if (&destp != &source1p) destp++; \
-} while (0)
-#define SCALARPROD_2D_4(destp, source1p, source2p, fact1, fact2) \
-do { \
-        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
-        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
-        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
-        SCALARPROD_2D_1(destp, source1p, source2p, fact1, fact2); \
-} while (0)
-
-#define SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
-do { \
-        *destp = *source1p*fact1 + *source2p*fact2 + *source3p*fact3; \
-	source1p++; source2p++; source3p++; \
-        if (&destp != &source1p) destp++; \
-} while (0)
-#define SCALARPROD_3D_4(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
-do { \
-        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
-        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
-        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
-        SCALARPROD_3D_1(destp, source1p, source2p, source3p, fact1, fact2, fact3); \
-} while (0)
-
-
-#define INVERT1(destsourcep) \
-do { \
-        *destsourcep = -*destsourcep; \
-        destsourcep++; \
-} while (0)
-#define INVERT4(destsourcep) \
-do { \
-        INVERT1(destsourcep); \
-        INVERT1(destsourcep); \
-        INVERT1(destsourcep); \
-        INVERT1(destsourcep); \
-} while (0)
-
-
-#define ADD1(destsourcep,sum) \
-do { \
-        *destsourcep++ += sum; \
-} while (0)
-#define ADD4(destsourcep,sum) \
-do { \
-        ADD1(destsourcep, sum); \
-        ADD1(destsourcep, sum); \
-        ADD1(destsourcep, sum); \
-        ADD1(destsourcep, sum); \
-} while (0)
 
 
 #endif

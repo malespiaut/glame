@@ -1,6 +1,6 @@
 /*
  * glsimd.c
- * $Id: glsimd.c,v 1.1 2001/03/05 15:04:07 richi Exp $
+ * $Id: glsimd.c,v 1.2 2001/04/11 08:37:59 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -23,56 +23,139 @@
 #include "glsimd.h"
 
 
-static void c_interleaveUSHORT(struct iovec *dest, long cnt, ...);
-static void c_deinterleaveUSHORT(struct iovec *source, long cnt, ...);
-static void c_SAMPLE2USHORT(gl_u16 *dest, struct iovec *source,
-                            long from, long size);
+/* Forward declarations. */
+void c_scalar_product_1d(SAMPLE *result, long cnt,
+			 SAMPLE *c1, SAMPLE f1);
+void c_scalar_product_1dI(SAMPLE *result_c1, long cnt, SAMPLE f1);
+void c_scalar_product_2d(SAMPLE *result, long cnt,
+			 SAMPLE *c1, SAMPLE f1,
+			 SAMPLE *c2, SAMPLE f2);
+void c_scalar_product_2dI(SAMPLE *result_c1, long cnt, SAMPLE f1,
+			  SAMPLE *c2, SAMPLE f2);
+void c_scalar_product_3d(SAMPLE *result, long cnt,
+			 SAMPLE *c1, SAMPLE f1,
+			 SAMPLE *c2, SAMPLE f2,
+			 SAMPLE *c3, SAMPLE f3);
+void c_scalar_product_3dI(SAMPLE *result_c1, long cnt, SAMPLE f1,
+			  SAMPLE *c2, SAMPLE f2,
+			  SAMPLE *c3, SAMPLE f3);
+void c_scalar_product_Nd(SAMPLE *result, long cnt,
+			 SAMPLE **c, SAMPLE *f, long dim);
 
 
 /* The simd operations table. Statically initialized to the C variants
  * to allow use without glsimd_init(). */
 struct glsimd_ops_table glsimd = {
-	interleaveUSHORT: c_interleaveUSHORT,
-	deinterleaveUSHORT: c_deinterleaveUSHORT,
-	SAMPLE2USHORT: c_SAMPLE2USHORT,
+	scalar_product_1d: c_scalar_product_1d,
+	scalar_product_1dI: c_scalar_product_1dI,
+	scalar_product_2d: c_scalar_product_2d,
+	scalar_product_2dI: c_scalar_product_2dI,
+	scalar_product_3d: c_scalar_product_3d,
+	scalar_product_3dI: c_scalar_product_3dI,
+	scalar_product_Nd: c_scalar_product_Nd
 };
 
 
 void glsimd_init(int force_c)
 {
         /* Init with C only operations, i.e. safe default. */
-	glsimd.interleaveUSHORT = c_interleaveUSHORT;
-	glsimd.deinterleaveUSHORT = c_deinterleaveUSHORT;
-	glsimd.SAMPLE2USHORT = c_SAMPLE2USHORT;
+	glsimd.scalar_product_1d = c_scalar_product_1d;
+	glsimd.scalar_product_1dI = c_scalar_product_1dI;
+	glsimd.scalar_product_2d = c_scalar_product_2d;
+	glsimd.scalar_product_2dI = c_scalar_product_2dI;
+	glsimd.scalar_product_3d = c_scalar_product_3d;
+	glsimd.scalar_product_3dI = c_scalar_product_3dI;
+	glsimd.scalar_product_Nd = c_scalar_product_Nd;
 
         /* Forced C only operations? */
 	if (force_c)
 		return;
 
-	/* FIXME: now we would need to
+	/* FIXME: now we should
          * 1. detect hardware capabilities
          * 2. benchmark(!?) alternatives
          * 3. select the best
          */
-	/* For now (and testing) its compile-time. */
-#if defined X86_3DNOW
-        /* nothing... */
-#elif defined X86_ISSE1
-        /* nothing... */
-#endif
 }
 
 
-static void c_interleaveUSHORT(struct iovec *dest, long cnt, ...)
+void c_scalar_product_1d(SAMPLE *result, long cnt,
+			 SAMPLE *c1, SAMPLE f1)
 {
+	while (cnt--)
+		*(result++) = f1 * *(c1++);
 }
-
-static void c_deinterleaveUSHORT(struct iovec *source, long cnt, ...)
+void c_scalar_product_1dI(SAMPLE *result_c1, long cnt, SAMPLE f1)
 {
+	while (cnt--)
+		*(result_c1++) *= f1;
 }
-
-static void c_SAMPLE2USHORT(gl_u16 *dest, struct iovec *source,
-                            long from, long size)
+void c_scalar_product_2d(SAMPLE *result, long cnt,
+			 SAMPLE *c1, SAMPLE f1,
+			 SAMPLE *c2, SAMPLE f2)
 {
+	while (cnt--)
+		*(result++) = f1 * *(c1++)
+			+ f2 * *(c2++);
 }
+void c_scalar_product_2dI(SAMPLE *result_c1, long cnt, SAMPLE f1,
+			  SAMPLE *c2, SAMPLE f2)
+{
+	while (cnt--) {
+		*result_c1 = f1 * *result_c1
+			+ f2 * *(c2++);
+		result_c1++;
+	}
+}
+void c_scalar_product_3d(SAMPLE *result, long cnt,
+			 SAMPLE *c1, SAMPLE f1,
+			 SAMPLE *c2, SAMPLE f2,
+			 SAMPLE *c3, SAMPLE f3)
+{
+	while (cnt--)
+		*(result++) = f1 * *(c1++)
+			+ f2 * *(c2++)
+			+ f3 * *(c3++);
+}
+void c_scalar_product_3dI(SAMPLE *result_c1, long cnt, SAMPLE f1,
+			  SAMPLE *c2, SAMPLE f2,
+			  SAMPLE *c3, SAMPLE f3)
+{
+	while (cnt--) {
+		*result_c1 = f1 * *result_c1
+			+ f2 * *(c2++)
+			+ f3 * *(c3++);
+		result_c1++;
+	}
+}
+void c_scalar_product_Nd(SAMPLE *result, long cnt,
+			 SAMPLE **c, SAMPLE *f, long dim)
+{
+	int i,j;
 
+	if (dim == 0) {
+		memset(result, 0, cnt*sizeof(SAMPLE));
+		return;
+	} else if (dim == 1) {
+		glsimd.scalar_product_1d(result, cnt, c[0], f[0]);
+		return;
+	} else if (dim == 2) {
+		glsimd.scalar_product_2d(result, cnt,
+					 c[0], f[0], c[1], f[1]);
+		return;
+	} else if (dim == 3) {
+		glsimd.scalar_product_3d(result, cnt, c[0], f[0],
+					 c[1], f[1], c[2], f[2]);
+		return;
+	}
+	for (i=0; i<cnt; i++) {
+		/* Minimum is 4d now. */
+		*result = f[0] * c[0][i]
+			+ f[1] * c[1][i]
+			+ f[2] * c[2][i]
+			+ f[3] * c[3][i];
+		for (j=4; j<dim; j++)
+			*result += f[j] * c[j][i];
+		result++;
+	}
+}
