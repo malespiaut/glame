@@ -1,6 +1,6 @@
 /*
  * filter_node.c
- * $Id: filter_node.c,v 1.3 2000/01/27 10:30:30 richi Exp $
+ * $Id: filter_node.c,v 1.4 2000/01/27 12:53:35 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -81,8 +81,6 @@ int filternode_connect(filter_node_t *source, char *source_port,
 	    || !(out = hash_find_inputdesc(dest_port, dest->filter)))
 		return -1;
 
-	/* BIG FIXME for all the CONNECTION METHOD STUFF!!! */
-
 	if (!(p = ALLOC(filter_pipe_t)))
 		return -1;
 	p->in_name = in->label;
@@ -94,14 +92,16 @@ int filternode_connect(filter_node_t *source, char *source_port,
 	if (dest->filter->connect_in(dest, dest_port, p) == -1)
 		goto _err;
 
-	/* add the pipe to all port lists/hashes */
-	list_add_input(p, dest);
-	hash_add_input(p, dest);
-	list_add_output(p, source);
-	hash_add_output(p, source);
+	/* add the pipe to all port lists/hashes.
+	 * connect_out/in may have mucked with p->dest/source, so
+	 * we have to use that instead of dest/source directly. */
+	list_add_input(p, p->dest);
+	hash_add_input(p, p->dest);
+	list_add_output(p, p->source);
+	hash_add_output(p, p->source);
 
 	/* signal input changes to destination node */
-	if (dest->filter->fixup(dest, p) == -1)
+	if (dest->filter->fixup(p->dest, p) == -1)
 	        goto _err_fixup;
 
 	/* remove the source filter from the net output filter list
