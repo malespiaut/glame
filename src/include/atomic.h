@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.6 2000/02/24 14:27:36 nold Exp $
+ * $Id: atomic.h,v 1.7 2000/04/11 10:58:16 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,6 +90,15 @@ static inline void atomic_dec(glame_atomic_t *a)
 	pthread_mutex_lock(&a->mx);
 	a->cnt--;
 	pthread_mutex_unlock(&a->mx);
+}
+
+static inline int atomic_dec_and_test(glame_atomic_t *a)
+{
+	int val;
+	pthread_mutex_lock(&a->mx);
+	val = --(a->cnt);
+	pthread_mutex_unlock(&a->mx);
+	return val == 0;
 }
 
 static inline void atomic_add(glame_atomic_t *a, int val)

@@ -62,9 +62,31 @@ static inline void atomic_sub(int i, volatile glame_atomic_t * v)
 		 "m" (__atomic_fool_gcc(v)));
 }
 
+static inline int atomic_sub_return(int i, glame_atomic_t * v)
+{
+        unsigned long temp, result;
+
+        __asm__ __volatile__(
+                ".set\tnoreorder\n"
+                "1:\tll\t%1,%2\n\t"
+                "subu\t%0,%1,%3\n\t"
+                "sc\t%0,%2\n\t"
+                "beqz\t%0,1b\n\t"
+                "subu\t%0,%1,%3\n\t"
+                ".set\treorder"
+                :"=&r" (result),
+                 "=&r" (temp),
+                 "=m" (__atomic_fool_gcc(v))
+                :"Ir" (i),
+                 "m" (__atomic_fool_gcc(v)));
+
+        return result;
+}
+
+
 #define atomic_inc(v) atomic_add(1,(v))
 #define atomic_dec(v) atomic_sub(1,(v))
-
+#define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
 
 #endif /* __ASM_MIPS_ATOMIC_H */
 

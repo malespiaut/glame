@@ -56,6 +56,17 @@ static inline void atomic_dec(volatile glame_atomic_t *v)
 		:"m" (__atomic_fool_gcc(v)));
 }
 
+static inline int atomic_dec_and_test(volatile glame_atomic_t *v)
+{
+        unsigned char c;
+
+        __asm__ __volatile__(
+                LOCK "decl %0; sete %1"
+                :"=m" (__atomic_fool_gcc(v)), "=qm" (c)
+                :"m" (__atomic_fool_gcc(v)));
+        return c != 0;
+}
+
 
 #endif
 
