@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.38 2001/11/26 23:53:11 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.39 2001/11/27 11:13:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -171,7 +171,8 @@ static void glame_canvas_filter_destroy_cb(glsig_handler_t *handler,
 		glsig_delete_handler(handler);
 		return;
 	}
-
+	if(glame_canvas_find_canvas(filter))
+		gtk_object_destroy(GTO(gtk_widget_get_toplevel(GTK_WIDGET(glame_canvas_find_canvas(filter)))));
 	gFilter = GLAME_CANVAS_FILTER(glsig_handler_private(handler));
 	glame_canvas_filter_hide_properties(gFilter);
 	gtk_signal_emit(GTK_OBJECT(gFilter),filter_signals[DELETED]);
@@ -512,15 +513,16 @@ glame_canvas_filter_redraw(GlameCanvasFilter *filter)
 			      NULL);
 	
 	/* check for error */
-	
-	if(filter_has_error(filter->filter))
+	if(filter_has_error(filter->filter)){
 		gnome_canvas_item_set(GNOME_CANVAS_ITEM(filter->labelBox),
 				      "fill_color","red",
 				      NULL);
-	else
+	}
+	else{
 		gnome_canvas_item_set(GNOME_CANVAS_ITEM(filter->labelBox),
 				      "fill_color","white",
 				      NULL);
+	}
 	if(filter->selected){
 		gnome_canvas_item_show(GCI(filter->selbox));
 	}else{

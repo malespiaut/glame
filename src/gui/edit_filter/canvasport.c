@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.23 2001/11/27 09:58:48 richi Exp $
+ * $Id: canvasport.c,v 1.24 2001/11/27 11:13:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -557,8 +557,10 @@ GlameCanvasPort* glame_canvas_port_new(GnomeCanvasGroup* group, filter_port_t *p
 	if(buffer){
 		/* we're being redirected! */
 		red_node = filter_get_node(filterport_filter(port),buffer);
-		if(!red_node)
-			abort();
+		if(!red_node){
+			DPRINTF("the node we were redirecting to doesn't exist anymore!\n");
+			p->realPort = port;
+		}else
 		p->realPort = filterportdb_get_port(filter_portdb(red_node),filterport_get_property(port,FILTERPORT_MAP_LABEL));
 	}else
 		p->realPort = port;
