@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.8 2000/04/05 23:49:44 nold Exp $
+@comment $Id: plugins.texi,v 1.9 2000/04/06 12:39:28 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -120,12 +120,67 @@ depends on the desired sound format.
 @node Swapfile I/O, Abusing External Apps, File I/O, In- and Output
 @subsection Swapfile I/O
 
-TODO: track-in, track-out (track_io.c)
+The two filters @file{track-in} and @file{track-out} are for streaming
+a swapfile into the network or storing a stream into the swapfile. Both
+filters read from / store to the notion of tracks represented by a
+track group identifier and a track identifier. Both filters are one filter
+per stream ones.
+
+@subsubheading Common parameters
+@table @code
+@item group
+Track group identifier
+@item track
+Track identifier
+@end table
+
+@subsubheading @file{track-in} ports
+@table @code
+@item out
+Sample stream coming out of the swapfile.
+@end table
+@file{track-in} has no specific parameters.
+
+@subsubheading @file{track-out} ports
+@table @code
+@item in
+Sample stream to be stored in the swapfile.
+@end table
+@file{track-out} has no specific parameters.
+
+
 
 @node Abusing External Apps,, Swapfile I/O, In- and Output
 @subsection Abusing External Apps
 
-TODO: pipe-in (pipe.c)
+This hackish filter allows to stream data coming from an external
+program which was launched using @code{fork()} and @code{exec()} and
+communicating through unix pipes.
+
+@subsubheading Common parameters
+@table @code
+@item cmd
+Command string of the program which should be launched.
+@item tail
+Extra tail to be appended to the command string, usually a filename.
+@end table
+
+@subsubheading @file{pipe-in} ports
+@table @code
+@item out
+Streams created out of the (possible interleaved) data coming from the
+external program. You have to ensure to connect two pipes if the external
+program generates stereo output. Dataformat is s16 only.
+@end table
+
+@subsubheading @file{pipe-in} parameters
+@table @code
+@item rate
+Sample rate of the data coming from the external program. Defaults to
+@code{GLAME_DEFAULT_SAMPLERATE} which is 44100Hz.
+@end table
+
+
 
 @node Elementary Plugins, Effects, In- and Output, Plugin Collection
 @section Elementary Plugins
@@ -171,6 +226,7 @@ Samplerate of generated data stream. Defaults to compile-time setting
 of GLAME_DEFAULT_SAMPLERATE, usually 44100 Hz.
 @end table
 
+@subsubheading @file{const} ports
 @file{const} has no further specific ports.
 
 @subsubheading @file{const} parameters
@@ -179,6 +235,7 @@ of GLAME_DEFAULT_SAMPLERATE, usually 44100 Hz.
 Constant signal value. Defaults to 0.
 @end table
 
+@subsubheading @file{sine} ports
 @file{sine} has no further specific ports.
 
 @subsubheading @file{sine} parameters
@@ -273,29 +330,30 @@ Stream of input sample data.
 Stream of transformed output sample data.
 @end table
 
+@subsubheading @file{invert} parameters
 @file{invert} has no parameters.
 
-@subsubheading @file{volume-adjust}
+@subsubheading @file{volume-adjust} parameters
 @table @code
 @item factor (float)
 Value to scale input stream's amplitude with.
 @end table
 
-@subsubheading @file{delay}
+@subsubheading @file{delay} parameters
 @table @code
 @item delay (time)
 Input data stream is prepended with zero samples for delay milliseconds.
 Defaults to 0ms.
 @end table
 
-@subsubheading @file{extend}
+@subsubheading @file{extend} parameters
 @table @code
 @item time (time)
 Zero samples are appended to input stream for delay milliseconds.
 Defaults to 0ms.
 @end table
 
-@subsubheading @file{repeat}
+@subsubheading @file{repeat} parameters
 @table @code
 @item duration (time)
 The input pattern is repeated until a total time of duration seconds is
