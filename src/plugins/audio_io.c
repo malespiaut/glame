@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.27 2001/04/06 18:22:10 nold Exp $
+ * $Id: audio_io.c,v 1.28 2001/04/10 13:58:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -210,8 +210,8 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 			  aio_generic_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
-	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
-	plugin_set(pl, PLUGIN_CATEGORY, "InOut");
+	plugin_set(pl, PLUGIN_PIXMAP, "input.png");
+	plugin_set(pl, PLUGIN_CATEGORY, "Input");
 	
 	filter_register(filter, pl);
 
@@ -242,8 +242,8 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 			  aio_generic_fixup_pipe, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "playback stream");
-	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
-        plugin_set(pl, PLUGIN_CATEGORY, "InOut");
+	plugin_set(pl, PLUGIN_PIXMAP, "output.png");
+        plugin_set(pl, PLUGIN_CATEGORY, "Output");
 	
 	filter_register(filter, pl);
 
@@ -1204,7 +1204,7 @@ int audio_out_register(plugin_t *p)
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
-        plugin_set(p, PLUGIN_CATEGORY, "InOut");
+        plugin_set(p, PLUGIN_CATEGORY, "Output");
 	return aio_generic_register_output(p, "audio-out", audio_out, defdev);
 }
 
@@ -1231,6 +1231,6 @@ int audio_in_register(plugin_t *p)
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
-        plugin_set(p, PLUGIN_CATEGORY, "InOut");
+        plugin_set(p, PLUGIN_CATEGORY, "Input");
 	return aio_generic_register_input(p, "audio-in", audio_in, defdev);
 }

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.23 2001/04/02 08:07:54 richi Exp $
+ * $Id: basic_sample.c,v 1.24 2001/04/10 13:58:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -534,8 +534,8 @@ int mix_register(plugin_t *p)
 			  mix_handler, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until first stream end allowing feedback");
-	plugin_set(p, PLUGIN_PIXMAP, "mix.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
+	plugin_set(p, PLUGIN_PIXMAP, "mix1.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Routing");
 	return filter_register(f, p);
 }
 
@@ -581,7 +581,7 @@ int mix2_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until the last input stream ended");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
+	plugin_set(p, PLUGIN_CATEGORY, "Routing");
   
 	return filter_register(f, p);
 }
@@ -668,7 +668,7 @@ int volume_adjust_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
-	plugin_set(p, PLUGIN_CATEGORY, "basic");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
   
 	return filter_register(f, p);
 }

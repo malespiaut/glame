@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.14 2001/04/09 09:18:48 richi Exp $
+ * $Id: canvas_types.c,v 1.15 2001/04/10 13:58:31 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -347,9 +347,15 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	if(g_file_test(filepath,G_FILE_TEST_ISFILE)){
 		fprintf(stderr,"exists\n");
 		image = gdk_imlib_load_image(g_concat_dir_and_file(GLAME_PIXMAP_PATH,namebuffer));
+	} else {
+		filepath = g_concat_dir_and_file("../data/pixmaps",namebuffer);
+		fprintf(stderr,"%s\n",filepath);
+		if(g_file_test(filepath,G_FILE_TEST_ISFILE)){
+			fprintf(stderr,"exists\n");
+			image = gdk_imlib_load_image(g_concat_dir_and_file(GLAME_PIXMAP_PATH,namebuffer));
+		} else
+			image = gdk_imlib_load_image(gnome_pixmap_file(GLAME_DEFAULT_ICON));
 	}
-	else
-		image = gdk_imlib_load_image(gnome_pixmap_file(GLAME_DEFAULT_ICON));//g_concat_dir_and_file(GLAME_PIXMAP_PATH,GLAME_DEFAULT_ICON));
 	gitem = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item),
 				       gnome_canvas_image_get_type(),
 				       "x",48.0,

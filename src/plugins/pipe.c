@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.15 2001/01/03 13:22:58 richi Exp $
+ * $Id: pipe.c,v 1.16 2001/04/10 13:58:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -141,8 +141,8 @@ static int pipe_in_f(filter_t *n)
 	if ((s = filterparam_val_string(filternode_get_param(n, "tail"))))
 		strncat(cmd, s, 255);
 
-	if ((pid = popen2(cmd, NULL, &p)) == -1)
-	/* if (!(p = popen(cmd, "r"))) */
+	/* if ((pid = popen2(cmd, NULL, &p)) == -1) */
+	if (!(p = popen(cmd, "r")))
 	   FILTER_ERROR_RETURN("popen failed"); 
 	b = (short *)malloc(q*4096);
 
@@ -176,10 +176,10 @@ static int pipe_in_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	/* pclose(p); */
+	pclose(p);
 	/* DPRINTF("killing child\n");
 	   kill(pid, SIGKILL); */
-	pclose2(pid, NULL, p);
+	/* pclose2(pid, NULL, p); */
 	free(b);
 
 	FILTER_RETURN;
@@ -255,7 +255,8 @@ int pipe_in_register(plugin_t *p)
 			  pipe_in_param_changed, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe input");
-	plugin_set(p, PLUGIN_CATEGORY, "InOut");
+	plugin_set(p, PLUGIN_PIXMAP, "input.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Input");
 	filter_register(f, p);
 
 	return 0;
@@ -299,8 +300,8 @@ static int pipe_out_f(filter_t *n)
 		} else
 			strcat(cmd, tail);
 	}
-	if ((pid = popen2(cmd, &p, NULL)) == -1)
-	/* if (!(p = popen(cmd, "w"))) */
+	/* if ((pid = popen2(cmd, &p, NULL)) == -1) */
+	if (!(p = popen(cmd, "w")))
 	   FILTER_ERROR_RETURN("popen failed");
 
 	b = malloc(q*GLAME_WBUFSIZE);
@@ -342,8 +343,8 @@ static int pipe_out_f(filter_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	/* pclose(p); */
-	pclose2(pid, p, NULL);
+	pclose(p);
+	/* pclose2(pid, p, NULL); */
 	/* kill(pid, SIGKILL); */
 	free(b);
 	nto1_cleanup(I);
@@ -391,7 +392,8 @@ int pipe_out_register(plugin_t *p)
 	f->connect_in = pipe_out_connect_in;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe output");
-	plugin_set(p, PLUGIN_CATEGORY, "InOut");
+	plugin_set(p, PLUGIN_PIXMAP, "output.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Output");
 	filter_register(f, p);
 
 	return 0;

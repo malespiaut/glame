@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.6 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: tutorial.c,v 1.7 2001/04/10 13:58:31 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -94,7 +94,7 @@ int null_register(plugin_t *p)
 	f->f = null_f;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "does nothing on one input stream");
-	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
+	plugin_set(p, PLUGIN_CATEGORY, "Routing");
 	filter_register(f, p);
 
 	return 0;
@@ -171,6 +171,6 @@ int dup_register(plugin_t *p)
 	f->f = dup_f;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "duplicates one input stream");
-	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
+	plugin_set(p, PLUGIN_CATEGORY, "Routing");
 	return filter_register(f, p);
 }

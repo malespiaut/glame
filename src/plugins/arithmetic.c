@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.11 2001/01/31 10:43:34 richi Exp $
+ * $Id: arithmetic.c,v 1.12 2001/04/10 13:58:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -151,7 +151,7 @@ int mul_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mul.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	
 	return filter_register(f, p);
 }
@@ -256,7 +256,7 @@ int add_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
 	plugin_set(p, PLUGIN_PIXMAP, "add.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 
 	return filter_register(f, p);
 }
@@ -325,7 +325,7 @@ int invert_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "inverse the phase of an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "invert.xpm");
-	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	
 	return filter_register(f, p);
 }
