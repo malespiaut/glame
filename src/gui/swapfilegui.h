@@ -52,6 +52,10 @@ struct _SwapfileGui {
 	glsig_handler_t *gpsm_handler;
 	gpsm_grp_t *root;
 	GtkWidget *tree;
+
+	/* We need to be able to block the accel handler... */
+	guint accel_handler;
+	GtkWidget *app;
 };
 
 

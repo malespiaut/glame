@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.49 2001/06/28 12:44:51 richi Exp $
+ * $Id: swapfilegui.c,v 1.50 2001/07/02 08:20:43 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -126,6 +126,9 @@ static GnomeUIInfo file_menu_data[] = {
 static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)
 {
 	char *text = gtk_editable_get_chars(GTK_EDITABLE(entry), 0, -1);
+	/* Unlock accelerators. HACK(?) */
+	gtk_signal_handler_unblock(GTK_OBJECT(active_swapfilegui->app),
+				   active_swapfilegui->accel_handler);
 	gtk_container_remove(GTK_CONTAINER(item), GTK_WIDGET(entry));
 	gtk_widget_destroy(GTK_WIDGET(entry));
 	if (text) {
@@ -149,6 +152,9 @@ void edit_tree_label(GlameTreeItem * item)
 	gtk_container_add(GTK_CONTAINER(item), entry);
 	gtk_container_check_resize(GTK_CONTAINER(item));
 	gtk_widget_grab_focus(GTK_WIDGET(entry));
+	/* Block accelerators. HACK(?) */
+	gtk_signal_handler_block(GTK_OBJECT(active_swapfilegui->app),
+				 active_swapfilegui->accel_handler);
 }
 
 static gpsm_item_t *actual_item = NULL;
@@ -471,7 +477,7 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	GtkWidget *we;
+	WaveeditGui *we;
 		
 	we = glame_waveedit_gui_new(gpsm_item_label(item->item), item->item);
 	if (!we) {
@@ -479,7 +485,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 			gnome_error_dialog("Cannot open wave editor")));
 		return;
 	}
-	gtk_widget_show_all(we);
+	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
 static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -1035,8 +1041,9 @@ void glame_swapfilegui_init()
 			    gls_swapfilegui_selected_items);
 }
 
-static void swapfile_gui_destroy(SwapfileGui *swapfile)
+static void swapfile_gui_destroy(GtkObject *object)
 {
+	SwapfileGui *swapfile = SWAPFILE_GUI(object);
 	GtkEventBox* parent_class;
 	parent_class = gtk_type_class(GTK_TYPE_EVENT_BOX);
 	GTK_OBJECT_CLASS(parent_class)->destroy(GTK_OBJECT(swapfile));
@@ -1056,6 +1063,8 @@ static void swapfile_gui_init(SwapfileGui *swapfile)
 	swapfile->gpsm_handler = NULL;
 	swapfile->root = NULL;
 	swapfile->tree = NULL;
+	swapfile->accel_handler = 0;
+	swapfile->app = NULL;
 }
 
 GtkType swapfile_gui_get_type(void)

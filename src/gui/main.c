@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.64 2001/06/19 12:09:01 richi Exp $
+ * $Id: main.c,v 1.65 2001/07/02 08:20:43 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -641,7 +641,9 @@ static void gui_main()
 			   resize_horiz_cb, app);
 
 	/* Register accelerators. */
-	glame_accel_install(app, "swapfile", NULL);
+	SWAPFILE_GUI(swapfile)->accel_handler =
+		glame_accel_install(app, "swapfile", NULL);
+	SWAPFILE_GUI(swapfile)->app = app;
 
 	/* Pop up splash screen. */
 	glame_splash();
