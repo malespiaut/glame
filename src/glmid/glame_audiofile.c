@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.8 2001/11/11 23:38:44 nold Exp $
+ * $Id: glame_audiofile.c,v 1.9 2001/11/25 22:21:21 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -476,12 +476,65 @@ void afInitRate (AFfilesetup setup, int track, double rate)
 
 long afQueryLong (int querytype, int arg1, int arg2, int arg3, int arg4)
 {
-	return -1;
+	switch (querytype) {
+	case AF_QUERYTYPE_FILEFMT:
+		switch (arg1) {
+		case AF_QUERY_ID_COUNT:
+			return 1;
+			break;
+		case AF_QUERY_SAMPLE_FORMATS:
+			switch(arg2) {
+			case AF_QUERY_VALUE_COUNT:
+				return 0;
+				break;
+			default:
+				return -1;
+			}
+			break;
+		case AF_QUERY_COMPRESSION_TYPES:
+			switch(arg2) {
+			case AF_QUERY_VALUE_COUNT:
+				return 0;
+				break;
+			default:
+				return -1;
+			}
+			break;
+		default:
+			return -1;
+		}
+		break;
+	default:
+		return -1;
+	}
 }
 
 void *afQueryPointer (int querytype, int arg1, int arg2, int arg3, int arg4)
 {
-	return NULL;
+	static int glame_audiofile_ids[] = { AF_FILE_WAVE };
+	static char *glame_audiofile_labels[] = { [AF_FILE_WAVE] = "wave" };
+	switch (querytype) {
+	case AF_QUERYTYPE_FILEFMT:
+		switch (arg1) {
+		case AF_QUERY_IDS:
+			return glame_audiofile_ids;
+			break;
+		case AF_QUERY_LABEL:
+			return glame_audiofile_labels[arg2];
+			break;
+		case AF_QUERY_SAMPLE_FORMATS:
+			switch(arg2) {
+			default:
+				return NULL;
+			}
+			break;
+		default:
+			return NULL;
+		}
+		break;
+	default:
+		return NULL;
+	}
 }
 
 
