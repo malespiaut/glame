@@ -1,8 +1,8 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.10 2002/04/29 18:17:39 richi Exp $
+ * $Id: audio_io_esd.c,v 1.11 2002/04/29 18:20:40 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
+ * Copyright (C) 2001,2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,105 +27,8 @@
 #include <esd.h>
 #include "audio_io.h"
 
-PLUGIN_SET(audio_io_esd, "esd_audio_in esd_audio_out")
+PLUGIN_SET(audio_io_esd, "esd_audio_out")
 
-
-static int esd_in_f(filter_t *n)
-{
-	filter_port_t *outport;
-	filter_pipe_t	*pipe[2];
-	filter_buffer_t	*sbuf;
-	char	*in;
-	gl_s16	*buf;
-	ssize_t	buf_size = ESD_BUF_SIZE, inbuf_spc;
-	
-	esd_format_t	format;
-        char	*host;
-	int	channels, ch, rate;
-	int	sock, length, endless = 0;
-	float	nsamples = 0.0, maxsamples;
-
-	outport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	if ((channels = filterport_nrpipes(outport)) == 0)
-		FILTER_ERROR_RETURN("No outputs.");
-
-	host = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "device"));
-	rate = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "rate"));
-	maxsamples = filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "duration")) * rate;
-	if (maxsamples <= 0.0)
-		endless = 1;
-
-	pipe[0] = filterport_get_pipe(outport);
-	pipe[1] = filterport_next_pipe(outport, pipe[0]);
-
-	if (pipe[1] && filterpipe_sample_hangle(pipe[0]) > 
-	               filterpipe_sample_hangle(pipe[1])) {
-		filter_pipe_t *t = pipe[0];
-		pipe[0] = pipe[1];
-		pipe[1] = t;
-	}
-
-	format = ESD_BITS16;
-	format |= ESD_STREAM | ESD_RECORD | 
-	          ((channels == 1) ? ESD_MONO : ESD_STEREO);
-	sock = esd_record_stream_fallback(format, rate, host, NULL);
-	if (sock <= 0)
-		FILTER_ERROR_RETURN("Couldn't open esd socket!");
-
-	if ((buf = (gl_s16 *)malloc(buf_size)) == NULL)
-		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
-
-	/* Calculate number of samples per channel. */
-	inbuf_spc = buf_size/(2*channels);
-	
-	FILTER_AFTER_INIT;
-	
-	while (endless || nsamples < maxsamples) {
-		int i, pos;
-		
-		FILTER_CHECK_STOP;
-		
-		length = buf_size;
-		in = (char *)buf;
-		while (length) {
-			ssize_t ret;
-		        ret = read(sock, in, length);
-			if (ret == -1) {
-				DPRINTF("Read failed!\n");
-				goto _out;
-			}
-			in += ret;
-			length -= ret;
-		}
-		for (ch = 0; ch < channels; ch++) {
-			sbuf = sbuf_make_private(sbuf_alloc(inbuf_spc, n));
-			if (!sbuf) {
-				DPRINTF("alloc error!\n");
-				goto _out;
-			}
-			pos = 0;
-			i = ch;
-			while (pos < inbuf_spc) {
-				sbuf_buf(sbuf)[pos++] = SHORT2SAMPLE(buf[i]);
-				i += channels;
-			}
-			sbuf_queue(pipe[ch], sbuf);
-		}
-		nsamples += inbuf_spc;
-	}
-_out:
-
-	FILTER_BEFORE_STOPCLEANUP;
-
-	for (ch = 0; ch < channels; ch++)
-		sbuf_queue(pipe[ch], NULL);
-
-	FILTER_BEFORE_CLEANUP;
-
-	close(sock);
-	free(buf);
-	FILTER_RETURN;
-}
 
 /* I don't know what I'm doing, but I just try to 
  * write a simple esound output filter... */
@@ -307,10 +210,3 @@ int esd_audio_out_register(plugin_t *p)
 	return aio_generic_register_output(p, "esd-audio-out",
 					   esd_out_f, NULL);
 }
-
-int esd_audio_in_register(plugin_t *p)
-{
-	return aio_generic_register_input(p, "esd-audio-in",
-					  esd_in_f, NULL);
-}
-

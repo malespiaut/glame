@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.41 2002/02/21 21:31:14 richi Exp $
+ * $Id: audio_io.c,v 1.42 2002/04/29 18:20:40 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -354,8 +354,6 @@ int audio_in_register(plugin_t *p)
 	plugin_get("audio_io_alsa");
 	plugin_get("audio_io_esd");
 	plugin_get("audio_io_irix");
-	if ((ain = plugin_get("esd-audio-in")))
-		audio_in = ain;
 	if ((ain = plugin_get("oss-audio-in")))
 		audio_in = ain;
 	if ((ain = plugin_get("alsa-audio-in")))
