@@ -26,6 +26,12 @@
  * from arbitrary gpsm subtrees.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "gpsm.h"
+
 
 /* If the clipboard does contain data, 1 is returned, else 0. */
 int clipboard_is_empty();

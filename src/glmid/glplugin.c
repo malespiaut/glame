@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.27 2001/05/12 08:43:55 mag Exp $
+ * $Id: glplugin.c,v 1.28 2001/05/28 15:04:19 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -20,13 +20,16 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <unistd.h>
 #include <string.h>
 #include <dlfcn.h>
 #include "util.h"
 #include "list.h"
 #include "glplugin.h"
-
 #ifdef HAVE_LADSPA
 #include <ladspa.h>
 #endif

@@ -3,7 +3,7 @@
 
 /*
  * glmid.h
- * $Id: glmid.h,v 1.9 2001/05/13 12:07:29 richi Exp $
+ * $Id: glmid.h,v 1.10 2001/05/28 15:04:19 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -22,6 +22,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include "filter.h"
 #include "glplugin.h"
