@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.18 2003/06/08 12:55:26 richi Exp $
+ * $Id: gtknob.c,v 1.19 2003/06/15 13:02:24 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -599,7 +599,7 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 }
 
 
-#if 0 && defined HAVE_LIBGLADE
+#if defined HAVE_LIBGLADE
 #include "glscript.h"
 
 static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
@@ -618,16 +618,17 @@ static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
 	return res;
 }
 
-static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
+static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GType widget_type,
+				     GladeWidgetInfo *info)
 {
 	GtkWidget *knob;
 	GtkObject *adj;
-	GList *tmp;
 	float value = 0.0, lower = 0.0, upper = 1.0, tick;
 	char *formatter = NULL;
+	int i;
 
-	for (tmp = info->attributes; tmp; tmp = tmp->next) {
-		GladeAttribute *attr = tmp->data;
+	for (i = 0; i< info->n_properties; ++i) {
+		GladeProperty *attr = &info->properties[i];
 		if (strcmp(attr->name, "value") == 0)
 			sscanf(attr->value, "%f", &value);
 		if (strcmp(attr->name, "lower") == 0)
@@ -641,8 +642,8 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 	knob = gtk_knob_new(GTK_ADJUSTMENT(adj));
 	if (formatter)
 		gtk_knob_set_formatter(GTK_KNOB(knob), (GtkKnobFormatter)gtk_knob_scheme_formatter, g_strdup(formatter));
-	for (tmp = info->attributes; tmp; tmp = tmp->next) {
-		GladeAttribute *attr = tmp->data;
+	for (i = 0; i< info->n_properties; ++i) {
+		GladeProperty *attr = &info->properties[i];
 		if (strcmp(attr->name, "tick") == 0) {
 			sscanf(attr->value, "%f", &tick);
 			gtk_knob_add_tick(GTK_KNOB(knob), tick);
@@ -754,14 +755,10 @@ void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
 }
 
 
-#if 0 && defined HAVE_LIBGLADE
+#if defined HAVE_LIBGLADE
 void gtk_knob_glade_register()
 {
-	static GladeWidgetBuildData widgets[] = {
-		{ "GtkKnob", gtk_knob_glade_new, NULL },
-		{ NULL, NULL, NULL }
-	};
-	glade_register_widgets(widgets);
+	glade_register_widget(gtk_knob_get_type(), gtk_knob_glade_new, NULL, NULL);
 }
 #else
 void gtk_knob_glade_register()
