@@ -1731,7 +1731,8 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
       waveview->channels = g_new (GtkWaveViewChannelInfo, waveview->n_channels);
 
       waveview->select_left = 0;
-      waveview->select_right = gtk_wave_buffer_get_length (waveview->wavebuffer) - 1;
+      waveview->select_left = -1;
+      /* waveview->select_right = gtk_wave_buffer_get_length (waveview->wavebuffer) - 1; */
       waveview->marker = 0;
 
       gtk_wave_view_cache_create (waveview);
@@ -2102,6 +2103,12 @@ gtk_wave_view_set_selection (GtkWaveView *waveview,
   gtk_wave_view_update_label(waveview);
 }
 
+gboolean
+gtk_wave_view_selection_completely_visible (GtkWaveView *waveview)
+{
+  return calc_win_pel_pos(waveview, waveview->select_left) > 0
+	 && calc_win_pel_pos(waveview, waveview->select_right) < GTK_WIDGET(waveview->area)->allocation.width;
+}
 
 guint32
 gtk_wave_view_get_select_channels (GtkWaveView *waveview)
