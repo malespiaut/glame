@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.62 2001/04/19 12:41:57 xwolf Exp $
+ * $Id: canvas.c,v 1.63 2001/04/19 12:47:12 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -443,6 +443,8 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 #ifdef EVENT_DEBUGGING
 		DPRINTF("motion\n");
 #endif
+		if(!inItem)
+			inItem = 1;
 		if(it->dragging && (event->motion.state & GDK_BUTTON1_MASK)){
 			dx = x-(it->last_x);
 			dy = y-(it->last_y);
