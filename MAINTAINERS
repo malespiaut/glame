@@ -34,6 +34,9 @@ plugins: mag
 doc: nold
 	doc/* 
 
+native language support: nold
+	po/*
+
 debian: nold
 	debian/*
 
