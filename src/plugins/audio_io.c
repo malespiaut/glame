@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.30 2001/04/11 13:25:51 richi Exp $
+ * $Id: audio_io.c,v 1.31 2001/04/14 17:37:31 nold Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -200,7 +200,7 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
 				FILTERPARAM_END);
 	filterparamdb_add_param_float(filter_paramdb(filter), "duration", 
-				  FILTER_PARAMTYPE_TIME_S, 10.0,
+				  FILTER_PARAMTYPE_TIME_S, 0.0,
 				  FILTERPARAM_END);
 	filterparamdb_add_param_string(filter_paramdb(filter), "device",
 				   FILTER_PARAMTYPE_STRING, defaultdevice,
