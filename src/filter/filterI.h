@@ -121,7 +121,8 @@ struct filter_pipe {
 	int type;
 	union {
 		struct {
-			int rate; /* sample rate, [Hz] */
+			int rate; 	/* sample rate, [Hz] */
+			float phi; 	/* polar coordinate, [rad] */
 		} sample;
 		struct {
 			int blocksize;

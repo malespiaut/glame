@@ -1,6 +1,6 @@
 /*
  * channel_io.c
- * $Id: channel_io.c,v 1.6 2000/02/14 13:24:29 richi Exp $
+ * $Id: channel_io.c,v 1.7 2000/02/17 17:58:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -150,7 +150,8 @@ static int channel_in_f(filter_node_t *n)
 	    || !(group = filternode_get_param(n, "group")))
 		return -1;
 
-	if (!(c = get_channel(chan->val.string, group->val.string)))
+	if (!(c = get_channel(filterparam_val_string(chan), 
+	                      filterparam_val_string(group))))
 		return -1;
 
 	FILTER_AFTER_INIT;
@@ -173,12 +174,13 @@ static int channel_in_fixup_param(filter_node_t *n, const char *param)
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		return 0;
 
-	if (!(c = get_channel(chan->val.string, group->val.string)))
+	if (!(c = get_channel(filterparam_val_string(chan),
+	                      filterparam_val_string(group))))
 		return 0;
 
 	/* fix the output pipe stream information */
-	out->type = FILTER_PIPETYPE_SAMPLE;
-	out->u.sample.rate = channel_freq(c);
+	filterpipe_settype_sample(out, channel_freq(c), 
+			FILTER_PIPEPOS_DEFAULT);
 
 	return 0;
 }
@@ -191,12 +193,13 @@ static int channel_in_connect_out(filter_node_t *n, const char *port,
 	if (!(chan = filternode_get_param(n, "channel"))
 	    || !(group = filternode_get_param(n, "group")))
 		return 0;
-	if (!(c = get_channel(chan->val.string, group->val.string)))
+	if (!(c = get_channel(filterparam_val_string(chan),
+	                      filterparam_val_string(group))))
 		return 0;
 
 	/* fix the output pipe stream information */
-	p->type = FILTER_PIPETYPE_SAMPLE;
-	p->u.sample.rate = channel_freq(c);
+	filterpipe_settype_sample(p, channel_freq(c), 
+			FILTER_PIPEPOS_DEFAULT);
 
 	return 0;
 }
@@ -215,7 +218,7 @@ static int channel_out_f(filter_node_t *n)
 		return -1;
 
 	if ((type = filternode_get_param(n, "type")))
-		ctype = type->val.i;
+		ctype = filterparam_val_int(type);
 	else
 		ctype = CHANNEL_NUM_MISC;
 
@@ -224,8 +227,9 @@ static int channel_out_f(filter_node_t *n)
 	file = do_file_out(n, in);
 
 	/* store the file into the submitted channel */
-	res = add_channel(group->val.string, chan->val.string,
-			  file, ctype, in->u.sample.rate);
+	res = add_channel(filterparam_val_string(chan),
+	                  filterparam_val_string(group),
+			  file, ctype, filterpipe_sample_rate(in));
 
 	FILTER_BEFORE_CLEANUP;
 

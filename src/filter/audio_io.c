@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.21 2000/02/16 00:55:00 mag Exp $
+ * $Id: audio_io.c,v 1.22 2000/02/17 17:58:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -152,9 +152,9 @@ static int esd_out_f(filter_node_t *n)
 	/* no channel? */
 	if (!left)
 		return -1;
-	rate = left->u.sample.rate;
+	rate = filterpipe_sample_rate(left);
 	/* right channel different sample rate? */
-	if (right && right->u.sample.rate != rate)
+	if (right && filterpipe_sample_rate(right) != rate)
 		return -1;
 	/* finally decide mono/stereo */
 	if (!right)

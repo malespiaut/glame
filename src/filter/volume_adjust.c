@@ -1,6 +1,6 @@
 /*
  * volume_adjust.c
- * $Id: volume_adjust.c,v 1.8 2000/02/14 13:24:29 richi Exp $
+ * $Id: volume_adjust.c,v 1.9 2000/02/17 17:58:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,7 +39,7 @@ int volume_adjust(filter_node_t *n)
 		return -1;
 	scale = 1.0;
 	if ((scaleparam = filternode_get_param(n, "factor")))
-		scale = scaleparam->val.f;
+		scale = filterparam_val_float(scaleparam);
 
 	FILTER_AFTER_INIT;
 

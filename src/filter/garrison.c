@@ -78,8 +78,10 @@ static int pan_f(filter_node_t *n)
 		l_buf = sbuf_make_private(l_buf);
 		r_buf = sbuf_alloc(sbuf_size(l_buf), n);
 		for (i = 0; i < sbuf_size(l_buf); i++) {
-			sbuf_buf(r_buf)[i] = sbuf_buf(l_buf)[i] * (pan->val.f + 1.0);
-			sbuf_buf(l_buf)[i] *= -(pan->val.f) - 1.0;
+			sbuf_buf(r_buf)[i] = sbuf_buf(l_buf)[i] 
+				* (filterparam_val_float(pan) + 1.0);
+			sbuf_buf(l_buf)[i] *= 
+				-(filterparam_val_float(pan)) - 1.0;
 		}
 		sbuf_queue(l_out, l_buf);
 		sbuf_queue(r_out, r_buf);

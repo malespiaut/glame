@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.7 2000/02/14 13:24:29 richi Exp $
+ * $Id: echo.c,v 1.8 2000/02/17 17:58:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -51,12 +51,12 @@ static int echo_f(filter_node_t *n)
 	}
 
 	if((param = filternode_get_param(n, "time")))
-		echotime=param->val.i;
+		echotime=filterparam_val_int(param);
 	else
 		echotime=100;
 
 	if((param = filternode_get_param(n, "mix")))
-		mix=param->val.f;
+		mix=filterparam_val_float(param);
 	else
 		mix=0.7;
 	

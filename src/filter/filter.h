@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.23 2000/02/16 13:04:01 richi Exp $
+ * $Id: filter.h,v 1.24 2000/02/17 17:58:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -418,15 +418,25 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 #define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
 #define FILTER_PIPETYPE_DEFAULT(porttype) ((porttype) & FILTER_PORTTYPE_SAMPLE ? FILTER_PIPETYPE_SAMPLE : ((porttype) & FILTER_PORTTYPE_RMS ? FILTER_PIPETYPE_RMS : FILTER_PIPETYPE_MISC))
 
+/* Common values for hangle value of a filter pipe
+ */
+
+#define FILTER_PIPEPOS_LEFT		-M_PI_2
+#define FILTER_PIPEPOS_RIGHT		M_PI_2
+#define	FILTER_PIPEPOS_CENTRE		0.0	/* Umm, needed at all? [dk] */
+#define FILTER_PIPEPOS_DEFAULT		FILTER_PIPEPOS_CENTRE
+
 /* Public access macros for the filter_pipe_t structure.
  */
 #define filterpipe_type(fp) ((fp)->type)
 
-#define filterpipe_settype_sample(fp, rate) do { \
+#define filterpipe_settype_sample(fp, freq, hangle) do { \
 	(fp)->type = FILTER_PIPETYPE_SAMPLE; \
-	(fp)->u.sample.rate = (rate); \
+	(fp)->u.sample.rate = (freq); \
+	(fp)->u.sample.phi = (hangle); \
 } while (0)
 #define filterpipe_sample_rate(fp) ((fp)->u.sample.rate)
+#define filterpipe_sample_hangle(fp) ((fp)->u.sample.phi)
 
 #define filterpipe_get_sourceparam(fp, n) \
 	__hash_entry(_hash_find((n), &(fp)->source_params, _hash((n), \

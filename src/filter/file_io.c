@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: file_io.c,v 1.4 2000/02/15 23:51:43 mag Exp $ 
+ * $Id: file_io.c,v 1.5 2000/02/17 17:58:36 nold Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -295,8 +295,7 @@ int read_file_connect_out(filter_node_t *n, const char *port,
 			  filter_pipe_t *p)
 {
 	/* FIXME */
-	p->type = FILTER_PIPETYPE_SAMPLE;
-	p->u.sample.rate = 44100;
+	filterpipe_settype_sample(p, 44100, FILTER_PIPEPOS_DEFAULT);
 
 	return 0;
 }

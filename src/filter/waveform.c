@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.13 2000/02/14 13:24:29 richi Exp $
+ * $Id: waveform.c,v 1.14 2000/02/17 17:58:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -40,11 +40,13 @@ static int sinus_f(filter_node_t *n)
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
 	filter_param_t *param;
-	SAMPLE ampl,freq;
+	SAMPLE 	ampl;
+	float	freq;
 	int duration,i,size,cnt;
 	
 	out = filternode_get_output(n, PORTNAME_OUT);
-	if (!out) return -1;
+	if (!out) 
+		return -1;
 
 	/* sane defaults */
 	ampl = 0.5;
@@ -53,11 +55,11 @@ static int sinus_f(filter_node_t *n)
 
 	/* user overrides with parameters */
 	if ((param = filternode_get_param(n, "amplitude")))
-		ampl = param->val.sample;
+		ampl = filterparam_val_sample(param);
 	if ((param = filternode_get_param(n, "frequency")))
-		freq = param->val.sample;
+		freq = filterparam_val_float(param);
 	if ((param = filternode_get_param(n, "duration")))
-		duration = param->val.i;
+		duration = filterparam_val_int(param);
 	
 
 	size = (int)(44100.0/freq);
@@ -90,9 +92,7 @@ static int sinus_f(filter_node_t *n)
 static int sinus_connect_out(filter_node_t *n, const char *port,
 			     filter_pipe_t *p)
 {
-	p->type = FILTER_PIPETYPE_SAMPLE;
-	p->u.sample.rate = 44100;
-
+	filterpipe_settype_sample(p, 44100, FILTER_PIPEPOS_DEFAULT);
 	return 0;
 }
 
@@ -109,7 +109,7 @@ int waveform_register()
 	    || !filter_add_param(f,"amplitude","sinus peak amplitude(0.0-1.0)",
 				 FILTER_PARAMTYPE_SAMPLE)
 	    || !filter_add_param(f,"frequency","sinus frequency in Hz",
-				 FILTER_PARAMTYPE_SAMPLE)
+				 FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f,"duration","length of signal in ms",
 				 FILTER_PARAMTYPE_INT))
 		return -1;
