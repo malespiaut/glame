@@ -7,4 +7,4 @@ glame_dev_TEXINFOS = filter.texi filter-tutorial.texi swapfile.texi \
 %.html:	%.texi	
 	@cd @srcdir@ && rm -f $@
 	cd @srcdir@ && $(MAKEINFO) --html $<
-
+	ln -s ../pix glame
