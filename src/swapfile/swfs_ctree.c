@@ -69,19 +69,17 @@ static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 	 * (the cluster sizes) is not s64, but s32... so
 	 * we need to seperate the last iteration. */
 	while (--height) {
-		if (pos+tree64[2*i] > offset) {
-			i = 2*i;
-		} else {
-			pos += tree64[2*i];
-			i = 2*i+1;
+		i = 2*i;
+		if (pos+tree64[i] <= offset) {
+			pos += tree64[i];
+			++i;
 		}
 	}
 	/* Do the last check with the sizes[] which is s32, not s64... */
-	if (pos+tree32[2*i + (1<<h->height)] > offset) {
-		i = 2*i + (1<<h->height);
-	} else {
-		pos += tree32[2*i + (1<<h->height)];
-		i = 2*i+1 + (1<<h->height);
+	i = 2*i + (1<<h->height);
+	if (pos+tree32[i] <= offset) {
+		pos += tree32[i];
+		++i;
 	}
 
 	/* Outside of allocated area? Broken cluster size? */
