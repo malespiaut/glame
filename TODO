@@ -1,6 +1,9 @@
 TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
 
+Things we absolutely need to do before 0.4.0:
+---------------------------------------------
+
 doc/
 	- document available filters [nold/the filter authors]
 	  All the 0.2.0 relevant stuff is documented.
@@ -8,10 +11,24 @@ doc/
 
 plugins/
 	- we need pixmaps
+	- audio_io needs an other-than-esd audio_in
+	- file_io needs fixed libaudiofile support
 
 hash/
         - glsimd [all]
           * think of useful SIMD operations with good (ask richi) API 
+	  * at LEAST replace existing macros with SIMD API calls 
+
+gui/
+	[all]
+	- the timeline stuff is still missing
+
+
+Items that can be postponed forever:
+------------------------------------
+
+hash/
+        - glsimd [all]
           * do 3dnow, isse, mmx, etc. versions of existing operations
           * think of how to do run-time detection/profiling
 
@@ -26,8 +43,3 @@ filter/
 swapfile/
         [richi]
 	- implement the transactions, restore undo/redo
-
-gui/
-	[all]
-	- we need some ideas how to do the wave-editing stuff, especially
-          how to couple it with the filter stuff.
