@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.109 2002/03/11 13:01:25 richi Exp $
+ * $Id: main.c,v 1.110 2002/03/29 18:39:25 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -776,7 +776,7 @@ static GtkWidget* glame_about(void)
 "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"),
 				 logo);
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
-	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
+	gtk_window_set_modal (GTK_WINDOW (about), FALSE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
 	gtk_window_set_position (GTK_WINDOW (about), GTK_WIN_POS_CENTER_ALWAYS);
 	gtk_widget_show(about);
