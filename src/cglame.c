@@ -54,6 +54,9 @@ void sc_main()
 "    (quit) gets you out of here.\n"
 "    (help) gets you some additional help.\n\n");
 
+		gh_eval_str_with_catch(
+"(use-modules (ice-9 readline))"
+"(activate-readline)", scm_handle_by_message_noexit);
 		gh_eval_str(
 "(let ((guile-user (resolve-module '(guile-user))))"
 "  (module-use! guile-user (resolve-interface '(glame)))"
