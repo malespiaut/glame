@@ -52,6 +52,7 @@ swapfile/
 	- fix unhandled (MAP_PRIVATE, cluster_split) cases that PANIC
 	  (i.e. introduce anonymous clusters)
 	- resolve issues with ENOSPC and swapfile
+	- swtest-filecow fails on MacOS X
 
 glmid/
 	[richi]
@@ -63,6 +64,7 @@ glmid/
 	  dependencies (start with gpsm: guilify the tree).
 	- fix gpsm placing/inserting checks for overlaps, fix
 	  copy/link in swapfilegui then to use insert not place
+	- do regression tests using cglame for gpsm stuff
 
 glmid/glame_audiofile
 	[nold]
@@ -72,6 +74,7 @@ gui/
 	[xwolf]
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
+	- try saving window positions between sessions
 	[mag]
         - kewl analyze (lots of info) GUI
 	- kewl resample GUI
@@ -79,6 +82,15 @@ gui/
 	- fix audio_io preferences to not show audio_in/out and to
 	  have params (including device and samplerate) be set by
 	  a std param setting dialog
+
+gui/timeline
+	[xwolf/richi]
+	- fix canvas items not left-aligned for big zoom values
+	- add toolbar
+	- add playing capability
+	- fix moving tracks
+	- allow moving groups
+	- add grid
 
 gui/swapfilegui
 	[richi]
@@ -101,7 +113,7 @@ gui/waveeditgui
 	- seperate into subdirectory
 	- toolbar needs work - ICONS!
 	- do glame_ruler with time, samples, beats mode
-	- show actual sample value/rms/position for marker
+	- show actual sample value/rms for marker
 	- add pan/mix sliders
 	- poll for selection change at play time, updating
 	  swin params
@@ -109,6 +121,8 @@ gui/waveeditgui
 gui/libgtkwaveform
 	[xwolf]
 	- change color of background / foreground (make that configurable)
+	- fix marker redrawing
+	- allow shrinking selection by CTRL-clicking inside it
 
 gui/libgtkwaveform2
 	[richi]
