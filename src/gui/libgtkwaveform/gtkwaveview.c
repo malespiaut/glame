@@ -531,9 +531,6 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
   width = MIN(waveview->area->allocation.width, waveview->expose_width);
   start_x = MAX(0, calc_win_pel_ext(waveview, waveview->expose_x));
 
-  /* Hide marker. */
-  gtk_wave_view_draw_marker (waveview);
-
   /* First, paint all cached x coords. */
   /* Keep a range min_val -> max_val that contains all uncached x coords. */
   for (i = start_x; i < start_x + width; i++)
@@ -640,8 +637,10 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 	  /* Be nice to the user. */
 	  if (count > oldcount && gtk_events_pending()) {
 		  /* Handle all pending events => stall redrawing. */
+		  gtk_wave_view_draw_marker (waveview);
 		  while (gtk_events_pending())
 			  gtk_main_iteration();
+		  gtk_wave_view_draw_marker (waveview);
 
 		  /* Correcting the exposed region, bail out
 		   * - only if expose event arrived (else redraw error) */
@@ -667,9 +666,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 
 
  out:
-
-  /* Show marker. */
-  gtk_wave_view_draw_marker (waveview);
+  ;
 }
 
 
@@ -805,6 +802,9 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   if (event->count > 0 || waveview->drawing)
     return TRUE;
 
+  /* hide marker */
+  gtk_wave_view_draw_marker (waveview);
+
   waveview->drawing = 1;
  again:
   /* Done accumulating sequential expose events, now process them. */
@@ -826,9 +826,6 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
       frame_area.width = MIN(waveview->expose_width + MIN(0, exp_win_x), widget->allocation.width);
       frame_area.y = 0;
       frame_area.height = widget->allocation.height;
-
-      /* hide marker */
-      //gtk_wave_view_draw_marker (waveview);
 
       /* Set clipping to expose region. */
       gdk_gc_set_clip_rectangle (widget->style->fg_gc [GTK_STATE_NORMAL], &frame_area);
@@ -915,14 +912,14 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
 	      return TRUE;
       }
 
-      /* show marker */
-      //gtk_wave_view_draw_marker (waveview);
-
     }
 
   if (waveview->expose_count != 0)
 	  goto again;
   waveview->drawing = 0;
+
+  /* show marker */
+  gtk_wave_view_draw_marker (waveview);
 
   return TRUE;
 }
