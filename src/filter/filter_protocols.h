@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.18 2000/03/24 11:08:14 richi Exp $
+ * $Id: filter_protocols.h,v 1.19 2000/03/27 09:17:28 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -27,6 +27,9 @@
 
 #ifndef _FILTER_PROTOCOLS_H
 #define _FILTER_PROTOCOLS_H
+
+#include <sys/time.h>
+#include <unistd.h>
 
 
 /* Standard portnames.
@@ -142,18 +145,36 @@ typedef struct mbuf_header {
 #define mbuf_queue(p, fb) fbuf_queue(p, fb)
 
 
-/* Control input protocol. FIXME.
+/* Control input protocol. Command/value style, provides timestamp.
+ * Any number of compound commands per buffer.
  */
 
 typedef struct cbuf_header cbuf_header_t;
 struct cbuf_header {
+	struct timeval time;
 	char buf[1];
 };
-#define cbuf_alloc(nrsamples, filternode) \
-        fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(cbuf_header_t), \
-		   &(filternode)->buffers)
-#define cbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(cbuf_header_t))/SAMPLE_SIZE)
-#define cbuf_buf(fb) ((SAMPLE *)(&((cbuf_header_t *)fbuf_buf(fb))->buf[0]))
+typedef struct {
+	int cmd;
+	union {
+		int dummy;
+	} u;
+} cbuf_command_t;
+static inline filter_buffer_t *cbuf_alloc(int nr, filter_node_t *n)
+{
+	filter_buffer_t *buf;
+	cbuf_header_t *h;
+
+        if (!(buf = fbuf_alloc(sizeof(cbuf_header_t)
+			       + sizeof(cbuf_command_t)*nr, &n->buffers)))
+		return NULL;
+	h = (cbuf_header_t *)fbuf_buf(buf);
+	gettimeofday(&h->time, NULL);
+
+	return buf;
+}
+#define cbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(cbuf_header_t))/sizeof(cbuf_command_t))
+#define cbuf_buf(fb) ((cbuf_command_t *)(&((cbuf_header_t *)fbuf_buf(fb))->buf[0]))
 #define cbuf_ref(fb) fbuf_ref(fb)
 #define cbuf_unref(fb) fbuf_unref(fb)
 #define cbuf_make_private(fb) fbuf_make_private(fb)
