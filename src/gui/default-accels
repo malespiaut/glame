@@ -64,6 +64,14 @@
       (waveedit-play 0 (gpsm-item-hsize grp) #t #t #f #f)
       (waveedit-play (car sel) (+ (car sel) (cdr sel)) #t #t #f #f)))
   </accel>
+  <accel state="5" spec="space">
+(let ((grp (waveedit-gpsm-grp))
+      (mar (waveedit-get-marker))
+      (sel (waveedit-get-selection)))
+  (if (&gt; (cdr sel) 0)
+      (waveedit-play (if (&lt; mar (+ (car sel) (cdr sel))) mar (car sel)) (+ (car sel) (cdr sel)) #t #f #f #f)))
+  </accel>
+			  
 
   <accel state="4" spec="x"> (waveedit-cut) </accel>
   <accel state="4" spec="c"> (waveedit-copy) </accel>
