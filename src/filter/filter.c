@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.27 2000/02/28 00:33:44 garrison Exp $
+ * $Id: filter.c,v 1.28 2000/02/28 00:35:16 garrison Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -49,6 +49,7 @@ extern int garrison_register();
 extern int nold_register();
 extern int basic_midi_register();
 extern int midi_io_register();
+extern int midi_debug_register();
 extern int maggy_register();
 
 int filter_init()
