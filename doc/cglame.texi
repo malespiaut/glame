@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.15 2001/08/03 11:25:30 richi Exp $
+@comment $Id: cglame.texi,v 1.16 2001/08/05 12:29:55 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -15,11 +15,6 @@ This chapter starts with a brief introduction into the @file{cglame} user
 interface. Afterwards, the wrapped midlayer and backend APIs are listed, and
 an the scheme level API on top will be described.
 
-@strong{WARNING:} this part of the documentation is absolutely not up
-to date. For the time being refer to the sources - @code{src/glmid/glscript_*}
-files for the glame subsystem wrappers, @code{src/glmid/glame.scm} for some
-useful highlevel stuff and @code{src/gui/...} for wrappers to some of the
-gui stuff (most useful for creating custom keybindings).
 
 @menu
 * cglame Introduction::
@@ -32,48 +27,53 @@ gui stuff (most useful for creating custom keybindings).
 @section cglame Introduction
 
 @file{cglame} is a scripting engine
-in the sense that you are presented a @code{guile>} command line prompt
+in the sense that you are presented a @code{glame>} command line prompt
 where you can enter scheme expressions. @file{cglame} exposes GLAME's 
 midlayer API and the backend API via scheme wrappers. Extra convenience
 scripting procedures are defined in the global @file{glame.scm} scheme
-file. You can add customisations via your @file{~/.glame.scm} file.
+file. You can add customisations via your @file{~/.glame.scm} file or
+by loading appropriate scheme files at the appropriate time using
+@code{(load 'filename)}.
 
-As command line option to @file{cglame} you may specify the
-@code{swapfile} to be used. A swapfile is necessary if you want to use any
-of the swapfile API procedures. Once started, @file{cglame} presents you with
-a command prompt where you can evaluate scheme expressions. An example
-session is shown below.
+As command line option to @file{cglame} you may specify the swapfile to
+be used like @code{-s path-to-swapfile}.  A swapfile is necessary if you
+want to use any of the swapfile API procedures. To make @file{cglame}
+create a swapfile for you use @code{-c path-to-swapfile}.
+
+Once started, @file{cglame} presents you with a command prompt where you
+can evaluate scheme expressions. An example session is shown below.
+Alternatively you may run @file{cglame} non-interactively by specifying
+the filename of a to be executed script as last argument to @file{cglame}.
 
 @example
 $ cglame
 
-    CGLAME for GLAME version 0.5.1, Copyright (C) 1999-2001
+    CGLAME for GLAME version 0.5.2, Copyright (C) 1999-2001
     Alexander Ehlert, Richard Guenther, Johannes Hirche, Daniel Kobras.
     CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free
     software, and you are welcome to redistribute it under certain
     conditions.
 
-    Usage: cglame [swapfile]
-
 Quick help:
 (quit) gets you out of here.
 (help) gets you some additional help.
 
-guile> (play "/var/tmp/short.wav")
-guile> (play-eff "/var/tmp/test.wav" '("echo"))
-guile> (let* ((net (net-new))
+glame> (play "/var/tmp/short.wav")
+glame> (play-eff "/var/tmp/test.wav" '("echo"))
+glame> (let* ((net (net-new))
 ... (nodes (net-add-nodes net '("read_file" "echo" "audio_out")))
 ... (echo2 (net-add-node net "echo")))
 ... (node-set-param (car nodes) "filename" "/var/tmp/test.wav")
 ... (nodes-connect nodes)
 ... (nodes-connect (list (car nodes) echo2 (caddr nodes)))
 ... (net-run net))
-guile> (quit)
+glame> (quit)
 $
 @end example
 
 All used scheme procedures which are not documented in the following
-sections reside in the @code{glame.scm} file shipped with glame.
+sections reside in the @file{glame.scm} file shipped with glame,
+usually installed as @file{/usr/share/glame/glame.scm}.
 
 
 
@@ -81,15 +81,23 @@ sections reside in the @code{glame.scm} file shipped with glame.
 @section Wrapped API
 
 For description of the detailled semantics of the available parts of the
-APIs please refer to the native documentation. Note that all scheme
-procedures either throw exceptions or evaluate to @code{#f} if there is
-any error.  C functions which return 0 on success are transformed to
-procedures evaluating to @code{#t} on success or @code{#f} on error if
-not using exceptions. Void functions generally evaluate to
-@code{#unspecified}.
+APIs please refer to the native documentation.
 
-Note that this part of the documentation is incomplete. You can
-consider the Filter API, Plugin API and Swapfile API part up to date.
+C functions which return 0 on succcess and -1 on error are converted to
+scheme procedures evaluating to @code{#unspecified} on success and
+throwing a @code{'glame-error} exception on error.
+C functions which return an object on success and @code{NULL} on error
+are converted to scheme procedures evaluating to an object and throwing
+a @code{'glame-error} exception on error.
+Void functions generally evaluate to @code{#unspecified}.
+
+You can catch @code{'glame-error} exceptions by using code like the
+following:
+@example
+glame> (catch 'glame-error
+              (lambda () (filter-connect foo "out" bar "in"))
+              (lambda args (display "Cannot connect\n")))
+@end example
 
 @menu
 * Scheme Filter API::
@@ -389,10 +397,179 @@ the specified string. Predefined property keys are
 @node Scheme GPSM API, Scheme GUI interaction, Scheme Plugin API, Wrapped API
 @subsection Scheme GPSM API
 
-The glame gpsm midlayer API is wrapped with the following
-procedures:
+The glame gpsm midlayer API is used to represent metadata associated
+with wave data, i.e. samplerate and positional information. The gpsm
+API also wraps swapfile modification of wave data.
 
-FIXME. See @code{src/glmid/glscript_gpsm.c}.
+For global control and initialization the following procedures are
+available:
+
+@deftypefun ( gpsm-init path )
+@deftypefunx ( gpsm-sync )
+@deftypefunx ( gpsm-close )
+These procedures handle initialization and cleanup of the gpsm
+and the swapfile subsystem. As path you need to specify the path
+to the to be used swapfile. @code{gpsm-sync} syncs all gpsm
+metadata to disk.
+@end deftypefun
+
+The gpsm subsystem builds on a tree of gpsm items which are derived
+from a generic item type. Available item types are the gpsm group
+which just contains a list of children, and the gpsm swapfile which
+represents a wave with its metadata and swapfile representation.
+
+@deftypefun ( gpsm-item? item )
+@deftypefunx ( gpsm-grp? item )
+@deftypefunx ( gpsm-swfile? item )
+These predicates check if the provided object is an gpsm item, or
+one of the derived types, a gpsm group or a gpsm swapfile.
+@end deftypefun
+
+@deftypefun ( gpsm-item-parent item )
+@deftypefunx ( gpsm-item-label item )
+@deftypefunx ( gpsm-item-hposition item )
+@deftypefunx ( gpsm-item-vposition item )
+@deftypefunx ( gpsm-item-hsize item )
+@deftypefunx ( gpsm-item-vsize item )
+These procedures give access to the basic gpsm type, the gpsm item.
+They evaluate to the items parent item, to its label or its position
+and extension.
+@end deftypefun
+
+@deftypefun ( gpsm-grp-items item )
+@code{gpsm-grp-items} evaluates to the list of childs of the group.
+@end deftypefun
+
+@deftypefun ( gpsm-swfile-filename item )
+@deftypefunx ( gpsm-swfile-samplerate item )
+@deftypefunx ( gpsm-swfile-position item )
+These procedures give access to the gpsm swapfile type. They evaluate
+to the wave swapfile metadata, respective the swapfile filename, its
+samplerate and position in the stereo field.
+@end deftypefun
+
+@deftypefun ( gpsm-item-set-label! item label )
+@deftypefunx ( gpsm-swfile-set-samplerate! item rate )
+@deftypefunx ( gpsm-swfile-set-position! item position )
+These procedues modify one of the gpsm type properties.
+@end deftypefun
+
+
+For creating, copying, linking and destroying of items the following
+procedures are available:
+
+@deftypefun ( gpsm-newswfile label )
+@deftypefunx ( gpsm-swfile-cow swfile )
+@deftypefunx ( gpsm-swfile-link swfile )
+@end deftypefun
+
+@deftypefun ( gpsm-newgrp label )
+@end deftypefun
+
+@deftypefun ( gpsm-item-destroy item )
+@end deftypefun
+
+
+For structuring, modifying and traversing of the gpsm tree the
+following procedures are available:
+
+@deftypefun ( gpsm-root )
+Evaluates to the gpsm tree root item.
+@end deftypefun
+
+@deftypefun ( gpsm-grp-hbox? grp )
+@deftypefunx ( gpsm-grp-vbox? grp )
+Predicates that check, if the specified group is a hbox (a set of
+horizontally sorted, non-overlapping items), or a vbox (a set of
+vertically sorted, non-overlapping items).
+@end deftypefun
+
+@deftypefun ( gpsm-item-can-place? grp item hposition vposition )
+@deftypefunx ( gpsm-item-place grp item hposition vposition )
+Placing happens without moving unaffected items. Placing needs to
+happen at a position where the needed space is already available.
+@end deftypefun
+
+@deftypefun ( gpsm-item-remove item )
+Removing happens without moving unaffected items and reverses
+a previous @code{gpsm-item-place} operation.
+@end deftypefun
+
+@deftypefun ( gpsm-hbox-can-insert? grp item hposition vposition )
+@deftypefunx ( gpsm-hbox-insert grp item hposition vposition )
+Insertion moves adjacend items horizontally by the size of the inserted
+item. Only the starting position needs to be unoccupied.
+@end deftypefun
+
+@deftypefun ( gpsm-vbox-can-insert? grp item hposition vposition )
+@deftypefunx ( gpsm-vbox-insert grp item hposition vposition )
+Insertion moves adjacend items vertically by the size of the inserted
+item. Only the starting position needs to be unoccupied.
+@end deftypefun
+
+@deftypefun ( gpsm-hbox-cut item )
+Cutting moves adjacend items horizontally by the size of the cutted
+item, reversing a previous @code{gpsm-hbox-insert} operation.
+@end deftypefun
+
+@deftypefun ( gpsm-vbox-cut item )
+Cutting moves adjacend items vertically by the size of the cutted
+item, reversing a previous @code{gpsm-vbox-insert} operation.
+@end deftypefun
+
+
+For the provided notification facility of changes to the underlying
+wave object (the swapfile file), the following procedures need to
+be called, whenever a change is made bypassing the gpsm subsystem.
+They all take a swapfile filename instead of a gpsm object.
+
+@deftypefun ( gpsm-notify-swapfile-change name position size )
+@deftypefunx ( gpsm-notify-swapfile-cut name position size )
+@deftypefunx ( gpsm-notify-swapfile-insert name position size )
+@deftypefunx ( gpsm-invalidate-swapfile name )
+Via these procedures you signal a change within the specified region
+of the swapfile with the specified name. Either just data modification
+or insertion or deletion of the region. Via @code{gpsm-invalidate-swapfile}
+you tell the gpsm subsystem to drop all its knowledge of the data of
+the swapfile, including its current size.
+@end deftypefun
+
+
+The gpsm subsystem transparently provides undo and redo operations for
+swapfiles via the following procedures:
+
+@deftypefun ( gpsm-op-prepare item )
+Prepares the subtree specified by the provided item for later undo,
+i.e. restoring of the current state.
+@end deftypefun
+
+@deftypefun ( gpsm-op-forget item )
+Forgets the most recent stored state of the subtree specified by the
+provided item.
+@end deftypefun
+
+@deftypefun ( gpsm-op-can-undo? item )
+@deftypefunx ( gpsm-op-undo item )
+@deftypefunx ( gpsm-op-undo-and-forget item )
+@code{gpsm-op-can-undo?} evaluates to @code{#t} if there is a previous
+state available that can be restored now for the subtree specified by
+the provided item. @code{gpsm-op-undo} restores this state and remembers
+the current one for later redo. @code{gpsm-op-undo-and-forget} does not
+remember the current state for later redo.
+@end deftypefun
+
+@deftypefun ( gpsm-op-can-redo? item )
+@deftypefunx ( gpsm-op-redo item )
+@deftypefunx ( gpsm-op-redo-and-forget item )
+@code{gpsm-op-can-redo?} evaluates to @code{#t} if there is a previous
+state available created by an @code{gpsm-op-undo} operation for the
+subtree specified by the provided item. @code{gpsm-op-redo} restores
+this state and remembers the current one for later
+undo. @code{gpsm-op-redo-and-forget} does not remember the current state
+for later undo.
+@end deftypefun
+
+
 
 @node Scheme GUI interaction, , Scheme GPSM API, Wrapped API
 @subsection Scheme GUI interaction
