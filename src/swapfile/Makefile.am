@@ -6,6 +6,14 @@ EXTRA_DIST = swfs_cluster.h swfs_cluster.c swfs_file.h swfs_file.c \
 
 noinst_LTLIBRARIES = libswapfile.la
 noinst_SCRIPTS = convert.sh
+noinst_PROGRAMS = swapfile_mkswap swapfile_fsck
 
 libswapfile_la_SOURCES = \
-		swapfile_fs.c swapfile.h
+	swapfile_fs.c swapfile.h
+
+swapfile_fsck_SOURCES = \
+	swapfile_fsck.c
+swapfile_fsck_LDADD = libswapfile.la
+swapfile_mkswap_SOURCES = \
+	swapfile_mkswap.c
+swapfile_mkswap_LDADD = libswapfile.la
