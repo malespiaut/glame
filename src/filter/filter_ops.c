@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.12 2000/03/25 15:56:24 richi Exp $
+ * $Id: filter_ops.c,v 1.13 2000/05/26 09:08:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -110,6 +110,7 @@ static int launch_node(filter_node_t *n)
 		return -1;
 
 	/* launch filter thread */
+	DPRINTF("issuing pthread_create for node %s\n", n->name);
 	if (pthread_create(&n->thread, NULL, launcher, n) != 0)
 		return -1;
 	n->net->launch_context->nr_threads++;
