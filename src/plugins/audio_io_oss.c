@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.7 2001/04/19 08:18:48 richi Exp $
+ * $Id: audio_io_oss.c,v 1.8 2001/04/19 16:11:28 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -151,7 +151,7 @@ static int oss_audio_out_f(filter_t *n)
 	gl_s8			*out = NULL;
 	filter_pipe_t		*p_in;
 	int			rate;
-	int			formats;
+	int			formats, softformats;
 	int			blksz, sign, ssize = 0;
 
 	int	ch, max_ch, interleave, ch_active;
@@ -199,10 +199,6 @@ static int oss_audio_out_f(filter_t *n)
 	if (dev == -1)
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
 
-	if (ioctl(dev, SNDCTL_DSP_SPEED, &rate) == -1)
-		FILTER_ERROR_CLEANUP("Unsupported sample rate.");
-	DPRINTF("Hardware sample rate: %d.\n", rate);
-
 	if (ioctl(dev, SOUND_PCM_WRITE_CHANNELS, &ch) == -1)
 		FILTER_ERROR_CLEANUP("Unable to set number of channels.");
 	if (max_ch != ch) {
@@ -210,11 +206,20 @@ static int oss_audio_out_f(filter_t *n)
 		max_ch = ch;
 	}
 
+	/* GETFMTS returns the formats supported in hardware. The driver
+	 * might emulate more formats in software. We prefer the hardformats
+	 * but try to fallback to one of the formats we support internally.
+	 * (This implies that we might select an 8 bit hard format over a
+	 * 16 bit soft format, but this is okay--it would have been downsampled
+	 * anyway.)
+	 */
+	softformats = AFMT_S16_NE | AFMT_U16_NE | AFMT_S8 | AFMT_U8;
 	if (ioctl(dev, SNDCTL_DSP_GETFMTS, &formats) == -1)	
 		FILTER_ERROR_CLEANUP("Error querying available audio formats.\n");
 	/* XXX: OSS implementation on PPC fucks up unsigned formats. Start with
 	 *      signed therefore and hope for the best. [dk]
 	 */
+_fmt_retry:
 	if (formats & AFMT_S16_NE) {
 		formats = AFMT_S16_NE;
 		ssize = 2;
@@ -231,11 +236,23 @@ static int oss_audio_out_f(filter_t *n)
 		formats = AFMT_U8;	/* Has to be supported */
 		ssize = 1;		/* according to specs. */
 		sign = 1;
-	} else
-		PANIC("OSS implementation not to specs!");
+	} else {
+		formats = AFMT_S16_NE;
+		ssize = 2;
+		sign = -1;
+	}
 
-	if (ioctl(dev, SNDCTL_DSP_SETFMT, &formats) == -1)
-		FILTER_ERROR_CLEANUP("Unable to set sample format");
+	if (ioctl(dev, SNDCTL_DSP_SETFMT, &formats) == -1) {
+		softformats &= ~formats;
+		formats = softformats;
+		if (formats)
+			goto _fmt_retry;
+		FILTER_ERROR_CLEANUP("No supported sample formats found");
+	}
+
+	if (ioctl(dev, SNDCTL_DSP_SPEED, &rate) == -1)
+		FILTER_ERROR_CLEANUP("Unsupported sample rate.");
+	DPRINTF("Hardware sample rate: %d.\n", rate);
 
 	if (ioctl(dev, SNDCTL_DSP_GETBLKSIZE, &blksz) == -1)
 		FILTER_ERROR_CLEANUP("Couldn't query size of audio buffer.");
@@ -357,9 +374,6 @@ static int oss_audio_in_f(filter_t *n)
 	dsp = open(dev, O_RDONLY);
 	if (dsp == -1)
 		FILTER_ERROR_RETURN("Couldn't open audio device!");
-	
-	if (ioctl(dsp, SNDCTL_DSP_RESET, 0) == -1)
-		FILTER_ERROR_CLEANUP("Couldn't reset audio device!");
 	
 	width = 16;	/* FIXME */
 	if (ioctl(dsp, SNDCTL_DSP_SAMPLESIZE, &width) == -1 || width != 16)
