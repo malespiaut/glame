@@ -54,7 +54,7 @@ static int is_scm(const char *fname)
 		return 0;
 
 	if (fscanf(f, " %c", &c) != 1
-	    || c != '(') {
+	    || (c != '(' && c != ';')) {
 		fclose(f);
 		return 0;
 	}
