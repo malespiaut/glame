@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.24 2001/04/25 08:24:27 richi Exp $
+ * $Id: basic.c,v 1.25 2001/05/01 11:22:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -35,7 +35,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic, "drop one2n")
+PLUGIN_SET(basic, "drop one2n buffer")
 
 
 /* Drop is a wastebucket for stream data. it does throw away
@@ -347,5 +347,130 @@ int one2n_register(plugin_t *p)
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
 
+	return filter_register(f, p);
+}
+
+
+
+/* Buffer provides an asynchron operating fifo with configurable
+ * size. It can be used to prevent deadlocks in feed-forward or
+ * feed-backward networks.
+ */
+static int buffer_f(filter_t *n)
+{
+	feedback_fifo_t fifo;
+	filter_buffer_t *buf;
+	filter_pipe_t *in, *out;
+	fd_set infd, outfd;
+	int maxfd, size, fifo_size, res;
+	float time;
+
+	in = filterport_get_pipe(filterportdb_get_port(
+		filter_portdb(n), PORTNAME_IN));
+	out = filterport_get_pipe(filterportdb_get_port(
+		filter_portdb(n), PORTNAME_OUT));
+	if (!in || !out)
+		FILTER_ERROR_RETURN("Insufficient inputs/outputs");
+
+	size = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "size"));
+	time = filterparam_val_float(
+		filterparamdb_get_param(filter_paramdb(n), "time"));
+	if (filterpipe_type(in) == FILTER_PIPETYPE_SAMPLE && time > 0.0)
+		size = filterpipe_sample_rate(in)*time*SAMPLE_SIZE;
+	if (size <= 0)
+		FILTER_ERROR_RETURN("Invalid size/time specification");
+
+	INIT_FEEDBACK_FIFO(fifo);
+
+	FILTER_AFTER_INIT;
+
+	fifo_size = 0;
+	while (in || has_feedback(&fifo)) {
+	        FILTER_CHECK_STOP;
+
+		/* Wait for pipe activity */
+		maxfd = 0;
+		FD_ZERO(&infd);
+		if (in && fifo_size <= size) {
+			FD_SET(in->dest_fd, &infd);
+			maxfd = in->dest_fd;
+		}
+		FD_ZERO(&outfd);
+		if (has_feedback(&fifo)) {
+			FD_SET(out->source_fd, &outfd);
+			maxfd = MAX(maxfd, out->source_fd);
+		}
+		res = select(maxfd+1,
+			     (in && fifo_size <= size) ? &infd : NULL,
+			     has_feedback(&fifo) ? &outfd : NULL,
+			     NULL, NULL);
+		if (res == -1 && errno != EINTR)
+			FILTER_ERROR_STOP("Error in select");
+		if (res <= 0)
+			continue;
+
+		/* First handle writes. */
+		if (FD_ISSET(out->source_fd, &outfd)) {
+			buf = get_feedback(&fifo);
+			fifo_size -= fbuf_size(buf);
+			fbuf_queue(out, buf);
+		}
+
+		/* Then handle reads. */
+		if (FD_ISSET(in->dest_fd, &infd)) {
+			buf = fbuf_get(in);
+			if (!buf) {
+				/* EOF. */
+				in = NULL;
+				continue;
+			}
+			/* TODO: shortcut on empty fifo, if possible. */
+			add_feedback(&fifo, buf);
+			fifo_size += fbuf_size(buf);
+		}
+	}
+
+	/* Queue EOF. */
+	fbuf_queue(out, NULL);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+int buffer_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = filter_creat(NULL)))
+		return -1;
+	f->f = buffer_f;
+
+	filterportdb_add_port(filter_portdb(f),
+			      PORTNAME_IN, FILTER_PORTTYPE_ANY,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f),
+			      PORTNAME_OUT, FILTER_PORTTYPE_ANY,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output",
+			      FILTERPORT_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "size",
+				    FILTER_PARAMTYPE_INT, 0,
+				    FILTERPARAM_DESCRIPTION, "fifo size [bytes]",
+				    FILTERPARAM_END);
+	filterparamdb_add_param_float(filter_paramdb(f), "time",
+				      FILTER_PARAMTYPE_TIME_S, 0.0,
+				      FILTERPARAM_DESCRIPTION, "fifo time",
+				      FILTERPARAM_END);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "buffers a stream");
+	plugin_set(p, PLUGIN_PIXMAP, "buffer.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Routing");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
+	
 	return filter_register(f, p);
 }
