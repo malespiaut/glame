@@ -34,6 +34,17 @@ You want to contribute? Please join our mailinglist (see above) and ask
 for a task. If you just want to write some filters a start is the excellent
 filter API documentation in doc/
 
+Requirements
+============
+- Supported platforms so far are Linux and IRIX, we occasionally try to 
+  make it compile on Solaris, AIX, and BSD.
+- POSIX realtime signals are needed, leading to a minimal requirement of
+  glibc2.1 on Linux.
+- For the GUI part, it's best to try with the very latest versions of
+  GTK+, GNOME libs. configure --disable-gui is your friend...
+- The scripting part makes use of GUILE; upgrading to the lastest and 
+  greatest here is a good idea too, in case anything doesn't work as 
+  expected.
 
 Current Status (brief ChangeLog):
 =================================

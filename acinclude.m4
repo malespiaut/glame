@@ -1,3 +1,33 @@
+# Check for POSIX realtime signals (present in glibc2.1)
+# Daniel Kobras   00-3-14
+
+AC_DEFUN(AC_CHECK_POSIX_RTSIG,
+[
+AC_MSG_CHECKING(whether POSIX realtime signals are supported)
+AC_TRY_COMPILE(
+[
+#include <signal.h>
+],
+[
+int main()
+{
+	struct sigaction sa;
+	sa.sa_sigaction(0, (siginfo_t *)0, (void *)0);
+	return 0;
+}
+],
+[
+AC_MSG_RESULT(yes)
+HAVE_POSIX_RTSIG=1
+AC_DEFINE(HAVE_POSIX_RTSIG)
+]
+,
+[
+AC_MSG_RESULT(no)
+]
+)
+])
+
 # Configure paths for ESD
 # Manish Singh    98-9-30
 # stolen back from Frank Belew

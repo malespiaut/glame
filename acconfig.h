@@ -26,6 +26,9 @@
 #undef CPU_X86
 #undef CPU_MIPS
 
+/* define if your libc supports POSIX realtime signals */
+#undef HAVE_POSIX_RTSIG
+
 /* define to include additional debugging code */
 #undef DEBUG
 
