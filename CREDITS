@@ -30,6 +30,12 @@ Laurent Georget <lgeorget@club-internet.fr>
 Tim <timecop@japan.co.jp>
 	GtkNob widget.
 
+Martin Glaser <xmg01@gmx.de>
+	Lots of feedback and wave widget redraw performace tuning.
+
+Clinton Ebadi <unknown_lamer@unknownlamer.org>
+	Guile upgrading stuff.
+
 Jim Garrison
 	Random stuff (mostly .cvsignores).
 
