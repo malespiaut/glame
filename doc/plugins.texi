@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.33 2002/01/20 22:48:29 mag Exp $
+@comment $Id: plugins.texi,v 1.34 2002/01/23 20:48:52 richi Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -1074,6 +1074,7 @@ Gain of high range band (not in dB)
 @end menu
 
 @node Normalize, Fade in/out, , Operations
+@subsection Normalize
 
 The normalize function can be invoked from the main menu or from the waveeditor widget.
 Normalize scans all given tracks for the highest peak in amplitude or the highest RMS
@@ -1092,6 +1093,7 @@ found results are presented in the text box. If you don't press analyze, this st
 automatically after pressing the ok button.
 
 @node Fade in/out, , Normalize, Operations
+@subsection Fade in/out
 
 The fade in (and out) operations fade in (or out) the current selection
 linearly. These operations are only useful if invoked through the context
