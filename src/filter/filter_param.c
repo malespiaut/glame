@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.19 2002/02/19 09:50:30 richi Exp $
+ * $Id: filter_param.c,v 1.20 2002/04/24 09:41:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -49,11 +49,11 @@ static int default_set(filter_param_t *p, const void *val)
 	if (!gh_procedure_p(set_s))
 		return -1;
 	if (FILTER_PARAM_IS_LONG(p))
-		val_s = gh_long2scm(*(long *)val);
+		val_s = scm_long2num(*(long *)val);
 	else if (FILTER_PARAM_IS_DOUBLE(p))
-		val_s = gh_double2scm(*(double *)val);
+		val_s = scm_double2num(*(double *)val);
 	else if (FILTER_PARAM_IS_STRING(p))
-		val_s = gh_str02scm(*(char **)val);
+		val_s = scm_makfrom0str(*(char **)val);
 	else
 		return -1;
 	res_s = gh_call3(set_s, filter2scm(filterparam_filter(p)),

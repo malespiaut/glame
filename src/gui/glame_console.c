@@ -1,7 +1,7 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.6 2001/09/17 11:47:12 nold Exp $
+ * $Id: glame_console.c,v 1.7 2002/04/24 09:41:07 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -53,13 +53,13 @@ static void port_register()
 {
 	SCM s_port;
 	long port;
-	scm_port *pt;
+	scm_t_port *pt;
 
 	/* Register glame-console port type (output only) */
 	port = scm_make_port_type("glame-console", NULL, port_write);
 
 	/* Create new port - shamelessly copied from libguile/strports.c */
-	SCM_NEWCELL(s_port);
+	GLAME_NEWCELL(s_port);
 	SCM_DEFER_INTS;
 	pt = scm_add_to_port_table(s_port);
 #ifdef SCM_SET_CELL_TYPE /* guile >= 1.4 */

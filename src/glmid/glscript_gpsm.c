@@ -40,7 +40,7 @@ struct gpsmitem_smob {
 SCM gpsmitem2scm(gpsm_item_t *item);
 gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob);
 
-static scm_sizet free_gpsmitem(SCM gpsmitem_smob)
+static size_t free_gpsmitem(SCM gpsmitem_smob)
 {
 #if 0
 	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
@@ -163,7 +163,7 @@ static SCM gls_gpsm_item_label(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-label");
 	item = scm2gpsmitem(s_item);
-	return gh_str02scm(gpsm_item_label(item));
+	return scm_makfrom0str(gpsm_item_label(item));
 }
 
 static SCM gls_gpsm_item_set_label(SCM s_item, SCM s_label)
@@ -188,7 +188,7 @@ static SCM gls_gpsm_item_hposition(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-hposition");
 	item = scm2gpsmitem(s_item);
-	return gh_long2scm(gpsm_item_hposition(item));
+	return scm_long2num(gpsm_item_hposition(item));
 }
 
 static SCM gls_gpsm_item_vposition(SCM s_item)
@@ -197,7 +197,7 @@ static SCM gls_gpsm_item_vposition(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-vposition");
 	item = scm2gpsmitem(s_item);
-	return gh_long2scm(gpsm_item_vposition(item));
+	return scm_long2num(gpsm_item_vposition(item));
 }
 
 static SCM gls_gpsm_item_hsize(SCM s_item)
@@ -206,7 +206,7 @@ static SCM gls_gpsm_item_hsize(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-hsize");
 	item = scm2gpsmitem(s_item);
-	return gh_long2scm(gpsm_item_hsize(item));
+	return scm_long2num(gpsm_item_hsize(item));
 }
 
 static SCM gls_gpsm_item_vsize(SCM s_item)
@@ -215,7 +215,7 @@ static SCM gls_gpsm_item_vsize(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-vsize");
 	item = scm2gpsmitem(s_item);
-	return gh_long2scm(gpsm_item_vsize(item));
+	return scm_long2num(gpsm_item_vsize(item));
 }
 
 
@@ -230,7 +230,7 @@ static SCM gls_gpsm_is_grp(SCM s_item)
 static SCM gls_gpsm_grp_items(SCM s_item)
 {
 	gpsm_item_t *item, *it;
-	SCM s_items = SCM_LIST0;
+	SCM s_items = SCM_EOL;
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-grp_items");
 	item = scm2gpsmitem(s_item);
@@ -257,7 +257,7 @@ static SCM gls_gpsm_swfile_filename(SCM s_item)
 		   && (item = scm2gpsmitem(s_item),
 		       GPSM_ITEM_IS_SWFILE(item)), s_item,
 		   SCM_ARG1, "gpsm-swfile-filename");
-	return gh_long2scm(gpsm_swfile_filename(item));
+	return scm_long2num(gpsm_swfile_filename(item));
 }
 
 static SCM gls_gpsm_swfile_samplerate(SCM s_item)
@@ -267,7 +267,7 @@ static SCM gls_gpsm_swfile_samplerate(SCM s_item)
 		   && (item = scm2gpsmitem(s_item),
 		       GPSM_ITEM_IS_SWFILE(item)), s_item,
 		   SCM_ARG1, "gpsm-swfile-samplerate");
-	return gh_long2scm(gpsm_swfile_samplerate(item));
+	return scm_long2num(gpsm_swfile_samplerate(item));
 }
 
 static SCM gls_gpsm_swfile_set_samplerate(SCM s_item, SCM s_rate)
@@ -280,7 +280,7 @@ static SCM gls_gpsm_swfile_set_samplerate(SCM s_item, SCM s_rate)
 	SCM_ASSERT(gh_exact_p(s_rate), s_rate,
 		   SCM_ARG2, "gpsm-swfile-set-samplerate!");
 	gpsm_swfile_set_samplerate((gpsm_swfile_t *)item,
-				   gh_scm2long(s_rate));
+				   glame_scm2long(s_rate));
 	return SCM_UNSPECIFIED;
 }
 
@@ -329,7 +329,7 @@ static SCM gls_gpsm_set_max_saved_ops(SCM s_nr)
 {
 	SCM_ASSERT(gh_exact_p(s_nr), s_nr,
 		   SCM_ARG1, "gpsm-set-max-saved-ops!");
-	return gh_long2scm(gpsm_set_max_saved_ops(gh_scm2long(s_nr)));
+	return scm_long2num(gpsm_set_max_saved_ops(glame_scm2long(s_nr)));
 }
 
 static SCM gls_gpsm_sync()
@@ -443,7 +443,7 @@ static SCM gls_gpsm_item_can_place(SCM s_grp, SCM s_item,
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-item-can-place?");
 	if (gpsm_item_can_place((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-				gh_scm2long(s_hpos), gh_scm2long(s_vpos)))
+				glame_scm2long(s_hpos), glame_scm2long(s_vpos)))
 		return SCM_BOOL_T;
 	return SCM_BOOL_F;
 }
@@ -461,7 +461,7 @@ static SCM gls_gpsm_item_place(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-item-place");
 	if (gpsm_item_place((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-			    gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == -1)
+			    glame_scm2long(s_hpos), glame_scm2long(s_vpos)) == -1)
 		GLAME_THROW();
 	return SCM_UNSPECIFIED;
 }
@@ -481,7 +481,7 @@ static SCM gls_gpsm_hbox_can_insert(SCM s_grp, SCM s_item,
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-hbox-can-insert?");
 	if (gpsm_hbox_can_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-				 gh_scm2long(s_hpos), gh_scm2long(s_vpos)))
+				 glame_scm2long(s_hpos), glame_scm2long(s_vpos)))
 		return SCM_BOOL_T;
 	return SCM_BOOL_F;
 }
@@ -500,7 +500,7 @@ static SCM gls_gpsm_hbox_insert(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-hbox-insert");
 	if (gpsm_hbox_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == -1)
+			     glame_scm2long(s_hpos), glame_scm2long(s_vpos)) == -1)
 		GLAME_THROW();
 	return SCM_UNSPECIFIED;
 }
@@ -520,7 +520,7 @@ static SCM gls_gpsm_vbox_can_insert(SCM s_grp, SCM s_item,
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-vbox-can-insert?");
 	if (gpsm_vbox_can_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-				 gh_scm2long(s_hpos), gh_scm2long(s_vpos)))
+				 glame_scm2long(s_hpos), glame_scm2long(s_vpos)))
 		return SCM_BOOL_T;
 	return SCM_BOOL_F;
 }
@@ -539,7 +539,7 @@ static SCM gls_gpsm_vbox_insert(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-vbox-insert");
 	if (gpsm_vbox_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == -1)
+			     glame_scm2long(s_hpos), glame_scm2long(s_vpos)) == -1)
 		GLAME_THROW();
 	return SCM_UNSPECIFIED;
 }
@@ -584,8 +584,8 @@ static SCM gls_gpsm_notify_swapfile_change(SCM s_filename,
 		   SCM_ARG2, "gpsm-notify-swapfile-change");
 	SCM_ASSERT(gh_exact_p(s_length), s_length,
 		   SCM_ARG3, "gpsm-notify-swapfile-change");
-	gpsm_notify_swapfile_change(gh_scm2long(s_filename),
-				    gh_scm2long(s_pos), gh_scm2long(s_length));
+	gpsm_notify_swapfile_change(glame_scm2long(s_filename),
+				    glame_scm2long(s_pos), glame_scm2long(s_length));
 	return SCM_UNSPECIFIED;
 }
 
@@ -598,8 +598,8 @@ static SCM gls_gpsm_notify_swapfile_cut(SCM s_filename,
 		   SCM_ARG2, "gpsm-notify-swapfile-cut");
 	SCM_ASSERT(gh_exact_p(s_length), s_length,
 		   SCM_ARG3, "gpsm-notify-swapfile-cut");
-	gpsm_notify_swapfile_cut(gh_scm2long(s_filename),
-				 gh_scm2long(s_pos), gh_scm2long(s_length));
+	gpsm_notify_swapfile_cut(glame_scm2long(s_filename),
+				 glame_scm2long(s_pos), glame_scm2long(s_length));
 	return SCM_UNSPECIFIED;
 }
 
@@ -612,8 +612,8 @@ static SCM gls_gpsm_notify_swapfile_insert(SCM s_filename,
 		   SCM_ARG2, "gpsm-notify-swapfile-insert");
 	SCM_ASSERT(gh_exact_p(s_length), s_length,
 		   SCM_ARG3, "gpsm-notify-swapfile-insert");
-	gpsm_notify_swapfile_insert(gh_scm2long(s_filename),
-				    gh_scm2long(s_pos), gh_scm2long(s_length));
+	gpsm_notify_swapfile_insert(glame_scm2long(s_filename),
+				    glame_scm2long(s_pos), glame_scm2long(s_length));
 	return SCM_UNSPECIFIED;
 }
 
@@ -621,7 +621,7 @@ static SCM gls_gpsm_invalidate_swapfile(SCM s_filename)
 {
 	SCM_ASSERT(gh_exact_p(s_filename), s_filename,
 		   SCM_ARG1, "gpsm-invalidate-swapfile");
-	gpsm_invalidate_swapfile(gh_scm2long(s_filename));
+	gpsm_invalidate_swapfile(glame_scm2long(s_filename));
 	return SCM_UNSPECIFIED;
 }
 
@@ -715,73 +715,81 @@ int glscript_init_gpsm()
 	scm_set_smob_equalp(gpsmitem_smob_tag, equalp_gpsmitem);
 
 	/* gpsm types access. */
-	gh_new_procedure1_0("gpsm-item?", gls_gpsm_is_item);
-	gh_new_procedure1_0("gpsm-item-parent", gls_gpsm_item_parent);
-	gh_new_procedure1_0("gpsm-item-label", gls_gpsm_item_label);
-	gh_new_procedure2_0("gpsm-item-set-label!", gls_gpsm_item_set_label);
-	gh_new_procedure1_0("gpsm-item-hposition", gls_gpsm_item_hposition);
-	gh_new_procedure1_0("gpsm-item-vposition", gls_gpsm_item_vposition);
-	gh_new_procedure1_0("gpsm-item-hsize", gls_gpsm_item_hsize);
-	gh_new_procedure1_0("gpsm-item-vsize", gls_gpsm_item_vsize);
-	gh_new_procedure1_0("gpsm-grp?", gls_gpsm_is_grp);
-	gh_new_procedure1_0("gpsm-grp-items", gls_gpsm_grp_items);
-	gh_new_procedure1_0("gpsm-swfile?", gls_gpsm_is_swfile);
-	gh_new_procedure1_0("gpsm-swfile-filename", gls_gpsm_swfile_filename);
-	gh_new_procedure1_0("gpsm-swfile-samplerate",
-			    gls_gpsm_swfile_samplerate);
-	gh_new_procedure2_0("gpsm-swfile-set-samplerate!",
-			    gls_gpsm_swfile_set_samplerate);
-	gh_new_procedure1_0("gpsm-swfile-position", gls_gpsm_swfile_position);
-	gh_new_procedure2_0("gpsm-swfile-set-position!",
-			    gls_gpsm_swfile_set_position);
+	glame_reg_export ("gpsm-item?", 1, 0, 0, gls_gpsm_is_item);
+	glame_reg_export ("gpsm-item-parent", 1, 0, 0, gls_gpsm_item_parent);
+	glame_reg_export ("gpsm-item-label", 1, 0, 0, gls_gpsm_item_label);
+	glame_reg_export ("gpsm-item-set-label!", 2, 0, 0, 
+			  gls_gpsm_item_set_label);
+	glame_reg_export ("gpsm-item-hposition", 1, 0, 0, 
+			  gls_gpsm_item_hposition);
+	glame_reg_export ("gpsm-item-vposition", 1, 0, 0, 
+			  gls_gpsm_item_vposition);
+	glame_reg_export ("gpsm-item-hsize", 1, 0, 0, gls_gpsm_item_hsize);
+	glame_reg_export ("gpsm-item-vsize", 1, 0, 0, gls_gpsm_item_vsize);
+	glame_reg_export ("gpsm-grp?", 1, 0, 0, gls_gpsm_is_grp);
+	glame_reg_export ("gpsm-grp-items", 1, 0, 0, gls_gpsm_grp_items);
+	glame_reg_export ("gpsm-swfile?", 1, 0, 0, gls_gpsm_is_swfile);
+	glame_reg_export ("gpsm-swfile-filename", 1, 0, 0, 
+			  gls_gpsm_swfile_filename);
+	glame_reg_export ("gpsm-swfile-samplerate",
+			    1, 0, 0, gls_gpsm_swfile_samplerate);
+	glame_reg_export ("gpsm-swfile-set-samplerate!",
+			    2, 0, 0, gls_gpsm_swfile_set_samplerate);
+	glame_reg_export ("gpsm-swfile-position", 1, 0, 0, 
+			  gls_gpsm_swfile_position);
+	glame_reg_export ("gpsm-swfile-set-position!",
+			    2, 0, 0, gls_gpsm_swfile_set_position);
 
 	/* gpsm global control. */
-	gh_new_procedure1_0("gpsm-init", gls_gpsm_init);
-	gh_new_procedure1_0("gpsm-set-max-saved-ops!",
-			    gls_gpsm_set_max_saved_ops);
-	gh_new_procedure0_0("gpsm-sync", gls_gpsm_sync);
-	gh_new_procedure0_0("gpsm-close", gls_gpsm_close);
+	glame_reg_export ("gpsm-init", 1, 0, 0, gls_gpsm_init);
+	glame_reg_export ("gpsm-set-max-saved-ops!",
+			    1, 0, 0, gls_gpsm_set_max_saved_ops);
+	glame_reg_export ("gpsm-sync", 0, 0, 0, gls_gpsm_sync);
+	glame_reg_export ("gpsm-close", 0, 0, 0, gls_gpsm_close);
 
 	/* gpsm structuring. */
-	gh_new_procedure0_0("gpsm-root", gls_gpsm_root);
-	gh_new_procedure1_0("gpsm-newswfile", gls_gpsm_newswfile);
-	gh_new_procedure1_0("gpsm-swfile-cow", gls_gpsm_swfile_cow);
-	gh_new_procedure1_0("gpsm-swfile-link", gls_gpsm_swfile_link);
-	gh_new_procedure1_0("gpsm-newgrp", gls_gpsm_newgrp);
-	gh_new_procedure1_0("gpsm-item-destroy", gls_gpsm_item_destroy);
-	gh_new_procedure1_0("gpsm-grp-hbox?", gls_gpsm_grp_is_hbox);
-	gh_new_procedure1_0("gpsm-grp-vbox?", gls_gpsm_grp_is_vbox);
-	gh_new_procedure4_0("gpsm-item-can-place?", gls_gpsm_item_can_place);
-	gh_new_procedure4_0("gpsm-item-place", gls_gpsm_item_place);
-	gh_new_procedure4_0("gpsm-hbox-can-insert?", gls_gpsm_hbox_can_insert);
-	gh_new_procedure4_0("gpsm-hbox-insert", gls_gpsm_hbox_insert);
-	gh_new_procedure4_0("gpsm-vbox-can-insert?", gls_gpsm_vbox_can_insert);
-	gh_new_procedure4_0("gpsm-vbox-insert", gls_gpsm_vbox_insert);
-	gh_new_procedure1_0("gpsm-item-remove", gls_gpsm_item_remove);
-	gh_new_procedure1_0("gpsm-hbox-cut", gls_gpsm_hbox_cut);
-	gh_new_procedure1_0("gpsm-vbox-cut", gls_gpsm_vbox_cut);
+	glame_reg_export ("gpsm-root", 0, 0, 0, gls_gpsm_root);
+	glame_reg_export ("gpsm-newswfile", 1, 0, 0, gls_gpsm_newswfile);
+	glame_reg_export ("gpsm-swfile-cow", 1, 0, 0, gls_gpsm_swfile_cow);
+	glame_reg_export ("gpsm-swfile-link", 1, 0, 0, gls_gpsm_swfile_link);
+	glame_reg_export ("gpsm-newgrp", 1, 0, 0, gls_gpsm_newgrp);
+	glame_reg_export ("gpsm-item-destroy", 1, 0, 0, gls_gpsm_item_destroy);
+	glame_reg_export ("gpsm-grp-hbox?", 1, 0, 0, gls_gpsm_grp_is_hbox);
+	glame_reg_export ("gpsm-grp-vbox?", 1, 0, 0, gls_gpsm_grp_is_vbox);
+	glame_reg_export ("gpsm-item-can-place?", 4, 0, 0, 
+			  gls_gpsm_item_can_place);
+	glame_reg_export ("gpsm-item-place", 4, 0, 0, gls_gpsm_item_place);
+	glame_reg_export ("gpsm-hbox-can-insert?", 4, 0, 0, 
+			  gls_gpsm_hbox_can_insert);
+	glame_reg_export ("gpsm-hbox-insert", 4, 0, 0, gls_gpsm_hbox_insert);
+	glame_reg_export ("gpsm-vbox-can-insert?", 4, 0, 0, 
+			  gls_gpsm_vbox_can_insert);
+	glame_reg_export ("gpsm-vbox-insert", 4, 0, 0, gls_gpsm_vbox_insert);
+	glame_reg_export ("gpsm-item-remove", 1, 0, 0, gls_gpsm_item_remove);
+	glame_reg_export ("gpsm-hbox-cut", 1, 0, 0, gls_gpsm_hbox_cut);
+	glame_reg_export ("gpsm-vbox-cut", 1, 0, 0, gls_gpsm_vbox_cut);
 
 	/* gpsm notification. */
-	gh_new_procedure3_0("gpsm-notify-swapfile-change",
-			    gls_gpsm_notify_swapfile_change);
-	gh_new_procedure3_0("gpsm-notify-swapfile-cut",
-			    gls_gpsm_notify_swapfile_cut);
-	gh_new_procedure3_0("gpsm-notify-swapfile-insert",
-			    gls_gpsm_notify_swapfile_insert);
-	gh_new_procedure1_0("gpsm-invalidate-swapfile",
-			    gls_gpsm_invalidate_swapfile);
+	glame_reg_export ("gpsm-notify-swapfile-change",
+			    3, 0, 0, gls_gpsm_notify_swapfile_change);
+	glame_reg_export ("gpsm-notify-swapfile-cut",
+			    3, 0, 0, gls_gpsm_notify_swapfile_cut);
+	glame_reg_export ("gpsm-notify-swapfile-insert",
+			    3, 0, 0, gls_gpsm_notify_swapfile_insert);
+	glame_reg_export ("gpsm-invalidate-swapfile",
+			    1, 0, 0, gls_gpsm_invalidate_swapfile);
 
 	/* gpsm undo/redo. */
-	gh_new_procedure1_0("gpsm-op-prepare", gls_gpsm_op_prepare);
-	gh_new_procedure1_0("gpsm-op-can-undo?", gls_gpsm_op_can_undo);
-	gh_new_procedure1_0("gpsm-op-undo", gls_gpsm_op_undo);
-	gh_new_procedure1_0("gpsm-op-undo-and-forget",
-			    gls_gpsm_op_undo_and_forget);
-	gh_new_procedure1_0("gpsm-op-can-redo?", gls_gpsm_op_can_redo);
-	gh_new_procedure1_0("gpsm-op-redo", gls_gpsm_op_redo);
-	gh_new_procedure1_0("gpsm-op-redo-and-forget",
-			    gls_gpsm_op_redo_and_forget);
-	gh_new_procedure1_0("gpsm-op-forget", gls_gpsm_op_forget);
+	glame_reg_export ("gpsm-op-prepare", 1, 0, 0, gls_gpsm_op_prepare);
+	glame_reg_export ("gpsm-op-can-undo?", 1, 0, 0, gls_gpsm_op_can_undo);
+	glame_reg_export ("gpsm-op-undo", 1, 0, 0, gls_gpsm_op_undo);
+	glame_reg_export ("gpsm-op-undo-and-forget",
+			    1, 0, 0, gls_gpsm_op_undo_and_forget);
+	glame_reg_export ("gpsm-op-can-redo?", 1, 0, 0, gls_gpsm_op_can_redo);
+	glame_reg_export ("gpsm-op-redo", 1, 0, 0, gls_gpsm_op_redo);
+	glame_reg_export ("gpsm-op-redo-and-forget",
+			    1, 0, 0, gls_gpsm_op_redo_and_forget);
+	glame_reg_export ("gpsm-op-forget", 1, 0, 0, gls_gpsm_op_forget);
 
 	/* FIXME: search, collect, flatten and transform tobe done
 	 * in scheme.

@@ -46,7 +46,7 @@ struct swfd_smob {
 SCM swfd2scm(swfd_t swfd);
 swfd_t scm2swfd(SCM swfd_smob);
 
-static scm_sizet free_swfd(SCM swfd_smob)
+static size_t free_swfd(SCM swfd_smob)
 {
 	struct swfd_smob *swfd = SCM2SWFDSMOB(swfd_smob);
 
@@ -173,7 +173,7 @@ static SCM gls_sw_opendir()
 static SCM gls_sw_readdir(SCM s_d)
 {
 	SCM_ASSERT(swdir_p(s_d), s_d, SCM_ARG1, "sw-readdir");
-	return gh_long2scm((long)sw_readdir(scm2swdir(s_d)));
+	return scm_long2num((long)sw_readdir(scm2swdir(s_d)));
 }
 
 static SCM gls_sw_closedir(SCM s_d)
@@ -212,11 +212,11 @@ static SCM gls_sw_fstat(SCM s_fd)
 	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-fstat");
 	if (sw_fstat(scm2swfd(s_fd), &st) == -1)
 		GLAME_THROW_ERRNO();
-	return gh_list(gh_long2scm(st.name), gh_long2scm(st.size),
-		       gh_long2scm(st.mode), gh_long2scm(st.offset),
-		       gh_long2scm(st.cluster_start),
-		       gh_long2scm(st.cluster_end),
-		       gh_long2scm(st.cluster_size), SCM_UNDEFINED);
+	return gh_list(scm_long2num(st.name), scm_long2num(st.size),
+		       scm_long2num(st.mode), scm_long2num(st.offset),
+		       scm_long2num(st.cluster_start),
+		       scm_long2num(st.cluster_end),
+		       scm_long2num(st.cluster_size), SCM_UNDEFINED);
 }
 
 static SCM gls_sw_ftruncate(SCM s_fd, SCM s_length)
@@ -238,7 +238,7 @@ static SCM gls_sw_lseek(SCM s_fd, SCM s_offset, SCM s_whence)
 		       gh_scm2long(s_whence));
 	if (res == -1)
 		GLAME_THROW_ERRNO();
-	return gh_long2scm(res);
+	return scm_long2num(res);
 }
 
 static SCM gls_sw_sendfile(SCM s_out_fd, SCM s_in_fd, SCM s_count, SCM s_mode)
@@ -292,7 +292,7 @@ static SCM gls_sw_read_string(SCM s_fd, SCM s_length)
 		GLAME_THROW_ERRNO();
 	}
 	m[length] = '\0';
-	return gh_str02scm(m);
+	return scm_makfrom0str(m);
 }
 
 static SCM gls_sw_write(SCM s_fd, SCM s_buf)
@@ -321,7 +321,7 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 	}
 	if (res == -1)
 		GLAME_THROW_ERRNO();
-	return gh_long2scm(res);
+	return scm_long2num(res);
 }
 
 static SCM gls_is_swfd(SCM s_fd)
@@ -353,45 +353,45 @@ int glscript_init_swapfile()
 
 
 	/* Swapfile subsystem procedures. */
-	gh_new_procedure1_0("swapfile-open", gls_swapfile_open);
-	gh_new_procedure0_0("swapfile-close", gls_swapfile_close);
-	gh_new_procedure2_0("swapfile-creat", gls_swapfile_creat);
+	glame_reg_export ("swapfile-open", 1, 0, 0, gls_swapfile_open);
+	glame_reg_export ("swapfile-close", 0, 0, 0, gls_swapfile_close);
+	glame_reg_export ("swapfile-creat", 2, 0, 0, gls_swapfile_creat);
 
-	gh_new_procedure1_0("sw-unlink", gls_sw_unlink);
+	glame_reg_export ("sw-unlink", 1, 0, 0, gls_sw_unlink);
 
-	gh_new_procedure0_0("sw-opendir", gls_sw_opendir);
-	gh_new_procedure1_0("sw-readdir", gls_sw_readdir);
-	gh_new_procedure1_0("sw-closedir", gls_sw_closedir);
+	glame_reg_export ("sw-opendir", 0, 0, 0, gls_sw_opendir);
+	glame_reg_export ("sw-readdir", 1, 0, 0, gls_sw_readdir);
+	glame_reg_export ("sw-closedir", 1, 0, 0, gls_sw_closedir);
 
-	gh_new_procedure2_0("sw-open", gls_sw_open);
-	gh_new_procedure1_0("sw-close", gls_sw_close);
-	gh_new_procedure1_0("sw-fstat", gls_sw_fstat);
-	gh_new_procedure2_0("sw-ftruncate", gls_sw_ftruncate);
-	gh_new_procedure3_0("sw-lseek", gls_sw_lseek);
-	gh_new_procedure("sw-sendfile", (SCM (*)())gls_sw_sendfile,
-			 3, 1, 0);
+	glame_reg_export ("sw-open", 2, 0, 0, gls_sw_open);
+	glame_reg_export ("sw-close", 1, 0, 0, gls_sw_close);
+	glame_reg_export ("sw-fstat", 1, 0, 0, gls_sw_fstat);
+	glame_reg_export ("sw-ftruncate", 2, 0, 0, gls_sw_ftruncate);
+	glame_reg_export ("sw-lseek", 3, 0, 0, gls_sw_lseek);
+	glame_reg_export ("sw-sendfile", 3, 1, 0,gls_sw_sendfile);
 
-	gh_new_procedure2_0("sw-read-floatvec", gls_sw_read_floatvec);
-	gh_new_procedure2_0("sw-read-string", gls_sw_read_string);
-	gh_new_procedure2_0("sw-write", gls_sw_write);
+	glame_reg_export ("sw-read-floatvec", 2, 0, 0, gls_sw_read_floatvec);
+	glame_reg_export ("sw-read-string", 2, 0, 0, gls_sw_read_string);
+	glame_reg_export ("sw-write", 2, 0, 0, gls_sw_write);
 
-	gh_new_procedure1_0("swfd?", gls_is_swfd);
-	gh_new_procedure1_0("swdir?", gls_is_swdir);
+	glame_reg_export ("swfd?", 1, 0, 0, gls_is_swfd);
+	glame_reg_export ("swdir?", 1, 0, 0, gls_is_swdir);
 
-	gh_define("O_CREAT", gh_long2scm(O_CREAT));
-	gh_define("O_EXCL", gh_long2scm(O_EXCL));
-	gh_define("O_TRUNC", gh_long2scm(O_TRUNC));
-	gh_define("O_RDWR", gh_long2scm(O_RDWR));
-	gh_define("O_RDONLY", gh_long2scm(O_RDONLY));
-	gh_define("O_WRONLY", gh_long2scm(O_WRONLY));
+	glame_def_export ("O_CREAT", scm_long2num(O_CREAT));
+	glame_def_export ("O_EXCL", scm_long2num(O_EXCL));
+	glame_def_export ("O_TRUNC", scm_long2num(O_TRUNC));
+	glame_def_export ("O_RDWR", scm_long2num(O_RDWR));
+	glame_def_export ("O_RDONLY", scm_long2num(O_RDONLY));
+	glame_def_export ("O_WRONLY", scm_long2num(O_WRONLY));
 
-	gh_define("SWSENDFILE_INSERT", gh_long2scm(SWSENDFILE_INSERT));
-	gh_define("SWSENDFILE_CUT", gh_long2scm(SWSENDFILE_CUT));
-	gh_define("SW_NOFILE", swfd2scm(SW_NOFILE));
+	glame_def_export ("SWSENDFILE_INSERT", 
+			  scm_long2num(SWSENDFILE_INSERT));
+	glame_def_export ("SWSENDFILE_CUT", scm_long2num(SWSENDFILE_CUT));
+	glame_def_export ("SW_NOFILE", swfd2scm(SW_NOFILE));
 
-	gh_define("SEEK_SET", gh_long2scm(SEEK_SET));
-	gh_define("SEEK_CUR", gh_long2scm(SEEK_CUR));
-	gh_define("SEEK_END", gh_long2scm(SEEK_END));
+	glame_def_export ("SEEK_SET", scm_long2num(SEEK_SET));
+	glame_def_export ("SEEK_CUR", scm_long2num(SEEK_CUR));
+	glame_def_export ("SEEK_END", scm_long2num(SEEK_END));
 
 	return 0;
 }

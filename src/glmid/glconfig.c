@@ -1,7 +1,7 @@
 /*
  * glconfig.c
  *
- * $Id: glconfig.c,v 1.2 2001/11/02 09:23:23 richi Exp $
+ * $Id: glconfig.c,v 1.3 2002/04/24 09:41:06 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -60,7 +60,7 @@ SCM glame_config_get(const char *key, SCM s_default)
 
 	/* FIXME: catch. */
 	s_gcg = gh_lookup("glame-config-get");
-	s_key = gh_str02scm(key);
+	s_key = scm_makfrom0str(key);
 	if (SCM_UNBNDP(s_default))
 		return gh_call1(s_gcg, s_key);
 	return gh_call2(s_gcg, s_key, s_default);
@@ -73,7 +73,7 @@ void glame_config_set(const char *key, SCM s_value)
 
 	/* FIXME: catch. */
 	s_gcs = gh_lookup("glame-config-set!");
-	s_key = gh_str02scm(key);
+	s_key = scm_makfrom0str(key);
 	gh_call2(s_gcs, s_key, s_value);
 }
 
@@ -86,7 +86,7 @@ char *glame_config_get_string_with_default(const char *key, const char *def)
 	int len;
 	snprintf(cmd, 255, "(glame-config-get '%s \"%s\")", key, def);
 	/* FIXME: execute with catch. */
-	return gh_scm2newstr(gh_eval_str(cmd), &len);	
+	return glame_scm2newstr(gh_eval_str(cmd), &len);	
 }
 
 int glame_config_get_string(const char *key, char **value)
@@ -99,7 +99,7 @@ int glame_config_get_string(const char *key, char **value)
 	s_res = glame_gh_safe_eval_str(cmd);
 	if (!gh_string_p(s_res))
 		return -1;
-	*value = gh_scm2newstr(s_res, &len);
+	*value = glame_scm2newstr(s_res, &len);
 	return 0;
 }
 
@@ -115,7 +115,7 @@ long glame_config_get_long_with_default(const char *key, long def)
 	char cmd[256];
 	snprintf(cmd, 255, "(glame-config-get '%s %li)", key, def);
 	/* FIXME: execute with catch. */
-	return gh_scm2long(gh_eval_str(cmd));	
+	return glame_scm2long(gh_eval_str(cmd));	
 }
 
 int glame_config_get_long(const char *key, long *value)
@@ -127,7 +127,7 @@ int glame_config_get_long(const char *key, long *value)
 	s_res = glame_gh_safe_eval_str(cmd);
 	if (!gh_exact_p(s_res))
 		return -1;
-	*value = gh_scm2long(s_res);
+	*value = glame_scm2long(s_res);
 	return 0;
 }
 

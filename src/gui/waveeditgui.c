@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <gtk/gtk.h>
 #include <gnome.h>
-#include <guile/gh.h>
+#include <glame_guile_compat.h>
 #include "libgtkwaveform/gtkwaveview.h"
 #include "libgtkwaveform/gtkswapfilebuffer.h"
 #include "glame_types.h"
@@ -964,7 +964,7 @@ static SCM gls_waveedit_get_marker()
 {
 	if (!active_waveedit)
 		return SCM_UNSPECIFIED;
-	return gh_long2scm(gtk_wave_view_get_marker(
+	return scm_long2num(gtk_wave_view_get_marker(
 		GTK_WAVE_VIEW(active_waveedit->waveview)));
 }
 
@@ -985,7 +985,7 @@ static SCM gls_waveedit_get_selection()
 		return SCM_UNSPECIFIED;
 	gtk_wave_view_get_selection(GTK_WAVE_VIEW(active_waveedit->waveview),
 				    &start, &length);
-	return gh_cons(gh_long2scm(start), gh_long2scm(length));
+	return scm_cons(scm_long2num(start), scm_long2num(length));
 }
 
 static SCM gls_waveedit_set_selection(SCM s_selection)
@@ -1024,17 +1024,20 @@ static SCM gls_waveedit_set_zoom(SCM s_zoom)
 static SCM gls_waveedit_get_scroll()
 {
 	GtkAdjustment *adjustment;
-	SCM s_res = SCM_LIST0;
+	SCM s_res = SCM_EOL;
 	if (!active_waveedit)
 		return SCM_UNSPECIFIED;
 	adjustment = GTK_ADJUSTMENT(
 		GTK_WAVE_VIEW(active_waveedit->waveview)->adjust);
-	s_res = gh_cons(gh_long2scm((long)adjustment->lower), s_res);
-	s_res = gh_cons(gh_long2scm((long)adjustment->upper), s_res);
-	s_res = gh_cons(gh_long2scm((long)adjustment->value), s_res);
-	s_res = gh_cons(gh_long2scm((long)adjustment->step_increment), s_res);
-	s_res = gh_cons(gh_long2scm((long)adjustment->page_increment), s_res);
-	s_res = gh_cons(gh_long2scm((long)adjustment->page_size), s_res);
+	s_res = scm_cons(scm_long2num((long)adjustment->lower), s_res);
+	s_res = scm_cons(scm_long2num((long)adjustment->upper), s_res);
+	s_res = scm_cons(scm_long2num((long)adjustment->value), s_res);
+	s_res = scm_cons(scm_long2num((long)adjustment->step_increment), 
+			 s_res);
+	s_res = scm_cons(scm_long2num((long)adjustment->page_increment), 
+			 s_res);
+	s_res = scm_cons(scm_long2num((long)adjustment->page_size), 
+			 s_res);
 	return s_res;
 }
 

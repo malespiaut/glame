@@ -5,6 +5,7 @@
  * glscript.h
  *
  * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2002 Clinton Ebadi
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +28,7 @@
 #endif
 
 #include <guile/gh.h>
+#include <glame_guile_compat.h>
 #include "filter.h"
 #include "gpsm.h"
 #include "swapfile.h"
@@ -61,7 +63,8 @@ static inline SCM glame_gh_safe_eval_file(const char *fname)
 static inline SCM glame_gh_safe_eval_str(const char *str)
 {
 	SCM s_res;
-	s_res = gh_eval_str_with_catch((char *)str, scm_handle_by_message_noexit);
+	s_res = gh_eval_str_with_catch((char *)str, 
+				       scm_handle_by_message_noexit);
 	scm_flush(scm_current_output_port());
 	scm_flush(scm_current_error_port());
 	return s_res;
@@ -70,13 +73,13 @@ static inline SCM glame_gh_safe_eval_str(const char *str)
 
 /* Throw a 'glame-error exception with no arguments. This is the
  * generic method to signal errors from scm. */
-#define GLAME_THROW() scm_throw(gh_symbol2scm("glame-error"), SCM_LIST0)
+#define GLAME_THROW() scm_throw(gh_symbol2scm("glame-error"), SCM_EOL)
 
 /* Throw a 'glame-error exception with an object. */
-#define GLAME_THROW_OBJ(obj) scm_throw(gh_symbol2scm("glame-error"), gh_cons(obj, SCM_LIST0))
+#define GLAME_THROW_OBJ(obj) scm_throw(gh_symbol2scm("glame-error"), scm_cons(obj, SCM_EOL))
 
 /* Throw a 'glame-error exception with strerror(errno). */
-#define GLAME_THROW_ERRNO() scm_throw(gh_symbol2scm("glame-error"), gh_cons(gh_str02scm(strerror(errno)), SCM_LIST0))
+#define GLAME_THROW_ERRNO() scm_throw(gh_symbol2scm("glame-error"), scm_cons(scm_makfrom0str(strerror(errno)), SCM_EOL))
 
 
 
@@ -160,5 +163,26 @@ swfd_t scm2swfd(SCM swfd_smob);
 void scminvalidateswfd(SCM swfd_smob);
 #define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
 
+/* glame_reg_export
+ * This macro adds func to the current module and exports it
+ * to the outside world. This makes the code in other places
+ * much more readable (and easier to maintain).
+ * ARGUMENTS:
+ * func_name: string representing the name Scheme sees
+ * req: number of required arguments
+ * opt: number of optional arguments
+ * rest: 1 if function takes unlimited args, 0 otherwise
+ */
+#define glame_reg_export(func_name, req, opt, rest, func) \
+scm_c_define_gsubr (func_name, req, opt, rest, func); \
+scm_c_export (func_name, NULL)
 
+/* glame_def_export
+ * This macro adds a new definition to the current module and exports 
+ * it to the outside world. This is done for the same reason as
+ * glame_reg_export (this replaces gh_define).
+ */
+#define glame_def_export(name, value) \
+scm_c_define (name, value); \
+scm_c_export (name, NULL)
 #endif

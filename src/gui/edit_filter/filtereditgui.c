@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.52 2002/04/12 18:15:43 richi Exp $
+ * $Id: filtereditgui.c,v 1.53 2002/04/24 09:41:07 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -478,11 +478,11 @@ static SCM gls_editfilter_delete_selection()
 static SCM gls_editfilter_get_selection()
 {
 	GList *selected;
-	SCM s_items = SCM_LIST0;
+	SCM s_items = SCM_EOL;
 	selected = glame_canvas_get_selected_items(glcanvas);
 	while(selected){
 		filter_t *filter = (filter_t *)selected->data;
-		s_items = gh_cons(filter2scm(filter), s_items);
+		s_items = scm_cons(filter2scm(filter), s_items);
 		selected = g_list_next(selected);
 	}
 	return s_items;

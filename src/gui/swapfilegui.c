@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.81 2002/04/13 12:08:51 richi Exp $
+ * $Id: swapfilegui.c,v 1.82 2002/04/24 09:41:07 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -1005,7 +1005,7 @@ static SCM gls_swapfilegui_active_item()
 static SCM gls_swapfilegui_selected_items()
 {
 	GList *selected;
-	SCM s_items = SCM_LIST0;
+	SCM s_items = SCM_EOL;
 	if (!active_swapfilegui)
 		return s_items;
 	selected = GTK_TREE_SELECTION(active_swapfilegui->tree);
