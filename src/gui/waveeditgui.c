@@ -81,20 +81,26 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	swfd_t fd;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
 
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
+
 	DPRINTF("Copying selection from %i of length %i\n", start, length);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDONLY, TXN_NONE);
-		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
+		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_INSERT) == -1)
 			DPRINTF("*** sw_sendfile failed\n");
+		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
 		sw_close(fd);
 	}
 }
@@ -110,6 +116,7 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	swfd_t fd;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	int i;
 
 	start = gtk_wave_view_get_marker (waveview);
@@ -122,6 +129,10 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	}
 
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
+
 	if (sw_fstat(temp_fd[0], &st) == -1)
 		return;
 
@@ -129,14 +140,14 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
-		if (sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET) != start*SAMPLE_SIZE)
+		if (sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET) == -1)
 			DPRINTF("*** sw_lseek(swapfile->fd) failed\n");
 		if (sw_lseek(temp_fd[i], 0, SEEK_SET) != 0)
 			DPRINTF("*** sw_lseek(temp_fd, 0) failed\n");
 		if (sw_sendfile(fd, temp_fd[i], st.size, SWSENDFILE_INSERT) == -1)
 			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
-		gpsm_swfile_notify_insert(files[i], start, st.size/SAMPLE_SIZE);
+		gpsm_swfile_notify_insert(files[i], start+gpsm_item_hposition(files[i]), st.size/SAMPLE_SIZE);
 	}
 }
 
@@ -150,22 +161,28 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	swfd_t fd;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
 
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
+
 	g_print ("Deleting selection from %i of length %i\n", start, length);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
-		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
+		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
 			DPRINTF("*** sw_sendfile failed\n");
+		sw_ftruncate(temp_fd[i], length*SAMPLE_SIZE);
 		sw_close(fd);
-		gpsm_swfile_notify_cut(files[i], start, length);
+		gpsm_swfile_notify_cut(files[i], start+gpsm_item_hposition(files[i]), length);
 	}
 }
 
@@ -179,22 +196,27 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	swfd_t fd;
 	long nrtracks;
 	gpsm_swfile_t **files;
+	gpsm_item_t *item;
 	int i;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
 
+	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		start -= gpsm_item_hposition(item);
+
 	g_print ("Cutting selection from %i of length %i\n", start, length);
 
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	for (i=0; i<nrtracks; i++) {
 		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
-		sw_lseek(fd, start*SAMPLE_SIZE, SEEK_SET);
+		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(SW_NOFILE, fd, length*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
 			DPRINTF("*** sw_sendfile failed\n");
 		sw_close(fd);
-		gpsm_swfile_notify_cut(files[i], start, length);
+		gpsm_swfile_notify_cut(files[i], start+gpsm_item_hposition(files[i]), length);
 	}
 }
 
@@ -206,24 +228,6 @@ static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 
 /* GUI is single-threaded, so this should actually work... */
 static GtkWaveView *actual_waveview;
-
-
-/* callback for updating wave widget */
-
-void wave_buffer_queue_modified_cb(va_list va)
-{
-	/* this expects exactly 3 params! */
-	/* FIXMEEEEEE */
-	GtkEditableWaveBuffer * editable;
-	gint32 start,length;
-	fprintf(stderr,"foo\n");
-	editable = va_arg(va,GtkEditableWaveBuffer*);
-	start = va_arg(va,gint32);
-	length = va_arg(va,gint32);
-
-	gtk_editable_wave_buffer_queue_modified(editable, start, length);
-}
-
 
 /* Menu event - Apply filter. */
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)

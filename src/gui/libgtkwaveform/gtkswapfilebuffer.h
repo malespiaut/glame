@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.h,v 1.5 2001/04/09 09:18:48 richi Exp $
+ * $Id: gtkswapfilebuffer.h,v 1.6 2001/04/10 09:08:44 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -74,6 +74,7 @@ struct _GtkSwapfileBufferClass
 GtkType      gtk_swapfile_buffer_get_type (void);
 GtkObject   *gtk_swapfile_buffer_new(gpsm_item_t *item);
 
+gpsm_item_t *gtk_swapfile_buffer_get_item(GtkSwapfileBuffer *buffer);
 int          gtk_swapfile_buffer_get_swfiles(GtkSwapfileBuffer *buffer,
 					     gpsm_swfile_t ***files);
 
