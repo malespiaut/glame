@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.3 2000/02/22 11:44:14 xwolf Exp $
+ * $Id: canvas.c,v 1.4 2000/02/23 11:32:40 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -407,8 +407,7 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 				      "fill_color_rgba",0x0000ff90,
 				      NULL);
 		border+=step;
-//		tt = gtk_tooltips_new();
-//		gtk_tooltips_set_tip(tt,GTK_WIDGET(item),filterportdesc_label(port),NULL);
+
 		gtk_signal_connect(GTK_OBJECT(item),
 				   "event",GTK_SIGNAL_FUNC(output_port_select),
 				   port);
