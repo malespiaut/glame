@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.35 2004/01/10 16:34:29 richi Exp $
+ * $Id: importexport.c,v 1.36 2004/03/20 21:32:50 ochonpaul Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -1141,7 +1141,9 @@ struct exp_s {
 	long filetype, compression;
 	int running;
 	filter_t *net;
-	filter_launchcontext_t *context;
+        filter_launchcontext_t *context;
+        GtkWidget *quality_select, *mode_select, *bitrate_select;
+        GtkWidget *title, *artist, *album, *year, *comment, *track, *genre;
 };
 
 static long export_default_filetype = -1; /* auto */
@@ -1289,6 +1291,9 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	int sfi, ri;
 	int totalframes;
 	float percentage;
+	gchar *output_plugin;
+	const gchar *string;
+	int temp1 = 0;
 
 	gtk_widget_set_sensitive(bla, FALSE);
 
@@ -1315,33 +1320,105 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	/* ignore mono/stereo advice, if 1/2 tracks are going to be saved. */
 	if (ri == gpsm_grp_nritems(grp))
 		ri = 0;
+	
+	/* check if mp3 file type is selected, or if there is .mp3 in filename (can't use mimetype because file does not exist yet)*/
+	if (exp->filetype == 7) output_plugin = "write_mp3_file";
+	else if (strstr(exp->filename,".mp3") || strstr(exp->filename,".MP3")) output_plugin = "write_mp3_file";
+	else output_plugin = "write_file";
+	DPRINTF("output plugin is %s \n",output_plugin);
+	if (!strcmp( output_plugin , "write_mp3_file")){
+          #ifndef HAVE_LIBMP3LAME
+	  ed = gnome_error_dialog("Sorry, no mp3 encoding support.\nInstall Lame encoder and rebuild.");
+	  gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
+	  gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+	  /* filter_delete(net); */
+	  gpsm_item_destroy((gpsm_item_t *)grp);
+	  gtk_widget_set_sensitive(bla, TRUE);
+	  return;
+          #endif
+	}
 
 	/* Build basic network. */
 	net = filter_creat(NULL);
-	writefile = net_add_plugin_by_name(net, "write_file");
+	writefile = net_add_plugin_by_name(net, output_plugin);
 	db = filter_paramdb(writefile);
 
 	param = filterparamdb_get_param(db, "filename");
 	if (filterparam_set(param, &(exp->filename)) == -1)
 		goto fail_cleanup;
+	
+	/* not mp3 */
+	if (!strcmp(output_plugin , "write_file")) {
+	  param = filterparamdb_get_param(db, "sampleformat");
+	  if (filterparam_set(param, &(sf_format[sfi])) == -1)
+	    goto fail_cleanup;
 
-	param = filterparamdb_get_param(db, "sampleformat");
-	if (filterparam_set(param, &(sf_format[sfi])) == -1)
-		goto fail_cleanup;
+	  param = filterparamdb_get_param(db, "samplewidth");
+	  if (filterparam_set(param, &(sf_width[sfi])) == -1)
+	    goto fail_cleanup;
 
-	param = filterparamdb_get_param(db, "samplewidth");
-	if (filterparam_set(param, &(sf_width[sfi])) == -1)
-		goto fail_cleanup;
+	  if (exp->filetype!=-1) {
+	    param = filterparamdb_get_param(db, "filetype");
+	    if (filterparam_set(param, &(exp->filetype)) == -1)
+	      goto fail_cleanup;
+	  }
 
-	if (exp->filetype!=-1) {
-		param = filterparamdb_get_param(db, "filetype");
-		if (filterparam_set(param, &(exp->filetype)) == -1)
-			goto fail_cleanup;
+	  param = filterparamdb_get_param(db, "compression");
+	  if (filterparam_set(param, &(exp->compression)) == -1)
+	    goto fail_cleanup;
 	}
+	
+	/* mp3 */
+	else if (!strcmp(output_plugin , "write_mp3_file")) {
+	  ri = 2; /* set as stereo to connect a render filter, Lame has its own mono/stereo conversion (mode)*/
+	  /* Lame quality */
+	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->quality_select)->entry));
+	  param = filterparamdb_get_param(db, "lame encoding quality");
+	  if (filterparam_from_string(param, string) == -1)
+	    goto fail_cleanup;
+	  /* Lame mode */
+	  string = gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->mode_select)->entry));
+	  if (!strcmp(string,"0 stereo")) temp1 = 1;
+	  else if (!strcmp( string,"1 joint stereo")) temp1 = 0; /*invert stereo and jstereo for mp3 plugin fix */
+	  else if (!strcmp(string, "2 dual mono")) temp1 = 2 ;
+	  else if (!strcmp(string,"3 mono")) temp1 = 3 ;
+	  param = filterparamdb_get_param(db, "lame mode");
+	  if (filterparam_set_long(param, temp1) == -1)
+	    goto fail_cleanup;
+	  /* Lame bitrate */
+	  string =  gtk_entry_get_text (GTK_ENTRY (GTK_COMBO (exp->bitrate_select)->entry));
+	  param = filterparamdb_get_param(db, "lame encoding bitrate");
+	  if (filterparam_set_long(param, atoi(string)) == -1)
+	    goto fail_cleanup;
+	  /* mp3 tags */
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->title));
+	  param = filterparamdb_get_param(db, "Id3tag_Title");
+	  filterparam_from_string(param, string);
+	  
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->artist));
+	  param = filterparamdb_get_param(db, "Id3tag_Artist");
+	  filterparam_from_string(param, string);
+	  
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->album));
+	  param = filterparamdb_get_param(db, "Id3tag_Album");
+	  filterparam_from_string(param, string);
 
-	param = filterparamdb_get_param(db, "compression");
-	if (filterparam_set(param, &(exp->compression)) == -1)
-		goto fail_cleanup;
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->year));
+	  param = filterparamdb_get_param(db, "Id3tag_Year");
+	  filterparam_from_string(param, string);
+
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->comment));
+	  param = filterparamdb_get_param(db, "Id3tag_Comment");
+	  filterparam_from_string(param, string);
+
+	  string = gtk_entry_get_text (GTK_ENTRY (exp->track));
+	  param = filterparamdb_get_param(db, "Id3tag_Track");
+	  filterparam_from_string(param, string);
+
+	  string = gtk_entry_get_text (GTK_ENTRY(exp->genre));
+	  param = filterparamdb_get_param(db, "Id3tag_Genre");
+	  filterparam_from_string(param, string);
+	}
 
 	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
 
@@ -1424,7 +1501,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	struct exp_s *ie;
 	GtkWidget *dialog, *menu, *mitem, *bigbox, *typecompbox, *valbox;
 	GtkWidget *dialog_vbox2, *vbox, *frame, *frame2, *frame3, *fentry;
-	GtkWidget *framebox, *combo_entry, *frame4, *frame4box, *edit, *dialog_action_area;
+	GtkWidget *framebox, *combo_entry, *frame4, *frame4box, *edit, *dialog_action_area; 
 	GSList *rbuttons, *renderbuttons;
 	int i;
 	gchar *suffix;
@@ -1514,7 +1591,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	valbox = gtk_vbox_new (TRUE, 5);
 	gtk_widget_show (valbox);
 	gtk_container_add(GTK_CONTAINER(frame3), valbox);
-	
+
 	rbuttons = NULL;
 	for(i=0; i<MAX_SFLABEL; i++) {
 		ie->rbutton[i] = gtk_radio_button_new_with_label(rbuttons, sflabel[i]);
@@ -1546,6 +1623,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_widget_show(mitem);
 		gtk_menu_append (GTK_MENU (menu), mitem);
 	}
+	mitem =  gtk_menu_item_new_with_label("mp3");
+	gtk_widget_show(mitem);
+	gtk_menu_append (GTK_MENU (menu), mitem);
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (ie->otypemenu), menu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
 				     ie->filetype == -1 ? 0 : ie->filetype);
@@ -1558,6 +1638,154 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 
 	/* filetype is auto, so compression can't be set */
 	gtk_widget_set_sensitive(ie->ocompmenu, FALSE);
+	
+	/* MP3 Lame export */
+	GtkWidget *boxtags,*boxtags2, *frame5, *frame5box,*frame6, *frame6box ,*frame7, *frame7box  ,*frame8, *frame8box,*frame9, *frame9box,*frame10, *frame10box, *frame11, *frame11box, *frame12, *frame12box, *frame13, *frame13box, *frame14, *frame14box, *frame15, *frame15box;
+	frame5 = gtk_frame_new("MP3 Lame settings");
+	gtk_widget_show(frame5);
+	gtk_box_pack_start (GTK_BOX (bigbox), frame5, TRUE, TRUE, 0);
+	frame5box = gtk_vbox_new (TRUE, 5);
+	gtk_widget_show (frame5box);
+	gtk_container_add(GTK_CONTAINER(frame5), frame5box);
+	
+	/* Lame quality */
+	frame6 = gtk_frame_new("Quality");
+	gtk_widget_show(frame6);
+	gtk_box_pack_start (GTK_BOX (frame5box), frame6, TRUE, TRUE, 0);
+	frame6box = gtk_vbox_new (TRUE, 6);
+	gtk_widget_show (frame6box);
+	gtk_container_add(GTK_CONTAINER(frame6), frame6box);
+	GList *glist_mp3 = NULL;
+	char *string[10]={"0 best,slow","1","2 recommended","3","4","5 standard","6","7","8","9 worst"};
+	for (i=0 ;i<10; i++) {
+	  glist_mp3 = g_list_append (glist_mp3, string[i]);
+	  /* printf("string %s \n",string[i]); */
+	}
+	ie->quality_select = gtk_combo_new();
+	gtk_combo_set_popdown_strings (GTK_COMBO (ie->quality_select), glist_mp3);
+	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->quality_select)->entry), FALSE);
+	gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->quality_select)->entry), "2 recommended");
+	gtk_box_pack_start (GTK_BOX (frame6box/* 5box */), ie->quality_select, TRUE, TRUE, 0);
+	gtk_widget_show (ie->quality_select);
+	
+	/* Lame mode */
+	frame7 = gtk_frame_new("Mode");
+	gtk_widget_show(frame7);
+	gtk_box_pack_start (GTK_BOX (frame5box), frame7, TRUE, TRUE, 0);
+	frame7box = gtk_vbox_new (TRUE, 7);
+	gtk_widget_show (frame7box);
+	gtk_container_add(GTK_CONTAINER(frame7), frame7box);
+	glist_mp3 = NULL; 
+	char *string2[4]={"0 stereo","1 joint stereo","2 dual mono","3 mono"};
+	for (i=0 ;i<4; i++) {
+	  glist_mp3 = g_list_append (glist_mp3, string2[i]);
+	}
+	ie->mode_select = gtk_combo_new();
+	gtk_combo_set_popdown_strings (GTK_COMBO (ie->mode_select), glist_mp3);
+	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->mode_select)->entry), FALSE);
+	gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->mode_select)->entry), "1 joint stereo");
+	gtk_box_pack_start (GTK_BOX (frame7box), ie->mode_select, TRUE, TRUE, 0);
+	gtk_widget_show (ie->mode_select);
+	
+	/* Lame bitrate */
+	frame8 = gtk_frame_new("Bitrate");
+	gtk_widget_show(frame8);
+	gtk_box_pack_start (GTK_BOX (frame5box), frame8, TRUE, TRUE, 0);
+	frame8box = gtk_vbox_new (TRUE, 8);
+	gtk_widget_show (frame8box);
+	gtk_container_add(GTK_CONTAINER(frame8), frame8box);
+	glist_mp3 = NULL; 
+	char *string3[14]={"32","40","48","56","64","80","96","112","128","160","192","224","256","320"};
+	for (i=0 ;i<14; i++) {
+	  glist_mp3 = g_list_append (glist_mp3, string3[i]);
+	}
+	ie->bitrate_select = gtk_combo_new();
+	gtk_combo_set_popdown_strings (GTK_COMBO (ie->bitrate_select), glist_mp3);
+	gtk_entry_set_editable (GTK_ENTRY (GTK_COMBO (ie->bitrate_select)->entry), FALSE);
+	gtk_entry_set_text(GTK_ENTRY (GTK_COMBO (ie->bitrate_select)->entry), "128");
+	gtk_box_pack_start (GTK_BOX (frame8box), ie->bitrate_select, TRUE, TRUE, 0);
+	gtk_widget_show (ie->bitrate_select);
+	
+	/* Lame mp3 id3 tags */
+	boxtags = gtk_vbox_new (TRUE, 9);
+	gtk_box_pack_start (GTK_BOX (bigbox), boxtags, TRUE, TRUE, 0);
+	gtk_widget_show (boxtags);
+
+	boxtags2 = gtk_vbox_new (TRUE, 9);
+	gtk_box_pack_start (GTK_BOX (bigbox), boxtags2, TRUE, TRUE, 0);
+	gtk_widget_show (boxtags2);
+
+
+	frame9 = gtk_frame_new("MP3 title");
+	gtk_widget_show(frame9);
+	gtk_box_pack_start (GTK_BOX (boxtags), frame9, TRUE, TRUE, 0);
+	frame9box = gtk_vbox_new (TRUE, 9);
+	gtk_widget_show (frame9box);
+	gtk_container_add(GTK_CONTAINER(frame9), frame9box);
+	ie->title = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame9box), ie->title, TRUE, TRUE, 0);
+	gtk_widget_show(ie->title);
+
+	frame10 = gtk_frame_new("MP3 artist");
+	gtk_widget_show(frame10);
+	gtk_box_pack_start (GTK_BOX (boxtags), frame10, TRUE, TRUE, 0);
+	frame10box = gtk_vbox_new (TRUE, 10);
+	gtk_widget_show (frame10box);
+	gtk_container_add(GTK_CONTAINER(frame10), frame10box);
+	ie->artist = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame10box), ie->artist, TRUE, TRUE, 0);
+	gtk_widget_show(ie->artist);
+
+	frame11 = gtk_frame_new("MP3 album");
+	gtk_widget_show(frame11);
+	gtk_box_pack_start (GTK_BOX (boxtags), frame11, TRUE, TRUE, 0);
+	frame11box = gtk_vbox_new (TRUE, 11);
+	gtk_widget_show (frame11box);
+	gtk_container_add(GTK_CONTAINER(frame11), frame11box);
+	ie->album = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame11box), ie->album, TRUE, TRUE, 0);
+	gtk_widget_show(ie->album);
+
+	frame12 = gtk_frame_new("MP3 year");
+	gtk_widget_show(frame12);
+	gtk_box_pack_start (GTK_BOX (boxtags2), frame12, TRUE, TRUE, 0);
+	frame12box = gtk_vbox_new (TRUE, 12);
+	gtk_widget_show (frame12box);
+	gtk_container_add(GTK_CONTAINER(frame12), frame12box);
+	ie->year = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame12box), ie->year, TRUE, TRUE, 0);
+	gtk_widget_show(ie->year);
+	
+	frame13 = gtk_frame_new("MP3 comment");
+	gtk_widget_show(frame13);
+	gtk_box_pack_start (GTK_BOX (boxtags2), frame13, TRUE, TRUE, 0);
+	frame13box = gtk_vbox_new (TRUE, 13);
+	gtk_widget_show (frame13box);
+	gtk_container_add(GTK_CONTAINER(frame13), frame13box);
+	ie->comment = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame13box), ie->comment, TRUE, TRUE, 0);
+	gtk_widget_show(ie->comment);
+	
+	frame14 = gtk_frame_new("MP3 track");
+	gtk_widget_show(frame14);
+	gtk_box_pack_start (GTK_BOX (boxtags2), frame14, TRUE, TRUE, 0);
+	frame14box = gtk_vbox_new (TRUE, 14);
+	gtk_widget_show (frame14box);
+	gtk_container_add(GTK_CONTAINER(frame14), frame14box);
+	ie->track = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame14box), ie->track, TRUE, TRUE, 0);
+	gtk_widget_show(ie->track);
+
+	frame15 = gtk_frame_new("MP3 genre");
+	gtk_widget_show(frame15);
+	gtk_box_pack_start (GTK_BOX (boxtags2), frame15, TRUE, TRUE, 0);
+	frame15box = gtk_vbox_new (TRUE, 15);
+	gtk_widget_show (frame15box);
+	gtk_container_add(GTK_CONTAINER(frame15), frame15box);
+	ie->genre = gtk_entry_new_with_max_length (128);
+	gtk_box_pack_start (GTK_BOX (frame15box), ie->genre, TRUE, TRUE, 0);
+	gtk_widget_show(ie->genre);
+
 
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), _("Export"));
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), OK);
