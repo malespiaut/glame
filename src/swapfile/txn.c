@@ -351,6 +351,11 @@ int txn_finish(txnid_t id, struct txn_op *ops)
 
 	/* Finish transaction. */
 	t->op = ops;
+
+	/* Delete transaction, if it has no parent. */
+	if (!t->parent)
+		_txn_delete(t);
+
 	return 0;
 }
 

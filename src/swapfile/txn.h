@@ -4,7 +4,7 @@
 /*
  * txn.h
  *
- * $Id: txn.h,v 1.4 2000/10/09 16:24:03 richi Exp $
+ * $Id: txn.h,v 1.5 2000/10/17 09:03:16 richi Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -163,12 +163,16 @@ void txn_abort_and_delete_all();
 
 /* Finishes a transaction by providing the necessary undo/delete
  * operations. Will fail if child transactions are there. The
- * transaction will be ended as in txn_end(txn_start(id)). */
+ * transaction will be ended as in txn_end(txn_start(id)).
+ * Note that, if no parent transaction is available, the transaction
+ * will be deleted after finishing it. */
 int txn_finish(txnid_t id, struct txn_op *ops);
 
 /* Finishes a transaction using an implementation that throws
  * an exception, if the undo operation is required. The supplied
- * message is written to stderr and a SIGSEGV will be raised. */
+ * message is written to stderr and a SIGSEGV will be raised.
+ * Note that, if no parent transaction is available, the transaction
+ * will be deleted after finishing it. */
 int txn_finish_unimplemented(txnid_t id, const char *message);
 
 
