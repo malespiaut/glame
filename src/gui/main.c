@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.90 2001/11/22 09:25:18 richi Exp $
+ * $Id: main.c,v 1.91 2001/11/27 10:29:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -188,93 +188,21 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	/* HACK(?) */
 	vpos = gpsm_item_vsize(gpsm_root());
 
-	if ((import = plugin_get("import"))
-	    && (operation = plugin_query(import, PLUGIN_GPSMOP))) {
-		if (operation((gpsm_item_t *)gpsm_root(), 0, 0) == -1)
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
-	} else {
-
-	GtkWidget *dialog;
-	filter_t *net = NULL, *readfile, *swout;
-	filter_port_t *source;
-	filter_pipe_t *pipe;
-	gint i, channels;
-	char *filenamebuffer;
-	gpsm_grp_t *group = NULL;
-	gpsm_item_t *it;
-
-	/* Query the file name. */
-	filenamebuffer = alloca(256);
-	*filenamebuffer = '\0';
-	dialog = glame_dialog_file_request(_("Edit audio file"),
-					   "swapfilegui:import",
-					   _("Filename"), NULL, filenamebuffer);
-	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
-	   || !*filenamebuffer)
+	/* Use the import plugin for importing. */
+	import = plugin_get("import");
+	if (!import) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("You dont have the import plugin - impossible."))));
 		return;
-
-	/* Setup core network. */
-	net = filter_creat(NULL);
-	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
+	}
+	operation = plugin_query(import, PLUGIN_GPSMOP);
+	if (!operation
+	    || operation((gpsm_item_t *)gpsm_root(), 0, 0) == -1) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
 		return;
-	if (filterparam_set(filterparamdb_get_param(filter_paramdb(readfile),
-						    "filename"),
-			    &filenamebuffer) == -1)
-		goto fail_cleanup;
-	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
-	filter_add_node(net, readfile, "readfile");
-
-	/* Setup gpsm group. */
-	group = gpsm_newgrp(g_basename(filenamebuffer));
-
-	i = 0;
-	do {
-		char swfilename[256];
-		snprintf(swfilename, 255, "track-%i", i);
-		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
-			goto fail_cleanup;
-		gpsm_item_place(group, it, 0, i);
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
-					    0, -1, 3);
-		if (!(pipe = filterport_connect(
-			source, filterportdb_get_port(
-				filter_portdb(swout), PORTNAME_IN)))) {
-			DPRINTF("Connection failed for channel %d\n",i+1);
-			gpsm_item_destroy(it);
-			filter_delete(swout);
-			break;
-		}
-		gpsm_swfile_set((gpsm_swfile_t *)it,
-				filterpipe_sample_rate(pipe),
-				filterpipe_sample_hangle(pipe));
-		i++;
-	} while (1);
-
-	channels = i;
-	filter_launch(net, GLAME_BULK_BUFSIZE);
-	filter_start(net);
-	if (filter_wait(net) != 0)
-		goto fail_cleanup;
-	filter_delete(net);
-
-	/* Notify gpsm of the change. */
-	gpsm_grp_foreach_item(group, it)
-		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-
-	/* Insert the group into the gpsm tree. */
-	gpsm_item_place(gpsm_root(), (gpsm_item_t *)group,
-			0, gpsm_item_vsize(gpsm_root()));
-	goto out;
-
- fail_cleanup:
-	glame_network_error_dialog(net, _("Failed to create importing network"));
-	filter_delete(net);
-	gpsm_item_destroy((gpsm_item_t *)group);
-	return;
-
-	out:;
 	}
 
+	/* Again HACK - find the file in the gpsm tree and open the
+	 * waveedit window. */
 	if (!(file = gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
 		DPRINTF("No file at %li\n", vpos);
 		return;
@@ -288,6 +216,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 			gnome_error_dialog(_("Cannot open wave editor"))));
 		return;
 	}
+	DPRINTF("All ok\n");
 	gtk_widget_show_all(GTK_WIDGET(we));
 }
 

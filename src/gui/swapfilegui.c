@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.66 2001/11/14 10:09:56 richi Exp $
+ * $Id: swapfilegui.c,v 1.67 2001/11/27 10:30:10 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -620,106 +620,13 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	GtkWidget *dialog;
-	filter_t *net = NULL, *readfile, *swout;
-	filter_port_t *source;
-	filter_pipe_t *pipe;
-	gint i, channels;
-	char *filenamebuffer;
-	gpsm_grp_t *group = NULL;
-	GlameTreeItem *grpw;
-	gpsm_item_t *it;
 	plugin_t *import;
 	int (*operation)(gpsm_item_t *, long, long);
 
-	if ((import = plugin_get("import"))
-	    && (operation = plugin_query(import, PLUGIN_GPSMOP))) {
-		if (operation(item->item, 0, 0) == -1)
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
-		
-	} else {
-
-	/* Query the file name. */
-	filenamebuffer = alloca(256);
-	*filenamebuffer = '\0';
-	dialog = glame_dialog_file_request("Import audio file",
-					   "swapfilegui:import",
-					   "Filename", NULL, filenamebuffer);
-	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog))
-	   || !*filenamebuffer)
-		return;
-
-	/* Setup core network. */
-	net = filter_creat(NULL);
-	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
-		return;
-	if (filterparam_set(filterparamdb_get_param(filter_paramdb(readfile),
-						    "filename"),
-			    &filenamebuffer) == -1)
-		goto fail_cleanup;
-	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
-	filter_add_node(net, readfile, "readfile");
-
-	/* Setup gpsm group. */
-	group = gpsm_newgrp(g_basename(filenamebuffer));
-
-	i = 0;
-	do {
-		char swfilename[256];
-		snprintf(swfilename, 255, "track-%i", i);
-		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
-			goto fail_cleanup;
-		gpsm_item_place(group, it, 0, i);
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
-					    0, -1, 3);
-		if (!(pipe = filterport_connect(
-			source, filterportdb_get_port(
-				filter_portdb(swout), PORTNAME_IN)))) {
-			DPRINTF("Connection failed for channel %d\n",i+1);
-			gpsm_item_destroy(it);
-			filter_delete(swout);
-			break;
-		}
-		gpsm_swfile_set((gpsm_swfile_t *)it,
-				filterpipe_sample_rate(pipe),
-				filterpipe_sample_hangle(pipe));
-		i++;
-	} while (1);
-
-	channels = i;
-	filter_launch(net, GLAME_BULK_BUFSIZE);
-	filter_start(net);
-	if (filter_wait(net) != 0)
-		goto fail_cleanup;
-	filter_delete(net);
-
-	/* Notify gpsm of the change. */
-	gpsm_grp_foreach_item(group, it)
-		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-
-	/* Insert the group into the gpsm tree. */
-	gpsm_item_place((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
-			0, gpsm_item_vsize(item->item));
-
-	/* Expand the parent widget. */
-	gtk_tree_item_expand(GTK_TREE_ITEM(item));
-
-	/* Find out which widget it got and open an edit field. */
-	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)group);
-	if (grpw)
-		edit_tree_label(grpw);
-
-	gpsm_sync();
-	deselect_all(active_swapfilegui);
-
-	return;
-
- fail_cleanup:
-	glame_network_error_dialog(net, "Failed to create importing network");
-	filter_delete(net);
-	gpsm_item_destroy((gpsm_item_t *)group);
-
-	}
+	if (!(import = plugin_get("import"))
+	    || !(operation = plugin_query(import, PLUGIN_GPSMOP))
+	    || operation(item->item, 0, 0) == -1)
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
 }
 
 
