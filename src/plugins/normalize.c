@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.12 2002/01/03 22:09:53 richi Exp $
+ * $Id: normalize.c,v 1.13 2002/01/06 21:50:06 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -716,12 +716,12 @@ static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 
 	ns = ALLOCN(1, struct normalize_s);
 
-	normalize_dialog(ns);
-	gtk_widget_show(ns->dialog);
-
 	ns->grp = (gpsm_item_t*)gpsm_collect_swfiles(grp);
 	if (ns->grp==NULL)
 		return -1;
+
+	normalize_dialog(ns);
+	gtk_widget_show(ns->dialog);
 
 	ns->start = start;
 	ns->length = length;
