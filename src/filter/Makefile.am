@@ -10,7 +10,7 @@ libfilter_la_SOURCES = filter.c filter.h filter_buffer.h \
 	filter_buffer.c filter_network.c \
 	basic.c debug.c channel_io.c audio_io.c \
 	volume_adjust.c waveform.c read_file.c \
-	echo.c
+	echo.c garrison.c
 
 
 test_latency_SOURCES = test_latency.c
