@@ -8,7 +8,7 @@ EXTRA_DIST = gui.h canvas.h glame.desktop
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
-bin_PROGRAMS = timeline
+bin_PROGRAMS = treetest timeline wavetest
 #bin_PROGRAMS = glame wavetest
 noinst_LTLIBRARIES = 
 Multimedia_DATA = glame.desktop
@@ -22,8 +22,12 @@ endif
 timeline_SOURCES = timeline.c
 timeline_LDADD = $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
-#wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
-#wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
-#	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
-#wavetest_LDFLAGS = -export-dynamic
+treetest_SOURCES = tree.h tree.c treetest.c
+treetest_LDADD = ../swapfile/libswapfile.la \
+	$(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS) -lxml
+
+wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
+wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
+	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
+wavetest_LDFLAGS = -export-dynamic
 

@@ -33,7 +33,7 @@
  * void *handle argument which is passed along to the callback.
  */
 
-static fileid_t fid = 1; /* HACK */
+static swfd_t fd = -1; /* HACK */
 static gfloat *wave = NULL; /* HACK, too */
 
 /* umm, I dont understand semantics of step...
@@ -41,32 +41,21 @@ static gfloat *wave = NULL; /* HACK, too */
 static gfloat *swapfile_callback(gint wave_idx,
 				 glong from, glong to, gint step)
 {
-	gfloat *s, *w;
-	filecluster_t *fc;
+	int cnt = sizeof(gfloat)*(to-from+1+step-1)/step;
+	int res;
 
 	printf("callback with from %li to %li step %i\n", from, to, step);
 	if (wave)
 		free(wave);
-	wave = (gfloat *)malloc(sizeof(gfloat)*(to-from+1+step-1)/step);
+	wave = (gfloat *)malloc(cnt);
 
-	w = wave;
-#if 0 /* FIXME... :) */
-	while (from <= to) {
-		if (!(fc = filecluster_get(fid, from*sizeof(gfloat)))) {
-			printf("no filecluster at %li\n", from);
-			return NULL;
-		}
-		s = (gfloat *)filecluster_mmap(fc);
-		s = s + from - filecluster_start(fc)/sizeof(gfloat);
-		while (from <= filecluster_end(fc)/sizeof(gfloat)
-		       && from <= to) {
-			*w++ = *s;
-			s += step;
-			from += step;
-		}
-		filecluster_munmap(fc);
+	sw_lseek(fd, from, SEEK_SET);
+	res = sw_read(fd, wave, cnt);
+	if (res == -1) {
+		perror("sw_read");
+	} else if (res < cnt) {
+		printf("short read - %i\n", res);
 	}
-#endif
 
 	return wave;
 }
@@ -104,10 +93,12 @@ gint CloseAppWindow (GtkWidget *widget, gpointer *data)
 
 int main(int argc, char **argv)
 {
-  GtkWidget *window;
+  GtkWidget *window, *hbox, *vbox, *hsb, *vsb;
   GtkWidget *wavedraw;
   gfloat *fltary;
   gint npoints;
+  int fname;
+  struct sw_stat sbuf;
 
   gtk_init(&argc, &argv);
 
@@ -120,6 +111,19 @@ int main(int argc, char **argv)
 
   gtk_container_border_width(GTK_CONTAINER(window), 20);
 
+  hbox = gtk_hbox_new(FALSE, 0);
+  vbox = gtk_vbox_new(FALSE, 0);
+  hsb = gtk_hscrollbar_new(NULL);
+  vsb = gtk_vscrollbar_new(NULL);
+
+  gtk_box_pack_start(hbox, vsb, FALSE, FALSE, 10);
+  gtk_box_pack_end(vbox, hsb, FALSE, FALSE, 10);
+  gtk_box_pack_end(vbox, hbox, TRUE, TRUE, 10);
+  gtk_container_add(GTK_CONTAINER(window), vbox);
+  gtk_widget_show(hsb);
+  gtk_widget_show(vsb);
+  gtk_widget_show(hbox);
+  gtk_widget_show(vbox);
 
   /*
    * Everything's based off of npoints right now.  npoints random
@@ -132,15 +136,29 @@ int main(int argc, char **argv)
   wavedraw = gtk_wave_draw_new();
   gtk_widget_show(wavedraw);
 
-  if (argc > 1 && swapfile_open(argv[1], 0) == 0) {
+  if (argc > 2) {
+	  if (swapfile_open(argv[1], 0) == -1) {
+		  fprintf(stderr, "Error opening swapfile %s\n", argv[1]);
+		  exit(1);
+	  }
+
+	  fname = atoi(argv[2]);
+	  if ((fd = sw_open(fname, O_RDONLY, TXN_NONE)) == -1) {
+		  fprintf(stderr, "Error opening file %i\n", fname);
+		  swapfile_close();
+		  exit(1);
+	  }
+
 	  /* Some basic starting stuff */
 	  gtk_wave_draw_zoom(GTK_WAVE_DRAW(wavedraw), 0, 10000);
 	  gtk_wave_draw_set_resolution(GTK_WAVE_DRAW(wavedraw), 10);
 
 	  /* Add a swapfile wave - HACK */
+	  sw_fstat(fd, &sbuf);
 	  gtk_wave_draw_add_wave_by_call(GTK_WAVE_DRAW(wavedraw),
 					 swapfile_callback,
-					 file_size(fid)/sizeof(gfloat), 0);
+					 sbuf.size/sizeof(gfloat), 0);
+
   } else {
 	  /* Some basic starting stuff */
 	  gtk_wave_draw_zoom(GTK_WAVE_DRAW(wavedraw), 0, npoints);
@@ -160,9 +178,11 @@ int main(int argc, char **argv)
   /* Draw the widget, this populates the backbuffer */
   gtk_widget_draw(wavedraw, NULL);
   
-  gtk_container_add(GTK_CONTAINER(window), wavedraw);
+  gtk_box_pack_start(hbox, wavedraw, TRUE, TRUE, 10);
   gtk_widget_show(window);
 
   gtk_main();
+
+  swapfile_close();
   exit(0);
 }
