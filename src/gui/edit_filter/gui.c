@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.16 2001/03/21 00:59:05 xwolf Exp $
+ * $Id: gui.c,v 1.17 2001/04/06 22:38:07 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -450,8 +450,8 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	cb->paramList=list;
 	cb->caption = strdup(caption);
 	
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",update_params,cb);
-	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",(GtkSignalFunc)update_params,cb);
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",(GtkSignalFunc)cancel_params,cb);	
 	
 	return propBox;
 }

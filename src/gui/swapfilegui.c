@@ -256,9 +256,7 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	GtkWidget *we;
-	long names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
-	int i;
-
+		
 	we = glame_waveedit_gui_new(gpsm_item_label(item->item), item->item);
 	if (!we) {
 		DPRINTF("Cannot create waveedit gui\n");

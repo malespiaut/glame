@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.44 2001/04/02 19:47:22 xwolf Exp $
+ * $Id: canvas.c,v 1.45 2001/04/06 22:38:07 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -142,7 +142,7 @@ static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 		return;
 	p = glame_gui_filter_properties(filter_paramdb(item->filter),
 						   filter_name(item->filter));
-	gnome_dialog_run_and_close(p);
+	gnome_dialog_run_and_close(GNOME_DIALOG(p));
 }
 
 static void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it)
@@ -155,14 +155,14 @@ static void canvas_connection_edit_source_properties_cb(GtkWidget* bla, GlameCon
 {
 	GtkWidget *p = glame_gui_filter_properties(filterpipe_sourceparamdb(conn->pipe),
 						   filterport_label(conn->begin->port));
-	gnome_dialog_run_and_close(p);
+	gnome_dialog_run_and_close(GNOME_DIALOG(p));
 }
 
 static void canvas_connection_edit_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
 {
 	GtkWidget *p = glame_gui_filter_properties(filterpipe_destparamdb(conn->pipe),
 						   filterport_label(conn->end->port));
-	gnome_dialog_run_and_close(p);
+	gnome_dialog_run_and_close(GNOME_DIALOG(p));
 }
 
 static void 
@@ -324,7 +324,7 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 	      inItem=1;
-	      nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,canvas_item_show_properties,item);
+	      nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,(GtkFunction)canvas_item_show_properties,item);
 	      //canvas_item_show_properties(item);
 	      break;
 	case GDK_LEAVE_NOTIFY:
@@ -521,7 +521,7 @@ root_event(GnomeCanvas *canv,GdkEvent*event,GlameCanvas *glCanv)
 			if(event->button.button==3){
 				menu = gnome_popup_menu_new(root_menu);
 				par = root_menu[0].widget; // eeevil hack to change menu
-				submenu = glame_gui_build_plugin_menu(NULL, canvas_add_filter_by_name_cb);
+				submenu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, canvas_add_filter_by_name_cb));
 				gtk_widget_show(submenu);
 				gtk_menu_item_set_submenu(GTK_MENU_ITEM(par),submenu);
 				
@@ -610,7 +610,7 @@ static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpo
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
-		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,show_port_properties,GLAME_CANVAS_PORT(item));
+		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,(GtkFunction)show_port_properties,GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_LEAVE_NOTIFY:
 		inItem=0;
@@ -970,7 +970,7 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 		break;
 	case GDK_ENTER_NOTIFY:
 		inItem = 1;
-		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,show_port_properties,GLAME_CANVAS_PORT(item));
+		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,(GtkFunction)show_port_properties,GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -1342,7 +1342,7 @@ static void canvas_save_as(GtkWidget*w,GlameCanvas *glCanv)
 
 static void register_filternetwork_cb(GtkWidget*bla, GlameCanvas* glCanv)
 {
-	gnome_request_dialog(0,"Filtername","filter",16,canvas_register_as_cb,glCanv,NULL);
+	gnome_request_dialog(0,"Filtername","filter",16,(GnomeStringCallback)canvas_register_as_cb,glCanv,NULL);
 }
 
 static void 
@@ -1461,7 +1461,7 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
 		}
 	}
-	canvas_item_redraw(GNOME_CANVAS_ITEM(blu)->parent);
+	canvas_item_redraw(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(blu)->parent));
 	free(filenamebuffer);
 }
 

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.22 2001/04/04 23:47:13 xwolf Exp $
+ * $Id: main.c,v 1.23 2001/04/06 22:38:07 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -154,7 +154,6 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget * tablabel;
 	GtkWidget * vbox;
 	GtkWidget * entry;
-	GtkWidget * error;
 	GtkWidget * notelabel;
 	char *path,*defaultpath;
 	int val = 0;
@@ -176,7 +175,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		defaultpath = calloc(sizeof(char),5);
 		defaultpath = "swap";
 	}
-        gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(entry)),defaultpath);
+        gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))),defaultpath);
 
 
         notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
@@ -195,7 +194,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	
 	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
 	sprintf(numberbuffer,"%d",nPopupTimeout);
-	gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),numberbuffer);
+	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),numberbuffer);
 	gtk_widget_show(entry);
  	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),"changed",changeString,&numberbuffer);
 		

@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.8 2001/04/02 08:07:17 richi Exp $
+ * $Id: gltreeitem.c,v 1.9 2001/04/06 22:38:07 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -21,6 +21,7 @@
  *
  */
 
+#include "glmid.h"
 #include <stdio.h>
 #include <string.h>
 #include <gnome.h>

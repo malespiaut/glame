@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.2 2001/03/28 23:18:32 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.3 2001/04/06 22:38:07 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -22,7 +22,7 @@
  *
  */
 
-
+#include "glmid.h"
 #include "glame_gui_utils.h"
 
 struct foo{
@@ -31,7 +31,7 @@ struct foo{
 	gui_network *gui;
 	gboolean playing;
 	guint handler_id;
-	GtkFunction* atExitFunc;
+	GtkFunction atExitFunc;
 	va_list va;
 };
 
@@ -64,7 +64,7 @@ static void play_cb(GnomeDialog * dia, play_struct_t* play)
 	gnome_dialog_set_sensitive(play->dia,0,FALSE);
 	gnome_dialog_set_sensitive(play->dia,1,TRUE);
 	gnome_dialog_set_sensitive(play->dia,2,TRUE);
-	play->handler_id = gtk_timeout_add(100,network_finish_check_cb,play);
+	play->handler_id = gtk_timeout_add(100,(GtkFunction)network_finish_check_cb,play);
 }
 
 static void pause_cb(GnomeDialog * dia, play_struct_t * play)
@@ -121,7 +121,7 @@ static int _glame_gui_play_network(play_struct_t * play)
 		return -1;
 	}
 	
-	play->dia = GTK_WIDGET(gnome_dialog_new(filter_name(play->net),NULL));
+	play->dia = GNOME_DIALOG(gnome_dialog_new(filter_name(play->net),NULL));
 	play->playing = FALSE;
 	play->handler_id = 0;
 	
@@ -140,7 +140,7 @@ static int _glame_gui_play_network(play_struct_t * play)
 	gnome_dialog_button_connect(play->dia,3,cancel_cb,play);
 	
 
-	gtk_widget_show(play->dia);
+	gtk_widget_show(GTK_WIDGET(play->dia));
 	return 0;
 }
 	
@@ -173,7 +173,7 @@ int glame_gui_play_network_with_exit(filter_t * network, gui_network* gui_net, v
 
 	/* FIXMEEEEE hows this va_shit working?  */
 	va_start(va,atExitFunc);
-	play->atExitFunc = atExitFunc;
+	play->atExitFunc = (GtkFunction)atExitFunc;
 	play->va = va;
 	va_end(va);
 

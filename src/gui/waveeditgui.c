@@ -23,6 +23,7 @@
 #include <config.h>
 #endif
 
+#include "glmid.h"
 #include <stdio.h>
 #include <math.h>
 #include <errno.h>
@@ -317,7 +318,6 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	gpsm_swfile_t **files;
 	filter_t *net, *effect;
 	int rate, i;
-	GtkWidget * stop_window;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -363,14 +363,11 @@ static void feed_custom_cb(GtkWidget * foo, gpointer bar)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
-	GtkWidget *prop;
-	gboolean ok_pressed;
 	gint32 start, length;
 	long nrtracks;
 	gpsm_swfile_t **files;
 	filter_t *net;
 	int rate, i;
-	GtkWidget * stop_window;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -403,8 +400,6 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
-	GtkWidget *prop;
-	gboolean ok_pressed;
 	gint32 start, length;
 	long nrtracks;
 	gpsm_swfile_t **files;
@@ -423,7 +418,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
-		filter_t *swin, *eff, *swout;
+		filter_t *swin, *swout;
 		int swname = gpsm_swfile_filename(files[i]);
 		swin = filter_instantiate(plugin_get("swapfile_in"));
 		swout = filter_instantiate(plugin_get("swapfile_out"));
@@ -507,10 +502,10 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	menu = gnome_popup_menu_new(rmb_menu);
 	filter_menu = glame_gui_build_plugin_menu(choose_effects, apply_cb);
 	feed_menu = glame_gui_build_plugin_menu(choose_effects_input_only, feed_cb);
-	gtk_widget_show(filter_menu);
-	gtk_widget_show(feed_menu);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[7].widget), filter_menu);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[8].widget), feed_menu);
+	gtk_widget_show(GTK_WIDGET(filter_menu));
+	gtk_widget_show(GTK_WIDGET(feed_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[7].widget), GTK_WIDGET(filter_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[8].widget), GTK_WIDGET(feed_menu));
 	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
