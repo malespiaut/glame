@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.9 2002/03/22 15:31:00 richi Exp $
+ * $Id: filter_port.c,v 1.10 2002/03/24 19:20:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -65,14 +65,14 @@ static void filter_handle_pipe_change(glsig_handler_t *h, long sig, va_list va)
 	}
 
 	/* Update output pipe properties. */
-	if (!(out = filterport_get_pipe(port)))
-		return;
-	if (out->type == FILTER_PIPETYPE_UNDEFINED)
-		out->type = in->type;
-	if (memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
-		return;
-	out->u = in->u;
-	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+	filterport_foreach_pipe(port, out) {
+		if (out->type == FILTER_PIPETYPE_UNDEFINED)
+			out->type = in->type;
+		if (memcmp(&out->u, &in->u, sizeof(out->u)) == 0)
+			continue;
+		out->u = in->u;
+		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+	}
 }
 
 static int default_connect_input(filter_port_t *port, filter_pipe_t *pipe)
