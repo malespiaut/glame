@@ -9,7 +9,7 @@
 #              check. (The headers reside in gnome-xml!)
 # Daniel Kobras 2001-05-14
 
-dnl AM_PATH_XML([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
+dnl AMG_PATH_XML([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for XML, and define XML_CFLAGS and XML_LIBS
 dnl
 AC_DEFUN(AMG_PATH_XML,[ 
@@ -203,7 +203,7 @@ main()
 # Configure paths for GLIB
 # Owen Taylor     97-11-3
 
-dnl AM_PATH_XML2([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
+dnl AMG_PATH_XML2([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for XML, and define XML_CFLAGS and XML_LIBS
 dnl
 AC_DEFUN(AMG_PATH_XML2,[ 
