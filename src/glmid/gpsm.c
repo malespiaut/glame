@@ -394,13 +394,8 @@ int gpsm_init(const char *swapfile)
 
 	if (root)
 		return -1;
-#ifdef DEBUG
-	DPRINTF("In DEBUG mode, fsck forced.\n");
-	if (swapfile_fsck(swapfile, 1) == -1) {
-		perror("ERROR: Fsck failed");
-		return -1;
-	}
-#endif
+
+	/* Open the swapfile. */
 	if (swapfile_open(swapfile, 0) == -1) {
 		if (errno != EBUSY) {
 			perror("ERROR: Unable to open swap");
