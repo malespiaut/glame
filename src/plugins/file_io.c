@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.72 2001/12/03 22:06:53 mag Exp $
+ * $Id: file_io.c,v 1.73 2001/12/03 23:20:44 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -388,20 +388,6 @@ int af_read_prepare(filter_t *n, const char *filename)
 	RWA(n).sampleRate = (int)afGetRate(RWA(n).file, AF_DEFAULT_TRACK);
 	sprintf(info, "%d Hz", RWA(n).sampleRate);
 	filterparam_set_property(fparam,"#samplerate", info);
-
-	if ((RWA(n).sampleFormat != AF_SAMPFMT_TWOSCOMP &&
-	     RWA(n).sampleFormat != AF_SAMPFMT_UNSIGNED) || 
-	    (RWA(n).sampleWidth != 8 && RWA(n).sampleWidth != 16)) {
-		DPRINTF("Format not supported!\n");
-		return -1;
-	}
-	if (RWA(n).sampleWidth == 8 && 
-	    RWA(n).sampleFormat == AF_SAMPFMT_TWOSCOMP && 
-	    afGetFileFormat(RWA(n).file, NULL) == AF_FILE_WAVE) {
-		RWA(n).sampleFormat = AF_SAMPFMT_UNSIGNED;
-		DPRINTF("Kludge! Audiofile reports signed 8bit WAV, "
-		        "overriding to unsigned.\n");
-	}
 		
 	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t))){
 		DPRINTF("Couldn't allocate track buffer\n");
@@ -479,23 +465,22 @@ int af_read_f(filter_t *n)
 	filter_pipe_t *p_out;
 	filter_port_t *port;
 	SAMPLE *s0, *s1;
-	short *b;
 	int fcnt, cnt;
 	long pos;
 	filter_param_t *pos_param;
-	short		*buffer;
-	char		*cbuffer;
+	SAMPLE		*buffer;
 
 	/* seek to start of audiofile */
 	afSeekFrame(RWA(n).file, AF_DEFAULT_TRACK, 0);
 	fcnt = RWA(n).frameCount;
 	
-	buffer=NULL;
+	if (afSetVirtualSampleFormat(RWA(n).file, AF_DEFAULT_TRACK, AF_SAMPFMT_FLOAT, 32)==-1)
+		FILTER_ERROR_RETURN("virtual method failed, get newer libaudiofile!");
+		
+	if (afSetVirtualPCMMapping(RWA(n).file, AF_DEFAULT_TRACK, 1.0, 0.0, -1.0, 1.0)==-1)
+		FILTER_ERROR_RETURN("virtual method failed, get newer libaudiofile!");
 
-	if ((buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL)
-		FILTER_ERROR_RETURN("couldn't allocate read buffer");
-
-	cbuffer=(char *)buffer;
+	buffer=ALLOCN(GLAME_WBUFSIZE*RWA(n).channelCount, SAMPLE);
 
 	FILTER_AFTER_INIT;
 	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
@@ -517,65 +502,15 @@ int af_read_f(filter_t *n)
 			RWA(n).track[i].pos = 0;
 		}
 		i=0;
-		/* XXX: Dangerous but for now happens to work! */
-		switch (RWA(n).sampleWidth | RWA(n).sampleFormat) {
-		case 16 | AF_SAMPFMT_TWOSCOMP:
-			switch (RWA(n).channelCount) {
-			case 2:
-				/* highly optimized default (wav) case [richi] */
-				cnt = frames;
-				s0 = &sbuf_buf(RWA(n).track[0].buf)[RWA(n).track[0].pos];
-				s1 = &sbuf_buf(RWA(n).track[1].buf)[RWA(n).track[1].pos];
-				b = buffer;
-				for (; (cnt & 3)>0; cnt--) {
-					*(s0++) = SHORT2SAMPLE(*(b++));
-					*(s1++) = SHORT2SAMPLE(*(b++));
-				}
-				for (; cnt>0; cnt-=4) {
-					*(s0++) = SHORT2SAMPLE(*(b++));
-					*(s1++) = SHORT2SAMPLE(*(b++));
-					*(s0++) = SHORT2SAMPLE(*(b++));
-					*(s1++) = SHORT2SAMPLE(*(b++));
-					*(s0++) = SHORT2SAMPLE(*(b++));
-					*(s1++) = SHORT2SAMPLE(*(b++));
-					*(s0++) = SHORT2SAMPLE(*(b++));
-					*(s1++) = SHORT2SAMPLE(*(b++));
-				}
-				RWA(n).track[0].pos += frames;
-				RWA(n).track[1].pos += frames;
-				break;
-			default:
-				while (i < frames*RWA(n).channelCount)
-					for (j=0; j < RWA(n).channelCount; j++)
-						sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-							SHORT2SAMPLE(buffer[i++]);
-				break;
-			}
-			break;
-		case 8 | AF_SAMPFMT_TWOSCOMP:
-			while (i < frames*RWA(n).channelCount)
-				for (j=0; j < RWA(n).channelCount; j++)
-					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] = 
-						CHAR2SAMPLE(cbuffer[i++]);
-			break;
-		case 16 | AF_SAMPFMT_UNSIGNED:
-			while (i < frames*RWA(n).channelCount)
-				for (j=0; j < RWA(n).channelCount; j++)
-					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-						USHORT2SAMPLE(buffer[i++]);
-			break;
-		case 8 | AF_SAMPFMT_UNSIGNED:
-			while (i < frames*RWA(n).channelCount)
-				for (j=0; j < RWA(n).channelCount; j++)
-					sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
-						UCHAR2SAMPLE(cbuffer[i++]);
-			break;
-		default:
-			PANIC("Unsupported sample format.");
-		}
+		while (i < frames*RWA(n).channelCount)
+			for (j=0; j < RWA(n).channelCount; j++)
+				sbuf_buf(RWA(n).track[j].buf)[RWA(n).track[j].pos++] =
+					buffer[i++] ;
+
 		for (i=0; i < RWA(n).channelCount; i++)
 			sbuf_queue(RWA(n).track[i].p, RWA(n).track[i].buf);
 	}
+
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		if (filterport_is_input(port))
 			continue;
