@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.25 2003/05/25 10:33:56 richi Exp $
+ * $Id: importexport.c,v 1.26 2003/05/25 18:11:14 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -188,6 +188,7 @@ static void ie_import_ogg(struct imp_s *ie)
 	}
 
 	/* process file */
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Importing..."));
 	ie->importing = 1;
 	while (1) {
 		SAMPLE **ssbuf;
@@ -199,6 +200,11 @@ static void ie_import_ogg(struct imp_s *ie)
 		/* append to swapfile */
 		for (i=0; i<vi->channels; ++i)
 			sw_write(swfd[i], ssbuf[i], SAMPLE_SIZE*ret);
+
+		/* show progress, be friendly to gtk */
+		gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
+		while (gtk_events_pending())
+			gtk_main_iteration();
 	}
 
 	/* finish gpsm, if no error */
@@ -217,6 +223,7 @@ static void ie_import_ogg(struct imp_s *ie)
 	ov_clear(&vf);
 	fclose(fd);
 
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Done."));
 	ie->importing = 0;
 	ie_import_cleanup(ie);
 }
@@ -285,6 +292,11 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 
 	ie->mad_pos += pcm->length;
 
+	/* show progress, be friendly to gtk */
+	gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
+	while (gtk_events_pending())
+		gtk_main_iteration();
+
 	return MAD_FLOW_CONTINUE;
 }
 static void ie_import_mp3(struct imp_s *ie)
@@ -312,6 +324,7 @@ static void ie_import_mp3(struct imp_s *ie)
 			 ie_import_mp3_error, 0);
 	ie->mad_pos = 0;
 	ie->importing = 1;
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Importing..."));
 
 	result = mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);
 	mad_decoder_finish(&decoder);
@@ -330,6 +343,7 @@ static void ie_import_mp3(struct imp_s *ie)
 		ie->item = NULL;
 	}
 
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Done."));
 	ie->importing = 0;
 	ie_import_cleanup(ie);
 }
@@ -466,7 +480,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	pos_param = filterparamdb_get_param(filter_paramdb(readfile),
 					FILTERPARAM_LABEL_POS);
 	
-	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Importing");
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Importing..."));
 	
 
 	if (!(ie->context = filter_launch(ie->net, GLAME_BULK_BUFSIZE)) ||
@@ -489,7 +503,7 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	filter_launchcontext_unref(&ie->context);
 	ie->net = NULL;
 	
-	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Done."));
 	gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar),
 				  0.0);
 
@@ -646,7 +660,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 	}
 	param = filterparamdb_get_param(filter_paramdb(readfile),
 					FILTERPARAM_LABEL_POS);
-	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Analyzing");
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Analyzing..."));
 	
 	ie->cancelled=0;
 
@@ -677,7 +691,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 		ie->gotstats = 1;
 
 
-		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
+		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Done."));
 		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar), 0.0);
 		
 		mrms = 0.0;
@@ -697,7 +711,7 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 
 		ie_update_plabels(ie);
 	} else if (ie->destroyed!=1) {
-		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Cancelled.");
+		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Cancelled."));
 		gnome_appbar_set_progress_percentage(GNOME_APPBAR(ie->appbar), 0.0);
 	}
 	filter_launchcontext_unref(&ie->context);
@@ -1262,7 +1276,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	param = filterparamdb_get_param(filter_paramdb(writefile),
 					FILTERPARAM_LABEL_POS);
 
-	gnome_appbar_set_status(GNOME_APPBAR(exp->appbar), "Exporting");
+	gnome_appbar_set_status(GNOME_APPBAR(exp->appbar), _("Exporting..."));
 
 	exp->net = net;
 
@@ -1299,7 +1313,7 @@ static void export_cb(GtkWidget *bla, struct exp_s *exp)
 	return;
 
  fail_cleanup:
-	gnome_appbar_set_status(GNOME_APPBAR(exp->appbar), "Error!");
+	gnome_appbar_set_status(GNOME_APPBAR(exp->appbar), _("Error!"));
 	glame_network_error_dialog(net, "Failed to create exporting network");
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
