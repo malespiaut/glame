@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.51 2001/08/06 08:43:00 richi Exp $
+ * $Id: basic_sample.c,v 1.52 2001/08/07 09:54:29 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -424,10 +424,10 @@ static int mix_f(filter_t *n)
 					sbuf_unref(p[i].buf);
 					p[i].buf = NULL;
 					p[i].pos = 0;
-					if (!p[i].in && p[i].fifo_size == 0) {
-						p[i].done = 1;
-						nr_done++;
-					}
+				}
+				if (!p[i].in && p[i].fifo_size == 0) {
+					p[i].done = 1;
+					nr_done++;
 				}
 			}
 		} while (cnt>0);
