@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.6 2000/01/31 09:56:05 richi Exp $
+ * $Id: swapfile_test.c,v 1.7 2000/02/24 14:27:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -47,6 +47,11 @@
 /* generate nice progress output with the following functions */
 static char prefix[80];
 static int sequence;
+
+#ifndef __PRETTY_FUNCTION__
+#define __PRETTY_FUNCTION__	__FILE__
+#endif
+
 #define state_start() \
 do { \
         sequence = 0; \
@@ -55,25 +60,31 @@ do { \
 	fflush(stdout); \
 } while (0)
 #ifdef NICE
-#define print_state(str, args...) \
-do { \
-        sequence++; \
-        printf("\r                                                                        "); \
-        printf("\r%s: %3i. ", prefix, sequence); \
-	printf(str, ## args); \
-	fflush(stdout); \
-        SLOW; \
-} while (0)
+inline void print_state(const char *templ, ...)
+{
+	va_list args;
+	sequence++;
+	printf("\r                                                                        ");
+	printf("\r%s: %3i. ", prefix, sequence);
+	va_start(args, templ);
+	printf(templ, args);
+	va_end(args);
+	fflush(stdout);
+	SLOW;
+}
 #else
-#define print_state(str, args...) \
-do { \
-        sequence++; \
-        printf("%s: %3i. ", prefix, sequence); \
-	printf(str, ## args); \
-        printf("\n"); \
-        SLOW; \
-} while (0)
-#endif
+inline void print_state(const char *templ, ...)
+{
+	va_list args;
+	sequence++;
+	printf("%s: %3i. ", prefix, sequence);
+	va_start(args, templ);
+	printf(templ, args);
+	va_end(args);
+	printf("\n");
+	SLOW;
+}
+#endif	
 #define state_end() \
 do { \
 	printf("\r%s done.                                      \n", prefix); \

@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.5 2000/02/09 15:37:37 richi Exp $
+ * $Id: atomic.h,v 1.6 2000/02/24 14:27:36 nold Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,11 +51,8 @@ typedef struct {
 	volatile int	cnt;
 } glame_atomic_t;
 
-#define INIT_GLAME_ATOMIC_T \
-		(glame_atomic_t) { PTHREAD_MUTEX_INITIALIZER, 0 }
-
 #define ATOMIC_INIT(a, val) do{ \
-	(a) = INIT_GLAME_ATOMIC_T; \
+	pthread_mutex_init(&(a).mx, NULL); \
 	(a).cnt = (val); \
 } while(0)
 

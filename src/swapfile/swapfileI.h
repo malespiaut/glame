@@ -109,8 +109,10 @@ struct logentry_s {
 			filehead_t *f;
 		} delete;
 		struct {
+			int dummy;
 		} begin;
 		struct {
+			int dummy;
 		} end;
 	} u;
 };
@@ -196,8 +198,10 @@ typedef struct {
 					int fid;
 				} delete;
 				struct {
+					int dummy;
 				} begin;
 				struct {
+					int dummy;
 				} end;
 			} u;
 		} logentry;

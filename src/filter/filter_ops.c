@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.5 2000/02/24 12:29:49 richi Exp $
+ * $Id: filter_ops.c,v 1.6 2000/02/24 14:27:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -174,15 +174,15 @@ static int wait_network(filter_node_t *n)
 
 
 struct filter_node_operations filter_node_ops = {
-	.init = init_node,
-	.launch = launch_node,
-	.postprocess = postprocess_node,
-	.wait = wait_node,
+	init_node,
+	launch_node,
+	postprocess_node,
+	wait_node,
 };
 
 struct filter_node_operations filter_network_ops = {
-	.init = init_network,
-	.launch = launch_network,
-	.postprocess = postprocess_network,
-	.wait = wait_network,
+	init_network,
+	launch_network,
+	postprocess_network,
+	wait_network,
 };

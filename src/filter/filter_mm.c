@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.3 2000/02/17 16:18:25 richi Exp $
+ * $Id: filter_mm.c,v 1.4 2000/02/24 14:27:36 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include "util.h"
+#include "sem.h"
 #include "filter.h"
 #include "filter_methods.h"
 #include "filter_ops.h"
@@ -283,7 +284,7 @@ void _launchcontext_free(filter_launchcontext_t *c)
 	while ((fb = filterlaunchcontext_first_buffer(c)))
 		_buffer_free(fb);
 	ATOMIC_RELEASE(c->result);
-	semctl(c->semid, 0, IPC_RMID, (union semun)0);
+	sem_remove(c->semid);
 	free(c);
 }
 

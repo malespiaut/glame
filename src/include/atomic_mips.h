@@ -17,8 +17,6 @@
 
 typedef struct { volatile int counter; } glame_atomic_t;
 
-#define INIT_GLAME_ATOMIC_T (glame_atomic_t) { 0 }
-
 #define ATOMIC_INIT(a, val) do { (a).counter = (val); } while(0)
 
 #define ATOMIC_RELEASE(a)

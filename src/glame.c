@@ -42,12 +42,12 @@ int init()
 
 int main(int argc, char **argv)
 {
-	fprintf(stderr, "\n\
-    GLAME version "VERSION", Copyright (C) 1999, 2000 Alexander Ehlert,
-    Richard Guenther, Johannes Hirche, Daniel Kobras.
-    GLAME comes with ABSOLUTELY NO WARRANTY.
-    This is free software, and you are welcome to redistribute it
-    under certain conditions.\n\n");
+	fprintf(stderr, "\n"
+"    GLAME version "VERSION", Copyright (C) 1999, 2000 Alexander Ehlert,\n"
+"    Richard Guenther, Johannes Hirche, Daniel Kobras.\n"
+"    GLAME comes with ABSOLUTELY NO WARRANTY.\n"
+"    This is free software, and you are welcome to redistribute it\n"
+"    under certain conditions.\n\n");
 
 	if (init() == -1)
 		PANIC("Error in init!");

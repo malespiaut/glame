@@ -6,7 +6,7 @@ struct filter_buffer {
 	struct list_head list;
         glame_atomic_t refcnt;
 	int size;              /* size of buffer in bytes */
-	char buf[0];
+	char buf[1];
 };
 #define list_remove_buffer(fb) list_del(&(fb)->list)
 

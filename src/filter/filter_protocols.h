@@ -14,7 +14,7 @@
 
 typedef struct sbuf_header sbuf_header_t;
 struct sbuf_header {
-	char buf[0];
+	char buf[1];
 };
 #define sbuf_alloc(nrsamples, filternode) \
         fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(sbuf_header_t), \
@@ -33,7 +33,7 @@ struct sbuf_header {
  */
 
 typedef struct mbuf_header {
-	char buf[0];
+	char buf[1];
 } mbuf_header_t;
 
 #define mbuf_alloc(nrevents, filternode) \

@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.7 2000/02/09 21:40:09 nold Exp $
+ * $Id: util.h,v 1.8 2000/02/24 14:27:36 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -31,7 +31,11 @@
 #include <sys/param.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
+#ifndef	HAVE_GCC
+#define __PRETTY_FUNCTION__	"Unknown location" 
+#endif
 
 #define PANIC(msg) do { fprintf(stderr, "\nPANIC in file " __FILE__ ", function " __PRETTY_FUNCTION__ ":\n" msg "\n"); perror("errno says"); *((int *)0)=0; } while (0)
 
@@ -41,12 +45,27 @@
 #define DERROR(msg)
 #endif
 
-#ifdef DEBUG
+#ifdef HAVE_GCC
+# ifdef DEBUG
 #define DPRINTF(msg, args...) printf(__PRETTY_FUNCTION__ ": " msg, ## args)
-#else
+# else
 #define DPRINTF(msg, args...)
+# endif
+#else
+# ifdef DEBUG
+static inline void DPRINTF(const char *templ, ...)
+{
+	va_list	args;
+	va_start(args, templ);
+	vprintf(templ, args);
+	va_end(args);
+}
+# else
+static inline void DPRINTF(const char *templ, ...)
+{
+}
+# endif
 #endif
-
 
 #ifndef MIN
 #define MIN(a, b) ((a)<(b)?(a):(b))

@@ -168,11 +168,11 @@ int main(int argc, char **argv)
 	off_t size;
 	int fd;
 
-	fprintf(stderr, "\n\
-    gmkswap version "VERSION", Copyright (C) 1999, 2000 Richard Guenther
-    gmkswap comes with ABSOLUTELY NO WARRANTY.
-    This is free software, and you are welcome to redistribute it
-    under certain conditions.\n\n");
+	fprintf(stderr, "\n"
+"    gmkswap version "VERSION", Copyright (C) 1999, 2000 Richard Guenther\n"
+"    gmkswap comes with ABSOLUTELY NO WARRANTY.\n"
+"    This is free software, and you are welcome to redistribute it\n"
+"    under certain conditions.\n\n");
 
 	if (argc<2 || argc>3)
 		goto _usage;
