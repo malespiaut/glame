@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.19 2000/12/18 13:15:58 richi Exp $
+ * $Id: canvas.c,v 1.20 2001/01/31 10:38:45 nold Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -900,6 +900,9 @@ create_ports(GnomeCanvasGroup* grp,filter_t *f)
 		if (filterport_is_input(port))
 			portcount++;
 	}
+	if (!portcount)
+		goto _no_inputs;
+	
 	step = 64.0/(float)portcount;
 	border = 0.0;
 	filterportdb_foreach_port(filter_portdb(filter), port) {
@@ -917,11 +920,16 @@ create_ports(GnomeCanvasGroup* grp,filter_t *f)
 		
 	}
 
+_no_inputs:
 	portcount = 0;
 	filterportdb_foreach_port(filter_portdb(filter), port) {
 		if (filterport_is_output(port))
 			portcount++;
 	}
+
+	if (!portcount)
+		return;
+
 	step = 64.0/(float)portcount;
 	border=0.0;
 	filterportdb_foreach_port(filter_portdb(filter), port) {
