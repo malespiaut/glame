@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.35 2001/05/05 14:40:46 richi Exp $
+ * $Id: swapfilegui.c,v 1.36 2001/05/13 11:57:07 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -36,6 +36,7 @@
 #include "swapfilegui.h"
 #include "filter.h"
 #include "glame_gui_utils.h"
+#include "clipboard.h"
 #include <gnome.h>
 
 
@@ -48,6 +49,7 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
 static void flatten_cb(GtkWidget *menu, GlameTreeItem *item);
 static void collect_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
+static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -62,6 +64,7 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
+	GNOMEUIINFO_ITEM("Add clipboard", "addclipboard", addclipboard_cb, NULL),
 	GNOMEUIINFO_ITEM("Add empty wave", "addfile", addfile_cb, NULL),
         GNOMEUIINFO_ITEM("Link selected", "link", linkselected_cb, NULL),
         GNOMEUIINFO_ITEM("Copy selected", "copy", copyselected_cb, NULL),
@@ -298,6 +301,28 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
 
 	/* Create new gpsm group. */
 	grp = gpsm_newgrp("Unnamed");
+	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp, -1, -1);
+
+	/* Expand the parent widget. */
+	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+	/* Find out which widget it got and open an edit field. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
+	if (grpw)
+		edit_tree_label(grpw);
+}
+
+static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	gpsm_grp_t *grp;
+	GlameTreeItem *grpw;
+
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+
+	/* Create new gpsm group. */
+	if (!(grp = clipboard_get()))
+		return;
 	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)grp, -1, -1);
 
 	/* Expand the parent widget. */
