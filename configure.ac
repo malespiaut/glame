@@ -88,7 +88,7 @@ AC_PROG_CPP
 AC_MSG_CHECKING([how to mate preprocessor and vararg macros])
 AC_PREPROC_IFELSE(
 [
-#define MACRO_WITH_VARARGS(dummy, ...)	/* nothing */
+#define MACRO_WITH_VARARGS(dummy...)	/* nothing */
 MACRO_WITH_VARARGS(foo, bar)
 /* no body */
 ],
@@ -99,7 +99,7 @@ AC_MSG_RESULT([already in love])
 CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
 AC_PREPROC_IFELSE(
 [
-#define MACRO_WITH_VARARGS(dummy, ...)	/* nothing */
+#define MACRO_WITH_VARARGS(dummy...)	/* nothing */
 MACRO_WITH_VARARGS(foo, bar)
 /* no body */
 ],
