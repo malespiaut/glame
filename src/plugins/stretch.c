@@ -1,6 +1,6 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.2 2002/03/10 22:48:05 mag Exp $
+ * $Id: stretch.c,v 1.3 2002/05/23 21:02:53 mag Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  *
@@ -124,10 +124,10 @@ static int stretch_f(filter_t *n)
 	do {
 		FILTER_CHECK_STOP;
 		factor = filterparam_val_double(sparam);
-		if (factor<=0.0f)
-			factor = 0.01;
-
 		dpos = dfak*factor;
+		if (dpos<=0.0f)
+			dpos = 0.1f;
+
 
 		in_queue_copy_pad(&in_queue, buffer, bsize);
 		in_queue_shift(&in_queue, inshift);
