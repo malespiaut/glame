@@ -1,4 +1,29 @@
-2000-01-21  nold  <nold@fs1>
+2000-01-25  Alexander Ehlert  <ehlert@phys.unsw.edu.au>
+
+	* /cvsroot/glame/glame/Makefile.am:
+	corrected my email-address, because nold corrected wrong
+	[mag]
+
+2000-01-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/hash/glame_hash.c:
+	fixed bug in global hashtable
+
+	* /cvsroot/glame/glame/configure.in: bumped version number
+
+	* /cvsroot/glame/glame/src/channel/channel.c, /cvsroot/glame/glame/src/channel/channel_cghash.h, /cvsroot/glame/glame/src/channel/channel.h, /cvsroot/glame/glame/src/channel/Makefile.am, /cvsroot/glame/glame/src/filter/drop.c, /cvsroot/glame/glame/src/filter/dup.c, /cvsroot/glame/glame/src/filter/file_in.c, /cvsroot/glame/glame/src/filter/file_out.c, /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter.c, /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_hash.h, /cvsroot/glame/glame/src/filter/filter_network.c, /cvsroot/glame/glame/src/filter/filter_node.c, /cvsroot/glame/glame/src/filter/Makefile.am, /cvsroot/glame/glame/src/filter/mix.c, /cvsroot/glame/glame/src/filter/null.c, /cvsroot/glame/glame/src/filter/one2n.c, /cvsroot/glame/glame/src/filter/ping.c, /cvsroot/glame/glame/src/filter/test_latency.c, /cvsroot/glame/glame/src/filter/volume_adjust.c, /cvsroot/glame/glame/src/glame.c, /cvsroot/glame/glame/src/hash/glame_hash.c, /cvsroot/glame/glame/src/hash/glame_hash.h, /cvsroot/glame/glame/src/libfixp/fixp.c, /cvsroot/glame/glame/src/libfixp/fixp.h, /cvsroot/glame/glame/src/rw/Makefile.am, /cvsroot/glame/glame/src/rw/rw.c, /cvsroot/glame/glame/src/rw/rw.h, /cvsroot/glame/glame/src/rw/wav_file.c, /cvsroot/glame/glame/src/rw/wav_file.h:
+	work on global hash - changed channel and filter to use the new
+	hash
+
+	* /cvsroot/glame/glame/src/swapfile/Makefile.am, /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfile_hash.h, /cvsroot/glame/glame/src/swapfile/swapfileI.h, /cvsroot/glame/glame/src/swapfile/swapfile_info.c, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
+	major cleanup (round #1) of swapfile
+
+2000-01-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/ChangeLog:
+	Updated ChangeLog. (This is an ML test actually ;) [dk]
+
+2000-01-21  Daniel Kobras  <kobras@linux.de>
 
 	* /cvsroot/glame/glame/config.h.in:
 	I told richi keeping config.h.in in CVS is broken but richi would not
