@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.84 2004/10/23 13:09:29 richi Exp $
+ * $Id: file_io.c,v 1.85 2004/11/07 23:28:03 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002 Alexander Ehlert, Richard Guenther,
  * 	Daniel Kobras
@@ -556,41 +556,20 @@ int write_file_register(plugin_t *pl)
 "<?xml version=\"1.0\" standalone=\"no\"?>"
 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
 "<glade-interface>"
-"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"    <widget class=\"GtkComboBox\" id=\"widget\">"
 "      <property name=\"visible\">True</property>"
 "      <property name=\"can_focus\">True</property>"
-"      <property name=\"history\">0</property>"
-"      <child>"
-"        <widget class=\"GtkMenu\" id=\"menu1\">"
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item0\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Auto</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"</child>");
+"      <property name=\"items\" translatable=\"yes\">auto");
 		
 		af_indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);	
 		for(i=0; i<af_typecnt; i++) {
 			char blah[256];
-			sprintf(blah,
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item%i\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">", i+1
-				);
+			sprintf(blah, "\n%s", (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, af_indices[i] ,0 ,0));
 			strcat(xmlparam, blah);
-			strcat(xmlparam, (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, af_indices[i] ,0 ,0));
-			strcat(xmlparam, "</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-				);
 		}
 
 		strcat(xmlparam,
-"        </widget>"
-"      </child>"
+"      </property>"
 "    </widget>"
 "</glade-interface>"
 			);

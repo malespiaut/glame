@@ -1,7 +1,7 @@
 /*
  * flanger.c
  *
- * $Id: flanger.c,v 1.24 2004/10/23 13:09:29 richi Exp $
+ * $Id: flanger.c,v 1.25 2004/11/07 23:28:03 richi Exp $
  *
  * Copyright (C) 2001, 2002 Alexander Ehlert
  *
@@ -328,42 +328,13 @@ int flanger_register(plugin_t *p)
 "<?xml version=\"1.0\" standalone=\"no\"?>"
 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
 "<glade-interface>"
-"    <widget class=\"GtkOptionMenu\" id=\"widget\">"
+"    <widget class=\"GtkComboBox\" id=\"widget\">"
 "      <property name=\"visible\">True</property>"
 "      <property name=\"can_focus\">True</property>"
-"      <property name=\"history\">0</property>"
-"      <child>"
-"        <widget class=\"GtkMenu\" id=\"menu1\">"
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item1\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Sine</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item2\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Ramp up</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item3\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Ramp down</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"	  <child>"
-"            <widget class=\"GtkMenuItem\" id=\"item4\">"
-"              <property name=\"visible\">True</property>"
-"              <property name=\"label\" translatable=\"yes\">Fractal</property>"
-"              <property name=\"use_underline\">True</property>"
-"            </widget>"
-"          </child>"
-"        </widget>"
-"      </child>"
+"      <property name=\"items\" translatable=\"yes\">Sine\n"
+"Ramp up\n"
+"Ramp down\n"
+"Fractal</property>"
 "    </widget>"
 "</glade-interface>",
 				    FILTERPARAM_LABEL, "LFO Type",
