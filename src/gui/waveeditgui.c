@@ -490,12 +490,10 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
-	gboolean b;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
 	int rate;
-	char *dev;
 
 	if (!plugin_get("audio_out")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -516,10 +514,7 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_out. */
 	net = filter_creat(NULL);
-	dev = gnome_config_get_string_with_default("audio_io/output_plugin=audio_out", &b);
-	aout = filter_instantiate(plugin_get(dev));
-	if ((dev = gnome_config_get_string("audio_io/output_dev")))
-		filterparam_set(filterparamdb_get_param(filter_paramdb(aout), "device"), &dev);
+	aout = filter_instantiate(plugin_get("audio_out"));
 	filter_add_node(net, aout, "aout");
 
 	gpsm_grp_foreach_item(grp, item) {
@@ -553,12 +548,10 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
-	gboolean b;
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
 	filter_t *net, *aout;
 	int rate;
-	char *dev;
 
 	if (!plugin_get("audio_out")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -574,10 +567,7 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_out. */
 	net = filter_creat(NULL);
-	dev = gnome_config_get_string_with_default("audio_io/output_plugin=audio_out", &b);
-	aout = filter_instantiate(plugin_get(dev));
-	if ((dev = gnome_config_get_string("audio_io/output_dev")))
-		filterparam_set(filterparamdb_get_param(filter_paramdb(aout), "device"), &dev);
+	aout = filter_instantiate(plugin_get("audio_out"));
 	filter_add_node(net, aout, "aout");
 
 	gpsm_grp_foreach_item(grp, item) {
@@ -612,13 +602,11 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start, length;
-	gboolean b;
 	gpsm_item_t *grp, *item, *left, *right;
 	filter_t *net, *ain;
 	int rate;
 	filter_t *swout;
 	float duration;
-	char *dev;
 
 	if (!plugin_get("audio_in")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -656,10 +644,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_in. */
 	net = filter_creat(NULL);
-	dev = gnome_config_get_string_with_default("audio_io/input_plugin=audio_in", &b);
-	ain = filter_instantiate(plugin_get(dev));
-	if ((dev = gnome_config_get_string("audio_io/input_dev")))
-		filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "device"), &dev);
+	ain = filter_instantiate(plugin_get("audio_in"));
 	duration = length/(float)rate;
 	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
 	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
@@ -705,12 +690,10 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
 	gint32 start;
-	gboolean b;
 	gpsm_item_t *grp, *item, *left, *right;
 	filter_t *net, *ain;
 	int rate;
 	filter_t *swout;
-	char *dev;
 
 	if (!plugin_get("audio_in")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -748,10 +731,7 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Create the basic network - audio_in. */
 	net = filter_creat(NULL);
-	dev = gnome_config_get_string_with_default("audio_io/input_plugin=audio_in", &b);
-	ain = filter_instantiate(plugin_get(dev));
-	if ((dev = gnome_config_get_string("audio_io/input_dev")))
-		filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "device"), &dev);
+	ain = filter_instantiate(plugin_get("audio_in"));
 	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
 	filter_add_node(net, ain, "ain");
 

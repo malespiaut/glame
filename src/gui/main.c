@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.39 2001/04/22 15:28:44 richi Exp $
+ * $Id: main.c,v 1.40 2001/04/23 08:23:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -130,7 +130,7 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 	char filenamebuffer[256];
 
 	dialog = glame_dialog_file_request("Load Plugin",
-					   "main/load_plugin", "Filename",
+					   "main:load_plugin", "Filename",
 					   NULL, filenamebuffer);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 		return;
@@ -140,6 +140,67 @@ static void load_plugin_cb(GtkWidget*bla,void*blu)
 			gnome_error_dialog("Error loading plugin")));
 }
 
+
+/* Update globals derived from preferences and provide defaults to
+ * all configurables. */
+static void update_preferences()
+{
+	char *cfg1, *cfg2, s[256];
+	filter_t *filter;
+	gboolean def;
+
+	/* Update globals. */
+	nPopupTimeout = gnome_config_get_int_with_default(
+		"edit_filter/popupTimeout=200", &def);
+	bMac = gnome_config_get_bool_with_default(
+		"edit_filter/macMode=false", &def);
+
+	/* Set default swapfile path. */
+	sprintf(s, "swapfile/defaultpath=%s/.glameswap", g_get_home_dir());
+	cfg1 = gnome_config_get_string_with_default(s, &def);
+	g_free(cfg1);
+
+	/* Update IO plugin setup - audio_out */
+	cfg1 = gnome_config_get_string_with_default(
+		"audio_io/output_plugin=audio_out", &def);
+	if (!plugin_get(cfg1)) {
+		g_free(cfg1);
+		cfg1 = strdup("audio_out");
+	}
+	cfg2 = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(cfg1), PLUGIN_FILTER)), "device"));
+	snprintf(s, 255, "audio_io/output_dev=%s", cfg2 ? cfg2 : "");
+	cfg2 = gnome_config_get_string_with_default(s, &def);
+	filter = filter_instantiate(plugin_get(cfg1));
+	if (filter) {
+		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
+							"device"), &cfg2);
+		filter_register(filter, plugin_get("audio_out"));
+	}
+	g_free(cfg1);
+	g_free(cfg2);
+
+	/* Update IO plugin setup - audio_in */
+	cfg1 = gnome_config_get_string_with_default(
+		"audio_io/input_plugin=audio_in", &def);
+	if (!plugin_get(cfg1)) {
+		g_free(cfg1);
+		cfg1 = strdup("audio_in");
+	}
+	cfg2 = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(cfg1), PLUGIN_FILTER)), "device"));
+	snprintf(s, 255, "audio_io/input_dev=%s", cfg2 ? cfg2 : "");
+	cfg2 = gnome_config_get_string_with_default(s, &def);
+	filter = filter_instantiate(plugin_get(cfg1));
+	if (filter) {
+		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
+							"device"), &cfg2);
+		filter_register(filter, plugin_get("audio_in"));
+	}
+	g_free(cfg1);
+	g_free(cfg2);
+
+	/* Sync changes. */
+	gnome_config_sync();
+}
 
 
 static void
@@ -153,7 +214,7 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 	*bar = (*bar)?FALSE:TRUE;
 }
 
-void
+static void
 preferences_cb(GtkWidget * wid, void * bla)
 {
 	GtkWidget * prop_box;
@@ -204,7 +265,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	create_label_edit_pair(vbox, "Popup timeout [ms]", "popupTimeout",
 			       numberbuffer);
 
-	mac = gnome_config_get_bool_with_default("edit_filter/macMode=false", &foo);
+	mac = gnome_config_get_bool("edit_filter/macMode");
 	bMac = mac;
 	macMode = gtk_check_button_new();
 	gtk_toggle_button_set_state(GTK_TOGGLE_BUTTON(macMode),mac);
@@ -238,8 +299,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
 	g_list_free(combo_items);
 	gtk_widget_show(combo);
-	cfg = gnome_config_get_string_with_default(
-		"audio_io/input_plugin=audio_in", &foo);
+	cfg = gnome_config_get_string("audio_io/input_plugin");
 	ainplugin = alloca(256);
 	strncpy(ainplugin, cfg, 255);
 	g_free(cfg);
@@ -250,9 +310,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* input device */
 	aindev = alloca(256);
-	cfg = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get("audio_in"), PLUGIN_FILTER)), "device"));
-	snprintf(aindev, 255, "audio_io/input_dev=%s", cfg ? cfg : "");
-	cfg = gnome_config_get_string_with_default(aindev, &foo);
+	cfg = gnome_config_get_string("audio_io/input_dev");
 	strncpy(aindev, cfg, 255);
 	g_free(cfg);
 	create_label_edit_pair(vbox, "Default input device", "aindev", aindev);
@@ -273,8 +331,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gtk_combo_set_popdown_strings(GTK_COMBO(combo), combo_items);
 	g_list_free(combo_items);
 	gtk_widget_show(combo);
-	cfg = gnome_config_get_string_with_default(
-		"audio_io/output_plugin=audio_out", &foo);
+	cfg = gnome_config_get_string("audio_io/output_plugin");
 	aoutplugin = alloca(256);
 	strncpy(aoutplugin, cfg, 255);
 	g_free(cfg);
@@ -285,9 +342,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* output device */
 	aoutdev = alloca(256);
-	cfg = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get("audio_out"), PLUGIN_FILTER)), "device"));
-	snprintf(aoutdev, 255, "audio_io/output_dev=%s", cfg ? cfg : "");
-	cfg = gnome_config_get_string_with_default(aoutdev, &foo);
+	cfg = gnome_config_get_string("audio_io/output_dev");
 	strncpy(aoutdev, cfg, 255);
 	g_free(cfg);
 	create_label_edit_pair(vbox, "Default output device",
@@ -319,8 +374,9 @@ preferences_cb(GtkWidget * wid, void * bla)
 	gnome_config_set_string("audio_io/input_plugin", ainplugin);
 	gnome_config_set_string("audio_io/output_dev", aoutdev);
 	gnome_config_set_string("audio_io/output_plugin", aoutplugin);
-	gnome_config_sync();
-	DPRINTF("Preferences:\n\tswapfile %s\n\tpopup time %d\n\tmac mode %d\n\tinput plugin %s\n\tinput dev %s\n\toutput plugin %s\n\toutput dev %s\n", path, nPopupTimeout, bMac, ainplugin, aindev, aoutplugin, aoutdev);
+
+	/* Update config derived stuff. */
+	update_preferences();
 }
 
 
@@ -377,6 +433,7 @@ static void glame_splash(void)
 #endif
 }
 
+
 /*
  * Real main and cleanup stuff.
  */
@@ -392,48 +449,25 @@ static void gui_main()
 {
 	GtkWidget *dock;
 	GtkWidget *appbar;
-	gboolean defaultval;
 	char configpath[255];
-	char homedir[255];
-	char * path;
+	char *path;
 
-	/* check for prefs */
+	/* Update preferences. */
 	sprintf(configpath,"/%s/",g_get_prgname());
 	gnome_config_push_prefix(configpath);
-	sprintf(configpath,"swapfile/defaultpath=%s/.glameswap",g_get_home_dir());
-	path = gnome_config_get_string_with_default(configpath,&defaultval);
-	if(defaultval){
-		sprintf(configpath,"swapfile/defaultpath");;
-		sprintf(homedir,"%s/.glameswap",g_get_home_dir());
-		gnome_config_set_string(configpath,homedir);
-		gnome_config_sync();
-	}
-	if(!strlen(path)){
-		sprintf(configpath,"%s/.glameswap",g_get_home_dir());
-		path = strdup(configpath);
-		gnome_config_set_string("swapfile/defaultpath",path);
-		gnome_config_sync();
-	}
-     
+	update_preferences();
+
+	path = gnome_config_get_string("swapfile/defaultpath");
 	DPRINTF("path: %s\n",path);
-	if(!g_file_test(path,G_FILE_TEST_ISDIR)
-	   && !swname /* for debugging */){
-		if(swapfile_creat(path,-1)){
+	if (!g_file_test(path,G_FILE_TEST_ISDIR)) {
+		if (swapfile_creat(path, -1)) {
 			DERROR("error creating swapfile\n");
 		}
 	}
-	nPopupTimeout = gnome_config_get_int_with_default("edit_filter/popupTimeout=200",&defaultval);
-	if(defaultval){
-		gnome_config_set_int("edit_filter/popupTimeout",200);
-		gnome_config_sync();
-	}
-	bMac = gnome_config_get_bool_with_default("edit_filter/macMode=false",&defaultval);
-	/* create swapfile gui */
-	if (swname)
-		gpsm_init(swname);
-	else
-		gpsm_init(path);
+	gpsm_init(path);
 	g_free(path);
+
+	/* create swapfile gui */
 	swapfile = glame_swapfile_widget_new(gpsm_root());
 	if (!swapfile)
 		return;
