@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.3 2001/03/13 11:21:38 richi Exp $
+ * $Id: gltreeitem.c,v 1.4 2001/03/13 13:55:38 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -283,5 +283,13 @@ void glame_tree_append(GtkObject *t, GlameTreeItem *item)
 		return;
 
 	gtk_tree_append(tree, GTK_WIDGET(item));
-	gtk_widget_show(GTK_WIDGET(item));
+	item->parent = tree;
 }
+
+void glame_tree_remove(GlameTreeItem *item)
+{
+	if (!item->parent)
+		return;
+	gtk_container_remove(GTK_CONTAINER(item->parent), GTK_WIDGET(item));
+}
+

@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.3 2001/03/13 11:21:38 richi Exp $
+ * $Id: gltreeitem.h,v 1.4 2001/03/13 13:55:38 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -24,6 +24,7 @@
  *
  */
 
+#include <gtk/gtktree.h>
 #include <gtk/gtktreeitem.h>
 
 
@@ -43,6 +44,9 @@ enum {
 
 struct _GlameTreeItem {
 	GtkTreeItem parent_object;
+
+	/* internal linkage */
+	GtkTree *parent;
 
 	/* data - from glame_editor.c:struct gledit_buffer */
 	int type;
@@ -70,6 +74,6 @@ GlameTreeItem* glame_tree_find_group(GtkObject *tree, const char *label);
 GlameTreeItem* glame_tree_find_filename(GtkObject *tree, long name);
 GtkObject*     glame_tree_copy(GtkObject *tree);
 void           glame_tree_append(GtkObject *tree, GlameTreeItem *item);
-
+void           glame_tree_remove(GlameTreeItem *item);
 
 #endif

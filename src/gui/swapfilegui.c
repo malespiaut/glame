@@ -43,12 +43,22 @@ static GtkTree *swapfile_tree = NULL;
 
 
 /* Forward declarations. */
+static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item);
+static int rmb_gmenu_cb(GtkWidget *item, GdkEventButton *event,
+		        gpointer data);
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data);
-
+static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
+static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
 
+static GnomeUIInfo global_menu_data[] = {
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_END
+};
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -57,8 +67,9 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_ITEM("Flatten childs", "flatten", NULL, NULL), /* FIXME */
         GNOMEUIINFO_ITEM("Link selected", "link", NULL, NULL), /* FIXME */
         GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Add group...", "addgroup", addgroup_cb, NULL),
         GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
-        GNOMEUIINFO_ITEM("Delete", "delete", NULL, NULL), /* FIXME */
+        GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
@@ -66,10 +77,24 @@ static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-        GNOMEUIINFO_ITEM("Delete", "delete", NULL, NULL), /* FIXME */
+        GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
+
+static int rmb_gmenu_cb(GtkWidget *tree, GdkEventButton *event,
+		        gpointer data)
+{
+	GtkWidget *menu;
+
+	DPRINTF("bla\n");
+	if (event->button != 3)
+		return FALSE;
+
+	menu = gnome_popup_menu_new(global_menu_data);
+	gnome_popup_menu_do_popup(menu, NULL, NULL, event, NULL);
+	return TRUE;
+}
 
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data)
@@ -89,6 +114,31 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i);
 	return TRUE;
+}
+
+static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	GlameTreeItem *grp = GLAME_TREE_ITEM(glame_tree_item_new_group("FIXME"));
+	sw_glame_tree_append(GTK_OBJECT(item), grp);
+}
+
+static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	if (item->type == GLAME_TREE_ITEM_FILE) {
+		if (item->swapfile_name != -1)
+			sw_unlink(item->swapfile_name);
+		glame_tree_remove(item);
+		gtk_object_destroy(GTK_OBJECT(item));
+	} else if (item->type == GLAME_TREE_ITEM_GROUP) {
+		GList *children = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item)));
+		while (children) {
+			GlameTreeItem *it = GLAME_TREE_ITEM(children->data);
+			delete_cb(menu, it);
+			children = g_list_next(children);
+		}
+		glame_tree_remove(item);
+		gtk_object_destroy(GTK_OBJECT(item));
+	}
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
@@ -146,7 +196,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	/*   Blah!
 	     FIXME!
 	*/
-	gchar *buffer;
 	GtkWidget * dialog;
 	GtkWidget * dialogVbox;
 	GtkWidget * newItem;
@@ -160,9 +209,6 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	swfd_t fd;
 	gint i, channels;
 	glong name, names[GTK_SWAPFILE_BUFFER_MAX_TRACKS];
-	ssize_t len;
-	struct sw_stat st;
-	char cbuffer[50];
 	
 	char * filenamebuffer, *groupnamebuffer;
 
@@ -196,7 +242,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 
 
 		if (!(p_readfile = plugin_get("read_file"))) {
-			g_print("read_file not found");
+			DPRINTF("read_file not found\n");
 			return;
 		} else
 			g_assert((readfile = filter_instantiate(p_readfile)));
@@ -206,7 +252,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		filter_add_node(net, readfile, "readfile");
 
 		if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
-			g_print("swapfile_out not found");
+			DPRINTF("swapfile_out not found\n");
 			return;
 		} 
 		
@@ -219,16 +265,14 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		if(!groupnamebuffer)
 			groupnamebuffer = g_basename(filenamebuffer);
 		newItem = glame_tree_item_new_group(groupnamebuffer);
-		gtk_signal_connect_after(GTK_OBJECT(newItem), "button_press_event",
-					 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-		glame_tree_append(item,newItem);
+		sw_glame_tree_append(item,newItem);
 		
 		i = 0;
 		do {
 			while((fd=sw_open((name=rand()), O_CREAT | O_EXCL, TXN_NONE))==-1);
 			names[i] = name;
 			sw_close(fd);
-			g_print("Found free file at #%d\n", name);
+			DPRINTF("Found free file at #%li\n", name);
 			g_assert((swapfile_out[i] = filter_instantiate(p_swapfile_out)));
 			g_assert((db = filter_paramdb(swapfile_out[i])));
 			g_assert((param = filterparamdb_get_param(db, "filename")));
@@ -237,7 +281,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 			g_assert((dest = filterportdb_get_port(filter_portdb(swapfile_out[i]), 
 				 PORTNAME_IN)));
 			if (!(filterport_connect(source, dest))) {
-				g_print("Connection failed for channel %d\n",i+1);
+				DPRINTF("Connection failed for channel %d\n",i+1);
 				sw_unlink(name);
 				filter_delete(swapfile_out[i]);
 				goto launch;
@@ -245,9 +289,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 				pipe = filterport_get_pipe(dest);
 				newTrak = glame_tree_item_new_file((filterpipe_sample_hangle(pipe)<0)?"Left":"Right",name,
 								   filterpipe_sample_rate(pipe));
-				gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
-							 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-				glame_tree_append(newItem,newTrak);
+				sw_glame_tree_append(newItem,newTrak);
 				i++;
 			}
 		} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
@@ -260,30 +302,26 @@ launch:
 		filter_delete(net);
 	}
 
-	
-	// find out size
-	
+	/* update items */
 	i = 0;
 	do {
-		fd = sw_open(names[i],O_RDONLY,TXN_NONE);
-		sw_fstat(fd,&st);
-		sw_close(fd);
-	
 		newTrak = glame_tree_find_filename(swapfile_tree,names[i]);
 		glame_tree_item_update(newTrak);
 		i++;
 	} while (i < channels);
-/*
-	gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
-				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-	glame_tree_append(newItem,newTrak);
-	newTrak = glame_tree_item_new_file("right",name+1,44100,-1);
-	gtk_signal_connect_after(GTK_OBJECT(newTrak), "button_press_event",
-				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-	glame_tree_append(newItem,newTrak);
-*/
-		
-};
+}
+
+
+/* Helper for item insertion (includes signal connect and show)
+ */
+static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item)
+{
+	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
+			         (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	glame_tree_append(tree, item);
+	gtk_widget_show(GTK_WIDGET(item));
+}
+
 
 /*
  * Construct an GtkTree out of an xml document node.
@@ -307,7 +345,6 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 	if (strcmp(node->name, "file") == 0) {
 		char *ilabel, *c;
 		long ifd, irate;
-		struct sw_stat st;
 		int fd;
 
 		/* Extract file information. */
@@ -346,11 +383,7 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 		return;
 	}
 
-	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
-			   (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
-	glame_tree_append(GTK_OBJECT(tree), GLAME_TREE_ITEM(item));
-	gtk_widget_show(item);
-
+	sw_glame_tree_append(GTK_OBJECT(tree), GLAME_TREE_ITEM(item));
 	insert_childs(GTK_OBJECT(item), node);
 }
 
@@ -368,7 +401,7 @@ void scan_swap(GtkTree *tree)
 
 	if (!(grp = glame_tree_find_group(GTK_OBJECT(tree), "unnamed"))) {
 		grp = GLAME_TREE_ITEM(glame_tree_item_new_group("unnamed"));
-		glame_tree_append(GTK_OBJECT(tree), grp);
+		sw_glame_tree_append(GTK_OBJECT(tree), grp);
 	}
 	dir = sw_opendir();
 	while ((name = sw_readdir(dir)) != -1) {
@@ -377,7 +410,7 @@ void scan_swap(GtkTree *tree)
 		if ((item = glame_tree_find_filename(GTK_OBJECT(tree), name)))
 			continue;
 		item = GLAME_TREE_ITEM(glame_tree_item_new_file("unnamed", name, -1));
-		glame_tree_append(GTK_OBJECT(grp), item);
+		sw_glame_tree_append(GTK_OBJECT(grp), item);
 	}
 	sw_closedir(dir);
 }
@@ -392,11 +425,11 @@ static void dump_item(GlameTreeItem *item, xmlNodePtr node)
 	xmlNodePtr child;
 	char s[256];
 
-	if (GTK_TREE_ITEM_SUBTREE(item)) {
+	if (item->type == GLAME_TREE_ITEM_GROUP) {
 		child = xmlNewChild(node, NULL, "group", NULL);
 		xmlSetProp(child, "label", item->label);
 		dump_tree(GTK_TREE(GTK_TREE_ITEM_SUBTREE(item)), child);
-	} else {
+	} else if (item->type == GLAME_TREE_ITEM_FILE) {
 		child = xmlNewChild(node, NULL, "file", NULL);
 		xmlSetProp(child, "label", item->label);
 		snprintf(s, 255, "%li", item->swapfile_name);
@@ -407,6 +440,8 @@ static void dump_item(GlameTreeItem *item, xmlNodePtr node)
 }
 static void dump_tree(GtkTree *tree, xmlNodePtr node)
 {
+	if (!tree)
+		return;
 	gtk_container_foreach(GTK_CONTAINER(tree),
 			      (GtkCallback)dump_item, node);
 }
@@ -481,6 +516,11 @@ GtkWidget *glame_swapfile_gui_new(const char *swapfile)
         gtk_tree_set_view_mode(GTK_TREE(tree), GTK_TREE_VIEW_LINE);
         gtk_tree_set_view_lines(GTK_TREE(tree), TRUE);
         gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_BROWSE);
+	/* neither of these work!? */
+	gtk_signal_connect(GTK_OBJECT(tree), "button_press_event",
+			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
+	gtk_signal_connect(GTK_OBJECT(window), "button_press_event",
+			   (GtkSignalFunc)rmb_gmenu_cb, (gpointer)NULL);
 
 	/* Recurse down the xml tree. */
         insert_childs(GTK_OBJECT(tree), xmlDocGetRootElement(doc));
