@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.87 2001/04/27 16:57:09 richi Exp $
+ * $Id: canvas.c,v 1.88 2001/05/04 09:04:33 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -629,7 +629,10 @@ canvas_new_from_network(gui_network* net)
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Close","Close","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),canvas_close,window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Help","Help","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),gnome_help_goto,"info:glame#The_Filternetwork_Editor");
-	gnome_app_set_toolbar(GNOME_APP(window),GTK_TOOLBAR(toolbar));
+	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
+			      "canvas::toolbar",
+			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
+			      GNOME_DOCK_TOP, 0, 0, 0);
 	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));
 	
