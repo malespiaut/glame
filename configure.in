@@ -7,6 +7,11 @@ AM_CONFIG_HEADER(config.h)
 dnl Pick up additional macros from the macros directory
 AM_ACLOCAL_INCLUDE(macros)
 
+dnl One translation so far
+ALL_LINGUAS="de"
+
+dnl Check for internationalization support
+AM_GNU_GETTEXT
 
 dnl
 dnl Switches to configure debugging stuff - sane default for now.
@@ -433,4 +438,4 @@ AC_SUBST(GLAME_FFT_LIBS)
 
 AC_CONFIG_SUBDIRS(libltdl)
 
-AC_OUTPUT(Makefile macros/Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/gui/edit_filter/Makefile src/glmid/Makefile src/gui/libgtkwaveform/Makefile src/gui/timeline/Makefile src/gui/util/Makefile)
+AC_OUTPUT(Makefile macros/Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/gui/edit_filter/Makefile src/glmid/Makefile src/gui/libgtkwaveform/Makefile src/gui/timeline/Makefile src/gui/util/Makefile intl/Makefile po/Makefile.in)
