@@ -90,6 +90,10 @@ extern "C" {
  *  - unclean swap */
 int swapfile_open(const char *name, int flags);
 
+/* Syncs the in memory caches and metadata to disk. Does not sync
+ * exisiting memory mappings. */
+void swapfile_sync();
+
 /* Closes and updates a previously opened swap file/partition
  * and marks it clean. */
 void swapfile_close();

@@ -1,7 +1,7 @@
 /*
  * swfs_file.c
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -478,7 +478,7 @@ static int file_cut(struct swfile *f, s64 pos, s64 count)
 		 && cpos_first < cpos_last)
 		_file_cluster_delete(f, cpos_first, cpos_last-cpos_first);
 	else
-		PANIC("Duh! Failed to handle case!?");
+		DERROR("Duh! Failed to handle case!?");
 
 	UNLOCKFILE(f);
 	file_check(f);
@@ -574,7 +574,7 @@ static void _file_readclusters(struct swfile *f)
 	int fd;
 
 	if (f->flags & SWF_DIRTY)
-		PANIC("Read into dirty state");
+		DERROR("Read into dirty state");
 	if (!(f->flags & SWF_NOT_IN_CORE))
 		return;
 

@@ -1,7 +1,7 @@
 /*
  * swfs_ctree.c
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,7 +128,7 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 
 	if (!h || !cid || !size
 	    || pos<0 || cnt<=0 || pos>h->cnt)
-		PANIC("Invalid arguments");
+		DERROR("Invalid arguments");
 
 	if (CTREEMAXCNT(h->height) < h->cnt + cnt) {
 		if (!(dest = ctree_alloc(h->cnt + cnt)))
@@ -185,7 +185,7 @@ static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
 	long i, replcnt;
 
 	if (!h || pos<0 || cnt<=0 || pos+cnt>h->cnt)
-		PANIC("Out of range params");
+		DERROR("Out of range params");
 
 	/* Fill the to be deleted cluster ids/sizes into
 	 * the provided buffers. */

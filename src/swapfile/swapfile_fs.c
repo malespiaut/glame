@@ -1,7 +1,7 @@
 /*
  * swapfile_fs.c
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,8 @@
  * The {long} indexed clusters and files are hashed and the metadata
  * is loaded on demand.
  */
+
+#define _XOPEN_SOURCE 500
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -174,6 +176,11 @@ int swapfile_open(const char *name, int flags)
 	snprintf(str, 255, "%s/.lock", name);
 	unlink(str);
 	return -1;
+}
+
+void swapfile_sync()
+{
+	/* FIXME */
 }
 
 /* Closes and updates a previously opened swap file/partition
@@ -419,7 +426,7 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 	if (!(fd = (struct swfd *)malloc(sizeof(struct swfd))))
 		return -1;
 	if (hash_find_swfd((((long)fd)>>2)))
-		PANIC("swfd_t hash clash!??");
+		DERROR("swfd_t hash clash!??");
 
 	LOCK;
 	f = file_get(name, FILEGET_READCLUSTERS);

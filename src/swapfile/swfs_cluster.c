@@ -1,7 +1,7 @@
 /*
  * swfs_cluster.c
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -312,7 +312,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 	if (!c || offset < 0 || offset > c->size
 	    || cutcnt < 0 || offset+cutcnt > c->size
 	    || (!ch && !ct))
-		PANIC("Illegal use of cluster_split");
+		DERROR("Illegal use of cluster_split");
 
 	/* FIXME wrt mappings! */
 	if (c->fd != -1
@@ -431,10 +431,7 @@ static ssize_t cluster_read(struct swcluster *c, void *buf,
 	LOCKCLUSTER(c);
 	if (c->fd == -1 || (c->flags & SWC_CREAT))
 		_cluster_needdata(c);
-	if (lseek(c->fd, offset, SEEK_SET) == offset)
-		res = read(c->fd, buf, count);
-	else
-		res = -1;
+	res = pread(c->fd, buf, count, offset);
 	UNLOCKCLUSTER(c);
 
 	return res;
@@ -448,13 +445,10 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
 
 	LOCKCLUSTER(c);
 	if (c->size < offset+count)
-		count = c->size - offset;
+		DERROR("Write extends cluster size");// FIXME? count = c->size - offset;
 	if (c->fd == -1 || (c->flags & SWC_CREAT))
 		_cluster_needdata(c);
-	if (lseek(c->fd, offset, SEEK_SET) == offset)
-		res = write(c->fd, buf, count);
-	else
-		res = -1;
+	res = pwrite(c->fd, buf, count, offset);
 	UNLOCKCLUSTER(c);
 
 	return res;
@@ -567,7 +561,7 @@ static void _cluster_readfiles(struct swcluster *c)
 	struct stat stat;
 
 	if (c->flags & SWC_DIRTY)
-		PANIC("read into dirty state");
+		DERROR("read into dirty state");
 	if (!(c->flags & SWC_NOT_IN_CORE))
 		return;
 
