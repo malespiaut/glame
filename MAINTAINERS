@@ -12,30 +12,35 @@ swapfile: richi
 filter: richi
 	src/filter/* apart from filter_tools.h
 
-mid-layer: richi
-	src/glmid/* apart from glame.scm
-
 hash: richi
 	src/hash/*
 
-doc: nold
-	doc/* 
+mid-layer: richi
+	src/glmid/* apart from glame.scm
 
-gui: xwolf
+gui: xwolf, richi
 	src/gui/*
+     xwolf
+	src/gui/edit_filter/*
      richi
         src/gui/libgtkwaveform/*
-
-io: mag, nold
-	src/plugins/*io*.c
+        src/gui/timeline/*
 
 plugins: mag
 	src/plugins/* (unless listed elsewhere)
+     mag, nold
+	src/plugins/*io*.c
+
+doc: nold
+	doc/* 
 
 debian: nold
 	debian/*
 
 rpm: nold
 	glame.spec
+
+build: richi, nold
+        configure.in, macros/*
 
 please add your stuff [richi]

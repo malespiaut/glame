@@ -3,14 +3,18 @@ All low-level assembler locking and atomic ops code and the list.h code
         Linus Torvalds and many many others. hash.h also was largely
         inspired by the hashing code used in the mm of the linux kernel.
 
-src/gui/libgtkwaveform was "stolen" from the libgtkwaveformi-0.2.2
+src/gui/libgtkwaveform was "stolen" from the libgtkwaveform-0.2.2
 	package which is maintained by David A. Bartold <foxx@mail.utexas.edu>
         and has contributions from Ben De Rydt <ben.de.rydt@pandora.be>.
 
-LADSPA support was added initially by Richard Furse, src/include/ladspa.h
-	is from the LADSPA version 1 distribution.
+LADSPA support was added initially by Richard Furse
 
-The time filter was contributed by Stuart Purdie.
+The time filter was contributed by Stuart Purdie and was later renamed
+	to pulse and cleaned up by nold.
+
+Lots of cool plugin icons were contributed by Jesse Duke <darkphotn@yahoo.com>
+
+Menu and toobar icons were contributed by Kristian Korseby <kristian@korseby.net>
 
 Random stuff (mostly .cvsignores) was contributed by Jim Garrison.
 
