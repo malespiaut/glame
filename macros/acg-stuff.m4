@@ -10,7 +10,7 @@ AC_DEFUN([ACG_CHECK_STUFF],
 	LIBS="$LIBS -lm"
 	AC_TRY_LINK(
 [
-	#include <math.h>
+#include <math.h>
 ],[
 	float f, g = 1.26;
 	f = sqrtf(g);

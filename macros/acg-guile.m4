@@ -79,8 +79,8 @@ dnl FIXME - version check missing
 
 	AC_MSG_CHECKING(whether guile works)
 	AC_TRY_LINK([
-		#include <libguile.h>
-		#include <guile/gh.h>
+#include <libguile.h>
+#include <guile/gh.h>
 	],[
 		float *d;
 		gh_floats2fvect(d, 5);
