@@ -1,4 +1,4 @@
-SUBDIRS = include libfixp hash swapfile channel filter rw gui
+SUBDIRS = include hash swapfile channel filter rw gui
 
 INCLUDES = -I@srcdir@/include -I@srcdir@/filter -I@srcdir@/swapfile -I@srcdir@/rw -I@srcdir@/channel -I@srcdir@/hash $(GLAME_CFLAGS)
 

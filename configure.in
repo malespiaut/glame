@@ -40,30 +40,18 @@ GLAME_CFLAGS=""
 
 
 
-dnl GTK checks
-dnl 
+dnl GTK check
 AM_PATH_GTK(1.2.0, [have_gtk=yes],
   [AC_MSG_RESULT(Test for GTK failed. See the file 'INSTALL' for help.)
   have_gtk=no])
-dnl 
-changequote(,)dnl
-dnl 
-dnl Evil stuff to extract GLIB stuff from gtk-config output
-dnl (we want to make sure it matches with the gtk we're using)
-GLIB_CFLAGS=`echo $GTK_CFLAGS | sed 's/^.*\(-I[^ ]*glib[^ ]*  *-I[^ ]*\).*$/\1/'`
-GLIB_LDFLAGS=`echo $GTK_LIBS | sed -e 's/^.*-lgdk[^ ]* *\(-L[^ ]*\).*$/\1/' -e 's/^.* -lgdk[^ ]* .*$//'`
-if test -z "$GLIB_LDFLAGS" ; then
-GLIB_LDFLAGS=`echo $GTK_LIBS | sed 's/^ *\(-L[^ ]*\) .*$/\1/'`
-fi
-GLIB_LIBS="$GLIB_LDFLAGS `echo $GTK_LIBS | sed 's/^.*\(-lglib[^ ]*\).*$/\1/'`"
-dnl 
-changequote([,])dnl
-
 AM_CONDITIONAL(HAVE_GTK, test x$have_gtk=xyes)
 
-dnl gnome check
-GNOME_INIT_HOOK([have_gnome=yes],,)
+dnl GNOME check
+if test x$have_gtk = xyes; then
+  GNOME_INIT_HOOK([have_gnome=yes],,)
+fi
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
+
 
 dnl
 dnl Checks for various audio stuff.
@@ -127,19 +115,20 @@ AC_TYPE_PID_T
 dnl Checks for library functions.
 AC_FUNC_MMAP
 
-dnl
-AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
 
-AC_SUBST(GLIB_CFLAGS)
-AC_SUBST(GLIB_LIBS)
-AC_SUBST(GLAME_LIBS)
-AC_SUBST(GLAME_CFLAGS)
-
-AC_OUTPUT(Makefile src/Makefile src/filter/Makefile src/libfixp/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile doc/Makefile src/gui/Makefile)
+dnl special asm code hooks for cpu
 case "$host_cpu" in
 i?86)
 	AC_DEFINE(CPU_X86);;
 mips*)
 	AC_DEFINE(CPU_MIPS);;
 esac
- 
+
+
+dnl
+AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
+
+AC_SUBST(GLAME_LIBS)
+AC_SUBST(GLAME_CFLAGS)
+
+AC_OUTPUT(Makefile doc/Makefile src/Makefile src/filter/Makefile src/libfixp/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile src/gui/Makefile)
