@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.18 2003/05/25 13:25:41 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.19 2003/05/25 13:37:27 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -505,5 +505,22 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 gpsm_grp_t *gtk_swapfile_buffer_get_item(GtkSwapfileBuffer *buffer)
 {
 	return buffer->item;
+}
+
+gpsm_grp_t  *gtk_swapfile_buffer_get_active(GtkSwapfileBuffer *buffer,
+					    guint32 sel_mask)
+{
+	gpsm_grp_t *grp;
+	int i;
+
+	grp = gpsm_newgrp("(unnamed)");
+	for (i=0; i<buffer->nrtracks; ++i) {
+		if (!(sel_mask & 1U<<i))
+			continue;
+		gpsm_item_place(grp, (gpsm_item_t *)gpsm_swfile_link(buffer->swfile[i]),
+				0, i);
+	}
+
+	return grp;
 }
 

@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.h,v 1.10 2003/05/25 13:25:41 richi Exp $
+ * $Id: gtkswapfilebuffer.h,v 1.11 2003/05/25 13:37:27 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -74,6 +74,13 @@ GtkObject   *gtk_swapfile_buffer_new(gpsm_grp_t *item);
 
 /* Returns the original item the swapfile buffer was created with. */
 gpsm_grp_t  *gtk_swapfile_buffer_get_item(GtkSwapfileBuffer *buffer);
+
+/* Returns the active tracks in a gpsm group with properties like the
+ * one returned by gpsm_collect_swfiles(). Vertical positions are
+ * corresponding to the track number.
+ * You need to free the returned group by yourself. */
+gpsm_grp_t  *gtk_swapfile_buffer_get_active(GtkSwapfileBuffer *buffer,
+					    guint32            sel_mask);
 
 
 #ifdef __cplusplus
