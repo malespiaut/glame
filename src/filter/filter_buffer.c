@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.4 2000/02/02 09:53:21 richi Exp $
+ * $Id: filter_buffer.c,v 1.5 2000/02/02 11:35:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -57,8 +57,10 @@ int fbuf_unref(filter_buffer_t *fb)
 	fb->refcnt--;
 	pthread_mutex_unlock(&fb_mutex);
 
-	if (fb->refcnt == 0)
+	if (fb->refcnt == 0) {
+	        free(fb->buf);
 		free(fb);
+	}
 
 	return 0;
 }
