@@ -35,8 +35,10 @@
 
 #ifdef HAVE_GUILE
 #include <guile/gh.h>
-
-extern int glscript_init();
+#include "glscript.h"
+extern filter_t *scm2filter(SCM filter_smob);
+extern long filter_smob_tag;
+#define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
 #endif
 
 /* Builtin plugins. */
@@ -60,6 +62,25 @@ int glame_load_plugin(const char *fname)
 #endif
 
 	return -1;
+}
+
+filter_t *glame_load_instance(const char *fname)
+{
+	SCM s_res;
+	filter_t *f;
+
+	if (!strstr(fname, ".scm"))
+		return NULL;
+
+#ifdef HAVE_GUILE
+	glscript_load_mode = 1;
+	s_res = gh_eval_file(fname);
+	if (!filter_p(s_res))
+		return NULL;
+	return filter_creat(scm2filter(s_res));
+#else
+	return NULL;
+#endif
 }
 
 static void plugins_process_directory(const char *dir)

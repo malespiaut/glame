@@ -39,6 +39,10 @@ int glscript_init_swapfile();
 int glscript_init_filter();
 
 
+/* Hack to allow switching between register(0)/instantiate(1) mode */
+extern int glscript_load_mode;
+
+
 /* SMOB for generic C pointer - for internal use only.
  */
 

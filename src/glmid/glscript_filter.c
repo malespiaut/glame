@@ -31,6 +31,9 @@
 #include "glscript.h"
 
 
+/* Hack to allow switching between register(0)/instantiate(1) mode */
+int glscript_load_mode;
+
 
 /* SMOBs for filter_pipe_t, filter_param_t, filter_port_t and plugint_t.
  */
@@ -79,14 +82,14 @@ static long plugin_smob_tag;
 /* SMOB for filter_t.
  */
 
-static long filter_smob_tag = 0;
+long filter_smob_tag = 0;
 struct filter_smob {
 	filter_t *filter;
 };
 #define SCM2FILTERSMOB(s) ((struct filter_smob *)SCM_SMOB_DATA(s))
 #define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
 static SCM filter2scm(filter_t *filter);
-static filter_t *scm2filter(SCM filter_smob);
+filter_t *scm2filter(SCM filter_smob);
 
 static scm_sizet free_filter(SCM filter_smob)
 {
@@ -154,7 +157,7 @@ static SCM filter2scm(filter_t *filter)
 	return filter_smob;
 }
 
-static filter_t *scm2filter(SCM filter_smob)
+filter_t *scm2filter(SCM filter_smob)
 {
 	SCM_ASSERT(filter_p(filter_smob),
 		   filter_smob, SCM_ARG1, "scm2filter");
@@ -721,6 +724,28 @@ static SCM gls_plugin_set_string(SCM s_p, SCM s_key, SCM s_val)
 	return SCM_BOOL_T;
 }
 
+
+static SCM gls_glame_plugin_define(SCM s_net, SCM s_name)
+{
+	filter_t *f;
+	plugin_t *p;
+	char *name;
+	int namel;
+
+	f = scm2filter(s_net);
+	name = gh_scm2newstr(s_name, &namel);
+	if (glscript_load_mode == 0) {
+		p = glame_create_plugin(f, name);
+		free(name);
+		if (!p)
+			return SCM_BOOL_F;
+		return plugin2scm(p);
+	}
+	free(name);
+	return filter2scm(f);
+}
+
+
 int glscript_init_filter()
 {
 	/* Register the filter SMOB to guile. */
@@ -794,6 +819,9 @@ int glscript_init_filter()
 	gh_define("PLUGIN_DESCRIPTION", gh_str02scm(PLUGIN_DESCRIPTION));
 	gh_define("PLUGIN_PIXMAP", gh_str02scm(PLUGIN_PIXMAP));
 	gh_define("PLUGIN_CATEGORY", gh_str02scm(PLUGIN_CATEGORY));
+
+	/* HACK */
+	gh_new_procedure2_0("glame_plugin_define", gls_glame_plugin_define);
 
 	return 0;
 }
