@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.10 2002/04/12 16:25:51 richi Exp $
+ * $Id: gtknob.c,v 1.11 2002/04/21 13:04:28 ochonpaul Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -15,6 +15,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details .
+
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
@@ -364,7 +365,6 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 
 	    /* printf("adjustment: %f : %f : %f\n", knob->adjustment->upper, */
 /* 	       knob->adjustment->lower, knob->adjustment->value); */
-	    //snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value);/*update displayed value*/
 	    oldvalue = knob->value;
 	    gtk_knob_draw(widget, &rect);
 	    
@@ -381,8 +381,8 @@ static void gtk_knob_realize(GtkWidget * widget)
     gint attributes_mask;
     GtkKnob *knob;
     static GdkColormap *colormap = NULL;
-    GdkColor foreground;
-   
+    GdkColor foreground,background;
+    
     g_return_if_fail(widget != NULL);
     g_return_if_fail(GTK_IS_KNOB(widget));
 
@@ -404,74 +404,37 @@ static void gtk_knob_realize(GtkWidget * widget)
 
     attributes_mask =
 	GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL | GDK_WA_COLORMAP;
-
+     
     widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 				    &attributes, attributes_mask);
     gdk_window_set_user_data(widget->window, widget);
-
+   
+                                            
     /* the knob pixmap */
     knob->pixmap =
 	gdk_pixmap_create_from_xpm_d(widget->window, NULL, NULL, knob_xpm);
 
     /* Style */
     widget->style = gtk_style_attach(widget->style, widget->window);
-      
-    if(knob->font == NULL) {
-      knob->font = gdk_font_load("-schumacher-clean-medium-r-normal-*-*-100-*-*-c-*-iso646.1991-irv" );
-     }
+    if(knob->font == NULL) 
+      {
+	knob->font = gdk_font_load("-schumacher-clean-medium-r-normal-*-*-100-*-*-c-*-iso646.1991-irv" );
+	if(knob->font == NULL){puts("Font not found.");} /* FIX ME : find a default font ?*/
+      }
     if(colormap==NULL) colormap = gdk_colormap_get_system();
     knob->gc = gdk_gc_new(widget->window);
     if(gdk_color_parse("blue",&foreground)) {
         gdk_color_alloc(colormap,&foreground);
         gdk_gc_set_foreground(knob->gc,&foreground);
     }
-    
-#if 0    
-    if((knob->adjustment->lower)>999)                /*frequency>1000hz: display as xK, left justify*/
-      {
-	snprintf(knob->show_min,4,"%-1.0fK",(knob->adjustment->lower)/1000);
-      }
-    else if(((int)(knob->adjustment->lower)==(-1)))    /*pan2 mixer*/
-      {
-	snprintf(knob->show_min,4,"%s","L");
-      }
-    else if(((int)(knob->adjustment->lower)==(-3)))    /*pan */
-      {
-	snprintf(knob->show_min,4,"%s","-Pi");
-      }
-    else
-      {
-	snprintf (knob->show_min,4,"%f4.0",knob->adjustment->lower);
-      }  
+   if(gdk_color_parse("white",&background)) {
+        gdk_color_alloc(colormap,&background);
+        /* gdk_gc_set_background(knob->gc,&background); */
+	gdk_window_set_background(widget->window,&background);  
+    }  
+ 
 
-    if((knob->adjustment->upper)>999)                /*frequency>1000hz: display as xK*/   
-      { 
-	snprintf(knob->show_max,4,"%2.0fK",(knob->adjustment->upper)/1000);
-      }
-    
-    else if(((int)(knob->adjustment->upper)==(1)))      /*pan2 mixer*/
-							 
-      {
-      snprintf(knob->show_max,4,"%s","  R");
-      }
-     else if(((int)(knob->adjustment->upper)==(3)))    /*pan */
-      {
-	snprintf(knob->show_max,4,"%s","+Pi");
-      }
-    else if(((int)(knob->adjustment->upper)==(20)))    /*gain :display as +20*/
-							 
-      {
-      snprintf(knob->show_max,4,"%s","+20");
-      }
-     else
-      {
-      snprintf (knob->show_max,4,"%f4.0",knob->adjustment->upper);
-      }
-     snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value);/*initial setting of displayed value*/
-   /* puts(knob->show_min); */
-/*     puts(knob->show_max); */
-/*     puts(knob->show_val);  */
-#endif   
+
 }
 
 static void gtk_knob_unrealize(GtkWidget * widget)
@@ -504,8 +467,8 @@ gtk_knob_size_request(GtkWidget * widget, GtkRequisition * requisition)
     g_return_if_fail(widget != NULL);
     g_return_if_fail(GTK_IS_KNOB(widget));
 
-    requisition->width = 30;
-    requisition->height = 30;
+    requisition->width = 60;
+    requisition->height = 50;
 }
 
 static void
@@ -604,7 +567,7 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area)
 
     /* draw the knob pixmap */
     gdk_draw_pixmap(widget->window, widget->style->black_gc, knob->pixmap,
-		    knob->value * 31, 0, 0, 0, 30, 30);
+		    knob->value * 31, 0, 15, 10, 30, 30);
 
     if (GTK_WIDGET_HAS_FOCUS(widget)) {
 	gtk_paint_focus(widget->style, widget->window,
@@ -619,21 +582,24 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area)
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
-		    0,30,
+		    0,47,
 		    knob->min_cache);
     if (!knob->max_cache)
 	    knob->max_cache = knob->formatter(knob->adjustment->lower, knob->formatter_data);
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
-		    15,30,
+		    30,47,
 		    knob->max_cache);
     if (!knob->val_cache)
-	    knob->val_cache = knob->formatter(knob->adjustment->value, knob->formatter_data);
+      knob->val_cache = knob->formatter(knob->adjustment->value, knob->formatter_data);
+    
+    gdk_draw_rectangle (widget->window,widget->style->white_gc,TRUE,0,0,60,11);/* overlay  previous grabbed value*/
+                                             
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
-		    0,7,
+		    18,10,
 		    knob->val_cache);
 }
 
@@ -719,7 +685,6 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
     if (knob->val_cache)
 	    g_free(knob->val_cache);
     knob->val_cache = knob->formatter(adjustment->value, knob->formatter_data);
-
     temp = gtk_knob_value_to_frame(knob, adjustment->value);
     if (knob->value != temp) {
 	knob->value = temp;
