@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.6 2001/07/02 16:16:23 mag Exp $ 
+ * $Id: distortion.c,v 1.7 2001/07/03 10:41:56 mag Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -216,8 +216,8 @@ int distortion_register(plugin_t *p)
 	<name>widget</name> 
 	<can_focus>True</can_focus> 
 	<items>Half wave rectifier 
-	Full Wave rectifier
-	Sinusoider</items> 
+Full Wave rectifier
+Sinusoider</items> 
 	<initial_choice>0</initial_choice> 
 </widget></GTK-Interface>", 
 	FILTERPARAM_END);

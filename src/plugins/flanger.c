@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.8 2001/06/05 15:09:55 richi Exp $
+ * $Id: flanger.c,v 1.9 2001/07/03 10:41:56 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -102,20 +102,20 @@ static int flanger_f(filter_t *n)
 
 	switch(lfotype)
 	{
-		case 0:
+		case 0: 
+			DPRINTF("LFO: sinus");
+			for (i=0; i < lfosize; i++)
+				lfo[i] = (int)(swpdepth * sin(i*2*M_PI/lfosize));
+			break;
+		case 1:
 			DPRINTF("LFO: ramp up");
 			for (i=0; i < lfosize;i++) 
 				lfo[i] = swpdepth*i/lfosize-swpdepth;
 			break;
-		case 1:
+		case 2:
 			DPRINTF("LFO: ramp down");
 			for (i=0; i < lfosize;i++) 
 				lfo[i] = swpdepth-swpdepth*i/lfosize;
-			break;
-		case 2: 
-			DPRINTF("LFO: sinus");
-			for (i=0; i < lfosize; i++)
-				lfo[i] = (int)(swpdepth * sin(i*2*M_PI/lfosize));
 			break;
 		default:
 			FILTER_ERROR_RETURN("unknown lfo type");
@@ -216,7 +216,20 @@ int flanger_register(plugin_t *p)
 	 * should change PARAMTYPE_INT to PARAMTYPE_MUTUAL to enable togglebutton in GUI
 	*/
 	filterparamdb_add_param_int(param, "lfo type", FILTER_PARAMTYPE_INT, 0 ,
-				    FILTERPARAM_DESCRIPTION, "lfotype: (0) ramp up, (1) ramp down, (2) sinus",
+				    FILTERPARAM_DESCRIPTION, 
+				    "(0) sinus"
+				    "(1) ramp up" 
+				    "(2) ramp down",
+				    FILTERPARAM_GLADEXML,
+"<?xml version=\"1.0\"?><GTK-Interface><widget> 
+	<class>GtkOptionMenu</class> 
+	<name>widget</name> 
+	<can_focus>True</can_focus> 
+	<items>Sinus
+Ramp up
+Ramp down</items> 
+	<initial_choice>0</initial_choice> 
+</widget></GTK-Interface>", 
 				    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "flanger effect");
