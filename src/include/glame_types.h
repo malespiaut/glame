@@ -35,4 +35,6 @@ typedef float SAMPLE;
 /* FIXME */
 #define SAMPLE2SHORT(s) ((short)((s)*(1<<15)))
 #define SHORT2SAMPLE(s) ((SAMPLE)s/(SAMPLE)(1<<15))
+#define SAMPLE2CHAR(s)  ((char)((s)*(1<<7)))
+#define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
 #endif

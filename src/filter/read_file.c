@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.3 2000/02/02 15:13:32 nold Exp $ 
+ * $Id: read_file.c,v 1.4 2000/02/04 03:54:44 mag Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -40,8 +40,11 @@ static int read_file_f(filter_node_t *n)
         AFframecount    frameCount;
 	int sampleFormat,sampleWidth,channelCount,frameSize;
 	short int *buffer;
-	int rpos,lpos,frames,sent=0;
-	int i=0;
+	char *cbuffer;
+	int rpos,lpos,olpos,orpos,frames,sent=0;
+	int i,j;
+	double sampleRate;
+	int sclfak;
 	
 	left = hash_find_output("left",n);
 	right = hash_find_output("right",n);
@@ -65,42 +68,76 @@ static int read_file_f(filter_node_t *n)
 	channelCount = afGetChannels(file, AF_DEFAULT_TRACK);
 	afGetSampleFormat(file, AF_DEFAULT_TRACK, &sampleFormat, &sampleWidth);
 	frameSize = afGetFrameSize(file, AF_DEFAULT_TRACK, 1);
-
-	printf("framesize %d\n",frameSize);
-	printf("channelCount %d\n",channelCount);
+	sampleRate = afGetRate(file, AF_DEFAULT_TRACK);
+	
+	sclfak=(int)(44100.0/sampleRate);	/* FIXME Quickhack, should be done by resample filter and better...*/
+	
+	printf("framesize=%d channelCount=%d frameCount=%d sampleRate=%.2f sclfak=%d\n",frameSize,channelCount,frameCount,sampleRate,sclfak);
 
 	if ((sampleFormat != AF_SAMPFMT_TWOSCOMP) && (sampleFormat != AF_SAMPFMT_UNSIGNED)){
 		DPRINTF("Format not yet supported!\n");
 		goto _bailout;
 	}
 	
-        if ((sampleWidth != 16) || (channelCount > 2)){
+        if ((channelCount > 2)){
 		DPRINTF("Only 16bit samples and max. 2 channels allowed!\n");
 		goto _bailout;
 	}
 
-	buffer=(short int*)malloc(GLAME_WBUFSIZE);
+	if ((buffer=(short int*)malloc(GLAME_WBUFSIZE*frameSize))==NULL){
+		DPRINTF("Couldn't allocate buffer!\n");
+		goto _bailout;
+	}
+
+	cbuffer=(char *)buffer;
 
 	while(pthread_testcancel(),frameCount){
-		frames=afReadFrames(file, AF_DEFAULT_TRACK, buffer,GLAME_WBUFSIZE/frameSize);
+		frames=afReadFrames(file, AF_DEFAULT_TRACK, buffer,MIN(GLAME_WBUFSIZE,frameCount));
 		frameCount-=frames;
-		printf("Read %d frames!\n",i);
+		printf("Read %d frames, frameCount=%d!\n",frames,frameCount);
 		if (channelCount==1){
-			lbuf=fbuf_alloc(frames);
-			for(i=0;i<frames;i++) fbuf_buf(lbuf)[i]=SHORT2SAMPLE(buffer[i]);
+			lbuf=fbuf_alloc(frames*sclfak);
+			i=0;
+			lpos=0;
+			while(i<frames){
+				olpos=lpos;
+				switch(sampleWidth) {
+				case 16 : 
+					fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
+					break;
+				case  8 : 
+					fbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					break;
+				}
+				for(j=1;j<sclfak;j++) fbuf_buf(lbuf)[lpos++]=fbuf_buf(lbuf)[olpos];
+			}
 			fbuf_ref(lbuf);
 			fbuf_queue(left,lbuf);
 			fbuf_queue(right,lbuf);
 			sent+=2;
 		}else{
-			lbuf=fbuf_alloc(GLAME_WBUFSIZE*4/sampleWidth);
-			rbuf=fbuf_alloc(GLAME_WBUFSIZE*4/sampleWidth);
+			lbuf=fbuf_alloc(frames*sclfak);
+			rbuf=fbuf_alloc(frames*sclfak);
 			i=0;
 			rpos=0;
 			lpos=0;
-			while(i<GLAME_WBUFSIZE*8/sampleWidth){
-				fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
-				fbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buffer[i++]);
+			while(i<frames*2){
+				olpos=lpos;
+				orpos=rpos;
+				switch(sampleWidth){
+				case 16 :
+					fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buffer[i++]);
+					fbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buffer[i++]);
+					break;
+				case  8 :
+					fbuf_buf(lbuf)[lpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					fbuf_buf(rbuf)[rpos++]=CHAR2SAMPLE(cbuffer[i++]);
+					break;
+				}
+				for(j=1;j<sclfak;j++){
+					fbuf_buf(lbuf)[lpos++]=fbuf_buf(lbuf)[olpos];
+					fbuf_buf(rbuf)[rpos++]=fbuf_buf(rbuf)[orpos];
+				}
 			}
 			fbuf_queue(left,lbuf);
 			fbuf_queue(right,rbuf);
@@ -117,6 +154,7 @@ static int read_file_f(filter_node_t *n)
 	printf("sent %d buffers\n",sent);
 	return 0;
 _bailout:
+	printf("read-file bailout!\n");
 	afCloseFile(file);
 	return -1;
 }
