@@ -42,6 +42,7 @@ dnl
       AC_TRY_RUN([
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <parser.h>
 
 int
@@ -187,6 +188,7 @@ dnl
       AC_TRY_RUN([
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <xmlversion.h>
 
 int 
