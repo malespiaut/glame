@@ -231,7 +231,7 @@ calc_scrn_y (gint32 top, gint32 height, gint16 mag, gfloat ampl_zoom)
 static inline gint32
 calc_win_pel_pos (GtkWaveView *waveview, gint32 frame_pos)
 {
-  return ((gint32) (frame_pos / waveview->zoom)) - ((gint32) (GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
+  return ((gint32) (frame_pos / waveview->zoom)) - ((gint32) (waveview->adjust->value / waveview->zoom));
 }
 
 
@@ -245,13 +245,13 @@ calc_ext_pel_pos (GtkWaveView *waveview, gint32 frame_pos)
 static inline gint32
 calc_win_pel_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 {
-  return ext_pel_pos - ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
+  return ext_pel_pos - ((gint32)(waveview->adjust->value / waveview->zoom));
 }
 
 static inline gint32
 calc_ext_pel_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
-  return win_pel_pos + ((gint32)(GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom));
+  return win_pel_pos + ((gint32)(waveview->adjust->value / waveview->zoom));
 }
 
 #if 0 /* unused */
@@ -265,7 +265,7 @@ calc_frame_pos_ext (GtkWaveView *waveview, gint32 ext_pel_pos)
 static inline gint32
 calc_frame_pos_win (GtkWaveView *waveview, gint32 win_pel_pos)
 {
-	return (((gint32) GTK_ADJUSTMENT (waveview->adjust)->value / waveview->zoom) + win_pel_pos) * waveview->zoom;
+	return (((gint32) waveview->adjust->value / waveview->zoom) + win_pel_pos) * waveview->zoom;
 }
 
 
@@ -425,7 +425,7 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
   guint32 width;
   gint32 j;
 
-  adj = GTK_ADJUSTMENT (waveview->adjust);
+  adj = waveview->adjust;
 
   if (waveview->wavebuffer == NULL)
     {
@@ -1232,7 +1232,7 @@ gtk_wave_view_button_release_event (GtkWidget *widget,
     }
  
   /* dragging outside the border */
-  if (x < 0 && GTK_ADJUSTMENT (waveview->adjust)->value >= 0.0)
+  if (x < 0 && waveview->adjust->value >= 0.0)
       x = 0;
   else if (x >= waveview->area->allocation.width)
       x = waveview->area->allocation.width /* - 1  no, round up this way */;
@@ -1312,7 +1312,7 @@ static gboolean
 gtk_wave_view_scroll_notify (gpointer widget)
 {
   GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
-  GtkAdjustment *adjust = GTK_ADJUSTMENT (waveview->adjust);
+  GtkAdjustment *adjust = waveview->adjust;
   gint32 width, pos, frames;
 
   width = GTK_WIDGET (waveview->area)->allocation.width;
@@ -1420,8 +1420,8 @@ gtk_wave_view_init (GtkWaveView *waveview)
   gtk_box_pack_start (GTK_BOX (vbox2), waveview->area, TRUE, TRUE, 0);
   gtk_widget_show (waveview->area);
 
-  waveview->adjust = gtk_adjustment_new (0.0, 0.0, 10.0, 1.0, 1.0, 5.0);
-  waveview->hscroll = gtk_hscrollbar_new (GTK_ADJUSTMENT (waveview->adjust));
+  waveview->adjust = GTK_ADJUSTMENT(gtk_adjustment_new (0.0, 0.0, 10.0, 1.0, 1.0, 5.0));
+  waveview->hscroll = gtk_hscrollbar_new (waveview->adjust);
   gtk_box_pack_start (GTK_BOX (vbox2), waveview->hscroll, FALSE, FALSE, 0);
   gtk_widget_show (waveview->hscroll);
 
@@ -1477,14 +1477,11 @@ gtk_wave_view_init (GtkWaveView *waveview)
                       "motion_notify_event", GTK_SIGNAL_FUNC (gtk_wave_view_motion_notify_event),
                       GTK_OBJECT (waveview));
 
-  gtk_widget_set_events (waveview->area, GDK_EXPOSURE_MASK |
-                                         GDK_POINTER_MOTION_MASK |
-                                         GDK_BUTTON_PRESS_MASK |
-                                         GDK_BUTTON_RELEASE_MASK |
-                                         GDK_BUTTON_MOTION_MASK |
-                                         GDK_POINTER_MOTION_HINT_MASK |
-	                                 GDK_KEY_PRESS_MASK |
-			                 GDK_KEY_RELEASE_MASK);
+  gtk_widget_set_events (waveview->area,
+			 GDK_EXPOSURE_MASK |
+			 GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK |
+			 GDK_BUTTON_PRESS_MASK |GDK_BUTTON_RELEASE_MASK |
+			 GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
 
   waveview->wavebuffer = NULL;
 
@@ -1958,7 +1955,7 @@ static void
 scroll (GtkWaveView *waveview, 
         gint32  frame, gint32  win_width, gint32  wave_length, gdouble start_offset)
 {
-  GtkAdjustment *adj = GTK_ADJUSTMENT (waveview->adjust);
+  GtkAdjustment *adj = waveview->adjust;
   gint32 frame_offset, max_offset;
 
   max_offset = wave_length - (win_width * waveview->zoom) - 1;
@@ -2095,7 +2092,7 @@ gtk_wave_view_set_zoom_selection (GtkWaveView *waveview)
   if (waveview->select_left <= waveview->select_right)
     {
       gdouble zoom;
-      GtkAdjustment *adj = GTK_ADJUSTMENT (waveview->adjust);
+      GtkAdjustment *adj = waveview->adjust;
 
       zoom = ((gdouble) (waveview->select_right - waveview->select_left + 1)) / waveview->area->allocation.width;
 

@@ -83,7 +83,7 @@ struct _GtkWaveView
   gint            drawing, destroyed;
 
   /* Keep pointers to some useful sub-widgets. */
-  GtkObject      *adjust;
+  GtkAdjustment  *adjust;
   GtkWidget      *hruler;
   GtkWidget      *hscroll;
   GtkWidget      *area;
