@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.28 2000/02/25 13:09:31 richi Exp $
+ * $Id: filter_network.c,v 1.29 2000/02/29 09:49:59 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -461,8 +461,10 @@ void filternetwork_break_connection(filter_pipe_t *p)
 	/* disconnect the pipe */
 	list_remove_input(p);
 	hash_remove_input(p);
+	p->source->nr_outputs--;
 	list_remove_output(p);
 	hash_remove_output(p);
+	p->dest->nr_inputs--;
 
 	/* notify the connected nodes */
 	p->source->filter->fixup_break_out(p->source, p);
