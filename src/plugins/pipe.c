@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.18 2001/05/25 09:55:34 xwolf Exp $
+ * $Id: pipe.c,v 1.19 2001/05/28 11:58:01 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -121,24 +121,26 @@ static int pipe_in_f(filter_t *n)
 {
 	filter_buffer_t *lbuf, *rbuf;
 	filter_pipe_t *lout, *rout;
+	filter_port_t *out;
 	SAMPLE *ls, *rs;
 	short *b, *bb;
 	FILE *p;
 	char cmd[256], *s;
 	int res, q;
 	pid_t pid;
-	
-	if (!(lout = filternode_get_output(n, PORTNAME_OUT))
-	    || !(s = filterparam_val_string(filternode_get_param(n, "cmd"))))
+
+	out = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if (!(lout = filterport_get_pipe(out))
+	    || !(s = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "cmd"))))
 		FILTER_ERROR_RETURN("insufficient configuration");
-	rout = filternode_next_output(lout);
+	rout = filterport_next_pipe(out, lout);
 
 	q = 2;
 	if (rout)
 		q = 4;
 
 	strncpy(cmd, s, 255);
-	if ((s = filterparam_val_string(filternode_get_param(n, "tail"))))
+	if ((s = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "tail"))))
 		strncat(cmd, s, 255);
 
 	/* if ((pid = popen2(cmd, NULL, &p)) == -1) */
@@ -193,13 +195,13 @@ static int pipe_in_connect_out(filter_t *source, filter_port_t *port,
 	if (filterport_nrpipes(port) > 1)
 		return -1;
 
-	rate = filterparam_val_int(filternode_get_param(source, "rate"));
+	rate = filterparam_val_int(filterparamdb_get_param(filter_paramdb(source), "rate"));
 
 	if (filterport_nrpipes(port) == 0) {
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_DEFAULT);
 	} else {
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_RIGHT);
-		p = filternode_get_output(source, PORTNAME_OUT);
+		p = filterport_get_pipe(port);
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_LEFT);
 	}
 
@@ -231,11 +233,14 @@ int pipe_in_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_creat(NULL))
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = pipe_in_f;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_string(filter_paramdb(f), "cmd", 
 				   FILTER_PARAMTYPE_STRING, NULL,
@@ -290,7 +295,7 @@ static int pipe_out_f(filter_t *n)
 	if (!(s = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "cmd"))))
 		FILTER_ERROR_RETURN("no command");
 	strncpy(cmd, s, 255);
-	if ((s = filterparam_val_string(filternode_get_param(n, "tail")))) {
+	if ((s = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "tail")))) {
 		char tail[256], *ratep;
 		strncpy(tail, s, 255);
 		ratep = strstr(tail, "%%r");
@@ -373,11 +378,14 @@ int pipe_out_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_creat(NULL))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = pipe_out_f;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_string(filter_paramdb(f), "cmd", 
 				   FILTER_PARAMTYPE_STRING, NULL,

@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.16 2001/05/28 08:13:33 richi Exp $
+ * $Id: swapfile_io.c,v 1.17 2001/05/28 11:58:01 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,21 +39,24 @@ static int swapfile_in_f(filter_t *n)
 	swfd_t fd;
 	struct sw_stat st;
 	filter_param_t *pos_param;
-	
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
-	fname = filterparam_val_int(filternode_get_param(n, "filename"));
+	fname = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no input filename specified");
 	if (!(fd = sw_open(fname, O_RDONLY)))
 		FILTER_ERROR_RETURN("cannot open swapfile file");
-	offset = filterparam_val_int(filternode_get_param(n, "offset"));
+	offset = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "offset"));
 	offset *= SAMPLE_SIZE;
 	if (sw_lseek(fd, offset, SEEK_SET) != offset) {
 		sw_close(fd);
 		FILTER_ERROR_RETURN("cannot seek to offset");
 	}
-	size = filterparam_val_int(filternode_get_param(n, "size"));
+	size = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "size"));
 	sw_fstat(fd, &st);
 	if (size == -1)
 		size = st.size - offset;
@@ -66,7 +69,8 @@ static int swapfile_in_f(filter_t *n)
 	}
 
 	FILTER_AFTER_INIT;
-	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+	pos_param = filterparamdb_get_param(
+		filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
 
 	pos = 0;
@@ -110,17 +114,18 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 
 	GLSIGH_GETARGS1(va, param);
 	n = filterparam_filter(param);
-	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		return;
-	fname = filterparam_val_int(filternode_get_param(n, "filename"));
+	fname = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (!(fd = sw_open(fname, O_RDONLY)))
 		return;
 	sw_close(fd);
 
 	/* fix the output pipe stream information */
 	filter_clear_error(n);
-	filterpipe_settype_sample(out, filterparam_val_int(filternode_get_param(n, "rate")),
-				  filterparam_val_float(filternode_get_param(n, "position")));
+	filterpipe_settype_sample(out, filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate")),
+				  filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position")));
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
@@ -132,7 +137,7 @@ static int swapfile_in_connect_out(filter_t *n, filter_port_t *outp,
 
 	if (filterport_nrpipes(outp) > 0)
 		return -1;
-	fname = filterparam_val_int(filternode_get_param(n, "filename"));
+	fname = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname != -1) {
 		if (!(fd = sw_open(fname, O_RDONLY)))
 			return -1;
@@ -140,8 +145,8 @@ static int swapfile_in_connect_out(filter_t *n, filter_port_t *outp,
 	}
 
 	/* fix the output pipe stream information */
-	filterpipe_settype_sample(p, filterparam_val_int(filternode_get_param(n, "rate")),
-				  filterparam_val_float(filternode_get_param(n, "position")));
+	filterpipe_settype_sample(p, filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate")),
+				  filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position")));
 	return 0;
 }
 
@@ -153,8 +158,11 @@ int swapfile_in_register(plugin_t *p)
 		return -1;
 	f->f = swapfile_in_f;
 
-	filter_add_output(f, PORTNAME_OUT, "output stream",
-			  FILTER_PORTTYPE_SAMPLE);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output stream",
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_int(filter_paramdb(f), "filename",
 				FILTER_PARAMTYPE_INT, -1,
@@ -203,12 +211,14 @@ static int swapfile_out_f(filter_t *n)
 	long fname, offset, size, cnt, pos, res;
 	swfd_t fd;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN)))
+	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
-	fname = filterparam_val_int(filternode_get_param(n, "filename"));
+	fname = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no filename");
-	offset = filterparam_val_int(filternode_get_param(n, "offset"));
+	offset = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "offset"));
 	if (offset == -1) {
 		if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC)))
 			FILTER_ERROR_RETURN("cannot create file");
@@ -221,9 +231,11 @@ static int swapfile_out_f(filter_t *n)
 			sw_close(fd);
 		}
 	}
-	size = filterparam_val_int(filternode_get_param(n, "size"));
+	size = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "size"));
 
-	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+	pos_param = filterparamdb_get_param(
+		filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
 	pos = 0;
 
@@ -279,8 +291,11 @@ int swapfile_out_register(plugin_t *p)
 		return -1;
 	f->f = swapfile_out_f;
 
-	filter_add_input(f, PORTNAME_IN, "input stream",
-			 FILTER_PORTTYPE_SAMPLE);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input stream",
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_int(filter_paramdb(f), "filename",
 				FILTER_PARAMTYPE_INT, -1,

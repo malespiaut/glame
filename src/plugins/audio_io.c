@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.34 2001/04/27 08:26:43 richi Exp $
+ * $Id: audio_io.c,v 1.35 2001/05/28 11:58:01 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -75,7 +75,6 @@ static int aio_generic_connect_in(filter_t *dest, filter_port_t *inp,
 static int aio_generic_connect_out(filter_t *src, filter_port_t *outp,
 				   filter_pipe_t *pipe)
 {
-	filter_param_t *ratep;
 	filter_pipe_t *prev;
 	float phi = FILTER_PIPEPOS_CENTRE;
 	int rate = GLAME_DEFAULT_SAMPLERATE;
@@ -85,8 +84,8 @@ static int aio_generic_connect_out(filter_t *src, filter_port_t *outp,
 		return -1;
 	
 	/* Check for default rate parameter */
-	if ((ratep=filternode_get_param(src, "rate")))
-		rate = filterparam_val_int(ratep);
+	rate = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(src), "rate"));
 
 	/* That's a bit messy. If there are two pipes and the user
 	 * didn't specify explicit directional information, we set 
@@ -94,8 +93,8 @@ static int aio_generic_connect_out(filter_t *src, filter_port_t *outp,
 	 * default to centre, if we are the only port.
 	 */
 	if ((prev = filterport_get_pipe(outp))) {
-		if (!filterpipe_get_sourceparam(prev, "hangle"))
-			filterpipe_sample_hangle(prev) = FILTER_PIPEPOS_LEFT;
+		filterpipe_sample_hangle(prev) = FILTER_PIPEPOS_LEFT;
+		glsig_emit(filterpipe_emitter(prev), GLSIG_PIPE_CHANGED, prev);
 		phi = FILTER_PIPEPOS_RIGHT;
 	}
 	
@@ -217,8 +216,11 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 	if (!(filter = filter_creat(NULL)))
 		return -1;
 
-	p = filter_add_output(filter, PORTNAME_OUT, "output port",
-			      FILTER_PORTTYPE_SAMPLE);
+	p = filterportdb_add_port(filter_portdb(filter), PORTNAME_OUT,
+				  FILTER_PORTTYPE_SAMPLE,
+				  FILTER_PORTFLAG_OUTPUT,
+				  FILTERPORT_DESCRIPTION, "audio stream",
+				  FILTERPORT_END);
 	filterparamdb_add_param_float(filterport_paramdb(p), "position",
 				  FILTER_PARAMTYPE_POSITION,
 				  FILTER_PIPEPOS_DEFAULT, FILTERPARAM_END);
@@ -261,8 +263,11 @@ int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
 	if (!(filter=filter_creat(NULL)))
 		return -1;
 
-	filter_add_input(filter, PORTNAME_IN, "input port",
-			 FILTER_PORTTYPE_SAMPLE);
+	filterportdb_add_port(filter_portdb(filter), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream",
+			      FILTERPORT_END);
 	filterparamdb_add_param_string(filter_paramdb(filter), "device",
 				   FILTER_PARAMTYPE_STRING, defaultdevice,
 				   FILTERPARAM_END);

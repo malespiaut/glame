@@ -55,7 +55,7 @@ static int pan_f(filter_t *n)
 	float scale;
 	SAMPLE *m, *p;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN)))
+	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("No input.");
 	
 	/* Use pipe position by default, pan param may override. */	
@@ -65,10 +65,10 @@ static int pan_f(filter_t *n)
 	/* doh - FIXME - this does nolonger work. Always overriden
 	 * at least by the default value of the parameter.
 	 */
-	scale = filterparam_val_float(filternode_get_param(n, "pan"));
+	scale = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "pan"));
 	
-	if (!(mod = filternode_get_output(n, "left-out"))
-	    || !(pass = filternode_get_output(n, "right-out")))
+	if (!(mod = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "left-out")))
+	    || !(pass = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), "right-out"))))
 		FILTER_ERROR_RETURN("Must connect all output ports.");
 
 	 /* FIXME: Move to fixup_pipe - too lazy now. */
@@ -140,15 +140,24 @@ int pan_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_creat(NULL))
-	    || !filter_add_input(f, PORTNAME_IN, "input stream to pan", 
-	                         FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, "left-out", "left output stream", 
-	                          FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, "right-out", "right output stream",
-	                          FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = pan_f;
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input stream to pan",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), "left-out",
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "left output stream",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), "right-out",
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "right output stream",
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_float(filter_paramdb(f), "pan",
 				  FILTER_PARAMTYPE_POSITION, 0.0/* FIXME - use magic (invalid) default value to mark "unset"? */,
@@ -161,8 +170,8 @@ int pan_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Orientation");
-		
+
 	filter_register(f, p);
-	
+
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.51 2001/05/21 08:35:46 nold Exp $
+ * $Id: file_io.c,v 1.52 2001/05/28 11:58:01 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -232,7 +232,7 @@ static int read_file_f(filter_t *n)
 	 * at least one connected output. */
 	if (!RWPRIV(n)->initted)
 		FILTER_ERROR_RETURN("invalid file");
-	if (!filternode_get_output(n, PORTNAME_OUT))
+	if (!filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no outputs");
 	return RWPRIV(n)->rw->f(n);
 }
@@ -345,7 +345,7 @@ static int write_file_f(filter_t *n)
 	 * at least one connected input. */
 	if (!RWPRIV(n)->initted)
 		return -1;
-	if (!filternode_get_input(n, PORTNAME_IN))
+	if (!filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
@@ -399,8 +399,11 @@ int read_file_register(plugin_t *pl)
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	p = filter_add_output(f, PORTNAME_OUT, "output channels",
-			      FILTER_PORTTYPE_SAMPLE);
+	p = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				  FILTER_PORTTYPE_SAMPLE,
+				  FILTER_PORTFLAG_OUTPUT,
+				  FILTERPORT_DESCRIPTION, "audio stream",
+				  FILTERPORT_END);
 	filterparamdb_add_param_float(filterport_paramdb(p), "position", 
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
@@ -435,8 +438,11 @@ int write_file_register(plugin_t *pl)
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filter_add_input(f, PORTNAME_IN, "input channels",
-			 FILTER_PORTTYPE_SAMPLE);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream",
+			      FILTERPORT_END);
 	filterparamdb_add_param_string(filter_paramdb(f), "filename",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
@@ -1036,9 +1042,11 @@ int af_write_f(filter_t *n)
 	int eofs,bufsiz,wbpos;
 	int i,iat,iass;
 	
-	RWA(n).channelCount=filternode_nrinputs(n);
+	RWA(n).channelCount = filterport_nrpipes(
+		filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
 
-	filename=filterparam_val_string(filternode_get_param(n,"filename"));
+	filename = filterparam_val_string(
+		filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
 

@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.11 2001/05/25 09:55:34 xwolf Exp $
+ * $Id: debug.c,v 1.12 2001/05/28 11:58:01 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -46,12 +46,17 @@ static int ping(filter_t *n)
 	float dt;
 	int time;
 
-	cnt = filterparam_val_int(filternode_get_param(n, "cnt"));
-	dt = filterparam_val_float(filternode_get_param(n, "dt"));
-	size = filterparam_val_int(filternode_get_param(n, "size"));
+	cnt = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "cnt"));
+	dt = filterparam_val_float(
+		filterparamdb_get_param(filter_paramdb(n), "dt"));
+	size = filterparam_val_int(
+		filterparamdb_get_param(filter_paramdb(n), "size"));
 
-	i = filternode_get_input(n, PORTNAME_IN);
-	o = filternode_get_output(n, PORTNAME_OUT);
+	i = filterport_get_pipe(
+		filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	o = filterport_get_pipe(
+		filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	if (!i || !o)
 		FILTER_ERROR_RETURN("no input or no output");
 
@@ -100,13 +105,18 @@ int ping_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_creat(NULL))
-	    || !filter_add_input(f, PORTNAME_IN, "input",
-				 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = ping;
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_END);
 
 	filterparamdb_add_param_int(filter_paramdb(f), "cnt",
 				FILTER_PARAMTYPE_INT, 10,
