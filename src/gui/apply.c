@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.13 2001/12/09 16:11:53 richi Exp $
+ * $Id: apply.c,v 1.14 2001/12/30 16:46:14 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -115,11 +115,11 @@ static void preview_start(struct apply_plugin_s *a)
 	a->net = filter_creat(NULL);
 	gpsm_grp_foreach_item(a->item, swfile)
 		if (!net_add_gpsm_input(a->net, (gpsm_swfile_t *)swfile, a->start, a->length, 0)) {
-			errmsg = "Unable to create input node";
+			errmsg = _("Unable to create input node");
 			goto err;
 		}
 	if (net_apply_effect(a->net, a->effect) == -1) {
-		errmsg = "Unable to apply effect node(s)";
+		errmsg = _("Unable to apply effect node(s)");
 		goto err;
 	}
 	a->pos = net_apply_audio_out(a->net);
@@ -130,7 +130,7 @@ static void preview_start(struct apply_plugin_s *a)
 			net_link_params(n, a->effect);
 
 	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
-		errmsg = "Unable to launch network";
+		errmsg = _("Unable to launch network");
 		goto err;
 	}
 	filter_start(a->net);
@@ -194,7 +194,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 		e = filter_creat(a->effect);
 		filter_add_node(a->net, e, "effect");
 		if (!swin || !swout || !e) {
-			errmsg = "Cannot construct network";
+			errmsg = _("Cannot construct network");
 			goto err;
 		}
 		filterportdb_foreach_port(filter_portdb(e), ein)
@@ -214,7 +214,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	a->have_undo = 1;
 
 	if (filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1) {
-		errmsg = "Unable to launch network";
+		errmsg = _("Unable to launch network");
 		goto err;
 	}
 	filter_start(a->net);
@@ -296,9 +296,9 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	gnome_dialog_set_close(GNOME_DIALOG(a->dialog), FALSE);
 
 	gnome_dialog_append_button_with_pixmap(
-		GNOME_DIALOG(a->dialog), "Preview", GNOME_STOCK_PIXMAP_VOLUME);
+		GNOME_DIALOG(a->dialog), _("Preview"), GNOME_STOCK_PIXMAP_VOLUME);
 	gnome_dialog_append_button_with_pixmap(
-		GNOME_DIALOG(a->dialog), "Apply", GNOME_STOCK_PIXMAP_FORWARD);
+		GNOME_DIALOG(a->dialog), _("Apply"), GNOME_STOCK_PIXMAP_FORWARD);
 	gnome_dialog_append_button(
 		GNOME_DIALOG(a->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	if (help)
@@ -311,7 +311,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), CANCEL, TRUE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), HELP, TRUE);
 
-	snprintf(s, 255, "Parameters of %s", plugin_name(plugin));
+	snprintf(s, 255, _("Parameters of %s"), plugin_name(plugin));
 	label = gtk_label_new(s);
 	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), label,
 			   TRUE, TRUE, 3);

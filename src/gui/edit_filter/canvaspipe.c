@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.22 2001/12/03 11:10:26 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.23 2001/12/30 16:46:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -289,10 +289,10 @@ static void canvas_pipe_delete_cb(GtkObject* foo, filter_pipe_t* pipe)
 
 static GnomeUIInfo pipe_menu[]=
 {
-	GNOMEUIINFO_ITEM("_Source properties...", "Source properties", canvas_pipe_source_properties_cb, NULL),
-	GNOMEUIINFO_ITEM("D_estination properties...", "Destination properties", canvas_pipe_dest_properties_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("_Source properties..."), N_("Source properties"), canvas_pipe_source_properties_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("D_estination properties..."), N_("Destination properties"), canvas_pipe_dest_properties_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Delete","Delete pipe",canvas_pipe_delete_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Delete"), N_("Delete pipe"),canvas_pipe_delete_cb,NULL),
 	GNOMEUIINFO_END
 };
 
@@ -373,7 +373,7 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 				      NULL));
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
 	params = TRUE;
-	snprintf(buffer,255,"Samplerate: %d",filterpipe_sample_rate(pipe->pipe));
+	snprintf(buffer,255,_("Samplerate: %d"),filterpipe_sample_rate(pipe->pipe));
 	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 						       gnome_canvas_text_get_type(),
 						       "x",xOffset,
@@ -396,7 +396,7 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 	bminy = bminy>recy1?recy1:bminy;
 	
 	y +=16.0;
-	snprintf(buffer,255,"Hangle: %f",filterpipe_sample_hangle(pipe->pipe));
+	snprintf(buffer,255,_("Hangle: %f"),filterpipe_sample_hangle(pipe->pipe));
 	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 						       gnome_canvas_text_get_type(),
 						       "x",xOffset,
@@ -422,7 +422,7 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 	
 	if(filterparamdb_nrparams(filterpipe_sourceparamdb(pipe->pipe))){
 		params = TRUE;
-		snprintf(buffer,255, "Source params:");
+		snprintf(buffer,255, _("Source params:"));
 		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 							       gnome_canvas_text_get_type(),
 							       "x",xOffset,
@@ -477,7 +477,7 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 	}
 	if(filterparamdb_nrparams(filterpipe_destparamdb(pipe->pipe))){
 		params = TRUE;
-		snprintf(buffer,255, "Dest params:");
+		snprintf(buffer,255, _("Dest params:"));
 		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 							       gnome_canvas_text_get_type(),
 							       "x",xOffset,

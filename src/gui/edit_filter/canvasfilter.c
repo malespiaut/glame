@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.50 2001/12/17 09:44:58 richi Exp $
+ * $Id: canvasfilter.c,v 1.51 2001/12/30 16:46:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -901,12 +901,12 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	if(desc)
 		gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
 	else
-		gtk_editable_insert_text(GTK_EDITABLE(text),"This item does not have a description",38,&pos);
-	tablabel = gtk_label_new("Description");
+		gtk_editable_insert_text(GTK_EDITABLE(text),_("This item does not have a description"),38,&pos);
+	tablabel = gtk_label_new(_("Description"));
 	gtk_widget_show(tablabel);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),text,tablabel);
 
-	tablabel = gtk_label_new("Ports");
+	tablabel = gtk_label_new(_("Ports"));
 	list = GTK_CLIST(gtk_clist_new_with_titles(3,labels));
 	gtk_clist_set_column_auto_resize(list,0,TRUE);
 	gtk_clist_set_column_auto_resize(list,1,TRUE);
@@ -914,23 +914,19 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 
 	filterportdb_foreach_port(ports,port){
 		line = calloc(3,sizeof(char*));
-		if(filterport_label(port))
-			buffer = filterport_label(port);
-		else
-			buffer = "Empty";
-		line[0] = buffer;
+		line[0] = filterport_label(port);
 		line[1] = (filterport_is_input(port)?"In":"Out");
 		if( filterport_get_property(port,FILTERPORT_DESCRIPTION))
 			buffer = filterport_get_property(port,FILTERPORT_DESCRIPTION);
 		else
-			buffer = "Empty";
+			buffer = _("Empty");
 		line[2] = buffer;
 		gtk_clist_append(list,line);
 	}
 	gtk_widget_show(GTK_WIDGET(list));
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 
-	tablabel = gtk_label_new("Properties");
+	tablabel = gtk_label_new(_("Properties"));
 	gtk_widget_show(tablabel);
 	
 	list = GTK_CLIST(gtk_clist_new_with_titles(3,plabels));
@@ -941,20 +937,16 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	params = filter_paramdb(filter);
 	filterparamdb_foreach_param(params,param){
 		line = calloc(3,sizeof(char*));
-		if(filterparam_label(param))
-			buffer = filterparam_label(param);
-		else
-			buffer = "Empty";
-		line[0] = buffer;
+		line[0] = filterparam_label(param);
 		if(filterparam_to_string(param))
 			buffer = filterparam_to_string(param);
 		else
-			buffer = "Empty";
+			buffer = _("Empty");
 		line[1] = buffer;
 		if(filterparam_get_property(param,FILTERPARAM_DESCRIPTION))
 			buffer = filterparam_get_property(param,FILTERPARAM_DESCRIPTION);
 		else
-			buffer = "Empty";
+			buffer = _("Empty");
 		line[2] = buffer;
 		gtk_clist_append(list,line);
 	}
@@ -1013,7 +1005,7 @@ static void glame_canvas_filter_redirect_parameters(GtkWidget *bla, GlameCanvasF
 	paramnamebuffer = calloc(100,sizeof(char));
 	externnamebuffer = calloc(100,sizeof(char));
 
-	dialog = gnome_dialog_new("Export parameters...",GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
+	dialog = gnome_dialog_new(_("Export parameters..."),GNOME_STOCK_BUTTON_CANCEL,"Remap All",GNOME_STOCK_BUTTON_OK,NULL);
 		
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	
@@ -1033,8 +1025,8 @@ static void glame_canvas_filter_redirect_parameters(GtkWidget *bla, GlameCanvasF
 	}
 	gtk_list_append_items(GTK_LIST(list),items);
 	gtk_widget_show(list);
-	create_label_widget_pair(vbox,"Select parameter:",list);
-	create_label_widget_pair(vbox,"External name:",entry);
+	create_label_widget_pair(vbox,_("Select parameter:"),list);
+	create_label_widget_pair(vbox,_("External name:"),entry);
 	switch(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 	{
 	case 2:
@@ -1080,19 +1072,19 @@ int inItem;
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
-	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
-	GNOMEUIINFO_ITEM("_Expand","Expand",glame_canvas_filter_expand_node_cb,NULL),
-	GNOMEUIINFO_ITEM("_Open down","Open down",glame_canvas_filter_open_node_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Delete"),N_("Delete node"),glame_canvas_filter_delete_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Expand"),N_("Expand"),glame_canvas_filter_expand_node_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Open down"),N_("Open down"),glame_canvas_filter_open_node_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
+	GNOMEUIINFO_ITEM(N_("_Redirect parameter"),"redirect",glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Group selection","Group selection",glame_canvas_group_selection_cb,NULL),
-	GNOMEUIINFO_ITEM("_Ungroup","Ungroup",glame_canvas_ungroup_cb,NULL),
-	GNOMEUIINFO_ITEM("Cop_y selection","Copy selection",glame_canvas_copy_selected_cb,NULL),
-	GNOMEUIINFO_ITEM("_Collapse selection","Collapse selection",glame_canvas_filter_collapse_selection_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Group selection"),N_("Group selection"),glame_canvas_group_selection_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Ungroup"),N_("Ungroup"),glame_canvas_ungroup_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("Cop_y selection"),N_("Copy selection"),glame_canvas_copy_selected_cb,NULL),
+	GNOMEUIINFO_ITEM(N_("_Collapse selection"),N_("Collapse selection"),glame_canvas_filter_collapse_selection_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
-	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
+	GNOMEUIINFO_ITEM(N_("_About node..."),"bout",glame_canvas_filter_show_about,NULL),
+	GNOMEUIINFO_ITEM(N_("_Help"),N_("Show help"),glame_canvas_filter_help,NULL),
 	GNOMEUIINFO_END
 };
 #define NODE_MENU_EXPAND_INDEX 2
@@ -1227,12 +1219,12 @@ static void glame_canvas_filter_do_select(GlameCanvasFilter* filter, GdkEvent* e
 void
 glame_canvas_filter_info(GlameCanvasFilter* f)
 {
-	fprintf(stderr,"name: %s\n",filter_name(f->filter));
-	fprintf(stderr,"parent id: %d\n", GLAME_CANVAS_GROUP(GCI(f)->parent)->id);
-	fprintf(stderr,"rood group id: %d\n",glame_canvas_group_root_id(GLAME_CANVAS_GROUP(GCI(f)->parent)));
+	DPRINTF("name: %s\n",filter_name(f->filter));
+	DPRINTF("parent id: %d\n", GLAME_CANVAS_GROUP(GCI(f)->parent)->id);
+	DPRINTF("rood group id: %d\n",glame_canvas_group_root_id(GLAME_CANVAS_GROUP(GCI(f)->parent)));
 }
-	
-			
+
+
 static gboolean
 glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {

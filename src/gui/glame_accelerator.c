@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.15 2001/12/17 15:29:05 richi Exp $
+ * $Id: glame_accelerator.c,v 1.16 2001/12/30 16:46:14 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -486,7 +486,7 @@ GtkWidget *glame_accel_edit_dialog(const char *scope, int edit,
 
 	dialog = gtk_type_new(gnome_dialog_get_type());
 	gnome_dialog_append_button_with_pixmap(
-		GNOME_DIALOG(dialog), "Close", GNOME_STOCK_PIXMAP_CLOSE);
+		GNOME_DIALOG(dialog), _("Close"), GNOME_STOCK_PIXMAP_CLOSE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(dialog), 0, TRUE);
 	if (parent)
 		gnome_dialog_set_parent(GNOME_DIALOG(dialog), parent);

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.27 2001/12/13 14:48:06 richi Exp $
+ * $Id: canvasport.c,v 1.28 2001/12/30 16:46:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -241,7 +241,7 @@ static GnomeCanvasPoints * points = NULL;
 static GnomeCanvasLine* line = NULL;
 static GnomeUIInfo port_menu[] = 
 {
-	GNOMEUIINFO_ITEM("_Redirect port","redirect", glame_canvas_port_redirect_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("_Redirect port"),N_("redirect"), glame_canvas_port_redirect_cb, NULL),
 	GNOMEUIINFO_END
 };
 
@@ -378,7 +378,7 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 	
 	filenamebuffer = calloc(100,sizeof(char));
 	
-	dialog = gnome_dialog_new("Export as...",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	dialog = gnome_dialog_new(_("Export as..."),GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
 	vbox = GNOME_DIALOG(dialog)->vbox;
 
 	nameEntry = gtk_entry_new();
@@ -386,7 +386,7 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 			   update_string_from_editable,&filenamebuffer);
 	sprintf(nameBuffer,"%s_%s",filter_name(filterport_filter(port->port)),filterport_label(port->port));
 	gtk_entry_set_text(GTK_ENTRY(nameEntry),nameBuffer);
-	create_label_widget_pair(vbox,"New port name",nameEntry);
+	create_label_widget_pair(vbox,_("New port name"),nameEntry);
 	
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
 		ports = filter_portdb(CANVAS_ITEM_NETWORK(port));
