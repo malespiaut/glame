@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.72 2001/10/31 10:59:30 mainzelm Exp $
+; $Id: glame.scm,v 1.73 2001/12/09 19:43:47 mainzelm Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -204,7 +204,7 @@
       (apply node-set-params n params)
       n)))
 
-(add-help 'net-add-node '(net "node" '("param" val) ...) 
+(add-help 'net-add-node '(net "node" ("param" val) ...) 
 	  "create filter and add it to the network")
 
 ; (net-add-nodes net '("node" '("param" val)...) ...)
@@ -223,7 +223,7 @@
 		    #f)
 		  (cons n nn)))))))
 
-(add-help 'net-add-nodes '(net '("node" '("param" val) ...) ...)
+(add-help 'net-add-nodes '(net ("node" ("param" val) ...) ...)
 	  "create filters and add it to the network")
 
 ; (nodes-delete node node ...)
@@ -306,7 +306,8 @@
 			(else (let* ((fd (sw-open entry O_RDONLY))
 				     (st (sw-fstat fd))
 				     (size (sw-st-size st)))
-				(display (cons entry (cons size (sw-read-string fd (min 8 size))))) (newline)
+				(write (list entry size (sw-read-string fd (min 8 size))))
+				(newline)
 				(sw-close fd)
 				(sw-list-directory dir))))))))
       (sw-list-directory dir)
@@ -809,12 +810,22 @@
 
 ;;; Macro to create a new filternetwork
 ;;;
-;;; (create-net ((node "name") ...)
+;;; (create-net ((node "name" ("param" val)) ...) ; val is implicitly backquoted
 ;;;             ((input-node "port" "label" "desc") ...)
 ;;;             ((output-node "port" "label" "desc") ...)
 ;;;             ((param-node "param" "label" "desc") ...)
 ;;;             body-expr) 
 ;;; --> new filternetwork
+;;;
+;;;Example:
+;;;(define n (create-net ((sw-in "swapfile-in" ("filename" ,(+ 0 0)))
+;;;		          (ao "audio-out")
+;;;		          (ech "echo" ("time" 1200)))
+;;;		         () 
+;;;		         () 
+;;;		         () 
+;;;		         (begin 
+;;;			  (nodes-connect (list sw-in ech ao)))))
 
 (define-macro (create-net nodes input output params body)
   `(let ((net (net-new)))
@@ -828,30 +839,32 @@
 			   (if (null? params)
 			       `(begin ,body net)
 			       (let ((first (car params)))
-			   `(begin (filternetwork_add_param net 
+			   `(begin (filternetwork-add-param net 
 							     ,(car first)
 							     ,(cadr first)
 							     ,(caddr first)
 							     ,(cadddr first))
 				   ,(lp (cdr params))))))
 			 (let ((first (car output)))
-			   `(begin (filternetwork_add_output net 
+			   `(begin (filternetwork-add-output net 
 							     ,(car first)
 							     ,(cadr first)
 							     ,(caddr first)
 							     ,(cadddr first))
 				   ,(lp (cdr output))))))
 		   (let ((first (car input)))
-		     `(begin (filternetwork_add_input net 
+		     `(begin (filternetwork-add-input net 
 						      ,(car first)
 						      ,(cadr first)
 						      ,(caddr first)
 						      ,(cadddr first))
 			     ,(lp (cdr input))))))
 	    `(let ((,(caar nodes) (net-add-node net ,(cadar nodes))))
+	       (node-set-params ,(caar nodes) 
+				,@(map (lambda (e) 
+					 (list 'quasiquote e))
+				       (cddar nodes)))
 	       ,(lp (cdr nodes)))))))
-
-
 
 ;------------------------------------------------------------
 ;
