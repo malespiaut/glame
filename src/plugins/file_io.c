@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.70 2001/11/11 23:40:01 mag Exp $
+ * $Id: file_io.c,v 1.71 2001/11/25 23:04:35 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -66,22 +66,6 @@ int af_read_f(filter_t *n);
 void af_read_cleanup(filter_t *n);
 int af_write_f(filter_t *n);
 
-#ifdef HAVE_LAME
-#ifdef HAVE_LAME_H
-#include <lame.h>
-#elif defined HAVE_LAME_LAME_H
-#include <lame/lame.h>
-#endif
-#include "pthread.h"
-/* libmp3lame is not threadsafe */
-pthread_mutex_t lamelock = PTHREAD_MUTEX_INITIALIZER;
-
-int lame_read_prepare(filter_t *n, const char *filename);
-int lame_read_connect(filter_t *n, filter_pipe_t *p);
-int lame_read_f(filter_t *n);
-void lame_read_cleanup(filter_t *n);
-#endif
-
 PLUGIN_SET(file_io, "read_file write_file")
 
 
@@ -116,15 +100,6 @@ typedef struct {
 		        int             format;
 			track_t         *track;
 		} audiofile;
-#ifdef HAVE_LAME
-		struct {
-			FILE			*infile;
-			off_t			start;
-			lame_global_flags	*lgflags;
-			mp3data_struct		mp3data;
-			track_t			*track;
-		} lame;
-#endif
 	} u;
 } rw_private_t;
 #define RWPRIV(node) ((rw_private_t *)((node)->priv))
@@ -133,8 +108,6 @@ typedef struct {
 
 /* the readers & the writers list */
 static struct glame_list_head readers;
-static struct glame_list_head writers;
-
 
 static rw_t *add_rw(int (*prepare)(filter_t *, const char *),
 		    int (*connect)(filter_t *, filter_pipe_t *),
@@ -170,16 +143,6 @@ static int add_reader(int (*prepare)(filter_t *, const char *),
 	glame_list_add(&rw->list, &readers);
 	return 0;
 }
-static int add_writer(int (*f)(filter_t *), const char *regexp)
-{
-	rw_t *rw;
-
-	if (!(rw = add_rw(NULL, NULL, f, NULL, regexp)))
-	        return -1;
-	glame_list_add(&rw->list, &writers);
-	return 0;
-}
-
 
 /* generic read&write methods */
 static void rw_file_cleanup(glsig_handler_t *h, long sig, va_list va)
@@ -318,53 +281,13 @@ static int read_file_setup_param(filter_param_t *param, const void *val)
 	return 0;
 }
 
-/* write methods */
-static int write_file_f(filter_t *n)
-{
-	/* require set filename, a selected writer and
-	 * at least one connected input. */
-	if (!RWPRIV(n)->initted)
-		return -1;
-	if (!filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))
-		return -1;
-	return RWPRIV(n)->rw->f(n);
-}
+
 static int write_file_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	/* So why is there no write_file_connect_in?? Do we really
 	 * support any number of inputs? Seems all is _f() time... */
 	return 0;
 }
-
-static int write_file_setup_param(filter_param_t *param, const void *val) 
-{
-	filter_t *n = filterparam_filter(param);
-	regex_t rx;
-	rw_t *w;
-
-        /* only filename change possible in writer. */
-	RWPRIV(n)->initted = 0;
-	RWPRIV(n)->rw = NULL;
-
-	/* no filename - no writer. */
-	if(*(const char**)val==NULL)
-		return -1;
-
-	/* find applicable writer */
-	glame_list_foreach(&writers, rw_t, list, w) {
-	        if (regcomp(&rx, w->regexp, REG_EXTENDED|REG_NOSUB) == -1)
-			continue;
-		if (regexec(&rx, *(const char **)val, 0, NULL, 0) == 0) {
-			regfree(&rx);
-			RWPRIV(n)->rw = w;
-			RWPRIV(n)->initted = 1;
-			return 0;
-		}
-		regfree(&rx);
-	}
-	return -1;
-}
-
 
 int read_file_register(plugin_t *pl)
 {
@@ -408,54 +331,14 @@ int read_file_register(plugin_t *pl)
 	return 0;
 }
 
-int write_file_register(plugin_t *pl)
-{
-	filter_t *f;
-	filter_port_t *in;
-	filter_param_t *param;
 
-	if (!(f = filter_creat(NULL)))
-		return -1;
-
-	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-				   FILTER_PORTTYPE_SAMPLE,
-				   FILTER_PORTFLAG_INPUT,
-				   FILTERPORT_DESCRIPTION, "audio stream",
-				   FILTERPORT_END);
-	in->connect = write_file_connect_in;
-	param = filterparamdb_add_param_string(filter_paramdb(f), "filename",
-					       FILTER_PARAMTYPE_FILENAME, NULL,
-					       FILTERPARAM_END);
-	param->set = write_file_setup_param;
-
-	f->f = write_file_f;
-	f->init = rw_file_init;
-
-	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
-	plugin_set(pl, PLUGIN_PIXMAP, "output.png");
-	plugin_set(pl, PLUGIN_CATEGORY, "Output");
-	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "File_I_O");
-	
-	filter_register(f, pl);
-
-	return 0;
-}
 
 int file_io_register(plugin_t *p)
 {
 	GLAME_INIT_LIST_HEAD(&readers);
-	GLAME_INIT_LIST_HEAD(&writers);
 
-#if 0
-#ifdef HAVE_LAME
-	add_reader(lame_read_prepare, lame_read_connect,
-		   lame_read_f, lame_read_cleanup);
-#endif
-#endif
-	
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
-	add_writer(af_write_f,"*.wav"); 
 
 	return 0;
 }
@@ -716,7 +599,10 @@ void af_read_cleanup(filter_t *n)
 	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
 }
 
-int af_write_f(filter_t *n)
+
+static int af_typecnt, *af_indices;
+
+int write_file_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_port_t *port;
@@ -727,23 +613,43 @@ int af_write_f(filter_t *n)
 	int filetype;
 	short		*buffer;
 
-	RWA(n).channelCount = filterport_nrpipes(
-		filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	/* audiofile stuff */
+	AFfilehandle    file;
+	AFframecount    frameCount;
+	AFfilesetup     fsetup;
+	int             sampleFormat,sampleWidth;
+	int             channelCount,frameSize;
+	int		sampleRate;
+	int             format;
+	track_t         *track;
 
-	filename = filterparam_val_string(
-		filterparamdb_get_param(filter_paramdb(n), "filename"));
+	channelCount = filterport_nrpipes(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+
+	filename = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "filename"));
+
 	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
-	
-	filetype = glame_get_filetype_by_name(filename);
 
+
+	filetype = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "filetype"));
+	if (filetype==0)
+		filetype = glame_get_filetype_by_name(filename);
+	else {
+		filetype--;
+		if (filetype>=af_typecnt)
+			filetype=-1;
+		else
+			filetype=af_indices[filetype];
+	}
+		
 	if (filetype==-1)
 		FILTER_ERROR_RETURN("Filetype not recognized" 
 				    " or not supported by libaudiofile");
 
-	if (RWA(n).channelCount==0)
+	if (channelCount==0)
 		FILTER_ERROR_RETURN("no inputs");
-	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t)))
+
+	if (!(track=ALLOCN(channelCount,track_t)))
 		FILTER_ERROR_RETURN("no memory");
 	
 	iass=0;
@@ -751,31 +657,31 @@ int af_write_f(filter_t *n)
 		if (filterport_is_output(port))
 			continue;
 		filterport_foreach_pipe(port, in) {
-			for(iat=0;iat<iass && FILTER_SAMPLEPIPE_MORE_LEFT(RWA(n).track[iat].p,in);iat++);
+			for(iat=0;iat<iass && FILTER_SAMPLEPIPE_MORE_LEFT(track[iat].p,in);iat++);
 			for(i=iass;i>iat;i--)
-				RWA(n).track[i]=RWA(n).track[i-1];
-			RWA(n).track[iat].p=in;
+				track[i]=track[i-1];
+			track[iat].p=in;
 			if(iass==0)
-				RWA(n).sampleRate=filterpipe_sample_rate(in);
+				sampleRate=filterpipe_sample_rate(in);
 			else 
-				if (filterpipe_sample_rate(in)!=RWA(n).sampleRate)
+				if (filterpipe_sample_rate(in)!=sampleRate)
 					FILTER_ERROR_RETURN("inconsistent samplerates");
 			iass++;
 		}
 	}
 	
-	RWA(n).fsetup=afNewFileSetup();
-	afInitFileFormat(RWA(n).fsetup, filetype);
-	afInitChannels(RWA(n).fsetup, AF_DEFAULT_TRACK, RWA(n).channelCount);
-	afInitSampleFormat(RWA(n).fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-	afInitRate(RWA(n).fsetup, AF_DEFAULT_TRACK,RWA(n).sampleRate);
-	RWA(n).file=afOpenFile(filename, "w", RWA(n).fsetup);
+	fsetup=afNewFileSetup();
+	afInitFileFormat(fsetup, filetype);
+	afInitChannels(fsetup, AF_DEFAULT_TRACK, channelCount);
+	afInitSampleFormat(fsetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
+	afInitRate(fsetup, AF_DEFAULT_TRACK,sampleRate);
+	file=afOpenFile(filename, "w", fsetup);
 
-	if (RWA(n).file==AF_NULL_FILEHANDLE)
+	if (file==AF_NULL_FILEHANDLE)
 		goto _bailout;
 	
 
-	bufsiz=GLAME_WBUFSIZE*RWA(n).channelCount;
+	bufsiz=GLAME_WBUFSIZE*channelCount;
 
 	buffer=(short*)malloc(bufsiz*sizeof(short));
 	if(buffer==NULL)
@@ -784,11 +690,11 @@ int af_write_f(filter_t *n)
 	
 	FILTER_AFTER_INIT;
 
-	eofs=RWA(n).channelCount;
+	eofs=channelCount;
 	
-	for(i=0;i<RWA(n).channelCount;i++) {
-		if (!(RWA(n).track[i].buf=sbuf_get(RWA(n).track[i].p))) eofs--;
-		RWA(n).track[i].pos=0;
+	for(i=0;i<channelCount;i++) {
+		if (!(track[i].buf=sbuf_get(track[i].p))) eofs--;
+		track[i].pos=0;
 	}
 
 	while(eofs){
@@ -796,14 +702,14 @@ int af_write_f(filter_t *n)
 		wbpos=0;
 		do{
 			/* write one interleaved frame to buffer */
-			for(i=0;i<RWA(n).channelCount;i++)
-				if (RWA(n).track[i].buf){
-					buffer[wbpos++]=SAMPLE2SHORT(sbuf_buf(RWA(n).track[i].buf)[RWA(n).track[i].pos++]);
+			for(i=0;i<channelCount;i++)
+				if (track[i].buf){
+					buffer[wbpos++]=SAMPLE2SHORT(sbuf_buf(track[i].buf)[track[i].pos++]);
 					/* Check for end of buffer */
-					if(RWA(n).track[i].pos==sbuf_size(RWA(n).track[i].buf)){
-						sbuf_unref(RWA(n).track[i].buf);
-						if (!(RWA(n).track[i].buf=sbuf_get(RWA(n).track[i].p))) eofs--;
-						RWA(n).track[i].pos=0;
+					if(track[i].pos==sbuf_size(track[i].buf)){
+						sbuf_unref(track[i].buf);
+						if (!(track[i].buf=sbuf_get(track[i].p))) eofs--;
+						track[i].pos=0;
 					}
 				}
 				else
@@ -812,393 +718,79 @@ int af_write_f(filter_t *n)
 					 */
 					buffer[wbpos++]=0;
 		} while ((wbpos<bufsiz) && (eofs));
-		afWriteFrames(RWA(n).file, AF_DEFAULT_TRACK, buffer,wbpos/RWA(n).channelCount);
+		afWriteFrames(file, AF_DEFAULT_TRACK, buffer,wbpos/channelCount);
 	}
 		
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 	res=0;
 _bailout:
- 	afCloseFile(RWA(n).file);
-        if(RWA(n).fsetup) afFreeFileSetup(RWA(n).fsetup);
+ 	afCloseFile(file);
+        if(fsetup) afFreeFileSetup(fsetup);
 	free(buffer);
-	free(RWA(n).track);
+	free(track);
 	if (res==-1) FILTER_ERROR_RETURN("some error occured"); 
 	return res;
 }
 
-#if 0
-#ifdef HAVE_LAME
-/* borrowed from lame source */
-#define         MAX_U_32_NUM            0xFFFFFFFF
-
-static int
-check_aid(const unsigned char *header)
+int write_file_register(plugin_t *pl)
 {
-    return 0 == strncmp(header, "AiD\1", 4);
-}
+	filter_t *f;
+	filter_port_t *in;
+	filter_param_t *param;
+	char *xmlparam;
+	int i;
 
-/*
- * Please check this and don't kill me if there's a bug
- * This is a (nearly?) complete header analysis for a MPEG-1/2/2.5 Layer I, II or III
- * data stream
- */
-
-static int
-is_syncword_mp123(const void *const headerptr)
-{
-    const unsigned char *const p = headerptr;
-    static const char abl2[16] =
-        { 0, 7, 7, 7, 0, 7, 0, 0, 0, 0, 0, 8, 8, 8, 8, 8 };
-
-    if ((p[0] & 0xFF) != 0xFF)
-        return 0;       // first 8 bits must be '1'
-    if ((p[1] & 0xE0) != 0xE0)
-        return 0;       // next 3 bits are also
-    if ((p[1] & 0x18) == 0x08)
-        return 0;       // no MPEG-1, -2 or -2.5
-    if ((p[1] & 0x06) == 0x00)
-        return 0;       // no Layer I, II and III
-    if ((p[2] & 0xF0) == 0xF0)
-        return 0;       // bad bitrate
-    if ((p[2] & 0x0C) == 0x0C)
-        return 0;       // no sample frequency with (32,44.1,48)/(1,2,4)    
-    if ((p[1] & 0x06) == 0x04) // illegal Layer II bitrate/Channel Mode comb
-        if (abl2[p[2] >> 4] & (1 << (p[3] >> 6)))
-            return 0;
-    return 1;
-}
-
-static int
-is_syncword_mp3(const void *const headerptr)
-{
-    const unsigned char *const p = headerptr;
-
-    if ((p[0] & 0xFF) != 0xFF)
-        return 0;       // first 8 bits must be '1'
-    if ((p[1] & 0xE0) != 0xE0)
-        return 0;       // next 3 bits are also
-    if ((p[1] & 0x18) == 0x08)
-        return 0;       // no MPEG-1, -2 or -2.5
-    if ((p[1] & 0x06) != 0x02)
-        return 0;       // no Layer III (can be merged with 'next 3 bits are also' test, but don't do this, this decreases readability)
-    if ((p[2] & 0xF0) == 0xF0)
-        return 0;       // bad bitrate
-    if ((p[2] & 0x0C) == 0x0C)
-        return 0;       // no sample frequency with (32,44.1,48)/(1,2,4)    
-    return 1;
-}
-
-int
-lame_decode_initfile(FILE * fd, mp3data_struct * mp3data)
-{
-    //  VBRTAGDATA pTagData;
-    // int xing_header,len2,num_frames;
-    unsigned char buf[100];
-    int     ret;
-    int     len, aid_header;
-    short int pcm_l[1152], pcm_r[1152];
-
-    memset(mp3data, 0, sizeof(mp3data_struct));
-    lame_decode_init();
-
-    len = 4;
-    if (fread(&buf, 1, len, fd) != len)
-        return -1;      /* failed */
-    aid_header = check_aid(buf);
-    if (aid_header) {
-        if (fread(&buf, 1, 2, fd) != 2)
-            return -1;  /* failed */
-        aid_header = (unsigned char) buf[0] + 256 * (unsigned char) buf[1];
-        fprintf(stderr, "Album ID found.  length=%i \n", aid_header);
-        /* skip rest of AID, except for 6 bytes we have already read */
-        fseek(fd, aid_header - 6, SEEK_CUR);
-
-        /* read 4 more bytes to set up buffer for MP3 header check */
-        len = fread(&buf, 1, 4, fd);
-    }
-
-
-    /* look for valid 4 byte MPEG header  */
-    if (len < 4)
-        return -1;
-    while (!is_syncword_mp123(buf)) {
-        int     i;
-        for (i = 0; i < len - 1; i++)
-            buf[i] = buf[i + 1];
-        if (fread(buf + len - 1, 1, 1, fd) != 1)
-            return -1;  /* failed */
-    }
-
-
-    // now parse the current buffer looking for MP3 headers.   
-    // (as of 11/00: mpglib modified so that for the first frame where 
-    // headers are parsed, no data will be decoded.  
-    // However, for freeformat, we need to decode an entire frame,
-    // so mp3data->bitrate will be 0 until we have decoded the first
-    // frame.  Cannot decode first frame here because we are not
-    // yet prepared to handle the output.
-    ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-    if (-1 == ret)
-        return -1;
-
-    /* repeat until we decode a valid mp3 header.  */
-    while (!mp3data->header_parsed) {
-        len = fread(buf, 1, sizeof(buf), fd);
-        if (len != sizeof(buf))
-            return -1;
-        ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-        if (-1 == ret)
-            return -1;
-    }
-
-    if (mp3data->bitrate==0) {
-	fprintf(stderr,"Input file is freeformat.\n"); 
-    }
-
-    if (mp3data->totalframes > 0) {
-        /* mpglib found a Xing VBR header and computed nsamp & totalframes */
-    }
-    else {
-	/* set as unknown.  Later, we will take a guess based on file size
-	 * ant bitrate */
-        mp3data->nsamp = MAX_U_32_NUM;
-    }
-
-
-    /*
-       fprintf(stderr,"ret = %i NEED_MORE=%i \n",ret,MP3_NEED_MORE);
-       fprintf(stderr,"stereo = %i \n",mp.fr.stereo);
-       fprintf(stderr,"samp = %i  \n",freqs[mp.fr.sampling_frequency]);
-       fprintf(stderr,"framesize = %i  \n",framesize);
-       fprintf(stderr,"bitrate = %i  \n",mp3data->bitrate);
-       fprintf(stderr,"num frames = %ui  \n",num_frames);
-       fprintf(stderr,"num samp = %ui  \n",mp3data->nsamp);
-       fprintf(stderr,"mode     = %i  \n",mp.fr.mode);
-     */
-
-    return 0;
-};
-
-int
-lame_decode_fromfile(FILE * fd, short pcm_l[], short pcm_r[],
-                     mp3data_struct * mp3data)
-{
-    int     ret = 0, len=0;
-    unsigned char buf[1024];
-
-    /* first see if we still have data buffered in the decoder: */
-    ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-    if (ret!=0) return ret;
-
-
-    /* read until we get a valid output frame */
-    while (1) {
-        len = fread(buf, 1, 1024, fd);
-        if (len == 0) {
-	    /* we are done reading the file, but check for buffered data */
-	    ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-	    if (ret<=0) return -1;  // done with file
-	    break;
-	}
-
-        ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
-        if (ret == -1) return -1;
-	if (ret >0) break;
-    }
-    return ret;
-};
-
-off_t  lame_get_file_size ( const char* const filename )
-{
-    struct stat       sb;
-
-    if ( 0 == stat ( filename, &sb ) )
-        return sb.st_size;
-    return (off_t) -1;
-}
-
-int lame_read_prepare(filter_t *n, const char *filename)
-{
-	char buffer[128];
-	double flen, totalseconds;
-	unsigned long tmp_num_samples;
-	filter_param_t	*fparam;
-	
-	DPRINTF("lame_read_prepare\n");
-
-	if (pthread_mutex_trylock(&lamelock)==EBUSY)
+	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	RWM(n).lgflags = lame_init();
-	RWM(n).infile = fopen(filename, "rb");
-	if (RWM(n).infile==NULL) {
-		pthread_mutex_unlock(&lamelock);
-		return -1;
-	}
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "audio stream",
+				   FILTERPORT_END);
+	in->connect = write_file_connect_in;
+	param = filterparamdb_add_param_string(filter_paramdb(f), "filename",
+					       FILTER_PARAMTYPE_FILENAME, NULL,
+					       FILTERPARAM_END);
 
-	if (-1 == lame_decode_initfile(RWM(n).infile, &(RWM(n).mp3data))) {
-		pthread_mutex_unlock(&lamelock);
-		return -1;
-	}
+	/* construct xmlstring for filetype parameter */
 
-	if (lame_set_num_channels(RWM(n).lgflags, RWM(n).mp3data.stereo)==-1) {
-		pthread_mutex_unlock(&lamelock);
-		return -1;
-	}
+ 	af_typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
+	af_indices = NULL;
 
-        lame_set_in_samplerate(RWM(n).lgflags, RWM(n).mp3data.samplerate );
-	
-	if ((lame_get_num_samples(RWM(n).lgflags) == MAX_U_32_NUM) && (RWM(n).mp3data.bitrate>0)) {
-		flen = lame_get_file_size(filename);
-		if(flen>=0) {
-			totalseconds = (flen * 8.0 / (1000.0 * RWM(n).mp3data.bitrate));
-			tmp_num_samples = totalseconds * lame_get_in_samplerate(RWM(n).lgflags);
-
-			lame_set_num_samples(RWM(n).lgflags, tmp_num_samples );
-			RWM(n).mp3data.nsamp = tmp_num_samples;
+	if (af_typecnt>0) {
+		xmlparam = ALLOCN(256, char);
+		strcat(xmlparam, 
+		       "<?xml version=\"1.0\"?><GTK-Interface>"
+		       "<widget><class>GtkOptionMenu</class>"
+		       "<name>widget</name><can_focus>True</can_focus><items>auto\n");
+		
+		
+		af_indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);	
+		for(i=0; i<af_typecnt; i++) {
+			strcat(xmlparam, (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, af_indices[i] ,0 ,0));
+			strcat(xmlparam,"\n");
 		}
+
+		strcat(xmlparam, "</items><initial_choice>0</initial_choice></widget></GTK-Interface>");
+	
+		filterparamdb_add_param_int(filter_paramdb(f),"filetype", 
+					    FILTER_PARAMTYPE_INT, 0, 
+					    FILTERPARAM_DESCRIPTION,
+					    "filetype", 
+					    FILTERPARAM_GLADEXML, xmlparam,
+					    FILTERPARAM_END);
 	}
 
-	
-	RWM(n).start = fseek(RWM(n).infile,
-			     0, 
-			     SEEK_CUR);
+	f->f = write_file_f;
 
-	DPRINTF("Found mp3 file: channels=%d, freq=%d, offset=%d\n", 
-		RWM(n).mp3data.stereo, RWM(n).mp3data.samplerate, 
-		RWM(n).start);
+	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
+	plugin_set(pl, PLUGIN_PIXMAP, "output.png");
+	plugin_set(pl, PLUGIN_CATEGORY, "Output");
+	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "File_I_O");
+	
+	filter_register(f, pl);
 
-	if (RWM(n).mp3data.stereo==0)
-		return -1;
-
-	RWM(n).track = ALLOCN(RWM(n).mp3data.stereo, track_t);
-	
-	fparam = filterparamdb_get_param(filter_paramdb(n), "filename");
-	
-	sprintf(buffer, "7 -1");
-	filterparam_set_property(fparam, "#format", buffer);
-
-	sprintf(buffer,"%d Hz",RWM(n).mp3data.samplerate); 
-	filterparam_set_property(fparam, "#samplerate", buffer); 
-	
-	sprintf(buffer,"16 bit"); 
-	filterparam_set_property(fparam, "#quality", buffer); 
-	
-	sprintf(buffer,"%d",tmp_num_samples); 
-	filterparam_set_property(fparam, "#framecount", buffer); 
-	
-	sprintf(buffer,"%d",RWM(n).mp3data.stereo); 
-	filterparam_set_property(fparam, "#channels", buffer);
-	
-	pthread_mutex_unlock(&lamelock);
 	return 0;
 }
-
-int lame_read_connect(filter_t *n, filter_pipe_t *p) {
-	int i, deleted = 1;
-	filter_port_t	*outp;
-	filter_pipe_t	*out;
-	
-	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
-	filterport_foreach_pipe(outp, out) {
-		if (p == out)
-			deleted = 0;
-	}
-	
-	if (deleted == 1) {
-		for (i=0; i<RWM(n).mp3data.stereo; i++) {
-			if (RWM(n).track[i].p == p) {
-				RWM(n).track[i].mapped = 0;
-				RWM(n).track[i].p = NULL;
-				return 0;
-			}
-		}
-	}
-	
-        for(i=0; i<RWM(n).mp3data.stereo;i++) {
-		if (RWM(n).track[i].mapped == 1) {
-			if (RWM(n).track[i].p == p) {
-				filterpipe_settype_sample(p, RWM(n).mp3data.samplerate,
-							     i*M_PI+FILTER_PIPEPOS_LEFT);
-				return 0;
-			}
-		} else if ((RWM(n).track[i].mapped == 0)) {
-			RWM(n).track[i].mapped = 1;
-			RWM(n).track[i].p = p;
-			filterpipe_settype_sample(p, RWM(n).mp3data.samplerate,
-						     i*M_PI+FILTER_PIPEPOS_LEFT);
-			return 0;
-		} 
-	}
-
-	return -1;
-};
-
-void lame_read_cleanup(filter_t *n) {
-	DPRINTF("cleanup\n");
-	fclose(RWM(n).infile);
-	free(RWM(n).track);
-	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
-	DPRINTF("cleanup finished\n");
-};
-
-int lame_read_f(filter_t *n) {
-	filter_param_t *pos_param;
-	filter_pipe_t *p_out;
-	filter_port_t *port;
-	int done, i, j, skip=1, off=0;
-	short s[2][1152];
-	long pos;
-
-	if (pthread_mutex_trylock(&lamelock)==EBUSY)
-		FILTER_ERROR_RETURN("lamelib already in use");
-	
-	fseek(RWM(n).infile, RWM(n).start, SEEK_SET);
-	FILTER_AFTER_INIT;
-	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
-        filterparam_val_set_pos(pos_param, 0);
-	pos = 0;
-	do {
-		FILTER_CHECK_STOP;
-		done = lame_decode_fromfile(RWM(n).infile, s[0], s[1], &(RWM(n).mp3data));
-		if(skip==1) {
-			done-=528;
-			off=528;
-		}
-
-		pos += done;
-
-		filterparam_val_set_pos(pos_param, pos);
-		if (done > 0) {
-			for(i=0; i<RWM(n).mp3data.stereo; i++) {
-				if(RWM(n).track[i].mapped==1) {
-					RWM(n).track[i].buf = sbuf_make_private(sbuf_alloc(done, n));
-					for (j=off; j<done+off; j++)
-						sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
-					DPRINTF("Queue Buffer for channel %d\n", i);
-					sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
-				}
-			}
-		}
-		if(skip==1) {
-			off = 0;
-			skip = 0;
-		}
-	} while (done>0);
-
-	FILTER_BEFORE_STOPCLEANUP;
-	FILTER_BEFORE_CLEANUP;
-	filterportdb_foreach_port(filter_portdb(n), port) {
-		if (filterport_is_input(port))
-			continue;
-		filterport_foreach_pipe(port, p_out)
-			sbuf_queue(p_out, NULL);
-	}
-
-	pthread_mutex_unlock(&lamelock);
-	return 0;
-}
-#endif
-#endif
-
