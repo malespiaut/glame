@@ -27,10 +27,36 @@
 #include <guile/gh.h>
 #include "filter.h"
 #include "glplugin.h"
+#include "glscript.h"
 
 
-extern void *scm2pointer(SCM pointer_smob);
-extern SCM pointer2scm(void *pointer);
+
+/* SMOBs for filter_pipe_t, filter_param_t, filter_port_t and plugint_t.
+ */
+
+static long pipe_smob_tag;
+#define scm2pipe(s) scm2pointer(s, pipe_smob_tag)
+#define pipe2scm(p) pointer2scm(p, pipe_smob_tag)
+#define scminvalidatepipe(s) scminvalidatepointer(s, pipe_smob_tag)
+#define pipe_p(s) (SCM_NIMP(s) && SCM_CAR(s) == pipe_smob_tag)
+
+static long port_smob_tag;
+#define scm2port(s) scm2pointer(s, port_smob_tag)
+#define port2scm(p) pointer2scm(p, port_smob_tag)
+#define scminvalidateport(s) scminvalidatepointer(s, port_smob_tag)
+#define port_p(s) (SCM_NIMP(s) && SCM_CAR(s) == port_smob_tag)
+
+static long param_smob_tag;
+#define scm2param(s) scm2pointer(s, param_smob_tag)
+#define param2scm(p) pointer2scm(p, param_smob_tag)
+#define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
+#define param_p(s) (SCM_NIMP(s) && SCM_CAR(s) == param_smob_tag)
+
+static long plugin_smob_tag;
+#define scm2plugin(s) scm2pointer(s, plugin_smob_tag)
+#define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
+#define scminvalidateplugin(s) scminvalidatepointer(s, plugin_smob_tag)
+#define plugin_p(s) (SCM_NIMP(s) && SCM_CAR(s) == plugin_smob_tag)
 
 
 /* SMOB for filter_t.
@@ -40,7 +66,8 @@ static long filter_smob_tag = 0;
 struct filter_smob {
 	filter_t *filter;
 };
-#define SCM2FILTERSMOB(s) ((struct filter_smob *)SCM_CDR(s))
+#define SCM2FILTERSMOB(s) ((struct filter_smob *)SCM_SMOB_DATA(s))
+#define filter_p(s) (SCM_NIMP(s) && SCM_CAR(s) == filter_smob_tag)
 static SCM filter2scm(filter_t *filter);
 static filter_t *scm2filter(SCM filter_smob);
 
@@ -114,8 +141,7 @@ static filter_t *scm2filter(SCM filter_smob)
 {
 	struct filter_smob *filter = SCM2FILTERSMOB(filter_smob);
 
-	SCM_ASSERT((SCM_NIMP(filter_smob)
-		    && SCM_CAR(filter_smob) == filter_smob_tag),
+	SCM_ASSERT(filter_p(filter_smob),
 		   filter_smob, SCM_ARG1, "scm2filter");
 
 	return filter->filter;
@@ -125,8 +151,7 @@ void scminvalidatefilter(SCM filter_smob)
 {
 	struct filter_smob *filter = SCM2FILTERSMOB(filter_smob);
 
-	SCM_ASSERT((SCM_NIMP(filter_smob)
-		    && SCM_CAR(filter_smob) == filter_smob_tag),
+	SCM_ASSERT(filter_p(filter_smob),
 		   filter_smob, SCM_ARG1, "scminvalidatefilter");
 
 	filter->filter = NULL;
@@ -134,8 +159,7 @@ void scminvalidatefilter(SCM filter_smob)
 
 static SCM filterp(SCM filter_smob)
 {
-	if (!SCM_NIMP(filter_smob)
-	    || SCM_CAR(filter_smob) != filter_smob_tag)
+	if (filter_p(filter_smob))
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }
@@ -203,14 +227,14 @@ static SCM gls_filternetwork_add_connection(SCM s_source, SCM s_source_port,
 						     dest_port));
 	free(source_port);
 	free(dest_port);
-	return pointer2scm(p);
+	return pipe2scm(p);
 }
 
 static SCM gls_filternetwork_break_connection(SCM s_p)
 {
 	filter_pipe_t *p;
 
-	p = scm2pointer(s_p);
+	p = scm2pipe(s_p);
 	filterpipe_delete(p);
 	return SCM_UNSPECIFIED;
 }
@@ -258,7 +282,7 @@ static SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
 {
 	filter_pipe_t *p;
 
-	p = scm2pointer(s_p);
+	p = scm2pipe(s_p);
 	return gls_filterparam_set(filterpipe_sourceparamdb(p), s_label, s_val);
 }
 
@@ -266,7 +290,7 @@ static SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
 {
 	filter_pipe_t *p;
 
-	p = scm2pointer(s_p);
+	p = scm2pipe(s_p);
 	return gls_filterparam_set(filterpipe_destparamdb(p), s_label, s_val);
 }
 
@@ -487,14 +511,14 @@ static SCM gls_plugin_get(SCM s_name)
 	name = gh_scm2newstr(s_name, &namel);
 	p = plugin_get(name);
 	free(name);
-	return pointer2scm(p);
+	return plugin2scm(p);
 }
 
 static SCM gls_plugin_name(SCM s_p)
 {
 	plugin_t *p;
 
-	p = scm2pointer(s_p);
+	p = scm2plugin(s_p);
 	return gh_str02scm((char *)plugin_name(p));
 }
 
@@ -505,7 +529,7 @@ static SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 	int keyl;
 	void *val;
 
-	p = scm2pointer(s_p);
+	p = scm2plugin(s_p);
 	key = gh_scm2newstr(s_key, &keyl);
 	val = plugin_query(p, key);
 	free(key);
@@ -519,11 +543,31 @@ static SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 int glscript_init_filter()
 {
 	/* Register the filter SMOB to guile. */
-	filter_smob_tag = scm_make_smob_type("filter", sizeof(struct filter_smob));
+	filter_smob_tag = scm_make_smob_type("filter",
+					     sizeof(struct filter_smob));
 	scm_set_smob_free(filter_smob_tag, free_filter);
 	scm_set_smob_print(filter_smob_tag, print_filter);
 	scm_set_smob_equalp(filter_smob_tag, equalp_filter);
 	gh_new_procedure("filter?", (SCM (*)())filterp, 1, 0, 0);
+
+	/* Register the pipe, param, port and plugin SMOB to guile. */
+	pipe_smob_tag = scm_make_smob_type("pipe",
+					   sizeof(struct pointer_smob));
+	scm_set_smob_print(pipe_smob_tag, print_pointer);
+	scm_set_smob_equalp(pipe_smob_tag, equalp_pointer);
+	port_smob_tag = scm_make_smob_type("port",
+					   sizeof(struct pointer_smob));
+	scm_set_smob_print(port_smob_tag, print_pointer);
+	scm_set_smob_equalp(port_smob_tag, equalp_pointer);
+	param_smob_tag = scm_make_smob_type("param",
+					    sizeof(struct pointer_smob));
+	scm_set_smob_print(param_smob_tag, print_pointer);
+	scm_set_smob_equalp(param_smob_tag, equalp_pointer);
+	plugin_smob_tag = scm_make_smob_type("plugin",
+					     sizeof(struct pointer_smob));
+	scm_set_smob_print(plugin_smob_tag, print_pointer);
+	scm_set_smob_equalp(plugin_smob_tag, equalp_pointer);
+
 
 	/* filter */
 	gh_new_procedure("filternetwork_new",

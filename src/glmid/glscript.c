@@ -24,25 +24,17 @@
 #endif
 
 #include <guile/gh.h>
-#include <swapfile.h>
-#include <filter.h>
-#include <glplugin.h>
+#include "swapfile.h"
+#include "filter.h"
+#include "glplugin.h"
+#include "glscript.h"
 
-
-extern int glscript_init_swapfile();
-extern int glscript_init_filter();
 
 
 /* SMOB for generic C pointer.
  */
 
-static long pointer_smob_tag = 0;
-struct pointer_smob {
-	void *pointer;
-};
-#define SCM2POINTERSMOB(s) ((struct pointer_smob *)SCM_CDR(s))
-
-static int print_pointer(SCM pointer_smob, SCM port, scm_print_state *pstate)
+int print_pointer(SCM pointer_smob, SCM port, scm_print_state *pstate)
 {
 	struct pointer_smob *pointer = SCM2POINTERSMOB(pointer_smob);
 	char buf[256];
@@ -53,7 +45,7 @@ static int print_pointer(SCM pointer_smob, SCM port, scm_print_state *pstate)
 	return 1;
 }
 
-static SCM equalp_pointer(SCM pointer_smob1, SCM pointer_smob2)
+SCM equalp_pointer(SCM pointer_smob1, SCM pointer_smob2)
 {
 	struct pointer_smob *pointer1 = SCM2POINTERSMOB(pointer_smob1);
 	struct pointer_smob *pointer2 = SCM2POINTERSMOB(pointer_smob2);
@@ -64,7 +56,7 @@ static SCM equalp_pointer(SCM pointer_smob1, SCM pointer_smob2)
 }
 
 
-SCM pointer2scm(void *pointer)
+SCM pointer2scm(void *pointer, long smob_tag)
 {
 	struct pointer_smob *smob;
 	SCM pointer_smob;
@@ -75,41 +67,82 @@ SCM pointer2scm(void *pointer)
 	smob = (struct pointer_smob *)malloc(sizeof(struct pointer_smob));
 	smob->pointer = pointer;
 
-	SCM_NEWSMOB(pointer_smob, pointer_smob_tag, smob);
+	SCM_NEWSMOB(pointer_smob, smob_tag, smob);
 
 	return pointer_smob;
 }
 
-void *scm2pointer(SCM pointer_smob)
+void *scm2pointer(SCM pointer_smob, long smob_tag)
 {
 	struct pointer_smob *pointer = SCM2POINTERSMOB(pointer_smob);
 
 	SCM_ASSERT((SCM_NIMP(pointer_smob)
-		    && SCM_CAR(pointer_smob) == pointer_smob_tag),
+		    && SCM_CAR(pointer_smob) == smob_tag),
 		   pointer_smob, SCM_ARG1, "scm2pointer");
 
 	return pointer->pointer;
 }
 
-void scminvalidatepointer(SCM pointer_smob)
+void scminvalidatepointer(SCM pointer_smob, long smob_tag)
 {
 	struct pointer_smob *pointer = SCM2POINTERSMOB(pointer_smob);
 
 	SCM_ASSERT((SCM_NIMP(pointer_smob)
-		    && SCM_CAR(pointer_smob) == pointer_smob_tag),
-		   pointer_smob, SCM_ARG1, "scm2pointer");
+		    && SCM_CAR(pointer_smob) == smob_tag),
+		   pointer_smob, SCM_ARG1, "scminvalidatepointer");
 
 	pointer->pointer = NULL;
 }
 
-static SCM pointerp(SCM pointer_smob)
+
+/* SMOB for generic C long.
+ */
+
+int print_long(SCM long_smob, SCM port, scm_print_state *pstate)
 {
-	if (!SCM_NIMP(pointer_smob)
-	    || SCM_CAR(pointer_smob) != pointer_smob_tag)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+	struct long_smob *val = SCM2LONGSMOB(long_smob);
+	char buf[256];
+
+	snprintf(buf, 255, "#<long %li>", val->val);
+	scm_puts(buf, port);
+
+	return 1;
 }
 
+SCM equalp_long(SCM long_smob1, SCM long_smob2)
+{
+	struct long_smob *long1 = SCM2LONGSMOB(long_smob1);
+	struct long_smob *long2 = SCM2LONGSMOB(long_smob2);
+
+	if (long1->val == long2->val)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+
+SCM long2scm(long val, long smob_tag)
+{
+	struct long_smob *smob;
+	SCM long_smob;
+
+	smob = (struct long_smob *)malloc(sizeof(struct long_smob));
+	smob->val = val;
+
+	SCM_NEWSMOB(long_smob, smob_tag, smob);
+
+	return long_smob;
+}
+
+long scm2long(SCM long_smob, long smob_tag)
+{
+	struct long_smob *val = SCM2LONGSMOB(long_smob);
+
+	SCM_ASSERT((SCM_NIMP(long_smob)
+		    && SCM_CAR(long_smob) == smob_tag),
+		   long_smob, SCM_ARG1, "scm2long");
+
+	return val->val;
+}
 
 
 int glscript_init()
@@ -117,12 +150,6 @@ int glscript_init()
 	/* Tell scheme about installation directory of GLAME.
 	 */
 	gh_eval_str("(define glamedir \"" PKGDATADIR "\")");
-
-	/* Register the pointer SMOB to guile. */
-	pointer_smob_tag = scm_make_smob_type("pointer", sizeof(struct pointer_smob));
-	scm_set_smob_print(pointer_smob_tag, print_pointer);
-	scm_set_smob_equalp(pointer_smob_tag, equalp_pointer);
-	gh_new_procedure("pointer?", (SCM (*)())pointerp, 1, 0, 0);
 
 	/* Register scheme procedures for the subsystems.
 	 */
