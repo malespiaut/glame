@@ -1,9 +1,6 @@
 #ifndef _FILTER_TOOLS_H
 #define _FILTER_TOOLS_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 /* add your favorite generic tools for filter programming here */
 typedef struct list_head feedback_fifo_t;
