@@ -762,7 +762,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
-	gint32 start, length;
+	gint32 start, length, marker;
 	long nrtracks;
 	gpsm_swfile_t **files;
 	gpsm_item_t *item;
@@ -771,8 +771,9 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	float y_position = 20.0;
 	char position_buffer[20];
 
+	marker = gtk_wave_view_get_marker(waveview);
 	gtk_wave_view_get_selection (waveview, &start, &length);
-	if (length <= 0)
+	if (length <= 0 && marker < 0)
 		return;
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
@@ -784,26 +785,33 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *swout;
+		if (length <= 0)
+			goto no_swin;
 		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
 					  start, length);
 		if (!swin)
 			goto fail;
-		filter_add_node(net, swin, "swin");
-		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
-					    start, length);
-		if (!swout)
-			goto fail;
-		filter_add_node(net, swout, "swout");
 		filter_set_property(swin,"immutable","1");
 		sprintf(position_buffer,"%8f",20.0);
 		filter_set_property(swin,"canvas_x",position_buffer);
+		sprintf(position_buffer,"%8f",y_position);
+		filter_set_property(swin,"canvas_y",position_buffer);
+		filter_add_node(net, swin, "swin");
+
+	no_swin:
+		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
+					    length > 0 ? start : marker,
+					    length > 0 ? length : -1);
+		if (!swout)
+			goto fail;
+		filter_set_property(swout,"immutable","1");
 		sprintf(position_buffer,"%8f",420.0);
 		filter_set_property(swout,"canvas_x",position_buffer);
 		sprintf(position_buffer,"%8f",y_position);
-		filter_set_property(swin,"canvas_y",position_buffer);
 		filter_set_property(swout,"canvas_y",position_buffer);
+		filter_add_node(net, swout, "swout");
+
 		y_position += 100;
-		filter_set_property(swout,"immutable","1");
 	}
 	draw_network(net);
 	/* FIXME wave widget has to be asyncronously notified :-\ 
