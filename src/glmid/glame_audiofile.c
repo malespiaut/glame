@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.19 2001/12/16 23:13:36 nold Exp $
+ * $Id: glame_audiofile.c,v 1.20 2001/12/17 14:56:33 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -92,8 +92,8 @@ struct _AFfilehandle {
 	union {
 		struct {
 			size_t	size;	/* Size in bytes of data region */
-			fpos_t	start;	/* Start of data region */
-			fpos_t	data;	/* Current pointer to data region */
+			long	start;	/* Start of data region */
+			long	data;	/* Current pointer to data region */
 			int	block_align;	/* Frame alignment */
 			int	bps;	/* Bytes per second */
 			int	freq;	/* Sample rate */
@@ -215,7 +215,7 @@ static gl_s32 wav_read_chunk_data(AFfilehandle h, char *tag, gl_s32 size)
 		return -1;
 	}
 
-	fgetpos(h->fp, &(RWW(h).data));
+	RWW(h).data = ftell(h->fp);
 	RWW(h).start = RWW(h).data;
 	h->cnt = size / RWW(h).block_align;
 	if (size % RWW(h).block_align) {
@@ -293,7 +293,7 @@ static int wav_write_header(AFfilehandle h)
 	
 	if (fwrite("RIFF", 4, 1, h->fp) != 1)
 		goto err;
-	fgetpos(h->fp, &(RWW(h).start));
+	RWW(h).start = ftell(h->fp);
 	tmp = 0;
 	/* Don't know size yet, fixup later. */
 	if (fwrite(&tmp, 4, 1, h->fp) != 1)
@@ -330,7 +330,7 @@ static int wav_write_header(AFfilehandle h)
 		goto err;
 	if (fwrite("data", 4, 1, h->fp) != 1)
 		goto err;
-	fgetpos(h->fp, &(RWW(h).data));
+	RWW(h).data = ftell(h->fp);
 	tmp = 0;
 	/* Don't know size yet, fixup later. */
 	if (fwrite(&tmp, 4, 1, h->fp) != 1)
@@ -348,7 +348,7 @@ err:
  */
 static void wav_header_fixup(AFfilehandle h)
 {
-	fpos_t end;
+	long end;
 	gl_s32 size;
 	
 	end = ftell(h->fp);
@@ -358,13 +358,13 @@ static void wav_header_fixup(AFfilehandle h)
 	}
 	
 	/* data chunk */
-	if (!fsetpos(h->fp, &(RWW(h).data))) {
+	if (!fseek(h->fp, RWW(h).data, SEEK_SET)) {
 		size = __gl_cpu_to_le32(end - RWW(h).data - 4);
 		fwrite(&size, 4, 1, h->fp);
 	}
 	
 	/* RIFF chunk */
-	if (!fsetpos(h->fp, &(RWW(h).start))) {
+	if (!fseek(h->fp, RWW(h).start, SEEK_SET)) {
 		size = __gl_cpu_to_le32(end - RWW(h).start - 4);
 		fwrite(&size, 4, 1, h->fp);
 	}
@@ -627,7 +627,7 @@ int afReadFrames (AFfilehandle file, int track, void *buffer, int frameCount)
 	}
 	
 out:
-	fgetpos(file->fp, &(RWW(file).data));
+	RWW(file).data = ftell(file->fp);
 
 	return total - frameCount;
 }
