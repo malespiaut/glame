@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.50 2000/04/27 09:10:46 richi Exp $
+ * $Id: filter.h,v 1.51 2000/05/01 11:09:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -55,11 +55,6 @@ typedef struct filter_node filter_node_t;
 struct filter_network;
 typedef struct filter_network filter_network_t;
 
-struct filter_paramdesc;
-typedef struct filter_paramdesc filter_paramdesc_t;
-struct filter_param;
-typedef struct filter_param filter_param_t;
-
 struct filter_portdesc;
 typedef struct filter_portdesc filter_portdesc_t;
 struct filter_pipe;
@@ -69,8 +64,8 @@ struct filter_buffer;
 typedef struct filter_buffer filter_buffer_t;
 
 
+#include "filter_param.h"
 #include "filterI.h"
-
 
 
 
@@ -80,14 +75,16 @@ typedef struct filter_buffer filter_buffer_t;
 
 
 /* Signals sent out by the filter subsystem:
- * GLSIG_PARAM_CHANGED  - fixup_param() parameters
+ * GLSIG_PARAM_CHANGED  - filter_param_t
+ * GLSIG_PARAM_DELETED  - filter_param_t
  * GLSIG_PIPE_CHANGED   - filter_pipe_t
  * GLSIG_PIPE_DELETED   - filter_pipe_t
  * GLSIG_NODE_DELETED   - filter_node_t
  */
 #define GLSIG_PARAM_CHANGED 1
-#define GLSIG_PIPE_CHANGED 2
-#define GLSIG_PIPE_DELETED 4
+#define GLSIG_PARAM_DELETED 2
+#define GLSIG_PIPE_CHANGED 4
+#define GLSIG_PIPE_DELETED 5
 #define GLSIG_NODE_DELETED 8
 
 
@@ -110,12 +107,13 @@ struct filter {
 			  filter_pipe_t *p);
 	int (*set_param)(filter_node_t *n, filter_param_t *param,
 			 const void *val);
-	void (*fixup_param)(filter_node_t *n, filter_pipe_t *p,
-			    const char *name, filter_param_t *param);
 	void (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
 
-	/* parameter specification */
-	struct list_head params;
+	/* signal emitter. */
+	glsig_emitter_t emitter;
+
+	/* parameter database - default values. */
+	filter_pdb_t params;
 
 	/* input & output specification */
 	struct list_head inputs;
@@ -123,9 +121,7 @@ struct filter {
 
 	void *private;
 };
-#define filter_name(f) ((f)->name)
-#define filter_description(f) ((f)->description)
-#define filter_nrparams(f) (list_count(&(f)->params))
+#define filter_nrparams(f) (gldb_nritems(&(f)->params))
 #define filter_nrinputs(f) (list_count(&(f)->inputs))
 #define filter_nroutputs(f) (list_count(&(f)->outputs))
 
@@ -139,14 +135,8 @@ filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
 				    const char *description, int type);
 filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
 				     const char *description, int type);
-filter_paramdesc_t *filter_add_param(filter_t *filter, const char *label,
-				     const char *description, int type);
-filter_paramdesc_t *filterport_add_param(filter_portdesc_t *port,
-					 const char *label,
-					 const char *description, int type);
 
 void filter_delete_port(filter_t *filter, filter_portdesc_t *port);
-void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 
 /* Filter port declaration. Type is a mask actually which
  * should contain any allowed pipe types.
@@ -166,50 +156,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterportdesc_label(pd) ((pd)->label)
 #define filterportdesc_description(pd) ((pd)->description)
 #define filterportdesc_type(pd) ((pd)->type)
-#define filterportdesc_nrparams(pd) (list_count(&(pd)->params))
-#define filterportdesc_foreach_paramdesc(pd, d) \
-        list_foreach(&(pd)->params, filter_paramdesc_t, list, d)
-#define filterportdesc_get_paramdesc(pd, nm) \
-        __hash_entry(_hash_find((nm), (pd), _hash((nm), (pd)), \
-                     __hash_pos(filter_paramdesc_t, hash, label, namespace)), \
-                     filter_paramdesc_t, hash)
-
-/* Parameter declaration/instance types.
- * OUTPUT may be or'ed with the type to make the parameter
- * and output one.
- */
-#define FILTER_PARAMTYPE_OUTPUT  1
-#define FILTER_PARAMTYPE_INT     (1<<2)
-#define FILTER_PARAMTYPE_FLOAT   (2<<2)
-#define FILTER_PARAMTYPE_SAMPLE  (3<<2)
-#define FILTER_PARAMTYPE_STRING  (5<<2)
-#define FILTER_PARAMTYPE_LIST    (6<<2)
-#define FILTER_PARAM_IS_OUTPUT(type) ((type) & FILTER_PARAMTYPE_OUTPUT)
-#define FILTER_PARAMTYPE(type) ((type) & ~(FILTER_PARAMTYPE_OUTPUT))
-
-/* Public access macros for filter_paramdesc_t - the parameter definition
- * which is stored per filter_t or per filter_portdesc_t.
- */
-#define filterparamdesc_label(pd) ((pd)->label)
-#define filterparamdesc_description(pd) ((pd)->description)
-#define filterparamdesc_type(pd) ((pd)->type)
-
-/* Public access macros for the parameter type specific union
- */
-#define FILTER_PARAM_STRINGTYPE_GENERIC 0
-#define FILTER_PARAM_STRINGTYPE_FILENAME 1
-#define filterparamdesc_string_type(pd) ((pd)->u.string.type)
-#define filterparamdesc_string_settype(pd, t) ((pd)->u.string.type = (t))
-
-#define FILTER_PARAM_FLOATTYPE_GENERIC  0
-#define FILTER_PARAM_FLOATTYPE_TIME_MS  1
-#define FILTER_PARAM_FLOATTYPE_TIME_S   2
-#define FILTER_PARAM_FLOATTYPE_POSITION 3
-#define filterparamdesc_float_type(pd) ((pd)->u.f.type)
-#define filterparamdesc_float_settype(pd, t) ((pd)->u.f.type = (t))
-
-#define filterparamdesc_list_labels(pd) ((pd)->u.list.labels)
-#define filterparamdesc_list_setlabels(pd, l) ((pd)->u.list.labels = (l))
+#define filterportdesc_pdb(pd) (&(pd)->params)
 
 
 /* Attach a filter to a plugin.
@@ -235,15 +182,10 @@ void filter_attach(filter_t *, plugin_t *);
 #define filter_foreach_outputdesc(f, d) \
 	list_foreach(&(f)->outputs, filter_portdesc_t, list, d)
 
-/* Browse/find a parameter description.
- * filter_paramdesc_t *filter_get_paramdesc(filter_t *f, filter_t *f);
- * filter_foreach_paramdesc(filter_t *f, filter_paramdesc_t *d) { } */
-#define filter_get_paramdesc(f, n) \
-	__hash_entry(_hash_find((n), (f), _hash((n), (f)), \
-                     __hash_pos(filter_paramdesc_t, hash, label, namespace)), \
-                     filter_paramdesc_t, hash)
-#define filter_foreach_paramdesc(f, d) \
-	list_foreach(&(f)->params, filter_paramdesc_t, list, d)
+/* Browse/find a parameter description through the parameter database
+ * you can find using
+ * gldb_t *filter_pdb(filter_t *f); */
+#define filter_pdb(f) (&(f)->params)
 
 
 
@@ -325,9 +267,9 @@ filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
 filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 		      const char *node, const char *port,
 		      const char *label, const char *desc);
-filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
-		      const char *node, const char *param,
-              	      const char *label, const char *desc);
+filter_param_t *filternetwork_add_param(filter_network_t *net,
+					const char *node, const char *param,
+					const char *label, const char *desc);
 
 /* Delete wrappers to ports/parameters */
 void filternetwork_delete_param(filter_network_t *net, const char *label);
@@ -403,12 +345,10 @@ do { \
 #define filternode_foreach_output(n, p) \
 	list_foreach(&(n)->outputs, filter_pipe_t, output_list, p)
 
-/* Filternodes parameter query.
- * filter_param_t *hash_find_param(filter_node_t *n, const char *label); */
-#define filternode_get_param(node, n) \
-	__hash_entry(_hash_find((n), (node), _hash((n), (node)), \
-		     __hash_pos(filter_param_t, hash, label, namespace)), \
-                     filter_param_t, hash)
+/* Filternodes parameter query. Goes through the parameter database
+ * which you can get using
+ * gldb_t *filternode_pdb(filter_node_t *node); */
+#define filternode_pdb(node) (&(node)->params)
 
 
 /* Set the parameter with label label to the value pointed to by
@@ -417,36 +357,6 @@ do { \
  */
 int filternode_set_param(filter_node_t *n, const char *label, const void *val);
 
-
-/* Public access macros for filter_param_t - the parameter instance which
- * is stored per filter_node_t or per filter_pipe_t.
- * Get the type using filterparamdesc_type() and the filter_paramdesc_t
- * structure.
- */
-#define filterparam_val_int(fp) ((fp)->val.i)
-#define filterparam_val_float(fp) ((fp)->val.f)
-#define filterparam_val_file(fp) ((fp)->val.file)
-#define filterparam_val_sample(fp) ((fp)->val.sample)
-#define filterparam_val_string(fp) ((fp)->val.string)
-#define filterparam_val_list(fd) ((fp)->val.list)
-
-/* Parameter to/from string conversion routines.
- * Example use:
- *   param = filternode_get_param(node, "gain");
- *   str = filterparam_to_string(param);
- *   val = filterparamval_from_string(filter_get_paramdesc(f, "gain2), str);
- *   filternode_set_param(node2, "gain2", val);
- *   free(val);
- *   free(str);
- */
-char *filterparam_to_string(const filter_param_t *param);
-void *filterparamval_from_string(const filter_paramdesc_t *pdesc,
-				 const char *val);
-
-/* Set already existant parameter. Does not do any checks.
- * Use with care - does not cause GLSIG_PARAM_CHANGED signal.
- */
-void filterparam_set(filter_param_t *param, const void *val);
 
 
 /* Filter pipes represent a connection between two
@@ -487,26 +397,8 @@ void filterparam_set(filter_param_t *param, const void *val);
 #define filterpipe_sample_rate(fp) ((fp)->u.sample.rate)
 #define filterpipe_sample_hangle(fp) ((fp)->u.sample.phi)
 
-#define filterpipe_get_sourceparam(fp, n) \
-	__hash_entry(_hash_find((n), &(fp)->source_params, _hash((n), \
-                     &(fp)->source_params), \
-		     __hash_pos(filter_param_t, hash, label, namespace)), \
-                     filter_param_t, hash)
-#define filterpipe_get_destparam(fp, n) \
-	__hash_entry(_hash_find((n), &(fp)->dest_params, _hash((n), \
-                     &(fp)->dest_params), \
-		     __hash_pos(filter_param_t, hash, label, namespace)), \
-                     filter_param_t, hash)
-
-/* Set the source/destination end per-pipe parameter with label label to
- * the value pointed to by val.
- * Returns -1 if that is not possible.
- */
-int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label,
-			       const void *val);
-int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
-			     const void *val);
-
+#define filterpipe_sourcepdb(fp) (&(fp)->source_params)
+#define filterpipe_destpdb(fp) (&(fp)->dest_params)
 
 
 /* filter buffer stuff
@@ -615,6 +507,16 @@ do { \
  * for convenience.
  */
 #include "filter_tools.h"
+
+
+
+/* FIXME! - temporarily only.
+ * Wrappers to old filter API.
+ */
+
+#define filternode_get_param(n, l) filterpdb_get_param(filternode_pdb(n), l)
+#define filterpipe_get_sourceparam(p, l) filterpdb_get_param(filterpipe_sourcepdb(p), l)
+#define filterpipe_get_destparam(p, l) filterpdb_get_param(filterpipe_destpdb(p), l)
 
 
 #endif

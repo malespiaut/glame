@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.5 2000/04/25 08:58:00 richi Exp $
+ * $Id: noisegate.c,v 1.6 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *

@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.2 2000/04/25 08:58:00 richi Exp $
+ * $Id: pipe.c,v 1.3 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *

@@ -13,77 +13,6 @@ struct filter_buffer {
 void _buffer_free(filter_buffer_t *fb);
 
 
-struct filter_paramdesc {
-	struct list_head list;
-	struct hash_head hash;
-	void *namespace; /* NOTE: this is filter_t/portdesc_t */
-
-	const char *label;
-	const char *description;
-
-	int type;
-        union {
-		struct {
-			int type;
-		} string;
-	        struct {
-                        int type;
-	        } f;
-		struct {
-			const char **labels;
-		} list;
-        } u;
-
-	void *private;
-};
-/* parameter description hash/list addition/removal to filter or
- * port descriptions (the macros are transparent wrt to this).
- */
-#define hash_add_paramdesc(d, portfilter) do { (d)->namespace = (portfilter); \
-        _hash_add(&(d)->hash, _hash((d)->label, (portfilter))); } while (0)
-#define list_add_paramdesc(d, portfilter) list_add(&(d)->list, \
-        &(portfilter)->params)
-#define hash_remove_paramdesc(d) _hash_remove(&(d)->hash)
-#define list_remove_paramdesc(d) list_del(&(d)->list)
-
-
-struct filter_param {
-	struct list_head list;
-	struct hash_head hash;
-	const char *label;
-	void *namespace; /* NOTE: this is node/pipe */
-
-	/* signal emitter, known signals are
-	 * GLSIG_PARAM_CHANGED */
-	glsig_emitter_t emitter;
-
-	filter_paramdesc_t *desc;
-	union {
-		int i;
-		float f;
-		SAMPLE sample;
-		char *string;
-		int list;
-	} val;
-};
-/* parameter hash/list addition/removal to filter nodes or
- * to filter pipes (the remove macros are transparent wrt to this).
- */
-#define hash_add_param(p, node) do { (p)->namespace = node; \
-        _hash_add(&(p)->hash, _hash((p)->label, node)); } while (0)
-#define hash_add_sourceparam(p, pp) do { \
-        (p)->namespace = &(pp)->source_params; _hash_add(&(p)->hash, \
-	_hash((p)->label, &(pp)->source_params)); } while (0)
-#define hash_add_destparam(p, pp) do { \
-        (p)->namespace = &(pp)->dest_params; _hash_add(&(p)->hash, \
-	_hash((p)->label, &(pp)->dest_params)); } while (0)
-#define list_add_param(p, node) list_add(&(p)->list, &(node)->params)
-#define list_add_sourceparam(p, pp) list_add(&(p)->list, &(pp)->source_params)
-#define list_add_destparam(p, pp) list_add(&(p)->list, &(pp)->dest_params)
-#define hash_remove_param(p) _hash_remove(&(p)->hash)
-#define list_remove_param(p) list_del(&(p)->list)
-
-
 struct filter_portdesc {
 	struct list_head list;
 	struct hash_head hash;
@@ -95,7 +24,7 @@ struct filter_portdesc {
 	const char *description;
 
         filter_t *filter;
-	struct list_head params;
+	filter_pdb_t params;
 
 	void *private;
 };
@@ -108,10 +37,6 @@ struct filter_portdesc {
 #define list_add_outputdesc(d, f) list_add(&(d)->list, &(f)->outputs)
 #define hash_remove_portdesc(d) _hash_remove(&(d)->hash)
 #define list_remove_portdesc(d) list_del(&(d)->list)
-/* query parameter descriptions from the port description.
- */
-#define filterportdesc_first_paramdesc(pd) list_gethead(&(pd)->params, \
-        filter_paramdesc_t, list)
 
 
 struct filter_pipe {
@@ -128,9 +53,9 @@ struct filter_pipe {
 
 	/* pipe specific parameters */
 	filter_portdesc_t *source_port;
-	struct list_head source_params;
+	filter_pdb_t source_params;
 	filter_portdesc_t *dest_port;
-	struct list_head dest_params;
+	filter_pdb_t dest_params;
 
 	/* Signal emitter. Know signals are
 	 * GLSIG_PIPE_CHANGED
@@ -170,16 +95,6 @@ struct filter_pipe {
 #define list_add_output(p, node) list_add(&(p)->output_list, &(node)->outputs)
 #define hash_remove_output(p) _hash_remove(&(p)->output_hash)
 #define list_remove_output(p) list_del(&(p)->output_list)
-/* query parameters from the pipe.
- */
-#define filterpipe_first_sourceparam(p) list_gethead(&(p)->source_params, \
-	filter_param_t, list)
-#define filterpipe_first_destparam(p) list_gethead(&(p)->source_params, \
-	filter_param_t, list)
-#define filterpipe_foreach_sourceparam(p, parm) \
-        list_foreach(&(p)->source_params, filter_param_t, list, parm)
-#define filterpipe_foreach_destparam(p, parm) \
-        list_foreach(&(p)->dest_params, filter_param_t, list, parm)
 
 
 /* Global filter registry (via plugin) */
@@ -193,8 +108,6 @@ struct filter_pipe {
         filter_portdesc_t, list)
 #define filter_first_output_portdesc(f) list_gethead(&(f)->outputs, \
         filter_portdesc_t, list)
-#define filter_first_paramdesc(f) list_gethead(&(f)->params, \
-        filter_paramdesc_t, list)
 
 
 #define STATE_RUNNING 3
@@ -244,8 +157,8 @@ struct filter_node {
 	/* filter node operations */
 	struct filter_node_operations *ops;
 
-	/* parameters */
-	struct list_head params;
+	/* Parameter database. */
+	filter_pdb_t params;
 
 	/* Pipes connected as input/output. All input/output pipes are linked
 	 * into the inputs/outputs list and hashed using the input/output slots
@@ -273,10 +186,7 @@ struct filter_node {
         filter_pipe_t, input_list)
 #define filternode_first_output(node) list_gethead(&(node)->outputs, \
         filter_pipe_t, output_list)
-#define filternode_first_param(node) list_gethead(&(node)->params, \
-        filter_param_t, list)
-#define filternode_foreach_param(node, p) \
-        list_foreach(&(n)->params, filter_param_t, list, p)
+#define filternode_pdb(node) (&(node)->params)
 
 #define filternode_clear_error(n) \
 do { \

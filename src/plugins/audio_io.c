@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.17 2000/04/25 09:05:23 richi Exp $
+ * $Id: audio_io.c,v 1.18 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -126,43 +126,44 @@ static void aio_generic_fixup_pipe(filter_node_t *src, filter_pipe_t *pipe)
 
 /* Generic fixup_param method for audio input filters. */
 
-static void aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
-				    const char *name, filter_param_t *param)
+static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
+	filter_param_t *param;
+	filter_node_t *n;
+	filter_pipe_t *out;
 	int rate;
 
-	/* FIXME: param setting checks belong to set_param()
-	 * now. fixup_param is only fixup. */
-	if (pipe) {
-		/* Must've been a hangle change. */
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_node(param);
+
+	if (out && strcmp("position", filterparam_label(param)) == 0) {
+		/* FIXME: param setting checks belong to set_param()
+		 * now. fixup_param is only fixup. */
 		float hangle = filterparam_val_float(param);
 		if (hangle <= -M_PI || hangle > M_PI)
 			return;
-		filterpipe_sample_hangle(pipe) = hangle;
-		src->filter->fixup_pipe(src, pipe);
-		return;
-	}
-	if (strcmp(name, "rate"))
-		return;	/* Device changes are always okay. */
+		out = filterparam_get_sourcepipe(param);
+		filterpipe_sample_hangle(out) = hangle;
+		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 
-	rate = filterparam_val_int(param);
-	
-	/* Make sure to update rate param on all pipes
-	 */
-	filternode_foreach_output(src, pipe) {
-		if (filterpipe_sample_rate(pipe) == rate)
-			continue;
-		filterpipe_sample_rate(pipe) = rate; /* WTF?? */
-		src->filter->fixup_pipe(src, pipe);
+	} else if (strcmp("rate", filterparam_label(param)) == 0) {
+		rate = filterparam_val_int(param);
+		/* Make sure to update rate param on all pipes
+		 */
+		filternode_foreach_output(n, out) {
+			if (filterpipe_sample_rate(out) == rate)
+				continue;
+			filterpipe_sample_rate(out) = rate;
+			glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
+		}
 	}
 }
 /* Clumsy try to clean up the register mess a bit. */
 
-static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_node_t *))
+static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_node_t *), const char *defaultdevice)
 {
 	filter_t *filter;
 	filter_portdesc_t *p;
-	filter_paramdesc_t *dur, *pos;
 
 	if (!f)
 		return -1;
@@ -170,26 +171,26 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 	if (!pl && !(pl = plugin_add(name)))
 		return -1;
 
-	if (!(filter = filter_alloc(f)) ||
-		!(p = filter_add_output(filter, PORTNAME_OUT, "output port",
-				FILTER_PORTTYPE_SAMPLE |
-				FILTER_PORTTYPE_AUTOMATIC)) ||
-		!filter_add_param(filter, "rate", "sample rate", 
-				FILTER_PARAMTYPE_INT) ||
-		!(dur = filter_add_param(filter, "duration", 
-				"seconds to record", 
-				FILTER_PARAMTYPE_FLOAT)) ||
-		!filter_add_param(filter, "device", "input device",
-				FILTER_PARAMTYPE_STRING) ||
-		!(pos = filterport_add_param(p, "position", 
-		                             "position of the stream",
-		                             FILTER_PARAMTYPE_FLOAT)))
+	if (!(filter = filter_alloc(f)))
 		return -1;
 
-	filterparamdesc_float_settype(dur, FILTER_PARAM_FLOATTYPE_TIME_S);
-	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
+	p = filter_add_output(filter, PORTNAME_OUT, "output port",
+			      FILTER_PORTTYPE_SAMPLE |
+			      FILTER_PORTTYPE_AUTOMATIC);
+	filterpdb_add_param_float(filterportdesc_pdb(p), "position",
+				  FILTER_PARAMTYPE_POSITION,
+				  FILTER_PIPEPOS_DEFAULT);
+
+	filterpdb_add_param_int(filter_pdb(filter), "rate",
+				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE);
+	filterpdb_add_param_float(filter_pdb(filter), "duration", 
+				  FILTER_PARAMTYPE_TIME_S, 10.0);
+	filterpdb_add_param_string(filter_pdb(filter), "device",
+				   FILTER_PARAMTYPE_STRING, defaultdevice);
+
 	filter->connect_out = aio_generic_connect_out;
-	filter->fixup_param = aio_generic_fixup_param;
+	glsig_add_handler(&filter->emitter, GLSIG_PARAM_CHANGED,
+			  aio_generic_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "aout.png");
@@ -198,7 +199,7 @@ static int aio_generic_register_input(plugin_t *pl, char *name, int (*f)(filter_
 	return 0;
 }
 			
-static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_node_t *)) 
+static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_node_t *), const char *defaultdevice) 
 {
 	filter_t *filter;
 	
@@ -207,13 +208,15 @@ static int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter
 	if (!pl && !(pl = plugin_add(name)))
 		return -1;
 	
-	if (!(filter=filter_alloc(f)) ||
-		!filter_add_input(filter, PORTNAME_IN, "input port",
-				FILTER_PORTTYPE_SAMPLE | 
-				FILTER_PORTTYPE_AUTOMATIC) ||
-		!filter_add_param(filter, "device", "output device",
-				FILTER_PARAMTYPE_STRING))
+	if (!(filter=filter_alloc(f)))
 		return -1;
+
+	filter_add_input(filter, PORTNAME_IN, "input port",
+			 FILTER_PORTTYPE_SAMPLE | 
+			 FILTER_PORTTYPE_AUTOMATIC);
+	filterpdb_add_param_string(filter_pdb(filter), "device",
+				   FILTER_PARAMTYPE_STRING, defaultdevice);
+
 	filter->connect_in = aio_generic_connect_in;
 	filter->fixup_pipe = aio_generic_fixup_pipe;
 
@@ -1139,35 +1142,45 @@ _entry:
 int audio_out_register(plugin_t *p)
 {
 	int (*audio_out)(filter_node_t *);
+	const char *defdev;
 
 	audio_out = NULL;
 
 #if defined HAVE_OSS
-	if (!aio_generic_register_output(NULL, "oss-audio-out", oss_audio_out_f))
+	if (!aio_generic_register_output(NULL, "oss-audio-out", oss_audio_out_f, "/dev/dsp")) {
 		audio_out = oss_audio_out_f;
+		defdev = "/dev/dsp";
+	}
 #endif
 #if defined HAVE_ALSA
-	if (!aio_generic_register_output(NULL, "alsa-audio-out", alsa_audio_out_f))
+	if (!aio_generic_register_output(NULL, "alsa-audio-out", alsa_audio_out_f, "FIXME")) {
 		audio_out = alsa_audio_out_f;
+		defdev = "FIXME";
+	}
 #endif 
 #if defined HAVE_ESD
-	if (!aio_generic_register_output(NULL, "esd-audio-out", esd_out_f)) 
+	if (!aio_generic_register_output(NULL, "esd-audio-out", esd_out_f, NULL)) {
 		audio_out = esd_out_f;
+		defdev = NULL;
+	}
 #endif
 #if defined HAVE_SGIAUDIO
-	if (!aio_generic_register_output(NULL, "sgi-audio-out", sgi_audio_out_f)) 
+	if (!aio_generic_register_output(NULL, "sgi-audio-out", sgi_audio_out_f, NULL)) {
 		audio_out = sgi_audio_out_f;
+		defdev = NULL;
+	}
 #endif
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
 
-	return aio_generic_register_output(p, "audio-out", audio_out);
+	return aio_generic_register_output(p, "audio-out", audio_out, defdev);
 }
 
 int audio_in_register(plugin_t *p)
 {
 	int (*audio_in)(filter_node_t *);
+	const char *defdev = NULL;
 
 	audio_in = NULL;
 
@@ -1178,7 +1191,7 @@ int audio_in_register(plugin_t *p)
 	/* TODO */
 #endif 
 #if defined HAVE_ESD
-	if (!aio_generic_register_input(NULL, "esd-audio-in", esd_in_f))
+	if (!aio_generic_register_input(NULL, "esd-audio-in", esd_in_f, NULL))
 		audio_in = esd_in_f;
 #endif
 #if defined HAVE_SGIAUDIO
@@ -1188,5 +1201,5 @@ int audio_in_register(plugin_t *p)
 	/* TODO */
 #endif
 
-	return aio_generic_register_input(p, "audio-in", audio_in);
+	return aio_generic_register_input(p, "audio-in", audio_in, defdev);
 }

@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.17 2000/04/25 13:44:52 richi Exp $
+@comment $Id: filter.texi,v 1.18 2000/05/01 11:09:03 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -378,18 +378,6 @@ pipes with respect to their types and parameters. You also have to
 forward the fixup request to each changed pipe by calling its
 destination's fixup method. Return -1 if anything is wrong with the setup, 
 else return 0.
-@end deftypefn
-
-@tindex filter_node_t
-@tindex filter_pipe_t
-@deftypefn Method void fixup_break_in (filter_node_t *@var{n}, filter_pipe_t *@var{in})
-@tindex filter_node_t
-@tindex filter_pipe_t
-@deftypefnx Method void fixup_break_out (filter_node_t *@var{n}, filter_pipe_t *@var{out})
-@code{fixup_break_in()} and @code{fixup_break_out()} are called by all 
-connection breaking functions. You are required to check the setup after the
-breaking of a connection and do anything necessary to
-return to a sane state. The provided pipes are disconnected already.
 @end deftypefn
 
 

@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.8 2000/04/25 09:05:23 richi Exp $
+ * $Id: track_io.c,v 1.9 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -94,18 +94,22 @@ static int track_in_f(filter_node_t *n)
 
 	return 0;
 }
-static void track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				 const char *name, filter_param_t *param)
+static void track_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
-	filter_param_t *chan, *group;
+	filter_param_t *param;
+	filter_node_t *n;
 	filter_pipe_t *out;
+	const char *track, *group;
 	track_t *c;
 
-	if (!(chan = filternode_get_param(n, "track"))
-	    || !(group = filternode_get_param(n, "group")))
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_node(param);
+	track = filterparam_val_string(filternode_get_param(n, "track"));
+	group = filterparam_val_string(filternode_get_param(n, "group"));
+	if (!track || !group)
 		return;
-	if (!(c = track_get(filterparam_val_string(group),
-			    filterparam_val_string(chan)))) {
+
+	if (!(c = track_get(group, track))) {
 		filternode_set_error(n, "track not found");
 		return;
 	}
@@ -116,7 +120,7 @@ static void track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	/* fix the output pipe stream information */
 	filterpipe_settype_sample(out, track_rate(c), 
 				  track_hangle(c));
-	out->dest->filter->fixup_pipe(out->dest, out);
+	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
 static int track_in_connect_out(filter_node_t *n, const char *port,
@@ -144,15 +148,19 @@ int track_in_register(plugin_t *p)
 
 	if (!(f = filter_alloc(track_in_f)))
 		return -1;
-	f->fixup_param = track_in_fixup_param;
+
+	filter_add_output(f, PORTNAME_OUT, "output stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	filterpdb_add_param_string(filter_pdb(f), "track",
+				   FILTER_PARAMTYPE_STRING, NULL);
+	filterpdb_add_param_string(filter_pdb(f), "group",
+				   FILTER_PARAMTYPE_STRING, NULL);
+
 	f->connect_out = track_in_connect_out;
-	if (!filter_add_param(f, "track", "input track",
-			      FILTER_PARAMTYPE_STRING)
-	    || !filter_add_param(f, "group", "input group",
-				 FILTER_PARAMTYPE_STRING)
-	    || !filter_add_output(f, PORTNAME_OUT, "output stream",
-				  FILTER_PORTTYPE_SAMPLE))
-		return -1;
+
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
+			  track_in_fixup_param, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "track to audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
@@ -234,14 +242,16 @@ int track_out_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(track_out_f))
-	    || !filter_add_param(f, "track", "output track",
-				 FILTER_PARAMTYPE_STRING)
-	    || !filter_add_param(f, "group", "output group",
-				 FILTER_PARAMTYPE_STRING)
-	    || !filter_add_input(f, PORTNAME_IN, "input stream",
-				 FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_alloc(track_out_f)))
 		return -1;
+
+	filter_add_input(f, PORTNAME_IN, "input stream",
+			 FILTER_PORTTYPE_SAMPLE);
+
+	filterpdb_add_param_string(filter_pdb(f), "group",
+				   FILTER_PARAMTYPE_STRING, NULL);
+	filterpdb_add_param_string(filter_pdb(f), "track",
+				   FILTER_PARAMTYPE_STRING, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to track");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");

@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.12 2000/04/27 09:10:46 richi Exp $
+ * $Id: filter_mm.c,v 1.13 2000/05/01 11:09:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -32,100 +32,6 @@
 
 
 
-filter_paramdesc_t *_paramdesc_alloc(const char *label, int type,
-				     const char *desc)
-{
-	filter_paramdesc_t *d;
-
-	if (!(d = ALLOC(filter_paramdesc_t)))
-		return NULL;
-	INIT_LIST_HEAD(&d->list);
-	INIT_HASH_HEAD(&d->hash);
-	d->label = strdup(label);
-	d->type = type;
-	d->description = strdup(desc);
-	if (d->label && d->description)
-		return d;
-
-	free((char *)d->label);
-	free((char *)d->description);
-	free(d);
-	return NULL;
-}
-
-void _paramdesc_free(filter_paramdesc_t *d)
-{
-	if (!d)
-		return;
-	free((char *)d->label);
-	free((char *)d->description);
-	free(d);
-}
-
-
-static void _fixup_param_sig(glsig_handler_t *e, long sig, va_list va)
-{
-	filter_node_t *n;
-	filter_pipe_t *pipe;
-	filter_param_t *param;
-	const char *name;
-
-	GLSIGH_GETARGS4(va, n, pipe, name, param);
-	n->filter->fixup_param(n, pipe, name, param);
-}
-
-filter_param_t *_param_alloc(filter_paramdesc_t *d)
-{
-	filter_param_t *p;
-
-	if (!(p = ALLOC(filter_param_t)))
-		return NULL;
-	INIT_LIST_HEAD(&p->list);
-	INIT_HASH_HEAD(&p->hash);
-	p->label = d->label;
-	p->desc = d;
-	switch (FILTER_PARAMTYPE(d->type)) {
-	case FILTER_PARAMTYPE_INT:
-		p->val.i = 0;
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		p->val.f = 0.0;
-		break;
-	case FILTER_PARAMTYPE_SAMPLE:
-		p->val.sample = 0;
-		break;
-	case FILTER_PARAMTYPE_STRING:
-	        p->val.string = NULL;
-		break;
-	case FILTER_PARAMTYPE_LIST:
-	        p->val.list = -1;
-                break;
-	default:
-		return NULL;
-	}
-
-	/* init emitter - attach fixup_param wrapper */
-	INIT_GLSIG_EMITTER(&p->emitter);
-	glsig_add_handler(&p->emitter, GLSIG_PARAM_CHANGED,
-			  _fixup_param_sig, NULL);
-
-	return p;
-}
-
-void _param_free(filter_param_t *p)
-{
-	glsig_delete_all_handlers(&p->emitter);
-	switch (FILTER_PARAMTYPE(p->desc->type)) {
-	case FILTER_PARAMTYPE_STRING:
-		free(p->val.string);
-		break;
-	default:
-		break;
-	}
-	free(p);
-}
-
-
 filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
 				   int type, const char *desc)
 {
@@ -139,7 +45,7 @@ filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
 	d->type = type;
 	d->description = strdup(desc);
 	d->filter = filter;
-	INIT_LIST_HEAD(&d->params);
+	filterpdb_init(&d->params, NULL);
 	if (d->label && d->description)
 		return d;
 
@@ -151,15 +57,9 @@ filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
 
 void _portdesc_free(filter_portdesc_t *d)
 {
-	filter_paramdesc_t *p;
-
 	if (!d)
 		return;
-	while ((p = filterportdesc_first_paramdesc(d))) {
-		hash_remove_paramdesc(p);
-		list_remove_paramdesc(p);
-		_paramdesc_free(p);
-	}
+	filterpdb_delete(&d->params);
 	free((char *)d->label);
 	free((char *)d->description);
 	free(d);
@@ -187,10 +87,11 @@ filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
 	INIT_HASH_HEAD(&p->output_hash);
 	p->source_fd = -1;
 	p->dest_fd = -1;
+
+	/* Init & copy of source/dest parameters is delayed!
+	 * -- see filter_network.c::filternetwork_add_connection() */
 	p->source_port = sourceport;
-	INIT_LIST_HEAD(&p->source_params);
 	p->dest_port = destport;
-	INIT_LIST_HEAD(&p->dest_params);
 
 	/* init emitter & install fixup_pipe wrapper */
 	INIT_GLSIG_EMITTER(&p->emitter);
@@ -202,8 +103,6 @@ filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
 
 void _pipe_free(filter_pipe_t *p)
 {
-	filter_param_t *param;
-
 	if (!p)
 		return;
 
@@ -211,17 +110,10 @@ void _pipe_free(filter_pipe_t *p)
 	glsig_emit(&p->emitter, GLSIG_PIPE_DELETED, p);
 
 	/* delete source & dest params */
-	while ((param = filterpipe_first_sourceparam(p))) {
-		hash_remove_param(param);
-		list_remove_param(param);
-		_param_free(param);
-	}
-	while ((param = filterpipe_first_destparam(p))) {
-		hash_remove_param(param);
-		list_remove_param(param);
-		_param_free(param);
-	}
+	filterpdb_delete(&p->source_params);
+	filterpdb_delete(&p->dest_params);
 
+	/* delete signal handlers */
 	glsig_delete_all_handlers(&p->emitter);
 	free(p);
 }
@@ -240,7 +132,6 @@ filter_t *_filter_alloc(int flags)
 	f->connect_out = filter_default_connect_out;
 	f->connect_in = filter_default_connect_in;
 	f->set_param = filter_default_set_param;
-	f->fixup_param = filter_default_fixup_param;
 	f->fixup_pipe = filter_default_fixup_pipe;
 	if (flags & FILTER_FLAG_NETWORK) {
 		f->f = filter_network_f;
@@ -249,7 +140,8 @@ filter_t *_filter_alloc(int flags)
 		f->connect_in = filter_network_connect_in;
 		f->set_param = filter_network_set_param;
 	}
-	INIT_LIST_HEAD(&f->params);
+	INIT_GLSIG_EMITTER(&f->emitter);
+	filterpdb_init(&f->params, NULL);
 	INIT_LIST_HEAD(&f->inputs);
 	INIT_LIST_HEAD(&f->outputs);
 	f->private = NULL;
@@ -258,16 +150,11 @@ filter_t *_filter_alloc(int flags)
 
 void _filter_free(filter_t *f)
 {
-	filter_paramdesc_t *paramd;
 	filter_portdesc_t *portd;
 
 	if (!f)
 		return;
-	while ((paramd = filter_first_paramdesc(f))) {
-		hash_remove_paramdesc(paramd);
-		list_remove_paramdesc(paramd);
-		_paramdesc_free(paramd);
-	}
+	filterpdb_delete(&f->params);
 	while ((portd = filter_first_input_portdesc(f))) {
 		hash_remove_portdesc(portd);
 		list_remove_portdesc(portd);
@@ -278,6 +165,7 @@ void _filter_free(filter_t *f)
 		list_remove_portdesc(portd);
 		_portdesc_free(portd);
 	}
+	glsig_delete_all_handlers(&f->emitter);
 	free(f);
 }
 
@@ -316,7 +204,7 @@ static int _node_init(filter_node_t *n, const char *name)
 	n->private = NULL;
 	n->ops = &filter_node_ops;
 	INIT_GLSIG_EMITTER(&n->emitter);
-	INIT_LIST_HEAD(&n->params);
+	filterpdb_init(&n->params, n);
 	n->nr_inputs = 0;
 	INIT_LIST_HEAD(&n->inputs);
 	n->nr_outputs = 0;
@@ -329,14 +217,9 @@ static int _node_init(filter_node_t *n, const char *name)
 
 static void __node_free(filter_node_t *n)
 {
-	filter_param_t *param;
 	filter_pipe_t *pipe;
 
-	while ((param = filternode_first_param(n))) {
-		hash_remove_param(param);
-		list_remove_param(param);
-		_param_free(param);
-	}
+	filterpdb_delete(&n->params);
 	while ((pipe = filternode_first_input(n))) {
 		hash_remove_input(pipe);
 		list_remove_input(pipe);
@@ -412,6 +295,12 @@ filter_node_t *_filter_instantiate(filter_t *f, const char *name)
 	if (f->flags & FILTER_FLAG_NETWORK)
 		if (_network_init(FILTER_NETWORK(n)) == -1)
 			goto err;
+
+	/* install signal redirector */
+	glsig_add_redirector(&n->emitter, &f->emitter);
+
+	/* copy params */
+	filterpdb_copy(&n->params, &f->params);
 	n->filter = f;
 
 	if (f->init && f->init(n) == -1)

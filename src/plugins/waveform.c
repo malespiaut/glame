@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.7 2000/04/25 09:05:23 richi Exp $
+ * $Id: waveform.c,v 1.8 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -60,16 +60,19 @@ static int waveform_connect_out(filter_node_t *n, const char *port,
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
 }
-static void waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				 const char *name, filter_param_t *param)
+static void waveform_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
+	filter_param_t *param;
+	filter_node_t *n;
 	filter_pipe_t *out;
+
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_node(param);
 
 	if ((out = filternode_get_output(n, PORTNAME_OUT))) {
 		waveform_connect_out(n, NULL, out);
-		out->dest->filter->fixup_pipe(n, out);
+		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	}
-	return;
 }
 
 /* Standard waveform register. Does add the output port and the parameters "rate"
@@ -78,21 +81,19 @@ static void waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
 static filter_t *waveform_filter_alloc(int (*fm)(filter_node_t *))
 {
 	filter_t *f;
-	filter_paramdesc_t *pos;
 
-	if (!(f = filter_alloc(fm))
-	    || !filter_add_output(f, PORTNAME_OUT, "waveform output stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f, "rate", 
-	                         "samplerate of the generated output",
-				 FILTER_PARAMTYPE_INT)
-	    || !(pos = filter_add_param(f, "position", 
-	                                "position of the output stream",
-	                                FILTER_PARAMTYPE_FLOAT)))
+	if (!(f = filter_alloc(fm)))
 		return NULL;
-	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
+	filter_add_output(f, PORTNAME_OUT, "waveform output stream",
+			  FILTER_PORTTYPE_SAMPLE);
+	filterpdb_add_param_int(filter_pdb(f), "rate", 
+				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE);
+	filterpdb_add_param_float(filter_pdb(f), "position", 
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+
 	f->connect_out = waveform_connect_out;
-	f->fixup_param = waveform_fixup_param;
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
+			  waveform_fixup_param, NULL);
 
 	return f;
 }
@@ -164,12 +165,13 @@ int sine_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = waveform_filter_alloc(sine_f))
-	    || !filter_add_param(f, "amplitude", "sine peak amplitude(0.0-1.0)",
-				 FILTER_PARAMTYPE_SAMPLE)
-	    || !filter_add_param(f, "frequency", "sine frequency in Hz",
-				 FILTER_PARAMTYPE_FLOAT))
+	if (!(f = waveform_filter_alloc(sine_f)))
 		return -1;
+
+	filterpdb_add_param_float(filter_pdb(f), "amplitude",
+				  FILTER_PARAMTYPE_SAMPLE, 1.0);
+	filterpdb_add_param_float(filter_pdb(f), "frequency",
+				  FILTER_PARAMTYPE_FLOAT, 441.0);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
 	filter_attach(f, p);
@@ -227,10 +229,11 @@ int const_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = waveform_filter_alloc(const_f))
-	    || !filter_add_param(f, "value", "signal value",
-				 FILTER_PARAMTYPE_SAMPLE))
+	if (!(f = waveform_filter_alloc(const_f)))
 		return -1;
+
+	filterpdb_add_param_float(filter_pdb(f), "value",
+				  FILTER_PARAMTYPE_SAMPLE, 1.0);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
 	filter_attach(f, p);

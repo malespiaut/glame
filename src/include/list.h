@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.10 2000/04/25 08:58:00 richi Exp $
+ * $Id: list.h,v 1.11 2000/05/01 11:09:04 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *

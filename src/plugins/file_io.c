@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.25 2000/04/27 09:10:46 richi Exp $
+ * $Id: file_io.c,v 1.26 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -231,13 +231,20 @@ static int read_file_connect_out(filter_node_t *n, const char *port,
 	 * connection, but not the file here. */
 	return RWPRIV(n)->rw->connect(n, p);
 }
-static void read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				  const char *name, filter_param_t *param)
+static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
+	filter_param_t *param;
+	filter_node_t *n;
+	filter_pipe_t *p;
 	rw_t *r;
 
-	/* only pipe param change (position)? */
-	if (p && RWPRIV(n)->rw) {
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_node(param);
+
+	/* only position param change? */
+	if (RWPRIV(n)->rw
+	    && strcmp("position", filterparam_label(param)) == 0) {
+		p = filterparam_get_sourcepipe(param);
 		if (RWPRIV(n)->rw->connect(n, p) == -1)
 			filternetwork_break_connection(p);
 		return;
@@ -282,7 +289,7 @@ static void read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 			filternetwork_break_connection(p);
 			goto reconnect;
 		}
-		p->dest->filter->fixup_pipe(p->dest, p);
+		glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 	}
 }
 
@@ -297,16 +304,16 @@ static int write_file_f(filter_node_t *n)
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-static void write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				   const char *name, filter_param_t *param)
+static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
+	filter_param_t *param;
+	filter_node_t *n;
 	regex_t rx;
 	rw_t *w;
 
-	if (p){
-		DPRINTF("Pipe change\n");
-		return;
-	}
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_node(param);
+
         /* only filename change possible in writer. */
 	RWPRIV(n)->initted = 0;
 	RWPRIV(n)->rw = NULL;
@@ -331,21 +338,21 @@ int read_file_register(plugin_t *pl)
 {
 	filter_t *f;
 	filter_portdesc_t *p;
-	filter_paramdesc_t *d, *pos;
-	if (!(f = filter_alloc(read_file_f))
-	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
-				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
-	    || !(pos = filterport_add_param(p, "position", 
-	                                    "position of the stream",
-	                                    FILTER_PARAMTYPE_FLOAT))
-	    || !(d = filter_add_param(f, "filename", "filename",
-				    FILTER_PARAMTYPE_STRING)))
+
+	if (!(f = filter_alloc(read_file_f)))
 		return -1;
-	filterparamdesc_float_settype(pos, FILTER_PARAM_FLOATTYPE_POSITION);
-	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
+
+	p = filter_add_output(f, PORTNAME_OUT, "output channels",
+			      FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC);
+	filterpdb_add_param_float(filterportdesc_pdb(p), "position", 
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+	filterpdb_add_param_string(filter_pdb(f), "filename",
+				   FILTER_PARAMTYPE_FILENAME, NULL);
+
 	f->init = rw_file_init;
 	f->connect_out = read_file_connect_out;
-	f->fixup_param = read_file_fixup_param;
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
+			  read_file_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "default.png");
@@ -357,18 +364,18 @@ int read_file_register(plugin_t *pl)
 int write_file_register(plugin_t *pl)
 {
 	filter_t *f;
-	filter_portdesc_t *p;
-	filter_paramdesc_t *d;
 
-	if (!(f = filter_alloc(write_file_f))
-	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
-				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
-	    || !(d = filter_add_param(f, "filename", "filename",
-				      FILTER_PARAMTYPE_STRING)))
-	  return -1;
-	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
+	if (!(f = filter_alloc(write_file_f)))
+		return -1;
+
+	filter_add_input(f, PORTNAME_IN, "input channels",
+			 FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC);
+	filterpdb_add_param_string(filter_pdb(f), "filename",
+				   FILTER_PARAMTYPE_FILENAME, NULL);
+
 	f->init = rw_file_init;
-	f->fixup_param = write_file_fixup_param;
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
+			  write_file_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "default.xpm");

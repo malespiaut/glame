@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.22 2000/04/25 14:56:41 richi Exp $
+ * $Id: canvas.c,v 1.23 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -30,6 +30,15 @@
 static gint connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data);
 static void connection_break(GlameConnection* connection);
 
+static void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item);
+static void
+edit_canvas_pipe_source_properties_cb(GtkWidget* bla, GlameConnection* conn);
+static void
+edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn);
+
+void edit_canvas_item_properties(filter_pdb_t *pdb, char *label);
+
+
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_item_properties_cb,NULL),
@@ -40,22 +49,39 @@ static GnomeUIInfo node_menu[]=
 
 static GnomeUIInfo pipe_menu[]=
 {
-	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_pipe_properties_cb,NULL),
+	GNOMEUIINFO_ITEM("Source properties...", "Source properties", edit_canvas_pipe_source_properties_cb, NULL),
+	GNOMEUIINFO_ITEM("Destination properties...", "Destination properties", edit_canvas_pipe_dest_properties_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Delete","Delete pipe",connection_break_cb,NULL),
 	GNOMEUIINFO_END
 };
 
 
-void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item)
+static void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 {
-	edit_canvas_item_properties(item);
+	edit_canvas_item_properties(filternode_pdb(item->filter->node),
+				    item->filter->caption);
 };
 
 void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it)
 {
 	delete_canvas_item(it);
 }
+
+static void
+edit_canvas_pipe_source_properties_cb(GtkWidget* bla, GlameConnection* conn)
+{
+	edit_canvas_item_properties(filterpipe_sourcepdb(conn->pipe),
+				    conn->begin->port->label);
+}
+
+static void
+edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
+{
+	edit_canvas_item_properties(filterpipe_destpdb(conn->pipe),
+				    conn->end->port->label);
+}
+
 
 gint
 image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
@@ -750,13 +776,13 @@ enum {PINT,PFLOAT,PSTRING,PFILE};
 
 typedef struct {
 	GtkWidget *widget;
-	filter_paramdesc_t* param;
+	filter_param_t* param;
 	int widget_type;
 } param_widget_t;
 
 typedef struct {
 	GList* paramList;
-	gui_filter* gfilter;
+	char *caption;
 } param_callback_t;
 
 
@@ -768,33 +794,33 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	char *strVal; 
 	int iVal;
 	float fVal;
-	filter_node_t * node = callback->gfilter->node;
+	char *caption = callback->caption;
 	param_widget_t* item;
 	
 	while(list){
 		item = (param_widget_t*)(list->data);
-		DPRINTF("param: %s\n",filterparamdesc_label(item->param));
+		DPRINTF("param: %s\n", filterparam_label(item->param));
 		switch(item->widget_type){
 		case PINT:
 			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
-			DPRINTF("Setting %s::%s to %i", node->name, filterparamdesc_label(item->param), iVal);
-			if(filternode_set_param(node,filterparamdesc_label(item->param),&iVal)<0)
+			DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
+			if(filterparam_set(item->param, &iVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");
 			break;
 		case PFLOAT:
 			fVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
-			DPRINTF("Setting %s::%s to %f", node->name, filterparamdesc_label(item->param), fVal);
-			if(filternode_set_param(node,filterparamdesc_label(item->param),&fVal)<0)
+			DPRINTF("Setting %s::%s to %f", caption, filterparam_label(item->param), fVal);
+			if(filterparam_set(item->param, &fVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");
 			break;
 		case PSTRING:
 			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
-			DPRINTF("Setting %s::%s to %s", node->name, filterparamdesc_label(item->param), strVal);
-			if(filternode_set_param(node, filterparamdesc_label(item->param), strVal)<0)
+			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
+			if(filterparam_set(item->param, strVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");
@@ -802,8 +828,8 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 			break;
 		case PFILE:
 			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
-			DPRINTF("Setting %s::%s to %s", node->name, filterparamdesc_label(item->param), strVal);
-			if(filternode_set_param(node,filterparamdesc_label(item->param),strVal)<0)
+			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
+			if(filterparam_set(item->param, strVal) == -1)
 				DPRINTF(" - failed!\n");
 			else
 				DPRINTF(" - success!\n");
@@ -822,11 +848,8 @@ cancel_params(GtkWidget* wig,param_callback_t* callback)
 }
 
 void
-edit_canvas_item_properties(GlameCanvasItem *item)
+edit_canvas_item_properties(filter_pdb_t *pdb, char *caption)
 {
-	gui_filter * gfilter = item->filter;
-	
-	filter_paramdesc_t *param;
 	GtkWidget *vbox,*entry;
 	GtkAdjustment *adjust;
 	param_widget_t *pw;
@@ -839,73 +862,49 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 	int iVal;
 	float fVal;
 	char* cVal;
-	filter_param_t* fparam;
+	filter_param_t* param;
 	propBox = gnome_property_box_new ();
 	
-	tablabel=gtk_label_new(_(gfilter->caption));
+	tablabel=gtk_label_new(_(caption));
 
 	vbox = gtk_vbox_new(FALSE,3);
 	
 	gtk_widget_show(vbox);
-	
-	filter_foreach_paramdesc(gfilter->filter,param){
-		switch(filterparamdesc_type(param)){
-		case FILTER_PARAMTYPE_INT:
+
+	filterpdb_foreach_param(pdb, param) {
+		if (FILTER_PARAM_IS_INT(param)) {
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
-			fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
 
 			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
 			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
-			if(fparam){
-				iVal = filterparam_val_int(fparam);
-				gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
-			}
-			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+			iVal = filterparam_val_int(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
 			pw = malloc(sizeof(param_widget_t));
 			pw->widget = entry;
 			pw->param = param;
 			pw->widget_type = PINT;
 			list = g_list_append(list,pw);
-			break;
-		case FILTER_PARAMTYPE_FLOAT:
-		case FILTER_PARAMTYPE_SAMPLE:
+		} else if (FILTER_PARAM_IS_FLOAT(param)
+			   || FILTER_PARAM_IS_SAMPLE(param)) {
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
-			fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
 			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
 			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
-			if(fparam){
-				fVal = filterparam_val_float(fparam);
-				gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
-			}
-			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+			fVal = filterparam_val_float(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
 			pw = malloc(sizeof(param_widget_t));
 			pw->widget = entry;
 			pw->param = param;
 			pw->widget_type = PFLOAT;
 			list = g_list_append(list,pw);
-			break;
-		case FILTER_PARAMTYPE_STRING:
-			switch(filterparamdesc_string_type(param)){
-			case FILTER_PARAM_STRINGTYPE_GENERIC:
-				entry = gnome_entry_new("blubb");
-				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
-				fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
-				if(fparam){
-					cVal =  filterparam_val_string(fparam);
-					gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),cVal);
-					free(cVal);
-				}
-				pw = malloc(sizeof(param_widget_t));
-				pw->widget = entry;
-				pw->param = param;
-				pw->widget_type = PSTRING;
-				list = g_list_append(list,pw);
-				break;
-			case FILTER_PARAM_STRINGTYPE_FILENAME:
-				entry = gnome_file_entry_new("blahh",filterparamdesc_label(param));
-				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+		} else if (FILTER_PARAM_IS_STRING(param)) {
+			switch(filterparam_type(param)){
+			case FILTER_PARAMTYPE_FILENAME:
+				entry = gnome_file_entry_new("blahh",filterparam_label(param));
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
 				pw->param = param;
@@ -914,7 +913,10 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 				break;
 			default:
 				entry = gnome_entry_new("blubb");
-				create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				cVal =  filterparam_val_string(param);
+				gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),cVal);
+				free(cVal);
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
 				pw->param = param;
@@ -922,10 +924,9 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 				list = g_list_append(list,pw);
 				break;
 			}
-			break;
-		default:
+		} else {
 			entry = gnome_entry_new("blubb");
-			create_label_widget_pair(vbox,filterparamdesc_label(param),entry);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
 			pw = malloc(sizeof(param_widget_t));
 			pw->widget = entry;
 			pw->param = param;
@@ -941,7 +942,7 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 	gtk_widget_show(propBox);
 	cb = malloc(sizeof(param_callback_t));
 	cb->paramList=list;
-	cb->gfilter = gfilter;
+	cb->caption = caption;
 	
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",update_params,cb);
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
@@ -991,8 +992,3 @@ connection_break(GlameConnection* connection)
 	free (connection);
 }
 
-static void
-edit_canvas_pipe_properties_cb(GtkWidget* bla, GlameConnection* conn)
-{
-	fprintf(stderr,"Depraceted??\n");
-}

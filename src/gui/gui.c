@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.22 2000/04/25 08:58:00 richi Exp $
+ * $Id: gui.c,v 1.23 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -472,7 +472,7 @@ icon_prop_activate                (gpointer user_data)
 	GtkWidget* tablabel;
 	GtkWidget* frame,*frame2;
 	filter_portdesc_t *port;
-	filter_paramdesc_t *param;
+	filter_param_t *param;
 	plugin_t * plugin = plugin_get(g_array_index(gui->filters,gui_filter*,index)->caption);
 	filter_t * filter = (filter_t *)plugin_query(plugin, PLUGIN_FILTER);
 
@@ -581,7 +581,7 @@ icon_prop_activate                (gpointer user_data)
 	gtk_container_add (GTK_CONTAINER (notebook), vbox2);
 
 
-	filter_foreach_paramdesc(filter,param){
+	filterpdb_foreach_param(filter_pdb(filter), param) {
 		frame2=gtk_frame_new(NULL);
 		gtk_widget_ref(frame2);
 		gtk_object_set_data(GTK_OBJECT(propBox),"frame4",frame2);
@@ -592,8 +592,8 @@ icon_prop_activate                (gpointer user_data)
 		gtk_object_set_data(GTK_OBJECT(propBox),"vbox4",vbox3);
 		gtk_widget_show(vbox3);
 		gtk_container_add(GTK_CONTAINER(frame2),vbox3);
-		create_label_val_pair(propBox,vbox3,"Label:",param->label);
-		create_label_val_pair(propBox,vbox3,"Description:",param->description);
+		create_label_val_pair(propBox,vbox3,"Label:", filterparam_label(param));
+		create_label_val_pair(propBox,vbox3,"Description:", filterparam_get_property(param, FILTERPARAM_DESCRIPTION));
 	}
 	tablabel=gtk_label_new(_("Parameter"));
 	gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), 2), tablabel);

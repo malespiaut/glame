@@ -34,6 +34,7 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter,
 				      glsig_emitter_t *dest)
 {
+	void *bla = dest->handlers.next;
 	return glsig_add_handler(emitter, ~0, glsig_redirector, dest);
 }
 

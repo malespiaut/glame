@@ -38,16 +38,21 @@ gldb_item_t *sop_copy(gldb_item_t *dest, gldb_item_t *source)
 	return &d->entry;
 }
 
-struct gldb_ops sops = { sop_delete, sop_copy };
+static int sop_add(gldb_t *db, gldb_item_t *i)
+{
+	return 0;
+}
+
+struct gldb_ops sops = { sop_delete, sop_copy, sop_add };
 
 
-void sdb_init(gldb_t *db)
+void glsdb_init(gldb_t *db)
 {
 	gldb_init(db, &sops);
 }
 
 
-void sdb_set(gldb_t *db, const char *str, const char *label)
+void glsdb_set(gldb_t *db, const char *str, const char *label)
 {
 	sitem_t *s;
 
@@ -60,7 +65,7 @@ void sdb_set(gldb_t *db, const char *str, const char *label)
 	}
 }
 
-void sdb_remove(gldb_t *db, const char *label)
+void glsdb_remove(gldb_t *db, const char *label)
 {
 	gldb_item_t *s;
 
@@ -68,7 +73,7 @@ void sdb_remove(gldb_t *db, const char *label)
 		gldb_delete_item(s);
 }
 
-char *sdb_query(gldb_t *db, const char *label)
+char *glsdb_query(gldb_t *db, const char *label)
 {
 	sitem_t *s;
 

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.34 2000/04/27 09:10:46 richi Exp $
+ * $Id: filter.c,v 1.35 2000/05/01 11:09:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -96,46 +96,6 @@ filter_portdesc_t *filter_add_output(filter_t *filter, const char *label,
 	return desc;
 }
 
-filter_paramdesc_t *filter_add_param(filter_t *filter, const char *label,
-				     const char *description, int type)
-{
-	filter_paramdesc_t *desc;
-
-	if (!filter || is_hashed_filter(filter) || !label)
-		return NULL;
-	if (filter_get_paramdesc(filter, label))
-		return NULL;
-	if (!(desc = _paramdesc_alloc(label, type, description)))
-		return NULL;
-
-	hash_add_paramdesc(desc, filter);
-	list_add_paramdesc(desc, filter);
-
-	return desc;
-}
-
-filter_paramdesc_t *filterport_add_param(filter_portdesc_t *portdesc,
-					 const char *label,
-					 const char *description, int type)
-{
-	filter_paramdesc_t *desc;
-  
-	if (!portdesc || is_hashed_filter(portdesc->filter) || !label)
-		return NULL;
-	if (filterportdesc_get_paramdesc(portdesc, label))
-		return NULL;
-	if (!(desc = _paramdesc_alloc(label, type, description)))
-		return NULL;
-  
-	hash_add_paramdesc(desc, portdesc);
-	list_add_paramdesc(desc, portdesc);
-
-	return desc;
-}
-
-
-
-
 void filter_delete_port(filter_t *filter, filter_portdesc_t *port)
 {
 	if (!filter || is_hashed_filter(filter) || !port)
@@ -144,14 +104,4 @@ void filter_delete_port(filter_t *filter, filter_portdesc_t *port)
 	hash_remove_portdesc(port);
 	list_remove_portdesc(port);
 	_portdesc_free(port);
-}
-  
-void filter_delete_param(filter_t *filter, filter_paramdesc_t *param)
-{
-	if (!filter || is_hashed_filter(filter) || !param)
-		return;
-
-	hash_remove_paramdesc(param);
-	list_remove_paramdesc(param);
-	_paramdesc_free(param);
 }

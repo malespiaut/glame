@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.44 2000/04/27 09:10:46 richi Exp $
+ * $Id: filter_network.c,v 1.45 2000/05/01 11:09:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -36,191 +36,6 @@
 #include "filter.h"
 #include "filter_methods.h"
 #include "filter_mm.h"
-
-
-
-
-/* filter node API.
- */
-
-void filterparam_set(filter_param_t *param, const void *val)
-{
-	if (!param || !val)
-		return;
-
-	switch (FILTER_PARAMTYPE(param->desc->type)) {
-	case FILTER_PARAMTYPE_INT:
-		param->val.i = *(int *)val;
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		param->val.f = *(float *)val;
-		break;
-	case FILTER_PARAMTYPE_SAMPLE:
-		param->val.sample = *(SAMPLE *)val;
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		free(param->val.string);
-		param->val.string = strdup((char *)val);
-		break;
-	case FILTER_PARAMTYPE_LIST:
-	        param->val.list = *(int *)val;
-		break;
-	}
-}
-
-char *filterparam_to_string(const filter_param_t *param)
-{
-	char buf[512];
-
-	if (!param)
-		return NULL;
-
-	switch (FILTER_PARAMTYPE(param->desc->type)) {
-	case FILTER_PARAMTYPE_INT:
-		snprintf(buf, 511, "%i", param->val.i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		snprintf(buf, 511, "%f", param->val.f);
-		break;
-	case FILTER_PARAMTYPE_SAMPLE:
-		/* FIXME: this is SAMPLE type specific */
-		snprintf(buf, 511, "%f", param->val.sample);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		snprintf(buf, 511, "\"%s\"", param->val.string);
-		break;
-	case FILTER_PARAMTYPE_LIST:
-	        snprintf(buf, 511, "%i", param->val.list);
-		break;
-	default:
-		return NULL;
-	}
-
-	return strdup(buf);
-}
-
-void *filterparamval_from_string(const filter_paramdesc_t *pdesc,
-				 const char *val)
-{
-	filter_param_t param;
-	char s[512];
-	void *m;
-	int res;
-
-	if (!pdesc || !val)
-		return NULL;
-
-	switch (FILTER_PARAMTYPE(pdesc->type)) {
-	case FILTER_PARAMTYPE_INT:
-		res = sscanf(val, " %i ", &param.val.i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		res = sscanf(val, " %f ", &param.val.f);
-		break;
-	case FILTER_PARAMTYPE_SAMPLE: /* FIXME: this is SAMPLE type specific */
-		res = sscanf(val, " %f ", &param.val.sample);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) == 1) {
-			return strdup(s);
-		} else if ((res = sscanf(val, " %511[^\"] ", s)) == 1) {
-		        return strdup(s);
-		}
-		break;
-	case FILTER_PARAMTYPE_LIST:
-		res = sscanf(val, " %i ", &param.val.list);
-		break;
-	default:
-		return NULL;
-	}
-	if (res != 1)
-		return NULL;
-
-	if (!(m = malloc(sizeof(param.val))))
-		return NULL;
-	memcpy(m, &param.val, sizeof(param.val));
-
-	return m;
-}
-
-
-int filternode_set_param(filter_node_t *n, const char *label, const void *val)
-{
-	filter_param_t *param;
-	filter_paramdesc_t *pdesc;
-
-	if (!n || !label || !val)
-		return -1;
-	if (!(pdesc = filter_get_paramdesc(n->filter, label)))
-		return -1;
-	if (!(param = filternode_get_param(n, label))) {
-		if (!(param = _param_alloc(pdesc)))
-			return -1;
-		hash_add_param(param, n);
-		list_add_param(param, n);
-	}
-
-	if (n->filter->set_param(n, param, val) == -1)
-		return -1;
-	filterparam_set(param, val);
-	glsig_emit(&param->emitter, GLSIG_PARAM_CHANGED,
-		   n, NULL, label, param);
-
-	return 0;
-}
-
-int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label,
-			       const void *val)
-{
-	filter_param_t *param;
-	filter_paramdesc_t *pdesc;
-
-	if (!p || !label || !val)
-		return -1;
-	if (!(pdesc = filterportdesc_get_paramdesc(p->source_port, label)))
-		return -1;
-	if (!(param = filterpipe_get_sourceparam(p, label))) {
-		if (!(param = _param_alloc(pdesc)))
-			return -1;
-		hash_add_sourceparam(param, p);
-		list_add_sourceparam(param, p);
-	}
-
-	if (p->source->filter->set_param(p->source, param, val) == -1)
-		return -1;
-	filterparam_set(param, val);
-	glsig_emit(&param->emitter, GLSIG_PARAM_CHANGED,
-		   p->source, p, label, param);
-
-	return 0;
-}
-
-int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
-			     const void *val)
-{
-	filter_param_t *param;
-	filter_paramdesc_t *pdesc;
-
-	if (!p || !label || !val)
-		return -1;
-	if (!(pdesc = filterportdesc_get_paramdesc(p->dest_port, label)))
-		return -1;
-	if (!(param = filterpipe_get_destparam(p, label))) {
-		if (!(param = _param_alloc(pdesc)))
-			return -1;
-		hash_add_destparam(param, p);
-		list_add_destparam(param, p);
-	}
-
-	if (p->dest->filter->set_param(p->dest, param, val) == -1)
-		return -1;
-	filterparam_set(param, val);
-	glsig_emit(&param->emitter, GLSIG_PARAM_CHANGED,
-		   p->dest, p, label, param);
-
-	return 0;
-}
-
 
 
 
@@ -456,10 +271,23 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 
 	/* do we support the requested pipe type? */
 	if (!FILTER_PORT_IS_COMPATIBLE(in->type, p->type))
-		return NULL;
+		goto _err;
 
 	if (dest->filter->connect_in(dest, dest_port, p) == -1)
 		goto _err;
+
+	/* Now we have source & dest fixed - so we can finally
+	 * init the parameter dbs and copy the parameters from
+	 * the port descriptors. */
+	filterpdb_init(&p->source_params, p->source);
+	filterpdb_copy(&p->source_params, &out->params);
+	filterpdb_init(&p->dest_params, p->dest);
+	filterpdb_copy(&p->dest_params, &in->params);
+
+	/* Also the signal redirectors can be installed now.
+	 */
+	glsig_add_redirector(&p->emitter, &p->source->emitter);
+	glsig_add_redirector(&p->emitter, &p->dest->emitter);
 
 	/* add the pipe to all port lists/hashes.
 	 * connect_out/in may have mucked with p->dest/source, so
@@ -517,12 +345,12 @@ static struct filter_network_mapping *create_map(const char *label,
 	return map;
 }
 
-filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
-		      const char *node, const char *param,
-              	      const char *label, const char *desc)
+filter_param_t *filternetwork_add_param(filter_network_t *net,
+					const char *node, const char *param,
+					const char *label, const char *desc)
 {
 	filter_node_t *n;
-	filter_paramdesc_t *od, *d;
+	filter_param_t *od, *d;
 
 	if (!net || !node || !param || !label)
 		return NULL;
@@ -530,23 +358,15 @@ filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
 		return NULL;
 	if (!(n = filternetwork_get_node(net, node)))
 		return NULL;
-	if (!(od = filter_get_paramdesc(n->filter, param)))
+	if (!(od = filterpdb_get_param(filternode_pdb(n), param)))
 		return NULL;
-	if (!(d = filter_add_param(net->node.filter, strdup(label),
-				   strdup(desc), od->type)))
+	if (!(d = filterpdb_add_param(filter_pdb(net->node.filter),
+				      label, od->type, &od->u)))
 		return NULL;
-	/* aaaahhhh... */
-	switch (od->type) {
-	case FILTER_PARAMTYPE_STRING:
-		filterparamdesc_string_settype(d, filterparamdesc_string_type(od));
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-		filterparamdesc_float_settype(d, filterparamdesc_float_type(od));
-		break;
-	default:
-	}
+	filterparam_set_property(d, FILTERPARAM_DESCRIPTION, desc);
 
-	d->private = create_map(strdup(param), strdup(node));
+	filterparam_set_property(d, FILTERPARAM_MAP_NODE, node);
+	filterparam_set_property(d, FILTERPARAM_MAP_LABEL, param);
 
 	return d;
 }
@@ -619,7 +439,6 @@ char *filternetwork_to_string(filter_network_t *net)
 	int len;
 	filter_node_t *n;
 	filter_portdesc_t *portd;
-	filter_paramdesc_t *paramd;
 	filter_param_t *param;
 	filter_pipe_t *fpipe;
 
@@ -646,10 +465,10 @@ char *filternetwork_to_string(filter_network_t *net)
 	/* first create the parameter set commands for the
 	 * nodes. */
 	filternetwork_foreach_node(net, n) {
-		filternode_foreach_param(n, param) {
+		filterpdb_foreach_param(filternode_pdb(n), param) {
 			val = filterparam_to_string(param);
 			len += sprintf(&buf[len], "   (filternode_set_param %s \"%s\" %s)\n",
-				       n->name, param->label, val);
+				       n->name, filterparam_label(param), val);
 			free(val);
 		}
 	}
@@ -683,14 +502,14 @@ char *filternetwork_to_string(filter_network_t *net)
 				       portd->label, portd->description);
 			/* port parameters - dto. */
 		}
-		filter_foreach_paramdesc(net->node.filter, paramd) {
+		filterpdb_foreach_param(filternode_pdb(&net->node), param) {
 			/* check, if exported param is "our" one */
-			if (strcmp(n->name, filterdesc_map_node(paramd)) != 0
-			    || !filter_get_paramdesc(n->filter, filterdesc_map_label(paramd)))
+			if (strcmp(n->name, filterparam_get_property(param, FILTERPARAM_MAP_NODE)) != 0
+			    || !filterpdb_get_param(filternode_pdb(n), filterparam_get_property(param, FILTERPARAM_MAP_LABEL)))
 				continue;
 			len += sprintf(&buf[len], "   (filternetwork_add_param net %s \"%s\" \"%s\" \"%s\")\n",
-				       n->name, filterdesc_map_label(paramd),
-				       paramd->label, paramd->description);
+				       n->name, filterparam_get_property(param, "label"),
+				       filterparam_label(param), filterparam_get_property(param, FILTERPARAM_DESCRIPTION));
 		}
 	}
 
@@ -704,19 +523,19 @@ char *filternetwork_to_string(filter_network_t *net)
 
 			/* iterate over all pipe dest parameters creating
 			 * parameter set commands. */
-			filterpipe_foreach_destparam(fpipe, param) {
+			filterpdb_foreach_param(filterpipe_destpdb(fpipe), param) {
 				val = filterparam_to_string(param);
 				len += sprintf(&buf[len], "\t(filterpipe_set_destparam pipe \"%s\" %s)\n",
-					       param->label, val);
+					       filterparam_label(param), val);
 				free(val);
 			}
 
 			/* iterate over all pipe source parameters creating
 			 * parameter set commands. */
-			filterpipe_foreach_sourceparam(fpipe, param) {
+			filterpdb_foreach_param(filterpipe_sourcepdb(fpipe), param) {
 				val = filterparam_to_string(param);
 				len += sprintf(&buf[len], "\t(filterpipe_set_sourceparam pipe \"%s\" %s)\n",
-					       param->label, val);
+					       filterparam_label(param), val);
 				free(val);
 			}
 			

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.13 2000/04/25 09:05:23 richi Exp $
+ * $Id: basic_sample.c,v 1.14 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -100,9 +100,7 @@ static int mix(filter_node_t *n, int drop)
 	    || !(j = ALLOCN(nr, int)))
 		FILTER_ERROR_RETURN("no memory");
 
-	gain = 1.0;
-	if ((param = filternode_get_param(n, "gain")))
-		gain = filterparam_val_float(param);
+	gain = filterparam_val_float(filternode_get_param(n, "gain"));
 
 	rate = -1;
 	i = 0;
@@ -442,11 +440,14 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	}
 	return 0;
 }
-static void mix_fixup_param(filter_node_t *n, filter_pipe_t *p,
-			    const char *name, filter_param_t *param)
+static void mix_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
+	filter_param_t *param;
 	filter_pipe_t *out;
+	filter_node_t *n;
 
+	GLSIGH_GETARGS1(va, param);
+	n = filterparam_node(param);
 	if ((out = filternode_get_output(n, PORTNAME_OUT))
 	    && mix_fixup(n, out))
 		out->dest->filter->fixup_pipe(out->dest, out);
@@ -471,32 +472,33 @@ int mix_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_portdesc_t *port;
-	filter_paramdesc_t *param;
 
-        if (!(f = filter_alloc(mix_f))
-            || !(port = filter_add_input(f, PORTNAME_IN, "input stream",
-				      FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE))
-	    || !filterport_add_param(port, "gain", "input gain",
-				     FILTER_PARAMTYPE_FLOAT)
-	    || !(param = filterport_add_param(port, "offset", "input offset",
-					      FILTER_PARAMTYPE_FLOAT)))
+        if (!(f = filter_alloc(mix_f)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_S);
-	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
-			       FILTER_PORTTYPE_SAMPLE)
-	    || !(filter_add_param(f, "gain", "output gain",
-				  FILTER_PARAMTYPE_FLOAT))
-	    || !(param = filter_add_param(f, "position", 
-	                                  "position of mixed stream",
-					  FILTER_PARAMTYPE_FLOAT)))
-		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_POSITION);
+
+	port = filter_add_input(f, PORTNAME_IN, "input stream",
+				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE);
+	filterpdb_add_param_float(filterportdesc_pdb(port), "gain",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
+	filterpdb_add_param_float(filterportdesc_pdb(port), "offset",
+				  FILTER_PARAMTYPE_TIME_MS, 0.0);
+
+	filter_add_output(f, PORTNAME_OUT, "mixed stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	filterpdb_add_param_float(filter_pdb(f), "gain",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
+	filterpdb_add_param_float(filter_pdb(f), "position",
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+
 	f->connect_out = mix_connect_out;
-	f->fixup_param = mix_fixup_param;
 	f->fixup_pipe = mix_fixup_pipe;
 
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
+			  mix_fixup_param, NULL);
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
-	plugin_set(p, PLUGIN_PIXMAP, "mix1.png");
+	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
 	filter_attach(f, p);
 
 	return 0;
@@ -506,29 +508,30 @@ int mix2_register(plugin_t *p)
 {
 	filter_t *f;
 	filter_portdesc_t *port;
-	filter_paramdesc_t *param;
 
-        if (!(f = filter_alloc(mix2_f))
-            || !(port = filter_add_input(f, PORTNAME_IN, "input stream",
-				      FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE))
-	    || !filterport_add_param(port, "gain", "input gain",
-				     FILTER_PARAMTYPE_FLOAT)
-	    || !(param = filterport_add_param(port, "offset", "input offset",
-					      FILTER_PARAMTYPE_FLOAT)))
+        if (!(f = filter_alloc(mix2_f)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
-	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
-			       FILTER_PORTTYPE_SAMPLE)
-	    || !(filter_add_param(f, "gain", "output gain",
-				  FILTER_PARAMTYPE_FLOAT))
-	    || !(param = filter_add_param(f, "position", 
-	                                  "position of mixed stream",
-					  FILTER_PARAMTYPE_FLOAT)))
-		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_POSITION);
+
+	port = filter_add_input(f, PORTNAME_IN, "input stream",
+				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE);
+	filterpdb_add_param_float(filterportdesc_pdb(port), "gain",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
+	filterpdb_add_param_float(filterportdesc_pdb(port), "offset",
+				  FILTER_PARAMTYPE_TIME_MS, 0.0);
+
+	filter_add_output(f, PORTNAME_OUT, "mixed stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	filterpdb_add_param_float(filter_pdb(f), "gain",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
+	filterpdb_add_param_float(filter_pdb(f), "position",
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+
 	f->connect_out = mix_connect_out;
-	f->fixup_param = mix_fixup_param;
 	f->fixup_pipe = mix_fixup_pipe;
+
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
+			  mix_fixup_param, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
@@ -547,7 +550,6 @@ static int volume_adjust_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *b;
-	filter_param_t *scaleparam;
 	float scale;
 	SAMPLE *buf;
 	int cnt;
@@ -555,9 +557,7 @@ static int volume_adjust_f(filter_node_t *n)
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no input or no output");
-	scale = 1.0;
-	if ((scaleparam = filternode_get_param(n, "factor")))
-		scale = filterparam_val_float(scaleparam);
+	scale = filterparam_val_float(filternode_get_param(n, "factor"));
 
 	FILTER_AFTER_INIT;
 
@@ -598,14 +598,16 @@ int volume_adjust_register(plugin_t *p)
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc(volume_adjust_f))
-	    || !filter_add_param(f, "factor", "scale factor",
-				 FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_input(f, PORTNAME_IN, "input stream",
-				 FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, PORTNAME_OUT, "scaled stream",
-				  FILTER_PORTTYPE_SAMPLE))
+	if (!(f = filter_alloc(volume_adjust_f)))
 		return -1;
+
+	filter_add_input(f, PORTNAME_IN, "input stream",
+			 FILTER_PORTTYPE_SAMPLE);
+	filter_add_output(f, PORTNAME_OUT, "scaled stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	filterpdb_add_param_float(filter_pdb(f), "factor",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "default.xpm");
@@ -622,17 +624,14 @@ static int delay_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
-	filter_param_t *param;
 	int delay, chunksize;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no input or no output");
 
-	delay = 0;
-	if ((param = filternode_get_param(n, "delay")))
-	        delay = (int)(filterpipe_sample_rate(in)
-			        * filterparam_val_float(param)/1000.0);
+	delay = (int)(filterpipe_sample_rate(in)
+		      * filterparam_val_float(filternode_get_param(n, "delay"))/1000.0);
 	if (delay < 0)
 		FILTER_ERROR_RETURN("weird delay time");
 
@@ -671,17 +670,18 @@ static int delay_f(filter_node_t *n)
 int delay_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *param;
+	filter_param_t *param;
 
-	if (!(f = filter_alloc(delay_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input stream to delay",
-				  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "delayed output stream",
-				   FILTER_PORTTYPE_SAMPLE))
-	    || !(param = filter_add_param(f, "delay", "delay in ms",
-					  FILTER_PARAMTYPE_FLOAT)))
+	if (!(f = filter_alloc(delay_f)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
+
+	filter_add_input(f, PORTNAME_IN, "input stream to delay",
+			 FILTER_PORTTYPE_SAMPLE);
+	filter_add_output(f, PORTNAME_OUT, "delayed output stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	param = filterpdb_add_param_float(filter_pdb(f), "delay",
+					  FILTER_PARAMTYPE_TIME_MS, 0.0);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "delay an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "delay.xpm");
@@ -698,17 +698,14 @@ static int extend_f(filter_node_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
-	filter_param_t *param;
 	int time, chunksize;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no input or no output");
 
-	time = 0;
-	if ((param = filternode_get_param(n, "time")))
-	        time = (int)(filterpipe_sample_rate(in)
-			        * filterparam_val_float(param)/1000.0);
+	time = (int)(filterpipe_sample_rate(in)
+		     * filterparam_val_float(filternode_get_param(n, "time"))/1000.0);
 	if (time < 0)
 		FILTER_ERROR_RETURN("weird extend time");
 
@@ -750,17 +747,20 @@ static int extend_f(filter_node_t *n)
 int extend_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *param;
+	filter_param_t *param;
 
-	if (!(f = filter_alloc(extend_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input stream to extend",
-				  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "extended output stream",
-				   FILTER_PORTTYPE_SAMPLE))
-	    || !(param = filter_add_param(f, "time", "extend time in ms",
-					  FILTER_PARAMTYPE_FLOAT)))
+	if (!(f = filter_alloc(extend_f)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
+
+	filter_add_input(f, PORTNAME_IN, "input stream to extend",
+			 FILTER_PORTTYPE_SAMPLE);
+	filter_add_output(f, PORTNAME_OUT, "extended output stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	param = filterpdb_add_param_float(filter_pdb(f), "time",
+					  FILTER_PARAMTYPE_TIME_MS, 0.0);
+	filterparam_set_property(param, FILTERPARAM_DESCRIPTION,
+				 "extend time in ms");
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "extend an audio stream");
 	plugin_set(p, PLUGIN_PIXMAP, "extend.xpm");
@@ -778,16 +778,13 @@ static int repeat_f(filter_node_t *n)
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf, *buf2;
 	feedback_fifo_t fifo;
-	filter_param_t *param;
 	int duration;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no input or no output");
 
-	duration = 0;
-	if ((param = filternode_get_param(n, "duration")))
-	        duration = filterpipe_sample_rate(in)*filterparam_val_float(param);
+	duration = filterpipe_sample_rate(in)*filterparam_val_float(filternode_get_param(n, "duration"));
 	if (duration < 0)
 		FILTER_ERROR_RETURN("weird time");
 	INIT_FEEDBACK_FIFO(fifo);
@@ -860,18 +857,20 @@ static int repeat_f(filter_node_t *n)
 int repeat_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *param;
+	filter_param_t *param;
 
-	if (!(f = filter_alloc(repeat_f))
-	    || !(filter_add_input(f, PORTNAME_IN, "input stream to repeat",
-				  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_output(f, PORTNAME_OUT, "repeated stream",
-				   FILTER_PORTTYPE_SAMPLE))
-	    || !(param = filter_add_param(f, "duration",
-					  "total duration in ms",
-					  FILTER_PARAMTYPE_FLOAT)))
+	if (!(f = filter_alloc(repeat_f)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_S);
+
+	filter_add_input(f, PORTNAME_IN, "input stream to repeat",
+			 FILTER_PORTTYPE_SAMPLE);
+	filter_add_output(f, PORTNAME_OUT, "repeated stream",
+			  FILTER_PORTTYPE_SAMPLE);
+
+	param = filterpdb_add_param_float(filter_pdb(f), "duration",
+					  FILTER_PARAMTYPE_TIME_S, 1.0);
+	filterparam_set_property(param, FILTERPARAM_DESCRIPTION,
+				 "total duration in seconds");
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "repeat an audio stream for the specified time");
 	plugin_set(p, PLUGIN_PIXMAP, "repeat.xpm");

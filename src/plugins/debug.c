@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.3 2000/04/25 08:58:00 richi Exp $
+ * $Id: debug.c,v 1.4 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -41,19 +41,14 @@ static int ping(filter_node_t *n)
 {
 	filter_buffer_t *in, *out;
 	filter_pipe_t *i, *o;
-	filter_param_t *param;
 	struct timeval start, end;
-	int cnt = 10;
-	int dt = 250000;
-	int size = 128;
+	int cnt, size;
+	float dt;
 	int time;
 
-	if ((param = filternode_get_param(n, "cnt")))
-		cnt = filterparam_val_int(param);
-	if ((param = filternode_get_param(n, "dt")))
-		dt = filterparam_val_int(param);
-	if ((param = filternode_get_param(n, "size")))
-		size = filterparam_val_int(param);
+	cnt = filterparam_val_int(filternode_get_param(n, "cnt"));
+	dt = filterparam_val_int(filternode_get_param(n, "dt"));
+	size = filterparam_val_int(filternode_get_param(n, "size"));
 
 	i = filternode_get_input(n, PORTNAME_IN);
 	o = filternode_get_output(n, PORTNAME_OUT);
@@ -64,7 +59,7 @@ static int ping(filter_node_t *n)
 
 	while (cnt>0) {
 		FILTER_CHECK_STOP;
-		usleep(dt);
+		usleep(dt*1000);
 
 		/* create new buffer */
 		out = fbuf_alloc(size, &n->net->nodes);
@@ -109,11 +104,15 @@ int ping_register(plugin_t *p)
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_MISC)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_MISC)
-	    || !filter_add_param(f, "cnt", "count", FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f, "dt", "delay time", FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f, "size", "buffer size", FILTER_PARAMTYPE_INT))
+				  FILTER_PORTTYPE_MISC))
 		return -1;
+
+	filterpdb_add_param_int(filter_pdb(f), "cnt",
+				FILTER_PARAMTYPE_INT, 10);
+	filterpdb_add_param_float(filter_pdb(f), "dt",
+				  FILTER_PARAMTYPE_TIME_MS, 250);
+	filterpdb_add_param_int(filter_pdb(f), "size",
+				FILTER_PARAMTYPE_INT, 128);
 
 	filter_attach(f, p);
 

@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.8 2000/04/25 08:58:00 richi Exp $
+ * $Id: echo.c,v 1.9 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *

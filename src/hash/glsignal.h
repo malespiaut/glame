@@ -33,8 +33,8 @@
  *   Adds a redirector to the emitter. All signals raised from the emitter
  *   will be raised again from the dest emitter.
  *
- * void glsig_emit(glsig_emitter_t *emitter, int sig, void *data);
- *   Emits the signal sig from the emitter and provides the data datum
+ * void glsig_emit(glsig_emitter_t *emitter, int sig, ...);
+ *   Emits the signal sig from the emitter and provides the varargs
  *   to the callbacks. signals are emitted bottom to top in the hierarchy.
  *
  * int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);

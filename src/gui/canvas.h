@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.12 2000/04/18 17:33:24 xwolf Exp $
+ * $Id: canvas.h,v 1.13 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -148,14 +148,11 @@ gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 
 int add_connection(GlameConnection* c);
 
-void edit_canvas_item_properties(GlameCanvasItem *item);
 static void delete_canvas_item(GlameCanvasItem* it);
 
-void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item);
 void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it);
 
 void connection_break_cb(GtkWidget *bla, GlameConnection* conn);
-void edit_canvas_pipe_properties_cb(GtkWidget *bla, GlameConnection* conn);
 
 void update_input_connection(GlameCanvasPort *p,gdouble x, gdouble y);
 void update_output_connection(GlameCanvasPort *p,gdouble x, gdouble y);

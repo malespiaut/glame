@@ -245,112 +245,59 @@ SCM gls_filternetwork_break_connection(SCM s_p)
 	return SCM_UNSPECIFIED;
 }
 
+SCM gls_filterparam_set(filter_pdb_t *db, SCM s_label, SCM s_val)
+{
+	filter_param_t *param;
+	char *label, *str;
+	int labell, strl, i, res;
+	float f;
+
+	label = gh_scm2newstr(s_label, &labell);
+	param = filterpdb_get_param(db, label);
+	if (!param) {
+		res = -1;
+	} else if (FILTER_PARAM_IS_INT(param)) {
+		i = gh_scm2long(s_val);
+		res = filterparam_set(param, &i);
+	} else if (FILTER_PARAM_IS_FLOAT(param)
+		   || FILTER_PARAM_IS_SAMPLE(param)) {
+		f = gh_scm2double(s_val);
+		res = filterparam_set(param, &f);
+	} else if (FILTER_PARAM_IS_STRING(param)) {
+		str = gh_scm2newstr(s_val, &strl);
+		res = filterparam_set(param, str);
+		free(str);
+	} else {
+		res = -1;
+	}
+	free(label);
+	if (res == -1)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+
 SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 {
 	filter_node_t *n;
-	filter_paramdesc_t *paramd;
-	char *label, *str;
-	int labell, strl, i;
-	float f;
 
 	n = gh_scm2pointer(s_n);
-	label = gh_scm2newstr(s_label, &labell);
-	paramd = filter_get_paramdesc(n->filter, label);
-	if (!paramd)
-		return SCM_BOOL_F;
-	switch (paramd->type) {
-	case FILTER_PARAMTYPE_INT:
-		i = gh_scm2long(s_val);
-		filternode_set_param(n, label, &i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-	case FILTER_PARAMTYPE_SAMPLE:
-		f = gh_scm2double(s_val);
-		filternode_set_param(n, label, &f);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		str = gh_scm2newstr(s_val, &strl);
-		filternode_set_param(n, label, str);
-		free(str);
-		break;
-	default:
-		return SCM_BOOL_F;
-		break;
-	}
-	free(label);
-	return SCM_BOOL_T;
+	return gls_filterparam_set(filternode_pdb(n), s_label, s_val);
 }
 
 SCM gls_filterpipe_set_sourceparam(SCM s_p, SCM s_label, SCM s_val)
 {
 	filter_pipe_t *p;
-	filter_paramdesc_t *paramd;
-	char *label, *str;
-	int labell, strl, i;
-	float f;
 
 	p = gh_scm2pointer(s_p);
-	label = gh_scm2newstr(s_label, &labell);
-	paramd = filterportdesc_get_paramdesc(p->source_port, label);
-	if (!paramd)
-		return SCM_BOOL_F;
-	switch (paramd->type) {
-	case FILTER_PARAMTYPE_INT:
-		i = gh_scm2long(s_val);
-		filterpipe_set_sourceparam(p, label, &i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-	case FILTER_PARAMTYPE_SAMPLE:
-		f = gh_scm2double(s_val);
-		filterpipe_set_sourceparam(p, label, &f);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		str = gh_scm2newstr(s_val, &strl);
-		filterpipe_set_sourceparam(p, label, str);
-		free(str);
-		break;
-	default:
-		return SCM_BOOL_F;
-		break;
-	}
-	free(label);
-	return SCM_BOOL_T;
+	return gls_filterparam_set(filterpipe_sourcepdb(p), s_label, s_val);
 }
 
 SCM gls_filterpipe_set_destparam(SCM s_p, SCM s_label, SCM s_val)
 {
 	filter_pipe_t *p;
-	filter_paramdesc_t *paramd;
-	char *label, *str;
-	int labell, strl, i;
-	float f;
 
 	p = gh_scm2pointer(s_p);
-	label = gh_scm2newstr(s_label, &labell);
-	paramd = filterportdesc_get_paramdesc(p->dest_port, label);
-	if (!paramd)
-		return SCM_BOOL_F;
-	switch (paramd->type) {
-	case FILTER_PARAMTYPE_INT:
-		i = gh_scm2long(s_val);
-		filterpipe_set_destparam(p, label, &i);
-		break;
-	case FILTER_PARAMTYPE_FLOAT:
-	case FILTER_PARAMTYPE_SAMPLE:
-		f = gh_scm2double(s_val);
-		filterpipe_set_destparam(p, label, &f);
-		break;
-	case FILTER_PARAMTYPE_STRING:
-		str = gh_scm2newstr(s_val, &strl);
-		filterpipe_set_destparam(p, label, str);
-		free(str);
-		break;
-	default:
-		return SCM_BOOL_F;
-		break;
-	}
-	free(label);
-	return SCM_BOOL_T;
+	return gls_filterparam_set(filterpipe_destpdb(p), s_label, s_val);
 }
 
 SCM gls_filternetwork_launch(SCM s_net)
@@ -453,7 +400,7 @@ SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 {
 	filter_network_t *net;
 	filter_node_t *n;
-	filter_paramdesc_t *d;
+	filter_param_t *p;
 	char *param, *label, *desc;
 	int paraml, labell, descl;
 
@@ -462,11 +409,11 @@ SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 	param = gh_scm2newstr(s_param, &paraml);
 	label = gh_scm2newstr(s_label, &labell);
 	desc = gh_scm2newstr(s_desc, &descl);
-	d = filternetwork_add_param(net, n->name, param, label, desc);
+	p = filternetwork_add_param(net, n->name, param, label, desc);
 	free(param);
 	free(label);
 	free(desc);
-	if (!d)
+	if (!p)
 		return SCM_BOOL_F;
 	return SCM_BOOL_T;
 }

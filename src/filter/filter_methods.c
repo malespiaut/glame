@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.16 2000/04/27 09:10:46 richi Exp $
+ * $Id: filter_methods.c,v 1.17 2000/05/01 11:09:03 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -122,7 +122,6 @@ int filter_network_init(filter_node_t *n)
 	filter_network_t *net = (filter_network_t *)n;
 	filter_network_t *templ;
 	filter_node_t *node, *source, *dest;
-	filter_param_t *param;
 	filter_pipe_t *pipe, *p;
 
 	/* empty network? */
@@ -135,12 +134,7 @@ int filter_network_init(filter_node_t *n)
 	filternetwork_foreach_node(templ, n) {
 		if (!(node = filternetwork_add_node(net, plugin_name(n->filter->plugin), n->name)))
 			return -1;
-		filternode_foreach_param(n, param) {
-			if (param->desc->type == FILTER_PARAMTYPE_STRING)
-				filternode_set_param(node, param->label, param->val.string);
-			else
-				filternode_set_param(node, param->label, &param->val);
-		}
+		filterpdb_copy(filternode_pdb(node), filternode_pdb(n));
 	}
 
 	/* second create the connections (loop through all outputs)
@@ -151,18 +145,10 @@ int filter_network_init(filter_node_t *n)
 			dest = filternetwork_get_node(net, pipe->dest->name);
 			if (!(p = filternetwork_add_connection(source, pipe->out_name, dest, pipe->in_name)))
 				return -1;
-			filterpipe_foreach_sourceparam(pipe, param) {
-				if (param->desc->type == FILTER_PARAMTYPE_STRING)
-					filterpipe_set_sourceparam(p, param->label, param->val.string);
-				else
-					filterpipe_set_sourceparam(p, param->label, &param->val);
-			}
-			filterpipe_foreach_destparam(pipe, param) {
-				if (param->desc->type == FILTER_PARAMTYPE_STRING)
-					filterpipe_set_destparam(p, param->label, param->val.string);
-				else
-					filterpipe_set_destparam(p, param->label, &param->val);
-			}
+			filterpdb_copy(filterpipe_sourcepdb(p),
+				       filterpipe_sourcepdb(pipe));
+			filterpdb_copy(filterpipe_destpdb(p),
+				       filterpipe_destpdb(pipe));
 		}
 	}
 
@@ -211,22 +197,23 @@ int filter_network_connect_in(filter_node_t *dest, const char *port,
 int filter_network_set_param(filter_node_t *node, filter_param_t *param,
 			     const void *val)
 {
-	filter_paramdesc_t *d;
-	struct filter_network_mapping *m;
 	filter_node_t *n;
+	const char *map_node, *map_label;
+	filter_param_t *p;
 
 	/* pipe parameter setting does not go through the wrapped funcs */
-	d = param->desc;
-	m = (struct filter_network_mapping *)d->private;
-	if (!(n = filternetwork_get_node(node, m->node)))
+	map_node = filterparam_get_property(param, FILTERPARAM_MAP_NODE);
+	map_label = filterparam_get_property(param, FILTERPARAM_MAP_LABEL);
+	if (!map_node || !map_label)
 		return -1;
-	if (FILTER_PARAMTYPE(d->type) == FILTER_PARAMTYPE_STRING)
-	        return filternode_set_param(n, m->label, param->val.string);
-	else
-	        return filternode_set_param(n, m->label, &param->val);
+
+	if (!(n = filternetwork_get_node(node, map_node)))
+		return -1;
+	if (!(p = filterpdb_get_param(filternode_pdb(n), map_label)))
+		return -1;
+	return filterparam_set(p, val);
 }
 
 /* fixup_param && fixup_pipe && fixup_break_in && fixup_break_out do not
  * have to be special at the moment.
  */
-

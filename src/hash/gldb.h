@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.1 2000/04/25 08:58:00 richi Exp $
+ * $Id: gldb.h,v 1.2 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -56,6 +56,9 @@
 #endif
 
 
+struct gldb;
+typedef struct gldb gldb_t;
+
 struct gldb_item;
 typedef struct gldb_item gldb_item_t;
 
@@ -75,16 +78,20 @@ struct gldb_ops {
 	 * is supplied. The destination item should be
 	 * returned. */
 	gldb_item_t *(*copy)(gldb_item_t *dest, gldb_item_t *source);
+
+	/* After add operations. May reject the item by
+	 * returning -1. */
+	int (*add)(gldb_t *, gldb_item_t *);
 };
 
 /* Database. Just a hook for items, &items provides
  * the head of a linked list of items and a namespace
  * for the hash. Also the per database item-operations
  * are stored here. */
-typedef struct {
+struct gldb {
 	struct list_head items;
 	struct gldb_ops *ops;
-} gldb_t;
+};
 
 /* Database item. Linked list and hash hooks. label and
  * db provide the unique name/namespace key. Item data
@@ -113,6 +120,9 @@ int gldb_copy(gldb_t *dest, gldb_t *source);
 
 /* Iterator over all database items. */
 #define gldb_foreach_item(db, i) list_foreach(&(db)->items, gldb_item_t, list, i)
+
+/* Get number of database items. */
+#define gldb_nritems(db) list_count(&(db)->items)
 
 
 /* Initializes a previously allocated/embedded item. */

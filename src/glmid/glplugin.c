@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.10 2000/04/25 08:58:00 richi Exp $
+ * $Id: glplugin.c,v 1.11 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *

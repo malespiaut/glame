@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.3 2000/04/25 08:58:00 richi Exp $
+ * $Id: arithmetic.c,v 1.4 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -130,12 +130,13 @@ int mul_register(plugin_t *p)
 			    	  FILTER_PORTTYPE_SAMPLE
 				  |FILTER_PORTTYPE_AUTOMATIC))
 	    || !(filter_add_output(f, PORTNAME_OUT, "output stream",
-			    	  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_param(f, "add", "to be added constant",
-				  FILTER_PARAMTYPE_FLOAT))
-	    || !(filter_add_param(f, "factor", "to be multiplied constant",
-				  FILTER_PARAMTYPE_FLOAT)))
+				   FILTER_PORTTYPE_SAMPLE)))
 		return -1;
+
+	filterpdb_add_param_float(filter_pdb(f), "add",
+				  FILTER_PARAMTYPE_FLOAT, 0.0);
+	filterpdb_add_param_float(filter_pdb(f), "factor",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "multiply audio streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mul.png");
@@ -231,12 +232,12 @@ int add_register(plugin_t *p)
 			    	  FILTER_PORTTYPE_SAMPLE
 				  |FILTER_PORTTYPE_AUTOMATIC))
 	    || !(filter_add_output(f, PORTNAME_OUT, "output stream",
-			    	  FILTER_PORTTYPE_SAMPLE))
-	    || !(filter_add_param(f, "add", "to be added constant",
-				  FILTER_PARAMTYPE_FLOAT))
-	    || !(filter_add_param(f, "factor", "to be multiplied constant",
-				  FILTER_PARAMTYPE_FLOAT)))
+				   FILTER_PORTTYPE_SAMPLE)))
 		return -1;
+	filterpdb_add_param_float(filter_pdb(f), "add",
+				  FILTER_PARAMTYPE_FLOAT, 0.0);
+	filterpdb_add_param_float(filter_pdb(f), "factor",
+				  FILTER_PARAMTYPE_FLOAT, 1.0);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "addition filter");
 	plugin_set(p, PLUGIN_PIXMAP, "add.png");

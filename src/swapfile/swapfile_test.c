@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.10 2000/04/25 08:56:17 richi Exp $
+ * $Id: swapfile_test.c,v 1.11 2000/05/01 11:09:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *

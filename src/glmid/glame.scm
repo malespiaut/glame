@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.27 2000/04/25 08:58:00 richi Exp $
+; $Id: glame.scm,v 1.28 2000/05/01 11:09:03 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
