@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.29 2001/04/12 13:49:47 richi Exp $
+ * $Id: main.c,v 1.30 2001/04/14 16:12:36 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -362,9 +362,6 @@ static void gui_main()
 
 	/* Pop up splash screen. */
 	glame_splash();
-
-	/* Cleanup handler. */
-	atexit((void (*)(void))gui_quit);
 
 	/* main loop */
        	gtk_main();
