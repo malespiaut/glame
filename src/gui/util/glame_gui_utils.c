@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.21 2002/01/03 22:10:35 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.22 2002/02/12 16:01:44 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -52,6 +52,24 @@ static void update_string_from_editable_cb(GtkEditable *w, char *buf)
 	g_free(chars);
 }
 
+static void update_long_from_adjustment_cb(GtkAdjustment *adj, long *value)
+{
+	*value = adj->value;
+}
+
+void create_label_widget_pair(GtkWidget *vbox,
+			      const char *clabel, GtkWidget *w)
+{
+	GtkWidget *hbox, *label;
+	hbox = gtk_hbox_new(TRUE,5);
+	gtk_container_add(GTK_CONTAINER(vbox), hbox);
+	label = gtk_label_new(clabel);
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
+	gtk_container_add(GTK_CONTAINER(hbox), label);
+	gtk_container_add(GTK_CONTAINER(hbox), w);
+	gtk_widget_show_all(hbox);
+}
+
 void create_label_edit_pair(GtkWidget *vbox,
 			    const char *label, const char *history,
 			    char *result)
@@ -61,6 +79,7 @@ void create_label_edit_pair(GtkWidget *vbox,
 	whbox = gtk_hbox_new(TRUE, 5);
 
 	wlabel = gtk_label_new(label);
+	gtk_misc_set_alignment(GTK_MISC(wlabel), 1.0, 0.5);
 
 	wentry = gnome_entry_new(history);
 	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), result);
@@ -72,6 +91,28 @@ void create_label_edit_pair(GtkWidget *vbox,
 	gtk_widget_show(wlabel);
 	gtk_widget_show(wentry);
 	gtk_widget_show(whbox);
+}
+
+void create_label_long_pair(GtkWidget *vbox,
+			    const char *label, long *value,
+			    long vmin, long vmax)
+{
+	GtkWidget *hbox, *l, *sbutton;
+	GtkObject *adj;
+
+	*value = MAX(vmin, MIN(vmax, *value));
+
+	hbox = gtk_hbox_new(TRUE, 5);
+	l = gtk_label_new(label);
+	gtk_misc_set_alignment(GTK_MISC(l), 1.0, 0.5);
+	adj = gtk_adjustment_new(*value, vmin, vmax, 1.0, 10.0, 0.0);
+	sbutton = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1.0, 0);
+	gtk_signal_connect(GTK_OBJECT(adj), "value_changed",
+			   (GtkSignalFunc)update_long_from_adjustment_cb, value);
+	gtk_container_add(GTK_CONTAINER(hbox), l);
+	gtk_container_add(GTK_CONTAINER(hbox), sbutton);
+	gtk_widget_show_all(hbox);
+	gtk_container_add(GTK_CONTAINER(vbox), hbox);
 }
 
 
@@ -343,22 +384,6 @@ void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, 
 	
 }
 
-
-
-void
-create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
-{
-	GtkWidget*hbox,*label;
-	hbox = gtk_hbox_new(TRUE,5);
-	gtk_container_add(GTK_CONTAINER(vbox),hbox);
-	label = gtk_label_new(clabel);
-	gtk_container_add(GTK_CONTAINER(hbox),label);
-	gtk_container_add(GTK_CONTAINER(hbox),w);
-	gtk_widget_show(hbox);
-	gtk_widget_show(label);
-	gtk_widget_show(w);
-
-}
 
 
 void changeString(GtkEditable *wid, char ** returnbuffer)
