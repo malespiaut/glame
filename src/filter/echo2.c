@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.8 2000/02/17 18:06:39 richi Exp $
+ * $Id: echo2.c,v 1.9 2000/02/21 12:43:40 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -68,12 +68,11 @@ static int echo2_f(filter_node_t *n)
 	goto entry1;
 	do {
 	        FILTER_CHECK_STOP;
-		/* we need to get a reference for the queued buffer */
-		sbuf_ref(inb);
-		sbuf_queue(out, inb);
+		sbuf_queue(out, inb); /* this really ate one reference */
 	entry1:
 		inb = sbuf_get(in);
-		add_feedback(&fifo, inb); /* this ate our reference! */
+		sbuf_ref(inb);
+		add_feedback(&fifo, inb); /* this "ate" one reference! */
 		cnt += sbuf_size(inb);
 	} while (cnt <= delay);
 
