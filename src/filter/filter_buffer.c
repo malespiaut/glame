@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.12 2000/02/09 13:14:14 richi Exp $
+ * $Id: filter_buffer.c,v 1.13 2000/02/14 13:23:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -32,6 +32,12 @@
 #include "atomic.h"
 #include "list.h"
 
+
+void _buffer_free(filter_buffer_t *fb)
+{
+	atomic_set(&fb->refcnt, 1);
+	fbuf_unref(fb);
+}
 
 void fbuf_ref(filter_buffer_t *fb)
 {
