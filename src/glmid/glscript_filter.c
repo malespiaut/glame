@@ -448,7 +448,14 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 	int res;
 	SCM_ASSERT(param_p(s_param), s_param, SCM_ARG1, "param-set!");
 	param = scm2param(s_param);
-	if (FILTER_PARAM_IS_INT(param)) {
+	if (!FILTER_PARAM_IS_STRING(param)
+	    && gh_string_p(s_param)) {
+		char *str;
+		int strl;
+		str = gh_scm2newstr(s_val, &strl);
+		res = filterparam_set_string(param, str);
+		free(str);
+	} else if (FILTER_PARAM_IS_INT(param)) {
 		int i;
 		SCM_ASSERT(gh_exact_p(s_val), s_val, SCM_ARG2, "param-set!");
 		i = gh_scm2long(s_val);
@@ -477,6 +484,9 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 		str = gh_scm2newstr(s_val, &strl);
 		res = filterparam_set_string(param, str);
 		free(str);
+	} else if (FILTER_PARAM_IS_POS(param)) {
+		SCM_ASSERT(gh_exact_p(s_val), s_val, SCM_ARG2, "param-set!");
+		/* nothing to do. */
 	} else
 		scm_wrong_type_arg("param-set!", SCM_ARG2, s_val);
 	return res == 0 ? SCM_BOOL_T : SCM_BOOL_F;
