@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.23 2001/12/17 15:53:40 nold Exp $
+ * $Id: glame_audiofile.c,v 1.24 2002/01/01 17:48:05 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -353,7 +353,7 @@ static void wav_header_fixup(AFfilehandle h)
 	gl_s32 size;
 	
 	end = ftell(h->fp);
-	if (end > 0x7ffffff) {
+	if (end > 0x7fffffff) {
 		DPRINTF("Warning! File size >= 2GB. Exceeds wav limitation.\n");
 		return;
 	}
@@ -362,13 +362,15 @@ static void wav_header_fixup(AFfilehandle h)
 	if (!fseek(h->fp, RWW(h).data, SEEK_SET)) {
 		size = __gl_cpu_to_le32(end - RWW(h).data - 4);
 		fwrite(&size, 4, 1, h->fp);
-	}
+	} else
+		DPRINTF("Cannot seek to %li!?\n", RWW(h).data);
 	
 	/* RIFF chunk */
 	if (!fseek(h->fp, RWW(h).start, SEEK_SET)) {
 		size = __gl_cpu_to_le32(end - RWW(h).start - 4);
 		fwrite(&size, 4, 1, h->fp);
-	}
+	} else
+		DPRINTF("Cannot seek to %li!?\n", RWW(h).start);
 }
 	
 static int handle_ok(AFfilehandle h)
