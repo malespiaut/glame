@@ -1,8 +1,8 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.21 2003/05/18 20:23:22 richi Exp $
+ * $Id: normalize.c,v 1.22 2003/05/26 21:00:37 richi Exp $
  *
- * Copyright (C) 2001 Alexander Ehlert
+ * Copyright (C) 2001-2003 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -363,7 +363,7 @@ void normalize_dialog(struct normalize_s* norms)
   gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow1), 3);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow1), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
-  norms->text = text1 = gtk_text_new (NULL, NULL);
+  norms->text = text1 = gtk_text_view_new ();
   gtk_widget_ref (text1);
   gtk_object_set_data_full (GTK_OBJECT (dialog1), "text1", text1,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -431,7 +431,7 @@ void normalize_dialog(struct normalize_s* norms)
 
   gnome_dialog_append_button(GNOME_DIALOG(dialog1), GNOME_STOCK_BUTTON_HELP);
   gnome_dialog_button_connect(GNOME_DIALOG(dialog1), 2,
-			      glame_help_cb, "Normalize");
+			      (GtkSignalFunc)glame_help_cb, "Normalize");
 
 
   /* paranoia */
@@ -558,7 +558,7 @@ static void analyze_rms(struct normalize_s *ns) {
 	ns->maxrms = mrms = get_max_rms(te, &item);
 	snprintf(label, 127, "Found maximum rms = %.3f(%.3f dB) in track %s.\n\n", mrms, GAIN2DB(mrms), gpsm_item_label(item));
 	strcat(string, label);
-	gtk_text_insert(GTK_TEXT(ns->text), NULL, NULL, NULL, string, strlen(string));
+	gtk_text_buffer_insert_at_cursor(gtk_text_view_get_buffer(GTK_TEXT_VIEW(ns->text)), string, strlen(string));
 
 	ns->changed = 0;
 	return;
