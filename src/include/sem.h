@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: sem.h,v 1.2 2000/05/04 14:40:46 nold Exp $
+ * $Id: sem.h,v 1.3 2000/05/26 14:11:10 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,9 +64,16 @@ static inline int sem_op(int semid, int semnum, int val)
 	sop.sem_num = semnum;
 	sop.sem_op = val;
 	sop.sem_flg = (val > 0) ? IPC_NOWAIT : 0;
-	while(((res=semop(semid, &sop, 1)) == -1) && (val < 0))
+#ifdef OS_BSD /* BSE suxx many. */
+	sched_yield();
+#endif
+	while(((res=semop(semid, &sop, 1)) == -1) && (val < 0)) {
+#ifdef OS_BSD /* BSE suxx many. */
+		sched_yield();
+#endif
 		if(errno != EINTR)
 			break;
+    }
 	return res;
 }
 
