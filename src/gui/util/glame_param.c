@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.14 2002/02/11 12:44:11 richi Exp $
+ * $Id: glame_param.c,v 1.15 2002/02/11 16:21:26 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -30,6 +30,7 @@
 #ifdef HAVE_LIBGLADE
 #include <glade/glade.h>
 #endif
+#include "glame_gui_utils.h"
 #include "glame_param.h"
 
 
@@ -418,6 +419,10 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		DPRINTF("FIXME! - unsupported param type\n");
 
 	/* Build the hbox, connect to the entry. */
+	gtk_box_set_homogeneous(GTK_BOX(gparam), TRUE);
+	gtk_box_set_spacing(GTK_BOX(gparam), 10);
+	if (GTK_IS_MISC(gparam->label))
+		gtk_misc_set_alignment(GTK_MISC(gparam->label), 1.0, 0.5);
 	gtk_box_pack_start(GTK_BOX(gparam), gparam->label, FALSE, TRUE, 10);
 	gtk_box_pack_start(GTK_BOX(gparam), gparam->widget, TRUE, TRUE, 10);
 	if (GTK_IS_ADJUSTMENT(gparam->u.widget))
