@@ -1,57 +1,32 @@
-#ifndef _GLDB_PARAM_H
-#define _GLDB_PARAM_H
+#ifndef _FILTER_PARAM_H
+#define _FILTER_PARAM_H
+
+/*
+ * filter_param.h
+ * $Id: filter_param.h,v 1.2 2000/05/01 12:22:16 richi Exp $
+ *
+ * Copyright (C) 2000 Richard Guenther
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
 
 #include "glame_types.h"
 #include "glsignal.h"
 #include "gldb.h"
 #include "gldb_string.h"
-
-/* How do we like filter parameter registration to be?
- * Example copied from basic_sample.c
- */
-#if 0
-int mix_register(plugin_t *p)
-{
-	filter_t *f;
-	filter_portdesc_t *in, *out;
-	filter_param_t *p;
-
-        if (!(f = filter_alloc(mix_f))
-            || !(in = filter_add_input(f, PORTNAME_IN, "input stream",
-				       FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE))
-	    || !(out = filter_add_output(f, PORTNAME_OUT, "mixed stream",
-					 FILTER_PORTTYPE_SAMPLE)))
-		return -1;
-
-	/* umm, we should check for !p and property() == -1... */
-	p = filterparam_add(filterportdesc_pdb(in), "gain",
-			    FILTER_PARAMTYPE_TIME_S);
-	filterparam_set_property(p, PARAM_DESCRIPTION, "input gain");
-
-	p = filterparam_add(filterportdesc_pdb(in), "offset",
-			    FILTER_PARAMTYPE_FLOAT);
-	filterparam_set_property(p, PARAM_DESCRIPTION, "input offset");
-
-	p = filterparam_add(filter_pdb(f), "gain",
-			    FILTER_PARAMTYPE_FLOAT);
-	filterparam_set_property(p, PARAM_DESCRIPTION, "output gain");
-
-	p = filterparam_add(filter_pdb(f), "position", 
-			    FILTER_PARAMTYPE_POSITION);
-	filterparam_set_property(p, PARAM_DESCRIPTION,
-				 "position of mixed stream");
-
-	f->connect_out = mix_connect_out;
-	f->fixup_param = mix_fixup_param;
-	f->fixup_pipe = mix_fixup_pipe;
-
-	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
-	plugin_set(p, PLUGIN_PIXMAP, "mix1.png");
-	filter_attach(f, p);
-
-	return 0;
-}
-#endif
 
 
 /* Parameter types.
