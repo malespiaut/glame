@@ -26,8 +26,16 @@
 #undef CPU_X86
 #undef CPU_MIPS
 
+/* define which os you use */
+#undef OS_LINUX
+#undef OS_BSD
+#undef OS_IRIX
+
 /* define if your libc supports POSIX realtime signals */
 #undef HAVE_POSIX_RTSIG
+
+/* define if your libc supports the madvise system call */
+#undef HAVE_MADVISE
 
 /* define to include additional debugging code */
 #undef DEBUG
