@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.12 2000/10/03 14:37:57 richi Exp $
+ * $Id: swapfile_test.c,v 1.13 2000/10/09 08:39:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -231,7 +231,7 @@ int test_simple_file()
 	/* First simply create the file. Should be of size zero
 	 * after this, with expected stat data. */
 	print_state("Creating new file");
-	if (!(fd = sw_open(17, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE)))
+	if ((fd = sw_open(17, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE)) == -1)
 		BUG("Cannot create file");
 	if (sw_fstat(fd, &stat) == -1)
 		BUG("Cannot stat new file");
@@ -265,7 +265,7 @@ int test_simple_file()
 		BUG("Cannot close file");
 	if (sw_unlink(stat.name) == -1)
 		BUG("Cannot unlink file");
-	if ((fd = sw_open(stat.name, O_RDWR, TXN_NONE)))
+	if ((fd = sw_open(stat.name, O_RDWR, TXN_NONE)) != -1)
 		BUG("Can open unlinked file");
 
 	state_end();
@@ -320,9 +320,19 @@ int main(int argc, char **argv)
 	if (argc < 2)
 		goto _usage;
 
+ _retry:
 	if (swapfile_open(argv[1], 0) == -1) {
-		perror("swapfile_open");
-		return 1;
+		if (errno != ENOENT) {
+			perror("Cannot open swap");
+			return -1;
+		}
+		fprintf(stderr, "Cannot open swap - trying to create one...");
+		if (swapfile_creat(argv[1], 32*1024*1024) == -1) {
+			perror(" failed");
+			return 1;
+		}
+		fprintf(stderr, " ok.\n");
+		goto _retry;
 	}
 
 	initialize_data();

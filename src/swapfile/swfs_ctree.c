@@ -28,14 +28,12 @@
 
 
 static int log2(unsigned long n);
-static struct ctree* alloc_tree(long cnt);
-static void build_tree(struct ctree *t);
+static struct ctree *ctree_alloc(long cnt);
+static void ctree_build(struct ctree *t);
 
 
-/* Finds the cluster with offset inside it, returns the
- * offset of the cluster id in the tree array. Copies
- * the cluster start position and its size to cstart/csize. */
-static long _find_cluster(struct ctree *h, s64 offset, s64 *coff)
+
+static long ctree_find(struct ctree *h, s64 offset, s64 *coff)
 {
 	s64 *tree64 = CTREE64(h);
 	s32 *tree32 = CTREE32(h);
@@ -77,10 +75,18 @@ static long _find_cluster(struct ctree *h, s64 offset, s64 *coff)
 }
 
 
-/* Correct the tree structure to replace the cluster at cid[] position
- * pos with the specified cid/size. */
-static void _replace_cluster(struct ctree *h, long pos,
-			     u32 cid, s32 size)
+static void ctree_zero(struct ctree *h, long pos, long cnt)
+{
+	long i;
+
+	/* For now _very_ inefficent. */
+	for (i=pos; i<pos+cnt; i++)
+		ctree_replace1(h, i, 0, 0);
+}
+
+
+static void ctree_replace1(struct ctree *h, long pos,
+			  u32 cid, s32 size)
 {
 	u32 height = h->height;
 	s32 delta = size - CSIZE(h, pos);
@@ -97,84 +103,130 @@ static void _replace_cluster(struct ctree *h, long pos,
 }
 
 
-static struct ctree *_insert_clusters(struct ctree *h, int pos,
-				      int cnt, u32 *cid, s32 *size)
+static void ctree_replace(struct ctree *h, long pos, long cnt,
+			  u32 *cid, s32 *size)
+{
+	long i;
+
+	/* For now _very_ inefficient. */
+	if (&CID(h, pos) < cid) {
+		for (i=pos; i<pos+cnt; i++)
+			ctree_replace1(h, i, cid[i-pos], size[i-pos]);
+	} else {
+		for (i=pos+cnt-1; i>=pos; i--)
+			ctree_replace1(h, i, cid[i-pos], size[i-pos]);
+	}
+}
+
+static struct ctree *ctree_insert1(struct ctree *h, long pos,
+				   u32 cid, s32 size)
+{
+	return ctree_insert(h, pos, 1, &cid, &size);
+}
+
+static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
+				  u32 *cid, s32 *size)
 {
 	u32 target_height;
 	struct ctree *dest;
+	u32 *ccid, *csize;
 	long i;
+
+	if (!h || !cid || !size
+	    || pos<0 || cnt<=0 || pos>h->cnt)
+		PANIC("Invalid arguments");
 
 	target_height = log2(h->cnt + cnt);
 	if (h->height != target_height)
-		dest = alloc_tree(h->cnt + cnt);
+		dest = ctree_alloc(h->cnt + cnt);
 	else
 		dest = h;
 
-	/* Fill the cluster ids/sizes into the destination tree. */
-	for (i=(long)(h->cnt)-1; i>=(long)(h->cnt)-pos; i--) {
+	/* If cid/size array overlap the dest cid/size array,
+	 * we need to copy it (could be done more efficient -
+	 * but not now). */
+	if (cid >= &CID(dest, 0) && cid < &CID(dest, dest->cnt)) {
+		ccid = alloca(sizeof(u32)*cnt);
+		csize = alloca(sizeof(s32)*cnt);
+		memcpy(ccid, cid, sizeof(u32)*cnt);
+		memcpy(csize, size, sizeof(s32)*cnt);
+		cid = ccid;
+		csize = csize;
+	}
+
+	/* Fill the cluster ids/sizes into the destination tree,
+	 * first the unchanged tail-part of the source tree, */
+	for (i=(long)(h->cnt)-1; i>=pos; i--) {
 		CID(dest, i+cnt) = CID(h, i);
 		CSIZE(dest, i+cnt) = CSIZE(h, i);
 	}
+	/* then the inserted part, */
 	for (i=cnt-1; i>=0; i--) {
 		CID(dest, pos+i) = cid[i];
 		CSIZE(dest, pos+i) = size[i];
 	}
-	for (i=pos-1; i>=0; i--) {
-		CID(dest, i) = CID(h, i);
-		CSIZE(dest, i) = CSIZE(h, i);
+	/* and then the unchanged head-part of the source tree,
+	 * if necessary. */
+	if (h != dest) {
+		for (i=pos-1; i>=0; i--) {
+			CID(dest, i) = CID(h, i);
+			CSIZE(dest, i) = CSIZE(h, i);
+		}
 	}
 
 	/* Build the tree over the cluster sizes. */
 	dest->cnt = h->cnt + cnt;
-	build_tree(dest);
+	ctree_build(dest);
 
 	return dest;
 }
 
 
-#if 0 /* below needs to be FIXED wrt s64/s32 */
-static long *_remove_clusters(long *tree, int pos, int cnt,
-			      long *cid, off_t *csize)
+static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
+				  u32 *cid, s32 *csize)
 {
-	/* First move (at most) cnt clusters after pos+cnt
-	 * by cnt positions to the left, copying cluster
-	 * information to cid/csize */
-	long newsize, newid;
-	int i = 0;
-	while (tree[pos-(1<<tree[0])] != 0) {
-		if (i<cnt) {
-			cid[i] = tree[pos];
-			csize[i] = tree[pos-(1<<tree[0])];
-		}
-		if (pos+cnt < 1<<tree[0] /* FIXME */) {
-			newsize = tree[pos+cnt-(1<<tree[0])];
-			newid = tree[pos+cnt];
-		} else {
-			newsize = 0;
-			newid = -1;
-		}
-		tree[pos] = newid;
-		_resize_cluster(tree, pos, newsize);
-		i++;
-		pos++;
+	long i, replcnt;
+
+	if (!h || pos<0 || cnt<=0 || pos+cnt>h->cnt)
+		PANIC("Out of range params");
+
+	/* Fill the to be deleted cluster ids/sizes into
+	 * the provided buffers. */
+	for (i=pos; i<pos+cnt; i++) {
+		if (cid)
+			cid[i-pos] = CID(h, i);
+		if (csize)
+			csize[i-pos] = CSIZE(h, i);
 	}
 
-	/* Second, resize tree, if applicable. */
-	/* FIXME */
-	return tree;
+	/* Number of entries after to be removed entries - these
+	 * we will place (i.e. ctree_replace) at pos. */
+	replcnt = h->cnt - pos - cnt;
+	ctree_replace(h, pos, replcnt,
+		      &CID(h, pos+cnt), &CSIZE(h, pos+cnt));
+
+	/* Zero the tail of the tree - cnt entries starting at
+	 * position pos + replcnt. Correct h->cnt. */
+	ctree_zero(h, pos+replcnt, cnt);
+	h->cnt -= cnt;
+
+	return h;
 }
-#endif
 
 
 
-static struct ctree* alloc_tree(long cnt)
+/****************************************************************
+ * Internal helpers.
+ */
+
+static struct ctree *ctree_alloc(long cnt)
 {
 	u32 height;
 	int size;
 	struct ctree *t;
 
 	height = log2(cnt);
-	size = sizeof(s64)*2*(1<<height);
+	size = CTREESIZE(height);
 	if (!(t = (struct ctree *)malloc(size)))
 		return NULL;
 	memset(t, 0, size);
@@ -184,7 +236,7 @@ static struct ctree* alloc_tree(long cnt)
 	return t;
 }
 
-static void build_tree(struct ctree *t)
+static void ctree_build(struct ctree *t)
 {
 	u32 h = t->height;
 	int i;

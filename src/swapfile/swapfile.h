@@ -59,7 +59,7 @@
 
 
 
-typedef void *swfd_t;                 /* open file cookie, like fd/FILE */
+typedef long swfd_t;                  /* open file cookie, like fd/FILE */
 typedef struct { int dummy; } SWDIR;  /* cookie for open directory, like DIR */
 
 struct sw_stat {
@@ -155,6 +155,9 @@ int sw_ftruncate(swfd_t fd, off_t length);
  * - SWSENDFILE_CUT removes copied data from the source file
  * The destination file descriptor may be SW_NOFILE, in that case
  * no data is actually written (useful with SWSENDFILE_CUT). */
+#define SW_NOFILE ((swfd_t)-1)
+#define SWSENDFILE_INSERT 1
+#define SWSENDFILE_CUT 2
 ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode);
 
 /* Update the file pointer position like lseek(2). */

@@ -73,7 +73,10 @@ HASH(mappingp, struct mapping, 8,
 /* The lru list and the backing store fd. */
 static struct list_head pmap_lru;
 static size_t pmap_lrusize;
+static int pmap_lrucnt;
 static size_t pmap_minfree;
+static size_t pmap_minlrusize;
+static int pmap_lrumaxcnt;
 static pthread_mutex_t pmap_mutex;
 
 
@@ -125,10 +128,12 @@ static struct mapping *_map_alloc(void *start, size_t size, int prot,
 static void _map_free(struct mapping *m)
 {
 	hash_remove_mappingv(m);
-	hash_remove_mappingp(m);
+	if (is_hashed_mappingp(m))
+		hash_remove_mappingp(m);
 	if (!list_empty(&m->lru)) {
 		list_del(&m->lru);
 		pmap_lrusize -= m->size;
+		pmap_lrucnt--;
 	}
 	munmap(m->mapping, m->size);
 	free(m);
@@ -141,7 +146,8 @@ static int _shrink_lru(size_t minfree)
     	struct mapping *m;
 	void *mem;
 
-	while ((mem = mmap(0, minfree, PROT_READ,
+	while (pmap_lrucnt > pmap_lrumaxcnt
+	       || (mem = mmap(0, minfree, PROT_READ,
 			   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
 		m = list_gettail(&pmap_lru, struct mapping, lru);
 		if (!m)
@@ -158,18 +164,37 @@ static inline void _map_ref(struct mapping *m)
 	if (!list_empty(&m->lru)) {
 	    	list_del(&m->lru);
 		pmap_lrusize -= m->size;
+		pmap_lrucnt--;
 	}
 }
 
 static inline void _map_unref(struct mapping *m)
 {
 	if (--(m->refcnt) == 0) {
-	    	list_add(&m->lru, &pmap_lru);
-		pmap_lrusize += m->size;
-		/* FIXME - shrinking every unref is broken? -> have a minlru size
-		 * before shrinking? */
-		_shrink_lru(pmap_minfree);
+		if (!is_hashed_mappingp(m))
+			_map_free(m);
+		else {
+			list_add(&m->lru, &pmap_lru);
+			pmap_lrusize += m->size;
+			pmap_lrucnt++;
+			if (pmap_lrusize > pmap_minlrusize
+			    || pmap_lrucnt > pmap_lrumaxcnt)
+				_shrink_lru(pmap_minfree);
+		}
 	}
+}
+
+int _pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset)
+{
+	struct mapping *m;
+
+	if (!(m = hash_find_mappingp(size, flags, prot, fd, offset)))
+		return 0;
+	if (m->refcnt != 0)
+		return -1;
+	_map_free(m);
+
+	return 0;
 }
 
 
@@ -181,7 +206,10 @@ int pmap_init(size_t minfree)
 {
     	INIT_LIST_HEAD(&pmap_lru);
 	pmap_lrusize = 0;
+	pmap_lrucnt = 0;
 	pmap_minfree = minfree;
+	pmap_minlrusize = 8*1024*1024;
+	pmap_lrumaxcnt = 32;
 	pthread_mutex_init(&pmap_mutex, NULL);
 
 	return 0;
@@ -303,26 +331,51 @@ int pmap_discard(void *start)
 	return 0;
 }
 
-
-int pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset)
+int pmap_uncache(size_t size, int flags, int fd, off_t offset)
 {
-	struct mapping *m;
-
 	pthread_mutex_lock(&pmap_mutex);
-	if (!(m = hash_find_mappingp(size, flags, prot, fd, offset)))
-		goto ok;
-	if (m->refcnt != 0) {
+	if (_pmap_uncache(size, PROT_READ, flags, fd, offset) == -1
+	    || _pmap_uncache(size, PROT_WRITE, flags, fd, offset) == -1
+	    || _pmap_uncache(size, PROT_READ|PROT_WRITE,
+			     flags, fd, offset) == -1) {
 		pthread_mutex_unlock(&pmap_mutex);
 		return -1;
 	}
-
-	_map_free(m);
-
- ok:
 	pthread_mutex_unlock(&pmap_mutex);
 	return 0;
 }
 
+void pmap_invalidate(int fd)
+{
+	struct list_head *mn;
+	struct mapping *m;
+	int i;
+
+	pthread_mutex_lock(&pmap_mutex);
+
+	/* Scan the lru for mappings of fd. */
+	mn = pmap_lru.next;
+	while (mn != &pmap_lru) {
+		m = list_entry(mn, struct mapping, lru);
+		mn = mn->next;
+		if (m->fd == fd)
+			_map_free(m);
+	}
+
+	/* Scan the mappingv hash. */
+	for (i=0; i<((1<<8)-1); i++) {
+		m = hash_getslot_mappingv(i);
+		while (m) {
+			if (m->fd == fd) {
+				hash_remove_mappingp(m);
+				m->fd = -1;
+			}
+			m = hash_next_mappingv(m);
+		}
+	}
+
+	pthread_mutex_unlock(&pmap_mutex);
+}
 
 void pmap_shrink()
 {

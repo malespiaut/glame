@@ -80,18 +80,24 @@ static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 /* The FILE equivalent - the swapfile filedescriptor. No locking here
  * as it is done by fd->file locking. Also the user has to ensure
  * consistency himself. */
+struct swfd;
 struct swfd {
+	struct swfd *next_swfd_hash;
+	struct swfd **pprev_swfd_hash;
 	struct list_head list;
 	struct swfile *file;
+	swfd_t fd;
 	int mode;
 	s64 offset;          /* file pointer position */
-	s64 c_start;         /* start of current cluster */
-	struct swcluster *c; /* current cluster */
 	txnid_t tid;         /* parent for transactions */
 };
-#define SWFD(s) ((struct swfd *)(s))
 #define list_add_swfd(fd) list_add(&(fd)->list, &swap.fds)
 #define list_del_swfd(fd) list_del_init(&(fd)->list)
+HASH(swfd, struct swfd, 8,
+     (swfd->fd == fd),
+     (fd),
+     (swfd->fd),
+     swfd_t fd)
 
 
 
@@ -109,8 +115,10 @@ struct swfd {
 int swapfile_open(char *name, int flags)
 {
 	char str[256];
+	int fd;
 
 	/* Check for correct swapfile directory setup. */
+	errno = ENOENT;
 	if (access(name, R_OK|W_OK|X_OK|F_OK) == -1)
 		return -1;
 	snprintf(str, 255, "%s/clusters.data", name);
@@ -120,6 +128,16 @@ int swapfile_open(char *name, int flags)
 	if (access(str, R_OK|W_OK|X_OK|F_OK) == -1)
 		return -1;
 
+	/* Place the .lock file, write pid. */
+	snprintf(str, 255, "%s/.lock", name);
+	if ((fd = open(str, O_RDWR|O_CREAT|O_EXCL, 0666)) == -1) {
+		errno = EBUSY;
+		return -1;
+	}
+	snprintf(str, 255, "%li\nGLAME " VERSION "\n", (long)getpid());
+	write(fd, str, strlen(str));
+	close(fd);
+
 	/* Initialize swap structure. */
 	swap.files_base = strdup(name);
 	snprintf(str, 255, "%s/clusters.data", name);
@@ -128,11 +146,16 @@ int swapfile_open(char *name, int flags)
 	swap.clusters_meta_base = strdup(str);
 	INIT_LIST_HEAD(&swap.fds);
 
-	/* Initialize pmap subsystem. */
-	if (pmap_init(100*1024*1024) == -1)
-		return -1;
-
+	/* Initialize cluster subsystem. */
+	if (cluster_init(32, 100*1024*1024) == -1)
+		goto err;
+	errno = 0;
 	return 0;
+
+ err:
+	snprintf(str, 255, "%s/.lock", name);
+	unlink(str);
+	return -1;
 }
 
 /* Closes and updates a previously opened swap file/partition
@@ -140,19 +163,30 @@ int swapfile_open(char *name, int flags)
 void swapfile_close()
 {
 	struct swfd *f;
+	char s[256];
+
+	if (!swap.files_base)
+		return;
 
 	/* Close all files */
 	while ((f = list_gethead(&swap.fds, struct swfd, list))) {
-		sw_close(f);
+		sw_close(f->fd);
 	}
+
+	/* Cleanup cluster subsystem. */
+	cluster_cleanup();
+
+	/* Remove the .lock file. */
+	snprintf(s, 255, "%s/.lock", swap.files_base);
+	unlink(s);
 
 	/* Cleanup swap structure. */
 	free(swap.files_base);
 	free(swap.clusters_data_base);
 	free(swap.clusters_meta_base);
-
-	/* Cleanup pmap subsystem. */
-	pmap_close();
+	swap.files_base = NULL;
+	swap.clusters_data_base = NULL;
+	swap.clusters_meta_base = NULL;
 }
 
 /* Tries to create an empty swapfile on name of size size. */
@@ -246,12 +280,14 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 	if (((flags & O_EXCL) && !(flags & O_CREAT))
 	    || (flags & ~(O_CREAT|O_EXCL|O_TRUNC|O_RDONLY|O_WRONLY|O_RDWR))) {
 		errno = EINVAL;
-		return NULL;
+		return -1;
 	}
 
 	/* Alloc fd. */
 	if (!(fd = (struct swfd *)malloc(sizeof(struct swfd))))
-		return NULL;
+		return -1;
+	if (hash_find_swfd((((long)fd)>>2)))
+		PANIC("swfd_t hash clash!??");
 
 	LOCK;
 	f = file_get(name, FILEGET_READCLUSTERS);
@@ -286,13 +322,14 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 		file_truncate(f, 0);
 
 	INIT_LIST_HEAD(&fd->list);
+	hash_init_swfd(fd);
 	fd->file = f;
+	fd->fd = ((long)fd)>>2;
 	fd->mode = flags & (O_RDONLY|O_WRONLY|O_RDWR);
 	fd->offset = 0;
-	fd->c = cluster_get(CID(f->clusters, 0), 0, -1);
-	fd->c_start = 0;
 	fd->tid = tid;
 	list_add_swfd(fd);
+	hash_add_swfd(fd);
 	UNLOCK;
 
 	/* Add a "unimplemented txn" transaction. */
@@ -300,26 +337,31 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 		txn_finish_unimplemented(txn_start(tid), "no transaction support for swapfile for now");
 
 	errno = 0;
-	return (swfd_t)fd;
+	return fd->fd;
 
  err:
 	if (f)
 		file_put(f, 0);
 	UNLOCK;
 	free(fd);
-	return NULL;
+	return -1;
 }
 
 /* Closes a file descriptor. Like close(2). */
 int sw_close(swfd_t fd)
 {
-	struct swfd *_fd = SWFD(fd);
+	struct swfd *_fd;
 
 	LOCK;
+	if (!(_fd = hash_find_swfd(fd))) {
+		UNLOCK;
+		errno = EINVAL;
+		return -1;
+	}
+	hash_remove_swfd(_fd);
 	list_del_swfd(_fd);
-	cluster_put(_fd->c, 0);
-	file_put(_fd->file, 0);
 	UNLOCK;
+	file_put(_fd->file, 0);
 	free(_fd);
 
 	return 0;
@@ -328,8 +370,16 @@ int sw_close(swfd_t fd)
 /* Changes the size of the file fd like ftruncate(2). */
 int sw_ftruncate(swfd_t fd, off_t length)
 {
-	struct swfd *_fd = SWFD(fd);
+	struct swfd *_fd;
 	int res;
+
+	LOCK;
+	if (!(_fd = hash_find_swfd(fd))) {
+		UNLOCK;
+		errno = EINVAL;
+		return -1;
+	}
+	UNLOCK;
 
 	/* Check if its a valid truncate command. */
 	if (_fd->mode == O_RDONLY) {
@@ -341,12 +391,6 @@ int sw_ftruncate(swfd_t fd, off_t length)
 		return -1;
 	}
 
-	/* File pointer position now outside of the file? */
-	if (_fd->offset >= length) {
-		cluster_put(_fd->c, 0);
-		_fd->c = NULL;
-	}
-
 	/* Global truncate lock, as we do interesting things inside
 	 * file_truncate. */
 	LOCK;
@@ -354,12 +398,6 @@ int sw_ftruncate(swfd_t fd, off_t length)
 	UNLOCK;
 	if (res == -1)
 		return -1;
-
-	/* File pointer position now inside the file? */
-	if (!_fd->c && _fd->offset >= 0 && _fd->offset < length) {
-		_fd->c = file_getcluster(_fd->file, _fd->offset,
-					 &_fd->c_start, 0);
-	}
 
 	return 0;
 }
@@ -376,19 +414,80 @@ int sw_ftruncate(swfd_t fd, off_t length)
  * no data is actually written (useful with SWSENDFILE_CUT). */
 ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 {
-	return -1;
+	struct swfd *_ofd;
+	struct swfd *_ifd;
+
+	LOCK;
+	_ofd = hash_find_swfd(out_fd);
+	_ifd = hash_find_swfd(in_fd);
+	UNLOCK;
+
+	/* Check for read/write permissions. */
+	errno = EPERM;
+	if ((_ofd && !(_ofd->mode == O_WRONLY || _ofd->mode == O_RDWR))
+	    || (_ifd && !(_ifd->mode == O_RDONLY || _ifd->mode == O_RDWR)))
+		return -1;
+
+	/* Check for correct mode argument. */
+	errno = EINVAL;
+	if (mode & ~(SWSENDFILE_INSERT|SWSENDFILE_CUT))
+		return -1;
+
+	/* We need an input file with at least count bytes data ready
+	 * to be read from. */
+	if (!_ifd || _ifd->file->clusters->size - _ifd->offset < count)
+		return -1;
+
+	/* If source and destination file are the same we do not
+	 * allow overlapping areas as we do not handle them correctly. */
+	if (_ifd && _ofd && _ifd->file == _ofd->file
+	    && ((_ifd->offset < _ofd->offset+count
+		 && _ifd->offset >= _ofd->offset)
+		|| (_ofd->offset < _ifd->offset+count
+		    && _ofd->offset >= _ifd->offset)))
+		return -1;
+	errno = 0;
+
+	/* To be able to easy seperate the operation, we need to
+	 * do things in a correct order.
+	 */
+	/* First update the output file, if necessary. */
+	if (_ofd) {
+		if (mode & SWSENDFILE_INSERT)
+			file_insert(_ofd->file, _ofd->offset,
+				    _ifd->file, _ifd->offset, count);
+		else
+			file_replace(_ofd->file, _ofd->offset,
+				     _ifd->file, _ifd->offset, count);
+		_ofd->offset = _ofd->offset + count;
+	}
+	/* Then update the input file, if necessary */
+	if (mode & SWSENDFILE_CUT)
+		file_cut(_ifd->file, _ifd->offset, count);
+	else
+		_ifd->offset += count;
+
+	return 0;
 }
 
 /* Update the file pointer position like lseek(2). */
 off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 {
-	struct swfd *_fd = SWFD(fd);
+	struct swfd *_fd;
+
+	LOCK;
+	if (!(_fd = hash_find_swfd(fd))) {
+		UNLOCK;
+		errno = EINVAL;
+		return -1;
+	}
+	UNLOCK;
 
 	/* We convert all seeks to SEEK_SET seeks which can be
 	 * handled by common code. */
 	switch (whence) {
 	case SEEK_END:
-		offset = _fd->file->clusters->total_size + offset - 1;
+		offset = _fd->file->clusters->size + offset - 1;
 		break;
 	case SEEK_CUR:
 		offset += _fd->offset;
@@ -399,24 +498,6 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 		errno = EINVAL;
 		return -1;
 	}
-
-	/* Just offset query? */
-	if (_fd->c && _fd->offset == offset)
-		return _fd->offset;
-
-	/* Seek inside the current cluster? */
-	if (_fd->c
-	    && _fd->c_start <= offset
-	    && _fd->c_start+_fd->c->size > offset) {
-		_fd->offset = offset;
-		return _fd->offset;
-	}
-
-	/* Now we really need to seek. */
-	cluster_put(_fd->c, 0);
-	_fd->c = file_getcluster(_fd->file, offset, &_fd->c_start, 0);
-	if (!_fd->c)
-		_fd->c_start = -1;
 	_fd->offset = offset;
 
 	return _fd->offset;
@@ -439,9 +520,9 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
-		    || !(mem = sw_mmap(NULL, PROT_READ|PROT_WRITE,
-				       MAP_SHARED, fd)))
-			return -1;
+		    || (mem = sw_mmap(NULL, PROT_READ,
+				      MAP_SHARED, fd)) == MAP_FAILED)
+			break;
 
 		dcnt = MIN(stat.cluster_size
 			   - (stat.offset - stat.cluster_start), cnt);
@@ -450,7 +531,7 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 
 		if (sw_munmap(mem) == -1
 		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1)
-			return -1;
+			break;
 
 		cnt -= dcnt;
 	}
@@ -465,19 +546,23 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	struct sw_stat stat;
 	char *mem;
 	size_t dcnt, cnt = count;
+	s64 old_size = -1, old_offset;
 
 	/* Check, if we need to expand the file. */
 	if (sw_fstat(fd, &stat) == -1)
 		return -1;
-	if (stat.offset + count > stat.size)
+	if (stat.offset + count > stat.size) {
+		old_size = stat.size;
+		old_offset = stat.offset;
 		if (sw_ftruncate(fd, stat.offset + count) == -1)
 			return -1;
+	}
 
 	while (cnt > 0) {
 		if (sw_fstat(fd, &stat) == -1
-		    || !(mem = sw_mmap(NULL, PROT_READ|PROT_WRITE,
-				       MAP_SHARED, fd)))
-			return -1;
+		    || (mem = sw_mmap(NULL, PROT_WRITE,
+				      MAP_SHARED, fd)) == MAP_FAILED)
+			break;
 
 		dcnt = MIN(stat.cluster_size
 			   - (stat.offset - stat.cluster_start), cnt);
@@ -486,9 +571,16 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 
 		if (sw_munmap(mem) == -1
 		    || sw_lseek(fd, dcnt, SEEK_CUR) == -1)
-			return -1;
+			break;
 
 		cnt -= dcnt;
+	}
+
+	/* Did we have to truncate the file and were not be able
+	 * to write all data? We may have to fix the truncation here. */
+	if (count != cnt && old_size != -1) {
+		if (old_offset + (count-cnt) > old_size)
+			sw_ftruncate(fd, old_offset + (count-cnt));
 	}
 
 	return count-cnt;
@@ -500,23 +592,37 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
  * can be mapped using sw_mmap. */
 int sw_fstat(swfd_t fd, struct sw_stat *buf)
 {
-	struct swfd *_fd = SWFD(fd);
+	struct swfd *_fd;
+	struct swcluster *c;
+	s64 coff;
 
 	if (!buf)
 		return -1;
+	LOCK;
+	if (!(_fd = hash_find_swfd(fd))) {
+		UNLOCK;
+		errno = EINVAL;
+		return -1;
+	}
+	UNLOCK;
+
 	buf->name = _fd->file->name;
-	buf->size = _fd->file->clusters->total_size;
+	buf->size = _fd->file->clusters->size;
 	buf->mode = _fd->mode;
 	buf->offset = _fd->offset;
-	if (_fd->c) {
-		buf->cluster_start = _fd->c_start;
-		buf->cluster_end = _fd->c_start + _fd->c->size;
-		buf->cluster_size = _fd->c->size;
+	if ((c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+		buf->cluster_start = coff;
+		buf->cluster_end = coff + c->size - 1;
+		buf->cluster_size = c->size;
+		cluster_put(c, 0);
 	} else {
-		buf->cluster_start = -1;
-		buf->cluster_end = -1;
-		buf->cluster_size = -1;
+		/* FIXME!? Memory mapping of this cluster is not allowed,
+		 * but writing via sw_write is ok. */
+		buf->cluster_start = _fd->offset;
+		buf->cluster_end = _fd->offset - 1;
+		buf->cluster_size = 0;
 	}
+
 	return 0;
 }
 
@@ -525,11 +631,38 @@ int sw_fstat(swfd_t fd, struct sw_stat *buf)
  * as they are determined by the actual cluster offset/size. */
 void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 {
-	struct swfd *_fd = SWFD(fd);
+	struct swfd *_fd;
+	struct swcluster *c;
+	s64 coff;
+	void *addr;
 
-	if (!_fd->c)
-		return NULL; /* FIXME - provide private zero mapping? */
-	return cluster_mmap(_fd->c, start, prot, flags);
+	LOCK;
+	if (!(_fd = hash_find_swfd(fd))) {
+		UNLOCK;
+		errno = EINVAL;
+		return MAP_FAILED;
+	}
+	UNLOCK;
+
+	/* Check file permissions. */
+	if (!(_fd->mode == O_RDWR)
+	    && (((prot & PROT_WRITE) && !(_fd->mode == O_WRONLY))
+		|| ((prot & PROT_READ) && !(_fd->mode == O_RDONLY)))) {
+		errno = EPERM;
+		return MAP_FAILED;
+	}
+
+	/* Get the actual cluster and mmap it. */
+	if ((c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+		addr = cluster_mmap(c, start, prot, flags);
+		cluster_put(c, 0);
+		return addr;
+	}
+
+	/* Memory mapping after the end of the file is not going to work
+	 * just like for normal files. */
+	errno = EINVAL;
+	return MAP_FAILED;
 }
 
 /* Unmaps a previously mapped part of a file. Like munmap(2). */
@@ -537,3 +670,9 @@ int sw_munmap(void *start)
 {
 	return cluster_munmap(start);
 }
+
+
+
+/*********************************************************************
+ * Internal functions.
+ */

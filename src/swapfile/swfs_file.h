@@ -39,10 +39,11 @@ struct swcluster;
 struct swfile {
 	struct swfile *next_swfile_hash;
 	struct swfile **pprev_swfile_hash;
+	pthread_mutex_t mx; /* protects flags & clusters */
 	long name;
-	int usage;    /* number of references to this struct swfile */
+	int usage;    /* number of references to this struct swfile,
+		       * protected by FILES lock. */
 	int flags;    /* SWF_* */
-	int fd;       /* the fd of the metadata */
 
 	/* Fields created out of the file metadata */
 	struct ctree *clusters; /* cluster tree */
@@ -79,6 +80,22 @@ static struct swcluster *file_getcluster(struct swfile *f,
 /* Truncate the file to the given size. Returns 0 on success
  * and -1 on error. */
 static int file_truncate(struct swfile *f, s64 size);
+
+
+/* Insert count bytes from position spos in file sf into file df
+ * at position dpos. Returns -1 on error, 0 on success. */
+static int file_insert(struct swfile *df, s64 dpos,
+		       struct swfile *sf, s64 spos, s64 count);
+
+/* Replaces count bytes of file df from position dpos with
+ * data from position spos out of file sf. Returns 0 on success,
+ * -1 on error. */
+static int file_replace(struct swfile *df, s64 dpos,
+			struct swfile *sf, s64 spos, s64 count);
+
+/* Removes count bytes from position dpos out of file df. Returns
+ * 0 on success, -1 on error. */
+static int file_cut(struct swfile *df, s64 dpos, s64 count);
 
 
 #endif

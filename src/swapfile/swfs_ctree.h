@@ -69,9 +69,9 @@
  */
 struct ctree {
     u32 height; /* we _need_ 32 bits here, as 1<<32 == max clusterid */
-    u32 cnt;   /* maybe we need some flags - or store the number of  *
-		* actual stored clusters which is <= 1<<height       */
-    s64 total_size; /* really the head node of the following tree    */
+    u32 cnt;    /* maybe we need some flags - or store the number of *
+		 * actual stored clusters which is <= 1<<height      */
+    s64 size;   /* really the head node of the following tree        */
     /* s64 inner_tree[(1<<height) - 2];      -> max filesize         */
     /* s32 leafs_cluster_sizes[1<<height];   -> max clustersize      */
     /* u32 cluster_ids[1<<height];           -> max clusterid        */
@@ -90,13 +90,52 @@ struct ctree {
 #define CSUM(h, level, off) (((s64 *)(h))[(1<<(level)) + off])
 
 
-static long _find_cluster(struct ctree *h, s64 offset, s64 *coff);
+/* Find the position of the cluster that contains offset in the
+ * cluster ids/sizes array of the cluster tree. Stores the cluster
+ * start offset inside coff. Returns -1 if offset is not inside the
+ * tree, else an array position 0 <= pos < h->cnt. The return value
+ * can be used for CID() and CSIZE(). */
+static long ctree_find(struct ctree *h, s64 offset, s64 *coff);
 
-static void _replace_cluster(struct ctree *h, long pos,
-			     u32 cid, s32 size);
+/* Zeroes CID and CSIZE for cnt entries starting from position pos.
+ * Does not fix h->cnt. */
+static void ctree_zero(struct ctree *h, long pos, long cnt);
 
-static struct ctree *_insert_clusters(struct ctree *h, int pos,
-				      int cnt, u32 *cid, s32 *size);
+/* Replaces the cluster at position pos inside the ids/sizes array
+ * of the cluster tree with a cluster with id cid and size size. */
+static void ctree_replace1(struct ctree *h, long pos,
+			   u32 cid, s32 size);
+
+/* Replaces cnt clusters starting at position pos inside the ids/sizes
+ * array of the cluster tree with the clusters specified by the cid
+ * and size arrays. This is designed to work with the cid and size
+ * array overlapping with the cid and size array from the ctree h -
+ * but if they do overlap, you should better ensure cid/size have the
+ * same ID. */
+static void ctree_replace(struct ctree *h, long pos, long cnt,
+			  u32 *cid, s32 *size);
+
+static struct ctree *ctree_insert1(struct ctree *h, long pos,
+				   u32 cid, s32 size);
+
+/* Inserts cnt clusters with ids/sizes inside the cid/size arrays
+ * at position pos inside the ids/sizes array of the cluster tree.
+ * Cnt clusters from position pos on are moved cnt positions to
+ * the right. Returns the pointer to the updated struct ctree as
+ * it may have to be reallocated to make room for the new clusters.
+ * This is designed to allow for an insertion point inside the
+ * cid/size array, i.e. self-insertion of a part of h. */
+static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
+				  u32 *cid, s32 *size);
+
+/* Removes cnt clusters from position pos inside the ids/sizes array
+ * of the cluster tree. Stores the removed clusters ids/sizes into
+ * the cid/csize arrays. The clusters starting at pos + cnt positions
+ * are moved cnt positions to the left. Returns the pointer to the
+ * updated struct ctree as it may be reallocated to free the space no
+ * longer needed for the removed clusters. */
+static struct ctree *ctree_remove(struct ctree *h, long pos, long cnt,
+				  u32 *cid, s32 *csize);
 
 
 #endif

@@ -75,9 +75,14 @@ int pmap_discard(void *start);
 
 
 /* pmap_uncache tries to unmap any possible chached mapping of the
- * specified type. Note that only unused mappings can be unmapped
- * this way. */
-int pmap_uncache(size_t size, int prot, int flags, int fd, off_t offset);
+ * specified type - all protections are affected. Note that only unused
+ * mappings can be unmapped this way. */
+int pmap_uncache(size_t size, int flags, int fd, off_t offset);
+
+/* pmap_invalidate marks all mappings of the specified file as
+ * not reusable, if they cannot be uncached. This is useful because
+ * if an fd gets closed and reused later clashes may occur. */
+void pmap_invalidate(int fd);
 
 
 /* Try to drain the cache as much as possible - unmapping all unused

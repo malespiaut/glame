@@ -34,14 +34,18 @@
 #include "swfs_cluster.h"
 
 
-/* The in-memory cluster hash and a lock protecting it. */
+/* The in-memory cluster hash/lru and a lock protecting it. */
 HASH(swcluster, struct swcluster, 10,
      (swcluster->name == name),
      (name),
      (swcluster->name),
      long name)
-#define LOCKCLUSTERS do {} while (0)
-#define UNLOCKCLUSTERS do {} while (0)
+static struct list_head clusterslru;
+static int clusterslrucnt;
+static int clustersmaxlru;
+static pthread_mutex_t clustersmx;
+#define LOCKCLUSTERS do { pthread_mutex_lock(&clustersmx); } while (0)
+#define UNLOCKCLUSTERS do { pthread_mutex_unlock(&clustersmx); } while (0)
 
 /* Per cluster lock that protects the files list/cnt and the
  * cluster size/flags. */
@@ -56,11 +60,53 @@ static struct swcluster *_cluster_creat(long name);
 static struct swcluster *_cluster_stat(long name, s32 known_size);
 static void _cluster_readfiles(struct swcluster *c);
 static void _cluster_writefiles(struct swcluster *c);
+static void _cluster_createdata(struct swcluster *c);
+static void _cluster_truncate(struct swcluster *c, s32 size);
+static void _cluster_put(struct swcluster *c);
 
 
 /***********************************************************************
  * API stuff. For documentation see headerfile.
  */
+
+static int cluster_init(int maxlru, size_t pmapminfree)
+{
+	/* Initialize pmap subsystem. */
+	if (pmap_init(pmapminfree) == -1)
+		return -1;
+
+	/* Init the lru. */
+	clustersmaxlru = maxlru;
+	clusterslrucnt = 0;
+	INIT_LIST_HEAD(&clusterslru);
+
+	/* The global cluster mx protecting hash & lru. */
+	pthread_mutex_init(&clustersmx, NULL);
+	srand(getpid()); /* hehe... */
+
+	return 0;
+}
+
+static void cluster_cleanup()
+{
+	struct swcluster *c;
+
+	/* Clear the cluster lru. */
+	LOCKCLUSTERS;
+	while ((c = list_gethead(&clusterslru, struct swcluster, lru))) {
+		hash_remove_swcluster(c);
+		list_del(&c->lru);
+		_cluster_put(c);
+	}
+	clusterslrucnt = 0;
+	UNLOCKCLUSTERS;
+
+	/* Cleanup pmap subsystem. */
+	pmap_close();
+
+	/* Cleanup. */
+	pthread_mutex_destroy(&clustersmx);
+}
 
 static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 {
@@ -69,11 +115,17 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 	LOCKCLUSTERS;
 	if (!(c = hash_find_swcluster(name)))
 		c = _cluster_stat(name, known_size);
-	else
-		c->usage++;
+	else {
+		if (c->usage++ == 0)
+			list_del_init(&c->lru);
+	}
 	UNLOCKCLUSTERS;
 	if (!c)
 		return NULL;
+#ifdef DEBUG
+	if (known_size != -1 && c->size != known_size)
+		PANIC("User and cluster disagree about its size");
+#endif
 
 	/* Read the files list, if required. */
 	if ((flags & CLUSTERGET_READFILES)
@@ -89,8 +141,6 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 
 static void cluster_put(struct swcluster *c, int flags)
 {
-	char s[256];
-
 	if (!c)
 		return;
 
@@ -98,37 +148,27 @@ static void cluster_put(struct swcluster *c, int flags)
 	 * this was the last one. */
 	LOCKCLUSTERS;
 	if (--(c->usage) == 0) {
-		hash_remove_swcluster(c);
-		UNLOCKCLUSTERS;
-
-		/* Close the data fd - or create the file, if
-		 * necessary. */
-		if (c->fd != -1)
-			close(c->fd);
-		else if ((c->flags & SWC_CREAT) && c->files_cnt != 0) {
-			if ((c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1
-			    || ftruncate(c->fd, c->size) == -1)
-				PANIC("Cannot create/write cluster");
-			close(c->fd);
-			c->flags &= ~SWC_CREAT;
+		/* Free the cluster, if requested. */
+		if (flags & CLUSTERPUT_FREE) {
+			hash_remove_swcluster(c);
+			UNLOCKCLUSTERS;
+			_cluster_put(c);
+			return;
 		}
 
-		/* If there are no users (files) left, unlink the
-		 * on-disk representations. */
-		if (!(c->flags & SWC_NOT_IN_CORE)
-		    && c->files_cnt == 0) {
-			snprintf(s, 255, "%s/%li", swap.clusters_meta_base,
-				 c->name);
-			unlink(s);
-			snprintf(s, 255, "%s/%li", swap.clusters_data_base,
-				 c->name);
-			unlink(s);
-		} else if (c->flags & SWC_DIRTY)
-			_cluster_writefiles(c);
-		if (c->files)
-			free(c->files);
-		free(c);
-		return;
+		/* Put cluster into the lru. */
+		list_add(&c->lru, &clusterslru);
+		clusterslrucnt++;
+		if (clusterslrucnt > clustersmaxlru) {
+			struct swcluster *c2;
+			c2 = list_gettail(&clusterslru, struct swcluster, lru);
+			hash_remove_swcluster(c2);
+			list_del(&c2->lru);
+			clusterslrucnt--;
+			UNLOCKCLUSTERS;
+			_cluster_put(c2);
+			LOCKCLUSTERS;
+		}
 	}
 	UNLOCKCLUSTERS;
 
@@ -150,7 +190,10 @@ static struct swcluster *cluster_alloc(s32 size)
 	/* This lock protects against racing free cid finding. */
 	pthread_mutex_lock(&mx);
 
-	/* Try, until we find an unallocated cid. */
+	/* Try, until we find an unallocated cid. This method is
+	 * good if the cluster space is very sparse allocated and
+	 * gets nearly unusable if more than the half of all clusters
+	 * are allocated... */
 	cid = rand();
 	while ((c = cluster_get(cid, 0, -1))) {
 		cluster_put(c, 0);
@@ -176,9 +219,10 @@ static void cluster_addfileref(struct swcluster *c, long file)
 	if (!(c->files = realloc(c->files, (c->files_cnt+1)*sizeof(long))))
 		PANIC("cannot realloc files array");
 
-	/* Append the file and fix the files count. */
+	/* Append the file, fix the files count and mark it dirty. */
 	c->files[c->files_cnt] = file;
 	c->files_cnt++;
+	c->flags |= SWC_DIRTY;
 	UNLOCKCLUSTER(c);
 }
 
@@ -192,7 +236,7 @@ static int cluster_delfileref(struct swcluster *c, long file)
 		_cluster_readfiles(c);
 
 	/* Search file from the back (this is most cache friendly
-	 * for the necessary array move afterwards. */
+	 * for the necessary array move afterwards). */
 	for (i=c->files_cnt-1; i>=0; i--) {
 		if (c->files[i] == file) {
 			/* Fix the files count. */
@@ -214,16 +258,34 @@ static int cluster_delfileref(struct swcluster *c, long file)
 	return -1;
 }
 
-void *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
+static int cluster_checkfileref(struct swcluster *c, long file)
+{
+	int i;
+
+	LOCKCLUSTER(c);
+	/* Bring in the files list, if necessary. */
+	if (c->flags & SWC_NOT_IN_CORE)
+		_cluster_readfiles(c);
+
+	/* Search file from the back (this is most cache friendly
+	 * for the necessary array move afterwards). */
+	for (i=c->files_cnt-1; i>=0; i--) {
+		if (c->files[i] == file) {
+			UNLOCKCLUSTER(c);
+			return 0;
+		}
+	}
+
+	/* Not found!? */
+	UNLOCKCLUSTER(c);
+	return -1;
+}
+
+static void *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
 {
 	/* Need to create the file? Also truncate to the right size. */
-	if (c->flags & SWC_CREAT) {
-		c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT);
-		if (c->fd == -1
-		    || ftruncate(c->fd, c->size) == -1)
-			PANIC("Cannot open/creat cluster data");
-		c->flags &= ~SWC_CREAT;
-	}
+	if (c->flags & SWC_CREAT)
+		_cluster_createdata(c);
 	/* Open the cluster datafile, if necessary. */
 	if (c->fd == -1)
 		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
@@ -231,12 +293,119 @@ void *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
 	return pmap_map(start, c->size, prot, flags, c->fd, 0);
 }
 
-int cluster_munmap(void *start)
+static int cluster_munmap(void *start)
 {
-	return pmap_unmap(start);
+	if (pmap_unmap(start) == -1) {
+		DPRINTF("Unable to unmap %p\n", start);
+		return -1;
+	} else
+		return 0;
 }
 
+static struct swcluster *cluster_truncatetail(struct swcluster *c, s32 size)
+{
+	struct swcluster *cc;
+	char *m, *mc;
 
+	LOCKCLUSTER(c);
+
+	if (c->files_cnt == 1) {
+		_cluster_truncate(c, size);
+		cc = cluster_get(c->name, 0, -1);
+	} else {
+		if (!(cc = cluster_alloc(size))
+		    || !(m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED))
+		    || !(mc = cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)))
+			PANIC("Cannot alloc/mmap cluster");
+		memcpy(mc, m, size);
+		cluster_munmap(mc);
+		cluster_munmap(m);
+	}
+
+	UNLOCKCLUSTER(c);
+
+	return cc;
+}
+
+static struct swcluster *cluster_truncatehead(struct swcluster *c, s32 size)
+{
+	struct swcluster *cc;
+	char *m, *mc;
+
+	LOCKCLUSTER(c);
+
+	if (c->files_cnt == 1) {
+		if (!(m = cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)))
+			PANIC("Cannot mmap cluster");
+		memmove(m, m + c->size - size, size);
+		cluster_munmap(m);
+		_cluster_truncate(c, size);
+		cc = cluster_get(c->name, 0, c->size);
+	} else {
+		if (!(cc = cluster_alloc(size))
+		    || !(m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED))
+		    || !(mc = cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)))
+			PANIC("Cannot alloc/mmap cluster");
+		memcpy(mc, m + c->size - size, size);
+		cluster_munmap(mc);
+		cluster_munmap(m);
+	}
+
+	UNLOCKCLUSTER(c);
+
+	return cc;
+}
+
+static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
+			  struct swcluster **ch, struct swcluster **ct)
+{
+	char *m, *mh, *mt;
+
+	LOCKCLUSTER(c);
+
+	if (c->files_cnt == 1) {
+		if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
+		    || !(m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED))
+		    || !(mt = cluster_mmap(*ct, NULL, PROT_WRITE, MAP_SHARED)))
+			PANIC("Cannot alloc/mmap cluster");
+		memcpy(mt, m + offset + cutcnt, c->size - offset - cutcnt);
+		cluster_munmap(mt);
+		cluster_munmap(m);
+		_cluster_truncate(c, offset);
+		*ch = cluster_get(c->name, 0, c->size);
+	} else {
+		if (!(*ch = cluster_alloc(offset))
+		    || !(*ct = cluster_alloc(c->size - offset - cutcnt))
+		    || !(m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED))
+		    || !(mh = cluster_mmap(*ch, NULL, PROT_WRITE, MAP_SHARED))
+		    || !(mt = cluster_mmap(*ct, NULL, PROT_WRITE, MAP_SHARED)))
+			PANIC("Cannot alloc/mmap clusters");
+		memcpy(mh, m, offset);
+		memcpy(mt, m + offset + cutcnt, c->size - offset - cutcnt);
+		cluster_munmap(mt);
+		cluster_munmap(mh);
+		cluster_munmap(m);
+	}
+
+	UNLOCKCLUSTER(c);
+}
+
+static int cluster_truncate(struct swcluster *c, s32 size)
+{
+	LOCKCLUSTER(c);
+
+	if (c->files_cnt > 1
+	    || (c->fd != -1
+		&& pmap_uncache(c->size, MAP_SHARED, c->fd, 0) == -1)) {
+		UNLOCKCLUSTER(c);
+		return -1;
+	}
+	_cluster_truncate(c, size);
+
+	UNLOCKCLUSTER(c);
+
+	return 0;
+}
 
 
 /***********************************************************************
@@ -272,6 +441,7 @@ static struct swcluster *_cluster_creat(long name)
 	if (!(c = (struct swcluster *)malloc(sizeof(struct swcluster))))
 		return NULL;
 	hash_init_swcluster(c);
+	INIT_LIST_HEAD(&c->lru);
 	c->name = name;
 	c->usage = 1;
 	c->flags = SWC_DIRTY|SWC_CREAT;
@@ -302,16 +472,25 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 		return NULL;
 
 	/* Stat metadata and data. */
+#ifndef DEBUG
 	if (known_size == -1) {
+#endif
 		snprintf(sd, 255, "%s/%li", swap.clusters_data_base, name);
 		if (stat(sd, &dstat) == -1) {
 			free(c);
 			return NULL;
 		}
+#ifdef DEBUG
+		if (known_size != -1 && known_size != dstat.st_size)
+			PANIC("User and disk disagree about cluster size");
+#endif
 		known_size = dstat.st_size;
+#ifndef DEBUG
 	}
+#endif
 
 	hash_init_swcluster(c);
+	INIT_LIST_HEAD(&c->lru);
 	c->name = name;
 	c->usage = 1;
 	c->flags = SWC_NOT_IN_CORE;
@@ -377,4 +556,57 @@ static void _cluster_writefiles(struct swcluster *c)
 		PANIC("cannot write cluster metadata");
 	c->flags &= ~SWC_DIRTY;
 	close(fd);
+}
+
+/* Create the clusters datafile, if necessary, and truncate it to
+ * the right size. */
+static void _cluster_createdata(struct swcluster *c)
+{
+	if (!(c->flags & SWC_CREAT))
+		return;
+	if ((c->fd == -1
+	     && (c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1)
+	    || ftruncate(c->fd, c->size) == -1)
+		PANIC("Cannot creat/truncate cluster");
+	c->flags &= ~SWC_CREAT;
+}
+
+/* Set the clusters size and truncate the on-disk file, if it
+ * is already open, else just postpone that via SWC_CREAT. */
+static void _cluster_truncate(struct swcluster *c, s32 size)
+{
+	c->size = size;
+	if (c->fd == -1)
+		c->flags |= SWC_CREAT;
+	else
+		if (ftruncate(c->fd, c->size) == -1)
+			PANIC("Cannot truncate cluster");
+}
+
+static void _cluster_put(struct swcluster *c)
+{
+	char s[256];
+
+	/* Close the data fd - or create the file, if
+	 * necessary. */
+	if ((c->flags & SWC_CREAT) && c->files_cnt != 0)
+		_cluster_createdata(c);
+	/* Kill possible mappings and close the file. */
+	if (c->fd != -1) {
+		pmap_invalidate(c->fd);
+		close(c->fd);
+	}
+
+	/* If there are no users (files) left, unlink the
+	 * on-disk representations. */
+	if (!(c->flags & SWC_NOT_IN_CORE) && c->files_cnt == 0) {
+		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, c->name);
+		unlink(s);
+		snprintf(s, 255, "%s/%li", swap.clusters_data_base, c->name);
+		unlink(s);
+	} else if (c->flags & SWC_DIRTY)
+		_cluster_writefiles(c);
+	if (c->files)
+		free(c->files);
+	free(c);
 }

@@ -1,6 +1,6 @@
 /*
  * swapfile_info.c
- * $Id: swapfile_info.c,v 1.7 2000/05/01 11:09:04 richi Exp $
+ * $Id: swapfile_info.c,v 1.8 2000/10/09 08:39:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -24,49 +24,40 @@
 #include "swapfile.h"
 
 
-void process_file(fileid_t fid)
-{
-	soff_t size;
-	filecluster_t *fc;
-
-	printf("Found file with id %i\n", fid);
-
-	size = file_size(fid);
-	printf("\ttotal size is %lli bytes\n", size);
-
-	/* check internal consistency */
-	fc = filecluster_get(fid, 0);
-	while (fc) {
-		if (fc->cluster
-		    && fc->size > fc->cluster->size - fc->coff)
-			printf("\twrong size of filecluster at %lli (%i@%i) - cluster size is %i\n",
-			       fc->off, fc->size, fc->coff, fc->cluster->size - fc->coff);
-		fc = filecluster_next(fc);
-	}
-}
-
 int main(int argc, char **argv)
 {
-	fileid_t fid;
+	SWDIR *dir;
+	long fname;
+	swfd_t fd;
+	struct sw_stat st;
+	size_t totalsize;
 
 	if (argc < 2)
 		goto _usage;
 
-	if (swap_open(argv[1], 0) == -1) {
+	if (swapfile_open(argv[1], 0) == -1) {
 		perror("swap_open");
 		return 1;
 	}
 
 	fprintf(stderr, "Swapfile %s:\n", argv[1]);
 
-	/* find all files */
-	fid = -1;
-	while ((fid = file_next(fid)) != -1)
-		process_file(fid);
+	totalsize = 0;
+	dir = sw_opendir();
+	while ((fname = sw_readdir(dir)) != -1) {
+		if ((fd = sw_open(fname, O_RDONLY, TXN_NONE)) == -1) {
+			printf("\t----\t%li", fname);
+			continue;
+		}
+		sw_fstat(fd, &st);
+		printf("\t%8i\t%li\n", st.size, fname);
+		totalsize += st.size;
+	}
+	printf("total size %i\n", totalsize);
+	sw_closedir(dir);
 
 	fprintf(stderr, "done.\n");
-
-	swap_close();
+	swapfile_close();
 
 	return 0;
 
