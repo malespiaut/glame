@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther
  *
- * $Id: glame_sem.h,v 1.1 2000/06/25 14:53:00 richi Exp $
+ * $Id: glame_sem.h,v 1.2 2000/09/25 08:58:26 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,6 +81,8 @@ static inline int glame_semctl(int semid, int semnum, int cmd,
 	case GETZCNT:
 		return semctl(semid, semnum, cmd, arg);
 	}
+	/* Doh - this is fatal. */
+	return -1;
 }
 #endif
 
