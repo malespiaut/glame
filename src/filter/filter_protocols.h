@@ -20,7 +20,6 @@
  */
 
 struct sbuf_header {
-	int pos;
 	char buf[0];
 };
 #define sbuf_alloc(nrsamples, filternode) \
