@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.5 2000/12/11 10:44:41 richi Exp $
+ * $Id: canvas.c,v 1.6 2000/12/11 12:39:59 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -40,9 +40,10 @@ static void connection_break_cb(GtkWidget *bla, GlameConnection* conn);
 static gint root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data);
 
 static void canvas_create_new_cb(GtkWidget *bla,void*blu){}
-static void canvas_open_filter(GtkWidget*bla,void*blu){}
+static void canvas_open_filter(GtkWidget*bla,void*blu);
 static void canvas_save_filter(GtkWidget*bla,void*blu){}
-static void canvas_save_as(GtkWidget*bla,void*blu){}
+static void canvas_save_as(GtkWidget*bla,void*blu);
+static void register_filternetwork_cb(GtkWidget*bla,void*blu);
 static void add_canvas_node_cb(GtkWidget*bla,void*blu);
 static void add_canvas_input_port_cb(GtkWidget*bla,void*blu){}
 static void add_canvas_output_port_cb(GtkWidget*bla,void*blu){}
@@ -87,6 +88,7 @@ static GnomeUIInfo root_menu[]=
 	GNOMEUIINFO_ITEM("Add input port...","Add input port",add_canvas_input_port_cb,NULL),
 	GNOMEUIINFO_ITEM("Add output port...","Add output port",add_canvas_output_port_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
 	GNOMEUIINFO_END
 };
@@ -127,7 +129,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	GlameCanvasItem *it = GLAME_CANVAS_ITEM(data);
 	GList *list;
 	GtkWidget* menu;
-
+	char numberbuffer[10];
 	x = event->button.x;
 	y = event->button.y;
 	// fprintf(stderr,"Ev: %d\n",event->type);
@@ -181,6 +183,14 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	case GDK_BUTTON_RELEASE:
 		gnome_canvas_item_ungrab(GNOME_CANVAS_ITEM(data),event->button.time);
 		it->dragging = FALSE;
+		//update coord.strings
+		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->x1);
+		if(filter_set_property(it->filter->filter,"canvas_x",numberbuffer))
+				fprintf(stderr,"set prop failed\n");
+		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->y1);
+		if(filter_set_property(it->filter->filter,"canvas_y",numberbuffer))
+				fprintf(stderr,"set prop failed\n");
+				
 		break;
 	default:
 		break;
@@ -204,6 +214,7 @@ add_filter_by_name(char *name)
 	int selected;
 	gui_filter *gf;
 	gui_filter *inst;
+	char numberbuffer[10];
 	double dx,dy;
 	GlameCanvas* canv;
 	plugin_t *plug;
@@ -1186,12 +1197,53 @@ connection_break(GlameConnection* connection)
 	free (connection);
 }
 
+//saves network to file. doesn't check for anything
+static void canvas_save_as_cb(gchar* name, gpointer data)
+{
+	filter_t * bla = GLAME_CANVAS(globalcanvas)->net->net;
+
+	char *buffer;
+	FILE* outf = fopen(name,"w");
+	buffer = filter_to_string(bla);
+	fprintf(stderr,"%s\n",buffer);
+	fprintf(outf,"(glame_create_plugin %s name)\n",buffer);
+	free(buffer);
+	fclose(outf);
+}
 
 
 
+static void canvas_register_as_cb(gchar* name, gpointer data)
+{
+	plugin_t *newplug;
+	filter_t *copy;
+	filter_t * bla = GLAME_CANVAS(globalcanvas)->net->net;
+	
+	newplug = plugin_add(name);
+	copy = filter_creat(bla);
+	filter_register(copy,newplug);
+	
+}
+static void canvas_load_cb(gchar* name, gpointer data)
+{
+	glame_load_plugin(name);
+}
+
+static void canvas_save_as(GtkWidget*bla,void*blu)
+{
+	gnome_request_dialog(0,"Filename","filter",16,canvas_save_as_cb,NULL,NULL);
+}
+
+static void register_filternetwork_cb(GtkWidget*bla,void*blu)
+{
+	gnome_request_dialog(0,"Filtername","filter",16,canvas_register_as_cb,NULL,NULL);
+}
+
+
+
+static void canvas_open_filter(GtkWidget*bla,void*blu)
+{
+	gnome_request_dialog(0,"Filename","filter",16,canvas_load_cb,NULL,NULL);
+}
 
 static void add_canvas_node_cb(GtkWidget*bla,void*blu){}
-//{
-//      GSList* names = gui_browse_registered_filters();
-//      gchar* buttons;
-//      buttons = malloc(

@@ -1,6 +1,6 @@
 /*
  * gldb_string.c
- * $Id: gldb_string.c,v 1.4 2000/10/03 13:38:35 richi Exp $
+ * $Id: gldb_string.c,v 1.5 2000/12/11 12:40:00 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -70,17 +70,18 @@ void glsdb_init(gldb_t *db)
 }
 
 
-void glsdb_set(gldb_t *db, const char *str, const char *label)
+int glsdb_set(gldb_t *db, const char *str, const char *label)
 {
 	sitem_t *s;
 
 	if (!(s = (sitem_t *)gldb_query_item(db, label))) {
 		s = sitem_alloc(str);
-		gldb_add_item(db, &s->entry, label);
+		return gldb_add_item(db, &s->entry, label);
 	} else {
 		free(s->str);
 		s->str = strdup(str);
 	}
+	return 0;
 }
 
 void glsdb_remove(gldb_t *db, const char *label)

@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.1 2000/12/07 14:28:31 xwolf Exp $
+ * $Id: canvas.h,v 1.2 2000/12/11 12:39:59 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -77,7 +77,9 @@ typedef struct _GlameConnection GlameConnection;
 struct _GlameConnection
 {
 	GlameCanvasPort *begin,*end;
+	GnomeCanvasLine *lineStart;
 	GnomeCanvasLine *line;
+	GnomeCanvasLine *lineEnd;
 	GnomeCanvasPoints *points;
 	GnomeCanvasEllipse* circle;
 	filter_pipe_t *pipe;
@@ -147,7 +149,7 @@ gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
 gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
 
 int add_connection(GlameConnection* c);
-
+void update_connection(GlameConnection *c);
 void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it);
 
 void update_input_connection(GlameCanvasPort *p,gdouble x, gdouble y);

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.40 2000/12/11 10:44:41 richi Exp $
+ * $Id: filter.c,v 1.41 2000/12/11 12:39:59 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -240,7 +240,10 @@ filter_t *filter_instantiate(plugin_t *p)
 
 	if (!p || !(f = (filter_t *)plugin_query(p, PLUGIN_FILTER)))
 		return NULL;
-	return _filter_instantiate(f);
+	if (!(f = _filter_instantiate(f)))
+		return NULL;
+	f->plugin = p;
+	return f;
 }
 
 
@@ -339,13 +342,17 @@ char *filter_to_string(filter_t *net)
 	len = 0;
 
 	/* generate the network start part */
-	len += sprintf(&buf[len], "(let *((net (filter_creat))\n");
+	len += sprintf(&buf[len], "(let* ((net (filter_creat))\n");
 
 	/* iterate over all nodes in the network creating
 	 * node create commands. */
 	filter_foreach_node(net, n) {
-		len += sprintf(&buf[len], "\t(%s (filter_add_node net (plugin_get \"%s\") \"%s\"))\n",
-			       n->name, plugin_name(n->plugin), n->name);
+		if (!n->plugin)
+			len += sprintf(&buf[len], "\t(%s (filter_add_node net %s \"%s\"))\n",
+				       n->name, filter_to_string(n), n->name);
+		else
+			len += sprintf(&buf[len], "\t(%s (filter_add_node net (plugin_get \"%s\") \"%s\"))\n",
+				       n->name, plugin_name(n->plugin), n->name);
 	}
 	/* ((net .. */
 	len += sprintf(&buf[len-1], ")\n") - 1;
