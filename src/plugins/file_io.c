@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.45 2001/04/17 17:24:23 xwolf Exp $
+ * $Id: file_io.c,v 1.46 2001/04/19 16:19:34 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -253,6 +253,18 @@ static int read_file_connect_out(filter_t *n, filter_port_t *port,
 	 * connection, but not the file here. */
 	return RWPRIV(n)->rw->connect(n, p);
 }
+
+static void read_file_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
+	filter_t	*n;
+	filter_pipe_t	*pipe;
+	
+	GLSIGH_GETARGS1(va, pipe);
+	n = filterport_filter(filterpipe_dest(in));
+	if (RWPRIV(n)->rw) {
+		RWPRIV(n)->rw->connect(n, in);
+	}
+}
+
 static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_param_t *param;
@@ -403,6 +415,9 @@ int read_file_register(plugin_t *pl)
 	f->connect_out = read_file_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  read_file_fixup_param, NULL);
+	
+	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED,
+			  read_file_fixup_pipe, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "read a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "input.png");
@@ -833,7 +848,24 @@ int af_read_prepare(filter_t *n, const char *filename)
 
 int af_read_connect(filter_t *n, filter_pipe_t *p)
 {
-	int i;
+	int i, deleted=1;
+	filter_port_t	*outp;
+	filter_pipe_t	*out;
+	
+	outp = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	filterport_foreach_pipe(outp, out) {
+		if (p == out)
+			deleted = 0;
+	}
+	
+	if (deleted == 1) {
+		for(i=0; i<RWA(n).channelCount; i++)
+			if (RWA(n).track[i].p == p) {
+				RWA(n).track[i].mapped = 0;
+				RWA(n).track[i].p = NULL;
+			}
+	}
+	
 	for(i=0;(i<RWA(n).channelCount) && (RWA(n).track[i].mapped);i++);
 	if (i>=RWA(n).channelCount){
 		/* Check if track is already mapped ?!
