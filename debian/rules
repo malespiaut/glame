@@ -1,17 +1,24 @@
 #!/usr/bin/make -f
-# $Id: rules,v 1.12 2002/05/21 09:23:11 nold Exp $
+# $Id: rules,v 1.13 2003/04/23 18:43:28 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
 # This is the debhelper compatability version to use.
-export DH_COMPAT=3
+export DH_COMPAT=4
 
 export DEB_GLAME_PREFIX=/usr
 export DEB_GLAME_INFODIR=/usr/share/info
 
 export DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 export DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+confflags=
+ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
+	confflags += --build $(DEB_HOST_GNU_TYPE)
+else
+	confflags += --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
+endif
 
 configure: configure-stamp
 configure-stamp:
@@ -27,16 +34,14 @@ configure-stamp:
 	ln -sf /usr/share/misc/config.sub .
 	ln -sf /usr/share/misc/config.guess .
 
-ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-	./configure --build=$(DEB_BUILD_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE) \
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS="-g -O0" ./configure $(confflags) \
 		--prefix=$(DEB_GLAME_PREFIX) \
-		--infodir=$(DEB_GLAME_INFODIR) --enable-debug \
-		--enable-low-latency --disable-mp3lame
+		--infodir=$(DEB_GLAME_INFODIR)
 else
-	CFLAGS="-O2" ./configure --build=$(DEB_BUILD_GNU_TYPE) \
-		--host=$(DEB_HOST_GNU_TYPE) --prefix=$(DEB_GLAME_PREFIX) \
-		--infodir=$(DEB_GLAME_INFODIR) --enable-low-latency \
-		--disable-mp3lame
+	CFLAGS="-g -O2" ./configure $(confflags) \
+		--prefix=$(DEB_GLAME_PREFIX) \
+		--infodir=$(DEB_GLAME_INFODIR)
 endif
 
 	touch configure-stamp
@@ -56,7 +61,7 @@ clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
-	rm -f debian/cglame.1 debian/glame.1
+	rm -f debian/cglame.1 debian/glame.1 debian/glame-convert.1
 
 	-$(MAKE) distclean
 
@@ -82,6 +87,8 @@ install: build
 	# easier than teaching libtool about it. :/
 	-find `pwd`/debian/glame/usr/lib -name "*.a" -exec rm {} \;
 	-find `pwd`/debian/glame/usr/lib -name "*.la" -exec rm {} \;
+	# ltdl insists on installing that one.
+	-rmdir `pwd`/debian/glame/usr/include/
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -103,7 +110,7 @@ binary-arch: build install
 	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps -Xdebian/glame/usr/lib/glame/ -- \
-		-dRecommends `find debian/glame/usr/lib/glame/ -name "*.so" -type f`
+		-dRecommends `find debian/glame/usr/lib/glame/ -name "*.so" -type f` -dDepends
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb

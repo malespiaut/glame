@@ -4,11 +4,11 @@ Mon, 18 Dec 2000 11:56:53 +0100.
 The original source can be found at:
 	http://download.sourceforge.net/glame
 
-Upstream Authors: Alexander Ehlert, Jim Garrison, Richard Guenther, 
-                  Johannes Hirche, Daniel Kobras, Joe Navratil
+Upstream Authors: Alexander Ehlert, Richard Guenther, Johannes Hirche,
+                  Daniel Kobras, Joe Navratil
 
-Copyright (C) 1999-2001  Alexander Ehlert, Jim Garrison, Richard Guenther, 
-                          Johannes Hirche, Daniel Kobras, Joe Navratil
+Copyright (C) 1999-2003  Alexander Ehlert, Richard Guenther, Johannes Hirche,
+                         Daniel Kobras, Joe Navratil
 
   GLAME is distributed under the terms of the GNU General Public License
   (GPL), version 2, or any later version. A copy of the GPL is available

@@ -1,3 +1,44 @@
+glame (1.0.0-2) unstable; urgency=low
+
+  * debian/rules: Remove superfluous /usr/include/
+
+ -- Daniel Kobras <kobras@debian.org>  Tue, 22 Apr 2003 16:11:02 +0200
+
+glame (1.0.0-1) unstable; urgency=low
+
+  * New upstream version.
+  * debian/control: Transition to guile 1.6.
+  * debian/control: Building with libxml1 is no longer supported.
+  * debian/rules: Try building with proper confflags.
+  * debian/rules: Clean up generated glame-convert.1.
+  * debian/copyright: Adjust year in copyright statement.
+  * src/glmid/glscript_filter.c: Fix terminating a filter network with
+    Ctrl-C. [From upstream CVS.]
+  * src/cglame.c: Use preferences in cglame as well. [From upstream CVS.]
+  * src/include/glame_guile_compat.h: Only set NEW_GUILE for guile versions
+    >= 1.7. Load modules the old-fashioned way that actually works with
+    guile 1.6
+
+ -- Daniel Kobras <kobras@debian.org>  Tue, 22 Apr 2003 15:11:21 +0200
+
+glame (0.6.4-1) unstable; urgency=low
+
+  * New upstream version.
+  * debian/rules: Dump debug in favour of noopt in DEB_BUILD_OPTIONS.
+  * debian/rules: Bump DH_COMPAT to 4.
+  * debian/rules: Fix dh_shlibdeps call according to new semantics.
+  * debian/control: Adjust versioned build dep on debhelper accordingly.
+  * debian/control: Build dep on ALSA version 0.9.0rc5 or higher.
+  * debian/control: Bump standards version.
+
+ -- Daniel Kobras <kobras@debian.org>  Fri, 22 Nov 2002 22:18:42 +0100
+
+glame (0.6.3-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Daniel Kobras <kobras@debian.org>  Mon, 27 May 2002 21:32:58 +0200
+
 glame (0.6.2-3) unstable; urgency=medium
 
   * Applied patches from upstream CVS:
