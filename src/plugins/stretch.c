@@ -1,6 +1,6 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.5 2002/05/25 15:08:03 richi Exp $
+ * $Id: stretch.c,v 1.6 2003/05/14 21:58:05 mag Exp $
  *
  * Copyright (C) 2002 Alexander Ehlert
  *
@@ -33,18 +33,6 @@
 #include "filter_tools.h"
 #include "math.h"
 
-static SAMPLE *hanning(int n)
-{
-	SAMPLE *win;
-	int i;
-	
-	if (!(win=ALLOCN(n,SAMPLE)))
-		return NULL;
-	for(i=0;i<n;i++)
-		win[i]=0.5-0.5*cos((SAMPLE)i/(SAMPLE)(n-1)*2.0*M_PI);
-	return win;
-}
-
 static SAMPLE window_gain(SAMPLE *win, int n, int osamp)
 {
 	SAMPLE *s;
@@ -56,12 +44,12 @@ static SAMPLE window_gain(SAMPLE *win, int n, int osamp)
 
 	memcpy(s, win, n*SAMPLE_SIZE);
 	
-	for(i=1; i<osamp; i++)
-		for(j=0; j<n; j++)
+	for(i=1; i<osamp; ++i)
+		for(j=0; j<n; ++j)
 			s[j] += win[(j+i*off)%n];
 
 	max = 0;
-	for(i=0; i<n; i++)
+	for(i=0; i<n; ++i)
 		max += s[i]*s[i];
 
 	max /= n;
@@ -71,16 +59,69 @@ static SAMPLE window_gain(SAMPLE *win, int n, int osamp)
 	return (SAMPLE)max;
 }
 
+static void hanning(SAMPLE *win, int n, int osamp)
+{
+	int i;
+	SAMPLE gain;
+
+	if (n<3) {
+		for(i=0;i<3;++i)
+			win[i]=1.0f;
+		return;
+	}
+		
+	for(i=0;i<n;++i)
+		win[i]=0.5-0.5*cos((SAMPLE)i/(SAMPLE)(n-1)*2.0*M_PI);
+
+	gain = 1.0f/window_gain(win, n, osamp);
+
+	for(i=0; i<n; ++i)
+		win[i]*=gain;
+}
+
+static int stretch_set_param(filter_param_t *param, const void *val)
+{
+	double x;
+	long y, z;
+	filter_param_t *p;
+	filter_t *n = filterparam_filter(param);
+
+	if (n->priv!=NULL)
+		return 0;
+
+	if (strcmp("stretchfactor", filterparam_label(param))==0) {
+		x = *((double*)val);
+		if(x<=0.0)
+			return -1;		
+	}
+
+	z = *(long*)val;
+	if (strcmp("buffersize", filterparam_label(param))==0) {
+		p = filterparamdb_get_param(filter_paramdb(n), "oversampling");
+		y = filterparam_val_long(p);
+		if ( (z<y) || (z<1) )
+			return -1;		
+	}
+	
+	if (strcmp("oversampling", filterparam_label(param))==0) {
+		p = filterparamdb_get_param(filter_paramdb(n), "buffersize");
+		y = filterparam_val_long(p);
+		if ( (z>y) || (z<1) )
+			return -1;
+	}
+	return 0;
+}
+
 static int stretch_f(filter_t *n)
 {
 	filter_port_t *in_port, *out_port;
 	filter_pipe_t *in, *out;
-	filter_param_t *param, *sparam;
-	float factor, gain, pos, dpos, dfak;
+	filter_param_t *parambuf, *paramos, *sparam;
+	float factor, pos, dpos, dfak, ipos;
 	in_queue_t in_queue;
 	out_queue_t out_queue;
 	SAMPLE *win, *buffer;
-	int bsize, osamp, inshift, outshift, i;
+	int nbsize, nosamp, maxbsize, bsize, osamp, inshift, outshift, i;
 
 	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	out_port = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
@@ -89,34 +130,36 @@ static int stretch_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no input or no output");
 
+	maxbsize = 1024;
+
 	sparam = filterparamdb_get_param(filter_paramdb(n), "stretchfactor");
 
+	parambuf = filterparamdb_get_param(filter_paramdb(n), "buffersize");
 
-	param = filterparamdb_get_param(filter_paramdb(n), "buffersize");
-	bsize = (int)filterparam_val_long(param);
-
-	param = filterparamdb_get_param(filter_paramdb(n), "oversampling");
-	osamp = (int)filterparam_val_long(param);
-
-	inshift = (int)((float)bsize/(float)osamp);
+	paramos = filterparamdb_get_param(filter_paramdb(n), "oversampling");
+	
+	bsize = (int)filterparam_val_long(parambuf);
+	osamp = (int)filterparam_val_long(paramos);
 
 	if (bsize<1)
 		bsize=1;
+	
+	bsize = MIN(bsize, maxbsize);
+	if (bsize>maxbsize)
+		maxbsize = bsize;
 
-	if (!(win=hanning(bsize)))
+	if (!(win=ALLOCN(maxbsize,SAMPLE)))
 		FILTER_ERROR_RETURN("couldn't allocate window buffer");
 
-	gain = 1.0f/window_gain(win, bsize, osamp);
-
-	for(i=0; i<bsize; i++)
-		win[i]*=gain;
-
-	if (!(buffer=ALLOCN(bsize, SAMPLE)))
+	hanning(win, bsize, osamp);
+      
+	if (!(buffer=ALLOCN(maxbsize, SAMPLE)))
 		FILTER_ERROR_RETURN("couldn't allocate synthesis buffer");
 
 	in_queue_init(&in_queue, in, n);
 	out_queue_init(&out_queue, out, n);
-	pos = 0.0f;
+	pos  = 0.0f;
+	ipos = 0.0f;
 	dfak = (float)bsize/(float)osamp;
 
 	FILTER_AFTER_INIT;
@@ -124,10 +167,32 @@ static int stretch_f(filter_t *n)
 	do {
 		FILTER_CHECK_STOP;
 		factor = filterparam_val_double(sparam);
+		nbsize = (int)filterparam_val_long(parambuf);
+		nosamp = (int)filterparam_val_long(paramos);
+		
+		if ( (nbsize!=bsize) || (nosamp!=osamp) ) {
+			osamp = nosamp;
+			bsize = nbsize;
+			if (bsize>maxbsize) {
+				maxbsize=2*bsize;
+				win = (SAMPLE*)realloc(win, maxbsize*sizeof(SAMPLE));
+				buffer = (SAMPLE*)realloc(buffer, maxbsize*sizeof(SAMPLE));
+				
+			} 
+
+			hanning(win,bsize,osamp);
+			
+			dfak = (float)bsize/(float)osamp;
+		}
+
+		
 		dpos = dfak*factor;
 		if (dpos<=0.0f)
 			dpos = 0.1f;
 
+		ipos += dfak;
+		inshift = (int)floor(ipos);
+		ipos -= (float)inshift;
 
 		in_queue_copy_pad(&in_queue, buffer, bsize);
 		in_queue_shift(&in_queue, inshift);
@@ -187,6 +252,7 @@ int stretch_register(plugin_t *p)
 		FILTERPARAM_LABEL, "stretch factor",
 		FILTERPARAM_DESCRIPTION, "stretch the duration of the stream by this factor",
 		FILTERPARAM_END);
+	param->set = stretch_set_param;
 
 	param = filterparamdb_add_param_long(
 		filter_paramdb(f), "buffersize",
@@ -194,6 +260,7 @@ int stretch_register(plugin_t *p)
 		FILTERPARAM_LABEL, "buffersize",
 		FILTERPARAM_DESCRIPTION, "size of the synthesis window",
 		FILTERPARAM_END);
+	param->set = stretch_set_param;
 
 	param = filterparamdb_add_param_long(
 		filter_paramdb(f), "oversampling",
@@ -201,6 +268,7 @@ int stretch_register(plugin_t *p)
 		FILTERPARAM_LABEL, "oversampling",
 		FILTERPARAM_DESCRIPTION, "determines the overlap of synthesis windows by 1/oversamp*buffersize",
 		FILTERPARAM_END);
+	param->set = stretch_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION,
 		   "stretch a stream by a given factor");
