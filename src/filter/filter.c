@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.50 2001/05/27 22:28:27 mag Exp $
+ * $Id: filter.c,v 1.51 2001/06/18 08:22:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -353,7 +353,7 @@ char *filter_to_string(filter_t *net)
 	len = 0;
 
 	/* generate the network start part */
-	len += sprintf(&buf[len], "(let* ((net (filter_creat))\n");
+	len += sprintf(&buf[len], "(let* ((net (filter-new))\n");
 
 	/* iterate over all nodes in the network creating
 	 * node create commands. */
@@ -364,11 +364,11 @@ char *filter_to_string(filter_t *net)
 				DPRINTF("got weird plugin\n");
 				return NULL;
 			}
-			len += sprintf(&buf[len], "\t(%s (filter_add_node net %s \"%s\"))\n",
+			len += sprintf(&buf[len], "\t(%s (filter-add-node net %s \"%s\"))\n",
 				       n->name, subnet, n->name);
 			free(subnet);
 		} else
-			len += sprintf(&buf[len], "\t(%s (filter_add_node net (filter_instantiate (plugin_get \"%s\")) \"%s\"))\n",
+			len += sprintf(&buf[len], "\t(%s (filter-add-node net (filter-new (plugin_get \"%s\")) \"%s\"))\n",
 				       n->name, plugin_name(n->plugin), n->name);
 	}
 	/* ((net .. */
@@ -381,12 +381,27 @@ char *filter_to_string(filter_t *net)
 			val = filterparam_to_string(param);
 			if (!val)
 				continue;
-			len += sprintf(&buf[len], "   (filternode_set_param %s \"%s\" %s)\n",
-				       n->name, filterparam_label(param), val);
+			len += sprintf(&buf[len],
+"   (let ((param (call-with-current-continuation\n"
+"                  (lambda (return)\n"
+"                    (map (lambda (param)\n"
+"                           (if (string=? (param-label param) \"%s\")\n"
+"	                        (return param)))\n"
+"	                  (filter-params %s))))))\n"
+"     (param-set! param %s)",
+				       filterparam_label(param),
+				       n->name, val);
 			free(val);
+			glsdb_foreach_item(filterparam_propertydb(param), pitem) {
+				len += sprintf(&buf[len],
+"\n     (set-property! param \"%s\" \"%s\")",
+					       sitem_label(pitem),
+					       sitem_str(pitem));
+			}
+			len += sprintf(&buf[len], ")\n");
 		}
 		glsdb_foreach_item(filter_propertydb(n), pitem) {
-			len += sprintf(&buf[len], "   (set_property %s \"%s\" \"%s\")\n",
+			len += sprintf(&buf[len], "   (set-property! %s \"%s\" \"%s\")\n",
 				       n->name, sitem_label(pitem), sitem_str(pitem));
 		}
 	}
@@ -427,7 +442,7 @@ char *filter_to_string(filter_t *net)
 	 * commands. */
 	filter_foreach_node(net, n) {
 		list_foreach(&n->connections, filter_pipe_t, list, c) {
-			len += sprintf(&buf[len], "   (let ((pipe (filter_connect %s \"%s\" %s \"%s\")))\n",
+			len += sprintf(&buf[len], "   (let ((pipe (filter-connect %s \"%s\" %s \"%s\")))\n",
 				       c->source_filter, c->source_port,
 				       c->dest_filter, c->dest_port);
 
@@ -460,7 +475,7 @@ char *filter_to_string(filter_t *net)
 
 	/* Last, create property set commands for the network. */
 	glsdb_foreach_item(filter_propertydb(net), pitem) {
-		len += sprintf(&buf[len], "   (set_property net \"%s\" \"%s\")\n",
+		len += sprintf(&buf[len], "   (set-property! net \"%s\" \"%s\")\n",
 			       sitem_label(pitem), sitem_str(pitem));
 	}
 
