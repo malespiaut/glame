@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.69 2005/03/11 20:14:23 richi Exp $
+ * $Id: filtereditgui.c,v 1.70 2005/03/30 16:26:06 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -871,8 +871,8 @@ static void execute_cleanup(glsig_handler_t *handler, long sig, va_list va)
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(gui->toolbar)), 0)->data);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(gui->toolbar),
-				_("Execute"), _("Executes Filternetwork"),
 				GNOME_STOCK_PIXMAP_EXEC,
+				_("Execute"), _("Executes Filternetwork"),
 				GTK_SIGNAL_FUNC(glame_canvas_execute_cb), gui, 0);
 }
 
@@ -907,8 +907,8 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(gui->toolbar)), 0)->data);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(gui->toolbar),
-				 _("Stop"), _("Stop"), 
 				 GNOME_STOCK_PIXMAP_STOP,
+				 _("Stop"), _("Stop"), 
 				 GTK_SIGNAL_FUNC(glame_canvas_execute_cb), gui, 0);
 }
 
