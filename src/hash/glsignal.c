@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.13 2001/05/05 14:28:34 richi Exp $
+ * $Id: glsignal.c,v 1.14 2001/07/30 08:20:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -23,7 +23,8 @@
 #include "glsignal.h"
 
 
-#define GLSIG_HANDLER_RUNNING (1<<31)
+#define GLSIG_HANDLER_RUNNING (1<<0)
+#define GLSIG_HANDLER_NOCOPY (1<<1)
 
 
 /* Execute a signal handler doing preparation for lazy deletion. */
@@ -41,16 +42,16 @@ static inline void _glsig_handler_exec(glsig_handler_t *h,
 	/* !h->handler means this handler is really deleted. */
 	if (!h->handler || !(h->sigmask & sig))
 		return;
-	if (h->sigmask & GLSIG_HANDLER_RUNNING)
+	if (h->flags & GLSIG_HANDLER_RUNNING)
 		was_running = 1;
-	h->sigmask |= GLSIG_HANDLER_RUNNING;
+	h->flags |= GLSIG_HANDLER_RUNNING;
 #if defined OS_BSD && defined CPU_X86 && defined HAVE_GCC
 	h->handler(h, sig, va);
 #else
 	h->handler(h, sig, vax);
 #endif
 	if (!was_running)
-		h->sigmask &= ~GLSIG_HANDLER_RUNNING;
+		h->flags &= ~GLSIG_HANDLER_RUNNING;
 }
 
 /* Second run through the signal handler list - delete all handlers
@@ -61,7 +62,7 @@ static inline void _glsig_after_emit(glsig_emitter_t *e)
 	struct list_head *dummy;
 
 	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h)
-		if (!h->handler && !(h->sigmask & GLSIG_HANDLER_RUNNING))
+		if (!h->handler && !(h->flags & GLSIG_HANDLER_RUNNING))
 			glsig_delete_handler(h);
 }
 
@@ -86,6 +87,7 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 	if (!(h = ALLOC(glsig_handler_t)))
 		return NULL;
 	INIT_LIST_HEAD(&h->list);
+	h->flags = 0;
 	h->sigmask = sigmask;
 	h->handler = handler;
 	h->priv = priv;
@@ -100,15 +102,24 @@ glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
 	return glsig_add_handler(emitter, sigmask, glsig_redirector, dest);
 }
 
+void glsig_dont_copy_handler(glsig_handler_t *h)
+{
+	if (!h)
+		return;
+	h->flags |= GLSIG_HANDLER_NOCOPY;
+}
+
 
 int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source)
 {
 	glsig_handler_t *h;
 
 	list_foreach(&source->handlers, glsig_handler_t, list, h) {
+		if (h->flags & GLSIG_HANDLER_NOCOPY)
+			continue;
 		if (h->handler == glsig_redirector)
 			continue;
-		if (!glsig_add_handler(dest, h->sigmask & ~GLSIG_HANDLER_RUNNING,
+		if (!glsig_add_handler(dest, h->sigmask,
 				       h->handler, h->priv))
 			return -1;
 	}
@@ -120,9 +131,11 @@ int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source)
 	glsig_handler_t *h;
 
 	list_foreach(&source->handlers, glsig_handler_t, list, h) {
+		if (h->flags & GLSIG_HANDLER_NOCOPY)
+			continue;
 		if (h->handler != glsig_redirector)
 			continue;
-		if (!glsig_add_handler(dest, h->sigmask & ~GLSIG_HANDLER_RUNNING,
+		if (!glsig_add_handler(dest, h->sigmask,
 				       h->handler, h->priv))
 			return -1;
 	}
@@ -132,7 +145,7 @@ int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source)
 void glsig_delete_handler(glsig_handler_t *h)
 {
 	/* If we are running mark us for delayed deletion. */
-	if (h->sigmask & GLSIG_HANDLER_RUNNING) {
+	if (h->flags & GLSIG_HANDLER_RUNNING) {
 		h->handler = NULL;
 		return;
 	}

@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.12 2001/04/18 16:48:38 richi Exp $
+ * $Id: glsignal.h,v 1.13 2001/07/30 08:20:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -55,6 +55,9 @@
  *   Adds a redirector to the emitter. All signals raised from the emitter
  *   matching the specified signal mask will be raised again from the dest emitter.
  *
+ * void glsig_dont_copy_handler(glsig_handler_t *h);
+ *   Marks the handler as not to be copied.
+ *
  * void glsig_emit(glsig_emitter_t *emitter, int sig, ...);
  *   Emits the signal sig from the emitter and provides the varargs
  *   to the callbacks. Signals are emitted bottom to top in the hierarchy.
@@ -101,6 +104,7 @@ struct glsig_emitter {
 struct glsig_handler {
 	struct list_head list;
 
+	int flags;
 	long sigmask;
 	glsig_callb_t *handler;
 
@@ -124,6 +128,7 @@ glsig_handler_t *glsig_add_handler(glsig_emitter_t *emitter,
 glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
 				      glsig_emitter_t *dest);
 
+void glsig_dont_copy_handler(glsig_handler_t *h);
 
 int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
 
