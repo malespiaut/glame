@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.100 2002/01/11 23:11:35 richi Exp $
+ * $Id: main.c,v 1.101 2002/01/26 15:46:50 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -277,6 +277,7 @@ static int update_preferences()
 	char s[256];
 	long maxundo, res = 0;
 	long wbufsize, maxlru, maxfds, maxmaps, maxvm;
+	int rate;
 
 	/* Check, if we have anything configured already. */
 	if (glame_config_get_string("swapfile/defaultpath", &swappath) == -1)
@@ -335,10 +336,13 @@ static int update_preferences()
 	aindev = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(ainplugin), PLUGIN_FILTER)), "device"));
 	snprintf(s, 255, "%s", aindev ? aindev : "");
 	aindev = glame_config_get_string_with_default("audio_io/input_dev", s);
+	rate = glame_config_get_long_with_default("audio_io/input_rate", GLAME_DEFAULT_SAMPLERATE);
 	filter = filter_instantiate(plugin_get(ainplugin));
 	if (filter) {
 		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
 							"device"), &aindev);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
+							"rate"), &rate);
 		filter_register(filter, plugin_get("audio_in"));
 	}
 
@@ -351,12 +355,12 @@ static int update_preferences()
 "Preferences:\n"
 "\tSwapfile directory %s\n"
 "\tUndo stack depth is %li\n"
-"\tAudio input plugin %s, device \"%s\"\n"
+"\tAudio input plugin %s, device \"%s\", rate %i\n"
 "\tAudio output plugin %s, device \"%s\"\n"
 "\tGLAME_WBUFSIZE %i\n"
 "\tPopup timeout is %lims\n"
 "\tMac mode is %s\n",
-                swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev, _GLAME_WBUFSIZE,
+                swappath, maxundo, ainplugin, aindev, rate, aoutplugin, aoutdev, _GLAME_WBUFSIZE,
                 nPopupTimeout, bMac ? "on" : "off");
 
 	/* Free temp. storage. */
@@ -471,10 +475,10 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GList *combo_items;
 	char *cfg, *path, *numberbuffer, *aindev = NULL, *aoutdev = NULL;
 	char *ainplugin = NULL, *aoutplugin = NULL, *maxundobuf, *wbufsizebuf;
-	char *maxlrubuf, *maxfdsbuf, *maxmapsbuf, *maxvmbuf;
+	char *maxlrubuf, *maxfdsbuf, *maxmapsbuf, *maxvmbuf, *ratebuf;
 	gboolean ok=FALSE;
 	long mac;
-	long maxundo, wbufsize, maxlru, maxfds, maxmaps, maxvm;
+	long maxundo, wbufsize, maxlru, maxfds, maxmaps, maxvm, rate;
 
 	/* New box. */
         prop_box = gnome_property_box_new();
@@ -525,6 +529,14 @@ preferences_cb(GtkWidget * wid, void * bla)
         notelabel = gtk_label_new(_("NOTE: Swapfile settings take effect after restart only"));
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
+
+	{
+		GtkWidget *sep;
+		sep = gtk_hseparator_new();
+		gtk_container_add(GTK_CONTAINER(vbox), sep);
+		gtk_widget_show(sep);
+	}
+
 	glame_config_get_long("swapfile/maxundo", &maxundo);
 	maxundobuf = alloca(256);
 	snprintf(maxundobuf, 255, "%li", maxundo);
@@ -593,10 +605,22 @@ preferences_cb(GtkWidget * wid, void * bla)
 		strncpy(aindev, cfg, 255);
 		g_free(cfg);
 		create_label_edit_pair(vbox, _("Default input device"), "aindev", aindev);
+		/* sample rate */
+		glame_config_get_long("audio_io/input_rate", &rate);
+		ratebuf = alloca(256);
+		snprintf(ratebuf, 255, "%li", rate);
+		create_label_edit_pair(vbox, _("Default input sample rate"), "ainrate", ratebuf);
 	} else {
 		combo = gtk_label_new(_("No audio input plugin"));
 		gtk_container_add(GTK_CONTAINER(vbox), combo);
 		gtk_widget_show(combo);
+	}
+
+	{
+		GtkWidget *sep;
+		sep = gtk_hseparator_new();
+		gtk_container_add(GTK_CONTAINER(vbox), sep);
+		gtk_widget_show(sep);
 	}
 
 	/* output filter */
@@ -634,6 +658,13 @@ preferences_cb(GtkWidget * wid, void * bla)
 		combo = gtk_label_new(_("No audio output plugin"));
 		gtk_container_add(GTK_CONTAINER(vbox), combo);
 		gtk_widget_show(combo);
+	}
+
+	{
+		GtkWidget *sep;
+		sep = gtk_hseparator_new();
+		gtk_container_add(GTK_CONTAINER(vbox), sep);
+		gtk_widget_show(sep);
 	}
 
 	/* GLAME_WBUFSIZE */
@@ -679,6 +710,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 		glame_config_set_string("audio_io/input_dev", aindev);
 	if (ainplugin)
 		glame_config_set_string("audio_io/input_plugin", ainplugin);
+	if (sscanf(ratebuf, "%li", &rate) == 1)
+		glame_config_set_long("audio_io/input_rate", rate);
 	if (aoutdev)
 		glame_config_set_string("audio_io/output_dev", aoutdev);
 	if (aoutplugin)
@@ -761,7 +794,6 @@ static void glame_splash(void)
 	guint tid;
 
 	about = glame_about();
-	gtk_object_destroy(GTK_OBJECT((GNOME_DIALOG(about))->action_area));
 
 #ifdef DEBUG
 	tid = gtk_timeout_add(1000, (GtkFunction)glame_splash_timeout, about);
