@@ -1,20 +1,51 @@
 				GLAME - Installation
 				====================
 
-If you got the source package you can install glame by doing
+Or if you just checked out the CVS tree (which is recommended if you
+can cope with the usual report bug - wait for the fix - update cvs
+cycle and want to be bleeding edge) you first need to initialize the
+build system by doing
+> ./autogen.sh
+
+If you got the source package or have already initialized the build
+system you can install glame by doing (usually you want to specify
+a prefix for the install directory, you can do this via ./configure
+--prefix=/my/install/location, default is /usr/local)
 > ./configure
 > make
 > make install
 
-If you do not want to install the package, you can find the generated
-executables in 
-src/gui/glame
-src/cglame
+If you are using a debian system you may even use
+> dpkg-buildpackage
+to get a .deb package build which you may then install using dpkg.
 
-Or if you just checked out the CVS tree (which is highly recommended as 
-development is going really fast at the moment) you first need to do
-> ./autogen.sh
-then proceed as stated above.
+
+Note that there are quite a lot of configure options (./configure --help)
+of which the following may come handy if the build process is failing:
+- --disable-mp3lame disables the use of the mp3lame library for reading
+  mp3 files - this may be necessary if you only have a static version of
+  this libaray installed (symptoms for this are no file I/O plugins
+  available, i.e. not working Import/Export)
+
+If you experience bugs with glame, we encourage you to report them via
+the bugtracking system of sourceforge or the development mailinglist.
+Please try to be verbose about the failure, enabling extra debugging
+output via the --enable-debug option is encouraged.
+
+If you want to try out (or absolutely need) real-time applications such
+as real-time sound synthesis or real-time effect generation you will need
+to enable the low latency mode of GLAME via the --enable-low-latency switch
+of configure. Note that this may slow down bulk operations but reduces
+latency to below 5ms on an unloaded system (be sure to use decent sound
+hardware - SB16/AWE ISA cards are known to fail).
+
+
+If you do not want to install the package, you can execute the generated
+executables as (you _have_ to be in the src/ directory)
+> cd src
+> ./gui/glame
+> ./cglame
+
 
 For more about GLAME have a look into the README file and the current
 documentation in the doc/ directory. You also may want to read the source which
