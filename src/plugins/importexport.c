@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.3 2001/06/19 12:09:01 richi Exp $
+ * $Id: importexport.c,v 1.4 2001/07/16 09:51:19 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -151,7 +151,7 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 		chans[i].os = chans[i].s = (SAMPLE *) sw_mmap(0, PROT_READ | PROT_WRITE, 
 								MAP_SHARED, chans[i].fd);
 
-		gpsm_grp_insert(group, it, 0, i);
+		gpsm_item_place(group, it, 0, i);
 		gpsm_swfile_set((gpsm_swfile_t *)it, rate, hangle); 
 		hangle += dh;
 	}
@@ -229,7 +229,8 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 
 	/* Insert the group into the gpsm tree. */ 
-	gpsm_grp_insert((gpsm_grp_t *)item, (gpsm_item_t *)group, -1, -1); 
+	gpsm_item_place((gpsm_grp_t *)item, (gpsm_item_t *)group,
+			0, gpsm_item_vsize(item));
 	
 	gpsm_sync();
 

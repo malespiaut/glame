@@ -97,19 +97,6 @@ static SCM gls_gpsm_item_hposition(SCM s_item)
 	return gh_long2scm(gpsm_item_hposition(item));
 }
 
-static SCM gls_gpsm_item_set_hposition(SCM s_item, SCM s_hpos)
-{
-	gpsm_item_t *item;
-	SCM_ASSERT(gpsmitem_p(s_item), s_item,
-		   SCM_ARG1, "gpsm-item-set-hposition!");
-	SCM_ASSERT(gh_exact_p(s_hpos) && gh_scm2long(s_hpos) >= 0, s_hpos,
-		   SCM_ARG2, "gpsm-item-set-hposition!");
-	item = scm2gpsmitem(s_item);
-	item->hposition = gh_scm2long(s_hpos);
-	glsig_emit(gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED, item);
-	return SCM_UNSPECIFIED;
-}
-
 static SCM gls_gpsm_item_vposition(SCM s_item)
 {
 	gpsm_item_t *item;
@@ -117,19 +104,6 @@ static SCM gls_gpsm_item_vposition(SCM s_item)
 		   SCM_ARG1, "gpsm-item-vposition");
 	item = scm2gpsmitem(s_item);
 	return gh_long2scm(gpsm_item_vposition(item));
-}
-
-static SCM gls_gpsm_item_set_vposition(SCM s_item, SCM s_vpos)
-{
-	gpsm_item_t *item;
-	SCM_ASSERT(gpsmitem_p(s_item), s_item,
-		   SCM_ARG1, "gpsm-item-set-vposition!");
-	SCM_ASSERT(gh_exact_p(s_vpos) && gh_scm2long(s_vpos) >= 0, s_vpos,
-		   SCM_ARG2, "gpsm-item-set-vposition!");
-	item = scm2gpsmitem(s_item);
-	item->vposition = gh_scm2long(s_vpos);
-	glsig_emit(gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED, item);
-	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_item_hsize(SCM s_item)
@@ -360,20 +334,59 @@ static SCM gls_gpsm_grp_is_vbox(SCM s_grp)
 	return SCM_BOOL_F;
 }
 
-static SCM gls_gpsm_grp_insert(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
+static SCM gls_gpsm_item_can_place(SCM s_grp, SCM s_item,
+				   SCM s_hpos, SCM s_vpos)
 {
 	gpsm_item_t  *grp;
 	SCM_ASSERT(gpsmitem_p(s_grp)
 		   && (grp = scm2gpsmitem(s_grp), GPSM_ITEM_IS_GRP(grp)),
-		   s_grp, SCM_ARG1, "gpsm-grp-insert");
+		   s_grp, SCM_ARG1, "gpsm-item-can-place?");
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
-		   SCM_ARG2, "gpsm-grp-insert");
+		   SCM_ARG2, "gpsm-item-can-place?");
 	SCM_ASSERT(gh_exact_p(s_hpos), s_hpos,
-		   SCM_ARG3, "gpsm-grp-insert");
+		   SCM_ARG3, "gpsm-item-can-place?");
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
-		   SCM_ARG4, "gpsm-grp-insert");
-	if (gpsm_grp_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
+		   SCM_ARG4, "gpsm-item-can-place?");
+	if (gpsm_item_can_place((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
+				gh_scm2long(s_hpos), gh_scm2long(s_vpos)))
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_gpsm_item_place(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
+{
+	gpsm_item_t  *grp;
+	SCM_ASSERT(gpsmitem_p(s_grp)
+		   && (grp = scm2gpsmitem(s_grp), GPSM_ITEM_IS_GRP(grp)),
+		   s_grp, SCM_ARG1, "gpsm-item-place");
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG2, "gpsm-item-place");
+	SCM_ASSERT(gh_exact_p(s_hpos), s_hpos,
+		   SCM_ARG3, "gpsm-item-place");
+	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
+		   SCM_ARG4, "gpsm-item-place");
+	if (gpsm_item_place((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
 			    gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == 0)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_gpsm_hbox_can_insert(SCM s_grp, SCM s_item,
+				    SCM s_hpos, SCM s_vpos)
+{
+	gpsm_item_t  *grp;
+	SCM_ASSERT(gpsmitem_p(s_grp)
+		   && (grp = scm2gpsmitem(s_grp), GPSM_ITEM_IS_GRP(grp))
+		   && (gpsm_grp_is_hbox((gpsm_grp_t *)grp)),
+		   s_grp, SCM_ARG1, "gpsm-hbox-can-insert?");
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG2, "gpsm-hbox-can-insert?");
+	SCM_ASSERT(gh_exact_p(s_hpos), s_hpos,
+		   SCM_ARG3, "gpsm-hbox-can-insert?");
+	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
+		   SCM_ARG4, "gpsm-hbox-can-insert?");
+	if (gpsm_hbox_can_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
+				 gh_scm2long(s_hpos), gh_scm2long(s_vpos)))
 		return SCM_BOOL_T;
 	return SCM_BOOL_F;
 }
@@ -393,6 +406,26 @@ static SCM gls_gpsm_hbox_insert(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 		   SCM_ARG4, "gpsm-hbox-insert");
 	if (gpsm_hbox_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
 			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == 0)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_gpsm_vbox_can_insert(SCM s_grp, SCM s_item,
+				    SCM s_hpos, SCM s_vpos)
+{
+	gpsm_item_t  *grp;
+	SCM_ASSERT(gpsmitem_p(s_grp)
+		   && (grp = scm2gpsmitem(s_grp), GPSM_ITEM_IS_GRP(grp))
+		   && (gpsm_grp_is_vbox((gpsm_grp_t *)grp)),
+		   s_grp, SCM_ARG1, "gpsm-vbox-can-insert?");
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG2, "gpsm-vbox-can-insert?");
+	SCM_ASSERT(gh_exact_p(s_hpos), s_hpos,
+		   SCM_ARG3, "gpsm-vbox-can-insert?");
+	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
+		   SCM_ARG4, "gpsm-vbox-can-insert?");
+	if (gpsm_vbox_can_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
+				 gh_scm2long(s_hpos), gh_scm2long(s_vpos)))
 		return SCM_BOOL_T;
 	return SCM_BOOL_F;
 }
@@ -422,6 +455,24 @@ static SCM gls_gpsm_item_remove(SCM s_item)
 		   SCM_ARG1, "gpsm-item-remove");
 	gpsm_item_remove(scm2gpsmitem(s_item));
 	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_gpsm_hbox_cut(SCM s_item)
+{
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG1, "gpsm-hbox-cut");
+	if (gpsm_hbox_cut(scm2gpsmitem(s_item)) == 0)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
+}
+
+static SCM gls_gpsm_vbox_cut(SCM s_item)
+{
+	SCM_ASSERT(gpsmitem_p(s_item), s_item,
+		   SCM_ARG1, "gpsm-vbox-cut");
+	if (gpsm_vbox_cut(scm2gpsmitem(s_item)) == 0)
+		return SCM_BOOL_T;
+	return SCM_BOOL_F;
 }
 
 
@@ -573,11 +624,7 @@ int glscript_init_gpsm()
 	gh_new_procedure1_0("gpsm-item-label", gls_gpsm_item_label);
 	gh_new_procedure2_0("gpsm-item-set-label!", gls_gpsm_item_set_label);
 	gh_new_procedure1_0("gpsm-item-hposition", gls_gpsm_item_hposition);
-	gh_new_procedure2_0("gpsm-item-set-hposition!",
-			    gls_gpsm_item_set_hposition);
 	gh_new_procedure1_0("gpsm-item-vposition", gls_gpsm_item_vposition);
-	gh_new_procedure2_0("gpsm-item-set-vposition!",
-			    gls_gpsm_item_set_vposition);
 	gh_new_procedure1_0("gpsm-item-hsize", gls_gpsm_item_hsize);
 	gh_new_procedure1_0("gpsm-item-vsize", gls_gpsm_item_vsize);
 	gh_new_procedure1_0("gpsm-grp?", gls_gpsm_is_grp);
@@ -608,10 +655,15 @@ int glscript_init_gpsm()
 	gh_new_procedure1_0("gpsm-item-destroy", gls_gpsm_item_destroy);
 	gh_new_procedure1_0("gpsm-grp-hbox?", gls_gpsm_grp_is_hbox);
 	gh_new_procedure1_0("gpsm-grp-vbox?", gls_gpsm_grp_is_vbox);
-	gh_new_procedure4_0("gpsm-grp-insert", gls_gpsm_grp_insert);
+	gh_new_procedure4_0("gpsm-item-can-place?", gls_gpsm_item_can_place);
+	gh_new_procedure4_0("gpsm-item-place", gls_gpsm_item_place);
+	gh_new_procedure4_0("gpsm-hbox-can-insert?", gls_gpsm_hbox_can_insert);
 	gh_new_procedure4_0("gpsm-hbox-insert", gls_gpsm_hbox_insert);
+	gh_new_procedure4_0("gpsm-vbox-can-insert?", gls_gpsm_vbox_can_insert);
 	gh_new_procedure4_0("gpsm-vbox-insert", gls_gpsm_vbox_insert);
 	gh_new_procedure1_0("gpsm-item-remove", gls_gpsm_item_remove);
+	gh_new_procedure1_0("gpsm-hbox-cut", gls_gpsm_hbox_cut);
+	gh_new_procedure1_0("gpsm-vbox-cut", gls_gpsm_vbox_cut);
 
 	/* gpsm notification. */
 	gh_new_procedure3_0("gpsm-notify-swapfile-change",

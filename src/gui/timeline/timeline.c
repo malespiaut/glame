@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.13 2001/07/13 09:01:43 richi Exp $
+ * $Id: timeline.c,v 1.14 2001/07/16 09:51:19 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -216,8 +216,12 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			DPRINTF("D&D cleanup (drop rect %.3f %.3f - %.3f %.3f) to %li (original %li)\n",
 				x1, y1, x2, y2,
 				hposition, gpsm_item_hposition(TIMELINE_CI_GPSM(dnd_file)));
-			TIMELINE_CI_GPSM(dnd_file)->hposition = hposition;
-			glsig_emit(gpsm_item_emitter(TIMELINE_CI_GPSM(dnd_file)), GPSM_SIG_ITEM_CHANGED, TIMELINE_CI_GPSM(dnd_file));
+			gpsm_item_place(
+				gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
+				TIMELINE_CI_GPSM(dnd_file),
+				hposition, gpsm_item_vposition(TIMELINE_CI_GPSM(dnd_file)));
+			/* TIMELINE_CI_GPSM(dnd_file)->hposition = hposition;
+			   glsig_emit(gpsm_item_emitter(TIMELINE_CI_GPSM(dnd_file)), GPSM_SIG_ITEM_CHANGED, TIMELINE_CI_GPSM(dnd_file)); */
 
 			gtk_object_destroy(GTK_OBJECT(dnd_rect));
 			dnd_file = NULL;

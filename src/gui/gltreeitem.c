@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.14 2001/05/29 07:51:18 richi Exp $
+ * $Id: gltreeitem.c,v 1.15 2001/07/16 09:51:19 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -94,7 +94,11 @@ void glame_tree_item_update(GlameTreeItem *item)
 
 	/* Create the label out of the gpsm item data. */
 	if (GPSM_ITEM_IS_GRP(item->item)) {
-		if (gpsm_item_vsize(item->item) == 0)
+		if (strcmp(gpsm_item_label(item->item), GPSM_GRP_UNRECOGNIZED_LABEL) == 0)
+			snprintf(buf, 255, "%s", GPSM_GRP_UNRECOGNIZED_LABEL);
+		else if (strcmp(gpsm_item_label(item->item), GPSM_GRP_DELETED_LABEL) == 0)
+			snprintf(buf, 255, "%s", GPSM_GRP_DELETED_LABEL);
+		else if (gpsm_item_vsize(item->item) == 0)
 			snprintf(buf, 255, "%s",
 				 gpsm_item_label(item->item));
 		else

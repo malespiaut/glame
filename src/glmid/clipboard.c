@@ -56,7 +56,8 @@ gpsm_grp_t *clipboard_get()
 	grp = gpsm_newgrp("clipboard");
 	gpsm_grp_foreach_item(root, item) {
 		swfile = gpsm_swfile_cow((gpsm_swfile_t *)item);
-		gpsm_grp_insert(grp, (gpsm_item_t *)swfile, 0, -1);
+		gpsm_item_place(grp, (gpsm_item_t *)swfile,
+				0, gpsm_item_vsize(grp));
 	}
 
 	return grp;
@@ -193,7 +194,8 @@ static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
 		gpsm_swfile_t *swfile;
 		if (mode != 0) {
 			swfile = gpsm_newswfile("track");
-			gpsm_grp_insert(grp, (gpsm_item_t *)swfile, 0, -1);
+			gpsm_item_place(grp, (gpsm_item_t *)swfile,
+					0, gpsm_item_vsize(grp));
 		}
 		if (copy_one(mode != 0 ? swfile : NULL, (gpsm_swfile_t *)item,
 			     pos, size, mode != 2 ? SWSENDFILE_CUT : 0) == -1)
@@ -207,7 +209,8 @@ static int clipboard_delete_cut_copy(gpsm_item_t *item, long pos, long size,
 			goto err;
 		if (mode != 0) {
 			swfile = gpsm_newswfile("track");
-			gpsm_grp_insert(grp, (gpsm_item_t *)swfile, 0, -1);
+			gpsm_item_place(grp, (gpsm_item_t *)swfile,
+					0, gpsm_item_vsize(grp));
 		}
 		if (copy_one(mode != 0 ? swfile : NULL, (gpsm_swfile_t *)it,
 			     pos - gpsm_item_hposition(it), size,

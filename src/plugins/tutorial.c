@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.12 2001/06/05 14:40:07 richi Exp $
+ * $Id: tutorial.c,v 1.13 2001/07/16 09:51:19 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -53,6 +53,7 @@ static int null_f(filter_t *n)
 {
 	filter_port_t *in_port, *out_port;
 	filter_pipe_t *in, *out;
+	filter_param_t *pos, *level;
 	filter_buffer_t *buf;
 
 	in_port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
@@ -62,6 +63,12 @@ static int null_f(filter_t *n)
 	if (!in || !out)
 		FILTER_ERROR_RETURN("no input or no output");
 
+	pos = filterparamdb_get_param(
+		filter_paramdb(n), FILTERPARAM_LABEL_POS);
+	filterparam_val_set_pos(pos, 0);
+	level = filterparamdb_get_param(filter_paramdb(n), "level");
+	filterparam_val_float(level) = 0.0;
+
 	FILTER_AFTER_INIT;
 
 	/* The loop condition is at the end to get and
@@ -70,7 +77,30 @@ static int null_f(filter_t *n)
 		FILTER_CHECK_STOP;
 		/* get an input buffer */
 		buf = fbuf_get(in);
+		if (!buf)
+			goto skip;
 
+		/* correct stream position for GUI poll */
+		if (filterpipe_type(in) == FILTER_PIPETYPE_SAMPLE)
+			filterparam_val_set_pos(
+				pos, filterparam_val_pos(pos) + sbuf_size(buf));
+		else
+			filterparam_val_set_pos(
+				pos, filterparam_val_pos(pos) + fbuf_size(buf));
+
+		/* correct current level (if SAMPLE stream) for GUI poll */
+		if (filterpipe_type(in) == FILTER_PIPETYPE_SAMPLE) {
+			SAMPLE *s = sbuf_buf(buf);
+			int cnt = sbuf_size(buf);
+			float value = 0.0;
+			while (cnt--) {
+				value += *s * *s;
+				s++;
+			}
+			filterparam_val_float(level) = sqrtf(value/sbuf_size(buf));
+		}
+
+skip:
 		/* just forward every buffer */
 		fbuf_queue(out, buf);
 	} while (buf);
@@ -95,6 +125,10 @@ int null_register(plugin_t *p)
 			      FILTER_PORTTYPE_ANY, FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_DESCRIPTION, "output stream",
 			      FILTERPORT_END);
+	filterparamdb_add_param_pos(filter_paramdb(f));
+	filterparamdb_add_param_float(filter_paramdb(f), "level",
+				      FILTER_PARAMTYPE_FLOAT, 0.0,
+				      FILTERPARAM_END);
 
 	f->f = null_f;
 

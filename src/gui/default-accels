@@ -72,56 +72,56 @@
   (if (gpsm-item? item)
       (let ((newpos (- (gpsm-item-vposition item) 1)))
         (if (&gt; newpos 0)
-            (gpsm-item-set-vposition! item newpos)
-            (gpsm-item-set-vposition! item 0)))))
+            (gpsm-item-place (gpsm-item-parent item) item (gpsm-item-hposition item) newpos)
+            (gpsm-item-place (gpsm-item-parent item) item (gpsm-item-hposition item) 0)))))
   </accel>
   <accel state="1" spec="Up">
 (let ((item (timeline-active-group)))
   (if (gpsm-item? item)
       (let ((newpos (- (gpsm-item-vposition item) 1)))
         (if (&gt; newpos 0)
-            (gpsm-item-set-vposition! item newpos)
-            (gpsm-item-set-vposition! item 0)))))
+            (gpsm-item-place (gpsm-item-parent item) item (gpsm-item-hposition item) newpos)
+            (gpsm-item-place (gpsm-item-parent item) item (gpsm-item-hposition item) 0)))))
   </accel>
   <accel state="0" spec="Down">
 (let ((item (timeline-active-item)))
   (if (gpsm-item? item)
       (let ((newpos (+ (gpsm-item-vposition item) 1)))
-        (gpsm-item-set-vposition! item newpos))))
+        (gpsm-item-place (gpsm-item-parent item) item (gpsm-item-hposition item) newpos))))
   </accel>
   <accel state="1" spec="Down">
 (let ((item (timeline-active-group)))
   (if (gpsm-item? item)
       (let ((newpos (+ (gpsm-item-vposition item) 1)))
-        (gpsm-item-set-vposition! item newpos))))
+        (gpsm-item-place (gpsm-item-parent item) item (gpsm-item-hposition item) newpos))))
   </accel>
   <accel state="0" spec="Right">
 (let ((item (timeline-active-item)))
   (if (gpsm-item? item)
       (let ((newpos (+ (gpsm-item-hposition item) 4410)))
-        (gpsm-item-set-hposition! item newpos))))
+        (gpsm-item-place (gpsm-item-parent item) item newpos (gpsm-item-vposition item)))))
   </accel>
   <accel state="1" spec="Right">
 (let ((item (timeline-active-group)))
   (if (gpsm-item? item)
       (let ((newpos (+ (gpsm-item-hposition item) 4410)))
-        (gpsm-item-set-hposition! item newpos))))
+        (gpsm-item-place (gpsm-item-parent item) item newpos (gpsm-item-vposition item)))))
   </accel>
   <accel state="0" spec="Left">
 (let ((item (timeline-active-item)))
   (if (gpsm-item? item)
       (let ((newpos (- (gpsm-item-hposition item) 4410)))
         (if (&gt; newpos 0)
-            (gpsm-item-set-hposition! item newpos)
-            (gpsm-item-set-hposition! item 0)))))
+            (gpsm-item-place (gpsm-item-parent item) item newpos (gpsm-item-vposition item))
+            (gpsm-item-place (gpsm-item-parent item) item 0 (gpsm-item-vposition item))))))
   </accel>
   <accel state="1" spec="Left">
 (let ((item (timeline-active-group)))
   (if (gpsm-item? item)
       (let ((newpos (- (gpsm-item-hposition item) 4410)))
         (if (&gt; newpos 0)
-            (gpsm-item-set-hposition! item newpos)
-            (gpsm-item-set-hposition! item 0)))))
+            (gpsm-item-place (gpsm-item-parent item) item newpos (gpsm-item-vposition item))
+            (gpsm-item-place (gpsm-item-parent item) item 0 (gpsm-item-vposition item))))))
   </accel>
 </scope>
 
