@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.7 2000/03/27 09:19:20 richi Exp $
+ * $Id: glplugin.c,v 1.8 2000/04/06 14:29:02 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -58,7 +58,7 @@ int plugin_add_path(const char *path)
 static plugin_t *add_plugin(const char *name, const char *filename);
 static plugin_t *plugin_load(const char *name, const char *filename)
 {
-        char s[256], *sp;
+        char s[256], *sp, *psname;
 	plugin_t *p;
 
 	if (!(p = ALLOC(plugin_t)))
@@ -91,10 +91,11 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 		snprintf(s, 255, "%s", *(p->set));
 		sp = s;
 		do {
-			name = sp;
-			if ((sp = strchr(name, ' ')))
+			psname = sp;
+			if ((sp = strchr(psname, ' ')))
 				*(sp++) = '\0';
-			add_plugin(name, filename);
+			if (!add_plugin(psname, filename))
+				goto err_close;
 		} while (sp);
 	}
 	return p;
@@ -113,19 +114,26 @@ static plugin_t *add_plugin(const char *name, const char *filename)
 
 	if (!(p = plugin_load(name, filename)))
 		return NULL;
+	fprintf(stderr, "adding plugin %s\n", p->name);
 	hash_add_plugin(p);
 	list_add_plugin(p);
 	return p;	
 }
 
-plugin_t *plugin_get(const char *name)
+plugin_t *plugin_get(const char *nm)
 {
 	plugin_t *p = NULL;
 	plugin_path_t *path;
-	char filename[256];
+	char filename[256], name[32], *s;
 
-	if (!name)
+	if (!nm)
 		return NULL;
+
+	/* HACK! FIXME! fix name wrt -_ */
+	strncpy(name, nm, 32);
+	s = name;
+	while ((s = strchr(s, '-')))
+		*s = '_';
 
 	/* already loaded? */
 	if ((p = hash_find_plugin(name)))

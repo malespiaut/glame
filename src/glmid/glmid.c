@@ -5,6 +5,8 @@
 
 extern int glscript_init();
 
+/* builtin plugins */
+PLUGIN_SET(glamebuiltins, "basic basic_sample track_io audio_io file_io waveform basic_midi midi_io midi_debug rms arithmetic")
 
 static int plugins_register()
 {
@@ -13,18 +15,8 @@ static int plugins_register()
 	plugin_add_path("./plugins/.libs");
 
 	/* first the builtin ones */
-	plugin_get("basic");
-        plugin_get("basic_sample");
-        plugin_get("track_io");
-        plugin_get("audio_io");
-        plugin_get("file_io");
-        plugin_get("waveform");
-        plugin_get("basic_midi");
-        plugin_get("midi_io");
-        plugin_get("midi_debug");
-	plugin_get("rms");
-	plugin_get("arithmetic");
-	
+	plugin_get("glamebuiltins");
+
 	/* then all the plugins in the (default) plugin path */
 	/* FIXME - by hand for now. */
 	plugin_get("echo");
