@@ -1,7 +1,7 @@
 /*
  * mixer.c
  *
- * $Id: mixer.c,v 1.19 2003/06/16 20:42:57 ochonpaul Exp $
+ * $Id: mixer.c,v 1.20 2003/06/17 21:09:16 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -1235,7 +1235,7 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 "<?xml version=\"1.0\" standalone=\"no\"?>"
 "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
 "<glade-interface>" 
-		 "<widget class=\"GtkKnob\" id=\"gtknob1\">" 
+		 "<widget class=\"GtkKnob\" id=\"widget\">" 
 		 "<property name=\"can_focus\">True</property>"
 		 "<property name=\"draw_value\">True</property>"
 		 "<property name=\"value_pos\">GTK_POS_TOP</property>"
