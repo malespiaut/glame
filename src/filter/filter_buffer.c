@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.2 2000/01/24 10:22:52 richi Exp $
+ * $Id: filter_buffer.c,v 1.3 2000/02/01 13:40:22 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -72,9 +72,17 @@ static int fb_getsem(int *sem, int *num)
 	}
 	*sem = fb_semid;
 	*num = ++fb_semnum;
+	/* Work around an IRIX/gcc bug wrt to semctl.
+	 * old code:
 	if (semctl(fb_semid, fb_semnum, SETVAL,
-		   (union semun){FBSEM_INIT}) == -1)
+		   (union semun){FBSEM_INIT}) != FBSEM_INIT)
 		goto err;
+	 */
+	sop.sem_num = fb_semnum;
+	sop.sem_op = FBSEM_INIT;
+	sop.sem_flg = 0;
+	if (semop(fb_semid, &sop, 1) == -1)
+	        goto err;
 	sop.sem_num = 0;
 	sop.sem_op = 1;
 	sop.sem_flg = 0;

@@ -7,11 +7,11 @@ bin_PROGRAMS = glame cglame
 
 glame_SOURCES = glame.c
 glame_LDADD = channel/libchannel.la swapfile/libswapfile.la filter/libfilter.la rw/librw.la hash/libhash.la \
-	$(DEBUG_LIBS) $(ESD_LIBS) -lpthread
+	$(DEBUG_LIBS) $(ESD_LIBS) -lm -lpthread
 
 cglame_SOURCES = cglame.c
 cglame_LDADD = channel/libchannel.la swapfile/libswapfile.la filter/libfilter.la rw/librw.la hash/libhash.la \
-	$(DEBUG_LIBS) $(ESD_LIBS) -lpthread
+	$(DEBUG_LIBS) $(ESD_LIBS) -lm -lpthread
 
 
 

@@ -13,7 +13,7 @@ libfilter_la_SOURCES = filter.c filter.h \
 
 
 test_latency_SOURCES = test_latency.c
-test_latency_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lpthread $(DEBUG_LIBS) $(ESD_LIBS)
+test_latency_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(DEBUG_LIBS) $(ESD_LIBS)
 
 test_audio_SOURCES = test_audio.c
-test_audio_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lpthread $(DEBUG_LIBS) $(ESD_LIBS)
+test_audio_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(DEBUG_LIBS) $(ESD_LIBS)
