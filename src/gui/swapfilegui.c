@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.42 2001/05/30 13:57:12 richi Exp $
+ * $Id: swapfilegui.c,v 1.43 2001/06/04 16:03:42 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -27,18 +27,26 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <gnome.h>
 #include <xmlmemory.h>
 #include <parser.h>
 #include "glame_types.h"
 #include "swapfile.h"
 #include "gltreeitem.h"
 #include "waveeditgui.h"
-#include "swapfilegui.h"
 #include "filter.h"
 #include "glame_gui_utils.h"
 #include "clipboard.h"
 #include "timeline.h"
-#include <gnome.h>
+#include "glscript.h"
+#include "swapfilegui.h"
+
+
+/* GUI is single threaded, so we may have some global state.
+ */
+
+static SwapfileGui *active_swapfilegui = NULL;
+static GlameTreeItem *active_swapfilegui_item = NULL;
 
 
 /* Forward declarations. */
@@ -52,6 +60,7 @@ static void collect_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
+static void addstereo_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void timeline_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -76,7 +85,8 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
 	GNOMEUIINFO_ITEM("Add clipboard", "addclipboard", addclipboard_cb, NULL),
-	GNOMEUIINFO_ITEM("Add empty wave", "addfile", addfile_cb, NULL),
+	GNOMEUIINFO_ITEM("Add mono wave", "addfile", addfile_cb, NULL),
+	GNOMEUIINFO_ITEM("Add stereo wave", "addstereo", addstereo_cb, NULL),
         GNOMEUIINFO_ITEM("Link selected", "link", linkselected_cb, NULL),
         GNOMEUIINFO_ITEM("Copy selected", "copy", copyselected_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
@@ -91,7 +101,7 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
-#define GROUP_MENU_APPLYOP_INDEX 16
+#define GROUP_MENU_APPLYOP_INDEX 17
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -338,25 +348,61 @@ static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (!GPSM_ITEM_IS_GRP(item->item))
 		return;
 
+	/* Only create waves inside a vbox. */
+	if (!gpsm_grp_is_vbox((gpsm_grp_t *)item->item)) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Cannot insert wave here.")));
+		return;
+	}
+
 	/* Create new gpsm swfile and insert it. */
 	swfile = gpsm_newswfile("Unnamed");
-	if (gpsm_grp_is_hbox((gpsm_grp_t *)item->item))
-		gpsm_hbox_insert((gpsm_grp_t *)item->item,
-				 (gpsm_item_t *)swfile,
-				 gpsm_item_hsize(item->item), 0);
-	else if (gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
-		gpsm_vbox_insert((gpsm_grp_t *)item->item,
-				 (gpsm_item_t *)swfile,
-				 0, gpsm_item_vsize(item->item));
-	else
-		gpsm_grp_insert((gpsm_grp_t *)item->item,
-				(gpsm_item_t *)swfile, 0, -1);
+	gpsm_vbox_insert((gpsm_grp_t *)item->item,
+			 (gpsm_item_t *)swfile,
+			 0, gpsm_item_vsize(item->item));
 
 	/* Expand the parent widget. */
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
 
 	/* Find out which widget it got and open an edit field. */
 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)swfile);
+	if (grpw)
+		edit_tree_label(grpw);
+}
+
+static void addstereo_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	gpsm_swfile_t *left, *right;
+	gpsm_grp_t *grp;
+	GlameTreeItem *grpw;
+
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+
+	/* Only create waves inside a vbox. */
+	if (!gpsm_grp_is_vbox((gpsm_grp_t *)item->item)) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Cannot insert wave here.")));
+		return;
+	}
+
+	/* Create new group and two gpsm swfiles and insert it. */
+	grp = gpsm_newgrp("Unnamed");
+	left = gpsm_newswfile("left");
+	gpsm_swfile_set_position(left, FILTER_PIPEPOS_LEFT);
+	right = gpsm_newswfile("right");
+	gpsm_swfile_set_position(right, FILTER_PIPEPOS_RIGHT);
+	gpsm_vbox_insert(grp, (gpsm_item_t *)left, 0, 0);
+	gpsm_vbox_insert(grp, (gpsm_item_t *)right, 0, 1);
+	gpsm_vbox_insert((gpsm_grp_t *)item->item,
+			 (gpsm_item_t *)grp,
+			 0, gpsm_item_vsize(item->item));
+
+	/* Expand the parent widget. */
+	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+	/* Find out which widget it got and open an edit field. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
 	if (grpw)
 		edit_tree_label(grpw);
 }
@@ -638,34 +684,39 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 
 
 /*
- * FIXME: We probably want to
- * - handle modifiers (shift, ctrl)
- * - show actual operation (based on modifier) in taskbar
- * - support horizontal "add before" (drop on swfile)
- * - support vertical "add before" (drop on swfile)
- * - support "add at tail" (drop on group)
+ * Drag & Drop state-machine.
+ * FIXME: better grab/release the pointer
  */
+extern GtkWidget *glame_appbar;
 static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			       GlameTreeItem *item)
 {
 	static GlameTreeItem *drag_widget = NULL;
 	static int mode = -1;
-	gpsm_item_t *source, *dest, *parent;
-	long hpos, vpos;
-
-	if (event->button != 1)
-		return;
+	static int cursor_type = -1;
+	static GdkCursor *cursor = NULL;
+	GdkEventButton *bevent = (GdkEventButton *)event;
+	GdkEventCrossing *cevent = (GdkEventCrossing *)event;
+	gpsm_item_t *source, *dest;
+	gpsm_grp_t *parent;
 
 	if (event->type == GDK_BUTTON_PRESS) {
+		if (bevent->button != 1)
+			return;
+
 		/* drag&drop start */
 		drag_widget = NULL;
 		mode = -1;
-		if (event->state & GDK_SHIFT_MASK) {
+		if (bevent->state & GDK_SHIFT_MASK) {
 			DPRINTF("SHIFT modifier\n");
 			mode = 1;
-		} else if (event->state & GDK_CONTROL_MASK) {
+			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
+					  "Drop into hbox");
+		} else if (bevent->state & GDK_CONTROL_MASK) {
 			DPRINTF("CTRL modifier\n");
 			mode = 2;
+			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
+					  "Drop into vbox");
 		} else {
 			DPRINTF("illegal modifier\n");
 			return; /* modifier not valid */
@@ -673,9 +724,19 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		drag_widget = item;
 
 	} else if (event->type == GDK_BUTTON_RELEASE) {
+		if (bevent->button != 1)
+			return;
+
 		/* drag&drop end */
 		if (!drag_widget)
 			return; /* spurious event - ignore */
+		gnome_appbar_pop(GNOME_APPBAR(glame_appbar));
+		if (cursor) {
+			cursor_type = -1;
+			gdk_window_set_cursor(GTK_WIDGET(active_swapfilegui)->window, NULL);
+			gdk_cursor_destroy(cursor);
+			cursor = NULL;
+		}
 		if (drag_widget == item)
 			return; /* nop */
 
@@ -729,6 +790,52 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 
 		drag_widget = NULL;
 		mode = -1;
+
+	} else if (event->type == GDK_LEAVE_NOTIFY) {
+		active_swapfilegui_item = NULL;
+
+	} else if (event->type == GDK_ENTER_NOTIFY) {
+		int ok = 1;
+		active_swapfilegui_item = item;
+		if ((!drag_widget || !(cevent->state & GDK_BUTTON1_MASK))
+		     && cursor) {
+			cursor_type = -1;
+			gdk_window_set_cursor(GTK_WIDGET(active_swapfilegui)->window, NULL);
+			gdk_cursor_destroy(cursor);
+			cursor = NULL;
+			drag_widget = NULL;
+			mode = -1;
+		}
+		if (!drag_widget)
+			return;
+
+		if (GPSM_ITEM_IS_GRP(item->item))
+			parent = (gpsm_grp_t *)item->item;
+		else
+			parent = gpsm_item_parent(item->item);
+		if ((mode == 1 && !gpsm_grp_is_hbox(parent))
+		    || (mode == 2 && !gpsm_grp_is_vbox(parent)))
+			ok = 0;
+
+		if (cursor_type == ok)
+			return;
+
+		cursor_type = ok;
+		if (ok) {
+			GdkCursor *c;
+			c = gdk_cursor_new(GDK_HAND2);
+			gdk_window_set_cursor(GTK_WIDGET(active_swapfilegui)->window, c);
+			if (cursor)
+				gdk_cursor_destroy(cursor);
+			cursor = c;
+		} else {
+			GdkCursor *c;
+			c = gdk_cursor_new(GDK_CIRCLE);
+			gdk_window_set_cursor(GTK_WIDGET(active_swapfilegui)->window, c);
+			if (cursor)
+				gdk_cursor_destroy(cursor);
+			cursor = c;
+		}
 	}
 }
 
@@ -775,6 +882,10 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 				   drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
 				   drag_start_stop_cb, itemw);
+		gtk_signal_connect(GTK_OBJECT(itemw), "enter_notify_event",
+				   drag_start_stop_cb, itemw);
+		gtk_signal_connect(GTK_OBJECT(itemw), "leave_notify_event",
+				   drag_start_stop_cb, itemw);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
 		itemw->handler = glsig_add_handler(
 			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
@@ -783,6 +894,10 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_press_event",
 				   drag_start_stop_cb, itemw);
 		gtk_signal_connect(GTK_OBJECT(itemw), "button_release_event",
+				   drag_start_stop_cb, itemw);
+		gtk_signal_connect(GTK_OBJECT(itemw), "enter_notify_event",
+				   drag_start_stop_cb, itemw);
+		gtk_signal_connect(GTK_OBJECT(itemw), "leave_notify_event",
 				   drag_start_stop_cb, itemw);
 	}
 
@@ -863,43 +978,146 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 	}
 }
 
-static void handle_rootdestroy(GtkWidget *tree, glsig_handler_t *handler)
+static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
+			      SwapfileGui *swapfile)
 {
-	glsig_delete_handler(handler);
+	if (event->type == GDK_ENTER_NOTIFY) {
+		DPRINTF("Entered %s\n", gpsm_item_label(swapfile->root));
+		active_swapfilegui = swapfile;
+	} else if (event->type == GDK_LEAVE_NOTIFY) {
+		DPRINTF("Left %s\n", gpsm_item_label(swapfile->root));
+		if (active_swapfilegui != swapfile)
+			DPRINTF("But was not active (%s)!\n",
+				active_swapfilegui ?
+				gpsm_item_label(active_swapfilegui->root)
+				: "none");
+		active_swapfilegui = NULL;
+	}
 }
 
 
-
 /*
- * Externally visible API.
+ * Externally visible API and the SwapfileGui object (with guile access).
  */
 
-GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
+static SCM gls_swapfilegui_root_item()
 {
-	GtkWidget *tree;
+	if (!active_swapfilegui)
+		return SCM_BOOL_F;
+	return gpsmitem2scm(active_swapfilegui->root);
+}
+
+static SCM gls_swapfilegui_active_item()
+{
+	if (!active_swapfilegui)
+		return SCM_BOOL_F;
+	if (!active_swapfilegui_item)
+		return gpsmitem2scm(active_swapfilegui->root);
+	return gpsmitem2scm(active_swapfilegui_item->item);
+}
+
+static SCM gls_swapfilegui_selected_items()
+{
+	GList *selected;
+	SCM s_items = SCM_LIST0;
+	if (!active_swapfilegui)
+		return s_items;
+	selected = GTK_TREE_SELECTION(active_swapfilegui->tree);
+	while (selected) {
+		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
+		s_items = gh_cons(gpsmitem2scm(i->item), s_items);
+		selected = g_list_next(selected);
+	}
+	return s_items;
+}
+
+void glame_swapfilegui_init()
+{
+	gh_new_procedure0_0("swapfilegui-root-item",
+			    gls_swapfilegui_root_item);
+	gh_new_procedure0_0("swapfilegui-active-item",
+			    gls_swapfilegui_active_item);
+	gh_new_procedure0_0("swapfilegui-selected-items",
+			    gls_swapfilegui_selected_items);
+}
+
+static void swapfile_gui_destroy(SwapfileGui *swapfile)
+{
+	GtkEventBox* parent_class;
+	parent_class = gtk_type_class(GTK_TYPE_EVENT_BOX);
+	GTK_OBJECT_CLASS(parent_class)->destroy(GTK_OBJECT(swapfile));
+	if (swapfile->gpsm_handler)
+		glsig_delete_handler(swapfile->gpsm_handler);
+}
+
+static void swapfile_gui_class_init(SwapfileGuiClass *class)
+{
+	GtkObjectClass *object_class;
+	object_class = GTK_OBJECT_CLASS(class);
+	object_class->destroy = swapfile_gui_destroy;
+}
+
+static void swapfile_gui_init(SwapfileGui *swapfile)
+{
+	swapfile->gpsm_handler = NULL;
+	swapfile->root = NULL;
+	swapfile->tree = NULL;
+}
+
+GtkType swapfile_gui_get_type(void)
+{
+	static GtkType swapfile_gui_type = 0;
+	
+	if (!swapfile_gui_type){
+		GtkTypeInfo swapfile_gui_info = {
+			"SwapfileGui",
+			sizeof(SwapfileGui),
+			sizeof(SwapfileGuiClass),
+			(GtkClassInitFunc)swapfile_gui_class_init,
+			(GtkObjectInitFunc)swapfile_gui_init,
+			NULL,NULL,(GtkClassInitFunc)NULL,};
+		swapfile_gui_type = gtk_type_unique(
+			GTK_TYPE_EVENT_BOX, &swapfile_gui_info);
+		gtk_type_set_chunk_alloc(swapfile_gui_type, 8);
+	}
+
+	return swapfile_gui_type;
+}
+
+SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root)
+{
+	SwapfileGui *swapfile;
 	gpsm_item_t *item;
-	glsig_handler_t *handler;
 
 	if (!root)
 		return NULL;
 
-	/* Create the toplevel tree. */
-        tree = gtk_tree_new();
-        gtk_tree_set_view_mode(GTK_TREE(tree), GTK_TREE_VIEW_LINE);
-        gtk_tree_set_view_lines(GTK_TREE(tree), TRUE);
-        gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_MULTIPLE);
+	/* Create the toplevel objects. */
+	swapfile = SWAPFILE_GUI(gtk_type_new(swapfile_gui_get_type()));
+	swapfile->root = root;
+        swapfile->tree = gtk_tree_new();
+	gtk_container_add(GTK_CONTAINER(swapfile), swapfile->tree);
+        gtk_tree_set_view_mode(GTK_TREE(swapfile->tree), GTK_TREE_VIEW_LINE);
+        gtk_tree_set_view_lines(GTK_TREE(swapfile->tree), TRUE);
+        gtk_tree_set_selection_mode(GTK_TREE(swapfile->tree),
+				    GTK_SELECTION_MULTIPLE);
 
 	/* Add the root group and cause "newitem" signals to be sent
 	 * for each item. */
-	handler = glsig_add_handler(gpsm_item_emitter(root),
+	swapfile->gpsm_handler = glsig_add_handler(gpsm_item_emitter(root),
 			  GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM,
-			  handle_grp, tree);
-	gtk_signal_connect(GTK_OBJECT(tree), "destroy",
-			   handle_rootdestroy, handler);
+			  handle_grp, swapfile->tree);
+
+	/* Track the active swapfilegui via enter/leave events. */
+	gtk_signal_connect(GTK_OBJECT(swapfile), "enter_notify_event",
+			   handle_enterleave, swapfile);
+	gtk_signal_connect(GTK_OBJECT(swapfile), "leave_notify_event",
+			   handle_enterleave, swapfile);
 
 	/* Add all existing childs of the root group to the tree. */
 	gpsm_grp_foreach_item(root, item)
-		handle_grp_add_treeitem(GTK_OBJECT(tree), item);
+		handle_grp_add_treeitem(GTK_OBJECT(swapfile->tree), item);
 
-	return tree;
+	gtk_widget_show(swapfile->tree);
+	return swapfile;
 }

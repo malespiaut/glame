@@ -29,13 +29,45 @@
  * the GLAME project structure management tree.
  */
 
+struct _SwapfileGuiClass;
+struct _SwapfileGui;
+typedef struct _SwapfileGuiClass SwapfileGuiClass;
+typedef struct _SwapfileGui SwapfileGui;
+
+#define SWAPFILE_GUI_TYPE (swapfile_gui_get_type())
+#define SWAPFILE_GUI(object) (GTK_CHECK_CAST((object), SWAPFILE_GUI_TYPE, SwapfileGui))
+#define SWAPFILE_GUI_CLASS(object) (GTK_CHECK_CLASS_CAST((object), SWAPFILE_GUI_TYPE, SwapfileGuiClass))
+#define IS_SWAPFILE_GUI(object) (GTK_CHECK_TYPE((object), SWAPFILE_GUI_TYPE))
+#define IS_SWAPFILE_GUI_CLASS(object) (GTK_CHECK_CLASS_TYPE((object), SWAPFILE_GUI_TYPE))
+#define SWAPFILE_GUI_GET_CLASS(object) ((SwapfileGuiClass*) (((GtkObject*) (obj))->klass))
+
+struct _SwapfileGuiClass {
+	GtkEventBoxClass parent_class;
+
+};
+
+struct _SwapfileGui {
+	GtkEventBox parent_object;
+
+	glsig_handler_t *gpsm_handler;
+	gpsm_grp_t *root;
+	GtkWidget *tree;
+};
+
+
+
+/* Initializes the swapfilegui subsystem. */
+void glame_swapfilegui_init();
+
+
+GtkType swapfile_gui_get_type();
 
 /* Creates a view of the specified GPSM group (you usually want to
  * pass gpsm_root() here). The GPSM subsystem needs to be initialized
  * before you can create a swapfile gui.
  * Returns a swapfile gui widget (not shown) or NULL on error. Deletion
  * of the widget works as usual. */
-GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root);
+SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root);
 
 
 #endif
