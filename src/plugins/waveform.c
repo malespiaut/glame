@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.3 2000/03/20 10:43:25 richi Exp $
+ * $Id: waveform.c,v 1.4 2000/03/25 15:01:39 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -136,7 +136,7 @@ static int sinus_f(filter_node_t *n)
 	/* FIXME: we should try to eliminate sampling frequency errors
 	 * by finding optimal size. And we should at least fill a minimum
 	 * sized buffer, too. */
-	size = (int)(rate/freq);
+	size = (((int)(GLAME_WBUFSIZE/(int)(rate/freq)))*rate)/freq;
 
 	FILTER_AFTER_INIT;
 
@@ -146,7 +146,7 @@ static int sinus_f(filter_node_t *n)
 	 * operate on floats w/o casting to double. On non glibc
 	 * platforms like solaris sinf does not exist. ugh. */
         for (i=0; i<size; i++)
-		sbuf_buf(buf)[i] = ampl*sin(i*2*M_PI/size);
+		sbuf_buf(buf)[i] = ampl*sin(i*2*M_PI*freq/rate);
 
 	sbuf_queue(out, buf);
 	sbuf_queue(out, NULL);
