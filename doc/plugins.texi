@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.20 2001/04/25 14:31:47 richi Exp $
+@comment $Id: plugins.texi,v 1.21 2001/04/26 12:14:01 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -231,9 +231,11 @@ native endianness only.
 GLAME comes with a number of plugins to generate waveforms within a 
 filter network. They can be useful as a debugging aid, but also as 
 control input to other plugins. Imagine a sine wave generator hooked up
-to the position port of a panning filter... So far there are is a 
-@code{sine} plugin for generating sine waves, and a @code{const}
-plugin yielding a block of constant data. Both plugins emit but a short
+to the position port of a panning filter... So far there is a 
+@code{sine} plugin for generating sine waves, a @code{const} plugin yielding
+a block of constant data, and a @code{rect} plugin creating a stream of
+steep pulses. @code{time} generates a single pulse, steepness of the edges
+can be adjusted. All plugins emit but a short
 chunk of data. For a continuous stream they have to be connected to a
 repeat node. 
 
@@ -285,6 +287,22 @@ Defaults to 1.0.
 Frequency of generated rectangular wave in Hz. Defaults to 440 Hz.
 @end table
 
+@subsubheading @file{time} ports
+@file{time} has no further specific ports.
+
+@subsubheading @file{time} parameters
+@table @code
+@item time_on (time)
+Time to start switching from neutral to on state. Ignored if zero.
+@item time_off (time)
+Time to start switching from on to neutral state. Ignored if zero.
+@item duration (time)
+Length of complete output in milliseconds.
+@item attack (time)
+Time in milliseconds to switch from neutral to on state.
+@item release (time)
+Time in milliseconds to switch from on to neutral state.
+@end table
 
 @node Junctions and Dead Ends, Mangling Data Streams, Generating Waves, Elementary Plugins
 @subsection Junctions and Dead Ends
