@@ -1,7 +1,7 @@
 ; glame.scm
-; $Id: glame.scm,v 1.64 2001/08/01 15:05:46 richi Exp $
+; $Id: glame.scm,v 1.65 2001/08/03 11:24:32 richi Exp $
 ;
-; Copyright (C) 2000 Richard Guenther
+; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 ; along with this program; if not, write to the Free Software
 ; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ;
-
-;(set-current-module the-scm-module)
 
 ; Compatibility
 (define filter_creat filter-new)
@@ -640,9 +638,12 @@
       (net-run net))))
 
 (add-help 'play '(filename) "play a soundfile")
+
+
 ;
-; play a file with automagically determining #channels _and_
-; applying a chain of effects (with an optional list of parameters applied to each)
+; play a file with automagically determining #channels _and_ applying
+; a chain of effects (with an optional list of parameters applied to
+; each)
 ; (play-eff "test.wav" '("echo"))
 ; (play-eff "test.wav" '("echo") '("iir" '("attack" 100)))
 ;
@@ -664,6 +665,29 @@
 
 (add-help 'play-eff '(filename effect ...)
 	  "play a file with the effects applied. Effect may be a simple string or a list containing the string and additional parameters")
+
+(define play-files
+  (lambda (file . files)
+    (let* ((net (net-new))
+	   (render (net-add-node net "render"))
+	   (aout (net-add-node net audio-out))
+	   (left (filter-connect render "out" aout "in"))
+	   (right (filter-connect render "out" aout "in")))
+      (for-each
+        (lambda (fname)
+	  (let ((rf (net-add-node net read-file)))
+	    (while-not-false
+	      (lambda () (filter-connect rf "out" render "in")))
+	    (node-set-params rf (list "filename" fname))))
+	(cons file files))
+      (filterpipe_set_sourceparam left "position" -1.57)
+      (filterpipe_set_sourceparam right "position" 1.57)
+      (net-run net))))
+
+(add-help 'play-files '(file ...)
+	  "play a set of files by mixing them together for stereo output")
+
+
 ;
 ; load, process and save file
 ;
@@ -706,6 +730,10 @@
 	(cons sf1 sfiles))
       (net-run net))))
 
+(add-help 'file-to-swap '(filename swapfile1 ...)
+	  "Import a file into the specified swapfiles")
+
+
 (define swap-to-file
   (lambda (fname sf1 . sfiles)
     (let* ((net (net-new))
@@ -719,6 +747,9 @@
 			       rf)))
 	(cons sf1 sfiles))
       (net-run net))))
+
+(add-help 'swap-to-file '(filename swapfile1 ...)
+	  "Export the specified swapfiles to a file")
 
 
 ;;; Macro to create a new filternetwork
@@ -768,19 +799,13 @@
 
 ;------------------------------------------------------------
 ;
-; testing stuff - remember, there is a ~/.glame.scm file
+; Testing stuff - remember, there is a ~/.glame.scm file
 ; automatically loaded, too - so perhaps some of this stuff
 ; belongs there...
+; The only testing procedure that is supposed to stay here
+; forever is the test-latency one as it can be easily used
+; for testing correct operation of the filter subsystem.
 ;
-
-;
-; test_latency and test_network implementations
-;
-; test_network is different from the C version, so you need
-; to execute the following sequence of commands for any given
-; network (in a file, should define a network returning procedure):
-; (load "network")
-; (test-network network '("param1" "value1") '(...) ....)
 
 (define test-latency
   (lambda (depth)
@@ -789,78 +814,5 @@
       (nodes-connect (append nodes (list (car nodes))))
       (net-run net))))
 
-(define test-network
-  (lambda (name . params)
-    (let ((net (name)))
-      (apply node-set-params net params)
-      (net-run net))))
-
-
-;
-; test save
-;
-
-(define testsave
-  (lambda (iname oname)
-    (let* ((net (net-new))
-           (rf (net-add-node net read-file))
-	   (wf (net-add-node net "write_file")))
-    (node-set-params rf (list "filename" iname))
-    (node-set-params wf (list "filename" oname))
-    (while-not-false
-      (lambda () (filter-connect rf "out" wf "in")))
-    (net-run net))))
-
-;
-; test rms
-;
-
-(define testrms
-  (lambda (fname)
-    (let* ((net (net-new))
-           (rf (net-add-node net read-file))
-	   (mix (net-add-node net "mix2"))
-	   (stat (net-add-node net "statistic"))
-	   (drms (net-add-node net "debugrms")))
-    (node-set-params rf (list "filename" fname))
-    (while-not-false 
-      (lambda () (filter-connect rf "out" mix "in")))
-    (nodes-connect  (list mix stat drms))
-    (net-run net))))
-
-;
-; test iir
-;
-
-(define testiir
-  (lambda (fname . params)
-    (let* ((net (net-new))
-           (rf (net-add-node net read-file))
-	   (mix (net-add-node net "mix2"))
-	   (iir (net-add-node net "iir"))
-	   (stat (net-add-node net "statistic"))
-	   (drms (net-add-node net "debugrms")))
-    (node-set-params rf (list "filename" fname))
-    (apply node-set-params iir params)
-    (while-not-false 
-      (lambda () (filter-connect rf "out" mix "in")))
-    (nodes-connect  (list mix iir stat drms))
-    (net-run net))))
-
-(define play-files
-  (lambda (file . files)
-    (let* ((net (net-new))
-	   (render (net-add-node net "render"))
-	   (aout (net-add-node net audio-out))
-	   (left (filter-connect render "out" aout "in"))
-	   (right (filter-connect render "out" aout "in")))
-      (for-each
-        (lambda (fname)
-	  (let ((rf (net-add-node net read-file)))
-	    (while-not-false
-	      (lambda () (filter-connect rf "out" render "in")))
-	    (node-set-params rf (list "filename" fname))))
-	(cons file files))
-      (filterpipe_set_sourceparam left "position" -1.57)
-      (filterpipe_set_sourceparam right "position" 1.57)
-      (net-run net))))
+(add-help 'test-latency '(number)
+	  "Checks latency of a chain of number null filters")
