@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.13 2000/12/08 10:53:09 xwolf Exp $
+ * $Id: waveform.c,v 1.14 2000/12/19 12:04:19 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -39,7 +39,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(waveform, "sine const")
+PLUGIN_SET(waveform, "sine const rect")
 
 
 /* Standard waveform connect_out and fixup_param methods. These honour
@@ -223,6 +223,78 @@ int const_register(plugin_t *p)
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	return filter_register(f, p);
+}
+
+/* This filter generates a rectangular signal,
+ */
+
+static int rect_f(filter_t *n)
+{
+	filter_pipe_t *out;
+	filter_buffer_t *buf;
+	SAMPLE ampl;
+	float freq, bs;
+	int rate, i, size, blocks, nb;
+	
+	if (!(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
+		FILTER_ERROR_RETURN("no output");
+
+	/* globals */
+	rate = waveform_get_rate(n);
+
+	/* parameters for rect */
+	ampl = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "amplitude"));
+	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
+
+	bs = (rate/freq)/2.0;
+	size = (((int)(GLAME_WBUFSIZE/(int)(rate/freq)))*rate)/freq;
+	
+	FILTER_AFTER_INIT;
+
+	buf = sbuf_alloc(size, n);
+	buf = sbuf_make_private(buf);
+
+	/* You might think the following code is a bit weird/slow for creating a rectangular wave,
+	 * but sampling rate is integer and the blocksize real. This way the code generates a
+	 * rectangle of variable length and thereby getting closer to the desired frequency.
+	 */
+	
+	blocks = 0;
+        for (i=0; i<size; i++) {
+		nb = (int)((float)i/bs);
+		if (nb>blocks) { 
+			ampl = -ampl; 
+			blocks = nb;
+		}
+		sbuf_buf(buf)[i]=ampl;
+	}
+		
+	sbuf_queue(out, buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+int rect_register(plugin_t *p)
+{
+	filter_t *f;
+
+	if (!(f = waveform_filter_alloc(rect_f)))
+		return -1;
+
+	filterparamdb_add_param_float(filter_paramdb(f), "amplitude",
+				  FILTER_PARAMTYPE_SAMPLE, 1.0,
+				  FILTERPARAM_END);
+	
+	filterparamdb_add_param_float(filter_paramdb(f), "frequency",
+				  FILTER_PARAMTYPE_SAMPLE, 440.0,
+				  FILTERPARAM_END);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "rectangular signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	return filter_register(f, p);
 }
