@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.4 2001/05/16 00:25:37 mag Exp $
+ * $Id: ssp.c,v 1.5 2001/05/25 09:55:34 xwolf Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -196,7 +196,7 @@ int maxrms_register(plugin_t *p)
 				    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "maxrms");
-	plugin_set(p, PLUGIN_PIXMAP, "maxrms.png"); 
+	plugin_set(p, PLUGIN_PIXMAP, "analyze.png"); 
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Analyze");
 

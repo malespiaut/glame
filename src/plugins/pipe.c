@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.17 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: pipe.c,v 1.18 2001/05/25 09:55:34 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -255,7 +255,7 @@ int pipe_in_register(plugin_t *p)
 			  pipe_in_param_changed, NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe input");
-	plugin_set(p, PLUGIN_PIXMAP, "input.png");
+	plugin_set(p, PLUGIN_PIXMAP, "pipe.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Input");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Abusing_External_Apps");
 	filter_register(f, p);
@@ -393,7 +393,7 @@ int pipe_out_register(plugin_t *p)
 	f->connect_in = pipe_out_connect_in;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe output");
-	plugin_set(p, PLUGIN_PIXMAP, "output.png");
+	plugin_set(p, PLUGIN_PIXMAP, "pipe.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Output");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Abusing_External_Apps");
 	filter_register(f, p);

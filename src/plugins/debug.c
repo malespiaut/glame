@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.10 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: debug.c,v 1.11 2001/05/25 09:55:34 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -119,6 +119,7 @@ int ping_register(plugin_t *p)
 				FILTERPARAM_END);
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Catching_Bugs");
+	plugin_set(p, PLUGIN_PIXMAP, "ping.png");
 	filter_register(f, p);
 
 	return 0;
