@@ -4,7 +4,10 @@ EXTRA_DIST = glame-logo.jpg default.png \
 	prod.png sum.png invert.png fft.png \
 	const.png rect.png sine.png \
 	delay.png extend.png repeat.png \
-	volume_adjust.png
+	volume_adjust.png equalizer.png \
+	ping.png pipe.png fade.png pulse.png \
+	statistics.png zoom_in.png zoom_out.png \
+	play.png save.png
 
 pkgpixmaps_DATA = glame-logo.jpg default.png \
 	mix1.png mix2.png drop.png dup.png null.png one2n.png \
@@ -12,4 +15,7 @@ pkgpixmaps_DATA = glame-logo.jpg default.png \
 	prod.png sum.png invert.png fft.png \
 	const.png rect.png sine.png \
 	delay.png extend.png repeat.png \
-	volume_adjust.png
+	volume_adjust.png equalizer.png \
+	ping.png pipe.png fade.png pulse.png \
+	statistics.png zoom_in.png zoom_out.png \
+	play.png save.png
