@@ -513,6 +513,62 @@ static void playall_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
+/* Toolbar event - play from actual marker position using audio_out.
+ * --- FIXME: make async and a state machine, stop on second click. */
+static void toolbarplay_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	gint32 start, length;
+	gpsm_item_t *item;
+	gpsm_grp_t *grp;
+	filter_t *net, *aout;
+	int rate;
+
+	if (!plugin_get("audio_out")) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("No audio output support")));
+		return;
+	}
+
+	start = gtk_wave_view_get_marker(waveview);
+	if (start < 0)
+		start = 0;
+	DPRINTF("Playing from %li\n", (long)start);
+
+	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
+	if (!grp)
+		return;
+
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+
+	/* Create the network. */
+	net = filter_creat(NULL);
+	gpsm_grp_foreach_item(grp, item) {
+		filter_t *swin;
+		swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
+					  start, -1);
+		if (!swin)
+			goto fail;
+	}
+	if (!(aout = net_apply_audio_out(net)))
+		goto fail;
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
+						  waveview,
+						  filterparamdb_get_param(filter_paramdb(aout), FILTERPARAM_LABEL_POS),
+						  start, -1),
+			       "Play", "Pause", "Stop", 0);
+	return;
+
+ fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot play")));
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
+}
+
 /* Menu event - record into selection. */
 static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
@@ -1155,8 +1211,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Play", "Play", "Play",
 				glame_load_icon_widget("play.png",24,24),
-				//				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
-				playselection_cb, window->waveview);
+				toolbarplay_cb, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
