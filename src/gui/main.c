@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.133 2005/03/10 21:09:42 richi Exp $
+ * $Id: main.c,v 1.134 2005/03/11 17:00:16 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -768,7 +768,9 @@ static void *gpsm_init_wrapper(void *path_)
 {
 	int res;
 	pthread_mutex_lock(&giw_mx);
+	pthread_mutex_lock(&giw_condmx);
 	pthread_cond_broadcast(&giw_cond);
+	pthread_mutex_unlock(&giw_condmx);
 	res = gpsm_init(path_, maxundo);
 	pthread_mutex_unlock(&giw_mx);
 	if (res == -1)
@@ -838,11 +840,11 @@ static void gui_main()
 
 	/* Update preferences. */
 	if (update_preferences() == -1) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_dialog(
+		glame_info_dialog(
 _("Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
 "the preferences dialog and check the \"Swapfile Path\" and\n"
-"\"Audio IO\" settings.\n"))));
+"\"Audio IO\" settings.\n"), NULL);
 	run_prefs:
 		if (!preferences_cb(NULL, NULL)) {
 			glame_error_dialog(_("You didnt change/check the configuration.\nGLAME is exiting now.\n"), NULL);
@@ -864,8 +866,8 @@ _("Welcome first-time user of GLAME.\n"
 
 	/* Asynchronly try to initialize the gpsm. */
 	glame_config_get_long("swapfile/maxundo", &maxundo);
-	pthread_create(&gpsm_init_thread, NULL, gpsm_init_wrapper, path);
 	pthread_mutex_lock(&giw_condmx);
+	pthread_create(&gpsm_init_thread, NULL, gpsm_init_wrapper, path);
 	pthread_cond_wait(&giw_cond, &giw_condmx);
 
 	/* Poll for thread completion. */
