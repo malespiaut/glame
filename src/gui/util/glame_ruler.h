@@ -90,8 +90,10 @@ struct _GlameRulerMetric
   /* This should be points_per_unit. This is the size of the unit
    * in 1/72nd's of an inch and has nothing to do with screen pixels */
   gdouble pixels_per_unit;
-  gdouble ruler_scale[20];
-  gint    subdivide[5];        /* five possible modes of subdivision */
+  gint nr_ruler_scale;
+  gdouble *ruler_scale;
+  gint nr_subdivide;
+  gint *subdivide;
   gchar* (*translate) (gdouble value);
 };
 

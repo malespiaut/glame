@@ -61,9 +61,10 @@ glame_ruler_metric_pixels_translate (gdouble value)
 static const GlameRulerMetric glame_ruler_metric_pixels =
 {
   "Pixels", "Pi", 1.0,
-  { 1, 2, 5, 10, 20, 25, 50, 75, 100, 150,
-    200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000 },
-  { 1, 5, 10, 50, 100 },
+  20, (gdouble[20]){ 1, 2, 5, 10, 20, 25, 50, 75, 100, 150,
+		     200, 250, 500, 1000, 1500, 2000, 2500,
+		     5000, 7500, 10000 },
+  5, (gint[5]){ 1, 5, 10, 50, 100 },
   glame_ruler_metric_pixels_translate
 };
 

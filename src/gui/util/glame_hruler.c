@@ -32,8 +32,6 @@
 
 #define RULER_HEIGHT          14
 #define MINIMUM_INCR          5
-#define MAXIMUM_SUBDIVIDE     5
-#define MAXIMUM_SCALES        20
 
 
 static void glame_hruler_class_init    (GlameHRulerClass *klass);
@@ -214,16 +212,16 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   text_width = strlen (unit_str) * digit_height + 1;
   g_free (unit_str);
 
-  for (scale = 0; scale < MAXIMUM_SCALES; scale++)
+  for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
     if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2 * text_width)
       break;
 
-  if (scale == MAXIMUM_SCALES)
-    scale = MAXIMUM_SCALES - 1;
+  if (scale == ruler->metric->nr_ruler_scale)
+    scale = ruler->metric->nr_ruler_scale - 1;
 
   /* drawing starts here */
   length = 0;
-  for (i = MAXIMUM_SUBDIVIDE - 1; i >= 0; i--)
+  for (i = ruler->metric->nr_subdivide - 1; i >= 0; i--)
     {
       subd_incr = (gdouble) ruler->metric->ruler_scale[scale] / 
 	          (gdouble) ruler->metric->subdivide[i];
@@ -401,12 +399,12 @@ glame_hruler_get_stride (GlameRuler *ruler)
   text_width = strlen (unit_str) * digit_height + 1;
   g_free (unit_str);
 
-  for (scale = 0; scale < MAXIMUM_SCALES; scale++)
-    if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2.0 * text_width)
+  for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
+    if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2 * text_width)
       break;
 
-  if (scale == MAXIMUM_SCALES)
-    scale = MAXIMUM_SCALES - 1;
+  if (scale == ruler->metric->nr_ruler_scale)
+    scale = ruler->metric->nr_ruler_scale - 1;
 
   subd_incr = (gdouble) ruler->metric->ruler_scale[scale] / 
 	      (gdouble) ruler->metric->subdivide[0];
