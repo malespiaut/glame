@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.3 2004/07/08 20:20:27 richi Exp $
+ * $Id: gltree.c,v 1.4 2004/07/08 20:47:27 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -32,6 +32,7 @@
 #include "glscript.h"
 #include "importexport.h"
 #include "clipboard.h"
+#include "timeline/timeline.h"
 
 
 /* Forwards.  */
@@ -383,24 +384,121 @@ edit_wave_cb(GtkWidget *widget, gpointer which)
 }
 
 
-static void timeline_cb(GtkWidget *widget, gpointer which)
+static void timeline_cb(GtkWidget *menuitem, gpointer which)
 {
-	DPRINTF("FIXME");
+        GtkTreeIter *iter = (GtkTreeIter *)which;
+	gpsm_item_t *item;
+	static int warning_shown = 0;
+	GtkWidget *tl;
+
+	item = glame_gpsm_store_get_item(iter);
+	tl = glame_timeline_new_with_window(gpsm_item_label(item),
+					    (gpsm_grp_t *)item);
+	if (!tl) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog(_("Cannot open timeline"))));
+		return;
+	}
+	gtk_quit_add_destroy(1, GTK_OBJECT(tl));
+	gtk_widget_show_all(tl);
+	//deselect_all(active_swapfilegui);
+	if (!warning_shown) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_warning_dialog_parented(_("The timeline is highly experimental\nand may cause unexpected effects\nwithin other parts of GLAME.\nBe warned."), GTK_WINDOW(tl))));
+		warning_shown = 1;
+	}
 }
 
 static void group_cb(GtkWidget *widget, gpointer which)
 {
-	DPRINTF("FIXME");
+        GtkTreeIter *iter = (GtkTreeIter *)which;
+	gpsm_item_t *item = glame_gpsm_store_get_item(iter);
+	gpsm_grp_t *parent, *grp;
+	long hpos, vpos;
+
+	if (!GPSM_ITEM_IS_SWFILE(item))
+		return;
+
+	/* Create new gpsm group, move item into it and re-insert
+	 * it at old item position. */
+	parent = gpsm_item_parent(item);
+	grp = gpsm_newgrp(gpsm_item_label(item));
+	hpos = gpsm_item_hposition(item);
+	vpos = gpsm_item_vposition(item);
+	gpsm_item_remove(item);
+	gpsm_item_place(grp, item, 0, 0);
+	gpsm_item_place(parent, (gpsm_item_t *)grp, hpos, vpos);
+
+	/* Find out which widget it got and open an edit field. */
+	//grpw = glame_tree_find_gpsm_item(GTK_OBJECT(tree), (gpsm_item_t *)grp);
+	//if (grpw)
+	//	edit_tree_label(grpw);
+	//deselect_all(active_swapfilegui);
 }
 
 static void flatten_cb(GtkWidget *widget, gpointer which)
 {
-	DPRINTF("FIXME");
+        GtkTreeIter *iter = (GtkTreeIter *)which;
+	gpsm_item_t *item = glame_gpsm_store_get_item(iter);
+	gpsm_grp_t *group, *parent;
+	gpsm_item_t *old;
+	long hpos, vpos;
+
+	if (!GPSM_ITEM_IS_GRP(item))
+		return;
+	old = item;
+
+	/* Flatten the active group. */
+	if (!(group = gpsm_flatten(old))) {
+	        DPRINTF("gpsm_flatten failed!?\n");
+		return;
+	}
+
+	/* Destroy the active group and insert the flattened one. */
+	parent = gpsm_item_parent(old);
+	hpos = gpsm_item_hposition(old);
+	vpos = gpsm_item_vposition(old);
+	gpsm_item_destroy(old);
+	gpsm_item_place(parent, (gpsm_item_t *)group, hpos, vpos);
+	//deselect_all(active_swapfilegui);
 }
 
 static void linkselected_cb(GtkWidget *widget, gpointer which)
 {
-	DPRINTF("FIXME");
+        GtkTreeIter *iter = (GtkTreeIter *)which;
+	gpsm_item_t *item = glame_gpsm_store_get_item(iter);
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(gltree_tree);
+	GtkTreeModel *model;
+	GtkTreeIter selected_iter;
+	gpsm_item_t *selected_item, *copy;
+
+	if (!GPSM_ITEM_IS_GRP(item))
+		return;
+
+	if (!gtk_tree_selection_get_selected(selection, &model, &selected_iter))
+	  return;
+	selected_item = glame_gpsm_store_get_item(&selected_iter);
+	if (item == selected_item)
+		return;
+
+	if (GPSM_ITEM_IS_SWFILE(selected_item))
+		copy = (gpsm_item_t *)gpsm_swfile_link((gpsm_swfile_t *)selected_item);
+	else if (GPSM_ITEM_IS_GRP(selected_item))
+		copy = (gpsm_item_t *)gpsm_grp_link((gpsm_grp_t *)selected_item);
+	else
+		return;
+	if (gpsm_grp_is_vbox((gpsm_grp_t *)item))
+		gpsm_vbox_insert((gpsm_grp_t *)item, copy,
+				 0, gpsm_item_vsize(item));
+	else if (gpsm_grp_is_hbox((gpsm_grp_t *)item))
+		gpsm_hbox_insert((gpsm_grp_t *)item, copy,
+				 gpsm_item_hsize(item), 0);
+	else {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+		       gnome_error_dialog(_("Cannot place item into irregular group"))));
+		gpsm_item_destroy(copy);
+	}
+	//deselect_all(active_swapfilegui);
 }
 
 
