@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.4 2001/07/09 12:28:10 richi Exp $
+ * $Id: network_utils.c,v 1.5 2001/07/12 08:45:02 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -129,22 +129,31 @@ int net_apply_effect(filter_t *net, filter_t *effect)
 		return -1;
 
 	filter_foreach_node(net, f) {
-		if (!(out = filterportdb_get_port(filter_portdb(f),
-						  PORTNAME_OUT)))
-			continue;
-		if (filterport_get_pipe(out))
-			continue;
+		/* Use the first "matching" node output. */
+		filterportdb_foreach_port(filter_portdb(f), out) {
+			if (!filterport_is_output(out)
+			    || !FILTER_PORTS_ARE_COMPATIBLE(filterport_type(out), FILTER_PORTTYPE_SAMPLE)
+			    || filterport_get_pipe(out))
+				continue;
 
-		if (!(e = filter_creat(effect)))
-			return -1;
-		if (filter_add_node(net, e, "effect") == -1)
-			return -1;
-		if (!(in = filterportdb_get_port(filter_portdb(e), 
-						 PORTNAME_IN)))
-			return -1;
-		if (!filterport_connect(out, in))
-			return -1;
-		DPRINTF("connected effect to %s\n", filter_name(f));
+			/* This is ok only because nodes get inserted at
+			 * the head. */
+			if (!(e = filter_creat(effect))
+			    || filter_add_node(net, e, "effect") == -1)
+				return -1;
+
+			/* Use the first "matching" effect input. */
+			filterportdb_foreach_port(filter_portdb(e), in) {
+				if (filterport_is_input(in)
+				    && FILTER_PORTS_ARE_COMPATIBLE(filterport_type(in), FILTER_PORTTYPE_SAMPLE))
+					break;
+			}
+			if (!in || !filterport_connect(out, in)) {
+				filter_delete(e);
+				return -1;
+			}
+			DPRINTF("connected effect to %s::%s\n", filter_name(f), filterport_label(out));
+		}
 	}
 
 	return 0;
@@ -158,21 +167,24 @@ int net_apply_node(filter_t *net, filter_t *node)
 	if (!net || !node)
 		return -1;
 
-	if (!(in = filterportdb_get_port(filter_portdb(node), PORTNAME_IN)))
+	filterportdb_foreach_port(filter_portdb(node), in)
+		if (filterport_is_input(in))
+			break;
+	if (!in)
 		return -1;
 
 	filter_foreach_node(net, f) {
 		if (f == node)
 			continue;
-		if (!(out = filterportdb_get_port(filter_portdb(f),
-						  PORTNAME_OUT)))
-			continue;
-		if (filterport_get_pipe(out))
-			continue;
-
-		if (!filterport_connect(out, in))
-			return -1;
-		DPRINTF("connected node to %s\n", filter_name(f));
+		filterportdb_foreach_port(filter_portdb(f), out) {
+			if (!filterport_is_output(out)
+			    || !FILTER_PORTS_ARE_COMPATIBLE(filterport_type(out), filterport_type(in))
+			    || filterport_get_pipe(out))
+				continue;
+			if (!filterport_connect(out, in))
+				return -1;
+			DPRINTF("connected node to %s::%s\n", filter_name(f), filterport_label(out));
+		}
 	}
 
 	return 0;
@@ -183,50 +195,44 @@ filter_t *net_apply_audio_out(filter_t *net)
 	filter_port_t *out, *in;
 	filter_pipe_t *pipe;
 	float pos;
-	filter_t *aout, *render, *f;
+	filter_t *aout = NULL, *render = NULL;
 
 	if (!net)
 		return NULL;
 
-	/* create the render node */
+	/* create the render node and apply it to the network */
 	if (!(render = filter_instantiate(plugin_get("render")))
-	    || filter_add_node(net, render, "render") == -1)
-		return NULL;
-	in = filterportdb_get_port(filter_portdb(render), PORTNAME_IN);
-
-	/* attach the nodes to the render plugin */
-	filter_foreach_node(net, f) {
-		if (f == render)
-			continue;
-		if (!(out = filterportdb_get_port(filter_portdb(f),
-						  PORTNAME_OUT)))
-			continue;
-		if (filterport_get_pipe(out))
-			continue;
-		if (!filterport_connect(out, in))
-			return NULL;
-	}
+	    || filter_add_node(net, render, "render") == -1
+	    || net_apply_node(net, render) == -1)
+		goto err;
 
 	/* create the audio out node */
 	if (!(aout = filter_instantiate(plugin_get("audio_out")))
 	    || filter_add_node(net, aout, "audio-out") == -1)
-		return NULL;
+		goto err;
 	in = filterportdb_get_port(filter_portdb(aout), PORTNAME_IN);
 
 	/* connect render and audio out - FIXME */
 	out = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
 	if (!(pipe = filterport_connect(out, in)))
-		return NULL;
+		goto err;
 	pos = FILTER_PIPEPOS_LEFT;
 	filterparam_set(filterparamdb_get_param(
 		filterpipe_sourceparamdb(pipe), "position"), &pos);
 	if (!(pipe = filterport_connect(out, in)))
-		return NULL;
+		goto err;
 	pos = FILTER_PIPEPOS_RIGHT;
 	filterparam_set(filterparamdb_get_param(
 		filterpipe_sourceparamdb(pipe), "position"), &pos);
 
 	return aout;
+
+ err:
+	if (render)
+		filter_delete(render);
+	if (aout)
+		filter_delete(aout);
+	return NULL;
 }
 
 static int saved_wbufsize = -1;

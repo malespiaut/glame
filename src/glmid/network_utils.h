@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.3 2001/07/05 13:59:28 mag Exp $
+ * $Id: network_utils.h,v 1.4 2001/07/12 08:45:02 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -49,14 +49,16 @@ filter_t *net_add_gpsm_output(filter_t *net, gpsm_swfile_t *swfile,
 			      long start, long length);
 
 /* Applys the provided effect (by cloning it) to all unconnected
- * "out" ports in the network. Returns 0 on success, -1 on error. */
+ * matching output ports in the network. The first available input port
+ * of the effect is used. Returns 0 on success, -1 on error. */
 int net_apply_effect(filter_t *net, filter_t *effect);
 
 /* Applys the provided node (already inside the net) to all unconnected
- * "out" ports in the network. Returns 0 on success, -1 on error. */
+ * matching output ports in the network. The first available input port
+ * of the node is used. Returns 0 on success, -1 on error. */
 int net_apply_node(filter_t *net, filter_t *node);
 
-/* Feeds all unconnected "out" ports into an audio_out filter doing
+/* Feeds all unconnected output ports into an audio_out filter doing
  * correct positioning/mixing, if necessary. Returns the audio out
  * filter on success, NULL on error. */
 filter_t *net_apply_audio_out(filter_t *net);
