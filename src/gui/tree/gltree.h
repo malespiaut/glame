@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.5 2004/05/21 22:05:58 richi Exp $
+ * $Id: gltree.h,v 1.6 2004/05/31 21:28:43 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -26,6 +26,7 @@
 
 #include <gtk/gtk.h>
 #include "gpsm.h"
+#include "gpsmstore.h"
 
 
 /* glTree has (not enforced) singleton semantics through
@@ -50,7 +51,7 @@ struct glTree
 	gpsm_grp_t *root;
 
 	static GtkTreeView *tree;
-	static GtkTreeStore *store;
+	static GlameGpsmStore *store;
 	static GtkTreeIter iter;
 };
 

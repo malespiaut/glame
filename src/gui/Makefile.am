@@ -42,6 +42,7 @@ glame2_SOURCES = \
 	glame_console.c glame_console.h \
 	main2.cpp \
 	tree/gltree.h tree/gltree.cpp \
+	tree/gpsmstore.h tree/gpsmstore.c \
 	waveeditgui.c waveeditgui.h apply.c importexport.c importexport.h
 
 glame_SOURCES = \
@@ -71,7 +72,7 @@ glame_SOURCES = \
 	main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
 	waveeditgui.c waveeditgui.h apply.c importexport.c importexport.h
-	
+
 glame_LDADD =  \
 	../glmid/libglmid.la \
 	../plugins/libglamebuiltins.la \

@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.14 2004/05/31 18:06:18 richi Exp $
+ * $Id: gltree.cpp,v 1.15 2004/05/31 21:28:43 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -36,7 +36,7 @@
 
 /* static members of glTree.  */
 GtkTreeView *glTree::tree = NULL;
-GtkTreeStore *glTree::store = NULL;
+GlameGpsmStore *glTree::store = NULL;
 GtkTreeIter glTree::iter;
 
 static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
@@ -56,25 +56,6 @@ static void import_cb(GtkWidget *menu, gpointer treeview);
 static void export_cb(GtkWidget *bla, gpointer treeview); 
 
 
-static void fill_tree_store (gpsm_item_t *item, GtkTreeStore *store,GtkTreeIter *iter)
-{
-        gpsm_item_t *it;
-	
-	if (!item || !store
-	    || !(GPSM_ITEM_IS_SWFILE(item) || GPSM_ITEM_IS_GRP(item)))
-		return;
-	gpsm_grp_foreach_item(item, it) {
-	  GtkTreeIter iter_new;
-	  gtk_tree_store_append(store,&iter_new, iter);
-	  gtk_tree_store_set(store, &iter_new, glTree::INFO, strdup(it->label),glTree::GPSM_ITEM, it,
-				   -1);
-	  if (GPSM_ITEM_IS_GRP(it)) {	    
-	    fill_tree_store (it, store,&iter_new);  //recurse
-	  }
-	}
-}
-
-
 glTree::glTree(gpsm_grp_t * newroot)
 {
 	GtkTreeSelection *selection;
@@ -86,11 +67,7 @@ glTree::glTree(gpsm_grp_t * newroot)
 		abort();
 
 	root = newroot;
-	store = gtk_tree_store_new(glTree::N_ITEMS,
-				   G_TYPE_STRING, G_TYPE_POINTER);
-	
-	fill_tree_store ((gpsm_item_t*)newroot,store,NULL);
-	
+	store = glame_gpsm_store_new((gpsm_item_t *)newroot);
 	tree = GTK_TREE_VIEW(gtk_tree_view_new_with_model(GTK_TREE_MODEL(store)));
 	
 	renderer = gtk_cell_renderer_text_new();
@@ -403,7 +380,7 @@ static void delete_cb(GtkWidget * menuitem, gpointer which)
 
 	    if ((gpsm_item_t *) deleted == item) {
 	      gpsm_item_destroy((gpsm_item_t *) deleted);
-	      gtk_tree_store_remove(GTK_TREE_STORE(model), &iter2);
+	      //gtk_tree_store_remove(GTK_TREE_STORE(model), &iter2);
 	      return;
 	    }
 	  }
@@ -411,19 +388,13 @@ static void delete_cb(GtkWidget * menuitem, gpointer which)
 	    deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
 	    gpsm_item_place(gpsm_root(), (gpsm_item_t *) deleted, 0,
 			    GPSM_GRP_DELETED_VPOS);
-	    gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, NULL);
-	    gtk_tree_store_set (GTK_TREE_STORE(model), &iter2,
-				glTree::INFO,GPSM_GRP_DELETED_LABEL ,glTree::GPSM_ITEM,(gpsm_item_t *) deleted,-1); 
+	    //gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, NULL);
+	    //gtk_tree_store_set (GTK_TREE_STORE(model), &iter2,
+	    //			glTree::INFO,GPSM_GRP_DELETED_LABEL ,glTree::GPSM_ITEM,(gpsm_item_t *) deleted,-1); 
 	  
 	  } 
 	  gpsm_item_place(deleted, item,
 			  0, gpsm_item_vsize(deleted) + 1);
-		
-	  if (!gtk_tree_store_remove(GTK_TREE_STORE(model), iter)) {
-	    DPRINTF("Remove failed."); }
-	  gtk_tree_store_append(GTK_TREE_STORE(model), iter, &iter2);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), iter, glTree::INFO, item->label, glTree::GPSM_ITEM, item,
-			     -1);
 	  
 }
 
@@ -472,8 +443,6 @@ static void file_property_cb(GtkWidget * menuitem, gpointer which)
 	gpsm_item_set_label(item, f_name);
 	gpsm_swfile_set((gpsm_swfile_t *)item,
 			f_rate, f_pos);
-	gtk_tree_store_set (GTK_TREE_STORE(model), iter,
-			    glTree::INFO, f_name,-1); 
 }
 
 
@@ -509,15 +478,13 @@ static void group_property_cb(GtkWidget * menuitem, gpointer which)
 
 	/* update group and gtk_tree*/
 	gpsm_item_set_label(item, g_name);
-	gtk_tree_store_set (GTK_TREE_STORE(model), iter,
-			    glTree::INFO, g_name,-1); 
 }
 
 static void addgroup_cb(GtkWidget *menu, gpointer which)
 {
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
-	GtkTreeIter *iter = (GtkTreeIter *)which, iter2;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	
 	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
@@ -529,15 +496,6 @@ static void addgroup_cb(GtkWidget *menu, gpointer which)
 	grp = gpsm_newgrp(_("Unnamed group"));
 	gpsm_vbox_insert((gpsm_grp_t *)item, (gpsm_item_t *)grp,
 			 0, gpsm_item_vsize(item));
-	// Update tree store
-	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
-	gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, _("Unnamed group"), glTree::GPSM_ITEM, grp,
-			     -1);
-	
-	// Expand the parent widget. 
-	gtk_tree_view_expand_row(glTree::tree,
-				 gtk_tree_model_get_path(model,iter),
-				 FALSE);
 	
 	/* Find out which widget it got and open an edit field. */
 	// grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
@@ -554,7 +512,7 @@ static void addfile_cb(GtkWidget *menu, gpointer which)
 {
 	gpsm_swfile_t *swfile;
 	gpsm_item_t *item;
-	GtkTreeIter *iter = (GtkTreeIter *)which,iter2 ;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 
 
@@ -568,17 +526,6 @@ static void addfile_cb(GtkWidget *menu, gpointer which)
 	gpsm_vbox_insert((gpsm_grp_t *)item,
 			 (gpsm_item_t *)swfile,
 			 0, gpsm_item_vsize(item));
-	// Update tree store
-	gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
-	gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, _("Unnamed track"), glTree::GPSM_ITEM, (gpsm_item_t *)swfile,
-			     -1);
-
-	
-	// Expand the parent widget. 
-	gtk_tree_view_expand_row(glTree::tree,
-				 gtk_tree_model_get_path(model,iter),
-				 FALSE);
-
 
 // 	/* Find out which widget it got and open an edit field. */
 // 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)swfile);
@@ -595,7 +542,7 @@ static void addstereo_cb(GtkWidget *menu,  gpointer which)
         gpsm_swfile_t *left, *right ;
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
-	GtkTreeIter *iter = (GtkTreeIter *)which,iter2,iter3, iter4 ;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 
 	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
@@ -614,21 +561,6 @@ static void addstereo_cb(GtkWidget *menu,  gpointer which)
 	  gpsm_vbox_insert((gpsm_grp_t *)item,
 			   (gpsm_item_t *)grp,
 			   0, gpsm_item_vsize(item));
-	  // Update tree store
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, _("Unnamed stereo track"), glTree::GPSM_ITEM, (gpsm_item_t *)grp,
-			     -1);
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter3, &iter2);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter3, glTree::INFO, _("left"), glTree::GPSM_ITEM, (gpsm_item_t *)left,
-			     -1);
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter4, &iter2);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter4, glTree::INFO, _("right"), glTree::GPSM_ITEM, (gpsm_item_t *)right,
-			     -1);
-	  // Expand the parent widget. 
-	  gtk_tree_view_expand_row(glTree::tree,
-				   gtk_tree_model_get_path(model,iter),
-				   FALSE);
-	  
 		
 // 	/* Find out which widget it got and open an edit field. */
 // 	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
@@ -644,7 +576,7 @@ static void addclipboard_cb(GtkWidget * menu, gpointer which)
 {
 	gpsm_grp_t *grp;
 	gpsm_item_t *item;
-	GtkTreeIter *iter = (GtkTreeIter *)which, iter2;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 
 	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
@@ -662,20 +594,6 @@ static void addclipboard_cb(GtkWidget * menu, gpointer which)
 		gpsm_vbox_insert((gpsm_grp_t *) item, (gpsm_item_t *) grp,
 				 0, gpsm_item_vsize(item));
 
-		// Alternative method to update treestore: first add the group, 
-		gtk_tree_store_append(GTK_TREE_STORE(model), &iter2,
-				      iter);
-		gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO,
-				   gpsm_item_label((gpsm_item_t *) grp),
-				   glTree::GPSM_ITEM, (gpsm_item_t *) grp, -1);
-		// then fill it reading the gpsm tree (instead of adding iters one by one)
-		fill_tree_store((gpsm_item_t *) grp, GTK_TREE_STORE(model), &iter2);	
-
-		/* Expand the parent widget. */
-		gtk_tree_view_expand_row(glTree::tree,
-				   gtk_tree_model_get_path(model,iter),
-				   FALSE);
-		
 		/* Find out which widget it got and open an edit field. */
 		// grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)grp);
 		// if (grpw)
@@ -692,9 +610,8 @@ static void mergeparent_cb(GtkWidget *menu, gpointer which)
 	gpsm_grp_t *group, *parent;
 	gpsm_item_t *i, *item;
 	long group_hpos, group_vpos;
-	GtkTreeIter *iter = (GtkTreeIter *)which, iter2, iter3, iter4;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
-	gboolean     valid = TRUE;
 	
  	gtk_tree_model_get(model, iter, glTree::GPSM_ITEM, &item, -1);
 	if (!GPSM_ITEM_IS_GRP(item))
@@ -715,24 +632,6 @@ static void mergeparent_cb(GtkWidget *menu, gpointer which)
 	    gpsm_item_place(parent, i, hpos, vpos);
 	  }
 	  gpsm_item_destroy((gpsm_item_t *)group);
-	   
-	  // Alternative method to update treestore:	
-	  //  Clear then fill the parent reading the gpsm tree (instead of adding iters one by one)
-	  // iter2 is parent, iter3 is its first child
-	  if (!gtk_tree_model_iter_parent (model,  &iter2, iter)) { DPRINTF("no parent \n");return; }
-	  if (!gtk_tree_model_iter_children(model,  &iter3, &iter2)){ DPRINTF("no child\n");return; }
-	  
-	  while (valid){
-	    iter4=iter3;     
-	    valid = gtk_tree_model_iter_next(model ,&iter3);
-	    gtk_tree_store_remove(GTK_TREE_STORE(model) ,&iter4);
-	  }
-	  fill_tree_store((gpsm_item_t *) parent, GTK_TREE_STORE(model), &iter2);
-
-	  // Expand the parent widget. 
-	  gtk_tree_view_expand_row(glTree::tree,
-				   gtk_tree_model_get_path(model,&iter2),
-				   FALSE);
 }
 
 
@@ -741,7 +640,7 @@ static void mergeparent_cb(GtkWidget *menu, gpointer which)
 static void copyselected_cb(GtkWidget *menu, gpointer which)
 {
         gpsm_item_t *selected_item, *dest_item;
-	GtkTreeIter *dest_iter = (GtkTreeIter *)which, selected_iter, iter3;
+	GtkTreeIter *dest_iter = (GtkTreeIter *)which, selected_iter;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);
 	GtkTreeSelection *selection;
 
@@ -778,19 +677,6 @@ static void copyselected_cb(GtkWidget *menu, gpointer which)
 	  gpsm_item_destroy(copy);
 	  
 	}
-
-	// Update tree store: first clear, then re-fill destination
-	// group.
-	if (gtk_tree_model_iter_children(model,  &iter3, dest_iter))
-	  while (gtk_tree_store_remove(GTK_TREE_STORE(model), &iter3))
-	    ;
-	fill_tree_store((gpsm_item_t *)dest_item, GTK_TREE_STORE(model),
-			dest_iter);
-
-	// Expand the parent widget. 
-	gtk_tree_view_expand_row(glTree::tree,
-				 gtk_tree_model_get_path(model,dest_iter),
-				 FALSE);
 }
 
 
@@ -798,7 +684,7 @@ static void import_cb(GtkWidget *menu, gpointer which)
 {
 	gpsm_item_t *imported;
 	gpsm_item_t *item;
-	GtkTreeIter *iter = (GtkTreeIter *)which, iter2 ;
+	GtkTreeIter *iter = (GtkTreeIter *)which;
 	GtkTreeModel *model = GTK_TREE_MODEL(glTree::store);;
 	const gchar *label;
 
@@ -814,19 +700,11 @@ static void import_cb(GtkWidget *menu, gpointer which)
 	if (gpsm_grp_is_vbox((gpsm_grp_t *)item)
 	    && gpsm_vbox_insert((gpsm_grp_t *)item, imported,
 				0, gpsm_item_vsize(item)) == 0){
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, label, glTree::GPSM_ITEM, (gpsm_item_t *)imported,
-			     -1);
-	  fill_tree_store (imported, GTK_TREE_STORE(model) ,&iter2);
 	  return;
 	}
 	else if (gpsm_grp_is_hbox((gpsm_grp_t *)item)
 		 && gpsm_hbox_insert((gpsm_grp_t *)item, imported,
 				     gpsm_item_hsize(item), 0) == 0){
-	  gtk_tree_store_append(GTK_TREE_STORE(model), &iter2, iter);
-	  gtk_tree_store_set(GTK_TREE_STORE(model), &iter2, glTree::INFO, label, glTree::GPSM_ITEM, (gpsm_item_t *)imported,
-			     -1);
-	  fill_tree_store (imported, GTK_TREE_STORE(model) ,&iter2);
 	  return;
 	}
 
