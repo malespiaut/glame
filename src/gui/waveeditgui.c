@@ -378,7 +378,7 @@ static gint network_run_timeout_cb(struct network_run_s *cs)
 static void network_run_cleanup_cb(struct network_run_s *cs)
 {
 	DPRINTF("starting cleanup\n");
-	if (cs->tid) {
+	if (cs->tid != -1) {
 		gtk_timeout_remove(cs->tid);
 		gtk_wave_view_set_marker(cs->waveview, cs->oldmarker);
 	}
