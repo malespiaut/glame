@@ -1,3 +1,39 @@
+dnl Check whether SYSV semaphores are available
+dnl Richard Guenther  02-08-2001
+dnl ACG_CHECK_SYSVSEM([ACTION-IF-FOUND, [ACTION-IF-NOT-FOUND]])
+
+AC_DEFUN(ACG_CHECK_SYSVSEM,
+[
+AC_MSG_CHECKING(whether SYSV semaphores are available)
+AC_TRY_LINK(
+[
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+],
+[
+	int sem;
+	sem = semget(IPC_PRIVATE, 1, O_CREAT|0600);
+	semop(sem, (void *)0, 1);
+	semctl(sem, 1, IPC_RMID, 0);
+],
+[
+AC_MSG_RESULT(yes)
+AC_DEFINE(HAVE_SYSVSEM)
+ifelse([$1], , :, [$1])
+]
+,
+[
+AC_MSG_RESULT(no)
+ifelse([$2], , :, [$2])
+]
+)
+])
+
+
+
 # Check if we need to define union semun ourselves.
 # Daniel Kobras   00-5-4
 

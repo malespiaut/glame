@@ -359,6 +359,10 @@ AC_TYPE_PID_T
 
 
 dnl Check for broken SYSV semaphores
+ACG_CHECK_SYSVSEM([
+],[
+	AC_MSG_ERROR([GLAME needs SYSV semaphore support])
+])
 ACG_CHECK_SEMUN
 ACG_CHECK_SEMCTL
 
