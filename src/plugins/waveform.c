@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.15 2001/04/19 14:18:10 richi Exp $
+ * $Id: waveform.c,v 1.16 2001/04/26 11:56:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -169,6 +169,7 @@ int sine_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "generate sine signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	plugin_set(p, PLUGIN_PIXMAP, "sine.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
 	return filter_register(f, p);
 }
 
@@ -227,6 +228,7 @@ int const_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	plugin_set(p, PLUGIN_PIXMAP, "const.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
 	return filter_register(f, p);
 }
 
@@ -300,5 +302,6 @@ int rect_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "rectangular signal");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	plugin_set(p, PLUGIN_PIXMAP, "rect.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
 	return filter_register(f, p);
 }

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.33 2001/04/25 08:24:27 richi Exp $
+ * $Id: basic_sample.c,v 1.34 2001/04/26 11:56:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -40,7 +40,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat fade")
+PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat")
 
 
 
@@ -1000,6 +1000,8 @@ int repeat_register(plugin_t *p)
   
 	return filter_register(f, p);
 }
+
+
 
 static int fade_f(filter_t *n)
 {
