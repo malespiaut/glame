@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.38 2001/11/11 14:50:48 richi Exp $
+ * $Id: filtereditgui.c,v 1.39 2001/11/28 00:19:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -68,7 +68,6 @@ void
 add_filter_by_plugin_cb(GtkWidget*wid, plugin_t *plugin)
 {
 	GlameCanvasFilter* filter;
-	DPRINTF("foo\n");
 	filter = glame_canvas_add_filter_by_plugin(glcanvas, plugin);
 	glame_canvas_filter_move(filter,eventx, eventy);
 }
@@ -124,6 +123,15 @@ static void group_all(GlameCanvas* canv)
 	}
 }
 #endif
+
+static void
+filtereditgui_paste_cb(GtkMenuItem *foo,
+		       GlameCanvas *canv)
+{
+	glame_canvas_paste_selection(canv);
+}
+
+
 static gboolean 
 root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 {
@@ -163,7 +171,12 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 			break;
 		case 3:
 			if(!onItem){
+				GtkWidget* edit;
 				menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
+				edit = gtk_menu_item_new_with_label("Paste Selection");
+				gtk_widget_show(edit);
+				gtk_signal_connect(GTK_OBJECT(edit),"activate",filtereditgui_paste_cb,glCanv);
+				gtk_menu_append(menu,edit);
 				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
 				return TRUE;
 			}

@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.16 2001/11/26 23:53:11 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.17 2001/11/28 00:19:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -66,7 +66,7 @@ struct _GlameCanvas {
 	gfloat font_size;
 	GList * selectedItems;
 	plugin_t* last;
-
+	filter_t* clipBoard;
 	GlameCanvas **pprev_gcanvas_hash;
 	GlameCanvas *next_gcanvas_hash;
 };
@@ -114,6 +114,8 @@ GlameCanvas* glame_canvas_find_canvas(filter_t *net);
 void glame_canvas_draw_errors(GlameCanvas *canv);
 void glame_canvas_reset_errors(GlameCanvas *canv);
 
+void glame_canvas_copy_selected(GlameCanvas* canv);
+void glame_canvas_paste_selection(GlameCanvas* canv);
 void glame_canvas_select_add(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_exclusive(GlameCanvas* canv, GlameCanvasFilter* filter);
 void glame_canvas_select_clear(GlameCanvas* canv);

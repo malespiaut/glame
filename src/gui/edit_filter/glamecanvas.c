@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.32 2001/11/26 23:53:11 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.33 2001/11/28 00:19:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -82,6 +82,7 @@ glame_canvas_init (GlameCanvas *item)
 	item->selectedItems = NULL;
 	item->last = NULL;
 	hash_init_gcanvas(item);
+	item->clipBoard = NULL;
 }
 
 
@@ -665,4 +666,39 @@ void glame_canvas_ungroup_selected(GlameCanvas* canvas)
 GlameCanvas* glame_canvas_find_canvas(filter_t *f)
 {
 	return hash_find_gcanvas(f);
+}
+
+void glame_canvas_copy_selected(GlameCanvas* canv)
+{
+        GList *items = glame_canvas_get_selected_items(canv), *n;
+        filter_t *net, **nodes;
+        int i;
+
+        if (!items)
+                return;
+
+        nodes = alloca(sizeof(filter_t *)*(g_list_length(items)+1));
+        for (i=0, n = g_list_first(items); n != NULL; n = g_list_next(n), i++) {
+                nodes[i] = (filter_t *)(n->data);
+        }
+        nodes[i] = NULL;
+
+        net = filter_collapse("Clipboard", nodes);
+	
+	canv->clipBoard = filter_creat(net);
+	filter_expand(net);
+	filter_delete(net);
+	glame_canvas_full_redraw(canv);
+}
+
+void glame_canvas_paste_selection(GlameCanvas* canv)
+{
+	filter_t *newnode;
+	if(!canv->clipBoard)return;
+	filter_add_node(canv->net, canv->clipBoard, "foo");
+	newnode = filter_get_node(canv->net,"foo");
+	if(newnode){
+		filter_expand(newnode);
+		filter_delete(newnode);
+	}
 }
