@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.58 2001/11/18 14:48:09 richi Exp $
+ * $Id: filter.c,v 1.59 2001/11/18 19:11:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -49,7 +49,7 @@ int _GLAME_WBUFSIZE = 1024;
         (node)->net))
 #define glame_list_add_node(node) glame_list_add(&(node)->list, &(node)->net->nodes);
 #define hash_remove_node(node) _hash_remove(&(node)->hash)
-#define glame_list_remove_node(node) glame_list_del(&(node)->list)
+#define glame_list_remove_node(node) glame_list_del_init(&(node)->list)
 
 
 
@@ -172,10 +172,10 @@ filter_t *_filter_instantiate(filter_t *f)
 	 * and copy pipe parameters */
 	filter_foreach_node(f, node) {
 		glame_list_foreach(&node->connections, filter_pipe_t, list, c) {
-			source = filter_get_node(n, c->source_filter);
-			dest = filter_get_node(n, c->dest_filter);
-			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), c->source_port),
-						     filterportdb_get_port(filter_portdb(dest), c->dest_port))))
+			source = filter_get_node(n, filter_name(filterport_filter(c->real_source)));
+			dest = filter_get_node(n, filter_name(filterport_filter(c->real_dest)));
+			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), filterport_label(c->real_source)),
+									   filterportdb_get_port(filter_portdb(dest), filterport_label(c->real_dest)))))
 				goto err;
 			filterparamdb_foreach_param(filterpipe_destparamdb(c), param) {
 				filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(p), filterparam_label(param)), filterparam_val(param));
@@ -284,7 +284,8 @@ int filter_register(filter_t *f, plugin_t *p)
 
 int filter_add_node(filter_t *net, filter_t *node, const char *name)
 {
-	if (!net || !node || !name)
+	if (!net || !node || !name
+	    || FILTER_IS_PART_OF_NETWORK(node) || FILTER_IS_LAUNCHED(net))
 		return -1;
 	node->net = net;
 	if (filter_get_node(net, name) == NULL)
@@ -302,6 +303,70 @@ int filter_add_node(filter_t *net, filter_t *node, const char *name)
 	return 0;
 }
 
+int filter_remove(filter_t *node)
+{
+	filter_port_t *port;
+	filter_pipe_t *pipe;
+
+	if (!node
+	    || !FILTER_IS_PART_OF_NETWORK(node)
+	    || FILTER_IS_LAUNCHED(node))
+		return -1;
+
+	filterportdb_foreach_port(filter_portdb(node), port) {
+		filterport_foreach_pipe(port, pipe) {
+			filterpipe_delete(pipe);
+		}
+	}
+
+	node->net->nr_nodes--;
+	glame_list_remove_node(node);
+	hash_remove_node(node);
+
+	return 0;
+}
+
+int filter_expand(filter_t *net)
+{
+	filter_t *node, *dummy;
+
+	if (!net || !FILTER_IS_PART_OF_NETWORK(net)
+	    || FILTER_IS_LAUNCHED(net))
+		return -1;
+
+	/* First fixup "real" connection lists. */
+	filter_foreach_node(net, node) {
+		filter_port_t *port;
+		filter_pipe_t *pipe;
+		filterportdb_foreach_port(filter_portdb(node), port) {
+			filterport_foreach_pipe(port, pipe) {
+				if (filterport_filter(pipe->real_source) == net) {
+					glame_list_del_init(&pipe->list);
+					pipe->real_source = port;
+					glame_list_add(&pipe->list, &node->connections);
+				} else if (filterport_filter(pipe->real_dest) == net) {
+					pipe->real_dest = port;
+				} /* else ignore */
+			}
+		}
+	}
+
+	/* Then move all nodes up one level. */
+	glame_list_safe_foreach(&(net)->nodes, filter_t, list, dummy, node) {
+		/* Remove from old net. */
+		node->net->nr_nodes--;
+		glame_list_remove_node(node);
+		hash_remove_node(node);
+
+		/* Add to new net. */
+		node->net = net->net;
+		hash_add_node(node);
+		glame_list_add_node(node);
+		net->net->nr_nodes++;
+	}
+
+	return 0;
+}
 
 
 /* I would like to have the following syntax:
@@ -414,8 +479,10 @@ char *filter_to_string(filter_t *net)
 	filter_foreach_node(net, n) {
 		glame_list_foreach(&n->connections, filter_pipe_t, list, c) {
 			len += sprintf(&buf[len], "   (let ((pipe (filter-connect %s \"%s\" %s \"%s\")))\n",
-				       c->source_filter, c->source_port,
-				       c->dest_filter, c->dest_port);
+				       filter_name(filterport_filter(c->real_source)),
+				       filterport_label(c->real_source),
+				       filter_name(filterport_filter(c->real_dest)),
+				       filterport_label(c->real_dest));
 
 			/* Pipe destination parameters and param properties. */
 			tmp = filterparamdb_to_string(filterpipe_destparamdb(c), 1);

@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.11 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_pipe.c,v 1.12 2001/11/18 19:11:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -53,10 +53,8 @@ static filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
 	 * -- see filterport_connect() */
 	p->source = sourceport;
 	p->dest = destport;
-	p->source_filter = NULL;
-	p->source_port = NULL;
-	p->dest_filter = NULL;
-	p->dest_port = NULL;
+	p->real_source = sourceport;
+	p->real_dest = destport;
 
 	/* init emitter - redirector installation is delayed!
 	 * -- see filterport_connect() */
@@ -150,10 +148,8 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 
 	/* as everything is set up now, we need to register the initial
 	 * connection request in the sources filter connection list. */
-	p->source_filter = filter_name(filterport_filter(source));
-	p->source_port = filterport_label(source);
-	p->dest_filter = filter_name(filterport_filter(dest));
-	p->dest_port = filterport_label(dest);
+	p->real_source = source;
+	p->real_dest = dest;
 	glame_list_add(&p->list, &filterport_filter(source)->connections);
 
 	/* signal pipe changes */
@@ -181,40 +177,6 @@ void filterpipe_delete(filter_pipe_t *p)
 	_pipe_free(p);
 }
 
-
-filter_port_t *filterpipe_connection_source(filter_pipe_t *fp)
-{
-	filter_t *net, *source = NULL;
-
-	net = filterport_filter(filterpipe_source(fp))->net;
-	while (net) {
-		source = filter_get_node(net, fp->source_filter);
-		if (source)
-			break;
-		net = net->net;
-	}
-	if (!source)
-		return NULL;
-	return filterportdb_get_port(filter_portdb(source),
-				     fp->source_port);
-} 
-
-filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp)
-{
-	filter_t *net, *dest = NULL;
-
-	net = filterport_filter(filterpipe_dest(fp))->net;
-	while (net) {
-		dest = filter_get_node(net, fp->dest_filter);
-		if (dest)
-			break;
-		net = net->net;
-	}
-	if (!dest)
-		return NULL;
-	return filterportdb_get_port(filter_portdb(dest),
-				     fp->dest_port);
-}
 
 
 static pthread_mutex_t _fpifbmx = PTHREAD_MUTEX_INITIALIZER;

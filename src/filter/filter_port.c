@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.7 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_port.c,v 1.8 2001/11/18 19:11:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -361,13 +361,8 @@ void filterport_delete(filter_port_t *port)
 		filter_pipe_t *pipe;
 	again:
 		filterport_foreach_pipe(dport, pipe) {
-			if ((strcmp(pipe->source_filter, filter_name(net)) == 0
-			     && strcmp(pipe->source_port,
-				       filterport_label(port)) == 0)
-			    || (strcmp(pipe->dest_filter,
-				       filter_name(net)) == 0
-				&& strcmp(pipe->dest_port,
-					  filterport_label(port)) == 0)) {
+			if (pipe->real_source == port
+			    || pipe->real_dest == port) {
 				filterpipe_delete(pipe);
 				goto again;
 			}

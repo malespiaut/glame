@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.76 2001/10/06 23:08:55 richi Exp $
+ * $Id: filter.h,v 1.77 2001/11/18 19:11:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -210,8 +210,15 @@ int filter_register(filter_t *, plugin_t *);
 /* FIXME: rename _node to _child? provide _get_parent? */
 
 /* Adds a new instance a filter to the filter network.
- * Returns a filter node identifier or NULL on error. */
+ * Returns 0 on success, -1 on error. */
 int filter_add_node(filter_t *net, filter_t *node, const char *name);
+
+/* Removes a previously added node from a network thereby deleting
+ * existing connections to/from it. Returns 0 on success, -1 on error. */
+int filter_remove(filter_t *node);
+
+/* Expands a network into its parent. Returns 0 on success, -1 on error. */
+int filter_expand(filter_t *net);
 
 /* Browse/find a filter node hanging off another filter.
  * filter_foreach_node(filter_t *parent, filter_t *f) {}

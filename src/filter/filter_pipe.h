@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.8 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_pipe.h,v 1.9 2001/11/18 19:11:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -65,10 +65,8 @@ struct filter_pipe {
 
 	/* "real" connection as requested from filterport_connect(). */
 	struct glame_list_head list;
-	const char *source_filter;
-	const char *source_port;
-	const char *dest_filter;
-	const char *dest_port;
+	filter_port_t *real_source;
+	filter_port_t *real_dest;
 
 	/* pipe specific parameters on the source/destination side */
 	filter_paramdb_t source_params;
@@ -181,17 +179,19 @@ void filterpipe_delete(filter_pipe_t *pipe);
  * the case, 0 otherwise. */
 int filterpipe_is_feedback(filter_pipe_t *pipe);
 
-/* Queries the source port of the pipe fp that was initially passed to
+/* filter_port_t *filterpipe_connection_source(filter_pipe_t *fp);
+ * Queries the source port of the pipe fp that was initially passed to
  * filterport_connect() as source. Returns NULL, if this port cannot
  * be found anymore (possible, if the connection was automatically
  * redirected and the source node was deleted). */
-filter_port_t *filterpipe_connection_source(filter_pipe_t *fp);
+#define filterpipe_connection_source(p) ((p)->real_source)
 
-/* Queries the destination port of the pipe fp that was initially passed to
+/* filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp);
+ * Queries the destination port of the pipe fp that was initially passed to
  * filterport_connect() as destination. Returns NULL, if this port cannot
  * be found anymore (possible, if the connection was automatically
  * redirected and the source node was deleted). */
-filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp);
+#define filterpipe_connection_dest(p) ((p)->real_dest)
 
 
 #ifdef __cplusplus
