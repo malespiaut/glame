@@ -10,7 +10,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
 	audio_io_alsa_v090.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
-	fader.c importexport.c symbols.c
+	fader.c symbols.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
@@ -39,9 +39,6 @@ endif
 if HAVE_GNOME
 normalize = normalize.la
 endif
-if HAVE_GNOME
-importexport = importexport.la
-endif
 
 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
@@ -54,7 +51,7 @@ pkglib_LTLIBRARIES = \
 	arithmetic.la waveform.la ssp.la \
 	echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
-	$(normalize) fader.la $(importexport) \
+	$(normalize) fader.la \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
 
@@ -96,11 +93,6 @@ distortion_la_LDFLAGS = -module -avoid-version
 
 fader_la_SOURCES = fader.c
 fader_la_LDFLAGS = -module -avoid-version
-
-if HAVE_GNOME
-importexport_la_SOURCES = importexport.c
-endif
-importexport_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
