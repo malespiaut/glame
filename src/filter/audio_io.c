@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.34 2000/02/28 09:34:34 richi Exp $
+ * $Id: audio_io.c,v 1.35 2000/02/28 15:37:49 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -767,6 +767,13 @@ int audio_io_register()
 	
 	audio_out = audio_in = NULL;
 	
+#if defined HAVE_OSS
+	if (!aio_generic_register_output("oss_audio_out", oss_audio_out_f))
+		audio_out = oss_audio_out_f;
+#endif
+#if defined HAVE_ALSA
+	/* TODO */
+#endif 
 #if defined HAVE_ESD
 	if (!aio_generic_register_output("esd_audio_out", esd_out_f)) 
 		audio_out = esd_out_f;
@@ -777,13 +784,6 @@ int audio_io_register()
 	if (!aio_generic_register_output("sgi_audio_out", sgi_audio_out_f)) 
 		audio_out = sgi_audio_out_f;
 #endif
-#if defined HAVE_OSS
-	if (!aio_generic_register_output("oss_audio_out", oss_audio_out_f))
-		audio_out = oss_audio_out_f;
-#endif
-#if defined HAVE_ALSA
-	/* TODO */
-#endif 
 #if defined HAVE_SUNAUDIO
 	/* TODO */
 #endif
