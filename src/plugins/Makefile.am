@@ -10,7 +10,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
 	audio_io_alsa_v090.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
-	fader.c importexport.c
+	fader.c importexport.c symbols.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
@@ -44,17 +44,28 @@ importexport = importexport.la
 endif
 
 
-libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
-	swapfile_io.c audio_io.c file_io.c waveform.c ssp.c
-libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
+libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
+	swapfile_io.c audio_io.c file_io.c
+libglamebuiltins_la_LDFLAGS = -export-dynamic $(GLAME_AUDIO_LIBS)
 
 
 # (optional) real plugins
-pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
+pkglib_LTLIBRARIES = \
+	arithmetic.la waveform.la ssp.la \
+	echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
 	$(normalize) fader.la $(importexport) \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
+
+arithmetic_la_SOURCES = arithmetic.c
+arithmetic_la_LDFLAGS = -module -avoid-version
+
+waveform_la_SOURCES = waveform.c
+waveform_la_LDFLAGS = -module -avoid-version
+
+ssp_la_SOURCES = ssp.c
+ssp_la_LDFLAGS = -module -avoid-version
 
 echo_la_SOURCES = echo.c
 echo_la_LDFLAGS = -module -avoid-version
