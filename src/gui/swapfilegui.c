@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.38 2001/05/16 09:34:51 richi Exp $
+ * $Id: swapfilegui.c,v 1.39 2001/05/18 09:35:51 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -37,6 +37,7 @@
 #include "filter.h"
 #include "glame_gui_utils.h"
 #include "clipboard.h"
+#include "timeline.h"
 #include <gnome.h>
 
 
@@ -52,6 +53,7 @@ static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addclipboard_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
+static void timeline_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
 static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -67,6 +69,7 @@ static GnomeUIInfo dummy2_menu[] = {
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
+        GNOMEUIINFO_ITEM("Timeline", "timeline", timeline_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
@@ -87,7 +90,7 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
-#define GROUP_MENU_APPLYOP_INDEX 15
+#define GROUP_MENU_APPLYOP_INDEX 16
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -404,6 +407,20 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
 		return;
 	}
 	gtk_widget_show_all(we);
+}
+
+static void timeline_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	GtkWidget *tl;
+		
+	tl = glame_timeline_new_with_window(gpsm_item_label(item->item),
+					    item->item);
+	if (!tl) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Cannot open timeline")));
+		return;
+	}
+	gtk_widget_show_all(tl);
 }
 
 void changeString_cb(GtkEditable *wid, char *returnbuffer)

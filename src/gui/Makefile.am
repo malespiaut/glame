@@ -1,6 +1,6 @@
-SUBDIRS = libgtkwaveform edit_filter
+SUBDIRS = libgtkwaveform edit_filter timeline
 
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@srcdir@/libgtkwaveform -I@srcdir@/edit_filter $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@srcdir@/libgtkwaveform -I@srcdir@/edit_filter -I@srcdir@/timeline $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 
 
 EXTRA_DIST = glame.desktop
@@ -20,12 +20,10 @@ glame_SOURCES = main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
 	waveeditgui.c waveeditgui.h
 glame_LDADD = ../glmid/libglame.la edit_filter/libeditfilter.la \
-        libgtkwaveform/libgtkwaveform.la libglameguiutils.la\
+        libgtkwaveform/libgtkwaveform.la timeline/libtimeline.la \
+	libglameguiutils.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(XML_LIBS)
 glame_LDFLAGS = -export-dynamic
-
-#timeline_SOURCES = timeline.c
-#timeline_LDADD = $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
 #wavetest_SOURCES = gtkwavedraw.c gtkwavedraw.h wavetest.c
 #wavetest_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
