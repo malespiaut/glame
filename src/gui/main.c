@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.126 2004/12/22 21:26:40 richi Exp $
+ * $Id: main.c,v 1.127 2004/12/23 19:49:49 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -476,7 +476,6 @@ static GtkWidget *preferences_tab_audioio(char *ainplugin, char *aindev,
 					  long *rate, long *wbufsize)
 {
 	GtkWidget *vbox, *combo;
-	GList *combo_items;
 	char *cfg;
 
 	vbox = gtk_vbox_new(FALSE, 1);
@@ -712,29 +711,24 @@ static GtkWidget* glame_about(void)
 	return about;
 }
 
-static gint glame_splash_timeout(GtkWidget *about)
+static GtkWidget *glame_splash(void)
 {
-	gtk_object_destroy(GTK_OBJECT(about));
-	return FALSE;
+	/* We may "specialize" the splash somewhat in the future.
+	 * For now just use the about dialog. */
+	return glame_about();
 }
-static void glame_splash_destroy_cb(GtkWidget *about, gpointer tid)
-{
-	gtk_timeout_remove((guint)tid);
-}
-static void glame_splash(void)
-{
-	GtkWidget *about;
-	guint tid;
 
-	about = glame_about();
 
-#ifdef DEBUG
-	tid = gtk_timeout_add(1000, (GtkFunction)glame_splash_timeout, about);
-#else
-	tid = gtk_timeout_add(5000, (GtkFunction)glame_splash_timeout, about);
-#endif
-	gtk_signal_connect(GTK_OBJECT(about), "destroy",
-			   (GtkSignalFunc)glame_splash_destroy_cb, (gpointer)tid);
+static long maxundo;
+static pthread_mutex_t giw_mx = PTHREAD_MUTEX_INITIALIZER;
+static void *gpsm_init_wrapper(void *path_)
+{
+	int res = gpsm_init(path_, maxundo);
+	pthread_mutex_unlock(&giw_mx);
+	if (res == -1)
+		return NULL;
+	else
+		return (void *)-1;
 }
 
 
@@ -783,10 +777,13 @@ static void gui_quit(GtkWidget *widget, gpointer data)
 	gtk_main_quit();
 }
 
+static GtkWidget *splash;
 static void gui_main()
 {
 	GtkWidget *dock, *scrollview;
 	char *path;
+	void *gpsm_init_result;
+	pthread_t gpsm_init_thread;
 
 	/* Init GUI dependend subsystems. */
 	glame_accel_init();
@@ -821,7 +818,21 @@ _("Welcome first-time user of GLAME.\n"
 			goto run_prefs;
 		}
 	}
-	if (gpsm_init(path) == -1) {
+
+	/* Asynchronly try to initialize the gpsm. */
+	glame_config_get_long("swapfile/maxundo", &maxundo);
+	pthread_mutex_lock(&giw_mx);
+	pthread_create(&gpsm_init_thread, NULL, gpsm_init_wrapper, path);
+
+	/* Poll for thread completion. */
+	while (pthread_mutex_trylock(&giw_mx)) {
+		gtk_main_iteration_do(FALSE);
+		sched_yield();
+	}
+	pthread_join(gpsm_init_thread, &gpsm_init_result);
+	pthread_mutex_unlock(&giw_mx);
+
+	if (gpsm_init_result == NULL) {
 		char msg[256];
 		char *errmsg = strerror(errno);
 		snprintf(msg, 255, "GLAME was unable to open/init its swapfile\nbecause of \"%s\".\nPlease check the configuration and/or check for\nGLAME messages on the console.\n", errmsg);
@@ -874,9 +885,6 @@ _("Welcome first-time user of GLAME.\n"
 	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
 			   (GtkSignalFunc)resize_horiz_cb, app);
 
-	/* Pop up splash screen. */
-	glame_splash();
-
 	/* Pop up console. */
 	glame_console_init();
 	glame_console_printf("%s%s%s",
@@ -891,6 +899,9 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2004 by\n"
 #ifndef HAVE_LIBGLADE
 	glame_console_printf("WARNING! This copy of GLAME was compiled without libglade support\n");
 #endif
+
+	/* Finally, destroy splash. */
+	gtk_object_destroy(GTK_OBJECT(splash));
 
 	/* Main event loop */
        	gtk_main();
@@ -913,6 +924,10 @@ int main(int argc, char **argv)
 	gnome_program_init("glame2", VERSION, LIBGNOMEUI_MODULE,
 			   argc, argv, GNOME_PARAM_NONE);
 
+	/* Pop up splash screen. */
+	splash = glame_splash();
+	while (gtk_events_pending())
+		gtk_main_iteration_do(FALSE) ;
 
 #ifdef HAVE_LIBGLADE
 	glade_init();

@@ -156,9 +156,11 @@ static int update_preferences()
  */
 void sc_main()
 {
+	long maxundo;
 	if (!swfname)
 		glame_config_get_string("swapfile/defaultpath", &swfname);
-	if (swfname && gpsm_init(swfname) == -1)
+	glame_config_get_long("swapfile/maxundo", &maxundo);
+	if (swfname && gpsm_init(swfname, maxundo) == -1)
 		exit(1);
 
 	/* Update state from preferences. */

@@ -254,7 +254,7 @@ typedef int (*gpsmop_func_t)(gpsm_item_t *, long, long);
  * (the gpsm subsystem metadata is stored in swapfile file 0).
  * Returns 0 on success and -1 on error (which is the sign for
  * swapfile corruption or already initialized gpsm). */
-int gpsm_init(const char *swapfile);
+int gpsm_init(const char *swapfile, int maxundo);
 
 /* Changes (or just queries, if max < 0) the maximum number of states
  * saved for undo/redo. Returns the actual set value. */

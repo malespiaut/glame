@@ -433,7 +433,7 @@ static void scan_swap(void)
  * Initialization API.
  */
 
-int gpsm_init(const char *swapfile)
+int gpsm_init(const char *swapfile, int maxundo)
 {
 	xmlDocPtr doc;
 	char *xml;
@@ -494,7 +494,7 @@ empty:
 	/* Init the op list. */
 	GLAME_INIT_LIST_HEAD(&oplist);
 	op_listsize = 0;
-	glame_config_get_long("swapfile/maxundo", &op_max_listsize);
+	op_max_listsize = maxundo;
 
 	/* Create the tree root group and recurse down the xml tree. */
         root = (gpsm_grp_t *)gpsm_newitem(GPSM_ITEM_TYPE_GRP);

@@ -311,14 +311,17 @@ static SCM gls_gpsm_swfile_set_position(SCM s_item, SCM s_pos)
  * Global control.
  */
 
-static SCM gls_gpsm_init(SCM s_swapfile)
+static SCM gls_gpsm_init(SCM s_swapfile, SCM s_maxundo)
 {
 	char *swapfile;
-	int res, swapfile_len;
+	int res, swapfile_len, maxundo;
 	SCM_ASSERT(gh_string_p(s_swapfile), s_swapfile,
 		   SCM_ARG1, "gpsm-init");
+	SCM_ASSERT(gh_exact_p(s_maxundo), s_maxundo,
+		   SCM_ARG2, "gpsm-init");
 	swapfile = gh_scm2newstr(s_swapfile, &swapfile_len);
-	res = gpsm_init(swapfile);
+	maxundo = glame_scm2long(s_maxundo);
+	res = gpsm_init(swapfile, maxundo);
 	if (res == -1)
 		GLAME_THROW_ERRNO();
 	return SCM_UNSPECIFIED;
