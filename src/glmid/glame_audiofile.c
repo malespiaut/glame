@@ -1,5 +1,5 @@
 /*
- * $Id: glame_audiofile.c,v 1.22 2001/12/17 15:23:26 richi Exp $
+ * $Id: glame_audiofile.c,v 1.23 2001/12/17 15:53:40 nold Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
@@ -302,8 +302,8 @@ static int wav_write_header(AFfilehandle h)
 	if (fwrite("WAVEfmt ", 8, 1, h->fp) != 1)
 		goto err;
 	/* chunk size */
-	tmp16 = __gl_cpu_to_le32(16);
-	if (fwrite(&tmp16, 4, 1, h->fp) != 1)
+	tmp32 = __gl_cpu_to_le32(16);
+	if (fwrite(&tmp32, 4, 1, h->fp) != 1)
 		goto err;
 	/* wav type (only PCM supported) */
 	tmp16 = __gl_cpu_to_le16(WAV_FMT_PCM);
