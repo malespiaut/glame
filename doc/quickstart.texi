@@ -1,4 +1,4 @@
-@comment $Id: quickstart.texi,v 1.3 2001/12/20 15:09:13 mag Exp $
+@comment $Id: quickstart.texi,v 1.4 2001/12/23 01:37:33 nold Exp $
 
 @node Quick Start Guide, Graphical Frontend, Copying, Top
 @chapter Quick Start Guide
@@ -20,7 +20,7 @@ to poke through the proper documentation.
 * Getawaywithher::	A quick start to editing files
 * Getmeinthere::	A quick start to audio recording
 * Gottagetbetter::	A quick start to filter networks
-* Party Glame::         How to do funny realtime effects with glame
+* Gobackformore::	A quick start to realtime effects
 @end menu
 
 @node Getawaywithher, Getmeinthere,, Quick Start Guide
@@ -108,7 +108,7 @@ section is entirely up to your artistic talent.
 
 Not fancy enough to woo Heather, you feel? Read on.
 
-@node Gottagetbetter, Party Glame, Getmeinthere, Quick Start Guide
+@node Gottagetbetter, Gobackformore, Getmeinthere, Quick Start Guide
 @section A Quick Start to Filter Networks
 
 To brush up a selection from the Waveedit GUI, you can apply a single filter on
@@ -156,104 +156,88 @@ manual.
 Well done, you may call yourself a GLAMEr now. A Lamer even, if you don't get up
 immediately and present your new song to Heather. Off you go. Good luck!
 
-@node Party Glame,, Gottagetbetter, Quick Start Guide
-@section How to do funny realtime effects with glame
+@node Gobackformore,, Gottagetbetter, Quick Start Guide
+@section A Quick Start to Realtime Effects
 
-So, here you are. Imagine your giving a big party at home and you really want
-to impress Angelina, Heather and all the other nice girls. And certainly you 
-will invite the Glame Team, won't you? O.K. enough joking, now for the serious part. 
-To have all that fun, you need to connect a microphone to your soundcard. 
-Then fire up Glame and make sure you have the right preferences set up for your 
-audio hardware (@pxref{The Preferences Dialog}). You'll need two 
-soundcards for this kind of fun or in general one device for sampling and one for playback. 
-Assuming you're using OSS, you should configure @file{/dev/dsp} as your input and 
-@file{/dev/dsp1} as output device or vice versa (@pxref{In- and Output}). 
-This just depends on your local setup, but you'll hopefully know about that. 
-Even better for fun is ALSA
+Back with us again?  Oh rats, Heather finally broke your heart and left you?
+Cheer up, there's Bozo "The Dragster"'s ultimate party next weekend, and
+Bozo thinks you'll fit perfect with some of his best friends.  A microphone and
+a box running GLAME, that's all you'll need to hook them up.
+
+Let's get the setup straight first.  In the preferences dialog... Pardon me?
+How to get to the preferences?  Gee, guess you need a couple of Angelinas and
+Heathers still, until you're ready for Bozo.  Found it now?  Fine.  In the
+preferences dialog, there's a little fine-tuning to do on @dfn{Audio I/O}
+for a spiffy full-duplex setup, meaning that we're going to play and record
+at the same time.  Select OSS and configure @file{/dev/dsp} for input, and
+@file{/dev/dsp1} for output.  This'll work if your sound card is fancy enough
+to offer more than one DSP device.  Otherwise, lend your neighbour's for the
+day.  Your smartass neighbour is likely to mention something about ALSA being
+so much better.  "The day ALSA can be considered stable is unlikely to be in
+the same century that Bozo holds parties," is a good answer.  Learn it by
+heart.  The curious of course can try whether there's a GLAME plugin compatible
+to the ALSA version du jour.  If your lucky, @file{plughw:0,0} and 
+@file{plughw:1,0} might be the correct settings for input and output.
+Probably they aren't.
+
+Now for some real fun.  From the Main Window, you can launch the Filternetwork
+Editor.  You already know the window that pops up--remember the wave factory?
+This time, however, the factory is completely empty.  Two filters,
+@file{audio_in} and @file{audio_out}, will make it work just-in-time, though.
+For kicks, add a @file{flanger} filter as well, and connect it to both
+@file{audio_in} and @file{audio_out}. 
+
 @ifhtml
-,
-@uref{http://www.alsa-project.org}
-@end ifhtml
-.
-This time you choose the @file{alsa_audio_out} and @file{alsa_audio_in} plugins. 
-In this case the device names will be something like @file{plughw:#soundcard, #subdevice}, e.g.
-@file{plughw:0,0} for your first sound card in the system.
-At this stage you should have a working sound setup.
-
-@subsection The Mickey Mouse
-In this section we build a easy network, that will transform your voice into Mickey Mouse
-or Darth Vader. Whatever you prefer... First you go into @ref{The Main Window} and select
-"New Filternetwork" from the Filternetwork menu. Then you add those three plugins to @ref{The Filternetwork Editor}:
-@table @code
-@item audio_in (input section), @pxref{Audio I/O}
-@item audio_out (output section),@pxref{Audio I/O}
-@item flanger (effects section), @pxref{Flanger}
-@end table
-Press the right mouse button and a popup menu will appear. Select the right plugins and drag them
-around the network canvas with a simple click, drag & release. Then connect the plugins like this:@*
-@code{audio_in} -> @code{flanger} -> @code{audio_out}.
-
-@ifinfo
-In the html version of this manual, you see a really nice screenshot.
-But o.k., you seem to like plain info manuals.
-@end ifinfo
-@ifhtml
-If you did it right you should see something like this:
 @image{pix/mickey1}
 @end ifhtml
 
-Afterwards you klick with the right mouse button on the @ref{Flanger} plugin and select "Properties".
-Then set the effect depth to 50ms, the detune range to 25ms, lfo speed to 8Hz, dry/wet balance to 0.0 and
-the LFO Type to "Ramp Up".
-@*
+This setup is working but seriously lacking coolness.  Let's fiddle with some
+parameters.  Right-click on the @file{flanger} icon and select
+@dfn{Properties}.  Set the @dfn{effect depth} to 50ms, the @dfn{detune range}
+to 25ms, @dfn{lfo speed} to 8Hz, @dfn{dry/wet balance} to 0.0 and the @dfn{LFO
+Type} to Ramp Up.
+
 @ifhtml
 @image{pix/mickey2}
 @end ifhtml
-@*
-Now klick on "Execute" in the network editor and start talking into your microphone. You should hear yourself
-talking like Mickey Mouse. Now stop the network with clicking on "Stop". Change the LFO Type to Ramp Down and
-execute the network again. You can even alter some of the parameters while the network is running. At the present
-time this is limited to the gain and balance settings. Just go on from here and play with the params.
 
-@subsection The Voice Drumloop
-Now we're going for a more sophisticated network. A looping sampler that will record your voice and do an
-endless loop on that sample. This way you will be able to record a drumloop just created with your voice
-or other stuff you do with you microphone. This time we will need the following plugins:
-@table @code
-@item audio_in  (input section), @pxref{Audio I/O}
-@item audio_out (output section), @pxref{Audio I/O}
-@item mix       (routing section), @pxref{Junctions and Dead Ends}
-@item buffer    (routing section), @pxref{Junctions and Dead Ends}
-@item one2n     (routing section), @pxref{Junctions and Dead Ends}
-@item delay     (time section), @pxref{Mangling Data Streams}
-@end table
+Once you click on @dfn{Execute} in the editor window, start talking into the
+microphone.  Voila, you're talking like Mickey Mouse!  Now stop the network by
+clicking on @dfn{Stop}.  Change the @dfn{LFO Type} to Ramp Down and execute the
+network again.  Then fire up your favourite mailer and send a message to
+@email{mag@@glame.de}, telling him what cool a frood he is!  Some
+of the parameters you can even alter while the network is running.  Just go on
+from here and play around.  Once you've found the Bozo killer setting, the
+@dfn{Save} button is a good one to try next.
 
-Now wire up the network like this:
-@table @code
-@item audio_in -> mix -> one2n -> audio_out
-@item one2n -> buffer -> delay -> mix
-@end table
+Now for a more sophisticated network: A looping sampler that will record your
+voice and repeat it in an endless loop.  Bozo's dudes are gonna love it,
+honest.  First, wire up the basic network from @file{audio_in}, @file{mix},
+@file{one2n}, and @file{audio_out}.  So far it's just a slightly complicated
+way of sending all input to the output unmodified.  The network gets a lot more
+interesting when we add a feedback loop.  Add a @file{buffer} filter, a
+@file{delay} filter, and connect them sort of backwards.  That is, draw a
+second connection from @file{one2n}'s output to the input of @file{buffer}.
+Connect @file{buffer} to @file{delay}, and finally hook up @file{delay}'s
+output to the input of @file{mix}.
 
-@ifinfo
-Hmm, have a look into the html version of this manual, there's a really nice screenshot
-@end ifinfo
 @ifhtml
-Luckily your viewing the html version of this manual. So you can see a really nice screenshot:
-@*
 @image{pix/loop1}
-@*
 @end ifhtml
 
-Now press with the right mouse button on the knob of the connection between delay and mix. Select
-"Destination Properties" and set the gain to 1.9, you can later play with this to get better/different/weird
-results. Then open up the properties for the buffer plugin and set the time parameter to 1 second. Open up
-the properties for the delay plugin and set the delay time to 500ms. Now execute the network and say "Boom"
-into your microphone. BEWARE: If you set the gain to high between mix and delay you get a really nice and
-loud feedback. So don't turn up your stereo too loud for your first try. Play around with the gain. If you
-set it too smaller values, your voice will slowly fade out, if it's to high it will just get louder and louder
-and blow out your speakers. Don't blame me for trouble with your neighbours ;)
-If you don't want to go through the network setup everytime, simply save the the network with the "Save" button
-and load it again next time. All your parameter settings will be preserved.
+Still a little tuning to do.  There's a little blob on the connecting line
+between @file{delay} and @file{mix}.  Right-click on it, and select
+@dfn{Destination Properties} in the menu that pops up.  Set the @dfn{gain} to
+1.9.  Next, open the properties dialog for the @file{buffer} filter and set the
+@dfn{time} parameter to 1 second. In the @file{delay} plugin's properties, set
+the @dfn{delay time} to 500ms.  Turn down your amp really low, execute the
+network and say something intelligent like "Boh" into your microphone.  If a
+screeching sound hurts your ears, the @dfn{gain} parameter probably is to high.
+Click on the little blob again and tune it until you're satisfied.  If you set
+it to smaller values, your voice will slowly fade out, if it's to high it will
+just get louder and louder until your speakers freak out.  Obviously, an
+endlessly repeating "Boh" isn't all that stunning.  "Zoh" sounds like a good
+second line.  Talk into the microphone, and wow, here's our vocal
+percussionist.  The party is your's.  Time to go now.  Send our best to Bozo
+and the drags, and have fun!
 
-@subsection Your Partynetwork
-Yeah, where is it? If you have one, just send it to the Glame Team!
