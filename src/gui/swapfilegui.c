@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.86 2002/06/11 07:20:29 richi Exp $
+ * $Id: swapfilegui.c,v 1.87 2002/11/10 14:38:35 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -730,7 +730,6 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
 					  _("Drop into vbox"));
 		} else {
-			DPRINTF("illegal modifier\n");
 			return; /* modifier not valid */
 		}
 		drag_widget = item;
