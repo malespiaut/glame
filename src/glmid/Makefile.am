@@ -4,5 +4,6 @@ EXTRA_DIST = play.scm
 
 noinst_LTLIBRARIES = libglmid.la
 
-libglmid_la_SOURCES = glscript.c glscript.h
+libglmid_la_SOURCES = glscript.c glscript.h gltrack.c gltrack.h \
+	glplugin.c glplugin.h
 

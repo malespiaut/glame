@@ -19,6 +19,12 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_GUILE
+
 #include <guile/gh.h>
 #include <swapfile.h>
 #include <filter.h>
@@ -259,7 +265,6 @@ SCM gls_filternode_set_param(SCM s_n, SCM s_label, SCM s_val)
 		return SCM_BOOL_F;
 	switch (paramd->type) {
 	case FILTER_PARAMTYPE_INT:
-	case FILTER_PARAMTYPE_FILE:
 		i = gh_scm2long(s_val);
 		filternode_set_param(n, label, &i);
 		break;
@@ -332,6 +337,12 @@ SCM gls_filternetwork_terminate(SCM s_net)
 
 
 
+/* The scriptable track API part.
+ */
+
+/* FIXME */
+
+
 int glscript_init()
 {
 	/* swapfile */
@@ -378,3 +389,12 @@ int glscript_init()
 
 	return 0;
 }
+
+#else /* !HAVE_GUILE */
+
+int glscript_init()
+{
+        return 0;
+}
+
+#endif /* HAVE_GUILE */
