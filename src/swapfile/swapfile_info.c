@@ -1,6 +1,6 @@
 /*
  * swapfile_info.c
- * $Id: swapfile_info.c,v 1.8 2000/10/09 08:39:38 richi Exp $
+ * $Id: swapfile_info.c,v 1.9 2001/05/05 14:36:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	totalsize = 0;
 	dir = sw_opendir();
 	while ((fname = sw_readdir(dir)) != -1) {
-		if ((fd = sw_open(fname, O_RDONLY, TXN_NONE)) == -1) {
+		if ((fd = sw_open(fname, O_RDONLY)) == -1) {
 			printf("\t----\t%li", fname);
 			continue;
 		}

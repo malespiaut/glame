@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.53 2001/04/19 08:51:52 richi Exp $
+; $Id: glame.scm,v 1.54 2001/05/05 14:36:13 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -220,7 +220,7 @@
 	      (lambda (dir)
 		(let ((entry (sw_readdir dir)))
 		  (cond ((= entry -1) #f)
-			(else (let* ((fd (sw_open entry O_RDONLY TXN_NONE))
+			(else (let* ((fd (sw_open entry O_RDONLY))
 				     (st (sw_fstat fd))
 				     (size (sw-st-size st)))
 				(display (cons entry (cons size (sw_read_string fd (min 8 size))))) (newline)
@@ -231,9 +231,9 @@
 
 (define sw-creat
   (lambda (fname . contents)
-    (let ((fd (sw_open fname (+ O_CREAT O_RDWR O_TRUNC) TXN_NONE)))
+    (let ((fd (sw_open fname (+ O_CREAT O_RDWR O_TRUNC))))
       (map (lambda (str)
-	     (let ((tfd (sw_open 1278369 (+ O_CREAT O_RDWR O_TRUNC O_EXCL) TXN_NONE)))
+	     (let ((tfd (sw_open 1278369 (+ O_CREAT O_RDWR O_TRUNC O_EXCL))))
 	       (sw_write tfd str)
 	       (sw_lseek tfd 0 SEEK_SET)
 	       (sw_sendfile fd tfd (string-length str) SWSENDFILE_INSERT)
@@ -245,7 +245,7 @@
 
 (define sw-open
   (lambda (fname)
-    (sw_open fname O_RDWR TXN_NONE)))
+    (sw_open fname O_RDWR)))
 
 (define sw-close
   (lambda (fd)

@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.13 2001/04/27 08:26:43 richi Exp $
+ * $Id: swapfile_io.c,v 1.14 2001/05/05 14:36:13 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -44,7 +44,7 @@ static int swapfile_in_f(filter_t *n)
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no input filename specified");
-	if (!(fd = sw_open(fname, O_RDONLY, TXN_NONE)))
+	if (!(fd = sw_open(fname, O_RDONLY)))
 		FILTER_ERROR_RETURN("cannot open swapfile file");
 	offset = filterparam_val_int(filternode_get_param(n, "offset"));
 	offset *= SAMPLE_SIZE;
@@ -107,7 +107,7 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		return;
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
-	if (!(fd = sw_open(fname, O_RDONLY, TXN_NONE)))
+	if (!(fd = sw_open(fname, O_RDONLY)))
 		return;
 	sw_close(fd);
 
@@ -128,7 +128,7 @@ static int swapfile_in_connect_out(filter_t *n, filter_port_t *outp,
 		return -1;
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
 	if (fname != -1) {
-		if (!(fd = sw_open(fname, O_RDONLY, TXN_NONE)))
+		if (!(fd = sw_open(fname, O_RDONLY)))
 			return -1;
 		sw_close(fd);
 	}
@@ -203,11 +203,11 @@ static int swapfile_out_f(filter_t *n)
 		FILTER_ERROR_RETURN("no filename");
 	offset = filterparam_val_int(filternode_get_param(n, "offset"));
 	if (offset == -1) {
-		if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE)))
+		if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC)))
 			FILTER_ERROR_RETURN("cannot create file");
 		sw_lseek(fd, 0, SEEK_SET);
 	} else {
-		if (!(fd = sw_open(fname, O_RDWR, TXN_NONE)))
+		if (!(fd = sw_open(fname, O_RDWR)))
 			FILTER_ERROR_RETURN("cannot open file");
 		if (sw_lseek(fd, offset*SAMPLE_SIZE, SEEK_SET) != offset*SAMPLE_SIZE) {
 			FILTER_ERROR_RETURN("cannot seek to offset");

@@ -206,7 +206,7 @@ static void insert_node_file(gpsm_grp_t *tree, xmlNodePtr node)
 		ivposition = -1;
 
 	/* Check, if the file is really there (and update info) */
-	if ((fd = sw_open(ifd, O_RDONLY, TXN_NONE)) != -1) {
+	if ((fd = sw_open(ifd, O_RDONLY)) != -1) {
 		sw_fstat(fd, &st);
 		sw_close(fd);
 	} else {
@@ -311,10 +311,10 @@ static void insert_node_op(xmlNodePtr node)
 			DPRINTF("Invalid <pair> saved %s\n", c);
 			return;
 		}
-		if ((fd = sw_open(op->pair[i].file, O_RDONLY, TXN_NONE)) == -1)
+		if ((fd = sw_open(op->pair[i].file, O_RDONLY)) == -1)
 			goto next;
 		sw_close(fd);
-		if ((fd = sw_open(op->pair[i].saved, O_RDONLY, TXN_NONE)) == -1)
+		if ((fd = sw_open(op->pair[i].saved, O_RDONLY)) == -1)
 			goto next;
 		sw_close(fd);
 		i++;
@@ -359,7 +359,7 @@ static void scan_swap()
 		/* File in op list as saved? */
 		if (_op_find_saved(name))
 			continue;
-		fd = sw_open(name, O_RDONLY, TXN_NONE);
+		fd = sw_open(name, O_RDONLY);
 		sw_fstat(fd, &st);
 		sw_close(fd);
 		swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
@@ -418,7 +418,7 @@ int gpsm_init(const char *swapfile)
 	}
 
 	/* Read swapfile 0 into a character buffer for libxml. */
-	if ((fd = sw_open(0, O_RDONLY, TXN_NONE)) != -1) {
+	if ((fd = sw_open(0, O_RDONLY)) != -1) {
 		struct sw_stat st;
 		if (sw_fstat(fd, &st) == -1
 		    || !(xml = malloc(st.size+1))) {
@@ -499,7 +499,7 @@ void gpsm_sync()
 	xmlDocSetRootElement(doc, docroot);
 	xmlDocDumpMemory(doc, &xml, &size);
 	DPRINTF("%i bytes xml\n %s\n", size, xml);
-	fd = sw_open(0, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE);
+	fd = sw_open(0, O_RDWR|O_CREAT|O_TRUNC);
 	sw_write(fd, xml, size);
 	sw_close(fd);
 	free(xml);
@@ -586,7 +586,7 @@ gpsm_swfile_t *gpsm_newswfile(const char *label)
 	swfile->item.hsize = 0;
 	swfile->item.vsize = 1;
 	while ((fd = sw_open((swfile->filename = rand()),
-			     O_RDWR|O_CREAT|O_EXCL, TXN_NONE)) == -1)
+			     O_RDWR|O_CREAT|O_EXCL)) == -1)
 		;
 	sw_close(fd);
 	swfile->samplerate = GLAME_DEFAULT_SAMPLERATE;
@@ -606,7 +606,7 @@ gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *source)
 	if (!source)
 		return NULL;
 
-	if ((sfd = sw_open(source->filename, O_RDONLY, TXN_NONE)) == -1)
+	if ((sfd = sw_open(source->filename, O_RDONLY)) == -1)
 		return NULL;
 	if (sw_fstat(sfd, &st) == -1) {
 		sw_close(sfd);
@@ -615,7 +615,7 @@ gpsm_swfile_t *gpsm_swfile_cow(gpsm_swfile_t *source)
 
 	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
 	while ((dfd = sw_open((swfile->filename = rand()),
-			      O_RDWR|O_CREAT|O_EXCL, TXN_NONE)) == -1)
+			      O_RDWR|O_CREAT|O_EXCL)) == -1)
 		;
 
 	if ((res = sw_ftruncate(dfd, st.size)) == -1
@@ -947,7 +947,7 @@ void gpsm_notify_swapfile_change(long filename, long pos, long size)
 	struct sw_stat st;
 	long file_size;
 
-	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1) {
+	if ((fd = sw_open(filename, O_RDONLY)) == -1) {
 		DPRINTF("Invalid filename\n");
 		return;
 	}
@@ -975,7 +975,7 @@ void gpsm_notify_swapfile_cut(long filename, long pos, long size)
 	struct sw_stat st;
 	long file_size;
 
-	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1) {
+	if ((fd = sw_open(filename, O_RDONLY)) == -1) {
 		DPRINTF("Invalid filename\n");
 		return;
 	}
@@ -1007,7 +1007,7 @@ void gpsm_notify_swapfile_insert(long filename, long pos, long size)
 	struct sw_stat st;
 	long file_size;
 
-	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1) {
+	if ((fd = sw_open(filename, O_RDONLY)) == -1) {
 		DPRINTF("Invalid filename\n");
 		return;
 	}
@@ -1039,7 +1039,7 @@ void gpsm_invalidate_swapfile(long filename)
 	long old_size, new_size;
 
 	/* Stat the file. */
-	if ((fd = sw_open(filename, O_RDONLY, TXN_NONE)) == -1)
+	if ((fd = sw_open(filename, O_RDONLY)) == -1)
 		return;
 	sw_fstat(fd, &st);
 	new_size = st.size/SAMPLE_SIZE;
@@ -1284,8 +1284,8 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 					goto fail;
 				gpsm_grp_insert(grp, (gpsm_item_t *)fswfile, 0, itvpos);
 			}
-			ffd = sw_open(gpsm_swfile_filename(fswfile), O_RDWR, TXN_NONE);
-			fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+			ffd = sw_open(gpsm_swfile_filename(fswfile), O_RDWR);
+			fd = sw_open(gpsm_swfile_filename(it), O_RDONLY);
 			sw_fstat(fd, &st);
 			sw_fstat(ffd, &st2);
 			if (ithpos*SAMPLE_SIZE + st.size > st2.size)
@@ -1328,7 +1328,7 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 		struct sw_stat st;
 		if (!GPSM_ITEM_IS_SWFILE(it))
 			continue;
-		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY);
 		sw_fstat(fd, &st);
 		if (st.size > hpos)
 			hpos = st.size;
@@ -1338,7 +1338,7 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 		swfd_t fd;
 		if (!GPSM_ITEM_IS_SWFILE(it))
 			continue;
-		fd = sw_open(gpsm_swfile_filename(it), O_RDWR, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(it), O_RDWR);
 		sw_ftruncate(fd, hpos);
 		sw_close(fd);
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
@@ -1900,11 +1900,11 @@ static int _op_cow(struct op *op)
 	int i;
 
 	for (i=0; i<op->nrpairs; i++) {
-		source = sw_open(op->pair[i].file, O_RDONLY, TXN_NONE);
+		source = sw_open(op->pair[i].file, O_RDONLY);
 		if (source == -1)
 			goto err;
 		while ((dest = sw_open(op->pair[i].saved = rand(),
-				       O_WRONLY|O_CREAT|O_EXCL, TXN_NONE)) == -1)
+				       O_WRONLY|O_CREAT|O_EXCL)) == -1)
 			;
 		sw_fstat(source, &st);
 		if (sw_sendfile(dest, source, st.size, SWSENDFILE_INSERT) == -1) {
@@ -1973,8 +1973,8 @@ static int _op_undo(struct op *op)
 	int i;
 
 	for (i=0; i<op->nrpairs; i++) {
-		file = sw_open(op->pair[i].file, O_RDWR, TXN_NONE);
-		saved = sw_open(op->pair[i].saved, O_RDONLY, TXN_NONE);
+		file = sw_open(op->pair[i].file, O_RDWR);
+		saved = sw_open(op->pair[i].saved, O_RDONLY);
 		if (file == -1 || saved == -1)
 			goto err;
 		if (sw_fstat(saved, &st) == -1

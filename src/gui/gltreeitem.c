@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.11 2001/04/27 09:24:20 richi Exp $
+ * $Id: gltreeitem.c,v 1.12 2001/05/05 14:36:13 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -107,7 +107,7 @@ void glame_tree_item_update(GlameTreeItem *item)
 #endif
 	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
 		swfd_t fd = sw_open(gpsm_swfile_filename(item->item),
-				    O_RDONLY, TXN_NONE);
+				    O_RDONLY);
 		struct sw_stat st;
 		long size = -1;
 		if (fd != -1 && sw_fstat(fd, &st) != -1)

@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.14 2000/10/09 16:24:03 richi Exp $
+ * $Id: swapfile_test.c,v 1.15 2001/05/05 14:36:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -32,9 +32,12 @@
 #include <config.h>
 #endif
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
+#include "util.h"
 #include "swapfile.h"
 
 
@@ -231,7 +234,7 @@ int test_simple_file()
 	/* First simply create the file. Should be of size zero
 	 * after this, with expected stat data. */
 	print_state("Creating new file");
-	if ((fd = sw_open(17, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE)) == -1)
+	if ((fd = sw_open(17, O_RDWR|O_CREAT|O_TRUNC)) == -1)
 		BUG("Cannot create file");
 	if (sw_fstat(fd, &stat) == -1)
 		BUG("Cannot stat new file");
@@ -265,7 +268,7 @@ int test_simple_file()
 		BUG("Cannot close file");
 	if (sw_unlink(stat.name) == -1)
 		BUG("Cannot unlink file");
-	if ((fd = sw_open(stat.name, O_RDWR, TXN_NONE)) != -1)
+	if ((fd = sw_open(stat.name, O_RDWR)) != -1)
 		BUG("Can open unlinked file");
 
 	state_end();

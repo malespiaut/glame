@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.10 2001/05/03 11:45:31 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.11 2001/05/05 14:36:13 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -465,15 +465,15 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 		i = 0;
 		gpsm_grp_foreach_item(item, it) {
 			swfile[i] = (gpsm_swfile_t *)it;
-			if ((fd[i] = sw_open(gpsm_swfile_filename(it), O_RDONLY,
-					     TXN_NONE)) == -1)
+			if ((fd[i] = sw_open(gpsm_swfile_filename(it),
+					     O_RDONLY)) == -1)
 				goto err;
 			i++;
 		}
 	} else {
 		swfile[0] = (gpsm_swfile_t *)item;
-		if ((fd[0] = sw_open(gpsm_swfile_filename(item), O_RDONLY,
-				     TXN_NONE)) == -1)
+		if ((fd[0] = sw_open(gpsm_swfile_filename(item),
+				     O_RDONLY)) == -1)
 			goto err;
 	}
 

@@ -59,7 +59,7 @@ static void reset_temp(int nrtracks)
 
 	/* Generate additionally needed tracks. */
 	for (i=temp_nrtracks; i<nrtracks; i++) {
-		while ((temp_fd[i] = sw_open((temp_fname[i] = rand()), O_CREAT|O_EXCL|O_RDWR, TXN_NONE)) == -1)
+		while ((temp_fd[i] = sw_open((temp_fname[i] = rand()), O_CREAT|O_EXCL|O_RDWR)) == -1)
 			;
 	}
 	temp_nrtracks = nrtracks;
@@ -149,7 +149,7 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	reset_temp(nrtracks);
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDONLY, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDONLY);
 		sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET);
 		if (sw_sendfile(temp_fd[i], fd, length*SAMPLE_SIZE, SWSENDFILE_INSERT) == -1)
 			DPRINTF("*** sw_sendfile failed\n");
@@ -194,7 +194,7 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 		start -= gpsm_item_hposition(item);
 
 	for (i=0; i<nrtracks; i++) {
-		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR);
 		if (sw_lseek(fd, (start+gpsm_item_hposition(files[i]))*SAMPLE_SIZE, SEEK_SET) == -1)
 			DPRINTF("*** sw_lseek(swapfile->fd) failed\n");
 		if (sw_lseek(temp_fd[i], 0, SEEK_SET) != 0)
@@ -240,7 +240,7 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 		long sstart = start+gpsm_item_hposition(files[i]);
 		long ssize = MIN(length, MAX(0, gpsm_item_hsize(files[i])-sstart));
 		if (ssize > 0) {
-			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
+			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR);
 			sw_lseek(fd, sstart*SAMPLE_SIZE, SEEK_SET);
 			if (sw_sendfile(temp_fd[i], fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT|SWSENDFILE_INSERT) == -1)
 				DPRINTF("*** sw_sendfile failed\n");
@@ -287,7 +287,7 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 		long sstart = start+gpsm_item_hposition(files[i]);
 		long ssize = MIN(length, MAX(0, gpsm_item_hsize(files[i])-sstart));
 		if (ssize > 0) {
-			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR, TXN_NONE);
+			fd = sw_open(gpsm_swfile_filename(files[i]), O_RDWR);
 			sw_lseek(fd, sstart*SAMPLE_SIZE, SEEK_SET);
 			if (sw_sendfile(SW_NOFILE, fd, ssize*SAMPLE_SIZE, SWSENDFILE_CUT) == -1)
 				DPRINTF("*** sw_sendfile failed\n");
