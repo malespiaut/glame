@@ -166,7 +166,7 @@ int glscript_init()
 	 * 2. glmid/glame.scm
 	 * 3. ~/.glame.scm
 	 */
-	gh_eval_str(
+	glame_gh_safe_eval_str(
 "(map (lambda (file)"
 "        (if (file-exists? file)"
 "           (begin"

@@ -40,9 +40,25 @@ int glscript_init_swapfile();
 int glscript_init_filter();
 
 
-/* Hack to allow switching between register(0)/instantiate(1) mode */
+/* HACK to allow switching between register(0)/instantiate(1) mode */
 extern int glscript_load_mode;
 extern filter_t *last_loaded_filter_instance;
+
+
+/* Safe wrappers for gh_eval_file/gh_eval_string. Result is #f if
+ * anything went wrong, #t otherwise. */
+static inline SCM glame_gh_safe_handler(void *a, SCM b, SCM c)
+{
+	return SCM_BOOL_F;
+}
+static inline SCM glame_gh_safe_eval_file(const char *fname)
+{
+	return gh_eval_file_with_catch((char *)fname, glame_gh_safe_handler);
+}
+static inline SCM glame_gh_safe_eval_str(const char *str)
+{
+	return gh_eval_str_with_catch((char *)str, glame_gh_safe_handler);
+}
 
 
 /* SMOB for generic C pointer - for internal use only.

@@ -46,6 +46,7 @@ extern long filter_smob_tag;
 PLUGIN_SET(glamebuiltins, "basic basic_sample audio_io file_io waveform "
 	   "rms basic_midi midi_io midi_debug arithmetic basicfft swapfile_io")
 
+
 int glame_load_plugin(const char *fname)
 {
     	/* Shared object plugin type? Just try to load it as such, will
@@ -56,7 +57,7 @@ int glame_load_plugin(const char *fname)
 #ifdef HAVE_GUILE
 	/* Scheme macro plugin type? FIXME: more sanity check before. */
 	if (strstr(fname, ".scm")) {
-		SCM s_res = gh_eval_file(fname);
+		SCM s_res = glame_gh_safe_eval_file(fname);
 		if (gh_boolean_p(s_res) && gh_scm2bool(s_res))
 		    	return 0;
 	}
@@ -68,19 +69,16 @@ int glame_load_plugin(const char *fname)
 filter_t *glame_load_instance(const char *fname)
 {
 	SCM s_res;
-	filter_t *f;
 
 	if (!strstr(fname, ".scm"))
 		return NULL;
 
 #ifdef HAVE_GUILE
 	glscript_load_mode = 1;
-	s_res = gh_eval_file(fname);
-	/* if (!filter_p(s_res)) {
-		DPRINTF("gh_eval_file did not return a filter_t\n");
+	s_res = glame_gh_safe_eval_file(fname);
+	if (!gh_boolean_p(s_res) || !gh_scm2bool(s_res))
 		return NULL;
-	} */
-	return last_loaded_filter_instance /* scm2filter(s_res) */;
+	return last_loaded_filter_instance; // HACK...
 #else
 	return NULL;
 #endif
