@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.6 2000/02/22 16:55:26 nold Exp $
+@comment $Id: glame.texi,v 1.7 2000/03/23 14:25:01 nold Exp $
 
 
 @c %**start of header
@@ -87,7 +87,9 @@ Copyright @copyright{} 2000 Richard G@"unther, Daniel Kobras.
 
 ==End user section: How to handle the various GLAME frontends==
 
-FIXME: Not yet written due to lack of working frontends.
+* Graphical Frontend::
+* Console Frontend::	
+* Plugin Collection::	List of available GLAME plugins.
 
 ==Developers' section: How to extend GLAME==
 
@@ -102,7 +104,7 @@ FIXME: Not yet written due to lack of working frontends.
 
 @end menu
 
-@node Copying, Filter API, Top, Top
+@node Copying, Graphical Frontend, Top, Top
 @ifnottex
 @chapter Copying
 Permission is granted to make and distribute verbatim
@@ -133,6 +135,9 @@ except that this permission notice may be stated in a
 translation approved by the Free Software Foundation.
 @end ifnottex
 
+@include gui.texi
+@include cglame.texi
+@include plugins.texi
 @include filter.texi
 @include filter-tutorial.texi
 @include swapfile.texi

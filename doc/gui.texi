@@ -1,0 +1,7 @@
+@comment $Id: gui.texi,v 1.1 2000/03/23 14:25:01 nold Exp $
+
+@node Graphical Frontend, Console Frontend, Copying, Top
+@chapter Graphical Frontend (glame)
+
+*** TODO ***
+
