@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.41 2001/05/30 07:39:57 richi Exp $
+ * $Id: swapfilegui.c,v 1.42 2001/05/30 13:57:12 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -660,8 +660,6 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		/* drag&drop start */
 		drag_widget = NULL;
 		mode = -1;
-		if (!GPSM_ITEM_IS_SWFILE(item->item))
-			return; /* only swfiles for now */
 		if (event->state & GDK_SHIFT_MASK) {
 			DPRINTF("SHIFT modifier\n");
 			mode = 1;
