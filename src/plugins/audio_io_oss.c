@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.22 2004/11/12 16:44:53 richi Exp $
+ * $Id: audio_io_oss.c,v 1.23 2005/03/27 12:29:48 richi Exp $
  *
  * Copyright (C) 2001, 2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -313,6 +313,7 @@ _fmt_retry:
 
 		oss_convert_bufs(in, out, max_ch, sign*ssize, chunk_size, 
 		                 interleave);
+		filterparam_val_set_pos(pos_param, pos+todo/interleave);
 		do {
 			ssize_t done;
 			if ((done = write(dev, wpos, todo)) == -1 &&
@@ -321,7 +322,6 @@ _fmt_retry:
 						  "Samples might be dropped\n");
 				break;
 			}
-			filterparam_val_set_pos(pos_param, pos);
 			pos += done/interleave;
 			todo -= done;
 			wpos += ssize * done;
