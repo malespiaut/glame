@@ -4,8 +4,8 @@ EXTRA_DIST = swfs_cluster.h swfs_cluster.c swfs_file.h swfs_file.c \
 	swfs_ctree.h swfs_ctree.c convert.sh \
 	pmap.h pmap.c txn.h txn.c
 
+bin_SCRIPTS = glame-convert.sh
 noinst_LTLIBRARIES = libswapfile.la
-noinst_SCRIPTS = convert.sh
 noinst_PROGRAMS = swapfile_mkswap swapfile_fsck
 
 libswapfile_la_SOURCES = \
