@@ -29,10 +29,8 @@
 
 
 #define gh_scm2swfd(s) (swfd_t)gh_scm2long(s)
-#define gh_scm2txnid(t) (txnid_t)gh_scm2long(t)
-#define gh_txnid2scm(t) gh_long2scm((long)(t))
 
-/* SMOBs for SWDIR, swfd and txnid.
+/* SMOBs for SWDIR, and swfd.
  */
 
 static long swdir_smob_tag;
@@ -46,59 +44,6 @@ static long swfd_smob_tag;
 #define swfd2scm(p) long2scm(p, swfd_smob_tag)
 #define swfd_p(s) (SCM_NIMP(s) && SCM_CAR(s) == swfd_smob_tag)
 
-static long txnid_smob_tag;
-#define scm2txnid(s) (txnid_t)scm2long(s, txnid_smob_tag)
-#define txnid2scm(p) long2scm(p, txnid_smob_tag)
-#define txnid_p(s) (SCM_NIMP(s) && SCM_CAR(s) == txnid_smob_tag)
-
-
-
-/* The scriptable txn API part.
- */
-
-static SCM gls_txn_start(SCM s_tid)
-{
-	txnid_t tid;
-	SCM_ASSERT(txnid_p(s_tid), s_tid, SCM_ARG1, "txn_start");
-	tid = txn_start(scm2txnid(s_tid));
-	if (tid == -1)
-		return SCM_BOOL_F;
-	return txnid2scm(tid);
-}
-
-static SCM gls_txn_end(SCM s_tid)
-{
-	SCM_ASSERT(txnid_p(s_tid), s_tid, SCM_ARG1, "txn_end");
-	if (txn_end(scm2txnid(s_tid)) == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
-}
-
-static SCM gls_txn_abort(SCM s_tid)
-{
-	SCM_ASSERT(txnid_p(s_tid), s_tid, SCM_ARG1, "txn_abort");
-	if (txn_abort(scm2txnid(s_tid)) == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
-}
-
-static SCM gls_txn_undo(SCM s_tid)
-{
-	txnid_t tid;
-	SCM_ASSERT(txnid_p(s_tid), s_tid, SCM_ARG1, "txn_undo");
-	tid = txn_undo(scm2txnid(s_tid));
-	if (tid == -1)
-		return SCM_BOOL_F;
-	return txnid2scm(tid);
-}
-
-static SCM gls_txn_delete(SCM s_tid)
-{
-	SCM_ASSERT(txnid_p(s_tid), s_tid, SCM_ARG1, "txn_delete");
-	if (txn_delete(scm2txnid(s_tid)) == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
-}
 
 
 /* The scriptable swapfile API part.
@@ -166,15 +111,13 @@ static SCM gls_sw_closedir(SCM s_d)
 	return SCM_BOOL_T;
 }
 
-static SCM gls_sw_open(SCM s_name, SCM s_flags, SCM s_tid)
+static SCM gls_sw_open(SCM s_name, SCM s_flags)
 {
 	swfd_t fd;
 
 	SCM_ASSERT(gh_exact_p(s_name), s_name, SCM_ARG1, "sw_open");
 	SCM_ASSERT(gh_exact_p(s_flags), s_flags, SCM_ARG2, "sw_open");
-	SCM_ASSERT(txnid_p(s_tid), s_tid, SCM_ARG3, "sw_open");
-	fd = sw_open(gh_scm2long(s_name), gh_scm2long(s_flags),
-		     scm2txnid(s_tid));
+	fd = sw_open(gh_scm2long(s_name), gh_scm2long(s_flags));
 	if (fd == -1)
 		return SCM_BOOL_F;
 	return swfd2scm(fd);
@@ -305,11 +248,7 @@ static SCM gls_sw_write(SCM s_fd, SCM s_buf)
 
 int glscript_init_swapfile()
 {
-	/* Register txnid, swdir and swfd SMOBs to guile. */
-	txnid_smob_tag = scm_make_smob_type("txnid",
-					    sizeof(struct long_smob));
-	scm_set_smob_print(txnid_smob_tag, print_long);
-	scm_set_smob_equalp(txnid_smob_tag, equalp_long);
+	/* Register swdir and swfd SMOBs to guile. */
 	swdir_smob_tag = scm_make_smob_type("swdir",
 					    sizeof(struct pointer_smob));
 	scm_set_smob_print(swdir_smob_tag, print_pointer);
@@ -319,14 +258,6 @@ int glscript_init_swapfile()
 	scm_set_smob_print(swfd_smob_tag, print_long);
 	scm_set_smob_equalp(swfd_smob_tag, equalp_long);
 
-
-	/* Transaction subsystem procedures. */
-	gh_new_procedure1_0("txn_start", gls_txn_start);
-	gh_new_procedure1_0("txn_end", gls_txn_end);
-	gh_new_procedure1_0("txn_abort", gls_txn_abort);
-	gh_new_procedure1_0("txn_undo", gls_txn_undo);
-	gh_new_procedure1_0("txn_delete", gls_txn_delete);
-	gh_define("TXN_NONE", txnid2scm(TXN_NONE));
 
 	/* Swapfile subsystem procedures. */
 	gh_new_procedure1_0("swapfile_open", gls_swapfile_open);
@@ -339,7 +270,7 @@ int glscript_init_swapfile()
 	gh_new_procedure1_0("sw_readdir", gls_sw_readdir);
 	gh_new_procedure1_0("sw_closedir", gls_sw_closedir);
 
-	gh_new_procedure3_0("sw_open", gls_sw_open);
+	gh_new_procedure2_0("sw_open", gls_sw_open);
 	gh_new_procedure1_0("sw_close", gls_sw_close);
 	gh_new_procedure1_0("sw_fstat", gls_sw_fstat);
 	gh_new_procedure2_0("sw_ftruncate", gls_sw_ftruncate);
