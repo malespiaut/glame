@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.6 2000/03/20 23:47:21 nold Exp $
+ * $Id: file_io.c,v 1.7 2000/03/21 09:00:01 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -306,14 +306,15 @@ int read_file_register()
 {
 	filter_t *f;
 	filter_portdesc_t *p;
-
+	filter_paramdesc_t *d;
 	if (!(f = filter_alloc(read_file_f))
 	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 	    || !filterport_add_param(p, "position", "position of the stream",
 				     FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f, "filename", "filename",
-				 FILTER_PARAMTYPE_STRING))
+	    || !(d = filter_add_param(f, "filename", "filename",
+				    FILTER_PARAMTYPE_STRING))
+	    || !filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME))
 		return -1;
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
@@ -330,13 +331,15 @@ int write_file_register()
 {
 	filter_t *f;
 	filter_portdesc_t *p;
+	filter_paramdesc_t *d;
 
 	if (!(f = filter_alloc(write_file_f))
 	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
 				       FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
-	    || !filter_add_param(f, "filename", "filename",
-				 FILTER_PARAMTYPE_STRING))
-		return -1;
+	    || !(d = filter_add_param(f, "filename", "filename",
+				      FILTER_PARAMTYPE_STRING))
+	    || !filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME))
+	  return -1;
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
 	f->fixup_param = write_file_fixup_param;
