@@ -1,7 +1,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.9 2001/04/23 14:26:26 xwolf Exp $
+ * $Id: canvas_types.h,v 1.10 2001/04/23 18:18:41 xwolf Exp $
  *
  * Copyright (C) 2000, 2001 Johannes Hirche
  *
@@ -162,7 +162,7 @@ struct _gui_network {
 	filter_t * net;
 	GtkWidget *canvas;
 	gboolean paused;
-
+	gboolean openedUp;
 };
 
 	

@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.22 2001/04/23 14:26:26 xwolf Exp $
+ * $Id: gui.c,v 1.23 2001/04/23 18:18:41 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -122,6 +122,7 @@ gui_network_new(void)
 	net->pixname = NULL;
 	net->descr = NULL;
 	net->net = filter_creat(NULL);
+	net->openedUp = FALSE;
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	canv=canvas_new_from_network(net);
