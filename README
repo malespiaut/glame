@@ -5,13 +5,12 @@ a powerful, fast, stable, and easily extensible sound editor for Linux
 and compatible systems. Supported platforms are Linux, BSD and IRIX.
 
 Authors in chronological order
-	mag, XWolf, richi, nold, garrison, navratil
+	mag, XWolf, richi, nold, navratil
 with their real names
 	Alexander Ehlert,
 	Johannes Hirche,
 	Richard Guenther,
 	Daniel Kobras,
-	Jim Garrison,
 	Joe Navratil
 
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
