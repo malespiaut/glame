@@ -4,7 +4,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.1 2001/05/18 09:35:51 richi Exp $
+ * $Id: canvas_types.h,v 1.2 2001/05/23 07:51:53 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -35,19 +35,32 @@
 /* Types
  */
 
-struct _TimelineCanvasGroupClass;
-struct _TimelineCanvasFileClass;
-typedef struct _TimelineCanvasGroupClass TimelineCanvasGroupClass;
-typedef struct _TimelineCanvasFileClass TimelineCanvasFileClass;
+struct _TimelineCanvasClass;
+struct _TimelineCanvas;
+typedef struct _TimelineCanvasClass TimelineCanvasClass;
+typedef struct _TimelineCanvas TimelineCanvas;
 
+struct _TimelineCanvasGroupClass;
 struct _TimelineCanvasGroup;
-struct _TimelineCanvasFile;
+typedef struct _TimelineCanvasGroupClass TimelineCanvasGroupClass;
 typedef struct _TimelineCanvasGroup TimelineCanvasGroup;
+
+struct _TimelineCanvasFileClass;
+struct _TimelineCanvasFile;
+typedef struct _TimelineCanvasFileClass TimelineCanvasFileClass;
 typedef struct _TimelineCanvasFile TimelineCanvasFile;
 
 
 /* GTK Type defines
  */
+
+/* TimelineCanvas */
+#define TIMELINE_CANVAS_TYPE (timeline_canvas_get_type())
+#define TIMELINE_CANVAS(object) (GTK_CHECK_CAST((object), TIMELINE_CANVAS_TYPE, TimelineCanvas))
+#define TIMELINE_CANVAS_CLASS(object) (GTK_CHECK_CLASS_CAST((object), TIMELINE_CANVAS_TYPE, TimelineCanvasClass))
+#define TIMELINE_IS_CANVAS(object) (GTK_CHECK_TYPE((object), TIMELINE_CANVAS_TYPE))
+#define TIMELINE_IS_CANVAS_CLASS(object) (GTK_CHECK_CLASS_TYPE((object), TIMELINE_CANVAS_TYPE))
+#define TIMELINE_CANVAS_GET_CLASS(object) ((TimelineCanvasClass*) (((GtkObject*) (obj))->klass))
 
 /* TimelineCanvasGroup */
 #define TIMELINE_CANVAS_GROUP_TYPE (timeline_canvas_group_get_type())
@@ -71,6 +84,22 @@ typedef struct _TimelineCanvasFile TimelineCanvasFile;
  */
 
 
+/* TimelineCanvas
+ */
+
+struct _TimelineCanvasClass {
+	GnomeCanvasClass parent_class;
+
+};
+
+struct _TimelineCanvas {
+	GnomeCanvas parent_object;
+
+	glsig_handler_t *gpsm_handler;
+	gpsm_grp_t *root;
+};
+
+
 /* TimelineCanvasGroup
  */
 
@@ -83,6 +112,8 @@ struct _TimelineCanvasGroup {
 	GnomeCanvasGroup parent_object;
 
 	glsig_handler_t *gpsm_handler;
+	gpsm_grp_t *grp;
+	int level;
 };
 
 
@@ -90,20 +121,27 @@ struct _TimelineCanvasGroup {
  */
 
 struct _TimelineCanvasFileClass {
-	GnomeCanvasItemClass parent_class;
+	GnomeCanvasGroupClass parent_class;
 
 };
 
 struct _TimelineCanvasFile {
-	GnomeCanvasItem parent_object;
+	GnomeCanvasGroup parent_object;
 
 	glsig_handler_t *gpsm_handler;
+	gpsm_swfile_t *swfile;
 };
 
 
 
 /* Public functions.
  */
+
+
+GtkType timeline_canvas_get_type(void);
+
+TimelineCanvas *timeline_canvas_new(gpsm_grp_t *root);
+
 
 GtkType timeline_canvas_group_get_type(void);
 

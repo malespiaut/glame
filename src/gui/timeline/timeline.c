@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.1 2001/05/18 09:35:51 richi Exp $
+ * $Id: timeline.c,v 1.2 2001/05/23 07:51:53 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -152,14 +152,13 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 
 	window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(window),
-				       GTK_POLICY_AUTOMATIC,
-				       GTK_POLICY_AUTOMATIC);
+				       GTK_POLICY_ALWAYS,
+				       GTK_POLICY_ALWAYS);
 	gtk_widget_push_visual(gdk_rgb_get_visual());
 	gtk_widget_push_colormap(gdk_rgb_get_cmap());
-	canvas = gnome_canvas_new();
+	canvas = timeline_canvas_new(root);
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
-	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas), 0, 0, 600, 400);
 	gtk_container_add(GTK_CONTAINER(window), canvas);
 	gtk_widget_show(canvas);
 	gtk_widget_show(window);
