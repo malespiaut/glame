@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.22 2003/04/20 21:56:01 richi Exp $
+ * $Id: apply.c,v 1.23 2003/05/18 21:21:53 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -360,6 +360,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	struct apply_plugin_s *a;
 	GtkWidget *label, *hbox;
 	char s[256], *help;
+	const char *name;
 
 	if (!item || !plugin)
 		return -1;
@@ -378,6 +379,9 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	a->applying = 0;
 	a->timeout_id = -1;
 	help = (char *)plugin_query(plugin, PLUGIN_GUI_HELP_PATH);
+	name = (char *)plugin_query(plugin, PLUGIN_LABEL);
+	if (!name)
+		name = plugin_name(plugin);
 
 	/* Build the dialog. */
 	a->dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
@@ -400,7 +404,7 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), CANCEL, TRUE);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), HELP, TRUE);
 
-	snprintf(s, 255, _("Parameters of %s"), plugin_name(plugin));
+	snprintf(s, 255, _("Parameters of %s"), name);
 	label = gtk_label_new(s);
 	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), label,
 			   TRUE, TRUE, 3);
