@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.92 2001/11/29 10:04:44 richi Exp $
+ * $Id: main.c,v 1.93 2001/12/07 10:42:35 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -45,6 +45,7 @@
 #include "glame_console.h"
 #include "network_utils.h"
 #include "glconfig.h"
+#include "importexport.h"
 
 /* HACK */
 extern void blafoobar(int);
@@ -185,39 +186,13 @@ static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file)
 
 static void edit_file_cb(GtkWidget *menu, void *data)
 {
-	plugin_t *import;
-	int (*operation)(gpsm_item_t *, long, long);
-	long vpos;
 	gpsm_item_t *file;
 	WaveeditGui *we;
 
-	/* HACK(?) */
-	vpos = gpsm_item_vsize(gpsm_root());
-
-	/* Use the import plugin for importing. */
-	import = plugin_get("import");
-	if (!import) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("You dont have the import plugin - impossible."))));
+	/* Run the import dialog. */
+	file = glame_import_dialog(NULL);
+	if (!file)
 		return;
-	}
-	operation = plugin_query(import, PLUGIN_GPSMOP);
-	if (!operation
-	    || operation((gpsm_item_t *)gpsm_root(), 0, 0) == -1) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
-		return;
-	}
-
-	/* Again HACK - find the file in the gpsm tree.
-	 * -- FIXME: with direct import dont put this into the global
-	 *           gpsm tree anyway.
-	 */
-	if (!(file = gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
-		DPRINTF("No file at %li\n", vpos);
-		return;
-	} else if (!(file = gpsm_item_parent(file))) {
-		DPRINTF("Cannot find imported file at %li\n", vpos);
-		return;
-	}
 
 	/* Open the waveedit window and register a handler for gpsm
 	 * deletion after widget destroy. */
@@ -225,6 +200,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	if (!we) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog(_("Cannot open wave editor"))));
+		gpsm_item_destroy(file);
 		return;
 	}
 	gtk_signal_connect(GTK_OBJECT(we), "destroy",

@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.67 2001/11/27 10:30:10 richi Exp $
+ * $Id: swapfilegui.c,v 1.68 2001/12/07 10:42:36 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -40,6 +40,7 @@
 #include "timeline/timeline.h"
 #include "glscript.h"
 #include "network_utils.h"
+#include "importexport.h"
 #include "swapfilegui.h"
 
 
@@ -553,80 +554,22 @@ void changeString_cb(GtkEditable *wid, char *returnbuffer)
 }
 static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	GtkWidget * we;
-	char *filename;
-	filter_t *net, *swin, *writefile, *render;
-	filter_paramdb_t *db;
-	filter_param_t *param;
-	filter_port_t *source, *dest;
-	filter_pipe_t *pipe;
-	gpsm_grp_t *grp;
-	gpsm_item_t *it;
-	float pos;
-
-	/* Query the file name. */
-	filename = alloca(256);
-	*filename = '\0';
-	we = glame_dialog_file_request("Export As...", "swapfilegui:exportas",
-				       "Filename", NULL, filename);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)) || !*filename)
-		return;
-
-	/* Build temporary group out of flattened item->item. */
-	if (!(grp = gpsm_flatten(item->item)))
-		return;
-
-	/* Build basic network. */
-	net = filter_creat(NULL);
-	writefile = net_add_plugin_by_name(net, "write_file");
-	db = filter_paramdb(writefile);
-	param = filterparamdb_get_param(db, "filename");
-	if (filterparam_set(param, &filename) == -1)
-		goto fail_cleanup;
-	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
-
-	render = net_add_plugin_by_name(net, "render");
-	source = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
-	if (!(pipe = filterport_connect(source, dest)))
-		goto fail_cleanup;
-	pos = -1.57;
-	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
-	if (!(pipe = filterport_connect(source, dest)))
-		goto fail_cleanup;
-	pos = 1.57;
-	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
-
-	gpsm_grp_foreach_item(grp, it)
-		if (!(swin = net_add_gpsm_input(net, (gpsm_swfile_t *)it,
-						0, -1)))
-			goto fail_cleanup;
-	if (net_apply_node(net, render) == -1)
-		goto fail_cleanup;
-
-	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
-	    || filter_start(net) == -1)
-		goto fail_cleanup;
-	filter_wait(net);
-	filter_delete(net);
-	gpsm_item_destroy((gpsm_item_t *)grp);
+	glame_export_dialog(item->item, NULL);
 	deselect_all(active_swapfilegui);
-	return;
-
- fail_cleanup:
-	glame_network_error_dialog(net, "Failed to create exporting network");
-	filter_delete(net);
-	gpsm_item_destroy((gpsm_item_t *)grp);
 }
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-	plugin_t *import;
-	int (*operation)(gpsm_item_t *, long, long);
+	gpsm_item_t *imported;
 
-	if (!(import = plugin_get("import"))
-	    || !(operation = plugin_query(import, PLUGIN_GPSMOP))
-	    || operation(item->item, 0, 0) == -1)
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Error importing"))));
+	imported = glame_import_dialog(NULL);
+	if (!imported)
+		return;
+
+	if (gpsm_vbox_insert((gpsm_grp_t *)item->item, imported, 0, 0) == -1) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(_("Cannot place imported wave"))));
+		gpsm_item_destroy(imported);
+	}
 }
 
 
@@ -936,7 +879,7 @@ static SCM gls_swapfilegui_active_item()
 	if (!active_swapfilegui)
 		return SCM_BOOL_F;
 	if (!active_swapfilegui->active_item)
-		return gpsmitem2scm(active_swapfilegui->root);
+		return gpsmitem2scm((gpsm_item_t *)active_swapfilegui->root);
 	return gpsmitem2scm((gpsm_item_t *)active_swapfilegui->active_item->item);
 }
 

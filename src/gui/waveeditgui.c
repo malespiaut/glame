@@ -40,6 +40,7 @@
 #include "util/glame_gui_utils.h"
 #include "waveeditgui.h"
 #include "edit_filter/filtereditgui.h"
+#include "importexport.h"
 #include "clipboard.h"
 #include "network_utils.h"
 #include "glame_accelerator.h"
@@ -839,69 +840,7 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 
 static void wave_export_cb(GtkWidget *foo, void *bar)
 {
-	GtkWidget * we;
-	char *filename;
-	filter_t *net, *swin, *writefile, *render;
-	filter_paramdb_t *db;
-	filter_param_t *param;
-	filter_port_t *source, *dest;
-	filter_pipe_t *pipe;
-	gpsm_grp_t *grp;
-	gpsm_item_t *it;
-	float pos;
-
-	/* Query the file name. */
-	filename = alloca(256);
-	*filename = '\0';
-	we = glame_dialog_file_request("Export As...", "swapfilegui:exportas",
-				       "Filename", NULL, filename);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)) || !*filename)
-		return;
-
-	/* Lock waveedit. */
-	active_waveedit->locked = 1;
-	grp = active_waveedit->swfiles;
-
-	/* Build basic network. */
-	net = filter_creat(NULL);
-	writefile = net_add_plugin_by_name(net, "write_file");
-	db = filter_paramdb(writefile);
-	param = filterparamdb_get_param(db, "filename");
-	if (filterparam_set(param, &filename) == -1)
-		goto fail_cleanup;
-	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
-
-	render = net_add_plugin_by_name(net, "render");
-	source = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
-	if (!(pipe = filterport_connect(source, dest)))
-		goto fail_cleanup;
-	pos = -1.57;
-	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
-	if (!(pipe = filterport_connect(source, dest)))
-		goto fail_cleanup;
-	pos = 1.57;
-	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
-
-	gpsm_grp_foreach_item(grp, it)
-		if (!(swin = net_add_gpsm_input(net, (gpsm_swfile_t *)it,
-						0, -1)))
-			goto fail_cleanup;
-	if (net_apply_node(net, render) == -1)
-		goto fail_cleanup;
-
-	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
-	    || filter_start(net) == -1)
-		goto fail_cleanup;
-	filter_wait(net);
-	filter_delete(net);
-
-	active_waveedit->locked = 0;
-	return;
-
- fail_cleanup:
-	glame_network_error_dialog(net, "Failed to create exporting network");
-	filter_delete(net);
-	active_waveedit->locked = 0;
+	glame_export_dialog(active_waveedit->swfiles, NULL);
 }
 
 static void wave_help_cb(GtkWidget *foo, void*bar)
