@@ -82,7 +82,7 @@ endif
 audio_io_esd_la_LDFLAGS = -module -avoid-version $(ESD_LIBS)
 
 if HAVE_ALSA
-audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h
+audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h midi_io_alsa.c
 endif
 audio_io_alsa_la_LDFLAGS = -module -avoid-version $(ALSA_LIBS)
 

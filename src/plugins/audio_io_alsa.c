@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa.c,v 1.13 2002/11/03 21:22:26 mag Exp $
+ * $Id: audio_io_alsa.c,v 1.14 2002/12/01 23:32:23 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
@@ -38,7 +38,7 @@
 #include <alsa/asoundlib.h>
 #endif
 
-PLUGIN_SET(audio_io_alsa, "alsa_audio_in alsa_audio_out")
+PLUGIN_SET(audio_io_alsa, "alsa_audio_in alsa_audio_out midi_in_alsa")
 
 /*
 configure code shamelessly stolen from Paul Barton Davis       
