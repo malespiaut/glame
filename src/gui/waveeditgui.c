@@ -962,16 +962,12 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
 
-static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
-			      WaveeditGui *waveedit)
+static void handle_enter(GtkWidget *tree, GdkEventCrossing *event,
+			 WaveeditGui *waveedit)
 {
 	if (event->type == GDK_ENTER_NOTIFY) {
 		DPRINTF("Entering\n");
 		active_waveedit = waveedit;
-	} else if (event->type == GDK_LEAVE_NOTIFY
-		   && event->mode == GDK_CROSSING_NORMAL) {
-		DPRINTF("Leaving\n");
-		/* active_waveedit = NULL; */
 	}
 }
 
@@ -1182,7 +1178,14 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	}
 
 	/* Add GtkWaveView to the window. */
-	gnome_app_set_contents(GNOME_APP(window), window->waveview);
+	{
+		GtkWidget *vbox;
+		vbox = gtk_hbox_new(TRUE, 5);
+		gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(window->waveview),
+				   TRUE, TRUE, 5);
+		gnome_app_set_contents(GNOME_APP(window), vbox);
+		//gnome_app_set_contents(GNOME_APP(window), window->waveview);
+	}
 
 	/* Set the Waveform widget's data stream to point to our wavebuffer. */
 	gtk_wave_view_set_buffer (GTK_WAVE_VIEW(window->waveview),
@@ -1225,16 +1228,14 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar),
 			      "waveedit::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
-			      GNOME_DOCK_RIGHT, 0, 0, 0);
+			      GNOME_DOCK_TOP, 0, 0, 0);
 
 
 	/* Install the rmb menu and enter/leave callbacks. */
 	gtk_signal_connect(GTK_OBJECT(window->waveview), "button_press_event",
 			   (GtkSignalFunc)waveedit_rmb_cb, NULL);
 	gtk_signal_connect(GTK_OBJECT(window), "enter_notify_event",
-			   handle_enterleave, window);
-	gtk_signal_connect(GTK_OBJECT(window), "leave_notify_event",
-			   handle_enterleave, window);
+			   handle_enter, window);
 
 	/* Add accelerator handler. */
 	glame_accel_install(GTK_WIDGET(window), "waveview", NULL);
