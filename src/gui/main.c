@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.51 2001/05/13 12:07:29 richi Exp $
+ * $Id: main.c,v 1.52 2001/05/22 09:37:44 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -74,6 +74,7 @@ static GnomeUIInfo filter_menu_uiinfo[] = {
 static GnomeUIInfo help_menu_uiinfo[] =
 {
 	GNOMEUIINFO_ITEM_DATA("_Help","Opens a gnome help browser",gnome_help_goto,"info:glame",NULL),
+	GNOMEUIINFO_ITEM_DATA("Quick Start Guide", "Opens a gnome help browser with the quick start guide", gnome_help_goto, "info:glame#Quick_Start_Guide", NULL),
 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
 	GNOMEUIINFO_END
 };
@@ -521,7 +522,7 @@ static void gui_main()
 	char *path;
 
 	/* Update preferences. */
-	sprintf(configpath,"/%s/",g_get_prgname());
+	sprintf(configpath,"/%s/", "glame0.5");
 	gnome_config_push_prefix(configpath);
 	update_preferences();
 
@@ -541,7 +542,7 @@ static void gui_main()
 		return;
 
 	/* Create main window. */
-	app = gnome_app_new ("Glame", NULL);
+	app = gnome_app_new ("glame0.5", NULL);
 	gtk_object_set_data (GTK_OBJECT (app), "app", app);
 	dock = GNOME_APP (app)->dock;
 	gtk_widget_ref (dock);

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.89 2001/05/13 12:09:51 richi Exp $
+ * $Id: canvas.c,v 1.90 2001/05/22 09:37:44 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -590,7 +590,7 @@ canvas_new_from_network(gui_network* net)
 			name = strdup("Untitled");
 	}
 
-	window = gnome_app_new(name,_(name));
+	window = gnome_app_new("glame0.5", _(name));
 	dock = GNOME_DOCK(GNOME_APP(window)->dock);
 	gtk_widget_ref(GTK_WIDGET(dock));
 	

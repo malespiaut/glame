@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.6 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.7 2001/05/22 09:37:44 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -359,7 +359,7 @@ glame_filtereditgui_new(filter_t *net)
 	
 
 
-	window = gnome_app_new(name,_(name));
+	window = gnome_app_new("glame0.5", _(name));
 	dock = GNOME_DOCK(GNOME_APP(window)->dock);
 	gtk_widget_ref(GTK_WIDGET(dock));
 	

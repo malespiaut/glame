@@ -1092,7 +1092,7 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 		return NULL;
 
 	/* Create a Gtk+ window. */
-	window = gnome_app_new(title, _(title));
+	window = gnome_app_new("glame0.5", _(title));
   
 	/* Create a GtkWaveView widget. */
 	waveview = gtk_wave_view_new ();
