@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.14 2002/01/08 21:43:10 mag Exp $
+ * $Id: normalize.c,v 1.15 2002/01/20 18:59:06 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -384,6 +384,7 @@ void normalize_dialog(struct normalize_s* norms)
   gtk_signal_connect(GTK_OBJECT(button5), "clicked",
 		     (GtkSignalFunc)analyze_cb, norms);
 
+  /*
   norms->simulate_button = button4 = gtk_button_new_with_label (_("Simulate"));
   gtk_widget_ref (button4);
   gtk_object_set_data_full (GTK_OBJECT (dialog1), "button4", button4,
@@ -393,7 +394,7 @@ void normalize_dialog(struct normalize_s* norms)
 
   gtk_signal_connect(GTK_OBJECT(button4), "clicked",
 		     (GtkSignalFunc)simulate_cb, norms);
-
+  */
   norms->appbar = appbar1 = gnome_appbar_new (TRUE, TRUE, GNOME_PREFERENCES_NEVER);
   gtk_widget_ref (appbar1);
   gtk_object_set_data_full (GTK_OBJECT (dialog1), "appbar1", appbar1,
@@ -523,8 +524,8 @@ static void analyze_rms(struct normalize_s *ns) {
 			if (ns->running==0)
 				goto cancel_cleanup;
 
-			/*gnome_appbar_set_progress(GNOME_APPBAR(ns->appbar),
-						  percentage);*/
+			gnome_appbar_set_progress(GNOME_APPBAR(ns->appbar),
+						  percentage);
 		}
 		ns->running = 0;
 
@@ -630,13 +631,16 @@ static void normalize_do_task(struct normalize_s *ns) {
 						  percentage);
 		}
 		ns->running = 0;
-		gpsm_notify_swapfile_change(gpsm_swfile_filename(item), 
-					    ns->start, MIN(ns->length, (gpsm_item_hsize(item)-ns->start+1)));
-
+	
 		done+=filterparam_val_pos(param);
 		DPRINTF("posparam=%ld\n", filterparam_val_pos(param));
 
 		filter_delete(net);
+	}
+
+	gpsm_grp_foreach_item(ns->grp, item) {
+		gpsm_notify_swapfile_change(gpsm_swfile_filename(item), 
+					    ns->start, MIN(ns->length, (gpsm_item_hsize(item)-ns->start+1)));
 	}
 
 	gtk_widget_destroy(ns->dialog);
