@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.30 2001/04/24 12:07:49 richi Exp $
+ * $Id: filter_buffer.c,v 1.31 2001/05/23 12:33:58 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -179,11 +179,7 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 }
 
 
-#ifdef LOW_LATENCY
-#define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*2*(GLAME_HL_MAX_BUFSIZE/GLAME_LL_MAX_BUFSIZE)))
-#else
 #define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*2))
-#endif
 #define FBPIPE_WSIZE (FBPIPE_WCNT*sizeof(void *))
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
