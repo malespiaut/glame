@@ -1,6 +1,6 @@
 /*
  * gldb.c
- * $Id: gldb.c,v 1.2 2000/05/01 11:09:04 richi Exp $
+ * $Id: gldb.c,v 1.3 2000/05/19 09:27:34 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -20,6 +20,7 @@
  *
  */
 
+#include <string.h>
 #include "gldb.h"
 
 /* Item hash & list wrappers.
@@ -98,11 +99,14 @@ int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
 	if (gldb_query_item(db, label))
 		return -1;
 	item->db = db;
-	item->label = label;
+	if (!(item->label = strdup(label)))
+		return -1;
 	hash_add_item(item, label, db);
 	list_add_item(item, db);
 	if (db->ops->add(db, item) == -1) {
 		gldb_remove_item(item);
+		free((char *)item->label);
+		item->label = NULL;
 		return -1;
 	}
 	return 0;
@@ -120,6 +124,8 @@ void gldb_delete_item(gldb_item_t *item)
 	if (item_in_db(item))
 		gldb_remove_item(item);
 	item->db->ops->delete(item);
+	free((char *)item->label);
+	item->label = NULL;
 }
 
 gldb_item_t *gldb_query_item(gldb_t *db, const char *label)

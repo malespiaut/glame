@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.18 2000/05/02 07:46:36 richi Exp $
+ * $Id: filter_methods.c,v 1.19 2000/05/19 09:27:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -213,9 +213,13 @@ int filter_network_set_param(filter_node_t *node, filter_param_t *param,
 	if (!map_node || !map_label)
 		return -1;
 
-	if (!(n = filternetwork_get_node(node, map_node)))
+	if (!(n = filternetwork_get_node(FILTER_NETWORK(node), map_node))) {
+		DPRINTF("No such node %s\n", map_node);
 		return -1;
-	if (!(p = filterpdb_get_param(filternode_pdb(n), map_label)))
+	}
+	if (!(p = filterpdb_get_param(filternode_pdb(n), map_label))) {
+		DPRINTF("No such param %s\n", map_label);
 		return -1;
+	}
 	return filterparam_set(p, val);
 }

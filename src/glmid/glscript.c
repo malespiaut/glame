@@ -255,7 +255,6 @@ SCM gls_filterparam_set(filter_pdb_t *db, SCM s_label, SCM s_val)
 	label = gh_scm2newstr(s_label, &labell);
 	param = filterpdb_get_param(db, label);
 	if (!param) {
-		DPRINTF("No such parameter %s\n", label);
 		res = -1;
 	} else if (FILTER_PARAM_IS_INT(param)) {
 		i = gh_scm2long(s_val);
