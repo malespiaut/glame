@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.7 2001/11/09 16:51:16 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.8 2001/12/16 14:16:55 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -53,6 +53,9 @@ void create_label_widget_pair(GtkWidget* vbox, const char* label,
 void create_label_edit_pair(GtkWidget *vbox,
 			    const char *label, const char *history,
 			    char *result);
+
+/* Query the nr of the selected item in a Gtk(Option)Menu. */
+gint glame_menu_get_active_index(GtkMenu *menu);
 
 
 /* useful callback for dialog boxes which query for string types. */

@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.19 2001/12/13 14:53:24 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.20 2001/12/16 14:16:55 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -769,4 +769,24 @@ void glame_network_notificator_destroy_gpsm(glsig_handler_t *handler,
 					    long sig, va_list va)
 {
 	gpsm_item_destroy((gpsm_item_t *)glsig_handler_private(handler));
+}
+
+
+gint glame_menu_get_active_index(GtkMenu *menu)
+{
+	GtkWidget *act;
+	GList *list;
+	int val;
+
+	act = gtk_menu_get_active(menu);
+	list = gtk_container_children(GTK_CONTAINER(menu));
+	val = 0;
+	while (list) {
+		if ((GtkWidget *)(list->data) == act)
+			break;
+		list = g_list_next(list);
+		val++;
+	}
+
+	return list ? val : -1;
 }
