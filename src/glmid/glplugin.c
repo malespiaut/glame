@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.5 2000/03/20 09:47:13 richi Exp $
+ * $Id: glplugin.c,v 1.6 2000/03/25 21:16:14 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -147,7 +147,6 @@ plugin_t *plugin_get(const char *name)
 	if ((p = plugin_add(name, filename)))
 	    return p;
 
-	DPRINTF("%s NOT found.\n", name);
 	return NULL;
 }
 

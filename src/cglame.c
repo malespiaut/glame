@@ -32,12 +32,10 @@
 
 
 
-/* just init the scripting subsystem and enter a scheme command line.
+/* just enter a scheme command line.
  */
 void sc_main()
 {
-	gh_eval_str("(plugin_add_path \"plugins/.libs\")");
-
 	scm_shell(0, NULL);
 	/* not reached. */
 }
@@ -51,20 +49,23 @@ int main(int argc, char **argv)
 "    Daniel Kobras.\n"
 "    CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free\n"
 "    software, and you are welcome to redistribute it under certain\n"
-"    conditions.\n\n"
-"    Usage: cglame [swapfile]\n\n");
-
-	fprintf(stderr,
-"Quick help:\n"
-"(quit) gets you out of here.\n"
-"(help) gets you some additional help.\n\n");
+"    conditions.\n\n");
 
 	if (argc == 2) {
 		if (swap_open(argv[1], 0) == -1) {
-			perror("Unable to open swap");
+			perror("ERROR: Unable to open swap");
 			exit(1);
 		}
+	} else {
+		fprintf(stderr,
+"    WARNING: starting without a swapfile.\n"
+"    Usage: cglame [swapfile]\n\n");
 	}
+
+        fprintf(stderr,
+"    Quick help:\n"
+"    (quit) gets you out of here.\n"
+"    (help) gets you some additional help.\n\n");
 
 	if (glame_init_with_guile(sc_main) == -1) {
 	        fprintf(stderr, "glame init failed!\n");

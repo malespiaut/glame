@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Will create %li bytes swap in %s in 5 seconds!\n",
 		(long)size, swapname);
-	fprintf(stderr, "Last chance to quit!\n");
+	fprintf(stderr, "Last chance to quit (Ctrl-c is your friend)!\n");
 	sleep(5);
 	fprintf(stderr, "\nSetting up swap...\n");
 
