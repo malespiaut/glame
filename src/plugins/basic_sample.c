@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.55 2002/01/27 12:26:19 richi Exp $
+ * $Id: basic_sample.c,v 1.56 2002/01/27 15:09:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -487,22 +487,16 @@ static int mix_fixup(filter_t *n, filter_pipe_t *out)
 	if (!out && !(out = filterport_get_pipe(outp)))
 		return 0;
 
-	/* get samplerate & destination phi from inputs
-	 * - rate to max rate of inputs (to allow feedback!)
-	 * - phi either to the common input phi or to
-	 *   the default phi */
-	if ((in = filterport_get_pipe(inp))) {
+	/* get samplerate & destination phi from input pipes
+	 * that are _not_ feedback pipes. */
+	filterport_foreach_pipe(inp, in) {
+		if (filterpipe_is_feedback(in))
+			continue;
 		rate = filterpipe_sample_rate(in);
 		phi = filterpipe_sample_hangle(in);
-		filterport_foreach_pipe(inp, in) {
-			if (filterpipe_sample_rate(in) > rate)
-				rate = filterpipe_sample_rate(in);
-			if (filterpipe_sample_hangle(in) != phi)
-				phi = FILTER_PIPEPOS_DEFAULT;
-		}
 	}
 
-	/* FIXME! phi can be overridden by parameter */
+	/* phi is overridden by parameter */
 	phi = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "position"));
 
 	if (rate != filterpipe_sample_rate(out)
