@@ -14,6 +14,7 @@ Known BUGS that should be fixed before 0.6.0:
 - intl for other than main widget needs to be done
 - looping support for swapfile_in filter and GUI
 - maybe disable timeline
+- remove plugin install warning, if versioning works ok
 - fix or disable expand/collapse in filternetwork editor
 - fix filter_collapse not traversing all connections correctly
 
@@ -46,6 +47,7 @@ hash/
           * think of useful SIMD operations with good (ask richi) API 
           * do 3dnow, isse, mmx, etc. versions of existing operations
           * think of how to do run-time detection/profiling
+          * use http://mega-nerd.com/FPcast/ FP->int conversion stuff
 
 filter/
 	[richi]
