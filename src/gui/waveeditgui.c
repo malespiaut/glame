@@ -469,11 +469,11 @@ static void play(GtkWaveView *waveview,
 		filter_add_node(net, render, "render");
 		render_in = filterportdb_get_port(filter_portdb(render), PORTNAME_IN);
 		pipe = filterport_connect(filterportdb_get_port(filter_portdb(render), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN));
-		pos = -M_PI/2;
-		filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(pipe), "position"), &pos);
+		pos = FILTER_PIPEPOS_LEFT;
+		filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
 		pipe = filterport_connect(filterportdb_get_port(filter_portdb(render), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN));
-		pos = +M_PI/2;
-		filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(pipe), "position"), &pos);
+		pos = FILTER_PIPEPOS_RIGHT;
+		filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
 	}
 
 	if (rec_cnt > 0) {
