@@ -182,7 +182,7 @@ int swapfile_open(const char *name, int flags)
 	swap.ro = 0;
 
 	/* Initialize cluster subsystem. */
-	if (cluster_init(32, 100*1024*1024) == -1)
+	if (cluster_init(256, 256*1024*1024) == -1)
 		goto err;
 
 	/* Do basic fsck to check if we're really clean. */
@@ -542,7 +542,7 @@ static int fsck_check_clusters(int fix)
 			cluster_addfileref(cluster, file->name);
 			unclean = 1;
 		}
-		cluster_put(cluster, CLUSTERPUT_FREE);
+		cluster_put(cluster, 0);
 		unclean = 1;
 	}
 	if (file)
@@ -560,9 +560,10 @@ int swapfile_fsck(const char *name, int force)
 	int pid, unclean;
 
 	/* Can we open the swapfile w/o check? */
-	if (swapfile_open(name, 0) == 0 && !force) {
+	if (swapfile_open(name, 0) == 0) {
 		swapfile_close();
-		return 0;
+		if (!force)
+			return 0;
 	}
 
 	/* No swapfile? */
@@ -575,7 +576,10 @@ int swapfile_fsck(const char *name, int force)
 
 	/* Try to recover - clear stale lock. */
 	snprintf(str, 255, "%s/.lock", name);
-	if (!(f = fopen(str, "r+")) && !force)
+	f = fopen(str, "r+");
+	if (!f && force)
+		f = fopen(str, "w+");
+	if (!f)
 		return -1;
 	if (fscanf(f, "%i", &pid) == 1) {
 		if (kill(pid, 0) == -1 && errno != ESRCH) {
@@ -598,12 +602,13 @@ int swapfile_fsck(const char *name, int force)
 	INIT_LIST_HEAD(&swap.fds);
 
 	/* Initialize cluster subsystem. */
-	if (cluster_init(32, 100*1024*1024) == -1)
+	if (cluster_init(256, 256*1024*1024) == -1)
 		return -1;
 
 	/* We are now ready for a few checks of the filesystems
 	 * integrity. */
 	swap.fsck = 1;
+	unclean = 0;
 
 	/* Loop over all cluster data/meta files and check if they
 	 * are valid clusters. Try to fix clusters without metadata. */
