@@ -192,8 +192,8 @@ dnl libglade check
 if test x$gui = xyes -a x$have_gnome = xyes; then
   AC_PATH_PROG(ac_libglade_config, libglade-config, no)
   if test "$ac_libglade_config" != "no"; then
-    GNOME_LIBS ="$GNOME_LIBS `$ac_libglade_config --libs gnome`"
-    GNOME_CFLAGS ="$GNOME_CFLAGS `$ac_libglade_config --cflags gnome`"
+    GNOME_LIBS="$GNOME_LIBS `$ac_libglade_config --libs gnome`"
+    GNOME_CFLAGS="$GNOME_CFLAGS `$ac_libglade_config --cflags gnome`"
     glade=yes
   else
     glade=yes
