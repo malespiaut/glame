@@ -20,8 +20,6 @@
  */
 
 #include "filter.h"
-#define	SIZE	1024
-
 
 /* This filter positions a mono sound in the stereo field */
 
@@ -32,14 +30,14 @@ static int pan_f(filter_node_t *n)
 	filter_buffer_t *l_buf, *r_buf;
 	int i;
 
-	if (!(pan = filternode_get_param(n, "pan")))
+	if (!(pan = filternode_get_param(n, "pan"))
+	    || !(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(l_out = filternode_get_output(n, PORTNAME_OUT))
+	    || !(r_out = filternode_next_output(l_out)))
 		return -1;
-	if (!(in = filternode_get_input(n, PORTNAME_IN)))
-		return -1;
-	if (!(l_out = filternode_get_output(n, PORTNAME_LEFT_OUT)))
-		return -1;
-	if (!(r_out = filternode_get_output(n, PORTNAME_RIGHT_OUT)))
-		return -1;
+
+	filterpipe_sample_hangle(l_out) = FILTER_PIPEPOS_LEFT;
+	filterpipe_sample_hangle(r_out) = FILTER_PIPEPOS_RIGHT;
 
 	FILTER_AFTER_INIT;
 
@@ -103,8 +101,6 @@ static int echo3_f(filter_node_t *n)
 	return 0;
 }
 
-#endif
-
 /* This takes a parameter and turns it into a stream. Will be useful
    when combined with my new echo and tremolo effects (soon to come) */
 
@@ -154,7 +150,7 @@ static int p2s_f (filter_node_t *n)
 static int ringmod_f (filter_node_t *n)
 {
 	filter_pipe_t *in, *auxin, *out;
-	filter_buffer_t buf, auxbuf;
+	filter_buffer_t *buf, *auxbuf;
 
 	if ((auxin = filternode_get_input(n, "aux_in"))
 	    || (in = filternode_get_input(n, PORTNAME_IN))
@@ -170,6 +166,8 @@ static int ringmod_f (filter_node_t *n)
 	return 0;
 }
 
+#endif
+
 int garrison_register()
 {
 	filter_t *f;
@@ -179,9 +177,7 @@ int garrison_register()
 		return -1;
 	if (!(filter_add_input(f, PORTNAME_IN, "input stream to pan", FILTER_PORTTYPE_SAMPLE)))
 		return -1;
-	if (!(filter_add_output(f, PORTNAME_LEFT_OUT, "left output stream", FILTER_PORTTYPE_SAMPLE)))
-		return -1;
-	if (!(filter_add_output(f, PORTNAME_RIGHT_OUT, "right output stream", FILTER_PORTTYPE_SAMPLE)))
+	if (!(filter_add_output(f, PORTNAME_OUT, "output streams", FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC)))
 		return -1;
 	if (!(filter_add_param(f, "pan", "position in stereo field", FILTER_PARAMTYPE_FLOAT)))
 		return -1;
@@ -208,7 +204,6 @@ int garrison_register()
 		return -1;
 	if (filter_add(f))
 		return -1;
-#endif
 
 	/***** parameter to stream *****/
 	if ((f = filter_alloc("p2s", "Converts parameter to stream", p2s_f)) == NULL)
@@ -231,6 +226,7 @@ int garrison_register()
 		return -1;
 	if (filter_add(f))
 		return -1;
+#endif
 
 	return 0;
 }
