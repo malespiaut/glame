@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.21 2001/11/26 23:53:11 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.22 2001/12/03 11:10:26 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -637,6 +637,10 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 	GlameCanvasPort *gSource, *gDest;
 	int i;
 	
+	if(glame_canvas_find_pipe(pipe)){
+		DPRINTF("Trying to add duplicate pipe!\n");
+		return glame_canvas_find_pipe(pipe);
+	}
 	gPipe = GLAME_CANVAS_PIPE(gnome_canvas_item_new(group, 
 							glame_canvas_pipe_get_type(),
 							NULL));
