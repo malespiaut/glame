@@ -2,6 +2,7 @@
  * glscript.c
  *
  * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2002 Clinton Ebadi
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -138,33 +139,66 @@ long scm2long(SCM long_smob, long smob_tag)
 	return SCM2LONGSMOB(long_smob)->val;
 }
 
-
-static void _glscript_init()
+static void _glscript_init (void* unused)
 {
 	/* Tell scheme about installation directory of GLAME
 	 * and the revision of the scripting language.
 	 */
-	gh_define("glamedir", gh_str02scm(PKGSCRIPTSDIR));
-	gh_define("glameversion", gh_long2scm(1));
+	glame_def_export ("glamedir", scm_makfrom0str(PKGSCRIPTSDIR));
+	glame_def_export ("glameversion", scm_long2num(1));
 
 	/* Register scheme procedures for the subsystems.
 	 */
+
 	glscript_init_swapfile();
 	glscript_init_filter();
 	glscript_init_gpsm();
 }
 
+#if !NEW_GUILE
+static void _gl_init_wrap ()
+{
+	/* scm_register_module_xxx wants a procedure that takes no args, 
+	   scm_c_define_module wants one that takes a void* */
+	_glscript_init (NULL);
+}
+#endif
+
 int glscript_init()
 {
+#if NEW_GUILE
+	SCM glame_user_module;
+#endif
+#ifdef DEBUG
+	scm_eval_string(scm_str2string("(debug-enable 'backtrace)\n"
+				       "(debug-enable 'debug)\n"
+				       "(read-enable 'positions)\n"));
+#endif /* DEBUG */
+
 	/* Redirect output/error to console - redirected again after
 	 * gui/glame_console init. */
 	scm_set_current_output_port(
-		scm_fdes_to_port(dup(1), "w", gh_str02scm("stdout")));
+		scm_fdes_to_port(dup(1), "w", scm_makfrom0str("stdout")));
 	scm_set_current_error_port(
-		scm_fdes_to_port(dup(2), "w", gh_str02scm("stderr")));
+		scm_fdes_to_port(dup(2), "w", scm_makfrom0str ("stderr")));
+
+#if NEW_GUILE
+	/* define the glame module */
+	scm_c_define_module ("glame", _glscript_init, NULL);
+
+ 	/* Switch to a more useful module and use the glame module. */
+	glame_user_module = scm_c_define_module ("glame-user", NULL, NULL);
+	scm_set_current_module (glame_user_module);
+	scm_c_use_module ("glame");
+	scm_c_use_module ("guile-user");
+	scm_c_use_module ("ice-9 session");
+
+#else
+	/* define the glame module */
+	scm_register_module_xxx ("glame", _gl_init_wrap);
 
 	/* Register all GLAME specific stuff inside the "glame"
-	 * module. Do this with lazy guile 1.3.4 stuff - oh well. */
+	 * module. Do this with lazy guile 1.3.4/1.4 stuff - oh well. */
 	scm_register_module_xxx("glame", _glscript_init);
 
 	/* Switch to a more useful module and use the glame module. */
@@ -173,6 +207,9 @@ int glscript_init()
 "  :use-module (glame)"
 "  :use-module (guile)"
 "  :use-module (ice-9 session))");
+#endif
+
+
 
 	/* Load glame scheme libraries (if existent):
 	 * 1. installed glame.scm
