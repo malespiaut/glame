@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.34 2001/08/07 09:08:39 richi Exp $
+ * $Id: glplugin.c,v 1.35 2001/08/13 14:30:04 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -175,7 +175,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 			*(sp++) = '\0';
 		mangle_name(name, psname);
 		if (!(pn = _plugin_alloc(name))
-		    || !(pn->handle = lt_dlopen(filename))
+		    || !(pn->handle = lt_dlopenext(filename))
 		    || try_init_glame_plugin(pn, name, filename) == -1
 		    || _plugin_add(pn) == -1) {
 			_plugin_free(pn);
@@ -218,7 +218,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 	 * GLAME wrappers for them. */
 	for (i=0; (desc = desc_func(i)) != NULL; i++) {
 		if (!(lp = _plugin_alloc(desc->Label))
-		    || !(lp->handle = lt_dlopen(filename))
+		    || !(lp->handle = lt_dlopenext(filename))
 		    || installLADSPAPlugin(desc, lp) == -1
 		    || _plugin_add(lp) == -1) {
 			_plugin_free(lp);
@@ -238,7 +238,7 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 	/* First try to open the specified shared object. */
 	if (filename && access(filename, R_OK) == -1)
 		return -1;
-	if (!(p->handle = lt_dlopen(filename))) {
+	if (!(p->handle = lt_dlopenext(filename))) {
 		DPRINTF("dlopen(%s): %s\n", filename, lt_dlerror());
 		return -1;
 	}
@@ -264,7 +264,8 @@ int plugin_load(const char *filename)
 	plugin_t *p;
 
 	/* Create the plugin name out of the filename - i.e.
-	 * filename without leading path and trailing .so */
+	 * filename without leading path and trailing .so
+         * FIXME: add extensions as we know them to be shared libs */
 	s = (s = strrchr(filename, '/')) ? s+1 : (char *)filename;
 	strncpy(name, s, 255);
 	if (!(s = strstr(name, ".la"))
@@ -313,19 +314,13 @@ plugin_t *plugin_get(const char *nm)
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
-		sprintf(filename, "%s/%s.la", path->path, name);
-		if (try_load_plugin(p, name, filename) == 0)
-			goto found;
-		sprintf(filename, "%s/%s.so", path->path, name);
+		sprintf(filename, "%s/%s", path->path, name);
 		if (try_load_plugin(p, name, filename) == 0)
 			goto found;
 	}
 
 	/* last try LD_LIBRARY_PATH supported plugins */
-	sprintf(filename, "%s.la", name);
-	if (try_load_plugin(p, name, filename) == 0)
-		goto found;
-	sprintf(filename, "%s.so", name);
+	sprintf(filename, "%s", name);
 	if (try_load_plugin(p, name, filename) == 0)
 		goto found;
 
