@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.41 2001/03/20 16:28:56 mag Exp $
+ * $Id: file_io.c,v 1.42 2001/03/30 22:23:54 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -133,6 +133,7 @@ typedef struct {
 #ifdef HAVE_LAME
 		struct {
 			int			fd;
+			off_t			start;
 			lame_global_flags	*lgflags;
 			mp3data_struct		*mp3data;
 			track_t			*track;
@@ -1111,8 +1112,10 @@ int lame_read_prepare(filter_t *n, const char *filename)
 	} while ((!RWM(n).mp3data->header_parsed) || (max>200));
 	if (!RWM(n).mp3data->header_parsed)
 		return -1;
-	DPRINTF("Found mp3 file: channels=%d, freq=%d\n", 
-		RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate);
+	RWM(n).start = lseek(RWM(n).fd, 0, SEEK_CUR);
+	DPRINTF("Found mp3 file: channels=%d, freq=%d, offset=%d\n", 
+		RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate, 
+		RWM(n).start);
 	RWM(n).track = ALLOCN(RWM(n).mp3data->stereo, track_t);
 	return 0;
 }
@@ -1144,6 +1147,8 @@ void lame_read_cleanup(filter_t *n) {
 	close(RWM(n).fd);
 	free(RWM(n).track);
 	free(RWM(n).mp3data);
+	RWM(n).mp3data = NULL;
+	RWM(n).track = NULL;
 	/*
 	free(RWM(n).lgflags);
 	*/
@@ -1158,6 +1163,7 @@ int lame_read_f(filter_t *n) {
 	char buffer[128];
 	short s[2][4096];
 	
+	lseek(RWM(n).fd, RWM(n).start, SEEK_SET);
 	FILTER_AFTER_INIT;
 	do {
 		FILTER_CHECK_STOP;
@@ -1177,6 +1183,9 @@ int lame_read_f(filter_t *n) {
 		} else if (done < 0)
 			goto _lame_bailout;
 	} while (len > 0);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
 	ret = 0;
 _lame_bailout:
 	filterportdb_foreach_port(filter_portdb(n), port) {
@@ -1185,9 +1194,6 @@ _lame_bailout:
 		filterport_foreach_pipe(port, p_out)
 			sbuf_queue(p_out, NULL);
 	}
-	FILTER_BEFORE_STOPCLEANUP;
-	FILTER_BEFORE_CLEANUP;
-	close(RWM(n).fd);
 	DPRINTF("read_finished\n");
 	if (ret == -1) FILTER_ERROR_RETURN("error reading mp3 file\n");
 	return ret;	
