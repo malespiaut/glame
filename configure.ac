@@ -434,12 +434,13 @@ ACG_PKG_CHECK_MODULES(MAD, mad,
 [
   AC_CHECK_HEADER([mad.h],
   [
+    acg_save_LIBS="$LIBS"
     AC_CHECK_LIB(mad, mad_stream_buffer,
     [
       AC_DEFINE(HAVE_LIBMAD,, [have mad library])
-      GLAME_LIBS="$GLAME_LIBS -lmad -lm"
-    ],,[-lm]
-    )
+      GLAME_LIBS="$GLAME_LIBS -lmad"
+    ])
+    LIBS="$acg_save_LIBS"
   ])
 ])
 
