@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.12 2001/05/22 11:34:34 richi Exp $
+ * $Id: filter_param.c,v 1.13 2001/06/18 08:23:44 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -72,6 +72,9 @@ static gldb_item_t *paramdb_op_copy(gldb_item_t *source)
 
 	if (FILTER_PARAM_IS_STRING(s)) {
 		d->u.string = s->u.string ? strdup(s->u.string) : NULL;
+	} else if (FILTER_PARAM_IS_BUF(s)) {
+		fbuf_ref(s->u.buf);
+		d->u.buf = s->u.buf;
 	} else {
 		memcpy(&d->u, &s->u, sizeof(s->u));
 	}
@@ -325,6 +328,7 @@ int filterparam_set(filter_param_t *param, const void *val)
 	} else if (FILTER_PARAM_IS_POS(param)) {
 		param->u.pos = *(long *)val;
 	} else if (FILTER_PARAM_IS_BUF(param)) {
+		fbuf_ref(*(filter_buffer_t **)val);
 		fbuf_unref(param->u.buf);
 		param->u.buf = *(filter_buffer_t **)val;
 	}
@@ -349,22 +353,46 @@ int filterparam_set_string(filter_param_t *param, const char *val)
 		res = sscanf(val, " %i ", &p.u.i);
 	else if (FILTER_PARAM_IS_FLOAT(param))
 		res = sscanf(val, " %f ", &p.u.f);
-	else if (FILTER_PARAM_IS_SAMPLE(param))
-		res = sscanf(val, " %f ", &p.u.sample);
-	else if (FILTER_PARAM_IS_STRING(param)) {
+	else if (FILTER_PARAM_IS_SAMPLE(param)) {
+		float f;
+		res = sscanf(val, " %f ", &f);
+		p.u.sample = f;
+	} else if (FILTER_PARAM_IS_STRING(param)) {
 		if ((res = sscanf(val, " \"%511[^\"]\" ", s)) != 1)
 			res = sscanf(val, " %511[^\"] ", s);
 		p.u.string = s;
 	} else if (FILTER_PARAM_IS_POS(param))
 		res = sscanf(val, " %li ", &p.u.pos);
-	else if (FILTER_PARAM_IS_BUF(param))
-		return -1; /* FIXME(?) */
-	else
+	else if (FILTER_PARAM_IS_BUF(param)) {
+		filter_buffer_t *buf;
+		unsigned char byte, *b;
+		const unsigned char *c;
+		int i;
+		if (*val == '"')
+			val++;
+		buf = fbuf_alloc(strlen(val)/2, NULL);
+		c = val;
+		b = fbuf_buf(buf);
+		for (i=0; i<fbuf_size(buf); i++) {
+			byte = (*c <= '9' ? *c - '0' : *c - 'A' + 10) << 4;
+			c++;
+			byte += (*c <= '9' ? *c - '0' : *c - 'A' + 10);
+			c++;
+			*(b++) = byte;
+		}
+		p.u.buf = buf;
+		res = 1;
+	} else
 		return -1;
 	if (res != 1)
 		return -1;
 
-	return filterparam_set(param, (void *)&p.u);
+	res = filterparam_set(param, (void *)&p.u);
+
+	if (FILTER_PARAM_IS_BUF(param))
+		fbuf_unref(p.u.buf);
+
+	return res;
 }
 
 char *filterparam_to_string(const filter_param_t *param)
@@ -379,15 +407,28 @@ char *filterparam_to_string(const filter_param_t *param)
 	else if (FILTER_PARAM_IS_FLOAT(param))
 		snprintf(buf, 511, "%f", param->u.f);
 	else if (FILTER_PARAM_IS_SAMPLE(param))
-		/* FIXME: this is SAMPLE type specific */
-		snprintf(buf, 511, "%f", param->u.sample);
+		snprintf(buf, 511, "%f", (float)param->u.sample);
 	else if (FILTER_PARAM_IS_STRING(param) && param->u.string)
 		snprintf(buf, 511, "\"%s\"", param->u.string);
 	else if (FILTER_PARAM_IS_POS(param))
 		snprintf(buf, 511, "%li", param->u.pos);
-	else if (FILTER_PARAM_IS_BUF(param))
-		return NULL; /* FIXME(?) */
-	else
+	else if (FILTER_PARAM_IS_BUF(param) && param->u.buf) {
+		const char CHARS[16] = "0123456789ABCDEF";
+		char *str, *chr;
+		unsigned char *val;
+		int i;
+		str = malloc(2*fbuf_size(param->u.buf)+3);
+		chr = str;
+		val = fbuf_buf(param->u.buf);
+		*(chr++) = '"';
+		for (i=0; i<fbuf_size(param->u.buf); i++) {
+			*(chr++) = CHARS[(*val) >> 4];
+			*(chr++) = CHARS[*(val++) & 0x0f];
+		}
+		*(chr++) = '"';
+		*chr = '\0';
+		return str;
+	} else
 		return NULL;
 
 	return strdup(buf);
