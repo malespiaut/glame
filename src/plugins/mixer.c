@@ -1,7 +1,7 @@
 /*
  * mixer.c
  *
- * $Id: mixer.c,v 1.21 2004/10/23 13:09:29 richi Exp $
+ * $Id: mixer.c,v 1.22 2004/12/26 20:59:02 richi Exp $
  *
  * Copyright (C) 2002, 2003 Laurent Georget
  *
@@ -117,21 +117,9 @@ GtkWidget *glame_param_slider_new(filter_param_t * param,
 
 static void cleanup(struct apply_data_s *a)
 {
-	int index;
-
-	DPRINTF("cleanup\n");
-
 	if (a->timeout_id != -1)
 		gtk_timeout_remove(a->timeout_id);
 	gtk_widget_hide(a->dialog);
-	
-/* 	for (index = 0; index < buttons_count; index++) { */
-/* 	  printf("index=%i butcount=%i \n",index,buttons_count); */
-/* 	  gtk_widget_destroy(r[index]->mute_button); */
-/* 	  gtk_widget_destroy(r[index]->solo_button); */
-/* 	  free (r[index]); */
-/* 	} */
-
 	
 	gtk_widget_destroy(a->dialog);
 	if (a->net) {
@@ -140,12 +128,6 @@ static void cleanup(struct apply_data_s *a)
 	gpsm_item_destroy((gpsm_item_t *) a->grp);
 
 	free(a);
-
-	/* FIX ME This part  segfaults sometimes : the buttons are already destroyed */
-	/* for (index = 0; index < buttons_count; index++) { */
-		/* printf("index=%i butcount=%i \n",index,buttons_count); */
-		 /* free(r[index]); */
-/* 	} */
 }
 
 static gint poll_net_cb(struct apply_data_s *a)

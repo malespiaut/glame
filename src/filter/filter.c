@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.65 2004/10/23 13:09:22 richi Exp $
+ * $Id: filter.c,v 1.66 2004/12/26 20:59:01 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002, 2004 Richard Guenther
  *
@@ -268,7 +268,7 @@ int filter_register(filter_t *f, plugin_t *p)
 	f->plugin = p;
 	f->type |= FILTERTYPE_PLUGIN;
 	if (FILTER_IS_NETWORK(f)) {
-		// FIXME: recurse even more...
+		/* FIXME: recurse even more... */
 		filter_t *n;
 		filter_foreach_node(f, n)
 			n->type |= FILTERTYPE_PLUGIN;

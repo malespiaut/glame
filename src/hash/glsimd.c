@@ -1,6 +1,6 @@
 /*
  * glsimd.c
- * $Id: glsimd.c,v 1.7 2004/10/23 13:09:27 richi Exp $
+ * $Id: glsimd.c,v 1.8 2004/12/26 20:59:02 richi Exp $
  *
  * Copyright (C) 2001, 2002 Richard Guenther
  *
@@ -110,7 +110,7 @@ void c_scalar_product_1d(SAMPLE *result, long cnt,
 			*(result++) = f1 * *(c1++);
 		{
 			float f1v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f1, f1, f1, f1 };
-			//const v4sf f1v = { f1, f1, f1, f1 };
+			/* const v4sf f1v = { f1, f1, f1, f1 }; */
 			while (vcnt--) {
 				*(v4sf *)result = *(v4sf *)f1v * *(v4sf *)c1;
 				result += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
@@ -139,7 +139,7 @@ void c_scalar_product_1dI(SAMPLE *result_c1, long cnt, SAMPLE f1)
 			*(result_c1++) *= f1;
 		{
 			float f1v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f1, f1, f1, f1 };
-			//const v4sf f1v = { f1, f1, f1, f1 };
+			/* const v4sf f1v = { f1, f1, f1, f1 }; */
 			while (vcnt--) {
 				*(v4sf *)result_c1 *= *(v4sf *)f1v;
 				result_c1 += (GLAME_4VECTOR_ALIGN/SAMPLE_SIZE);
@@ -176,8 +176,8 @@ void c_scalar_product_2d(SAMPLE *result, long cnt,
 		{
 			float f1v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f1, f1, f1, f1 };
 			float f2v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f2, f2, f2, f2 };
-			//const v4sf f1v = { f1, f1, f1, f1 };
-			//const v4sf f2v = { f2, f2, f2, f2 };
+			/* const v4sf f1v = { f1, f1, f1, f1 };
+			   const v4sf f2v = { f2, f2, f2, f2 }; */
 			while (vcnt--) {
 				*(v4sf *)result = *(v4sf *)f1v * *(v4sf *)c1
 					+ *(v4sf *)f2v * *(v4sf *)c2;
@@ -219,8 +219,8 @@ void c_scalar_product_2dI(SAMPLE *result_c1, long cnt, SAMPLE f1,
 		{
 			float f1v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f1, f1, f1, f1 };
 			float f2v[4] __attribute__((aligned(GLAME_4VECTOR_ALIGN))) = { f2, f2, f2, f2 };
-			//const v4sf f1v = { f1, f1, f1, f1 };
-			//const v4sf f2v = { f2, f2, f2, f2 };
+			/* const v4sf f1v = { f1, f1, f1, f1 };
+			   const v4sf f2v = { f2, f2, f2, f2 }; */
 			while (vcnt--) {
 				*(v4sf *)result_c1 = *(v4sf *)f1v * *(v4sf *)result_c1
 					+ *(v4sf *)f2v * *(v4sf *)c2;
