@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.4 2001/04/11 11:22:21 richi Exp $
+@comment $Id: gui.texi,v 1.5 2001/04/11 22:48:18 xwolf Exp $
 
 @node Graphical Frontend, Console Frontend, Copying, Top
 @chapter Graphical Frontend (glame)
@@ -104,4 +104,34 @@ simply use feed into audio_out.
 
 @node The Filternetwork Editor, , The Wave Editor, Graphical Frontend
 @section The Filternetwork Editor
+The filternetwork editor is opened by either choosing the @code{Open Filternetwork Editor} 
+item in the @code{Filternetwork} menu, or by using custom functions in the wave editor.
+The filternetwork editor consists of a button bar on the bottom of the window, where
+the created filternetwork can be executed, paused and stopped, and a main frame 
+for connecting and adding new nodes to the network.
+
+All functionality in the editing window is controlled by context sensitive menus bound
+to the right mouse button. By clicking on empty space the general menu is opened, letting 
+You @code{Add Nodes...}, load additional plugins and saving and loading filternetworks.
+Nodes are organized in categories, for faster finding of the desired nodes.
+
+When a new node is added a small box appears in the editing area, depicting this node.
+The box has input ports (if available) on the left side of the icon, and output ports
+on the right side. If no ports of a type are available the port is grayed out.
+
+The icon in the middle of the box has context menus for manipulating properties of the
+underlying filter node. 
+
+To connect to nodes, click on the output port using the left mouse button and drag the 
+pipe to the desired input port. If a connection is possible a pipe connection will be drawn.
+To manipulate properties of the connecting pipe a context menu is attached to the
+small black ball placed in the middle of the pipe.
+
+Finally if You hover over an icon or port for a little while the actual property settings
+are drawn and the node is raised to the top.
+The timeout for the hovering can be adjusted in the main property window.
+
+After drawing your desired network it can be started with the @code{play} button. If 
+anything is not set up correctly the malicious node will be drawn in red and the
+error is drawn when hovering over it.
 
