@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.19 2000/02/17 16:16:07 richi Exp $
+ * $Id: filter.c,v 1.20 2000/02/17 17:59:28 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -139,7 +139,7 @@ filter_t *filter_from_string(const char *name, const char *description,
 {
 	filter_t *f;
 
-	if (!name || !description || !f)
+	if (!name || !description || !net)
 		return NULL;
 
 	if (!(f = _filter_alloc(name, description, FILTER_FLAG_NETWORK)))
