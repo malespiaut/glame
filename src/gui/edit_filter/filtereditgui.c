@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.17 2001/06/07 11:40:36 richi Exp $
+ * $Id: filtereditgui.c,v 1.18 2001/06/07 14:04:48 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -357,15 +357,15 @@ glame_filtereditgui_install_accels(GtkWidget* window)
 		return;
 	}
 	DPRINTF("foo\n");
-        glame_accel_add("filteredit/10-a", "(display \"Hello world 1!\")");
-        glame_accel_add("filteredit/14-q", "(glame-delete-widget (glame-accel-get-widget))");
-	glame_accel_add("filteredit/10-v", "(editfilter-view-all)");
-	glame_accel_add("filteredit/11-plus", "(editfilter-zoom-in)");
-	glame_accel_add("filteredit/10-bracketright", "(editfilter-zoom-in 4.0)");
-	glame_accel_add("filteredit/10-minus", "(editfilter-zoom-out)");
-	glame_accel_add("filteredit/10-bracketleft", "(editfilter-zoom-out 4.0)");
-	glame_accel_add("filteredit/10-d","(editfilter-delete-selection)");
-	glame_accel_add("filteredit/10-g","(editfilter-group-selection)");
+        glame_accel_add("filteredit/0-a", "(display \"Hello world 1!\")");
+        glame_accel_add("filteredit/4-q", "(glame-delete-widget (glame-accel-get-widget))");
+	glame_accel_add("filteredit/0-v", "(editfilter-view-all)");
+	glame_accel_add("filteredit/1-plus", "(editfilter-zoom-in)");
+	glame_accel_add("filteredit/0-bracketright", "(editfilter-zoom-in 4.0)");
+	glame_accel_add("filteredit/0-minus", "(editfilter-zoom-out)");
+	glame_accel_add("filteredit/0-bracketleft", "(editfilter-zoom-out 4.0)");
+	glame_accel_add("filteredit/0-d","(editfilter-delete-selection)");
+	glame_accel_add("filteredit/0-g","(editfilter-group-selection)");
 }
 
 
