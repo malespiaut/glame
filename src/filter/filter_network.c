@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.26 2000/02/22 15:58:28 richi Exp $
+ * $Id: filter_network.c,v 1.27 2000/02/25 12:14:49 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -675,8 +675,8 @@ char *filternetwork_to_string(filter_network_t *net)
 
 			/* iterate over all pipe source parameters creating
 			 * parameter set commands. */
-			portd = filter_get_inputdesc(fpipe->source->filter,
-						     fpipe->out_name);
+			portd = filter_get_outputdesc(fpipe->source->filter,
+						      fpipe->out_name);
 			filterportdesc_foreach_paramdesc(portd, paramd) {
 				if (!(param = filterpipe_get_sourceparam(fpipe, paramd->label)))
 					continue;
