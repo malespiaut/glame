@@ -10,11 +10,9 @@ Multimediadir = $(datadir)/gnome/apps/Multimedia
 if BUILD_GUI
 bin_PROGRAMS = glame
 Multimedia_DATA = glame.desktop
-endif
-
-pkgdata_DATA = default-accels
-
 BUILT_SOURCES = edit_filter/edit_filter_marshal.h edit_filter/edit_filter_marshal.c
+pkgdata_DATA = default-accels
+endif
 
 glame_SOURCES = \
 	libgtkwaveform/grange.c libgtkwaveform/grange.h \
