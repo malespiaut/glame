@@ -110,8 +110,8 @@ main()
         :
       else
         echo "*** Could not run libxml test program, checking why..."
-        CFLAGS="$CFLAGS $XML_CFLAGS"
-        LIBS="$LIBS $XML_LIBS"
+        dnl CFLAGS="$CFLAGS $XML_CFLAGS"
+        dnl LIBS="$LIBS $XML_LIBS"
         dnl FIXME: AC_TRY_LINK
       fi
     fi
