@@ -257,20 +257,6 @@ fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
 
-
-dnl
-dnl extra debugging stuff
-dnl
-
-dnl check for electric fence - temp. disabled due to efence bugs(!?)
-if test $debug -eq 2; then
-	efence=""
-	AC_CHECK_LIB(efence, Page_AllowAccess, efence="-lefence")
-dnl	GLAME_DLIBS="$GLAME_DLIBS $efence"
-fi
-
-
-
 dnl
 dnl UNIX flavours compatibility stuff
 dnl

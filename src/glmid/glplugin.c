@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.20 2001/03/21 16:41:36 richi Exp $
+ * $Id: glplugin.c,v 1.21 2001/04/11 16:25:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -216,7 +216,7 @@ static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 {
 	/* First try to open the specified shared object. */
 	if (!(p->handle = dlopen(filename, RTLD_NOW))) {
-		fprintf(stderr, "dlopen(%s): %s\n", filename, dlerror());
+		DPRINTF("dlopen(%s): %s\n", filename, dlerror());
 		return -1;
 	}
 
