@@ -531,7 +531,9 @@ static int fsck_check_files(int fix)
 
 		/* Get the file. */
 		file = file_get(nm, FILEGET_READCLUSTERS);
-		if (!file) {
+		if (!file || (file->flags & SWF_NOT_IN_CORE)) {
+			if (file)
+				file_put(file, 0);
 			if (!fix)
 				return 1;
 			DPRINTF("Deleting stale file %lX\n", nm);

@@ -614,8 +614,15 @@ static void _file_readclusters(struct swfile *f)
 		SWPANIC("No memory for cluster tree");
 	if (swread(fd, f->clusters, st.st_size) != st.st_size)
 		SWPANIC("Cannot read cluster tree");
-	if (st.st_size != CTREESIZE(f->clusters->height))
+	if (st.st_size != CTREESIZE(f->clusters->height)) {
+		if (swap.fsck) {
+			free(f->clusters);
+			f->clusters = NULL;
+			close(fd);
+			return;
+		}
 		SWPANIC("Corrupted cluster tree file");
+	}
 	f->flags &= ~SWF_NOT_IN_CORE;
 	close(fd);
 }
