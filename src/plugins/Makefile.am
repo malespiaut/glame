@@ -59,3 +59,7 @@ iir_la_LDFLAGS = -module
 
 #ladspa_la_SOURCES = ladspa.c
 #ladspa_la_LDFLAGS = -module
+
+#time_la_SOURCES = time.c
+#time_la_LDFLAGS = -module
+
