@@ -11,8 +11,8 @@
   <accel state="4" spec="m">
 (if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) 0.0))
   </accel>
-  <accel state="4" spec="d">
-(begin (display "Hello World!") (newline))
+  <accel state="0" spec="w">
+(waveedit-new (swapfilegui-active-item))
   </accel>
 </scope>
 

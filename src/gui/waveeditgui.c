@@ -33,6 +33,7 @@
 #include "libgtkwaveform/gtkwaveview.h"
 #include "libgtkwaveform/gtkswapfilebuffer.h"
 #include "glame_types.h"
+#include "glscript.h"
 #include "glplugin.h"
 #include "swapfile.h"
 #include "glmid.h"
@@ -1161,8 +1162,21 @@ static SCM gls_waveedit_set_scroll_position(SCM s_pos)
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_waveedit_new(SCM s_item)
+{
+	gpsm_item_t *item;
+	SCM_ASSERT(gpsmitem_p(s_item), s_item, SCM_ARG1, "waveedit-new");
+	item = scm2gpsmitem(s_item);
+	gtk_widget_show_all(
+		glame_waveedit_gui_new(gpsm_item_label(item), item));
+
+	return SCM_UNSPECIFIED;
+}
+
 void glame_waveeditgui_init()
 {
+	gh_new_procedure1_0("waveedit-new",
+			    gls_waveedit_new);
 	gh_new_procedure0_0("waveedit-get-marker",
 			    gls_waveedit_get_marker);
 	gh_new_procedure1_0("waveedit-set-marker!",
