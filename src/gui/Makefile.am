@@ -2,7 +2,8 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/s
 
 EXTRA_DIST = glame.desktop default-accels \
 	util/gtknob.xpm libgtkwaveform/rec.xpm libgtkwaveform/mute.xpm \
-	libgtkwaveform/sel.xpm
+	libgtkwaveform/sel.xpm \
+	edit_filter/edit_filter_marshal.list
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
@@ -28,6 +29,7 @@ glame_SOURCES = \
 	util/glame_param.c util/glame_param.h \
 	util/glame_ruler.c util/glame_ruler.h util/glame_hruler.c util/glame_hruler.h \
 	util/gtknob.c util/gtknob.h \
+	util/glame_dnd.h \
 	\
 	edit_filter/canvasfilter.c edit_filter/canvaspipe.c edit_filter/canvasport.c \
 	edit_filter/glamecanvas.c edit_filter/canvasitem.h edit_filter/glamecanvas.h \
