@@ -152,7 +152,7 @@ int glscript_init()
 	/* Tell scheme about installation directory of GLAME
 	 * and the revision of the scripting language.
 	 */
-	gh_define("glamedir", gh_str02scm(PKGDATADIR));
+	gh_define("glamedir", gh_str02scm(PKGSCRIPTSDIR));
 	gh_define("glameversion", gh_long2scm(1));
 
 	/* Register scheme procedures for the subsystems.
@@ -174,7 +174,7 @@ int glscript_init()
 "              (display (string-append \"loading \" file)) (newline)"
 #endif
 "              (load file))))"
-"  `(\"" PKGDATADIR "/glame.scm\""
+"  `(\"" PKGSCRIPTSDIR "/glame.scm\""
 "    \"glmid/glame.scm\""
 "    ,(string-append (getenv \"HOME\") \"/.glame.scm\")))");
 

@@ -187,7 +187,7 @@ static void init_after_guile(int argc, char **argv)
 	if (glscript_init() == -1)
 		exit(1);
 	plugins_process_directory("./plugins");       /* for .scm */
-	plugins_process_directory(PKGDATADIR);
+	plugins_process_directory(PKGSCRIPTSDIR);
 	((void (*)(void))argv[1])();
 }
 #endif
