@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.16 2001/11/05 14:56:11 xwolf Exp $
+ * $Id: importexport.c,v 1.17 2001/11/11 22:50:46 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -46,48 +46,19 @@ PLUGIN_SET(importexport, "import export")
 static char ftlabel[8][10] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
 static char qlabel[4][7] = { "8 bit", "16 bit", "24 bit", "float" };
 
-int get_filetype_by_name(char *name) {
-	char *suffix;
-
-	suffix = strrchr(name, '.');
-	DPRINTF("Got suffix %s for file %s\n", suffix, name);
-	
-	if(strcmp(suffix, ".wav")==0)
-		return AF_FILE_WAVE;
-#ifdef AF_FILE_AIFF	
-	if(strcmp(suffix, ".aiff")==0)
-		return AF_FILE_AIFF;
-#endif
-#ifdef AF_FILE_NEXTSND	
-	if(strcmp(suffix, ".snd")==0)
-		return AF_FILE_NEXTSND;
-#endif
-#ifdef AF_FILE_IRCAM	
-	if(strcmp(suffix, ".sf")==0)
-		return AF_FILE_IRCAM;
-#endif
-#ifdef AF_FILE_OGG
-	if(strcmp(suffix, ".ogg")==0)
-		return AF_FILE_OGG;
-#endif
-#ifdef AF_FILE_MP3
-	if(strcmp(suffix, ".mp3")==0)
-		return AF_FILE_MP3;
-#endif
-
-	return -1;
-}
-
 #define MAX_PROPS 7
 
 static char fproplabel[7][20] = { "Format", "Samplerate", "Quality", "Channels", 
 			   "Duration", "Max RMS", "DC Offset" };
 
 #define IMPORT  0
-#define PREVIEW 1
-#define CANCEL  2
+/*#define PREVIEW 1*/
+#define CANCEL  1
 
 struct impexp_s {
+	filter_t *net;
+	int cancelled;
+	int importing;
 	gpsm_grp_t *grp;
 	GtkWidget *fi_plabel[MAX_PROPS];
 	GtkWidget *dialog;
@@ -98,6 +69,12 @@ struct impexp_s {
 	int rate, chancnt, gotfile, gotstats;
 	float maxrms, dcoffset;
 	plugin_t *resample;
+};
+
+struct exp_s {
+	GtkWidget *dialog, *otypemenu, *compmenu, *ocompmenu;
+	int typecnt;
+	int *indices;
 };
 
 void ie_import_cleanup(struct impexp_s *ie) 
@@ -111,11 +88,20 @@ void ie_import_cleanup(struct impexp_s *ie)
 }
 
 static void ie_cancel_cb(GtkWidget *bla, struct impexp_s *ie) {
-	ie_import_cleanup(ie);
+	DPRINTF("cancel pressed\n");
+	if (ie->importing==1) {
+		filter_terminate(ie->net);
+		ie->cancelled = 1;
+		DPRINTF("Network was running. Importing terminated.\n");
+	}
+	else {
+		ie_import_cleanup(ie);
+		DPRINTF("Nothing running. Just destroyed import dialog.\n");
+	}
 }
 
 static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
-	filter_t *net = NULL, *readfile, *swout, *resample;
+	filter_t *readfile, *swout, *resample;
 	filter_port_t *source, *nsource;
 	filter_pipe_t *pipe;
 	filter_param_t *pos_param;
@@ -126,6 +112,10 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	gpsm_item_t *it;
 	GtkWidget *ed;
 
+	/* nullify net and set cancel status to zero */
+	ie->net = NULL;
+	ie->importing = 0;
+
 	if(ie->gotfile==0) {
 		ed=gnome_error_dialog("Select a file first!");
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
@@ -133,7 +123,9 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 		return;
 	}
 
-	net = filter_creat(NULL);
+	ie->net = filter_creat(NULL);
+	ie->importing = 1;
+	ie->cancelled = 0;
 	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
 		return;
 
@@ -144,7 +136,7 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 		goto ie_fail_cleanup;
 
 	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
-	filter_add_node(net, readfile, "readfile");
+	filter_add_node(ie->net, readfile, "readfile");
 
 	dorsmpl = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ie->checkresample));
 
@@ -168,13 +160,13 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 		if (!(it = (gpsm_item_t *)gpsm_newswfile(swfilename)))
 			goto ie_fail_cleanup;
 		gpsm_item_place(group, it, 0, i);
-		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
+		swout = net_add_gpsm_output(ie->net, (gpsm_swfile_t *)it,
 					    0, -1, 3);
 
 		/* Insert resampler here */
 		if(dorsmpl) {
 			resample = filter_instantiate(ie->resample);
-			filter_add_node(net, resample, "resample");
+			filter_add_node(ie->net, resample, "resample");
 			filterparam_set(filterparamdb_get_param(filter_paramdb(resample),
 								"frequency"), &newrate);
 
@@ -216,11 +208,12 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Importing");
 	
-	if ((filter_launch(net, GLAME_BULK_BUFSIZE) == -1) ||
-	    (filter_start(net) == -1))
+
+	if ((filter_launch(ie->net, GLAME_BULK_BUFSIZE) == -1) ||
+	    (filter_start(ie->net) == -1))
 		goto ie_fail_cleanup;
 
-	while(!filter_is_ready(net)) {
+	while(!filter_is_ready(ie->net)) {
 		while (gtk_events_pending())
 			gtk_main_iteration();
 		
@@ -232,19 +225,23 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 					  percentage);
 	}
 	
-	filter_delete(net);
+	filter_delete(ie->net);
+	
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
 	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
 				  0.0);
 
-	/* Notify gpsm of the change. */
-	gpsm_grp_foreach_item(group, it)
-		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-
-	/* Insert the group into the gpsm tree. */
-	if (gpsm_vbox_insert(ie->grp, (gpsm_item_t *)group,
-			     0, gpsm_item_vsize(ie->grp)) == -1)
-		goto ie_fail_cleanup;
+	if (ie->cancelled==0) {
+		/* Notify gpsm of the change. */
+		gpsm_grp_foreach_item(group, it)
+			gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
+		
+		/* Insert the group into the gpsm tree. */
+		if (gpsm_vbox_insert(ie->grp, (gpsm_item_t *)group,
+				     0, gpsm_item_vsize(ie->grp)) == -1)
+			goto ie_fail_cleanup;
+	} else
+		gpsm_item_destroy((gpsm_item_t *)group);
 
 	ie_import_cleanup(ie);
 	return;
@@ -252,7 +249,7 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 ie_fail_cleanup:
 	gnome_dialog_run_and_close(GNOME_DIALOG(
 		gnome_error_dialog("Failed to create importing network")));
-	filter_delete(net);
+	filter_delete(ie->net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 	gtk_widget_set_sensitive(bla, TRUE);	
 }
@@ -471,12 +468,13 @@ void glame_import_dialog(struct impexp_s *ie)
 	GtkWidget *appbar2;
 	GtkWidget *dialog_action_area2;
 	GtkWidget *importbutton;
-	GtkWidget *previewbutton;
+	/*	GtkWidget *previewbutton; */
 	GtkWidget *cancelbutton;
 	GtkWidget *table, *tsep, *tlabel;
 	int i;
 
 	ie->dialog = gnome_dialog_new (NULL, NULL);
+	ie->importing = 0;
 	gtk_container_set_border_width (GTK_CONTAINER (ie->dialog), 1);
 	gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
 	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), FALSE);
@@ -589,8 +587,6 @@ void glame_import_dialog(struct impexp_s *ie)
 	gtk_widget_show (frame5);
 	gtk_box_pack_start (GTK_BOX (vbox3), frame5, TRUE, TRUE, 0);
 
-
-
 	normalizebutton = gtk_check_button_new_with_label (_("Normalize"));
 	gtk_widget_show (normalizebutton);
 	gtk_container_add (GTK_CONTAINER (frame5), normalizebutton);
@@ -609,11 +605,13 @@ void glame_import_dialog(struct impexp_s *ie)
 	gtk_widget_show (importbutton);
 	GTK_WIDGET_SET_FLAGS (importbutton, GTK_CAN_DEFAULT);
 
+/*
 	gnome_dialog_append_button_with_pixmap (GNOME_DIALOG (ie->dialog),
 						_("Preview"), GNOME_STOCK_PIXMAP_VOLUME);
 	previewbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 	gtk_widget_show (previewbutton);
 	GTK_WIDGET_SET_FLAGS (previewbutton, GTK_CAN_DEFAULT);
+*/
 
 	gnome_dialog_append_button (GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
@@ -623,57 +621,95 @@ void glame_import_dialog(struct impexp_s *ie)
 
 	gnome_dialog_set_default(GNOME_DIALOG(ie->dialog), IMPORT);
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), IMPORT, TRUE);
-	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), PREVIEW, FALSE);
+/*	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), PREVIEW, TRUE);*/
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), CANCEL, TRUE);
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), IMPORT,
 				    ie_import_cb, ie);
-	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), PREVIEW,
-				    ie_preview_cb, ie);
+/*	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), PREVIEW, ie_preview_cb, ie); */
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
 				    ie_cancel_cb, ie);
 
 	gtk_widget_show(ie->dialog);
 };
 
-GtkWidget *glame_export_dialog() {
+void make_comp_menu(struct exp_s *ie, int ftype) {
+	int comptypes, i;
+	int *comparray;
+	gchar *complabel;
+	GtkWidget *menuitem;
+
+	gtk_widget_destroy(ie->compmenu);
+
+	ie->compmenu = gtk_menu_new();
+	comptypes = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUE_COUNT, ftype, 0);
+	if (comptypes>0) {
+		comparray = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_COMPRESSION_TYPES, AF_QUERY_VALUES, ftype, 0);
+		for(i=0; i<comptypes;i++) {
+			complabel = (char*)afQueryPointer(AF_QUERYTYPE_COMPRESSION, AF_QUERY_LABEL, comparray[i], 0 ,0);
+			menuitem = gtk_menu_item_new_with_label(complabel);
+			gtk_menu_append(GTK_MENU(ie->compmenu), menuitem);
+			gtk_widget_show(menuitem);
+		}
+	}
+	
+	gtk_option_menu_set_menu(GTK_OPTION_MENU (ie->ocompmenu), ie->compmenu);
+	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->ocompmenu), 0);
+	gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(ie->dialog)->vbox), ie->ocompmenu, FALSE, FALSE, 0);
+	gtk_widget_show(ie->ocompmenu);
+}
+
+static void ie_type_menu_cb(GtkWidget *bla, struct exp_s *ie) {
+	int ftype;
+
+}
+
+GtkWidget *glame_export_dialog(struct exp_s *ie)  {
 	GtkWidget	*dialog, *optionmenu, *menu, *mitem;
 	int i;
+	gchar *suffix;
 
-	dialog = gtk_type_new(gnome_dialog_get_type());
+	/* open new dialog window */
+	dialog = ie->dialog = gnome_dialog_new(NULL, NULL);
 	gnome_dialog_close_hides(GNOME_DIALOG(dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
+	gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, FALSE, FALSE);
 
-	optionmenu = gtk_option_menu_new ();
+
+	/* now construct option menu with available filetypes */
+	ie->typecnt = afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT,0 ,0 ,0);
+
+	ie->indices = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0 ,0, 0);
+
+	ie->otypemenu = optionmenu = gtk_option_menu_new ();
 	gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(dialog)->vbox), optionmenu, FALSE, FALSE, 0);
 	gtk_widget_show(optionmenu);
 	menu = gtk_menu_new();
-	for(i=0; i<6; i++)  {
-		mitem = gtk_menu_item_new_with_label(ftlabel[i]);
-		gtk_menu_append (GTK_MENU (menu), mitem);
-		gtk_widget_show(mitem);
-	}
-	gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu), menu);
-	gtk_option_menu_set_history (GTK_OPTION_MENU (optionmenu), 0);
-	
-	optionmenu = gtk_option_menu_new ();
-	gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(dialog)->vbox), optionmenu, FALSE, FALSE, 0);
-	gtk_widget_show(optionmenu);
-	menu = gtk_menu_new();
-	for(i=0; i<4; i++)  {
-		mitem = gtk_menu_item_new_with_label(qlabel[i]);
+
+	for(i=0; i<ie->typecnt; i++)  {
+		suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, ie->indices[i] ,0 ,0);
+		mitem = gtk_menu_item_new_with_label(suffix);
 		gtk_menu_append (GTK_MENU (menu), mitem);
 		gtk_widget_show(mitem);
 	}
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu), menu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (optionmenu), 1);
+	
+	ie->ocompmenu = gtk_option_menu_new ();
+	ie->compmenu = gtk_menu_new();
+	
+	if (ie->typecnt>0)
+		make_comp_menu(ie, ie->indices[1]);
 
-	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(dialog)->vbox), optionmenu, TRUE, TRUE, 3);
 	gtk_widget_show(dialog);
 	return dialog;
 }
 
 static int export_gpsm(gpsm_item_t *item, long start, long length) 
 {	
+	struct exp_s *ie;
+
+	ie = (struct exp_s*)calloc(1,sizeof(struct exp_s));
+	glame_export_dialog(ie);
 	return 0;
 }
 
