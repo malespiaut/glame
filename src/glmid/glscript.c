@@ -331,6 +331,7 @@ SCM gls_filternetwork_terminate(SCM s_net)
 }
 
 /* for testing */
+#if 0
 SCM gls_filter_get(SCM s_name)
 {
         filter_t *f;
@@ -344,6 +345,7 @@ SCM gls_filter_get(SCM s_name)
 		return SCM_BOOL_F;
 	return gh_pointer2scm(f);
 }
+#endif
 
 SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 				SCM s_label, SCM s_desc)
@@ -549,7 +551,7 @@ int glscript_init()
 			 gls_filternetwork_add_param, 5, 0, 0);
 	gh_new_procedure("filternetwork_to_string",
 			 gls_filternetwork_to_string, 1, 0, 0);
-	gh_new_procedure("filter_get", gls_filter_get, 1, 0, 0);
+	/* gh_new_procedure("filter_get", gls_filter_get, 1, 0, 0); */
 
 	/* plugin */
 	gh_new_procedure("plugin_add_path", gls_plugin_add_path,

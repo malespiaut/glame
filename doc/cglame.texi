@@ -1,7 +1,80 @@
-@comment $Id: cglame.texi,v 1.1 2000/03/23 14:25:01 nold Exp $
+@comment $Id: cglame.texi,v 1.2 2000/03/23 15:41:03 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
 
+CGlame is the console interface to glame. CGlame is a scripting engine
+in the sense that you are presented a @code{guile>} command line prompt
+where you can enter scheme expressions. CGlame exposes the midlayer API
+and the backends API via scheme wrappers. Extra convenience scripting
+procedures are defined inside the installed @code{glame.scm} scheme file.
+You can add customisations via your @code{~/.glame.scm} file.
+
+In the following sections the exposed parts of the C API are listed, for
+documentation on them please refer to the appropriate documentation sections.
+The additional available convenience scripting procedures are described here.
+
+@menu
+* Wrapped API::
+* CGlame Convenience::
+@end menu
+
+
+@node Wrapped API, , CGlame Convenience, Console Frontend
+@section Wrapped API
+
+For description of the semantics of the available parts of the APIs
+please refer to the native documentation.
+
+@menu
+* Scheme Filter API::
+* Scheme Swapfile API::
+* Scheme Midlayer API::
+@end menu
+
+@node Scheme Filter API, , Scheme Swapfile API, Wrapped API
+@subsection Scheme Filter API
+
+FIXME: grouping? short description? return "types"? 
+
+@deftypefun (filternetwork_new )
+@deftypefunx (filternetwork_delete net-id )
+@deftypefunx (filternetwork_add_node net-id filter-name node-name )
+@deftypefunx (filternetwork_delete_node node-id )
+@deftypefunx (filternetwork_add_connection node-id port-name node-id port-name )
+@deftypefunx (filternetwork_break_connection connection-id )
+@deftypefunx (filternetwork_launch net-id )
+@deftypefunx (filternetwork_start net-id )
+@deftypefunx (filternetwork_pause net-id )
+@deftypefunx (filternetwork_wait net-id )
+@deftypefunx (filternetwork_terminate net-id )
+@deftypefunx (filternetwork_to_filter net-id filter-name filter-description )
+@deftypefunx (filternetwork_add_input net-id node-id port-name net-port-name net-port-description )
+@deftypefunx (filternetwork_add_output net-id node-id port-name net-port-name net-port-description )
+@deftypefunx (filternetwork_add_param net-id node-id param-name net-param-name net-param-description )
+@deftypefunx (filternetwork_to_string net-id )
+@deftypefunx (filternode_set_param node-id param-name value )
+@end deftypefun
+
+
+@node Scheme Swapfile API, Scheme Filter API, Scheme Midlayer API, Wrapped API
+@subsection Scheme Swapfile API
 *** TODO ***
+
+@node Scheme Midlayer API, Scheme Swapfile API, , Wrapped API
+@subsection Scheme Midlayer API
+*** TODO ***
+
+
+@node CGlame Convenience, Wrapped API, , Console Frontend
+@section CGlame Convenience
+
+FIXME: stuff is missing, documentation
+
+@deftypefun (net-new )
+@deftypefunx (net-add-node net-id node )
+@deftypefunx (net-add-nodes net-id nodes )
+@deftypefunx (nodes-connect nodes )
+@deftypefunx (net-run net-id )
+@end deftypefun
 

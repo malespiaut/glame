@@ -1,7 +1,18 @@
-@comment $Id: plugins.texi,v 1.1 2000/03/23 14:25:01 nold Exp $
+@comment $Id: plugins.texi,v 1.2 2000/03/23 15:41:03 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
 
-*** TODO ***
+FIXME: grouping, missing ones, etc.
+
+@menu
+* Mix::
+* One2n::
+@end menu
+
+@node Mix, One2n, , Plugin Collection 
+@section Mix
+
+@node One2n, , Mix, Plugin Collection 
+@section One2n
 

@@ -1,16 +1,20 @@
 				GLAME - Installation
 				====================
 
-There is nothing to install yet.
+If you got the source package you can install glame by doing
+> ./configure
+> make
+> make install
 
-But if you want to build what is there just go the standard configure-way:
-./configure
-make
+If you do not want to install the package, you can find the generated
+executables in 
+src/gui/glame
+src/cglame
 
 Or if you just checked out the CVS tree (which is highly recommended as 
 development is going really fast at the moment) you first need to do
-aclocal && autoheader && automake -a && autoconf
-(try again until no error messages are left)
+> ./autogen.sh
+then proceed as stated above.
 
 For more about GLAME have a look into the README file and the current
 documentation in the doc/ directory. You also may want to read the source which
