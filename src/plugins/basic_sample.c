@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.5 2000/03/22 10:15:45 richi Exp $
+ * $Id: basic_sample.c,v 1.6 2000/03/25 15:03:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -74,15 +74,18 @@ PLUGIN_SET(basic_sample, "mix volume_adjust invert delay extend repeat add")
  * Mix is completely asynchron wrt input and output. This is to allow
  * buffer merging and to avoid deadlocks with feedback.
  */
-static int mix_f(filter_node_t *n)
+static int mix(filter_node_t *n, int drop)
 {
 	typedef struct {
 		filter_pipe_t *in;
 		feedback_fifo_t fifo;
-		int fifo_size, fifo_pos;
+		int fifo_size, fifo_pos, out_pos;
+
 		filter_buffer_t *buf;
 		SAMPLE *s;
 		int pos;
+
+		int ready;
 		float factor;
 	} mix_param_t;
 	mix_param_t *p = NULL;
@@ -90,10 +93,12 @@ static int mix_f(filter_node_t *n)
 	filter_buffer_t *buf;
 	filter_param_t *param;
 	int i, res, cnt, icnt;
-	int rate, nr, maxfd, eof, eofpos, outpos, empty, outputready;
+	int rate, maxfd, out_pos, eof_pos, empty, output_ready;
+	int *j, jcnt;
 	fd_set rset, wset;
 	SAMPLE *s;
-	float factor;
+	float factor, gain;
+	int nr, nr_ready;
 
 	/* We require at least one connected input and
 	 * a connected output.
@@ -106,38 +111,66 @@ static int mix_f(filter_node_t *n)
 
 	/* init the structure, compute the needed factors */
 	factor = 0.0;
-	i = 0;
-	if (!(p = ALLOCN(nr, mix_param_t)))
+	if (!(p = ALLOCN(nr, mix_param_t))
+	    || !(j = ALLOCN(nr, int)))
 		FILTER_ERROR_RETURN("no memory");
 
+	gain = 1.0;
+	if ((param = filternode_get_param(n, "gain")))
+		gain = filterparam_val_float(param);
+
 	rate = -1;
+	i = 0;
+	cnt = 1<<30;
+	nr_ready = 0;
 	filternode_foreach_input(n, in) {
+		p[i].in = in;
+		INIT_FEEDBACK_FIFO(p[i].fifo);
+		p[i].fifo_size = 0;
+		p[i].fifo_pos = 0;
+		p[i].buf = NULL;
+
+		/* check rate */
 		if (rate == -1)
 			rate = filterpipe_sample_rate(in);
 		else if (rate != filterpipe_sample_rate(in))
 			FILTER_ERROR_CLEANUP("non matching samplerates");
-		p[i].in = in;
-		INIT_FEEDBACK_FIFO(p[i].fifo);
-		p[i].fifo_size = 0;
+
 		/* position factor - normalized afterwards, FIXME? */
 	        p[i].factor = fabs(cos((filterpipe_sample_hangle(p[i].in)
 					- filterpipe_sample_hangle(out))*0.5));
 		factor += p[i].factor;
+
 		/* external factor */
 		if ((param = filterpipe_get_destparam(in, "gain")))
 			p[i].factor *= filterparam_val_float(param);
+
+		/* "offset" */
+		p[i].out_pos = 0;
+		if ((param = filterpipe_get_destparam(in, "offset"))) {
+			p[i].out_pos = rate*filterparam_val_float(param)/1000.0;
+			p[i].fifo_pos = p[i].out_pos;
+		}
+		cnt = MIN(cnt, p[i].out_pos);
+		p[i].ready = 0;
 		i++;
 	}
-	/* normalize (position) factors */
+	/* normalize (position) factors, "move" delays */
 	for (i=0; i<nr; i++) {
-		p[i].factor /= factor;
+		p[i].factor = (p[i].factor*gain)/factor;
+		p[i].out_pos -= cnt;
 	}
 
 	FILTER_AFTER_INIT;
 
+	/* p[].in and out is used as "ready"/EOF flag if it is NULL
+	 */
+
 	/* mix only until one input has eof */
-	eof = 0; eofpos = 0; outpos = 0; outputready = 0;
-	while (1) {
+	eof_pos = 1<<30;
+	out_pos = 0;
+	output_ready = 0;
+	while (nr_ready < nr) {
 		FILTER_CHECK_STOP;
 
 		/* set up fd sets for select */
@@ -145,8 +178,9 @@ static int mix_f(filter_node_t *n)
 		empty = 1;
 		FD_ZERO(&rset);
 		for (i=0; i<nr; i++) {
-			if (!p[i].in  /* EOF? */
-			    || p[i].fifo_size >= GLAME_WBUFSIZE) /* or "full"? */
+			/* EOF or fifo full? */
+			if (!p[i].in
+			    || p[i].fifo_size >= GLAME_WBUFSIZE)
 				continue;
 			empty = 0;
 			FD_SET(p[i].in->dest_fd, &rset);
@@ -154,159 +188,232 @@ static int mix_f(filter_node_t *n)
 				maxfd = p[i].in->dest_fd;
 		}
 		FD_ZERO(&wset);
-		if (out && outputready) {
+		if (out && output_ready) {
 			FD_SET(out->source_fd, &wset);
 			if (out->source_fd > maxfd)
 				maxfd = out->source_fd;
 		}
-		if (!out && empty)
-			break;
 		res = select(maxfd+1, empty ? NULL : &rset,
-			     !out || !outputready ? NULL : &wset, NULL, NULL);
+			     !out || !output_ready ? NULL : &wset, NULL, NULL);
 		if (res == -1)
 			perror("select");
 		if (res <= 0)
 			continue;
 
-		/* do we have input? */
+
+		/* Check the inputs for buffers. */
 		for (i=0; i<nr; i++) {
 			if (!p[i].in || !FD_ISSET(p[i].in->dest_fd, &rset))
 				continue;
 			buf = sbuf_get(p[i].in);
+
+			/* EOF from input? */
 			if (!buf) {
-				p[i].in = NULL; /* EOF */
-				if (!eof || p[i].fifo_pos < eofpos) {
-					eof = 1;
-					eofpos = p[i].fifo_pos;
+				/* mark EOF */
+				p[i].in = NULL;
+				/* correct "drop after" pos */
+				if (drop && p[i].fifo_pos < eof_pos)
+					eof_pos = p[i].fifo_pos;
+				/* input inactive now? */
+				if (p[i].fifo_size == 0) {
+					p[i].ready = 1;
+					nr_ready++;
 				}
-			} else if (out) {
-				add_feedback(&p[i].fifo, buf);
-				p[i].fifo_size += sbuf_size(buf);
-				p[i].fifo_pos += sbuf_size(buf);
-				outputready = 1;
-			} else { /* fast drop path */
-				sbuf_unref(buf);
+				continue;
 			}
+
+			/* output finished? -> drop the buffer. */
+			if (!out) {
+				sbuf_unref(buf);
+				continue;
+			}
+
+			/* add the buffer to the inputs feedback. */
+			add_feedback(&p[i].fifo, buf);
+			p[i].fifo_size += sbuf_size(buf);
+			p[i].fifo_pos += sbuf_size(buf);
 		}
 
-		/* send enough already? - queue EOF & stop sending */
-		if (eof && outpos == eofpos) {
+
+		/* Send enough already? - queue EOF & stop sending. */
+		if (out_pos == eof_pos) {
 			sbuf_queue(out, NULL);
 			out = NULL;
-			outputready = 0;
+			output_ready = 0;
 
-			/* drop buffers pending in the fifos, further
-			 * buffers will get dropped directly at receive */
+			/* Drop buffers pending in the fifos, further
+			 * buffers will get dropped directly at receive. */
 			for (i=0; i<nr; i++) {
+				sbuf_unref(p[i].buf);
 				while (has_feedback(&p[i].fifo))
 					sbuf_unref(get_feedback(&p[i].fifo));
+				p[i].buf = NULL;
+				p[i].fifo_size = 0;
+				if (!p[i].in) {
+					p[i].ready = 1;
+					nr_ready++;
+				}
 			}
 		}
 
-		/* if we are not ready to send anything just skip the
+
+		/* The send code - rather complex as we try to group all
+		 * pending buffers into the largest possible buffer. */
+
+		/* Find # of samples we can send, if there is nothing
+		 * (at least one input is missing) continue with receive.
+		 * The following rules are used:
+		 * - all buffers to be used have to be in fifos already
+		 * - maximum # is GLAME_WBUFSIZE
+		 * - do not write beyond eof_pos */
+		cnt = MIN(GLAME_WBUFSIZE, eof_pos - out_pos);
+		for (i=0; i<nr; i++) {
+			/* fix cnt wrt available buffers */
+			if (!p[i].ready && p[i].fifo_pos - out_pos < cnt)
+				cnt = p[i].fifo_pos - out_pos;
+		}
+
+		/* If there is nothing to write, give a hint to avoid
+		 * select()ing on the output fd the next iteration. */
+		if (cnt == 0) {
+			output_ready = 0;
+			continue;
+		}
+		output_ready = 1;
+
+
+		/* If we are not ready to send anything just skip the
 		 * send code. */
 		if (!out || !FD_ISSET(out->source_fd, &wset))
 			continue;
-
-		/* The send code - rather complex as we try to group all pending
-		 * buffers into the largest possible buffer. */
-
-		/* find # of samples we can send, if there is nothing (at least
-		 * one input is missing) continue with receive. */
-		cnt = 1<<30;
-		for (i=0; i<nr; i++) {
-			if (p[i].fifo_size + sbuf_size(p[i].buf) - p[i].pos < cnt)
-				cnt = p[i].fifo_size + sbuf_size(p[i].buf) - p[i].pos;
-		}
-		if (eof && eofpos - outpos < cnt)
-			cnt = eofpos - outpos;
-		if (cnt > GLAME_WBUFSIZE)
-			cnt = GLAME_WBUFSIZE;
-		outpos += cnt;
-		if (cnt == 0) {
-			outputready = 0;
-			continue;
-		}
 
 		/* alloc output buffer */
 		buf = sbuf_make_private(sbuf_alloc(cnt, n));
 		s = sbuf_buf(buf);
 
-		/* loop through the input buffers, chunk by chunk - "inner loop" */
+		/* loop through the input buffers, chunk by chunk
+		 * - "inner loop" */
 		do {
-			/* get a buffer from the fifo for each input, by the way
-			 * find the max. number of samples that can be processed
-			 * in one turn. */
+			/* get a buffer from the fifo for each input, by
+			 * the way find the max. number of samples that can
+			 * be processed in one turn. */
+			jcnt = 0;
 			icnt = cnt;
 			for (i=0; i<nr; i++) {
+				/* ignore ready(EOF) inputs. */
+				if (p[i].ready)
+					continue;
+				/* if input is inactive check we dont get
+				 * active during this chunk. */
+				if (!(p[i].out_pos == out_pos)) {
+					icnt = MIN(icnt, p[i].out_pos - out_pos);
+					continue;
+				}
+				/* input is active. Do we need to get a
+				 * new buffer from the fifo? */
 				if (!p[i].buf) {
 					p[i].buf = get_feedback(&p[i].fifo);
-					if (!p[i].buf)
-						PANIC("Uh!");
 					p[i].s = sbuf_buf(p[i].buf);
 					p[i].pos = 0;
 					p[i].fifo_size -= sbuf_size(p[i].buf);
 				}
+				/* check size */
 				if (sbuf_size(p[i].buf) - p[i].pos < icnt)
 					icnt = sbuf_size(p[i].buf) - p[i].pos;
+				j[jcnt++] = i;
 			}
 
 			/* fix the resulting positions */
 			for (i=0; i<nr; i++)
-				p[i].pos += icnt;
+				if (p[i].out_pos == out_pos) {
+					p[i].pos += icnt;
+					p[i].out_pos += icnt;
+				}
 			cnt -= icnt;
+			out_pos += icnt;
 
 			/* to do really fast processing special-code
 			 * a number of input channel counts */
-			switch (nr) {
-			case 2:
+			switch (jcnt) {
+			case 0:
+				memset(s, 0, SAMPLE_SIZE*icnt);
+				s += icnt;
+				break;
+			case 1:
 				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD1_2_d(s, p[0].s, p[1].s, p[0].factor, p[1].factor);
+					SCALARPROD1_1_d(s, p[j[0]].s, p[j[0]].factor);
 				}
 				for (; icnt>0; icnt-=4) {
-					SCALARPROD4_2_d(s, p[0].s, p[1].s, p[0].factor, p[1].factor);
+					SCALARPROD4_1_d(s, p[j[0]].s, p[j[0]].factor);
+				}
+				break;
+     			case 2:
+				for (; (icnt & 3)>0; icnt--) {
+					SCALARPROD1_2_d(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
+				}
+				for (; icnt>0; icnt-=4) {
+					SCALARPROD4_2_d(s, p[j[0]].s, p[j[1]].s, p[j[0]].factor, p[j[1]].factor);
 				}
 				break;
 			case 3:
 				for (; (icnt & 3)>0; icnt--) {
-					SCALARPROD1_3_d(s, p[0].s, p[1].s, p[2].s, p[0].factor, p[1].factor, p[2].factor);
+					SCALARPROD1_3_d(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
 				}
 				for (; icnt>0; icnt-=4) {
-					SCALARPROD4_3_d(s, p[0].s, p[1].s, p[2].s, p[0].factor, p[1].factor, p[2].factor);
+					SCALARPROD4_3_d(s, p[j[0]].s, p[j[1]].s, p[j[2]].s, p[j[0]].factor, p[j[1]].factor, p[j[2]].factor);
 				}
 				break;
 			default:
 				for (; icnt>0; icnt--) {
 					*s = 0.0;
-					for (i=0; i<nr; i++) {
-						*s += *(p[i].s)*p[i].factor;
-						p[i].s++;
+					for (i=0; i<jcnt; i++) {
+						*s += *(p[j[i]].s)*p[j[i]].factor;
+						p[j[i]].s++;
 					}
 					s++;
 				}
 			}
 
-			/* check for completed buffers */
+			/* check for completed buffers and for
+			 * inputs which become active. */
 			for (i=0; i<nr; i++) {
+				if (p[i].ready)
+					continue;
 				if (p[i].buf
 				    && sbuf_size(p[i].buf) == p[i].pos) {
 					sbuf_unref(p[i].buf);
 					p[i].buf = NULL;
 					p[i].pos = 0;
+					if (!p[i].in && p[i].fifo_size == 0) {
+						p[i].ready = 1;
+						nr_ready++;
+					}
 				}
 			}
 		} while (cnt>0);
 
 		/* queue buffer */
 		sbuf_queue(out, buf);
-	}
+		output_ready = 0;
+	};
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	free(p);
+	free(j);
 
 	FILTER_RETURN;
+}
+
+static int mix_f(filter_node_t *n)
+{
+	return mix(n, 1);
+}
+
+static int mix2_f(filter_node_t *n)
+{
+	return mix(n, 0);
 }
 
 /* shared destination pipe property fixup code (rate & phi) */
@@ -386,16 +493,55 @@ int mix_register()
 				      FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE))
 	    || !filterport_add_param(port, "gain", "input gain",
 				     FILTER_PARAMTYPE_FLOAT)
-            || !filter_add_output(f, PORTNAME_OUT, "mixed stream",
-				  FILTER_PORTTYPE_SAMPLE)
+	    || !(param = filterport_add_param(port, "offset", "input offset",
+					      FILTER_PARAMTYPE_FLOAT)))
+		return -1;
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
+			       FILTER_PORTTYPE_SAMPLE)
+	    || !(filter_add_param(f, "gain", "output gain",
+				  FILTER_PARAMTYPE_FLOAT))
 	    || !(param = filter_add_param(f, "phi", "position of mixed stream",
-				      FILTER_PARAMTYPE_FLOAT)))
+					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
 	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_POSITION);
 	f->connect_out = mix_connect_out;
 	f->fixup_param = mix_fixup_param;
 	f->fixup_pipe = mix_fixup_pipe;
         if (filter_add(f, "mix", "mix n channels") == -1)
+                return -1;
+	return 0;
+}
+
+PLUGIN_DESCRIPTION(mix2, "mix streams")
+PLUGIN_PIXMAP(mix2, "mix.xpm")
+int mix2_register()
+{
+	filter_t *f;
+	filter_portdesc_t *port;
+	filter_paramdesc_t *param;
+
+        if (!(f = filter_alloc(mix2_f))
+            || !(port = filter_add_input(f, PORTNAME_IN, "input stream",
+				      FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE))
+	    || !filterport_add_param(port, "gain", "input gain",
+				     FILTER_PARAMTYPE_FLOAT)
+	    || !(param = filterport_add_param(port, "offset", "input offset",
+					      FILTER_PARAMTYPE_FLOAT)))
+		return -1;
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME);
+	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
+			       FILTER_PORTTYPE_SAMPLE)
+	    || !(filter_add_param(f, "gain", "output gain",
+				  FILTER_PARAMTYPE_FLOAT))
+	    || !(param = filter_add_param(f, "phi", "position of mixed stream",
+					  FILTER_PARAMTYPE_FLOAT)))
+		return -1;
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_POSITION);
+	f->connect_out = mix_connect_out;
+	f->fixup_param = mix_fixup_param;
+	f->fixup_pipe = mix_fixup_pipe;
+        if (filter_add(f, "mix2", "mix n channels") == -1)
                 return -1;
 	return 0;
 }

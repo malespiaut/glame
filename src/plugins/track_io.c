@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.2 2000/03/20 09:51:53 richi Exp $
+ * $Id: track_io.c,v 1.3 2000/03/25 15:03:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,39 +37,54 @@ static int track_in_f(filter_node_t *n)
 	track_t *c;
 	fileid_t f;
 	char *mem;
+	off_t size, pos;
+	int cnt, i;
+	SAMPLE *s;
 
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
 		FILTER_ERROR_RETURN("no output");
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		FILTER_ERROR_RETURN("no input track specified");
-	if (!(c = get_track(filterparam_val_string(chan), 
-	                      filterparam_val_string(group))))
+	if (!(c = track_get(filterparam_val_string(chan), 
+			    filterparam_val_string(group))))
 		FILTER_ERROR_RETURN("input track not found");
 
 	FILTER_AFTER_INIT;
 
 	/* get the first filecluster */
 	f = track_fid(c);
-	fc = filecluster_get(f, 0);
+	size = file_size(f);
 
-	while (fc != NULL) {
+	pos = 0;
+	while (size > 0) {
 		FILTER_CHECK_STOP;
-		/* map the filecluster data */
-		mem = filecluster_mmap(fc);
 
-		/* alloc a new stream buffer and copy the data
-		 * FIXME: split the buffer into parts not bigger
-		 *        than f.i. GLAME_BUFSIZE */
-		buf = sbuf_alloc(filecluster_size(fc)/SAMPLE_SIZE, n);
-		memcpy(sbuf_buf(buf), mem, filecluster_size(fc));
+		/* Alloc a buffer of default size or
+		 * a tail buffer. */
+		cnt = MIN(size/SAMPLE_SIZE, GLAME_WBUFSIZE);
+		buf = sbuf_make_private(sbuf_alloc(cnt, n));
+		s = sbuf_buf(buf);
+		size -= cnt*SAMPLE_SIZE;
+
+		/* map and copy filecluster data */
+		fc = filecluster_get(f, pos);
+		do {
+			mem = filecluster_mmap(fc);
+			mem += pos-filecluster_start(fc);
+			i = MIN(SAMPLE_SIZE*cnt,
+				filecluster_size(fc) - pos + filecluster_start(fc));
+			memcpy(s, mem, i);
+			cnt -= i/SAMPLE_SIZE;
+			s += i/SAMPLE_SIZE;
+			pos += i;
+			filecluster_munmap(fc);
+			if (filecluster_end(fc) < pos)
+				fc = filecluster_next(fc);
+		} while (cnt>0);
 
 		/* queue the buffer */
 		sbuf_queue(out, buf);
-
-		/* unmap the filecluster and get the next cluster */
-		filecluster_munmap(fc);
-		fc = filecluster_next(fc);
 	}
 	/* send an EOF */
 	sbuf_queue(out, NULL);
@@ -89,8 +104,8 @@ static int track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		return 0;
-	if (!(c = get_track(filterparam_val_string(chan),
-	                      filterparam_val_string(group)))) {
+	if (!(c = track_get(filterparam_val_string(chan),
+			    filterparam_val_string(group)))) {
 		filternode_set_error(n, "track not found");
 		return -1;
 	}
@@ -98,8 +113,8 @@ static int track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		return 0;
 
 	/* fix the output pipe stream information */
-	filterpipe_settype_sample(out, track_freq(c), 
-				  FILTER_PIPEPOS_DEFAULT);
+	filterpipe_settype_sample(out, track_rate(c), 
+				  track_hangle(c));
 	out->dest->filter->fixup_pipe(out->dest, out);
 	return 0;
 }
@@ -112,13 +127,13 @@ static int track_in_connect_out(filter_node_t *n, const char *port,
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		return 0;
-	if (!(c = get_track(filterparam_val_string(chan),
-	                      filterparam_val_string(group))))
+	if (!(c = track_get(filterparam_val_string(chan),
+			    filterparam_val_string(group))))
 		return 0;
 
 	/* fix the output pipe stream information */
-	filterpipe_settype_sample(p, track_freq(c), 
-				  FILTER_PIPEPOS_DEFAULT);
+	filterpipe_settype_sample(p, track_rate(c), 
+				  track_hangle(c));
 	return 0;
 }
 
@@ -155,21 +170,15 @@ static int track_out_f(filter_node_t *n)
 	filecluster_t *fc;
 	filter_buffer_t *buf;
 	fileid_t file;
-	filter_param_t *chan, *group, *type;
+	filter_param_t *chan, *group;
 	char *mem;
-	int pos, p;
-	int ctype, res = 0;
+	int pos, p, res = 0;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		FILTER_ERROR_RETURN("no input");
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
 		FILTER_ERROR_RETURN("no output track specified");
-	/* FIXME! */
-	if ((type = filternode_get_param(n, "type")))
-		ctype = filterparam_val_int(type);
-	else
-		ctype = TRACK_NUM_MISC;
 
 	FILTER_AFTER_INIT;
 
@@ -199,9 +208,10 @@ static int track_out_f(filter_node_t *n)
 	FILTER_BEFORE_STOPCLEANUP;
 
 	/* store the file into the submitted track */
-	res = add_track(filterparam_val_string(chan),
-	                  filterparam_val_string(group),
-			  file, ctype, filterpipe_sample_rate(in));
+	res = track_add(filterparam_val_string(chan),
+			filterparam_val_string(group),
+			file, filterpipe_sample_rate(in),
+			filterpipe_sample_hangle(in), 0);
 
 	FILTER_BEFORE_CLEANUP;
 
@@ -219,8 +229,6 @@ int track_out_register()
 				 FILTER_PARAMTYPE_STRING)
 	    || !filter_add_param(f, "group", "output group",
 				 FILTER_PARAMTYPE_STRING)
-	    || !filter_add_param(f, "type", "output type",
-				 FILTER_PARAMTYPE_INT)
 	    || !filter_add_input(f, PORTNAME_IN, "input stream",
 				 FILTER_PORTTYPE_SAMPLE)
 	    || filter_add(f, "track_out", "store a stream into a track") == -1)
