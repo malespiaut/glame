@@ -1,6 +1,6 @@
-@comment $Id: plugin.texi,v 1.10 2001/04/18 16:34:25 richi Exp $
+@comment $Id: plugin.texi,v 1.11 2001/04/27 13:02:37 richi Exp $
 
-@node Plugin Interface, GLAME Database Interface, Swapfile API, Top
+@node Plugin Interface, GLAME Database Interface, GLAME Project Structure Management, Top
 @chapter Plugin Interface 
 
 The plugin interface is very simple. There are actually two functions,

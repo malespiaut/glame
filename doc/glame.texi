@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.15 2001/04/25 20:02:48 mag Exp $
+@comment $Id: glame.texi,v 1.16 2001/04/27 13:02:37 richi Exp $
 
 
 @c %**start of header
@@ -97,6 +97,7 @@ Copyright @copyright{} 2000, 2001 Richard G@"unther, Daniel Kobras, Alexander Eh
 * Filter Tutorial::	Writing plugins for GLAME.
 * Conversion Layer::	Handling different formats of audio data.
 * Swapfile API::	Using GLAME's flexible backing store.
+* GLAME Project Structure Management:: Managing views
 * Plugin Interface::	GLAME's dynamically loadable modules.
 * GLAME Database Interface:: GLAME's implementation of a generic database
 * GLAME Signal Interface:: GLAME's implementation of generic signalling
@@ -145,6 +146,7 @@ translation approved by the Free Software Foundation.
 @include filter-tutorial.texi
 @include conversion.texi
 @include swapfile.texi
+@include gpsm.texi
 @include plugin.texi
 @include gldb.texi
 @include glsignal.texi

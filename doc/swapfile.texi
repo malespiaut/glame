@@ -1,6 +1,6 @@
-@comment $Id: swapfile.texi,v 1.9 2001/04/18 16:34:25 richi Exp $
+@comment $Id: swapfile.texi,v 1.10 2001/04/27 13:02:37 richi Exp $
 
-@node Swapfile API, Plugin Interface, Conversion Layer, Top
+@node Swapfile API, GLAME Project Structure Management, Conversion Layer, Top
 @chapter Swapfile API
 
 If you have any questions related to the covered (or uncovered but
