@@ -1316,11 +1316,11 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Select all", "Select all", "Select all",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_ATTACH),
+				glame_load_icon_widget("select_all.png",24,24),
 				selectall_cb, window->waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Select none", "Select none", "Select none",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLEAR),
+				glame_load_icon_widget("select_none.png",24,24),
 				selectnone_cb, window->waveview);
 	/* Play button that should change to Stop if pressed, different
 	 * callback than "Play all"/"Play selection" - play from marker.
@@ -1328,12 +1328,12 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Play", "Play", "Play",
-				glame_load_icon_widget("play.png",24,24),
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
 				playtoolbar_cb, window->waveview);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Menu", "Menu", "Menu",
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_DOWN),
+				glame_load_icon_widget("dots.png",24,24),
 				waveedit_rmb_cb2, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
