@@ -256,13 +256,6 @@ if test $laf = yes; then
 	AC_DEFINE(HAVE_AUDIOFILE)
 fi
 
-dnl check for libsndfile - FIXME
-lsf=no
-if test $lsf = yes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lsndfile"
-	AC_DEFINE(HAVE_SNDFILE)
-fi
-
 dnl 
 dnl check for libstroke
 dnl

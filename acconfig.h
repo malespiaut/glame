@@ -25,9 +25,6 @@
 /* define if you have libaudiofile */
 #undef HAVE_AUDIOFILE
 
-/* define if you have libsndfile */
-#undef HAVE_SNDFILE
-
 /* define if you have fftw of SAMPLE precision */
 #undef HAVE_FFTW
 
