@@ -25,6 +25,9 @@
 /* define if you have libsndfile */
 #undef HAVE_SNDFILE
 
+/* define if you have single precision fftw */
+#undef HAVE_SFFTW
+
 /* define if you have guile */
 #undef HAVE_GUILE
 

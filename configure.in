@@ -102,6 +102,15 @@ dnl
 
 GNOME_CHECK_GUILE("fail")
 
+dnl
+dnl check for single precision fftw
+dnl
+AC_CHECK_LIB(sfftw, fftw2d_create_plan, sfl=yes, sfl=no)
+AC_CHECK_HEADER(sfftw.h,, sfl=no)
+if test $sfl = yes; then
+	GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lsfftw -lsrfftw"
+	AC_DEFINE(HAVE_SFFTW)
+fi
 
 dnl
 dnl Checks for various audio stuff.
@@ -250,5 +259,6 @@ AC_SUBST(GLAME_DLIBS)
 AC_SUBST(GLAME_DCFLAGS)
 AC_SUBST(GLAME_AUDIO_LIBS)
 AC_SUBST(GLAME_AUDIO_CFLAGS)
+AC_SUBST(GLAME_FFT_LIBS)
 
 AC_OUTPUT(Makefile macros/Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile)
