@@ -253,10 +253,10 @@ g_wavefile_type_width (GWavefileType dtype)
 {
   switch (dtype)
     {
-    case G_WAVEFILE_TYPE_F8:
+    case G_WAVEFILE_TYPE_F8: case G_WAVEFILE_TYPE_F8NI:
       return 8;
 
-    case G_WAVEFILE_TYPE_S32: case G_WAVEFILE_TYPE_U32: case G_WAVEFILE_TYPE_F4:
+    case G_WAVEFILE_TYPE_S32: case G_WAVEFILE_TYPE_U32: case G_WAVEFILE_TYPE_F4: case G_WAVEFILE_TYPE_F4NI:
       return 4;
 
     case G_WAVEFILE_TYPE_S16: case G_WAVEFILE_TYPE_U16:
@@ -286,7 +286,7 @@ g_wavefile_type_convert (guint32       n_channels,
   gdouble *f8;
   gfloat *f4;
 
-  guint32 i, frames;
+  guint32 i, j, frames;
 
   frames = length * n_channels;
 
@@ -477,11 +477,39 @@ g_wavefile_type_convert (guint32       n_channels,
             *s16++ = double_to_s16 (*f8++);
           break;
 
+	case G_WAVEFILE_TYPE_F8NI: {
+	  gint16 *s16temp = s16;
+	  f8 = (gdouble*) in;
+	  for (j=0; j<n_channels; j++) {
+	    s16temp = s16;
+	    for (i=0; i<length; i++) {
+	      *s16temp = double_to_s16(*f8++);
+	      s16temp += n_channels;
+	    }
+	    s16++;
+	  }
+	  break;
+	}
+
         case G_WAVEFILE_TYPE_F4:
           f4 = (gfloat*) in;
           for (i = 0; i < frames; i++)
             *s16++ = double_to_s16 (*f4++);
           break;
+
+	case G_WAVEFILE_TYPE_F4NI: {
+	  gint16 *s16temp = s16;
+	  f4 = (gfloat*) in;
+	  for (j=0; j<n_channels; j++) {
+	    s16temp = s16;
+	    for (i=0; i<length; i++) {
+	      *s16temp = double_to_s16(*f4++);
+	      s16temp += n_channels;
+	    }
+	    s16++;
+	  }
+	  break;
+	}
 
         case G_WAVEFILE_TYPE_S32:
           s32 = (gint32*) in;

@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.3 2001/03/12 09:41:51 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.4 2001/03/16 09:55:42 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -132,9 +132,9 @@ static GWavefileType
 gtk_swapfile_buffer_get_datatype (GtkWaveBuffer *wavebuffer)
 {
 #ifdef SAMPLE_FLOAT
-	return G_WAVEFILE_TYPE_F4;
+	return G_WAVEFILE_TYPE_F4NI;
 #else
-	return G_WAVEFILE_TYPE_F8;
+	return G_WAVEFILE_TYPE_F8NI;
 #endif
 }
 
@@ -164,21 +164,17 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER (wavebuffer);
 	off_t pos;
 	ssize_t cnt;
-	int i, j;
-	SAMPLE buf[4096];
+	int i;
 
 	for (i=0; i<swapfile->nrtracks; i++) {
-		if (!(channel_mask & (1<<i)))
+		if (!(channel_mask & (1<<i))) {
+			data += length*SAMPLE_SIZE;
 			continue;
+		}
 		/* FIXME - error checks. */
 		pos = sw_lseek(swapfile->fd[i], start*SAMPLE_SIZE, SEEK_SET);
-		cnt = length*SAMPLE_SIZE;
-		while (cnt > 0) {
-			sw_read(swapfile->fd[i], buf, MIN(4096*SAMPLE_SIZE, cnt));
-			for (j=0; j<MIN(4096, cnt/SAMPLE_SIZE); j++)
-				((SAMPLE *)data)[(length - cnt/SAMPLE_SIZE + j)*swapfile->nrtracks + i] = buf[j];
-			cnt -= 4096*SAMPLE_SIZE;
-		}
+		cnt = sw_read(swapfile->fd[i], data, length*SAMPLE_SIZE);
+		data += length*SAMPLE_SIZE;
 	}
 }
 
