@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.15 2001/03/16 10:21:06 richi Exp $
+ * $Id: main.c,v 1.16 2001/03/16 13:42:50 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -206,7 +206,7 @@ static void glame_about(void)
 {
 	const gchar *authors[]={
 		"Richard Guenther [Richi]",
-		"Alexander Ehlert [OzMag]",
+		"Alexander Ehlert [Mag]",
 		"Daniel Kobras [*nold]",
 		"Johannes Hirche [XWolf]",
 		"and others",
@@ -215,7 +215,7 @@ static void glame_about(void)
 	GtkWidget *about;
 
 	about = gnome_about_new ("GLAME", VERSION, 
-				 _("Copyright (C) 1999,2000 Alexander Ehlert, Richard Guenther."),
+				 _("Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther."),
 				 authors,
 				 _("GLAME comes with ABSOLUTELY NO WARRANTY. \nThis is free software."),
 				 GLAME_LOGO);

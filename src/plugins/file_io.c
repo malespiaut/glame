@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.37 2001/02/08 01:10:08 xwolf Exp $
+ * $Id: file_io.c,v 1.38 2001/03/16 13:42:50 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -1031,7 +1031,7 @@ int af_write_f(filter_t *n)
 					 * with zeroes
 					 */
 					RWA(n).buffer[wbpos++]=0;
-		} while(wbpos<bufsiz);
+		} while ((wbpos<bufsiz) && (eofs));
 		afWriteFrames(RWA(n).file, AF_DEFAULT_TRACK, RWA(n).buffer,wbpos/RWA(n).channelCount);
 	}
 		
