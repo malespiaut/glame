@@ -41,7 +41,7 @@ glame2_SOURCES = \
 	glame_accelerator.c glame_accelerator.h \
 	glame_console.c glame_console.h \
 	main2.cpp \
-	tree/gltree.h tree/gltree.cpp \
+	tree/gltree.h tree/gltree.c \
 	tree/gpsmstore.h tree/gpsmstore.c \
 	waveeditgui.c waveeditgui.h apply.c importexport.c importexport.h
 

@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.17 2004/06/13 22:27:55 richi Exp $
+ * $Id: gltree.c,v 1.1 2004/06/13 22:40:01 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -90,7 +90,7 @@ GtkWidget *glame_gltree_init(gpsm_grp_t *newroot)
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(gltree_tree), FALSE);
 
 	g_signal_connect(gltree_tree, "button-press-event",
-			 GCallback(click_cb), NULL);
+			 (GCallback)click_cb, NULL);
 
 	return GTK_WIDGET(gltree_tree);
 }
