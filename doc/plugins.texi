@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.36 2002/02/12 09:03:10 richi Exp $
+@comment $Id: plugins.texi,v 1.37 2002/05/23 22:26:24 mag Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -473,7 +473,10 @@ and transform it into a slightly mangled single output stream.
 @file{delay} and @file{extend} prepend and append zero samples to a data
 stream respectively. @file{repeat} resends an input sequence over and over
 for a fixed time or for ever. @file{invert} inverts all data of the input stream, i.e. 
-each sample A is replaced by -A.
+each sample A is replaced by -A. @file{stretch} allows to lengthen or shorten a track in
+time, while trying to preserve its pitch. This is only possible for small stretch factors.
+The presets may be a good starting point for your own tries. It's really dependend on your
+sound, what the best parameters might be. Obviously this is no realtime effect.
 
 @subsubheading Common ports
 @table @code
@@ -511,6 +514,19 @@ Defaults to 0ms.
 @item duration (time)
 The input pattern is repeated until a total time of duration seconds is
 reached. Defaults to 0s which is endless repetition.
+@end table
+
+@subsubheading @file{stretch} parameters
+@table @code
+@item stretchfactor (float)
+This is the factor by that the duration of the track is stretched.
+@item buffersize (int)
+The larger the buffersize, the more the pitch is preserved, but only for lower 
+frequencies. Higher frequencies are attenuated.
+@item oversampling (int)
+As the streching is done by a overlapping window technique, the higher
+the oversampling the better the quality. BUT: higher oversampling
+leads to attenuation of higher frequencies, especially with large buffersizes.
 @end table
 
 
