@@ -44,7 +44,7 @@ char *swfname;
 void sc_main()
 {
 	if (!swfname)
-		swfname = glame_config_get_string("swapfile/defaultpath", NULL);
+		glame_config_get_string("swapfile/defaultpath", &swfname);
 	if (swfname && gpsm_init(swfname) == -1)
 		exit(1);
 
