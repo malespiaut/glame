@@ -71,11 +71,26 @@ static void reset_temp(int nrtracks)
 	}
 }
 
+/* Menu event - Zoom in. */
+static void zoomin_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	gdouble  zoomlevel;
+	zoomlevel = gtk_wave_view_get_zoom(waveview);
+	gtk_wave_view_set_zoom(waveview,zoomlevel/2.0);
+}
+
+/* Menu event - Zoom Full. */
+static void zoomfull_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+        gtk_wave_view_set_zoom_all(waveview);
+}
 
 /* Menu event - Zoom out. */
 static void zoomout_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
-        gtk_wave_view_set_zoom_all(waveview);
+	gdouble  zoomlevel;
+	zoomlevel = gtk_wave_view_get_zoom(waveview);
+	gtk_wave_view_set_zoom(waveview,zoomlevel*2.0);
 }
 
 /* Menu event - Zoom to selection. */
@@ -487,6 +502,14 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	*/
 }
 
+static GnomeUIInfo view_menu[] = {
+	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
+	GNOMEUIINFO_ITEM("Zoom full", "zommfull", zoomfull_cb, NULL),
+	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
+	GNOMEUIINFO_ITEM("Zoom out", "zommout", zoomout_cb, NULL),
+	GNOMEUIINFO_END
+};
+
 static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
@@ -495,8 +518,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
-	GNOMEUIINFO_ITEM("Zoom out", "zommout", zoomout_cb, NULL),
+	GNOMEUIINFO_SUBTREE("View", view_menu),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_SUBTREE("Feed into filter", NULL),
@@ -552,8 +574,8 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	feed_menu = glame_gui_build_plugin_menu(choose_effects_input_only, feed_cb);
 	gtk_widget_show(GTK_WIDGET(filter_menu));
 	gtk_widget_show(GTK_WIDGET(feed_menu));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[10].widget), GTK_WIDGET(filter_menu));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[11].widget), GTK_WIDGET(feed_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[9].widget), GTK_WIDGET(filter_menu));
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[10].widget), GTK_WIDGET(feed_menu));
 	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }

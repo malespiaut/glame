@@ -134,9 +134,13 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 	GlameTreeItem *i = GLAME_TREE_ITEM(item);
 	GtkWidget *menu;
 
-	if (event->button != 3)
-		return FALSE;
-
+	if (event->button != 3){
+		if(event->type == GDK_2BUTTON_PRESS){
+			edit_tree_label(i);
+			return TRUE;
+		} else 
+			return FALSE;
+	}
 	if (GPSM_ITEM_IS_SWFILE(i->item))
 		menu = gnome_popup_menu_new(file_menu_data);
 	else if (GPSM_ITEM_IS_GRP(i->item))
@@ -495,8 +499,8 @@ static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 	}
 
 	/* Register gtk handlers and append the item widget. */
-	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
-				 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
+	//gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
+	//			 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
 	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
 				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
 	glame_tree_append(tree, itemw);
