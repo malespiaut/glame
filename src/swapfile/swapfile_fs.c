@@ -62,7 +62,7 @@
 
 /* Some operations have two implementations, one cooked up out
  * of swapfile API functions, one out of lowlevel ones. */
-#define USE_COOKED_OPS
+#undef USE_COOKED_OPS
 
 
 /* The global "state" of the swapfile and its locks. The
@@ -752,13 +752,19 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 	/* First update the output file, if necessary. */
 	if (_ofd) {
 		if (mode & SWSENDFILE_INSERT) {
-			if (_ofd->file->clusters->size < _ofd->offset)
+			if (_ofd->file->clusters->size < _ofd->offset) {
+				LOCK;
 				file_truncate(_ofd->file, _ofd->offset);
+				UNLOCK;
+			}
 			file_insert(_ofd->file, _ofd->offset,
 				    _ifd->file, _ifd->offset, count);
 		} else {
-			if (_ofd->file->clusters->size < _ofd->offset + count)
+			if (_ofd->file->clusters->size < _ofd->offset + count) {
+				LOCK;
 				file_truncate(_ofd->file, _ofd->offset + count);
+				UNLOCK;
+			}
 			file_replace(_ofd->file, _ofd->offset,
 				     _ifd->file, _ifd->offset, count);
 		}
@@ -969,7 +975,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 
 	/* Did we have to truncate the file and were not be able
 	 * to write all data? We may have to fix the truncation here. */
-	if (count != cnt && old_size != -1) {
+	if (cnt != 0 && old_size != -1) {
 		if (old_offset + (count-cnt) > old_size)
 			sw_ftruncate(fd, old_offset + (count-cnt));
 	}
@@ -1015,7 +1021,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	}
 
 	while (cnt > 0) {
-		if (!(c = file_getcluster(_fd->file, _fd->offset, &coff, 0))) {
+		if (!(c = file_getcluster_private(_fd->file, _fd->offset, &coff, 0))) {
 			err = 1;
 			break;
 		}
@@ -1038,7 +1044,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 
 	/* Did we have to truncate the file and were not be able
 	 * to write all data? We may have to fix the truncation here. */
-	if (count != cnt && old_size != -1) {
+	if (cnt != 0 && old_size != -1) {
 		if (old_offset + (count-cnt) > old_size) {
 			LOCK;
 			file_truncate(_fd->file, old_offset + (count-cnt));

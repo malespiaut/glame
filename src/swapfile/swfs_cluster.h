@@ -57,7 +57,11 @@ struct swcluster {
 
 /* A maximum size goal we want to achieve for this inefficient
  * implementation via a native filesystem - else it would be S32_MAX. */
-#define SWCLUSTER_MAXSIZE (1*1024*1024)
+#ifndef DEBUG
+#define SWCLUSTER_MAXSIZE (1*512*1024)
+#else
+#define SWCLUSTER_MAXSIZE (1*64*1024)
+#endif
 
 
 /* Initialize the cluster subsystem. Maxlru is the maximum number of

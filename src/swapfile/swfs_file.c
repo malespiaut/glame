@@ -254,9 +254,15 @@ static struct swcluster *file_getcluster_private(struct swfile *f,
 	if ((cc = cluster_unshare(c)) != c) {
 		cluster_addfileref(cc, f->name);
 		ctree_replace1(f->clusters, pos, cc->name, cc->size);
+		f->flags |= SWF_DIRTY;
 		cluster_delfileref(c, f->name);
+		_file_check(f);
+
+		/* Drop the original cluster, re-get the copied cluster
+		 * with right flags (and drop the reference from unshare). */
 		cluster_put(c, 0);
-		c = cc;
+		c = cluster_get(cc->name, flags, csize);
+		cluster_put(cc, 0);
 	}
 	UNLOCKFILE(f);
 
@@ -656,12 +662,12 @@ static void _file_cluster_split(struct swfile *f, long cpos,
 	cluster_addfileref(ct, f->name);
 	ctree_replace1(f->clusters, cpos, ch->name, ch->size);
 	f->clusters = ctree_insert1(f->clusters, cpos+1, ct->name, ct->size);
+	f->flags |= SWF_DIRTY;
 	if (cluster_delfileref(c, f->name) == -1)
 		PANIC("Cannot delete fileref");
 	cluster_put(ch, 0);
 	cluster_put(ct, 0);
 	cluster_put(c, 0);
-	f->flags |= SWF_DIRTY;
 	_file_check(f);
 }
 
@@ -678,11 +684,11 @@ static void _file_cluster_truncatetail(struct swfile *f, long cpos, s32 size)
 	cluster_split(c, size, 0, &ch, NULL);
 	cluster_addfileref(ch, f->name);
 	ctree_replace1(f->clusters, cpos, ch->name, ch->size);
+	f->flags |= SWF_DIRTY;
 	if (cluster_delfileref(c, f->name) == -1)
 		PANIC("Cannot delete fileref");
 	cluster_put(c, 0);
 	cluster_put(ch, 0);
-	f->flags |= SWF_DIRTY;
 	_file_check(f);
 }
 
@@ -699,11 +705,11 @@ static void _file_cluster_truncatehead(struct swfile *f, long cpos, s32 size)
 	cluster_split(c, c->size - size, 0, NULL, &ct);
 	cluster_addfileref(ct, f->name);
 	ctree_replace1(f->clusters, cpos, ct->name, ct->size);
+	f->flags |= SWF_DIRTY;
 	if (cluster_delfileref(c, f->name) == -1)
 		PANIC("Cannot delete fileref");
 	cluster_put(c, 0);
 	cluster_put(ct, 0);
-	f->flags |= SWF_DIRTY;
 	_file_check(f);
 }
 
@@ -719,6 +725,7 @@ static void _file_cluster_delete(struct swfile *f, long pos, long cnt)
 	cid = (u32 *)alloca(sizeof(u32)*cnt);
 	csize = (s32 *)alloca(sizeof(s32)*cnt);
 	f->clusters = ctree_remove(f->clusters, pos, cnt, cid, csize);
+	f->flags |= SWF_DIRTY;
 	for (i=0; i<cnt; i++) {
 		if (!(c = cluster_get(cid[i], CLUSTERGET_READFILES, csize[i])))
 			PANIC("Cannot get cluster");
@@ -726,7 +733,6 @@ static void _file_cluster_delete(struct swfile *f, long pos, long cnt)
 			PANIC("Cannot delete fileref");
 		cluster_put(c, 0);
 	}
-	f->flags |= SWF_DIRTY;
 	_file_check(f);
 }
 

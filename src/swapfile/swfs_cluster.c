@@ -282,10 +282,23 @@ static int cluster_checkfileref(struct swcluster *c, long file)
 	return -1;
 }
 
-static char *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
+static char *_cluster_mmap(struct swcluster *c,void *start,
+			   int prot, int flags)
 {
 	_cluster_needdata(c);
 	return (char *)pmap_map(start, c->size, prot, flags, c->fd, 0);
+}
+
+static char *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
+{
+	char *mem;
+
+	LOCKCLUSTER(c);
+	_cluster_needdata(c);
+	mem = (char *)pmap_map(start, c->size, prot, flags, c->fd, 0);
+	UNLOCKCLUSTER(c);
+
+	return mem;
 }
 
 static int cluster_munmap(char *start)
@@ -323,7 +336,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 		/* If the cluster is not shared, things are a lot
 		 * simpler. */
 		if (ct && !ch) {
-			if ((m = cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
+			if ((m = _cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot mmap cluster");
 			memmove(m, m + offset + cutcnt,
 				c->size - offset - cutcnt);
@@ -335,10 +348,10 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			*ch = cluster_get(c->name, 0, c->size);
 		} else /* if (ct && ch) */ {
 			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
-			    || (m = cluster_mmap(c, NULL, PROT_READ,
-						 MAP_SHARED)) == MAP_FAILED
-			    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE,
-						  MAP_SHARED)) == MAP_FAILED)
+			    || (m = _cluster_mmap(c, NULL, PROT_READ,
+						  MAP_SHARED)) == MAP_FAILED
+			    || (mt = _cluster_mmap(*ct, NULL, PROT_WRITE,
+						   MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mt, m + offset + cutcnt,
 			       c->size - offset - cutcnt);
@@ -349,21 +362,21 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 		}
 	} else {
 		/* Umm, now we have to copy in any case. */
-		if ((m = cluster_mmap(c, NULL, PROT_READ,
-				      MAP_SHARED)) == MAP_FAILED)
+		if ((m = _cluster_mmap(c, NULL, PROT_READ,
+				       MAP_SHARED)) == MAP_FAILED)
 			SWPANIC("Cannot mmap cluster");
 		if (ch) {
 			if (!(*ch = cluster_alloc(offset))
-			    || (mh = cluster_mmap(*ch, NULL, PROT_WRITE,
-						  MAP_SHARED)) == MAP_FAILED)
+			    || (mh = _cluster_mmap(*ch, NULL, PROT_WRITE,
+						   MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mh, m, offset);
 			cluster_munmap(mh);
 		}
 		if (ct) {
 			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
-			    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE,
-						  MAP_SHARED)) == MAP_FAILED)
+			    || (mt = _cluster_mmap(*ct, NULL, PROT_WRITE,
+						   MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mt, m + offset + cutcnt,
 			       c->size - offset - cutcnt);
@@ -400,18 +413,24 @@ static struct swcluster *cluster_unshare(struct swcluster *c)
 
 	LOCKCLUSTER(c);
 
-	if (c->files_cnt > 1) {
-		if (!(cc = cluster_alloc(c->size))
-		    || (m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
-		    || (mc = cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			SWPANIC("Cannot alloc/mmap clusters");
-		memcpy(mc, m, c->size);
-		cluster_munmap(mc);
-		cluster_munmap(m);
-	} else
-		cc = c;
+	/* If we have only one reference to a file, we might just
+	 * return the cluster. */
+	if (c->files_cnt <= 1) {
+		UNLOCKCLUSTER(c);
+		return c;
+	}
 
+	/* Now we have to copy the whole cluster (and return the copy
+	 * instead of the original). */
+	if (!(cc = cluster_alloc(c->size))
+	    || (m = _cluster_mmap(c, NULL, PROT_READ, MAP_PRIVATE/* FIXME */)) == MAP_FAILED
+	    || (mc = _cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
+		SWPANIC("Cannot alloc/mmap clusters");
+	memcpy(mc, m, c->size);
 	UNLOCKCLUSTER(c);
+
+	cluster_munmap(mc);
+	cluster_munmap(m);
 
 	return cc;
 }
