@@ -4,7 +4,7 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.17 2002/02/15 13:23:49 nold Exp $
+ * $Id: util.h,v 1.18 2003/07/28 11:55:28 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -100,13 +100,13 @@ static inline void DPRINTF(const char *templ, ...)
 # endif
 #endif
 
-#ifndef MIN
-#define MIN(a, b) ((a)<(b)?(a):(b))
-#endif
+#undef MIN
+#define MIN(a, b) ({ __typeof__(a) _a = (a); __typeof__(b) _b = (b); \
+		     _a < _b ? _a : _b; })
 
-#ifndef MAX
-#define MAX(a, b) ((a)<(b)?(b):(a))
-#endif
+#undef MAX
+#define MAX(a, b) ({ __typeof__(a) _a = (a); __typeof__(b) _b = (b); \
+		     _a > _b ? _a : _b; })
 
 /* alloc zeroed mem, malloc/calloc syntax. */
 #define ALLOC(type) (type *)calloc(1, sizeof(type))
