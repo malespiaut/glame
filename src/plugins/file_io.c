@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.4 2000/03/20 09:51:53 richi Exp $
+ * $Id: file_io.c,v 1.5 2000/03/20 10:39:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -50,6 +50,7 @@
 #include <math.h>
 #include "filter.h"
 #include "util.h"
+#include "glplugin.h"
 
 #ifdef HAVE_AUDIOFILE
 #include <audiofile.h>
@@ -59,6 +60,9 @@ int af_read_f(filter_node_t *n);
 void af_read_cleanup(filter_node_t *n);
 int af_write_f(filter_node_t *n);
 #endif
+
+
+PLUGIN_SET(file_io, "read_file write_file")
 
 
 typedef struct {
@@ -295,13 +299,13 @@ static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	return -1;
 }
 
-int file_io_register()
+
+PLUGIN_DESCRIPTION(read_file, "read a file")
+PLUGIN_PIXMAP(read_file, "default.xpm")
+int read_file_register()
 {
 	filter_t *f;
 	filter_portdesc_t *p;
-
-	INIT_LIST_HEAD(&readers);
-	INIT_LIST_HEAD(&writers);
 
 	if (!(f = filter_alloc(read_file_f))
 	    || !(p = filter_add_output(f, PORTNAME_OUT, "output channels",
@@ -317,6 +321,15 @@ int file_io_register()
 	f->fixup_param = read_file_fixup_param;
 	if (filter_add(f, "read_file", "Generic file read filter") == -1)
 		return -1;
+	return 0;
+}
+
+PLUGIN_DESCRIPTION(write_file, "write a file")
+PLUGIN_PIXMAP(write_file, "default.xpm")
+int write_file_register()
+{
+	filter_t *f;
+	filter_portdesc_t *p;
 
 	if (!(f = filter_alloc(write_file_f))
 	    || !(p = filter_add_input(f, PORTNAME_IN, "input channels",
@@ -329,6 +342,16 @@ int file_io_register()
 	f->fixup_param = write_file_fixup_param;
 	if (filter_add(f, "write_file", "Generic file write filter") == -1)
 		return -1;
+	return 0;
+}
+
+int file_io_register()
+{
+	filter_t *f;
+	filter_portdesc_t *p;
+
+	INIT_LIST_HEAD(&readers);
+	INIT_LIST_HEAD(&writers);
 
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
