@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.13 2000/03/21 10:52:53 xwolf Exp $
+ * $Id: canvas.c,v 1.14 2000/03/21 15:22:07 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -61,7 +61,8 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 			it->dragging=TRUE;
 			break;
 		case 2:
-					    
+			delete_canvas_item(it);
+			break;
 		case 3:
 			edit_canvas_item_properties(it);
 			break;
@@ -98,9 +99,35 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	return FALSE;
 }
 		
-
+static void
+delete_canvas_item(GlameCanvasItem* it)
+{
+	GList * plist;
+	GList * clist;
+	plist = g_list_first(it->input_ports);
+	while(plist){
+		clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		while(clist){
+			connection_break((GlameConnection*)(clist->data));
+			clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		}
+		plist = g_list_next(plist);
+	}
+	plist = g_list_first(it->output_ports);
+	while(plist){
+		clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		while(clist){
+			connection_break((GlameConnection*)(clist->data));
+			clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		}
+		plist = g_list_next(plist);
+	}
+	filternetwork_delete_node(it->filter->node);
+	gtk_object_destroy(GTK_OBJECT(it));
+}
 		
-static gint delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
+static gint 
+delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
 {
 	gtk_object_destroy(GTK_OBJECT(win));
 	return TRUE;
@@ -192,9 +219,6 @@ create_new_canvas(gui_network* net)
 	
 
 
-//	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-//	gtk_window_set_title(GTK_WINDOW(window),name);
-	
 	
 	//gtk_signal_connect(GTK_OBJECT(window),
 	//		   "delete_event",
@@ -216,12 +240,9 @@ create_new_canvas(gui_network* net)
 	gtk_drag_dest_set(GTK_WIDGET(canvas),GTK_DEST_DEFAULT_ALL,gui->target,1,GDK_ACTION_COPY);
 	gtk_signal_connect(GTK_OBJECT(canvas),"drag-data-received",GTK_SIGNAL_FUNC(dropped),NULL);
 
-	//gtk_container_add(GTK_CONTAINER(item),sw);
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
 
 	gnome_app_set_contents(GNOME_APP(window),sw);
-
-	
 
 	buttonbox = gtk_hbutton_box_new();
 	item =  GNOME_DOCK_ITEM(gnome_dock_item_new("buttons",GNOME_DOCK_ITEM_BEH_NORMAL));
@@ -608,7 +629,6 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 					     0xff000090);
 		item->port_type = GUI_PORT_TYPE_IN;
 		(GLAME_CANVAS_ITEM(grp))->input_ports=g_list_append((GLAME_CANVAS_ITEM(grp))->input_ports,item);
-//		gnome_canvas_item_raise(GNOME_CANVAS_ITEM(item),9999999);
 		border+=step;
 /*		gtk_signal_connect(GTK_OBJECT(item),
 				   "event",GTK_SIGNAL_FUNC(input_port_select),
@@ -930,25 +950,6 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",update_params,cb);
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",cancel_params,cb);	
 	
-		       	/*
-	paramName = malloc(50);
-	paramValue = malloc(50);
-	paramName[0]=paramValue[0]=0;
-	gtk_dialog_cauldron ("Set Value", 0,
-               " ( (Parameter Name:) | %Eod ) / ( (Parameter Value:) | %Ed) / ( %Bgqrxfp || %Bgqxfp ) ",
-                   &paramName,&paramValue, GNOME_STOCK_BUTTON_OK, GNOME_STOCK_BUTTON_CANCEL);
-
-	DPRINTF("%s %s\n",paramName,paramValue);
-	val = filterparamval_from_string(filter_get_paramdesc(gfilter->filter,paramName),paramValue);
-	if(filternode_set_param(node,paramName,val)<0)
-	{
-		DPRINTF("Change failed!\n");
-	}else{
-		DPRINTF("Success\n");
-	}
-	free(paramName);
-	free(paramValue);
-	free(val);*/
 }
 	
 
