@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.31 2001/08/02 15:09:28 richi Exp $
+ * $Id: glplugin.c,v 1.32 2001/08/02 15:18:03 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -274,7 +274,7 @@ int plugin_load(const char *filename)
 	 * filename without leading path and trailing .so */
 	s = (s = strrchr(filename, '/')) ? s+1 : (char *)filename;
 	strncpy(name, s, 255);
-	s = strstr(name, ".so");
+	s = strstr(name, SHLIB_EXTENSION);
 	if (!s)
 	    	return -1; /* This cannot be a shared object plugin. */
 	*s = '\0';
@@ -320,13 +320,13 @@ plugin_t *plugin_get(const char *nm)
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
-		sprintf(filename, "%s/%s.so", path->path, name);
+		sprintf(filename, "%s/%s" SHLIB_EXTENSION, path->path, name);
 		if (try_load_plugin(p, name, filename) == 0)
 			goto found;
 	}
 
 	/* last try LD_LIBRARY_PATH supported plugins */
-	sprintf(filename, "%s.so", name);
+	sprintf(filename, "%s" SHLIB_EXTENSION, name);
 	if (try_load_plugin(p, name, filename) == 0)
 		goto found;
 
