@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.24 2003/05/25 10:40:14 richi Exp $
+ * $Id: ladspa.c,v 1.25 2003/05/25 11:03:07 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -547,8 +547,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 			fBound1 = 0;
 			fBound2 = 0;
 			if (LADSPA_IS_HINT_BOUNDED_BELOW
-			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor)) {
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				bound_below = 1;
 				fBound1 =
 				    psDescriptor->
@@ -559,8 +558,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 					fBound1 *= GLAME_DEFAULT_SAMPLERATE;
 			}
 			if (LADSPA_IS_HINT_BOUNDED_ABOVE
-			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor)) {
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				bound_above = 1;
 				fBound2 =
 				    psDescriptor->
@@ -571,33 +569,58 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 					fBound1 *= GLAME_DEFAULT_SAMPLERATE;
 			}
 			if (LADSPA_IS_HINT_SAMPLE_RATE
-			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor)) {
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				fBound1 *= lSampleRate;
 				fBound2 *= lSampleRate;
 			}
 			if (fBound1 > 0
 			    && fBound2 > 0
 			    && LADSPA_IS_HINT_LOGARITHMIC
-			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor))
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor))
 				fRecommendation = 0.0; /* -- assume db, 0 is sane default, then. (was: sqrt(fBound1 * fBound2);) */
 			else
 				fRecommendation =
 				    0.5 * (fBound1 + fBound2);
 			if (LADSPA_IS_HINT_INTEGER
-			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor)) {
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				isint = 1;
 				fRecommendation =
 				    (LADSPA_Data) (long) (fRecommendation +
 							  0.5);
 			}
 			if (LADSPA_IS_HINT_TOGGLED
-			    (psDescriptor->PortRangeHints[lPortIndex].
-			     HintDescriptor)) {
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
 				toggled = 1;
 				fRecommendation = 0.0;
+			}
+			if (LADSPA_IS_HINT_HAS_DEFAULT
+			    (psDescriptor->PortRangeHints[lPortIndex].HintDescriptor)) {
+				const LADSPA_PortRangeHintDescriptor *d;
+				d = &psDescriptor->PortRangeHints[lPortIndex].HintDescriptor;
+				if (LADSPA_IS_HINT_DEFAULT_MINIMUM(*d))
+					fRecommendation = fBound1;
+				else if (LADSPA_IS_HINT_DEFAULT_MAXIMUM(*d))
+					fRecommendation = fBound2;
+				else if (LADSPA_IS_HINT_DEFAULT_LOW(*d))
+					fRecommendation = LADSPA_IS_HINT_LOGARITHMIC(*d)
+						? exp(log(fBound1)*0.75 + log(fBound2)*0.25)
+						: fBound1*0.75 + fBound2*0.25;
+				else if (LADSPA_IS_HINT_DEFAULT_MIDDLE(*d))
+					fRecommendation = LADSPA_IS_HINT_LOGARITHMIC(*d)
+						? exp(0.5*(log(fBound1) + log(fBound2)))
+						: 0.5*(fBound1+fBound2);
+				else if (LADSPA_IS_HINT_DEFAULT_HIGH(*d))
+					fRecommendation = LADSPA_IS_HINT_LOGARITHMIC(*d)
+						? exp(log(fBound1)*0.25 + log(fBound2)*0.75)
+						: fBound1*0.25 + fBound2*0.75;
+				else if (LADSPA_IS_HINT_DEFAULT_0(*d))
+					fRecommendation = 0.0;
+				else if (LADSPA_IS_HINT_DEFAULT_1(*d))
+					fRecommendation = 1.0;
+				else if (LADSPA_IS_HINT_DEFAULT_100(*d))
+					fRecommendation = 100.0;
+				else if (LADSPA_IS_HINT_DEFAULT_440(*d))
+					fRecommendation = 440.0;
 			}
 			if  (isint || toggled) {
 				param = filterparamdb_add_param_long(
