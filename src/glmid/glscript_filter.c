@@ -33,6 +33,7 @@
 
 /* Hack to allow switching between register(0)/instantiate(1) mode */
 int glscript_load_mode;
+filter_t *last_loaded_filter_instance;
 
 
 /* SMOBs for filter_pipe_t, filter_param_t, filter_port_t and plugint_t.
@@ -744,6 +745,7 @@ static SCM gls_glame_plugin_define(SCM s_net, SCM s_name)
 	}
 	DPRINTF("mode 1 - returning the instance\n");
 	free(name);
+	last_loaded_filter_instance = f; /* HACK!! */
 	return filter2scm(f);
 }
 

@@ -27,6 +27,7 @@
 #endif
 
 #include <guile/gh.h>
+#include "filter.h"
 
 
 /* Initializes the guile scripting subsystem. Returns 0 on success,
@@ -41,6 +42,7 @@ int glscript_init_filter();
 
 /* Hack to allow switching between register(0)/instantiate(1) mode */
 extern int glscript_load_mode;
+extern filter_t *last_loaded_filter_instance;
 
 
 /* SMOB for generic C pointer - for internal use only.

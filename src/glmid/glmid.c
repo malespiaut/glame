@@ -75,9 +75,11 @@ filter_t *glame_load_instance(const char *fname)
 #ifdef HAVE_GUILE
 	glscript_load_mode = 1;
 	s_res = gh_eval_file(fname);
-	if (!filter_p(s_res))
+	/* if (!filter_p(s_res)) {
+		DPRINTF("gh_eval_file did not return a filter_t\n");
 		return NULL;
-	return filter_creat(scm2filter(s_res));
+	} */
+	return filter_creat(last_loaded_filter_instance /* scm2filter(s_res) */);
 #else
 	return NULL;
 #endif
