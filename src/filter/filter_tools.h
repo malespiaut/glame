@@ -1,9 +1,140 @@
+/*
+ * filter_tools.h
+ * $Id: filter_tools.h,v 1.24 2001/01/02 23:27:34 mag Exp $
+ *
+ * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
 #ifndef _FILTER_TOOLS_H
 #define _FILTER_TOOLS_H
 
 
 /* Add your favorite generic tools for filter programming here.
  */
+typedef struct queue queue_t;
+struct queue {
+	struct list_head	list;
+	filter_pipe_t		*in;
+	int			off;
+};
+#define queue_get_next(q, qe) list_getnext(&(q->list), qe, struct queue_entry, list)
+#define queue_get_head(q) list_gethead(&(q->list), struct queue_entry, list)
+
+typedef struct queue_entry queue_entry_t;
+struct queue_entry {
+	struct list_head list;
+	filter_buffer_t *fb;
+};
+
+static inline void INIT_QUEUE(queue_t* q, filter_pipe_t *p) 
+{
+	INIT_LIST_HEAD(&(q->list));
+	q->in = p;
+	q->off = 0;
+}
+
+static inline void queue_delete(queue_entry_t *qe)
+{
+	list_del(&qe->list);
+	sbuf_unref(qe->fb);
+	free(qe);
+}
+
+static inline queue_entry_t *queue_add_tail(queue_t *q, filter_buffer_t *fb)
+{
+	struct queue_entry *qe;
+
+	if (!fb)
+		return NULL;
+	qe = (struct queue_entry *)malloc(sizeof(struct queue_entry));
+	INIT_LIST_HEAD(&qe->list);
+	qe->fb = fb;
+	list_add_tail(&qe->list, &q->list);
+	return qe;
+}
+
+static inline void queue_drain(queue_t *q)
+{
+	queue_entry_t *qe;
+	while ((qe = queue_get_head(q)))
+		queue_delete(qe);
+	q->off = 0;
+}
+
+static inline int queue_shift(queue_t *q, int off) {
+	struct queue_entry *qe, *oldqe;
+	
+	qe = queue_get_head(q);
+	goto entry;
+	do {
+		if ((sbuf_size(qe->fb) - q->off) > off) {
+			q->off += off;
+			return 0;
+		}
+		off -= sbuf_size(qe->fb) - q->off;
+		oldqe = qe;
+		qe = queue_get_next(q, qe);
+		queue_delete(oldqe);
+		q->off = 0;
+entry:
+		if (!qe)
+			qe = queue_add_tail(q, sbuf_get(q->in));
+	} while (qe);
+
+	return off;
+}
+
+static inline int queue_copy(queue_t *q, SAMPLE *s, int cnt)
+{
+	queue_entry_t *qe;
+	int off;
+
+	qe = queue_get_head(q);
+	off = q->off;
+	goto entry;
+	do {
+		if ((sbuf_size(qe->fb) - off) > cnt) {
+			memcpy(s, sbuf_buf(qe->fb)+off, cnt*SAMPLE_SIZE);
+			return 0;
+		}
+		memcpy(s, sbuf_buf(qe->fb)+off, (sbuf_size(qe->fb)-off)*SAMPLE_SIZE);
+		cnt -= sbuf_size(qe->fb) - off;
+		s += sbuf_size(qe->fb) - off;
+		qe = queue_get_next(q, qe);
+		off = 0;
+entry:
+		if (!qe)
+			qe = queue_add_tail(q, sbuf_get(q->in));
+	} while (qe);
+
+	return cnt;
+}
+
+static inline int queue_copy_pad(queue_t *q, SAMPLE *s, int cnt)
+{
+	int remaining;
+
+	remaining = queue_copy(q, s, cnt);
+	if (remaining)
+		memset(s+cnt-remaining, 0, remaining*SAMPLE_SIZE);
+	return remaining;
+}
+
 
 
 /* Support for feedback and generic fifo queues
