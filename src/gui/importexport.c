@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.33 2004/01/10 15:26:36 richi Exp $
+ * $Id: importexport.c,v 1.34 2004/01/10 15:38:56 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -160,7 +160,7 @@ static void ie_import_ogg(struct imp_s *ie)
         FILE *fd;
 	gpsm_swfile_t *swfile[2];
 	swfd_t swfd[2];
-	long ret;
+	long ret, pos;
 	int i;
 
 	fd = fopen(ie->filename, "r");
@@ -198,6 +198,7 @@ static void ie_import_ogg(struct imp_s *ie)
 	/* process file */
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), _("Importing..."));
 	ie->importing = 1;
+	pos = 0;
 	while (1) {
 		SAMPLE **ssbuf;
 		int current_section;
@@ -217,17 +218,19 @@ static void ie_import_ogg(struct imp_s *ie)
 			sw_write(swfd[i], ssbuf[i], SAMPLE_SIZE*ret);
 
 		/* show progress, be friendly to gtk */
-		gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
-		while (gtk_events_pending())
-			gtk_main_iteration();
-		if (ie->cancelled) {
-			ret = 1;
-			break;
+		if (pos/(1152*32) < (pos+ret)/(1152*32)) {
+			gtk_progress_bar_pulse(gnome_appbar_get_progress(
+				GNOME_APPBAR(ie->appbar)));
+			while (gtk_events_pending())
+				gtk_main_iteration();
+			if (ie->cancelled)
+				break;
 		}
+		pos += ret;
 	}
 
 	/* finish gpsm, if no error */
-	if (ret == 0) {
+	if (ret == 0 && !ie->cancelled) {
 		gpsm_item_t *item;
 		gpsm_grp_foreach_item(ie->item, item)
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
@@ -332,14 +335,16 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		sw_write(ie->mad_swfds[i], ie->mad_buf, SAMPLE_SIZE*pcm->length);
 	}
 
+	/* all 32 frames show some progress and check for user input */
+	if (ie->mad_pos/(1152*32) < (ie->mad_pos+pcm->length)/(1152*32)) {
+		gtk_progress_bar_pulse(gnome_appbar_get_progress(
+			GNOME_APPBAR(ie->appbar)));
+		while (gtk_events_pending())
+			gtk_main_iteration();
+		if (ie->cancelled)
+			return MAD_FLOW_BREAK;
+	}
 	ie->mad_pos += pcm->length;
-
-	/* show progress, be friendly to gtk */
-	gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
-	while (gtk_events_pending())
-		gtk_main_iteration();
-	if (ie->cancelled)
-		return MAD_FLOW_BREAK;
 
 	return MAD_FLOW_CONTINUE;
 }
@@ -806,6 +811,8 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 	if (ie->filename)
 		g_free(ie->filename);
 	ie->filename = gtk_editable_get_chars(edit, 0, -1);
+	if (access(ie->filename, R_OK) == -1)
+		return;
 
 	/* Basic checks. */
 	mimetype = gnome_vfs_get_mime_type(ie->filename);
