@@ -167,7 +167,14 @@ static int plugins_register()
 	add_plugin_path("/usr/lib/ladspa");
 	add_plugin_path("/usr/local/lib/ladspa");
 #endif
-	
+
+	/* Print message, so people notice when they have
+	 * old, unsupported plugins installed. [until we add versioning] */
+	fprintf(stderr,
+"If GLAME stops here, you probably have old, incompatible plugins\n"
+"installed at the following places:\n"
+"  %s\n", PKGLIBDIR);
+
 	/* First initialize the builtin plugins */
 	plugin_get("glamebuiltins");
 
@@ -179,6 +186,9 @@ static int plugins_register()
 	load_plugins_from_path("/usr/lib/ladspa");
 	load_plugins_from_path("/usr/local/lib/ladspa");
 #endif
+
+	/* Tail of message. */
+	fprintf(stderr, "Plugin installation OK\n");
 
 	return 0;
 }

@@ -1,7 +1,7 @@
 				GLAME - Installation
 				====================
 
-Or if you just checked out the CVS tree (which is recommended if you
+If you just checked out the CVS tree (which is recommended if you
 can cope with the usual report bug - wait for the fix - update cvs
 cycle and want to be bleeding edge) you first need to initialize the
 build system by doing
@@ -18,6 +18,14 @@ a prefix for the install directory, you can do this via ./configure
 If you are using a debian system you may even use
 > dpkg-buildpackage
 to get a .deb package build which you may then install using dpkg.
+
+
+!!! WARNING !!!
+  Be sure to remove all plugins installed by an older GLAME
+  version before installing a new one or GLAME may simply refuse to start.
+  Usual plugin installation path(s) are /prefix/lib/glame where prefix
+  is /usr or /usr/local or wherever you installed GLAME to.
+!!! WARNING !!!
 
 
 Note that there are quite a lot of configure options (./configure --help)

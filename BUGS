@@ -21,6 +21,11 @@ and distribution you are running.
 Summary of known bugs and misfeatures in GLAME
 ----------------------------------------------
 
+07-30-01 If GLAME just doesnt start or quits instantly you may have old,
+  incompatible plugins installed within GLAMEs prefix lib dir
+  (f.i. /usr/local/lib/glame) - be sure to remove all plugins
+  installed by an older GLAME version before installing a new one.
+
 - Its not a good idea to have the glame swapfile reside on a non-local
   disk (like in your NFS mounted home) because of performace limitations.
   As the default location set by the gui is ~/.glameswap you should change
