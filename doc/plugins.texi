@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.7 2000/04/05 16:14:57 nold Exp $
+@comment $Id: plugins.texi,v 1.8 2000/04/05 23:49:44 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -130,9 +130,8 @@ TODO: pipe-in (pipe.c)
 @node Elementary Plugins, Effects, In- and Output, Plugin Collection
 @section Elementary Plugins
 
-TODO: mul, add, phase-invert (arithmetic.c), 
-volume-adjust, delay, extend, repeat (basic_sample.c),
-ping (debug.c), pan (pan.c), 
+TODO: mul, add (arithmetic.c), 
+ping (debug.c), 
 statistic, debugrms (rms.c), 
 null, dup (tutorial.c)
 
@@ -141,6 +140,7 @@ null, dup (tutorial.c)
 @menu 
 * Generating Waves::
 * Junctions and Dead Ends::
+* Mangling Data Streams::
 * Orientation::
 @end menu
 
@@ -190,7 +190,7 @@ Defaults to 0.5.
 Frequency of generated sine wave in Hz. Defaults to 441 Hz.
 @end table
 
-@node Junctions and Dead Ends, Orientation, Generating Waves, Elementary Plugins
+@node Junctions and Dead Ends, Mangling Data Streams, Generating Waves, Elementary Plugins
 @subsection Junctions and Dead Ends
 
 In a filter network, data streams don't get created from nowhere, neither
@@ -242,22 +242,90 @@ Mixed audio stream.
 @end table
 
 @subsubheading @file{mix} parameters
-FIXME: Must become more descriptive. Add value ranges etc.
 @table @code
 @item in::gain (float)
-Gain of the input.
+Gain of the input. Defaults to 1.
 @item in::offset (time)
-Offset of the input data.
+Start mixing in input stream after relative time offset (in seconds). 
+Defaults to 0.
 @item gain (float)
-Gain of the output.
+Gain of the output stream. Defaults to 1.
 @item position (float)
 Horizontal placement of sample stream in radians from -pi to pi.
 @end table
 
-@node Orientation,, Junctions and Dead Ends, Elementary Plugins
-@section Orientation
+@node Mangling Data Streams, Orientation, Junctions and Dead Ends, Elementary Plugins
+@subsection Mangling Data Streams
 
-TODO: pan (pan.c)
+All the plugins described in this section operate on a single input stream 
+and transform it into a slightly mangled single output stream. 
+@file{volume-adjust} scales the amplitude of a data stream. 
+@file{delay} and @file{extend} prepend and append zero samples to a data
+stream respectively. @file{repeat} resends an input sequence over and over
+for a fixed time. @file{invert} inverts all data of the input stream, i.e. 
+each sample A is replaced by -A.
+
+@subsubheading Common ports
+@table @code
+@item in (input)
+Stream of input sample data.
+@item out (output)
+Stream of transformed output sample data.
+@end table
+
+@file{invert} has no parameters.
+
+@subsubheading @file{volume-adjust}
+@table @code
+@item factor (float)
+Value to scale input stream's amplitude with.
+@end table
+
+@subsubheading @file{delay}
+@table @code
+@item delay (time)
+Input data stream is prepended with zero samples for delay milliseconds.
+Defaults to 0ms.
+@end table
+
+@subsubheading @file{extend}
+@table @code
+@item time (time)
+Zero samples are appended to input stream for delay milliseconds.
+Defaults to 0ms.
+@end table
+
+@subsubheading @file{repeat}
+@table @code
+@item duration (time)
+The input pattern is repeated until a total time of duration seconds is
+reached. Defaults to 0s.
+@end table
+
+@node Orientation,, Mangling Data Streams, Elementary Plugins
+@subsection Orientation
+
+The @file{pan} plugin distributes a mono sample stream to two stereo
+(left/right) output streams. 
+
+@subsubheading @file{pan} ports
+@table @code
+@item in (input)
+Mono stream to pan. Only a single connection allowed.
+@item left-out (output)
+@item right-out (output)
+Left/right stereo output stream. Only one connection per port is allowed.
+@end table
+
+@subsubheading @file{pan} parameters
+@table @code
+@item pan (float)
+Pan value (virtual direction) of mono input stream. By default, @file{pan}
+uses the input pipe's position property as pan value. It is overridden if
+the @code{pan} parameter is set. Allowed values range from -pi/2 to pi/2. 
+As the position property ranges from -pi to pi, values with magnitude 
+larger than pi/2 (i.e. positions in the 'back') are mirrored to the front.
+@end table
 
 @node Effects,, Elementary Plugins, Plugin Collection
 @section Effects

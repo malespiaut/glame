@@ -53,16 +53,21 @@ static int pan_f(filter_node_t *n)
 	filter_pipe_t *in, *mod, *pass;
 	filter_buffer_t *m_buf, *p_buf;
 	int size;
-	float scale = 0.0;
+	float scale;
 	SAMPLE *m, *p;
 
+	if (!(in = filternode_get_input(n, PORTNAME_IN)))
+		FILTER_ERROR_RETURN("No input.");
+	
+	/* Use pipe position by default, pan param may override. */	
+	scale = filterpipe_sample_hangle(in);
+	if (fabs(scale) > M_PI_2)
+		scale = -scale + M_PI*(scale > 0 ? 1.0 : -1.0);
 	if ((pan = filternode_get_param(n, "pan")))
 		scale = filterparam_val_float(pan);
 	
-	if (!(in = filternode_get_input(n, PORTNAME_IN)))
-		FILTER_ERROR_RETURN("No input.");
-	 if (!(mod = filternode_get_output(n, "left-out"))
-	     || !(pass = filternode_get_output(n, "right-out")))
+	if (!(mod = filternode_get_output(n, "left-out"))
+	    || !(pass = filternode_get_output(n, "right-out")))
 		FILTER_ERROR_RETURN("Must connect all output ports.");
 
 	 /* FIXME: Move to fixup_pipe - too lazy now. */
@@ -106,7 +111,8 @@ static int pan_f(filter_node_t *n)
  * ourselves via filternode_set_param(). Now guess what 
  * filternode_set_param() calls as its fixup method... Here's a quick and
  * dirty band aid that is definitely not threadsafe. richi needs to fix
- * properly.
+ * properly. (WTH is going on here anyway. For all I know it shouldn't 
+ * recurse as min and max are valid param settings!)
  */
 static int pan_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
                            const char *name, filter_param_t *param)

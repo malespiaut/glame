@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.10 2000/04/05 16:10:32 nold Exp $
+ * $Id: basic_sample.c,v 1.11 2000/04/05 23:49:45 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -133,7 +133,7 @@ static int mix(filter_node_t *n, int drop)
 		/* "offset" */
 		p[i].out_pos = 0;
 		if ((param = filterpipe_get_destparam(in, "offset"))) {
-			p[i].out_pos = rate*filterparam_val_float(param)/1000.0;
+			p[i].out_pos = rate*filterparam_val_float(param);
 			p[i].fifo_pos = p[i].out_pos;
 		}
 		cnt = MIN(cnt, p[i].out_pos);
@@ -485,7 +485,7 @@ int mix_register()
 	    || !(param = filterport_add_param(port, "offset", "input offset",
 					      FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_S);
 	if (!filter_add_output(f, PORTNAME_OUT, "mixed stream",
 			       FILTER_PORTTYPE_SAMPLE)
 	    || !(filter_add_param(f, "gain", "output gain",
@@ -783,7 +783,7 @@ static int repeat_f(filter_node_t *n)
 
 	duration = 0;
 	if ((param = filternode_get_param(n, "duration")))
-	        duration = filterpipe_sample_rate(in)*filterparam_val_float(param)/1000.0;
+	        duration = filterpipe_sample_rate(in)*filterparam_val_float(param);
 	if (duration < 0)
 		FILTER_ERROR_RETURN("weird time");
 	INIT_FEEDBACK_FIFO(fifo);
@@ -869,7 +869,7 @@ int repeat_register()
 					  "total duration in ms",
 					  FILTER_PARAMTYPE_FLOAT)))
 		return -1;
-	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_MS);
+	filterparamdesc_float_settype(param, FILTER_PARAM_FLOATTYPE_TIME_S);
 	if (filter_add(f, "repeat",
 		       "Repeat an audio signal for the specified time") == -1)
 		return -1;
