@@ -17,6 +17,12 @@ http://glame.sourceforge.net/
 Tuebingen 29.01.2000
 
 
+For the impatient ones:
+- there is no usable main program yet
+- you can find test programs in the filter and the swapfile
+  subdirectories
+
+
 Current Status (brief ChangeLog):
 =================================
 Version ??? to 0.0001:
@@ -42,6 +48,10 @@ Version 0.011:
   more...  [richi]
 - we have more filters  [richi, Maggy]
 - rw handler framework is obsolete and not yet replaced
+
+Version 0.020:
+- first release, main APIs nearly complete [richi]
+- does make tuut [Maggy]
 
 
 Features:

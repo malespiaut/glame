@@ -16,6 +16,7 @@ Features
    Q: Could we possibly call these "tracks"? That is what they are
    known as in the studio world. (or am I just confused on what
    you mean by "channels" :) [garrison]
+   A: Well, a channel is a track is a channel... [richi]
 
  - Channels carry a type ('left', 'right', 'centre', 'misc', etc.)
    Q: And what if I'd like to have more than your four? [m]
@@ -26,6 +27,9 @@ Features
    range from 0 (muted) to 1 (hard left) to 128 (middle) to 255 (hard
    right) Or, instead, we could have a 5th channel type called "pan" that
    does the same thing. [garrison]
+   A: type is meant to be more generic than just channel position, but yes
+   a channel position like your pan could be added as seperate field in
+   struct channel. [richi]
 
  - Bookmarks et al. will be fully supported by making use of an additional,
    datafile independent file in XML format.
