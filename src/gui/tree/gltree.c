@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.6 2004/11/05 22:09:26 ochonpaul Exp $
+ * $Id: gltree.c,v 1.7 2004/11/05 22:55:58 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -149,22 +149,31 @@ static int choose_ops(plugin_t *plugin)
 	return 1;
 }
 
+static void heading_from_label(gchar *heading, const char *label, int size)
+{
+	if (strlen(label) >= size) {
+		strncpy(heading, label, size-4);
+		memset(&heading[size-4], '.', 3);
+		heading[size-1] = '\0';
+	} else
+		strcpy(heading, label);
+}
 
 void
 view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 		       gpointer which)
 {
         GtkWidget *menu, *menuitem, *op_menu;
-	gchar *string ;
+	gchar heading[24];
 
 	menu = gtk_menu_new();
 
-	string = g_strdup_printf ("Selected track: %s",gpsm_item_label(glame_gpsm_store_get_item(which)));
-	menuitem = gtk_menu_item_new_with_label(string);
+	heading_from_label(heading, gpsm_item_label(glame_gpsm_store_get_item(which)), 24);
+	menuitem = gtk_menu_item_new_with_label(heading);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_separator_menu_item_new();
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu),menuitem );
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
 	menuitem = gtk_menu_item_new_with_label(_("Edit"));
 	g_signal_connect(menuitem, "activate",
@@ -221,12 +230,12 @@ view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 		    gpointer which)
 {
 	GtkWidget *menu, *menuitem, *op_menu;
-	gchar *string;
+	gchar heading[24];
 
 	menu = gtk_menu_new();
 
-	string = g_strdup_printf ("Selected group: %s",gpsm_item_label(glame_gpsm_store_get_item(which)));
-	menuitem = gtk_menu_item_new_with_label(string);
+	heading_from_label(heading, gpsm_item_label(glame_gpsm_store_get_item(which)), 24);
+	menuitem = gtk_menu_item_new_with_label(heading);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	
 	menuitem = gtk_separator_menu_item_new();
