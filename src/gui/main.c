@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.47 2001/05/04 08:03:08 richi Exp $
+ * $Id: main.c,v 1.48 2001/05/04 16:34:57 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -73,7 +73,7 @@ static GnomeUIInfo filter_menu_uiinfo[] = {
 
 static GnomeUIInfo help_menu_uiinfo[] =
 {
-	GNOMEUIINFO_ITEM_DATA("Help","Opens a gnome help browser",gnome_help_goto,"info:glame",NULL),
+	GNOMEUIINFO_ITEM_DATA("_Help","Opens a gnome help browser",gnome_help_goto,"info:glame",NULL),
 	GNOMEUIINFO_MENU_ABOUT_ITEM (glame_about, NULL),
 	GNOMEUIINFO_END
 };
@@ -88,14 +88,14 @@ static GnomeUIInfo glame_setting_uiinfo[] =
 static GnomeUIInfo menubar_uiinfo[] =
 {
   {
-    GNOME_APP_UI_SUBTREE, N_("Project"),
+    GNOME_APP_UI_SUBTREE, N_("_Project"),
     NULL,
     swapfile_menu_uiinfo, NULL, NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     0, 0, NULL
   },
   {
-    GNOME_APP_UI_SUBTREE, N_("Filternetwork"),
+    GNOME_APP_UI_SUBTREE, N_("_Filternetwork"),
     NULL,
     filter_menu_uiinfo, NULL, NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
