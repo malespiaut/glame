@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.11 2000/03/20 17:49:43 xwolf Exp $
+ * $Id: gui.h,v 1.12 2000/03/20 17:51:47 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -125,7 +125,7 @@ int gui_filter_init(void);
 
 void edit_paramdesc(gui_filter *f);
 
-GtkWidget* create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
+void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
 				    
 
 

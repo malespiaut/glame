@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.17 2000/03/20 17:49:43 xwolf Exp $
+ * $Id: gui.c,v 1.18 2000/03/20 17:51:47 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -436,21 +436,6 @@ void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, 
 	gtk_container_add (GTK_CONTAINER (frame), propval);
 	
 }
-
-GtkWidget create_label_widget_pair(GtkWidget *vbox,const char *label, GtkWidget *widget)
-{
-	GtkWidget *label, *hbox;
-
-	label = gtk_label_new(_(label));
-	hbox = gtk_hbox_new (TRUE, 3);
-	gtk_container_add(GTK_CONTAINER(vbox),hbox);
-	gtk_container_add(GTK_CONTAINER(hbox),label);
-	gtk_container_add(GTK_CONTAINER(hbox),widget);
-	gtk_widget_show(hbox);
-	return hbox;
-}
-	
-
 
 
 /* handels the filter-properties popup  */
