@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.17 2001/04/27 13:27:17 richi Exp $
+ * $Id: waveform.c,v 1.18 2001/05/02 16:43:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -321,7 +321,7 @@ typedef enum {
 	PULSE_STATE_DONE
 } pulse_state_t;
 
-static int pluse_f(filter_t *n)
+static int pulse_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	float rate, dt;
@@ -433,7 +433,7 @@ static int pluse_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-static int pluse_connect_out(filter_t *src, filter_port_t *out,
+static int pulse_connect_out(filter_t *src, filter_port_t *out,
 			     filter_pipe_t *pipe)
 {
 	int rate;
@@ -446,7 +446,7 @@ static int pluse_connect_out(filter_t *src, filter_port_t *out,
 }
 
 
-static void pluse_fixup_param(glsig_handler_t *h, long sig, va_list va)
+static void pulse_fixup_param(glsig_handler_t *h, long sig, va_list va)
 {
 	filter_t *n;
 	filter_param_t *param;
@@ -473,7 +473,7 @@ static void pluse_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 }
 
-int pluse_register(plugin_t *p)
+int pulse_register(plugin_t *p)
 {
 	filter_t *f;
 
@@ -515,13 +515,13 @@ int pluse_register(plugin_t *p)
 			FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
 			FILTERPARAM_END);
 
-	f->f = pluse_f;
-	f->connect_out = pluse_connect_out;
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, pluse_fixup_param,
+	f->f = pulse_f;
+	f->connect_out = pulse_connect_out;
+	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, pulse_fixup_param,
 	                  NULL);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generates a single ramp or pulse signal");
-	plugin_set(p, PLUGIN_PIXMAP, "pluse.png");
+	plugin_set(p, PLUGIN_PIXMAP, "pulse.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
 
