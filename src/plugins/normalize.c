@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.23 2004/10/23 13:09:29 richi Exp $
+ * $Id: normalize.c,v 1.24 2004/11/07 22:50:17 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Alexander Ehlert
  *
@@ -77,10 +77,10 @@ static void cleanup_task_list(struct normalize_s *ns) {
 	ns->head = NULL;
 }
 
-static gint normmode_cb(GtkMenu *menu, struct normalize_s* ns)
+static gint normmode_cb(GtkComboBox *menu, struct normalize_s* ns)
 {
 	int oldmode = ns->mode;
-	ns->mode =  glame_menu_get_active_index(menu);
+	ns->mode =  gtk_combo_box_get_active(menu);
 	DPRINTF("Selected normalize mode %d\n", ns->mode);
 	switch (ns->mode) {
 	case 0 : 
@@ -163,8 +163,6 @@ void normalize_dialog(struct normalize_s* norms)
   GtkObject *spinbutton2_adj;
   GtkWidget *spinbutton2;
   GtkWidget *optionmenu1;
-  GtkWidget *optionmenu1_menu;
-  GtkWidget *glade_menuitem;
   GtkWidget *label7;
   GtkObject *spinbutton3_adj;
   GtkWidget *spinbutton3;
@@ -291,7 +289,7 @@ void normalize_dialog(struct normalize_s* norms)
 		     "changed",
 		     (GtkSignalFunc)ampl_db_cb, norms);
 
-  optionmenu1 = gtk_option_menu_new ();
+  optionmenu1 = gtk_combo_box_new_text();
   gtk_widget_ref (optionmenu1);
   gtk_object_set_data_full (GTK_OBJECT (dialog1), "optionmenu1", optionmenu1,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -299,20 +297,13 @@ void normalize_dialog(struct normalize_s* norms)
   gtk_table_attach (GTK_TABLE (table1), optionmenu1, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  optionmenu1_menu = gtk_menu_new ();
-  glade_menuitem = gtk_menu_item_new_with_label (_("Peak"));
-  gtk_widget_show (glade_menuitem);
-  gtk_menu_append (GTK_MENU (optionmenu1_menu), glade_menuitem);
-  glade_menuitem = gtk_menu_item_new_with_label (_("Volume"));
-  gtk_widget_show (glade_menuitem);
-  gtk_menu_append (GTK_MENU (optionmenu1_menu), glade_menuitem);
-  glade_menuitem = gtk_menu_item_new_with_label (_("Volume/Frequency"));
-  gtk_widget_show (glade_menuitem);
-  gtk_menu_append (GTK_MENU (optionmenu1_menu), glade_menuitem);
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu1), optionmenu1_menu);
+  gtk_combo_box_append_text(GTK_COMBO_BOX(optionmenu1), _("Peak"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(optionmenu1), _("Volume"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(optionmenu1), _("Volume/Frequency"));
+  gtk_combo_box_set_active(GTK_COMBO_BOX(optionmenu1), 0);
 
-  gtk_signal_connect(GTK_OBJECT(optionmenu1_menu),
-		     "selection_done",
+  gtk_signal_connect(GTK_OBJECT(optionmenu1),
+		     "changed",
 		     (GtkSignalFunc)normmode_cb, norms);
 
   norms->mode = 0;
