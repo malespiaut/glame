@@ -42,8 +42,9 @@ GLAME_CFLAGS=""
 
 dnl GTK checks
 dnl 
-AM_PATH_GTK(1.2.0,,
-  AC_MSG_RESULT(Test for GTK failed. See the file 'INSTALL' for help.))
+AM_PATH_GTK(1.2.0, [have_gtk=yes],
+  [AC_MSG_RESULT(Test for GTK failed. See the file 'INSTALL' for help.)
+  have_gtk=no])
 dnl 
 changequote(,)dnl
 dnl 
@@ -58,9 +59,13 @@ GLIB_LIBS="$GLIB_LDFLAGS `echo $GTK_LIBS | sed 's/^.*\(-lglib[^ ]*\).*$/\1/'`"
 dnl 
 changequote([,])dnl
 
-dnl gnome check
-GNOME_INIT_HOOK(,,,)
+AM_CONDITIONAL(HAVE_GTK, test x$have_gtk=xyes)
 
+dnl gnome check
+have_gnome = "no"
+GNOME_INIT_HOOK(have_gnome = "yes",,)
+
+AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
 dnl
 dnl Checks for various audio stuff.
