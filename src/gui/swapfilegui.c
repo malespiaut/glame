@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.72 2002/01/01 22:06:39 richi Exp $
+ * $Id: swapfilegui.c,v 1.73 2002/01/03 22:11:09 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -510,6 +510,7 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	gpsm_grp_t *deleted;
 
+	deselect_all(active_swapfilegui);
 	if (!(deleted = gpsm_find_grp_label(gpsm_root(), NULL, GPSM_GRP_DELETED_LABEL))) {
 		deleted = gpsm_newgrp(GPSM_GRP_DELETED_LABEL);
 		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
@@ -520,7 +521,6 @@ static void delete_cb(GtkWidget *menu, GlameTreeItem *item)
 	}
 	gpsm_item_place(deleted, item->item,
 			0, gpsm_item_vsize(deleted));
-	deselect_all(active_swapfilegui);
 }
 
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item)
