@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.25 2001/12/04 10:58:26 richi Exp $
+ * $Id: importexport.c,v 1.26 2001/12/06 23:54:12 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -42,20 +42,27 @@
 #include "glame_audiofile.h"
 
 PLUGIN_SET(importexport, "import export")
+     
+static char *ftlabel[] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
+static char *sflabel[] = { "16 bit signed", "24 bit signed", "32 bit signed", 
+			   "8 bit unsigned", "32 bit float", "64 bit float" };
+static int sf_format[] = { AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP, AF_SAMPFMT_TWOSCOMP,
+			   AF_SAMPFMT_UNSIGNED, AF_SAMPFMT_FLOAT, AF_SAMPFMT_DOUBLE };
+static int sf_width[] = { 16, 24, 32, 8, 32, 64 };
 
-static char ftlabel[8][10] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
-static char sflabel[6][32] = { "16 bit signed", "24 bit signed", "32 bit signed", 
-			       "8 bit unsigned", "32 bit float", "64 bit float" };
-static char rlabel[3][16] = { "original", "mono", "stereo" };
+static char *rlabel[] = { "original", "mono", "stereo" };
 
-#define MAX_RLABEL 3
-#define MAX_SFLABEL 6
-#define MAX_PROPS 7
+#define MAX_RLABEL (sizeof(rlabel)/sizeof(char*))
+#define MAX_SFLABEL (sizeof(sflabel)/sizeof(char*))
 
-static char fproplabel[7][20] = { "Format", "Samplerate", "Quality", "Channels", 
-			   "Duration", "Max RMS", "DC Offset" };
+
+static char *fproplabel[] = { "Format", "Samplerate", "Quality", "Channels", 
+			      "Duration", "Compression", "Max RMS", "DC Offset" };
+
+#define MAX_PROPS (sizeof(fproplabel)/sizeof(char*))
 
 #define IMPORT  0
+#define OK      0
 /*#define PREVIEW 1*/
 #define CANCEL  1
 
@@ -83,6 +90,8 @@ struct exp_s {
 	int *indices;
 	GtkWidget *rbutton[MAX_SFLABEL];
 	GtkWidget *renderbutton[MAX_RLABEL];
+	gpsm_item_t *item;
+	gchar *filename;
 };
 
 static void ie_import_cleanup(struct imp_s *ie) 
@@ -321,6 +330,10 @@ static void ie_update_plabels(struct imp_s *ie)
 		sscanf(property, "%d", &(ie->chancnt));
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[3]), property);
 
+	property = filterparam_get_property(fparam, "#compression");
+	if (property) 
+		gtk_label_set_text(GTK_LABEL(ie->fi_plabel[5]), "nan");
+
 	property = filterparam_get_property(fparam, "#framecount");
 	if(property) {
 		sscanf(property, "%d", &frames);
@@ -339,7 +352,7 @@ static void ie_update_plabels(struct imp_s *ie)
 
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[4]), buffer);
 	sprintf(buffer, "%f", ie->maxrms);
-	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[5]), buffer);
+	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[6]), buffer);
 }
 
 static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
@@ -680,7 +693,7 @@ void glame_import_dialog(struct imp_s *ie)
 			   "delete-event",
 			   GTK_SIGNAL_FUNC(ie_windowkilled), ie);
 
-	gnome_dialog_run(ie->dialog);
+	gnome_dialog_run(GNOME_DIALOG(ie->dialog));
 }
 
 static gint ie_comp_menu_cb(GtkMenu *menu, struct exp_s *ie)
@@ -788,12 +801,115 @@ static void exp_cancel_cb(GtkWidget *bla, struct exp_s *e)
 	export_cleanup(e);
 }
 
+static gint export_filename_cb(GtkEditable *edit, struct exp_s *exp)
+{
+	gchar *filename;
+	filter_param_t *fparam;
+	int i;
+
+	filename = gtk_editable_get_chars(edit, 0, -1);
+	
+	if(exp->filename != NULL)
+		g_free(exp->filename);
+	
+	exp->filename = g_strdup(filename);
+
+	g_free(filename);
+
+	return TRUE;
+}
+
+static void export_cb(GtkWidget *bla, struct exp_s *exp) 
+{
+	GtkWidget * we;
+	filter_t *net, *swin, *writefile, *render;
+	filter_paramdb_t *db;
+	filter_param_t *param;
+	filter_port_t *source, *dest;
+	filter_pipe_t *pipe;
+	gpsm_grp_t *grp;
+	gpsm_item_t *it;
+	float pos;
+	GtkWidget *ed;
+	int i;
+
+	if(exp->filename==NULL) {
+		ed=gnome_error_dialog("Select a filename first!");
+		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(exp->dialog));
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
+		return;
+	}
+	/* Build temporary group out of flattened item->item. */
+	if (!(grp = gpsm_flatten(exp->item)))
+		return;
+	
+	for(i=0; i<MAX_SFLABEL; i++)
+		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(exp->rbutton[i])))
+			break;
+
+	if (i==MAX_SFLABEL) {
+		DPRINTF("HAE?\n");
+		return;
+	}
+
+	/* Build basic network. */
+	net = filter_creat(NULL);
+	writefile = net_add_plugin_by_name(net, "write_file");
+	db = filter_paramdb(writefile);
+
+	param = filterparamdb_get_param(db, "filename");
+	if (filterparam_set(param, &(exp->filename)) == -1)
+		goto fail_cleanup;
+
+	param = filterparamdb_get_param(db, "sampleformat");
+	if (filterparam_set(param, &(sf_format[i])) == -1)
+		goto fail_cleanup;
+
+	param = filterparamdb_get_param(db, "samplewidth");
+	if (filterparam_set(param, &(sf_width[i])) == -1)
+		goto fail_cleanup;
+
+	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
+
+	render = net_add_plugin_by_name(net, "render");
+	source = filterportdb_get_port(filter_portdb(render), PORTNAME_OUT);
+	if (!(pipe = filterport_connect(source, dest)))
+		goto fail_cleanup;
+	pos = -1.57;
+	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
+	if (!(pipe = filterport_connect(source, dest)))
+		goto fail_cleanup;
+	pos = 1.57;
+	filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe), "position"), &pos);
+
+	gpsm_grp_foreach_item(grp, it)
+		if (!(swin = net_add_gpsm_input(net, (gpsm_swfile_t *)it,
+						0, -1)))
+			goto fail_cleanup;
+	if (net_apply_node(net, render) == -1)
+		goto fail_cleanup;
+
+	if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
+	    || filter_start(net) == -1)
+		goto fail_cleanup;
+	filter_wait(net);
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
+	export_cleanup(exp);
+	return;
+
+ fail_cleanup:
+	glame_network_error_dialog(net, "Failed to create exporting network");
+	filter_delete(net);
+	gpsm_item_destroy((gpsm_item_t *)grp);
+}
+
 GtkWidget *glame_export_dialog(struct exp_s *ie)
 {
 	GtkWidget *dialog, *menu, *mitem, *bigbox, *typecompbox, *valbox;
 	GtkWidget *dialog_vbox2, *vbox, *frame, *frame2, *frame3, *fentry;
-	GtkWidget *framebox, *combo_entry, *frame4, *frame4box;
-	GSList *rbuttons, *renderbuttons, *dialog_action_area;
+	GtkWidget *framebox, *combo_entry, *frame4, *frame4box, *edit, *dialog_action_area;
+	GSList *rbuttons, *renderbuttons;
 	int i;
 	gchar *suffix;
 
@@ -803,7 +919,7 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)
 	gnome_dialog_close_hides(GNOME_DIALOG(dialog), TRUE);
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
 
-	dialog_action_area = GNOME_DIALOG (dialog)->action_area;
+	dialog_action_area = GNOME_DIALOG(dialog)->action_area;
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area), GTK_BUTTONBOX_EDGE);
 	gtk_button_box_set_child_size (GTK_BUTTON_BOX (dialog_action_area), 150, 30);
 
@@ -828,6 +944,11 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)
 
 	combo_entry = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (fentry));
 	gtk_widget_show(combo_entry);
+
+	edit = GTK_WIDGET(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(GNOME_FILE_ENTRY(fentry)->gentry))));
+	
+	gtk_signal_connect(GTK_OBJECT(edit), "changed",
+			   (GtkSignalFunc)export_filename_cb, ie);
 
 	frame = gtk_frame_new("File Format");
 	gtk_widget_show(frame);
@@ -908,7 +1029,9 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)
 	gnome_dialog_append_button(GNOME_DIALOG (ie->dialog), GNOME_STOCK_BUTTON_CANCEL);
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 	
-	
+	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), OK,
+				    export_cb, ie);
+
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
 				    exp_cancel_cb, ie);
 	
@@ -926,10 +1049,12 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)
 
 static int export_gpsm(gpsm_item_t *item, long start, long length) 
 {	
-	struct exp_s *ie;
+	struct exp_s *exp;
 
-	ie = (struct exp_s*)calloc(1,sizeof(struct exp_s));
-	glame_export_dialog(ie);
+	exp = (struct exp_s*)calloc(1,sizeof(struct exp_s));
+	exp->item = item;
+	exp->filename = NULL;
+	glame_export_dialog(exp);
 	return 0;
 }
 
