@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.19 2000/04/06 11:18:57 richi Exp $
+ * $Id: canvas.c,v 1.20 2000/04/18 17:33:23 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -29,10 +29,31 @@
 
 static gint connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data);
 static void connection_break(GlameConnection* connection);
-static void delete_canvas_item(GlameCanvasItem* it);
+
+static GnomeUIInfo node_menu[]=
+{
+	GNOMEUIINFO_ITEM("Delete","Delete node",delete_canvas_item_cb,NULL),
+	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_item_properties_cb,NULL),
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo pipe_menu[]=
+{
+	GNOMEUIINFO_ITEM("Delete","Delete pipe",connection_break_cb,NULL),
+	GNOMEUIINFO_MENU_PROPERTIES_ITEM(edit_canvas_pipe_properties_cb,NULL),
+	GNOMEUIINFO_END
+};
 
 
+void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item)
+{
+	edit_canvas_item_properties(item);
+};
 
+void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it)
+{
+	delete_canvas_item(it);
+}
 
 gint
 image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
@@ -42,6 +63,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	double dx,dy;
 	GlameCanvasItem *it = GLAME_CANVAS_ITEM(data);
 	GList *list;
+	GtkWidget* menu;
 
 	x = event->button.x;
 	y = event->button.y;
@@ -60,11 +82,9 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 			gdk_cursor_destroy(fleur);
 			it->dragging=TRUE;
 			break;
-		case 2:
-			delete_canvas_item(it);
-			break;
 		case 3:
-			edit_canvas_item_properties(it);
+			menu = gnome_popup_menu_new(node_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,it);
 			break;
 
 		default:
@@ -99,32 +119,7 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	return FALSE;
 }
 		
-static void
-delete_canvas_item(GlameCanvasItem* it)
-{
-	GList * plist;
-	GList * clist;
-	plist = g_list_first(it->input_ports);
-	while(plist){
-		clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
-		while(clist){
-			connection_break((GlameConnection*)(clist->data));
-			clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
-		}
-		plist = g_list_next(plist);
-	}
-	plist = g_list_first(it->output_ports);
-	while(plist){
-		clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
-		while(clist){
-			connection_break((GlameConnection*)(clist->data));
-			clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
-		}
-		plist = g_list_next(plist);
-	}
-	filternetwork_delete_node(it->filter->node);
-	gtk_object_destroy(GTK_OBJECT(it));
-}
+
 		
 static gint 
 delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
@@ -475,34 +470,37 @@ reorder_port_connections(GlameCanvasPort* port)
 }
 		
 
-static void
-connection_break(GlameConnection* connection)
+static void 
+connection_break_cb(GtkWidget*bla,GlameConnection* conn)
 {
-	filternetwork_break_connection(connection->pipe);
-	connection->begin->connected_ports=g_list_remove(connection->begin->connected_ports,connection);
-	connection->end->connected_ports=g_list_remove(connection->end->connected_ports,connection);
-	gtk_object_destroy(GTK_OBJECT(connection->line));
-	gtk_object_destroy(GTK_OBJECT(connection->circle));
-	reorder_port_connections(connection->end);
-	free (connection);
+	connection_break(conn);
 }
+
+
 	
 static gint
 connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
 {
 
 	GlameConnection* connection = (GlameConnection*)data;
+	GtkWidget* menu;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
 			break;
 		case 2:
-			DPRINTF("Breaking connection\n");
-			connection_break(connection);
-			return TRUE;
+//			DPRINTF("Breaking connection\n");
+//			connection_break(connection);
+//			return TRUE;
+			break;
+		case 3:
+			menu = gnome_popup_menu_new(pipe_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,connection);
 			break;
 		default:
+
+
 			
 			break;
 		}
@@ -773,6 +771,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	
 	while(list){
 		item = (param_widget_t*)(list->data);
+		DPRINTF("param: %s\n",filterparamdesc_label(item->param));
 		switch(item->widget_type){
 		case PINT:
 			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
@@ -894,11 +893,10 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 				if(fparam){
 					cVal =  filterparam_val_string(fparam);
 					gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),cVal);
+					free(cVal);
 				}
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
-				
-				free(cVal);
 				pw->param = param;
 				pw->widget_type = PSTRING;
 				list = g_list_append(list,pw);
@@ -952,5 +950,47 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 	
 	
 
+static void
+delete_canvas_item(GlameCanvasItem* it)
+{
+	GList * plist;
+	GList * clist;
+	plist = g_list_first(it->input_ports);
+	while(plist){
+		clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		while(clist){
+			connection_break((GlameConnection*)(clist->data));
+			clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		}
+		plist = g_list_next(plist);
+	}
+	plist = g_list_first(it->output_ports);
+	while(plist){
+		clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		while(clist){
+			connection_break((GlameConnection*)(clist->data));
+			clist = g_list_first(GLAME_CANVAS_PORT(plist->data)->connected_ports);
+		}
+		plist = g_list_next(plist);
+	}
+	filternetwork_delete_node(it->filter->node);
+	gtk_object_destroy(GTK_OBJECT(it));
+}
 
-	
+static void
+connection_break(GlameConnection* connection)
+{
+	filternetwork_break_connection(connection->pipe);
+	connection->begin->connected_ports=g_list_remove(connection->begin->connected_ports,connection);
+	connection->end->connected_ports=g_list_remove(connection->end->connected_ports,connection);
+	gtk_object_destroy(GTK_OBJECT(connection->line));
+	gtk_object_destroy(GTK_OBJECT(connection->circle));
+	reorder_port_connections(connection->end);
+	free (connection);
+}
+
+static void
+edit_canvas_pipe_properties_cb(GtkWidget* bla, GlameConnection* conn)
+{
+	fprintf(stderr,"Depraceted??\n");
+}

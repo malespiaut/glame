@@ -46,7 +46,6 @@ static void glame_canvas_port_destroy(GtkObject *object);
 static void glame_canvas_class_init(GlameCanvasClass *class);
 static void glame_canvas_init(GlameCanvas *canv);
 
-
 GtkType
 glame_canvas_item_get_type(void)
 {
@@ -270,6 +269,8 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	GlameCanvasItem *item;
 	GnomeCanvasItem *gitem;
 	
+	GtkWidget* menu;
+	
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
@@ -345,6 +346,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 				       "height",64.0,
 				       "image",image,
 				       NULL);
+
 	gtk_signal_connect(GTK_OBJECT(gitem),"event",GTK_SIGNAL_FUNC(image_select),item);
 	create_ports(GNOME_CANVAS_GROUP(item),gfilter);
 	gtk_signal_connect(GTK_OBJECT(item),"event",GTK_SIGNAL_FUNC(handle_events),item);
