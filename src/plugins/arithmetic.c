@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.10 2000/12/11 10:44:42 richi Exp $
+ * $Id: arithmetic.c,v 1.11 2001/01/31 10:43:34 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -61,7 +61,7 @@ static int arithmetic_connect_in(filter_t *n, filter_port_t *port,
 static int mul_f(filter_t *n)
 {
 	nto1_state_t *I;
-	filter_pipe_t *p, *out;
+	filter_pipe_t *out;
 	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	float cmul, cadd;
@@ -167,7 +167,7 @@ int mul_register(plugin_t *p)
 static int add_f(filter_t *n)
 {
 	nto1_state_t *I;
-	filter_pipe_t *p, *out;
+	filter_pipe_t *out;
 	filter_port_t *inp, *outp;
 	filter_buffer_t *buf;
 	float cmul, cadd;
