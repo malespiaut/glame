@@ -4,16 +4,14 @@ supposed to fix it.
 
 Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
-- import and export dialogs need to be finished
-- fix glame_audiofile to support wav writing
+- fix glame_audiofile wav writing
 - audit/fix available gettext entries, merge external
   patches
 - documentation
-  * write dialogs section (stubs already added)
-  * document normalize, fix fade (-> fadein, fadeout),
+  * document normalize,
+    fix fade (-> fadein, fadeout),
     fix read_file/write_file, 
-    fix statistic/debugrms (-> ssp_streamer,
-    maxrms)
+    fix statistic/debugrms (-> ssp_streamer, maxrms)
 
 Other items pending:
 --------------------
