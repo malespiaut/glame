@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.33 2002/03/25 19:30:32 richi Exp $
+ * $Id: basic.c,v 1.34 2002/04/09 09:22:21 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -459,10 +459,10 @@ static int buffer_f(filter_t *n)
 		}
 	}
 
+	FILTER_BEFORE_STOPCLEANUP;
+
 	/* Queue EOF. */
 	fbuf_queue(out, NULL);
-
-	FILTER_BEFORE_STOPCLEANUP;
 
 	/* empty fifo. */
 	while (has_feedback(&fifo))

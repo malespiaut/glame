@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.63 2002/03/25 19:30:32 richi Exp $
+ * $Id: basic_sample.c,v 1.64 2002/04/09 09:22:21 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -695,11 +695,12 @@ static int render_f(filter_t *n)
 		nr_active -= nto1_tail(I, nr_in);
 	} while (nr_active>0);
 
+	FILTER_BEFORE_STOPCLEANUP;
+
 	/* Queue EOFs. */
 	filterport_foreach_pipe(out, p)
 		sbuf_queue(p, NULL);
 
-	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	for (i=0; i<nr_out; i++)
@@ -898,10 +899,11 @@ static int volume_adjust_f(filter_t *n)
 		sbuf_queue(out, b);
 	};
 
+	FILTER_BEFORE_STOPCLEANUP;
+
 	/* forward the EOF mark */
 	sbuf_queue(out, NULL);
 
-	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
@@ -994,9 +996,11 @@ static int delay_f(filter_t *n)
 		FILTER_CHECK_STOP;
 		sbuf_queue(out, buf);
 	}
-	sbuf_queue(out, buf);
 
 	FILTER_BEFORE_STOPCLEANUP;
+
+	sbuf_queue(out, NULL);
+
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
@@ -1082,10 +1086,11 @@ static int extend_f(filter_t *n)
 		sbuf_queue(out, buf);
 	}
 
+	FILTER_BEFORE_STOPCLEANUP;
+
 	/* send EOF */
 	sbuf_queue(out, NULL);
 
-	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
@@ -1267,18 +1272,17 @@ static int pan2_f(filter_t *n)
 
 	FILTER_AFTER_INIT;
 
-	/* The loop condition is at the end to get and
-	 * forward the EOF mark. */
-	do {
+	while ((buf = fbuf_get(in))) {
 		FILTER_CHECK_STOP;
-		/* get an input buffer */
-		buf = fbuf_get(in);
 
 		/* just forward every buffer */
 		fbuf_queue(out, buf);
-	} while (buf);
+	}
 
 	FILTER_BEFORE_STOPCLEANUP;
+
+	fbuf_queue(out, NULL);
+
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
