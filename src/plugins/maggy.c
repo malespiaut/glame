@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.8 2000/03/27 09:04:22 mag Exp $
+ * $Id: maggy.c,v 1.9 2000/03/30 09:20:30 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -31,6 +31,8 @@
 #include "util.h"
 #include "glplugin.h"
 
+PLUGIN_SET(maggy,"iir")
+
 #define GLAME_IIR_LOWPASS  0
 #define GLAME_IIR_HIGHPASS 1
 #define GLAME_IIR_BANDPASS 2
@@ -46,6 +48,8 @@
  */
 
 /* This type should cover every possible IIR filter */
+
+#define gliirt	float
 
 typedef struct glame_iir glame_iir_t;
 struct glame_iir {
@@ -205,30 +209,107 @@ glame_iir_t *chebyshev(int n, int mode, float fc, float pr){
 	
 static int iir_f(filter_node_t *n)
 {
+	typedef struct {
+		gliirt *iring;
+		gliirt *oring;
+		int	ipos;
+		int	opos;
+	} iirf_t;
+	
 	filter_param_t *param;
 	filter_pipe_t *in, *out;
 	filter_buffer_t *inb;
 	glame_iir_t *gt;
+	iirf_t *iirf;
 	SAMPLE *s;
-	int i;
+	int i,pos,j,nb,nt;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 	        FILTER_ERROR_RETURN("no in- or output");
 
-	FILTER_AFTER_INIT;
 
+	/* Just setup a 4 pole lowpass filter with 0.1*samplefrequency cutoff and 0.5 ripple in passband 
+	 * later on I want to call iir_f from different filters providing gt
+	 * having something like static int iir_f(filter_node_t *n, glame_iir_t *gt)
+	 * Then you can register all kind of filters that are using iir_f as kernel
+	 */
+	
+	gt=chebyshev(4,GLAME_IIR_LOWPASS,0.1,0.5);
+	
+	/* here follow generic code */
+	
+	if (gt->nstages==0)
+		FILTER_ERROR_RETURN("iir filter needs at least one stage");
+			
+	if (!(iirf=ALLOCN(gt->nstages,iirf_t)))
+		FILTER_ERROR_RETURN("memory allocation error");
+
+	for(i=0;i<gt->nstages;i++){
+		if (!(iirf[i].iring=(gliirt*)malloc(gt->na*sizeof(gliirt))))
+			FILTER_ERROR_RETURN("memory allocation error");
+		if (!(iirf[i].oring=(gliirt*)malloc((gt->nb+1)*sizeof(gliirt))))
+			FILTER_ERROR_RETURN("memory allocation error");
+		iirf[i].ipos=0;
+		iirf[i].opos=0;
+	}
+	
+	nb=gt->nb+1;
+	nt=gt->na+gt->nb;
+	
+	FILTER_AFTER_INIT;
+	
+	/* Yes I know that this code is very ugly and possibly quiet slow, but it's my first try :) */
 	goto entry;
         do{
-
+		FILTER_CHECK_STOP;
+		while(pos<sbuf_size(inb)){
+			/* Feed sample into ringbuffer of the first stage */
+			iirf[0].iring[iirf[0].ipos]=sbuf_buf(inb)[pos];
+			for(i=0;i<gt->nstages;i++){
+				iirf[i].oring[iirf[i].opos]=0.0;
+				/* y[n]=a0*x[n]+a1*x[n-1]+... */
+				for(j=0;j<gt->na;j++)
+				  iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].iring[(iirf[i].ipos-j)%gt->na];
+				/* y[n]=y[n]+b1*y[n-1]+b2*y[n-2]+... */
+				for(j=gt->na;j<nt;j++)
+				  iirf[i].oring[iirf[i].opos]+=gt->coeff[i][j]*iirf[i].oring[(iirf[i].opos-j-1)%nb];
+				/* Feed output of last stage to next stage */
+				if (i+1<gt->nstages)
+					iirf[i+1].iring[iirf[i+1].ipos]=iirf[i].oring[iirf[i].opos];
+			}
+			/* At least I process it in place :) */
+			sbuf_buf(inb)[pos++]=iirf[i].oring[iirf[i].opos];
+			/* Adjust ringbuffers */
+			for(i=0;i<gt->nstages;i++){
+				iirf[i].ipos++;
+				if (iirf[i].ipos>gt->na)
+					iirf[i].ipos=0;
+				iirf[i].opos++;
+				if (iirf[i].opos>nb)
+					iirf[i].opos=0;
+			}
+		}
+		sbuf_queue(out,inb);
 entry:
 		inb=sbuf_get(in);
 		inb=sbuf_make_private(inb);
+		pos=0;
 	}
 	while(inb);
 	
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
+
+	for(i=0;i<gt->nstages;i++){
+		free(iirf[i].iring);
+		free(iirf[i].oring);
+	}
+	free(iirf);
+
+	/* Later on this should be done by the calling filter */
+
+	free_glame_iir(gt);
 
 	FILTER_RETURN;
 }
@@ -240,20 +321,14 @@ PLUGIN_PIXMAP(iir, "iir.xpm")
 int iir_register()
 {
 	filter_t *f;
-	filter_paramdesc_t *d;
 
 	if (!(f = filter_alloc(iir_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-		    		FILTER_PORTTYPE_SAMPLE)
-	    || !(d = filter_add_param(f, "time", "echo time in ms",
-				      FILTER_PARAMTYPE_FLOAT))
-	    || !filter_add_param(f, "mix", "mixer ratio",
-		    		FILTER_PARAMTYPE_FLOAT))
+		    		FILTER_PORTTYPE_SAMPLE))
 		return -1;
-	filterparamdesc_float_settype(d, FILTER_PARAM_FLOATTYPE_TIME);
-	if (filter_add(f, "echo", "echo effect") == -1)
+	if (filter_add(f, "iir", "iir effect") == -1)
 		return -1;
 
 	return 0;
