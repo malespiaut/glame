@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.11 2002/02/18 22:41:18 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.12 2002/04/13 12:08:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -59,6 +59,12 @@ void create_label_edit_pair(GtkWidget *vbox,
 void create_label_long_pair(GtkWidget *vbox,
 			    const char *label, long *value,
 			    long vmin, long vmax);
+
+/* creates a hbox with a label and a spin button with the provided default
+ * value, a signal handler is installed that updates the provided value. */
+void create_label_double_pair(GtkWidget *vbox,
+			      const char *label, double *value,
+			      double vmin, double vmax);
 
 /* Query the nr of the selected item in a Gtk(Option)Menu. */
 gint glame_menu_get_active_index(GtkMenu *menu);

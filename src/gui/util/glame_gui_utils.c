@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.23 2002/02/18 22:41:18 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.24 2002/04/13 12:08:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -53,6 +53,11 @@ static void update_string_from_editable_cb(GtkEditable *w, char *buf)
 }
 
 static void update_long_from_adjustment_cb(GtkAdjustment *adj, long *value)
+{
+	*value = adj->value;
+}
+
+static void update_double_from_adjustment_cb(GtkAdjustment *adj, double *value)
 {
 	*value = adj->value;
 }
@@ -109,6 +114,28 @@ void create_label_long_pair(GtkWidget *vbox,
 	sbutton = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1.0, 0);
 	gtk_signal_connect(GTK_OBJECT(adj), "value_changed",
 			   (GtkSignalFunc)update_long_from_adjustment_cb, value);
+	gtk_container_add(GTK_CONTAINER(hbox), l);
+	gtk_container_add(GTK_CONTAINER(hbox), sbutton);
+	gtk_widget_show_all(hbox);
+	gtk_container_add(GTK_CONTAINER(vbox), hbox);
+}
+
+void create_label_double_pair(GtkWidget *vbox,
+			      const char *label, double *value,
+			      double vmin, double vmax)
+{
+	GtkWidget *hbox, *l, *sbutton;
+	GtkObject *adj;
+
+	*value = MAX(vmin, MIN(vmax, *value));
+
+	hbox = gtk_hbox_new(TRUE, 5);
+	l = gtk_label_new(label);
+	gtk_misc_set_alignment(GTK_MISC(l), 1.0, 0.5);
+	adj = gtk_adjustment_new(*value, vmin, vmax, 0.1, 1.0, 0.0);
+	sbutton = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1.0, 3);
+	gtk_signal_connect(GTK_OBJECT(adj), "value_changed",
+			   (GtkSignalFunc)update_double_from_adjustment_cb, value);
 	gtk_container_add(GTK_CONTAINER(hbox), l);
 	gtk_container_add(GTK_CONTAINER(hbox), sbutton);
 	gtk_widget_show_all(hbox);
