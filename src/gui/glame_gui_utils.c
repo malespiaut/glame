@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.14 2001/05/10 00:00:54 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.15 2001/05/14 08:33:50 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -71,8 +71,17 @@ static void play_cb(GnomeDialog * dia, play_struct_t* play)
 	    || filter_start(play->net) == -1) {
 		if (play->gui)
 			glame_filtereditgui_draw_error(play->gui);
-		else
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error processing network")));
+		else {
+			char msg[256] = "Error processing network";
+			filter_t *node;
+			filter_foreach_node(play->net, node) {
+				if (filter_errstr(node)) {
+					snprintf(msg, 256, "Error processing network:\n%s: %s\n", filter_name(node), filter_errstr(node));
+					break;
+				}
+			}
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(msg)));
+		}
 		gnome_dialog_close(play->dia);
 		return;
 	}
@@ -485,7 +494,7 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 
 	/* Build tree of selected categories/plugins. */
 	while ((plugin = plugin_next(plugin))) {
-		if (!plugin_query(plugin, PLUGIN_FILTER))
+		if (!select && !plugin_query(plugin, PLUGIN_FILTER))
 			continue;
 		if (select && !select(plugin))
 			continue;
@@ -863,9 +872,3 @@ GdkImlibImage* glame_load_icon(const char* filename)
 		image = gdk_imlib_load_image(gnomeFile);
 	return image;
 }
-		
-		
-		
-
-	
-						    
