@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.78 2001/08/08 09:38:38 nold Exp $
+ * $Id: main.c,v 1.79 2001/08/13 14:27:49 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -44,6 +44,8 @@
 #include "glame_accelerator.h"
 #include "glame_console.h"
 #include "network_utils.h"
+
+#include "../plugins/symbols.c"
 
 
 /* Globals. */

@@ -32,6 +32,7 @@
 #include "util.h"
 #include "gpsm.h"
 
+#include "plugins/symbols.c"
 
 int cmd_argc;
 char **cmd_argv;
