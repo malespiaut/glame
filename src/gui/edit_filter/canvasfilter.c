@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.52 2002/01/11 23:21:30 richi Exp $
+ * $Id: canvasfilter.c,v 1.53 2002/06/04 10:11:21 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -893,19 +893,19 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	
 	dialog = gnome_dialog_new(plugin_name(filter->plugin),GNOME_STOCK_BUTTON_OK,NULL);
 	
-
-	desc = (char*)plugin_query(filter->plugin,PLUGIN_DESCRIPTION);
-	text = gtk_text_new(NULL,NULL);
-	gtk_widget_show(text);
 	
-	if(desc)
-		gtk_editable_insert_text(GTK_EDITABLE(text),desc,strlen(desc),&pos);
-	else
-		gtk_editable_insert_text(GTK_EDITABLE(text),_("This item does not have a description"),38,&pos);
+	desc = (char*)plugin_query(filter->plugin,PLUGIN_DESCRIPTION);
+	
+	if(desc) 
+		text=gtk_label_new(desc);
+	else 
+		text = gtk_label_new(_("This item does not have a description"));
+	gtk_label_set_line_wrap(GTK_LABEL(text),TRUE);
+	gtk_label_set_justify(GTK_LABEL(text),GTK_JUSTIFY_LEFT);
 	tablabel = gtk_label_new(_("Description"));
 	gtk_widget_show(tablabel);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),text,tablabel);
-
+	gtk_widget_show(text);
 	tablabel = gtk_label_new(_("Ports"));
 	list = GTK_CLIST(gtk_clist_new_with_titles(3,labels));
 	gtk_clist_set_column_auto_resize(list,0,TRUE);
@@ -952,11 +952,11 @@ static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* fi
 	}
 	gtk_widget_show(GTK_WIDGET(list));
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
-
+	
 	gtk_widget_show(notebook);
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	gtk_container_add(GTK_CONTAINER(vbox),notebook);
-
+	
 	gnome_dialog_button_connect_object(GNOME_DIALOG(dialog), 0, gtk_object_destroy, GTK_OBJECT(dialog));
 	gtk_widget_show(GTK_WIDGET(dialog));
 }
