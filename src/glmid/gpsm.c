@@ -620,7 +620,8 @@ gpsm_swfile_t *gpsm_newswfile(const char *label)
 			     O_RDWR|O_CREAT|O_EXCL)) == -1)
 		;
 	sw_close(fd);
-	swfile->samplerate = GLAME_DEFAULT_SAMPLERATE;
+	swfile->samplerate = glame_config_get_long_with_default("audio_io/input_rate", 
+								GLAME_DEFAULT_SAMPLERATE);
 	swfile->position = 0.0;
 	hash_add_swfile(swfile);
 
