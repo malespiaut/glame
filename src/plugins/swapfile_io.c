@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.5 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: swapfile_io.c,v 1.6 2001/03/16 09:57:31 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -33,7 +33,7 @@ static int swapfile_in_f(filter_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
-	long fname;
+	long fname, offset;
 	off_t size, pos;
 	int cnt;
 	swfd_t fd;
@@ -46,12 +46,25 @@ static int swapfile_in_f(filter_t *n)
 		FILTER_ERROR_RETURN("no input filename specified");
 	if (!(fd = sw_open(fname, O_RDONLY, TXN_NONE)))
 		FILTER_ERROR_RETURN("cannot open swapfile file");
+	offset = filterparam_val_int(filternode_get_param(n, "offset"));
+	offset *= SAMPLE_SIZE;
+	if (sw_lseek(fd, offset, SEEK_SET) != offset) {
+		sw_close(fd);
+		FILTER_ERROR_RETURN("cannot seek to offset");
+	}
+	size = filterparam_val_int(filternode_get_param(n, "size"));
+	sw_fstat(fd, &st);
+	if (size == -1)
+		size = st.size - offset;
+	else {
+		size *= SAMPLE_SIZE;
+		if (size+offset > st.size) {
+			sw_close(fd);
+			FILTER_ERROR_RETURN("offset + size does not match file");
+		}
+	}
 
 	FILTER_AFTER_INIT;
-
-	/* Get file/cluster info. */
-	sw_fstat(fd, &st);
-	size = st.size;
 
 	pos = 0;
 	while (size > 0) {
@@ -146,6 +159,13 @@ int swapfile_in_register(plugin_t *p)
 	filterparamdb_add_param_float(filter_paramdb(f), "position",
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "offset",
+				FILTER_PARAMTYPE_INT, 0,
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "size",
+				FILTER_PARAMTYPE_INT, -1,
+				FILTERPARAM_DESCRIPTION, "size to stream or -1 for the full file",
+				FILTERPARAM_END);
 
 	f->connect_out = swapfile_in_connect_out;
 
@@ -171,7 +191,7 @@ static int swapfile_out_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_buffer_t *buf;
-	long fname;
+	long fname, offset;
 	swfd_t fd;
 
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
@@ -179,8 +199,19 @@ static int swapfile_out_f(filter_t *n)
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
 	if (fname == -1)
 		FILTER_ERROR_RETURN("no filename");
-	if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE)))
-		FILTER_ERROR_RETURN("cannot create file");
+	offset = filterparam_val_int(filternode_get_param(n, "offset"));
+	if (offset == -1) {
+		if (!(fd = sw_open(fname, O_RDWR|O_CREAT|O_TRUNC, TXN_NONE)))
+			FILTER_ERROR_RETURN("cannot create file");
+		sw_lseek(fd, 0, SEEK_SET);
+	} else {
+		if (!(fd = sw_open(fname, O_RDWR, TXN_NONE)))
+			FILTER_ERROR_RETURN("cannot open file");
+		if (sw_lseek(fd, offset*SAMPLE_SIZE, SEEK_SET) != offset) {
+			FILTER_ERROR_RETURN("cannot seek to offset");
+			sw_close(fd);
+		}
+	}
 
 	FILTER_AFTER_INIT;
 
@@ -217,6 +248,10 @@ int swapfile_out_register(plugin_t *p)
 
 	filterparamdb_add_param_int(filter_paramdb(f), "filename",
 				FILTER_PARAMTYPE_INT, -1,
+				FILTERPARAM_END);
+	filterparamdb_add_param_int(filter_paramdb(f), "offset",
+				FILTER_PARAMTYPE_INT, -1,
+				FILTERPARAM_DESCRIPTION, "offset to start writing or -1 for new file",
 				FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "audio stream to swapfile file");
