@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.9 2001/08/07 16:51:31 mag Exp $
+ * $Id: fft_plugins.c,v 1.10 2001/08/08 09:36:56 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -43,7 +43,8 @@ PLUGIN_SET(fft_plugins,"fft ifft fft_resample fft_equalizer fft_bandpass")
 
 pthread_mutex_t planlock = PTHREAD_MUTEX_INITIALIZER;
 
-SAMPLE *hanning(int n) {
+SAMPLE *hanning(int n)
+{
 	SAMPLE *win;
 	int i;
 	
@@ -54,7 +55,8 @@ SAMPLE *hanning(int n) {
 	return win;
 }
 
-SAMPLE window_gain(SAMPLE *win, int n, int osamp) {
+SAMPLE window_gain(SAMPLE *win, int n, int osamp)
+{
 	SAMPLE *s;
 	double max;
 	int i, j, off;
@@ -79,9 +81,9 @@ SAMPLE window_gain(SAMPLE *win, int n, int osamp) {
 	return (SAMPLE)max;
 }
 
-static int fft_connect_out(filter_t *n, filter_port_t *port,
-			   filter_pipe_t *p)
+static int fft_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *n = filterport_filter(port);
 	int rate = 44100, bsize = 2048, osamp = 8;
 	float hangle = 0.0;
 	filter_pipe_t *in;
@@ -110,7 +112,8 @@ static int fft_connect_out(filter_t *n, filter_port_t *port,
 	return 0;
 }
 
-static void fft_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
+static void fft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
+{
 	filter_t	*n;
 	filter_port_t   *oport;
 	filter_pipe_t   *opipe, *pipe;
@@ -123,11 +126,13 @@ static void fft_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 	if(!opipe)
 		return;
 
-	fft_connect_out(n, oport, opipe);
+	fft_connect_out(oport, opipe);
 	glsig_emit(filterpipe_emitter(opipe), GLSIG_PIPE_CHANGED, opipe);
 }
 
-static int fft_fixup_param(filter_t *n, filter_param_t *param, const void *val) {
+static int fft_fixup_param(filter_param_t *param, const void *val)
+{
+	filter_t *n = filterparam_filter(param);
 	filter_pipe_t *pipe;
 	int stuff = *((int*)val);
 	
@@ -249,6 +254,8 @@ static int fft_f(filter_t *n){
 int fft_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
+	filter_param_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -259,25 +266,26 @@ int fft_register(plugin_t *p)
 			      FILTER_PORTFLAG_INPUT,
 			      FILTERPORT_DESCRIPTION, "audio stream",
 			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_FFT,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "fft stream",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_FFT,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "fft stream",
+				    FILTERPORT_END);
+	out->connect = fft_connect_out;
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"blocksize",
+	param = filterparamdb_add_param_int(filter_paramdb(f),"blocksize",
 			FILTER_PARAMTYPE_INT, 2048,
 			FILTERPARAM_DESCRIPTION,"fft-block size",
 			FILTERPARAM_END);
+	param->set = fft_fixup_param;
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"oversamp",
+	param = filterparamdb_add_param_int(filter_paramdb(f),"oversamp",
 			FILTER_PARAMTYPE_INT, 8,
 			FILTERPARAM_DESCRIPTION,"oversampling factor",
 			FILTERPARAM_END);
+	param->set = fft_fixup_param;
 
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, fft_fixup_pipe, NULL);	
-	f->connect_out = fft_connect_out;
-	f->set_param = fft_fixup_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform audio-stream to fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
@@ -289,9 +297,9 @@ int fft_register(plugin_t *p)
 	return 0;
 }
 
-static int ifft_connect_out(filter_t *n, filter_port_t *port,
-			    filter_pipe_t *p)
+static int ifft_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *n = filterport_filter(port);
 	filter_pipe_t *in, *out;
 	DPRINTF("Checking for inpipe for node %s\n", n->name);
 	if ((in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))) {
@@ -305,7 +313,8 @@ static int ifft_connect_out(filter_t *n, filter_port_t *port,
 	return 0;
 }
 
-static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
+static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
+{
 	filter_t *n = NULL;
 	filter_pipe_t *opipe, *pipe;
 	filter_port_t *oport;	
@@ -318,7 +327,7 @@ static void ifft_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 	if(!opipe)
 		return;
 
-	ifft_connect_out(n, oport, opipe);
+	ifft_connect_out(oport, opipe);
 	glsig_emit(filterpipe_emitter(opipe), GLSIG_PIPE_CHANGED, opipe);
 }
 
@@ -413,6 +422,7 @@ entry:
 int ifft_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -422,14 +432,14 @@ int ifft_register(plugin_t *p)
 			      FILTER_PORTFLAG_INPUT,
 			      FILTERPORT_DESCRIPTION, "fft stream",
 			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "audio stream",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "audio stream",
+				    FILTERPORT_END);
+	out->connect = ifft_connect_out;
 	
 	f->f = ifft_f;
-	f->connect_out = ifft_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, ifft_fixup_pipe, NULL);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform fft-stream to audio-stream");
@@ -443,9 +453,9 @@ int ifft_register(plugin_t *p)
 }
 
 
-static int fft_resample_connect_out(filter_t *n, filter_port_t *port,
-				    filter_pipe_t *p)
+static int fft_resample_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *n = filterport_filter(port);
 	int rate = 44100, bsize = 2048;
 	filter_pipe_t *in, *out;
 	filter_param_t *param;
@@ -465,7 +475,9 @@ static int fft_resample_connect_out(filter_t *n, filter_port_t *port,
 }
 
 
-static int fft_resample_fixup_param(filter_t *n, filter_param_t *param, const void *val) {
+static int fft_resample_fixup_param(filter_param_t *param, const void *val)
+{
+	filter_t *n = filterparam_filter(param);
 	filter_pipe_t *out, *in;
 	int rate = *((int*)val), bsize;
 
@@ -493,7 +505,8 @@ static int fft_resample_fixup_param(filter_t *n, filter_param_t *param, const vo
 	return 0;
 }
 
-static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
+static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
+{
 	filter_t	*n;
 	filter_port_t   *oport;
 	filter_pipe_t   *opipe, *pipe;
@@ -506,7 +519,7 @@ static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 	if(!opipe)
 		return;
 
-	fft_resample_connect_out(n, oport, opipe);
+	fft_resample_connect_out(oport, opipe);
 	glsig_emit(filterpipe_emitter(opipe), GLSIG_PIPE_CHANGED, opipe);
 }
 
@@ -565,6 +578,8 @@ entry:
 int fft_resample_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
+	filter_param_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -574,21 +589,21 @@ int fft_resample_register(plugin_t *p)
 			      FILTER_PORTFLAG_INPUT,
 			      FILTERPORT_DESCRIPTION, "fft stream",
 			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_FFT,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "resamppled fft stream",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_FFT,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "resamppled fft stream",
+				    FILTERPORT_END);
+	out->connect = fft_resample_connect_out;
 	
-	filterparamdb_add_param_int(filter_paramdb(f),"frequency",
+	param = filterparamdb_add_param_int(filter_paramdb(f),"frequency",
 			FILTER_PARAMTYPE_INT, 44100,
 			FILTERPARAM_DESCRIPTION,"resample frequency",
 			FILTERPARAM_END);
+	param->set = fft_resample_fixup_param;
 	
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, fft_resample_fixup_pipe, NULL);
 	f->f = fft_resample_f;
-	f->connect_out = fft_resample_connect_out;
-	f->set_param = fft_resample_fixup_param;
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Resample fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "resample.png");
@@ -600,7 +615,8 @@ int fft_resample_register(plugin_t *p)
 	return 0;
 }
 
-static int fft_equalizer_f(filter_t *n){
+static int fft_equalizer_f(filter_t *n)
+{
 	filter_pipe_t *in,*out;
 	filter_buffer_t *inb;
 	filter_param_t *param;
