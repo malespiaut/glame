@@ -14,6 +14,11 @@ plugins/
 	- provide pixmaps for all plugins (missing: echo, fft & friends,
           iir, noisegate, pan, rms, time, sinus, const, ...)
 
+gui/
+	[xwolf]
+	- kool splashscreen?
+	- property editing for network (external ports/properties/section...) ?
+
 
 Items that can be postponed forever (at least until 0.6):
 ---------------------------------------------------------
@@ -53,3 +58,15 @@ glmid/
 gui/
 	[all]
 	- the timeline stuff is still missing
+	[xwolf]
+	- D&D in swapfile/wave/filternet
+	
+gui/edit_filter
+	[xwolf]
+	- completely rewrite the ugly event handling in filter_network
+	- add realtime controls
+	- add support for custom property dialogs (glade & friends)
+	- grouping!
+	- fold/unfold of groups
+	- connect for parameters of nodes of same type
+	
