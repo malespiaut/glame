@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.38 2000/11/11 16:17:23 richi Exp $
+ * $Id: filter.c,v 1.39 2000/12/08 14:56:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -93,6 +93,8 @@ filter_t *_filter_alloc()
 
 	filterparamdb_init(&f->params, f);
 
+	glsdb_init(&f->properties);
+
 	f->state = STATE_UNDEFINED;
 	INIT_LIST_HEAD(&f->buffers);
 
@@ -121,6 +123,7 @@ void _filter_free(filter_t *f)
 
 	filterportdb_delete(&f->ports);
 	filterparamdb_delete(&f->params);
+	glsdb_delete(&f->properties);
 
 	glsig_delete_all(&f->emitter);
 	free((char *)f->name);
@@ -156,6 +159,7 @@ filter_t *_filter_instantiate(filter_t *f)
 	glsig_copy_redirectors(&n->emitter, &f->emitter);
 	filterparamdb_copy(&n->params, &f->params);
 	filterportdb_copy(&n->ports, &f->ports);
+	glsdb_copy(&n->properties, &f->properties);
 
 	/* copy nodes */
 	filter_foreach_node(f, node) {
@@ -324,6 +328,7 @@ char *filter_to_string(filter_t *net)
 	filter_port_t *portd;
 	filter_param_t *param;
 	filter_pipe_t *fpipe;
+	sitem_t *pitem;
 
 	if (!net || !FILTER_IS_NETWORK(net))
 		return NULL;
@@ -345,7 +350,7 @@ char *filter_to_string(filter_t *net)
 	/* ((net .. */
 	len += sprintf(&buf[len-1], ")\n") - 1;
 
-	/* first create the parameter set commands for the
+	/* first create the parameter and property set commands for the
 	 * nodes. */
 	filter_foreach_node(net, n) {
 		filterparamdb_foreach_param(filter_paramdb(n), param) {
@@ -353,6 +358,10 @@ char *filter_to_string(filter_t *net)
 			len += sprintf(&buf[len], "   (filternode_set_param %s \"%s\" %s)\n",
 				       n->name, filterparam_label(param), val);
 			free(val);
+		}
+		glsdb_foreach_item(filter_propertydb(n), pitem) {
+			len += sprintf(&buf[len], "   (filter_set_property %s \"%s\" \"%s\")\n",
+				       n->name, sitem_label(pitem), sitem_str(pitem));
 		}
 	}
 
@@ -421,6 +430,12 @@ char *filter_to_string(filter_t *net)
 			len += sprintf(&buf[len-1], ")\n") - 1;
 		    }
 		}
+	}
+
+	/* Last, create property set commands for the network. */
+	glsdb_foreach_item(filter_propertydb(net), pitem) {
+		len += sprintf(&buf[len], "   (filter_set_property net \"%s\" \"%s\")\n",
+			       sitem_label(pitem), sitem_str(pitem));
 	}
 
 	/* (let* ... */

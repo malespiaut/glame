@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.63 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter.h,v 1.64 2000/12/08 14:56:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -111,6 +111,9 @@ struct filter {
 	/* Parameter database. */
 	filter_paramdb_t params;
 
+	/* String database for storing random stuff. */
+	gldb_t properties;
+
 	/* signal emitter, known signals are
 	 * GLSIG_NODE_DELETED */
 	glsig_emitter_t emitter;
@@ -138,6 +141,7 @@ struct filter {
  * filter_paramdb_t *filter_paramdb(filter_t *);
  * filter_portdb_t *filter_portdb(filter_t *);
  * glsig_emitter_t *filter_emitter(filter_t *);
+ * gldb_t *filter_propertydb(filter_t *);
  * int filter_nrnodes(filter_t *);
  * int filter_errno(filter_t *);
  * const char *filter_errstr(filter_t *);
@@ -146,6 +150,7 @@ struct filter {
 #define filter_paramdb(f) (&(f)->params)
 #define filter_portdb(f) (&(f)->ports)
 #define filter_emitter(f) (&(f)->emitter)
+#define filter_propertydb(f) (&(f)->properties)
 #define filter_nrnodes(f) ((f)->nr_nodes)
 #define filter_errno(f) ((f)->glerrno)
 #define filter_errstr(f) ((f)->glerrstr)
@@ -178,6 +183,12 @@ do { \
 #define FILTER_IS_LAUNCHED(f) ((f)->state >= STATE_LAUNCHED)
 #define FILTER_IS_RUNNING(f) ((f)->launch_context->state >= STATE_RUNNING)
 
+/* Convenience for setting/querying filter properties.
+ * void filter_set_property(filter_t *f, const char *label, const char *value);
+ * const char *filter_get_property(filter_t *f, const char *label);
+ */
+#define filter_set_property(f, l, v) glsdb_set(filter_propertydb(f), (v), (l))
+#define filter_get_property(f, l) glsdb_query(filter_propertydb(f), (l))
 
 
 /* Allocates a new filter structure. You can provide a
