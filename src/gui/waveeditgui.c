@@ -446,7 +446,7 @@ GtkWidget *glame_waveedit_gui_new_a(const char *title, int nrtracks,
   
 	/* Create a GtkWaveView widget. */
 	waveview = gtk_wave_view_new ();
-	gtk_wave_view_set_select_channels (GTK_WAVE_VIEW (waveview), 0x03);
+	gtk_wave_view_set_select_channels (GTK_WAVE_VIEW (waveview), ~0);
 	gtk_widget_set_usize (waveview, 300, 200);
 
 	/* Set the zoom factor such that 1 pixel = 5 frames.
