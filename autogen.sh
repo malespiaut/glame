@@ -1,7 +1,7 @@
 #!/bin/sh
 
 rm -f config.cache libtool ltconfig ltmain.sh po/Makefile.in.in
-rm -rf intl/ ABOUT-NLS
+rm -rf intl/ ABOUT-NLS libltdl
 gettextize --copy
 aclocal -I . -I macros
 libtoolize --copy --automake --ltdl
