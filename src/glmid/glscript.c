@@ -138,16 +138,14 @@ long scm2long(SCM long_smob, long smob_tag)
 	return SCM2LONGSMOB(long_smob)->val;
 }
 
-/* SCM glame_guile_module; -- FIXME */
 
 int glscript_init()
 {
-	/* Define a new guile module and make it active for the
-	 * following defines. -- FIXME
-	SCM oldmodule = scm_selected_module();
-	scm_select_module(scm_the_root_module());
-	glame_guile_module = scm_make_module(scm_string_to_symbol(gh_str02scm("glame")));
-	scm_select_module(glame_guile_module); */
+	/* Redirect output/error to console. */
+	scm_set_current_output_port(
+		scm_fdes_to_port(dup(1), "w", gh_str02scm("stdout")));
+	scm_set_current_error_port(
+		scm_fdes_to_port(dup(2), "w", gh_str02scm("stderr")));
 
 	/* Tell scheme about installation directory of GLAME
 	 * and the revision of the scripting language.
@@ -178,9 +176,6 @@ int glscript_init()
 "  `(\"" PKGSCRIPTSDIR "/glame.scm\""
 "    \"glmid/glame.scm\""
 "    ,(string-append (getenv \"HOME\") \"/.glame.scm\")))");
-
-	/* Return to old selected module. -- FIXME
-	scm_select_module(oldmodule); */
 
 	return 0;
 }

@@ -48,17 +48,21 @@ extern filter_t *last_loaded_filter_instance;
 
 /* Safe wrappers for gh_eval_file/gh_eval_string. Result is #f if
  * anything went wrong, #unspecified otherwise. */
-static inline SCM glame_gh_safe_handler(void *a, SCM b, SCM c)
-{
-	return SCM_BOOL_F;
-}
 static inline SCM glame_gh_safe_eval_file(const char *fname)
 {
-	return gh_eval_file_with_catch((char *)fname, glame_gh_safe_handler);
+	SCM s_res;
+	s_res = gh_eval_file_with_catch((char *)fname, scm_handle_by_message_noexit);
+	scm_flush(scm_current_output_port());
+	scm_flush(scm_current_error_port());
+	return s_res;
 }
 static inline SCM glame_gh_safe_eval_str(const char *str)
 {
-	return gh_eval_str_with_catch((char *)str, glame_gh_safe_handler);
+	SCM s_res;
+	s_res = gh_eval_str_with_catch((char *)str, scm_handle_by_message_noexit);
+	scm_flush(scm_current_output_port());
+	scm_flush(scm_current_error_port());
+	return s_res;
 }
 
 
