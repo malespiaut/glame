@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.10 2000/03/15 16:52:29 xwolf Exp $
+ * $Id: canvas.c,v 1.11 2000/03/16 17:13:26 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -291,7 +291,14 @@ find_output_port(GlameCanvas* canvas, double x, double y)
 	return NULL;
 }
 		
-
+static void
+port_docking_coords(GlameCanvasPort* port,double *x, double *y)
+{
+	GnomeCanvasRE* rect = GNOME_CANVAS_RE(port);
+	*x=rect->x1;
+	*y=(rect->y1+rect->y2)*0.5;
+	gnome_canvas_item_i2w(rect,x,y);
+}
 		
 
 
@@ -301,6 +308,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	GlameCanvasItem *item=GLAME_CANVAS_ITEM(pitem);
 	GnomeCanvasItem *released;
 	GlameCanvasPort *port;
+
 	double x,y,wx,wy;
 	//gnome_canvas_window_to_world(pitem->canvas,event->button.x,event->button.y,&x,&y);
 	gnome_canvas_c2w(pitem->canvas,event->button.x,event->button.y,&x,&y);
@@ -336,6 +344,31 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 							free(item->connection);	
 						}else{
 							DPRINTF("inner connection succeded!\n");
+							port_docking_coords(port,&x,&y);
+							gnome_canvas_item_w2i(item->connection->line,&x,&y);
+							item->connection->points->coords[2]=x;
+							item->connection->points->coords[3]=y;
+							gnome_canvas_item_set(GNOME_CANVAS_ITEM(item->connection->line),
+									      "points",item->connection->points,NULL);
+							wx = item->connection->points->coords[0] + item->connection->points->coords[2];
+							wx *= 0.5;
+							wx -= 6.0;
+							wy = item->connection->points->coords[1] + item->connection->points->coords[3];
+							wy *= 0.5;
+							wy -= 6.0;
+							item->connection->circle = gnome_canvas_item_new(item,
+													 gnome_canvas_ellipse_get_type(),
+													 "x1",wx,
+													 "x2",wx+12.0,
+													 "y1",wy,
+													 "y2",wy+12.0,
+													 "fill_color","black",
+													 "width_pixels",5,
+													 NULL);
+							gtk_signal_connect(GTK_OBJECT(item->connection->circle),
+									   "event",GTK_SIGNAL_FUNC(connection_select),
+									   item->connection);
+							
 						}
 						// connected!!
 					} else {
@@ -360,8 +393,41 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 	}
 	return FALSE;
 }
-		
-		
+static void
+connection_break(GlameConnection* connection)
+{
+	filternetwork_break_connection(connection->pipe);
+	g_list_remove(connection->begin->connected_ports,connection);
+	g_list_remove(connection->end->connected_ports,connection);
+	gtk_object_destroy(GTK_OBJECT(connection->line));
+	gtk_object_destroy(GTK_OBJECT(connection->circle));
+	free (connection);
+}
+	
+static gint
+connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data)
+{
+
+	GlameConnection* connection = (GlameConnection*)data;
+	switch(event->type){
+	case GDK_BUTTON_PRESS:
+		switch(event->button.button){
+		case 1:
+			break;
+		case 2:
+			DPRINTF("Breaking connection\n");
+			connection_break(connection);
+			return TRUE;
+			break;
+		default:
+			
+			break;
+		}
+	default: 
+		break;
+	}
+	return FALSE;
+}
 
 static gint
 output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
@@ -437,10 +503,12 @@ gint
 handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 {
 	//fprintf(stderr,"%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
+
 	if((GLAME_CANVAS_ITEM(item))->dragging)
 		image_select(item,event,data);
 	if((GLAME_CANVAS_ITEM(item))->connecting)
 		output_port_dragging(item,event,data);
+
 	return FALSE;
 }
 
@@ -520,11 +588,13 @@ add_connection(GlameConnection *c)
 //	filter_network_t *net=(GLAME_CANVAS(c->begin->canvas))->net->net;
 	
 	// ooooohhh f**k this does not look nice!
-	if(!filternetwork_add_connection((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node,
+	c->pipe=filternetwork_add_connection((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node,
 				     filterportdesc_label(c->begin->port),
 					(GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter->node,
-					filterportdesc_label(c->end->port))){
-	  DPRINTF("Connection failed!!\n");
+					     filterportdesc_label(c->end->port));
+	if(!c->pipe)
+	{
+		DPRINTF("Connection failed!!\n");
 		return -1;
 	}else {
 		DPRINTF("success!\n");
@@ -541,12 +611,24 @@ void
 update_input_connection(GlameCanvasPort*p, gdouble x, gdouble y)
 {
 	GList* connection = g_list_first(p->connected_ports);
+	GnomeCanvasRE* circle;
+	gdouble x_2,y_2;
+	x_2 = x*0.5;
+	y_2 = y*0.5;
 	while(connection){
 		((GlameConnection*)(connection->data))->points->coords[2]+=x;
 		((GlameConnection*)(connection->data))->points->coords[3]+=y;
+		circle = GNOME_CANVAS_RE(((GlameConnection*)(connection->data))->circle);
 		gnome_canvas_item_set(GNOME_CANVAS_ITEM(((GlameConnection*)(connection->data))->line),
 				      "points",((GlameConnection*)(connection->data))->points,
 				      NULL);
+		if(circle)
+			gnome_canvas_item_set(GNOME_CANVAS_ITEM(circle),
+					      "x1",circle->x1+x_2,
+					      "x2",circle->x2+x_2,
+					      "y1",circle->y1+y_2,
+					      "y2",circle->y2+y_2,
+					      NULL);
 		connection = g_list_next(connection);
 	}
 }
@@ -555,12 +637,24 @@ void
 update_output_connection(GlameCanvasPort*p, gdouble x, gdouble y)
 {
 	GList* connection = g_list_first(p->connected_ports);
+	GnomeCanvasRE* circle;
+	gdouble x_2,y_2;
+	x_2 = x*0.5;
+	y_2 = y*0.5;
 	while(connection){
 		((GlameConnection*)(connection->data))->points->coords[2]-=x;
 		((GlameConnection*)(connection->data))->points->coords[3]-=y;
 		gnome_canvas_item_set(GNOME_CANVAS_ITEM(((GlameConnection*)(connection->data))->line),
 				      "points",((GlameConnection*)(connection->data))->points,
 				      NULL);
+		circle = GNOME_CANVAS_RE(((GlameConnection*)(connection->data))->circle);
+		if(circle)
+			gnome_canvas_item_set(GNOME_CANVAS_ITEM(circle),
+					      "x1",circle->x1-x_2,
+					      "x2",circle->x2-x_2,
+					      "y1",circle->y1-y_2,
+					      "y2",circle->y2-y_2,
+					      NULL);
 		connection = g_list_next(connection);
 	}
 }

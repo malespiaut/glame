@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.7 2000/03/15 15:46:59 xwolf Exp $
+ * $Id: canvas.h,v 1.8 2000/03/16 17:13:26 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -79,6 +79,8 @@ struct _GlameConnection
 	GlameCanvasPort *begin,*end;
 	GnomeCanvasLine *line;
 	GnomeCanvasPoints *points;
+	GnomeCanvasEllipse* circle;
+	filter_pipe_t *pipe;
 };
 
 
@@ -151,7 +153,7 @@ void edit_canvas_item_properties(GlameCanvasItem *item);
 
 void update_input_connection(GlameCanvasPort *p,gdouble x, gdouble y);
 void update_output_connection(GlameCanvasPort *p,gdouble x, gdouble y);
-
+gint connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data);
 
 
 #endif
