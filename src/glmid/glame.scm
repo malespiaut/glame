@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.58 2001/06/18 08:33:21 richi Exp $
+; $Id: glame.scm,v 1.59 2001/07/04 12:29:16 uid21825 Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -29,6 +29,9 @@
 (define filternetwork_add_input filternetwork-add-input)
 (define filternetwork_add_output filternetwork-add-output)
 (define filternetwork_add_param filternetwork-add-param)
+(define set_property set-property!)
+(define get_property get-property)
+(define filter_p filter?)
 
 (define (filternode_set_param node label value)
   (call-with-current-continuation
