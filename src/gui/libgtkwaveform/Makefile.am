@@ -1,5 +1,6 @@
 INCLUDES = -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/include \
 	-I@top_srcdir@/src/glmid -I@top_srcdir@/src/hash \
+	-I@top_srcdir@/src/gui \
 	$(GNOME_INCLUDEDIR)
 
 if HAVE_GNOME
