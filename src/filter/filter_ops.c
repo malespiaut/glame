@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.34 2002/09/27 21:24:38 richi Exp $
+ * $Id: filter_ops.c,v 1.35 2002/09/29 13:49:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -329,6 +329,7 @@ static void *waiter(void *network)
 
 	/* defer final launchcontext freeing to filter_wait(). */
 	net->launch_context = c;
+	net->launch_context->state = STATE_RUNNING-1;
 	DPRINTF("finished\n");
 
 	return (void *)res;
@@ -429,9 +430,16 @@ int filter_wait(filter_t *net)
 {
 	void *res;
 
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || !FILTER_IS_RUNNING(net))
+	if (!net || !FILTER_IS_NETWORK(net))
 		return -1;
+	if (!FILTER_IS_LAUNCHED(net)
+	    || !FILTER_IS_RUNNING(net)) {
+		if (net->launch_context) {
+			_launchcontext_free(net->launch_context);
+			net->launch_context = NULL;
+		}
+		return -1;
+	}
 
 	DPRINTF("waiting for waiter to complete\n");
 	pthread_join(net->launch_context->waiter, &res);
@@ -452,8 +460,7 @@ int filter_is_ready(filter_t *net)
 
 void filter_terminate(filter_t *net)
 {
-	if (!net || !FILTER_IS_NETWORK(net) || !FILTER_IS_LAUNCHED(net)
-	    || !net->launch_context)
+	if (!net || !FILTER_IS_NETWORK(net) || !net->launch_context)
 		return;
 
 	atomic_set(&net->launch_context->result, 1);
