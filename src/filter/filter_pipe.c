@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.5 2001/04/06 18:17:22 nold Exp $
+ * $Id: filter_pipe.c,v 1.6 2001/04/24 12:06:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -184,4 +184,57 @@ void filterpipe_delete(filter_pipe_t *p)
 
 	/* kill the pipe */
 	_pipe_free(p);
+}
+
+
+static pthread_mutex_t _fpifbmx = PTHREAD_MUTEX_INITIALIZER;
+static void _filterpipe_is_feedback_cleanup(filter_t *n)
+{
+	filter_port_t *port;
+	filter_pipe_t *p;
+
+	if (!(n->type & 32))
+		return;
+	n->type &= ~32;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (!filterport_is_output(port))
+			continue;
+		filterport_foreach_pipe(port, p) {
+			_filterpipe_is_feedback_cleanup(filterport_filter(filterpipe_dest(p)));
+		}
+	}
+}
+static int _filterpipe_is_feedback(filter_pipe_t *pipe, filter_t *n)
+{
+	filter_port_t *port;
+	filter_pipe_t *p;
+
+	if (n->type & 32)
+		return 0;
+	n->type |= 32;
+	filterportdb_foreach_port(filter_portdb(n), port) {
+		if (!filterport_is_output(port))
+			continue;
+		filterport_foreach_pipe(port, p) {
+			if (pipe == p)
+				return 1;
+			if (_filterpipe_is_feedback(pipe, filterport_filter(filterpipe_dest(p))) == 1)
+				return 1;
+		}
+	}
+
+	return 0;
+}
+int filterpipe_is_feedback(filter_pipe_t *pipe)
+{
+	int res;
+
+	pthread_mutex_lock(&_fpifbmx);
+	res = _filterpipe_is_feedback(pipe, filterport_filter(filterpipe_dest(pipe)));
+	_filterpipe_is_feedback_cleanup(filterport_filter(filterpipe_dest(pipe)));
+	pthread_mutex_unlock(&_fpifbmx);
+
+	DPRINTF("%p %s feedback\n", pipe, res ? "has" : "has not");
+
+	return res;
 }

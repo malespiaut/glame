@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.3 2001/04/09 09:20:22 richi Exp $
+ * $Id: filter_pipe.h,v 1.4 2001/04/24 12:06:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -172,6 +172,10 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest);
 /* Breaks a previously established connection and deletes the associated
  * pipe. */
 void filterpipe_delete(filter_pipe_t *pipe);
+
+/* Checks, if a pipe is inside a feedback loop. Returns 1 if this is
+ * the case, 0 otherwise. */
+int filterpipe_is_feedback(filter_pipe_t *pipe);
 
 
 #ifdef __cplusplus
