@@ -82,15 +82,16 @@ AC_CHECK_SIZEOF(long long)
 
 dnl
 dnl Switch to make SAMPLE a double - float is default.
+dnl -- disabled.
 dnl
 
-AC_ARG_ENABLE(double, [  --enable-double         use doubles instead of floats (not recommended)], sample=$enableval, sample=float)
-if test "$sample" = "no"; then
+dnl AC_ARG_ENABLE(double, [  --enable-double         use doubles instead of floats (not recommended)], sample=$enableval, sample=float)
+dnl if test "$sample" = "no"; then
 	sample=float
-elif test "$sample" = "yes"; then
-	sample=double
-	AC_MSG_WARN([Using double for SAMPLE which is not supported])
-fi
+dnl elif test "$sample" = "yes"; then
+dnl	sample=double
+dnl	AC_MSG_WARN([Using double for SAMPLE which is not supported])
+dnl fi
 if test "$sample" = "float"; then
 	AC_DEFINE(SAMPLE_FLOAT)
 fi
