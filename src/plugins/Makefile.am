@@ -7,6 +7,7 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c \
+	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_irix.c \
 	echo2.scm fft_resample.scm fft_bandpass.scm read_mp3.scm
 
 
@@ -31,7 +32,8 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
 #	garrison.la nold.la maggy.la noisegate.la pan.la pipe.la \
 #	iir.la
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	pan.la pipe.la iir.la noisegate.la time.la
+	pan.la pipe.la iir.la noisegate.la time.la \
+	audio_io_oss.la audio_io_esd.la audio_io_alsa.la audio_io_irix.la
 #pkglib_LTLIBRARIES = debug.la tutorial.la
 
 echo_la_SOURCES = echo.c
@@ -66,4 +68,16 @@ iir_la_LDFLAGS = -module
 
 time_la_SOURCES = time.c
 time_la_LDFLAGS = -module
+
+audio_io_oss_la_SOURCES = audio_io_oss.c audio_io.h
+audio_io_oss_la_LDFLAGS = -module
+
+audio_io_esd_la_SOURCES = audio_io_esd.c audio_io.h
+audio_io_esd_la_LDFLAGS = -module
+
+audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h
+audio_io_alsa_la_LDFLAGS = -module
+
+audio_io_irix_la_SOURCES = audio_io_irix.c audio_io.h
+audio_io_irix_la_LDFLAGS = -module
 
