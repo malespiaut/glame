@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.24 2001/04/09 23:28:37 xwolf Exp $
+ * $Id: main.c,v 1.25 2001/04/10 10:55:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -251,6 +251,7 @@ static GtkWidget* glame_about(void)
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
 	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
+	gtk_window_set_position (GTK_WINDOW (about), GTK_WIN_POS_CENTER_ALWAYS);
 	gtk_widget_show(about);
 	return about;
 }
@@ -266,7 +267,11 @@ static void glame_splash(void)
 
 	foo = glame_about();
 
-	gtk_timeout_add(2000,remove_splash,foo);
+#ifdef DEBUG
+	gtk_timeout_add(1000,remove_splash,foo);
+#else
+	gtk_timeout_add(10000,remove_splash,foo);
+#endif
 }
 
 /*
@@ -351,6 +356,9 @@ static void gui_main()
 	gnome_app_set_contents(GNOME_APP(app),swapfile);
 	gtk_widget_show(app);
 
+	/* Pop up splash screen. */
+	glame_splash();
+
 	/* Cleanup handler. */
 	atexit((void (*)(void))gui_quit);
 
@@ -367,7 +375,7 @@ int main(int argc, char **argv)
 	/* remember argv[1], if necessary */
 	if (argc >= 2)
 		swname = argv[1];
-	glame_splash();
+
 	/* init glame */
 	glame_init_with_guile(gui_main);
 
