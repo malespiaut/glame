@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.42 2000/12/11 13:15:23 richi Exp $
+ * $Id: filter.c,v 1.43 2000/12/12 12:39:56 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -377,7 +377,7 @@ char *filter_to_string(filter_t *net)
 			free(val);
 		}
 		glsdb_foreach_item(filter_propertydb(n), pitem) {
-			len += sprintf(&buf[len], "   (filter_set_property %s \"%s\" \"%s\")\n",
+			len += sprintf(&buf[len], "   (set_property %s \"%s\" \"%s\")\n",
 				       n->name, sitem_label(pitem), sitem_str(pitem));
 		}
 	}
@@ -455,7 +455,7 @@ char *filter_to_string(filter_t *net)
 
 	/* Last, create property set commands for the network. */
 	glsdb_foreach_item(filter_propertydb(net), pitem) {
-		len += sprintf(&buf[len], "   (filter_set_property net \"%s\" \"%s\")\n",
+		len += sprintf(&buf[len], "   (set_property net \"%s\" \"%s\")\n",
 			       sitem_label(pitem), sitem_str(pitem));
 	}
 
