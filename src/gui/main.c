@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.42 2001/04/24 15:53:40 xwolf Exp $
+ * $Id: main.c,v 1.43 2001/04/25 15:37:59 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -153,17 +153,25 @@ static void update_preferences()
 	/* Update globals. */
 	nPopupTimeout = gnome_config_get_int_with_default(
 		"edit_filter/popupTimeout=200", &def);
+	if (def)
+		gnome_config_set_int("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = gnome_config_get_bool_with_default(
 		"edit_filter/macMode=false", &def);
+	if (def)
+		gnome_config_set_bool("edit_filter/macMode", bMac);
 
 	/* Set default swapfile path. */
 	sprintf(s, "swapfile/defaultpath=%s/.glameswap", g_get_home_dir());
 	cfg1 = gnome_config_get_string_with_default(s, &def);
+	if (def)
+		gnome_config_set_string("swapfile/defaultpath", cfg1);
 	g_free(cfg1);
 
 	/* Update IO plugin setup - audio_out */
 	cfg1 = gnome_config_get_string_with_default(
 		"audio_io/output_plugin=audio_out", &def);
+	if (def)
+		gnome_config_set_string("audio_io/output_plugin", cfg1);
 	if (!plugin_get(cfg1)) {
 		g_free(cfg1);
 		cfg1 = strdup("audio_out");
@@ -173,6 +181,8 @@ static void update_preferences()
 	cfg2 = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(cfg1), PLUGIN_FILTER)), "device"));
 	snprintf(s, 255, "audio_io/output_dev=%s", cfg2 ? cfg2 : "");
 	cfg2 = gnome_config_get_string_with_default(s, &def);
+	if (def)
+		gnome_config_set_string("audio_io/output_dev", cfg2);
 	filter = filter_instantiate(plugin_get(cfg1));
 	if (filter) {
 		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
@@ -186,6 +196,8 @@ static void update_preferences()
 	/* Update IO plugin setup - audio_in */
 	cfg1 = gnome_config_get_string_with_default(
 		"audio_io/input_plugin=audio_in", &def);
+	if (def)
+		gnome_config_set_string("audio_io/input_plugin", cfg1);
 	if (!plugin_get(cfg1)) {
 		g_free(cfg1);
 		cfg1 = strdup("audio_in");
@@ -195,6 +207,8 @@ static void update_preferences()
 	cfg2 = filterparam_val_string(filterparamdb_get_param(filter_paramdb((filter_t *)plugin_query(plugin_get(cfg1), PLUGIN_FILTER)), "device"));
 	snprintf(s, 255, "audio_io/input_dev=%s", cfg2 ? cfg2 : "");
 	cfg2 = gnome_config_get_string_with_default(s, &def);
+	if (def)
+		gnome_config_set_string("audio_io/input_dev", cfg2);
 	filter = filter_instantiate(plugin_get(cfg1));
 	if (filter) {
 		filterparam_set(filterparamdb_get_param(filter_paramdb(filter),
