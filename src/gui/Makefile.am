@@ -1,6 +1,6 @@
 SUBDIRS = libgtkwaveform edit_filter timeline
 
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@srcdir@/libgtkwaveform -I@srcdir@/edit_filter -I@srcdir@/timeline $(GLAME_CFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@srcdir@/libgtkwaveform -I@srcdir@/edit_filter -I@srcdir@/timeline $(GLAME_CFLAGS) -D_REENTRANT -DPKGPIXMAPSDIR=\"$(pkgpixmapsdir)\" $(GNOME_INCLUDEDIR) $(GNOMEUI_CFLAGS) $(XML_CFLAGS)
 
 
 EXTRA_DIST = glame.desktop

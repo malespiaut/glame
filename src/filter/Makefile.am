@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid $(GLAME_DCFLAGS) -D_REENTRANT -D_NO_FILTER_COMPATIBILITY
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid $(GLAME_DCFLAGS) -D_REENTRANT
 
 noinst_LTLIBRARIES = libfilter.la
 
