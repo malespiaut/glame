@@ -22,37 +22,6 @@
 #include "filter.h"
 #define	SIZE	1024
 
-/* This effect inverts the phase of a signal.  It can be used to correct
-   phase problems.  Hopefully this will eventually make it into basic.c
-   since it is an extremely simple effect and commonly used. */
-
-static int invert_f(filter_node_t *n)
-{
-	filter_pipe_t *in, *out;
-	filter_buffer_t *buf;
-	int i;
-
-	in = filternode_get_input(n, PORTNAME_IN);	
-	out = filternode_get_output(n, PORTNAME_OUT);	
-	if (!in || !out)
-		return -1;
-
-	FILTER_AFTER_INIT;
-
-	while (pthread_testcancel(), buf = sbuf_get(in)) {
-		buf = sbuf_make_private(buf);
-		for (i = 0; i < sbuf_size(buf); i++) {
-			sbuf_buf(buf)[i] = -(sbuf_buf(buf)[i]);
-		}
-		sbuf_queue(out, buf);
-	}
-
-	sbuf_queue(out, buf);
-
-	FILTER_BEFORE_CLEANUP;
-
-	return 0;
-}
 
 /* This filter positions a mono sound in the stereo field */
 
@@ -204,16 +173,6 @@ static int ringmod_f (filter_node_t *n)
 int garrison_register()
 {
 	filter_t *f;
-
-	/***** invert filter *****/
-	if ((f = filter_alloc("phase", "Inverses the phase of the audio signal", invert_f)) == NULL)
-		return -1;
-	if (!(filter_add_input(f, PORTNAME_IN, "input stream to invert", FILTER_PORTTYPE_SAMPLE)))
-		return -1;
-	if (!(filter_add_output(f, PORTNAME_OUT, "inverted output stream", FILTER_PORTTYPE_SAMPLE)))
-		return -1;
-	if (filter_add(f))
-		return -1;
 
 	/***** pan filter *****/
 	if ((f = filter_alloc("pan", "Positions a mono audio stream in the stereo field", pan_f)) == NULL)
