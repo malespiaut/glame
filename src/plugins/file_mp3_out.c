@@ -1,8 +1,8 @@
 /*
  * file_io.c
- * $Id: file_mp3_out.c,v 1.1 2004/02/15 21:56:56 ochonpaul Exp $
+ * $Id: file_mp3_out.c,v 1.2 2004/02/16 22:24:42 ochonpaul Exp $
  *
- * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
+ * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@
 #include "glame_byteorder.h"
 #include "glame_audiofile.h"
 
-#include </usr/local/include/lame/lame.h>
+#include <lame/lame.h>
 
 PLUGIN_SET(file_mp3_out, "write_mp3_file")
 
@@ -68,17 +68,11 @@ static int write_mp3_file_f(filter_t * n)
 {
 	filter_pipe_t *in;
 	filter_port_t *port;
-	/* char *filename; */
 	int eofs, wbpos;
 	int i, iat, iass;
 	int filetype;
 	long pos;
 	filter_param_t *pos_param;
-
-	/* audiofile stuff */
-	/*  AFfilehandle    file; */
-/*   AFfilesetup     fsetup; */
-/*   int             sampleFormat,sampleWidth; */
 	int channelCount, compression;
 	int sampleRate;
 	track_t *track = NULL;
@@ -96,13 +90,14 @@ static int write_mp3_file_f(filter_t * n)
 	channelCount =
 	    filterport_nrpipes(filterportdb_get_port
 			       (filter_portdb(n), PORTNAME_IN));
-
+	
 	filename =
 	    filterparam_val_string(filterparamdb_get_param
 				   (filter_paramdb(n), "filename"));
-	puts(filename);
 	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
+	
+	
 	mp3_file = fopen(filename, "w+");
 
 
@@ -232,10 +227,7 @@ static int write_mp3_file_f(filter_t * n)
 	lame_close(gfp);
 	fclose(mp3_file);	/* close the output file */
 
-	/* if (file != AF_NULL_FILEHANDLE) */
-/*     afCloseFile(file); */
-/*   if (fsetup) */
-/*     afFreeFileSetup(fsetup); */
+
 	if (buffer)
 		free(buffer);
 	if (track)
@@ -271,84 +263,9 @@ int write_mp3_file_register(plugin_t * pl)
 					   FILTER_PARAMTYPE_FILENAME, NULL,
 					   FILTERPARAM_END);
 
-	/* construct xmlstring for filetype parameter */
+	
 
-	af_typecnt =
-	    afQueryLong(AF_QUERYTYPE_FILEFMT, AF_QUERY_ID_COUNT, 0, 0, 0);
-	af_indices = NULL;
 
-	if (af_typecnt > 0) {
-		xmlparam = ALLOCN(4096, char);
-		strcat(xmlparam,
-		       "<?xml version=\"1.0\" standalone=\"no\"?>"
-		       "<!DOCTYPE glade-interface SYSTEM \"http://glade.gnome.org/glade-2.0.dtd\">"
-		       "<glade-interface>"
-		       "    <widget class=\"GtkOptionMenu\" id=\"widget\">"
-		       "      <property name=\"visible\">True</property>"
-		       "      <property name=\"can_focus\">True</property>"
-		       "      <property name=\"history\">0</property>"
-		       "      <child>"
-		       "        <widget class=\"GtkMenu\" id=\"menu1\">"
-		       "	  <child>"
-		       "            <widget class=\"GtkMenuItem\" id=\"item0\">"
-		       "              <property name=\"visible\">True</property>"
-		       "              <property name=\"label\" translatable=\"yes\">Auto</property>"
-		       "              <property name=\"use_underline\">True</property>"
-		       "            </widget>" "</child>");
-
-		af_indices =
-		    afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_IDS, 0,
-				   0, 0);
-		for (i = 0; i < af_typecnt; i++) {
-			char blah[256];
-			sprintf(blah,
-				"	  <child>"
-				"            <widget class=\"GtkMenuItem\" id=\"item%i\">"
-				"              <property name=\"visible\">True</property>"
-				"              <property name=\"label\" translatable=\"yes\">",
-				i + 1);
-			strcat(xmlparam, blah);
-			strcat(xmlparam,
-			       (char *)
-			       afQueryPointer(AF_QUERYTYPE_FILEFMT,
-					      AF_QUERY_LABEL,
-					      af_indices[i], 0, 0));
-			strcat(xmlparam,
-			       "</property>"
-			       "              <property name=\"use_underline\">True</property>"
-			       "            </widget>"
-			       "          </child>");
-		}
-
-		strcat(xmlparam,
-		       "        </widget>"
-		       "      </child>"
-		       "    </widget>" "</glade-interface>");
-
-		filterparamdb_add_param_long(filter_paramdb(f), "filetype",
-					     FILTER_PARAMTYPE_LONG, 0,
-					     FILTERPARAM_DESCRIPTION,
-					     "filetype",
-					     FILTERPARAM_GLADEXML,
-					     xmlparam, FILTERPARAM_END);
-	}
-
-	filterparamdb_add_param_long(filter_paramdb(f), "sampleformat",
-				     FILTER_PARAMTYPE_LONG,
-				     AF_SAMPFMT_TWOSCOMP,
-				     FILTERPARAM_HIDDEN, "FIXME",
-				     FILTERPARAM_END);
-
-	filterparamdb_add_param_long(filter_paramdb(f), "samplewidth",
-				     FILTER_PARAMTYPE_LONG, 16,
-				     FILTERPARAM_HIDDEN, "FIXME",
-				     FILTERPARAM_END);
-
-	filterparamdb_add_param_long(filter_paramdb(f), "compression",
-				     FILTER_PARAMTYPE_LONG,
-				     AF_COMPRESSION_NONE,
-				     FILTERPARAM_HIDDEN, "FIXME",
-				     FILTERPARAM_END);
 
 	filterparamdb_add_param_pos(filter_paramdb(f));
 
