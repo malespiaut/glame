@@ -3,7 +3,7 @@
 
 /*
  * gldb_string.h
- * $Id: gldb_string.h,v 1.6 2001/09/17 11:47:12 nold Exp $
+ * $Id: gldb_string.h,v 1.7 2001/11/18 14:47:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -48,6 +48,10 @@ void glsdb_init(gldb_t *db);
 int glsdb_set(gldb_t *db, const char *str, const char *label);
 void glsdb_remove(gldb_t *db, const char *label);
 char *glsdb_query(gldb_t *db, const char *label);
+
+/* Create a list of scheme pairs and return that as newly alloc'ed
+ * string. */
+char *glsdb_to_list_of_pairs(gldb_t *db);
 
 #ifdef __cplusplus
 }

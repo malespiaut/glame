@@ -1,6 +1,6 @@
 /*
  * gldb_string.c
- * $Id: gldb_string.c,v 1.6 2000/12/12 17:11:25 richi Exp $
+ * $Id: gldb_string.c,v 1.7 2001/11/18 14:47:05 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -99,4 +99,42 @@ char *glsdb_query(gldb_t *db, const char *label)
 	if (!(s = (sitem_t *)gldb_query_item(db, label)))
 		return NULL;
 	return s->str;
+}
+
+char *glsdb_to_list_of_pairs(gldb_t *db)
+{
+	sitem_t *item;
+	char *buf, *b;
+	int len;
+
+	/* How much space do we need at maximum? */
+	len = strlen("(list)");
+	glsdb_foreach_item(db, item) {
+		len += strlen(sitem_label(item)) + 2*strlen(sitem_str(item));
+		len += strlen(" (cons \"\" \"\")");
+	}
+
+	/* Alloc buffer. */
+	buf = b = malloc(len+1);
+
+	/* Write the pairs. */
+	b += sprintf(b, "(list");
+	glsdb_foreach_item(db, item) {
+		char *s;
+		b += sprintf(b, " (cons \"%s\" \"", sitem_label(item));
+		s = sitem_str(item);
+		while (*s) {
+			if (*s == '"')
+				*b++ = '\\';
+			*b++ = *s++;
+		}
+		b += sprintf(b, "\")");
+	}
+	b += sprintf(b, ")");
+
+	/* Copy the result and return it after cleanup. */
+	b = strdup(buf);
+	free(buf);
+
+	return b;
 }
