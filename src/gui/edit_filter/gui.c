@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.27 2001/05/01 11:23:42 richi Exp $
+ * $Id: gui.c,v 1.28 2001/05/08 11:56:22 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -139,101 +139,6 @@ gui_network_new(void)
 
 
 
-typedef struct {
-	struct list_head list;
-	int is_category;
-	union {
-		struct {
-			const char *name;
-			struct list_head list;
-		} c;
-		struct {
-			plugin_t *plugin;
-		} p;
-	} u;
-} ggbpm_entry;
-static void
-glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
-{
-	ggbpm_entry *entry;
-	ggbpm_entry *cat;
-	const char *catname;
-
-	/* Create entry for plugin with catname */
-	entry = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
-	INIT_LIST_HEAD(&entry->list);
-	entry->is_category = 0;
-	entry->u.p.plugin = plugin;
-	if (!(catname = plugin_query(plugin, PLUGIN_CATEGORY)))
-		catname = "Default";
-
-	/* Search for old cat. subtree */
-	cat = list_gethead(cats, ggbpm_entry, list);
-	while (cat) {
-		if (strcmp(cat->u.c.name, catname) == 0) {
-			list_add_tail(&entry->list, &cat->u.c.list);
-			return;
-		}
-		cat = list_getnext(cats, cat, ggbpm_entry, list);
-	}
-
-	/* Need to create new one */
-	cat = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
-	INIT_LIST_HEAD(&cat->list);
-	cat->is_category = 1;
-	cat->u.c.name = catname;
-	INIT_LIST_HEAD(&cat->u.c.list);
-	list_add_tail(&cat->list, cats);
-	list_add_tail(&entry->list, &cat->u.c.list);
-}
-
-/* Build a gtk menu from the registered plugins, selecting them
- * via callback. */
-GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
-				     void (*gtksighand)(GtkWidget *, plugin_t *))
-{
-	GtkWidget *menu;
-	plugin_t *plugin = NULL;
-	LIST_HEAD(categories);
-	ggbpm_entry *cat;
-
-	/* Build tree of selected categories/plugins. */
-	while ((plugin = plugin_next(plugin))) {
-		if (!plugin_query(plugin, PLUGIN_FILTER))
-			continue;
-		if (select && !select(plugin))
-			continue;
-		glame_gui_build_plugin_menu_add_item(&categories, plugin);
-	}
-
-	/* Build the actual GtkMenu out of the tree (and free the tree
-	 * while traversing it). */
-	menu = gtk_menu_new();
-	while ((cat = list_gethead(&categories, ggbpm_entry, list))) {
-		GtkWidget *catmenu, *catmenuitem;
-		ggbpm_entry *item;
-		catmenu = gtk_menu_new();
-		catmenuitem = gtk_menu_item_new_with_label(cat->u.c.name);
-		while ((item = list_gethead(&cat->u.c.list, ggbpm_entry, list))) {
-			GtkWidget *mitem = gtk_menu_item_new_with_label(plugin_name(item->u.p.plugin));
-			gtk_widget_show(mitem);
-			gtk_menu_append(GTK_MENU(catmenu), mitem);
-			if (gtksighand)
-				gtk_signal_connect(GTK_OBJECT(mitem), "activate",
-						   gtksighand, item->u.p.plugin);
-			list_del(&item->list);
-			free(item);
-		}
-		gtk_widget_show(catmenu);
-		gtk_menu_item_set_submenu(GTK_MENU_ITEM(catmenuitem), catmenu);
-		gtk_widget_show(catmenuitem);
-		gtk_menu_append(GTK_MENU(menu), catmenuitem);
-		list_del(&cat->list);
-		free(cat);
-	}
-
-	return GTK_MENU(menu);
-}
 
 
 

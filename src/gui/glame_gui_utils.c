@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.11 2001/04/29 11:48:56 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.12 2001/05/08 11:56:22 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -359,4 +359,136 @@ int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data)
 		return -1;
 	}
 	return 0;
+}
+
+
+
+/*
+ * Plugin menu builder
+ */
+
+typedef struct {
+	struct list_head list;
+	int is_category;
+	union {
+		struct {
+			char *name;
+			struct list_head list;
+		} c;
+		struct {
+			plugin_t *plugin;
+		} p;
+	} u;
+} ggbpm_entry;
+static ggbpm_entry *
+glame_gui_build_plugin_menu_get_cat(struct list_head *cats,
+				    const char *catname)
+{
+	ggbpm_entry *cat;
+	char catn[256], *p;
+
+	strncpy(catn, catname, 256);
+	if ((p = strchr(catn, '/')))
+		*p = '\0';
+
+	/* Search for old category. */
+	cat = list_gethead(cats, ggbpm_entry, list);
+	while (cat) {
+		if (strcmp(cat->u.c.name, catn) == 0)
+			goto recurse;
+		cat = list_getnext(cats, cat, ggbpm_entry, list);
+	}
+
+	/* Ok, need to create new one. */
+	cat = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
+	INIT_LIST_HEAD(&cat->list);
+	cat->is_category = 1;
+	cat->u.c.name = strdup(catn);
+	INIT_LIST_HEAD(&cat->u.c.list);
+	list_add_tail(&cat->list, cats);
+
+ recurse:
+	if (!p)
+		return cat;
+	return glame_gui_build_plugin_menu_get_cat(&cat->u.c.list, p+1);
+}
+static void
+glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
+{
+	ggbpm_entry *entry;
+	ggbpm_entry *cat;
+	const char *catname;
+
+	/* Create entry for plugin with catname */
+	entry = (ggbpm_entry *)malloc(sizeof(ggbpm_entry));
+	INIT_LIST_HEAD(&entry->list);
+	entry->is_category = 0;
+	entry->u.p.plugin = plugin;
+	if (!(catname = plugin_query(plugin, PLUGIN_CATEGORY)))
+		catname = "Default";
+
+	/* Get cat. subtree */
+	cat = glame_gui_build_plugin_menu_get_cat(cats, catname);
+
+	/* Add the entry. */
+	list_add_tail(&entry->list, &cat->u.c.list);
+}
+static void
+glame_gui_build_plugin_menu_genmenu(struct list_head *entries, GtkMenu *menu,
+				    void (*gtksighand)(GtkWidget *, plugin_t *))
+{
+	ggbpm_entry *entry;
+
+	while ((entry = list_gethead(entries, ggbpm_entry, list))) {
+		if (entry->is_category) {
+			GtkWidget *citem = gtk_menu_item_new_with_label(
+				entry->u.c.name);
+			GtkWidget *cmenu = gtk_menu_new();
+			gtk_menu_item_set_submenu(GTK_MENU_ITEM(citem), cmenu);
+			gtk_menu_append(GTK_MENU(menu), citem);
+			glame_gui_build_plugin_menu_genmenu(
+				&entry->u.c.list, GTK_MENU(cmenu), gtksighand);
+			gtk_widget_show(cmenu);
+			gtk_widget_show(citem);
+			free(entry->u.c.name);
+		} else {
+			GtkWidget *mitem = gtk_menu_item_new_with_label(
+				plugin_name(entry->u.p.plugin));
+			gtk_widget_show(mitem);
+			gtk_menu_append(GTK_MENU(menu), mitem);
+			if (gtksighand)
+				gtk_signal_connect(
+					GTK_OBJECT(mitem), "activate",
+					gtksighand, entry->u.p.plugin);
+			gtk_widget_show(mitem);
+		}
+		list_del(&entry->list);
+		free(entry);
+	}
+}
+
+/* Build a gtk menu from the registered plugins, selecting them
+ * via callback. */
+GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
+				     void (*gtksighand)(GtkWidget *, plugin_t *))
+{
+	GtkWidget *menu;
+	plugin_t *plugin = NULL;
+	LIST_HEAD(categories);
+
+	/* Build tree of selected categories/plugins. */
+	while ((plugin = plugin_next(plugin))) {
+		if (!plugin_query(plugin, PLUGIN_FILTER))
+			continue;
+		if (select && !select(plugin))
+			continue;
+		glame_gui_build_plugin_menu_add_item(&categories, plugin);
+	}
+
+	/* Build the actual GtkMenu out of the tree (and free the tree
+	 * while traversing it). */
+	menu = gtk_menu_new();
+	glame_gui_build_plugin_menu_genmenu(&categories, GTK_MENU(menu),
+					    gtksighand);
+	return GTK_MENU(menu);
 }
