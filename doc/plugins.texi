@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.35 2002/02/06 19:31:21 richi Exp $
+@comment $Id: plugins.texi,v 1.36 2002/02/12 09:03:10 richi Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -269,7 +269,7 @@ a @code{ramp} plugin for generating saw waves. @code{pulse} generates a
 single pulse, steepness of the edges can be adjusted. @code{noise}
 generates white noise. @code{wave} emits a user editable chunk of
 wave. All plugins emit but a short chunk of data. For a continuous
-stream they have to be connected to a repeat node.
+stream they have to be connected to a @code{repeat} node.
 
 @subsubheading Common ports
 @table @code
