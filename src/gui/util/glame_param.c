@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.5 2001/07/31 09:34:56 richi Exp $
+ * $Id: glame_param.c,v 1.6 2001/07/31 12:26:32 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -152,27 +152,10 @@ static void handle_param(glsig_handler_t *handler, long sig, va_list va)
 				gparam->u.curve, num_points, ctl_points);
 		} else
 			DPRINTF("No props for curve?\n");
-	} else if (GTK_IS_MENU_SHELL(gparam->u.widget)) {
-		GList *list;
-		int val;
-		val = filterparam_val_int(gparam->param);
-		list = gtk_container_children(
-			GTK_CONTAINER(gparam->u.menushell));
-		while (list && val) {
-			list = g_list_next(list);
-			val--;
-		}
-		if (!list)
-			DPRINTF("Illegal value for menu\n");
-		else
-			gtk_menu_shell_select_item(gparam->u.menushell,
-						   GTK_WIDGET(list->data));
-#if 0
 	} else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 		gtk_option_menu_set_history(
 			GTK_OPTION_MENU(gparam->u.widget),
 			filterparam_val_int(gparam->param));
-#endif
 	} else
 		DPRINTF("FIXME: unhandled widget type\n");
 
@@ -253,7 +236,7 @@ static gint adjustment_cb(GtkAdjustment *adj, GlameParam *gparam)
 	return res == 0 ? TRUE : FALSE;
 }
 
-static gint menushell_cb(GtkMenuShell *menu, GlameParam *gparam)
+static gint optionmenu_cb(GtkMenu *menu, GlameParam *gparam)
 {
 	GtkWidget *act;
 	GList *list;
@@ -264,7 +247,6 @@ static gint menushell_cb(GtkMenuShell *menu, GlameParam *gparam)
 
 	gparam->updating = 1;
 
-#if 0
 	/* Doh - GTK suxx again. */
 	act = gtk_menu_get_active(menu);
 	DPRINTF("Menu %p - Active %p\n", menu, act);
@@ -273,16 +255,6 @@ static gint menushell_cb(GtkMenuShell *menu, GlameParam *gparam)
 	while (list) {
 		DPRINTF("%i - %p\n", val, list->data);
 		if ((GtkWidget *)(list->data) == act)
-			break;
-		list = g_list_next(list);
-		val++;
-	}
-#endif
-	/* Doh - GTK suxx again. */
-	val = 0;
-	list = gtk_container_children(GTK_CONTAINER(menu));
-	while (list) {
-		if ((GtkWidget *)(list->data) == menu->active_menu_item)
 			break;
 		list = g_list_next(list);
 		val++;
@@ -336,7 +308,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_float(param),
-			-MAXINT, MAXINT, 1.0, 10.0, 10.0));
+			-MAXINT, MAXINT, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -350,7 +322,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		}
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_float(param),
-			0.0, MAXFLOAT, 1.0, 10.0, 10.0));
+			0.0, MAXFLOAT, 1.0, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 1.0, 0);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -364,7 +336,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		}
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_float(param),
-			0.0, MAXFLOAT, 0.1, 1.0, 1.0));
+			0.0, MAXFLOAT, 0.1, 1.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -372,7 +344,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_float(param),
-			-M_PI, M_PI, M_PI/16, M_PI/4, M_PI/4));
+			-M_PI, M_PI, M_PI/16, M_PI/4, 0.0));
 		gparam->widget = gtk_hscale_new(gparam->u.adj);
 		gtk_scale_set_digits(GTK_SCALE(gparam->widget), 2);
 		gtk_scale_set_draw_value(GTK_SCALE(gparam->widget), TRUE);
@@ -380,7 +352,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_float(param),
-			-MAXFLOAT, MAXFLOAT, 0.1, 10.0, 10.0));
+			-MAXFLOAT, MAXFLOAT, 0.1, 10.0, 0.0));
 		gparam->widget = gtk_spin_button_new(gparam->u.adj, 0.1, 3);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(gparam->widget),
 					    TRUE);
@@ -388,7 +360,7 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->label = gtk_label_new(label);
 		gparam->u.adj = GTK_ADJUSTMENT(gtk_adjustment_new(
 			filterparam_val_sample(param),
-			-1.0, 1.0, 0.001, 0.05, 0.05));
+			-1.0, 1.0, 0.001, 0.05, 0.0));
 		gparam->widget = gtk_hscale_new(gparam->u.adj);
 		gtk_scale_set_digits(GTK_SCALE(gparam->widget), 3);
 		gtk_scale_set_draw_value(GTK_SCALE(gparam->widget), TRUE);
@@ -452,17 +424,11 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gtk_signal_connect(GTK_OBJECT(gparam->u.curve),
 				   "curve_changed",
 				   (GtkSignalFunc)curve_cb, gparam);
-	else if (GTK_IS_MENU_SHELL(gparam->u.widget))
-		gtk_signal_connect(GTK_OBJECT(gparam->u.menushell),
+	else if (GTK_IS_OPTION_MENU(gparam->u.widget))
+		gtk_signal_connect(GTK_OBJECT(gtk_option_menu_get_menu(GTK_OPTION_MENU(gparam->u.widget))),
 				   "selection_done",
-				   (GtkSignalFunc)menushell_cb, gparam);
-	else if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
-		gparam->u.menushell = GTK_MENU_SHELL(gtk_option_menu_get_menu(
-			GTK_OPTION_MENU(gparam->u.widget)));
-		gtk_signal_connect(GTK_OBJECT(gparam->u.menushell),
-				   "selection_done",
-				   (GtkSignalFunc)menushell_cb, gparam);
-	} else
+				   (GtkSignalFunc)optionmenu_cb, gparam);
+	else
 		DPRINTF("FIXME - unsupported widget type\n");
 
 	/* Register handlers for backend param change and deletion. */

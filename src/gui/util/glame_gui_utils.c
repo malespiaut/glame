@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.10 2001/07/31 08:43:28 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.11 2001/07/31 12:26:32 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -561,7 +561,6 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_widget_show(vbox);
 
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
-	gnome_dialog_set_sensitive(GNOME_DIALOG(propBox), 1, TRUE);
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button));
 	gtk_window_set_modal(GTK_WINDOW(propBox), FALSE);
