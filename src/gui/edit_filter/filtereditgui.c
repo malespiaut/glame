@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.68 2005/03/06 21:35:58 richi Exp $
+ * $Id: filtereditgui.c,v 1.69 2005/03/11 20:14:23 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -917,7 +917,7 @@ static void glame_canvas_save_as_cb(GtkWidget*ignore, FiltereditGui *window)
 	GlameCanvas *canvas = window->canvas;
 	GtkWidget *dialog;
 	GtkWidget *dialogVbox;
-	char filenamebuffer[256] = "";
+	char *filename;
 	char filternamebuffer[256] = "unnamed";
 	char categorynamebuffer[256] = "unnamed";
 	char *buffer;
@@ -925,26 +925,33 @@ static void glame_canvas_save_as_cb(GtkWidget*ignore, FiltereditGui *window)
 
 	/* Open a file request dialog with additional fields for
 	 * filter name and category. */
-	filenamebuffer[0] = '\0';
-	dialog = glame_dialog_file_request(_("Save network as..."),
-					   "editfilter:saveas", _("Filename"),
-					   NULL, filenamebuffer);
-	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+	dialog = gtk_file_chooser_dialog_new(
+		_("Save network as..."), NULL,
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+	dialogVbox = GTK_DIALOG(dialog)->vbox;
 	create_label_edit_pair(dialogVbox, _("Filter name"),
 			       "editfilter:saveas:name", filternamebuffer);
 	create_label_edit_pair(dialogVbox, _("Category"),
 			       "editfilter:saveas:category", categorynamebuffer);
-	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+	gtk_widget_show_all(dialog);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_CANCEL) {
+		gtk_widget_destroy(dialog);
 		return;
+	}
+	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+	gtk_widget_destroy(dialog);
 
-	if (!filenamebuffer[0]
+	if (!filename
 	    || !filternamebuffer[0]
 	    || !categorynamebuffer[0]) {
 		glame_error_dialog(_("Empty file/filter or category name"), NULL);
 		return;
 	}
 
-	outf = fopen(filenamebuffer,"w");
+	outf = fopen(filename,"w");
+	g_free(filename);
 	buffer = filter_to_string(GLAME_CANVAS(canvas)->net);
 	DPRINTF("Network .scm is:\n%s\n", buffer);
 	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter? newplugin) newplugin (plugin-set! newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
