@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.37 2001/11/25 21:35:38 richi Exp $
+ * $Id: canvasfilter.c,v 1.38 2001/11/26 23:53:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -39,12 +39,6 @@ HASH(gcfilter, GlameCanvasFilter, 8,
 	((long)key/4),
 	((long)gcfilter->filter/4),
         filter_t * key)
-
-
-     /*	GlameCanvasFilter* hash_find_GCfilter(filter_t*);
-	void hash_add_GCFilter(GlameCanvasFilter*);
-     */
-
 
      /*  Forward decls */
 
@@ -188,13 +182,36 @@ static void glame_canvas_filter_destroy_cb(glsig_handler_t *handler,
 
 GlameCanvasFilter* glame_canvas_find_filter(filter_t *f)
 {
-	GlameCanvasFilter *gcf = hash_find_gcfilter(f);
-
-	if (!gcf)
-		DPRINTF("No GlameCanvasFilter for %s\n", filter_name(f));
-	return gcf;
+	return hash_find_gcfilter(f);
 }
      
+void glame_canvas_remove_unparented_filters(filter_t *parent)
+{
+	GlameCanvasFilter * gcf;
+	GList *victims = NULL, *iter;
+	int i;
+	for(i=0;i<(1<<8);i++){
+		gcf = hash_getslot_gcfilter(i);
+		
+		while(gcf){
+			if(gcf->filter->net != parent){
+				/* FIXME doesnt take other windows into account! */
+				victims = g_list_append(victims,gcf);
+			}
+			gcf = hash_next_gcfilter(gcf);
+		}
+	}
+	if(victims){
+		iter = g_list_first(victims);
+		while(iter){
+			hash_remove_gcfilter(iter->data);
+			gtk_object_destroy(GTO(iter->data));
+			iter = g_list_next(iter);
+		}
+		g_list_free(victims);
+	}
+}
+
 
 void
 glame_canvas_filter_create_ports(GlameCanvasFilter* filter)
@@ -744,8 +761,10 @@ static void glame_canvas_filter_delete_cb(GtkWidget* foo, GlameCanvasFilter* fil
 
 static void glame_canvas_filter_open_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
 {
-	if(FILTER_IS_NETWORK(filter->filter))
-		gtk_widget_show(glame_filtereditgui_new(filter->filter, TRUE));
+	if(FILTER_IS_NETWORK(filter->filter)){
+		if(!glame_canvas_find_canvas(filter->filter))
+			gtk_widget_show(glame_filtereditgui_new(filter->filter, TRUE));
+	}
 }
 
 static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
@@ -753,12 +772,40 @@ static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter
 	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
 	if (!FILTER_IS_NETWORK(filter->filter))
 		return;
+	/* dont expand opened-up filter network!! */
+	if(glame_canvas_find_canvas(filter->filter)){
+		GnomeDialog * dialog;
+		dialog = gnome_ok_cancel_dialog_modal("The network You wish to expand is already opened, do You wish to close the view?",NULL,NULL);
+		if(gnome_dialog_run_and_close(dialog))
+			return;
+		else
+			gtk_object_destroy(GTO(gtk_widget_get_toplevel(GTK_WIDGET(glame_canvas_find_canvas(filter->filter)))));
+	}
 	if (filter_expand(filter->filter) == -1) {
 		DPRINTF("Error expanding %s\n", filter_name(filter->filter));
 		return;
 	}
 	filter_delete(filter->filter);
-	glame_canvas_redraw(canv);
+	glame_canvas_full_redraw(canv);
+}
+
+/* destroy all filters in a canvas */
+void glame_canvas_filter_destroy_all(GnomeCanvas* canvas)
+{
+	GlameCanvasFilter * gcp;
+	
+	int i;
+	for(i=0;i<(1<<8);i++){
+		gcp = hash_getslot_gcfilter(i);
+		
+		while(gcp){
+			if(CANVAS_ITEM_CANVAS(gcp) == canvas){
+				/* FIXME doesnt take other windows into account! */
+				gtk_object_destroy(GTO(gcp));
+			}
+			gcp = hash_next_gcfilter(gcp);
+		}
+	}
 }
 
 static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanvasFilter* filter)
@@ -782,7 +829,8 @@ static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanva
 		DPRINTF("Error collapsing selection\n");
 		return;
 	}
-	glame_canvas_redraw(canv);
+
+	glame_canvas_full_redraw(canv);
 }
 
 static void glame_canvas_filter_show_about(GtkWidget* foo, GlameCanvasFilter* filterItem)

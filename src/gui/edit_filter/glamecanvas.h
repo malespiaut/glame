@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.15 2001/11/14 23:48:57 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.16 2001/11/26 23:53:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -66,6 +66,9 @@ struct _GlameCanvas {
 	gfloat font_size;
 	GList * selectedItems;
 	plugin_t* last;
+
+	GlameCanvas **pprev_gcanvas_hash;
+	GlameCanvas *next_gcanvas_hash;
 };
 
 struct _GlameCanvasClass {
@@ -101,8 +104,13 @@ void glame_canvas_set_zoom(GlameCanvas* canv, double pixelPerPoint);
 double glame_canvas_get_zoom(GlameCanvas* canv);
 void glame_canvas_view_all(GlameCanvas* canv);
 
+/* a refresh, adds missing/new nodes, too */
 void glame_canvas_redraw(GlameCanvas *canv);
 
+/* a full redraw, kills all gui and regenerates it */
+void glame_canvas_full_redraw(GlameCanvas *canv);
+
+GlameCanvas* glame_canvas_find_canvas(filter_t *net);
 void glame_canvas_draw_errors(GlameCanvas *canv);
 void glame_canvas_reset_errors(GlameCanvas *canv);
 

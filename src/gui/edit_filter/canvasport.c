@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.21 2001/10/29 22:36:35 richi Exp $
+ * $Id: canvasport.c,v 1.22 2001/11/26 23:53:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -180,6 +180,25 @@ GlameCanvasPort* glame_canvas_find_port(filter_port_t *p)
 	return hash_find_gcport(p);
 }
 
+/* destroy all ports in a canvas */
+void glame_canvas_port_destroy_all(GnomeCanvas* canvas)
+{
+	GlameCanvasPort * gcp;
+	
+	int i;
+	for(i=0;i<(1<<8);i++){
+		gcp = hash_getslot_gcport(i);
+		
+		while(gcp){
+			if(CANVAS_ITEM_CANVAS(gcp) == canvas){
+				/* FIXME doesnt take other windows into account! */
+				gtk_object_destroy(GTO(gcp));
+			}
+			gcp = hash_next_gcport(gcp);
+		}
+	}
+}
+
 gboolean 
 glame_canvas_port_moved_cb(GlameCanvasFilter* f, double dx, double dy, GlameCanvasPort *p)
 {
@@ -309,7 +328,6 @@ static void
 glame_canvas_port_redirected_port_deleted_cb(glsig_handler_t* handler, long sig, va_list va)
 {
 	filter_port_t *port;
-
 	/* Ignore requests from deleted ports (and delete handler) */
 	GLSIGH_GETARGS1(va, port);
 	if (!hash_find_gcport(port)) {
@@ -318,7 +336,27 @@ glame_canvas_port_redirected_port_deleted_cb(glsig_handler_t* handler, long sig,
 	}
 
 	glame_canvas_port_set_external(GLAME_CANVAS_PORT(glsig_handler_private(handler)),FALSE);
+
 }
+
+
+typedef struct {
+	filter_portdb_t *ports;
+	filter_t *net;
+	char * label;
+} portLabel;
+
+static void glame_canvas_port_redirected_source_deleted_cb(glsig_handler_t* handler, long sig, va_list va)
+{
+	portLabel* pl = glsig_handler_private(handler);
+	DPRINTF("deleting %s\n",pl->label);
+	filterportdb_delete_port(pl->ports,pl->label);
+	if(glame_canvas_find_canvas(pl->net))
+		glame_canvas_full_redraw(glame_canvas_find_canvas(pl->net));
+	free(pl->label);
+	free(pl);
+}
+		
 static void 
 glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 {
@@ -360,8 +398,26 @@ glame_canvas_port_redirect_cb(GtkWidget* foo, GlameCanvasPort *port)
 			glame_canvas_port_set_external(port, TRUE);
 			glsig_add_handler(filterport_emitter(newport),GLSIG_PORT_DELETED,glame_canvas_port_redirected_port_deleted_cb,port);
 		}
+		{
+			portLabel *pl = malloc(sizeof(portLabel));
+			pl->ports = ports;
+			pl->net = CANVAS_ITEM_NETWORK(port)->net;
+			pl->label = strdup(filenamebuffer);
+					       
+			glsig_add_handler(filterport_emitter(port->port),GLSIG_PORT_DELETED, glame_canvas_port_redirected_source_deleted_cb, pl);
+		}
 	}
 	glame_canvas_port_redraw(port);
+	{
+		filter_t* f;
+		GlameCanvas* c;
+		f = CANVAS_ITEM_NETWORK(port);
+		if(f->net){
+			c = glame_canvas_find_canvas(f->net);
+			if(c)
+				glame_canvas_full_redraw(c);
+		}
+	}
 	free(filenamebuffer);
 }	
 

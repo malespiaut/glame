@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.20 2001/10/29 22:36:35 richi Exp $
+ * $Id: canvaspipe.c,v 1.21 2001/11/26 23:53:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -721,4 +721,25 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 				"connections_changed");
 	
 	return gPipe;
+}
+
+
+
+/* destroy all pipes in a canvas */
+void glame_canvas_pipe_destroy_all(GnomeCanvas* canvas)
+{
+	GlameCanvasPipe * gcp;
+	
+	int i;
+	for(i=0;i<(1<<8);i++){
+		gcp = hash_getslot_gcpipe(i);
+		
+		while(gcp){
+			if(CANVAS_ITEM_CANVAS(gcp) == canvas){
+				/* FIXME doesnt take other windows into account! */
+				gtk_object_destroy(GTO(gcp));
+			}
+			gcp = hash_next_gcpipe(gcp);
+		}
+	}
 }

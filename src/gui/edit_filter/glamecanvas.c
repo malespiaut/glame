@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.31 2001/11/19 23:29:18 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.32 2001/11/26 23:53:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -43,10 +43,17 @@
  */
 
 
+HASH(gcanvas, GlameCanvas, 8,
+     (gcanvas->net == key),
+     ((long)key/4),
+     ((long)gcanvas->net/4),
+     filter_t * key)
+
 static void
 glame_canvas_destroy (GtkObject *object)
 {
 	GnomeCanvasClass *parent_class;
+	hash_remove_gcanvas(GLAME_CANVAS(object));
 	DPRINTF("Destroying glamecanvas\n");
 	if (!GLAME_CANVAS(object)->openedUp)
 		filter_delete(GLAME_CANVAS(object)->net);
@@ -74,6 +81,7 @@ glame_canvas_init (GlameCanvas *item)
 	item->font_size = 1.0;
 	item->selectedItems = NULL;
 	item->last = NULL;
+	hash_init_gcanvas(item);
 }
 
 
@@ -164,12 +172,7 @@ glame_canvas_group_get_type(void)
 GlameCanvas* glame_canvas_new(filter_t * net)
 {
 	GlameCanvas *g;
-	GnomeCanvasGroup *group;
-	filter_t * node;
-	filter_t * filter;
-	filter_port_t * port;
-	filter_pipe_t *pipe;
-	char * buffer;
+
 	filter_t * network;
 	if(!net){
 		network = filter_creat(NULL);
@@ -189,43 +192,13 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	if(!g)
 		return NULL;
 	g->net = network;
+	hash_add_gcanvas(g);
 	
 	if(!filter_nrnodes(g->net))
 		return g;
-	group = gnome_canvas_root(GNOME_CANVAS(g));
-	
-	/* create nodes */
-	filter_foreach_node(network,filter){
-		glame_canvas_filter_new(group,filter);
-	}
-	
-	/* create pipes */
-	filter_foreach_node(network, node) {
-	  filterportdb_foreach_port(filter_portdb(node), port) {
-	    filterport_foreach_pipe(port, pipe) {
-		    /* Skip connections not from/to a node
-		     * in network. */
-		    if (filterport_filter(filterpipe_connection_source(pipe))->net != network
-			|| filterport_filter(filterpipe_connection_dest(pipe))->net != network)
-			    continue;
-		    glame_canvas_pipe_new(group, pipe);
-	    }
-	  }
-	}
-	
-	/* map external ports */
-	
-	filterportdb_foreach_port(filter_portdb(network),port){
-		node = filter_get_node(network,filterport_get_property(port,FILTERPORT_MAP_NODE));
-		buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
-		if (!node || !buffer )
-			continue;
-		glame_canvas_port_set_external(glame_canvas_find_port(filterportdb_get_port(filter_portdb(node),buffer)),TRUE);
-	}
-	
-	/*canvas_update_scroll_region(GLAME_CANVAS(canv));*/
-	glame_canvas_view_all(g);
 
+	glame_canvas_redraw(g);
+	glame_canvas_view_all(g);
 	return g;
 }
 
@@ -297,6 +270,17 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 	return glame_canvas_add_filter(canv, filter);
 }
 
+/* kills all items and performs a full redraw 
+   use only when really necessary!!!          */
+void glame_canvas_full_redraw(GlameCanvas *canv)
+{
+	glame_canvas_filter_destroy_all(GNOME_CANVAS(canv));
+	glame_canvas_port_destroy_all(GNOME_CANVAS(canv));
+	glame_canvas_pipe_destroy_all(GNOME_CANVAS(canv));
+	glame_canvas_redraw(canv);
+}
+
+
 void glame_canvas_redraw(GlameCanvas *canv)
 {
 	filter_t *node;
@@ -306,10 +290,10 @@ void glame_canvas_redraw(GlameCanvas *canv)
 	filter_port_t *port;
 	filter_t *network;
 	GList *newNodes = NULL, *iter = NULL;
-
+	char * buffer;
 	root = gnome_canvas_root(GNOME_CANVAS(canv));
 	network = canv->net;
-	
+
 	filter_foreach_node(canv->net,node){
 		gf = glame_canvas_find_filter(node);
 		if(gf){
@@ -336,7 +320,16 @@ void glame_canvas_redraw(GlameCanvas *canv)
 			}
 			iter = g_list_next(iter);
 		}
+		/* external ports */
+		filterportdb_foreach_port(filter_portdb(network),port){
+			node = filter_get_node(network,filterport_get_property(port,FILTERPORT_MAP_NODE));
+			buffer = filterport_get_property(port,FILTERPORT_MAP_LABEL);
+			if (!node || !buffer )
+			continue;
+			glame_canvas_port_set_external(glame_canvas_find_port(filterportdb_get_port(filter_portdb(node),buffer)),TRUE);
+		}
 	}
+
 }
 
 
@@ -578,13 +571,18 @@ void glame_canvas_view_all(GlameCanvas* canv)
 
 }
 
+static gint compareItemPointers(gconstpointer a, gconstpointer b)
+{
+	if(a>b)return 1;
+	return 0;
+}
 
 void glame_canvas_select_add(GlameCanvas* canvas, GlameCanvasFilter* filter)
 {
         GlameCanvasGroup* root = glame_canvas_group_root(GCI(filter));
 	glame_canvas_filter_set_selected(filter,TRUE);
 	if(!g_list_find(canvas->selectedItems,root)){
-		canvas->selectedItems = g_list_append(canvas->selectedItems,root);
+		canvas->selectedItems = g_list_insert_sorted(canvas->selectedItems,root,compareItemPointers);
 	}
 }
 
@@ -661,4 +659,10 @@ void glame_canvas_ungroup_selected(GlameCanvas* canvas)
 		list = g_list_next(list);
 	}
 	glame_canvas_redraw(canvas);
+}
+
+
+GlameCanvas* glame_canvas_find_canvas(filter_t *f)
+{
+	return hash_find_gcanvas(f);
 }

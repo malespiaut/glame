@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.13 2001/07/13 09:01:43 richi Exp $
+ * $Id: canvasitem.h,v 1.14 2001/11/26 23:53:11 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -233,13 +233,19 @@ struct _GlameCanvasPipeClass {
 
 };
 
+/* extremly private!! :)  */
+void glame_canvas_port_destroy_all(GnomeCanvas* canvas);
+void glame_canvas_pipe_destroy_all(GnomeCanvas* canvas);
+void glame_canvas_filter_destroy_all(GnomeCanvas* canvas);
+
+
 /* public */
 GtkType glame_canvas_pipe_get_type(void);
 
 gboolean glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe);
 void glame_canvas_pipe_hide_properties(GlameCanvasPipe* pipe);
 
-
+void glame_canvas_remove_unparented_filters(filter_t *parent);
 
 /* global hash functions */
 
