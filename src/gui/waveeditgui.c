@@ -626,6 +626,88 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	filter_delete(net);
 }
 
+/* Menu event - record starting at marker position. */
+static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	gint32 start;
+	gpsm_item_t *grp, *item, *left, *right;
+	filter_t *net, *ain;
+	int rate;
+	filter_t *swout;
+
+	if (!plugin_get("audio_in"))
+		return;
+
+	start = gtk_wave_view_get_marker(waveview);
+	if (start < 0)
+		return;
+	DPRINTF("Recording at %li\n", (long)start);
+
+	left = right = NULL;
+	grp = gtk_swapfile_buffer_get_item(swapfile);
+	if (GPSM_ITEM_IS_SWFILE(grp)) {
+		left = grp;
+	} else {
+		gpsm_grp_foreach_item(grp, item) {
+			if (!GPSM_ITEM_IS_SWFILE(item))
+				return;
+			if (!left)
+				left = item;
+			else if (!right)
+				right = item;
+			else {
+				gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
+				return;
+			}
+		}
+	}
+	if (!left && !right)
+		return;
+
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+
+	/* Create the basic network - audio_out. */
+	net = filter_creat(NULL);
+	ain = filter_instantiate(plugin_get("audio_in"));
+	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "rate"), &rate);
+	filter_add_node(net, ain, "ain");
+
+	/* Left - or mono. */
+	swout = create_swapfile_out((gpsm_swfile_t *)left, GPSM_ITEM_IS_GRP(grp),
+				    start, -1);
+	if (!swout)
+		goto fail;
+	filter_add_node(net, swout, "swout");
+	if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
+				filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
+		goto fail;
+
+	/* Right. */
+	if (right) {
+		swout = create_swapfile_out((gpsm_swfile_t *)right, TRUE,
+					    start, -1);
+		if (!swout)
+			goto fail;
+		filter_add_node(net, swout, "swout");
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT),
+					filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
+			goto fail;
+	}
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_cleanup_cb,
+			       network_cleanup_create(net, (gpsm_item_t *)grp, TRUE));
+	return;
+
+ fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot record")));
+	filter_delete(net);
+}
+
 /* Menu event - feed into filter. */
 static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 {
@@ -814,6 +896,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_ITEM("Play", "Plays the whole wave", playall_cb, NULL),
 	GNOMEUIINFO_ITEM("Play selection", "Plays the actual selection", playselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Record at marker", "Records starting at marker position", recordmarker_cb, NULL),	
 	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
@@ -823,8 +906,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
-#define RMB_MENU_APPLY_FILTER_INDEX 14
-#define RMB_MENU_FEED_FILTER_INDEX 15
+#define RMB_MENU_APPLY_FILTER_INDEX 15
+#define RMB_MENU_FEED_FILTER_INDEX 16
 
 
 /* Somehow only select "effects" (one input, one output) type of
