@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.29 2001/08/03 12:54:16 richi Exp $
+@comment $Id: filter.texi,v 1.30 2001/08/08 09:16:14 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -297,6 +297,13 @@ Access the parameters label as used in the database.
 Access the filter the parameter or its pipe is attached to.
 @end deftypefun
 
+@tindex filter_param_t
+@tindex glsig_emitter_t
+@deftypefun {glsig_emitter_t *} filterparam_emitter (filter_param_t *@var{param})
+Gets you access to the parameters signal emitter through which all signals
+are propagated upwards.
+@end deftypefun
+
 @tindex filter_pipe_t
 @tindex filter_param_t
 @deftypefun {filter_pipe_t *} filterparam_get_sourcepipe (filter_param_t *@var{param})
@@ -366,7 +373,7 @@ are provided.
 To change the value of a parameter use the following function.  Note
 that on a successful change 0 is returned and a GLSIG_PARAM_CHANGED
 signal is emitted. -1 is returned on an error such as memory shortage or
-a rejected change by the set_param() method of the filter.
+a rejected change by the set() method of the param.
 @end deftypefun
 
 @tindex filter_param_t
@@ -750,13 +757,16 @@ designed to be thread safe.
 @node Filter Methods, Doing Real Work, , The Filter Programming API
 @subsection Filter Methods
 
-Let's start with defining the semantics of the methods a filter can provide.
-All methods are stored in the 
+Let's start with defining the semantics of the methods a filter and
+its subobjects (ports and parameters) can provide.
+The methods are stored in the operated on structures, respectively
 @tindex filter_t
-@code{filter_t} structure, but only the @code{f()} method is
+@tindex filter_port_t
+@tindex filter_param_t
+@code{filter_t}, @code{filter_port_t}, @code{filter_param_t}, but only
+the @code{f()} method inside the @code{filter_t} structure is
 mandatory. You have to set all other methods explicitly---sane defaults are
-provided for them. To learn about semantic details you may want to look into
-the file @file{src/filter/filter_network.c}, too.
+provided for them.
 
 @tindex filter_t
 @deftypefn Method int f (filter_t *@var{n})
@@ -807,39 +817,26 @@ handlers to the nodes emitter, everything else is strictly
 private. If you return -1 the node is deleted and @code{filter_add_node()} will return an error. If everything is ok you should return 0.
 @end deftypefn
 
-@tindex filter_t
 @tindex filter_pipe_t
 @tindex filter_port_t
-@deftypefn Method int connect_out (filter_t *@var{source}, filter_port_t *@var{port}, filter_pipe_t *@var{p})
-@code{connect_out()} is invoked by the @code{filterport_connect()} 
-function.
-@code{connect_out()} gets called at each connection request to an output port
-but before the call to the @code{connect_in()} method of the corresponding
-destination port. You may reject the connection by returning -1 or
+@deftypefn Method int connect (filter_port_t *@var{port}, filter_pipe_t *@var{p})
+@code{connect()} is invoked by the @code{filterport_connect()} function.
+@code{connect()} gets called at each connection request to a port, first
+the corresponding @code{connect()} method for the output port is called,
+if that succeeded, the one for the input port.
+Any side of the connection may reject the connection by returning -1 or
 accept it by returning 0. You should set up the pipe type and the
-corresponding fields in the type-specific union using the appropriate macros.
-You may modifiy the pipe's source, i.e. perform redirections---but be careful.
+corresponding fields in the type-specific union using the appropriate macros
+if being the source end of the pipe.
+You may modifiy the pipe's source or destination if you are the source or
+destination, i.e. perform redirections---but be careful.
 After the connection has been created a @code{GLSIG_PIPE_CHANGED} signal is
 raised on the new pipe.
 @end deftypefn
 
-@tindex filter_t
-@tindex filter_pipe_t
-@tindex filter_port_t
-@deftypefn Method int connect_in (filter_t *@var{dest}, filter_port_t *@var{port}, filter_pipe_t *@var{p})
-@code{connect_in()} is like @code{connect_out()} but gets called after the 
-@code{connect_out()}
-call, and you don't have to set up any type specific information in the
-filter pipe @var{p}. Just return -1 if you don't like the connection. 
-Otherwise return 0. Redirections of the destination may be done under the
-same conditions as in @code{connect_out()}. After the connection has been
-created a @code{GLSIG_PIPE_CHANGED} signal is raised on the new pipe.
-@end deftypefn
-
-@tindex filter_t
 @tindex filter_param_t
-@deftypefn Method int set_param (filter_t *@var{dest}, filter_param_t *@var{p}, const void *@var{val})
-The @code{set_param()} method can be used to check a value which is to be
+@deftypefn Method int set (filter_param_t *@var{p}, const void *@var{val})
+The @code{set()} method can be used to check a value which is to be
 setted against some conditions. The method is invocated before the change
 takes place and you may reject the change by returning -1. Returning 0
 will do the parameter change and raise a @code{GLSIG_PARAM_CHANGED} signal
@@ -991,8 +988,3 @@ of @code{SAMPLE}s and assigns the buffer to the filter node @var{n}.
 @deftypefun {SAMPLE *} sbuf_buf (filter_buffer_t *@var{fb})
 @code{sbuf_buf()} returns a pointer to the buffer containing the @code{SAMPLE}s.
 @end deftypefun
-
-
-
-
-
