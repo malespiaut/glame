@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.2 2000/03/17 07:33:14 mag Exp $
+ * $Id: file_io.c,v 1.3 2000/03/17 08:08:25 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -485,7 +485,7 @@ int af_write_f(filter_node_t *n)
 	
 	iass=0;
 	filternode_foreach_input(n, in) {
-		for(iat=0;iat<i && FILTER_SAMPLEPIPE_MORE_LEFT(RWA(n).track[iat].p,in);iat++);
+		for(iat=0;iat<iass && FILTER_SAMPLEPIPE_MORE_LEFT(RWA(n).track[iat].p,in);iat++);
 		for(i=iass;i>iat;i--)
 			RWA(n).track[i]=RWA(n).track[i-1];
 		RWA(n).track[iat].p=in;
