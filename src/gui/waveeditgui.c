@@ -134,9 +134,6 @@ static void selectall_cb(GtkWidget *w, GtkWaveView *waveview)
 }
 
 
-
-
-
 /*
  * Temporary storage for editing functions and the edit functions
  * itself.
@@ -536,6 +533,171 @@ static struct network_run_s *network_run_create(filter_t *net,
 	return cs;
 }
 
+
+/* 
+ * Transforms menu and its callbacks 
+ */
+
+static void normalize_cb(GtkWidget *w, plugin_t *plugin);
+
+static GnomeUIInfo transform_menu[] = {
+	GNOMEUIINFO_ITEM("Normalize", "normalize", normalize_cb, NULL),
+	GNOMEUIINFO_END
+};
+
+static void normalize_second_cb(struct network_run_s *cs)
+{
+	filter_param_t	*param;
+	filter_t	*maxrms;
+	SAMPLE		gain;
+	gpsm_item_t	*grp, *item;
+	filter_t	*net, *vadjust, *swout;
+	gint32 		start, end;
+	GtkWaveView	*waveview;
+	gpsm_swfile_t	**files;
+	int		i;
+	
+	DPRINTF("Second step here I come\n");
+	
+	maxrms = filter_get_node(cs->net, "maxrms");
+	param = filterparamdb_get_param(filter_paramdb(maxrms), "maxrms");
+	gain = 1.0 / filterparam_val_float(param);
+	DPRINTF("gain = %f\n", gain);
+	
+	if (cs->net) {
+		filter_terminate(cs->net);
+		filter_wait(cs->net);
+		filter_delete(cs->net);
+		DPRINTF("deleted filternetwork\n");
+	}
+	
+	grp = cs->item;
+	start = cs->start;
+	end = cs->end;
+	waveview = cs->waveview;
+
+	free(cs);
+	
+	net = filter_creat(NULL);
+	vadjust = filter_instantiate(plugin_get("volume_adjust"));
+	param = filterparamdb_get_param(filter_paramdb(vadjust), "gain");
+	filterparam_set(param, &gain);
+	i=0;
+	
+	gpsm_grp_foreach_item(grp, item) {
+		filter_t *swin, *eff;
+		if (!GPSM_ITEM_IS_SWFILE(item))
+			continue;
+		swin = create_swapfile_in((gpsm_swfile_t *)item, 0,
+					  start, end);
+		if (!swin)
+			goto fail;
+		filter_add_node(net, swin, "swin");
+		
+		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
+					    start, end);
+		if (!swout)
+			goto fail;
+		
+		eff = filter_creat(vadjust);
+		
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN)))
+			goto fail;
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(eff), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))
+			goto fail;
+		i++;
+	}
+
+	filter_delete(vadjust);
+
+	/* Prepare for undo. */
+	if (gpsm_op_prepare(item) == -1)
+		DPRINTF("Error preparing for undo\n");
+	
+	/* Run the network through play window */
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)network_run_cleanup_cb,
+			       network_run_create(net, item, TRUE,
+						  waveview,
+						  filterparamdb_get_param(filter_paramdb(swout), FILTERPARAM_LABEL_POS),
+						  start, end),
+			       "Normalize", NULL, NULL, 0);
+
+	return;
+
+fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create network")));
+	filter_delete(vadjust);
+	filter_delete(net);
+}
+
+static void normalize_cb(GtkWidget *w, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
+	gint32 start, length;
+	gpsm_item_t *item;
+	gpsm_grp_t *grp;
+	filter_t *net, *mix, *ssp, *maxrms;
+	int rate;
+
+	gtk_wave_view_get_selection (waveview, &start, &length);
+
+	if (length <= 0)
+		return;
+	DPRINTF("Normalizing [%li, +%li]\n", (long)start, (long)length);
+
+	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
+	if (!grp)
+		return;
+
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+
+	/* Create the basic network - audio_out. */
+	net = filter_creat(NULL);
+	mix = filter_instantiate(plugin_get("mix"));
+	ssp = filter_instantiate(plugin_get("ssp_streamer"));
+	maxrms = filter_instantiate(plugin_get("maxrms"));
+	filter_add_node(net, mix, "mix");
+	filter_add_node(net, ssp, "ssp_streamer");
+	filter_add_node(net, maxrms, "maxrms");
+	
+	filterport_connect(filterportdb_get_port(filter_portdb(mix), PORTNAME_OUT),
+			   filterportdb_get_port(filter_portdb(ssp), PORTNAME_IN));
+	filterport_connect(filterportdb_get_port(filter_portdb(ssp), PORTNAME_OUT),
+			   filterportdb_get_port(filter_portdb(maxrms), PORTNAME_IN));
+
+	gpsm_grp_foreach_item(grp, item) {
+		filter_t *swin;
+		if (!GPSM_ITEM_IS_SWFILE(item))
+			continue;
+		swin = create_swapfile_in((gpsm_swfile_t *)item, 0,
+					  start, length);
+		if (!swin)
+			goto fail;
+		filter_add_node(net, swin, "swin");
+		if (!filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(mix), PORTNAME_IN)))
+			goto fail;
+	}
+
+	glame_gui_play_network(net, NULL, TRUE,
+			       (GtkFunction)normalize_second_cb,
+			       network_run_create(net, (gpsm_item_t *)grp, FALSE,
+						  waveview,
+						  NULL,
+						  start, start + length - 1),
+			       "Analyze", NULL, NULL, 0);
+	return;
+fail:
+	gnome_dialog_run_and_close(GNOME_DIALOG(
+		gnome_error_dialog("Failed to create network")));
+	filter_delete(mix);
+	filter_delete(ssp);
+	filter_delete(maxrms);
+	filter_delete(net);
+}
 
 /* Menu event - Apply filter. */
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
@@ -1045,6 +1207,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_ITEM("Record at marker", "Records starting at marker position", recordmarker_cb, NULL),	
 	GNOMEUIINFO_ITEM("Record into selection", "Records into the actual selection", recordselection_cb, NULL),	
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_SUBTREE("Transforms", transform_menu),
 	GNOMEUIINFO_SUBTREE("Apply filter", dummy_menu),
 	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -1056,7 +1219,7 @@ static GnomeUIInfo rmb_menu[] = {
 };
 #define RMB_MENU_PLAY_SELECTION_INDEX 6
 #define RMB_MENU_RECORD_SELECTION_INDEX 9
-#define RMB_MENU_APPLY_FILTER_INDEX 11
+#define RMB_MENU_APPLY_FILTER_INDEX 12
 
 
 /* Somehow only select "effects" (one input, one output) type of
