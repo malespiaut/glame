@@ -776,7 +776,7 @@ on_area_realize (GtkWidget *widget, gpointer userdata)
 
 
 /* Paint selection areas then call a function to paint the wave data. */
-static void
+static gint
 on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdata)
 {
   GtkWaveView *waveview = GTK_WAVE_VIEW (userdata);
@@ -804,7 +804,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   waveview->expose_count++;
 
   if (event->count > 0 || waveview->drawing)
-    return;
+    return TRUE;
 
   waveview->drawing = 1;
  again:
@@ -913,7 +913,7 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
 	      DPRINTF("Doing real, delayed destroy.\n");
 	      waveview->drawing = 0;
 	      gtk_object_destroy(GTK_OBJECT(waveview));
-	      return;
+	      return TRUE;
       }
 
       /* show marker */
@@ -924,6 +924,8 @@ on_area_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer userdat
   if (waveview->expose_count != 0)
 	  goto again;
   waveview->drawing = 0;
+
+  return TRUE;
 }
 
 
@@ -1226,7 +1228,7 @@ gtk_wave_view_button_press_event (GtkWidget *widget,
 }
 
 
-static void
+static gint
 gtk_wave_view_button_release_event (GtkWidget *widget,
                                     GdkEventAny *event,
                                     gpointer userdata)
@@ -1274,11 +1276,11 @@ gtk_wave_view_button_release_event (GtkWidget *widget,
 	  frame = 0;
 
   if (FLAGS_IS_CLEAR (waveview->drag_flags))
-    return;
+    return FALSE;
   if (waveview->wavebuffer == NULL)
     {
       FLAGS_CLEAR (waveview->drag_flags);
-      return;
+      return FALSE;
     }
   if (FLAG_IS_SET (waveview->drag_flags, FLAG_DRAGGING_MARKER))
     {
@@ -1299,6 +1301,8 @@ gtk_wave_view_button_release_event (GtkWidget *widget,
     }  
   area_restore_normal_cursor (waveview);
   FLAGS_CLEAR (waveview->drag_flags);
+
+  return FALSE;
 }
 
 
@@ -1686,6 +1690,18 @@ gtk_wave_view_get_buffer (GtkWaveView *waveview)
 }
 
 
+/* Create/add record/mute buttons after realization of togglebuttons. */
+void on_tb_realize_cb(GtkWidget *widget, gpointer data)
+{
+	GdkPixmap *pixmap;
+	GdkBitmap *bitmap;
+	pixmap = gdk_pixmap_create_from_xpm_d(
+		widget->window, &bitmap, NULL, data);
+	gtk_container_add(GTK_CONTAINER(widget),
+			  gtk_pixmap_new(pixmap, bitmap));
+	gtk_widget_show_all(widget);
+}
+
 /* Select a new data stream, ref() it, invalidate cache, and update screen. */
 void
 gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
@@ -1774,25 +1790,39 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 #endif
 	  cnt = gtk_wave_buffer_get_num_channels(wavebuffer);
 	  while (cnt--) {
+#if 0
 		  GdkPixmap *rec_pixmap, *mute_pixmap;
 		  GdkBitmap *rec_bitmap, *mute_bitmap;
+#endif
 		  vbox = gtk_vbox_new(FALSE, 0);
 		  tb = gtk_toggle_button_new();
+#if 0
 		  rec_pixmap = gdk_pixmap_create_from_xpm_d(
 			  GTK_WIDGET(tb)->window, &rec_bitmap, NULL, rec_xpm);
+#endif
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
+#if 0
 		  gtk_container_add(GTK_CONTAINER(tb),
 				    gtk_pixmap_new(rec_pixmap, rec_bitmap));
+#endif
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
+				     on_tb_realize_cb, rec_xpm);
 		  tb = gtk_toggle_button_new();
+#if 0
 		  mute_pixmap = gdk_pixmap_create_from_xpm_d(
 			  GTK_WIDGET(tb)->window, &mute_bitmap, NULL, mute_xpm);
+#endif
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
+#if 0
 		  gtk_container_add(GTK_CONTAINER(tb),
 				    gtk_pixmap_new(mute_pixmap, mute_bitmap));
+#endif
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
+				     on_tb_realize_cb, mute_xpm);
 		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
 		  gtk_widget_show_all(vbox);
 	  }
