@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.24 2002/01/11 23:21:30 richi Exp $
+ * $Id: canvaspipe.c,v 1.25 2002/03/24 22:32:47 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -336,6 +336,7 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 }
 
 
+
 gboolean 
 glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 {
@@ -366,59 +367,218 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 
 	y = 10.0 + yOffset;
 	
-	DPRINTF("foo\n");
 	group = GNOME_CANVAS_GROUP(CANVAS_ITEM_ROOT(pipe));
 	group = GNOME_CANVAS_GROUP(gnome_canvas_item_new(group,
 				      gnome_canvas_group_get_type(),
 				      NULL));
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
 	params = TRUE;
-	snprintf(buffer,255,_("Samplerate: %d"),filterpipe_sample_rate(pipe->pipe));
-	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
-						       gnome_canvas_text_get_type(),
-						       "x",xOffset,
-						       "y",y,
-						       "text",buffer,
-						       "font",font,
-						       "clip_width",94.0,
-						       "clip_height",16.0,
-						       "fill_color","blue",
-						       "anchor",GTK_ANCHOR_WEST,
-						       "justification",GTK_JUSTIFY_LEFT, 
-						       "clip",0,
-						       NULL));
-	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
-	
-	gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
-	bmaxx = bmaxx<recx2?recx2:bmaxx;
-	bmaxy = bmaxy<recy2?recy2:bmaxy;
-	bminx = bminx>recx1?recx1:bminx;
-	bminy = bminy>recy1?recy1:bminy;
-	
-	y +=16.0;
-	snprintf(buffer,255,_("Hangle: %f"),filterpipe_sample_hangle(pipe->pipe));
-	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
-						       gnome_canvas_text_get_type(),
-						       "x",xOffset,
-						       "y",y,
-						       "text",buffer,
-						       "font",font,
-						       "clip_width",94.0,
-						       "clip_height",16.0,
-						       "fill_color","blue",
-						       "anchor",GTK_ANCHOR_WEST,
-						       "justification",GTK_JUSTIFY_LEFT, 
-						       "clip",0,
-						       NULL));
-	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
-	
-	gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
-	bmaxx = bmaxx<recx2?recx2:bmaxx;
-	bmaxy = bmaxy<recy2?recy2:bmaxy;
-	bminx = bminx>recx1?recx1:bminx;
-	bminy = bminy>recy1?recy1:bminy;
-	
-	y +=16.0;
+
+	if (filterpipe_type(pipe->pipe) == FILTER_PIPETYPE_SAMPLE) {
+		snprintf(buffer, 255, _("Samplerate: %d"),
+			 filterpipe_sample_rate(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+       		y +=16.0;
+
+		snprintf(buffer, 255, _("Hangle: %f"),
+			 filterpipe_sample_hangle(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+       		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+ 		y +=16.0;
+	}
+
+	else if (filterpipe_type(pipe->pipe) == FILTER_PIPETYPE_FFT) {
+		snprintf(buffer, 255, _("Samplerate: %d"),
+			 filterpipe_fft_rate(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		y +=16.0;
+
+		snprintf(buffer, 255, _("Hangle: %f"),
+			 filterpipe_fft_hangle(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+       		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+ 		y +=16.0;
+
+		snprintf(buffer, 255, _("FFT blocksize: %i"),
+			 filterpipe_fft_bsize(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		y +=16.0;
+
+		snprintf(buffer, 255, _("FFT oversampling: %i"),
+			 filterpipe_fft_osamp(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		y +=16.0;
+	}
+
+	else if (filterpipe_type(pipe->pipe) == FILTER_PIPETYPE_SSP) {
+		snprintf(buffer, 255, _("Samplerate: %d"),
+			 filterpipe_ssp_rate(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+		y +=16.0;
+
+		snprintf(buffer, 255, _("SSP blocksize: %i"),
+			 filterpipe_ssp_bsize(pipe->pipe));
+		text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(
+			group,
+			gnome_canvas_text_get_type(),
+			"x",xOffset,
+			"y",y,
+			"text",buffer,
+			"font",font,
+			"clip_width",94.0,
+			"clip_height",16.0,
+			"fill_color","blue",
+			"anchor",GTK_ANCHOR_WEST,
+			"justification",GTK_JUSTIFY_LEFT, 
+			"clip",0,
+			NULL));
+		gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+       		gnome_canvas_item_get_bounds(GCI(text), &recx1, &recy1,
+					     &recx2, &recy2);
+		bmaxx = bmaxx<recx2?recx2:bmaxx;
+		bmaxy = bmaxy<recy2?recy2:bmaxy;
+		bminx = bminx>recx1?recx1:bminx;
+		bminy = bminy>recy1?recy1:bminy;
+ 		y +=16.0;
+	}
 	
 	if(filterparamdb_nrparams(filterpipe_sourceparamdb(pipe->pipe))){
 		params = TRUE;
