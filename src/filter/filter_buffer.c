@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.17 2000/03/23 16:31:04 richi Exp $
+ * $Id: filter_buffer.c,v 1.18 2000/03/24 09:26:47 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -125,7 +125,8 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 	        ;
 	if (res == -1) {
 #ifdef DEBUG
-	        perror("fbuf_get");
+		if (errno != EAGAIN)
+	        	perror("fbuf_get");
 #endif
         } else if (res != FBPIPE_WSIZE)
                 PANIC("pipe reads are not atomic!");
@@ -160,7 +161,8 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 	        ;
 	if (res == -1) {
 #ifdef DEBUG
-	        perror("fbuf_queue");
+		if (errno != EAGAIN)
+	        	perror("fbuf_queue");
 #endif
 		fbuf_unref(fbuf);
 	} else if (res != FBPIPE_WSIZE)
