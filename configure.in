@@ -40,23 +40,26 @@ GLAME_CFLAGS=""
 
 
 
-dnl GTK checks disabled for now
+dnl GTK checks
 dnl 
-dnl AM_PATH_GTK(1.2.0,,
-dnl   AC_MSG_RESULT(Test for GTK failed. See the file 'INSTALL' for help.))
+AM_PATH_GTK(1.2.0,,
+  AC_MSG_RESULT(Test for GTK failed. See the file 'INSTALL' for help.))
 dnl 
-dnl changequote(,)dnl
+changequote(,)dnl
 dnl 
 dnl Evil stuff to extract GLIB stuff from gtk-config output
 dnl (we want to make sure it matches with the gtk we're using)
-dnl GLIB_CFLAGS=`echo $GTK_CFLAGS | sed 's/^.*\(-I[^ ]*glib[^ ]*  *-I[^ ]*\).*$/\1/'`
-dnl GLIB_LDFLAGS=`echo $GTK_LIBS | sed -e 's/^.*-lgdk[^ ]* *\(-L[^ ]*\).*$/\1/' -e 's/^.* -lgdk[^ ]* .*$//'`
-dnl if test -z "$GLIB_LDFLAGS" ; then
-dnl   GLIB_LDFLAGS=`echo $GTK_LIBS | sed 's/^ *\(-L[^ ]*\) .*$/\1/'`
-dnl fi
-dnl GLIB_LIBS="$GLIB_LDFLAGS `echo $GTK_LIBS | sed 's/^.*\(-lglib[^ ]*\).*$/\1/'`"
+GLIB_CFLAGS=`echo $GTK_CFLAGS | sed 's/^.*\(-I[^ ]*glib[^ ]*  *-I[^ ]*\).*$/\1/'`
+GLIB_LDFLAGS=`echo $GTK_LIBS | sed -e 's/^.*-lgdk[^ ]* *\(-L[^ ]*\).*$/\1/' -e 's/^.* -lgdk[^ ]* .*$//'`
+if test -z "$GLIB_LDFLAGS" ; then
+GLIB_LDFLAGS=`echo $GTK_LIBS | sed 's/^ *\(-L[^ ]*\) .*$/\1/'`
+fi
+GLIB_LIBS="$GLIB_LDFLAGS `echo $GTK_LIBS | sed 's/^.*\(-lglib[^ ]*\).*$/\1/'`"
 dnl 
-dnl changequote([,])dnl
+changequote([,])dnl
+
+dnl gnome check
+GNOME_INIT_HOOK(,,,)
 
 
 dnl
@@ -129,7 +132,7 @@ AC_SUBST(GLIB_LIBS)
 AC_SUBST(GLAME_LIBS)
 AC_SUBST(GLAME_CFLAGS)
 
-
+AC_OUTPUT(Makefile src/Makefile src/filter/Makefile src/libfixp/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile doc/Makefile src/gui/Makefile)
 case "$host_cpu" in
 i?86)
 	AC_DEFINE(CPU_X86);;
@@ -137,6 +140,3 @@ mips*)
 	AC_DEFINE(CPU_MIPS);;
 esac
  
-
-
-AC_OUTPUT(Makefile src/Makefile src/filter/Makefile src/libfixp/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile doc/Makefile)
