@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.4 2000/02/16 13:04:01 richi Exp $
+@comment $Id: filter-tutorial.texi,v 1.5 2000/02/17 13:32:59 richi Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -7,14 +7,18 @@ This document is about how to write filters for glame. It only covers
 audio in/audio out types of filters. 
 
 @menu
-* Parameter Definition::	Talking about parameters...
+* Parameter Definition::	Talking about parameters, properties and protocols...
 * Filter Categories::		Now what is this whole filter stuff anyway?
-* Filter Skeleton::		What do I need to have in a glame filter?
+* Filter Skeleton::		What do I need to have in a glame filter set?
 * Main Filter Method::		How does the @code{f()} function have to look like?
+* Examples::                    Examples to clarify the @code{fbuf_*()} API
+* Speeeed::                     How to optimize processing
 @end menu
 
 @node Parameter Definition, Filter Categories, , Filter Tutorial
-@heading Talking about parameters...
+@heading Talking about parameters, properties and protocols...
+FIXME - rewrite this section
+
 When talking about filters in the following sections, we'll make use of
 various flavours of @dfn{parameters}.
 
@@ -77,28 +81,23 @@ filter parameters and the output parameters or between the input
 parameters and the output parameters (different from a one-to-one mapping).
 
 @node Filter Skeleton, Main Filter Method, Filter Categories, Filter Tutorial
-@heading What do I need to have in a glame filter?
-You usually will need four functions:
+@heading What do I need to have in a glame filter set?
+You will need the following functions and methods:
 @table @code
-@findex filtername_register
-@item filtername_register()
-A filter registering function of the name @code{filtername_register()} 
+@findex filtersetname_register
+@item filtersetname_register()
+A filter registering function of the name @code{filtersetname_register()} 
 which returns 0 on success and -1 on any error.
 @findex f
 @item f() 
-The main filter method @code{f()}.
-@findex fixup_pipe
-@item fixup_pipe()
-If you have output ports whose data type/format depends on any input 
-port, the @code{fixup_pipe()} method is needed.
-@findex fixup_param
-@item fixup_param()
-If you have parameters which affect data type/format of any output 
-port, make use of the @code{fixup_param()} method.
+The main filter method @code{f()}. You need this for each filter contained
+in the filter set.
+@item other filter methods
+You may need to include other filter specific methods, too.
 @end table
 
 @findex f
-@node Main Filter Method, , Filter Skeleton, Filter Tutorial
+@node Main Filter Method, Examples, Filter Skeleton, Filter Tutorial
 @heading How does the @code{f()} function have to look like? Are there any restrictions?
 Yes of course! There are!
 
@@ -156,3 +155,101 @@ allocated privately using @code{fbuf_alloc()} or friends)
 you must get the write-enabled buffer by calling @code{fbuf_make_private()}
 and use the return value as the buffer to be written to!
 
+
+
+@node Examples, Speeeed, Main Filter Method, Filter Tutorial
+@subsection Examples
+
+To clarify the reference counting and locking issues, in the following several
+valid and invalid example uses of the API are given.
+
+Valid just-forward buffers from input to output:
+@example 
+@group
+@findex fbuf_get
+@findex fbuf_queue
+buf = fbuf_get(in);
+fbuf_queue(out, buf);
+@end group
+@end example
+@noindent
+This is valid because @code{fbuf_get()} will get us a reference on the filter
+buffer and @code{fbuf_queue()} eats it, i.e. the reference gets forwarded, too.
+
+Invalid attempt to forward a buffer to two outputs:
+@example
+@group
+@findex fbuf_get
+@findex fbuf_queue
+buf = fbuf_get(in);
+fbuf_queue(out1, buf);
+fbuf_queue(out2, buf);
+@end group
+@end example
+@noindent
+This is invalid because you don't have any reference left after the
+first @code{fbuf_queue()}, i.e. there is no reference you can forward to the
+second @code{fbuf_queue()}.
+
+Valid but possibly ineffective just-forwarding:
+@example
+@group
+@findex fbuf_get
+@findex fbuf_ref
+@findex fbuf_queue
+@findex fbuf_unref
+buf = fbuf_get(in);
+fbuf_ref(buf);
+fbuf_queue(out, buf);
+fbuf_unref(buf);
+@end group
+@end example
+@noindent
+While being valid, this example illustrates ineffective use of references.
+As you don't need to touch the buffer after @code{fbuf_queue()}, 
+you don't need to get an additional reference and neither need to drop it again. 
+Such use will cause a @code{fbuf_make_private()} in the destination filter to 
+potentially copy the buffer while a perfectly valid zero-copy 
+operation was possible.
+
+Invalid modifying and forwarding of a buffer:
+@example
+@group
+@findex fbuf_get
+@findex fbuf_ref
+@findex fbuf_buf
+@findex fbuf_unref
+@findex fbuf_queue
+buf = fbuf_get(in);
+fbuf_ref(buf);
+fbuf_buf(buf)[0] = 1;
+fbuf_unref(buf);
+fbuf_queue(out, buf);
+@end group
+@end example
+@noindent
+This is invalid as the additional @code{fbuf_ref()} does not provide you with
+a private modifable buffer, but just ensures that nobody else does
+write to or destroy the buffer (which one can't anyway as you are 
+holding a reference already---the one gotten by @code{fbuf_get()}).
+The correct solution is to do:
+@example
+@group
+@findex fbuf_get
+@findex fbuf_make_private
+@findex fbuf_buf
+@findex fbuf_queue
+buf = fbuf_get(in);
+buf = fbuf_make_private(buf);
+fbuf_buf(buf)[0] = 1;
+fbuf_queue(out, buf);
+@end group
+@end example
+
+
+
+@node Speeeed, , Examples, Filter Tutorial
+@subsection Speeeed
+
+FIXME - this section still needs to be written. Topics: constructing efficient
+loops, using the streaming macros.

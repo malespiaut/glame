@@ -1,4 +1,4 @@
-@comment $Id: swapfile.texi,v 1.5 2000/02/10 14:50:52 nold Exp $
+@comment $Id: swapfile.texi,v 1.6 2000/02/17 13:32:59 richi Exp $
 
 @node Swapfile API, Plugin Interface, Filter Tutorial, Top
 @chapter Swapfile API
@@ -158,7 +158,9 @@ storage is required for this operation. This has the downside that both
 files, the source and the destination are switched to state read-only
 (the initial state of the source file does not matter).
 The identifier of the duplicate is returned, or -1 on error. It is illegal to
-specify an interval not entirely contained in the source file.
+specify an interval not entirely contained in the source file. As the files
+are not modified, this operation is not logged and in turn cannot be undone.
+Use @code{file_unref()} on the copy to undo the operation.
 @end deftypefun
 
 @node Accessing file data, Logged operations, File management, Programming Interface
