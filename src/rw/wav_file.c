@@ -1,6 +1,6 @@
 /*
  * wav_file.c
- * $Id: wav_file.c,v 1.1 2000/01/20 14:54:19 richi Exp $
+ * $Id: wav_file.c,v 1.2 2000/01/24 10:22:52 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *

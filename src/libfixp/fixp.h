@@ -4,7 +4,7 @@
  * Helper lib for generic fixed point
  * arithmetics.
  *
- * $Id: fixp.h,v 1.1 2000/01/20 14:54:19 richi Exp $
+ * $Id: fixp.h,v 1.2 2000/01/24 10:22:52 richi Exp $
  *********************************************/
 
 /*

@@ -27,21 +27,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "util.h"
 #include "channel.h"
 
 
-struct cg_s;
-typedef struct cg_s cg_t;
-
+/* the channel group */
 struct cg_s {
-  cg_t *next_hash;
-  cg_t **pprev_hash;
-  struct list_head ch_list;
-  char *cg_name;
+	struct hash_head hash;
+	struct list_head ch_list;
+
+	char *cg_name;
+	void *namespace;
+
+	int nr_channels;
 };
 
-cg_t **cg_hash_table = NULL;
-#include "channel_cghash.h"
+/* channel-group hash */
+#define hash_find_cg(group) __hash_entry(_hash_find((group), CG_NAMESPACE, (*(_hash((group), CG_NAMESPACE))), __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
+#define hash_add_cg(cg) _hash_add(&(cg)->hash, _hash((cg)->cg_name, CG_NAMESPACE))
+#define hash_remove_cg(cg) _hash_remove(&(cg)->hash)
+#define hash_first_cg() __hash_entry(_hash_next(NULL, CG_NAMESPACE, __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
+#define hash_next_cg(cg) __hash_entry(_hash_next(&(cg)->hash, CG_NAMESPACE, __hash_pos(cg_t, hash, cg_name, namespace)), cg_t, hash)
+#define hash_init_cg(cg) do { cg->namespace = CG_NAMESPACE; _hash_init(&(cg)->hash); } while (0)
+#define is_hashed_cg(cg) _is_hashed(&(cg)->hash)
+
+/* channel hash */
+#define hash_find_channel(name, group) __hash_entry(_hash_find((name), (group), (*(_hash((name), (group)))), __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
+#define hash_add_channel(c) _hash_add(&(c)->hash, _hash((c)->ch_name, (c)->cg))
+#define hash_remove_channel(c) _hash_remove(&(c)->hash)
+#define hash_first_channel(group) __hash_entry(_hash_next(NULL, (group), __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
+#define hash_next_channel(c) __hash_entry(_hash_next(&(c)->hash, (c)->group, __hash_pos(channel_t, hash, ch_name, cg)), channel_t, hash)
+#define hash_init_channel(c) _hash_init(&(c)->hash)
+#define is_hashed_channel(c) _is_hashed(&(c)->hash)
+
 
 
 
@@ -54,8 +72,9 @@ static cg_t *cg_create(const char *name)
 
   if (!(cg = (cg_t *)malloc(sizeof(cg_t))))
     return NULL;
-
   memset(cg, 0, sizeof(cg_t));
+  hash_init_cg(cg);
+  cg->nr_channels = 0;
 
   if (!(cg->cg_name = strdup(name)))
     goto _nostring;
@@ -72,7 +91,7 @@ _nostring:
 
 static void cg_free(cg_t *cg)
 {
-  if (!list_empty(&cg->ch_list))
+  if (cg->nr_channels || !list_empty(&cg->ch_list))
     return;
 
   hash_remove_cg(cg);
@@ -87,8 +106,6 @@ static void cg_free(cg_t *cg)
 
 int init_channel()
 {
-  hash_alloc_cg();
-
   return 0;
 }
 
@@ -105,18 +122,22 @@ int add_channel(const char *group, const char *chan,
       && !(cg = cg_create(group)))
     return -1;
 
-  if (!(c=(channel_t *)malloc(sizeof(channel_t))))
+  if (!(c = ALLOC(channel_t)))
     return -1;
-  
+
   if (!(c->ch_name = strdup(chan)))
     goto _notrackname;
+  hash_init_channel(c);
 
   c->fid=fid;
   c->type=type;
   c->freq=freq;
-  c->cg_name = cg->cg_name;
+  c->cg = cg;
   
   list_add(&c->ch_list, &cg->ch_list);
+  cg->nr_channels++;
+  hash_add_channel(c);
+
   return 0;
 
 _notrackname:
@@ -127,7 +148,6 @@ _notrackname:
 channel_t *get_channel(const char *group, const char *chan)
 {
   cg_t *cg;
-  channel_t *c;
 
   if (!group || !chan)
     return NULL;
@@ -135,29 +155,24 @@ channel_t *get_channel(const char *group, const char *chan)
   if (!(cg = hash_find_cg(group)))
     return NULL;
 
-  list_foreach(&cg->ch_list, channel_t, ch_list, c,
-	       if (strcmp(c->ch_name, chan)!=0) return c);
-
-  return NULL;
+  return hash_find_channel(chan, cg);
 }
 
 int remove_channel(channel_t *chan)
 {
-  cg_t *cg;
-
   if (!chan)
     return -1;
 
-  if (!(cg = hash_find_cg(chan->cg_name)))
-    return -1;
-
+  chan->cg->nr_channels--;
   list_del(&chan->ch_list);
+  hash_remove_channel(chan);
 
   file_unref(chan->fid);
-  free(chan);
 
   /* try to kill the channel group */
-  cg_free(cg);
+  cg_free(chan->cg);
+
+  free(chan);
 
   return 0;
 }
@@ -177,15 +192,10 @@ channel_t *get_first_channel(const char *group)
 
 channel_t *get_next_channel(channel_t *chan)
 {
-  cg_t *cg;
-
   if (!chan)
     return NULL;
 
-  if (!(cg = hash_find_cg(chan->cg_name)))
-    return NULL;
-
-  if (chan->ch_list.next == &cg->ch_list)
+  if (chan->ch_list.next == &chan->cg->ch_list)
     return NULL;
 
   return list_entry(chan->ch_list.next, channel_t, ch_list);
@@ -194,16 +204,12 @@ channel_t *get_next_channel(channel_t *chan)
 int num_channel(const char *group)
 {
   cg_t *cg;
-  channel_t *chan;
-  int num=0;
   
   if (!group)
     return 0;
 
   if (!(cg = hash_find_cg(group)))
     return 0;
-	    
-  list_foreach(&cg->ch_list, channel_t, ch_list, chan, num++);
 
-  return num;
+  return cg->nr_channels;
 }

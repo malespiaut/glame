@@ -3,7 +3,7 @@
 
 /*
  * channel.h
- * $Id: channel.h,v 1.1 2000/01/20 14:54:19 richi Exp $
+ * $Id: channel.h,v 1.2 2000/01/24 10:22:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -24,6 +24,7 @@
  */
 
 #include "list.h"
+#include "glame_hash.h"
 #include "glame_types.h"
 #include "swapfile.h"
 
@@ -35,19 +36,23 @@
 #define CHANNEL_NUM_FLOATING 99
 
 
+struct cg_s;
+typedef struct cg_s cg_t;
+
 struct channel_s;
 typedef struct channel_s channel_t;
 
 struct channel_s {
-  struct list_head ch_list;
+	struct list_head ch_list;
+	struct hash_head hash;
 
-  char *ch_name; /* channel name */
-  char *cg_name; /* channel group name */
+	char *ch_name; /* channel name */
+	cg_t *cg;      /* channel group */
 
-  int type;      /* left,right,center,floating, etc. */
-  int freq;      /* SAMPLEs per second         */ 
+	int type;      /* left,right,center,floating, etc. */
+	int freq;      /* SAMPLEs per second         */ 
 
-  fileid_t fid;  /* swapfile->file holding rawdata */
+	fileid_t fid;  /* swapfile->file holding rawdata */
 };
 #define channel_size(chan) (file_size((chan)->fid))
 #define channel_type(chan) ((chan)->type)

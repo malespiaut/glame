@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.1 2000/01/20 14:54:19 richi Exp $
+ * $Id: filter.c,v 1.2 2000/01/24 10:22:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -24,7 +24,6 @@
 #include <string.h>
 #include "util.h"
 #include "filter.h"
-#include "filter_hash.h"
 
 
 extern int filter_default_connect_out(filter_node_t *n, const char *port,
@@ -33,8 +32,6 @@ extern int filter_default_connect_in(filter_node_t *n, const char *port,
 				     filter_pipe_t *p);
 extern int filter_default_fixup(filter_node_t *n, int input_slot);
 
-
-filter_t **filter_hash_table = NULL;
 
 
 filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *),
@@ -106,8 +103,6 @@ extern int volume_adjust(filter_node_t *n);
 int filter_init()
 {
 	filter_t *f;
-
-	hash_alloc_filter();
 
 	if (!(f = filter_alloc("drop", drop, 0, 1, 0)))
 		return -1;

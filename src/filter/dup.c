@@ -1,6 +1,6 @@
 /*
  * dup.c
- * $Id: dup.c,v 1.1 2000/01/20 14:54:19 richi Exp $
+ * $Id: dup.c,v 1.2 2000/01/24 10:22:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *

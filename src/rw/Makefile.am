@@ -1,4 +1,4 @@
-INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../channel -D_REENTRANT
+INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -I@srcdir@/../channel -D_REENTRANT
 
 noinst_LTLIBRARIES = librw.la
 

@@ -34,8 +34,11 @@ struct hash_head **hash_table = NULL;
 
 int hash_alloc()
 {
-	if (!(hash_table = (struct hash_head **)malloc(HASH_SIZE*sizeof(void *))))
+	if (!(hash_table = (struct hash_head **)calloc(HASH_SIZE+1, sizeof(void *))))
 		return -1;
+
+	hash_table[HASH_SIZE] = NULL;
+
 	return 0;
 }
 
@@ -64,6 +67,10 @@ void hash_dump()
 }
 
 
+/* convenience macros */
+#define NAME(entry, head, name) (char *)((char *)(entry) - (head) + (name))
+#define NAMESPACE(entry, head, namespace) (void *)((char *)(entry) - (head) + (namespace))
+
 int _hashfn(const char *name, const void *namespace)
 {
 	int len, val = 0;
@@ -78,11 +85,13 @@ int _hashfn(const char *name, const void *namespace)
 }
 
 struct hash_head *_hash_find(const char *name, const void *namespace,
-			     struct hash_head *entry)
+			     struct hash_head *entry,
+			     unsigned long _head, unsigned long _name,
+			     unsigned long _namespace)
 {
 	while (entry) {
-		if (namespace == entry->namespace
-		    && strcmp(entry->name, name) == 0)
+		if (NAMESPACE(entry, _head, _namespace) == namespace
+		    && strcmp(NAME(entry, _head, _name), name) == 0)
 			break;
 		entry = entry->next_hash;
 	}
@@ -106,3 +115,39 @@ void _hash_remove(struct hash_head *entry)
 		entry->pprev_hash = NULL;
 	}
 }
+
+struct hash_head *_hash_next(struct hash_head *entry, void *namespace,
+			     unsigned long _head, unsigned long _name,
+			     unsigned long _namespace)
+{
+	struct hash_head **slot;
+
+	if (!entry) {
+		slot = hash_table;
+		entry = *slot;
+		goto _slot;
+	} else {
+		slot = _hash(NAME(entry, _head, _name), namespace);
+		goto _next;
+	}
+
+	do {
+		if (NAMESPACE(entry, _head, _namespace) == namespace)
+			break;
+ _next:
+    		entry = entry->next_hash;
+ _slot:
+		while (!entry && slot - hash_table < HASH_SIZE) {
+			slot++;
+			entry = *slot;
+		}
+	} while (entry);
+
+	return entry;
+}
+
+
+
+
+
+

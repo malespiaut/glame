@@ -32,7 +32,8 @@
 
 int init()
 {
-	if (rw_init() == -1
+	if (hash_alloc() == -1
+	    || rw_init() == -1
 	    || filter_init() == -1
 	    || init_channel() == -1)
 		return -1;
@@ -43,6 +44,13 @@ int init()
 
 int main(int argc, char **argv)
 {
+	fprintf(stderr, "\n\
+    GLAME version "VERSION", Copyright (C) 1999, 2000 Alexander Ehlert,
+    Richard Guenther, Johannes Hirche, Daniel Kobras.
+    GLAME comes with ABSOLUTELY NO WARRANTY.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions.\n\n");
+
 	if (init() == -1)
 		PANIC("Error in init!");
 
