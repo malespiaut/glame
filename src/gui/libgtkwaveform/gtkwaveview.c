@@ -1803,6 +1803,20 @@ gtk_wave_view_set_zoom (GtkWaveView *waveview,
   if (zoom < 1.0)
     zoom = 1.0;
 
+  if (waveview->area && waveview->wavebuffer) {
+	  guint32 length;
+	  gdouble max_zoom;
+
+	  if (GTK_WIDGET_REALIZED (waveview->area))
+		  length = GTK_WIDGET (waveview->area)->allocation.width;
+	  else
+		  length = GTK_WIDGET (waveview->area)->requisition.width;
+	  max_zoom = (gdouble)gtk_wave_buffer_get_length(waveview->wavebuffer)/(gdouble)length;
+
+	  if (zoom > max_zoom)
+		  zoom = max_zoom;
+  }
+
   if (waveview->zoom != zoom)
     {
       waveview->zoom = zoom;
