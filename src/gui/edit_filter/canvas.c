@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.69 2001/04/22 14:25:13 richi Exp $
+ * $Id: canvas.c,v 1.70 2001/04/22 15:28:44 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -64,7 +64,6 @@ static void canvas_input_port_update_connections(GlameCanvasPort*p, gdouble x, g
 static void canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y);
 static void canvas_item_destroy(GlameCanvasItem* it);
 static void canvas_connection_destroy(GlameConnection* connection);
-static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter);
 static void canvas_update_scroll_region(GlameCanvas* canv);
 static void update_string(GtkListItem* item,char ** returnbuffer);
 static void update_entry_text(GtkListItem* item,GtkEntry* entry);
@@ -1332,71 +1331,43 @@ static void canvas_register_as_cb(gchar* name, GlameCanvas* glCanv)
 }
 
 
-static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
-{
-      gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
-}
-
 static void canvas_save_as(GtkWidget*w,GlameCanvas *glCanv)
 {
-	GtkWidget * dialog;
-	GtkWidget * fileEntry;
-	GtkWidget * filternameentry;
-	GtkWidget * categoryEntry;
-	GtkWidget * dialogVbox;
-	GtkWidget * errorbox;
+	GtkWidget *dialog;
+	GtkWidget *dialogVbox;
+	char filenamebuffer[256] = "";
+	char filternamebuffer[256] = "unnamed";
+	char categorynamebuffer[256] = "unnamed";
 	char *buffer;
-	char * filenamebuffer;
-	char * filternamebuffer;
-	char * categorynamebuffer;
 	FILE* outf;
-	filter_t *bla;
 
-	filenamebuffer=calloc(100,sizeof(char));
-	filternamebuffer=calloc(100,sizeof(char));
-	categorynamebuffer=calloc(100,sizeof(char));
-	
-	dialog = gnome_dialog_new("Save network as...",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
+	/* Open a file request dialog with additional fields for
+	 * filter name and category. */
+	dialog = glame_dialog_file_request("Save network as...",
+					   "editfilter/saveas", "Filename",
+					   NULL, filenamebuffer);
 	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
-	
-	fileEntry = gnome_file_entry_new(NULL,"Filename");
-	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
-			   "changed",changeString,&filenamebuffer);
-	gtk_signal_connect_after(GTK_OBJECT(fileEntry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),"*.scm");
-	create_label_widget_pair(dialogVbox,"Filename",fileEntry);
-	
-	filternameentry = gtk_entry_new();
-	gtk_signal_connect(GTK_OBJECT(filternameentry),"changed",
-			   changeString,&filternamebuffer);
-	create_label_widget_pair(dialogVbox,"Filtername",filternameentry);
-	
-	categoryEntry = gtk_entry_new();
-	gtk_signal_connect(GTK_OBJECT(categoryEntry),"changed",
-			   changeString,&categorynamebuffer);
-	create_label_widget_pair(dialogVbox,"Category",categoryEntry);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
+	create_label_edit_pair(dialogVbox, "Filter name",
+			       "editfilter/saveas/name", filternamebuffer);
+	create_label_edit_pair(dialogVbox, "Category",
+			       "editfilter/saveas/category", categorynamebuffer);
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
 
-		bla = GLAME_CANVAS(glCanv)->net->net;
-
-		if(*filenamebuffer){
-			if(!(*filternamebuffer))
-				strcpy(filternamebuffer,filenamebuffer);
-			if(!(*categorynamebuffer))
-				strcpy(categorynamebuffer,"Default");
-			outf = fopen(filenamebuffer,"w");
-			buffer = filter_to_string(bla);
-			fprintf(stderr,"%s\n",buffer);
-			fprintf(outf,"(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))",buffer,filternamebuffer,categorynamebuffer);
-			free(buffer);
-			fclose(outf);
-		}else{
-			errorbox = gnome_warning_dialog("Please enter filename next time...");
-			gnome_dialog_run_and_close(GNOME_DIALOG(errorbox));
-		}
+	if (!filenamebuffer[0]
+	    || !filternamebuffer[0]
+	    || !categorynamebuffer[0]) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Empty file/filter or category name")));
+		return;
 	}
-	free(filenamebuffer);
-	free(filternamebuffer);
-	free(categorynamebuffer);
+
+	outf = fopen(filenamebuffer,"w");
+	buffer = filter_to_string(GLAME_CANVAS(glCanv)->net->net);
+	DPRINTF("Network .scm is:\n%s\n", buffer);
+	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
+	free(buffer);
+	fclose(outf);
 }
 
 static void register_filternetwork_cb(GtkWidget*bla, GlameCanvas* glCanv)
@@ -1494,30 +1465,23 @@ canvas_update_scroll_region(GlameCanvas* canv)
 
 void canvas_load_network(GtkWidget *bla, void *blu)
 {
-      
-	GtkWidget * fileEntry;
-	GtkWidget * dialog;
-	GtkWidget * vbox;
+	GtkWidget *dialog;
 	filter_t *filter;
-	char * filenamebuffer;
-	filenamebuffer = calloc(100,sizeof(char));
+	char filenamebuffer[256];
 
-	dialog = gnome_dialog_new("Load scheme code",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+	dialog = glame_dialog_file_request("Load filternetwork",
+					   "editfilter/load", "Filename",
+					   NULL, filenamebuffer);
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
 
-	fileEntry = gnome_file_entry_new("Load","Filename");
-	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
-	create_label_widget_pair(vbox,"Filename",fileEntry);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		filter = glame_load_instance(filenamebuffer);
-		if(filter){
-			draw_network(filter);
-		}else{
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error in loading .scm file")));
-		} 
- 
-	}
-	free(filenamebuffer);
+	filter = glame_load_instance(filenamebuffer);
+	if (filter) {
+		draw_network(filter);
+	} else {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Error in loading network")));
+	} 
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.38 2001/04/20 08:09:24 richi Exp $
+ * $Id: main.c,v 1.39 2001/04/22 15:28:44 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -104,26 +104,6 @@ static GnomeUIInfo menubar_uiinfo[] =
 
 
 
-
-GtkWidget * gnome_dialog_file_request(const char *windowtitle,
-				      const char *label,
-				      char ** returnbuffer)
-{
-	GtkWidget * dialog;
-	GtkWidget * fileEntry;
-	GtkWidget * dialogVbox;	
-	
-	dialog = gnome_dialog_new(windowtitle,GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-        dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
-
-        fileEntry = gnome_file_entry_new(NULL,label);
-        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
-                           "changed",changeString,returnbuffer);
-        create_label_widget_pair(dialogVbox,"Filename",fileEntry);
-	return dialog;
-}
-
-
 extern void edit_tree_label(GlameTreeItem * item);
 static void create_new_project_cb(GtkWidget *menu, void * blah)
 {
@@ -146,23 +126,18 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 
 static void load_plugin_cb(GtkWidget*bla,void*blu)
 {
-	GtkWidget * fileEntry;
-	GtkWidget * dialog;
-	GtkWidget * vbox;
-	char * filenamebuffer;
-	filenamebuffer = calloc(100,sizeof(char));
+	GtkWidget *dialog;
+	char filenamebuffer[256];
 
-	dialog = gnome_dialog_new("Load Plugin",GNOME_STOCK_BUTTON_CANCEL,GNOME_STOCK_BUTTON_OK,NULL);
-	vbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+	dialog = glame_dialog_file_request("Load Plugin",
+					   "main/load_plugin", "Filename",
+					   NULL, filenamebuffer);
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
 
-	fileEntry = gnome_file_entry_new("Load","Filename");
-	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),"changed",changeString,&filenamebuffer);
-	create_label_widget_pair(vbox,"Filename",fileEntry);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		if(glame_load_plugin(filenamebuffer) == -1)
-			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error loading plugin")));
-	}
-	free(filenamebuffer);
+	if (glame_load_plugin(filenamebuffer) == -1)
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Error loading plugin")));
 }
 
 

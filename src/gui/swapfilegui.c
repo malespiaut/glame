@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.32 2001/04/22 14:23:17 richi Exp $
+ * $Id: swapfilegui.c,v 1.33 2001/04/22 15:28:44 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -313,9 +313,11 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_port_t *source, *dest;
 	gpsm_grp_t *grp;
 	gpsm_item_t *it;
-	filename = alloca(255);
 
-	we = gnome_dialog_file_request("Export As...","Filename",&filename);
+	/* Query the file name. */
+	filename = alloca(256);
+	we = glame_dialog_file_request("Export As...", "swapfilegui/exportas",
+				       "Filename", NULL, filename);
 	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)))
 		return;
 
@@ -367,6 +369,7 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
+	GtkWidget *dialog;
 	plugin_t *p_swapfile_out;
 	filter_t *net = NULL, *readfile, *swout;
 	filter_port_t *source;
@@ -377,25 +380,14 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	GlameTreeItem *grpw;
 	gpsm_item_t *it;
 
-	filenamebuffer = alloca(128);
+	filenamebuffer = alloca(256);
 
-	/* File request dialog with group name entry. */
-	{
-		GtkWidget *dialog, *dialogVbox;
-		GtkWidget *filenameentry;
-
-		dialog = gnome_dialog_new("Import Audio File",
-					  GNOME_STOCK_BUTTON_CANCEL,
-					  GNOME_STOCK_BUTTON_OK, NULL);
-		dialogVbox = GTK_WIDGET(GNOME_DIALOG(dialog)->vbox);
-		filenameentry = gnome_file_entry_new("import_cb", "Filename");
-		gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
-				   "changed", changeString_cb, filenamebuffer);
-		create_label_widget_pair(dialogVbox, "Filename", filenameentry);
-
-		if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
-			return;
-	}
+	/* Query the file name. */
+	dialog = glame_dialog_file_request("Import audio file",
+					   "swapfilegui/import",
+					   "Filename", NULL, filenamebuffer);
+	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
 
 	/* Setup core network. */
 	net = filter_creat(NULL);
