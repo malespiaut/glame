@@ -1120,10 +1120,13 @@ gpsm_grp_t *gpsm_find_grp_label(gpsm_grp_t *root, gpsm_item_t *start,
 		    && strcmp(item->label, label) == 0)
 			return (gpsm_grp_t *)item;
 next_entry:
-		if (GPSM_ITEM_IS_GRP(item))
+		if (GPSM_ITEM_IS_GRP(item)) {
 			next = list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
-		else
+			if (!next)
+				next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		} else
 			next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
@@ -1156,10 +1159,13 @@ gpsm_swfile_t *gpsm_find_swfile_label(gpsm_grp_t *root, gpsm_item_t *start,
 		    && strcmp(item->label, label) == 0)
 			return (gpsm_swfile_t *)item;
 next_entry:
-		if (GPSM_ITEM_IS_GRP(item))
+		if (GPSM_ITEM_IS_GRP(item)) {
 			next = list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
-		else
+			if (!next)
+				next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		} else
 			next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
@@ -1193,10 +1199,13 @@ gpsm_swfile_t *gpsm_find_swfile_filename(gpsm_grp_t *root, gpsm_item_t *start,
 		    && gpsm_swfile_filename(item) == filename)
 			return (gpsm_swfile_t *)item;
 next_entry:
-		if (GPSM_ITEM_IS_GRP(item))
+		if (GPSM_ITEM_IS_GRP(item)) {
 			next = list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
-		else
+			if (!next)
+				next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		} else
 			next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
@@ -1229,10 +1238,13 @@ gpsm_swfile_t *gpsm_find_swfile_vposition(gpsm_grp_t *root, gpsm_item_t *start,
 		    && gpsm_item_vposition(item) == vposition)
 			return (gpsm_swfile_t *)item;
 next_entry:
-		if (GPSM_ITEM_IS_GRP(item))
+		if (GPSM_ITEM_IS_GRP(item)) {
 			next = list_gethead(&((gpsm_grp_t *)item)->items,
 					    gpsm_item_t, list);
-		else
+			if (!next)
+				next = list_getnext(&item->parent->items, item,
+					    gpsm_item_t, list);
+		} else
 			next = list_getnext(&item->parent->items, item,
 					    gpsm_item_t, list);
 		while (!next) {
