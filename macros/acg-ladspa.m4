@@ -1,4 +1,4 @@
-dnl $Id: acg-ladspa.m4,v 1.1 2001/05/06 19:06:05 nold Exp $
+dnl $Id: acg-ladspa.m4,v 1.2 2001/05/28 14:58:52 richi Exp $
 dnl Autoconf check for LADSPA header.
 dnl Daniel Kobras <kobras@linux.de>
 dnl
@@ -21,7 +21,7 @@ AC_DEFUN(ACG_PATH_LADSPA,
 		esac
 		do_ladspa="$enableval"
 		],	
-		[do_ladspa="no"])
+		[do_ladspa="yes"])
 	AC_ARG_WITH(ladspa-dir, [  --with-ladspa-dir=DIR   Directory where LADSPA header is installed],
 		ladspa_dir="$withval", ladspa_dir="")
 	AC_MSG_CHECKING([whether to build with ladspa support])
