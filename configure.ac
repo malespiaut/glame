@@ -390,8 +390,11 @@ if test $sgi = yes; then
 fi
 AM_CONDITIONAL(HAVE_SGI, test x$sgi = xyes)
 
-dnl check for ALSA
-ACG_PATH_ALSA(0.9.0, alsa="yes", alsa="no")
+dnl check for ALSA, first 1.x.x, then 0.9.x
+ACG_PATH_ALSA(1.0.0, alsa="yes", alsa="no")
+if test "x$alsa" = xno; then
+	ACG_PATH_ALSA(0.9.0, alsa="yes", alsa="no")
+fi
 if test "x$alsa" = xyes; then
 	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $ALSA_CFLAGS"
 	GLAME_LIBS="$GLAME_LIBS $ALSA_LIBS"
