@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.61 2001/12/02 22:05:37 richi Exp $
+ * $Id: filter.c,v 1.62 2001/12/05 15:42:02 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -579,21 +579,25 @@ char *filter_to_string(filter_t *net)
 	 * nodes. */
 	filter_foreach_node(net, n) {
 		/* Node params with param properties. */
-		tmp = filterparamdb_to_string(filter_paramdb(n), 1);
-		len += sprintf(&buf[len],
+		if (filterparamdb_nrparams(filter_paramdb(n)) > 0) {
+			tmp = filterparamdb_to_string(filter_paramdb(n), 1);
+			len += sprintf(&buf[len],
 "   (%s (filter-params %s))\n",
 			       tmp, n->name);
-		free(tmp);
+			free(tmp);
+		}
 
 		/* Node properties. */
-		tmp = glsdb_to_list_of_pairs(filter_propertydb(n));
-		len += sprintf(&buf[len],
+		if (gldb_nritems(filter_propertydb(n)) > 0) {
+			tmp = glsdb_to_list_of_pairs(filter_propertydb(n));
+			len += sprintf(&buf[len],
 "   (for-each\n"
 "     (lambda (p)\n"
 "       (set-property! %s (car p) (cdr p)))\n"
 "     %s)\n",
 			       n->name, tmp);
-		free(tmp);
+			free(tmp);
+		}
 	}
 
 	/* create the port/parameter export commands */
@@ -639,18 +643,22 @@ char *filter_to_string(filter_t *net)
 				       filterport_label(c->real_dest));
 
 			/* Pipe destination parameters and param properties. */
-			tmp = filterparamdb_to_string(filterpipe_destparamdb(c), 1);
-			len += sprintf(&buf[len],
+			if (filterparamdb_nrparams(filterpipe_destparamdb(c)) > 0) {
+				tmp = filterparamdb_to_string(filterpipe_destparamdb(c), 1);
+				len += sprintf(&buf[len],
 				       "       (%s (pipe-dest-params pipe))\n",
 				       tmp);
-			free(tmp);
+				free(tmp);
+			}
 
 			/* Pipe source parameters and param properties. */
-			tmp = filterparamdb_to_string(filterpipe_sourceparamdb(c), 1);
-			len += sprintf(&buf[len],
+			if (filterparamdb_nrparams(filterpipe_sourceparamdb(c)) > 0) {
+				tmp = filterparamdb_to_string(filterpipe_sourceparamdb(c), 1);
+				len += sprintf(&buf[len],
 				       "       (%s (pipe-source-params pipe))\n",
 				       tmp);
-			free(tmp);
+				free(tmp);
+			}
 			
 			/* (let ((pipe... */
 			len += sprintf(&buf[len], "\t#t)\n");
@@ -658,17 +666,20 @@ char *filter_to_string(filter_t *net)
 	}
 
 	/* Last, create property set commands for the network. */
-	tmp = glsdb_to_list_of_pairs(filter_propertydb(net));
-	len += sprintf(&buf[len],
+	if (gldb_nritems(filter_propertydb(net)) > 0) {
+		tmp = glsdb_to_list_of_pairs(filter_propertydb(net));
+		len += sprintf(&buf[len],
 "   (for-each\n"
 "     (lambda (p)\n"
 "       (set-property! net (car p) (cdr p)))\n"
 "     %s)\n",
 		       tmp);
-	free(tmp);
+		free(tmp);
+	}
 
 	/* (let* ... */
 	len += sprintf(&buf[len], "   net)\n");
 
 	return buf;
 }
+
