@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.41 2004/11/03 21:35:16 ochonpaul Exp $
+ * $Id: importexport.c,v 1.42 2004/11/05 21:10:24 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -1603,6 +1603,7 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	ie->filetype = export_default_filetype;
 	ie->compression = export_default_compression;
 	ie->running = 0;
+	ie->mp3_menu_index = 0;
 
 	/* open new dialog window */
 	title = g_strdup_printf ("Export: %s", gpsm_item_label(item));
@@ -1748,17 +1749,17 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 		gtk_menu_append (GTK_MENU (menu), mitem);
 	}
 
-#ifdef HAVE_LIBMP3LAME
-	mitem =  gtk_menu_item_new_with_label("mp3");
-	gtk_widget_show(mitem);
-	gtk_menu_append (GTK_MENU (menu), mitem);
-	ie->mp3_menu_index = i+1;
-#endif
+#ifdef HAVE_LIBMP3LAME 
+	mitem =  gtk_menu_item_new_with_label("mp3"); 
+	gtk_widget_show(mitem); 
+	gtk_menu_append (GTK_MENU (menu), mitem); 
+	ie->mp3_menu_index = i+1; 
+#endif 
 #ifdef HAVE_LIBVORBISFILE
 	mitem =  gtk_menu_item_new_with_label("ogg vorbis");
 	gtk_widget_show(mitem);
 	gtk_menu_append (GTK_MENU (menu), mitem);
-	ie->ogg_menu_index = i+2;
+	ie->ogg_menu_index = ie->mp3_menu_index ?  i+2 : i+1; /* if no mp3lame installed*/
 #endif
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (ie->otypemenu), menu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->otypemenu),
