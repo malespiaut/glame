@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.2 2000/02/15 18:41:25 richi Exp $
+ * $Id: filter_methods.c,v 1.3 2000/02/16 09:15:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -206,7 +206,10 @@ int filter_network_fixup_param(filter_node_t *node, const char *name)
 	m = (struct filter_network_mapping *)d->private;
 	if (!(n = filternetwork_get_node(node, m->node)))
 		return -1;
-	return filternode_set_param(n, m->label, &p->val);
+	if (FILTER_PARAMTYPE(d->type) == FILTER_PARAMTYPE_STRING)
+	        return filternode_set_param(n, m->label, p->val.string);
+	else
+	        return filternode_set_param(n, m->label, &p->val);
 }
 
 /* fixup_pipe && fixup_break_in && fixup_break_out do not have to be
