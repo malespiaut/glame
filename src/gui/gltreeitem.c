@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.12 2001/05/05 14:36:13 richi Exp $
+ * $Id: gltreeitem.c,v 1.13 2001/05/28 08:11:34 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -114,19 +114,21 @@ void glame_tree_item_update(GlameTreeItem *item)
 			size = st.size/SAMPLE_SIZE;
 		sw_close(fd);
 #ifdef DEBUG
-		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs [%li %li]",
+		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs @%.2f [%li %li]",
 			 gpsm_item_label(item->item),
 			 gpsm_swfile_filename(item->item),
 			 gpsm_swfile_samplerate(item->item),
 			 (float)size/(float)gpsm_swfile_samplerate(item->item),
+			 gpsm_swfile_position(item->item),
 			 gpsm_item_hposition(item->item),
 			 gpsm_item_hsize(item->item));
 #else
-		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs",
+		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs @%.2f",
 			 gpsm_item_label(item->item),
 			 gpsm_swfile_filename(item->item),
 			 gpsm_swfile_samplerate(item->item),
-			 (float)size/(float)gpsm_swfile_samplerate(item->item));
+			 (float)size/(float)gpsm_swfile_samplerate(item->item),
+			 gpsm_swfile_position(item->item));
 #endif
 	}
 
