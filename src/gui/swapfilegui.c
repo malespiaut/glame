@@ -50,6 +50,7 @@ static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
 static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
+static void handle_grp(glsig_handler_t *handler, long sig, va_list va);
 
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
@@ -97,7 +98,7 @@ void edit_tree_label(GlameTreeItem * item)
 	GtkWidget * label;
 	GtkWidget * entry;
 
-	label = GTK_LABEL((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
+	label = GTK_WIDGET((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
 	gtk_container_remove(GTK_CONTAINER(item),label);
 	entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(entry), gpsm_item_label(item->item));
@@ -148,47 +149,51 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
  * current item. */
 static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-#if 0 // FIXME
-	GList *selected = GTK_TREE_SELECTION(swapfile_tree);
+	GList *selected;
 
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+
+	selected = GTK_TREE_SELECTION(glame_tree_item_parent(item));
 	while (selected) {
-		GlameTreeItem *copy, *i = GLAME_TREE_ITEM(selected->data);
-		long dest_name;
-		swfd_t source, dest;
-		struct sw_stat st;
+		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
+		gpsm_swfile_t *copy;
 
-		if ((source = sw_open(i->swapfile_name, O_RDONLY, TXN_NONE)) == -1)
+		if (!GPSM_ITEM_IS_SWFILE(i->item))
 			goto next;
-		while ((dest = sw_open((dest_name = rand()), O_CREAT|O_RDWR|O_EXCL, TXN_NONE)) == -1)
-			;
-		sw_fstat(source, &st);
-		sw_ftruncate(dest, st.size);
-		sw_sendfile(dest, source, st.size, 0);
-		sw_close(source);
-		sw_close(dest);
-		copy = glame_tree_copy(GTK_OBJECT(i));
-		copy->swapfile_name = dest_name;
-		sw_glame_tree_append(GTK_OBJECT(item), copy);
+		copy = gpsm_swfile_cow((gpsm_swfile_t *)i->item);
+		gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)copy,
+				-1, -1);
+
 	next:
 		selected = g_list_next(selected);
 	}
-#endif
 }
 
 /* Link (just new items, same swapfile name) all selected items as
  * childs of the current item. */
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-#if 0 // FIXME
-	GList *selected = GTK_TREE_SELECTION(swapfile_tree);
+	GList *selected;
 
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+
+	selected = GTK_TREE_SELECTION(glame_tree_item_parent(item));
 	while (selected) {
 		GlameTreeItem *i = GLAME_TREE_ITEM(selected->data);
-		GlameTreeItem *copy = glame_tree_copy(GTK_OBJECT(i));
-		sw_glame_tree_append(GTK_OBJECT(item), copy);
+		gpsm_swfile_t *copy;
+
+		if (!GPSM_ITEM_IS_SWFILE(i->item))
+			goto next;
+
+		copy = gpsm_swfile_link((gpsm_swfile_t *)i->item);
+		gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)copy,
+				-1, -1);
+
+	next:
 		selected = g_list_next(selected);
 	}
-#endif
 }
 
 /* Move all items in this group one level up in the tree
@@ -283,142 +288,152 @@ void changeString_cb(GtkEditable *wid, char *returnbuffer)
 static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 {
 	GtkWidget * we;
-	long name;
-	int i;
-	char * foobar;
-	plugin_t *p_writefile, *p_swapfile_in;
-	filter_t *net, *swapfile_in[GTK_SWAPFILE_BUFFER_MAX_TRACKS], *writefile;
+	char *filename;
+	plugin_t *p_swapfile_in;
+	filter_t *net, *swin, *writefile;
 	filter_paramdb_t *db;
 	filter_param_t *param;
 	filter_port_t *source, *dest;
-	foobar = calloc(sizeof(char),255);
+	filename = alloca(255);
 
-	we = gnome_dialog_file_request("Export As...","Filename",&foobar);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(we))){
-		
-		net = filter_creat(NULL);
+	we = gnome_dialog_file_request("Export As...","Filename",&filename);
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(we)))
+		return;
 
-		p_writefile = plugin_get("write_file");
-		writefile = filter_instantiate(p_writefile);
-		filter_add_node(net, writefile, "writefile");
-		db = filter_paramdb(writefile);
+	/* Build basic network. */
+	net = filter_creat(NULL);
+	writefile = filter_instantiate(plugin_get("write_file"));
+	filter_add_node(net, writefile, "writefile");
+	db = filter_paramdb(writefile);
+	param = filterparamdb_get_param(db, "filename");
+	if (filterparam_set(param, &filename) == -1)
+		goto fail_cleanup;
+	dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
+
+	if (GPSM_ITEM_IS_SWFILE(item->item)) {
+		p_swapfile_in = plugin_get("swapfile_in");
+		swin = filter_instantiate(p_swapfile_in);
+		filter_add_node(net, swin, "swapfile_in");
+		db = filter_paramdb(swin);
 		param = filterparamdb_get_param(db, "filename");
-		filterparam_set(param, &foobar);
-		dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
-
-		if (GPSM_ITEM_IS_SWFILE(item->item)) {
-			p_swapfile_in = plugin_get("swapfile_in");
-			swapfile_in[0] = filter_instantiate(p_swapfile_in);
-			filter_add_node(net, swapfile_in[0], "swapfile_in");
-			db = filter_paramdb(swapfile_in[0]);
+		filterparam_set(param, &gpsm_swfile_filename(item->item));
+		param = filterparamdb_get_param(db, "rate");
+		filterparam_set(param, &gpsm_swfile_samplerate(item->item));
+		param = filterparamdb_get_param(db, "position");
+		filterparam_set(param, &gpsm_swfile_position(item->item));
+		source = filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT);
+		if (!filterport_connect(source,dest))
+			goto fail_cleanup;
+	} else if (GPSM_ITEM_IS_GRP(item->item)) {
+		gpsm_item_t *it;
+		p_swapfile_in = plugin_get("swapfile_in");
+		gpsm_grp_foreach_item(item->item, it) {
+			if (!GPSM_ITEM_IS_SWFILE(it))
+				goto fail_cleanup;
+			swin = filter_instantiate(p_swapfile_in);
+			filter_add_node(net, swin, "swapfile");
+			db = filter_paramdb(swin);
 			param = filterparamdb_get_param(db, "filename");
-			filterparam_set(param, &gpsm_swfile_filename(item->item));
+			filterparam_set(param, &gpsm_swfile_filename(it));
 			param = filterparamdb_get_param(db, "rate");
-			filterparam_set(param, &gpsm_swfile_samplerate(item->item));
-		
-			source = filterportdb_get_port(filter_portdb(swapfile_in[0]), PORTNAME_OUT);
-			filterport_connect(source,dest);
-		} else if (GPSM_ITEM_IS_GRP(item->item)) {
-			gpsm_item_t *it;
-			p_swapfile_in = plugin_get("swapfile_in");
-			gpsm_grp_foreach_item(item->item, it) {
-				if (!GPSM_ITEM_IS_SWFILE(it))
-					return;
-				name = gpsm_swfile_filename(it);
-				swapfile_in[i] = filter_instantiate(p_swapfile_in);
-				filter_add_node(net, swapfile_in[i], "swapfile");
-				db = filter_paramdb(swapfile_in[i]);
-				param = filterparamdb_get_param(db, "filename");
-				filterparam_set(param, &gpsm_swfile_filename(it));
-				param = filterparamdb_get_param(db, "rate");
-				filterparam_set(param, &gpsm_swfile_samplerate(it));
-				source = filterportdb_get_port(filter_portdb(swapfile_in[i]), PORTNAME_OUT); 
-				filterport_connect(source,dest);
-			}
+			filterparam_set(param, &gpsm_swfile_samplerate(it));
+			param = filterparamdb_get_param(db, "position");
+			filterparam_set(param, &gpsm_swfile_position(item->item));
+			source = filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT); 
+			if (!filterport_connect(source, dest))
+				goto fail_cleanup;
 		}
-		filter_launch(net);
-		filter_start(net);
-		filter_wait(net);
 	}
-	free(foobar);
+	filter_launch(net);
+	filter_start(net);
+	filter_wait(net);
+	filter_delete(net);
+	return;
+
+ fail_cleanup:
+	filter_delete(net);
 }
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
-
-	/*   Blah!
-	     FIXME!
-	*/
-	GtkWidget * dialog;
-	GtkWidget * dialogVbox;
-	plugin_t *p_readfile, *p_swapfile_out;
-	filter_t *net, *readfile, *swapfile_out[2]; /* lame stereo hack */
-	filter_param_t *param;
-	filter_port_t *source, *dest;
+	plugin_t *p_swapfile_out;
+	filter_t *net = NULL, *readfile, *swout;
+	filter_port_t *source;
 	filter_pipe_t *pipe;
 	gint i, channels;
-	
-	char filenamebuffer[128], groupnamebuffer[128];
-
-	GtkWidget * filenameentry;
-	GtkWidget * groupnameentry;
-	gpsm_grp_t *group;
+	char *filenamebuffer, *groupnamebuffer;
+	gpsm_grp_t *group = NULL;
 	gpsm_item_t *it;
 
-	
-	dialog = gnome_dialog_new("Import Audio File",GNOME_STOCK_BUTTON_CANCEL, GNOME_STOCK_BUTTON_OK,NULL);
-	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
-	filenameentry = gnome_file_entry_new("import_cb","Filename");
-	gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
-			   "changed",changeString_cb,filenamebuffer);
-	create_label_widget_pair(dialogVbox,"Filename",filenameentry);
-	groupnameentry = gtk_entry_new();
-	gtk_signal_connect(GTK_OBJECT(groupnameentry),"changed",
-			   changeString_cb,groupnamebuffer);
-	create_label_widget_pair(dialogVbox,"Groupname",groupnameentry);
-	
-	if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
-		return;
+	filenamebuffer = alloca(128);
+	groupnamebuffer = alloca(128);
 
-	if (!(p_readfile = plugin_get("read_file"))
-	    || !(readfile = filter_instantiate(p_readfile)))
-		return;
+	/* File request dialog with group name entry. */
+	{
+		GtkWidget *dialog, *dialogVbox;
+		GtkWidget *filenameentry, *groupnameentry;
+
+		dialog = gnome_dialog_new("Import Audio File",
+					  GNOME_STOCK_BUTTON_CANCEL,
+					  GNOME_STOCK_BUTTON_OK, NULL);
+		dialogVbox = GTK_WIDGET(GNOME_DIALOG(dialog)->vbox);
+		filenameentry = gnome_file_entry_new("import_cb", "Filename");
+		gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(filenameentry))),
+				   "changed", changeString_cb, filenamebuffer);
+		create_label_widget_pair(dialogVbox, "Filename", filenameentry);
+		groupnameentry = gtk_entry_new();
+		gtk_signal_connect(GTK_OBJECT(groupnameentry), "changed",
+				   changeString_cb, groupnamebuffer);
+		create_label_widget_pair(dialogVbox, "Groupname", groupnameentry);
+
+		if(!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+			return;
+	}
+
+	/* Setup core network. */
 	net = filter_creat(NULL);
+	if (!(readfile = filter_instantiate(plugin_get("read_file"))))
+		return;
+	if (filterparam_set(filterparamdb_get_param(filter_paramdb(readfile),
+						    "filename"),
+			    &filenamebuffer) == -1)
+		goto fail_cleanup;
+	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
 	filter_add_node(net, readfile, "readfile");
 
 	if (!(p_swapfile_out = plugin_get("swapfile_out"))) {
 		DPRINTF("swapfile_out not found\n");
 		return;
 	}
-		
-	g_assert((param = filterparamdb_get_param(filter_paramdb(readfile), "filename")));
-	filterparam_set(param, &filenamebuffer); 
-	g_assert((source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT)));
-			
+
+	/* Setup gpsm group. */
 	if(!groupnamebuffer)
 		group = gpsm_newgrp(g_basename(filenamebuffer));
 	else
 		group = gpsm_newgrp(groupnamebuffer);
-	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
-			-1, -1);
 
 	i = 0;
 	do {
-		it = (gpsm_item_t *)gpsm_newswfile(groupnamebuffer);
-		if (!(swapfile_out[i] = filter_instantiate(p_swapfile_out))
-		    || !(param = filterparamdb_get_param(filter_paramdb(swapfile_out[i]), "filename")))
+		if (!(it = (gpsm_item_t *)gpsm_newswfile(groupnamebuffer)))
 			goto fail_cleanup;
-		filterparam_set(param, &gpsm_swfile_filename(it));
-		filter_add_node(net, swapfile_out[i], "swapfile_out");
-		if (!(dest = filterportdb_get_port(filter_portdb(swapfile_out[i]),
-						   PORTNAME_IN))
-		    || !(pipe = filterport_connect(source, dest))) {
-			DPRINTF("Connection failed for channel %d\n",i+1);
-			goto fail_cleanup;
-		}
-		gpsm_swfile_samplerate(it) = filterpipe_sample_rate(pipe);
-		gpsm_swfile_position(it) = filterpipe_sample_hangle(pipe);
 		gpsm_grp_insert(group, it, 0, i);
+		if (!(swout = filter_instantiate(p_swapfile_out)))
+			goto fail_cleanup;
+		filter_add_node(net, swout, "swapfile_out");
+		if (filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"),
+				    &gpsm_swfile_filename(it)) == -1)
+			goto fail_cleanup;
+		if (!(pipe = filterport_connect(
+			source, filterportdb_get_port(
+				filter_portdb(swout), PORTNAME_IN)))) {
+			DPRINTF("Connection failed for channel %d\n",i+1);
+			gpsm_item_destroy(it);
+			filter_delete(swout);
+			break;
+		}
+		gpsm_swfile_set((gpsm_swfile_t *)it,
+				filterpipe_sample_rate(pipe),
+				filterpipe_sample_hangle(pipe));
 		i++;
 	} while (i < GTK_SWAPFILE_BUFFER_MAX_TRACKS);
 
@@ -428,9 +443,9 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	filter_wait(net); /* ok we could do that more nicely, but not now.. */
 	filter_delete(net);
 
-	/* update items - FIXME! use GPSM_SIG_SWFILE_INSERT */
-	gpsm_grp_foreach_item(group, it)
-		glsig_emit(gpsm_item_emitter(it), GPSM_SIG_ITEM_CHANGED, it);
+	/* Insert the group into the gpsm tree. */
+	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)group,
+			-1, -1);
 
 	return;
 
@@ -441,89 +456,134 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 
 
 
-static void handle_changeitem(glsig_handler_t *handler, long sigmask, va_list va)
+static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 {
-	GtkObject *groupw = glsig_handler_private(handler);
-	GlameTreeItem *itemw;
-	gpsm_item_t *item;
+	switch (sig) {
+	case GPSM_SIG_ITEM_CHANGED: {
+		GtkObject *groupw = glsig_handler_private(handler);
+		GlameTreeItem *itemw;
+		gpsm_item_t *item;
 
-	GLSIGH_GETARGS1(va, item);
+		GLSIGH_GETARGS1(va, item);
 
-	/* Find the item widget (child of group widget passed as
-	 * private info) for the item and update it. */
-	if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
-		return;
-	glame_tree_item_update(GLAME_TREE_ITEM(itemw));
+		/* Find the item widget (child of group widget passed as
+		 * private info) for the item and update it. */
+		if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
+			return;
+		glame_tree_item_update(GLAME_TREE_ITEM(itemw));
+		break;
+	}
+	default:
+		DPRINTF("Unhandled signal in swfile handler (%li)\n", sig);
+	}
 }
 
-static void handle_removeitem(glsig_handler_t *handler, long sigmask, va_list va)
+static void handle_grp_add_treeitem(GtkObject *tree, gpsm_item_t *item)
 {
-	GtkObject *groupw = glsig_handler_private(handler);
 	GlameTreeItem *itemw;
-	gpsm_grp_t *group;
-	gpsm_item_t *item;
 
-	GLSIGH_GETARGS2(va, group, item);
-
-	/* Find the item widget (child of group widget passed as
-	 * private info) for the item and remove it. */
-	if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
+	if (!tree || !item
+	    || !(GPSM_ITEM_IS_SWFILE(item) || GPSM_ITEM_IS_GRP(item)))
 		return;
-	glame_tree_remove(GLAME_TREE_ITEM(itemw));
-}
-
-static void handle_newitem(glsig_handler_t *handler, long sigmask, va_list va)
-{
-	GtkWidget *tree = glsig_handler_private(handler), *t;
-	GtkWidget *itemw;
-	gpsm_grp_t *group;
-	gpsm_item_t *item;
-
-	GLSIGH_GETARGS2(va, group, item);
-
-	t = (GtkWidget *)glame_tree_find_gpsm_item((GtkObject *)tree,
-						   (gpsm_item_t *)group);
-	if (t)
-		tree = t;
 
 	/* Construct the item widget and register signal handlers
 	 * to the new item. */
-	itemw = glame_tree_item_new(item);
+	itemw = GLAME_TREE_ITEM(glame_tree_item_new(item));
 	if (GPSM_ITEM_IS_GRP(item)) {
-		glsig_add_handler(gpsm_item_emitter(item),
-				  GPSM_SIG_GRP_NEWITEM, handle_newitem, itemw);
-		glsig_add_handler(gpsm_item_emitter(item),
-				  GPSM_SIG_GRP_REMOVEITEM, handle_removeitem, itemw);
-		glsig_add_handler(gpsm_item_emitter(item),
-				  GPSM_SIG_ITEM_CHANGED, handle_changeitem, itemw);
+		itemw->handler = glsig_add_handler(
+			gpsm_item_emitter(item),
+			GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_CHANGED,
+			handle_grp, itemw);
 	} else if (GPSM_ITEM_IS_SWFILE(item)) {
-		glsig_add_handler(gpsm_item_emitter(item),
-				  GPSM_SIG_ITEM_CHANGED, handle_changeitem, itemw);
-	} else
-		return;
+		itemw->handler = glsig_add_handler(
+			gpsm_item_emitter(item), GPSM_SIG_ITEM_CHANGED,
+			handle_swfile, itemw);
+	}
 
 	/* Register gtk handlers and append the item widget. */
 	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
-			         (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+				 (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
 	gtk_signal_connect_after(GTK_OBJECT(itemw), "button_press_event",
 				 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
-	glame_tree_append(GTK_OBJECT(tree), GLAME_TREE_ITEM(itemw));
-	glame_tree_item_update(GLAME_TREE_ITEM(itemw));
-	gtk_widget_show(itemw);
+	glame_tree_append(tree, itemw);
+	glame_tree_item_update(itemw);
+
+	/* If item is a group we need to recurse down the items. */
+	if (GPSM_ITEM_IS_GRP(item)) {
+		gpsm_item_t *it;
+		gpsm_grp_foreach_item(item, it)
+			handle_grp_add_treeitem(GTK_OBJECT(itemw), it);
+	}
+
+	gtk_widget_show(GTK_WIDGET(itemw));
 }
-
-
-static void gpsm_private_rebuild(gpsm_grp_t *group, glsig_handler_t *handler)
+static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 {
-	gpsm_item_t *item;
+	switch (sig) {
+	case GPSM_SIG_ITEM_CHANGED: {
+		GtkObject *groupw = glsig_handler_private(handler);
+		GlameTreeItem *itemw;
+		gpsm_item_t *item;
 
-	list_foreach(&group->items, gpsm_item_t, list, item) {
-		glsig_handler_exec(handler, GPSM_SIG_GRP_NEWITEM,
-				   group, item);
-		if (GPSM_ITEM_IS_GRP(item))
-			gpsm_private_rebuild((gpsm_grp_t *)item, handler);
+		GLSIGH_GETARGS1(va, item);
+
+		/* Find the item widget (child of group widget passed as
+		 * private info) for the item and update it. */
+		if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
+			return;
+		glame_tree_item_update(GLAME_TREE_ITEM(itemw));
+		break;
+	}
+	case GPSM_SIG_GRP_REMOVEITEM: {
+		GtkObject *groupw = glsig_handler_private(handler);
+		GlameTreeItem *itemw;
+		gpsm_grp_t *group;
+		gpsm_item_t *item;
+
+		GLSIGH_GETARGS2(va, group, item);
+
+		/* Find the item widget (child of group widget passed as
+		 * private info) for the item and remove it. */
+		if (!(itemw = glame_tree_find_gpsm_item(groupw, item)))
+			return;
+		glame_tree_remove(GLAME_TREE_ITEM(itemw));
+
+		/* Note, that our signal handler will be deleted by
+		 * the widgets destroy method. (hopefully gtk is sane here) */
+
+		break;
+	}
+	case GPSM_SIG_GRP_NEWITEM: {
+		GtkWidget *tree = glsig_handler_private(handler), *t;
+		gpsm_grp_t *group;
+		gpsm_item_t *item;
+
+		/*
+		 * FIXME: we need to handle subtree addition.
+		 */
+
+		GLSIGH_GETARGS2(va, group, item);
+
+		t = (GtkWidget *)glame_tree_find_gpsm_item((GtkObject *)tree,
+							   (gpsm_item_t *)group);
+		if (t)
+			tree = t;
+
+		/* Insert item (and subitems, if necessary). */
+		handle_grp_add_treeitem(GTK_OBJECT(tree), item);
+
+		break;
+	}
+	default:
+		DPRINTF("Unhandled signal in grp handler (%li)\n", sig);
 	}
 }
+
+static void handle_rootdestroy(GtkWidget *tree, glsig_handler_t *handler)
+{
+	glsig_delete_handler(handler);
+}
+
 
 
 /*
@@ -533,6 +593,7 @@ static void gpsm_private_rebuild(gpsm_grp_t *group, glsig_handler_t *handler)
 GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
 {
 	GtkWidget *tree;
+	gpsm_item_t *item;
 	glsig_handler_t *handler;
 
 	if (!root)
@@ -545,10 +606,17 @@ GtkWidget *glame_swapfile_widget_new(gpsm_grp_t *root)
         gtk_tree_set_selection_mode(GTK_TREE(tree), GTK_SELECTION_BROWSE);
 
 	/* Add the root group and cause "newitem" signals to be sent
-	 * for each item. */
+	 * for each item. -- FIXME we need to delete this handler on
+	 * widget destruction... (gtk signal!?) */
 	handler = glsig_add_handler(gpsm_item_emitter(root),
-			  GPSM_SIG_GRP_NEWITEM, handle_newitem, tree);
-	gpsm_private_rebuild(root, handler);
+			  GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_CHANGED,
+			  handle_grp, tree);
+	gtk_signal_connect(GTK_OBJECT(tree), "destroy",
+			   handle_rootdestroy, handler);
+
+	/* Add all existing childs of the root group to the tree. */
+	gpsm_grp_foreach_item(root, item)
+		handle_grp_add_treeitem(GTK_OBJECT(tree), item);
 
 	return tree;
 }

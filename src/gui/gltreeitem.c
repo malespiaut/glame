@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.6 2001/03/30 08:53:35 richi Exp $
+ * $Id: gltreeitem.c,v 1.7 2001/03/31 14:05:33 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -30,6 +30,10 @@
 
 static void glame_tree_item_destroy(GtkObject *object)
 {
+	GlameTreeItem *item = GLAME_TREE_ITEM(object);
+
+	if (item->handler)
+		glsig_delete_handler(item->handler);
 	GTK_OBJECT_CLASS(gtk_type_class(GTK_TYPE_TREE_ITEM))->destroy(object);
 }
 
@@ -42,8 +46,9 @@ static void glame_tree_item_class_init(GlameTreeItemClass *class)
 
 static void glame_tree_item_init(GlameTreeItem *item)
 {
-	item->item = NULL;
 	item->tree = NULL;
+	item->item = NULL;
+	item->handler = NULL;
 }
 
 GtkType glame_tree_item_get_type(void)

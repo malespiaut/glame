@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.20 2001/03/30 08:53:35 richi Exp $
+ * $Id: main.c,v 1.21 2001/03/31 14:05:33 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -46,11 +46,8 @@ static GtkWidget *app;
 static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
-GtkWidget * gnome_dialog_file_request(const char *windowtitle,
-				      const char *label,
-				      char ** returnbuffer);
-void glame_about(void);
-//extern GtkTree *swapfile_tree;
+static void glame_about(void);
+
 
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
@@ -122,16 +119,25 @@ GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 }
 
 
-
+extern void edit_tree_label(GlameTreeItem * item);
 static void create_new_project_cb(GtkWidget *menu, void * blah)
 {
 	char* name;
-	GlameTreeItem *grp;
-	name = "Unnamed\0";
-//	grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
-//	sw_glame_tree_append(GTK_OBJECT(swapfile_tree),grp);
-//	edit_tree_label(grp);
-	
+	gpsm_grp_t *grp;
+	GlameTreeItem *grpw;
+	name = "Unnamed";
+
+	/* Create new gpsm group. */
+	grp = gpsm_newgrp(name);
+	gpsm_grp_insert(gpsm_root(), (gpsm_item_t *)grp, 0, -1);
+
+	/* Find out which widget it got. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(swapfile), (gpsm_item_t *)grp);
+	if (!grpw) {
+		DPRINTF("Umm, cant find widget for new project.\n");
+		return;
+	}
+	edit_tree_label(grpw);
 }
 
 static void

@@ -1,11 +1,10 @@
 #ifndef _GLAME_GUI_UTILS_H
 #define _GLAME_GUI_UTILS_H
 
-
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.3 2001/03/28 23:18:32 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.4 2001/03/31 14:05:33 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -26,10 +25,6 @@
  * This file (will) have all the visible gui functions 
  */
 
-#define GLAME_LOGO PKGDATADIR "/glame-logo.jpg"
-#define GLAME_DEFAULT_ICON "gnome-question.png"
-#define GLAME_PIXMAP_PATH PKGDATADIR
-#define GLAME_EMERGENCY_PIXMAP "/usr/X11R6/include/X11/bitmaps/xlogo32"
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -39,6 +34,12 @@
 #include "filter.h"
 #include "util.h"
 #include "canvas_types.h"
+
+
+#define GLAME_LOGO PKGDATADIR "/glame-logo.jpg"
+#define GLAME_DEFAULT_ICON "gnome-question.png"
+#define GLAME_PIXMAP_PATH PKGDATADIR
+#define GLAME_EMERGENCY_PIXMAP "/usr/X11R6/include/X11/bitmaps/xlogo32"
 
 
 /* creates a hbox with the label and the widget and adds it 
@@ -67,5 +68,10 @@ int glame_gui_play_network(filter_t * network, gui_network* gui_net);
 int glame_gui_play_network_with_exit(filter_t * network, gui_network* gui_net, void (*atExitFunc)(va_list va) , ... );
 
 
-#endif
+/* From GNOME */
+GtkWidget * gnome_dialog_file_request(const char *windowtitle,
+				      const char *label,
+				      char ** returnbuffer);
 
+
+#endif

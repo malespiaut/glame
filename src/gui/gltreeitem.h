@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.6 2001/03/30 08:53:35 richi Exp $
+ * $Id: gltreeitem.h,v 1.7 2001/03/31 14:05:33 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -26,6 +26,7 @@
 
 #include <gtk/gtktree.h>
 #include <gtk/gtktreeitem.h>
+#include "glsignal.h"
 #include "gpsm.h"
 
 
@@ -44,7 +45,9 @@ struct _GlameTreeItem {
 	/* internal linkage */
 	GtkTree *tree;
 
+	/* gpsm linkage and our signal handler */
 	gpsm_item_t *item;
+	glsig_handler_t *handler;
 };
 
 struct _GlameTreeItemClass {
