@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.2 2001/06/11 08:41:46 richi Exp $
+ * $Id: glame_accelerator.h,v 1.3 2001/06/13 09:25:42 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -27,6 +27,7 @@
 #include <gtk/gtk.h>
 #include <xmlmemory.h>
 #include <tree.h>
+#include "list.h"
 
 
 /* Initialize the accelerator subsystem. Returns 0 on success, -1
@@ -58,6 +59,23 @@ void glame_accel_del(const char *spec, guint state);
 
 /* Deletes all bindings to specifications inside the specified scope. */
 void glame_accel_del_all(const char *scope);
+
+
+struct accel;
+struct accel {
+	struct accel **pprev_accel_hash;
+	struct accel *next_accel_hash;
+	struct list_head list;
+	guint state_mask;
+	guint state;
+	char *spec;
+	char *action;
+};
+
+/* Iterates (safe to delete actual item) through all available
+ * bindings. */
+extern struct list_head _glame_accel_list;
+#define glame_accel_safe_foreach(dummy, accel) list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel)
 
 
 /* Installs a gtk signal handler to the specified widget which binds

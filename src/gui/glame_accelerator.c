@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.5 2001/06/11 12:19:37 nold Exp $
+ * $Id: glame_accelerator.c,v 1.6 2001/06/13 09:25:42 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -48,23 +48,12 @@
  * global variables.
  */ 
 
-struct accel;
-struct accel {
-	struct accel **pprev_accel_hash;
-	struct accel *next_accel_hash;
-	struct list_head list;
-	guint state_mask;
-	guint state;
-	char *spec;
-	char *action;
-};
-
 struct accel_cb_data {
 	GtkWidget *widget;
 	char *scope;
 };
 
-static LIST_HEAD(accel_list);
+LIST_HEAD(_glame_accel_list);
 static int stringhash(const char *spec);
 HASH(accel, struct accel, 8,
      (strcmp(accel->spec, spec) == 0
@@ -198,8 +187,7 @@ static int add_accels(const char *scope, xmlNodePtr node)
 					return -1;
 
 			DPRINTF("Encountered ficken whitespace node! "
-			        "Ignored. (Using libxml2, eh!?)\n", 
-				node->name);
+			        "Ignored. (Using libxml2, eh!?)\n");
 		}
 
 		node = node->next;
@@ -280,7 +268,7 @@ int glame_accel_add(const char *spec, guint state_mask, guint state,
 	if ((old = hash_find_accel(spec, state)))
 		_free_accel(old);
 
-	list_add(&accel->list, &accel_list);
+	list_add(&accel->list, &_glame_accel_list);
 	hash_add_accel(accel);
 
 	return 0;
@@ -301,7 +289,7 @@ void glame_accel_del_all(const char *scope)
 	int len;
 
 	len = strlen(scope);
-	list_safe_foreach(&accel_list, struct accel, list, dummy, accel) {
+	list_safe_foreach(&_glame_accel_list, struct accel, list, dummy, accel) {
 		if (strncmp(accel->spec, scope, len) == 0)
 			_free_accel(accel);
 	}
