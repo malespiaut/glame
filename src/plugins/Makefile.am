@@ -6,7 +6,12 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	rms.c fft.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
-	iir.c
+	iir.c \
+	echo2.scm fft_resample.scm fft_bandpass.scm read_mp3.scm
+
+
+# macro filters
+pkgdata_DATA = echo2.scm fft_resample.scm fft_bandpass.scm read_mp3.scm
 
 # builtin filters
 lib_LTLIBRARIES = libglamebuiltins.la
