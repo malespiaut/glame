@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.3 2001/06/22 08:49:21 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.4 2001/07/05 13:57:52 mag Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -314,6 +314,7 @@ glame_gui_build_plugin_menu_get_cat(struct list_head *cats,
 				    const char *catname)
 {
 	ggbpm_entry *cat;
+	ggbpm_entry *before;
 	char catn[256], *p;
 
 	strncpy(catn, catname, 256);
@@ -334,7 +335,15 @@ glame_gui_build_plugin_menu_get_cat(struct list_head *cats,
 	cat->is_category = 1;
 	cat->u.c.name = strdup(catn);
 	INIT_LIST_HEAD(&cat->u.c.list);
-	list_add_tail(&cat->list, cats);
+
+	before = list_gethead(cats, ggbpm_entry, list);
+	while (before
+	       && strcasecmp(cat->u.c.name, before->u.c.name) > 0)
+		before = list_getnext(cats, before, ggbpm_entry, list);
+	if (!before)
+		list_add_tail(&cat->list, cats);
+	else
+		list_add_tail(&cat->list, &before->list);
 
  recurse:
 	if (!p)
@@ -346,6 +355,7 @@ glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
 {
 	ggbpm_entry *entry;
 	ggbpm_entry *cat;
+	ggbpm_entry *before;
 	const char *catname;
 
 	/* Create entry for plugin with catname */
@@ -360,7 +370,17 @@ glame_gui_build_plugin_menu_add_item(struct list_head *cats, plugin_t *plugin)
 	cat = glame_gui_build_plugin_menu_get_cat(cats, catname);
 
 	/* Add the entry. */
-	list_add_tail(&entry->list, &cat->u.c.list);
+	before = list_gethead(&cat->u.c.list, ggbpm_entry, list);
+	while (before
+	       && strcasecmp(plugin_name(entry->u.p.plugin),
+		             before->is_category
+			       ? before->u.c.name
+			       : plugin_name(before->u.p.plugin)) > 0)
+		before = list_getnext(&cat->u.c.list, before, ggbpm_entry, list);
+	if (!before)
+		list_add_tail(&entry->list, &cat->u.c.list);
+	else
+		list_add_tail(&entry->list, &before->list);
 }
 static void
 glame_gui_build_plugin_menu_genmenu(struct list_head *entries, GtkMenu *menu,
@@ -851,7 +871,6 @@ GdkImlibImage* glame_load_icon(const char *filename, int x, int y)
 	const char * file;
 	char * filepath;
 
-	fprintf(stderr,"load: %s\n",filename);
 	/* no filename given, ->default */
 	if(!filename)
 		file = GLAME_DEFAULT_ICON;
