@@ -1187,10 +1187,10 @@ gtk_wave_view_button_release_event (GtkWidget *widget,
       x = waveview->area->allocation.width /* - 1  no, round up this way */;
 
   frame = calc_frame_pos_win (waveview, x);
-  if (frame < 0)
-	  frame = 0;
   if (waveview->wavebuffer && frame >= gtk_wave_buffer_get_length(waveview->wavebuffer))
       frame = gtk_wave_buffer_get_length(waveview->wavebuffer) - 1; /* correct for round up */
+  if (frame < 0)
+	  frame = 0;
 
   if (FLAGS_IS_CLEAR (waveview->drag_flags))
     return;
