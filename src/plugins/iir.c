@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.12 2001/04/24 15:53:40 xwolf Exp $
+ * $Id: iir.c,v 1.13 2001/05/01 11:24:10 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -371,8 +371,18 @@ int iir_register(plugin_t *p)
 	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"mode",
-				FILTER_PARAMTYPE_INT,0,
-			        FILTERPARAM_DESCRIPTION,"lowpass(0)/highpass(1)",
+				    FILTER_PARAMTYPE_INT, 0,
+				    FILTERPARAM_DESCRIPTION, "lowpass(0)/highpass(1)",
+				    FILTERPARAM_GLADEXML,
+"<?xml version=\"1.0\"?><GTK-Interface><widget>
+    <class>GtkOptionMenu</class>
+    <name>widget</name>
+    <can_focus>True</can_focus>
+    <items>Lowpass
+Highpass
+</items>
+    <initial_choice>0</initial_choice>
+</widget></GTK-Interface>",
 				FILTERPARAM_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"poles",
