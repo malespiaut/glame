@@ -1,4 +1,4 @@
-(let ((plugin (glame_create_plugin
+(let ((plugin (glame_plugin_define
 	(create-net ((one2n "one2n")
 		(fft "fft")
 		(fft_bandpass "fft_bandpass")
@@ -14,5 +14,8 @@
 		      (nodes-connect (list one2n fft fft_bandpass ifft mix))
 		      (nodes-connect (list one2n mix))))
 	"Bass Boost")))
-	(plugin_set plugin PLUGIN_DESCRIPTION "Bass Boost macro filter")
-	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
+	(if (filter_p plugin)
+	   plugin
+	   (begin
+		(plugin_set plugin PLUGIN_DESCRIPTION "Bass Boost macro filter")
+		(plugin_set plugin PLUGIN_CATEGORY "Effects"))))

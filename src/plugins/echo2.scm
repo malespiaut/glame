@@ -1,7 +1,7 @@
 ;
 ; feedback echo2 macro filter
 ;
-(let ((plugin (glame_create_plugin
+(let ((plugin (glame_plugin_define
 	(create-net ((extend "extend")
 	     (mix "mix")
 	     (one2n "one2n")
@@ -18,5 +18,8 @@
 		   (filternode_set_param net "mix" 0.7)
 		   (nodes-connect (list extend mix one2n delay va mix))))
 	"echo2")))
-        (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
-	(plugin_set plugin PLUGIN_CATEGORY "Effects"))
+	(if (filter_p plugin)
+	   plugin
+	   (begin
+              (plugin_set plugin PLUGIN_DESCRIPTION "echo as macro filter")
+	      (plugin_set plugin PLUGIN_CATEGORY "Effects"))))
