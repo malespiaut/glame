@@ -213,6 +213,13 @@ static SCM gls_filter_delete(SCM s_obj)
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_filter_remove(SCM s_obj)
+{
+	SCM_ASSERT(filter_p(s_obj), s_obj, SCM_ARG1, "filter-remove");
+	filter_remove(scm2filter(s_obj));
+	return SCM_UNSPECIFIED;
+}
+
 static SCM gls_filter_to_string(SCM s_net)
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_to_string");
@@ -610,7 +617,7 @@ static SCM gls_filter_wait(SCM s_net)
 
 static SCM gls_filter_terminate(SCM s_net)
 {
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_terminate");
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter-terminate");
 	filter_terminate(scm2filter(s_net));
 	return SCM_UNSPECIFIED;
 }
@@ -625,9 +632,9 @@ static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	int namel;
 	int res;
 
-	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_add_node");
-	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG2, "filter_add_node");
-	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG3, "filter_add_node");
+	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter-add-node");
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG2, "filter-add-node");
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG3, "filter-add-node");
 	net = scm2filter(s_net);
 	filter = scm2filter(s_filter);
 	name = gh_scm2newstr(s_name, &namel);
@@ -636,6 +643,43 @@ static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	if (res == -1)
 		GLAME_THROW();
 	return s_filter;
+}
+
+static SCM gls_filter_expand(SCM s_filter)
+{
+	SCM_ASSERT(filter_p(s_filter), s_filter, SCM_ARG1, "filter-expand");
+	if (filter_expand(scm2filter(s_filter)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_filter_collapse(SCM s_name, SCM s_nodes)
+{
+	filter_t **nodes, *net;
+	SCM s_tail;
+	char *name;
+	int cnt, i, len;
+	SCM_ASSERT(gh_string_p(s_name), s_name, SCM_ARG1, "filter-collapse");
+	SCM_ASSERT(gh_list_p(s_nodes), s_nodes, SCM_ARG2, "filter-collapse");
+
+	cnt = gh_length(s_nodes);
+	nodes = (filter_t **)alloca((cnt+1)*sizeof(filter_t *));
+	s_tail = s_nodes;
+	i = 0;
+	while (!gh_null_p(s_tail)) {
+		SCM_ASSERT(filter_p(gh_car(s_tail)), s_nodes, SCM_ARG2, "filter-collapse");
+		nodes[i++] = scm2filter(gh_car(s_tail));
+		s_tail = gh_cdr(s_tail);
+	}
+	nodes[i] = NULL;
+	name = gh_scm2newstr(s_name, &len);
+
+	net = filter_collapse(name, nodes);
+	free(name);
+
+	if (!net)
+		GLAME_THROW();
+	return filter2scm(net);
 }
 
 static SCM gls_filter_connect(SCM s_source, SCM s_source_port,
@@ -945,6 +989,7 @@ int glscript_init_filter()
 	gh_new_procedure1_0("filter?", gls_is_filter);
 	gh_new_procedure0_1("filter-new", gls_filter_new);
 	gh_new_procedure1_0("filter-delete", gls_filter_delete);
+	gh_new_procedure1_0("filter-remove", gls_filter_remove);
 	gh_new_procedure1_0("filter-name", gls_filter_name);
 	gh_new_procedure1_0("filter-nodes", gls_filter_nodes);
 	gh_new_procedure1_0("filter-ports", gls_filter_ports);
@@ -991,6 +1036,8 @@ int glscript_init_filter()
 
 
 	gh_new_procedure3_0("filter-add-node", gls_filter_add_node);
+	gh_new_procedure1_0("filter-expand", gls_filter_expand);
+	gh_new_procedure2_0("filter-collapse", gls_filter_collapse);
 	gh_new_procedure4_0("filter-connect", gls_filter_connect);
 
 	gh_new_procedure5_0("filternetwork-add-input",
