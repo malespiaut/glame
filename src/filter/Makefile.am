@@ -14,7 +14,7 @@ libfilter_la_SOURCES = filter.h filterI.h filter_methods.h \
 	basic.c basic_sample.c tutorial.c debug.c channel_io.c audio_io.c \
 	waveform.c file_io.c \
 	echo.c garrison.c nold.c \
-	basic_midi.c midi_io.c maggy.c
+	basic_midi.c midi_io.c midi_debug.c maggy.c
 
 
 test_latency_SOURCES = test_latency.c

@@ -19,6 +19,75 @@
  *
  */
 
-#include "filter.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-/* FIXME - needs ALSA and OSS support */
+#include "filter.h"
+#include "midi.h"
+
+#ifdef HAVE_ALSA
+
+#include <sys/asoundlib.h>
+
+int alsa_midi_out_f (filter_node_t *n)
+{
+#if 0
+	filter_buffer_t *buf;
+	filter_pipe_t *in;
+	midi_event_t *mev;
+	snd_seq_t *seq_handle = NULL;
+	snd_seq_event_t sev;
+	int cnt;
+
+	if    (/*!(subs.sender.client = filterparam_val_int(filternode_get_param(n, "client")))
+	    || !(subs.sender.port   = filterparam_val_int(filternode_get_param(n, "port")))
+	    || !(subs.dest.client   = filterparam_val_int(filternode_get_param(n, "dest_client")))
+	    || !(subs.dest.port     = filterparam_val_int(filternode_get_param(n, "dest_port")))
+	    || */!(in = filternode_get_input(n, PORTNAME_IN)))
+		return -1;
+
+	if (snd_seq_open(&seq_handle, SND_SEQ_OPEN) < 0)
+		return -1;
+	snd_seq_set_client_name(seq_handle, "GLAME");
+	snd_seq_set_client_group(seq_handle, "input");
+
+	FILTER_AFTER_INIT;
+
+	while ((buf = mbuf_get(in))) {
+		FILTER_CHECK_STOP;
+		cnt = mbuf_size(buf);
+		mev = mbuf_buf(buf);
+		while (cnt--) {
+			1;
+			mev++;
+		}
+		mbuf_unref(buf);
+	}
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+#endif
+
+	return 0;
+}
+
+#endif
+
+extern int midi_io_register()
+{
+	filter_t *f;
+
+#ifdef HAVE_ALSA
+	if (!(f = filter_alloc("midi_out", "alsa midi output", alsa_midi_out_f))
+	    || !filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_MIDI)
+	    || !filter_add_param(f, "client", "alsa client number", FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f, "port", "alsa port number", FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f, "dest_client", "remote client number", FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f, "dest_port", "remote port number", FILTER_PARAMTYPE_INT)
+	    || filter_add(f))
+		return -1;
+#endif
+
+	return 0;
+}

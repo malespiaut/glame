@@ -24,6 +24,7 @@
 #define	MIDI_BYTE_STATUS(ev)		(ev.b[0])
 #define	MIDI_BYTE_DATA1(ev)		(ev.b[1])
 #define	MIDI_BYTE_DATA2(ev)		(ev.b[2])
+#define	MIDI_BYTE_FLAGS(ev)		(ev.flags)
 
 #define	MIDI_EVENT_IS_SYSTEM(ev)	((MIDI_BYTE_STATUS(ev) & 0xF0) == 0xF0)
 #define	MIDI_EVENT_IS_CHANNEL(ev)	((MIDI_BYTE_STATUS(ev) & 0xF0) != 0xF0)

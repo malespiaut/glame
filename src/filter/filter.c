@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.26 2000/02/25 14:15:04 richi Exp $
+ * $Id: filter.c,v 1.27 2000/02/28 00:33:44 garrison Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -48,6 +48,7 @@ extern int echo_register();
 extern int garrison_register();
 extern int nold_register();
 extern int basic_midi_register();
+extern int midi_io_register();
 extern int maggy_register();
 
 int filter_init()
@@ -97,6 +98,12 @@ int filter_init()
 		return -1;
 	
 	if (basic_midi_register() == -1)
+		return -1;
+
+	if (midi_io_register() == -1)
+		return -1;
+
+	if (midi_debug_register() == -1)
 		return -1;
 
 	if (maggy_register() == -1)
