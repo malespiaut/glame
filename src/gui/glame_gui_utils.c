@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.4 2001/04/09 09:18:48 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.5 2001/04/09 15:42:45 nold Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -160,23 +160,3 @@ int glame_gui_play_network(filter_t * network, gui_network * gui_net)
 	return _glame_gui_play_network(play);
 }
 
-
-int glame_gui_play_network_with_exit(filter_t * network, gui_network* gui_net, void (*atExitFunc)(va_list va) , ... )
-{
-	play_struct_t* play;
-	va_list va;
-	play = malloc(sizeof(play_struct_t));
-	
-	play->net = network;
-	play->gui = gui_net;
-
-
-
-	/* FIXMEEEEE hows this va_shit working?  */
-	va_start(va,atExitFunc);
-	play->atExitFunc = (GtkFunction)atExitFunc;
-	play->va = va;
-	va_end(va);
-
-	return _glame_gui_play_network(play);
-}
