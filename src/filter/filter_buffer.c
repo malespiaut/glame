@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.10 2000/02/08 14:50:33 richi Exp $
+ * $Id: filter_buffer.c,v 1.11 2000/02/09 02:08:16 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -104,13 +104,13 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
         void *buf[64];
-	int res, cnt = 64;
+	int res, cnt = 64*sizeof(void *);
 
 	if (!p)
 		return NULL;
 
 	do {
-		while ((res = read(p->dest_fd, buf, cnt*sizeof(void *))) == -1
+		while ((res = read(p->dest_fd, buf, cnt)) == -1
 		       && errno == EINTR)
 			;
 		cnt -= res;

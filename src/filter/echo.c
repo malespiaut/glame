@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.4 2000/02/07 12:43:11 richi Exp $
+ * $Id: echo.c,v 1.5 2000/02/09 02:08:16 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert 
  *
@@ -40,6 +40,7 @@ static int echo_f(filter_node_t *n)
 	int ringp;
 	float mix;
 	int binpos,boutpos;
+        int sent=0,received=0;
 	
 	in=hash_find_input("in",n);
 	out=hash_find_output("out",n);
@@ -75,6 +76,7 @@ static int echo_f(filter_node_t *n)
 	binpos=0;
 	
 	while(pthread_testcancel(),bin){
+		received++;
 		bout=sbuf_alloc(sbuf_size(bin), n);
 		boutpos=0;
 		while(binpos<sbuf_size(bin)){
@@ -85,11 +87,12 @@ static int echo_f(filter_node_t *n)
 			binpos++;
 		}
 		sbuf_queue(out,bout);
+		sent++;
 		sbuf_unref(bin);
 		bin=sbuf_get(in);
 		binpos=0;
 	}
-	
+
 	/* Empty ring buffer */
 	
 	bout=sbuf_alloc(bufsiz,n);
@@ -100,7 +103,9 @@ static int echo_f(filter_node_t *n)
 	}
 	sbuf_queue(out,bout);
 	sbuf_queue(out,NULL);
+	sent++;
 
+	DPRINTF("sent=%d received=%d\n",sent,received);
 	FILTER_BEFORE_CLEANUP;
 	free(ring);
 

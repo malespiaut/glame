@@ -1,6 +1,6 @@
 /*
  * test_play.c
- * $Id: test_play.c,v 1.5 2000/02/07 00:09:07 mag Exp $
+ * $Id: test_play.c,v 1.6 2000/02/09 02:08:16 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -120,6 +120,8 @@ int main(int argc, char **argv)
 	}
 
 	fprintf(stderr, "all done.\n");
+
+	filternetwork_save(net,"test_play.net");
 
 	return 0;
 }

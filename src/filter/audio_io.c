@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.14 2000/02/08 14:50:33 richi Exp $
+ * $Id: audio_io.c,v 1.15 2000/02/09 02:08:16 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -125,7 +125,7 @@ static int esd_out_f(filter_node_t *n)
 	char *name = NULL;
         short int *wbuf = NULL;
 	int written,size,cnt=0;
-
+	
 	/* query both input channels, one channel only -> MONO
 	 * (always left), else STEREO output (but with the same
 	 * samplerate, please!). */
@@ -144,7 +144,7 @@ static int esd_out_f(filter_node_t *n)
 	if (right && right->u.sample.rate != rate)
 		return -1;
 	/* finally decide mono/stereo */
-	if (right)
+	if (!right)
 		format |= ESD_MONO;
 	else
 		format |= ESD_STEREO;
@@ -156,17 +156,29 @@ static int esd_out_f(filter_node_t *n)
 		return -1;
 	}
 
-	DPRINTF("Trying to open esd-socket!\n");
+	if(!rate){
+		DPRINTF("Input filter didn't supply rate info, assuming 44,1kHz\n");
+		rate=44100;
+	}
+	
+	if(format&ESD_MONO) 
+		DPRINTF("Playing mono!\n");
+	else
+		DPRINTF("Playing stereo!\n");
+	
+	DPRINTF("Trying to open esd-socket with rate=%d!\n",rate);
 	esound_socket = esd_play_stream_fallback(format, rate, host, name);
-	if (esound_socket == -1) {
+	if (esound_socket<=0) {
 	        DPRINTF("couldn't open esd-socket connection!\n");
 	        return -1;
         }
-
+	DPRINTF("esound_socket %d\n",esound_socket);
+	
 	FILTER_AFTER_INIT;
 
 
 	/* get the first buffers to start with something */
+	DPRINTF("Waiting for buffers to come...\n");
 	lbuf = sbuf_get(left);
 	DPRINTF("Got left sbuf with size %d\n", sbuf_size(lbuf));
 	rbuf = sbuf_get(right);

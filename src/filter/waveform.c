@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.9 2000/02/07 16:12:50 richi Exp $
+ * $Id: waveform.c,v 1.10 2000/02/09 02:08:16 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -78,6 +78,7 @@ static int sinus_f(filter_node_t *n)
 		sbuf_queue(out, buf);
 	}
 	sbuf_queue(out, NULL);
+	DPRINTF("All buffers sent!\n");
 
 	FILTER_BEFORE_CLEANUP;
 	sbuf_unref(buf);
