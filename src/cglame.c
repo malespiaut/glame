@@ -33,6 +33,8 @@
 #include "gpsm.h"
 #include "glconfig.h"
 
+/* HACK */
+extern void swcluster_set_cache(int, int, int, size_t);
 
 int cmd_argc;
 char **cmd_argv;
