@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.41 2001/12/13 14:58:21 richi Exp $
+ * $Id: glplugin.c,v 1.42 2002/01/20 15:19:09 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -262,10 +262,9 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 static int try_load_plugin(plugin_t *p, const char *name, const char *filename)
 {
 	/* First try to open the specified shared object. */
-	if (filename && access(filename, R_OK) == -1)
-		return -1;
 	if (!(p->handle = lt_dlopenext(filename))) {
-		DPRINTF("dlopen(%s): %s\n", filename, lt_dlerror());
+		if (errno != ENOENT)
+			DPRINTF("dlopen(%s): %s\n", filename, lt_dlerror());
 		return -1;
 	}
 
