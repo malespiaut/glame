@@ -349,11 +349,11 @@ static void play_cleanup(glsig_handler_t *handler,
 
 	/* restore normal play button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(waveedit->toolbar)), 5)->data);
+		GTK_CONTAINER(waveedit->toolbar)), 6)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
 				_("Play"), _("Play"), _("Play"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
-				playrecordtoolbar_cb, waveedit->waveview, 7);
+				playrecordtoolbar_cb, waveedit->waveview, 9);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -534,11 +534,11 @@ static void play(GtkWaveView *waveview,
 
 	/* exchange play for stop button -- wheee, gtk suxx. */
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
-		GTK_CONTAINER(active_waveedit->toolbar)), 5)->data);
+		GTK_CONTAINER(active_waveedit->toolbar)), 6)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(active_waveedit->toolbar),
 				_("Stop"), _("Stop"), _("Stop"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_STOP),
-				playrecordtoolbar_cb, active_waveedit->waveview, 7);
+				playrecordtoolbar_cb, active_waveedit->waveview, 9);
 	active_waveedit->locked = 1;
 
 	return;
@@ -1180,6 +1180,11 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	window->toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL,
 					  GTK_TOOLBAR_ICONS);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
+				_("Export"), _("Export"), _("Export"),
+				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE),
+				wave_export_cb, window);
+	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Zoom in"), _("Zoom in"), _("Zoom in"),
 				glame_load_icon_widget("zoom_in.png",24,24),
 				zoomin_cb, window->waveview);
@@ -1215,10 +1220,6 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				waveedit_rmb_cb2, window->waveview);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Export"), _("Export"), _("Export"),
-				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_SAVE),
-				wave_export_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Close"), _("Close"), _("Close"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
