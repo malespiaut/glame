@@ -1,4 +1,4 @@
-@comment $Id: quickstart.texi,v 1.6 2001/12/23 14:59:27 nold Exp $
+@comment $Id: quickstart.texi,v 1.7 2002/07/18 07:37:28 nold Exp $
 
 @node Quick Start Guide, Graphical Frontend, Copying, Top
 @chapter Quick Start Guide
@@ -178,7 +178,7 @@ day.  Your smartass neighbour is likely to mention something about ALSA being
 so much better.  "The day ALSA can be considered stable is unlikely to be in
 the same century that Bozo holds parties," is a good answer.  Learn it by
 heart.  The curious of course can try whether there's a GLAME plugin compatible
-to the ALSA version du jour.  If your lucky, @file{plughw:0,0} and 
+to the ALSA version du jour.  If you're lucky, @file{plughw:0,0} and 
 @file{plughw:1,0} might be the correct settings for input and output.
 Probably they aren't.
 
