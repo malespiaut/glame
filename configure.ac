@@ -343,13 +343,15 @@ LDFLAGS=$ac_saved_ldflags
 CPPFLAGS=$ac_saved_cppflags
 if test $laf = yes; then
         if test $afconfig = yes; then
-		GLAME_LIBS="$GLAME_LIBS `audiofile-config --libs`"
-		GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR `audiofile-config --cflags`"
+		AUDIOFILE_LIBS="`audiofile-config --libs`"
+		AUDIOFILE_CFLAGS="`audiofile-config --cflags`"
 	else
-		GLAME_LIBS="$GLAME_LIBS $ac_audiofile_libs -laudiofile"
+		AUDIOFILE_LIBS="$ac_audiofile_libs -laudiofile"
 	fi
 	AC_DEFINE(HAVE_AUDIOFILE,, [have audiofile])
 fi
+AC_SUBST(AUDIOFILE_LIBS)
+AC_SUBST(AUDIOFILE_CFLAGS)
 
 
 dnl check for OSS
