@@ -437,6 +437,7 @@ int gpsm_init(const char *swapfile)
 		xml[st.size] = '\0';
 		sw_close(fd);
 	} else {
+empty:
 		/* Seems to be empty swapfile - use "default" xml. */
 		xml = strdup(""
 "<?xml version=\"1.0\"?>\n"
@@ -445,8 +446,9 @@ int gpsm_init(const char *swapfile)
 
 	/* Try to parse the xml string. */
 	if (!(doc = xmlParseMemory(xml, strlen(xml)))) {
+		/* Doh. Failed. Startup with empty meta. */
 		free(xml);
-		return -1;
+		goto empty;
 	}
 
 	/* Init the op list. */
