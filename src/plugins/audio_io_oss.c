@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.3 2001/04/11 13:25:51 richi Exp $
+ * $Id: audio_io_oss.c,v 1.4 2001/04/12 08:39:22 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -57,7 +57,7 @@ typedef struct {
 /* Conversion from our internal float to the output format (8 or 16 bit)
  * in done in this helper routine.
  */
-void oss_convert_bufs(oss_audioparam_t *in, gl_u8 *out, int max_ch,
+void oss_convert_bufs(oss_audioparam_t *in, gl_s8 *out, int max_ch,
                       int ssize, int chunk_size, int interleave)
 {
 	int i, done;
@@ -65,27 +65,76 @@ void oss_convert_bufs(oss_audioparam_t *in, gl_u8 *out, int max_ch,
 	for (i = 0; i < max_ch; i++) {
 		if (!in[i].buf) {
 			/* No more input - add silence. */
-			if (ssize == 1) {
+			switch (ssize) {
+			case -2:
+			{
+				gl_s16 neutral = SAMPLE2SHORT(0.0);
+				for (done = 0; done < chunk_size; done++)
+					*(gl_s16 *)(out + done*interleave 
+							+ 2*i) = neutral;
+				continue;
+			}	
+			case -1:
+			{
+				gl_s8 neutral = SAMPLE2CHAR(0.0);
+				for (done = 0; done < chunk_size; done++)
+					*(gl_s8 *)(out + done*interleave + i)
+						= neutral;
+				continue;
+			}
+			case 1:
+			{
 				gl_u8 neutral = SAMPLE2UCHAR(0.0);
 				for (done = 0; done < chunk_size; done++)
-					*(out + done*interleave + i) = neutral;
-			} else {
-				/* ssize == 2 */
+					*(gl_u8 *)(out + done*interleave + i)
+						= neutral;
+				continue;
+			}
+			case 2:
+			{
 				gl_u16 neutral = SAMPLE2USHORT(0.0);
 				for (done = 0; done < chunk_size; done++)
 					*(gl_u16 *)(out + done*interleave 
 							+ 2*i) = neutral;
+				continue;
 			}
-			continue;
+			default:
+				break;
+			}
+			/* Umm..., PANIC()? So what. Will never happen
+			 * anyway. ;-)
+			 */
+			DERROR("Unsupported sample size");
+			return;
 		}
-		if (ssize == 1) 
+		switch (ssize) {
+		case -2:
 			for (done = 0; done < chunk_size; done++)
-				*(out + done*interleave + i) =
+				*(gl_s16 *)(out + done*interleave +  2*i) =
+					SAMPLE2SHORT(sbuf_buf(in[i].buf)[in[i].pos++]);
+			break;
+		case -1:
+			for (done = 0; done < chunk_size; done++)
+				*(gl_s8 *)(out + done*interleave + i) =
+					SAMPLE2CHAR(sbuf_buf(in[i].buf)[in[i].pos++]); 
+			break;
+		case 1:
+			for (done = 0; done < chunk_size; done++)
+				*(gl_u8 *)(out + done*interleave + i) =
 					SAMPLE2UCHAR(sbuf_buf(in[i].buf)[in[i].pos++]); 
-		else /* ssize == 2 */
+			break;
+		case 2:
 			for (done = 0; done < chunk_size; done++)
 				*(gl_u16 *)(out + done*interleave +  2*i) =
 					SAMPLE2USHORT(sbuf_buf(in[i].buf)[in[i].pos++]);
+			break;
+		default:
+			/* Umm..., PANIC()? So what. Will never happen
+			 * anyway. ;-)
+			 */
+			DERROR("Unsupported sample size");
+			return;
+		}
 
 		in[i].to_go -= done;
 	}		
@@ -99,11 +148,11 @@ static int oss_audio_out_f(filter_t *n)
 {
 
 	oss_audioparam_t	*in = NULL;
-	gl_u8			*out = NULL;
+	gl_s8			*out = NULL;
 	filter_pipe_t		*p_in;
 	int			rate;
 	int			formats;
-	int			blksz, ssize = 0;
+	int			blksz, sign, ssize = 0;
 
 	int	ch, max_ch, interleave, ch_active;
 	int	chunk_size;
@@ -163,13 +212,26 @@ static int oss_audio_out_f(filter_t *n)
 
 	if (ioctl(dev, SNDCTL_DSP_GETFMTS, &formats) == -1)	
 		FILTER_ERROR_CLEANUP("Error querying available audio formats.\n");
-	if (formats & AFMT_U16_NE) {
+	/* XXX: OSS implementation on PPC fucks up unsigned formats. Start with
+	 *      signed therefore and hope for the best. [dk]
+	 */
+	if (formats & AFMT_S16_NE) {
+		formats = AFMT_S16_NE;
+		ssize = 2;
+		sign = -1;
+	} else if (formats & AFMT_U16_NE) {
 		formats = AFMT_U16_NE;
 		ssize = 2;
-	} else if (formats & AFMT_U8) {
-		formats = AFMT_U8;	/* Must be supported */
+		sign = 1;
+	} else if (formats & AFMT_S8) {
+		formats = AFMT_S8;
 		ssize = 1;
-	} else 
+		sign = -1;
+	} else if (formats & AFMT_U8) {
+		formats = AFMT_U8;	/* Has to be supported */
+		ssize = 1;		/* according to specs. */
+		sign = 1;
+	} else
 		PANIC("OSS implementation not to specs!");
 
 	if (ioctl(dev, SNDCTL_DSP_SETFMT, &formats) == -1)
@@ -181,7 +243,7 @@ static int oss_audio_out_f(filter_t *n)
 		PANIC("Illegal size of audio buffer!");
 
 	/* Allocate conversion buffer */
-	out = (gl_u8 *)malloc(blksz);
+	out = (gl_s8 *)malloc(blksz);
 	if (!out)
 		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
 	
@@ -198,7 +260,7 @@ static int oss_audio_out_f(filter_t *n)
 		ssize_t todo = chunk_size * interleave;
 		void *wpos = out;
 		
-		oss_convert_bufs(in, out, max_ch, ssize, chunk_size, 
+		oss_convert_bufs(in, out, max_ch, sign*ssize, chunk_size, 
 		                 interleave);
 		do {
 			ssize_t done;
