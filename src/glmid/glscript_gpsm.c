@@ -400,10 +400,12 @@ static SCM gls_gpsm_newgrp(SCM s_label)
 
 static SCM gls_gpsm_item_destroy(SCM s_item)
 {
+	gpsm_item_t *item;
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-destroy");
-	gpsm_item_destroy(scm2gpsmitem(s_item));
+	item = scm2gpsmitem(s_item);
 	scminvalidategpsmitem(s_item);
+	gpsm_item_destroy(item);
 	return SCM_UNSPECIFIED;
 }
 

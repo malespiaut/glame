@@ -207,9 +207,11 @@ static SCM gls_filter_new(SCM s_object)
 
 static SCM gls_filter_delete(SCM s_obj)
 {
+	filter_t *filter;
 	SCM_ASSERT(filter_p(s_obj), s_obj, SCM_ARG1, "filter-delete");
-	filter_delete(scm2filter(s_obj));
+	filter = scm2filter(s_obj);
 	scminvalidatefilter(s_obj);
+	filter_delete(filter);
 	return SCM_UNSPECIFIED;
 }
 
@@ -279,9 +281,11 @@ static SCM gls_is_port(SCM s_port)
 
 static SCM gls_port_delete(SCM s_obj)
 {
+	filter_port_t *port;
 	SCM_ASSERT(port_p(s_obj), s_obj, SCM_ARG1, "port-delete");
-	filterport_delete(scm2port(s_obj));
+	port = scm2port(s_obj);
 	scminvalidateport(s_obj);
+	filterport_delete(port);
 	return SCM_UNSPECIFIED;
 }
 
@@ -349,9 +353,11 @@ static SCM gls_is_pipe_ssp(SCM s_pipe)
 
 static SCM gls_pipe_delete(SCM s_obj)
 {
+	filter_pipe_t *pipe;
 	SCM_ASSERT(pipe_p(s_obj), s_obj, SCM_ARG1, "pipe-delete");
-	filterpipe_delete(scm2pipe(s_obj));
+	pipe = scm2pipe(s_obj);
 	scminvalidatepipe(s_obj);
+	filterpipe_delete(pipe);
 	return SCM_UNSPECIFIED;
 }
 
@@ -419,9 +425,11 @@ static SCM gls_is_param(SCM s_param)
 
 static SCM gls_param_delete(SCM s_obj)
 {
+	filter_param_t *param;
 	SCM_ASSERT(param_p(s_obj), s_obj, SCM_ARG1, "param-delete");
-	filterparam_delete(scm2param(s_obj));
+	param = scm2param(s_obj);
 	scminvalidateparam(s_obj);
+	filterparam_delete(param);
 	return SCM_UNSPECIFIED;
 }
 

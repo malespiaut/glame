@@ -198,10 +198,12 @@ static SCM gls_sw_open(SCM s_name, SCM s_flags)
 
 static SCM gls_sw_close(SCM s_fd)
 {
+	swfd_t fd;
 	SCM_ASSERT(swfd_p(s_fd), s_fd, SCM_ARG1, "sw-close");
-	if (sw_close(scm2swfd(s_fd)) == -1)
-		GLAME_THROW_ERRNO();
+	fd = scm2swfd(s_fd);
 	scminvalidateswfd(s_fd);
+	if (sw_close(fd) == -1)
+		GLAME_THROW_ERRNO();
 	return SCM_UNSPECIFIED;
 }
 
