@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.30 2003/07/08 20:29:39 richi Exp $
+ * $Id: importexport.c,v 1.31 2004/01/06 22:59:56 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -107,6 +107,10 @@ struct imp_s {
 	int mad_err_at_eof;
 	const char *mad_last_err;
 	char *mad_buffer;
+	int mad_channels;
+	swfd_t *mad_swfds;
+	int mad_bufsize;
+	char *mad_buf;
 #endif
 };
 
@@ -202,7 +206,7 @@ static void ie_import_ogg(struct imp_s *ie)
 		 */
 		ret = ov_read_float(&vf, &ssbuf, 
 #if (GL_OV_READ_FLOAT_ARGS == 4)
-		                    GLAME_BULK_BUFSIZE, 
+		                    GLAME_IO_BUFSIZE, 
 #endif
 				    &current_section);
 		if (ret <= 0) /* error or EOF */
@@ -279,7 +283,6 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		     struct mad_pcm *pcm)
 {
 	struct imp_s *ie = data;
-	SAMPLE *buf;
 	int i;
 
 	/* Need to ignore frames with (recovered) error. */
@@ -292,6 +295,8 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 	if (ie->mad_pos == 0) {
 		/* alloc gpsm group, etc. */
 		ie->item = (gpsm_item_t *)gpsm_newgrp(g_basename(ie->filename));
+		ie->mad_swfds = malloc(pcm->channels * sizeof(swfd_t));
+		ie->mad_channels = pcm->channels;
 		for (i=0; i<pcm->channels; ++i) {
 			char label[16];
 			gpsm_swfile_t *swfile;
@@ -304,31 +309,42 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 					   : FILTER_PIPEPOS_RIGHT)
 					: FILTER_PIPEPOS_CENTRE);
 			gpsm_item_place((gpsm_grp_t *)ie->item, (gpsm_item_t *)swfile, 0, i);
+			ie->mad_swfds[i] = sw_open(gpsm_swfile_filename(swfile), O_RDWR);
+			sw_ftruncate(ie->mad_swfds[i], GLAME_IO_BUFSIZE);
 		}
 	}
 
-	buf = malloc(SAMPLE_SIZE*pcm->length);
+	if (!ie->mad_buf
+	    || ie->mad_bufsize < pcm->length) {
+		if (ie->mad_buf)
+			free(ie->mad_buf);
+		DPRINTF("mad buffer size %i samples\n", pcm->length);
+		ie->mad_buf = malloc(SAMPLE_SIZE*pcm->length);
+		ie->mad_bufsize = pcm->length;
+	}
 	for (i=0; i<pcm->channels; ++i) {
 		unsigned int nsamples = pcm->length;
 		mad_fixed_t const *data = pcm->samples[i];
-		SAMPLE *b = buf;
-		gpsm_swfile_t *file = gpsm_find_swfile_vposition((gpsm_grp_t *)ie->item, NULL, i);
-		swfd_t fd;
-		fd = sw_open(gpsm_swfile_filename(file), O_RDWR);
-		sw_lseek(fd, 0, SEEK_END);
+		SAMPLE *b = (SAMPLE *)ie->mad_buf;
+
+		/* Expand file, if we're going into the next IO sized chunk. */
+		if (ie->mad_pos/GLAME_IO_BUFSIZE
+		    < (ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE)
+			sw_ftruncate(ie->mad_swfds[i],
+				     GLAME_IO_BUFSIZE*(1+(ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE));
 
 		while (nsamples--)
 		    *b++ = mad_f_todouble(*data++);
 
-		sw_write(fd, buf, SAMPLE_SIZE*pcm->length);
-		sw_close(fd);
+		sw_write(ie->mad_swfds[i], ie->mad_buf, SAMPLE_SIZE*pcm->length);
 	}
-	free(buf);
 
 	ie->mad_pos += pcm->length;
 
-	/* show progress, be friendly to gtk */
-	gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
+	/* show progress, be friendly to gtk 
+	gtk_progress_bar_set_fraction(
+		gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)),
+		(double)ie->mad_pos/(double)ie->mad_length); */
 	while (gtk_events_pending())
 		gtk_main_iteration();
 	if (ie->cancelled)
@@ -338,9 +354,8 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 }
 static void ie_import_mp3(struct imp_s *ie)
 {
-	int fd;
+	int fd, i;
 	struct stat s;
-	char *buf;
 	struct mad_decoder decoder;
 	int result;
 
@@ -358,6 +373,8 @@ static void ie_import_mp3(struct imp_s *ie)
 		close(fd);
 		return;
 	}
+	ie->mad_buf = NULL;
+	ie->mad_bufsize = 0;
 
 	mad_decoder_init(&decoder, ie,
 			 ie_import_mp3_input, 0, 0,
@@ -370,7 +387,14 @@ static void ie_import_mp3(struct imp_s *ie)
 	result = mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);
 	mad_decoder_finish(&decoder);
 
-	munmap(buf, s.st_size);
+	for (i=0; i<ie->mad_channels; ++i) {
+		sw_ftruncate(ie->mad_swfds[i], sw_lseek(ie->mad_swfds[i], 0, SEEK_CUR));
+		sw_close(ie->mad_swfds[i]);
+	}
+	if (ie->mad_buf)
+		free(ie->mad_buf);
+
+	munmap(ie->mad_buffer, s.st_size);
 	close(fd);
 
 	if (result == 0) {
@@ -589,7 +613,7 @@ static void ie_preview_cb(GtkWidget *bla, struct imp_s *ie)
 	DPRINTF("Not implemented\n");
 }
 
-static void ie_update_plabels(struct imp_s *ie)
+static int ie_update_plabels(struct imp_s *ie)
 {
 	filter_param_t *fparam;
 	gchar *property;
@@ -608,8 +632,8 @@ static void ie_update_plabels(struct imp_s *ie)
 			sprintf(buffer, "%s format", ftlabel[ftype]);
 		else
 			sprintf(buffer, "You shouldn't see this :)");
-	} else	
-		sprintf(buffer, "nan");
+	} else
+		return -1;
 
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), buffer);
 	
@@ -653,6 +677,8 @@ static void ie_update_plabels(struct imp_s *ie)
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[4]), buffer);
 	sprintf(buffer, "%f", ie->maxrms);
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[6]), buffer);
+
+	return 0;
 }
 
 static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
@@ -797,13 +823,21 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 	if (!mimetype) {
 		DPRINTF("Cannot get mimetype for %s\n", ie->filename);
 		ie->gotfile = 0;
+		ie->gotstats = 0;
+		gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), "unknown");
+		for(i=1; i<MAX_PROPS; i++)
+			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "-");
+		gtk_widget_set_sensitive(ie->checkresample, FALSE);
+		gtk_widget_set_sensitive(ie->rateentry, FALSE);
+		gtk_widget_set_sensitive(ie->getstats, FALSE);
 		return;
 	}
 	gtk_label_set_text(GTK_LABEL(ie->fi_plabel[0]), mimetype);
 	DPRINTF("Got file %s with mimetype %s\n", ie->filename, mimetype);
 
 	/* check if its an mp3 */
-	if (strcmp(mimetype, "audio/x-mp3") == 0) {
+	if (strcmp(mimetype, "audio/x-mp3") == 0
+	    || strcmp(mimetype, "audio/mpeg") == 0) {
 		ie->gotfile = 2;
 		ie->gotstats = 0;
 		for(i=1; i<MAX_PROPS; i++)
@@ -814,9 +848,11 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 		g_free(mimetype);
 		return;
 	}
-	/* check if its an mp3 */
+
+	/* check if its an ogg */
 	if (strcmp(mimetype, "audio/x-ogg") == 0
-	    || strcmp(mimetype, "application/x-ogg") == 0) {
+	    || strcmp(mimetype, "application/x-ogg") == 0
+	    || strcmp(mimetype, "application/ogg") == 0) {
 		ie->gotfile = 3;
 		ie->gotstats = 0;
 		for(i=1; i<MAX_PROPS; i++)
@@ -827,22 +863,23 @@ static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 		g_free(mimetype);
 		return;
 	}
+	g_free(mimetype);
 
-	if (strncmp(mimetype, "audio/", 6) != 0) {
+	/* check if it's not recognized by the audio_in plugin */
+	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
+	filterparam_set(fparam, &(ie->filename));
+	ie_update_plabels(ie);
+	if (ie_update_plabels(ie) == -1) {
+		ie->gotfile = 0;
+		ie->gotstats = 0;
 		for(i=1; i<MAX_PROPS; i++)
 			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "-");
 		gtk_widget_set_sensitive(ie->checkresample, FALSE);
 		gtk_widget_set_sensitive(ie->rateentry, FALSE);
 		gtk_widget_set_sensitive(ie->getstats, FALSE);
-		g_free(mimetype);
 		return;
 	}
-	g_free(mimetype);
 
-	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
-	filterparam_set(fparam, &(ie->filename));
-
-	ie_update_plabels(ie);
 	gtk_widget_set_sensitive(ie->checkresample, TRUE);
 	gtk_widget_set_sensitive(ie->rateentry, TRUE);
 	gtk_widget_set_sensitive(ie->getstats, TRUE);
