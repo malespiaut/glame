@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.19 2001/05/03 11:31:13 richi Exp $
+ * $Id: waveform.c,v 1.20 2001/05/09 15:20:09 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -338,12 +338,15 @@ static int pulse_f(filter_t *n)
 		FILTER_ERROR_RETURN("no output port");
 
 	rate = filterpipe_sample_rate(out);
+	if (rate == 0.0)
+		FILTER_ERROR_RETURN("rate = 0.0 !");
+
 	dt = 1000.0/rate;
 
 	t_on = filterparam_val_float(
-		filterparamdb_get_param(filter_paramdb(n), "pulse_on"));
+		filterparamdb_get_param(filter_paramdb(n), "time_on"));
 	t_off = filterparam_val_float(
-		filterparamdb_get_param(filter_paramdb(n), "t_off"));
+		filterparamdb_get_param(filter_paramdb(n), "time_off"));
 	duration = filterparam_val_float(
 		filterparamdb_get_param(filter_paramdb(n), "duration"));
 
