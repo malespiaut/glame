@@ -9,7 +9,8 @@ EXTRA_DIST = filter.h filter_buffer.h
 libfilter_la_SOURCES = filter.c filter.h filter_buffer.h \
 	filter_buffer.c filter_network.c \
 	basic.c debug.c channel_io.c audio_io.c \
-	mix.c volume_adjust.c waveform.c read_file.c
+	volume_adjust.c waveform.c read_file.c \
+	echo.c
 
 
 test_latency_SOURCES = test_latency.c

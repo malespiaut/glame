@@ -1,6 +1,6 @@
 /*
  * read_file.c
- * $Id: read_file.c,v 1.7 2000/02/06 02:10:45 nold Exp $ 
+ * $Id: read_file.c,v 1.8 2000/02/07 00:09:07 mag Exp $ 
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -59,12 +59,16 @@ static int read_file_f(filter_node_t *n)
 	int i,j;
 	double sampleRate;
 	int sclfak;
-	
-	left = hash_find_output("left",n);
-	right = hash_find_output("right",n);
 
-	if (!left || !right)
+	printf("read-file started!\n");
+
+	left = hash_find_output("left_out",n);
+	right = hash_find_output("right_out",n);
+
+	if (!left || !right){
+		printf("Couldn't find channels!\n");
 		return -1;
+	}
 
 	if ((param = hash_find_param("filename",n))) {
 		filename=strdup(param->val.string);
@@ -94,7 +98,7 @@ static int read_file_f(filter_node_t *n)
 	}
 	
         if ((channelCount > 2)){
-		DPRINTF("Only 16bit samples and max. 2 channels allowed!\n");
+		DPRINTF("Max. 2 channels allowed!\n");
 		goto _bailout;
 	}
 
@@ -108,9 +112,9 @@ static int read_file_f(filter_node_t *n)
 	cbuffer=(char *)buffer;
 
 	while(pthread_testcancel(),frameCount){
-		frames=afReadFrames(file, AF_DEFAULT_TRACK, buffer,MIN(GLAME_WBUFSIZE,frameCount));
+		if (!(frames=afReadFrames(file, AF_DEFAULT_TRACK, buffer,MIN(GLAME_WBUFSIZE,frameCount))))
+				break;
 		frameCount-=frames;
-		printf("Read %d frames, frameCount=%d!\n",frames,frameCount);
 		if (channelCount==1){
 			lbuf=fbuf_alloc(frames*sclfak, SAMPLE_SIZE, n);
 			i=0;
@@ -184,9 +188,9 @@ int read_file_register()
 
 	if (!(f = filter_alloc("read_file", "reads audiofile", read_file_f)))
 		return -1;
-	if (!filter_add_output(f, "left", "left channel",FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, "right", "right channel",FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING))
+	if (filter_add_output(f, "left_out", "left channel",FILTER_PORTTYPE_SAMPLE) == -1
+	    || filter_add_output(f, "right_out", "right channel",FILTER_PORTTYPE_SAMPLE) == -1
+	    || filter_add_param(f,"filename","filename",FILTER_PARAMTYPE_STRING) == -1)
 		return -1;
 	 if (filter_add(f) == -1)
 		return -1;

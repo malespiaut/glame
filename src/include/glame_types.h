@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- *
+ * $Id:
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify

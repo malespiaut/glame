@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.12 2000/02/06 02:10:45 nold Exp $
+ * $Id: filter.c,v 1.13 2000/02/07 00:09:07 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -274,10 +274,10 @@ extern int basic_register();
 extern int channel_io_register();
 extern int audio_io_register();
 extern int debug_register();
-extern int mix(filter_node_t *n);
 extern int volume_adjust(filter_node_t *n);
 extern int waveform_register();
 extern int read_file_register();
+extern int echo_register();
 
 int filter_init()
 {
@@ -309,14 +309,9 @@ int filter_init()
 	if (read_file_register() == -1)
 		return -1;
 	
-	if (!(f = filter_alloc("mix", "mix n channels", mix))
-	    || !filter_add_input(f, "in", "input stream",
-				 FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_output(f, "mixed", "mixed stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || filter_add(f) == -1)
-		return -1;
-
+	/* initialize echo filter */
+	if (echo_register() == -1)
+	
 	if (!(f = filter_alloc("volume_adjust", "scale samples",
 			       volume_adjust))
 	    || !filter_add_param(f, "factor", "scale factor",

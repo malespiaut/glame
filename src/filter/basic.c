@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.3 2000/02/06 02:10:45 nold Exp $
+ * $Id: basic.c,v 1.4 2000/02/07 00:09:07 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,6 +25,7 @@
  * Contained filters are
  * - drop
  * - one2n
+ * - mix
  * And the redundant, but educational filters
  * - dup
  * - null
@@ -218,7 +219,99 @@ static int null_f(filter_node_t *n)
 	return 0;
 }
 
+/* this is slightly more complex, it does work with
+ * any number of input channels and one output channel. 
+ * FIXME This mixer should have a gain value per channel,
+ * but at this stage I don't know, how to easily add a parameter
+ * per channel
+ */
 
+static int mix_f(filter_node_t *n)
+{
+	filter_pipe_t   **pin=NULL,*pout;
+	filter_buffer_t **in=NULL, *out, *lastout;
+	int i, eofs, *pos=NULL, opos,res=-1;
+	SAMPLE s;
+
+	/* init */
+	eofs = 0;
+	if (!(in = ALLOCN(n->nr_inputs, filter_buffer_t *)))
+			return -1;
+			
+	if (!(pos = ALLOCN(n->nr_inputs, int)))
+		goto _cleanup;
+
+	if (!(pin = ALLOCN(n->nr_inputs, filter_pipe_t *)))
+		goto _cleanup;
+		
+	if (!(pout=hash_find_output("out",n)))
+		goto _cleanup;
+	
+	/* get first input buffers from all channels */
+	i=0;
+	list_foreach_input(n,pin[i]){
+		if (!(in[i] = fbuf_get(pin[i])))
+			eofs++;
+		pos[i] = 0;
+		i++;
+	}
+
+	/* get first output buffer */
+	out = fbuf_alloc(GLAME_WBUFSIZE);
+	opos = 0;
+
+	while (pthread_testcancel(), (eofs != n->nr_inputs)) {
+		s = 0;
+		for (i=0; i<n->nr_inputs; i++) {
+			/* check, if we need a new input buffer */
+			if (in[i] && (fbuf_size(in[i]) == pos[i])) {
+				/* unref the processed buffer */
+			        fbuf_unref(in[i]);
+				/* get new buffer */
+				if (!(in[i] = fbuf_get(pin[i])))
+					eofs++;
+				pos[i] = 0;
+			}
+			/* sum the channels */
+			if(in[i]){
+				s += fbuf_buf(in[i])[pos[i]];
+				pos[i]++;
+			}
+		}
+
+		/* check, if we need a new output buffer */
+		if (fbuf_size(out) == opos) {
+			/* submit the (full) output buffer.
+			 * we have already a reference to out (ours! - and
+			 * we wont release it */
+			fbuf_queue(pout, out);
+			/* alloc new buffer */
+			out = fbuf_alloc(GLAME_WBUFSIZE);
+			opos = 0;
+		}
+
+		/* write the sample  */
+		fbuf_buf(out)[opos++] = s/(n->nr_inputs);
+	}
+
+	/* submit the last pending output buffer - but truncate
+	 * it to the actual necessary length */
+	lastout = fbuf_alloc(opos);
+	memcpy(fbuf_buf(lastout), fbuf_buf(out), sizeof(SAMPLE)*opos);
+	fbuf_unref(out);
+	fbuf_queue(pout, lastout);
+
+	/* cleanup - FIXME, we need to do this with a
+	 * pthread_cleanup_pop() - and previous
+	 * pthread_cleanup_push() - ugh! */
+	res=0;
+_cleanup:
+	if (in) free(in);
+	if (pos) free(pos);
+        if (pin) free(pin);
+
+	return res;
+}
 
 /* Registry setup of all contained filters
  */
@@ -256,6 +349,14 @@ int basic_register()
 				  FILTER_PORTTYPE_ANY)
 	    || filter_add(f) == -1)
 		return -1;
+
+        if (!(f = filter_alloc("mix", "mix n channels", mix_f))
+            || filter_add_input(f, "in", "input stream",
+                                FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) == -1
+            || filter_add_output(f, "out", "mixed stream",
+                                FILTER_PORTTYPE_SAMPLE) == -1
+            || filter_add(f) == -1)
+                return -1;
 
 	return 0;
 }
