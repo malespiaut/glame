@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.75 2001/12/07 22:28:01 mag Exp $
+ * $Id: file_io.c,v 1.76 2002/01/01 17:27:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -460,11 +460,11 @@ int af_read_connect(filter_t *n, filter_pipe_t *p)
 
 int af_read_f(filter_t *n)
 {
-	int frames,i,j;
+	long frames,i,j;
 	filter_pipe_t *p_out;
 	filter_port_t *port;
 	SAMPLE *s0, *s1;
-	int fcnt, cnt;
+	long fcnt, cnt;
 	long pos;
 	filter_param_t *pos_param;
 	SAMPLE		*buffer;
@@ -555,10 +555,10 @@ int write_file_f(filter_t *n)
 	int             sampleFormat,sampleWidth;
 	int             channelCount, compression;
 	int		sampleRate;
-	track_t         *track;
-	SAMPLE          *buffer;
+	track_t         *track = NULL;
+	SAMPLE          *buffer = NULL;
 	int             buffer_size, written, frames;
-	
+
 
 	channelCount = filterport_nrpipes(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
 
@@ -621,26 +621,20 @@ int write_file_f(filter_t *n)
  
 	file=afOpenFile(filename, "w", fsetup);
 	
-	if (file==AF_NULL_FILEHANDLE) {
-		errstring = "couldn't open file";
-		goto _bailout;
-	}
+	if (file==AF_NULL_FILEHANDLE)
+		FILTER_ERROR_CLEANUP("couldn't open file");
 
-	if (afSetVirtualSampleFormat(file, AF_DEFAULT_TRACK, AF_SAMPFMT_FLOAT, 32)==-1) {
-		errstring = "virtual method failed, get newer libaudiofile!";
-		goto _bailout;
-	}
+	if (afSetVirtualSampleFormat(file, AF_DEFAULT_TRACK, AF_SAMPFMT_FLOAT, 32)==-1)
+		FILTER_ERROR_CLEANUP("virtual method failed, get newer libaudiofile!");
 		
-	if (afSetVirtualPCMMapping(file, AF_DEFAULT_TRACK, 1.0, 0.0, -1.0, 1.0)==-1) {
-		errstring = "virtual method failed, get newer libaudiofile!";
-		goto _bailout; 
-	}
+	if (afSetVirtualPCMMapping(file, AF_DEFAULT_TRACK, 1.0, 0.0, -1.0, 1.0)==-1)
+		FILTER_ERROR_CLEANUP("virtual method failed, get newer libaudiofile!");
 	
 	buffer_size = 2048*channelCount;
 
 	buffer = ALLOCN(buffer_size, SAMPLE);
 	if(buffer==NULL)
-		goto _bailout;
+		FILTER_ERROR_CLEANUP("cannot allocate buffer");
 
 	FILTER_AFTER_INIT;
 	/* guihack */
@@ -658,7 +652,7 @@ int write_file_f(filter_t *n)
 	while(eofs){
 		FILTER_CHECK_STOP;
 		wbpos=0;
-		do{
+		do {
 			/* write one interleaved frame to buffer */
 			for(i=0;i<channelCount;i++)
 				if (track[i].buf){
@@ -669,21 +663,16 @@ int write_file_f(filter_t *n)
 						if (!(track[i].buf=sbuf_get(track[i].p))) eofs--;
 						track[i].pos=0;
 					}
-				}
-				else
-					/* if one track stops before another we have to fill up
-					 * with zeroes
-					 */
+				} else
+					/* if one track stops before another
+					 * we have to fill up with zeroes */
 					buffer[wbpos++]=0.0;
 		} while ((wbpos<buffer_size) && (eofs));
 		frames = wbpos/channelCount;
 		if (frames>0) {
 			written = afWriteFrames(file, AF_DEFAULT_TRACK, buffer, frames);
-			if (written!=frames) {
-				failed=1;
-				errstring="couldn't write all frames(disk full?)";
-				break;
-			}
+			if (written!=frames)
+				FILTER_ERROR_STOP("couldn't write all frames (disk full?)");
 			pos += frames;
 			filterparam_val_set_pos(pos_param, pos);
 		} 		
@@ -691,14 +680,16 @@ int write_file_f(filter_t *n)
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
-	if (failed==0)
-		res=0;
-_bailout:
- 	afCloseFile(file);
-        if(fsetup) afFreeFileSetup(fsetup);
-	free(buffer); 
-	if (res==-1) FILTER_ERROR_RETURN(errstring); 
-	return res;
+
+	if (file != AF_NULL_FILEHANDLE)
+		afCloseFile(file);
+        if (fsetup)
+		afFreeFileSetup(fsetup);
+	if (buffer)
+		free(buffer); 
+	if (track)
+		free(track);
+	FILTER_RETURN;
 }
 
 int write_file_register(plugin_t *pl)
