@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.82 2002/04/24 09:41:07 richi Exp $
+ * $Id: swapfilegui.c,v 1.83 2002/04/27 13:43:11 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -701,7 +701,7 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			       GlameTreeItem *item)
 {
 	static GlameTreeItem *drag_widget = NULL;
-	static int mode = -1;
+	static int mode = -1, drop_replace = 0;
 	static int cursor_type = -1;
 	static GdkCursor *cursor = NULL;
 	GdkEventButton *bevent = (GdkEventButton *)event;
@@ -716,14 +716,17 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		/* drag&drop start */
 		drag_widget = NULL;
 		mode = -1;
+		drop_replace = 0; /* auto */
 		if (bevent->state & GDK_SHIFT_MASK) {
 			DPRINTF("SHIFT modifier\n");
 			mode = 1;
+			drop_replace = !!(bevent->state & GDK_MOD1_MASK);
 			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
 					  _("Drop into hbox"));
 		} else if (bevent->state & GDK_CONTROL_MASK) {
 			DPRINTF("CTRL modifier\n");
 			mode = 2;
+			drop_replace = !!(bevent->state & GDK_MOD1_MASK);
 			gnome_appbar_push(GNOME_APPBAR(glame_appbar),
 					  _("Drop into vbox"));
 		} else {
@@ -759,7 +762,8 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			/* Mode 1 - hbox insertion either before
 			 * dropped item or at tail (if dropped
 			 * on group). */
-			if (GPSM_ITEM_IS_GRP(dest)) {
+			if (GPSM_ITEM_IS_GRP(dest)
+			    && !drop_replace) {
 				if (gpsm_hbox_insert((gpsm_grp_t *)dest, source,
 						     gpsm_item_hsize(dest), 0) == -1)
 					DPRINTF("insertion failed\n");
@@ -772,7 +776,8 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			/* Mode 2 - vbox insertion either before
 			 * dropped item or at tail (if dropped
 			 * on group). */
-			if (GPSM_ITEM_IS_GRP(dest)) {
+			if (GPSM_ITEM_IS_GRP(dest)
+			    && !drop_replace) {
 				if (gpsm_vbox_insert((gpsm_grp_t *)dest, source,
 						     0, gpsm_item_vsize(dest)) == -1)
 					DPRINTF("insertion failed\n");
@@ -805,7 +810,8 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		if (!drag_widget)
 			return;
 
-		if (GPSM_ITEM_IS_GRP(item->item))
+		if (GPSM_ITEM_IS_GRP(item->item)
+		    && !drop_replace)
 			parent = (gpsm_grp_t *)item->item;
 		else
 			parent = gpsm_item_parent(item->item);
