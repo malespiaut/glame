@@ -25,42 +25,76 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "util.h"
 #include "hash.h"
-#include "pmap.h"
 #include "swfs_cluster.h"
 
 
-/* The in-memory cluster hash/lru and a lock protecting it. */
+/* Hash for in-memory clusters, wether used or not. Protected
+ * by the CLUSTERS lock. */
 HASH(swcluster, struct swcluster, 10,
      (swcluster->name == name),
      (name),
      (swcluster->name),
      long name)
+
+/* Clusters lru, where unused clusters are queued. Number of
+ * lru'ed clusters. Protected by the CLUSTERS lock. */
 static struct list_head clusterslru;
 static int clusterslrucnt;
 static int clustersmaxlru;
+
+/* LRU for open fds. Protected by FDS lock. */
+static struct list_head clusters_fdlru;
+static int clusters_fdlru_cnt;
+static int clusters_fdlru_maxcnt;
+static pthread_mutex_t fdsmx;
+#define LOCKFDS do { pthread_mutex_lock(&fdsmx); } while (0)
+#define UNLOCKFDS do { pthread_mutex_unlock(&fdsmx); } while (0)
+
+/* Hash for mapped (used) clusters, via virtual memory address.
+ * Amount of memory mapped.
+ * Protected by the CLUSTER lock (read) and the mappings lock (write). */
+HASH(mapping, struct swcluster, 8,
+     (mapping->map_addr == addr),
+     ((long)addr/4096),
+     ((long)mapping->map_addr/4096),
+     void *addr)
+static pthread_mutex_t mappingsmx;
+#define LOCKMAPPINGS do { pthread_mutex_lock(&mappingsmx); } while (0)
+#define UNLOCKMAPPINGS do { pthread_mutex_unlock(&mappingsmx); } while (0)
+static long clusters_mappedsize;
+static long clusters_maxmappedsize;
+
+/* LRU for mappings, protected by MAPPINGS lock. */
+static struct list_head clusters_maplru;
+static int clusters_maplru_cnt;
+static int clusters_maplru_maxcnt;
+
+/* Statistics. Unprotected. */
 static int clusters_getcnt;
 static int clusters_lruhitcnt;
 static int clusters_misscnt;
 static int clusters_readfilescnt;
 static int clusters_writefilescnt;
 static int clusters_creatcnt;
+
+/* The CLUSTERS lock. */
 static pthread_mutex_t clustersmx;
 #define LOCKCLUSTERS do { pthread_mutex_lock(&clustersmx); } while (0)
 #define UNLOCKCLUSTERS do { pthread_mutex_unlock(&clustersmx); } while (0)
 
 /* Per cluster lock that protects the files list/cnt and the
  * cluster size/flags. */
-#define LOCKCLUSTER(c) do {} while (0)
-#define UNLOCKCLUSTER(c) do {} while (0)
+#define LOCKCLUSTER(c) do { pthread_mutex_lock(&c->mx); } while (0)
+#define UNLOCKCLUSTER(c) do { pthread_mutex_unlock(&c->mx); } while (0)
 
 
 /* The internal helpers (with no locking) */
-static int __cluster_data_open(long name, int flags);
 static int __cluster_meta_open(long name, int flags);
 static struct swcluster *_cluster_creat(long name);
 static struct swcluster *_cluster_stat(long name, s32 known_size);
@@ -77,20 +111,30 @@ static void __cluster_needdata(struct swcluster *c);
  * API stuff. For documentation see headerfile.
  */
 
-static int cluster_init(int maxlru, size_t pmap_maxsize)
+static int cluster_init(int maxlru, int maxfds,
+ 			int maxmaps, size_t maxvm)
 {
-	/* Initialize pmap subsystem. */
-	if (pmap_init(pmap_maxsize) == -1)
-		return -1;
-
-	/* Init the lru. */
-	clustersmaxlru = 256; /* maxlru; Ignore param - match hash size */
+        /* Init the clusters lru - unused clusters only. */
+	clustersmaxlru = maxlru;
 	clusterslrucnt = 0;
 	INIT_LIST_HEAD(&clusterslru);
-
-	/* The global cluster mx protecting hash & lru. */
 	pthread_mutex_init(&clustersmx, NULL);
-	srand(getpid()); /* hehe... */
+	
+	/* Init the mappings lru - unused maps only. */
+	clusters_maplru_maxcnt = maxmaps;
+	clusters_maplru_cnt = 0;
+	INIT_LIST_HEAD(&clusters_maplru);
+	pthread_mutex_init(&mappingsmx, NULL);
+	clusters_maxmappedsize = maxvm;
+
+	/* Init the fd lru - all fds. */
+	clusters_fdlru_maxcnt = maxfds;
+	clusters_fdlru_cnt = 0;
+	INIT_LIST_HEAD(&clusters_fdlru);
+	pthread_mutex_init(&fdsmx, NULL);
+
+	/* Initialize random number generator. */
+	srand(getpid());
 
 	/* Statistics. */
 	clusters_getcnt = 0;
@@ -115,6 +159,20 @@ static void cluster_cleanup()
 		PANIC("Bug in lru accounting");
 	}
 
+	/* Check the cluster fd accounting. */
+	if (list_count(&clusters_fdlru) != clusters_fdlru_cnt) {
+		DPRINTF("FD LRU has %i elements, but %i accounted\n",
+			list_count(&clusters_fdlru), clusters_fdlru_cnt);
+		PANIC("Bug in fd lru accounting");
+	}
+
+	/* Check the cluster map accounting. */
+	if (list_count(&clusters_maplru) != clusters_maplru_cnt) {
+		DPRINTF("MAP LRU has %i elements, but %i accounted\n",
+			list_count(&clusters_maplru), clusters_maplru_cnt);
+		PANIC("Bug in map lru accounting");
+	}
+
 	/* Clear the cluster lru. */
 	LOCKCLUSTERS;
 	while ((c = list_gethead(&clusterslru, struct swcluster, lru))) {
@@ -136,11 +194,16 @@ static void cluster_cleanup()
 		}
 	}
 
-	/* Cleanup pmap subsystem. */
-	pmap_close();
+	/* Check, if we still have fds/mappings in lrus. */
+	if (clusters_maplru_cnt > 0)
+		DPRINTF("Still entries in mappings lru?\n");
+	if (clusters_fdlru_cnt > 0)
+		DPRINTF("Still entries in fd lru?\n");
 
 	/* Cleanup. */
 	pthread_mutex_destroy(&clustersmx);
+	pthread_mutex_destroy(&mappingsmx);
+	pthread_mutex_destroy(&fdsmx);
 
 	/* Statistics. */
 	DPRINTF("SWFS_CLUSTER Statistics: %i gets, %i lru hits, %i misses\n",
@@ -150,6 +213,8 @@ static void cluster_cleanup()
 		clusters_creatcnt);
 }
 
+/* We need to be able to call cluster_get with the cluster lock held!
+ * (but only for flags == 0) */
 static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 {
 	struct swcluster *c;
@@ -192,6 +257,8 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 	return c;
 }
 
+/* We need to be able to call this with the cluster lock held
+ * (and flags == 0). */
 static void cluster_put(struct swcluster *c, int flags)
 {
 	if (!c)
@@ -207,17 +274,6 @@ static void cluster_put(struct swcluster *c, int flags)
 			UNLOCKCLUSTERS;
 			_cluster_put(c);
 			return;
-		}
-
-		/* If the cluster does not have mappings and
-		 * the data is open, close it (safe open fds). */
-		if (c->fd != -1
-		    && !pmap_has_mappings(c->fd, 0, c->size)) {
-			close(c->fd);
-			c->fd = -1;
-			/* Cluster has no ref, refs are protected
-			 * by clusters lock -> no new mappings race
-			 * possible -> no need to invalidate. */
 		}
 
 		/* Put cluster into the lru. */
@@ -346,34 +402,167 @@ static int cluster_checkfileref(struct swcluster *c, long file)
 	return -1;
 }
 
-static char *_cluster_mmap(struct swcluster *c,void *start,
-			   int prot, int flags)
+
+static void _cluster_killmap(struct swcluster *c)
 {
-	_cluster_needdata(c);
-	return (char *)pmap_map(start, c->size, prot, flags, c->fd, 0);
+	if (is_hashed_mapping(c))
+		DERROR("Killing used mapping");
+	munmap(c->map_addr, c->size);
+	c->map_addr = NULL;
+	c->map_prot = PROT_NONE;
+	LOCKMAPPINGS;
+	clusters_mappedsize -= c->size;
+	if (!list_empty(&c->maplru)) {
+		list_del(&c->maplru);
+		clusters_maplru_cnt--;
+	}
+	UNLOCKMAPPINGS;
 }
 
-static char *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
+static inline void __cluster_shrinkmaps()
+{
+	while (clusters_mappedsize > clusters_maxmappedsize
+	       || clusters_maplru_cnt > clusters_maplru_maxcnt) {
+		struct swcluster *c;
+		c = list_gettail(&clusters_maplru, struct swcluster, maplru);
+		if (!c)
+			break;
+		/* _cluster_killmap(c); */
+		munmap(c->map_addr, c->size);
+		c->map_addr = NULL;
+		c->map_prot = PROT_NONE;
+		clusters_mappedsize -= c->size;
+		list_del_init(&c->maplru);
+		clusters_maplru_cnt--;
+	}
+}
+
+static char *_cluster_mmap(struct swcluster *c, int prot, int flags)
+{
+	/* Need a private mapping? Create one. */
+	if (flags == MAP_PRIVATE) {
+		/* FIXME: cannot unmap these later - need anon. cluster. */
+		DERROR("unimplemented");
+		_cluster_needdata(c);
+		return mmap(NULL, c->size, prot, flags, c->fd, 0);
+	}
+
+	/* We can only MAP_SHARED now. */
+	if (flags != MAP_SHARED)
+		return MAP_FAILED;
+
+	/* Do we have a mapping already? Maybe update it. */
+	if (c->map_addr) {
+		if ((prot & c->map_prot) != prot)
+			mprotect(c->map_addr, c->size, c->map_prot | prot);
+		c->map_prot |= prot;
+		/* Get an additional reference. */
+		cluster_get(c->name, 0, -1);
+		if (c->map_cnt++ == 0) {
+			LOCKMAPPINGS;
+			hash_add_mapping(c);
+			list_del_init(&c->maplru);
+			clusters_maplru_cnt--;
+			UNLOCKMAPPINGS;
+		}
+		return c->map_addr;
+	}
+
+	/* Ok, create a new shared mapping of the cluster. */
+	_cluster_needdata(c);
+	c->map_addr = mmap(NULL, c->size, prot, MAP_SHARED, c->fd, 0);
+	if (c->map_addr == MAP_FAILED) {
+		c->map_addr = NULL;
+		return MAP_FAILED;
+	}
+	c->map_prot = prot;
+	LOCKMAPPINGS;
+	hash_add_mapping(c);
+	clusters_mappedsize += c->size;
+	__cluster_shrinkmaps();
+	UNLOCKMAPPINGS;
+	LOCKCLUSTERS;
+	c->usage++; /* FIXME: make that an atomic variable. */
+	UNLOCKCLUSTERS;
+	c->map_cnt++;
+	return c->map_addr;
+}
+
+static char *cluster_mmap(struct swcluster *c, int prot, int flags)
 {
 	char *mem;
 
 	LOCKCLUSTER(c);
-	_cluster_needdata(c);
-	mem = (char *)pmap_map(start, c->size, prot, flags, c->fd, 0);
+	mem = _cluster_mmap(c, prot, flags);
 	UNLOCKCLUSTER(c);
 
 	return mem;
 }
 
-static int cluster_munmap(char *start)
+static void _cluster_fixmap(struct swcluster *c, size_t size)
 {
-	if (pmap_unmap(start) == -1) {
-		DPRINTF("Unable to unmap %p\n", start);
-		return -1;
-	} else
-		return 0;
+	void *addr;
+
+	if (!c->map_addr)
+		return;
+#ifdef OS_LINUX
+	if (c->map_cnt == 0)
+		addr = mremap(c->map_addr, c->size, size, MREMAP_MAYMOVE);
+	else
+		addr = mremap(c->map_addr, c->size, size, 0);
+#else
+	addr = (void *)-1;
+#endif
+	if (addr == (void *)-1) {
+		if (c->map_cnt == 0)
+			_cluster_killmap(c);
+		else
+		        PANIC("umm, we are screwed now");
+	} else {
+		c->map_addr = addr;
+		LOCKMAPPINGS;
+		clusters_mappedsize += size - c->size;
+		UNLOCKMAPPINGS;
+	}
 }
 
+static int _cluster_munmap(struct swcluster *c)
+{
+	if (c->map_cnt == 0)
+		DERROR("Unmapping not mapped cluster");
+	if (--(c->map_cnt) == 0) {
+		/* Remove the mapping and protect it. */
+		LOCKMAPPINGS;
+		hash_remove_mapping(c);
+		list_add(&c->maplru, &clusters_maplru);
+		clusters_maplru_cnt++;
+		__cluster_shrinkmaps();
+		UNLOCKMAPPINGS;
+		if (c->map_addr) {
+			c->map_prot = PROT_NONE;
+			mprotect(c->map_addr, c->size, PROT_NONE);
+		}
+	}
+	/* Drop the additional reference. */
+	cluster_put(c, 0);
+
+	return 0;
+}
+
+static int cluster_munmap(char *start)
+{
+	struct swcluster *c;
+	int res;
+
+	if (!(c = hash_find_mapping(start))) {
+		errno = EINVAL;
+		return -1;
+	}
+	LOCKCLUSTER(c);
+	res = _cluster_munmap(c);
+	UNLOCKCLUSTER(c);
+	return res;
+}
 
 static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			  struct swcluster **ch, struct swcluster **ct)
@@ -385,24 +574,24 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 	    || (!ch && !ct))
 		DERROR("Illegal use of cluster_split");
 
-	/* FIXME wrt mappings! */
-	if (c->fd != -1
-	    && pmap_uncache(c->fd, 0, c->size) == -1) {
-		DPRINTF("Warning! Possibly now corrupt mappings!\n");
-		pmap_invalidate(c->fd, 0, c->size);
-	}
-
 	LOCKCLUSTER(c);
+
+	if (c->map_cnt != 0) {
+		/* umm - fuck. we at least need to mremap to
+		 * one part - or possibly "detach" the mapping,
+		 * split it, too - hoo, humm. msync probably, etc. */
+		PANIC("Splitting mapped cluster");
+	}
 
 	if (c->files_cnt == 1) {
 		/* If the cluster is not shared, things are a lot
 		 * simpler. */
 		if (ct && !ch) {
-			if ((m = _cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
+			if ((m = _cluster_mmap(c, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot mmap cluster");
 			memmove(m, m + offset + cutcnt,
 				c->size - offset - cutcnt);
-			cluster_munmap(m);
+			_cluster_munmap(c);
 			_cluster_truncate(c, c->size - offset - cutcnt);
 			*ct = cluster_get(c->name, 0, c->size);
 		} else if (!ct && ch) {
@@ -410,41 +599,41 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			*ch = cluster_get(c->name, 0, c->size);
 		} else /* if (ct && ch) */ {
 			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
-			    || (m = _cluster_mmap(c, NULL, PROT_READ,
+			    || (m = _cluster_mmap(c, PROT_READ,
 						  MAP_SHARED)) == MAP_FAILED
-			    || (mt = _cluster_mmap(*ct, NULL, PROT_WRITE,
+			    || (mt = _cluster_mmap(*ct, PROT_WRITE,
 						   MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mt, m + offset + cutcnt,
 			       c->size - offset - cutcnt);
-			cluster_munmap(mt);
-			cluster_munmap(m);
+			_cluster_munmap(*ct);
+			_cluster_munmap(c);
 			_cluster_truncate(c, offset);
 			*ch = cluster_get(c->name, 0, c->size);
 		}
 	} else {
 		/* Umm, now we have to copy in any case. */
-		if ((m = _cluster_mmap(c, NULL, PROT_READ,
+		if ((m = _cluster_mmap(c, PROT_READ,
 				       MAP_SHARED)) == MAP_FAILED)
 			SWPANIC("Cannot mmap cluster");
 		if (ch) {
 			if (!(*ch = cluster_alloc(offset))
-			    || (mh = _cluster_mmap(*ch, NULL, PROT_WRITE,
+			    || (mh = _cluster_mmap(*ch, PROT_WRITE,
 						   MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mh, m, offset);
-			cluster_munmap(mh);
+			_cluster_munmap(*ch);
 		}
 		if (ct) {
 			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
-			    || (mt = _cluster_mmap(*ct, NULL, PROT_WRITE,
+			    || (mt = _cluster_mmap(*ct, PROT_WRITE,
 						   MAP_SHARED)) == MAP_FAILED)
 				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mt, m + offset + cutcnt,
 			       c->size - offset - cutcnt);
-			cluster_munmap(mt);
+			_cluster_munmap(*ct);
 		}
-		cluster_munmap(m);
+		_cluster_munmap(c);
 	}
 
 	UNLOCKCLUSTER(c);
@@ -453,15 +642,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 static int cluster_truncate(struct swcluster *c, s32 size)
 {
 	LOCKCLUSTER(c);
-
-	if (c->files_cnt > 1
-	    || (c->fd != -1
-		&& pmap_uncache(c->fd, 0, c->size) == -1)) {
-		UNLOCKCLUSTER(c);
-		return -1;
-	}
 	_cluster_truncate(c, size);
-
 	UNLOCKCLUSTER(c);
 
 	return 0;
@@ -485,14 +666,13 @@ static struct swcluster *cluster_unshare(struct swcluster *c)
 	/* Now we have to copy the whole cluster (and return the copy
 	 * instead of the original). */
 	if (!(cc = cluster_alloc(c->size))
-	    || (m = _cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
-	    || (mc = _cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
+	    || (m = _cluster_mmap(c, PROT_READ, MAP_SHARED)) == MAP_FAILED
+	    || (mc = _cluster_mmap(cc, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
 		SWPANIC("Cannot alloc/mmap clusters");
 	memcpy(mc, m, c->size);
+	_cluster_munmap(c);
+	_cluster_munmap(cc);
 	UNLOCKCLUSTER(c);
-
-	cluster_munmap(mc);
-	cluster_munmap(m);
 
 	return cc;
 }
@@ -504,8 +684,17 @@ static ssize_t cluster_read(struct swcluster *c, void *buf,
 	ssize_t res;
 
 	LOCKCLUSTER(c);
-	_cluster_needdata(c);
-	res = pread(c->fd, buf, count, offset);
+	/* If we have a mapping with PROT_READ, we may memcpy
+	 * to satisfy the read. */
+	if (c->map_addr && (c->map_prot & PROT_READ)) {
+		memcpy(buf, c->map_addr + offset, count);
+		res = count;
+
+	/* Else we're going to need the fd and do a pread. */
+	} else {
+		_cluster_needdata(c);
+		res = pread(c->fd, buf, count, offset);
+	}
 	UNLOCKCLUSTER(c);
 
 	return res;
@@ -520,23 +709,18 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
 	LOCKCLUSTER(c);
 	if (c->size < offset+count)
 		DERROR("Write extends cluster size");
-	_cluster_needdata(c);
-	res = pwrite(c->fd, buf, count, offset);
-	UNLOCKCLUSTER(c);
 
-	return res;
-}
+	/* If we have a mapping with PROT_WRITE, we may memcpy
+	 * to satisfy the read. */
+	if (c->map_addr && (c->map_prot & PROT_WRITE)) {
+		memcpy(c->map_addr + offset, buf, count);
+		res = count;
 
-static ssize_t cluster_write_extend(struct swcluster *c, const void *buf,
-				    size_t count)
-
-{
-	ssize_t res;
-
-	LOCKCLUSTER(c);
-	_cluster_needdata(c);
-	res = pwrite(c->fd, buf, count, c->size);
-	c->size += res;
+	/* Else we're going to need the fd and do a pwrite. */
+	} else {
+		_cluster_needdata(c);
+		res = pwrite(c->fd, buf, count, offset);
+	}
 	UNLOCKCLUSTER(c);
 
 	return res;
@@ -556,12 +740,32 @@ static int __cluster_meta_open(long name, int flags)
 	snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
 	return open(s, flags, 0666);
 }
-static int __cluster_data_open(long name, int flags)
-{
-	char s[256];
 
-	snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
-	return open(s, flags, 0666);
+/* Alloc and init a cluster struct. */
+static struct swcluster *_cluster_new()
+{
+	struct swcluster *c;
+
+	if (!(c = (struct swcluster *)malloc(sizeof(struct swcluster))))
+		return NULL;
+	hash_init_swcluster(c);
+	INIT_LIST_HEAD(&c->lru);
+	c->name = -1;
+	c->usage = 0;
+	pthread_mutex_init(&c->mx, NULL);
+	c->flags = SWC_NOT_IN_CORE;
+	c->size = 0;
+        INIT_LIST_HEAD(&c->fdlru);
+	c->fd = -1;
+	c->files_cnt = -1;
+	c->files = NULL;
+	hash_init_mapping(c);
+        INIT_LIST_HEAD(&c->maplru);
+	c->map_addr = NULL;
+	c->map_prot = PROT_NONE;
+	c->map_cnt = 0;
+
+	return c;
 }
 
 /* Create a new in-memory representation of a cluster with name
@@ -574,15 +778,12 @@ static struct swcluster *_cluster_creat(long name)
 	struct swcluster *c;
 
 	/* Allocate cluster structure. */
-	if (!(c = (struct swcluster *)malloc(sizeof(struct swcluster))))
+	if (!(c = _cluster_new()))
 		return NULL;
-	hash_init_swcluster(c);
-	INIT_LIST_HEAD(&c->lru);
 	c->name = name;
 	c->usage = 1;
 	c->flags = SWC_DIRTY|SWC_CREAT;
 	c->size = 0;
-	c->fd = -1;
 	c->files_cnt = 0;
 	c->files = NULL;
 
@@ -604,7 +805,7 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 	char sd[256];
 
 	/* Allocate cluster structure. */
-	if (!(c = (struct swcluster *)malloc(sizeof(struct swcluster))))
+	if (!(c = _cluster_new()))
 		return NULL;
 
 	/* Stat metadata and data. */
@@ -614,6 +815,7 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 		snprintf(sd, 255, "%s/%li", swap.clusters_data_base, name);
 		if (stat(sd, &dstat) == -1) {
 			free(c);
+			pthread_mutex_destroy(&c->mx);
 			return NULL;
 		}
 		known_size = dstat.st_size;
@@ -621,15 +823,10 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 	}
 #endif
 
-	hash_init_swcluster(c);
-	INIT_LIST_HEAD(&c->lru);
 	c->name = name;
 	c->usage = 1;
 	c->flags = SWC_NOT_IN_CORE;
 	c->size = known_size;
-	c->fd = -1;
-	c->files_cnt = -1;
-	c->files = NULL;
 
 	hash_add_swcluster(c);
 	return c;
@@ -697,18 +894,52 @@ static void _cluster_writefiles(struct swcluster *c)
 	clusters_writefilescnt++;
 }
 
+
+static inline int __cluster_data_open(struct swcluster *c, int flags)
+{
+	char s[256];
+
+	if (c->fd != -1)
+		return 0;
+	snprintf(s, 255, "%s/%li", swap.clusters_data_base, c->name);
+	c->fd = open(s, flags, 0666);
+	if (c->fd == -1) {
+		if (errno == EMFILE && clusters_fdlru_maxcnt > 16) {
+			DPRINTF("WARNING! fixing clusters_fdlru_maxcnt (%i)\n", clusters_fdlru_maxcnt);
+			clusters_fdlru_maxcnt /= 2;
+		} else
+			return -1;
+	}
+	LOCKFDS;
+	if (c->fd != -1) {
+		list_add(&c->fdlru, &clusters_fdlru);
+		clusters_fdlru_cnt++;
+	}
+	while (clusters_fdlru_cnt > clusters_fdlru_maxcnt) {
+		struct swcluster *c2;
+		c2 = list_gettail(&clusters_fdlru, struct swcluster, fdlru);
+		close(c2->fd);
+		c2->fd = -1;
+		list_del_init(&c2->fdlru);
+		clusters_fdlru_cnt--;
+	}
+	UNLOCKFDS;
+	if (c->fd == -1)
+		return __cluster_data_open(c, flags);
+	return 0;
+}
+
 /* Create the clusters datafile, if necessary, and truncate it to
  * the right size. */
 static void __cluster_needdata(struct swcluster *c)
 {
 	if (!(c->flags & SWC_CREAT)) {
-		if (c->fd != -1)
-			return;
-		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
+		if (__cluster_data_open(c, O_RDWR) == -1)
 			SWPANIC("Cannot open cluster");
 	} else {
-		if (c->fd == -1
-		    && (c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1)
+		if (c->fd != -1)
+			DERROR("SWC_CREAT, but file open!?");
+		if (__cluster_data_open(c, O_RDWR|O_CREAT) == -1)
 			SWPANIC("Cannot create cluster");
 		if (ftruncate(c->fd, c->size) == -1)
 			SWPANIC("Cannot truncate cluster");
@@ -721,20 +952,26 @@ static void __cluster_needdata(struct swcluster *c)
  * is already open, else just postpone that via SWC_CREAT. */
 static void _cluster_truncate(struct swcluster *c, s32 size)
 {
-	/* If this is growing operation and the cluster
-	 * had set SWC_CREAT (possibly not done previous
-	 * shrinking truncate) we have to force that operation
-	 * now to preserve correct zeroing semantics. */
-	if (c->size < size && (c->flags & SWC_CREAT))
-		_cluster_needdata(c);
+	/* If SWC_CREAT is set, we can just adjust the in-memory
+	 * size of the cluster and be done with it. */
+	if (c->flags & SWC_CREAT) {
+		c->size = size;
+		return;
+	}
+
+	/* Next, truncate the on-disk data file. */
+	_cluster_needdata(c);
+	if (ftruncate(c->fd, size) == -1)
+		SWPANIC("Cannot truncate cluster");
+
+	/* Now, we have to adjust mappings of the cluster. */
+	_cluster_fixmap(c, size);
+
+	/* Update in-memory size. */
 	c->size = size;
-	if (c->fd == -1)
-		c->flags |= SWC_CREAT;
-	else
-		if (ftruncate(c->fd, c->size) == -1)
-			SWPANIC("Cannot truncate cluster");
 }
 
+/* Free the cluster struct from memory and possibly cleanup. */
 static void _cluster_put(struct swcluster *c)
 {
 	char s[256];
@@ -743,15 +980,23 @@ static void _cluster_put(struct swcluster *c)
 		DERROR("Freeing cluster in lru");
 	if (is_hashed_swcluster(c))
 		DERROR("Freeing hashed cluster");
+	if (is_hashed_mapping(c))
+		DERROR("Freeing mapped cluster");
 
 	/* Close the data fd - or create the file, if
 	 * necessary. */
 	if ((c->flags & SWC_CREAT) && c->files_cnt != 0)
 		_cluster_needdata(c);
-	/* Kill possible mappings and close the file. */
+	/* Kill possible mappings. */
+	if (c->map_addr)
+		_cluster_killmap(c);
+        /* and close the file. */
 	if (c->fd != -1) {
-		pmap_invalidate(c->fd, 0, c->size);
+		LOCKFDS;
+		list_del(&c->fdlru);
+		clusters_fdlru_cnt--;
 		close(c->fd);
+		UNLOCKFDS;
 	}
 
 	/* If there are no users (files) left, unlink the
@@ -765,5 +1010,6 @@ static void _cluster_put(struct swcluster *c)
 		_cluster_writefiles(c);
 	if (c->files)
 		free(c->files);
+	pthread_mutex_destroy(&c->mx);
 	free(c);
 }

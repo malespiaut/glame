@@ -56,7 +56,6 @@
 #endif
 #include "list.h"
 #include "hash.h"
-#include "pmap.h"
 #include "swapfile.h"
 
 
@@ -64,7 +63,6 @@
  * of swapfile API functions, one out of lowlevel ones. Other
  * have an optimized hardcoded path for common usage patterns. */
 #undef USE_COOKED_OPS
-#undef USE_OPTIMIZED_PATH
 
 
 /* The global "state" of the swapfile and its locks. The
@@ -181,7 +179,7 @@ int swapfile_open(const char *name, int flags)
 	swap.ro = 0;
 
 	/* Initialize cluster subsystem. */
-	if (cluster_init(256, 256*1024*1024) == -1)
+	if (cluster_init(256, 128, 256, 256*1024*1024) == -1)
 		goto err;
 
 	/* Do basic fsck to check if we're really clean. */
@@ -601,7 +599,7 @@ int swapfile_fsck(const char *name, int force)
 	INIT_LIST_HEAD(&swap.fds);
 
 	/* Initialize cluster subsystem. */
-	if (cluster_init(256, 256*1024*1024) == -1)
+	if (cluster_init(2048, 128, 256, 256*1024*1024) == -1)
 		return -1;
 
 	/* We are now ready for a few checks of the filesystems
@@ -1174,40 +1172,6 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	}
 	UNLOCK;
 
-#ifdef USE_OPTIMIZED_PATH
-	/* Ok, I never wanted to do it - but here it is - optimized
-	 * we-are-going-to-only-extend-the-file case. Duh. Actually
-	 * very simple :) */
-	LOCKFILE(_fd->file);
-	if (_fd->offset == _fd->file->clusters->size
-	    && _fd->file->clusters->cnt > 0
-	    && CSIZE(_fd->file->clusters, _fd->file->clusters->cnt-1) + count <= SWCLUSTER_MAXSIZE) {
-		if (!(c = cluster_get(CID(_fd->file->clusters, _fd->file->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(_fd->file->clusters, _fd->file->clusters->cnt-1))))
-			goto _fuck;
-		LOCKCLUSTER(c);
-		if (c->files_cnt != 1) {
-			UNLOCKCLUSTER(c);
-			cluster_put(c, 0);
-			goto _fuck;
-		}
-		UNLOCKCLUSTER(c);
-		if (cluster_write_extend(c, buf, count) != count)
-			PANIC("Doh - we fucked up");
-		/* Ok, it seems, it worked. */
-		ctree_replace1(_fd->file->clusters, _fd->file->clusters->cnt-1,
-			       c->name, c->size);
-		_fd->file->flags |= SWF_DIRTY;
-		cluster_put(c, 0);
-		_fd->offset += count;
-		UNLOCKFILE(_fd->file);
-		file_check(_fd->file);
-		return count;
-	_fuck:
-		/* Fail back to slow operation. */ ;
-	}
-	UNLOCKFILE(_fd->file);
-#endif
-
 	/* Check, if we need to expand the file. */
 	if (_fd->offset + count > _fd->file->clusters->size) {
 		old_size = _fd->file->clusters->size;
@@ -1316,6 +1280,11 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 		return MAP_FAILED;
 	}
 
+	if (flags & MAP_FIXED) {
+		errno = EINVAL;
+		return MAP_FAILED;
+	}
+
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd))) {
 		UNLOCK;
@@ -1339,7 +1308,7 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 	else
 		c = file_getcluster(_fd->file, _fd->offset, &coff, 0);
 	if (c) {
-		addr = cluster_mmap(c, start, prot, flags);
+		addr = cluster_mmap(c, prot, flags);
 		cluster_put(c, 0);
 		return addr;
 	}

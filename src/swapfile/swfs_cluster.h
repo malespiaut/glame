@@ -36,23 +36,47 @@ struct swcluster;
 #define SWC_CREAT 2
 #define SWC_NOT_IN_CORE 4
 struct swcluster {
+	/* Fields protected by the global CLUSTERS lock.
+	 */
 	struct swcluster *next_swcluster_hash;
 	struct swcluster **pprev_swcluster_hash;
 	struct list_head lru;
 	long name;
 	int usage;     /* number of references to this struct cluster */
+
+	/* All fields below are protected by the CLUSTER lock
+	 * (which is nonexistent at the moment - FIXME).
+	 */
+	pthread_mutex_t mx;
+
 	int flags;     /* SWC_* */
 
 	/* The size field is always initialized. */
 	s32 size;      /* size of the cluster */
 
-	/* The fd is not always open - check for it. */
+	/* The fd is not always open - check for it (-1 if not).
+	 * Clusters with open files are in the fdlru list. */
+	struct list_head fdlru;
 	int fd;        /* cached fd of the on-disk _data_ */
 
 	/* Fields created out of the cluster metadata, if
 	 * SWC_NOT_IN_CORE is set, none of this fields is initialized. */
 	int files_cnt; /* number of files that use this cluster */
 	long *files;   /* list of files that use this cluster */
+
+	/* Cluster shared mapping:
+	 * - if map_addr is NULL, no mapping is there and other fields
+	 *   need to be PROT_NONE, 0
+	 * - map_prot is protection of the mapping (can be PROT_NONE)
+	 * - map_cnt is the number of references to the mapping */
+	/* Hash is read-protected by the CLUSTER lock, write protected
+	 * by the global MAPPINGS lock. */
+	struct swcluster *next_mapping_hash;
+	struct swcluster **pprev_mapping_hash;
+	struct list_head maplru;
+	char *map_addr;
+	int map_prot;
+	int map_cnt;
 };
 
 /* A maximum size goal we want to achieve for this inefficient
@@ -61,8 +85,12 @@ struct swcluster {
 
 
 /* Initialize the cluster subsystem. Maxlru is the maximum number of
- * cluster descriptors cached in memory. */
-static int cluster_init(int maxlru, size_t pmap_maxsize);
+ * cluster descriptors cached in memory, maxfds the maximum number
+ * of files kept open, maxmaps the maximum number of inactive memory
+ * maps to cache and maxvm a goal for the maximum amount of virtual
+ * memory used by the cluster mappings. */
+static int cluster_init(int maxlru, int maxfds,
+			int maxmaps, size_t maxvm);
 
 /* Cleanup from the cluster subsystem. */
 static void cluster_cleanup();
@@ -103,8 +131,7 @@ static int cluster_checkfileref(struct swcluster *c, long file);
 
 /* Creates a memory map of the cluster c possibly at address
  * start with protection and flags like mmap(2). */
-static char *cluster_mmap(struct swcluster *c,void *start,
-			  int prot, int flags);
+static char *cluster_mmap(struct swcluster *c, int prot, int flags);
 
 /* Unmaps a previously mmapped cluster. Returns 0 on success
  * and -1 on error (invalid supplied address) */
