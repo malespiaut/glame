@@ -1,6 +1,6 @@
 /*
  * mixer.c
- * $Id: mixer.c,v 1.4 2002/02/17 13:53:31 richi Exp $
+ * $Id: mixer.c,v 1.5 2002/02/26 10:42:19 richi Exp $
  *
  * Copyright (C) 2002 Laurent Georget
  *
@@ -37,7 +37,7 @@
 #include "util/glame_param.h"
 #include "edit_filter/filtereditgui.h"
 #include "util/glame_gui_utils.h"
-
+#include "util/gtknob.h"
 PLUGIN(mixer)
 
 struct apply_data_s {
@@ -70,8 +70,10 @@ static void preview_stop(struct apply_data_s *a);
 static void apply_cb(GtkWidget * bla, struct apply_data_s *a);
 static void close_cb(GtkWidget * bla, struct apply_data_s *a);
 static void advance10s_cb(GtkWidget * bla, struct apply_data_s *a);
-GtkWidget *glame_param_slider_new(filter_param_t * param,char *label_short, gfloat value,
-				  gfloat lower, gfloat upper, gfloat step_increment,
+GtkWidget *glame_param_slider_new(filter_param_t * param,
+				  char *label_short, gfloat value,
+				  gfloat lower, gfloat upper,
+				  gfloat step_increment,
 				  gfloat page_increment, gfloat page_size);
 
 static void cleanup(struct apply_data_s *a)
@@ -115,8 +117,8 @@ static gint poll_net_cb(struct apply_data_s *a)
 				    FILTERPARAM_LABEL_POS);
 	gtk_progress_bar_update(GTK_PROGRESS_BAR(a->progress),
 				MIN(1.0,
-				    (float) filterparam_val_long(posparam) /
-				    (float) (a->length)));
+				    (float) filterparam_val_long(posparam)
+				    / (float) (a->length)));
 
 
 	pos = filterparam_val_long(posparam);
@@ -222,6 +224,7 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 
 	/* mono */
 	if (a->stereo == 0) {
+		DPRINTF("mono mix");
 		result_left = gpsm_newswfile("mixed ");
 		render = filter_get_node(a->net, "render");
 		if (!render) {
@@ -229,21 +232,28 @@ static void apply_cb(GtkWidget * bla, struct apply_data_s *a)
 			goto cleanup;
 		}
 
-		if (!(swap_out_left =filter_instantiate(plugin_get("swapfile-out")))) {
+		if (!
+		    (swap_out_left =
+		     filter_instantiate(plugin_get("swapfile-out")))) {
 			DPRINTF("error swapout left create\n\n");
 			goto cleanup;
 		}
 		swname = gpsm_swfile_filename(result_left);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap_out_left),"filename"), &swname);
-		if ((filter_add_node(a->net, swap_out_left, "swap_out_left")) == -1) {
+		filterparam_set(filterparamdb_get_param
+				(filter_paramdb(swap_out_left),
+				 "filename"), &swname);
+		if ((filter_add_node
+		     (a->net, swap_out_left, "swap_out_left")) == -1) {
 			DPRINTF("error adding node swap_out_left\n\n");
 			goto cleanup;
 		}
 		in_l =
-filterportdb_get_port(filter_portdb(swap_out_left),PORTNAME_IN);
+		    filterportdb_get_port(filter_portdb(swap_out_left),
+					  PORTNAME_IN);
 		if (!
 		    (out =
-		     filterportdb_get_port(filter_portdb(render),PORTNAME_OUT))) {
+		     filterportdb_get_port(filter_portdb(render),
+					   PORTNAME_OUT))) {
 			DPRINTF("error getting port l\n\n");
 			goto cleanup;
 		}
@@ -252,9 +262,10 @@ filterportdb_get_port(filter_portdb(swap_out_left),PORTNAME_IN);
 			DPRINTF("error getting pipe\n\n");
 			goto cleanup;
 		}
-
-		if ((filter_launch(a->net, _GLAME_WBUFSIZE) == -1) ||
-		    (filter_start(a->net) == -1))
+		gpsm_swfile_set_samplerate(result_left,
+					   filterpipe_sample_rate(pipe));
+		if ((filter_launch(a->net, _GLAME_WBUFSIZE) == -1)
+		    || (filter_start(a->net) == -1))
 			goto cleanup;
 		if (filter_wait(a->net) == -1)
 			goto cleanup;
@@ -263,10 +274,12 @@ filterportdb_get_port(filter_portdb(swap_out_left),PORTNAME_IN);
 	/*stereo */
 	/*FIXME: see if one pass for left and right is possible */
 	else {
+		DPRINTF("stereo mix");
 		result_left = gpsm_newswfile("mixed left");
 		gpsm_swfile_set_position(result_left, FILTER_PIPEPOS_LEFT);
 		result_right = gpsm_newswfile("mixed right");
-		gpsm_swfile_set_position(result_right, FILTER_PIPEPOS_RIGHT);
+		gpsm_swfile_set_position(result_right,
+					 FILTER_PIPEPOS_RIGHT);
 
 		render = filter_get_node(a->net, "render");
 		if (!render) {
@@ -274,27 +287,41 @@ filterportdb_get_port(filter_portdb(swap_out_left),PORTNAME_IN);
 			goto cleanup;
 		}
 
-		if (!(swap_out_left =filter_instantiate(plugin_get("swapfile-out")))) {
+		if (!
+		    (swap_out_left =
+		     filter_instantiate(plugin_get("swapfile-out")))) {
 			DPRINTF("error swapout left create\n\n");
 			goto cleanup;
 		}
-		if (!(swap_out_right = filter_instantiate(plugin_get("swapfile-out")))) {
+		if (!
+		    (swap_out_right =
+		     filter_instantiate(plugin_get("swapfile-out")))) {
 			DPRINTF("error swapout right create\n\n");
 			goto cleanup;
 		}
 
 		swname = gpsm_swfile_filename(result_left);
-filterparam_set(filterparamdb_get_param(filter_paramdb(swap_out_left),"filename"), &swname);
-		if ((filter_add_node(a->net, swap_out_left, "swap_out_left")) == -1) {
+		filterparam_set(filterparamdb_get_param
+				(filter_paramdb(swap_out_left),
+				 "filename"), &swname);
+		if ((filter_add_node
+		     (a->net, swap_out_left, "swap_out_left")) == -1) {
 			DPRINTF("error adding node swap_out_left\n\n");
 			goto cleanup;
 		}
 		swname = gpsm_swfile_filename(result_right);
-		filterparam_set(filterparamdb_get_param(filter_paramdb(swap_out_right),"filename"), &swname);
+		filterparam_set(filterparamdb_get_param
+				(filter_paramdb(swap_out_right),
+				 "filename"), &swname);
 
 		/*for left */
-		in_l =filterportdb_get_port(filter_portdb(swap_out_left),PORTNAME_IN);
-		if (!(out =   filterportdb_get_port(filter_portdb(render),PORTNAME_OUT))) {
+		in_l =
+		    filterportdb_get_port(filter_portdb(swap_out_left),
+					  PORTNAME_IN);
+		if (!
+		    (out =
+		     filterportdb_get_port(filter_portdb(render),
+					   PORTNAME_OUT))) {
 			DPRINTF("error getting port l\n\n");
 			goto cleanup;
 		}
@@ -303,10 +330,15 @@ filterparam_set(filterparamdb_get_param(filter_paramdb(swap_out_left),"filename"
 			DPRINTF("error getting pipe\n\n");
 			goto cleanup;
 		}
+		gpsm_swfile_set_samplerate(result_left,
+					   filterpipe_sample_rate(pipe));
 		pos = FILTER_PIPEPOS_LEFT;
-		filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(pipe),"position"), &pos);
+		filterparam_set(filterparamdb_get_param
+				(filterpipe_sourceparamdb(pipe),
+				 "position"), &pos);
 
-		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1) ||(filter_start(a->net) == -1))
+		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1)
+		    || (filter_start(a->net) == -1))
 			goto cleanup;
 		if (filter_wait(a->net) == -1)
 			goto cleanup;
@@ -318,14 +350,21 @@ filterparam_set(filterparamdb_get_param(filter_paramdb(swap_out_left),"filename"
 			DPRINTF("error adding node swap_out_right\n\n");
 			goto cleanup;
 		}
-		in_r =filterportdb_get_port(filter_portdb(swap_out_right),PORTNAME_IN);
+		in_r =
+		    filterportdb_get_port(filter_portdb(swap_out_right),
+					  PORTNAME_IN);
 		if (!(pipe = filterport_connect(out, in_r))) {
 			DPRINTF("error connecting port \n\n");
 			goto cleanup;
 		}
+		gpsm_swfile_set_samplerate(result_right,
+					   filterpipe_sample_rate(pipe));
 		pos = FILTER_PIPEPOS_RIGHT;
-		filterparam_set(filterparamdb_get_param	(filterpipe_sourceparamdb(pipe), "position"), &pos);
-		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1)|| (filter_start(a->net) == -1))
+		filterparam_set(filterparamdb_get_param
+				(filterpipe_sourceparamdb(pipe),
+				 "position"), &pos);
+		if ((filter_launch(a->net, GLAME_BULK_BUFSIZE) == -1)
+		    || (filter_start(a->net) == -1))
 			goto cleanup;
 		if (filter_wait(a->net) == -1)
 			goto cleanup;
@@ -376,7 +415,7 @@ static gint delete_cb(GtkWidget * w, GdkEventAny * event,
 static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 {
 
-	GtkWidget *label;
+	GtkWidget *label, *scrolledwindow, *viewport;
 	struct apply_data_s *a;
 	gpsm_item_t *item;
 	plugin_t *test;
@@ -410,10 +449,16 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	gnome_dialog_close_hides(GNOME_DIALOG(a->dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(a->dialog), FALSE);
 	gtk_window_set_position(GTK_WINDOW(a->dialog), GTK_WIN_POS_CENTER);
-	gtk_window_set_policy(GTK_WINDOW(a->dialog), TRUE, TRUE, FALSE);
-	gnome_dialog_append_button_with_pixmap(GNOME_DIALOG (a->dialog),_("Preview"),GNOME_STOCK_PIXMAP_VOLUME);
-	gnome_dialog_append_button_with_pixmap(GNOME_DIALOG(a->dialog),_("Apply"),GNOME_STOCK_PIXMAP_FORWARD);
-	gnome_dialog_append_button(GNOME_DIALOG(a->dialog),GNOME_STOCK_BUTTON_CANCEL);
+	gtk_window_set_policy(GTK_WINDOW(a->dialog), FALSE, TRUE, TRUE);
+	gtk_window_set_default_size(GTK_WINDOW(a->dialog), 400, 700);
+	gnome_dialog_append_button_with_pixmap(GNOME_DIALOG(a->dialog),
+					       _("Preview"),
+					       GNOME_STOCK_PIXMAP_VOLUME);
+	gnome_dialog_append_button_with_pixmap(GNOME_DIALOG(a->dialog),
+					       _("Apply"),
+					       GNOME_STOCK_PIXMAP_FORWARD);
+	gnome_dialog_append_button(GNOME_DIALOG(a->dialog),
+				   GNOME_STOCK_BUTTON_CANCEL);
 	/* if (help) */
 	/*            gnome_dialog_append_button( */
 	/*                    GNOME_DIALOG(a->dialog), GNOME_STOCK_BUTTON_HELP); */
@@ -432,18 +477,35 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 				    APPLY, apply_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog),
 				    CANCEL, close_cb, a);
-        /*gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);*/	
-	gtk_widget_show(a->dialog);
+	/*gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE); */
+	/* gtk_widget_show(a->dialog); */
 	/* Mixer title */
-        text_obj = gpsm_item_label(obj);
+	text_obj = gpsm_item_label(obj);
 	snprintf(text, 127, "Mixer: %s", text_obj);
 	label = gtk_label_new(text);
-	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox),label, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), label,
+			   FALSE, FALSE, 3);
 	gtk_widget_show(label);
+
+	scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
+	gtk_widget_show(scrolledwindow);
+	gtk_window_set_policy(GTK_WINDOW(a->dialog), FALSE, TRUE, TRUE);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox),
+			   scrolledwindow, TRUE, TRUE, 0);
+
+	viewport = gtk_viewport_new(NULL, NULL);
+	gtk_widget_show(viewport);
+	gtk_container_add(GTK_CONTAINER(scrolledwindow), viewport);
+	gtk_box_pack_start(GTK_BOX(scrolledwindow), viewport, TRUE, TRUE,
+			   0);
+
 	/* 1 hbox for all chanels  */
 	a->mixer_hbox = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX
-			   (GNOME_DIALOG(a->dialog)->vbox),GTK_WIDGET(a->mixer_hbox), FALSE, FALSE, 0);
+/* 	gtk_box_pack_start (GTK_BOX(scrolledwindow),GTK_WIDGET(a->mixer_hbox), FALSE, FALSE, 0); */
+	gtk_container_add(GTK_CONTAINER(viewport), a->mixer_hbox);
+/* gtk_box_pack_start (GTK_BOX(viewport),a->mixer_hbox, TRUE, TRUE, 0); */
+/* gtk_box_pack_start (GTK_BOX(viewport),a->mixer_hbox, TRUE, TRUE, 0); */
+
 	gtk_widget_show(a->mixer_hbox);
 	a->grp = (gpsm_item_t *) gpsm_collect_swfiles(obj);
 	if (!a->grp)
@@ -457,42 +519,57 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 
 	gpsm_grp_foreach_item(a->grp, item) {
 		filter_param_t *param;
-		filter_t *swap_in, *volmix, *ladspa1;
+		filter_t *swap_in, *volmix, *ladspa1, *pan2;
 		GtkWidget *glame_param, *glame_param_vol;
 		gchar *text;
-		GtkWidget *chanel_vbox, *chanel_frame, *eq_low_frame,
-		    *eq_low_hbox, *eq_mid_frame, *eq_mid_hbox,
-		    *eq_hi_frame, *eq_hi_hbox;
-		double phi,gain
-;
+		GtkWidget *chanel_vbox, *chanel_frame, *eq_vbox,
+		    *eq_low_frame, *eq_low_hbox, *eq_mid_frame,
+		    *eq_mid_hbox, *eq_hi_frame, *eq_hi_hbox, *eq_lvl_frame,
+		    *eq_lvl_hbox;
+		double phi, gain;
+		GtkAdjustment *adj;
+
 		if (gpsm_item_hposition(item) != 0)
 			goto cleanup;	/* we dont want to handle non-aligned
 					   tracks */
 		text = gpsm_item_label(item);
 		DPRINTF("Adding :%s \n", text);
-		/* 1 frame for each  chanel ,a vbox in it */
+
+/* 1 frame for each  chanel ,a vbox in it */
 		chanel_frame = gtk_frame_new(text);
-		gtk_widget_ref(chanel_frame);
-		gtk_object_set_data_full(GTK_OBJECT(a->mixer_hbox),"chanel_frame", chanel_frame,
-					 (GtkDestroyNotify)gtk_widget_unref);
+		/*      gtk_widget_ref(chanel_frame); */
+/* 		gtk_object_set_data_full(GTK_OBJECT(a->mixer_hbox),"chanel_frame", chanel_frame, */
+/* 					 (GtkDestroyNotify)gtk_widget_unref); */
 		gtk_widget_show(chanel_frame);
 		gtk_box_pack_start(GTK_BOX(a->mixer_hbox),
 				   GTK_WIDGET(chanel_frame), FALSE,
 				   FALSE, 0);
 		chanel_vbox = gtk_vbox_new(FALSE, 0);
-		gtk_container_add(GTK_CONTAINER(chanel_frame),chanel_vbox);
-		gtk_container_set_border_width(GTK_CONTAINER(chanel_vbox), 3);
+		gtk_container_add(GTK_CONTAINER(chanel_frame),
+				  chanel_vbox);
+		gtk_container_set_border_width(GTK_CONTAINER(chanel_vbox),
+					       3);
 		gtk_widget_show(chanel_vbox);
+		/* vbox for eq controls */
+		eq_vbox = gtk_vbox_new(FALSE, 0);
+		gtk_container_add(GTK_CONTAINER(chanel_vbox), eq_vbox);
+		gtk_container_set_border_width(GTK_CONTAINER(eq_vbox), 3);
+		gtk_widget_show(eq_vbox);
 		/* net begin */
-		swap_in = net_add_gpsm_input(a->net,(gpsm_swfile_t *) item,0, -1, 0);
+		swap_in =
+		    net_add_gpsm_input(a->net, (gpsm_swfile_t *) item, 0,
+				       -1, 0);
 		if (!swap_in) {
 			DPRINTF("error getting swap_in");
 			goto cleanup;
 		}
-		phi = filterparam_val_double(filterparamdb_get_param(filter_paramdb(swap_in), "position"));
-		DPRINTF("phi=%f\n", phi);
+		phi =
+		    filterparam_val_double(filterparamdb_get_param
+					   (filter_paramdb(swap_in),
+					    "position"));
+		DPRINTF("phi=%d\n", phi);
 		if (phi != 0)
-			a->stereo = 1;	/*non centered track : stereo mix */
+			a->stereo = 1;	/*non centered track : stereo mix  */
 
 		/* triplePara */
 		/* Ports:  "Low-shelving gain (dB)" input, control, -70 to 30 */
@@ -521,98 +598,183 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 
 		if (ladspa1) {
 			ladspa_present = 1;
-			if (!filterport_connect(filterportdb_get_port(filter_portdb(swap_in), PORTNAME_OUT),
-			     filterportdb_get_port(filter_portdb(ladspa1),"Input"))) {
+			if (!filterport_connect
+			    (filterportdb_get_port
+			     (filter_portdb(swap_in), PORTNAME_OUT),
+			     filterportdb_get_port(filter_portdb(ladspa1),
+						   "Input"))) {
 				DPRINTF(" error connecting ladspa1\n");
 				goto cleanup;
 			}
-                        /*set the triplePra gains to 0 db and the 3 frequences as desired */                        
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Low-shelving gain (dB)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=-20;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"High-shelving gain (dB)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=0;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 1 gain (dB)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=0;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 1 frequency (Hz)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=100;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 2 gain (dB)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=0;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 2 frequency (Hz)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=1000;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 3 gain (dB)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=0;
-                        filterparam_set(param, &gain);
-                        param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 3 frequency (Hz)");
-			if (!param) {DPRINTF("Unable to get param");
-                        goto cleanup;}
-                        gain=8000;
-                        filterparam_set(param, &gain);
-			/* 1 frame for eq_low , eq_low_hbox in it */
-			eq_low_frame = gtk_frame_new("Eq low");
-			gtk_widget_ref(chanel_frame);
-			gtk_object_set_data_full(GTK_OBJECT(chanel_vbox),"eq_low_frame",eq_low_frame,
-						 (GtkDestroyNotify)gtk_widget_unref);
-			gtk_widget_show(eq_low_frame);
-			gtk_box_pack_start(GTK_BOX(chanel_vbox), GTK_WIDGET(eq_low_frame), FALSE,
-					   FALSE, 0);
-			eq_low_hbox = gtk_hbox_new(FALSE, 0);
-			gtk_container_add(GTK_CONTAINER(eq_low_frame),eq_low_hbox);
-			/* gtk_container_set_border_width (GTK_CONTAINER (chanel_vbox), 3); */
-			gtk_widget_show(eq_low_hbox);
-			/* 1 frame for eq_mid , eq_mid_hbox in it */
-			eq_mid_frame = gtk_frame_new("Eq mid");
-			gtk_widget_ref(chanel_frame);
-			gtk_object_set_data_full(GTK_OBJECT(chanel_vbox),"eq_mid_frame",eq_mid_frame,
-						 (GtkDestroyNotify)gtk_widget_unref);
-			gtk_widget_show(eq_mid_frame);
-			gtk_box_pack_start(GTK_BOX(chanel_vbox),GTK_WIDGET(eq_mid_frame), FALSE,
-					   FALSE, 0);
-			eq_mid_hbox = gtk_hbox_new(FALSE, 0);
-			gtk_container_add(GTK_CONTAINER(eq_mid_frame), eq_mid_hbox);
-			/*                gtk_container_set_border_width (GTK_CONTAINER (chanel_vbox), 3); */
-			gtk_widget_show(eq_mid_hbox);
-			/* 1 frame for eq_hi , eq_hi_hbox in it */
-			eq_hi_frame = gtk_frame_new("Eq hi");
-			gtk_widget_ref(chanel_frame);
-                        gtk_object_set_data_full(GTK_OBJECT(chanel_vbox), "eq_hi_frame",eq_hi_frame,
-						 (GtkDestroyNotify) gtk_widget_unref);
-			gtk_widget_show(eq_hi_frame);
-			gtk_box_pack_start(GTK_BOX(chanel_vbox),GTK_WIDGET(eq_hi_frame), FALSE,
-					   FALSE, 0);
-			eq_hi_hbox = gtk_hbox_new(FALSE, 0);
-			gtk_container_add(GTK_CONTAINER(eq_hi_frame), eq_hi_hbox);
-			/*                gtk_container_set_border_width (GTK_CONTAINER (chanel_vbox), 3); */
-			gtk_widget_show(eq_hi_hbox);
-			/* eq1 low controls */
+			/*set the triplePra gains to 0 db and the 3 frequences as desired */
 			param =
-			    filterparamdb_get_param(filter_paramdb (ladspa1),"Band 1 frequency (Hz)");
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Low-shelving gain (dB)");
 			if (!param) {
 				DPRINTF("Unable to get param");
 				goto cleanup;
 			}
+			gain = 0;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "High-shelving gain (dB)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 0;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 1 gain (dB)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 0;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 1 frequency (Hz)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 100;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 2 gain (dB)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 0;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 2 frequency (Hz)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 1000;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 3 gain (dB)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 0;
+			filterparam_set(param, &gain);
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 3 frequency (Hz)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			gain = 8000;
+			filterparam_set(param, &gain);
+			/* 1 frame for eq_low , eq_low_hbox in it */
+			eq_low_frame = gtk_frame_new("Eq low");
+			gtk_widget_ref(chanel_frame);
+			gtk_object_set_data_full(GTK_OBJECT(chanel_vbox),
+						 "eq_low_frame",
+						 eq_low_frame,
+						 (GtkDestroyNotify)
+						 gtk_widget_unref);
+			gtk_widget_show(eq_low_frame);
+			gtk_box_pack_start(GTK_BOX(eq_vbox),
+					   GTK_WIDGET(eq_low_frame), FALSE,
+					   FALSE, 0);
+			eq_low_hbox = gtk_hbox_new(FALSE, 0);
+			gtk_container_add(GTK_CONTAINER(eq_low_frame),
+					  eq_low_hbox);
+			gtk_container_set_border_width(GTK_CONTAINER
+						       (chanel_vbox), 3);
+			gtk_widget_show(eq_low_hbox);
+			/* 1 frame for eq_mid , eq_mid_hbox in it */
+			eq_mid_frame = gtk_frame_new("Eq mid");
+			gtk_widget_ref(chanel_frame);
+			gtk_object_set_data_full(GTK_OBJECT(chanel_vbox),
+						 "eq_mid_frame",
+						 eq_mid_frame,
+						 (GtkDestroyNotify)
+						 gtk_widget_unref);
+			gtk_widget_show(eq_mid_frame);
+			gtk_box_pack_start(GTK_BOX(eq_vbox),
+					   GTK_WIDGET(eq_mid_frame), FALSE,
+					   FALSE, 0);
+			eq_mid_hbox = gtk_hbox_new(FALSE, 0);
+			gtk_container_add(GTK_CONTAINER(eq_mid_frame),
+					  eq_mid_hbox);
+			gtk_container_set_border_width(GTK_CONTAINER
+						       (chanel_vbox), 3);
+			gtk_widget_show(eq_mid_hbox);
+			/* 1 frame for eq_hi , eq_hi_hbox in it */
+			eq_hi_frame = gtk_frame_new("Eq hi");
+			gtk_widget_ref(chanel_frame);
+			gtk_object_set_data_full(GTK_OBJECT(chanel_vbox),
+						 "eq_hi_frame",
+						 eq_hi_frame,
+						 (GtkDestroyNotify)
+						 gtk_widget_unref);
+			gtk_widget_show(eq_hi_frame);
+			gtk_box_pack_start(GTK_BOX(eq_vbox),
+					   GTK_WIDGET(eq_hi_frame), FALSE,
+					   FALSE, 0);
+			eq_hi_hbox = gtk_hbox_new(FALSE, 0);
+			gtk_container_add(GTK_CONTAINER(eq_hi_frame),
+					  eq_hi_hbox);
+			gtk_container_set_border_width(GTK_CONTAINER
+						       (chanel_vbox), 3);
+			gtk_widget_show(eq_hi_hbox);
+			/* 1 frame for level , eq_lvl_hbox in it */
+			eq_lvl_frame = gtk_frame_new("Level");
+			gtk_widget_ref(chanel_frame);
+			gtk_object_set_data_full(GTK_OBJECT(chanel_vbox),
+						 "Level", eq_lvl_frame,
+						 (GtkDestroyNotify)
+						 gtk_widget_unref);
+			gtk_widget_show(eq_lvl_frame);
+			gtk_box_pack_start(GTK_BOX(chanel_vbox),
+					   GTK_WIDGET(eq_lvl_frame), FALSE,
+					   FALSE, 0);
+			eq_lvl_hbox = gtk_hbox_new(FALSE, 0);
+			gtk_container_add(GTK_CONTAINER(eq_lvl_frame),
+					  eq_lvl_hbox);
+			gtk_container_set_border_width(GTK_CONTAINER
+						       (chanel_vbox), 3);
+			gtk_widget_show(eq_lvl_hbox);
 
+/* eq1 low controls */
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 1 frequency (Hz)");
+			if (!param) {
+				DPRINTF("Unable to get param");
+				goto cleanup;
+			}
+			/* adj = GTK_ADJUSTMENT(gtk_adjustment_new(filterparam_val_double(param),100,40, 400, 10.0, 0.0)); */
+/* 			glame_param = gtk_knob_new(adj);  */
+			filterparam_set_property(param, FILTERPARAM_LABEL,
+						 "Hz");
 			glame_param =
-			    glame_param_slider_new(param, "Hz", 100, 50,500, 1, 100, 100);
+			    glame_param_slider_new(param, "Hz", 100, 50,
+						   500, 1, 100, 100);
 			if (!glame_param) {
 				DPRINTF("Unable to get param widget");
 				goto cleanup;
@@ -621,54 +783,80 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 			gtk_container_add(GTK_CONTAINER(eq_low_hbox),
 					  glame_param);
 			param =
-			    filterparamdb_get_param(filter_paramdb(ladspa1),"Band 1 gain (dB)");
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 1 gain (dB)");
 			if (!param) {
 				DPRINTF("Unable to get param");
 				goto cleanup;
 			}
-			glame_param =glame_param_slider_new(param, "dB", 0, -20, 20,1, 1, 1);
+			filterparam_set_property(param, FILTERPARAM_LABEL,
+						 "dB");
+			glame_param =
+			    glame_param_slider_new(param, "dB", 0, -20, 20,
+						   1, 1, 1);
 			if (!glame_param) {
 				DPRINTF("Unable to get param widget");
 				goto cleanup;
 			}
 			gtk_widget_show_all(glame_param);
-			gtk_container_add(GTK_CONTAINER(eq_low_hbox),glame_param);
+			gtk_container_add(GTK_CONTAINER(eq_low_hbox),
+					  glame_param);
 			/* eq2 mid controls */
 			param =
-			    filterparamdb_get_param(filter_paramdb(ladspa1),"Band 2 frequency (Hz)");
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 2 frequency (Hz)");
 			if (!param) {
 				DPRINTF("Unable to get param");
 				goto cleanup;
 			}
-
-			glame_param =glame_param_slider_new(param, "Hz", 1000, 400,4000, 1, 100, 100);
+			filterparam_set_property(param, FILTERPARAM_LABEL,
+						 "Hz");
+			glame_param =
+			    glame_param_slider_new(param, "Hz", 1000, 400,
+						   4000, 1, 100, 100);
 			if (!glame_param) {
 				DPRINTF("Unable to get param widget");
 				goto cleanup;
 			}
 			gtk_widget_show_all(glame_param);
-			gtk_container_add(GTK_CONTAINER(eq_mid_hbox),glame_param);
+			gtk_container_add(GTK_CONTAINER(eq_mid_hbox),
+					  glame_param);
 			param =
-			    filterparamdb_get_param(filter_paramdb(ladspa1),"Band 2 gain (dB)");
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 2 gain (dB)");
 			if (!param) {
 				DPRINTF("Unable to get param");
 				goto cleanup;
 			}
-			glame_param = glame_param_slider_new(param, "dB", 0, -20, 20,1, 1, 1);
+			filterparam_set_property(param, FILTERPARAM_LABEL,
+						 "dB");
+			glame_param =
+			    glame_param_slider_new(param, "dB", 0, -20, 20,
+						   1, 1, 1);
 			if (!glame_param) {
 				DPRINTF("Unable to get param widget");
 				goto cleanup;
 			}
 			gtk_widget_show_all(glame_param);
-                        gtk_container_add(GTK_CONTAINER(eq_mid_hbox), glame_param);
+			gtk_container_add(GTK_CONTAINER(eq_mid_hbox),
+					  glame_param);
 			/* eq3 hi controls */
-			param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 3 frequency (Hz)");
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 3 frequency (Hz)");
 			if (!param) {
 				DPRINTF("Unable to get param");
 				goto cleanup;
 			}
-
-			glame_param =glame_param_slider_new(param, "Hz", 8000,3900,15000, 1, 100, 100);
+			filterparam_set_property(param, FILTERPARAM_LABEL,
+						 "Hz");
+			glame_param =
+			    glame_param_slider_new(param, "Hz", 8000, 3900,
+						   15000, 1, 100, 100);
 			if (!glame_param) {
 				DPRINTF("Unable to get param widget");
 				goto cleanup;
@@ -676,12 +864,19 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 			gtk_widget_show_all(glame_param);
 			gtk_container_add(GTK_CONTAINER(eq_hi_hbox),
 					  glame_param);
-			param =filterparamdb_get_param(filter_paramdb(ladspa1),"Band 3 gain (dB)");
+			param =
+			    filterparamdb_get_param(filter_paramdb
+						    (ladspa1),
+						    "Band 3 gain (dB)");
 			if (!param) {
 				DPRINTF("Unable to get param");
 				goto cleanup;
 			}
-			glame_param =glame_param_slider_new(param, "dB", 0, -20,20, 1, 1, 1);
+			filterparam_set_property(param, FILTERPARAM_LABEL,
+						 "dB");
+			glame_param =
+			    glame_param_slider_new(param, "dB", 0, -20, 20,
+						   1, 1, 1);
 			if (!glame_param) {
 				DPRINTF("Unable to get param widget");
 				goto cleanup;
@@ -690,6 +885,8 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 			gtk_container_add(GTK_CONTAINER(eq_hi_hbox),
 					  glame_param);
 		}
+
+
 
 		/* volume */
 		if (!
@@ -700,7 +897,9 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		}
 		filter_add_node(a->net, volmix, "mix_volume");
 		if (ladspa1) {
-			if (!filterport_connect(filterportdb_get_port(filter_portdb(ladspa1), "Output"),
+			if (!filterport_connect
+			    (filterportdb_get_port
+			     (filter_portdb(ladspa1), "Output"),
 			     filterportdb_get_port(filter_portdb(volmix),
 						   PORTNAME_IN))) {
 				DPRINTF
@@ -720,27 +919,74 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 		}
 
 		param =
-		    filterparamdb_get_param(filter_paramdb(volmix),"dbgain");
+		    filterparamdb_get_param(filter_paramdb(volmix),
+					    "dbgain");
 		if (!param) {
 			DPRINTF("Unable to get volmix param");
 			goto cleanup;
 		}
-		glame_param_vol = glame_param_slider_new(param, "Lvl dB", 0, -100, 20, 1, 4,1);
-		if (!glame_param_vol) {
+		filterparam_set_property(param, FILTERPARAM_LABEL, "dB");
+		glame_param =
+		    glame_param_slider_new(param, "Lvl dB", 0, -100, 20, 1,
+					   4, 1);
+		if (!glame_param) {
 			DPRINTF("Unable to get volmix param widget");
 			goto cleanup;
 		}
-		gtk_widget_show_all(glame_param_vol);
-		gtk_container_add(GTK_CONTAINER(chanel_vbox),glame_param_vol);
-		/* gtk_box_pack_start(GTK_BOX(chanel_frame), */
-		/*                             GTK_WIDGET(glame_param_vol), FALSE, */
-		/*                             FALSE, 0); */
+		gtk_widget_show_all(glame_param);
+/* 		gtk_container_add(GTK_CONTAINER(chanel_vbox),glame_param_vol); */
+		gtk_container_add(GTK_CONTAINER(eq_lvl_hbox), glame_param);
+		gtk_box_pack_start(GTK_BOX(chanel_vbox),
+				   GTK_WIDGET(eq_lvl_hbox), FALSE,
+				   FALSE, 0);
+		/* pan2 */
+		if (!(pan2 = filter_instantiate((plugin_get("pan2"))))) {
+			DPRINTF("error getting pan2");
+			goto cleanup;
+		}
+		filter_add_node(a->net, pan2, "mix_volume");
+
+		if (!filterport_connect
+		    (filterportdb_get_port
+		     (filter_portdb(volmix), PORTNAME_OUT),
+		     filterportdb_get_port(filter_portdb(pan2),
+					   PORTNAME_IN))) {
+			DPRINTF(" error connecting pan2 to volmix\n");
+			goto cleanup;
+		}
+
+		param =
+		    filterparamdb_get_param(filter_paramdb(pan2),
+					    "position");
+		if (!param) {
+			DPRINTF("Unable to get pan2 param");
+			goto cleanup;
+		}
+		filterparam_set_property(param, FILTERPARAM_LABEL, "pan");
+		filterparam_set_double(param, phi);
+
+/* 		phi = filterparam_val_double(filterparamdb_get_param(filter_paramdb(swap_in), "position")); */
+
+		glame_param =
+		    glame_param_slider_new(param, "pan", phi, -1.57, 1.57,
+					   0.1, 0.1, 1);
+		if (!glame_param) {
+			DPRINTF("Unable to get volmix param widget");
+			goto cleanup;
+		}
+
+
+		gtk_widget_show_all(glame_param);
+		gtk_container_add(GTK_CONTAINER(eq_lvl_hbox), glame_param);
+
 	}			/*end of loop */
 
-        /* glame_filtereditgui_new(a->net, TRUE); */
+	/* glame_filtereditgui_new(a->net, TRUE); */
 	a->progress = gtk_progress_bar_new();
-	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(a->progress),GTK_PROGRESS_LEFT_TO_RIGHT);
-	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), a->progress, FALSE, FALSE, 3);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(a->progress),
+					 GTK_PROGRESS_LEFT_TO_RIGHT);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox),
+			   a->progress, FALSE, FALSE, 3);
 	gtk_widget_show(a->progress);
 	if (!(a->pos = net_apply_audio_out(a->net))) {
 		DPRINTF("error applying audio_out");
@@ -750,12 +996,15 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	/* time counter */
 	a->length = length;
 	a->sr =
-	    filterpipe_sample_rate(filterport_get_pipe(filterportdb_get_port(filter_portdb(a->pos), PORTNAME_IN)));
+	    filterpipe_sample_rate(filterport_get_pipe
+				   (filterportdb_get_port
+				    (filter_portdb(a->pos), PORTNAME_IN)));
 	a->tot_time = div((a->length / a->sr), 60);
 	snprintf(labelcount, 24, "%i mn %i s/ %i mn %i s", 0,
 		 0, (a->tot_time).quot, (a->tot_time).rem);
 	a->counter = gtk_label_new(labelcount);
-	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox),a->counter, FALSE, FALSE, 3);
+	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox),
+			   a->counter, FALSE, FALSE, 3);
 	gtk_widget_show(a->counter);
 	/* gnome_dialog_append_button_with_pixmap(GNOME_DIALOG(a->dialog), */
 	/*                                           _("Preview"), */
@@ -763,6 +1012,9 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 	/*            gnome_dialog_set_sensitive(GNOME_DIALOG(a->dialog), ADV10, TRUE); */
 	/*  gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), ADV10, */
 	/*                                advance10s_cb, a); */
+
+	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);
+	gtk_widget_show(a->dialog);
 	return 0;
       cleanup:
 	cleanup(a);
@@ -776,7 +1028,7 @@ static void advance10s_cb(GtkWidget * bla, struct apply_data_s *a)
 
 
 
-GtkWidget *glame_param_slider_new(filter_param_t *param,
+GtkWidget *glame_param_slider_new(filter_param_t * param,
 				  char *label_short,
 				  gfloat value,
 				  gfloat lower,
@@ -785,33 +1037,39 @@ GtkWidget *glame_param_slider_new(filter_param_t *param,
 				  gfloat page_increment, gfloat page_size)
 {
 	char xml[1024];
-
+	GtkWidget *hbox, *label, *widget;
 	snprintf(xml, 1023,
-"<?xml version=\"1.0\"?><GTK-Interface>"
-"  <widget>"
-"    <class>GtkHScale</class>"
-"    <name>widget</name>"
-"    <can_focus>True</can_focus>"
-"    <draw_value>True</draw_value>"
-"    <value_pos>GTK_POS_LEFT</value_pos>"
-"    <digits>3</digits>"
-"    <policy>GTK_UPDATE_CONTINUOUS</policy>"
-"    <value>%.3f</value>"
-"    <lower>%.3f</lower>"
-"    <upper>%.3f</upper>"
-"    <step>%.3f</step>"
-"    <page>%.3f</page>"
-"    <page_size>%.3f</page_size>"
-"  </widget>"
-"</GTK-Interface>",
+		 "<?xml version=\"1.0\"?><GTK-Interface>"
+		 "  <widget>"
+		 "    <class>GtkVScale</class>"
+		 "    <name>widget</name>"
+		 "    <can_focus>True</can_focus>"
+		 "    <draw_value>True</draw_value>"
+		 "    <value_pos>GTK_POS_LEFT</value_pos>"
+		 "    <digits>3</digits>"
+		 "    <policy>GTK_UPDATE_CONTINUOUS</policy>"
+		 "    <value>%.3f</value>"
+		 "    <lower>%.3f</lower>"
+		 "    <upper>%.3f</upper>"
+		 "    <step>%.3f</step>"
+		 "    <page>%.3f</page>"
+		 "    <page_size>%.3f</page_size>"
+		 "  </widget>"
+		 "</GTK-Interface>",
 		 value, lower, upper, step_increment,
 		 page_increment, page_size);
 	filterparam_set_property(param, FILTERPARAM_GLADEXML, strdup(xml));
-
-	return glame_param_new(param);
+	hbox = gtk_hbox_new(FALSE, 0);
+	label = gtk_label_new(label_short);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	/* gtk_widget_show(label); */
+	widget = glame_param_new_without_label(param);
+	gtk_box_pack_start(GTK_BOX(hbox), widget, FALSE, FALSE, 0);
+	return hbox;
 }
 
-int mixer_register(plugin_t *p)
+
+int mixer_register(plugin_t * p)
 {
 	plugin_set(p, PLUGIN_GPSMOP, mixer_gpsm);
 	plugin_set(p, PLUGIN_DESCRIPTION,
