@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.5 2002/04/10 20:00:39 ochonpaul Exp $
+ * $Id: gtknob.c,v 1.6 2002/04/10 20:31:35 ochonpaul Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -623,13 +623,13 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
     GtkWidget *widget;
     GdkRectangle rect;
     gint temp;
-    int nb;
+    /* int nb; */
     g_return_if_fail(adjustment != NULL);
     g_return_if_fail(data != NULL);
     
     knob = GTK_KNOB(data);
     widget = GTK_WIDGET(data);
-    /* snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value); *//*update displayed value*/
+    snprintf(knob->show_val,6,"%5.1f",knob->adjustment->value); /*update displayed value*/
     
     temp = (adjustment->value - adjustment->lower) / (adjustment->upper - adjustment->lower) * 53;
     if (knob->value != temp) {
@@ -643,7 +643,7 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 	gtk_knob_draw(widget, &rect);
 
     }
-	nb=snprintf(knob->show_val,6,"%5.1f",adjustment->value);
+	/* nb=snprintf(knob->show_val,6,"%5.1f",adjustment->value); */
 }
 
 
