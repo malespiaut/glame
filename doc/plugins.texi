@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.13 2000/04/12 12:39:21 mag Exp $
+@comment $Id: plugins.texi,v 1.14 2000/04/12 13:43:59 nold Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -571,12 +571,14 @@ Release time in milliseconds, see above. Defaults to 0.
 @node IIR,, Noisegate, Effects
 @subsection IIR
 
-IIR stands for Infinite Impulse Response. With this effect it is actually possible to low/highpass 
-filter a signal with the simple recursive formula y[n]=a0*x[n]+a1*x[n-1]+...+b0*y[n-1]+b1*y[n-2]+...
-The filter coefficients a0,a1,...,b0,b1,... are calculated via the Chebyshev scheme in the moment,
-but IIR will soon be replaced by different filters all using the IIR method to provide band/notch/etc.
-filters.
-For more detailed information about IIR and Chebyshev filters consult http://www.dspguide.com.
+IIR stands for Infinite Impulse Response. This effect makes it possible to
+perform low/highpass filtering on a signal according to the simple recursive 
+formula y[n]=a0*x[n] + a1*x[n-1] + ... + b0*y[n-1] + b1*y[n-2] + ...
+The filter coefficients a0, a1, ..., b0, b1, ... are calculated via the 
+Chebyshev scheme in the moment, but IIR will soon be replaced by different 
+filters, all using the IIR method to provide band/notch/etc. filters.
+For more detailed information about IIR and Chebyshev filters 
+consult @url{http://www.dspguide.com}.
 
 @subsubheading @file{iir} ports
 @table @code
@@ -592,16 +594,16 @@ Output stream of filtered sample data. Only one connection is allowed.
 Mode of operation. 0 specifies a low pass, 1 a high pass filter. Defaults 
 to low pass.
 @item poles (integer)
-For Chebyshev filters poles has to be a multiple of 2. Having more poles leads
-to a better impulse response of the filter, i.e. the signal will drop faster around
-the cutoff frequency, but the filter will need longer to execute. Defaults to 2.
+For Chebyshev filters, @code{poles} has to be a multiple of 2. 
+Having more poles leads to better impulse response of the filter, i.e. 
+the signal will drop faster around the cutoff frequency, but the filter will 
+need longer to execute. Defaults to 2.
 @item cutoff (float)
-Cut off frequency as a ratio of cutoff-frequency divided by samplefrequency. The
-maximum is half the samplefrequency(Nyquist frequency!), therefore cutoff is limited
-from 0 up to 0.5. Defaults to 0.1.
+Specifies ratio of cutoff frequency divided by sample 
+frequency. The maximum is half the sample frequency (Nyquist frequency!), 
+therefore @code{cutoff} is valid only from 0 up to 0.5. Defaults to 0.1.
 @item ripple (float)
-Ripple defines the percentage of ripple in the passband. It defaults to 0.5 and it is save
-to leave it unless you know what you're doing.
+@code{ripple} defines the percentage of ripple in the pass band. It defaults 
+to 0.5, and it is best to leave it alone unless you know what you're doing.
 @end table
-
 
