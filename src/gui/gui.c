@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.13 2000/03/15 15:52:10 richi Exp $
+ * $Id: gui.c,v 1.14 2000/03/15 16:52:29 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -698,6 +698,7 @@ create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
 
 }
 
+#ifdef __USE_DRUID
 typedef struct _druid_struct
 {
 	GtkWidget *window;
@@ -743,10 +744,11 @@ druid_done(GtkWidget *page,GnomeDruid* druid,druid_struct* p)
 	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_parent_window(GTK_WIDGET(druid))));
 }
 	
-
+#endif
 gui_network*
 gui_network_new_wizard(void)
 {
+#ifdef __USE_DRUID
 	GtkWidget *window;
 	GnomeDruid * druid;
 	GdkImlibImage *img,*wat;
@@ -805,6 +807,30 @@ gui_network_new_wizard(void)
 	druid_data->icon = gnome_icon_entry_gtk_entry(icon);
 	gtk_widget_set_parent_window(GTK_WIDGET(druid),window);
 	return 0;
+#else
+	
+	gui_network * net;       
+	char *name,*descr;
+	name = malloc(50);
+	descr = malloc(50);
+	strncpy(name,"something",10);
+	strncpy(descr,"dummy net",10);
+
+	gtk_dialog_cauldron("New Filter",0,
+			    " ( (Network Name:) | ( %Eod ) ) / ( (Network Description:) | (%Ed) ) / ( %Bgqrxfp) ",&name,&descr,GNOME_STOCK_BUTTON_OK);
+	
+	net = malloc(sizeof(gui_network));
+	net->filters = NULL;
+	
+
+	net->caption = name;
+	net->pixname = strdup(GLAME_DEFAULT_ICON);
+	net->descr = descr;
+	net->net = filternetwork_new(net->caption,net->descr);
+	if(!(net->net))
+		fprintf(stderr,"Error creating network!\n");
+	gtk_widget_show(create_new_canvas(net->caption,net));
+#endif	
 }
 
 

@@ -4,7 +4,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.9 2000/03/15 15:46:59 xwolf Exp $
+ * $Id: canvas.c,v 1.10 2000/03/15 16:52:29 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -321,7 +321,7 @@ output_port_dragging(GnomeCanvasItem *pitem,GdkEvent *event, gpointer data)
 		if(item->connecting){
 
 			// Why does this not work correctly??   libgnomeui bug??
-			// released = gnome_canvas_get_item_at(pitem->canvas,x,y);
+		        //released = gnome_canvas_get_item_at(pitem->canvas,x,y);
 			released = find_output_port(pitem->canvas,x,y);
 			if(released){
 				if(GLAME_IS_CANVAS_PORT(released)){
