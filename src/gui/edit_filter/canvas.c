@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.41 2001/03/21 00:59:05 xwolf Exp $
+ * $Id: canvas.c,v 1.42 2001/03/21 10:43:58 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1057,23 +1057,25 @@ canvas_connection_connect_from_pipe(GlameConnection *c)
 	GlameCanvasPort * destPort=NULL;
 	c->line=NULL;
 	dest = filterpipe_dest(c->pipe);
-	item = GLAME_CANVAS_ITEM(filterport_filter(dest)->gui_priv);
-	ports = g_list_first(item->input_ports);
-	while(ports){
-		if(GLAME_CANVAS_PORT(ports->data)->port == dest)
-			destPort=GLAME_CANVAS_PORT(ports->data);
-		ports = g_list_next(ports);
+	if(filterport_filter(dest)->gui_priv){
+		item = GLAME_CANVAS_ITEM(filterport_filter(dest)->gui_priv);
+		ports = g_list_first(item->input_ports);
+		while(ports){
+			if(GLAME_CANVAS_PORT(ports->data)->port == dest)
+				destPort=GLAME_CANVAS_PORT(ports->data);
+			ports = g_list_next(ports);
+		}
+		if(!destPort){
+			fprintf(stderr,"Fatal! Port not found, this can't happen!\n");
+			return;
+		}
+		c->end = destPort;
+		c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
+		c->end->connected_ports=g_list_append(c->end->connected_ports,c);
+		c->begin_id = g_list_length(c->begin->connected_ports);
+		c->end_id = g_list_length(c->end->connected_ports);
+		canvas_connection_do_connect(c);
 	}
-	if(!destPort){
-		fprintf(stderr,"Fatal! Port not found, this can't happen!\n");
-		return;
-	}
-	c->end = destPort;
-	c->begin->connected_ports=g_list_append(c->begin->connected_ports,c);
-	c->end->connected_ports=g_list_append(c->end->connected_ports,c);
-	c->begin_id = g_list_length(c->begin->connected_ports);
-	c->end_id = g_list_length(c->end->connected_ports);
-	canvas_connection_do_connect(c);
 }
 	
 static int
