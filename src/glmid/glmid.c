@@ -45,7 +45,7 @@
 
 
 /* Builtin plugins. */
-PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io")
+PLUGIN_SET(builtin_plugins, "basic basic_sample audio_io file_io swapfile_io arithmetic waveform ssp echo noisegate pan pipe iir flanger distortion fader")
 
 
 

@@ -41,58 +41,28 @@ normalize = normalize.la mixer.la
 endif
 
 
+# builtin plugins - everything is builtin that does not depend
+# on optional libraries
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c \
-	swapfile_io.c audio_io.c file_io.c
+	swapfile_io.c audio_io.c file_io.c \
+	arithmetic.c waveform.c ssp.c echo.c noisegate.c \
+	pan.c pipe.c iir.c flanger.c distortion.c \
+	fader.c
 libglamebuiltins_la_LDFLAGS = -export-dynamic $(GLAME_AUDIO_LIBS)
+libglamebuiltins_la_DEPENDENCIES = symbols.c
 
-
-# (optional) real plugins
+# real plugins (depending on optional stuff)
 pkglib_LTLIBRARIES = \
-	arithmetic.la waveform.la ssp.la \
-	echo.la debug.la tutorial.la \
-	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
-	$(normalize) fader.la \
+	debug.la tutorial.la \
+	$(normalize) \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
-
-arithmetic_la_SOURCES = arithmetic.c
-arithmetic_la_LDFLAGS = -module -avoid-version
-
-waveform_la_SOURCES = waveform.c
-waveform_la_LDFLAGS = -module -avoid-version
-
-ssp_la_SOURCES = ssp.c
-ssp_la_LDFLAGS = -module -avoid-version
-
-echo_la_SOURCES = echo.c
-echo_la_LDFLAGS = -module -avoid-version
 
 debug_la_SOURCES = debug.c
 debug_la_LDFLAGS = -module -avoid-version
 
 tutorial_la_SOURCES = tutorial.c
 tutorial_la_LDFLAGS = -module -avoid-version
-
-noisegate_la_SOURCES = noisegate.c
-noisegate_la_LDFLAGS = -module -avoid-version
-
-pan_la_SOURCES = pan.c
-pan_la_LDFLAGS = -module -avoid-version
-
-pipe_la_SOURCES = pipe.c
-pipe_la_LDFLAGS = -module -avoid-version
-
-iir_la_SOURCES = iir.c
-iir_la_LDFLAGS = -module -avoid-version
-
-flanger_la_SOURCES = flanger.c
-flanger_la_LDFLAGS = -module -avoid-version
-
-distortion_la_SOURCES = distortion.c
-distortion_la_LDFLAGS = -module -avoid-version
-
-fader_la_SOURCES = fader.c
-fader_la_LDFLAGS = -module -avoid-version
 
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
@@ -126,3 +96,8 @@ endif
 normalize_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 mixer_la_LDFLAGS = -module -avoid-version $(GNOME_LIBDIR) $(GNOME_LIBS) $(GNOMEUI_LIBS)
 
+
+symbols.c: $(libglamebuiltins_la_SOURCES) Makefile.am
+	echo 'void blafoobar(int dummy){ if (dummy == 0) return; aio_generic_register_input(); aio_generic_register_output();' > symbols.c
+	for i in $(libglamebuiltins_la_SOURCES); do grep '^int .*_register(' $$i | sed -e 's/int \(.*_register\)(.*)/\1();/' >> symbols.c; done
+	echo '}' >> symbols.c
