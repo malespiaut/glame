@@ -110,7 +110,7 @@ fft_plugins_la_LDFLAGS = -module -avoid-version $(GLAME_FFT_LIBS)
 if HAVE_OSS
 audio_io_oss_la_SOURCES = audio_io_oss.c audio_io.h
 endif
-audio_io_oss_la_LDFLAGS = -module -avoid-version $(OSS_LIBS)
+audio_io_oss_la_LDFLAGS = -module -avoid-version
 
 if HAVE_ESD
 audio_io_esd_la_SOURCES = audio_io_esd.c audio_io.h

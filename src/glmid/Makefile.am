@@ -21,7 +21,7 @@ libglmid_la_SOURCES = \
 	network_utils.c network_utils.h \
 	glame_audiofile.c
 libglmid_la_LDFLAGS = -export-dynamic \
-	$(GUILE_LIBS) $(PTHREAD_LIB) $(XML_LIBS) -lm
+	$(GUILE_LIBS) $(PTHREAD_LIBS) $(XML_LIBS) -lm
 
 #libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
 	../hash/libhash.la ../plugins/libglamebuiltins.la
