@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.7 2001/06/05 14:40:07 richi Exp $
+ * $Id: audio_io_esd.c,v 1.8 2001/07/27 08:41:27 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -139,13 +139,13 @@ static int esd_out_f(filter_t *n)
 	gl_s16			neutral, *wbuf, *out = NULL;
 	filter_port_t *inport;
 	filter_pipe_t		*p_in;
-	filter_param_t *dev_param;
+	filter_param_t *dev_param, *pos_param;
 	char *host = NULL;
 	
 	int rate, ssize;
 	int max_ch, ch, ch_active, to_go;
 	ssize_t blksz, chunk_size;
-	int i;
+	int i, pos = 0;
 	
 	esd_format_t format = ESD_BITS16 | ESD_STREAM | ESD_PLAY;
 	int esound_socket;
@@ -207,6 +207,10 @@ static int esd_out_f(filter_t *n)
 		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
 	wbuf = out;
 
+	pos_param = filterparamdb_get_param(filter_paramdb(n),
+					    FILTERPARAM_LABEL_POS);
+	filterparam_val_set_pos(pos_param, 0);
+
 	FILTER_AFTER_INIT;
 
 	ch_active = ch;
@@ -247,6 +251,9 @@ static int esd_out_f(filter_t *n)
 				s += ret;
 				cnt -= ret;
 			} while (cnt > 0);
+
+			filterparam_val_set_pos(pos_param, pos);
+			pos += blksz;
 			
 			out = wbuf;
 			to_go = blksz;
