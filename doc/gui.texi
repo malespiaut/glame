@@ -1,6 +1,6 @@
-@comment $Id: gui.texi,v 1.9 2001/04/24 11:59:52 xwolf Exp $
+@comment $Id: gui.texi,v 1.10 2001/05/21 07:56:19 nold Exp $
 
-@node Graphical Frontend, Console Frontend, Copying, Top
+@node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
 
 Nonsurprisingly, GLAME's graphical frontend is called @file{glame}. It will

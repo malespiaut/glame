@@ -1,0 +1,157 @@
+@comment $Id: quickstart.texi,v 1.1 2001/05/21 07:56:19 nold Exp $
+
+@node Quick Start Guide, Graphical Frontend, Copying, Top
+@chapter Quick Start Guide
+
+Moi Mr. Newcomer, hi Mrs. Impatient! 
+
+Welcome to GLAME, the GNU/Linux Audio Mechanics. This is the Quick Start Guide
+for all those who loathe reading lengthy documentation. So I won't fuzz with
+details but try to get you going on basic tasks as fast as possible.
+
+GLAME comes in two flavours, the graphical interface @file{glame} and the
+console frontend called @file{cglame}. You'll have to be able to grok Scheme in
+order to deal with @file{cglame}. It's extremely cool and powerful but it's
+probably not what you are looking for when reading a quick start guide. So let's
+talk about the graphical interface in the following, and send those Schemers off
+to poke through the proper documentation.
+
+@menu
+* Getawaywithher::	A quick start to editing files
+* Getmeinthere::	A quick start to audio recording
+* Gottagetbetter::	A quick start to filter networks
+@end menu
+
+@node Getawaywithher, Getmeinthere,, Quick Start Guide
+@section A Quick Start to Editing Files
+
+So you recorded this charming little chanson called Angelina, but she ditched
+you the other day and now dates Ron instead? No need to keep waiting until
+another Angelina passes your way. GLAME will help you changing your Angelina
+tune into a hymn on Heather in an instant. (Admit it, you've been after Heather
+for ages!)
+
+Fire up @file{glame}, ignore the crappy splash screen, and what you'll see is
+the so-called @dfn{Swapfile GUI}. Don't waste your time pondering about the
+name, it's simple a view of all audio tracks that GLAME knows about. Tracks are
+kept in a hierarchy of projects and further groups of tracks. To make your sweet
+@file{angelina.wav} known to GLAME, first select @dfn{New Project} from the
+@dfn{Project} menu. A new entry appears; name it No More Angelina. Then click
+the right mouse button on the new entry, and a pop-up menu does what it's name
+suggests: it pops up right in front of you. Choose the entry called
+@dfn{Import}, and select your @file{angelina.wav}. It's a stereo file, of
+course. Therefore the Swapfile GUI now shows two entries within your Angelina
+project, one for each track. Now you're all set to wipe poor Angelina if not
+from your life, then at least from your art.
+
+Once again, click on the No More Angelina entry in the Swapfile GUI, press the
+right mouse button, and select @dfn{Edit} from the pop-up menu. What appears now
+is the so-called @dfn{Waveedit GUI}, a window containing a graphical view of the
+audio tracks in your project. (Of course you are tempted now to wipe Angelina
+from one track only. Well, you could do that by selecting @dfn{Edit} on a single
+track rather than the whole project. You could even edit one track in multiple
+windows at the same time. But this is not the way we want to go down now. This
+Angelina-bitch ditched you, remember? Let's wipe her from your song completely.)
+
+The Waveedit GUI is mostly driven from a pop-up menu attached to the right mouse
+button. Have a guess what @dfn{Play All} might do? Well, try it out. If you
+can't hear a single note, check your mixer settings with an external mixer
+program, and if all seems to be right, go back to the @dfn{Settings} menu in the
+Swapfile GUI and check your audio i/o preferences. Working now? Good. Want to
+know how zoom in and out work? Ah, no, you figured that out yourself. Now you
+have to identify the places in the song where your voice trembles Angelina. To
+make it easier for you, during playback a vertical line will mark the region
+currently playing. Of course you don't have to keep playing the song as a whole
+over and over. There is @dfn{Play Selection} after all. What's a selection?
+That's a highlighted region in the editing window. Press the left mouse button,
+drag the mouse, release the mouse button again, and you'll get the trick. A lot
+of things can be done with selections from the pop-up menu. They can for example
+be played, zoomed into, cut, copied, and deleted. The latter is just what we
+need now. Select each of the passages enchanting Angelina, deleted them, and
+there she goes.
+
+So what about Heather? We'll be with her in an instant, but we have to learn a
+bit about recording first.
+
+@node Getmeinthere, Gottagetbetter, Getawaywithher, Quick Start Guide
+@section A Quick Start to Audio Recording
+
+Back we are at the Swapfile GUI. Let's add a new project, and name it Oh
+Heather. That's where you're going to record into. Well, not quite. You can't
+record into a project, of course, you can only record into tracks. So you need to
+pull a track out of thin air, two of them actually, as you're going to record
+stereo. The right mouse button again acts as your magic wand. It will present
+you a menu item @dfn{Add empty wave}, and that's exactly what you need now. Add
+two empty tracks, select your Heather project, and open the Waveedit GUI on it,
+using the @dfn{Edit} entry in the pop-up menu.
+
+The editing window doesn't look too interesting at the moment but that's what
+you'd expect from an empty file. It'll change soon, so go launch your favourite
+mixer application, and prepare your system as well as yourself for recording.
+Once both of you feel in shape, come back to the editing window. @dfn{Record at
+marker} is the preferred item in the pop-up menu now. A panel will appear
+containing the four buttons @dfn{Record}, @dfn{Pause}, @dfn{Stop}, and
+@dfn{Cancel}. Hitting the first one will start the recording. Finding out about
+the meaning of the others is left as an exercise to the reader. Don't think too
+hard about it, though, as now is the time to give a c# Heather in your best
+tremolo ever. You should've figured out to hit the @dfn{Stop} button by the time
+you're done.
+
+The rest is easy. In the Heather editing window, mark a selection only
+containing you singing the name but none of the noise before and after. Pop-up
+the menu with the right mouse button and hit @dfn{Copy}. Then move over to the
+Angelina editing window, which should still be open. A click with the left mouse
+button will mark a position in the song, and selecting @dfn{Paste} from the
+pop-up menu will insert your Heather at this position. Where to insert the
+section is entirely up to your artistic talent.
+
+Not fancy enough to woo Heather, you feel? Read on.
+
+@node Gottagetbetter,, Getmeinthere, Quick Start Guide
+@section A Quick Start to Filter Networks
+
+To brush up a selection from the Waveedit GUI, you can apply a single filter on
+it. @dfn{Apply Filter} from the pop-up menu gets you going. But you can do even
+better. Select @dfn{Apply Custom} and watch the @dfn{Filternetwork Editor} come
+up. Here, you can not only apply a single filter, but a whole collection of
+filters that interact with each other.
+
+Think of the filter network as a factory of waves. It starts out on one or more
+sources of sound waves, mangles the sound they produce, and finally sends it off
+to one or several consumers. There is already a source in the network, called
+@file{swapfile_in}, and a consumer called @file{swapfile_out}.  Don't mess with
+them, as they were already set up by the Waveedit GUI to work on the selection
+you marked. It is your task now to build the individual steps in the factory
+itself. That is, what should be done to your sound, and in which order. To this
+end, you can insert filters into the network. Those are your machines. Just hit
+the right mouse button, and select one of the entries. A small icon will appear
+depicting your new filter. Each filter has its inputs to the left, and its
+outputs to the right. To connect two filters, you draw a line from the output of
+the first to the input of the second, dragging the mouse with the left button
+pressed down. Some filters do not possess both inputs and outputs. You'll note
+this when one side of their icons is greyed out. Inputs and output in general
+are not limited to a single connection. A filter will accept as many connections
+as it can take, and reject any further.
+
+For most filters, you want to tune their parameters, or their output will
+probably not come close to what you intended. Press the right mouse button on
+top of the filter image, and select the @dfn{Properties} entry. A new window
+will show up, where you can tune the parameters to your liking. Once all
+parameters are set, and all filters are connected, hit execute on the icon bar
+on top. The already familiar four-button panel will appear, including an
+intuitive @dfn{Start} that you most likely want to use now. When processing is
+finished, go to the Waveedit GUI, and watch your modified Heather tracks.
+
+What's left to do? Back to the Swapfile GUI. It's about time to finally rename
+the No More Angelina project to Hymn to Heather. How? Go figure. You really
+should have gotten a good feeling of how GLAME works by now. Next, get the
+pop-up menu up on Hymn to Heather. Select @dfn{Export...}, and save your song
+as, say, @file{heather.wav}. As you may have guessed, the suffix determines the
+type of file Hymn to Heather is stored as. Want details on that one? Hey, enough
+is enough! Go read the proper docs if you're that interested. Or try on of the
+@dfn{Help} entries that will present you a context sensitive entry from the
+manual. 
+
+Well done, you may call yourself a GLAMEr now. A Lamer even, if you don't get up
+immediately and present your new song to Heather. Off you go. Good luck!
+
