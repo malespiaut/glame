@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.18 2001/07/10 15:49:51 richi Exp $
+ * $Id: glamecanvas.c,v 1.19 2001/07/10 16:02:52 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -210,6 +210,9 @@ GlameCanvas* glame_canvas_new(filter_t * net)
 	  
 	  filterportdb_foreach_port(filter_portdb(node),port){
 	    filterport_foreach_pipe(port,pipe){
+	      if (!filter_get_node(network, pipe->source_filter)
+	          || !filter_get_node(network, pipe->dest_filter))
+		continue;
 	      glame_canvas_pipe_new(group,pipe);
 	    }
 	  }
