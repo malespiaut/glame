@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.3 2001/04/11 13:25:51 richi Exp $
+ * $Id: audio_io_esd.c,v 1.4 2001/04/14 17:37:55 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -62,7 +62,7 @@ static int esd_in_f(filter_t *n)
 	 */ 
 	duration = filternode_get_param(n, "duration");
 	if (duration)
-		maxtime = filterparam_val_float(duration) * rate * 2;
+		maxtime = filterparam_val_float(duration) * rate;
 	if (maxtime <= 0.0)
 		endless = 1;
 	
