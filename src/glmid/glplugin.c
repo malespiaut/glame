@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.12 2000/05/16 08:20:57 richi Exp $
+ * $Id: glplugin.c,v 1.13 2000/05/16 12:01:59 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -251,8 +251,13 @@ void *plugin_query(plugin_t *p, const char *key)
 plugin_t *plugin_add(const char *name)
 {
 	plugin_t *p;
+	char nm[32];
 
-	if (!(p = alloc_plugin(name)))
+	if (!name)
+		return NULL;
+	mangle_name(nm, name);
+
+	if (!(p = alloc_plugin(nm)))
 		return NULL;
 
 	if (add_plugin(p) == -1) {
