@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.22 2001/08/05 15:16:17 richi Exp $
+ * $Id: pipe.c,v 1.23 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -204,9 +204,9 @@ static int pipe_in_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-static int pipe_in_connect_out(filter_t *source, filter_port_t *port,
-			       filter_pipe_t *p)
+static int pipe_in_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *source = filterport_filter(port);
 	int rate;
 
 	if (filterport_nrpipes(port) > 1)
@@ -249,15 +249,17 @@ static void pipe_in_param_changed(glsig_handler_t *h, long sig, va_list va)
 int pipe_in_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = pipe_in_f;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_END);
+	out->connect = pipe_in_connect_out;
 
 	filterparamdb_add_param_string(filter_paramdb(f), "cmd", 
 				   FILTER_PARAMTYPE_STRING, NULL,
@@ -272,7 +274,6 @@ int pipe_in_register(plugin_t *p)
 				FILTERPARAM_DESCRIPTION, "data samplerate",
 				FILTERPARAM_END);
 
-	f->connect_out = pipe_in_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  pipe_in_param_changed, NULL);
 
@@ -376,8 +377,7 @@ static int pipe_out_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-static int pipe_out_connect_in(filter_t *source, filter_port_t *port,
-			       filter_pipe_t *p)
+static int pipe_out_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
         filter_pipe_t *pipe;
 
@@ -395,15 +395,17 @@ static int pipe_out_connect_in(filter_t *source, filter_port_t *port,
 int pipe_out_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *in;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = pipe_out_f;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_END);
+	in->connect = pipe_out_connect_in;
 
 	filterparamdb_add_param_string(filter_paramdb(f), "cmd", 
 				   FILTER_PARAMTYPE_STRING, NULL,
@@ -415,8 +417,6 @@ int pipe_out_register(plugin_t *p)
 				       "command string tail\n"
 				       "use %%r for sample rate",
 				       FILTERPARAM_END);
-
-	f->connect_in = pipe_out_connect_in;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe output");
 	plugin_set(p, PLUGIN_PIXMAP, "pipe.png");

@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.36 2001/07/27 08:41:13 richi Exp $
+ * $Id: audio_io.c,v 1.37 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -51,8 +51,7 @@ PLUGIN_SET(audio_io, "audio_out audio_in")
  * single (automatic) input port.
  */
 
-static int aio_generic_connect_in(filter_t *dest, filter_port_t *inp,
-				  filter_pipe_t *pipe)
+static int aio_generic_connect_in(filter_port_t *inp, filter_pipe_t *pipe)
 {
 	filter_pipe_t *portishead;
 	
@@ -72,10 +71,10 @@ static int aio_generic_connect_in(filter_t *dest, filter_port_t *inp,
  * are no input ports and a single (automatic) output port.
  */
 
-static int aio_generic_connect_out(filter_t *src, filter_port_t *outp,
-				   filter_pipe_t *pipe)
+static int aio_generic_connect_out(filter_port_t *outp, filter_pipe_t *pipe)
 {
 	filter_pipe_t *prev;
+	filter_t *src = filterport_filter(outp);
 	float phi = FILTER_PIPEPOS_CENTRE;
 	int rate = GLAME_DEFAULT_SAMPLERATE;
 
@@ -175,8 +174,7 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	}
 }
 
-static int aio_generic_set_param(filter_t *src, filter_param_t *param,
-                                 const void *val)
+static int aio_generic_set_param(filter_param_t *param, const void *val)
 {
 	if (!strcmp("position", filterparam_label(param))) {
 		float hangle = *((float *) val);
@@ -206,6 +204,7 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 {
 	filter_t *filter;
 	filter_port_t *p;
+	filter_param_t *param;
 
 	if (!f)
 		return -1;
@@ -221,30 +220,43 @@ int aio_generic_register_input(plugin_t *pl, char *name,
 				  FILTER_PORTFLAG_OUTPUT,
 				  FILTERPORT_DESCRIPTION, "audio stream",
 				  FILTERPORT_END);
-	filterparamdb_add_param_float(filterport_paramdb(p), "position",
-				  FILTER_PARAMTYPE_POSITION,
-				  FILTER_PIPEPOS_DEFAULT, FILTERPARAM_END);
+	p->connect = aio_generic_connect_out;
 
-	filterparamdb_add_param_int(filter_paramdb(filter), "rate",
-				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
-				FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(filter), "duration", 
-				  FILTER_PARAMTYPE_TIME_S, 0.0,
-				  FILTERPARAM_END);
-	filterparamdb_add_param_string(filter_paramdb(filter), "device",
-				   FILTER_PARAMTYPE_STRING, defaultdevice,
-				   FILTERPARAM_END);
+	param = filterparamdb_add_param_float(filterport_paramdb(p),
+					      "position",
+					      FILTER_PARAMTYPE_POSITION,
+					      FILTER_PIPEPOS_DEFAULT,
+					      FILTERPARAM_END);
+	param->set = aio_generic_set_param;
+
+	param = filterparamdb_add_param_int(filter_paramdb(filter), "rate",
+					    FILTER_PARAMTYPE_INT,
+					    GLAME_DEFAULT_SAMPLERATE,
+					    FILTERPARAM_END);
+	param->set = aio_generic_set_param;
+
+	param = filterparamdb_add_param_float(filter_paramdb(filter),
+					      "duration", 
+					      FILTER_PARAMTYPE_TIME_S, 0.0,
+					      FILTERPARAM_END);
+	param->set = aio_generic_set_param;
+
+	param = filterparamdb_add_param_string(filter_paramdb(filter),
+					       "device",
+					       FILTER_PARAMTYPE_STRING,
+					       defaultdevice,
+					       FILTERPARAM_END);
+	param->set = aio_generic_set_param;
 
 	filter->f = f;
-	filter->connect_out = aio_generic_connect_out;
-	filter->set_param = aio_generic_set_param;
+
 	glsig_add_handler(&filter->emitter, GLSIG_PARAM_CHANGED,
 			  aio_generic_fixup_param, NULL);
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "record stream");
 	plugin_set(pl, PLUGIN_PIXMAP, "input.png");
 	plugin_set(pl, PLUGIN_CATEGORY, "Input");
-	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "Audio_I_O");	
+	plugin_set(pl, PLUGIN_GUI_HELP_PATH, "Audio_I_O");
 	filter_register(filter, pl);
 
 	return 0;
@@ -254,6 +266,7 @@ int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
 				const char *defaultdevice) 
 {
 	filter_t *filter;
+	filter_port_t *in;
 	
 	if (!f)
 		return -1;
@@ -263,18 +276,20 @@ int aio_generic_register_output(plugin_t *pl, char *name, int (*f)(filter_t *),
 	if (!(filter=filter_creat(NULL)))
 		return -1;
 
-	filterportdb_add_port(filter_portdb(filter), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "audio stream",
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(filter), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "audio stream",
+				   FILTERPORT_END);
+	in->connect = aio_generic_connect_in;
+
 	filterparamdb_add_param_string(filter_paramdb(filter), "device",
-				   FILTER_PARAMTYPE_STRING, defaultdevice,
-				   FILTERPARAM_END);
+				       FILTER_PARAMTYPE_STRING, defaultdevice,
+				       FILTERPARAM_END);
 	filterparamdb_add_param_pos(filter_paramdb(filter));
 
 	filter->f = f;
-	filter->connect_in = aio_generic_connect_in;
+
 	glsig_add_handler(&filter->emitter, GLSIG_PIPE_CHANGED,
 			  aio_generic_fixup_pipe, NULL);
 

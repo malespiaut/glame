@@ -119,8 +119,7 @@ static int pan_f(filter_t *n)
  * misery among their breed! Cast thy M_PI_2 to float or use a float variable 
  * to compare against instead, and thou shalt live long and prosperous!
  */
-static int pan_set_param(filter_t *src, filter_param_t *param,
-			 const void *val)
+static int pan_set_param(filter_param_t *param, const void *val)
 {
 	const float min = -M_PI_2;
 	const float max = M_PI_2;
@@ -143,6 +142,7 @@ static int pan_set_param(filter_t *src, filter_param_t *param,
 int pan_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_param_t *pan;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -163,13 +163,12 @@ int pan_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "right output stream",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "pan",
+	pan = filterparamdb_add_param_float(filter_paramdb(f), "pan",
 				  FILTER_PARAMTYPE_POSITION, 0.0/* FIXME - use magic (invalid) default value to mark "unset"? */,
 				  FILTERPARAM_DESCRIPTION,
 				  "position in stereo field [-pi/2, pi/2]", 
 				  FILTERPARAM_END);
-
-	f->set_param = pan_set_param;
+	pan->set = pan_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
 	plugin_set(p, PLUGIN_PIXMAP, "pan.png");

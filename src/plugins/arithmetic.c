@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.17 2001/06/05 14:40:07 richi Exp $
+ * $Id: arithmetic.c,v 1.18 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -49,8 +49,7 @@ PLUGIN_SET(arithmetic, "add mul invert")
  */
 
 
-static int arithmetic_connect_in(filter_t *n, filter_port_t *port,
-				 filter_pipe_t *p)
+static int arithmetic_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	/* We support any number of inputs. */
 	return 0;
@@ -127,15 +126,16 @@ static int mul_f(filter_t *n)
 int mul_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *in;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "input streams",
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "input streams",
+				   FILTERPORT_END);
 	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_OUTPUT,
@@ -143,7 +143,7 @@ int mul_register(plugin_t *p)
 			      FILTERPORT_END);
 
 	f->f = mul_f;
-	f->connect_in = arithmetic_connect_in;
+	in->connect = arithmetic_connect_in;
 
 	filterparamdb_add_param_float(filter_paramdb(f), "add",
 				      FILTER_PARAMTYPE_FLOAT, 0.0,
@@ -233,15 +233,16 @@ static int add_f(filter_t *n)
 int add_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *in;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "input streams",
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "input streams",
+				   FILTERPORT_END);
 	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 			      FILTER_PORTTYPE_SAMPLE,
 			      FILTER_PORTFLAG_OUTPUT,
@@ -249,7 +250,7 @@ int add_register(plugin_t *p)
 			      FILTERPORT_END);
 
 	f->f = add_f;
-	f->connect_in = arithmetic_connect_in;
+	in->connect = arithmetic_connect_in;
 
 	filterparamdb_add_param_float(filter_paramdb(f), "add",
 				      FILTER_PARAMTYPE_FLOAT, 0.0,

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.52 2001/08/07 09:54:29 richi Exp $
+ * $Id: basic_sample.c,v 1.53 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -490,21 +490,19 @@ static int mix_fixup(filter_t *n, filter_pipe_t *out)
 	}
 	return 0;
 }
-static int mix_connect_in(filter_t *n, filter_port_t *port,
-			  filter_pipe_t *p)
+static int mix_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	/* We accept any number of inputs. */
 	return 0;
 }
-static int mix_connect_out(filter_t *n, filter_port_t *port,
-			   filter_pipe_t *p)
+static int mix_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	/* We accept only one output. */
 	if (filterport_get_pipe(port))
 		return -1;
 
 	/* Fixup wrt new pipe. */
-	mix_fixup(n, p);
+	mix_fixup(filterport_filter(port), p);
 
 	return 0;
 }
@@ -533,28 +531,28 @@ static void mix_handler(glsig_handler_t *h, long sig, va_list va)
 int mix_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_port_t *port;
+	filter_port_t *in, *out;
 
         if (!(f = filter_creat(NULL)))
 		return -1;
 
-	port = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-				     FILTER_PORTTYPE_SAMPLE,
-				     FILTER_PORTFLAG_INPUT,
-				     FILTERPORT_DESCRIPTION, "input stream",
-				     FILTERPORT_END);
-	filterparamdb_add_param_float(filterport_paramdb(port), "gain",
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "input stream",
+				   FILTERPORT_END);
+	filterparamdb_add_param_float(filterport_paramdb(in), "gain",
 				      FILTER_PARAMTYPE_FLOAT, 1.0,
 				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filterport_paramdb(port), "offset",
+	filterparamdb_add_param_float(filterport_paramdb(in), "offset",
 				      FILTER_PARAMTYPE_TIME_MS, 0.0,
 				      FILTERPARAM_END);
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "mixed stream",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "mixed stream",
+				    FILTERPORT_END);
 
 	filterparamdb_add_param_float(filter_paramdb(f), "gain",
 				      FILTER_PARAMTYPE_FLOAT, 1.0,
@@ -564,8 +562,8 @@ int mix_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	f->f = mix_f;
-	f->connect_in = mix_connect_in;
-	f->connect_out = mix_connect_out;
+	in->connect = mix_connect_in;
+	out->connect = mix_connect_out;
 
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
 			  mix_handler, NULL);
@@ -737,8 +735,7 @@ static void render_fixup_param(glsig_handler_t *h, long sig, va_list va)
 				  filterparam_val_float(param));
 	glsig_emit(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED, pipe);
 }
-static int render_connect_in(filter_t *n, filter_port_t *port,
-			     filter_pipe_t *p)
+static int render_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_pipe_t *in;
 
@@ -751,14 +748,15 @@ static int render_connect_in(filter_t *n, filter_port_t *port,
 
 	return 0;
 }
-static int render_connect_out(filter_t *n, filter_port_t *port,
-			      filter_pipe_t *p)
+static int render_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_pipe_t *pipe;
+	filter_t *n;
 	int rate = GLAME_DEFAULT_SAMPLERATE;
 
 	/* We accept any number of outputs. Do basic setup - i.e.
 	 * set rate and position. */
+	n = filterport_filter(port);
 	port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	pipe = filterport_get_pipe(port);
 	if (pipe)
@@ -791,8 +789,8 @@ int render_register(plugin_t *p)
 				      FILTERPARAM_END);
 
 	f->f = render_f;
-	f->connect_in = render_connect_in;
-	f->connect_out = render_connect_out;
+	in->connect = render_connect_in;
+	out->connect = render_connect_out;
 
 	glsig_add_handler(filterport_emitter(in), GLSIG_PIPE_CHANGED,
 			  render_fixup_pipe, NULL);
@@ -815,10 +813,13 @@ int render_register(plugin_t *p)
 
 /* use set_param to link factor and dbgain parameters */
 
-static int vadjust_set_param(filter_t *n, filter_param_t *param, const void *val) {
+static int vadjust_set_param(filter_param_t *param, const void *val)
+{
 	float ngain, gain;
 	filter_param_t *anyscale;
+	filter_t *n;
 
+	n = filterparam_filter(param);
 	if (n->priv)
 		return 0;
 
@@ -890,6 +891,7 @@ static int volume_adjust_f(filter_t *n)
 int volume_adjust_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_param_t *param;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -906,17 +908,17 @@ int volume_adjust_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "scaled stream",
 			      FILTERPORT_END);
 
-	filterparamdb_add_param_float(filter_paramdb(f), "factor",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_LABEL, "Gain",
-				      FILTERPARAM_END);
-	
-	filterparamdb_add_param_float(filter_paramdb(f), "dbgain",
-				      FILTER_PARAMTYPE_FLOAT, 0.0,
-				      FILTERPARAM_LABEL, "Gain [dB]",
-				      FILTERPARAM_END);
-	
-	f->set_param = vadjust_set_param;
+	param = filterparamdb_add_param_float(filter_paramdb(f), "factor",
+					      FILTER_PARAMTYPE_FLOAT, 1.0,
+					      FILTERPARAM_LABEL, "Gain",
+					      FILTERPARAM_END);	
+	param->set = vadjust_set_param;
+
+	param = filterparamdb_add_param_float(filter_paramdb(f), "dbgain",
+					      FILTER_PARAMTYPE_FLOAT, 0.0,
+					      FILTERPARAM_LABEL, "Gain [dB]",
+					      FILTERPARAM_END);
+	param->set = vadjust_set_param;
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "adjust the volume of a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "volume_adjust.png");

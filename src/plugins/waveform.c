@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.26 2001/06/07 09:55:00 richi Exp $
+ * $Id: waveform.c,v 1.27 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -55,9 +55,9 @@ PLUGIN_SET(waveform, "sine const rect pulse ramp saw noise wave")
 /* Standard waveform connect_out and fixup_param methods. These honour
  * optional parameters "rate" and "position".
  */
-static int waveform_connect_out(filter_t *n, filter_port_t *port,
-				filter_pipe_t *p)
+static int waveform_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *n = filterport_filter(port);
 	int rate;
 	float pos;
 
@@ -79,7 +79,8 @@ static void waveform_fixup_param(glsig_handler_t *h, long sig, va_list va)
 
 	if ((out = filterport_get_pipe(filterportdb_get_port(
 					filter_portdb(n), PORTNAME_OUT)))) {
-		waveform_connect_out(n, NULL, out);
+		waveform_connect_out(filterportdb_get_port(
+			filter_portdb(n), PORTNAME_OUT), out);
 		glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	}
 }
@@ -90,14 +91,15 @@ static void waveform_fixup_param(glsig_handler_t *h, long sig, va_list va)
 static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 {
 	filter_t *f;
+	filter_port_t *out;
 
 	if (!(f = filter_creat(NULL)))
 		return NULL;
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "waveform output stream",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "waveform output stream",
+				    FILTERPORT_END);
 	filterparamdb_add_param_int(filter_paramdb(f), "rate", 
 	                            FILTER_PARAMTYPE_INT,
 	                            GLAME_DEFAULT_SAMPLERATE,
@@ -108,7 +110,7 @@ static filter_t *waveform_filter_alloc(int (*fm)(filter_t *))
 	                              FILTERPARAM_END);
 
 	f->f = fm;
-	f->connect_out = waveform_connect_out;
+	out->connect = waveform_connect_out;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  waveform_fixup_param, NULL);
 
@@ -651,9 +653,9 @@ static int pulse_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-static int pulse_connect_out(filter_t *src, filter_port_t *out,
-			     filter_pipe_t *pipe)
+static int pulse_connect_out(filter_port_t *out, filter_pipe_t *pipe)
 {
+	filter_t *src = filterport_filter(out);
 	int rate;
 
 	rate = filterparam_val_int(
@@ -664,14 +666,11 @@ static int pulse_connect_out(filter_t *src, filter_port_t *out,
 }
 
 
-static int pulse_set_param(filter_t *n, filter_param_t *param,
-                            const void *val)
+static int pulse_set_rate(filter_param_t *param, const void *val)
 {
 	filter_pipe_t *out;
-	int rate;	
-	
-	if (strcmp("rate", filterparam_label(param)))
-		goto done;
+	filter_t *n = filterparam_filter(param);
+	int rate;
 
 	rate = *((int *) val);
 	if (rate <= 0)
@@ -699,15 +698,18 @@ done:
 int pulse_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_param_t *rate;
+	filter_port_t *out;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "output",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "output",
+				    FILTERPORT_END);
+	out->connect = pulse_connect_out;
 
 	filterparamdb_add_param_float(filter_paramdb(f), "time_on",
 			FILTER_PARAMTYPE_TIME_MS, 0.0,
@@ -734,13 +736,12 @@ int pulse_register(plugin_t *p)
 			FILTERPARAM_DESCRIPTION, "Release Time[ms]",
 			FILTERPARAM_END);
 	
-	filterparamdb_add_param_int(filter_paramdb(f), "rate",
+	rate = filterparamdb_add_param_int(filter_paramdb(f), "rate",
 			FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
 			FILTERPARAM_END);
+	rate->set = pulse_set_rate;
 
 	f->f = pulse_f;
-	f->connect_out = pulse_connect_out;
-	f->set_param = pulse_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "generates a single ramp or pulse signal");
 	plugin_set(p, PLUGIN_PIXMAP, "pulse.png");

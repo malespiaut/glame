@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.13 2001/07/31 17:08:30 mag Exp $
+ * $Id: flanger.c,v 1.14 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -59,9 +59,11 @@ void fbm_lfo(int *lfo, int size, int swpd)
 	rek_fbm(lfo, 0, size-1, swpd, 1);
 }
 
-static int flanger_set_param(filter_t *n, filter_param_t *param, const void *val) {
+static int flanger_set_param(filter_param_t *param, const void *val)
+{
 	float x,y;
 	filter_param_t *p;
+	filter_t *n = filterparam_filter(param);
 
 	if (n->priv!=NULL)
 		return 0;
@@ -250,12 +252,12 @@ entry:
 int flanger_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdb_t *param;
+	filter_paramdb_t *pdb;
+	filter_param_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = flanger_f;
-	f->set_param = flanger_set_param;
 
 	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
 			      FILTER_PORTTYPE_SAMPLE,
@@ -268,42 +270,48 @@ int flanger_register(plugin_t *p)
 			      FILTERPORT_DESCRIPTION, "audio stream out",
 			      FILTERPORT_END);
 	
-	param = filter_paramdb(f);
-	filterparamdb_add_param_float(param, "depth", FILTER_PARAMTYPE_TIME_MS, 10,
+	pdb = filter_paramdb(f);
+	param = filterparamdb_add_param_float(pdb, "depth", FILTER_PARAMTYPE_TIME_MS, 10,
 				    FILTERPARAM_DESCRIPTION, "flanger depth in ms",
 				    FILTERPARAM_LABEL,   "Effect Depth [ms]",
 				    FILTERPARAM_END);
+	param->set = flanger_set_param;
 	
-	filterparamdb_add_param_float(param, "sweep depth", FILTER_PARAMTYPE_TIME_MS, 5,
+	param = filterparamdb_add_param_float(pdb, "sweep depth", FILTER_PARAMTYPE_TIME_MS, 5,
 				    FILTERPARAM_DESCRIPTION, "sweep depth in ms",
 				    FILTERPARAM_LABEL,   "Detune Range [ms]",
 				    FILTERPARAM_END);
+	param->set = flanger_set_param;
 	
-	filterparamdb_add_param_float(param, "sweep rate", FILTER_PARAMTYPE_FLOAT, 1,
+	param = filterparamdb_add_param_float(pdb, "sweep rate", FILTER_PARAMTYPE_FLOAT, 1,
 				    FILTERPARAM_DESCRIPTION, "oscillator frequency",
 				    FILTERPARAM_LABEL,   "LFO Speed [Hz]",
 				    FILTERPARAM_END);
+	param->set = flanger_set_param;
 	
-	filterparamdb_add_param_float(param, "drywet", FILTER_PARAMTYPE_FLOAT, 0.5,
+	param = filterparamdb_add_param_float(pdb, "drywet", FILTER_PARAMTYPE_FLOAT, 0.5,
 				      FILTERPARAM_DESCRIPTION, "drywet",
 				      FILTERPARAM_LABEL, "Dry/Wet Balance",
 				      FILTERPARAM_END);
+	param->set = flanger_set_param;
 
-	filterparamdb_add_param_float(param, "feedback gain", FILTER_PARAMTYPE_FLOAT, 0.5,
+	param = filterparamdb_add_param_float(pdb, "feedback gain", FILTER_PARAMTYPE_FLOAT, 0.5,
 				      FILTERPARAM_DESCRIPTION, "feedback gain",
 				      FILTERPARAM_LABEL, "Feedback Gain",
 				      FILTERPARAM_END);
+	param->set = flanger_set_param;
 	
-	filterparamdb_add_param_float(param, "dbgain", FILTER_PARAMTYPE_FLOAT, 6.0,
+	param = filterparamdb_add_param_float(pdb, "dbgain", FILTER_PARAMTYPE_FLOAT, 6.0,
 				      FILTERPARAM_DESCRIPTION, "Attenuate/Amplify output signal",
 				      FILTERPARAM_LABEL, "Gain [dB]",
 				      FILTERPARAM_END);
+	param->set = flanger_set_param;
 
-	filterparamdb_add_param_int(param, "lfo type", FILTER_PARAMTYPE_INT, 0 ,
+	param = filterparamdb_add_param_int(pdb, "lfo type", FILTER_PARAMTYPE_INT, 0 ,
 				    FILTERPARAM_DESCRIPTION, 
-				    "(0) sinus"
-				    "(1) ramp up" 
-				    "(2) ramp down"
+				    "(0) sinus\n"
+				    "(1) ramp up\n" 
+				    "(2) ramp down\n"
 				    "(3) fractal",
 				    FILTERPARAM_GLADEXML,
 "<?xml version=\"1.0\"?><GTK-Interface><widget> 
@@ -318,6 +326,7 @@ Fractal</items>
 </widget></GTK-Interface>",
 				    FILTERPARAM_LABEL, "LFO Type",
 				    FILTERPARAM_END);
+	param->set = flanger_set_param;
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "flanger effect");
 	/* plugin_set(p, PLUGIN_PIXMAP, "flanger.xpm"); */

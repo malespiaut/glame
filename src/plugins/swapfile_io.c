@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.23 2001/08/01 15:56:15 richi Exp $
+ * $Id: swapfile_io.c,v 1.24 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -141,14 +141,15 @@ static void swapfile_in_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	glsig_emit(&out->emitter, GLSIG_PIPE_CHANGED, out);
 	return;
 }
-static int swapfile_in_connect_out(filter_t *n, filter_port_t *outp,
-				   filter_pipe_t *p)
+static int swapfile_in_connect_out(filter_port_t *outp, filter_pipe_t *p)
 {
+	filter_t *n;
 	long fname;
 	swfd_t fd;
 
 	if (filterport_nrpipes(outp) > 0)
 		return -1;
+	n = filterport_filter(outp);
 	fname = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "filename"));
 	if (fname != -1) {
 		if (!(fd = sw_open(fname, O_RDONLY)))
@@ -165,16 +166,17 @@ static int swapfile_in_connect_out(filter_t *n, filter_port_t *outp,
 int swapfile_in_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = swapfile_in_f;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "output stream",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "output stream",
+				    FILTERPORT_END);
 
 	filterparamdb_add_param_int(filter_paramdb(f), "filename",
 				FILTER_PARAMTYPE_INT, -1,
@@ -194,7 +196,7 @@ int swapfile_in_register(plugin_t *p)
 				FILTERPARAM_END);
 	filterparamdb_add_param_pos(filter_paramdb(f));
 
-	f->connect_out = swapfile_in_connect_out;
+	out->connect = swapfile_in_connect_out;
 
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
 			  swapfile_in_fixup_param, NULL);

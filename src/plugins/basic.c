@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.27 2001/06/05 14:40:07 richi Exp $
+ * $Id: basic.c,v 1.28 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -104,8 +104,7 @@ static int drop_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-static int drop_connect_in(filter_t *n, filter_port_t *port,
-			   filter_pipe_t *p)
+static int drop_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	/* We accept n connections. */
 	return 0;
@@ -114,16 +113,17 @@ static int drop_connect_in(filter_t *n, filter_port_t *port,
 int drop_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *in;
 
 	if (!(f = filter_creat(NULL))
-	    || !filterportdb_add_port(filter_portdb(f),
-				      PORTNAME_IN, FILTER_PORTTYPE_ANY,
-				      FILTER_PORTFLAG_INPUT,
-				      FILTERPORT_DESCRIPTION, "input",
-				      FILTERPORT_END))
+	    || !(in = filterportdb_add_port(filter_portdb(f),
+					    PORTNAME_IN, FILTER_PORTTYPE_ANY,
+					    FILTER_PORTFLAG_INPUT,
+					    FILTERPORT_DESCRIPTION, "input",
+					    FILTERPORT_END)))
 		return -1;
 	f->f = drop_f;
-	f->connect_in = drop_connect_in;
+	in->connect = drop_connect_in;
 	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "drop.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
@@ -264,7 +264,7 @@ static int one2n_f(filter_t *n)
 					continue;
 				if (FD_ISSET(p[i].out->source_fd, &outset)) {
 					maxallowedfifo *= 2;
-					DPRINTF("Adjusting fifo size, fifo now %i (%.3fs at 44.1kHz)\n", maxallowedfifo/SAMPLE_SIZE, ((float)maxallowedfifo)/(44100*SAMPLE_SIZE));
+					DPRINTF("Adjusting fifo size, fifo now %li (%.3fs at 44.1kHz)\n", (long)(maxallowedfifo/SAMPLE_SIZE), ((float)maxallowedfifo)/(44100*SAMPLE_SIZE));
 					break;
 				}
 			}
@@ -311,13 +311,14 @@ static int one2n_f(filter_t *n)
 	FILTER_RETURN;
 }
 
-static int one2n_connect_out(filter_t *n, filter_port_t *outp,
-			     filter_pipe_t *p)
+static int one2n_connect_out(filter_port_t *outp, filter_pipe_t *p)
 {
 	filter_pipe_t *in;
 	filter_port_t *inp;
+	filter_t *n;
 	
 	/* We accept any number of outputs. */
+	n = filterport_filter(outp);
 	inp = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	if ((in = filterport_get_pipe(inp))) {
 		p->type = in->type;
@@ -329,6 +330,7 @@ static int one2n_connect_out(filter_t *n, filter_port_t *outp,
 int one2n_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
 
 	if (!(f = filter_creat(NULL))
 	    || !filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
@@ -336,14 +338,14 @@ int one2n_register(plugin_t *p)
 				      FILTER_PORTFLAG_INPUT,
 				      FILTERPORT_DESCRIPTION, "input",
 				      FILTERPORT_END)
-	    || !filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-				      FILTER_PORTTYPE_ANY,
-				      FILTER_PORTFLAG_OUTPUT,
-				      FILTERPORT_DESCRIPTION, "output",
-				      FILTERPORT_END))
+	    || !(out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+					     FILTER_PORTTYPE_ANY,
+					     FILTER_PORTFLAG_OUTPUT,
+					     FILTERPORT_DESCRIPTION, "output",
+					     FILTERPORT_END)))
 		return -1;
 	f->f = one2n_f;
-	f->connect_out = one2n_connect_out;
+	out->connect = one2n_connect_out;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "replicates one input n times");
 	plugin_set(p, PLUGIN_PIXMAP, "one2n.png");

@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.57 2001/08/07 16:52:53 mag Exp $
+ * $Id: file_io.c,v 1.58 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -246,9 +246,10 @@ static int read_file_f(filter_t *n)
 		FILTER_ERROR_RETURN("no outputs");
 	return RWPRIV(n)->rw->f(n);
 }
-static int read_file_connect_out(filter_t *n, filter_port_t *port,
-				 filter_pipe_t *p)
+static int read_file_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
+	filter_t *n = filterport_filter(port);
+
 	/* no reader -> no filename -> some "defaults".
 	 * only allow 2 connections. */
 	if (!RWPRIV(n)->rw) {
@@ -274,8 +275,9 @@ static void read_file_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 		RWPRIV(n)->rw->connect(n, pipe);
 }
 
-static int read_file_setup_param(filter_t *n, filter_param_t *param, const void *val) 
+static int read_file_setup_param(filter_param_t *param, const void *val) 
 {
+	filter_t *n = filterparam_filter(param);
 	filter_pipe_t *p;
 	filter_port_t *port;
 	rw_t *r;
@@ -351,16 +353,16 @@ static int write_file_f(filter_t *n)
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-static int write_file_connect_in(filter_t *n, filter_port_t *port,
-				 filter_pipe_t *p)
+static int write_file_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
 	/* So why is there no write_file_connect_in?? Do we really
 	 * support any number of inputs? Seems all is _f() time... */
 	return 0;
 }
 
-static int write_file_setup_param(filter_t *n, filter_param_t *param, const void *val) 
+static int write_file_setup_param(filter_param_t *param, const void *val) 
 {
+	filter_t *n = filterparam_filter(param);
 	regex_t rx;
 	rw_t *w;
 
@@ -403,19 +405,20 @@ int read_file_register(plugin_t *pl)
 				  FILTER_PORTFLAG_OUTPUT,
 				  FILTERPORT_DESCRIPTION, "audio stream",
 				  FILTERPORT_END);
-	filterparamdb_add_param_float(filterport_paramdb(p), "position", 
+	p->connect = read_file_connect_out;
+	param = filterparamdb_add_param_float(filterport_paramdb(p), "position", 
 				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
 				  FILTERPARAM_END);
+	param->set = read_file_setup_param;
 	param = filterparamdb_add_param_string(filter_paramdb(f), "filename",
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
+	param->set = read_file_setup_param;
 	filterparam_set_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER,"*.wav");
 	filterparamdb_add_param_pos(filter_paramdb(f));
 
 	f->f = read_file_f;
 	f->init = rw_file_init;
-	f->connect_out = read_file_connect_out;
-	f->set_param = read_file_setup_param;
 
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_DELETED,
 			  read_file_fixup_pipe, NULL);
@@ -433,23 +436,25 @@ int read_file_register(plugin_t *pl)
 int write_file_register(plugin_t *pl)
 {
 	filter_t *f;
+	filter_port_t *in;
+	filter_param_t *param;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "audio stream",
-			      FILTERPORT_END);
-	filterparamdb_add_param_string(filter_paramdb(f), "filename",
-				   FILTER_PARAMTYPE_FILENAME, NULL,
-				   FILTERPARAM_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "audio stream",
+				   FILTERPORT_END);
+	in->connect = write_file_connect_in;
+	param = filterparamdb_add_param_string(filter_paramdb(f), "filename",
+					       FILTER_PARAMTYPE_FILENAME, NULL,
+					       FILTERPARAM_END);
+	param->set = write_file_setup_param;
 
 	f->f = write_file_f;
 	f->init = rw_file_init;
-	f->connect_in = write_file_connect_in;
-	f->set_param = write_file_setup_param;
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "output.png");

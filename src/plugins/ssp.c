@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.10 2001/07/10 14:56:19 richi Exp $
+ * $Id: ssp.c,v 1.11 2001/08/08 09:15:30 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -35,8 +35,7 @@
 
 PLUGIN_SET(ssp, "ssp_streamer maxrms")
 
-static int ssp_streamer_connect_out(filter_t *n, filter_port_t *port,
-				   filter_pipe_t *p)
+static int ssp_streamer_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filterpipe_settype_ssp(p, 44100, 64);
 	return 0;
@@ -106,6 +105,7 @@ entry:
 int ssp_streamer_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_port_t *out;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -116,18 +116,17 @@ int ssp_streamer_register(plugin_t *p)
 			      FILTER_PORTFLAG_INPUT,
 			      FILTERPORT_DESCRIPTION, "audio stream in",
 			      FILTERPORT_END);
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SSP,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "ssp stream out",
-			      FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SSP,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "ssp stream out",
+				    FILTERPORT_END);
+	out->connect = ssp_streamer_connect_out;
 
 	filterparamdb_add_param_int(filter_paramdb(f), "bsize",
 				    FILTER_PARAMTYPE_INT, 64,
 				    FILTERPARAM_DESCRIPTION, "length of running average",
 				    FILTERPARAM_END);
-
-	f->connect_out = ssp_streamer_connect_out;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "ssp_streamer");
 	plugin_set(p, PLUGIN_PIXMAP, "ssp.png"); 
