@@ -4,7 +4,7 @@
 /*
  * gtknob.h
  *
- * $Id: gtknob.h,v 1.5 2002/04/12 09:32:06 richi Exp $
+ * $Id: gtknob.h,v 1.6 2002/04/12 16:25:51 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -36,6 +36,7 @@
 #define GTK_KNOB(obj)          (GTK_CHECK_CAST ((obj), GTK_TYPE_KNOB, GtkKnob))
 #define GTK_KNOB_CLASS(klass)  (GTK_CHECK_CLASS_CAST ((klass), GTK_TYPE_KNOB, GtkKnobClass))
 #define GTK_IS_KNOB(obj)       (GTK_CHECK_TYPE (obj, GTK_TYPE_KNOB))
+#define GTK_KNOB_MAX_TICKS     8
 typedef struct _GtkKnob GtkKnob;
 typedef struct _GtkKnobClass GtkKnobClass;
 typedef gchar *(*GtkKnobFormatter)(gfloat, gpointer);
@@ -51,6 +52,9 @@ struct _GtkKnob {
     gint old_value;
 
     GtkAdjustment *adjustment;
+
+	gfloat ticks[GTK_KNOB_MAX_TICKS];
+	gint nr_ticks;
 
     GtkKnobFormatter formatter;
     gpointer formatter_data;
@@ -79,6 +83,7 @@ void           gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adj);
 GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob);
 void           gtk_knob_set_formatter(GtkKnob *knob, GtkKnobFormatter f,
                                       gpointer data);
+void           gtk_knob_add_tick(GtkKnob *knob, gfloat tick);
 
 void           gtk_knob_glade_register();
 

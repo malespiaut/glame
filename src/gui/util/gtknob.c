@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.9 2002/04/12 12:08:38 richi Exp $
+ * $Id: gtknob.c,v 1.10 2002/04/12 16:25:51 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -82,6 +82,21 @@ void gtk_knob_set_adjustment(GtkKnob * knob,
 			     GtkAdjustment * adj);
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data);
+
+static gint gtk_knob_value_to_frame(GtkKnob *knob, gfloat value)
+{
+	return (value - knob->adjustment->lower) / (knob->adjustment->upper - knob->adjustment->lower) * 53.0;
+}
+
+static gfloat gtk_knob_frame_to_value(GtkKnob *knob, gint frame)
+{
+	int i;
+	for (i=0; i<knob->nr_ticks; i++)
+		if (gtk_knob_value_to_frame(knob, knob->ticks[i]) == frame)
+			return knob->ticks[i];
+	return (frame / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower;
+}
+
 
 /* GtkKnob-specific functions */
 
@@ -199,17 +214,20 @@ static void gtk_knob_init(GtkKnob * knob)
     knob->x_click_point = -1;
     knob->y_click_point = -1;
     knob->adjustment = NULL;
+    knob->nr_ticks = 0;
     knob->formatter = gtk_knob_standard_formatter;
     knob->min_cache = NULL;
     knob->max_cache = NULL;
     knob->val_cache = NULL;
+    knob->font = NULL;
+    knob->gc = NULL;
 }
 
 GtkWidget *gtk_knob_new(GtkAdjustment * adj)
 {
     GtkWidget *knob;
     knob = gtk_widget_new(GTK_TYPE_KNOB, "adjustment", adj, NULL);
-    GTK_KNOB(knob)->value = (adj->value - adj->lower) / (adj->upper - adj->lower) * 53;
+    GTK_KNOB(knob)->value = gtk_knob_value_to_frame(GTK_KNOB(knob), adj->value);
     return knob;
 }
 
@@ -294,7 +312,7 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
     GdkRectangle rect;
     static gint oldvalue;
     gint x, y;
-    gint temp;
+    gint temp, i;
 
     g_return_val_if_fail(widget != NULL, FALSE);
     g_return_val_if_fail(GTK_IS_KNOB(widget), FALSE);
@@ -306,6 +324,28 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 	gdk_window_get_pointer(widget->window, &x, &y, &mods);
 
 	temp = knob->old_value + (-(y - knob->y_click_point));
+	/* adjust temp for crossed ticks to which we stick a while */
+	if (temp > knob->old_value) {
+		for (i=0; i<knob->nr_ticks; i++) {
+			if (gtk_knob_frame_to_value(knob, knob->old_value) > knob->ticks[i])
+				continue;
+			if (gtk_knob_frame_to_value(knob, temp) > knob->ticks[i]) {
+				temp -= 5;
+				if (gtk_knob_frame_to_value(knob, temp) < knob->ticks[i])
+					temp = gtk_knob_value_to_frame(knob, knob->ticks[i]);
+			}
+		}
+	} else if (temp < knob->old_value) {
+		for (i=knob->nr_ticks-1; i>=0; i--) {
+			if (gtk_knob_frame_to_value(knob, knob->old_value) < knob->ticks[i])
+				continue;
+			if (gtk_knob_frame_to_value(knob, temp) < knob->ticks[i]) {
+				temp += 5;
+				if (gtk_knob_frame_to_value(knob, temp) > knob->ticks[i])
+					temp = gtk_knob_value_to_frame(knob, knob->ticks[i]);
+			}
+		}
+	}
 	if (temp < 0)
 	    temp = 0;
 	if (temp > 53)
@@ -319,13 +359,8 @@ static gint gtk_knob_motion_notify(GtkWidget * widget,
 	    rect.width = widget->allocation.width;
 	    rect.height = widget->allocation.height;
 	    /* gtk_knob_draw(widget, &rect); */
-#if 0
-	    knob->adjustment->value =
-		(knob->value / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower;
-	    gtk_signal_emit_by_name(GTK_OBJECT(knob->adjustment),
-				    "value_changed");
-#endif
-	    gtk_adjustment_set_value(knob->adjustment, (knob->value / 53.0) * (knob->adjustment->upper - knob->adjustment->lower) + knob->adjustment->lower);
+	    gtk_adjustment_set_value(knob->adjustment,
+				     gtk_knob_frame_to_value(knob, knob->value));
 
 	    /* printf("adjustment: %f : %f : %f\n", knob->adjustment->upper, */
 /* 	       knob->adjustment->lower, knob->adjustment->value); */
@@ -651,6 +686,21 @@ void gtk_knob_set_formatter(GtkKnob *knob, GtkKnobFormatter f, gpointer data)
 	knob->val_cache = NULL;
 }
 
+void gtk_knob_add_tick(GtkKnob *knob, gfloat tick)
+{
+	int i, j;
+	if (knob->nr_ticks >= GTK_KNOB_MAX_TICKS)
+		return;
+	/* insert ticks sorted */
+	for (i=0; i<knob->nr_ticks; i++)
+		if (knob->ticks[i] > tick)
+			break;
+	for (j=knob->nr_ticks-1; j>=i; j--)
+		knob->ticks[j+1] = knob->ticks[j];
+	knob->ticks[i] = tick;
+	knob->nr_ticks++;
+}
+
 static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 					      gpointer data)
 {
@@ -670,7 +720,7 @@ static void gtk_knob_adjustment_value_changed(GtkAdjustment * adjustment,
 	    g_free(knob->val_cache);
     knob->val_cache = knob->formatter(adjustment->value, knob->formatter_data);
 
-    temp = (adjustment->value - adjustment->lower) / (adjustment->upper - adjustment->lower) * 53;
+    temp = gtk_knob_value_to_frame(knob, adjustment->value);
     if (knob->value != temp) {
 	knob->value = temp;
 	
@@ -691,7 +741,7 @@ static gchar *gtk_knob_scheme_formatter(gfloat value, char *code)
 {
 	SCM format_s, res_s;
 	char *res;
-	long len;
+	int len;
 
 	format_s = glame_gh_safe_eval_str(code);
 	if (!gh_procedure_p(format_s))
@@ -708,7 +758,7 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 	GtkWidget *knob;
 	GtkObject *adj;
 	GList *tmp;
-	float value = 0.0, lower = 0.0, upper = 1.0;
+	float value = 0.0, lower = 0.0, upper = 1.0, tick;
 	char *formatter = NULL;
 
 	for (tmp = info->attributes; tmp; tmp = tmp->next) {
@@ -725,10 +775,17 @@ static GtkWidget *gtk_knob_glade_new(GladeXML *xml, GladeWidgetInfo *info)
 	adj = gtk_adjustment_new(value, lower, upper, 0.1, 0.1, 0.0);
 	knob = gtk_knob_new(GTK_ADJUSTMENT(adj));
 	if (formatter)
-		gtk_knob_set_formatter(knob, gtk_knob_scheme_formatter, g_strdup(formatter));
+		gtk_knob_set_formatter(GTK_KNOB(knob), (GtkKnobFormatter)gtk_knob_scheme_formatter, g_strdup(formatter));
+	for (tmp = info->attributes; tmp; tmp = tmp->next) {
+		GladeAttribute *attr = tmp->data;
+		if (strcmp(attr->name, "tick") == 0)
+			sscanf(attr->value, "%f", &tick);
+		gtk_knob_add_tick(GTK_KNOB(knob), tick);
+	}
 
 	return knob;
 }
+
 void gtk_knob_glade_register()
 {
 	static GladeWidgetBuildData widgets[] = {
