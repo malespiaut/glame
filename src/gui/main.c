@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.21 2001/03/31 14:05:33 richi Exp $
+ * $Id: main.c,v 1.22 2001/04/04 23:47:13 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -40,6 +40,7 @@ static char *swname = NULL;
 static GtkWidget *swapfile;
 static GtkWidget *app;
 
+extern guint nPopupTimeout;
 
 
 /* Forward declarations. */
@@ -155,11 +156,12 @@ preferences_cb(GtkWidget * wid, void * bla)
 	GtkWidget * entry;
 	GtkWidget * error;
 	GtkWidget * notelabel;
-	
 	char *path,*defaultpath;
 	int val = 0;
 	gboolean ok=FALSE;
+	char * numberbuffer;
 
+	numberbuffer = calloc(sizeof(char),20);
         path = calloc(sizeof(char),255);
         prop_box = gnome_property_box_new();
         tablabel = gtk_label_new(_("Swapfile"));
@@ -167,17 +169,38 @@ preferences_cb(GtkWidget * wid, void * bla)
         vbox = gtk_vbox_new(FALSE,1);
         gtk_widget_show(vbox);
 
-        entry = gnome_file_entry_new(NULL,"Swapfilepath");
+        entry = gnome_file_entry_new("swapfilepath","Swapfilepath");
         create_label_widget_pair(vbox,"Swapfile Path",entry);
         defaultpath = gnome_config_get_string("swapfile/defaultpath");
+	if(!defaultpath){
+		defaultpath = calloc(sizeof(char),5);
+		defaultpath = "swap";
+	}
         gtk_entry_set_text(GTK_ENTRY(gnome_file_entry_gtk_entry(entry)),defaultpath);
-        g_free(defaultpath);
+
 
         notelabel = gtk_label_new("NOTE: Swapfile settings take effect after restart only");
         gtk_widget_show(notelabel);
         gtk_container_add(GTK_CONTAINER(vbox),notelabel);
 
         gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(entry))),"changed",changeString,&path);
+
+        gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
+	
+	tablabel = gtk_label_new(_("Edit Filter"));
+	vbox = gtk_vbox_new(FALSE,1);
+	gtk_widget_show(vbox);
+	entry = gnome_entry_new("popupTimeout");
+	create_label_widget_pair(vbox,"Popup Timeout [ms]",entry);
+	
+	nPopupTimeout = gnome_config_get_int("edit_filter/popupTimeout");
+	sprintf(numberbuffer,"%d",nPopupTimeout);
+	gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),numberbuffer);
+	gtk_widget_show(entry);
+ 	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),"changed",changeString,&numberbuffer);
+		
+
+
         gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->ok_button),"clicked",setBoolean,&ok);
         gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->apply_button));
         gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(prop_box)->help_button));
@@ -187,10 +210,20 @@ preferences_cb(GtkWidget * wid, void * bla)
 
         gnome_dialog_run_and_close(GNOME_DIALOG(prop_box));
         if(ok){
-                gnome_config_set_string("swapfile/defaultpath",path);
-                gnome_config_sync();
+		if(strlen(path))
+			gnome_config_set_string("swapfile/defaultpath",path);
+		else
+			gnome_config_set_string("swapfile/defaultpath",defaultpath);
+		if(numberbuffer){
+ 			gnome_config_set_int("edit_filter/popupTimeout",atoi(numberbuffer));
+			nPopupTimeout = atoi(numberbuffer);
+		}
+               	gnome_config_sync();
         }
         fprintf(stderr,"dialog: %d\n",val);
+	g_free(defaultpath);
+	free(path);
+	free(numberbuffer);
 }
 
 
@@ -254,12 +287,24 @@ static void gui_main()
 		gnome_config_set_string(configpath,homedir);
 		gnome_config_sync();
 	}
+	if(!strlen(path)){
+		sprintf(configpath,"%s/.glameswap",g_get_home_dir());
+		path = strdup(configpath);
+		gnome_config_set_string("swapfile/defaultpath",path);
+		gnome_config_sync();
+	}
+     
 	fprintf(stderr,"path: %s\n",path);
 	if(!g_file_test(path,G_FILE_TEST_ISDIR)
 	   && !swname /* for debugging */){
 		if(swapfile_creat(path,-1)){
 			DERROR("error creating swapfile\n");
 		}
+	}
+	nPopupTimeout = gnome_config_get_int_with_default("edit_filter/popupTimeout=200",&defaultval);
+	if(defaultval){
+		gnome_config_set_int("edit_filter/popupTimeout",200);
+		gnome_config_sync();
 	}
 
 	/* create swapfile gui */
