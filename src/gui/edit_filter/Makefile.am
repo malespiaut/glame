@@ -10,7 +10,7 @@ if HAVE_GNOME
 noinst_LTLIBRARIES = libeditfilter.la
 endif
 
-libeditfilter_la_SOURCES =  gui.h gui.c canvas.h canvas.c \
+libeditfilter_la_SOURCES = gui.c canvas.h canvas.c \
 	canvas_types.h canvas_types.c filtergui.h
 
 #edit_filter_SOURCES = main.c

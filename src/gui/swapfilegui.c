@@ -472,7 +472,6 @@ static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 
 		/* Update the item widget. */
 		glame_tree_item_update(GLAME_TREE_ITEM(itemw));
-
 		break;
 	}
 	default:
@@ -532,7 +531,6 @@ static void handle_grp(glsig_handler_t *handler, long sig, va_list va)
 
 		/* Update the item widget. */
 		glame_tree_item_update(GLAME_TREE_ITEM(itemw));
-
 		break;
 	}
 	case GPSM_SIG_GRP_REMOVEITEM: {
