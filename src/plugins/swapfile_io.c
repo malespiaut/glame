@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.3 2000/11/06 09:48:08 richi Exp $
+ * $Id: swapfile_io.c,v 1.4 2000/11/11 16:16:56 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -20,7 +20,9 @@
  *
  */
 
-#include <glmid.h>
+#include "filter.h"
+#include "swapfile.h"
+#include "glplugin.h"
 
 
 PLUGIN_SET(swapfile_io, "swapfile_in swapfile_out")
