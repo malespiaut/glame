@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.7 2000/02/16 12:36:43 richi Exp $
+ * $Id: list.h,v 1.8 2000/02/22 17:25:03 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -111,7 +111,7 @@ static inline void list_del(struct list_head *entry)
         if (entry->next == entry)
 	       DERROR("Removing already removed list item");
 	__list_del(entry->prev, entry->next);
-#ifdef DEBUG
+#ifndef NDEBUG
 	INIT_LIST_HEAD(entry);
 #endif
 }
