@@ -542,7 +542,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 
       /* Perform clipping. */
       if (sample_offset >= n_samples)
-        return;
+        goto out;
       if (last_sample_offset >= n_samples)
         last_sample_offset = n_samples - 1;
 
@@ -560,7 +560,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 	  /* If by any chance we got destroyed, bail out. */
 	  if (waveview->destroyed) {
 		  DPRINTF("Whoops - coalesced with destroy event :)\n");
-		  return;
+		  goto out;
 	  }
 
           /* Read data chunk. */
@@ -614,7 +614,7 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
 			  }
 			  if (notdone_x + notdone_width > waveview->expose_x + waveview->expose_width)
 				  waveview->expose_width = notdone_x + notdone_width - waveview->expose_x;
-			  return;
+			  goto out;
 		  }
 	  }
 
@@ -622,9 +622,9 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
           pos += size;
         }
 
+    out:
       if (data16 != (void*) data)
         g_free (data16);
-
       g_free (data);
     }
 }
