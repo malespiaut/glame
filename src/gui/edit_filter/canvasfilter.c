@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.3 2001/05/08 21:54:01 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.4 2001/05/11 01:08:03 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -61,8 +61,10 @@ static guint filter_signals[LAST_SIGNAL] = { 0 };
 static void
 glame_canvas_filter_destroy (GtkObject *object)
 {
+	GnomeCanvasGroupClass* parent_class;
 	gtk_signal_emit(object,filter_signals[DELETED]);
-	GTK_OBJECT_CLASS(gtk_type_class(GLAME_CANVAS_FILTER_TYPE))->destroy(object);
+	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
+	GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }
 
 
@@ -152,6 +154,12 @@ glame_canvas_filter_get_type(void)
  *  Whew... Now for the real stuff
  *
  ********************************/
+
+static void glame_canvas_filter_destroy_cb(glsig_handler_t* foo,long sig,va_list va)
+{
+	glame_canvas_filter_destroy(glsig_handler_private(foo));
+}
+
 
 
 GlameCanvasFilter* glame_canvas_find_filter(filter_t *f)
@@ -357,7 +365,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	
 	hash_add_gcfilter(gItem);
 	
-	glsig_add_handler(filter_emitter(filter),GLSIG_FILTER_DELETED,glame_canvas_filter_destroy,gItem);
+	glsig_add_handler(filter_emitter(filter),GLSIG_FILTER_DELETED,glame_canvas_filter_destroy_cb,gItem);
 	
 	gtk_signal_connect(GTK_OBJECT(item),
 			   "event",
@@ -545,12 +553,58 @@ glame_canvas_filter_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvas
 		return FALSE;
 	}
 }
+/************************
+ * menu handling
+ ************************/
+
+
+
+static void glame_canvas_filter_edit_properties_cb(GtkWidget* m,GlameCanvasFilter *filter)
+{
+	GtkWidget *p;
+
+	if(filter->immutable)
+		return;
+	p = glame_gui_filter_properties(filter_paramdb(filter->filter),
+						   filter_name(filter->filter));
+	gnome_dialog_run_and_close(GNOME_DIALOG(p));
+}
+
+
+static void glame_canvas_filter_delete_cb(GtkWidget* foo, GlameCanvasFilter* filter)
+{
+	filter_delete(filter->filter);
+}
+
+
+int inItem;
+static GnomeUIInfo node_menu[]=
+{
+	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
+	//GNOMEUIINFO_ITEM("_Redirect parameter","redirect",canvas_item_redirect_parameters,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	//	GNOMEUIINFO_ITEM("_Open Up","Open up",draw_network_cb,NULL),
+	//	GNOMEUIINFO_ITEM("_About node...","bout",canvas_item_show_description,NULL),
+	//	GNOMEUIINFO_ITEM("_Help","Show help",canvas_item_help,NULL),
+//	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
+	GNOMEUIINFO_END
+};
+
+
+
+
+
+
+
+
 
 static gboolean
 glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {
 	GdkCursor * fleur;
-	
+	GtkWidget * menu;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -570,6 +624,11 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 			gdk_cursor_destroy(fleur);
 			return TRUE;
 			break;
+		case 3:
+			/* popup menu */
+			menu = gnome_popup_menu_new(node_menu);
+			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,filter);
+			break;	
 		default:
 			return FALSE;
 			break;
@@ -579,3 +638,7 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 		break;
 	}
 }
+
+
+
+

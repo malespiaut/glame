@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.4 2001/05/10 00:00:54 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.5 2001/05/11 01:08:03 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,7 +63,10 @@ static guint pipe_signals[LAST_SIGNAL] = { 0 };
 static void
 glame_canvas_pipe_destroy (GtkObject *object)
 {
-	GTK_OBJECT_CLASS(gtk_type_class(GLAME_CANVAS_PIPE_TYPE))->destroy(object);
+	GnomeCanvasGroupClass* parent_class;
+	DPRINTF("ficken\n");
+	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
+	GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }
 
 
@@ -229,17 +232,14 @@ glame_canvas_pipe_port_changed_cb(GlameCanvasPort* p, GlameCanvasPipe* pipe)
 {
 	glame_canvas_pipe_redraw(pipe);
 }
+
 static void
 glame_canvas_pipe_deleted_cb(glsig_handler_t* foo,long sig,va_list va)
 {
 	
 	GlameCanvasPipe* gPipe = glsig_handler_private(foo);
 	filter_pipe_t* pipe = gPipe->pipe;
-	
-	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),
-				"connections_changed");
-	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_source(pipe))),
-				"connections_changed");
+	gtk_signal_emit_by_name(GTK_OBJECT(gPipe),"deleted");
 	gtk_object_destroy(GTK_OBJECT(gPipe));
 }
 	
@@ -265,6 +265,24 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 		return FALSE;
 	}
 }
+
+
+/****************
+ * menu stuff
+ ****************/
+
+/*
+static GnomeUIInfo pipe_menu[]=
+{
+	GNOMEUIINFO_ITEM("_Source properties...", "Source properties", canvas_connection_edit_source_properties_cb, NULL),
+	GNOMEUIINFO_ITEM("D_estination properties...", "Destination properties", canvas_connection_edit_dest_properties_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Delete","Delete pipe",canvas_connection_destroy_cb,NULL),
+	GNOMEUIINFO_END
+};
+*/
+
+
 static gboolean
 glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe* p)
 {
@@ -284,6 +302,9 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 			gdk_cursor_destroy(fleur);
 			return TRUE;
 			break;
+		case 3:
+			filterpipe_delete(p->pipe);
+			break;
 		default:
 			return FALSE;
 			break;
@@ -297,18 +318,21 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * pipe)
 {
 	GlameCanvasPipe* gPipe;
+	GnomeCanvasGroup * gGroup;
+	
 	int i;
-
+	
 	gPipe = GLAME_CANVAS_PIPE(gnome_canvas_item_new(group, 
 							glame_canvas_pipe_get_type(),
 							NULL));
-
+	gGroup = GNOME_CANVAS_GROUP(gPipe);
+	
 	/* create and clear line coords */
 	gPipe->points = gnome_canvas_points_new(6);
 	for(i=0;i<12;i++)
 		gPipe->points->coords[i] = 0.0;
 	
-	gPipe->line = GNOME_CANVAS_LINE(gnome_canvas_item_new(group,
+	gPipe->line = GNOME_CANVAS_LINE(gnome_canvas_item_new(gGroup,
 							      gnome_canvas_line_get_type(),
 							      "points",gPipe->points,
 							      "fill_color","black",
@@ -320,7 +344,7 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 							      "spline_steps",100,
 							      "last_arrowhead",TRUE,
 							      NULL));
-	gPipe->circle = GNOME_CANVAS_ELLIPSE(gnome_canvas_item_new(group,
+	gPipe->circle = GNOME_CANVAS_ELLIPSE(gnome_canvas_item_new(gGroup,
 								   gnome_canvas_ellipse_get_type(),
 								   "x1",0.0,
 								   "x2",0.0,
@@ -330,6 +354,9 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 								   "width_pixels",5,
 								   NULL));
 	gPipe->pipe = pipe;
+
+	/* connect to backend destroy sig */
+	glsig_add_handler(filterpipe_emitter(pipe),GLSIG_PIPE_DELETED,glame_canvas_pipe_deleted_cb,gPipe);
 	
 	hash_add_gcpipe(gPipe);
 	
@@ -348,7 +375,7 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 			   "moved",
 			   glame_canvas_pipe_begin_moved_cb,
 			   gPipe);
-	
+
 	/* connect to reordering of connections at port */
 	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),
 			   "connections_changed",
@@ -360,8 +387,14 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 			   glame_canvas_pipe_port_changed_cb,
 			   gPipe);
 
-	/* connect to backend destroy sig */
-	glsig_add_handler(filterpipe_emitter(pipe),GLSIG_PIPE_DELETED,glame_canvas_pipe_deleted_cb,gPipe);
+	gtk_signal_connect(GTK_OBJECT(gPipe),"deleted",
+			   glame_canvas_port_pipe_deleted_cb,
+			   glame_canvas_find_port(filterpipe_source(pipe)));
+
+	gtk_signal_connect(GTK_OBJECT(gPipe),"deleted",
+			   glame_canvas_port_pipe_deleted_cb,
+			   glame_canvas_find_port(filterpipe_dest(pipe)));
+	
 
 	/* reorder all pipes */
 	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),

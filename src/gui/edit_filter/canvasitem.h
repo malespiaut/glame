@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.4 2001/05/08 21:54:01 xwolf Exp $
+ * $Id: canvasitem.h,v 1.5 2001/05/11 01:08:03 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -177,6 +177,7 @@ void glame_canvas_port_show_properties(GlameCanvasPort* port);
 void glame_canvas_port_hide_properties(GlameCanvasPort* port);
 void glame_canvas_port_redraw(GlameCanvasPort* port);
 void glame_canvas_port_set_external(GlameCanvasPort* port, gboolean external);
+void glame_canvas_port_pipe_deleted_cb(GlameCanvasPipe* pipe, GlameCanvasPort* port);
 
 /*filter_paramdb_t* glame_canvas_port_get_paramdb(GlameCanvasPort* port);*/
 
@@ -217,7 +218,8 @@ struct _GlameCanvasPipe {
 struct _GlameCanvasPipeClass {
 	GnomeCanvasGroupClass parent_class;
 
-	void (* deleted) (GlameCanvasPipe * pipe);
+	void (* deleted) (GlameCanvasPipe* pipe);
+
 };
 
 /* public */
