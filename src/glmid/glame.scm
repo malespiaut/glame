@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.6 2000/03/20 00:27:24 mag Exp $
+; $Id: glame.scm,v 1.7 2000/03/20 09:47:13 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -19,21 +19,20 @@
 ;
 
 
+;
+; GLAME scheme library, std functions
+;
+
 (define help
   (lambda ()
     (display "no help available yet.\n")))
 
-; This scheme file is rated PG
-; It contains violence, coarse language
-; and maybe in future some sexscenes ;)
-
-(define ficken
-  (lambda ()
-    (display "selber ficken!\n") (quit)))
+; what output filter should we use?
+(define audio-out "audio_out")
 
 
 ;
-; a test_latency implementation
+; clever scheme helpers
 ;
 
 (define (map-pairs f l)
@@ -42,50 +41,86 @@
       (begin (f (car l) (cadr l))
 	     (map-pairs f (cdr l)))))
 
-(define create_nodes
-  (lambda (net name nr)
-    (if (< 0 nr)
-      (append
-         (create_nodes net name (- nr 1))
-	 (list (filternetwork_add_node net name "nulls")))
-      (list (filternetwork_add_node net name "nulls")))))
+(define while-not-false
+  (lambda (f)
+    (if (boolean? (f)) #t (while-not-false f))))
 
-(define connect_linear
-  (lambda (nodes)
-    (map-pairs
-      (lambda (s d) (filternetwork_add_connection s "out" d "in"))
-      nodes)))
+(define repeat-n
+  (lambda (x n)
+    (if (>= 0 n) '() (cons x (repeat-n x (- n 1))))))
 
-(define test_latency
+
+;
+; some high level filternetwork helpers
+;
+
+(define net-new filternetwork_new)
+
+(define net-add-node
+  (lambda (net node)
+    (if (boolean? (filter_get node)) (plugin_get node))
+    (filternetwork_add_node net node "")))
+
+(define net-add-nodes
+  (lambda (net nodes)
+    (if (null? nodes) '()
+	(cons (net-add-node net (car nodes))
+	      (net-add-nodes net (cdr nodes))))))
+
+(define nodes-connect
+  (lambda nodes
+    (map (lambda (nodes)
+	   (map-pairs
+	    (lambda (s d) (filternetwork_add_connection s "out" d "in"))
+	    nodes))
+	 nodes)))
+
+(define net-run
+  (lambda (net)
+    (filternetwork_launch net)
+    (filternetwork_start net)
+    (filternetwork_wait net)
+    (filternetwork_delete net)))
+
+
+
+;
+; test_latency and test_network implementations
+;
+; test_network is different from the C version, so you need
+; to execute the following sequence of commands for any given
+; network (in a file, should define a network returning procedure):
+; (load "network")
+; (test-network network '("param1" "value1") '(...) ....)
+
+(define test-latency
   (lambda (depth)
-    (let* ((net (filternetwork_new "tl" "test latency (linear)"))
-	   (ping (filternetwork_add_node net "ping" "pinger"))
-	   (nulls (create_nodes net "null" depth)))
-      (connect_linear (cons ping (append nulls (list ping))))
-      (filternetwork_launch net)
-      (filternetwork_start net)
-      (filternetwork_wait net)
-      (filternetwork_delete net))))
+    (let* ((net (net-new))
+	   (nodes (net-add-nodes net (cons "ping" (repeat-n "null" depth)))))
+      (nodes-connect (append nodes (list (car nodes))))
+      (net-run net))))
+
+(define test-network
+  (lambda (name . params)
+    (let *((net (name)))
+      (map (lambda (p) (filternode_set_param net (car p) (cadr p))) params)
+      (net-run net))))
+
 
 ;
 ; test save
 ;
-(define while1
-  (lambda (f)
-    (if (boolean? (f)) #t (while1 f))))
 
 (define testsave
   (lambda (iname oname)
-    (let* ((net (filternetwork_new "testsave" "read and save files"))
+    (let* ((net (filternetwork_new))
            (rf (filternetwork_add_node net "read_file" "readfile"))
 	   (wf (filternetwork_add_node net "write_file" "writefile")))
     (filternode_set_param rf "filename" iname)
     (filternode_set_param wf "filename" oname)
-    (while1 (lambda () (filternetwork_add_connection rf "out" wf "in")))
-    (filternetwork_launch net)
-    (filternetwork_start net)
-    (filternetwork_wait net)
-    (filternetwork_delete net))))
+    (while-not-false
+      (lambda () (filternetwork_add_connection rf "out" wf "in")))
+    (net-run net))))
 
 ;
 ; test rms
@@ -108,67 +143,79 @@
     (filternetwork_delete net))))
 
 ;
-; play a soundfile
+; play a soundfile - automagically finds the number of channels
 ;
 
 (define play
   (lambda (fname)
-    (let* ((net (filternetwork_new "play" "plays files"))
+    (let* ((net (filternetwork_new))
 	   (rf (filternetwork_add_node net "read_file" "readfile"))
-	   (ao (filternetwork_add_node net "audio_out" "aout")))
+	   (ao (filternetwork_add_node net audio-out "aout")))
       (filternode_set_param rf "filename" fname)
-      (while1 (lambda () (filternetwork_add_connection rf "out" ao "in")))
-      (filternetwork_launch net)
-      (filternetwork_start net)
-      (filternetwork_wait net)
-      (filternetwork_delete net))))
+      (while-not-false
+         (lambda () (filternetwork_add_connection rf "out" ao "in")))
+      (net-run net))))
 
 ;
-; The "real" scheme glame midlayer - first try
+; play-echo, created out of net_test_echo2, i.e. use
+; with test-network to set parameters.
 ;
 
-(define net-new
-  (lambda (name desc)
-    (filternetwork_new name desc)))
-
-(define net-add-nodes
-  (lambda (net nodes)
-    (if (string? nodes) (net-add net (list nodes))
-	(if (null? nodes) '()
-	    (cons (filternetwork_add_node net (car nodes) "")
-		  (net-add net (cdr nodes)))))))
-
-(define nodes-connect
-  (lambda (nodes)
-    (map-pairs
-      (lambda (s d) (filternetwork_add_connection s "out" d "in"))
-      nodes)))
-
-
-;
-; support the filternetwork2string syntax
-;
-
-(define FIXME (lambda () #f))
-
-(define filternetwork
-  (lambda (name description . cmds)
-    (let* ((net (filternetwork_new name description))
-	   (node (lambda (name filter . cmds)
-		   (let* ((node (filternetwork_add_node net filter name))
-			  (export-input (lambda (extlabel label desc) (FIXME)))
-			  (export-output (lambda (extlabel label desc) (FIXME)))
-			  (export-param (lambda (extlabel label desc) (FIXME)))
-			  (set-param (lambda (label value) (FIXME))))
-		     (map eval cmds)
-		     node)))
-	   (connect (lambda (node1 port1 node2 port2)
-		      (let* ((pipe (filternetwork_add_connection node1 port1 node2 port2))
-			     (set-sourceparam (lambda (label value) (FIXME)))
-			     (set-destparam (lambda (label value) (FIXME))))
-			(map eval cmds)
-			pipe)))
-	   (set-param (lambda (label value) (FIXME))))
-      (map eval cmds)
+(define play-echo
+  (lambda ()
+    (let* ((net (net-new))
+	   (rf (net-add-node net "read_file"))
+	   (mix (net-add-node net "mix"))
+	   (delay (net-add-node net "delay"))
+	   (va (net-add-node net "volume-adjust"))
+	   (dup (net-add-node net "one2n"))
+	   (aout (net-add-node net audio-out)))
+      (filternetwork_add_param net rf "filename" "filename" "filename")
+      (filternetwork_add_param net va "factor" "mix" "mix")
+      (filternetwork_add_param net delay "delay" "delay" "delay")
+      (filternode_set_param delay "delay" 200)
+      (filternode_set_param va "factor" 0.9)
+      (nodes-connect `(,rf ,mix) `(,rf ,mix ,dup ,aout) `(,dup ,delay ,va ,mix))
       net)))
 
+
+;
+; play a file with automagically determining #channels _and_
+; applying one effect (with a list of parameters applied to it)
+; example: (play-eff "test.wav" "echo" '("time" 500))
+;
+
+(define play-eff
+  (lambda (fname effect . params)
+    (let* ((net (net-new))
+	   (rf (net-add-node net "read_file"))
+	   (mix (net-add-node net "mix"))
+	   (eff (net-add-node net effect))
+	   (ao (net-add-node net audio-out)))
+      (filternode_set_param rf "filename" fname)
+      (while-not-false
+         (lambda () (filternetwork_add_connection rf "out" mix "in")))
+      (nodes-connect `(,mix ,eff ,ao))
+      (map (lambda (p) (filternode_set_param eff (car p) (cadr p))) params)
+      (net-run net))))
+
+;
+; an echo macro filter
+;
+
+(let* ((net (net-new))
+       (extend (net-add-node net "extend"))
+       (mix2 (net-add-node net "mix"))
+       (one2n (net-add-node net "one2n"))
+       (delay (net-add-node net "delay"))
+       (va (net-add-node net "volume-adjust")))
+  (filternetwork_add_input net extend "in" "in" "echo source")
+  (filternetwork_add_output net one2n "out" "out" "source with echo")
+  (filternetwork_add_param net delay "delay" "delay" "echo delay")
+  (filternetwork_add_param net va "factor" "mix" "echo mix ratio")
+  (filternetwork_add_param net extend "time" "extend" "time to extend")
+  (filternode_set_param net "delay" 200)
+  (filternode_set_param net "extend" 1000)
+  (filternode_set_param net "mix" 0.9)
+  (nodes-connect `(,extend ,mix2 ,one2n ,delay ,va ,mix2))
+  (filternetwork_to_filter net "echo2" "echo as macro filter"))

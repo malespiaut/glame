@@ -1,8 +1,10 @@
 #ifndef _GLMID_H
 #define _GLMID_H
 
-#include "glplugin.h"
-#include "gltrack.h"
+#include <swapfile.h>
+#include <filter.h>
+#include <glplugin.h>
+#include <gltrack.h>
 
 
 int glame_init();

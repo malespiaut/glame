@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.4 2000/03/17 13:57:21 richi Exp $
+ * $Id: glplugin.c,v 1.5 2000/03/20 09:47:13 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -55,9 +55,10 @@ int plugin_add_path(const char *path)
 	return 0;
 }
 
+static plugin_t *plugin_add(const char *name, const char *filename);
 static plugin_t *plugin_load(const char *name, const char *filename)
 {
-        char s[256];
+        char s[256], *sp;
 	plugin_t *p;
 
 	if (!(p = ALLOC(plugin_t)))
@@ -65,21 +66,37 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 	INIT_LIST_HEAD(&p->list);
 	hash_init_plugin(p);
 
+	if (!(p->name = strdup(name)))
+		goto err;
 	if (!(p->handle = dlopen(filename, RTLD_NOW)))
 		goto err;
 
+	/* either register() or a plugin set string */
 	snprintf(s, 255, "%s_register", name);
-	if (!(p->reg_func = dlsym(p->handle, s)))
+	p->reg_func = dlsym(p->handle, s);
+	snprintf(s, 255, "%s_set", name);
+	p->set = dlsym(p->handle, s);
+	if (!p->reg_func && !p->set)
 		goto err_close;
-	if (!(p->name = strdup(name)))
-		goto err_close;
+
 	snprintf(s, 255, "%s_pixmap", name);
 	p->pixmap = dlsym(p->handle, s);
 	snprintf(s, 255, "%s_description", name);
 	p->description = dlsym(p->handle, s);
 
-	if (p->reg_func() == -1)
+	if (p->reg_func && p->reg_func() == -1)
 		goto err_close;
+	if (p->set) {
+		/* add all plugins contained in the plugin set */
+		snprintf(s, 255, "%s", *(p->set));
+		sp = s;
+		do {
+			name = sp;
+			if ((sp = strchr(name, ' ')))
+				*(sp++) = '\0';
+			plugin_add(name, filename);
+		} while (sp);
+	}
 	return p;
 
  err_close:
@@ -88,6 +105,17 @@ static plugin_t *plugin_load(const char *name, const char *filename)
 	free((char *)(p->name));
 	free(p);
 	return NULL;
+}
+
+static plugin_t *plugin_add(const char *name, const char *filename)
+{
+	plugin_t *p;
+
+	if (!(p = plugin_load(name, filename)))
+		return NULL;
+	hash_add_plugin(p);
+	list_add_plugin(p);
+	return p;	
 }
 
 plugin_t *plugin_get(const char *name)
@@ -104,24 +132,23 @@ plugin_t *plugin_get(const char *name)
 		return p;
 
 	/* first try to look for an "in-core" plugin */
-	if ((p = plugin_load(name, NULL)))
-		goto _found;
+	if ((p = plugin_add(name, NULL)))
+		return p;
 
 	/* try each path until plugin found */
 	plugin_foreach_path(path) {
 		sprintf(filename, "%s/%s.so", path->path, name);
-		if ((p = plugin_load(name, filename)))
-			goto _found;
+		if ((p = plugin_add(name, filename)))
+			return p;
 	}
+
+	/* last try LD_LIBRARY_PATH supported plugins */
+	sprintf(filename, "%s.so", name);
+	if ((p = plugin_add(name, filename)))
+	    return p;
 
 	DPRINTF("%s NOT found.\n", name);
 	return NULL;
-
-_found:
-	DPRINTF("found %s.\n", name);
-	hash_add_plugin(p);
-	list_add_plugin(p);
-	return p;
 }
 
 void *plugin_get_symbol(plugin_t *p, const char *symbol)

@@ -1,9 +1,9 @@
-INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash $(GUILE_INCS)
+INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../filter -I@srcdir@/../hash -DPKGDATADIR=\"$(pkgdatadir)\" -DPKGLIBDIR=\"$(pkglibdir)\" $(GUILE_INCS)
 
 EXTRA_DIST = glmid.h glame.scm
 
 lib_LTLIBRARIES = libglame.la
-data_DATA = glame.scm
+pkgdata_DATA = glame.scm
 
 libglame_la_SOURCES = glmid.c glmid.h glscript.c gltrack.c gltrack.h \
 	glplugin.c glplugin.h

@@ -170,17 +170,11 @@ static SCM gls_file_transaction_redo(SCM s_fid)
 #define gh_scm2pointer (void *)gh_scm2ulong
 #define gh_pointer2scm(p) gh_ulong2scm((unsigned long)(p))
 
-SCM gls_filternetwork_new(SCM s_name, SCM s_desc)
+SCM gls_filternetwork_new()
 {
 	filter_network_t *net;
-	char *name, *desc;
-	int namel, descl;
 
-	name = gh_scm2newstr(s_name, &namel);
-	desc = gh_scm2newstr(s_desc, &descl);
-	net = filternetwork_new(name, desc);
-	free(name);
-	free(desc);
+	net = filternetwork_new();
 	if (!net)
 		return SCM_BOOL_F;
 	return gh_pointer2scm(net);
@@ -346,7 +340,106 @@ SCM gls_filter_get(SCM s_name)
 	name = gh_scm2newstr(s_name, &namel);
 	f = filter_get(name);
 	free(name);
+	if (!f)
+		return SCM_BOOL_F;
 	return gh_pointer2scm(f);
+}
+
+SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
+				SCM s_label, SCM s_desc)
+{
+	filter_network_t *net;
+	filter_node_t *n;
+	filter_portdesc_t *d;
+	char *port, *label, *desc;
+	int portl, labell, descl;
+
+	net = gh_scm2pointer(s_net);
+	n = gh_scm2pointer(s_node);
+	port = gh_scm2newstr(s_port, &portl);
+	label = gh_scm2newstr(s_label, &labell);
+	desc = gh_scm2newstr(s_desc, &descl);
+	d = filternetwork_add_input(net, n->name, port, label, desc);
+	free(port);
+	free(label);
+	free(desc);
+	if (!d)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+
+SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
+				 SCM s_label, SCM s_desc)
+{
+	filter_network_t *net;
+	filter_node_t *n;
+	filter_portdesc_t *d;
+	char *port, *label, *desc;
+	int portl, labell, descl;
+
+	net = gh_scm2pointer(s_net);
+	n = gh_scm2pointer(s_node);
+	port = gh_scm2newstr(s_port, &portl);
+	label = gh_scm2newstr(s_label, &labell);
+	desc = gh_scm2newstr(s_desc, &descl);
+	d = filternetwork_add_output(net, n->name, port, label, desc);
+	free(port);
+	free(label);
+	free(desc);
+	if (!d)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+
+SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
+				SCM s_label, SCM s_desc)
+{
+	filter_network_t *net;
+	filter_node_t *n;
+	filter_paramdesc_t *d;
+	char *param, *label, *desc;
+	int paraml, labell, descl;
+
+	net = gh_scm2pointer(s_net);
+	n = gh_scm2pointer(s_node);
+	param = gh_scm2newstr(s_param, &paraml);
+	label = gh_scm2newstr(s_label, &labell);
+	desc = gh_scm2newstr(s_desc, &descl);
+	d = filternetwork_add_param(net, n->name, param, label, desc);
+	free(param);
+	free(label);
+	free(desc);
+	if (!d)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+
+SCM gls_filternetwork_to_filter(SCM s_net, SCM s_name, SCM s_desc)
+{
+	filter_network_t *net;
+	filter_t *f;
+	char *name, *desc;
+	int namel, descl, res;
+
+	net = gh_scm2pointer(s_net);
+	if (!(f = filter_from_network(net)))
+		return SCM_BOOL_F;
+	name = gh_scm2newstr(s_name, &namel);
+	desc = gh_scm2newstr(s_desc, &descl);
+	res = filter_add(f, name, desc);
+	free(name);
+	free(desc);
+	if (res == -1)
+		return SCM_BOOL_F;
+	return SCM_BOOL_T;
+}
+
+SCM gls_filternetwork_to_string(SCM s_net)
+{
+	filter_network_t *net;
+
+	net = gh_scm2pointer(s_net);
+	return gh_str02scm((char *)filternetwork_to_string(net));	
 }
 
 
@@ -375,6 +468,8 @@ SCM gls_plugin_get(SCM s_name)
 	name = gh_scm2newstr(s_name, &namel);
 	p = plugin_get(name);
 	free(name);
+	if (!p)
+		return SCM_BOOL_F;
 	return gh_pointer2scm(p);
 }
 
@@ -383,7 +478,7 @@ SCM gls_plugin_name(SCM s_p)
 	plugin_t *p;
 
 	p = gh_scm2pointer(s_p);
-	return gh_str02scm(plugin_name(p));
+	return gh_str02scm((char *)plugin_name(p));
 }
 
 SCM gls_plugin_description(SCM s_p)
@@ -391,7 +486,7 @@ SCM gls_plugin_description(SCM s_p)
 	plugin_t *p;
 
 	p = gh_scm2pointer(s_p);
-	return gh_str02scm(plugin_description(p));
+	return gh_str02scm((char *)plugin_description(p));
 }
 
 
@@ -421,7 +516,7 @@ int glscript_init()
 			 1, 0, 0);
 
 	/* filter */
-	gh_new_procedure("filternetwork_new", gls_filternetwork_new, 2, 0, 0);
+	gh_new_procedure("filternetwork_new", gls_filternetwork_new, 0, 0, 0);
 	gh_new_procedure("filternetwork_delete", gls_filternetwork_delete,
 			 1, 0, 0);
 	gh_new_procedure("filternetwork_add_node", gls_filternetwork_add_node,
@@ -444,6 +539,16 @@ int glscript_init()
 			 gls_filternetwork_wait, 1, 0, 0);
 	gh_new_procedure("filternetwork_terminate",
 			 gls_filternetwork_terminate, 1, 0, 0);
+	gh_new_procedure("filternetwork_to_filter",
+			 gls_filternetwork_to_filter, 3, 0, 0);
+	gh_new_procedure("filternetwork_add_input",
+			 gls_filternetwork_add_input, 5, 0, 0);
+	gh_new_procedure("filternetwork_add_output",
+			 gls_filternetwork_add_output, 5, 0, 0);
+	gh_new_procedure("filternetwork_add_param",
+			 gls_filternetwork_add_param, 5, 0, 0);
+	gh_new_procedure("filternetwork_to_string",
+			 gls_filternetwork_to_string, 1, 0, 0);
 	gh_new_procedure("filter_get", gls_filter_get, 1, 0, 0);
 
 	/* plugin */
@@ -454,8 +559,17 @@ int glscript_init()
 	gh_new_procedure("plugin_description", gls_plugin_description,
 			 1, 0, 0);
 
-	/* FIXME!!! (path...) */
-	gh_eval_str("(load \"glmid/glame.scm\")");
+	/* load glame scheme libraries (if existent):
+	 * 1. installed glame.scm
+	 * 2. glmid/glame.scm
+	 * 3. ~/.glame.scm
+	 */
+	gh_eval_str("(map (lambda (file) (if (file-exists? file) (begin "
+#ifdef DEBUG
+"(display (string-append \"loading \" file)) (newline) "
+#endif
+"(load file)))) "
+"`(\"" PKGDATADIR "/glame.scm\" \"glmid/glame.scm\" ,(string-append (getenv \"HOME\") \"/.glame.scm\")))");
 
 	return 0;
 }

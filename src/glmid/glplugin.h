@@ -3,7 +3,7 @@
 
 /*
  * glplugin.h
- * $Id: glplugin.h,v 1.4 2000/03/17 13:57:21 richi Exp $
+ * $Id: glplugin.h,v 1.5 2000/03/20 09:47:13 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,14 +39,15 @@ typedef struct {
 
 	void *handle;
 	int (*reg_func)(void);
+	const char **set;
 
 	const char *name;
 	const char **description;
-	void **pixmap;
+	const char **pixmap;
 } plugin_t;
 #define plugin_name(p) ((p)->name)
-#define plugin_description(p) (*((p)->description))
-#define plugin_pixmap(p) (*((p)->pixmap))
+#define plugin_description(p) ((p)->description ? *((p)->description) : NULL)
+#define plugin_pixmap(p) ((p)->pixmap ? *((p)->pixmap) : NULL)
 
 
 #ifdef __cplusplus
@@ -71,22 +72,13 @@ void *plugin_get_symbol(plugin_t *p, const char *symbol);
 
 
 /* convenience macros for plugins to define their
+ * - set
  * - description
  * - pixmap
  */
+#define PLUGIN_SET(name, pset) char *name ## _set = pset;
 #define PLUGIN_DESCRIPTION(name, desc) char *name ## _description = desc;
-#define PLUGIN_PIXMAP_FILE(name, filename) \
-void *name ## _pixmap() \
-{ \
-  /* FIXME */ \
-  return NULL; \
-}
-#define PLUGIN_PIXMAP_XPM(name, xpmcode) \
-void *name ## _pixmap() \
-{ \
-  /* FIXME */ \
-  return NULL; \
-}
+#define PLUGIN_PIXMAP(name, filename) char *name ## _pixmap = filename;
 
 
 #ifdef __cplusplus

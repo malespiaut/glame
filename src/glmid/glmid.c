@@ -8,27 +8,31 @@ extern int glscript_init();
 
 static int plugins_register()
 {
-	/* get plugin paths from config file */
-	/* FIXME */
+	/* add default plugin path - and "debug path" (first -> last) */
+	plugin_add_path(PKGLIBDIR);
+	plugin_add_path("./plugins/.libs");
 
 	/* first the builtin ones */
 	plugin_get("basic");
         plugin_get("basic_sample");
-        plugin_get("tutorial");
         plugin_get("track_io");
         plugin_get("audio_io");
         plugin_get("file_io");
-        plugin_get("debug");
         plugin_get("waveform");
-        plugin_get("garrison");
-        plugin_get("nold");
         plugin_get("basic_midi");
         plugin_get("midi_io");
         plugin_get("midi_debug");
+
+	/* then all the plugins in the (default) plugin path */
+	/* FIXME - by hand for now. */
+	plugin_get("echo");
+        plugin_get("debug");
+        plugin_get("tutorial");
+        plugin_get("garrison");
+        plugin_get("nold");
         plugin_get("maggy");
 
-	/* then all the plugins in the plugin path */
-	/* FIXME */
+	return 0;
 }
 
 static void glame_cleanup()
