@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.13 2000/12/12 16:11:04 xwolf Exp $
+ * $Id: canvas.c,v 1.14 2000/12/12 16:35:36 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1395,7 +1395,7 @@ static void connect_port_outside(GtkWidget*bla,GlameCanvasPort *blu)
 		ports = filter_portdb(GLAME_CANVAS(globalcanvas)->net->net);  // ugh FIXME globals suck
 		if((blu->port_type)&GUI_PORT_TYPE_OUT){
 			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_OUTPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
-			filterport_redirect(blu->port,newport);
+			filterport_redirect(newport,blu->port);
 			blu->port_type|=GUI_PORT_TYPE_EXTERNAL;
 		}else if((blu->port_type)&GUI_PORT_TYPE_IN){
 			newport = filterportdb_add_port(ports,filenamebuffer,FILTER_PORTTYPE_ANY,FILTER_PORTFLAG_INPUT,FILTERPORT_DESCRIPTION,filenamebuffer,FILTERPORT_END);
