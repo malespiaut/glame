@@ -33,7 +33,6 @@ struct sbuf_header {
  */
 
 typedef struct mbuf_header {
-	int ch;			/* MIDI channel */
 	char buf[0];
 } mbuf_header_t;
 

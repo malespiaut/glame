@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.8 2000/02/21 13:03:48 richi Exp $
+ * $Id: glame_types.h,v 1.9 2000/02/22 01:43:01 garrison Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
@@ -36,11 +36,9 @@ typedef float SAMPLE;
 #define SAMPLE_SIZE sizeof(SAMPLE)
 
 typedef struct midi_event {
-	union {
-		unsigned int nsec;
-		unsigned int tick;
-	} time;
-	int data; /* FIXME */
+	char flags;
+	unsigned int time;
+	unsigned char data[3];
 } midi_event_t;
 
 
