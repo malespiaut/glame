@@ -176,7 +176,7 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (length <= 0)
 		DERROR("Ensured by rmb callback");
 
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (clipboard_copy(item, start, length) == -1)
 		DPRINTF("Failed copying\n");
 }
@@ -192,7 +192,7 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (!clipboard_can_paste(item))
 		return;
 	if (gpsm_op_prepare(item) == -1)
@@ -213,7 +213,7 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (length <= 0)
 		DERROR("Ensured by rmb callback");
 
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_cut(item, start, length) == -1)
@@ -235,7 +235,7 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	if (length <= 0)
 		DERROR("Ensured by rmb callback");
 
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_delete(item, start, length) == -1)
@@ -252,7 +252,7 @@ static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_t *item;
 
 	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 
 	if (gpsm_op_undo(item) == -1)
 		gnome_dialog_run_and_close(
@@ -266,7 +266,7 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_t *item;
 
 	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 
 	if (gpsm_op_redo(item) == -1)
 		gnome_dialog_run_and_close(
@@ -286,7 +286,7 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 /* Helpers for creation of swapfile_in/out nodes with appropriate
  * parameters out of a gpsm swfile. Start and length are positions
  * in the scope of parent (or if NULL swfile). -1 length is whole file. */
-static filter_t *create_swapfile_out(gpsm_swfile_t *swfile, int nonlocal,
+static filter_t *create_swapfile_out(gpsm_swfile_t *swfile,
 				     long start, long length)
 {
 	filter_t *f;
@@ -294,8 +294,7 @@ static filter_t *create_swapfile_out(gpsm_swfile_t *swfile, int nonlocal,
 
 	if (!swfile)
 		return NULL;
-	if (nonlocal)
-		start = start + gpsm_item_hposition(swfile);
+	start = start + gpsm_item_hposition(swfile);
 	if (start < 0
 	    || (length != -1 && (start + length > gpsm_item_hsize(swfile))))
 		return NULL;
@@ -310,7 +309,7 @@ static filter_t *create_swapfile_out(gpsm_swfile_t *swfile, int nonlocal,
 
 	return f;
 }
-static filter_t *create_swapfile_in(gpsm_swfile_t *swfile, int nonlocal,
+static filter_t *create_swapfile_in(gpsm_swfile_t *swfile,
 				    long start, long length)
 {
 	filter_t *f;
@@ -318,8 +317,7 @@ static filter_t *create_swapfile_in(gpsm_swfile_t *swfile, int nonlocal,
 
 	if (!swfile)
 		return NULL;
-	if (nonlocal)
-		start = start + gpsm_item_hposition(swfile);
+	start = start + gpsm_item_hposition(swfile);
 	if (start < 0
 	    || (length != -1 && (start + length > gpsm_item_hsize(swfile))))
 		return NULL;
@@ -478,14 +476,12 @@ static void normalize_second_cb(struct network_run_s *cs)
 		filter_t *swin, *eff;
 		if (!GPSM_ITEM_IS_SWFILE(item))
 			continue;
-		swin = create_swapfile_in((gpsm_swfile_t *)item, 0,
-					  start, end);
+		swin = create_swapfile_in((gpsm_swfile_t *)item, start, end);
 		if (!swin)
 			goto fail;
 		filter_add_node(net, swin, "swin");
 		
-		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
-					    start, end);
+		swout = create_swapfile_out(files[i], start, end);
 		if (!swout)
 			goto fail;
 		
@@ -539,7 +535,7 @@ static void normalize_cb(GtkWidget *w, plugin_t *plugin)
 		return;
 	DPRINTF("Normalizing [%li, +%li]\n", (long)start, (long)length);
 
-	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
+	grp = gpsm_collect_swfiles((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
 	if (!grp)
 		return;
 
@@ -563,7 +559,7 @@ static void normalize_cb(GtkWidget *w, plugin_t *plugin)
 		filter_t *swin;
 		if (!GPSM_ITEM_IS_SWFILE(item))
 			continue;
-		swin = create_swapfile_in((gpsm_swfile_t *)item, 0,
+		swin = create_swapfile_in((gpsm_swfile_t *)item,
 					  start, length);
 		if (!swin)
 			goto fail;
@@ -610,7 +606,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 			gnome_error_dialog("Nothing selected")));
 		return;
 	}
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
@@ -637,13 +633,11 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	net = filter_creat(NULL);
 	for (i=0; i<nrtracks; i++) {
 		filter_t *swin, *eff;
-		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
-					  start, length);
+		swin = create_swapfile_in(files[i], start, length);
 		if (!swin)
 			goto fail;
 		filter_add_node(net, swin, "swin");
-		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
-					    start, length);
+		swout = create_swapfile_out(files[i], start, length);
 		if (!swout)
 			goto fail;
 		filter_add_node(net, swout, "swout");
@@ -703,7 +697,7 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 		return;
 	DPRINTF("Playing [%li, +%li]\n", (long)start, (long)length);
 
-	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
+	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
 	if (!grp)
 		return;
 
@@ -718,8 +712,7 @@ static void playselection_cb(GtkWidget *bla, plugin_t *plugin)
 		filter_t *swin;
 		if (!GPSM_ITEM_IS_SWFILE(item))
 			continue;
-		swin = create_swapfile_in((gpsm_swfile_t *)item, 0,
-					  start, length);
+		swin = create_swapfile_in((gpsm_swfile_t *)item, start, length);
 		if (!swin)
 			goto fail;
 		filter_add_node(net, swin, "swin");
@@ -758,7 +751,7 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 		return;
 	}
 
-	grp = gpsm_flatten(gtk_swapfile_buffer_get_item(swapfile));
+	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
 	if (!grp)
 		return;
 
@@ -773,7 +766,7 @@ static void playall_cb(GtkWidget *bla, plugin_t *plugin)
 		filter_t *swin;
 		if (!GPSM_ITEM_IS_SWFILE(item))
 			continue;
-		swin = create_swapfile_in((gpsm_swfile_t *)item, 0, 0, -1);
+		swin = create_swapfile_in((gpsm_swfile_t *)item, 0, -1);
 		if (!swin)
 			goto fail;
 		filter_add_node(net, swin, "swin");
@@ -822,21 +815,17 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	DPRINTF("Recording into [%li, +%li]\n", (long)start, (long)length);
 
 	left = right = NULL;
-	grp = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(grp)) {
-		left = grp;
-	} else {
-		gpsm_grp_foreach_item(grp, item) {
-			if (!GPSM_ITEM_IS_SWFILE(item))
-				return;
-			if (!left)
-				left = item;
-			else if (!right)
-				right = item;
-			else {
-				gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
-				return;
-			}
+	grp = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	gpsm_grp_foreach_item(grp, item) {
+		if (!GPSM_ITEM_IS_SWFILE(item))
+			return;
+		if (!left)
+			left = item;
+		else if (!right)
+			right = item;
+		else {
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
+			return;
 		}
 	}
 	if (!left && !right)
@@ -853,8 +842,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	filter_add_node(net, ain, "ain");
 
 	/* Left - or mono. */
-	swout = create_swapfile_out((gpsm_swfile_t *)left, GPSM_ITEM_IS_GRP(grp),
-				    start, length);
+	swout = create_swapfile_out((gpsm_swfile_t *)left, start, length);
 	if (!swout)
 		goto fail;
 	filter_add_node(net, swout, "swout");
@@ -864,7 +852,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Right. */
 	if (right) {
-		swout = create_swapfile_out((gpsm_swfile_t *)right, TRUE, start, length);
+		swout = create_swapfile_out((gpsm_swfile_t *)right, start, length);
 		if (!swout)
 			goto fail;
 		filter_add_node(net, swout, "swout");
@@ -913,21 +901,17 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	DPRINTF("Recording at %li\n", (long)start);
 
 	left = right = NULL;
-	grp = gtk_swapfile_buffer_get_item(swapfile);
-	if (GPSM_ITEM_IS_SWFILE(grp)) {
-		left = grp;
-	} else {
-		gpsm_grp_foreach_item(grp, item) {
-			if (!GPSM_ITEM_IS_SWFILE(item))
-				return;
-			if (!left)
-				left = item;
-			else if (!right)
-				right = item;
-			else {
-				gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
-				return;
-			}
+	grp = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	gpsm_grp_foreach_item(grp, item) {
+		if (!GPSM_ITEM_IS_SWFILE(item))
+			return;
+		if (!left)
+			left = item;
+		else if (!right)
+			right = item;
+		else {
+			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("GLAME only supports recording of up to two channels")));
+			return;
 		}
 	}
 	if (!left && !right)
@@ -942,8 +926,7 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 	filter_add_node(net, ain, "ain");
 
 	/* Left - or mono. */
-	swout = create_swapfile_out((gpsm_swfile_t *)left, GPSM_ITEM_IS_GRP(grp),
-				    start, -1);
+	swout = create_swapfile_out((gpsm_swfile_t *)left, start, -1);
 	if (!swout)
 		goto fail;
 	filter_add_node(net, swout, "swout");
@@ -953,8 +936,7 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 
 	/* Right. */
 	if (right) {
-		swout = create_swapfile_out((gpsm_swfile_t *)right, TRUE,
-					    start, -1);
+		swout = create_swapfile_out((gpsm_swfile_t *)right, start, -1);
 		if (!swout)
 			goto fail;
 		filter_add_node(net, swout, "swout");
@@ -981,15 +963,11 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 
 static void apply_custom_cb_cleanup(GtkWidget *foo, gpsm_item_t *item)
 {
-	if (GPSM_ITEM_IS_SWFILE(item))
-		gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
-	else if (GPSM_ITEM_IS_GRP(item)) {
-		gpsm_item_t *it;
-		gpsm_grp_foreach_item(item, it) {
-			if (!GPSM_ITEM_IS_SWFILE(it))
-				continue;
-			gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-		}
+	gpsm_item_t *it;
+	gpsm_grp_foreach_item(item, it) {
+		if (!GPSM_ITEM_IS_SWFILE(it))
+			continue;
+		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
 	}
 }
 static void apply_custom_cb(GtkWidget * foo, gpointer bar)
@@ -1013,7 +991,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	if (length <= 0 && marker < 0)
 		return;
 
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	nrtracks = gtk_swapfile_buffer_get_swfiles(swapfile, &files);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
@@ -1024,7 +1002,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		filter_t *swin, *swout;
 		if (length <= 0 && wavesize - marker <= 0)
 			goto no_swin;
-		swin = create_swapfile_in(files[i], GPSM_ITEM_IS_GRP(item),
+		swin = create_swapfile_in(files[i],
 					  length > 0 ? start : marker,
 					  length > 0 ? length : -1);
 		if (!swin)
@@ -1037,7 +1015,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		filter_add_node(net, swin, "swin");
 
 	no_swin:
-		swout = create_swapfile_out(files[i], GPSM_ITEM_IS_GRP(item),
+		swout = create_swapfile_out(files[i],
 					    length > 0 ? start : marker,
 					    length > 0 ? length : -1);
 		if (!swout)
@@ -1155,7 +1133,7 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	/* Get stuff we need for enabling/disabling items. */
 	wavebuffer = gtk_wave_view_get_buffer (waveview);
 	swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	item = gtk_swapfile_buffer_get_item(swapfile);
+	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	nrtracks = gtk_wave_buffer_get_num_channels(wavebuffer);
 	gtk_wave_view_get_selection(waveview, &sel_start, &sel_length);
 	marker_pos = gtk_wave_view_get_marker(waveview);

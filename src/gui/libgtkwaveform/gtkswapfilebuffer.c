@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.12 2001/05/13 11:58:59 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.13 2001/05/13 12:10:17 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -474,7 +474,7 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 	}
 
 	swapfile = gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
-	swapfile->item = (gpsm_item_t *)item;
+	swapfile->item = item;
 	swapfile->size = gpsm_item_hsize(item);
 	swapfile->nrtracks = nrtracks;
 	swapfile->swfile = swfile;
@@ -500,7 +500,7 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 	return NULL;
 }
 
-gpsm_item_t *gtk_swapfile_buffer_get_item(GtkSwapfileBuffer *buffer)
+gpsm_grp_t *gtk_swapfile_buffer_get_item(GtkSwapfileBuffer *buffer)
 {
 	return buffer->item;
 }
