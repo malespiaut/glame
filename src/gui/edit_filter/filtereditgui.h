@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.7 2001/11/04 15:00:08 richi Exp $
+ * $Id: filtereditgui.h,v 1.8 2001/11/05 10:19:08 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -58,6 +58,8 @@ struct _FiltereditGui {
 };
 
 
+
+GtkType filteredit_gui_get_type(void);
 
 GtkWidget *glame_filtereditgui_new(filter_t *net, gboolean protected);
 
