@@ -4,7 +4,7 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.7 2001/03/31 14:05:33 richi Exp $
+ * $Id: gltreeitem.h,v 1.8 2001/05/29 07:51:18 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -63,6 +63,7 @@ void       glame_tree_item_update(GlameTreeItem *item);
 GtkTree*   glame_tree_item_parent(GlameTreeItem *item);
 
 void       glame_tree_append(GtkObject *tree, GlameTreeItem *item);
+void       glame_tree_insert(GtkObject *tree, GlameTreeItem *item, gint pos);
 
 /* Remove the glame tree item from the tree and destroy the widget
  * (we cannot do this w/o destroying it -- gtk is broken). */

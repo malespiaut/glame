@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.13 2001/05/28 08:11:34 richi Exp $
+ * $Id: gltreeitem.c,v 1.14 2001/05/29 07:51:18 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -94,17 +94,16 @@ void glame_tree_item_update(GlameTreeItem *item)
 
 	/* Create the label out of the gpsm item data. */
 	if (GPSM_ITEM_IS_GRP(item->item)) {
-#ifdef DEBUG
-		snprintf(buf, 255, "%s [%li %li %li %li]",
-			 gpsm_item_label(item->item),
-			 gpsm_item_hposition(item->item),
-			 gpsm_item_vposition(item->item),
-			 gpsm_item_hsize(item->item),
-			 gpsm_item_vsize(item->item));
-#else
-		snprintf(buf, 255, "%s",
-			 gpsm_item_label(item->item));
-#endif
+		if (gpsm_item_vsize(item->item) == 0)
+			snprintf(buf, 255, "%s",
+				 gpsm_item_label(item->item));
+		else
+			snprintf(buf, 255, "%s - %li tracks, %li samples - (%li, %li)",
+				 gpsm_item_label(item->item),
+				 gpsm_item_vsize(item->item),
+				 gpsm_item_hsize(item->item),
+				 gpsm_item_hposition(item->item),
+				 gpsm_item_vposition(item->item));
 	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
 		swfd_t fd = sw_open(gpsm_swfile_filename(item->item),
 				    O_RDONLY);
@@ -113,23 +112,13 @@ void glame_tree_item_update(GlameTreeItem *item)
 		if (fd != -1 && sw_fstat(fd, &st) != -1)
 			size = st.size/SAMPLE_SIZE;
 		sw_close(fd);
-#ifdef DEBUG
-		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs @%.2f [%li %li]",
+		snprintf(buf, 255, "%s - %iHz, %.3fs @%.2f - (%.3fs, %li)",
 			 gpsm_item_label(item->item),
-			 gpsm_swfile_filename(item->item),
 			 gpsm_swfile_samplerate(item->item),
 			 (float)size/(float)gpsm_swfile_samplerate(item->item),
 			 gpsm_swfile_position(item->item),
-			 gpsm_item_hposition(item->item),
-			 gpsm_item_hsize(item->item));
-#else
-		snprintf(buf, 255, "%s [%li] - %iHz, %.3fs @%.2f",
-			 gpsm_item_label(item->item),
-			 gpsm_swfile_filename(item->item),
-			 gpsm_swfile_samplerate(item->item),
-			 (float)size/(float)gpsm_swfile_samplerate(item->item),
-			 gpsm_swfile_position(item->item));
-#endif
+			 (float)gpsm_item_hposition(item->item)/(float)gpsm_swfile_samplerate(item->item),
+			 gpsm_item_vposition(item->item));
 	}
 
 	/* Update/create the GtkLabel contained in the GtkBin
@@ -217,6 +206,26 @@ void glame_tree_append(GtkObject *t, GlameTreeItem *item)
 		return;
 
 	gtk_tree_append(tree, GTK_WIDGET(item));
+	item->tree = tree;
+}
+
+void glame_tree_insert(GtkObject *t, GlameTreeItem *item, gint pos)
+{
+	GtkTree *tree;
+
+	/* Handle both, GtkTree and group GlameTreeItem. */
+	if (GLAME_IS_TREE_ITEM(t)
+	    && GPSM_ITEM_IS_GRP(GLAME_TREE_ITEM(t)->item)) {
+		if (!GTK_TREE_ITEM_SUBTREE(t))
+			gtk_tree_item_set_subtree(GTK_TREE_ITEM(t),
+						  gtk_tree_new());
+		tree = GTK_TREE(GTK_TREE_ITEM_SUBTREE(t));
+	} else if (GTK_IS_TREE(t))
+		tree = GTK_TREE(t);
+	else
+		return;
+
+	gtk_tree_insert(tree, GTK_WIDGET(item), pos);
 	item->tree = tree;
 }
 
