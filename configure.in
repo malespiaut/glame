@@ -131,4 +131,4 @@ AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
 AC_SUBST(GLAME_LIBS)
 AC_SUBST(GLAME_CFLAGS)
 
-AC_OUTPUT(Makefile doc/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/rw/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile src/gui/Makefile)
+AC_OUTPUT(Makefile doc/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/channel/Makefile src/include/Makefile src/gui/Makefile src/plugin/Makefile)
