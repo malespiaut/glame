@@ -46,9 +46,6 @@ hash/
 
 filter/
 	[richi]
-	- make params & ports referenced counted objects that have
-	  references in port/paramdbs, should clean up redirects
-	  a lot, allows for shared params and the like
 
 swapfile/
         [richi]
@@ -108,7 +105,6 @@ gui/waveeditgui
 	- add pan/mix sliders
 	- poll for selection change at play time, updating
 	  swin params
-	- make wave scrolling on play optional
 
 gui/libgtkwaveform
 	[xwolf]
