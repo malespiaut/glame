@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.85 2001/04/26 14:26:29 xwolf Exp $
+ * $Id: canvas.c,v 1.86 2001/04/26 15:13:36 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1127,7 +1127,7 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 			gtk_timeout_remove(nPopupTimeoutId);
 			hide_port_properties(GLAME_CANVAS_PORT(item));
 			inItem = 0;
-			newconn = malloc(sizeof(GlameConnection));
+			newconn = ALLOC(GlameConnection);
 			newconn->points=gnome_canvas_points_new(2);
 			newconn->points->coords[0]=(x1+x2)/2.0;
 			newconn->points->coords[1]=(y1+y2)/2.0;
@@ -1825,7 +1825,7 @@ draw_network(filter_t *filter)
 		DPRINTF("Not a network!\n");
 		return NULL;
 	}
-	net = malloc(sizeof(gui_network));
+	net = ALLOC(gui_network);
 
 	net->caption = NULL;
 	net->pixname = NULL;
@@ -1902,7 +1902,7 @@ draw_network(filter_t *filter)
 			}
 			endp = GLAME_CANVAS_PORT(list->data);
 
-			connection = malloc(sizeof(GlameConnection));
+			connection = ALLOC(GlameConnection);
 			connection->pipe = c->pipe;
 			connection->begin = beginp;
 			connection->end = endp;
