@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.21 2001/06/13 11:19:16 richi Exp $
+ * $Id: pipe.c,v 1.22 2001/08/05 15:16:17 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -144,8 +144,21 @@ static int pipe_in_f(filter_t *n)
 		q = 4;
 
 	strncpy(cmd, s, 255);
-	if ((s = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "tail"))))
-		strncat(cmd, s, 255);
+	if ((s = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "tail")))) {
+		/* strncat(cmd, s, 255); --- need to escape filenames */
+		char *cmds = cmd + strlen(cmd);
+		int cnt = 255 - strlen(cmd);
+		while (*s && cnt) {
+			if (*s == '"' || *s == ' ' || *s == '\\') {
+				*cmds++ = '\\';
+				cnt--;
+			}
+			*cmds++ = *s++;
+			cnt--;
+		}
+		*cmds = '\0';
+	}
+	DPRINTF("Launching %s\n", cmd);
 
 	/* if ((pid = popen2(cmd, NULL, &p)) == -1) */
 	if (!(p = popen(cmd, "r")))
