@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.150 2005/03/10 20:21:13 richi Exp $
+ * $Id: waveeditgui.c,v 1.151 2005/03/10 21:08:15 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -967,15 +967,30 @@ static void wave_help_cb(GtkWidget *foo, void*bar)
 	glame_help_goto(NULL,"info:glame#The_Wave_Editor");
 }
 
+static void wave_close_if_yes_cb(GtkDialog *dialog, gint response,
+				 GtkObject *waveedit)
+{
+	if (response == GTK_RESPONSE_YES)
+		gtk_object_destroy(GTK_OBJECT(waveedit));
+}
 static void wave_close_cb(GtkWidget *foo, GtkObject *window)
 {
 	if (!active_waveedit
 	    || active_waveedit->locked
 	    || GTK_WAVE_VIEW(active_waveedit->waveview)->drawing)
 		return;
-	if (active_waveedit->modified)
-		if (gnome_dialog_run_and_close(GNOME_DIALOG(gnome_ok_cancel_dialog_modal_parented("Wave modified.\nDo you really want to close?", NULL, NULL, GTK_WINDOW(active_waveedit)))) == 1)
-			return;
+	if (active_waveedit->modified) {
+		GtkWidget *dialog;
+		dialog = gtk_message_dialog_new(GTK_WINDOW(active_waveedit),
+			GTK_DIALOG_MODAL,
+			GTK_MESSAGE_QUESTION,
+			GTK_BUTTONS_YES_NO,
+			_("Wave modified.\nDo you really want to close without saving?"));
+		g_signal_connect (dialog, "response", G_CALLBACK (wave_close_if_yes_cb), active_waveedit);
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		return;
+	}
 	gtk_object_destroy(GTK_OBJECT(active_waveedit));
 }
 
