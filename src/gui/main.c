@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.91 2001/11/27 10:29:48 richi Exp $
+ * $Id: main.c,v 1.92 2001/11/29 10:04:44 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -177,6 +177,12 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	edit_tree_label(grpw);
 }
 
+static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file)
+{
+	DPRINTF("Destroying subtree %s\n", gpsm_item_label(file));
+	gpsm_item_destroy(file);
+}
+
 static void edit_file_cb(GtkWidget *menu, void *data)
 {
 	plugin_t *import;
@@ -201,8 +207,10 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 		return;
 	}
 
-	/* Again HACK - find the file in the gpsm tree and open the
-	 * waveedit window. */
+	/* Again HACK - find the file in the gpsm tree.
+	 * -- FIXME: with direct import dont put this into the global
+	 *           gpsm tree anyway.
+	 */
 	if (!(file = gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
 		DPRINTF("No file at %li\n", vpos);
 		return;
@@ -210,13 +218,17 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 		DPRINTF("Cannot find imported file at %li\n", vpos);
 		return;
 	}
+
+	/* Open the waveedit window and register a handler for gpsm
+	 * deletion after widget destroy. */
 	we = glame_waveedit_gui_new(gpsm_item_label(file), file);
 	if (!we) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog(_("Cannot open wave editor"))));
 		return;
 	}
-	DPRINTF("All ok\n");
+	gtk_signal_connect(GTK_OBJECT(we), "destroy",
+			   (GtkSignalFunc)edit_file_cleanup_cb, file);
 	gtk_widget_show_all(GTK_WIDGET(we));
 }
 
@@ -718,9 +730,13 @@ static void resize_horiz_cb(GtkWidget *widget, GtkRequisition *req,
 
 static void gui_quit(GtkWidget *widget, gpointer data)
 {
+	/* FIXME: we want these to occour _after_ gtk shutdown.
+	 *        This seems not to be possible.
+	 */
 	clipboard_empty();
 	gpsm_close();
 	/* glame_accel_sync(); -- disabled, until we get GUI support */
+
 	gtk_main_quit();
 }
 
