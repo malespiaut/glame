@@ -11,3 +11,10 @@ autoheader
 touch ltconfig
 automake --copy --add-missing
 autoconf
+
+cd libltdl
+aclocal -I .
+autoheader
+automake
+autoconf
+cd ..

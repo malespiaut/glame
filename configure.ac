@@ -8,6 +8,9 @@ AM_CONFIG_HEADER(config.h)
 dnl Disable re-creation of *.in files by default
 AM_MAINTAINER_MODE
 
+dnl Recognize CC and CFLAGS
+AC_ARG_VAR(CC, [compiler])
+AC_ARG_VAR(CFLAGS, [compiler flags])
 
 dnl
 dnl Switches to configure debugging stuff - sane default for now.
@@ -32,6 +35,9 @@ elif test "$glame_debug" = "no"; then
 	AC_DEFINE(NDEBUG,, [disable debugging code])
 	glame_debug_gcc_cflags="-O3 -ffast-math -fstrict-aliasing"
 else
+	if test -z "$CFLAGS"; then
+		CFLAGS="-O2"
+	fi
 	glame_debug_gcc_cflags="$CFLAGS"
 fi
 
