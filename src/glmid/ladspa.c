@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.20 2003/05/18 21:21:36 richi Exp $
+ * $Id: ladspa.c,v 1.21 2003/05/19 18:36:10 richi Exp $
  * 
  * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
@@ -483,6 +483,7 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 	LADSPA_PortDescriptor iPortDescriptor;
 	filter_port_t *psPort;
 	filter_t *psFilter;
+	char category[16];
 
 	psFilter = filter_creat(NULL);
 	if (!psFilter)
@@ -812,8 +813,15 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		/* We deliberately do not call free() here. */
 	}
 
+	/* Set PLUGIN_LABEL, if desc->Name is available, set
+	 * PLUGIN_CATEGORY to first character of label/name. */
 	if (psDescriptor->Name)
 		plugin_set(psPlugin, PLUGIN_LABEL, psDescriptor->Name);
+	sprintf(category, "LADSPA/%c",
+		tolower(psDescriptor->Name ? psDescriptor->Name[0]
+                                           : psPlugin->name[0]));
+	plugin_set(psPlugin, PLUGIN_CATEGORY, strdup(category));
+
 
 	filter_register(psFilter, psPlugin);
 
