@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.4 2001/04/09 09:20:22 richi Exp $
+ * $Id: filter_port.h,v 1.5 2001/04/24 11:21:02 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -189,6 +189,9 @@ filter_port_t *filterportdb_add_port(filter_portdb_t *node, const char *label,
  * delete ports in this loop! */
 #define filterportdb_foreach_port(pdb, p) list_foreach(&(pdb)->db.items, \
         filter_port_t, entry.list, p)
+
+/* Safe variant - dont use inside f() method. */
+#define filterportdb_safe_foreach_port(pdb, dummy, p) list_safe_foreach(&(pdb)->db.items, filter_port_t, entry.list, dummy, p)
 
 /* int filterportdb_nrports(filter_portdb_t *);
  * To just query the number of ports stored in a port
