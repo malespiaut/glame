@@ -74,13 +74,11 @@ dnl Compiling without gcc is not supported but may succeed.
 AC_PROG_CC
 if test "$GCC" = "yes"; then
 	AC_DEFINE(HAVE_GCC,, [using gcc for build])
-	CFLAGS="-Wall $glame_debug_gcc_cflags"
+	CFLAGS="-Wall -Wno-sign-compare $glame_debug_gcc_cflags"
 else
   AC_MSG_ERROR([Compilers other than gcc are not supported])
 fi
 AM_PROG_CC_C_O
-
-AC_PROG_CXX
 
 dnl Apple's preprocessor on MacOS X causes headaches. Turning off
 dnl preprocessing switches to a sane cpp.
@@ -601,8 +599,6 @@ dnl At the very last, concat GLAME_* to GLAME_GUI_*
 GLAME_GUI_INCLUDEDIR="$GLAME_INCLUDEDIR $GLAME_GUI_INCLUDEDIR"
 GLAME_GUI_LIBDIR="$GLAME_LIBDIR $GLAME_GUI_LIBDIR"
 GLAME_GUI_LIBS="$GLAME_LIBS $GLAME_GUI_LIBS"
-
-CXXFLAGS=$CFLAGS
 
 dnl
 AM_CONDITIONAL(STATICLIBS, test x$enable_static = xyes)
