@@ -6,7 +6,7 @@ EXTRA_DIST = canvas.h main.c
 Multimediadir = $(datadir)/gnome/apps/Multimedia
 
 if HAVE_GNOME
-bin_PROGRAMS = edit_filter
+#bin_PROGRAMS = edit_filter
 noinst_LTLIBRARIES = libeditfilter.la
 endif
 
@@ -15,9 +15,9 @@ endif
 
 libeditfilter_la_SOURCES = canvasfilter.c canvaspipe.c canvasport.c glamecanvas.c canvasitem.h glamecanvas.h filtereditgui.c
 
-edit_filter_SOURCES = main.c 
-edit_filter_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
-	libeditfilter.la ../libglameguiutils.la \
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
-edit_filter_LDFLAGS = -export-dynamic
+#edit_filter_SOURCES = main.c 
+#edit_filter_LDADD = ../../plugins/libglamebuiltins.la ../../glmid/libglame.la \
+#	libeditfilter.la ../libglameguiutils.la \
+#	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS)
+#edit_filter_LDFLAGS = -export-dynamic
 
