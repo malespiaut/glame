@@ -1,4 +1,954 @@
+2001-04-26  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in:
+	bump version number to 0.4.0, fail if other compiler than gcc
+
+	* /cvsroot/glame/glame/TODO: final changes to TODO
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	initialize all alloced stuff
+
+2001-04-26  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	fixed subtle segfault :)
+	this fixed all the annoying gtk errors, too
+
+2001-04-26  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/doc/plugins.texi, /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	wrote fade docu and reincluded fade again
+
+2001-04-26  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/debian/lintian.overrides:
+	lintian doesn't like plugins. Add glame override. (Not yet installed, need
+	feedback from lintian maintainers.) [dk]
+
+	* /cvsroot/glame/glame/debian/rules:
+	Purge libglame.so from distribution. Keep lintian happy. [dk]
+
+2001-04-26  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	cleaned up the fix (prevent possible segfault)
+
+2001-04-26  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	added hack for drawing external ports right after loading
+
+2001-04-26  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/debian/README.Debian:
+	Dynamic loading issues are resolved, comments removed. [dk]
+	Documented current ALSA gripes. [dk]
+
+2001-04-26  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/plugins/time.c:
+	added doucmentation pointer and fixed filter bug
+
+2001-04-26  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/plugins.texi:
+	Updated docs on rect and time plugins. [dk]
+
+2001-04-26  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	thou shalt not do s/fprintf([^,]*,/DPRINTF(/g without thinking...
+
+	* /cvsroot/glame/glame/src/gui/main.c:
+	Fixed race between killing splash and timeout handler
+
+	* /cvsroot/glame/glame/src/plugins/basic_sample.c, /cvsroot/glame/glame/src/plugins/waveform.c:
+	added pointers to documentation
+
+2001-04-26  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/debian/rules:
+	Compile with low latency enabled. [dk]
+	Purge *.a and *.la from distribution. (Note that *.la might be needed on
+	some archs for dynamic linking, but Linux is actually fine without.) [dk]
+
+	* /cvsroot/glame/glame/debian/control:
+	Just a minor: prefer libxml version 2 over version 1 in build deps. [dk]
+
+	* /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/gui/Makefile.am, /cvsroot/glame/glame/src/plugins/Makefile.am:
+	Linking the fft plugin with FFT_LIBS really ought to suffice! [dk]
+
+	* /cvsroot/glame/glame/debian/control: More build dependencies. [dk]
+	Add Recommends line for plugins dependencies. [dk]
+	Suggest gnome-help for l33t GUI online help. [dk]
+
+	* /cvsroot/glame/glame/debian/shlibs.local:
+	Do not generate dependencies on libglame. [dk]
+	Add proper versioned dependency on fftw2. [dk]
+
+	* /cvsroot/glame/glame/debian/rules:
+	Do not depend on non-official lame packages by mistake. [dk]
+	Downgrade plugin dependencies to 'Recommends'. [dk]
+
+2001-04-25  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/src/plugins/fft_plugins.c:
+	docu: forgot to add my name at the really important place :)
+	fft: oversampling = 1 works now, too (if someone really wants it..)
+
+	* /cvsroot/glame/glame/BUGS, /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/src/plugins/fft_plugins.c:
+	docu: added my name
+	BUGS: added some comments
+	fft_plugins: not only compiler cosmetics, these were real bugs :)
+
+	* /cvsroot/glame/glame/src/plugins/file_io.c, /cvsroot/glame/glame/src/plugins/flanger.c:
+	flanger: make gcc happy
+	file_io.c: thou shalt increase your pointers and not save cpu cycles
+
+2001-04-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/BUGS:
+	added note about broken libgtkwaveform scrollbar
+
+2001-04-25  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/debian/rules:
+	Make use of debhelper v3 features. [dk]
+	Add support for DEB_BUILD_OPTIONS. [dk]
+	Build glame.1 manpage. [dk]
+	No longer abuse prefix on install, use DESTDIR instead. [dk]
+	Prefer dh_installman over obsolete dh_installmanpages. [dk]
+	We're distributing shared libs -- add call to dh_makeshlibs. [dk]
+
+	* /cvsroot/glame/glame/debian/control: Lower priority to extra. [dk]
+	Complies to recent standards version (3.5.3). [dk]
+	Added build dependencies on debhelper and docbook-to-man (more to
+	follow). [dk]
+
+	* /cvsroot/glame/glame/src/Makefile.am:
+	Build plugins/ before glmid/ so libglame (glmid) can be linked with
+	libglamebuiltins (plugins). [dk]
+
+	* /cvsroot/glame/glame/src/gui/Makefile.am, /cvsroot/glame/glame/src/gui/edit_filter/Makefile.am, /cvsroot/glame/glame/src/gui/glame_gui_utils.h:
+	Define PKGPIXMAPSDIR from pkgpixmapsdir. [dk]
+	Look up pixmaps in PKGPIXMAPSDIR. [dk]
+
+	* /cvsroot/glame/glame/src/plugins/Makefile.am:
+	Install *.scm into pkgscriptsdir. [dk]
+	Do not install libglamebuiltins, build static only. [dk]
+	Remove -avoid-version from libglamebuiltins. [dk]
+
+	* /cvsroot/glame/glame/src/glmid/Makefile.am:
+	Install glame.scm into pkgscriptsdir. [dk]
+	Link libglamebuiltins into libglame. [dk]
+
+2001-04-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/gui.c:
+	s/fprintf/DPRINTF/g
+
+2001-04-25  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/glmid/glmid.c, /cvsroot/glame/glame/src/glmid/glscript.c:
+	s/PKGDATADIR/PKGSCRIPTSDIR/g. [dk]
+
+	* /cvsroot/glame/glame/data/pixmaps/Makefile.am:
+	Install pixmaps into pkgpixmapsdir. [dk]
+
+	* /cvsroot/glame/glame/configure.in:
+	Add new install targets pkgpixmaps and pkgscripts. [dk]
+
+2001-04-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/main.c:
+	fixed braindamage in gnome config API
+
+	* /cvsroot/glame/glame/BUGS:
+	added known bugs/caveats (uh!? are there really so many...)
+
+	* /cvsroot/glame/glame/src/plugins/fft_plugins.c:
+	added online help pointers [XWolf check]
+
+	* /cvsroot/glame/glame/doc/plugins.texi: fixed fft documentation
+
+2001-04-25  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/Makefile.am:
+	Build plugins unversioned. [dk]
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	Defined AFMT_S16_NE for the sake of buggy OSS on BSD. [dk]
+
+2001-04-25  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/doc/plugins.texi: minor fix
+
+	* /cvsroot/glame/glame/doc/plugins.texi: added long awaited fft doku
+
+2001-04-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/gldb.texi: s//Still to be documented./g
+
+2001-04-25  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/debian/docs, /cvsroot/glame/glame/debian/glame.docs, /cvsroot/glame/glame/debian/glame.info, /cvsroot/glame/glame/debian/glame.manpages, /cvsroot/glame/glame/debian/glame.menu, /cvsroot/glame/glame/debian/info, /cvsroot/glame/glame/debian/menu:
+	Moved debian build helper files. [dk]
+	Added manpages helper file. [dk]
+
+	* /cvsroot/glame/glame/debian/cglame.sgml, /cvsroot/glame/glame/debian/glame.sgml:
+	Updated man page source. [dk]
+
+	* /cvsroot/glame/glame/CREDITS: Fixed reference to jsux. [dk]
+
+2001-04-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/CREDITS, /cvsroot/glame/glame/NEWS, /cvsroot/glame/glame/README, /cvsroot/glame/glame/TODO:
+	Release preparations - please review
+
+	* /cvsroot/glame/glame/src/swapfile/swfs_cluster.c:
+	doh - there are always bugs lurking...
+
+2001-04-25  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/glame.texi:
+	Moved dircategory right after header where it belongs. [dk]
+
+2001-04-25  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	fixed warnings (of which one was a bug)
+
+	* /cvsroot/glame/glame/src/plugins/basic.c, /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	fixed mix and one2n (try to break them again... NOT) - disabled automatic
+	fifo adaption if we dont have feedback, tried to be more strict when to
+	adapt and hard-limited the max fifo size (to 1MB, didnt trigger yet) which
+	will lead to a deadlock detection if such a large fifo is going to be needed.
+
+	* /cvsroot/glame/glame/src/cglame.c:
+	Added cmdline option to create swapfile (-c) - truely obsoletes gmkswap
+
+2001-04-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/swapfile/Makefile.am:
+	gmkswap no longer needed -> make noinst. [dk]
+
+2001-04-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO: updated TODO
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile_fs.c:
+	fixed last famous bugs in swapfile_fsck() and helpers
+
+2001-04-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/audio_io.c:
+	Fixed fixup_param FIXME. Use set_param method where appropriate. Now
+	properly checks for sane parameter values. [dk]
+	Updated internal TODO. [dk]
+
+2001-04-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/gui.c:
+	fixed very, _very_, VERY broken free()....
+
+2001-04-24  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/waveeditgui.c, /cvsroot/glame/glame/src/plugins/iir.c, /cvsroot/glame/glame/src/plugins/noisegate.c, /cvsroot/glame/glame/src/plugins/pan.c, /cvsroot/glame/glame/src/plugins/rms.c:
+	added more plugins, added help to waveeditgui, added help to main window
+
+2001-04-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/time.c:
+	Cleaned up time plugin. Now only outputs the gain; use in addition to mul
+	to restore previous behaviour. Removed evil long longs. Added parameters
+	for duration and sample rate. [dk]
+
+2001-04-24  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/glmid/glplugin.h, /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/plugins/arithmetic.c, /cvsroot/glame/glame/src/plugins/audio_io.c, /cvsroot/glame/glame/src/plugins/basic.c, /cvsroot/glame/glame/src/plugins/basic_sample.c, /cvsroot/glame/glame/src/plugins/debug.c, /cvsroot/glame/glame/src/plugins/echo.c, /cvsroot/glame/glame/src/plugins/file_io.c, /cvsroot/glame/glame/src/plugins/flanger.c, /cvsroot/glame/glame/src/plugins/pipe.c, /cvsroot/glame/glame/src/plugins/swapfile_io.c:
+	added crude help functionality for filternetwork editing.
+	The gui looks for the PLUGIN_GUI_HELP_PATH property on the specified
+	node. If it doesn't find it, it will open up the plugin-collection node.
+
+	Note: the glame.info files need to be installed in the corresponding places.
+	/usr/share/info or wherever.
+	html seems to be broken, the gnome-help-browser can't find the tags in the html
+	file... :(
+	You can test on Wolf
+
+	I didn't add all plugins yet, i grew tired and will go cafeting..
+
+2001-04-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/doc/conversion.texi:
+	Updated API, added not yet implemented warning. [dk]
+
+	* /cvsroot/glame/glame/doc/plugins.texi:
+	Reformatted flanger entry. [dk]
+
+2001-04-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/swapfile/swfs_cluster.c:
+	dont PANIC on cluster_get, if not really necessary
+
+	* /cvsroot/glame/glame/src/plugins/basic.c: fixed one2n (?)
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c, /cvsroot/glame/glame/src/filter/filter_ops.c:
+	propagate detected deadlocks
+
+	* /cvsroot/glame/glame/src/filter/filter_pipe.c, /cvsroot/glame/glame/src/filter/filter_pipe.h:
+	provide filterpipe_is_feedback() to detect loops inside the net
+
+2001-04-24  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/doc/gui.texi: updated lame filteredit docu..
+	rewrite at will...
+
+2001-04-24  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h:
+	Added strategic * to sbuf_realloc(). [dk]
+
+2001-04-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_protocols.h: wrap fbuf_realloc
+
+2001-04-24  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	redirections of deleted items are removed from toplevel
+
+2001-04-24  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/filter/filter_param.h, /cvsroot/glame/glame/src/filter/filter_port.h:
+	added *_safe_foreach_* iterators
+
+	* /cvsroot/glame/glame/src/gui/main.c:
+	fix SIGSEGV if no audio_in/out is there
+
+2001-04-24  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO: update
+
+2001-04-23  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h, /cvsroot/glame/glame/src/gui/edit_filter/gui.c:
+	getting there.
+	added mac-mouse for connection, too
+	pipe-properties are displayed when mouse enters the connection-circle
+	No delay, though, delay makes it eveb more ugly...
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h, /cvsroot/glame/glame/src/gui/edit_filter/gui.c:
+	fixed handling of redirections...
+	now uses richis backend. Features groovy user error instead...
+
+2001-04-23  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/doc/plugins.texi:
+	wrote flanger docu, but has to be fixed, someone out there who knows about texinfo ;)
+
+2001-04-23  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	fixed very broken (but necessary) copying semantic
+
+2001-04-23  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	fixed missing connections when loading a net with a collapsed network in it
+
+2001-04-23  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO, /cvsroot/glame/glame/doc/plugins.texi:
+	some more plugins documentation - list all entirely missing items in
+	TODO
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	prototype for XWolf
+
+	* /cvsroot/glame/glame/src/glmid/glplugin.c:
+	allow plugin properties to be changed
+
+	* /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	new update_preferences() that updates derived stuff - update audio_in/out
+	filters according to preferences
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/swapfilegui.c:
+	fixed br0ken history id's - gnome suxx
+
+2001-04-22  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	fixed two critical bugs.
+	nodes/pipes are now deleted by backend signals.
+
+2001-04-22  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	added fade filter in category "Volume", someone has to add gui support for
+	it
+	moved volume_adjust to category "Volume"
+
+2001-04-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/swapfilegui.c:
+	Use glame_dialog_file_request() whereever possible (and cleanup those
+	places). Unfortunately the use of patterns via gtk_file_selection_complete()
+	seems rather pointless as the concept behind this is totally fucked up.
+
+	* /cvsroot/glame/glame/src/gui/glame_gui_utils.c, /cvsroot/glame/glame/src/gui/glame_gui_utils.h:
+	added glame_dialog_file_request() which replaces gnome_dialog_file_request()
+	and has more features (like a pattern and providing the history id)
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	disabled ioctl(.. SNDCTL_DSP_POST ..) which appearantly the sb driver (not
+	again...) does not like at all
+
+	* /cvsroot/glame/glame/src/plugins/basic.c:
+	adjust maximum allowed fifo size of one2n to support very large feedback
+	inside the network while remaining RT
+
+	* /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	Cleaned up mix - added automatic fifo size adjust to fixup for very large
+	feedback inside the network
+
+	* /cvsroot/glame/glame/src/plugins/echo.c:
+	fixed EOF handling bug in echo prolog
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	fixed users of glame_gui_play_network()
+
+	* /cvsroot/glame/glame/src/gui/glame_gui_utils.c, /cvsroot/glame/glame/src/gui/glame_gui_utils.h:
+	made glame_gui_play_network more configurable
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/gui.c:
+	display [s] / [ms] after time parameters in the parameter edit dialog
+
+	* /cvsroot/glame/glame/src/gui/swapfilegui.c: added error dialogs
+	fixed bug that PANICed in case of subtree removal
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c:
+	only DPRINTF summary on freeing blocks
+
+	* /cvsroot/glame/glame/src/filter/filter.h:
+	added FILTER_ERROR_STOP() that allows for stopping a network with an error
+	(used by mix to signal deadlock condition to the user)
+
+	* /cvsroot/glame/glame/src/filter/filter_ops.c:
+	fixed filter_is_ready() for non-networks - fixes mix deadlock detection
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile_fs.c:
+	no longer remove unused clusters at fsck time, but build a lost+found file
+	out of them - and other minor cleanups to the fsck process
+
+	* /cvsroot/glame/glame/src/glmid/gpsm.c:
+	fixed bug in gpsm_flatten() that prevented truncating files to the same size
+
+2001-04-20  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	dont allow apply of fft/ifft (does not make sense)
+
+2001-04-20  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/flanger.c: flanger performance patch
+
+2001-04-20  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/plugins/basic.c, /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	tried to fix very limited internal fifo size wrt low latency
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	even better - have swapfile_in node starting from marker, if there is data
+	in apply-from-marker mode
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	Allow apply custom without selection - starts at marker, if nothing is there
+	yet, just swapfile_out nodes are created. Nice possibility to feed a
+	custom network into a new wave.
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c:
+	removed sched_yield() that slipped in
+
+2001-04-20  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c: cleanup
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h:
+	added murder-hack for deleting redirections from the filternetwork
+	Yes, i will rewrite it next week, don't bother
+
+2001-04-20  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	Force immediate flushing of output buffers in low-latency mode. [dk]
+	Abuse AFMT_QUERY as emulation marker. [dk]
+
+2001-04-20  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO: updated TODO
+
+	* /cvsroot/glame/glame/Makefile.am, /cvsroot/glame/glame/glame.spec:
+	added broken rpm spec file I found in Mandrake - somebody will need
+	to fix it
+
+	* /cvsroot/glame/glame/INSTALL: better install instructions
+
+	* /cvsroot/glame/glame/src/swapfile/swfs_cluster.c, /cvsroot/glame/glame/src/swapfile/swfs_ctree.c:
+	Fixed the real bugs, removed the workarounds. It _seems_ the bugs are
+	magically gone - I dont know which minor fix did it, but somehow I cannot
+	reproduce the bugs with the workarounds disabled. So please test again
+	and report :)
+
+	* /cvsroot/glame/glame/Makefile.am: dont try to dist debian/SCCS
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.c: cleanup
+
+	* /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	made input/output plugin configurable
+
+	* /cvsroot/glame/glame/src/plugins/bassboost.scm, /cvsroot/glame/glame/src/plugins/echo2.scm, /cvsroot/glame/glame/src/plugins/read_mp3.scm, /cvsroot/glame/glame/src/plugins/resample.scm:
+	made the .scm's loadable
+
+	* /cvsroot/glame/glame/data/pixmaps/Makefile.am, /cvsroot/glame/glame/data/pixmaps/delay.png, /cvsroot/glame/glame/data/pixmaps/extend.png, /cvsroot/glame/glame/data/pixmaps/invert.png, /cvsroot/glame/glame/data/pixmaps/repeat.png, /cvsroot/glame/glame/data/pixmaps/volume_adjust.png, /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	more pixmaps
+
+2001-04-19  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h, /cvsroot/glame/glame/src/gui/edit_filter/gui.c:
+	added some network properties stuff...
+	not finished
+
+2001-04-19  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/file_io.c: added fixup_pipe method
+	it's now possible to connect and disconnect pipes, untested with
+	audiofile though, mp3 and generic wav definitly works
+
+2001-04-19  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/gui.c, /cvsroot/glame/glame/src/gui/glame_gui_utils.c, /cvsroot/glame/glame/src/gui/glame_gui_utils.h, /cvsroot/glame/glame/src/gui/main.c:
+	cleaned up preferences and added l33t create_label_edit_pair
+
+2001-04-19  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/file_io.c:
+	Compiler would rather work on vars that actually do exist. [dk]
+
+2001-04-19  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/glmid/ladspa.c, /cvsroot/glame/glame/src/plugins/file_io.c:
+	dunno if file_io.c works, but I have to go :)
+
+2001-04-19  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	Sampling rate must be the last property to be set. [dk]
+	No need to reset device right after open. [dk]
+	Prefer hw-supported audio formats but try to fallback on emulated
+	formats. [dk]
+
+2001-04-19  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/main.c:
+	reduced menu to add_node
+	moved load plugin to main window
+	moved register_as_plugin to toolbar
+
+2001-04-19  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/main.c: fixed typo
+
+2001-04-19  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO: foo
+
+2001-04-19  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/flanger.c: added depth parameter
+	made feedback work as it is supposed to
+
+2001-04-19  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/data/pixmaps/Makefile.am, /cvsroot/glame/glame/data/pixmaps/const.png, /cvsroot/glame/glame/data/pixmaps/rect.png, /cvsroot/glame/glame/data/pixmaps/sine.png, /cvsroot/glame/glame/src/plugins/waveform.c:
+	pixmaps for waveform filters
+
+	* /cvsroot/glame/glame/doc/gui.texi:
+	updated main and wave part of the GUI documentation
+
+2001-04-19  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	removed #ifdef ugliness
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	sorry. forgot this one
+
+2001-04-19  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	added audio_in/out device selection into preferences dialog - play(selection)
+	and record use them
+
+2001-04-19  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	workarounding some event problems in canvas
+
+2001-04-19  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile_fs.c, /cvsroot/glame/glame/src/swapfile/swfs_cluster.c, /cvsroot/glame/glame/src/swapfile/swfs_cluster.h, /cvsroot/glame/glame/src/swapfile/swfs_file.c:
+	Tried to fix the worst swapfile bugs - didnt manage to find the bug, but found
+	a workaround. Everything I tried works now correctly.
+
+	* /cvsroot/glame/glame/src/glmid/glame.scm, /cvsroot/glame/glame/src/swapfile/swapfile_fs.c:
+	fixed broken COW and changed testcase to look for the bug
+
+	* /cvsroot/glame/glame/TODO: Updated TODO list
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	added "Select" submenu with "Select none" and "Select all"
+	added "Goto marker" to "View" menu
+
+	* /cvsroot/glame/glame/src/gui/libgtkwaveform/gtkwaveview.c:
+	fixed bug in *set_marker_and_scroll
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	GLAME_WBUFSIZE is in samples
+
+	* /cvsroot/glame/glame/src/filter/filter_buffer.c:
+	added support for low-latency blocksizes
+
+	* /cvsroot/glame/glame/acconfig.h, /cvsroot/glame/glame/src/include/glame_types.h:
+	Added support for low-latency blocksizes
+
+	* /cvsroot/glame/glame/configure.in: Made use of mp3lame disabable
+	Added --enable-low-latency
+
+2001-04-18  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/main.c:
+	added support for a left-button only mode for the less lucky ones...
+
+2001-04-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/data/pixmaps/Makefile.am:
+	mag forgot to update the makefile
+
+	* /cvsroot/glame/glame/src/hash/glsignal.h:
+	documentation cut&paste error corrected
+
+	* /cvsroot/glame/glame/src/plugins/read_mp3.scm:
+	re-enabled read_mp3 as it seems to work on some architectures (ix86 does
+	not)
+
+	* /cvsroot/glame/glame/doc/filter-tutorial.texi, /cvsroot/glame/glame/doc/filter.texi, /cvsroot/glame/glame/doc/glsignal.texi, /cvsroot/glame/glame/doc/plugin.texi, /cvsroot/glame/glame/doc/swapfile.texi:
+	tried to remember all API changes I made after the last update of the
+	documentation - and fixed some missing items / errors
+
+2001-04-18  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/data/pixmaps/fft.png: new reworked fft pixmap
+
+2001-04-18  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.c:
+	fixed font handling for extreme zoomlevels
+
+2001-04-18  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/data/pixmaps/fft.png: now checked in with -kb
+
+	* /cvsroot/glame/glame/data/pixmaps/fft.png: did not checkin with -kb
+
+	* /cvsroot/glame/glame/data/pixmaps/fft.png, /cvsroot/glame/glame/src/plugins/fft_plugins.c:
+	added new leet fft icon, took me 5 seconds :)
+
+2001-04-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO:
+	updated TODO - no major (implementation) items left
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c: Added Record at marker
+	Removed Feed into and Feed into custom (obsoleted by deletable filters in apply custom)
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c: added record at marker
+
+2001-04-18  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	have a look at this kool toolbar
+
+2001-04-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h:
+	changed immutable flag to not prevent deletion - added undeletable flag
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_esd.c:
+	cleaned up esd_audio_in
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	set samplerate of audio_in filter
+
+2001-04-18  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c: richi fixed richis bug
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h:
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+	biiig canvas rewrite
+	added zooming
+	added viewall
+
+2001-04-18  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/glmid/ladspa.c: fixed ladspa bugs
+	stereo plugins do now work (freeverb3 works)
+
+2001-04-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	Cleaned up dozen creators of swapfile_in/out filters (added helper function)
+	Dont ask for parameters, if there arent any...
+	Added record into selection
+
+2001-04-18  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	scroll region is adapted upon loading a network
+
+2001-04-18  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/plugins/basic_sample.c: really fixed mix
+
+	* /cvsroot/glame/glame/src/plugins/basic_sample.c:
+	fixed braindead nightly replace of simd macros with simd functions...
+
+2001-04-18  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/Makefile.am:
+	Added mainzelm and navratil to update-changelog target. [dk]
+
+	* /cvsroot/glame/glame/src/include/list.h, /cvsroot/glame/glame/src/include/util.h:
+	Added macro DERROR_eval() that evaluates to an rvalue for ready abuse in
+	evil list macros. [dk]
+
+2001-04-17  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	fixed brainbug in xwolf
+	strdup does not like null pointers :*)
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	revamped node-about dialog
+	now shows description, ports with type/description, properties with values/descriptions
+	plz some check these on ladspa & friends...
+
+2001-04-17  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/macros/Makefile.am: forgot to update Makefile.am
+
+	* /cvsroot/glame/glame/macros/acg-guile.m4:
+	add syms from bugreport - check should fail in this case
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/macros/acg-guile.m4, /cvsroot/glame/glame/macros/gnome-guile-checks.m4:
+	new & improved guile check
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	use size parameter of swapfile_out to prevent writing outside the selection
+	in apply and apply custom
+
+	* /cvsroot/glame/glame/src/plugins/swapfile_io.c:
+	added size parameter to swapfile_out
+
+2001-04-17  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/TODO: updated todo
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/plugins/file_io.c:
+	added support for lame in lame/lame.h as installed by belbos lame.deb
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas_types.h:
+	fixed broken label in parameter redirect
+	fixed lost timeouts in display properties
+
+2001-04-17  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/swapfile/swfs_ctree.c, /cvsroot/glame/glame/src/swapfile/swfs_ctree.h:
+	fixed one potential bug in ctree and added a workaround for the
+	non-operating ctree_find (dunno why...)
+
+	* /cvsroot/glame/glame/src/swapfile/swfs_file.c:
+	help me tracing that stupid bug (on another machine)
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	use new play fct with cleanup
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	added play & play selection - use new play widget with cleanup
+
+	* /cvsroot/glame/glame/src/gui/glame_gui_utils.c, /cvsroot/glame/glame/src/gui/glame_gui_utils.h:
+	large cleanup of play function - supports cleanup fct now
+
+	* /cvsroot/glame/glame/src/gui/main.c:
+	cleaned up Filternetwork menu, added Open item
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c:
+	cleaned up error handling from glame_load_plugin/load_instance
+
+	* /cvsroot/glame/glame/src/glmid/glmid.c, /cvsroot/glame/glame/src/glmid/glscript.h:
+	fixed error checking from gh_eval_file
+
+2001-04-16  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	the title of the canvas window actually has some relation to the network :)
+	not always untitled...
+
+	Apply custom will place the nodes a little smarter. swapfile_in on the left side,
+	out on the right side.
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/canvas.c, /cvsroot/glame/glame/src/gui/edit_filter/canvas.h, /cvsroot/glame/glame/src/gui/glame_gui_utils.c, /cvsroot/glame/glame/src/gui/glame_gui_utils.h:
+	removed play/stop/bla from canvas, added play
+	entry in menu instead, that will popup the play
+	network window. the play window is modal.
+	Fixes the evil possibility to edit the network while it is running
+
+2001-04-16  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/src/gui/swapfilegui.c:
+	added "Flatten" to groups menu
+	simplified "Export..." a lot by using new gpsm_flatten()
+
+	* /cvsroot/glame/glame/src/glmid/gpsm.c, /cvsroot/glame/glame/src/glmid/gpsm.h:
+	added gpsm_flatten - will simplify lots of code
+
+2001-04-16  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	Fixed sbuf vs fbuf mismatch. [dk]
+	Reset DSP on startup. [dk]
+	Drop SNDCTL_DSP_STEREO in favour of SNDCTL_DSP_CHANNELS. [dk]
+	Trade latency for bigger buffers by default. [dk]
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_esd.c:
+	Fixed sbuf vs. fbuf mismatch. [dk]
+
+2001-04-16  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/swapfilegui.c:
+	added ability to add a new (empty) wave to the tree
+
+	* /cvsroot/glame/glame/src/glmid/gpsm.c:
+	fixed default xml to work with libxml from stock potato
+
+2001-04-15  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/src/gui/edit_filter/gui.c, /cvsroot/glame/glame/src/plugins/file_io.c:
+	added one or two DPRINTFs in gui.c
+	fixed some segfaults in file_io.c: changing from mp3 to wav files or
+	selecting non audio files caused segfaults, fixed now
+
+	* /cvsroot/glame/glame/src/plugins/fft_plugins.c:
+	forgot to add most important file
+
+	* /cvsroot/glame/glame/src/glmid/glmid.c, /cvsroot/glame/glame/src/plugins/Makefile.am, /cvsroot/glame/glame/src/plugins/bassboost.scm, /cvsroot/glame/glame/src/plugins/fft.c, /cvsroot/glame/glame/src/plugins/fft_bandpass.scm, /cvsroot/glame/glame/src/plugins/fft_resample.scm, /cvsroot/glame/glame/src/plugins/resample.scm:
+	renamed .scm files
+	move fft.c to fft_plugins.c to solve plugin loader error
+
+2001-04-14  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_oss.c:
+	Added quick&dirty oss_in. Still need to test but no input source
+	handy. [dk]
+
+	* /cvsroot/glame/glame/src/plugins/audio_io_esd.c:
+	Fixed recording duration. [dk]
+
+	* /cvsroot/glame/glame/src/plugins/audio_io.c:
+	Changed default input policy to endless - we have a stop button now. [dk]
+
+2001-04-14  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/configure.in:
+	fixed duplicate mp3lame and sndfile checks that seemed to slipped in
+	during an auto-merge...
+
+	* /cvsroot/glame/glame/src/cglame.c, /cvsroot/glame/glame/src/glmid/gpsm.c, /cvsroot/glame/glame/src/swapfile/swapfile.h, /cvsroot/glame/glame/src/swapfile/swapfile_fs.c:
+	new fsck code that cannot PANIC - also introduced "force" flag which is
+	on in #DEBUG mode
+
+	* /cvsroot/glame/glame/src/plugins/Makefile.am: fixed conflicts
+
+	* /cvsroot/glame/glame/src/glmid/gpsm.c, /cvsroot/glame/glame/src/glmid/gpsm.h, /cvsroot/glame/glame/src/gui/swapfilegui.c, /cvsroot/glame/glame/src/gui/waveeditgui.c, /cvsroot/glame/glame/src/include/hash.h:
+	fixed bug wrt consistency of linked gpsm item and swapfile - this was a
+	design bug unfortunately, so this change is rather large.
+
+2001-04-14  Alexander Ehlert  <ehlert@linux.de>
+
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/gui/swapfilegui.c, /cvsroot/glame/glame/src/plugins/Makefile.am, /cvsroot/glame/glame/src/plugins/flanger.c:
+	added flanger plugin
+
+2001-04-14  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	DPRINT _after_ stat - no more confusing output
+
+	* /cvsroot/glame/glame/src/gui/main.c: dont cleanup twice
+
+	* /cvsroot/glame/glame/TODO: updated TODO
+
+	* /cvsroot/glame/glame/src/glmid/glmid.c:
+	fixed thinko that prevented the generic audio_in/audio_out filters from
+	being registered
+
+	* /cvsroot/glame/glame/src/gui/waveeditgui.c:
+	fixed bug that prevented clipboard deletion on program exit
+
+	* /cvsroot/glame/glame/macros/acg-alsa.m4:
+	added version checking to prevent accidential build (well, doesnt
+	fix 0.9.0 problems obviously)
+
+2001-04-13  Daniel Kobras  <kobras@linux.de>
+
+	* /cvsroot/glame/glame/macros/libxml.m4:
+	Ignore leading non-numeric garbage in xml-config's version output. [dk]
+
+	* /cvsroot/glame/glame/doc/cglame.texi, /cvsroot/glame/glame/doc/glame.texi, /cvsroot/glame/glame/doc/gui.texi:
+	Brushed up users' sections. [dk]
+
+2001-04-13  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/swapfile/swapfile_fs.c:
+	Bugfix to sw_sendfile.
+
 2001-04-12  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
+
+	* /cvsroot/glame/glame/src/gui/main.c, /cvsroot/glame/glame/ChangeLog, /cvsroot/glame/glame/README:
+	Final release changes
 
 	* /cvsroot/glame/glame/src/glmid/glplugin.c: fixed thinko
 
@@ -285,7 +1235,7 @@
 	* /cvsroot/glame/glame/src/gui/gltreeitem.c, /cvsroot/glame/glame/src/gui/swapfilegui.c:
 	correct fix for label editing (should fix other things, too)
 
-2001-04-01  mainzelm  <mainzelm@bellatrix.tat.physik.uni-tuebingen.de>
+2001-04-01  Martin Gasbichler  <gasbichl@informatik.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/hash/glsimd.h:
 	Included <sys/types.h> for the sake of FreeBSD.
@@ -520,9 +1470,6 @@
 
 2001-03-16  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
 
-	* /cvsroot/glame/glame/src/gui/glame_editor/Makefile.am, /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.c, /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.h, /cvsroot/glame/glame/src/gui/glame_editor/main.c:
-	we no longer need this Nth gui...
-
 	* /cvsroot/glame/glame/src/gui/main.c: fixed the br0ken merge
 	re-added command-line swapfile (overrides preferences)
 
@@ -612,7 +1559,7 @@
 
 2001-03-13  Alexander Ehlert  <ehlert@linux.de>
 
-	* /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.c, /cvsroot/glame/glame/src/gui/swapfilegui.c:
+	* /cvsroot/glame/glame/src/gui/swapfilegui.c:
 	fixed xwolf's broken fileloader and replaced his code by quality maggie code :*)
 
 2001-03-13  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
@@ -750,24 +1697,9 @@
 	* /cvsroot/glame/glame/src/swapfile/swapfile_fs.c, /cvsroot/glame/glame/src/swapfile/swfs_ctree.c:
 	no longer oops if no swapfile was opened
 
-2001-02-26  Alexander Ehlert  <ehlert@linux.de>
-
-	* /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.c:
-	new version with GtkCTree instead GtkCList, for the pure purpose of
-	design studies ;)
-
-2001-02-19  Johannes Hirche  <jhirche@gris.uni-tuebingen.de>
-
-	* /cvsroot/glame/glame/src/gui/glame_editor/main.c:
-	fixed bogus name (mine)
-
-2001-02-19  Alexander Ehlert  <ehlert@linux.de>
-
-	* /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.c: small fix
-
 2001-02-18  Alexander Ehlert  <ehlert@linux.de>
 
-	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/gui/Makefile.am, /cvsroot/glame/glame/src/gui/glame_editor/Makefile.am, /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.c, /cvsroot/glame/glame/src/gui/glame_editor/glame_editor.h, /cvsroot/glame/glame/src/gui/glame_editor/main.c:
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/gui/Makefile.am:
 	first shot of glame sample editor gui, it's only possible to load
 	files into a swapfile at the moment
 
@@ -1230,7 +2162,7 @@
 	* /cvsroot/glame/glame/doc/cglame.texi, /cvsroot/glame/glame/doc/filter.texi:
 	updated documentation - was already mostly uptodate
 
-2000-10-10  mainzelm  <mainzelm@bellatrix.tat.physik.uni-tuebingen.de>
+2000-10-10  Martin Gasbichler  <gasbichl@informatik.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/glmid/glame.scm: Code beautification.
 
@@ -1319,9 +2251,6 @@
 	* /cvsroot/glame/glame/configure.in:
 	umm, we should not require autoconf-2.49a right now...
 
-	* /cvsroot/glame/glame/src/data/.cvsignore:
-	made those dirs empty so they get removed on cvs update -dP
-
 	* /cvsroot/glame/glame/src/glmid/glmid.c, /cvsroot/glame/glame/src/glmid/glscript.c, /cvsroot/glame/glame/src/glmid/gltrack.c, /cvsroot/glame/glame/src/glmid/gltrack.h, /cvsroot/glame/glame/src/gui/Makefile.am, /cvsroot/glame/glame/src/gui/wavetest.c, /cvsroot/glame/glame/src/plugins/Makefile.am, /cvsroot/glame/glame/src/swapfile/Makefile.am, /cvsroot/glame/glame/src/swapfile/gmkswap.c, /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfile.h, /cvsroot/glame/glame/src/swapfile/swapfileI.h, /cvsroot/glame/glame/src/swapfile/swapfile_fs.c, /cvsroot/glame/glame/src/swapfile/swapfile_hash.h, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/cglame.c:
 	Added new swapfile API and tried to fix all users (it does compile
 	and link). The implementation is not ready yet.
@@ -1340,12 +2269,12 @@
 	killed old macro filters read-mp3/echo2 and use new create-net
 	facility
 
-2000-09-20  mainzelm  <mainzelm@bellatrix.tat.physik.uni-tuebingen.de>
+2000-09-20  Martin Gasbichler  <gasbichl@informatik.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/glmid/glame.scm: Added create-net macro.
 	Untested version, someone should check if it works at all...
 
-2000-09-19  mainzelm  <mainzelm@bellatrix.tat.physik.uni-tuebingen.de>
+2000-09-19  Martin Gasbichler  <gasbichl@informatik.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/glmid/glame.scm:
 	Added help for single commands
@@ -1411,7 +2340,7 @@
 	* /cvsroot/glame/glame/src/filter/filter.h, /cvsroot/glame/glame/src/filter/filter_protocols.h:
 	- added FFT protocol
 
-2000-08-01  mainzelm  <mainzelm@bellatrix.tat.physik.uni-tuebingen.de>
+2000-08-01  Martin Gasbichler  <gasbichl@informatik.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/glmid/glame.scm:
 	Added a small help system and documented most of the procedures with it. Corrected some indentations ;-)
@@ -1468,7 +2397,7 @@
 
 	* /cvsroot/glame/glame/src/filter/filter.h: extra debugging printf
 
-2000-05-25  mainzelm  <mainzelm@bellatrix.tat.physik.uni-tuebingen.de>
+2000-05-25  Martin Gasbichler  <gasbichl@informatik.uni-tuebingen.de>
 
 	* /cvsroot/glame/glame/src/plugins/rms.c:
 	Replaced ulong by unsigned long.
@@ -1676,7 +2605,7 @@
 	* /cvsroot/glame/glame/src/gui/canvas.h, /cvsroot/glame/glame/src/gui/canvas_types.c, /cvsroot/glame/glame/src/gui/canvas.c:
 	wuwuwuwu killed magic mousebuttons :*)
 
-2000-04-18  navratil  <navratil@bellatrix.tat.physik.uni-tuebingen.de>
+2000-04-18  Joe Navratil  <navratil@umich.edu>
 
 	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c:
 	Fixed a bunch of compiler warnings; changed the callback usage to send a
@@ -1710,7 +2639,7 @@
 	* /cvsroot/glame/glame/src/swapfile/swapfile.c, /cvsroot/glame/glame/src/swapfile/swapfile_info.c, /cvsroot/glame/glame/src/swapfile/swapfile_test.c:
 	two fixes and some more sanity check code.
 
-2000-04-13  navratil  <navratil@bellatrix.tat.physik.uni-tuebingen.de>
+2000-04-13  Joe Navratil  <navratil@umich.edu>
 
 	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
 	"Uncompilable" bug fixed.  Callback code should be complete, but it's
@@ -1747,7 +2676,7 @@
 	- cglame cooked operations
 	- fixes to mul/add description
 
-2000-04-11  navratil  <navratil@bellatrix.tat.physik.uni-tuebingen.de>
+2000-04-11  Joe Navratil  <navratil@umich.edu>
 
 	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/wavetest.c:
 	Fixed a stupid bug in gtk_wave_draw_set_resolution() (reversed the
@@ -1791,7 +2720,7 @@
 	* /cvsroot/glame/glame/src/include/atomic.h, /cvsroot/glame/glame/src/include/atomic_mips.h, /cvsroot/glame/glame/src/include/atomic_x86.h:
 	added atomic_dec_and_test operations
 
-2000-04-11  navratil  <navratil@bellatrix.tat.physik.uni-tuebingen.de>
+2000-04-11  Joe Navratil  <navratil@umich.edu>
 
 	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c:
 	1) Added gtk_wave_draw_add_wave_by_reference() which doesn't locally cache
@@ -1849,7 +2778,7 @@
 	* /cvsroot/glame/glame/doc/plugins.texi, /cvsroot/glame/glame/src/plugins/maggy.c:
 	docu fixes
 
-2000-04-10  navratil  <navratil@bellatrix.tat.physik.uni-tuebingen.de>
+2000-04-10  Joe Navratil  <navratil@umich.edu>
 
 	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c:
 	Added gtk_wave_draw_set_color() and gtk_wave_draw_set_resolution()
@@ -1864,7 +2793,7 @@
 	allow users to update a given wave's color and the n_points_per_pixel
 	variables, respectively.
 
-2000-04-09  navratil  <navratil@bellatrix.tat.physik.uni-tuebingen.de>
+2000-04-09  Joe Navratil  <navratil@umich.edu>
 
 	* /cvsroot/glame/glame/src/gui/gtkwavedraw.c, /cvsroot/glame/glame/src/gui/gtkwavedraw.h:
 	Wave Drawing widget.  Initial revision; consider this pre-pre-pre alpha.
@@ -2391,7 +3320,7 @@
 	bugfixes
 	removed parsing code -> use scheme/cglame
 
-	* /cvsroot/glame/glame/Makefile.am, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/data/Makefile.am, /cvsroot/glame/glame/data/pixmaps/Makefile.am, /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/data/Makefile.am:
+	* /cvsroot/glame/glame/Makefile.am, /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/data/Makefile.am, /cvsroot/glame/glame/data/pixmaps/Makefile.am, /cvsroot/glame/glame/src/Makefile.am:
 	moved data directory away from src/
 
 2000-03-20  Alexander Ehlert  <ehlert@linux.de>
@@ -2677,7 +3606,7 @@
 
 2000-02-23  Jim Garrison  <garrison@users.sourceforge.net>
 
-	* /cvsroot/glame/glame/.cvsignore, /cvsroot/glame/glame/doc/.cvsignore, /cvsroot/glame/glame/src/.cvsignore, /cvsroot/glame/glame/src/data/.cvsignore, /cvsroot/glame/glame/src/glmath/.cvsignore, /cvsroot/glame/glame/src/gui/.cvsignore, /cvsroot/glame/glame/src/hash/.cvsignore, /cvsroot/glame/glame/src/include/.cvsignore, /cvsroot/glame/glame/src/swapfile/.cvsignore:
+	* /cvsroot/glame/glame/.cvsignore, /cvsroot/glame/glame/doc/.cvsignore, /cvsroot/glame/glame/src/.cvsignore, /cvsroot/glame/glame/src/glmath/.cvsignore, /cvsroot/glame/glame/src/gui/.cvsignore, /cvsroot/glame/glame/src/hash/.cvsignore, /cvsroot/glame/glame/src/include/.cvsignore, /cvsroot/glame/glame/src/swapfile/.cvsignore:
 	.cvsignore
 	Figured I would add them since they were already on my local dist.
 
@@ -2728,7 +3657,7 @@
 
 2000-02-22  Richard Guenther  <zxmpm11@student.uni-tuebingen.de>
 
-	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/Makefile.am, /cvsroot/glame/glame/src/data/Makefile.am:
+	* /cvsroot/glame/glame/configure.in, /cvsroot/glame/glame/src/Makefile.am:
 	distribute & install the data stuff
 
 	* /cvsroot/glame/glame/src/include/list.h:
