@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.cpp,v 1.4 2004/04/12 21:18:18 ochonpaul Exp $
+ * $Id: gltree.cpp,v 1.5 2004/04/18 20:51:18 ochonpaul Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -28,17 +28,18 @@
 #include <string.h>
 #include "gltree.h"
 #include "waveeditgui.h"
-
+#include "util/glame_gui_utils.h"
+#include "swapfile.h"
 static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 			 gpointer userdata);
 static void edit_wave_cb(GtkTreeView * treeview, GtkTreePath * path,
 			 GtkTreeViewColumn * col, gpointer userdata);
-static void edit_wave_from_menu_cb(GtkWidget * menuitem,
-				   gpointer treeview);
+static void edit_wave_from_menu_cb(GtkWidget * menuitem, gpointer treeview);
 static void timeline_cb(GtkTreeView * treeview, GtkTreePath * path,
 			GtkTreeViewColumn * col, gpointer userdata);
 static void delete_cb(GtkWidget * menuitem, gpointer treeview);
-
+static void file_property_cb(GtkWidget * menuitem, gpointer treeview);
+static void group_property_cb(GtkWidget * menuitem, gpointer treeview);
 
 
 glTree::glTree(gpsm_grp_t * newroot)
@@ -71,6 +72,9 @@ glTree::glTree(gpsm_grp_t * newroot)
 
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	renderer = gtk_cell_renderer_text_new();
+	// g_object_set(renderer, "editable", TRUE, NULL);
+// 	g_signal_connect(renderer, "edited", (GCallback) item_info_edited_callback, store);
+
 	column = gtk_tree_view_column_new_with_attributes("label",
 							  renderer,
 							  "text", INFO,
@@ -87,27 +91,13 @@ glTree::glTree(gpsm_grp_t * newroot)
 }
 
 
-void view_popup_menu_onDoSomething(GtkWidget * menuitem, gpointer userdata)
-{
-	/* we passed the view as userdata when we connected the signal */
-	GtkTreeView *treeview = GTK_TREE_VIEW(userdata);
-
-	g_print("Do something!\n");
-}
-
-
-
 
 void
-view_popup_menu(GtkWidget * treeview, GdkEventButton * event,
+view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 		gpointer userdata)
 {
 	GtkWidget *menu, *menuitem;
-	// GtkTreePath *path; 
-
-
-
-
+	
 	menu = gtk_menu_new();
 
 	menuitem = gtk_menu_item_new_with_label(_("Edit"));
@@ -115,9 +105,50 @@ view_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 			 (GCallback) edit_wave_from_menu_cb, treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
-	menuitem = gtk_menu_item_new_with_label(_("Properties..."));
+	menuitem = gtk_menu_item_new_with_label(_("Track Properties..."));
 	g_signal_connect(menuitem, "activate",
-			 (GCallback) view_popup_menu_onDoSomething,
+			 (GCallback) file_property_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	menuitem = gtk_menu_item_new_with_label(_("Timeline"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) timeline_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	// menuitem = gtk_separator_menu_item_new(void);
+	// gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new(void));
+
+	menuitem = gtk_menu_item_new_with_label(_("Delete"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) delete_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	gtk_widget_show_all(menu);
+
+	/* Note: event can be NULL here when called from view_onPopupMenu;
+	 *  gdk_event_get_time() accepts a NULL argument */
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
+		       (event != NULL) ? event->button : 0,
+		       gdk_event_get_time((GdkEvent *) event));
+
+}
+
+void
+view_grp_popup_menu(GtkWidget * treeview, GdkEventButton * event,
+		gpointer userdata)
+{
+	GtkWidget *menu, *menuitem;
+	
+	menu = gtk_menu_new();
+
+	menuitem = gtk_menu_item_new_with_label(_("Edit"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) edit_wave_from_menu_cb, treeview);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
+	menuitem = gtk_menu_item_new_with_label(_("Group Properties..."));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback)group_property_cb,
 			 treeview);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 
@@ -143,6 +174,7 @@ view_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 		       gdk_event_get_time((GdkEvent *) event));
 
 }
+
 
 static gboolean
 click_cb(GtkWidget * treeview, GdkEventButton * event, gpointer userdata)
@@ -185,7 +217,8 @@ click_cb(GtkWidget * treeview, GdkEventButton * event, gpointer userdata)
 		if (gtk_tree_model_get_iter(model, &iter, path)) {
 			gtk_tree_model_get(model, &iter, GPSM_ITEM,
 					   &item, -1);
-			view_popup_menu(treeview, event, NULL);
+			if (GPSM_ITEM_IS_SWFILE(item))	view_swfile_popup_menu(treeview, event, NULL);
+			else if (GPSM_ITEM_IS_GRP(item)) view_grp_popup_menu(treeview, event, NULL);
 			gtk_tree_path_free(path);
 			return TRUE;
 		}
@@ -254,7 +287,6 @@ static void delete_cb(GtkWidget * menuitem, gpointer treeview)
 	gpsm_item_t *item;
 	gpsm_grp_t *deleted;
 	GtkTreeSelection *selection;
-	// GtkTreeView *treeview = GTK_TREE_VIEW(userdata);
 
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
@@ -276,11 +308,112 @@ static void delete_cb(GtkWidget * menuitem, gpointer treeview)
 		}
 		gpsm_item_place(deleted, item,
 				0, gpsm_item_vsize(deleted) + 1);
-
+		
 		if (!gtk_tree_store_remove(GTK_TREE_STORE(model), &iter)) {
 			DPRINTF("Remove failed.");
 		}
 	}
 
 
+}
+
+
+static void file_property_cb(GtkWidget * menuitem, gpointer treeview)
+{
+	GtkWidget *dialog, *vbox;
+	char f_name[1024];
+	double f_pos;
+	long f_rate;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gpsm_item_t *item;
+	GtkTreeSelection *selection;
+	GtkTreePath *path;
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+	
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	  gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	  strncpy(f_name, gpsm_item_label(item), 1024);
+	f_pos = gpsm_swfile_position(item);
+	f_rate = gpsm_swfile_samplerate(item);
+
+	dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
+	// gnome_dialog_set_parent(GNOME_DIALOG(dialog),
+// 				GTK_WINDOW(active_swapfilegui->app));
+	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+
+	vbox = GNOME_DIALOG(dialog)->vbox;
+
+	/* file name */
+	create_label_edit_pair(vbox, "Track name:",
+			       "swapfile::fileprop::name", f_name);
+
+	/* file samplerate */
+	create_label_long_pair(vbox, "Samplerate:", &f_rate, 1, 96000);
+
+	/* file position */
+	create_label_double_pair(vbox, "Position:", &f_pos, -M_PI, M_PI);
+
+	if (gnome_dialog_run_and_close(GNOME_DIALOG(dialog)) == 1)
+		return;
+
+	// update file and gtk tree
+	gpsm_item_set_label(item, f_name);
+	gpsm_swfile_set((gpsm_swfile_t *)item,
+			f_rate, f_pos);
+	gtk_tree_store_set (GTK_TREE_STORE(gtk_tree_view_get_model (GTK_TREE_VIEW(treeview))), &iter,
+			    INFO, f_name,-1); 
+	}
+}
+
+
+static void group_property_cb(GtkWidget * menuitem, gpointer treeview)
+{
+	GtkWidget *dialog, *vbox;
+	char g_name[1024];
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gpsm_item_t *item;
+	GtkTreeSelection *selection;
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+	
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	  gtk_tree_model_get(model, &iter, GPSM_ITEM, &item, -1);
+	  strncpy(g_name, gpsm_item_label(item), 1024);
+
+	  dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
+	// gnome_dialog_set_parent(GNOME_DIALOG(dialog),
+// 				GTK_WINDOW(active_swapfilegui->app));
+	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(
+		GNOME_DIALOG(dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_set_default(GNOME_DIALOG(dialog), 0);
+
+	vbox = GNOME_DIALOG(dialog)->vbox;
+
+	/* group name */
+	create_label_edit_pair(vbox, "Group name:",
+			       "swapfile::groupprop::name", g_name);
+
+	if (gnome_dialog_run_and_close(GNOME_DIALOG(dialog)) == 1)
+		return;
+
+	/* update group and gtk_tree*/
+	gpsm_item_set_label(item, g_name);
+	gtk_tree_store_set (GTK_TREE_STORE(gtk_tree_view_get_model (GTK_TREE_VIEW(treeview))), &iter,
+			    INFO, g_name,-1); 
+
+
+	}
 }
