@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.5 2001/07/07 08:29:49 mag Exp $
+ * $Id: glame_gui_utils.c,v 1.6 2001/07/10 09:33:32 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -666,6 +666,17 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	return TRUE;
 }
 
+static void fprop_kill_prop(glsig_handler_t *handler, long sig, va_list va)
+{
+	GtkWidget *widget = GTK_WIDGET(glsig_handler_private(handler));
+	gtk_widget_destroy(widget);
+}
+
+static void fprop_kill_handler(GtkObject *object, glsig_handler_t *handler)
+{
+	glsig_delete_handler(handler);
+}
+
 static void reactivate_apply(GtkWidget *widget, GnomeDialog *dialog)
 {
 	gnome_dialog_set_sensitive(GNOME_DIALOG(dialog), 1, TRUE);
@@ -679,6 +690,8 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	GList * list=NULL;
 	GtkWidget* propBox;
 	GtkWidget* tablabel;
+	glsig_handler_t *handler;
+	filter_param_t *param;
 
 	propBox = gnome_property_box_new ();
 	
@@ -699,7 +712,20 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",(GtkSignalFunc)update_params,cb);
 	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button), "clicked",(GtkSignalFunc)update_params,cb);
 	gtk_signal_connect_after(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button), "clicked",(GtkSignalFunc)reactivate_apply,propBox);
-	
+
+	/* Hook to the GLSIG_PARAM_DELETED signal of a random param in
+	 * the paramdb and kill the property box (dont forget to kill
+	 * the handler at property box delete time). */
+	filterparamdb_foreach_param(pdb, param)
+		break;
+	if (param) { /* umm, else we are screwed? */
+		handler = glsig_add_handler(filterparam_emitter(param),
+					    GLSIG_PARAM_DELETED,
+					    fprop_kill_prop, propBox);
+		gtk_signal_connect(GTK_OBJECT(propBox), "destroy",
+				   fprop_kill_handler, handler);
+	}
+
 	return propBox;
 }
 

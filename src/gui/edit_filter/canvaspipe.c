@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.13 2001/07/07 08:29:49 mag Exp $
+ * $Id: canvaspipe.c,v 1.14 2001/07/10 09:33:32 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -256,18 +256,19 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
  * menu stuff
  ****************/
 
-static void canvas_pipe_source_properties_cb(GtkObject * foo, filter_pipe_t* pipe)
+static void canvas_pipe_source_properties_cb(GtkObject *foo,
+					     filter_pipe_t *pipe)
 {
-	GtkWidget *p = glame_gui_filter_properties(filterpipe_sourceparamdb(pipe),
-                                                   filterport_label(filterpipe_connection_source(pipe)));
-        /* gnome_dialog_run_and_close(GNOME_DIALOG(p)); */
+	GtkWidget *p;
+	p = glame_gui_filter_properties(filterpipe_sourceparamdb(pipe),
+					filterport_label(filterpipe_connection_source(pipe)));
 	gtk_widget_show(p);
 }
-static void canvas_pipe_dest_properties_cb(GtkObject * foo, filter_pipe_t* pipe)
+static void canvas_pipe_dest_properties_cb(GtkObject *foo, filter_pipe_t *pipe)
 {
-	GtkWidget *p = glame_gui_filter_properties(filterpipe_destparamdb(pipe),
-                                                   filterport_label(filterpipe_connection_dest(pipe)));
-        /* gnome_dialog_run_and_close(GNOME_DIALOG(p)); */
+	GtkWidget *p;
+	p = glame_gui_filter_properties(filterpipe_destparamdb(pipe),
+					filterport_label(filterpipe_connection_dest(pipe)));
 	gtk_widget_show(p);
 }
 static void canvas_pipe_delete_cb(GtkObject* foo, filter_pipe_t* pipe)
