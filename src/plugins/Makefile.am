@@ -36,6 +36,12 @@ endif
 if HAVE_SGI
 audio_io_irix = audio_io_irix.la
 endif
+if HAVE_GNOME
+normalize = normalize.la
+endif
+if HAVE_GNOME
+importexport = importexport.la
+endif
 
 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
@@ -46,7 +52,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 # (optional) real plugins
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
 	pan.la pipe.la iir.la noisegate.la flanger.la distortion.la \
-	normalize.la fader.la importexport.la\
+	$(normalize) fader.la $(importexport) \
 	$(audio_io_oss) $(audio_io_alsa) $(audio_io_esd) $(audio_io_irix) \
 	$(fft_plugins_plugin)
 
