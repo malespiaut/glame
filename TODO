@@ -2,6 +2,17 @@ TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
 
+Known BUGS that should be fixed:
+--------------------------------
+
+- the waveform widget broke by adding the signal handler
+- with apply, rt adjustments of params is not supported
+- toolbar icons of the waveedit window are not really intuitive...
+- main/[Edit wave...] wavewidget needs a [Save] toolbar item
+  that exports the wave back (and [Close] should delete the wave
+  from the swapfile)
+
+
 Items pending for 0.5.x:
 ------------------------
 
