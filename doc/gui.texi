@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.16 2001/12/16 19:50:17 xwolf Exp $
+@comment $Id: gui.texi,v 1.17 2001/12/16 21:47:05 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -173,7 +173,7 @@ on the dragged item.
 If you want to change a vbox into a hbox (or vice versa) you need to
 go through an intermediate group. First create a dummy group (or use
 the project root, if you need a vbox) and start moving items there
-(wether in hbox or vbox mode is arbitrary). Then move items back to
+(whether in hbox or vbox mode is arbitrary). Then move items back to
 the original group with the right mode.
 
 Note that you can move whole groups at once. So sequencing stereo
@@ -210,7 +210,7 @@ to re-export the file once you are finished editing.
 
 @item Import...
 Imports a file into the GLAME swapfile without creating a project first.
-This is useful for quick editing tasks which dont involve multiple files.
+This is useful for quick editing tasks which don't involve multiple files.
 
 @item Empty [deleted]
 Deletes all entries in the @code{[deleted]} folder. This operation cannot
@@ -225,12 +225,12 @@ powerful backend of glame via a scheme scripting language (or just view
 some error logs popping up there).
 
 @item Sync
-Syncs the metadata of the swapfile to disk. You usually dont need to
+Syncs the metadata of the swapfile to disk. You usually don't need to
 invoke this.
 
 @item Exit
 Exits GLAME. The current state of the swapfile is saved and the project
-tree will persist in its current state. You usually dont need to save
+tree will persist in its current state. You usually don't need to save
 or export your work.
 @end table
 
@@ -247,7 +247,7 @@ Opens a saved filternetwork in a new filternetwork editor window.
 @item Load Plugin
 You can manually load plugins into glame by using the @code{Load Plugin}
 menu item from the filternetwork menu. This is useful for instance to use
-external LADSPA plugins or custom filternetworks you didnt put into
+external LADSPA plugins or custom filternetworks you didn't put into
 the default GLAME search directory.
 @end table
 
@@ -307,12 +307,12 @@ view all functionalities can also be reached from the appropriate
 toolbar entries.
 
 To specify the current selection simply use the mouse and drag it with
-the left mousebutton pressed. Alternatively you can use the @code{Select none} 
+the left mouse-button pressed. Alternatively you can use the @code{Select none} 
 or @code{Select all} menu items from the @code{Select} submenu or the
 corresponding buttons in the toolbar to remove
 the actual selection or select the whole wave. Pressing shift and the
-left mousebutton selects everything starting from the marker position (which
-you can set using the left mousebutton) to the current position. The selection
+left mouse-button selects everything starting from the marker position (which
+you can set using the left mouse-button) to the current position. The selection
 and the marker position can be changed with dragging the marker or the
 selections left or right edge (the cursor will change if you move over them).
 
@@ -346,7 +346,7 @@ available parameters for the filter will appear which you may edit. With
 the preview button you can figure out what the result after applying the
 filter will sound like (you can abort the preview by pressing the
 preview button again). Press the apply button if you are satisfied with
-the setup. Press the cancel button if you dont want to modify the wave.
+the setup. Press the cancel button if you don't want to modify the wave.
 
 Alternatively, you can pop up the filternetwork editor
 @pxref{The Filternetwork Editor}, where you can construct a custom
@@ -374,18 +374,19 @@ it from the @code{Open...} item in the @code{Filternetwork} menu of the
 main window.
 
 All functionality in the editing window is controlled via context sensitive
-menus bound to the right mouse button or configurable shortcuts. When clicking 
-in a background region,
-the add menu opens up, providing entries to add nodes, 
-Plugins are bundled into categories to speed up finding the desired item.
+menus bound to the right mouse button or configurable shortcuts.
 
+Pressing the right mouse-button over the canvas background will pop up a
+menu containing the list of available plugins.
+Plugins are bundled into categories to speed up finding the desired item.
+Selecting one will add a
+node cloned from the corresponding plugin to the network. A special item,
+@code{Paste selected} at the bottom of the menu will paste the last
+copied node collection at the current location.
 When a new node is added, its icon appears on the editing canvas.
 It shows its input ports (if available) on the left, and output ports
 on the right. If no ports of a type are available the corresponding side bar
 appears gray.
-
-The icon in the middle of the box offers context menus for manipulating
-parameters of the underlying plugin. 
 
 To connect two plugins, click on the output port using the left mouse button,
 and drag the appearing pipe to the desired input port. If a connection is possible,
@@ -393,48 +394,143 @@ a pipe connection will be drawn. To manipulate per-pipe parameters of the
 connected nodes, a context menu is attached to the small black ball placed in
 the middle of the pipe.
 
-Clicking with the left mouse button on a item will highlight it with a light blue frame,
-thus marking it as selected. Alternatively nodes can be selected by clicking with the 
-left mouse button into empty space in the editor, holding it down and dragging the appearing
-box over the desired nodes in well known file-manager fashion. You can alter selections by 
-holding down the shift or control modifier keys. Pressing on of the modifier keys 
-while selecting will add the selected icon to the current selection. 
+Clicking with the left mouse button on a item will highlight it with a
+light blue frame, thus marking it as selected. Alternatively nodes can
+be selected by clicking with the left mouse button into empty space in
+the editor, holding it down and dragging the appearing box over the
+desired nodes in well known file-manager fashion. You can alter
+selections by holding down the shift or control modifier keys. Pressing
+on of the modifier keys while selecting will add the selected icon to
+the current selection.
 
-Selections may be manipulated in a number of fashions. A selection can be collapsed by
-either choosing the corresponding context menu in the node menu or the 'c' shortcut.
-Once a selection is collapsed, a new node appears in place of it. connections to nodes 
-in the selection to outside nodes are saved and ports appear on the collapsed node.
-Collapsed selections are real new subnets and may be saved and opened down, and just
-as any node representing a network expanded in-place using the corresponding 
-menu entry or the 'e' shortcut.
+Selections may be manipulated in a number of fashions. A selection can
+be collapsed by either choosing the corresponding context menu in the
+node menu or the 'c' shortcut.  Once a selection is collapsed, a new
+node appears in place of it. connections to nodes in the selection to
+outside nodes are saved and ports appear on the collapsed node.
+Collapsed selections are real new subnets and may be saved and opened
+down, and just as any node representing a network expanded in-place
+using the corresponding menu entry or the 'e' shortcut.
 
-Finally, if you hover over an icon or port or the circle contained in a pipe for a little while, 
-the current parameter settings are shown, and the node is raised to the top.
-The hovering delay can be adjusted in the preferences window.
-The same applies for the connection between two nodes.
+Finally, if you hover over an icon or port or the circle contained in a
+pipe for a little while, the current parameter settings are shown, and
+the node is raised to the top.  The hovering delay can be adjusted in
+the preferences window.  The same applies for the connection between two
+nodes.
 
-The created network can be executed with the corresponding button in the toolbar. 
-A new window will popup with play/pause/stop/cancel buttons.
-If anything is not set up correctly, the malicious plugin will be drawn in red,
-and the error will be displayed when hovering over it.
+Pressing the right mouse-button over a network node will pop up a menu
+with the following items:
 
-Once you found your network adequate you may save it using the @code{Save} button in the
-toolbar. You can also register the network as a new plugin that can be used in other 
-networks. Before you have to add ports to your toplevel and/or redirect parameters from 
-nodes. Ports can be redirected by choosing the @code{Connect to external port} from the
-context menu of the port. Parameters are redirected by choosing @code{redirect parameters}
-from the context menu of the node. 
-You can delete or look at the external interface by selecting the @code{properties} button.
+@table @code
+@item Properties
+Opens a property dialog which lets you modify the network nodes parameters.
+If you have selected multiple nodes of the same type and open a property
+dialog of one, this property dialog will modify all nodes parameters at
+once, i.e. they appear linked.
 
-As last feature the zoomlevel may be adjusted with the @code{zoom in} and @code{zoom out}
-buttons. The @code{View all} button recenters your view and adjusts the scrollable region.
+@item Redirect parameter
+Opens a dialog where you can create network-wide parameters (which are
+visible if you use the network as plugin from inside other networks)
+which map to parameters of nodes inside the network. You can delete
+network-wide parameters via the toolbar @code{Properties} dialog.
 
-As for now only few keybindings are exported, more will follow soon:
-'d' will delete the current selection,
-'g' will group the current selection,
-'u' will ungroup the current selection,
-'c' will collapse the current selection,
-'e' will expand the current selection.
+@item Delete
+Deletes the current node from the network and kills all connections to/from
+it.
+
+@item Copy selected
+Copies the set of selected nodes to the clipboard. It can be replicated
+using the @code{Paste selection} menu entry from the node addition menu.
+
+@item Collapse
+Collapses the current set of selected nodes to a sub-network which will
+be embedded in the current network. This network can be edited if
+opened via the @code{Open down} menu entry.
+
+@item Expand
+Expands the current node, replacing it with its network contents.
+
+@item Open down
+Opens a new network editor window for the current node, exposing its
+internal structure for editing.
+
+@item About node
+Opens a dialog with the description for the node, its ports and
+parameters.
+
+@item Help
+Opens a gnome help browser with the documentation for the current node.
+@end table
+
+
+Pressing the right mouse-button over a port will pop up a menu with
+the following items:
+
+@table @code
+@item Redirect port
+Creates a new network-wide port which maps to the current one. A dialog
+will ask you for a name for the new port. You can delete network-wide
+ports via the toolbar @code{Properties} dialog.
+@end table
+
+Pressing the right mouse-button over the pipe bubble will pop up a menu
+with the following items:
+
+@table @code
+@item Source properties
+Opens a property dialog which lets you modify the parameters for the
+source end of the current pipe.
+
+@item Destination properties
+Opens a property dialog which lets you modify the parameters for the
+destination end of the current pipe.
+
+@item Delete
+Kills the current pipe.
+@end table
+
+
+There are a few keyboard shortcuts which expose additional features:
+
+@table @code
+@item d
+Deletes all nodes of the current selection including pipes to/from them.
+
+@item g
+Groups the current selection. Grouping will let you move the nodes as
+one item, exposing no additional features.
+
+@item u
+Ungroups the current selected group.
+
+@item c
+Collapses the current selection.
+
+@item e
+Expands the current node.
+@end table
+
+
+The created network can be executed with the corresponding button in the
+toolbar. At execution time this button turns into a stop button which
+can be used to abort executing the network.  If anything is not set up
+correctly, the malicious plugin will be drawn in red, and the error will
+be displayed when hovering over it.
+
+Once you found your network adequate you may save it using the
+@code{Save} button in the toolbar. You can also register the network as
+a new plugin that can be used in other networks. Before you have to add
+ports to your toplevel and/or redirect parameters from nodes. Ports can
+be redirected by choosing the @code{Connect to external port} from the
+context menu of the port. Parameters are redirected by choosing
+@code{redirect parameters} from the context menu of the node.  You can
+delete or look at the external interface by selecting the
+@code{properties} button.
+
+As last feature the zoom level may be adjusted with the @code{zoom in}
+and @code{zoom out} buttons. The @code{View all} button recenters your
+view and adjusts the scrollable region.
+
 
 
 @node Dialogs, , The Filternetwork Editor, Graphical Frontend
@@ -457,7 +553,7 @@ changes take effect only after restarting GLAME.
 
 The preferences dialog presents you with three tabs, namely the
 @code{Swapfile}, @code{Filternetwork} and @code{Audio I/O} tabs.
-We're going through them seperately.
+We're going through them separately.
 
 The first tab is the @code{Swapfile} tab which has the following
 entries:
@@ -474,14 +570,14 @@ undo. This is a global number. Remember that each step of undo needs
 space in the swapfile.
 
 @item Caching
-You are not supposed to change the caching parameters if you dont
-known whats going on internally (we need to design a more friendly
+You are not supposed to change the caching parameters if you don't
+known what's going on internally (we need to design a more friendly
 interface for that). The only parameter you may want to tune is the
 maximum virtual memory used for caching parameter if you have lots
 of ram. This parameter is in bytes and if you change it, you need to
 change the number of cached memory mappings by the same factor (its
 a good idea to scale the other ones, too, but thats not necessary and
-may break for Linux kernels oldet than 2.4).
+may break for Linux kernels older than 2.4).
 @end table
 
 
@@ -509,7 +605,7 @@ audio input. This should be @code{oss_audio_in} or @code{alsa_audio_in}
 for most Linux boxen.
 
 @item Default input device
-Specify the input device corresponding to the soundcard you want to
+Specify the input device corresponding to the sound-card you want to
 record from. For oss this will be one of the @code{/dev/dsp} devices,
 for alsa @code{plughw:0,0} or something like that.
 
@@ -543,7 +639,7 @@ hardware, so this is only a hint and specifying values less than
 @subsection The Apply Filter Dialog
 
 The apply filter dialog is reached from the waveedit window through the
-right mousebutton menu by choosing the @code{Apply filter...} entry and
+right mouse-button menu by choosing the @code{Apply filter...} entry and
 operates on the current selection. In the upper part of the dialog the
 parameters of the selected filter are displayed and can be edited.
 
