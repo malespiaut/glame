@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.58 2002/08/12 12:55:29 richi Exp $
+ * $Id: filtereditgui.c,v 1.59 2002/08/12 13:07:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -441,22 +441,18 @@ glame_filtereditgui_install_accels(GtkWidget* window)
 
 static SCM gls_editfilter_zoom_in(SCM parms)
 {
-	if(gh_number_p(parms)){
-		glame_canvas_set_zoom(glcanvas,GNOME_CANVAS(glcanvas)->pixels_per_unit*gh_scm2double(parms));
-	} else {
-		/* choosing default */
-		glame_canvas_zoom_in_cb(NULL,glcanvas);
-	}
+	double factor = 1.5;
+	if (gh_number_p(parms))
+		factor = gh_scm2double(parms);
+	glame_canvas_set_zoom(glcanvas,GNOME_CANVAS(glcanvas)->pixels_per_unit*factor);
 	return SCM_UNSPECIFIED;
 }
 static SCM gls_editfilter_zoom_out(SCM parms)
 {
-	if(gh_number_p(parms)){
-		glame_canvas_set_zoom(glcanvas,GNOME_CANVAS(glcanvas)->pixels_per_unit/gh_scm2double(parms));
-	} else {
-		/* choosing default */
-		glame_canvas_zoom_out_cb(NULL,glcanvas);
-	}
+	double factor = 1.5;
+	if (gh_number_p(parms))
+		factor = gh_scm2double(parms);
+	glame_canvas_set_zoom(glcanvas,GNOME_CANVAS(glcanvas)->pixels_per_unit/factor);
 	return SCM_UNSPECIFIED;
 }
 		
