@@ -205,7 +205,7 @@ SCM gls_filternetwork_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	net = gh_scm2pointer(s_net);
 	name = gh_scm2newstr(s_name, &namel);
 	filter = gh_scm2newstr(s_filter, &filterl);
-	node = filternetwork_add_node(net, filter, name);
+	node = filternetwork_add_node(net, filter, namel == 0 ? NULL : name);
 	free(name);
 	free(filter);
 	if (!node)
