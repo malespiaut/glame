@@ -8,10 +8,10 @@ INCLUDES = -I@top_srcdir@/libltdl -I@srcdir@/../include -I@srcdir@/../swapfile -
 
 EXTRA_DIST = glame.scm ladspa.c
 
-lib_LTLIBRARIES = libglame.la
+noinst_LTLIBRARIES = libglmid.la
 pkgscripts_DATA = glame.scm
 
-libglame_la_SOURCES = \
+libglmid_la_SOURCES = \
 	glmid.c glmid.h \
 	glplugin.c glplugin.h \
 	glscript.c glscript.h \
@@ -19,10 +19,9 @@ libglame_la_SOURCES = \
 	$(LADSPA_FILES) \
 	gpsm.c gpsm.h clipboard.c clipboard.h \
 	network_utils.c network_utils.h
+libglmid_la_LDFLAGS = -export-dynamic \
+	$(GUILE_LIBS) $(PTHREAD_LIB) $(XML_LIBS) -lm
 
-libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
-	../hash/libhash.la ../plugins/libglamebuiltins.la $(XML_LIBS)
 #libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
-#	../glmath/libglmath.la ../hash/libhash.la
-libglame_la_LDFLAGS = -module $(GUILE_LIBS) $(PTHREAD_LIB) -lm
+	../hash/libhash.la ../plugins/libglamebuiltins.la
 
