@@ -116,14 +116,16 @@ dnl GUILE check, we absolutely need it, so fail if its not there
 dnl the check has AM_CONDITIONAL(GUILE, ...) and defines HAVE_GUILE
 dnl
 
-GNOME_CHECK_GUILE("fail")
+ACG_CHECK_GUILE(1.3.4, , [
+AC_ERROR(You need at least guile 1.3.4 to run glame!)
+])
 
 dnl
 dnl We also need libxml
 dnl
 
 AMG_PATH_XML(1.8.0, , [
-AC_ERROR(You need libxml to run glame!)
+AC_ERROR(You need at least libxml 1.8.0 to run glame!)
 ])
 
 
