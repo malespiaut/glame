@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.55 2001/08/07 09:56:21 richi Exp $
+ * $Id: file_io.c,v 1.56 2001/08/07 10:01:51 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -58,6 +58,7 @@
 #include "glame_types.h"
 #include "glame_byteorder.h"
 
+
 int wav_read_prepare(filter_t *n, const char *filename);
 int wav_read_connect(filter_t *n, filter_pipe_t *p);
 int wav_read_f(filter_t *n);
@@ -78,6 +79,10 @@ int af_write_f(filter_t *n);
 #elif defined HAVE_LAME_LAME_H
 #include <lame/lame.h>
 #endif
+#include "pthread.h"
+/* libmp3lame is not threadsafe */
+pthread_mutex_t lamelock = PTHREAD_MUTEX_INITIALIZER;
+
 int lame_read_prepare(filter_t *n, const char *filename);
 int lame_read_connect(filter_t *n, filter_pipe_t *p);
 int lame_read_f(filter_t *n);
@@ -136,10 +141,10 @@ typedef struct {
 #endif
 #ifdef HAVE_LAME
 		struct {
-			int			fd;
+			FILE			*infile;
 			off_t			start;
 			lame_global_flags	*lgflags;
-			mp3data_struct		*mp3data;
+			mp3data_struct		mp3data;
 			track_t			*track;
 		} lame;
 #endif
@@ -269,16 +274,15 @@ static void read_file_fixup_pipe(glsig_handler_t *h, long sig, va_list va) {
 		RWPRIV(n)->rw->connect(n, pipe);
 }
 
-static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
+static int read_file_setup_param(filter_t *n, filter_param_t *param, const void *val) 
 {
-	filter_param_t *param;
-	filter_t *n;
 	filter_pipe_t *p;
 	filter_port_t *port;
 	rw_t *r;
+	char *filename;
 
-	GLSIGH_GETARGS1(va, param);
-	n = filterparam_filter(param);
+	if (val==NULL)
+		return -1;
 
 	/* only position param change? - we only care for initted rw. */
 	if (RWPRIV(n)->rw
@@ -287,11 +291,12 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		if (RWPRIV(n)->rw->connect(n, p) == -1)
 			PANIC("Uh? Reject pipe that previously was ok?");
 		glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
-		return;
+		return 0;
 	
         /* filename change! */
 	} else {
-		DPRINTF("filename change to %s\n", filterparam_val_string(param));
+		filename = *((char**)val);
+		DPRINTF("filename change to %s\n", filename);
 		/* check actual reader */
 		if (RWPRIV(n)->rw) {
 			/* cleanup previous stuff */
@@ -299,25 +304,16 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 			    && RWPRIV(n)->rw->cleanup)
 				RWPRIV(n)->rw->cleanup(n);
 			RWPRIV(n)->initted = 0;
-
-			/* try same rw again */
-			if (filterparam_val_string(param)
-			    && RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
-				RWPRIV(n)->initted = 1;
-				goto reconnect;
-			}
+			/* deleted reuse here, because libmp3lame
+			 * detects wav as mp3 on change */
 		}
 
 		RWPRIV(n)->rw = NULL;
 		RWPRIV(n)->initted = 0;
 
-		/* no filename - no reader */
-		if (!filterparam_val_string(param))
-			return;
-
 		/* search for applicable reader */
 		list_foreach(&readers, rw_t, list, r) {
-			if (r->prepare(n, filterparam_val_string(param)) != -1) {
+			if (r->prepare(n, filename) != -1) {
 				RWPRIV(n)->rw = r;
 				RWPRIV(n)->initted = 1;
 				goto reconnect;
@@ -325,7 +321,7 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 		}
 
 		/* no reader found */
-		return;
+		return -1;
 	}
 
  reconnect:
@@ -341,6 +337,7 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 			glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 		}
 	}
+	return 0;
 }
 
 /* write methods */
@@ -361,23 +358,19 @@ static int write_file_connect_in(filter_t *n, filter_port_t *port,
 	 * support any number of inputs? Seems all is _f() time... */
 	return 0;
 }
-static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
+
+static int write_file_setup_param(filter_t *n, filter_param_t *param, const void *val) 
 {
-	filter_param_t *param;
-	filter_t *n;
 	regex_t rx;
 	rw_t *w;
-
-	GLSIGH_GETARGS1(va, param);
-	n = filterparam_filter(param);
 
         /* only filename change possible in writer. */
 	RWPRIV(n)->initted = 0;
 	RWPRIV(n)->rw = NULL;
 
 	/* no filename - no writer. */
-	if (!filterparam_val_string(param))
-		return;
+	if(val==NULL)
+		return -1;
 
 	/* find applicable writer */
 	list_foreach(&writers, rw_t, list, w) {
@@ -388,10 +381,11 @@ static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 			regfree(&rx);
 			RWPRIV(n)->rw = w;
 			RWPRIV(n)->initted = 1;
-			return;
+			return 0;
 		}
 		regfree(&rx);
 	}
+	return -1;
 }
 
 
@@ -416,13 +410,13 @@ int read_file_register(plugin_t *pl)
 				   FILTER_PARAMTYPE_FILENAME, NULL,
 				   FILTERPARAM_END);
 	filterparam_set_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER,"*.wav");
+	filterparamdb_add_param_pos(filter_paramdb(f));
 
 	f->f = read_file_f;
 	f->init = rw_file_init;
 	f->connect_out = read_file_connect_out;
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
-			  read_file_fixup_param, NULL);
-	
+	f->set_param = read_file_setup_param;
+
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_DELETED,
 			  read_file_fixup_pipe, NULL);
 
@@ -455,8 +449,7 @@ int write_file_register(plugin_t *pl)
 	f->f = write_file_f;
 	f->init = rw_file_init;
 	f->connect_in = write_file_connect_in;
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
-			  write_file_fixup_param, NULL);
+	f->set_param = write_file_setup_param;
 
 	plugin_set(pl, PLUGIN_DESCRIPTION, "write a file");
 	plugin_set(pl, PLUGIN_PIXMAP, "output.png");
@@ -472,15 +465,14 @@ int file_io_register(plugin_t *p)
 {
 	INIT_LIST_HEAD(&readers);
 	INIT_LIST_HEAD(&writers);
-
+#ifdef HAVE_LAME
+	add_reader(lame_read_prepare, lame_read_connect,
+		   lame_read_f, lame_read_cleanup);
+#endif
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
 	add_writer(af_write_f,"*.wav"); 
-#endif
-#ifdef HAVE_LAME
-	add_reader(lame_read_prepare, lame_read_connect,
-		   lame_read_f, lame_read_cleanup);
 #endif
 	add_reader(wav_read_prepare, wav_read_connect, 
 	           wav_read_f, wav_read_cleanup);
@@ -640,6 +632,10 @@ int wav_read_prepare(filter_t *n, const char *filename)
 {
 	int fd;
 	struct stat statbuf;
+	filter_param_t *fparam;
+	char info[255];
+
+	fparam = filterparamdb_get_param(filter_paramdb(n), "filename");
 
 	fd = open(filename, O_RDONLY);
 	if (fd == -1) {
@@ -674,6 +670,23 @@ int wav_read_prepare(filter_t *n, const char *filename)
 	if (RWW(n).p)
 		free(RWW(n).p);
 	RWW(n).p = (filter_pipe_t **)ALLOCN(RWW(n).ch, filter_pipe_t *);
+
+	/* Now update fparam properties */
+	sprintf(info,"4 -1"); /* wav version=unknown */
+	filterparam_set_property(fparam, "#format", info);
+
+	sprintf(info,"%d Hz",RWW(n).freq);
+	filterparam_set_property(fparam, "#samplerate", info);
+
+	sprintf(info,"%d bit",RWW(n).bit_width);
+	filterparam_set_property(fparam, "#quality", info);
+
+	sprintf(info,"%d",RWW(n).frames);
+	filterparam_set_property(fparam, "#framecount", info);
+	
+	sprintf(info,"%d",RWW(n).ch);
+	filterparam_set_property(fparam, "#channels", info);
+
 	return 0;
 }
 	
@@ -776,8 +789,9 @@ void inline wav_read_convert(filter_buffer_t *buf, int frames, int width,
 int wav_read_f(filter_t *n)
 {
 	filter_buffer_t *buf;
+	filter_param_t *pos_param;
 	int bufsize, blksize;
-	int align, ch, to_go;
+	int align, ch, to_go, done;
 	char *pos = RWW(n).data;
 	const int pad = (RWW(n).block_align << 3)/RWW(n).ch - RWW(n).bit_width;
 	const int ssize = RWW(n).block_align/RWW(n).ch;
@@ -799,9 +813,11 @@ int wav_read_f(filter_t *n)
 	}
 	
 	bufsize = align;
-
-	FILTER_AFTER_INIT;
 	
+	FILTER_AFTER_INIT;
+	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+        filterparam_val_set_pos(pos_param, 0);
+	done = 0;
 	do {
 		FILTER_CHECK_STOP;
 		
@@ -818,6 +834,8 @@ int wav_read_f(filter_t *n)
 			pos += ssize;
 		}
 		pos += (bufsize-1)*RWW(n).block_align;
+		done += blksize;
+		filterparam_val_set_pos(pos_param, done);
 		bufsize = blksize;
 	} while(to_go--);
 		
@@ -833,16 +851,45 @@ int wav_read_f(filter_t *n)
 #ifdef HAVE_AUDIOFILE
 int af_read_prepare(filter_t *n, const char *filename)
 {
+	filter_param_t *fparam;
+	char info[255];
+	int ftype, version;
+
+	fparam = filterparamdb_get_param(filter_paramdb(n), "filename");
+
 	DPRINTF("Using audiofile library\n");
 	if ((RWA(n).file=afOpenFile(filename,"r",NULL))==NULL){ 
 		DPRINTF("File not found!\n"); 
 		return -1; 
 	}
+
+
 	RWA(n).frameCount=afGetFrameCount(RWA(n).file, AF_DEFAULT_TRACK);
+	sprintf(info, "%d", RWA(n).frameCount); 
+	filterparam_set_property(fparam,"#framecount", info);
+
+	ftype = afGetFileFormat(RWA(n).file, &version);
+	DPRINTF("ftype = %d, version = %d\n", ftype, version);
+	sprintf(info, "%d %d", ftype, version);
+	filterparam_set_property(fparam,"#format", info);
+
 	RWA(n).channelCount = afGetChannels(RWA(n).file, AF_DEFAULT_TRACK);
+	sprintf(info, "%d", RWA(n).channelCount);
+	filterparam_set_property(fparam,"#channels", info);
+
 	afGetSampleFormat(RWA(n).file, AF_DEFAULT_TRACK, &(RWA(n).sampleFormat), &(RWA(n).sampleWidth));
+	sprintf(info, "%d bit", RWA(n).sampleWidth);
+	filterparam_set_property(fparam,"#quality", info);
+
 	RWA(n).frameSize = afGetFrameSize(RWA(n).file, AF_DEFAULT_TRACK, 1);
+	sprintf(info, "%d", RWA(n).frameSize);
+	filterparam_set_property(fparam,"#framesize", info);
+
 	RWA(n).sampleRate = (int)afGetRate(RWA(n).file, AF_DEFAULT_TRACK);
+	sprintf(info, "%d Hz", RWA(n).sampleRate);
+	filterparam_set_property(fparam,"#samplerate", info);
+	DPRINTF("samplerate : %s\n", info);
+
 	if ((RWA(n).sampleFormat != AF_SAMPFMT_TWOSCOMP &&
 	     RWA(n).sampleFormat != AF_SAMPFMT_UNSIGNED) || 
 	    (RWA(n).sampleWidth != 8 && RWA(n).sampleWidth != 16)) {
@@ -939,12 +986,17 @@ int af_read_f(filter_t *n)
 	SAMPLE *s0, *s1;
 	short *b;
 	int fcnt, cnt;
+	long pos;
+	filter_param_t *pos_param;
 
 	/* seek to start of audiofile */
 	afSeekFrame(RWA(n).file, AF_DEFAULT_TRACK, 0);
 	fcnt = RWA(n).frameCount;
 
 	FILTER_AFTER_INIT;
+	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+        filterparam_val_set_pos(pos_param, 0);
+	pos = 0;
 
 	while(fcnt){
 		FILTER_CHECK_STOP;
@@ -952,6 +1004,8 @@ int af_read_f(filter_t *n)
 					  RWA(n).buffer,
 					  MIN(GLAME_WBUFSIZE, fcnt))))
 			break;
+		pos += frames;
+		filterparam_val_set_pos(pos_param, 0);
 		fcnt-=frames;
 		for (i=0; i < RWA(n).channelCount; i++){
 			RWA(n).track[i].buf =
@@ -1141,46 +1195,257 @@ _bailout:
 }
 
 #ifdef HAVE_LAME
+/* borrowed from lame source */
+#define         MAX_U_32_NUM            0xFFFFFFFF
+
+static int
+check_aid(const unsigned char *header)
+{
+    return 0 == strncmp(header, "AiD\1", 4);
+}
+
+/*
+ * Please check this and don't kill me if there's a bug
+ * This is a (nearly?) complete header analysis for a MPEG-1/2/2.5 Layer I, II or III
+ * data stream
+ */
+
+static int
+is_syncword_mp123(const void *const headerptr)
+{
+    const unsigned char *const p = headerptr;
+    static const char abl2[16] =
+        { 0, 7, 7, 7, 0, 7, 0, 0, 0, 0, 0, 8, 8, 8, 8, 8 };
+
+    if ((p[0] & 0xFF) != 0xFF)
+        return 0;       // first 8 bits must be '1'
+    if ((p[1] & 0xE0) != 0xE0)
+        return 0;       // next 3 bits are also
+    if ((p[1] & 0x18) == 0x08)
+        return 0;       // no MPEG-1, -2 or -2.5
+    if ((p[1] & 0x06) == 0x00)
+        return 0;       // no Layer I, II and III
+    if ((p[2] & 0xF0) == 0xF0)
+        return 0;       // bad bitrate
+    if ((p[2] & 0x0C) == 0x0C)
+        return 0;       // no sample frequency with (32,44.1,48)/(1,2,4)    
+    if ((p[1] & 0x06) == 0x04) // illegal Layer II bitrate/Channel Mode comb
+        if (abl2[p[2] >> 4] & (1 << (p[3] >> 6)))
+            return 0;
+    return 1;
+}
+
+static int
+is_syncword_mp3(const void *const headerptr)
+{
+    const unsigned char *const p = headerptr;
+
+    if ((p[0] & 0xFF) != 0xFF)
+        return 0;       // first 8 bits must be '1'
+    if ((p[1] & 0xE0) != 0xE0)
+        return 0;       // next 3 bits are also
+    if ((p[1] & 0x18) == 0x08)
+        return 0;       // no MPEG-1, -2 or -2.5
+    if ((p[1] & 0x06) != 0x02)
+        return 0;       // no Layer III (can be merged with 'next 3 bits are also' test, but don't do this, this decreases readability)
+    if ((p[2] & 0xF0) == 0xF0)
+        return 0;       // bad bitrate
+    if ((p[2] & 0x0C) == 0x0C)
+        return 0;       // no sample frequency with (32,44.1,48)/(1,2,4)    
+    return 1;
+}
+
+int
+lame_decode_initfile(FILE * fd, mp3data_struct * mp3data)
+{
+    //  VBRTAGDATA pTagData;
+    // int xing_header,len2,num_frames;
+    unsigned char buf[100];
+    int     ret;
+    int     len, aid_header;
+    short int pcm_l[1152], pcm_r[1152];
+
+    memset(mp3data, 0, sizeof(mp3data_struct));
+    lame_decode_init();
+
+    len = 4;
+    if (fread(&buf, 1, len, fd) != len)
+        return -1;      /* failed */
+    aid_header = check_aid(buf);
+    if (aid_header) {
+        if (fread(&buf, 1, 2, fd) != 2)
+            return -1;  /* failed */
+        aid_header = (unsigned char) buf[0] + 256 * (unsigned char) buf[1];
+        fprintf(stderr, "Album ID found.  length=%i \n", aid_header);
+        /* skip rest of AID, except for 6 bytes we have already read */
+        fseek(fd, aid_header - 6, SEEK_CUR);
+
+        /* read 4 more bytes to set up buffer for MP3 header check */
+        len = fread(&buf, 1, 4, fd);
+    }
+
+
+    /* look for valid 4 byte MPEG header  */
+    if (len < 4)
+        return -1;
+    while (!is_syncword_mp123(buf)) {
+        int     i;
+        for (i = 0; i < len - 1; i++)
+            buf[i] = buf[i + 1];
+        if (fread(buf + len - 1, 1, 1, fd) != 1)
+            return -1;  /* failed */
+    }
+    // now parse the current buffer looking for MP3 headers.   
+    // (as of 11/00: mpglib modified so that for the first frame where 
+    // headers are parsed, no data will be decoded.  
+    // However, for freeformat, we need to decode an entire frame,
+    // so mp3data->bitrate will be 0 until we have decoded the first
+    // frame.  Cannot decode first frame here because we are not
+    // yet prepared to handle the output.
+    ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+    if (-1 == ret)
+        return -1;
+
+    /* repeat until we decode a valid mp3 header.  */
+    while (!mp3data->header_parsed) {
+        len = fread(buf, 1, sizeof(buf), fd);
+        if (len != sizeof(buf))
+            return -1;
+        ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+        if (-1 == ret)
+            return -1;
+    }
+
+    if (mp3data->bitrate==0) {
+        fprintf(stderr,"Input file is freeformat.\n");
+    }
+
+    if (mp3data->totalframes > 0) {
+        /* mpglib found a Xing VBR header and computed nsamp & totalframes */
+    }
+    else {
+        /* set as unknown.  Later, we will take a guess based on file size
+         * ant bitrate */
+        mp3data->nsamp = MAX_U_32_NUM;
+    }
+    /*
+       fprintf(stderr,"ret = %i NEED_MORE=%i \n",ret,MP3_NEED_MORE);
+       fprintf(stderr,"stereo = %i \n",mp.fr.stereo);
+       fprintf(stderr,"samp = %i  \n",freqs[mp.fr.sampling_frequency]);
+       fprintf(stderr,"framesize = %i  \n",framesize);
+       fprintf(stderr,"bitrate = %i  \n",mp3data->bitrate);
+       fprintf(stderr,"num frames = %ui  \n",num_frames);
+       fprintf(stderr,"num samp = %ui  \n",mp3data->nsamp);
+       fprintf(stderr,"mode     = %i  \n",mp.fr.mode);
+     */
+
+    return 0;
+}
+
+int lame_decode_fromfile(FILE * fd, short pcm_l[], short pcm_r[], mp3data_struct * mp3data)
+{	int     ret = 0, len=0;
+	unsigned char buf[1024];
+
+	/* first see if we still have data buffered in the decoder: */
+	ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+	if (ret!=0) return ret;
+
+
+	/* read until we get a valid output frame */
+	while (1) {
+		len = fread(buf, 1, 1024, fd);
+		if (len == 0) {
+			/* we are done reading the file, but check for buffered data */
+			ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+			if (ret<=0) return -1;  // done with file
+			break;
+		}
+		
+		ret = lame_decode1_headers(buf, len, pcm_l, pcm_r, mp3data);
+		if (ret == -1) return -1;
+		if (ret >0) break;
+	}
+	return ret;
+}
+
+off_t  lame_get_file_size ( const char* const filename )
+{
+    struct stat       sb;
+
+    if ( 0 == stat ( filename, &sb ) )
+        return sb.st_size;
+    return (off_t) -1;
+}
+
 int lame_read_prepare(filter_t *n, const char *filename)
 {
-	int done, len, max;
+	int done, len, max, err;
 	char buffer[128];
 	short pcm[2][1152];
+	double flen, totalseconds;
+	unsigned long tmp_num_samples;
+	filter_param_t	*fparam;
 	
-	lame_decode_init();
 	DPRINTF("lame_read_prepare\n");
-	if ((RWM(n).fd = open(filename, O_RDONLY)) == -1 ) { 
-		DPRINTF("File not found!\n"); 
-		return -1; 
-	}
-	
-	RWM(n).mp3data = ALLOCN(1, mp3data_struct);
-	/*
-	if (RWM(n).lgflags == NULL) {
-		DPRINTF("allocating lgflags\n");
-		RWM(n).lgflags = ALLOCN(1, lame_global_flags);
-	}
-	*/
-	max = 0;
-	do {
-		len = read(RWM(n).fd, buffer, 10); /* reading larger buffers doesn't work !*/
-		done = lame_decode1_headers(buffer, len, pcm[0], pcm[1], RWM(n).mp3data);
-		DPRINTF("len = %d done = %d header = %d chan=%d freq=%d\n",
-			len, done, RWM(n).mp3data->header_parsed,
-			RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate);
-		if (done == -1) {
-			DPRINTF("Error while scanning mp3file\n");
-			return -1;
-		}
-		max++;
-	} while ((!RWM(n).mp3data->header_parsed) && (max!=200));
-	if (!RWM(n).mp3data->header_parsed)
+
+	if (pthread_mutex_trylock(&lamelock)==EBUSY)
 		return -1;
-	RWM(n).start = lseek(RWM(n).fd, 0, SEEK_CUR);
+
+	RWM(n).lgflags = lame_init();
+	RWM(n).infile = fopen(filename, "rb");
+	if (RWM(n).infile==NULL) {
+		pthread_mutex_unlock(&lamelock);
+		return -1;
+	}
+
+	if (-1 == lame_decode_initfile(RWM(n).infile, &(RWM(n).mp3data))) {
+		pthread_mutex_unlock(&lamelock);
+		return -1;
+	}
+
+	if (lame_set_num_channels(RWM(n).lgflags, RWM(n).mp3data.stereo)==-1) {
+		pthread_mutex_unlock(&lamelock);
+		return -1;
+	}
+
+        lame_set_in_samplerate(RWM(n).lgflags, RWM(n).mp3data.samplerate );
+	
+	if ((lame_get_num_samples(RWM(n).lgflags) == MAX_U_32_NUM) && (RWM(n).mp3data.bitrate>0)) {
+		flen = lame_get_file_size(filename);
+		if(flen>=0) {
+			totalseconds = (flen * 8.0 / (1000.0 * RWM(n).mp3data.bitrate));
+			tmp_num_samples = totalseconds * lame_get_in_samplerate(RWM(n).lgflags);
+
+			lame_set_num_samples(RWM(n).lgflags, tmp_num_samples );
+			RWM(n).mp3data.nsamp = tmp_num_samples;
+		}
+	}
+
+	RWM(n).start = fseek(RWM(n).infile, 0, SEEK_CUR);
+
 	DPRINTF("Found mp3 file: channels=%d, freq=%d, offset=%d\n", 
-		RWM(n).mp3data->stereo, RWM(n).mp3data->samplerate, 
+		RWM(n).mp3data.stereo, RWM(n).mp3data.samplerate, 
 		RWM(n).start);
-	RWM(n).track = ALLOCN(RWM(n).mp3data->stereo, track_t);
+	RWM(n).track = ALLOCN(RWM(n).mp3data.stereo, track_t);
+	
+	fparam = filterparamdb_get_param(filter_paramdb(n), "filename");
+	
+	sprintf(buffer, "7 -1");
+	filterparam_set_property(fparam, "#format", buffer);
+
+	sprintf(buffer,"%d Hz",RWM(n).mp3data.samplerate); 
+	filterparam_set_property(fparam, "#samplerate", buffer); 
+	
+	sprintf(buffer,"16 bit"); 
+	filterparam_set_property(fparam, "#quality", buffer); 
+	
+	sprintf(buffer,"%d",tmp_num_samples); 
+	filterparam_set_property(fparam, "#framecount", buffer); 
+	
+	sprintf(buffer,"%d",RWM(n).mp3data.stereo); 
+	filterparam_set_property(fparam, "#channels", buffer);
+	
+	pthread_mutex_unlock(&lamelock);
 	return 0;
 }
 
@@ -1196,7 +1461,7 @@ int lame_read_connect(filter_t *n, filter_pipe_t *p) {
 	}
 	
 	if (deleted == 1) {
-		for (i=0; i<RWM(n).mp3data->stereo; i++) {
+		for (i=0; i<RWM(n).mp3data.stereo; i++) {
 			if (RWM(n).track[i].p == p) {
 				RWM(n).track[i].mapped = 0;
 				RWM(n).track[i].p = NULL;
@@ -1205,17 +1470,17 @@ int lame_read_connect(filter_t *n, filter_pipe_t *p) {
 		}
 	}
 	
-        for(i=0; i<RWM(n).mp3data->stereo;i++) {
+        for(i=0; i<RWM(n).mp3data.stereo;i++) {
 		if (RWM(n).track[i].mapped == 1) {
 			if (RWM(n).track[i].p == p) {
-				filterpipe_settype_sample(p, RWM(n).mp3data->samplerate,
+				filterpipe_settype_sample(p, RWM(n).mp3data.samplerate,
 							     i*M_PI+FILTER_PIPEPOS_LEFT);
 				return 0;
 			}
 		} else if ((RWM(n).track[i].mapped == 0)) {
 			RWM(n).track[i].mapped = 1;
 			RWM(n).track[i].p = p;
-			filterpipe_settype_sample(p, RWM(n).mp3data->samplerate,
+			filterpipe_settype_sample(p, RWM(n).mp3data.samplerate,
 						     i*M_PI+FILTER_PIPEPOS_LEFT);
 			return 0;
 		} 
@@ -1226,55 +1491,54 @@ int lame_read_connect(filter_t *n, filter_pipe_t *p) {
 
 void lame_read_cleanup(filter_t *n) {
 	DPRINTF("cleanup\n");
-	close(RWM(n).fd);
+	fclose(RWM(n).infile);
 	free(RWM(n).track);
-	free(RWM(n).mp3data);
 	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
 	DPRINTF("cleanup finished\n");
 };
 
 int lame_read_f(filter_t *n) {
+	filter_param_t *pos_param;
 	filter_pipe_t *p_out;
 	filter_port_t *port;
-	ssize_t len;
-	int done, i, j, ret = -1;
-	char buffer[128];
-	short s[2][4096];
+	int done, i, j;
+	short s[2][1152];
+	long pos;
+
+	if (pthread_mutex_trylock(&lamelock)==EBUSY)
+		FILTER_ERROR_RETURN("lamelib already in use");
 	
-	lseek(RWM(n).fd, RWM(n).start, SEEK_SET);
+	fseek(RWM(n).infile, RWM(n).start, SEEK_SET);
 	FILTER_AFTER_INIT;
+	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
+        filterparam_val_set_pos(pos_param, 0);
+	pos = 0;
 	do {
 		FILTER_CHECK_STOP;
-		len = read(RWM(n).fd, buffer, 128);
-		done = lame_decode(buffer, len, s[0], s[1]);
-		if (done > 4096) {
-			DPRINTF("pcm buffer to small\n");
-			raise(11);
-		}
+		done = lame_decode_fromfile(RWM(n).infile, s[0], s[1], &(RWM(n).mp3data));
+		pos += done;
+		filterparam_val_set_pos(pos_param, pos);
 		if (done > 0) {
-			for(i=0; i<RWM(n).mp3data->stereo; i++) {
+			for(i=0; i<RWM(n).mp3data.stereo; i++) {
 				RWM(n).track[i].buf = sbuf_make_private(sbuf_alloc(done, n));
 				for (j=0; j<done; j++)
 					sbuf_buf(RWM(n).track[i].buf)[j] = SHORT2SAMPLE(s[i][j]);
 				sbuf_queue(RWM(n).track[i].p, RWM(n).track[i].buf);
 			}
-		} else if (done < 0)
-			goto _lame_bailout;
-	} while (len > 0);
+		}
+	} while (done>0);
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
-	ret = 0;
-_lame_bailout:
 	filterportdb_foreach_port(filter_portdb(n), port) {
 		if (filterport_is_input(port))
 			continue;
 		filterport_foreach_pipe(port, p_out)
 			sbuf_queue(p_out, NULL);
 	}
-	DPRINTF("read_finished\n");
-	if (ret == -1) FILTER_ERROR_RETURN("error reading mp3 file\n");
-	return ret;	
+
+	pthread_mutex_unlock(&lamelock);
+	return 0;
 }
 
 #endif
