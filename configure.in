@@ -147,18 +147,6 @@ Hint: You also need to have the appropriate guile development package
 installed, usually called libguile-dev, guile-devel, or similar.])
 ])
 
-dnl
-dnl We also need libxml
-dnl
-
-AMG_PATH_XML2(2.0.0, , [
-	AMG_PATH_XML(1.8.0, , [
-	AC_MSG_ERROR([You need at least libxml 1.8.0 to run glame!
-Hint: You also need to have the appropriate xml development package
-installed, usually called libxml-dev, libxmld, or similar.])
-])
-])
-
 
 dnl
 dnl The rest is optional stuff
@@ -207,6 +195,28 @@ if test x$gui = xyes -a x$have_gnome = xyes; then
   fi
 fi
 
+
+dnl
+dnl We also need libxml -- dont check, if we have libglade, just
+dnl fix generic cflags
+dnl
+
+if test x$glame = xyes; then
+dnl HACK
+	AC_MSG_WARN([Skipping libxml check due to possible conflicts with libglade])
+	XML_CFLAGS="$GNOME_INCLUDEDIR"
+	XML_LIBS="$GNOME_LIBS"
+	AC_SUBST(XML_CFLAGS)
+	AC_SUBST(XML_LIBS)
+else
+AMG_PATH_XML2(2.0.0, , [
+	AMG_PATH_XML(1.8.0, , [
+	AC_MSG_ERROR([You need at least libxml 1.8.0 to run glame!
+Hint: You also need to have the appropriate xml development package
+installed, usually called libxml-dev, libxmld, or similar.])
+])
+])
+fi
 
 
 dnl
