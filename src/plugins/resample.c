@@ -1,6 +1,6 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.1 2003/05/20 19:45:36 richi Exp $
+ * $Id: resample.c,v 1.2 2003/05/20 21:54:53 richi Exp $
  *
  * Copyright (C) 2003 Richard Guenther
  *
@@ -45,104 +45,67 @@ struct resample_s {
 	long samplerate;
 };
 
+static void do_resample(gpsm_grp_t *swfiles, long samplerate)
+{
+	gpsm_item_t *item;
+	filter_param_t *input_filename, *input_samplerate, *output_filename;
+	filter_t *net;
 
-#if 0
-static void normalize_do_task(struct normalize_s *ns) {
-	int num;
-	filter_t *net, *vadjust, *swapi, *swapo;
-	filter_param_t	*param;
-	filter_launchcontext_t *context;
-	char label[128];
-	double gain, percentage;
-	long done = 0;
-	gpsm_item_t * item;
+	/* Build a basic network for resampling of one track. */
+	net = filter_creat(NULL);
+	{
+		filter_t *swin, *resamp, *swout;
 
-	/* FIXME 
-	   This is probably ok for peak normalizing, but otherwise ?
-	*/
+		swin = net_add_plugin_by_name(net, "swapfile_in");
+		input_filename = filterparamdb_get_param(filter_paramdb(swin), "filename");
+		input_samplerate = filterparamdb_get_param(filter_paramdb(swin), "rate");
+		resamp = net_add_plugin_by_name(net, "Resample");
+		filterparam_set_long(filterparamdb_get_param(
+			filter_paramdb(resamp), "frequency"), samplerate);
+		swout = net_add_plugin_by_name(net, "swapfile_out");
+		filterparam_set_long(filterparamdb_get_param(
+			filter_paramdb(swout), "flags"), 2 /* truncate */);
+		output_filename = filterparamdb_get_param(
+			filter_paramdb(swout), "filename");
+		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
+				   filterportdb_get_port(filter_portdb(resamp), PORTNAME_IN));
+		filterport_connect(filterportdb_get_port(filter_portdb(resamp), PORTNAME_OUT),
+				   filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+	}
 
-	if (ns->changed==1)
-		analyze_rms(ns);
+	gpsm_grp_foreach_item(swfiles, item) {
+		filter_launchcontext_t *context;
+		gpsm_swfile_t *file;
 
-	gain = ns->ampl_abs/ns->maxrms;
+		/* Skip, if already ok. */
+		if (gpsm_swfile_samplerate(item) == samplerate)
+			continue;
 
-	gpsm_op_prepare(ns->grp);
-
-	gpsm_grp_foreach_item(ns->grp, item) {
-		num++;
-		snprintf(label, 128, "Normalizing Track %s", gpsm_item_label(item));
-		gnome_appbar_set_status(GNOME_APPBAR(ns->appbar), label);
-		net = filter_creat(NULL);
-		vadjust = net_add_plugin_by_name(net, "volume_adjust");
-		swapi = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
-					   ns->start, MIN(ns->length, gpsm_item_hsize(item)) , 0);
-
-		net_apply_node(net, vadjust);
-		swapo = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
-					    ns->start, MIN(ns->length, gpsm_item_hsize(item)) , 0);
-		net_apply_node(net, swapo);
-
-		param = filterparamdb_get_param(filter_paramdb(vadjust), "factor");
-		filterparam_set(param, &gain);
-
-
-		if (!(context = filter_launch(net, GLAME_BULK_BUFSIZE))
-		    || filter_start(context) == -1)
-			goto fail_cleanup;
-
-		param = filterparamdb_get_param(filter_paramdb(swapi), 
-						FILTERPARAM_LABEL_POS);
-
-		ns->running=1;
-		while(!filter_is_ready(context)) {
-			while (gtk_events_pending())
-				gtk_main_iteration();
-			usleep(40000);
-			
-			percentage = (float)(done+filterparam_val_long(param))/
-				     (float)ns->total_size;
-
-			if (ns->running==0)
-				goto cancel_cleanup;
-
-			gnome_appbar_set_progress_percentage(GNOME_APPBAR(ns->appbar),
-						  	     percentage);
-		}
-		ns->running = 0;
+		/* Prepare the file, set the filename and run the
+		 * resampling network. */
+		gpsm_op_prepare(item);
+		file = gpsm_swfile_cow((gpsm_swfile_t *)item);
+		filterparam_set_long(input_filename, gpsm_swfile_filename(file));
+		filterparam_set_long(input_samplerate, gpsm_swfile_samplerate(file));
+		filterparam_set_long(output_filename, gpsm_swfile_filename(item));
+		context = filter_launch(net, GLAME_BULK_BUFSIZE);
+		filter_start(context);
+		filter_wait(context);
 		filter_launchcontext_unref(&context);
-	
-		done+=filterparam_val_long(param);
-		DPRINTF("posparam=%ld\n", filterparam_val_long(param));
+		gpsm_item_destroy(file);
+		gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
 
-		filter_delete(net);
+		/* Adapt all gpsm references to the swapfile. */
+		file = NULL;
+		while ((file = gpsm_find_swfile_filename(gpsm_root(), (gpsm_item_t *)file, gpsm_swfile_filename(item)))) {
+			if (gpsm_swfile_samplerate(file) == samplerate)
+				continue;
+			gpsm_swfile_set_samplerate(file, samplerate);
+		}
 	}
 
-	gpsm_grp_foreach_item(ns->grp, item) {
-		gpsm_notify_swapfile_change(gpsm_swfile_filename(item), 
-					    ns->start, MIN(ns->length, (gpsm_item_hsize(item)-ns->start+1)));
-	}
-
-	gtk_widget_destroy(ns->dialog);
-	gpsm_item_destroy(ns->grp);
-	cleanup_task_list(ns);
-	free(ns);
-	return;
-
- cancel_cleanup:
-	filter_terminate(context);
 	filter_delete(net);
-	cleanup_task_list(ns);
-	gpsm_op_undo_and_forget(ns->grp);
-	gpsm_item_destroy(ns->grp);
-	free(ns);
-	return;
- fail_cleanup:
-	filter_delete(net);
-	DPRINTF("Error starting normalizing network!\n");
-	return;
 }
-#endif
-
 
 static void dialog_cb(GnomeDialog *dialog, gint button, struct resample_s *rs)
 {
@@ -150,7 +113,8 @@ static void dialog_cb(GnomeDialog *dialog, gint button, struct resample_s *rs)
 		glame_help_goto(NULL, "Resample");
 		return;
 	} else if (button == 0) {
-		DPRINTF("FIXME\n");
+		do_resample((gpsm_grp_t *)rs->grp, gtk_adjustment_get_value(
+				    GTK_ADJUSTMENT(rs->adjustment)));
 	}
 	gpsm_item_destroy(rs->grp);
 	free(rs);
@@ -159,56 +123,49 @@ static void dialog_cb(GnomeDialog *dialog, gint button, struct resample_s *rs)
 
 static void resample_dialog(struct resample_s *rs)
 {
-  GtkWidget *frame1;
-  GtkWidget *hbox1;
-  GtkWidget *label3;
-  GtkWidget *spinbutton1;
+	GtkWidget *frame1;
+	GtkWidget *hbox1;
+	GtkWidget *label3;
+	GtkWidget *spinbutton1;
 
-  rs->dialog = gnome_dialog_new (NULL, NULL);
+	rs->dialog = gnome_dialog_new (NULL, NULL);
 
-  frame1 = gtk_frame_new (_("Resample"));
-  gtk_box_pack_start (GTK_BOX (GNOME_DIALOG(rs->dialog)->vbox),
-		      frame1, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame1), 3);
+	frame1 = gtk_frame_new (_("Resample"));
+	gtk_box_pack_start (GTK_BOX (GNOME_DIALOG(rs->dialog)->vbox),
+			    frame1, TRUE, TRUE, 0);
+	gtk_container_set_border_width (GTK_CONTAINER (frame1), 3);
 
-  hbox1 = gtk_hbox_new (FALSE, 6);
-  gtk_container_add (GTK_CONTAINER (frame1), hbox1);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox1), 3);
+	hbox1 = gtk_hbox_new (FALSE, 6);
+	gtk_container_add (GTK_CONTAINER (frame1), hbox1);
+	gtk_container_set_border_width (GTK_CONTAINER (hbox1), 3);
 
-  label3 = gtk_label_new (_("Samplerate:"));
-  gtk_misc_set_alignment (GTK_MISC (label3), 0, 0.5);
-  gtk_container_add (GTK_CONTAINER (hbox1), label3);
+	label3 = gtk_label_new (_("Samplerate:"));
+	gtk_misc_set_alignment (GTK_MISC (label3), 0, 0.5);
+	gtk_container_add (GTK_CONTAINER (hbox1), label3);
 
-  rs->adjustment = gtk_adjustment_new (rs->samplerate,
-				       2756, 192000, 100, 1000, 0.0);
-  spinbutton1 = gtk_spin_button_new (GTK_ADJUSTMENT (rs->adjustment), 100000, 0);
-  gtk_container_add (GTK_CONTAINER (hbox1), spinbutton1);
+	rs->adjustment = GTK_WIDGET(gtk_adjustment_new
+	        (rs->samplerate, 2756, 192000, 100, 1000, 0.0));
+	spinbutton1 = gtk_spin_button_new (GTK_ADJUSTMENT (rs->adjustment), 100000, 0);
+	gtk_container_add (GTK_CONTAINER (hbox1), spinbutton1);
 
-  gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_OK);
-  gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_CANCEL);
-  gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_HELP);
-  gtk_signal_connect(GTK_OBJECT(rs->dialog), "clicked",
-		     dialog_cb, rs);
+	gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_OK);
+	gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_CANCEL);
+	gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_HELP);
+	gtk_signal_connect(GTK_OBJECT(rs->dialog), "clicked",
+			   GTK_SIGNAL_FUNC(dialog_cb), rs);
 }
 
 
 static int resample_gpsm(gpsm_item_t *grp, long start, long length)
 {
 	struct resample_s *rs;
-	gpsm_item_t *item;
 
 	rs = ALLOCN(1, struct resample_s);
 
 	rs->grp = (gpsm_item_t*)gpsm_collect_swfiles(grp);
-	if (rs->grp==NULL)
+	if (rs->grp == NULL)
 		return -1;
-
 	rs->samplerate = gpsm_swfile_samplerate(gpsm_grp_first(rs->grp));
-	gpsm_grp_foreach_item(rs->grp, item)
-		if (gpsm_swfile_samplerate(item) != rs->samplerate) {
-			gnome_dialog_run_and_close(gnome_error_dialog("Not all tracks have the same samplerate"));
-			return -1;
-		}
 
 	resample_dialog(rs);
 	gtk_widget_show_all(rs->dialog);
@@ -221,6 +178,7 @@ int resample_register(plugin_t *p)
 	plugin_set(p, PLUGIN_GPSMOP, resample_gpsm);
 	plugin_set(p, PLUGIN_DESCRIPTION, "resample a gpsm subtree");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
+	plugin_set(p, PLUGIN_LABEL, "Resample");
 	
 	return 0;
 }
