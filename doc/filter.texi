@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.19 2000/05/02 09:46:55 richi Exp $
+@comment $Id: filter.texi,v 1.20 2000/05/04 09:54:11 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -73,10 +73,15 @@ filters you have to call @code{glame_init()} from the glame midlayer.
 @node The Filter Registry API, The Filter Programming API, Filter Initialisation, Filter API
 @section The Filter Registry API
 
-The filter registry API is used by the filters to register themselves and by 
-any external program which wants to get access to the filter names and their
-descriptions. Note that the filter registry API is not necessarily thread
+The filter registry API is used by the filters to build and register
+themselves and by any external program which wants to get access to the
+filter. Note that the filter registry API is not necessarily thread
 consistent.
+
+The filter registry API is stronly coupled with the plugin API as the
+plugin infrastructure is used to store and query existing filters. Only
+allocation, building and associating a filter with a plugin is contained
+in the filter registry API.
 
 @menu
 * Defining Filter I/O::
@@ -86,14 +91,14 @@ consistent.
 @node Defining Filter I/O, Getting Filter Info, , The Filter Registry API
 @subsection Defining Filter I/O
 
-To register itself, a new filter has to specify its supported input and output
-ports and its optional parameters. The recommended order of
+To register itself, a new filter has to specify its supported input and
+output ports and its optional parameters. The recommended order of
 registration is the following: First, allocate a filter structure via
-@code{filter_alloc()}. Second, in arbitrary order register all input ports via
-@code{filter_add_input()}, all output ports via @code{filter_add_output()} 
-and all parameters via @code{filter_add_param()}. Third, add port specific 
-parameters to the input and output ports via @code{filterport_add_param()}.
-Fourth, add the filter to the filter registry using @code{filter_add()}.
+@code{filter_alloc()}. Second, in arbitrary order register all input
+ports via @code{filter_add_input()}, all output ports via
+@code{filter_add_output()} and all parameters via
+@code{filterpdb_add_param()}.  Fourth, associate the filter with an
+existing plugin record using @code{filter_attach()}.
 
 @tindex filter_t
 @tindex filter_node_t
@@ -136,15 +141,25 @@ allow any type of input or output. @code{filter_add_input()} and
 success and @code{NULL} on error.
 @end deftypefun
 
-
 @deftypefun void filter_delete_port (filter_t *@var{f}, filter_portdesc_t *@var{port})
 @code{filter_delete_port()} will remove and destroy the specified port from
 filter @var{f}.
 @end deftypefun
 
-@deftypefun void filter_delete_param (filter_t *@var{f}, filter_paramdesc_t *@var{param})
-@code{filter_delete_param()} will remove and destroy the specified parameter 
-from filter @var{f} or one of its ports.
+@deftypefun {filter_pdb_t *} filter_pdb (filter_t *@var{f})
+@deftypefunx {filter_pdb_t *} filterportdesc_pdb (filter_portdesc_t *@var{p})
+@code{filter_pdb()} gets you access to the filters parameter database to
+which you may add parameters using the @code{filterpdb_add_param*()}
+functions. @code{filterportdesc_pdb()} returns the parameter database of
+the specified port descriptor.
+@end deftypefun
+
+
+@deftypefun void filter_attach (filter_t *@var{f}, plugin_t *@var{p})
+Using @code{filter_attach()} you can assiociate the filter @var{f} with
+the specified plugin and make it accessible to the world. You either
+get the plugin record passed to your register function or may allocate
+a new one using @code{plugin_add()} from the plugin API.
 @end deftypefun
 
 
@@ -189,8 +204,8 @@ filter @var{f} just like in the @code{for} construct using @var{d} as running
 variable.
 @end deftypefn
 
-To access information in the port description structure and query
-existing port specific parameters you can use the following functions.
+To access information in the port description structure
+use the following functions.
 
 @deftypefun {const char *} filterportdesc_label (filter_portdesc_t *@var{d})
 @deftypefunx {const char *} filterportdesc_description (filter_portdesc_t *@var{d})
@@ -201,20 +216,12 @@ label or description of the port respectively. With
 allowed to connect.
 @end deftypefun
 
-@deftypefun int filterportdesc_nrparams (filter_portdesc_t *@var{d})
-Using @code{filterportdesc_nrparams()} you can query the number of port specific
-parameters of port @var{d}.
-@end deftypefun
 
-@deftypefun {filter_paramdesc_t *} filterportdesc_get_paramdesc (filter_portdesc_t *@var{d}, const char *@var{label})
-With @code{filterportdesc_get_paramdesc()} you can query a port specific 
-parameter by name just like you can do with @code{filter_get_paramdesc()}.
-@end deftypefun
-
-@deftypefn Iterator {} filterportdesc_foreach_paramdesc (filter_portdesc_t *@var{d}, filter_paramdesc_t *@var{p}) @{ @}
-Using this iterator you can loop through all available port specific parameters
-of port @var{d} similar to @code{filter_foreach_inputdesc}.
-@end deftypefn
+To query existing parameters or their number of the filter or its ports
+you have to use the @code{filterpdb_*()} functions operating on the
+specific parameter database which you can access using the
+@code{filter_pdb()} and @code{filterportdesc_pdb()} functions described
+above.
 
 
 
@@ -273,7 +280,8 @@ For further advise see the @ref{Filter Tutorial}.
 @deftypefn Method int init (filter_node_t *@var{n})
 @code{init()} gets called by the @code{filternetwork_add_node()} function after allocating a
 new instance of a filter (the so called filternode). You may do
-anything with the private field of the filternode, everything else is strictly
+anything with the private field of the filternode and attach signal
+handlers to the nodes emitter, everything else is strictly
 private. If you return -1 the node is deleted and @code{filternetwork_add_node()} will return an error. If everything is ok you should return 0.
 @end deftypefn
 
@@ -315,6 +323,9 @@ on the parameter.
 @end deftypefn
 
 
+Each filternode has a signal emitter associated to it through which all
+of the signals from its sub-objects are re-emitted. So may want to add
+signal handlers to the filters emitter.
 
 
 @node Accessing Filter Ports and Parameters, Doing Real Work, Filter Methods, The Filter Programming API
@@ -381,14 +392,13 @@ databases are described here.
 
 
 @findex connect_out
-@findex fixup_param
 To initialize a pipe inside the @code{connect_out()} method or any
 signal handler you should use one of the following boilerplate
 functions. Also the per-pipe-type access methods you should use are
 described here, grouped by pipe type. Note that if you actually change a
 pipes type or its parameters you have to raise a
 @code{GLSIG_PIPE_CHANGED} signal on the pipe, @strong{except} you are in
-one of the @code{connect()} methods.
+one of the @code{connect_*()} methods.
 
 @deftypefun void filterpipe_settype_sample (filter_pipe_t *@var{p}, int @var{rate}, float @var{hangle})
 @tindex FILTER_PIPETYPE_SAMPLE
