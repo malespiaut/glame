@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.7 2000/01/31 14:27:13 richi Exp $
+ * $Id: swapfile.c,v 1.8 2000/02/01 13:59:39 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -737,7 +737,7 @@ static void cluster_unref(cluster_t *c)
 	 */
 	if (c->refcnt == 1) {
 		if (c->mmapcnt > 0)
-			PANIC("cluster has still mappings!");
+			DERROR("cluster has still mappings!");
 		__cluster_forgetmap(c);
 	}
 
@@ -770,7 +770,7 @@ static void _drain_mmapcache()
 	while (lh = lhprev, lhprev = lh->prev, lh != &swap->mapped) {
 		c = list_entry(lh, cluster_t, map_list);
 		if (!cluster_is_mapped(c))
-			PANIC("cluster with no mapping in maplist!");
+			DERROR("cluster with no mapping in maplist!");
 		_cluster_try_munmap(c);
 		if (swap->mapped_size <= swap->mapped_max)
 			break;
@@ -785,13 +785,13 @@ static cluster_t *_cluster_split_aligned(cluster_t *c, off_t pos)
 	cluster_t *tail;
 
 	if (pos & CLUSTER_MINMASK)
-		PANIC("split of cluster at unaligned position!");
+		DERROR("split of cluster at unaligned position!");
 	if (pos == 0 || pos == c->size)
-		PANIC("split of cluster at unnecessary position! check caller!");
+		DERROR("split of cluster at unnecessary position! check caller!");
 	if (pos < 0 || pos > c->size)
-		PANIC("split of cluster at weird position!");
+		DERROR("split of cluster at weird position!");
 	if (_cluster_try_munmap(c) == -1)
-		PANIC("split of mapped (used!) cluster");
+		DERROR("split of mapped (used!) cluster");
 
 	if (!(tail = __cluster_alloc(-1)))
 		return NULL;
@@ -928,9 +928,9 @@ static filecluster_t *__filecluster_split(filecluster_t *fc, off_t pos, cluster_
 	off_t coff = 0;
 
 	if (pos == 0 || pos == fc->size)
-		PANIC("Check caller - possible value, but unnecessary!");
+		DERROR("Check caller - possible value, but unnecessary!");
 	if (pos < 0 || pos > fc->size)
-		PANIC("Uh split of filecluster at weird size!");
+		DERROR("Uh split of filecluster at weird size!");
 
 	if (fc->cluster && fc->cluster == tail)
 		coff = fc->coff + pos;
@@ -957,7 +957,7 @@ static filecluster_t *_filecluster_split(filecluster_t *fc, off_t pos)
 	off_t aligned_pos;
 
 	if (pos < 0 || pos > fc->size)
-		PANIC("filecluster split at weird size");
+		DERROR("filecluster split at weird size");
 
 	if (pos == 0)
 		return fc;
@@ -1620,7 +1620,7 @@ int file_truncate(fileid_t fid, off_t size)
 	/* truncate file */
 	} else {
 		if (!(fc = _filecluster_findbyoff(f, size, NULL)))
-			PANIC("Uh! Corrupted filecluster list and/or offsets!");
+			DERROR("Uh! Corrupted filecluster list and/or offsets!");
 		/* we have to be careful to not have any not discardable
 		 * mappings of a to be truncated filecluster. so we do
 		 * two walks through the to be truncated fileclusters.
@@ -1890,7 +1890,7 @@ int file_transaction_undo(fileid_t fid)
 	/* we now should have the end record of the to be undone
 	 * transaction. */
 	if (l->op != LOGENTRY_END)
-		PANIC("uh, log messed up!?");
+		DERROR("uh, log messed up!?");
 
 	/* reverse actions */
 	do {
@@ -1902,7 +1902,7 @@ int file_transaction_undo(fileid_t fid)
 						       fcstart);
 			if (!fcstart || fcstart->off != l->u.insert.pos
 			    || !fcend || filecluster_end(fcend) != l->u.insert.pos+l->u.insert.size-1)
-				PANIC("uh!? what happened?");
+				DERROR("uh!? what happened?");
 			_file_delete(f, fcstart, fcend, l->u.insert.f);
 			/* FIXME!! for redo we may not rehash the file!
 			 * but undo means rehashing it... uh!
@@ -1914,7 +1914,7 @@ int file_transaction_undo(fileid_t fid)
 			fcstart = _filecluster_findbyoff(f, l->u.delete.pos - 1, NULL);
 			if ((!fcstart && l->u.delete.pos != 0)
 			    || (fcstart && filecluster_end(fcstart) != l->u.delete.pos-1))
-				PANIC("Uh!? what happened?");
+				DERROR("Uh!? what happened?");
 			_file_insert(f, fcstart, l->u.delete.f);
 			_ffree(l->u.delete.f);
 			l->u.delete.f = NULL;
@@ -1951,7 +1951,7 @@ int file_transaction_redo(fileid_t fid)
 	/* lookup the remembered begin entry (sanity-check can be removed) */
 	if (!(l = _logentry_findbyid(f, f->logpos))
 	    || l->op != LOGENTRY_BEGIN)
-		PANIC("uh, log messed up!?");
+		DERROR("uh, log messed up!?");
 
 	/* redo actions */
 	do {
@@ -1961,7 +1961,7 @@ int file_transaction_redo(fileid_t fid)
 			fcstart = _filecluster_findbyoff(f, l->u.insert.pos - 1, NULL);
 			if ((!fcstart && l->u.insert.pos != 0)
 			    || (fcstart && filecluster_end(fcstart) != l->u.insert.pos - 1))
-				PANIC("uh? what happened??");
+				DERROR("uh? what happened??");
 			_file_insert(f, fcstart, l->u.insert.f);
 			file_use(l->u.insert.f);
 			break;
@@ -1971,7 +1971,7 @@ int file_transaction_redo(fileid_t fid)
 						       fcstart);
 			if (!fcstart || fcstart->off != l->u.delete.pos
 			    || !fcend || filecluster_end(fcend) != l->u.delete.pos + l->u.delete.size-1)
-				PANIC("uh? what happened??");
+				DERROR("uh? what happened??");
 			l->u.delete.f = _file_delete(f, fcstart, fcend, NULL);
 			break;
 		default:

@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.1 2000/01/31 10:04:04 richi Exp $
+ * $Id: debug.c,v 1.2 2000/02/01 13:59:39 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -33,7 +33,7 @@
  * hardcoded.
  * all is very simple and _synchron_(!), so dont lower dt
  * too much. */
-int ping(filter_node_t *n)
+static int ping(filter_node_t *n)
 {
 	filter_buffer_t *in, *out;
 	filter_pipe_t *i, *o;

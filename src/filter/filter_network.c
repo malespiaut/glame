@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.5 2000/01/27 15:50:43 richi Exp $
+ * $Id: filter_network.c,v 1.6 2000/02/01 13:59:39 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -57,7 +57,8 @@ filter_network_t *filternetwork_new()
 	INIT_LIST_HEAD(&net->inputs);
 	INIT_LIST_HEAD(&net->outputs);
 
-	pthread_mutex_init(&net->mx, NULL);
+	if (pthread_mutex_init(&net->mx, NULL) != 0)
+		DERROR("error in pthread_mutex_init");
 	net->state = STATE_UNDEFINED;
 
 	return net;
@@ -78,15 +79,18 @@ int filternetwork_launch(filter_network_t *net)
 	sigprocmask(SIG_BLOCK, &sigs, NULL);
 
 	/* lock state&result */
-	pthread_mutex_lock(&net->mx);
+	if (pthread_mutex_lock(&net->mx) != 0)
+		DERROR("error in pthread_mutex_lock");
 	if (net->state != STATE_UNDEFINED) {
-		pthread_mutex_unlock(&net->mx);
+		if (pthread_mutex_unlock(&net->mx) != 0)
+			DERROR("error in pthread_mutex_unlock");
 		return -1;
 	}
 
 	net->result = 0;
 	net->state = STATE_LAUNCHED;
-	pthread_mutex_unlock(&net->mx);
+	if (pthread_mutex_unlock(&net->mx) != 0)
+		DERROR("error in pthread_mutex_unlock");
 
 	filternetwork_foreach_input(net, n)
 		if (preprocess_node(n) == -1)
@@ -106,9 +110,11 @@ int filternetwork_launch(filter_network_t *net)
 	filternetwork_foreach_input(net, n)
 		postprocess_node(n);
 
-	pthread_mutex_lock(&net->mx);
+	if (pthread_mutex_lock(&net->mx) != 0)
+		DERROR("error in pthread_mutex_lock");
 	net->state = STATE_UNDEFINED;
-	pthread_mutex_unlock(&net->mx);
+	if (pthread_mutex_unlock(&net->mx) != 0)
+		DERROR("error in pthread_mutex_unlock");
 
 	return -1;
 }
@@ -119,13 +125,16 @@ int filternetwork_wait(filter_network_t *net)
 	int res, wait_again;
 	filter_node_t *n;
 
-	pthread_mutex_lock(&net->mx);
+	if (pthread_mutex_lock(&net->mx) != 0)
+		DERROR("error in pthread_mutex_lock");
 	if (net->state != STATE_LAUNCHED) {
-		pthread_mutex_unlock(&net->mx);
+		if (pthread_mutex_unlock(&net->mx) != 0)
+			DERROR("error in pthread_mutex_unlock");
 		return -1;
 	}
 	net->state = STATE_UNDEFINED;
-	pthread_mutex_unlock(&net->mx);
+	if (pthread_mutex_unlock(&net->mx) != 0)
+		DERROR("error in pthread_mutex_unlock");
 
 	do {
 		wait_again = 0;
@@ -138,7 +147,7 @@ int filternetwork_wait(filter_network_t *net)
 	filternetwork_foreach_input(net, n)
 		postprocess_node(n);
 
-	printf("net result is %i\n", net->result);
+	DPRINTF("net result is %i\n", net->result);
 	return net->result;
 }
 
@@ -214,15 +223,19 @@ static void *launcher(void *node)
 	filter_pipe_t *p;
 	filter_node_t *n = (filter_node_t *)node;
 
+	DPRINTF("%s launched\n", n->filter->name);
+
 	if (n->filter->f(n) == 0)
 		return NULL;
 
-	printf("%s had failure\n", n->filter->name);
+	DPRINTF("%s had failure\n", n->filter->name);
 
 	/* set result */
-	pthread_mutex_lock(&n->net->mx);
+	if (pthread_mutex_lock(&n->net->mx) != 0)
+		DERROR("error in pthread_mutex_lock");
 	n->net->result = -1;
-	pthread_mutex_unlock(&n->net->mx);
+	if (pthread_mutex_unlock(&n->net->mx) != 0)
+		DERROR("error in pthread_mutex_unlock");
 
 	/* send EOFs */
 	list_foreach_output(n, p)

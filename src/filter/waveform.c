@@ -63,8 +63,8 @@ static int sinus_f(filter_node_t *n)
 	if ((buf = fbuf_alloc(size))==NULL) return -1;
 
 	cnt=(int)(44100.0/size*duration/1000.0);
-	fprintf(stderr,"cnt=%d\n",cnt);
-	fprintf(stderr,"Allocated Buffer with size %d! Generating Sinus!\n",size);
+	DPRINTF("cnt=%d\n",cnt);
+	DPRINTF("Allocated Buffer with size %d! Generating Sinus!\n",size);
         for(i=0;i<size;i++) fbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
 
 	for(i=0;i<cnt;i++){

@@ -27,11 +27,20 @@
 #include <stdio.h>
 
 
-#ifndef NDEBUG
 #define PANIC(msg) do { fprintf(stderr, "\nPANIC in file " __FILE__ ", function " __PRETTY_FUNCTION__ ":\n" msg "\n"); perror("errno says"); *((int *)0)=0; } while (0)
+
+#ifndef NDEBUG
+#define DERROR(msg) PANIC(msg)
 #else
-#define PANIC(msg)
+#define DERROR(msg)
 #endif
+
+#ifdef DEBUG
+#define DPRINTF(msg, args...) printf(__PRETTY_FUNCTION__ ": " msg, ## args);
+#else
+#define DPRINTF(msg, args...)
+#endif
+
 
 #ifndef MIN
 #define MIN(a, b) ((a)<(b)?(a):(b))

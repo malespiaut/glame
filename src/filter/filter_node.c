@@ -1,6 +1,6 @@
 /*
  * filter_node.c
- * $Id: filter_node.c,v 1.7 2000/01/31 10:04:04 richi Exp $
+ * $Id: filter_node.c,v 1.8 2000/02/01 13:59:39 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -118,7 +118,7 @@ int filternode_connect(filter_node_t *source, const char *source_port,
 	/* invariants we want to test here(?) */
 	if (!hash_find_input(dest_port, p->dest)
 	    || !hash_find_output(source_port, p->source))
-		PANIC("UHHH!\n");
+		DERROR("UHHH!\n");
 
 	return 0;
 
