@@ -127,23 +127,25 @@ static inline int nto1_tail(nto1_state_t *I, int nr)
  */
 static inline gl_s16 SAMPLE2SHORT(SAMPLE s)
 {
-        return (gl_s16)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<15));
+        return (gl_s16)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))
+		*(s<0.0 ? (1<<15) : (1<<15)-1));
 }
 static inline gl_u16 SAMPLE2USHORT(SAMPLE s)
 {	
-	s += 1.0;
-	return (gl_u16)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<15));
+	s += 1.0, s *= 0.5;
+	return (gl_u16)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<16)-1));
 }
 #define SHORT2SAMPLE(s)  ((SAMPLE)(gl_s16)(s)/(SAMPLE)(1<<15))
 #define USHORT2SAMPLE(s) ((SAMPLE)(gl_u16)(s)/(SAMPLE)(1<<15) - 1.0)
 static inline gl_s8 SAMPLE2CHAR(SAMPLE s)
 {
-        return (gl_s8)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))*(1<<7));
+        return (gl_s8)((s<-1.0 ? -1.0 : (s>1.0 ? 1.0 : s))
+		*(s<0.0 ? (1<<7) : (1<<7)-1));
 }
 static inline gl_u8 SAMPLE2UCHAR(SAMPLE s)
 {
-	s += 1.0;
-	return (gl_u8)((s<0.0 ? 0.0 : (s>2.0 ? 2.0 : s))*(1<<7));
+	s += 1.0, s *= 0.5;
+	return (gl_u8)((s<0.0 ? 0.0 : (s>1.0 ? 1.0 : s))*((1<<7)-1));
 }
 #define CHAR2SAMPLE(s)  ((SAMPLE)(gl_s8)(s)/(SAMPLE)(1<<7))
 #define UCHAR2SAMPLE(s) ((SAMPLE)(gl_u8)(s)/(SAMPLE)(1<<7) - 1.0)
