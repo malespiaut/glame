@@ -1,5 +1,5 @@
 /*
- * $Id: atomic_mips.h,v 1.5 2000/04/11 12:22:50 nold Exp $
+ * $Id: atomic_mips.h,v 1.6 2000/10/28 13:42:31 richi Exp $
  *
  * 
  * Most of the code was taken from include/asm-mips/atomic.h from the
@@ -23,6 +23,11 @@
 #ifndef _ATOMIC_MIPS_H
 #define _ATOMIC_MIPS_H
 
+/*
+ * Make sure gcc doesn't try to be clever and move things around
+ * on us. We need to use _exactly_ the address the user gave us,
+ * not some alias that contains the same information.
+ */
 typedef struct { volatile int counter; } glame_atomic_t;
 
 #define ATOMIC_INIT(a, val) do { (a).counter = (val); } while(0)
@@ -33,12 +38,6 @@ typedef struct { volatile int counter; } glame_atomic_t;
 #define atomic_read(v)	((v)->counter)
 #define atomic_set(v,i)	((v)->counter = (i))
 
-/*
- * Make sure gcc doesn't try to be clever and move things around
- * on us. We need to use _exactly_ the address the user gave us,
- * not some alias that contains the same information.
- */
-#define __atomic_fool_gcc(x) (*(volatile struct { int a[100]; } *)x)
 
 static inline void atomic_add(int i, volatile glame_atomic_t * v)
 {
@@ -50,9 +49,9 @@ static inline void atomic_add(int i, volatile glame_atomic_t * v)
 		"sc\t%0,%1\n\t"
 		"beqz\t%0,1b"
 		:"=&r" (temp),
-		 "=m" (__atomic_fool_gcc(v))
+		 "=m" (v->counter)
 		:"Ir" (i),
-		 "m" (__atomic_fool_gcc(v)));
+		 "m" (v->counter));
 }
 
 static inline void atomic_sub(int i, volatile glame_atomic_t * v)
@@ -65,9 +64,9 @@ static inline void atomic_sub(int i, volatile glame_atomic_t * v)
 		"sc\t%0,%1\n\t"
 		"beqz\t%0,1b"
 		:"=&r" (temp),
-		 "=m" (__atomic_fool_gcc(v))
+		 "=m" (v->counter)
 		:"Ir" (i),
-		 "m" (__atomic_fool_gcc(v)));
+		 "m" (v->counter));
 }
 
 static inline int atomic_sub_return(int i, glame_atomic_t * v)
@@ -84,9 +83,10 @@ static inline int atomic_sub_return(int i, glame_atomic_t * v)
                 ".set\treorder"
                 :"=&r" (result),
                  "=&r" (temp),
-                 "=m" (__atomic_fool_gcc(v))
+                 "=m" (v->counter)
                 :"Ir" (i),
-                 "m" (__atomic_fool_gcc(v)));
+                 "m" (v->counter)
+		:"memory");
 
         return result;
 }
@@ -97,4 +97,3 @@ static inline int atomic_sub_return(int i, glame_atomic_t * v)
 #define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
 
 #endif /* __ASM_MIPS_ATOMIC_H */
-

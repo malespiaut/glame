@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.8 2000/04/11 12:22:50 nold Exp $
+ * $Id: atomic.h,v 1.9 2000/10/28 13:42:31 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,11 @@
 #include <config.h>
 #endif
 
-#include <pthread.h>
-
+#if defined CPU_X86
+#include "atomic_x86.h"
+#elif defined CPU_MIPS
+#include "atomic_mips.h"
+#else
 /*
  * The generic C versions of atomic operations in this file are safe but slow. 
  * If possible, we use the much more efficient assembler versions in 
@@ -36,11 +39,8 @@
  * an asm version if you port to a new platform. [dk]
  */
 
-#if defined CPU_X86
-#include "atomic_x86.h"
-#elif defined CPU_MIPS
-#include "atomic_mips.h"
-#else
+#include <pthread.h>
+
 
 typedef struct {
 	pthread_mutex_t mx;
