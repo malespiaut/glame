@@ -834,6 +834,8 @@ static SCM gls_plugin_get(SCM s_name)
 	name = gh_scm2newstr(s_name, &namel);
 	p = plugin_get(name);
 	free(name);
+	if (!p)
+		GLAME_THROW();
 	return plugin2scm(p);
 }
 
