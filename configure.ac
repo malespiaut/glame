@@ -444,6 +444,19 @@ ACG_PKG_CHECK_MODULES(MAD, mad,
   ])
 ])
 
+
+dnl check for libmp3lame
+acg_save_LIBS="$LIBS"
+AC_CHECK_LIB(mp3lame, lame_init_params, mp3lame=yes, mp3lame=no, -lm)
+AC_CHECK_HEADER([lame/lame.h],, mp3lame=no)
+if test $mp3lame = yes; then
+        AC_DEFINE(HAVE_LIBMP3LAME,, [have mp3lame library])
+        GLAME_LIBS="$GLAME_LIBS -lmp3lame -lm"
+fi
+LIBS="$acg_save_LIBS"
+AM_CONDITIONAL(HAVE_LIBMP3LAME, test x$mp3lame = xyes)
+
+
 dnl check for libvorbisfile
 AC_CHECK_HEADERS([vorbis/codec.h],
 [
