@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.15 2001/05/29 07:52:45 richi Exp $
+ * $Id: arithmetic.c,v 1.16 2001/06/05 09:25:13 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -340,7 +340,7 @@ int invert_register(plugin_t *p)
 	f->f = invert_f;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "inverse the phase of an audio stream");
-	plugin_set(p, PLUGIN_PIXMAP, "invert.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "invert.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	
 	return filter_register(f, p);

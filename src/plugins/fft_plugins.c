@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.6 2001/05/29 07:52:45 richi Exp $
+ * $Id: fft_plugins.c,v 1.7 2001/06/05 09:25:13 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -533,7 +533,7 @@ int fft_resample_register(plugin_t *p)
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED, fft_resample_fixup_param, NULL);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Resample fft-stream");
-	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
+	plugin_set(p, PLUGIN_PIXMAP, "resample.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT_Resample");
 	
@@ -656,7 +656,7 @@ int fft_equalizer_register(plugin_t *p)
 	f->f = fft_equalizer_f;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "FFT 5-Band Equalizer");
-	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
+	plugin_set(p, PLUGIN_PIXMAP, "equalizer.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT_Bandpass");
 	
@@ -767,7 +767,7 @@ int fft_bandpass_register(plugin_t *p)
 	f->f = fft_bandpass_f;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "FFT Bandpass");
-	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
+	plugin_set(p, PLUGIN_PIXMAP, "bandpass.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT_Equalizer");
 	

@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.18 2001/05/29 22:33:53 mag Exp $
+ * $Id: iir.c,v 1.19 2001/06/05 09:25:13 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -514,7 +514,7 @@ int highpass_register(plugin_t *p)
 			    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev Lowpass");
-	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "iir.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
 	
@@ -551,7 +551,7 @@ int lowpass_register(plugin_t *p)
 			    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev Highpass");
-	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "iir.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
 	
@@ -594,7 +594,7 @@ int bandpass_register(plugin_t *p)
 			    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Chebyshev 2-stage Bandpass");
-	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "bandpass.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
 	
@@ -627,7 +627,7 @@ int bandpass_a_register(plugin_t *p)
 			    FILTERPARAM_END);
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "Biquad Bandpass (analog modelled bandpass)");
-	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "bandpass.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Frequency");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IIR");
 	

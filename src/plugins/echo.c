@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.18 2001/05/29 07:52:45 richi Exp $
+ * $Id: echo.c,v 1.19 2001/06/05 09:25:13 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -198,6 +198,7 @@ int echo_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "echo effect");
 	plugin_set(p, PLUGIN_CATEGORY, "Effects");
+	plugin_set(p, PLUGIN_PIXMAP, "echo.png");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Echo");  
 	return filter_register(f, p);
 }

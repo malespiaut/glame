@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.12 2001/05/29 07:52:45 richi Exp $
+ * $Id: noisegate.c,v 1.13 2001/06/05 09:25:13 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -161,7 +161,7 @@ int noisegate_register(plugin_t *p)
 			FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "noisegate filters all signals that are below the threshold");
-	plugin_set(p, PLUGIN_PIXMAP, "bitfence.xpm");
+	plugin_set(p, PLUGIN_PIXMAP, "noisegate.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH,"Noisegate");
 		
