@@ -1,0 +1,112 @@
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+
+  <!ENTITY dhfirstname "<firstname>Daniel</firstname>">
+  <!ENTITY dhsurname   "<surname>Kobras</surname>">
+  <!ENTITY dhdate      "<date>April 25, 2001</date>">
+  <!ENTITY dhsection   "<manvolnum>1</manvolnum>">
+  <!ENTITY dhemail     "<email>kobras@debian.org</email>">
+  <!ENTITY dhusername  "Daniel Kobras">
+  <!ENTITY dhucpackage "<refentrytitle>GLAME</refentrytitle>">
+  <!ENTITY dhpackage   "<application>glame</application>">
+  <!ENTITY dhcmd       "<command>glame-convert.sh</command>">
+
+  <!ENTITY debian      "<productname>Debian GNU/Linux</productname>">
+  <!ENTITY gnu         "<acronym>GNU</acronym>">
+]>
+
+<refentry>
+  <refentryinfo>
+    <address>
+      &dhemail;
+    </address>
+    <author>
+      &dhfirstname;
+      &dhsurname;
+    </author>
+    <copyright>
+      <year>2001</year>
+      <holder>&dhusername;</holder>
+    </copyright>
+    &dhdate;
+  </refentryinfo>
+  <refmeta>
+    &dhucpackage;
+
+    &dhsection;
+  </refmeta>
+  <refnamediv>
+    <refname>&dhpackage;</refname>
+
+    <refpurpose>Convert format of GLAME persistant storage files</refpurpose>
+  </refnamediv>
+  <refsynopsisdiv>
+    <cmdsynopsis>
+	&dhcmd;
+
+      <arg><replaceable>swapfile</replaceable></arg> 
+    </cmdsynopsis>
+  </refsynopsisdiv>
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>The <command>glame</command> audio editor keeps all project data
+          on disk in a internal representation, called the
+	  swapfile. The format of this swapfile changed between
+	  the 0.4, and the 0.6 series of Glame. &dhcmd; lets you convert an
+	  0.4 swapfile to 0.6 format and vice versa. It will autodetect
+	  which format is currently present and always convert to the other
+	  one.
+
+  </refsect1>
+  <refsect1>
+    <title>OPTIONS</title>
+
+    <variablelist>
+      <varlistentry>
+        <term><replaceable>swapfile</replaceable>
+        </term>
+        <listitem>
+          <para>File (directory actually) that acts as Glame's backing store.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para><command>glame</command> (1), <command>cglame</command> (1).</para>
+
+  </refsect1>
+  <refsect1>
+    <title>AUTHOR</title>
+
+    <para>This manual page was written by &dhusername; &dhemail;.</para>
+
+    <para>Permission is granted to copy, distribute and/or modify
+      this document under the terms of the <acronym>GNU</acronym> Free
+      Documentation License, Version 1.1 or any later version
+      published by the Free Software Foundation; with no Invariant
+      Sections, no Front-Cover Texts and no Back-Cover Texts.  On Debian
+      GNU/Linux systems, a copy of the license can be found under
+      <filename>/usr/share/common-licenses/FDL</filename>.</para>
+
+  </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->

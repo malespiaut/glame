@@ -1,11 +1,11 @@
 #!/usr/bin/make -f
-# $Id: rules,v 1.9 2001/12/10 12:43:59 nold Exp $
+# $Id: rules,v 1.10 2001/12/20 21:53:20 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
 # This is the debhelper compatability version to use.
-export DH_COMPAT=3
+export DH_COMPAT=2
 
 export DEB_GLAME_PREFIX=/usr
 export DEB_GLAME_INFODIR=/usr/share/info
@@ -48,6 +48,7 @@ build-stamp:
 	$(MAKE)
 	/usr/bin/docbook-to-man debian/cglame.sgml > debian/cglame.1
 	/usr/bin/docbook-to-man debian/glame.sgml > debian/glame.1
+	/usr/bin/docbook-to-man debian/glame-convert.sgml > debian/glame-convert.sh.1
 
 	touch build-stamp
 
@@ -89,13 +90,13 @@ binary-arch: build install
 	dh_testroot
 	dh_installdocs
 	dh_installmenu
-	dh_installman
+	dh_installmanpages
 	dh_installinfo
 	dh_installchangelogs ChangeLog
 	dh_link
 	dh_strip
 	dh_compress
-	dh_fixperms
+	-dh_fixperms
 	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps -Xdebian/glame/usr/lib/glame/ -- \
