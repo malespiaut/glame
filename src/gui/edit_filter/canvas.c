@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.77 2001/04/23 18:18:41 xwolf Exp $
+ * $Id: canvas.c,v 1.78 2001/04/24 11:31:49 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -88,7 +88,7 @@ static void canvas_zoom_in_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_zoom_out_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_update_scroll_region_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canvas);
-static void canvas_remove_redirections(GlameCanvas *canvas, const char *name);
+static void canvas_remove_redirections(GlameCanvasItem *item);
 guint nPopupTimeout = 200;
 gboolean bMac;
 static guint nPopupTimeoutId;
@@ -1351,7 +1351,7 @@ canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y)
 static void
 canvas_item_destroy(GlameCanvasItem* it)
 {
-
+	canvas_remove_redirections(it);
 	filter_delete(it->filter);
 	gtk_object_destroy(GTK_OBJECT(it));
 }
@@ -1577,7 +1577,6 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 	GtkWidget * nameEntry;
 	GtkWidget * dialog;
 	GtkWidget * vbox;
-	GlameCanvas *canv;
 	char * filenamebuffer;
 	filter_portdb_t *ports;
 	filter_port_t * newport;
@@ -1597,7 +1596,7 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 	gtk_signal_connect(GTK_OBJECT(nameEntry),"changed",
 			   changeString,&filenamebuffer);
 	sprintf(nameBuffer,"%s_%s",filter_name(filterport_filter(blu->port)),filterport_label(blu->port));
-	gtk_entry_set_text(nameEntry,nameBuffer);
+	gtk_entry_set_text(GTK_ENTRY(nameEntry),nameBuffer);
 	create_label_widget_pair(vbox,"New port name",nameEntry);
 	
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
@@ -1647,7 +1646,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 	GList * items=NULL;
 	char * paramnamebuffer;
 	char * externnamebuffer;
-	GlameCanvas * canv;
+
 	paramnamebuffer = calloc(100,sizeof(char));
 	externnamebuffer = calloc(100,sizeof(char));
 
@@ -1948,37 +1947,37 @@ static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 
 	
 static void
-canvas_remove_redirections(GlameCanvas *canvas, const char *name)
+canvas_remove_redirections(GlameCanvasItem *item)
 {
-	return;
-/*
-GList * foo = g_list_first(canvas->net->redirectedPorts);
-	int l = strlen(name);
-	Redirection* red;
-	while(foo){
-		if(!strncmp(name,filter_name(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(((Redirection*)(foo->data))->source)->parent)->filter),l)){
-			red = (Redirection*)(foo->data);
-			filterportdb_delete_port(filter_portdb(canvas->net->net),red->externalName);
-			foo = g_list_remove(foo,foo->data);
-			free(red);
-		}			
-		foo = g_list_next(foo);
-	}
-	canvas->net->redirectedPorts = g_list_first(foo);
+
+	filter_t * filter, *net;
+	filter_port_t *port;
+	filter_param_t *parm;
+	const char *filtername;
+	const char *buffer;
+	void *dummy;
+
+	net = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas)->net->net;
+	filter = item->filter;
 	
-	foo = g_list_first(canvas->net->redirectedParameters);
-	while(foo){
-		if(!strncmp(name,filter_name(GLAME_CANVAS_ITEM(((Redirection*)(foo->data))->source)->filter),l)){
-			red = (Redirection*)(foo->data);
-			filterparamdb_delete_param(filter_paramdb(canvas->net->net),red->externalName);
-			fprintf(stderr,"%s\n",red->externalName);
-			foo = g_list_remove(foo,foo->data);
-			free(red);
-		}			
-		foo = g_list_next(foo);
+	filtername = filter_name(filter);
+
+	filterparamdb_safe_foreach_param(filter_paramdb(net),dummy,parm){
+		DPRINTF("%s %s\n",filtername,filterparam_label(parm));
+		buffer = filterparam_get_property(parm,FILTERPARAM_MAP_NODE);
+		if(buffer)
+			if(!strcmp(buffer,filtername)){
+				filterparam_delete(parm);
+			}
+		DPRINTF("bla\n");
 	}
-	canvas->net->redirectedParameters = g_list_first(foo);
-*/
+	filterportdb_safe_foreach_port(filter_portdb(net),dummy,port){
+		buffer = filterport_get_property(port,FILTERPORT_MAP_NODE);
+		if(buffer)
+			if(!strcmp(buffer,filtername)){
+				filterport_delete(port);
+			}
+	}
 
 }	
 
@@ -2109,7 +2108,6 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	GtkWidget * tablabel;
 	GtkCList * list;
 
-	GnomeCanvasItem* item;
 		
 	filter_portdb_t * ports;
 	filter_paramdb_t * params;
@@ -2122,7 +2120,7 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	char *labels[] = {"Name","Type","Description","Source"};
 	char *plabels[] = {"Name","Value","Description","Source"};
 	char ** line;
-	char * buffer;
+	const char * buffer;
 	filter = canvas->net->net;
 
 	ports = filter_portdb(filter);
