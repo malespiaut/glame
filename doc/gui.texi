@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.24 2005/03/28 20:26:43 richi Exp $
+@comment $Id: gui.texi,v 1.25 2005/03/30 17:53:06 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -51,7 +51,8 @@ Double-clicking on an item allows you to change the name later as well.
 Now you're all set to start importing @dfn{files} into your new project, or to
 subdivide it further into @dfn{groups}. A context sensitive menu offering
 operations on groups or items respectively pops up when you press the
-right mouse button. Those are your options:
+right mouse button.  The first item in the menu always hints at the name
+of the group or track you are applying the operation to.  Those are your options:
 
 @subsection Operations on groups
 
@@ -61,6 +62,10 @@ pops up a new window of the wave editor @pxref{The Wave Editor} containing
 all items of the group, where you can easily modify them. This operation is
 not allowed for groups that in turn contain further sub-groups. Opening
 a wave editor can be done by using the @code{w} key, too.
+
+@item Group properties...
+pops up a window where you can change the properties of the group such
+as its name.
 
 @item Delete
 deletes the current group and all its items.
@@ -73,11 +78,11 @@ adds the contents of the clipboard as a new group to the current
 group. The clipboard's contents are populated via the edit operations in
 the wave editor.
 
-@item Add mono wave
+@item Add mono track
 adds a new mono wave to the current group. This is useful when you want to
 start recording a new track, or paste some random stuff into a separate location.
 
-@item Add stereo wav
+@item Add stereo track
 Same as above, but adds two track for stereo recording instead of a single one.
 
 @item Link selected
@@ -122,6 +127,10 @@ pops up a new window of the wave editor @pxref{The Wave Editor},
 where you can modify the selected item. Opening
 a wave editor can be done by using the @code{w} key, too.
 
+@item Track properties...
+pops up a window where you can change the properties of the track such
+as its name, its samplerate and position in the stereo field.
+
 @item Delete
 deletes the current item.
 
@@ -139,6 +148,7 @@ is done through a powerful export dialog which is described in the
 dialogs section.
 @end table
 
+@ignore
 Sequencing multiple waves in the main window is rather easy.  Using drag and
 drop while pressing some modifier keys, you can move waves between horizontally
 (hbox) and vertically (vbox) sequenced boxes (groups).  See below for a list of
@@ -188,7 +198,9 @@ associates the active wave with the right channel.
 @item CTRL-m
 associates the active wave with both channels (mono).
 @end table
+@end ignore
 
+@subsection Menu items
 
 The following items are present in the @dfn{Project} menu:
 
@@ -196,12 +208,18 @@ The following items are present in the @dfn{Project} menu:
 @item New Project
 Creates a new project (a toplevel group).
 
-@item Edit File
+@item Edit File...
 Very quick shortcut to edit one file. File selection is done through the import
 dialog. A waveedit window is popped up with the selected file. Note that
 the file is not permanently stored in GLAME's swapfile, but instead
 is removed from it once you close the waveedit window. So you really want
 to re-export the file once you are finished editing.
+
+@item Record Wave...
+Quick shortcut to record to an empty stereo track.  A waveedit window is
+popped up with an empty stereo track where you can start recording into.
+Note that you need to export the results to a file before closing the window,
+as this mini-project is not included in the project list of the main window.
 
 @item Import...
 Imports a file into the GLAME swapfile without creating a project first.
@@ -223,7 +241,7 @@ language. Or just watch the error logs that pop up here as well.
 Syncs the metadata of the swapfile to disk. That's mostly a debugging aid that
 you usually should not need to invoke.
 
-@item Exit
+@item Quit
 Exits GLAME. The current state of the swapfile is saved and the project
 tree will persist in its current state.
 @end table
