@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.44 2000/12/11 10:44:41 richi Exp $
+; $Id: glame.scm,v 1.45 2000/12/22 10:47:41 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -466,6 +466,25 @@
 
 (add-help 'save-eff '(input-filename output-filename effect ...)
 	  "apply the effects to the input and write output")
+
+
+;
+; read a file into one or two swapfiles
+;
+
+(define file-to-swap
+  (lambda (fname sf1 sf2)
+    (let* ((net (net-new))
+	   (rf (net-add-node net read-file))
+	   (so1 (net-add-node net "swapfile-out"))
+	   (so2 (net-add-node net "swapfile-out")))
+      (node-set-params rf `("filename" ,fname))
+      (node-set-params so1 `("filename" ,sf1))
+      (node-set-params so2 `("filename" ,sf2))
+      (nodes-connect `(,rf ,so1))
+      (nodes-connect `(,rf ,so2))
+      (net-run net))))
+
 
 ;;; Macro to create a new filternetwork
 ;;;
