@@ -379,3 +379,103 @@ msgstr ""
 #: src/gui/swapfilegui.c:956
 msgid "SwapfileGui"
 msgstr ""
+
+#: src/gui/apply.c:195
+msgid "effect"
+msgstr ""
+
+msgid "key_press_event"
+msgstr ""
+
+msgid "delete_event"
+msgstr ""
+
+msgid "moved"
+msgstr ""
+
+msgid "deleted"
+msgstr ""
+
+msgid "GlameCanvasFilter"
+msgstr ""
+
+msgid "canvas_x"
+msgstr ""
+
+msgid "canvas_y"
+msgstr ""
+
+msgid "immutable"
+msgstr ""
+
+msgid "undeletable"
+msgstr ""
+
+msgid "selected"
+msgstr ""
+
+msgid "x1"
+msgstr ""
+
+msgid "x2"
+msgstr ""
+
+msgid "y1"
+msgstr ""
+
+msgid "y2"
+msgstr ""
+
+msgid "black"
+msgstr ""
+
+msgid "outline_color"
+msgstr ""
+
+msgid "width_units"
+msgstr ""
+
+msgid "fill_color_rgba"
+msgstr ""
+
+msgid "x"
+msgstr ""
+
+msgid "y"
+msgstr ""
+
+msgid "clip_width"
+msgstr ""
+
+msgid "clip_height"
+msgstr ""
+
+msgid "fill_color"
+msgstr ""
+
+msgid "anchor"
+msgstr ""
+
+msgid "justification"
+msgstr ""
+
+msgid "font"
+msgstr ""
+
+msgid "clip"
+msgstr ""
+
+msgid "text"
+msgstr ""
+
+msgid "width"
+msgstr ""
+
+msgid "height"
+msgstr ""
+
+msgid "image"
+msgstr ""
+
+msgid "event"
+msgstr ""
