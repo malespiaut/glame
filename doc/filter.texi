@@ -1,6 +1,6 @@
-@comment $Id: filter.texi,v 1.30 2001/08/08 09:16:14 richi Exp $
+@comment $Id: filter.texi,v 1.31 2001/11/01 23:08:59 nold Exp $
 
-@node Filter API, Filter Tutorial, Plugin Collection, Top
+@node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
 
 @table @strong

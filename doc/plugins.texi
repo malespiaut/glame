@@ -1,6 +1,6 @@
-@comment $Id: plugins.texi,v 1.27 2001/07/02 09:51:26 richi Exp $
+@comment $Id: plugins.texi,v 1.28 2001/11/01 23:08:59 nold Exp $
 
-@node Plugin Collection, Filter API, Console Frontend, Top
+@node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
 
 @comment TODO: Which index should I list the plugins in?
