@@ -33,7 +33,7 @@ AC_PROG_CC
 if test "$GCC" = "yes"; then
 	AC_DEFINE(HAVE_GCC)
 	if test $debug -eq 0; then
-		CFLAGS="-O3 -fomit-frame-pointer -ffast-math"
+		CFLAGS="-O3 -fomit-frame-pointer -ffast-math -fstrict-aliasing"
 	elif test $debug -eq 1; then
 		CFLAGS="$CFLAGS -Wall"
 	else
