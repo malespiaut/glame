@@ -88,17 +88,17 @@ extern "C" {
  *  - missing swap file/parition
  *  - in use swap
  *  - unclean swap */
-int swapfile_open(char *name, int flags);
+int swapfile_open(const char *name, int flags);
 
 /* Closes and updates a previously opened swap file/partition
  * and marks it clean. */
 void swapfile_close();
 
 /* Tries to create an empty swapfile on name of size size. */
-int swapfile_creat(char *name, size_t size);
+int swapfile_creat(const char *name, size_t size);
 
 /* Tries to recover from unclean shutdown. */
-int swapfile_fsck(char *name);
+int swapfile_fsck(const char *name);
 
 
 

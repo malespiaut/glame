@@ -119,7 +119,7 @@ HASH(swfd, struct swfd, 8,
  *  - missing swap file/parition
  *  - in use swap
  *  - unclean swap */
-int swapfile_open(char *name, int flags)
+int swapfile_open(const char *name, int flags)
 {
 	char str[256];
 	int fd;
@@ -209,7 +209,7 @@ void swapfile_close()
 }
 
 /* Tries to create an empty swapfile on name of size size. */
-int swapfile_creat(char *name, size_t size)
+int swapfile_creat(const char *name, size_t size)
 {
 	char s[256];
 
@@ -226,7 +226,7 @@ int swapfile_creat(char *name, size_t size)
 }
 
 /* Tries to recover from an "unclean shutdown". */
-int swapfile_fsck(char *name)
+int swapfile_fsck(const char *name)
 {
 	char str[256];
 	FILE *f;
