@@ -1,4 +1,4 @@
-This is GLAME - GNU/Linux Audio Mechanics.
+This is GLAME v0.025 - GNU/Linux Audio Mechanics ALPHA release.
 
 This will be the first usable wav editor for linux.
 It will be actually a lot more than a wav editor! [richi]
@@ -52,6 +52,11 @@ Version 0.011:
 Version 0.020:
 - first release, main APIs nearly complete [richi]
 - does make tuut [Maggy]
+
+Version 0.025:
+- second public release, main APIs complete and documented
+- can play wavs including echo effect
+
 
 
 Features:
