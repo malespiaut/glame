@@ -243,6 +243,9 @@ struct gpsm_swfile_s {
 #define GPSM_GRP_CLIPBOARD_LABEL "[clipboard]"
 #define GPSM_GRP_CLIPBOARD_VPOS 980000
 
+/* Type for PLUGIN_GPSMOP callback functions. */
+typedef int (*gpsmop_func_t)(gpsm_item_t *, long, long);
+
 
 /* Initializes the gpsm subsystem using the specified swapfile
  * (the gpsm subsystem metadata is stored in swapfile file 0).
