@@ -7,7 +7,18 @@ Stuff queued for backporting:
 
 
 Items pending:
---------------
+==============
+
+gtk/gnome-2.0 transition:
+-------------------------
+	- copy glame_ruler, glame_hruler and glame_curve from their
+	  gtk+-2.0 source and re-modify them
+	- make gtknob a subclass of GtkRange
+	- use GtkTreeView, GtkTree* for the swapfile gui
+	- kill -DGTK_ENABLE_BROKEN on make
+
+other stuff:
+------------
 
 include/
 	- Consider moving includes beyond a glame/ directory
