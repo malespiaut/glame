@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.66 2001/04/19 23:22:29 xwolf Exp $
+ * $Id: canvas.c,v 1.67 2001/04/20 11:21:03 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -91,7 +91,7 @@ static void canvas_zoom_in_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_zoom_out_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_update_scroll_region_cb(GtkWidget*bla, GlameCanvas* canv);
 static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canvas);
-
+static void canvas_remove_redirections(GlameCanvas *canvas, const char *name);
 guint nPopupTimeout = 200;
 gboolean bMac;
 static guint nPopupTimeoutId;
@@ -1282,39 +1282,6 @@ canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y)
 	}
 }
 	
-	
-static void
-canvas_remove_redirections(GlameCanvas *canvas, const char *name)
-{
-	GList * foo = g_list_first(canvas->net->redirectedPorts);
-	int l = strlen(name);
-	Redirection* red;
-	while(foo){
-		if(!strncmp(name,filter_name(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(((Redirection*)(foo->data))->source)->parent)->filter),l)){
-			red = (Redirection*)(foo->data);
-			filterportdb_delete_port(filter_portdb(canvas->net->net),red->externalName);
-			foo = g_list_remove(foo,foo->data);
-			free(red);
-		}			
-		foo = g_list_next(foo);
-	}
-	canvas->net->redirectedPorts = g_list_first(foo);
-	
-	foo = g_list_first(canvas->net->redirectedParameters);
-	while(foo){
-		if(!strncmp(name,filter_name(GLAME_CANVAS_ITEM(((Redirection*)(foo->data))->source)->filter),l)){
-			red = (Redirection*)(foo->data);
-			filterparamdb_delete_param(filter_paramdb(canvas->net->net),red->externalName);
-			fprintf(stderr,"%s\n",red->externalName);
-			foo = g_list_remove(foo,foo->data);
-			free(red);
-		}			
-		foo = g_list_next(foo);
-	}
-	canvas->net->redirectedParameters = g_list_first(foo);
-
-
-}	
 
 static void
 canvas_item_destroy(GlameCanvasItem* it)
@@ -1599,6 +1566,7 @@ static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu)
 		}
 		red = malloc(sizeof(Redirection));
 		red->source = blu;
+		red->type = 1;
 		red->externalName = strdup(filenamebuffer);
 		canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(blu)->canvas);
 		canv->net->redirectedPorts = g_list_append(canv->net->redirectedPorts,red);
@@ -1682,6 +1650,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 					} else {
 						red = malloc(sizeof(Redirection));
 						red->source = item;
+						red->type = 2;
 						red->externalName = strdup(externnamebuffer);
 						canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas);
 						canv->net->redirectedParameters = g_list_append(canv->net->redirectedParameters,red);
@@ -1701,6 +1670,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 				}else{
 					red = malloc(sizeof(Redirection));
 					red->source = item;
+					red->type = 2;
 					red->externalName = strdup(filterparam_label(iter));
 					canv = GLAME_CANVAS(GNOME_CANVAS_ITEM(item)->canvas);
 					canv->net->redirectedParameters = g_list_append(canv->net->redirectedParameters,red);
@@ -1901,8 +1871,54 @@ static void draw_network_cb(GtkWidget *bla, GlameCanvasItem *item)
 	draw_network(item->filter);
 }
 
+
+/************************************
+ * FIXME!   all code below is very broken!
+ * Yes, I will fix it. please bear with me :) 
+ * xw
+ ************************************/
+
+
+	
+static void
+canvas_remove_redirections(GlameCanvas *canvas, const char *name)
+{
+	GList * foo = g_list_first(canvas->net->redirectedPorts);
+	int l = strlen(name);
+	Redirection* red;
+	while(foo){
+		if(!strncmp(name,filter_name(GLAME_CANVAS_ITEM(GNOME_CANVAS_ITEM(((Redirection*)(foo->data))->source)->parent)->filter),l)){
+			red = (Redirection*)(foo->data);
+			filterportdb_delete_port(filter_portdb(canvas->net->net),red->externalName);
+			foo = g_list_remove(foo,foo->data);
+			free(red);
+		}			
+		foo = g_list_next(foo);
+	}
+	canvas->net->redirectedPorts = g_list_first(foo);
+	
+	foo = g_list_first(canvas->net->redirectedParameters);
+	while(foo){
+		if(!strncmp(name,filter_name(GLAME_CANVAS_ITEM(((Redirection*)(foo->data))->source)->filter),l)){
+			red = (Redirection*)(foo->data);
+			filterparamdb_delete_param(filter_paramdb(canvas->net->net),red->externalName);
+			fprintf(stderr,"%s\n",red->externalName);
+			foo = g_list_remove(foo,foo->data);
+			free(red);
+		}			
+		foo = g_list_next(foo);
+	}
+	canvas->net->redirectedParameters = g_list_first(foo);
+
+
+}	
+
+
 static GnomeCanvasItem * find_filter_in_redirection(GList * redirs, const char* name)
 {
+
+	//FIXME! This is obsolete, use filter functions instead! xw
+
 	GList * foo = g_list_first(redirs);
 	int l = strlen(name);
 	while(foo){
@@ -1910,8 +1926,73 @@ static GnomeCanvasItem * find_filter_in_redirection(GList * redirs, const char* 
 			return ((Redirection*)(foo->data))->source;
 		foo = g_list_next(foo);
 	}
+	DPRINTF("Notfound\n");
 	return NULL;
 }
+
+static Redirection * find_redirection(GList * redirs, const char* name)
+{
+
+	//FIXME! This is obsolete, use filter functions instead! xw
+
+	GList * foo = g_list_first(redirs);
+	int l = strlen(name);
+	while(foo){
+		if(!strncmp(name,((Redirection*)(foo->data))->externalName,l))
+			return ((Redirection*)(foo->data));
+		foo = g_list_next(foo);
+	}
+	return NULL;
+}
+
+static void canvas_delete_redirection_cb(GtkWidget*foo, Redirection *red)
+{
+	GlameCanvas* canvas;
+	if(!red){
+		DPRINTF("empty redirection!\n");
+		return;
+	}
+	canvas = GLAME_CANVAS(GNOME_CANVAS_ITEM(red->source)->canvas);
+	switch(red->type) {
+	case 1:
+		// Port!
+		filterportdb_delete_port(filter_portdb(canvas->net->net),red->externalName);
+		canvas->net->redirectedPorts = g_list_remove(canvas->net->redirectedPorts,red);
+		GLAME_CANVAS_PORT(red->source)->port_type &= 0xfffffff-GUI_PORT_TYPE_EXTERNAL;
+		canvas_item_redraw(GNOME_CANVAS_ITEM(red->source)->parent);
+		//free(red); //hack
+		break;
+	case 2:
+		// Parameter!
+		filterparamdb_delete_param(filter_paramdb(canvas->net->net),red->externalName);
+		canvas->net->redirectedParameters = g_list_remove(canvas->net->redirectedParameters,red);
+		//free(red); //hack
+		break;
+	}
+}
+
+static GnomeUIInfo redirection_menu[] = 
+{
+	GNOMEUIINFO_ITEM_STOCK("Delete","Deletes selected redirection",
+			       canvas_delete_redirection_cb,
+			       GNOME_STOCK_MENU_TRASH),
+	GNOMEUIINFO_END
+};
+
+
+static void redirection_list_cb(GtkCList *list, gint row, gint column,
+			       GdkEvent* event, GList *reds)
+{
+	GtkWidget * menu;
+	int butt = bMac?1:3;
+	Redirection* foo;
+	menu = gnome_popup_menu_new(redirection_menu);
+	foo = g_list_nth_data(reds,row);
+	if(foo)
+		gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,foo);
+}
+
+	
 static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canvas)
 {
 	/*	GtkWidget *dialog;
@@ -1947,6 +2028,7 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	GtkWidget * notebook;
 	GtkWidget * tablabel;
 	GtkCList * list;
+
 	GnomeCanvasItem* item;
 	char * desc;
 	int pos=0;
@@ -1956,6 +2038,8 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 	filter_param_t * param;
 	filter_t * filter;
 	filter_port_t * port;
+	GList * redPorts=NULL;
+	GList * redParms=NULL;
 	
 	char *labels[] = {"Name","Type","Description","Source"};
 	char *plabels[] = {"Name","Value","Description","Source"};
@@ -1997,9 +2081,10 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 		else
 			buffer = strdup("Unkown");
 		line[3] = buffer;
-			
+		redPorts = g_list_append(redPorts,find_redirection(canvas->net->redirectedPorts,filterport_label(port)));
 		gtk_clist_append(list,line);
 	}
+	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_cb,redPorts);
 	gtk_widget_show(GTK_WIDGET(list));
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
 
@@ -2036,15 +2121,19 @@ static void canvas_network_property_dialog_cb(GtkWidget* foo, GlameCanvas *canva
 		else
 			buffer = strdup("Unkown");
 		line[3] = buffer;
-
+		redParms = g_list_append(redParms,find_redirection(canvas->net->redirectedParameters,filterparam_label(param)));
 		gtk_clist_append(list,line);
 	}
 	gtk_widget_show(GTK_WIDGET(list));
+	gtk_signal_connect(GTK_OBJECT(list),"select-row",redirection_list_cb,redParms);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook),GTK_WIDGET(list),tablabel);
-
+	
 	gtk_widget_show(notebook);
 	vbox = GNOME_DIALOG(dialog)->vbox;
 	gtk_container_add(GTK_CONTAINER(vbox),notebook);
 	
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
+	g_list_free(redPorts);
+	g_list_free(redParms);
+	
 }
