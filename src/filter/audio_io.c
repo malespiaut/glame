@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.8 2000/02/07 10:32:05 richi Exp $
+ * $Id: audio_io.c,v 1.9 2000/02/07 10:51:52 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -91,8 +91,8 @@ static int esd_in_f(filter_node_t *n)
 		}
 		printf("sampled %d bytes!\n",length);
 		lpos=rpos=i=0;
-		lbuf=fbuf_alloc(length/4,SAMPLE_SIZE,n);	/* FIXME 16bit stereo only */
-		rbuf=fbuf_alloc(length/4,SAMPLE_SIZE,n);
+		lbuf=sbuf_alloc(length/4,n);	/* FIXME 16bit stereo only */
+		rbuf=sbuf_alloc(length/4,n);
 		while(i<length/2){
 			fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
 			fbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buf[i++]);
