@@ -133,11 +133,11 @@ static void pan_pipe_changed(glsig_handler_t *h, long sig, va_list va)
  */
 static int pan_set_param(filter_param_t *param, const void *val)
 {
-	const float min = -M_PI_2;
-	const float max = M_PI_2;
-	float pan;
+	const double min = -M_PI_2;
+	const double max = M_PI_2;
+	double pan;
 
-	pan = *((float *)val);
+	pan = *((double *)val);
 	
 	if (pan < min)
 		return -1;

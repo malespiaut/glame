@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.59 2002/02/17 13:53:31 richi Exp $
+ * $Id: basic_sample.c,v 1.60 2002/02/21 21:31:14 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -1286,7 +1286,7 @@ static int pan2_set(filter_param_t *param, const void *val)
 {
 	filter_pipe_t *out;
 	filter_t *n;
-	float pos = *(float *)val;
+	double pos = *(double *)val;
 
 	if (pos < -M_PI || pos > M_PI)
 		return -1;
@@ -1295,8 +1295,7 @@ static int pan2_set(filter_param_t *param, const void *val)
 	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	if (!out)
 		return 0;
-	filterpipe_settype_sample(out, filterpipe_sample_rate(out),
-				  *(float *)val);
+	filterpipe_settype_sample(out, filterpipe_sample_rate(out), pos);
 	glsig_emit(filterpipe_emitter(out), GLSIG_PIPE_CHANGED, out);
 
 	return 0;

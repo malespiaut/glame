@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.40 2002/02/17 13:53:31 richi Exp $
+ * $Id: audio_io.c,v 1.41 2002/02/21 21:31:14 richi Exp $
  *
  * Copyright (C) 1999-2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -178,19 +178,19 @@ static void aio_generic_fixup_param(glsig_handler_t *h, long sig, va_list va)
 static int aio_generic_set_param(filter_param_t *param, const void *val)
 {
 	if (!strcmp("position", filterparam_label(param))) {
-		float hangle = *((float *) val);
+		double hangle = *((double *) val);
 		if (hangle <= -M_PI || hangle > M_PI)
 			return -1;
 		return 0;
 	}
 	if (!strcmp("rate", filterparam_label(param))) {
-		int rate = *((int *) val);
+		long rate = *((long *) val);
 		if (rate > 0)
 			return 0;
 		return -1;
 	}
 	if (!strcmp("duration", filterparam_label(param))) {
-		float duration = *((float *) val);
+		double duration = *((double *) val);
 		if (duration < 0.0)
 			return -1;
 		return 0;

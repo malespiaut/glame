@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.29 2002/02/17 13:53:31 richi Exp $
+ * $Id: waveform.c,v 1.30 2002/02/21 21:31:14 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -58,8 +58,8 @@ PLUGIN_SET(waveform, "sine const rect pulse ramp saw noise wave")
 static int waveform_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_t *n = filterport_filter(port);
-	int rate;
-	float pos;
+	long rate;
+	double pos;
 
 	rate = filterparam_val_long(filterparamdb_get_param(
 				filter_paramdb(n), "rate"));
@@ -668,9 +668,9 @@ static int pulse_set_rate(filter_param_t *param, const void *val)
 {
 	filter_pipe_t *out;
 	filter_t *n = filterparam_filter(param);
-	int rate;
+	long rate;
 
-	rate = *((int *) val);
+	rate = *((long *) val);
 	if (rate <= 0)
 		return -1;
 	
