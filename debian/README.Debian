@@ -1,8 +1,10 @@
 GLAME for Debian
 ----------------
 
-ALSA packages in unstable currently provide a broken build environment.
-Until this issue is fixed, the Debian GLAME package comes without ALSA
-plugins. Please workaround using ALSA's OSS emulation for the time being.
+In addition to Glame's native plugins, you can also use plugins that follow
+the Ladspa standard. The Debian version of Glame looks for Ladspa plugins
+in /usr/lib/ladspa and /usr/local/lib/ladspa by default. Setting the
+environment variable LADSPA_PATH, you can add further directories to the
+search path. Multiple directories have to be separated by colons.
 
- -- Daniel Kobras <kobras@debian.org>  Thu, 26 Apr 2001 14:33:10 +0200
+ -- Daniel Kobras <kobras@debian.org>  Tue,  3 Jul 2001 17:48:06 +0200
