@@ -3,7 +3,7 @@
 
 /*
  * glame_byteorder.h
- * $Id: glame_byteorder.h,v 1.1 2000/04/03 02:37:40 nold Exp $
+ * $Id: glame_byteorder.h,v 1.2 2000/04/03 09:17:35 richi Exp $
  * Copyright (C) 2000 Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,11 @@
 #include <config.h>
 #endif
 
+#ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
+#else
+#include <glame_swab.h>
+#endif
 #include "glame_types.h"
 
 /* We follow the Linux kernel style of defining endianness macros and functions.
