@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.8 2000/02/07 11:00:53 richi Exp $
+ * $Id: waveform.c,v 1.9 2000/02/07 16:12:50 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -59,32 +59,40 @@ static int sinus_f(filter_node_t *n)
 	else
 		duration = 10000;
 	
-	size=(int)(44100.0/freq);
-	if ((buf = sbuf_alloc(size, n))==NULL) return -1;
 
-	cnt=(int)(44100.0/size*duration/1000.0);
+	size = (int)(44100.0/freq);
+	cnt = (int)(freq*duration/1000.0);
+	if (!(buf = sbuf_alloc(size, n)))
+		return -1;
 
 	DPRINTF("cnt=%d\n",cnt);
 	DPRINTF("Allocated Buffer with size %d! Generating Sinus!\n",size);
-        for(i=0;i<size;i++) sbuf_buf(buf)[i]=ampl*sin(i*2*M_PI/size);
+	buf = sbuf_make_private(buf);
+        for (i=0; i<size; i++)
+		sbuf_buf(buf)[i] = ampl*sinf(i*2*M_PI/size);
 
 	FILTER_AFTER_INIT;
-	DPRINTF("Semaphores done!\n");
 
-	while(pthread_testcancel(),cnt--){
+	while(pthread_testcancel(), cnt--){
 		sbuf_ref(buf);
-		DPRINTF("Sent Buffer %d\n",cnt);
-		sbuf_queue(out,buf);
+		sbuf_queue(out, buf);
 	}
-	sbuf_queue(out,NULL);			
+	sbuf_queue(out, NULL);
 
 	FILTER_BEFORE_CLEANUP;
-	DPRINTF("Exiting.\n");
 	sbuf_unref(buf);
 
 	return 0;
 }
 
+static int sinus_connect_out(filter_node_t *n, const char *port,
+			     filter_pipe_t *p)
+{
+	p->type = FILTER_PIPETYPE_SAMPLE;
+	p->u.sample.rate = 44100;
+
+	return 0;
+}
 
 
 /* Registry setup of all contained filters
@@ -101,8 +109,10 @@ int waveform_register()
 	    || !filter_add_param(f,"frequency","sinus frequency in Hz",
 				 FILTER_PARAMTYPE_SAMPLE)
 	    || !filter_add_param(f,"duration","length of signal in ms",
-				 FILTER_PARAMTYPE_INT)
-	    || filter_add(f) == -1)
+				 FILTER_PARAMTYPE_INT))
+		return -1;
+	f->connect_out = sinus_connect_out;
+	if (filter_add(f) == -1)
 		return -1;
 
 	return 0;

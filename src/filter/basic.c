@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.6 2000/02/07 10:32:05 richi Exp $
+ * $Id: basic.c,v 1.7 2000/02/07 16:12:50 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -228,28 +228,39 @@ static int null_f(filter_node_t *n)
 
 static int mix_f(filter_node_t *n)
 {
-	filter_pipe_t   **pin=NULL,*pout;
+	filter_pipe_t  *p, **pin=NULL, *pout;
 	filter_buffer_t **in=NULL, *out, *lastout;
-	int i, eofs, *pos=NULL, opos,res=-1;
+	int i, eofs, *pos=NULL, opos, res=-1, rate;
 	SAMPLE s;
+
+	/* We require at least one connected input and
+	 * a connected output. Also all input pipes have
+	 * to match in the sample rate!
+	 */
+	if (n->nr_inputs == 0)
+		return -1;
+	if (!(pout = hash_find_output("out",n)))
+		return -1;
+	rate = hash_find_input("in", n)->u.sample.rate;
+	list_foreach_input(n, p)
+		if (p->u.sample.rate != rate)
+			return -1;
 
 	/* init */
 	eofs = 0;
 	if (!(in = ALLOCN(n->nr_inputs, filter_buffer_t *)))
 			return -1;
-			
 	if (!(pos = ALLOCN(n->nr_inputs, int)))
 		goto _cleanup;
-
 	if (!(pin = ALLOCN(n->nr_inputs, filter_pipe_t *)))
 		goto _cleanup;
-		
-	if (!(pout=hash_find_output("out",n)))
-		goto _cleanup;
+
+	FILTER_AFTER_INIT;
 	
 	/* get first input buffers from all channels */
 	i=0;
-	list_foreach_input(n,pin[i]){
+	list_foreach_input(n, p) {
+		pin[i] = p;
 		if (!(in[i] = sbuf_get(pin[i])))
 			eofs++;
 		pos[i] = 0;
@@ -301,6 +312,7 @@ static int mix_f(filter_node_t *n)
 	sbuf_unref(out);
 	sbuf_queue(pout, lastout);
 
+	FILTER_BEFORE_CLEANUP;
 	/* cleanup - FIXME, we need to do this with a
 	 * pthread_cleanup_pop() - and previous
 	 * pthread_cleanup_push() - ugh! */
