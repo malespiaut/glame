@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.1 2000/02/05 00:01:53 nold Exp $
+@comment $Id: glame.texi,v 1.2 2000/02/05 00:46:28 nold Exp $
 
 
 @c %**start of header
@@ -48,40 +48,44 @@ translation approved by the Free Software Foundation.
 This text documents GNU/Linux Audio Mechanics 
 @comment Assuming that UPDATED will always be set if VERSION is set.
 @ifclear VERSION
-(GLAME), 
+(@acronym{GLAME}), 
 @end ifclear
 @ifset VERSION
-(GLAME) Version 
+(@acronym{GLAME}) Version 
 @value{VERSION} (@value{UPDATED}), 
 @end ifset
 a capable and 
-easily extensible free sound editor. Usage of various GLAME frontends is
-described as well as GLAME's internal programming API for the benefit of
-developers.
+easily extensible free sound editor. Usage of various @acronym{GLAME} 
+frontends is described as well as @acronym{GLAME}'s internal programming 
+API for the benefit of developers.
 
-@ifinfo
+More recent versions of this document as well as additional information
+about @acronym{GLAME} might be available at the project's homepage at
+@url{http://glame.sourceforge.net}.
+
+@ifnottex
 Copyright @copyright{} 2000 Richard G@"unther, Daniel Kobras. 
 @xref{Copying}, for details.
-@end ifinfo
+@end ifnottex
 
 @menu
-@ifinfo
+@ifnottex
 * Copying::		Legal issues regarding distribution of 
 			this document
-@end ifinfo
+@end ifnottex
 
-End user section: 	How to handle the various GLAME frontends
+End user section: How to handle the various GLAME frontends
 
 FIXME: Not yet written due to lack of working frontends.
 
-Developers' section: 	How to extend GLAME
+Developers' section: How to extend @acronym{GLAME}
 
-* Filter API::		Writing plugins for GLAME.
-* Swapfile API::	Using GLAME's flexible backing store.
+* Filter API::		Writing plugins for @acronym{GLAME}.
+* Swapfile API::	Using @acronym{GLAME}'s flexible backing store.
 
 @end menu
 
-@ifinfo
+@ifnottex
 @node Copying, Filter API, Top, Top
 @chapter Copying
 Permission is granted to make and distribute verbatim
@@ -110,9 +114,10 @@ translations of this manual into another language,
 under the above conditions for modified versions,
 except that this permission notice may be stated in a
 translation approved by the Free Software Foundation.
-@end ifinfo
+@end ifnottex
 
 @include filter.texi
 @include swapfile.texi
 
+@contents
 @bye

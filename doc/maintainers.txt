@@ -17,5 +17,8 @@ filter: richi
 hash: richi
 	hash/*
 
+doc: nold
+	doc/*.texi
+	doc/* unless covered by other maintainers
 
 please add your stuff [richi]
