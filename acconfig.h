@@ -51,9 +51,6 @@
 #undef OS_BSD
 #undef OS_IRIX
 
-/* define if you use pthreads (always defined for GLAME) */
-#undef USE_PTHREADS
-
 /* define if you have pthread_sigmask(3) available */
 #undef HAVE_PTHREAD_SIGMASK
 
