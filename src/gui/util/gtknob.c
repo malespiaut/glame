@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.11 2002/04/21 13:04:28 ochonpaul Exp $
+ * $Id: gtknob.c,v 1.12 2002/04/25 20:34:57 ochonpaul Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -585,7 +585,7 @@ static void gtk_knob_paint(GtkKnob * knob, GdkRectangle * area)
 		    0,47,
 		    knob->min_cache);
     if (!knob->max_cache)
-	    knob->max_cache = knob->formatter(knob->adjustment->lower, knob->formatter_data);
+	    knob->max_cache = knob->formatter(knob->adjustment->upper, knob->formatter_data);
     gdk_draw_string(widget->window,
 		    knob->font,
 		    knob->gc,
