@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.4 2000/02/23 12:33:12 xwolf Exp $
+ * $Id: canvas.h,v 1.5 2000/02/23 18:55:44 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -55,9 +55,12 @@ struct _GlameCanvasItem
 	GnomeCanvasGroup parent_object;
 	
 	gui_filter *filter;
+	filter_portdesc_t *selected_port;
 	double last_x,last_y;
 	gboolean dragging;
-
+	gboolean connecting;
+	GnomeCanvasPoints *points;
+	GnomeCanvasItem *line;
 };
 
 typedef struct _GlameCanvasItemClass GlameCanvasItemClass;
