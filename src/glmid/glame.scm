@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.57 2001/06/15 08:41:34 richi Exp $
+; $Id: glame.scm,v 1.58 2001/06/18 08:33:21 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -18,6 +18,8 @@
 ; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ;
 
+;(set-current-module the-scm-module)
+
 ; Compatibility
 (define filter_creat filter-new)
 (define filter_instantiate filter-new)
@@ -29,22 +31,31 @@
 (define filternetwork_add_param filternetwork-add-param)
 
 (define (filternode_set_param node label value)
-  (map (lambda (param)
-	 (if (string=? (param-label param) label)
-	     (param-set! param value)))
-       (filter-params node)))
+  (call-with-current-continuation
+   (lambda (return)
+     (map (lambda (param)
+	    (if (string=? (param-label param) label)
+		(return (param-set! param value))))
+	  (filter-params node))
+     #f)))
 
 (define (filterpipe_set_sourceparam pipe label value)
-  (map (lambda (param)
-	 (if (string=? (param-label param) label)
-	     (param-set! param value)))
-       (pipe-source-params pipe)))
+  (call-with-current-continuation
+   (lambda (return)
+     (map (lambda (param)
+	    (if (string=? (param-label param) label)
+		(return (param-set! param value))))
+	  (pipe-source-params pipe))
+     #f)))
 
 (define (filterpipe_set_destparam pipe label value)
-  (map (lambda (param)
-	 (if (string=? (param-label param) label)
-	     (param-set! param value)))
-       (pipe-dest-params pipe)))
+  (call-with-current-continuation
+   (lambda (return)
+     (map (lambda (param)
+	    (if (string=? (param-label param) label)
+		(return (param-set! param value))))
+	  (pipe-dest-params pipe))
+     #f)))
 
 
 ;
