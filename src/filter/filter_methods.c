@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.5 2000/02/21 16:11:13 richi Exp $
+ * $Id: filter_methods.c,v 1.6 2000/02/22 15:22:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,11 +39,14 @@
 int filter_default_connect_out(filter_node_t *n, const char *port,
 			       filter_pipe_t *p)
 {
-	filter_portdesc_t *out;
 	filter_pipe_t *in;
+	int t;
 
-	/* fill in a sane pipe type */
-	p->type = FILTER_PIPETYPE_DEFAULT(out->type);
+	/* fill in a sane pipe type - check for possible match */
+	t = (p->source_port->type & p->dest_port->type) & ~FILTER_PORTTYPE_AUTOMATIC;
+	if (!t)
+	        return -1;
+	p->type = 1<<(ffs(t)-1);
 
 	/* a source port has to provide pipe data info.
 	 * we copy from the first input port if any. */

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.23 2000/02/21 16:11:13 richi Exp $
+ * $Id: filter_network.c,v 1.24 2000/02/22 15:22:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -376,7 +376,7 @@ void filternetwork_delete_node(filter_node_t *node)
 filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *source_port,
 					    filter_node_t *dest, const char *dest_port)
 {
-	filter_portdesc_t *in, *out;
+	filter_portdesc_t *out, *in;
 	filter_pipe_t *p;
 
 	if (!source || !source_port || !dest || !dest_port
@@ -386,23 +386,23 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 		return NULL;
 
 	/* are there ports with the specified names? */
-	if (!(in = filter_get_outputdesc(source->filter, source_port))
-	    || !(out = filter_get_inputdesc(dest->filter, dest_port)))
+	if (!(out = filter_get_outputdesc(source->filter, source_port))
+	    || !(in = filter_get_inputdesc(dest->filter, dest_port)))
 		return NULL;
 
 	/* are there already connections to the ports and do
 	 * they not have the AUTOMATIC flag set? */
-	if (!(FILTER_PORT_IS_AUTOMATIC(in->type))
-	    && filternode_get_output(source, in->label))
-	        return NULL;
 	if (!(FILTER_PORT_IS_AUTOMATIC(out->type))
-	    && filternode_get_input(dest, out->label))
+	    && filternode_get_output(source, out->label))
+	        return NULL;
+	if (!(FILTER_PORT_IS_AUTOMATIC(in->type))
+	    && filternode_get_input(dest, in->label))
 	        return NULL;
 
-	if (!(p = _pipe_alloc(out)))
+	if (!(p = _pipe_alloc(out, in)))
 		return NULL;
-	p->in_name = out->label;
-	p->out_name = in->label;
+	p->in_name = in->label;
+	p->out_name = out->label;
 	p->source = source;
 	p->dest = dest;
 	if (source->filter->connect_out(source, source_port, p) == -1)

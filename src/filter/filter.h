@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.32 2000/02/22 13:59:45 richi Exp $
+ * $Id: filter.h,v 1.33 2000/02/22 15:22:55 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -419,7 +419,6 @@ void *filterparamval_from_string(filter_paramdesc_t *pdesc, const char *val);
 #define FILTER_PIPETYPE_RMS     FILTER_PORTTYPE_RMS
 #define FILTER_PIPETYPE_MISC    FILTER_PORTTYPE_MISC
 #define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
-#define FILTER_PIPETYPE_DEFAULT(porttype) ((porttype) & FILTER_PORTTYPE_SAMPLE ? FILTER_PIPETYPE_SAMPLE : ((porttype) & FILTER_PORTTYPE_RMS ? FILTER_PIPETYPE_RMS : FILTER_PIPETYPE_MISC))
 
 /* Common values for hangle value of a filter pipe
  */

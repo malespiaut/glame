@@ -12,7 +12,7 @@ filter_portdesc_t *_portdesc_alloc(filter_t *filter, const char *label,
 				   int type, const char *desc);
 void _portdesc_free(filter_portdesc_t *d);
 
-filter_pipe_t *_pipe_alloc();
+filter_pipe_t *_pipe_alloc(filter_portdesc_t *source, filter_portdesc_t *dest);
 void _pipe_free(filter_pipe_t *p);
 
 filter_t *_filter_alloc(const char *name, const char *description, int flags);
