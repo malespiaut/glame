@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.7 2001/10/06 23:08:55 richi Exp $
+ * $Id: normalize.c,v 1.8 2001/11/19 10:04:50 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -35,6 +35,8 @@
 #include "math.h"
 #include "gpsm.h"
 #include "network_utils.h"
+
+PLUGIN(normalize)
 
 static int normalize_gpsm(gpsm_item_t *grp, long start, long length)
 {

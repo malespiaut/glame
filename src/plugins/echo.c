@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.20 2001/06/05 14:40:07 richi Exp $
+ * $Id: echo.c,v 1.21 2001/11/19 10:04:50 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -35,6 +35,7 @@
 #include "util.h"
 #include "glplugin.h"
 
+PLUGIN(echo)
 
 static int echo_f(filter_t *n)
 {

@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.8 2001/07/07 12:28:07 mag Exp $ 
+ * $Id: distortion.c,v 1.9 2001/11/19 10:04:50 richi Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -32,7 +32,7 @@
 #include "glplugin.h"
 #include "math.h"
 
-PLUGIN_SET(reverbs,"distortion")
+PLUGIN(distortion)
 
 static int distortion_f(filter_t *n)
 {

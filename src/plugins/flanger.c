@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.14 2001/08/08 09:15:30 richi Exp $
+ * $Id: flanger.c,v 1.15 2001/11/19 10:04:50 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -32,7 +32,7 @@
 #include "glplugin.h"
 #include "math.h"
 
-PLUGIN_SET(reverbs,"flanger")
+PLUGIN(flanger)
 
 
 void rek_fbm(int *lfo, int l, int r, int swpd, int iter)

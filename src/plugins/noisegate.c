@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.14 2001/06/05 15:09:55 richi Exp $
+ * $Id: noisegate.c,v 1.15 2001/11/19 10:04:50 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -31,6 +31,8 @@
 #include "filter.h"
 #include "util.h"
 #include "glplugin.h"
+
+PLUGIN(noisegate)
 
 /* Implementation of a noise gate using ideas found
  * in Toby Kuriens page about Audio effect algorithms:

@@ -30,6 +30,8 @@
 #include "filter.h"
 #include "glplugin.h"
 
+PLUGIN(pan)
+
 /* This filter positions a mono sound in the stereo field, based 
  * upon the following algorithm:
  * 
