@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.14 2000/10/09 16:24:03 richi Exp $
+ * $Id: list.h,v 1.15 2000/10/28 13:41:57 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -171,9 +171,7 @@ static inline int list_empty(struct list_head *head)
 	return head->next == head;
 }
 
-/*
- * Splice in "list" into "head"
- */
+/* Splice in "list" into "head" */
 static inline void list_splice(struct list_head *list, struct list_head *head)
 {
 	struct list_head *first = list->next;
@@ -190,9 +188,7 @@ static inline void list_splice(struct list_head *list, struct list_head *head)
 	}
 }
 
-/*
- * Splice from-to out of "list"
- */
+/* Splice from-to out of "list" */
 static inline void list_unsplice(struct list_head *list,
 				     struct list_head *from, struct list_head *to)
 {
@@ -204,19 +200,32 @@ static inline void list_unsplice(struct list_head *list,
 	to->next = list;
 }
 
-
+/* Get a pointer to the specified type out of a ptr which points to the
+ * struct list_head inside type at struct member member. */
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
+/* Get head/tail entry of list like list_entry(), but NULL if list is empty. */
+#define list_gethead(listptr, type, member) ((list_empty(listptr)) ? ((type *)NULL) : \
+	(list_entry((listptr)->next, type, member)))
+#define list_gettail(listptr, type, member) ((list_empty(listptr)) ? ((type *)NULL) : \
+	(list_entry((listptr)->prev, type, member)))
 
-#define list_gethead(ptr, type, member) ((list_empty(ptr)) ? ((type *)NULL) : (list_entry((ptr)->next, type, member)))
-#define list_gettail(ptr, type, member) ((list_empty(ptr)) ? ((type *)NULL) : (list_entry((ptr)->prev, type, member)))
+/* Get next/prev item after/before itemptr out of list listptr like list_entry(), but
+ * NULL if no further item is available. */
+#define list_getnext(listptr, itemptr, type, member) ((itemptr)->member.next == (listptr) \
+	? NULL : list_entry((itemptr)->member.next, type, member))
+#define list_getprev(listptr, itemptr, type, member) ((itemptr)->member.prev == (listptr) \
+	? NULL : list_entry((itemptr)->member.prev, type, member))
 
-
-/* this is not remove-safe!! */
+/* Iterate through all list items using entryvar. This is not remove-safe!! */
 #define list_foreach(listp, type, member, entryvar) for (entryvar = list_entry((listp)->next, type, member); &entryvar->member != (listp); entryvar = list_entry(entryvar->member.next, type, member))
 
+/* Iterate through all list items using entryvar. It is safe to remove entryvar, but _only_
+ * entryvar. Provide an additional dummy pointer for internal use. */
+#define list_safe_foreach(listptr, type, member, dummy, entryvar) for (entryvar = list_entry((listptr)->next, type, member), dummy = (listptr)->next->next; &entryvar->member != (listp); entryvar = list_entry((struct list_head *)dummy, type, member), dummy = ((struct list_head *)dummy)->next) 
 
+/* Count the number of items in the list. */
 static inline int list_count(struct list_head *l)
 {
 	struct list_head *lh = l;
