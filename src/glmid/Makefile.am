@@ -23,7 +23,8 @@ libglame_la_SOURCES = \
 	glplugin.c glplugin.h \
 	$(GUILE_FILES) \
 	$(LADSPA_FILES) \
-	gpsm.c gpsm.h clipboard.c clipboard.h
+	gpsm.c gpsm.h clipboard.c clipboard.h \
+	network_utils.c network_utils.h
 
 libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
 	../hash/libhash.la ../plugins/libglamebuiltins.la $(XML_LIBS)
