@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.3 2000/12/11 15:57:33 xwolf Exp $
+ * $Id: canvas_types.c,v 1.4 2000/12/11 17:35:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -256,7 +256,7 @@ glame_canvas_port_new(GnomeCanvasGroup *group,
 
 GlameCanvasItem*
 glame_canvas_item_new(GnomeCanvasGroup *group,
-		      gui_filter *gfilter,
+		      filter_t *gfilter,
 		      gdouble x,
 		      gdouble y)
 {
@@ -268,7 +268,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	GlameCanvasItem *item;
 	GnomeCanvasItem *gitem;
 	char*filepath;
-	GtkWidget* menu;
+
 	char*namebuffer;
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
@@ -333,7 +333,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "justification",GTK_JUSTIFY_CENTER,
 			      "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
 			      "clip",0,
-			      "text",filter_name(gfilter->node),
+			      "text",filter_name(gfilter),
 			      NULL);
 	namebuffer = plugin_query(gfilter->plugin, PLUGIN_PIXMAP);
 	namebuffer = namebuffer?namebuffer:strdup(GLAME_DEFAULT_ICON);

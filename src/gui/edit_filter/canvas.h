@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.2 2000/12/11 12:39:59 xwolf Exp $
+ * $Id: canvas.h,v 1.3 2000/12/11 17:35:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -94,7 +94,7 @@ struct _GlameCanvasItem
 {
 	GnomeCanvasGroup parent_object;
 	
-	gui_filter *filter;
+	filter_t *filter;
 
 	double last_x,last_y;
 	gboolean dragging;
@@ -115,7 +115,7 @@ struct _GlameCanvasItemClass
 
 GtkType glame_canvas_item_get_type(void);
 GlameCanvasItem* glame_canvas_item_new(GnomeCanvasGroup * group,
-				       gui_filter * gfilter,
+				       filter_t * gfilter,
 				       gdouble world_x,
 				       gdouble world_y);
 

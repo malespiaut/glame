@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.2 2000/12/11 15:57:33 xwolf Exp $
+ * $Id: gui.h,v 1.3 2000/12/11 17:35:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -53,27 +53,10 @@ typedef struct _gui_network {
 } gui_network;
 
 
-
-typedef struct _gui_filter {
-	// Filter data here
-	plugin_t * plugin;
-	filter_t *node;
-	
-} gui_filter;
-
-
-
-
-
-
-int gui_filter_add(gui_filter *filter);
-
-gui_filter* gui_filter_new(plugin_t *filter);
-
 gui_network* gui_network_new(const char *caption, const char * pixname);
 gui_network* gui_network_new_wizard(void);
 
-int gui_network_filter_add(gui_network* net, gui_filter *fil);
+int gui_network_filter_add(gui_network* net, filter_t *fil);
 
 GtkWidget* gui_create_about(void);
 
@@ -106,7 +89,7 @@ GtkWidget* gui_create_commandwin(void);
 
 GSList* gui_browse_registered_filters(void);
 
-void edit_paramdesc(gui_filter *f);
+void edit_paramdesc(filter_t *f);
 
 void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* widget);
 				    
@@ -117,9 +100,9 @@ void create_label_widget_pair(GtkWidget* vbox, const char* label, GtkWidget* wid
 GtkWidget * create_new_canvas(gui_network*);
 
 
-GtkObject* create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y);
+GtkObject* create_new_node(GnomeCanvas *canvas, filter_t *filter,double x, double y);
 
-void create_ports(GnomeCanvasGroup* grp,gui_filter*f);
+void create_ports(GnomeCanvasGroup* grp, filter_t *f);
 
 
 

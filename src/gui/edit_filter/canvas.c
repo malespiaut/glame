@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.9 2000/12/11 16:38:01 xwolf Exp $
+ * $Id: canvas.c,v 1.10 2000/12/11 17:35:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -48,7 +48,7 @@ static void register_filternetwork_cb(GtkWidget*bla,void*blu);
 static void add_canvas_node_cb(GtkWidget*bla,void*blu);
 static void add_canvas_input_port_cb(GtkWidget*bla,void*blu){}
 static void add_canvas_output_port_cb(GtkWidget*bla,void*blu){}
-void edit_canvas_item_properties(filter_paramdb_t *pdb, char *label);
+void edit_canvas_item_properties(filter_paramdb_t *pdb, const char *label);
 static void reroute_cb(GtkWidget*,GlameCanvasItem*item);
 int event_x,event_y;
 GtkWidget *win;
@@ -106,8 +106,8 @@ static GnomeUIInfo root_menu[]=
 
 static void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 {
-	edit_canvas_item_properties(filter_paramdb(item->filter->node),
-				    filter_name(item->filter->node));
+	edit_canvas_item_properties(filter_paramdb(item->filter),
+				    filter_name(item->filter));
 };
 
 void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it)
@@ -195,10 +195,10 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		it->dragging = FALSE;
 		//update coord.strings
 		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->x1);
-		if(filter_set_property(it->filter->node,"canvas_x",numberbuffer))
+		if(filter_set_property(it->filter,"canvas_x",numberbuffer))
 				fprintf(stderr,"set prop failed\n");
 		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->y1);
-		if(filter_set_property(it->filter->node,"canvas_y",numberbuffer))
+		if(filter_set_property(it->filter,"canvas_y",numberbuffer))
 				fprintf(stderr,"set prop failed\n");
 				
 		break;
@@ -217,31 +217,33 @@ delete_canvas(GtkWidget*win,GdkEventAny*ev, gpointer data)
 	return TRUE;
 }
 
-static void
+static int
 add_filter_by_name(char *name)
 {
 	GnomeCanvasGroup*grp;
-	int selected;
-	gui_filter *gf;
-	gui_filter *inst;
-	char numberbuffer[10];
+	filter_t *filter;
 	double dx,dy;
 	GlameCanvas* canv;
 	plugin_t *plug;
+
+
 	canv = GLAME_CANVAS(win);
 	plug = plugin_get(name);
-	gf = gui_filter_new(plug);
-	
-/* 	selected = atoi(data->data); */
-/* 	gf = g_array_index(gui->filters,gui_filter*,selected); */
 
-/* 	memcpy(inst,gf,sizeof(gui_filter)); */
-
- 	gui_network_filter_add(canv->net,gf); 
- 	gnome_canvas_window_to_world(GNOME_CANVAS(canv),event_x,event_y,&dx,&dy); 
+	filter = filter_instantiate(plug);
+	if(!filter){
+		fprintf(stderr,"Error in instantiate\n");
+		return -1;
+	}
+	if(filter_add_node(canv->net->net,filter,name) == -1) {
+		fprintf(stderr,"Error adding node!\n");
+		return -1;
+	}
+	gnome_canvas_window_to_world(GNOME_CANVAS(canv),event_x,event_y,&dx,&dy); 
 	// fprintf(stderr,"%f %f %f %f\n",event_x,event_y,dx,dy);
- 	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),gf,dx,dy)); 
+ 	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),filter,dx,dy)); 
 	inItem=0;
+	return 0;
 
 }
 
@@ -296,11 +298,12 @@ stop_network(GtkWidget *button,gui_network*net)
 {
 	filter_terminate(net->net);
 }
-static gint
+static void
 node_select(GtkWidget*wid, char* name)
 {
 //	fprintf(stderr,"%s\n",name);
 	add_filter_by_name(name);
+	
 }
 
 typedef struct {
@@ -314,7 +317,7 @@ GSList* append_to_categorie(GSList* cats,plugin_t *plug)
 	char* catpath;
 
 	GSList * item;
-	GtkWidget *newmen,*newitem;
+	GtkWidget *newitem;
 	catmenu* newcat;
 	char* cdefault="Default";
 	catpath = plugin_query(plug,PLUGIN_CATEGORY);
@@ -337,8 +340,8 @@ GSList* append_to_categorie(GSList* cats,plugin_t *plug)
  found:
 	newitem = gtk_menu_item_new_with_label((gchar*)strdup(plugin_name(plug)));
 	gtk_widget_show(newitem);
-	gtk_menu_append(newcat->submenu,newitem);
-	gtk_signal_connect(newitem,"activate",node_select,(gchar*)plugin_name(plug));	
+	gtk_menu_append(GTK_MENU(newcat->submenu),newitem);
+	gtk_signal_connect(GTK_OBJECT(newitem),"activate",node_select,(gchar*)plugin_name(plug));	
 	return cats;
 }
 
@@ -351,11 +354,11 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 	GdkEventButton *event_button;
 	GSList * nodes,*it;
 	int i;
-	char * catpath;
+
 	catmenu  *cat;
 	GSList * categories=NULL;
 	
-	GnomeUIInfo *node_select_menu;
+
 	plugin_t * plugin;
 	switch(event->type){
 	case GDK_BUTTON_PRESS:
@@ -365,7 +368,7 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 //			gnome_canvas_c2w(canv,event->button.x,event->button.y,&event_x,&event_y);
 			event_x = event->button.x;
 			event_y = event->button.y;
-			win=canv;
+			win=GTK_WIDGET(canv);
 			if(event->button.button==3){
 				cat = malloc(sizeof(catmenu));
 				cat->categorie = strdup("Default");
@@ -388,12 +391,12 @@ root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data)
 				for(i=0;i<g_slist_length(categories);i++){
 					cat = (catmenu*)((GSList*)g_slist_nth(categories,i)->data);
 					item = gtk_menu_item_new_with_label(cat->categorie);
-					gtk_menu_item_set_submenu(item,cat->submenu);
+					gtk_menu_item_set_submenu(GTK_MENU_ITEM(item),cat->submenu);
 					gtk_widget_show(item);
-					gtk_menu_append(submenu,item);
+					gtk_menu_append(GTK_MENU(submenu),item);
 				}
 				gtk_widget_show(submenu);
-				gtk_menu_item_set_submenu(par,submenu);
+				gtk_menu_item_set_submenu(GTK_MENU_ITEM(par),submenu);
 				
 				gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,canv);
 				inItem=0;
@@ -471,7 +474,7 @@ create_new_canvas(gui_network* net)
 	gtk_window_set_default_size(GTK_WINDOW(window),400,300);
 	gtk_widget_show_all(window);
 	gtk_signal_connect_after(GTK_OBJECT(canvas),"event",root_event,NULL);
-	globalcanvas = canvas;
+	globalcanvas = GTK_OBJECT(canvas);
 	return window;
 }
 
@@ -806,7 +809,7 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 gint
 handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 {
-//	fprintf(stderr,"%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
+	DPRINTF("%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
 
 	if((GLAME_CANVAS_ITEM(item))->dragging)
 		image_select(item,event,data);
@@ -821,9 +824,9 @@ handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 
 
 void
-create_ports(GnomeCanvasGroup* grp,gui_filter*f)
+create_ports(GnomeCanvasGroup* grp,filter_t *f)
 {
-	filter_t *filter = f->node;
+	filter_t *filter = f;
 	filter_port_t *port;
 	GlameCanvasPort *item;
 	//	GtkTooltips* tt;
@@ -884,7 +887,7 @@ create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 
 
 GtkObject*
-create_new_node(GnomeCanvas *canvas, gui_filter *filter,double x, double y)
+create_new_node(GnomeCanvas *canvas, filter_t *filter,double x, double y)
 {
 
 	GlameCanvasItem *item;
@@ -907,8 +910,8 @@ add_connection(GlameConnection *c)
 	filter_port_t *source, *dest;
 
 	// ooooohhh f**k this does not look nice!
-	source = filterportdb_get_port(filter_portdb((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter->node), filterport_label(c->begin->port));
-	dest = filterportdb_get_port(filter_portdb((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter->node), filterport_label(c->end->port));
+	source = filterportdb_get_port(filter_portdb((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->begin))->parent))->filter), filterport_label(c->begin->port));
+	dest = filterportdb_get_port(filter_portdb((GLAME_CANVAS_ITEM((GNOME_CANVAS_ITEM(c->end))->parent))->filter), filterport_label(c->end->port));
 	
 	c->pipe = filterport_connect(source, dest);
 	if(!c->pipe)
@@ -1064,7 +1067,7 @@ cancel_params(GtkWidget* wig,param_callback_t* callback)
 }
 
 void
-edit_canvas_item_properties(filter_paramdb_t *pdb, char *caption)
+edit_canvas_item_properties(filter_paramdb_t *pdb, const char *caption)
 {
 	GtkWidget *vbox,*entry;
 	GtkAdjustment *adjust;
@@ -1131,7 +1134,7 @@ edit_canvas_item_properties(filter_paramdb_t *pdb, char *caption)
 				entry = gnome_entry_new("blubb");
 				create_label_widget_pair(vbox,filterparam_label(param),entry);
 				cVal =  filterparam_val_string(param);
-				gtk_entry_set_text(gnome_entry_gtk_entry(GNOME_ENTRY(entry)),cVal);
+				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
 				free(cVal);
 				pw = malloc(sizeof(param_widget_t));
 				pw->widget = entry;
@@ -1193,7 +1196,7 @@ delete_canvas_item(GlameCanvasItem* it)
 		}
 		plist = g_list_next(plist);
 	}
-	filter_delete(it->filter->node);
+	filter_delete(it->filter);
 	gtk_object_destroy(GTK_OBJECT(it));
 }
 

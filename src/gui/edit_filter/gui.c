@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.4 2000/12/11 15:57:33 xwolf Exp $
+ * $Id: gui.c,v 1.5 2000/12/11 17:35:32 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -50,15 +50,15 @@ void on_paste_activate(GtkWidget *m, gpointer bla){}
 void on_clear_activate(GtkWidget *m, gpointer bla){}
 
 
-/* Allocates a new filter type for the gui */
-gui_filter* 
-gui_filter_new(plugin_t* plugin)
-{
-	gui_filter * newFilter;
-	newFilter = malloc(sizeof(gui_filter));
-	newFilter->plugin = plugin;
-	return newFilter;
-}
+/* Allocates a new filter type for the gui */ 
+/* gui_filter*  */
+/* gui_filter_new(plugin_t* plugin) */
+/* { */
+/* 	gui_filter * newFilter; */
+/* 	newFilter = malloc(sizeof(gui_filter)); */
+/* 	newFilter->plugin = plugin; */
+/* 	return newFilter; */
+/* } */
 
 
 
@@ -159,8 +159,7 @@ GSList* gui_browse_registered_filters(void)
 {
       GSList *ret=NULL;
       plugin_t *plugin = NULL;
-      char *name;
-      filter_t *filt;
+
 	/* browse registered plugins */
       while((plugin = plugin_next(plugin))){
 	      if(plugin_query(plugin,PLUGIN_FILTER)){
@@ -183,20 +182,6 @@ gui_network_new(const char * caption, const char * pixname)
 	return net;
 }
 	
-int
-gui_network_filter_add(gui_network* net, gui_filter *fil)
-{
-	fil->node = filter_instantiate(fil->plugin);
-	if(!fil->node){
-		fprintf(stderr,"Error in instantiate\n");
-		return -1;
-	}
-	if(filter_add_node(net->net,fil->node,plugin_name(fil->plugin)) == -1) {
-		fprintf(stderr,"Error adding node!\n");
-		return -1;
-	}
-	return 0;
-}
 
 
 GtkWidget*
