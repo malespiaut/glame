@@ -46,6 +46,7 @@ static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item);
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
+static void addfile_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
 static void export_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -56,7 +57,8 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Add group...", "addgroup", addgroup_cb, NULL),
+	GNOMEUIINFO_ITEM("Add group", "addgroup", addgroup_cb, NULL),
+	GNOMEUIINFO_ITEM("Add empty wave", "addfile", addfile_cb, NULL),
         GNOMEUIINFO_ITEM("Merge with parent", "import", mergeparent_cb, NULL),
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
@@ -206,6 +208,27 @@ static void mergeparent_cb(GtkWidget *menu, GlameTreeItem *item)
 		gpsm_grp_insert(gpsm_item_parent(group), i, hpos, vpos);
 	}
 	gpsm_item_destroy((gpsm_item_t *)group);
+}
+
+static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	gpsm_swfile_t *swfile;
+	GlameTreeItem *grpw;
+
+	if (!GPSM_ITEM_IS_GRP(item->item))
+		return;
+
+	/* Create new gpsm swfile. */
+	swfile = gpsm_newswfile("Unnamed");
+	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)swfile, 0, -1);
+
+	/* Expand the parent widget. */
+	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+
+	/* Find out which widget it got and open an edit field. */
+	grpw = glame_tree_find_gpsm_item(GTK_OBJECT(item), (gpsm_item_t *)swfile);
+	if (grpw)
+		edit_tree_label(grpw);
 }
 
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item)
