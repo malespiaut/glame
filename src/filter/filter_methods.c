@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.25 2001/01/18 16:53:12 mag Exp $
+ * $Id: filter_methods.c,v 1.26 2001/04/06 18:16:46 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,6 +25,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "util.h"
 #include "filter.h"
 
