@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.86 2001/11/09 16:39:42 richi Exp $
+ * $Id: main.c,v 1.87 2001/11/09 16:51:49 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -267,8 +267,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	goto out;
 
  fail_cleanup:
-	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog(_("Failed to create importing network"))));
+	glame_network_error_dialog(net, _("Failed to create importing network"));
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 	return;

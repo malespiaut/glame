@@ -523,10 +523,9 @@ static void play(GtkWaveView *waveview,
 	active_waveedit->pm_start = start;
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;
+		glame_network_error_dialog(net, "Cannot play wave");
 		filter_delete(net);
 		gpsm_item_destroy((gpsm_item_t *)grp);
-		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog("Cannot play")));
 		return;
 	}
 
@@ -542,14 +541,7 @@ static void play(GtkWaveView *waveview,
 	return;
 
  fail:
-	{
-		char *msg;
-		msg = net_get_error_str(net);
-		gnome_dialog_run_and_close(
-			GNOME_DIALOG(gnome_error_dialog(msg ? msg : "Cannot play")));
-		if (msg)
-			free(msg);
-	}
+	glame_network_error_dialog(net, "Cannot play wave");
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
@@ -689,7 +681,7 @@ static void recordselection_cb(GtkWidget *bla, GtkWaveView *waveview)
 	return;
 
  fail:
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot record")));
+	glame_network_error_dialog(net, "Cannot record");
 	filter_delete(net);
 }
 
@@ -768,7 +760,7 @@ static void recordmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	return;
 
  fail:
-	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Cannot record")));
+	glame_network_error_dialog(net, "Cannot record");
 	filter_delete(net);
 }
 

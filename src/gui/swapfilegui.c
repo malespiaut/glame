@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.64 2001/11/07 09:08:54 richi Exp $
+ * $Id: swapfilegui.c,v 1.65 2001/11/09 16:51:49 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -613,8 +613,7 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item)
 	return;
 
  fail_cleanup:
-	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog("Failed to create exporting network")));
+	glame_network_error_dialog(net, "Failed to create exporting network");
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)grp);
 }
@@ -716,8 +715,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 	return;
 
  fail_cleanup:
-	gnome_dialog_run_and_close(GNOME_DIALOG(
-		gnome_error_dialog("Failed to create importing network")));
+	glame_network_error_dialog(net, "Failed to create importing network");
 	filter_delete(net);
 	gpsm_item_destroy((gpsm_item_t *)group);
 
