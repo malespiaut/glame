@@ -710,6 +710,9 @@ static void apply_custom_cb(GtkWidget * foo, GtkWaveView *waveview)
 
 static void wave_export_cb(GtkWidget *foo, void *bar)
 {
+	/* FIXME: we dont really know, if the user will press cancel. */
+	if (active_waveedit)
+		active_waveedit->modified = 0;
 	glame_export_dialog((gpsm_item_t *)active_waveedit->swfiles, NULL);
 }
 
@@ -720,9 +723,14 @@ static void wave_help_cb(GtkWidget *foo, void*bar)
 
 static void wave_close_cb(GtkWidget *foo, GtkObject *window)
 {
-	if (active_waveedit && !active_waveedit->locked
-	    && !GTK_WAVE_VIEW(active_waveedit->waveview)->drawing)
-		gtk_object_destroy(GTK_OBJECT(active_waveedit));
+	if (!active_waveedit
+	    || active_waveedit->locked
+	    || GTK_WAVE_VIEW(active_waveedit->waveview)->drawing)
+		return;
+	if (active_waveedit->modified)
+		if (gnome_dialog_run_and_close(gnome_ok_cancel_dialog_modal_parented("Wave modified.\nDo you really want to close?", NULL, NULL, active_waveedit)) == 1)
+			return;
+	gtk_object_destroy(GTK_OBJECT(active_waveedit));
 }
 
 
@@ -1134,6 +1142,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gnome_app_construct(GNOME_APP(window), "glame0.5", _(title));
 	window->root = item;
 	window->swfiles = swfiles;
+	window->modified = 0;
 
 	/* Create a GtkWaveView widget. */
 	window->waveview = gtk_wave_view_new ();

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.101 2002/01/26 15:46:50 richi Exp $
+ * $Id: main.c,v 1.102 2002/02/08 10:07:37 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -192,13 +192,16 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 
 static void edit_file_cleanup_cb(GtkObject *widget, gpsm_item_t *file)
 {
-	DPRINTF("Destroying subtree %s\n", gpsm_item_label(file));
 	gpsm_item_destroy(file);
 }
-
+static void edit_file_mark_modified_cb(glsig_handler_t *h, long sig, va_list va)
+{
+	WaveeditGui *we = WAVEEDIT_GUI(glsig_handler_private(h));
+	we->modified = 1;
+}
 static void edit_file_cb(GtkWidget *menu, void *data)
 {
-	gpsm_item_t *file;
+	gpsm_item_t *file, *item;
 	WaveeditGui *we;
 
 	/* Run the import dialog. */
@@ -207,7 +210,8 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 		return;
 
 	/* Open the waveedit window and register a handler for gpsm
-	 * deletion after widget destroy. */
+	 * deletion after widget destroy. Also register handlers for
+	 * track modification to update bool. */
 	we = glame_waveedit_gui_new(gpsm_item_label(file), file);
 	if (!we) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
@@ -217,6 +221,9 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	}
 	gtk_signal_connect(GTK_OBJECT(we), "destroy",
 			   (GtkSignalFunc)edit_file_cleanup_cb, file);
+	gpsm_grp_foreach_item(file, item)
+		glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_SWFILE_CHANGED|GPSM_SIG_SWFILE_CUT|GPSM_SIG_SWFILE_INSERT,
+				  edit_file_mark_modified_cb, we);
 	gtk_quit_add_destroy(1, GTK_OBJECT(we));
 	gtk_widget_show_all(GTK_WIDGET(we));
 }

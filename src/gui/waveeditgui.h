@@ -43,7 +43,6 @@ typedef struct _WaveeditGui WaveeditGui;
 
 struct _WaveeditGuiClass {
 	GnomeAppClass parent_class;
-
 };
 
 struct _WaveeditGui {
@@ -63,6 +62,9 @@ struct _WaveeditGui {
 	filter_param_t *pm_param;
 	long pm_start;
 	long pm_marker;
+
+	/* flag, if we are modified */
+	int modified;
 };
 
 
