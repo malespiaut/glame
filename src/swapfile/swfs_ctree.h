@@ -22,6 +22,12 @@
 #ifndef _SWFS_CTREE_H
 #define _SWFS_CTREE_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#include "glame_types.h"
+
+
 /* Cluster binary tree routines. The clusters of a file are
  * organized in a binary tree consisting of nodes that contain
  * the size of its siblings (example tree height is 3):
@@ -46,9 +52,9 @@
 
 
 /* This, of course has to be FIXED. */
-#define u32 unsigned long
-#define s32 signed long
-#define s64 signed long long
+#define u32 gl_u32
+#define s32 gl_s32
+#define s64 gl_s64
 
 
 /* A tree head structure - dummy of course, and some macros
