@@ -29,7 +29,8 @@ plugins/
 	- remove position pipe param from read_file
 	- change pan filter to just change pipe position
 	- redo render with right semantics
-
+	- write set param method for ladspa plugins
+	- better ladspa gui
 hash/
 	[all]
         - glsimd
@@ -71,7 +72,7 @@ gui/
 	- D&D in swapfile/wave/filternet
 	- kool splashscreen?
 	[mag]
-        - kewl analyze (normalize & DC-offset & lots of info) GUI
+        - kewl analyze (lots of info) GUI
 	- kewl resample GUI
 	[richi]
 	- fix audio_io preferences to not show audio_in/out and to
