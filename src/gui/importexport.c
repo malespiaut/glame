@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.28 2003/07/06 10:47:04 richi Exp $
+ * $Id: importexport.c,v 1.29 2003/07/08 17:11:23 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -103,6 +103,9 @@ struct imp_s {
 	int mad_length;
 	int mad_pos;
 	int mad_err;
+	int mad_err_cnt;
+	int mad_err_at_eof;
+	const char *mad_last_err;
 	char *mad_buffer;
 #endif
 };
@@ -213,6 +216,10 @@ static void ie_import_ogg(struct imp_s *ie)
 		gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
 		while (gtk_events_pending())
 			gtk_main_iteration();
+		if (ie->cancelled) {
+			ret = 1;
+			break;
+		}
 	}
 
 	/* finish gpsm, if no error */
@@ -221,6 +228,9 @@ static void ie_import_ogg(struct imp_s *ie)
 		gpsm_grp_foreach_item(ie->item, item)
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
 	} else /* if (ret < 0) */ {
+		if (!ie->cancelled)
+			gnome_dialog_run_and_close(GNOME_DIALOG(
+				gnome_error_dialog(_("Error importing Ogg file."))));
 		gpsm_item_destroy(ie->item);
 		ie->item = NULL;
 	}
@@ -244,11 +254,14 @@ ie_import_mp3_error(void *data, struct mad_stream *stream,
 {
 	struct imp_s *ie = data;
 	ie->mad_err = 1;
-	DPRINTF("MAD error pos=%i: %s\n", ie->mad_pos, mad_stream_errorstr(stream));
-	/* Ignore recoverable lost sync error in first frame (ID3 tag, f.e.). */
+	ie->mad_err_at_eof = 1;
+	ie->mad_last_err = mad_stream_errorstr(stream);
+	if (ie->mad_pos != 0)
+		ie->mad_err_cnt++;
+	DPRINTF("MAD error pos=%i: %s\n", ie->mad_pos, ie->mad_last_err);
+	/* Ignore recoverable errors. */
 	if (ie->mad_pos == 0
-	    && MAD_RECOVERABLE(stream->error)
-	    && stream->error == MAD_ERROR_LOSTSYNC)
+	    && MAD_RECOVERABLE(stream->error))
 		return MAD_FLOW_IGNORE;
 	return MAD_FLOW_BREAK;
 }
@@ -275,6 +288,7 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		ie->mad_err = 0;
 		return MAD_FLOW_CONTINUE;
 	}
+	ie->mad_err_at_eof = 0;
 
 	if (ie->mad_pos == 0) {
 		/* alloc gpsm group, etc. */
@@ -318,6 +332,8 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 	gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
 	while (gtk_events_pending())
 		gtk_main_iteration();
+	if (ie->cancelled)
+		return MAD_FLOW_BREAK;
 
 	return MAD_FLOW_CONTINUE;
 }
@@ -334,7 +350,10 @@ static void ie_import_mp3(struct imp_s *ie)
 		return;
 	fstat(fd, &s);
 	ie->mad_err = 0;
+	ie->mad_err_at_eof = 0;
+	ie->mad_err_cnt = 0;
 	ie->mad_length = s.st_size;
+	ie->mad_last_err = NULL;
 	ie->mad_buffer = mmap(NULL, s.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (ie->mad_buffer == MAP_FAILED) {
 		close(fd);
@@ -359,9 +378,21 @@ static void ie_import_mp3(struct imp_s *ie)
 		gpsm_item_t *item;
 		gpsm_grp_foreach_item(ie->item, item)
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(item));
+		if (ie->mad_err_cnt - ie->mad_err_at_eof > 0) {
+			char errmsg[1024];
+			snprintf(errmsg, 1024, _("Had %i recoverable errors, last was: %s"),
+				 ie->mad_err_cnt, ie->mad_last_err);
+			gnome_dialog_run_and_close(GNOME_DIALOG(
+				gnome_warning_dialog(errmsg)));
+		}
 	} else {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Failed importing mp3 file")));
+		if (!ie->cancelled) {
+			char errmsg[1024];
+			snprintf(errmsg, 1024, _("Failed importing mp3 file: %s"),
+				 ie->mad_last_err);
+			gnome_dialog_run_and_close(GNOME_DIALOG(
+				gnome_error_dialog(errmsg)));
+		}
 		gpsm_item_destroy(ie->item);
 		ie->item = NULL;
 	}
