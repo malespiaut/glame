@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.43 2003/05/19 18:36:10 richi Exp $
+ * $Id: glplugin.c,v 1.44 2004/05/06 19:29:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -219,9 +219,8 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 {
 	LADSPA_Descriptor_Function desc_func;
 	const LADSPA_Descriptor *desc;
-	char category[256];
 	plugin_t *lp;
-	int i;
+	int i, n;
 
 	/* First get the descriptor providing function of the
 	 * plugin(set). If its not there, its no LADSPA plugin. */
@@ -233,6 +232,7 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 	/* Loop through all available descriptors and create
 	 * GLAME wrappers for them. */
 	i = 0;
+	n = 0;
 	while ((desc = desc_func(i++))) {
 		if (strcmp(desc->Label, plugin_name(p)) == 0)
 			lp = p;
@@ -245,15 +245,20 @@ static int try_init_ladspa_plugin(plugin_t *p, const char *name,
 		}
 		if (installLADSPAPlugin(desc, lp) == -1
 		    || (lp != p && _plugin_add(lp) == -1)) {
+			DPRINTF("Error trying to load \"%s\" from %s\n",
+				desc->Label, filename);
 			if (lp != p)
 				_plugin_free(lp);
 			continue;
 		}
 		if (lp != p)
 			plugin_set(lp, PLUGIN_PARENT, p);
+		n++;
 	}
+	if (n != i-1 && n>0)
+		DPRINTF("Loaded %i out of %i plugins from %s\n", n, i-1, filename);
 
-	return 0;
+	return n>0 ? 0 : -1;
 }
 #endif
 
