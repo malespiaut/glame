@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.6 2001/05/10 07:59:03 richi Exp $
+ * $Id: filter_pipe.h,v 1.7 2001/05/13 12:05:54 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -26,17 +26,6 @@
 #include "filter_types.h"
 #include "filter_param.h"
 
-
-/* Internal structure to track filterport_connect() commands,
- * needed for correct re-creation in filter_to_string. */
-struct fconnection {
-	struct list_head list;
-	filter_pipe_t *pipe;
-	const char *source_filter;
-	const char *source_port;
-	const char *dest_filter;
-	const char *dest_port;
-};
 
 /* Filter pipes represent a connection between two
  * instances of a filter. This is per filternode port
@@ -75,7 +64,11 @@ struct filter_pipe {
 	filter_port_t *dest;
 
 	/* "real" connection as requested from filterport_connect(). */
-	struct fconnection *connection;
+	struct list_head list;
+	const char *source_filter;
+	const char *source_port;
+	const char *dest_filter;
+	const char *dest_port;
 
 	/* pipe specific parameters on the source/destination side */
 	filter_paramdb_t source_params;

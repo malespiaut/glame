@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.8 2001/05/11 11:45:41 richi Exp $
+ * $Id: filter_pipe.c,v 1.9 2001/05/13 12:05:54 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -45,6 +45,7 @@ static filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
 		return NULL;
 	INIT_LIST_HEAD(&p->source_list);
 	INIT_LIST_HEAD(&p->dest_list);
+	INIT_LIST_HEAD(&p->list);
 	p->source_fd = -1;
 	p->dest_fd = -1;
 
@@ -52,8 +53,10 @@ static filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
 	 * -- see filterport_connect() */
 	p->source = sourceport;
 	p->dest = destport;
-
-	p->connection = NULL;
+	p->source_filter = NULL;
+	p->source_port = NULL;
+	p->dest_filter = NULL;
+	p->dest_port = NULL;
 
 	/* init emitter - redirector installation is delayed!
 	 * -- see filterport_connect() */
@@ -78,10 +81,8 @@ static void _pipe_free(filter_pipe_t *p)
 	glsig_delete_all(&p->emitter);
 
 	/* kill connection */
-	if (p->connection) {
-		list_del(&p->connection->list);
-		free(p->connection);
-	}
+	if (!list_empty(&p->list))
+		list_del(&p->list);
 
 	free(p);
 }
@@ -93,7 +94,6 @@ static void _pipe_free(filter_pipe_t *p)
 filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 {
 	filter_pipe_t *p = NULL;
-	struct fconnection *c;
 
 	if (!source || !dest
 	    || !filterport_filter(source) || !filterport_filter(dest)
@@ -148,15 +148,11 @@ filter_pipe_t *filterport_connect(filter_port_t *source, filter_port_t *dest)
 
 	/* as everything is set up now, we need to register the initial
 	 * connection request in the sources filter connection list. */
-	c = ALLOC(struct fconnection);
-	INIT_LIST_HEAD(&c->list);
-	c->pipe = p;
-	c->source_filter = filter_name(filterport_filter(source));
-	c->source_port = filterport_label(source);
-	c->dest_filter = filter_name(filterport_filter(dest));
-	c->dest_port = filterport_label(dest);
-	list_add(&c->list, &filterport_filter(source)->connections);
-	p->connection = c;
+	p->source_filter = filter_name(filterport_filter(source));
+	p->source_port = filterport_label(source);
+	p->dest_filter = filter_name(filterport_filter(dest));
+	p->dest_port = filterport_label(dest);
+	list_add(&p->list, &filterport_filter(source)->connections);
 
 	/* signal pipe changes */
 	glsig_emit(filterpipe_emitter(p), GLSIG_PIPE_CHANGED, p);
@@ -190,7 +186,7 @@ filter_port_t *filterpipe_connection_source(filter_pipe_t *fp)
 
 	net = filterport_filter(filterpipe_source(fp))->net;
 	while (net) {
-		source = filter_get_node(net, fp->connection->source_filter);
+		source = filter_get_node(net, fp->source_filter);
 		if (source)
 			break;
 		net = net->net;
@@ -198,7 +194,7 @@ filter_port_t *filterpipe_connection_source(filter_pipe_t *fp)
 	if (!source)
 		return NULL;
 	return filterportdb_get_port(filter_portdb(source),
-				     fp->connection->source_port);
+				     fp->source_port);
 } 
 
 filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp)
@@ -207,7 +203,7 @@ filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp)
 
 	net = filterport_filter(filterpipe_dest(fp))->net;
 	while (net) {
-		dest = filter_get_node(net, fp->connection->dest_filter);
+		dest = filter_get_node(net, fp->dest_filter);
 		if (dest)
 			break;
 		net = net->net;
@@ -215,7 +211,7 @@ filter_port_t *filterpipe_connection_dest(filter_pipe_t *fp)
 	if (!dest)
 		return NULL;
 	return filterportdb_get_port(filter_portdb(dest),
-				     fp->connection->dest_port);
+				     fp->dest_port);
 }
 
 

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.47 2001/03/21 10:16:29 richi Exp $
+ * $Id: filter.c,v 1.48 2001/05/13 12:05:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -138,7 +138,7 @@ filter_t *_filter_instantiate(filter_t *f)
 	filter_t *n, *node, *source, *dest;
 	filter_pipe_t *p;
 	filter_param_t *param;
-	struct fconnection *c;
+	filter_pipe_t *c;
 
 	/* allocate new structure. */
 	if (!(n = _filter_alloc()))
@@ -175,16 +175,16 @@ filter_t *_filter_instantiate(filter_t *f)
 	/* second create the connections (loop through all outputs)
 	 * and copy pipe parameters */
 	filter_foreach_node(f, node) {
-		list_foreach(&node->connections, struct fconnection, list, c) {
+		list_foreach(&node->connections, filter_pipe_t, list, c) {
 			source = filter_get_node(n, c->source_filter);
 			dest = filter_get_node(n, c->dest_filter);
 			if (!(p = filterport_connect(filterportdb_get_port(filter_portdb(source), c->source_port),
 						     filterportdb_get_port(filter_portdb(dest), c->dest_port))))
 				goto err;
-			filterparamdb_foreach_param(filterpipe_destparamdb(c->pipe), param) {
+			filterparamdb_foreach_param(filterpipe_destparamdb(c), param) {
 				filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(p), filterparam_label(param)), filterparam_val(param));
 			}
-			filterparamdb_foreach_param(filterpipe_sourceparamdb(c->pipe), param) {
+			filterparamdb_foreach_param(filterpipe_sourceparamdb(c), param) {
 				filterparam_set(filterparamdb_get_param(filterpipe_sourceparamdb(p), filterparam_label(param)), filterparam_val(param));
 			}
 		}
@@ -338,7 +338,7 @@ char *filter_to_string(filter_t *net)
 	filter_port_t *portd;
 	filter_param_t *param;
 	sitem_t *pitem;
-	struct fconnection *c;
+	filter_pipe_t *c;
 
 	if (!net || !FILTER_IS_NETWORK(net))
 		return NULL;
@@ -422,15 +422,14 @@ char *filter_to_string(filter_t *net)
 	/* iterate over all connections and create connect
 	 * commands. */
 	filter_foreach_node(net, n) {
-		list_foreach(&n->connections, struct fconnection,
-			     list, c) {
+		list_foreach(&n->connections, filter_pipe_t, list, c) {
 			len += sprintf(&buf[len], "   (let ((pipe (filter_connect %s \"%s\" %s \"%s\")))\n",
 				       c->source_filter, c->source_port,
 				       c->dest_filter, c->dest_port);
 
 			/* iterate over all pipe dest parameters creating
 			 * parameter set commands. */
-			filterparamdb_foreach_param(filterpipe_destparamdb(c->pipe), param) {
+			filterparamdb_foreach_param(filterpipe_destparamdb(c), param) {
 				val = filterparam_to_string(param);
 				if (!val)
 					continue;
@@ -441,7 +440,7 @@ char *filter_to_string(filter_t *net)
 
 			/* iterate over all pipe source parameters creating
 			 * parameter set commands. */
-			filterparamdb_foreach_param(filterpipe_sourceparamdb(c->pipe), param) {
+			filterparamdb_foreach_param(filterpipe_sourceparamdb(c), param) {
 				val = filterparam_to_string(param);
 				if (!val)
 					continue;
