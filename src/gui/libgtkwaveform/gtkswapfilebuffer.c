@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.19 2003/05/25 13:37:27 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.20 2004/04/21 18:04:28 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -188,6 +188,7 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 	SAMPLE **trackm, **s;
 	struct sw_stat *trackst;
 	off_t *trackpos;
+	gint16 *data16 = data;
 
 	/* Init. */
 	trackm = (SAMPLE **)alloca(swapfile->nrtracks*sizeof(SAMPLE *));
@@ -232,9 +233,9 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 		while (cnt--) {
 			for (i=0; i<swapfile->nrtracks; i++) {
 				if (!trackm[i] || !(channel_mask & (1<<i)))
-					*((gint16 *)data)++ = 0;
+					*(data16++) = 0;
 				else
-					*((gint16 *)data)++ = SAMPLE2SHORT(*s[i]++);
+					*(data16++) = SAMPLE2SHORT(*s[i]++);
 			}
 		}
 
