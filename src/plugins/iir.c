@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.1 2000/04/03 00:47:37 mag Exp $
+ * $Id: iir.c,v 1.2 2000/04/06 11:19:49 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -271,7 +271,7 @@ static int iir_f(filter_node_t *n)
 		fc=0.1;
 	
 	if ((param=filternode_get_param(n,"ripple")))
-		poles=filterparam_val_float(param);
+		ripple=filterparam_val_float(param);
 	else
 		ripple=0.5;
 

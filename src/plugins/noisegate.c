@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.2 2000/04/05 08:58:39 mag Exp $
+ * $Id: noisegate.c,v 1.3 2000/04/06 11:19:49 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -81,7 +81,7 @@ static int noisegate_f(filter_node_t *n)
 	if ((param=filternode_get_param(n,"release")))
 		if (filterparam_val_int(param)>0.0)
 			release=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
-	
+
 	FILTER_AFTER_INIT;
 	
 	do {
@@ -137,9 +137,9 @@ int noisegate_register()
 				 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_param(f,"threshold_on","if input < threshold_on noisegate is turned on",FILTER_PARAMTYPE_FLOAT)
 	    || !filter_add_param(f,"threshold_off","if input > threshold_off noisegate is turned off",FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"hold","Hold Time[ms]",FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f,"attack","Attack Time[ms]",FILTER_PARAMTYPE_INT)
-	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f,"hold","Hold Time[ms]",FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_param(f,"attack","Attack Time[ms]",FILTER_PARAMTYPE_FLOAT)
+	    || !filter_add_param(f,"release","Release Time[ms]",FILTER_PARAMTYPE_FLOAT)
 	    || filter_add(f, "noisegate", "The noisegate filters all signals that are below the threshold") == -1)
 		return -1;
 	
