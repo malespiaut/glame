@@ -2596,3 +2596,27 @@ void gpsm_position_transform(gpsm_item_t *source, gpsm_grp_t *dest,
 		grp = gpsm_item_parent(grp);
 	}
 }
+
+
+int gpsm_group_common_samplerate(gpsm_grp_t *grp)
+{
+	gpsm_item_t *item;
+	int samplerate = -1;
+
+	gpsm_grp_foreach_item(grp, item) {
+		int sr;
+		if (GPSM_ITEM_IS_GRP(item)) {
+			sr = gpsm_group_common_samplerate((gpsm_grp_t *)item);
+			if (sr == -1)
+				continue;
+		} else
+			sr = gpsm_swfile_samplerate(item);
+
+		if (samplerate == -1)
+			samplerate = sr;
+		else if (sr != samplerate)
+			return -1;
+	}
+
+	return samplerate;
+}

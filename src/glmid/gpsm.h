@@ -515,6 +515,10 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
 void gpsm_position_transform(gpsm_item_t *source, gpsm_grp_t *dest,
 			     long *hpos, long *vpos);
 
+/* Queries a possibly common samplerate of a group.  Returns -1,
+ * if there are different samplerates (or no swfiles) in the group. */
+int gpsm_group_common_samplerate(gpsm_grp_t *grp);
+
 
 #ifdef __cplusplus
 }
