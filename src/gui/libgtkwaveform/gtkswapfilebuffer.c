@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.7 2001/04/10 09:08:44 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.8 2001/04/10 10:40:54 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -349,6 +349,8 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 					return NULL;
 			nrtracks++;
 		}
+		if (nrtracks == 0)
+			return NULL;
 	} else {
 		nrtracks = 1;
 		rate = gpsm_swfile_samplerate(item);
