@@ -1,7 +1,36 @@
-@comment $Id: gui.texi,v 1.1 2000/03/23 14:25:01 nold Exp $
+@comment $Id: gui.texi,v 1.2 2000/04/07 13:34:50 nold Exp $
 
 @node Graphical Frontend, Console Frontend, Copying, Top
 @chapter Graphical Frontend (glame)
 
-*** TODO ***
+CAVEATS: Don't expect too much from the current GUI. It's just a first
+approach to have something to play and test with. It will be rewritten
+from scratch in the near future. The current implementation isn't too
+clever and doesn't handle pipe parameters at all. Use the GUI if you
+want to play around a little with GLAME. Use cglame, the command line
+interface, for the real stuff.
 
+The graphical frontend is invoked with the command @file{glame}. If you
+are lucky, your GNOME libs are recent enough and a window will pop up,
+displaying icons for all available plugins. Right clicking on an icon
+shows some information on filter properties.
+
+Now choose 
+'New Filter Network' from the 'File' menu, and the next window will
+show up. You can drag'n'drop icons from the plugin window to the 
+network window. Connections between two nodes in the network are added
+by left clicking on the blue are in the source icon and drawing a line to
+the red region of the target icon. A right click on a node icon pops up
+a window where you can alter parameter settings. Use the middle mouse 
+button to remove nodes and connections from the network.
+
+Click on the buttons on the bottom of the network window to start, pause, and
+stop a network.
+
+@subheading Example
+To play back the stereo file @file{foo.wav} with a little echo, create a new
+filter network from the menu, then drop one read-file, one audio-out, and 
+two echo icons in the network window. Right click on the read-file icon and
+set the filename to @file{foo.wav}. Draw a connection from read-file to
+each of the echo nodes. Connect both echo nodes to audio-out, hit the Play 
+button and that should be it.
