@@ -790,7 +790,7 @@ static void _file_check(struct swfile *f)
 	struct swcluster *c;
 	int i;
 
-	if (!f)
+	if (!f || swap.fsck)
 		return;
 
 	/* Check ctree consistency. */

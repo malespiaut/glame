@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
+#include <setjmp.h>
 #include <string.h>
 #include <errno.h>
 #ifdef HAVE_ALLOCA_H
@@ -71,13 +72,16 @@ static struct {
 	char *clusters_data_base;
 	char *clusters_meta_base;
 	struct list_head fds;
-	int fsck;
+	int fsck, ro;
 } swap = { NULL, NULL, NULL, };
 #define SWAPFILE_OK() (swap.files_base != NULL)
+#define SWAPFILE_RW() (SWAPFILE_OK() && (!swap.ro || swap.fsck))
 
 static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK do { pthread_mutex_lock(&swmx); } while (0)
 #define UNLOCK do { pthread_mutex_unlock(&swmx); } while (0)
+
+#define SWPANIC(msg) PANIC(msg)
 
 
 /* We want to have a clean (static) namespace... */
@@ -165,6 +169,7 @@ int swapfile_open(const char *name, int flags)
 	swap.clusters_meta_base = strdup(str);
 	INIT_LIST_HEAD(&swap.fds);
 	swap.fsck = 0;
+	swap.ro = 0;
 
 	/* Initialize cluster subsystem. */
 	if (cluster_init(32, 100*1024*1024) == -1)
@@ -213,6 +218,7 @@ void swapfile_close()
 	swap.clusters_data_base = NULL;
 	swap.clusters_meta_base = NULL;
 	swap.fsck = 0;
+	swap.ro = 0;
 }
 
 /* Tries to create an empty swapfile on name of size size. */
@@ -231,6 +237,7 @@ int swapfile_creat(const char *name, size_t size)
 
 	return 0;
 }
+
 
 /* Tries to recover from an "unclean shutdown". */
 int swapfile_fsck(const char *name)
@@ -292,26 +299,55 @@ int swapfile_fsck(const char *name)
 	/* Loop over all files and try to "touch" them. */
 	dir = sw_opendir();
 	while ((nm = sw_readdir(dir)) != -1) {
-		/* Try to open the file. */
-		if ((fd = sw_open(nm, O_RDONLY, TXN_NONE)) == -1) {
-			fprintf(stderr, "Error in opening file %li - deleting.\n", nm);
+		struct swfile *file;
+		struct swcluster *cluster;
+		int i, j;
+
+		/* Get the file. */
+		file = file_get(nm, FILEGET_READCLUSTERS);
+
+		/* Check internal ctree consistency. */
+		if (ctree_check(file->clusters) == -1)
 			goto killit;
+
+		/* Get all clusters and check file reference and size. */
+		for (i=0; i<file->clusters->cnt; i++) {
+			cluster = cluster_get(CID(file->clusters, i), CLUSTERGET_READFILES, -1);
+
+			/* Not existing cluster? -> remove it from ctree. */
+			if (!cluster) {
+				file->clusters = ctree_remove(file->clusters, i, 1, NULL, NULL);
+				i--;
+				file->flags |= SWF_DIRTY;
+				continue;
+			}
+
+			/* Non-matching size. Fix the ctree. */
+			if (cluster->size != CSIZE(file->clusters, i)) {
+				DPRINTF("Fixing ctree size\n");
+				ctree_replace1(file->clusters, i, CID(file->clusters, i), cluster->size);
+				file->flags |= SWF_DIRTY;
+			}
+
+			/* Check we have a reference on the cluster. */
+			if (cluster_checkfileref(cluster, file->name) == -1)
+				cluster_addfileref(cluster, file->name);
+
+			/* Check the files that are referenced do all exist. */
+			for (j=0; j<cluster->files_cnt; j++) {
+				/* FIXME */
+			}
+
+			cluster_put(cluster, 0);
 		}
-		/* Seek through all clusters. */
-		do {
-			if (sw_fstat(fd, &st) == -1) {
-				fprintf(stderr, "Error in stat'ing file %li - deleting.\n", nm);
-				goto killit;
-			}
-			if (sw_lseek(fd, st.cluster_size, SEEK_CUR) != st.cluster_start + st.cluster_size) {
-				fprintf(stderr, "Error seeking file %li - deleting.\n", nm);
-				goto killit;
-			}
-		} while (st.offset != st.size - st.cluster_size);
-		sw_close(fd);
+
+		/* Finished with the file. */
+		file_put(file, 0);
 		continue;
+
 	killit:
-		sw_unlink(nm);
+		/* Delete the file. */
+		file_put(file, FILEPUT_UNLINK);
 		continue;
 	}
 	sw_closedir(dir);
@@ -336,7 +372,7 @@ int sw_unlink(long name)
 {
 	struct swfile *f;
 
-	if (!SWAPFILE_OK()) {
+	if (!SWAPFILE_RW()) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -517,7 +553,7 @@ int sw_ftruncate(swfd_t fd, off_t length)
 	struct swfd *_fd;
 	int res;
 
-	if (!SWAPFILE_OK()) {
+	if (!SWAPFILE_RW()) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -566,7 +602,7 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 	struct swfd *_ofd;
 	struct swfd *_ifd;
 
-	if (!SWAPFILE_OK()) {
+	if (!SWAPFILE_RW()) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -617,10 +653,12 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 	 */
 	/* First update the output file, if necessary. */
 	if (_ofd) {
-		if (mode & SWSENDFILE_INSERT)
+		if (mode & SWSENDFILE_INSERT) {
+			if (_ofd->file->clusters->size < _ofd->offset)
+				file_truncate(_ofd->file, _ofd->offset);
 			file_insert(_ofd->file, _ofd->offset,
 				    _ifd->file, _ifd->offset, count);
-		else
+		} else
 			file_replace(_ofd->file, _ofd->offset,
 				     _ifd->file, _ifd->offset, count);
 		_ofd->offset = _ofd->offset + count;
@@ -791,7 +829,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	s64 old_size = -1, old_offset;
 	int err = 0;
 
-	if (!SWAPFILE_OK()) {
+	if (!SWAPFILE_RW()) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -851,7 +889,7 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	ssize_t res;
 	int err = 0;
 
-	if (!SWAPFILE_OK()) {
+	if (!SWAPFILE_RW()) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -967,7 +1005,7 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 	s64 coff;
 	void *addr;
 
-	if (!SWAPFILE_OK()) {
+	if (!SWAPFILE_RW()) {
 		errno = EINVAL;
 		return MAP_FAILED;
 	}

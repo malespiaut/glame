@@ -125,7 +125,7 @@ static struct swcluster *cluster_get(long name, int flags, s32 known_size)
 		return NULL;
 #ifdef DEBUG
 	if (known_size != -1 && c->size != known_size)
-		PANIC("User and cluster disagree about its size");
+		SWPANIC("User and cluster disagree about its size");
 #endif
 
 	/* Read the files list, if required. */
@@ -218,7 +218,7 @@ static void cluster_addfileref(struct swcluster *c, long file)
 
 	/* Re-alloc the files array. - FIXME: inefficient */
 	if (!(c->files = (long *)realloc(c->files, (c->files_cnt+1)*sizeof(long))))
-		PANIC("cannot realloc files array");
+		SWPANIC("cannot realloc files array");
 
 	/* Append the file, fix the files count and mark it dirty. */
 	c->files[c->files_cnt] = file;
@@ -284,13 +284,7 @@ static int cluster_checkfileref(struct swcluster *c, long file)
 
 static char *cluster_mmap(struct swcluster *c,void *start, int prot, int flags)
 {
-	/* Need to create the file? Also truncate to the right size. */
-	if (c->flags & SWC_CREAT)
-		_cluster_needdata(c);
-	/* Open the cluster datafile, if necessary. */
-	if (c->fd == -1)
-		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
-			PANIC("Cluster vanished under us?");
+	_cluster_needdata(c);
 	return (char *)pmap_map(start, c->size, prot, flags, c->fd, 0);
 }
 
@@ -330,7 +324,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 		 * simpler. */
 		if (ct && !ch) {
 			if ((m = cluster_mmap(c, NULL, PROT_READ|PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-				PANIC("Cannot mmap cluster");
+				SWPANIC("Cannot mmap cluster");
 			memmove(m, m + offset + cutcnt,
 				c->size - offset - cutcnt);
 			cluster_munmap(m);
@@ -345,7 +339,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 						 MAP_SHARED)) == MAP_FAILED
 			    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE,
 						  MAP_SHARED)) == MAP_FAILED)
-				PANIC("Cannot alloc/mmap cluster");
+				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mt, m + offset + cutcnt,
 			       c->size - offset - cutcnt);
 			cluster_munmap(mt);
@@ -357,12 +351,12 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 		/* Umm, now we have to copy in any case. */
 		if ((m = cluster_mmap(c, NULL, PROT_READ,
 				      MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot mmap cluster");
+			SWPANIC("Cannot mmap cluster");
 		if (ch) {
 			if (!(*ch = cluster_alloc(offset))
 			    || (mh = cluster_mmap(*ch, NULL, PROT_WRITE,
 						  MAP_SHARED)) == MAP_FAILED)
-				PANIC("Cannot alloc/mmap cluster");
+				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mh, m, offset);
 			cluster_munmap(mh);
 		}
@@ -370,7 +364,7 @@ static void cluster_split(struct swcluster *c, s32 offset, s32 cutcnt,
 			if (!(*ct = cluster_alloc(c->size - offset - cutcnt))
 			    || (mt = cluster_mmap(*ct, NULL, PROT_WRITE,
 						  MAP_SHARED)) == MAP_FAILED)
-				PANIC("Cannot alloc/mmap cluster");
+				SWPANIC("Cannot alloc/mmap cluster");
 			memcpy(mt, m + offset + cutcnt,
 			       c->size - offset - cutcnt);
 			cluster_munmap(mt);
@@ -410,7 +404,7 @@ static struct swcluster *cluster_unshare(struct swcluster *c)
 		if (!(cc = cluster_alloc(c->size))
 		    || (m = cluster_mmap(c, NULL, PROT_READ, MAP_SHARED)) == MAP_FAILED
 		    || (mc = cluster_mmap(cc, NULL, PROT_WRITE, MAP_SHARED)) == MAP_FAILED)
-			PANIC("Cannot alloc/mmap clusters");
+			SWPANIC("Cannot alloc/mmap clusters");
 		memcpy(mc, m, c->size);
 		cluster_munmap(mc);
 		cluster_munmap(m);
@@ -429,8 +423,7 @@ static ssize_t cluster_read(struct swcluster *c, void *buf,
 	ssize_t res;
 
 	LOCKCLUSTER(c);
-	if (c->fd == -1 || (c->flags & SWC_CREAT))
-		_cluster_needdata(c);
+	_cluster_needdata(c);
 	res = pread(c->fd, buf, count, offset);
 	UNLOCKCLUSTER(c);
 
@@ -446,8 +439,7 @@ static ssize_t cluster_write(struct swcluster *c, const void *buf,
 	LOCKCLUSTER(c);
 	if (c->size < offset+count)
 		DERROR("Write extends cluster size");// FIXME? count = c->size - offset;
-	if (c->fd == -1 || (c->flags & SWC_CREAT))
-		_cluster_needdata(c);
+	_cluster_needdata(c);
 	res = pwrite(c->fd, buf, count, offset);
 	UNLOCKCLUSTER(c);
 
@@ -528,10 +520,6 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 			free(c);
 			return NULL;
 		}
-#ifdef DEBUG
-		if (known_size != -1 && known_size != dstat.st_size)
-			PANIC("User and disk disagree about cluster size");
-#endif
 		known_size = dstat.st_size;
 #ifndef DEBUG
 	}
@@ -554,7 +542,7 @@ static struct swcluster *_cluster_stat(long name, s32 known_size)
 /* Reads the list of cluster users into memory. It is an error
  * to call this operation on a SWC_DIRTY cluster. For clusters
  * which already have the list this is a nop. Any internal error
- * causes a PANIC. Clears SWC_NOT_IN_CORE flag. */
+ * causes a SWPANIC. Clears SWC_NOT_IN_CORE flag. */
 static void _cluster_readfiles(struct swcluster *c)
 {
 	int fd;
@@ -568,12 +556,12 @@ static void _cluster_readfiles(struct swcluster *c)
 	/* Load files list. */
 	if ((fd = __cluster_meta_open(c->name, O_RDWR)) == -1
 	    || fstat(fd, &stat) == -1)
-		PANIC("metadata vanished under us");
+		SWPANIC("metadata vanished under us");
 	if (!(c->files = (long *)malloc(stat.st_size)))
-		PANIC("no memory for files list");
+		SWPANIC("no memory for files list");
 	c->files_cnt = stat.st_size/sizeof(long);
 	if (read(fd, c->files, stat.st_size) != stat.st_size)
-		PANIC("cannot read cluster metadata");
+		SWPANIC("cannot read cluster metadata");
 	c->flags &= ~SWC_NOT_IN_CORE;
 	close(fd);
 }
@@ -585,7 +573,7 @@ static void _cluster_readfiles(struct swcluster *c)
  * SWC_DIRTY flag is cleared. Also for SWC_NOT_IN_CORE this
  * is a nop, too.
  * Failure is not permitted at any stage of this operation,
- * so we PANIC in this case. */
+ * so we SWPANIC in this case. */
 static void _cluster_writefiles(struct swcluster *c)
 {
 	int fd, size;
@@ -601,7 +589,7 @@ static void _cluster_writefiles(struct swcluster *c)
 	if ((fd = __cluster_meta_open(c->name, O_RDWR|O_CREAT)) == -1
 	    || ftruncate(fd, size) == -1
 	    || write(fd, c->files, size) != size)
-		PANIC("cannot write cluster metadata");
+		SWPANIC("cannot write cluster metadata");
 	c->flags &= ~SWC_DIRTY;
 	close(fd);
 }
@@ -614,13 +602,13 @@ static void __cluster_needdata(struct swcluster *c)
 		if (c->fd != -1)
 			return;
 		if ((c->fd = __cluster_data_open(c->name, O_RDWR)) == -1)
-			PANIC("Cannot open cluster");
+			SWPANIC("Cannot open cluster");
 	} else {
 		if (c->fd == -1
 		    && (c->fd = __cluster_data_open(c->name, O_RDWR|O_CREAT)) == -1)
-			PANIC("Cannot create cluster");
+			SWPANIC("Cannot create cluster");
 		if (ftruncate(c->fd, c->size) == -1)
-			PANIC("Cannot truncate cluster");
+			SWPANIC("Cannot truncate cluster");
 		c->flags &= ~SWC_CREAT;
 	}
 }
@@ -640,7 +628,7 @@ static void _cluster_truncate(struct swcluster *c, s32 size)
 		c->flags |= SWC_CREAT;
 	else
 		if (ftruncate(c->fd, c->size) == -1)
-			PANIC("Cannot truncate cluster");
+			SWPANIC("Cannot truncate cluster");
 }
 
 static void _cluster_put(struct swcluster *c)

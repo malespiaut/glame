@@ -132,7 +132,7 @@ static struct ctree *ctree_insert(struct ctree *h, long pos, long cnt,
 
 	if (CTREEMAXCNT(h->height) < h->cnt + cnt) {
 		if (!(dest = ctree_alloc(h->cnt + cnt)))
-			PANIC("Cannot alloc ctree");
+			SWPANIC("Cannot alloc ctree");
 	} else
 		dest = h;
 
