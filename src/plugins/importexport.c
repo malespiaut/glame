@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.9 2001/09/11 12:09:34 richi Exp $
+ * $Id: importexport.c,v 1.10 2001/09/19 11:47:04 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -129,8 +129,6 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	long vpos;
 
 	if(ie->gotfile==0) {
-		gnome_dialog_run_and_close(gnome_error_dialog(
-						   "Won't you select a file first"));
 		return;
 	}
 
@@ -340,13 +338,15 @@ static void ie_update_plabels(struct impexp_s *ie) {
 static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 	filter_t **ssp, **maxrms, *net, *readfile;
 	filter_param_t *param;
+	GtkWidget *ed;
 	float rms, mrms, percentage;
 	int i, bsize=1;
 	char buffer[128];
 
 	if(ie->gotfile==0) {
-		gnome_dialog_run_and_close(gnome_error_dialog(
-						   "Select a file first!"));
+		ed=gnome_error_dialog("Select a file first!");
+		gnome_dialog_set_parent(ed, GTK_WINDOW(ie->dialog));
+		gnome_dialog_run_and_close(ed);
 		return;
 	}
 
