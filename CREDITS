@@ -3,9 +3,10 @@ All low-level assembler locking and atomic ops code and the list.h code
         Linus Torvalds and many many others. hash.h also was largely
         inspired by the hashing code used in the mm of the linux kernel.
 
-src/gui/libgtkwaveform was "stolen" from the libgtkwaveform-0.2.2
-	package which is maintained by David A. Bartold <foxx@mail.utexas.edu>
-        and has contributions from Ben De Rydt <ben.de.rydt@pandora.be>.
+src/gui/libgtkwaveform and src/util/glame_*ruler* were "stolen" from the
+	libgtkwaveform-0.[23].2 packages which are maintained by
+	          David A. Bartold <foxx@mail.utexas.edu>
+        and have contributions from Ben De Rydt <ben.de.rydt@pandora.be>.
 
 LADSPA support was added initially by Richard Furse
 
