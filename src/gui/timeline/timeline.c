@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.17 2001/11/14 10:09:56 richi Exp $
+ * $Id: timeline.c,v 1.18 2001/12/13 14:50:45 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -196,7 +196,7 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			gnome_canvas_item_show(dnd_rect);
 
 		} else {
-			double dx, dy;
+			double dx, dy, ddummy;
 			long hposition, vposition, idy, dummy;
 			/* Just move the rect (horizontally). */
 			dx = mevent->x - dnd_start_x;
@@ -213,8 +213,8 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 				gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
 				x1+dx, y1+dy, 0.0, 0.0);
 			if (gpsm_item_can_place(
-				/* FIXME -- does not do cross-group moving */
-				//canvas->active_group,
+				/* FIXME -- does not do cross-group moving
+				 * canvas->active_group, */
 				gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
 				TIMELINE_CI_GPSM(dnd_file),
 				hposition, vposition)) {
@@ -227,7 +227,7 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 				timeline_canvas_item_gpsm2w(
 					0,idy,0,0,
 					gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
-					&dummy,&dy,&dummy,&dummy);
+					&ddummy,&dy,&ddummy,&ddummy);
 				gnome_canvas_item_set(dnd_rect,
 						      "x1", x1+dx,
 						      "x2", x2+dx, 
