@@ -1,6 +1,6 @@
 /*
  * echo2.c
- * $Id: echo2.c,v 1.11 2000/02/23 08:29:14 mag Exp $
+ * $Id: echo2.c,v 1.12 2000/02/23 12:31:12 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -42,13 +42,9 @@ static int echo2_f(filter_node_t *n)
 	SAMPLE *ins, *fs;
 	int cnt, inb_pos, fb_pos;
 
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
-	
-	if(!in) filternetwork_break_connection(out);
-	if(!out) filternetwork_break_connection(in);
-	
-	if ((!in)||(!out)) return 0;
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	        return -1;
 
 	delay = filterpipe_sample_rate(in)/10; /* 0.1 sec. default delay */
 	if ((param = filternode_get_param(n, "time")))

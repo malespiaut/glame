@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.11 2000/02/22 13:38:53 richi Exp $
+ * $Id: file_io.c,v 1.12 2000/02/23 12:31:12 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -30,6 +30,11 @@
  *   prepare is a unification of the connect_out & fixup_param method.
  * - f method which does the actual reading
  * - cleanup method to cleanup the private shared state
+ * Every generic writer should just have a
+ * - f method which does all setup and the actual writing, just terminate
+ *   with an error if something is wrong
+ * a writer should register itself with a regular expression of filenames
+ * it wants to handle.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +43,7 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
+#include <regex.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,10 +56,8 @@
 int af_read_prepare(filter_node_t *n, const char *filename);
 int af_read_connect(filter_node_t *n, filter_pipe_t *p);
 int af_read_f(filter_node_t *n);
-/* int af_write_prepare(filter_node_t *n, const char *filename);
-int af_write_connect(filter_node_t *n, filter_pipe_t *p);
-int af_write_f(filter_node_t *n); */
-void af_rw_cleanup(filter_node_t *n);
+void af_read_cleanup(filter_node_t *n);
+/* int af_write_f(filter_node_t *n); */
 #endif
 
 
@@ -63,6 +67,7 @@ typedef struct {
 	int (*connect)(filter_node_t *, filter_pipe_t *);
 	int (*f)(filter_node_t *);
 	void (*cleanup)(filter_node_t *);
+        const char *regexp;
 } rw_t;
 
 typedef struct {
@@ -107,7 +112,8 @@ static struct list_head writers;
 static rw_t *add_rw(int (*prepare)(filter_node_t *, const char *),
 		    int (*connect)(filter_node_t *, filter_pipe_t *),
 		    int (*f)(filter_node_t *),
-		    void (*cleanup)(filter_node_t *))
+		    void (*cleanup)(filter_node_t *),
+		    const char *regexp)
 {
 	rw_t *rw;
 
@@ -120,6 +126,8 @@ static rw_t *add_rw(int (*prepare)(filter_node_t *, const char *),
 	rw->connect = connect;
 	rw->f = f;
 	rw->cleanup = cleanup;
+	if (regexp)
+		rw->regexp = strdup(regexp);
 
 	return rw;
 }
@@ -130,20 +138,17 @@ static int add_reader(int (*prepare)(filter_node_t *, const char *),
 {
 	rw_t *rw;
 
-	if (!(rw = add_rw(prepare, connect, f, cleanup)))
+	if (!(rw = add_rw(prepare, connect, f, cleanup, NULL)))
 	        return -1;
 	list_add(&rw->list, &readers);
 
 	return 0;
 }
-static int add_writer(int (*prepare)(filter_node_t *, const char *),
-		      int (*connect)(filter_node_t *, filter_pipe_t *),
-		      int (*f)(filter_node_t *),
-		      void (*cleanup)(filter_node_t *))
+static int add_writer(int (*f)(filter_node_t *), const char *regexp)
 {
 	rw_t *rw;
 
-	if (!(rw = add_rw(prepare, connect, f, cleanup)))
+	if (!(rw = add_rw(NULL, NULL, f, NULL, regexp)))
 	        return -1;
 	list_add(&rw->list, &writers);
 
@@ -251,70 +256,39 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 /* write methods */
 static int write_file_f(filter_node_t *n)
 {
-	/* require set filename (a selected reader) and
-	 * at least one connected output. */
+	/* require set filename, a selected writer and
+	 * at least one connected input. */
 	if (!RWPRIV(n)->initted)
 		return -1;
 	if (!filternode_get_input(n, PORTNAME_IN))
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-static int write_file_connect_in(filter_node_t *n, const char *port,
-				 filter_pipe_t *p)
-{
-	/* no writer -> no filename -> accept connection (for now) */
-	if (!RWPRIV(n)->rw)
-		return 0;
-
-	/* pass request to readers prepare, it can reject the
-	 * connection, but not the file here. */
-	return RWPRIV(n)->rw->connect(n, p);
-}
 static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 				  const char *name, filter_param_t *param)
 {
-	rw_t *r;
+	regex_t rx;
+	rw_t *w;
 
         /* only filename change possible in writer. */
-	/* check actual reader */
-	if (RWPRIV(n)->rw) {
-		/* cleanup previous stuff */
-		if (RWPRIV(n)->initted
-		    && RWPRIV(n)->rw->cleanup)
-			RWPRIV(n)->rw->cleanup(n);
-		RWPRIV(n)->initted = 0;
-		
-		/* try same rw again */
-		if (RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
-			RWPRIV(n)->initted = 1;
-			goto reconnect;
-		}
-	}
-
-	RWPRIV(n)->rw = NULL;
 	RWPRIV(n)->initted = 0;
+	RWPRIV(n)->rw = NULL;
 
-	/* search for applicable reader */
-	list_foreach(&writers, rw_t, list, r) {
-		if (r->prepare(n, filterparam_val_string(param)) != -1) {
-			RWPRIV(n)->rw = r;
+	/* find applicable writer */
+	list_foreach(&writers, rw_t, list, w) {
+	        if (regcomp(&rx, w->regexp, REG_EXTENDED|REG_NOSUB) == -1)
+			continue;
+		if (regexec(&rx, filterparam_val_string(param), 0,
+			    NULL, 0) == 0) {
+			regfree(&rx);
+			RWPRIV(n)->rw = w;
 			RWPRIV(n)->initted = 1;
-			goto reconnect;
+			return 0;
 		}
+		regfree(&rx);
 	}
 
-	/* no reader found */
 	return -1;
-
- reconnect:
-	/* re-connect all pipes */
-	filternode_foreach_input(n, p)
-		if (RWPRIV(n)->rw->connect(n, p) == -1){
-			filternetwork_break_connection(p);
-			goto reconnect;
-		}
-
-	return 0;
 }
 
 
@@ -352,20 +326,19 @@ int file_io_register()
 		return -1;
 	f->init = rw_file_init;
 	f->cleanup = rw_file_cleanup;
-	f->connect_in = write_file_connect_in;
 	f->fixup_param = write_file_fixup_param;
 	if (filter_add(f) == -1)
 		return -1;
 
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
-		   af_read_f, af_rw_cleanup);
-	/* add_writer(af_write_prepare, af_write_connect,
-		   af_write_f, af_rw_cleanup); */
+		   af_read_f, af_read_cleanup);
+	/* add_writer(af_write_f, ".*(\\.wav|\\.au)$"); */
 #endif
 
 	return 0;
 }
+
 
 
 /* The actual readers and writers.
@@ -524,7 +497,7 @@ int af_read_f(filter_node_t *n)
 	return 0;
 }
 
-void af_rw_cleanup(filter_node_t *n)
+void af_read_cleanup(filter_node_t *n)
 {
 	if (!RWPRIV(n)->initted)
 		return;
