@@ -1,8 +1,8 @@
-This is GLAME 0.4.0beta - GNU/Linux Audio Mechanics release.
+This is GLAME 0.4.0 - GNU/Linux Audio Mechanics stable release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
-and compatible systems. Supported platforms are Linux and IRIX.
+and compatible systems. Supported platforms are Linux, BSD and IRIX.
 
 Authors in chronological order
 	mag, XWolf, richi, nold, garrison, navratil
@@ -17,18 +17,18 @@ with their real names
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/ or http://www.glame.de/
 
-Tuebingen 12.04.2001
+Tuebingen 25.04.2001
 
 
 Quick Start for the impatient
 =============================
 If you got a glame tarball just do the usual
 > ./configure && make && make install
-and you will get the programs 'glame', 'cglame' and 'gmkswap' installed.
+and you will get the programs 'glame' and 'cglame' installed.
 If you checked out the glame cvs first do
 > ./autogen.sh
 If you do not want to install glame, you can find 'glame' in
-'src/gui/glame', 'cglame' in 'src/cglame' and 'gmkswap' in 'src/swapfile'.
+'src/gui/glame' and 'cglame' in 'src/cglame'.
 
 There is a command line interface to glame (with some extended
 features and with some features missing) called 'cglame'. You will end
@@ -53,27 +53,28 @@ source can be found in the src/plugins directory.
 
 Requirements
 ============
-- Supported platforms so far are Linux, IRIX and BSD, we occasionally try
+- Supported platforms so far are Linux, IRIX6.5 and BSD, we occasionally try
   to make it compile on Solaris, AIX and HP-UX. Supported (tested)
   architectures are Intel x86 compatible, PowerPC and MIPS (IRIX only).
-- You may need glibc2.x on Linux, other versions were not tested. Also
-  using gcc to compile GLAME is highly recommended as other compilers
-  may not work.
-- For the GUI part, it's best to try with the very latest versions of
-  GTK+, GNOME libs. configure --disable-gui is your friend...
-- The scripting part makes use of GUILE; upgrading to the lastest and 
+  On all platforms gcc is required to compile GLAME, using version
+  2.95.2 or later is highly recommended.
+- You may need glibc2.x on Linux, other versions were not tested.
+- For the GUI part, it's best to try with recent versions of the
+  Gtk+ and GNOME libs (those from the gnome distributions starting at
+  version 1.0 should suffice). configure --disable-gui is your friend...
+- The scripting part makes use of guile; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
-  expected.
+  expected (version 1.3.4 and up are known to work).
 - Another requirement is a recent libxml which is used by the midlayer.
 - For developing you need recent versions of autoconf, automake and
   libtool.
 
 
-Current Status (as of version 0.4.0beta):
+Current Status (as of version 0.4.0):
 ==========================================
 - usable GUI - src/gui/glame
 - usable console UI - src/cglame
-- documentation
+- documentation and on-line help
 - the glame midlayer which supports
   * plugins
   * scripting (using guile)
@@ -83,7 +84,6 @@ Current Status (as of version 0.4.0beta):
   * feedback inside the network does work
   * zero-copy operation inside and between filters
 - the swapfile backing store
-- lots of minor tools you can make use of in own programs
 
 
 Thats all folks!

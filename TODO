@@ -1,24 +1,8 @@
-TODOs of the various subsystems/programs, [] tells about the
-"maintainer" or the one who is supposed to fix it.
+TODOs of the various subsystems, [] tells about the person who is
+supposed to fix it.
 
-Things we (absolutely) need to do before 0.4.0:
------------------------------------------------
-
-doc/
-	- document available filters [nold/the filter authors]
-	  The following filters are still missing:
-		fft_plugins.c:int fft_register(plugin_t *p)
-		fft_plugins.c:int ifft_register(plugin_t *p)
-		fft_plugins.c:int fft_resample_register(plugin_t *p)
-		fft_plugins.c:int fft_equalizer_register(plugin_t *p)
-		fft_plugins.c:int fft_bandpass_register(plugin_t *p)
-
-plugins/
-	- fix mix filter [richi]
-
-
-Stuff that can pe postponed for 0.4.x:
---------------------------------------
+Stuff that was postponed for 0.4.x:
+-----------------------------------
 
 plugins/
 	[all]
@@ -30,8 +14,8 @@ gui/
 	- kool splashscreen?
 
 
-Items that can be postponed forever (at least until 0.6):
----------------------------------------------------------
+Stuff scheduled for 0.5 or later:
+---------------------------------
 
 doc/
 	- document gpsm [richi]
