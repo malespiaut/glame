@@ -1,4 +1,4 @@
-@comment $Id: conversion.texi,v 1.1 2001/03/25 17:23:35 nold Exp $
+@comment $Id: conversion.texi,v 1.2 2001/04/24 12:10:58 nold Exp $
 
 @node Conversion Layer, Swapfile API, Filter Tutorial, Top
 @chapter Conversion Layer
@@ -19,6 +19,13 @@ presents to its callers. If you are about to write a new i/o plugin for
 GLAME, you should probably go on reading. If you want to hack up another
 optimised conversion routine for the processor of your choice, have a look
 at the source instead.
+
+@table @strong 
+@item Warning!
+This is the rare case of a design preceeding its implementation. This
+documentation is provided here for discussion among developers. The
+API cannot actually be used yet.
+@end table
 
 Send comments on the conversion layer or this documentation to
 @email{glame-devel@@glame.sourceforge.net} (c/o nold).
@@ -164,15 +171,6 @@ The latter describing that the data is formatted in a machine's native
 endianness, which is determined at compile time. 
 @end deftypefun
 
-@findex gcv_set_layout
-@tindex gcv_layout_t
-@tindex gcv_type_t
-@tindex gcv_endian_t
-@deftypefun int gcv_set_layout (gcv_layout_t @var{layout}, unsigned int @var{num_stream}, unsigned int @var{num_ch}, unsigned int @var{width}, gcv_type_t @var{type}, gcv_endian_t @var{endian})
-This is a short cut to the above methods, setting all properties of a layout
-at once. See above for descriptions of individual parameters.
-@end deftypefun
-
 @node Getting your custom-tailored conversion routine, Invoking data conversions, Describing the data layout, Conversion Layer
 @section Getting your custom-tailored conversion routine
 
@@ -191,19 +189,9 @@ drops all associated ressources respectively. @code{gcv_get_conversion}
 returns a valid handle on success, or @code{NULL} on error.
 @end deftypefun
 
-@findex gcv_update_conversion
-@tindex gcv_layout_t
-@tindex gcv_conv_t
-@deftypefun gcv_conv_t gcv_update_conversion (gcv_conv_t @var{cv}, gcv_layout_t @var{source}, gcv_layout_t @var{target})
-This is a convenience function to be used if source or target layout change
-after a conversion has already been set up. It drop the old handle @var{cv}
-and registers a new conversion from @var{source} to @var{target}. A valid
-handle is returned on success, or @code{NULL} on error.
-@end deftypefun
-
 @table @strong
 @item FIXME 
-We might need another option to tell whether the conversion may be
+We need another option to tell whether the conversion may be
 destructive. Ought not to scribble on an mmap()ed soundfile! Requiring the
 caller to copy to a safe buffer probably ain't the best calling convention
 in this case.
