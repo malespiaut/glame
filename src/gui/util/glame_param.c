@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.19 2002/02/24 22:16:06 richi Exp $
+ * $Id: glame_param.c,v 1.20 2002/02/24 22:39:00 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -288,14 +288,20 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		GladeXML *gxml;
 		gxml = glade_xml_new_from_memory(xml, strlen(xml), NULL, NULL);
 		gparam->label = gtk_label_new(label);
-		gparam->widget = glade_xml_get_widget(gxml, "widget");
-		gparam->u.widget = gparam->widget;
-		if (GTK_IS_OPTION_MENU(gparam->widget)) {
+		gparam->widget = glade_xml_get_widget(gxml, "root");
+		gparam->u.widget = glade_xml_get_widget(gxml, "widget");
+		if (!gparam->widget)
+			gparam->widget = gparam->u.widget;
+		if (!gparam->widget) {
+			DPRINTF("Broken xml param description\n%s\n", xml);
+			return NULL;
+		}
+		if (GTK_IS_OPTION_MENU(gparam->u.widget)) {
 			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_long(param));
-		} else if (GTK_IS_RANGE(gparam->widget)) {
-			gparam->u.adj = gtk_range_get_adjustment(GTK_RANGE(gparam->widget));
-		} else if (GTK_IS_KNOB(gparam->widget)) {
-			gparam->u.adj = gtk_knob_get_adjustment(GTK_KNOB(gparam->widget));
+		} else if (GTK_IS_RANGE(gparam->u.widget)) {
+			gparam->u.adj = gtk_range_get_adjustment(GTK_RANGE(gparam->u.widget));
+		} else if (GTK_IS_KNOB(gparam->u.widget)) {
+			gparam->u.adj = gtk_knob_get_adjustment(GTK_KNOB(gparam->u.widget));
 		} else
 			DPRINTF("FIXME - unsupported XML widget\n");
 		if (GTK_IS_ADJUSTMENT(gparam->u.adj)) {
