@@ -4,7 +4,7 @@
 /*
  * gltree.h
  *
- * $Id: gltree.h,v 1.8 2004/06/13 22:27:55 richi Exp $
+ * $Id: gltree.h,v 1.9 2004/06/17 16:27:28 richi Exp $
  *
  * Copyright (C) 2003 Johannes Hirche, Richard Guenther
  *
@@ -29,11 +29,19 @@
 #include "gpsmstore.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Initialize the one and only tree-view of the gpsm
  * storage.
  */
 
 GtkWidget *glame_gltree_init(gpsm_grp_t *newroot);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif
