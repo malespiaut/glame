@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.16 2000/04/02 12:04:09 mag Exp $
+; $Id: glame.scm,v 1.17 2000/04/02 13:28:05 mag Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -137,7 +137,7 @@
       (filternode_set_param rf "filename" file)
       (while-not-false
        (lambda ()
-	 (let ((to (net-add-node net "track_out")))
+	 (let ((to (net-add-node net "track-out")))
 	   (if (boolean? (filternetwork_add_connection rf "out" to "in"))
 	       (begin (filternetwork_delete_node to) #f)
 	       (begin
@@ -153,7 +153,7 @@
 (define play-track
   (lambda (group track)
     (let* ((net (net-new))
-	   (ti (net-add-node net "track_in"))
+	   (ti (net-add-node net "track-in"))
 	   (ao (net-add-node net audio-out)))
       (node-set-params ti `("group" ,group) `("track" ,track))
       (nodes-connect `(,ti ,ao))
