@@ -1,6 +1,6 @@
 /*
  * fade.c
- * $Id: fader.c,v 1.1 2001/06/12 16:59:34 mag Exp $
+ * $Id: fader.c,v 1.2 2001/06/13 10:30:40 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -42,7 +42,7 @@ static int fade(gpsm_item_t *item, long start, long length, int in)
 	gpsm_grp_t	*grp;
 	gpsm_item_t	*file;
 	
-	long		pre_off, post_off;
+	long		pre_off;
 	float		gain, dg, sgain;
 
 	dg 	= 1.0 / (float)length;
@@ -67,7 +67,7 @@ static int fade(gpsm_item_t *item, long start, long length, int in)
 		swfd_t fd;
 		struct sw_stat stat;
 		SAMPLE *s, *os;
-		long done, fstart, fend, pos;
+		long max, done, fstart, fend, pos;
 		size_t cnt;
 		int offset;
 		
@@ -90,8 +90,9 @@ static int fade(gpsm_item_t *item, long start, long length, int in)
 		fd   = sw_open(gpsm_swfile_filename(file), O_RDWR);
 		done = 0;
 		pos  = fstart*SAMPLE_SIZE;
+		max  = MIN(fend, gpsm_item_hsize(file)) - fstart;
 		
-		while (done<MIN(fend, gpsm_item_hsize(file)) - fstart) {
+		while (done < max) {
 			sw_lseek(fd, pos, SEEK_SET);
 			sw_fstat(fd, &stat);
 		
@@ -105,6 +106,8 @@ static int fade(gpsm_item_t *item, long start, long length, int in)
 
 			cnt /= SAMPLE_SIZE;
 			done += cnt;
+			if (done > max)
+				cnt -= done - max;
 			
 			while (cnt--) {
 				*s++ *= gain;
