@@ -1,16 +1,37 @@
+Things to fix before 0.2.0:
+===========================
+
+- read-file is hell slow (80% CPU!) -> optimize and specialize
+  inner loops
+- (play-eff "/var/tmp/test.wav" "echo2") with large file segfaults!?
+  its not audio_out
+- deprecate (disable!?) pipe parameters
+- audit all paths/makefiles wrt make install
+- filters/plugins
+  * which to keep, which additionally needed
+  * filter names (_ vs -)
+  * parameter names, parameter types
+  * assign/create pixmaps
+- documentation
+  * UI/GUI documentation
+  * document available filters
+  * fix API documentation (changed filter part again)
+  * filter writing tutorial?
+
+
 TODOs of the various subsystems/programs, [] tells about the
 "maintainer" or the one who is supposed to fix it.
-
-Things to fix before 0.2.0:
-- audit all paths/makefiles wrt make install
-
 
 doc/
 	- document available filters [nold/the filter authors]
 
+glmid/gltrack.[ch], plugins/track_io.c
+	[LATER]
+	- redo wrt positional parameter
+	- rethink wrt wave gui
+
 filter/
-	- scripting - do a scheme interface [richi/mainzelM?]
-	AFTER glame-1.0 [richi]
+	[LATER] [richi]
         - parameters:
           * abstraction from the parameter domain, i.e.
             in principle allow parameters of everyting
@@ -35,19 +56,14 @@ filter/
             appropriate?
 
 swapfile/
+        [LATER] [richi]
 	- redo transactions and high level operations, i.e.
-	  clean them up - first step done (it works) [richi]
+	  clean them up - first step done (it works)
 	- redo the lowlevel part (fuse runtime and on-disk structures,
-	  use meta part of the swapfile directly) [richi]
-
-channel/
-	- fix channel->type, split it into type and position field
-          modelled after the SAMPLE pipe property hangle.
+	  use meta part of the swapfile directly)
 
 gui/
+	[LATER] [all]
 	- we need some ideas how to do the wave-editing stuff, especially
           how to couple it with the filter stuff.
-
-glame/cglame
-	nothing there [all]
 

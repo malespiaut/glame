@@ -5,14 +5,14 @@ EXTRA_DIST = gui.h canvas.h
 
 if HAVE_GTK
 if HAVE_GNOME
-noinst_PROGRAMS = main
+bin_PROGRAMS = glame
 noinst_LTLIBRARIES = 
 endif
 endif
 
-main_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
+glame_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c
 
-main_LDADD = ../plugins/libbuiltins.la ../glmid/libglame.la \
+glame_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS)
-main_LDFLAGS = -export-dynamic
+glame_LDFLAGS = -export-dynamic
 

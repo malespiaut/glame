@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.15 2000/03/17 13:57:21 richi Exp $
+ * $Id: gui.c,v 1.16 2000/03/20 09:52:56 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -612,9 +612,16 @@ int gui_browse_registered_filters(void)
 {
 	filter_t * fil=NULL;
 	gui_filter* gfilt;
-	
+	plugin_t *plugin;
+	char *pixmap;
+
+	/* show only filters with "plugin" */
 	while((fil=filter_next(fil))){
-		gfilt=gui_filter_new(GLAME_DEFAULT_ICON,fil);
+		if (!(plugin = plugin_get(filter_name(fil))))
+			continue;
+		if (!(pixmap = plugin_pixmap(plugin)))
+			pixmap = GLAME_DEFAULT_ICON;
+		gfilt=gui_filter_new(pixmap, fil);
 		gui_filter_add(gfilt);
 	}
 	gnome_icon_list_select_icon(GNOME_ICON_LIST(gui->iconlist),gui->selectedIcon);
@@ -636,10 +643,11 @@ int gui_filter_init(void)
 gui_network* 
 gui_network_new(const char * caption, const char * pixname)
 {
+	/* FIXME!! [richi]  */
 	gui_network *net = malloc(sizeof(gui_network));
 	net->caption = strdup(caption);
 	net->pixname = strdup(pixname);
-	net->net = filternetwork_new(caption,"bla");
+	net->net = filternetwork_new();
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	return net;
@@ -731,8 +739,8 @@ add_ports_wizard(GnomeDruidPage* page)
 void 
 druid_done(GtkWidget *page,GnomeDruid* druid,druid_struct* p)
 {
-	
-	p->net->net = filternetwork_new(p->net->caption,p->net->descr);
+	/* FIXME!! [richi] */
+	p->net->net = filternetwork_new();
 	if(!(p->net->net))
 		fprintf(stderr,"Error creating network!\n");
 	gtk_widget_show(create_new_canvas(p->net->caption,p->net));
@@ -821,10 +829,12 @@ gui_network_new_wizard(void)
 	net->caption = name;
 	net->pixname = strdup(GLAME_DEFAULT_ICON);
 	net->descr = descr;
-	net->net = filternetwork_new(net->caption,net->descr);
+	/* FIXME!! [richi] */
+	net->net = filternetwork_new();
 	if(!(net->net))
 		fprintf(stderr,"Error creating network!\n");
 	gtk_widget_show(create_new_canvas(net->caption,net));
+	return 0;
 #endif	
 }
 
@@ -832,10 +842,10 @@ gui_network_new_wizard(void)
 void
 edit_paramdesc(gui_filter *f)
 {
+#if 0
 	filter_paramdesc_t *param;
 	
-//	filter_foreach_paramdesc(f->filter,param){
-		
-	
+	filter_foreach_paramdesc(f->filter,param){
+#endif	
 }
 	
