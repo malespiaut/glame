@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2000 Daniel Kobras
  *
- * $Id: atomic.h,v 1.3 2000/02/09 11:01:26 richi Exp $
+ * $Id: atomic.h,v 1.4 2000/02/09 13:14:14 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,10 @@
  * efficient some day using platform and/or compiler dependent assembly
  * versions. [dk]
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <pthread.h>
 

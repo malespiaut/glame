@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.10 2000/02/09 02:08:16 mag Exp $
+ * $Id: waveform.c,v 1.11 2000/02/09 13:14:14 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -66,7 +66,8 @@ static int sinus_f(filter_node_t *n)
 		return -1;
 
 	DPRINTF("cnt=%d\n",cnt);
-	DPRINTF("Allocated Buffer with size %d! Generating Sinus!\n",size);
+	DPRINTF("Allocated Buffer with size %d(%i)! Generating Sinus!\n",
+		size, sbuf_size(buf));
 	buf = sbuf_make_private(buf);
         for (i=0; i<size; i++)
 		sbuf_buf(buf)[i] = ampl*sinf(i*2*M_PI/size);
@@ -76,6 +77,7 @@ static int sinus_f(filter_node_t *n)
 	while(pthread_testcancel(), cnt--){
 		sbuf_ref(buf);
 		sbuf_queue(out, buf);
+		DPRINTF("Queued %i bytes\n", sbuf_size(buf));
 	}
 	sbuf_queue(out, NULL);
 	DPRINTF("All buffers sent!\n");

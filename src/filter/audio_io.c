@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.16 2000/02/09 12:33:24 richi Exp $
+ * $Id: audio_io.c,v 1.17 2000/02/09 13:14:14 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -157,8 +157,8 @@ static int esd_out_f(filter_node_t *n)
 	}
 
 	if(!rate){
-		DPRINTF("Input filter didn't supply rate info, assuming 44,1kHz\n");
-		rate=44100;
+		DPRINTF("Input filter didn't supply rate info! Fix it!\n");
+		return -1;
 	}
 	
 	if(format&ESD_MONO) 

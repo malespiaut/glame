@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.11 2000/02/09 02:08:16 mag Exp $
+ * $Id: filter_buffer.c,v 1.12 2000/02/09 13:14:14 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -94,7 +94,8 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 }
 
 
-
+#define FBPIPE_WCNT 64
+#define FBPIPE_WSIZE (FBPIPE_WCNT*sizeof(void *))
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
  * As NULL is an EOF marker, it is suitable as error marker, too.
@@ -103,20 +104,22 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
  */
 filter_buffer_t *fbuf_get(filter_pipe_t *p)
 {
-        void *buf[64];
-	int res, cnt = 64*sizeof(void *);
+        void *buf[FBPIPE_WCNT];
+	int res;
 
 	if (!p)
 		return NULL;
 
-	do {
-		while ((res = read(p->dest_fd, buf, cnt)) == -1
-		       && errno == EINTR)
-			;
-		cnt -= res;
-	} while (cnt && res != -1);
+	/* now I want to know it... */
+	while ((res = read(p->dest_fd, buf, FBPIPE_WSIZE)) == -1
+	       && errno == EINTR)
+	        ;
+	if (res == -1)
+	        perror("fbuf_get");
+        else if (res != FBPIPE_WSIZE)
+                PANIC("pipe reads are not atomic!");
 
-	return res == -1 ? NULL : (filter_buffer_t *)buf[0];
+	return res == -1 ? NULL : (filter_buffer_t *)(buf[0]);
 }
 
 /* fbuf_queue writes the address of the supplied filter buffer
@@ -127,7 +130,7 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
  */
 void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 {
-        void *buf[64]; /* weeeh - hack for write-throttling */
+        void *buf[FBPIPE_WCNT];
 	int res;
 
 	if (!p) {
@@ -136,9 +139,12 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 	}
 
 	buf[0] = fbuf;
-	while ((res = write(p->source_fd, buf, 64*sizeof(void *)) == -1)
+	while ((res = write(p->source_fd, buf, FBPIPE_WSIZE)) == -1
 	       && errno == EINTR)
-		;
-	if (res == -1)
+	        ;
+	if (res == -1) {
+	        perror("fbuf_queue");
 		fbuf_unref(fbuf);
+	} else if (res != FBPIPE_WSIZE)
+                PANIC("pipe writes are not atomic!");
 }
