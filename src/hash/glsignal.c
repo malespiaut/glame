@@ -1,8 +1,8 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.17 2004/03/26 18:38:03 richi Exp $
+ * $Id: glsignal.c,v 1.18 2004/10/23 13:09:27 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2004 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,8 +1,8 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.15 2002/03/24 19:19:51 richi Exp $
+ * $Id: ssp.c,v 1.16 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2001 Alexander Ehlert
+ * Copyright (C) 2001, 2002 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

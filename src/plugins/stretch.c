@@ -1,8 +1,8 @@
 /*
  * stretch.c
- * $Id: stretch.c,v 1.8 2003/08/29 00:16:17 mag Exp $
+ * $Id: stretch.c,v 1.9 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2002 Alexander Ehlert
+ * Copyright (C) 2002, 2003 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

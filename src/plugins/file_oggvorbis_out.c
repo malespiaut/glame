@@ -1,7 +1,7 @@
 /*
  * file_oggvorbis_out.c
  *
- * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras, Laurent Georget
+ * Copyright (C) 2004 Richard Guenther, Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

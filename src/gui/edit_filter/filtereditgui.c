@@ -1,9 +1,9 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.64 2003/05/26 21:31:02 richi Exp $
+ * $Id: filtereditgui.c,v 1.65 2004/10/23 13:09:25 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche
+ * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

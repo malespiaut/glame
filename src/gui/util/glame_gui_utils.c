@@ -1,9 +1,9 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.33 2003/04/27 11:53:54 nold Exp $
+ * $Id: glame_gui_utils.c,v 1.34 2004/10/23 13:09:26 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche
+ * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,8 +1,8 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.35 2003/04/15 18:58:52 richi Exp $
+ * $Id: filter_buffer.c,v 1.36 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2000, 2001, 2002, 2003 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

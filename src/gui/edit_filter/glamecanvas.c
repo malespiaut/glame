@@ -1,9 +1,9 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.50 2003/04/20 21:56:02 richi Exp $
+ * $Id: glamecanvas.c,v 1.51 2004/10/23 13:09:25 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche
+ * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

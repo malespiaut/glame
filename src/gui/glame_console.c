@@ -1,9 +1,9 @@
 /*
  * glame_console.c
  *
- * $Id: glame_console.c,v 1.8 2003/05/26 18:21:51 richi Exp $
+ * $Id: glame_console.c,v 1.9 2004/10/23 13:09:24 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

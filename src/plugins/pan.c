@@ -1,7 +1,7 @@
 /*
  * pan.c
  *
- * Copyright (C) 2000 Jim Garrison, Daniel Kobras
+ * Copyright (C) 2000, 2001, 2002 Jim Garrison, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

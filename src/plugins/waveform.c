@@ -1,9 +1,9 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.30 2002/02/21 21:31:14 richi Exp $
+ * $Id: waveform.c,v 1.31 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
- *                         Daniel Kobras, Stuart Purdie
+ * Copyright (C) 1999, 2000, 2001, 2002 Alexander Ehlert, Richard Guenther, 
+ *	Daniel Kobras, Stuart Purdie
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

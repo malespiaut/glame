@@ -1,9 +1,9 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.9 2001/07/13 09:01:43 richi Exp $
+ * $Id: main.c,v 1.10 2004/10/23 13:09:25 richi Exp $
  *
- * Copyright (C) 2000 Johannes Hirche
+ * Copyright (C) 2000, 2001 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

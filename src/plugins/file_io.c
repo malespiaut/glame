@@ -1,8 +1,9 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.83 2003/06/09 21:54:02 richi Exp $
+ * $Id: file_io.c,v 1.84 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
+ * Copyright (C) 1999, 2000, 2001, 2002 Alexander Ehlert, Richard Guenther,
+ * 	Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

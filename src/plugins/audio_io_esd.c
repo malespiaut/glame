@@ -1,8 +1,8 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.12 2003/05/18 11:03:43 richi Exp $
+ * $Id: audio_io_esd.c,v 1.13 2004/10/23 13:09:28 richi Exp $
  *
- * Copyright (C) 2001,2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
+ * Copyright (C) 2001, 2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

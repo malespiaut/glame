@@ -1,10 +1,11 @@
 /*
  * audio_io_alsa_v090.c
  *
- * $Id: audio_io_alsa.c,v 1.18 2003/05/18 11:03:43 richi Exp $
+ * $Id: audio_io_alsa.c,v 1.19 2004/10/23 13:09:28 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
- * thanks to Josh Green(http://smurf.sourceforge.net) for various fixes
+ * Copyright (C) 2001, 2002, 2003 Richard Guenther, Alexander Ehlert,
+ * 	Daniel Kobras
+ * thanks to Josh Green (http://smurf.sourceforge.net) for various fixes
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -3,8 +3,8 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.21 2004/01/10 15:26:36 richi Exp $
- * Copyright (C) 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
+ * $Id: glame_types.h,v 1.22 2004/10/23 13:09:27 richi Exp $
+ * Copyright (C) 2000, 2001 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

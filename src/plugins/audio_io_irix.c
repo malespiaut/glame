@@ -1,8 +1,8 @@
 /*
  * audio_io_irix.c
- * $Id: audio_io_irix.c,v 1.6 2003/05/18 11:03:43 richi Exp $
+ * $Id: audio_io_irix.c,v 1.7 2004/10/23 13:09:28 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
+ * Copyright (C) 2001, 2002 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

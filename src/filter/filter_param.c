@@ -1,8 +1,8 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.22 2004/05/05 22:11:59 richi Exp $
+ * $Id: filter_param.c,v 1.23 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2002, 2003, 2004 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

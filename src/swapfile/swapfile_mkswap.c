@@ -1,7 +1,7 @@
 /*
  * swapfile_mkswap.c
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

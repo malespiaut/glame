@@ -4,9 +4,9 @@
 /*
  * glame_param.h
  *
- * $Id: glame_param.h,v 1.4 2002/02/21 22:23:17 richi Exp $
+ * $Id: glame_param.h,v 1.5 2004/10/23 13:09:26 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,7 +1,7 @@
 ; glame.scm
-; $Id: glame.scm,v 1.81 2003/04/21 17:11:08 richi Exp $
+; $Id: glame.scm,v 1.82 2004/10/23 13:09:23 richi Exp $
 ;
-; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
+; Copyright (C) 2000, 2001, 2002, 2003 Richard Guenther, Martin Gasbichler
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by

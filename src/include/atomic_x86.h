@@ -2,7 +2,9 @@
 #define _ATOMIC_X86_H
 
 /*
- * $Id: atomic_x86.h,v 1.8 2001/04/11 08:39:53 richi Exp $
+ * $Id: atomic_x86.h,v 1.9 2004/10/23 13:09:27 richi Exp $
+ *
+ * Copyright (C) 2000, 2001 Daniel Kobras, Richard Guenther
  *
  * This code was taken from linux/include/asm-i386/atomic.h from the
  * Linux kernel source code and adapted to the need of GLAME.

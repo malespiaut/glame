@@ -1,8 +1,8 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.29 2001/05/25 11:42:02 richi Exp $
+ * $Id: filter_protocols.h,v 1.30 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
+ * Copyright (C) 2000, 2001 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,7 +1,7 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.20 2004/04/21 18:04:28 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.21 2004/10/23 13:09:25 richi Exp $
  *
- * Copyright (c) 2000 Richard Guenther
+ * Copyright (c) 2000, 2001, 2002, 2004 Richard Guenther
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public

@@ -1,8 +1,8 @@
 /*
  * gwave.c
- * $Id: gwave.c,v 1.1 2002/03/25 21:45:18 richi Exp $
+ * $Id: gwave.c,v 1.2 2004/10/23 13:09:26 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

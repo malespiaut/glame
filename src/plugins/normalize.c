@@ -1,8 +1,8 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.22 2003/05/26 21:00:37 richi Exp $
+ * $Id: normalize.c,v 1.23 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2001-2003 Alexander Ehlert
+ * Copyright (C) 2001, 2002, 2003 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,8 +1,8 @@
 /*
  * fade.c
- * $Id: fader.c,v 1.3 2001/06/13 12:54:28 mag Exp $
+ * $Id: fader.c,v 1.4 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2001 Alexander Ehlert
+ * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,9 +1,9 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.25 2003/06/01 14:09:37 richi Exp $
+ * $Id: apply.c,v 1.26 2004/10/23 13:09:23 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -4,9 +4,9 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.24 2004/05/19 08:49:49 richi Exp $
+ * $Id: list.h,v 1.25 2004/10/23 13:09:27 richi Exp $
  * 
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2000, 2001, 2004 Richard Guenther
  *
  * This code was taken from the Linux kernel source which is
  * Copyright (C) by Linus Torvalds and others

@@ -3,9 +3,9 @@
 
 /*
  * importexport.h
- * $Id: importexport.h,v 1.3 2003/05/18 19:09:23 xwolf Exp $
+ * $Id: importexport.h,v 1.4 2004/10/23 13:09:24 richi Exp $
  *
- * Copyright (C) 2001 Alexander Ehlert
+ * Copyright (C) 2001, 2002 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

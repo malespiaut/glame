@@ -1,8 +1,8 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.16 2002/02/17 13:53:31 richi Exp $
+ * $Id: noisegate.c,v 1.17 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2000 Alexander Ehlert
+ * Copyright (C) 2000, 2001, 2002 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

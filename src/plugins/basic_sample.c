@@ -1,8 +1,8 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.67 2004/07/13 17:29:17 richi Exp $
+ * $Id: basic_sample.c,v 1.68 2004/10/23 13:09:28 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2002, 2003, 2004 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

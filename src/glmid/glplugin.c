@@ -1,8 +1,8 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.44 2004/05/06 19:29:48 richi Exp $
+ * $Id: glplugin.c,v 1.45 2004/10/23 13:09:23 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2002, 2003 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

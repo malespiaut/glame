@@ -1,9 +1,10 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.32 2004/05/06 18:51:10 richi Exp $
+ * $Id: ladspa.c,v 1.33 2004/10/23 13:09:23 richi Exp $
  * 
- * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
+ * Copyright (C) 2000, 2001, 2002, 2003 Richard Furse, Alexander Ehlert,
+ * 	Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

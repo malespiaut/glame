@@ -3,9 +3,9 @@
 
 /*
  * gldb_string.h
- * $Id: gldb_string.h,v 1.7 2001/11/18 14:47:05 richi Exp $
+ * $Id: gldb_string.h,v 1.8 2004/10/23 13:09:27 richi Exp $
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

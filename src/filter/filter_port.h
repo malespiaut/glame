@@ -3,9 +3,9 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.8 2001/09/17 11:47:12 nold Exp $
+ * $Id: filter_port.h,v 1.9 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -4,9 +4,9 @@
 /*
  * gltreeitem.h
  *
- * $Id: gltreeitem.h,v 1.11 2003/05/26 20:50:25 richi Exp $
+ * $Id: gltreeitem.h,v 1.12 2004/10/23 13:09:24 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

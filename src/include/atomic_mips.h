@@ -2,8 +2,9 @@
 #define _ATOMIC_MIPS_H
 
 /*
- * $Id: atomic_mips.h,v 1.7 2001/04/11 08:39:53 richi Exp $
+ * $Id: atomic_mips.h,v 1.8 2004/10/23 13:09:27 richi Exp $
  *
+ * Copyright (C) 2000, 2001 Daniel Kobras, Richard Guenther
  * 
  * Most of the code was taken from include/asm-mips/atomic.h from the
  * Linux kernel source code and adapted to the need of GLAME.

@@ -3,9 +3,9 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.84 2003/04/21 17:10:21 richi Exp $
+ * $Id: filter.h,v 1.85 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2000, 2001, 2002, 2003 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

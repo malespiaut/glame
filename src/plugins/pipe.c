@@ -1,8 +1,8 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.24 2002/02/17 13:53:31 richi Exp $
+ * $Id: pipe.c,v 1.25 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

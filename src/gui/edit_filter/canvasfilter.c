@@ -1,9 +1,9 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.61 2003/05/25 16:40:29 richi Exp $
+ * $Id: canvasfilter.c,v 1.62 2004/10/23 13:09:25 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche
+ * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,5 +1,5 @@
 /*  Guile 1.4/1.6 compatibility layer -- part of GLAME
-    Copyright (C) 2002  Clinton Ebadi
+    Copyright (C) 2002, 2003, 2004  Clinton Ebadi, Richard Guenther
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

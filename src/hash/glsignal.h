@@ -3,9 +3,9 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.14 2001/09/17 11:47:12 nold Exp $
+ * $Id: glsignal.h,v 1.15 2004/10/23 13:09:27 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

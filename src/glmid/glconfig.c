@@ -1,9 +1,9 @@
 /*
  * glconfig.c
  *
- * $Id: glconfig.c,v 1.3 2002/04/24 09:41:06 richi Exp $
+ * $Id: glconfig.c,v 1.4 2004/10/23 13:09:23 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002, 2004 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -4,9 +4,9 @@
 /*
  * util.h
  *
- * $Id: util.h,v 1.18 2003/07/28 11:55:28 richi Exp $
+ * $Id: util.h,v 1.19 2004/10/23 13:09:27 richi Exp $
  *
- * Copyright (C) 1999, 2000 Richard Guenther
+ * Copyright (C) 1999, 2000, 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -2,7 +2,9 @@
 #define _ATOMIC_ALPHA_H
 
 /*
- * $Id: atomic_alpha.h,v 1.1 2001/04/12 09:44:29 richi Exp $
+ * $Id: atomic_alpha.h,v 1.2 2004/10/23 13:09:27 richi Exp $
+ *
+ * Copyright (C) 2001 Daniel Kobras, Richard Guenther
  *
  * This code was taken from linux/include/asm-alpha/atomic.h from the
  * Linux kernel source code and adapted to the need of GLAME.

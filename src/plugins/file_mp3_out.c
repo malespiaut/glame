@@ -1,8 +1,8 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.8 2004/07/08 21:15:46 richi Exp $
+ * $Id: file_mp3_out.c,v 1.9 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
+ * Copyright (C) 2004 Richard Guenther, Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

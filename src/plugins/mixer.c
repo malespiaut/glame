@@ -1,9 +1,9 @@
 /*
  * mixer.c
  *
- * $Id: mixer.c,v 1.20 2003/06/17 21:09:16 richi Exp $
+ * $Id: mixer.c,v 1.21 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2002 Laurent Georget
+ * Copyright (C) 2002, 2003 Laurent Georget
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,5 +1,6 @@
 /* gtkeditablewavebuffer.c: Interface for editable wavebuffer.
  * Copyright (c) 2000 David A. Bartold
+ * Copyright (C) 2000, 2001 Richard Guenther
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public

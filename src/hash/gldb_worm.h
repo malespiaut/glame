@@ -3,9 +3,9 @@
 
 /*
  * gldb_worm.h
- * $Id: gldb_worm.h,v 1.4 2001/09/17 11:47:12 nold Exp $
+ * $Id: gldb_worm.h,v 1.5 2004/10/23 13:09:27 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2004 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

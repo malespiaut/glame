@@ -1,9 +1,9 @@
 /*
  * timeline.c
  *
- * $Id: timeline.c,v 1.23 2003/04/21 12:16:07 richi Exp $
+ * $Id: timeline.c,v 1.24 2004/10/23 13:09:26 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

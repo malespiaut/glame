@@ -4,9 +4,9 @@
 /*
  * atomic.h
  *
- * Copyright (C) 2000 Daniel Kobras
+ * Copyright (C) 2000, 2001 Daniel Kobras
  *
- * $Id: atomic.h,v 1.13 2003/04/27 17:53:41 richi Exp $
+ * $Id: atomic.h,v 1.14 2004/10/23 13:09:27 richi Exp $
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

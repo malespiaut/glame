@@ -1,5 +1,8 @@
 /* gtkwaveview.c: Gtk+ widget for displaying data
  *
+ * Copyright (C) 2000 David A. Bartold
+ * Copyright (C) 2000, 2001, 2002, 2003, 2004 Richard Guenther
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either

@@ -1,9 +1,9 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.30 2003/04/21 12:16:06 richi Exp $
+ * $Id: canvaspipe.c,v 1.31 2004/10/23 13:09:25 richi Exp $
  *
- * Copyright (C) 2001 Johannes Hirche
+ * Copyright (C) 2001, 2002 Johannes Hirche
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

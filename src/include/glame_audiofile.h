@@ -1,11 +1,13 @@
 /*
 	<glame_audiofile.h>
-	$Id: glame_audiofile.h,v 1.6 2001/11/11 17:25:41 nold Exp $
+	$Id: glame_audiofile.h,v 1.7 2004/10/23 13:09:27 richi Exp $
 
 	This file is (mostly) a copy of audiofile.h from the audiofile
 	distribution, containing the public interfaces to the Audio File
 	Library.  We use it to provide a minimalist libaudiofile to the rest of
 	GLAME unless the full-featured library is installed.
+
+	Copyright (C) 2001 Daniel Kobras
 */
 
 /*

@@ -1,9 +1,9 @@
 /*
  * distortion.c
  *
- * $Id: distortion.c,v 1.13 2003/06/09 21:07:51 richi Exp $ 
+ * $Id: distortion.c,v 1.14 2004/10/23 13:09:29 richi Exp $ 
  *
- * Copyright (C) 2001 Alexander Ehlert
+ * Copyright (C) 2001, 2002 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,8 +1,8 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.14 2002/01/27 15:11:16 richi Exp $
+ * $Id: filter_pipe.c,v 1.15 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther
+ * Copyright (C) 2000, 2001, 2002 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

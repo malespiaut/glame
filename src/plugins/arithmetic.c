@@ -1,8 +1,9 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.20 2002/02/17 13:53:31 richi Exp $
+ * $Id: arithmetic.c,v 1.21 2004/10/23 13:09:27 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
+ * Copyright (C) 2000, 2001, 2002 Richard Guenther, Alexander Ehlert,
+ * 	Jim Garrison
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

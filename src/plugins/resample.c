@@ -1,8 +1,8 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.3 2004/04/18 13:15:24 richi Exp $
+ * $Id: resample.c,v 1.4 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2003 Richard Guenther
+ * Copyright (C) 2003, 2004 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

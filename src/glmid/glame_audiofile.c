@@ -1,9 +1,9 @@
 /*
- * $Id: glame_audiofile.c,v 1.25 2002/02/27 22:40:08 richi Exp $
+ * $Id: glame_audiofile.c,v 1.26 2004/10/23 13:09:23 richi Exp $
  *
  * A minimalist wrapper faking an audiofile API to the rest of the world.
  *
- * Copyright (C) 2001 Alexander Ehlert, Richard Guenther, Daniel Kobras
+ * Copyright (C) 2001, 2002 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

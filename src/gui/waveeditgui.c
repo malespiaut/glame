@@ -1,9 +1,9 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.146 2004/07/13 17:51:51 richi Exp $
+ * $Id: waveeditgui.c,v 1.147 2004/10/23 13:09:24 richi Exp $
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,9 +1,10 @@
 /*
- * main2.cpp
+ * main.c
  *
- * $Id: main.c,v 1.121 2004/07/08 20:51:49 richi Exp $
+ * $Id: main.c,v 1.122 2004/10/23 13:09:24 richi Exp $
  *
- * Copyright (C) 2003 Johannes Hirche, Richard Guenther
+ * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
+ *	Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

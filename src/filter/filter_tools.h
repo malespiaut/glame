@@ -1,8 +1,9 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.34 2002/05/25 15:08:03 richi Exp $
+ * $Id: filter_tools.h,v 1.35 2004/10/23 13:09:22 richi Exp $
  *
- * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
+ * Copyright (C) 2000, 2001, 2002 Richard Guenther, Alexander Ehlert,
+ * 	Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

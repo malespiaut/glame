@@ -1,8 +1,8 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.19 2002/05/25 15:08:03 richi Exp $
+ * $Id: fft_plugins.c,v 1.20 2004/10/23 13:09:29 richi Exp $
  *
- * Copyright (C) 2000 Alexander Ehlert
+ * Copyright (C) 2000, 2001, 2002 Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
