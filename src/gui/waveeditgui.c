@@ -31,7 +31,9 @@
 #include "gtkwaveview.h"
 #include "gtkswapfilebuffer.h"
 #include "glame_types.h"
+#include "glplugin.h"
 #include "swapfile.h"
+#include "edit_filter/gui.h"
 #include "waveeditgui.h"
 
 
@@ -136,8 +138,8 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gtk_editable_wave_buffer_insert(editable, start, st.size/SAMPLE_SIZE);
 }
 
-/* Menu event - Delete. */
-static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
+/* Menu event - Cut. */
+static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
@@ -166,8 +168,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gtk_editable_wave_buffer_delete (editable, start, length);
 }
 
-/* Menu event - Cut. */
-static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
+/* Menu event - Delete. */
+static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
 	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
@@ -195,19 +197,47 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gtk_editable_wave_buffer_delete (editable, start, length);
 }
 
+/* GUI is single-threaded, so this should actually work... */
+static GtkWaveView *actual_waveview;
+
+/* Menu event - Apply filter. */
+static void apply_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	GtkWaveView *waveview = actual_waveview;
+	gint32 start, length;
+
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	if (length <= 0)
+		return;
+
+	DPRINTF("FIXME: apply %s\n", plugin_name(plugin));
+}
 
 
 static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
 	GNOMEUIINFO_ITEM("Copy", "copy", copy_cb, NULL),
 	GNOMEUIINFO_ITEM("Paste", "paste", paste_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("Cut", "cut", cut_cb, NULL),
+	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
+
+
+/* Somehow only select "effects" (one input, one output) type of
+ * filters... */
+static int choose_effects(plugin_t *plugin)
+{
+	filter_t *filter = plugin_query(plugin, PLUGIN_FILTER);
+	if (!filterportdb_get_port(filter_portdb(filter), PORTNAME_IN)
+	    || !filterportdb_get_port(filter_portdb(filter), PORTNAME_OUT))
+		return 0;
+	return 1;
+}
 
 /* Button press event. */
 static void press (GtkWidget *widget, GdkEventButton *event,
@@ -216,6 +246,7 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	GtkWaveView *waveview = GTK_WAVE_VIEW (widget);
 	GtkWaveBuffer *wavebuffer;
 	GtkWidget *menu;
+	GtkMenu *filter_menu;
   
 	if (event->button != 3)
 		return;
@@ -227,6 +258,10 @@ static void press (GtkWidget *widget, GdkEventButton *event,
 	}
 
 	menu = gnome_popup_menu_new(rmb_menu);
+	filter_menu = glame_gui_build_plugin_menu(choose_effects, apply_cb);
+	gtk_widget_show(filter_menu);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(rmb_menu[7].widget), filter_menu);
+	actual_waveview = waveview;
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
 
