@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.11 2001/04/09 09:17:58 richi Exp $
+ * $Id: glsignal.h,v 1.12 2001/04/18 16:48:38 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -65,7 +65,7 @@
  *   data, of course. Can return -1 on memory shortage. Redirectors are
  *   not copied.
  *
- * int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
+ * int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source);
  *   Copies all redirectors from one emitter to another - same "private"
  *   data, of course. Can return -1 on memory shortage. Normal handlers
  *   are not copied.
