@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.18 2001/12/16 22:58:12 mag Exp $
+@comment $Id: gui.texi,v 1.19 2001/12/17 10:24:31 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -17,7 +17,8 @@ one active right at the beginning. The wave editor and the filternetwork editor
 can be activated from there. Controlling @file{glame} is supposed to be
 rather intuitive. Should you ever feel lost, just try pressing the right mouse
 button and a context sensitive menu will pop up and hopefully present you
-with the option you were looking for.
+with the option you were looking for. If you are looking for a list of
+keybindings for the current window try pressing the @code{F1} key.
 
 @menu
 * The Main Window::
