@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.5 2000/02/23 18:55:44 xwolf Exp $
+ * $Id: canvas.h,v 1.6 2000/02/24 17:41:37 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -28,6 +28,7 @@
 
 #include "gui.h"
 
+/*glame canvas group (a filter node) */
 
 typedef struct _GlameCanvas GlameCanvas;
 
@@ -47,6 +48,41 @@ struct _GlameCanvasClass
 GtkType glame_canvas_get_type(void);
 GtkWidget* glame_canvas_new(gui_network *);
 
+
+/* canvas port item */
+
+
+typedef struct _GlameCanvasPort GlameCanvasPort;
+
+struct _GlameCanvasPort
+{
+	GnomeCanvasRect parent_object;
+	
+	GList *connected_ports;
+	filter_portdesc_t *port;
+	int port_type;
+	
+};
+
+typedef struct _GlameCanvasPortClass GlameCanvasPortClass;
+struct _GlameCanvasPortClass
+{
+	GnomeCanvasRectClass parent_class;
+};
+
+GtkType glame_canvas_port_get_type(void);
+GlameCanvasPort *glame_canvas_port_new(GnomeCanvasGroup *grp,filter_portdesc_t *port, gdouble x, gdouble y,gdouble width, gdouble height,guint color);
+
+typedef struct _GlameConnection GlameConnection;
+struct _GlameConnection
+{
+	GlameCanvasPort *begin,*end;
+	GnomeCanvasLine *line;
+	GnomeCanvasPoints *points;
+};
+
+
+
 /* node canvas item  */
 typedef struct _GlameCanvasItem GlameCanvasItem;
 
@@ -55,12 +91,14 @@ struct _GlameCanvasItem
 	GnomeCanvasGroup parent_object;
 	
 	gui_filter *filter;
-	filter_portdesc_t *selected_port;
+
 	double last_x,last_y;
 	gboolean dragging;
 	gboolean connecting;
-	GnomeCanvasPoints *points;
-	GnomeCanvasItem *line;
+	
+	GlameConnection *connection;
+
+	GList *input_ports,*output_ports;
 };
 
 typedef struct _GlameCanvasItemClass GlameCanvasItemClass;
@@ -92,6 +130,24 @@ GlameCanvasItem* glame_canvas_item_new(GnomeCanvasGroup * group,
 #define GLAME_CANVAS_GET_CLASS(obj)  ((GlameCanvasClass*) (((GtkObject*) (obj))->klass))
 
 
+#define GLAME_TYPE_CANVAS_PORT        (glame_canvas_port_get_type())
+#define GLAME_CANVAS_PORT(object)     (GTK_CHECK_CAST ((object), GLAME_TYPE_CANVAS_PORT, GlameCanvasPort))
+#define GLAME_CANVAS_PORT_CLASS(c)    (GTK_CHECK_CLASS_CAST ((c), GLAME_TYPE_CANVAS_PORT, GlameCanvasPortClass))
+#define GLAME_IS_CANVAS_PORT(object)      (GTK_CHECK_TYPE ((object), GLAME_TYPE_CANVAS_PORT))
+#define GLAME_IS_CANVAS_PORT_CLASS(c) (GTK_CHECK_CLASS_TYPE ((c), GLAME_TYPE_CANVAS_PORT))
+#define GLAME_CANVAS_PORT_GET_CLASS(obj)  ((GlameCanvasPortClass*) (((GtkObject*) (obj))->klass))
+
+#define GUI_PORT_TYPE_IN 1
+#define GUI_PORT_TYPE_OUT 2
+
+
+gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
+gint image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data);
+
+int add_connection(GlameConnection* c);
+
+void update_input_connection(GlameCanvasPort *p,gdouble x, gdouble y);
+void update_output_connection(GlameCanvasPort *p,gdouble x, gdouble y);
 
 
 

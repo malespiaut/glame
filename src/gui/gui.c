@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.10 2000/02/23 11:32:40 xwolf Exp $
+ * $Id: gui.c,v 1.11 2000/02/24 17:41:37 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -655,7 +655,12 @@ gui_network_filter_add(gui_network* net, gui_filter *fil)
 
 	//fil->filter = filter_get(fil->caption);
 	fil->node = filternetwork_add_node(net->net,fil->caption,fil->instance);
-	
+	if(!fil->node)
+		fprintf(stderr,"Error adding node!\n");
+	else {
+		net->filters=g_slist_append(net->filters,fil);
+	}
+		
 //	g_array_append_val(net->filters,fil);
 	return 0;
 }
@@ -753,6 +758,9 @@ gui_network_new_wizard(void)
 
 	druid_struct *druid_data = malloc(sizeof(druid_struct));
 	net = malloc(sizeof(gui_network));
+	net->filters = NULL;
+
+
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window),_("Create new filter network"));
 	druid = GNOME_DRUID(gnome_druid_new());
@@ -781,10 +789,10 @@ gui_network_new_wizard(void)
 	gtk_signal_connect(GTK_OBJECT(page2),"next",GTK_SIGNAL_FUNC(basic_done),druid_data);
 	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page2));
 	page3 = GNOME_DRUID_PAGE_STANDARD(gnome_druid_page_standard_new_with_vals(_("Port declaration"),img));
-	add_ports_wizard(page3);
-	gtk_widget_show(GTK_WIDGET(page3));
-	gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page3));
-	page4 = gnome_druid_page_finish_new_with_vals(_("Finished"),_("Now You are hopefully ready to create Your new network!"),img,wat);
+	//add_ports_wizard(page3);
+	//gtk_widget_show(GTK_WIDGET(page3));
+	//gnome_druid_append_page(druid,GNOME_DRUID_PAGE(page3));
+	page4 = gnome_druid_page_finish_new_with_vals(_("Finished"),_("Now You are hopefully ready to create Your new network!\nThis wasn't so hard, eh? :-)"),img,wat);
 	gtk_signal_connect(GTK_OBJECT(page4),"finish",druid_done,druid_data);
 
 	gtk_widget_show(GTK_WIDGET(page4));
