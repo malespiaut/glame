@@ -11,10 +11,10 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm
 
 # macro filters
-pkgdata_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
+pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm
 
 # builtin filters
-lib_LTLIBRARIES = libglamebuiltins.la
+noinst_LTLIBRARIES = libglamebuiltins.la
 
 
 # for each optional plugin we can have build dependencies
@@ -38,7 +38,7 @@ endif
 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c rms.c
-libglamebuiltins_la_LDFLAGS = -module -avoid-version $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
+libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
 
 
 # (optional) real plugins
