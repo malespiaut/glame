@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.7 2001/03/19 13:07:55 richi Exp $
+ * $Id: swapfile_io.c,v 1.8 2001/03/20 17:28:49 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -193,7 +193,10 @@ static int swapfile_out_f(filter_t *n)
 	filter_buffer_t *buf;
 	long fname, offset;
 	swfd_t fd;
-
+	char *buffer;
+	int fillfactor;
+	ssize_t len;
+	
 	if (!(in = filternode_get_input(n, PORTNAME_IN)))
 		FILTER_ERROR_RETURN("no input");
 	fname = filterparam_val_int(filternode_get_param(n, "filename"));
@@ -213,25 +216,48 @@ static int swapfile_out_f(filter_t *n)
 		}
 	}
 
+	buffer = (char*)malloc(GLAME_WBUFSIZE << 3);
 	FILTER_AFTER_INIT;
-
+	fillfactor = 0;
+	
 	while ((buf = sbuf_get(in))) {
 		FILTER_CHECK_STOP;
 
-		/* Write the buffers data to the file. */
-		if (sw_write(fd, sbuf_buf(buf), sbuf_size(buf)*SAMPLE_SIZE)
-		    != sbuf_size(buf)*SAMPLE_SIZE)
+		if ((fillfactor + sbuf_size(buf)*SAMPLE_SIZE) < (GLAME_WBUFSIZE << 3)) {
+_fill_buffer:
+			memcpy(buffer+fillfactor, sbuf_buf(buf),
+			       sbuf_size(buf)*SAMPLE_SIZE);
+			fillfactor += sbuf_size(buf)*SAMPLE_SIZE;
+			sbuf_unref(buf);
+		} else {
+			if (fillfactor>0) {
+				/* flush buffer */
+				len = sw_write(fd, buffer, fillfactor);
+				if (len != fillfactor) /*FIXME broken errorhandling*/
+					DPRINTF("Did not write the whole buffer!?");
+				fillfactor = 0;
+			}
+			if (sbuf_size(buf)*SAMPLE_SIZE > (GLAME_WBUFSIZE << 3)) {
+				len = sw_write(fd, sbuf_buf(buf), sbuf_size(buf)*SAMPLE_SIZE);
+				if (len != fillfactor) /*FIXME broken errorhandling*/
+					DPRINTF("Did not write the whole buffer!?");
+				sbuf_unref(buf);
+			} else
+				goto _fill_buffer;
+		}
+	}
+	/* flush buffer */
+	if (fillfactor > 0) {
+		len = sw_write(fd, buffer, fillfactor);
+		if (len != fillfactor) /*FIXME broken errorhandling*/
 			DPRINTF("Did not write the whole buffer!?");
-
-		/* free the buffer */
-		sbuf_unref(buf);
 	}
 
 	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	sw_close(fd);
-
+	free(buffer);
 	return 0;
 }
 
