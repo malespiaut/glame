@@ -7,7 +7,8 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	echo.c debug.c tutorial.c \
 	nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c flanger.c distortion.c\
-	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_irix.c \
+	audio_io_oss.c audio_io_esd.c audio_io_alsa.c audio_io_alsa_v050.c \
+	audio_io_alsa_v090.c audio_io_irix.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm
 
 # macro filters

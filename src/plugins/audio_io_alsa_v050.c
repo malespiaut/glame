@@ -1,6 +1,6 @@
 /*
- * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.5 2001/06/06 08:50:28 nold Exp $
+ * audio_io_alsa_v050.c
+ * $Id: audio_io_alsa_v050.c,v 1.1 2001/06/06 08:50:28 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -44,28 +44,26 @@ static int alsa_audio_out_f(filter_t *n)
 	filter_port_t           *inport;
 	filter_pipe_t		*p_in;
 	
-	filter_param_t *dev_param, *pos_param;
+	int card=0, dev=0;
+	filter_param_t *dev_param;
+	char *dev_paramstr;
 	
 	int rate, blksz, ssize;
 
 	int ch, max_ch, ch_active;
 	int chunk_size;
-	int to_go, pos;
+	int to_go;
 	
-	int i, err, buffer_time, period_time, dropouts;
+	int i;
 	
-	snd_pcm_t		*handle;
-	snd_pcm_format_t	format;
-	snd_pcm_hw_params_t	*params;
-        snd_pcm_sw_params_t	*swparams;
-	snd_pcm_status_t 	*status;
-	static snd_output_t 	*log;
-	char*			pcm_name="plug:0,0";	
-	size_t			buffer_size;
-	
+	snd_pcm_t			*pcm = NULL;
+	snd_pcm_channel_params_t	ch_param;
+	snd_pcm_channel_setup_t 	setup;
+
+
 	/* Boilerplate init section - will go into a generic function one day.
 	 */
-
+	
 	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
 	max_ch = filterport_nrpipes(inport);
 	if (!max_ch)
@@ -101,10 +99,18 @@ static int alsa_audio_out_f(filter_t *n)
 	 */
 	
 	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
-	if (filterparam_val_string(dev_param) != NULL)
-		pcm_name = filterparam_val_string(dev_param);
+	if (dev_param) {
+		char *cpos;
+		dev_paramstr = filterparam_val_string(dev_param);
+		cpos = strchr(dev_paramstr, (int)':');
+		if (cpos) {
+			*cpos++ = '\0';
+			dev = atoi(cpos);
+		}
+		card = atoi(dev_paramstr);
+	}
 
-	if (snd_pcm_open(&handle, pcm_name, SND_PCM_STREAM_PLAYBACK, 0))
+	if (snd_pcm_open(&pcm, card, dev, SND_PCM_OPEN_PLAYBACK))
 		FILTER_ERROR_CLEANUP("Could not open audio device.");
 	
 	/* FIXME: Can we assume s16 native endian is always supported?
@@ -113,105 +119,53 @@ static int alsa_audio_out_f(filter_t *n)
 	ssize = 2;
 	neutral = SAMPLE2SHORT(0.0);
 
+	memset(&ch_param, 0, sizeof(snd_pcm_channel_params_t));
+	ch_param.format.voices = max_ch;
+	ch_param.format.rate = rate;
 #ifdef SND_LITTLE_ENDIAN
-	format = SND_PCM_FORMAT_S16_LE;
+	ch_param.format.format = SND_PCM_SFMT_S16_LE;
 #else
 # ifdef SND_BIG_ENDIAN
-	format = SND_PCM_FORMAT_S16_BE;
+	ch_param.format.format = SND_PCM_SFMT_S16_BE;
 # else
 #error Unsupported endianness.
 # endif
 #endif
-
-	err = snd_output_stdio_attach(&log, stderr, 0);
-
-	snd_pcm_hw_params_alloca(&params);
-	snd_pcm_sw_params_alloca(&swparams);
-	err = snd_pcm_hw_params_any(handle, params);
+	ch_param.format.interleave = 1;
+	ch_param.channel = SND_PCM_CHANNEL_PLAYBACK;
+	ch_param.mode = SND_PCM_MODE_BLOCK;
+	ch_param.start_mode = SND_PCM_START_FULL;
+	ch_param.stop_mode = SND_PCM_STOP_ROLLOVER;
+	ch_param.buf.block.frag_size = GLAME_WBUFSIZE * ssize * max_ch;
+	ch_param.buf.block.frags_min = 1;
+	ch_param.buf.block.frags_max = -1;
+	if (snd_pcm_plugin_params(pcm, &ch_param))
+		FILTER_ERROR_CLEANUP("Unsupported audio format.");
 	
-	if (err < 0)
-		FILTER_ERROR_CLEANUP("Broken configuration for this pcm");
+	if (snd_pcm_plugin_prepare(pcm, SND_PCM_CHANNEL_PLAYBACK))
+		FILTER_ERROR_CLEANUP("Channel won't prepare.");
 
-	err = snd_pcm_hw_params_set_access(handle, params,
-					   SND_PCM_ACCESS_RW_INTERLEAVED);
-
-	if (err < 0)
-		FILTER_ERROR_CLEANUP("Access type interleaved not available");
-
-	err = snd_pcm_hw_params_set_format(handle, params, format);
-
-	if (err < 0)
-		FILTER_ERROR_CLEANUP("Unsupported format");
-
-	err = snd_pcm_hw_params_set_channels(handle, params, max_ch);
-
-	if (err < 0)
-		FILTER_ERROR_CLEANUP("unsupported number of channels");
-
-	err = snd_pcm_hw_params_set_rate_near(handle, params, rate, 0);
-
-	if (err < 0)
-		FILTER_ERROR_CLEANUP("unsupported sample rate");
+	setup.mode = SND_PCM_MODE_BLOCK;
+	setup.channel = SND_PCM_CHANNEL_PLAYBACK;
+	if (snd_pcm_plugin_setup(pcm, &setup))
+		FILTER_ERROR_CLEANUP("Could not get channel setup.");
 	
-	/* doesn't do anything, maybe we can tweak latency with it? */
-	err = snd_pcm_hw_params_set_tick_time_near(handle, params, 10000, 0);
-
-	if (err < 0)
-		FILTER_ERROR_CLEANUP("unsupported tick time");
+	blksz = setup.buf.block.frag_size;
+	if (blksz <= 0)
+		FILTER_ERROR_CLEANUP("Illegal size of audio buffer");
+	DPRINTF("Using %d byte buffers.\n", blksz);
 	
-	/* buffer 400ms, seems a safe setting to me
-	 * again on a fast computer you can probably tune it down
-	 * a fast harddisk definitly helps avoiding dropouts */
-	buffer_time = snd_pcm_hw_params_set_buffer_time_near(handle, params, 
-							400000, 0);
-
-	period_time = buffer_time >> 2;
-	/* default setting for period time is 20ms
-	 * if your computer is fast enough you can lower it */
-	snd_pcm_hw_params_set_period_time_near(handle, params, 20000, 0);
-
-	err = snd_pcm_hw_params(handle, params);
-
-	if (err < 0) {
-		snd_pcm_hw_params_dump(params, log);
-		FILTER_ERROR_CLEANUP("unable to install hardware params");
-	}
-
-	snd_pcm_hw_params_dump(params, log);
-	snd_pcm_sw_params_current(handle, swparams);
-	
-	buffer_size = snd_pcm_hw_params_get_buffer_size(params);
-	blksz = snd_pcm_hw_params_get_period_size(params, 0);
-	err = snd_pcm_sw_params_set_avail_min(handle, swparams, blksz);
-	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, 0);
-	err = snd_pcm_sw_params_set_stop_threshold(handle, swparams, 
-						   buffer_size);
-	
-	if (snd_pcm_sw_params(handle, swparams) < 0) 
-		FILTER_ERROR_RETURN("couldn't install swparams");
-	
-	snd_pcm_sw_params_dump(swparams, log);
-	snd_pcm_dump(handle, log);
-	
-	DPRINTF("Got period size%d\n", blksz);
-
-	out = (gl_s16 *)malloc(blksz*ssize*max_ch);
+	out = (gl_s16 *)malloc(blksz);
 	if (!out)
 		FILTER_ERROR_CLEANUP("Not enough memory for conversion buffer.");
 
+	blksz /= max_ch * ssize;
 	wbuf = out;
-
-	pos=0;
-	pos_param = filterparamdb_get_param(filter_paramdb(n), FILTERPARAM_LABEL_POS);
-	filterparam_val_set_pos(pos_param, 0);
-
-	snd_pcm_status_alloca(&status);
 
 	FILTER_AFTER_INIT;
 			
 	ch_active = ch;
 	to_go = blksz;
-	dropouts = 0;
 
 	goto _entry;
 
@@ -238,21 +192,12 @@ static int alsa_audio_out_f(filter_t *n)
 		if (!to_go) {
 			out = wbuf;
 			to_go = blksz;
-			if ((ret=snd_pcm_writei(handle, out, blksz)) != blksz) 
-			{
-				if ((snd_pcm_status(handle, status))<0) {
-					FILTER_ERROR_STOP("couldn't get device status");
-				}
-				if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
-					dropouts ++;
-					if ((snd_pcm_prepare(handle))<0) {
-						FILTER_ERROR_STOP("write error on alsa device");
-					}
-				}
+			if ((ret=snd_pcm_plugin_write(pcm, out, 
+				max_ch * ssize * blksz)) != 
+				max_ch * ssize * blksz) {
+				DPRINTF("Audio device had failure. "
+				        "Samples might be dropped.\n");
 			}
-			filterparam_val_set_pos(pos_param, pos);
-			pos+=blksz;
-			
 		} else {
 			out = &out[chunk_size * max_ch];
 		}
@@ -288,10 +233,10 @@ _entry:
 	FILTER_BEFORE_CLEANUP;
 	FILTER_BEFORE_STOPCLEANUP;
 
-	snd_pcm_close(handle);
-	
-	DPRINTF("had %d dropouts\n", dropouts);
-
+	if (pcm) {
+		snd_pcm_plugin_flush(pcm, SND_PCM_CHANNEL_PLAYBACK);
+		snd_pcm_close(pcm);
+	}
 	free(out);
 	free(in);
 	FILTER_RETURN;
@@ -302,6 +247,6 @@ _entry:
 int alsa_audio_out_register(plugin_t *p)
 {
 	return aio_generic_register_output(p, "alsa-audio-out",
-					   alsa_audio_out_f, "plug:0,0");
+					   alsa_audio_out_f, "0:0");
 }
 
