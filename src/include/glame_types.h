@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id: glame_types.h,v 1.7 2000/02/18 22:35:47 garrison Exp $
+ * $Id: glame_types.h,v 1.8 2000/02/21 13:03:48 richi Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
@@ -43,9 +43,6 @@ typedef struct midi_event {
 	int data; /* FIXME */
 } midi_event_t;
 
-/* FIXME */
-#define SAMPLE2SHORT(s) ((short)((s)*(1<<15)))
-#define SHORT2SAMPLE(s) ((SAMPLE)s/(SAMPLE)(1<<15))
-#define SAMPLE2CHAR(s)  ((char)((s)*(1<<7)))
-#define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
+
 #endif
+

@@ -37,11 +37,20 @@ static inline filter_buffer_t *get_feedback(feedback_fifo_t *f)
 }
 
 
+/* SAMPLE to various type conversion including clipping of the
+ * samples to [-1,1].
+ */
+#define SAMPLE2SHORT(s) ((short)(((s) < -1.0 ? -1.0 : ((s) > 1.0 ? 1.0 : (s)))*(1<<15)))
+#define SHORT2SAMPLE(s) ((SAMPLE)s/(SAMPLE)(1<<15))
+#define SAMPLE2CHAR(s)  ((char)(((s) < -1.0 ? -1.0 : ((s) > 1.0 ? 1.0 : (s)))*(1<<7)))
+#define CHAR2SAMPLE(s)  ((SAMPLE)s/(SAMPLE)(1<<7))
+
+
 /* Here follows a set of fast computing macros for standard operations.
  * To be implemented using ISSE/3DNOW stuff if available.
  */
 
-#define SCALARPROD1_1_CLAMP(destsourcep, fact) \
+#define SCALARPROD1_1(destsourcep, fact) \
 do { \
 	*destsourcep = (*destsourcep)*fact; \
         if (*destsourcep<-1.0) *destsourcep = -1.0; \
@@ -49,7 +58,7 @@ do { \
         destsourcep++; \
 } while (0)
 
-#define SCALARPROD4_1_CLAMP(destsourcep, fact) \
+#define SCALARPROD4_1(destsourcep, fact) \
 do { \
 	*destsourcep = (*destsourcep)*fact; \
         if (*destsourcep<-1.0) *destsourcep = -1.0; \

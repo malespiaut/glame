@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.1 2000/02/20 15:25:55 richi Exp $
+ * $Id: basic_sample.c,v 1.2 2000/02/21 13:03:48 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -266,12 +266,12 @@ static int volume_adjust_f(filter_node_t *n)
 
 		/* alignment loop */
 		for (; (cnt & 3)>0; cnt--) {
-			SCALARPROD1_1_CLAMP(buf, scale);
+			SCALARPROD1_1(buf, scale);
 		}
 
 		/* streamed loop */
 		for (; cnt>0; cnt-=4) {
-			SCALARPROD4_1_CLAMP(buf, scale);
+			SCALARPROD4_1(buf, scale);
 		}
 
 		/* queue the modified buffer */
