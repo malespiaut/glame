@@ -62,9 +62,7 @@ changequote([,])dnl
 AM_CONDITIONAL(HAVE_GTK, test x$have_gtk=xyes)
 
 dnl gnome check
-have_gnome = "no"
-GNOME_INIT_HOOK(have_gnome = "yes",,)
-
+GNOME_INIT_HOOK([have_gnome=yes],,)
 AM_CONDITIONAL(HAVE_GNOME, test x$have_gnome = xyes)
 
 dnl
