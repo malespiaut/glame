@@ -3,7 +3,7 @@
 
 /*
  * glame_types.h
- * $Id:
+ * $Id: glame_types.h,v 1.6 2000/02/09 21:40:09 nold Exp $
  * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,6 +22,9 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 /* internal SAMPLE format and size.
  * this should be changable w/o any code breakage!

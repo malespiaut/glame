@@ -4,6 +4,8 @@
 /*
  * util.h
  *
+ * $Id: util.h,v 1.7 2000/02/09 21:40:09 nold Exp $
+ *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify

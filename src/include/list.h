@@ -4,6 +4,8 @@
 /*
  * list.h
  *
+ * $Id: list.h,v 1.5 2000/02/09 21:40:09 nold Exp $
+ * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
  * This code was taken from the Linux kernel source which is
@@ -24,6 +26,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 /*
  * Simple doubly linked list implementation.
