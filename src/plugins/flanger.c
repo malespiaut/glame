@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.19 2002/02/17 13:53:31 richi Exp $
+ * $Id: flanger.c,v 1.20 2002/03/08 16:00:04 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -68,7 +68,7 @@ static int flanger_set_param(filter_param_t *param, const void *val)
 	if (n->priv!=NULL)
 		return 0;
 
-	x = *((float*)val);
+	x = *((double*)val);
 
 	if (strcmp("depth", filterparam_label(param))==0) {
 		if(x<=0.0)
