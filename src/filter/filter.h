@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.5 2000/01/27 15:50:43 richi Exp $
+ * $Id: filter.h,v 1.6 2000/01/31 10:04:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -38,39 +38,101 @@ typedef struct filter_node filter_node_t;
 
 
 
-#define FILTER_PARAMFLAG_OUTPUT 1
+/* Parameter declaration. This is per filter_t.
+ * OUTPUT may be or'ed with the type to make the parameter
+ * and output one.
+ */
+#define FILTER_PARAMTYPE_OUTPUT 1
+#define FILTER_PARAMTYPE_INT     2
+#define FILTER_PARAMTYPE_FLOAT   3
+#define FILTER_PARAMTYPE_SAMPLE  4
+#define FILTER_PARAMTYPE_FILE    5
+#define FILTER_PARAMTYPE_STRING  6
+#define FILTER_PARAM_IS_OUTPUT(type) ((type) & FILTER_PARAMTYPE_OUTPUT)
+#define FILTER_PARAMTYPE(type) ((type) & ~FILTER_PARAMTYPE_OUTPUT)
 typedef struct {
 	struct list_head list;
 	struct hash_head hash;
 	void *namespace;
 
-	char *label;
-	char *type;
-	int flags;
+	const char *label;
+	int type;
+
+	const char *description;
 } filter_paramdesc_t;
 
-#define FILTER_PORTFLAG_AUTOMATIC 1
-typedef struct {
-	struct list_head list;
-	struct hash_head hash;
-	void *namespace;
-
-	char *label;
-	int flags;
-} filter_portdesc_t;
-
+/* Parameter instance. This is per filternode_t.
+ */
 typedef struct {
 	struct hash_head hash;
-	char *label;
+	const char *label;
 	void *namespace;
 
 	union {
 		int i;
 		float f;
+		SAMPLE sample;
 		fileid_t file;
-		char *name;
+		char *string;
 	} val;
 } filter_param_t;
+
+
+
+/* Filter port declaration. Type is a mask actually which
+ * should contain any allowed pipe types.
+ */
+#define FILTER_PORTTYPE_AUTOMATIC 1
+#define FILTER_PORTTYPE_SAMPLE    2
+#define FILTER_PORTTYPE_RMS       4
+#define FILTER_PORTTYPE_MISC    128
+#define FILTER_PORTTYPE_ANY      -2
+#define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
+#define FILTER_PORT_IS_COMPATIBLE(porttype, pipetype) (((porttype) & (pipetype)) == (pipetype))
+typedef struct {
+	struct list_head list;
+	struct hash_head hash;
+	void *namespace;
+
+	const char *label;
+	int type;
+
+	const char *description;
+} filter_portdesc_t;
+
+/* Filter pipes represent a connection between two
+ * instances of a filter. This is per filternode port
+ * and depends on both filternode ports filter_portdesc.
+ */
+#define FILTER_PIPETYPE_UNINITIALIZED  0
+#define FILTER_PIPETYPE_SAMPLE  FILTER_PORTTYPE_SAMPLE
+#define FILTER_PIPETYPE_RMS     FILTER_PORTTYPE_RMS
+#define FILTER_PIPETYPE_MISC    FILTER_PORTTYPE_MISC
+#define FILTER_PIPE_IS_COMPATIBLE(pipetype, porttype) (((porttype) & (pipetype)) == (pipetype))
+typedef struct {
+	/* lists and hashes */
+	struct list_head input_list, output_list;
+	struct hash_head input_hash, output_hash;
+	const char *in_name, *out_name;
+	void *in_namespace, *out_namespace;
+
+	/* source and destination of the pipe, filter node
+	 * and outputs[]/inputs[] index */
+	filter_node_t *source, *dest;
+	int source_fd, dest_fd;
+
+	/* data type specification */
+	int type;
+	union {
+		struct {
+			int rate; /* sample rate, [Hz] */
+		} sample;
+		struct {
+			int blocksize;
+		} rms;
+	} u;	
+} filter_pipe_t;
+
 
 
 
@@ -89,46 +151,18 @@ typedef struct {
 #define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
 
 
-/* Filter pipes represent a connection between two
- * instances of a filter.
- */
-#define FILTER_PIPETYPE_UNINITIALIZED -1
-#define FILTER_PIPETYPE_MISC           0
-#define FILTER_PIPETYPE_SAMPLES        1
-#define FILTER_PIPETYPE_RMS            2
-typedef struct {
-	/* lists and hashes */
-	struct list_head input_list, output_list;
-	struct hash_head input_hash, output_hash;
-	char *in_name, *out_name;
-	void *in_namespace, *out_namespace;
-
-	/* source and destination of the pipe, filter node
-	 * and outputs[]/inputs[] index */
-	filter_node_t *source, *dest;
-	int source_fd, dest_fd;
-
-	/* data specification */
-	int type;
-	union {
-		struct {
-			int rate; /* sample rate, [Hz] */
-		} samples;
-		struct {
-			int blocksize;
-		} rms;
-	} u;	
-} filter_pipe_t;
 
 
 /* Filter contains the abstract description of a filter and
  * contains a set of methods doing the actual work.
  */
 struct filter {
+	struct list_head list;
 	struct hash_head hash;
 	void *namespace;
 
-	char *name;
+	const char *name;
+	const char *description;
 
 	/* The filter function. This is mandatory!
 	 * Just return -1 if you cant do anything
@@ -186,7 +220,7 @@ struct filter {
 	void *private;
 };
 
-/* the global filter hash */
+/* the global filter hash and list */
 #define hash_find_filter(n) __hash_entry(_hash_find((n), FILTER_NAMESPACE, (*(_hash((n), FILTER_NAMESPACE))), __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_add_filter(filter) _hash_add(&(filter)->hash, _hash((filter)->name, FILTER_NAMESPACE))
 #define hash_remove_filter(filter) _hash_remove(&(filter)->hash)
@@ -194,6 +228,7 @@ struct filter {
 #define hash_walk_filter(filter) __hash_entry(_hash_walk(&(filter)->hash, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_init_filter(filter) do { filter->namespace = FILTER_NAMESPACE; _hash_init(&(filter)->hash); } while (0)
 #define is_hashed_filter(filter) _is_hashed(&(filter)->hash)
+#define list_add_filter(filter) list_add(&(filter)->list, &filter_list)
 
 /* The filter inputs/outputs description hash and list.
  * Only add and find are needed. */
@@ -278,14 +313,22 @@ int filter_init();
 /* Allocates a new filter structure. You have still to
  * fill it.
  * Can return NULL, if the name is already occupied. */
-filter_t *filter_alloc(const char *name,  int (*f)(filter_node_t *));
+filter_t *filter_alloc(const char *name, const char *description,
+		       int (*f)(filter_node_t *));
 
-int filter_add_input(filter_t *filter, char *label, int flags);
-int filter_add_output(filter_t *filter, char *label, int flags);
-int filter_add_param(filter_t *filter, char *label, char *type, int flags);
+int filter_add_input(filter_t *filter, const char *label,
+		     const char *description, int type);
+int filter_add_output(filter_t *filter, const char *label,
+		      const char *description, int type);
+int filter_add_param(filter_t *filter, const char *label,
+		     const char *description, int type);
 
 /* Adds the filter to the filter database. */
 int filter_add(filter_t *filter);
+
+/* "browse" the list of registered filters. if f is NULL gives first
+ * filter. */
+filter_t *filter_next(filter_t *f);
 
 
 
@@ -309,10 +352,14 @@ filter_node_t *filternode_add(filter_network_t *net, const char *filter);
  * filter nodes source and dest.
  * Returns -1 if that is not possible.
  */
-int filternode_connect(filter_node_t *source, char *source_port,
-		       filter_node_t *dest, char *dest_port);
+int filternode_connect(filter_node_t *source, const char *source_port,
+		       filter_node_t *dest, const char *dest_port);
 
-int filternode_setparam_f(filter_node_t *n, const char *label, fileid_t file);
+/* Set the parameter with label label to the value pointed to by
+ * val.
+ * Returns -1 if that is not possible.
+ */
+int filternode_setparam(filter_node_t *n, const char *label, void *val);
 
 
 /* Launches a set of connected filter instances and starts

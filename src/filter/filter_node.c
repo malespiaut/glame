@@ -1,6 +1,6 @@
 /*
  * filter_node.c
- * $Id: filter_node.c,v 1.6 2000/01/27 15:50:43 richi Exp $
+ * $Id: filter_node.c,v 1.7 2000/01/31 10:04:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -67,8 +67,8 @@ filter_node_t *filternode_add(filter_network_t *net, const char *name)
 	return n;
 }
 
-int filternode_connect(filter_node_t *source, char *source_port,
-		       filter_node_t *dest, char *dest_port)
+int filternode_connect(filter_node_t *source, const char *source_port,
+		       filter_node_t *dest, const char *dest_port)
 {
 	filter_portdesc_t *in, *out;
 	filter_pipe_t *p;
@@ -149,7 +149,7 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 
 	/* do we have a connection to this port already and are
 	 * we not a multiple connection port? */
-	if (!(out->flags & FILTER_PORTFLAG_AUTOMATIC)
+	if (!FILTER_PORT_IS_AUTOMATIC(out->type)
 	    && hash_find_output(port, n))
 		return -1;
 
@@ -180,7 +180,7 @@ int filter_default_connect_in(filter_node_t *n, const char *port,
 
 	/* do we have a connection to this port already and are
 	 * we not a multiple connection port? */
-	if (!(in->flags & FILTER_PORTFLAG_AUTOMATIC)
+	if (!FILTER_PORT_IS_AUTOMATIC(in->type)
 	    && hash_find_input(port, n))
 		return -1;
 
@@ -218,20 +218,37 @@ int filter_default_fixup(filter_node_t *n, filter_pipe_t *in)
 }
 
 
-int filternode_setparam_f(filter_node_t *n, const char *label, fileid_t file)
+int filternode_setparam(filter_node_t *n, const char *label, void *val)
 {
 	filter_param_t *param;
 	filter_paramdesc_t *pdesc;
 
+	if (!(pdesc = hash_find_paramdesc(label, n->filter)))
+		return -1;
 	if (!(param = hash_find_param(label, n))) {
-		if (!(pdesc = hash_find_paramdesc(label, n->filter)))
-			return -1;
 		if (!(param = ALLOC(filter_param_t)))
 			return -1;
 		param->label = pdesc->label;
 		hash_add_param(param, n);
 	}
-	param->val.file = file;
+
+	switch (FILTER_PARAMTYPE(pdesc->type)) {
+	case FILTER_PARAMTYPE_INT:
+		param->val.i = *(int *)val;
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		param->val.f = *(float *)val;
+		break;
+	case FILTER_PARAMTYPE_SAMPLE:
+		param->val.sample = *(SAMPLE *)val;
+		break;
+	case FILTER_PARAMTYPE_FILE:
+		param->val.file = *(fileid_t *)val;
+		break;
+	case FILTER_PARAMTYPE_STRING:
+		param->val.string = *(char **)val;
+		break;
+	}
 
 	return 0;
 }

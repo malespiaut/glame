@@ -1,6 +1,6 @@
 /*
- * ping.c
- * $Id: ping.c,v 1.4 2000/01/27 14:28:53 richi Exp $
+ * debug.c
+ * $Id: debug.c,v 1.1 2000/01/31 10:04:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -90,5 +90,26 @@ int ping_fixup(filter_node_t *n, filter_pipe_t *p)
 {
 	return 0;
 }
+
+
+
+int debug_register()
+{
+	filter_t *f;
+
+	if (!(f = filter_alloc("ping", "ping", ping))
+	    || filter_add_input(f, "in", "input",
+				FILTER_PORTTYPE_MISC) == -1
+	    || filter_add_output(f, "out", "output",
+				 FILTER_PORTTYPE_MISC) == -1)
+		return -1;
+	f->fixup = ping_fixup;
+	if (filter_add(f) == -1)
+		return -1;
+
+	return 0;
+}
+
+
 
 

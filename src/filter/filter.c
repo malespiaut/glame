@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.6 2000/01/27 15:50:43 richi Exp $
+ * $Id: filter.c,v 1.7 2000/01/31 10:04:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -26,6 +26,10 @@
 #include "filter.h"
 
 
+/* global list of registered filters */
+static struct list_head filter_list;
+
+
 extern int filter_default_connect_out(filter_node_t *n, const char *port,
 				      filter_pipe_t *p);
 extern int filter_default_connect_in(filter_node_t *n, const char *port,
@@ -34,7 +38,8 @@ extern int filter_default_fixup(filter_node_t *n, filter_pipe_t *in);
 
 
 
-filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *))
+filter_t *filter_alloc(const char *name, const char *description,
+		       int (*func)(filter_node_t *))
 {
 	filter_t *f;
 
@@ -45,9 +50,10 @@ filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *))
 	if (!(f = ALLOC(filter_t)))
 		return NULL;
 	hash_init_filter(f);
+	INIT_LIST_HEAD(&f->list);
 
-	if (!(f->name = strdup(name)))
-		goto _nomem;
+	f->name = name;
+	f->description = description;
 
 	INIT_LIST_HEAD(&f->params);
 	INIT_LIST_HEAD(&f->inputs);
@@ -64,11 +70,6 @@ filter_t *filter_alloc(const char *name, int (*func)(filter_node_t *))
 	f->fixup = filter_default_fixup;
 
 	return f;
-
- _nomem:
-	free(f->name);
-	free(f);
-	return NULL;
 }
 
 int filter_add(filter_t *filter)
@@ -77,11 +78,13 @@ int filter_add(filter_t *filter)
 		return -1;
 
 	hash_add_filter(filter);
+	list_add_filter(filter);
 
 	return 0;
 }
 
-int filter_add_input(filter_t *filter, char *label, int flags)
+int filter_add_input(filter_t *filter, const char *label,
+		     const char *description, int type)
 {
 	filter_portdesc_t *desc;
 
@@ -92,8 +95,9 @@ int filter_add_input(filter_t *filter, char *label, int flags)
 	if (!(desc = ALLOC(filter_portdesc_t)))
 		return -1;
 
-	desc->label = strdup(label);
-	desc->flags = flags;
+	desc->label = label;
+	desc->type = type;
+	desc->description = description;
 	hash_add_inputdesc(desc, filter);
 	list_add_inputdesc(desc, filter);
 	filter->nr_inputs++;
@@ -101,7 +105,8 @@ int filter_add_input(filter_t *filter, char *label, int flags)
 	return 0;
 }
 
-int filter_add_output(filter_t *filter, char *label, int flags)
+int filter_add_output(filter_t *filter, const char *label,
+		      const char *description, int type)
 {
 	filter_portdesc_t *desc;
 
@@ -112,8 +117,9 @@ int filter_add_output(filter_t *filter, char *label, int flags)
 	if (!(desc = ALLOC(filter_portdesc_t)))
 		return -1;
 
-	desc->label = strdup(label);
-	desc->flags = flags;
+	desc->label = label;
+	desc->description = description;
+	desc->type = type;
 	hash_add_outputdesc(desc, filter);
 	list_add_outputdesc(desc, filter);
 	filter->nr_outputs++;
@@ -121,7 +127,8 @@ int filter_add_output(filter_t *filter, char *label, int flags)
 	return 0;
 }
 
-int filter_add_param(filter_t *filter, char *label, char *type, int flags)
+int filter_add_param(filter_t *filter, const char *label,
+		     const char *description, int type)
 {
 	filter_paramdesc_t *desc;
 
@@ -132,9 +139,9 @@ int filter_add_param(filter_t *filter, char *label, char *type, int flags)
 	if (!(desc = ALLOC(filter_paramdesc_t)))
 		return -1;
 
-	desc->label = strdup(label);
-	desc->type = strdup(type);
-	desc->flags = flags;
+	desc->label = label;
+	desc->description = description;
+	desc->type = type;
 	hash_add_paramdesc(desc, filter);
 	list_add_paramdesc(desc, filter);
 	filter->nr_params++;
@@ -144,77 +151,70 @@ int filter_add_param(filter_t *filter, char *label, char *type, int flags)
 
 
 /* include all static filter headers here */
-extern int drop(filter_node_t *n);
-extern int one2n(filter_node_t *n);
-extern int dup(filter_node_t *n);
+extern int basic_register();
+extern int channel_io_register();
+extern int audio_io_register();
+extern int debug_register();
 extern int mix(filter_node_t *n);
-extern int null(filter_node_t *n);
-extern int ping(filter_node_t *n);
-extern int ping_fixup(filter_node_t *n, filter_pipe_t *in);
-extern int file_in(filter_node_t *n);
-extern int file_out(filter_node_t *n);
 extern int volume_adjust(filter_node_t *n);
 
 int filter_init()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("drop", drop))
-	    || filter_add_input(f, "in", FILTER_PORTFLAG_AUTOMATIC) == -1
+	INIT_LIST_HEAD(&filter_list);
+
+	/* initialize basic filters */
+	if (basic_register() == -1)
+		return -1;
+
+	/* initialize channel/file input & output filters */
+	if (channel_io_register() == -1)
+		return -1;
+
+	/* initialize audio input & output filters */
+	if (audio_io_register() == -1)
+		return -1;
+
+	/* initialize debug & profile filters */
+	if (debug_register() == -1)
+		return -1;
+
+	if (!(f = filter_alloc("mix", "mix n channels", mix))
+	    || filter_add_input(f, "in", "input stream",
+				FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE) == -1
+	    || filter_add_output(f, "mixed", "mixed stream",
+				 FILTER_PORTTYPE_SAMPLE) == -1
 	    || filter_add(f) == -1)
 		return -1;
 
-	if (!(f = filter_alloc("one2n", one2n))
-	    || filter_add_input(f, "in", 0) == -1
-	    || filter_add_output(f, "out", FILTER_PORTFLAG_AUTOMATIC) == -1
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("dup", dup))
-	    || filter_add_input(f, "in", 0) == -1
-	    || filter_add_output(f, "out1", 0) == -1
-	    || filter_add_output(f, "out2", 0) == -1
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("mix", mix))
-	    || filter_add_input(f, "in", FILTER_PORTFLAG_AUTOMATIC) == -1
-	    || filter_add_output(f, "mixed", 0) == -1
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("null", null))
-	    || filter_add_input(f, "in", FILTER_PORTFLAG_AUTOMATIC) == -1
-	    || filter_add_output(f, "out", FILTER_PORTFLAG_AUTOMATIC) == -1
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("ping", ping))
-	    || filter_add_input(f, "in", 0) == -1
-	    || filter_add_output(f, "out", 0) == -1)
-		return -1;
-	f->fixup = ping_fixup;
-	if (filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("file_in", file_in))
-	    || filter_add_param(f, "file", "%i", 0) == -1
-	    || filter_add_output(f, "out", 0) == -1
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("file_out", file_out))
-	    || filter_add_param(f, "file", "%i", FILTER_PARAMFLAG_OUTPUT) == -1
-	    || filter_add_input(f, "in", 0) == -1
-	    || filter_add(f) == -1)
-		return -1;
-
-	if (!(f = filter_alloc("volume_adjust", volume_adjust))
-	    || filter_add_param(f, "factor", "%f", 0) == -1
-	    || filter_add_input(f, "in", 0) == -1
-	    || filter_add_output(f, "out", 0) == -1
+	if (!(f = filter_alloc("volume_adjust", "scale samples",
+			       volume_adjust))
+	    || filter_add_param(f, "factor", "scale factor",
+				FILTER_PARAMTYPE_FLOAT) == -1
+	    || filter_add_input(f, "in", "input stream",
+				FILTER_PORTTYPE_SAMPLE) == -1
+	    || filter_add_output(f, "out", "output stream",
+				 FILTER_PORTTYPE_SAMPLE) == -1
 	    || filter_add(f) == -1)
 		return -1;
 
 	return 0;
+}
+
+
+filter_t *filter_next(filter_t *f)
+{
+	struct list_head *lh;
+
+	if (!f)
+		lh = &filter_list;
+	else
+		lh = &f->list;
+
+	lh = lh->next;
+	if (lh == &filter_list)
+		return NULL;
+
+	return list_entry(lh, filter_t, list);
 }
