@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.10 2000/12/11 17:35:32 xwolf Exp $
+ * $Id: canvas.c,v 1.11 2000/12/11 18:52:33 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1244,9 +1244,75 @@ static void canvas_load_cb(gchar* name, gpointer data)
 	glame_load_plugin(name);
 }
 
+static void changeString(GtkEditable *wid, char ** returnbuffer)
+{
+	strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
+}
+
+
 static void canvas_save_as(GtkWidget*bla,void*blu)
 {
-	gnome_request_dialog(0,"Filename","filter",16,canvas_save_as_cb,NULL,NULL);
+	GtkWidget * dialog;
+	GtkWidget * fileEntry;
+	GtkWidget * filternameentry;
+	GtkWidget * categoryEntry;
+	GtkWidget * dialogVbox;
+	GtkWidget * errorbox;
+	char *buffer;
+	char * filenamebuffer;
+	char * filternamebuffer;
+	char * categorynamebuffer;
+	FILE* outf;
+	filter_t * bla;
+
+	filenamebuffer=calloc(100,sizeof(char));
+	filternamebuffer=calloc(100,sizeof(char));
+	categorynamebuffer=calloc(100,sizeof(char));
+	
+	dialog = gnome_dialog_new("Save network as...",GNOME_STOCK_BUTTON_OK,GNOME_STOCK_BUTTON_CANCEL,NULL);
+	dialogVbox = GTK_VBOX (GNOME_DIALOG (dialog)->vbox);
+	
+	fileEntry = gnome_file_entry_new(NULL,"Filename");
+	gtk_signal_connect(gnome_file_entry_gtk_entry(fileEntry),"changed",changeString,&filenamebuffer);
+	create_label_widget_pair(dialogVbox,"Filename",fileEntry);
+	
+	filternameentry = gtk_entry_new();
+	gtk_signal_connect(filternameentry,"changed",changeString,&filternamebuffer);
+	create_label_widget_pair(dialogVbox,"Filtername",filternameentry);
+	
+	categoryEntry = gtk_entry_new();
+	gtk_signal_connect(categoryEntry,"changed",changeString,&categorynamebuffer);
+	create_label_widget_pair(dialogVbox,"Category",categoryEntry);
+	fprintf(stderr,"return: %d\n",gnome_dialog_run_and_close(GNOME_DIALOG(dialog)));
+//	fprintf(stderr,"%s\n%s\n%s\n",filenamebuffer,filternamebuffer,categorynamebuffer);
+
+	bla = GLAME_CANVAS(globalcanvas)->net->net;
+
+// unused for now. broken. FIXME RICHIIII HELP!!
+//	if(*categorynamebuffer)
+//		plugin_set(bla, PLUGIN_CATEGORY, categorynamebuffer);
+
+	if(*filenamebuffer){
+		outf = fopen(filenamebuffer,"w");
+		buffer = filter_to_string(bla);
+		fprintf(stderr,"%s\n",buffer);
+		if(!(*filternamebuffer))
+			fprintf(outf,"(glame_create_plugin %s \"%s\")\n",buffer,filenamebuffer);
+		else
+			fprintf(outf,"(glame_create_plugin %s \"%s\")\n",buffer,filternamebuffer);
+		free(buffer);
+		fclose(outf);
+	}else{
+		errorbox = gnome_warning_dialog("Please enter filename next time...");
+		gnome_dialog_run_and_close(errorbox);
+	}
+
+	free(filenamebuffer);
+	free(filternamebuffer);
+	free(categorynamebuffer);
+
+	
+//	gnome_request_dialog(0,"Filename","filter",16,canvas_save_as_cb,NULL,NULL);
 }
 
 static void register_filternetwork_cb(GtkWidget*bla,void*blu)
