@@ -30,4 +30,8 @@ midi: garrison
 gui: xwolf
 	src/gui/*
 
+plugins: mag
+        rms, noisegate, iir, 
+	(audio|file)_io.c (with nold)
+
 please add your stuff [richi]
