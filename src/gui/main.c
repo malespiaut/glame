@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.55 2001/05/29 08:45:16 richi Exp $
+ * $Id: main.c,v 1.56 2001/06/04 16:04:32 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -39,11 +39,13 @@
 #include "gltreeitem.h"
 #include "gpsm.h"
 #include "clipboard.h"
+#include "glame_accelerator.h"
 
 
 /* Globals. */
 static GtkWidget *swapfile;
 static GtkWidget *app;
+GtkWidget *glame_appbar;
 
 extern guint nPopupTimeout;
 extern gboolean bMac;
@@ -545,7 +547,7 @@ static void gui_quit(GtkWidget *widget, gpointer data)
 
 static void gui_main()
 {
-	GtkWidget *dock, *appbar, *scrollview;
+	GtkWidget *dock, *scrollview;
 	char configpath[255];
 	char *path;
 
@@ -564,8 +566,11 @@ static void gui_main()
 	gpsm_init(path);
 	g_free(path);
 
+	glame_accel_init();
+	glame_swapfilegui_init();
+
 	/* create swapfile gui - in a scrolled window */
-	swapfile = glame_swapfile_widget_new(gpsm_root());
+	swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
 	if (!swapfile)
 		return;
 	scrollview = gtk_scrolled_window_new(NULL, NULL);
@@ -588,9 +593,9 @@ static void gui_main()
                                  (GtkDestroyNotify) gtk_widget_unref);
 	gtk_widget_show (dock);
 	gnome_app_create_menus (GNOME_APP (app), menubar_uiinfo);
-	appbar = gnome_appbar_new (TRUE, TRUE, GNOME_PREFERENCES_NEVER);
-	gtk_widget_show (appbar);
-	gnome_app_set_statusbar (GNOME_APP (app), appbar);
+	glame_appbar = gnome_appbar_new (TRUE, TRUE, GNOME_PREFERENCES_NEVER);
+	gtk_widget_show (glame_appbar);
+	gnome_app_set_statusbar (GNOME_APP (app), glame_appbar);
 	gnome_app_install_menu_hints (GNOME_APP (app), menubar_uiinfo);
 
 	/* Connect signals and insert swapfile gui into the main window. */
@@ -603,6 +608,13 @@ static void gui_main()
 	/* Connect auto-horizontal-resize callback. */
 	gtk_signal_connect(GTK_OBJECT(swapfile), "size_request",
 			   resize_horiz_cb, app);
+
+	/* Register accelerators. With example. */
+	glame_accel_add("swapfile/4-l",
+			"(if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) -1.57))");
+	glame_accel_add("swapfile/4-r",
+			"(if (gpsm-swfile? (swapfilegui-active-item)) (gpsm-swfile-set-position! (swapfilegui-active-item) 1.57))");
+	glame_accel_install(app, "swapfile", NULL);
 
 	/* Pop up splash screen. */
 	glame_splash();

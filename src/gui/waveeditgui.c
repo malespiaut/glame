@@ -40,6 +40,7 @@
 #include "edit_filter/filtereditgui.h"
 #include "clipboard.h"
 #include "network_utils.h"
+#include "glame_accelerator.h"
 
 
 
@@ -1000,6 +1001,12 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_signal_connect_after(GTK_OBJECT(wavebuffer), "destroy",
 				 (GtkSignalFunc)waveedit_wavebuffer_destroy_cb,
 				 swfiles);
+
+	/* Add accelerator handler (and for testing two accelerators). */
+	if (glame_accel_install(window, "waveview", NULL) == -1)
+		DPRINTF("accel install failed\n");
+	glame_accel_add("waveview/0-a", "(display \"Hello world 1!\")");
+	glame_accel_add("waveview/4-q", "(glame-delete-widget (glame-accel-get-widget))");
 
 	/* Add the toolbar. */
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);

@@ -1212,7 +1212,6 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
   return TRUE;
 }
 
- 
 static void
 gtk_wave_view_init (GtkWaveView *waveview)
 {
@@ -1266,7 +1265,9 @@ gtk_wave_view_init (GtkWaveView *waveview)
                                          GDK_BUTTON_PRESS_MASK |
                                          GDK_BUTTON_RELEASE_MASK |
                                          GDK_BUTTON_MOTION_MASK |
-                                         GDK_POINTER_MOTION_HINT_MASK);
+                                         GDK_POINTER_MOTION_HINT_MASK |
+	                                 GDK_KEY_PRESS_MASK |
+			                 GDK_KEY_RELEASE_MASK);
 
   waveview->wavebuffer = NULL;
 
