@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.7 2000/02/14 13:24:29 richi Exp $
+ * $Id: debug.c,v 1.8 2000/02/19 05:23:17 garrison Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -37,11 +37,19 @@ static int ping(filter_node_t *n)
 {
 	filter_buffer_t *in, *out;
 	filter_pipe_t *i, *o;
+	filter_param_t *param;
 	struct timeval start, end;
 	int cnt = 10;
 	int dt = 250000;
 	int size = 128;
 	int time;
+
+	if ((param = filternode_get_param(n, "cnt")))
+		cnt = filterparam_val_int(param);
+	if ((param = filternode_get_param(n, "dt")))
+		dt = filterparam_val_int(param);
+	if ((param = filternode_get_param(n, "size")))
+		size = filterparam_val_int(param);
 
 	i = filternode_get_input(n, PORTNAME_IN);
 	o = filternode_get_output(n, PORTNAME_OUT);
@@ -105,7 +113,10 @@ int debug_register()
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				 FILTER_PORTTYPE_MISC)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_MISC))
+				  FILTER_PORTTYPE_MISC)
+	    || !filter_add_param(f, "cnt", "count", FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f, "dt", "delay time", FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f, "size", "buffer size", FILTER_PARAMTYPE_INT))
 		return -1;
 	f->fixup_pipe = ping_fixup_pipe;
 	if (filter_add(f) == -1)

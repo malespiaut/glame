@@ -1,0 +1,6 @@
+(filternetwork latency
+	(node ping ping)
+	(node null null)
+	(connect ping out null in)
+	(connect null out ping in)
+)

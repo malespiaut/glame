@@ -23,4 +23,7 @@ doc: nold
 samplemath: nold
 	src/samplemath/*
 
+midi: garrison
+	src/filter/midi*
+
 please add your stuff [richi]

@@ -97,42 +97,6 @@ static int pan_f(filter_node_t *n)
 
 #if 0
 
-/* This filter is a complete filter for routing needs.  It has the
-   functionality of "mix" and "one2n" filters combined into one. */
-
-static int route_f(filter_node_t *n)
-{
-	filter_buffer_t *buf, *inbuf;
-	filter_pipe_t *in, *p;
-	int i;
-
-	in = filternode_get_input(n, PORTNAME_IN);
-
-	FILTER_AFTER_INIT;
-
-	do {
-		buf = sbuf_make_private(sbuf_get(in));
-		filternode_foreach_input(n, p) {
-			if (in != p) {
-				inbuf = sbuf_get(p);
-				for (i = 0; i < sbuf_size(buf); i++) {
-					sbuf_buf(buf)[i] += sbuf_buf(inbuf)[i];
-				}
-				sbuf_unref(inbuf);
-			}
-		}
-		filternode_foreach_output(n, p) {
-			sbuf_ref(buf);
-			sbuf_queue(p, buf);
-		}
-		sbuf_unref(buf);
-	} while (pthread_testcancel(), buf);
-
-	FILTER_BEFORE_CLEANUP;
-
-	return 0;
-}
-
 /* Mixes and balances effected and uneffected signals */
 
 static int bal_f(filter_node_t *n)
@@ -347,16 +311,6 @@ int garrison_register()
 		return -1;
 
 #if 0
-	/***** route filter *****/
-	if ((f = filter_alloc("Route", "Mixes and splits audio signals", route_f)) == NULL)
-		return -1;
-	if (!(filter_add_input(f, PORTNAME_IN, "input", FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE)))
-		return -1;
-	if (!(filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_AUTOMATIC|FILTER_PORTTYPE_SAMPLE)))
-		return -1;
-	if (filter_add(f))
-		return -1;
-
 	/***** balance filter *****/
 	if ((f = filter_alloc("Balance", "Mixes wet/dry signals", bal_f)) == NULL)
 		return -1;
@@ -378,6 +332,7 @@ int garrison_register()
 		return -1;
 #endif
 
+	/***** parameter to stream *****/
 	if ((f = filter_alloc("p2s", "Converts parameter to stream", p2s_f)) == NULL)
 		return -1;
 	if (!(filter_add_output(f, PORTNAME_OUT, "output", FILTER_PORTTYPE_SAMPLE)))

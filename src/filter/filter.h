@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.24 2000/02/17 17:58:36 nold Exp $
+ * $Id: filter.h,v 1.25 2000/02/19 05:23:17 garrison Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -151,6 +151,7 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define FILTER_PORTTYPE_AUTOMATIC 1
 #define FILTER_PORTTYPE_SAMPLE    4
 #define FILTER_PORTTYPE_RMS       8
+#define FILTER_PORTTYPE_MIDI      16
 #define FILTER_PORTTYPE_MISC    128
 #define FILTER_PORTTYPE_ANY      -4
 #define FILTER_PORT_IS_AUTOMATIC(type) ((type) & FILTER_PORTTYPE_AUTOMATIC)
