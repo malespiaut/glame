@@ -411,13 +411,13 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
 
   length = (gdouble) gtk_wave_buffer_get_length (waveview->wavebuffer);
   rate = (gdouble) gtk_wave_buffer_get_rate (waveview->wavebuffer);
-  width = GTK_WIDGET (waveview)->allocation.width;
+  width = GTK_WIDGET(waveview->area)->allocation.width;
 
   /* Set scrollbar in pixel units. */
   adj->lower = 0.0;
   adj->upper = length;
   adj->step_increment = waveview->zoom * 32.0;
-  adj->upper += adj->step_increment; /* why? gtk bug? */
+  //adj->upper += adj->step_increment; /* why? gtk bug? */
   adj->page_size = width * waveview->zoom;
   adj->page_increment = adj->page_size;
 
@@ -436,14 +436,38 @@ gtk_wave_view_update_units (GtkWaveView *waveview)
 
   j = -calc_win_pel_pos (waveview, 0);
   glame_ruler_set_range (GLAME_RULER(waveview->hruler),
-			 calc_frame_pos_ext (waveview, j) / rate,
-			 calc_frame_pos_ext (waveview, j + width) / rate,
+			 j * waveview->zoom / rate,
+			 (j + width) * waveview->zoom / rate,
+			 /* calc_frame_pos_ext (waveview, j) / rate,
+			 calc_frame_pos_ext (waveview, j + width) / rate, */
 			 0.0, 1000.0);
 /* for frames
   glame_ruler_set_range (GLAME_RULER(waveview->hruler),
 			 calc_frame_pos_ext (waveview, j),
 			 calc_frame_pos_ext (waveview, j + width),
 			 0.0, 1000.0); */
+}
+
+static void
+gtk_wave_view_update_label(GtkWaveView *waveview)
+{
+	char label[32];
+	int mins, mins2;
+	mins = (int)(waveview->marker/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer)/60.0);
+	snprintf(label, 32, "%i:%.3fs", mins,
+		 waveview->marker/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer) - mins*60);
+	gtk_label_set_text(GTK_LABEL(waveview->marker_label), label);
+	if (waveview->select_left <= waveview->select_right) {
+		mins = (int)(waveview->select_left/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer)/60.0);
+		mins2 = (int)(waveview->select_right/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer)/60.0);
+		snprintf(label, 32, "%i:%.3fs - %i:%.3fs",
+			 mins,
+		 	 waveview->select_left/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer) - mins*60,
+			 mins2,
+		 	 waveview->select_right/(double)gtk_wave_buffer_get_rate(waveview->wavebuffer) - mins2*60);
+	} else
+		strcpy(label, "none");
+	gtk_label_set_text(GTK_LABEL(waveview->selection_label), label);
 }
 
 
@@ -704,6 +728,7 @@ on_area_realize (GtkWidget *widget, gpointer userdata)
       gdk_gc_set_function (waveview->marker_gc, GDK_XOR);
     }
   gdk_gc_set_exposures(waveview->area->style->bg_gc [GTK_STATE_NORMAL],TRUE);
+  gtk_wave_view_update_label(waveview);
 }
 
 
@@ -992,6 +1017,7 @@ gtk_wave_view_update_selection (GtkWaveView *waveview, gint32 x1, gint32 x2)
       waveview->select_right = x2;
       gtk_wave_view_redraw_sample_area (waveview, t, t2);
       gtk_wave_view_redraw_sample_area (waveview, x1, x2);
+      gtk_wave_view_update_label(waveview);
       return;
     }
 
@@ -1020,6 +1046,7 @@ gtk_wave_view_update_selection (GtkWaveView *waveview, gint32 x1, gint32 x2)
       waveview->select_right = x2;
       gtk_wave_view_redraw_sample_area(waveview, t + 1, x2);
     }
+  gtk_wave_view_update_label(waveview);
 }
 
 
@@ -1262,7 +1289,7 @@ gtk_wave_view_scroll_notify (gpointer widget)
   GtkAdjustment *adjust = GTK_ADJUSTMENT (waveview->adjust);
   gint32 width, pos, frames;
 
-  width = GTK_WIDGET (waveview)->allocation.width;
+  width = GTK_WIDGET (waveview->area)->allocation.width;
   pos = waveview->mouse_x;
 
   if (pos < 0)
@@ -1345,7 +1372,7 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
 static void
 gtk_wave_view_init (GtkWaveView *waveview)
 {
-	GtkWidget *hbox, *vbox1, *vbox2;
+	GtkWidget *hbox, *hbox2, *vbox1, *vbox2, *label;
 
 	hbox = gtk_hbox_new(FALSE, 0);
 	waveview->vbox1 = vbox1 = gtk_vbox_new(FALSE, 0);
@@ -1370,6 +1397,30 @@ gtk_wave_view_init (GtkWaveView *waveview)
   waveview->hscroll = gtk_hscrollbar_new (GTK_ADJUSTMENT (waveview->adjust));
   gtk_box_pack_start (GTK_BOX (vbox2), waveview->hscroll, FALSE, FALSE, 0);
   gtk_widget_show (waveview->hscroll);
+
+	hbox = gtk_hbox_new(FALSE, 0);
+	hbox2 = gtk_hbox_new(TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), hbox2, TRUE, TRUE, 0);
+	label = gtk_label_new("Marker position:");
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(hbox2), label,
+			   FALSE, FALSE, 0);
+  	waveview->marker_label = gtk_widget_new(gtk_label_get_type(), NULL);
+	gtk_misc_set_alignment(GTK_MISC(waveview->marker_label), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(hbox2), waveview->marker_label,
+			   FALSE, FALSE, 0);
+	hbox2 = gtk_hbox_new(TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), hbox2, TRUE, TRUE, 0);
+	label = gtk_label_new("Current selection:");
+	gtk_misc_set_alignment(GTK_MISC(label), 1.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(hbox2), label,
+			   FALSE, FALSE, 0);
+  	waveview->selection_label = gtk_widget_new(gtk_label_get_type(), NULL);
+	gtk_misc_set_alignment(GTK_MISC(waveview->selection_label), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(hbox2), waveview->selection_label,
+			   FALSE, FALSE, 0);
+	gtk_widget_show_all(hbox);
+	gtk_box_pack_start(GTK_BOX(waveview), hbox, FALSE, FALSE, 0);
 
   gtk_signal_connect (GTK_OBJECT (waveview->adjust),
                       "value_changed", gtk_wave_view_scroll,
@@ -1542,6 +1593,7 @@ on_wave_buffer_insert_data (GtkWidget *widget, GRange *range)
     waveview->select_left += width;
 
   gtk_wave_view_update_units (waveview);
+  gtk_wave_view_update_label (waveview);
 }
 
 
@@ -1569,6 +1621,7 @@ on_wave_buffer_delete_data (GtkWidget *widget, GRange *range)
     waveview->select_right = range->left - 1;
 
   gtk_wave_view_update_units (waveview);
+  gtk_wave_view_update_label(waveview);
 }
 
 
@@ -1784,6 +1837,7 @@ gtk_wave_view_set_marker (GtkWaveView *waveview, gint32 frame)
       if (waveview->marker >= 0)
         draw_marker_from_frame_pos (waveview, waveview->marker);
       waveview->marker = frame;
+      gtk_wave_view_update_label(waveview);
     }
 }
 
@@ -1885,6 +1939,8 @@ gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
 
   /* set the new marker */
   waveview->marker = frame;
+ 
+  gtk_wave_view_update_label(waveview);
 }
   
 
@@ -2001,6 +2057,7 @@ gtk_wave_view_set_selection (GtkWaveView *waveview,
   waveview->select_right = start + length - 1;
 
   gtk_widget_queue_draw (waveview->area);
+  gtk_wave_view_update_label(waveview);
 }
 
 

@@ -121,6 +121,8 @@ struct _GtkWaveView
   gdouble         marker_scroll_start;
 
 	GtkWidget *vbox1;
+	GtkWidget *marker_label;
+	GtkWidget *selection_label;
 };
 
 struct _GtkWaveViewClass
