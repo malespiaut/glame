@@ -1,8 +1,8 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.29 2000/02/22 13:59:45 richi Exp $
+ * $Id: audio_io.c,v 1.30 2000/02/22 17:19:20 nold Exp $
  *
- * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
+ * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -333,7 +333,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 	FILTER_BEFORE_CLEANUP;
 
-_cleanup:
 	if(p)
 		alClosePort(p);
 	if(c)
