@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.34 2000/03/23 16:31:04 richi Exp $
+ * $Id: filter_network.c,v 1.35 2000/03/24 16:02:51 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -208,6 +208,20 @@ int filterpipe_set_destparam(filter_pipe_t *p, const char *label, void *val)
 /* filter network API.
  */
 
+static void *waiter(void *network)
+{
+	filter_network_t *net = network;
+	int res;
+
+	res = net->node.ops->wait(FILTER_NODE(net));
+
+	net->node.ops->postprocess(&net->node);
+	_launchcontext_free(net->launch_context);
+	net->launch_context = NULL;
+
+	pthread_exit((void *)res);
+}
+
 int filternetwork_launch(filter_network_t *net)
 {
 	sigset_t sigs;
@@ -230,6 +244,11 @@ int filternetwork_launch(filter_network_t *net)
 
 	DPRINTF("launching nodes\n");
 	if (net->node.ops->launch(FILTER_NODE(net)) == -1)
+		goto out;
+
+	DPRINTF("launching waiter\n");
+	if (pthread_create(&net->launch_context->waiter, NULL,
+			   waiter, net) != 0)
 		goto out;
 
 	net->launch_context->state = STATE_LAUNCHED;
@@ -279,25 +298,23 @@ int filternetwork_pause(filter_network_t *net)
 
 int filternetwork_wait(filter_network_t *net)
 {
-	int res;
+	void *res;
 
 	if (!net || !FILTERNETWORK_IS_LAUNCHED(net)
 	    || !FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
-	res = net->node.ops->wait(FILTER_NODE(net));
+	DPRINTF("waiting for waiter to complete\n");
+	pthread_join(net->launch_context->waiter, &res);
 
-	net->node.ops->postprocess(&net->node);
-	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL;
-
-	return res;
+	return (int)res;
 }
 
 void filternetwork_terminate(filter_network_t *net)
 {
 	if (!net || !FILTERNETWORK_IS_LAUNCHED(net))
 		return;
+
 	atomic_set(&net->launch_context->result, 1);
 	sem_zero(net->launch_context->semid, 0);
 	net->launch_context->state = STATE_RUNNING;

@@ -197,6 +197,7 @@ struct filter_pipe {
 #define STATE_RUNNING 3
 typedef struct {
 	int nr_threads;
+	pthread_t waiter;
 
 	int state;
 
