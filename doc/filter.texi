@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.18 2000/05/01 11:09:03 richi Exp $
+@comment $Id: filter.texi,v 1.19 2000/05/02 09:46:55 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -136,23 +136,6 @@ allow any type of input or output. @code{filter_add_input()} and
 success and @code{NULL} on error.
 @end deftypefun
 
-@tindex filter_paramdesc_t
-@tindex filter_t
-@deftypefun {filter_paramdesc_t *} filter_add_param (filter_t *@var{f}, const char *@var{label}, const char *@var{description}, int @var{type})
-@deftypefunx {filter_paramdesc_t *} filterport_add_param (filter_portdesc_t *@var{port}, const char *@var{label}, const char *@var{description}, int @var{type})
-@code{filter_add_param()} adds a parameter with the specified @var{label} and
-@var{description} to the filter. @code{filterport_add_param()} adds a parameter
-to the specified port; parameter values can be set per connected pipe. 
-@var{type} specifies the type of the parameter. The currently supported 
-parameter types are 
-@code{FILTER_PARAMTYPE_INT}, 
-@code{FILTER_PARAMTYPE_FLOAT}, 
-@code{FILTER_PARAMTYPE_SAMPLE},
-@code{FILTER_PARAMTYPE_FILE} and @code{FILTER_PARAMTYPE_STRING}.
-@code{filter_add_param()} and @code{filterport_add_param()} will return the
-parameter description structure on
-success and @code{NULL} on error.
-@end deftypefun
 
 @deftypefun void filter_delete_port (filter_t *@var{f}, filter_portdesc_t *@var{port})
 @code{filter_delete_port()} will remove and destroy the specified port from
@@ -233,42 +216,6 @@ Using this iterator you can loop through all available port specific parameters
 of port @var{d} similar to @code{filter_foreach_inputdesc}.
 @end deftypefn
 
-To query a filter about existing parameters the following functions do exist.
-
-@deftypefun int filter_nrparams (filter_t *@var{f})
-@code{filter_nrparams()} does return the number of parameters of filter
-@code{@var{f}()}.
-@end deftypefun
-
-@tindex filter_paramdesc_t
-@tindex filter_t
-@deftypefun {filter_paramdesc_t *} filter_get_paramdesc (filter_t *@var{f}, const char *@var{label})
-Use @code{filter_get_paramdesc()} to query a filter about an existing
-parameter descriptor by name. @code{filter_get_paramdesc()} returns a parameter
-descriptor or @code{NULL} if no parameter with the specified label exists.
-@end deftypefun
-
-@tindex filter_paramdesc_t
-@tindex filter_t
-@deftypefn Iterator {} filter_foreach_paramdesc (filter_t *@var{f}, filter_paramdesc_t *@var{d}) @{ @}
-With the @code{filter_foreach_paramdesc} iterator you can loop through all
-available parameter descriptors of a filter.
-@end deftypefn
-
-To access the various fields of the parameter description structure
-the following functions should be used.
-
-@deftypefun {const char *} filterparamdesc_label (filter_paramdesc_t *@var{d})
-@deftypefunx {const char *} filterparamdesc_description (filter_paramdesc_t *@var{d})
-These functions return label and description respectively of the parameter
-described by the parameter descriptor @var{d}.
-@end deftypefun
-
-@deftypefun int filterparamdesc_type (filter_paramdesc_t *@var{d})
-Using this function you can query a parameter descriptor about the type of
-the parameter. See @code{filter_add_param()} for a list of available
-parameter types.
-@end deftypefun
 
 
 @node The Filter Programming API, The Filter Network API,The Filter Registry API, Filter API
@@ -341,6 +288,8 @@ destination port. You may reject the connection by returning -1 or
 accept it by returning 0. You should set up the pipe type and the
 corresponding fields in the type-specific union using the appropriate macros.
 You may modifiy the pipe's source, i.e. perform redirections---but be careful.
+After the connection has been created a @code{GLSIG_PIPE_CHANGED} signal is
+raised on the new pipe.
 @end deftypefn
 
 @tindex filter_node_t
@@ -351,34 +300,20 @@ You may modifiy the pipe's source, i.e. perform redirections---but be careful.
 call, and you don't have to set up any type specific information in the
 filter pipe @var{p}. Just return -1 if you don't like the connection. 
 Otherwise return 0. Redirections of the destination may be done under the
-same conditions as in @code{connect_out()}.
+same conditions as in @code{connect_out()}. After the connection has been
+created a @code{GLSIG_PIPE_CHANGED} signal is raised on the new pipe.
 @end deftypefn
 
 @tindex filter_node_t
-@deftypefn Method int fixup_param (filter_node_t *@var{n}, filter_pipe_t *@var{p}, const char *@var{name}, filter_param_t *@var{param})
-@code{fixup_param()} gets called by @code{filternode_set_param()} or
-@code{filterpipe_set_*param()} if the @var{p} parameter is not @code{NULL}. 
-Here you may accept or
-reject a parameter change for the filter. Return -1 if you do not like
-anything about the setup. You have to fix the pipe parameters of all
-affected output ports. Returning -1 does not revert a parameter change. Use
-@code{filterparam_set()} to correct wrong parameter values.
-In this method you may break an existing connection
-using @code{filternetwork_break_connection()}.
+@tindex filter_param_t
+@deftypefn Method int set_param (filter_node_t *@var{dest}, filter_param_t *@var{p}, const void *@var{val})
+The @code{set_param()} method can be used to check a value which is to be
+setted against some conditions. The method is invocated before the change
+takes place and you may reject the change by returning -1. Returning 0
+will do the parameter change and raise a @code{GLSIG_PARAM_CHANGED} signal
+on the parameter.
 @end deftypefn
 
-@tindex filter_node_t
-@tindex filter_pipe_t
-@deftypefn Method int fixup_pipe (filter_node_t *@var{n}, filter_pipe_t *@var{in})
-@code{fixup_pipe()} gets called by @code{filternetwork_add_connection()} 
-but can also be called by a source
-filter to tell about changes in an input port's pipe.
-In both cases you are required to adjust all affected output
-pipes with respect to their types and parameters. You also have to
-forward the fixup request to each changed pipe by calling its
-destination's fixup method. Return -1 if anything is wrong with the setup, 
-else return 0.
-@end deftypefn
 
 
 
@@ -437,7 +372,8 @@ the input or output pipe on each loop iteration.
 @tindex filter_pipe_t
 To access information contained in the @code{filter_pipe_t} structures returned
 by the above functions, you may use the following functions. Also functions
-to access the per-pipe-end parameters are described here.
+to access the per-pipe-end parameters and the corresponding parameter
+databases are described here.
 
 @deftypefun int filterpipe_type (filter_pipe_t *@var{p})
 @code{filterpipe_type()} will return the type of the pipe.
@@ -446,10 +382,13 @@ to access the per-pipe-end parameters are described here.
 
 @findex connect_out
 @findex fixup_param
-To initialize a pipe inside the @code{connect_out()} or
-@code{fixup_param()} method you should use one of the following
-boilerplate functions. Also the per-pipe-type access methods you should
-use are described here, grouped by pipe type.
+To initialize a pipe inside the @code{connect_out()} method or any
+signal handler you should use one of the following boilerplate
+functions. Also the per-pipe-type access methods you should use are
+described here, grouped by pipe type. Note that if you actually change a
+pipes type or its parameters you have to raise a
+@code{GLSIG_PIPE_CHANGED} signal on the pipe, @strong{except} you are in
+one of the @code{connect()} methods.
 
 @deftypefun void filterpipe_settype_sample (filter_pipe_t *@var{p}, int @var{rate}, float @var{hangle})
 @tindex FILTER_PIPETYPE_SAMPLE
@@ -463,32 +402,42 @@ return the pipes sample rate and its horizontal angle respectively.
 @end deftypefun
 
 
+@deftypefun {filter_pdb_t *} filterpipe_sourcepdb (filter_pipe_t *@var{p})
+@deftypefunx {filter_pdb_t *} filterpipe_destpdb (filter_pipe_t *@var{p})
+These functions get you access to the pipes parameter database connected
+to the source or the destination end of the pipe. You may operate on
+the database using the @code{filterpdb_*()} functions.
+@end deftypefun
 
 @deftypefun {filter_param_t *} filterpipe_get_sourceparam (filter_pipe_t *@var{p}, const char *@var{label})
 @deftypefunx {filter_param_t *} filterpipe_get_destparam (filter_pipe_t *@var{p}, const char *@var{label})
-With these functions you get access to the set parameters on the source
-or destination end of a pipe by name. These functions
-will return @code{NULL} if either no such parameter does exist or it was never
-set. @strong{DEPRECATED}
+With these wrappers around @code{filterpipe_*pdb()} and
+@code{filterpdb_get_param()} you get access to the pipes per-end
+parameters by name. The wrappers will return @code{NULL} if the
+requested parameter does not exist.
 @end deftypefun
 
-To get access to the parameters of a filter node and to access the information
-contained inside the @code{filter_param_t} structure, the following functions
-are provided.
+
+To get access to the parameters of a filter node, to the nodes parameter
+datatbase and to access the information contained inside the
+@code{filter_param_t} structure, the following functions are provided.
+
+@deftypefun {filter_pdb_t *} filternode_pdb (filter_node_t *@var{n})
+This function provides you access to the filternodes parameter database
+which you can operate on using the @code{filterpdb_*()} functions.
+@end deftypefun
 
 @tindex filter_param_t
 @tindex filter_node_t
 @deftypefun {filter_param_t *} filternode_get_param (filter_node_t *@var{n}, const char *@var{label})
-This function will provide you with access to a node's parameter by name.
-@code{filternode_get_param()} will return a @code{filter_param_t} structure 
-that you can access using the macros and functions described later on. 
-This function will return @code{NULL} if either no such parameter does exist 
-or it was never set.
+This wrapper around @code{filterpipe_*pdb()} and
+@code{filterpdb_get_param()} gets you access to the filternodes
+parameters by name. The wrapper will return @code{NULL} if the requested
+parameter does not exist.
 @end deftypefun
 
 @deftypefun int filterparam_val_int (filter_param_t *@var{p})
 @deftypefunx float filterparam_val_float (filter_param_t *@var{p})
-@deftypefunx fileid_t filterparam_val_file (filter_param_t *@var{p})
 @deftypefunx SAMPLE filterparam_val_sample (filter_param_t *@var{p})
 @deftypefunx {char *} filterparam_val_string (filter_param_t *@var{p})
 These macros return the value of the parameter. You should use the macro
@@ -497,10 +446,10 @@ you can obtain from the corresponding parameter descriptor structure).
 @end deftypefun
 
 @deftypefun {char *} filterparam_to_string (const filter_param_t *@var{p})
-@deftypefunx {void *} filterparamval_from_string (const filter_paramdesc_t *@var{d}, const char *@var{val})
-With these functions conversion between strings and parameters is supported.
-Both functions return pointers to storage you have to @code{free()} 
-on your own.
+This function provides a convenience way to convert the value of a filter
+parameter into a string representation which can be used again to set the
+value of another parameter. @code{NULL} can be returned on memory shortage,
+the caller should take care of freeing the returned string.
 @end deftypefun
 
 
@@ -701,27 +650,16 @@ filter nodes may decide to break additional connections to return
 to a sane state of the network.
 @end deftypefun
 
-@tindex filter_node_t
-@deftypefun int filternode_set_param (filter_node_t *@var{n}, const char *@var{label}, const void *@var{val})
-@code{filternode_set_param()} sets the parameter with the specified @var{label}
-of the filter node @var{n} to the value pointed to by @var{val}. 
-The type of the value
-pointed to can be obtained by the @code{filter_get_paramdesc()} function
-operating on the filter of the filter node.
-@code{filternode_set_param()} returns 0 on success or -1 if the
-set or change operation is not possible or causes any problems in the network.
-@end deftypefun
-
-@deftypefun int filterpipe_set_sourceparam (filter_pipe_t *@var{p}, const char *@var{label}, const void *@var{val})
-@deftypefunx int filterpipe_set_destparam (filter_pipe_t *@var{p}, const char *@var{label}, const void *@var{val})
-With these functions you can set the per-pipe-end parameters just like you
-can set parameters using @code{filternode_set_param}. @strong{DEPRECATED}
-@end deftypefun
-
-@deftypefun void filterparam_set (filter_param_t *@var{p}, const void *@var{val})
-This function sets a previously queried parameter to the specified value. It
-should be used only inside filters, especially inside the @code{fixup_param()}
-method.
+@deftypefun int filterparam_set (filter_param_t *@var{p}, const void *@var{val})
+@deftypefunx int filterparam_set_string (filter_param_t *@var{p}, const char *@var{val})
+Using one of these functions you can change a parameters value to the
+one provided. As for the @code{filterparam_set()} method the value
+parameter is untyped, you have to pass a reference to the actual to be
+set value.  The parameter change may be rejected by the node and you
+will get -1 as result in this case. On a successful change of the
+parameter 0 is returned and a @code{GLSIG_PARAM_CHANGED} signal is
+raised -- so be careful not to cause endless signal chains using these
+functions.
 @end deftypefun
 
 
