@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.57 2001/06/05 18:21:45 xwolf Exp $
+ * $Id: main.c,v 1.58 2001/06/08 08:15:29 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -566,9 +566,12 @@ static void gui_main()
 	gpsm_init(path);
 	g_free(path);
 
+	/* Init GUI dependend subsystems. */
 	glame_accel_init();
 	glame_swapfilegui_init();
+	glame_waveeditgui_init();
 	glame_filtereditgui_init();
+
 	/* create swapfile gui - in a scrolled window */
 	swapfile = GTK_WIDGET(glame_swapfile_widget_new(gpsm_root()));
 	if (!swapfile)

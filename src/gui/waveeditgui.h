@@ -28,10 +28,46 @@
 #include "gpsm.h"
 
 
+struct _WaveeditGuiClass;
+struct _WaveeditGui;
+typedef struct _WaveeditGuiClass WaveeditGuiClass;
+typedef struct _WaveeditGui WaveeditGui;
+
+#define WAVEEDIT_GUI_TYPE (waveedit_gui_get_type())
+#define WAVEEDIT_GUI(object) (GTK_CHECK_CAST((object), WAVEEDIT_GUI_TYPE, WaveeditGui))
+#define WAVEEDIT_GUI_CLASS(object) (GTK_CHECK_CLASS_CAST((object), WAVEEDIT_GUI_TYPE, WaveeditGuiClass))
+#define IS_WAVEEDIT_GUI(object) (GTK_CHECK_TYPE((object), WAVEEDIT_GUI_TYPE))
+#define IS_WAVEEDIT_GUI_CLASS(object) (GTK_CHECK_CLASS_TYPE((object), WAVEEDIT_GUI_TYPE))
+#define WAVEEDIT_GUI_GET_CLASS(object) ((WaveeditGuiClass*) (((GtkObject*) (obj))->klass))
+
+struct _WaveeditGuiClass {
+	GnomeAppClass parent_class;
+
+};
+
+struct _WaveeditGui {
+	GnomeApp parent_object;
+
+	gpsm_item_t *root;
+	gpsm_grp_t *swfiles;
+	GtkWidget *waveview;
+	GtkSwapfileBuffer *wavebuffer;
+	GtkWidget *toolbar;
+};
+
+
+
+/* Initializes the waveeditgui subsystem. */
+void glame_waveeditgui_init();
+
+
+GtkType waveedit_gui_get_type();
+
+
 /* Create a new waveedit widget out of a gpsm-item which can be
  * either a gpsm-grp or a gpsm-swfile. All gpsm-grp members have
  * to be gpsm-swfiles of the same hposition and hsize. */
-GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item);
+WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item);
 
 
 #endif

@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <gtk/gtk.h>
 #include <gnome.h>
+#include <guile/gh.h>
 #include "gtkwaveview.h"
 #include "gtkswapfilebuffer.h"
 #include "glame_types.h"
@@ -46,7 +47,8 @@
 
 /* The GUI is single-threaded, so this should actually work for
  * callbacks that cant take the waveview. */
-static GtkWaveView *actual_waveview;
+static WaveeditGui *active_waveedit = NULL;
+static GtkWaveView *actual_waveview = NULL;
 
 
 
@@ -913,33 +915,181 @@ static void waveedit_rmb_cb(GtkWidget *widget, GdkEventButton *event,
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, waveview);
 }
 
-
-/* Delete callback - promote to destroy. */
-static void waveedit_window_delete_cb(GtkWidget *widget, gpointer data)
+static void handle_enterleave(GtkWidget *tree, GdkEventCrossing *event,
+			      WaveeditGui *waveedit)
 {
-	gtk_object_destroy(GTK_OBJECT(widget));
+	if (event->type == GDK_ENTER_NOTIFY
+	    && event->mode == GDK_CROSSING_NORMAL)
+		active_waveedit = waveedit;
+	else if (event->type == GDK_LEAVE_NOTIFY
+		 && event->mode == GDK_CROSSING_NORMAL)
+		active_waveedit = NULL;
 }
 
-/* Waveedit GUI cleanup stuff, we need to destroy the created
- * gpsm group of links to the actual swfiles on window destroy. */
-static void waveedit_wavebuffer_destroy_cb(GtkWidget *widget,
-					   gpsm_item_t *item)
+
+/*
+ * Global API and scripting.
+ */
+
+static SCM gls_waveedit_get_marker()
 {
-	gpsm_item_destroy(item);
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	return gh_long2scm(gtk_wave_view_get_marker(
+		GTK_WAVE_VIEW(active_waveedit->waveview)));
 }
 
-/* Waveedit GUI cleanup stuff, we need to destroy the window
- * if the waveview widget goes away. */
-static void waveedit_waveview_destroy_cb(GtkWidget *widget,
-					 GtkObject *window)
+static SCM gls_waveedit_set_marker(SCM s_pos)
 {
-	gtk_object_destroy(window);
+	SCM_ASSERT(gh_exact_p(s_pos), s_pos, SCM_ARG1, "waveedit-set-marker!");
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	gtk_wave_view_set_marker(GTK_WAVE_VIEW(active_waveedit->waveview),
+				 gh_scm2long(s_pos));
+	return SCM_UNSPECIFIED;
 }
 
-GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
+static SCM gls_waveedit_get_selection()
 {
-	GtkWidget *window, *waveview, *toolbar;
-	GtkObject *wavebuffer;
+	gint32 start, length;
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	gtk_wave_view_get_selection(GTK_WAVE_VIEW(active_waveedit->waveview),
+				    &start, &length);
+	return gh_cons(gh_long2scm(start), gh_long2scm(length));
+}
+
+static SCM gls_waveedit_set_selection(SCM s_selection)
+{
+	SCM_ASSERT(gh_pair_p(s_selection)
+		   && gh_exact_p(gh_car(s_selection))
+		   && gh_exact_p(gh_cdr(s_selection)), s_selection,
+		   SCM_ARG1, "waveedit-set-selection!");
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	gtk_wave_view_set_selection(GTK_WAVE_VIEW(active_waveedit->waveview),
+				    gh_scm2long(gh_car(s_selection)),
+				    gh_scm2long(gh_cdr(s_selection)));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_get_zoom()
+{
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	return gh_double2scm(gtk_wave_view_get_zoom(
+		GTK_WAVE_VIEW(active_waveedit->waveview)));
+}
+
+static SCM gls_waveedit_set_zoom(SCM s_zoom)
+{
+	SCM_ASSERT(gh_number_p(s_zoom), s_zoom,
+		   SCM_ARG1, "waveedit-set-zoom!");
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	gtk_wave_view_set_zoom(GTK_WAVE_VIEW(active_waveedit->waveview),
+			       gh_scm2double(s_zoom));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_get_scroll()
+{
+	GtkAdjustment *adjustment;
+	SCM s_res = SCM_LIST0;
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	adjustment = GTK_ADJUSTMENT(
+		GTK_WAVE_VIEW(active_waveedit->waveview)->adjust);
+	s_res = gh_cons(gh_long2scm((long)adjustment->lower), s_res);
+	s_res = gh_cons(gh_long2scm((long)adjustment->upper), s_res);
+	s_res = gh_cons(gh_long2scm((long)adjustment->value), s_res);
+	s_res = gh_cons(gh_long2scm((long)adjustment->step_increment), s_res);
+	s_res = gh_cons(gh_long2scm((long)adjustment->page_increment), s_res);
+	s_res = gh_cons(gh_long2scm((long)adjustment->page_size), s_res);
+	return s_res;
+}
+
+static SCM gls_waveedit_set_scroll_position(SCM s_pos)
+{
+	SCM_ASSERT(gh_exact_p(s_pos), s_pos,
+		   SCM_ARG1, "waveedit-set-scroll-position!");
+	if (!active_waveedit)
+		return SCM_UNSPECIFIED;
+	DPRINTF("Scroll to %li\n", gh_scm2long(s_pos));
+	gtk_adjustment_set_value(GTK_ADJUSTMENT(
+		GTK_WAVE_VIEW(active_waveedit->waveview)->adjust),
+				 gh_scm2long(s_pos));
+	return SCM_UNSPECIFIED;
+}
+
+void glame_waveeditgui_init()
+{
+	gh_new_procedure0_0("waveedit-get-marker",
+			    gls_waveedit_get_marker);
+	gh_new_procedure1_0("waveedit-set-marker!",
+			    gls_waveedit_set_marker);
+	gh_new_procedure0_0("waveedit-get-selection",
+			    gls_waveedit_get_selection);
+	gh_new_procedure1_0("waveedit-set-selection!",
+			    gls_waveedit_set_selection);
+	gh_new_procedure0_0("waveedit-get-zoom",
+			    gls_waveedit_get_zoom);
+	gh_new_procedure1_0("waveedit-set-zoom!",
+			    gls_waveedit_set_zoom);
+	gh_new_procedure0_0("waveedit-get-scroll",
+			    gls_waveedit_get_scroll);
+	gh_new_procedure1_0("waveedit-set-scroll-position!",
+			    gls_waveedit_set_scroll_position);
+}
+
+static void waveedit_gui_destroy(WaveeditGui *waveedit)
+{
+	GnomeAppClass* parent_class;
+	parent_class = gtk_type_class(GNOME_TYPE_APP);
+	GTK_OBJECT_CLASS(parent_class)->destroy(GTK_OBJECT(waveedit));
+	if (waveedit->swfiles)
+		gpsm_item_destroy((gpsm_item_t *)waveedit->swfiles);
+}
+
+static void waveedit_gui_class_init(WaveeditGuiClass *class)
+{
+	GtkObjectClass *object_class;
+	object_class = GTK_OBJECT_CLASS(class);
+	object_class->destroy = waveedit_gui_destroy;
+}
+
+static void waveedit_gui_init(WaveeditGui *waveedit)
+{
+	waveedit->root = NULL;
+	waveedit->swfiles = NULL;
+	waveedit->waveview = NULL;
+	waveedit->wavebuffer = NULL;
+	waveedit->toolbar = NULL;
+}
+
+GtkType waveedit_gui_get_type(void)
+{
+	static GtkType waveedit_gui_type = 0;
+	
+	if (!waveedit_gui_type){
+		GtkTypeInfo waveedit_gui_info = {
+			"WaveeditGui",
+			sizeof(WaveeditGui),
+			sizeof(WaveeditGuiClass),
+			(GtkClassInitFunc)waveedit_gui_class_init,
+			(GtkObjectInitFunc)waveedit_gui_init,
+			NULL,NULL,(GtkClassInitFunc)NULL,};
+		waveedit_gui_type = gtk_type_unique(
+			GNOME_TYPE_APP, &waveedit_gui_info);
+		gtk_type_set_chunk_alloc(waveedit_gui_type, 8);
+	}
+
+	return waveedit_gui_type;
+}
+
+WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
+{
+	WaveeditGui *window;
 	gpsm_grp_t *swfiles;
 
 	/* Create a data source object. We need a gpsm_grp_t for
@@ -952,99 +1102,99 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 		return NULL;
 
 	/* Create a Gtk+ window. */
-	window = gnome_app_new("glame0.5", _(title));
-  
+	window = WAVEEDIT_GUI(gtk_type_new(waveedit_gui_get_type()));
+	gnome_app_construct(GNOME_APP(window), "glame0.5", _(title));
+	window->root = item;
+	window->swfiles = swfiles;
+
 	/* Create a GtkWaveView widget. */
-	waveview = gtk_wave_view_new ();
-	gtk_wave_view_set_select_channels (GTK_WAVE_VIEW (waveview), ~0);
-	gtk_widget_set_usize (waveview, 400, 250);
+	window->waveview = gtk_wave_view_new ();
+	gtk_wave_view_set_select_channels (GTK_WAVE_VIEW(window->waveview), ~0);
+	gtk_widget_set_usize(window->waveview, 400, 250);
 
 	/* Set the zoom factor such that 1 pixel = 5 frames.
 	 * A frame is equal to n samples at one point in time
 	 * where n = number of channels. */
-	gtk_wave_view_set_zoom (GTK_WAVE_VIEW (waveview), 50);
+	gtk_wave_view_set_zoom (GTK_WAVE_VIEW(window->waveview), 50);
 
 	/* Set the cache size to hold 8192 pixel columns of data.
 	 * This means the user can scroll the widget's contents
 	 * back and forth and we will cache the most recently
 	 * displayed 8192 columns of data. */
-	gtk_wave_view_set_cache_size (GTK_WAVE_VIEW (waveview), 8192);
+	gtk_wave_view_set_cache_size (GTK_WAVE_VIEW(window->waveview), 8192);
 
 	/* Create the swapfile buffer. */
-	wavebuffer = gtk_swapfile_buffer_new(swfiles);
-	if (!wavebuffer) {
+	window->wavebuffer = GTK_SWAPFILE_BUFFER(gtk_swapfile_buffer_new(window->swfiles));
+	if (!window->wavebuffer) {
 		DPRINTF("Unable to create wavebuffer\n");
-		gtk_object_destroy(GTK_OBJECT(waveview));
+		gtk_object_destroy(GTK_OBJECT(window->waveview));
 		gtk_object_destroy(GTK_OBJECT(window));
 		return NULL;
 	}
 
 	/* Add GtkWaveView to the window. */
-	gnome_app_set_contents(GNOME_APP(window), waveview);
+	gnome_app_set_contents(GNOME_APP(window), window->waveview);
 
 	/* Set the Waveform widget's data stream to point to our wavebuffer. */
-	gtk_wave_view_set_buffer (GTK_WAVE_VIEW (waveview),
-				  GTK_WAVE_BUFFER (wavebuffer));
+	gtk_wave_view_set_buffer (GTK_WAVE_VIEW(window->waveview),
+				  GTK_WAVE_BUFFER(window->wavebuffer));
 
-	/* Install the rmb menu callback. */
-	gtk_signal_connect(GTK_OBJECT(waveview), "button_press_event",
-			   (GtkSignalFunc)waveedit_rmb_cb, NULL);
-
-	/* As we have set up links to the actual swfiles, we dont get
-	 * those (links/group) removed under us. But we have to destroy
-	 * the linked group afterwards. The only events we expect are
-	 * delete and destroy events from the window. */
-	gtk_signal_connect(GTK_OBJECT(window), "delete_event",
-			   (GtkSignalFunc)waveedit_window_delete_cb, NULL);
-	gtk_signal_connect(GTK_OBJECT(waveview), "destroy",
-			   (GtkSignalFunc)waveedit_waveview_destroy_cb, window);
-	gtk_signal_connect_after(GTK_OBJECT(wavebuffer), "destroy",
-				 (GtkSignalFunc)waveedit_wavebuffer_destroy_cb,
-				 swfiles);
-
-	/* Add accelerator handler (and for testing two accelerators). */
-	if (glame_accel_install(window, "waveview", NULL) == -1)
-		DPRINTF("accel install failed\n");
-	glame_accel_add("waveview/0-a", "(display \"Hello world 1!\")");
-	glame_accel_add("waveview/4-q", "(glame-delete-widget (glame-accel-get-widget))");
 
 	/* Add the toolbar. */
-	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+	window->toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL,
+					  GTK_TOOLBAR_ICONS);
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Zoom in", "Zoom in", "Zoom in",
 				glame_load_icon_widget("zoom_in.png",24,24),
-				zoomin_cb, waveview);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				zoomin_cb, window->waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Zoom out", "Zoom out", "Zoom out",
 				glame_load_icon_widget("zoom_out.png",24,24),
-				zoomout_cb, waveview);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				zoomout_cb, window->waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"View all", "View all", "View all",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),
-				zoomfull_cb, waveview);
+				zoomfull_cb, window->waveview);
 	/* Play button that should change to Stop if pressed, different
 	 * callback than "Play all"/"Play selection" - play from marker.
 	 * FIXME. */
-	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Play", "Play", "Play",
 				glame_load_icon_widget("play.png",24,24),
 				//				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
-				playselection_cb, waveview);
+				playselection_cb, window->waveview);
 	/* Keep last. */
-	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Close", "Close", "Close",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),
-				wave_close_cb, waveview);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
+				wave_close_cb, window->waveview);
+	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				"Help", "Help", "Help",
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),
-				wave_help_cb, waveview);
-	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
+				wave_help_cb, window->waveview);
+	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(window->toolbar),
 			      "waveedit::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_RIGHT, 0, 0, 0);
+
+
+	/* Install the rmb menu and enter/leave callbacks. */
+	gtk_signal_connect(GTK_OBJECT(window->waveview), "button_press_event",
+			   (GtkSignalFunc)waveedit_rmb_cb, NULL);
+	gtk_signal_connect(GTK_OBJECT(window), "enter_notify_event",
+			   handle_enterleave, window);
+	gtk_signal_connect(GTK_OBJECT(window), "leave_notify_event",
+			   handle_enterleave, window);
+
+	/* Add accelerator handler (and for testing two accelerators). */
+	if (glame_accel_install(GTK_WIDGET(window), "waveview", NULL) == -1)
+		DPRINTF("accel install failed\n");
+	glame_accel_add("waveview/0-Prior", "(waveedit-set-zoom! (* (waveedit-get-zoom) 0.75))");
+	glame_accel_add("waveview/0-Next", "(waveedit-set-zoom! (* (waveedit-get-zoom) 1.33))");
+	glame_accel_add("waveview/0-Left", "(let* ((pos (waveedit-get-scroll)) (newpos (- (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (< newpos 0) 0 newpos)))");
+	glame_accel_add("waveview/0-Right", "(let* ((pos (waveedit-get-scroll)) (newpos (+ (cadddr pos) (caddr pos)))) (waveedit-set-scroll-position! (if (> newpos (- (caddr (cddr pos)) (car pos))) (- (caddr (cddr pos)) (car pos)) newpos)))");
 
 	return window;
 }
