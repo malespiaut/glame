@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.124 2004/11/16 19:58:49 richi Exp $
+ * $Id: main.c,v 1.125 2004/12/03 21:23:17 ochonpaul Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -473,7 +473,7 @@ static gint changeCombo(GtkComboBox *combo, char *string)
 {
 	GtkTreeModel *model;
 	GtkTreeIter i;
-	GValue val;
+	GValue val = { 0, };
 
 	if (!gtk_combo_box_get_active_iter(combo, &i))
 		return FALSE;
