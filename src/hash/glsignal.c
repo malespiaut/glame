@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.7 2000/10/09 16:24:03 richi Exp $
+ * $Id: glsignal.c,v 1.8 2000/10/28 13:43:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -65,6 +65,22 @@ int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source)
 	glsig_handler_t *h;
 
 	list_foreach(&source->handlers, glsig_handler_t, list, h) {
+		if (h->handler == glsig_redirector)
+			continue;
+		if (!glsig_add_handler(dest, h->sigmask, h->handler,
+				       h->priv))
+			return -1;
+	}
+	return 0;
+}
+
+int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source)
+{
+	glsig_handler_t *h;
+
+	list_foreach(&source->handlers, glsig_handler_t, list, h) {
+		if (h->handler != glsig_redirector)
+			continue;
 		if (!glsig_add_handler(dest, h->sigmask, h->handler,
 				       h->priv))
 			return -1;
@@ -78,10 +94,9 @@ void glsig_delete_handler(glsig_handler_t *h)
 	free(h);
 }
 
-void glsig_delete_all_handlers(glsig_emitter_t *e)
+void glsig_delete_all(glsig_emitter_t *e)
 {
 	while (!list_empty(&e->handlers))
 		glsig_delete_handler(list_entry(e->handlers.next,
 						glsig_handler_t, list));
 }
-

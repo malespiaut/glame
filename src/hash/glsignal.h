@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.8 2000/10/10 11:56:15 richi Exp $
+ * $Id: glsignal.h,v 1.9 2000/10/28 13:43:27 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -61,12 +61,18 @@
  *
  * int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
  *   Copies all handlers from one emitter to another - same "private"
- *   data, of course. Can return -1 on memory shortage.
+ *   data, of course. Can return -1 on memory shortage. Redirectors are
+ *   not copied.
+ *
+ * int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
+ *   Copies all redirectors from one emitter to another - same "private"
+ *   data, of course. Can return -1 on memory shortage. Normal handlers
+ *   are not copied.
  *
  * void glsig_delete_handler(glsig_handler_t *handler);
  *   Removes and destroyes the specified handler from its emitter.
  *
- * void glsig_delete_all_handlers(glsig_emitter_t *emitter);
+ * void glsig_delete_all(glsig_emitter_t *emitter);
  *   Removes and destroyes all signal handlers from the specified emitter.
  *   Use with care.
  */
@@ -116,9 +122,11 @@ glsig_handler_t *glsig_add_redirector(glsig_emitter_t *emitter, long sigmask,
 
 int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
 
+int glsig_copy_redirectors(glsig_emitter_t *dest, glsig_emitter_t *source);
+
 void glsig_delete_handler(glsig_handler_t *h);
 
-void glsig_delete_all_handlers(glsig_emitter_t *e);
+void glsig_delete_all(glsig_emitter_t *e);
 
 
 static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
