@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.19 2001/04/18 13:40:47 xwolf Exp $
+ * $Id: canvas_types.c,v 1.20 2001/04/18 14:45:23 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -180,6 +180,7 @@ glame_canvas_item_init (GlameCanvasItem *item)
 	item->output_ports=NULL;
 	item->input_ports=NULL;
 	item->immutable=FALSE;
+	item->undeletable=FALSE;
 	item->timeout_id=0;
 }
 

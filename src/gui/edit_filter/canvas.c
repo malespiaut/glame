@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.57 2001/04/18 13:40:47 xwolf Exp $
+ * $Id: canvas.c,v 1.58 2001/04/18 14:45:23 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -162,7 +162,7 @@ static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 
 static void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it)
 {
-	if(!it->immutable)
+	if(!it->undeletable)
 		canvas_item_destroy(it);
 }
 
@@ -1765,6 +1765,12 @@ draw_network(filter_t *filter)
 		else 
 			immutable = FALSE;
 		new_item->immutable = immutable;
+		cimmutable = filter_get_property(node,"undeletable");
+		if(cimmutable)
+			immutable = atoi(cimmutable);
+		else 
+			immutable = FALSE;
+		new_item->undeletable = immutable;
 		if(numberbuffer)
 			x = atof(numberbuffer);
 		else

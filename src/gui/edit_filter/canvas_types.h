@@ -1,7 +1,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.5 2001/04/18 13:40:47 xwolf Exp $
+ * $Id: canvas_types.h,v 1.6 2001/04/18 14:45:23 richi Exp $
  *
  * Copyright (C) 2000, 2001 Johannes Hirche
  *
@@ -116,6 +116,7 @@ struct _GlameCanvasItem {
 	gboolean dragging;
 	gboolean connecting;
 	gboolean immutable;
+	gboolean undeletable;
 	
 	gint timeout_id;
 	GlameConnection *connection;
