@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# $Id: rules,v 1.5 2001/04/26 13:14:20 nold Exp $
+# $Id: rules,v 1.6 2001/07/03 14:39:36 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -37,6 +37,7 @@ clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
+	rm -f debian/cglame.1 debian/glame.1
 
 	-$(MAKE) distclean
 
@@ -74,9 +75,7 @@ binary-arch: build install
 	dh_fixperms
 	dh_makeshlibs
 	dh_installdeb
-#	dh_shlibdeps
-	dpkg-shlibdeps -dDepends `find debian/glame/usr/bin/ -type f` \
-		`find debian/glame/usr/lib/ -name "lib*.so*" -type f` \
+	dh_shlibdeps -Xdebian/glame/usr/lib/glame/ -- \
 		-dRecommends `find debian/glame/usr/lib/glame/ -name "*.so" -type f`
 	dh_gencontrol
 	dh_md5sums

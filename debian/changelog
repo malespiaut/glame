@@ -1,8 +1,34 @@
+glame (0.4.2-1) unstable; urgency=low
+
+  * New upstream version. Includes LGPL'ed version of ladspa.h.
+    Closes: #96416
+  * Configure check works with recent libxml2 packages. Closes: #98900
+  * Built with recent autotools. Closes: #96415
+  * Added texinfo and tetex build dependencies to keep generation of
+    docs happy.
+  * Dumped dpkg-shlibdeps call in favour of dh_shlibdeps.
+    
+ -- Daniel Kobras <kobras@debian.org>  Fri,  1 Jun 2001 17:03:43 +0200
+
+glame (0.4.1-2) unstable; urgency=low
+
+  * Added local override for libxml2 shlibs version. Closes: #96218
+
+ -- Daniel Kobras <kobras@debian.org>  Fri,  4 May 2001 18:59:05 +0200
+
+glame (0.4.1-1) unstable; urgency=low
+
+  * New upstream version.
+  * Added BUGS to docs. (The BUGS _file_, that is ;-)
+
+ -- Daniel Kobras <kobras@debian.org>  Thu,  3 May 2001 15:21:18 +0200
+
 glame (0.4.0-1) unstable; urgency=low
 
-  * Initial Debian release. 
+  * Initial Debian release. Closes: #93645
+  * Added lintian overrides for plugins.
 
- -- Daniel Kobras <kobras@debian.org>  Thu, 26 Apr 2001 17:17:02 +0200
+ -- Daniel Kobras <kobras@debian.org>  Thu, 26 Apr 2001 17:51:57 +0200
 
 Local variables:
 mode: debian-changelog

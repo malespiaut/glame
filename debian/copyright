@@ -25,3 +25,14 @@ in turn is
    available in file /usr/share/common-licenses/LGPL-2; if not, write to the
    Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.
+
+The ladspa.h as distributed in src/include is
+
+   Copyright (C) 2000-2001 Richard W.E. Furse, Paul Barton-Davis,
+   Stefan Westerfeld
+
+   and distributed under the terms of the GNU Lesser General Public License
+   (LGPL), version 2.1, or any later version. A copy of the LGPL version 2.1 is
+   available in file /usr/share/common-licenses/LGPL-2.1; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.
