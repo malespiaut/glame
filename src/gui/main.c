@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.79 2001/08/13 14:27:49 richi Exp $
+ * $Id: main.c,v 1.80 2001/09/25 08:09:24 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -63,7 +63,7 @@ static void show_console_cb(GtkWidget *menu, void *blah);
 static void emptytrash_cb(GtkWidget *menu, void *blah);
 static void sync_cb(GtkWidget *menu, void *blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
-static void preferences_cb(GtkWidget *menu,void *blah);
+static int preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
@@ -442,7 +442,7 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 	*bar = (*bar)?FALSE:TRUE;
 }
 
-static void
+static int
 preferences_cb(GtkWidget * wid, void * bla)
 {
 	GtkWidget * prop_box;
@@ -617,7 +617,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	/* Run the dialog. */
         gnome_dialog_run_and_close(GNOME_DIALOG(prop_box));
         if(!ok)
-		return;
+		return 0;
 
 	/* Update gnome config. */
 	gnome_config_set_string("swapfile/defaultpath", path);
@@ -643,6 +643,8 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* Update config derived stuff. */
 	update_preferences();
+
+	return 1;
 }
 
 
@@ -676,7 +678,19 @@ static GtkWidget* glame_about(void)
 	about = gnome_about_new ("GLAME", VERSION, 
 				 _("Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"),
 				 authors,
-				 _("GLAME comes with ABSOLUTELY NO WARRANTY. \nThis is free software."),
+
+				 _(
+"This program is free software; you can redistribute it and/or modify"
+"it under the terms of the GNU General Public License as published by"
+"the Free Software Foundation; either version 2 of the License, or"
+"(at your option) any later version.\n"
+"This program is distributed in the hope that it will be useful,"
+"but WITHOUT ANY WARRANTY; without even the implied warranty of"
+"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
+"GNU General Public License for more details.\n"
+"You should have received a copy of the GNU General Public License"
+"along with this program; if not, write to the Free Software"
+"Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"),
 				 logo);
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
 	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
@@ -775,25 +789,31 @@ _("Welcome first-time user of GLAME.\n"
 "the preferences dialog and check the \"Swapfile Path\" and\n"
 "\"Audio IO\" settings.\n"))));
 	run_prefs:
-		preferences_cb(NULL, NULL);
+		if (!preferences_cb(NULL, NULL)) {
+			gnome_dialog_run_and_close(
+				GNOME_DIALOG(gnome_error_dialog("You didnt change/check the configuration.\nGLAME is exiting now.\n")));
+			exit(1);
+		}
 	}
 
 	path = gnome_config_get_string("swapfile/defaultpath");
 	DPRINTF("path: %s\n",path);
 	if (!g_file_test(path,G_FILE_TEST_ISDIR)) {
 		if (swapfile_creat(path, -1)) {
+			char msg[256];
+			char *errmsg = strerror(errno);
+			snprintf(msg, 255, "GLAME was unable to create its swapfile\nbecause of \"%s\".\nPlease check the configuration.\n", errmsg);
 			gnome_dialog_run_and_close(
-				GNOME_DIALOG(gnome_error_dialog(
-_("GLAME was somehow unable to create its swapfile\n"
-"Please check the configuration.\n"))));
+				GNOME_DIALOG(gnome_error_dialog(msg)));
 			goto run_prefs;
 		}
 	}
 	if (gpsm_init(path) == -1) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(
-_("GLAME was unable to open/init its swapfile\n"
-"Please check the configuration and/or check for\n"
-"GLAME messages on the console.\n"))));
+		char msg[256];
+		char *errmsg = strerror(errno);
+		snprintf(msg, 255, "GLAME was unable to open/init its swapfile\nbecause of \"%s\".\nPlease check the configuration and/or check for\nGLAME messages on the console.\n", errmsg);
+		gnome_dialog_run_and_close(
+			GNOME_DIALOG(gnome_error_dialog(msg)));
 		goto run_prefs;
 	}
 	g_free(path);
