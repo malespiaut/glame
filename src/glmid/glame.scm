@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.25 2000/04/11 14:38:45 richi Exp $
+; $Id: glame.scm,v 1.26 2000/04/11 16:26:19 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -301,7 +301,7 @@
 (define test-latency
   (lambda (depth)
     (let* ((net (net-new))
-	   (nodes (net-add-nodes net (cons "ping" (repeat-n "null" depth)))))
+	   (nodes (apply net-add-nodes net (cons '("ping") (repeat-n '("null") depth)))))
       (nodes-connect (append nodes (list (car nodes))))
       (net-run net))))
 
