@@ -1,6 +1,6 @@
 /*
  * ping.c
- * $Id: ping.c,v 1.3 2000/01/27 10:30:30 richi Exp $
+ * $Id: ping.c,v 1.4 2000/01/27 14:28:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -43,8 +43,9 @@ int ping(filter_node_t *n)
 	int size = 128;
 	int time;
 
-	if (!(i = hash_find_input("in", n))
-	    || !(o = hash_find_output("out", n)))
+	i = hash_find_input("in", n);
+	o = hash_find_output("out", n);
+	if (!i || !o)
 		return -1;
 
 	while (pthread_testcancel(), cnt>0) {

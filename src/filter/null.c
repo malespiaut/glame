@@ -1,6 +1,6 @@
 /*
  * null.c
- * $Id: null.c,v 1.3 2000/01/27 10:30:30 richi Exp $
+ * $Id: null.c,v 1.4 2000/01/27 14:28:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,8 +39,9 @@ int null(filter_node_t *n)
 	filter_pipe_t *in, *out;
 	filter_buffer_t *buf;
 
-	if (!(in = hash_find_input("in", n))
-	    || !(out = hash_find_output("out", n)))
+	in = hash_find_input("in", n);
+	out = hash_find_output("out", n);
+	if (!in || !out)
 		return -1;
 
 	/* The loop condition is at the end to get and

@@ -1,6 +1,6 @@
 /*
  * test_latency.c
- * $Id: test_latency.c,v 1.3 2000/01/24 11:43:22 richi Exp $
+ * $Id: test_latency.c,v 1.4 2000/01/27 14:28:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -79,6 +79,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "error in connecting (final)\n");
 		return -1;
 	}
+
 
 	/* we have created a cyclic network. ugh!
 	 * lets "fix" it :)

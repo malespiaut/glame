@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.3 2000/01/27 10:30:30 richi Exp $
+ * $Id: filter_network.c,v 1.4 2000/01/27 14:28:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -145,6 +145,7 @@ int filternetwork_wait(filter_network_t *net)
 		       { postprocess_node(n);
 		       } );
 
+	printf("net result is %i\n", net->result);
 	return net->result;
 }
 
@@ -223,6 +224,8 @@ static void *launcher(void *node)
 
 	if (n->filter->f(n) == 0)
 		return NULL;
+
+	printf("%s had failure\n", n->filter->name);
 
 	/* set result */
 	pthread_mutex_lock(&n->net->mx);

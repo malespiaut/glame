@@ -1,6 +1,6 @@
 /*
  * filter_node.c
- * $Id: filter_node.c,v 1.4 2000/01/27 12:53:35 richi Exp $
+ * $Id: filter_node.c,v 1.5 2000/01/27 14:28:53 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -83,8 +83,8 @@ int filternode_connect(filter_node_t *source, char *source_port,
 
 	if (!(p = ALLOC(filter_pipe_t)))
 		return -1;
-	p->in_name = in->label;
-	p->out_name = out->label;
+	p->in_name = out->label;
+	p->out_name = in->label;
 	p->source = source;
 	p->dest = dest;
 	if (source->filter->connect_out(source, source_port, p) == -1)
@@ -104,6 +104,9 @@ int filternode_connect(filter_node_t *source, char *source_port,
 	if (dest->filter->fixup(p->dest, p) == -1)
 	        goto _err_fixup;
 
+	p->dest->nr_inputs++;
+	p->source->nr_outputs++;
+
 	/* remove the source filter from the net output filter list
 	 * and the dest filter from the net input filter list.
 	 */
@@ -111,6 +114,11 @@ int filternode_connect(filter_node_t *source, char *source_port,
 	INIT_LIST_HEAD(&source->neto_list);
 	list_del(&dest->neti_list);
 	INIT_LIST_HEAD(&dest->neti_list);
+
+	/* invariants we want to test here(?) */
+	if (!hash_find_input(dest_port, p->dest)
+	    || !hash_find_output(source_port, p->source))
+		PANIC("UHHH!\n");
 
 	return 0;
 
