@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.48 2001/05/04 16:34:57 xwolf Exp $
+ * $Id: main.c,v 1.49 2001/05/09 10:57:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -34,7 +34,7 @@
 #include "glmid.h"
 #include "swapfilegui.h"
 #include "waveeditgui.h"
-#include "filtergui.h"
+#include "filtereditgui.h"
 #include "glame_gui_utils.h"
 #include "gltreeitem.h"
 #include "gpsm.h"
@@ -52,9 +52,8 @@ static void create_new_project_cb(GtkWidget *menu, void * blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
-extern void canvas_load_network(GtkWidget *bla, void *blu);
+extern void glame_load_network(GtkWidget *bla, void *blu);
 static void load_plugin_cb(GtkWidget* foo, void *bar);
-
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
@@ -66,8 +65,8 @@ static GnomeUIInfo swapfile_menu_uiinfo[] = {
 };
 
 static GnomeUIInfo filter_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork",gui_network_new,NULL),
-	GNOMEUIINFO_MENU_OPEN_ITEM(canvas_load_network,NULL),
+	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork",glame_filtereditgui_new_cb,NULL),
+	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network,NULL),
 	GNOMEUIINFO_END
 };
 
@@ -105,7 +104,6 @@ static GnomeUIInfo menubar_uiinfo[] =
   GNOMEUIINFO_MENU_HELP_TREE (help_menu_uiinfo),
   GNOMEUIINFO_END
 };
-
 
 
 extern void edit_tree_label(GlameTreeItem * item);

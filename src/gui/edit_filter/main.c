@@ -1,7 +1,7 @@
 /*
- * edit_filter.c
+ * main.c
  *
- * $Id: main.c,v 1.6 2001/05/08 21:54:01 xwolf Exp $
+ * $Id: main.c,v 1.7 2001/05/09 10:57:06 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -25,58 +25,29 @@
 #include <config.h>
 #endif
 
-#include "swapfile.h"
 #include "glmid.h"
-#include "glamecanvas.h"
-
-
-
-static void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
-{
-	swapfile_close();
-	gtk_main_quit();
-}
+#include "filtereditgui.h"
 
 
 static void gui_main()
 {
-	GtkWidget* commandwin;
-	// gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",
-	//		   GTK_SIGNAL_FUNC(gui_exit),NULL);
-  commandwin = glame_filtereditgui_new(NULL); 
-        gtk_widget_show(commandwin);
+	GtkWidget *commandwin;
 
+	/* fire up main dispatch */
+	commandwin = glame_filtereditgui_new(NULL); 
+	gtk_widget_show(commandwin);
+
+
+	
 	/* main loop */
-	gtk_main();
+       	gtk_main();
 }
 
 
 int main(int argc, char *argv[])
 {
-	/* swapfile setup */
-	if (argc >= 2) {
-		if (swapfile_open(argv[1], 0) == -1) {
-			if (errno != EBUSY) {
-				perror("ERROR: Unable to open swap");
-				exit(1);
-			}
-			fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
-/*			if (swapfile_fsck(argv[1]) == -1) {
-				perror("ERROR: Fsck failed");
-				exit(1);
-			}
-	*/		fprintf(stderr, "WARNING: Fsck successful\n");
-			if (swapfile_open(argv[1], 0) == -1) {
-				perror("ERROR: Still cannot open swap");
-				exit(1);
-			}
-		}
-	} else {
-		fprintf(stderr, "WARNING: starting without a swapfile.\n");
-	}
-
 	/* setup gnome/gtk  */
-	gnome_init("glame_filter_edit", VERSION, argc, argv);
+	gnome_init("glame", VERSION, argc, argv);
 
 	/* init glame */
 	glame_init_with_guile(gui_main);

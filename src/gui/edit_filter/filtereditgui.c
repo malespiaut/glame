@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.2 2001/05/08 21:54:01 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.3 2001/05/09 10:57:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -146,7 +146,7 @@ glame_filtereditgui_new(filter_t *net)
 	canvas = glame_canvas_new(net);
 	gtk_widget_pop_colormap();
 	gtk_widget_pop_visual();
-	gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
+	//gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
 	
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);

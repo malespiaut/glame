@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.12 2001/04/29 11:48:56 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.13 2001/05/09 10:57:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -33,7 +33,7 @@
 #include <libgnomeui/gnome-canvas.h>
 #include "filter.h"
 #include "util.h"
-#include "canvas_types.h"
+#include "glamecanvas.h"
 
 
 #define GLAME_LOGO PKGPIXMAPSDIR "/glame-logo.jpg"
@@ -78,7 +78,7 @@ GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
  * If modal is TRUE, the dialog is modal, on dialog destroy the optional
  * atExit is called with parameter data. Returns 0, if the dialog could
  * be created, -1 on error. */
-int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
+int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
 			   GtkFunction atExit, gpointer data,
 			   const char *start_label,
 			   const char *pause_label,

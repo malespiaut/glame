@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.12 2001/05/08 11:56:22 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.13 2001/05/09 10:57:06 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -23,9 +23,16 @@
  */
 
 #include <sys/param.h>
+#include <values.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef HAVE_LIBGLADE
+#include <glade/glade.h>
+#endif
 #include "glmid.h"
 #include "glame_gui_utils.h"
-#include "canvas.h"
+//#include "canvas.h"
 
 
 
@@ -36,7 +43,7 @@
 typedef struct {
 	GnomeDialog * dia;
 	filter_t *net;
-	gui_network *gui;
+	GlameCanvas *gui;
 	gboolean playing;
 	guint handler_id;
 	gint play_index, pause_index, stop_index, cancel_index;
@@ -58,13 +65,13 @@ static gint network_finish_check_cb(play_struct_t *play)
 
 static void play_cb(GnomeDialog * dia, play_struct_t* play)
 {
-	if (play->gui)
-		network_error_reset(play->gui);
+//	if (play->gui)
+//		network_error_reset(play->gui);
 	if (filter_launch(play->net) == -1
 	    || filter_start(play->net) == -1) {
-		if (play->gui)
-			network_draw_error(play->gui);
-		else
+//		if (play->gui)
+//			network_draw_error(play->gui);
+//		else
 			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error processing network")));
 		gnome_dialog_close(play->dia);
 		return;
@@ -127,7 +134,7 @@ static void play_destroy_cb(GtkWidget *widget, play_struct_t *play)
 	free(play);
 }
 
-int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
+int glame_gui_play_network(filter_t *network, GlameCanvas *gui, int modal,
 			   GtkFunction atExit, gpointer data,
 			   const char *start_label,
 			   const char *pause_label,
@@ -491,4 +498,321 @@ GtkMenu *glame_gui_build_plugin_menu(int (*select)(plugin_t *),
 	glame_gui_build_plugin_menu_genmenu(&categories, GTK_MENU(menu),
 					    gtksighand);
 	return GTK_MENU(menu);
+}
+
+
+
+
+
+/* creates a hbox with two labels in it, adds it to the box box in window win   */
+
+void create_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, const char* val)
+{
+	GtkWidget *hbox, *propval, *propname;
+	
+	propname = gtk_label_new(_(lab));
+	propval = gtk_label_new(_(val));
+
+
+	hbox = gtk_hbox_new (TRUE, 3);
+	gtk_widget_ref (hbox);
+	gtk_object_set_data_full (GTK_OBJECT (win), "hbox", hbox,
+				  (GtkDestroyNotify) gtk_widget_unref);
+	gtk_widget_show (hbox);
+	gtk_box_pack_start(GTK_BOX (box), hbox,TRUE,TRUE,3);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox),2);
+
+	gtk_widget_ref (propname);
+	gtk_object_set_data_full (GTK_OBJECT (win), "probname", propname,
+				  (GtkDestroyNotify) gtk_widget_unref);
+	gtk_widget_show (propname);
+	gtk_box_pack_start (GTK_BOX (hbox), propname, FALSE, FALSE, 0);
+	
+
+	gtk_widget_ref (propval);
+	gtk_object_set_data_full (GTK_OBJECT (win), "probval", propval,
+				  (GtkDestroyNotify) gtk_widget_unref);
+	gtk_widget_show (propval);
+	gtk_box_pack_start (GTK_BOX (hbox), propval, FALSE, FALSE, 0);
+	
+}
+
+/* dito, but lab is a frame label here, and the value is inside the box  */
+void create_frame_label_val_pair(GtkWidget *win,GtkWidget *box,const char *lab, const char* val)
+{
+	GtkWidget *propval,*frame;
+	
+	propval = gtk_label_new(_(val));
+
+	frame = gtk_frame_new (_(lab));
+	gtk_widget_ref (frame);
+	gtk_object_set_data_full (GTK_OBJECT (win), "frame", frame,
+				  (GtkDestroyNotify) gtk_widget_unref);
+
+	gtk_widget_show (frame);
+	gtk_box_pack_start (GTK_BOX (box), frame, TRUE, TRUE, 3);
+
+	gtk_widget_ref (propval);
+	gtk_object_set_data_full (GTK_OBJECT (win), "probval", propval,
+				  (GtkDestroyNotify) gtk_widget_unref);
+	gtk_widget_show (propval);
+	gtk_container_add (GTK_CONTAINER (frame), propval);
+	
+}
+
+
+
+void
+create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
+{
+	GtkWidget*hbox,*label;
+	hbox = gtk_hbox_new(TRUE,5);
+	gtk_container_add(GTK_CONTAINER(vbox),hbox);
+	label = gtk_label_new(clabel);
+	gtk_container_add(GTK_CONTAINER(hbox),label);
+	gtk_container_add(GTK_CONTAINER(hbox),w);
+	gtk_widget_show(hbox);
+	gtk_widget_show(label);
+	gtk_widget_show(w);
+
+}
+
+
+void changeString(GtkEditable *wid, char ** returnbuffer)
+{
+	char * chars;
+	chars = gtk_editable_get_chars(wid,0,-1);
+        strncpy(*returnbuffer,chars,strlen(chars)+1);
+}
+
+enum {PINT,PFLOAT,PSTRING,PFILE,PGLADE};
+
+typedef struct {
+	GtkWidget *widget;
+	filter_param_t* param;
+	int widget_type;
+} param_widget_t;
+
+typedef struct {
+	GList* paramList;
+	char *caption;
+} param_callback_t;
+
+
+static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter)
+{
+      gtk_file_selection_complete(GTK_FILE_SELECTION(entry->fsw),filter);
+}
+
+static gint
+update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
+{
+	GList* list = g_list_first(callback->paramList);
+	char *strVal; 
+	int iVal;
+	float fVal;
+	char *caption = callback->caption;
+	param_widget_t* item;
+	
+	while(list){
+		item = (param_widget_t*)(list->data);
+		DPRINTF("param: %s\n", filterparam_label(item->param));
+		switch(item->widget_type){
+		case PINT:
+			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
+			DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
+			if(filterparam_set(item->param, &iVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			break;
+		case PFLOAT:
+			fVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
+			DPRINTF("Setting %s::%s to %f", caption, filterparam_label(item->param), fVal);
+			if(filterparam_set(item->param, &fVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			break;
+		case PSTRING:
+			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
+			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
+			if(filterparam_set(item->param, &strVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			g_free(strVal);
+			break;
+		case PFILE:
+			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
+			DPRINTF("Setting %s::%s to %s", caption, filterparam_label(item->param), strVal);
+			if(filterparam_set(item->param, &strVal) == -1)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
+			g_free(strVal);
+			break;
+		case PGLADE:
+			if (GTK_IS_OPTION_MENU(item->widget)) {
+				GtkMenu *menu = GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(item->widget)));
+				GtkWidget *act = gtk_menu_get_active(menu);
+				/* Doh - gtk suxx again. */
+				GList *list;
+				DPRINTF("Menu %p - Active %p\n", menu, act);
+				list = gtk_container_children(GTK_CONTAINER(menu));
+				iVal = 0;
+				while (list) {
+					DPRINTF("%i - %p\n", iVal, list->data);
+					if ((GtkWidget *)(list->data) == act)
+						break;
+					list = g_list_next(list);
+					iVal++;
+				}
+				DPRINTF("Setting %s::%s to %i", caption, filterparam_label(item->param), iVal);
+				if(!list || filterparam_set(item->param, &iVal) == -1)
+					DPRINTF(" - failed!\n");
+				else
+					DPRINTF(" - success!\n");
+			} else
+				/* FIXME */;
+			break;
+		}
+		list = g_list_next(list);
+	}
+	DPRINTF("Finished with update_params\n");
+	return TRUE;
+}
+
+gint
+static cancel_params(GtkWidget* wig,param_callback_t* callback)
+{
+	g_list_free(callback->paramList);
+	// FIXME. does list_free kill the structs, too? mem leak
+	return FALSE;
+}
+
+GtkWidget *
+glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
+{
+	GtkWidget *vbox,*entry;
+	GtkAdjustment *adjust;
+	param_widget_t *pw;
+	param_callback_t* cb;
+	char * prop;
+	GList * list=NULL;
+	
+	GtkWidget* propBox;
+	GtkWidget* tablabel;
+	int iVal;
+	float fVal;
+	char* cVal;
+	filter_param_t* param;
+	char label[256];
+	char *xml;
+
+	propBox = gnome_property_box_new ();
+	
+	tablabel=gtk_label_new(_(caption));
+
+	vbox = gtk_vbox_new(FALSE,3);
+	
+	gtk_widget_show(vbox);
+
+	filterparamdb_foreach_param(pdb, param) {
+#ifdef HAVE_LIBGLADE
+		if ((xml = filterparam_get_property(param, FILTERPARAM_GLADEXML))) {
+			GladeXML *gxml;
+			gxml = glade_xml_new_from_memory(xml, strlen(xml), NULL, NULL);
+			entry = glade_xml_get_widget(gxml, "widget");
+			if (GTK_IS_OPTION_MENU(entry)) {
+				gtk_option_menu_set_history(GTK_OPTION_MENU(entry), filterparam_val_int(param));
+			} else
+                                /* FIXME */;
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PGLADE;
+			list = g_list_append(list,pw);			
+		} else
+#endif
+		if (FILTER_PARAM_IS_INT(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,(float)-MAXINT,(float)MAXINT,1.0,10.0,10.0));
+
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),0);
+			iVal = filterparam_val_int(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),(float)iVal);
+			create_label_widget_pair(vbox,filterparam_label(param),entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PINT;
+			list = g_list_append(list,pw);
+		} else if (FILTER_PARAM_IS_FLOAT(param)
+			   || FILTER_PARAM_IS_SAMPLE(param)) {
+			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
+			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
+			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(entry),TRUE);
+			gtk_spin_button_set_digits(GTK_SPIN_BUTTON(entry),3);
+			fVal = filterparam_val_float(param);
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(entry),fVal);
+			if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_S)
+				snprintf(label, 255, "%s [s]",
+					 filterparam_label(param));
+			else if (filterparam_type(param) == FILTER_PARAMTYPE_TIME_MS)
+				snprintf(label, 255, "%s [ms]",
+					 filterparam_label(param));
+			else
+				snprintf(label, 255, "%s",
+					 filterparam_label(param));
+			create_label_widget_pair(vbox, label, entry);
+			pw = malloc(sizeof(param_widget_t));
+			pw->widget = entry;
+			pw->param = param;
+			pw->widget_type = PFLOAT;
+			list = g_list_append(list,pw);
+		} else if (FILTER_PARAM_IS_STRING(param)) {
+			switch(filterparam_type(param)){
+			case FILTER_PARAMTYPE_FILENAME:
+				entry = gnome_file_entry_new("blahh",filterparam_label(param));
+				if((prop = filterparam_get_property(param,FILTER_PARAM_PROPERTY_FILE_FILTER)))
+				      gtk_signal_connect_after(GTK_OBJECT(entry),"browse_clicked",GTK_SIGNAL_FUNC(set_file_selection_filter),prop);
+				
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PFILE;
+				list = g_list_append(list,pw);
+				break;
+			default:
+			        entry = gnome_entry_new("blubb");
+				create_label_widget_pair(vbox,filterparam_label(param),entry);
+				cVal =  filterparam_val_string(param);
+				gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(entry))),cVal);
+				pw = malloc(sizeof(param_widget_t));
+				pw->widget = entry;
+				pw->param = param;
+				pw->widget_type = PSTRING;
+				list = g_list_append(list,pw);
+				break;
+			}
+		} else
+			/* nothing */ ;
+	}
+	gnome_property_box_append_page(GNOME_PROPERTY_BOX(propBox),vbox,tablabel);
+
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
+	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
+	gtk_window_set_modal(GTK_WINDOW(propBox),TRUE);
+	cb = malloc(sizeof(param_callback_t));
+	cb->paramList=list;
+	cb->caption = strdup(caption);
+	
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button),"clicked",(GtkSignalFunc)update_params,cb);
+	gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->cancel_button),"clicked",(GtkSignalFunc)cancel_params,cb);	
+	
+	return propBox;
 }
