@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.36 2000/03/27 09:17:02 richi Exp $
+ * $Id: filter_network.c,v 1.37 2000/03/27 13:55:10 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -499,7 +499,7 @@ filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
               	      const char *label, const char *desc)
 {
 	filter_node_t *n;
-	filter_paramdesc_t *d;
+	filter_paramdesc_t *od, *d;
 
 	if (!net || !node || !param || !label)
 		return NULL;
@@ -507,11 +507,21 @@ filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
 		return NULL;
 	if (!(n = filternetwork_get_node(net, node)))
 		return NULL;
-	if (!(d = filter_get_paramdesc(n->filter, param)))
+	if (!(od = filter_get_paramdesc(n->filter, param)))
 		return NULL;
 	if (!(d = filter_add_param(net->node.filter, strdup(label),
-				   strdup(desc), d->type)))
+				   strdup(desc), od->type)))
 		return NULL;
+	/* aaaahhhh... */
+	switch (od->type) {
+	case FILTER_PARAMTYPE_STRING:
+		filterparamdesc_string_settype(d, filterparamdesc_string_type(od));
+		break;
+	case FILTER_PARAMTYPE_FLOAT:
+		filterparamdesc_float_settype(d, filterparamdesc_float_type(od));
+		break;
+	default:
+	}
 
 	d->private = create_map(strdup(param), strdup(node));
 
