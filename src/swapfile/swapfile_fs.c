@@ -161,6 +161,10 @@ static int _swapfile_init(const char *name, int force)
 		if (stat(str, &st) == -1
 		    || !S_ISDIR(st.st_mode)
 		    || !((st.st_mode & S_IRWXU) == S_IRWXU)) {
+			if (hash == 0)
+				fprintf(stderr,
+"HASH missing - maybe you're running a 0.4 swap?\n"
+"Try using glame-convert.sh to convert it to 0.5 format\n");
 			errno = ENOENT;
 			return -1;
 		}
