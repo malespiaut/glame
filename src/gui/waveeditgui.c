@@ -1330,11 +1330,25 @@ GtkType waveedit_gui_get_type(void)
 	return waveedit_gui_type;
 }
 
+static void help_cb(GtkWidget *menu, void *blah)
+{
+	gnome_help_goto(NULL, "info:glame#The_Wave_Editor");
+}
+static void list_keybindings_cb(GtkWidget *menu, void *blah)
+{
+	glame_accel_widget_data_cb(NULL, "list_keybindings_waveview");
+}
+
 static GnomeUIInfo window_file_menu[] = {
 	GNOMEUIINFO_ITEM(N_("Export..."), NULL, wave_export_cb, NULL),
 	GNOMEUIINFO_ITEM(N_("Export selection..."), NULL, exportselection_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_CLOSE_ITEM(wave_close_cb, NULL),
+	GNOMEUIINFO_END
+};
+static GnomeUIInfo help_menu[] = {
+	GNOMEUIINFO_ITEM(N_("_Help"),N_("Opens a gnome help browser"), help_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("List key-bindings"), N_("Lists the current key-bindings"), list_keybindings_cb, NULL),
 	GNOMEUIINFO_END
 };
 static GnomeUIInfo window_menu[] = {
@@ -1366,6 +1380,7 @@ static GnomeUIInfo window_menu[] = {
 	    GNOME_APP_PIXMAP_NONE, NULL,
 	    0, 0, NULL
 	},
+	GNOMEUIINFO_MENU_HELP_TREE (help_menu),
 	GNOMEUIINFO_END
 };
 

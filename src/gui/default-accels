@@ -1,6 +1,18 @@
 <?xml version="1.0"?>
 <glame-accels>
 
+<accel state="0" spec="list_keybindings">
+(glame-accel-edit-dialog "" #f)
+</accel>
+
+<accel state="0" spec="list_keybindings_waveview">
+(glame-accel-edit-dialog "waveview" #f)
+</accel>
+
+<accel state="0" spec="list_keybindings_filteredit">
+(glame-accel-edit-dialog "filteredit" #f)
+</accel>
+
 <scope scope="swapfile">
   <accel state="0" spec="F1" desc="List keybindings">
 (glame-accel-edit-dialog "swapfile" #f)

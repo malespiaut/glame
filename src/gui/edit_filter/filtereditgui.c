@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.57 2002/07/31 19:58:25 richi Exp $
+ * $Id: filtereditgui.c,v 1.58 2002/08/12 12:55:29 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -648,23 +648,31 @@ GtkType filteredit_gui_get_type(void)
 
 static void glame_canvas_copy_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
 {
-	/* FIXME */
+	glame_accel_widget_data_cb(NULL, "filteredit/y");
 }
 static void glame_canvas_paste_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
 {
-	/* FIXME */
+	glame_accel_widget_data_cb(NULL, "filteredit/p");
 }
 static void glame_canvas_delete_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
 {
-	/* FIXME */
+	glame_gh_safe_eval_str("(editfilter-delete-selection)");
 }
 static void glame_canvas_group_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
 {
-	/* FIXME */
+	glame_gh_safe_eval_str("(editfilter-group-selection)");
 }
 static void glame_canvas_collapse_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
 {
-	/* FIXME */
+	glame_gh_safe_eval_str("(editfilter-collapse-selection)");
+}
+static void help_cb(GtkWidget *menu, void *blah)
+{
+	gnome_help_goto(NULL, "info:glame#The_Filternetwork_Editor");
+}
+static void list_keybindings_cb(GtkWidget *menu, void *blah)
+{
+	glame_accel_widget_data_cb(NULL, "list_keybindings_filteredit");
 }
 
 static GnomeUIInfo window_file_menu[] = {
@@ -692,6 +700,11 @@ static GnomeUIInfo window_view_menu[] = {
         GNOMEUIINFO_ITEM(N_("View all"), NULL, glame_canvas_view_all_cb, NULL),
         GNOMEUIINFO_END
 };
+static GnomeUIInfo window_help_menu[] = {
+	GNOMEUIINFO_ITEM(N_("_Help"),N_("Opens a gnome help browser"), help_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("List key-bindings"), N_("Lists the current key-bindings"), list_keybindings_cb, NULL),
+	GNOMEUIINFO_END
+};
 static GnomeUIInfo window_menu[] = {
 	{
             GNOME_APP_UI_SUBTREE, N_("_Network"),
@@ -714,9 +727,10 @@ static GnomeUIInfo window_menu[] = {
             GNOME_APP_PIXMAP_NONE, NULL,
             0, 0, NULL
         },
+	GNOMEUIINFO_MENU_HELP_TREE (window_help_menu),
 	GNOMEUIINFO_END
 };
-	
+
 
 GtkWidget * 
 glame_filtereditgui_new(filter_t *net, gboolean protected)
