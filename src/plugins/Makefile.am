@@ -24,7 +24,7 @@ libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 #	garrison.la nold.la maggy.la noisegate.la pan.la pipe.la \
 #	iir.la
 pkglib_LTLIBRARIES = echo.la debug.la tutorial.la \
-	pan.la pipe.la iir.la noisegate.la
+	pan.la pipe.la iir.la noisegate.la time.la
 #pkglib_LTLIBRARIES = debug.la tutorial.la
 
 echo_la_SOURCES = echo.c
@@ -60,6 +60,6 @@ iir_la_LDFLAGS = -module
 #ladspa_la_SOURCES = ladspa.c
 #ladspa_la_LDFLAGS = -module
 
-#time_la_SOURCES = time.c
-#time_la_LDFLAGS = -module
+time_la_SOURCES = time.c
+time_la_LDFLAGS = -module
 
