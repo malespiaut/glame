@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.h
  *
- * $Id: gtkwavedraw.h,v 1.2 2000/04/10 03:11:16 navratil Exp $
+ * $Id: gtkwavedraw.h,v 1.3 2000/04/11 01:11:55 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -38,8 +38,27 @@ extern "C" {
 #define GTK_IS_WAVE_DRAW(obj)         (GTK_CHECK_TYPE ((obj), GTK_TYPE_WAVE_DRAW))
 #define GTK_IS_WAVE_DRAW_CLASS(klass) (GTK_CHECK_CLASS_TYPE ((klass), GTK_TYPE_WAVE_DRAW))
 
+#define WAVE_DATA_FROM_LIST(node)     ((WaveData *)((node)->data))
+  
 typedef struct _GtkWaveDraw       GtkWaveDraw;
 typedef struct _GtkWaveDrawClass  GtkWaveDrawClass;
+
+/* The WaveData struct contains all data that describes an
+ * individual waveform.  It's usually contained within the wavelist
+ * in the GtkWaveDraw struct. */
+typedef struct _WaveData {
+  gint     wave_idx;
+  
+  gfloat   *data;                /* Data to be graphed */
+  gint     by_ref;               /* Are we responsible for freeing the data
+				  * when the widget is destroyed? */
+  glong    *marker;              /* Any/all "saved points" for the data, 
+				  * same major index as the data */
+  glong    n_samples;            /* Number of samples in each set of data */
+  glong    start;                /* Starting point for each set of data */
+  GdkColor color;                /* GdkColor for each wave */
+
+} WaveData;
 
 struct _GtkWaveDraw
 {
@@ -49,14 +68,11 @@ struct _GtkWaveDraw
   GdkGC     *wavedraw_gc;         /* Generic GC, we're going to play with its
 				   * foreground color to suit our needs */  
 
-  gfloat **data;                  /* Data to be graphed */
-  glong  **marker;                /* Any/all "saved points" for the data, 
-				   * same major index as the data */
-  glong  *n_samples;              /* Number of samples in each set of data */
-  glong  *start;                  /* Starting point for each set of data */
-  GdkColor *color;                /* GdkColor for each wave */
-
-  gint   n_waves;                 /* Number of waves we're displaying */
+  GSList    *wavelist;
+  gint      n_waves;              /* Number of waves we're displaying; 
+				   * this is always going to be equal to 
+				   * g_slist_length(wavelist), but we keep
+				   * it for fast lookup purposes. */
 
   glong  n_samples_current;       /* Number of samples currently on display */
   glong  start_current;           /* Starting position of current display */
@@ -89,6 +105,10 @@ gint       gtk_wave_draw_add_wave       (GtkWaveDraw *wavedraw,
 					 gfloat *data,
 					 glong  n_samples,
 					 glong  start);
+gint       gtk_wave_draw_add_wave_by_reference (GtkWaveDraw *wavedraw,
+						gfloat *data,
+						glong  n_samples,
+						glong  start);
 void       gtk_wave_draw_set_color      (GtkWaveDraw *wavedraw,
 				         gint wave_idx,
 				         GdkColor *color);
