@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.11 2000/02/07 11:19:47 richi Exp $
+ * $Id: audio_io.c,v 1.12 2000/02/07 16:45:20 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -94,14 +94,14 @@ static int esd_in_f(filter_node_t *n)
 		lbuf=sbuf_alloc(length/4,n);	/* FIXME 16bit stereo only */
 		rbuf=sbuf_alloc(length/4,n);
 		while(i<length/2){
-			fbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
-			fbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buf[i++]);
-			fbuf_queue(left,lbuf);
-			fbuf_queue(right,rbuf);
+			sbuf_buf(lbuf)[lpos++]=SHORT2SAMPLE(buf[i++]);
+			sbuf_buf(rbuf)[rpos++]=SHORT2SAMPLE(buf[i++]);
+			sbuf_queue(left,lbuf);
+			sbuf_queue(right,rbuf);
 		}	
 	}
-	fbuf_queue(left,NULL);
-	fbuf_queue(right,NULL);
+	sbuf_queue(left,NULL);
+	sbuf_queue(right,NULL);
 
 	FILTER_BEFORE_CLEANUP;
 
@@ -159,11 +159,11 @@ static int esd_out_f(filter_node_t *n)
 	FILTER_AFTER_INIT;
 
 	/* get the first buffers to start with something */
-	lbuf = fbuf_get(left);
-	DPRINTF("Got left fbuf with size %d\n",fbuf_size(lbuf));
+	lbuf = sbuf_get(left);
+	DPRINTF("Got left sbuf with size %d\n",sbuf_size(lbuf));
 	if (right){
-		rbuf = fbuf_get(right);
-		DPRINTF("Got right fbuf with size %d\n",fbuf_size(rbuf));
+		rbuf = sbuf_get(right);
+		DPRINTF("Got right sbuf with size %d\n",sbuf_size(rbuf));
 	}
 	else
 		rbuf = NULL;
@@ -175,15 +175,15 @@ static int esd_out_f(filter_node_t *n)
 		 * if either channel gets empty during play
 		 * we fill in zeros for it. */
 		while (wbpos < GLAME_WBUFSIZE
-		       && lpos < fbuf_size(lbuf)
-		       && (!right || rpos < fbuf_size(rbuf))) {
+		       && lpos < sbuf_size(lbuf)
+		       && (!right || rpos < sbuf_size(rbuf))) {
 			if (lbuf)
-				wbuf[wbpos++] = SAMPLE2SHORT(fbuf_buf(lbuf)[lpos++]);
+				wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(lbuf)[lpos++]);
 			else
 				wbuf[wbpos++] = 0;
 			if (right) {
 				if (rbuf)
-					wbuf[wbpos++] = SAMPLE2SHORT(fbuf_buf(rbuf)[rpos++]);
+					wbuf[wbpos++] = SAMPLE2SHORT(sbuf_buf(rbuf)[rpos++]);
 				else
 					wbuf[wbpos++] = 0;
 			}
@@ -203,15 +203,15 @@ static int esd_out_f(filter_node_t *n)
 		wbpos = 0;
 
 		/* check, if we need new data */
-		if (lpos >= fbuf_size(lbuf)) {
-			fbuf_unref(lbuf);
-			lbuf = fbuf_get(left);
+		if (lpos >= sbuf_size(lbuf)) {
+			sbuf_unref(lbuf);
+			lbuf = sbuf_get(left);
 			lpos = 0;
 			cnt++;
 		}
-		if (right && rpos >= fbuf_size(rbuf)) {
-			fbuf_unref(rbuf);
-			rbuf = fbuf_get(right);
+		if (right && rpos >= sbuf_size(rbuf)) {
+			sbuf_unref(rbuf);
+			rbuf = sbuf_get(right);
 			rpos = 0;
 			cnt++;
 		}
