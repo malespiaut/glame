@@ -984,7 +984,6 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
     return;
 
   gdk_window_scroll (waveview->area->window, waveview->drawn_offset - offset, 0);
-  gdk_window_process_updates (waveview->area->window, FALSE);
 }
 
 /* The meaning of the different flags. */
@@ -1418,6 +1417,7 @@ gtk_wave_view_init (GtkWaveView *waveview)
   gtk_widget_show (waveview->hruler);
 
   waveview->area = gtk_drawing_area_new ();
+  gtk_widget_set_double_buffered (waveview->area, FALSE);
   gtk_drawing_area_size (GTK_DRAWING_AREA (waveview->area), 150, 100);
   gtk_widget_show (waveview->area);
   gtk_box_pack_start (GTK_BOX (vbox2), waveview->area, TRUE, TRUE, 0);
@@ -1995,7 +1995,8 @@ gtk_wave_view_set_marker_and_scroll (GtkWaveView *waveview,
   if (check_marker (waveview, &frame, &length, &win_pos_new) < 0)
     {
       /* no action necessary */
-      /* WRONG! we might still need to scroll... return; */
+      /* WRONG! we might still need to scroll... */
+      return;
     }
 
   width = waveview->area->allocation.width;
