@@ -4,7 +4,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.16 2001/03/21 09:44:17 xwolf Exp $
+ * $Id: canvas.h,v 1.17 2001/03/27 21:04:20 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -31,6 +31,7 @@ gint handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data);
 void canvas_item_create_ports(GnomeCanvasGroup* grp,filter_t *f);
 GtkWidget * canvas_new_from_network(gui_network* net);
 void canvas_item_redraw(GlameCanvasItem* item);
+GlameCanvas* draw_network(filter_t *filter);
 
 
 

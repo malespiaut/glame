@@ -35,7 +35,7 @@
 #include "swapfile.h"
 #include "glame_gui_utils.h"
 #include "waveeditgui.h"
-
+#include "edit_filter/canvas.h"
 
 /* Temporary storage for editing functions and the edit functions
  * itself.
@@ -358,7 +358,87 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 	gtk_editable_wave_buffer_queue_modified (editable, start, length);
 }
 
+static void feed_custom_cb(GtkWidget * foo, gpointer bar)
+{
+	
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWidget *prop;
+	gboolean ok_pressed;
+	gint32 start, length;
+	long *names, nrtracks;
+	filter_t *net;
+	int rate, i;
+	GtkWidget * stop_window;
 
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	if (length <= 0)
+		return;
+	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+	
+	net = filter_creat(NULL);
+	for(i=0;i<nrtracks;i++){
+		filter_t *swin;
+		int swname = names[i];
+		swin = filter_instantiate(plugin_get("swapfile_in"));
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		filter_add_node(net, swin, "swin");
+		filter_set_property(swin,"immutable","1");
+				
+	}
+	
+	draw_network(net);
+	/* FIXME wave widget has to be asyncronously notified :-\   */
+}
+
+static void apply_custom_cb(GtkWidget * foo, gpointer bar)
+{
+	GtkWaveView *waveview = actual_waveview;
+	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer (waveview);
+	GtkEditableWaveBuffer *editable = GTK_EDITABLE_WAVE_BUFFER (wavebuffer);
+	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(editable);
+	GtkWidget *prop;
+	gboolean ok_pressed;
+	gint32 start, length;
+	long *names, nrtracks;
+	filter_t *net;
+	int rate, i;
+
+	gtk_wave_view_get_selection (waveview, &start, &length);
+	if (length <= 0)
+		return;
+	nrtracks = gtk_swapfile_buffer_get_filenames(swapfile, &names);
+	rate = gtk_wave_buffer_get_rate(wavebuffer);
+	DPRINTF("Applying to [%li, +%li]\n", (long)start, (long)length);
+
+	/* Create the network, add nrtracks instances of swapfile_in */
+	
+	net = filter_creat(NULL);
+	for (i=0; i<nrtracks; i++) {
+		filter_t *swin, *eff, *swout;
+		int swname = names[i];
+		swin = filter_instantiate(plugin_get("swapfile_in"));
+		swout = filter_instantiate(plugin_get("swapfile_out"));
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "rate"), &rate);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "offset"), &start);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swin), "size"), &length);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "filename"), &swname);
+		filterparam_set(filterparamdb_get_param(filter_paramdb(swout), "offset"), &start);
+		filter_add_node(net, swin, "swin");
+		filter_add_node(net, swout, "swout");
+		filter_set_property(swin,"immutable","1");
+		filter_set_property(swout,"immutable","1");
+	}
+	draw_network(net);
+	/* FIXME wave widget has to be asyncronously notified :-\   */
+}
 
 static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
@@ -370,6 +450,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_SUBTREE("Feed into filter", NULL),
+	GNOMEUIINFO_ITEM("Apply Custom", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
+	GNOMEUIINFO_ITEM("Feed into Custom", "Creates a filternetworkwindow which and feeds the selection into it", feed_custom_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };

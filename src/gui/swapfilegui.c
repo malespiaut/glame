@@ -38,12 +38,14 @@
 
 
 /* The swapfile widget. */
-static GtkTree *swapfile_tree = NULL;
+GtkTree *swapfile_tree = NULL;
 
 
 /* Forward declarations. */
-static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item);
+void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item);
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
+		        gpointer data);
+static int double_click_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data);
 static void copyselected_cb(GtkWidget *menu, GlameTreeItem *item);
 static void linkselected_cb(GtkWidget *menu, GlameTreeItem *item);
@@ -82,8 +84,54 @@ static GnomeUIInfo file_menu_data[] = {
 };
 
 
+static int entry_updated_cb(GtkEntry* entry, GlameTreeItem* item)
+{
+	char * text;
+	
 
+	text = gtk_editable_get_chars(GTK_EDITABLE(entry),0,-1);
+	if(text){
+		if(item->label)
+			free(item->label);
+		item->label = strdup(text);
+		g_free(text);
+	}
+	gtk_container_remove(GTK_CONTAINER(item),entry);
+	gtk_widget_destroy(GTK_WIDGET(entry));
+	glame_tree_item_update(item);
+}
+		
+void edit_tree_label(GlameTreeItem * item)
+{
+	GtkWidget * label;
+	GtkWidget * entry;
 
+	label = GTK_LABEL((g_list_first(gtk_container_children(GTK_CONTAINER(item))))->data);
+	gtk_container_remove(GTK_CONTAINER(item),label);
+	entry = gtk_entry_new();
+	gtk_entry_set_text(GTK_ENTRY(entry),item->label);
+	// FIXME This causes a assertion error ??
+	//		gtk_widget_destroy(GTK_WIDGET(label));
+	gtk_container_add(GTK_CONTAINER(item),entry);
+	gtk_widget_show(entry);
+	gtk_signal_connect(GTK_OBJECT(entry),"activate",entry_updated_cb,item);
+	gtk_widget_grab_focus(GTK_WIDGET(entry));
+}
+	
+static int double_click_cb(GtkWidget *item, GdkEventButton *event,
+			   gpointer data)
+{
+	GlameTreeItem *i = GLAME_TREE_ITEM(item);
+	
+	if(event->button != 1)
+		return FALSE;
+	
+	if(event->type == GDK_2BUTTON_PRESS){
+		edit_tree_label(i);
+		return TRUE;
+	} else 
+		return FALSE;
+}
 
 static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 		        gpointer data)
@@ -435,10 +483,12 @@ launch:
 
 /* Helper for item insertion (includes signal connect and show)
  */
-static void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item)
+void sw_glame_tree_append(GtkObject *tree, GlameTreeItem *item)
 {
 	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
 			         (GtkSignalFunc)rmb_menu_cb, (gpointer)NULL);
+	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
+				 (GtkSignalFunc)double_click_cb,(gpointer)NULL);
 	glame_tree_append(tree, item);
 	glame_tree_item_update(item);
 	gtk_widget_show(GTK_WIDGET(item));

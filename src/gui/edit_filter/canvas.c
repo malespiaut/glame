@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.42 2001/03/21 10:43:58 xwolf Exp $
+ * $Id: canvas.c,v 1.43 2001/03/27 21:04:20 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -54,7 +54,6 @@ static void canvas_item_destroy(GlameCanvasItem* it);
 static void canvas_connection_destroy(GlameConnection* connection);
 static void set_file_selection_filter(GnomeFileEntry* entry, const char * filter);
 static void canvas_update_scroll_region(GlameCanvas* canv);
-static GlameCanvas* draw_network(filter_t *filter);
 static void update_string(GtkListItem* item,char ** returnbuffer);
 static void update_entry_text(GtkListItem* item,GtkEntry* entry);
 
@@ -136,14 +135,19 @@ static GnomeUIInfo port_menu[] =
 
 static void canvas_item_edit_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 {
-	GtkWidget *p = glame_gui_filter_properties(filter_paramdb(item->filter),
+	GtkWidget *p;
+
+	if(item->immutable)
+		return;
+	p = glame_gui_filter_properties(filter_paramdb(item->filter),
 						   filter_name(item->filter));
 	gnome_dialog_run_and_close(p);
 }
 
 static void canvas_item_delete_cb(GtkWidget* m,GlameCanvasItem* it)
 {
-	canvas_item_destroy(it);
+	if(!it->immutable)
+		canvas_item_destroy(it);
 }
 
 static void canvas_connection_edit_source_properties_cb(GtkWidget* bla, GlameConnection* conn)
@@ -1489,7 +1493,7 @@ static void canvas_item_show_description(GtkWidget* wid,GlameCanvasItem* it)
 	gnome_dialog_run_and_close(GNOME_DIALOG(dialog));
 }
 
-static GlameCanvas*
+GlameCanvas*
 draw_network(filter_t *filter)
 {
    	gui_network * net;       
@@ -1501,6 +1505,8 @@ draw_network(filter_t *filter)
 	GlameConnection *connection;
 	double x,y;
 	char * numberbuffer;
+	char * cimmutable;
+	gboolean immutable; 
 	
 	if(!FILTER_IS_NETWORK(filter)){
 		fprintf(stderr,"Not a network!\n");
@@ -1520,6 +1526,12 @@ draw_network(filter_t *filter)
 		
 		new_item = glame_canvas_item_new(gnome_canvas_root(GNOME_CANVAS(canv)),node,0.0,0.0);
 		numberbuffer = filter_get_property(node,"canvas_x");
+		cimmutable = filter_get_property(node,"immutable");
+		if(cimmutable)
+			immutable = atoi(cimmutable);
+		else 
+			immutable = FALSE;
+		new_item->immutable = immutable;
 		if(numberbuffer)
 			x = atof(numberbuffer);
 		else

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.18 2001/03/21 09:44:17 xwolf Exp $
+ * $Id: main.c,v 1.19 2001/03/27 21:04:19 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -32,7 +32,7 @@
 #include "waveeditgui.h"
 #include "filtergui.h"
 #include "glame_gui_utils.h"
-
+#include "gltreeitem.h"
 
 /* Globals. */
 static char *swname = NULL;
@@ -49,7 +49,7 @@ GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 				      const char *label,
 				      char ** returnbuffer);
 void glame_about(void);
-
+extern GtkTree *swapfile_tree;
 
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
@@ -122,26 +122,15 @@ GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 
 
 
-static void create_new_project_string_cb(gchar *string, gpointer data)
-{
-	if (string) {
-		strncpy(data, string, 255);
-		free(string);
-	}
-}
 static void create_new_project_cb(GtkWidget *menu, void * blah)
 {
-	GtkWidget *dialog;
-	char name[256];
-
-	dialog = gnome_request_dialog(FALSE, "Enter project name",
-				      "Unnamed", 255,
-				      create_new_project_string_cb, name,
-				      app);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
-		return;
-
-	glame_swapfile_gui_add_toplevel_group(name);
+	char* name;
+	GlameTreeItem *grp;
+	name = "Unnamed\0";
+	grp = GLAME_TREE_ITEM(glame_tree_item_new_group(name));
+	sw_glame_tree_append(GTK_OBJECT(swapfile_tree),grp);
+	edit_tree_label(grp);
+	
 }
 
 static void

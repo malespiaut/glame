@@ -1,7 +1,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.1 2001/03/16 09:56:56 richi Exp $
+ * $Id: canvas_types.h,v 1.2 2001/03/27 21:04:20 xwolf Exp $
  *
  * Copyright (C) 2000, 2001 Johannes Hirche
  *
@@ -110,9 +110,11 @@ struct _GlameCanvasItem {
 
 	double last_x,last_y;
 	GnomeCanvasItem * nameBox;
+
 	gboolean dragging;
 	gboolean connecting;
-	
+	gboolean immutable;
+
 	GlameConnection *connection;
 	GList *property_texts;
 	GList *input_ports,*output_ports;
