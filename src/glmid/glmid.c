@@ -174,8 +174,10 @@ static int plugins_register()
 	add_plugin_path("./plugins/.libs");
 	add_plugin_path("./plugins/_libs");
 	add_plugin_path(PKGLIBDIR);
+#ifdef HAVE_LADSPA
 	add_plugin_path(getenv("LADSPA_PATH"));
-
+#endif
+	
 	/* First initialize the builtin plugins */
 	plugin_get("glamebuiltins");
 
@@ -183,7 +185,9 @@ static int plugins_register()
 	load_plugins_from_path("./plugins/.libs"); /* for .so */
 	load_plugins_from_path("./plugins/_libs"); /* for .so */
 	load_plugins_from_path(PKGLIBDIR);
+#ifdef HAVE_LADSPA
 	load_plugins_from_path(getenv("LADSPA_PATH"));
+#endif
 
 	return 0;
 }
