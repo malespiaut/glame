@@ -1,8 +1,12 @@
 TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
+
 Items pending for 0.5.x:
 ------------------------
+
+include/
+	- prefix LIST_ stuff with GLAME_ (BSD namespace)
 
 doc/
 	- better documentation for scheme API
@@ -15,6 +19,7 @@ plugins/
           iir, noisegate, pan, rms, time, ...)
 	- fix one2n/mix - try a feed-forward echo with large delay
           -> deadlock (because no feedback -> no fifo adjustion)
+	- add position hint parameters to null and drop
 
 hash/
 	[all]
@@ -35,6 +40,8 @@ filter/
 swapfile/
         [richi]
 	- simplify as much as possible / increase performance
+	- fix unhandled (MAP_PRIVATE, cluster_split) cases that PANIC
+	  (i.e. introduce anonymous clusters)
 
 hash/
 	[richi]
@@ -43,8 +50,6 @@ hash/
 
 glmid/
 	[richi]
-	- script gpsm
-  	- fix undo with partial redo pending (kill off full redo)
 
 gui/
 	[all]
@@ -57,14 +62,12 @@ gui/swapfilegui
 	[richi]
 	- seperate into subdirectory
 	- progress bar for import & export
-	- fix tree, allow item move, multiple item selection, d&d, etc.
+	- better UI
 
 gui/waveeditgui
 	[richi]
 	- seperate into subdirectory
 	- toolbar for zoom/select/play/record/close
-	- disable paste/etc. menu items, if op not possible
-	  (think about other ops, too - play/record, etc.)
 
 gui/libgtkwaveform
 	[richi]
