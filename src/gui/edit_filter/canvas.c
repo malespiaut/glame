@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.79 2001/04/24 14:08:06 xwolf Exp $
+ * $Id: canvas.c,v 1.80 2001/04/25 08:31:14 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -55,7 +55,6 @@ static void canvas_outout_port_reorder_connections(GlameCanvasPort* port);
 static void canvas_input_port_reorder_connections(GlameCanvasPort* port);
 static gint canvas_connection_select(GnomeCanvasItem* item, GdkEvent *event,gpointer data);
 static GtkObject* canvas_add_node_from_filter(GnomeCanvas *canvas, filter_t *filter,double x, double y);
-static void canvas_connection_connect_from_pipe(GlameConnection *c);
 static int canvas_connection_connect(GlameConnection *c);
 static void canvas_input_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y);
 static void canvas_output_port_update_connections(GlameCanvasPort*p, gdouble x, gdouble y);
@@ -1290,32 +1289,6 @@ canvas_connection_connect_from_connection_full(GlameConnection *c)
 	canvas_connection_do_connect(c);
 }
 	
-static void
-canvas_connection_connect_from_pipe(GlameConnection *c)
-{
-	filter_port_t *dest;
-	GlameCanvasItem * item;
-	GList * ports;
-	GlameCanvasPort * destPort=NULL;
-	c->line=NULL;
-	dest = filterpipe_dest(c->pipe);
-	if(filterport_filter(dest)->gui_priv){
-		item = GLAME_CANVAS_ITEM(filterport_filter(dest)->gui_priv);
-		ports = g_list_first(item->input_ports);
-		while(ports){
-			if(GLAME_CANVAS_PORT(ports->data)->port == dest)
-				destPort=GLAME_CANVAS_PORT(ports->data);
-			ports = g_list_next(ports);
-		}
-		if(!destPort){
-			fprintf(stderr,"Fatal! Port not found, this can't happen!\n");
-			return;
-		}
-		c->end = destPort;
-		canvas_connection_connect_from_connection_full(c);
-	}
-}
-	
 static int
 canvas_connection_connect(GlameConnection *c)
 {
@@ -1857,6 +1830,7 @@ draw_network(filter_t *filter)
 	net->openedUp = FALSE;
 	canvas_new_from_network(net);
 	canv = net->canvas;
+	x = y = 0;
 	//	gtk_signal_connect(GTK_OBJECT(canv),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
 	filter_foreach_node(filter,node){
 		
@@ -1886,21 +1860,7 @@ draw_network(filter_t *filter)
 		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
 		glsig_add_handler(filter_emitter(node),GLSIG_FILTER_DELETED,canvas_node_deleted,new_item);
 	}
-#if 0
-	filter_foreach_node(filter,node){
-		list = g_list_first(((GlameCanvasItem*)(node->gui_priv))->output_ports);
-		while(list){
-		        filter_pipe_t *pipe;
-			filterport_foreach_pipe(GLAME_CANVAS_PORT(list->data)->port,pipe){
-				connection = malloc(sizeof(GlameConnection));
-				connection->pipe = pipe;
-				connection->begin = GLAME_CANVAS_PORT(list->data);
-				canvas_connection_connect_from_pipe(connection);
-			}
-			list = g_list_next(list);
-		}
-	}
-#endif
+
 	filter_foreach_node(filter, node) {
 		struct fconnection *c;
 		list_foreach(&node->connections, struct fconnection, list, c) {

@@ -856,7 +856,7 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	filter_delete(net);
 }
 
-static wave_help(GtkWidget *foo, void*bar)
+static void wave_help(GtkWidget *foo, void*bar)
 {
 	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
 }
