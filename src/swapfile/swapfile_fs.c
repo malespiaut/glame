@@ -246,10 +246,9 @@ static int swapfile_fsck_scan_clusters()
 	char s[256];
 	DIR *dir;
 	struct dirent *e;
-	int i;
+	int fd;
 	long name;
 	struct swcluster *cluster;
-	struct swfile *file;
 
 	/* Loop over all metas, deleting un-gettable clusters. */
 	dir = opendir(swap.clusters_meta_base);
@@ -275,7 +274,8 @@ static int swapfile_fsck_scan_clusters()
 	}
 	closedir(dir);
 
-	/* Loop over all datas, deleting un-gettable clusters. */
+	/* Loop over all datas, deleting un-gettable clusters, but trying
+	 * to fix missing meta. */
 	dir = opendir(swap.clusters_data_base);
 	while ((e = readdir(dir))) {
 		if (sscanf(e->d_name, "%li", &name) != 1) {
@@ -290,14 +290,151 @@ static int swapfile_fsck_scan_clusters()
 			cluster_put(cluster, 0);
 			continue;
 		}
-		DPRINTF("Deleting stale cluster %li\n", name);
+		fixed_something = 1;
 		snprintf(s, 255, "%s/%li", swap.clusters_meta_base, name);
+		if ((fd = open(s, O_RDWR|O_CREAT|0666)) != -1) {
+			close(fd);
+			cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
+			if (cluster) {
+				cluster_put(cluster, 0);
+				continue;
+			}
+		}
+		DPRINTF("Deleting stale cluster %li\n", name);
 		unlink(s);
 		snprintf(s, 255, "%s/%li", swap.clusters_data_base, name);
 		unlink(s);
-		fixed_something = 1;
 	}
 	closedir(dir);
+
+	return fixed_something;
+}
+static int fsck_file(struct swfile *file, int fix)
+{
+	struct swcluster *cluster;
+	int i, j, cnt, unclean = 0;
+
+	/* Check internal ctree consistency. */
+	if (ctree_check(file->clusters) == -1) {
+		/* If we're not allowed to fix the tree - we're
+		 * screwed - just bail out in this case. */
+		if (!fix)
+			return 1;
+
+		/* We're going to force a rebuild. */
+		unclean = 1;
+		DPRINTF("File %li has inconsistent ctree - rebuilding\n", file->name);
+		ctree_build(file->clusters);
+		file->flags |= SWF_DIRTY;
+	}
+
+	/* Get all clusters and check file reference and size. */
+	for (i=0; i<file->clusters->cnt; i++) {
+		/* Get the cluster. */
+		cluster = cluster_get(CID(file->clusters, i),
+				      CLUSTERGET_READFILES, -1);
+
+		/* Not existing cluster? -> remove it from ctree. */
+		if (cluster)
+			goto check_size;
+		unclean = 1;
+		if (fix) {
+			DPRINTF("Removing not exisiting cluster %li from ctree of file %li\n", (long)CID(file->clusters, i), file->name);
+			file->clusters = ctree_remove(file->clusters, i, 1,
+						      NULL, NULL);
+			file->flags |= SWF_DIRTY;
+			i--;
+		}
+		continue;
+
+	check_size:
+		/* Non-matching size. Fix the ctree. */
+		if (cluster->size == CSIZE(file->clusters, i))
+			goto check_references;
+		unclean = 1;
+		if (fix) {
+			DPRINTF("Fixing ctree cluster size at pos %i from %li to %li\n", i, (long)CSIZE(file->clusters, i), (long)cluster->size);
+			ctree_replace1(file->clusters, i,
+				       CID(file->clusters, i), cluster->size);
+			file->flags |= SWF_DIRTY;
+		}
+
+	check_references:
+		/* Check we have as much references on the cluster
+		 * as we need. */
+		cnt = 0;
+		for (j=0; j<file->clusters->cnt; j++)
+			if (CID(file->clusters, j) == cluster->name)
+				cnt++;
+		for (j=0; j<cluster->files_cnt; j++)
+			if (cluster->files[j] == file->name)
+				cnt--;
+		if (cnt == 0)
+			goto next_cluster;
+		unclean = 1;
+		if (fix) {
+			DPRINTF("Fixing incorrect number of references %li -> %li (off by %i)\n", file->name, cluster->name, cnt);
+			for (; cnt>0; cnt--)
+				cluster_addfileref(cluster, file->name);
+		}
+
+	next_cluster:
+		cluster_put(cluster, 0);
+	}
+
+	return unclean;
+}
+static int fsck_cluster(struct swcluster *cluster, int fix)
+{
+	struct swfile *file;
+	int unclean = 0, i, j;
+
+ check_again:
+	for (i=0; i<cluster->files_cnt; i++) {
+		/* Get the file referenced. */
+		file = file_get(cluster->files[i], FILEGET_READCLUSTERS);
+
+		/* If the file referenced does not exist - delete
+		 * the reference. */
+		if (!file)
+			goto delete_ref;
+
+		/* Check, the reference is valid, i.e. the file actually
+		 * contains the cluster. */
+		for (j=0; j<file->clusters->cnt; j++) {
+			if (CID(file->clusters, j) == cluster->name) {
+				file_put(file, 0);
+				goto next;
+			}
+		}
+		file_put(file, 0);
+
+		/* Ok, bogous reference - kill it, if requested. */
+	delete_ref:
+		if (fix) {
+			DPRINTF("Deleting stale fileref %li -> %li\n",
+				cluster->name, cluster->files[i]);
+			cluster_delfileref(cluster, cluster->files[i]);
+		}
+		unclean = 1;
+
+		/* As we changed the cluster->files[] array, we need to
+		 * redo the checking. */
+		goto check_again;
+	next:
+		;
+	}
+
+	return unclean;
+}
+static int swapfile_fsck_fix_cluster_file_references(int fix)
+{
+	DIR *dir;
+	struct dirent *e;
+	int unclean = 0;
+	long name;
+	struct swcluster *cluster;
+	struct swfile *file = NULL;
 
 	/* Loop over all clusters, checking files & references. */
 	dir = opendir(swap.clusters_meta_base);
@@ -307,26 +444,32 @@ static int swapfile_fsck_scan_clusters()
 		cluster = cluster_get(name, CLUSTERGET_READFILES, -1);
 		if (!cluster)
 			continue; /* Huh?? */
-	check_again:
-		for (i=0; i<cluster->files_cnt; i++) {
-			file = file_get(cluster->files[i], 0);
-			if (file) {
-				file_put(file, 0);
-				continue;
+
+		/* Fix the cluster. */
+		unclean |= fsck_cluster(cluster, fix);
+
+		/* If the cluster has no references left attach it to
+		 * the lost-and-found file. */
+		if (cluster->files_cnt == 0 && fix) {
+			if (!file) {
+				long name;
+				while ((file = file_get((name = rand()), 0)))
+					file_put(file, 0);
+				file = file_get(name, FILEGET_CREAT|FILEGET_READCLUSTERS);
 			}
-			DPRINTF("Deleting stale fileref %li -> %li\n", name,
-				cluster->files[i]);
-			cluster_delfileref(cluster, cluster->files[i]);
-			fixed_something = 1;
-			goto check_again;
+			ctree_insert1(file->clusters, file->clusters->cnt,
+				      cluster->name, cluster->size);
+			file->flags |= SWF_DIRTY;
+			cluster_addfileref(cluster, file->name);
+			unclean = 1;
 		}
-		if (cluster->files_cnt == 0)
-			fixed_something = 1;
 		cluster_put(cluster, CLUSTERPUT_FREE);
 	}
+	if (file)
+		file_put(file, FILEPUT_SYNC);
 	closedir(dir);
 
-	return fixed_something;
+	return unclean;
 }
 
 /* Tries to recover from an "unclean shutdown". */
@@ -334,7 +477,7 @@ int swapfile_fsck(const char *name, int force)
 {
 	char str[256];
 	FILE *f;
-	int pid;
+	int pid, cnt, unclean;
 	SWDIR *dir;
 	long nm;
 
@@ -385,8 +528,8 @@ int swapfile_fsck(const char *name, int force)
 	 * integrity. */
 	swap.fsck = 1;
 
-	/* Loop over all clusters and try to get the associated files
-	 * fixing stale references and clusters (AGAIN). */
+	/* Loop over all cluster data/meta files and check if they
+	 * are valid clusters. Try to fix clusters without metadata. */
 	swapfile_fsck_scan_clusters();
 
 	/* Loop over all files and try to "touch" them. */
@@ -398,57 +541,20 @@ int swapfile_fsck(const char *name, int force)
 
 		/* Get the file. */
 		file = file_get(nm, FILEGET_READCLUSTERS);
+		if (!file)
+			continue;
 
-		/* Check internal ctree consistency. */
-		if (ctree_check(file->clusters) == -1)
-			goto killit;
-
-		/* Get all clusters and check file reference and size. */
-		for (i=0; i<file->clusters->cnt; i++) {
-			cluster = cluster_get(CID(file->clusters, i), CLUSTERGET_READFILES, -1);
-
-			/* Not existing cluster? -> remove it from ctree. */
-			if (!cluster) {
-				file->clusters = ctree_remove(file->clusters, i, 1, NULL, NULL);
-				i--;
-				file->flags |= SWF_DIRTY;
-				continue;
-			}
-
-			/* Non-matching size. Fix the ctree. */
-			if (cluster->size != CSIZE(file->clusters, i)) {
-				DPRINTF("Fixing ctree size\n");
-				ctree_replace1(file->clusters, i, CID(file->clusters, i), cluster->size);
-				file->flags |= SWF_DIRTY;
-			}
-
-			/* Check we have a reference on the cluster. */
-			if (cluster_checkfileref(cluster, file->name) == -1)
-				cluster_addfileref(cluster, file->name);
-
-			/* Check the files that are referenced do all exist. */
-			for (j=0; j<cluster->files_cnt; j++) {
-				/* FIXME */
-			}
-
-			cluster_put(cluster, 0);
-		}
+		/* Check it. */
+		unclean |= fsck_file(file, 1);
 
 		/* Finished with the file. */
 		file_put(file, 0);
-		continue;
-
-	killit:
-		/* Delete the file. */
-		file_put(file, FILEPUT_UNLINK);
-		continue;
 	}
 	sw_closedir(dir);
 
-	/* Loop over all clusters and try to get the associated files
-	 * fixing stale references and clusters (AGAIN). */
-	if (swapfile_fsck_scan_clusters())
-		DPRINTF("WARNING! fsck may be incomplete!\n");
+	/* Loop over all clusters and remove stale references to
+	 * non-existing files and wrong references. */
+	swapfile_fsck_fix_cluster_file_references(1);
 
 	swapfile_close();
 
