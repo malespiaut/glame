@@ -306,8 +306,8 @@ static int file_truncate(struct swfile *f, s64 size)
 			if (!(c = cluster_get(CID(f->clusters, f->clusters->cnt-1), CLUSTERGET_READFILES, CSIZE(f->clusters, f->clusters->cnt-1))))
 				PANIC("cannot get cluster");
 			/* Remove the cluster from the tree. */
-			ctree_zero(f->clusters, f->clusters->cnt-1, 1);
-			f->clusters->cnt--;
+			ctree_remove(f->clusters, f->clusters->cnt-1,
+				     1, NULL, NULL);
 			f->flags |= SWF_DIRTY;
 			/* Delete the file reference. */
 			if (cluster_delfileref(c, f->name) == -1)
@@ -637,7 +637,7 @@ static void _file_cluster_truncatetail(struct swfile *f, long cpos, s32 size)
 	if (!(c = cluster_get(CID(f->clusters, cpos), CLUSTERGET_READFILES,
 			      CSIZE(f->clusters, cpos))))
 		PANIC("Cannot get cluster");
-	ch = cluster_truncatetail(c, size);
+	cluster_split(c, size, 0, &ch, NULL);
 	cluster_addfileref(ch, f->name);
 	ctree_replace1(f->clusters, cpos, ch->name, ch->size);
 	if (cluster_delfileref(c, f->name) == -1)
@@ -658,7 +658,7 @@ static void _file_cluster_truncatehead(struct swfile *f, long cpos, s32 size)
 	if (!(c = cluster_get(CID(f->clusters, cpos), CLUSTERGET_READFILES,
 			      CSIZE(f->clusters, cpos))))
 		PANIC("Cannot get cluster");
-	ct = cluster_truncatehead(c, size);
+	cluster_split(c, c->size - size, 0, NULL, &ct);
 	cluster_addfileref(ct, f->name);
 	ctree_replace1(f->clusters, cpos, ct->name, ct->size);
 	if (cluster_delfileref(c, f->name) == -1)
