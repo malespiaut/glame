@@ -1,10 +1,7 @@
-
-
-
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.14 2000/03/21 15:22:07 xwolf Exp $
+ * $Id: canvas.c,v 1.15 2000/03/24 15:43:19 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -166,17 +163,13 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	
 }
 
-void 
-launch_network(GtkWidget *button,gui_network*net)
-{
-	filternetwork_launch(net->net);
-	net->paused=FALSE;
-}
 
 void 
 play_network(GtkWidget *button,gui_network*net)
 {
+	filternetwork_launch(net->net);
 	filternetwork_start(net->net);
+	net->paused = FALSE;
 }
 
 void 
@@ -194,7 +187,6 @@ pause_network(GtkWidget *button,gui_network*net)
 void 
 stop_network(GtkWidget *button,gui_network*net)
 {
-	
 	filternetwork_terminate(net->net);
 }
 
@@ -249,10 +241,6 @@ create_new_canvas(gui_network* net)
 	
 	gtk_container_add(GTK_CONTAINER(item),buttonbox);
 	gnome_dock_add_item(dock,item,GNOME_DOCK_BOTTOM,1,0,0,TRUE);
-
-	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_EXEC),"Launch");
-	gtk_container_add(GTK_CONTAINER(buttonbox),button);
-	gtk_signal_connect(GTK_OBJECT(button),"clicked",launch_network,net);
 
 	button = gnome_pixmap_button(gnome_stock_pixmap_widget(window,GNOME_STOCK_PIXMAP_FORWARD),"Play");
 	gtk_container_add(GTK_CONTAINER(buttonbox),button);
