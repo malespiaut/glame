@@ -27,6 +27,7 @@
 #include "gtkwaveview.h"
 #include "gtkeditablewavebuffer.h"
 #include "grange.h"
+#include "util.h"
 
 
 static void gtk_wave_view_class_init    (GtkWaveViewClass *klass);
@@ -509,19 +510,25 @@ gtk_wave_view_redraw_wave (GtkWaveView *waveview)
                 }
             }
 
-	  /* Be nice to the user */
-	  while (gtk_events_pending()) {
-	    gtk_main_iteration();
-	    if (waveview->expose_count != 0) {
-	      GdkRectangle notdone, temp;
-	      gint32 offdiff;
-	      offdiff = offset - (-calc_win_pel_pos(waveview, 0));
-	      notdone.x = min_val + count + offdiff;
-	      notdone.width = max_val + 1 - (min_val + count) + offdiff;
-	      gdk_rectangle_union(&waveview->expose_area, &notdone, &temp);
-	      waveview->expose_area = temp;
-	      return;
-	    }
+	  /* Be nice to the user. */
+	  if (gtk_events_pending()) {
+		  /* Handle all pending events => stall redrawing. */
+		  while (gtk_events_pending())
+			  gtk_main_iteration();
+		  /* If any of them were expose events, bail out,
+		   * correcting the exposed region. */
+		  if (waveview->expose_count > 0) {
+			  GdkRectangle notdone, temp;
+			  gint32 offdiff;
+			  offdiff = (int)offset - (-calc_win_pel_pos(waveview, 0));
+			  notdone.y = waveview->expose_area.y;
+			  notdone.height = waveview->expose_area.height;
+			  notdone.x = MAX(0, (int)min_val + (int)count + (int)offdiff);
+			  notdone.width = max_val + 1  -  (min_val + count);
+			  gdk_rectangle_union(&waveview->expose_area, &notdone, &temp);
+			  waveview->expose_area = temp;
+			  return;
+		  }
 	  }
 
           /* Increment position in data source. */
@@ -813,6 +820,17 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
   if (!GTK_WIDGET_REALIZED (waveview->area))
     return;
 
+  /*
+   * FIXME: The following is wrong, i.e. without a backingstore
+   *        like a pixmap just garbage gets copied, if part of
+   *        the source region is occluded by another window.
+   *        Change #if 0 to #if 1 if you prefer slow and flickering
+   *        but correct operation.
+   */
+
+#if 0
+  gtk_widget_queue_draw (GTK_WIDGET (waveview->area));
+#else
   if (offset > waveview->drawn_offset)
     {
       /* Find out how many pixels we moved. */
@@ -841,6 +859,7 @@ gtk_wave_view_scroll (GtkWidget *widget, gpointer data)
           gtk_wave_view_redraw_area (waveview, 0, shift);
         }
     }
+#endif
 }
 
 /* The meaning of the different flags. */
