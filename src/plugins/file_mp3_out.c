@@ -1,6 +1,6 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.12 2004/12/03 21:14:59 ochonpaul Exp $
+ * $Id: file_mp3_out.c,v 1.13 2004/12/25 19:29:35 richi Exp $
  *
  * Copyright (C) 2004 Richard Guenther, Laurent Georget
  *
@@ -93,8 +93,8 @@ static int write_mp3_file_f(filter_t * n)
 				filter_paramdb(n), "lame encoding bitrate"));
         if (bitrate < 0 || bitrate > 13)
 		FILTER_ERROR_RETURN("Unsupported bitrate");
-	bitrate = (int[]){ 32, 40, 48, 56, 64, 80, 96, 112,
-			   128, 160, 192, 224, 256, 320 }[bitrate];
+	bitrate = ((int[]){ 32, 40, 48, 56, 64, 80, 96, 112,
+			   128, 160, 192, 224, 256, 320 })[bitrate];
 	DPRINTF("bitrate %i\n", bitrate);
 	if (!(track = ALLOCN(channelCount, track_t)))
 		FILTER_ERROR_RETURN("no memory");

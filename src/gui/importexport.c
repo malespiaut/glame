@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.46 2004/12/22 21:55:08 ochonpaul Exp $
+ * $Id: importexport.c,v 1.47 2004/12/25 19:29:35 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -629,11 +629,12 @@ static int ie_update_plabels(struct imp_s *ie)
 	fparam = filterparamdb_get_param(filter_paramdb(ie->readfile), "filename");
 	property = filterparam_get_property(fparam, "#format");
 	if (property) {
+		const char *label;
 		sscanf(property, "%d %d", &ftype, &version);
 		DPRINTF("format property: %s, ftype=%d, version=%d\n",
 			property, ftype, version);
-		const char *label = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL,
-						   ftype,0 ,0);
+		label = afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL,
+				       ftype,0 ,0);
 		sprintf(buffer, "%s format", label ? label : "unknown");
 	} else
 		return -1;
@@ -1620,7 +1621,11 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 #ifdef HAVE_LIBVORBISFILE
 	GtkWidget *boxtags3,*boxtags4, *frame16, *frame16box,*frame17, *frame17box ,*frame18, *frame18box  ,*frame19, *frame19box,*frame20, *frame20box,*frame21, *frame21box, *frame22, *frame22box, *frame23, *frame23box, *frame24, *frame24box, *frame25, *frame25box,*frame26, *frame26box;
 #endif
-
+	char *string[10]={"0 best,slow","1","2 recommended","3","4","5 standard","6","7","8","9 worst"};
+	char *string2[4]={"0 stereo","1 joint stereo","2 dual mono","3 mono"};
+	char *string3[14]={"32","40","48","56","64","80","96","112","128","160","192","224","256","320"};
+	char *string4[2]={"stereo","mono"};
+	char *string5[11]={"0 (roughly 64kb/s)","1 (roughly 80kb/s)","2 (roughly 96kb/s)","3 (roughly 112kb/s)","4 (roughly 128kb/s)","5 (roughly 160kb/s)","6 (roughly 192kb/s)","7 (roughly 224kb/s)","8 (roughly 256kb/s)","9 (roughly 320kb/s)","10 (roughly 500kb/s)"};
 
 
 	/* alloc exp structure. */
@@ -1805,10 +1810,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show (frame6box);
 	gtk_container_add(GTK_CONTAINER(frame6), frame6box);
 	ie->quality_select = gtk_combo_box_new_text ();
-	char *string[10]={"0 best,slow","1","2 recommended","3","4","5 standard","6","7","8","9 worst"};
 	for (i=0 ;i<10; i++) {
 		gtk_combo_box_append_text (GTK_COMBO_BOX (ie->quality_select ),string[i]);
-	 	}
+	}
 	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->quality_select), 2);
 	gtk_box_pack_start (GTK_BOX(frame6box), ie->quality_select, TRUE, TRUE, 0);
 	gtk_widget_show (ie->quality_select);
@@ -1821,10 +1825,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show (frame7box);
 	gtk_container_add(GTK_CONTAINER(frame7), frame7box);
 	ie->mode_select = gtk_combo_box_new_text ();
-	char *string2[4]={"0 stereo","1 joint stereo","2 dual mono","3 mono"};
 	for (i=0 ;i<4; i++) {
 		gtk_combo_box_append_text (GTK_COMBO_BOX (ie->mode_select ),string2[i]);
-		}
+	}
 	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->mode_select), 1);
 	gtk_box_pack_start (GTK_BOX (frame7box), ie->mode_select, TRUE, TRUE, 0);
 	gtk_widget_show (ie->mode_select);
@@ -1838,10 +1841,9 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_container_add(GTK_CONTAINER(frame8), frame8box);
 	ie->bitrate_select = gtk_combo_box_new_text ();
 
-	char *string3[14]={"32","40","48","56","64","80","96","112","128","160","192","224","256","320"};
 	for (i=0 ;i<14; i++) {
 		gtk_combo_box_append_text (GTK_COMBO_BOX (ie->bitrate_select ),string3[i]);
-	 	}
+	}
 	gtk_combo_box_set_active (GTK_COMBO_BOX (ie->bitrate_select), 8);
 	gtk_box_pack_start (GTK_BOX (frame8box), ie->bitrate_select, TRUE, TRUE, 0);
 	gtk_widget_show (ie->bitrate_select);
@@ -1951,7 +1953,6 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show (frame24box);
 	gtk_container_add(GTK_CONTAINER(frame24), frame24box);
 	ie->quality_select_ogg = gtk_combo_box_new_text ();
-	char *string5[11]={"0 (roughly 64kb/s)","1 (roughly 80kb/s)","2 (roughly 96kb/s)","3 (roughly 112kb/s)","4 (roughly 128kb/s)","5 (roughly 160kb/s)","6 (roughly 192kb/s)","7 (roughly 224kb/s)","8 (roughly 256kb/s)","9 (roughly 320kb/s)","10 (roughly 500kb/s)"};
 	for (i=0 ;i<11; i++) {
 	  gtk_combo_box_append_text (GTK_COMBO_BOX (ie->quality_select_ogg ),string5[i]);
 	}
@@ -1967,7 +1968,6 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	gtk_widget_show (frame17box);
 	gtk_container_add(GTK_CONTAINER(frame17), frame17box);
 	ie->mode_select_ogg = gtk_combo_box_new_text ();
-	char *string4[2]={"stereo","mono"};
 	for (i=0 ;i<2; i++) {
 	  gtk_combo_box_append_text (GTK_COMBO_BOX (ie->mode_select_ogg ),string4[i]);
 	  

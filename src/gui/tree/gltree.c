@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.8 2004/12/23 23:12:23 richi Exp $
+ * $Id: gltree.c,v 1.9 2004/12/25 19:29:35 richi Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -772,6 +772,7 @@ static void copyselected_cb(GtkWidget *menu, gpointer which)
 	GtkTreeIter *dest_iter = (GtkTreeIter *)which, selected_iter;
 	GtkTreeModel *model = GTK_TREE_MODEL(gltree_store);
 	GtkTreeSelection *selection;
+	gpsm_item_t *copy;
 
 	dest_item = glame_gpsm_store_get_item(dest_iter);
 	if (!GPSM_ITEM_IS_GRP(dest_item))
@@ -782,8 +783,6 @@ static void copyselected_cb(GtkWidget *menu, gpointer which)
 	  return;
 	selected_item = glame_gpsm_store_get_item(&selected_iter);
 	
-	gpsm_item_t *copy;
-
 	/* Dont allow copying myself into myself. */
 	if (selected_item == dest_item)
 	  return;
