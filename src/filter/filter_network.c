@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.33 2000/03/21 14:14:07 richi Exp $
+ * $Id: filter_network.c,v 1.34 2000/03/23 16:31:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -212,7 +212,7 @@ int filternetwork_launch(filter_network_t *net)
 {
 	sigset_t sigs;
 
-	if (!net || FILTERNETWORK_IS_RUNNING(net))
+	if (!net || FILTERNETWORK_IS_LAUNCHED(net))
 		return -1;
 
 	/* block EPIPE */
@@ -232,6 +232,7 @@ int filternetwork_launch(filter_network_t *net)
 	if (net->node.ops->launch(FILTER_NODE(net)) == -1)
 		goto out;
 
+	net->launch_context->state = STATE_LAUNCHED;
 	DPRINTF("all nodes launched.\n");
 
 	return 0;
@@ -245,13 +246,15 @@ int filternetwork_launch(filter_network_t *net)
 
 int filternetwork_start(filter_network_t *net)
 {
-	if (!net || !FILTERNETWORK_IS_RUNNING(net))
+	if (!net || !FILTERNETWORK_IS_LAUNCHED(net)
+	    || FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
 	sem_op(net->launch_context->semid, 0,
 	       -net->launch_context->nr_threads);
 	if (ATOMIC_VAL(net->launch_context->result) != 0)
 		goto out;
+	net->launch_context->state = STATE_RUNNING;
 
 	return 0;
 
@@ -263,11 +266,13 @@ out:
 
 int filternetwork_pause(filter_network_t *net)
 {
-	if (!net || !FILTERNETWORK_IS_RUNNING(net))
+	if (!net || !FILTERNETWORK_IS_LAUNCHED(net)
+	    || !FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
 	sem_op(net->launch_context->semid, 0,
 	       +net->launch_context->nr_threads);
+	net->launch_context->state = STATE_LAUNCHED;
 
 	return 0;
 }
@@ -276,7 +281,8 @@ int filternetwork_wait(filter_network_t *net)
 {
 	int res;
 
-	if (!net || !FILTERNETWORK_IS_RUNNING(net))
+	if (!net || !FILTERNETWORK_IS_LAUNCHED(net)
+	    || !FILTERNETWORK_IS_RUNNING(net))
 		return -1;
 
 	res = net->node.ops->wait(FILTER_NODE(net));
@@ -290,10 +296,11 @@ int filternetwork_wait(filter_network_t *net)
 
 void filternetwork_terminate(filter_network_t *net)
 {
-	if (!net || !FILTERNETWORK_IS_RUNNING(net))
+	if (!net || !FILTERNETWORK_IS_LAUNCHED(net))
 		return;
 	atomic_set(&net->launch_context->result, 1);
 	sem_zero(net->launch_context->semid, 0);
+	net->launch_context->state = STATE_RUNNING;
 
 	/* "safe" cleanup */
 	filternetwork_wait(net);
@@ -322,7 +329,7 @@ void filternetwork_delete(filter_network_t *net)
 {
 	filter_t *f;
 
-	if (FILTERNETWORK_IS_RUNNING(net))
+	if (FILTERNETWORK_IS_LAUNCHED(net))
 		return;
 
 	f = net->node.filter;
@@ -359,7 +366,7 @@ filter_node_t *filternetwork_add_node(filter_network_t *net,
 
 void filternetwork_delete_node(filter_node_t *node)
 {
-	if (FILTERNODE_IS_RUNNING(node))
+	if (FILTERNODE_IS_LAUNCHED(node))
 		return;
 
 	list_remove_node(node);
@@ -377,7 +384,7 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	if (!source || !source_port || !dest || !dest_port
 	    || source->net != dest->net)
 		return NULL;
-	if (FILTERNODE_IS_RUNNING(source))
+	if (FILTERNODE_IS_LAUNCHED(source))
 		return NULL;
 
 	/* are there ports with the specified names? */
@@ -432,7 +439,7 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 
 void filternetwork_break_connection(filter_pipe_t *p)
 {
-	if (FILTERNODE_IS_RUNNING(p->source))
+	if (FILTERNODE_IS_LAUNCHED(p->source))
 		return;
 
 	/* disconnect the pipe */

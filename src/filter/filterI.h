@@ -194,7 +194,7 @@ struct filter_pipe {
         filter_paramdesc_t, list)
 
 
-
+#define STATE_RUNNING 3
 typedef struct {
 	int nr_threads;
 
@@ -306,9 +306,9 @@ struct filter_network {
 #define FILTER_NETWORK(node) ((filter_network_t *)(node))
 #define FILTER_NODE(net) (&(net)->node)
 
-#define FILTERNODE_IS_RUNNING(node) ((node)->state == STATE_LAUNCHED)
-#define FILTERNETWORK_IS_RUNNING(net) ((net)->node.state == STATE_LAUNCHED)
-
+#define FILTERNODE_IS_LAUNCHED(node) ((node)->state >= STATE_LAUNCHED)
+#define FILTERNETWORK_IS_LAUNCHED(net) ((net)->node.state >= STATE_LAUNCHED)
+#define FILTERNETWORK_IS_RUNNING(net) ((net)->launch_context->state >= STATE_RUNNING)
 
 /* helper to create automagically unique node names.
  */

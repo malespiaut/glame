@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.9 2000/03/21 09:39:26 richi Exp $
+ * $Id: filter_ops.c,v 1.10 2000/03/23 16:31:04 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -85,7 +85,7 @@ static void *launcher(void *node)
 		n->name, n->glerrstr);
 
 	/* allow failure of "unused" nodes (without connections) */
-	if (n->nr_inputs != 0 && n->nr_outputs != 0) {
+	if (n->nr_inputs != 0 || n->nr_outputs != 0) {
 		/* signal net failure */
 		atomic_inc(&n->net->launch_context->result);
 	} else {
