@@ -98,6 +98,8 @@ static pthread_mutex_t clustersmx;
 #define LOCKCLUSTER(c) do { pthread_mutex_lock(&c->mx); } while (0)
 #define UNLOCKCLUSTER(c) do { pthread_mutex_unlock(&c->mx); } while (0)
 
+/* Flag, if we initialized the cache parameters already. */
+static int clusters_cache_set = 0;
 
 /* The internal helpers (with no locking) */
 static int __cluster_meta_open(long name, int flags);
@@ -159,6 +161,7 @@ static inline int swwrite(int fd, const void *buf, size_t count)
 
 void swcluster_set_cache(int maxlru, int maxfds, int maxmaps, size_t maxvm)
 {
+	clusters_cache_set = 1;
 	clustersmaxlru = MAX(256, MIN(32768, maxlru));
 	clusters_maplru_maxcnt = MAX(32, MIN(2048, maxmaps));
 	clusters_maxmappedsize = MAX(16*1024*1024, MIN(1024*1024*1024, maxvm));
@@ -168,26 +171,24 @@ void swcluster_set_cache(int maxlru, int maxfds, int maxmaps, size_t maxvm)
 static int cluster_init(int maxlru, int maxfds,
  			int maxmaps, size_t maxvm)
 {
+	/* Update maximas if not set before. */
+	if (!clusters_cache_set)
+		swcluster_set_cache(maxlru, maxfds, maxmaps, maxvm);
+
         /* Init the clusters lru - unused clusters only. */
-	clustersmaxlru = MAX(256, MIN(32768, maxlru));
 	clusterslrucnt = 0;
 	GLAME_INIT_LIST_HEAD(&clusterslru);
 	pthread_mutex_init(&clustersmx, NULL);
 	
 	/* Init the mappings lru - unused maps only. */
-	clusters_maplru_maxcnt = MAX(32, MIN(2048, maxmaps));
 	clusters_maplru_cnt = 0;
 	GLAME_INIT_LIST_HEAD(&clusters_maplru);
 	pthread_mutex_init(&mappingsmx, NULL);
-	clusters_maxmappedsize = MAX(16*1024*1024, MIN(1024*1024*1024, maxvm));
 
 	/* Init the fd lru - all fds. */
-	clusters_fdlru_maxcnt = MAX(16, MIN(1024, maxfds));
 	clusters_fdlru_cnt = 0;
 	GLAME_INIT_LIST_HEAD(&clusters_fdlru);
 	pthread_mutex_init(&fdsmx, NULL);
-
-	swcluster_set_cache(maxlru, maxfds, maxmaps, maxvm);
 
 	/* Initialize random number generator. */
 	srand(getpid());
