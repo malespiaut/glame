@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.75 2001/07/26 14:43:57 richi Exp $
+ * $Id: main.c,v 1.76 2001/07/27 08:39:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -59,30 +59,31 @@ static void edit_file_cb(GtkWidget *menu, void *data);
 static void show_console_cb(GtkWidget *menu, void *blah);
 static void emptytrash_cb(GtkWidget *menu, void *blah);
 static void sync_cb(GtkWidget *menu, void *blah);
-static void new_network_cb(GtkWidget *menu, void *blah);
 static void gui_quit(GtkWidget *widget, gpointer data);
 static void preferences_cb(GtkWidget *menu,void *blah);
 static GtkWidget* glame_about(void);
-extern void glame_load_network(GtkWidget *bla, void *blu);
-static void load_plugin_cb(GtkWidget* foo, void *bar);
 /* Menus. */
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
 	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
 	GNOMEUIINFO_ITEM (_("Edit File..."), "Imports a file and opens the waveedit window", edit_file_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM(N_("_Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
+	GNOMEUIINFO_ITEM (_("Empty [deleted]"), "Kills [deleted] folder", emptytrash_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM (_("Show _console"), "Shows the GLAME console", show_console_cb, NULL),
 	GNOMEUIINFO_ITEM (_("Sync"), "Syncs meta to disk", sync_cb, NULL),
-	GNOMEUIINFO_ITEM (_("Empty [deleted]"), "Kills [deleted] folder", emptytrash_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
 };
 
+static void new_network_cb(GtkWidget *menu, void *blah);
+extern void glame_load_network(GtkWidget *bla, void *blu);
+static void load_plugin_cb(GtkWidget* foo, void *bar);
 static GnomeUIInfo filter_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM(N_("_New Filternetwork"),"Creates a new filternetwork", new_network_cb,NULL),
-	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network,NULL),
+	GNOMEUIINFO_MENU_NEW_ITEM(N_("New Filternetwork"), "Creates a new filternetwork", new_network_cb, NULL),
+	GNOMEUIINFO_MENU_OPEN_ITEM(glame_load_network, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM(N_("Load Plugin"),"Loads and registers a plugin", load_plugin_cb,NULL),
 	GNOMEUIINFO_END
 };
 
