@@ -29,6 +29,7 @@ static int plugins_register()
         plugin_get("noisegate");
 	plugin_get("pipe");
 	plugin_get("iir");
+	plugin_get("ladspa");
 
 	return 0;
 }

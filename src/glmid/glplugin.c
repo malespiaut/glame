@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.13 2000/05/16 12:01:59 richi Exp $
+ * $Id: glplugin.c,v 1.14 2000/05/16 16:25:56 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -78,7 +78,7 @@ int plugin_add_path(const char *path)
 /* The plugin stuff itself.
  */
 
-static plugin_t *alloc_plugin(const char *name)
+/*static*/ plugin_t *alloc_plugin(const char *name)
 {
 	plugin_t *p;
 
@@ -96,7 +96,7 @@ static plugin_t *alloc_plugin(const char *name)
 	return p;
 }
 
-static void free_plugin(plugin_t *p)
+/*static*/ void free_plugin(plugin_t *p)
 {
 	if (!p)
 		return;
@@ -108,7 +108,7 @@ static void free_plugin(plugin_t *p)
 	free(p);
 }
 
-int add_plugin(plugin_t *p)
+/*static*/ int add_plugin(plugin_t *p)
 {
 	/* atomic check if name is occupied & add */
 	hash_lock();
