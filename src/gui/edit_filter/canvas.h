@@ -5,7 +5,7 @@
 /*
  * canvas.h
  *
- * $Id: canvas.h,v 1.4 2000/12/12 16:11:05 xwolf Exp $
+ * $Id: canvas.h,v 1.5 2000/12/13 16:26:51 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -101,7 +101,7 @@ struct _GlameCanvasItem
 	gboolean connecting;
 	
 	GlameConnection *connection;
-
+	GList *property_texts;
 	GList *input_ports,*output_ports;
 };
 

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.17 2000/12/13 14:29:51 xwolf Exp $
+ * $Id: canvas.c,v 1.18 2000/12/13 16:26:51 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -140,6 +140,57 @@ edit_canvas_pipe_dest_properties_cb(GtkWidget* bla, GlameConnection* conn)
 				    filterport_label(conn->end->port));
 }
 
+void 
+glame_canvas_item_show_props(GnomeCanvasItem * item)
+{
+	GnomeCanvasText * text;
+	filter_param_t * iter;
+	
+	float y_coord=88.0;
+	char buffer[100];
+	if(GLAME_CANVAS_ITEM(item->parent)->property_texts){
+		DPRINTF("props != zero!\n");
+		return;
+	}
+	filterparamdb_foreach_param(filter_paramdb(GLAME_CANVAS_ITEM(item->parent)->filter),iter){
+		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
+		fprintf(stderr,"%s\n",buffer);
+		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
+					     gnome_canvas_text_get_type(),
+					     "x",48.0,
+					     "y",y_coord,
+					     "text",buffer,
+					     "clip_width",94.0,
+					     "clip_height",16.0,
+					     "fill_color","black",
+					     "anchor",GTK_ANCHOR_NORTH,
+					     "justification",GTK_JUSTIFY_CENTER, // GTK_JUSTIFY_LEFT doesn't work?? why??? wtf?? gnomeui broken?? Me stupid??
+					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					     "clip",0,
+					     NULL);
+		y_coord+=16.0;
+		GLAME_CANVAS_ITEM(item->parent)->property_texts = g_list_append(GLAME_CANVAS_ITEM(item->parent)->property_texts,text);
+		
+	}
+}
+
+void
+empty_props_list(GnomeCanvasItem* item,void* bla)
+{
+	gtk_object_destroy(item);
+}
+void 
+glame_canvas_item_hide_props(GnomeCanvasItem * item)
+{
+	GnomeCanvasText * text;
+	if(!GLAME_CANVAS_ITEM(item->parent)->property_texts){
+		DPRINTF("props == zero!\n");
+		return;
+	}
+	g_list_foreach(GLAME_CANVAS_ITEM(item->parent)->property_texts,empty_props_list,NULL);
+	g_list_free(GLAME_CANVAS_ITEM(item->parent)->property_texts);
+	GLAME_CANVAS_ITEM(item->parent)->property_texts=NULL;
+}
 
 gint
 image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
@@ -157,9 +208,11 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
+		glame_canvas_item_show_props(item);
 		break;
 	case GDK_LEAVE_NOTIFY:
 		inItem=0;
+		glame_canvas_item_hide_props(item);
 		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){

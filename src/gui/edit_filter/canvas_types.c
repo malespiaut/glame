@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.4 2000/12/11 17:35:32 xwolf Exp $
+ * $Id: canvas_types.c,v 1.5 2000/12/13 16:26:51 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -175,7 +175,7 @@ glame_canvas_item_init (GlameCanvasItem *item)
 {
 	item->filter=NULL;
 	item->dragging = FALSE;
-	
+	item->property_texts=NULL;
 	item->output_ports=NULL;
 	item->input_ports=NULL;
 }
