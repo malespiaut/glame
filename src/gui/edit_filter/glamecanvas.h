@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.5 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.6 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -97,6 +97,8 @@ void glame_canvas_property_dialog(GlameCanvas* canv);
 void glame_canvas_set_zoom(GlameCanvas* canv, double pixelPerPoint);
 double glame_canvas_get_zoom(GlameCanvas* canv);
 void glame_canvas_view_all(GlameCanvas* canv);
+
+void glame_canvas_redraw(GlameCanvas *canv);
 
 void glame_canvas_draw_errors(GlameCanvas *canv);
 void glame_canvas_reset_errors(GlameCanvas *canv);

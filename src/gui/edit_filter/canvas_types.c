@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.22 2001/04/20 08:10:23 richi Exp $
+ * $Id: canvas_types.c,v 1.23 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -201,7 +201,8 @@ glame_canvas_destroy (GtkObject *object)
 static void
 glame_canvas_port_destroy (GtkObject *object)
 {
-	GTK_OBJECT_CLASS (parent_class)->destroy (object);
+	//gtk_object_destroy(object);
+//  GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }
 
 GtkWidget * 

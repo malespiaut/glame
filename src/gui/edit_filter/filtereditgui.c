@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.9 2001/05/28 09:19:50 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.10 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -44,12 +44,12 @@ static GlameCanvas *glcanvas;
 
 
 void glame_canvas_execute_cb(GtkObject*foo, GlameCanvas* canv);
-void glame_canvas_register_cb(GtkObject* foo, GlameCanvas* canv){}
-void glame_canvas_save_as_cb(GtkObject* foo, GlameCanvas* canv){}
+static void glame_canvas_register_cb(GtkWidget* ignore, GlameCanvas* canv);
+static void glame_canvas_save_as_cb(GtkWidget* ignore, GlameCanvas* canv);
 void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv);
-void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv){}
-void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv){}
-void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv){}
+void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv);
+void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv);
+void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv);
 
 void window_close(GtkWidget *dummy, GtkWidget* window)
 {
@@ -469,3 +469,70 @@ glame_filtereditgui_reset_error(GlameCanvas* canv)
 {
 	glame_canvas_reset_errors(canv);
 }
+
+static void glame_canvas_save_as_cb(GtkWidget*ignore,GlameCanvas *canvas)
+{
+	GtkWidget *dialog;
+	GtkWidget *dialogVbox;
+	char filenamebuffer[256] = "";
+	char filternamebuffer[256] = "unnamed";
+	char categorynamebuffer[256] = "unnamed";
+	char *buffer;
+	FILE* outf;
+
+	/* Open a file request dialog with additional fields for
+	 * filter name and category. */
+	dialog = glame_dialog_file_request("Save network as...",
+					   "editfilter:saveas", "Filename",
+					   NULL, filenamebuffer);
+	dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+	create_label_edit_pair(dialogVbox, "Filter name",
+			       "editfilter:saveas:name", filternamebuffer);
+	create_label_edit_pair(dialogVbox, "Category",
+			       "editfilter:saveas:category", categorynamebuffer);
+	if (!gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
+		return;
+
+	if (!filenamebuffer[0]
+	    || !filternamebuffer[0]
+	    || !categorynamebuffer[0]) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Empty file/filter or category name")));
+		return;
+	}
+
+	outf = fopen(filenamebuffer,"w");
+	buffer = filter_to_string(GLAME_CANVAS(canvas)->net);
+	DPRINTF("Network .scm is:\n%s\n", buffer);
+	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
+	free(buffer);
+	fclose(outf);
+}
+
+static void glame_canvas_register_as_cb(gchar* name, GlameCanvas* glCanv)
+{
+	plugin_t *newplug;
+	filter_t *copy;
+	filter_t * bla = GLAME_CANVAS(glCanv)->net;
+	
+	newplug = plugin_add(name);
+	copy = filter_creat(bla);
+//	crac_kill_rec(copy);
+	filter_register(copy,newplug);
+}
+
+static void glame_canvas_register_cb(GtkWidget*ignore, GlameCanvas* canvas)
+{
+	
+	gnome_request_dialog(0,"Filtername","filter",16,(GnomeStringCallback)glame_canvas_register_as_cb,canvas,NULL);
+}
+
+void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv)
+{
+	glame_canvas_set_zoom(canv,GNOME_CANVAS(canv)->pixels_per_unit*1.5);
+}
+void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv)
+{
+	glame_canvas_set_zoom(canv,GNOME_CANVAS(canv)->pixels_per_unit/1.5);
+}
+void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv){}

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.90 2001/05/22 09:37:44 richi Exp $
+ * $Id: canvas.c,v 1.91 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1368,8 +1368,10 @@ canvas_connection_destroy(glsig_handler_t* foo,long sig,va_list va)
 	connection = glsig_handler_private(foo);
 	connection->begin->connected_ports=g_list_remove(connection->begin->connected_ports,connection);
 	connection->end->connected_ports=g_list_remove(connection->end->connected_ports,connection);
-	gtk_object_destroy(GTK_OBJECT(connection->line));
-	gtk_object_destroy(GTK_OBJECT(connection->circle));
+	if(!GTK_OBJECT_DESTROYED(GTK_OBJECT(connection->line)))
+		gtk_object_destroy(GTK_OBJECT(connection->line));
+	if(!GTK_OBJECT_DESTROYED(GTK_OBJECT(connection->circle)))
+		gtk_object_destroy(GTK_OBJECT(connection->circle));
 	canvas_outout_port_reorder_connections(connection->end);
 	canvas_input_port_reorder_connections(connection->begin);
 	free (connection);

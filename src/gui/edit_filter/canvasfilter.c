@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.8 2001/05/28 09:19:50 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.9 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -445,7 +445,7 @@ glame_canvas_filter_redraw(GlameCanvasFilter *filter)
 
 	/* redraw label with right size */
 
-	gnome_canvas_item_set(GNOME_CANVAS_ITEM(filter),
+	gnome_canvas_item_set(GNOME_CANVAS_ITEM(filter->label),
 			      "font",glame_gui_get_font(GLAME_CANVAS(GNOME_CANVAS_ITEM(filter)->canvas)),
 			      NULL);
 	
@@ -816,6 +816,19 @@ static GnomeUIInfo node_menu[]=
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
+	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
+//	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo node_menu_network[]=
+{
+	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
+	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
 	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
@@ -852,7 +865,11 @@ glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter
 			break;
 		case 3:
 			/* popup menu */
-			menu = gnome_popup_menu_new(node_menu);
+			/* check for network */
+			if(FILTER_IS_NETWORK(filter->filter))
+				menu = gnome_popup_menu_new(node_menu_network);
+			else
+				menu = gnome_popup_menu_new(node_menu);
 			gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,filter);
 			break;	
 		default:

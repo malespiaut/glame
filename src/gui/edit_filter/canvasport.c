@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.7 2001/05/28 09:19:50 xwolf Exp $
+ * $Id: canvasport.c,v 1.8 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -75,10 +75,11 @@ glame_canvas_port_connections_changed_cb(GlameCanvasPort *p, gpointer userdata)
 		gPipe = glame_canvas_find_pipe(pipe);
 		if(gPipe){
 			if(filterport_is_input(p->port)){
-				gPipe->sourceId = count++;
+				gPipe->destId = count++;
 			}else{
 				if(filterport_is_output(p->port)){
-					gPipe->destId = count++;
+					gPipe->sourceId = count++;
+
 				}
 			}
 		}
@@ -203,7 +204,7 @@ glame_canvas_port_grabbing_cb(GnomeCanvasLine* line, GdkEvent* event, GlameCanva
 	GlameCanvasPort* otherPort;
 	double eventx, eventy;
 	filter_pipe_t* pipe;
-	
+	double pixperunt;
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		
@@ -228,8 +229,7 @@ glame_canvas_port_grabbing_cb(GnomeCanvasLine* line, GdkEvent* event, GlameCanva
 		gtk_object_destroy(GTK_OBJECT(line));
 		canvas = CANVAS_ITEM_CANVAS(line);
 		
-		gnome_canvas_c2w(canvas,event->button.x,event->button.y,&eventx,&eventy);
-		item = gnome_canvas_get_item_at(canvas, eventx,eventy);
+		item = gnome_canvas_get_item_at(canvas, event->button.x,event->button.y);
 		if(item){
 			if(GLAME_IS_CANVAS_PORT(item)){
 				/* kool. found other port */

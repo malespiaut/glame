@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.6 2001/05/17 22:38:36 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.7 2001/05/28 13:07:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -241,18 +241,21 @@ void glame_canvas_marshal_NONE__DOUBLE_DOUBLE(GtkObject* obj,
 }
 	
 
+/* returns a newly allocated string identifier. */
 char* 
 glame_gui_get_font(GlameCanvas* canv)
 {
-	/* HACK */
-	return strdup("-adobe-helvetica-medium-r-normal-*-12-120-*-*-p-*-iso8859-1");
+	
+	char * fontbuffer = malloc(256);
+	sprintf(fontbuffer,"-adobe-helvetica-medium-r-normal-*-%d-120-*-*-p-*-iso8859-1",
+		(int)(GNOME_CANVAS(canv)->pixels_per_unit*12.0));
+	return fontbuffer;
 }
 
 
 GdkImlibImage*
 glame_gui_get_icon_from_filter(filter_t *filter)
 {
-	/* HACK */
 	return glame_load_icon(plugin_query(filter->plugin, PLUGIN_PIXMAP));
 
 }
@@ -282,6 +285,16 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 	return glame_canvas_add_filter(canv, filter);
 }
 
+void glame_canvas_redraw(GlameCanvas *canv)
+{
+	filter_t *node;
+	filter_foreach_node(canv->net,node){
+		glame_canvas_filter_redraw(glame_canvas_find_filter(node));
+	}
+}
+
+
+/* FIXME! these two are completely useless */
 
 void glame_canvas_draw_errors(GlameCanvas *canv)
 {
@@ -325,4 +338,12 @@ void glame_canvas_group_add_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter
 	glameGroup->children = g_list_append(glameGroup->children,gItem);
 	gtk_signal_connect(gItem, "deleted", glame_canvas_group_remove_item_cb,glameGroup);
 	gtk_signal_connect(gItem, "moved", glame_canvas_group_item_moved_cb,glameGroup);
+}
+
+
+
+void glame_canvas_set_zoom(GlameCanvas * canv, double pixelperpoint)
+{
+	gnome_canvas_set_pixels_per_unit(GNOME_CANVAS(canv),pixelperpoint);
+	glame_canvas_redraw(canv);	
 }
