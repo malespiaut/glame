@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.48 2001/07/31 06:51:07 mag Exp $
+ * $Id: basic_sample.c,v 1.49 2001/07/31 09:22:30 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -812,23 +812,26 @@ int render_register(plugin_t *p)
 static int vadjust_set_param(filter_t *n, filter_param_t *param, const void *val) {
 	float ngain, gain;
 	filter_param_t *anyscale;
-	
+
+	if (n->priv)
+		return 0;
+
 	gain = *((float*)val);
 	
 	if (strcmp("factor", filterparam_label(param))==0) {
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "dbgain");
 		ngain = GAIN2DB(gain);
-		n->set_param = filter_default_set_param;
+		n->priv = param;
 		filterparam_set(anyscale, &ngain);
-		n->set_param = vadjust_set_param;
+		n->priv = NULL;
 	}
 	
 	if (strcmp("dbgain", filterparam_label(param))==0) {
 		anyscale = filterparamdb_get_param(filter_paramdb(n), "factor");
 		ngain = DB2GAIN(gain);
-		n->set_param=filter_default_set_param;
+		n->priv = param;
 		filterparam_set(anyscale, &ngain);
-		n->set_param = vadjust_set_param;
+		n->priv = NULL;
 	}
 	return 0;
 }
