@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.13 2002/01/06 21:50:06 richi Exp $
+ * $Id: normalize.c,v 1.14 2002/01/08 21:43:10 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -441,10 +441,10 @@ void normalize_dialog(struct normalize_s* norms)
 
 static float get_max_rms(task_entry_t* head, gpsm_item_t** item) {
 	task_entry_t* task, *last;
-	float maxrms=0.0;
+	float maxrms=-1.0;
 
 	task = last = head;
-
+	
 	do {
 		if (task->rms > maxrms) {
 			maxrms = task->rms;
@@ -463,20 +463,17 @@ static void analyze_rms(struct normalize_s *ns) {
 	float percentage, mrms;
 	int num = 0;
 	gpsm_item_t* item;
-	char *label;
+	char label[128], string[2048];
 	long done = 0;
 	int bsize;
-	char *string;
 
-	label = alloca(128);
-	string = ALLOCN(2048, char);
-	
 	ote = NULL;
 
-
+	string[0] = '\0';
+	label[127] = '\0';
 	gpsm_grp_foreach_item(ns->grp, item) {
 		num++;
-		snprintf(label, 128, "Analyzing Track %s", gpsm_item_label(item));
+		snprintf(label, 127, "Analyzing Track %s", gpsm_item_label(item));
 		gnome_appbar_set_status(GNOME_APPBAR(ns->appbar), label);
 
 		te =  ALLOC(task_entry_t);
@@ -510,7 +507,7 @@ static void analyze_rms(struct normalize_s *ns) {
 		if (filter_launch(net, GLAME_BULK_BUFSIZE) == -1
 		    || filter_start(net) == -1)
 			goto fail_cleanup;
-
+		
 		param = filterparamdb_get_param(filter_paramdb(swap), 
 						FILTERPARAM_LABEL_POS);
 
@@ -526,8 +523,8 @@ static void analyze_rms(struct normalize_s *ns) {
 			if (ns->running==0)
 				goto cancel_cleanup;
 
-			gnome_appbar_set_progress(GNOME_APPBAR(ns->appbar),
-						  percentage);
+			/*gnome_appbar_set_progress(GNOME_APPBAR(ns->appbar),
+						  percentage);*/
 		}
 		ns->running = 0;
 
@@ -546,22 +543,19 @@ static void analyze_rms(struct normalize_s *ns) {
 
 	strcat(string, "Results:\n");
 	do {
-		snprintf(label, 128, "%s (max rms = %.3f = %.3f dB)\n", gpsm_item_label(task->item), task->rms, GAIN2DB(task->rms));
+		snprintf(label, 127, "%s (max rms = %.3f = %.3f dB)\n", gpsm_item_label(task->item), task->rms, GAIN2DB(task->rms));
 		strcat(string, label);
 		task = glame_list_getnext(&task->list, task, task_entry_t, list);
 	} while ( (task!=last) && (task!=NULL));
-	
 	ns->maxrms = mrms = get_max_rms(te, &item);
-	snprintf(label, 128, "Found maximum rms = %.3f(%.3f dB) in track %s.\n\n", mrms, GAIN2DB(mrms), gpsm_item_label(item));
+	snprintf(label, 127, "Found maximum rms = %.3f(%.3f dB) in track %s.\n\n", mrms, GAIN2DB(mrms), gpsm_item_label(item));
 	strcat(string, label);
 	gtk_text_insert(GTK_TEXT(ns->text), NULL, NULL, NULL, string, strlen(string));
 
-	free(string);
 	ns->changed = 0;
 	return;
 
  cancel_cleanup:
-	free(string);
 	filter_terminate(net);
 	filter_delete(net);
 	gpsm_item_destroy(ns->grp);
@@ -572,7 +566,6 @@ static void analyze_rms(struct normalize_s *ns) {
  fail_cleanup:
 	filter_delete(net);
 	free(te);
-	free(string);
 	return;
 }
 
@@ -580,12 +573,10 @@ static void normalize_do_task(struct normalize_s *ns) {
 	int num;
 	filter_t *net, *vadjust, *swapi, *swapo;
 	filter_param_t	*param;
-	char *label;
+	char label[128];
 	float gain, percentage;
 	long done = 0;
 	gpsm_item_t * item;
-
-	label=alloca(128);
 
 	/* FIXME 
 	   This is probably ok for peak normalizing, but otherwise ?
@@ -684,7 +675,7 @@ static long get_total_size(struct normalize_s *ns) {
 	}
 
 	DPRINTF("%d tracks with total size %ld\n", num, size);
-	return size;
+	return (size == 0 ? 1 : size);
 }
 
 static void simulate_cb(GtkWidget *button, struct normalize_s* ns) {
