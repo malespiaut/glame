@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.3 2002/02/24 22:16:06 richi Exp $
+ * $Id: gtknob.c,v 1.4 2002/03/19 23:11:50 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  *
@@ -244,7 +244,7 @@ static gint gtk_knob_button_press(GtkWidget * widget,
 
     knob = GTK_KNOB(widget);
 
-    if (knob->button == 0) {
+    if (event->button == 1) {
 	gtk_grab_add(widget);
 
 	knob->button = event->button;
