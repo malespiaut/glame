@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.113 2002/06/02 18:00:18 richi Exp $
+ * $Id: main.c,v 1.114 2002/11/15 18:57:10 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -175,7 +175,9 @@ static void create_new_project_cb(GtkWidget *menu, void * blah)
 	/* Create new gpsm group. */
 	grp = gpsm_newgrp(_("Unnamed"));
 	if (gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
-			    0, gpsm_item_vsize(gpsm_root())) == -1)
+			    0, gpsm_item_vsize(gpsm_root())) == -1
+	    && gpsm_item_place(gpsm_root(), (gpsm_item_t *)grp,
+			       0, gpsm_item_vsize(gpsm_root())+1) == -1)
 		DPRINTF("Cannot insert new group!?\n");
 	if (deleted)
 		gpsm_item_place(gpsm_root(), (gpsm_item_t *)deleted,
