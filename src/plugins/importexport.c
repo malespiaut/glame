@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.10 2001/09/19 11:47:04 mag Exp $
+ * $Id: importexport.c,v 1.11 2001/09/26 09:07:15 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -39,15 +39,16 @@
 #include "util/glame_gui_utils.h"
 #include "network_utils.h"
 #include "waveeditgui.h"
-
 #ifdef HAVE_AUDIOFILE
 #include "audiofile.h"
+#endif
 
 PLUGIN_SET(importexport, "import export")
 
 static char ftlabel[8][10] = { "raw", "aiffc", "aiff", "nextsnd", "wav", "sf", "ogg", "mp3" };
 static char qlabel[4][7] = { "8 bit", "16 bit", "24 bit", "float" };
 
+#ifdef HAVE_AUDIOFILE
 int get_filetype_by_name(char *name) {
 	char *suffix;
 
@@ -79,6 +80,7 @@ int get_filetype_by_name(char *name) {
 
 	return -1;
 }
+#endif
 
 #define MAX_PROPS 7
 
@@ -747,4 +749,3 @@ int import_register(plugin_t *p)
 	plugin_set(p, PLUGIN_LABEL, "Import");
 	return 0;
 }
-#endif
