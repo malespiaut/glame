@@ -301,7 +301,7 @@ int sw_closedir(SWDIR *d)
  * The optional transaction id is used for all operations
  * operating on the swfd_t, they can be undone and redone
  * this way. */
-swfd_t sw_open(long name, int flags, tid_t tid)
+swfd_t sw_open(long name, int flags, txnid_t tid)
 {
 	struct swfile *f;
 	struct swfd *fd;

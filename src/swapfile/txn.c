@@ -1,7 +1,7 @@
 /*
  * txn.c
  *
- * $Id: txn.c,v 1.1 2000/09/21 09:27:10 richi Exp $
+ * $Id: txn.c,v 1.2 2000/09/25 09:05:12 richi Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -32,7 +32,7 @@
 
 /* Global state.
  */
-static tid_t _txn_id = 0;
+static txnid_t _txn_id = 0;
 static LIST_HEAD(_txn_list);
 
 
@@ -55,7 +55,7 @@ HASH(txn, struct txn, 8,
      (txn->id == id),
      (id),
      (txn->id),
-     tid_t id)
+     txnid_t id)
 
 
 /* Internal API using struct txn.
@@ -195,10 +195,10 @@ struct txn *_txn_undo(struct txn *undo, struct txn *t)
 
 
 
-/* User visible API using tid_t.
+/* User visible API using txnid_t.
  */
 
-tid_t txn_start(tid_t parent)
+txnid_t txn_start(txnid_t parent)
 {
 	struct txn *pt, *t;
 
@@ -218,7 +218,7 @@ tid_t txn_start(tid_t parent)
 	return t->id;
 }
 
-int txn_end(tid_t id)
+int txn_end(txnid_t id)
 {
 	struct txn *t;
 
@@ -243,7 +243,7 @@ int txn_end(tid_t id)
 	return 0;
 }
 
-int txn_abort(tid_t id)
+int txn_abort(txnid_t id)
 {
 	struct txn *t;
 
@@ -261,7 +261,7 @@ int txn_abort(tid_t id)
 }
 
 
-tid_t txn_undo(tid_t id)
+txnid_t txn_undo(txnid_t id)
 {
 	struct txn *t, *ut;
 
@@ -280,7 +280,7 @@ tid_t txn_undo(tid_t id)
 }
 
 
-int txn_delete(tid_t id)
+int txn_delete(txnid_t id)
 {
 	struct txn *t;
 
@@ -298,7 +298,7 @@ int txn_delete(tid_t id)
 	return 0;
 }
 
-struct txn *txn_get_struct(tid_t id)
+struct txn *txn_get_struct(txnid_t id)
 {
     	struct txn *t;
 

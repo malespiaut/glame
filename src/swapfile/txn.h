@@ -4,7 +4,7 @@
 /*
  * txn.h
  *
- * $Id: txn.h,v 1.1 2000/09/21 09:27:10 richi Exp $
+ * $Id: txn.h,v 1.2 2000/09/25 09:05:12 richi Exp $
  * 
  * Copyright (C) 2000 Richard Guenther
  *
@@ -38,7 +38,7 @@
  * to undo their work and clean up after them.
  */
 
-typedef int tid_t;
+typedef int txnid_t;
 #define TXN_NONE 0
 
 struct txn;
@@ -66,7 +66,7 @@ struct txn {
 	 * hashtable */
 	struct txn **pprev_txn_hash;
 	struct txn *next_txn_hash;
-	tid_t id;
+	txnid_t id;
 
 	/* parent transaction, list of childs of the
 	 * parent - in case of root = current the
@@ -105,30 +105,30 @@ struct txn {
  * parent transaction does not exist, it has already an active child
  * (violates transaction may not cross) or there is insufficient memory
  * to allocate internal data structures. */
-tid_t txn_start(tid_t parent);
+txnid_t txn_start(txnid_t parent);
 
 /* End the specified transaction. Returns 0 on success and -1 on error.
  * On error either the specified transaction does not exist, it is
  * already ended or it has active child transactions. */
-int txn_end(tid_t id);
+int txn_end(txnid_t id);
 
 /* Abort the specified transaction thereby aborting active child
  * transactions and undoing all previous work. txn_abort itself is
  * not undoable. Returns 0 on success, -1 on error which is usually
  * an invalid supplied transaction id or an inactive transaction. */
-int txn_abort(tid_t id);
+int txn_abort(txnid_t id);
 
 
 /* Undo applies the reverse transaction as a new transaction,
  * so txn_undo(txn_undo(id)) restores state after id, simply
  * deleting the returned tid prevents redo, deleting the original
  * id after undo prevents undo after redo. */
-tid_t txn_undo(tid_t id);
+txnid_t txn_undo(txnid_t id);
 
 /* Delete the specified (inactive) transaction and free all memory
  * associated with it. Returns 0 on success and -1 on error which
  * means you have supplied either an invalid or an active transaction. */
-int txn_delete(tid_t id);
+int txn_delete(txnid_t id);
 
 
 /* Abort/delete all active/inactive transactions. This is mainly for
@@ -142,7 +142,7 @@ void txn_abort_and_delete_all();
 /* Interface for writing operations.
  */
 
-struct txn *txn_get_struct(tid_t id);
+struct txn *txn_get_struct(txnid_t id);
 
 
 #endif
