@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.24 2001/04/27 13:43:25 richi Exp $
+@comment $Id: plugins.texi,v 1.25 2001/05/03 12:10:17 mag Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -676,9 +676,9 @@ Having more poles leads to better impulse response of the filter, i.e.
 the signal will drop faster around the cutoff frequency, but the filter will 
 need longer to execute. Defaults to 2.
 @item cutoff (float)
-Specifies ratio of cutoff frequency divided by sample 
-frequency. The maximum is half the sample frequency (Nyquist frequency!), 
-therefore @code{cutoff} is valid only from 0 up to 0.5. Defaults to 0.1.
+Specifies cutoff frequency for filter operation.
+The maximum is half the sample frequency (Nyquist frequency!), 
+defaults to 1000 Hz.
 @item ripple (float)
 @code{ripple} defines the percentage of ripple in the pass band. It defaults 
 to 0.5, and it is best to leave it alone unless you know what you're doing.
