@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.9 2000/02/17 13:32:59 richi Exp $
+@comment $Id: filter.texi,v 1.10 2000/02/18 16:37:02 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -117,7 +117,6 @@ provided function @code{@var{f}()} which is the only mandatory method for filter
 than with @code{filter_alloc()} you get a full featured filter, including all
 ports and parameters. You just have to add it to the database using @code{filter_add()}. You may want to look at the @code{filternetwork_to_string()} function and the specification of the textual representation of filter networks.
 @end deftypefun
-% FIXME: reference to those functions/sections
 
 @tindex filter_portdesc_t
 @tindex filter_t
@@ -820,4 +819,31 @@ NULL on error.
 @node Textual Representation of Filter Networks, , Using Filter Networks as Filters, The Filter Network API
 @subsection Textual Representation of Filter Networks
 
-FIXME, this section still has to be written.
+FIXME, this section still has to be written. For now, an example should provide
+enough information.
+
+@example
+(filternetwork play
+        (node rf read_file
+                (export-param filename filename "file to be played")
+        )
+        (node aout audio_out)
+        (connect rf out aout left_in)
+        (connect rf out aout right_in)
+)
+@end example
+
+Brief summary about allowed commands in the contexts.
+
+@table @code
+@item filternetwork
+@code{node}, @code{connect}, @code{set-param}
+
+@item node
+@code{export-param}, @code{export-input}, @code{export-output}, @code{set-param}
+
+@item connect
+@code{set-sourceparam}, @code{set-destparam}
+@end table
+
+In other contexts, no commands are allowed.

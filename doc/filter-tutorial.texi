@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.5 2000/02/17 13:32:59 richi Exp $
+@comment $Id: filter-tutorial.texi,v 1.6 2000/02/18 16:37:02 richi Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -17,21 +17,44 @@ audio in/audio out types of filters.
 
 @node Parameter Definition, Filter Categories, , Filter Tutorial
 @heading Talking about parameters, properties and protocols...
-FIXME - rewrite this section
 
 When talking about filters in the following sections, we'll make use of
-various flavours of @dfn{parameters}.
+various flavours of @dfn{parameters} and @dfn{properties}.  Some filters
+export hooks to dynamically tune their internal behaviour.  We'll call
+these @dfn{parameters}. Parameters are generally user-settable,
+while properties are only modified by the filters though they can
+be influenced by parameters.
 
-First there are @dfn{input 
-parameters} and @dfn{output parameters}, attached to the properties of the
-filter's input and output pipes respectively. To summarize both groups of
-parameters, we'll use the notion of @dfn{pipe parameters}. Sampling rate is
-probably the most common example of a pipe parameter.
+We have parameters at three places---the @dfn{filternode
+parameters}, the @dfn{pipe source parameters} and the @dfn{pipe
+destination parameters}. In the following we will not make a difference
+between pipe source and destination parameters, we just call them
+@dfn{pipe parameters}. Remember though, that each pipe has two sets of
+parameters, one at the source end and one at the destination end.
 
-Some filters export hooks to dynamically tune their internal behaviour. We'll
-refer to the associated values as @dfn{filter parameters}. Examples of typical
-filter parameters are the delay time of an echo filter, or the gain values
-of a mixing filter.
+As indicated by the name, @dfn{filternode parameters} are local to the
+filternode, the instance of a filter for which the parameter was
+defined.  A good example for a filternode parameter is probably a
+frequency range for a bandpass filter.  @dfn{Pipe parameters} are local
+to a pipe which is an instance of two ports---therefore two sets of
+parameters, each defined at one of the ports, exist for a
+pipe. Pipe parameters are local to the pipe, i.e. on automatic
+ports multiple sets of parameters exist---pipe parameters are not port
+parameters. Common use for pipe parameters are gain controls.
+
+@dfn{Pipe properties} provide information all data floating through the
+pipe shares. Pipe properties remain constant during the run of the
+filter network. @dfn{Buffer properties}---the information coded into the
+filter buffer headers---are local to a buffer and are not required to be
+constant in any way. Sampling rate is probably the most common example
+of a pipe property. A buffer properties for example could be a timestamp.
+
+Buffer property definitions are local to a @dfn{filter protocol}.
+Filter protocols expose additional per buffer information to the filters
+by prepending a protocol specific header to the buffer. Multiple
+buffer properties can be defined in one header.
+
+
 
 @node Filter Categories, Filter Skeleton, Parameter Definition, Filter Tutorial
 @heading Now what is this whole filter stuff anyway?
