@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.5 2001/04/24 11:21:02 richi Exp $
+ * $Id: filter_port.h,v 1.6 2001/05/03 17:46:56 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -49,7 +49,7 @@ struct filter_portdb {
  * accepts all kind of pipes. */
 #define FILTER_PORTTYPE_ANY       0
 #define FILTER_PORTTYPE_SAMPLE    1
-#define FILTER_PORTTYPE_RMS       2
+#define FILTER_PORTTYPE_SSP       2
 #define FILTER_PORTTYPE_CONTROL   4
 #define FILTER_PORTTYPE_FFT       5
 #define FILTER_PORTS_ARE_COMPATIBLE(port1type, port2type) (((port1type) == (port2type)) || ((port1type) == FILTER_PORTTYPE_ANY) || ((port2type) == FILTER_PORTTYPE_ANY))

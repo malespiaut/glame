@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.4 2001/04/24 12:06:07 richi Exp $
+ * $Id: filter_pipe.h,v 1.5 2001/05/03 17:46:56 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -33,7 +33,7 @@
  */
 #define FILTER_PIPETYPE_UNDEFINED FILTER_PORTTYPE_ANY
 #define FILTER_PIPETYPE_SAMPLE    FILTER_PORTTYPE_SAMPLE
-#define FILTER_PIPETYPE_RMS       FILTER_PORTTYPE_RMS
+#define FILTER_PIPETYPE_SSP       FILTER_PORTTYPE_SSP
 #define FILTER_PIPETYPE_CONTROL   FILTER_PORTTYPE_CONTROL
 #define FILTER_PIPETYPE_FFT       FILTER_PORTTYPE_FFT
 
@@ -89,8 +89,9 @@ struct filter_pipe {
 			int osamp;	/* oversampling factor */
 		} fft;
 		struct {
-			int blocksize;
-		} rms;
+			int bsize;	/* length of running average */
+			int rate;	/* sample rate */
+		} ssp;
 	        struct {
                         int dummy;
 	        } control;
@@ -144,6 +145,13 @@ struct filter_pipe {
 #define filterpipe_fft_bsize(fp) ((fp)->u.fft.bsize)
 #define filterpipe_fft_osamp(fp) ((fp)->u.fft.osamp)
 
+#define filterpipe_settype_ssp(fp, freq, bs) do { \
+	(fp)->type = FILTER_PIPETYPE_SSP; \
+	(fp)->u.ssp.rate = (freq); \
+	(fp)->u.ssp.bsize = (bs); \
+} while (0)
+#define filterpipe_ssp_rate(fp) ((fp)->u.ssp.rate)
+#define filterpipe_ssp_bsize(fp) ((fp)->u.ssp.bsize)
 
 /* Internal structure to track filterport_connect() commands,
  * needed for correct re-creation in filter_to_string. */

@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.27 2001/04/24 11:58:39 nold Exp $
+ * $Id: filter_protocols.h,v 1.28 2001/05/03 17:46:56 mag Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -20,7 +20,7 @@
  *
  * This file contains the standard protocols
  *   - FFT
- *   - RMS
+ *   - SSP
  *   - Sample
  *   - Control input
  */
@@ -37,75 +37,26 @@
 #define PORTNAME_IN "in"
 #define PORTNAME_OUT "out"
 
-/* RMS protocol
- * We don't need an actual buffer, "one header should be enough for everyone"
+/* squared sample protocol (ssp)
+ * we just send a running squared sample average through a pipe
+ * everyone who wants the rms should just get the square himself
  */
-
-#define RMS_TOTAL  1
-#define RMS_WINDOW 2
-typedef struct rms_header rms_header_t;
-struct rms_header {
-	int mode;	/* total/window */
-	union {
-		/* total stats */
-		struct {
-			float offset;	/* dc-offset */
-			float rms;	/* average rms */
-			float peak_rms; /* peak rms in window */
-			unsigned long peak_pos;	/* position of window that contains peak rms */
-			SAMPLE min,max; /* minimum/maximum sample value */
-		} t;
-		/* window stats */
-		struct {
-			float rms;		/* window rms */
-			unsigned long pos;	/* window position */
-		} w;
-	} u;
+typedef struct ssp_header ssp_header_t;
+struct ssp_header {
+	char buf[1];
 };
-
-#define rms_alloc(filternode) fbuf_alloc(sizeof(rms_header_t),&(filternode)->buffers)
-#define rms_size(fb) ((fb)==NULL?0:sizeof(rms_header_t))
-#define rms_buf(fb) ((rms_header_t *)(fbuf_buf(fb)))
-#define rms_ref(fb) fbuf_ref(fb)
-#define rms_unref(fb) fbuf_unref(fb)
-#define rms_make_private(fb) fbuf_make_private(fb)
-#define rms_get(p) fbuf_get(p)
-#define rms_queue(p, fb) fbuf_queue(p,fb)
-		
-/* just for your convenience */
-		
-#define rms_set_mode_total(fb) rms_buf(fb)->mode=RMS_TOTAL
-#define rms_set_mode_window(fb) rms_buf(fb)->mode=RMS_WINDOW
-#define rms_get_mode(fb) rms_buf(fb)->mode
-#define rms_set_total_rms(fb, trms) rms_buf(fb)->u.t.rms=trms
-#define rms_get_total_rms(fb) rms_buf(fb)->u.t.rms
-#define rms_set_total_offset(fb, toffset) rms_buf(fb)->u.t.offset=toffset
-#define rms_get_total_offset(fb) rms_buf(fb)->u.t.offset
-#define rms_min(fb) rms_buf(fb)->u.t.min
-#define rms_max(fb) rms_buf(fb)->u.t.max
-#define rms_set_peak(fb, peakrms, peakpos) \
-do { \
-	rms_buf(fb)->u.t.peak_rms=peakrms; \
-	rms_buf(fb)->u.t.peak_pos=peakpos; \
-} while(0)
-
-#define rms_get_peak(fb, prms, ppos) \
-do { \
-	prms=rms_buf(fb)->u.t.peak_rms; \
-	ppos=rms_buf(fb)->u.t.peak_pos; \
-} while(0)
-
-#define rms_set_window(fb, wrms, wpos) \
-do { \
-	rms_buf(fb)->u.w.rms=wrms; \
-	rms_buf(fb)->u.w.pos=wpos; \
-} while(0)
-
-#define rms_get_window(fb, wrms, wpos) \
-do { \
-        wrms=rms_buf(fb)->u.w.rms; \
-	wpos=rms_buf(fb)->u.w.pos; \
-} while(0)
+#define ssp_alloc(nrsamples, filternode) \
+        fbuf_alloc(SAMPLE_SIZE*(nrsamples) + sizeof(ssp_header_t), \
+		   &(filternode)->buffers)
+#define ssp_realloc(ssp, nrsamples) \
+	fbuf_realloc(ssp, SAMPLE_SIZE*(nrsamples) + sizeof(ssp_header_t))
+#define ssp_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(ssp_header_t))/SAMPLE_SIZE)
+#define ssp_buf(fb) ((SAMPLE *)(&((ssp_header_t *)fbuf_buf(fb))->buf[0]))
+#define ssp_ref(fb) fbuf_ref(fb)
+#define ssp_unref(fb) fbuf_unref(fb)
+#define ssp_make_private(fb) fbuf_make_private(fb)
+#define ssp_get(p) fbuf_get(p)
+#define ssp_queue(p, fb) fbuf_queue(p, fb)
 
 /* Sample protocol
  * is either used for sample- AND fft-protocol

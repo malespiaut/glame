@@ -3,7 +3,7 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c \
-	rms.c fft_plugins.c \
+	ssp.c fft_plugins.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c flanger.c distortion.c\
@@ -37,7 +37,7 @@ endif
 
 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
-	swapfile_io.c audio_io.c file_io.c waveform.c rms.c
+	swapfile_io.c audio_io.c file_io.c waveform.c ssp.c
 libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 
