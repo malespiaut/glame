@@ -1,8 +1,29 @@
-glame (0.5.4-1) unstable; urgency=low
+glame (0.6.2-1) unstable; urgency=low
+
+  * New upstream version.
+  * Build with glade support.
+  * Reinstate LADSPA support that got lost between 0.4 and 0.6.  Oops.
+    Closes: #137174
+
+ -- Daniel Kobras <kobras@debian.org>  Sun, 24 Mar 2002 14:57:03 +0100
+
+glame (0.6.1-1) unstable; urgency=low
 
   * New upstream version.
 
- -- Daniel Kobras <kobras@debian.org>  Mon, 10 Dec 2001 13:24:23 +0100
+ -- Daniel Kobras <kobras@debian.org>  Sun, 27 Jan 2002 18:18:05 +0100
+
+glame (0.6.0-2) unstable; urgency=low
+
+  * Reflect fftw-dev package split in build depends. Closes: #128784
+
+ -- Daniel Kobras <kobras@debian.org>  Tue, 22 Jan 2002 11:25:05 +0100
+
+glame (0.6.0-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Daniel Kobras <kobras@debian.org>  Sun, 23 Dec 2001 16:26:26 +0100
 
 glame (0.4.2-6) unstable; urgency=low
 
