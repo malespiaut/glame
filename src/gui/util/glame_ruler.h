@@ -60,7 +60,7 @@ struct _GlameRuler
 
   GdkPixmap *backing_store;
   GdkGC *non_gr_exp_gc;
-  GlameRulerMetric *metric;
+  const GlameRulerMetric *metric;
   gint xsrc, ysrc;
   gint slider_size;
 
@@ -100,7 +100,7 @@ struct _GlameRulerMetric
 
 GtkType glame_ruler_get_type   (void);
 void    glame_ruler_set_metric (GlameRuler       *ruler,
-			       GlameRulerMetric *metric);
+			        const GlameRulerMetric *metric);
 void    glame_ruler_set_range  (GlameRuler       *ruler,
 			       gdouble          lower,
 			       gdouble          upper,

@@ -139,7 +139,7 @@ glame_ruler_init (GlameRuler *ruler)
   ruler->position = 0;
   ruler->max_size = 0;
 
-  glame_ruler_set_metric (ruler, (GlameRulerMetric*) &glame_ruler_metric_pixels);
+  glame_ruler_set_metric (ruler, &glame_ruler_metric_pixels);
 }
 
 static void
@@ -199,7 +199,7 @@ glame_ruler_get_arg (GtkObject  *object,
 
 void
 glame_ruler_set_metric (GlameRuler       *ruler,
-		       GlameRulerMetric *metric)
+		        const GlameRulerMetric *metric)
 {
   g_return_if_fail (ruler != NULL);
   g_return_if_fail (GLAME_IS_RULER (ruler));
