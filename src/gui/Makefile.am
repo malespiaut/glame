@@ -16,7 +16,7 @@ endif
 
 glame_SOURCES = main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
-	waveeditgui.c waveeditgui.h gui_main.c gui_main.h
+	waveeditgui.c waveeditgui.h gui_main.c
 glame_LDADD = ../plugins/libglamebuiltins.la ../glmid/libglame.la edit_filter/libeditfilter.la \
         libgtkwaveform/libgtkwaveform.la \
 	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS) $(XML_LIBS)
