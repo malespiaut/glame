@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.61 2003/04/15 19:00:32 richi Exp $
+ * $Id: filtereditgui.c,v 1.62 2003/04/20 21:56:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -614,13 +614,13 @@ static void filteredit_gui_destroy(GtkObject *filteredit)
 	GTK_OBJECT_CLASS(parent_class)->destroy(filteredit);
 }
 
-static void filteredit_gui_class_init(FiltereditGuiClass *class)
+static void filteredit_gui_class_init(FiltereditGuiClass *klass)
 {
 	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = filteredit_gui_destroy;
-	widget_class = GTK_WIDGET_CLASS(class);
+	widget_class = GTK_WIDGET_CLASS(klass);
 	widget_class->drag_data_received = filteredit_gui_data_received;
 	widget_class->drag_data_get = filteredit_gui_data_get;
 }
@@ -738,7 +738,7 @@ static GnomeUIInfo window_menu[] = {
 
 
 GtkWidget * 
-glame_filtereditgui_new(filter_t *net, gboolean protected)
+glame_filtereditgui_new(filter_t *net, gboolean prot)
 {
 	FiltereditGui *window;
 	GtkWidget *canvas, *sw, *toolbar;
@@ -777,7 +777,7 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 	gtk_widget_pop_visual();
 	gtk_widget_pop_colormap();
 //	GNOME_CANVAS(canvas)->aa = 1;
-	GLAME_CANVAS(canvas)->openedUp = protected;
+	GLAME_CANVAS(canvas)->openedUp = prot;
 	//gnome_canvas_set_scroll_region(GNOME_CANVAS(canvas),0,0,600,400);
 	
 

@@ -94,13 +94,13 @@ glame_ruler_get_type (void)
 }
 
 static void
-glame_ruler_class_init (GlameRulerClass *class)
+glame_ruler_class_init (GlameRulerClass *klass)
 {
   GtkObjectClass *object_class;
   GtkWidgetClass *widget_class;
 
-  object_class = (GtkObjectClass*) class;
-  widget_class = (GtkWidgetClass*) class;
+  object_class = (GtkObjectClass*) klass;
+  widget_class = (GtkWidgetClass*) klass;
 
   parent_class = gtk_type_class (GTK_TYPE_WIDGET);
   
@@ -112,9 +112,9 @@ glame_ruler_class_init (GlameRulerClass *class)
   widget_class->size_allocate = glame_ruler_size_allocate;
   widget_class->expose_event = glame_ruler_expose;
 
-  class->draw_ticks = NULL;
-  class->draw_pos = NULL;
-  class->get_stride = NULL;
+  klass->draw_ticks = NULL;
+  klass->draw_pos = NULL;
+  klass->get_stride = NULL;
 
   gtk_object_add_arg_type ("GlameRuler::lower", GTK_TYPE_FLOAT,
 			   GTK_ARG_READWRITE, ARG_LOWER);

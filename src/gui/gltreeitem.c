@@ -1,7 +1,7 @@
 /*
  * gltreeitem.c
  *
- * $Id: gltreeitem.c,v 1.22 2003/04/11 22:18:16 xwolf Exp $
+ * $Id: gltreeitem.c,v 1.23 2003/04/20 21:56:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -43,10 +43,10 @@ static void glame_tree_item_destroy(GtkObject *object)
 	GTK_OBJECT_CLASS(gtk_type_class(GTK_TYPE_TREE_ITEM))->destroy(object);
 }
 
-static void glame_tree_item_class_init(GlameTreeItemClass *class)
+static void glame_tree_item_class_init(GlameTreeItemClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = glame_tree_item_destroy;
 }
 
@@ -99,7 +99,7 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 {
 	GlameTreeItem *itemw;
 
-	itemw = gtk_type_new(glame_tree_item_get_type());
+	itemw = GLAME_TREE_ITEM(gtk_type_new(glame_tree_item_get_type()));
         itemw->item = (gpsm_item_t *)item;
 	itemw->hbox = gtk_hbox_new(FALSE, 5);
 	itemw->label = GTK_LABEL(gtk_label_new(NULL));
@@ -125,7 +125,7 @@ GtkWidget* glame_tree_item_new(gpsm_item_t *item)
 		gtk_box_pack_start(GTK_BOX(itemw->hbox), slider, FALSE, FALSE, 5);
 #endif
 		gtk_signal_connect(GTK_OBJECT(itemw->pos_adj), "value_changed",
-				   update_pos, item);
+				   GTK_SIGNAL_FUNC(update_pos), item);
 	}
 	gtk_container_add(GTK_CONTAINER(itemw->hbox), GTK_WIDGET(itemw->label));
 	gtk_container_add(GTK_CONTAINER(itemw), itemw->hbox);

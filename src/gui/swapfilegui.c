@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.94 2003/04/15 21:04:39 richi Exp $
+ * $Id: swapfilegui.c,v 1.95 2003/04/20 21:56:01 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -187,7 +187,7 @@ static void deselect_all(SwapfileGui *gui)
 static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 {
 	gpsm_item_t *item = active_swapfilegui->active_item->item;
-	int (*operation)(gpsm_item_t *, long, long);
+	gpsmop_func_t operation;
 
 	if (!(operation = plugin_query(plugin, PLUGIN_GPSMOP))) {
 		DPRINTF("No such operation %s\n", plugin_name(plugin));
@@ -638,7 +638,7 @@ static void file_property_cb(GtkMenu *menu, GlameTreeItem *item)
 	f_pos = gpsm_swfile_position(item->item);
 	f_rate = gpsm_swfile_samplerate(item->item);
 
-	dialog = gtk_type_new(gnome_dialog_get_type());
+	dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
 	gnome_dialog_set_parent(GNOME_DIALOG(dialog),
 				GTK_WINDOW(active_swapfilegui->app));
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
@@ -676,7 +676,7 @@ static void group_property_cb(GtkMenu *menu, GlameTreeItem *item)
 
 	strncpy(g_name, gpsm_item_label(item->item), 1024);
 
-	dialog = gtk_type_new(gnome_dialog_get_type());
+	dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
 	gnome_dialog_set_parent(GNOME_DIALOG(dialog),
 				GTK_WINDOW(active_swapfilegui->app));
 	gnome_dialog_set_close(GNOME_DIALOG(dialog), FALSE);
@@ -1046,7 +1046,7 @@ static void swapfile_gui_destroy(GtkObject *object)
 {
 	SwapfileGui *swapfile = SWAPFILE_GUI(object);
 	GtkEventBox* parent_class;
-	parent_class = gtk_type_class(GTK_TYPE_EVENT_BOX);
+	parent_class = GTK_EVENT_BOX(gtk_type_class(GTK_TYPE_EVENT_BOX));
 	GTK_OBJECT_CLASS(parent_class)->destroy(GTK_OBJECT(swapfile));
 	if (swapfile->gpsm_handler){
 		glsig_delete_handler(swapfile->gpsm_handler);
@@ -1054,10 +1054,10 @@ static void swapfile_gui_destroy(GtkObject *object)
 	}
 }
 
-static void swapfile_gui_class_init(SwapfileGuiClass *class)
+static void swapfile_gui_class_init(SwapfileGuiClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = swapfile_gui_destroy;
 }
 

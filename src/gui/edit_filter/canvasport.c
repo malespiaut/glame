@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.32 2003/04/11 20:10:01 richi Exp $
+ * $Id: canvasport.c,v 1.33 2003/04/20 21:56:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -100,11 +100,11 @@ glame_canvas_port_connections_changed_cb(GlameCanvasPort *p, gpointer userdata)
 }
 
 static void
-glame_canvas_port_class_init(GlameCanvasPortClass* class)
+glame_canvas_port_class_init(GlameCanvasPortClass* klass)
 {
 	
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = glame_canvas_port_destroy;
 
 	port_signals[MOVED] = g_signal_new("moved",
@@ -129,8 +129,8 @@ glame_canvas_port_class_init(GlameCanvasPortClass* class)
 	
 	//	gtk_object_class_add_signals(object_class,port_signals,LAST_SIGNAL);
 	
-	class->moved = NULL;
-	class->connections_changed = (void(*)(GlameCanvasPort*))glame_canvas_port_connections_changed_cb;
+	klass->moved = NULL;
+	klass->connections_changed = (void(*)(GlameCanvasPort*))glame_canvas_port_connections_changed_cb;
 }
 
 static void

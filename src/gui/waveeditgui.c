@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.138 2003/04/15 21:54:23 richi Exp $
+ * $Id: waveeditgui.c,v 1.139 2003/04/20 21:56:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -404,12 +404,12 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gint32 start, length;
 	gpsm_grp_t *grp;
-	int (*operation)(gpsm_item_t *, long, long);
+	gpsmop_func_t operation;
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	grp = gtk_swapfile_buffer_get_item(swapfile);
 
-	if (!(operation = plugin_query(plugin, PLUGIN_GPSMOP))) {
+	if (!(operation = (gpsmop_func_t)plugin_query(plugin, PLUGIN_GPSMOP))) {
 		DPRINTF("No such operation %s\n", plugin_name(plugin));
 		return;
 	}
@@ -687,7 +687,7 @@ static void play(GtkWaveView *waveview,
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(active_waveedit->toolbar),
 				 _("Stop"), _("Stop"), 
 				 GNOME_STOCK_PIXMAP_STOP,
-				playrecordtoolbar_cb, active_waveedit->waveview,
+				GTK_SIGNAL_FUNC(playrecordtoolbar_cb), active_waveedit->waveview,
 				TOOLBAR_PLAY_INS);
 	active_waveedit->locked = 1;
 
@@ -1305,10 +1305,10 @@ static void waveedit_gui_destroy(GtkObject *waveedit)
 	}
 }
 
-static void waveedit_gui_class_init(WaveeditGuiClass *class)
+static void waveedit_gui_class_init(WaveeditGuiClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = waveedit_gui_destroy;
 }
 
@@ -1466,29 +1466,29 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_SAVE,
 				 _("Export"), _("Export"),
-				 wave_export_cb, window,-1);
+				 GTK_SIGNAL_FUNC(wave_export_cb), window,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Zoom in"), _("Zoom in"), _("Zoom in"),
 				glame_load_icon_widget("zoom_in.png",24,24),
-				zoomin_cb, window->waveview);
+				GTK_SIGNAL_FUNC(zoomin_cb), window->waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Zoom out"), _("Zoom out"), _("Zoom out"),
 				glame_load_icon_widget("zoom_out.png",24,24),
-				zoomout_cb, window->waveview);
+				GTK_SIGNAL_FUNC(zoomout_cb), window->waveview);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_REFRESH,
 				 _("View all"), _("View all"), 
-				 zoomfull_cb, window->waveview,-1);
+				 GTK_SIGNAL_FUNC(zoomfull_cb), window->waveview,-1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Select all"), _("Select all"), _("Select all"),
 				glame_load_icon_widget("select_all.png",24,24),
-				selectall_cb, window->waveview);
+				GTK_SIGNAL_FUNC(selectall_cb), window->waveview);
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
 				_("Select none"), _("Select none"), _("Select none"),
 				glame_load_icon_widget("select_none.png",24,24),
-				selectnone_cb, window->waveview);
+				GTK_SIGNAL_FUNC(selectnone_cb), window->waveview);
 	/* Play button that should change to Stop if pressed, different
 	 * callback than "Play all"/"Play selection" - play from marker.
 	 * FIXME. */
@@ -1496,17 +1496,17 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_GO_FORWARD,
 				 _("Play/Record"), _("Play/Record"),
-				 playrecordtoolbar_cb, window->waveview, -1);
+				 GTK_SIGNAL_FUNC(playrecordtoolbar_cb), window->waveview, -1);
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_CLOSE,
 				 _("Close"), _("Close"),
-				 wave_close_cb, window, -1);
+				 GTK_SIGNAL_FUNC(wave_close_cb), window, -1);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_HELP,
 				 _("Help"), _("Help"),
-				 wave_help_cb, window->waveview, -1);
+				 GTK_SIGNAL_FUNC(wave_help_cb), window->waveview, -1);
 
 	/* Create menubar - FIXME copy all uiinfos, restructure to
 	 * match nice menu layout, etc.

@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.21 2003/04/15 19:00:20 richi Exp $
+ * $Id: importexport.c,v 1.22 2003/04/20 21:56:01 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -723,12 +723,13 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 /*	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), PREVIEW, TRUE);*/
 	gnome_dialog_set_sensitive(GNOME_DIALOG(ie->dialog), CANCEL, TRUE);
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), IMPORT,
-				    ie_import_cb, ie);
-/*	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), PREVIEW, ie_preview_cb, ie); */
+				    GTK_SIGNAL_FUNC(ie_import_cb), ie);
+/*	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), PREVIEW,
+				    GTK_SIGNAL_FUNC(ie_preview_cb), ie); */
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
-				    ie_cancel_cb, ie);
+				    GTK_SIGNAL_FUNC(ie_cancel_cb), ie);
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), HELP,
-				    glame_help_cb, "The_Import_Dialog");
+				    GTK_SIGNAL_FUNC(glame_help_cb), "The_Import_Dialog");
 
 	/* in case we have a non gnome compliant wm */
 	gtk_signal_connect(GTK_OBJECT(ie->dialog),
@@ -1190,16 +1191,16 @@ GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent)
 	//ie->cancelbutton = GTK_WIDGET (g_list_last (GNOME_DIALOG (ie->dialog)->buttons)->data);
 	
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), OK,
-				    export_cb, ie);
+				    GTK_SIGNAL_FUNC(export_cb), ie);
 
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
-				    exp_cancel_cb, ie);
+				    GTK_SIGNAL_FUNC(exp_cancel_cb), ie);
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), HELP,
-				    glame_help_cb, "The_Export_Dialog");
+				    GTK_SIGNAL_FUNC(glame_help_cb), "The_Export_Dialog");
 
 	gtk_signal_connect(GTK_OBJECT(menu),
 			   "selection_done",
-			   (GtkSignalFunc)ie_type_menu_cb, ie);
+			   GTK_SIGNAL_FUNC(ie_type_menu_cb), ie);
 
 	/* in case we have a non gnome compliant wm */
 	gtk_signal_connect(GTK_OBJECT(ie->dialog),

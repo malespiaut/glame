@@ -1,7 +1,7 @@
 /*
  * timeline.c
  *
- * $Id: timeline.c,v 1.21 2003/04/11 20:10:17 richi Exp $
+ * $Id: timeline.c,v 1.22 2003/04/20 21:56:03 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -587,10 +587,10 @@ static void timeline_gui_destroy(GtkObject *timeline)
 	GTK_OBJECT_CLASS(parent_class)->destroy(timeline);
 }
 
-static void timeline_gui_class_init(TimelineGuiClass *class)
+static void timeline_gui_class_init(TimelineGuiClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = timeline_gui_destroy;
 }
 

@@ -26,7 +26,6 @@
 
 
 typedef struct _GWavefile GWavefile;
-typedef enum   _GWavefileType         GWavefileType;
 
 enum _GWavefileType
 {
@@ -37,6 +36,7 @@ enum _GWavefileType
   G_WAVEFILE_TYPE_F4, G_WAVEFILE_TYPE_F8,
   G_WAVEFILE_TYPE_F4NI, G_WAVEFILE_TYPE_F8NI
 };
+typedef enum   _GWavefileType         GWavefileType;
 
 
 /* Utility functions. */

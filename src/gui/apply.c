@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.21 2003/04/15 19:00:18 richi Exp $
+ * $Id: apply.c,v 1.22 2003/04/20 21:56:01 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -377,10 +377,10 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	a->previewing = 0;
 	a->applying = 0;
 	a->timeout_id = -1;
-	help = plugin_query(plugin, PLUGIN_GUI_HELP_PATH);
+	help = (char *)plugin_query(plugin, PLUGIN_GUI_HELP_PATH);
 
 	/* Build the dialog. */
-	a->dialog = gtk_type_new(gnome_dialog_get_type());
+	a->dialog = GTK_WIDGET(gtk_type_new(gnome_dialog_get_type()));
 	gnome_dialog_close_hides(GNOME_DIALOG(a->dialog), FALSE);
 	gnome_dialog_set_close(GNOME_DIALOG(a->dialog), FALSE);
 
@@ -436,14 +436,14 @@ int gpsmop_apply_plugin(gpsm_item_t *item, plugin_t *plugin,
 	gtk_signal_connect(GTK_OBJECT(a->dialog), "key_press_event",
 			   (GtkSignalFunc)key_cb, a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), PREVIEW,
-				    preview_cb, a);
+				    GTK_SIGNAL_FUNC(preview_cb), a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), APPLY,
-				    apply_cb, a);
+				    GTK_SIGNAL_FUNC(apply_cb), a);
 	gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), CANCEL,
-				    cancel_cb, a);
+				    GTK_SIGNAL_FUNC(cancel_cb), a);
 	if (help)
 		gnome_dialog_button_connect(GNOME_DIALOG(a->dialog), HELP,
-				    	    glame_help_cb, help);
+				    	    GTK_SIGNAL_FUNC(glame_help_cb), help);
 
 	/* Just show the dialog. Modal for now. */
 	gtk_window_set_modal(GTK_WINDOW(a->dialog), TRUE);

@@ -149,7 +149,7 @@ gtk_wave_view_new (void)
 {
   GtkWaveView *waveview;
   
-  waveview = gtk_type_new (GTK_TYPE_WAVEFORM);
+  waveview = (GtkWaveView *)gtk_type_new (GTK_TYPE_WAVEFORM);
   waveview->drawing = 0;
   waveview->destroyed = 0;
   waveview->drag_cursor = NULL;
@@ -197,7 +197,7 @@ gtk_wave_view_class_init (GtkWaveViewClass *klass)
 {
   GtkObjectClass *object_class = GTK_OBJECT_CLASS (klass);
 
-  parent_class = gtk_type_class (gtk_vbox_get_type ());
+  parent_class = (GtkVBoxClass *)gtk_type_class (gtk_vbox_get_type ());
   object_class->destroy = gtk_wave_view_real_destroy;
 }
 
@@ -1491,19 +1491,19 @@ gtk_wave_view_init (GtkWaveView *waveview)
 	gtk_box_pack_start(GTK_BOX(waveview), hbox, FALSE, FALSE, 0);
 
   gtk_signal_connect (GTK_OBJECT (waveview->adjust),
-                      "value_changed", gtk_wave_view_scroll,
+                      "value_changed", (GtkSignalFunc)gtk_wave_view_scroll,
                       GTK_OBJECT (waveview));
 
   gtk_signal_connect (GTK_OBJECT (waveview),
-                      "size_allocate", gtk_wave_view_resize_event,
+                      "size_allocate", (GtkSignalFunc)gtk_wave_view_resize_event,
                       GTK_OBJECT (waveview));
 
   gtk_signal_connect (GTK_OBJECT (waveview->area),
-                      "realize", on_area_realize,
+                      "realize", (GtkSignalFunc)on_area_realize,
                       GTK_OBJECT (waveview));
 
   gtk_signal_connect (GTK_OBJECT (waveview->area),
-                      "expose_event", on_area_expose_event,
+                      "expose_event", (GtkSignalFunc)on_area_expose_event,
                       GTK_OBJECT (waveview));
 
   gtk_signal_connect (GTK_OBJECT (waveview->area),
@@ -1511,7 +1511,7 @@ gtk_wave_view_init (GtkWaveView *waveview)
                       GTK_OBJECT (waveview));
 
   gtk_signal_connect (GTK_OBJECT (waveview->area),
-                      "button_release_event", gtk_wave_view_button_release_event,
+                      "button_release_event", (GtkSignalFunc)gtk_wave_view_button_release_event,
                       GTK_OBJECT (waveview));
 
   gtk_signal_connect (GTK_OBJECT (waveview->area),
@@ -1706,7 +1706,7 @@ void on_tb_realize_cb(GtkWidget *widget, gpointer data)
 	GdkPixmap *pixmap;
 	GdkBitmap *bitmap;
 	pixmap = gdk_pixmap_create_from_xpm_d(
-		widget->window, &bitmap, NULL, data);
+		widget->window, &bitmap, NULL, (gchar**)data);
 	gtk_container_add(GTK_CONTAINER(widget),
 			  gtk_pixmap_new(pixmap, bitmap));
 	gtk_widget_show_all(widget);
@@ -1818,7 +1818,7 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
-				     on_tb_realize_cb, rec_xpm);
+				     (GtkSignalFunc)on_tb_realize_cb, rec_xpm);
 		  tb = gtk_toggle_button_new();
 #if 0
 		  mute_pixmap = gdk_pixmap_create_from_xpm_d(
@@ -1832,7 +1832,7 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
-				     on_tb_realize_cb, mute_xpm);
+				     (GtkSignalFunc)on_tb_realize_cb, mute_xpm);
 		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
 		  gtk_widget_show_all(vbox);
 	  }

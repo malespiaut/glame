@@ -1,7 +1,7 @@
 /*
  * gtknob.c
  *
- * $Id: gtknob.c,v 1.14 2003/04/11 20:10:28 richi Exp $
+ * $Id: gtknob.c,v 1.15 2003/04/20 21:56:06 richi Exp $
  *
  * Copyright (C) 2000 timecop@japan.co.jp
  * Copyright (C) 2002 Richard Guenther, Laurent Georget
@@ -113,7 +113,7 @@ static void gtk_knob_class_init(GtkKnobClass * klass)
     object_class = (GtkObjectClass *) klass;
     widget_class = (GtkWidgetClass *) klass;
 
-    parent_class = gtk_type_class(gtk_widget_get_type());
+    parent_class = GTK_OBJECT(gtk_type_class(gtk_widget_get_type()));
 
     gtk_object_add_arg_type("GtkKnob::adjustment",
 			    GTK_TYPE_ADJUSTMENT,
@@ -151,7 +151,7 @@ static void gtk_knob_set_arg(GtkObject * object, GtkArg * arg,
 
     switch (arg_id) {
     case ARG_ADJUSTMENT:
-	gtk_knob_set_adjustment(GTK_KNOB(knob), GTK_VALUE_POINTER(*arg));
+	gtk_knob_set_adjustment(GTK_KNOB(knob), GTK_ADJUSTMENT(GTK_VALUE_POINTER(*arg)));
 	break;
     default:
 	break;

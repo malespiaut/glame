@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.9 2001/12/02 17:52:56 richi Exp $
+ * $Id: filtereditgui.h,v 1.10 2003/04/20 21:56:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,7 +63,7 @@ struct _FiltereditGui {
 
 GtkType filteredit_gui_get_type(void);
 
-GtkWidget *glame_filtereditgui_new(filter_t *net, gboolean protected);
+GtkWidget *glame_filtereditgui_new(filter_t *net, gboolean prot);
 
 void glame_load_network(GtkWidget *foo, gpointer bla);
 

@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.49 2003/04/15 19:00:38 richi Exp $
+ * $Id: glamecanvas.c,v 1.50 2003/04/20 21:56:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -72,10 +72,10 @@ glame_canvas_destroy (GtkObject *object)
 }
 
 static void
-glame_canvas_class_init(GlameCanvasClass *class)
+glame_canvas_class_init(GlameCanvasClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS (class);
+	object_class = GTK_OBJECT_CLASS (klass);
 	object_class->destroy = glame_canvas_destroy;
 }
 
@@ -133,11 +133,11 @@ glame_canvas_group_destroy (GtkObject *object)
 
 
 static void
-glame_canvas_group_class_init(GlameCanvasGroupClass *class)
+glame_canvas_group_class_init(GlameCanvasGroupClass *klass)
 {
 	GtkObjectClass *object_class;
 	
-	object_class = GTK_OBJECT_CLASS (class);
+	object_class = GTK_OBJECT_CLASS (klass);
 	object_class->destroy = glame_canvas_group_destroy;
 }
 

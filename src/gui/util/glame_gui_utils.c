@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.29 2003/04/15 19:00:40 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.30 2003/04/20 21:56:05 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -88,7 +88,8 @@ void create_label_edit_pair(GtkWidget *vbox,
 
 	wentry = gnome_entry_new(history);
 	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), result);
-	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), "changed", update_string_from_editable_cb, result);
+	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), "changed",
+			   GTK_SIGNAL_FUNC(update_string_from_editable_cb), result);
 
 	gtk_container_add(GTK_CONTAINER(whbox), wlabel);
 	gtk_container_add(GTK_CONTAINER(whbox), wentry);
@@ -166,7 +167,7 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
         fileEntry = gnome_file_entry_new(history_id, label);
 	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fileEntry), TRUE);
         gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
-                           "changed", update_string_from_editable_cb,
+                           "changed", GTK_SIGNAL_FUNC(update_string_from_editable_cb),
 			   returnbuffer);
 	if (pattern)
 		gtk_signal_connect_after(GTK_OBJECT(fileEntry), "browse-clicked",
@@ -318,7 +319,7 @@ glame_gui_build_plugin_menu_genmenu(struct glame_list_head *entries, GtkMenu *me
 			if (gtksighand)
 				gtk_signal_connect(
 					GTK_OBJECT(mitem), "activate",
-					gtksighand, entry->u.p.plugin);
+					GTK_SIGNAL_FUNC(gtksighand), entry->u.p.plugin);
 			gtk_widget_show(mitem);
 		}
 		glame_list_del(&entry->list);
@@ -459,7 +460,7 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption, const ch
 
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->apply_button));
 	if (helppath)
-		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button), "clicked", glame_help_cb, (gpointer)helppath);
+		gtk_signal_connect(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button), "clicked", GTK_SIGNAL_FUNC(glame_help_cb), (gpointer)helppath);
 	else
 		gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->help_button));
 	gtk_object_destroy(GTK_OBJECT(GNOME_PROPERTY_BOX(propBox)->ok_button));
@@ -475,7 +476,7 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption, const ch
 					    GLSIG_PARAM_DELETED,
 					    fprop_kill_prop, propBox);
 		gtk_signal_connect(GTK_OBJECT(propBox), "destroy",
-				   fprop_kill_handler, handler);
+				   GTK_SIGNAL_FUNC(fprop_kill_handler), handler);
 	}
 
 	return propBox;

@@ -61,7 +61,7 @@ struct _GtkEditableWaveBufferClass
   gint (*insert)        (GtkEditableWaveBuffer *editable_wave_buffer,
                          guint32                start,
                          guint32                length);
-  gint (*delete)        (GtkEditableWaveBuffer *editable_wave_buffer,
+  gint (*del)           (GtkEditableWaveBuffer *editable_wave_buffer,
                          guint32                start,
                          guint32                length);
 };

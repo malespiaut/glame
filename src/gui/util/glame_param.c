@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.24 2003/04/15 20:32:56 richi Exp $
+ * $Id: glame_param.c,v 1.25 2003/04/20 21:56:06 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -46,10 +46,10 @@ static void glame_param_destroy(GtkObject *gparam)
 	}
 }
 
-static void glame_param_class_init(GlameParamClass *class)
+static void glame_param_class_init(GlameParamClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = glame_param_destroy;
 }
 

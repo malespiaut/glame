@@ -87,7 +87,7 @@ gtk_editable_wave_buffer_class_init (GtkEditableWaveBufferClass *klass)
   wavebuffer_class->get_samples = NULL;
   klass->set_samples = NULL;
   klass->insert = NULL;
-  klass->delete = NULL;
+  klass->del = NULL;
 }
 
 
@@ -150,5 +150,5 @@ gtk_editable_wave_buffer_delete (GtkEditableWaveBuffer *editable,
                                  guint32 start,
                                  guint32 length)
 {
-  return GTK_EDITABLE_WAVE_BUFFER_CLASS (G_OBJECT_GET_CLASS (editable))->delete (editable, start, length);
+  return GTK_EDITABLE_WAVE_BUFFER_CLASS (G_OBJECT_GET_CLASS (editable))->del (editable, start, length);
 }

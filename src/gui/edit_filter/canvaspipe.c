@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.28 2003/04/11 20:10:00 richi Exp $
+ * $Id: canvaspipe.c,v 1.29 2003/04/20 21:56:02 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -79,11 +79,11 @@ glame_canvas_pipe_destroy (GtkObject *object)
 
 
 static void
-glame_canvas_pipe_class_init(GlameCanvasPipeClass* class)
+glame_canvas_pipe_class_init(GlameCanvasPipeClass* klass)
 {
 	
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = glame_canvas_pipe_destroy;
 
 	pipe_signals[DELETED] = g_signal_new("deleted",
@@ -95,7 +95,7 @@ glame_canvas_pipe_class_init(GlameCanvasPipeClass* class)
 					     GTK_TYPE_NONE,
 					     0);
 	//	gtk_object_class_add_signals(object_class,pipe_signals,LAST_SIGNAL);
-	class->deleted = NULL;
+	klass->deleted = NULL;
 }
 
 static void

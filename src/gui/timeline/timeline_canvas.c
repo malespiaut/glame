@@ -1,7 +1,7 @@
 /*
  * timeline_canvas.c
  *
- * $Id: timeline_canvas.c,v 1.6 2003/04/11 20:10:19 richi Exp $
+ * $Id: timeline_canvas.c,v 1.7 2003/04/20 21:56:05 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -56,10 +56,10 @@ static void timeline_canvas_destroy(GtkObject *canvas)
 		glsig_delete_handler(TIMELINE_CANVAS(canvas)->gpsm_handler1);
 }
 
-static void timeline_canvas_class_init(TimelineCanvasClass *class)
+static void timeline_canvas_class_init(TimelineCanvasClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = timeline_canvas_destroy;
 }
 
@@ -162,13 +162,13 @@ static void timeline_canvas_item_destroy(GtkObject *item)
 		glsig_delete_handler(TIMELINE_CANVAS_ITEM(item)->gpsm_handler);
 }
 
-static void timeline_canvas_item_class_init(TimelineCanvasItemClass *class)
+static void timeline_canvas_item_class_init(TimelineCanvasItemClass *klass)
 {
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = timeline_canvas_item_destroy;
-	class->update = NULL;
-	class->highlight = NULL;
+	klass->update = NULL;
+	klass->highlight = NULL;
 }
 
 static void timeline_canvas_item_init(TimelineCanvasItem *item)
@@ -248,13 +248,13 @@ static void timeline_canvas_group_destroy(GtkObject *group)
 	GTK_OBJECT_CLASS(parent_class)->destroy(group);
 }
 
-static void timeline_canvas_group_class_init(TimelineCanvasGroupClass *class)
+static void timeline_canvas_group_class_init(TimelineCanvasGroupClass *klass)
 {
 	GtkObjectClass *object_class;
 	TimelineCanvasItemClass *item_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = timeline_canvas_group_destroy;
-	item_class = TIMELINE_CANVAS_ITEM_CLASS(class);
+	item_class = TIMELINE_CANVAS_ITEM_CLASS(klass);
 	item_class->update = timeline_canvas_group_update;
 	item_class->highlight = timeline_canvas_group_highlight;
 }
@@ -393,13 +393,13 @@ static void timeline_canvas_file_destroy(GtkObject *file)
 	GTK_OBJECT_CLASS(parent_class)->destroy(file);
 }
 
-static void timeline_canvas_file_class_init(TimelineCanvasFileClass *class)
+static void timeline_canvas_file_class_init(TimelineCanvasFileClass *klass)
 {
 	GtkObjectClass *object_class;
 	TimelineCanvasItemClass *item_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = timeline_canvas_file_destroy;
-	item_class = TIMELINE_CANVAS_ITEM_CLASS(class);
+	item_class = TIMELINE_CANVAS_ITEM_CLASS(klass);
 	item_class->update = timeline_canvas_file_update;
 	item_class->highlight = timeline_canvas_file_highlight;
 }

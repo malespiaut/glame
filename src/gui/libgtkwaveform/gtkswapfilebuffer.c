@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.16 2003/04/11 20:10:12 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.17 2003/04/20 21:56:03 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -124,7 +124,7 @@ gtk_swapfile_buffer_class_init (GtkSwapfileBufferClass *klass)
 	wavebuffer_class->get_samples = gtk_swapfile_buffer_get_samples;
 	editable_class->set_samples = gtk_swapfile_buffer_set_samples;
 	editable_class->insert = gtk_swapfile_buffer_insert;
-	editable_class->delete = gtk_swapfile_buffer_delete;
+	editable_class->del = gtk_swapfile_buffer_delete;
 }
 
 static void
@@ -251,7 +251,7 @@ gtk_swapfile_buffer_get_samples (GtkWaveBuffer *wavebuffer,
 			if (!trackm[i]
 			    && trackpos[i] >= trackst[i].cluster_start/SAMPLE_SIZE
 			    && trackpos[i] <= trackst[i].cluster_end/SAMPLE_SIZE)
-				trackm[i] = sw_mmap(NULL, PROT_READ, MAP_SHARED, swapfile->fd[i]);
+				trackm[i] = (SAMPLE *)sw_mmap(NULL, PROT_READ, MAP_SHARED, swapfile->fd[i]);
 			if (trackm[i] == MAP_FAILED)
 				trackm[i] = NULL;
 		}
@@ -462,9 +462,9 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 	if (nrtracks == 0)
 		return NULL;
 
-	fd = calloc(nrtracks, sizeof(swfd_t));
-	swfile = calloc(nrtracks, sizeof(gpsm_swfile_t *));
-	handler = calloc(nrtracks+1, sizeof(glsig_handler_t *));
+	fd = (swfd_t *)calloc(nrtracks, sizeof(swfd_t));
+	swfile = (gpsm_swfile_t **)calloc(nrtracks, sizeof(gpsm_swfile_t *));
+	handler = (glsig_handler_t **)calloc(nrtracks+1, sizeof(glsig_handler_t *));
 
 	i = 0;
 	gpsm_grp_foreach_item(item, it) {
@@ -475,7 +475,7 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 		i++;
 	}
 
-	swapfile = gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
+	swapfile = (GtkSwapfileBuffer *)gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
 	swapfile->item = item;
 	swapfile->size = gpsm_item_hsize(item);
 	swapfile->nrtracks = nrtracks;

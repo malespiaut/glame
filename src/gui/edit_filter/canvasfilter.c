@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.58 2003/04/15 20:32:55 richi Exp $
+ * $Id: canvasfilter.c,v 1.59 2003/04/20 21:56:01 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -79,11 +79,11 @@ glame_canvas_filter_destroy (GtkObject *object)
 
 
 static void
-glame_canvas_filter_class_init(GlameCanvasFilterClass* class)
+glame_canvas_filter_class_init(GlameCanvasFilterClass* klass)
 {
 	
 	GtkObjectClass *object_class;
-	object_class = GTK_OBJECT_CLASS(class);
+	object_class = GTK_OBJECT_CLASS(klass);
 	object_class->destroy = glame_canvas_filter_destroy;
 	
 	/* now for the signal stuff */
@@ -113,8 +113,8 @@ glame_canvas_filter_class_init(GlameCanvasFilterClass* class)
 	//gtk_object_class_add_signals(object_class,filter_signals, LAST_SIGNAL);
 	
 	/* default handlers */
-	class->moved = NULL;
-	class->deleted = NULL;
+	klass->moved = NULL;
+	klass->deleted = NULL;
 	
 }
 
