@@ -1,7 +1,7 @@
 /*
  * timeline_canvas.c
  *
- * $Id: timeline_canvas.c,v 1.3 2001/07/30 09:12:46 xwolf Exp $
+ * $Id: timeline_canvas.c,v 1.4 2001/08/06 08:19:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -211,7 +211,7 @@ void timeline_canvas_item_w2gpsm(long *hposition, long *vposition,
 				 double x2, double y2)
 {
 	*hposition = _HUNIT1(x1*(double)rate);
-	*vposition = _VUNIT1(y1);
+	*vposition = _VUNIT1(y1) + 0.5;
 	*hsize = _HUNIT1((x2-x1)*(double)rate);
 	*vsize = _VUNIT1((y2-y1));
 }

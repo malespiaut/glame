@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.15 2001/07/30 09:12:46 xwolf Exp $
+ * $Id: timeline.c,v 1.16 2001/08/06 08:19:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -28,6 +28,7 @@
 #include "glscript.h"
 #include "glame_accelerator.h"
 #include "util/glame_gui_utils.h"
+#include "util/glame_hruler.h"
 #include "waveeditgui.h"
 #include "timeline.h"
 
@@ -36,6 +37,31 @@
  */
 
 static TimelineGui *active_timeline = NULL;
+
+
+/* Ruler metric - time based.
+ */
+
+static gchar *time_metric_translate(gdouble value)
+{
+  gint minutes;
+  gdouble seconds;
+
+  minutes = ((gint) (value / 60.0));
+  seconds = value - (((gint)value) / 60) * 60;
+
+  return g_strdup_printf ("%02d:%02.3f", minutes, seconds);
+}
+
+static const GlameRulerMetric time_metric = {
+  "Time Metric", "time", 1.0,
+  24, (gdouble[24]){ 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0,
+		     5.0, 15.0, 30.0, 45.0, 60.0, 90.0, 120.0,
+		     180.0, 240.0, 360.0, 480.0, 720.0, 960.0,
+		     1440.0, 1920.0, 2880.0, 3840.0 },
+  5, (gint[5]){ 1, 5, 10, 30, 60 },
+  time_metric_translate
+};
 
 
 /*
@@ -60,11 +86,11 @@ static void handle_timeline_destroy(GtkWidget *canvas,
 
 static void update_ruler_position(TimelineGui *timeline, long hposition)
 {
-	gtk_ruler_set_range(timeline->ruler,
-			    timeline->ruler->lower,
-			    timeline->ruler->upper,
-			    hposition/44100.0,
-			    timeline->ruler->max_size);
+	glame_ruler_set_range(timeline->ruler,
+			      timeline->ruler->lower,
+			      timeline->ruler->upper,
+			      hposition/44100.0,
+			      timeline->ruler->max_size);
 }
 
 static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
@@ -175,35 +201,46 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 			/* Just move the rect (horizontally). */
 			dx = mevent->x - dnd_start_x;
 			dy = mevent->y - dnd_start_y;
+#if 0 /* WTF is that?? [richi] */
 			if (x1+dx < 0.0)
 				dx = -x1;
 			if (y1+dy < 0.0)
 				dy = -y1;
+#endif
 			timeline_canvas_item_w2gpsm(
 				&hposition, &vposition,
 				&dummy, &dummy,
 				gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
 				x1+dx, y1+dy, 0.0, 0.0);
-			if(gpsm_item_can_place(
-					       gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
-					       TIMELINE_CI_GPSM(dnd_file),
-					       hposition, vposition)){
-				timeline_canvas_item_w2gpsm(&dummy, &idy,&dummy,&dummy,
-							    gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
-							    0.0,dy,0.0,0.0);
-				timeline_canvas_item_gpsm2w(0,idy,0,0,
-							    gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
-							    &dummy,&dy,&dummy,&dummy);
+			if (gpsm_item_can_place(
+				/* FIXME -- does not do cross-group moving */
+				//canvas->active_group,
+				gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
+				TIMELINE_CI_GPSM(dnd_file),
+				hposition, vposition)) {
+				DPRINTF("Can place at %li, %li\n",
+					hposition, vposition);
+				timeline_canvas_item_w2gpsm(
+					&dummy, &idy,&dummy,&dummy,
+					gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+					0.0,dy,0.0,0.0);
+				timeline_canvas_item_gpsm2w(
+					0,idy,0,0,
+					gpsm_swfile_samplerate(TIMELINE_CI_GPSM(dnd_file)),
+					&dummy,&dy,&dummy,&dummy);
 				gnome_canvas_item_set(dnd_rect,
 						      "x1", x1+dx,
 						      "x2", x2+dx, 
 						      "y1", y1+dy,
 						      "y2", y2+dy, NULL);
+				gnome_canvas_item_raise_to_top(dnd_rect);
 				gnome_canvas_item_request_update(dnd_rect);
 				DPRINTF("D&D moved by %.1f, %.1f\n", dx, dy);
 
 				update_ruler_position(active_timeline, hposition);
-			}
+			} else
+				DPRINTF("Cannot place at %li, %li\n",
+					hposition, vposition);
 		}
 	}
 	case GDK_BUTTON_RELEASE: {
@@ -233,11 +270,10 @@ static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
 				x1, y1, x2, y2,
 				hposition, gpsm_item_hposition(TIMELINE_CI_GPSM(dnd_file)));
 			gpsm_item_place(
+				//canvas->active_group,
 				gpsm_item_parent(TIMELINE_CI_GPSM(dnd_file)),
 				TIMELINE_CI_GPSM(dnd_file),
 				hposition, vposition);//gpsm_item_vposition(TIMELINE_CI_GPSM(dnd_file)));
-			/* TIMELINE_CI_GPSM(dnd_file)->hposition = hposition;
-			   glsig_emit(gpsm_item_emitter(TIMELINE_CI_GPSM(dnd_file)), GPSM_SIG_ITEM_CHANGED, TIMELINE_CI_GPSM(dnd_file)); */
 
 			gtk_object_destroy(GTK_OBJECT(dnd_rect));
 			dnd_file = NULL;
@@ -277,11 +313,11 @@ static gboolean root_event(TimelineCanvas* canvas, GdkEvent* event,
 				    44100,
 				    ((GdkEventMotion *)event)->x,
 				    0.0, 0.0, 0.0);
-	gtk_ruler_set_range(canvas->ruler,
-			    canvas->ruler->lower,
-			    canvas->ruler->upper,
-			    canvas->ruler->lower + hpos/44100.0/scale,
-			    canvas->ruler->max_size);
+	glame_ruler_set_range(canvas->ruler,
+			      canvas->ruler->lower,
+			      canvas->ruler->upper,
+			      canvas->ruler->lower + hpos/44100.0/scale,
+			      canvas->ruler->max_size);
 	}
 #endif
 	default:
@@ -331,11 +367,11 @@ static void ruler_update_cb(GtkAdjustment *adjustment, TimelineGui *timeline)
 				    adjustment->value, 0.0,
 				    adjustment->value + adjustment->page_size,
 				    0.0);
-	gtk_ruler_set_range(timeline->ruler,
-			    hpos/44100.0/scale,
-			    (hpos + hsize)/44100.0/scale,
-			    hpos/44100.0/scale /* FIXME - track mouse */,
-			    (hpos + hsize)/44100.0/scale);
+	glame_ruler_set_range(timeline->ruler,
+			      hpos/44100.0/scale,
+			      (hpos + hsize)/44100.0/scale,
+			      hpos/44100.0/scale /* FIXME - track mouse */,
+			      (hpos + hsize)/44100.0/scale);
 }
 
 
@@ -638,9 +674,9 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 
 	gtk_window_set_default_size(GTK_WINDOW(window), 500, 300);
 	vbox = gtk_vbox_new(FALSE, 5);
-	window->ruler = GTK_RULER(gtk_hruler_new());
-	gtk_ruler_set_metric(window->ruler, GTK_PIXELS);
-	gtk_ruler_set_range(window->ruler, 0.0, 100.0, 0.0, 1000.0);
+	window->ruler = GLAME_RULER(glame_hruler_new());
+	glame_ruler_set_metric(window->ruler, &time_metric);
+	glame_ruler_set_range(window->ruler, 0.0, 100.0, 0.0, 1000.0);
 	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(window->ruler),
 			   FALSE, FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(vbox), swindow);

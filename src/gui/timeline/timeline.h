@@ -3,7 +3,7 @@
 
 /*
  * timeline.h
- * $Id: timeline.h,v 1.3 2001/07/06 12:14:53 mag Exp $
+ * $Id: timeline.h,v 1.4 2001/08/06 08:19:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,6 +29,7 @@
 
 #include <gtk/gtkwidget.h>
 #include "gpsm.h"
+#include "util/glame_ruler.h"
 #include "timeline_canvas.h"
 
 
@@ -53,7 +54,7 @@ struct _TimelineGui {
 	GnomeApp parent_object;
 
 	TimelineCanvas *canvas;
-	GtkRuler *ruler;
+	GlameRuler *ruler;
 };
 
 
