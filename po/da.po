@@ -3,269 +3,294 @@
 # Allan Lyckegaard <allan@lyckegaard.dk>, 2003.
 #
 #
-# Der er så vidt muligt brugt HSDG's vejledende liste over oversættelser
-# ellers er følgende konventioner brugt:
+# Der er sÃ¥ vidt muligt brugt HSDG's vejledende liste over oversÃ¦ttelser
+# ellers er fÃ¸lgende konventioner brugt:
 #
 # Wave -> Signal
 # Rate -> Frekvens
-# Network -> Kredsløb
+# Network -> KredslÃ¸b
 #
-# Der findes ikke noget dækkende ord for der engelske "to sample",
+# Der findes ikke noget dÃ¦kkende ord for der engelske "to sample",
 # hvorfor "at sample" er benyttet.
 #
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: glame VERSION\n"
-"POT-Creation-Date: 2003-1-7 14:48+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-06-12 21:28+0200\n"
 "PO-Revision-Date: 2003-03-02 22:39+0100\n"
 "Last-Translator: Allan Lyckegaard <Allan@lyckegaard.dk>\n"
 "Language-Team: Dansk <dansk@klid.dk>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ISO-8859-1\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
 
-#: src/gui/main.c:74
+#: src/gui/main.c:75
 msgid "_New Project"
 msgstr "_Nyt projekt"
 
-#: src/gui/main.c:74
+#: src/gui/main.c:75
 msgid "Creates a new Project group"
 msgstr "Opret en ny projektgruppe"
 
-#: src/gui/main.c:75
+#: src/gui/main.c:76
 msgid "Edit File..."
-msgstr "Redigér fil..."
-
-#: src/gui/main.c:75
-msgid "Imports a file and opens the waveedit window"
-msgstr "Importerer en fil og åbner signalredigeringsvinduet"
-
-#: src/gui/main.c:76 src/gui/swapfilegui.c:102
-msgid "Import..."
-msgstr "Importér..."
+msgstr "RedigÃ©r fil..."
 
 #: src/gui/main.c:76
+msgid "Imports a file and opens the waveedit window"
+msgstr "Importerer en fil og Ã¥bner signalredigeringsvinduet"
+
+#: src/gui/main.c:77 src/gui/swapfilegui.c:109
+msgid "Import..."
+msgstr "ImportÃ©r..."
+
+#: src/gui/main.c:77
 msgid "Imports a file"
 msgstr "Importerer en fil"
 
-#: src/gui/main.c:78
+#: src/gui/main.c:79
 msgid "Empty [deleted]"
-msgstr "Tøm [slettet]"
+msgstr "TÃ¸m [slettet]"
 
-#: src/gui/main.c:78
+#: src/gui/main.c:79
 msgid "Kills [deleted] folder"
-msgstr "Dræber mappen [slettet]"
+msgstr "DrÃ¦ber mappen [slettet]"
 
-#: src/gui/main.c:80
+#: src/gui/main.c:81
 msgid "Show _console"
 msgstr "_Vis konsol"
 
-#: src/gui/main.c:80
+#: src/gui/main.c:81
 msgid "Shows the GLAME console"
 msgstr "Viser GLAME-konsollen "
 
-#: src/gui/main.c:81
+#: src/gui/main.c:82
 msgid "Sync"
-msgstr "Synkronisér"
+msgstr "SynkronisÃ©r"
 
-#: src/gui/main.c:81
+#: src/gui/main.c:82
 msgid "Syncs meta to disk"
-msgstr "Gemmer swapfilinformation på harddisken"
+msgstr "Gemmer swapfilinformation pÃ¥ harddisken"
 
-#: src/gui/main.c:91
+#: src/gui/main.c:92
 msgid "New Filternetwork"
-msgstr "Nyt filterkredsløb"
+msgstr "Nyt filterkredslÃ¸b"
 
-#: src/gui/main.c:91
+#: src/gui/main.c:92
 msgid "Creates a new filternetwork"
-msgstr "Opretter et nyt filterkredsløb"
+msgstr "Opretter et nyt filterkredslÃ¸b"
 
-#: src/gui/main.c:94 src/gui/main.c:261
+#: src/gui/main.c:95 src/gui/main.c:264
 msgid "Load Plugin"
-msgstr "Indlæs udvidelsesmodul"
+msgstr "IndlÃ¦s udvidelsesmodul"
 
-#: src/gui/main.c:94
+#: src/gui/main.c:95
 msgid "Loads and registers a plugin"
-msgstr "Indlæser og registrerer et udvidelsesmodul"
+msgstr "IndlÃ¦ser og registrerer et udvidelsesmodul"
 
-#: src/gui/edit_filter/canvasfilter.c:1095 src/gui/main.c:100
+#: src/gui/main.c:101 src/gui/waveeditgui.c:1395
+#: src/gui/edit_filter/canvasfilter.c:1110
+#: src/gui/edit_filter/filtereditgui.c:709
 msgid "_Help"
-msgstr "_Hjælp"
+msgstr "_HjÃ¦lp"
 
-#: src/gui/main.c:100
+#: src/gui/main.c:101 src/gui/waveeditgui.c:1395
+#: src/gui/edit_filter/filtereditgui.c:709
 msgid "Opens a gnome help browser"
-msgstr "Åbner GLAME-hjælp"
+msgstr "Ã…bner GLAME-hjÃ¦lp"
 
-#: src/gui/main.c:101
+#: src/gui/main.c:102
 msgid "Quick Start Guide"
 msgstr "Kort introduktion"
 
-#: src/gui/main.c:101
+#: src/gui/main.c:102
 msgid "Opens a gnome help browser with the quick start guide"
 msgstr "Kort introduktion til GLAME"
 
-#: src/gui/main.c:102
+#: src/gui/main.c:103 src/gui/waveeditgui.c:1396
+#: src/gui/edit_filter/filtereditgui.c:710
 msgid "List key-bindings"
 msgstr "Vis genvejstater"
 
-#: src/gui/main.c:102
+#: src/gui/main.c:103 src/gui/waveeditgui.c:1396
+#: src/gui/edit_filter/filtereditgui.c:710
 msgid "Lists the current key-bindings"
-msgstr "Viser de nuværende genvejstaster"
+msgstr "Viser de nuvÃ¦rende genvejstaster"
 
-#: src/gui/main.c:118
+#: src/gui/main.c:119
 msgid "_Project"
 msgstr "_Projekt"
 
-#: src/gui/main.c:125
+#: src/gui/main.c:126
 msgid "_Filternetwork"
-msgstr "_Filterkredsløb"
+msgstr "_FilterkredslÃ¸b"
 
-#. Create new gpsm group.
-#: src/gui/main.c:175 src/gui/swapfilegui.c:411 src/gui/swapfilegui.c:438
-#: src/gui/swapfilegui.c:499
+#: src/gui/main.c:176 src/gui/swapfilegui.c:418 src/gui/swapfilegui.c:445
+#: src/gui/swapfilegui.c:506
 msgid "Unnamed"
 msgstr "Unavngiven"
 
-#: src/gui/main.c:218 src/gui/swapfilegui.c:565
+#: src/gui/main.c:221 src/gui/swapfilegui.c:572
 msgid "Cannot open wave editor"
-msgstr "Kan ikke åbne signalredigering"
+msgstr "Kan ikke Ã¥bne signalredigering"
 
-#: src/gui/main.c:250 src/gui/swapfilegui.c:623
+#: src/gui/main.c:253 src/gui/swapfilegui.c:626
 msgid "Cannot place imported wave"
-msgstr "Kan ikke tilføje importeret signal"
+msgstr "Kan ikke tilfÃ¸je importeret signal"
 
-#: src/gui/edit_filter/filtereditgui.c:699
-#: src/gui/edit_filter/filtereditgui.c:806 src/gui/main.c:262
+#: src/gui/main.c:265 src/gui/edit_filter/filtereditgui.c:854
+#: src/gui/edit_filter/filtereditgui.c:962
 msgid "Filename"
 msgstr "Filnavn"
 
-#: src/gui/main.c:270
+#: src/gui/main.c:273
 msgid "Error loading plugin"
-msgstr "Fejl under indlæsning af udvidelsesmodul"
+msgstr "Fejl under indlÃ¦sning af udvidelsesmodul"
 
-#: src/gui/main.c:406
+#: src/gui/main.c:432
+msgid "Audio plugins"
+msgstr "Lydudvidelsesmoduler"
+
+#: src/gui/main.c:466
+msgid "Add"
+msgstr "TilfÃ¸j"
+
+#: src/gui/main.c:470 src/gui/apply.c:402
+msgid "Apply"
+msgstr "Anvend"
+
+#: src/gui/main.c:485
 msgid "Property popup timeout [ms]"
-msgstr "Forsinkelse på egenskabsdialog [ms]"
+msgstr "Forsinkelse pÃ¥ egenskabsdialog [ms]"
 
-#: src/gui/main.c:413
+#: src/gui/main.c:492
 msgid "Mac mode (one mouse button mode)"
 msgstr "Mac-tilstand (en museknap)"
 
-#: src/gui/main.c:428
+#: src/gui/main.c:507
 msgid "Scroll wave while playing"
-msgstr "Følg med signal under afspilning"
+msgstr "FÃ¸lg med signal under afspilning"
 
-#: src/gui/main.c:443
+#: src/gui/main.c:522
 msgid "You need lots of diskspace available at the swapfile location."
-msgstr "Swapfilen har behov for meget plads på harddisken."
+msgstr "Swapfilen har behov for meget plads pÃ¥ harddisken."
 
-#: src/gui/main.c:445
+#: src/gui/main.c:524
 msgid "GLAME doesnt handle running out of disk space very well."
-msgstr ""
-"For lidt plads på harddisken håndteres ikke særlig godt "
-"af GLAME."
+msgstr "For lidt plads pÃ¥ harddisken hÃ¥ndteres ikke sÃ¦rlig godt af GLAME."
 
-#: src/gui/main.c:447 src/gui/main.c:449
+#: src/gui/main.c:526 src/gui/main.c:528
 msgid "Swapfile Path"
 msgstr "Sti til swapfil"
 
-#: src/gui/main.c:458
+#: src/gui/main.c:537
 msgid "Maximum virtual memory used for caching [MB]"
 msgstr "Maksimum virtuel hukommelse benyttet til mellemlagring [MB]"
 
-#: src/gui/main.c:461
+#: src/gui/main.c:540
 msgid "NOTE: Swapfile settings take effect after restart only"
-msgstr "Indstillingerne for swapfilen træder først i kraft efter genstart"
+msgstr "Indstillingerne for swapfilen trÃ¦der fÃ¸rst i kraft efter genstart"
 
-#: src/gui/main.c:466
+#: src/gui/main.c:545
 msgid "Depth of undo stack"
 msgstr "Antal handlinger der kan fortrydes"
 
-#: src/gui/main.c:503
+#: src/gui/main.c:582
 msgid "Default input plugin (audio_in)"
 msgstr "Standardudvidelsesmodul til inddata (lyd_ind)"
 
-#: src/gui/main.c:509
+#: src/gui/main.c:588
 msgid "Default input device"
 msgstr "Standardenhed til inddata "
 
-#: src/gui/main.c:512
+#: src/gui/main.c:591
 msgid "No audio input plugin"
 msgstr "Intet udvidelsesmodul til lydinddata"
 
-#: src/gui/main.c:516
+#: src/gui/main.c:595
 msgid "Default input sample rate"
 msgstr "Standard samplefrekvens"
 
-#: src/gui/main.c:539
+#: src/gui/main.c:618
 msgid "Default output plugin (audio_out)"
 msgstr "Standardudvidelsesmodul til uddata (lyd_ud)"
 
-#: src/gui/main.c:545
+#: src/gui/main.c:624
 msgid "Default output device"
 msgstr "Standardenhed til uddata"
 
-#: src/gui/main.c:549
+#: src/gui/main.c:628
 msgid "No audio output plugin"
 msgstr "Intet udvidelsesmodul til lyduddata"
 
-#: src/gui/main.c:556
+#: src/gui/main.c:635
 msgid "Size hint for audio buffers [samples]"
-msgstr "Foretrukne størrelse på lydbuffer [samples]"
+msgstr "Foretrukne stÃ¸rrelse pÃ¥ lydbuffer [samples]"
 
-#. Swapfile with
-#. * - swapfile location
-#: src/gui/main.c:581
+#: src/gui/main.c:665
 msgid "Swapfile"
 msgstr "Swapfil"
 
-#. Edit Filter with
-#. * - popup timeout
-#. * - mac mode
-#: src/gui/main.c:589
+#: src/gui/main.c:673
 msgid "Filternetwork"
-msgstr "Filterkredsløb"
+msgstr "FilterkredslÃ¸b"
 
-#. Waveedit with
-#. * - scrolling
-#: src/gui/main.c:596
+#: src/gui/main.c:680
 msgid "Waveedit"
 msgstr "Signalredigering"
 
-#. Audio I/O with
-#. * - input device2
-#. * - output device
-#: src/gui/main.c:604
+#: src/gui/main.c:688
 msgid "Audio I/O"
 msgstr "Lyd-ind/uddata"
 
-#: src/gui/main.c:673
+#: src/gui/main.c:758
 msgid "Richard Guenther [Richi]"
-msgstr "Richard Günther [Richi]"
+msgstr "Richard GÃ¼nther [Richi]"
 
-#: src/gui/main.c:674
+#: src/gui/main.c:759
 msgid "Alexander Ehlert [Mag]"
 msgstr "Alexander Ehlert [Mag]"
 
-#: src/gui/main.c:675
+#: src/gui/main.c:760
 msgid "Daniel Kobras [*nold]"
 msgstr "Daniel Kobras [*nold]"
 
-#: src/gui/main.c:676
+#: src/gui/main.c:761
 msgid "Johannes Hirche [XWolf]"
 msgstr "Johannes Hirche [XWolf]"
 
-#: src/gui/main.c:677
+#: src/gui/main.c:762
 msgid "and others"
 msgstr "med flere"
 
-#: src/gui/main.c:687
-msgid "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
-msgstr "Copyright (C) 1999-2001 R. Günther, A. Ehlert, J. Hirche, D. Kobras"
+#: src/gui/main.c:766
+msgid "Richi"
+msgstr ""
 
-#: src/gui/main.c:691
+#: src/gui/main.c:767 src/gui/main.c:773
+msgid "*nold"
+msgstr ""
+
+#: src/gui/main.c:768
+msgid "Mag"
+msgstr ""
+
+#: src/gui/main.c:769
+msgid "XWolf"
+msgstr ""
+
+#: src/gui/main.c:774
+msgid "Laurent Georget"
+msgstr ""
+
+#: src/gui/main.c:787
+msgid "Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"
+msgstr "Copyright (C) 1999-2001 R. GÃ¼nther, A. Ehlert, J. Hirche, D. Kobras"
+
+#: src/gui/main.c:789
 msgid ""
 "This program is free software; you can redistribute it and/or modifyit under "
 "the terms of the GNU General Public License as published bythe Free Software "
@@ -279,20 +304,23 @@ msgid ""
 "this program; if not, write to the Free SoftwareFoundation, Inc., 59 Temple "
 "Place, Suite 330, Boston, MA  02111-1307  USA"
 msgstr ""
-"Dette program er frit programmel; du kan distribuere det og/eller ændre det under "
-"de gældende betingelser for den af Free Software Foundation publicerede "
-"GNU General Public License; enten version 2 af Licensen eller (efter eget valg) "
-"hvilken som helst senere version.\n"
-"Dette program er distribueret med håb om at det vil være nyttigt, men "
-"UDEN NOGEN FORM FOR GARANTI; det være sig udtrykte eller underforståede, "
-"herunder, men ikke begrænset til, de underforståede garantier vedrørende "
-"SALGSBARHED og SPECIFIK BRUGSEGNETHED. Se GNU General Public "
-"License for flere detaljer. "
-"Med programmet skulle følge en kopi af GNU General Public License; hvis "
-"ikke, så kontakt Free Software Foundation, Inc., 59 Temple Place, Suite 330, "
-"Boston, MA  02111-1307  USA"
+"Dette program er frit programmel; du kan distribuere det og/eller Ã¦ndre det "
+"under de gÃ¦ldende betingelser for den af Free Software Foundation "
+"publicerede GNU General Public License; enten version 2 af Licensen eller "
+"(efter eget valg) hvilken som helst senere version.\n"
+"Dette program er distribueret med hÃ¥b om at det vil vÃ¦re nyttigt, men UDEN "
+"NOGEN FORM FOR GARANTI; det vÃ¦re sig udtrykte eller underforstÃ¥ede, "
+"herunder, men ikke begrÃ¦nset til, de underforstÃ¥ede garantier vedrÃ¸rende "
+"SALGSBARHED og SPECIFIK BRUGSEGNETHED. Se GNU General Public License for "
+"flere detaljer. Med programmet skulle fÃ¸lge en kopi af GNU General Public "
+"License; hvis ikke, sÃ¥ kontakt Free Software Foundation, Inc., 59 Temple "
+"Place, Suite 330, Boston, MA  02111-1307  USA"
 
-#: src/gui/main.c:747
+#: src/gui/main.c:802
+msgid "*nold, Laurent Georget"
+msgstr ""
+
+#: src/gui/main.c:848
 #, c-format
 msgid ""
 "The GLAME swapfile subsystem is about to commit suicide.\n"
@@ -311,12 +339,12 @@ msgstr ""
 "    %s\n"
 "Sidste fejl registreret af libc er:\n"
 "    %s\n"
-"Genstart blot GLAME efter at have ordnet den førnævnte\n"
-"fejl (hvilket også kan være en indre fejl i GLAME).\n"
+"Genstart blot GLAME efter at have ordnet den fÃ¸rnÃ¦vnte\n"
+"fejl (hvilket ogsÃ¥ kan vÃ¦re en indre fejl i GLAME).\n"
 "\n"
-"-- På Gensyn.\n"
+"-- PÃ¥ Gensyn.\n"
 
-#: src/gui/main.c:797
+#: src/gui/main.c:898
 msgid ""
 "Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
@@ -324,19 +352,19 @@ msgid ""
 "\"Audio IO\" settings.\n"
 msgstr ""
 "Velkommen til GLAME.\n"
-"Det er første gang du benytter dette program og du må derfor\n"
-"angive nogle grundlæggende indstillinger. Kontroller venligst\n"
-"også stien til swapfilen og indstillingerne for lyd-ind/uddata.\n"
+"Det er fÃ¸rste gang du benytter dette program og du mÃ¥ derfor\n"
+"angive nogle grundlÃ¦ggende indstillinger. Kontroller venligst\n"
+"ogsÃ¥ stien til swapfilen og indstillingerne for lyd-ind/uddata.\n"
 
-#: src/gui/main.c:804
+#: src/gui/main.c:905
 msgid ""
 "You didnt change/check the configuration.\n"
 "GLAME is exiting now.\n"
 msgstr ""
-"Du ændrede/kontrollerede ikke opsætningen.\n"
+"Du Ã¦ndrede/kontrollerede ikke opsÃ¦tningen.\n"
 "GLAME afsluttes.\n"
 
-#: src/gui/main.c:815
+#: src/gui/main.c:916
 #, c-format
 msgid ""
 "GLAME was unable to create its swapfile\n"
@@ -344,14 +372,14 @@ msgid ""
 "Please check the configuration.\n"
 msgstr ""
 "GLAME kunne ikke oprette en swapfil\n"
-"på grund af \"%s\".\n"
-"Kontrollér venligst opsætningen.\n"
+"pÃ¥ grund af \"%s\".\n"
+"KontrollÃ©r venligst opsÃ¦tningen.\n"
 
-#: src/gui/main.c:885
+#: src/gui/main.c:986
 msgid "    GLAME version "
 msgstr "    GLAME version "
 
-#: src/gui/main.c:885
+#: src/gui/main.c:986
 msgid ""
 ", Copyright (C) 1999-2001 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
@@ -361,523 +389,646 @@ msgid ""
 "\n"
 msgstr ""
 ", Copyright (C) 1999-2001 af\n"
-"    Alexander Ehlert, Richard Günther, Johannes Hirche,\n"
+"    Alexander Ehlert, Richard GÃ¼nther, Johannes Hirche,\n"
 "    Daniel Kobras. GLAME distribueres UDEN NOGEN FORM\n"
 "    FOR GARANTI. Dette er frit programmel og kan \n"
-"    redistribueres på visse betingelser\n"
+"    redistribueres pÃ¥ visse betingelser\n"
 "\n"
 
-#: src/gui/swapfilegui.c:84 src/gui/swapfilegui.c:116
-#: src/gui/waveeditgui.c:932
+#: src/gui/swapfilegui.c:91 src/gui/swapfilegui.c:123
+#: src/gui/waveeditgui.c:931
 msgid "Edit"
-msgstr "Redigér"
+msgstr "RedigÃ©r"
 
-#: src/gui/swapfilegui.c:85 src/gui/swapfilegui.c:117
+#: src/gui/swapfilegui.c:92 src/gui/swapfilegui.c:124
+#: src/gui/edit_filter/filtereditgui.c:686
 msgid "Properties..."
 msgstr "Egenskaber..."
 
-#: src/gui/swapfilegui.c:86
+#: src/gui/swapfilegui.c:93
 msgid "Timeline"
 msgstr "Tidslinje"
 
-#: src/gui/swapfilegui.c:88 src/gui/swapfilegui.c:119
-#: src/gui/waveeditgui.c:198
+#: src/gui/swapfilegui.c:95 src/gui/swapfilegui.c:126
+#: src/gui/waveeditgui.c:204 src/gui/edit_filter/filtereditgui.c:696
 msgid "Delete"
 msgstr "Slet"
 
-#: src/gui/swapfilegui.c:90
-msgid "Add group"
-msgstr "Tilføj gruppe"
-
-#: src/gui/swapfilegui.c:91
-msgid "Add clipboard"
-msgstr "Tilføj fra klippebord"
-
-#: src/gui/swapfilegui.c:92
-msgid "Add mono wave"
-msgstr "Tilføj monosignal"
-
-#: src/gui/swapfilegui.c:93
-msgid "Add stereo wave"
-msgstr "Tilføj stereosignal"
-
-#: src/gui/swapfilegui.c:94
-msgid "Link selected"
-msgstr "Sammenkæd markerede"
-
-#: src/gui/swapfilegui.c:95
-msgid "Copy selected"
-msgstr "Kopiér markerede"
-
 #: src/gui/swapfilegui.c:97
-msgid "Merge with parent"
-msgstr "Flet med forælder"
+msgid "Add group"
+msgstr "TilfÃ¸j gruppe"
 
 #: src/gui/swapfilegui.c:98
+msgid "Add clipboard"
+msgstr "TilfÃ¸j fra klippebord"
+
+#: src/gui/swapfilegui.c:99
+msgid "Add mono wave"
+msgstr "TilfÃ¸j monosignal"
+
+#: src/gui/swapfilegui.c:100
+msgid "Add stereo wave"
+msgstr "TilfÃ¸j stereosignal"
+
+#: src/gui/swapfilegui.c:101
+msgid "Link selected"
+msgstr "SammenkÃ¦d markerede"
+
+#: src/gui/swapfilegui.c:102
+msgid "Copy selected"
+msgstr "KopiÃ©r markerede"
+
+#: src/gui/swapfilegui.c:104
+msgid "Merge with parent"
+msgstr "Flet med forÃ¦lder"
+
+#: src/gui/swapfilegui.c:105
 msgid "Flatten"
 msgstr "Sammenfold"
 
-#: src/gui/swapfilegui.c:100 src/gui/swapfilegui.c:123
-#: src/gui/waveeditgui.c:943
+#: src/gui/swapfilegui.c:107 src/gui/swapfilegui.c:130
+#: src/gui/waveeditgui.c:942
 msgid "Apply operation"
-msgstr "Udfør handling"
+msgstr "UdfÃ¸r handling"
 
-#: src/gui/swapfilegui.c:103 src/gui/swapfilegui.c:125
+#: src/gui/swapfilegui.c:110 src/gui/swapfilegui.c:132
+#: src/gui/waveeditgui.c:1388
 msgid "Export..."
-msgstr "Eksportér..."
+msgstr "EksportÃ©r..."
 
-#: src/gui/swapfilegui.c:121
+#: src/gui/swapfilegui.c:128 src/gui/edit_filter/filtereditgui.c:698
 msgid "Group"
-msgstr "Gruppér"
+msgstr "GruppÃ©r"
 
-#: src/gui/swapfilegui.c:196 src/gui/waveeditgui.c:452
+#: src/gui/swapfilegui.c:202 src/gui/waveeditgui.c:444
 msgid "Error executing"
-msgstr "Fejl i udførelsen"
+msgstr "Fejl i udfÃ¸relsen"
 
-#: src/gui/swapfilegui.c:289 src/gui/swapfilegui.c:333
+#: src/gui/swapfilegui.c:296 src/gui/swapfilegui.c:340
 msgid "Cannot place item into irregular group"
-msgstr "Kan ikke tilføje element i irregulær gruppe"
+msgstr "Kan ikke tilfÃ¸je element i irregulÃ¦r gruppe"
 
-#: src/gui/swapfilegui.c:439
+#: src/gui/swapfilegui.c:446
 msgid "left"
 msgstr "venstre"
 
-#: src/gui/swapfilegui.c:441
+#: src/gui/swapfilegui.c:448
 msgid "right"
-msgstr "højre"
+msgstr "hÃ¸jre"
 
-#: src/gui/swapfilegui.c:525
+#: src/gui/swapfilegui.c:532
 msgid "Clipboard is empty"
 msgstr "Klippebordet er tomt"
 
-#: src/gui/swapfilegui.c:582
+#: src/gui/swapfilegui.c:589
 msgid "Cannot open timeline"
 msgstr "Kan ikke hente tidslinje"
 
-#: src/gui/swapfilegui.c:590
+#: src/gui/swapfilegui.c:597
 msgid ""
 "The timeline is highly experimental\n"
 "and may cause unexpected effects\n"
 "within other parts of GLAME.\n"
 "Be warned."
 msgstr ""
-"Tidslinjen er i høj grad eksperimentel og\n"
+"Tidslinjen er i hÃ¸j grad eksperimentel og\n"
 "uventede bivirkninger kan forekomme\n"
 "andre steder i GLAME."
 
-#: src/gui/swapfilegui.c:730
+#: src/gui/swapfilegui.c:733
 msgid "Drop into hbox"
 msgstr "Put i en hbox"
 
-#: src/gui/swapfilegui.c:736
+#: src/gui/swapfilegui.c:739
 msgid "Drop into vbox"
 msgstr "Put i en vbox"
 
-#: src/gui/apply.c:167
+#: src/gui/apply.c:172
 msgid "Unable to create input node"
 msgstr "Kan ikke oprette inddataknude"
 
-#: src/gui/apply.c:192 src/gui/apply.c:298
+#: src/gui/apply.c:199 src/gui/apply.c:312
 msgid "Unable to launch network"
-msgstr "Kan ikke starte kredsløb"
+msgstr "Kan ikke starte kredslÃ¸b"
 
-#: src/gui/apply.c:272
+#: src/gui/apply.c:282
 msgid "Cannot construct network"
-msgstr "Kan ikke konstruere kredsløb"
+msgstr "Kan ikke konstruere kredslÃ¸b"
 
-#: src/gui/apply.c:382
+#: src/gui/apply.c:400
 msgid "Preview"
-msgstr "Forhåndsvisning"
+msgstr "ForhÃ¥ndsvisning"
 
-#: src/gui/apply.c:384
-msgid "Apply"
-msgstr "Anvend"
-
-#: src/gui/apply.c:397
+#: src/gui/apply.c:415
 #, c-format
 msgid "Parameters of %s"
 msgstr "Parametre for %s"
 
-#: src/gui/apply.c:411
+#: src/gui/apply.c:429
 msgid "Lock size"
-msgstr "Lås størrelse"
+msgstr "LÃ¥s stÃ¸rrelse"
 
-#: src/gui/apply.c:415
+#: src/gui/apply.c:433
 msgid "Loop previewing"
-msgstr "Forhåndsvisning af løkke"
+msgstr "ForhÃ¥ndsvisning af lÃ¸kke"
 
-#: src/gui/glame_accelerator.c:187
+#: src/gui/glame_accelerator.c:192
 msgid "No description"
 msgstr "Ingen beskrivelse"
 
-#: src/gui/edit_filter/filtereditgui.c:670 src/gui/glame_accelerator.c:498
-#: src/gui/waveeditgui.c:1474
+#: src/gui/glame_accelerator.c:503 src/gui/waveeditgui.c:1534
+#: src/gui/edit_filter/filtereditgui.c:807
 msgid "Close"
 msgstr "Luk"
 
-#: src/gui/importexport.c:601
+#: src/gui/importexport.c:191 src/gui/importexport.c:327
+#: src/gui/importexport.c:483
+#, fuzzy
+msgid "Importing..."
+msgstr "ImportÃ©r..."
+
+#: src/gui/importexport.c:226 src/gui/importexport.c:346
+#: src/gui/importexport.c:506 src/gui/importexport.c:694
+msgid "Done."
+msgstr ""
+
+#: src/gui/importexport.c:663
+msgid "Analyzing..."
+msgstr ""
+
+#: src/gui/importexport.c:714
+msgid "Cancelled."
+msgstr ""
+
+#: src/gui/importexport.c:885
 msgid "File Information"
 msgstr "Filinformation"
 
-#: src/gui/importexport.c:634
+#: src/gui/importexport.c:918
 msgid "Get RMS & DC-Offset"
 msgstr "Beregn RMS og DC-forskydning"
 
-#: src/gui/importexport.c:658
+#: src/gui/importexport.c:942
 msgid "Resample"
 msgstr "Gentag sampling"
 
-#: src/gui/importexport.c:666
+#: src/gui/importexport.c:950
 msgid "Rate"
 msgstr "Frekvens"
 
-#: src/gui/importexport.c:693
+#: src/gui/importexport.c:977
 msgid "Import"
-msgstr "Importér"
+msgstr "ImportÃ©r"
 
-#: src/gui/importexport.c:1155 src/gui/waveeditgui.c:1433
+#: src/gui/importexport.c:1279
+#, fuzzy
+msgid "Exporting..."
+msgstr "EksportÃ©r..."
+
+#: src/gui/importexport.c:1316
+msgid "Error!"
+msgstr ""
+
+#: src/gui/importexport.c:1464 src/gui/waveeditgui.c:1498
 msgid "Export"
-msgstr "Eksportér"
+msgstr "EksportÃ©r"
 
-#: src/gui/waveeditgui.c:68
+#: src/gui/waveeditgui.c:70
 msgid "Zoom to selection"
-msgstr "Forstør markering"
+msgstr "ForstÃ¸r markering"
 
-#: src/gui/edit_filter/filtereditgui.c:657 src/gui/waveeditgui.c:69
-#: src/gui/waveeditgui.c:1438
+#: src/gui/waveeditgui.c:71 src/gui/waveeditgui.c:1503
+#: src/gui/edit_filter/filtereditgui.c:703
+#: src/gui/edit_filter/filtereditgui.c:799
 msgid "Zoom in"
-msgstr "Forstør"
+msgstr "ForstÃ¸r"
 
-#: src/gui/edit_filter/filtereditgui.c:660 src/gui/waveeditgui.c:70
-#: src/gui/waveeditgui.c:1442
+#: src/gui/waveeditgui.c:72 src/gui/waveeditgui.c:1507
+#: src/gui/edit_filter/filtereditgui.c:704
+#: src/gui/edit_filter/filtereditgui.c:800
 msgid "Zoom out"
 msgstr "Formindsk"
 
-#: src/gui/edit_filter/filtereditgui.c:663 src/gui/waveeditgui.c:71
-#: src/gui/waveeditgui.c:1446
+#: src/gui/waveeditgui.c:73 src/gui/waveeditgui.c:1511
+#: src/gui/edit_filter/filtereditgui.c:705
+#: src/gui/edit_filter/filtereditgui.c:801
 msgid "View all"
 msgstr "Vis alt"
 
-#: src/gui/waveeditgui.c:72
+#: src/gui/waveeditgui.c:74
 msgid "Goto marker"
-msgstr "Gå til markør"
+msgstr "GÃ¥ til markÃ¸r"
 
-#: src/gui/waveeditgui.c:126 src/gui/waveeditgui.c:1455
+#: src/gui/waveeditgui.c:128 src/gui/waveeditgui.c:1519
 msgid "Select none"
-msgstr "Markér intet"
+msgstr "MarkÃ©r intet"
 
-#: src/gui/waveeditgui.c:127 src/gui/waveeditgui.c:1451
+#: src/gui/waveeditgui.c:129 src/gui/waveeditgui.c:1515
 msgid "Select all"
-msgstr "Markér alt"
+msgstr "MarkÃ©r alt"
 
-#: src/gui/waveeditgui.c:129
+#: src/gui/waveeditgui.c:131
 msgid "Export selection"
-msgstr "Eksportér markering"
+msgstr "EksportÃ©r markering"
 
-#: src/gui/waveeditgui.c:194
+#: src/gui/waveeditgui.c:198
 msgid "Cut"
 msgstr "Klip"
 
-#: src/gui/waveeditgui.c:195
+#: src/gui/waveeditgui.c:199 src/gui/edit_filter/filtereditgui.c:694
 msgid "Copy"
-msgstr "Kopiér"
+msgstr "KopiÃ©r"
 
-#: src/gui/edit_filter/filtereditgui.c:212 src/gui/waveeditgui.c:196
+#: src/gui/waveeditgui.c:200 src/gui/edit_filter/filtereditgui.c:695
 msgid "Paste"
-msgstr "Sæt ind"
+msgstr "SÃ¦t ind"
 
-#: src/gui/waveeditgui.c:200
+#: src/gui/waveeditgui.c:201
+#, fuzzy
+msgid "Replace"
+msgstr "Gentag sampling"
+
+#: src/gui/waveeditgui.c:202
+msgid "Mix"
+msgstr ""
+
+#: src/gui/waveeditgui.c:206
 msgid "Undo"
 msgstr "Fortryd"
 
-#: src/gui/waveeditgui.c:201
+#: src/gui/waveeditgui.c:207
 msgid "Redo"
-msgstr "Omgør"
+msgstr "OmgÃ¸r"
 
-#: src/gui/waveeditgui.c:305
+#: src/gui/waveeditgui.c:388
 msgid "Error during undo"
 msgstr "Fejl ved fortryd"
 
-#: src/gui/waveeditgui.c:319
+#: src/gui/waveeditgui.c:404
 msgid "Error during redo"
-msgstr "Fejl ved omgør"
+msgstr "Fejl ved omgÃ¸r"
 
-#: src/gui/waveeditgui.c:893
+#: src/gui/waveeditgui.c:487 src/gui/waveeditgui.c:1528
+#, fuzzy
+msgid "Play/Record"
+msgstr "Optag"
+
+#: src/gui/waveeditgui.c:598
+msgid "No audio output support"
+msgstr "Ingen understÃ¸ttelse for lyduddata"
+
+#: src/gui/waveeditgui.c:603
+msgid "No audio input support"
+msgstr "Ingen understÃ¸ttelse for lydinddata"
+
+#: src/gui/waveeditgui.c:701
+msgid "Cannot play/record wave"
+msgstr "Kan ikke afspille/optage signal"
+
+#: src/gui/waveeditgui.c:712 src/gui/edit_filter/filtereditgui.c:942
+msgid "Stop"
+msgstr "Stop"
+
+#: src/gui/waveeditgui.c:766 src/gui/waveeditgui.c:804
+msgid "Nothing selected"
+msgstr "Intet markeret"
+
+#: src/gui/waveeditgui.c:890
 msgid "Failed to create network"
-msgstr "Oprettelse af kredsløb mislykkedes"
+msgstr "Oprettelse af kredslÃ¸b mislykkedes"
 
-#: src/gui/waveeditgui.c:933
+#: src/gui/waveeditgui.c:932
 msgid "View"
 msgstr "Visning"
 
-#: src/gui/waveeditgui.c:934
+#: src/gui/waveeditgui.c:933
 msgid "Select"
-msgstr "Markér"
+msgstr "MarkÃ©r"
 
-#: src/gui/waveeditgui.c:936
+#: src/gui/waveeditgui.c:935
 msgid "Play all"
 msgstr "Afspil alle"
 
-#: src/gui/waveeditgui.c:937
+#: src/gui/waveeditgui.c:936
 msgid "Play selection"
 msgstr "Afspil markering"
 
-#: src/gui/waveeditgui.c:938
+#: src/gui/waveeditgui.c:937
 msgid "Play from marker"
-msgstr "Afspil fra markør"
+msgstr "Afspil fra markÃ¸r"
+
+#: src/gui/waveeditgui.c:939
+msgid "Record at marker"
+msgstr "Optag fra markÃ¸r"
 
 #: src/gui/waveeditgui.c:940
-msgid "Record at marker"
-msgstr "Optag fra markør"
-
-#: src/gui/waveeditgui.c:941
 msgid "Record into selection"
-msgstr "Optag på markering"
+msgstr "Optag pÃ¥ markering"
 
-#: src/gui/waveeditgui.c:944
+#: src/gui/waveeditgui.c:943
 msgid "Apply filter"
 msgstr "Anvend filter"
 
-#: src/gui/waveeditgui.c:945
+#: src/gui/waveeditgui.c:944
 msgid "Apply custom..."
 msgstr "Anvend brugerdefineret..."
 
-#: src/gui/waveeditgui.c:1463
-msgid "Play"
-msgstr "Afspil"
+#: src/gui/waveeditgui.c:1389
+#, fuzzy
+msgid "Export selection..."
+msgstr "EksportÃ©r markering"
 
-#: src/gui/waveeditgui.c:1468
-msgid "Menu"
-msgstr "Menu"
+#: src/gui/waveeditgui.c:1401
+#, fuzzy
+msgid "_File"
+msgstr "Filnavn"
 
-#: src/gui/edit_filter/filtereditgui.c:672 src/gui/waveeditgui.c:1478
+#: src/gui/waveeditgui.c:1408 src/gui/edit_filter/filtereditgui.c:722
+#, fuzzy
+msgid "_Edit"
+msgstr "RedigÃ©r"
+
+#: src/gui/waveeditgui.c:1415 src/gui/edit_filter/filtereditgui.c:729
+#, fuzzy
+msgid "_View"
+msgstr "Visning"
+
+#: src/gui/waveeditgui.c:1422
+#, fuzzy
+msgid "_Select"
+msgstr "MarkÃ©r"
+
+#: src/gui/waveeditgui.c:1538 src/gui/edit_filter/filtereditgui.c:809
 msgid "Help"
-msgstr "Hjælp"
+msgstr "HjÃ¦lp"
 
-#: src/gui/edit_filter/canvasfilter.c:909
+#: src/gui/edit_filter/canvasfilter.c:920
 msgid "This item does not have a description"
 msgstr "Dette element har ingen beskrivelse"
 
-#: src/gui/edit_filter/canvasfilter.c:913
+#: src/gui/edit_filter/canvasfilter.c:924
 msgid "Description"
 msgstr "Beskrivelse"
 
-#: src/gui/edit_filter/canvasfilter.c:917
-#: src/gui/edit_filter/filtereditgui.c:318
+#: src/gui/edit_filter/canvasfilter.c:928
+#: src/gui/edit_filter/filtereditgui.c:368
 msgid "Ports"
 msgstr "Porte"
 
-#: src/gui/edit_filter/canvasfilter.c:930
-#: src/gui/edit_filter/canvasfilter.c:952
-#: src/gui/edit_filter/canvasfilter.c:957
-#: src/gui/edit_filter/filtereditgui.c:333
-#: src/gui/edit_filter/filtereditgui.c:364
-#: src/gui/edit_filter/filtereditgui.c:369
+#: src/gui/edit_filter/canvasfilter.c:941
+#: src/gui/edit_filter/canvasfilter.c:963
+#: src/gui/edit_filter/canvasfilter.c:968
+#: src/gui/edit_filter/filtereditgui.c:383
+#: src/gui/edit_filter/filtereditgui.c:414
+#: src/gui/edit_filter/filtereditgui.c:419
 msgid "Empty"
 msgstr "Tom"
 
-#: src/gui/edit_filter/canvasfilter.c:937
-#: src/gui/edit_filter/filtereditgui.c:314
-#: src/gui/edit_filter/filtereditgui.c:655
+#: src/gui/edit_filter/canvasfilter.c:948
+#: src/gui/edit_filter/filtereditgui.c:364
+#: src/gui/edit_filter/filtereditgui.c:796
 msgid "Properties"
 msgstr "Egenskaber"
 
-#: src/gui/edit_filter/canvasfilter.c:1016
+#: src/gui/edit_filter/canvasfilter.c:1028
 msgid "Export parameters..."
-msgstr "Eksportér parametre..."
+msgstr "EksportÃ©r parametre..."
 
-#: src/gui/edit_filter/canvasfilter.c:1036
+#: src/gui/edit_filter/canvasfilter.c:1051
 msgid "Select parameter:"
-msgstr "Udvælg parameter:"
+msgstr "UdvÃ¦lg parameter:"
 
-#: src/gui/edit_filter/canvasfilter.c:1037
+#: src/gui/edit_filter/canvasfilter.c:1052
 msgid "External name:"
 msgstr "Eksternt navn:"
 
-#: src/gui/edit_filter/canvasfilter.c:1083
-#: src/gui/edit_filter/canvaspipe.c:298
+#: src/gui/edit_filter/canvasfilter.c:1098
+#: src/gui/edit_filter/canvaspipe.c:300
 msgid "_Delete"
 msgstr "_Slet"
 
-#: src/gui/edit_filter/canvasfilter.c:1084
+#: src/gui/edit_filter/canvasfilter.c:1099
 msgid "_Expand"
 msgstr "_Udvid"
 
-#: src/gui/edit_filter/canvasfilter.c:1085
+#: src/gui/edit_filter/canvasfilter.c:1100
 msgid "_Open down"
-msgstr "_Åben"
+msgstr "_Ã…ben"
 
-#: src/gui/edit_filter/canvasfilter.c:1087
+#: src/gui/edit_filter/canvasfilter.c:1102
 msgid "_Redirect parameter"
-msgstr "Omdirigér _parameter"
+msgstr "OmdirigÃ©r _parameter"
 
-#: src/gui/edit_filter/canvasfilter.c:1089
+#: src/gui/edit_filter/canvasfilter.c:1104
 msgid "_Group selection"
-msgstr "_Gruppér markering"
+msgstr "_GruppÃ©r markering"
 
-#: src/gui/edit_filter/canvasfilter.c:1090
+#: src/gui/edit_filter/canvasfilter.c:1105
 msgid "_Ungroup"
-msgstr "_Degruppér"
+msgstr "_DegruppÃ©r"
 
-#: src/gui/edit_filter/canvasfilter.c:1091
+#: src/gui/edit_filter/canvasfilter.c:1106
 msgid "Cop_y selection"
-msgstr "_Kopiér markering"
+msgstr "_KopiÃ©r markering"
 
-#: src/gui/edit_filter/canvasfilter.c:1092
+#: src/gui/edit_filter/canvasfilter.c:1107
 msgid "_Collapse selection"
 msgstr "Sammenfold _markering"
 
-#: src/gui/edit_filter/canvasfilter.c:1094
+#: src/gui/edit_filter/canvasfilter.c:1109
 msgid "_About node..."
 msgstr "_Om..."
 
-#: src/gui/edit_filter/canvaspipe.c:295
+#: src/gui/edit_filter/canvaspipe.c:297
 msgid "_Source properties..."
 msgstr "Egenskaber for _kilde..."
 
-#: src/gui/edit_filter/canvaspipe.c:296
+#: src/gui/edit_filter/canvaspipe.c:298
 msgid "D_estination properties..."
-msgstr "Egenskaber for _mål..."
+msgstr "Egenskaber for _mÃ¥l..."
 
-#: src/gui/edit_filter/canvaspipe.c:379
+#: src/gui/edit_filter/canvaspipe.c:383 src/gui/edit_filter/canvaspipe.c:435
+#: src/gui/edit_filter/canvaspipe.c:537
 #, c-format
 msgid "Samplerate: %d"
 msgstr "Samplefrekvens: %d"
 
-#: src/gui/edit_filter/canvaspipe.c:402
+#: src/gui/edit_filter/canvaspipe.c:408 src/gui/edit_filter/canvaspipe.c:460
 #, c-format
 msgid "Hangle: %f"
 msgstr "Vinkel: %f"
 
-#: src/gui/edit_filter/canvaspipe.c:428
+#: src/gui/edit_filter/canvaspipe.c:485
+#, c-format
+msgid "FFT blocksize: %i"
+msgstr ""
+
+#: src/gui/edit_filter/canvaspipe.c:510
+#, c-format
+msgid "FFT oversampling: %i"
+msgstr ""
+
+#: src/gui/edit_filter/canvaspipe.c:562
+#, c-format
+msgid "SSP blocksize: %i"
+msgstr ""
+
+#: src/gui/edit_filter/canvaspipe.c:590
 msgid "Source params:"
 msgstr "Kildeparametre:"
 
-#: src/gui/edit_filter/canvaspipe.c:483
+#: src/gui/edit_filter/canvaspipe.c:645
 msgid "Dest params:"
-msgstr "Målparametre:"
+msgstr "MÃ¥lparametre:"
 
-#: src/gui/edit_filter/canvasport.c:249
+#: src/gui/edit_filter/canvasport.c:253
 msgid "_Redirect port"
-msgstr "Omdirigér _port"
+msgstr "OmdirigÃ©r _port"
 
-#: src/gui/edit_filter/canvasport.c:386
+#: src/gui/edit_filter/canvasport.c:390
 msgid "Export as..."
-msgstr "Eksportér som..."
+msgstr "EksportÃ©r som..."
 
-#: src/gui/edit_filter/canvasport.c:394
+#: src/gui/edit_filter/canvasport.c:398
 msgid "New port name"
 msgstr "Nyt portnavn"
 
-#: src/gui/edit_filter/filtereditgui.c:245
+#: src/gui/edit_filter/filtereditgui.c:261
+msgid "_Paste"
+msgstr "SÃ¦t _ind"
+
+#: src/gui/edit_filter/filtereditgui.c:294
 msgid "Delete Port"
 msgstr "Slet port"
 
-#: src/gui/edit_filter/filtereditgui.c:253
+#: src/gui/edit_filter/filtereditgui.c:302
 msgid "Delete Parameter"
 msgstr "Slet parameter"
 
-#: src/gui/edit_filter/filtereditgui.c:338
-#: src/gui/edit_filter/filtereditgui.c:374
+#: src/gui/edit_filter/filtereditgui.c:388
+#: src/gui/edit_filter/filtereditgui.c:424
 msgid "Unknown"
 msgstr "Ukendt"
 
-#: src/gui/edit_filter/filtereditgui.c:347
+#: src/gui/edit_filter/filtereditgui.c:397
 msgid "Parameters"
 msgstr "Parametre"
 
-#: src/gui/edit_filter/filtereditgui.c:647
-#: src/gui/edit_filter/filtereditgui.c:751
+#: src/gui/edit_filter/filtereditgui.c:684
+#, fuzzy
+msgid "Save as..."
+msgstr "Gem kredslÃ¸b som..."
+
+#: src/gui/edit_filter/filtereditgui.c:685
+#, fuzzy
+msgid "Register..."
+msgstr "RegistrÃ©r"
+
+#: src/gui/edit_filter/filtereditgui.c:688
+#: src/gui/edit_filter/filtereditgui.c:785
+#: src/gui/edit_filter/filtereditgui.c:906
 msgid "Execute"
-msgstr "Udfør"
+msgstr "UdfÃ¸r"
 
-#: src/gui/edit_filter/filtereditgui.c:647
-#: src/gui/edit_filter/filtereditgui.c:751
+#: src/gui/edit_filter/filtereditgui.c:699
+#, fuzzy
+msgid "Collapse"
+msgstr "Luk"
+
+#: src/gui/edit_filter/filtereditgui.c:715
+#, fuzzy
+msgid "_Network"
+msgstr "_FilterkredslÃ¸b"
+
+#: src/gui/edit_filter/filtereditgui.c:785
+#: src/gui/edit_filter/filtereditgui.c:906
 msgid "Executes Filternetwork"
-msgstr "Udfører filterkredsløb"
+msgstr "UdfÃ¸rer filterkredslÃ¸b"
 
-#: src/gui/edit_filter/filtereditgui.c:649
+#: src/gui/edit_filter/filtereditgui.c:788
 msgid "Register"
-msgstr "Registrér"
+msgstr "RegistrÃ©r"
 
-#: src/gui/edit_filter/filtereditgui.c:649
+#: src/gui/edit_filter/filtereditgui.c:788
 msgid "Registers actual filternetwork"
-msgstr "Registrerer det aktuelle filterkredsløb"
+msgstr "Registrerer det aktuelle filterkredslÃ¸b"
 
-#: src/gui/edit_filter/filtereditgui.c:651
+#: src/gui/edit_filter/filtereditgui.c:792
 msgid "Save"
 msgstr "Gem"
 
-#: src/gui/edit_filter/filtereditgui.c:651
+#: src/gui/edit_filter/filtereditgui.c:792
 msgid "Saves Filternetwork"
-msgstr "Gemmer filterkredsløb"
+msgstr "Gemmer filterkredslÃ¸b"
 
-#: src/gui/edit_filter/filtereditgui.c:655
+#: src/gui/edit_filter/filtereditgui.c:796
 msgid "Edit Filternetwork Properties"
-msgstr "Redigér egenskaber for filterkredsløb"
+msgstr "RedigÃ©r egenskaber for filterkredslÃ¸b"
 
-#: src/gui/edit_filter/filtereditgui.c:657
-msgid "Zooms in"
-msgstr "Forstør"
+#: src/gui/edit_filter/filtereditgui.c:799
+#: src/gui/edit_filter/filtereditgui.c:800
+#: src/gui/edit_filter/filtereditgui.c:801
+#, fuzzy
+msgid "Adjust scroll region"
+msgstr "Tilpasser vinduet til filterkredslÃ¸bet"
 
-#: src/gui/edit_filter/filtereditgui.c:660
-msgid "Zooms out"
-msgstr "Formindsk"
-
-#: src/gui/edit_filter/filtereditgui.c:663
-msgid "Adjusts scroll region"
-msgstr "Tilpasser vinduet til filterkredsløbet"
-
-#: src/gui/edit_filter/filtereditgui.c:666
+#: src/gui/edit_filter/filtereditgui.c:804
 msgid "Add last"
-msgstr "Tilføj seneste"
+msgstr "TilfÃ¸j seneste"
 
-#: src/gui/edit_filter/filtereditgui.c:666
+#: src/gui/edit_filter/filtereditgui.c:804
 msgid "Adds last filter"
-msgstr "Tilføjer seneste filter"
+msgstr "TilfÃ¸jer seneste filter"
 
-#: src/gui/edit_filter/filtereditgui.c:698
+#: src/gui/edit_filter/filtereditgui.c:853
 msgid "Load filternetwork"
-msgstr "Indlæs filterkredsløb"
+msgstr "IndlÃ¦s filterkredslÃ¸b"
 
-#: src/gui/edit_filter/filtereditgui.c:713
+#: src/gui/edit_filter/filtereditgui.c:868
 msgid ""
 "Error in loading network\n"
 "Check out the glame-console output for more information"
 msgstr ""
-"Fejl i indlæsning af kredsløb\n"
+"Fejl i indlÃ¦sning af kredslÃ¸b\n"
 "Se GLAME-konsollen for mere information"
 
-#: src/gui/edit_filter/filtereditgui.c:787
-msgid "Stop"
-msgstr "Stop"
-
-#: src/gui/edit_filter/filtereditgui.c:805
+#: src/gui/edit_filter/filtereditgui.c:961
 msgid "Save network as..."
-msgstr "Gem kredsløb som..."
+msgstr "Gem kredslÃ¸b som..."
 
-#: src/gui/edit_filter/filtereditgui.c:809
+#: src/gui/edit_filter/filtereditgui.c:965
 msgid "Filter name"
 msgstr "Filternavn"
 
-#: src/gui/edit_filter/filtereditgui.c:811
+#: src/gui/edit_filter/filtereditgui.c:967
 msgid "Category"
 msgstr "Kategori"
 
-#: src/gui/edit_filter/filtereditgui.c:820
+#: src/gui/edit_filter/filtereditgui.c:976
 msgid "Empty file/filter or category name"
 msgstr "Slet fil-, filter- eller kategorinavn"
 
-#: src/gui/edit_filter/filtereditgui.c:845
+#: src/gui/edit_filter/filtereditgui.c:1002
 msgid "Filtername"
 msgstr "Filternavn"
+
+#~ msgid "Play"
+#~ msgstr "Afspil"
+
+#~ msgid "Menu"
+#~ msgstr "Menu"
+
+#~ msgid "Zooms in"
+#~ msgstr "ForstÃ¸r"
+
+#~ msgid "Zooms out"
+#~ msgstr "Formindsk"
 
 #~ msgid "Unable to apply effect node(s)"
 #~ msgstr "Kan ikke anvende effektknude(r)"
 
 #~ msgid "Dont change values below, if you dont know what you are doing."
-#~ msgstr ""
-#~ "Ændr ikke på værdierne herunder hvis du ikke ved hvad du gør."
+#~ msgstr "Ã†ndr ikke pÃ¥ vÃ¦rdierne herunder hvis du ikke ved hvad du gÃ¸r."
 
 #~ msgid "Maximum number of cached fragment headers"
 #~ msgstr "Maksimum antal fragmenthoveder i mellemlager"
@@ -888,9 +1039,6 @@ msgstr "Filternavn"
 #~ msgid "Maximum number of cached memory mappings"
 #~ msgstr "Maksimum antal hukommelsesafbildninger i mellemlager"
 
-#~ msgid "_Paste"
-#~ msgstr "Sæt _ind"
-
 #~ msgid "Delete node"
 #~ msgstr "Slet knude"
 
@@ -898,28 +1046,28 @@ msgstr "Filternavn"
 #~ msgstr "Udvid"
 
 #~ msgid "Open down"
-#~ msgstr "Åben"
+#~ msgstr "Ã…ben"
 
 #~ msgid "Group selection"
-#~ msgstr "Gruppér markering"
+#~ msgstr "GruppÃ©r markering"
 
 #~ msgid "Ungroup"
-#~ msgstr "Degruppér"
+#~ msgstr "DegruppÃ©r"
 
 #~ msgid "Collapse selection"
 #~ msgstr "Sammenfold markering"
 
 #~ msgid "Show help"
-#~ msgstr "Vis hjælp"
+#~ msgstr "Vis hjÃ¦lp"
 
 #~ msgid "Source properties"
 #~ msgstr "Egenskaber for kilde"
 
 #~ msgid "Destination properties"
-#~ msgstr "Egenskaber for mål"
+#~ msgstr "Egenskaber for mÃ¥l"
 
 #~ msgid "Delete pipe"
-#~ msgstr "Slet rør"
+#~ msgstr "Slet rÃ¸r"
 
 #~ msgid "Deletes selected redirection"
 #~ msgstr "Sletter markerede omdirigering"
@@ -931,13 +1079,10 @@ msgstr "Filternavn"
 #~ msgstr "Rediger lydfil"
 
 #~ msgid "GLAME only supports recording of up to two channels"
-#~ msgstr "GLAME understøtter kun optagelse i op til to kanaler"
+#~ msgstr "GLAME understÃ¸tter kun optagelse i op til to kanaler"
 
 #~ msgid "Pause"
 #~ msgstr "Pause"
-
-#~ msgid "Record"
-#~ msgstr "Optag"
 
 #~ msgid "Cannot record"
 #~ msgstr "Kan ikke optage"
@@ -949,24 +1094,23 @@ msgstr "Filternavn"
 #~ msgstr "Afspiller aktuelle markering"
 
 #~ msgid "Plays from marker position"
-#~ msgstr "Afspiller fra markørposition"
+#~ msgstr "Afspiller fra markÃ¸rposition"
 
 #~ msgid "Records starting at marker position"
-#~ msgstr "Optager fra markørposition"
+#~ msgstr "Optager fra markÃ¸rposition"
 
 #~ msgid "Records into the actual selection"
-#~ msgstr "Optager på aktuelle markering"
+#~ msgstr "Optager pÃ¥ aktuelle markering"
 
 #~ msgid "Creates a filternetwork window for applying it to the selection"
-#~ msgstr ""
-#~ "Opretter et filternetværkvindue til anvendelse på markering"
+#~ msgstr "Opretter et filternetvÃ¦rkvindue til anvendelse pÃ¥ markering"
 
 #~ msgid ""
 #~ "The network You wish to expand is already opened, do You wish to close "
 #~ "the view?"
 #~ msgstr ""
-#~ "Kredsløbet du ønsker at åbne er allerede åbent, ønsker du at lukke"
-#~ "det tilhørende vindue?"
+#~ "KredslÃ¸bet du Ã¸nsker at Ã¥bne er allerede Ã¥bent, Ã¸nsker du at lukkedet "
+#~ "tilhÃ¸rende vindue?"
 
 #~ msgid "Name"
 #~ msgstr "Navn"
@@ -975,7 +1119,7 @@ msgstr "Filternavn"
 #~ msgstr "Type"
 
 #~ msgid "Value"
-#~ msgstr "Værdi"
+#~ msgstr "VÃ¦rdi"
 
 #~ msgid "In"
 #~ msgstr "Ind"
@@ -984,7 +1128,7 @@ msgstr "Filternavn"
 #~ msgstr "Ud"
 
 #~ msgid "Remap All"
-#~ msgstr "Alle verknüpfen"
+#~ msgstr "Alle verknÃ¼pfen"
 
 #~ msgid "Label: %s"
 #~ msgstr "Etiket: %s"
@@ -1005,16 +1149,10 @@ msgstr "Filternavn"
 #~ msgstr "Komprimering"
 
 #~ msgid "Select a file first!"
-#~ msgstr "Vælg en fil først!"
+#~ msgstr "VÃ¦lg en fil fÃ¸rst!"
 
 #~ msgid "Failed to create importing network"
-#~ msgstr "Fejl under oprettelse af importeret netværk"
-
-#~ msgid "Audio plugins"
-#~ msgstr "Lydudvidelsesmoduler"
-
-#~ msgid "Add"
-#~ msgstr "Tilføj"
+#~ msgstr "Fejl under oprettelse af importeret netvÃ¦rk"
 
 #~ msgid ""
 #~ "GLAME was unable to open/init its swapfile\n"
@@ -1022,25 +1160,13 @@ msgstr "Filternavn"
 #~ "Please check the configuration and/or check for\n"
 #~ "GLAME messages on the console.\n"
 #~ msgstr ""
-#~ "GLAME kunne ikke ikke åbne eller initialisere sin\n"
-#~ "swapfil på grund af %s.\n"
-#~ "Kontroller venligst opsætningen og/eller se.\n"
+#~ "GLAME kunne ikke ikke Ã¥bne eller initialisere sin\n"
+#~ "swapfil pÃ¥ grund af %s.\n"
+#~ "Kontroller venligst opsÃ¦tningen og/eller se.\n"
 #~ "efter GLAME-information i konsollen.\n"
-
-#~ msgid "No audio output support"
-#~ msgstr "Ingen understøttelse for lyduddata"
-
-#~ msgid "No audio input support"
-#~ msgstr "Ingen understøttelse for lydinddata"
-
-#~ msgid "Cannot play/record wave"
-#~ msgstr "Kan ikke afspille/optage signal"
 
 #~ msgid "Cannot play wave"
 #~ msgstr "Kan ikke afspille signal"
-
-#~ msgid "Nothing selected"
-#~ msgstr "Intet markeret"
 
 #~ msgid "Unable to create wavebuffer\n"
 #~ msgstr "Kan ikke oprette signalbuffer\n"
