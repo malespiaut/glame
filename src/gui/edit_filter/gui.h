@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.1 2000/12/07 14:28:31 xwolf Exp $
+ * $Id: gui.h,v 1.2 2000/12/11 15:57:33 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -49,31 +49,14 @@ typedef struct _gui_network {
 	char *descr;
 	int iports,oports;
 	filter_t * net;
-	GSList *filters;
 	gboolean paused;
 } gui_network;
 
-typedef struct _glame_gui {
-	GtkWidget *app;
-	GtkWidget *table;
-	GtkWidget *dock;
-	
-	GtkWidget *iconlist;
-	//  too lazy to use richis list... someone can hack this up if he feels motivated
-	GArray * filters;
-	GtkTargetEntry * target;
-	char **buttonlabels;
-	int selectedIcon;
-
-} glame_gui;
 
 
 typedef struct _gui_filter {
-	char * pixname;
-	char * caption;
 	// Filter data here
 	plugin_t * plugin;
-	filter_t * filter;
 	filter_t *node;
 	
 } gui_filter;
@@ -81,7 +64,7 @@ typedef struct _gui_filter {
 
 
 
-glame_gui * gui;
+
 
 int gui_filter_add(gui_filter *filter);
 

@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.7 2000/12/11 13:15:23 richi Exp $
+ * $Id: canvas.c,v 1.8 2000/12/11 15:57:33 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -40,7 +40,8 @@ static void connection_break_cb(GtkWidget *bla, GlameConnection* conn);
 static gint root_event(GnomeCanvas *canv,GdkEvent*event,gpointer data);
 
 static void canvas_create_new_cb(GtkWidget *bla,void*blu){}
-static void canvas_open_filter(GtkWidget*bla,void*blu);
+static void canvas_open_filter(GtkWidget*bla,void*blu){}
+static void canvas_load_scheme(GtkWidget*bla,void*blu);
 static void canvas_save_filter(GtkWidget*bla,void*blu){}
 static void canvas_save_as(GtkWidget*bla,void*blu);
 static void register_filternetwork_cb(GtkWidget*bla,void*blu);
@@ -82,14 +83,23 @@ static GnomeUIInfo file_menu[]=
 
 GnomeUIInfo *node_select_menu;
 
+static GnomeUIInfo help_menu[]=
+{
+	GNOMEUIINFO_ITEM("About...","About",gui_create_about,NULL),
+	GNOMEUIINFO_END
+};
 static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("Add Node...",&node_select_menu),
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Add input port...","Add input port",add_canvas_input_port_cb,NULL),
 	GNOMEUIINFO_ITEM("Add output port...","Add output port",add_canvas_output_port_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
 	GNOMEUIINFO_ITEM("Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
+	GNOMEUIINFO_SUBTREE("Help...",&help_menu),
 	GNOMEUIINFO_END
 };
 
@@ -97,7 +107,7 @@ static GnomeUIInfo root_menu[]=
 static void edit_canvas_item_properties_cb(GtkWidget* m,GlameCanvasItem *item)
 {
 	edit_canvas_item_properties(filter_paramdb(item->filter->node),
-				    item->filter->caption);
+				    filter_name(item->filter->node));
 };
 
 void delete_canvas_item_cb(GtkWidget* m,GlameCanvasItem* it)
@@ -185,10 +195,10 @@ image_select(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		it->dragging = FALSE;
 		//update coord.strings
 		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->x1);
-		if(filter_set_property(it->filter->filter,"canvas_x",numberbuffer))
+		if(filter_set_property(it->filter->node,"canvas_x",numberbuffer))
 				fprintf(stderr,"set prop failed\n");
 		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->y1);
-		if(filter_set_property(it->filter->filter,"canvas_y",numberbuffer))
+		if(filter_set_property(it->filter->node,"canvas_y",numberbuffer))
 				fprintf(stderr,"set prop failed\n");
 				
 		break;
@@ -240,7 +250,7 @@ static void
 dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data, guint info, guint time)
 {
 
-	GnomeCanvasGroup*grp;
+/*	GnomeCanvasGroup*grp;
 	int selected;
 	gui_filter *gf;
 	gui_filter *inst;
@@ -257,6 +267,7 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	gui_network_filter_add(canv->net,inst);
 	gnome_canvas_window_to_world(GNOME_CANVAS(canv),x,y,&dx,&dy);
 	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),inst,dx,dy));
+*/
 }
 
 
@@ -288,7 +299,7 @@ stop_network(GtkWidget *button,gui_network*net)
 static gint
 node_select(GtkWidget*wid, char* name)
 {
-	fprintf(stderr,"%s\n",name);
+//	fprintf(stderr,"%s\n",name);
 	add_filter_by_name(name);
 }
 
@@ -795,7 +806,7 @@ output_port_select(GnomeCanvasItem*item,GdkEvent* event, gpointer data)
 gint
 handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 {
-	fprintf(stderr,"%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
+//	fprintf(stderr,"%s\n",gtk_type_name(item->canvas->current_item->object.klass->type));
 
 	if((GLAME_CANVAS_ITEM(item))->dragging)
 		image_select(item,event,data);
@@ -812,7 +823,7 @@ handle_events(GnomeCanvasItem* item,GdkEvent *event, gpointer data)
 void
 create_ports(GnomeCanvasGroup* grp,gui_filter*f)
 {
-	filter_t *filter = f->filter;
+	filter_t *filter = f->node;
 	filter_port_t *port;
 	GlameCanvasPort *item;
 	//	GtkTooltips* tt;
@@ -1241,7 +1252,7 @@ static void register_filternetwork_cb(GtkWidget*bla,void*blu)
 
 
 
-static void canvas_open_filter(GtkWidget*bla,void*blu)
+static void canvas_load_scheme(GtkWidget*bla,void*blu)
 {
 	gnome_request_dialog(0,"Filename","filter",16,canvas_load_cb,NULL,NULL);
 }

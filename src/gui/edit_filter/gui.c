@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.3 2000/12/08 11:17:38 xwolf Exp $
+ * $Id: gui.c,v 1.4 2000/12/11 15:57:33 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -55,61 +55,11 @@ gui_filter*
 gui_filter_new(plugin_t* plugin)
 {
 	gui_filter * newFilter;
-	filter_t *filter;
-
-	if (!(filter = (filter_t *)plugin_query(plugin, PLUGIN_FILTER)))
-		return NULL;
 	newFilter = malloc(sizeof(gui_filter));
 	newFilter->plugin = plugin;
-	newFilter->filter = filter;
-	newFilter->caption = strdup(plugin_name(plugin));
-	if ((newFilter->pixname = plugin_query(plugin, PLUGIN_PIXMAP))){
-		newFilter->pixname = strdup(newFilter->pixname);
-	}else{
-		newFilter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);//strdup(GLAME_DEFAULT_ICON);
-	}
 	return newFilter;
 }
 
-/* Adds a filter type to the gui */
-int
-gui_filter_add(gui_filter *filter)
-{
-	char* newpix;
-	const char* mimetype;
-
-	g_array_append_val(gui->filters,filter);
-
-	newpix=gnome_pixmap_file(filter->pixname);
-	if(newpix){
-	    	free(filter->pixname);
-		filter->pixname = newpix;
-		goto found;
-	}
-	free(newpix);
-
-	newpix = g_concat_dir_and_file(GLAME_PIXMAP_PATH,filter->pixname);
-	fprintf(stderr,"%s\n",newpix);
-	if(g_file_test(newpix,G_FILE_TEST_ISFILE)){
-		mimetype = gnome_mime_type(newpix);
-                if(strncmp(mimetype,"image",5) == 0){
-		    	free(filter->pixname);
-			filter->pixname = newpix;
-			goto found;
-		}
-	}
-	free(newpix);
-
-	free(filter->pixname);
-	filter->pixname = gnome_pixmap_file(GLAME_DEFAULT_ICON);
-	if(!filter->pixname){
-		fprintf(stderr,"Warning! No adequate pixmaps were found!\ntrying fallback X resources!\n");
-		filter->pixname = strdup(GLAME_EMERGENCY_PIXMAP);
-	}
-
-found:
-	return gnome_icon_list_append(GNOME_ICON_LIST(gui->iconlist),filter->pixname,filter->caption);
-}
 
 
 /* creates about popup */
@@ -136,6 +86,7 @@ gui_create_about(void)
 	gtk_window_set_modal (GTK_WINDOW (about), TRUE);
 	gtk_window_set_wmclass (GTK_WINDOW (about), "Glameabout", "Glame");
 	
+	gtk_widget_show(about);
 	return about;
 }			 
 
@@ -144,19 +95,6 @@ void gui_exit(GtkWidget *w,GdkEvent *e, gpointer d)
 	gtk_main_quit();
 }
 
-static void
-drag_data_get(GtkWidget *w,
-	      GdkDragContext *c,
-	      GtkSelectionData *data,
-	      guint info,
-	      guint time,
-	      gpointer dat)
-{
-	char msg[10];
-	sprintf(msg,"%d",(gui->selectedIcon));
-	gtk_selection_data_set(data,data->target,8,msg,sizeof(msg));
-	DPRINTF("sent msg %s\n",msg);
-}
 
 
 /* creates a hbox with two labels in it, adds it to the box box in window win   */
@@ -248,14 +186,15 @@ gui_network_new(const char * caption, const char * pixname)
 int
 gui_network_filter_add(gui_network* net, gui_filter *fil)
 {
-	fil->node = filter_instantiate(plugin_get(fil->caption));
-	if(!fil->node
-	   || filter_add_node(net->net,fil->node,fil->caption) == -1) {
+	fil->node = filter_instantiate(fil->plugin);
+	if(!fil->node){
+		fprintf(stderr,"Error in instantiate\n");
+		return -1;
+	}
+	if(filter_add_node(net->net,fil->node,plugin_name(fil->plugin)) == -1) {
 		fprintf(stderr,"Error adding node!\n");
 		return -1;
 	}
-	net->filters=g_slist_append(net->filters,fil);
-		
 	return 0;
 }
 
@@ -299,8 +238,6 @@ gui_network_new_wizard(void)
 	gui_network * net;       
 	GtkWidget * canv;
 	net = malloc(sizeof(gui_network));
-	net->filters = NULL;
-	
 
 	net->caption = NULL;
 	net->pixname = NULL;

@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.2 2000/12/08 11:17:38 xwolf Exp $
+ * $Id: canvas_types.c,v 1.3 2000/12/11 15:57:33 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -269,7 +269,7 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 	GnomeCanvasItem *gitem;
 	char*filepath;
 	GtkWidget* menu;
-	
+	char*namebuffer;
 	iitem = gnome_canvas_item_new(group,GLAME_TYPE_CANVAS_ITEM,NULL);
 	item = GLAME_CANVAS_ITEM(iitem);
 	item->filter = gfilter;
@@ -333,14 +333,17 @@ glame_canvas_item_new(GnomeCanvasGroup *group,
 			      "justification",GTK_JUSTIFY_CENTER,
 			      "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
 			      "clip",0,
-			      "text",gfilter->caption,
+			      "text",filter_name(gfilter->node),
 			      NULL);
+	namebuffer = plugin_query(gfilter->plugin, PLUGIN_PIXMAP);
+	namebuffer = namebuffer?namebuffer:strdup(GLAME_DEFAULT_ICON);
 
-	filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,gfilter->pixname);
+	
+	filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,namebuffer);
 	fprintf(stderr,"%s\n",filepath);
 	if(g_file_test(filepath,G_FILE_TEST_ISFILE)){
 		fprintf(stderr,"exists\n");
-		image = gdk_imlib_load_image(g_concat_dir_and_file(GLAME_PIXMAP_PATH,gfilter->pixname));
+		image = gdk_imlib_load_image(g_concat_dir_and_file(GLAME_PIXMAP_PATH,namebuffer));
 	}
 	else
 		image = gdk_imlib_load_image(gnome_pixmap_file(GLAME_DEFAULT_ICON));//g_concat_dir_and_file(GLAME_PIXMAP_PATH,GLAME_DEFAULT_ICON));
