@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.43 2001/04/25 15:37:59 richi Exp $
+ * $Id: main.c,v 1.44 2001/04/26 12:07:34 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -435,23 +435,30 @@ static GtkWidget* glame_about(void)
 	return about;
 }
 
-static gint remove_splash(GtkWidget* foo)
+static gint glame_splash_timeout(GtkWidget *about)
 {
-	gtk_object_destroy(GTK_OBJECT(foo));
+	gtk_object_destroy(GTK_OBJECT(about));
 	return FALSE;
+}
+static void glame_splash_destroy_cb(GtkWidget *about, gpointer tid)
+{
+	gtk_timeout_remove((guint)tid);
 }
 static void glame_splash(void)
 {
-	GtkWidget* foo;
+	GtkWidget *about;
+	guint tid;
 
-	foo = glame_about();
-	gtk_object_destroy(GTK_OBJECT((GNOME_DIALOG(foo))->action_area));
+	about = glame_about();
+	gtk_object_destroy(GTK_OBJECT((GNOME_DIALOG(about))->action_area));
 
 #ifdef DEBUG
-	gtk_timeout_add(1000, (GtkFunction)remove_splash, foo);
+	tid = gtk_timeout_add(1000, (GtkFunction)glame_splash_timeout, about);
 #else
-	gtk_timeout_add(5000, (GtkFunction)remove_splash, foo);
+	tid = gtk_timeout_add(5000, (GtkFunction)glame_splash_timeout, about);
 #endif
+	gtk_signal_connect(GTK_OBJECT(about), "destroy",
+			   glame_splash_destroy_cb, (gpointer)tid);
 }
 
 
