@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.16 2000/04/25 08:58:00 richi Exp $
+ * $Id: audio_io.c,v 1.17 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -126,22 +126,24 @@ static void aio_generic_fixup_pipe(filter_node_t *src, filter_pipe_t *pipe)
 
 /* Generic fixup_param method for audio input filters. */
 
-static int aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
-                                   const char *name, filter_param_t *param)
+static void aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
+				    const char *name, filter_param_t *param)
 {
 	int rate;
 
+	/* FIXME: param setting checks belong to set_param()
+	 * now. fixup_param is only fixup. */
 	if (pipe) {
 		/* Must've been a hangle change. */
 		float hangle = filterparam_val_float(param);
 		if (hangle <= -M_PI || hangle > M_PI)
-			return -1;
+			return;
 		filterpipe_sample_hangle(pipe) = hangle;
 		src->filter->fixup_pipe(src, pipe);
-		return 0;
+		return;
 	}
 	if (strcmp(name, "rate"))
-		return 0;	/* Device changes are always okay. */
+		return;	/* Device changes are always okay. */
 
 	rate = filterparam_val_int(param);
 	
@@ -153,7 +155,6 @@ static int aio_generic_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
 		filterpipe_sample_rate(pipe) = rate; /* WTF?? */
 		src->filter->fixup_pipe(src, pipe);
 	}
-	return 0;
 }
 /* Clumsy try to clean up the register mess a bit. */
 

@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.14 2000/04/25 08:58:00 richi Exp $
+ * $Id: filter_methods.c,v 1.15 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -67,15 +67,23 @@ int filter_default_connect_in(filter_node_t *n, const char *port,
 	return 0;
 }
 
-int filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
-			       const char *name, filter_param_t *param)
+int filter_default_set_param(filter_node_t *n, filter_param_t *param,
+			     const void *val)
+{
+	/* We do not reject any parameter change by default.
+	 */
+	return 0;
+}
+
+void filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				const char *name, filter_param_t *param)
 {
 	/* Parameter change? In the default method
 	 * we know nothing about parameters, so we
 	 * cant do anything about it.
 	 * Forwarding is useless, too.
 	 */
-	return 0;
+	return;
 }
 
 void filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
@@ -219,8 +227,8 @@ int filter_network_connect_in(filter_node_t *dest, const char *port,
 	return n->filter->connect_in(p->dest, p->in_name, p);
 }
 
-int filter_network_fixup_param(filter_node_t *node, filter_pipe_t *p,
-			       const char *name, filter_param_t *param)
+int filter_network_set_param(filter_node_t *node, filter_param_t *param,
+			     const void *val)
 {
 	filter_paramdesc_t *d;
 	struct filter_network_mapping *m;
@@ -237,7 +245,7 @@ int filter_network_fixup_param(filter_node_t *node, filter_pipe_t *p,
 	        return filternode_set_param(n, m->label, &param->val);
 }
 
-/* fixup_pipe && fixup_break_in && fixup_break_out do not have to be
- * special at the moment.
+/* fixup_param && fixup_pipe && fixup_break_in && fixup_break_out do not
+ * have to be special at the moment.
  */
 

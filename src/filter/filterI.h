@@ -53,6 +53,10 @@ struct filter_param {
 	const char *label;
 	void *namespace; /* NOTE: this is node/pipe */
 
+	/* signal emitter, known signals are
+	 * GLSIG_PARAM_CHANGED */
+	glsig_emitter_t emitter;
+
 	filter_paramdesc_t *desc;
 	union {
 		int i;
@@ -127,6 +131,11 @@ struct filter_pipe {
 	struct list_head source_params;
 	filter_portdesc_t *dest_port;
 	struct list_head dest_params;
+
+	/* Signal emitter. Know signals are
+	 * GLSIG_PIPE_CHANGED
+	 * GLSIG_PIPE_DELETED */
+	glsig_emitter_t emitter;
 
 	/* data type specification */
 	int type;

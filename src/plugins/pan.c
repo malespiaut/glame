@@ -114,24 +114,21 @@ static int pan_f(filter_node_t *n)
  * misery among their breed! Cast thy M_PI_2 to float or use a float variable 
  * to compare against instead, and thou shalt live long and prosperous!
  */
-static int pan_fixup_param(filter_node_t *src, filter_pipe_t *pipe,
-                           const char *name, filter_param_t *param)
+static int pan_set_param(filter_node_t *src, filter_param_t *param,
+			 const void *val)
 {
 	const float min = -M_PI_2;
 	const float max = M_PI_2;
 	float pan;
-	int err = -1;
 
-	pan = filterparam_val_float(param);
+	pan = *((float *)val);
 	
 	if (pan < min)
-		filterparam_set(param, &min);
+		return -1;
 	else if (pan > max)
-		filterparam_set(param, &max);
-	else
-		err = 0;
+		return -1;
 
-	return err;
+	return 0;
 }
 	
 
@@ -153,7 +150,7 @@ int pan_register(plugin_t *p)
 	                         "position in stereo field [-pi/2, pi/2]", 
 				 FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	f->fixup_param = pan_fixup_param;
+	f->set_param = pan_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
 	filter_attach(f, p);

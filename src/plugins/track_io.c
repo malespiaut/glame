@@ -1,6 +1,6 @@
 /*
  * track_io.c
- * $Id: track_io.c,v 1.7 2000/04/25 08:58:00 richi Exp $
+ * $Id: track_io.c,v 1.8 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -94,8 +94,8 @@ static int track_in_f(filter_node_t *n)
 
 	return 0;
 }
-static int track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				  const char *name, filter_param_t *param)
+static void track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				 const char *name, filter_param_t *param)
 {
 	filter_param_t *chan, *group;
 	filter_pipe_t *out;
@@ -103,21 +103,21 @@ static int track_in_fixup_param(filter_node_t *n, filter_pipe_t *p,
 
 	if (!(chan = filternode_get_param(n, "track"))
 	    || !(group = filternode_get_param(n, "group")))
-		return 0;
+		return;
 	if (!(c = track_get(filterparam_val_string(group),
 			    filterparam_val_string(chan)))) {
 		filternode_set_error(n, "track not found");
-		return -1;
+		return;
 	}
 	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
-		return 0;
+		return;
 	filternode_clear_error(n);
 
 	/* fix the output pipe stream information */
 	filterpipe_settype_sample(out, track_rate(c), 
 				  track_hangle(c));
 	out->dest->filter->fixup_pipe(out->dest, out);
-	return 0;
+	return;
 }
 static int track_in_connect_out(filter_node_t *n, const char *port,
 				 filter_pipe_t *p)

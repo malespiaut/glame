@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.23 2000/04/25 08:58:00 richi Exp $
+ * $Id: file_io.c,v 1.24 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -225,8 +225,8 @@ static int read_file_connect_out(filter_node_t *n, const char *port,
 	 * connection, but not the file here. */
 	return RWPRIV(n)->rw->connect(n, p);
 }
-static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				 const char *name, filter_param_t *param)
+static void read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				  const char *name, filter_param_t *param)
 {
 	rw_t *r;
 
@@ -234,7 +234,7 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	if (p && RWPRIV(n)->rw) {
 		if (RWPRIV(n)->rw->connect(n, p) == -1)
 			filternetwork_break_connection(p);
-		return 0;
+		return;
 	
         /* filename change! */
 	} else {
@@ -266,7 +266,7 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		}
 
 		/* no reader found */
-		return -1;
+		return;
 	}
 
  reconnect:
@@ -278,8 +278,6 @@ static int read_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		}
 		p->dest->filter->fixup_pipe(p->dest, p);
 	}
-
-	return 0;
 }
 
 /* write methods */
@@ -293,15 +291,15 @@ static int write_file_f(filter_node_t *n)
 		return -1;
 	return RWPRIV(n)->rw->f(n);
 }
-static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				  const char *name, filter_param_t *param)
+static void write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				   const char *name, filter_param_t *param)
 {
 	regex_t rx;
 	rw_t *w;
 
 	if (p){
 		DPRINTF("Pipe change\n");
-		return 0;
+		return;
 	}
         /* only filename change possible in writer. */
 	RWPRIV(n)->initted = 0;
@@ -316,11 +314,10 @@ static int write_file_fixup_param(filter_node_t *n, filter_pipe_t *p,
 			regfree(&rx);
 			RWPRIV(n)->rw = w;
 			RWPRIV(n)->initted = 1;
-			return 0;
+			return;
 		}
 		regfree(&rx);
 	}
-	return -1;
 }
 
 

@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.12 2000/04/25 08:58:00 richi Exp $
+ * $Id: basic_sample.c,v 1.13 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -442,16 +442,14 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	}
 	return 0;
 }
-static int mix_fixup_param(filter_node_t *n, filter_pipe_t *p,
-			   const char *name, filter_param_t *param)
+static void mix_fixup_param(filter_node_t *n, filter_pipe_t *p,
+			    const char *name, filter_param_t *param)
 {
 	filter_pipe_t *out;
 
 	if ((out = filternode_get_output(n, PORTNAME_OUT))
 	    && mix_fixup(n, out))
 		out->dest->filter->fixup_pipe(out->dest, out);
-
-	return 0;
 }
 static int mix_connect_out(filter_node_t *n, const char *port,
 			   filter_pipe_t *p)

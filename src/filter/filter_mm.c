@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.10 2000/04/25 08:58:00 richi Exp $
+ * $Id: filter_mm.c,v 1.11 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -63,6 +63,17 @@ void _paramdesc_free(filter_paramdesc_t *d)
 }
 
 
+static void _fixup_param_sig(glsig_handler_t *e, long sig, va_list va)
+{
+	filter_node_t *n;
+	filter_pipe_t *pipe;
+	filter_param_t *param;
+	const char *name;
+
+	GLSIGH_GETARGS4(va, n, pipe, name, param);
+	n->filter->fixup_param(n, pipe, name, param);
+}
+
 filter_param_t *_param_alloc(filter_paramdesc_t *d)
 {
 	filter_param_t *p;
@@ -92,11 +103,18 @@ filter_param_t *_param_alloc(filter_paramdesc_t *d)
 	default:
 		return NULL;
 	}
+
+	/* init emitter - attach fixup_param wrapper */
+	INIT_GLSIG_EMITTER(&p->emitter);
+	glsig_add_handler(&p->emitter, GLSIG_PARAM_CHANGED,
+			  _fixup_param_sig, NULL);
+
 	return p;
 }
 
 void _param_free(filter_param_t *p)
 {
+	glsig_delete_all_handlers(&p->emitter);
 	switch (FILTER_PARAMTYPE(p->desc->type)) {
 	case FILTER_PARAMTYPE_STRING:
 		free(p->val.string);
@@ -148,6 +166,19 @@ void _portdesc_free(filter_portdesc_t *d)
 }
 
 
+static void _fixup_pipe_sig(glsig_handler_t *e, long sig, va_list va)
+{
+	filter_pipe_t *p;
+
+	GLSIGH_GETARGS1(va, p);
+	if (sig == GLSIG_PIPE_CHANGED) {
+		p->dest->filter->fixup_pipe(p->dest, p);
+	} else if (sig == GLSIG_PIPE_DELETED) {
+		p->source->filter->fixup_break_out(p->source, p);
+		p->dest->filter->fixup_break_in(p->dest, p);
+	}
+}
+
 filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
 			   filter_portdesc_t *destport)
 {
@@ -165,6 +196,12 @@ filter_pipe_t *_pipe_alloc(filter_portdesc_t *sourceport,
 	INIT_LIST_HEAD(&p->source_params);
 	p->dest_port = destport;
 	INIT_LIST_HEAD(&p->dest_params);
+
+	/* init emitter & install fixup_pipe wrapper */
+	INIT_GLSIG_EMITTER(&p->emitter);
+	glsig_add_handler(&p->emitter, GLSIG_PIPE_CHANGED|GLSIG_PIPE_DELETED,
+			  _fixup_pipe_sig, NULL);
+
 	return p;
 }
 
@@ -184,6 +221,7 @@ void _pipe_free(filter_pipe_t *p)
 		list_remove_param(param);
 		_param_free(param);
 	}
+	glsig_delete_all_handlers(&p->emitter);
 	free(p);
 }
 
@@ -201,6 +239,7 @@ filter_t *_filter_alloc(int flags)
 	f->cleanup = NULL;
 	f->connect_out = filter_default_connect_out;
 	f->connect_in = filter_default_connect_in;
+	f->set_param = filter_default_set_param;
 	f->fixup_param = filter_default_fixup_param;
 	f->fixup_pipe = filter_default_fixup_pipe;
 	f->fixup_break_in = filter_default_fixup_break_in;
@@ -211,7 +250,7 @@ filter_t *_filter_alloc(int flags)
 		f->cleanup = filter_network_cleanup;
 		f->connect_out = filter_network_connect_out;
 		f->connect_in = filter_network_connect_in;
-		f->fixup_param = filter_network_fixup_param;
+		f->set_param = filter_network_set_param;
 	}
 	INIT_LIST_HEAD(&f->params);
 	INIT_LIST_HEAD(&f->inputs);
@@ -305,7 +344,7 @@ static void __node_free(filter_node_t *n)
 		list_remove_input(pipe);
 		hash_remove_output(pipe);
 		list_remove_output(pipe);
-		pipe->source->filter->fixup_break_out(pipe->source, pipe);
+		glsig_emit(&pipe->emitter, GLSIG_PIPE_DELETED, pipe);
 		_pipe_free(pipe);
 	}
 	while ((pipe = filternode_first_output(n))) {
@@ -313,7 +352,7 @@ static void __node_free(filter_node_t *n)
 		list_remove_input(pipe);
 		hash_remove_output(pipe);
 		list_remove_output(pipe);
-		pipe->dest->filter->fixup_break_out(pipe->dest, pipe);
+		glsig_emit(&pipe->emitter, GLSIG_PIPE_DELETED, pipe);
 	       	_pipe_free(pipe);
 	}
 

@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.42 2000/04/25 08:58:00 richi Exp $
+ * $Id: filter_network.c,v 1.43 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -159,9 +159,14 @@ int filternode_set_param(filter_node_t *n, const char *label, const void *val)
 		hash_add_param(param, n);
 		list_add_param(param, n);
 	}
-	filterparam_set(param, val);
 
-	return n->filter->fixup_param(n, NULL, label, param);
+	if (n->filter->set_param(n, param, val) == -1)
+		return -1;
+	filterparam_set(param, val);
+	glsig_emit(&param->emitter, GLSIG_PARAM_CHANGED,
+		   n, NULL, label, param);
+
+	return 0;
 }
 
 int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label,
@@ -180,10 +185,14 @@ int filterpipe_set_sourceparam(filter_pipe_t *p, const char *label,
 		hash_add_sourceparam(param, p);
 		list_add_sourceparam(param, p);
 	}
-	filterparam_set(param, val);
 
-	/* FIXME: ummm, need fixup_pipesourceparam???? */
-	return p->source->filter->fixup_param(p->source, p, label, param);
+	if (p->source->filter->set_param(p->source, param, val) == -1)
+		return -1;
+	filterparam_set(param, val);
+	glsig_emit(&param->emitter, GLSIG_PARAM_CHANGED,
+		   p->source, p, label, param);
+
+	return 0;
 }
 
 int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
@@ -202,10 +211,14 @@ int filterpipe_set_destparam(filter_pipe_t *p, const char *label,
 		hash_add_destparam(param, p);
 		list_add_destparam(param, p);
 	}
-	filterparam_set(param, val);
 
-	/* FIXME: ummm, need fixup_pipedestparam???? */
-	return p->dest->filter->fixup_param(p->dest, p, label, param);
+	if (p->dest->filter->set_param(p->dest, param, val) == -1)
+		return -1;
+	filterparam_set(param, val);
+	glsig_emit(&param->emitter, GLSIG_PARAM_CHANGED,
+		   p->dest, p, label, param);
+
+	return 0;
 }
 
 
@@ -458,8 +471,8 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	p->dest->nr_inputs++;
 	p->source->nr_outputs++;
 
-	/* signal input changes to destination node */
-	dest->filter->fixup_pipe(p->dest, p);
+	/* signal pipe changes */
+	glsig_emit(&p->emitter, GLSIG_PIPE_CHANGED, p);
 
 	return p;
 
@@ -482,8 +495,7 @@ void filternetwork_break_connection(filter_pipe_t *p)
 	p->dest->nr_inputs--;
 
 	/* notify the connected nodes */
-	p->source->filter->fixup_break_out(p->source, p);
-	p->dest->filter->fixup_break_in(p->dest, p);
+	glsig_emit(&p->emitter, GLSIG_PIPE_DELETED, p);
 
 	/* kill the pipe */
 	_pipe_free(p);

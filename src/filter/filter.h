@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.48 2000/04/25 08:58:00 richi Exp $
+ * $Id: filter.h,v 1.49 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -45,6 +45,7 @@
 #include "atomic.h"
 #include "sem.h"
 #include "glplugin.h"
+#include "glsignal.h"
 
 
 struct filter;
@@ -77,6 +78,17 @@ typedef struct filter_buffer filter_buffer_t;
  * Filter registry API
  */
 
+
+/* Signals sent out by the filter subsystem:
+ * GLSIG_PARAM_CHANGED  - fixup_param() parameters
+ * GLSIG_PIPE_CHANGED   - filter_pipe_t
+ * GLSIG_PIPE_DELETED   - filter_pipe_t
+ */
+#define GLSIG_PARAM_CHANGED 1
+#define GLSIG_PIPE_CHANGED 2
+#define GLSIG_PIPE_DELETED 4
+
+
 /* Filter contains the abstract description of a filter and
  * contains a set of methods doing the actual work.
  */
@@ -95,9 +107,10 @@ struct filter {
 			   filter_pipe_t *p);
 	int (*connect_in)(filter_node_t *dest, const char *port,
 			  filter_pipe_t *p);
-
-	int (*fixup_param)(filter_node_t *n, filter_pipe_t *p,
-			   const char *name, filter_param_t *param);
+	int (*set_param)(filter_node_t *n, filter_param_t *param,
+			 const void *val);
+	void (*fixup_param)(filter_node_t *n, filter_pipe_t *p,
+			    const char *name, filter_param_t *param);
 	void (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
 	void (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
 	void (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
@@ -431,8 +444,8 @@ char *filterparam_to_string(const filter_param_t *param);
 void *filterparamval_from_string(const filter_paramdesc_t *pdesc,
 				 const char *val);
 
-/* Set already existant parameter. To be used mainly in the
- * fixup_param method to avoid recursing on it.
+/* Set already existant parameter. Does not do any checks.
+ * Use with care - does not cause GLSIG_PARAM_CHANGED signal.
  */
 void filterparam_set(filter_param_t *param, const void *val);
 

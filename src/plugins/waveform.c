@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.6 2000/04/25 08:58:00 richi Exp $
+ * $Id: waveform.c,v 1.7 2000/04/25 09:05:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -60,8 +60,8 @@ static int waveform_connect_out(filter_node_t *n, const char *port,
 	filterpipe_settype_sample(p, rate, pos);
 	return 0;
 }
-static int waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
-				const char *name, filter_param_t *param)
+static void waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				 const char *name, filter_param_t *param)
 {
 	filter_pipe_t *out;
 
@@ -69,7 +69,7 @@ static int waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
 		waveform_connect_out(n, NULL, out);
 		out->dest->filter->fixup_pipe(n, out);
 	}
-	return 0;
+	return;
 }
 
 /* Standard waveform register. Does add the output port and the parameters "rate"
