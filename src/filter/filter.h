@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.17 2000/02/09 21:40:35 nold Exp $
+ * $Id: filter.h,v 1.18 2000/02/10 17:08:14 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -77,6 +77,10 @@ typedef struct {
 
 	void *private;
 } filter_paramdesc_t;
+#define filterparamdesc_label(pd) ((pd)->label)
+#define filterparamdesc_description(pd) ((pd)->description)
+#define filterparamdesc_type(pd) ((pd)->type)
+
 
 /* Parameter instance. This is per filternode_t.
  */
@@ -93,7 +97,11 @@ typedef struct {
 		char *string;
 	} val;
 } filter_param_t;
-
+#define filterparam_val_int(fp) ((fp)->val.i)
+#define filterparam_val_float(fp) ((fp)->val.f)
+#define filterparam_val_file(fp) ((fp)->val.file)
+#define filterparam_val_sample(fp) ((fp)->val.sample)
+#define filterparam_val_string(fp) ((fp)->val.string)
 
 
 /* Filter port declaration. Type is a mask actually which
@@ -118,6 +126,10 @@ typedef struct {
 
 	void *private;
 } filter_portdesc_t;
+#define filterportdesc_label(pd) ((pd)->label)
+#define filterportdesc_description(pd) ((pd)->description)
+#define filterportdesc_type(pd) ((pd)->type)
+
 
 /* Filter pipes represent a connection between two
  * instances of a filter. This is per filternode port
@@ -151,14 +163,19 @@ typedef struct {
 		} rms;
 	} u;	
 } filter_pipe_t;
-
-
+#define filterpipe_type(fp) ((fp)->type)
+#define filterpipe_settype_sample(fp, rate) do { \
+	(fp)->type = FILTER_PIPETYPE_SAMPLE; \
+	(fp)->u.sample.rate = (rate); \
+} while (0)
+#define filterpipe_sample_rate(fp) ((fp)->u.sample.rate)
 
 
 /* Filter contains the abstract description of a filter and
  * contains a set of methods doing the actual work.
  */
 #define FILTER_FLAG_NETWORK 1
+#define FILTER_FLAG_RW      2
 struct filter {
 	struct list_head list;
 	struct hash_head hash;
@@ -196,6 +213,12 @@ struct filter {
 
 	void *private;
 };
+#define filter_name(f) ((f)->name)
+#define filter_description(f) ((f)->description)
+#define filter_nrparams(f) ((f)->nr_params)
+#define filter_nrinputs(f) ((f)->nr_inputs)
+#define filter_nroutputs(f) ((f)->nr_outputs)
+
 
 /* the global filter hash and list */
 #define hash_add_filter(filter) _hash_add(&(filter)->hash, _hash((filter)->name, FILTER_NAMESPACE))
@@ -275,6 +298,11 @@ struct filter_node {
 	filter_launchcontext_t *launch_context;
 	pthread_t thread;
 };
+#define filternode_name(n) ((n)->name)
+#define filternode_nrparams(n) ((n)->nr_params)
+#define filternode_nrinputs(n) ((n)->nr_inputs)
+#define filternode_nroutputs(n) ((n)->nr_outputs)
+
 
 /* filternode hash */
 #define hash_find_node(n, nt) __hash_entry(_hash_find((n), (nt), _hash((n), (nt)), __hash_pos(filter_node_t, hash, name, net)), filter_node_t, hash)
@@ -507,6 +535,16 @@ int filternetwork_wait(filter_network_t *net);
  */
 void filternetwork_terminate(filter_network_t *net);
 
+filter_paramdesc_t *filternetwork_add_param(filter_network_t *net,
+		      const char *node, const char *param,
+              	      const char *label, const char *desc);
+filter_portdesc_t *filternetwork_add_input(filter_network_t *net,
+		     const char *node, const char *port,
+		     const char *label, const char *desc);
+filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
+		      const char *node, const char *port,
+		      const char *label, const char *desc);
+filter_t *filternetwork_get_filter(filter_network_t *net);
 
 /* Macro filters - save/load a network. - FIXME */
 int filternetwork_save(filter_network_t *net, const char *filename);
