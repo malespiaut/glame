@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.18 2000/03/28 16:46:57 xwolf Exp $
+ * $Id: canvas.c,v 1.19 2000/04/06 11:18:57 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -765,65 +765,51 @@ void
 update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 {
 	GList* list = g_list_first(callback->paramList);
-	void *val;
 	char *strVal; 
 	int iVal;
 	float fVal;
 	filter_node_t * node = callback->gfilter->node;
 	param_widget_t* item;
 	
-	DPRINTF("entry");
-
 	while(list){
-		fprintf(stderr,".");
 		item = (param_widget_t*)(list->data);
 		switch(item->widget_type){
 		case PINT:
 			iVal = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->widget));
-			
+			DPRINTF("Setting %s::%s to %i", node->name, filterparamdesc_label(item->param), iVal);
 			if(filternode_set_param(node,filterparamdesc_label(item->param),&iVal)<0)
-			{
-				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
-			}else{
-				DPRINTF("Success\n");
-			}
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
 			break;
 		case PFLOAT:
 			fVal = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(item->widget));
+			DPRINTF("Setting %s::%s to %f", node->name, filterparamdesc_label(item->param), fVal);
 			if(filternode_set_param(node,filterparamdesc_label(item->param),&fVal)<0)
-			{
-				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
-			}else{
-				DPRINTF("Success\n");
-			}
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
 			break;
 		case PSTRING:
 			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_entry_gtk_entry(GNOME_ENTRY(item->widget))),0,-1);
-			val = filterparamval_from_string(item->param,strVal);
-			if(filternode_set_param(node,filterparamdesc_label(item->param),strVal)<0)
-			{
-				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
-			}else{
-				DPRINTF("Success\n");
-			}
-			free(val);
+			DPRINTF("Setting %s::%s to %s", node->name, filterparamdesc_label(item->param), strVal);
+			if(filternode_set_param(node, filterparamdesc_label(item->param), strVal)<0)
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
 			g_free(strVal);
 			break;
 		case PFILE:
 			strVal = gtk_editable_get_chars(GTK_EDITABLE(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(item->widget))),0,-1);
-			val = filterparamval_from_string(item->param,strVal);
+			DPRINTF("Setting %s::%s to %s", node->name, filterparamdesc_label(item->param), strVal);
 			if(filternode_set_param(node,filterparamdesc_label(item->param),strVal)<0)
-			{
-				DPRINTF("Change failed! param: %s\n",filterparamdesc_label(item->param));
-			}else{
-				DPRINTF("Success\n");
-			}
-			free(val);
+				DPRINTF(" - failed!\n");
+			else
+				DPRINTF(" - success!\n");
 			g_free(strVal);
 			break;
 		}
 		list = g_list_next(list);
-		
 	}
 }
 
@@ -882,6 +868,7 @@ edit_canvas_item_properties(GlameCanvasItem *item)
 			list = g_list_append(list,pw);
 			break;
 		case FILTER_PARAMTYPE_FLOAT:
+		case FILTER_PARAMTYPE_SAMPLE:
 			adjust = GTK_ADJUSTMENT(gtk_adjustment_new(0.0,-MAXFLOAT,MAXFLOAT,1.0,10.0,10.0));
 			fparam = filternode_get_param(gfilter->node,filterparamdesc_label(param));
 			entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjust),1.0,5);
