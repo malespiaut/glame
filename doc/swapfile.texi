@@ -1,18 +1,7 @@
-@comment $Id: swapfile.texi,v 1.6 2000/02/17 13:32:59 richi Exp $
+@comment $Id: swapfile.texi,v 1.7 2000/10/10 08:22:18 richi Exp $
 
 @node Swapfile API, Plugin Interface, Filter Tutorial, Top
 @chapter Swapfile API
-
-@table @strong
-@item NOTE 
-Do not read the source! You will probably not understand a
-thing what is happening - you may even get blind! You have been
-warned. 
-
-@item NOTE 2 
-Though the code is not easy to read, the API will not change until
-after release 1.0
-@end table
 
 If you have any questions related to the covered (or uncovered but
 related) topics in this document, please quote the questionable part of 
@@ -21,316 +10,375 @@ this document and send the questions per e-mail to
 
 @menu
 * Introduction::		Musings on swapfile philosophy
-* Programming Interface::	Detailed description of swapfile API
+* Swapfile User Interface::	Detailed description of swapfile API
+* TXN User Interface::          Detailed description of TXN API
+* TXN Programming Interface::   Transaction programming interface
+* PMAP Programming Interface::  Page mapping programming interface
 @end menu
 
-@node Introduction, Programming Interface, , Swapfile API
+
+
+@node Introduction, Swapfile User Interface, , Swapfile API
 @section Introduction
 
 This is the documentation for the swapfile subsystem of GNU/Linux Audio
-Mechanics (GLAME). Swapfile was designed not specifically for 
-GLAME but with
-the idea of storing of and operating on audio streams.
+Mechanics (GLAME). Swapfile was designed not specifically for GLAME but
+with the idea of storing of and operating on large datasets,
+specifically audio streams.
 
 Swapfile provides a store for multiple independent sets of (not necessarily)
 one-dimensional data. Swapfile supports transparent and unlimited undo and 
-redo of cut- and insert-like operations.
+redo of all operations.
 
-A set of data in swapfile is generally referred to as a @dfn{file}. Each such 
-file is internally split up into so called @dfn{fileclusters} which determine 
-the granularity of access to the files' contents.
+The swapfile is modeled after a unix filesystem with some additional
+features and some restrictions. First, the namespace of the filesystem
+is flat, i.e. there are no directories. And the namespace is rather
+corse, a file is identified by a unique number, a @code{long}. Also
+unlike files on normal filesystems a swapfile file cannot be memory
+mapped without restrictions on @var{size} and @var{offset}. This is due
+to the advanced features which are the capability to share parts of the
+file with other files in a copy on write manner and the
+@code{sw_sendfile} operation which allows cutting, inserting and
+overwriting one file with the contents of another file without actually
+moving any data. Because of this features the internal structure of a
+file cannot consist of a set of equally sized and aligned blocks, it
+rather consists of a sequence of randomly sized clusters. The memory
+mapping restriction is such that only a complete cluster can be mapped.
 
-A file can be in two states, which results from the fact that not all
-operations on a file are logged, i.e. can be undone and redone. The two states
-are basically read-only and read-write. On a file in read-only state you may
-only start logged operations, on a read-write file you may do everything. The
-states get switched as soon as there are pending or finished logged operations
-on the file.
 
-While this may sound like terribly lowering the use of swapfile, it greatly
-simplifies and speeds up operations and reduces necessary storage by an 
-incredible amount.
 
-@node Programming Interface, , Introduction, Swapfile API
-@section Programming Interface
+@node Swapfile User Interface, TXN User Interface, Introduction, Swapfile API
+@section Swapfile User Interface
 
 So let's jump into listing the functions of the swapfile API and
 document the semantics.
 
 @menu
 * Initialisation::
-* File management::
-* Accessing file data::
-* Logged operations::
-* Misc operations::
+* Namespace Operations::
+* File Operations::
 @end menu
 
-@node Initialisation, File management, , Programming Interface
+
+
+@node Initialisation, Namespace Operations, , Swapfile User Interface
 @subsection Initialisation
 
-To initialize the swapfile subsystem you have to open an existing swapfile
-which in turn you may create using the 
-@file{gmkswap} utility. After finishing
-operation you should close it again. Use the following functions:
+To initialize the swapfile subsystem you have to open an existing
+swapfile which in turn you may create using either the @file{gmkswap}
+utility or the @code{swapfile_creat} function. After finishing operation
+you should close it again using @code{swapfile_close}.
 
-@deftypefun int swap_open (char *@var{name}, int @var{flags})
 
-@code{swap_open()} opens the swapfile with the specified @var{name} and 
-the specified
-@var{flags} (no flags are defined yet, use 0). Returns -1 if it was not
-possible to open the swapfile or the swapfile is in an inconsistent
-state.
+@deftypefun int swapfile_open (char *@var{name}, int @var{flags})
+
+@code{swapfile_open()} opens the swapfile with the specified @var{name}
+and the specified @var{flags} (no flags are defined yet, use 0). Returns
+-1 if it was not possible to open the swapfile or the swapfile is in an
+inconsistent state.
 @end deftypefun
 
-@deftypefun void swap_close (void)
 
-@code{swap_close()} closes the swapfile and updates the metadata state of the
-on-disk version of the swapfile. This puts the swapfile into a consistent
-state.
+@deftypefun void swapfile_close (void)
+
+@code{swapfile_close()} closes the swapfile and updates the metadata
+state of the on-disk version of the swapfile. This puts the swapfile
+into a consistent state.
 @end deftypefun
 
-@node File management, Accessing file data, Initialisation, Programming Interface
-@subsection File management
 
-To allocate and free files in a swapfile there exist two functions---well
-actually there are three, but the last one is less generic as it will turn your
-file into read-only state.
+@deftypefun int swapfile_creat (char *@var{name}, size_t @var{size})
 
-@tindex fileid_t
-@tindex off_t
-@deftypefun fileid_t file_alloc (off_t @var{size})
-
-@code{file_alloc()} allocates a new file of the provided @var{size}. 
-The return value
-is a handle for all subsequent operations on the file, -1 is returned on
-error. The contents of the file are initially set to zero and its state
-will be read-write after the operation.
+Tries to create an empty swapfile on @var{name} of the specified
+@var{size}.
 @end deftypefun
 
-@tindex fileid_t
-@deftypefun void file_unref (fileid_t @var{fid})
-@code{file_unref()} drops the file identified with @var{fid} and all 
-its data. This
-operation is not logged and in turn cannot be undone. @code{file_unref()} 
-accepts files in both states, read-only and read-write.
+
+
+@node Namespace Operations, File Operations, Initialisation, Swapfile User Interface
+@subsection Namespace Operations
+
+
+@deftypefun int sw_unlink (long @var{name})
+
+Deletes a name from the filesystem. Like unlink(2).
 @end deftypefun
 
-Another set of two functions lets you change and query the size of a file.
 
-@tindex fileid_t
-@tindex off_t
-@deftypefun int file_truncate (fileid_t @var{fid}, off_t @var{size})
-@code{file_truncate()} takes a file in read-write state and truncates 
-its size to
-@var{size}, just like the @code{ftruncate()} call does with regular 
-unix-files.
-If @var{size} is less than the current size of the file, all data after and
-including position @var{size} will be discarded.
-If @var{size} is greater than the current size of the file, subsequently
-allocated data is initially set to zero.
-@code{file_truncate()} is not logged, i.e. you cannot undo this operation. The
-state of the file does not change from read-write. @code{file_truncate()}
-will return 0 on success or -1 on error, in which case file is not modified at
-all.
+@deftypefun SWDIR* sw_opendir ()
+
+Open the (flat) swapfile directory for reading. The stream
+is positioned at the first file. Like opendir(3), but without
+directory specification for obvious reason.
 @end deftypefun
 
-@tindex off_t
-@tindex fileid_t
-@deftypefun off_t file_size (fileid_t @var{fid})
 
-@code{file_size()} returns the size of file identified with @var{fid} 
-or -1 if no such
-file exists. The state of the file does not matter, neither is it changed
-by @code{file_size()}. The file itself of course remains unchanged as well.
+@deftypefun long sw_readdir (SWDIR* @var{dir})
+
+As the namespace is rather simple the equivalent to readdir(3) is
+just returning the names, no directory entry. Anything else
+is like readdir(3). If no further entries are available, -1 is returned.
 @end deftypefun
 
-As mentioned above, there is another way to create a new file. This is by
-copying an existing file or a part of it.
 
-@tindex fileid_t
-@tindex off_t
-@deftypefun fileid_t file_copy (fileid_t @var{fid}, off_t @var{pos}, off_t @var{size})
-@code{file_copy()} will generate a new file containing the contents 
-in the interval
-[@var{pos}, @var{pos}+@var{size}[ of the old file as 
-@emph{reference}---i.e. no additional
-storage is required for this operation. This has the downside that both
-files, the source and the destination are switched to state read-only
-(the initial state of the source file does not matter).
-The identifier of the duplicate is returned, or -1 on error. It is illegal to
-specify an interval not entirely contained in the source file. As the files
-are not modified, this operation is not logged and in turn cannot be undone.
-Use @code{file_unref()} on the copy to undo the operation.
+@deftypefun int sw_closedir (SWDIR* @var{dir})
+
+Like closedir(3).
 @end deftypefun
 
-@node Accessing file data, Logged operations, File management, Programming Interface
-@subsection Accessing file data
 
-The following operations allow direct access to the files' data either for
-reading (read-only state) or reading and writing (read-write state). All access
-passes through fileclusters (@pxref{Introduction}). To access parts of the 
-file data,
-you first have to get the corresponding filecluster, then @code{mmap()} 
-it and finally @code{munmap()} it. The functions are
 
-@tindex filecluster_t
-@tindex fileid_t
-@tindex off_t
-@deftypefun {filecluster_t *} filecluster_get (fileid_t @var{fid}, off_t @var{pos})
-@code{filecluster_get()} will return the filecluster containing the 
-position @var{pos} of
-the file identified with @var{fid}. It is illegal to specify a 
-position outside
-of the file or an unexisting one, @code{NULL} is returned in these cases.
+@node File Operations, , Namespace Operations, Swapfile User Interface
+@subsection File Operations
+
+
+@tindex swfd_t
+@tindex txnid_t
+@deftypefun swfd_t sw_open (long @var{name}, int @var{flags}, txnid_t @var{tid})
+
+Open a file like open(2) - flags can be @code{O_CREAT}, @code{O_EXCL},
+@code{O_RDWR}, @code{O_RDONLY}, @code{O_WRONLY} with same semantics as
+open(2).  Returns a file descriptor on success, -1 on error.  The
+optional transaction id is used for all operations operating on the file
+descriptor, they can be undone and redone this way.
 @end deftypefun
 
-@tindex off_t
-@tindex filecluster_t
-@deftypefun off_t filecluster_start (filecluster_t *@var{fc})
-@deftypefunx off_t filecluster_end (filecluster_t *@var{fc})
-@deftypefunx off_t filecluster_size (filecluster_t *@var{fc})
 
-@code{filecluster_start()} returns the position of the first contained datum,
-@code{filecluster_end()} returns the position of the last contained datum and
-@code{filecluster_size()} will return the size of the contained data in bytes.
+@tindex swfd_t
+@deftypefun int sw_close (swfd_t @var{fd})
+
+Closes a file descriptor. Like close(2).
 @end deftypefun
 
-@tindex filecluster_t
-@deftypefun {filecluster_t *} filecluster_next (filecluster_t *@var{fc})
-@deftypefunx {filecluster_t *} filecluster_prev (filecluster_t *@var{fc})
 
-@code{filecluster_next()} and @code{filecluster_prev()} let you traverse the 
-fileclusters of a file. Both may return @code{NULL} if you hit the start or 
-the end of the file. The first filecluster of a file always satisfies
-@code{filecluster_start(@var{fc}) == 0}, the last filecluster of a 
-file satisfies
-@code{filecluster_end(@var{fc}) == file_size(@var{fid})} and each pair of adjacent
-fileclusters satisfies 
-@code{filecluster_end(@var{prev})+1 == filecluster_start(@var{next})}.
+@tindex swfd_t
+@deftypefun int sw_ftruncate (swfd_t @var{fd}, off_t @var{length})
+
+Changes the size of the file @var{fd} like ftruncate(2).
 @end deftypefun
 
-@tindex filecluster_t
-@deftypefun {char *} filecluster_mmap (filecluster_t *@var{fc})
-@code{filecluster_mmap()} will @code{mmap()} the data contained in 
-the filecluster and
-return a pointer to it. The @code{mmapp()}ed memory area is 
-write-protected, if the
-file of the filecluster is in read-only state (so you will get a 
-@code{SIGSEGV}
-if you try to write into it). Note that it is illegal to access parts of
-the @code{mmapp()ed} area not within the filecluster's size. Caveat emptor!
-@code{filecluster_mmap()} may change the size of the filecluster! 
-So if you want to have access to position @var{pos} in file @var{f},
-you may have to do
 
+@tindex swfd_t
+@deftypefun ssize_t sw_sendfile (swfd_t @var{out_fd}, swfd_t @var{in_fd}, size_t @var{count}, int @var{mode})
+
+Tries to copy @var{count} bytes from the current position of @var{in_fd}
+to the current position of @var{out_fd} (updating both file pointer
+positions). The actual number of copied bytes is returned, or -1 on an
+error.
+
+Two different modes are supported (may be or'ed together):
+@code{SWSENDFILE_INSERT} inserts into, rather than overwrites or extends
+the destination file, @code{SWSENDFILE_CUT} removes copied data from the
+source file rather than leaving it unmodified.  The destination file
+descriptor may be @code{SW_NOFILE}, in that case no data is actually
+written (useful with @code{SWSENDFILE_CUT}).
+@end deftypefun
+
+
+@tindex swfd_t
+@deftypefun off_t sw_lseek (swfd_t @var{fd}, off_t @var{offset}, int @var{whence})
+
+Update the file pointer position like lseek(2).
+@end deftypefun
+
+
+@tindex swfd_t
+@deftypefun ssize_t sw_read (swfd_t @var{fd}, void *@var{buf}, size_t @var{count})
+
+Like read(2), read @var{count} bytes from the current filepointer
+position to the array pointed to by @var{buf}.
+@end deftypefun
+
+
+@tindex swfd_t
+@deftypefun ssize_t sw_write (swfd_t @var{fd}, const void *@var{buf}, size_t @var{count})
+
+Like write(2), write @var{count} bytes from @var{buf} starting at the
+current filepointer position.
+@end deftypefun
+
+
+@tindex swfd_t
+@tindex struct sw_stat
+@deftypefun int sw_fstat (swfd_t @var{fd}, struct sw_stat *@var{buf})
+
+Obtain information about the file - works like fstat(2), but with
+different struct stat. Also included is information about the actual
+(file pointer position, see @code{sw_lseek}) cluster which can be mapped
+using @code{sw_mmap}.
 @example
-@group
-fc = filecluster_get(f, pos);
-mem = filecluster_mmap(fc);
-while (pos > filecluster_end(fc)) @{
-        filecluster_munmap(fc);
-        fc = filecluster_next(fc);
-        mem = filecluster_mmap(fc);
+struct sw_stat @{
+	long name;           /* file name */
+	size_t size;         /* file size in bytes */
+	int mode;            /* active protection */
+	off_t offset;        /* current file pointer position */
+	off_t cluster_start; /* start of current cluster */
+	off_t cluster_end;   /* end of current cluster */
+	size_t cluster_size; /* size of current cluster */
+@};
+@end example
+@end deftypefun
+
+
+@tindex swfd_t
+@deftypefun void *sw_mmap (void *@var{start}, int @var{prot}, int @var{flags}, swfd_t @var{fd})
+
+Maps the actual (file pointer position, see @code{sw_lseek} and
+@code{sw_fstat}) cluster into memory with parameters like mmap(2) - no
+size or offset need to be specified as they are determined by the actual
+cluster offset and size.
+@end deftypefun
+
+
+@deftypefun int sw_munmap (void *@var{start})
+
+Unmaps a previously mapped part of a file. Like munmap(2).
+@end deftypefun
+
+
+
+@node TXN User Interface, TXN Programming Interface, Swapfile User Interface, Swapfile API
+@section TXN User Interface
+
+This is the transaction API which can be used to implement undoing and
+redoing operations. For operations to be transactioned, i.e. recorded
+on execution those operations need to be transaction aware. See the
+section on TXN Programming Interface on how to make your own operations
+transaction aware.
+
+All transactions have to be named by an unique transaction id. A new
+transaction can be started by @code{txn_begin} which will give you
+a new transaction id to which subtransactions can be attached. So usually
+any transaction aware operation gets such parent transaction identifier
+as argument. Note that ending a transaction via @code{txn_end} does
+not free the transaction. This is because you want to be able to use
+the transaction for undoing or redoing the operations. If you dont
+need to do this it is wise to delete the transaction via @code{txn_delete}
+to free the memory associated with it.
+
+You may miss a @code{txn_redo} function for redoing a transaction. This
+is by purpose as redo is just another kind of undo. Because of this
+analogy the @code{txn_undo} operation returns a new transaction which
+can be used to undo this undo operation, i.e. providing a transaction
+which does the redo operation.
+
+
+@tindex txnid_t
+@deftypefun txnid_t txn_start (txnid_t @var{parent})
+
+Start a new transaction as child of the provided @var{parent} transaction
+(can be @code{TXN_NONE} if the transaction should be a independend one).
+Returns a transaction id or -1 on error. On error either the specified
+parent transaction does not exist, it has already an active child
+(violates transaction may not cross) or there is insufficient memory
+to allocate internal data structures.
+@end deftypefun
+
+
+@tindex txnid_t
+@deftypefun int txn_end (txnid_t @var{id})
+
+End the specified transaction. Returns 0 on success and -1 on error.
+On error either the specified transaction does not exist, it is
+already ended or it has active child transactions.
+@end deftypefun
+
+
+@tindex txnid_t
+@deftypefun int txn_abort (txnid_t @var{id})
+
+Abort the specified transaction thereby aborting active child
+transactions and undoing all previous work. @code{txn_abort} itself is
+not undoable. Returns 0 on success, -1 on error which is usually
+an invalid supplied transaction id or an inactive transaction.
+@end deftypefun
+
+
+@tindex txnid_t
+@deftypefun txnid_t txn_undo (txnid_t @var{id})
+
+Undo applies the reverse transaction as a new transaction,
+so @code{txn_undo(txn_undo(id))} restores state after @var{id}, simply
+deleting the returned transaction id prevents redo, deleting the original
+id after @code{txn_undo} prevents undo after redo.
+@end deftypefun
+
+
+@tindex txnid_t
+@deftypefun int txn_delete (txnid_t @var{id})
+
+Delete the specified (inactive) transaction and free all memory
+associated with it. Returns 0 on success and -1 on error which
+means you have supplied either an invalid or an active transaction.
+@end deftypefun
+
+
+@deftypefun void txn_abort_and_delete_all ()
+
+Abort all active and delete all inactive transactions. This is mainly for
+cleanup purposes before program end or after crash. Note that this is
+not thread-safe by design, but you have to ensure proper locking
+yourself or hope to be lucky... (which is usually ok in case
+of normal program termination).
+@end deftypefun
+
+
+
+
+@node TXN Programming Interface, PMAP Programming Interface, TXN User Interface, Swapfile API
+@section TXN Programming Interface
+
+Well, for now you have to learn by reading existing transaction aware code
+which boils down to the swapfile subsystem. Well, for the impatient I
+have at least the following very brief tutorial cut&pasted from the
+@file{txn.h} headerfile:
+@example
+struct my_txn_op @{
+      struct txn_op op;
+      ... data to undo/delete my transaction
+@};
+int my_operation(txnid_t parent_tid, params...)
+@{
+      struct my_txn_op *op = malloc(sizeof(struct my_txn_op));
+      txnid_t my_tid;
+      ... initialization stuff for my_operation
+      my_tid = txn_start(parent_tid);
+      ... my operation
+      op->op.undo = my_txn_undo;
+      op->op.del = my_txn_delete;
+      op->... stuff to be able to undo/delete the transaction
+      txn_finish(my_tid, &op->op);
+      ... stuff
 @}
-@end group
-@end example 
+@end example
+
+But there are at least two useful functions in the transaction API that
+will help you making your operations transaction aware.
+
+
+@tindex txnid_t
+@tindex struct txn_op
+@deftypefun int txn_finish (txnid_t @var{id}, struct txn_op *@var{ops})
+
+Finishes a transaction by providing the necessary undo and delete
+operations. Will fail if child transactions are there. The transaction
+will be ended as in @code{txn_end(txn_start(@var{id}))}.
 @end deftypefun
 
-@tindex filecluster_t
-@deftypefun void filecluster_munmap (filecluster_t *@var{fc})
-@code{munmap()}s a previously @code{mmap()}ped filecluster. It is 
-illegal to @code{munmap()} a filecluster more times than it has been 
-@code{mmap()}ped.
+
+@tindex txnid_t
+@deftypefun int txn_finish_unimplemented (txnid_t @var{id}, const char *@var{message})
+
+Finishes a transaction using an implementation that throws an exception,
+if the undo operation is required. The supplied message is written to
+stderr and a SIGSEGV will be raised.
 @end deftypefun
 
-@node Logged operations, Misc operations, Accessing file data, Programming Interface
-@subsection Logged operations
 
-Now for the @dfn{logged operations}. 
-All those operations have to be grouped into a
-@dfn{transaction} of one or more operations. 
-Such a transaction can be undone and
-subsequently redone.
 
-To start and end a transaction you have to use the following two functions:
+@node PMAP Programming Interface, , TXN Programming Interface, Swapfile API
+@section PMAP Programming Interface
 
-@tindex fileid_t
-@deftypefun int file_transaction_begin (fileid_t @var{fid})
-@deftypefunx int file_transaction_end (fileid_t @var{fid})
-@code{file_transaction_begin()} will start a new transaction for the file 
-@var{fid},
-@code{file_transaction_end()} will end it. Nested @code{begin}/@code{end} 
-calls are allowed. Both operations return 0 on success and -1 on error.
-@end deftypefun
-
-@tindex fileid_t
-@deftypefun int file_transaction_undo (fileid_t @var{fid})
-@deftypefunx int file_transaction_redo (fileid_t @var{fid})
-@code{file_transaction_undo()} will try to undo the last completed 
-transaction of the file @var{fid}, @code{file_transaction_redo()} will try 
-to redo the last undone
-transaction of the file. It is illegal to undo a transaction currently in
-progress; you have to end it first. Note that all redo-records of a file
-are discarded once you begin a new transaction on this file.
-@end deftypefun
-
-The operations that can be undone and redone are the following ones---you may
-miss some operations commonly used, but you may notice that you can compose 
-any standard operation with the following two logged operations and the (not
-logged!) operation @code{file_copy()}.
-
-@tindex fileid_t
-@tindex off_t
-@deftypefun int file_op_insert (fileid_t @var{fid}, off_t @var{pos}, fileid_t @var{file})
-@code{file_op_insert()} will insert the file @var{file} into the file 
-@var{fid} at position
-@var{pos}. @var{pos} has to be in the range of [0, @code{file_size(@var{fid})}], 
-else the operation fails. Both files will change their state to read-only, 
-and you may not any longer access the inserted file @var{file}---all 
-subsequent operations on it will fail and set @code{errno} to @code{ENOENT}. 
-If this operation is undone, the
-inserted file will become accessible again.
-@code{file_op_insert()} will return 0 on success and -1 on error.
-@end deftypefun
-
-@tindex fileid_t
-@tindex off_t
-@deftypefun int file_op_cut (fileid_t @var{fid}, off_t @var{pos}, off_t @var{size})
-@code{file_op_cut()} will cut the interval 
-[@var{pos}, @var{pos}+@var{size}[ out of file @var{fid}.
-The interval has to be entirely contained in @var{fid}. The file will change
-its state to read-only.
-@code{file_op_cut()} will return 0 on success and -1 on error.
-@end deftypefun
-
-@noindent
-The common cut&paste operations can be composed as follows:
-
-@table @dfn
-@item copy
-@code{file_copy()}
-@item paste 
-@code{file_op_insert()}, or @code{file_copy()} and @code{file_op_insert()} 
-for multiple pastes
-@item cut
-@code{file_copy()} and @code{file_op_cut()}
-@item delete 
-@code{file_op_cut()}
-@end table
-
-@node Misc operations, , Logged operations, Programming Interface
-@subsection Misc operations
-
-The semantics of the following function are not yet fully defined, it was 
-added to support the @file{swapfile_info} tool.
-
-@tindex fileid_t
-@deftypefun fileid_t file_next (fileid_t @var{fid})
-
-@code{file_next()} will return the next file identifier after @var{fid}, 
-or the first one if @var{fid} is -1. -1 is returned if no further file 
-does exist. Be careful! At the moment you do not get a valid reference to 
-the file, i.e. you may not operate on it in any way! So this function is 
-essentially useless at the moment.
-@end deftypefun
+This one I consider not that important, so either you have to consult the
+headerfile for documentation or wait for me to have lots of spare time.
 
