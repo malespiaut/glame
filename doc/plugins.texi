@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.30 2001/12/16 17:41:16 mag Exp $
+@comment $Id: plugins.texi,v 1.31 2001/12/16 18:06:01 richi Exp $
 
 @node Plugin Collection, Function and Type Index, Console Frontend, Top
 @chapter Plugin Collection
@@ -242,16 +242,18 @@ native endianness only.
 @node Generating Waves, Junctions and Dead Ends,, Elementary Plugins
 @subsection Generating Waves
 
-GLAME comes with a number of plugins to generate waveforms within a 
-filter network. They can be useful as a debugging aid, but also as 
+GLAME comes with a number of plugins to generate waveforms within a
+filter network. They can be useful as a debugging aid, but also as
 control input to other plugins. Imagine a sine wave generator hooked up
-to the position port of a panning filter... So far there is a 
-@code{sine} plugin for generating sine waves, a @code{const} plugin yielding
-a block of constant data, and a @code{rect} plugin creating a stream of
-steep pulses. @code{pulse} generates a single pulse, steepness of the edges
-can be adjusted. All plugins emit but a short
-chunk of data. For a continuous stream they have to be connected to a
-repeat node. 
+to the position port of a panning filter... So far there is a
+@code{sine} plugin for generating sine waves, a @code{const} plugin
+yielding a block of constant data, a @code{rect} plugin creating a
+stream of steep pulses, a @code{saw} plugin for generating saw waves and
+a @code{ramp} plugin for generating saw waves. @code{pulse} generates a
+single pulse, steepness of the edges can be adjusted. @code{noise}
+generates white noise. @code{wave} emits a user editable chunk of
+wave. All plugins emit but a short chunk of data. For a continuous
+stream they have to be connected to a repeat node.
 
 @subsubheading Common ports
 @table @code
@@ -301,6 +303,18 @@ Defaults to 1.0.
 Frequency of generated rectangular wave in Hz. Defaults to 440 Hz.
 @end table
 
+@subsubheading @file{saw} ports
+@file{saw} has no further specific ports.
+
+@subsubheading @file{saw} parameters
+@table @code
+@item amplitude (sample)
+Amplitude of generated saw wave. Allowed value range is from 0 to 1. 
+Defaults to 1.0.
+@item frequency (float)
+Frequency of generated saw wave in Hz. Defaults to 440 Hz.
+@end table
+
 @subsubheading @file{pulse} ports
 @file{pluse} has no further specific ports.
 
@@ -317,6 +331,42 @@ Time in milliseconds to switch from neutral to on state.
 @item release (time)
 Time in milliseconds to switch from on to neutral state.
 @end table
+
+
+@subsubheading @file{ramp} ports
+@file{ramp} has no further specific ports.
+
+@subsubheading @file{ramp} parameters
+@table @code
+@item amplitude (sample)
+Amplitude of generated ramp wave. Allowed value range is from 0 to 1. 
+Defaults to 1.0.
+@item frequency (float)
+Frequency of generated ramp wave in Hz. Defaults to 440 Hz.
+@end table
+
+
+@subsubheading @file{noise} ports
+@file{noise} has no further specific ports.
+
+@subsubheading @file{noise} parameters
+@table @code
+@item amplitude (sample)
+Amplitude of generated noise. Allowed value range is from 0 to 1. 
+Defaults to 1.0.
+@end table
+
+
+@subsubheading @file{wave} ports
+@file{wave} has no further specific ports.
+
+@subsubheading @file{wave} parameters
+@table @code
+@item wave (sample array)
+The to be generated wave.
+@end table
+
+
 
 @node Junctions and Dead Ends, Mangling Data Streams, Generating Waves, Elementary Plugins
 @subsection Junctions and Dead Ends
