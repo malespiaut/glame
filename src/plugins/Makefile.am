@@ -8,10 +8,11 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c flanger.c distortion.c\
 	audio_io_oss.c audio_io_esd.c audio_io_alsa.c \
-	audio_io_jack.c audio_io_irix.c \
+	audio_io_irix.c \
 	fader.c builtins.c stretch.c resample.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
 	write_mp3.scm
+# audio_io_jack.c midi_io_alsa.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm \
@@ -100,7 +101,8 @@ endif
 audio_io_esd_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
 if HAVE_ALSA
-audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h midi_io_alsa.c
+audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h
+# midi_io_alsa.c
 endif
 audio_io_alsa_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(ALSA_LIBS)
 
