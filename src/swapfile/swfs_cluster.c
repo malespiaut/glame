@@ -481,9 +481,8 @@ static char *_cluster_mmap(struct swcluster *c, int prot, int flags)
 	clusters_mappedsize += c->size;
 	__cluster_shrinkmaps();
 	UNLOCKMAPPINGS;
-	LOCKCLUSTERS;
-	c->usage++; /* FIXME: make that an atomic variable. */
-	UNLOCKCLUSTERS;
+	/* Get an additional reference. */
+	cluster_get(c->name, 0, -1);
 	c->map_cnt++;
 	return c->map_addr;
 }
