@@ -554,6 +554,7 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	filter_t *net, *ain;
 	int rate;
 	filter_t *swout;
+	float duration;
 
 	if (!plugin_get("audio_in"))
 		return;
@@ -589,6 +590,8 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 	/* Create the basic network - audio_out. */
 	net = filter_creat(NULL);
 	ain = filter_instantiate(plugin_get("audio_in"));
+	duration = length/(float)rate;
+	filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
 	filter_add_node(net, ain, "ain");
 
 	/* Left - or mono. */
