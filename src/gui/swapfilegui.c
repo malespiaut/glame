@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.40 2001/05/29 07:51:49 richi Exp $
+ * $Id: swapfilegui.c,v 1.41 2001/05/30 07:39:57 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -338,9 +338,19 @@ static void addfile_cb(GtkWidget *menu, GlameTreeItem *item)
 	if (!GPSM_ITEM_IS_GRP(item->item))
 		return;
 
-	/* Create new gpsm swfile. */
+	/* Create new gpsm swfile and insert it. */
 	swfile = gpsm_newswfile("Unnamed");
-	gpsm_grp_insert((gpsm_grp_t *)item->item, (gpsm_item_t *)swfile, 0, -1);
+	if (gpsm_grp_is_hbox((gpsm_grp_t *)item->item))
+		gpsm_hbox_insert((gpsm_grp_t *)item->item,
+				 (gpsm_item_t *)swfile,
+				 gpsm_item_hsize(item->item), 0);
+	else if (gpsm_grp_is_vbox((gpsm_grp_t *)item->item))
+		gpsm_vbox_insert((gpsm_grp_t *)item->item,
+				 (gpsm_item_t *)swfile,
+				 0, gpsm_item_vsize(item->item));
+	else
+		gpsm_grp_insert((gpsm_grp_t *)item->item,
+				(gpsm_item_t *)swfile, 0, -1);
 
 	/* Expand the parent widget. */
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
@@ -639,7 +649,8 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 			       GlameTreeItem *item)
 {
 	static GlameTreeItem *drag_widget = NULL;
-	gpsm_item_t *source, *dest;
+	static int mode = -1;
+	gpsm_item_t *source, *dest, *parent;
 	long hpos, vpos;
 
 	if (event->button != 1)
@@ -648,8 +659,19 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 	if (event->type == GDK_BUTTON_PRESS) {
 		/* drag&drop start */
 		drag_widget = NULL;
+		mode = -1;
 		if (!GPSM_ITEM_IS_SWFILE(item->item))
 			return; /* only swfiles for now */
+		if (event->state & GDK_SHIFT_MASK) {
+			DPRINTF("SHIFT modifier\n");
+			mode = 1;
+		} else if (event->state & GDK_CONTROL_MASK) {
+			DPRINTF("CTRL modifier\n");
+			mode = 2;
+		} else {
+			DPRINTF("illegal modifier\n");
+			return; /* modifier not valid */
+		}
 		drag_widget = item;
 
 	} else if (event->type == GDK_BUTTON_RELEASE) {
@@ -659,20 +681,56 @@ static void drag_start_stop_cb(GtkWidget *widget, GdkEventButton *event,
 		if (drag_widget == item)
 			return; /* nop */
 
+		source = drag_widget->item;
+		dest = item->item;
 		DPRINTF("drag&drop: %s on %s\n",
 			gpsm_item_label(drag_widget->item),
 			gpsm_item_label(item->item));
 
-		/* Transform position and do remove/insert cycle. */
-		source = drag_widget->item;
-		dest = item->item;
-		gpsm_position_transform(source, gpsm_item_parent(dest),
-					&hpos, &vpos);
-		gpsm_item_remove(source);
-		DPRINTF("inserting at %li %li\n", hpos, gpsm_item_vposition(dest));
-		gpsm_grp_insert(gpsm_item_parent(dest), source,
-				hpos, gpsm_item_vposition(dest));
+		if (mode == 1) {
+			/* Mode 1 - hbox insertion either before
+			 * dropped item or at tail (if dropped
+			 * on group). */
+			if (GPSM_ITEM_IS_GRP(dest))
+				parent = (gpsm_grp_t *)dest;
+			else
+				parent = gpsm_item_parent(dest);
+			if (!gpsm_grp_is_hbox(parent)) {
+				DPRINTF("not a hbox\n");
+				drag_widget = NULL;
+				return;
+			}
+			gpsm_item_remove(source);
+			if (GPSM_ITEM_IS_GRP(dest))
+				gpsm_hbox_insert(parent, source,
+						 gpsm_item_hsize(parent), 0);
+			else
+				gpsm_hbox_insert(parent, source,
+						 gpsm_item_hposition(dest), 0);
+		} else if (mode == 2) {
+			/* Mode 2 - vbox insertion either before
+			 * dropped item or at tail (if dropped
+			 * on group). */
+			if (GPSM_ITEM_IS_GRP(dest))
+				parent = (gpsm_grp_t *)dest;
+			else
+				parent = gpsm_item_parent(dest);
+			if (!gpsm_grp_is_vbox(parent)) {
+				DPRINTF("not a vbox\n");
+				drag_widget = NULL;
+				return;
+			}
+			gpsm_item_remove(source);
+			if (GPSM_ITEM_IS_GRP(dest))
+				gpsm_vbox_insert(parent, source,
+						 0, gpsm_item_vsize(parent));
+			else
+				gpsm_vbox_insert(parent, source,
+						 0, gpsm_item_vposition(dest));
+		}
+
 		drag_widget = NULL;
+		mode = -1;
 	}
 }
 
