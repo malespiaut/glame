@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.60 2002/02/21 21:31:14 richi Exp $
+ * $Id: basic_sample.c,v 1.61 2002/02/24 15:43:55 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -617,30 +617,8 @@ static int render_f(filter_t *n)
 	/* Generate nr_out arrays of factors for the inputs. */
 	i = 0;
 	facts = ALLOCN(nr_out, float *);
-	filterport_foreach_pipe(out, p) {
-		facts[i] = ALLOCN(nr_in, float);
-		for (j=0; j<nr_in; j++) {
-			/* The factor is the difference in hangle divided
-			 * by PI and subtracted from 1.0 - this way we
-			 * get linear scaling between 0.0 and PI/2. */
-			float ang_diff, min_ang, max_ang;
-			min_ang = MIN(filterpipe_sample_hangle(I[j].in),
-				      filterpipe_sample_hangle(p));
-			max_ang = MAX(filterpipe_sample_hangle(I[j].in),
-				      filterpipe_sample_hangle(p));
-			ang_diff = max_ang - min_ang;
-			if (ang_diff > M_PI)
-				ang_diff = 2.0*M_PI - ang_diff;
-			if (ang_diff < 0.0 || ang_diff > M_PI)
-				DPRINTF("FUCK!\n");
-			facts[i][j] = 1.0 - ang_diff/M_PI;
-			DPRINTF("For output %i [%.3f] and input %i [%.3f] out of ang_diff %.3f factor is %.3f\n",
-				i, filterpipe_sample_hangle(p),
-				j, filterpipe_sample_hangle(I[j].in),
-				ang_diff, facts[i][j]);
-		}
-		i++;
-	}
+	filterport_foreach_pipe(out, p)
+		facts[i++] = ALLOCN(nr_in, float);
 
 	simd_buf = ALLOCN(nr_in, float *);
 	simd_fact = ALLOCN(nr_in, float);
@@ -651,6 +629,24 @@ static int render_f(filter_t *n)
 	goto entry;
 	do {
 		FILTER_CHECK_STOP;
+
+		/* Prepare factors from current pipe positions.
+		 * FIXME: changes only if specs violated. */
+		i = 0;
+		filterport_foreach_pipe(out, p) {
+			for (j=0; j<nr_in; j++) {
+				/* The factor is the difference in hangle divided
+				 * by PI and subtracted from 1.0 - this way we
+				 * get linear scaling between 0.0 and PI/2. */
+				float ang_diff;
+				ang_diff = fabs(filterpipe_sample_hangle(I[j].in) - filterpipe_sample_hangle(p));
+				if (ang_diff > M_PI)
+					facts[i][j] = -1.0 + ang_diff/M_PI;
+				else
+					facts[i][j] = 1.0 - ang_diff/M_PI;
+			}
+			i++;
+		}
 
 		/* Head. Find maximum number of processable samples,
 		 * fix destination position. */
@@ -1322,6 +1318,22 @@ static int pan2_connect_in(filter_port_t *port, filter_pipe_t *pipe)
 			  pan2_pipe_changed, NULL);
 	return 0;
 }
+static int pan2_connect_out(filter_port_t *port, filter_pipe_t *pipe)
+{
+	filter_t *n;
+	filter_pipe_t *in;
+	long rate = GLAME_DEFAULT_SAMPLERATE;
+	if (filterport_nrpipes(port) >= 1)
+		return -1;
+	n = filterport_filter(port);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	if (in)
+		rate = filterpipe_sample_rate(in);
+	filterpipe_settype_sample(pipe, rate,
+				  filterparam_val_double(filterparamdb_get_param(filter_paramdb(n), "position")));
+	
+	return 0;
+}
 int pan2_register(plugin_t *p)
 {
 	filter_t *f;
@@ -1345,6 +1357,7 @@ int pan2_register(plugin_t *p)
 		FILTER_PORTFLAG_OUTPUT,
 		FILTERPORT_DESCRIPTION, "panned stream",
 		FILTERPORT_END);
+	port->connect = pan2_connect_out;
 	param = filterparamdb_add_param_double(
 		filter_paramdb(f), "position",
 		FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
