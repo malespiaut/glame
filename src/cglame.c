@@ -202,8 +202,8 @@ int main(int argc, char **argv)
 	int creat;
 
 	fprintf(stderr, "\n"
-"    CGLAME for GLAME version "VERSION", Copyright (C) 1999-2001\n"
-"    Alexander Ehlert, Richard Guenther, Johannes Hirche, Daniel Kobras.\n"
+"    CGLAME for GLAME version "VERSION", Copyright (C) 1999-2004\n"
+"    Alexander Ehlert, Richard Guenther, Johannes Hirche, Daniel Kobras and others.\n"
 "    CGLAME and GLAME come with ABSOLUTELY NO WARRANTY. This is free\n"
 "    software, and you are welcome to redistribute it under certain\n"
 "    conditions.\n\n");

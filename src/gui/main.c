@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.122 2004/10/23 13:09:24 richi Exp $
+ * $Id: main.c,v 1.123 2004/10/31 22:08:34 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -753,23 +753,17 @@ static GtkWidget* glame_about(void)
 	 */
 	GdkPixbuf* log;
 	const gchar *authors[]={
-		N_("Richard Guenther [Richi]"),
-		N_("Alexander Ehlert [Mag]"),
-		N_("Daniel Kobras [*nold]"),
-		N_("Johannes Hirche [XWolf]"),
+		N_("Richard Guenther"),
+		N_("Alexander Ehlert"),
+		N_("Daniel Kobras"),
+		N_("Johannes Hirche"),
 		N_("and others"),
 		NULL
 	};
 	const gchar *documenters[]={
-		N_("Richi"),
-		N_("*nold"),
-		N_("Mag"),
-		N_("XWolf"),
-		NULL
-	};
-	const gchar *translators[]={
-		N_("*nold"),
-		N_("Laurent Georget"),
+		N_("Richard Guenther"),
+		N_("Daniel Kobras"),
+		N_("Alexander Ehlert"),
 		NULL
 	};
 	GtkWidget *about;
@@ -782,22 +776,22 @@ static GtkWidget* glame_about(void)
 	log = gdk_pixbuf_new_from_file(logo,NULL);
 	about = gnome_about_new ("GLAME", 
 				 VERSION, 
-				 _("Copyright (C) 1999-2001 R. Guenther, A. Ehlert, J. Hirche, D. Kobras"),
+				 _("Copyright (C) 1999-2004 R. Guenther, A. Ehlert, J. Hirche, D. Kobras and others"),
 				 _(
-				   "This program is free software; you can redistribute it and/or modify"
-				   "it under the terms of the GNU General Public License as published by"
-				   "the Free Software Foundation; either version 2 of the License, or"
+				   "This program is free software; you can redistribute it and/or modify "
+				   "it under the terms of the GNU General Public License as published by "
+				   "the Free Software Foundation; either version 2 of the License, or "
 				   "(at your option) any later version.\n"
-				   "This program is distributed in the hope that it will be useful,"
-				   "but WITHOUT ANY WARRANTY; without even the implied warranty of"
-				   "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
+				   "This program is distributed in the hope that it will be useful, "
+				   "but WITHOUT ANY WARRANTY; without even the implied warranty of "
+				   "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
 				   "GNU General Public License for more details.\n"
-				   "You should have received a copy of the GNU General Public License"
-				   "along with this program; if not, write to the Free Software"
+				   "You should have received a copy of the GNU General Public License "
+				   "along with this program; if not, write to the Free Software "
 				   "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"),
 				 authors,
 				 documenters,
-				 _("*nold, Laurent Georget"),
+				 _("Daniel Kobras\nLaurent Georget\nBenno Senoner\nAllan Lyckegaard"),
 				 log);
 	gtk_object_set_data (GTK_OBJECT (about), "about", about);
 	gtk_window_set_modal (GTK_WINDOW (about), FALSE);
@@ -982,11 +976,11 @@ _("Welcome first-time user of GLAME.\n"
 	/* Pop up console. */
 	glame_console_init();
 	glame_console_printf("%s%s%s",
-_("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
+_("    GLAME version "), VERSION, _(", Copyright (C) 1999-2004 by\n"
 "    Alexander Ehlert, Richard Guenther, Johannes Hirche,\n"
-"    Daniel Kobras. GLAME comes with ABSOLUTELY NO\n"
-"    WARRANTY. This is free software, and you are welcome to\n"
-"    redistribute it under certain conditions.\n\n"));
+"    Daniel Kobras and others.\n"
+"    GLAME comes with ABSOLUTELY NO WARRANTY. This is free software,\n"
+"    and you are welcome to redistribute it under certain conditions.\n\n"));
 #ifndef HAVE_LADSPA
 	glame_console_printf("WARNING! This copy of GLAME was compiled without LADSPA plugin support\n");
 #endif
