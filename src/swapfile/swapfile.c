@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.4 2000/01/28 13:00:31 richi Exp $
+ * $Id: swapfile.c,v 1.5 2000/01/28 14:21:50 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -703,6 +703,7 @@ static inline void __cluster_forgetmap(cluster_t *c)
 	c->buf = NULL;
 	swap->mapped_size -= c->size;
 	list_del(&c->map_list);
+	INIT_LIST_HEAD(&c->map_list);
 }
 
 static inline void __cluster_munmap(cluster_t *c)
@@ -711,6 +712,7 @@ static inline void __cluster_munmap(cluster_t *c)
 	c->buf = NULL;
 	swap->mapped_size -= c->size;
 	list_del(&c->map_list);
+	INIT_LIST_HEAD(&c->map_list);
 }
 
 /* we do __cluster_forgetmap on unref and refcnt == 0 */
@@ -736,10 +738,7 @@ static int _cluster_is_mapped(cluster_t *c)
 	if (c->mmapcnt>0)
 		return 1;
 
-	if (c->refcnt == 0)
-		__cluster_forgetmap(c);
-	else
-		__cluster_munmap(c);
+	__cluster_munmap(c);
 
 	return 0;
 }
@@ -752,6 +751,8 @@ static void _drain_mmapcache()
 	lhnext = &swap->mapped;
 	while (lh = lhnext->prev, lh != &swap->mapped) {
 		c = list_entry(lh, cluster_t, map_list);
+		if (!c->buf)
+			PANIC("cluster with no mapping in maplist!");
 		if (_cluster_is_mapped(c))
 			lhnext = lh;
 		else if (swap->mapped_size <= swap->mapped_max)
@@ -1107,7 +1108,7 @@ static int _swap_open_blkdev(swap_t *s, int flags)
 {
 	struct stat sbuf;
 
-	if (flock(s->fd, LOCK_EX|LOCK_NB) == -1)
+      	if (flock(s->fd, LOCK_EX|LOCK_NB) == -1)
 		goto _nolock;
 	if (fstat(s->fd, &sbuf) == -1)
 		goto _nostat;
@@ -1125,7 +1126,7 @@ static int _swap_open_file(swap_t *s, int flags)
 {
 	struct stat sbuf;
 
-	if (flock(s->fd, LOCK_EX|LOCK_NB) == -1)
+       	if (flock(s->fd, LOCK_EX|LOCK_NB) == -1)
 		goto _nolock;
 	if (fstat(s->fd, &sbuf) == -1)
 		goto _nostat;
@@ -1134,7 +1135,7 @@ static int _swap_open_file(swap_t *s, int flags)
 	return 0;
 
 _nostat:
-	flock(s->fd, LOCK_SH);
+      	flock(s->fd, LOCK_SH);
 _nolock:
 	return -1;
 }
@@ -1351,7 +1352,7 @@ void swap_close()
 	munmap(r, swap->meta_size);
 	fsync(swap->fd);
 
-	flock(swap->fd, LOCK_SH);
+      	flock(swap->fd, LOCK_SH);
 	close(swap->fd);
 
 	/* aieee! FIXME! we should free the lists in mem?? (sure!) */

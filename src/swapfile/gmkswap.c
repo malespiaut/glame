@@ -33,6 +33,7 @@
 #include <string.h>
 #include "swapfile.h"
 
+
 static int do_open(char *name, off_t *size)
 {
   struct stat sbuf;
@@ -87,7 +88,7 @@ static int do_init(int fd, off_t size)
   header.u.header.size = size;
   header.u.header.data_off = 1024*1024; /* UH! FIXME! */
   header.u.header.data_size = size - header.u.header.data_off;
-  header.u.header.meta_off = 8192;      /* FIXME? (two pages) */
+  header.u.header.meta_off = CLUSTER_MINSIZE;
   header.u.header.meta_size = header.u.header.data_off - header.u.header.meta_off;
 
   if (lseek(fd, 0, SEEK_SET) == -1)
@@ -128,6 +129,7 @@ int main(int argc, char **argv)
   char *swapname;
   off_t size;
   int fd;
+  int align;
 
   fprintf(stderr, "\n\
     gmkswap version "VERSION", Copyright (C) 1999, 2000 Richard Guenther
@@ -142,6 +144,25 @@ int main(int argc, char **argv)
   size = -1;
   if (argc == 3)
     size = 1024*1024*atol(argv[2]);
+
+  
+  align = sysconf(_SC_MMAP_FIXED_ALIGNMENT);
+  if (align != 0 && align != -1) {
+    if (align > CLUSTER_MINSIZE) {
+      fprintf(stderr, "You have found an arch with too large page (%i)!\n",
+	      align);
+      fprintf(stderr, "Go and fix swapfileI.h!\n");
+      exit(1);
+    }
+  } else {
+    align = sysconf(_SC_PAGESIZE);
+    if (align > CLUSTER_MINSIZE) {
+      fprintf(stderr, "You have found an arch with too large page (%i)!\n",
+	      align);
+      fprintf(stderr, "Go and fix swapfileI.h!\n");
+      exit(1);
+    }
+  }    
 
   if ((fd = do_open(swapname, &size)) == -1) {
     perror("unable to open swapspace");
