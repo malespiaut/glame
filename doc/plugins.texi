@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.19 2001/04/25 12:46:56 mag Exp $
+@comment $Id: plugins.texi,v 1.20 2001/04/25 14:31:47 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -19,6 +19,7 @@ float, or string--in parentheses.
 * In- and Output::
 * Elementary Plugins::
 * Effects::
+* FFT Plugins::
 @end menu
 
 @node In- and Output, Elementary Plugins,, Plugin Collection
@@ -550,7 +551,7 @@ these plugins.
 
 
 
-@node Effects,, Elementary Plugins, Plugin Collection
+@node Effects, FFT Plugins, Elementary Plugins, Plugin Collection
 @section Effects
 
 @menu
@@ -558,7 +559,6 @@ these plugins.
 * Noisegate::
 * IIR::
 * Flanger::
-* FFT::
 @end menu
 
 @node Echo, Noisegate,, Effects
@@ -655,7 +655,7 @@ to 0.5, and it is best to leave it alone unless you know what you're doing.
 @end table
 
 
-@node Flanger, FFT, IIR, Effects
+@node Flanger, , IIR, Effects
 @subsection Flanger
 The flanger effect is essentially a variable delay, that operates on a comb
 filtered signal. The variation of the delay is given by a low frequency
@@ -706,14 +706,27 @@ sound.
 @end table
 @end table
 
-@node FFT, , Flanger, Effects
-@subsection FFT
+
+
+@node FFT Plugins, , Effects, Plugin Collection
+@section FFT Plugins
+
 Glame provides a simple framework of FFT filters to allow for the application
 of effects in the frequency domain of sample sounds. The core plugins
 are fft and ifft using the specially designed FFT protocol which supports
 adjustable FFT blocksizes and oversampling. All FFT processing is done
 based on the fftw (@url{http://www.fftw.org}) library.
 
+@menu
+* FFT::
+* IFFT::
+* FFT Resample::
+* FFT Bandpass::
+* FFT Equalizer::
+@end menu
+
+
+@node FFT, IFFT,, FFT Plugins
 @subsection fft
 @subsubheading @file{fft} ports
 @table @code
@@ -734,6 +747,7 @@ resynthesized sound it is necessary to do oversampling. A good
 factor is the default value of 8.
 @end table
 
+@node IFFT, FFT Resample, FFT, FFT Plugins
 @subsection ifft
 @subsubheading @file{ifft} ports
 @table @code
@@ -747,6 +761,7 @@ Output stream of sample data. Only one connection is allowed.
 The ifft plugin doesn't need any parameters. blocksize and oversampling factor
 are taken from the pipe properties.
 
+@node FFT Resample, FFT Bandpass, IFFT, FFT Plugins
 @subsection fft_resample
 Implements a resampler in the frequency domain.
 @subsubheading @file{fft_resample} ports
@@ -763,6 +778,7 @@ Output stream of resampled fft data. Only one connection is allowed.
 Frequency of resampled stream.
 @end table
 
+@node FFT Bandpass, FFT Equalizer, FFT Resample, FFT Plugins
 @subsection fft_bandpass
 Implements a bandpass filter in the frequency domain.
 @subsubheading @file{fft_bandpass} ports
@@ -783,6 +799,7 @@ Maximum of passband in Hz.
 Gain in dB of passband.
 @end table
 
+@node FFT Equalizer, , FFT Bandpass, FFT Plugins
 @subsection fft_equalizer
 Implements a five band equalizer in the frequency domain. It features a low, midlow,
 mid, midhigh and high band which are equally distributed over the frequency range.
