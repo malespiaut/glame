@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.5 2000/02/25 14:15:04 richi Exp $
+ * $Id: basic_sample.c,v 1.6 2000/02/28 09:34:34 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -25,6 +25,7 @@
  * - volume-adjust [broken?]
  * - phase-invert
  * - delay
+ * - repeat
  * I like to see
  * - add, sub, mul
  */
@@ -182,7 +183,7 @@ static int mix_fixup(filter_node_t *n, filter_pipe_t *out)
 	if (!out)
 		return 0;
 
-	rate = 44100;
+	rate = GLAME_DEFAULT_SAMPLERATE;
 	if ((in = filternode_get_input(n, PORTNAME_IN)))
 		rate = filterpipe_sample_rate(in);
 	phi = FILTER_PIPEPOS_DEFAULT;
@@ -376,6 +377,91 @@ static int delay_f(filter_node_t *n)
 }
 
 
+static int repeat_f(filter_node_t *n)
+{
+	filter_pipe_t *in, *out;
+	filter_buffer_t *buf, *buf2;
+	feedback_fifo_t fifo;
+	filter_param_t *param;
+	int duration;
+
+	if (!(in = filternode_get_input(n, PORTNAME_IN))
+	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no input or no output");
+
+	duration = 0;
+	if ((param = filternode_get_param(n, "duration")))
+	        duration = filterpipe_sample_rate(in)*filterparam_val_float(param);
+	if (duration < 0)
+		FILTER_ERROR_RETURN("weird time");
+	INIT_FEEDBACK_FIFO(fifo);
+
+	FILTER_AFTER_INIT;
+
+	/* read whole input stream into internal fifo
+	 * but queue stuff once already. */
+	goto entry1;
+	do {
+		FILTER_CHECK_STOP;
+		sbuf_ref(buf);
+		add_feedback(&fifo, buf);
+		duration -= sbuf_size(buf);
+		sbuf_queue(out, buf);
+	entry1:
+		buf = sbuf_get(in);
+	} while (buf && duration >= sbuf_size(buf));
+
+	/* too many buffers from input? */
+	if (buf) {
+		/* part of a buffer still to be send? */
+		if (duration > 0) {
+			buf2 = sbuf_alloc(duration, n);
+			buf2 = sbuf_make_private(buf2);
+			memcpy(sbuf_buf(buf2), sbuf_buf(buf), duration*SAMPLE_SIZE);
+			duration = 0;
+			sbuf_queue(out, buf2);
+		}
+		/* drop mode */
+		do {
+			sbuf_unref(buf);
+		} while ((buf = sbuf_get(in)));
+	}
+
+	/* all input is processed, continue to output from fifo
+	 * until duration number of samples were sent. */
+	goto entry2;
+	do {
+		FILTER_CHECK_STOP;
+		sbuf_ref(buf);
+		add_feedback(&fifo, buf);
+		duration -= sbuf_size(buf);
+		sbuf_queue(out, buf);
+	entry2:
+		buf = get_feedback(&fifo);
+	} while (buf && duration > sbuf_size(buf));
+
+	/* part left to be sent? */
+	if (buf && duration > 0) {
+		buf2 = sbuf_alloc(duration, n);
+		buf2 = sbuf_make_private(buf2);
+		memcpy(sbuf_buf(buf2), sbuf_buf(buf), duration*SAMPLE_SIZE);
+		sbuf_unref(buf);
+		sbuf_queue(out, buf2);
+	}
+
+	FILTER_BEFORE_STOPCLEANUP;
+
+	/* free buffers in the fifo and send final EOF */
+	while ((buf = get_feedback(&fifo)))
+		sbuf_unref(buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+
 /* Registry setup of all contained filters
  */
 int basic_sample_register()
@@ -429,6 +515,18 @@ int basic_sample_register()
 	    || !(filter_add_output(f, PORTNAME_OUT, "delayed output stream",
 				   FILTER_PORTTYPE_SAMPLE))
 	    || !(filter_add_param(f, "delay", "delay in s",
+				  FILTER_PARAMTYPE_FLOAT))
+	    || filter_add(f) == -1)
+		return -1;
+
+	if (!(f = filter_alloc("repeat",
+			       "Repeat an audio signal for the specified time",
+			       repeat_f))
+	    || !(filter_add_input(f, PORTNAME_IN, "input stream to repeat",
+				  FILTER_PORTTYPE_SAMPLE))
+	    || !(filter_add_output(f, PORTNAME_OUT, "repeated stream",
+				   FILTER_PORTTYPE_SAMPLE))
+	    || !(filter_add_param(f, "duration", "total duration in s",
 				  FILTER_PARAMTYPE_FLOAT))
 	    || filter_add(f) == -1)
 		return -1;

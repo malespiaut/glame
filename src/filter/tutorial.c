@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.1 2000/02/17 16:16:07 richi Exp $
+ * $Id: tutorial.c,v 1.2 2000/02/28 09:34:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,23 +47,25 @@ static int null_f(filter_node_t *n)
 	in = filternode_get_input(n, PORTNAME_IN);
 	out = filternode_get_output(n, PORTNAME_OUT);
 	if (!in || !out)
-		return -1;
+		FILTER_ERROR_RETURN("no input or no output");
 
 	FILTER_AFTER_INIT;
 
 	/* The loop condition is at the end to get and
 	 * forward the EOF mark. */
 	do {
+		FILTER_CHECK_STOP;
 		/* get an input buffer */
 		buf = fbuf_get(in);
 
 		/* just forward every buffer */
 		fbuf_queue(out, buf);
-	} while (pthread_testcancel(), buf);
+	} while (buf);
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
 
@@ -79,7 +81,7 @@ static int dup_f(filter_node_t *n)
 	if (!(in = filternode_get_input(n, PORTNAME_IN))
 	    || !(out1 = filternode_get_output(n, "out1"))
 	    || !(out2 = filternode_get_output(n, "out2")))
-		return -1;
+		FILTER_ERROR_RETURN("insufficient connections");
 
 	FILTER_AFTER_INIT;
 
@@ -88,6 +90,7 @@ static int dup_f(filter_node_t *n)
 	 * buf == NULL at the end of the loop to correctly
 	 * forward the EOF mark. */
 	do {
+		FILTER_CHECK_STOP;
 		buf = fbuf_get(in);
 		/* we get the input buffer referenced for us by
 		 * our source. */
@@ -102,11 +105,12 @@ static int dup_f(filter_node_t *n)
 		 * destination - ours is good enough, we just are
 		 * not allowed to muck with it anymore. */
 		fbuf_queue(out2, buf);
-	} while (pthread_testcancel(), buf);
+	} while (buf);
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
-	return 0;
+	FILTER_RETURN;
 }
 
 

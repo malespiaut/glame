@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.33 2000/02/27 23:55:51 nold Exp $
+ * $Id: audio_io.c,v 1.34 2000/02/28 09:34:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -72,7 +72,7 @@ static int aio_generic_connect_out(filter_node_t *src, const char *port,
 	filter_param_t *ratep;
 	filter_pipe_t *prev;
 	float phi = FILTER_PIPEPOS_CENTRE;
-	int rate = 44100;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
 
 	/* Limit to stereo capture */
 	if (filternode_nroutputs(src) > 1)
@@ -542,7 +542,7 @@ static int esd_in_f(filter_node_t *n)
 	filter_buffer_t *lbuf,*rbuf;
 	
 	esd_format_t	format;
-	int rate=44100;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
 	int bits = ESD_BITS16, channels = ESD_STEREO;
 	int mode = ESD_STREAM, func = ESD_RECORD ;
 	short int *buf;

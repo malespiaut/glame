@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.12 2000/02/23 12:31:12 richi Exp $
+ * $Id: file_io.c,v 1.13 2000/02/28 09:34:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -190,7 +190,8 @@ static int read_file_connect_out(filter_node_t *n, const char *port,
 {
 	/* no reader -> no filename -> some "defaults" */
 	if (!RWPRIV(n)->rw) {
-		filterpipe_settype_sample(p, 44100, FILTER_PIPEPOS_DEFAULT);
+		filterpipe_settype_sample(p, GLAME_DEFAULT_SAMPLERATE,
+					  FILTER_PIPEPOS_DEFAULT);
 		return 0;
 	}
 

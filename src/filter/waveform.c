@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.15 2000/02/24 13:59:10 richi Exp $
+ * $Id: waveform.c,v 1.16 2000/02/28 09:34:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -22,6 +22,10 @@
  * This file contains a set of filters that generate various waveforms
  * Contained filters are
  * - sinus
+ * - const
+ *
+ * The waveform filters should only generate "one" buffer which can then
+ * be repeated using the repeat filter. [richi]
  */
 
 #include <sys/time.h>
@@ -32,44 +36,108 @@
 #include "util.h"
 #include <math.h>
 
+
+/* Standard waveform connect_out and fixup_param methods. These honour
+ * optional parameters "rate" and "position".
+ */
+static int waveform_connect_out(filter_node_t *n, const char *port,
+				filter_pipe_t *p)
+{
+	filter_param_t *param;
+	int rate;
+	float pos;
+
+	rate = GLAME_DEFAULT_SAMPLERATE;
+	if ((param = filternode_get_param(n, "rate")))
+		rate = filterparam_val_int(param);
+	pos = FILTER_PIPEPOS_DEFAULT;
+	if ((param = filternode_get_param(n, "pos")))
+		pos = filterparam_val_float(param);
+	filterpipe_settype_sample(p, rate, pos);
+	return 0;
+}
+static int waveform_fixup_param(filter_node_t *n, filter_pipe_t *p,
+				const char *name, filter_param_t *param)
+{
+	filter_pipe_t *out;
+
+	if ((out = filternode_get_output(n, PORTNAME_OUT))) {
+		waveform_connect_out(n, NULL, out);
+		return out->dest->filter->fixup_pipe(n, out);
+	}
+	return 0;
+}
+
+/* Standard waveform register. Does add the output port and the parameters "rate"
+ * and "position". Also inits the methods.
+ */
+static filter_t *waveform_filter_alloc(const char *name, const char *description,
+				       int (*fm)(filter_node_t *))
+{
+	filter_t *f;
+
+	if (!(f = filter_alloc(name, description, fm))
+	    || !filter_add_output(f, PORTNAME_OUT, "waveform output stream",
+				  FILTER_PORTTYPE_SAMPLE)
+	    || !filter_add_param(f, "rate", "samplerate of the generated output",
+				 FILTER_PARAMTYPE_INT)
+	    || !filter_add_param(f, "pos", "position of the output stream",
+				 FILTER_PARAMTYPE_FLOAT))
+		return NULL;
+	f->connect_out = waveform_connect_out;
+	f->fixup_param = waveform_fixup_param;
+
+	return f;
+}
+
+/* Helpers. */
+static int waveform_get_rate(filter_node_t *n)
+{
+	filter_param_t *param;
+
+	if ((param = filternode_get_param(n, "rate")))
+		return filterparam_val_int(param);
+	else
+		return GLAME_DEFAULT_SAMPLERATE;
+}
+
+
 /* This filter generates a sinus test signal
- * defaults to 400z signal of 10000ms duration
+ * defaults to 441 Hz and 0.5 max amplitude. 
  */
 static int sinus_f(filter_node_t *n)
 {
 	filter_pipe_t *out;
 	filter_buffer_t *buf;
 	filter_param_t *param;
-	SAMPLE 	ampl;
-	float	freq;
-	int duration,i,size,cnt;
+	SAMPLE ampl;
+	float freq;
+	int rate, i, size;
 	
-	out = filternode_get_output(n, PORTNAME_OUT);
-	if (!out) 
-		return -1;
+	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no output");
+
+	/* globals */
+	rate = waveform_get_rate(n);
 
 	/* sane defaults */
 	ampl = 0.5;
 	freq = 441.0;
-	duration = 10000;
 
 	/* user overrides with parameters */
 	if ((param = filternode_get_param(n, "amplitude")))
 		ampl = filterparam_val_sample(param);
 	if ((param = filternode_get_param(n, "frequency")))
 		freq = filterparam_val_float(param);
-	if ((param = filternode_get_param(n, "duration")))
-		duration = filterparam_val_int(param);
-	
 
-	size = (int)(44100.0/freq);
-	cnt = (int)(freq*duration/1000.0);
-	if (!(buf = sbuf_alloc(size, n)))
-		return -1;
+	/* FIXME: we should try to eliminate sampling frequency errors
+	 * by finding optimal size. And we should at least fill a minimum
+	 * sized buffer, too. */
+	size = (int)(rate/freq);
 
-	DPRINTF("cnt=%d\n",cnt);
-	DPRINTF("Allocated Buffer with size %d(%i)! Generating Sinus!\n",
-		size, sbuf_size(buf));
+	FILTER_AFTER_INIT;
+
+	buf = sbuf_alloc(size, n);
 	buf = sbuf_make_private(buf);
 	/* FIXME: on linux (glibc) we want this to be sinf() - i.e.
 	 * operate on floats w/o casting to double. On non glibc
@@ -77,26 +145,54 @@ static int sinus_f(filter_node_t *n)
         for (i=0; i<size; i++)
 		sbuf_buf(buf)[i] = ampl*sin(i*2*M_PI/size);
 
-	FILTER_AFTER_INIT;
-
-	while(pthread_testcancel(), cnt--){
-		sbuf_ref(buf);
-		sbuf_queue(out, buf);
-	}
+	sbuf_queue(out, buf);
 	sbuf_queue(out, NULL);
-	DPRINTF("All buffers sent!\n");
 
 	FILTER_BEFORE_CLEANUP;
-	sbuf_unref(buf);
 
-	return 0;
+	FILTER_RETURN;
 }
 
-static int sinus_connect_out(filter_node_t *n, const char *port,
-			     filter_pipe_t *p)
+/* This filter generates a constant signal,
+ * signal value defaults to 0.0.
+ */
+static int const_f(filter_node_t *n)
 {
-	filterpipe_settype_sample(p, 44100, FILTER_PIPEPOS_DEFAULT);
-	return 0;
+	filter_pipe_t *out;
+	filter_buffer_t *buf;
+	filter_param_t *param;
+	SAMPLE val;
+	int rate, i, size;
+	
+	if (!(out = filternode_get_output(n, PORTNAME_OUT)))
+		FILTER_ERROR_RETURN("no output");
+
+	/* globals */
+	rate = waveform_get_rate(n);
+
+	/* sane defaults */
+	val = 0.0;
+
+	/* user overrides with parameters */
+	if ((param = filternode_get_param(n, "value")))
+		val = filterparam_val_sample(param);
+
+	/* we will generate one buffer with 0.1 sec samples. */
+	size = rate/10;
+
+	FILTER_AFTER_INIT;
+
+	buf = sbuf_alloc(size, n);
+	buf = sbuf_make_private(buf);
+        for (i=0; i<size; i++)
+		sbuf_buf(buf)[i] = val;
+
+	sbuf_queue(out, buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
 }
 
 
@@ -106,26 +202,21 @@ int waveform_register()
 {
 	filter_t *f;
 
-	if (!(f = filter_alloc("sinus", "generate sinus test signal", sinus_f))
-	    || !filter_add_output(f, PORTNAME_OUT, "sinus output stream",
-				  FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f,"amplitude","sinus peak amplitude(0.0-1.0)",
+	if (!(f = waveform_filter_alloc("sinus", "generate sinus test signal", sinus_f))
+	    || !filter_add_param(f, "amplitude", "sinus peak amplitude(0.0-1.0)",
 				 FILTER_PARAMTYPE_SAMPLE)
-	    || !filter_add_param(f,"frequency","sinus frequency in Hz",
-				 FILTER_PARAMTYPE_FLOAT)
-	    || !filter_add_param(f,"duration","length of signal in ms",
-				 FILTER_PARAMTYPE_INT))
+	    || !filter_add_param(f, "frequency", "sinus frequency in Hz",
+				 FILTER_PARAMTYPE_FLOAT))
 		return -1;
-	f->connect_out = sinus_connect_out;
+	if (filter_add(f) == -1)
+		return -1;
+
+	if (!(f = waveform_filter_alloc("const", "generate constant signal", const_f))
+	    || !filter_add_param(f, "value", "signal value",
+				 FILTER_PARAMTYPE_SAMPLE))
+		return -1;
 	if (filter_add(f) == -1)
 		return -1;
 
 	return 0;
 }
-
-
-
-
-
-
-

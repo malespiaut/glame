@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.8 2000/02/19 05:23:17 garrison Exp $
+ * $Id: debug.c,v 1.9 2000/02/28 09:34:34 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -54,11 +54,12 @@ static int ping(filter_node_t *n)
 	i = filternode_get_input(n, PORTNAME_IN);
 	o = filternode_get_output(n, PORTNAME_OUT);
 	if (!i || !o)
-		return -1;
+		FILTER_ERROR_RETURN("no input or no output");
 
 	FILTER_AFTER_INIT;
 
-	while (pthread_testcancel(), cnt>0) {
+	while (cnt>0) {
+		FILTER_CHECK_STOP;
 		usleep(dt);
 
 		/* create new buffer */
@@ -90,6 +91,7 @@ static int ping(filter_node_t *n)
 	/* wait for EOF passed through */
 	in = fbuf_get(i);
 
+	FILTER_BEFORE_STOPCLEANUP;
 	FILTER_BEFORE_CLEANUP;
 
 	return 0;

@@ -1,4 +1,4 @@
-INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -I@srcdir@/../channel $(GLAME_CFLAGS) -D_REENTRANT
+INCLUDES = -I@srcdir@/../include -I@srcdir@/../swapfile -I@srcdir@/../hash -I@srcdir@/../channel $(GLAME_DCFLAGS) $(GLAME_AUDIO_CFLAGS) -D_REENTRANT
 
 noinst_PROGRAMS = test_latency test_network
 noinst_LTLIBRARIES = libfilter.la
@@ -18,7 +18,7 @@ libfilter_la_SOURCES = filter.h filterI.h filter_methods.h \
 
 
 test_latency_SOURCES = test_latency.c
-test_latency_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(GLAME_LIBS)
+test_latency_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(GLAME_DLIBS) $(GLAME_AUDIO_LIBS)
 
 test_network_SOURCES = test_network.c
-test_network_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(GLAME_LIBS)
+test_network_LDADD = libfilter.la ../swapfile/libswapfile.la ../hash/libhash.la ../channel/libchannel.la -lm -lpthread $(GLAME_DLIBS) $(GLAME_AUDIO_LIBS)
