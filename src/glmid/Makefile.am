@@ -8,6 +8,8 @@ pkgdata_DATA = glame.scm
 libglame_la_SOURCES = glmid.c glmid.h glscript.c gltrack.c gltrack.h \
 	glplugin.c glplugin.h
 libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
-	../glmath/libglmath.la ../hash/libhash.la
+	../hash/libhash.la
+#libglame_la_LIBADD = ../swapfile/libswapfile.la ../filter/libfilter.la \
+#	../glmath/libglmath.la ../hash/libhash.la
 libglame_la_LDFLAGS = -module $(GUILE_LIBS) $(PTHREAD_LIB) -lm
 
