@@ -690,9 +690,8 @@ static SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 				  filterport_type(destp),
 				  FILTER_PORTFLAG_INPUT,
 				  FILTERPORT_DESCRIPTION, desc,
-				  FILTERPORT_MAP_NODE, filter_name(n),
-				  FILTERPORT_MAP_LABEL, port,
 				  FILTERPORT_END);
+	filterport_redirect(d, filterportdb_get_port(filter_portdb(n), port));
 	free(port);
 	free(label);
 	free(desc);
@@ -728,9 +727,8 @@ static SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
 				  filterport_type(destp),
 				  FILTER_PORTFLAG_OUTPUT,
 				  FILTERPORT_DESCRIPTION, desc,
-				  FILTERPORT_MAP_NODE, filter_name(n),
-				  FILTERPORT_MAP_LABEL, port,
 				  FILTERPORT_END);
+	filterport_redirect(d, filterportdb_get_port(filter_portdb(n), port));
 	free(port);
 	free(label);
 	free(desc);
@@ -766,9 +764,8 @@ static SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 				    label, filterparam_type(destp),
 				    filterparam_val(destp),
 				    FILTERPARAM_DESCRIPTION, desc,
-				    FILTERPARAM_MAP_NODE, n->name,
-				    FILTERPARAM_MAP_LABEL, param,
 				    FILTERPARAM_END);
+	filterparam_redirect(p, filterparamdb_get_param(filter_paramdb(n), param));
 	free(param);
 	free(label);
 	free(desc);
