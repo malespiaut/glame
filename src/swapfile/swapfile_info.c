@@ -1,6 +1,6 @@
 /*
  * swapfile_info.c
- * $Id: swapfile_info.c,v 1.3 2000/01/26 10:07:40 richi Exp $
+ * $Id: swapfile_info.c,v 1.4 2000/03/25 15:04:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -46,10 +46,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	fprintf(stderr, "Swapfile %s:\n", argv[1]);
+
 	/* find all files */
 	fid = -1;
 	while ((fid = file_next(fid)) != -1)
 		process_file(fid);
+
+	fprintf(stderr, "done.\n");
 
 	swap_close();
 

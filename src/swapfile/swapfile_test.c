@@ -1,6 +1,6 @@
 /*
  * swapfile_test.c
- * $Id: swapfile_test.c,v 1.7 2000/02/24 14:27:36 nold Exp $
+ * $Id: swapfile_test.c,v 1.8 2000/03/25 15:04:46 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -28,6 +28,10 @@
  * - think about the numbers - do we test all common cases?
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -42,13 +46,13 @@
 /* define SLOW to sleep(1) if you want to be able to follow all msgs */
 #define SLOW
 /* define NICE for nice output :) */
-#undef NICE
+#define NICE
 
 /* generate nice progress output with the following functions */
 static char prefix[80];
 static int sequence;
 
-#ifndef __PRETTY_FUNCTION__
+#ifndef HAVE_GCC
 #define __PRETTY_FUNCTION__	__FILE__
 #endif
 
@@ -64,7 +68,7 @@ inline void print_state(const char *templ, ...)
 {
 	va_list args;
 	sequence++;
-	printf("\r                                                                        ");
+	printf("\r                                                                            ");
 	printf("\r%s: %3i. ", prefix, sequence);
 	va_start(args, templ);
 	printf(templ, args);
@@ -87,7 +91,7 @@ inline void print_state(const char *templ, ...)
 #endif	
 #define state_end() \
 do { \
-	printf("\r%s done.                                      \n", prefix); \
+	printf("\r%s done.                                                       \n", prefix); \
 } while (0)
 
 
