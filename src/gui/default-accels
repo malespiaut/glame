@@ -47,6 +47,9 @@
   <accel state="0" spec="bracketleft">
 (editfilter-zoom-out 4.0)
   </accel>
+  <accel state="0" spec="Delete">
+(editfilter-delete-selection)
+  </accel>
   <accel state="0" spec="d">
 (editfilter-delete-selection)
   </accel>
