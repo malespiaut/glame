@@ -91,10 +91,10 @@ extern "C" {
 
 /* initialize global hashtable.
  * returns -1 on error */
-int hash_alloc();
+int hash_alloc(void);
 
 /* dump hashtable statistics. */
-void hash_dump();
+void hash_dump(void);
 
 
 /* With the following primitives you can lock the hash against
@@ -104,10 +104,10 @@ void hash_dump();
  */
 
 /* lock the hash against modification */
-void hash_lock();
+void hash_lock(void);
 
 /* unlock the hash */
-void hash_unlock();
+void hash_unlock(void);
 
 
 
@@ -120,8 +120,8 @@ extern struct hash_head **hash_table;
 int _hashfn(const char *name, const void *nmspace);
 #define _hash(name, nmspace) (hash_table + _hashfn(name, nmspace))
 
-#define __hash_pos(type, head, name, nmspace) (unsigned long)(&((type *)0)->head), (unsigned long)(&((type *)0)->name), (unsigned long)(&((type *)0)->nmspace)
-#define __hash_entry(ptr, type, head) ((ptr) ? (type *)((char *)(ptr)-(unsigned long)(&((type *)0)->head)) : NULL)
+#define __hash_pos(type, head, name, nmspace) offsetof(type, head), offsetof(type, name), offsetof(type, nmspace)
+#define __hash_entry(ptr, type, head) ((ptr) ? (type *)((char *)(ptr)-offsetof(type, head)) : NULL)
 
 struct hash_head *__hash_find(const char *name, const void *nmspace,
 			      struct hash_head **entry,

@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.25 2004/10/23 13:09:27 richi Exp $
+ * $Id: list.h,v 1.26 2004/12/25 19:17:50 richi Exp $
  * 
  * Copyright (C) 1999, 2000, 2001, 2004 Richard Guenther
  *
@@ -31,6 +31,7 @@
 #include <config.h>
 #endif
 
+#include <stddef.h>
 #include "util.h"
 
 /*
@@ -203,7 +204,7 @@ static inline void glame_list_unsplice(struct glame_list_head *list,
 /* Get a pointer to the specified type out of a ptr which points to the
  * struct glame_list_head inside type at struct member member. */
 #define glame_list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+	((type *)((char *)(ptr)-offsetof(type, member)))
 
 /* Get head/tail entry of list like glame_list_entry(), but NULL if list is empty. */
 #define glame_list_gethead(listptr, type, member) ((glame_list_empty(listptr)) ? ((type *)NULL) : \

@@ -3,7 +3,7 @@
 
 /*
  * gldb_worm.h
- * $Id: gldb_worm.h,v 1.5 2004/10/23 13:09:27 richi Exp $
+ * $Id: gldb_worm.h,v 1.6 2004/12/25 19:17:50 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2004 Richard Guenther
  *
@@ -50,7 +50,7 @@ extern "C" {
 
 void glwdb_init(gldb_t *db);
 
-glworm_t *glworm_alloc();
+glworm_t *glworm_alloc(void);
 
 int glwdb_add_item(gldb_t *db, glworm_t *item, const char *label);
 const glworm_t *glwdb_query_item(gldb_t *db, const char *label);
