@@ -286,23 +286,6 @@ if test x$strokes = xyes; then
 	AC_DEFINE(HAVE_LIBSTROKE)
 fi
 fi
-dnl
-dnl check for lame - doesnt work with static only libmp3lame,
-dnl so disable is possible
-dnl
-AC_ARG_ENABLE(mp3lame, [  --disable-mp3lame        disable mp3lame support], wlame=$enableval, wlame=yes)
-if test x$wlame = xyes; then
-	AC_CHECK_HEADERS([lame.h lame/lame.h], lame=yes, lame=no)
-	if test x$lame = xyes; then
-		LDFLAGS="$LDFLAGS -lm"
-		AC_CHECK_LIB(mp3lame, lame_decode, lame=yes, lame=no)
-	fi
-fi
-if test x$lame = xyes; then
-	GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS -lmp3lame"
-	AC_DEFINE(HAVE_LAME)
-fi
-
 
 dnl check for OSS
 dnl BSD keeps the header file
