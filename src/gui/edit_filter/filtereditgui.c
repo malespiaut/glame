@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.56 2002/07/29 18:35:41 richi Exp $
+ * $Id: filtereditgui.c,v 1.57 2002/07/31 19:58:25 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -56,13 +56,13 @@ static GlameCanvas *glcanvas;
 
 
 static void glame_canvas_execute_cb(GtkObject*foo, FiltereditGui *gui);
-static void glame_canvas_register_cb(GtkWidget* ignore, GlameCanvas* canv);
-static void glame_canvas_save_as_cb(GtkWidget* ignore, GlameCanvas* canv);
-static void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv);
-static void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv);
-static void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv);
-static void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv);
-static void glame_canvas_add_last_cb(GtkObject* foo, GlameCanvas* canv);
+static void glame_canvas_register_cb(GtkWidget* ignore, FiltereditGui *gui);
+static void glame_canvas_save_as_cb(GtkWidget* ignore, FiltereditGui *gui);
+static void glame_canvas_property_dialog_cb(GtkObject*foo, FiltereditGui *gui);
+static void glame_canvas_zoom_in_cb(GtkObject*foo, FiltereditGui *gui);
+static void glame_canvas_zoom_out_cb(GtkObject*foo, FiltereditGui *gui);
+static void glame_canvas_view_all_cb(GtkObject*foo, FiltereditGui *gui);
+static void glame_canvas_add_last_cb(GtkObject* foo,  FiltereditGui *gui);
 static void window_close(GtkWidget *dummy, GtkWidget* window);
 
 
@@ -326,8 +326,9 @@ static void redirection_list_param_cb(GtkCList *list, gint row, gint column,
 
 }
 
-void glame_canvas_property_dialog_cb(GtkObject* foo, GlameCanvas *canvas)
+void glame_canvas_property_dialog_cb(GtkObject* foo, FiltereditGui *window)
 {
+	GlameCanvas *canvas = window->canvas;
 	GtkWidget * dialog;
 	GtkWidget * vbox;
 	GtkWidget * notebook;
@@ -644,6 +645,79 @@ GtkType filteredit_gui_get_type(void)
 	return filteredit_gui_type;
 }	
 
+
+static void glame_canvas_copy_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
+{
+	/* FIXME */
+}
+static void glame_canvas_paste_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
+{
+	/* FIXME */
+}
+static void glame_canvas_delete_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
+{
+	/* FIXME */
+}
+static void glame_canvas_group_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
+{
+	/* FIXME */
+}
+static void glame_canvas_collapse_selected_w_cb(GtkWidget *w, FiltereditGui *gui)
+{
+	/* FIXME */
+}
+
+static GnomeUIInfo window_file_menu[] = {
+        GNOMEUIINFO_ITEM(N_("Save as..."), NULL, glame_canvas_save_as_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Register..."), NULL, glame_canvas_register_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Properties..."), NULL, glame_canvas_property_dialog_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM(N_("Execute"), NULL, glame_canvas_execute_cb, NULL),
+        GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_MENU_CLOSE_ITEM(window_close, NULL),
+        GNOMEUIINFO_END
+};
+static GnomeUIInfo window_edit_menu[] = {
+        GNOMEUIINFO_ITEM(N_("Copy"), NULL, glame_canvas_copy_selected_w_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Paste"), NULL, glame_canvas_paste_selected_w_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Delete"), NULL, glame_canvas_delete_selected_w_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+        GNOMEUIINFO_ITEM(N_("Group"), NULL, glame_canvas_group_selected_w_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Collapse"), NULL, glame_canvas_collapse_selected_w_cb, NULL),
+        GNOMEUIINFO_END
+};
+static GnomeUIInfo window_view_menu[] = {
+        GNOMEUIINFO_ITEM(N_("Zoom in"), NULL, glame_canvas_zoom_in_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("Zoom out"), NULL, glame_canvas_zoom_out_cb, NULL),
+        GNOMEUIINFO_ITEM(N_("View all"), NULL, glame_canvas_view_all_cb, NULL),
+        GNOMEUIINFO_END
+};
+static GnomeUIInfo window_menu[] = {
+	{
+            GNOME_APP_UI_SUBTREE, N_("_Network"),
+            NULL,
+            window_file_menu, NULL, NULL,
+            GNOME_APP_PIXMAP_NONE, NULL,
+            0, 0, NULL
+        },
+	{
+            GNOME_APP_UI_SUBTREE, N_("_Edit"),
+            NULL,
+            window_edit_menu, NULL, NULL,
+            GNOME_APP_PIXMAP_NONE, NULL,
+            0, 0, NULL
+        },
+	{
+            GNOME_APP_UI_SUBTREE, N_("_View"),
+            NULL,
+            window_view_menu, NULL, NULL,
+            GNOME_APP_PIXMAP_NONE, NULL,
+            0, 0, NULL
+        },
+	GNOMEUIINFO_END
+};
+	
+
 GtkWidget * 
 glame_filtereditgui_new(filter_t *net, gboolean protected)
 {
@@ -686,36 +760,49 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 
 	gtk_container_add(GTK_CONTAINER(sw),canvas);
 	
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Execute"),_("Executes Filternetwork"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),glame_canvas_execute_cb,window);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Execute"),_("Executes Filternetwork"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_EXEC),
+		glame_canvas_execute_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Register"),_("Registers actual filternetwork"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),glame_canvas_register_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Register"),_("Registers actual filternetwork"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CONVERT),
+		glame_canvas_register_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Save"),_("Saves Filternetwork"),"foo",
 				glame_load_icon_widget("save.png",24,24),
-				glame_canvas_save_as_cb,canvas);
+				glame_canvas_save_as_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Properties"),_("Edit Filternetwork Properties"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_PROPERTIES),glame_canvas_property_dialog_cb,canvas);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Properties"),_("Edit Filternetwork Properties"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_PROPERTIES),
+		glame_canvas_property_dialog_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Zoom in"),_("Zooms in"),"foo",
 				glame_load_icon_widget("zoom_in.png",24,24),
-				glame_canvas_zoom_in_cb,canvas);
+				glame_canvas_zoom_in_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Zoom out"),_("Zooms out"),"foo",
 				glame_load_icon_widget("zoom_out.png",24,24),
-				glame_canvas_zoom_out_cb,canvas);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("View all"),_("Adjusts scroll region"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),glame_canvas_view_all_cb,canvas);
+				glame_canvas_zoom_out_cb, window);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("View all"),_("Adjusts scroll region"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),glame_canvas_view_all_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Add last"),_("Adds last filter"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_MULTIPLE),
-				glame_canvas_add_last_cb, canvas);
+				glame_canvas_add_last_cb, window);
 
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Close"),_("Close"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),window_close,window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),_("Help"),_("Help"),"foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),gnome_help_goto,"info:glame#The_Filternetwork_Editor");
+
+        /* Create menubar - FIXME copy all uiinfos, restructure to
+	 * match nice menu layout, etc.
+	 * menu hints not w/o status bar */
+        gnome_app_create_menus_with_data(GNOME_APP(window), window_menu, window);
+        //gnome_app_install_menu_hints(GNOME_APP(window), window_menu);
+
+	gnome_app_set_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar));
+#if 0
 	gnome_app_add_toolbar(GNOME_APP(window), GTK_TOOLBAR(toolbar),
 			      "canvas::toolbar",
 			      GNOME_DOCK_ITEM_BEH_EXCLUSIVE|GNOME_DOCK_ITEM_BEH_NEVER_FLOATING,
 			      GNOME_DOCK_TOP, 0, 0, 0);
+#endif
 
 	gnome_app_set_contents(GNOME_APP(window),sw);	
 	gtk_widget_show(GTK_WIDGET(dock));
@@ -833,8 +920,9 @@ static void glame_canvas_execute_cb(GtkObject* foo, FiltereditGui *gui)
 				glame_canvas_execute_cb, gui, 0);
 }
 
-static void glame_canvas_save_as_cb(GtkWidget*ignore,GlameCanvas *canvas)
+static void glame_canvas_save_as_cb(GtkWidget*ignore, FiltereditGui *window)
 {
+	GlameCanvas *canvas = window->canvas;
 	GtkWidget *dialog;
 	GtkWidget *dialogVbox;
 	char filenamebuffer[256] = "";
@@ -873,7 +961,7 @@ static void glame_canvas_save_as_cb(GtkWidget*ignore,GlameCanvas *canvas)
 	fclose(outf);
 }
 
-static void glame_canvas_register_as_cb(gchar* name, GlameCanvas* glCanv)
+static void glame_canvas_register_as_cb(gchar* name, GlameCanvas *glCanv)
 {
 	plugin_t *newplug;
 	filter_t *copy;
@@ -884,30 +972,35 @@ static void glame_canvas_register_as_cb(gchar* name, GlameCanvas* glCanv)
 	filter_register(copy,newplug);
 }
 
-static void glame_canvas_register_cb(GtkWidget*ignore, GlameCanvas* canvas)
+static void glame_canvas_register_cb(GtkWidget*ignore, FiltereditGui *window)
 {	
+	GlameCanvas *canvas = window->canvas;
 	gnome_request_dialog(0, _("Filtername"), "filter", 16,
 			     (GnomeStringCallback)glame_canvas_register_as_cb,
 			     canvas, NULL);
 }
 
-static void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv)
+static void glame_canvas_zoom_in_cb(GtkObject*foo, FiltereditGui *window)
 {
+	GlameCanvas *canv = window->canvas;
 	glame_canvas_set_zoom(canv,GNOME_CANVAS(canv)->pixels_per_unit*1.5);
 }
 
-static void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv)
+static void glame_canvas_zoom_out_cb(GtkObject*foo, FiltereditGui *window)
 {
+	GlameCanvas *canv = window->canvas;
 	glame_canvas_set_zoom(canv,GNOME_CANVAS(canv)->pixels_per_unit/1.5);
 }
 
-static void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv)
+static void glame_canvas_view_all_cb(GtkObject*foo, FiltereditGui *window)
 {
+	GlameCanvas *canv = window->canvas;
 	glame_canvas_view_all(canv);
 }
 
-static void glame_canvas_add_last_cb(GtkObject* foo, GlameCanvas* canv)
+static void glame_canvas_add_last_cb(GtkObject* foo, FiltereditGui *window)
 {
+	GlameCanvas *canv = window->canvas;
 	glame_canvas_add_last(canv);
 }
 
