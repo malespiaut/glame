@@ -1,11 +1,70 @@
-@comment $Id: plugin.texi,v 1.1 2000/02/08 15:00:10 nold Exp $
+@comment $Id: plugin.texi,v 1.2 2000/02/20 15:23:42 richi Exp $
 
 @node Plugin Interface, Function and Type Index, Swapfile API, Top
 @chapter Plugin Interface 
-The plugin interface is not yet designed. This will probably the next task
-I will start when the filter and swapfile stuff has settled.
 
-Please contact me first at @email{glame-devel@@lists.sourceforge.net}
-c/o richi
-for basic design ideas I have before you start
-working on this or dependent tasks!
+The plugin interface is very simple. There are actually two functions,
+one to add paths to the existing plugin path list and one to query the
+handle of a plugin.
+
+@deftypefun int plugin_add_path (const char *@var{path})
+This function will add @var{path} to the list of paths used to search
+plugins.
+@end deftypefun
+
+@tindex plugin_t
+@deftypefun {plugin_t *} plugin_get (const char *@var{name})
+This function will return a handle to the plugin with the name @var{name}.
+If the plugin is not already loaded it will be loaded from one of the
+paths in the path list. @code{plugin_get()} returns @code{NULL} if the plugin
+cannot be found.
+@end deftypefun
+
+To access parts of the plugin the following wrapper macros should be used
+on the @code{plugin_t} handle.
+
+@tindex plugin_t
+@deftypefun {const char *} plugin_name (plugin_t *@var{p})
+@tindex plugin_t
+@deftypefunx {const char *} plugin_description (plugin_t *@var{p})
+These functions return the plugins name and its short description.
+@code{plugin_description()} can return @code{NULL}, if the plugin does not
+have a @code{description} symbol defined.
+@end deftypefun
+
+@tindex plugin_t
+@deftypefun {void *} plugin_pixmap (plugin_t *@var{p})
+@code{plugin_pixmap()} returns a pointer to the @code{pixmap} symbol
+of the plugin.
+@end deftypefun
+
+
+You can get access to other (non standard) symbols of the plugins
+shared object by using the following function.
+
+@tindex plugin_t
+@deftypefun {void *} plugin_get_symbol (plugin_t *@var{p}, const char *@var{symbol})
+Using @code{plugin_get_symbol()} you can get access to the symbol with the
+name @var{symbol} of the plugin shared object. This can return @code{NULL} if
+either no such symbol was found or the symbols value is @code{NULL}.
+@end deftypefun
+
+If you want to create a plugin, your dynamic object should contain the
+following standard symbols with the described information attached. The
+targeted subsystem may require additional defined symbols. Please refer
+to the subsystems documentation to find information about those symbol
+names and required contents.
+
+@table @code
+@item plugin_register
+A function of the type @code{(int (*)(void))} which does everything
+necessary to register anything in the plugin to any subsystem.
+
+@item description
+A description string which should contain a short description of the
+function of the plugin, its creator and a copyright notice.
+
+@item pixmap
+A optional provided pixmap of a by the specific subsystem handable
+format.
+@end table

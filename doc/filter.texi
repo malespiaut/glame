@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.10 2000/02/18 16:37:02 richi Exp $
+@comment $Id: filter.texi,v 1.11 2000/02/20 15:23:42 richi Exp $
 
 @node Filter API, Filter Tutorial, Copying, Top
 @chapter Filter API
@@ -379,13 +379,15 @@ same conditions as in @code{connect_out()}.
 @end deftypefn
 
 @tindex filter_node_t
-@deftypefn Method int fixup_param (filter_node_t *@var{n}, const char *@var{name})
-@code{fixup_param()} gets called by @code{filternode_set_param()}. I.e. 
+@deftypefn Method int fixup_param (filter_node_t *@var{n}, filter_pipe_t *@var{p}, const char *@var{name}, filter_param_t *@var{param})
+@code{fixup_param()} gets called by @code{filternode_set_param()} or
+@code{filterpipe_set_*param()} if the @var{p} parameter is not @code{NULL}. I.e.
 you may accept or
 reject a parameter change for the filter. Return -1 if you do not like
 anything about the setup. You have to fix the pipe parameters of
 affected output ports. Returning -1 does not revert a parameter change. Use
 @code{filternode_set_param()} and friends to correct wrong parameter values.
+In this method you may break an existing connection by using @code{filternetwork_break_connection()}.
 @end deftypefn
 
 @tindex filter_node_t
