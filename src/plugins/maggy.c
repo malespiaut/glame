@@ -1,6 +1,6 @@
 /*
  * maggy.c
- * $Id: maggy.c,v 1.5 2000/03/20 12:42:39 mag Exp $
+ * $Id: maggy.c,v 1.6 2000/03/21 05:56:44 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -133,7 +133,12 @@ static int noisegate_f(filter_node_t *n)
  *   values, we should probably write the rms buffer into a swapfile meta data file
  *   FIXME any speed optimizations welcome :)
  */
-
+ 
+static int statistic_connect_out(filter_node_t *n, const char *port, filter_pipe_t *p){
+	filterpipe_type(p)=FILTER_PIPETYPE_RMS;
+	return 0;
+}
+	
 static int statistic_f(filter_node_t *n){
 	filter_pipe_t *in,*out;
 	filter_buffer_t *sbuf,*rbuf;
@@ -429,8 +434,12 @@ int maggy_register()
 		    		 FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
 		    		 FILTER_PORTTYPE_RMS)
-	    || !(p=filter_add_param(f,"windowsize","timeslice in ms for which peak rms is calculated",FILTER_PARAMTYPE_FLOAT))
-	    || filter_add(f,"statistic","Calculates RMS, RMS in window & DC-Offset")==-1)
+	    || !(p=filter_add_param(f,"windowsize","timeslice in ms for which peak rms is calculated",
+			            FILTER_PARAMTYPE_FLOAT)))
+		return -1;
+	f->connect_out = statistic_connect_out;
+	
+	if (filter_add(f,"statistic","Calculates RMS, RMS in window & DC-Offset")==-1)
 		return -1;
 	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
 

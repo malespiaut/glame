@@ -1,6 +1,6 @@
 /*
  * audio_io.c
- * $Id: audio_io.c,v 1.3 2000/03/20 23:49:44 nold Exp $
+ * $Id: audio_io.c,v 1.4 2000/03/21 05:56:44 mag Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -980,7 +980,7 @@ static int esd_out_f(filter_node_t *n)
 	if (!wbuf)
 		FILTER_ERROR_RETURN("couldn't alloc wbuf!");
 
-	rate = filterpipe_sample_rate(inputs[0].in);
+	rate = filterpipe_sample_rate(filternode_get_input(n,PORTNAME_IN));
 	DPRINTF("Rate is %i\n", rate);
 	esound_socket = esd_play_stream_fallback(format, rate, host, name);
 	if (esound_socket <= 0)

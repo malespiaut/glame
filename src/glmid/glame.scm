@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.7 2000/03/20 09:47:13 richi Exp $
+; $Id: glame.scm,v 1.8 2000/03/21 05:56:44 mag Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -128,19 +128,16 @@
 
 (define testrms
   (lambda (fname)
-    (let* ((net (filternetwork_new "testrms" "obtain&debug rms stats"))
-           (rf (filternetwork_add_node net "read_file" "readfile"))
-	   (mix (filternetwork_add_node net "mix" "mixer"))
-	   (stat (filternetwork_add_node net "statistic" "stats"))
-	   (drms (filternetwork_add_node net "debugrms" "dbgrms")))
+    (let* ((net (filternetwork_new))
+           (rf (net-add-node net "read_file"))
+	   (mix (net-add-node net "mix"))
+	   (stat (net-add-node net "statistic"))
+	   (drms (net-add-node net "debugrms")))
     (filternode_set_param rf "filename" fname)
-    (while1 (lambda () (filternetwork_add_connection rf "out" mix "in")))
-    (filternetwork_add_connection mix "out" stat "in")
-    (filternetwork_add_connection stat "out" drms "in")
-    (filternetwork_launch net)
-    (filternetwork_start net)
-    (filternetwork_wait net)
-    (filternetwork_delete net))))
+    (while-not-false 
+      (lambda () (filternetwork_add_connection rf "out" mix "in")))
+    (nodes-connect  `(,mix ,stat ,drms))
+    (net-run net))))
 
 ;
 ; play a soundfile - automagically finds the number of channels
