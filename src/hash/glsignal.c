@@ -1,6 +1,6 @@
 /*
  * glsignal.c
- * $Id: glsignal.c,v 1.11 2001/04/09 13:34:55 richi Exp $
+ * $Id: glsignal.c,v 1.12 2001/04/11 18:11:50 nold Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -31,6 +31,12 @@ static inline void _glsig_handler_exec(glsig_handler_t *h,
 				       long sig, va_list va)
 {
 	int was_running = 0;
+	va_list vax;
+#if defined HAVE_GCC && defined __va_copy
+	__va_copy(vax, va);
+#else
+	memcpy(vax, va, sizeof(va_list));
+#endif
 
 	/* !h->handler means this handler is really deleted. */
 	if (!h->handler || !(h->sigmask & sig))
@@ -38,7 +44,7 @@ static inline void _glsig_handler_exec(glsig_handler_t *h,
 	if (h->sigmask & GLSIG_HANDLER_RUNNING)
 		was_running = 1;
 	h->sigmask |= GLSIG_HANDLER_RUNNING;
-	h->handler(h, sig, va);
+	h->handler(h, sig, vax);
 	if (!was_running)
 		h->sigmask &= ~GLSIG_HANDLER_RUNNING;
 }
