@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.23 2001/04/29 11:46:41 richi Exp $
+ * $Id: filter_ops.c,v 1.24 2001/07/10 13:42:05 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -274,9 +274,9 @@ filter_launchcontext_t *_launchcontext_alloc()
 		return NULL;
 	}
 	{
-		union semun sun;
-		sun.val = 0;
-		glame_semctl(c->semid, 0, SETVAL, sun);
+		union semun ssun;
+		ssun.val = 0;
+		glame_semctl(c->semid, 0, SETVAL, ssun);
 	}
 	ATOMIC_INIT(c->result, 0);
 	c->nr_threads = 0;
@@ -293,8 +293,8 @@ void _launchcontext_free(filter_launchcontext_t *c)
 		return;
 	ATOMIC_RELEASE(c->result);
 	{
-		union semun sun;
-		glame_semctl(c->semid, 0, IPC_RMID, sun);
+		union semun ssun;
+		glame_semctl(c->semid, 0, IPC_RMID, ssun);
 	}
 	free(c);
 }
@@ -432,9 +432,9 @@ void filter_terminate(filter_t *net)
 
 	atomic_set(&net->launch_context->result, 1);
 	{
-		union semun sun;
-		sun.val = 0;
-		glame_semctl(net->launch_context->semid, 0, SETVAL, sun);
+		union semun ssun;
+		ssun.val = 0;
+		glame_semctl(net->launch_context->semid, 0, SETVAL, ssun);
 	}
 	net->launch_context->state = STATE_RUNNING;
 

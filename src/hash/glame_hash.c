@@ -90,8 +90,8 @@ static inline void _unlock_w()
 
 static void cleanup()
 {
-	union semun sun;
-	glame_semctl(semid, 0, IPC_RMID, sun);
+	union semun ssun;
+	glame_semctl(semid, 0, IPC_RMID, ssun);
 }
 
 int hash_alloc()
@@ -105,9 +105,9 @@ int hash_alloc()
 		return -1;
 	semnum = 0;
 	{
-		union semun sun;
-		sun.val = 10000;
-		if (glame_semctl(semid, semnum, SETVAL, sun) == -1)
+		union semun ssun;
+		ssun.val = 10000;
+		if (glame_semctl(semid, semnum, SETVAL, ssun) == -1)
 			return -1;
 	}
 
