@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.53 2001/08/08 09:15:30 richi Exp $
+ * $Id: basic_sample.c,v 1.54 2001/11/28 22:20:52 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -46,6 +46,8 @@
 PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat")
 
 
+
+#define FIFO_AUTOADJUST
 
 /* The mix filter mixes any number of input channels with an optional
  * gain parameter per input into one output channel which position
@@ -222,6 +224,7 @@ static int mix_f(filter_t *n)
 			if (out->source_fd > maxfd)
 				maxfd = out->source_fd;
 		}
+#ifdef FIFO_AUTOADJUST
 		/* Do the actual select - the timeout is to detect
 		 * deadlocks in the network or a huge amount of
 		 * feedback for which we should adjust our maximum
@@ -235,6 +238,10 @@ static int mix_f(filter_t *n)
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
 		}
+#else
+		timeout.tv_sec = 5;
+		timeout.tv_usec = 0;
+#endif
 		res = select(maxfd+1,
 			     fifo_full ? NULL : &rset,
 			     (!out || !output_ready) && !fifo_full ? NULL : &wset,
@@ -244,6 +251,7 @@ static int mix_f(filter_t *n)
 				perror("select");
 			continue;
 		}
+#ifdef FIFO_AUTOADJUST
 		if (res == 0) {
 			/* Network paused? */
 			if (filter_is_ready(n))
@@ -262,6 +270,14 @@ static int mix_f(filter_t *n)
 			/* Uh, deadlock... */
 			FILTER_ERROR_STOP("Deadlock");
 		}
+#else
+		if (res == 0) {
+			/* Network paused? */
+			if (filter_is_ready(n))
+				continue;
+			FILTER_ERROR_STOP("Deadlock");
+		}
+#endif
 
 		/* Check the inputs for buffers. */
 		for (i=0; i<nr; i++) {
@@ -441,6 +457,13 @@ static int mix_f(filter_t *n)
 	};
 
 	FILTER_BEFORE_STOPCLEANUP;
+
+	/* empty fifos. */
+	for (i=0; i<nr; i++) {
+		while (has_feedback(&p[i].fifo))
+			sbuf_unref(get_feedback(&p[i].fifo));
+	}
+
 	FILTER_BEFORE_CLEANUP;
 
 	free(p);

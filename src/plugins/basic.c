@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.29 2001/11/05 10:18:18 richi Exp $
+ * $Id: basic.c,v 1.30 2001/11/28 22:20:52 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -136,6 +136,8 @@ int drop_register(plugin_t *p)
 
 
 
+#define FIFO_AUTOADJUST
+
 /* one2n is another channel routing filter, it does n - times duplication
  * of one input channel. To avoid deadlocks, this has again be done totally
  * asynchron, both from the input and the output ends. So inbetween buffering
@@ -214,6 +216,7 @@ static int one2n_f(filter_t *n)
 		}
 		if (eof && empty)
 			break;
+#ifdef FIFO_AUTOADJUST
 		do_timeout = (have_feedback && !eof
 			      && maxfifosize >= maxallowedfifo
 			      && maxallowedfifo < 1024*1024 /* hard limit */
@@ -222,6 +225,11 @@ static int one2n_f(filter_t *n)
 			timeout.tv_sec = GLAME_WBUFSIZE/44100;
 			timeout.tv_usec = (long)((1000000.0*(float)(GLAME_WBUFSIZE%44100))/44100);
 		}
+#else
+		do_timeout = 1;
+		timeout.tv_sec = 5;
+		timeout.tv_usec = 0;
+#endif
 		nrsel++;
 		res = select(maxfd+1,
 			     eof || /*!oneempty ||*/ (maxfifosize >= maxallowedfifo) ? NULL : &rset,
@@ -231,6 +239,7 @@ static int one2n_f(filter_t *n)
 			perror("select");
 		if (res < 0)
 			continue;
+#ifdef FIFO_AUTOADJUST
 		if (res == 0) {
 			/* Can only happen after timeout -> adjust fifo size,
 			 * but only if we can read from the input and write
@@ -270,6 +279,14 @@ static int one2n_f(filter_t *n)
 			}
 			continue;
 		}
+#else
+		if (res == 0) {
+			/* Network paused? */
+			if (filter_is_ready(n))
+				continue;
+			FILTER_ERROR_STOP("Deadlock");
+		}
+#endif
 
 		/* do we have input? - queue in each feedback buffer,
 		 * be clever with the references, too. */
@@ -306,7 +323,16 @@ static int one2n_f(filter_t *n)
 	DPRINTF("%i input buffers, %i times select()\n", nrin, nrsel);
 
 	FILTER_BEFORE_STOPCLEANUP;
+
+	/* empty fifos. */
+	for (i=0; i<nr; i++) {
+		while (has_feedback(&p[i].fifo))
+			fbuf_unref(get_feedback(&p[i].fifo));
+	}
+
 	FILTER_BEFORE_CLEANUP;
+
+	free(p);
 
 	FILTER_RETURN;
 }
@@ -368,7 +394,6 @@ static int buffer_f(filter_t *n)
 	filter_pipe_t *in, *out;
 	fd_set infd, outfd;
 	int maxfd, size, fifo_size, res;
-	float time;
 
 	in = filterport_get_pipe(filterportdb_get_port(
 		filter_portdb(n), PORTNAME_IN));
@@ -379,12 +404,8 @@ static int buffer_f(filter_t *n)
 
 	size = filterparam_val_int(
 		filterparamdb_get_param(filter_paramdb(n), "size"));
-	time = filterparam_val_float(
-		filterparamdb_get_param(filter_paramdb(n), "time"));
-	if (filterpipe_type(in) == FILTER_PIPETYPE_SAMPLE && time > 0.0)
-		size = filterpipe_sample_rate(in)*time*SAMPLE_SIZE;
-	if (size <= 0)
-		FILTER_ERROR_RETURN("Invalid size/time specification");
+	size &= ~(SAMPLE_SIZE-1);
+	size = MAX(size, GLAME_WBUFSIZE);
 
 	INIT_FEEDBACK_FIFO(fifo);
 
@@ -440,14 +461,70 @@ static int buffer_f(filter_t *n)
 	fbuf_queue(out, NULL);
 
 	FILTER_BEFORE_STOPCLEANUP;
+
+	/* empty fifo. */
+	while (has_feedback(&fifo))
+		fbuf_unref(get_feedback(&fifo));
+
 	FILTER_BEFORE_CLEANUP;
 
 	FILTER_RETURN;
 }
 
+static int buffer_set_size(filter_param_t *param, const void *val)
+{
+	filter_t *f;
+	filter_pipe_t *pipe;
+	filter_param_t *time;
+	float t;
+
+	/* check if we have a SAMPLE pipe as input. */
+	f = filterparam_filter(param);
+	pipe = filterport_get_pipe(
+		filterportdb_get_port(filter_portdb(f), PORTNAME_IN));
+	if (!pipe || filterpipe_type(pipe) != FILTER_PIPETYPE_SAMPLE)
+		return 0;
+
+	t = (float)filterparam_val_int(param)/SAMPLE_SIZE/filterpipe_sample_rate(pipe);
+	time = filterparamdb_get_param(filter_paramdb(f), "time");
+	if (!f->priv) {
+		f->priv = (void *)1;
+		filterparam_set(time, &t);
+		f->priv = NULL;
+	}
+
+	return 0;
+}
+
+static int buffer_set_time(filter_param_t *param, const void *val)
+{
+	filter_t *f;
+	filter_pipe_t *pipe;
+	filter_param_t *size;
+	int s;
+
+	/* check if we have a SAMPLE pipe as input. */
+	f = filterparam_filter(param);
+	pipe = filterport_get_pipe(
+		filterportdb_get_port(filter_portdb(f), PORTNAME_IN));
+	if (!pipe || filterpipe_type(pipe) != FILTER_PIPETYPE_SAMPLE)
+		return -1;
+
+	s = filterparam_val_float(param)*filterpipe_sample_rate(pipe)*SAMPLE_SIZE;
+	size = filterparamdb_get_param(filter_paramdb(f), "size");
+	if (!f->priv) {
+		f->priv = (void *)1;
+		filterparam_set(size, &s);
+		f->priv = NULL;
+	}
+
+	return 0;
+}
+
 int buffer_register(plugin_t *p)
 {
 	filter_t *f;
+	filter_param_t *param;
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
@@ -463,14 +540,16 @@ int buffer_register(plugin_t *p)
 			      FILTER_PORTFLAG_OUTPUT,
 			      FILTERPORT_DESCRIPTION, "output",
 			      FILTERPORT_END);
-	filterparamdb_add_param_int(filter_paramdb(f), "size",
+	param = filterparamdb_add_param_int(filter_paramdb(f), "size",
 				    FILTER_PARAMTYPE_INT, 0,
 				    FILTERPARAM_DESCRIPTION, "fifo size [bytes]",
 				    FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "time",
+	param->set = buffer_set_size;
+	param = filterparamdb_add_param_float(filter_paramdb(f), "time",
 				      FILTER_PARAMTYPE_TIME_S, 0.0,
 				      FILTERPARAM_DESCRIPTION, "fifo time",
 				      FILTERPARAM_END);
+	param->set = buffer_set_time;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "buffers a stream");
 	plugin_set(p, PLUGIN_PIXMAP, "buffer.png");
