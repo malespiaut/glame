@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.22 2001/05/10 09:15:33 nold Exp $
+ * $Id: waveform.c,v 1.23 2001/05/22 12:02:47 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -29,6 +29,7 @@
  * - saw
  * - noise
  * - pulse
+ * - wave
  *
  * The waveform filters should only generate "one" buffer which can then
  * be repeated using the repeat filter. [richi]
@@ -45,7 +46,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(waveform, "sine const rect pulse ramp saw noise")
+PLUGIN_SET(waveform, "sine const rect pulse ramp saw noise wave")
 
 
 /* Standard waveform connect_out and fixup_param methods. These honour
@@ -743,5 +744,51 @@ int pulse_register(plugin_t *p)
 	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
 
+	return filter_register(f, p);
+}
+
+
+
+
+
+static int wave_f(filter_t *n)
+{
+	filter_pipe_t *out;
+	filter_buffer_t *buf;
+	
+	if (!(out = filterport_get_pipe(filterportdb_get_port(
+					filter_portdb(n), PORTNAME_OUT))))
+		FILTER_ERROR_RETURN("no output");
+
+	/* parameters for wave */
+	buf = filterparam_val_get_buf(filterparamdb_get_param(
+				filter_paramdb(n), "wave"));
+
+	FILTER_AFTER_INIT;
+
+	sbuf_queue(out, buf);
+	sbuf_queue(out, NULL);
+
+	FILTER_BEFORE_CLEANUP;
+
+	FILTER_RETURN;
+}
+
+int wave_register(plugin_t *p)
+{
+	filter_t *f;
+	void *null = NULL;
+
+	if (!(f = waveform_filter_alloc(wave_f)))
+		return -1;
+
+	filterparamdb_add_param(filter_paramdb(f), "wave",
+				FILTER_PARAMTYPE_SBUF, &null,
+				FILTERPARAM_END);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "generate wave signal");
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
+	plugin_set(p, PLUGIN_PIXMAP, "wave.png");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Generating_Waves");
 	return filter_register(f, p);
 }
