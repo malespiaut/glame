@@ -423,8 +423,8 @@ static void play_cleanup(glsig_handler_t *handler,
 			 long sig, va_list va)
 {
 	WaveeditGui *waveedit;
+	filter_t *n;
 	waveedit = (WaveeditGui *)glsig_handler_private(handler);
-	waveedit->pm_net = NULL;
 	waveedit->locked = 0;
 
 	/* restore marker position, if "valid". */
@@ -439,6 +439,27 @@ static void play_cleanup(glsig_handler_t *handler,
 				_("Play"), _("Play"), _("Play"),
 				glame_load_icon_widget("play.png",24,24),
 				playtoolbar_cb, waveedit->waveview, 7);
+
+        /* Scan network for swapfile_out nodes and issue gpsm invalidate
+         * signals. */
+        filter_foreach_node(waveedit->pm_net, n) {
+                filter_param_t *changed_start, *changed_end, *filename;
+                if (!(filename = filterparamdb_get_param(
+                        filter_paramdb(n), "filename"))
+                    || !(changed_start = filterparamdb_get_param(
+                            filter_paramdb(n), "changed_start"))
+                    || !(changed_end = filterparamdb_get_param(
+                            filter_paramdb(n), "changed_end")))
+                        continue;
+                DPRINTF("Found swapfile_out node, issuing invalidate\n");
+                gpsm_notify_swapfile_change(
+                        filterparam_val_int(filename),
+                        filterparam_val_int(changed_start),
+                        filterparam_val_int(changed_end)
+                        - filterparam_val_int(changed_start) + 1);
+        }
+	filter_delete(waveedit->pm_net);
+	waveedit->pm_net = NULL;
 }
 static void play_update_marker(glsig_handler_t *handler,
 			       long sig, va_list va)
@@ -459,9 +480,11 @@ static void play(GtkWaveView *waveview,
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
 	gpsm_item_t *item;
 	gpsm_grp_t *grp;
-	filter_t *net, *aout, *swin;
-	int rate;
+	filter_t *net, *aout = NULL, *swin, *render, *ain, *swout = NULL;
+	filter_port_t *render_in, *ain_out;
+	int rate, i, play_cnt, rec_cnt;
 	glsig_emitter_t *emitter;
+	gboolean *flg_rec, *flg_mute;
 
 	DPRINTF("%p - %i, %i, %i, %i\n", waveview, start, end,
 		(int)restore_marker, (int)loop);
@@ -482,9 +505,30 @@ static void play(GtkWaveView *waveview,
 	/* Not playing state - create the network.
 	 */
 
-	if (!plugin_get("audio_out")) {
+	/* Read flags from waveview. */
+	play_cnt = 0;
+	rec_cnt = 0;
+	flg_rec = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
+	flg_mute = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
+	for (i=gtk_wave_buffer_get_num_channels(wavebuffer); i>0; i--) {
+		flg_rec[i-1] = gtk_wave_view_get_flag(waveview, i-1, 0);
+		flg_mute[i-1] = gtk_wave_view_get_flag(waveview, i-1, 1);
+		if (!flg_mute[i-1])
+			play_cnt++;
+		if (flg_rec[i-1])
+			rec_cnt++;
+	}
+	if (play_cnt == 0 && rec_cnt == 0)
+		return ;
+
+	if (play_cnt != 0 && !plugin_get("audio_out")) {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
 			gnome_error_dialog(_("No audio output support"))));
+		return;
+	}
+	if (rec_cnt != 0 && !plugin_get("audio_in")) {
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog(_("No audio input support"))));
 		return;
 	}
 
@@ -493,20 +537,63 @@ static void play(GtkWaveView *waveview,
 		active_waveedit->pm_marker = gtk_wave_view_get_marker(waveview);
 	rate = gtk_wave_buffer_get_rate(wavebuffer);
 
-	grp = gpsm_flatten((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
+	/* FIXME - does not work for horiz. sequenced. */
+	grp = gpsm_collect_swfiles((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
 	if (!grp)
 		return;
 
 	/* Create the network. */
 	net = filter_creat(NULL);
-	gpsm_grp_foreach_item(grp, item) {
-		swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
-					  start, end - start + 1, loop ? 1 : 0);
-		if (!swin)
-			goto fail;
+	if (play_cnt > 0) {
+		filter_pipe_t *pipe;
+		float pos;
+		aout = filter_instantiate(plugin_get("audio_out"));
+		render = filter_instantiate(plugin_get("render"));
+		filter_add_node(net, aout, "audio-out");
+		filter_add_node(net, render, "render");
+		render_in = filterportdb_get_port(filter_portdb(render), PORTNAME_IN);
+		pipe = filterport_connect(filterportdb_get_port(filter_portdb(render), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN));
+		pos = -M_PI/2;
+		filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(pipe), "position"), &pos);
+		pipe = filterport_connect(filterportdb_get_port(filter_portdb(render), PORTNAME_OUT), filterportdb_get_port(filter_portdb(aout), PORTNAME_IN));
+		pos = +M_PI/2;
+		filterparam_set(filterparamdb_get_param(filterpipe_destparamdb(pipe), "position"), &pos);
 	}
-	if (!(aout = net_apply_audio_out(net)))
-		goto fail;
+
+	if (rec_cnt > 0) {
+		float duration;
+		ain = filter_instantiate(plugin_get("audio_in"));
+		duration = (float)(end-start)/gpsm_swfile_samplerate(gpsm_grp_first(grp))+0.1;
+		filterparam_set(filterparamdb_get_param(filter_paramdb(ain), "duration"), &duration);
+		filter_add_node(net, ain, "audio-in");
+		ain_out = filterportdb_get_port(filter_portdb(ain), PORTNAME_OUT);
+		gpsm_op_prepare((gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile));
+	}
+
+	i = -1;
+	gpsm_grp_foreach_item(grp, item) {
+		i++;
+		if (flg_mute[i] && !flg_rec[i]) {
+			continue;
+		} else if (!flg_mute[i] && !flg_rec[i]) {
+			swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,
+						  start, end - start + 1, loop ? 1 : 0);
+			filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), render_in);
+		} else if (!flg_mute[i] && flg_rec[i]) {
+			filter_t *one2n;
+			one2n = filter_instantiate(plugin_get("one2n"));
+			filter_add_node(net, one2n, "one2n");
+			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
+						    start, end - start + 1, 0);
+			filterport_connect(ain_out, filterportdb_get_port(filter_portdb(one2n), PORTNAME_IN));
+			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), render_in);
+			filterport_connect(filterportdb_get_port(filter_portdb(one2n), PORTNAME_OUT), filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+		} else if (flg_mute[i] && flg_rec[i]) {
+			swout = net_add_gpsm_output(net, (gpsm_swfile_t *)item,
+						    start, end - start + 1, 0);
+			filterport_connect(ain_out, filterportdb_get_port(filter_portdb(swout), PORTNAME_IN));
+		}
+	}
 
 	emitter = glame_network_notificator_creat(net);
 	glsig_add_handler(emitter, GLSIG_NETWORK_TICK,
@@ -514,12 +601,10 @@ static void play(GtkWaveView *waveview,
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
 			  play_cleanup, active_waveedit);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
-			  glame_network_notificator_delete_network, NULL);
-	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
 			  glame_network_notificator_destroy_gpsm, grp);
 	active_waveedit->pm_net = net;
 	active_waveedit->pm_param = filterparamdb_get_param(
-		filter_paramdb(swin), FILTERPARAM_LABEL_POS);
+		filter_paramdb(aout ? aout : swout), FILTERPARAM_LABEL_POS);
 	active_waveedit->pm_start = start;
 	if (glame_network_notificator_run(emitter, 10) == -1) {
 		active_waveedit->pm_net = NULL;

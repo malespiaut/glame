@@ -119,6 +119,8 @@ struct _GtkWaveView
   GdkGC          *marker_gc;  /* the gc to draw the marker */
   gdouble         marker_scroll_stop;
   gdouble         marker_scroll_start;
+
+	GtkWidget *vbox1;
 };
 
 struct _GtkWaveViewClass
@@ -160,6 +162,9 @@ void       gtk_wave_view_set_marker_scrolling_boundaries
                                                  gdouble      start_offset);
 void       gtk_wave_view_set_marker_and_scroll  (GtkWaveView *waveview,
                                                  gint32       frame);
+gboolean   gtk_wave_view_get_flag(GtkWaveView *waveview, int track, int flag);
+void       gtk_wave_view_set_flag(GtkWaveView *waveview, int track, int flag,
+				  gboolean value);
 
 
 #ifdef __cplusplus

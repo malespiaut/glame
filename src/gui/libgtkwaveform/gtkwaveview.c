@@ -1316,21 +1316,30 @@ gtk_wave_view_motion_notify_event (GtkWidget *widget,
 static void
 gtk_wave_view_init (GtkWaveView *waveview)
 {
+	GtkWidget *hbox, *vbox1, *vbox2;
+
+	hbox = gtk_hbox_new(FALSE, 0);
+	waveview->vbox1 = vbox1 = gtk_vbox_new(FALSE, 0);
+	vbox2 = gtk_vbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(waveview), hbox, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox1, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE, TRUE, 0);
+
   waveview->hruler = glame_hruler_new();
   glame_ruler_set_metric(GLAME_RULER(waveview->hruler),
 			 &time_metric);
-  gtk_box_pack_start (GTK_BOX (waveview), waveview->hruler, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox2), waveview->hruler, FALSE, FALSE, 0);
   gtk_widget_show (waveview->hruler);
 
   waveview->area = gtk_drawing_area_new ();
   gtk_drawing_area_size (GTK_DRAWING_AREA (waveview->area), 150, 100);
   gtk_widget_show (waveview->area);
-  gtk_box_pack_start (GTK_BOX (waveview), waveview->area, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox2), waveview->area, TRUE, TRUE, 0);
   gtk_widget_show (waveview->area);
 
   waveview->adjust = gtk_adjustment_new (0.0, 0.0, 10.0, 1.0, 1.0, 5.0);
   waveview->hscroll = gtk_hscrollbar_new (GTK_ADJUSTMENT (waveview->adjust));
-  gtk_box_pack_start (GTK_BOX (waveview), waveview->hscroll, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox2), waveview->hscroll, FALSE, FALSE, 0);
   gtk_widget_show (waveview->hscroll);
 
   gtk_signal_connect (GTK_OBJECT (waveview->adjust),
@@ -1614,7 +1623,74 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
   gtk_widget_queue_draw (GTK_WAVE_VIEW (waveview)->area);
   gtk_wave_view_update_units (waveview);
   gtk_wave_view_calc_channel_locs (waveview);
+
+  if (wavebuffer) {
+	  GtkWidget *tb, *vbox;
+	  int cnt;
+#if 0
+	  GList *list;
+	  list = gtk_container_children(waveview->vbox1);
+	  while (list) {
+		  gtk_widget_destroy(list->data);
+		  list = g_list_next(list);
+	  }
+#endif
+	  cnt = gtk_wave_buffer_get_num_channels(wavebuffer);
+	  while (cnt--) {
+		  vbox = gtk_vbox_new(FALSE, 0);
+		  tb = gtk_toggle_button_new_with_label("rec");
+		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  tb = gtk_toggle_button_new_with_label("mute");
+		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
+		  gtk_widget_show_all(vbox);
+	  }
+  }
 }
+
+gboolean gtk_wave_view_get_flag(GtkWaveView *waveview, int track, int flag)
+{
+	GList *list;
+
+	/* track */
+	list = gtk_container_children(GTK_CONTAINER(waveview->vbox1));
+	while (list && track--)
+		list = g_list_next(list);
+	if (!list)
+		return FALSE;
+
+	/* flag */
+	list = gtk_container_children(GTK_CONTAINER(list->data));
+	while (list && flag--)
+		list = g_list_next(list);
+	if (!list)
+		return FALSE;
+
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(list->data));
+}
+
+void gtk_wave_view_set_flag(GtkWaveView *waveview, int track, int flag,
+			    gboolean value)
+{
+	GList *list;
+
+	/* track */
+	list = gtk_container_children(GTK_CONTAINER(waveview->vbox1));
+	while (list && track--)
+		list = g_list_next(list);
+	if (!list)
+		return;
+
+	/* flag */
+	list = gtk_container_children(GTK_CONTAINER(list->data));
+	while (list && flag--)
+		list = g_list_next(list);
+	if (!list)
+		return;
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(list->data), value);
+}
+
 
 
 /* return < 0 means no further action necessary
