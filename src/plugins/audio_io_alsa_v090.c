@@ -1,6 +1,6 @@
 /*
  * audio_io_alsa_v090.c
- * $Id: audio_io_alsa_v090.c,v 1.10 2001/07/31 06:51:07 mag Exp $
+ * $Id: audio_io_alsa_v090.c,v 1.11 2001/09/11 11:58:01 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include "audio_io.h"
+#include <endian.h>
 
 PLUGIN_SET(audio_io_alsa, "alsa_audio_in alsa_audio_out")
 
@@ -74,14 +75,12 @@ int configure_pcm(snd_pcm_t *handle,
 		return -1;
 	}
 
-#ifdef SND_LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 	format = SND_PCM_FORMAT_S16_LE;
-#else
-# ifdef SND_BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
 	format = SND_PCM_FORMAT_S16_BE;
-# else
+#else
 #error Unsupported endianness.
-# endif
 #endif
 
 	if ((err = snd_pcm_hw_params_set_format (handle, hw_params, format)) < 0) {
@@ -426,14 +425,12 @@ static int alsa_audio_out_f(filter_t *n)
 	ssize = 2;
 	neutral = SAMPLE2SHORT(0.0);
 
-#ifdef SND_LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 	format = SND_PCM_FORMAT_S16_LE;
-#else
-# ifdef SND_BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
 	format = SND_PCM_FORMAT_S16_BE;
-# else
+#else
 #error Unsupported endianness.
-# endif
 #endif
 
 	err = snd_output_stdio_attach(&log, stderr, 0);
