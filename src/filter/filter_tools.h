@@ -118,6 +118,23 @@ do { \
 	destsource1p++; source2p++; \
 } while (0)
 
+#define SCALARPROD1_1_d(destp, source1p, fact1) \
+do { \
+	*destp = (*source1p)*fact1; \
+	destp++; source1p++; \
+} while (0)
+#define SCALARPROD4_1_d(destp, source1p, fact1) \
+do { \
+	*destp = (*source1p)*fact1; \
+	destp++; source1p++; \
+	*destp = (*source1p)*fact1; \
+	destp++; source1p++; \
+	*destp = (*source1p)*fact1; \
+	destp++; source1p++; \
+	*destp = (*source1p)*fact1; \
+	destp++; source1p++; \
+} while (0)
+
 #define SCALARPROD1_2_d(destp, source1p, source2p, fact1, fact2) \
 do { \
 	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
