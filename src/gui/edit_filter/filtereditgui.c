@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.53 2002/04/24 09:41:07 richi Exp $
+ * $Id: filtereditgui.c,v 1.54 2002/06/09 08:26:15 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -88,9 +88,9 @@ button_down_cb(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 	switch(event->type){
 	case GDK_BUTTON_RELEASE:
 		if(stroke_trans(translation)){
-			fprintf(stderr,"translation: %s\n",translation);
+			DPRINTF("translation: %s\n",translation);
 		}else{
-			fprintf(stderr,"failed translation: %s\n",translation);
+			DPRINTF("failed translation: %s\n",translation);
 		}
 		gtk_signal_disconnect(canvas,button_down_sighandlerid);
 		break;

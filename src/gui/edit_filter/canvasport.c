@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.29 2002/01/11 23:21:30 richi Exp $
+ * $Id: canvasport.c,v 1.30 2002/06/09 08:26:14 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -620,7 +620,7 @@ glame_canvas_port_show_properties(GlameCanvasPort* port)
 							 NULL));
 	
 	sprintf(buffer,"Label: %s",filterport_label(port->port));
-	fprintf(stderr,"%f %f %f %f\n",xs,ys,xe,ye);
+	DPRINTF("%f %f %f %f\n",xs,ys,xe,ye);
 	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
 							     gnome_canvas_text_get_type(),
 							     "x",0.0, //xs + filterport_is_input(port->port)?-4.0:20.0,
