@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.65 2001/08/03 11:24:32 richi Exp $
+; $Id: glame.scm,v 1.66 2001/08/05 12:29:16 richi Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -31,29 +31,83 @@
 (define get_property get-property)
 (define filter_p filter?)
 
-(define (filternode_set_param node label value)
+
+; Parameter setting
+
+(define (filter-set-param node label value)
   (let lp ((params (filter-params node)))
     (if (null? params)
-	#f
+	(throw 'glame-error)
 	(if (string=? (param-label (car params)) label)
 	    (param-set! (car params) value)
 	    (lp (cdr params))))))
 
-(define (filterpipe_set_sourceparam pipe label value)
+(define (filter-set-params node . specs)
+  (let* ((params (map (lambda (param)
+			(cons (param-label param) param))
+		      (filter-params node)))
+	 (pairs (map (lambda (spec)
+		       (let ((p (assoc (car spec) params)))
+			 (if (eq? p #f)
+			     (throw 'glame-error)
+			     (cons (cdr p)
+				   (if (list? spec) (cadr spec) (cdr spec))))))
+		     specs)))
+    (for-each (lambda (p)
+		(param-set! (car p) (cdr p)))
+	      pairs)))
+
+(define (pipe-set-sourceparam pipe label value)
   (let lp ((params (pipe-source-params pipe)))
     (if (null? params)
-	#f
+	(throw 'glame-error)
 	(if (string=? (param-label (car params)) label)
 	    (param-set! (car params) value)
 	    (lp (cdr params))))))
 
-(define (filterpipe_set_destparam pipe label value)
+(define (pipe-set-sourceparams pipe . specs)
+  (let* ((params (map (lambda (param)
+			(cons (param-label param) param))
+		      (pipe-source-params pipe)))
+	 (pairs (map (lambda (spec)
+		       (let ((p (assoc (car spec) params)))
+			 (if (eq? p #f)
+			     (throw 'glame-error)
+			     (cons (cdr p)
+				   (if (list? spec) (cadr spec) (cdr spec))))))
+		     specs)))
+    (for-each (lambda (p)
+		(param-set! (car p) (cdr p)))
+	      pairs)))
+
+(define (pipe-set-destparam pipe label value)
   (let lp ((params (pipe-dest-params pipe)))
     (if (null? params)
-	#f
+	(throw 'glame-error)
 	(if (string=? (param-label (car params)) label)
 	    (param-set! (car params) value)
 	    (lp (cdr params))))))
+
+(define (pipe-set-destparams pipe . specs)
+  (let* ((params (map (lambda (param)
+			(cons (param-label param) param))
+		      (pipe-dest-params pipe)))
+	 (pairs (map (lambda (spec)
+		       (let ((p (assoc (car spec) params)))
+			 (if (eq? p #f)
+			     (throw 'glame-error)
+			     (cons (cdr p)
+				   (if (list? spec) (cadr spec) (cdr spec))))))
+		     specs)))
+    (for-each (lambda (p)
+		(param-set! (car p) (cdr p)))
+	      pairs)))
+
+; Compatibility
+(define filternode_set_param filter-set-param)
+(define filterpipe_set_sourceparam pipe-set-sourceparam)
+(define filterpipe_set_destparam pipe-set-destparam)
+(define node-set-params filter-set-params)
 
 
 ;
@@ -149,7 +203,7 @@
   (lambda (net node . params)
     (let ((n (filter-new (plugin_get node))))
       (filter-add-node net n node)
-      (apply node-set-params n params)
+      (apply filter-set-params n params)
       n)))
 
 (add-help 'net-add-node '(net "node" '("param" val) ...) 
@@ -197,25 +251,24 @@
 (add-help 'nodes-connect '((node ...) ...)
 	  "linear connect the nodes of each list")
 
-; (node-set-params node (list "label" value) (list "label" ...) ...)
-(define node-set-params
-  (lambda (node . params)
-    (map (lambda (p)
-	   (if (not (null? p))
-	       (filternode_set_param node (car p) (cadr p))))
-	 params)))
+(define (node-connect-n source sport dest dport)
+  (let ((pipe (catch 'glame-error
+		     (lambda () (filter-connect source sport dest dport))
+	 	     (lambda args #f))))
+    (if (pipe? pipe)
+	(cons pipe (node-connect-n source sport dest dport))
+	'())))
 
+(add-help 'node-connect-n '(source port-name dest port-name)
+	  "connect both nodes as much times as possible")
 
-(add-help 'node-set-params '(("label" value) ...)
-	  "set the parameter with the specified label to value")
 
 ; run the net, wait for completion and delete it
 (define net-run
   (lambda (net)
-    (if (eq? #t (filter-launch net))
-	(begin
-	  (filter-start net)
-	  (filter-wait net)))))
+    (filter-launch net)
+    (filter-start net)
+    (filter-wait net)))
 
 (add-help 'net-run '(net)
 	  "run the net, wait for completion and delete it.")
@@ -224,9 +277,8 @@
 ; i.e. you can use filter-(pause|start|terminate) on it.
 (define net-run-bg
   (lambda (net)
-    (if (eq? #t (filter-launch net))
-	(filter-start net))
-    net))
+    (filter-launch net)
+    (filter-start net)))
 
 (add-help 'net-run-bg '(net)
 	  "run the net in the background")
@@ -630,11 +682,9 @@
 (define play
   (lambda (fname)
     (let* ((net (net-new))
-	   (rf (net-add-node net read-file))
+	   (rf (net-add-node net read-file (list "filename" fname)))
 	   (ao (net-add-node net audio-out)))
-      (node-set-params rf (list "filename" fname))
-      (while-not-false
-         (lambda () (filter-connect rf "out" ao "in")))
+      (node-connect-n rf "out" ao "in")
       (net-run net))))
 
 (add-help 'play '(filename) "play a soundfile")
@@ -653,11 +703,13 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
-      (node-set-params rf (list "filename" fname))
+      (filter-set-param rf "filename" fname)
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
-		(conn (filter-connect rf "out" (car eff) "in")))
+		(conn (catch 'glame-error
+			     (lambda () (filter-connect rf "out" (car eff) "in"))
+			     (lambda args #f))))
 	   (if (pipe? conn)
 	       (begin (nodes-connect (append eff (list ao))) #t)
 	       (begin (apply nodes-delete eff) #f)))))
@@ -675,10 +727,8 @@
 	   (right (filter-connect render "out" aout "in")))
       (for-each
         (lambda (fname)
-	  (let ((rf (net-add-node net read-file)))
-	    (while-not-false
-	      (lambda () (filter-connect rf "out" render "in")))
-	    (node-set-params rf (list "filename" fname))))
+	  (let ((rf (net-add-node net read-file (list "filename" fname))))
+	    (node-connect-n rf "out" render "in")))
 	(cons file files))
       (filterpipe_set_sourceparam left "position" -1.57)
       (filterpipe_set_sourceparam right "position" 1.57)
@@ -697,12 +747,14 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (wf (net-add-node net write-file)))
-      (node-set-params rf (list "filename" fname))
-      (node-set-params wf (list "filename" oname))
+      (filter-set-param rf "filename" fname)
+      (filter-set-param wf "filename" oname)
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
-		(conn (filter-connect rf "out" (car eff) "in")))
+		(conn (catch 'glame-error
+			     (lambda () (filter-connect rf "out" (car eff) "in"))
+			     (lambda args #f))))
 	   (if (eq? conn #f)
 	       (begin (apply nodes-delete eff) #f)
 	       (begin (nodes-connect (append eff (list wf))) #t)))))
@@ -795,6 +847,30 @@
 			     ,(lp (cdr input))))))
 	    `(let ((,(caar nodes) (net-add-node net ,(cadar nodes))))
 	       ,(lp (cdr nodes)))))))
+
+
+
+;------------------------------------------------------------
+;
+; Big section of GPSM stuff --- mainzelm's task
+;
+
+;(define (import (filename))
+;  (let* ((net (net-new))
+;	 (rf (net-add-node net "read-file" (list "filename" filename)))
+;	 (grp (gpsm-newgrp filename)))
+;    (let* ((si (net-add-node net "swapfile-in"))
+;	   (p (nodes-connect (list rf si))))
+;      (if (pipe? p)
+;	  (let ((swfile (gpsm-newswfile "blah")))
+;	    (gpsm-item-place grp swfile 0 (gpsm-item-vsize grp))
+;	    (filternode_set_param si "filename" (gpsm-swfile-filename swfile)))
+;	  (filter-delete si))
+;      
+;   ))
+
+
+
 
 
 ;------------------------------------------------------------

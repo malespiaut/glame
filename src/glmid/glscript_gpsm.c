@@ -226,9 +226,9 @@ static SCM gls_gpsm_init(SCM s_swapfile)
 		   SCM_ARG1, "gpsm-init");
 	swapfile = gh_scm2newstr(s_swapfile, &swapfile_len);
 	res = gpsm_init(swapfile);
-	if (res == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (res == -1)
+		GLAME_THROW_ERRNO();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_set_max_saved_ops(SCM s_nr)
@@ -366,9 +366,9 @@ static SCM gls_gpsm_item_place(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-item-place");
 	if (gpsm_item_place((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-			    gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+			    gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_hbox_can_insert(SCM s_grp, SCM s_item,
@@ -405,9 +405,9 @@ static SCM gls_gpsm_hbox_insert(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-hbox-insert");
 	if (gpsm_hbox_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_vbox_can_insert(SCM s_grp, SCM s_item,
@@ -444,9 +444,9 @@ static SCM gls_gpsm_vbox_insert(SCM s_grp, SCM s_item, SCM s_hpos, SCM s_vpos)
 	SCM_ASSERT(gh_exact_p(s_vpos), s_vpos,
 		   SCM_ARG4, "gpsm-vbox-insert");
 	if (gpsm_vbox_insert((gpsm_grp_t *)grp, scm2gpsmitem(s_item),
-			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+			     gh_scm2long(s_hpos), gh_scm2long(s_vpos)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_item_remove(SCM s_item)
@@ -461,18 +461,18 @@ static SCM gls_gpsm_hbox_cut(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-hbox-cut");
-	if (gpsm_hbox_cut(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_hbox_cut(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_vbox_cut(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-vbox-cut");
-	if (gpsm_vbox_cut(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_vbox_cut(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 
@@ -539,9 +539,9 @@ static SCM gls_gpsm_op_prepare(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-op-prepare");
-	if (gpsm_op_prepare(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_op_prepare(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_op_can_undo(SCM s_item)
@@ -557,18 +557,18 @@ static SCM gls_gpsm_op_undo(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-op-undo");
-	if (gpsm_op_undo(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_op_undo(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_op_undo_and_forget(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-op-undo-and-forget");
-	if (gpsm_op_undo_and_forget(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_op_undo_and_forget(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_op_can_redo(SCM s_item)
@@ -584,27 +584,27 @@ static SCM gls_gpsm_op_redo(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-op-redo");
-	if (gpsm_op_redo(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_op_redo(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_op_redo_and_forget(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-op-redo-and-forget");
-	if (gpsm_op_redo_and_forget(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_op_redo_and_forget(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_gpsm_op_forget(SCM s_item)
 {
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-op-forget");
-	if (gpsm_op_forget(scm2gpsmitem(s_item)) == 0)
-		return SCM_BOOL_T;
-	return SCM_BOOL_F;
+	if (gpsm_op_forget(scm2gpsmitem(s_item)) == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 

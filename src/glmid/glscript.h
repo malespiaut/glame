@@ -66,6 +66,18 @@ static inline SCM glame_gh_safe_eval_str(const char *str)
 }
 
 
+/* Throw a 'glame-error exception with no arguments. This is the
+ * generic method to signal errors from scm. */
+#define GLAME_THROW() scm_throw(gh_symbol2scm("glame-error"), SCM_LIST0)
+
+/* Throw a 'glame-error exception with an object. */
+#define GLAME_THROW_OBJ(obj) scm_throw(gh_symbol2scm("glame-error"), gh_cons(obj, SCM_LIST0))
+
+/* Throw a 'glame-error exception with strerror(errno). */
+#define GLAME_THROW_ERRNO() scm_throw(gh_symbol2scm("glame-error"), gh_cons(gh_str02scm(strerror(errno)), SCM_LIST0))
+
+
+
 /* SMOB for generic C pointer - for internal use only.
  */
 

@@ -153,7 +153,7 @@ SCM filter2scm(filter_t *filter)
 	SCM filter_smob;
 
 	if (!filter)
-		return SCM_BOOL_F;
+		GLAME_THROW();
 
 	smob = (struct filter_smob *)malloc(sizeof(struct filter_smob));
 	smob->filter = filter;
@@ -494,7 +494,9 @@ static SCM gls_param_set(SCM s_param, SCM s_val)
 		/* nothing to do. */
 	} else
 		scm_wrong_type_arg("param-set!", SCM_ARG2, s_val);
-	return res == 0 ? SCM_BOOL_T : SCM_BOOL_F;
+	if (res == -1)
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 
@@ -538,7 +540,7 @@ static SCM gls_get_property(SCM s_obj, SCM s_label)
 		value = filterport_get_property(port, label);
 	}
 	if (!value)
-		return SCM_BOOL_F;
+		GLAME_THROW();
 	return gh_str02scm(value);
 }
 
@@ -548,24 +550,24 @@ static SCM gls_filter_launch(SCM s_net)
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_launch");
 	if (filter_launch(scm2filter(s_net)) == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_filter_start(SCM s_net)
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_start");
 	if (filter_start(scm2filter(s_net)) == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_filter_pause(SCM s_net)
 {
 	SCM_ASSERT(filter_p(s_net), s_net, SCM_ARG1, "filter_pause");
 	if (filter_pause(scm2filter(s_net)) == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static filter_t *waitingnet = NULL;
@@ -598,8 +600,8 @@ static SCM gls_filter_wait(SCM s_net)
 	sigaction(SIGINT, &oldsa, NULL);
 
 	if (res == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_filter_terminate(SCM s_net)
@@ -628,7 +630,7 @@ static SCM gls_filter_add_node(SCM s_net, SCM s_filter, SCM s_name)
 	res = filter_add_node(net, filter, name);
 	free(name);
 	if (res == -1)
-		return SCM_BOOL_F;
+		GLAME_THROW();
 	return s_filter;
 }
 
@@ -657,7 +659,7 @@ static SCM gls_filter_connect(SCM s_source, SCM s_source_port,
 	free(source_port);
 	free(dest_port);
 	if (!p)
-		return SCM_BOOL_F;
+		GLAME_THROW();
 	return pipe2scm(p);
 }
 
@@ -695,8 +697,8 @@ static SCM gls_filternetwork_add_input(SCM s_net, SCM s_node, SCM s_port,
 	free(label);
 	free(desc);
 	if (!d)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return port2scm(d);
 }
 
 static SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
@@ -733,8 +735,8 @@ static SCM gls_filternetwork_add_output(SCM s_net, SCM s_node, SCM s_port,
 	free(label);
 	free(desc);
 	if (!d)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return port2scm(d);
 }
 
 static SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
@@ -771,8 +773,8 @@ static SCM gls_filternetwork_add_param(SCM s_net, SCM s_node, SCM s_param,
 	free(label);
 	free(desc);
 	if (!p)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return param2scm(p);
 }
 
 
@@ -790,7 +792,7 @@ static SCM gls_create_plugin(SCM s_filter, SCM s_name)
 	p = glame_create_plugin(filter, name);
 	free(name);
 	if (!p)
-		return SCM_BOOL_F;
+		GLAME_THROW();
 	return plugin2scm(p);
 }
 
@@ -818,8 +820,8 @@ static SCM gls_plugin_add_path(SCM s_path)
 	res = plugin_add_path(path);
 	free(path);
 	if (res == -1)
-		return SCM_BOOL_F;
-	return SCM_BOOL_T;
+		GLAME_THROW();
+	return SCM_UNSPECIFIED;
 }
 
 static SCM gls_plugin_get(SCM s_name)
@@ -858,7 +860,7 @@ static SCM gls_plugin_query_string(SCM s_p, SCM s_key)
 	val = plugin_query(p, key);
 	free(key);
 	if (!val)
-		return SCM_BOOL_F;
+		GLAME_THROW();
 	return gh_str02scm((const char *)val);
 }
 
@@ -898,7 +900,7 @@ static SCM gls_glame_plugin_define(SCM s_net, SCM s_name)
 		p = glame_create_plugin(f, name);
 		free(name);
 		if (!p)
-			return SCM_BOOL_F;
+			GLAME_THROW();
 		return plugin2scm(p);
 	}
 	DPRINTF("mode 1 - returning the instance\n");
