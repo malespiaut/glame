@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.5 2001/04/14 17:38:43 nold Exp $
+ * $Id: audio_io_oss.c,v 1.6 2001/04/16 16:16:33 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -319,13 +319,13 @@ static int oss_audio_in_f(filter_t *n)
 	filter_param_t	*dev_param, *duration, *rate_param;
 	char	*in;
 	gl_s16	*buf = NULL;
-	ssize_t	buf_size, fbuf_size;
+	ssize_t	buf_size, inbuf_spc;
 
 	char	*dev = "/dev/dsp";
 	int	dsp;
 	int	channels, ch, rate = GLAME_DEFAULT_SAMPLERATE;
-	int	tmp, length, endless = 0;
-	float	time = 0.0, maxtime = 0.0;
+	int	width, length, endless = 0;
+	float	nsamples = 0.0, maxsamples = 0.0;
 
 	if (!(channels = filternode_nroutputs(n)))
 		FILTER_ERROR_RETURN("No outputs.");
@@ -340,8 +340,8 @@ static int oss_audio_in_f(filter_t *n)
 
 	duration = filternode_get_param(n, "duration");
 	if (duration)
-		maxtime = filterparam_val_float(duration) * rate;
-	if (maxtime <= 0.0)
+		maxsamples = filterparam_val_float(duration) * rate;
+	if (maxsamples <= 0.0)
 		endless = 1;
 
 	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
@@ -354,16 +354,18 @@ static int oss_audio_in_f(filter_t *n)
 		pipe[1] = t;
 	}
 		
-	dsp = open(dev, O_RDONLY, 0);
+	dsp = open(dev, O_RDONLY);
 	if (dsp == -1)
 		FILTER_ERROR_RETURN("Couldn't open audio device!");
 	
-	tmp = 16;
-	if (ioctl(dsp, SNDCTL_DSP_SAMPLESIZE, &tmp) == -1 || tmp != 16)
+	if (ioctl(dsp, SNDCTL_DSP_RESET, 0) == -1)
+		FILTER_ERROR_CLEANUP("Couldn't reset audio device!");
+	
+	width = 16;	/* FIXME */
+	if (ioctl(dsp, SNDCTL_DSP_SAMPLESIZE, &width) == -1 || width != 16)
 		FILTER_ERROR_CLEANUP("Couldn't set sample size!");
 
-	tmp = (channels == 2) ? 1 : 0;
-	if (ioctl(dsp, SNDCTL_DSP_STEREO, &tmp) == -1)
+	if (ioctl(dsp, SNDCTL_DSP_CHANNELS, &channels) == -1)
 		FILTER_ERROR_CLEANUP("Couldn't set stereo!");
 
 	if (ioctl(dsp, SNDCTL_DSP_SPEED, &rate) == -1)
@@ -372,14 +374,23 @@ static int oss_audio_in_f(filter_t *n)
 	if (ioctl(dsp, SNDCTL_DSP_GETBLKSIZE, &buf_size)==-1 || buf_size==-1)
 		FILTER_ERROR_CLEANUP("Couldn't get bufsize!");
 
+	/* XXX: Killing real-time here. */
+	buf_size = (GLAME_WBUFSIZE*channels > buf_size) ? 
+	            GLAME_WBUFSIZE*channels : buf_size;
 	if ((buf = (gl_s16 *)malloc(buf_size)) == NULL)
 		FILTER_ERROR_CLEANUP("Couldn't alloc input buffer!");
 
-	fbuf_size = buf_size/channels;
+	/* Calculate number of samples per channel in input buffer. */
+	inbuf_spc = buf_size/channels/(width>>3);
 
+	DPRINTF("Recording %d channel%s at %d bits, %d sps. Buffer %d spc.\n",
+	        channels, (channels==1) ? "" : "s", width, rate, inbuf_spc);
+	if (endless)
+		DPRINTF("Recording until signalled to stop.\n");
+	
 	FILTER_AFTER_INIT;
 
-	while (endless || time < maxtime) {
+	while (endless || nsamples < maxsamples) {
 		int i, pos;
 
 		FILTER_CHECK_STOP;
@@ -396,21 +407,21 @@ static int oss_audio_in_f(filter_t *n)
 			in += ret;
 			length -= ret;
 		}
-		 for (ch = 0; ch < channels; ch++) {
-			 fbuf = sbuf_make_private(sbuf_alloc(fbuf_size, n));
-			 if (!fbuf) {
-				 DPRINTF("alloc error!\n");
-				 goto _out;
-			 }
-			 pos = 0;
-			 i = ch;
-			 while (pos < fbuf_size) {
-				 sbuf_buf(fbuf)[pos++] = SHORT2SAMPLE(buf[i]);
-				 i += channels;
-			 }
-			 sbuf_queue(pipe[ch], fbuf);
-		 }
-		 time += fbuf_size;
+		for (ch = 0; ch < channels; ch++) {
+			fbuf = sbuf_make_private(sbuf_alloc(inbuf_spc, n));
+			if (!fbuf) {
+				DPRINTF("alloc error!\n");
+				goto _out;
+			}
+			pos = 0;
+			i = ch;
+			while (pos < inbuf_spc) {
+				sbuf_buf(fbuf)[pos++] = SHORT2SAMPLE(buf[i]);
+				i += channels;
+			}
+			sbuf_queue(pipe[ch], fbuf);
+		}
+		nsamples += inbuf_spc;
 	}
 _out:
 	for (ch = 0; ch < channels; ch++)
