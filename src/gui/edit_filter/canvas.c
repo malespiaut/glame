@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.43 2001/03/27 21:04:20 xwolf Exp $
+ * $Id: canvas.c,v 1.44 2001/04/02 19:47:22 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -77,7 +77,8 @@ static void canvas_save_as(GtkWidget*w,GlameCanvas *data);
 static void canvas_load_scheme(GtkWidget*bla,void*blu);
 static void canvas_port_redirect(GtkWidget*bla,GlameCanvasPort *blu);
 
-
+guint nPopupTimeout = 200;
+static guint nPopupTimeoutId;
 int event_x,event_y;
 GtkWidget *win;
 
@@ -119,7 +120,7 @@ static GnomeUIInfo root_menu[]=
 {
 	GNOMEUIINFO_SUBTREE("_Add Node...",&node_select_menu),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Load scheme plugin...","Loads scm source file",canvas_load_scheme,NULL),
+	GNOMEUIINFO_ITEM("_Load plugin...","Loads scm source file",canvas_load_scheme,NULL),
 	GNOMEUIINFO_ITEM("_Register as plugin...","Tries to register current network as a plugin",register_filternetwork_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_FILE_TREE(file_menu),
@@ -170,8 +171,10 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 	GnomeCanvasItem * text;
 	filter_param_t * iter;
 	
-	float y_coord=88.0;
+	float y_coord=100.0;
 	char buffer[100];
+	
+	gtk_timeout_remove(nPopupTimeoutId);
 	if(GLAME_CANVAS_ITEM(item->parent)->property_texts){
 		DPRINTF("props != zero!\n");
 		return;
@@ -180,17 +183,16 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 
 	filterparamdb_foreach_param(filter_paramdb(GLAME_CANVAS_ITEM(item->parent)->filter),iter){
 		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
-		DPRINTF("%s\n",buffer);
 		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
 					     gnome_canvas_text_get_type(),
-					     "x",48.0,
+					     "x",0.0,
 					     "y",y_coord,
 					     "text",buffer,
 					     "clip_width",94.0,
 					     "clip_height",16.0,
 					     "fill_color","black",
-					     "anchor",GTK_ANCHOR_NORTH,
-					     "justification",GTK_JUSTIFY_CENTER, // GTK_JUSTIFY_LEFT doesn't work?? why??? wtf?? gnomeui broken?? Me stupid??
+					     "anchor",GTK_ANCHOR_WEST,
+					     "justification",GTK_JUSTIFY_LEFT, 
 					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
 					     "clip",0,
 					     NULL);
@@ -203,20 +205,91 @@ canvas_item_show_properties(GnomeCanvasItem * item)
 		sprintf(buffer,"ERROR: %s",filter_errstr(GLAME_CANVAS_ITEM(item->parent)->filter));
 		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(item->parent),
 					     gnome_canvas_text_get_type(),
-					     "x",48.0,
+					     "x",0.0,
 					     "y",y_coord,
 					     "text",buffer,
 					     "clip_width",94.0,
 					     "clip_height",16.0,
 					     "fill_color","red",
-					     "anchor",GTK_ANCHOR_NORTH,
-					     "justification",GTK_JUSTIFY_CENTER, // GTK_JUSTIFY_LEFT doesn't work?? why??? wtf?? gnomeui broken?? Me stupid??
+					     "anchor",GTK_ANCHOR_WEST,
+					     "justification",GTK_JUSTIFY_LEFT, 
 					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
 					     "clip",0,
 					     NULL);
 		GLAME_CANVAS_ITEM(item->parent)->property_texts = g_list_append(GLAME_CANVAS_ITEM(item->parent)->property_texts,text);
 			
 	}
+}
+
+static void 
+show_port_properties(GlameCanvasPort * item)
+{
+	GnomeCanvasItem * text;
+	filter_param_t * iter;
+	
+	float y_coord=100.0;
+	char buffer[100];
+	int inOut;
+
+	gtk_timeout_remove(nPopupTimeoutId);
+	
+	if(item->property_texts){
+		DPRINTF("props != zero!\n");
+		return;
+	}
+
+	inOut = (item->port_type&GUI_PORT_TYPE_IN)?1:0;
+	
+
+	sprintf(buffer,"Name: %s",filterport_label(item->port));
+	text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent),
+				     gnome_canvas_text_get_type(),
+				     "x",(inOut?0.0:100.0),
+				     "y",y_coord,
+				     "text",buffer,
+				     "clip_width",94.0,
+				     "clip_height",16.0,
+				     "fill_color","blue",
+				     "anchor",(inOut?GTK_ANCHOR_EAST:GTK_ANCHOR_WEST),
+				     "justification",(inOut?GTK_JUSTIFY_RIGHT:GTK_JUSTIFY_LEFT), 
+				     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+				     "clip",0,
+				     NULL);
+	y_coord+=16.0;
+	item->property_texts = g_list_append(item->property_texts,text);
+	
+	filterparamdb_foreach_param(filterport_paramdb(item->port),iter){
+		sprintf(buffer,"%s %s",filterparam_label(iter),filterparam_to_string(iter));
+		text = gnome_canvas_item_new(GNOME_CANVAS_GROUP(GNOME_CANVAS_ITEM(item)->parent),
+					     gnome_canvas_text_get_type(),
+					     "x",(inOut?0.0:100.0),
+					     "y",y_coord,
+					     "text",buffer,
+					     "clip_width",94.0,
+					     "clip_height",16.0,
+					     "fill_color","black",
+					     "anchor",(inOut?GTK_ANCHOR_EAST:GTK_ANCHOR_WEST),
+					     "justification",(inOut?GTK_JUSTIFY_RIGHT:GTK_JUSTIFY_LEFT), 
+					     "font", "-adobe-helvetica-medium-r-normal--12-*-72-72-p-*-iso8859-1",
+					     "clip",0,
+					     NULL);
+		y_coord+=16.0;
+		item->property_texts = g_list_append(item->property_texts,text);
+		
+	}
+	
+}
+
+
+static void 
+hide_port_properties(GlameCanvasPort * item)
+{
+        if(!item->property_texts){
+		return;
+	}
+	g_list_foreach(item->property_texts,canvas_item_delete_property_list,NULL);
+	g_list_free(item->property_texts);
+	item->property_texts=NULL;
 }
 
 static void
@@ -228,7 +301,6 @@ static void
 canvas_item_hide_properties(GnomeCanvasItem * item)
 {
         if(!GLAME_CANVAS_ITEM(item->parent)->property_texts){
-		DPRINTF("props == zero!\n");
 		return;
 	}
 	g_list_foreach(GLAME_CANVAS_ITEM(item->parent)->property_texts,canvas_item_delete_property_list,NULL);
@@ -252,10 +324,12 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 	      inItem=1;
-	      canvas_item_show_properties(item);
+	      nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,canvas_item_show_properties,item);
+	      //canvas_item_show_properties(item);
 	      break;
 	case GDK_LEAVE_NOTIFY:
 	      inItem=0;
+	      gtk_timeout_remove(nPopupTimeoutId);
 	      canvas_item_hide_properties(item);
 	      break;
 	case GDK_BUTTON_PRESS:
@@ -536,9 +610,12 @@ static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpo
 	switch(event->type){
 	case GDK_ENTER_NOTIFY:
 		inItem=1;
+		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,show_port_properties,GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_LEAVE_NOTIFY:
 		inItem=0;
+		gtk_timeout_remove(nPopupTimeoutId);
+		hide_port_properties(GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
@@ -558,6 +635,7 @@ static gint canvas_input_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gpo
 	
 	return TRUE;
 }
+
 
 static void
 canvas_port_calculate_docking_coords(GlameCanvasPort* port,double *x, double *y, int id)
@@ -887,13 +965,19 @@ static gint canvas_output_port_event_cb(GnomeCanvasItem*item,GdkEvent* event, gp
 	switch(event->type){
 	case GDK_LEAVE_NOTIFY:
 		inItem = 0;
+		gtk_timeout_remove(nPopupTimeoutId);
+		hide_port_properties(GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_ENTER_NOTIFY:
 		inItem = 1;
+		nPopupTimeoutId = gtk_timeout_add(nPopupTimeout,show_port_properties,GLAME_CANVAS_PORT(item));
 		break;
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
+			gtk_timeout_remove(nPopupTimeoutId);
+			hide_port_properties(GLAME_CANVAS_PORT(item));
+			inItem = 0;
 			newconn = malloc(sizeof(GlameConnection));
 			newconn->points=gnome_canvas_points_new(2);
 			newconn->points->coords[0]=(x1+x2)/2.0;

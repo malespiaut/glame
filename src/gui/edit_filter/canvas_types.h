@@ -1,7 +1,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.2 2001/03/27 21:04:20 xwolf Exp $
+ * $Id: canvas_types.h,v 1.3 2001/04/02 19:47:22 xwolf Exp $
  *
  * Copyright (C) 2000, 2001 Johannes Hirche
  *
@@ -74,7 +74,7 @@ GtkWidget* glame_canvas_new(gui_network *);
 typedef struct _GlameCanvasPort GlameCanvasPort;
 struct _GlameCanvasPort {
 	GnomeCanvasRect parent_object;
-	
+	GList *property_texts;
 	GList *connected_ports;
 	filter_port_t *port;
 	int port_type;

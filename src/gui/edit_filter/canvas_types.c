@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.10 2001/03/27 21:04:20 xwolf Exp $
+ * $Id: canvas_types.c,v 1.11 2001/04/02 19:47:22 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -187,6 +187,7 @@ glame_canvas_port_init (GlameCanvasPort *item)
 	item->port=NULL;
 	item->port_type=0;
 	item->connected_ports=NULL;
+	item->property_texts = NULL;
 }
 
 static void
