@@ -2,7 +2,7 @@
  * gui_main.c
  *
  * Copyright (C) 2001 Johannes Hirche
- * $Id: gui_main.c,v 1.3 2001/03/15 14:30:24 xwolf Exp $
+ * $Id: gui_main.c,v 1.4 2001/03/15 14:41:02 xwolf Exp $
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,17 +38,14 @@
 GtkWidget *app;
 
 /* Forward declarations. */
-static void create_new_swapfile_cb(GtkWidget *menu, void * blah);
-static void open_swapfile_cb(GtkWidget *menu, void *blah);
+static void create_new_project_cb(GtkWidget *menu, void * blah);
 extern void gui_quit(GtkWidget *widget, gpointer data);
 GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 				      const char *label,
 				      char ** returnbuffer);
 
 static GnomeUIInfo swapfile_menu_uiinfo[] = {
-	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Glamefile"), "Creates a new Glamefile", create_new_swapfile_cb, NULL),
-	GNOMEUIINFO_MENU_OPEN_ITEM (open_swapfile_cb, NULL),
-	GNOMEUIINFO_MENU_CLOSE_ITEM (NULL, NULL), /* FIXME */
+	GNOMEUIINFO_MENU_NEW_ITEM (N_("_New Project"), "Creates a new Project group", create_new_project_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_MENU_EXIT_ITEM (gui_quit, NULL),
 	GNOMEUIINFO_END
@@ -69,7 +66,7 @@ static GnomeUIInfo help_menu_uiinfo[] =
 static GnomeUIInfo menubar_uiinfo[] =
 {
   {
-    GNOME_APP_UI_SUBTREE, N_("Glamefile"),
+    GNOME_APP_UI_SUBTREE, N_("Project"),
     NULL,
     swapfile_menu_uiinfo, NULL, NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
@@ -112,38 +109,21 @@ GtkWidget * gnome_dialog_file_request(const char *windowtitle,
 
 
 void 
-create_new_swapfile_cb(GtkWidget *menu, void * blah)
+create_new_project_cb(GtkWidget *menu, void * blah)
 {
 	GtkWidget * dialog, *error;
 	char *bla;
-	
+	fprintf(stderr,"FIXME\n");
+	return;
 	bla=calloc(sizeof(char),255);
-	dialog = gnome_dialog_file_request("Create new Glamefile","Filename",&bla);
+	dialog = gnome_request_dialog(FALSE,"Enter Project Name",
+				      "Unnamed",
+				      255,
+				      NULL,
+				      &bla,
+				      app);
 	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		if(swapfile_creat(bla,-1)){
-			error = gnome_warning_dialog("Creation failed!");
-			gnome_dialog_run_and_close(error);
-		}else{
-			swapfile_close();
-			gnome_app_set_contents(GNOME_APP(app),glame_swapfile_gui_new(bla));
-		}
-		
-	}
-	free(bla);
-}
-
-void
-open_swapfile_cb(GtkWidget *menu, void * blah)
-{
-	GtkWidget * dialog, *error;
-	char *bla;
-
-	bla = calloc(sizeof(char),255);
-	
-	dialog = gnome_dialog_file_request("Open Glamefile","Filename", &bla);
-	if(gnome_dialog_run_and_close(GNOME_DIALOG(dialog))){
-		swapfile_close();
-		gnome_app_set_contents(GNOME_APP(app),glame_swapfile_gui_new(bla));
+		fprintf(stderr,"%s\n",bla);		
 	}
 	free(bla);
 }
