@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.35 2004/10/28 20:24:59 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.36 2004/11/16 20:10:16 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -85,9 +85,9 @@ void create_label_edit_pair(GtkWidget *vbox,
 	wlabel = gtk_label_new(label);
 	gtk_misc_set_alignment(GTK_MISC(wlabel), 1.0, 0.5);
 
-	wentry = gnome_entry_new(history);
-	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), result);
-	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), "changed",
+	wentry = gtk_entry_new();
+	gtk_entry_set_text(GTK_ENTRY(wentry), result);
+	gtk_signal_connect(GTK_OBJECT(wentry), "changed",
 			   GTK_SIGNAL_FUNC(update_string_from_editable_cb), result);
 
 	gtk_container_add(GTK_CONTAINER(whbox), wlabel);
