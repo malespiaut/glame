@@ -100,6 +100,20 @@
   <accel state="0" spec="u">
 (editfilter-ungroup-selection)
   </accel>
+  <accel state="0" spec="y">
+(let* ((selection (editfilter-get-selection))
+       (subnet (filter-collapse "Clipboard" selection)))
+  (editfilter-set-clipboard! (filter-new subnet))
+  (filter-expand subnet)
+  (filter-delete subnet))
+  </accel>
+  <accel state="0" spec="p">
+(let ((copy (filter-new (editfilter-clipboard))))
+  (filter-add-node (editfilter-network) copy "foo")
+  (filter-expand copy)
+  (filter-delete copy)
+  (editfilter-redraw))
+  </accel>
 </scope>
 
 <scope scope="timeline">
