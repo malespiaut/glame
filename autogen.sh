@@ -2,7 +2,7 @@
 
 rm -f config.cache libtool ltconfig ltmain.sh po/Makefile.in.in
 rm -rf intl/
-gettextize --copy >/dev/null
+gettextize --copy
 aclocal -I . -I macros
 libtoolize --copy --automake --ltdl
 autoheader
