@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.5 2001/08/07 10:02:36 mag Exp $
+ * $Id: importexport.c,v 1.6 2001/08/07 16:52:01 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -92,12 +92,13 @@ struct impexp_s {
 	gpsm_grp_t *grp;
 	GtkWidget *fi_plabel[MAX_PROPS];
 	GtkWidget *dialog;
-	GtkWidget *edit, *appbar;
+	GtkWidget *edit, *appbar, *checkresample, *rateentry;
 	filter_t *readfile;
 	gchar *filename;
 	unsigned int frames;
 	int rate, chancnt, gotfile, gotstats;
 	float maxrms, dcoffset;
+	plugin_t *resample;
 };
 
 void ie_import_cleanup(struct impexp_s *ie) 
@@ -115,16 +116,16 @@ static void ie_cancel_cb(GtkWidget *bla, struct impexp_s *ie) {
 }
 
 static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
-	filter_t *net = NULL, *readfile, *swout;
-	filter_port_t *source;
+	filter_t *net = NULL, *readfile, *swout, *resample;
+	filter_port_t *source, *nsource;
 	filter_pipe_t *pipe;
 	filter_param_t *pos_param;
 	float percentage;
 	gpsm_grp_t *group = NULL;
-	int i;
+	int i, newrate;
+	gboolean dorsmpl;
 	gpsm_item_t *it, *file;
 	long vpos;
-	WaveeditGui *we;
 
 	if(ie->gotfile==0) {
 		gnome_dialog_run_and_close(gnome_error_dialog(
@@ -145,6 +146,18 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	source = filterportdb_get_port(filter_portdb(readfile), PORTNAME_OUT);
 	filter_add_node(net, readfile, "readfile");
 
+	dorsmpl = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ie->checkresample));
+
+	if ((ie->resample) && (dorsmpl)) {
+		newrate = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(ie->rateentry));
+		DPRINTF("Resample to %d Hz\n", newrate);
+		if(ie->rate==newrate) {
+			DPRINTF("new samplerate equals old samplerate\n");
+			dorsmpl=FALSE;
+		}
+	} else
+		dorsmpl=FALSE;
+		
 	/* Setup gpsm group. */
 	group = gpsm_newgrp(g_basename(ie->filename));
 	
@@ -157,8 +170,35 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 		gpsm_item_place(group, it, 0, i);
 		swout = net_add_gpsm_output(net, (gpsm_swfile_t *)it,
 					    0, -1, 3);
+
+		/* Insert resampler here */
+		if(dorsmpl) {
+			resample = filter_instantiate(ie->resample);
+			filter_add_node(net, resample, "resample");
+			filterparam_set(filterparamdb_get_param(filter_paramdb(resample),
+								"frequency"), &newrate);
+
+			nsource = filterportdb_get_port(filter_portdb(resample),
+							PORTNAME_IN);
+			if (nsource == NULL)
+				DPRINTF("(1)nsource = NULL\n");
+
+			if (!(pipe = filterport_connect(source, nsource))) {
+				DPRINTF("Connection to resample failed");
+				gpsm_item_destroy(it);
+				filter_delete(resample);
+				break;
+			}
+			nsource = filterportdb_get_port(filter_portdb(resample),
+							PORTNAME_OUT);
+			if(nsource==NULL)
+				DPRINTF("(2) nsource = NULL\n");
+		} else 
+			nsource = source;
+
+			
 		if (!(pipe = filterport_connect(
-			source, filterportdb_get_port(
+			nsource, filterportdb_get_port(
 				filter_portdb(swout), PORTNAME_IN)))) {
 			DPRINTF("Connection failed for channel %d\n",i+1);
 			gpsm_item_destroy(it);
@@ -174,6 +214,7 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	pos_param = filterparamdb_get_param(filter_paramdb(readfile),
 					FILTERPARAM_LABEL_POS);
 	
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Importing");
 	net_prepare_bulk();
 	
 	if ((filter_launch(net) == -1) ||
@@ -194,6 +235,9 @@ static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
 	
 	filter_delete(net);
 	net_restore_default();
+	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
+	gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar),
+				  0.0);
 
 	/* Notify gpsm of the change. */
 	gpsm_grp_foreach_item(group, it)
@@ -221,13 +265,7 @@ ie_fail_cleanup:
 		DPRINTF("Cannot find imported file at %li\n", vpos);
 		return;
 	}
-	we = glame_waveedit_gui_new(gpsm_item_label(file), file);
-	if (!we) {
-		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Cannot open wave editor")));
-		return;
-	}
-	gtk_widget_show_all(GTK_WIDGET(we));
+
 	ie_import_cleanup(ie);
 }
 
@@ -247,13 +285,8 @@ static void ie_update_plabels(struct impexp_s *ie) {
 	if(property) {
 		sscanf(property, "%d %d", &ftype, &version);
 		DPRINTF("format property: %s, ftype=%d, version=%d\n", property,ftype,version);
-		if ((ftype>=0)&&(version>=0))
-			sprintf(buffer, "%s format, version:%d", ftlabel[ftype], version);
-		else if (ftype>=0)
+		if ((ftype>=0) && (ftype<8))
 			sprintf(buffer, "%s format", ftlabel[ftype]);
-		else if ((ftype<0) && (version>=0) && (version<6))
-			/* libaudiofile bug workaround */
-			sprintf(buffer, "%s format", ftlabel[version]);
 		else
 			sprintf(buffer, "You shouldn't see this :)");
 	} else	
@@ -312,6 +345,8 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 		return;
 	}
 
+	gtk_widget_set_sensitive(bla, FALSE);
+
 	ssp = ALLOCN(ie->chancnt, filter_t*);
 	maxrms = ALLOCN(ie->chancnt, filter_t*);
 
@@ -369,6 +404,11 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 					  percentage);
 	}
 	ie->frames = filterparam_val_pos(param);
+	sprintf(buffer, "%d", ie->frames);
+	filterparam_set_property(filterparamdb_get_param(filter_paramdb(ie->readfile), "filename"),
+				 "#framecount", 
+				 buffer);
+
 	net_restore_default();
 
 	gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Done.");
@@ -396,6 +436,7 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 	free(ssp);
 	free(maxrms);
 	filter_delete(net);
+	gtk_widget_set_sensitive(bla, TRUE);	
 }
 
 
@@ -538,8 +579,12 @@ void glame_import_dialog(struct impexp_s *ie)
 	hbox4 = gtk_hbox_new (FALSE, 5);
 	gtk_widget_show (hbox4);
 	gtk_container_add (GTK_CONTAINER (frame4), hbox4);
-	
-	checkresample = gtk_check_button_new_with_label (_("Resample"));
+
+	/* Disable resample if there's no plugin */
+	if(ie->resample==NULL)
+		gtk_widget_set_sensitive(hbox4, FALSE);
+
+	ie->checkresample = checkresample = gtk_check_button_new_with_label (_("Resample"));
 	gtk_widget_show (checkresample);
 	gtk_box_pack_start (GTK_BOX (hbox4), checkresample, FALSE, FALSE, 0);
 
@@ -552,13 +597,15 @@ void glame_import_dialog(struct impexp_s *ie)
 	gtk_box_pack_start (GTK_BOX (hbox4), ratelabel, FALSE, FALSE, 0);
 
 	rateentry_adj = gtk_adjustment_new (44100, 0, 96000, 10, 100, 1000);
-	rateentry = gtk_spin_button_new (GTK_ADJUSTMENT (rateentry_adj), 1, 0);
+	ie->rateentry = rateentry = gtk_spin_button_new (GTK_ADJUSTMENT (rateentry_adj), 1, 0);
 	gtk_widget_show (rateentry);
 	gtk_box_pack_start (GTK_BOX (hbox4), rateentry, TRUE, TRUE, 0);
 	
 	frame5 = gtk_frame_new (NULL);
 	gtk_widget_show (frame5);
 	gtk_box_pack_start (GTK_BOX (vbox3), frame5, TRUE, TRUE, 0);
+
+
 
 	normalizebutton = gtk_check_button_new_with_label (_("Normalize"));
 	gtk_widget_show (normalizebutton);
@@ -601,7 +648,6 @@ void glame_import_dialog(struct impexp_s *ie)
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
 				    ie_cancel_cb, ie);
 
-	gtk_window_set_modal(GTK_WINDOW(ie->dialog), TRUE);
 	gtk_widget_show(ie->dialog);
 };
 
@@ -660,6 +706,8 @@ static int import_gpsm(gpsm_item_t *item, long start, long length)
 	rf = plugin_get("read-file");
 	if (rf==NULL)
 		return -1;
+	
+	ie->resample = plugin_get("Resample"); /* scheme plugin */
 
 	ie->readfile = filter_instantiate(rf);
 	ie->gotfile = 0;
