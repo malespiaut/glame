@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.44 2001/06/13 12:55:12 mag Exp $
+ * $Id: basic_sample.c,v 1.45 2001/07/07 08:28:43 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -810,8 +810,8 @@ static int volume_adjust_f(filter_t *n)
 {
 	filter_pipe_t *in, *out;
 	filter_port_t *inp, *outp;
+	filter_param_t *scale;
 	filter_buffer_t *b;
-	float scale;
 	SAMPLE *buf;
 	int cnt;
 
@@ -820,7 +820,7 @@ static int volume_adjust_f(filter_t *n)
 	if (!(in = filterport_get_pipe(inp))
 	    || !(out = filterport_get_pipe(outp)))
 		FILTER_ERROR_RETURN("no input or no output");
-	scale = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "factor"));
+	scale = filterparamdb_get_param(filter_paramdb(n), "factor");
 
 	FILTER_AFTER_INIT;
 
@@ -835,7 +835,8 @@ static int volume_adjust_f(filter_t *n)
 		cnt = sbuf_size(b);
 
 		/* adjust the amplitude by scale */
-		glsimd.scalar_product_1dI(buf, cnt, scale);
+		glsimd.scalar_product_1dI(buf, cnt,
+					  filterparam_val_float(scale));
 
 		/* queue the modified buffer */
 		sbuf_queue(out, b);

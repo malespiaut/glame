@@ -1,7 +1,7 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.10 2001/05/28 15:04:19 richi Exp $
+ * $Id: ladspa.c,v 1.11 2001/07/07 08:28:43 mag Exp $
  * 
  * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
@@ -271,6 +271,32 @@ static int ladspa_f(filter_t * n)
 		   be extended, it will probably best to changes the control
 		   values stored in the pfControlValues array. The LADSPA plugin
 		   should support these varying at this point. */
+		for (lPortIndex = 0; lPortIndex < lPortCount; lPortIndex++) {
+
+			iPortDescriptor =
+			    psDescriptor->PortDescriptors[lPortIndex];
+
+			if (LADSPA_IS_PORT_CONTROL(iPortDescriptor)) {
+				if (LADSPA_IS_PORT_INPUT(iPortDescriptor)) {
+					/* Lookup the control value. */
+					psParam =
+					    filterparamdb_get_param(filter_paramdb
+								    (n),
+								    psDescriptor->
+								    PortNames
+								    [lPortIndex]);
+				/* psParam == NULL does not happen if params were registered
+				 * appropriately. [richi] */
+					pfControlValues[lPortIndex] =
+					    filterparam_val_float(psParam);
+				}
+			
+				psDescriptor->connect_port(psLADSPAPluginInstance,
+							   lPortIndex,
+							   pfControlValues +
+							   lPortIndex);
+			}
+		}
 
 		/* Link up the audio input ports on the LADSPA plugin to the
 		   sample buffers coming in through each GLAME input port. */
