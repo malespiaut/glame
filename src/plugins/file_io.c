@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.11 2000/03/24 15:42:31 richi Exp $
+ * $Id: file_io.c,v 1.12 2000/03/25 15:02:18 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -410,7 +410,7 @@ int af_read_prepare(filter_node_t *n, const char *filename)
 		return -1;
 	}
 	DPRINTF("File %s: %d channel(s) %d bit %s at %d Hz, "
-		"framesize %d.\n",
+		"framecount %d, framesize %d.\n",
 			filename,
 			RWA(n).channelCount, RWA(n).sampleWidth, 
 			RWA(n).sampleFormat == AF_SAMPFMT_TWOSCOMP ?
