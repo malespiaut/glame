@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.5 2000/03/25 15:05:18 richi Exp $
+@comment $Id: cglame.texi,v 1.6 2000/04/10 12:40:08 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -51,7 +51,7 @@ guile> (play-eff "/var/tmp/test.wav" "echo")
 guile> (let* ((net (net-new))
 ... (nodes (net-add-nodes net '("read_file" "echo" "audio_out")))
 ... (echo2 (net-add-node net "echo")))
-... (filternode_set_param (car nodes) "filename" "/var/tmp/test.wav")
+... (node-set-param (car nodes) "filename" "/var/tmp/test.wav")
 ... (nodes-connect nodes)
 ... (nodes-connect (list (car nodes) echo2 (caddr nodes)))
 ... (net-run net))
@@ -151,12 +151,59 @@ The only wrapped part of the glame midlayer is the plugin API.
 @node cglame Convenience,, Wrapped API, Console Frontend
 @section cglame Convenience
 
-FIXME: stuff is missing, documentation
+@menu
+* Network setup::
+* Cooked operations::
+@end menu
+
+@node Network setup,, Cooked operations, cglame Convenience
+@subsection Network setup
 
 @deftypefun ( net-new )
-@deftypefunx ( net-add-node net-id node )
-@deftypefunx ( net-add-nodes net-id nodes )
-@deftypefunx ( nodes-connect nodes )
-@deftypefunx ( net-run net-id )
+Creates a new filternetwork. @code{net-new} evaluates to a
+net-id.
+@end deftypefun
+
+@deftypefun ( net-add-node net-id node '("label" value) ... )
+@deftypefunx ( net-add-nodes net-id node '(node '("label" value) ...) ... )
+@deftypefunx ( nodes-delete node-id ... )
+@code{net-add-node} adds a single node with optional parameters
+to the network specified by @var{net-id}. @code{net-add-nodes}
+adds a set of nodes with optional parameters to the network.
+@code{net-add-node} evaluates to a @code{node-id}, @code{net-add-nodes}
+to a list of @code{node-id}s. Using @code{nodes-delete} you can delete
+nodes from a network.
+@end deftypefun
+
+@deftypefun ( nodes-connect nodes ... )
+@code{nodes-connect} linearily connects the specified lists of
+@code{node-id}s.
+@end deftypefun
+
+@deftypefun ( node-set-params node-id '("label" value) ... )
+Using @code{node-set-params} you can set the parameters of the
+specified @var{node-id}.
+@end deftypefun
+
+@deftypefun ( net-run net-id )
+@deftypefunx ( net-run-bg net-id )
+@code{net-run} starts processing of the network and waits until completion.
+@code{net-run-bg} starts processing of the network and returns immediately.
+@end deftypefun
+
+
+@node Cooked operations, Network setup,, cglame Convenience
+@subsection Cooked operations
+
+The following procedures can be customized by defining the
+@code{audio-out}, @code{read-file} or @code{write-file} to other
+filters than their default ones which are their names.
+
+@deftypefun ( file-to-track file group track )
+@deftypefunx ( play-track group track )
+@deftypefunx ( play-tracks '(group track) ... )
+@deftypefunx ( play filename )
+@deftypefunx ( play-eff filename effect '(effect ("label" value) ...) ... )
+@deftypefunx ( save-eff infile outfile effect '(effect ("label" value) ...) ... )
 @end deftypefun
 

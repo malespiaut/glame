@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.23 2000/04/10 11:54:42 richi Exp $
+; $Id: glame.scm,v 1.24 2000/04/10 12:40:08 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -102,24 +102,13 @@
 	    nodes))
 	 nodes)))
 
-; (node-set-param node "label" value)
-(define node-set-param
-  (lambda (node label value)
-    (filternode_set_param node label value)))
-
 ; (node-set-params node `("label" ,value) `("label" ...) ...)
 (define node-set-params
   (lambda (node . params)
     (map (lambda (p)
 	   (if (not (null? p))
-	       (node-set-param node (car p) (cadr p))))
+	       (filternode_set_param node (car p) (cadr p))))
 	 params)))
-
-; (nodes-set-params `(,node ,node ..) `("label" ,value) ...)
-(define nodes-set-params
-  (lambda (nodes . params)
-    (map (lambda (n) (node-set-params n params)) nodes)))
-
 
 
 ; run the net, wait for completion and delete it
@@ -203,7 +192,7 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
-      (node-set-param rf "filename" fname)
+      (node-set-params rf `("filename" ,fname))
       (while-not-false
          (lambda () (filternetwork_add_connection rf "out" ao "in")))
       (net-run net))))
@@ -222,7 +211,7 @@
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (ao (net-add-node net audio-out)))
-      (node-set-param rf "filename" fname)
+      (node-set-params rf `("filename" ,fname))
       (while-not-false
        (lambda ()
 	 (let* ((eff (apply net-add-nodes net effects))
@@ -237,22 +226,19 @@
 ;
 
 (define save-eff
-  (lambda (fname oname effect . params)
+  (lambda (fname oname . effects)
     (let* ((net (net-new))
 	   (rf (net-add-node net read-file))
 	   (wf (net-add-node net write-file)))
-      (node-set-param rf "filename" fname)
-      (node-set-param wf "filename" oname)
+      (node-set-params rf `("filename" ,fname))
+      (node-set-params wf `("filename" ,oname))
       (while-not-false
        (lambda ()
-	 (let* ((eff (net-add-node net effect))
-		(conn (filternetwork_add_connection rf "out" eff "in")))
+	 (let* ((eff (apply net-add-nodes net effects))
+		(conn (filternetwork_add_connection rf "out" (car eff) "in")))
 	   (if (eq? conn #f)
-	       (begin (filternetwork_delete_node eff) #f)
-	       (begin
-		 (apply node-set-params eff params)
-		 (nodes-connect `(,eff ,wf))
-		 conn)))))
+	       (begin (apply nodes-delete eff) #f)
+	       (begin (nodes-connect (append eff (list ao))) #t)))))
       (net-run net))))
 
 
@@ -337,8 +323,8 @@
     (let* ((net (net-new))
            (rf (net-add-node net read-file))
 	   (wf (net-add-node net "write_file")))
-    (node-set-param rf "filename" iname)
-    (node-set-param wf "filename" oname)
+    (node-set-params rf `("filename" ,iname))
+    (node-set-params wf `("filename" ,oname))
     (while-not-false
       (lambda () (filternetwork_add_connection rf "out" wf "in")))
     (net-run net))))
@@ -354,7 +340,7 @@
 	   (mix (net-add-node net "mix2"))
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
-    (node-set-param rf "filename" fname)
+    (node-set-params rf `("filename" ,fname))
     (while-not-false 
       (lambda () (filternetwork_add_connection rf "out" mix "in")))
     (nodes-connect  `(,mix ,stat ,drms))
@@ -372,7 +358,7 @@
 	   (iir (net-add-node net "iir"))
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
-    (node-set-param rf "filename" fname)
+    (node-set-params rf `("filename" ,fname))
     (apply node-set-params iir params)
     (while-not-false 
       (lambda () (filternetwork_add_connection rf "out" mix "in")))
