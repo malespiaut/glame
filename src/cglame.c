@@ -30,6 +30,7 @@
 #include "swapfile.h"
 #include "filter.h"
 #include "util.h"
+#include "gpsm.h"
 
 
 
@@ -75,38 +76,16 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-#ifdef DEBUG
-	fprintf(stderr, "In DEBUG mode, fsck forced.\n");
-	if (swapfile_fsck(swfname, 1) == -1
-	    && errno != ENOENT) {
-		perror("ERROR: Fsck failed");
+	if (creat) {
+		fprintf(stderr, "Creating swapfile on %s\n", swfname);
+		if (swapfile_creat(swfname, 1024) == -1) {
+			perror("ERROR: Cannot create swapfile");
+			exit(1);
+		}
+	}
+
+	if (gpsm_init(swfname) == -1)
 		exit(1);
-	}
-#endif
- open:
-	if (swapfile_open(swfname, 0) == -1) {
-		if (errno != EBUSY && !creat) {
-			perror("ERROR: Unable to open swap");
-			exit(1);
-		} else if (errno != EBUSY && creat) {
-			fprintf(stderr, "Creating swapfile on %s\n", swfname);
-			if (swapfile_creat(swfname, 1024) == -1) {
-				perror("ERROR: Cannot create swapfile");
-				exit(1);
-			}
-			goto open;
-		}
-		fprintf(stderr, "WARNING: Unclean swap - running fsck\n");
-		if (swapfile_fsck(swfname, 0) == -1) {
-			perror("ERROR: Fsck failed");
-			exit(1);
-		}
-		fprintf(stderr, "WARNING: Fsck successful\n");
-		if (swapfile_open(swfname, 0) == -1) {
-			perror("ERROR: Still cannot open swap");
-			exit(1);
-		}
-	}
 
  noswap:
         fprintf(stderr,
@@ -116,7 +95,7 @@ int main(int argc, char **argv)
 
 	if (glame_init(sc_main) == -1) {
 	        fprintf(stderr, "glame init failed!\n");
-		swapfile_close();
+		gpsm_close();
 		exit(1);
 	}
 	/* not reached */
