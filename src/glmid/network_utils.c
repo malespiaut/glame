@@ -1,7 +1,7 @@
 /*
  * network_utils.c
  *
- * $Id: network_utils.c,v 1.8 2001/11/09 16:52:09 richi Exp $
+ * $Id: network_utils.c,v 1.9 2001/11/11 21:41:24 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -224,5 +224,60 @@ filter_t *net_apply_audio_out(filter_t *net)
 	if (aout)
 		filter_delete(aout);
 	return NULL;
+}
+
+
+
+/* Param (filter) linking.
+ */
+
+struct lp_x {
+	glsig_handler_t *upd_handler;
+	glsig_handler_t *src_delete_handler;
+	glsig_handler_t *dst_delete_handler;
+
+	filter_t *src;
+	filter_t *dst;
+};
+
+static void lp_cleanup(glsig_handler_t *h, long sig, va_list va)
+{
+	struct lp_x *lp = (struct lp_x *)glsig_handler_private(h);
+	glsig_delete_handler(lp->upd_handler);
+	glsig_delete_handler(lp->src_delete_handler);
+	glsig_delete_handler(lp->dst_delete_handler);
+	free(lp);
+}
+
+static void lp_update(glsig_handler_t *h, long sig, va_list va)
+{
+	struct lp_x *lp = (struct lp_x *)glsig_handler_private(h);
+	filter_param_t *src_p, *dst_p;
+
+	GLSIGH_GETARGS1(va, src_p);
+	dst_p = filterparamdb_get_param(
+		filter_paramdb(lp->dst), filterparam_label(src_p));
+	if (!dst_p)
+		DPRINTF("Whoops - no dest for %s\n", filterparam_label(src_p));
+	filterparam_set(dst_p, filterparam_val(src_p));
+}
+
+void net_link_params(filter_t *dest, filter_t *source)
+{
+	struct lp_x *lp;
+
+	lp = (struct lp_x *)malloc(sizeof(struct lp_x));
+	lp->src = source;
+	lp->dst = dest;
+
+	lp->upd_handler = glsig_add_handler(
+		filter_emitter(source), GLSIG_PARAM_CHANGED,
+		lp_update, lp);
+	lp->src_delete_handler = glsig_add_handler(
+		filter_emitter(source), GLSIG_FILTER_DELETED,
+		lp_cleanup, lp);
+	lp->dst_delete_handler = glsig_add_handler(
+		filter_emitter(dest), GLSIG_FILTER_DELETED,
+		lp_cleanup, lp);
 }
 

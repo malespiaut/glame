@@ -4,7 +4,7 @@
 /*
  * network_utils.h
  *
- * $Id: network_utils.h,v 1.7 2001/11/09 16:52:09 richi Exp $
+ * $Id: network_utils.h,v 1.8 2001/11/11 21:41:24 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -62,6 +62,11 @@ int net_apply_node(filter_t *net, filter_t *node);
  * correct positioning/mixing, if necessary. Returns the audio out
  * filter on success, NULL on error. */
 filter_t *net_apply_audio_out(filter_t *net);
+
+
+/* Links params of two filters, i.e. updates of source will update
+ * dest, too (but not the other way around). */
+void net_link_params(filter_t *dest, filter_t *source);
 
 
 #endif
