@@ -14,8 +14,6 @@ gtk/gnome-2.0 transition:
 	- copy glame_ruler, glame_hruler and glame_curve from their
 	  gtk+-2.0 source and re-modify them
 	- make gtknob a subclass of GtkRange
-	- use GtkTreeView, GtkTree* for the swapfile gui
-	- kill -DGTK_ENABLE_BROKEN on make
 
 other stuff:
 ------------
@@ -81,7 +79,6 @@ glmid/
 
 glmid/glame_audiofile
 	[nold]
-	- support mp3/ogg reading/writing
 
 gui/
 	[xwolf]
@@ -96,30 +93,8 @@ gui/
 	  have params (including device and samplerate) be set by
 	  a std param setting dialog
 
-gui/timeline
-	[xwolf/richi]
-	- fix canvas items not left-aligned for big zoom values
-	- add toolbar
-	- add playing capability
-	- fix moving tracks
-	- allow moving groups
-	- add grid
-
-gui/swapfilegui
-	[richi]
-	- exchange item labels for pan/mix sliders in vbox with
-          two lines label on the right, group labels for mix sliders
-          with group label on the right
-	- make it a full fledged window like the other widgets
-          -> reduce pollution of main.c
-	  (rather merge with timeline)
-	- seperate into subdirectory
-	- better UI
-          * Record wave... should do things like Edit wave, but start
-            with an empty wave, ready for recording (after recording
-            being in Edit wave mode)
-	[XWolf]
-	- add drag&drop to filtereditgui
+gui/tree
+	[richi, xwolf]
 
 gui/waveeditgui
 	[richi]
@@ -132,19 +107,9 @@ gui/waveeditgui
 	  swin params
 
 gui/libgtkwaveform
-	[xwolf]
+	[richi, xwolf]
 	- change color of background / foreground (make that configurable)
 	- fix marker redrawing
-
-gui/libgtkwaveform2
-	[richi]
-	- break up gtkwaveview into simple waveview without
-          scrollbar, make a container that can contain multiple
-          gtkwavebuffers
-	- implement stack for selection and marker
-	- support different wave display types (solid, dotted, outline...)
-	- support hooks for changing pointer and getting interactive
-          editing gtk signals / updating the wave
 
 gui/edit_filter
 	[xwolf]
