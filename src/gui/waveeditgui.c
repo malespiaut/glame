@@ -206,6 +206,24 @@ static void setBoolean_cb(GtkWidget *foo, gboolean* bar)
 /* GUI is single-threaded, so this should actually work... */
 static GtkWaveView *actual_waveview;
 
+
+/* callback for updating wave widget */
+
+void wave_buffer_queue_modified_cb(va_list va)
+{
+	/* this expects exactly 3 params! */
+	/* FIXMEEEEEE */
+	GtkEditableWaveBuffer * editable;
+	gint32 start,length;
+	fprintf(stderr,"foo\n");
+	editable = va_arg(va,GtkEditableWaveBuffer*);
+	start = va_arg(va,gint32);
+	length = va_arg(va,gint32);
+
+	gtk_editable_wave_buffer_queue_modified(editable, start, length);
+}
+
+
 /* Menu event - Apply filter. */
 static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 {
@@ -225,7 +243,7 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 	long *names, nrtracks;
 	filter_t *net, *effect;
 	int rate, i;
-
+	
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
 		return;
@@ -265,25 +283,19 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
 	}
 	
+	/* Run the network through play window */
+	//	glame_gui_play_network(net,NULL);
+	glame_gui_play_network(net,NULL);
 	/* Run the network and cleanup after it. */
-	filter_launch(net);
-	filter_start(net);
-	filter_wait(net);
-	filter_delete(net);
-	filter_delete(effect);
+/*  	filter_launch(net); */
+/* 	filter_start(net); */
+/* 	filter_wait(net); */
+/* 	filter_delete(net); */
+/* 	filter_delete(effect); */
+	
 	gtk_editable_wave_buffer_queue_modified (editable, start, length);
 }
 
-/* kill the running network */
-
-static void stop_network(GtkWidget* bla, plugin_t *net)
-{
-	/* FIXME FIXME FIXME 
-	 * The effect is not cleaned up! */
-	
-	filter_terminate(net);
-	filter_delete(net);
-}
 
 /* Menu event - feed into filter. */
 static void feed_cb(GtkWidget *bla, plugin_t *plugin)
@@ -339,22 +351,8 @@ static void feed_cb(GtkWidget *bla, plugin_t *plugin)
 		filter_add_node(net, eff, "eff");
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT), filterportdb_get_port(filter_portdb(eff), PORTNAME_IN));
 	}
-	/*   FIXME THIS gets mapped after the network has finished :( useless*/
-	/*	stop_window = gnome_dialog_new("Network running...","Cancel?",NULL);
-	gtk_widget_show(stop_window);
-	gtk_widget_draw_default(stop_window);
-	gnome_dialog_button_connect(GNOME_DIALOG(stop_window),0,stop_network,net);
-	gnome_dialog_set_close(GNOME_DIALOG(stop_window),TRUE);
-	*/
-	
 	glame_gui_play_network(net,NULL);
 
-	/* Run the network and cleanup after it. */
-/* 	filter_launch(net); */
-/* 	filter_start(net); */
-/* 	filter_wait(net); */
-/* 	filter_delete(net); */
-/* 	filter_delete(effect); */
 	gtk_editable_wave_buffer_queue_modified (editable, start, length);
 }
 

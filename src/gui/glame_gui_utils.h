@@ -5,7 +5,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.2 2001/03/25 20:48:30 xwolf Exp $
+ * $Id: glame_gui_utils.h,v 1.3 2001/03/28 23:18:32 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -64,6 +64,8 @@ GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 				       const char *caption);
 
 int glame_gui_play_network(filter_t * network, gui_network* gui_net);
+int glame_gui_play_network_with_exit(filter_t * network, gui_network* gui_net, void (*atExitFunc)(va_list va) , ... );
+
 
 #endif
 
