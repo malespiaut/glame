@@ -6,4 +6,4 @@ libtoolize --copy --automake
 autoheader
 autoconf
 touch ltconfig
-automake --add-missing
+automake --copy --add-missing
