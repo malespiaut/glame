@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.16 2002/02/18 22:56:25 mag Exp $
+ * $Id: fft_plugins.c,v 1.17 2002/03/24 18:51:18 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -105,6 +105,13 @@ static void fft_update_pipes(filter_t *n, filter_pipe_t *opipe)
 	}
 	
 	filterpipe_settype_fft(opipe,rate,hangle,bsize,osamp);
+}
+
+static int fft_connect_in(filter_port_t *port, filter_pipe_t *p)
+{
+	if (filterport_get_pipe(port))
+		return -1;
+	return 0;
 }
 
 static int fft_connect_out(filter_port_t *port, filter_pipe_t *p)
@@ -259,18 +266,19 @@ static int fft_f(filter_t *n){
 int fft_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_port_t *out;
+	filter_port_t *out, *in;
 	filter_param_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
 	f->f = fft_f;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "audio stream",
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "audio stream",
+				   FILTERPORT_END);
+	in->connect = fft_connect_in;
 	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 				    FILTER_PORTTYPE_FFT,
 				    FILTER_PORTFLAG_OUTPUT,
@@ -299,6 +307,13 @@ int fft_register(plugin_t *p)
 
 	filter_register(f,p);
 
+	return 0;
+}
+
+static int ifft_connect_in(filter_port_t *port, filter_pipe_t *p)
+{
+	if (filterport_get_pipe(port))
+		return -1;
 	return 0;
 }
 
@@ -428,16 +443,17 @@ entry:
 int ifft_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_port_t *out;
+	filter_port_t *out, *in;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
 
-	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-			      FILTER_PORTTYPE_FFT,
-			      FILTER_PORTFLAG_INPUT,
-			      FILTERPORT_DESCRIPTION, "fft stream",
-			      FILTERPORT_END);
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_FFT,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "fft stream",
+				   FILTERPORT_END);
+	in->connect = ifft_connect_in;
 	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
 				    FILTER_PORTTYPE_SAMPLE,
 				    FILTER_PORTFLAG_OUTPUT,
