@@ -25,13 +25,9 @@ dnl
 dnl Checks for programs.
 dnl
 
-AC_PROG_CC
-AC_PROG_INSTALL
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
-
 dnl Compiling without gcc is not supported but may succeed.
-if test $GCC = "yes"; then
+AC_PROG_CC
+if test "$GCC" = "yes"; then
 	AC_DEFINE(HAVE_GCC)
 	if test $debug -eq 0; then
 		CFLAGS="-O3 -fomit-frame-pointer -ffast-math"
@@ -43,6 +39,11 @@ if test $GCC = "yes"; then
 else
   AC_MSG_WARN([Compilers other than gcc are not supported])
 fi
+
+AC_PROG_INSTALL
+AC_LIBTOOL_DLOPEN
+AM_PROG_LIBTOOL
+
 
 
 dnl FIXME: The next two checks break cross-compiling.
@@ -234,4 +235,4 @@ AC_SUBST(GLAME_DCFLAGS)
 AC_SUBST(GLAME_AUDIO_LIBS)
 AC_SUBST(GLAME_AUDIO_CFLAGS)
 
-AC_OUTPUT(Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmath/Makefile src/glmid/Makefile)
+AC_OUTPUT(Makefile doc/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile)

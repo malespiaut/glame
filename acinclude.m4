@@ -23,11 +23,7 @@ AC_TRY_COMPILE(
 #include <sys/mman.h>
 ],
 [
-int main()
-{
 	int i = madvise((void *)0, 0, 0);
-	return i;
-}
 ],
 [
 AC_MSG_RESULT(yes)
@@ -48,30 +44,21 @@ AC_DEFUN(AC_CHECK_SEMUN,
 AC_MSG_CHECKING(whether union semun is already defined)
 AC_TRY_COMPILE(
 [
+#include <sys/types.h>
+#include <sys/ipc.h>
 #include <sys/sem.h>
 ],
 [
-union semun {
-	int val;                    /* value for SETVAL */
-	struct semid_ds *buf;       /* buffer for IPC_STAT, IPC_SET */
-	unsigned short int *array;  /* array for GETALL, SETALL */
-	struct seminfo *__buf;      /* buffer for IPC_INFO */
-};
-
-int main(int argc, char **argv)
-{
 	union semun mysem;
-	return 0;
-}
 ],
-[
-AC_MSG_RESULT(no)
-]
-,
 [
 AC_MSG_RESULT(yes)
 HAVE_SEMUN=1
 AC_DEFINE(HAVE_SEMUN)
+]
+,
+[
+AC_MSG_RESULT(no)
 ]
 )
 ])
@@ -87,12 +74,8 @@ AC_TRY_COMPILE(
 #include <signal.h>
 ],
 [
-int main()
-{
 	struct sigaction sa;
 	sa.sa_sigaction(0, (siginfo_t *)0, (void *)0);
-	return 0;
-}
 ],
 [
 AC_MSG_RESULT(yes)
