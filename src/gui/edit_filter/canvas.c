@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.74 2001/04/23 10:09:57 xwolf Exp $
+ * $Id: canvas.c,v 1.75 2001/04/23 11:42:00 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -22,26 +22,23 @@
  *
  */
 
-
 #include "glmid.h"
 #include "canvas.h"
 #include <values.h>
+
+
 /*******************************************************
  * Turn on super annoying event debugging. 
  * nobody wants this apart from me :-) 
  * xwolf
  *******************************************************/
-//#define EVENT_DEBUGGING 1
-
-#ifdef HAVE_GCC
-#ifdef EVENT_DEBUGGING
+#undef EVENT_DEBUGGING
+#if defined HAVE_GCC && defined EVENT_DEBUGGING
 #define DPRINTF_FOO(x,bar...) DPRINTF( x, ## bar )
 #else
 #define DPRINTF_FOO(x,bar...)
 #endif
-#else
-#define DPRINTF_FOO(x,bar...)
-#endif
+
 static void canvas_item_show_properties(GnomeCanvasItem * item);
 static void canvas_item_delete_property_list(gpointer item, gpointer bla);
 static void canvas_item_hide_properties(GnomeCanvasItem * item);
@@ -1305,6 +1302,30 @@ canvas_connection_destroy(glsig_handler_t* foo,long sig,va_list va)
 }
 
 
+static void crac_kill_handlers(filter_t *f)
+{
+	glsig_handler_t *h;
+	struct list_head *foo;
+
+	/* Remove all gui-added signals from the copy...
+	 * FIXME! You have to update this!! */
+	list_safe_foreach(&filter_emitter(f)->handlers, glsig_handler_t, list, foo, h) {
+		if (h->handler == canvas_node_deleted)
+			glsig_delete_handler(h);
+		else if (h->handler == canvas_connection_destroy)
+			glsig_delete_handler(h);
+	}
+}
+static void crac_kill_rec(filter_t *f)
+{
+	filter_t *n;
+
+	crac_kill_handlers(f);
+	if (!FILTER_IS_NETWORK(f))
+		return;
+	filter_foreach_node(f, n)
+		crac_kill_rec(n);
+}
 static void canvas_register_as_cb(gchar* name, GlameCanvas* glCanv)
 {
 	plugin_t *newplug;
@@ -1313,8 +1334,8 @@ static void canvas_register_as_cb(gchar* name, GlameCanvas* glCanv)
 	
 	newplug = plugin_add(name);
 	copy = filter_creat(bla);
+	crac_kill_rec(copy);
 	filter_register(copy,newplug);
-	
 }
 
 
@@ -1744,7 +1765,6 @@ draw_network(filter_t *filter)
    	gui_network * net;       
 	GtkWidget * canv;
 	filter_t * node;
-	filter_pipe_t *pipe;
 	GList *list;
 	GlameCanvasItem* new_item;
 	GlameConnection *connection;
@@ -1797,9 +1817,11 @@ draw_network(filter_t *filter)
 		gnome_canvas_item_move(GNOME_CANVAS_ITEM(new_item),x,y);
 		glsig_add_handler(filter_emitter(node),GLSIG_FILTER_DELETED,canvas_node_deleted,new_item);
 	}
-/*	filter_foreach_node(filter,node){
+#if 0
+	filter_foreach_node(filter,node){
 		list = g_list_first(((GlameCanvasItem*)(node->gui_priv))->output_ports);
 		while(list){
+		        filter_pipe_t *pipe;
 			filterport_foreach_pipe(GLAME_CANVAS_PORT(list->data)->port,pipe){
 				connection = malloc(sizeof(GlameConnection));
 				connection->pipe = pipe;
@@ -1809,7 +1831,7 @@ draw_network(filter_t *filter)
 			list = g_list_next(list);
 		}
 	}
-*/
+#endif
 	filter_foreach_node(filter, node) {
 		struct fconnection *c;
 		list_foreach(&node->connections, struct fconnection, list, c) {
@@ -1817,23 +1839,34 @@ draw_network(filter_t *filter)
 			GlameCanvasPort *beginp, *endp;
 			filter_t *f;
 
+			if (strcmp(filter_name(node), c->source_filter) != 0) {
+				DPRINTF("Filter not the one promised\n");
+				continue;
+			}
 			begini = (GlameCanvasItem*)(node->gui_priv);
-			if (!(f = filter_get_node(filter, c->dest_filter)))
-				/* FUCK */ continue;
+
+			if (!(f = filter_get_node(filter, c->dest_filter))) {
+				DPRINTF("No such filter\n");
+				continue;
+			}
 			endi = (GlameCanvasItem*)(f->gui_priv);
 
 			list = g_list_first(begini->output_ports);
 			while (list && strcmp(filterport_label(GLAME_CANVAS_PORT(list->data)->port), c->source_port) != 0)
 				list = g_list_next(list);
-			if (!list)
-				/* FUCK */ continue;
+			if (!list) {
+				DPRINTF("No such output port\n");
+				continue;
+			}
 			beginp = GLAME_CANVAS_PORT(list->data);
 
 			list = g_list_first(endi->input_ports);
 			while (list && strcmp(filterport_label(GLAME_CANVAS_PORT(list->data)->port), c->dest_port) != 0)
 				list = g_list_next(list);
-			if (!list)
-				/* FUCK */ continue;
+			if (!list) {
+				DPRINTF("No such input port\n");
+				continue;
+			}
 			endp = GLAME_CANVAS_PORT(list->data);
 
 			connection = malloc(sizeof(GlameConnection));
