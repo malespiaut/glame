@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.20 2000/05/04 09:54:11 richi Exp $
+@comment $Id: filter.texi,v 1.21 2000/07/31 11:57:46 nold Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -78,7 +78,7 @@ themselves and by any external program which wants to get access to the
 filter. Note that the filter registry API is not necessarily thread
 consistent.
 
-The filter registry API is stronly coupled with the plugin API as the
+The filter registry API is strongly coupled with the plugin API as the
 plugin infrastructure is used to store and query existing filters. Only
 allocation, building and associating a filter with a plugin is contained
 in the filter registry API.

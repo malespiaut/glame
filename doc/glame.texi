@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.8 2000/04/07 13:34:50 nold Exp $
+@comment $Id: glame.texi,v 1.9 2000/07/31 11:57:46 nold Exp $
 
 
 @c %**start of header
@@ -85,7 +85,7 @@ Copyright @copyright{} 2000 Richard G@"unther, Daniel Kobras.
 * Copying::		Legal issues regarding distribution of 
 			this document
 
-==End user section: How to handle the various GLAME frontends==
+==Users' section: How to handle the various GLAME frontends==
 
 * Graphical Frontend::	What glame can do for you.
 * Console Frontend::	What cglame can do for you.

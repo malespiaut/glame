@@ -1,4 +1,4 @@
-@comment $Id: filter-tutorial.texi,v 1.9 2000/03/28 16:45:36 nold Exp $
+@comment $Id: filter-tutorial.texi,v 1.10 2000/07/31 11:57:46 nold Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
@@ -199,7 +199,7 @@ functions in the init section (DEADLOCK!!!)}
 (Well, @code{?buf_alloc()} is allowed, if you really need it)
 
 For more complex filters which require some sort of backlog of sample
-data or which do modify an input stream the following issues have to
+data or which modify an input stream the following issues have to
 be cared about:
 
 You should not allocate a ringbuffer or backlog storage via malloc,
@@ -210,7 +210,7 @@ at the appropriate time)
 
 @findex sbuf_alloc
 @findex sbuf_make_private
-If your filter in priciple would support in-place read-modify-write of
+If your filter in principle would support in-place read-modify-write of
 the data you should not allocate new buffers for the output using
 @code{sbuf_alloc()}. Instead you should grab the source buffer and do a
 @code{sbuf_make_private()} on it taking the returned pointer as the
