@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.52 2001/07/05 14:22:05 mag Exp $
+ * $Id: filter.c,v 1.53 2001/08/01 15:43:06 nold Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -39,7 +39,7 @@
 
 
 /* Global buffer size hint - can be runtime configured. */
-int GLAME_WBUFSIZE = 1042;
+int GLAME_WBUFSIZE = 1024;
 
 
 /* helper to create automagically unique node names. */
