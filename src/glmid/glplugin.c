@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.26 2001/05/06 19:09:30 nold Exp $
+ * $Id: glplugin.c,v 1.27 2001/05/12 08:43:55 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -27,7 +27,7 @@
 #include "list.h"
 #include "glplugin.h"
 
-#ifdef WITH_LADSPA
+#ifdef HAVE_LADSPA
 #include <ladspa.h>
 #endif
 
@@ -183,7 +183,7 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	return 0;
 }
 
-#ifndef WITH_LADSPA
+#ifndef HAVE_LADSPA
 static int try_init_ladspa_plugin(plugin_t *p, const char *name,
                                   const char *filename)
 {
