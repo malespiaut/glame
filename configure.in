@@ -111,6 +111,8 @@ if test $sfl = yes; then
 	GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lsfftw -lsrfftw"
 	AC_DEFINE(HAVE_SFFTW)
 fi
+AM_CONDITIONAL(HAVE_SFFTW, test x$sfl = xyes)
+
 
 dnl
 dnl Checks for various audio stuff.
