@@ -188,6 +188,8 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 	DPRINTF("Pasting to %i size %i\n", start, st.size/SAMPLE_SIZE);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (gpsm_op_prepare(item) == -1)
+		DPRINTF("Error preparing for undo\n");
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
 
@@ -227,6 +229,8 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 	DPRINTF("Cutting selection from %i of length %i\n", start, length);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (gpsm_op_prepare(item) == -1)
+		DPRINTF("Error preparing for undo\n");
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
 
@@ -273,6 +277,8 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	DPRINTF("Deleting selection from %i of length %i\n", start, length);
 
 	item = gtk_swapfile_buffer_get_item(swapfile);
+	if (gpsm_op_prepare(item) == -1)
+		DPRINTF("Error preparing for undo\n");
 	if (GPSM_ITEM_IS_SWFILE(item))
 		start -= gpsm_item_hposition(item);
 
@@ -294,6 +300,33 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 	/* Remove the selection. */
 	selectnone_cb(bla, waveview);
 }
+
+/* Menu event - Undo. */
+static void undo_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	GtkSwapfileBuffer *swapfile;
+	gpsm_item_t *item;
+
+	swapfile = GTK_SWAPFILE_BUFFER(gtk_wave_view_get_buffer(waveview));
+	item = gtk_swapfile_buffer_get_item(swapfile);
+
+	if (!gpsm_op_can_undo(item)) {
+		DPRINTF("No undo for %p possible\n", item);
+		return;
+	}
+
+	if (gpsm_op_undo_and_forget(item) == -1) {
+		DPRINTF("Error during undo for %p\n", item);
+		return;
+	}
+}
+
+/* Menu event - Redo. */
+static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
+{
+	/* FIXME */
+}
+
 
 /* Helpers for creation of swapfile_in/out nodes with appropriate
  * parameters out of a gpsm swfile. Start and length are positions
@@ -501,6 +534,10 @@ static void apply_cb(GtkWidget *bla, plugin_t *plugin)
 			goto fail;
 	}
 	filter_delete(effect);
+
+	/* Prepare for undo. */
+	if (gpsm_op_prepare(item) == -1)
+		DPRINTF("Error preparing for undo\n");
 	
 	/* Run the network through play window */
 	glame_gui_play_network(net, NULL, TRUE,
@@ -715,6 +752,10 @@ static void recordselection_cb(GtkWidget *bla, plugin_t *plugin)
 			goto fail;
 	}
 
+	/* Prepare for undo. */
+	if (gpsm_op_prepare(grp) == -1)
+		DPRINTF("Error preparing for undo\n");
+
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
@@ -802,6 +843,10 @@ static void recordmarker_cb(GtkWidget *bla, plugin_t *plugin)
 			goto fail;
 	}
 
+	/* Prepare for undo. */
+	if (gpsm_op_prepare(grp) == -1)
+		DPRINTF("Error preparing for undo\n");
+
 	glame_gui_play_network(net, NULL, TRUE,
 			       (GtkFunction)network_run_cleanup_cb,
 			       network_run_create(net, (gpsm_item_t *)grp, TRUE,
@@ -888,6 +933,10 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		y_position += 100;
 	}
 
+	/* Prepare for undo -- NO(!?). FIXME
+	if (gpsm_op_prepare(item) == -1)
+	DPRINTF("Error preparing for undo\n"); */
+
 	/* Pop up the custom generated canvas - the wave widget is
 	 * updated after destruction. FIXME - if gpsm is modified, the
 	 * signal handler data is invalid. */
@@ -935,6 +984,9 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Undo", "undo", undo_cb, NULL),
+	GNOMEUIINFO_ITEM("Redo", "redo", redo_cb, NULL),	
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("View", view_menu),
 	GNOMEUIINFO_SUBTREE("Select", select_menu),
 	GNOMEUIINFO_SEPARATOR,
@@ -953,7 +1005,7 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_END
 };
-#define RMB_MENU_APPLY_FILTER_INDEX 16
+#define RMB_MENU_APPLY_FILTER_INDEX 19
 
 
 /* Somehow only select "effects" (one input, one output) type of
