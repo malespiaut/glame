@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.65 2001/09/26 08:41:42 mag Exp $
+ * $Id: file_io.c,v 1.66 2001/09/26 09:05:12 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -470,7 +470,7 @@ int file_io_register(plugin_t *p)
 	GLAME_INIT_LIST_HEAD(&readers);
 	GLAME_INIT_LIST_HEAD(&writers);
 
-#ifdef 0
+#if 0
 #ifdef HAVE_LAME
 	add_reader(lame_read_prepare, lame_read_connect,
 		   lame_read_f, lame_read_cleanup);
@@ -581,6 +581,8 @@ wav_handlers_t wav_read_handlers[] = {
 	{ "RIFF", wav_read_chunk_head },
 	{ "fmt ", wav_read_chunk_format },
 	{ "data", wav_read_chunk_data },
+	{ "fact", wav_chunk_ignore },	/* We only handle uncompressed, ok to
+					 * ignore */
 	{ "cue ", wav_chunk_ignore },
 	{ "plst", wav_chunk_ignore },
 	{ "list", wav_chunk_ignore },
@@ -622,8 +624,8 @@ int wav_read_parse(filter_t *n, char *from, char* to)
 		size = __gl_le32_to_cpup(from);
 		from += 4;
 		if (size < 0 || from + size > to) {
-			DPRINTF("Illegal size in %s chunk (real: %ld, "
-			        "adv: %ld).\n", tag, to-from, size);
+			DPRINTF("Illegal size in %s chunk (real: %d, "
+			        "adv: %d).\n", tag, to-from, size);
 			return -1;
 		}
 		if ((size = handler(n, tag, from, size)) == -1) {
@@ -873,7 +875,7 @@ int af_read_prepare(filter_t *n, const char *filename)
 
 
 	RWA(n).frameCount=afGetFrameCount(RWA(n).file, AF_DEFAULT_TRACK);
-	sprintf(info, "%d", RWA(n).frameCount); 
+	sprintf(info, "%ld", (long int) RWA(n).frameCount); 
 	filterparam_set_property(fparam,"#framecount", info);
 
 	ftype = afGetFileFormat(RWA(n).file, &version);
@@ -1203,7 +1205,7 @@ _bailout:
 	return res;
 }
 
-#ifdef 0
+#if 0
 #ifdef HAVE_LAME
 /* borrowed from lame source */
 #define         MAX_U_32_NUM            0xFFFFFFFF
