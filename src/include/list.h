@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.8 2000/02/22 17:25:03 richi Exp $
+ * $Id: list.h,v 1.9 2000/04/11 14:39:17 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -75,22 +75,36 @@ static inline void __list_add(struct list_head * new,
 /*
  * Insert a new entry after the specified head..
  */
+#define list_add(n, h) do { \
+	if (!((n)->next == (n))) \
+		DERROR("Adding already added list item"); \
+	__list_add((n), (h), (h)->next); \
+} while (0)
+#if 0
 static inline void list_add(struct list_head *new, struct list_head *head)
 {
         if (!(new->next == new))
 	       DERROR("Adding already added list item");
 	__list_add(new, head, head->next);
 }
+#endif
 
 /*
  * Insert a new entry before the specified head..
  */
+#define list_add_tail(n, h) do { \
+	if (!((n)->next == (n))) \
+		DERROR("Adding already added list item"); \
+	__list_add((n), (h)->prev, (h)); \
+} while (0)
+#if 0
 static inline void list_add_tail(struct list_head *new, struct list_head *head)
 {
         if (!(new->next == new))
 	       DERROR("Adding already added list item");
 	__list_add(new, head->prev, head);
 }
+#endif
 
 /*
  * Delete a list entry by making the prev/next entries
@@ -106,6 +120,13 @@ static inline void __list_del(struct list_head * prev,
 	prev->next = next;
 }
 
+#define list_del(e) do { \
+	if ((e)->next == (e)) \
+		DERROR("Removing already removed list item"); \
+	__list_del((e)->prev, (e)->next); \
+	INIT_LIST_HEAD(e); \
+} while (0)
+#if 0
 static inline void list_del(struct list_head *entry)
 {
         if (entry->next == entry)
@@ -115,6 +136,7 @@ static inline void list_del(struct list_head *entry)
 	INIT_LIST_HEAD(entry);
 #endif
 }
+#endif
 
 static inline int list_empty(struct list_head *head)
 {
