@@ -305,7 +305,10 @@ if test "x$alsa" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
-
+dnl
+dnl Check for LADSPA support
+dnl
+ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA)])
 
 dnl
 dnl UNIX flavours compatibility stuff

@@ -34,6 +34,9 @@
 /* define if you have guile */
 #undef HAVE_GUILE
 
+/* define if you have ladspa */
+#undef HAVE_LADSPA
+
 /* define if we have gcc */
 #undef HAVE_GCC
 
