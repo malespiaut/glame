@@ -1,0 +1,10 @@
+Makefile.in
+Makefile
+.deps
+.libs
+*.lo
+*.la
+
+gmkswap
+swapfile_test
+swapfile_info
