@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.6 2000/01/31 10:04:04 richi Exp $
+ * $Id: filter.h,v 1.7 2000/01/31 10:09:08 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -224,8 +224,6 @@ struct filter {
 #define hash_find_filter(n) __hash_entry(_hash_find((n), FILTER_NAMESPACE, (*(_hash((n), FILTER_NAMESPACE))), __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_add_filter(filter) _hash_add(&(filter)->hash, _hash((filter)->name, FILTER_NAMESPACE))
 #define hash_remove_filter(filter) _hash_remove(&(filter)->hash)
-#define hash_first_filter() __hash_entry(_hash_walk(NULL, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
-#define hash_walk_filter(filter) __hash_entry(_hash_walk(&(filter)->hash, FILTER_NAMESPACE, __hash_pos(filter_t, hash, name, namespace)), filter_t, hash)
 #define hash_init_filter(filter) do { filter->namespace = FILTER_NAMESPACE; _hash_init(&(filter)->hash); } while (0)
 #define is_hashed_filter(filter) _is_hashed(&(filter)->hash)
 #define list_add_filter(filter) list_add(&(filter)->list, &filter_list)
@@ -235,14 +233,18 @@ struct filter {
 #define hash_find_inputdesc(n, f) __hash_entry(_hash_find((n), &(f)->inputs, (*(_hash((n), &(f)->inputs))), __hash_pos(filter_portdesc_t, hash, label, namespace)), filter_portdesc_t, hash)
 #define hash_add_inputdesc(d, f) do { (d)->namespace = &(f)->inputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->inputs)); } while (0)
 #define list_add_inputdesc(d, f) list_add(&(d)->list, &(f)->inputs)
+#define list_foreach_inputdesc(f, d) list_foreach(&(f)->inputs, filter_portdesc_t, list, d)
+
 #define hash_find_outputdesc(n, f) __hash_entry(_hash_find((n), &(f)->outputs, (*(_hash((n), &(f)->outputs))), __hash_pos(filter_portdesc_t, hash, label, namespace)), filter_portdesc_t, hash)
 #define hash_add_outputdesc(d, f) do { (d)->namespace = &(f)->outputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->outputs)); } while (0)
 #define list_add_outputdesc(d, f) list_add(&(d)->list, &(f)->outputs)
+#define list_foreach_outputdesc(f, d) list_foreach(&(f)->outputs, filter_portdesc_t, list, d)
 
 /* The filters parameter description hash and list */
 #define hash_find_paramdesc(n, f) __hash_entry(_hash_find((n), (f), (*(_hash((n), (f)))), __hash_pos(filter_paramdesc_t, hash, label, namespace)), filter_paramdesc_t, hash)
 #define hash_add_paramdesc(d, f) do { (d)->namespace = (f); _hash_add(&(d)->hash, _hash((d)->label, (f))); } while (0)
 #define list_add_paramdesc(d, f) list_add(&(d)->list, &(f)->params)
+#define list_foreach_paramdesc(f, d) list_foreach(&(f)->params, filter_paramdesc_t, list, d)
 
 
 /* Filter node is an instance of a filter. A filter node
@@ -279,6 +281,7 @@ struct filter_node {
 
 /* inputs & outputs hashes and lists */
 #define hash_find_input(n, node) __hash_entry(_hash_find((n), &(node)->inputs, (*(_hash((n), &(node)->inputs))), __hash_pos(filter_pipe_t, input_hash, in_name, in_namespace)), filter_pipe_t, input_hash)
+#define hash_next_input(p) __hash_entry(_hash_find((p)->in_name, (p)->in_namespace, (p)->input_hash.next_hash, __hash_pos(filter_pipe_t, input_hash, in_name, in_namespace)), filter_pipe_t, input_hash)
 #define hash_add_input(p, node) do { (p)->in_namespace = &(node)->inputs; _hash_add(&(p)->input_hash, _hash((p)->in_name, &(node)->inputs)); } while (0)
 #define hash_remove_input(p) _hash_remove(&(p)->input_hash)
 #define list_add_input(p, node) list_add(&(p)->input_list, &(node)->inputs)
@@ -287,6 +290,7 @@ struct filter_node {
 #define list_foreach_input(n, p) list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)
 
 #define hash_find_output(n, node) __hash_entry(_hash_find((n), &(node)->outputs, (*(_hash((n), &(node)->outputs))), __hash_pos(filter_pipe_t, output_hash, out_name, out_namespace)), filter_pipe_t, output_hash)
+#define hash_next_output(p) __hash_entry(_hash_find((p)->out_name, (p)->out_namespace, (p)->output_hash.next_hash, __hash_pos(filter_pipe_t, output_hash, out_name, out_namespace)), filter_pipe_t, output_hash)
 #define hash_add_output(p, node) do { (p)->out_namespace = &(node)->outputs; _hash_add(&(p)->output_hash, _hash((p)->out_name, &(node)->outputs)); } while (0)
 #define hash_remove_output(p) _hash_remove(&(p)->output_hash)
 #define list_add_output(p, node) list_add(&(p)->output_list, &(node)->outputs)
