@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.80 2001/04/25 08:31:14 richi Exp $
+ * $Id: canvas.c,v 1.81 2001/04/25 15:50:42 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -374,10 +374,10 @@ canvas_item_node_selected(GnomeCanvasItem*item, GdkEvent *event, gpointer data)
 		//update coord.strings
 		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->x1);
 		if(filter_set_property(it->filter,"canvas_x",numberbuffer))
-			fprintf(stderr,"set prop failed\n");
+			DPRINTF("set prop failed\n");
 		sprintf(numberbuffer,"%8f",GNOME_CANVAS_ITEM(it)->y1);
 		if(filter_set_property(it->filter,"canvas_y",numberbuffer))
-			fprintf(stderr,"set prop failed\n");
+			DPRINTF("set prop failed\n");
 		
 		break;
 
@@ -469,15 +469,15 @@ canvas_add_filter_by_name(const char *name)
 
 	filter = filter_instantiate(plug);
 	if(!filter){
-		fprintf(stderr,"Error in instantiate\n");
+		DPRINTF("Error in instantiate\n");
 		return -1;
 	}
 	if(filter_add_node(canv->net->net,filter,name) == -1) {
-		fprintf(stderr,"Error adding node!\n");
+		DPRINTF("Error adding node!\n");
 		return -1;
 	}
 	gnome_canvas_window_to_world(GNOME_CANVAS(canv),event_x,event_y,&dx,&dy); 
-	// fprintf(stderr,"%f %f %f %f\n",event_x,event_y,dx,dy);
+	// DPRINTF("%f %f %f %f\n",event_x,event_y,dx,dy);
  	item = GNOME_CANVAS_ITEM(canvas_add_node_from_filter(GNOME_CANVAS(canv),filter,dx,dy)); 
 	gnome_canvas_item_request_update(item);
 	gnome_canvas_item_get_bounds(item,&x1,&y1,&x2,&y2);
@@ -779,7 +779,7 @@ canvas_connection_do_connect(GlameConnection* connection)
 
       connection->points->coords[10]=xd;
       connection->points->coords[11]=yd;
-      fprintf(stderr,"%d %d\n",connection->begin_id,connection->end_id);
+      DPRINTF("%d %d\n",connection->begin_id,connection->end_id);
 
       if(connection->line)
 	    gtk_object_destroy(GTK_OBJECT(connection->line));
@@ -1271,10 +1271,10 @@ canvas_add_node_from_filter(GnomeCanvas *canvas, filter_t *filter,double x, doub
 	gnome_canvas_item_move(GNOME_CANVAS_ITEM(item),x,y);
 	sprintf(numberbuffer,"%8f",x);
 	if(filter_set_property(filter,"canvas_x",numberbuffer))
-				fprintf(stderr,"set prop failed\n");
+				DPRINTF("set prop failed\n");
 	sprintf(numberbuffer,"%8f",y);
 	if(filter_set_property(filter,"canvas_y",numberbuffer))
-		fprintf(stderr,"set prop failed\n");
+		DPRINTF("set prop failed\n");
 	return GTK_OBJECT(item);
 }
 
@@ -1439,7 +1439,7 @@ static void canvas_save_as(GtkWidget*w,GlameCanvas *glCanv)
 	outf = fopen(filenamebuffer,"w");
 	buffer = filter_to_string(GLAME_CANVAS(glCanv)->net->net);
 	DPRINTF("Network .scm is:\n%s\n", buffer);
-	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
+	DPRINTF("(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
 	free(buffer);
 	fclose(outf);
 }
@@ -1662,7 +1662,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 	switch(gnome_dialog_run_and_close(GNOME_DIALOG(dialog)))
 	{
 	case 2:
-		fprintf(stderr,"%s\n",paramnamebuffer);
+		DPRINTF("%s\n",paramnamebuffer);
 		if(paramnamebuffer){
 			iter = filterparamdb_get_param(db,paramnamebuffer);
 			if(iter){
@@ -1672,7 +1672,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 					newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
 				if(newparam){
 					if(filterparam_redirect(newparam,iter))
-						fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
+						DPRINTF("Failed to redirect: %s\n",filterparam_label(iter));
 				}
 				
 			}
@@ -1685,7 +1685,7 @@ static void canvas_item_redirect_parameters(GtkWidget *bla, GlameCanvasItem *ite
 			newparam = filterparamdb_add_param(topleveldb,filterparam_label(iter),filterparam_type(iter),filterparam_val(iter),FILTERPARAM_END);
 			if(newparam){
 				if(filterparam_redirect(newparam,iter))
-					fprintf(stderr,"Failed to redirect: %s\n",filterparam_label(iter));
+					DPRINTF("Failed to redirect: %s\n",filterparam_label(iter));
 			}
 		}
 		break;
@@ -1818,7 +1818,7 @@ draw_network(filter_t *filter)
 	gboolean immutable; 
 	
 	if(!FILTER_IS_NETWORK(filter)){
-		fprintf(stderr,"Not a network!\n");
+		DPRINTF("Not a network!\n");
 		return NULL;
 	}
 	net = malloc(sizeof(gui_network));

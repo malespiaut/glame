@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.24 2001/04/24 16:32:51 richi Exp $
+ * $Id: gui.c,v 1.25 2001/04/25 15:50:42 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -124,7 +124,7 @@ gui_network_new(void)
 	net->net = filter_creat(NULL);
 	net->openedUp = FALSE;
 	if(!(net->net))
-		fprintf(stderr,"Error creating network!\n");
+		DPRINTF("Error creating network!\n");
 	canv=canvas_new_from_network(net);
 	return net;
 }
