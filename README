@@ -1,4 +1,4 @@
-This is GLAME 0.4.0 - GNU/Linux Audio Mechanics stable release.
+This is GLAME 0.5.0CVS - GNU/Linux Audio Mechanics stable release.
 
 GLAME is meant to be the GIMP of audio processing. It is designed to be
 a powerful, fast, stable, and easily extensible sound editor for Linux
@@ -17,7 +17,12 @@ with their real names
 CVS, mailinglist and homepage are hosted by sourceforge. Have a look at
 http://glame.sourceforge.net/ or http://www.glame.de/
 
-Tuebingen 25.04.2001
+For end user discussion and sharing of tips and tricks regarding the use of
+GLAME, join the mailing list <glame-users@lists.sourceforge.net>.
+Subscription information can be found at 
+http://sourceforge.net/mail/?group_id=1627
+
+Tuebingen 03.05.2001
 
 
 Quick Start for the impatient
