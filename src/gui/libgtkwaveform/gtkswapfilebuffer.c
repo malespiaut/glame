@@ -1,5 +1,5 @@
 /*
- * $Id: gtkswapfilebuffer.c,v 1.11 2001/05/05 14:36:13 richi Exp $
+ * $Id: gtkswapfilebuffer.c,v 1.12 2001/05/13 11:58:59 richi Exp $
  *
  * Copyright (c) 2000 Richard Guenther
  *
@@ -92,9 +92,11 @@ gtk_swapfile_buffer_finalize (GtkObject *obj)
 
 	for (i=0; i<swapfile->nrtracks; i++) {
 		sw_close(swapfile->fd[i]);
-		glsig_delete_handler(swapfile->handler[i]);
+		if (swapfile->handler[i])
+			glsig_delete_handler(swapfile->handler[i]);
 	}
-	glsig_delete_handler(swapfile->handler[swapfile->nrtracks]);
+	if (swapfile->handler[swapfile->nrtracks])
+		glsig_delete_handler(swapfile->handler[swapfile->nrtracks]);
 	free(swapfile->swfile);
 	free(swapfile->fd);
 	free(swapfile->handler);
@@ -413,14 +415,17 @@ static void handle_swfile(glsig_handler_t *handler, long sig, va_list va)
 		break;
 	}
 	case GPSM_SIG_ITEM_DESTROY: {
-		DPRINTF("FIXME - kill the window.\n");
+		int i;
+		for (i=0; i<=swapfile->nrtracks; i++)
+			if (swapfile->handler[i] == handler)
+				swapfile->handler[i] = NULL;
 		break;
 	}
 	default:
 		DPRINTF("Unhandled signal %li\n", sig);
 	}
 }
-GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
+GtkObject *gtk_swapfile_buffer_new(gpsm_grp_t *item)
 {
 	GtkSwapfileBuffer *swapfile;
 	swfd_t *fd;
@@ -431,54 +436,45 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 	int rate = -1;
 	int i;
 
+	/* Sanity first. */
+	if (!item || !GPSM_ITEM_IS_GRP(item))
+		return NULL;
+
 	/* First obtain information about the to be displayed channels.
 	 * Ensure theyre equal sized and rated. */
-	if (GPSM_ITEM_IS_GRP(item)) {
-		gpsm_grp_foreach_item(item, it) {
-			gpsm_item_t *it2;
-			if (!GPSM_ITEM_IS_SWFILE(it))
-				return NULL;
-			if (rate == -1)
-				rate = gpsm_swfile_samplerate(it);
-			if (gpsm_swfile_samplerate(it) != rate)
-				return NULL;
-			gpsm_grp_foreach_item(item, it2)
-				if (GPSM_ITEM_IS_SWFILE(it2)
-				    && it != it2
-				    && gpsm_swfile_filename(it) == gpsm_swfile_filename(it2))
-					return NULL;
-			nrtracks++;
-		}
-		if (nrtracks == 0)
+	gpsm_grp_foreach_item(item, it) {
+		gpsm_item_t *it2;
+		if (!GPSM_ITEM_IS_SWFILE(it))
 			return NULL;
-	} else {
-		nrtracks = 1;
-		rate = gpsm_swfile_samplerate(item);
+		if (rate == -1)
+			rate = gpsm_swfile_samplerate(it);
+		if (gpsm_swfile_samplerate(it) != rate)
+			return NULL;
+		gpsm_grp_foreach_item(item, it2)
+			if (GPSM_ITEM_IS_SWFILE(it2)
+			    && it != it2
+			    && gpsm_swfile_filename(it) == gpsm_swfile_filename(it2))
+				return NULL;
+		nrtracks++;
 	}
+	if (nrtracks == 0)
+		return NULL;
 
 	fd = calloc(nrtracks, sizeof(swfd_t));
 	swfile = calloc(nrtracks, sizeof(gpsm_swfile_t *));
 	handler = calloc(nrtracks+1, sizeof(glsig_handler_t *));
 
-	
-	if (GPSM_ITEM_IS_GRP(item)) {
-		i = 0;
-		gpsm_grp_foreach_item(item, it) {
-			swfile[i] = (gpsm_swfile_t *)it;
-			if ((fd[i] = sw_open(gpsm_swfile_filename(it),
-					     O_RDONLY)) == -1)
-				goto err;
-			i++;
-		}
-	} else {
-		swfile[0] = (gpsm_swfile_t *)item;
-		if ((fd[0] = sw_open(gpsm_swfile_filename(item),
+	i = 0;
+	gpsm_grp_foreach_item(item, it) {
+		swfile[i] = (gpsm_swfile_t *)it;
+		if ((fd[i] = sw_open(gpsm_swfile_filename(it),
 				     O_RDONLY)) == -1)
 			goto err;
+		i++;
 	}
 
 	swapfile = gtk_type_new (GTK_TYPE_SWAPFILE_BUFFER);
-	swapfile->item = item;
+	swapfile->item = (gpsm_item_t *)item;
 	swapfile->size = gpsm_item_hsize(item);
 	swapfile->nrtracks = nrtracks;
 	swapfile->swfile = swfile;
@@ -490,7 +486,7 @@ GtkObject *gtk_swapfile_buffer_new(gpsm_item_t *item)
 					       handle_swfile, swapfile);
 	}
 	handler[nrtracks] = glsig_add_handler(gpsm_item_emitter(item),
-					      GPSM_SIG_ITEM_CHANGED,
+					      GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_DESTROY,
 					      handle_swfile, swapfile);
 
 	return GTK_OBJECT(swapfile);
