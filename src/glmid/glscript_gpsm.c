@@ -232,7 +232,7 @@ static SCM gls_gpsm_grp_items(SCM s_item)
 	gpsm_item_t *item, *it;
 	SCM s_items = SCM_EOL;
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
-		   SCM_ARG1, "gpsm-grp_items");
+		   SCM_ARG1, "gpsm-grp-items");
 	item = scm2gpsmitem(s_item);
 	if (GPSM_ITEM_IS_GRP(item)) {
 		gpsm_grp_foreach_item(item, it)
