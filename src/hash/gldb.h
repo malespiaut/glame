@@ -3,7 +3,7 @@
 
 /*
  * gldb.h
- * $Id: gldb.h,v 1.6 2000/10/28 13:44:16 richi Exp $
+ * $Id: gldb.h,v 1.7 2000/12/12 17:11:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -70,8 +70,11 @@ struct gldb_ops {
 	gldb_item_t *(*copy)(gldb_item_t *source);
 
 	/* After add operations. May reject the item by
-	 * returning -1. */
-	int (*add)(gldb_t *, gldb_item_t *);
+	 * returning -1. The last param is the copied
+	 * item if the add was resulted by a item/db copy
+	 * or NULL otherwise. Can be used to do special
+	 * after add copy operations. */
+	int (*add)(gldb_t *, gldb_item_t *, gldb_item_t *);
 };
 
 /* Database. Just a hook for items, &items provides

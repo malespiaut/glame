@@ -53,6 +53,22 @@ static long param_smob_tag;
 #define scminvalidateparam(s) scminvalidatepointer(s, param_smob_tag)
 #define param_p(s) (SCM_NIMP(s) && SCM_CAR(s) == param_smob_tag)
 
+static int print_param(SCM param_smob, SCM port, scm_print_state *pstate)
+{
+	struct pointer_smob *param = SCM2POINTERSMOB(param_smob);
+	filter_param_t *p;
+	char buf[256], *val;
+
+	p = (filter_param_t *)param->pointer;
+	snprintf(buf, 255, "#<param %s %s>",
+		 filterparam_label(p),
+		 val = filterparam_to_string(p));
+	scm_puts(buf, port);
+	free(val);
+
+	return 1;
+}
+
 static long plugin_smob_tag;
 #define scm2plugin(s) scm2pointer(s, plugin_smob_tag)
 #define plugin2scm(p) pointer2scm(p, plugin_smob_tag)
@@ -268,7 +284,7 @@ static SCM gls_filterparam_set(filter_paramdb_t *db, SCM s_label, SCM s_val)
 		res = filterparam_set(param, &f);
 	} else if (FILTER_PARAM_IS_STRING(param)) {
 		str = gh_scm2newstr(s_val, &strl);
-		res = filterparam_set(param, str);
+		res = filterparam_set(param, &str);
 		free(str);
 	} else {
 		res = -1;
@@ -724,7 +740,7 @@ int glscript_init_filter()
 	scm_set_smob_equalp(port_smob_tag, equalp_pointer);
 	param_smob_tag = scm_make_smob_type("param",
 					    sizeof(struct pointer_smob));
-	scm_set_smob_print(param_smob_tag, print_pointer);
+	scm_set_smob_print(param_smob_tag, print_param);
 	scm_set_smob_equalp(param_smob_tag, equalp_pointer);
 	plugin_smob_tag = scm_make_smob_type("plugin",
 					     sizeof(struct pointer_smob));

@@ -1,6 +1,6 @@
 /*
  * filter_param.c
- * $Id: filter_param.c,v 1.8 2000/12/11 13:15:23 richi Exp $
+ * $Id: filter_param.c,v 1.9 2000/12/12 17:11:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -83,15 +83,15 @@ static gldb_item_t *paramdb_op_copy(gldb_item_t *source)
 	return ITEM(d);
 }
 
-static int paramdb_op_add(gldb_t *db, gldb_item_t *i)
+static int paramdb_op_add(gldb_t *db, gldb_item_t *i, gldb_item_t *dest)
 {
 	filter_param_t *p = PARAM(i);
 	glsig_handler_t *h;
 
 	/* We can and should not try to do anything with
-	 * items of a db with no node associated. */
+	 * items of a db with no node associated -- we even fail for this now. */
 	if (!((filter_paramdb_t *)p->entry.db)->node)
-		return 0;
+		DERROR("NULL node in parameters database\n");
 
 	/* The task is to fix the signal redirector which
 	 * is probably attached to the item - or just to
@@ -118,7 +118,7 @@ static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
 	gldb_item_t *i;
 	const char *key, *prop;
 
-	if (!db || FILTER_IS_PLUGIN(db->node) || !label)
+	if (!db || FILTER_IS_PLUGIN(db->node) || !label || !val)
 		return NULL;
 
 	if ((i = gldb_query_item(&db->db, label)))
@@ -134,7 +134,7 @@ static filter_param_t *_filterparamdb_add_param(filter_paramdb_t *db,
 	} else if (FILTER_PARAM_IS_SAMPLE(p)) {
 		p->u.sample = *(SAMPLE *)val;
 	} else if (FILTER_PARAM_IS_STRING(p)) {
-		p->u.string = val ? strdup((const char *)val) : NULL;
+		p->u.string = *(const char **)val ? strdup(*(const char **)val) : NULL;
 	}
 
 	if (gldb_add_item(&db->db, ITEM(p), label) == -1) {
@@ -217,7 +217,7 @@ filter_param_t *filterparamdb_add_param_string(filter_paramdb_t *db,
 	va_list va;
 
 	va_start(va, val);
-	p = _filterparamdb_add_param(db, label, type, val, va);
+	p = _filterparamdb_add_param(db, label, type, &val, va);
 	va_end(va);
 
 	return p;
@@ -257,7 +257,9 @@ int filterparam_set(filter_param_t *param, const void *val)
 		return -1;
 
 	/* First try to prevent useless parameter changing.
+	 * -- not a good idea, as parameters are re-set after copydb (121200)
 	 */
+#if 0
 	if (FILTER_PARAM_IS_INT(param)) {
 		if (param->u.i == *(int *)val)
 			return 0;
@@ -268,12 +270,12 @@ int filterparam_set(filter_param_t *param, const void *val)
 		if (param->u.sample == *(SAMPLE *)val)
 			return 0;
 	} else if (FILTER_PARAM_IS_STRING(param)) {
-		if (param->u.string && val
-		    && strcmp(param->u.string, (const char *)val) == 0)
+		if ((!param->u.string && !*val)
+		    || (param->u.string && *val
+		        && strcmp(param->u.string, *(const char **)val) == 0))
 			return 0;
-		free(param->u.string);
-		param->u.string = val ? strdup((const char *)val) : NULL;
 	}
+#endif
 
 	/* Then ask the filter about the change.
 	 */
@@ -290,8 +292,10 @@ int filterparam_set(filter_param_t *param, const void *val)
 	else if (FILTER_PARAM_IS_SAMPLE(param))
 		param->u.sample = *(SAMPLE *)val;
 	else if (FILTER_PARAM_IS_STRING(param)) {
+		/* _first_ copy, then free, in case theyre actually the same... */
+		char *vval = *(const char **)val ? strdup(*(const char **)val) : NULL;
 		free(param->u.string);
-		param->u.string = strdup((const char *)val);
+		param->u.string = vval;
 	}
 
 	/* and signal the change.

@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.2 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_port.c,v 1.3 2000/12/12 17:11:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -39,9 +39,7 @@ static filter_port_t *portdb_alloc_item()
 	p->type = FILTER_PORTTYPE_ANY;
 	p->flags = FILTER_PORTFLAG_INPUT;
 
-	/* Init the parameter database - providing the node is
-	 * deferred until add. */
-	filterparamdb_init(&p->params, NULL);
+	/* Init the parameter database is deferred until add. */
 
 	INIT_LIST_HEAD(&p->pipes);
 	p->nr_pipes = 0;
@@ -81,10 +79,9 @@ static gldb_item_t *portdb_op_copy(gldb_item_t *source)
 	/* Copy signal handlers, not the redirectors. */
 	glsig_copy_handlers(&d->emitter, &s->emitter);
 
-	/* Copy type/flags and parameters. */
+	/* Copy type/flags. Parameter db copying is deferred until add. */
 	d->type = s->type;
 	d->flags = s->flags;
-	filterparamdb_copy(&d->params, &s->params);
 
 	/* We do NOT copy the pipes! This needs to be done
 	 * manually, as both ends (ports) have to exist and
@@ -94,7 +91,7 @@ static gldb_item_t *portdb_op_copy(gldb_item_t *source)
 	return &d->entry;
 }
 
-static int portdb_op_add(gldb_t *db, gldb_item_t *i)
+static int portdb_op_add(gldb_t *db, gldb_item_t *i, gldb_item_t *source)
 {
 	filter_port_t *p = (filter_port_t *)i;
 	filter_t *node = ((filter_portdb_t *)db)->node;
@@ -103,11 +100,14 @@ static int portdb_op_add(gldb_t *db, gldb_item_t *i)
 	 * items of a db with no node associated. But we
 	 * may consider this case an error. */
 	if (!node)
-		DPRINTF("Adding to anonymous db!\n"); //return 0;
+		DERROR("Adding port to anonymous (NULL node) portdb!");
 
-	/* We need to fix the parameter db's knowledge of
-	 * the filter. */
-	p->params.node = node;
+	/* We need to initialize the parameter db now as we know the
+	 * filter. Also we need do the deferred copy of the paramdb,
+	 * if source!=NULL. */
+	filterparamdb_init(&p->params, node);
+	if (source)
+		filterparamdb_copy(&p->params, &((filter_port_t *)source)->params);
 
 	/* Add a redirector to the associated node. */
 	glsig_add_redirector(&p->emitter, ~0, &node->emitter);

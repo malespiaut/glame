@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.34 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: file_io.c,v 1.35 2000/12/12 17:11:25 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -247,11 +247,12 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 	    && strcmp("position", filterparam_label(param)) == 0) {
 		p = filterparam_get_sourcepipe(param);
 		if (RWPRIV(n)->rw->connect(n, p) == -1)
-			filterpipe_delete(p);
+			/* filterpipe_delete(p) -- FIXME, we may not do this. */;
 		return;
 	
         /* filename change! */
 	} else {
+		DPRINTF("filename change to %s\n", filterparam_val_string(param));
 		/* check actual reader */
 		if (RWPRIV(n)->rw) {
 			/* cleanup previous stuff */
@@ -261,7 +262,8 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 			RWPRIV(n)->initted = 0;
 
 			/* try same rw again */
-			if (RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
+			if (filterparam_val_string(param)
+			    && RWPRIV(n)->rw->prepare(n, filterparam_val_string(param)) != -1) {
 				RWPRIV(n)->initted = 1;
 				goto reconnect;
 			}
@@ -269,6 +271,10 @@ static void read_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
 
 		RWPRIV(n)->rw = NULL;
 		RWPRIV(n)->initted = 0;
+
+		/* no filename - no reader */
+		if (!filterparam_val_string(param))
+			return;
 
 		/* search for applicable reader */
 		list_foreach(&readers, rw_t, list, r) {
@@ -329,6 +335,10 @@ static void write_file_fixup_param(glsig_handler_t *h, long sig, va_list va)
         /* only filename change possible in writer. */
 	RWPRIV(n)->initted = 0;
 	RWPRIV(n)->rw = NULL;
+
+	/* no filename - no writer. */
+	if (!filterparam_val_string(param))
+		return;
 
 	/* find applicable writer */
 	list_foreach(&writers, rw_t, list, w) {
@@ -933,17 +943,15 @@ int af_write_f(filter_t *n)
 {
 	filter_pipe_t *in;
 	filter_port_t *port;
-	filter_param_t *param;
-	char *filename=NULL;
+	char *filename;
 	int res=-1;
 	int eofs,bufsiz,wbpos;
 	int i,iat,iass;
 	
 	RWA(n).channelCount=filternode_nrinputs(n);
 
-	if ((param=filternode_get_param(n,"filename")))
-		filename=filterparam_val_string(param);
-	else
+	filename=filterparam_val_string(filternode_get_param(n,"filename"));
+	if (!filename)
 		FILTER_ERROR_RETURN("no filename");
 
 	if (RWA(n).channelCount==0)

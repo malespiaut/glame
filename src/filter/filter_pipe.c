@@ -1,6 +1,6 @@
 /*
  * filter_pipe.h
- * $Id: filter_pipe.c,v 1.1 2000/11/06 09:45:55 richi Exp $
+ * $Id: filter_pipe.c,v 1.2 2000/12/12 17:11:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -49,12 +49,12 @@ static filter_pipe_t *_pipe_alloc(filter_port_t *sourceport,
 	p->dest_fd = -1;
 
 	/* Init & copy of source/dest parameters is delayed!
-	 * -- see filter_network.c::filternetwork_add_connection() */
+	 * -- see filterport_connect() */
 	p->source = sourceport;
 	p->dest = destport;
 
 	/* init emitter - redirector installation is delayed!
-	 * -- see filter_network.c::filternetwork_add_connection() */
+	 * -- see filterport_connect() */
 	INIT_GLSIG_EMITTER(&p->emitter);
 
 	return p;

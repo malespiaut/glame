@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.43 2000/12/12 12:39:56 xwolf Exp $
+ * $Id: filter.c,v 1.44 2000/12/12 17:11:24 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -137,6 +137,7 @@ filter_t *_filter_instantiate(filter_t *f)
 	filter_t *n, *node, *source, *dest;
 	filter_pipe_t *pipe, *p;
 	filter_port_t *port;
+	filter_param_t *param;
 
 	/* allocate new structure. */
 	if (!(n = _filter_alloc()))
@@ -186,12 +187,22 @@ filter_t *_filter_instantiate(filter_t *f)
 					   filterpipe_sourceparamdb(pipe));
 			filterparamdb_copy(filterpipe_destparamdb(p),
 					   filterpipe_destparamdb(pipe));
+			/* Re-set all parameters to correctly call the set_param methods. */
+			filterparamdb_foreach_param(filterpipe_sourceparamdb(p), param)
+				filterparam_set(param, filterparam_val(param));
+			filterparamdb_foreach_param(filterpipe_destparamdb(p), param)
+				filterparam_set(param, filterparam_val(param));
 		}
 	    }
 	}
 
+	/* Let the node init itself. */
 	if (n->init && n->init(n) == -1)
 		goto err;
+
+	/* Re-set all parameters to correctly call the set_param methods. */
+	filterparamdb_foreach_param(filter_paramdb(n), param)
+		filterparam_set(param, filterparam_val(param));
 
 	return n;
 

@@ -1,6 +1,6 @@
 /*
  * gldb_string.c
- * $Id: gldb_string.c,v 1.5 2000/12/11 12:40:00 xwolf Exp $
+ * $Id: gldb_string.c,v 1.6 2000/12/12 17:11:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -56,7 +56,7 @@ gldb_item_t *sop_copy(gldb_item_t *source)
 	return &d->entry;
 }
 
-static int sop_add(gldb_t *db, gldb_item_t *i)
+static int sop_add(gldb_t *db, gldb_item_t *i, gldb_item_t *source)
 {
 	return 0;
 }

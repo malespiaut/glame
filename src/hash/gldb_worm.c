@@ -1,6 +1,6 @@
 /*
  * gldb_worm.c
- * $Id: gldb_worm.c,v 1.4 2000/10/03 13:38:35 richi Exp $
+ * $Id: gldb_worm.c,v 1.5 2000/12/12 17:11:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -41,7 +41,7 @@ static gldb_item_t *worm_copy(gldb_item_t *source)
 	return &d->item;
 }
 
-static int worm_add(gldb_t *db, gldb_item_t *i)
+static int worm_add(gldb_t *db, gldb_item_t *i, gldb_item_t *source)
 {
 	return 0;
 }

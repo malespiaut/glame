@@ -1,6 +1,6 @@
 /*
  * gldb.c
- * $Id: gldb.c,v 1.6 2000/10/28 13:44:16 richi Exp $
+ * $Id: gldb.c,v 1.7 2000/12/12 17:11:24 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -30,6 +30,21 @@
 #define item_in_db(i)          (!list_empty(&(i)->list))
 
 
+int _gldb_add_item(gldb_t *db, gldb_item_t *item, gldb_item_t *source, const char *label)
+{
+	if (gldb_query_item(db, label))
+		return -1;
+	item->db = db;
+	if (!(item->label = strdup(label)))
+		return -1;
+	list_add_item(item, db);
+	if (db->ops->add(db, item, source) == -1) {
+		gldb_remove_item(item);
+		return -1;
+	}
+	return 0;
+}
+
 
 void gldb_init(gldb_t *db, struct gldb_ops *ops)
 {
@@ -54,7 +69,7 @@ int gldb_copy(gldb_t *dest, gldb_t *source)
 		if ((existing = gldb_query_item(dest, item->label))) {
 			gldb_delete_item(existing);
 		}
-		if (gldb_add_item(dest, copy, item->label) == -1) {
+		if (_gldb_add_item(dest, copy, item, item->label) == -1) {
 			gldb_delete_item(copy);
 			return -1;
 		}
@@ -76,17 +91,7 @@ gldb_item_t *gldb_copy_item(gldb_item_t *item)
 
 int gldb_add_item(gldb_t *db, gldb_item_t *item, const char *label)
 {
-	if (gldb_query_item(db, label))
-		return -1;
-	item->db = db;
-	if (!(item->label = strdup(label)))
-		return -1;
-	list_add_item(item, db);
-	if (db->ops->add(db, item) == -1) {
-		gldb_remove_item(item);
-		return -1;
-	}
-	return 0;
+	return _gldb_add_item(db, item, NULL, label);
 }
 
 void gldb_remove_item(gldb_item_t *item)
