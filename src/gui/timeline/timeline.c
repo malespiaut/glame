@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.9 2001/06/27 09:19:12 richi Exp $
+ * $Id: timeline.c,v 1.10 2001/07/03 11:14:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -431,6 +431,16 @@ static void handle_root(glsig_handler_t *handler, long sig, va_list va)
 
 		break;
 	}
+	case GPSM_SIG_ITEM_DESTROY: {
+		TimelineCanvas *canvas;
+
+		canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
+		if (canvas->window)
+			gtk_widget_destroy(canvas->window);
+		else
+			gtk_object_destroy(GTK_OBJECT(canvas));
+		break;
+	}
 	default:
 		DPRINTF("Unhandled signal %li\n", sig);
 	}
@@ -534,7 +544,8 @@ GtkWidget *glame_timeline_new(gpsm_grp_t *root)
 	/* Add handler for item additions/removal in root group. */
 	TIMELINE_CANVAS(canvas)->gpsm_handler1 = glsig_add_handler(
 		gpsm_item_emitter(root), GPSM_SIG_GRP_NEWITEM
-		|GPSM_SIG_GRP_REMOVEITEM, handle_root, canvas);
+		|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_DESTROY,
+		handle_root, canvas);
 
 	/* Add handler for enter events to track the active timeline. */
 	gtk_signal_connect(GTK_OBJECT(canvas),"event", root_event, NULL);
@@ -567,6 +578,7 @@ GtkWidget *glame_timeline_new_with_window(const char *caption,
 	vbox = gtk_vbox_new(FALSE, 5);
 	ruler = gtk_hruler_new();
 	canvas->ruler = GTK_RULER(ruler);
+	canvas->window = window;
 	gtk_ruler_set_metric(GTK_RULER(ruler), GTK_PIXELS);
 	gtk_ruler_set_range(GTK_RULER(ruler), 0.0, 100.0, 0.0, 1000.0);
 	gtk_box_pack_start(GTK_BOX(vbox), ruler, FALSE, FALSE, 0);

@@ -1,7 +1,7 @@
 /*
  * canvas_types.c
  *
- * $Id: canvas_types.c,v 1.9 2001/06/28 08:59:15 richi Exp $
+ * $Id: canvas_types.c,v 1.10 2001/07/03 11:14:12 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -71,6 +71,7 @@ static void timeline_canvas_init(TimelineCanvas *canvas)
 	canvas->active_item = NULL;
 	canvas->active_group = NULL;
 	canvas->ruler = NULL;
+	canvas->window = NULL;
 }
 
 GtkType timeline_canvas_get_type(void)
