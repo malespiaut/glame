@@ -1,6 +1,6 @@
 /*
  * distortion.c
- * $Id: distortion.c,v 1.5 2001/06/05 15:09:55 richi Exp $ 
+ * $Id: distortion.c,v 1.6 2001/07/02 16:16:23 mag Exp $ 
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -204,10 +204,24 @@ int distortion_register(plugin_t *p)
 				    "midpoint for asymmetrical clipping",
 				    FILTERPARAM_END);
 	
-	filterparamdb_add_param_int(param, "mode", FILTER_PARAMTYPE_INT, 0,
-				    FILTERPARAM_DESCRIPTION, 
-				    "(0) halfwave/asymmetrical (1) fullwave rectifier",
-				    FILTERPARAM_END);
+        filterparamdb_add_param_int(param,"mode", 
+				    FILTER_PARAMTYPE_INT, 0, 
+				    FILTERPARAM_DESCRIPTION,
+				    "(0) halfwave/asymmetrical" 
+				    "(1) fullwave rectifier"
+				    "(2) sinusoider",
+				    FILTERPARAM_GLADEXML,
+"<?xml version=\"1.0\"?><GTK-Interface><widget> 
+	<class>GtkOptionMenu</class> 
+	<name>widget</name> 
+	<can_focus>True</can_focus> 
+	<items>Half wave rectifier 
+	Full Wave rectifier
+	Sinusoider</items> 
+	<initial_choice>0</initial_choice> 
+</widget></GTK-Interface>", 
+	FILTERPARAM_END);
+
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "distortion effect");
 	plugin_set(p, PLUGIN_PIXMAP, "distortion.png"); 
