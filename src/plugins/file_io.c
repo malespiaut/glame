@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.64 2001/09/19 12:52:26 mag Exp $
+ * $Id: file_io.c,v 1.65 2001/09/26 08:41:42 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -469,10 +469,14 @@ int file_io_register(plugin_t *p)
 {
 	GLAME_INIT_LIST_HEAD(&readers);
 	GLAME_INIT_LIST_HEAD(&writers);
+
+#ifdef 0
 #ifdef HAVE_LAME
 	add_reader(lame_read_prepare, lame_read_connect,
 		   lame_read_f, lame_read_cleanup);
 #endif
+#endif
+	
 #ifdef HAVE_AUDIOFILE
 	add_reader(af_read_prepare, af_read_connect,
 		   af_read_f, af_read_cleanup);
@@ -1199,6 +1203,7 @@ _bailout:
 	return res;
 }
 
+#ifdef 0
 #ifdef HAVE_LAME
 /* borrowed from lame source */
 #define         MAX_U_32_NUM            0xFFFFFFFF
@@ -1571,6 +1576,7 @@ int lame_read_f(filter_t *n) {
 	return 0;
 }
 
+#endif
 #endif
 
 #endif
