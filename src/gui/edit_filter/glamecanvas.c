@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.40 2001/12/03 12:06:24 richi Exp $
+ * $Id: glamecanvas.c,v 1.41 2001/12/06 08:44:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -32,7 +32,7 @@
 #include "util/glame_gui_utils.h"
 #include "glame_accelerator.h"
 
-     
+#define in_between(x1,x2,test) ((x1)>(test)?0:((x2)<(test)?0:1))
 
 /*  Forward decls */
 
@@ -699,4 +699,21 @@ void glame_canvas_paste_selection(GlameCanvas* canv)
 	filter_expand(newnode);
 	filter_delete(newnode);
 	glame_canvas_full_redraw(canv);
+}
+
+
+GList* glame_canvas_find_items_in_region(GlameCanvas *canv, gdouble x1,gdouble y1,gdouble x2,gdouble y2)
+{
+	GList * retlist=NULL;
+	GlameCanvasFilter* gcf;
+	filter_t *f;
+	filter_foreach_node(canv->net, f){
+		gcf = glame_canvas_find_filter(f);
+		if(gcf){
+			if(in_between(x1,x2,GCI(gcf)->x1))
+				if(in_between(y1,y2,GCI(gcf)->y1))
+					retlist = g_list_append(retlist,gcf);
+		}
+	}
+	return retlist;
 }

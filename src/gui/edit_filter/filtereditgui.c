@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.41 2001/12/02 17:52:56 richi Exp $
+ * $Id: filtereditgui.c,v 1.42 2001/12/06 08:44:54 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -131,7 +131,52 @@ filtereditgui_paste_cb(GtkMenuItem *foo,
 	glame_canvas_paste_selection(canv);
 }
 
+static gboolean 
+root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv);
 
+gdouble lastx,lasty;
+GnomeCanvasRect* selectFrame=NULL;
+
+gint
+glame_canvas_selecting(GlameCanvas* canvas,GdkEvent* event,GlameCanvas* glCanv)
+{
+	gdouble x,y;
+	GList* selection;
+	switch(event->type){
+	case GDK_BUTTON_RELEASE:
+		gtk_object_destroy(GTO(selectFrame));
+		gtk_signal_disconnect_by_func(GTO(canvas),GTK_SIGNAL_FUNC(glame_canvas_selecting),glCanv);
+		gtk_signal_handler_unblock_by_func(GTO(canvas),GTK_SIGNAL_FUNC(root_event),glCanv);
+		gnome_canvas_window_to_world(GNOME_CANVAS(glCanv),event->button.x,event->button.y,&x,&y);
+		selection = glame_canvas_find_items_in_region(glCanv,lastx,lasty,x,y);
+		if(selection){
+			GList *iter = g_list_first(selection);
+			while(iter){
+				glame_canvas_select_add(glCanv,GLAME_CANVAS_FILTER(iter->data));
+				iter = g_list_next(iter);
+
+			}
+		}
+					
+		return TRUE;
+		break;
+	case GDK_MOTION_NOTIFY:
+		if(selectFrame){
+			gnome_canvas_window_to_world(GNOME_CANVAS(glCanv),
+						     event->button.x,event->button.y,
+						     &x,&y);
+			
+			gnome_canvas_item_set(GCI(selectFrame),
+					      "x2",x,
+					      "y2",y,NULL);
+		}
+		break;
+	default:
+		break;
+		
+	}
+}
+		
 static gboolean 
 root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 {
@@ -158,6 +203,29 @@ root_event(GnomeCanvas * canvas, GdkEvent *event, GlameCanvas* glCanv)
 				if(!onItem){
 					menu = GTK_WIDGET(glame_gui_build_plugin_menu(NULL, add_filter_by_plugin_cb));
 					gnome_popup_menu_do_popup(menu,NULL,NULL,&event->button,NULL);
+					return TRUE;
+				}
+			}else{
+				if(!onItem){
+					gnome_canvas_window_to_world(GNOME_CANVAS(glCanv),
+							     event->button.x,
+							     event->button.y,
+							     &lastx,&lasty);
+					selectFrame = GNOME_CANVAS_RECT(gnome_canvas_item_new(
+						 gnome_canvas_root(GNOME_CANVAS(glCanv)),
+						 gnome_canvas_rect_get_type(),
+						 "x1",lastx,
+						 "x2",lastx,
+						 "y1",lasty,
+						 "y2",lasty,
+						 "outline_color","black",
+						 "width_units",1.0,
+						 NULL));
+				
+						 
+										     
+					gtk_signal_handler_block_by_func(GTO(canvas),GTK_SIGNAL_FUNC(root_event),glCanv);
+					gtk_signal_connect(GTO(canvas),"event",GTK_SIGNAL_FUNC(glame_canvas_selecting),glCanv);
 					return TRUE;
 				}
 			}

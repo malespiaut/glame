@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.17 2001/11/28 00:19:06 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.18 2001/12/06 08:44:55 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -104,10 +104,12 @@ void glame_canvas_set_zoom(GlameCanvas* canv, double pixelPerPoint);
 double glame_canvas_get_zoom(GlameCanvas* canv);
 void glame_canvas_view_all(GlameCanvas* canv);
 
+GList* glame_canvas_find_items_in_region(GlameCanvas *canv, gdouble x1,gdouble y1,gdouble x2,gdouble y2);
 /* a refresh, adds missing/new nodes, too */
 void glame_canvas_redraw(GlameCanvas *canv);
 
-/* a full redraw, kills all gui and regenerates it */
+/* a full redraw, kills all gui and regenerates it,
+   use with care, destroys grouping/selection */
 void glame_canvas_full_redraw(GlameCanvas *canv);
 
 GlameCanvas* glame_canvas_find_canvas(filter_t *net);
