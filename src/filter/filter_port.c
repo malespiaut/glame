@@ -1,6 +1,6 @@
 /*
  * filter_port.c
- * $Id: filter_port.c,v 1.3 2000/12/12 17:11:24 richi Exp $
+ * $Id: filter_port.c,v 1.4 2001/05/28 08:08:38 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -51,6 +51,9 @@ static void portdb_op_delete(gldb_item_t *item)
 {
 	filter_port_t *p = (filter_port_t *)item;
 	filter_pipe_t *pipe;
+
+	/* Signal port deletion. */
+	glsig_emit(&p->emitter, GLSIG_PORT_DELETED, p);
 
 	/* First remove all connections. */
 	while ((pipe = filterport_get_pipe(p)))

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.70 2001/05/18 15:07:21 xwolf Exp $
+ * $Id: filter.h,v 1.71 2001/05/28 08:08:38 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -62,6 +62,7 @@ extern "C" {
  * GLSIG_PARAM_DELETED  - filter_param_t
  * GLSIG_PIPE_CHANGED   - filter_pipe_t
  * GLSIG_PIPE_DELETED   - filter_pipe_t
+ * GLSIG_PORT_DELETED   - filter_port_t
  * GLSIG_FILTER_DELETED - filter_t
  * GLSIG_FILTER_CHANGED - filter_t
  */
@@ -71,6 +72,7 @@ extern "C" {
 #define GLSIG_PIPE_DELETED 8
 #define GLSIG_FILTER_DELETED 16
 #define GLSIG_FILTER_CHANGED 32
+#define GLSIG_PORT_DELETED 64
 
 #define STATE_UNDEFINED 0
 #define STATE_INITIALIZED 1
