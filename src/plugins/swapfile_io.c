@@ -1,6 +1,6 @@
 /*
  * swapfile_io.c
- * $Id: swapfile_io.c,v 1.26 2002/02/17 13:53:31 richi Exp $
+ * $Id: swapfile_io.c,v 1.27 2002/05/29 22:22:47 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -282,8 +282,8 @@ static int swapfile_out_f(filter_t *n)
 		filter_paramdb(n), FILTERPARAM_LABEL_POS);
 	filterparam_val_set_pos(pos_param, 0);
 	pos = 0;
-	offset = drop;
 	changed_start = MAX(0, offset);
+	offset = drop;
 
 	FILTER_AFTER_INIT;
 
