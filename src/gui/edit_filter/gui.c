@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.17 2001/04/06 22:38:07 xwolf Exp $
+ * $Id: gui.c,v 1.18 2001/04/15 17:07:32 mag Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -339,6 +339,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 		}
 		list = g_list_next(list);
 	}
+	DPRINTF("Finished with update_params\n");
 	return TRUE;
 }
 

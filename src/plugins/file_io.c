@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.43 2001/04/10 13:58:31 richi Exp $
+ * $Id: file_io.c,v 1.44 2001/04/15 17:07:32 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -689,6 +689,7 @@ void wav_read_cleanup(filter_t *n)
 	free(RWW(n).p);
 	if (RWW(n).map)
 		munmap(RWW(n).map, RWW(n).size);
+	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
 }
 	
 /* TODO: Speed optimization, handle more formats. */
@@ -804,15 +805,11 @@ int af_read_prepare(filter_t *n, const char *filename)
 		        "overriding to unsigned.\n");
 	}
 		
-			
-
-	if (RWA(n).buffer) free(RWA(n).buffer);
 	if ((RWA(n).buffer=(short int*)malloc(GLAME_WBUFSIZE*RWA(n).frameSize))==NULL){
 		DPRINTF("Couldn't allocate buffer\n");
 		return -1;
 	}
 	RWA(n).cbuffer=(char *)RWA(n).buffer;
-	if (RWA(n).track) free(RWA(n).track);
 	if (!(RWA(n).track=ALLOCN(RWA(n).channelCount,track_t))){
 		DPRINTF("Couldn't allocate track buffer\n");
 		return -1;
@@ -967,7 +964,8 @@ void af_read_cleanup(filter_t *n)
 {
 	free(RWA(n).buffer);
 	free(RWA(n).track);
-	afCloseFile(RWA(n).file);	
+	afCloseFile(RWA(n).file);
+	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
 }
 
 int af_write_f(filter_t *n)
@@ -1083,20 +1081,13 @@ int lame_read_prepare(filter_t *n, const char *filename)
 		return -1; 
 	}
 	
-	if (RWM(n).mp3data == NULL) {
-		DPRINTF("allocating mp3data\n");
-		RWM(n).mp3data = ALLOCN(1, mp3data_struct);
-	}
+	RWM(n).mp3data = ALLOCN(1, mp3data_struct);
 	/*
 	if (RWM(n).lgflags == NULL) {
 		DPRINTF("allocating lgflags\n");
 		RWM(n).lgflags = ALLOCN(1, lame_global_flags);
 	}
 	*/
-	if (RWM(n).track) {
-		DPRINTF("Freeing track\n");
-		free(RWM(n).track);
-	}
 	max = 0;
 	do {
 		len = read(RWM(n).fd, buffer, 10); /* reading larger buffers doesn't work !*/
@@ -1109,7 +1100,7 @@ int lame_read_prepare(filter_t *n, const char *filename)
 			return -1;
 		}
 		max++;
-	} while ((!RWM(n).mp3data->header_parsed) || (max>200));
+	} while ((!RWM(n).mp3data->header_parsed) && (max!=200));
 	if (!RWM(n).mp3data->header_parsed)
 		return -1;
 	RWM(n).start = lseek(RWM(n).fd, 0, SEEK_CUR);
@@ -1147,11 +1138,7 @@ void lame_read_cleanup(filter_t *n) {
 	close(RWM(n).fd);
 	free(RWM(n).track);
 	free(RWM(n).mp3data);
-	RWM(n).mp3data = NULL;
-	RWM(n).track = NULL;
-	/*
-	free(RWM(n).lgflags);
-	*/
+	memset(&(RWPRIV(n)->u), 0, sizeof(RWPRIV(n)->u));
 	DPRINTF("cleanup finished\n");
 };
 
