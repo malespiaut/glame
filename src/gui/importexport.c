@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.31 2004/01/06 22:59:56 richi Exp $
+ * $Id: importexport.c,v 1.32 2004/01/06 23:16:51 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -283,7 +283,7 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 		     struct mad_pcm *pcm)
 {
 	struct imp_s *ie = data;
-	int i;
+	int i, now = 0;
 
 	/* Need to ignore frames with (recovered) error. */
 	if (ie->mad_err) {
@@ -329,9 +329,11 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 
 		/* Expand file, if we're going into the next IO sized chunk. */
 		if (ie->mad_pos/GLAME_IO_BUFSIZE
-		    < (ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE)
+		    < (ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE) {
 			sw_ftruncate(ie->mad_swfds[i],
 				     GLAME_IO_BUFSIZE*(1+(ie->mad_pos+pcm->length)/GLAME_IO_BUFSIZE));
+			now = 1;
+		}
 
 		while (nsamples--)
 		    *b++ = mad_f_todouble(*data++);
@@ -341,10 +343,9 @@ ie_import_mp3_output(void *data, struct mad_header const *header,
 
 	ie->mad_pos += pcm->length;
 
-	/* show progress, be friendly to gtk 
-	gtk_progress_bar_set_fraction(
-		gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)),
-		(double)ie->mad_pos/(double)ie->mad_length); */
+	/* show progress, be friendly to gtk */
+	if (now)
+		gtk_progress_bar_pulse(gnome_appbar_get_progress(GNOME_APPBAR(ie->appbar)));
 	while (gtk_events_pending())
 		gtk_main_iteration();
 	if (ie->cancelled)
