@@ -1,6 +1,6 @@
 /*
  * file_mp3_out.c
- * $Id: file_mp3_out.c,v 1.6 2004/02/29 21:39:24 ochonpaul Exp $
+ * $Id: file_mp3_out.c,v 1.7 2004/03/22 22:53:53 ochonpaul Exp $
  *
  * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
  *
@@ -146,11 +146,7 @@ static int write_mp3_file_f(filter_t * n)
 	/* mp3_buf = ALLOCN(mp3_buf_size, unsigned char); */
 	gfp = lame_init();
 	id3tag_init(gfp);
-
-	/* lame_set_num_channels(gfp, channelCount); */
-/* 	printf("number of channel in Glame%i\n",channelCount); */
-/* 	printf("number of channel in Lame%i\n",lame_get_num_channels(gfp)); */
-
+	
 	quality = filterparam_val_long(filterparamdb_get_param(filter_paramdb(n), "lame encoding quality"));
 	if (lame_set_quality(gfp, quality)<0) FILTER_ERROR_STOP ("error  setting lame quality.");
 	DPRINTF("qual %i\n",quality);
@@ -185,6 +181,7 @@ static int write_mp3_file_f(filter_t * n)
 				    ("error  setting lame mode.");
 	DPRINTF("mode %i\n",mode);
 	
+	lame_set_bWriteVbrTag(gfp,0);
 	id3tag_set_title(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Title")));
 	id3tag_set_artist(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Artist")));
 	id3tag_set_album(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Album")));
@@ -193,7 +190,7 @@ static int write_mp3_file_f(filter_t * n)
 	id3tag_set_track(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Track")));
 	if (id3tag_set_genre(gfp,filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "Id3tag_Genre"))))
 	  {printf("Bad genre, default to no genre\n");}
-
+	/* id3tag_add_v2(gfp); */
 	ret_code = lame_init_params(gfp);
 	if (ret_code < 0)
 		FILTER_ERROR_STOP ("couldn't init lame.");
@@ -263,6 +260,7 @@ static int write_mp3_file_f(filter_t * n)
 
 	written = lame_encode_flush(gfp, mp3_buf, sizeof(mp3_buf));	/* may return one more mp3 frame */
 	count = fwrite(mp3_buf, 1, written, mp3_file);
+	lame_mp3_tags_fid(gfp,NULL); 
 	lame_close(gfp);
 	fclose(mp3_file);	/* close the output file */
 
@@ -280,42 +278,6 @@ static int write_mp3_file_connect_in(filter_port_t * port,
        
 	return 0;
 }
-
-
-
-static const char *const genre_names[] =
-{
-    /*
-     * NOTE: The spelling of these genre names is identical to those found in
-     * Winamp and mp3info.
-     */
-    "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
-    "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B",
-    "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska",
-    "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient", "Trip-Hop",
-    "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental",
-    "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "Alt. Rock",
-    "Bass", "Soul", "Punk", "Space", "Meditative", "Instrumental Pop",
-    "Instrumental Rock", "Ethnic", "Gothic", "Darkwave", "Techno-Industrial",
-    "Electronic", "Pop-Folk", "Eurodance", "Dream", "Southern Rock", "Comedy",
-    "Cult", "Gangsta Rap", "Top 40", "Christian Rap", "Pop/Funk", "Jungle",
-    "Native American", "Cabaret", "New Wave", "Psychedelic", "Rave",
-    "Showtunes", "Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
-    "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk",
-    "Folk/Rock", "National Folk", "Swing", "Fast-Fusion", "Bebob", "Latin",
-    "Revival", "Celtic", "Bluegrass", "Avantgarde", "Gothic Rock",
-    "Progressive Rock", "Psychedelic Rock", "Symphonic Rock", "Slow Rock",
-    "Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech",
-    "Chanson", "Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass",
-    "Primus", "Porn Groove", "Satire", "Slow Jam", "Club", "Tango", "Samba",
-    "Folklore", "Ballad", "Power Ballad", "Rhythmic Soul", "Freestyle", "Duet",
-    "Punk Rock", "Drum Solo", "A Cappella", "Euro-House", "Dance Hall",
-    "Goa", "Drum & Bass", "Club-House", "Hardcore", "Terror", "Indie",
-    "BritPop", "Negerpunk", "Polsk Punk", "Beat", "Christian Gangsta Rap",
-    "Heavy Metal", "Black Metal", "Crossover", "Contemporary Christian",
-    "Christian Rock", "Merengue", "Salsa", "Thrash Metal", "Anime", "JPop",
-    "Synthpop"
-};
 
 
 int write_mp3_file_register(plugin_t * pl)
