@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.26 2003/05/25 18:11:14 richi Exp $
+ * $Id: importexport.c,v 1.27 2003/07/03 20:17:52 nold Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -193,7 +193,14 @@ static void ie_import_ogg(struct imp_s *ie)
 	while (1) {
 		SAMPLE **ssbuf;
 		int current_section;
-		ret = ov_read_float(&vf, &ssbuf, GLAME_BULK_BUFSIZE, &current_section);
+		/* Vorbis folks, read my lips. Changing calling convention
+		 * without changing the function name is calling for trouble.
+		 */
+		ret = ov_read_float(&vf, &ssbuf, 
+#if (GL_OV_READ_FLOAT_ARGS == 4)
+		                    GLAME_BULK_BUFSIZE, 
+#endif
+				    &current_section);
 		if (ret <= 0) /* error or EOF */
 			break;
 
