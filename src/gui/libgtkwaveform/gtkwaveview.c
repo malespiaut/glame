@@ -1776,7 +1776,7 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
   gtk_wave_view_calc_channel_locs (waveview);
 
   if (wavebuffer) {
-	  GtkWidget *tb, *vbox;
+	  GtkWidget *tb, *hbox;
 	  int cnt;
 #if 0
 	  GList *list;
@@ -1788,19 +1788,19 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 #endif
 	  cnt = gtk_wave_buffer_get_num_channels(wavebuffer);
 	  while (cnt--) {
-		  vbox = gtk_vbox_new(FALSE, 0);
+		  hbox = gtk_hbox_new(FALSE, 0);
 		  /* rec */
 		  tb = gtk_toggle_button_new();
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
-		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_box_pack_start(GTK_BOX(hbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
 				     (GtkSignalFunc)on_tb_realize_cb, rec_xpm);
 		  /* mute */
 		  tb = gtk_toggle_button_new();
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
-		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_box_pack_start(GTK_BOX(hbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
 				     (GtkSignalFunc)on_tb_realize_cb, mute_xpm);
 		  /* select */
@@ -1808,15 +1808,15 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 		  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
-		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_box_pack_start(GTK_BOX(hbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
 				     (GtkSignalFunc)on_tb_realize_cb, sel_xpm);
 		  gtk_signal_connect(GTK_OBJECT(tb), "toggled",
 				     (GtkSignalFunc)on_select_tb_toggled_cb, waveview);
 		  gtk_object_set_user_data(GTK_OBJECT(tb),
 			(gpointer)(gtk_wave_buffer_get_num_channels(wavebuffer)-cnt-1));
-		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
-		  gtk_widget_show_all(vbox);
+		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), hbox, TRUE, FALSE, 0);
+		  gtk_widget_show_all(hbox);
 	  }
   }
 }
