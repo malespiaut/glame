@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.20 2001/12/23 14:55:46 nold Exp $
+@comment $Id: gui.texi,v 1.21 2002/01/09 19:29:41 richi Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -614,6 +614,9 @@ hardware, so this is only a hint and specifying values less than
 32 will probably only hurt performance.
 @end table
 
+Note that if you have certain sound daemons running such as @code{artsd}
+from KDE or @code{esd} from GNOME you may need to kill them before you
+can access your audio devices from within GLAME.
 
 
 @node The Import Dialog, The Export Dialog, The Preferences Dialog, Dialogs
