@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.10 2001/04/22 15:27:30 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.11 2001/04/29 11:48:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -268,4 +268,95 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 					 pattern);
         create_label_widget_pair(dialogVbox, "Filename", fileEntry);
 	return dialog;
+}
+
+
+
+struct gpi_s {
+	GtkWidget *widget;
+	filter_param_t *pos;
+	long size;
+	glsig_handler_t *handler;
+	guint tid;
+};
+static void gpi_widget_destroy(GtkWidget *w, struct gpi_s *gpi)
+{
+	gtk_timeout_remove(gpi->tid);
+	glsig_delete_handler(gpi->handler);
+	free(gpi);
+}
+static void gpi_param_delete(glsig_handler_t *handler, long sig, va_list va)
+{
+	struct gpi_s *gpi = glsig_handler_private(handler);
+	gtk_object_destroy(GTK_OBJECT(gpi->widget));
+}
+static gint gpi_timeout(struct gpi_s *gpi)
+{
+	gfloat state = (float)filterparam_val_pos(gpi->pos)/(float)gpi->size;
+	gtk_progress_bar_update(GTK_PROGRESS_BAR(gpi->widget), state);
+	return TRUE;
+}
+GtkWidget *glame_progress_indicator(filter_param_t *pos, long size)
+{
+	struct gpi_s *gpi;
+
+	if (!pos)
+		return NULL;
+
+	gpi = ALLOC(struct gpi_s);
+	gpi->pos = pos;
+	gpi->size = size;
+
+	gpi->widget = gtk_progress_bar_new();
+	gtk_progress_bar_set_bar_style(GTK_PROGRESS_BAR(gpi->widget),
+				       GTK_PROGRESS_CONTINUOUS);
+	gtk_progress_bar_set_orientation(GTK_PROGRESS_BAR(gpi->widget),
+					 GTK_PROGRESS_LEFT_TO_RIGHT);
+	gpi->tid = gtk_timeout_add(200, (GtkFunction)gpi_timeout, gpi);
+
+	gpi->handler = glsig_add_handler(&pos->emitter, GLSIG_PARAM_DELETED,
+					 gpi_param_delete, gpi);
+	gtk_signal_connect(GTK_OBJECT(gpi->widget), "destroy",
+			   gpi_widget_destroy, gpi);
+
+	return gpi->widget;
+}
+
+
+
+struct garn_s {
+	filter_t *net;
+	guint tid;
+	GtkFunction callback;
+	gpointer data;
+};
+gint garn_poll(struct garn_s *garn)
+{
+	if (!filter_is_ready(garn->net))
+		return TRUE;
+	filter_terminate(garn->net);
+	filter_delete(garn->net);
+	if (garn->callback)
+		garn->callback(garn->data);
+	free(garn);
+	return FALSE;
+}
+int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data)
+{
+	struct garn_s *garn;
+
+	if (filter_launch(net) == -1)
+		return -1;
+	garn = ALLOC(struct garn_s);
+	garn->net = net;
+	garn->callback = callback;
+	garn->data = data;
+	garn->tid = gtk_timeout_add(500, (GtkFunction)garn_poll, garn);
+	if (filter_start(net) == -1) {
+		gtk_timeout_remove(garn->tid);
+		filter_terminate(net);
+		free(garn);
+		return -1;
+	}
+	return 0;
 }

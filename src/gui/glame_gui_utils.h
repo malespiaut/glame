@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.11 2001/04/25 15:55:22 nold Exp $
+ * $Id: glame_gui_utils.h,v 1.12 2001/04/29 11:48:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -91,6 +91,19 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 				     const char *history_id, const char *label,
 				     const char *pattern,
 				     char *returnbuffer);
+
+/* Create a progress indicator (gtk progress bar, if size > 0, gnome
+ * animator if size == -1) that polls parameter pos. The progress indicator
+ * widget is destroyed on parameter destruction, early destruction of
+ * the widget is handled fine. */
+GtkWidget *glame_progress_indicator(filter_param_t *pos, long size);
+
+
+/* Run a network asynchronily and clean up (network) after completion
+ * (displaying an error log, if a failure occured). Returns 0, if network
+ * start was ok, -1 on error in which case the network is not deleted.
+ * Runs the provided callback after completion (or not, if NULL). */
+int glame_async_run_network(filter_t *net, GtkFunction callback, gpointer data);
 
 
 #endif
