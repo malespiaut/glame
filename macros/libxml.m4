@@ -311,3 +311,41 @@ main()
   AC_SUBST(XML_LIBS)
   rm -f conf.xmltest
 ])
+
+dnl AMG_XML_HEADERS()
+dnl Test for XML header dir prefix, and define HAVE_LIBXML, HAVE_GNOMEXML
+dnl
+AC_DEFUN(AMG_XML_HEADERS,[ 
+  ac_save_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $XML_CFLAGS"
+
+  AC_MSG_CHECKING(for xml headers in gnome-xml)
+  AC_TRY_COMPILE([
+#include <stdlib.h>
+#include <stdio.h>
+#include <gnome-xml/tree.h>
+],[
+],
+[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(HAVE_GNOMEXML)
+],[
+  AC_MSG_RESULT([no])
+])
+
+  AC_MSG_CHECKING(for xml headers in libxml)
+  AC_TRY_COMPILE([
+#include <stdlib.h>
+#include <stdio.h>
+#include <libxml/tree.h>
+],[
+],
+[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(HAVE_LIBXML)
+],[
+  AC_MSG_RESULT([no])
+])
+
+
+])

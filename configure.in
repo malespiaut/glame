@@ -152,6 +152,7 @@ Hint: You also need to have the appropriate xml development package
 installed, usually called libxml-dev, libxmld, or similar.])
 ])
 ])
+AMG_XML_HEADERS()
 
 
 dnl
