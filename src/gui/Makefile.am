@@ -21,7 +21,7 @@ glame_SOURCES = main.c \
 	waveeditgui.c waveeditgui.h
 glame_LDADD = ../glmid/libglame.la edit_filter/libeditfilter.la \
         libgtkwaveform/libgtkwaveform.la libglameguiutils.la\
-	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(GLAME_FFT_LIBS) $(XML_LIBS)
+	$(GNOME_LIBDIR) $(GLAME_LIBS) $(GNOME_LIBS) $(GNOMEUI_LIBS) $(XML_LIBS)
 glame_LDFLAGS = -export-dynamic
 
 #timeline_SOURCES = timeline.c

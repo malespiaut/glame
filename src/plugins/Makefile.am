@@ -38,7 +38,7 @@ endif
 
 libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c rms.c
-libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
+libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS)
 
 
 # (optional) real plugins
@@ -77,7 +77,7 @@ flanger_la_LDFLAGS = -module -avoid-version
 if HAVE_FFTW
 fft_plugins_la_SOURCES = fft_plugins.c
 endif
-fft_plugins_la_LDFLAGS = -module -avoid-version
+fft_plugins_la_LDFLAGS = -module -avoid-version $(GLAME_FFT_LIBS)
 
 if HAVE_OSS
 audio_io_oss_la_SOURCES = audio_io_oss.c audio_io.h
