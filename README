@@ -75,9 +75,11 @@ Requirements
   version 0.11.3.
 - For full-featured I/O to files a recent version of libaudiofile is
   needed (at least 0.2.2 is required for libaudiofile support to be
-  included)
+  included).
 - For full-featured I/O to your soundcard use ALSA version 0.9, though
-  OSS may suffice, too
+  OSS may suffice, too.
+- Glame uses Gnome1 at the moment, Gnome2 users may read the BUGS file
+  and search for workarounds for some problems there.
 
 
 Current Status (as of version 0.7.1):

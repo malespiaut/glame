@@ -82,3 +82,11 @@ Summary of known bugs and misfeatures in GLAME
 
 07-15-01 Not all (nearly none) parameters of filternetworks show realtime
   response on modification while a network is running.
+
+12-01-02 If you are using the Gnome2 desktop and cannot view the Glame
+  help-files you need to update your Gnome1 configuration and change
+  in your .gnome/Gnome config file the line reading
+  info-show=gnome-help-browser "%s"
+  to something suited for Gnome2, like
+  info-show=gnome-help "%s"
+
