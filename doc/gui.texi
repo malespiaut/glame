@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.17 2001/12/16 21:47:05 richi Exp $
+@comment $Id: gui.texi,v 1.18 2001/12/16 22:58:12 mag Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -632,8 +632,63 @@ hardware, so this is only a hint and specifying values less than
 @node The Import Dialog, The Export Dialog, The Preferences Dialog, Dialogs
 @subsection The Import Dialog
 
+The import dialog is spawned by either selecting the menu entry "Edit File" or
+"Import" from the main window. This dialog is mostly self explaining. Select
+a file by typing the name or search it with the file browser. There some other
+buttons you can toggle:
+
+@table @code
+@item "Get RMS & DC Offset"
+Extract statistic information from the selected audiofile. RMS is the root mean 
+square of the select file, which gives a measure the file's signal amplitude.
+DC Offset shows the mean deviation of the signal from zero. For a perfectly
+symmetric sampler hardware the dc offset should be zero. In case your soundcard
+records an asymmetric signal, this is the measure for it. You can remove such
+a dc offset with a @pxref{highpass} filter with cutoff frequency set to 0 Hz.
+@item "Resample"
+If you check the resample button you can enter your desired frequency. The file
+is then resampled to this frequency while importing. NOTE: The current resampling
+is FFT based. If you select a new frequency whose ratio to the old one is other
+than a power of 2, resampling can be very slow. Sorry, but you get really good
+quality.
+@item "Import"
+Starts the import of the file.
+@item "Cancel"
+Cancels the current action.
+@end table
+
 @node The Export Dialog, The Apply Filter Dialog, The Import Dialog, Dialogs
 @subsection The Export Dialog
+
+The export dialog appears in case you select "Export..." from the popup menu or
+@pxref{The Wave Editor}. The dialog contains the following buttons:
+
+@table @code
+@item "File Format"
+You can either select "auto" or a specific filetype supported by libaudiofile.
+In case you select "auto" the formattype is chosen by the suffix of the file.
+@item "Compression Type"
+If this button is active you can chose a compression codec.
+@item "Sample Format"
+Here you can chose the sample frame format. NOTE: Not all sampletypes work
+will all formats. In case your combination is not supported an error requester
+will pop up.
+@item "Render Options"
+You have three choices:
+@table @code
+@item "original"
+The number of channels in your current project is preserved while saving, e.g. you can save
+a wav file with an arbitrary number of channels!
+@item "mono"
+The project is rendered into a mono file.
+@item "stereo"
+The project is rendered into a stereo file. Channels are panned according to their given position.
+@end table
+@item "Export"
+Export the current project.
+@item "Cancel"
+Cancels the current action.
+@end table
 
 @node The Apply Filter Dialog, , The Export Dialog, Dialogs
 @subsection The Apply Filter Dialog
