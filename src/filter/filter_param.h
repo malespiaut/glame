@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.15 2001/06/18 08:23:44 richi Exp $
+ * $Id: filter_param.h,v 1.16 2001/07/10 09:33:58 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -102,6 +102,7 @@ typedef struct {
  * filter_t *filterparam_filter(filter_paramt_t *); */
 #define filterparam_label(p) ((p)->entry.label)
 #define filterparam_filter(p) (((filter_paramdb_t *)((p)->entry.db))->node)
+#define filterparam_emitter(p) (&(p)->emitter)
 
 /* Public access macros for the parameter type and the union
  * int filterparam_type(filter_param_t *);
