@@ -80,6 +80,11 @@ int clipboard_paste(gpsm_item_t *item, long pos);
  * Returns 0 on success, -1 on error. */
 int clipboard_replace(gpsm_item_t *item, long pos);
 
+/* Does a "mix" (add) operation on the specified gpsm subtree at the
+ * position pos. The contents of the clipboard do not change.
+ * Returns 0 on success, -1 on error. */
+int clipboard_mix(gpsm_item_t *item, long pos);
+
 
 
 #endif

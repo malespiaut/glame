@@ -300,7 +300,8 @@ static void mix_cb(GtkWidget *bla, GtkWaveView *waveview)
 		return;
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
-	/* FIXME */
+	if (clipboard_mix(item, pos) == -1)
+		DPRINTF("Error mixing\n");
 	gtk_wave_view_set_selection(waveview, pos, size);
 }
 
@@ -453,7 +454,7 @@ static void play_cleanup(glsig_handler_t *handler,
 	gtk_widget_destroy(g_list_nth(gtk_container_children(
 		GTK_CONTAINER(waveedit->toolbar)), 6)->data);
 	gtk_toolbar_insert_item(GTK_TOOLBAR(waveedit->toolbar),
-				_("Play"), _("Play"), _("Play"),
+				_("Play/Record"), _("PlayRecord"), _("PlayRecord"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
 				playrecordtoolbar_cb, waveedit->waveview, 9);
 
@@ -1003,7 +1004,7 @@ static GtkWidget *waveedit_build_menu(GtkWaveView *waveview)
 				 && (marker_pos >= 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_MIX_INDEX].widget,
 				 clipboard_can_paste(item)
-				 && (marker_pos >= 0) ? FALSE /* TRUE */: FALSE);
+				 && (marker_pos >= 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_DELETE_INDEX].widget,
 				 (sel_length > 0) ? TRUE : FALSE);
 	gtk_widget_set_sensitive(edit_menu[EDIT_MENU_UNDO_INDEX].widget,
@@ -1480,7 +1481,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	 * FIXME. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Play"), _("Play"), _("Play"),
+				_("Play/Record"), _("Play/Record"), _("Play/Record"),
 				gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_FORWARD),
 				playrecordtoolbar_cb, window->waveview);
 #if 0

@@ -338,3 +338,72 @@ int clipboard_replace(gpsm_item_t *item, long pos)
 
 	return 0;
 }
+
+int clipboard_mix(gpsm_item_t *item, long pos)
+{
+	gpsm_swfile_t *source, *dest;
+
+	if (!item || pos < 0 || !clipboard_can_paste(item))
+		return -1;
+
+	/* mix from single file into single file is simple. */
+	source = (gpsm_swfile_t *)gpsm_grp_first(root);
+	if (GPSM_ITEM_IS_SWFILE(item))
+		dest = (gpsm_swfile_t *)item;
+	else
+		dest = (gpsm_swfile_t *)gpsm_grp_first(item);
+	goto entry;
+
+	do {
+		swfd_t sfd, dfd;
+		SAMPLE *ss, *ds;
+		long spos, dpos, cnt, size;
+		struct sw_stat sstat, dstat;
+
+		dest = (gpsm_swfile_t *)gpsm_grp_next(item, dest);
+
+	entry:
+		size = cnt = MIN(gpsm_item_hsize(source), gpsm_item_hsize(dest) - pos);
+		sfd = sw_open(gpsm_swfile_filename(source), O_RDONLY);
+		dfd = sw_open(gpsm_swfile_filename(dest), O_RDWR);
+
+		while (cnt > 0) {
+			sw_lseek(sfd, (size - cnt)*SAMPLE_SIZE, SEEK_SET);
+			sw_lseek(dfd, (pos + size - cnt)*SAMPLE_SIZE, SEEK_SET);
+			sw_fstat(sfd, &sstat);
+			sw_fstat(dfd, &dstat);
+			if (sstat.cluster_size & 3 || dstat.cluster_size & 3)
+				DPRINTF("Bogous cluster size\n");
+			spos = size - cnt - sstat.cluster_start/SAMPLE_SIZE;
+			dpos = pos + size - cnt - dstat.cluster_start/SAMPLE_SIZE;
+
+			if (!(dpos*SAMPLE_SIZE < dstat.cluster_size
+			      && spos*SAMPLE_SIZE < sstat.cluster_size)) {
+				DPRINTF("Bogous cluster setup?\n");
+				break;
+			}
+
+			ss = (SAMPLE *)sw_mmap(0, PROT_READ, MAP_SHARED, sfd);
+			ds = (SAMPLE *)sw_mmap(0, PROT_READ|PROT_WRITE,
+					       MAP_SHARED, dfd);
+			while (cnt > 0
+			       && dpos*SAMPLE_SIZE < dstat.cluster_size
+			       && spos*SAMPLE_SIZE < sstat.cluster_size) {
+				ds[dpos] += ss[spos];
+				dpos++;
+				spos++;
+				cnt--;
+			}
+			sw_munmap(ss);
+			sw_munmap(ds);
+		}
+
+		sw_close(sfd);
+		sw_close(dfd);
+
+		gpsm_notify_swapfile_change(gpsm_swfile_filename(dest), pos, size);
+
+	} while ((source = (gpsm_swfile_t *)gpsm_grp_next(root, source)));
+
+	return 0;
+}
