@@ -1,9 +1,9 @@
 /*
  * ladspa.c
  *
- * $Id: ladspa.c,v 1.19 2003/05/18 11:31:16 richi Exp $
+ * $Id: ladspa.c,v 1.20 2003/05/18 21:21:36 richi Exp $
  * 
- * Copyright (C) 2000 Richard Furse, Alexander Ehlert
+ * Copyright (C) 2000-2003 Richard Furse, Alexander Ehlert, Richard Guenther
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -811,6 +811,9 @@ int installLADSPAPlugin(const LADSPA_Descriptor * psDescriptor,
 		plugin_set(psPlugin, PLUGIN_DESCRIPTION, pcBuffer);
 		/* We deliberately do not call free() here. */
 	}
+
+	if (psDescriptor->Name)
+		plugin_set(psPlugin, PLUGIN_LABEL, psDescriptor->Name);
 
 	filter_register(psFilter, psPlugin);
 
