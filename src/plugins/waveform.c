@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.12 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: waveform.c,v 1.13 2000/12/08 10:53:09 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -223,6 +223,6 @@ int const_register(plugin_t *p)
 				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "constant signal");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Synthesis");
 	return filter_register(f, p);
 }

@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.14 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: basic.c,v 1.15 2000/12/08 10:53:09 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -123,7 +123,7 @@ int drop_register(plugin_t *p)
 	f->connect_in = drop_connect_in;
 	plugin_set(p, PLUGIN_DESCRIPTION, "drops n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "dumpster.xpm");
-	plugin_set(p, PLUGIN_CATEGORY, "basic");
+	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
 
 	return filter_register(f, p);
 }

@@ -159,7 +159,7 @@ int pan_register(plugin_t *p)
 	f->set_param = pan_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
-	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 		
 	filter_register(f, p);
 	

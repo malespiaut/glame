@@ -1,6 +1,6 @@
 /*
  * debug.c
- * $Id: debug.c,v 1.7 2000/11/06 09:48:08 richi Exp $
+ * $Id: debug.c,v 1.8 2000/12/08 10:53:09 xwolf Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -117,7 +117,7 @@ int ping_register(plugin_t *p)
 	filterparamdb_add_param_int(filter_paramdb(f), "size",
 				FILTER_PARAMTYPE_INT, 128,
 				FILTERPARAM_END);
-
+	plugin_set(p, PLUGIN_CATEGORY, "Basic");
 	filter_register(f, p);
 
 	return 0;

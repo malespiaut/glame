@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.8 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: iir.c,v 1.9 2000/12/08 10:53:09 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -392,7 +392,7 @@ int iir_register(plugin_t *p)
 	
 	plugin_set(p, PLUGIN_DESCRIPTION, "iir effect");
 	plugin_set(p, PLUGIN_PIXMAP, "iir.xpm");
-	plugin_set(p, PLUGIN_CATEGORY, "Math");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
 	
 	filter_register(f, p);
 

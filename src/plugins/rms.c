@@ -1,6 +1,6 @@
 /*
  * rms.c
- * $Id: rms.c,v 1.10 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: rms.c,v 1.11 2000/12/08 10:53:09 xwolf Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -215,6 +215,7 @@ int debugrms_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Eats rms buffers and shows debug output");
 	plugin_set(p, PLUGIN_PIXMAP, "debug.xpm");
+	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
 
 	filter_register(f, p);
 	

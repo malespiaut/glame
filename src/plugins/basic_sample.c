@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.19 2000/12/08 10:24:18 xwolf Exp $
+ * $Id: basic_sample.c,v 1.20 2000/12/08 10:53:09 xwolf Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -523,7 +523,7 @@ int mix_register(plugin_t *p)
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams");
 	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
-
+	plugin_set(p, PLUGIN_CATEGORY, "Connectors");
 	return filter_register(f, p);
 }
 
