@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.53 2001/05/23 12:34:24 richi Exp $
+ * $Id: main.c,v 1.54 2001/05/29 07:40:13 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -532,8 +532,7 @@ static void gui_quit(GtkWidget *widget, gpointer data)
 
 static void gui_main()
 {
-	GtkWidget *dock;
-	GtkWidget *appbar;
+	GtkWidget *dock, *appbar, *scrollview;
 	char configpath[255];
 	char *path;
 
@@ -552,10 +551,20 @@ static void gui_main()
 	gpsm_init(path);
 	g_free(path);
 
-	/* create swapfile gui */
+	/* create swapfile gui - in a scrolled window */
 	swapfile = glame_swapfile_widget_new(gpsm_root());
 	if (!swapfile)
 		return;
+	scrollview = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollview),
+				       GTK_POLICY_ALWAYS,
+				       GTK_POLICY_ALWAYS);
+	gtk_scrolled_window_set_placement(GTK_SCROLLED_WINDOW(scrollview),
+					  GTK_CORNER_TOP_RIGHT);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrollview),
+					      swapfile);
+	gtk_widget_show(swapfile);
+	gtk_widget_show(scrollview);
 
 	/* Create main window. */
 	app = gnome_app_new ("glame0.5", NULL);
@@ -574,8 +583,8 @@ static void gui_main()
 	/* Connect signals and insert swapfile gui into the main window. */
 	gtk_signal_connect(GTK_OBJECT(app), "delete-event",
 			   GTK_SIGNAL_FUNC(gui_quit), NULL);
-	gtk_widget_show(swapfile);
-	gnome_app_set_contents(GNOME_APP(app),swapfile);
+	gnome_app_set_contents(GNOME_APP(app), scrollview);
+	gtk_window_set_default_size(GTK_WINDOW(app), 500, 300);
 	gtk_widget_show(app);
 
 	/* Pop up splash screen. */
