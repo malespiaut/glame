@@ -1,4 +1,4 @@
-@comment $Id: glsignal.texi,v 1.2 2000/12/11 10:41:58 richi Exp $
+@comment $Id: glsignal.texi,v 1.3 2001/03/30 08:52:02 richi Exp $
 
 @node GLAME Signal Interface, Function and Type Index, GLAME Database Interface, Top
 @chapter GLAME Signal Interface
@@ -47,7 +47,8 @@ Brief description of the available API follows:
 @tindex glsig_emitter_t
 @deftypefun void glsig_emit ( glsig_emitter_t *@var{emitter}, int @var{sig}, ...)
   Emits the signal sig from the emitter and provides the varargs
-  to the callbacks. signals are emitted bottom to top in the hierarchy.
+  to the callbacks. Signals are emitted bottom to top in the hierarchy.
+  It is safe to remove your signal handler during execution.
 @end deftypefun
 
 @tindex glsig_emitter_t
@@ -75,4 +76,9 @@ Brief description of the available API follows:
   Use with care.
 @end deftypefun
 
+@tindex glsig_handler_t
+@deftypefun void glsig_handler_exec ( glsig_handler_t *@var{h}, int @var{sig}, ...)
+  Executes the specified signal handler. Usually you dont want to use
+  this, instead use @code{glsig_emit()}.
+@end deftypefun
 

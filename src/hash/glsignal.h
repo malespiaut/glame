@@ -3,7 +3,7 @@
 
 /*
  * glsignal.h
- * $Id: glsignal.h,v 1.9 2000/10/28 13:43:27 richi Exp $
+ * $Id: glsignal.h,v 1.10 2001/03/30 08:52:02 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -57,7 +57,8 @@
  *
  * void glsig_emit(glsig_emitter_t *emitter, int sig, ...);
  *   Emits the signal sig from the emitter and provides the varargs
- *   to the callbacks. signals are emitted bottom to top in the hierarchy.
+ *   to the callbacks. Signals are emitted bottom to top in the hierarchy.
+ *   It is safe to remove your signal handler during execution.
  *
  * int glsig_copy_handlers(glsig_emitter_t *dest, glsig_emitter_t *source);
  *   Copies all handlers from one emitter to another - same "private"
@@ -75,6 +76,10 @@
  * void glsig_delete_all(glsig_emitter_t *emitter);
  *   Removes and destroyes all signal handlers from the specified emitter.
  *   Use with care.
+ *
+ * void glsig_handler_exec(glsig_handler_t *h, long sig, ...);
+ *   Executes the specified signal handler. Usually you dont want to use
+ *   this, instead use glsig_emit().
  */
 
 #include <stdarg.h>
@@ -129,13 +134,22 @@ void glsig_delete_handler(glsig_handler_t *h);
 void glsig_delete_all(glsig_emitter_t *e);
 
 
+static inline void glsig_handler_exec(glsig_handler_t *h, long sig, ...)
+{
+	va_list va;
+	va_start(va, sig);
+	h->handler(h, sig, va);
+	va_end(va);
+}
+
 static inline void glsig_emit(glsig_emitter_t *e, long sig, ...)
 {
 	glsig_handler_t *h;
+	struct list_head *dummy;
 	va_list va;
 
 	va_start(va, sig);
-	list_foreach(&e->handlers, glsig_handler_t, list, h) {
+	list_safe_foreach(&e->handlers, glsig_handler_t, list, dummy, h) {
 		if (!(h->sigmask & sig))
 			continue;
 		h->handler(h, sig, va);
