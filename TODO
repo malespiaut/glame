@@ -4,34 +4,15 @@ supposed to fix it.
 Stuff that was postponed for 0.4.x:
 -----------------------------------
 
-plugins/
-	[all]
-	- provide pixmaps for all plugins (missing: echo, fft friends,
-          iir, noisegate, pan, rms, time, ...)
-	- merge mix1 & mix2 [richi]
-        - move time (and rename) into waveform
-
-gui/
-	[xwolf]
-	- kool splashscreen?
-
-swapfile/
-	[richi]
-	- do fsck on every mount (fast, non-destructive) to check
-          integrity
-
-
-Stuff scheduled for 0.5 or later:
----------------------------------
-
 doc/
-	- document gpsm [richi]
 	- better documentation for scheme API
   	- filter writing tutorial?
 
 plugins/
 	[all]
 	- file_io needs fixed libaudiofile support
+	- provide pixmaps for all plugins (missing: echo, fft friends,
+          iir, noisegate, pan, rms, time, ...)
 
 hash/
 	[all]
@@ -50,7 +31,7 @@ filter/
 
 swapfile/
         [richi]
-	- implement the transactions, restore undo/redo
+	- simplify as much as possible / increase performance
 
 hash/
 	[richi]
@@ -60,12 +41,14 @@ hash/
 glmid/
 	[richi]
 	- script gpsm
+	- add simple undo/redo stack to gpsm
 
 gui/
 	[all]
 	- the timeline stuff is still missing
 	[xwolf]
 	- D&D in swapfile/wave/filternet
+	- kool splashscreen?
 
 gui/edit_filter
 	[xwolf]
