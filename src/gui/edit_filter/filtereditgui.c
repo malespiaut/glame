@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.44 2001/12/11 21:12:27 richi Exp $
+ * $Id: filtereditgui.c,v 1.45 2001/12/13 00:21:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -513,6 +513,27 @@ static SCM gls_editfilter_new(SCM s_filter)
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_editfilter_collapse_selection()
+{
+	glame_canvas_collapse_selection(glcanvas);
+	return SCM_UNSPECIFIED;
+}
+static SCM gls_editfilter_expand_selected()
+{
+	filter_t *filter;
+	GlameCanvasFilter* gfilter;
+	
+	GList * selection = glame_canvas_get_selected_items(glcanvas);
+	if(selection)
+		if(g_list_length(selection)==1){
+			GList * first = g_list_first(selection);
+			gfilter = glame_canvas_find_filter(first->data);
+			if(gfilter)
+				glame_canvas_filter_expand_node(gfilter);
+		}
+	return SCM_UNSPECIFIED;
+}
+				
 void
 glame_filtereditgui_init(void)
 {
@@ -532,7 +553,10 @@ glame_filtereditgui_init(void)
 			    gls_editfilter_ungroup_selected);
 	gh_new_procedure1_0("editfilter-new",
 			    gls_editfilter_new);
-
+	gh_new_procedure0_0("editfilter-collapse-selection",
+			    gls_editfilter_collapse_selection);
+	gh_new_procedure0_0("editfilter-expand-selected",
+			    gls_editfilter_expand_selected);
 	nPopupTimeout = glame_config_get_long_with_default(
 		"edit_filter/popupTimeout", 200);
 	bMac = glame_config_get_long_with_default(

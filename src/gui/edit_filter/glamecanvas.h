@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.19 2001/12/06 23:53:05 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.20 2001/12/13 00:21:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -97,6 +97,8 @@ GdkImlibImage*  glame_gui_get_icon_from_filter(filter_t* t);
 char* glame_gui_get_font(GlameCanvas* canv);
 
 void glame_canvas_execute(GlameCanvas* canv);
+filter_t *glame_canvas_collapse_selection(GlameCanvas* canv);
+void glame_canvas_expand_selection(GlameCanvas* canv);
 void glame_canvas_register(GlameCanvas* canv, const char* filtername, const char* category);
 void glame_canvas_save(GlameCanvas* canv, const char* filename, const char* filtername, const char* category);
 void glame_canvas_property_dialog(GlameCanvas* canv);

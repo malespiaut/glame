@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.43 2001/12/06 23:53:05 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.44 2001/12/13 00:21:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -727,4 +727,46 @@ GList* glame_canvas_find_items_in_region(GlameCanvas *canv, gdouble x1,gdouble y
 void glame_canvas_select_item(GlameCanvas* canv, GlameCanvasFilter* filter)
 {
 	glame_canvas_group_select(GLAME_CANVAS_GROUP(GNOME_CANVAS_ITEM(filter)->parent));
+}
+
+filter_t* glame_canvas_collapse_selection(GlameCanvas * canv)
+{
+
+	GList *items = glame_canvas_get_selected_items(canv), *n;
+	filter_t *net, **nodes, *first;
+	int i;
+	GnomeCanvas *filter;
+	
+	gdouble x1,y1,x2,y2;
+	char buffer[10];
+	if (!items)
+		return NULL;
+	if(g_list_length(items)<2)
+		return NULL;
+	
+	nodes = alloca(sizeof(filter_t *)*(g_list_length(items)+1));
+	for (i=0, n = g_list_first(items); n != NULL; n = g_list_next(n), i++) {
+		nodes[i] = (filter_t *)(n->data);
+	}
+	nodes[i] = NULL;
+	
+	filter = glame_canvas_find_filter(nodes[0]);
+	
+	net = filter_collapse("Collapsed", nodes);
+	if (!net) {
+		DPRINTF("Error collapsing selection\n");
+		return NULL;
+	}
+	
+	if(filter){
+		gnome_canvas_item_get_bounds(GCI(filter),&x1,&y1,&x2,&y2);
+		
+		snprintf(buffer,9,"%.1f",x1); 
+		filter_set_property(net, "canvas_x", buffer);
+		
+		snprintf(buffer,9,"%.1f",y1); 
+		filter_set_property(net, "canvas_y", buffer);
+	}
+	glame_canvas_full_redraw(canv);
+	return net;
 }

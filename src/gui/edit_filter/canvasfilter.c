@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.46 2001/12/06 23:53:05 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.47 2001/12/13 00:21:35 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -785,7 +785,12 @@ static void glame_canvas_paste_selection_cb(GtkWidget *foo, GlameCanvasFilter* f
 {
 	glame_canvas_paste_selection(CANVAS_ITEM_GLAME_CANVAS(filter));
 }
+
 static void glame_canvas_filter_expand_node_cb(GtkWidget* foo, GlameCanvasFilter* filter)
+{
+	glame_canvas_filter_expand_node(filter);
+}
+void glame_canvas_filter_expand_node(GlameCanvasFilter* filter)
 {
 	filter_t* iter;
 	char buf[3];
@@ -836,30 +841,15 @@ void glame_canvas_filter_destroy_all(GnomeCanvas* canvas)
 
 static void glame_canvas_filter_collapse_selection_cb(GtkWidget* foo, GlameCanvasFilter* filter)
 {
+	filter_t *net;
+	gdouble x1,x2,y1,y2;
+	char buffer[20];
 	GlameCanvas* canv = CANVAS_ITEM_GLAME_CANVAS(filter);
-	GList *items = glame_canvas_get_selected_items(canv), *n;
-	filter_t *net, **nodes;
-	int i;
-	gdouble x1,y1,x2,y2;
-	char buffer[10];
-	if (!items)
-		return;
-	if(g_list_length(items)<2)
-		return;
 	
+	net = glame_canvas_collapse_selection(canv);
+	if(!net)return;
 	gnome_canvas_item_get_bounds(GCI(filter),&x1,&y1,&x2,&y2);
-
-	nodes = alloca(sizeof(filter_t *)*(g_list_length(items)+1));
-	for (i=0, n = g_list_first(items); n != NULL; n = g_list_next(n), i++) {
-		nodes[i] = (filter_t *)(n->data);
-	}
-	nodes[i] = NULL;
-
-	net = filter_collapse("Collapsed", nodes);
-	if (!net) {
-		DPRINTF("Error collapsing selection\n");
-		return;
-	}
+	
 	snprintf(buffer,9,"%.1f",x1); 
 	filter_set_property(net, "canvas_x", buffer);
 	
