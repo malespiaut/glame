@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.35 2001/04/26 13:27:24 mag Exp $
+ * $Id: basic_sample.c,v 1.36 2001/04/27 13:43:25 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -21,7 +21,7 @@
  *
  * This file contains basic filters that operate using the sample
  * filter protocol. Contained are
- * - mix, mix2
+ * - mix
  * - volume-adjust
  * - delay
  * - extend
@@ -40,7 +40,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat fade")
+PLUGIN_SET(basic_sample, "mix volume_adjust delay extend repeat fade")
 
 
 
@@ -70,7 +70,7 @@ PLUGIN_SET(basic_sample, "mix mix2 volume_adjust delay extend repeat fade")
  * - (all fifos are full, there is not enough data for an output)
  *   not possible
  */
-static int mix(filter_t *n, int drop)
+static int mix_f(filter_t *n)
 {
 	typedef struct {
 		filter_pipe_t *in;
@@ -97,7 +97,7 @@ static int mix(filter_t *n, int drop)
 	fd_set rset, wset;
 	SAMPLE *s, **js;
 	float factor, gain, *jf;
-	int nr, nr_done, nr_eof;
+	int nr, nr_done, nr_eof, drop;
 	int max_fifo_size;
 
 	/* We require at least one connected input and
@@ -168,8 +168,12 @@ static int mix(filter_t *n, int drop)
 		p[i].out_pos -= cnt;
 	}
 
-	if (have_feedback && !drop)
-		FILTER_ERROR_CLEANUP("Mix has feedback");
+	/* FIXME: drop only after all non-feedback channels have
+	 * completed. */
+	if (have_feedback)
+		drop = 1;
+	else
+		drop = 0;
 
 
 	FILTER_AFTER_INIT;
@@ -446,16 +450,6 @@ static int mix(filter_t *n, int drop)
 	FILTER_RETURN;
 }
 
-static int mix_f(filter_t *n)
-{
-	return mix(n, 1);
-}
-
-static int mix2_f(filter_t *n)
-{
-	return mix(n, 0);
-}
-
 /* shared destination pipe property fixup code (rate & phi) */
 static int mix_fixup(filter_t *n, filter_pipe_t *out)
 {
@@ -570,62 +564,12 @@ int mix_register(plugin_t *p)
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
 			  mix_handler, NULL);
 
-	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until first stream end allowing feedback");
+	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until all non-feedback inputs end allowing feedback");
 	plugin_set(p, PLUGIN_PIXMAP, "mix1.png");
 	plugin_set(p, PLUGIN_CATEGORY, "Routing");
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
 	return filter_register(f, p);
 }
-
-int mix2_register(plugin_t *p)
-{
-	filter_t *f;
-	filter_port_t *port;
-
-        if (!(f = filter_creat(NULL)))
-		return -1;
-
-	port = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
-				     FILTER_PORTTYPE_SAMPLE,
-				     FILTER_PORTFLAG_INPUT,
-				     FILTERPORT_DESCRIPTION, "input stream",
-				     FILTERPORT_END);
-	filterparamdb_add_param_float(filterport_paramdb(port), "gain",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filterport_paramdb(port), "offset",
-				      FILTER_PARAMTYPE_TIME_MS, 0.0,
-				      FILTERPARAM_END);
-
-	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
-			      FILTER_PORTTYPE_SAMPLE,
-			      FILTER_PORTFLAG_OUTPUT,
-			      FILTERPORT_DESCRIPTION, "mixed stream",
-			      FILTERPORT_END);
-
-	filterparamdb_add_param_float(filter_paramdb(f), "gain",
-				      FILTER_PARAMTYPE_FLOAT, 1.0,
-				      FILTERPARAM_END);
-	filterparamdb_add_param_float(filter_paramdb(f), "position",
-				      FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
-				      FILTERPARAM_END);
-
-	f->f = mix2_f;
-	f->connect_in = mix_connect_in;
-	f->connect_out = mix_connect_out;
-
-	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED|GLSIG_PIPE_CHANGED,
-			  mix_handler, NULL);
-
-	plugin_set(p, PLUGIN_DESCRIPTION, "mix n streams until the last input stream ended");
-	plugin_set(p, PLUGIN_PIXMAP, "mix2.png");
-	plugin_set(p, PLUGIN_CATEGORY, "Routing");
-	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
-  
-	return filter_register(f, p);
-}
-
-
 
 
 

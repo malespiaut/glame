@@ -1,4 +1,4 @@
-@comment $Id: plugins.texi,v 1.23 2001/04/27 13:27:17 richi Exp $
+@comment $Id: plugins.texi,v 1.24 2001/04/27 13:43:25 richi Exp $
 
 @node Plugin Collection, Filter API, Console Frontend, Top
 @chapter Plugin Collection
@@ -322,12 +322,8 @@ applied several times to different ports, it has to be duplicated first.
 to speak.
 
 @file{mix} on the other hand acts as a junction and merges several data
-streams into one, just like an ordinary mixing desk. The @file{mix} plugin
-comes in two flavours, @file{mix}, and @file{mix2}. The only time to worry
-about the differences is when you want to create loops in your network: 
-@file{mix} drops all input data after the first input stream has terminated,
-@file{mix2} continues to mix available inputs instead. Otherwise @file{mix}
-and @file{mix2} are identical. Use @file{mix} for mixing feedback.
+streams into one, just like an ordinary mixing desk.  @file{mix} drops
+all input data after all non-feedback input streams have terminated.
 
 @subsubheading @file{drop} ports
 @table @code
