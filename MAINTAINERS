@@ -7,12 +7,11 @@ Please add the filenames which are considered to belong to the
 subsystem, too.
 
 swapfile: richi
-	doc/swapfile.txt
 	swapfile/*
 
 filter: richi
-	doc/filter.txt
 	filter/filter*
+	filter/* unless covered by other maintainers
 
 hash: richi
 	hash/*

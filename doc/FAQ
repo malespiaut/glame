@@ -1,0 +1,23 @@
+Introduction
+============
+
+This file is intendet to evolve to a (frequently) asked questions with
+answers document. To make this work people with questions should add
+a line like
+Q: I dont know nothing! Can you help me?
+to the end of this file. Anyone who likes to answer to the question may
+then add a line like
+A[richi]: Well, no. RTFM!
+after the question. TeXnold is supposed to do some moderating (i.e. spelling
+fixes and reordering of Q & A) some times. Also topics that came up on
+the development list or in the forum could be integrated as Q&A here (also
+nolds task...)
+
+
+Questions and Answers
+=====================
+
+Q: Why are there nor questions neither answers yet?
+A[richi]: Now there are at least one of both. You are supposed to add
+   questions about anything you want to know.
+
