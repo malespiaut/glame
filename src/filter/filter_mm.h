@@ -15,7 +15,7 @@ void _portdesc_free(filter_portdesc_t *d);
 filter_pipe_t *_pipe_alloc(filter_portdesc_t *source, filter_portdesc_t *dest);
 void _pipe_free(filter_pipe_t *p);
 
-filter_t *_filter_alloc(const char *name, const char *description, int flags);
+filter_t *_filter_alloc(int flags);
 void _filter_free(filter_t *f);
 
 filter_launchcontext_t *_launchcontext_alloc();

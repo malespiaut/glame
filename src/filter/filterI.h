@@ -167,7 +167,10 @@ struct filter_pipe {
 	filter_param_t, list)
 #define filterpipe_first_destparam(p) list_gethead(&(p)->source_params, \
 	filter_param_t, list)
-
+#define filterpipe_foreach_sourceparam(p, parm) \
+        list_foreach(&(p)->source_params, filter_param_t, list, parm)
+#define filterpipe_foreach_destparam(p, parm) \
+        list_foreach(&(p)->dest_params, filter_param_t, list, parm)
 
 
 /* the global filter hash and list */
@@ -267,6 +270,8 @@ struct filter_node {
         filter_pipe_t, output_list)
 #define filternode_first_param(node) list_gethead(&(node)->params, \
         filter_param_t, list)
+#define filternode_foreach_param(node, p) \
+        list_foreach(&(n)->params, filter_param_t, list, p)
 
 #define filternode_clear_error(n) \
 do { \
@@ -311,9 +316,9 @@ struct filter_network {
         __hash_pos(filter_node_t, hash, name, net))
 
 
+/* drain pipe to unblock source.
+ */
+void fbuf_drain(filter_pipe_t *p);
+
 
 #endif
-
-
-
-

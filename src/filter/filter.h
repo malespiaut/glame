@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.41 2000/03/17 07:33:14 mag Exp $
+ * $Id: filter.h,v 1.42 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -102,7 +102,7 @@ struct filter {
 
 	int (*fixup_param)(filter_node_t *n, filter_pipe_t *p,
 			   const char *name, filter_param_t *param);
-	int (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
+	void (*fixup_pipe)(filter_node_t *n, filter_pipe_t *in);
 	void (*fixup_break_in)(filter_node_t *n, filter_pipe_t *in);
 	void (*fixup_break_out)(filter_node_t *n, filter_pipe_t *out);
 
@@ -121,17 +121,11 @@ struct filter {
 #define filter_nrinputs(f) (list_count(&(f)->inputs))
 #define filter_nroutputs(f) (list_count(&(f)->outputs))
 
-/* inits the filter subsystem - dummy for compatibility. */
-#define filter_init() (0)
-
 /* Allocates a new filter structure. You have still to
- * fill it.
- * Can return NULL, if the name is already occupied. */
-filter_t *filter_alloc(const char *name, const char *description,
-		       int (*f)(filter_node_t *));
+ * fill it (apart from the mandatory f() method). */
+filter_t *filter_alloc(int (*f)(filter_node_t *));
 
-filter_t *filter_from_string(const char *name, const char *description,
-			     const char *f);
+filter_t *filter_from_network(filter_network_t *net);
 
 filter_portdesc_t *filter_add_input(filter_t *filter, const char *label,
 				    const char *description, int type);
@@ -208,8 +202,9 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterparamdesc_list_labels(pd) ((pd)->u.list.labels)
 #define filterparamdesc_list_setlabels(pd, l) ((pd)->u.list.labels = (l))
 
-/* Adds the filter to the filter database. */
-int filter_add(filter_t *filter);
+/* Adds the filter to the filter database using name and
+ * description. */
+int filter_add(filter_t *filter, const char *name, const char *description);
 
 /* Browse the list of registered filters. if f is NULL gives first
  * filter. */
@@ -276,7 +271,7 @@ filter_t *filter_next(filter_t *f);
 
 /* Allocate a new filter network and initialize it.
  * Returns a filter network identifier or NULL on OOM. */
-filter_network_t *filternetwork_new(const char *name, const char *desc);
+filter_network_t *filternetwork_new();
 
 /* Destroy a filter network. */
 void filternetwork_delete(filter_network_t *net);
@@ -339,8 +334,7 @@ void filternetwork_delete_param(filter_network_t *net, const char *label);
 void filternetwork_delete_port(filter_network_t *net, const char *label);
 
 
-/* Macro filters - conversion between strings and networks. */
-filter_network_t *filternetwork_from_string(const char *str);
+/* Filternetwork to scheme code. */
 char *filternetwork_to_string(filter_network_t *net);
 
 

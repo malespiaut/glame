@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.7 2000/03/14 14:29:26 richi Exp $
+ * $Id: filter_ops.c,v 1.8 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -63,21 +63,32 @@ static int init_network(filter_node_t *n)
 static void *launcher(void *node)
 {
 	filter_node_t *n = (filter_node_t *)node;
+	filter_pipe_t *p;
 
-	DPRINTF("%s launched\n", n->filter->name);
+	DPRINTF("%s launched (pid %i)\n", n->name, (int)getpid());
 
 	n->glerrno = n->filter->f(n);
 	if (n->glerrno == 0) {
+		/* either finish or terminate -> drain pipes, send EOFs */
+		filternode_foreach_input(n, p)
+			fbuf_drain(p);
+		filternode_foreach_output(n, p)
+			fbuf_queue(p, NULL);
 	        filternode_clear_error(n);
-		DPRINTF("filter %s completed.\n", n->filter->name);
+		DPRINTF("filter %s completed.\n", n->name);
 		pthread_exit(NULL);
 	}
 
 	DPRINTF("%s had failure (errstr=\"%s\")\n",
-		n->filter->name, n->glerrstr);
+		n->name, n->glerrstr);
 
-	/* set result */
-	atomic_inc(&n->net->launch_context->result);
+	/* allow failure of "unused" nodes (without connections) */
+	if (n->nr_inputs != 0 && n->nr_outputs != 0) {
+		/* signal net failure */
+		atomic_inc(&n->net->launch_context->result);
+	} else {
+		DPRINTF("ignoring failure of %s\n", n->name);
+	}
 
 	/* increment filter ready semaphore */
 	sem_op(n->net->launch_context->semid, 0, 1);
@@ -153,7 +164,7 @@ static int wait_node(filter_node_t *n)
 {
 	int res, filter_ret;
 
-	DPRINTF("Waiting for %s.\n", n->filter->name);
+	DPRINTF("Waiting for %s.\n", n->name);
 	while ((res = pthread_join(n->thread, 
 				   (void **)&filter_ret)) != 0
 	       && (res != ESRCH))

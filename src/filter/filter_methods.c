@@ -1,6 +1,6 @@
 /*
  * filter_methods.c
- * $Id: filter_methods.c,v 1.8 2000/03/19 23:53:15 mag Exp $
+ * $Id: filter_methods.c,v 1.9 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -81,7 +81,7 @@ int filter_default_fixup_param(filter_node_t *n, filter_pipe_t *p,
 	return 0;
 }
 
-int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
+void filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 {
 	filter_pipe_t *out;
 
@@ -103,11 +103,8 @@ int filter_default_fixup_pipe(filter_node_t *n, filter_pipe_t *in)
 			continue;
 		out->type = in->type;
 		out->u = in->u;
-		if (out->dest->filter->fixup_pipe(out->dest, out) == -1)
-			return -1;
+		out->dest->filter->fixup_pipe(out->dest, out);
 	}
-
-	return 0;
 }
 
 void filter_default_fixup_break_in(filter_node_t *n, filter_pipe_t *in)
@@ -129,18 +126,45 @@ void filter_default_fixup_break_out(filter_node_t *n, filter_pipe_t *out)
 /* Filternetwork filter methods.
  */
 
-extern filter_network_t *string2net(char *buf, filter_network_t *net);
 int filter_network_init(filter_node_t *n)
 {
 	filter_network_t *net = (filter_network_t *)n;
-	char *buf;
+	filter_network_t *templ;
+	filter_node_t *node, *source, *dest;
+	filter_param_t *param;
+	filter_pipe_t *pipe, *p;
 
 	/* empty network? */
-	if (!(buf = (char *)n->filter->private))
+	if (!(templ = (filter_network_t *)n->filter->private))
 		return 0;
 
-	if (!string2net(buf, net))
-	        return -1;
+	/* copy network from templ to net */
+
+	/* first create all nodes and copy set parameters */
+	filternetwork_foreach_node(templ, n) {
+		if (!(node = filternetwork_add_node(net, n->filter->name, n->name)))
+			return -1;
+		filternode_foreach_param(n, param) {
+			filternode_set_param(node, param->label, &param->val);
+		}
+	}
+
+	/* second create the connections (loop through all outputs)
+	 * and copy pipe parameters */
+	filternetwork_foreach_node(templ, n) {
+		filternode_foreach_output(n, pipe) {
+			source = filternetwork_get_node(net, pipe->source->name);
+			dest = filternetwork_get_node(net, pipe->dest->name);
+			if (!(p = filternetwork_add_connection(source, pipe->out_name, dest, pipe->in_name)))
+				return -1;
+			filterpipe_foreach_sourceparam(pipe, param) {
+				filterpipe_set_sourceparam(p, param->label, &param->val);
+			}
+			filterpipe_foreach_destparam(pipe, param) {
+				filterpipe_set_destparam(p, param->label, &param->val);
+			}
+		}
+	}
 
 	return 0;
 }
@@ -171,7 +195,7 @@ int filter_network_connect_out(filter_node_t *source, const char *port,
 	p->out_name = m->label;
 	p->source = n;
 
-	return 0;
+	return n->filter->connect_out(p->source, p->out_name, p);
 }
 
 int filter_network_connect_in(filter_node_t *dest, const char *port,
@@ -186,7 +210,7 @@ int filter_network_connect_in(filter_node_t *dest, const char *port,
 	p->in_name = m->label;
 	p->dest = n;
 
-	return 0;
+	return n->filter->connect_in(p->dest, p->in_name, p);
 }
 
 int filter_network_fixup_param(filter_node_t *node, filter_pipe_t *p,

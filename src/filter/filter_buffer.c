@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.13 2000/02/14 13:23:40 richi Exp $
+ * $Id: filter_buffer.c,v 1.14 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -25,8 +25,10 @@
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <limits.h>
 #include "filter.h"
 #include "util.h"
 #include "atomic.h"
@@ -100,7 +102,8 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 }
 
 
-#define FBPIPE_WCNT 64
+/* FIXME! totally br0ken! */
+#define FBPIPE_WCNT (PIPE_BUF/16)
 #define FBPIPE_WSIZE (FBPIPE_WCNT*sizeof(void *))
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
@@ -120,9 +123,11 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 	while ((res = read(p->dest_fd, buf, FBPIPE_WSIZE)) == -1
 	       && errno == EINTR)
 	        ;
-	if (res == -1)
+	if (res == -1) {
+#ifdef DEBUG
 	        perror("fbuf_get");
-        else if (res != FBPIPE_WSIZE)
+#endif
+        } else if (res != FBPIPE_WSIZE)
                 PANIC("pipe reads are not atomic!");
 
 	return res == -1 ? NULL : (filter_buffer_t *)(buf[0]);
@@ -149,8 +154,20 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 	       && errno == EINTR)
 	        ;
 	if (res == -1) {
+#ifdef DEBUG
 	        perror("fbuf_queue");
+#endif
 		fbuf_unref(fbuf);
 	} else if (res != FBPIPE_WSIZE)
                 PANIC("pipe writes are not atomic!");
+}
+
+void fbuf_drain(filter_pipe_t *p)
+{
+	char buf[128];
+
+	fcntl(p->dest_fd, F_SETFL, O_NONBLOCK);
+	fcntl(p->source_fd, F_SETFL, O_NONBLOCK);
+	while (read(p->dest_fd, buf, 128) != -1)
+		;
 }

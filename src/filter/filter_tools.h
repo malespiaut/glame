@@ -114,6 +114,40 @@ do { \
 	destsource1p++; source2p++; \
 } while (0)
 
+#define SCALARPROD1_2_d(destp, source1p, source2p, fact1, fact2) \
+do { \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
+	destp++; source1p++; source2p++; \
+} while (0)
+#define SCALARPROD4_2_d(destp, source1p, source2p, fact1, fact2) \
+do { \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
+	destp++; source1p++; source2p++; \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
+	destp++; source1p++; source2p++; \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
+	destp++; source1p++; source2p++; \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2; \
+	destp++; source1p++; source2p++; \
+} while (0)
+
+#define SCALARPROD1_3_d(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
+do { \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
+	destp++; source1p++; source2p++; source3p++; \
+} while (0)
+#define SCALARPROD4_3_d(destp, source1p, source2p, source3p, fact1, fact2, fact3) \
+do { \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
+	destp++; source1p++; source2p++; source3p++; \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
+	destp++; source1p++; source2p++; source3p++; \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
+	destp++; source1p++; source2p++; source3p++; \
+	*destp = (*source1p)*fact1 + (*source2p)*fact2 + (*source3p)*fact3; \
+	destp++; source1p++; source2p++; source3p++; \
+} while (0)
+
 
 #define INVERT1(destsourcep) \
 do { \

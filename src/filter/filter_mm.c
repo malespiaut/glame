@@ -1,6 +1,6 @@
 /*
  * filter_mm.c
- * $Id: filter_mm.c,v 1.6 2000/03/15 13:05:34 richi Exp $
+ * $Id: filter_mm.c,v 1.7 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -188,14 +188,14 @@ void _pipe_free(filter_pipe_t *p)
 }
 
 
-filter_t *_filter_alloc(const char *name, const char *description, int flags)
+filter_t *_filter_alloc(int flags)
 {
 	filter_t *f;
 
 	if (!(f = ALLOC(filter_t)))
 		return NULL;
-	f->name = strdup(name);
-	f->description = strdup(description);
+	f->name = NULL;
+	f->description = NULL;
 	f->flags = flags;
 	f->f = NULL;
 	f->init = NULL;
@@ -220,13 +220,7 @@ filter_t *_filter_alloc(const char *name, const char *description, int flags)
 	f->private = NULL;
 	hash_init_filter(f);
 	INIT_LIST_HEAD(&f->list);
-	if (f->name && f->description)
-		return f;
-
-	free((char *)f->name);
-	free((char *)f->description);
-	free(f);
-	return NULL;
+	return f;
 }
 
 void _filter_free(filter_t *f)

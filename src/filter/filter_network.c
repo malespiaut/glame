@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.31 2000/03/15 13:05:34 richi Exp $
+ * $Id: filter_network.c,v 1.32 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -297,24 +297,19 @@ void filternetwork_terminate(filter_network_t *net)
 
 	/* "safe" cleanup */
 	filternetwork_wait(net);
-
-	/* net->node.ops->postprocess(FILTER_NODE(net));
-	_launchcontext_free(net->launch_context);
-	net->launch_context = NULL; */
 }
 
 
-filter_network_t *filternetwork_new(const char *name, const char *desc)
+filter_network_t *filternetwork_new()
 {
 	filter_network_t *net = NULL;
 	filter_t *f = NULL;
 
-	if (!name)
-		return NULL;
-	if (!(f = _filter_alloc(name, desc, FILTER_FLAG_NETWORK)))
+	if (!(f = _filter_alloc(FILTER_FLAG_NETWORK)))
 	        return NULL;
-	if (!(net = FILTER_NETWORK(_filter_instantiate(f, name))))
+	if (!(net = FILTER_NETWORK(_filter_instantiate(f, "network"))))
 		goto err;
+	net->node.filter->private = net;
 
 	return net;
 
@@ -422,23 +417,14 @@ filter_pipe_t *filternetwork_add_connection(filter_node_t *source, const char *s
 	hash_add_input(p, p->dest);
 	list_add_output(p, p->source);
 	hash_add_output(p, p->source);
-
-	/* signal input changes to destination node */
-	if (dest->filter->fixup_pipe(p->dest, p) == -1)
-	        goto _err_fixup;
-	/* FIXME: possible bug here - fixup_pipe could break
-	 * the connection - p would be already deleted! */
-
 	p->dest->nr_inputs++;
 	p->source->nr_outputs++;
 
+	/* signal input changes to destination node */
+	dest->filter->fixup_pipe(p->dest, p);
+
 	return p;
 
- _err_fixup:
-	list_remove_input(p);
-	hash_remove_input(p);
-	list_remove_output(p);
-	hash_remove_output(p);
  _err:
 	_pipe_free(p);
 	return NULL;
@@ -558,22 +544,21 @@ filter_portdesc_t *filternetwork_add_output(filter_network_t *net,
 
 
 /* I would like to have the following syntax:
- * (filternetwork name
- *   (node p ping
- *     (export-input in pingin "input of ping")
- *     (export-output out pingout "out of ping")
- *     (export-param rate pingrate "hasdk")
- *     (set-param foo 5))
- *   (node n null)
- *   (connect p out n in
- *     (set-sourceparam gain 7)
- *     (set-destparam foo "ha"))
- *   (connect n out p in)
- *   (set-param pingrate 10))
+ * (let* ((net (filternetwork_new))
+ *        (nodename (filternetwork_add_node net "filter" "nodename")))
+ *    (filternode_set_param ....)
+ *    (filternetwork_add_input ...)
+ *    (filternetwork_add_output ...)
+ *    (filternetwork_add_param ...)
+ *    (filternode_set_param ....) ; wrapped ones
+ *    (let ((pipe (filternetwork_add_connection node "port" node "port)))
+ *        (filterpipe_set_sourceparam ...)
+ *        (filterpipe_set_destparam ...))
+ *    net)
  */
 char *filternetwork_to_string(filter_network_t *net)
 {
-	char *buf, *s;
+	char *buf, *val;
 	int len;
 	filter_node_t *n;
 	filter_portdesc_t *portd;
@@ -584,24 +569,36 @@ char *filternetwork_to_string(filter_network_t *net)
 	if (!net)
 		return NULL;
 
-	/* we lineary process the network to create a
-	 * "nice looking" string representation. */
-
 	/* first alloc a big-enough buffer FIXME - br0ken. */
 	if (!(buf = (char *)malloc(64*1024)))
 		return NULL;
 	len = 0;
 
 	/* generate the network start part */
-	len += sprintf(&buf[len], "(filternetwork %s\n",
-		       net->node.name);
+	len += sprintf(&buf[len], "(let *((net (filternetwork_new))\n");
 
 	/* iterate over all nodes in the network creating
 	 * node create commands. */
 	filternetwork_foreach_node(net, n) {
-		len += sprintf(&buf[len], "\t(node %s %s\n",
-			       n->name, n->filter->name);
+		len += sprintf(&buf[len], "\t(%s (filternetwork_add_node net \"%s\" \"%s\"))\n",
+			       n->name, n->filter->name, n->name);
+	}
+	/* ((net .. */
+	len += sprintf(&buf[len-1], ")\n") - 1;
 
+	/* first create the parameter set commands for the
+	 * nodes. */
+	filternetwork_foreach_node(net, n) {
+		filternode_foreach_param(n, param) {
+			val = filterparam_to_string(param);
+			len += sprintf(&buf[len], "   (filternode_set_param %s \"%s\" %s)\n",
+				       n->name, param->label, val);
+			free(val);
+		}
+	}
+
+	/* create the port/parameter export commands */
+	filternetwork_foreach_node(net, n) {
 		/* iterate over all exported inputs/outputs
 		 * and params possibly creating export commands. */
 		filter_foreach_inputdesc(net->node.filter, portd) {
@@ -609,8 +606,8 @@ char *filternetwork_to_string(filter_network_t *net)
 			if (strcmp(n->name, filterdesc_map_node(portd)) != 0
 			    || !filter_get_inputdesc(n->filter, filterdesc_map_label(portd)))
 				continue;
-			len += sprintf(&buf[len], "\t\t(export-input %s %s \"%s\")\n",
-				       filterdesc_map_label(portd),
+			len += sprintf(&buf[len], "   (filternetwork_add_input net %s \"%s\" \"%s\" \"%s\")\n",
+				       n->name, filterdesc_map_label(portd),
 				       portd->label, portd->description);
 			/* port parameters are magically exported
 			 * too - they are set "directly" using the
@@ -624,8 +621,8 @@ char *filternetwork_to_string(filter_network_t *net)
 			if (strcmp(n->name, filterdesc_map_node(portd)) != 0
 			    || !filter_get_outputdesc(n->filter, filterdesc_map_label(portd)))
 				continue;
-			len += sprintf(&buf[len], "\t\t(export-output %s %s \"%s\")\n",
-				       filterdesc_map_label(portd),
+			len += sprintf(&buf[len], "   (filternetwork_add_output net %s \"%s\" \"%s\" \"%s\")\n",
+				       n->name, filterdesc_map_label(portd),
 				       portd->label, portd->description);
 			/* port parameters - dto. */
 		}
@@ -634,72 +631,51 @@ char *filternetwork_to_string(filter_network_t *net)
 			if (strcmp(n->name, filterdesc_map_node(paramd)) != 0
 			    || !filter_get_paramdesc(n->filter, filterdesc_map_label(paramd)))
 				continue;
-			len += sprintf(&buf[len], "\t\t(export-param %s %s \"%s\")\n",
-				       filterdesc_map_label(paramd),
+			len += sprintf(&buf[len], "   (filternetwork_add_param net %s \"%s\" \"%s\" \"%s\")\n",
+				       n->name, filterdesc_map_label(paramd),
 				       paramd->label, paramd->description);
 		}
-
-		/* iterate over all set parameters and create
-		 * parameter set commands. */
-		filter_foreach_paramdesc(n->filter, paramd) {
-			if (!(param = filternode_get_param(n, paramd->label)))
-				continue;
-			len += sprintf(&buf[len], "\t\t(set-param %s %s)\n",
-				       paramd->label,
-				       (s = filterparam_to_string(param)));
-			free(s);
-		}
-
-		/* (node */
-		len += sprintf(&buf[len-1], ")\n") - 1;
 	}
 
 	/* iterate over all connections and create connect
 	 * commands. */
 	filternetwork_foreach_node(net, n) {
 		filternode_foreach_input(n, fpipe) {
-			len += sprintf(&buf[len], "\t(connect %s %s %s %s\n",
+			len += sprintf(&buf[len], "   (let ((pipe (filternetwork_add_connection %s \"%s\" %s \"%s\")))\n",
 				       fpipe->source->name, fpipe->out_name,
 				       fpipe->dest->name, fpipe->in_name);
 
 			/* iterate over all pipe dest parameters creating
 			 * parameter set commands. */
-			portd = filter_get_inputdesc(n->filter,
-						     fpipe->in_name);
-			filterportdesc_foreach_paramdesc(portd, paramd) {
-				if (!(param = filterpipe_get_destparam(fpipe, paramd->label)))
-					continue;
-				len += sprintf(&buf[len], "\t\t(set-param %s %s)\n",
-					       paramd->label,
-					       (s = filterparam_to_string(param)));
-				free(s);
+			filterpipe_foreach_destparam(fpipe, param) {
+				val = filterparam_to_string(param);
+				len += sprintf(&buf[len], "\t(filterpipe_set_destparam pipe \"%s\" %s)\n",
+					       param->label, val);
+				free(val);
 			}
 
 			/* iterate over all pipe source parameters creating
 			 * parameter set commands. */
-			portd = filter_get_outputdesc(fpipe->source->filter,
-						      fpipe->out_name);
-			filterportdesc_foreach_paramdesc(portd, paramd) {
-				if (!(param = filterpipe_get_sourceparam(fpipe, paramd->label)))
-					continue;
-				len += sprintf(&buf[len], "\t\t(set-param %s %s)\n",
-					       paramd->label,
-					       (s = filterparam_to_string(param)));
-				free(s);
+			filterpipe_foreach_sourceparam(fpipe, param) {
+				val = filterparam_to_string(param);
+				len += sprintf(&buf[len], "\t(filterpipe_set_sourceparam pipe \"%s\" %s)\n",
+					       param->label, val);
+				free(val);
 			}
 			
-			/* (connect */
+			/* (let ((pipe... */
 			len += sprintf(&buf[len-1], ")\n") - 1;
 		}
 	}
 
-	/* (filternetwork */
-	len += sprintf(&buf[len-1], ")\n") - 1;
+	/* (let* ... */
+	len += sprintf(&buf[len], "   net)\n");
 
 	return buf;
 }
 
 
+#if 0
 /* Expression parsing using regular expressions and returning an
  * argv like result (by modifying the argument!).
  * Example use:
@@ -1006,3 +982,4 @@ filter_network_t *filternetwork_from_string(const char *buf)
 	free(str);
 	return net;
 }
+#endif

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.30 2000/03/15 16:29:32 richi Exp $
+ * $Id: filter.c,v 1.31 2000/03/20 09:42:44 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -32,16 +32,13 @@ static LIST_HEAD(filter_list);
 
 
 
-filter_t *filter_alloc(const char *name, const char *description,
-		       int (*func)(filter_node_t *))
+filter_t *filter_alloc(int (*func)(filter_node_t *))
 {
 	filter_t *f;
 
-	if (!name || !description || !func)
+	if (!func)
 		return NULL;
-	if (filter_get(name))
-		return NULL;
-	if (!(f = _filter_alloc(name, description, 0)))
+	if (!(f = _filter_alloc(0)))
 		return NULL;
 
 	/* fill in main filter function */
@@ -50,6 +47,13 @@ filter_t *filter_alloc(const char *name, const char *description,
 	return f;
 }
 
+filter_t *filter_from_network(filter_network_t *net)
+{
+	if (!net)
+		return NULL;
+	return net->node.filter;
+}
+#if 0
 filter_t *filter_from_string(const char *name, const char *description,
 			     const char *net)
 {
@@ -69,10 +73,15 @@ err:
 	_filter_free(f);
 	return NULL;
 }
+#endif
 
-int filter_add(filter_t *filter)
+int filter_add(filter_t *filter, const char *name, const char *description)
 {
-	if (filter_get(filter->name))
+	if (filter_get(name))
+		return -1;
+	filter->name = strdup(name);
+	filter->description = strdup(description);
+	if (!filter->name || !filter->description)
 		return -1;
 
 	hash_add_filter(filter);
