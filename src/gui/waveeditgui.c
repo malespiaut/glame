@@ -463,6 +463,8 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 	gpsm_item_t *item;
 	filter_t *net;
 	int rate, i;
+	float y_position = 20.0;
+	char position_buffer[20];
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
@@ -494,6 +496,14 @@ static void apply_custom_cb(GtkWidget * foo, gpointer bar)
 		filter_add_node(net, swin, "swin");
 		filter_add_node(net, swout, "swout");
 		filter_set_property(swin,"immutable","1");
+		sprintf(position_buffer,"%8f",20.0);
+		filter_set_property(swin,"canvas_x",position_buffer);
+		sprintf(position_buffer,"%8f",420.0);
+		filter_set_property(swout,"canvas_x",position_buffer);
+		sprintf(position_buffer,"%8f",y_position);
+		filter_set_property(swin,"canvas_y",position_buffer);
+		filter_set_property(swout,"canvas_y",position_buffer);
+		y_position += 100;
 		filter_set_property(swout,"immutable","1");
 	}
 	draw_network(net);

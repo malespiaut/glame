@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.49 2001/04/16 20:08:19 xwolf Exp $
+ * $Id: canvas.c,v 1.50 2001/04/16 21:24:36 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -523,7 +523,18 @@ canvas_new_from_network(gui_network* net)
 
 	GnomeDock *dock;
 
-	const char *name = strdup("Untitled");
+	const char *name;
+
+
+	if(net->caption)
+		name = strdup(net->caption);
+	else{
+		if(net->net && filter_name(net->net))
+			name = strdup(filter_name(net->net));
+		else
+			name = strdup("Untitled");
+	}
+
 	window = gnome_app_new(name,_(name));
 	dock = GNOME_DOCK(GNOME_APP(window)->dock);
 	gtk_widget_ref(GTK_WIDGET(dock));
@@ -1355,6 +1366,8 @@ static void canvas_load_network(GtkWidget *bla, void *blu)
 		filter = glame_load_instance(filenamebuffer);
 		if(filter){
 			draw_network(filter);
+		}else{
+			DPRINTF("glame_load_instance return NULL!\n");
 		}
 
 	}
