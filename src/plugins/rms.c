@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.4 2000/04/07 14:06:50 nold Exp $
+ * $Id: rms.c,v 1.5 2000/05/04 14:55:11 nold Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -54,7 +54,7 @@ static int statistic_f(filter_node_t *n){
 	filter_pipe_t *in,*out;
 	filter_buffer_t *sbuf,*rbuf;
 	filter_param_t *param;
-	ulong pos=0,peak_pos;
+	unsigned long pos=0,peak_pos;
 	int wsize;
 	float rms,peak_rms;
 	double total_rms,offset;

@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.19 2000/03/27 09:17:28 richi Exp $
+ * $Id: filter_protocols.h,v 1.20 2000/05/04 14:55:11 nold Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -52,13 +52,13 @@ struct rms_header {
 			float offset;	/* dc-offset */
 			float rms;	/* average rms */
 			float peak_rms; /* peak rms in window */
-			ulong peak_pos;	/* position of window that contains peak rms */
+			unsigned long peak_pos;	/* position of window that contains peak rms */
 			SAMPLE min,max; /* minimum/maximum sample value */
 		} t;
 		/* window stats */
 		struct {
-			float rms;	/* window rms */
-			ulong pos;	/* window position */
+			float rms;		/* window rms */
+			unsigned long pos;	/* window position */
 		} w;
 	} u;
 };
