@@ -11,6 +11,7 @@ cglame_SOURCES = cglame.c
 cglame_LDADD = \
 	glmid/libglmid.la \
 	plugins/libglamebuiltins.la \
+	glmid/libglameaudiofile.la \
 	filter/libfilter.la \
 	hash/libhash.la \
 	swapfile/libswapfile.la \
