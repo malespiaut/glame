@@ -1,6 +1,6 @@
 /*
  * audio_io_oss.c
- * $Id: audio_io_oss.c,v 1.12 2001/04/27 08:26:43 richi Exp $
+ * $Id: audio_io_oss.c,v 1.13 2001/05/02 17:00:16 nold Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -164,7 +164,7 @@ static int oss_audio_out_f(filter_t *n)
 	oss_audioparam_t	*in = NULL;
 	gl_s8			*out = NULL;
 	filter_pipe_t		*p_in;
-	int			rate;
+	int			rate, rrate;
 	int			formats, softformats;
 	int			blksz, sign, ssize = 0;
 
@@ -266,7 +266,10 @@ _fmt_retry:
 		FILTER_ERROR_CLEANUP("No supported sample formats found");
 	}
 
-	if (ioctl(dev, SNDCTL_DSP_SPEED, &rate) == -1)
+	/* Allow 1% fuzz between desired and real sample rate. */
+	rrate=rate;
+	if (ioctl(dev, SNDCTL_DSP_SPEED, &rrate) == -1 ||
+	    (rrate > rate + rate/100) || (rrate < rate - rate/100))
 		FILTER_ERROR_CLEANUP("Unsupported sample rate.");
 	DPRINTF("Hardware sample rate: %d.\n", rate);
 
