@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.c
  *
- * $Id: gtkwavedraw.c,v 1.7 2000/04/18 00:31:20 navratil Exp $
+ * $Id: gtkwavedraw.c,v 1.8 2000/04/18 00:59:14 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -192,8 +192,6 @@ gtk_wave_draw_realize(GtkWidget *widget)
 void
 gtk_wave_draw_zoom(GtkWaveDraw *wavedraw, glong start, glong stop)
 {
-  int i;
-
   g_return_if_fail(wavedraw != NULL);
   g_return_if_fail(GTK_IS_WAVE_DRAW(wavedraw));
 
@@ -317,8 +315,8 @@ gtk_wave_draw_add_wave_backend(GtkWaveDraw *wavedraw,
   WaveData *wavedata;
   GSList *node;
 
-  g_return_if_fail(wavedraw != NULL);
-  g_return_if_fail(GTK_IS_WAVE_DRAW(wavedraw));
+  g_return_val_if_fail(wavedraw != NULL, NULL);
+  g_return_val_if_fail(GTK_IS_WAVE_DRAW(wavedraw), NULL);
   
   /* Allocate it and set it to 0's */
   wavedata = (WaveData *)g_malloc(sizeof(WaveData));
@@ -435,7 +433,6 @@ gtk_wave_draw_draw(GtkWidget *widget,
   GdkGC       *wavedraw_gc;
   GSList      *node;
   WaveData    *wavedata;
-  gint   wave_idx;
   gint   midy;                 /* The Y midpoint, ie the axis */
   gfloat scale_x, stride_x;
   gfloat start_x, disp_x;
@@ -451,6 +448,7 @@ gtk_wave_draw_draw(GtkWidget *widget,
   glong  cur_y, cur_y2;
   glong  samp;
   gint   cur_subsamp;
+  gint   call_step;
 
   /* Make sure we're drawing something we know how to draw */
   g_return_if_fail(widget != NULL);
@@ -498,20 +496,33 @@ gtk_wave_draw_draw(GtkWidget *widget,
     stop_sample = MIN(stop, stop_disp);
     disp_samples = stop_sample - start_sample + 1;
     
+    start_x = (start_sample - start_disp) * scale_x;
+    stop_x = (glong)((stop_sample - start_disp) * scale_x);
+    disp_x = stop_x - start_x;
+
     if (wavedata->by_ref == 2) {
+
+      /* We need a step parameter with a minimum of 1.  This could
+       * lead to problems, however, with non-integer results for the
+       * call_step.  We won't be displaying the exact data we expect
+       * -- if we've got 30 samples and we're putting them into 6
+       * pixels with a n_points_per_pixel of 4, we'll get a call_step
+       * of 1 and therefore plot samples 0 through 23 -- meaning we
+       * just axed the last 6 samples.  Perhaps the step parameter
+       * should be a float, and we leave it up to the callback to cast
+       * it to an int with each iteration? */
+
+      call_step = MAX(1, (gint)(disp_samples / 
+				(wavedraw->n_points_per_pixel * disp_x)));
       p_val = (wavedata->call)(wavedata->wave_idx, 
 			       start_sample, stop_sample, 
-			       wavedraw->n_points_per_pixel);
+			       call_step);
     } else
       p_val = wavedata->data;
 
     /* Set the color from the widget */
     gdk_color_alloc(gdk_colormap_get_system(), &wavedata->color);
     gdk_gc_set_foreground(wavedraw->wavedraw_gc, &wavedata->color);
-
-    start_x = (start_sample - start_disp) * scale_x;
-    stop_x = (glong)((stop_sample - start_disp) * scale_x);
-    disp_x = stop_x - start_x;
 
     if (disp_samples <= disp_x * wavedraw->n_points_per_pixel) {
       /* We've got more pixels than samples, so we're going to plot 
@@ -650,6 +661,7 @@ gtk_wave_draw_expose(GtkWidget *widget,
 		    widget->allocation.width,
 		    widget->allocation.height);
 
+  return FALSE;
 }
 
 /**********************************************************************
@@ -661,7 +673,6 @@ static void
 gtk_wave_draw_destroy(GtkObject *object)
 {
   GtkWaveDraw *wavedraw;
-  int i;
 
   g_return_if_fail(object != NULL);
   g_return_if_fail(GTK_IS_WAVE_DRAW(object));
