@@ -1,6 +1,13 @@
 TODOs of the various subsystems, [] tells about the person who is
 supposed to fix it.
 
+Pending for 0.5.2:
+------------------
+
+- fix SIGSEGVs
+- fix filters for RT param update
+- fix issues with non-modal dialogs in edit_filter
+
 
 Items pending for 0.5.x:
 ------------------------
@@ -23,6 +30,7 @@ plugins/
 	[richi]
 	- redo swapfile_out (remove magic in offset / size, add
           explicit CREAT|TRUNC param)
+	- do gpsm invalidating inside swapfile_out filter
 
 hash/
 	[all]
@@ -33,6 +41,7 @@ hash/
 
 filter/
 	[richi]
+	- allow node reparenting without breaking connections
 	- implementation stuff
           * move (copy?) methods down to the actual users (filter_param_t
   	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
@@ -43,6 +52,7 @@ swapfile/
         [richi]
 	- fix unhandled (MAP_PRIVATE, cluster_split) cases that PANIC
 	  (i.e. introduce anonymous clusters)
+	- resolve issues with ENOSPC and swapfile
 
 hash/
 	[richi]
