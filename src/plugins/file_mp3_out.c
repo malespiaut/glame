@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_mp3_out.c,v 1.2 2004/02/16 22:24:42 ochonpaul Exp $
+ * $Id: file_mp3_out.c,v 1.3 2004/02/19 21:33:59 ochonpaul Exp $
  *
  * Copyright (C) 1999, 2000, 2004 Alexander Ehlert, Richard Guenther, Daniel Kobras ,Laurent Georget
  *
@@ -52,17 +52,7 @@ typedef struct {
 	int pos;
 } track_t;
 
-typedef struct {
-	AFfilehandle file;
-	AFframecount frameCount;
-	AFfilesetup fsetup;
-	int sampleFormat, sampleWidth;
-	int channelCount, frameSize;
-	int sampleRate;
-	int format;
-} read_file_private_t;
 
-static int af_typecnt, *af_indices;
 
 static int write_mp3_file_f(filter_t * n)
 {
@@ -70,11 +60,10 @@ static int write_mp3_file_f(filter_t * n)
 	filter_port_t *port;
 	int eofs, wbpos;
 	int i, iat, iass;
-	int filetype;
 	long pos;
 	filter_param_t *pos_param;
-	int channelCount, compression;
-	int sampleRate;
+	int channelCount;
+	int sampleRate = 0;
 	track_t *track = NULL;
 	short int *buffer = NULL;	/* SAMPLE = float */
 	int buffer_size, written, frames;
@@ -91,6 +80,12 @@ static int write_mp3_file_f(filter_t * n)
 	    filterport_nrpipes(filterportdb_get_port
 			       (filter_portdb(n), PORTNAME_IN));
 	
+	
+	 /* Limit to 2 input ports*/
+	if (channelCount != 2){
+	  FILTER_ERROR_RETURN("This filter can only connect to two input port. Insert a render filter if more or less than 2 ports.\n");
+	  }
+	
 	filename =
 	    filterparam_val_string(filterparamdb_get_param
 				   (filter_paramdb(n), "filename"));
@@ -99,11 +94,6 @@ static int write_mp3_file_f(filter_t * n)
 	
 	
 	mp3_file = fopen(filename, "w+");
-
-
-
-	if (channelCount == 0)
-		FILTER_ERROR_RETURN("no inputs");
 
 	if (!(track = ALLOCN(channelCount, track_t)))
 		FILTER_ERROR_RETURN("no memory");
@@ -160,6 +150,8 @@ static int write_mp3_file_f(filter_t * n)
 	if (ret_code < 0)
 		DPRINTF("Error on lame init");
 	lame_print_config(gfp);
+	lame_print_internals(gfp);
+	
 
 
 	while (eofs) {
@@ -238,6 +230,7 @@ static int write_mp3_file_f(filter_t * n)
 static int write_mp3_file_connect_in(filter_port_t * port,
 				     filter_pipe_t * p)
 {
+       
 	return 0;
 }
 
@@ -246,8 +239,8 @@ int write_mp3_file_register(plugin_t * pl)
 	filter_t *f;
 	filter_port_t *in;
 	filter_param_t *param;
-	char *xmlparam;
-	int i;
+	/* char *xmlparam; */
+	
 
 	if (!(f = filter_creat(NULL)))
 		return -1;
