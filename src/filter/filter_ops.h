@@ -3,7 +3,7 @@
 
 /*
  * filter_ops.h
- * $Id: filter_ops.h,v 1.10 2003/04/15 18:58:53 richi Exp $
+ * $Id: filter_ops.h,v 1.11 2003/04/27 21:08:55 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001 Richard Guenther
  *
@@ -50,6 +50,14 @@ struct filter_launchcontext {
 
 	glame_atomic_t result;
 };
+
+struct filter_operations {
+	int (*init)(filter_t *n);
+	int (*launch)(filter_t *n);
+	void (*postprocess)(filter_t *n);
+	int (*wait)(filter_t *n);
+};
+
 
 
 #endif

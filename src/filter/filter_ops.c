@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.37 2003/04/21 17:10:22 richi Exp $
+ * $Id: filter_ops.c,v 1.38 2003/04/27 21:08:54 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -31,13 +31,6 @@
 #include "filter_ops.h"
 
 
-
-struct filter_operations {
-	int (*init)(filter_t *n);
-	int (*launch)(filter_t *n);
-	void (*postprocess)(filter_t *n);
-	int (*wait)(filter_t *n);
-};
 
 #define STATE_RUNNING 3
 
