@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.40 2001/11/28 00:19:06 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.41 2001/11/28 13:09:42 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -317,13 +317,19 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 	buffer = filter_get_property(filter,"canvas_x");
 	if(buffer)
 		x = atoi(buffer);
-	else
+	else{
 		x = 0.0;
+		sprintf(numberbuffer,"%f",x);
+		filter_set_property(filter,"canvas_x",numberbuffer);
+	}
 	buffer = filter_get_property(filter,"canvas_y");
 	if(buffer)
 		y = atoi(buffer);
-	else
+	else{
 		y = 0.0;
+		sprintf(numberbuffer,"%f",y);
+                filter_set_property(filter,"canvas_y",numberbuffer);
+	}
 
 	cimmutable = filter_get_property(filter,"immutable");
 	if(cimmutable)
@@ -430,7 +436,7 @@ GlameCanvasFilter* glame_canvas_filter_new(GnomeCanvasGroup *group,
 			   GTK_SIGNAL_FUNC(glame_canvas_filter_event),gItem);
 	
 	
-	glame_canvas_filter_move(gItem, x,y);
+	_glame_canvas_filter_move(gItem, x,y);
 	
 	sprintf(numberbuffer,"%f",x);
 	filter_set_property(filter,"canvas_x",numberbuffer);

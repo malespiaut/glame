@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.33 2001/11/28 00:19:06 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.34 2001/11/28 13:09:42 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -565,8 +565,11 @@ void glame_canvas_view_all(GlameCanvas* canv)
 	gnome_canvas_update_now(GNOME_CANVAS(canv));
 	filter_foreach_node(canv->net,filter){
 		// FIXME gnomebug?
-		glame_canvas_filter_move(glame_canvas_find_filter(filter),0.0,0.0);
-		glame_canvas_filter_redraw(glame_canvas_find_filter(filter));
+		item = glame_canvas_find_filter(filter);
+		if(item){
+			glame_canvas_filter_move(item,0.0,0.0);
+			glame_canvas_filter_redraw(item);
+		}
 		
 	}
 
