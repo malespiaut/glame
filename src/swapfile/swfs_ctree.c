@@ -244,7 +244,7 @@ int ctree_check(struct ctree *t)
 	to = (t->cnt - 1)/2;
 	for (i=from; i<=to; i++)
 		if (CSUM(t, h-1, i) != (CSIZE(t, 2*i) + CSIZE(t, 2*i+1))) {
-			DPRINTF("CSUM(t, %li, %li) != CSIZE(t, %li) + CSIZE(t, %li)\n", h-1, i, 2*i, 2*i+1);
+			DPRINTF("CSUM(t, %li, %li) != CSIZE(t, %li) + CSIZE(t, %li)\n", (long)h-1, i, 2*i, 2*i+1);
 			return -1;
 		}
 
@@ -255,7 +255,7 @@ int ctree_check(struct ctree *t)
 		for (i=from; i<=to; i++)
 			if (CSUM(t, h-1, i) != (CSUM(t, h, 2*i)
 						+ CSUM(t, h, 2*i+1))) {
-				DPRINTF("CSUM(t, %li, %li) != CSUM(t, %li, %li) + CSUM(t, %li, %li)\n", h-1, i, h, 2*i, h, 2*i+1);
+				DPRINTF("CSUM(t, %li, %li) != CSUM(t, %li, %li) + CSUM(t, %li, %li)\n", (long)h-1, i, (long)h, 2*i, (long)h, 2*i+1);
 				return -1;
 			}
 	}

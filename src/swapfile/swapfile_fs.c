@@ -24,10 +24,12 @@
  * A cluster consists of two files, one for the data and one for listing
  * all files that use this cluster.
  * Main directory layout is
- *   clusters/
+ * [swapfile directory]/
+ *   clusters.data/
  *     {long}
- *     {long}.meta
- *   {long}.meta
+ *   clusters.meta/
+ *     {long}
+ *   {long}
  * The {long} indexed clusters and files are hashed and the metadata
  * is loaded on demand.
  */
@@ -68,7 +70,8 @@ static struct {
 	char *clusters_meta_base;
 	struct list_head fds;
 	int fsck;
-} swap;
+} swap = { NULL, NULL, NULL, };
+#define SWAPFILE_OK() (swap.files_base != NULL)
 
 static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK do { pthread_mutex_lock(&swmx); } while (0)
@@ -120,6 +123,11 @@ int swapfile_open(char *name, int flags)
 {
 	char str[256];
 	int fd;
+
+	if (SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	/* Check for correct swapfile directory setup. */
 	if (access(name, R_OK|W_OK|X_OK|F_OK) == -1) {
@@ -175,7 +183,7 @@ void swapfile_close()
 	struct swfd *f;
 	char s[256];
 
-	if (!swap.files_base)
+	if (!SWAPFILE_OK())
 		return;
 
 	/* Close all files */
@@ -321,6 +329,11 @@ int sw_unlink(long name)
 {
 	struct swfile *f;
 
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	/* No locking needed!? */
 	if (!(f = file_get(name, FILEGET_READCLUSTERS)))
 		return -1;
@@ -335,6 +348,11 @@ int sw_unlink(long name)
  * directory specification for obvious reason. */
 SWDIR *sw_opendir()
 {
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return NULL;
+	}
+
 	return (SWDIR *)opendir(swap.files_base);
 }
 
@@ -346,6 +364,11 @@ long sw_readdir(SWDIR *d)
     	struct dirent *e;
 	long name;
 
+	if (!SWAPFILE_OK() || !d) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	while ((e = readdir((DIR *)d))) {
 		if (sscanf(e->d_name, "%li", &name) == 1)
 		    	return name;
@@ -356,6 +379,11 @@ long sw_readdir(SWDIR *d)
 /* Like closedir(3). */
 int sw_closedir(SWDIR *d)
 {
+	if (!SWAPFILE_OK() || !d) {
+		errno = EINVAL;
+		return -1;
+	}
+
     	return closedir((DIR *)d);
 }
 
@@ -374,6 +402,11 @@ swfd_t sw_open(long name, int flags, txnid_t tid)
 {
 	struct swfile *f;
 	struct swfd *fd;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	/* Detect illegal/unsupported flag combinations. */
 	if (((flags & O_EXCL) && !(flags & O_CREAT))
@@ -451,6 +484,11 @@ int sw_close(swfd_t fd)
 {
 	struct swfd *_fd;
 
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd))) {
 		UNLOCK;
@@ -471,6 +509,11 @@ int sw_ftruncate(swfd_t fd, off_t length)
 {
 	struct swfd *_fd;
 	int res;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd))) {
@@ -515,6 +558,11 @@ ssize_t sw_sendfile(swfd_t out_fd, swfd_t in_fd, size_t count, int mode)
 {
 	struct swfd *_ofd;
 	struct swfd *_ifd;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	LOCK;
 	_ofd = hash_find_swfd(out_fd);
@@ -580,6 +628,11 @@ off_t sw_lseek(swfd_t fd, off_t offset, int whence)
 {
 	struct swfd *_fd;
 
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd))) {
 		UNLOCK;
@@ -617,6 +670,11 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 	char *mem;
 	size_t dcnt, cnt;
 	int err = 0;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	/* Check, if we will cross the file end and correct
 	 * the count appropriately. */
@@ -663,6 +721,11 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 	s64 coff;
 	ssize_t res;
 	int err = 0;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd)) || !buf || count<0) {
@@ -716,6 +779,11 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	size_t dcnt, cnt = count;
 	s64 old_size = -1, old_offset;
 	int err = 0;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	/* Check, if we need to expand the file. */
 	if (sw_fstat(fd, &stat) == -1)
@@ -771,6 +839,11 @@ ssize_t sw_write(swfd_t fd, const void *buf, size_t count)
 	s64 coff, old_size = -1, old_offset;
 	ssize_t res;
 	int err = 0;
+
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd)) || !buf || count<0) {
@@ -839,8 +912,11 @@ int sw_fstat(swfd_t fd, struct sw_stat *buf)
 	struct swcluster *c;
 	s64 coff;
 
-	if (!buf)
+	if (!SWAPFILE_OK() || !buf) {
+		errno = EINVAL;
 		return -1;
+	}
+
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd))) {
 		UNLOCK;
@@ -880,6 +956,11 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 	s64 coff;
 	void *addr;
 
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return MAP_FAILED;
+	}
+
 	LOCK;
 	if (!(_fd = hash_find_swfd(fd))) {
 		UNLOCK;
@@ -917,11 +998,11 @@ void *sw_mmap(void *start, int prot, int flags, swfd_t fd)
 /* Unmaps a previously mapped part of a file. Like munmap(2). */
 int sw_munmap(void *start)
 {
+	if (!SWAPFILE_OK()) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	return cluster_munmap((char *)start);
 }
 
-
-
-/*********************************************************************
- * Internal functions.
- */
