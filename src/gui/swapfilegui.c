@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.36 2001/05/13 11:57:07 richi Exp $
+ * $Id: swapfilegui.c,v 1.37 2001/05/16 08:43:44 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -57,6 +57,13 @@ static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
 static void handle_grp(glsig_handler_t *handler, long sig, va_list va);
 
+static GnomeUIInfo dummy1_menu[] = {
+	GNOMEUIINFO_END
+};
+static GnomeUIInfo dummy2_menu[] = {
+	GNOMEUIINFO_END
+};
+
 static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
@@ -73,21 +80,27 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_ITEM("Flatten", "flatten", flatten_cb, NULL),
         GNOMEUIINFO_ITEM("Collect", "collect", collect_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_SUBTREE("Apply operation", dummy1_menu),
+	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
 	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
+#define GROUP_MENU_APPLYOP_INDEX 15
 static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_SUBTREE("Apply operation", dummy2_menu),
         GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
 	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
+#define FILE_MENU_APPLYOP_INDEX 5
 
 
 static void edit_tree_label_cb(GtkEntry* entry, GlameTreeItem* item)
@@ -118,12 +131,44 @@ void edit_tree_label(GlameTreeItem * item)
 	gtk_widget_grab_focus(GTK_WIDGET(entry));
 }
 
+static gpsm_item_t *actual_item = NULL;
+
+/* Menu event - Apply operation. */
+static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
+{
+	gpsm_item_t *item = actual_item;
+	int (*operation)(gpsm_item_t *, long, long);
+
+	if (!(operation = plugin_query(plugin, PLUGIN_GPSMOP))) {
+		DPRINTF("No such operation %s\n", plugin_name(plugin));
+		return;
+	}
+	DPRINTF("Executing operation %s on %s [%li, %li[\n",
+		plugin_name(plugin), gpsm_item_label(item),
+		(long)0, (long)gpsm_item_hsize(item));
+
+	if (operation(item, 0, gpsm_item_hsize(item)) == -1)
+		gnome_dialog_run_and_close(GNOME_DIALOG(
+			gnome_error_dialog("Error executing")));
+
+	DPRINTF("%s finished.\n", plugin_name(plugin));
+}
+
+/* Somehow only select "operations" */
+static int choose_ops(plugin_t *plugin)
+{
+	/* Only use filters. */
+	if (!(plugin_query(plugin, PLUGIN_GPSMOP)))
+		return 0;
+
+	return 1;
+}
 
 static int click_cb(GtkWidget *item, GdkEventButton *event,
 		    gpointer data)
 {
 	GlameTreeItem *i = GLAME_TREE_ITEM(item);
-	GtkWidget *menu;
+	GtkWidget *menu, *op_menu;
 
 	if (event->button == 1
 	    && event->type == GDK_2BUTTON_PRESS) {
@@ -134,11 +179,20 @@ static int click_cb(GtkWidget *item, GdkEventButton *event,
 	if (event->button != 3)
 		return FALSE;
 
-	if (GPSM_ITEM_IS_SWFILE(i->item))
+	actual_item = i->item;
+
+	if (GPSM_ITEM_IS_SWFILE(i->item)) {
 		menu = gnome_popup_menu_new(file_menu_data);
-	else if (GPSM_ITEM_IS_GRP(i->item))
+		op_menu = glame_gui_build_plugin_menu(choose_ops, applyop_cb);
+		gtk_widget_show(GTK_WIDGET(op_menu));
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(file_menu_data[FILE_MENU_APPLYOP_INDEX].widget), GTK_WIDGET(op_menu));
+
+	} else if (GPSM_ITEM_IS_GRP(i->item)) {
 		menu = gnome_popup_menu_new(group_menu_data);
-        else
+		op_menu = glame_gui_build_plugin_menu(choose_ops, applyop_cb);
+		gtk_widget_show(GTK_WIDGET(op_menu));
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(group_menu_data[GROUP_MENU_APPLYOP_INDEX].widget), GTK_WIDGET(op_menu));
+        } else
 		return TRUE;
 
 	gnome_popup_menu_do_popup(menu, NULL, NULL, event, i);
