@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.16 2001/08/06 08:19:12 richi Exp $
+ * $Id: timeline.c,v 1.17 2001/11/14 10:09:56 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -551,7 +551,7 @@ static SCM gls_timeline_root()
 {
 	if (!active_timeline)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(active_timeline->canvas->root);
+	return gpsmitem2scm((gpsm_item_t *)active_timeline->canvas->root);
 }
 
 static SCM gls_timeline_active_group()

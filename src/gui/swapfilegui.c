@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.65 2001/11/09 16:51:49 richi Exp $
+ * $Id: swapfilegui.c,v 1.66 2001/11/14 10:09:56 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -1021,7 +1021,7 @@ static SCM gls_swapfilegui_root_item()
 {
 	if (!active_swapfilegui)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(active_swapfilegui->root);
+	return gpsmitem2scm((gpsm_item_t *)active_swapfilegui->root);
 }
 
 static SCM gls_swapfilegui_active_item()
@@ -1030,7 +1030,7 @@ static SCM gls_swapfilegui_active_item()
 		return SCM_BOOL_F;
 	if (!active_swapfilegui->active_item)
 		return gpsmitem2scm(active_swapfilegui->root);
-	return gpsmitem2scm(active_swapfilegui->active_item->item);
+	return gpsmitem2scm((gpsm_item_t *)active_swapfilegui->active_item->item);
 }
 
 static SCM gls_swapfilegui_selected_items()

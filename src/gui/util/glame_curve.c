@@ -1,7 +1,7 @@
 /*
  * glame_curve.c
  *
- * $Id: glame_curve.c,v 1.6 2001/09/25 11:23:36 xwolf Exp $
+ * $Id: glame_curve.c,v 1.7 2001/11/14 10:09:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -26,6 +26,7 @@
 #endif
 
 #include <stdio.h>
+#include <string.h>
 #include "util.h"
 #include "glame_curve.h"
 

@@ -55,7 +55,7 @@ static GtkWidgetClass *parent_class;
 static gchar *
 glame_ruler_metric_pixels_translate (gdouble value)
 {
-  return g_strdup_printf ("%d", (long) value);
+  return g_strdup_printf ("%li", (long) value);
 }
 
 static const GlameRulerMetric glame_ruler_metric_pixels =
@@ -242,8 +242,8 @@ glame_ruler_draw_ticks (GlameRuler *ruler)
 gdouble
 glame_ruler_get_stride (GlameRuler *ruler)
 {
-  g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GLAME_IS_RULER (ruler));
+  if (!ruler || !GLAME_IS_RULER(ruler))
+	return 0.0;
 
   if (GLAME_RULER_GET_CLASS (ruler)->get_stride)
     return GLAME_RULER_GET_CLASS (ruler)->get_stride (ruler);

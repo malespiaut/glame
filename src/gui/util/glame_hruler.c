@@ -360,8 +360,8 @@ glame_hruler_get_stride (GlameRuler *ruler)
   PangoRectangle logical_rect, ink_rect;
 #endif
 
-  g_return_if_fail (ruler != NULL);
-  g_return_if_fail (GLAME_IS_HRULER (ruler));
+  if (!ruler || !GLAME_IS_HRULER (ruler))
+    return 0.0;
 
   if (!GTK_WIDGET_DRAWABLE (ruler)) 
     return 0.0;

@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.88 2001/11/11 22:34:34 richi Exp $
+ * $Id: main.c,v 1.89 2001/11/14 10:09:56 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -200,7 +200,6 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	gint i, channels;
 	char *filenamebuffer;
 	gpsm_grp_t *group = NULL;
-	GlameTreeItem *grpw;
 	gpsm_item_t *it;
 
 	/* Query the file name. */
@@ -272,7 +271,7 @@ static void edit_file_cb(GtkWidget *menu, void *data)
 	gpsm_item_destroy((gpsm_item_t *)group);
 	return;
 
-	out:
+	out:;
 	}
 
 	if (!(file = gpsm_find_swfile_vposition(gpsm_root(), NULL, vpos))) {
@@ -321,7 +320,6 @@ static int update_preferences()
 	char *ainplugin = NULL, *aindev = NULL;
 	char *aoutplugin = NULL, *aoutdev = NULL;
 	char s[256];
-	gboolean def;
 	long maxundo, res = 0;
 	long wbufsize, maxlru, maxfds, maxmaps, maxvm;
 
@@ -397,11 +395,11 @@ static int update_preferences()
 	DPRINTF(
 "Preferences:\n"
 "\tSwapfile directory %s\n"
-"\tUndo stack depth is %d\n"
+"\tUndo stack depth is %li\n"
 "\tAudio input plugin %s, device \"%s\"\n"
 "\tAudio output plugin %s, device \"%s\"\n"
-"\tGLAME_WBUFSIZE %d\n"
-"\tPopup timeout is %ims\n"
+"\tGLAME_WBUFSIZE %i\n"
+"\tPopup timeout is %lims\n"
 "\tMac mode is %s\n",
                 swappath, maxundo, ainplugin, aindev, aoutplugin, aoutdev, _GLAME_WBUFSIZE,
                 nPopupTimeout, bMac ? "on" : "off");
@@ -432,6 +430,7 @@ toggle_cb(GtkWidget*foo, gboolean *bar)
 
 static GtkWidget *audio_io_preferences_widget_new()
 {
+	return NULL;
 }
 
 static int
@@ -480,22 +479,22 @@ preferences_cb(GtkWidget * wid, void * bla)
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
 	glame_config_get_long("swapfile/maxlru", &maxlru);
 	maxlrubuf = alloca(256);
-	snprintf(maxlrubuf, 255, "%d", maxlru);
+	snprintf(maxlrubuf, 255, "%li", maxlru);
 	create_label_edit_pair(vbox, _("Maximum number of cached fragment headers"), "prefs::maxlru",
 			       maxlrubuf);
 	glame_config_get_long("swapfile/maxfds", &maxfds);
 	maxfdsbuf = alloca(256);
-	snprintf(maxfdsbuf, 255, "%d", maxfds);
+	snprintf(maxfdsbuf, 255, "%li", maxfds);
 	create_label_edit_pair(vbox, _("Maximum number of cached file descriptors"), "prefs::maxfds",
 			       maxfdsbuf);
 	glame_config_get_long("swapfile/maxmaps", &maxmaps);
 	maxmapsbuf = alloca(256);
-	snprintf(maxmapsbuf, 255, "%d", maxmaps);
+	snprintf(maxmapsbuf, 255, "%li", maxmaps);
 	create_label_edit_pair(vbox, _("Maximum number of cached memory mappings"), "prefs::maxmaps",
 			       maxmapsbuf);
 	glame_config_get_long("swapfile/maxvm", &maxvm);
 	maxvmbuf = alloca(256);
-	snprintf(maxvmbuf, 255, "%d", maxvm);
+	snprintf(maxvmbuf, 255, "%li", maxvm);
 	create_label_edit_pair(vbox, _("Maximum virtual memory used for caching"), "prefs::maxvm",
 			       maxvmbuf);
         notelabel = gtk_label_new(_("NOTE: Swapfile settings take effect after restart only"));
@@ -503,7 +502,7 @@ preferences_cb(GtkWidget * wid, void * bla)
         gtk_container_add(GTK_CONTAINER(vbox), notelabel);
 	glame_config_get_long("swapfile/maxundo", &maxundo);
 	maxundobuf = alloca(256);
-	snprintf(maxundobuf, 255, "%d", maxundo);
+	snprintf(maxundobuf, 255, "%li", maxundo);
 	create_label_edit_pair(vbox, _("Depth of undo stack"), "prefs::maxundo",
 			       maxundobuf);
         gnome_property_box_append_page(GNOME_PROPERTY_BOX(prop_box),vbox,tablabel);
@@ -517,7 +516,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	glame_config_get_long("edit_filter/popupTimeout", &nPopupTimeout);
 	numberbuffer = alloca(256);
-	snprintf(numberbuffer, 255, "%d", nPopupTimeout);
+	snprintf(numberbuffer, 255, "%li", nPopupTimeout);
 	create_label_edit_pair(vbox, _("Property popup timeout [ms]"), "popupTimeout",
 			       numberbuffer);
 
@@ -615,7 +614,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 	/* GLAME_WBUFSIZE */
 	glame_config_get_long("filter/wbufsize", &wbufsize);
 	wbufsizebuf = alloca(256);
-	snprintf(wbufsizebuf, 255, "%d", wbufsize);
+	snprintf(wbufsizebuf, 255, "%li", wbufsize);
 	create_label_edit_pair(vbox, _("Size hint for audio buffers [samples]"), "prefs::wbufsize",
 			       wbufsizebuf);
 
@@ -637,17 +636,17 @@ preferences_cb(GtkWidget * wid, void * bla)
 
 	/* Update gnome config. */
 	glame_config_set_string("swapfile/defaultpath", path);
-	if (sscanf(maxundobuf, "%d", &maxundo) == 1)
+	if (sscanf(maxundobuf, "%li", &maxundo) == 1)
 		glame_config_set_long("swapfile/maxundo", maxundo);
-	if (sscanf(maxlrubuf, "%d", &maxlru) == 1)
+	if (sscanf(maxlrubuf, "%li", &maxlru) == 1)
 		glame_config_set_long("swapfile/maxlru", maxlru);
-	if (sscanf(maxfdsbuf, "%d", &maxfds) == 1)
+	if (sscanf(maxfdsbuf, "%li", &maxfds) == 1)
 		glame_config_set_long("swapfile/maxfds", maxfds);
-	if (sscanf(maxmapsbuf, "%d", &maxmaps) == 1)
+	if (sscanf(maxmapsbuf, "%li", &maxmaps) == 1)
 		glame_config_set_long("swapfile/maxmaps", maxmaps);
-	if (sscanf(maxvmbuf, "%d", &maxvm) == 1)
+	if (sscanf(maxvmbuf, "%li", &maxvm) == 1)
 		glame_config_set_long("swapfile/maxvm", maxvm);
-	if (sscanf(numberbuffer, "%d", &nPopupTimeout) == 1)
+	if (sscanf(numberbuffer, "%li", &nPopupTimeout) == 1)
 		glame_config_set_long("edit_filter/popupTimeout", nPopupTimeout);
 	bMac = mac;
 	glame_config_set_long("edit_filter/macMode",bMac);
@@ -659,7 +658,7 @@ preferences_cb(GtkWidget * wid, void * bla)
 		glame_config_set_string("audio_io/output_dev", aoutdev);
 	if (aoutplugin)
 		glame_config_set_string("audio_io/output_plugin", aoutplugin);
-	if (sscanf(wbufsizebuf, "%d", &wbufsize) == 1)
+	if (sscanf(wbufsizebuf, "%li", &wbufsize) == 1)
 		glame_config_set_long("filter/wbufsize", wbufsize);
 	glame_config_sync();
 
@@ -798,7 +797,6 @@ static void gui_quit(GtkWidget *widget, gpointer data)
 static void gui_main()
 {
 	GtkWidget *dock, *scrollview;
-	char configpath[255];
 	char *path;
 
 	/* Init GUI dependend subsystems. */

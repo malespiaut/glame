@@ -42,11 +42,11 @@ gpsm_item_t *scm2gpsmitem(SCM gpsmitem_smob);
 
 static scm_sizet free_gpsmitem(SCM gpsmitem_smob)
 {
+#if 0
 	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
 
 	/* Delete the item if it is not the root item and
 	 * has no parent. -- NOT. */
-#if 0
 	if (item->item
 	    && item->item != gpsm_root()
 	    && !gpsm_item_parent(item->item)) {
@@ -63,14 +63,13 @@ static scm_sizet free_gpsmitem(SCM gpsmitem_smob)
 static int print_gpsmitem(SCM gpsmitem_smob, SCM port, scm_print_state *pstate)
 {
 	struct gpsmitem_smob *item = SCM2GPSMITEMSMOB(gpsmitem_smob);
-	gpsm_item_t *it;
 	char buf[256];
 
 	if (!item->item) {
 		snprintf(buf, 255, "#< destroyed gpsm item >");
 		scm_puts(buf, port);
 	} else if (GPSM_ITEM_IS_SWFILE(item->item)) {
-		snprintf(buf, 255, "#< gpsm-swfile \"%s\" file=%li rate=%li pos=%.3f (+%li) > ",
+		snprintf(buf, 255, "#< gpsm-swfile \"%s\" file=%li rate=%i pos=%.3f (+%li) > ",
 			 gpsm_item_label(item->item),
 			 gpsm_swfile_filename(item->item),
 			 gpsm_swfile_samplerate(item->item),
@@ -155,7 +154,7 @@ static SCM gls_gpsm_item_parent(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item), s_item,
 		   SCM_ARG1, "gpsm-item-parent");
 	item = scm2gpsmitem(s_item);
-	return gpsmitem2scm(gpsm_item_parent(item));
+	return gpsmitem2scm((gpsm_item_t *)gpsm_item_parent(item));
 }
 
 static SCM gls_gpsm_item_label(SCM s_item)
@@ -352,7 +351,7 @@ static SCM gls_gpsm_close()
 
 static SCM gls_gpsm_root()
 {
-	return gpsmitem2scm(gpsm_root());
+	return gpsmitem2scm((gpsm_item_t *)gpsm_root());
 }
 
 static SCM gls_gpsm_newswfile(SCM s_label)
@@ -374,7 +373,7 @@ static SCM gls_gpsm_swfile_cow(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item)
 		   && (item = scm2gpsmitem(s_item), GPSM_ITEM_IS_SWFILE(item)),
 		   s_item, SCM_ARG1, "gpsm-swfile-cow");
-	return gpsmitem2scm(gpsm_swfile_cow((gpsm_swfile_t *)item));
+	return gpsmitem2scm((gpsm_item_t *)gpsm_swfile_cow((gpsm_swfile_t *)item));
 }
 
 static SCM gls_gpsm_swfile_link(SCM s_item)
@@ -383,7 +382,7 @@ static SCM gls_gpsm_swfile_link(SCM s_item)
 	SCM_ASSERT(gpsmitem_p(s_item)
 		   && (item = scm2gpsmitem(s_item), GPSM_ITEM_IS_SWFILE(item)),
 		   s_item, SCM_ARG1, "gpsm-swfile-link");
-	return gpsmitem2scm(gpsm_swfile_link((gpsm_swfile_t *)item));
+	return gpsmitem2scm((gpsm_item_t *)gpsm_swfile_link((gpsm_swfile_t *)item));
 }
 
 static SCM gls_gpsm_newgrp(SCM s_label)

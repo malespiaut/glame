@@ -1,6 +1,6 @@
 /*
  * glsimd.c
- * $Id: glsimd.c,v 1.2 2001/04/11 08:37:59 richi Exp $
+ * $Id: glsimd.c,v 1.3 2001/11/14 10:09:57 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -20,6 +20,11 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <string.h>
 #include "glsimd.h"
 
 

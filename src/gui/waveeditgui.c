@@ -1136,7 +1136,7 @@ static SCM gls_waveedit_new(SCM s_item)
 static SCM gls_waveedit_gpsm_grp()
 {
 	if (active_waveedit)
-		return gpsmitem2scm(active_waveedit->swfiles);
+		return gpsmitem2scm((gpsm_item_t *)active_waveedit->swfiles);
 	return SCM_BOOL_F;
 }
 
