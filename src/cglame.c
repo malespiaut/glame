@@ -36,11 +36,15 @@
 
 int cmd_argc;
 char **cmd_argv;
+char *swfname;
 
 /* just enter a scheme command line.
  */
 void sc_main()
 {
+	if (swfname && gpsm_init(swfname) == -1)
+		exit(1);
+
 	/* Interactive mode. */
 	if (!cmd_argv) {
 		fprintf(stderr,
@@ -73,7 +77,6 @@ void usage()
 
 int main(int argc, char **argv)
 {
-	char *swfname;
 	int creat;
 
 	fprintf(stderr, "\n"
@@ -122,15 +125,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (swfname && gpsm_init(swfname) == -1)
-		exit(1);
-
 
 	if (glame_init(sc_main, cmd_argc, cmd_argv) == -1) {
 	        fprintf(stderr, "glame init failed!\n");
-		gpsm_close();
 		exit(1);
 	}
+
+	fprintf(stderr, "quitting.\n");
 	gpsm_close();
 
 	return 0;
