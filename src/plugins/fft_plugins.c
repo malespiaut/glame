@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.2 2001/04/18 15:15:18 mag Exp $
+ * $Id: fft_plugins.c,v 1.3 2001/04/25 14:32:14 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -263,7 +263,8 @@ int fft_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform audio-stream to fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
-	  
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT");
+
 	filter_register(f,p);
 
 	return 0;
@@ -406,6 +407,7 @@ int ifft_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Transform fft-stream to audio-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "IFFT");
 	
 	filter_register(f,p);
 
@@ -523,6 +525,7 @@ int fft_resample_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "Resample fft-stream");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT_Resample");
 	
 	filter_register(f,p);
 
@@ -645,6 +648,7 @@ int fft_equalizer_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "FFT 5-Band Equalizer");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT_Bandpass");
 	
 	filter_register(f,p);
 
@@ -755,6 +759,7 @@ int fft_bandpass_register(plugin_t *p)
 	plugin_set(p, PLUGIN_DESCRIPTION, "FFT Bandpass");
 	plugin_set(p, PLUGIN_PIXMAP, "fft.png");
 	plugin_set(p, PLUGIN_CATEGORY, "FFT");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "FFT_Equalizer");
 	
 	filter_register(f,p);
 
