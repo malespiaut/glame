@@ -22,6 +22,7 @@
  *
  */
 
+#include <sys/param.h>
 
 #define PANIC(msg) do { fprintf(stderr, msg "\n"); perror("errno"); *((int *)0)=0; } while (0)
 
