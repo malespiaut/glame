@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.17 2001/05/25 11:29:31 xwolf Exp $
+ * $Id: glame_gui_utils.c,v 1.18 2001/05/25 11:42:23 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -622,9 +622,7 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 	float fVal;
 	char *caption = callback->caption;
 	param_widget_t* item;
-	SAMPLE* sbuf;
-	gfloat * fbuffer;
-	int bufcount;
+	filter_buffer_t *sbuf;
 	
 	while(list){
 		item = (param_widget_t*)(list->data);
@@ -665,14 +663,10 @@ update_params(GnomePropertyBox *propertybox, param_callback_t* callback)
 			g_free(strVal);
 			break;
 		case PSBUF:
-			sbuf = sbuf_alloc(1000,filterparam_filter(item->param));
+			sbuf = sbuf_alloc(1000, NULL);
 			sbuf_make_private(sbuf);
-			bufcount = sbuf_size(sbuf);
-			fbuffer = calloc(sizeof(gfloat),bufcount);
-			gtk_curve_get_vector(GTK_CURVE(item->widget),bufcount,fbuffer);
-			memcpy(sbuf,fbuffer,bufcount*sizeof(float));
-			free(fbuffer);
-			filterparam_set(item->param,&sbuf);
+			gtk_curve_get_vector(GTK_CURVE(item->widget), sbuf_size(sbuf), sbuf_buf(sbuf));
+			filterparam_set(item->param, &sbuf);
 			break;
 		case PGLADE:
 			if (GTK_IS_OPTION_MENU(item->widget)) {
@@ -852,48 +846,42 @@ glame_gui_filter_properties(filter_paramdb_t *pdb, const char *caption)
 
 
 
-GdkImlibImage* glame_load_icon(const char* filename)
+GdkImlibImage* glame_load_icon(const char *filename)
 {
 	GdkImlibImage* image = NULL;
 	char * file;
-	char * gnomeFile;
 	char * filepath;
+
 	fprintf(stderr,"load: %s\n",filename);
 	/* no filename given, ->default */
 	if(!filename)
 		file = GLAME_DEFAULT_ICON;
 	else
 		file = filename;
+
 	/* check if stock gnome */
-	if(!(gnomeFile = gnome_pixmap_file(file))){
-		/* maybe in Glamepixmappath? */
-		filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,file);
-		if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
-			g_free(filepath);
-			/* maybe cvs? */
-			filepath = g_concat_dir_and_file("../data/pixmaps", file);
-		}
-		if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
-			g_free(filepath);
-			/* default! */
-			filepath = gnome_pixmap_file(GLAME_DEFAULT_ICON);
-		}
-		if(!filepath)
-			filepath = g_concat_dir_and_file("../data/pixmaps", GLAME_DEFAULT_ICON);
+	if ((filepath = gnome_pixmap_file(file))) {
+		image = gdk_imlib_load_image(filepath);
+		g_free(filepath);
+	}
+
+	/* maybe in Glamepixmappath? */
+	filepath = g_concat_dir_and_file(GLAME_PIXMAP_PATH,file);
+	if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+		g_free(filepath);
+		/* maybe cvs? */
+		filepath = g_concat_dir_and_file("../data/pixmaps", file);
+	}
+	if (!g_file_test(filepath, G_FILE_TEST_ISFILE)) {
+		g_free(filepath);
+		/* default! */
+		filepath = gnome_pixmap_file(GLAME_DEFAULT_ICON);
+	}
+	if(!filepath)
+		filepath = g_concat_dir_and_file("../data/pixmaps", GLAME_DEFAULT_ICON);
 		
-		if(filepath){
-			const char * mime;
-			/* check for mime-type */
-			mime = gnome_mime_type(filepath);
-			if(strstr("image",mime))
-				image = gdk_imlib_load_image(filepath);
-			else{
-				DPRINTF("Mime-type unknown. trying anyway!\n");
-				image = gdk_imlib_load_image(filepath);
-			}
-		}
-	}else
-		image = gdk_imlib_load_image(gnomeFile);
+	image = gdk_imlib_load_image(filepath);
+	g_free(filepath);
 	return image;
 }
 
