@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 
-@comment $Id: glame.texi,v 1.5 2000/02/08 15:00:10 nold Exp $
+@comment $Id: glame.texi,v 1.6 2000/02/22 16:55:26 nold Exp $
 
 
 @c %**start of header
@@ -68,8 +68,13 @@ frontends is described as well as GLAME's internal programming
 API for the benefit of developers.
 
 More recent versions of this document as well as additional information
-about GLAME might be available at the project's homepage at
+about GLAME might be available via the project's homepage at
 @uref{http://glame.sourceforge.net}.
+
+@ifhtml
+This document is also available as a gzipped PostScript file:
+@uref{http://glame.sourceforge.net/manual.ps.gz}
+@end ifhtml
 
 @ifnottex
 Copyright @copyright{} 2000 Richard G@"unther, Daniel Kobras. 

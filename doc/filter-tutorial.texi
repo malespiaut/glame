@@ -1,10 +1,10 @@
-@comment $Id: filter-tutorial.texi,v 1.7 2000/02/21 14:30:37 richi Exp $
+@comment $Id: filter-tutorial.texi,v 1.8 2000/02/22 16:55:26 nold Exp $
 
 @node Filter Tutorial, Swapfile API, Filter API, Top
 @chapter Filter Tutorial
 
 This part of the document is about how to write filters for GLAME. It
-only covers parts of this at the moment, but will evolve to a decent
+only covers parts of this at the moment, but will evolve into a decent
 filter programming tutorial with your help.
 
 @menu
@@ -17,16 +17,16 @@ filter programming tutorial with your help.
 @end menu
 
 @node Parameter Definition, Filter Categories, , Filter Tutorial
-@heading Talking about parameters, properties and protocols...
+@section Talking about parameters, properties and protocols...
 
 When talking about filters in the following sections, we'll make use of
-various flavours of @dfn{parameters} and @dfn{properties}.  Some filters
-export hooks to dynamically tune their internal behaviour.  We'll call
-these @dfn{parameters}. Parameters are generally user-settable,
-while properties are only modified by the filters though they can
-be influenced by parameters.
+various flavours of @dfn{parameters} and @dfn{properties}. Some filters
+export hooks to dynamically tune their internal behaviour. We call
+them @dfn{parameters}. Parameters generally are user-settable,
+while @dfn{properties} are only modified by the filters. But for terminal
+confusion, properties can be influenced by parameters of course.
 
-We have parameters at three places---the @dfn{filternode
+We have parameters at three places: the @dfn{filternode
 parameters}, the @dfn{pipe source parameters} and the @dfn{pipe
 destination parameters}. In the following we will not make a difference
 between pipe source and destination parameters, we just call them
@@ -35,30 +35,29 @@ parameters, one at the source end and one at the destination end.
 
 As indicated by the name, @dfn{filternode parameters} are local to the
 filternode, the instance of a filter for which the parameter was
-defined.  A good example for a filternode parameter is probably a
-frequency range for a bandpass filter.  @dfn{Pipe parameters} are local
+defined. A good example for a filternode parameter is the
+frequency range of a bandpass filter. @dfn{Pipe parameters} are local
 to a pipe which is an instance of two ports---therefore two sets of
-parameters, each defined at one of the ports, exist for a
-pipe. Pipe parameters are local to the pipe, i.e. on automatic
-ports multiple sets of parameters exist---pipe parameters are not port
-parameters. Common use for pipe parameters are gain controls.
+parameters exist for a single pipe, each defined at one of the ports.
+Pipe parameters are local to the pipe, i.e. on automatic
+ports multiple sets of parameters exist. Pipe parameters are not port
+parameters. Pipe parameters are commonly used for e.g. gain values.
 
-@dfn{Pipe properties} provide information all data floating through the
-pipe shares. Pipe properties remain constant during the run of the
+@dfn{Pipe properties} provide information shared between all data floating 
+through the pipe. Pipe properties remain constant during a run of the
 filter network. @dfn{Buffer properties}---the information coded into the
 filter buffer headers---are local to a buffer and are not required to be
 constant in any way. Sampling rate is probably the most common example
-of a pipe property. A buffer properties for example could be a timestamp.
+of a pipe property. A buffer property for example could be a timestamp.
 
 Buffer property definitions are local to a @dfn{filter protocol}.
-Filter protocols expose additional per buffer information to the filters
+Filter protocols expose additional per-buffer information to the filters
 by prepending a protocol specific header to the buffer. Multiple
 buffer properties can be defined in one header.
 
 
-
 @node Filter Categories, Filter Skeleton, Parameter Definition, Filter Tutorial
-@heading Now what is this whole filter stuff anyway?
+@section Now what is this whole filter stuff anyway?
 In GLAME there are four different kinds of filters. For each you have to care
 about different methods to ensure correct operation. The first three
 share (by definition) the following property: they all use nothing
@@ -66,38 +65,38 @@ but SAMPLEs as their inputs/outputs.
 
 So to begin with the fourth kind of filter, the one operating on types
 different from SAMPLE as well. For this kind
-you may need to implement every method in the filter struct. If you
+you may need to re-implement every method in the filter struct. If you
 want to implement such a complex filter, contact 
 @email{glame-devel@@lists.sourceforge.net}
-for advise.
+for advice.
 
 @findex connect_out
 @findex fixup_param
 The first kind of filters summarizes those which have no input at all. 
-I.e. this is
+This is
 the class of @dfn{generators}. Generators have to ensure that the pipes
 connected to them are assigned the correct type and type parameters.
 Therefore they all need to provide the @code{connect_out()} method. If they
 do have filter parameters which affect the output type/parameters, they also
-have to provide the @code{fixup_param()} method. An example for this class
-of filters is the sine filter in @file{waveform.c} as is the 
-@code{read_file()} filter in @file{read_file.c}.
+have to provide the @code{fixup_param()} method. Example for this class
+of filters are the sine filter in @file{waveform.c} and the
+@code{read_file_f()} filter in @file{file_io.c}.
 
 The second kind of filters comprises of those which have no output. 
-I.e. this is the class of @dfn{sinks}. Sinks don't have to care about 
+This is the class of @dfn{sinks}. Sinks don't have to care about 
 all that much. Everything they
 need to setup can be done in the main filter method. So usually those
 filters do not provide another method apart from @code{f()}. An example for
-this class of filters is the @code{audio_out()} filter in 
-@file{audio_io.c}.
+this class of filters is the @code{drop_f()} filter in 
+@file{basic.c}.
 
 @findex connect_out
 @findex fixup_param
 @findex fixup_pipe
 The third kind of filters are the inbetween filters which require
-connected input and output channels. Lets call them
+connected input and output channels. Let's call them
 @dfn{effects}. Effects have to provide a @code{connect_out()} method, if
-they may change any of the pipe properties (i.e. what comes out is
+they change any of the pipe properties (i.e. what comes out is
 different from what comes in, like in a resample case). They also have
 to provide the @code{fixup_param()} and the @code{fixup_pipe()} methods
 if there are dependencies between the filter or port parameters and the
@@ -105,11 +104,11 @@ output pipe properties or between the input pipe properties and the
 output pipe properties (different from a one-to-one mapping).
 
 @node Filter Skeleton, Main Filter Method, Filter Categories, Filter Tutorial
-@heading What do I need to have in a glame filter set?
-You will need the following functions and methods:
+@section What do I need to have in a glame filter set?
+You need the following functions and methods:
 @table @code
-@item filtersetname_register()
-A filter registering function of the name @code{filtersetname_register()} 
+@item <your_filtersetname>_register()
+A filter register function of the name @code{<your_filtersetname>_register()} 
 which returns 0 on success and -1 on any error.
 @findex f
 @item f() 
@@ -123,10 +122,10 @@ generic hints on which methods you may need.
 @findex f
 @node Main Filter Method, Examples, Filter Skeleton, Filter Tutorial
 @heading How does the @code{f()} function have to look like? Are there any restrictions?
-Yes of course! There are!
+Yes, of course there are!
 
-@code{f()} should begin with checking the current setup for suitability,
-i.e. look at the parameters and input types/formats. And it should set up
+@code{f()} should begin with checking the current setup for suitability:
+look at the parameters and input types/formats. And it should set up
 all necessary local things. @emph{After} this initialisation the macro
 @findex FILTER_AFTER_INIT
 @code{FILTER_AFTER_INIT;} has to appear! 
@@ -135,7 +134,7 @@ to denote an error, returning with no error is not allowed.
 After @code{FILTER_AFTER_INIT;} you should do the actual filter work, i.e.
 accept and send data through the ports.
 The main part of the filter and the cleanup part (freeing of all
-local allocated data, etc.) have to be seperated by placing the macro 
+allocated local data, etc.) have to be seperated by placing the macro 
 @findex FILTER_BEFORE_CLEANUP
 @code{FILTER_BEFORE_CLEANUP;}.
 Neither in the main part, nor in the cleanup part may you just return with
@@ -143,23 +142,51 @@ a return value of -1 (i.e. just fail). Instead you have to cleanup yourself,
 including sending @code{EOF}s to your output ports. So basically you may fail
 in the initialisation part, but nowhere else.
 
+@findex FILTER_DO_CLEANUP 
+For your convenience, there's another macro, @code{FILTER_DO_CLEANUP} that you
+can use to jump from the init section to the cleanup section. Typical code
+looks like this:
+
+@example
+static int myfilter_f(filternode_t *n)
+@{
+	(...)		/* stuff */
+	int ret = -1;	/* Return from init with failure */
+
+	(...)	/* Checks, setups, allocations */
+
+	if (some_error)
+		FILTER_DO_CLEANUP;
+
+	ret = 0;	/* No failure beyond this point! */
+	FILTER_AFTER_INIT;
+
+	(...) /* Do real work */
+
+	FILTER_BEFORE_CLEANUP;
+
+	(...)	/* Free dynamic resources, tidy up */
+	return ret;
+@}
+@end example
+
 @strong{You may not use any of the @code{?buf_*()}
-functions in the @code{INIT} section (DEADLOCK!!!)} 
-(@code{?buf_alloc()} is allowed, if you really need it)
+functions in the init section (DEADLOCK!!!)} 
+(Well, @code{?buf_alloc()} is allowed, if you really need it)
 
 Another section primitive is the @code{FILTER_CHECK_STOP;} macro which you
 should use inside all operating loops to check for external stop, pause or
 terminate
-queries. The corresponding cleanup section after @code{FILTER_BEFORE_STOPCLEANUP;}
-is jumped to if a terminating request has to be fulified.
-
+queries. The corresponding cleanup section after 
+@code{FILTER_BEFORE_STOPCLEANUP;}
+is jumped to if a terminating request has to be fulfilled.
 
 For more complex filters which require some sort of backlog of sample
 data or which do modify an input stream the following issues have to
 be cared about:
 
 You should not allocate a ringbuffer or backlog storage via malloc,
-neither should you simply copy the data - this is not necessary - in
+neither should you simply copy the data---this is not necessary. In
 fact it is completely broken. You should instead just keep all the
 sbuf's around that you need later (of course ref'ing and unref'ing them
 at the appropriate time)
@@ -169,21 +196,20 @@ at the appropriate time)
 If your filter in priciple would support in-place read-modify-write of
 the data you should not allocate new buffers for the output using
 @code{sbuf_alloc()}. Instead you should grab the source buffer and do a
-@code{sbuf_make_private()} on it taking the pointer returned from this as the
-``new'' input buffer which you may modifiy now and later queue as
+@code{sbuf_make_private()} on it taking the returned pointer as the
+``new'' input buffer which you may modify now and queue as
 output.
 
 @findex sbuf_alloc
 @findex sbuf_make_private
+Once again, as this is a vital point:
 If you do any modification of any buffer (including those which you just
 allocated privately using @code{sbuf_alloc()} or friends) 
 you must get the write-enabled buffer by calling @code{sbuf_make_private()}
 and use the return value as the buffer to be written to!
 
-
-
 @node Examples, Speeeed, Main Filter Method, Filter Tutorial
-@subsection Examples
+@section Examples
 
 To clarify the reference counting and locking issues, in the following several
 valid and invalid example uses of the API are given. They are valid for each
@@ -233,8 +259,7 @@ fbuf_unref(buf);
 @noindent
 While being valid, this example illustrates ineffective use of references.
 As you don't need to touch the buffer after @code{fbuf_queue()}, 
-you don't need to get an additional reference and neither need to drop it again. 
-Such use will cause a @code{fbuf_make_private()} in the destination filter to 
+you don't need to get an additional reference and neither need to drop it again.Such use will cause a @code{fbuf_make_private()} in the destination filter to 
 potentially copy the buffer while a perfectly valid zero-copy 
 operation was possible.
 
@@ -275,7 +300,8 @@ fbuf_queue(out, buf);
 
 
 @node Speeeed, , Examples, Filter Tutorial
-@subsection Speeeed
+@section Speeeed
 
 FIXME - this section still needs to be written. Topics: constructing efficient
 loops, using the streaming macros.
+
