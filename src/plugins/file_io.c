@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.53 2001/07/05 13:59:02 mag Exp $
+ * $Id: file_io.c,v 1.54 2001/08/01 15:41:49 nold Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -621,8 +621,9 @@ int wav_read_parse(filter_t *n, char *from, char* to)
 		from += 4;
 		size = __gl_le32_to_cpup(from);
 		from += 4;
-		if (from + size > to) {
-			DPRINTF("Illegal size in %s chunk.\n", tag);
+		if (size < 0 || from + size > to) {
+			DPRINTF("Illegal size in %s chunk (real: %ld, "
+			        "adv: %ld).\n", tag, to-from, size);
 			return -1;
 		}
 		if ((size = handler(n, tag, from, size)) == -1) {
@@ -792,7 +793,7 @@ int wav_read_f(filter_t *n)
 	align = RWW(n).frames % blksize;
 	to_go = RWW(n).frames / blksize;
 	
-	if (align < GLAME_MIN_BUFSIZE) {
+	if (align < GLAME_MIN_BUFSIZE && to_go) {
 		align += blksize;
 		to_go--;
 	}
