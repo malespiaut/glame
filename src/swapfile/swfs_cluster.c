@@ -23,6 +23,10 @@
 #include <config.h>
 #endif
 
+#ifdef SWDEBUG
+#define DEBUG 1
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>

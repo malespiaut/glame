@@ -40,6 +40,10 @@
 #include <config.h>
 #endif
 
+#ifdef SWDEBUG
+#define DEBUG 1
+#endif
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <pthread.h>
@@ -73,7 +77,7 @@ static struct {
 	char *clusters_data_base;
 	char *clusters_meta_base;
 	struct list_head fds;
-	int fsck, ro, clean;
+	int fsck, ro, clean, panic;
 } swap = { NULL, NULL, NULL, };
 #define SWAPFILE_OK() (swap.files_base != NULL)
 #define SWAPFILE_RW() (SWAPFILE_OK() && (!swap.ro || swap.fsck))
@@ -83,7 +87,9 @@ static pthread_mutex_t swmx = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK do { pthread_mutex_lock(&swmx); } while (0)
 #define UNLOCK do { pthread_mutex_unlock(&swmx); } while (0)
 
-#define SWPANIC(msg) PANIC(msg)
+static void (* panic_handler)(const char *msg) = NULL;
+static void do_panic(const char *msg);
+#define SWPANIC(msg) do { if (swap.panic) PANIC(msg); else do_panic(msg); } while (0)
 
 
 /* We want to have a clean (static) namespace... */
@@ -122,6 +128,18 @@ static int fsck_check_files(int fix);
 static int fsck_cluster(struct swcluster *cluster, int fix);
 static int fsck_check_clusters(int fix);
 
+
+/* Fatal error handling.
+ */
+
+static void do_panic(const char *msg)
+{
+	swap.panic = 1;
+	if (panic_handler)
+		panic_handler(msg);
+	file_sync();
+	PANIC(msg);
+}
 
 
 /**********************************************************************
@@ -215,12 +233,18 @@ static int _swapfile_init(const char *name, int force)
 	swap.fsck = 0;
 	swap.ro = 0;
 	swap.clean = 1;
+	swap.panic = 0;
 
 	/* Initialize cluster subsystem. */
 	if (cluster_init(2048, 128, 256, 256*1024*1024) == -1)
 		return -1;
 
 	return 0;
+}
+
+void swapfile_register_panic_handler(void (*handler)(const char *))
+{
+	panic_handler = handler;
 }
 
 /* Tries to open an existing swap file/partition.
@@ -254,7 +278,7 @@ int swapfile_open(const char *name, int flags)
 
 void swapfile_sync()
 {
-	/* FIXME */
+	file_sync();
 }
 
 /* Closes and updates a previously opened swap file/partition

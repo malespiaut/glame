@@ -69,6 +69,10 @@ static struct swfile *file_get(long name, int flags);
 static void file_put(struct swfile *f, int flags);
 
 
+/* Syncs all hashed and modified file ctrees to disk. */
+static void file_sync();
+
+
 /* Get a reference to the cluster containing offset using the
  * specified flags. Stores the offset of the cluster start in cstart.
  * Return values/flags like get_cluster. */

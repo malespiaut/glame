@@ -23,6 +23,10 @@
 #include <config.h>
 #endif
 
+#ifdef SWDEBUG
+#define DEBUG 1
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -187,6 +191,30 @@ static void file_put(struct swfile *f, int flags)
 		UNLOCKFILE(f);
 	}
 	file_check(f);
+}
+
+static void file_sync()
+{
+	int i;
+
+	/* Loop through all hashed swfiles, syncing the cluster tree
+	 * to disk, if it is modified and consistent.
+	 */
+	LOCKFILES;
+	for (i=0; i<(1<<8); i++) {
+		struct swfile *f = hash_getslot_swfile(i);
+		while (f) {
+			if (f->flags & SWF_DIRTY) {
+				LOCKFILE(f);
+				if (f->flags & SWF_DIRTY
+				    && ctree_check(f->clusters) == 0)
+					_file_writeclusters(f);
+				UNLOCKFILE(f);
+			}
+			f = hash_next_swfile(f);
+		}
+	}
+	UNLOCKFILES;
 }
 
 static struct swcluster *file_getcluster(struct swfile *f,

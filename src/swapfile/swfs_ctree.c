@@ -23,6 +23,10 @@
 #include <config.h>
 #endif
 
+#ifdef SWDEBUG
+#define DEBUG 1
+#endif
+
 #include <stdlib.h>
 #include "swfs_ctree.h"
 

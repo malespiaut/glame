@@ -81,6 +81,10 @@ extern "C" {
  * Initialization/cleanup
  */
 
+/* Registers a handler that gets executed if the swapfile subsystem
+ * is about to commit suicide. The message may be a hint to the user. */
+void swapfile_register_panic_handler(void (*handler)(const char *));
+
 /* Tries to open an existing swap file/partition.
  * Returns 0 on success, -1 on failure.
  * Failures can be
