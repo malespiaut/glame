@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.9 2001/07/10 13:40:32 richi Exp $
+ * $Id: ssp.c,v 1.10 2001/07/10 14:56:19 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -176,7 +176,7 @@ entry:
 		buf = sbuf_make_private(sbuf_get(in));
 	};
 
-	maxrms = (float)sqrt((double)maxrms);
+	maxrms = sqrtf(maxrms);
 
 	filterparam_set(param, &maxrms);
 

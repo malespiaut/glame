@@ -79,6 +79,10 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
 
+dnl Check if we have certain functions and #define them
+dnl to fallbacks if not
+ACG_CHECK_STUFF
+
 
 dnl
 dnl Switch to make SAMPLE a double - float is default.

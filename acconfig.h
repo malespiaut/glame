@@ -81,6 +81,9 @@
 /* define to the type you want for SAMPLE (float or double) */
 #define SAMPLE float
 
+/* define to the function you want to use for sqrtf */
+/* #define sqrtf sqrtf */
+
 /* define, if the SAMPLE type is std (float) */
 #undef SAMPLE_FLOAT
 
