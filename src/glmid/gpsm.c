@@ -58,6 +58,8 @@ static void dump_item(gpsm_item_t *item, xmlNodePtr node)
 		xmlSetProp(child, "rate", s);
 		snprintf(s, 255, "%.3f", swfile->position);
 		xmlSetProp(child, "position", s);
+	} else {
+		PANIC("GPSM item neither neither group nor swapfile.");
 	}
 	xmlSetProp(child, "label", item->label);
 	snprintf(s, 255, "%li", item->hposition);
@@ -248,10 +250,10 @@ int gpsm_init(const char *swapfile)
 		sw_close(fd);
 	} else {
 		/* Seems to be empty swapfile - use "default" xml. */
-		xml = strdup("\
-<?xml version=\"1.0\"?>
-<swapfile>
-</swapfile>");
+		xml = strdup(""
+"<?xml version=\"1.0\"?>\n"
+"<swapfile>\n"
+"</swapfile>");
 	}
 
 	/* Try to parse the xml string. */
@@ -432,7 +434,7 @@ gpsm_swfile_t *gpsm_swfile_link(gpsm_swfile_t *source)
 {
 	gpsm_swfile_t *swfile;
 
-	if (!swfile)
+	if (!source)
 		return NULL;
 
 	swfile = (gpsm_swfile_t *)gpsm_newitem(GPSM_ITEM_TYPE_SWFILE);
