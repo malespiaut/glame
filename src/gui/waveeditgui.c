@@ -907,6 +907,11 @@ static void wave_help(GtkWidget *foo, void*bar)
 	gnome_help_goto(NULL,"info:glame#The_Wave_Editor");
 }
 
+static void wave_close_cb(GtkWidget *foo, void *bar)
+{
+	gtk_object_destroy(GTK_OBJECT(actual_waveview));
+}
+
 static GnomeUIInfo view_menu[] = {
 	GNOMEUIINFO_ITEM("Zoom to selection", "zommsel", zoomsel_cb, NULL),
 	GNOMEUIINFO_ITEM("Zoom in", "zommin", zoomin_cb, NULL),
@@ -941,6 +946,8 @@ static GnomeUIInfo rmb_menu[] = {
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_SUBTREE("Apply filter", NULL),
 	GNOMEUIINFO_ITEM("Apply custom...", "Creates a filternetwork window for applying it to the selection",apply_custom_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Close","Close",wave_close_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Help","help",wave_help,NULL),
 	GNOMEUIINFO_SEPARATOR,
@@ -1030,6 +1037,10 @@ static void handle_item(glsig_handler_t *handler, long sig, va_list va)
 		gtk_object_destroy(GTK_OBJECT(weg->widget));
 	weg->widget = NULL;
 }
+static void destroy_win(GtkWidget *w, GtkObject *win)
+{
+	gtk_object_destroy(win);
+}
 
 GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
@@ -1089,6 +1100,8 @@ GtkWidget *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	weg->handler = glsig_add_handler(gpsm_item_emitter(item), GPSM_SIG_ITEM_DESTROY|GPSM_SIG_GRP_NEWITEM|GPSM_SIG_GRP_REMOVEITEM, handle_item, weg);
 	gtk_signal_connect(GTK_OBJECT(window), "destroy",
 			   (GtkSignalFunc)destroy, weg);
+	gtk_signal_connect(GTK_OBJECT(waveview), "destroy",
+			   (GtkSignalFunc)destroy_win, window);
 
 	return window;
 }
