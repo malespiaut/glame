@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.14 2001/04/11 08:37:27 richi Exp $
+ * $Id: echo.c,v 1.15 2001/04/22 14:25:50 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -70,7 +70,8 @@ static int echo_f(filter_t *n)
 	        FILTER_CHECK_STOP;
 		sbuf_queue(out, inb); /* this really ate one reference */
 	entry1:
-		inb = sbuf_get(in);
+		if (!(inb = sbuf_get(in)))
+			goto drain;
 		sbuf_ref(inb);
 		add_feedback(&fifo, inb); /* this "ate" one reference! */
 		cnt += sbuf_size(inb);
@@ -150,6 +151,7 @@ static int echo_f(filter_t *n)
 	 * condition at the end lets us automagically send the EOF mark.
 	 */
 	sbuf_queue(out, fb);
+ drain:
 	do {
 	        FILTER_CHECK_STOP;
 		fb = get_feedback(&fifo);
