@@ -1,4 +1,4 @@
-@comment $Id: filter.texi,v 1.23 2000/11/15 09:38:24 richi Exp $
+@comment $Id: filter.texi,v 1.24 2000/12/07 14:24:39 richi Exp $
 
 @node Filter API, Filter Tutorial, Plugin Collection, Top
 @chapter Filter API
@@ -238,7 +238,7 @@ it, deleting it or creating a copy of it.
 
 @tindex gldb_t
 @tindex gldb_item_t
-@deftypefun int gldb_add_item (gldb_t *@var{db}, gldb_item_t *@var{item}, const char *@{label})
+@deftypefun int gldb_add_item (gldb_t *@var{db}, gldb_item_t *@var{item}, const char *@var{label})
 @deftypefunx void gldb_remove_item (gldb_item_t *@var{item})
 @deftypefunx {gldb_item_t *} gldb_query_item (gldb_t *@var{db}, const char *@var{label})
 These functions can be used to add an item with the specified label to the
