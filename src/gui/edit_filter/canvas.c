@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.81 2001/04/25 15:50:42 richi Exp $
+ * $Id: canvas.c,v 1.82 2001/04/26 12:12:47 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -1439,7 +1439,7 @@ static void canvas_save_as(GtkWidget*w,GlameCanvas *glCanv)
 	outf = fopen(filenamebuffer,"w");
 	buffer = filter_to_string(GLAME_CANVAS(glCanv)->net->net);
 	DPRINTF("Network .scm is:\n%s\n", buffer);
-	DPRINTF("(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
+	fprintf(outf, "(let ((newplugin (glame_plugin_define %s \"%s\")\n)) (if (filter_p newplugin) newplugin (plugin_set newplugin PLUGIN_CATEGORY \"%s\")))", buffer, filternamebuffer, categorynamebuffer);
 	free(buffer);
 	fclose(outf);
 }
