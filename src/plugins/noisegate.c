@@ -1,6 +1,6 @@
 /*
  * noisegate.c
- * $Id: noisegate.c,v 1.1 2000/03/22 08:45:47 mag Exp $
+ * $Id: noisegate.c,v 1.2 2000/04/05 08:58:39 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -47,7 +47,7 @@
  *             to full amplitude within attacktime
  *             
  * Releasetime: After the noisegate is turned off the signal is faded
- *              to zero ampkitude within releasetime
+ *              to zero amplitude within releasetime
  *
  * WARNING: Setting Releasetime/Attacktime to zero leads to distorted sound !
  */
@@ -74,13 +74,13 @@ static int noisegate_f(filter_node_t *n)
 	if ((param=filternode_get_param(n,"threshold_off")))
 			t_off=filterparam_val_float(param);
 	if ((param=filternode_get_param(n,"hold")))
-			holdtime=filterpipe_sample_rate(in)*filterparam_val_int(param)/1000;
+			holdtime=TIME2CNT(int,filterparam_val_float(param),filterpipe_sample_rate(in));
 	if ((param=filternode_get_param(n,"attack")))
-		if (filterparam_val_int(param)>0.0)
-			attack=1000.0/(filterpipe_sample_rate(in)*filterparam_val_int(param));
+		if (filterparam_val_float(param)>0.0)
+			attack=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
 	if ((param=filternode_get_param(n,"release")))
 		if (filterparam_val_int(param)>0.0)
-			release=1000.0/(filterpipe_sample_rate(in)*filterparam_val_int(param));
+			release=1.0/TIME2CNT(float,filterparam_val_float(param),filterpipe_sample_rate(in));
 	
 	FILTER_AFTER_INIT;
 	
