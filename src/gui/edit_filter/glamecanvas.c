@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.13 2001/06/11 17:34:21 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.14 2001/06/12 07:44:58 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -359,7 +359,7 @@ void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 	}
 }
 
-void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
+void glame_canvas_group_remove_item(GlameCanvasGroup* group, GlameCanvasFilter* item)
 {
 	group->children = g_list_remove(group->children,item);
 	gtk_signal_disconnect_by_data(GTO(item),group);
@@ -367,7 +367,11 @@ void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup
 		if(!GNOME_CANVAS_GROUP(group)->item_list)		/* no more children */
 			glame_canvas_group_destroy(GTO(group));
 }
- 
+void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
+{
+	glame_canvas_group_remove_item(group,item);
+} 
+
 void glame_canvas_group_deleted_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
 {
 	static int rec_level = 0;
@@ -464,7 +468,7 @@ void glame_canvas_group_reparent_item(GlameCanvasGroup* glameGroup, GlameCanvasF
 {
 	GlameCanvasGroup* oldParent = GLAME_CANVAS_GROUP(GCI(gItem)->parent);
 	gnome_canvas_item_reparent(gItem, GNOME_CANVAS_GROUP(glameGroup));
-	glame_canvas_group_remove_item(gItem,oldParent);
+	glame_canvas_group_remove_item(oldParent,gItem);
 	glameGroup->children = g_list_append(glameGroup->children,gItem);
 }
 
@@ -474,7 +478,7 @@ void glame_canvas_group_add(GlameCanvasGroup* parent, GlameCanvasFilter* newchil
 	if((g_list_length(child->children)>1)||(g_list_length(GNOME_CANVAS_GROUP(child)->item_list)>1))
 		gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(newchild),GNOME_CANVAS_GROUP(parent));
 	else
-		glame_canvas_group_add_item(parent, newchild);
+		glame_canvas_group_reparent_item(parent, newchild);
 }
 
 void glame_canvas_set_zoom(GlameCanvas * canv, double pixelperpoint)
