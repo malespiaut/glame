@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.55 2001/05/30 13:57:32 richi Exp $
+; $Id: glame.scm,v 1.56 2001/06/01 07:45:00 richi Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -483,7 +483,7 @@
 		      (sw_unlink 998)
 		      (sw_unlink 999)
 		      result)))))
-      (swtest "file COW" test "Hallo wie gehts?HallXXXXX gehts?"))))
+      (swtest "File COW" test "Hallo wie gehts?HallXXXXX gehts?"))))
 
 (define swtest-overwrite-aligned
   (lambda ()
@@ -536,6 +536,36 @@
 		      result)))))
       (swtest "Unaligned overwrite with append" test "Hallo Leute, wie gehts?"))))
 
+(define swtest-shared-shrink
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998 "Hallo Leute, wie gehts?"))
+			(fd2 (sw-creat 999)))
+		    (sw_sendfile fd2 fd1 23 0)
+		    (sw_ftruncate fd2 22)
+		    (let ((result (sw-contents fd2)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Shared file shrink" test "Hallo Leute, wie gehts"))))
+
+(define swtest-shared-grow
+  (lambda ()
+    (let ((test (lambda ()
+		  (let ((fd1 (sw-creat 998 "Hallo Leute, wie gehts?"))
+			(fd2 (sw-creat 999)))
+		    (sw_sendfile fd2 fd1 23 0)
+		    (sw_ftruncate fd2 24)
+		    (let ((result (sw-contents fd2)))
+		      (sw_close fd1)
+		      (sw_close fd2)
+		      (sw_unlink 998)
+		      (sw_unlink 999)
+		      result)))))
+      (swtest "Shared file grow" test "Hallo Leute, wie gehts?"))))
+
 (define swtest-all
   (lambda ()
     (and (swtest-rw-simple)
@@ -551,6 +581,8 @@
 	 (swtest-insert-aligned)
 	 (swtest-insert-unaligned)
 	 (swtest-filecow)
+	 (swtest-shared-shrink)
+	 (swtest-shared-grow)
 	 (swtest-overwrite-aligned)
 	 (swtest-overwrite-unaligned)
 	 (swtest-overwrite-unaligned-append))))
