@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.19 2005/03/11 16:59:45 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.20 2005/03/11 20:29:43 richi Exp $
  *
  * Copyright (C) 2001, 2002 Johannes Hirche
  *
@@ -98,15 +98,6 @@ GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
 /* Construct a widget (without window) to allow changing parameters
  * of a parameter database. Returns a widget or NULL on error. */
 GtkWidget *glame_gui_from_paramdb(filter_paramdb_t *pdb);
-
-
-/* Open a file selection dialog with the specified title, file entry label
- * and file selection dialog pattern (optional). You need to provide a
- * result character buffer with space for at least 256 characters. */
-GtkWidget *glame_dialog_file_request(const char *windowtitle,
-				     const char *history_id, const char *label,
-				     const char *pattern,
-				     char *returnbuffer);
 
 
 /* Creates a notificator for network finish. Add handlers _before_

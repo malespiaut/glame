@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.39 2005/03/11 16:59:45 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.40 2005/03/11 20:29:43 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -142,39 +142,6 @@ void create_label_double_pair(GtkWidget *vbox,
 	gtk_container_add(GTK_CONTAINER(vbox), hbox);
 }
 
-
-static void glame_dialog_file_request_browse_cb(GnomeFileEntry *fileentry,
-						const char *pattern)
-{
-	/* Well, this f*** widget is NULL here... */
-	gtk_file_selection_complete(GTK_FILE_SELECTION(fileentry->fsw),
-				    pattern);
-}
-GtkWidget *glame_dialog_file_request(const char *windowtitle,
-				     const char *history_id, const char *label,
-				     const char *pattern,
-				     char *returnbuffer)
-{
-	GtkWidget *dialog;
-	GtkWidget *fileEntry;
-	GtkWidget *dialogVbox;	
-	
-	dialog = gnome_dialog_new(windowtitle, GNOME_STOCK_BUTTON_CANCEL,
-				  GNOME_STOCK_BUTTON_OK, NULL);
-        dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
-
-        fileEntry = gnome_file_entry_new(history_id, label);
-	gnome_file_entry_set_modal(GNOME_FILE_ENTRY(fileEntry), TRUE);
-        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
-                           "changed", GTK_SIGNAL_FUNC(update_string_from_editable_cb),
-			   returnbuffer);
-	if (pattern)
-		gtk_signal_connect_after(GTK_OBJECT(fileEntry), "browse-clicked",
-					 (GtkSignalFunc)glame_dialog_file_request_browse_cb,
-					 (gpointer)pattern);
-        create_label_widget_pair(dialogVbox, "Filename", fileEntry);
-	return dialog;
-}
 
 
 /*
