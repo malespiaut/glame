@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * $Id: swapfilegui.c,v 1.62 2001/10/06 23:08:55 richi Exp $
+ * $Id: swapfilegui.c,v 1.63 2001/11/05 11:08:03 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
@@ -195,8 +195,9 @@ static void applyop_cb(GtkWidget *bla, plugin_t *plugin)
 /* Somehow only select "operations" */
 static int choose_ops(plugin_t *plugin)
 {
-	/* Only use filters. */
-	if (!(plugin_query(plugin, PLUGIN_GPSMOP)))
+	/* Only use filters, hide Import */
+	if (!plugin_query(plugin, PLUGIN_GPSMOP)
+	    || strcmp(plugin_name(plugin), "import") == 0)
 		return 0;
 
 	return 1;

@@ -937,7 +937,8 @@ static int choose_effects(plugin_t *plugin)
 static int choose_ops(plugin_t *plugin)
 {
 	/* Only use filters. */
-	if (!(plugin_query(plugin, PLUGIN_GPSMOP)))
+	if (!plugin_query(plugin, PLUGIN_GPSMOP)
+	    || strcmp(plugin_name(plugin), "import") == 0)
 		return 0;
 
 	return 1;
