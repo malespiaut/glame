@@ -1,6 +1,6 @@
 /*
  * timeline.c
- * $Id: timeline.c,v 1.11 2001/07/05 13:58:17 mag Exp $
+ * $Id: timeline.c,v 1.12 2001/07/06 12:14:53 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,14 +29,13 @@
 #include "glame_accelerator.h"
 #include "util/glame_gui_utils.h"
 #include "waveeditgui.h"
-#include "canvas_types.h"
 #include "timeline.h"
 
 
 /* GUI is single threaded, so we may have some global state.
  */
 
-static TimelineCanvas *active_timeline = NULL;
+static TimelineGui *active_timeline = NULL;
 
 
 /*
@@ -44,28 +43,28 @@ static TimelineCanvas *active_timeline = NULL;
  */
 
 static void handle_timeline_enter(GtkWidget *canvas, GdkEventCrossing *event,
-				  TimelineCanvas *timeline)
+				  TimelineGui *timeline)
 {
 	if (event->type == GDK_ENTER_NOTIFY) {
 		DPRINTF("Entered timeline for %s\n",
-			gpsm_item_label(timeline->root));
+			gpsm_item_label(timeline->canvas->root));
 		active_timeline = timeline;
 	}
 }
 
 static void handle_timeline_destroy(GtkWidget *canvas,
-				    TimelineCanvas *timeline)
+				    TimelineGui *timeline)
 {
 	active_timeline = NULL;
 }
 
-static void update_ruler_position(TimelineCanvas *canvas, long hposition)
+static void update_ruler_position(TimelineGui *timeline, long hposition)
 {
-	gtk_ruler_set_range(canvas->ruler,
-			    canvas->ruler->lower,
-			    canvas->ruler->upper,
+	gtk_ruler_set_range(timeline->ruler,
+			    timeline->ruler->lower,
+			    timeline->ruler->upper,
 			    hposition/44100.0,
-			    canvas->ruler->max_size);
+			    timeline->ruler->max_size);
 }
 
 static gboolean file_event(TimelineCanvasFile* file, GdkEvent* event,
@@ -277,19 +276,19 @@ static gboolean root_event(TimelineCanvas* canvas, GdkEvent* event,
  * Menu / toolbar handlers.
  */
 
-static void zoom_in_cb(GtkWidget *widget, TimelineCanvas *timeline)
+static void zoom_in_cb(GtkWidget *widget, TimelineGui *timeline)
 {
-	timeline_canvas_scale(timeline, 2.0);
+	timeline_canvas_scale(timeline->canvas, 2.0);
 }
 
-static void zoom_out_cb(GtkWidget *widget, TimelineCanvas *timeline)
+static void zoom_out_cb(GtkWidget *widget, TimelineGui *timeline)
 {
-	timeline_canvas_scale(timeline, 0.5);
+	timeline_canvas_scale(timeline->canvas, 0.5);
 }
 
-static void close_cb(GtkWidget *widget, GtkWidget *timeline)
+static void close_cb(GtkWidget *widget, TimelineGui *timeline)
 {
-	gtk_widget_destroy(timeline);
+	gtk_widget_destroy(GTK_WIDGET(timeline));
 	active_timeline = NULL;
 }
 
@@ -298,11 +297,11 @@ static void help_cb(GtkWidget *widget, void *foo)
 	gnome_help_goto(NULL, "info:glame#The_Timeline");
 }
 
-static void ruler_update_cb(GtkAdjustment *adjustment, TimelineCanvas *canvas)
+static void ruler_update_cb(GtkAdjustment *adjustment, TimelineGui *timeline)
 {
 	long hpos, hsize, dummy;
 	double scale;
-	GnomeCanvasItem *root = GNOME_CANVAS_ITEM(gnome_canvas_root(GNOME_CANVAS(canvas)));
+	GnomeCanvasItem *root = GNOME_CANVAS_ITEM(gnome_canvas_root(GNOME_CANVAS(timeline->canvas)));
 	if (root->object.flags & GNOME_CANVAS_ITEM_AFFINE_FULL)
 		scale = root->xform[0];
 	else
@@ -312,7 +311,7 @@ static void ruler_update_cb(GtkAdjustment *adjustment, TimelineCanvas *canvas)
 				    adjustment->value, 0.0,
 				    adjustment->value + adjustment->page_size,
 				    0.0);
-	gtk_ruler_set_range(canvas->ruler,
+	gtk_ruler_set_range(timeline->ruler,
 			    hpos/44100.0/scale,
 			    (hpos + hsize)/44100.0/scale,
 			    hpos/44100.0/scale /* FIXME - track mouse */,
@@ -404,49 +403,46 @@ static void handle_root(glsig_handler_t *handler, long sig, va_list va)
 {
 	switch (sig) {
 	case GPSM_SIG_GRP_REMOVEITEM: {
-		TimelineCanvas *canvas;
+		TimelineGui *timeline;
 		GnomeCanvasItem *citem;
 		gpsm_grp_t *root;
 		gpsm_item_t *item;
 
-		canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
+		timeline = TIMELINE_GUI(glsig_handler_private(handler));
 		GLSIGH_GETARGS2(va, root, item);
-		if (canvas->root != root)
+		if (timeline->canvas->root != root)
 			DPRINTF("FUCK!\n");
 
 		citem = timeline_canvas_find_gpsm_item(
-			gnome_canvas_root(GNOME_CANVAS(canvas)), item);
+			gnome_canvas_root(GNOME_CANVAS(timeline->canvas)), item);
 		if (!citem)
 			DPRINTF("FUCK2\n");
-		if ((void *)citem == (void *)canvas->active_item)
-			canvas->active_item = NULL;
-		if ((void *)citem == (void *)canvas->active_group)
-			canvas->active_group = NULL;
+		if ((void *)citem == (void *)timeline->canvas->active_item)
+			timeline->canvas->active_item = NULL;
+		if ((void *)citem == (void *)timeline->canvas->active_group)
+			timeline->canvas->active_group = NULL;
 		gtk_object_destroy(GTK_OBJECT(citem));
 
 		break;
 	}
 	case GPSM_SIG_GRP_NEWITEM: {
-		TimelineCanvas *canvas;
+		TimelineGui *timeline;
 		gpsm_grp_t *root;
 		gpsm_item_t *item;
 
-		canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
+		timeline = TIMELINE_GUI(glsig_handler_private(handler));
 		GLSIGH_GETARGS2(va, root, item);
 
 		handle_grp_add_item(GNOME_CANVAS_GROUP(
-			gnome_canvas_root(GNOME_CANVAS(canvas))), item);
+			gnome_canvas_root(GNOME_CANVAS(timeline->canvas))), item);
 
 		break;
 	}
 	case GPSM_SIG_ITEM_DESTROY: {
-		TimelineCanvas *canvas;
+		TimelineGui *timeline;
 
-		canvas = TIMELINE_CANVAS(glsig_handler_private(handler));
-		if (canvas->window)
-			gtk_widget_destroy(canvas->window);
-		else
-			gtk_object_destroy(GTK_OBJECT(canvas));
+		timeline = TIMELINE_GUI(glsig_handler_private(handler));
+		gtk_widget_destroy(GTK_WIDGET(timeline));
 		break;
 	}
 	default:
@@ -497,21 +493,21 @@ static SCM gls_timeline_root()
 {
 	if (!active_timeline)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(active_timeline->root);
+	return gpsmitem2scm(active_timeline->canvas->root);
 }
 
 static SCM gls_timeline_active_group()
 {
-	if (!active_timeline || !active_timeline->active_group)
+	if (!active_timeline || !active_timeline->canvas->active_group)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(TIMELINE_CANVAS_ITEM(active_timeline->active_group)->item);
+	return gpsmitem2scm(TIMELINE_CANVAS_ITEM(active_timeline->canvas->active_group)->item);
 }
 
 static SCM gls_timeline_active_item()
 {
-	if (!active_timeline || !active_timeline->active_item)
+	if (!active_timeline || !active_timeline->canvas->active_item)
 		return SCM_BOOL_F;
-	return gpsmitem2scm(active_timeline->active_item->item);
+	return gpsmitem2scm(active_timeline->canvas->active_item->item);
 }
 
 void glame_timeline_init()
@@ -524,90 +520,124 @@ void glame_timeline_init()
 			    gls_timeline_active_item);
 }
 
-GtkWidget *glame_timeline_new(gpsm_grp_t *root)
+static void timeline_gui_destroy(GtkObject *timeline)
 {
-	GtkWidget *window, *canvas;
-	gpsm_item_t *item;
+	GnomeAppClass* parent_class;
+	parent_class = gtk_type_class(gnome_app_get_type());
+	GTK_OBJECT_CLASS(parent_class)->destroy(timeline);
+}
 
-	if (!root || !GPSM_ITEM_IS_GRP(root))
-		return NULL;
+static void timeline_gui_class_init(TimelineGuiClass *class)
+{
+	GtkObjectClass *object_class;
+	object_class = GTK_OBJECT_CLASS(class);
+	object_class->destroy = timeline_gui_destroy;
+}
 
-	window = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(window),
-				       GTK_POLICY_ALWAYS,
-				       GTK_POLICY_AUTOMATIC);
-	gtk_widget_push_visual(gdk_rgb_get_visual());
-	gtk_widget_push_colormap(gdk_rgb_get_cmap());
-	canvas = GTK_WIDGET(timeline_canvas_new(root));
-	gtk_widget_pop_colormap();
-	gtk_widget_pop_visual();
-	gtk_container_add(GTK_CONTAINER(window), canvas);
-	gtk_widget_show(canvas);
-	gtk_widget_show(window);
+static void timeline_gui_init(TimelineGui *timeline)
+{
+	timeline->canvas = NULL;
+}
 
-	/* Add all existing childs of root. */
-	gpsm_grp_foreach_item(root, item)
-		handle_grp_add_item(gnome_canvas_root(GNOME_CANVAS(canvas)), item);
+GtkType timeline_gui_get_type(void)
+{
+	static GtkType timeline_gui_type = 0;
+	
+	if (!timeline_gui_type){
+		GtkTypeInfo timeline_gui_info = {
+			"TimelineGui",
+			sizeof(TimelineGui),
+			sizeof(TimelineGuiClass),
+			(GtkClassInitFunc)timeline_gui_class_init,
+			(GtkObjectInitFunc)timeline_gui_init,
+			NULL,NULL,(GtkClassInitFunc)NULL,};
+		timeline_gui_type = gtk_type_unique(
+			gnome_app_get_type(), &timeline_gui_info);
+		gtk_type_set_chunk_alloc(timeline_gui_type, 8);
+	}
 
-	/* Add handler for item additions/removal in root group. */
-	TIMELINE_CANVAS(canvas)->gpsm_handler1 = glsig_add_handler(
-		gpsm_item_emitter(root), GPSM_SIG_GRP_NEWITEM
-		|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_DESTROY,
-		handle_root, canvas);
-
-	/* Add handler for enter events to track the active timeline. */
-	gtk_signal_connect(GTK_OBJECT(canvas),"event", root_event, NULL);
-	gtk_signal_connect(GTK_OBJECT(canvas), "enter_notify_event",
-			   handle_timeline_enter, canvas);
-	gtk_signal_connect(GTK_OBJECT(canvas), "destroy",
-			   handle_timeline_destroy, canvas);
-
-	return window;
+	return timeline_gui_type;
 }
 
 GtkWidget *glame_timeline_new_with_window(const char *caption,
 					  gpsm_grp_t *root)
 {
-	GtkWidget *timeline, *window, *toolbar, *vbox, *ruler;
-	TimelineCanvas *canvas;
+	GtkWidget *swindow, *toolbar, *vbox;
+	TimelineGui *window;
+	gpsm_item_t *item;
 
 	if (!root || !GPSM_ITEM_IS_GRP(root))
 		return NULL;
 
-	/* Create the timeline canvas. */
-	timeline = glame_timeline_new(root);
-	if (!timeline)
-		return NULL;
-	canvas = TIMELINE_CANVAS(GTK_BIN(timeline)->child);
+	window = TIMELINE_GUI(gtk_type_new(timeline_gui_get_type()));
+	gnome_app_construct(GNOME_APP(window), "glame0.5", _(caption));
 
-	/* Create the window, with canvas, toolbar, etc. */
-	window = gnome_app_new(caption, _(caption));
+
+	/* Construct a scrolled window and embed the
+	 * TimelineCanvas inside it.
+	 */
+
+	swindow = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swindow),
+				       GTK_POLICY_ALWAYS,
+				       GTK_POLICY_AUTOMATIC);
+	gtk_widget_push_visual(gdk_rgb_get_visual());
+	gtk_widget_push_colormap(gdk_rgb_get_cmap());
+	window->canvas = timeline_canvas_new(root);
+	gtk_widget_pop_colormap();
+	gtk_widget_pop_visual();
+	gtk_container_add(GTK_CONTAINER(swindow), GTK_WIDGET(window->canvas));
+	gtk_widget_show(GTK_WIDGET(window->canvas));
+	gtk_widget_show(swindow);
+
+	/* Add all existing childs of root. */
+	gpsm_grp_foreach_item(root, item)
+		handle_grp_add_item(gnome_canvas_root(GNOME_CANVAS(window->canvas)),
+				    item);
+
+	/* Add handler for item additions/removal in root group. */
+	TIMELINE_CANVAS(window->canvas)->gpsm_handler1 = glsig_add_handler(
+		gpsm_item_emitter(root), GPSM_SIG_GRP_NEWITEM
+		|GPSM_SIG_GRP_REMOVEITEM|GPSM_SIG_ITEM_DESTROY,
+		handle_root, window);
+
+	/* Add handler for enter events to track the active timeline. */
+	gtk_signal_connect(GTK_OBJECT(window->canvas),"event", root_event, NULL);
+	gtk_signal_connect(GTK_OBJECT(window->canvas), "enter_notify_event",
+			   handle_timeline_enter, window);
+	gtk_signal_connect(GTK_OBJECT(window->canvas), "destroy",
+			   handle_timeline_destroy, window);
+
+
+	/* Construct the toplevel window with ruler and toolbar
+	 * where we embed the scrolled window with the canvas.
+	 */
+
 	gtk_window_set_default_size(GTK_WINDOW(window), 500, 300);
 	vbox = gtk_vbox_new(FALSE, 5);
-	ruler = gtk_hruler_new();
-	canvas->ruler = GTK_RULER(ruler);
-	canvas->window = window;
-	gtk_ruler_set_metric(GTK_RULER(ruler), GTK_PIXELS);
-	gtk_ruler_set_range(GTK_RULER(ruler), 0.0, 100.0, 0.0, 1000.0);
-	gtk_box_pack_start(GTK_BOX(vbox), ruler, FALSE, FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(vbox), timeline);
-	gtk_widget_show(ruler);
-	gtk_widget_show(timeline);
+	window->ruler = GTK_RULER(gtk_hruler_new());
+	gtk_ruler_set_metric(window->ruler, GTK_PIXELS);
+	gtk_ruler_set_range(window->ruler, 0.0, 100.0, 0.0, 1000.0);
+	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(window->ruler),
+			   FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(vbox), swindow);
+	gtk_widget_show(GTK_WIDGET(window->ruler));
+	gtk_widget_show(swindow);
 	gtk_widget_show(vbox);
-	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(timeline))), "changed",
-			   ruler_update_cb, canvas);
-	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(timeline))), "value_changed",
-			   ruler_update_cb, canvas);
+	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(swindow))), "changed",
+			   ruler_update_cb, window);
+	gtk_signal_connect(GTK_OBJECT(gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(swindow))), "value_changed",
+			   ruler_update_cb, window);
 	gnome_app_set_contents(GNOME_APP(window), vbox);
 	toolbar = gtk_toolbar_new(GTK_ORIENTATION_VERTICAL, GTK_TOOLBAR_ICONS);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom in", "Zooms in","foo",
 				glame_load_icon_widget("zoom_in.png",24,24),
-				zoom_in_cb,TIMELINE_CANVAS(GTK_BIN(timeline)->child));
+				zoom_in_cb, window);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Zoom out", "Zooms out","foo",
 				glame_load_icon_widget("zoom_out.png",24,24),
-				zoom_out_cb,TIMELINE_CANVAS(GTK_BIN(timeline)->child));
+				zoom_out_cb, window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),
 				"Close", "Close", "Close",

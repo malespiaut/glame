@@ -3,7 +3,7 @@
 
 /*
  * timeline.h
- * $Id: timeline.h,v 1.2 2001/06/19 09:58:22 richi Exp $
+ * $Id: timeline.h,v 1.3 2001/07/06 12:14:53 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -29,15 +29,41 @@
 
 #include <gtk/gtkwidget.h>
 #include "gpsm.h"
+#include "timeline_canvas.h"
+
+
+struct _TimelineGuiClass;
+struct _TimelineGui;
+typedef struct _TimelineGuiClass TimelineGuiClass;
+typedef struct _TimelineGui TimelineGui;
+
+#define TIMELINE_GUI_TYPE (timeline_gui_get_type())
+#define TIMELINE_GUI(object) (GTK_CHECK_CAST((object), TIMELINE_GUI_TYPE, TimelineGui))
+#define TIMELINE_GUI_CLASS(object) (GTK_CHECK_CLASS_CAST((object), TIMELINE_GUI_TYPE, TimelineGuiClass))
+#define IS_TIMELINE_GUI(object) (GTK_CHECK_TYPE((object), TIMELINE_GUI_TYPE))
+#define IS_TIMELINE_GUI_CLASS(object) (GTK_CHECK_CLASS_TYPE((object), TIMELINE_GUI_TYPE))
+#define TIMELINE_GUI_GET_CLASS(object) ((TimelineGuiClass*) (((GtkObject*) (obj))->klass))
+
+struct _TimelineGuiClass {
+	GnomeAppClass parent_class;
+
+};
+
+struct _TimelineGui {
+	GnomeApp parent_object;
+
+	TimelineCanvas *canvas;
+	GtkRuler *ruler;
+};
+
 
 
 /* Inits the timeline subsystem. */
 void glame_timeline_init();
 
 
-/* Create a new timeline widget with root as contents. Returns
- * a widget on success, NULL on error. */
-GtkWidget *glame_timeline_new(gpsm_grp_t *root);
+GtkType timeline_gui_get_type();
+
 
 /* Create a new timeline view of the provided gpsm group embedded
  * into a fully fledged window. */

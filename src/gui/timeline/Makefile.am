@@ -6,6 +6,7 @@ if HAVE_GNOME
 noinst_LTLIBRARIES = libtimeline.la
 endif
 
-libtimeline_la_SOURCES = timeline.h timeline.c \
-	canvas_types.h canvas_types.c
+libtimeline_la_SOURCES = \
+	timeline_canvas.h timeline_canvas.c \
+	timeline.h timeline.c
 

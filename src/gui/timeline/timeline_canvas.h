@@ -4,7 +4,7 @@
 /*
  * canvas_types.h
  *
- * $Id: canvas_types.h,v 1.8 2001/07/03 11:14:12 richi Exp $
+ * $Id: timeline_canvas.h,v 1.1 2001/07/06 12:14:53 mag Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -125,9 +125,9 @@ struct _TimelineCanvas {
 	TimelineCanvasItem *active_item;
 	TimelineCanvasGroup *active_group;
 
-	/* HACK(s) */
+	/* HACK(s)
 	GtkRuler *ruler;
-	GtkWidget *window;
+	GtkWidget *window; */
 };
 
 
