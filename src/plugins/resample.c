@@ -1,6 +1,6 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.4 2004/10/23 13:09:29 richi Exp $
+ * $Id: resample.c,v 1.5 2004/10/31 22:21:47 richi Exp $
  *
  * Copyright (C) 2003, 2004 Richard Guenther
  *
@@ -40,7 +40,8 @@
 PLUGIN(resample)
 
 struct resample_s {
-	GtkWidget *dialog, *adjustment;
+	GtkWidget *dialog;
+	GtkAdjustment *adjustment;
 	gpsm_item_t *grp;
 	long samplerate;
 };
@@ -112,10 +113,8 @@ static void dialog_cb(GnomeDialog *dialog, gint button, struct resample_s *rs)
 	if (button == 2) {
 		glame_help_goto(NULL, "Resample");
 		return;
-	} else if (button == 0) {
-		do_resample((gpsm_grp_t *)rs->grp, gtk_adjustment_get_value(
-				    GTK_ADJUSTMENT(rs->adjustment)));
-	}
+	} else if (button == 0)
+		do_resample((gpsm_grp_t *)rs->grp, gtk_adjustment_get_value(rs->adjustment));
 	gpsm_item_destroy(rs->grp);
 	free(rs);
 	gnome_dialog_close(dialog);
@@ -143,9 +142,9 @@ static void resample_dialog(struct resample_s *rs)
 	gtk_misc_set_alignment (GTK_MISC (label3), 0, 0.5);
 	gtk_container_add (GTK_CONTAINER (hbox1), label3);
 
-	rs->adjustment = GTK_WIDGET(gtk_adjustment_new
-	        (rs->samplerate, 2756, 192000, 100, 1000, 0.0));
-	spinbutton1 = gtk_spin_button_new (GTK_ADJUSTMENT (rs->adjustment), 100000, 0);
+	rs->adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(
+		rs->samplerate, 2756, 192000, 100, 1000, 0.0));
+	spinbutton1 = gtk_spin_button_new (rs->adjustment, 100000, 0);
 	gtk_container_add (GTK_CONTAINER (hbox1), spinbutton1);
 
 	gnome_dialog_append_button(GNOME_DIALOG(rs->dialog), GNOME_STOCK_BUTTON_OK);
