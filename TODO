@@ -8,10 +8,17 @@ plugins/
 	[all]
 	- provide pixmaps for all plugins (missing: echo, fft friends,
           iir, noisegate, pan, rms, time, ...)
+	- merge mix1 & mix2 [richi]
+        - move time (and rename) into waveform
 
 gui/
 	[xwolf]
 	- kool splashscreen?
+
+swapfile/
+	[richi]
+	- do fsck on every mount (fast, non-destructive) to check
+          integrity
 
 
 Stuff scheduled for 0.5 or later:
