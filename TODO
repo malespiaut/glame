@@ -9,11 +9,14 @@ doc/
 plugins/
 	- we need pixmaps
 
+hash/
+        - glsimd [all]
+          * think of useful SIMD operations with good (ask richi) API 
+          * do 3dnow, isse, mmx, etc. versions of existing operations
+          * think of how to do run-time detection/profiling
+
 filter/
 	[richi]
-        - API stuff
-	  * Completely script (the new) filter API - use smobs?
-            Partly done.
 	- implementation stuff
           * move (copy?) methods down to the actual users (filter_param_t
   	    and filter_pipe_t, filter_port_t) to allow separated filter_port_t
@@ -26,6 +29,5 @@ swapfile/
 
 gui/
 	[all]
-	- allow load/save of networks
 	- we need some ideas how to do the wave-editing stuff, especially
           how to couple it with the filter stuff.

@@ -10,10 +10,10 @@ swapfile: richi
 	src/swapfile/*
 
 filter: richi
-	src/filter/*
+	src/filter/* apart from filter_tools.h
 
 mid-layer: richi
-	src/glmid/*
+	src/glmid/* apart from glame.scm
 
 hash: richi
 	src/hash/*
@@ -29,6 +29,8 @@ midi: garrison
 
 gui: xwolf
 	src/gui/*
+     richi
+        src/gui/libgtkwaveform/*
 
 plugins: mag
         rms, noisegate, iir, fft, 
