@@ -505,6 +505,10 @@ static char *_cluster_mmap(struct swcluster *c, int prot, int flags)
 	if (flags != MAP_SHARED)
 		return MAP_FAILED;
 
+	/* PROT_WRITE alone is not a good idea. */
+        if (prot & PROT_WRITE)
+		prot |= PROT_READ;
+
 	/* Do we have a mapping already? Maybe update it. */
 	if (c->map_addr) {
 		if ((prot & c->map_prot) != prot)
