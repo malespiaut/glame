@@ -201,7 +201,7 @@ dnl We also need libxml -- dont check, if we have libglade, just
 dnl fix generic cflags
 dnl
 
-if test x$glame = xyes; then
+if test x$glade = xyes; then
 dnl HACK
 	AC_MSG_WARN([Skipping libxml check due to possible conflicts with libglade])
 	XML_CFLAGS="$GNOME_INCLUDEDIR"
