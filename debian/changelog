@@ -1,3 +1,36 @@
+glame (1.0.3-1) unstable; urgency=low
+
+  * New upstream release.
+    + Updated autoconf macro groks recent Alsa versions. Closes: #253675
+  * debian/control: Suggest yelp instead of gnome-help. Closes: #229249
+  * debian/copyright: Sync copyright notice with upstream files.
+  * debian/glame.menu: Properly quote all menu items.
+
+ -- Daniel Kobras <kobras@debian.org>  Thu, 28 Oct 2004 20:34:38 +0200
+
+glame (1.0.2-1) unstable; urgency=low
+
+  * New upstream version.
+    + Rebuilt with automake that can handle recent dpkg's install-info.
+      Closes: #218961
+  * debian/glame.info: Do not hardcode number of info pages generated.
+    Patch thanks to Andreas Metzler.
+  * debian/control: Bump standards version.
+  * debian/control: lowercase short description.
+
+ -- Daniel Kobras <kobras@debian.org>  Tue, 13 Jan 2004 20:59:56 +0100
+
+glame (1.0.1-1) unstable; urgency=low
+
+  * New upstream version.
+  * src/include/glame_guile_compat.h: Revert patch. A better fix was included
+    upstream.
+  * debian/control: Build depend on libmad and libvorbis packages for new
+    mp3 and ogg/vorbis support, respectively.
+  * debian/control: Complies with standards version 3.5.10.
+
+ -- Daniel Kobras <kobras@debian.org>  Tue,  1 Jul 2003 12:41:09 +0200
+
 glame (1.0.0-2) unstable; urgency=low
 
   * debian/rules: Remove superfluous /usr/include/

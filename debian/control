@@ -2,15 +2,15 @@ Source: glame
 Section: sound
 Priority: extra
 Maintainer: Daniel Kobras <kobras@debian.org>
-Build-Depends: debhelper (>= 4.0.18), docbook-to-man, sfftw-dev (>= 2.1.3-10), libaudiofile-dev, libesd0-dev, libasound2-dev (>= 0.9.0rc5), libgnome-dev, guile-1.6-dev | libguile-dev, libglade0-dev, libxml2-dev, texinfo, tetex-bin, libltdl3-dev, autotools-dev, ladspa-sdk
-Standards-Version: 3.5.7
+Build-Depends: debhelper (>= 4.0.18), docbook-to-man, sfftw-dev (>= 2.1.3-10), libaudiofile-dev, libesd0-dev, libasound2-dev (>= 0.9.0rc5), libgnome-dev, guile-1.6-dev | libguile-dev, libglade0-dev, libxml2-dev, texinfo, tetex-bin, libltdl3-dev, autotools-dev, ladspa-sdk, libmad0-dev, libvorbis-dev (>= 1.0.0)
+Standards-Version: 3.6.1
 
 Package: glame
 Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ladspa-plugin, ${shlibs:Recommends}
-Suggests: gnome-help
-Description: A versatile audio processor
+Suggests: yelp
+Description: versatile audio processor
  GLAME provides a powerful and extensible framework for processing
  audio files similar to what GIMP offers in the graphics area.  GLAME so
  far features a graphical frontend to set up filter networks and perform
