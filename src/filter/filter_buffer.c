@@ -1,6 +1,6 @@
 /*
  * filter_buffer.c
- * $Id: filter_buffer.c,v 1.14 2000/03/20 09:42:44 richi Exp $
+ * $Id: filter_buffer.c,v 1.15 2000/03/21 09:39:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -103,7 +103,7 @@ filter_buffer_t *fbuf_make_private(filter_buffer_t *fb)
 
 
 /* FIXME! totally br0ken! */
-#define FBPIPE_WCNT (PIPE_BUF/16)
+#define FBPIPE_WCNT (PIPE_BUF/(sizeof(void *)*1))
 #define FBPIPE_WSIZE (FBPIPE_WCNT*sizeof(void *))
 /* fbuf_get reads the address of the next pending filter buffer
  * from the input pipe p.
@@ -119,6 +119,9 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 	if (!p)
 		return NULL;
 
+	/*	printf("%s::%s reading from %s::%s\n", p->dest->name, p->in_name,
+	       p->source->name, p->out_name); */
+
 	/* now I want to know it... */
 	while ((res = read(p->dest_fd, buf, FBPIPE_WSIZE)) == -1
 	       && errno == EINTR)
@@ -129,6 +132,9 @@ filter_buffer_t *fbuf_get(filter_pipe_t *p)
 #endif
         } else if (res != FBPIPE_WSIZE)
                 PANIC("pipe reads are not atomic!");
+
+	/* printf("%s::%s read from %s::%s ok.\n", p->dest->name, p->in_name,
+	       p->source->name, p->out_name); */
 
 	return res == -1 ? NULL : (filter_buffer_t *)(buf[0]);
 }
@@ -149,6 +155,9 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 		return;
 	}
 
+	/* printf("%s::%s writing to %s::%s\n", p->source->name, p->out_name,
+	       p->dest->name, p->in_name); */
+
 	buf[0] = fbuf;
 	while ((res = write(p->source_fd, buf, FBPIPE_WSIZE)) == -1
 	       && errno == EINTR)
@@ -160,6 +169,9 @@ void fbuf_queue(filter_pipe_t *p, filter_buffer_t *fbuf)
 		fbuf_unref(fbuf);
 	} else if (res != FBPIPE_WSIZE)
                 PANIC("pipe writes are not atomic!");
+
+	/* printf("%s::%s written to %s::%s ok.\n", p->source->name, p->out_name,
+	       p->dest->name, p->in_name); */
 }
 
 void fbuf_drain(filter_pipe_t *p)

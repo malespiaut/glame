@@ -11,6 +11,8 @@ struct fifo_entry {
 	filter_buffer_t *fb;
 };
 
+#define has_feedback(fifo) (!list_empty(fifo))
+
 static inline void add_feedback(feedback_fifo_t *f, filter_buffer_t *fb)
 {
 	struct fifo_entry *e;

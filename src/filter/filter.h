@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.42 2000/03/20 09:42:44 richi Exp $
+ * $Id: filter.h,v 1.43 2000/03/21 09:39:26 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -353,7 +353,6 @@ char *filternetwork_to_string(filter_network_t *net);
  * int filternode_errno(filter_node_t *n);
  * const char *filternode_errstr(filter_node_t *n); */
 #define filternode_has_error(n) ((n)->glerrno != 0)
-#define filternode_errno(n) ((n)->glerrno)
 #define filternode_errstr(n) ((n)->glerrstr)
 
 /* Status setting (from inside the filter methods)
@@ -364,6 +363,13 @@ do { \
        (n)->glerrno = -1; \
        (n)->glerrstr = (erstr); \
 } while (0)
+
+#define filternode_clear_error(n) \
+do { \
+        (n)->glerrno = 0; \
+        (n)->glerrstr = NULL; \
+} while (0)
+
 
 /* Filternodes connection query/walk.
  * filter_pipe_t *filternode_get_input(filter_node_t *n, const char *label);
