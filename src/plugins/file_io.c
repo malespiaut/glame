@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.13 2000/03/25 19:09:50 richi Exp $
+ * $Id: file_io.c,v 1.14 2000/03/27 09:04:22 mag Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther
  *
@@ -445,8 +445,11 @@ int af_read_connect(filter_node_t *n, filter_pipe_t *p)
 		/* Moah! what is this? does libaudiofile not provide
 		 * some "direct" information on position??
 		 */
-		filterpipe_settype_sample(p,RWA(n).sampleRate,
-			(M_PI/(RWA(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
+		if (RWA(n).channelCount!=1)
+			filterpipe_settype_sample(p,RWA(n).sampleRate,
+				(M_PI/(RWA(n).channelCount-1))*i+FILTER_PIPEPOS_LEFT);
+		else
+			filterpipe_settype_sample(p,RWA(n).sampleRate,FILTER_PIPEPOS_CENTRE);
 		RWA(n).track[i].p=p;
 		RWA(n).track[i].mapped=1;
 	}	

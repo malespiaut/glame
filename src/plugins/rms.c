@@ -1,7 +1,7 @@
 
 /*
  * rms.c
- * $Id: rms.c,v 1.1 2000/03/22 08:45:47 mag Exp $
+ * $Id: rms.c,v 1.2 2000/03/27 09:04:22 mag Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -58,7 +58,7 @@ static int statistic_f(filter_node_t *n){
 	filter_buffer_t *sbuf,*rbuf;
 	filter_param_t *param;
 	ulong pos=0,peak_pos;
-	ulong wsize;
+	int wsize;
 	float rms,peak_rms;
 	double total_rms,offset;
 	SAMPLE min,max;
@@ -71,9 +71,9 @@ static int statistic_f(filter_node_t *n){
 		FILTER_ERROR_RETURN("no output");
 
 	if ((param=filternode_get_param(n,"windowsize")))
-		wsize=TIME2CNT(ulong, filterparam_val_float(param), filterpipe_sample_rate(in));
+		wsize=TIME2CNT(int, filterparam_val_float(param), filterpipe_sample_rate(in));
 	else
-		wsize=TIME2CNT(ulong, 500.0, filterpipe_sample_rate(in));
+		wsize=TIME2CNT(int, 500.0, filterpipe_sample_rate(in));
 
 	FILTER_AFTER_INIT;
 	sbuf=sbuf_get(in);
@@ -125,7 +125,7 @@ static int statistic_f(filter_node_t *n){
 		rms_queue(out,rbuf);
 		pos+=cnt;
 	}
-	
+
 	offset/=pos;	
 	total_rms=sqrt(total_rms);
 	rbuf=rms_alloc(n);
@@ -165,6 +165,7 @@ int statistic_register()
 	if (filter_add(f,"statistic","Calculates RMS, RMS in window & DC-Offset")==-1)
 		return -1;
 	filterparamdesc_float_settype(p, FILTER_PARAM_FLOATTYPE_TIME);
+	return 0;
 }
 
 static int debugrms_f(filter_node_t *n){
@@ -192,6 +193,7 @@ static int debugrms_f(filter_node_t *n){
 			DPRINTF("Peak pos  = %ld\n",pos);
 			DPRINTF("Peak max  = %f\n",rms_max(r));
 			DPRINTF("Peak min  = %f\n",rms_min(r));
+			rms_unref(r);
 		} else DPRINTF("oops!\n");
 		r=rms_get(in);
 	}

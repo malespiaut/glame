@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.12 2000/03/25 15:56:25 richi Exp $
+; $Id: glame.scm,v 1.13 2000/03/27 09:04:22 mag Exp $
 ;
 ; Copyright (C) 2000 Richard Guenther
 ;
@@ -210,7 +210,7 @@
   (lambda (fname)
     (let* ((net (net-new))
            (rf (net-add-node net "read_file"))
-	   (mix (net-add-node net "mix"))
+	   (mix (net-add-node net "mix2"))
 	   (stat (net-add-node net "statistic"))
 	   (drms (net-add-node net "debugrms")))
     (node-set-param rf "filename" fname)
