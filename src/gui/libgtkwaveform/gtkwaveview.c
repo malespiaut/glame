@@ -34,6 +34,7 @@
 /* static xpms for rec/mute buttons */
 #include "rec.xpm"
 #include "mute.xpm"
+#include "sel.xpm"
 
 
 /* Stuff for new ruler.
@@ -1714,6 +1715,21 @@ void on_tb_realize_cb(GtkWidget *widget, gpointer data)
 	gtk_widget_show_all(widget);
 }
 
+void on_select_tb_toggled_cb(GtkToggleButton *tb, gpointer data)
+{
+	GtkWaveView *waveview = data;
+	int track;
+	guint32 sel_mask;
+
+	track = (int)gtk_object_get_user_data(GTK_OBJECT(tb));
+	sel_mask = gtk_wave_view_get_select_channels(waveview);
+	if (gtk_toggle_button_get_active(tb))
+		sel_mask |= 1<<track;
+	else
+		sel_mask &= ~(1<<track);
+	gtk_wave_view_set_select_channels(waveview, sel_mask);
+}
+
 /* Select a new data stream, ref() it, invalidate cache, and update screen. */
 void
 gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
@@ -1802,39 +1818,33 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 #endif
 	  cnt = gtk_wave_buffer_get_num_channels(wavebuffer);
 	  while (cnt--) {
-#if 0
-		  GdkPixmap *rec_pixmap, *mute_pixmap;
-		  GdkBitmap *rec_bitmap, *mute_bitmap;
-#endif
 		  vbox = gtk_vbox_new(FALSE, 0);
+		  /* rec */
 		  tb = gtk_toggle_button_new();
-#if 0
-		  rec_pixmap = gdk_pixmap_create_from_xpm_d(
-			  GTK_WIDGET(tb)->window, &rec_bitmap, NULL, rec_xpm);
-#endif
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
-#if 0
-		  gtk_container_add(GTK_CONTAINER(tb),
-				    gtk_pixmap_new(rec_pixmap, rec_bitmap));
-#endif
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
 				     (GtkSignalFunc)on_tb_realize_cb, rec_xpm);
+		  /* mute */
 		  tb = gtk_toggle_button_new();
-#if 0
-		  mute_pixmap = gdk_pixmap_create_from_xpm_d(
-			  GTK_WIDGET(tb)->window, &mute_bitmap, NULL, mute_xpm);
-#endif
 		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
-#if 0
-		  gtk_container_add(GTK_CONTAINER(tb),
-				    gtk_pixmap_new(mute_pixmap, mute_bitmap));
-#endif
 		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
 		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
 		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
 				     (GtkSignalFunc)on_tb_realize_cb, mute_xpm);
+		  /* select */
+		  tb = gtk_toggle_button_new();
+		  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
+		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
+		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
+		  gtk_box_pack_start(GTK_BOX(vbox), tb, FALSE, FALSE, 0);
+		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
+				     (GtkSignalFunc)on_tb_realize_cb, sel_xpm);
+		  gtk_signal_connect(GTK_OBJECT(tb), "toggled",
+				     (GtkSignalFunc)on_select_tb_toggled_cb, waveview);
+		  gtk_object_set_user_data(GTK_OBJECT(tb),
+			(gpointer)(gtk_wave_buffer_get_num_channels(wavebuffer)-cnt-1));
 		  gtk_box_pack_start(GTK_BOX(waveview->vbox1), vbox, TRUE, FALSE, 0);
 		  gtk_widget_show_all(vbox);
 	  }
