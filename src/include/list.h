@@ -4,7 +4,7 @@
 /*
  * list.h
  *
- * $Id: list.h,v 1.22 2004/04/21 18:04:27 richi Exp $
+ * $Id: list.h,v 1.23 2004/05/18 07:50:31 richi Exp $
  * 
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -224,7 +224,11 @@ static inline void glame_list_unsplice(struct glame_list_head *list,
 /* Iterate through all list items using entryvar. It is safe to remove
  * entryvar, but _only_ entryvar. Provide an additional dummy pointer
  * for internal use. */
+#ifdef __cplusplus
+#define glame_list_safe_foreach(listptr, type, member, dummy_ignored, entryvar) for (entryvar = glame_list_entry((listptr)->next, type, member), struct glame_list_head *dummy = (listptr)->next->next; (&entryvar->member != (listptr) && (!glame_list_empty(&entryvar->member) || DERROR_eval("glame_list_safe_foreach remove error"))) || (entryvar = NULL); entryvar = glame_list_entry(dummy, type, member), dummy = ((struct glame_list_head *)dummy)->next) 
+#else
 #define glame_list_safe_foreach(listptr, type, member, dummy, entryvar) for (entryvar = glame_list_entry((listptr)->next, type, member), dummy = (void *)(listptr)->next->next; (&entryvar->member != (listptr) && (!glame_list_empty(&entryvar->member) || DERROR_eval("glame_list_safe_foreach remove error"))) || (entryvar = NULL); entryvar = glame_list_entry((struct glame_list_head *)dummy, type, member), dummy = (void *)((struct glame_list_head *)dummy)->next) 
+#endif
 
 /* Count the number of items in the list. */
 static inline int glame_list_count(struct glame_list_head *l)
