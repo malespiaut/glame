@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.6 2001/12/09 22:58:43 mag Exp $
+ * $Id: importexport.c,v 1.7 2001/12/10 08:50:46 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -149,9 +149,9 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 	//ie->importing = 0;
 
 	if(ie->gotfile==0) {
-		/*ed=gnome_error_dialog("Select a file first!");
+		ed=gnome_error_dialog("Select a file first!");
 		gnome_dialog_set_parent(GNOME_DIALOG(ed), GTK_WINDOW(ie->dialog));
-		gnome_dialog_run_and_close(GNOME_DIALOG(ed));*/
+		gnome_dialog_run_and_close(GNOME_DIALOG(ed));
 		DPRINTF("no file given (%p)\n", ie->filename);
 		return;
 	}
