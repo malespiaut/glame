@@ -1,6 +1,6 @@
 /*
  * basic_sample.c
- * $Id: basic_sample.c,v 1.38 2001/05/01 11:21:30 richi Exp $
+ * $Id: basic_sample.c,v 1.39 2001/05/28 08:12:59 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -22,10 +22,12 @@
  * This file contains basic filters that operate using the sample
  * filter protocol. Contained are
  * - mix
+ * - render
  * - volume-adjust
  * - delay
  * - extend
  * - repeat
+ * - fade
  */
 
 #define _NO_FILTER_COMPATIBILITY
@@ -40,7 +42,7 @@
 #include "glplugin.h"
 
 
-PLUGIN_SET(basic_sample, "mix volume_adjust delay extend repeat fade")
+PLUGIN_SET(basic_sample, "mix render volume_adjust delay extend repeat fade")
 
 
 
@@ -573,6 +575,230 @@ int mix_register(plugin_t *p)
 	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
 	return filter_register(f, p);
 }
+
+
+
+
+
+static int render_f(filter_t *n)
+{
+	filter_port_t *in, *out;
+	filter_pipe_t *p;
+	nto1_state_t *I;
+	SAMPLE **facts;
+	filter_buffer_t *buf;
+	SAMPLE *s, **simd_buf, *simd_fact;
+	int nr_in, nr_out, nr_active;
+	int cnt, i, j, k;
+
+	in = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	out = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if ((nr_out = filterport_nrpipes(out)) == 0)
+		FILTER_ERROR_RETURN("no outputs");
+	if ((nr_in = nto1_init(&I, in)) == -1)
+		FILTER_ERROR_RETURN("no inputs");
+
+	/* Generate nr_out arrays of factors for the inputs. */
+	i = 0;
+	facts = ALLOCN(nr_out, float *);
+	filterport_foreach_pipe(out, p) {
+		facts[i] = ALLOCN(nr_in, float);
+		for (j=0; j<nr_in; j++) {
+			/* The factor is the difference in hangle divided
+			 * by PI and subtracted from 1.0 - this way we
+			 * get linear scaling between 0.0 and PI/2. */
+			float ang_diff, min_ang, max_ang;
+			min_ang = MIN(filterpipe_sample_hangle(I[j].in),
+				      filterpipe_sample_hangle(p));
+			max_ang = MAX(filterpipe_sample_hangle(I[j].in),
+				      filterpipe_sample_hangle(p));
+			ang_diff = max_ang - min_ang;
+			if (ang_diff > M_PI)
+				ang_diff = 2.0*M_PI - ang_diff;
+			if (ang_diff < 0.0 || ang_diff > M_PI)
+				DPRINTF("FUCK!\n");
+			facts[i][j] = 1.0 - ang_diff/M_PI;
+			DPRINTF("For output %i [%.3f] and input %i [%.3f] out of ang_diff %.3f factor is %.3f\n",
+				i, filterpipe_sample_hangle(p),
+				j, filterpipe_sample_hangle(I[j].in),
+				ang_diff, facts[i][j]);
+		}
+		i++;
+	}
+
+	simd_buf = ALLOCN(nr_in, float *);
+	simd_fact = ALLOCN(nr_in, float);
+
+	FILTER_AFTER_INIT;
+
+	nr_active = nr_in;
+	goto entry;
+	do {
+		FILTER_CHECK_STOP;
+
+		/* Head. Find maximum number of processable samples,
+		 * fix destination position. */
+		cnt = nto1_head(I, nr_in);
+
+		/* Prepare active buffers for simd. */
+		i = 0;
+		for (j=0; j<nr_in; j++)
+			if (I[j].buf)
+				simd_buf[i++] = I[j].s;
+		/* now i == nr_active */
+
+		i = 0;
+		filterport_foreach_pipe(out, p) {
+			/* Allocate the output buffer. */
+			buf = sbuf_make_private(sbuf_alloc(cnt, n));
+			s = sbuf_buf(buf);
+
+			/* prepare factors for simd */
+			k = 0;
+			for (j=0; j<nr_in; j++)
+				if (I[j].buf)
+					simd_fact[k++] = facts[i][j];
+
+			/* do simd operation */
+			glsimd.scalar_product_Nd(s, cnt,
+						 simd_buf, simd_fact,
+						 nr_active);
+
+			sbuf_queue(p, buf);
+			i++;
+		}
+
+		for (i=0; i<nr_in; i++)
+			if (I[i].buf)
+				I[i].s += cnt;
+
+	entry:
+		/* Tail & entry. Check if we need to get additional
+		 * buffers, recognize EOF's. */
+		nr_active -= nto1_tail(I, nr_in);
+	} while (nr_active>0);
+
+	/* Queue EOFs. */
+	filterport_foreach_pipe(out, p)
+		sbuf_queue(p, NULL);
+
+	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
+
+	for (i=0; i<nr_out; i++)
+		free(facts[i]);
+	free(facts);
+	free(simd_buf);
+	free(simd_fact);
+	nto1_cleanup(I);
+
+	FILTER_RETURN;
+}
+static void render_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_port_t *port;
+	filter_pipe_t *pipe;
+	int rate;
+
+	/* We dont care about a special pipe - just re-scan all pipes
+	 * looking for matching samplerates and possibly fixing all
+	 * outgoing pipes. */
+	GLSIGH_GETARGS1(va, pipe);
+	port = filterpipe_source(pipe);
+	rate = filterpipe_sample_rate(pipe);
+	filterport_foreach_pipe(port, pipe)
+		if (filterpipe_sample_rate(pipe) != rate) {
+			filter_set_error(filterport_filter(port),
+					 "not matching samplerates");
+			return;
+		}
+	filter_clear_error(filterport_filter(port));
+
+	port = filterportdb_get_port(filter_portdb(filterport_filter(port)),
+				     PORTNAME_OUT);
+	filterport_foreach_pipe(port, pipe) {
+		if (filterpipe_sample_rate(pipe) == rate)
+			continue;
+		filterpipe_settype_sample(pipe, rate,
+					  filterpipe_sample_hangle(pipe));
+		glsig_emit(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED, pipe);
+	}
+}
+static void render_fixup_param(glsig_handler_t *h, long sig, va_list va)
+{
+	filter_param_t *param;
+	filter_pipe_t *pipe;
+
+	GLSIGH_GETARGS1(va, param);
+	pipe = filterparam_get_sourcepipe(param);
+	filterpipe_settype_sample(pipe,
+				  filterpipe_sample_rate(pipe),
+				  filterparam_val_float(param));
+	glsig_emit(filterpipe_emitter(pipe), GLSIG_PIPE_CHANGED, pipe);
+}
+static int render_connect_in(filter_t *n, filter_port_t *port,
+			     filter_pipe_t *p)
+{
+	/* We accept any number of inputs. Fixup is done through
+	 * raised GLSIG_PIPE_CHANGED. */
+	return 0;
+}
+static int render_connect_out(filter_t *n, filter_port_t *port,
+			      filter_pipe_t *p)
+{
+	filter_pipe_t *pipe;
+	int rate = GLAME_DEFAULT_SAMPLERATE;
+
+	/* We accept any number of outputs. Do basic setup - i.e.
+	 * set rate and position. */
+	port = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	pipe = filterport_get_pipe(port);
+	if (pipe)
+		rate = filterpipe_sample_rate(pipe);
+	filterpipe_settype_sample(p, rate,
+				  FILTER_PIPEPOS_DEFAULT);
+	return 0;
+}
+int render_register(plugin_t *p)
+{
+	filter_t *f;
+	filter_port_t *in, *out;
+
+        if (!(f = filter_creat(NULL)))
+		return -1;
+
+	in = filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+				   FILTER_PORTTYPE_SAMPLE,
+				   FILTER_PORTFLAG_INPUT,
+				   FILTERPORT_DESCRIPTION, "input stream",
+				   FILTERPORT_END);
+	out = filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+				    FILTER_PORTTYPE_SAMPLE,
+				    FILTER_PORTFLAG_OUTPUT,
+				    FILTERPORT_DESCRIPTION, "mixed stream",
+				    FILTERPORT_END);
+	filterparamdb_add_param_float(filterport_paramdb(out), "position",
+				      FILTER_PARAMTYPE_POSITION,
+				      FILTER_PIPEPOS_DEFAULT,
+				      FILTERPARAM_END);
+
+	f->f = render_f;
+	f->connect_in = render_connect_in;
+	f->connect_out = render_connect_out;
+
+	glsig_add_handler(filterport_emitter(in), GLSIG_PIPE_CHANGED,
+			  render_fixup_pipe, NULL);
+	glsig_add_handler(filter_emitter(f), GLSIG_PARAM_CHANGED,
+			  render_fixup_param, NULL);
+
+	plugin_set(p, PLUGIN_DESCRIPTION, "re-render soundfield");
+	plugin_set(p, PLUGIN_PIXMAP, "render.png");
+	plugin_set(p, PLUGIN_CATEGORY, "Filter");
+	plugin_set(p, PLUGIN_GUI_HELP_PATH, "Junctions_and_Dead_Ends");
+
+	return filter_register(f, p);
+}
+
 
 
 
