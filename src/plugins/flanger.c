@@ -1,6 +1,6 @@
 /*
  * flanger.c
- * $Id: flanger.c,v 1.15 2001/11/19 10:04:50 richi Exp $
+ * $Id: flanger.c,v 1.16 2001/12/16 17:40:15 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -309,7 +309,7 @@ int flanger_register(plugin_t *p)
 
 	param = filterparamdb_add_param_int(pdb, "lfo type", FILTER_PARAMTYPE_INT, 0 ,
 				    FILTERPARAM_DESCRIPTION, 
-				    "(0) sinus\n"
+				    "(0) sine\n"
 				    "(1) ramp up\n" 
 				    "(2) ramp down\n"
 				    "(3) fractal",
@@ -318,7 +318,7 @@ int flanger_register(plugin_t *p)
 	<class>GtkOptionMenu</class> 
 	<name>widget</name> 
 	<can_focus>True</can_focus> 
-	<items>Sinus
+	<items>Sine
 Ramp up
 Ramp down
 Fractal</items> 
