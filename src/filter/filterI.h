@@ -10,8 +10,6 @@ struct filter_buffer {
 };
 #define list_remove_buffer(fb) list_del(&(fb)->list)
 
-void _buffer_free(filter_buffer_t *fb);
-
 
 struct filter_portdesc {
 	struct list_head list;
