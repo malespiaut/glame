@@ -62,7 +62,10 @@ extern "C" {
  */
 #define GPSM_STORE_LABEL 0
 #define GPSM_STORE_SIZE  1
-#define GPSM_STORE_COL_N 2
+#define GPSM_STORE_NRTRACKS  2
+#define GPSM_STORE_TRACK_DURATION  3
+#define GPSM_STORE_TRACK_SR  4
+#define GPSM_STORE_COL_N 5
 
 	GType glame_gpsm_store_get_type(void);
 	GlameGpsmStore *glame_gpsm_store_new(gpsm_grp_t * root);

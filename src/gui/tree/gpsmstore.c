@@ -22,6 +22,8 @@
 #include <config.h>
 #include <string.h>
 #include "gpsmstore.h"
+#include "swapfile.h"
+#include "glame_types.h"
 
 static void glame_gpsm_store_init(GlameGpsmStore * tree_store);
 static void glame_gpsm_store_class_init(GlameGpsmStoreClass * tree_store_class);
@@ -330,6 +332,12 @@ glame_gpsm_store_get_column_type(GtkTreeModel * tree_model, gint index)
 	case GPSM_STORE_SIZE:
 		return G_TYPE_STRING;
 		/* return G_TYPE_LONG; */
+	case GPSM_STORE_NRTRACKS:
+		return G_TYPE_STRING;
+	case GPSM_STORE_TRACK_DURATION:
+	        return G_TYPE_STRING;
+	case GPSM_STORE_TRACK_SR:	
+	        return G_TYPE_STRING;
 	}
 	return G_TYPE_INVALID;
 }
@@ -399,26 +407,74 @@ static void
 glame_gpsm_store_get_value(GtkTreeModel * tree_model,
 			   GtkTreeIter * iter, gint column, GValue * value)
 {
-	static char sizetext[32];
-	g_return_if_fail(GLAME_IS_GPSM_STORE(tree_model));
-	g_return_if_fail(iter != NULL && iter->user_data != NULL);
-	g_return_if_fail(column < GPSM_STORE_COL_N);
+       static char sizetext[32], nrtrackstext[32], durationtext[32], srtext[32];
+       long f_rate;
+       g_return_if_fail(GLAME_IS_GPSM_STORE(tree_model));
+       g_return_if_fail(iter != NULL && iter->user_data != NULL);
+       g_return_if_fail(column < GPSM_STORE_COL_N);
 
-	switch (column) {
-	case GPSM_STORE_LABEL:
-		g_value_init(value, G_TYPE_STRING);
-		g_value_set_string(value, gpsm_item_label(iter->user_data));
-		break;
-	case GPSM_STORE_SIZE:
-		/* We don't have a G_TYPE_LONG renderer, so use a text one.
-		 * We don't like memleaks, so use one static buffer.  Ugh.  */
-		snprintf(sizetext, 32, "%li", gpsm_item_hsize(iter->user_data));
-		g_value_init(value, G_TYPE_STRING);
-		g_value_set_string(value, sizetext);
-		/* g_value_init(value, G_TYPE_LONG);
-		   g_value_set_long(value, gpsm_item_hsize(iter->user_data)); */
-		break;
-	}
+       switch (column) {
+       case GPSM_STORE_LABEL:
+	 g_value_init(value, G_TYPE_STRING);
+	 g_value_set_string(value, gpsm_item_label(iter->user_data));
+	 break;
+       case GPSM_STORE_SIZE:
+	 /* We don't have a G_TYPE_LONG renderer, so use a text one.
+	  * We don't like memleaks, so use one static buffer.  Ugh.  */
+	 snprintf(sizetext, 32, "%li", gpsm_item_hsize(iter->user_data));
+	 g_value_init(value, G_TYPE_STRING);
+	 g_value_set_string(value, sizetext);
+	 /* g_value_init(value, G_TYPE_LONG);
+	    g_value_set_long(value, gpsm_item_hsize(iter->user_data)); */
+	 break;
+
+       case GPSM_STORE_NRTRACKS:
+	 if (GPSM_ITEM_IS_GRP(iter->user_data)){
+	   snprintf(nrtrackstext, 32, "%li", gpsm_item_vsize(iter->user_data)); 
+	   g_value_init(value, G_TYPE_STRING);
+	   g_value_set_string(value, nrtrackstext);
+	 }
+	 else {
+	   snprintf(nrtrackstext, 32, "-"); 
+	   g_value_init(value, G_TYPE_STRING);
+	   g_value_set_string(value, nrtrackstext);
+	 }
+	 break;
+	  
+       case GPSM_STORE_TRACK_DURATION:
+	 if (GPSM_ITEM_IS_SWFILE(iter->user_data)){
+	   swfd_t fd ;
+	   struct sw_stat st;
+	   long size = -1;
+	   fd = sw_open(gpsm_swfile_filename(iter->user_data),
+			O_RDONLY);
+	   if (fd != -1 && sw_fstat(fd, &st) != -1)
+	     size = st.size/SAMPLE_SIZE;
+	   sw_close(fd);
+	   snprintf(durationtext, 32, "%.0f", (float)size/(float)gpsm_swfile_samplerate(iter->user_data)); 
+	   g_value_init(value, G_TYPE_STRING);
+	   g_value_set_string(value,durationtext);
+	 }
+	 else {    
+	   snprintf(durationtext, 32, "-"); 
+	   g_value_init(value, G_TYPE_STRING);
+	   g_value_set_string(value, durationtext);
+	 }
+	 break;
+
+       case GPSM_STORE_TRACK_SR:
+	 if (GPSM_ITEM_IS_SWFILE(iter->user_data)){
+	   snprintf(srtext, 32, "%i", gpsm_swfile_samplerate(iter->user_data)); 
+	   g_value_init(value, G_TYPE_STRING);
+	   g_value_set_string(value,srtext);
+	 }
+	 else {    
+	   snprintf(srtext, 32, "-"); 
+	   g_value_init(value, G_TYPE_STRING);
+	   g_value_set_string(value, srtext);
+	 }
+	 break;
+       }
 }
 
 static gboolean

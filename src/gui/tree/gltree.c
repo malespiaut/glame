@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.1 2004/06/13 22:40:01 richi Exp $
+ * $Id: gltree.c,v 1.2 2004/06/30 19:42:30 ochonpaul Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -71,23 +71,37 @@ GtkWidget *glame_gltree_init(gpsm_grp_t *newroot)
 	gltree_tree = GTK_TREE_VIEW(gtk_tree_view_new_with_model(GTK_TREE_MODEL(gltree_store)));
 	
 	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("label",
+	column = gtk_tree_view_column_new_with_attributes(_("Label"),
 							  renderer,
 							  "text", GPSM_STORE_LABEL,
 							  NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(gltree_tree), column);
-	column = gtk_tree_view_column_new_with_attributes("size",
+	column = gtk_tree_view_column_new_with_attributes(_("Size"),
 							  renderer,
 							  "text", GPSM_STORE_SIZE,
 							  NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(gltree_tree), column);
-
+	column = gtk_tree_view_column_new_with_attributes(_("Tracks"),
+							  renderer,
+							  "text", GPSM_STORE_NRTRACKS,
+							  NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(gltree_tree), column);
+	column = gtk_tree_view_column_new_with_attributes(_("Duration"),
+							  renderer,
+							  "text", GPSM_STORE_TRACK_DURATION,
+							  NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(gltree_tree), column);
+	column = gtk_tree_view_column_new_with_attributes(_("Rate"),
+							  renderer,
+							  "text", GPSM_STORE_TRACK_SR,
+							  NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(gltree_tree), column);
 	// single selections (for now)
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(gltree_tree));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
 
-	// don't show the header(s)
-	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(gltree_tree), FALSE);
+	// show the header(s)
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(gltree_tree), TRUE);
 
 	g_signal_connect(gltree_tree, "button-press-event",
 			 (GCallback)click_cb, NULL);
