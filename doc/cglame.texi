@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.3 2000/03/24 09:26:23 richi Exp $
+@comment $Id: cglame.texi,v 1.4 2000/03/24 18:26:32 nold Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -14,7 +14,7 @@ are listed and an ontop scheme level API is described.
 @end menu
 
 
-@node cglame Introduction, , Wrapped API, Console Frontend
+@node cglame Introduction, Wrapped API,, Console Frontend
 @section cglame Introduction
 
 cglame is a scripting engine
@@ -64,7 +64,7 @@ sections reside in the @code{glame.scm} file coming with glame.
 
 
 
-@node Wrapped API, cglame Introduction, cglame Convenience, Console Frontend
+@node Wrapped API, cglame Convenience, cglame Introduction, Console Frontend
 @section Wrapped API
 
 For description of the semantics of the available parts of the APIs
@@ -80,7 +80,7 @@ on success or @code{#f} on error. Void functions generally evaluate to
 * Scheme Midlayer API::
 @end menu
 
-@node Scheme Filter API, , Scheme Swapfile API, Wrapped API
+@node Scheme Filter API, Scheme Swapfile API,, Wrapped API
 @subsection Scheme Filter API
 
 @deftypefun ( filternetwork_new )
@@ -112,7 +112,7 @@ specified name and description.
 @end deftypefun
 
 
-@node Scheme Swapfile API, Scheme Filter API, Scheme Midlayer API, Wrapped API
+@node Scheme Swapfile API, Scheme Midlayer API, Scheme Filter API, Wrapped API
 @subsection Scheme Swapfile API
 
 @deftypefun ( file_alloc size )
@@ -131,7 +131,7 @@ specified name and description.
 @end deftypefun
 
 
-@node Scheme Midlayer API, Scheme Swapfile API, , Wrapped API
+@node Scheme Midlayer API,, Scheme Swapfile API, Wrapped API
 @subsection Scheme Midlayer API
 
 The only wrapped part of the glame midlayer is the plugin API.
@@ -146,7 +146,7 @@ The only wrapped part of the glame midlayer is the plugin API.
 
 
 
-@node cglame Convenience, Wrapped API, , Console Frontend
+@node cglame Convenience,, Wrapped API, Console Frontend
 @section cglame Convenience
 
 FIXME: stuff is missing, documentation
