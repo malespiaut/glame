@@ -1,6 +1,6 @@
 /*
  * pipe.c
- * $Id: pipe.c,v 1.3 2000/05/01 11:09:04 richi Exp $
+ * $Id: pipe.c,v 1.4 2000/05/02 09:10:18 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -41,17 +41,16 @@ PLUGIN_SET(pipe, "pipe_in")
 
 static int pipe_f(filter_node_t *n)
 {
-	filter_param_t *param;
 	filter_buffer_t *lbuf, *rbuf;
 	filter_pipe_t *lout, *rout;
 	SAMPLE *ls, *rs;
 	short *b, *bb;
 	FILE *p;
-	char cmd[256];
+	char cmd[256], *s;
 	int res, q;
 	
 	if (!(lout = filternode_get_output(n, PORTNAME_OUT))
-	    || !(param = filternode_get_param(n, "cmd")))
+	    || !(s = filterparam_val_string(filternode_get_param(n, "cmd"))))
 		FILTER_ERROR_RETURN("insufficient configuration");
 	rout = filternode_next_output(lout);
 
@@ -59,9 +58,9 @@ static int pipe_f(filter_node_t *n)
 	if (rout)
 		q = 4;
 
-	strncpy(cmd, filterparam_val_string(param), 255);
-	if ((param = filternode_get_param(n, "tail")))
-		strncat(cmd, filterparam_val_string(param), 255);
+	strncpy(cmd, s, 255);
+	if ((s = filterparam_val_string(filternode_get_param(n, "tail"))))
+		strncat(cmd, s, 255);
 
 	if (!(p = popen(cmd, "r")))
 		FILTER_ERROR_RETURN("popen failed");
@@ -106,15 +105,12 @@ static int pipe_f(filter_node_t *n)
 static int pipe_connect_out(filter_node_t *source, const char *port,
 			    filter_pipe_t *p)
 {
-	filter_param_t *param;
 	int rate;
 
 	if (filternode_nroutputs(source) > 1)
 		return -1;
 
-	rate = 44100;
-	if ((param = filternode_get_param(source, "rate")))
-		rate = filterparam_val_int(param);
+	rate = filterparam_val_int(filternode_get_param(source, "rate"));
 
 	if (filternode_nroutputs(source) == 0) {
 		filterpipe_settype_sample(p, rate, FILTER_PIPEPOS_DEFAULT);
@@ -130,20 +126,28 @@ static int pipe_connect_out(filter_node_t *source, const char *port,
 int pipe_in_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *d;
 
 	if (!(f = filter_alloc(pipe_f))
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-				  FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC)
-	    || !filter_add_param(f, "cmd", "command string",
-				 FILTER_PARAMTYPE_STRING)
-	    || !(d = filter_add_param(f, "tail", "command string tail",
-				      FILTER_PARAMTYPE_STRING))
-	    || !filter_add_param(f, "rate", "data rate",
-				 FILTER_PARAMTYPE_INT))
+				  FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC))
 		return -1;
-	filterparamdesc_string_settype(d, FILTER_PARAM_STRINGTYPE_FILENAME);
+
+	filterpdb_add_param_string(filter_pdb(f), "cmd", 
+				   FILTER_PARAMTYPE_STRING, NULL,
+				   FILTERPARAM_DESCRIPTION, "command string",
+				   FILTERPARAM_END);
+	filterpdb_add_param_string(filter_pdb(f), "tail",
+				   FILTER_PARAMTYPE_FILENAME, NULL,
+				   FILTERPARAM_DESCRIPTION, "command string tail",
+				   FILTERPARAM_END);
+	filterpdb_add_param_int(filter_pdb(f), "rate",
+				FILTER_PARAMTYPE_INT, GLAME_DEFAULT_SAMPLERATE,
+				FILTERPARAM_DESCRIPTION, "data samplerate",
+				FILTERPARAM_END);
+
 	f->connect_out = pipe_connect_out;
+	/* it seems we will need a signal handler for changed rate
+	 * parameter... FIXME! */
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "pipe input");
 	filter_attach(f, p);

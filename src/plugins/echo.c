@@ -1,6 +1,6 @@
 /*
  * echo.c
- * $Id: echo.c,v 1.9 2000/05/01 11:09:04 richi Exp $
+ * $Id: echo.c,v 1.10 2000/05/02 09:10:18 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -34,7 +34,6 @@
 
 static int echo_f(filter_node_t *n)
 {
-	filter_param_t *param;
 	int delay;  /* in samples */
 	float mix, fbfact, infact;  /* mixing factor, 1/(1+mix) */
 	filter_pipe_t *in, *out;
@@ -47,13 +46,9 @@ static int echo_f(filter_node_t *n)
 	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
 	        FILTER_ERROR_RETURN("no in- or output");
 
-	delay = filterpipe_sample_rate(in)/10; /* 0.1 sec. default delay */
-	if ((param = filternode_get_param(n, "time")))
-		delay = (int)(filterpipe_sample_rate(in) 
-				* filterparam_val_float(param)/1000.0);
-	mix = 0.7;
-	if ((param = filternode_get_param(n, "mix")))
-		mix = filterparam_val_float(param);
+	delay = (int)(filterpipe_sample_rate(in) 
+		      * filterparam_val_float(filternode_get_param(n, "time"))/1000.0);
+	mix = filterparam_val_float(filternode_get_param(n, "mix"));
 	fbfact = mix/(1.0 + mix);
 	infact = 1.0/(1.0 + mix);
 
@@ -173,19 +168,22 @@ static int echo_f(filter_node_t *n)
 int echo_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdesc_t *d;
 
 	if (!(f = filter_alloc(echo_f))
 	    || !filter_add_input(f, PORTNAME_IN, "input",
 				FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, PORTNAME_OUT, "output",
-		    		FILTER_PORTTYPE_SAMPLE)
-	    || !(d = filter_add_param(f, "time", "echo time in ms",
-				      FILTER_PARAMTYPE_FLOAT))
-	    || !filter_add_param(f, "mix", "mixer ratio",
-		    		FILTER_PARAMTYPE_FLOAT))
+		    		FILTER_PORTTYPE_SAMPLE))
 		return -1;
-	filterparamdesc_float_settype(d, FILTER_PARAM_FLOATTYPE_TIME_MS);
+
+	filterpdb_add_param_float(filter_pdb(f), "time",
+				  FILTER_PARAMTYPE_TIME_MS, 0.1,
+				  FILTERPARAM_DESCRIPTION, "echo time in ms",
+				  FILTERPARAM_END);
+	filterpdb_add_param_float(filter_pdb(f), "mix",
+				  FILTER_PARAMTYPE_FLOAT, 0.7,
+				  FILTERPARAM_DESCRIPTION, "mixer ratio",
+				  FILTERPARAM_END);
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "echo effect");
 	filter_attach(f, p);

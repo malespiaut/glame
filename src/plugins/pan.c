@@ -49,7 +49,6 @@
 
 static int pan_f(filter_node_t *n)
 {
-	filter_param_t *pan;	/* [-pi/2, pi/2] */
 	filter_pipe_t *in, *mod, *pass;
 	filter_buffer_t *m_buf, *p_buf;
 	int size;
@@ -63,8 +62,10 @@ static int pan_f(filter_node_t *n)
 	scale = filterpipe_sample_hangle(in);
 	if (fabs(scale) > M_PI_2)
 		scale = -scale + M_PI*(scale > 0 ? 1.0 : -1.0);
-	if ((pan = filternode_get_param(n, "pan")))
-		scale = filterparam_val_float(pan);
+	/* doh - FIXME - this does nolonger work. Always overriden
+	 * at least by the default value of the parameter.
+	 */
+	scale = filterparam_val_float(filternode_get_param(n, "pan"));
 	
 	if (!(mod = filternode_get_output(n, "left-out"))
 	    || !(pass = filternode_get_output(n, "right-out")))
@@ -145,11 +146,15 @@ int pan_register(plugin_t *p)
 	    || !filter_add_output(f, "left-out", "left output stream", 
 	                          FILTER_PORTTYPE_SAMPLE)
 	    || !filter_add_output(f, "right-out", "right output stream",
-	                          FILTER_PORTTYPE_SAMPLE)
-	    || !filter_add_param(f, "pan", 
-	                         "position in stereo field [-pi/2, pi/2]", 
-				 FILTER_PARAMTYPE_FLOAT))
+	                          FILTER_PORTTYPE_SAMPLE))
 		return -1;
+
+	filterpdb_add_param_float(filter_pdb(f), "pan",
+				  FILTER_PARAMTYPE_POSITION, 0.0/* FIXME - use magic (invalid) default value to mark "unset"? */,
+				  FILTERPARAM_DESCRIPTION,
+				  "position in stereo field [-pi/2, pi/2]", 
+				  FILTERPARAM_END);
+
 	f->set_param = pan_set_param;
 
 	plugin_set(p, PLUGIN_DESCRIPTION, "Positions a mono audio stream in the stereo field");
