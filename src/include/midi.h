@@ -1,10 +1,10 @@
-#ifndef _GLAME_TYPES_H
-#define _GLAME_TYPES_H
+#ifndef _MIDI_H
+#define _MIDI_H
 
 /*
- * glame_types.h
- * $Id: glame_types.h,v 1.10 2000/02/27 05:38:03 garrison Exp $
- * Copyright (C) 2000 Alexander Ehlert, Richard Guenther
+ * midi.h
+ *
+ * Copyright (C) 2000 Jim Garrison
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,28 +19,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#define	MIDI_BYTE_STATUS(ev)		(ev.b[0])
+#define	MIDI_BYTE_DATA1(ev)		(ev.b[1])
+#define	MIDI_BYTE_DATA2(ev)		(ev.b[2])
 
-/* internal SAMPLE format and size.
- * this should be changable w/o any code breakage!
- */
+#define	MIDI_EVENT_IS_SYSTEM(ev)	((MIDI_BYTE_STATUS(ev) & 0xF0) == 0xF0)
+#define	MIDI_EVENT_IS_CHANNEL(ev)	((MIDI_BYTE_STATUS(ev) & 0xF0) != 0xF0)
 
-#define GLAME_WBUFSIZE 16384
+#define MIDI_EVENT_COMMAND(ev)		(MIDI_BYTE_STATUS(ev) & 0xF0)
+#define MIDI_EVENT_CHANNEL(ev)		(MIDI_BYTE_STATUS(ev) & 0x0F)
 
-typedef float SAMPLE;
-#define SAMPLE_SIZE sizeof(SAMPLE)
-
-typedef struct midi_event {
-	char flags;
-	unsigned int ts;	/* timestamp */
-	unsigned char b[3];	/* 1 status and 2 data bytes */
-} midi_event_t;
-
+#define MIDI_EVENT_FLAG_NOQUEUE		1
 
 #endif
-
