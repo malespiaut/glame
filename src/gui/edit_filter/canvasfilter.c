@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.48 2001/12/13 14:48:06 richi Exp $
+ * $Id: canvasfilter.c,v 1.49 2001/12/17 02:47:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -1069,38 +1069,30 @@ int inItem;
 static GnomeUIInfo node_menu[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
+	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
+	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),	
 	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
-	GNOMEUIINFO_ITEM("_Collapse","Collapse",glame_canvas_filter_collapse_selection_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
-
 	GNOMEUIINFO_ITEM("_Copy Selected","Copy Selected",glame_canvas_copy_selected_cb,NULL),
-	GNOMEUIINFO_ITEM("_Paste Selection","Paste Selection",glame_canvas_paste_selection_cb,NULL),
+	GNOMEUIINFO_ITEM("_Collapse selection","Collapse selection",glame_canvas_filter_collapse_selection_cb,NULL),
 	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
-//	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
 };
 
 static GnomeUIInfo node_menu_network[]=
 {
 	GNOMEUIINFO_MENU_PROPERTIES_ITEM(glame_canvas_filter_edit_properties_cb,NULL),
-	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
-	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
 	GNOMEUIINFO_ITEM("_Delete","Delete node",glame_canvas_filter_delete_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
-	GNOMEUIINFO_ITEM("_Copy Selected","Copy Selected",glame_canvas_copy_selected_cb,NULL),
-	GNOMEUIINFO_ITEM("_Paste Selection","Paste Selection",glame_canvas_paste_selection_cb,NULL),
-	GNOMEUIINFO_SEPARATOR,
-
+	GNOMEUIINFO_ITEM("_Redirect parameter","redirect",glame_canvas_filter_redirect_parameters,NULL),
 	GNOMEUIINFO_ITEM("_Open Down","Open down",glame_canvas_filter_open_node_cb,NULL),
 	GNOMEUIINFO_ITEM("_Expand","Expand",glame_canvas_filter_expand_node_cb,NULL),
-	GNOMEUIINFO_ITEM("Co_llapse","Collapse",glame_canvas_filter_collapse_selection_cb,NULL),
-	GNOMEUIINFO_ITEM("_About node...","bout",glame_canvas_filter_show_about,NULL),
+	GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("_Copy Selected","Copy Selected",glame_canvas_copy_selected_cb,NULL),
+	GNOMEUIINFO_ITEM("Co_llapse selection","Collapse selection",glame_canvas_filter_collapse_selection_cb,NULL),
+	GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("_Help","Show help",glame_canvas_filter_help,NULL),
-//	GNOMEUIINFO_ITEM("Reroute","Reroute from this item",reroute_cb,NULL),
 	GNOMEUIINFO_END
 };
 
