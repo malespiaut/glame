@@ -516,7 +516,7 @@ static void insert_node(GtkObject *tree, xmlNodePtr node)
 	} else if (strcmp(node->name, "swapfile") == 0) {
 		DERROR("Illegal <swapfile> tag position");
 	} else {
-		DERROR("Unknown tag");
+		return;
 	}
 
 	gtk_signal_connect_after(GTK_OBJECT(item), "button_press_event",
