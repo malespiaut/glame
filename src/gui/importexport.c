@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.1 2001/12/07 10:36:47 richi Exp $
+ * $Id: importexport.c,v 1.2 2001/12/07 10:45:37 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -472,9 +472,8 @@ static void ie_stats_cb(GtkWidget *bla, struct imp_s *ie)
 }
 
 
-static gint ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
+static void ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 {
-	gchar *filename;
 	filter_param_t *fparam;
 	int i;
 
@@ -489,13 +488,12 @@ static gint ie_filename_cb(GtkEditable *edit, struct imp_s *ie)
 	if (filterparam_set(fparam, &(ie->filename))==-1) {
 		for(i=0; i<MAX_PROPS; i++)
 			gtk_label_set_text(GTK_LABEL(ie->fi_plabel[i]), "nan");
-		return FALSE;
+		return;
 	}
 	
 	ie_update_plabels(ie);
 	ie->gotfile = 1;
 	ie->gotstats = 0;
-	return TRUE;
 }
 
 gpsm_item_t *glame_import_dialog(GtkWindow *parent)
@@ -572,7 +570,7 @@ gpsm_item_t *glame_import_dialog(GtkWindow *parent)
 						   GNOME_ENTRY(GNOME_FILE_ENTRY(fileentry2)->gentry))));
 
 	gtk_signal_connect(GTK_OBJECT(ie->edit), "changed",
-				   (GtkSignalFunc)ie_filename_cb, ie);
+			   (GtkSignalFunc)ie_filename_cb, ie);
 
 	vbox4 = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox4);
