@@ -366,6 +366,10 @@ gpsm_grp_t *gpsm_collect_swfiles(gpsm_item_t *item);
  * and export (i.e. where you only want to _read_ from the files). */
 gpsm_grp_t *gpsm_flatten(gpsm_item_t *item);
 
+/* Transforms the position of the source item to a position inside
+ * the dest group - i.e. both represent the same global position. */
+void gpsm_position_transform(gpsm_item_t *source, gpsm_grp_t *dest,
+			     long *hpos, long *vpos);
 
 
 #endif

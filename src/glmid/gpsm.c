@@ -1,5 +1,5 @@
 /*
- * gpsm.h
+ * gpsm.c
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -836,6 +836,8 @@ static void handle_itemchange(glsig_handler_t *handler, long sig, va_list va)
 int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 		    long hposition, long vposition)
 {
+	gpsm_item_t *succ;
+
 	if (!group || !item
 	    || !list_empty(&item->list) || item->parent)
 		return -1;
@@ -857,9 +859,26 @@ int gpsm_grp_insert(gpsm_grp_t *group, gpsm_item_t *item,
 	glsig_add_handler(&item->emitter, GPSM_SIG_ITEM_CHANGED|GPSM_SIG_ITEM_REMOVE,
 			  handle_itemchange, item);
 
+	/* Find insertion point. */
+	gpsm_grp_foreach_item(group, succ) {
+		if ((gpsm_item_vposition(succ) > gpsm_item_vposition(item))
+		    || (gpsm_item_vposition(succ) == gpsm_item_vposition(item)
+			&& gpsm_item_hposition(succ) > gpsm_item_hposition(item)))
+			break;
+	}
+	DPRINTF("%s scheduled for insertion at %li, %li (before %s, %li, %li)\n", gpsm_item_label(item), gpsm_item_hposition(item), gpsm_item_vposition(item), succ ? gpsm_item_label(succ) : "none", succ ? gpsm_item_hposition(succ) : -1, succ ? gpsm_item_vposition(succ) : -1);
+
+	/* FIXME - check, if we do "overlap" and fail in this case.
+	 * FIXME: do we want items to "move away"??
+	 * - perhaps we really want to have strict hbox/vbox separation
+	 */
+
 	/* Do the addition, send out GPSM_SIG_ITEM_CHANGED signal. */
 	item->parent = group;
-	list_add_tail(&item->list, &group->items);
+	if (!succ)
+		list_add_tail(&item->list, &group->items);
+	else
+		list_add_tail(&item->list, &succ->list);
 	glsig_emit(&item->emitter, GPSM_SIG_ITEM_CHANGED, item);
 
 	/* Send out GPSM_SIG_GRP_NEWITEM signal. */
@@ -2035,4 +2054,30 @@ static int _op_undo(struct op *op)
 	sw_close(file);
 	sw_close(saved);
 	return -1;
+}
+
+
+
+void gpsm_position_transform(gpsm_item_t *source, gpsm_grp_t *dest,
+			     long *hpos, long *vpos)
+{
+	gpsm_grp_t *grp;
+
+	/* First source to "global" transformation. */
+	*hpos = 0;
+	*vpos = 0;
+	grp = gpsm_item_parent(source);
+	while (gpsm_item_parent(grp)) {
+		*hpos += gpsm_item_hposition(grp);
+		*vpos += gpsm_item_vposition(grp);
+		grp = gpsm_item_parent(grp);
+	}
+
+	/* Second, backwards "to local" transformation. */
+	grp = dest;
+	while (gpsm_item_parent(grp)) {
+		*hpos -= gpsm_item_hposition(grp);
+		*vpos -= gpsm_item_vposition(grp);
+		grp = gpsm_item_parent(grp);
+	}
 }
