@@ -76,7 +76,8 @@ if test "$GCC" = "yes"; then
 	AC_DEFINE(HAVE_GCC,, [using gcc for build])
 	CFLAGS="-Wall -Wno-sign-compare $glame_debug_gcc_cflags"
 else
-  AC_MSG_ERROR([Compilers other than gcc are not supported])
+	AC_MSG_WARN([Compilers other than GCC may not be supported])
+	CFLAGS="-O2 -g"
 fi
 AM_PROG_CC_C_O
 
