@@ -1,17 +1,25 @@
 #!/usr/bin/make -f
-# Sample debian/rules that uses debhelper.
-# GNU copyright 1997 to 1999 by Joey Hess.
+# $Id: rules,v 1.2 2001/04/25 16:03:02 nold Exp $
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
 # This is the debhelper compatability version to use.
-export DH_COMPAT=2
+export DH_COMPAT=3
+
+export DEB_GLAME_PREFIX=/usr
+export DEB_GLAME_INFODIR=/usr/share/info
 
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	./configure --prefix=$(DEB_GLAME_PREFIX) \
+		--infodir=$(DEB_GLAME_INFODIR) --enable-debug
+else
+	CFLAGS="-O2" ./configure --prefix=$(DEB_GLAME_PREFIX) \
+		--infodir=$(DEB_GLAME_INFODIR)
+endif
 
 	touch configure-stamp
 
@@ -20,7 +28,8 @@ build-stamp:
 	dh_testdir
 
 	$(MAKE)
-	/usr/bin/docbook-to-man debian/cglame.sgml > cglame.1
+	/usr/bin/docbook-to-man debian/cglame.sgml > debian/cglame.1
+	/usr/bin/docbook-to-man debian/glame.sgml > debian/glame.1
 
 	touch build-stamp
 
@@ -39,7 +48,7 @@ install: build
 	dh_clean -k
 	dh_installdirs
 
-	$(MAKE) install prefix=`pwd`/debian/glame/usr
+	$(MAKE) install DESTDIR=`pwd`/debian/glame/
 
 
 # Build architecture-independent files here.
@@ -52,13 +61,14 @@ binary-arch: build install
 	dh_testroot
 	dh_installdocs
 	dh_installmenu
-	dh_installmanpages
+	dh_installman
 	dh_installinfo
 	dh_installchangelogs ChangeLog
 	dh_link
 	dh_strip
 	dh_compress
 	dh_fixperms
+	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol
