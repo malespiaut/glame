@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.12 2001/03/15 16:00:00 xwolf Exp $
+ * $Id: main.c,v 1.13 2001/03/16 01:12:54 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -50,11 +50,12 @@ static void gui_main()
 	char homedir[255];
 	char * path;
 	/* check for prefs */
-
-	sprintf(configpath,"/%s/swapfile/defaultpath=%s/.glameswap",g_get_prgname(),g_get_home_dir());
+	sprintf(configpath,"/%s/",g_get_prgname());
+	gnome_config_push_prefix(configpath);
+	sprintf(configpath,"swapfile/defaultpath=%s/.glameswap",g_get_home_dir());
 	path = gnome_config_get_string_with_default(configpath,&defaultval);
 	if(defaultval){
-		sprintf(configpath,"/%s/swapfile/defaultpath",g_get_prgname());
+		sprintf(configpath,"swapfile/defaultpath");;
 		sprintf(homedir,"%s/.glameswap",g_get_home_dir());
 		gnome_config_set_string(configpath,homedir);
 		gnome_config_sync();

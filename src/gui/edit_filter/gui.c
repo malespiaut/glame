@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.9 2001/03/15 00:27:25 xwolf Exp $
+ * $Id: gui.c,v 1.10 2001/03/16 01:12:54 xwolf Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -205,7 +205,9 @@ create_label_widget_pair(GtkWidget *vbox,const char *clabel, GtkWidget *w)
 
 void changeString(GtkEditable *wid, char ** returnbuffer)
 {
-        strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
+	char * chars;
+	chars = gtk_editable_get_chars(wid,0,-1);
+        strncpy(*returnbuffer,chars,strlen(chars));
 }
 
 

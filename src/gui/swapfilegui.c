@@ -1,7 +1,7 @@
 /*
  * swapfilegui.c
  *
- * Copyright (C) 2001 Richard Guenther
+ * Copyright (C) 2001 Richard Guenther, Johannes Hirche, Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@ static int rmb_menu_cb(GtkWidget *item, GdkEventButton *event,
 static void addgroup_cb(GtkWidget *menu, GlameTreeItem *item);
 static void edit_cb(GtkWidget *menu, GlameTreeItem *item);
 static void import_cb(GtkWidget *menu, GlameTreeItem *item);
+static void export_cb(GtkWidget *menu, GlameTreeItem *item);
 static void delete_cb(GtkWidget *menu, GlameTreeItem *item);
 
 static GnomeUIInfo global_menu_data[] = {
@@ -68,7 +69,10 @@ static GnomeUIInfo group_menu_data[] = {
         GNOMEUIINFO_ITEM("Link selected", "link", NULL, NULL), /* FIXME */
         GNOMEUIINFO_SEPARATOR,
 	GNOMEUIINFO_ITEM("Add group...", "addgroup", addgroup_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Import...", "import", import_cb, NULL),
+	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
@@ -77,10 +81,15 @@ static GnomeUIInfo file_menu_data[] = {
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Edit", "edit", edit_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
+	GNOMEUIINFO_ITEM("Export...", "Export swapfile tracks", export_cb, NULL),
+	GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_ITEM("Delete", "delete", delete_cb, NULL),
         GNOMEUIINFO_SEPARATOR,
         GNOMEUIINFO_END
 };
+
+
+
 
 static int rmb_gmenu_cb(GtkWidget *tree, GdkEventButton *event,
 		        gpointer data)
@@ -174,6 +183,72 @@ void changeString_cb(GtkEditable *wid, char ** returnbuffer)
 {
 	strncpy(*returnbuffer,gtk_editable_get_chars(wid,0,-1),100);
 }
+static void export_cb(GtkWidget *menu, GlameTreeItem *item)
+{
+	GtkWidget * we;
+	long name;
+	int i;
+	GList * children;
+	GlameTreeItem *it;
+	char * foobar;
+	plugin_t *p_writefile, *p_swapfile_in;
+	filter_t *net, *swapfile_in[GTK_SWAPFILE_BUFFER_MAX_TRACKS], *writefile;
+	filter_paramdb_t *db;
+	filter_param_t *param;
+	filter_port_t *source, *dest;
+	filter_pipe_t *pipe;
+	foobar = calloc(sizeof(char),255);
+
+	we = gnome_dialog_file_request("Export As...","Filename",&foobar);
+	if(gnome_dialog_run_and_close(GNOME_DIALOG(we))){
+		
+		net = filter_creat(NULL);
+
+		p_writefile = plugin_get("write_file");
+		writefile = filter_instantiate(p_writefile);
+		filter_add_node(net, writefile, "writefile");
+		db = filter_paramdb(writefile);
+		param = filterparamdb_get_param(db, "filename");
+		filterparam_set(param, &foobar);
+		dest = filterportdb_get_port(filter_portdb(writefile), PORTNAME_IN); 
+
+		if(item->type == GLAME_TREE_ITEM_FILE){
+			p_swapfile_in = plugin_get("swapfile_in");
+			swapfile_in[0] = filter_instantiate(p_swapfile_in);
+			filter_add_node(net, swapfile_in[0], "swapfile_in");
+			db = filter_paramdb(swapfile_in[0]);
+			param = filterparamdb_get_param(db, "filename");
+			filterparam_set(param, &(item->swapfile_name));
+			param = filterparamdb_get_param(db, "rate");
+			filterparam_set(param, &(item->sample_rate));
+		
+			source = filterportdb_get_port(filter_portdb(swapfile_in[0]), PORTNAME_OUT);
+			filterport_connect(source,dest);
+		} else if (item->type == GLAME_TREE_ITEM_GROUP) {
+			p_swapfile_in = plugin_get("swapfile_in");
+			children = gtk_container_children(GTK_CONTAINER(GTK_TREE_ITEM_SUBTREE(item)));
+			for (i=0; i<MIN(g_list_length(children), GTK_SWAPFILE_BUFFER_MAX_TRACKS); i++) {
+				it = GLAME_TREE_ITEM(g_list_nth_data(children, i));
+				if (it->type != GLAME_TREE_ITEM_FILE)
+					return;
+				name = it->swapfile_name;
+				swapfile_in[i] = filter_instantiate(p_swapfile_in);
+				filter_add_node(net, swapfile_in[i], "swapfile");
+				db = filter_paramdb(swapfile_in[i]);
+				param = filterparamdb_get_param(db, "filename");
+				filterparam_set(param, &(it->swapfile_name));
+				param = filterparamdb_get_param(db, "rate");
+				filterparam_set(param, &(it->sample_rate));
+				source = filterportdb_get_port(filter_portdb(swapfile_in[i]), PORTNAME_OUT); 
+				filterport_connect(source,dest);
+			}
+		}
+		filter_launch(net);
+		filter_start(net);
+		filter_wait(net);
+	}
+	free(foobar);
+}
 
 static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 {
@@ -254,7 +329,7 @@ static void import_cb(GtkWidget *menu, GlameTreeItem *item)
 		
 		i = 0;
 		do {
-			while((fd=sw_open((name=rand()), O_CREAT | O_EXCL, TXN_NONE))==-1);
+			while((fd=sw_open((name=(rand()>>8)), O_CREAT | O_EXCL, TXN_NONE))==-1);
 			names[i] = name;
 			sw_close(fd);
 			DPRINTF("Found free file at #%li\n", name);
