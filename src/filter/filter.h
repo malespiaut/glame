@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.52 2000/05/02 07:46:36 richi Exp $
+ * $Id: filter.h,v 1.53 2000/05/04 09:53:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -120,7 +120,6 @@ struct filter {
 
 	void *private;
 };
-#define filter_nrparams(f) (gldb_nritems(&(f)->params))
 #define filter_nrinputs(f) (list_count(&(f)->inputs))
 #define filter_nroutputs(f) (list_count(&(f)->outputs))
 

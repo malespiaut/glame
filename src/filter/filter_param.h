@@ -3,7 +3,7 @@
 
 /*
  * filter_param.h
- * $Id: filter_param.h,v 1.3 2000/05/02 07:46:36 richi Exp $
+ * $Id: filter_param.h,v 1.4 2000/05/04 09:53:23 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -191,6 +191,9 @@ void filterpdb_delete_param(filter_pdb_t *db, const char *label);
 #define filterpdb_foreach_param(pdb, i) list_foreach(&(pdb)->db.items, \
         filter_param_t, entry.list, i)
 
+/* To just query the number of parameters stored in a parameter
+ * database use the following function. */
+#define filterpdb_nrparams(pdb) (gldb_nritems(&(pdb)->db))
 
 
 /* Internal use API. You will never want to use these.

@@ -1,6 +1,6 @@
 /*
  * file_io.c
- * $Id: file_io.c,v 1.26 2000/05/01 11:09:04 richi Exp $
+ * $Id: file_io.c,v 1.27 2000/05/04 09:53:23 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert, Richard Guenther, Daniel Kobras
  *
@@ -345,9 +345,11 @@ int read_file_register(plugin_t *pl)
 	p = filter_add_output(f, PORTNAME_OUT, "output channels",
 			      FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC);
 	filterpdb_add_param_float(filterportdesc_pdb(p), "position", 
-				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT);
+				  FILTER_PARAMTYPE_POSITION, FILTER_PIPEPOS_DEFAULT,
+				  FILTERPARAM_END);
 	filterpdb_add_param_string(filter_pdb(f), "filename",
-				   FILTER_PARAMTYPE_FILENAME, NULL);
+				   FILTER_PARAMTYPE_FILENAME, NULL,
+				   FILTERPARAM_END);
 
 	f->init = rw_file_init;
 	f->connect_out = read_file_connect_out;
@@ -371,7 +373,8 @@ int write_file_register(plugin_t *pl)
 	filter_add_input(f, PORTNAME_IN, "input channels",
 			 FILTER_PORTTYPE_SAMPLE|FILTER_PORTTYPE_AUTOMATIC);
 	filterpdb_add_param_string(filter_pdb(f), "filename",
-				   FILTER_PARAMTYPE_FILENAME, NULL);
+				   FILTER_PARAMTYPE_FILENAME, NULL,
+				   FILTERPARAM_END);
 
 	f->init = rw_file_init;
 	glsig_add_handler(&f->emitter, GLSIG_PARAM_CHANGED,
