@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.15 2001/11/05 10:17:59 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.16 2001/11/09 16:51:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -68,15 +68,8 @@ static void play_cb(GnomeDialog * dia, play_struct_t* play)
 {
 	if (filter_launch(play->net, _GLAME_WBUFSIZE) == -1
 	    || filter_start(play->net) == -1) {
-		char msg[256] = "Error processing network";
-		filter_t *node;
-		filter_foreach_node(play->net, node) {
-			if (filter_errstr(node)) {
-				snprintf(msg, 256, "Error processing network:\n%s: %s\n", filter_name(node), filter_errstr(node));
-				break;
-			}
-		}
-		gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(msg)));
+		glame_network_error_dialog(play->net,
+					   "Error processing network");
 		gnome_dialog_close(play->dia);
 		return;
 	}
@@ -280,6 +273,24 @@ GtkWidget *glame_dialog_file_request(const char *windowtitle,
 }
 
 
+/*
+ * Network error dialog
+ */
+
+void glame_network_error_dialog(filter_t *net, const char *header)
+{
+	filter_t *node;
+	char msg[4096];
+	int cnt = 0;
+
+	cnt += snprintf(msg+cnt, 4096-cnt, "%s\n", header);
+	filter_foreach_node(net, node) {
+		if (filter_errstr(node))
+			snprintf(msg+cnt, 4096-cnt, " %s: %s\n",
+				 filter_name(node), filter_errstr(node));
+	}
+	gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog(msg)));
+}
 
 
 

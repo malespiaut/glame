@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.6 2001/11/05 10:17:59 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.7 2001/11/09 16:51:16 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -136,5 +136,11 @@ GdkImlibImage* glame_load_icon(const char* filename, int x, int y);
 
 /* Same as above, but returns the image as a gnomepixmap (a widget) */
 GtkWidget* glame_load_icon_widget(const char* filename, int x, int y);
+
+
+/* Displays an error dialog with the specified header, listing nodes
+ * and corresponding error strings. */
+void glame_network_error_dialog(filter_t *net, const char *header);
+
 
 #endif
