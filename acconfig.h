@@ -19,6 +19,9 @@
 /* define if ALSA audio is available */
 #undef HAVE_ALSA
 
+/* define if you have sys/asound.h rather than alsa/asound.h */
+#undef ALSA_H_IN_SYS
+
 /* define if you have libaudiofile */
 #undef HAVE_AUDIOFILE
 

@@ -33,11 +33,19 @@ ac_save_LDFLAGS=$LDFLAGS
 CFLAGS=$ALSA_CFLAGS
 LDFLAGS=$ALSA_LIBS
 
-AC_CHECK_HEADER(sys/asoundlib.h, ac_have_alsa=yes, ac_have_alsa=no)
+AC_CHECK_HEADER(alsa/asoundlib.h, ac_have_alsa=yes, ac_have_alsa=no)
+if test x$ac_have_alsa = xno; then
+  AC_CHECK_HEADER(sys/asoundlib.h, ac_have_alsa=yes, ac_have_alsa=no)
+  if test x$ac_have_alsa = xyes; then
+    AC_DEFINE(ALSA_H_IN_SYS)
+    ac_have_alsa_include="#include <sys/asoundlib.h>"
+  fi
+else
+  ac_have_alsa_include="#include <alsa/asoundlib.h>"
+fi
 if test x$ac_have_alsa = xyes; then
   AC_CHECK_LIB(asound, snd_pcm_open, ac_have_alsa=yes, ac_have_alsa=no)
 fi
-dnl FIXME - should check the required version
 
 AC_MSG_CHECKING([for alsa version $1 or greater])
 alsa_min_major_version=`echo $1 | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
@@ -45,7 +53,7 @@ alsa_min_minor_version=`echo $1 | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/
 alsa_min_subminor_version=`echo $1 | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
 AC_TRY_COMPILE(
 [
-#include <sys/asoundlib.h>
+$ac_have_alsa_include
 ],[
 #if SND_LIB_MAJOR != $alsa_min_major_version
 #error wrong major version
