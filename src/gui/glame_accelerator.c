@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.3 2001/06/07 14:03:41 xwolf Exp $
+ * $Id: glame_accelerator.c,v 1.4 2001/06/11 08:41:46 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -25,7 +25,16 @@
 #include <config.h>
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <xmlmemory.h>
+#include <parser.h>
+#include <gdk/gdk.h>
 #include "util.h"
 #include "list.h"
 #include "hash.h"
@@ -43,6 +52,8 @@ struct accel {
 	struct accel **pprev_accel_hash;
 	struct accel *next_accel_hash;
 	struct list_head list;
+	guint state_mask;
+	guint state;
 	char *spec;
 	char *action;
 };
@@ -55,12 +66,12 @@ struct accel_cb_data {
 static LIST_HEAD(accel_list);
 static int stringhash(const char *spec);
 HASH(accel, struct accel, 8,
-     (strcmp(accel->spec, spec) == 0),
+     (strcmp(accel->spec, spec) == 0
+      && accel->state == (state & accel->state_mask)),
      (stringhash(spec)),
      (stringhash(accel->spec)),
-     const char *spec)
+     const char *spec, guint state)
 
-static GtkWidget *accel_widget;
 
 
 /*
@@ -75,36 +86,23 @@ static int stringhash(const char *spec)
 	return val;
 }
 
-static SCM accel_get_widget()
-{
-	return gh_long2scm((long)accel_widget);
-}
-
-static SCM delete_widget(SCM s_widget)
-{
-	GtkWidget *widget = (GtkWidget *)gh_scm2long(s_widget);
-	gtk_widget_destroy(widget);
-	return SCM_UNSPECIFIED;
-}
-
 static gint accel_cb(GtkWidget *widget, GdkEventKey *event,
 		     struct accel_cb_data *data)
 {
 	struct accel *accel;
 	char spec[256];
 
-	snprintf(spec, 255, "%s/%x-%s",
+	snprintf(spec, 255, "%s/%s",
 		 data->scope,
-		 event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK|GDK_MOD1_MASK),
 		 gdk_keyval_name(event->keyval));
-	DPRINTF("Event %s\n", spec);
-	if (!(accel = hash_find_accel(spec))) {
-		DPRINTF("No accelerator.\n");
+	if (!(accel = hash_find_accel(spec, event->state))) {
+		DPRINTF("No accelerator for %s (state %x)\n",
+			spec, event->state);
 		return FALSE;
 	}
 
-	DPRINTF("Found accelerator, will execute\n%s\n", accel->action);
-	accel_widget = widget;
+	DPRINTF("Found accelerator for %s (state %x):\n%s\n",
+		spec, event->state, accel->action);
 	glame_gh_safe_eval_str(accel->action);
 
 	return TRUE;
@@ -123,48 +121,119 @@ static void accel_cb_cleanup(GtkObject *object, struct accel_cb_data *data)
 
 int glame_accel_init()
 {
-	gh_new_procedure0_0("glame-accel-get-widget", accel_get_widget);
-	gh_new_procedure1_0("glame-delete-widget", delete_widget);
+	char fname[256];
+
+	glame_add_accels_from_file(PKGDATADIR "/default-accels");
+	glame_add_accels_from_file("./gui/default-accels");
+	snprintf(fname, 255, "%s/.glame-accels", getenv("HOME"));
+	glame_add_accels_from_file(fname);
+
 	return 0;
 }
 
-
-int glame_accel_from_xml(const xmlDocPtr xml)
+static int add_accels(const char *scope, xmlNodePtr node)
 {
-	/* FIXME */
-	return -1;
+	DPRINTF("Recursing for scope %s\n", scope);
+
+#ifndef xmlChildrenNode
+        node = node->childs;
+#else
+        node = node->xmlChildrenNode;
+#endif
+        if (!node)
+		return 0;
+
+	while (node) {
+		if (strcmp(node->name, "scope") == 0) {
+			char combined_scope[256];
+			char *node_scope;
+
+			node_scope = xmlGetProp(node, "scope");
+			if (!node_scope)
+				return -1;
+			snprintf(combined_scope, 255,
+				 "%s%s/", scope, node_scope);
+			add_accels(combined_scope, node);
+
+		} else if (strcmp(node->name, "accel") == 0) {
+			char *spec, *action, *s;
+			guint state, state_mask;
+			char full_spec[256];
+
+			state = 0;
+			s = xmlGetProp(node, "state");
+			if (s)
+				if (sscanf(s, "%i", &state) != 1)
+					return -1;
+			state_mask = GDK_SHIFT_MASK|GDK_CONTROL_MASK
+				|GDK_MOD1_MASK;
+			s = xmlGetProp(node, "mask");
+			if (s)
+				if (sscanf(s, "%i", &state_mask) != 1)
+					return -1;
+			spec = xmlGetProp(node, "spec");
+			if (!spec)
+				return -1;
+			action = xmlNodeGetContent(node);
+			if (!action || strlen(action) == 0)
+				return -1;
+
+			snprintf(full_spec, 255, "%s%s", scope, spec);
+			DPRINTF("Accel for %s (0x%x, 0x%x) is %s\n",
+				full_spec, state_mask, state, action);
+			glame_accel_add(full_spec, state_mask, state, action);
+
+		} else
+			return -1;
+
+		node = node->next;
+	}
+
+	return 0;
+}
+int glame_add_accels_from_xml(const xmlDocPtr xml)
+{
+	char scope[8] = "";
+	return add_accels(scope, xmlDocGetRootElement(xml));
 }
 
-xmlDocPtr glame_accel_to_xml()
+int glame_add_accels_from_file(const char *filename)
+{
+	int fd, res;
+	FILE *f;
+	struct stat st;
+	char *xml;
+	xmlDocPtr doc;
+
+	if ((fd = open(filename, O_RDONLY)) == -1)
+		return -1;
+	fstat(fd, &st);
+
+	if (!(f = fdopen(fd, "r"))) {
+		close(fd);
+		return -1;
+	}
+	xml = malloc(st.st_size+1);
+	fread(xml, st.st_size, 1, f);
+	xml[st.st_size] = '\0';
+	DPRINTF("Processing file %s\n", filename);
+	if ((doc = xmlParseMemory(xml, st.st_size))) {
+		res = glame_add_accels_from_xml(doc);
+		xmlFreeDoc(doc);
+	} else
+		res = -1;
+	free(xml);
+	fclose(f);
+
+	return res;
+}
+
+xmlDocPtr glame_accels_to_xml()
 {
 	/* FIXME */
 	return NULL;
 }
 
-
-
-int glame_accel_add(const char *spec, const char *action)
-{
-	struct accel *accel;
-
-	if (!spec || !action)
-		return -1;
-
-	if (!(accel = ALLOC(struct accel)))
-		return -1;
-	hash_init_accel(accel);
-	INIT_LIST_HEAD(&accel->list);
-	accel->spec = strdup(spec);
-	accel->action = strdup(action);
-
-	if (hash_find_accel(spec))
-		/* FIXME - delete found accel */ ;
-
-	list_add(&accel->list, &accel_list);
-	hash_add_accel(accel);
-
-	return 0;
-}
 
 static void _free_accel(struct accel *accel)
 {
@@ -175,11 +244,37 @@ static void _free_accel(struct accel *accel)
 	free(accel);
 }
 
-void glame_accel_del(const char *spec)
+int glame_accel_add(const char *spec, guint state_mask, guint state,
+		    const char *action)
+{
+	struct accel *accel, *old;
+
+	if (!spec || !action)
+		return -1;
+
+	if (!(accel = ALLOC(struct accel)))
+		return -1;
+	hash_init_accel(accel);
+	INIT_LIST_HEAD(&accel->list);
+	accel->state_mask = state_mask;
+	accel->state = state;
+	accel->spec = strdup(spec);
+	accel->action = strdup(action);
+
+	if ((old = hash_find_accel(spec, state)))
+		_free_accel(old);
+
+	list_add(&accel->list, &accel_list);
+	hash_add_accel(accel);
+
+	return 0;
+}
+
+void glame_accel_del(const char *spec, guint state)
 {
 	struct accel *accel;
 
-	if (!(accel = hash_find_accel(spec)))
+	if (!(accel = hash_find_accel(spec, state)))
 		return;
 	_free_accel(accel);
 }

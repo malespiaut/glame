@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.1 2001/06/04 16:02:50 richi Exp $
+ * $Id: glame_accelerator.h,v 1.2 2001/06/11 08:41:46 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -36,20 +36,25 @@ int glame_accel_init();
 
 /* Constructs the accelerator table from the provided xml document.
  * Returns 0 on success, -1 on error. */
-int glame_accel_from_xml(const xmlDocPtr xml);
+int glame_add_accels_from_xml(const xmlDocPtr xml);
+
+/* Adds all accelerators found in the specified file. Returns 0
+ * on success, -1 on error. */
+int glame_add_accels_from_file(const char *filename);
 
 /* Constructs an xml document out of the accelerator table.
  * Returns the document on success, NULL on error. You have to free
  * the document yourself. */
-xmlDocPtr glame_accel_to_xml();
+xmlDocPtr glame_accels_to_xml();
 
 
 /* Adds the binding spec -> action to the accelerator table replacing
  * an already existing one. Returns 0 on success, -1 on error. */
-int glame_accel_add(const char *spec, const char *action);
+int glame_accel_add(const char *spec, guint state_mask, guint state,
+		    const char *action);
 
 /* Deletes all bindings to spec from the accelerator table. */
-void glame_accel_del(const char *spec);
+void glame_accel_del(const char *spec, guint state);
 
 /* Deletes all bindings to specifications inside the specified scope. */
 void glame_accel_del_all(const char *scope);
