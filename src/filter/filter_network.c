@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.6 2000/02/01 13:59:39 richi Exp $
+ * $Id: filter_network.c,v 1.7 2000/02/02 11:26:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -135,6 +135,14 @@ int filternetwork_wait(filter_network_t *net)
 	net->state = STATE_UNDEFINED;
 	if (pthread_mutex_unlock(&net->mx) != 0)
 		DERROR("error in pthread_mutex_unlock");
+
+	do {
+		wait_again = 0;
+		filternetwork_foreach_output(net, n)
+			if ((res = pthread_join(n->thread, NULL)) != 0
+			    && (res != ESRCH))
+				wait_again = 1;
+	} while (wait_again);
 
 	do {
 		wait_again = 0;

@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.8 2000/02/02 09:53:21 richi Exp $
+ * $Id: filter.h,v 1.9 2000/02/02 11:26:45 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -149,6 +149,7 @@ typedef struct {
 } filter_network_t;
 
 #define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
+#define filternetwork_foreach_output(net, node) list_foreach(&(net)->outputs, filter_node_t, neto_list, node)
 
 
 
