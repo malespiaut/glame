@@ -1,7 +1,9 @@
 /*
  * ladspa.c
  *
- * Copyright (C) 2000 Richard Furse
+ * $Id:
+ * 
+ * Copyright (C) 2000 Richard Furse, Alexander Ehlert
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +35,7 @@
 static int ladspa_f(filter_t * n)
 {
   nto1_state_t * psNTo1_State = NULL;
-  int iNTo1_NR, iNTo1_Index;
+  int iNTo1_NR, iNTo1_Index, i;
   filter_pipe_t ** ppsAudioPorts;
   filter_pipe_t * psPipe;
   filter_param_t * psParam;
@@ -45,9 +47,12 @@ static int ladspa_f(filter_t * n)
   unsigned long lRunSampleCount;
   const LADSPA_Descriptor * psDescriptor;
   LADSPA_PortDescriptor iPortDescriptor;
-
+  SAMPLE **dummy;
+  
   psDescriptor = (const LADSPA_Descriptor *)(n->priv);
   lPortCount = psDescriptor->PortCount;
+  DPRINTF("%ld ports found\n", lPortCount);
+  
   if (!lPortCount)
     FILTER_ERROR_RETURN("a LADSPA plugin has no ports");
 
@@ -81,6 +86,8 @@ static int ladspa_f(filter_t * n)
     }
   }
 
+  DPRINTF("%d input port(s)\n", iNTo1_NR);
+  
   if (lSampleRate == 0) {
     /* No audio channels incoming. The register method below will have
        added a "GLAME Sample Rate" parameter. */
@@ -102,6 +109,8 @@ static int ladspa_f(filter_t * n)
   ppsAudioPorts = (filter_pipe_t **)malloc(sizeof(filter_pipe_t *) * lPortCount);
   pfControlValues = (LADSPA_Data *)malloc(sizeof(LADSPA_Data) * lPortCount);
   ppsBuffers = (filter_buffer_t **)malloc(sizeof(filter_buffer_t *) * lPortCount);
+  dummy = ALLOCN(lPortCount, SAMPLE*);
+		  
   if ((!psNTo1_State && iNTo1_NR > 0)
       || !ppsAudioPorts
       || !pfControlValues
@@ -189,7 +198,6 @@ static int ladspa_f(filter_t * n)
     if (iNTo1_NR > 0) {
 
       lRunSampleCount = nto1_head(psNTo1_State, iNTo1_NR);
-
       iNTo1_Index = 0;
       for (lPortIndex = 0; lPortIndex < lPortCount; lPortIndex++) {
 	iPortDescriptor = psDescriptor->PortDescriptors[lPortIndex];
@@ -203,9 +211,20 @@ static int ladspa_f(filter_t * n)
 	  }
 
 	  /* We have audio coming in on this port. Link to it. */
-	  psDescriptor->connect_port(psLADSPAPluginInstance,
-				     lPortIndex,
-				     psNTo1_State[iNTo1_Index].s);
+	  if (psNTo1_State[iNTo1_Index].s != NULL) {
+	  	psDescriptor->connect_port(psLADSPAPluginInstance,
+					   lPortIndex,
+					   psNTo1_State[iNTo1_Index].s); 
+
+	  	/* adjust pointer */
+	  	psNTo1_State[iNTo1_Index].s += lRunSampleCount;
+	  } else {
+		dummy[lPortIndex] = ALLOCN(lRunSampleCount, SAMPLE);
+	  	psDescriptor->connect_port(psLADSPAPluginInstance,
+					   lPortIndex,
+					   dummy[lPortIndex]);
+	  }
+
 	  /* Note that the above code will ONLY WORK IF
 	     SAMPLE=LADSPA_Data (=float). If SAMPLE becomes something
 	     different, it will be necessary to use intermediary
@@ -247,8 +266,16 @@ static int ladspa_f(filter_t * n)
 
     /* The plugin now has somewhere to read and write to every port,
        be it audio or control. We can finally run it! */
+
     psDescriptor->run(psLADSPAPluginInstance,
 		      lRunSampleCount);
+
+    /* free dummy buffers if there are any */
+    for (i=0; i<lPortCount; i++)
+	    if (dummy[i] != NULL) {
+		    free(dummy[i]);
+		    dummy[i] = NULL;
+	    }
 
     /* Having done this, we need to forward the audio sample buffers
        we wrote to and release the input buffers we read from. If were
@@ -302,9 +329,8 @@ static int ladspa_f(filter_t * n)
   free(ppsAudioPorts);
   free(pfControlValues);
   free(ppsBuffers);
-
+  free(dummy);
   FILTER_RETURN;
-
 }
 
 
