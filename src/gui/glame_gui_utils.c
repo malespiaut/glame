@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.8 2001/04/19 16:51:41 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.9 2001/04/22 14:24:57 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -27,61 +27,60 @@
 #include "glame_gui_utils.h"
 #include "canvas.h"
 
-struct foo{
+
+
+/*
+ * The generic play bar.
+ */
+
+typedef struct {
 	GnomeDialog * dia;
 	filter_t *net;
 	gui_network *gui;
 	gboolean playing;
 	guint handler_id;
+	gint play_index, pause_index, stop_index, cancel_index;
+	int close_on_stop;
 	GtkFunction atExitFunc;
 	gpointer data;
-};
-
-typedef struct foo play_struct_t;
+} play_struct_t;
 
 static gint network_finish_check_cb(play_struct_t *play)
 {
-	// FIXME
-	//	if(!(FILTER_IS_RUNNING(play->net))){
-	if((!FILTER_IS_LAUNCHED(play->net)) && play->playing){
+	if (filter_is_ready(play->net) && play->playing) {
 		gtk_timeout_remove(play->handler_id);
-		DPRINTF("Network finished\n");
 		filter_terminate(play->net);
-		filter_wait(play->net);
 		gnome_dialog_close(play->dia);
 		return FALSE;
-	}else{
-		return TRUE;
 	}
+	return TRUE;
 }
 
 static void play_cb(GnomeDialog * dia, play_struct_t* play)
 {
-	if(play->gui)
+	if (play->gui)
 		network_error_reset(play->gui);
-	filter_launch(play->net);
-	if(filter_start(play->net) == -1) {
+	if (filter_launch(play->net) == -1
+	    || filter_start(play->net) == -1) {
 		if (play->gui)
 			network_draw_error(play->gui);
-		if (!play->gui) {
+		else
 			gnome_dialog_run_and_close(GNOME_DIALOG(gnome_error_dialog("Error processing network")));
-			gnome_dialog_close(play->dia);
-		}
+		gnome_dialog_close(play->dia);
 		return;
 	}
 	play->playing = TRUE;
-	gnome_dialog_set_sensitive(play->dia,0,FALSE);
-	gnome_dialog_set_sensitive(play->dia,1,TRUE);
-	gnome_dialog_set_sensitive(play->dia,2,TRUE);
-	play->handler_id = gtk_timeout_add(100,(GtkFunction)network_finish_check_cb,play);
+	gnome_dialog_set_sensitive(play->dia, play->play_index, FALSE);
+	if (play->pause_index != -1)
+		gnome_dialog_set_sensitive(play->dia, play->pause_index, TRUE);
+	if (play->stop_index != -1)
+		gnome_dialog_set_sensitive(play->dia, play->stop_index, TRUE);
+	play->handler_id = gtk_timeout_add(100, (GtkFunction)network_finish_check_cb, play);
 }
 
 static void pause_cb(GnomeDialog * dia, play_struct_t * play)
 {
-	filter_t* net = play->net;
-	if(FILTER_IS_LAUNCHED(net)){
-		// FIXME ..
-		//if(FILTER_IS_RUNNING(play->net)){
+	if(FILTER_IS_LAUNCHED(play->net)){
 		if(play->playing){
 			play->playing = FALSE;
 			filter_pause(play->net);
@@ -94,42 +93,48 @@ static void pause_cb(GnomeDialog * dia, play_struct_t * play)
 
 static void stop_cb(GnomeDialog *dia, play_struct_t* play)
 {
-	if(FILTER_IS_LAUNCHED(play->net)){
-		filter_terminate(play->net);
-		filter_wait(play->net);
-		play->playing = FALSE;
-		gnome_dialog_set_sensitive(play->dia,0,TRUE);
-		gnome_dialog_set_sensitive(play->dia,1,FALSE);
-		gnome_dialog_set_sensitive(play->dia,2,FALSE);
-	}
 	if(play->handler_id)
 		gtk_timeout_remove(play->handler_id);
+	if(FILTER_IS_LAUNCHED(play->net)){
+		if (play->pause_index != -1)
+			gnome_dialog_set_sensitive(play->dia,
+						   play->pause_index, FALSE);
+		gnome_dialog_set_sensitive(play->dia, play->stop_index, FALSE);
+		filter_terminate(play->net);
+		play->playing = FALSE;
+		gnome_dialog_set_sensitive(play->dia, play->play_index, TRUE);
+		if (play->close_on_stop)
+			gnome_dialog_close(play->dia);
+	}
 }
 
 static void cancel_cb(GnomeDialog *dia, play_struct_t *play)
 {
-	if(FILTER_IS_LAUNCHED(play->net)){
-		filter_terminate(play->net);
-		filter_wait(play->net);
-	}
 	if(play->handler_id)
 		gtk_timeout_remove(play->handler_id);
+	if(FILTER_IS_LAUNCHED(play->net))
+		filter_terminate(play->net);
 	gnome_dialog_close(play->dia);
 }
 
 
 static void play_destroy_cb(GtkWidget *widget, play_struct_t *play)
 {
-	DPRINTF("destroying widget\n");
+	if (FILTER_IS_LAUNCHED(play->net))
+		filter_terminate(play->net);
 	if (play->atExitFunc)
 		play->atExitFunc(play->data);
 	free(play);
 }
 
 int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
-			   GtkFunction atExit, gpointer data)
+			   GtkFunction atExit, gpointer data,
+			   const char *start_label,
+			   const char *pause_label,
+			   const char *stop_label, int close_on_stop)
 {
 	play_struct_t *play;
+	int i;
 
 	if (!network || !FILTER_IS_NETWORK(network))
 		return -1;
@@ -140,25 +145,47 @@ int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
 	play->gui = gui;
 	play->atExitFunc = atExit;
 	play->data = data;
-
 	play->dia = GNOME_DIALOG(gnome_dialog_new(filter_name(network),NULL));
 	play->playing = FALSE;
 	play->handler_id = 0;
+	play->play_index = -1;
+	play->pause_index = -1;
+	play->stop_index = -1;
+	play->cancel_index = -1;
+	play->close_on_stop = close_on_stop;
 
-	gnome_dialog_append_button_with_pixmap(play->dia,"Play",GNOME_STOCK_PIXMAP_FORWARD);
-	gnome_dialog_append_button_with_pixmap(play->dia,"Pause",GNOME_STOCK_PIXMAP_TIMER_STOP);
-	gnome_dialog_append_button_with_pixmap(play->dia,"Stop",GNOME_STOCK_PIXMAP_STOP);	
+	i = 0;
+	if (!start_label)
+		start_label = "Play";
+	play->play_index = i++;
+	gnome_dialog_append_button_with_pixmap(play->dia, start_label,
+					       GNOME_STOCK_PIXMAP_FORWARD);
+	gnome_dialog_set_default(play->dia, play->play_index);
+	gnome_dialog_button_connect(play->dia, play->play_index,
+				    play_cb, play);
+
+	if (pause_label) {
+		play->pause_index = i++;
+		gnome_dialog_append_button_with_pixmap(play->dia, pause_label, GNOME_STOCK_PIXMAP_TIMER_STOP);
+		gnome_dialog_set_sensitive(play->dia, play->pause_index, FALSE);
+		gnome_dialog_button_connect(play->dia, play->pause_index,
+					    pause_cb, play);
+	}
+
+	if (stop_label) {
+		play->stop_index = i++;
+		gnome_dialog_append_button_with_pixmap(play->dia, stop_label,
+						       GNOME_STOCK_PIXMAP_STOP);
+		gnome_dialog_set_sensitive(play->dia, play->stop_index, FALSE);
+		gnome_dialog_button_connect(play->dia, play->stop_index,
+					    stop_cb, play);
+	}
+
+	play->cancel_index = i++;
 	gnome_dialog_append_button(play->dia,GNOME_STOCK_BUTTON_CANCEL);
-	
-	gnome_dialog_set_default(play->dia,0);
-	gnome_dialog_set_sensitive(play->dia,1,FALSE);
-	gnome_dialog_set_sensitive(play->dia,2,FALSE);
+	gnome_dialog_button_connect(play->dia, play->cancel_index,
+				    cancel_cb, play);
 
-	gnome_dialog_button_connect(play->dia,0,play_cb,play);
-	gnome_dialog_button_connect(play->dia,1,pause_cb,play);
-	gnome_dialog_button_connect(play->dia,2,stop_cb,play);
-	gnome_dialog_button_connect(play->dia,3,cancel_cb,play);
-	
 	if(modal)
 		gtk_window_set_modal(GTK_WINDOW(play->dia),TRUE);
 

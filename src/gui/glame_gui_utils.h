@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.8 2001/04/19 16:51:41 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.9 2001/04/22 14:24:57 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -79,7 +79,10 @@ GtkWidget *glame_gui_filter_properties(filter_paramdb_t *pdb,
  * atExit is called with parameter data. Returns 0, if the dialog could
  * be created, -1 on error. */
 int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
-			   GtkFunction atExit, gpointer data);
+			   GtkFunction atExit, gpointer data,
+			   const char *start_label,
+			   const char *pause_label,
+			   const char *stop_label, int close_on_stop);
 
 /* From GNOME */
 GtkWidget * gnome_dialog_file_request(const char *windowtitle,
