@@ -1,6 +1,6 @@
 /*
  * filter_tools.h
- * $Id: filter_tools.h,v 1.29 2001/07/26 15:19:54 mag Exp $
+ * $Id: filter_tools.h,v 1.30 2001/07/31 06:48:58 mag Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -32,7 +32,7 @@
 
 /* calc multiplicator from gain in Dezibel dB=20*log(In/Out) */
 #define DB2GAIN(dbgain) (pow(10.0,dbgain/20.0))
-#define GAIN2DB(gain) (log(gain)*20.0)
+#define GAIN2DB(gain) (log10(gain)*20.0)
 
 /* Add your favorite generic tools for filter programming here.
  */
