@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.9 2001/04/22 14:24:57 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.10 2001/04/22 15:27:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -84,10 +84,13 @@ int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
 			   const char *pause_label,
 			   const char *stop_label, int close_on_stop);
 
-/* From GNOME */
-GtkWidget * gnome_dialog_file_request(const char *windowtitle,
-				      const char *label,
-				      char ** returnbuffer);
+/* Open a file selection dialog with the specified title, file entry label
+ * and file selection dialog pattern (optional). You need to provide a
+ * result character buffer with space for at least 256 characters. */
+GtkWidget *glame_dialog_file_request(const char *windowtitle,
+				     const char *history_id, const char *label,
+				     const char *pattern,
+				     char *returnbuffer);
 
 
 #endif

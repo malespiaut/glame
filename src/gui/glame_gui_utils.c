@@ -2,7 +2,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.9 2001/04/22 14:24:57 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.10 2001/04/22 15:27:30 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -205,12 +205,16 @@ int glame_gui_play_network(filter_t *network, gui_network *gui, int modal,
  * Widget creation helpers. GNOME/gtk+ suck...
  */
 
-static void create_label_edit_pair_string_cb(GtkEditable *w, char *buf)
+
+/* Generic callback to update a 256 chars size destination buffer from
+ * a GtkEditable (such as gnome_entry's gtk_edit widget). */
+static void update_string_from_editable_cb(GtkEditable *w, char *buf)
 {
 	char *chars = gtk_editable_get_chars(w, 0, -1);
         strncpy(buf, chars, 255);
 	g_free(chars);
 }
+
 void create_label_edit_pair(GtkWidget *vbox,
 			    const char *label, const char *history,
 			    char *result)
@@ -223,7 +227,7 @@ void create_label_edit_pair(GtkWidget *vbox,
 
 	wentry = gnome_entry_new(history);
 	gtk_entry_set_text(GTK_ENTRY(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), result);
-	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), "changed", create_label_edit_pair_string_cb, result);
+	gtk_signal_connect(GTK_OBJECT(gnome_entry_gtk_entry(GNOME_ENTRY(wentry))), "changed", update_string_from_editable_cb, result);
 
 	gtk_container_add(GTK_CONTAINER(whbox), wlabel);
 	gtk_container_add(GTK_CONTAINER(whbox), wentry);
@@ -231,4 +235,37 @@ void create_label_edit_pair(GtkWidget *vbox,
 	gtk_widget_show(wlabel);
 	gtk_widget_show(wentry);
 	gtk_widget_show(whbox);
+}
+
+
+static void glame_dialog_file_request_browse_cb(GnomeFileEntry *fileentry,
+						const char *pattern)
+{
+	/* Well, this f*** widget is NULL here... */
+	gtk_file_selection_complete(GTK_FILE_SELECTION(fileentry->fsw),
+				    pattern);
+}
+GtkWidget *glame_dialog_file_request(const char *windowtitle,
+				     const char *history_id, const char *label,
+				     const char *pattern,
+				     char *returnbuffer)
+{
+	GtkWidget *dialog;
+	GtkWidget *fileEntry;
+	GtkWidget *dialogVbox;	
+	
+	dialog = gnome_dialog_new(windowtitle, GNOME_STOCK_BUTTON_CANCEL,
+				  GNOME_STOCK_BUTTON_OK, NULL);
+        dialogVbox = GTK_WIDGET(GTK_VBOX(GNOME_DIALOG(dialog)->vbox));
+
+        fileEntry = gnome_file_entry_new(history_id, label);
+        gtk_signal_connect(GTK_OBJECT(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fileEntry))),
+                           "changed", update_string_from_editable_cb,
+			   returnbuffer);
+	if (pattern)
+		gtk_signal_connect_after(GTK_OBJECT(fileEntry), "browse-clicked",
+					 glame_dialog_file_request_browse_cb,
+					 pattern);
+        create_label_widget_pair(dialogVbox, "Filename", fileEntry);
+	return dialog;
 }
