@@ -1,6 +1,6 @@
 /*
  * audio_io_esd.c
- * $Id: audio_io_esd.c,v 1.6 2001/04/18 14:36:50 richi Exp $
+ * $Id: audio_io_esd.c,v 1.7 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -32,6 +32,7 @@ PLUGIN_SET(audio_io_esd, "esd_audio_in esd_audio_out")
 
 static int esd_in_f(filter_t *n)
 {
+	filter_port_t *outport;
 	filter_pipe_t	*pipe[2];
 	filter_buffer_t	*sbuf;
 	char	*in;
@@ -44,18 +45,19 @@ static int esd_in_f(filter_t *n)
 	int	sock, length, endless = 0;
 	float	nsamples = 0.0, maxsamples;
 
-	if (!(channels = filternode_nroutputs(n)))
+	outport = filterportdb_get_port(filter_portdb(n), PORTNAME_OUT);
+	if ((channels = filterport_nrpipes(outport)) == 0)
 		FILTER_ERROR_RETURN("No outputs.");
 
-	host = filterparam_val_string(filternode_get_param(n, "device"));
-	rate = filterparam_val_int(filternode_get_param(n, "rate"));
-	maxsamples = filterparam_val_float(filternode_get_param(n, "duration")) * rate;
+	host = filterparam_val_string(filterparamdb_get_param(filter_paramdb(n), "device"));
+	rate = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "rate"));
+	maxsamples = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "duration")) * rate;
 	if (maxsamples <= 0.0)
 		endless = 1;
 
-	pipe[0] = filternode_get_output(n, PORTNAME_OUT);
-	pipe[1] = filternode_next_output(pipe[0]); /* Okay if NULL */
-	
+	pipe[0] = filterport_get_pipe(outport);
+	pipe[1] = filterport_next_pipe(outport, pipe[0]);
+
 	if (pipe[1] && filterpipe_sample_hangle(pipe[0]) > 
 	               filterpipe_sample_hangle(pipe[1])) {
 		filter_pipe_t *t = pipe[0];
@@ -133,12 +135,10 @@ static int esd_out_f(filter_t *n)
 		int 		pos;
 		int 		to_go;
 	} esdout_param_t;
-
 	esdout_param_t		*in = NULL;
 	gl_s16			neutral, *wbuf, *out = NULL;
+	filter_port_t *inport;
 	filter_pipe_t		*p_in;
-
-	
 	filter_param_t *dev_param;
 	char *host = NULL;
 	
@@ -153,10 +153,11 @@ static int esd_out_f(filter_t *n)
 	/* Boilerplate init section - will go into a generic function one day.
 	 */
 
-	if (!(max_ch = filternode_nrinputs(n)))
+	inport = filterportdb_get_port(filter_portdb(n), PORTNAME_IN);
+	if (!(max_ch = filterport_nrpipes(inport)))
 		FILTER_ERROR_RETURN("no inputs");
 
-	p_in = filternode_get_input(n, PORTNAME_IN);
+	p_in = filterport_get_pipe(inport);
 	rate = filterpipe_sample_rate(p_in);
 	if (rate <= 0)
 		FILTER_ERROR_RETURN("No valid sample rate given.");
@@ -170,7 +171,7 @@ static int esd_out_f(filter_t *n)
 		ap->pipe = p_in;
 		ap->buf = NULL;
 		ap->pos = ap->to_go = 0;
-	} while ((p_in = filternode_next_input(p_in)));
+	} while ((p_in = filterport_next_pipe(inport, p_in)));
 
 	/* Fixup hangle mapping. */
 	if (ch > 1)
@@ -184,7 +185,7 @@ static int esd_out_f(filter_t *n)
 	/* ESD specific initialisation
 	 */
 
-	dev_param = filternode_get_param(n, "device");
+	dev_param = filterparamdb_get_param(filter_paramdb(n), "device");
 	if (dev_param)
 		host = filterparam_val_string(dev_param);
 	format |= (max_ch == 1) ? ESD_MONO : ESD_STEREO;

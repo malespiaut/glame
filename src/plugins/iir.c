@@ -1,6 +1,6 @@
 /*
  * iir.c
- * $Id: iir.c,v 1.19 2001/06/05 09:25:13 xwolf Exp $
+ * $Id: iir.c,v 1.20 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 2000 Alexander Ehlert
  *
@@ -325,8 +325,8 @@ static int iir_f(filter_t *n)
 	int stages, mode, rate;
 	float ripple, fc, ufc, lfc, bw;
 
-	if (!(in = filternode_get_input(n, PORTNAME_IN))
-	    || !(out = filternode_get_output(n, PORTNAME_OUT)))
+	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN)))
+	    || !(out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 	        FILTER_ERROR_RETURN("no in- or output");
 
 
@@ -339,11 +339,11 @@ static int iir_f(filter_t *n)
 	
 	
 	if (mode < GLAME_IIR_BANDPASS) {
-		stages = filterparam_val_int(filternode_get_param(n,"stages"));
-		fc = filterparam_val_float(filternode_get_param(n,"cutoff"))/(float)rate;
+		stages = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "stages"));
+		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "cutoff"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
-		ripple = filterparam_val_float(filternode_get_param(n,"ripple"));
+		ripple = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "ripple"));
 		
 		DPRINTF("poles=%d mode=%d fc=%f ripple=%f\n", stages*2,mode,fc,ripple);
 		
@@ -351,12 +351,12 @@ static int iir_f(filter_t *n)
 			FILTER_ERROR_RETURN("chebyshev failed");
 		
 	} else if (mode == GLAME_IIR_BANDPASS) {
-		stages = filterparam_val_int(filternode_get_param(n,"stages"));
+		stages = filterparam_val_int(filterparamdb_get_param(filter_paramdb(n), "stages"));
 		
-		fc = filterparam_val_float(filternode_get_param(n,"center"))/(float)rate;
+		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "center"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
-		bw = filterparam_val_float(filternode_get_param(n,"width"))/(float)rate;
+		bw = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "width"))/(float)rate;
 		bw = CLAMP(bw, 0.0, 0.5);
 
 		ufc = fc + bw*0.5;
@@ -364,7 +364,7 @@ static int iir_f(filter_t *n)
 		ufc = CLAMP(ufc, 0.0, 0.5);
 		lfc = CLAMP(lfc, 0.0, 0.5);
 		
-		ripple=filterparam_val_float(filternode_get_param(n,"ripple"));
+		ripple=filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "ripple"));
 		
 		if (!(first=chebyshev(stages*2,GLAME_IIR_LOWPASS,ufc,ripple)))
 			FILTER_ERROR_RETURN("chebyshev failed");
@@ -379,10 +379,10 @@ static int iir_f(filter_t *n)
 		free_glame_iir(second);
 
 	} else if (mode == GLAME_IIR_BANDPASS_A) {
-		fc = filterparam_val_float(filternode_get_param(n,"center"))/(float)rate;
+		fc = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "center"))/(float)rate;
 		fc = CLAMP(fc, 0.0, 0.5);
 		
-		bw = filterparam_val_float(filternode_get_param(n,"width"))/(float)rate;
+		bw = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "width"))/(float)rate;
 		bw = CLAMP(bw, 0.0, 0.5);
 
 		DPRINTF("center = %f width = %f\n", fc, bw);
@@ -493,10 +493,15 @@ int highpass_register(plugin_t *p)
 	if (!(f = filter_creat(NULL)))
 			return -1;
 	f->f = iir_f;
-	
-	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
-	
-	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
+
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output channel",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input channel",
+			      FILTERPORT_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"stages",
 				FILTER_PARAMTYPE_INT,1,
@@ -531,9 +536,14 @@ int lowpass_register(plugin_t *p)
 			return -1;
 	f->f = iir_f;
 
-	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
-	
-	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output channel",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input channel",
+			      FILTERPORT_END);
 	
 	filterparamdb_add_param_int(filter_paramdb(f),"stages",
 				FILTER_PARAMTYPE_INT,1,
@@ -569,10 +579,15 @@ int bandpass_register(plugin_t *p)
 
 	f->f = iir_f;
 
-	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
-	
-	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
-	
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output channel",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input channel",
+			      FILTERPORT_END);
+
 	filterparamdb_add_param_int(filter_paramdb(f),"stages",
 				FILTER_PARAMTYPE_INT,1,
 			        FILTERPARAM_DESCRIPTION,"number of stages",
@@ -612,10 +627,15 @@ int bandpass_a_register(plugin_t *p)
 
 	f->f = iir_f;
 
-	filter_add_output(f,PORTNAME_OUT,"output channel", FILTER_PORTTYPE_SAMPLE);
-	
-	filter_add_input(f, PORTNAME_IN, "input channel", FILTER_PORTTYPE_SAMPLE);
-	
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "output channel",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "input channel",
+			      FILTERPORT_END);
+
 	filterparamdb_add_param_float(filter_paramdb(f),"center",
 			    FILTER_PARAMTYPE_FLOAT, 1000,
 			    FILTERPARAM_DESCRIPTION,"center frequency",

@@ -1,6 +1,6 @@
 /*
  * arithmetic.c
- * $Id: arithmetic.c,v 1.16 2001/06/05 09:25:13 xwolf Exp $
+ * $Id: arithmetic.c,v 1.17 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther, Alexander Ehlert, Jim Garrison
  *
@@ -30,7 +30,6 @@
 #include <config.h>
 #endif
 
-#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>

@@ -1,6 +1,6 @@
 /*
  * ssp.c
- * $Id: ssp.c,v 1.7 2001/06/05 09:25:13 xwolf Exp $
+ * $Id: ssp.c,v 1.8 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -50,10 +50,10 @@ static int ssp_streamer_f(filter_t *n)
 	
 	SAMPLE  *ringbuf, *s, *ssp, accu, fak, ss;
 	int	bsize, pos, cnt;
-	in = filternode_get_input(n, PORTNAME_IN);
-	out = filternode_get_output(n, PORTNAME_OUT);
+	in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN));
+	out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT));
 	
-	param = filternode_get_param(n,"bsize");
+	param = filterparamdb_get_param(filter_paramdb(n), "bsize");
 	bsize = filterparam_val_int(param);
 	if (bsize < 1)
 		FILTER_ERROR_RETURN("bsize <= 0");
@@ -106,23 +106,29 @@ entry:
 int ssp_streamer_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdb_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "audio stream in", FILTER_PORTTYPE_SAMPLE);
-	filter_add_output(f, PORTNAME_OUT, "ssp stream out", FILTER_PORTTYPE_SSP);
-	
 	f->f = ssp_streamer_f;
-	f->connect_out = ssp_streamer_connect_out;
-	
-	param = filter_paramdb(f);
 
-	filterparamdb_add_param_int(param, "bsize", FILTER_PARAMTYPE_INT, 64 ,
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SAMPLE,
+			      FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "audio stream in",
+			      FILTERPORT_END);
+	filterportdb_add_port(filter_portdb(f), PORTNAME_OUT,
+			      FILTER_PORTTYPE_SSP,
+			      FILTER_PORTFLAG_OUTPUT,
+			      FILTERPORT_DESCRIPTION, "ssp stream out",
+			      FILTERPORT_END);
+
+	filterparamdb_add_param_int(filter_paramdb(f), "bsize",
+				    FILTER_PARAMTYPE_INT, 64,
 				    FILTERPARAM_DESCRIPTION, "length of running average",
 				    FILTERPARAM_END);
-	
+
+	f->connect_out = ssp_streamer_connect_out;
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "ssp_streamer");
 	plugin_set(p, PLUGIN_PIXMAP, "ssp.png"); 
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");
@@ -140,10 +146,10 @@ static int maxrms_f(filter_t *n)
 	SAMPLE	maxrms = 0.0, *s;
 	int	cnt;
 	
-	if (!(in = filternode_get_input(n, PORTNAME_IN)))
+	if (!(in = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
 	
-	param = filternode_get_param(n, "maxrms");
+	param = filterparamdb_get_param(filter_paramdb(n), "maxrms");
 
 	filterparam_set(param, &maxrms);
 
@@ -183,21 +189,21 @@ entry:
 int maxrms_register(plugin_t *p)
 {
 	filter_t *f;
-	filter_paramdb_t *param;
 	
 	if (!(f = filter_creat(NULL)))
 		return -1;
-	
-	filter_add_input(f, PORTNAME_IN, "ssp stream in", FILTER_PORTTYPE_SSP);
-	
 	f->f = maxrms_f;
-	
-	param = filter_paramdb(f);
 
-	filterparamdb_add_param_float(param, "maxrms", FILTER_PARAMTYPE_FLOAT, 0.0 ,
-				    FILTERPARAM_DESCRIPTION, "maximum rms",
-				    FILTERPARAM_END);
-	
+	filterportdb_add_port(filter_portdb(f), PORTNAME_IN,
+			      FILTER_PORTTYPE_SSP, FILTER_PORTFLAG_INPUT,
+			      FILTERPORT_DESCRIPTION, "ssp stream in",
+			      FILTERPORT_END);
+
+	filterparamdb_add_param_float(filter_paramdb(f), "maxrms",
+				      FILTER_PARAMTYPE_FLOAT, 0.0 ,
+				      FILTERPARAM_DESCRIPTION, "maximum rms",
+				      FILTERPARAM_END);
+
 	plugin_set(p, PLUGIN_DESCRIPTION, "maxrms");
 	plugin_set(p, PLUGIN_PIXMAP, "statistics.png"); 
 	plugin_set(p, PLUGIN_CATEGORY, "Analyze");

@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.26 2001/05/29 07:52:45 richi Exp $
+ * $Id: basic.c,v 1.27 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -29,7 +29,6 @@
 #include <config.h>
 #endif
 
-#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>

@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.24 2001/05/29 07:52:45 richi Exp $
+ * $Id: waveform.c,v 1.25 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 1999-2001 Alexander Ehlert, Richard Guenther, 
  *                         Daniel Kobras, Stuart Purdie
@@ -39,7 +39,6 @@
 #include <config.h>
 #endif
 
-#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>

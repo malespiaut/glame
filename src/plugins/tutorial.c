@@ -1,6 +1,6 @@
 /*
  * tutorial.c
- * $Id: tutorial.c,v 1.11 2001/05/29 07:54:52 richi Exp $
+ * $Id: tutorial.c,v 1.12 2001/06/05 14:40:07 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -30,14 +30,11 @@
 #include <config.h>
 #endif
 
-#define _NO_FILTER_COMPATIBILITY
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
-#ifdef HAVE_GUILE
 #include <guile/gh.h>
-#endif
 #include "filter.h"
 #include "util.h"
 #include "gpsm.h"
