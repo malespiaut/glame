@@ -9,18 +9,13 @@ doc/
 	  All the 0.2.0 relevant stuff is documented.
 
 plugins/
-	- oss_audio_in is desperately needed
 	- provide pixmaps for all plugins (missing: echo, fft & friends,
           iir, noisegate, pan, rms, time, sinus, const, ...)
 
 gui/
 	[all]
-        - remove "feed into (custom)" and replace it with a true
-          "play" and "play selection"
+        - remove "feed into (custom)" (?)
         - add "record" and "record into selection" (?)
-        - ability to create new, empty swapfiles to start pasting
-          things into
-
 
 Items that can be postponed forever (at least until 0.6):
 ---------------------------------------------------------
