@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.39 2001/11/19 10:04:27 richi Exp $
+ * $Id: glplugin.c,v 1.40 2001/12/11 09:10:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -152,14 +152,14 @@ static int try_init_glame_plugin(plugin_t *p, const char *name,
 	 * name_set symbols defined. */
 	snprintf(s, 255, "%s_register", name);
 	reg_func = (int (*)(plugin_t *))lt_dlsym(p->handle, s);
-	snprintf(s, 255, "%s_set", name);
+	snprintf(s, 255, "%s_glame_plugin_set", name);
 	set = (char **)lt_dlsym(p->handle, s);
 	if (!reg_func && !set)
 		return -1;
 
 	/* Version symbol is available for the set parent or a
 	 * single plugin. */
-	snprintf(s, 255, "%s_version", name);
+	snprintf(s, 255, "%s_glame_plugin_version", name);
 	version = (long *)lt_dlsym(p->handle, s);
 	if (!version && !plugin_query(p, PLUGIN_PARENT))
 		DPRINTF("No plugin version for %s\n", name);
