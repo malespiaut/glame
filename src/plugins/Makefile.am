@@ -2,7 +2,7 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@
 
 EXTRA_DIST = net_test_play net_test_audio net_test_echo net_test_echo2 net_test_latency
 
-noinst_PROGRAMS = test_latency test_network
+noinst_PROGRAMS = test_network
 noinst_LTLIBRARIES = libbuiltins.la
 
 # put "real" plugins here
@@ -19,10 +19,6 @@ libbuiltins_la_SOURCES = builtins.c \
 # the plugin rules
 libecho_la_SOURCES = echo.c
 
-
-
-test_latency_SOURCES = test_latency.c
-test_latency_LDADD = ../filter/libfilter.la libbuiltins.la ../swapfile/libswapfile.la ../hash/libhash.la ../glmid/libglmid.la -lm -lpthread $(GLAME_DLIBS) $(GLAME_AUDIO_LIBS)
 
 test_network_SOURCES = test_network.c
 test_network_LDADD = ../filter/libfilter.la libbuiltins.la ../swapfile/libswapfile.la ../hash/libhash.la ../glmid/libglmid.la -lm -lpthread $(GLAME_DLIBS) $(GLAME_AUDIO_LIBS)
