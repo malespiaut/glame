@@ -31,7 +31,6 @@ plugins/
 	  * allow RT adjustment of offset/size for swapfile_in
 	  * allow specifying of pre-/post(?)- zero region
 	- remove position pipe param from read_file
-	- change pan filter to just change pipe position
 	- redo render with right semantics
 	- write set param method for ladspa plugins
 	- better ladspa gui
@@ -50,8 +49,6 @@ filter/
 	- make params & ports referenced counted objects that have
 	  references in port/paramdbs, should clean up redirects
 	  a lot, allows for shared params and the like
-	- allow scheme expression for param_set - should allow for
-	  powerful wrapped params
 
 swapfile/
         [richi]
@@ -133,8 +130,8 @@ gui/edit_filter
 	- remove port export marking, if removing exported port from
 	  net properties dialog (fix that! - integrate in canvas directly?)
 	- add drag&drop from swapfilegui (create swapfile_in/out nodes)
-	- add realtime controls
 	- add support for custom property dialogs (glade & guile-gtk?
-          & friends)
-	- do grouping using expand/collapse functionality of the backend?
+          & friends) - better try to adopt lcp
+	- allow scheme expressions for network parameters to be specified
+	  (replace redirecting parameters with default scheme wrapper)
 
