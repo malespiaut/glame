@@ -1,7 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(glame, 0.7CVS)
+AC_INIT(glame, 0.7CVS)
+AC_CONFIG_SRCDIR(configure.ac)
+AM_INIT_AUTOMAKE([subdir-objects])
 AM_CONFIG_HEADER(config.h)
 
 dnl Pick up additional macros from the macros directory
@@ -20,7 +21,7 @@ AC_ARG_ENABLE(swapfiledebug,
 [  --enable-swapfiledebug  include lots of timeconsuming checks to swapfile 
   --disable-swapfiledebug compile for maximum optimization], swdebug=$enableval, swdebug="no")
 if test "$swdebug" = "yes"; then
-	AC_DEFINE(SWDEBUG)
+	AC_DEFINE(SWDEBUG,, [swapfile debugging])
 fi
 
 dnl Global debug flag
@@ -28,10 +29,10 @@ AC_ARG_ENABLE(debug,
 [  --enable-debug          include lots of debugging code 
   --disable-debug         compile for maximum optimization], glame_debug=$enableval, glame_debug="")
 if test "$swdebug" = "yes" -o "$glame_debug" = "yes"; then
-	AC_DEFINE(DEBUG)
+	AC_DEFINE(DEBUG,, [general debugging])
 	glame_debug_gcc_cflags="-g -O0"
 elif test "$glame_debug" = "no"; then
-	AC_DEFINE(NDEBUG)
+	AC_DEFINE(NDEBUG,, [disable debugging code])
 	glame_debug_gcc_cflags="-O3 -ffast-math -fstrict-aliasing"
 else
 	glame_debug_gcc_cflags="$CFLAGS"
@@ -45,11 +46,12 @@ dnl
 dnl Compiling without gcc is not supported but may succeed.
 AC_PROG_CC
 if test "$GCC" = "yes"; then
-	AC_DEFINE(HAVE_GCC)
+	AC_DEFINE(HAVE_GCC,, [using gcc for build])
 	CFLAGS="-Wall $glame_debug_gcc_cflags"
 else
   AC_MSG_ERROR([Compilers other than gcc are not supported])
 fi
+AM_PROG_CC_C_O
 
 AC_PROG_INSTALL
 AC_LIBLTDL_CONVENIENCE
@@ -66,6 +68,7 @@ ALL_LINGUAS="de fr"
 
 dnl Check for internationalization support
 AM_GNU_GETTEXT
+AM_GNU_GETTEXT_VERSION(0.11.5)
 
 
 dnl FIXME: The next two checks break cross-compiling.
@@ -74,7 +77,7 @@ dnl        simply not an option. [dk]
 
 dnl Check endianness
 AC_C_BIGENDIAN
-AC_CHECK_HEADER(byteswap.h,AC_DEFINE(HAVE_BYTESWAP_H),)
+AC_CHECK_HEADER(byteswap.h,AC_DEFINE(HAVE_BYTESWAP_H,, [have byteswap.h header]),)
 
 dnl Check width of basic types
 AC_CHECK_SIZEOF(short)
@@ -100,9 +103,9 @@ dnl	sample=double
 dnl	AC_MSG_WARN([Using double for SAMPLE which is not supported])
 dnl fi
 if test "$sample" = "float"; then
-	AC_DEFINE(SAMPLE_FLOAT)
+	AC_DEFINE(SAMPLE_FLOAT,, [use float as sample type])
 fi
-AC_DEFINE_UNQUOTED(SAMPLE, $sample)
+AC_DEFINE_UNQUOTED(SAMPLE, $sample, [type to use as sample])
 
 
 
@@ -187,7 +190,7 @@ if test x$gui = xyes -a x$have_gnome = xyes; then
     ac_cpp=$ac_saved_cpp
   fi
   if test x$glade = xyes; then
-    AC_DEFINE(HAVE_LIBGLADE)
+    AC_DEFINE(HAVE_LIBGLADE,, [have/use libglade])
   fi
 fi
 
@@ -223,14 +226,14 @@ if test "$sample" = "float"; then
 	AC_CHECK_HEADER(sfftw.h,, fftw=no)
 	if test $fftw = yes; then
 		GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lsfftw -lsrfftw"
-		AC_DEFINE(HAVE_FFTW)
+		AC_DEFINE(HAVE_FFTW,, [have fftw])
 	fi
 elif test "$sample" = "double"; then
 	AC_CHECK_LIB(fftw, fftw2d_create_plan, fftw=yes, fftw=no)
 	AC_CHECK_HEADER(fftw.h,, fftw=no)
 	if test $fftw = yes; then
 		GLAME_FFT_LIBS="$GLAME_FFT_LIBS -lfftw -lrfftw"
-		AC_DEFINE(HAVE_FFTW)
+		AC_DEFINE(HAVE_FFTW,, [have fftw])
 	fi
 fi
 AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
@@ -259,7 +262,7 @@ if test $laf = yes; then
 	else
 		GLAME_AUDIO_LIBS="$GLAME_AUDIO_LIBS $ac_audiofile_libs -laudiofile"
 	fi
-	AC_DEFINE(HAVE_AUDIOFILE)
+	AC_DEFINE(HAVE_AUDIOFILE,, [have audiofile])
 fi
 
 dnl 
@@ -282,7 +285,7 @@ CPPFLAGS="$stroke_save_CPPFLAGS"
 	fi
 fi
 if test x$strokes = xyes; then
-	AC_DEFINE(HAVE_LIBSTROKE)
+	AC_DEFINE(HAVE_LIBSTROKE,, [have libstroke])
 fi
 fi
 
@@ -292,18 +295,18 @@ dnl in sys/, Linux in linux/,
 dnl other Unices in machine/
 AC_CHECK_HEADER(linux/soundcard.h, oss=yes, oss=no)
 if test $oss = yes; then
-	AC_DEFINE(HAVE_OSS)
-	AC_DEFINE(HAVE_OSS_LINUX)
+	AC_DEFINE(HAVE_OSS,, [support oss sound interface])
+	AC_DEFINE(HAVE_OSS_LINUX,, [linux oss system])
 else
 	AC_CHECK_HEADER(sys/soundcard.h, oss=yes, oss=no)
 	if test $oss = yes; then
-		AC_DEFINE(HAVE_OSS)
-		AC_DEFINE(HAVE_OSS_SYS)
+		AC_DEFINE(HAVE_OSS,, [support oss sound interface])
+		AC_DEFINE(HAVE_OSS_SYS,, [soundcard.h in sys])
 	else 
 		AC_CHECK_HEADER(machine/soundcard.h, oss=yes, oss=no)
 		if test $oss = yes; then
-			AC_DEFINE(HAVE_OSS)
-			AC_DEFINE(HAVE_OSS_MACHINE)
+			AC_DEFINE(HAVE_OSS,, [support oss sound interface])
+			AC_DEFINE(HAVE_OSS_MACHINE,, [soundcard.h in machine])
 		fi
 	fi
 fi
@@ -313,7 +316,7 @@ dnl check for esd
 ACG_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
 	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ESD_CFLAGS"
-	AC_DEFINE(HAVE_ESD)
+	AC_DEFINE(HAVE_ESD,, [have esd daemon])
 fi
 AM_CONDITIONAL(HAVE_ESD, test x$esd = xyes)
 
@@ -322,7 +325,7 @@ AC_CHECK_LIB(audio, alWriteBuffers, sgi=yes, sgi=no)
 AC_CHECK_HEADER(dmedia/audio.h,, sgi=no)
 if test $sgi = yes; then
 	SGIAUDIO_LIBS="-laudio"
-	AC_DEFINE(HAVE_SGIAUDIO)
+	AC_DEFINE(HAVE_SGIAUDIO,, [have irix audio interface])
 	AC_SUBST(SGIAUDIO_LIBS)
 fi
 AM_CONDITIONAL(HAVE_SGI, test x$sgi = xyes)
@@ -331,14 +334,14 @@ dnl check for ALSA
 ACG_PATH_ALSA(0.9.0, alsa="yes", alsa="no")
 if test "x$alsa" = xyes; then
 	GLAME_AUDIO_CFLAGS="$GLAME_AUDIO_CFLAGS $ALSA_CFLAGS"
-	AC_DEFINE(HAVE_ALSA)
+	AC_DEFINE(HAVE_ALSA,, [have alsa library])
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
 dnl
 dnl Check for LADSPA support
 dnl
-ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA)])
+ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA,, [have ladspa.h])])
 
 dnl
 dnl UNIX flavours compatibility stuff
@@ -368,11 +371,11 @@ AC_FUNC_ALLOCA
 dnl special code hooks for os
 case "$host_os" in
 *linux*)
-	AC_DEFINE(OS_LINUX);;
+	AC_DEFINE(OS_LINUX,, [am linux]);;
 *bsd*)
-	AC_DEFINE(OS_BSD);;
+	AC_DEFINE(OS_BSD,, [am bsd]);;
 *irix*)
-	AC_DEFINE(OS_IRIX);;
+	AC_DEFINE(OS_IRIX,, [am irix]);;
 esac
 
 dnl
@@ -391,16 +394,16 @@ dnl special asm code hooks for cpu -- require GCC.
 if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 	case "$host_cpu" in
 	i?86)
-		AC_DEFINE(CPU_X86);;
+		AC_DEFINE(CPU_X86,, [x86 cpu]);;
 	mips*)
-		AC_DEFINE(CPU_MIPS)
+		AC_DEFINE(CPU_MIPS,, [mips cpu])
 		ACG_CHECK_MIPS_LL_SC([
-			AC_DEFINE(HAVE_MIPS_LL_SC)
+			AC_DEFINE(HAVE_MIPS_LL_SC,, [modern mips cpu with ll sc])
 		]);;
 	powerpc)
-		AC_DEFINE(CPU_PPC);;
+		AC_DEFINE(CPU_PPC,, [ppc cpu]);;
 	alpha*)
-		AC_DEFINE(CPU_ALPHA);;
+		AC_DEFINE(CPU_ALPHA,, [alpha cpu]);;
 	esac
 fi
 
@@ -429,4 +432,4 @@ AC_SUBST(LIBLTDL)
 AC_SUBST(LTDLINCL)
 AC_CONFIG_SUBDIRS(libltdl)
 
-AC_OUTPUT(Makefile macros/Makefile doc/Makefile doc/pix/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/gui/edit_filter/Makefile src/glmid/Makefile src/gui/libgtkwaveform/Makefile src/gui/timeline/Makefile src/gui/util/Makefile intl/Makefile po/Makefile.in)
+AC_OUTPUT(Makefile macros/Makefile doc/Makefile doc/pix/Makefile data/Makefile data/pixmaps/Makefile src/Makefile src/filter/Makefile src/swapfile/Makefile src/hash/Makefile src/plugins/Makefile src/include/Makefile src/gui/Makefile src/glmid/Makefile  intl/Makefile po/Makefile.in )
