@@ -986,7 +986,7 @@ int gpsm_item_can_place(gpsm_grp_t *grp, gpsm_item_t *item,
 	dummy.hposition = hpos;
 	dummy.vposition = vpos;
 	dummy.hsize = gpsm_item_hsize(item);
-	dummy.vsize = gpsm_item_vsize(item);
+	dummy.vsize = MAX(1, gpsm_item_vsize(item));
 	gpsm_grp_foreach_item(grp, it) {
 		if (it == item)
 			continue;
