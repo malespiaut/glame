@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.4 2001/05/11 01:08:03 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.5 2001/05/11 11:50:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -63,6 +63,7 @@ glame_canvas_filter_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass* parent_class;
 	gtk_signal_emit(object,filter_signals[DELETED]);
+	hash_remove_gcfilter(GLAME_CANVAS_FILTER(object));
 	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }

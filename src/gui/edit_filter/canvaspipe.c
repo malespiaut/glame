@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.5 2001/05/11 01:08:03 xwolf Exp $
+ * $Id: canvaspipe.c,v 1.6 2001/05/11 11:50:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -64,7 +64,7 @@ static void
 glame_canvas_pipe_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass* parent_class;
-	DPRINTF("ficken\n");
+	hash_remove_gcpipe(GLAME_CANVAS_PIPE(object));
 	parent_class = gtk_type_class (GNOME_TYPE_CANVAS_GROUP);
 	GTK_OBJECT_CLASS (parent_class)->destroy (object);
 }
@@ -319,7 +319,7 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 {
 	GlameCanvasPipe* gPipe;
 	GnomeCanvasGroup * gGroup;
-	
+	GlameCanvasPort *gSource, *gDest;
 	int i;
 	
 	gPipe = GLAME_CANVAS_PIPE(gnome_canvas_item_new(group, 
@@ -365,36 +365,39 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 			   glame_canvas_pipe_event_cb,
 			   gPipe);
 	
+	gSource = glame_canvas_find_port(filterpipe_source(pipe));
+	gDest = glame_canvas_find_port(filterpipe_dest(pipe));
+
 	/* connect to movement of ports */
-	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),
+	gtk_signal_connect(GTK_OBJECT(gDest),
 			   "moved",
 			   glame_canvas_pipe_end_moved_cb,
 			   gPipe);
 	
-	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_port(filterpipe_source(pipe))),
+	gtk_signal_connect(GTK_OBJECT(gSource),
 			   "moved",
 			   glame_canvas_pipe_begin_moved_cb,
 			   gPipe);
 
 	/* connect to reordering of connections at port */
-	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),
+	gtk_signal_connect(GTK_OBJECT(gDest),
 			   "connections_changed",
 			   glame_canvas_pipe_port_changed_cb,
 			   gPipe);
 	
-	gtk_signal_connect(GTK_OBJECT(glame_canvas_find_port(filterpipe_source(pipe))),
+	gtk_signal_connect(GTK_OBJECT(gSource),
 			   "connections_changed",
 			   glame_canvas_pipe_port_changed_cb,
 			   gPipe);
 
 	gtk_signal_connect(GTK_OBJECT(gPipe),"deleted",
 			   glame_canvas_port_pipe_deleted_cb,
-			   glame_canvas_find_port(filterpipe_source(pipe)));
+			   gSource);
 
 	gtk_signal_connect(GTK_OBJECT(gPipe),"deleted",
 			   glame_canvas_port_pipe_deleted_cb,
-			   glame_canvas_find_port(filterpipe_dest(pipe)));
-	
+			   gDest);
+
 
 	/* reorder all pipes */
 	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_dest(pipe))),

@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.4 2001/05/11 01:08:03 xwolf Exp $
+ * $Id: canvasport.c,v 1.5 2001/05/11 11:50:04 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -57,6 +57,8 @@ static guint port_signals[LAST_SIGNAL] = { 0 };
 static void
 glame_canvas_port_destroy (GtkObject *object)
 {
+
+	hash_remove_gcport(GLAME_CANVAS_PORT(object));
 	gtk_object_destroy(object);
 	//GTK_OBJECT_CLASS(gtk_type_class(GLAME_CANVAS_PORT_TYPE))->destroy(object);
 }
@@ -69,13 +71,15 @@ glame_canvas_port_connections_changed_cb(GlameCanvasPort *p, gpointer userdata)
 	GlameCanvasPipe* gPipe;
 
 	int count = 1;
-
+	
 	filterport_foreach_pipe(p->port, pipe){
 		gPipe = glame_canvas_find_pipe(pipe);
-		if(filterport_is_input(p->port))
-			gPipe->sourceId = count++;
-		else if(filterport_is_output(p->port))
-			gPipe->destId = count++;
+		if(gPipe){
+			if(filterport_is_input(p->port))
+				gPipe->sourceId = count++;
+			else if(filterport_is_output(p->port))
+				gPipe->destId = count++;
+		}
 	}
 }
 
@@ -148,8 +152,11 @@ glame_canvas_port_get_type(void)
 void glame_canvas_port_pipe_deleted_cb(GlameCanvasPipe* pipe, GlameCanvasPort* port)
 {
 	/* remove pipe from sighandlers */
-	gtk_signal_disconnect_by_data(GTK_OBJECT(port),pipe);
-	glame_canvas_port_connections_changed_cb(port,NULL);
+	if(is_hashed_gcport(port)){
+		gtk_signal_disconnect_by_data(GTK_OBJECT(port),pipe);
+		glame_canvas_port_connections_changed_cb(port,NULL);
+	}
+
 }
 
 /*****************************
