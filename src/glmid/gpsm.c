@@ -1132,7 +1132,7 @@ gpsm_grp_t *gpsm_flatten(gpsm_item_t *item)
 		swfd_t fd;
 		if (!GPSM_ITEM_IS_SWFILE(it))
 			continue;
-		fd = sw_open(gpsm_swfile_filename(it), O_RDONLY, TXN_NONE);
+		fd = sw_open(gpsm_swfile_filename(it), O_RDWR, TXN_NONE);
 		sw_ftruncate(fd, hpos);
 		sw_close(fd);
 		gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
