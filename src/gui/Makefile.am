@@ -20,7 +20,7 @@ glame_SOURCES = \
 	glame_console.c glame_console.h \
 	main.c \
 	gltreeitem.c gltreeitem.h swapfilegui.c swapfilegui.h \
-	waveeditgui.c waveeditgui.h apply.c
+	waveeditgui.c waveeditgui.h apply.c importexport.c importexport.h
 glame_LDADD =  \
 	../glmid/libglmid.la \
 	../plugins/libglamebuiltins.la \
