@@ -1,6 +1,6 @@
 /*
  * audio_io_irix.c
- * $Id: audio_io_irix.c,v 1.4 2001/06/05 15:09:55 richi Exp $
+ * $Id: audio_io_irix.c,v 1.5 2002/04/29 18:13:28 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther, Alexander Ehlert, Daniel Kobras
  *
@@ -42,8 +42,9 @@ static int sgi_audio_out_f(filter_t *n)
 	sgi_audioparam_t *in = NULL;
 	filter_port_t   *inport;
 	filter_pipe_t	*p_in;
-	filter_param_t  *dev_param;
+	filter_param_t  *dev_param, *pos_param;
 	SAMPLE		**bufs = NULL;
+	int             pos;
 	
 	int		rate;
 	int		chunk_size, last_chunk;
@@ -155,10 +156,15 @@ static int sgi_audio_out_f(filter_t *n)
 	alFreeConfig(c);
 	c = NULL;
 
+	pos_param = filterparamdb_get_param(filter_paramdb(n),
+					    FILTERPARAM_LABEL_POS);
+	filterparam_val_set_pos(pos_param, 0);
+
 	FILTER_AFTER_INIT;
 
 	ch_active = max_ch;
 	chunk_size = 0;
+	pos = 0;
 
 	/* Not really necessary as chunk_size is 0 so alWriteBuffers()
 	 * would return immediately. But hey, evil gotos are fun!
@@ -173,6 +179,8 @@ static int sgi_audio_out_f(filter_t *n)
 		 * buffers get directed to different channels. 
 		 */
 		alWriteBuffers(p, (void **)bufs, NULL, chunk_size);
+		pos += chunk_size;
+		filterparam_val_set_pos(pos_param, pos);
 	_entry:
 		last_chunk = chunk_size;
 		chunk_size = qsize;
@@ -205,8 +213,8 @@ static int sgi_audio_out_f(filter_t *n)
 		} while(++ch < max_ch);
 	}
 
-	FILTER_BEFORE_CLEANUP;
 	FILTER_BEFORE_STOPCLEANUP;
+	FILTER_BEFORE_CLEANUP;
 
 	if(p)
 		alClosePort(p);
