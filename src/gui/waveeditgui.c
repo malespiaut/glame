@@ -218,7 +218,7 @@ static void copy_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
-		DERROR("Ensured by rmb callback");
+		return;
 
 	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (clipboard_copy(item, start, length) == -1)
@@ -257,7 +257,7 @@ static void cut_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
-		DERROR("Ensured by rmb callback");
+		return;
 
 	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
@@ -279,7 +279,7 @@ static void delete_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 	gtk_wave_view_get_selection (waveview, &start, &length);
 	if (length <= 0)
-		DERROR("Ensured by rmb callback");
+		return;
 
 	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
 	if (gpsm_op_prepare(item) == -1)
@@ -1089,6 +1089,54 @@ static SCM gls_waveedit_play(SCM s_start, SCM s_end, SCM s_restore,
 	return SCM_UNSPECIFIED;
 }
 
+static SCM gls_waveedit_cut()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	cut_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_copy()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	copy_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_paste()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	paste_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_delete()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	delete_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_undo()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	undo_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
+static SCM gls_waveedit_redo()
+{
+	if (!active_waveedit)
+		return SCM_BOOL_F;
+	redo_cb(NULL, GTK_WAVE_VIEW(active_waveedit->waveview));
+	return SCM_UNSPECIFIED;
+}
+
 void glame_waveeditgui_init()
 {
 	gh_new_procedure1_0("waveedit-new",
@@ -1113,6 +1161,12 @@ void glame_waveeditgui_init()
 			    gls_waveedit_set_scroll_position);
 	gh_new_procedure("waveedit-play", (SCM (*)())gls_waveedit_play,
 			 6, 0, 0);
+	gh_new_procedure0_0("waveedit-cut", gls_waveedit_cut);
+	gh_new_procedure0_0("waveedit-copy", gls_waveedit_copy);
+	gh_new_procedure0_0("waveedit-paste", gls_waveedit_paste);
+	gh_new_procedure0_0("waveedit-delete", gls_waveedit_delete);
+	gh_new_procedure0_0("waveedit-undo", gls_waveedit_undo);
+	gh_new_procedure0_0("waveedit-redo", gls_waveedit_redo);
 }
 
 static void waveedit_gui_destroy(GtkObject *waveedit)
