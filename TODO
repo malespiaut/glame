@@ -6,7 +6,7 @@ Known BUGS that should be fixed before 0.6.0:
 ---------------------------------------------
 - import dialog needs to be finished
 - new export dialog needs to be done and replace the existing one
-- glame_audiofile needs support for wav reading/writing and
+- glame_audiofile needs support for wav writing and
   mp3/ogg reading
 - main/[Edit wave...] wavewidget needs a [Save] toolbar item
   that exports the wave back (and [Close] should delete the wave
@@ -15,7 +15,6 @@ Known BUGS that should be fixed before 0.6.0:
 - looping support for swapfile_in filter and GUI
 - maybe disable timeline
 - remove plugin install warning, if versioning works ok
-- fix or disable expand/collapse in filternetwork editor
 - fix filter_collapse not traversing all connections correctly
 
 
@@ -124,11 +123,12 @@ gui/libgtkwaveform2
 
 gui/edit_filter
 	[xwolf]
+	- delete open-uped windows, if closing parent, not just contents
+	- remove port export marking, if removing exported port from
+	  net properties dialog (fix that! - integrate in canvas directly?)
 	- add drag&drop from swapfilegui (create swapfile_in/out nodes)
 	- duplication of groups
 	- add realtime controls
 	- add support for custom property dialogs (glade & guile-gtk?
           & friends)
-	- fold/unfold of groups
-	- connect for parameters of nodes of same type
 	- do grouping using expand/collapse functionality of the backend
