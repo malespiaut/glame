@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.12 2001/07/11 11:41:11 xwolf Exp $
+ * $Id: glamecanvas.h,v 1.13 2001/07/11 22:51:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -65,6 +65,7 @@ struct _GlameCanvas {
 	gboolean paused;
 	gfloat font_size;
 	GList * selectedItems;
+	plugin_t* last;
 };
 
 struct _GlameCanvasClass {

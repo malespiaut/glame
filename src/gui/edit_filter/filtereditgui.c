@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.27 2001/07/11 08:36:53 xwolf Exp $
+ * $Id: filtereditgui.c,v 1.28 2001/07/11 22:51:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -54,6 +54,7 @@ void glame_canvas_property_dialog_cb(GtkObject*foo, GlameCanvas* canv);
 void glame_canvas_zoom_in_cb(GtkObject*foo,GlameCanvas* canv);
 void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv);
 void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv);
+void glame_canvas_add_last_cb(GtkObject* foo, GlameCanvas* canv);
 
 void window_close(GtkWidget *dummy, GtkWidget* window)
 {
@@ -505,6 +506,11 @@ glame_filtereditgui_new(filter_t *net, gboolean protected)
 				glame_canvas_zoom_out_cb,canvas);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"View all","Adjusts scroll region","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_REFRESH),glame_canvas_view_all_cb,canvas);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Add Last","Adds last filter","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_MULTIPLE),
+				glame_canvas_add_last_cb, canvas);
+
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Close","Close","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_CLOSE),window_close,window);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar),"Help","Help","foo",gnome_stock_new_with_icon(GNOME_STOCK_PIXMAP_HELP),gnome_help_goto,"info:glame#The_Filternetwork_Editor");
@@ -635,5 +641,10 @@ void glame_canvas_zoom_out_cb(GtkObject*foo, GlameCanvas* canv)
 }
 void glame_canvas_view_all_cb(GtkObject*foo, GlameCanvas* canv)
 {
-  glame_canvas_view_all(canv);
+	glame_canvas_view_all(canv);
+}
+
+void glame_canvas_add_last_cb(GtkObject* foo, GlameCanvas* canv)
+{
+	glame_canvas_add_last(canv);
 }

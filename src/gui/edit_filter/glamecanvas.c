@@ -1,7 +1,7 @@
 /*
  * canvasitem.c
  *
- * $Id: glamecanvas.c,v 1.23 2001/07/11 11:41:11 xwolf Exp $
+ * $Id: glamecanvas.c,v 1.24 2001/07/11 22:51:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -72,6 +72,7 @@ glame_canvas_init (GlameCanvas *item)
 	item->paused = FALSE;
 	item->font_size = 1.0;
 	item->selectedItems = NULL;
+	item->last = NULL;
 }
 
 
@@ -306,6 +307,7 @@ glame_canvas_add_filter_by_plugin(GlameCanvas *canv, plugin_t * plug)
 		DPRINTF("Error in instantiate\n");
 		return NULL;
 	}
+	canv->last = plug;
 	return glame_canvas_add_filter(canv, filter);
 }
 
@@ -362,6 +364,7 @@ void glame_canvas_group_move(GlameCanvasGroup* group, double x, double y)
 	}
 
 }
+
 void glame_canvas_group_item_moved_cb(GlameCanvasFilter* item, double x, double y, GlameCanvasGroup* group)
 {
 	
@@ -381,10 +384,9 @@ void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 
 	iter = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
 	while(iter){
-		DPRINTF("loop\n");
 		if(GLAME_IS_CANVAS_FILTER(iter->data)){
 			GlameCanvasGroup *newgrp;
-			DPRINTF("found filter: %s\n",filter_name(GLAME_CANVAS_FILTER(iter->data)->filter));
+		DPRINTF("found filter: %s\n",filter_name(GLAME_CANVAS_FILTER(iter->data)->filter));
 			newgrp = GLAME_CANVAS_GROUP(gnome_canvas_item_new(root,
 											    glame_canvas_group_get_type(),
 											    NULL));
@@ -392,34 +394,19 @@ void glame_canvas_group_dissolve(GlameCanvasGroup* group)
 		}else if(GLAME_IS_CANVAS_GROUP(iter->data)){
 			DPRINTF("Reparenting group %d to root\n",GLAME_CANVAS_GROUP(iter->data)->id);
 			gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(iter->data),root);
+			glame_canvas_group_unselect(GLAME_CANVAS_GROUP(iter->data));
 		}
 		iter = g_list_first(GNOME_CANVAS_GROUP(group)->item_list);
 	}
 	
 }
 
-int glame_canvas_group_remove_item(GlameCanvasGroup* group, GlameCanvasFilter* item)
+void glame_canvas_add_last(GlameCanvas* canvas)
 {
-	return;
-#if 0
-	DPRINTF("removing %s from root %d\n",filter_name(item->filter),glame_canvas_group_root_id(group));
-	if(!group)
-		return;
-	group->children = g_list_remove(group->children,item);
-	if(!group->children)
-		if(!group->groups){
-			/* schedule for killing */
-			return 1;
-			/* glame_canvas_group_destroy(GTO(group)); */
-		}
-	return 0;
-#endif
+	if(canvas->last){
+		glame_canvas_add_filter_by_plugin(canvas,canvas->last);
+	}
 }
-
-void glame_canvas_group_remove_item_cb(GlameCanvasFilter* item, GlameCanvasGroup* group)
-{
-	glame_canvas_group_remove_item(group,item);
-} 
 
 void glame_canvas_group_delete(GlameCanvasGroup* group)
 {
@@ -436,8 +423,6 @@ void glame_canvas_group_delete(GlameCanvasGroup* group)
 		iter = g_list_next(iter);
 	}
 }
-			
-	
 
 
 void _glame_canvas_group_select(GlameCanvasGroup* group)
@@ -464,6 +449,7 @@ void glame_canvas_group_select(GlameCanvasGroup* group)
 	glame_canvas_group_raise(glame_canvas_group_root(group));
 	glame_canvas_redraw(CANVAS_ITEM_GLAME_CANVAS(group));
 }
+
 void _glame_canvas_group_unselect(GlameCanvasGroup* group)
 {
 	GlameCanvas* canvas;
@@ -495,8 +481,6 @@ void glame_canvas_group_unselect(GlameCanvasGroup* group)
 	glame_canvas_redraw(canvas);
 }
 
-
-
 void _glame_canvas_group_raise(GlameCanvasGroup* group)
 {
 		
@@ -523,15 +507,6 @@ void glame_canvas_group_raise(GlameCanvasGroup* group)
 {
 	_glame_canvas_group_raise(glame_canvas_group_root(group));
 }
-
-void glame_canvas_group_set_item(GlameCanvasGroup* glameGroup, GlameCanvasFilter* gItem)
-{
-//	gnome_canvas_item_reparent(GNOME_CANVAS_ITEM(gItem), GNOME_CANVAS_GROUP(glameGroup));
-//	glameGroup->children = g_list_append(glameGroup->children,gItem);
-}
-
-
-
 
 void glame_canvas_set_zoom(GlameCanvas * canv, double pixelperpoint)
 {

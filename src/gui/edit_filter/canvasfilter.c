@@ -1,7 +1,7 @@
 /*
  * canvasfilter.c
  *
- * $Id: canvasfilter.c,v 1.28 2001/07/11 11:41:11 xwolf Exp $
+ * $Id: canvasfilter.c,v 1.29 2001/07/11 22:51:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -68,7 +68,6 @@ glame_canvas_filter_destroy (GtkObject *object)
 {
 	GnomeCanvasGroupClass* parent_class;
 	glame_canvas_filter_hide_properties(GLAME_CANVAS_FILTER(object));
-	glame_canvas_group_remove_item(GNOME_CANVAS_ITEM(object)->parent,GLAME_CANVAS_FILTER(object));
 	gtk_signal_emit(object,filter_signals[DELETED]);
 	//glame_canvas_select_unselect(CANVAS_ITEM_GLAME_CANVAS(object),GLAME_CANVAS_FILTER(object));
 	hash_remove_gcfilter(GLAME_CANVAS_FILTER(object));
@@ -1033,6 +1032,7 @@ glame_canvas_filter_info(GlameCanvasFilter* f)
 	fprintf(stderr,"rood group id: %d\n",glame_canvas_group_root_id(GCI(f)->parent));
 }
 	
+			
 static gboolean
 glame_canvas_filter_event(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasFilter* filter)
 {

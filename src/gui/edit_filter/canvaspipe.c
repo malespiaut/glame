@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.17 2001/07/10 15:20:08 richi Exp $
+ * $Id: canvaspipe.c,v 1.18 2001/07/11 22:51:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -104,6 +104,7 @@ glame_canvas_pipe_init(GlameCanvasPipe *p)
 	p->circle = NULL;
 	p->sourceId = 0;
 	p->destId = 0;
+	p->dy = 0.0;
 	hash_init_gcpipe(p);
 }
 
@@ -141,7 +142,7 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	/* draw connection depending on start and end coords  */
 	double xs, ys, xd,yd;
 	double xOffset, dist;
-	
+	double dy = p->dy;
 	xs = p->points->coords[0];
 	ys = p->points->coords[1];
 	xd = p->points->coords[10];
@@ -158,10 +159,10 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	p->points->coords[3]=ys;
 	
 	p->points->coords[4]=xs+xOffset+(p->sourceId*4);
-	p->points->coords[5]=(ys+yd)/2.0;
+	p->points->coords[5]=(ys+yd)/2.0 + dy;
 	
 	p->points->coords[6]=xd-25.0-(p->destId*4);
-	p->points->coords[7]=(ys+yd)/2.0;
+	p->points->coords[7]=(ys+yd)/2.0+dy;
 	
 	p->points->coords[8]=xd-25.0-(p->destId*4);
 	p->points->coords[9]=yd;
@@ -173,8 +174,8 @@ glame_canvas_pipe_reroute(GlameCanvasPipe *p)
 	gnome_canvas_item_set(GNOME_CANVAS_ITEM(p->circle),
 			      "x1",((xs+xd)/2.0)-6.0,
 			      "x2",((xs+xd)/2.0)+6.0,
-			      "y1",((ys+yd)/2.0)-6.0,
-			      "y2",((ys+yd)/2.0)+6.0,
+			      "y1",((ys+yd)/2.0+dy)-6.0,
+			      "y2",((ys+yd)/2.0+dy)+6.0,
 			      NULL);
 }
 	
@@ -304,6 +305,9 @@ glame_canvas_pipe_grabbing_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPi
 	switch(event->type){
 	case GDK_MOTION_NOTIFY:
 		/* do something here */
+		p->dy -= p->last_y - event->button.y;
+		p->last_y = event->button.y;
+		glame_canvas_pipe_reroute(p);
 		return TRUE;
 		break;
 	case GDK_BUTTON_RELEASE:
@@ -368,6 +372,54 @@ glame_canvas_pipe_show_properties(GlameCanvasPipe* pipe)
 				      gnome_canvas_group_get_type(),
 				      NULL));
 	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(group));
+	params = TRUE;
+	snprintf(buffer,255,"Samplerate: %d",filterpipe_sample_rate(pipe->pipe));
+	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+						       gnome_canvas_text_get_type(),
+						       "x",xOffset,
+						       "y",y,
+						       "text",buffer,
+						       "font",font,
+						       "clip_width",94.0,
+						       "clip_height",16.0,
+						       "fill_color","blue",
+						       "anchor",GTK_ANCHOR_WEST,
+						       "justification",GTK_JUSTIFY_LEFT, 
+						       "clip",0,
+						       NULL));
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+	
+	gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+	bmaxx = bmaxx<recx2?recx2:bmaxx;
+	bmaxy = bmaxy<recy2?recy2:bmaxy;
+	bminx = bminx>recx1?recx1:bminx;
+	bminy = bminy>recy1?recy1:bminy;
+	
+	y +=16.0;
+	snprintf(buffer,255,"Hangle: %f",filterpipe_sample_hangle(pipe->pipe));
+	text = GNOME_CANVAS_TEXT(gnome_canvas_item_new(group,
+						       gnome_canvas_text_get_type(),
+						       "x",xOffset,
+						       "y",y,
+						       "text",buffer,
+						       "font",font,
+						       "clip_width",94.0,
+						       "clip_height",16.0,
+						       "fill_color","blue",
+						       "anchor",GTK_ANCHOR_WEST,
+						       "justification",GTK_JUSTIFY_LEFT, 
+						       "clip",0,
+						       NULL));
+	gnome_canvas_item_raise_to_top(GNOME_CANVAS_ITEM(text));
+	
+	gnome_canvas_item_get_bounds(GCI(text),&recx1,&recy1,&recx2,&recy2);
+	bmaxx = bmaxx<recx2?recx2:bmaxx;
+	bmaxy = bmaxy<recy2?recy2:bmaxy;
+	bminx = bminx>recx1?recx1:bminx;
+	bminy = bminy>recy1?recy1:bminy;
+	
+	y +=16.0;
+	
 	if(filterparamdb_nrparams(filterpipe_sourceparamdb(pipe->pipe))){
 		params = TRUE;
 		snprintf(buffer,255, "Source params:");
@@ -535,7 +587,7 @@ glame_canvas_pipe_event_cb(GnomeCanvasItem* i, GdkEvent* event, GlameCanvasPipe*
 	case GDK_BUTTON_PRESS:
 		switch(event->button.button){
 		case 1:
-			/* grab the thing */
+			p->last_y = event->button.y;
 			fleur = gdk_cursor_new(GDK_FLEUR);
 			/* block other handlers (this one ;-) */
 			gtk_signal_handler_block_by_func(GTK_OBJECT(i),GTK_SIGNAL_FUNC(glame_canvas_pipe_event_cb),p);

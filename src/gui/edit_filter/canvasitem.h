@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.11 2001/06/20 19:56:26 xwolf Exp $
+ * $Id: canvasitem.h,v 1.12 2001/07/11 22:51:20 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -216,7 +216,7 @@ struct _GlameCanvasPipe {
 	GnomeCanvasEllipse *circle;
 	guint timeout_id;
 	GnomeCanvasGroup* popupGroup;
-
+	double dy, last_y;
 	GlameCanvasPipe **pprev_gcpipe_hash;
 	GlameCanvasPipe *next_gcpipe_hash;
 };
