@@ -1,7 +1,7 @@
 /*
  * glame_accelerator.c
  *
- * $Id: glame_accelerator.c,v 1.14 2001/12/16 22:26:16 richi Exp $
+ * $Id: glame_accelerator.c,v 1.15 2001/12/17 15:29:05 richi Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -425,10 +425,8 @@ GtkWidget *glame_accel_edit_widget(const char *scope, int edit)
 		char e_key[1024];
 		char *line[3], *p, *pp;
 
-		if (strncmp(accel->spec, scope, strlen(scope)) != 0) {
-			DPRINTF("Ignoring %s (for %s)\n", accel->spec, scope);
+		if (strncmp(accel->spec, scope, strlen(scope)) != 0)
 			continue;
-		}
 
 		/* Create scope */
 		strncpy(e_scope, accel->spec + strlen(scope), 1024);
