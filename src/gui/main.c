@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.108 2002/02/24 22:16:04 richi Exp $
+ * $Id: main.c,v 1.109 2002/03/11 13:01:25 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche, Richard Guenther
  *
@@ -962,6 +962,12 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2001 by\n"
 "    Daniel Kobras. GLAME comes with ABSOLUTELY NO\n"
 "    WARRANTY. This is free software, and you are welcome to\n"
 "    redistribute it under certain conditions.\n\n"));
+#ifndef HAVE_LADSPA
+	glame_console_printf("WARNING! This copy of GLAME was compiled without LADSPA plugin support\n");
+#endif
+#ifndef HAVE_LIBGLADE
+	glame_console_printf("WARNING! This copy of GLAME was compiled without libglade support\n");
+#endif
 
 	/* Main event loop */
        	gtk_main();
