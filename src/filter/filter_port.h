@@ -3,7 +3,7 @@
 
 /*
  * filter_port.h
- * $Id: filter_port.h,v 1.3 2000/12/11 13:15:23 richi Exp $
+ * $Id: filter_port.h,v 1.4 2001/04/09 09:20:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -50,7 +50,6 @@ struct filter_portdb {
 #define FILTER_PORTTYPE_ANY       0
 #define FILTER_PORTTYPE_SAMPLE    1
 #define FILTER_PORTTYPE_RMS       2
-#define FILTER_PORTTYPE_MIDI      3
 #define FILTER_PORTTYPE_CONTROL   4
 #define FILTER_PORTTYPE_FFT       5
 #define FILTER_PORTS_ARE_COMPATIBLE(port1type, port2type) (((port1type) == (port2type)) || ((port1type) == FILTER_PORTTYPE_ANY) || ((port2type) == FILTER_PORTTYPE_ANY))

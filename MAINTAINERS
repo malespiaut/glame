@@ -21,12 +21,6 @@ hash: richi
 doc: nold
 	doc/* 
 
-glamemath: nold
-	src/glmath/*
-
-midi: garrison
-	src/plugins/midi*
-
 gui: xwolf
 	src/gui/*
      richi

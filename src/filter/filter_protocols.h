@@ -1,6 +1,6 @@
 /*
  * filter_protocols.h
- * $Id: filter_protocols.h,v 1.24 2000/10/28 13:45:48 richi Exp $
+ * $Id: filter_protocols.h,v 1.25 2001/04/09 09:20:22 richi Exp $
  *
  * Copyright (C) 2000 Daniel Kobras, Richard Guenther, Alexander Ehlert
  *
@@ -22,7 +22,6 @@
  *   - FFT
  *   - RMS
  *   - Sample
- *   - Midi
  *   - Control input
  */
 
@@ -126,25 +125,6 @@ struct sbuf_header {
 #define sbuf_make_private(fb) fbuf_make_private(fb)
 #define sbuf_get(p) fbuf_get(p)
 #define sbuf_queue(p, fb) fbuf_queue(p, fb)
-
-
-/* How about some MIDI 
- */
-
-typedef struct mbuf_header {
-	char buf[1];
-} mbuf_header_t;
-
-#define mbuf_alloc(nrevents, filternode) \
-        fbuf_alloc(sizeof(midi_event_t)*(nrevents) + sizeof(mbuf_header_t), \
-		   &(filternode)->buffers)
-#define mbuf_size(fb) ((fb)==NULL?0:(fbuf_size(fb)-sizeof(mbuf_header_t))/sizeof(midi_event_t))
-#define mbuf_buf(fb) ((midi_event_t *)(&((mbuf_header_t *)fbuf_buf(fb))->buf[0]))
-#define mbuf_ref(fb) fbuf_ref(fb)
-#define mbuf_unref(fb) fbuf_unref(fb)
-#define mbuf_make_private(fb) fbuf_make_private(fb)
-#define mbuf_get(p) fbuf_get(p)
-#define mbuf_queue(p, fb) fbuf_queue(p, fb)
 
 
 /* Control input protocol. Command/value style, provides timestamp.

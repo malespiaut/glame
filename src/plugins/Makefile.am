@@ -3,7 +3,7 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c \
-	basic_midi.c midi_io.c midi_debug.c rms.c fft.c \
+	rms.c fft.c \
 	echo.c debug.c tutorial.c \
 	garrison.c nold.c maggy.c noisegate.c pan.c pipe.c \
 	iir.c
@@ -19,9 +19,6 @@ libglamebuiltins_la_SOURCES = basic.c basic_sample.c arithmetic.c \
 	swapfile_io.c audio_io.c file_io.c waveform.c rms.c
 endif
 libglamebuiltins_la_LDFLAGS = -module $(GLAME_AUDIO_LIBS) $(GLAME_FFT_LIBS)
-
-# non compiling stuff:
-#	basic_midi.c midi_io.c midi_debug.c 
 
 
 # "real" plugins

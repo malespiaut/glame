@@ -3,7 +3,7 @@
 
 /*
  * filter_pipe.h
- * $Id: filter_pipe.h,v 1.2 2000/12/18 09:51:55 richi Exp $
+ * $Id: filter_pipe.h,v 1.3 2001/04/09 09:20:22 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -34,7 +34,6 @@
 #define FILTER_PIPETYPE_UNDEFINED FILTER_PORTTYPE_ANY
 #define FILTER_PIPETYPE_SAMPLE    FILTER_PORTTYPE_SAMPLE
 #define FILTER_PIPETYPE_RMS       FILTER_PORTTYPE_RMS
-#define FILTER_PIPETYPE_MIDI      FILTER_PORTTYPE_MIDI
 #define FILTER_PIPETYPE_CONTROL   FILTER_PORTTYPE_CONTROL
 #define FILTER_PIPETYPE_FFT       FILTER_PORTTYPE_FFT
 
@@ -92,9 +91,6 @@ struct filter_pipe {
 		struct {
 			int blocksize;
 		} rms;
-	        struct {
-	                int dummy;
-	        } midi;
 	        struct {
                         int dummy;
 	        } control;
