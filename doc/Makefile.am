@@ -10,5 +10,5 @@ glame_dev_TEXINFOS = filter.texi filter-tutorial.texi swapfile.texi \
 	$(MAKEINFO) -P @srcdir@ --html --no-split $<
 
 clean-local:
-	test -L pix && rm -f pix
+	-test -L pix && rm -f pix
 	rm -f glame.html glame-dev.html
