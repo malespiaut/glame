@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.8 2000/08/16 09:05:03 nold Exp $
+@comment $Id: cglame.texi,v 1.9 2000/10/10 11:52:57 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -117,21 +117,6 @@ specified name and description.
 @node Scheme Swapfile API, Scheme Midlayer API, Scheme Filter API, Wrapped API
 @subsection Scheme Swapfile API
 
-@deftypefun ( file_alloc size )
-@deftypefunx ( file_unref file-id )
-@deftypefunx ( file_size file-id )
-@deftypefunx ( file_truncate file-id size )
-@deftypefunx ( file_copy file-id pos size )
-@deftypefunx ( file_op_insert file-id pos file-id )
-@deftypefunx ( file_op_cut file-id pos size )
-@deftypefunx ( file_transaction_begin file-id )
-@deftypefunx ( file_transaction_end file-id )
-@deftypefunx ( file_transaction_undo file-id )
-@deftypefunx ( file_transaction_redo file-id )
-@code{file_alloc} and @code{file_copy} evaluate to a @code{file-id},
-@code{file_size} to an @code{exact}.
-@end deftypefun
-
 
 @node Scheme Midlayer API,, Scheme Swapfile API, Wrapped API
 @subsection Scheme Midlayer API
@@ -198,17 +183,6 @@ specified @var{node-id}.
 The following procedures can be customized by defining the
 @code{audio-out}, @code{read-file} or @code{write-file} to other
 filters than their default ones which are their names.
-
-@deftypefun ( file-to-track file group track )
-Reads a file into the swapfile using @var{group} and @var{track-n} as
-identifiers.
-@end deftypefun
-
-@deftypefun ( play-track group track )
-@deftypefunx ( play-tracks '(group track) ... )
-Plays one (@code{play-track}) or more (@code{play-tracks}) tracks
-specified by the identifiers @var{group} and @var{track}.
-@end deftypefun
 
 @deftypefun ( play filename )
 Plays the specified file.
