@@ -1,7 +1,7 @@
 /*
  * gtkwavedraw.h
  *
- * $Id: gtkwavedraw.h,v 1.1 2000/04/09 21:10:59 navratil Exp $
+ * $Id: gtkwavedraw.h,v 1.2 2000/04/10 03:11:16 navratil Exp $
  *
  * Copyright (C) 2000 Joe Navratil
  *
@@ -54,6 +54,7 @@ struct _GtkWaveDraw
 				   * same major index as the data */
   glong  *n_samples;              /* Number of samples in each set of data */
   glong  *start;                  /* Starting point for each set of data */
+  GdkColor *color;                /* GdkColor for each wave */
 
   gint   n_waves;                 /* Number of waves we're displaying */
 
@@ -80,15 +81,19 @@ struct _GtkWaveDrawClass
 };
 
 
-GtkWidget* gtk_wave_draw_new        (void);
-GtkType    gtk_wave_draw_get_type   (void);
-void       gtk_wave_draw_zoom       (GtkWaveDraw *wavedraw, 
-				     glong start, glong stop);
-gint       gtk_wave_draw_add_wave   (GtkWaveDraw *wavedraw,
-				     gfloat *data,
-				     glong  n_samples,
-				     glong  start);
-
+GtkWidget* gtk_wave_draw_new            (void);
+GtkType    gtk_wave_draw_get_type       (void);
+void       gtk_wave_draw_zoom           (GtkWaveDraw *wavedraw, 
+					 glong start, glong stop);
+gint       gtk_wave_draw_add_wave       (GtkWaveDraw *wavedraw,
+					 gfloat *data,
+					 glong  n_samples,
+					 glong  start);
+void       gtk_wave_draw_set_color      (GtkWaveDraw *wavedraw,
+				         gint wave_idx,
+				         GdkColor *color);
+void       gtk_wave_draw_set_resolution (GtkWaveDraw *wavedraw,
+					 gint resolution);
 
 
 #ifdef __cplusplus
