@@ -94,7 +94,7 @@ efence=""
 if test $debug -eq 2; then
 	AC_CHECK_LIB(efence, Page_AllowAccess, efence="-lefence")
 fi
-DEBUG_LIBS="$efence"
+GLAME_LIBS="$GLAME_LIBS $efence"
 
 dnl Checks for header files.
 AC_HEADER_STDC
