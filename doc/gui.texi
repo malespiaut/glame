@@ -1,4 +1,4 @@
-@comment $Id: gui.texi,v 1.12 2001/06/30 10:48:51 richi Exp $
+@comment $Id: gui.texi,v 1.13 2001/07/02 14:02:44 xwolf Exp $
 
 @node Graphical Frontend, Console Frontend, Quick Start Guide, Top
 @chapter Graphical Frontend (glame)
@@ -315,8 +315,13 @@ a pipe connection will be drawn. To manipulate per-pipe parameters of the
 connected nodes, a context menu is attached to the small black ball placed in
 the middle of the pipe.
 
-Finally, if you hover over an icon or port for a little while, the current
-parameter settings are shown, and the node is raised to the top.
+Clicking with the left mouse button on a item will highlight it with a light blue frame,
+thus marking it as selected. You can alter selections by holding down the shift or control
+modifier keys. Pressing on of the modifier keys while selecting will add the selected icon to
+the current selection. 
+
+Finally, if you hover over an icon or port or the circle contained in a pipe for a little while, 
+the current parameter settings are shown, and the node is raised to the top.
 The hovering delay can be adjusted in the preferences window.
 The same applies for the connection between two nodes.
 
@@ -336,3 +341,7 @@ You can delete or look at the external interface by selecting the @code{properti
 As last feature the zoomlevel may be adjusted with the @code{zoom in} and @code{zoom out}
 buttons. The @code{View all} button recenters your view and adjusts the scrollable region.
 
+As for now only few keybindings are exported, more will follow soon:
+'d' will delete the current selection,
+'g' will group the current selection,
+'u' will ungroup the current selection.
