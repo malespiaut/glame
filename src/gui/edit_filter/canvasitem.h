@@ -1,7 +1,7 @@
 /*
  * canvasitem.h
  *
- * $Id: canvasitem.h,v 1.16 2003/04/11 20:10:00 richi Exp $
+ * $Id: canvasitem.h,v 1.17 2003/05/18 19:08:38 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -23,6 +23,8 @@
 
 #ifndef _CANVASITEM_H
 #define _CANVASITEM_H
+
+G_BEGIN_DECLS
 
 #include <gnome.h>
 #include "filter.h"
@@ -262,5 +264,7 @@ GlameCanvasPort* glame_canvas_find_port(filter_port_t* f);
 #define CANVAS_ITEM_NETWORK(i) (GLAME_CANVAS(GNOME_CANVAS_ITEM(i)->canvas)->net)
 
 void glame_canvas_filter_expand_node(GlameCanvasFilter* filter);
+
+G_END_DECLS
+
 #endif
-	

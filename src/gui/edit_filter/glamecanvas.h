@@ -1,7 +1,7 @@
 /*
  * glamecanvas.h
  *
- * $Id: glamecanvas.h,v 1.21 2003/04/11 20:10:04 richi Exp $
+ * $Id: glamecanvas.h,v 1.22 2003/05/18 19:08:38 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -23,6 +23,7 @@
 
 #ifndef _GLAME_CANVAS_H
 #define _GLAME_CANVAS_H
+G_BEGIN_DECLS
 
 #include <gnome.h>
 #include "glmid.h"
@@ -172,5 +173,6 @@ void glame_canvas_group_item_moved_cb(GlameCanvasFilter* item,
 				      double x, double y,
 				      GlameCanvasGroup* group);
 
+G_END_DECLS
 
 #endif

@@ -4,7 +4,7 @@
 /*
  * filtereditgui.h
  *
- * $Id: filtereditgui.h,v 1.10 2003/04/20 21:56:02 richi Exp $
+ * $Id: filtereditgui.h,v 1.11 2003/05/18 19:08:38 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -24,6 +24,7 @@
  *
  *
  */
+G_BEGIN_DECLS
 
 #include <gnome.h>
 #include "edit_filter/glamecanvas.h"
@@ -63,7 +64,7 @@ struct _FiltereditGui {
 
 GtkType filteredit_gui_get_type(void);
 
-GtkWidget *glame_filtereditgui_new(filter_t *net, gboolean prot);
+GtkWidget *glame_filtereditgui_new(filter_t *net, int prot);
 
 void glame_load_network(GtkWidget *foo, gpointer bla);
 
@@ -73,5 +74,6 @@ void glame_filtereditgui_reset_error(GlameCanvas* canv);
 
 void glame_filtereditgui_init(void);
 
+G_END_DECLS
 
 #endif
