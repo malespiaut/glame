@@ -720,7 +720,8 @@ static void wave_help_cb(GtkWidget *foo, void*bar)
 
 static void wave_close_cb(GtkWidget *foo, GtkObject *window)
 {
-	if (active_waveedit && !active_waveedit->locked)
+	if (active_waveedit && !active_waveedit->locked
+	    && !GTK_WAVE_VIEW(active_waveedit->waveview)->drawing)
 		gtk_object_destroy(GTK_OBJECT(active_waveedit));
 }
 
