@@ -4,7 +4,7 @@
 /*
  * glame_console.h
  *
- * $Id: glame_console.h,v 1.1 2001/06/11 08:44:12 richi Exp $
+ * $Id: glame_console.h,v 1.2 2003/05/18 19:09:23 xwolf Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -28,6 +28,9 @@
 #include <config.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Init the console and create the widget, but do not show it.
  * Returns 0 on success, -1 on error. */
@@ -44,5 +47,7 @@ void glame_console_show();
  * number of characters written. */
 int glame_console_printf(const char *format, ...);
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

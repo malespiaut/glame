@@ -23,11 +23,13 @@
 #define _WAVEEDITGUI_H
 
 #include <gtk/gtk.h>
+#include <gnome.h>
 #include "libgtkwaveform/gtkwaveview.h"
 #include "libgtkwaveform/gtkswapfilebuffer.h"
 #include "filter.h"
 #include "gpsm.h"
 
+G_BEGIN_DECLS
 
 struct _WaveeditGuiClass;
 struct _WaveeditGui;
@@ -83,5 +85,5 @@ GtkType waveedit_gui_get_type();
  * to be gpsm-swfiles of the same hposition and hsize. */
 WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item);
 
-
+G_END_DECLS
 #endif

@@ -23,6 +23,7 @@
  */
 
 #include <gnome.h>
+G_BEGIN_DECLS
 #include "gltreeitem.h"
 #include "gpsm.h"
 
@@ -77,5 +78,5 @@ GtkType swapfile_gui_get_type();
  * of the widget works as usual. */
 SwapfileGui *glame_swapfile_widget_new(gpsm_grp_t *root);
 
-
+G_END_DECLS
 #endif

@@ -4,7 +4,7 @@
 /*
  * glame_gui_utils.h
  *
- * $Id: glame_gui_utils.h,v 1.15 2003/04/21 12:16:07 richi Exp $
+ * $Id: glame_gui_utils.h,v 1.16 2003/05/18 19:09:23 xwolf Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -23,6 +23,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * * This file (will) have all the visible gui functions 
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -155,5 +159,9 @@ void glame_network_error_dialog(filter_t *net, const char *header);
 /* In the style of the gnome1 gnome_help_goto, display the given url.
  * Can be used directly as callback function. */
 void glame_help_goto(void *ignore, const char *url);
+
+#ifdef __cplusplus
+} //extern "C"
+#endif
 
 #endif

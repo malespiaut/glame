@@ -3,7 +3,7 @@
 
 /*
  * importexport.h
- * $Id: importexport.h,v 1.2 2002/04/12 08:58:20 richi Exp $
+ * $Id: importexport.h,v 1.3 2003/05/18 19:09:23 xwolf Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -29,10 +29,12 @@
 #include <gtk/gtk.h>
 #include "gpsm.h"
 
+G_BEGIN_DECLS
 
 gpsm_item_t *glame_import_dialog(GtkWindow *parent);
 
 GnomeDialog *glame_export_dialog(gpsm_item_t *item, GtkWindow *parent);
 
+G_END_DECLS
 
 #endif

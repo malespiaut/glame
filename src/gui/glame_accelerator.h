@@ -4,7 +4,7 @@
 /*
  * glame_accelerator.h
  *
- * $Id: glame_accelerator.h,v 1.13 2003/04/15 19:36:54 richi Exp $
+ * $Id: glame_accelerator.h,v 1.14 2003/05/18 19:09:23 xwolf Exp $
  * 
  * Copyright (C) 2001 Richard Guenther
  *
@@ -34,7 +34,7 @@
 #endif
 #include "list.h"
 
-
+G_BEGIN_DECLS
 /* Initialize the accelerator subsystem. Returns 0 on success, -1
  * on error. */
 int glame_accel_init();
@@ -108,5 +108,5 @@ GtkWidget *glame_accel_edit_widget(const char *scope, int edit);
 GtkWidget *glame_accel_edit_dialog(const char *scope, int edit,
 				   GtkWindow *parent);
 
-
+G_END_DECLS
 #endif
