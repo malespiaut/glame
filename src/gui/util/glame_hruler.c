@@ -194,7 +194,7 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   upper = ruler->upper / ruler->metric->pixels_per_unit;
   lower = ruler->lower / ruler->metric->pixels_per_unit;
 
-  if ((upper - lower) == 0) 
+  if ((upper - lower) <= 0) 
     return;
   increment = (gdouble) width / (upper - lower);
 
@@ -212,7 +212,7 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
   text_width = unit_str_len * digit_height + 1;
 
   for (scale = 0; scale < ruler->metric->nr_ruler_scale; scale++)
-    if (ruler->metric->ruler_scale[scale] * fabs(increment) > 2 * text_width)
+    if (ruler->metric->ruler_scale[scale] > 2 * text_width / increment)
       break;
 
   if (scale == ruler->metric->nr_ruler_scale)
@@ -224,7 +224,7 @@ glame_hruler_draw_ticks (GlameRuler *ruler)
     {
       subd_incr = (gdouble) ruler->metric->ruler_scale[scale] / 
 	          (gdouble) ruler->metric->subdivide[i];
-      if (subd_incr * fabs(increment) <= MINIMUM_INCR) 
+      if (subd_incr * increment <= MINIMUM_INCR) 
 	continue;
 
       /* Calculate the length of the tickmarks. Make sure that
