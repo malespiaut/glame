@@ -1,6 +1,6 @@
 /*
  * waveform.c
- * $Id: waveform.c,v 1.18 2001/05/02 16:43:54 richi Exp $
+ * $Id: waveform.c,v 1.19 2001/05/03 11:31:13 richi Exp $
  *
  * Copyright (C) 1999, 2000 Alexander Ehlert
  *
@@ -133,7 +133,7 @@ static int sine_f(filter_t *n)
 	/* FIXME: we should try to eliminate sampling frequency errors
 	 * by finding optimal size. And we should at least fill a minimum
 	 * sized buffer, too. */
-	size = (((int)(GLAME_WBUFSIZE/(int)(rate/freq)))*rate)/freq;
+	size = (((int)(MAX(1,GLAME_WBUFSIZE/(int)(rate/freq))))*rate)/freq;
 
 	FILTER_AFTER_INIT;
 
@@ -198,7 +198,7 @@ static int const_f(filter_t *n)
 	val = filterparam_val_sample(filterparamdb_get_param(filter_paramdb(n), "value"));
 
 	/* we will generate one buffer with 0.1 sec samples. */
-	size = rate/10;
+	size = GLAME_WBUFSIZE;
 
 	FILTER_AFTER_INIT;
 
@@ -255,7 +255,7 @@ static int rect_f(filter_t *n)
 	freq = filterparam_val_float(filterparamdb_get_param(filter_paramdb(n), "frequency"));
 
 	bs = (rate/freq)/2.0;
-	size = (((int)(GLAME_WBUFSIZE/(int)(rate/freq)))*rate)/freq;
+	size = (((int)(MAX(1,GLAME_WBUFSIZE/(int)(rate/freq))))*rate)/freq;
 	
 	FILTER_AFTER_INIT;
 
