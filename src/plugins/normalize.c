@@ -1,6 +1,6 @@
 /*
  * normalize.c
- * $Id: normalize.c,v 1.20 2003/04/15 19:00:53 richi Exp $
+ * $Id: normalize.c,v 1.21 2003/05/18 20:23:22 richi Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -635,8 +635,8 @@ static void normalize_do_task(struct normalize_s *ns) {
 			if (ns->running==0)
 				goto cancel_cleanup;
 
-			gnome_appbar_set_progress(GNOME_APPBAR(ns->appbar),
-						  percentage);
+			gnome_appbar_set_progress_percentage(GNOME_APPBAR(ns->appbar),
+						  	     percentage);
 		}
 		ns->running = 0;
 		filter_launchcontext_unref(&context);
