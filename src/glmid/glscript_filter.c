@@ -938,6 +938,9 @@ int glscript_init_filter()
 	scm_set_smob_print(plugin_smob_tag, print_pointer);
 	scm_set_smob_equalp(plugin_smob_tag, equalp_pointer);
 
+	/* global */
+	gh_define("SAMPLE_SIZE", gh_long2scm(SAMPLE_SIZE));
+
 	/* filter */
 	gh_new_procedure1_0("filter?", gls_is_filter);
 	gh_new_procedure0_1("filter-new", gls_filter_new);
