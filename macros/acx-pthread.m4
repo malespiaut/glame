@@ -34,7 +34,7 @@ dnl (with help from M. Frigo), as well as ac_pthread and hb_pthread
 dnl macros posted by AFC to the autoconf macro repository.  We are also
 dnl grateful for the helpful feedback of numerous users.
 dnl
-dnl @version $Id: acx-pthread.m4,v 1.1 2000/06/25 14:52:59 richi Exp $
+dnl @version $Id: acx-pthread.m4,v 1.2 2000/09/24 13:50:44 richi Exp $
 dnl @author Steven G. Johnson <stevenj@alum.mit.edu> and Alejandro Forero Cuervo <bachue@bachue.com>
 
 AC_DEFUN([ACX_PTHREAD], [
@@ -97,6 +97,15 @@ if test x"$acx_pthread_ok" = xno; then
         AC_MSG_RESULT($acx_pthread_ok)
 fi
 
+dnl Now, try -llthread, for LinuxThreads (e.g. the LinuxThreads port
+dnl on FreeBSD).  Do this before -pthread, below, because LinuxThreads
+dnl are kernel threads and take advantage of SMP, unlike userland threads.
+if test x"$acx_pthread_ok" = xno; then
+        AC_CHECK_LIB(lthread, pthread_create,
+                     [PTHREAD_LIBS="-llthread"
+                      acx_pthread_ok=yes])
+fi
+
 dnl Try -Kthread for Sequent systems: it is required to parse pthread.h,
 dnl although not for linking (threads are in libc).  (Thanks to Chris
 dnl Lattner of Sequent for his help with this machine.)
@@ -152,15 +161,6 @@ if test x"$acx_pthread_ok" = xno; then
                      acx_pthread_ok=yes])
         LIBS="$save_LIBS"
         AC_MSG_RESULT(${acx_pthread_ok})
-fi
-
-dnl Now, try -llthread, for LinuxThreads (e.g. the LinuxThreads port
-dnl on FreeBSD).  Do this before -pthread, below, because LinuxThreads
-dnl are kernel threads and take advantage of SMP, unlike userland threads.
-if test x"$acx_pthread_ok" = xno; then
-        AC_CHECK_LIB(lthread, pthread_create,
-                     [PTHREAD_LIBS="-llthread"
-                      acx_pthread_ok=yes])
 fi
 
 dnl Next, try -pthread for FreeBSD userland threads.  We do this
