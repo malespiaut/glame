@@ -1,7 +1,7 @@
 /*
  * glame_param.c
  *
- * $Id: glame_param.c,v 1.13 2002/01/27 15:11:16 richi Exp $
+ * $Id: glame_param.c,v 1.14 2002/02/11 12:44:11 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -299,6 +299,14 @@ GtkWidget *glame_param_new(filter_param_t *param)
 		gparam->u.widget = gparam->widget;
 		if (GTK_IS_OPTION_MENU(gparam->widget)) {
 			gtk_option_menu_set_history(GTK_OPTION_MENU(gparam->u.widget), filterparam_val_int(param));
+		} else if (GTK_IS_RANGE(gparam->widget)) {
+			gparam->u.adj = gtk_range_get_adjustment(GTK_RANGE(gparam->widget));
+			if (FILTER_PARAM_IS_FLOAT(param))
+				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_float(param));
+			else if (FILTER_PARAM_IS_SAMPLE(param))
+				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_sample(param));
+			else if (FILTER_PARAM_IS_INT(param))
+				gtk_adjustment_set_value(gparam->u.adj, filterparam_val_int(param));
 		} else
 			DPRINTF("FIXME - unsupported XML widget\n");
 	} else
