@@ -3,11 +3,9 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/s
 
 EXTRA_DIST = gui.h canvas.h
 
-if HAVE_GTK
 if HAVE_GNOME
 bin_PROGRAMS = glame
 noinst_LTLIBRARIES = 
-endif
 endif
 
 glame_SOURCES = gui.h gui.c main.c canvas.h canvas.c canvas_types.c

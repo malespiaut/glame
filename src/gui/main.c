@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.4 2000/02/22 11:44:14 xwolf Exp $
+ * $Id: main.c,v 1.5 2000/03/27 09:20:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -25,13 +25,11 @@
 #include <config.h>
 #endif
 
+#include "glmid.h"
 #include "gui.h"
 
 
-
-
-
-int main(int argc, char *argv[])
+static void gui_main()
 {
 	GtkWidget *commandwin;
 
@@ -40,9 +38,6 @@ int main(int argc, char *argv[])
 	char *labels[]={
 		"These","Buttons","Are","Reserved","For","Future","Use","[XWolf]"};
 	
-	/* setup gnome/gtk  */
-	
-	gnome_init("glame",VERSION,argc,argv);
 	
 	gui=malloc(sizeof(glame_gui));
 	
@@ -54,13 +49,24 @@ int main(int argc, char *argv[])
 	gtk_widget_show(commandwin);
 
 
-	gui_filter_init();
 	gui_browse_registered_filters();
 
 	gtk_signal_connect(GTK_OBJECT(gui->app),"delete-event",GTK_SIGNAL_FUNC(gui_exit),NULL);
 	
 	/* main loop */
        	gtk_main();
+}
+
+
+int main(int argc, char *argv[])
+{
+	/* setup gnome/gtk  */
+	gnome_init("glame", VERSION, argc, argv);
+
+	/* init glame */
+	glame_init_with_guile(gui_main);
+
+	/* not reached */
 	return 0;
 }
   

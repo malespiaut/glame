@@ -5,7 +5,7 @@
 /*
  * gui.h
  *
- * $Id: gui.h,v 1.13 2000/03/23 11:05:42 richi Exp $
+ * $Id: gui.h,v 1.14 2000/03/27 09:20:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -30,7 +30,7 @@
 #define GUI_BUTTONS_X 4
 #define GUI_BUTTONS_Y 2
 #define GLAME_LOGO PKGDATADIR "/glame-logo.jpg"
-#define GLAME_DEFAULT_ICON "gnome-tigert.png"
+#define GLAME_DEFAULT_ICON "gnome-question.png"
 #define GLAME_PIXMAP_PATH PKGDATADIR
 #define GLAME_EMERGENCY_PIXMAP "/usr/X11R6/include/X11/bitmaps/xlogo32"
 #ifdef HAVE_CONFIG_H
@@ -71,7 +71,6 @@ typedef struct _glame_gui {
 typedef struct _gui_filter {
 	char * pixname;
 	char * caption;
-	char * instance;
 	// Filter data here
 	filter_t * filter;
 	filter_node_t *node;
@@ -121,7 +120,6 @@ void on_clear_activate(GtkWidget *m, gpointer bla);
 GtkWidget* gui_create_commandwin(void);
 
 int gui_browse_registered_filters(void);
-int gui_filter_init(void);
 
 void edit_paramdesc(gui_filter *f);
 

@@ -1,7 +1,7 @@
 /*
  * gui.c
  *
- * $Id: gui.c,v 1.19 2000/03/23 11:05:42 richi Exp $
+ * $Id: gui.c,v 1.20 2000/03/27 09:20:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -643,24 +643,17 @@ int gui_browse_registered_filters(void)
 	/* show only filters with "plugin" */
 	while((fil=filter_next(fil))){
 		if (!(plugin = plugin_get(filter_name(fil))))
+#ifndef DEBUG
 			continue;
+#else
+		        ;
+#endif
 		if (!(pixmap = plugin_pixmap(plugin)))
 			pixmap = GLAME_DEFAULT_ICON;
 		gfilt=gui_filter_new(pixmap, fil);
 		gui_filter_add(gfilt);
 	}
 	gnome_icon_list_select_icon(GNOME_ICON_LIST(gui->iconlist),gui->selectedIcon);
-	return 0;
-}
-
-
-/* inits filter stuff */
-int gui_filter_init(void)
-{
-        if (glame_init() == -1) {
-                fprintf(stderr, "error in glame_init()\n");
-                return -1;
-        }
 	return 0;
 }
 
@@ -679,7 +672,7 @@ int
 gui_network_filter_add(gui_network* net, gui_filter *fil)
 {
 
-	fil->node = filternetwork_add_node(net->net,fil->caption,fil->instance);
+	fil->node = filternetwork_add_node(net->net,fil->caption, NULL);
 	if(!fil->node)
 		fprintf(stderr,"Error adding node!\n");
 	else {

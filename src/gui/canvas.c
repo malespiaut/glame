@@ -1,7 +1,7 @@
 /*
  * canvas.c
  *
- * $Id: canvas.c,v 1.16 2000/03/25 19:09:50 richi Exp $
+ * $Id: canvas.c,v 1.17 2000/03/27 09:20:41 richi Exp $
  *
  * Copyright (C) 2000 Johannes Hirche
  *
@@ -144,26 +144,17 @@ dropped(GtkWidget*win, GdkDragContext*cont,gint x,gint y, GtkSelectionData *data
 	gui_filter *inst;
 	double dx,dy;
 	GlameCanvas* canv;
-	char *buff;
-	
 	
 	canv = GLAME_CANVAS(win);
-	buff= malloc(40);
 	inst = malloc(sizeof(gui_filter));
 	selected = atoi(data->data);
 	gf = g_array_index(gui->filters,gui_filter*,selected);
 
 	memcpy(inst,gf,sizeof(gui_filter));
-	
-	sprintf(buff,"%s%d",inst->caption,time);
-
-	inst->instance=buff;
-	
 
 	gui_network_filter_add(canv->net,inst);
 	gnome_canvas_window_to_world(GNOME_CANVAS(canv),x,y,&dx,&dy);
 	grp = GNOME_CANVAS_GROUP(create_new_node(GNOME_CANVAS(canv),inst,dx,dy));
-	
 }
 
 
