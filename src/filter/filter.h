@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.4 2000/01/27 10:30:30 richi Exp $
+ * $Id: filter.h,v 1.5 2000/01/27 15:50:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -47,7 +47,7 @@ typedef struct {
 	char *label;
 	char *type;
 	int flags;
-} filter_param_desc_t;
+} filter_paramdesc_t;
 
 #define FILTER_PORTFLAG_AUTOMATIC 1
 typedef struct {
@@ -57,7 +57,7 @@ typedef struct {
 
 	char *label;
 	int flags;
-} filter_port_desc_t;
+} filter_portdesc_t;
 
 typedef struct {
 	struct hash_head hash;
@@ -68,6 +68,7 @@ typedef struct {
 		int i;
 		float f;
 		fileid_t file;
+		char *name;
 	} val;
 } filter_param_t;
 
@@ -84,6 +85,8 @@ typedef struct {
 	int result;
 	pthread_mutex_t mx;
 } filter_network_t;
+
+#define filternetwork_foreach_input(net, node) list_foreach(&(net)->inputs, filter_node_t, neti_list, node)
 
 
 /* Filter pipes represent a connection between two
@@ -194,15 +197,15 @@ struct filter {
 
 /* The filter inputs/outputs description hash and list.
  * Only add and find are needed. */
-#define hash_find_inputdesc(n, f) __hash_entry(_hash_find((n), &(f)->inputs, (*(_hash((n), &(f)->inputs))), __hash_pos(filter_port_desc_t, hash, label, namespace)), filter_port_desc_t, hash)
+#define hash_find_inputdesc(n, f) __hash_entry(_hash_find((n), &(f)->inputs, (*(_hash((n), &(f)->inputs))), __hash_pos(filter_portdesc_t, hash, label, namespace)), filter_portdesc_t, hash)
 #define hash_add_inputdesc(d, f) do { (d)->namespace = &(f)->inputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->inputs)); } while (0)
 #define list_add_inputdesc(d, f) list_add(&(d)->list, &(f)->inputs)
-#define hash_find_outputdesc(n, f) __hash_entry(_hash_find((n), &(f)->outputs, (*(_hash((n), &(f)->outputs))), __hash_pos(filter_port_desc_t, hash, label, namespace)), filter_port_desc_t, hash)
+#define hash_find_outputdesc(n, f) __hash_entry(_hash_find((n), &(f)->outputs, (*(_hash((n), &(f)->outputs))), __hash_pos(filter_portdesc_t, hash, label, namespace)), filter_portdesc_t, hash)
 #define hash_add_outputdesc(d, f) do { (d)->namespace = &(f)->outputs; _hash_add(&(d)->hash, _hash((d)->label, &(f)->outputs)); } while (0)
 #define list_add_outputdesc(d, f) list_add(&(d)->list, &(f)->outputs)
 
 /* The filters parameter description hash and list */
-#define hash_find_paramdesc(n, f) __hash_entry(_hash_find((n), (f), (*(_hash((n), (f)))), __hash_pos(filter_param_desc_t, hash, label, namespace)), filter_param_desc_t, hash)
+#define hash_find_paramdesc(n, f) __hash_entry(_hash_find((n), (f), (*(_hash((n), (f)))), __hash_pos(filter_paramdesc_t, hash, label, namespace)), filter_paramdesc_t, hash)
 #define hash_add_paramdesc(d, f) do { (d)->namespace = (f); _hash_add(&(d)->hash, _hash((d)->label, (f))); } while (0)
 #define list_add_paramdesc(d, f) list_add(&(d)->list, &(f)->params)
 
@@ -246,14 +249,14 @@ struct filter_node {
 #define list_add_input(p, node) list_add(&(p)->input_list, &(node)->inputs)
 #define list_del_input(p) list_del(&(p)->input_list)
 #define list_gethead_input(n) list_gethead(&(n)->inputs, filter_pipe_t, input_list)
-#define list_foreach_input(n, p) ___list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)
+#define list_foreach_input(n, p) list_foreach(&(n)->inputs, filter_pipe_t, input_list, p)
 
 #define hash_find_output(n, node) __hash_entry(_hash_find((n), &(node)->outputs, (*(_hash((n), &(node)->outputs))), __hash_pos(filter_pipe_t, output_hash, out_name, out_namespace)), filter_pipe_t, output_hash)
 #define hash_add_output(p, node) do { (p)->out_namespace = &(node)->outputs; _hash_add(&(p)->output_hash, _hash((p)->out_name, &(node)->outputs)); } while (0)
 #define hash_remove_output(p) _hash_remove(&(p)->output_hash)
 #define list_add_output(p, node) list_add(&(p)->output_list, &(node)->outputs)
 #define list_del_output(p) list_del(&(p)->output_list)
-#define list_foreach_output(n, p) ___list_foreach(&(n)->outputs, filter_pipe_t, output_list, p)
+#define list_foreach_output(n, p) list_foreach(&(n)->outputs, filter_pipe_t, output_list, p)
 
 #define hash_find_param(n, node) __hash_entry(_hash_find((n), node, (*(_hash((n), node))), __hash_pos(filter_param_t, hash, label, namespace)), filter_param_t, hash)
 #define hash_add_param(p, node) do { (p)->namespace = node; _hash_add(&(p)->hash, _hash((p)->label, node)); } while (0)

@@ -1,6 +1,6 @@
 /*
  * filter.c
- * $Id: filter.c,v 1.5 2000/01/27 13:32:19 richi Exp $
+ * $Id: filter.c,v 1.6 2000/01/27 15:50:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -83,13 +83,13 @@ int filter_add(filter_t *filter)
 
 int filter_add_input(filter_t *filter, char *label, int flags)
 {
-	filter_port_desc_t *desc;
+	filter_portdesc_t *desc;
 
 	if (!filter || is_hashed_filter(filter) || !label)
 		return -1;
 	if (hash_find_inputdesc(label, filter))
 		return -1;
-	if (!(desc = ALLOC(filter_port_desc_t)))
+	if (!(desc = ALLOC(filter_portdesc_t)))
 		return -1;
 
 	desc->label = strdup(label);
@@ -103,13 +103,13 @@ int filter_add_input(filter_t *filter, char *label, int flags)
 
 int filter_add_output(filter_t *filter, char *label, int flags)
 {
-	filter_port_desc_t *desc;
+	filter_portdesc_t *desc;
 
 	if (!filter || is_hashed_filter(filter) || !label)
 		return -1;
 	if (hash_find_outputdesc(label, filter))
 		return -1;
-	if (!(desc = ALLOC(filter_port_desc_t)))
+	if (!(desc = ALLOC(filter_portdesc_t)))
 		return -1;
 
 	desc->label = strdup(label);
@@ -123,13 +123,13 @@ int filter_add_output(filter_t *filter, char *label, int flags)
 
 int filter_add_param(filter_t *filter, char *label, char *type, int flags)
 {
-	filter_param_desc_t *desc;
+	filter_paramdesc_t *desc;
 
 	if (!filter || is_hashed_filter(filter) || !label)
 		return -1;
 	if (hash_find_paramdesc(label, filter))
 		return -1;
-	if (!(desc = ALLOC(filter_param_desc_t)))
+	if (!(desc = ALLOC(filter_paramdesc_t)))
 		return -1;
 
 	desc->label = strdup(label);

@@ -1,6 +1,6 @@
 /*
  * filter_node.c
- * $Id: filter_node.c,v 1.5 2000/01/27 14:28:53 richi Exp $
+ * $Id: filter_node.c,v 1.6 2000/01/27 15:50:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -70,7 +70,7 @@ filter_node_t *filternode_add(filter_network_t *net, const char *name)
 int filternode_connect(filter_node_t *source, char *source_port,
 		       filter_node_t *dest, char *dest_port)
 {
-	filter_port_desc_t *in, *out;
+	filter_portdesc_t *in, *out;
 	filter_pipe_t *p;
 
 	if (!source || !source_port || !dest || !dest_port
@@ -140,7 +140,7 @@ int filternode_connect(filter_node_t *source, char *source_port,
 int filter_default_connect_out(filter_node_t *n, const char *port,
 			       filter_pipe_t *p)
 {
-	filter_port_desc_t *out;
+	filter_portdesc_t *out;
 	filter_pipe_t *in;
 
 	/* is there a port with the right name? */
@@ -172,7 +172,7 @@ int filter_default_connect_out(filter_node_t *n, const char *port,
 int filter_default_connect_in(filter_node_t *n, const char *port,
 			      filter_pipe_t *p)
 {
-	filter_port_desc_t *in;
+	filter_portdesc_t *in;
 
 	/* is there a port with the right name? */
 	if (!(in = hash_find_inputdesc(port, n->filter)))
@@ -221,7 +221,7 @@ int filter_default_fixup(filter_node_t *n, filter_pipe_t *in)
 int filternode_setparam_f(filter_node_t *n, const char *label, fileid_t file)
 {
 	filter_param_t *param;
-	filter_param_desc_t *pdesc;
+	filter_paramdesc_t *pdesc;
 
 	if (!(param = hash_find_param(label, n))) {
 		if (!(pdesc = hash_find_paramdesc(label, n->filter)))

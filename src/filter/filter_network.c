@@ -1,6 +1,6 @@
 /*
  * filter_network.c
- * $Id: filter_network.c,v 1.4 2000/01/27 14:28:53 richi Exp $
+ * $Id: filter_network.c,v 1.5 2000/01/27 15:50:43 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -88,27 +88,23 @@ int filternetwork_launch(filter_network_t *net)
 	net->state = STATE_LAUNCHED;
 	pthread_mutex_unlock(&net->mx);
 
-	__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-		       { if (preprocess_node(n) == -1)
-			       goto out;
-		       } );
+	filternetwork_foreach_input(net, n)
+		if (preprocess_node(n) == -1)
+			goto out;
 
-	__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-		       { if (init_node(n) == -1)
-			       goto out;
-		       } );
+	filternetwork_foreach_input(net, n)
+		if (init_node(n) == -1)
+			goto out;
 
-	__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-		       { if (launch_node(n) == -1)
-			       goto out;
-		       } );
+	filternetwork_foreach_input(net, n)
+		if (launch_node(n) == -1)
+			goto out;
 
 	return 0;
 
  out:
-	__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-		       { postprocess_node(n);
-		       } );
+	filternetwork_foreach_input(net, n)
+		postprocess_node(n);
 
 	pthread_mutex_lock(&net->mx);
 	net->state = STATE_UNDEFINED;
@@ -133,17 +129,14 @@ int filternetwork_wait(filter_network_t *net)
 
 	do {
 		wait_again = 0;
-		__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-			       {
-				       if ((res = pthread_join(n->thread, NULL)) != 0
-					   && (res != ESRCH))
-					       wait_again = 1;
-			       } );
+		filternetwork_foreach_input(net, n)
+			if ((res = pthread_join(n->thread, NULL)) != 0
+			    && (res != ESRCH))
+				wait_again = 1;
 	} while (wait_again);
 
-	__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-		       { postprocess_node(n);
-		       } );
+	filternetwork_foreach_input(net, n)
+		postprocess_node(n);
 
 	printf("net result is %i\n", net->result);
 	return net->result;
@@ -154,9 +147,8 @@ void filternetwork_terminate(filter_network_t *net)
 {
 	filter_node_t *n;
 
-	__list_foreach(&net->inputs, filter_node_t, neti_list, n,
-		       { postprocess_node(n);
-		       } );
+	filternetwork_foreach_input(net, n)
+		postprocess_node(n);
 }
 
 

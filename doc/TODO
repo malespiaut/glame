@@ -11,10 +11,12 @@ libfixp/
 
 
 filter/
-	design a abstract storage for the network topology []
-	turn file_in/file_out into channel_in/channel_out []
+	design a abstract storage for the network topology [richi]
+	turn file_in/file_out into channel_in/channel_out [richi]
 	headerfile cleanup [richi]
 	do the "macro" filter stuff [richi]
+	parameter setting/reading needs to be thought of [richi]
+	dynamic load of filters, use dl_open [richi]
 
 
 swapfile/
