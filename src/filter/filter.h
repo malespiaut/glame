@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.43 2000/03/21 09:39:26 richi Exp $
+ * $Id: filter.h,v 1.44 2000/04/05 08:56:29 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -194,8 +194,9 @@ void filter_delete_param(filter_t *filter, filter_paramdesc_t *param);
 #define filterparamdesc_string_settype(pd, t) ((pd)->u.string.type = (t))
 
 #define FILTER_PARAM_FLOATTYPE_GENERIC  0
-#define FILTER_PARAM_FLOATTYPE_TIME     1
-#define FILTER_PARAM_FLOATTYPE_POSITION 2
+#define FILTER_PARAM_FLOATTYPE_TIME_MS  1
+#define FILTER_PARAM_FLOATTYPE_TIME_S   2
+#define FILTER_PARAM_FLOATTYPE_POSITION 3
 #define filterparamdesc_float_type(pd) ((pd)->u.f.type)
 #define filterparamdesc_float_settype(pd, t) ((pd)->u.f.type = (t))
 
