@@ -65,13 +65,15 @@ struct filehead_s {
 	filehead_t *next_hash;
 
 	fileid_t fid;
+	int usecnt;                 /* == 0 -> file writable */
 	int begincnt;               /* level of begin() calls */
 	int logpos;                 /* position in log after undo (begin pos) (or -1) */
 	logentry_t *top;            /* latest transaction vs actual state */
 };
 #define fclist_head(fh) (list_gethead(&(fh)->fc_list, filecluster_t, fc_list))
 #define fclist_tail(fh) (list_gettail(&(fh)->fc_list, filecluster_t, fc_list))
-
+#define file_use(file) do { if ((file)->usecnt == 0) hash_remove_file(file); (file)->usecnt++; } while (0)
+#define file_unuse(file) do { (file)->usecnt--; if ((file)->usecnt == 0) hash_add_file(file); } while (0)
 
 
 struct filecluster_s {
@@ -165,6 +167,7 @@ typedef struct {
 		} cluster;
 		struct {
 			fileid_t fid;
+			int usecnt;
 			int begincnt;
 			int logpos;
 		} filehead;

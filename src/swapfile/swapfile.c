@@ -1,6 +1,6 @@
 /*
  * swapfile.c
- * $Id: swapfile.c,v 1.2 2000/01/24 10:21:54 richi Exp $
+ * $Id: swapfile.c,v 1.3 2000/01/26 10:07:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -55,12 +55,22 @@ union semun {
 
 
 /* TODO:
- * - fix fsplit
- * - preserve "holes" on delete and insert! (partly holes, too!)
  *
- * - optimized cluster allocation
+ * - optimized cluster allocation [partly done]
  * - optimized cluster deallocation (merge with free previous and
  *   next cluster)
+ *
+ * - redo logentry stuff:
+ *   + global logentry list (chronologically, for garbage collecting)
+ *   + per filehead logentry list, i.e. get rid of the fh->logpos
+ *     entry and the _logentry_prev/next mess
+ *   + begin/end logentries are strictly local to filehead (not in
+ *     global list)
+ *   + perhaps per begin/end list of logentries? begin/end are queued
+ *     in filehead local logentry-group-list?
+ *   + get rid of begin/end completely?
+ * - fix the file_use/file_unuse mess
+ *
  */
 
 
@@ -138,39 +148,6 @@ static inline void _swap_unlock()
 	semop(swap->semid, &sop, 1);
 }
 
-
-/************************************************************
- * mmap cache helpers
- */
-static int _cluster_is_mapped(cluster_t *c)
-{
-	if (!c->buf)
-		return 0;
-	if (c->mmapcnt>0)
-		return 1;
-
-	list_del(&c->map_list);
-	munmap(c->buf, c->size);
-	c->buf = NULL;
-	swap->mapped_size -= c->size;
-
-	return 0;
-}
-
-static void _drain_mmapcache()
-{
-	struct list_head *lh, *lhnext;
-	cluster_t *c;
-
-	lhnext = &swap->mapped;
-	while (lh = lhnext->prev, lh != &swap->mapped) {
-		c = list_entry(lh, cluster_t, map_list);
-		if (_cluster_is_mapped(c))
-			lhnext = lh;
-		else if (swap->mapped_size <= swap->mapped_max)
-			break;
-	}
-}
 
 
 /************************************************************
@@ -323,6 +300,7 @@ static void _logentry_remove(logentry_t *le)
 		break;
 	default:
 	}
+	file_unuse(le->f);
 }
 
 static void _logentry_add(logentry_t *le, struct list_head *hint)
@@ -526,10 +504,13 @@ static int _filehead_read(swapd_record_t *r)
 
 	if (!(fh = __filehead_alloc(r->u.filehead.fid)))
 		return -1;
+	fh->usecnt = r->u.filehead.usecnt;
 	fh->begincnt = r->u.filehead.begincnt;
 	fh->logpos = r->u.filehead.logpos;
 
 	_filehead_add(fh, NULL);
+	if (fh->usecnt == 0)
+		hash_add_file(fh);
 
 	return 0;
 }
@@ -539,6 +520,7 @@ static void _filehead_write(swapd_record_t *r, filehead_t *fh)
 	_swapd_record_prepare(r, RECORD_TYPE_FILEHEAD);
 
 	r->u.filehead.fid = fh->fid;
+	r->u.filehead.usecnt = fh->usecnt;
 	r->u.filehead.begincnt = fh->begincnt;
 	r->u.filehead.logpos = fh->logpos;
 }
@@ -661,17 +643,87 @@ static void _logentry_write(swapd_record_t *r, logentry_t *le)
  */
 
 #define ZEROMAP_READ
-void _zeromap(cluster_t *c)
+static inline char *__cluster_zeromap(cluster_t *c, int prot)
 {
 	int fd;
+	char *buf;
+
+	/* This is supposed to mmap the cluster while zeroing it,
+	 * i.e. ideally generate a cow page of the zero page and
+	 * associate the swapfile as backingstore, the page would
+	 * have to be marked dirty at mapping time. Unfortunately
+	 * this would require os-support.
+	 * For Linux we can at least have the zero-page mapping
+	 * trick by reading page-aligned from /dev/zero - this
+	 * is from reading the source, so it could be wrong, too.
+	 */
+	if (!(buf = mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off)))
+		return NULL;
 
 #if defined ZEROMAP_READ
-	fd = open("/dev/zero", O_RDONLY);
-	read(fd, c->buf, c->size);
-	close(fd);
-#else
-	memset(c->buf, 0, c->size);
+	if ((fd = open("/dev/zero", O_RDONLY)) != -1) {
+		read(fd, buf, c->size);
+		close(fd);
+	} else
 #endif
+		memset(buf, 0, c->size);
+
+	return buf;
+}
+
+static inline char *__cluster_mmap(cluster_t *c, int prot)
+{
+	return mmap(NULL, c->size, prot, MAP_SHARED, swap->fd, c->off);
+}
+
+static inline void __cluster_forgetmap(cluster_t *c)
+{
+	/* This is supposed to throw away any possibly dirty
+	 * mapping of the file away - possibly creating a
+	 * hole in the backing-store file, too.
+	 * Well, of course this needs os-support...
+	 */
+	munmap(c->buf, c->size);
+	c->buf = NULL;
+}
+
+static inline void __cluster_munmap(cluster_t *c)
+{
+	munmap(c->buf, c->size);
+	c->buf = NULL;
+}
+
+
+static int _cluster_is_mapped(cluster_t *c)
+{
+	if (!c->buf)
+		return 0;
+	if (c->mmapcnt>0)
+		return 1;
+
+	list_del(&c->map_list);
+	if (c->refcnt == 0)
+		__cluster_forgetmap(c);
+	else
+		__cluster_munmap(c);
+	swap->mapped_size -= c->size;
+
+	return 0;
+}
+
+static void _drain_mmapcache()
+{
+	struct list_head *lh, *lhnext;
+	cluster_t *c;
+
+	lhnext = &swap->mapped;
+	while (lh = lhnext->prev, lh != &swap->mapped) {
+		c = list_entry(lh, cluster_t, map_list);
+		if (_cluster_is_mapped(c))
+			lhnext = lh;
+		else if (swap->mapped_size <= swap->mapped_max)
+			break;
+	}
 }
 
 
@@ -745,12 +797,15 @@ cluster_t *_cluster_alloc(off_t size, cluster_t *hint)
 
 char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
 {
-	if (!cluster->mmapcnt) {
-		if (!(cluster->buf = mmap(NULL, cluster->size, prot,
-					  MAP_SHARED, swap->fd, cluster->off)))
+	if (cluster->mmapcnt > 0) {
+		/* LRU */
+		list_del(&cluster->map_list);
+	} else if (zero) {
+		if (!(cluster->buf = __cluster_zeromap(cluster, prot)))
 			return NULL;
 	} else {
-		list_del(&cluster->map_list);
+		if (!(cluster->buf = __cluster_mmap(cluster, prot)))
+			return NULL;
 	}
 	list_add(&cluster->map_list, &swap->mapped);
 
@@ -761,17 +816,25 @@ char *_cluster_mmap(cluster_t *cluster, int zero, int prot)
 	if (swap->mapped_size > swap->mapped_max)
 		_drain_mmapcache();
 
-	if (zero)
-		_zeromap(cluster);
-
 	return cluster->buf;
 }
 
-/* we do late unmapping */
+/* we do late unmapping by the following heuristics:
+ * - throw the mapping away early, if the cluster is unused
+ *   to avoid any unnecessary disk I/O
+ * - do late unmapping in all other cases to avoid the I/O
+ *   storm at munmap time and possibly hoping for fast
+ *   reuse
+ */
 void _cluster_munmap(cluster_t *cluster)
 {
 	cluster_unref(cluster);
 	cluster->mmapcnt--;
+
+	/* throw away the mapping early, if possible */
+	if (cluster->mmapcnt == 0 && cluster->refcnt == 0)
+		__cluster_forgetmap(cluster);
+
 	if (swap->mapped_size > swap->mapped_max)
 		_drain_mmapcache();
 }
@@ -832,10 +895,10 @@ static int _filecluster_split(filecluster_t *fc, off_t pos)
 	struct list_head *lh;
 	off_t aligned_pos;
 
-	if (pos < 0 || pos >= fc->size)
+	if (pos < 0 || pos > fc->size)
 		PANIC("filecluster split at weird size");
 
-	if (pos == 0)
+	if (pos == 0 || pos == fc->size)
 		return 0;
 
 	/* split of a hole is easy */
@@ -1305,7 +1368,7 @@ _err:
 	return -1;
 }
 
-fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size)
+fileid_t file_copy(fileid_t fid, off_t pos, off_t size)
 {
 	filecluster_t *fcstart, *fcend;
 	filehead_t *f, *c;
@@ -1317,7 +1380,7 @@ fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size)
 		goto _err;
 	errno = EINVAL;
 	if (!(fcstart = _filecluster_findbyoff(f, pos))
-	    || !(fcend = _filecluster_findbyoff(f, pos+size)))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size-1)))
 		goto _err;
 
 	/* split clusters if necessary */
@@ -1325,7 +1388,7 @@ fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size)
 	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
 		goto _err;
 	fcstart = _filecluster_findbyoff(f, pos);
-	fcend = _filecluster_findbyoff(f, pos+size);
+	fcend = _filecluster_findbyoff(f, pos+size-1);
 
 	if (!(c = _file_copy(f, fcstart, fcend)))
 		goto _err;
@@ -1337,31 +1400,6 @@ fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size)
  _err:
 	_swap_unlock();
 	return -1;
-}
-
-fileid_t file_copy(fileid_t fid)
-{
-	filehead_t *f, *c;
-	fileid_t fidc = -1;
-
-	_swap_lock();
-
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
-		goto _out;
-
-	errno = ENOMEM;
-	if (!(c = _file_copy(f, fclist_head(f), fclist_tail(f))))
-		return -1;
-
-	fidc = c->fid;
-
-	/* hash the file copy */
-	hash_add_file(c);
-
- _out:
-	_swap_unlock();
-	return fidc;
 }
 
 void file_unref(fileid_t fid)
@@ -1408,6 +1446,10 @@ int file_truncate(fileid_t fid, off_t size)
 
 	errno = ENOENT;
 	if (!(f = hash_find_file(fid)))
+		goto _err;
+
+	errno = EINVAL;
+	if (f->usecnt != 0)
 		goto _err;
 
 	oldsize = _filehead_size(f);
@@ -1520,7 +1562,8 @@ int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
 	_file_fixoff(fd, at);
 
 	/* finish it */
-	hash_remove_file(fs);
+	file_use(fs);
+	file_use(fd);
 	_logentry_add(l, &swap->log);
 
 	_swap_unlock();
@@ -1529,61 +1572,6 @@ int file_op_insert(fileid_t fid, off_t pos, fileid_t file)
 
 _freele:
 	free(l);
-_err:
-	_swap_unlock();
-	return -1;
-}
-
-fileid_t file_op_delete(fileid_t fid, off_t pos, off_t size)
-{
-	filehead_t *f, *fd;
-	filecluster_t *fcstart, *fcend;
-	logentry_t *l;
-
-	_swap_lock();
-
-	errno = ENOENT;
-	if (!(f = hash_find_file(fid)))
-		goto _err;
-	errno = EINVAL;
-	if (!(fcstart = _filecluster_findbyoff(f, pos))
-	    || !(fcend = _filecluster_findbyoff(f, pos+size)))
-		goto _err;
-
-	/* split clusters if necessary */
-	if (_filecluster_split(fcstart, pos - filecluster_start(fcstart)) == -1
-	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
-		goto _err;
-	fcstart = _filecluster_findbyoff(f, pos);
-	fcend = _filecluster_findbyoff(f, pos+size);
-
-	/* create user copy of the to be deleted part */
-	if (!(fd = _file_copy(f, fcstart, fcend)))
-		goto _err;
-	_file_fixoff(fd, NULL);
-
-	/* create the log entry */
-	errno = ENOMEM;
-	if (!(l = _lenew(f, LOGENTRY_DELETE)))
-		goto _freefd;
-	l->u.delete.pos = pos;
-	l->u.delete.size = size;
-	if (!(l->u.delete.f = _file_delete(f, fcstart, fcend, NULL)))
-		goto _freele;
-
-	/* finish the operation */
-	_file_fixoff(f, NULL);
-	hash_add_file(fd);
-	_logentry_add(l, &swap->log);
-
-	_swap_unlock();
-	return fd->fid;
-
-
-_freele:
-	free(l);
-_freefd:
-	_ffree(fd);
 _err:
 	_swap_unlock();
 	return -1;
@@ -1602,7 +1590,7 @@ int file_op_cut(fileid_t fid, off_t pos, off_t size)
 		goto _err;
 	errno = EINVAL;
 	if (!(fcstart = _filecluster_findbyoff(f, pos))
-	    || !(fcend = _filecluster_findbyoff(f, pos+size)))
+	    || !(fcend = _filecluster_findbyoff(f, pos+size-1)))
 		goto _err;
 
 	/* split clusters if necessary */
@@ -1610,7 +1598,7 @@ int file_op_cut(fileid_t fid, off_t pos, off_t size)
 	    || _filecluster_split(fcend, pos+size - filecluster_start(fcend)) == -1)
 		goto _err;
 	fcstart = _filecluster_findbyoff(f, pos);
-	fcend = _filecluster_findbyoff(f, pos+size);
+	fcend = _filecluster_findbyoff(f, pos+size-1);
 
 	/* first set up the logentry */
 	errno = ENOMEM;
@@ -1622,6 +1610,8 @@ int file_op_cut(fileid_t fid, off_t pos, off_t size)
 		goto _freele;
 
 	_file_fixoff(f, NULL);
+	file_use(f);
+	file_use(l->u.delete.f);
 	_logentry_add(l, &swap->log);
 
 	_swap_unlock();
@@ -1653,6 +1643,7 @@ int file_transaction_begin(fileid_t fid)
 	if (!(l = _lenew(f, LOGENTRY_BEGIN)))
 		goto _out;
 	res = 0;
+	file_use(f);
 	_logentry_add(l, &swap->log);
 
  _out:
@@ -1684,6 +1675,7 @@ int file_transaction_end(fileid_t fid)
 	if (!(l = _lenew(f, LOGENTRY_END)))
 		goto _out;
 	res = 0;
+	file_use(f);
 	_logentry_add(l, &swap->log);
 
  _out:
@@ -1723,9 +1715,10 @@ int file_transaction_undo(fileid_t fid)
 		switch (l->op) {
 		case LOGENTRY_INSERT:
 			_file_delete(f, _filecluster_findbyoff(f, l->u.insert.pos),
-				     _filecluster_findbyoff(f, l->u.insert.pos + l->u.insert.size),
+				     _filecluster_findbyoff(f, l->u.insert.pos + l->u.insert.size - 1),
 				     l->u.insert.f);
-			hash_add_file(l->u.insert.f);
+			/* FIXME!! for redo we may not rehash the file!
+			 * but undo means rehashing it... uh! */
 			break;
 		case LOGENTRY_DELETE:
 			_file_insert(f, _filecluster_findbyoff(f, l->u.delete.pos - 1),
@@ -1773,11 +1766,10 @@ int file_transaction_redo(fileid_t fid)
 		case LOGENTRY_INSERT:
 			_file_insert(f, _filecluster_findbyoff(f, l->u.insert.pos - 1),
 				     l->u.insert.f);
-			hash_remove_file(l->u.insert.f);
 			break;
 		case LOGENTRY_DELETE:
 			l->u.delete.f = _file_delete(f, _filecluster_findbyoff(f, l->u.delete.pos),
-						     _filecluster_findbyoff(f, l->u.delete.size),
+						     _filecluster_findbyoff(f, l->u.delete.pos + l->u.delete.size - 1),
 						     NULL);
 			break;
 		default:
@@ -1840,7 +1832,7 @@ char *filecluster_mmap(filecluster_t *fc)
 	}
 
 	mem = _cluster_mmap(fc->cluster, zero,
-			    fc->cluster->refcnt == 1 ? PROT_READ|PROT_WRITE : PROT_READ);
+			    fc->f->usecnt == 0 ? PROT_READ|PROT_WRITE : PROT_READ);
 	mem += fc->coff;
 
  _out:

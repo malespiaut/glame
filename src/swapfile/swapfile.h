@@ -67,31 +67,27 @@ void swap_close();
  * Returns file id or -1 on error */
 fileid_t file_alloc(off_t size);
 
-/* Creates a new _ro_(!) copy of the file.
- * Returns file id or -1 on error.
- * THIS WILL MARK fid RO, TOO! */
-fileid_t file_copy(fileid_t fid);
-
-/* Copies part [pos...pos+size] of fid into a new file
- * and returns its file id.
- * Returns -1 on error.
- * RETURNED FILE IS RO!
- * THIS WILL MARK fid RO, TOO! */
-fileid_t file_copy_part(fileid_t fid, off_t pos, off_t size);
-
 /* Deletes a file and its corresponding data */
 void file_unref(fileid_t fid);
 
 /* get size of file */
 off_t file_size(fileid_t fid);
 
+/* tool to loop through the set of files in swapfile */
+fileid_t file_next(fileid_t fid);
+
+
 /* Changes the size (creating trailing 0s or truncating the tail)
  * of the file. Works only on rw files, NOT UNDOABLE! */
 int file_truncate(fileid_t fid, off_t size);
 
 
-/* tool to loop through the set of files in swapfile */
-fileid_t file_next(fileid_t fid);
+/* Copies part [pos...pos+size-1] of fid into a new file
+ * and returns its file id.
+ * Returns -1 on error.
+ * RETURNED FILE IS RO!
+ * THIS WILL MARK fid RO, TOO! */
+fileid_t file_copy(fileid_t fid, off_t pos, off_t size);
 
 
 /* Inserts file into fid at position pos (i.e. first byte of
@@ -103,21 +99,12 @@ fileid_t file_next(fileid_t fid);
  */
 int file_op_insert(fileid_t fid, off_t pos, fileid_t file);
 
-/* Deletes part [pos...pos+size] of fid and returns it
- * as new file.
- * Returns -1 on error.
- * RETURNED FILE IS RO! IF YOU DONT NEED THE RETURNED
- * FILE USE file_op_cut INSTEAD!
- */
-fileid_t file_op_delete(fileid_t fid, off_t pos, off_t size);
-
-/* Cuts part [pos...pos+size] of fid.
+/* Cuts part [pos...pos+size-1] of fid.
  * Returns -1 on error.
  * If you need the deleted part, use file_op_delete
  * instead.
  */
 int file_op_cut(fileid_t fid, off_t pos, off_t size);
-
 
 
 /* transaction grouping:

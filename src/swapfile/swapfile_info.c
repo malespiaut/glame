@@ -1,6 +1,6 @@
 /*
  * swapfile_info.c
- * $Id: swapfile_info.c,v 1.2 2000/01/24 10:21:54 richi Exp $
+ * $Id: swapfile_info.c,v 1.3 2000/01/26 10:07:40 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther
  *
@@ -59,5 +59,3 @@ int main(int argc, char **argv)
 	fprintf(stderr, "Usage: %s swapfile\n", argv[0]);
 	return 1;
 }
-
-
