@@ -1,7 +1,7 @@
 /*
  * <nold.c>
  *
- * $Id: nold.c,v 1.3 2000/02/10 14:54:21 nold Exp $
+ * $Id: nold.c,v 1.4 2000/02/10 17:19:26 nold Exp $
  *
  * Copyright (C) 2000 Daniel Kobras
  *
@@ -31,8 +31,6 @@
 #include <config.h>
 #endif
 
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include "filter.h"
@@ -75,17 +73,21 @@ static int sgi_audio_out_f(filter_node_t *n)
 	int		resource = AL_DEFAULT_OUTPUT;
 	int		qsize;
 
-	DPRINTF("ENTER\n");
-
+	/* The first run through our input pipes is basically to 
+	 * determine the number of inputs. Since we only have a
+	 * single input pipe type, we could also abuse the number of
+	 * inputs resource of our filter node, but let's keep it the
+	 * generic way for educational purpose.
+	 */
 	p_in = hash_find_input("in", n);
 	if(!p_in) {
 		DPRINTF("No input channels given.\n");
 		return -1;
 	}
-	rate = p_in->u.sample.rate;
+	rate = filterpipe_sample_rate(p_in);
 	do {
 		max_ch++;
-		if(rate != p_in->u.sample.rate) {
+		if(rate != filterpipe_sample_rate(p_in)) {
 			DPRINTF("Sample rate mismatch!\n");
 			return -1;
 		}
@@ -96,6 +98,10 @@ static int sgi_audio_out_f(filter_node_t *n)
 		return -1;
 	}
 
+	/* 'in' is our internal array of pipe goodies. 'bufs' was added
+	 * to make use of libaudio's spiffy feature to interleave 
+	 * multiple output buffers to an audio port.
+	 */
 	in = (sgi_audioparam_t *)malloc(max_ch * sizeof(sgi_audioparam_t));
 	bufs = (SAMPLE **)malloc(max_ch * sizeof(SAMPLE *));
 	if(!in || !bufs) {
@@ -104,6 +110,9 @@ static int sgi_audio_out_f(filter_node_t *n)
 		return -1;
 	}
 
+	/* Second pass through the input pipes to set up our internal
+	 * struct.
+	 */
 	p_in = hash_find_input("in", n);
 	do {
 		sgi_audioparam_t *ap = &in[ch++];
@@ -113,6 +122,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 		ap->to_go = 0;
 	} while((p_in = hash_next_input(p_in)));
 	
+	/* Paranoia. */
 	if(ch != max_ch) {
 		DPRINTF("Huh!? Input pipes changed under us!?\n");
 		return -1;
@@ -146,10 +156,13 @@ static int sgi_audio_out_f(filter_node_t *n)
 			alGetErrorString(oserror()));
 		return -1;
 	}
-	if(v[1].sizeOut < 0) {
+	if(v[0].sizeOut < 0) {
 		DPRINTF("Invalid sample rate.\n");
 		return -1;
 	}
+	/* The QueueSized is used as an initializer to our output chunk
+	 * size later on.
+	 */
 	qsize = alGetQueueSize(c);
 	if(qsize <= 0) {
 		DPRINTF("Invalid QueueSize.\n");
@@ -167,7 +180,8 @@ static int sgi_audio_out_f(filter_node_t *n)
 	zero_buf = (SAMPLE *)calloc(qsize, sizeof(SAMPLE));
 	
 	FILTER_AFTER_INIT;
-
+	/* May not fail from now on... */
+	
 	ch = 0;
 	ch_active = max_ch;
 	chunk_size = 0;
@@ -182,7 +196,9 @@ static int sgi_audio_out_f(filter_node_t *n)
 #if 0
 		DPRINTF("Writing %d sample chunk.\n", chunk_size);
 #endif
-		/* Queue audio chunk. All-mono buffers. */
+		/* Queue audio chunk. All-mono buffers. Subsequent
+		 * buffers get directed to different channels. 
+		 */
 		alWriteBuffers(p, (void **)bufs, NULL, chunk_size);
 	_entry:
 		last_chunk = chunk_size;
@@ -191,6 +207,9 @@ static int sgi_audio_out_f(filter_node_t *n)
 			sgi_audioparam_t *ap = &in[ch];
 			ap->to_go -= last_chunk;
 			ap->pos += last_chunk;
+			/* Note that sbuf_*() will handle NULL values
+			 * gracefully.
+			 */
 			if(!ap->to_go) {
 				/* Fetch next buffer */
 				sbuf_unref(ap->buf);
@@ -201,6 +220,7 @@ static int sgi_audio_out_f(filter_node_t *n)
 			if(!ap->buf) {
 				if(bufs[ch] != zero_buf) {
 					ch_active--;
+					/* Ugly, but... */
 					bufs[ch] = zero_buf;
 				}
 				ap->to_go = qsize;
@@ -213,8 +233,6 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 	FILTER_BEFORE_CLEANUP;
 
-	/* Drain audio output */
-	/* FIXME */
 	alClosePort(p);
 	free(bufs);
 	free(in);
@@ -226,9 +244,10 @@ static int sgi_audio_out_f(filter_node_t *n)
 
 int nold_register()
 {
+
+#ifdef HAVE_SGIAUDIO
 	filter_t *f;
 	
-#ifdef HAVE_SGIAUDIO
 	DPRINTF("Trying to register\n");
 	if (!(f = filter_alloc("audio_out", "play stream", sgi_audio_out_f))) {
 		DPRINTF("filter_alloc failed.\n");
