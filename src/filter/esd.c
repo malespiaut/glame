@@ -1,6 +1,6 @@
 /*
  * mix.c
- * $Id: esd.c,v 1.1 2000/01/27 09:34:07 mag Exp $
+ * $Id: esd.c,v 1.2 2000/01/27 12:49:00 richi Exp $
  *
  * Copyright (C) 1999, 2000 Richard Guenther, Alexander Ehlert
  *
@@ -26,13 +26,18 @@
 #include <stdlib.h>
 #include "filter.h"
 #include "util.h"
+#ifdef HAVE_ESD
 #include <esd.h>
+#endif
 #include <limits.h>
 
 /* I don't know what I'm doing, but I just try to 
  * write a simple esound output filter... */
 int esd(filter_node_t *n)
 {
+#ifndef HAVE_ESD
+	return -1;
+#else
 	filter_buffer_t **in;
 	int i, eofs, *pos, wbpos;
 	SAMPLE s;
@@ -113,6 +118,7 @@ int esd(filter_node_t *n)
 	free(pos);
 
 	return 0;
+#endif
 }
 
 
