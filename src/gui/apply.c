@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.11 2001/10/06 23:08:55 richi Exp $
+ * $Id: apply.c,v 1.12 2001/11/11 21:41:57 richi Exp $
  *
  * Copyright (C) 2001 Richard Guenther
  *
@@ -31,6 +31,7 @@
 #include "glplugin.h"
 #include "util/glame_gui_utils.h"
 #include "network_utils.h"
+
 
 
 /* Apply filter. Generic with lots of features.
@@ -108,6 +109,7 @@ static void preview_start(struct apply_plugin_s *a)
 {
 	gpsm_item_t *swfile;
 	const char *errmsg;
+	filter_t *n;
 
 	/* Create the preview network. */
 	a->net = filter_creat(NULL);
@@ -121,6 +123,11 @@ static void preview_start(struct apply_plugin_s *a)
 		goto err;
 	}
 	a->pos = net_apply_audio_out(a->net);
+
+	/* Allow updating params of preview network. */
+	filter_foreach_node(a->net, n)
+		if (n->plugin == a->effect->plugin)
+			net_link_params(n, a->effect);
 
 	if (filter_launch(a->net, _GLAME_WBUFSIZE) == -1) {
 		errmsg = "Unable to launch network";
