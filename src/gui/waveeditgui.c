@@ -230,19 +230,21 @@ static void paste_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	GtkSwapfileBuffer *swapfile = GTK_SWAPFILE_BUFFER(wavebuffer);
-	gint32 pos;
+	gint32 pos, oldsize;
 	gpsm_item_t *item;
 
 	pos = gtk_wave_view_get_marker (waveview);
 	if (pos < 0)
 		return;
 	item = (gpsm_item_t *)gtk_swapfile_buffer_get_item(swapfile);
+	oldsize = gpsm_item_hsize(item);
 	if (!clipboard_can_paste(item))
 		return;
 	if (gpsm_op_prepare(item) == -1)
 		DPRINTF("Error preparing for undo\n");
 	if (clipboard_paste(item, pos) == -1)
 		DPRINTF("Error pasting\n");
+	gtk_wave_view_set_selection(waveview, pos, gpsm_item_hsize(item) - oldsize);
 }
 
 /* Menu event - Cut. */
