@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.18 2001/11/11 23:40:39 mag Exp $
+ * $Id: importexport.c,v 1.19 2001/11/12 23:11:35 mag Exp $
  *
  * Copyright (C) 2001 Alexander Ehlert
  *
@@ -59,6 +59,7 @@ struct impexp_s {
 	filter_t *net;
 	int cancelled;
 	int importing;
+	int destroyed;
 	gpsm_grp_t *grp;
 	GtkWidget *fi_plabel[MAX_PROPS];
 	GtkWidget *dialog;
@@ -79,12 +80,13 @@ struct exp_s {
 
 void ie_import_cleanup(struct impexp_s *ie) 
 {
-	if(ie->dialog) {
-		gtk_widget_hide(ie->dialog);
-		gtk_widget_destroy(ie->dialog);
-	}
-	filter_delete(ie->readfile);
+	if (ie->dialog)
+		gnome_dialog_close(GNOME_DIALOG(ie->dialog));
+
+	if (ie->readfile!=NULL)
+		filter_delete(ie->readfile);
 	free(ie);
+	
 }
 
 static void ie_cancel_cb(GtkWidget *bla, struct impexp_s *ie) {
@@ -98,6 +100,16 @@ static void ie_cancel_cb(GtkWidget *bla, struct impexp_s *ie) {
 		ie_import_cleanup(ie);
 		DPRINTF("Nothing running. Just destroyed import dialog.\n");
 	}
+}
+
+static gint ie_windowkilled(GtkWidget *bla,  GdkEventAny *event, gpointer data) {
+	struct impexp_s *ie = (struct impexp_s*)data;
+	if(ie->importing==1) {
+		filter_terminate(ie->net);
+	}
+	ie->destroyed=1;
+	ie->cancelled=1;
+	return TRUE;
 }
 
 static void ie_import_cb(GtkWidget *bla, struct impexp_s *ie) {
@@ -421,7 +433,7 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 		gtk_label_set_text(GTK_LABEL(ie->fi_plabel[5]), buffer);
 
 		ie_update_plabels(ie);
-	} else {
+	} else if (ie->destroyed!=1) {
 		gnome_appbar_set_status(GNOME_APPBAR(ie->appbar), "Cancelled.");
 		gnome_appbar_set_progress(GNOME_APPBAR(ie->appbar), 0.0);
 	}
@@ -433,7 +445,9 @@ static void ie_stats_cb(GtkWidget *bla, struct impexp_s *ie) {
 	ie->importing=0;
 	ie->cancelled=0;
 	filter_delete(ie->net);
-	gtk_widget_set_sensitive(bla, TRUE);	
+	gtk_widget_set_sensitive(bla, TRUE);
+	if (ie->destroyed==1)
+		ie_import_cleanup(ie);
 }
 
 
@@ -491,9 +505,10 @@ void glame_import_dialog(struct impexp_s *ie)
 
 	ie->dialog = gnome_dialog_new (NULL, NULL);
 	ie->importing = 0;
+	ie->destroyed = 0;
 	gtk_container_set_border_width (GTK_CONTAINER (ie->dialog), 1);
 	gtk_window_set_policy (GTK_WINDOW (ie->dialog), FALSE, FALSE, FALSE);
-	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), FALSE);
+	gnome_dialog_close_hides(GNOME_DIALOG(ie->dialog), TRUE);
 	gnome_dialog_set_close(GNOME_DIALOG(ie->dialog), FALSE);
 
 	dialog_vbox2 = GNOME_DIALOG (ie->dialog)->vbox;
@@ -645,6 +660,11 @@ void glame_import_dialog(struct impexp_s *ie)
 	gnome_dialog_button_connect(GNOME_DIALOG(ie->dialog), CANCEL, 
 				    ie_cancel_cb, ie);
 
+	/* in case we have a non gnome compliant wm */
+	gtk_signal_connect(GTK_OBJECT(ie->dialog),
+			   "delete-event",
+			   GTK_SIGNAL_FUNC(ie_windowkilled), ie);
+
 	gtk_widget_show(ie->dialog);
 };
 
@@ -671,12 +691,34 @@ void make_comp_menu(struct exp_s *ie, int ftype) {
 	gtk_option_menu_set_menu(GTK_OPTION_MENU (ie->ocompmenu), ie->compmenu);
 	gtk_option_menu_set_history (GTK_OPTION_MENU (ie->ocompmenu), 0);
 	gtk_box_pack_start (GTK_BOX(GNOME_DIALOG(ie->dialog)->vbox), ie->ocompmenu, FALSE, FALSE, 0);
+	
+	
 	gtk_widget_show(ie->ocompmenu);
 }
 
-static void ie_type_menu_cb(GtkWidget *bla, struct exp_s *ie) {
+static gint ie_type_menu_cb(GtkMenu *menu, struct exp_s *ie) {
 	int ftype;
+	GtkWidget *act;
+	GList *list;
+	int val;
 
+	act = gtk_menu_get_active(menu);
+	DPRINTF("Menu %p - Active %p\n", menu, act);
+	list = gtk_container_children(GTK_CONTAINER(menu));
+	val = 0;
+	while (list) {
+		DPRINTF("%i - %p\n", val, list->data);
+		if ((GtkWidget *)(list->data) == act)
+			break;
+		list = g_list_next(list);
+		val++;
+	}
+	if(list) {
+		gchar *suffix = (char*)afQueryPointer(AF_QUERYTYPE_FILEFMT, AF_QUERY_LABEL, ie->indices[val] ,0 ,0);	
+		DPRINTF("val=%d choose type %s\n", val, suffix);
+		make_comp_menu(ie, ie->indices[val]);
+	}
+	return TRUE;
 }
 
 GtkWidget *glame_export_dialog(struct exp_s *ie)  {
@@ -708,13 +750,16 @@ GtkWidget *glame_export_dialog(struct exp_s *ie)  {
 		gtk_widget_show(mitem);
 	}
 	gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu), menu);
-	gtk_option_menu_set_history (GTK_OPTION_MENU (optionmenu), 1);
+	gtk_option_menu_set_history (GTK_OPTION_MENU (optionmenu), 0);
+	gtk_signal_connect(GTK_OBJECT(menu),
+				   "selection_done",
+				   (GtkSignalFunc)ie_type_menu_cb, ie);
 	
 	ie->ocompmenu = gtk_option_menu_new ();
 	ie->compmenu = gtk_menu_new();
 	
 	if (ie->typecnt>0)
-		make_comp_menu(ie, ie->indices[1]);
+		make_comp_menu(ie, ie->indices[0]);
 
 	gtk_widget_show(dialog);
 	return dialog;
