@@ -1,5 +1,5 @@
 ; glame.scm
-; $Id: glame.scm,v 1.73 2001/12/09 19:43:47 mainzelm Exp $
+; $Id: glame.scm,v 1.74 2001/12/13 14:39:47 mainzelm Exp $
 ;
 ; Copyright (C) 2000, 2001 Richard Guenther, Martin Gasbichler
 ;
@@ -186,6 +186,16 @@
   (lambda (x n)
     (if (>= 0 n) '() (cons x (repeat-n x (- n 1))))))
 
+(define (fold-right f accu l)
+  (if (null? l)
+      accu
+      (f (car l) (fold-right f accu (cdr l)))))
+
+(define (satisfies-all? pred l)
+  (if (null? l)
+      #t
+      (and (pred (car l))
+	   (satisfies-all? pred (cdr l)))))
 
 ;
 ; some high level filternetwork helpers
@@ -810,7 +820,7 @@
 
 ;;; Macro to create a new filternetwork
 ;;;
-;;; (create-net ((node "name" ("param" val)) ...) ; val is implicitly backquoted
+;;; (create-net ((node "name" ("param" expr)) ...)
 ;;;             ((input-node "port" "label" "desc") ...)
 ;;;             ((output-node "port" "label" "desc") ...)
 ;;;             ((param-node "param" "label" "desc") ...)
@@ -818,7 +828,7 @@
 ;;; --> new filternetwork
 ;;;
 ;;;Example:
-;;;(define n (create-net ((sw-in "swapfile-in" ("filename" ,(+ 0 0)))
+;;;(define n (create-net ((sw-in "swapfile-in" ("filename" (+ 0 0)))
 ;;;		          (ao "audio-out")
 ;;;		          (ech "echo" ("time" 1200)))
 ;;;		         () 
@@ -862,7 +872,7 @@
 	    `(let ((,(caar nodes) (net-add-node net ,(cadar nodes))))
 	       (node-set-params ,(caar nodes) 
 				,@(map (lambda (e) 
-					 (list 'quasiquote e))
+					 `(list (quote ,(car e)) ,(cadr e)))
 				       (cddar nodes)))
 	       ,(lp (cdr nodes)))))))
 
