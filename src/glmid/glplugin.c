@@ -1,6 +1,6 @@
 /*
  * glplugin.c
- * $Id: glplugin.c,v 1.23 2001/04/12 13:12:40 richi Exp $
+ * $Id: glplugin.c,v 1.24 2001/04/23 08:24:08 richi Exp $
  *
  * Copyright (C) 2000 Richard Guenther
  *
@@ -319,6 +319,11 @@ int plugin_set(plugin_t *p, const char *key, const void *val)
 
 	if (!p || !key)
 		return -1;
+	/* Ok, this is a hack - but the plugins db is not shared. */
+	if ((w = (glworm_t *)glwdb_query_item(&p->db, key))) {
+		w->u.ptr = (void *)val;
+		return 0;
+	}
 	if (!(w = glworm_alloc()))
 		return -1;
 	w->u.ptr = (void *)val;
