@@ -1,7 +1,7 @@
 /*
  * filtereditgui.c
  *
- * $Id: filtereditgui.c,v 1.37 2001/11/06 09:47:30 richi Exp $
+ * $Id: filtereditgui.c,v 1.38 2001/11/11 14:50:48 richi Exp $
  *
  * Copyright (C) 2001 Johannes Hirche
  *
@@ -609,7 +609,7 @@ glame_load_network(GtkWidget *foo, gpointer bla)
 		glame_filtereditgui_new(filter, FALSE);
 	} else {
 		gnome_dialog_run_and_close(GNOME_DIALOG(
-			gnome_error_dialog("Error in loading network")));
+			gnome_error_dialog("Error in loading network\nCheck out the glame-console output for more information")));
 	} 
 }
 
