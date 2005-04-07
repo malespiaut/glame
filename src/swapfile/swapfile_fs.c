@@ -543,6 +543,8 @@ static int fsck_file(struct swfile *file, int fix)
 			return 1;
 		unclean = 1;
 		DPRINTF("Fixing incorrect number of references %lX -> %lX (off by %i)\n", file->name, cluster->name, cnt);
+		for (; cnt<0; ++cnt)
+			cluster_delfileref(cluster, file->name);
 		for (; cnt>0; cnt--)
 			cluster_addfileref(cluster, file->name);
 
