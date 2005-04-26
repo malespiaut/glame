@@ -1,4 +1,4 @@
-@comment $Id: quickstart.texi,v 1.7 2002/07/18 07:37:28 nold Exp $
+@comment $Id: quickstart.texi,v 1.8 2005/04/26 19:16:53 nold Exp $
 
 @node Quick Start Guide, Graphical Frontend, Copying, Top
 @chapter Quick Start Guide
@@ -150,7 +150,7 @@ as, say, @file{heather.wav}. As you may have guessed, by default the suffix
 determines the type of file Hymn to Heather is stored as. For some additional
 control, you can explicitly specify the desired file type and sample format via
 several rather obvious buttons and menus. Want details on that one? Hey, enough
-is enough! Go read the proper docs if you're that interested. Or try on of the
+is enough! Go read the proper docs if you're that interested. Or try one of the
 @dfn{Help} entries that will present you a context sensitive entry from the
 manual. 
 
@@ -236,12 +236,12 @@ between @file{delay} and @file{mix}.  Right-click on it, and select
 @dfn{time} parameter to 1 second. In the @file{delay} filter's properties, set
 the @dfn{delay time} to 500ms.  Turn down your amp really low, execute the
 network and talk something intelligent like "Boh" into your microphone.  If a
-screeching sound hurts your ears, the @dfn{gain} parameter probably is to high.
+screeching sound hurts your ears, the @dfn{gain} parameter probably is too high.
 Click on the little blob again and tune it until you're satisfied.  If you set
-it to smaller values, your voice will slowly fade out, if it's to high it will
+it to smaller values, your voice will slowly fade out, if it's too high it will
 just get louder and louder until your speakers freak out.  Obviously, an
 endlessly repeating "Boh" isn't all that stunning.  "Zoh" sounds like a good
 second line.  Talk into the microphone, and wow, here's our vocal
-percussionist.  The party is your's, and hey, it's time to go now.  Send our
+percussionist.  The party is yours, and hey, it's time to go now.  Send our
 best to Bozo and the drags. Have fun!
 
