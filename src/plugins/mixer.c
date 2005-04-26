@@ -1,7 +1,7 @@
 /*
  * mixer.c
  *
- * $Id: mixer.c,v 1.22 2004/12/26 20:59:02 richi Exp $
+ * $Id: mixer.c,v 1.23 2005/04/26 16:03:41 nold Exp $
  *
  * Copyright (C) 2002, 2003 Laurent Georget
  *
@@ -578,7 +578,7 @@ static int mixer_gpsm(gpsm_item_t * obj, long start, long length)
 
 	/* Mixer title */
 	text_obj = gpsm_item_label(obj);
-	snprintf(text, 127, "Mixer: %s", text_obj);
+	snprintf(text, sizeof(text), "Mixer: %s", text_obj);
 	label = gtk_label_new(text);
 	gtk_box_pack_start(GTK_BOX(GNOME_DIALOG(a->dialog)->vbox), label,
 			   FALSE, FALSE, 3);
