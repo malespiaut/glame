@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * $Id: main.c,v 1.134 2005/03/11 17:00:16 richi Exp $
+ * $Id: main.c,v 1.135 2005/07/22 20:10:45 ochonpaul Exp $
  *
  * Copyright (C) 2000, 2001, 2002, 2003, 2004 Johannes Hirche,
  *	Richard Guenther
@@ -840,6 +840,8 @@ static void gui_main()
 
 	/* Update preferences. */
 	if (update_preferences() == -1) {
+		gtk_object_destroy(GTK_OBJECT(splash));
+		splash = NULL ;		
 		glame_info_dialog(
 _("Welcome first-time user of GLAME.\n"
 "We need to do some basic setup stuff. Please run through\n"
@@ -946,7 +948,7 @@ _("    GLAME version "), VERSION, _(", Copyright (C) 1999-2004 by\n"
 #endif
 
 	/* Finally, destroy splash. */
-	gtk_object_destroy(GTK_OBJECT(splash));
+	if (splash) gtk_object_destroy(GTK_OBJECT(splash));
 
 	/* Main event loop */
        	gtk_main();
