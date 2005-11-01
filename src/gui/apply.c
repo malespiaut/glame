@@ -1,7 +1,7 @@
 /*
  * apply.c
  *
- * $Id: apply.c,v 1.27 2005/03/06 21:35:58 richi Exp $
+ * $Id: apply.c,v 1.28 2005/11/01 13:27:05 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -308,7 +308,7 @@ static void apply_cb(GtkWidget *widget, struct apply_plugin_s *a)
 	}
 	a->pos = swin;
 
-	if (!(a->context = filter_launch(a->net, GLAME_BULK_BUFSIZE))) {
+	if (!(a->context = filter_launch(a->net, _GLAME_WBUFSIZE))) {
 		errmsg = _("Unable to launch network");
 		goto err;
 	}
