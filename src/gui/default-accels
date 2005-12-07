@@ -64,6 +64,11 @@
       (mar (waveedit-get-marker)))
   (waveedit-play mar (gpsm-item-hsize grp) mar #f #f #f #f))
   </accel>
+   <accel state="0" spec="r" desc="Record from marker">
+(let ((grp (waveedit-gpsm-grp))
+      (mar (waveedit-get-marker)))
+  (waveedit-play mar (gpsm-item-hsize grp) mar #f #f #f #t))
+  </accel>
   <accel state="4" spec="space" desc="Play selection">
 (let ((grp (waveedit-gpsm-grp))
       (sel (waveedit-get-selection)))
