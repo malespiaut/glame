@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.10 2005/03/06 21:35:59 richi Exp $
+ * $Id: gltree.c,v 1.11 2006/03/07 20:26:09 ochonpaul Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -39,6 +39,7 @@ static gboolean click_cb(GtkWidget * treeview, GdkEventButton * event,
 			 gpointer userdata);
 static void edit_wave_cb(GtkWidget *, gpointer);
 static void delete_cb(GtkWidget * menuitem, gpointer treeview);
+static void track_reset_cb(GtkWidget * menuitem, gpointer treeview);
 static void group_cb(GtkWidget * menuitem, gpointer treeview);
 static void file_property_cb(GtkWidget * menuitem, gpointer treeview);
 static void group_property_cb(GtkWidget * menuitem, gpointer treeview);
@@ -189,6 +190,12 @@ view_swfile_popup_menu(GtkWidget * treeview, GdkEventButton * event,
 	g_signal_connect(menuitem, "activate",
 			 (GCallback) delete_cb, which);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	
+	menuitem = gtk_menu_item_new_with_label(_("Track reset"));
+	g_signal_connect(menuitem, "activate",
+			 (GCallback) track_reset_cb, which);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+
 	
 	menuitem = gtk_menu_item_new_with_label(_("Group"));
 	g_signal_connect(menuitem, "activate",
@@ -530,6 +537,81 @@ static void delete_cb(GtkWidget * menuitem, gpointer which)
 			  0, gpsm_item_vsize(deleted) + 1);
 	  
 }
+
+
+static void track_reset_cb(GtkWidget * menuitem, gpointer which)
+{
+	/* To gain memory when rerecording on the same track, delete track ,
+	   recreate with same  name , same position in the tree.        */
+	GtkTreeIter *iter = (GtkTreeIter *) which;
+	gpsm_item_t *item;
+	gpsm_grp_t *parent;
+	gpsm_swfile_t *swfile;
+	char f_name[1024];
+	double f_pos;
+	long f_rate;
+	long hpos, vpos;
+	GtkWidget *dialog, *label;
+	gchar *wlabel;
+
+	item = glame_gpsm_store_get_item(iter);
+
+	/* FIXME:reset only  mono track , should do also for stereo */
+	if ((GPSM_ITEM_IS_GRP(item))
+	    || gpsm_grp_is_vbox((gpsm_grp_t *) item))
+		return;
+
+	
+	dialog = gtk_dialog_new_with_buttons("WARNING",
+					     NULL,
+					     GTK_DIALOG_MODAL |
+					     GTK_DIALOG_DESTROY_WITH_PARENT,
+					     GTK_STOCK_OK,
+					     GTK_RESPONSE_ACCEPT,
+					     GTK_STOCK_CANCEL,
+					     GTK_RESPONSE_REJECT, NULL);
+	wlabel = g_strconcat(_("Reset "), (gpsm_item_label(item)),_(": No undo, AUDIO DATA WILL BE LOST.\n"
+				"Please close any wavedit window before proceeding.\n"
+				"(This is an experimental function to gain memory \n"
+			        "when successive recordings on the same track)"),NULL);
+	label = gtk_label_new(wlabel);
+	g_free(wlabel);
+	gtk_container_add (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox),
+                      label);
+    	gtk_widget_show_all (dialog);
+
+	gint result = gtk_dialog_run (GTK_DIALOG (dialog));
+  	switch (result)
+    	{
+     	 case GTK_RESPONSE_ACCEPT:
+        	 break;
+      	 default:
+         	gtk_widget_destroy (dialog);
+	 	return;
+         	break;
+    	}
+         gtk_widget_destroy (dialog);
+
+	
+
+	strncpy(f_name, gpsm_item_label(item), 1024);
+	f_pos = gpsm_swfile_position(item);
+	f_rate = gpsm_swfile_samplerate(item);
+	parent = gpsm_item_parent(item);
+	hpos = gpsm_item_hposition(item);
+	vpos = gpsm_item_vposition(item);
+
+
+	gpsm_item_destroy(item);
+
+	swfile = gpsm_newswfile(f_name);
+	gpsm_vbox_insert((gpsm_grp_t *) parent,
+			 (gpsm_item_t *) swfile, hpos, vpos);
+	gpsm_swfile_set((gpsm_swfile_t *) item, f_rate, f_pos);
+
+
+}
+
 
 
 static void file_property_cb(GtkWidget * menuitem, gpointer which)
