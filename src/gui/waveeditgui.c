@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.153 2005/03/30 16:21:39 richi Exp $
+ * $Id: waveeditgui.c,v 1.154 2006/05/17 20:19:15 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -1501,6 +1501,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 {
 	WaveeditGui *window;
 	gpsm_grp_t *swfiles;
+	int num_channels;
 
 	/* Create a data source object. We need a gpsm_grp_t for
 	 * gtk_swapfile_buffer_new which is "flat", i.e. entirely
@@ -1557,6 +1558,10 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	/* Set the Waveform widget's data stream to point to our wavebuffer. */
 	gtk_wave_view_set_buffer (GTK_WAVE_VIEW(window->waveview),
 				  GTK_WAVE_BUFFER(window->wavebuffer));
+
+	/* Adjust window height according to channels number */
+	num_channels = gtk_wave_buffer_get_num_channels (gtk_wave_view_get_buffer(GTK_WAVE_VIEW(window->waveview)));
+	gtk_widget_set_usize(window->waveview, 400, (50 + 100 * (MIN (num_channels, 6))));
 
 
 	/* Add the toolbar. */
