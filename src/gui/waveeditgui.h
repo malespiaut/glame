@@ -54,6 +54,7 @@ struct _WaveeditGui {
 	gpsm_grp_t *swfiles;
 	GtkWidget *waveview;
 	GtkWidget *playbutton, *stopbutton;
+	GtkWidget *rec_stopped_button, *rec_live_button;
 	GtkSwapfileBuffer *wavebuffer;
 	GtkWidget *toolbar;
 

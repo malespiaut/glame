@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.154 2006/05/17 20:19:15 ochonpaul Exp $
+ * $Id: waveeditgui.c,v 1.155 2006/05/23 19:44:47 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -503,9 +503,11 @@ static void play_cleanup(glsig_handler_t *handler,
 		gtk_wave_view_set_marker(GTK_WAVE_VIEW(waveedit->waveview),
 					 waveedit->pm_marker);
 
-	/* Restore normal play button.  */
+	/* Restore normal play and record button.  */
 	gtk_widget_hide(waveedit->stopbutton);
 	gtk_widget_show(waveedit->playbutton);
+	gtk_widget_hide(waveedit->rec_live_button);
+	gtk_widget_show(waveedit->rec_stopped_button);
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
@@ -743,6 +745,12 @@ static void play(GtkWaveView *waveview,
 	gtk_widget_show(active_waveedit->stopbutton);
 	gtk_widget_hide(active_waveedit->playbutton);
 
+	/* Exchange rec. buttons */
+	if (rec_cnt > 0 && enable_record) {
+	gtk_widget_show(active_waveedit->rec_live_button);
+	gtk_widget_hide(active_waveedit->rec_stopped_button);
+	}
+	
 	active_waveedit->locked = 1;
 
 	return;
@@ -1602,9 +1610,14 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
  				 -1);
 	gtk_widget_hide(window->stopbutton);
 
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
+	window->rec_live_button = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_MEDIA_RECORD, _("Record"), _("Record"),
 				 GTK_SIGNAL_FUNC(recordtoolbar_cb), window->waveview, -1);
+	window->rec_stopped_button = gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar), 
+				 _("Record"), _("Record"), _("Record"),
+ 				 glame_load_icon_widget("record_stopped.png",24,24),
+ 				 GTK_SIGNAL_FUNC(recordtoolbar_cb), window->waveview);
+	gtk_widget_hide(window->rec_live_button);
 
 	/* Keep last. */
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
