@@ -696,7 +696,7 @@ msgid ""
 "Wave modified.\n"
 "Do you really want to close without saving?"
 msgstr ""
-"Date modifiziert.\\n\n"
+"Date modifiziert.\n"
 "Wollen Sie die Datei wirklich ohne zu Speichern schließen?"
 
 #: src/gui/waveeditgui.c:1007 src/gui/tree/gltree.c:175
@@ -1009,7 +1009,7 @@ msgid ""
 "Error in loading network\n"
 "Check out the glame-console output for more information"
 msgstr ""
-"Das Netzwerk kann nicht geladen werden\\n\n"
+"Das Netzwerk kann nicht geladen werden\n"
 "Sehen Sie auf der Konsole nach, um weitere Informationen zu erhalten"
 
 #: src/gui/edit_filter/filtereditgui.c:929
@@ -1038,7 +1038,7 @@ msgstr "Bezeichnung"
 
 #: src/gui/tree/gltree.c:81
 msgid "Size"
-msgstr "Grösse"
+msgstr "Größe"
 
 #: src/gui/tree/gltree.c:86
 msgid "Tracks"
