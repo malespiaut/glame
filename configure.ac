@@ -45,7 +45,7 @@ AC_ARG_ENABLE(swapfiledebug,
 [  --enable-swapfiledebug  include lots of timeconsuming checks to swapfile 
   --disable-swapfiledebug compile for maximum optimization], swdebug=$enableval, swdebug="no")
 if test "$swdebug" = "yes"; then
-	AC_DEFINE(SWDEBUG,, [swapfile debugging])
+	AC_DEFINE(SWDEBUG, 1, [swapfile debugging])
 fi
 
 dnl Global debug flag
@@ -53,10 +53,10 @@ AC_ARG_ENABLE(debug,
 [  --enable-debug          include lots of debugging code 
   --disable-debug         compile for maximum optimization], glame_debug=$enableval, glame_debug="")
 if test "$swdebug" = "yes" -o "$glame_debug" = "yes"; then
-	AC_DEFINE(DEBUG,, [general debugging])
+	AC_DEFINE(DEBUG, 1, [general debugging])
 	glame_debug_gcc_cflags="-O -g"
 elif test "$glame_debug" = "no"; then
-	AC_DEFINE(NDEBUG,, [disable debugging code])
+	AC_DEFINE(NDEBUG, 1, [disable debugging code])
 	glame_debug_gcc_cflags="-O3 -funroll-loops -ffast-math -fomit-frame-pointer"
 else
 	glame_debug_gcc_cflags="-O2 -g -ffast-math"
@@ -70,7 +70,7 @@ dnl
 dnl Compiling without gcc is not supported but may succeed.
 AC_PROG_CC
 if test "$GCC" = "yes"; then
-	AC_DEFINE(HAVE_GCC,, [using gcc for build])
+	AC_DEFINE(HAVE_GCC, 1, [using gcc for build])
 	if test "$ac_env_CFLAGS_set" = "set"; then
 	  CFLAGS="$CFLAGS -Wall -Wno-sign-compare"
 	else
@@ -109,7 +109,7 @@ AC_MSG_RESULT([-no-cpp-precomp])
 ],
 [
 AC_MSG_RESULT([no way])
-AC_DEFINE([NO_VARARG_MACROS],, [GCC style macro vararg support])
+AC_DEFINE([NO_VARARG_MACROS], 1, [GCC style macro vararg support])
 dnl AC_MSG_ERROR([GLAME needs a C preprocessor that can handle macros with a variable number of arguments. Go get one...])
 ])
 ])
@@ -123,7 +123,7 @@ done
 if test "$acx_cv_c_restrict" = "unsupported"; then
   AC_MSG_RESULT([no])
 dnl  CFLAGS="$CFLAGS -Drestrict="
-  AC_DEFINE(restrict,, [No restrict support])
+  AC_DEFINE(restrict, 1, [No restrict support])
 else
   AC_MSG_RESULT([$acx_cv_c_restrict])
   if test "$acx_cv_c_restrict" != "restrict"; then
@@ -158,7 +158,7 @@ dnl        simply not an option. [dk]
 
 dnl Check endianness
 AC_C_BIGENDIAN
-AC_CHECK_HEADER(byteswap.h,AC_DEFINE(HAVE_BYTESWAP_H,, [have byteswap.h header]),)
+AC_CHECK_HEADER(byteswap.h,AC_DEFINE(HAVE_BYTESWAP_H, 1, [have byteswap.h header]),)
 
 dnl Check width of basic types
 AC_CHECK_SIZEOF(short)
@@ -172,7 +172,7 @@ ACG_CHECK_STUFF
 
 
 dnl Only float is supported as SAMPLE type.
-AC_DEFINE(SAMPLE_FLOAT,, [use float as sample type])
+AC_DEFINE(SAMPLE_FLOAT, 1, [use float as sample type])
 AC_DEFINE_UNQUOTED(SAMPLE, float, [type to use as sample])
 
 
@@ -257,7 +257,7 @@ dnl GNOME2 check
   AC_SUBST(GLIB_GENMARSHAL)
   AC_MSG_RESULT($GLAME_GUI_LIBDIR $GLAME_GUI_LIBS)
   AC_DEFINE(HAVE_GNOME2, 1, [define if you have gnome2 libs])
-  AC_DEFINE(HAVE_LIBGLADE,, [wether we have libglade])
+  AC_DEFINE(HAVE_LIBGLADE, 1, [wether we have libglade])
   AMG_PATH_XML2(2.0.0, , [
 	AC_MSG_ERROR([You need at least libxml 2.0.0 to run glame!
 Hint: You also need to have the appropriate xml development package
@@ -296,7 +296,7 @@ AC_CHECK_LIB(sfftw, fftw2d_create_plan, fftw=yes, fftw=no)
 AC_CHECK_HEADER(sfftw.h,, fftw=no)
 if test $fftw = yes; then
 	FFTW_LIBS="-lsfftw -lsrfftw"
-	AC_DEFINE(HAVE_FFTW,, [have fftw])
+	AC_DEFINE(HAVE_FFTW, 1, [have fftw])
 fi
 AM_CONDITIONAL(HAVE_FFTW, test x$fftw = xyes)
 AC_SUBST(FFTW_LIBS)
@@ -325,7 +325,7 @@ if test $laf = yes; then
 	else
 		AUDIOFILE_LIBS="$ac_audiofile_libs -laudiofile"
 	fi
-	AC_DEFINE(HAVE_AUDIOFILE,, [have audiofile])
+	AC_DEFINE(HAVE_AUDIOFILE, 1, [have audiofile])
 fi
 AC_SUBST(AUDIOFILE_LIBS)
 AC_SUBST(AUDIOFILE_CFLAGS)
@@ -337,18 +337,18 @@ dnl in sys/, Linux in linux/,
 dnl other Unices in machine/
 AC_CHECK_HEADER(linux/soundcard.h, oss=yes, oss=no)
 if test $oss = yes; then
-	AC_DEFINE(HAVE_OSS,, [support oss sound interface])
-	AC_DEFINE(HAVE_OSS_LINUX,, [linux oss system])
+	AC_DEFINE(HAVE_OSS, 1, [support oss sound interface])
+	AC_DEFINE(HAVE_OSS_LINUX, 1, [linux oss system])
 else
 	AC_CHECK_HEADER(sys/soundcard.h, oss=yes, oss=no)
 	if test $oss = yes; then
-		AC_DEFINE(HAVE_OSS,, [support oss sound interface])
-		AC_DEFINE(HAVE_OSS_SYS,, [soundcard.h in sys])
+		AC_DEFINE(HAVE_OSS, 1, [support oss sound interface])
+		AC_DEFINE(HAVE_OSS_SYS, 1, [soundcard.h in sys])
 	else 
 		AC_CHECK_HEADER(machine/soundcard.h, oss=yes, oss=no)
 		if test $oss = yes; then
-			AC_DEFINE(HAVE_OSS,, [support oss sound interface])
-			AC_DEFINE(HAVE_OSS_MACHINE,, [soundcard.h in machine])
+			AC_DEFINE(HAVE_OSS, 1, [support oss sound interface])
+			AC_DEFINE(HAVE_OSS_MACHINE, 1, [soundcard.h in machine])
 		fi
 	fi
 fi
@@ -358,7 +358,7 @@ dnl check for esd
 ACG_PATH_ESD(0.2.0, esd=yes, esd=no)
 if test $esd = yes; then
 	GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $ESD_CFLAGS"
-	AC_DEFINE(HAVE_ESD,, [have esd daemon])
+	AC_DEFINE(HAVE_ESD, 1, [have esd daemon])
 fi
 AM_CONDITIONAL(HAVE_ESD, test x$esd = xyes)
 
@@ -367,7 +367,7 @@ AC_CHECK_LIB(audio, alWriteBuffers, sgi=yes, sgi=no)
 AC_CHECK_HEADER(dmedia/audio.h,, sgi=no)
 if test $sgi = yes; then
 	GLAME_LIBS="$GLAME_LIBS -laudio"
-	AC_DEFINE(HAVE_SGIAUDIO,, [have irix audio interface])
+	AC_DEFINE(HAVE_SGIAUDIO, 1, [have irix audio interface])
 fi
 AM_CONDITIONAL(HAVE_SGI, test x$sgi = xyes)
 
@@ -377,7 +377,7 @@ if test "x$alsa" = xno; then
 	ACG_PATH_ALSA(0.9.0, alsa="yes", alsa="no")
 fi
 if test "x$alsa" = xyes; then
-	AC_DEFINE(HAVE_ALSA,, [have alsa library])
+	AC_DEFINE(HAVE_ALSA, 1, [have alsa library])
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
@@ -388,7 +388,7 @@ jack="no"
 dnl if test x$jack = xyes; then
 dnl 	JACK_CFLAGS="`pkg-config --cflags jack`"
 dnl 	JACK_LIBS="`pkg-config --libs jack`"
-dnl 	AC_DEFINE(HAVE_JACK,, [have jack library])
+dnl 	AC_DEFINE(HAVE_JACK, 1, [have jack library])
 dnl fi
 AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
 dnl AC_SUBST(JACK_CFLAGS)
@@ -399,13 +399,13 @@ dnl Check for LADSPA support
 dnl
 
 dnl LADSPA header
-ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA,, [have ladspa.h])])
+ACG_PATH_LADSPA([AC_DEFINE(HAVE_LADSPA, 1, [have ladspa.h])])
 GLAME_INCLUDEDIR="$GLAME_INCLUDEDIR $LADSPA_CFLAGS"
 
 dnl LADSPA RDF -- disabled, we don't use it ATM
 dnl ACG_PKG_CHECK_MODULES(LRDF, lrdf,
 dnl [
-dnl   AC_DEFINE(HAVE_LRDF,, [have the lrdf library])
+dnl   AC_DEFINE(HAVE_LRDF, 1, [have the lrdf library])
 dnl   GLAME_CFLAGS="$GLAME_CFLAGS $LRDF_CFLAGS"
 dnl   GLAME_LIBS="$GLAME_LIBS $LRDF_LIBS"
 dnl ], [])
@@ -413,7 +413,7 @@ dnl ], [])
 dnl check for libmad
 ACG_PKG_CHECK_MODULES(MAD, mad,
 [
-  AC_DEFINE(HAVE_LIBMAD,, [have mad library])
+  AC_DEFINE(HAVE_LIBMAD, 1, [have mad library])
 ],
 [
   AC_CHECK_HEADER([mad.h],
@@ -421,7 +421,7 @@ ACG_PKG_CHECK_MODULES(MAD, mad,
     acg_save_LIBS="$LIBS"
     AC_CHECK_LIB(mad, mad_stream_buffer,
     [
-      AC_DEFINE(HAVE_LIBMAD,, [have mad library])
+      AC_DEFINE(HAVE_LIBMAD, 1, [have mad library])
       MAD_LIBS="-lmad"
     ])
     LIBS="$acg_save_LIBS"
@@ -436,7 +436,7 @@ acg_save_LIBS="$LIBS"
 AC_CHECK_LIB(mp3lame, lame_init_params, mp3lame=yes, mp3lame=no, -lm)
 AC_CHECK_HEADER([lame/lame.h],, mp3lame=no)
 if test $mp3lame = yes; then
-        AC_DEFINE(HAVE_LIBMP3LAME,, [have mp3lame library])
+        AC_DEFINE(HAVE_LIBMP3LAME, 1, [have mp3lame library])
         LAME_LIBS="-lmp3lame -lm"
 fi
 LIBS="$acg_save_LIBS"
@@ -533,11 +533,11 @@ AC_FUNC_ALLOCA
 dnl special code hooks for os
 case "$host_os" in
 *linux*)
-	AC_DEFINE(OS_LINUX,, [am linux]);;
+	AC_DEFINE(OS_LINUX, 1, [am linux]);;
 *bsd*)
-	AC_DEFINE(OS_BSD,, [am bsd]);;
+	AC_DEFINE(OS_BSD, 1, [am bsd]);;
 *irix*)
-	AC_DEFINE(OS_IRIX,, [am irix]);;
+	AC_DEFINE(OS_IRIX, 1, [am irix]);;
 esac
 
 dnl
@@ -556,21 +556,21 @@ dnl special asm code hooks for cpu -- require GCC.
 if test "$asm" = "yes" -a "x$GCC" = "xyes"; then
 	case "$host_cpu" in
 	i?86)
-		AC_DEFINE(CPU_X86,, [x86 cpu]);;
+		AC_DEFINE(CPU_X86, 1, [x86 cpu]);;
 	mips*)
-		AC_DEFINE(CPU_MIPS,, [mips cpu])
+		AC_DEFINE(CPU_MIPS, 1, [mips cpu])
 		ACG_CHECK_MIPS_LL_SC([
-			AC_DEFINE(HAVE_MIPS_LL_SC,, [modern mips cpu with ll sc])
+			AC_DEFINE(HAVE_MIPS_LL_SC, 1, [modern mips cpu with ll sc])
 		]);;
 	powerpc)
-		AC_DEFINE(CPU_PPC,, [ppc cpu]);;
+		AC_DEFINE(CPU_PPC, 1, [ppc cpu]);;
 	alpha*)
-		AC_DEFINE(CPU_ALPHA,, [alpha cpu]);;
+		AC_DEFINE(CPU_ALPHA, 1, [alpha cpu]);;
 	*)
-		AC_DEFINE(NO_ASM,, [no asm support]);;
+		AC_DEFINE(NO_ASM, 1, [no asm support]);;
 	esac
 else
-	AC_DEFINE(NO_ASM,, [no asm support])
+	AC_DEFINE(NO_ASM, 1, [no asm support])
 fi
 
 dnl
@@ -580,7 +580,7 @@ dnl
 AC_ARG_ENABLE(simd,
 [  --disable-simd          disable fast simd routines ], simd=$enableval, simd=yes)
 if test x$simd = xyes; then
-  ACG_CHECK_GCC_VECTOR_EXTENSION([AC_DEFINE(HAVE_GCC_SIMD,, [gcc SIMD extensions])])
+  ACG_CHECK_GCC_VECTOR_EXTENSION([AC_DEFINE(HAVE_GCC_SIMD, 1, [gcc SIMD extensions])])
 else
   AC_MSG_NOTICE([SIMD support disabled])
 fi
