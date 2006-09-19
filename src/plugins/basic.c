@@ -1,6 +1,6 @@
 /*
  * basic.c
- * $Id: basic.c,v 1.36 2004/10/23 13:09:28 richi Exp $
+ * $Id: basic.c,v 1.37 2006/09/19 20:59:48 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002, 2003 Richard Guenther
  *
@@ -224,6 +224,12 @@ static int one2n_f(filter_t *n)
 		if (do_timeout) {
 			timeout.tv_sec = GLAME_WBUFSIZE/44100;
 			timeout.tv_usec = (long)((1000000.0*(float)(GLAME_WBUFSIZE%44100))/44100);
+		} else {
+			/* We still need a timeout to catch configuration
+			 * errors. */
+			do_timeout = 1;
+			timeout.tv_sec = 5;
+			timeout.tv_usec = 0;
 		}
 #else
 		do_timeout = 1;
@@ -250,6 +256,8 @@ static int one2n_f(filter_t *n)
 			 * pipes (implicitly guaranteed by res == 0). */
 			fd_set inset, outset;
 			/* Network paused? */
+			if (filter_has_error(n->launch_context->net))
+				FILTER_ERROR_STOP("Network error");
 			if (filter_is_ready(n->launch_context))
 				continue;
 			FD_ZERO(&inset);
