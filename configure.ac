@@ -207,8 +207,8 @@ dnl GUILE check, we absolutely need it, so fail if its not there
 dnl the check has AM_CONDITIONAL(GUILE, ...) and defines HAVE_GUILE
 dnl
 
-ACG_CHECK_GUILE(1.4.0, , [
-AC_MSG_ERROR([You need at least guile 1.4.0 to run glame!
+ACG_CHECK_GUILE(1.6.7, , [
+AC_MSG_ERROR([You need at least guile 1.6.7 to run glame!
 Hint: You also need to have the appropriate guile development package
 installed, usually called libguile-dev, guile-devel, or similar.])
 ])
