@@ -3,7 +3,7 @@
 
 /*
  * filter.h
- * $Id: filter.h,v 1.85 2004/10/23 13:09:22 richi Exp $
+ * $Id: filter.h,v 1.86 2006/09/19 20:58:37 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002, 2003 Richard Guenther
  *
@@ -168,6 +168,8 @@ struct filter {
 do { \
        (f)->glerrno = -1; \
        (f)->glerrstr = (errstr); \
+       if ((f)->launch_context) \
+         (f)->launch_context->net->glerrno = -1; \
 } while (0)
 #define filter_clear_error(f) \
 do { \
@@ -283,16 +285,13 @@ int f(filter_t *n)
 	/* init with error checks like */
 	if (/* error? */)
 		FILTER_ERROR_{RETURN|CLEANUP}("bla");
-	if (/* error? */) {
-		filter_set_error("bla");
-		/* local cleanup */
-		FILTER_DO_CLEANUP;
-	}
 	/* everything is set up now */
 	FILTER_AFTER_INIT;
 	do {
 		FILTER_CHECK_STOP;
 		/* work */
+		if (/* error? */)
+			FILTER_ERROR_STOP("bla");
 	} while (/* condition */);
 	FILTER_BEFORE_STOPCLEANUP;
 	/* cleanup in case of goto from FILTER_CHECK_STOP */
@@ -313,12 +312,14 @@ do { \
 #define FILTER_ERROR_RETURN(msg) \
 do { \
         filter_set_error(n, msg); \
+	filter_after_init_hook(n); \
         return -1; \
 } while (0)
 
 #define FILTER_ERROR_CLEANUP(msg) \
 do { \
         filter_set_error(n, msg); \
+	filter_after_init_hook(n); \
         goto _glame_filter_cleanup; \
 } while (0) 
 
