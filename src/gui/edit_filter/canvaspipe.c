@@ -1,7 +1,7 @@
 /*
  * canvaspipe.c
  *
- * $Id: canvaspipe.c,v 1.31 2004/10/23 13:09:25 richi Exp $
+ * $Id: canvaspipe.c,v 1.32 2006/09/19 21:04:27 richi Exp $
  *
  * Copyright (C) 2001, 2002 Johannes Hirche
  *
@@ -882,13 +882,10 @@ GlameCanvasPipe* glame_canvas_pipe_new(GnomeCanvasGroup *group, filter_pipe_t * 
 			   GTK_SIGNAL_FUNC(glame_canvas_port_pipe_deleted_cb),
 			   gDest);
 
-
 	/* reorder all pipes */
-	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_connection_dest(pipe))),
-				"connections_changed");
-	gtk_signal_emit_by_name(GTK_OBJECT(glame_canvas_find_port(filterpipe_connection_source(pipe))),
-				"connections_changed");
-	
+	gtk_signal_emit_by_name(GTK_OBJECT(gDest), "connections_changed");
+	gtk_signal_emit_by_name(GTK_OBJECT(gSource), "connections_changed");
+
 	return gPipe;
 }
 
