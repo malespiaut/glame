@@ -1,7 +1,7 @@
 /*
  * glame_gui_utils.c
  *
- * $Id: glame_gui_utils.c,v 1.40 2005/03/11 20:29:43 richi Exp $
+ * $Id: glame_gui_utils.c,v 1.41 2006/09/19 21:34:03 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Johannes Hirche
  *
@@ -679,7 +679,16 @@ gint glame_menu_get_active_index(GtkMenu *menu)
 void glame_help_goto(void *ignore, const char *url)
 {
         GError *ret = NULL;
-        gnome_url_show(url, &ret);
+	/* FIXME: gnome now no longer likes to have
+	 * underscores in place of spaces in labels. */
+	char *fixed_url;
+	int i;
+	fixed_url = alloca(strlen(url)+1);
+	strcpy(fixed_url, url);
+	for (i=0; fixed_url[i] != '\0'; ++i)
+		if (fixed_url[i] == '_')
+			fixed_url[i] = ' ';
+        gnome_url_show(fixed_url, &ret);
 }
 
 void glame_error_dialog(const char *message, GtkWindow *parent)
