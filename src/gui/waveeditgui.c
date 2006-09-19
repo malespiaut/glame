@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.155 2006/05/23 19:44:47 ochonpaul Exp $
+ * $Id: waveeditgui.c,v 1.156 2006/09/19 21:01:23 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -508,6 +508,9 @@ static void play_cleanup(glsig_handler_t *handler,
 	gtk_widget_show(waveedit->playbutton);
 	gtk_widget_hide(waveedit->rec_live_button);
 	gtk_widget_show(waveedit->rec_stopped_button);
+
+	if (filter_has_error (waveedit->pm_net))
+		glame_network_error_dialog(waveedit->pm_net, _("Cannot play/record wave"));
 
         /* Scan network for swapfile_out nodes and issue gpsm invalidate
          * signals. */
