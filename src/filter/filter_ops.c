@@ -1,6 +1,6 @@
 /*
  * filter_ops.c
- * $Id: filter_ops.c,v 1.41 2004/12/26 20:55:29 richi Exp $
+ * $Id: filter_ops.c,v 1.42 2006/09/19 20:57:14 richi Exp $
  *
  * Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Richard Guenther
  *
@@ -479,7 +479,6 @@ void filter_terminate(filter_launchcontext_t *context)
 int filter_after_init_hook(filter_t *f)
 {
 	DPRINTF("%s seems ready for signalling\n", f->name);
-        filter_clear_error(f);
 
 	pthread_mutex_lock(&f->net->launch_context->cond_mx);
 	if (atomic_dec_and_test(&f->net->launch_context->val))
