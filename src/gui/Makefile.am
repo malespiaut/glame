@@ -3,6 +3,8 @@ INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/filter -I@top_srcdir@/s
 EXTRA_DIST = glame.desktop default-accels \
 	util/gtknob.xpm libgtkwaveform/rec.xpm libgtkwaveform/mute.xpm \
 	libgtkwaveform/sel.xpm \
+	libgtkwaveform/rec_off.xpm libgtkwaveform/mute_off.xpm \
+	libgtkwaveform/sel_off.xpm \
 	edit_filter/edit_filter_marshal.list
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
