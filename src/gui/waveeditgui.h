@@ -69,6 +69,10 @@ struct _WaveeditGui {
 	long pm_marker;
 	gboolean pm_loop;
 
+	/* keep loop and scroll button state */
+	int loop_play;
+	int scroll_play;
+	
 	/* flag, if we are modified */
 	int modified;
 };

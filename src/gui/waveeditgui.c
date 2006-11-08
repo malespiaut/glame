@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.156 2006/09/19 21:01:23 richi Exp $
+ * $Id: waveeditgui.c,v 1.157 2006/11/08 21:34:41 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -432,9 +432,15 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 	gpsm_item_destroy(item);
 }
 
+static void loop_play_set_cb(GtkWidget *button, WaveeditGui *window)
+{
+	window->loop_play = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(button));
+}
 
-
-
+static void scroll_play_set_cb(GtkWidget *button, WaveeditGui *window)
+{
+	window->scroll_play = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(button));
+}
 
 /*
  * Complex stuff like apply, play, record, etc.
@@ -584,6 +590,9 @@ static void play(GtkWaveView *waveview,
 	glsig_emitter_t *emitter;
 	gboolean *flg_rec, *flg_mute;
 
+	/* Check loop button */
+	if (!loop) loop = active_waveedit->loop_play;
+	
 	DPRINTF("play: start %i, end %i, rec_start %i, restore_marker %i, loop %i, extend %i, enable_record %i\n", start, end, rec_start, restore_marker, loop, extend, enable_record);
 
 	/* A simple state machine with two states:
@@ -721,7 +730,7 @@ static void play(GtkWaveView *waveview,
 	}
 
 	emitter = glame_network_notificator_creat(net);
-	if (glame_config_get_long_with_default("waveedit/scroll", 1))
+	if (active_waveedit->scroll_play)	
 		glsig_add_handler(emitter, GLSIG_NETWORK_TICK,
 				  play_update_marker, active_waveedit);
 	glsig_add_handler(emitter, GLSIG_NETWORK_DONE,
@@ -1513,7 +1522,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	WaveeditGui *window;
 	gpsm_grp_t *swfiles;
 	int num_channels;
-
+	GtkWidget *scroll_button;
 	/* Create a data source object. We need a gpsm_grp_t for
 	 * gtk_swapfile_buffer_new which is "flat", i.e. entirely
 	 * consists of gpsm_swfile_t only. The easies way to get
@@ -1525,7 +1534,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 
 	/* Create a Gtk+ window. */
 	window = WAVEEDIT_GUI(gtk_type_new(waveedit_gui_get_type()));
-	gnome_app_construct(GNOME_APP(window), "glame0.7", _(title));
+	gnome_app_construct(GNOME_APP(window), "glame2", _(title));
 	window->root = item;
 	window->swfiles = swfiles;
 	window->modified = 0;
@@ -1538,7 +1547,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	/* Set the zoom factor such that 1 pixel = 5 frames.
 	 * A frame is equal to n samples at one point in time
 	 * where n = number of channels. */
-	gtk_wave_view_set_zoom (GTK_WAVE_VIEW(window->waveview), 50);
+	gtk_wave_view_set_zoom (GTK_WAVE_VIEW(window->waveview), 500);
 	gtk_wave_view_set_marker_scrolling_boundaries(GTK_WAVE_VIEW(window->waveview), 0.5, 0.5);
 	/* Set the cache size to hold 8192 pixel columns of data.
 	 * This means the user can scroll the widget's contents
@@ -1604,6 +1613,20 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				glame_load_icon_widget("select_none.png",24,24),
 				GTK_SIGNAL_FUNC(selectnone_cb), window->waveview);
 	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	
+	gtk_toolbar_append_element(GTK_TOOLBAR(window->toolbar),
+				 GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL ,
+				  _("Loop"), _("Loop"), _("Loop"),
+				 glame_load_icon_widget("repeat.png",24,24),
+				 GTK_SIGNAL_FUNC(loop_play_set_cb), window);
+	
+	scroll_button = gtk_toolbar_append_element(GTK_TOOLBAR(window->toolbar),
+				 GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL,
+				  _("Scroll"), _("Scroll"), _("Scroll"),
+				 glame_load_icon_widget("scroll.png",20,20),
+				 GTK_SIGNAL_FUNC(scroll_play_set_cb), window);
+	
+	
 	window->playbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
 				 GTK_STOCK_MEDIA_PLAY, _("Play"), _("Play"),
 				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview, -1);
@@ -1611,6 +1634,7 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
  				 GTK_STOCK_MEDIA_STOP, _("Stop"), _("Stop"),
  				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview,
  				 -1);
+	
 	gtk_widget_hide(window->stopbutton);
 
 	window->rec_live_button = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
@@ -1633,6 +1657,11 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 				 _("Help"), _("Help"),
 				 GTK_SIGNAL_FUNC(wave_help_cb), window->waveview, -1);
 
+	if (glame_config_get_long_with_default("waveedit/scroll", 1)){ 
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(scroll_button), TRUE);
+		window->scroll_play = 1;
+	} 
+		
 	/* Create menubar - FIXME copy all uiinfos, restructure to
 	 * match nice menu layout, etc.
 	 * menu hints not w/o status bar */
