@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.21 2005/01/16 15:48:00 richi Exp $
+ * $Id: fft_plugins.c,v 1.22 2006/11/25 16:01:50 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002 Alexander Ehlert
  *
@@ -483,6 +483,19 @@ int ifft_register(plugin_t *p)
 	return 0;
 }
 
+/* Calculate best output blocksize from the target rate and the input
+   blocksizes and sample rates.  Sets orate to the effective output
+   sample rate.  */
+static void fft_resample_orate_and_obsize (long rate,
+					   long irate, long ibsize,
+					   long *orate, long *obsize)
+{
+	/* Even output blocksize matching the target rate best.  */
+	*obsize = 2 * (long)(0.5 * (double)rate * ibsize / irate + 0.5);
+	*orate = *obsize * irate / ibsize;
+	DPRINTF("rate %li: %li, %li -> %li, %li\n", rate, irate, ibsize,
+		*orate, *obsize);
+}
 
 static int fft_resample_connect_in(filter_port_t *port, filter_pipe_t *p)
 {
@@ -495,7 +508,7 @@ static int fft_resample_connect_out(filter_port_t *port, filter_pipe_t *p)
 {
 	filter_t *n = filterport_filter(port);
 	filter_pipe_t *in;
-	int rate = 44100, bsize = 2048, osamp = 1;
+	long rate = GLAME_DEFAULT_SAMPLERATE, bsize = 2048, osamp = 1;
 	float hangle = 0.0;
 
 	if(filterport_get_pipe(port))
@@ -505,12 +518,12 @@ static int fft_resample_connect_out(filter_port_t *port, filter_pipe_t *p)
 		filter_portdb(n), PORTNAME_IN)))) {
 		rate = filterparam_val_long(filterparamdb_get_param(
 			filter_paramdb(n), "frequency"));
-	
-		bsize = ((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
-		rate = bsize*filterpipe_fft_rate(in)/filterpipe_fft_bsize(in);
+
+		fft_resample_orate_and_obsize (rate, filterpipe_fft_rate(in),
+					       filterpipe_fft_bsize(in),
+					       &rate, &bsize);
 		osamp = filterpipe_fft_osamp(in);
 		hangle = filterpipe_fft_hangle(in);
-		DPRINTF("resampling to bsize %d and frequency %d\n",bsize,rate);
 	}
 	filterpipe_settype_fft(p, rate, hangle, bsize, osamp);
 	
@@ -522,9 +535,9 @@ static int fft_resample_frequency_set(filter_param_t *param, const void *val)
 {
 	filter_t *n = filterparam_filter(param);
 	filter_pipe_t *out, *in;
-	int rate = *((long *)val);
-	int in_rate = GLAME_DEFAULT_SAMPLERATE, in_bsize = 2048;
-	int out_rate, out_bsize;
+	long rate = *((long *)val);
+	long in_rate = GLAME_DEFAULT_SAMPLERATE, in_bsize = 2048;
+	long out_rate, out_bsize;
 
 	if (rate <= 0)
 		return -1;
@@ -534,9 +547,8 @@ static int fft_resample_frequency_set(filter_param_t *param, const void *val)
 		in_bsize = filterpipe_fft_bsize(in);
 	}
 	if ((out = filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT)))) {
-		out_bsize = ((rate*in_bsize/in_rate) >> 2) << 2;
-		out_rate = out_bsize*in_rate/in_bsize;
-		DPRINTF("rate = %d\n", out_rate);
+		fft_resample_orate_and_obsize (rate, in_rate, in_bsize,
+					       &out_rate, &out_bsize);
 		filterpipe_settype_fft(out, out_rate,
 				       filterpipe_fft_hangle(out), out_bsize,
 				       filterpipe_fft_osamp(out));
@@ -551,7 +563,7 @@ static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 	filter_t	*n;
 	filter_port_t   *oport;
 	filter_pipe_t   *opipe, *in;
-	int rate = 44100, bsize = 2048;
+	long rate = GLAME_DEFAULT_SAMPLERATE, bsize = 2048;
 
 	GLSIGH_GETARGS1(va, in);
 	n = filterport_filter(filterpipe_dest(in));
@@ -562,9 +574,9 @@ static void fft_resample_fixup_pipe(glsig_handler_t *h, long sig, va_list va)
 
 	rate = filterparam_val_long(filterparamdb_get_param(
 		filter_paramdb(n), "frequency"));
-	bsize = ((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
-	rate = bsize*filterpipe_fft_rate(in)/filterpipe_fft_bsize(in);
-	DPRINTF("resampling to bsize %d and frequency %d\n",bsize,rate);
+	fft_resample_orate_and_obsize (rate, filterpipe_fft_rate(in),
+				       filterpipe_fft_bsize(in),
+				       &rate, &bsize);
 	filterpipe_settype_fft(opipe, rate, filterpipe_fft_hangle(in),
 			       bsize, filterpipe_fft_osamp(in));
 
@@ -575,7 +587,6 @@ static int fft_resample_f(filter_t *n)
 {
 	filter_pipe_t *in,*out;
 	filter_buffer_t *inb,*outb;
-	filter_param_t *param;
 	int bsize,blocks,nbsize;
 	int i,len,rate = 0;
 	float gain;
@@ -586,12 +597,10 @@ static int fft_resample_f(filter_t *n)
 		FILTER_ERROR_RETURN("no output");
 
 	bsize=filterpipe_fft_bsize(in);
-	
-	if ((param=filterparamdb_get_param(filter_paramdb(n), "frequency")))
-		rate=filterparam_val_long(param);
 
-	nbsize=((rate*filterpipe_fft_bsize(in)/filterpipe_fft_rate(in))>>2)<<2;
-	DPRINTF("Transforming blocksize %d to blocksize %d, new frequency %d\n",bsize,nbsize,rate);
+	nbsize = filterpipe_fft_bsize (out);
+	rate = filterpipe_fft_rate (out);
+
 	len=MIN(nbsize,bsize)/2;
 	gain=(float)nbsize/(float)bsize;
 	
