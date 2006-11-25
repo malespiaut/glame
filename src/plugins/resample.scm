@@ -4,7 +4,8 @@
 		(ifft "ifft"))
 	((fft "in" "in" "resample in"))
 	((ifft "out" "out" "resample out"))
-	((res "frequency" "frequency" "new sample frequency"))
+	((res "frequency" "frequency" "new sample frequency")
+	 (ifft "drift" "drift" "drift"))
 	(begin (filternode_set_param net "frequency" 44100)
 		(filternode_set_param fft "blocksize" 512); frequency accuracy = 43 Hz
 		(filternode_set_param fft "oversamp" 4)
