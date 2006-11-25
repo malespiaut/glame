@@ -1064,11 +1064,18 @@ int glscript_init_filter()
 	glame_reg_export ("filter-wait", 1, 0, 0, gls_filter_wait);
 	glame_reg_export ("filter-terminate", 1, 0, 0, gls_filter_terminate);
 
+	/* backward compatible defines, port? overrides a core binding */
 	glame_reg_export ("port?", 1, 0, 0, gls_is_port);
 	glame_reg_export ("port-label", 1, 0, 0, gls_port_label);
 	glame_reg_export ("port-delete", 1, 0, 0, gls_port_delete);
 	glame_reg_export ("port-pipes", 1, 0, 0, gls_port_pipes);
 	glame_reg_export ("port-params", 1, 0, 0, gls_port_params);
+
+	glame_reg_export ("fport?", 1, 0, 0, gls_is_port);
+	glame_reg_export ("fport-label", 1, 0, 0, gls_port_label);
+	glame_reg_export ("fport-delete", 1, 0, 0, gls_port_delete);
+	glame_reg_export ("fport-pipes", 1, 0, 0, gls_port_pipes);
+	glame_reg_export ("fport-params", 1, 0, 0, gls_port_params);
 
 	glame_reg_export ("param?", 1, 0, 0, gls_is_param);
 	glame_reg_export ("param-label", 1, 0, 0, gls_param_label);

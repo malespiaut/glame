@@ -1,4 +1,4 @@
-@comment $Id: cglame.texi,v 1.17 2005/03/28 18:27:08 richi Exp $
+@comment $Id: cglame.texi,v 1.18 2006/11/25 12:08:09 richi Exp $
 
 @node Console Frontend, Plugin Collection, Graphical Frontend, Top
 @chapter Console Frontend (cglame)
@@ -115,7 +115,7 @@ The basic filter subsystem types, @code{filter_t}, @code{filter_port_t},
 types and such can be type checked.
 
 @defun filter? obj
-@defunx port? obj
+@defunx fport? obj
 @defunx pipe? obj
 @defunx param? obj 
 These procedures check @code{obj} for being of the specified type and
@@ -137,9 +137,9 @@ associated with the filter.
 Out of a port object you can get information and subobjects using
 the following procedures:
 
-@defun port-label port
-@defunx port-pipes port
-@defunx port-params port
+@defun fport-label port
+@defunx fport-pipes port
+@defunx fport-params port
 These procedures evaluate to a string containing the ports label or
 to lists of the specified object type representing the actual subobjects
 associated with the port.
@@ -201,7 +201,7 @@ and destruction of objects.
 
 @defun filter-new [filter|plugin]
 @defunx filter-delete filter
-@defunx port-delete port
+@defunx fport-delete port
 @defunx param-delete param
 @defunx pipe-delete pipe
 @code{filter-new} constructs a new filter object by either cloning
