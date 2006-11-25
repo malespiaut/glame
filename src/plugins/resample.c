@@ -1,6 +1,6 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.6 2004/12/26 20:58:12 richi Exp $
+ * $Id: resample.c,v 1.7 2006/11/25 11:26:52 richi Exp $
  *
  * Copyright (C) 2003, 2004 Richard Guenther
  *
@@ -50,6 +50,7 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 {
 	gpsm_item_t *item;
 	filter_param_t *input_filename, *input_samplerate, *output_filename;
+	filter_param_t *output_size;
 	filter_t *net;
 
 	/* Build a basic network for resampling of one track. */
@@ -68,6 +69,8 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 			filter_paramdb(swout), "flags"), 2 /* truncate */);
 		output_filename = filterparamdb_get_param(
 			filter_paramdb(swout), "filename");
+		output_size = filterparamdb_get_param(
+			filter_paramdb(swout), "size");
 		filterport_connect(filterportdb_get_port(filter_portdb(swin), PORTNAME_OUT),
 				   filterportdb_get_port(filter_portdb(resamp), PORTNAME_IN));
 		filterport_connect(filterportdb_get_port(filter_portdb(resamp), PORTNAME_OUT),
@@ -77,6 +80,7 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 	gpsm_grp_foreach_item(swfiles, item) {
 		filter_launchcontext_t *context;
 		gpsm_swfile_t *file;
+		long osize;
 
 		/* Skip, if already ok. */
 		if (gpsm_swfile_samplerate(item) == samplerate)
@@ -89,6 +93,8 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 		filterparam_set_long(input_filename, gpsm_swfile_filename(file));
 		filterparam_set_long(input_samplerate, gpsm_swfile_samplerate(file));
 		filterparam_set_long(output_filename, gpsm_swfile_filename(item));
+		osize = (double)gpsm_item_hsize(file) * samplerate / gpsm_swfile_samplerate(file);
+		filterparam_set_long(output_size, osize);
 		context = filter_launch(net, GLAME_BULK_BUFSIZE);
 		filter_start(context);
 		filter_wait(context);
