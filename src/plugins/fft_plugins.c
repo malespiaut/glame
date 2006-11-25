@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.23 2006/11/25 17:52:06 richi Exp $
+ * $Id: fft_plugins.c,v 1.24 2006/11/25 19:07:32 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002 Alexander Ehlert
  *
@@ -481,7 +481,7 @@ int ifft_register(plugin_t *p)
 	out->connect = ifft_connect_out;
 
 	filterparamdb_add_param_double(filter_paramdb(f),"drift",
-			FILTER_PARAMTYPE_DOUBLE, 0.0,
+			FILTER_PARAMTYPE_DOUBLE, 1.0,
 			FILTERPARAM_DESCRIPTION,"drift to compensate",
 			FILTERPARAM_END);
 
