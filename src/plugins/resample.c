@@ -1,6 +1,6 @@
 /*
  * resample.c
- * $Id: resample.c,v 1.7 2006/11/25 11:26:52 richi Exp $
+ * $Id: resample.c,v 1.8 2006/11/25 17:54:02 richi Exp $
  *
  * Copyright (C) 2003, 2004 Richard Guenther
  *
@@ -52,12 +52,11 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 	filter_param_t *input_filename, *input_samplerate, *output_filename;
 	filter_param_t *output_size;
 	filter_t *net;
+	filter_t *swin, *resamp, *swout;
 
 	/* Build a basic network for resampling of one track. */
 	net = filter_creat(NULL);
 	{
-		filter_t *swin, *resamp, *swout;
-
 		swin = net_add_plugin_by_name(net, "swapfile_in");
 		input_filename = filterparamdb_get_param(filter_paramdb(swin), "filename");
 		input_samplerate = filterparamdb_get_param(filter_paramdb(swin), "rate");
@@ -95,6 +94,10 @@ static void do_resample(gpsm_grp_t *swfiles, long samplerate)
 		filterparam_set_long(output_filename, gpsm_swfile_filename(item));
 		osize = (double)gpsm_item_hsize(file) * samplerate / gpsm_swfile_samplerate(file);
 		filterparam_set_long(output_size, osize);
+		/* Set drift compensation.  */
+		filterparam_set_double(filterparamdb_get_param(
+			filter_paramdb(resamp), "drift"),
+			(double)filterpipe_sample_rate (filterport_get_pipe (filterportdb_get_port(filter_portdb(swout), PORTNAME_IN)))/samplerate);
 		context = filter_launch(net, GLAME_BULK_BUFSIZE);
 		filter_start(context);
 		filter_wait(context);

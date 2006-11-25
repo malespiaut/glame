@@ -1,6 +1,6 @@
 /*
  * importexport.c
- * $Id: importexport.c,v 1.59 2006/11/25 16:03:17 richi Exp $
+ * $Id: importexport.c,v 1.60 2006/11/25 17:54:02 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003, 2004 Alexander Ehlert
  *
@@ -545,8 +545,10 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 			filter_delete(swout);
 			break;
 		}
+		if (dorsmpl)
+			filterparam_set_double(filterparamdb_get_param(filter_paramdb(resample), "drift"), (double)filterpipe_sample_rate(pipe)/newrate);
 		gpsm_swfile_set((gpsm_swfile_t *)it,
-				filterpipe_sample_rate(pipe),
+				dorsmpl ? newrate : filterpipe_sample_rate(pipe),
 				filterpipe_sample_hangle(pipe));
 		i++;
 	} while (i < ie->chancnt);
@@ -583,11 +585,8 @@ static void ie_import_cb(GtkWidget *bla, struct imp_s *ie)
 
 	if (ie->cancelled==0) {
 		/* Notify gpsm of the change. */
-		gpsm_grp_foreach_item(group, it) {
-			if (GPSM_ITEM_IS_SWFILE (it) && dorsmpl)
-				gpsm_swfile_set_samplerate (it, newrate);
+		gpsm_grp_foreach_item(group, it)
 			gpsm_invalidate_swapfile(gpsm_swfile_filename(it));
-		}
 		
 		/* Store the imported gpsm grp for return. */
 		ie->item = (gpsm_item_t *)group;
