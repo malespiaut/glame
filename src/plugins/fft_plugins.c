@@ -1,6 +1,6 @@
 /*
  * fft.c
- * $Id: fft_plugins.c,v 1.22 2006/11/25 16:01:50 richi Exp $
+ * $Id: fft_plugins.c,v 1.23 2006/11/25 17:52:06 richi Exp $
  *
  * Copyright (C) 2000, 2001, 2002 Alexander Ehlert
  *
@@ -371,11 +371,18 @@ static int ifft_f(filter_t *n)
 	float fak;
 	int osamp, bsize, i, j, ibufcnt, ooff;
 	float gain;
+	double delta = 0.0;
+	int idelta = 0;
+	double drift = 0.0;
 	
 	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
 	if (!(out=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_OUT))))
 		FILTER_ERROR_RETURN("no output");
+
+	drift = filterparam_val_double(filterparamdb_get_param(
+				       filter_paramdb(n), "drift"));
+	DPRINTF("compensating a drift of %.3e\n", drift);
 
 	bsize=filterpipe_fft_bsize(in);
 	osamp=filterpipe_fft_osamp(in);
@@ -429,8 +436,11 @@ static int ifft_f(filter_t *n)
 		s = sbuf_buf(inb);
 		
 		for (i=0; i<ibufcnt; i++) {
+			delta += ooff * (1.0 - drift);
+			idelta = (int)delta;
+			delta -= idelta;
 			out_queue_add(&queue, s, bsize);
-			out_queue_shift(&queue, ooff);
+			out_queue_shift(&queue, ooff+idelta);
 			s += bsize;
 		}
 		sbuf_unref(inb);
@@ -469,7 +479,12 @@ int ifft_register(plugin_t *p)
 				    FILTERPORT_DESCRIPTION, "audio stream",
 				    FILTERPORT_END);
 	out->connect = ifft_connect_out;
-	
+
+	filterparamdb_add_param_double(filter_paramdb(f),"drift",
+			FILTER_PARAMTYPE_DOUBLE, 0.0,
+			FILTERPARAM_DESCRIPTION,"drift to compensate",
+			FILTERPARAM_END);
+
 	f->f = ifft_f;
 	glsig_add_handler(&f->emitter, GLSIG_PIPE_CHANGED, ifft_fixup_pipe, NULL);
 	
@@ -588,8 +603,8 @@ static int fft_resample_f(filter_t *n)
 	filter_pipe_t *in,*out;
 	filter_buffer_t *inb,*outb;
 	int bsize,blocks,nbsize;
-	int i,len,rate = 0;
-	float gain;
+	int i,len,rate,orate;
+	float gain,drift;
 	
 	if (!(in=filterport_get_pipe(filterportdb_get_port(filter_portdb(n), PORTNAME_IN))))
 		FILTER_ERROR_RETURN("no input");
@@ -603,7 +618,12 @@ static int fft_resample_f(filter_t *n)
 
 	len=MIN(nbsize,bsize)/2;
 	gain=(float)nbsize/(float)bsize;
-	
+
+	orate = filterparam_val_long(filterparamdb_get_param(
+		filter_paramdb(n), "frequency"));
+	drift = (float)rate/orate;
+	DPRINTF("Difference in frequencies cause a drift of %.3e\n", drift);
+
 	FILTER_AFTER_INIT;
 	
 	goto entry;
