@@ -11,4 +11,4 @@ libhash_la_SOURCES = glame_hash.h glame_hash.c \
 libhash_la_LDFLAGS = -export-dynamic
 
 glsimd.lo:
-	$(LTCOMPILE) -c -o $@ @srcdir@/glsimd.c @extra_cflag_unroll@
+	$(LTCOMPILE) @extra_cflag_unroll@ -c -o $@ @srcdir@/glsimd.c
