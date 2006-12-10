@@ -63,7 +63,7 @@ Requirements
   libraries with deprecated features built in.
 - The scripting part makes use of guile; upgrading to the lastest and 
   greatest here is a good idea too, in case anything doesn't work as 
-  expected (latest 1.4 and latest 1.6 releases are known to work).
+  expected.  At least version 1.6.7 is required.
 - Another requirement is a recent libxml2 which is used by the midlayer.
 - For developing you need autoconf version 2.59 or later and automake
   of the 1.9 series as well as recent libtool and gettext at least
