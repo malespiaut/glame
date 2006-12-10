@@ -1,7 +1,7 @@
 /*
  * canvasport.c
  *
- * $Id: canvasport.c,v 1.38 2005/03/19 22:14:51 richi Exp $
+ * $Id: canvasport.c,v 1.39 2006/12/10 13:18:21 xwolf Exp $
  *
  * Copyright (C) 2001, 2002 Johannes Hirche
  *
@@ -35,8 +35,11 @@
 #include "canvasitem.h"
 #include "util/glame_gui_utils.h"
 #include "hash.h"
-#include <X11/bitmaps/hlines3>
 #include "edit_filter_marshal.h"
+
+static char _hlines3_bits[] = {
+   0x00, 0x01, 0x00};
+
 
 extern long bMac;
 extern long nPopupTimeout;
@@ -694,7 +697,7 @@ glame_canvas_port_redraw(GlameCanvasPort * port)
 	static GdkBitmap *bitmap=NULL;
 	
 	if(!bitmap)
-		bitmap = gdk_bitmap_create_from_data(GTK_WIDGET(CANVAS_ITEM_CANVAS(port))->window,hlines3_bits,1,3);
+		bitmap = gdk_bitmap_create_from_data(GTK_WIDGET(CANVAS_ITEM_CANVAS(port))->window,_hlines3_bits,1,3);
 	
 	if(glame_canvas_port_is_external(port)){
 		gtk_object_set(GTK_OBJECT(port),"fill_stipple",bitmap,NULL);
