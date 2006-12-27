@@ -1128,7 +1128,9 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 	 * the count appropriately. */
 	if (sw_fstat(fd, &stat) == -1)
 		return -1;
-	if (stat.offset + count > stat.size)
+	if (stat.offset >= stat.size)
+		count = 0;
+	else if (stat.offset + count > stat.size)
 		count -= stat.offset + count - stat.size;
 
 	cnt = count;
@@ -1185,7 +1187,9 @@ ssize_t sw_read(swfd_t fd, void *buf, size_t count)
 
 	/* Check, if we will cross the file end and correct
 	 * the count appropriately. */
-	if (_fd->file->clusters->size < _fd->offset + count)
+	if (_fd->file->clusters->size <= _fd->offset)
+		count = 0;
+	else if (_fd->file->clusters->size < _fd->offset + count)
 		count -= _fd->offset + count - _fd->file->clusters->size;
 
 	cnt = count;
