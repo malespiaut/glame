@@ -1,7 +1,7 @@
 /*
  * glconfig.c
  *
- * $Id: glconfig.c,v 1.4 2004/10/23 13:09:23 richi Exp $
+ * $Id: glconfig.c,v 1.5 2006/12/28 21:44:12 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2004 Richard Guenther
  *
@@ -125,7 +125,8 @@ int glame_config_get_long(const char *key, long *value)
 	snprintf(cmd, 255, "(glame-config-get '%s)", key);
 	/* FIXME: execute with catch. */
 	s_res = glame_gh_safe_eval_str(cmd);
-	if (!gh_exact_p(s_res))
+	if (!gh_number_p(s_res)
+	    || !gh_exact_p(s_res))
 		return -1;
 	*value = glame_scm2long(s_res);
 	return 0;
