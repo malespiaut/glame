@@ -12,7 +12,6 @@ EXTRA_DIST = basic.c basic_sample.c arithmetic.c \
 	fader.c builtins.c stretch.c resample.c \
 	echo2.scm resample.scm bassboost.scm read_mp3.scm \
 	write_mp3.scm
-# audio_io_jack.c midi_io_alsa.c
 
 # macro filters
 pkgscripts_DATA = echo2.scm resample.scm bassboost.scm read_mp3.scm \
@@ -37,9 +36,6 @@ audio_io_oss = audio_io_oss.la
 endif
 if HAVE_ALSA
 audio_io_alsa = audio_io_alsa.la
-endif
-if HAVE_JACK
-audio_io_jack = audio_io_jack.la
 endif
 if HAVE_ESD
 audio_io_esd = audio_io_esd.la
@@ -66,7 +62,7 @@ libglamebuiltins_la_DEPENDENCIES = builtins.c
 pkglib_LTLIBRARIES = \
 	debug.la tutorial.la\
 	$(normalize) \
-	$(audio_io_oss) $(audio_io_alsa) $(audio_io_jack) \
+	$(audio_io_oss) $(audio_io_alsa) \
 	$(audio_io_esd) $(audio_io_irix) $(file_mp3_out)  $(file_oggvorbis_out) \
 	$(fft_plugins_plugin)
 
@@ -102,14 +98,8 @@ audio_io_esd_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS)
 
 if HAVE_ALSA
 audio_io_alsa_la_SOURCES = audio_io_alsa.c audio_io.h
-# midi_io_alsa.c
 endif
 audio_io_alsa_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(ALSA_LIBS)
-
-if HAVE_JACK
-audio_io_jack_la_SOURCES = audio_io_jack.c audio_io.h
-endif
-audio_io_jack_la_LDFLAGS = -module -avoid-version $(GLAME_LIBDIR) $(GLAME_LIBS) $(JACK_LIBS)
 
 if HAVE_SGI
 audio_io_irix_la_SOURCES = audio_io_irix.c audio_io.h
