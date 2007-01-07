@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.157 2006/11/08 21:34:41 ochonpaul Exp $
+ * $Id: waveeditgui.c,v 1.158 2007/01/07 22:20:49 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -434,12 +434,12 @@ static void redo_cb(GtkWidget *bla, GtkWaveView *waveview)
 
 static void loop_play_set_cb(GtkWidget *button, WaveeditGui *window)
 {
-	window->loop_play = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(button));
-}
-
+	window->loop_play = gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON(button));
+}		
+	
 static void scroll_play_set_cb(GtkWidget *button, WaveeditGui *window)
 {
-	window->scroll_play = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(button));
+	window->scroll_play = gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON(button));
 }
 
 /*
@@ -510,11 +510,12 @@ static void play_cleanup(glsig_handler_t *handler,
 					 waveedit->pm_marker);
 
 	/* Restore normal play and record button.  */
-	gtk_widget_hide(waveedit->stopbutton);
-	gtk_widget_show(waveedit->playbutton);
-	gtk_widget_hide(waveedit->rec_live_button);
-	gtk_widget_show(waveedit->rec_stopped_button);
-
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (active_waveedit->playbutton),GTK_STOCK_MEDIA_PLAY);
+	gtk_widget_show_all(GTK_WIDGET(active_waveedit->playbutton));
+	/* Exchange rec. buttons */
+	gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON (active_waveedit->recbutton),glame_load_icon_widget("record_stopped.png",24,24));
+	gtk_widget_show_all(GTK_WIDGET(active_waveedit->recbutton));
+	
 	if (filter_has_error (waveedit->pm_net))
 		glame_network_error_dialog(waveedit->pm_net, _("Cannot play/record wave"));
 
@@ -754,13 +755,13 @@ static void play(GtkWaveView *waveview,
 	}
 
 	/* Exchange play for stop button.  */
-	gtk_widget_show(active_waveedit->stopbutton);
-	gtk_widget_hide(active_waveedit->playbutton);
-
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (active_waveedit->playbutton),GTK_STOCK_MEDIA_STOP);
+	gtk_widget_show_all(GTK_WIDGET(active_waveedit->playbutton));
 	/* Exchange rec. buttons */
 	if (rec_cnt > 0 && enable_record) {
-	gtk_widget_show(active_waveedit->rec_live_button);
-	gtk_widget_hide(active_waveedit->rec_stopped_button);
+gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON (active_waveedit->recbutton),NULL);
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (active_waveedit->recbutton),GTK_STOCK_MEDIA_RECORD);
+	gtk_widget_show_all(GTK_WIDGET(active_waveedit->recbutton));
 	}
 	
 	active_waveedit->locked = 1;
@@ -779,7 +780,6 @@ fail_other:
 	glame_error_dialog(_("Error constructing recording/playing network"), NULL);
 	return;
 }
-
 
 static void playtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
 {
@@ -1522,7 +1522,8 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	WaveeditGui *window;
 	gpsm_grp_t *swfiles;
 	int num_channels;
-	GtkWidget *scroll_button;
+	GtkToolItem  *button, *scroll_button, *separator;
+	
 	/* Create a data source object. We need a gpsm_grp_t for
 	 * gtk_swapfile_buffer_new which is "flat", i.e. entirely
 	 * consists of gpsm_swfile_t only. The easies way to get
@@ -1581,87 +1582,105 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 
 	/* Adjust window height according to channels number */
 	num_channels = gtk_wave_buffer_get_num_channels (gtk_wave_view_get_buffer(GTK_WAVE_VIEW(window->waveview)));
-	gtk_widget_set_usize(window->waveview, 400, (50 + 100 * (MIN (num_channels, 6))));
-
-
+	gtk_widget_set_usize(window->waveview, 1000, (50 + 100 * (MIN (num_channels, 6))));
+	
 	/* Add the toolbar. */
 	window->toolbar = gtk_toolbar_new();
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_SAVE,
-				 _("Export"), _("Export"),
-				 GTK_SIGNAL_FUNC(wave_export_cb), window,-1);
-	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_ZOOM_IN,
-				 _("Zoom in"), _("Zoom in"), 
-				 GTK_SIGNAL_FUNC(zoomin_cb), window->waveview,-1);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_ZOOM_OUT,
-				 _("Zoom out"), _("Zoom out"), 
-				 GTK_SIGNAL_FUNC(zoomout_cb), window->waveview,-1);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_ZOOM_FIT,
-				 _("View all"), _("View all"), 
-				 GTK_SIGNAL_FUNC(zoomfull_cb), window->waveview,-1);
-	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Select all"), _("Select all"), _("Select all"),
-				glame_load_icon_widget("select_all.png",24,24),
-				GTK_SIGNAL_FUNC(selectall_cb), window->waveview);
-	gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar),
-				_("Select none"), _("Select none"), _("Select none"),
-				glame_load_icon_widget("select_none.png",24,24),
-				GTK_SIGNAL_FUNC(selectnone_cb), window->waveview);
-	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
+	gtk_toolbar_set_show_arrow(GTK_TOOLBAR(window->toolbar), TRUE);
 	
-	gtk_toolbar_append_element(GTK_TOOLBAR(window->toolbar),
-				 GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL ,
-				  _("Loop"), _("Loop"), _("Loop"),
-				 glame_load_icon_widget("repeat.png",24,24),
-				 GTK_SIGNAL_FUNC(loop_play_set_cb), window);
+	button = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (button),GTK_STOCK_CLOSE);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (wave_close_cb), window);
 	
-	scroll_button = gtk_toolbar_append_element(GTK_TOOLBAR(window->toolbar),
-				 GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL,
-				  _("Scroll"), _("Scroll"), _("Scroll"),
-				 glame_load_icon_widget("scroll.png",20,20),
-				 GTK_SIGNAL_FUNC(scroll_play_set_cb), window);
+	separator = gtk_separator_tool_item_new();
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
 	
-	
-	window->playbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_MEDIA_PLAY, _("Play"), _("Play"),
-				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview, -1);
-	window->stopbutton = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
- 				 GTK_STOCK_MEDIA_STOP, _("Stop"), _("Stop"),
- 				 GTK_SIGNAL_FUNC(playtoolbar_cb), window->waveview,
- 				 -1);
-	
-	gtk_widget_hide(window->stopbutton);
+	window->playbutton = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (window->playbutton),GTK_STOCK_MEDIA_PLAY);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar),window->playbutton, -1);
+	g_signal_connect ((gpointer)window->playbutton, "clicked",
+	                   G_CALLBACK (playtoolbar_cb),window->waveview);
 
-	window->rec_live_button = gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_MEDIA_RECORD, _("Record"), _("Record"),
-				 GTK_SIGNAL_FUNC(recordtoolbar_cb), window->waveview, -1);
-	window->rec_stopped_button = gtk_toolbar_append_item(GTK_TOOLBAR(window->toolbar), 
-				 _("Record"), _("Record"), _("Record"),
- 				 glame_load_icon_widget("record_stopped.png",24,24),
- 				 GTK_SIGNAL_FUNC(recordtoolbar_cb), window->waveview);
-	gtk_widget_hide(window->rec_live_button);
+	window->recbutton = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (window->recbutton),GTK_STOCK_MEDIA_RECORD);
+	gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON (window->recbutton),glame_load_icon_widget("record_stopped.png",24,24));
+	gtk_tool_button_set_label(GTK_TOOL_BUTTON(window->recbutton),_("Record"));
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar),window->recbutton, -1);
+	g_signal_connect ((gpointer)window->recbutton, "clicked",
+	                   G_CALLBACK (recordtoolbar_cb),window->waveview);
 
-	/* Keep last. */
-	gtk_toolbar_append_space(GTK_TOOLBAR(window->toolbar));
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_CLOSE,
-				 _("Close"), _("Close"),
-				 GTK_SIGNAL_FUNC(wave_close_cb), window, -1);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(window->toolbar),
-				 GTK_STOCK_HELP,
-				 _("Help"), _("Help"),
-				 GTK_SIGNAL_FUNC(wave_help_cb), window->waveview, -1);
+	separator = gtk_separator_tool_item_new();
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
+	
+	button = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
+	gtk_tool_button_set_label(GTK_TOOL_BUTTON(button),_("Export"));
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (wave_export_cb), NULL);
+	
+	separator = gtk_separator_tool_item_new();
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
+	
+	button = gtk_tool_button_new(glame_load_icon_widget("select_all.png",24,24),_("Select all"));
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (selectall_cb), window->waveview);
+	
+	button = gtk_tool_button_new(glame_load_icon_widget("select_none.png",24,24),_("Select none"));
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (selectnone_cb), window->waveview);
+	
+	separator = gtk_separator_tool_item_new();
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
+	
+	button = gtk_tool_button_new_from_stock(GTK_STOCK_ZOOM_IN);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (zoomin_cb), window->waveview);
+	
+	button = gtk_tool_button_new_from_stock(GTK_STOCK_ZOOM_OUT);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (zoomout_cb), window->waveview);
+	
+	button = gtk_tool_button_new_from_stock(GTK_STOCK_ZOOM_FIT);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (zoomfull_cb), window->waveview);
+	
+	separator = gtk_separator_tool_item_new();
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
+	
+	button = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON(button),glame_load_icon_widget("repeat.png",24,24));
+	gtk_tool_button_set_label(GTK_TOOL_BUTTON(button),_("Loop"));
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (loop_play_set_cb), window);
+			
+	scroll_button = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON(scroll_button),glame_load_icon_widget("scroll.png",24,24));
+	gtk_tool_button_set_label(GTK_TOOL_BUTTON(scroll_button),_("Scroll"));
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar),scroll_button, -1);
+	g_signal_connect ((gpointer)scroll_button, "clicked",
+	                   G_CALLBACK (scroll_play_set_cb), window);
+	
+	button = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (button),GTK_STOCK_HELP);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect ((gpointer) button, "clicked",
+	                   G_CALLBACK (wave_help_cb), window);
 
 	if (glame_config_get_long_with_default("waveedit/scroll", 1)){ 
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(scroll_button), TRUE);
+		gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(scroll_button), TRUE);
 		window->scroll_play = 1;
 	} 
-		
+	
+	gtk_widget_show_all(window->toolbar); 
+	
 	/* Create menubar - FIXME copy all uiinfos, restructure to
 	 * match nice menu layout, etc.
 	 * menu hints not w/o status bar */
