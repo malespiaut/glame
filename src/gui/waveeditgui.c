@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.158 2007/01/07 22:20:49 ochonpaul Exp $
+ * $Id: waveeditgui.c,v 1.159 2007/01/25 18:54:26 richi Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -817,8 +817,10 @@ static void recordtoolbar_cb(GtkWidget *bla, GtkWaveView *waveview)
 		play(waveview, start, end, start, TRUE, FALSE, FALSE, TRUE);
 }
 
-static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
+
+static void playmarker_cb(GtkWidget *bla, void *foo)
 {
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gint32 start, end;
 
@@ -828,8 +830,9 @@ static void playmarker_cb(GtkWidget *bla, GtkWaveView *waveview)
 	play(waveview, start, end, start, FALSE, FALSE, FALSE, FALSE);
 }
 
-static void playselection_cb(GtkWidget *widget, GtkWaveView *waveview)
+static void playselection_cb(GtkWidget *widget, void *foo)
 {
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	gint32 start, end;
 
 	/* Play the current selection, restore marker at stop. */
@@ -842,8 +845,9 @@ static void playselection_cb(GtkWidget *widget, GtkWaveView *waveview)
 	play(waveview, start, end, start, TRUE, FALSE, FALSE, FALSE);
 }
 
-static void playall_cb(GtkWidget *widget, GtkWaveView *waveview)
+static void playall_cb(GtkWidget *widget, void *foo)
 {
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gint32 start, end;
 
@@ -853,8 +857,9 @@ static void playall_cb(GtkWidget *widget, GtkWaveView *waveview)
 	play(waveview, start, end, start, TRUE, FALSE, FALSE, FALSE);
 }
 
-static void recordmarker_cb(GtkWidget *widget, GtkWaveView *waveview)
+static void recordmarker_cb(GtkWidget *widget, void *foo)
 {
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	GtkWaveBuffer *wavebuffer = gtk_wave_view_get_buffer(waveview);
 	gint32 start, end;
 
@@ -864,8 +869,9 @@ static void recordmarker_cb(GtkWidget *widget, GtkWaveView *waveview)
 	play(waveview, start, end, start, FALSE, FALSE, TRUE, TRUE);
 }
 
-static void recordselection_cb(GtkWidget *widget, GtkWaveView *waveview)
+static void recordselection_cb(GtkWidget *widget, void *foo)
 {
+	GtkWaveView *waveview = GTK_WAVE_VIEW(active_waveedit->waveview);
 	gint32 start, end, marker, rec_start;
 
 	/* Play the current selection, restore marker at stop. */
@@ -1036,6 +1042,18 @@ static GnomeUIInfo rmb_menu[] = {
 #define RMB_MENU_APPLY_OP_INDEX 12
 #define RMB_MENU_APPLY_FILTER_INDEX 13
 
+static GnomeUIInfo play_menu[] = {
+	GNOMEUIINFO_ITEM(N_("all"), NULL, playall_cb, NULL),
+	GNOMEUIINFO_ITEM(N_("selection"), NULL, playselection_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("from marker"), NULL, playmarker_cb, NULL),	
+	GNOMEUIINFO_END
+};
+
+static GnomeUIInfo record_menu[] = {
+	GNOMEUIINFO_ITEM(N_("at marker"), NULL, recordmarker_cb, NULL),	
+	GNOMEUIINFO_ITEM(N_("into selection"), NULL, recordselection_cb, NULL),	
+	GNOMEUIINFO_END
+};
 
 /* Somehow only select "effects" (one input, one output) type of
  * filters... */
@@ -1523,7 +1541,8 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gpsm_grp_t *swfiles;
 	int num_channels;
 	GtkToolItem  *button, *scroll_button, *separator;
-	
+	GtkWidget *menu;
+
 	/* Create a data source object. We need a gpsm_grp_t for
 	 * gtk_swapfile_buffer_new which is "flat", i.e. entirely
 	 * consists of gpsm_swfile_t only. The easies way to get
@@ -1582,33 +1601,27 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 
 	/* Adjust window height according to channels number */
 	num_channels = gtk_wave_buffer_get_num_channels (gtk_wave_view_get_buffer(GTK_WAVE_VIEW(window->waveview)));
-	gtk_widget_set_usize(window->waveview, 1000, (50 + 100 * (MIN (num_channels, 6))));
+	gtk_window_set_default_size (GTK_WINDOW (window), 1000, (50 + 100 * (MIN (num_channels, 6))));
 	
 	/* Add the toolbar. */
 	window->toolbar = gtk_toolbar_new();
 	gtk_toolbar_set_show_arrow(GTK_TOOLBAR(window->toolbar), TRUE);
-	
-	button = gtk_toggle_tool_button_new();
-	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (button),GTK_STOCK_CLOSE);
-	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
-	g_signal_connect ((gpointer) button, "clicked",
-	                   G_CALLBACK (wave_close_cb), window);
-	
-	separator = gtk_separator_tool_item_new();
-	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
-	
-	window->playbutton = gtk_toggle_tool_button_new();
-	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (window->playbutton),GTK_STOCK_MEDIA_PLAY);
+
+	menu = gnome_popup_menu_new(play_menu);
+	window->playbutton = gtk_menu_tool_button_new_from_stock(GTK_STOCK_MEDIA_PLAY);
+	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON (window->playbutton), menu);
 	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar),window->playbutton, -1);
-	g_signal_connect ((gpointer)window->playbutton, "clicked",
+	g_signal_connect((gpointer)window->playbutton, "clicked",
 	                   G_CALLBACK (playtoolbar_cb),window->waveview);
 
-	window->recbutton = gtk_toggle_tool_button_new();
-	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (window->recbutton),GTK_STOCK_MEDIA_RECORD);
-	gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON (window->recbutton),glame_load_icon_widget("record_stopped.png",24,24));
+	menu = gnome_popup_menu_new(record_menu);
+	window->recbutton = gtk_menu_tool_button_new_from_stock(GTK_STOCK_MEDIA_RECORD);
+	gtk_tool_button_set_icon_widget (GTK_TOOL_BUTTON (window->recbutton),
+					 glame_load_icon_widget("record_stopped.png",24,24));
 	gtk_tool_button_set_label(GTK_TOOL_BUTTON(window->recbutton),_("Record"));
+	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON (window->recbutton), menu);
 	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar),window->recbutton, -1);
-	g_signal_connect ((gpointer)window->recbutton, "clicked",
+	g_signal_connect((gpointer)window->recbutton, "clicked",
 	                   G_CALLBACK (recordtoolbar_cb),window->waveview);
 
 	separator = gtk_separator_tool_item_new();
@@ -1667,13 +1680,22 @@ WaveeditGui *glame_waveedit_gui_new(const char *title, gpsm_item_t *item)
 	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar),scroll_button, -1);
 	g_signal_connect ((gpointer)scroll_button, "clicked",
 	                   G_CALLBACK (scroll_play_set_cb), window);
-	
+
+	separator = gtk_separator_tool_item_new();
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), separator, -1);
+
 	button = gtk_toggle_tool_button_new();
 	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (button),GTK_STOCK_HELP);
 	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
 	g_signal_connect ((gpointer) button, "clicked",
 	                   G_CALLBACK (wave_help_cb), window);
 
+	button = gtk_toggle_tool_button_new();
+	gtk_tool_button_set_stock_id (GTK_TOOL_BUTTON (button),GTK_STOCK_CLOSE);
+	gtk_toolbar_insert(GTK_TOOLBAR(window->toolbar), button, -1);
+	g_signal_connect((gpointer) button, "clicked",
+	                   G_CALLBACK (wave_close_cb), window);
+	
 	if (glame_config_get_long_with_default("waveedit/scroll", 1)){ 
 		gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(scroll_button), TRUE);
 		window->scroll_play = 1;
