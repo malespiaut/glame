@@ -1,7 +1,7 @@
 /*
  * gltree.cpp
  *
- * $Id: gltree.c,v 1.11 2006/03/07 20:26:09 ochonpaul Exp $
+ * $Id: gltree.c,v 1.12 2007/04/01 20:13:02 ochonpaul Exp $
  *
  * Copyright (C) 2003, 2004 Johannes Hirche, Richard Guenther, Laurent Georget
  *
@@ -397,9 +397,14 @@ edit_wave_cb(GtkWidget *widget, gpointer which)
 	item = glame_gpsm_store_get_item(iter);
 	gtk_tree_model_get(model, iter, GPSM_STORE_LABEL, &label, -1);
 
+	if (GPSM_ITEM_IS_GRP (item) && gpsm_grp_nritems (item) == 0){
+		glame_error_dialog (_("You need to add some tracks to the project."), NULL);
+		return;
+	}
+
 	we = glame_waveedit_gui_new(label, item);
 	if (!we) {
-		glame_error_dialog(_("Cannot open wave editor"), NULL);
+		glame_error_dialog(_("Cannot open wave editor."), NULL);
 		return;
 	}
 	gtk_quit_add_destroy(1, GTK_OBJECT(we));
