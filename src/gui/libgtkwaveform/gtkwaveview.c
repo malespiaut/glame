@@ -35,12 +35,14 @@
 #include "grange.h"
 #include "util.h"
 
-/* static xpms for rec/mute buttons */
+/* static xpms for rec/mute/solo buttons */
 #include "rec.xpm"
 #include "mute.xpm"
+#include "solo.xpm"
 #include "sel.xpm"
 #include "rec_off.xpm"
 #include "mute_off.xpm"
+#include "solo_off.xpm"
 #include "sel_off.xpm"
 
 
@@ -1708,6 +1710,22 @@ void on_tb_mute_clicked_cb(GtkWidget *widget, gpointer data)
 	gtk_widget_show_all(widget);
 }
 
+void on_tb_solo_clicked_cb(GtkWidget *widget, gpointer data)
+{	
+	GdkPixmap *pixmap;
+	GdkBitmap *bitmap;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+		pixmap = gdk_pixmap_create_from_xpm_d(
+		widget->window, &bitmap, NULL, solo_xpm);
+	else
+		pixmap = gdk_pixmap_create_from_xpm_d(
+		widget->window, &bitmap, NULL, solo_off_xpm);
+	gtk_container_foreach(GTK_CONTAINER(widget),(GtkCallback)empty_button, NULL);
+	gtk_container_add(GTK_CONTAINER(widget),
+			  gtk_pixmap_new(pixmap, bitmap));
+	gtk_widget_show_all(widget);
+}
+
 void on_tb_sel_clicked_cb(GtkWidget *widget, gpointer data)
 {	
 	GdkPixmap *pixmap;
@@ -1856,6 +1874,16 @@ gtk_wave_view_set_buffer (GtkWaveView *waveview, GtkWaveBuffer *wavebuffer)
 				     (GtkSignalFunc)on_tb_realize_cb, mute_off_xpm);
 		  gtk_signal_connect(GTK_OBJECT(tb), "clicked",
 				     (GtkSignalFunc)on_tb_mute_clicked_cb, NULL);
+		  /* solo */
+		  tb = gtk_toggle_button_new();
+		  gtk_container_set_border_width(GTK_CONTAINER(tb), 0);
+		  gtk_object_set(GTK_OBJECT(tb), "can_focus", FALSE, NULL);
+		  gtk_box_pack_start(GTK_BOX(hbox), tb, FALSE, FALSE, 0);
+		  gtk_signal_connect(GTK_OBJECT(tb), "realize",
+				     (GtkSignalFunc)on_tb_realize_cb, solo_off_xpm);
+		  gtk_signal_connect(GTK_OBJECT(tb), "clicked",
+				     (GtkSignalFunc)on_tb_solo_clicked_cb, NULL);
+		  
 		  /* select */
 		  tb = gtk_toggle_button_new();
 		  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);

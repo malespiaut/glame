@@ -1,7 +1,7 @@
 /*
  * waveeditgui.c
  *
- * $Id: waveeditgui.c,v 1.159 2007/01/25 18:54:26 richi Exp $
+ * $Id: waveeditgui.c,v 1.160 2007/04/12 19:05:36 ochonpaul Exp $
  *
  * Copyright (C) 2001, 2002, 2003 Richard Guenther
  *
@@ -587,9 +587,9 @@ static void play(GtkWaveView *waveview,
 	gpsm_grp_t *grp;
 	filter_t *net, *aout = NULL, *swin, *render, *ain, *swout = NULL;
 	filter_port_t *render_in, *ain_out;
-	int rate, i, play_cnt, rec_cnt;
+	int rate, i, play_cnt, rec_cnt, solo_mode;
 	glsig_emitter_t *emitter;
-	gboolean *flg_rec, *flg_mute;
+	gboolean *flg_rec, *flg_mute, *flg_solo;
 
 	/* Check loop button */
 	if (!loop) loop = active_waveedit->loop_play;
@@ -615,13 +615,18 @@ static void play(GtkWaveView *waveview,
 	/* Read flags from waveview. */
 	play_cnt = 0;
 	rec_cnt = 0;
+	solo_mode = 0;
 	flg_rec = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
 	flg_mute = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
+	flg_solo = (gboolean *)alloca(sizeof(gboolean)*gtk_wave_buffer_get_num_channels(wavebuffer));
 	for (i=gtk_wave_buffer_get_num_channels(wavebuffer); i>0; i--) {
 		flg_rec[i-1] = gtk_wave_view_get_flag(waveview, i-1, GTK_WAVE_VIEW_FLAG_RECORD) && enable_record;
 		flg_mute[i-1] = gtk_wave_view_get_flag(waveview, i-1, GTK_WAVE_VIEW_FLAG_MUTE);
+		flg_solo[i-1] = gtk_wave_view_get_flag(waveview, i-1, GTK_WAVE_VIEW_FLAG_SOLO);
 		if (!flg_mute[i-1])
 			play_cnt++;
+		if (flg_solo[i-1])
+			solo_mode = 1;
 		if (flg_rec[i-1])
 			rec_cnt++;
 	}
@@ -690,8 +695,13 @@ static void play(GtkWaveView *waveview,
 
 	i = -1;
 	gpsm_grp_foreach_item(grp, item) {
-		i++;
+		i++; 
+
+		if (solo_mode && flg_solo[i] && flg_mute[i]) 
+			flg_mute[i] = 0;
 		if (flg_mute[i] && !flg_rec[i]) {
+			continue;
+		} else if (solo_mode && !flg_solo[i] && !flg_rec[i]) {
 			continue;
 		} else if (!flg_mute[i] && !flg_rec[i]) {
 			swin = net_add_gpsm_input(net, (gpsm_swfile_t *)item,

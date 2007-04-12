@@ -139,6 +139,7 @@ struct _GtkWaveViewClass
 
 #define GTK_WAVE_VIEW_FLAG_RECORD 0
 #define GTK_WAVE_VIEW_FLAG_MUTE 1
+#define GTK_WAVE_VIEW_FLAG_SOLO 2 
 
 
 GtkType    gtk_wave_view_get_type               (void);
