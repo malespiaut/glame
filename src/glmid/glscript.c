@@ -174,7 +174,6 @@ int glscript_init()
 	glame_user_module = scm_c_define_module ("guile-user", NULL, NULL);
 	scm_set_current_module (glame_user_module);
 	scm_c_use_module ("glame");
-	scm_c_use_module ("guile");
 	scm_c_use_module ("ice-9 session");
 
 	/* Load glame scheme libraries (if existent):
