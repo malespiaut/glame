@@ -10,12 +10,12 @@ AC_TRY_COMPILE(
 #include <sys/mman.h>
 ],
 [
-	int i = madvise((void *)0, 0, 0);
+	int i = madvise((void *)0, 0, MADV_DONTNEED);
 ],
 [
 AC_MSG_RESULT(yes)
 HAVE_MADVISE=1
-AC_DEFINE(HAVE_MADVISE,, [have madvise syscall])
+AC_DEFINE(HAVE_MADVISE, 1, [have madvise syscall])
 ],
 [
 AC_MSG_RESULT(no)
