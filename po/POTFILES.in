@@ -10,3 +10,6 @@ src/gui/edit_filter/canvasport.c
 src/gui/edit_filter/filtereditgui.c
 src/gui/edit_filter/glamecanvas.c
 src/gui/tree/gltree.c
+src/plugins/mixer.c
+src/plugins/normalize.c
+src/plugins/resample.c
