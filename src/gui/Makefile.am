@@ -5,6 +5,7 @@ EXTRA_DIST = glame.desktop default-accels \
 	libgtkwaveform/sel.xpm \
 	libgtkwaveform/rec_off.xpm libgtkwaveform/mute_off.xpm \
 	libgtkwaveform/sel_off.xpm \
+	libgtkwaveform/solo.xpm libgtkwaveform/solo_off.xpm \
 	edit_filter/edit_filter_marshal.list
 
 Multimediadir = $(datadir)/gnome/apps/Multimedia
