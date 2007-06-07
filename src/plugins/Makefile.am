@@ -1,4 +1,4 @@
-INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_GUI_INCLUDEDIR) $(ALSA_CFLAGS) $(JACK_CFLAGS) $(AUDIOFILE_CFLAGS)
+INCLUDES = -I@top_srcdir@/src/include -I@top_srcdir@/src/swapfile -I@top_srcdir@/src/hash -I@top_srcdir@/src/glmid -I@top_srcdir@/src/filter -I@top_srcdir@/src/gui $(GLAME_GUI_INCLUDEDIR) $(ALSA_CFLAGS) $(AUDIOFILE_CFLAGS)
 
 
 EXTRA_DIST = basic.c basic_sample.c arithmetic.c \

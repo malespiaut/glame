@@ -381,19 +381,6 @@ if test "x$alsa" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_ALSA, test x$alsa = xyes)
 
-dnl Jack support is not ready
-dnl dnl check for Jack
-dnl AC_CHECK_HEADER(jack/jack.h, jack=yes, jack=no)
-jack="no"
-dnl if test x$jack = xyes; then
-dnl 	JACK_CFLAGS="`pkg-config --cflags jack`"
-dnl 	JACK_LIBS="`pkg-config --libs jack`"
-dnl 	AC_DEFINE(HAVE_JACK, 1, [have jack library])
-dnl fi
-AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
-dnl AC_SUBST(JACK_CFLAGS)
-dnl AC_SUBST(JACK_LIBS)
-
 dnl
 dnl Check for LADSPA support
 dnl
