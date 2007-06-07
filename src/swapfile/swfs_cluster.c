@@ -472,6 +472,12 @@ static void _cluster_killmap(struct swcluster *c)
 {
 	if (is_hashed_mapping(c))
 		DERROR("Killing used mapping");
+#if HAVE_MADVISE
+	/* If we don't need the data of this cluster, signal that
+	   to the kernel. */
+	if (c->files_cnt == 0)
+		madvise(c->map_addr, c->size, MADV_DONTNEED);
+#endif
 	munmap(c->map_addr, c->size);
 	c->map_addr = NULL;
 	c->map_prot = PROT_NONE;
